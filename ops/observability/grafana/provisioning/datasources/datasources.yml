@@ -1,0 +1,34 @@
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    orgId: 1
+    url: http://prometheus:9090
+    isDefault: true
+    version: 1
+    editable: false
+
+  # Read-only Postgres data-source (F-16). Uses the `grafana_ro` role created
+  # by `0_init` migration; the password MUST be rotated after first deploy:
+  #   docker compose ... exec postgres psql -U ekohost -d ekohost_db \
+  #     -c "ALTER USER grafana_ro PASSWORD '<from-vault>';"
+  - name: EkoHost-DB (RO)
+    type: postgres
+    access: proxy
+    orgId: 1
+    url: postgres:5432
+    user: grafana_ro
+    secureJsonData:
+      password: ${GRAFANA_DB_RO_PASSWORD}
+    jsonData:
+      database: ${POSTGRES_DB}
+      sslmode: disable
+      maxOpenConns: 10
+      maxIdleConns: 5
+      connMaxLifetime: 14400
+      postgresVersion: 1600
+      timescaledb: false
+    version: 1
+    editable: false

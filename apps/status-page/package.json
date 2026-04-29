@@ -1,0 +1,29 @@
+{
+  "name": "@ekohost/status-page",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack -p 3004",
+    "build": "next build",
+    "start": "next start -p 3004",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "lucide-react": "^0.365.0",
+    "next": "15.2.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@ekohost/typescript-config": "workspace:*",
+    "@tailwindcss/postcss": "^4.1.0",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.2.2",
+    "tailwindcss": "^4.1.0",
+    "typescript": "^5"
+  }
+}

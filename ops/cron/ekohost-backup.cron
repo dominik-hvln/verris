@@ -1,0 +1,26 @@
+# =============================================================================
+# EkoHost — Postgres backup (host crontab)
+# -----------------------------------------------------------------------------
+# Install on the production host with:
+#
+#   sudo install -m 0644 ops/cron/ekohost-backup.cron /etc/cron.d/ekohost-backup
+#
+# The job runs daily at 03:17 UTC (off-peak) and writes timestamped dumps to
+# /var/backups/ekohost. Retention defaults to 14 days; override via env vars.
+#
+# Adjust the WORKDIR= line below to the absolute path where the repo is
+# checked out on your host (must contain docker-compose.prod.yml).
+# =============================================================================
+
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# Where the docker-compose.prod.yml lives on the host:
+WORKDIR=/opt/ekohost
+
+# Backups + retention (override via /etc/default/ekohost-backup if you prefer)
+BACKUP_DIR=/var/backups/ekohost
+RETENTION_DAYS=14
+COMPOSE_PROJECT_NAME=ekohost
+
+17 3 * * *  root  cd $WORKDIR && BACKUP_DIR=$BACKUP_DIR RETENTION_DAYS=$RETENTION_DAYS COMPOSE_PROJECT_NAME=$COMPOSE_PROJECT_NAME ./ops/backup-postgres.sh >> /var/log/ekohost-backup.log 2>&1

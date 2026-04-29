@@ -1,0 +1,64 @@
+{
+  "annotations": { "list": [] },
+  "editable": false,
+  "graphTooltip": 0,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "API uptime",
+      "id": 1,
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "ekohost_process_uptime_seconds", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } },
+      "options": { "graphMode": "area", "colorMode": "value" }
+    },
+    {
+      "type": "stat",
+      "title": "API memory (RSS)",
+      "id": 2,
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "ekohost_process_memory_bytes{kind=\"rss\"}", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "type": "stat",
+      "title": "Subscriptions: ACTIVE",
+      "id": 3,
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "ekohost_subscriptions_total{status=\"ACTIVE\"}", "refId": "A" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Subscriptions: PAST_DUE / SUSPENDED",
+      "id": 4,
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "sum(ekohost_subscriptions_total{status=~\"PAST_DUE|SUSPENDED\"})", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green" }, { "color": "red", "value": 1 }] } } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Subscriptions over time (per status)",
+      "id": 5,
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 5 },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "ekohost_subscriptions_total", "legendFormat": "{{status}}", "refId": "A" }
+      ]
+    }
+  ],
+  "schemaVersion": 36,
+  "style": "dark",
+  "tags": ["ekohost", "control-plane"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "title": "Control plane health",
+  "uid": "ekohost-control-plane",
+  "version": 1
+}

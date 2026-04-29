@@ -1,0 +1,76 @@
+"use server";
+
+import { setAuthCookie } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { apiFetch } from "@/lib/api";
+
+interface LoginState {
+  error?: string;
+  twoFactorRequired?: boolean;
+  challengeToken?: string;
+  email?: string;
+}
+
+interface VerifyState {
+  error?: string;
+}
+
+export async function submitLogin(
+  prevState: LoginState | undefined,
+  formData: FormData,
+): Promise<LoginState> {
+  const email = formData.get("email")?.toString().trim();
+  const password = formData.get("password")?.toString();
+
+  if (!email || !password) {
+    return { error: "Wypełnij wszystkie pola" };
+  }
+
+  try {
+    const data = await apiFetch<{
+      access_token?: string;
+      twoFactorRequired?: boolean;
+      challengeToken?: string;
+    }>("/auth/login", {
+      unauthenticated: true,
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    });
+    if (data.twoFactorRequired) {
+      if (!data.challengeToken) return { error: "Brak tokenu 2FA — spróbuj ponownie." };
+      return { twoFactorRequired: true, challengeToken: data.challengeToken, email };
+    }
+    if (data.access_token) {
+      await setAuthCookie(data.access_token);
+      redirect("/dashboard");
+    }
+    return { error: "Nieoczekiwana odpowiedź serwera" };
+  } catch {
+    return { error: "Nieprawidłowe dane logowania" };
+  }
+}
+
+export async function submitTwoFactor(
+  prevState: VerifyState | undefined,
+  formData: FormData,
+): Promise<VerifyState> {
+  const challengeToken = formData.get("challengeToken")?.toString();
+  const code = formData.get("code")?.toString().trim();
+
+  if (!challengeToken || !code) {
+    return { error: "Wprowadź 6-cyfrowy kod z aplikacji TOTP." };
+  }
+
+  try {
+    const data = await apiFetch<{ access_token?: string }>("/auth/login/2fa", {
+      unauthenticated: true,
+      method: "POST",
+      body: JSON.stringify({ challengeToken, code }),
+    });
+    if (!data.access_token) return { error: "Brak tokenu sesji w odpowiedzi" };
+    await setAuthCookie(data.access_token);
+    redirect("/dashboard");
+  } catch {
+    return { error: "Niepoprawny kod 2FA" };
+  }
+}

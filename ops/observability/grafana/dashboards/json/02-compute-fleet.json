@@ -1,0 +1,57 @@
+{
+  "annotations": { "list": [] },
+  "editable": false,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Servers ACTIVE / OFFLINE / MAINTENANCE",
+      "id": 1,
+      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 0 },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "ekohost_servers_total", "legendFormat": "{{status}}", "refId": "A" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Stale heartbeat (>5 min)",
+      "id": 2,
+      "gridPos": { "h": 5, "w": 8, "x": 0, "y": 5 },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "ekohost_servers_stale_heartbeat", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green" }, { "color": "red", "value": 1 }] } } }
+    },
+    {
+      "type": "table",
+      "title": "Servers (DB view: server_safe)",
+      "id": 3,
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 10 },
+      "datasource": { "type": "postgres", "uid": "EkoHost-DB (RO)" },
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT id, name, region, status, \"lastHeartbeatAt\", \"approvedAt\" FROM server_safe ORDER BY \"createdAt\" DESC",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Provisioning queue (PROVISIONING subs)",
+      "id": 4,
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 20 },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "ekohost_provisioning_pending", "refId": "A" }
+      ]
+    }
+  ],
+  "schemaVersion": 36,
+  "style": "dark",
+  "tags": ["ekohost", "fleet"],
+  "templating": { "list": [] },
+  "time": { "from": "now-24h", "to": "now" },
+  "title": "Compute fleet",
+  "uid": "ekohost-fleet",
+  "version": 1
+}

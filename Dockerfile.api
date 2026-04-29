@@ -1,0 +1,76 @@
+# =============================================================================
+# EkoHost API — production image (NestJS)
+# Multi-stage build: deps -> build -> runtime
+# Build context: monorepo root.
+#   docker build -f Dockerfile.api -t ekohost/api .
+# =============================================================================
+
+ARG NODE_VERSION=20
+
+FROM node:${NODE_VERSION}-bookworm-slim AS base
+ENV PNPM_HOME=/pnpm \
+    PATH=/pnpm:$PATH \
+    NODE_ENV=production
+RUN corepack enable && corepack prepare pnpm@9.5.0 --activate
+WORKDIR /workspace
+
+# -----------------------------------------------------------------------------
+# 1. Install — uses pnpm with the workspace lockfile.
+# -----------------------------------------------------------------------------
+FROM base AS deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY apps/api/package.json apps/api/package.json
+COPY libs/contracts/package.json libs/contracts/package.json
+COPY libs/database/package.json libs/database/package.json
+COPY libs/directadmin-sdk/package.json libs/directadmin-sdk/package.json
+COPY libs/typescript-config libs/typescript-config
+COPY libs/eslint-config libs/eslint-config
+RUN --mount=type=cache,id=pnpm,target=/pnpm-store \
+    pnpm config set store-dir /pnpm-store && \
+    pnpm install --frozen-lockfile --filter api... --filter @ekohost/database...
+
+# -----------------------------------------------------------------------------
+# 2. Build — generate Prisma client, compile TS, produce dist
+# -----------------------------------------------------------------------------
+FROM deps AS build
+COPY libs libs
+COPY apps/api apps/api
+RUN pnpm --filter @ekohost/database exec prisma generate && \
+    pnpm --filter @ekohost/database build && \
+    pnpm --filter @ekohost/directadmin-sdk build && \
+    pnpm --filter api build && \
+    pnpm --filter api build:cli
+
+# -----------------------------------------------------------------------------
+# 3. Runtime — minimal image with only production deps and built artifacts
+# -----------------------------------------------------------------------------
+FROM node:${NODE_VERSION}-bookworm-slim AS runtime
+ENV NODE_ENV=production \
+    PORT=3000
+WORKDIR /app
+
+# OpenSSL is required by Prisma's query engine on Debian slim
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        openssl ca-certificates curl tini && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy only what's needed to run
+COPY --from=build /workspace/apps/api/dist ./apps/api/dist
+COPY --from=build /workspace/apps/api/dist-cli ./apps/api/dist-cli
+COPY --from=build /workspace/apps/api/package.json ./apps/api/package.json
+COPY --from=build /workspace/libs/database/dist ./libs/database/dist
+COPY --from=build /workspace/libs/database/package.json ./libs/database/package.json
+COPY --from=build /workspace/libs/database/prisma ./libs/database/prisma
+COPY --from=build /workspace/libs/contracts ./libs/contracts
+COPY --from=build /workspace/libs/directadmin-sdk/dist ./libs/directadmin-sdk/dist
+COPY --from=build /workspace/libs/directadmin-sdk/package.json ./libs/directadmin-sdk/package.json
+COPY --from=build /workspace/node_modules ./node_modules
+
+EXPOSE 3000
+
+# Healthcheck: simple TCP probe on the API port
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -fsS http://127.0.0.1:${PORT}/healthz || exit 1
+
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["node", "apps/api/dist/main.js"]

@@ -1,0 +1,76 @@
+import {
+  Controller,
+  Get,
+  Patch,
+  Body,
+  UseGuards,
+} from '@nestjs/common';
+import { UsersService } from './users.service';
+import {
+  UpdateProfileDto,
+  ChangePasswordDto,
+  ApplyReferralCodeDto,
+  RedeemEcoPointsDto,
+} from './users.dto';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+
+@Controller('users')
+@UseGuards(JwtAuthGuard)
+export class UsersController {
+  constructor(private readonly usersService: UsersService) {}
+
+  /**
+   * GET /users/me
+   * Pobiera pełny profil zalogowanego użytkownika.
+   */
+  @Get('me')
+  async getProfile(@CurrentUser() user: { userId: string }) {
+    return this.usersService.getProfile(user.userId);
+  }
+
+  @Get('me/eco-ledger')
+  ecoLedger(@CurrentUser() user: { userId: string }) {
+    return this.usersService.listEcoLedger(user.userId);
+  }
+
+  @Patch('me/referral')
+  applyReferral(
+    @CurrentUser() user: { userId: string },
+    @Body() dto: ApplyReferralCodeDto,
+  ) {
+    return this.usersService.applyReferralCode(user.userId, dto);
+  }
+
+  @Patch('me/eco-redeem')
+  redeemEcoPoints(
+    @CurrentUser() user: { userId: string },
+    @Body() dto: RedeemEcoPointsDto,
+  ) {
+    return this.usersService.redeemEcoPoints(user.userId, dto);
+  }
+
+  /**
+   * PATCH /users/me
+   * Aktualizuje dane profilowe i bilingowe.
+   */
+  @Patch('me')
+  async updateProfile(
+    @CurrentUser() user: { userId: string },
+    @Body() dto: UpdateProfileDto,
+  ) {
+    return this.usersService.updateProfile(user.userId, dto);
+  }
+
+  /**
+   * PATCH /users/password
+   * Zmienia hasło po weryfikacji starego.
+   */
+  @Patch('password')
+  async changePassword(
+    @CurrentUser() user: { userId: string },
+    @Body() dto: ChangePasswordDto,
+  ) {
+    return this.usersService.changePassword(user.userId, dto);
+  }
+}

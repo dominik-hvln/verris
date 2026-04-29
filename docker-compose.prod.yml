@@ -1,0 +1,287 @@
+# =============================================================================
+# EkoHost — production stack (control-plane node)
+# Run on the dedicated server hosting the panel + DB. Customer accounts run on
+# separate compute nodes that bootstrap themselves via /servers/handshake.
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+# =============================================================================
+
+# =============================================================================
+# F-8: log aggregation — every service uses the json-file driver with bounded
+# retention (10 MB × 5 files = 50 MB max per container). Use `docker logs -f`
+# for live tail, `docker logs --since` for historical. To ship to Loki/Grafana
+# Cloud later, swap the driver to `loki` and configure `loki-url` per service.
+# =============================================================================
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: '10m'
+    max-file: '5'
+    tag: '{{.Name}}'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: always
+    logging: *default-logging
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ekohost}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-ekohost_db}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER:-ekohost} -d $${POSTGRES_DB:-ekohost_db}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [ekohost_internal]
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    logging: *default-logging
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [ekohost_internal]
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    restart: always
+    logging: *default-logging
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      NODE_ENV: production
+      PORT: '3000'
+      CLIENT_PANEL_URL: ${CLIENT_PANEL_URL}
+      STAFF_PANEL_URL: ${STAFF_PANEL_URL}
+      ADMIN_PANEL_URL: ${ADMIN_PANEL_URL}
+      PUBLIC_API_URL: ${PUBLIC_API_URL}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
+      APP_KMS_KEY: ${APP_KMS_KEY:?APP_KMS_KEY is required}
+      DATABASE_URL: ${DATABASE_URL}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_SUCCESS_URL: ${STRIPE_SUCCESS_URL}
+      STRIPE_CANCEL_URL: ${STRIPE_CANCEL_URL}
+      METRICS_AUTH_TOKEN: ${METRICS_AUTH_TOKEN:-}
+      REDIS_URL: redis://redis:6379
+    expose: ['3000']
+    networks: [ekohost_internal, ekohost_public]
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:3000/healthz']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  client-panel:
+    build:
+      context: .
+      dockerfile: Dockerfile.panel
+      args:
+        APP_NAME: client-panel
+        APP_PORT: '3001'
+    restart: always
+    logging: *default-logging
+    depends_on: [api]
+    environment:
+      NODE_ENV: production
+      PORT: '3001'
+      NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
+      NEXT_PUBLIC_STATUS_PAGE_URL: ${PUBLIC_STATUS_URL:-https://status.ekohost.pl}
+      API_URL: http://api:3000
+    expose: ['3001']
+    networks: [ekohost_public]
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:3001/api/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  staff-panel:
+    build:
+      context: .
+      dockerfile: Dockerfile.panel
+      args:
+        APP_NAME: staff-panel
+        APP_PORT: '3002'
+    restart: always
+    logging: *default-logging
+    depends_on: [api]
+    environment:
+      NODE_ENV: production
+      PORT: '3002'
+      NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
+      API_URL: http://api:3000
+    expose: ['3002']
+    networks: [ekohost_public]
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:3002/api/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  admin-panel:
+    build:
+      context: .
+      dockerfile: Dockerfile.panel
+      args:
+        APP_NAME: admin-panel
+        APP_PORT: '3003'
+    restart: always
+    logging: *default-logging
+    depends_on: [api]
+    environment:
+      NODE_ENV: production
+      PORT: '3003'
+      NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
+      API_URL: http://api:3000
+    expose: ['3003']
+    networks: [ekohost_public]
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:3003/api/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # Public status page (status.ekohost.pl) — anonymous, fed by GET /status.
+  # No auth, no DB cookies; the only inbound config is NEXT_PUBLIC_API_URL.
+  status-page:
+    build:
+      context: .
+      dockerfile: Dockerfile.panel
+      args:
+        APP_NAME: status-page
+        APP_PORT: '3004'
+    restart: always
+    logging: *default-logging
+    depends_on: [api]
+    environment:
+      NODE_ENV: production
+      PORT: '3004'
+      NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
+      EKOHOST_API_URL: http://api:3000
+    expose: ['3004']
+    networks: [ekohost_public]
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:3004/api/health']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ---------------------------------------------------------------------------
+  # Observability stack (F-12 → F-16): Prometheus + Grafana + exporters.
+  # All services are reachable only on the `ekohost_internal` network; Grafana
+  # is exposed publicly via Caddy with `forward_auth` to /auth/grafana-validate.
+  # ---------------------------------------------------------------------------
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    restart: always
+    logging: *default-logging
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment:
+      DATA_SOURCE_NAME: postgresql://${POSTGRES_USER:-ekohost}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ekohost_db}?sslmode=disable
+    expose: ['9187']
+    networks: [ekohost_internal]
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.55.0-alpine
+    restart: always
+    logging: *default-logging
+    depends_on:
+      redis: { condition: service_healthy }
+    environment:
+      REDIS_ADDR: redis://redis:6379
+    expose: ['9121']
+    networks: [ekohost_internal]
+
+  prometheus:
+    image: prom/prometheus:v2.51.2
+    restart: always
+    logging: *default-logging
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./ops/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    environment:
+      METRICS_AUTH_TOKEN: ${METRICS_AUTH_TOKEN:-}
+    expose: ['9090']
+    depends_on: [api, postgres-exporter, redis-exporter]
+    networks: [ekohost_internal, ekohost_public]
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    restart: always
+    logging: *default-logging
+    depends_on: [prometheus]
+    environment:
+      GF_SERVER_DOMAIN: ${CADDY_GRAFANA_DOMAIN:-grafana.ekohost.local}
+      GF_SECURITY_ADMIN_USER: ${GF_SECURITY_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:?GF_SECURITY_ADMIN_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-ekohost_db}
+      GRAFANA_DB_RO_PASSWORD: ${GRAFANA_DB_RO_PASSWORD:?GRAFANA_DB_RO_PASSWORD is required (ALTER USER grafana_ro PASSWORD ...)}
+    volumes:
+      - ./ops/observability/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+      - ./ops/observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./ops/observability/grafana/dashboards/json:/etc/grafana/provisioning/dashboards/json:ro
+      - grafana_data:/var/lib/grafana
+    expose: ['3000']
+    networks: [ekohost_internal, ekohost_public]
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:3000/api/health | grep -q ok']
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Caddy is a tiny reverse-proxy that auto-issues TLS via Let's Encrypt.
+  # Replace with nginx/Traefik if you prefer; the upstreams stay the same.
+  caddy:
+    image: caddy:2-alpine
+    restart: always
+    logging: *default-logging
+    depends_on: [api, client-panel, staff-panel, admin-panel, status-page, grafana]
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./ops/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [ekohost_public]
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  ekohost_internal:   # DB + Redis — not exposed to anything else
+    driver: bridge
+  ekohost_public:     # API + panels reachable through the proxy
+    driver: bridge

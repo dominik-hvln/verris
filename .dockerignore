@@ -1,0 +1,17 @@
+**/node_modules
+**/.next
+**/dist
+**/dist-cli
+**/.turbo
+**/.git
+**/.DS_Store
+**/coverage
+**/.env
+**/.env.local
+**/.env.development
+**/.env.test
+.npmrc
+.env.prod
+.env.prod.local
+.cursor*
+*.log

@@ -1,0 +1,95 @@
+{
+  "annotations": { "list": [] },
+  "editable": false,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "MRR snapshot (sum of priceAmount, monthly subs only)",
+      "id": 1,
+      "gridPos": { "h": 5, "w": 8, "x": 0, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "EkoHost-DB (RO)" },
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(SUM(\"priceAmount\"), 0) AS mrr FROM subscription_safe WHERE status = 'ACTIVE' AND interval = 'MONTH'",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "currencyPLN" } }
+    },
+    {
+      "type": "stat",
+      "title": "Top-ups (last 30 days)",
+      "id": 2,
+      "gridPos": { "h": 5, "w": 8, "x": 8, "y": 0 },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "ekohost_wallet_amount_30d_pln{type=\"TOPUP\"}", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "currencyPLN" } }
+    },
+    {
+      "type": "stat",
+      "title": "Autoscaling revenue (last 30 days)",
+      "id": 3,
+      "gridPos": { "h": 5, "w": 8, "x": 16, "y": 0 },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "ekohost_wallet_amount_30d_pln{type=\"CHARGE_AUTOSCALING\"}", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "currencyPLN" } }
+    },
+    {
+      "type": "table",
+      "title": "Subscriptions by plan + status",
+      "id": 4,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "datasource": { "type": "postgres", "uid": "EkoHost-DB (RO)" },
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \"planId\", status, count(*) AS subs FROM subscription_safe GROUP BY \"planId\", status ORDER BY \"planId\", status",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Daily wallet flow",
+      "id": 5,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "datasource": { "type": "postgres", "uid": "EkoHost-DB (RO)" },
+      "targets": [
+        {
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT date_trunc('day', \"createdAt\") AS time, type, sum(amount) AS value FROM wallet_transaction_safe WHERE \"createdAt\" > NOW() - INTERVAL '30 days' GROUP BY 1, 2 ORDER BY 1",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Invoices issued / day (last 30d)",
+      "id": 6,
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 13 },
+      "datasource": { "type": "postgres", "uid": "EkoHost-DB (RO)" },
+      "targets": [
+        {
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT date_trunc('day', \"createdAt\") AS time, status, count(*) AS value FROM invoice_safe WHERE \"createdAt\" > NOW() - INTERVAL '30 days' GROUP BY 1, 2 ORDER BY 1",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 36,
+  "style": "dark",
+  "tags": ["ekohost", "business"],
+  "templating": { "list": [] },
+  "time": { "from": "now-30d", "to": "now" },
+  "title": "Business",
+  "uid": "ekohost-business",
+  "version": 1
+}

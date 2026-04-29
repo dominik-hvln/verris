@@ -1,0 +1,220 @@
+"use client";
+
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import { Paperclip } from "lucide-react";
+import type { AgentOption, StaffTicketDetail, TicketAttachmentRow } from "@/lib/tickets-data";
+import { staffPostReplyWithFiles, staffUpdateTicket } from "@/lib/ticket-actions";
+import { staffTicketAttachmentDownloadHref } from "@/lib/ticket-attachment-links";
+
+interface Props {
+  ticket: StaffTicketDetail;
+  agents: AgentOption[];
+}
+
+const STATUS_OPTS = ["OPEN", "IN_PROGRESS", "CLOSED"] as const;
+const PRI_OPTS = ["LOW", "NORMAL", "HIGH", "URGENT"] as const;
+const DEPT_OPTS = ["BILLING", "TECHNICAL", "SALES"] as const;
+
+function formatKb(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb < 100 ? kb.toFixed(1) : Math.round(kb)} KB`;
+  return `${(kb / 1024).toFixed(1)} MB`;
+}
+
+function AttachmentList({ ticketId, items }: { ticketId: string; items: TicketAttachmentRow[] }) {
+  if (!items.length) return null;
+  return (
+    <div className="mt-3 flex flex-wrap gap-2">
+      {items.map((a) => (
+        <a
+          key={a.id}
+          href={staffTicketAttachmentDownloadHref(ticketId, a.id)}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-black/35 px-2.5 py-1 text-xs text-cyan-100/95 hover:bg-white/10"
+        >
+          <Paperclip className="h-3.5 w-3.5 shrink-0 opacity-80" />
+          <span className="max-w-[18rem] truncate">{a.originalName}</span>
+          <span className="opacity-70">({formatKb(a.sizeBytes)})</span>
+        </a>
+      ))}
+    </div>
+  );
+}
+
+function openingAttachments(ticket: StaffTicketDetail): TicketAttachmentRow[] {
+  return (ticket.attachments ?? []).filter((a) => a.replyId == null);
+}
+
+export function TicketDetailPanel({ ticket, agents }: Props) {
+  const router = useRouter();
+  const [pending, transition] = useTransition();
+  const [replyErr, setReplyErr] = useState<string | null>(null);
+  const assignedId = ticket.assignedToId ?? ticket.assignedTo?.id ?? "";
+
+  async function patchField(
+    patch: Partial<{ status: string; priority: string; department: string; assignedToId: string | null }>,
+  ) {
+    transition(async () => {
+      await staffUpdateTicket(ticket.id, patch);
+      router.refresh();
+    });
+  }
+
+  return (
+    <div className="space-y-8">
+      <div className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-white/10 bg-black/35 p-6">
+        <div>
+          <p className="mb-2 text-xs font-mono text-muted-foreground">#{ticket.id}</p>
+          <h1 className="text-2xl font-bold text-white">{ticket.subject}</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {[ticket.user.firstName, ticket.user.lastName].filter(Boolean).join(" ") || ticket.user.email} ·{" "}
+            <a href={`mailto:${ticket.user.email}`} className="text-cyan-400 hover:underline">
+              {ticket.user.email}
+            </a>
+          </p>
+        </div>
+        <div className="flex flex-wrap items-end gap-3">
+          <Labelled label="Status">
+            <select
+              className="rounded-lg bg-white/5 border border-white/10 px-2 py-1.5 text-sm max-w-[11rem]"
+              value={ticket.status}
+              disabled={pending}
+              onChange={(e) =>
+                patchField({
+                  status: e.target.value,
+                })
+              }
+            >
+              {STATUS_OPTS.map((s) => (
+                <option key={s} value={s}>
+                  {s === "OPEN" ? "Otwarte" : s === "IN_PROGRESS" ? "W realizacji" : "Zamknięte"}
+                </option>
+              ))}
+            </select>
+          </Labelled>
+          <Labelled label="Prio">
+            <select
+              className="rounded-lg bg-white/5 border border-white/10 px-2 py-1.5 text-sm max-w-[9rem]"
+              value={ticket.priority}
+              disabled={pending}
+              onChange={(e) => patchField({ priority: e.target.value })}
+            >
+              {PRI_OPTS.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+          </Labelled>
+          <Labelled label="Dział">
+            <select
+              className="rounded-lg bg-white/5 border border-white/10 px-2 py-1.5 text-sm max-w-[10rem]"
+              value={ticket.department}
+              disabled={pending}
+              onChange={(e) => patchField({ department: e.target.value })}
+            >
+              {DEPT_OPTS.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </select>
+          </Labelled>
+          <Labelled label="Przypisano">
+            <select
+              className="rounded-lg bg-white/5 border border-white/10 px-2 py-1.5 text-sm min-w-[11rem]"
+              value={assignedId ?? ""}
+              disabled={pending}
+              onChange={(e) => {
+                const v = e.target.value;
+                patchField({ assignedToId: v === "" ? null : v });
+              }}
+            >
+              <option value="">— nikt —</option>
+              {agents.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {[a.firstName, a.lastName].filter(Boolean).join(" ") || a.email}
+                </option>
+              ))}
+            </select>
+          </Labelled>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-white/10 bg-black/25 p-6">
+        <h2 className="mb-3 text-sm font-semibold text-white">Pierwsza wiadomość</h2>
+        <pre className="font-sans text-sm whitespace-pre-wrap text-neutral-200">{ticket.message}</pre>
+        <AttachmentList ticketId={ticket.id} items={openingAttachments(ticket)} />
+      </div>
+
+      <div className="space-y-4">
+        <h2 className="text-lg font-semibold text-white">Wątek</h2>
+        <div className="space-y-3">
+          {[...ticket.replies]
+            .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+            .map((r) => (
+              <div
+                key={r.id}
+                className={`rounded-xl border px-4 py-3 text-sm ${r.isStaff ? "border-cyan-500/25 bg-cyan-500/[0.07]" : "border-white/10 bg-white/[0.03]"}`}
+              >
+                <div className="mb-1 flex justify-between text-xs text-muted-foreground">
+                  <span>{r.isStaff ? "EkoHost (staff)" : "Klient"}</span>
+                  <span>{new Date(r.createdAt).toLocaleString("pl-PL")}</span>
+                </div>
+                <p className="text-neutral-100 whitespace-pre-wrap">{r.message}</p>
+                <AttachmentList ticketId={ticket.id} items={r.attachments ?? []} />
+              </div>
+            ))}
+        </div>
+
+        <form
+          encType="multipart/form-data"
+          action={async (fd) => {
+            setReplyErr(null);
+            const r = await staffPostReplyWithFiles(ticket.id, fd);
+            if ("error" in r && r.error) setReplyErr(r.error);
+            else router.refresh();
+          }}
+          className="mt-8 space-y-3 border-t border-white/10 pt-6"
+        >
+          <label className="block text-sm font-medium text-white">Twoja odpowiedź</label>
+          <textarea
+            name="message"
+            rows={6}
+            className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm outline-none focus:border-cyan-500/40"
+            placeholder="Napisz odpowiedź — klient dostanie wiadomość e-mailem."
+          />
+          <div>
+            <label className="mb-2 block text-xs text-muted-foreground">Załączniki (opcjonalnie, max 5 × 8 MB)</label>
+            <input
+              name="files"
+              type="file"
+              multiple
+              className="w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2 text-xs file:mr-3 file:rounded-md file:border file:border-white/15 file:bg-white/10 file:px-2 file:py-1"
+            />
+          </div>
+          {replyErr ? <p className="text-sm text-rose-300">{replyErr}</p> : null}
+          <button
+            type="submit"
+            disabled={pending}
+            className="rounded-xl bg-cyan-600 px-6 py-2.5 text-sm font-semibold hover:bg-cyan-500 disabled:opacity-50"
+          >
+            Wyślij odpowiedź
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function Labelled({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="flex flex-col gap-1 text-xs uppercase tracking-wide">
+      <span className="text-muted-foreground">{label}</span>
+      {children}
+    </label>
+  );
+}

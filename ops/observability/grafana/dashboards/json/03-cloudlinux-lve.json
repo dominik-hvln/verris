@@ -1,0 +1,71 @@
+{
+  "annotations": { "list": [] },
+  "editable": false,
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Autoscaling events (last hour)",
+      "id": 1,
+      "gridPos": { "h": 5, "w": 8, "x": 0, "y": 0 },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "ekohost_autoscale_events_1h_total", "refId": "A" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Provisioned accounts (ACTIVE)",
+      "id": 2,
+      "gridPos": { "h": 5, "w": 8, "x": 8, "y": 0 },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "ekohost_accounts_total{status=\"ACTIVE\"}", "refId": "A" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Provisioned accounts (SUSPENDED)",
+      "id": 3,
+      "gridPos": { "h": 5, "w": 8, "x": 16, "y": 0 },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "ekohost_accounts_total{status=\"SUSPENDED\"}", "refId": "A" }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Top 10 LVE consumers (last 30 days, avg CPU%)",
+      "id": 4,
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 5 },
+      "datasource": { "type": "postgres", "uid": "EkoHost-DB (RO)" },
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT a.\"daUsername\", a.domain, ROUND(AVG(u.\"cpuUsageAvg\")::numeric, 2) AS avg_cpu_pct, ROUND(AVG(u.\"memUsageAvgMb\")::numeric, 0) AS avg_ram_mb FROM usage_metric_safe u JOIN account_safe a ON a.id = u.\"accountId\" WHERE u.\"bucketStart\" > NOW() - INTERVAL '30 days' GROUP BY a.id, a.\"daUsername\", a.domain ORDER BY avg_cpu_pct DESC LIMIT 10",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Autoscaling events / minute",
+      "id": 5,
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 17 },
+      "datasource": { "type": "postgres", "uid": "EkoHost-DB (RO)" },
+      "targets": [
+        {
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT date_trunc('minute', \"createdAt\") AS time, direction, count(*) AS value FROM autoscaling_event_safe WHERE \"createdAt\" > NOW() - INTERVAL '6 hours' GROUP BY 1, 2 ORDER BY 1",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 36,
+  "style": "dark",
+  "tags": ["ekohost", "lve"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "title": "CloudLinux LVE",
+  "uid": "ekohost-lve",
+  "version": 1
+}

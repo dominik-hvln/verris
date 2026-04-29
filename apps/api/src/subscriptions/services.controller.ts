@@ -1,0 +1,312 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  NotFoundException,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { HostingSslLetsencryptDto, HostingSslPasteDto } from './dto/hosting-ssl.dto';
+import { RequestExternalMigrationDto } from './dto/migration.dto';
+import { Prisma } from '@ekohost/database';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { PrismaService } from '../prisma/prisma.service';
+import { DirectAdminService } from '../servers/directadmin.service';
+import { MigrationOrchestratorService } from './migration-orchestrator.service';
+
+/**
+ * Customer-facing "services" view — denormalized projection over Subscription
+ * + Account + Plan, designed to back the existing `/services` UI page.
+ */
+@Controller('services')
+@UseGuards(JwtAuthGuard)
+export class UserServicesController {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly directAdmin: DirectAdminService,
+    private readonly migrations: MigrationOrchestratorService,
+  ) {}
+
+  @Get()
+  async list(@CurrentUser() user: { userId: string }) {
+    const subs = await this.prisma.subscription.findMany({
+      where: { userId: user.userId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        plan: true,
+        account: { include: { server: { select: { id: true, name: true, region: true } } } },
+      },
+    });
+
+    return subs.map((s) => ({
+      id: s.id,
+      status: s.status,
+      planSlug: s.plan.slug,
+      planName: s.plan.name,
+      interval: s.interval,
+      priceAmount: s.priceAmount.toString(),
+      currency: s.currency,
+      currentPeriodEnd: s.currentPeriodEnd?.toISOString() ?? null,
+      ecoModeEnabled: s.ecoModeEnabled,
+      autoscalingEnabled: s.autoscalingEnabled,
+      account: s.account
+        ? {
+            id: s.account.id,
+            domain: s.account.domain,
+            daUsername: s.account.daUsername,
+            status: s.account.status,
+            cpuLimit: s.account.cpuLimit,
+            ramLimitMb: s.account.ramLimitMb,
+            diskLimitMb: s.account.diskLimitMb,
+            scaledCpu: s.account.scaledCpu,
+            scaledRamMb: s.account.scaledRamMb,
+            server: s.account.server
+              ? {
+                  id: s.account.server.id,
+                  name: s.account.server.name,
+                  region: s.account.server.region,
+                }
+              : null,
+          }
+        : null,
+    }));
+  }
+
+  /** Lista domen DirectAdmin dla konta przypisanego do subskrypcji — panel klienta B‑14. */
+  @Get(':id/hosting-domains')
+  async hostingDomains(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.listHostingDomainsForSubscription(id, user.userId);
+  }
+
+  @Get(':id/hosting-databases')
+  async hostingDatabases(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.listHostingMysqlForSubscription(id, user.userId);
+  }
+
+  @Get(':id/hosting-da-links')
+  async hostingDaLinks(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.getHostingDaLinksForSubscription(id, user.userId);
+  }
+
+  @Get(':id/hosting-dns')
+  async hostingDns(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Query('domain') domain?: string,
+  ) {
+    return this.directAdmin.listHostingDnsRecords(id, user.userId, domain);
+  }
+
+  @Post(':id/hosting-dns')
+  async createHostingDns(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body()
+    body: { domain: string; name: string; type: string; value: string; ttl?: number },
+  ) {
+    return this.directAdmin.createHostingDnsRecord(id, user.userId, body);
+  }
+
+  @Delete(':id/hosting-dns')
+  async deleteHostingDns(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { domain: string; name: string; type: string; value: string },
+  ) {
+    return this.directAdmin.deleteHostingDnsRecord(id, user.userId, body);
+  }
+
+  @Get(':id/hosting-ftp')
+  async hostingFtp(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.listHostingFtpAccounts(id, user.userId);
+  }
+
+  @Post(':id/hosting-ftp')
+  async createHostingFtp(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { username: string; password: string; directory?: string },
+  ) {
+    return this.directAdmin.createHostingFtpAccount(id, user.userId, body);
+  }
+
+  @Delete(':id/hosting-ftp/:username')
+  async deleteHostingFtp(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('username') username: string,
+  ) {
+    return this.directAdmin.deleteHostingFtpAccount(id, user.userId, username);
+  }
+
+  @Get(':id/hosting-email')
+  async hostingEmail(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.listHostingEmailAccounts(id, user.userId);
+  }
+
+  @Post(':id/hosting-email')
+  async createHostingEmail(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { email: string; password: string; quotaMb?: number },
+  ) {
+    return this.directAdmin.createHostingEmailAccount(id, user.userId, body);
+  }
+
+  @Delete(':id/hosting-email/:email')
+  async deleteHostingEmail(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('email') email: string,
+  ) {
+    return this.directAdmin.deleteHostingEmailAccount(id, user.userId, decodeURIComponent(email));
+  }
+
+  @Get(':id/hosting-cron')
+  async hostingCron(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.listHostingCronJobs(id, user.userId);
+  }
+
+  @Post(':id/hosting-cron')
+  async createHostingCron(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body()
+    body: {
+      minute: string;
+      hour: string;
+      dayOfMonth: string;
+      month: string;
+      dayOfWeek: string;
+      command: string;
+    },
+  ) {
+    return this.directAdmin.createHostingCronJob(id, user.userId, body);
+  }
+
+  @Delete(':id/hosting-cron/:cronId')
+  async deleteHostingCron(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('cronId') cronId: string,
+  ) {
+    return this.directAdmin.deleteHostingCronJob(id, user.userId, cronId);
+  }
+
+  @Get(':id/hosting-ssl')
+  async hostingSsl(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.listHostingSslCertificates(id, user.userId);
+  }
+
+  @Post(':id/hosting-ssl/letsencrypt')
+  async hostingSslLetsencrypt(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: HostingSslLetsencryptDto,
+  ) {
+    return this.directAdmin.requestLetsEncryptCertificate(id, user.userId, {
+      domain: body.domain,
+      includeWww: body.includeWww === true,
+    });
+  }
+
+  @Post(':id/hosting-ssl/paste')
+  async hostingSslPaste(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: HostingSslPasteDto,
+  ) {
+    return this.directAdmin.pasteCustomSslCertificate(id, user.userId, {
+      domain: body.domain,
+      certificate: body.certificate,
+      privateKey: body.privateKey,
+      caBundle: body.caBundle,
+    });
+  }
+
+  @Get(':id/hosting-backups')
+  async hostingBackups(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.listHostingBackups(id, user.userId);
+  }
+
+  /** G‑5: zlecenie pełnego backupu konta przez DirectAdmin (`CMD_API_SITE_BACKUP`). */
+  @Post(':id/hosting-site-backup')
+  async hostingSiteBackupNow(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.createHostingSiteBackupNow(id, user.userId);
+  }
+
+  /** G‑6: zgłoszenie migracji zewnętrznej (FTP/MySQL/IMAP) przez formularz klienta. */
+  @Post(':id/migrations/external')
+  async requestExternalMigration(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: RequestExternalMigrationDto,
+  ) {
+    return this.migrations.requestExternalMigration(id, user.userId, body);
+  }
+
+  /** Timeline G‑6/G‑7 dla klienta (status zgłoszenia i postęp workerów). */
+  @Get(':id/migrations')
+  async listMigrations(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.migrations.listMigrationTimelineForUser(id, user.userId);
+  }
+
+  @Get(':id')
+  async get(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id, userId: user.userId },
+      include: {
+        plan: true,
+        account: { include: { server: { select: { id: true, name: true, region: true } } } },
+        events: { orderBy: { createdAt: 'desc' }, take: 20 },
+      },
+    });
+    if (!sub) throw new NotFoundException('Service not found');
+
+    return {
+      id: sub.id,
+      status: sub.status,
+      plan: {
+        id: sub.plan.id,
+        slug: sub.plan.slug,
+        name: sub.plan.name,
+        description: sub.plan.description,
+        cpuLimit: sub.plan.cpuLimit,
+        ramLimitMb: sub.plan.ramLimitMb,
+        diskLimitMb: sub.plan.diskLimitMb,
+      },
+      interval: sub.interval,
+      priceAmount: sub.priceAmount.toString(),
+      currency: sub.currency,
+      currentPeriodStart: sub.currentPeriodStart?.toISOString() ?? null,
+      currentPeriodEnd: sub.currentPeriodEnd?.toISOString() ?? null,
+      ecoModeEnabled: sub.ecoModeEnabled,
+      autoscalingEnabled: sub.autoscalingEnabled,
+      autoscalingMaxCost: sub.autoscalingMaxCost.toString(),
+      account: sub.account
+        ? {
+            id: sub.account.id,
+            domain: sub.account.domain,
+            daUsername: sub.account.daUsername,
+            status: sub.account.status,
+            cpuLimit: sub.account.cpuLimit,
+            ramLimitMb: sub.account.ramLimitMb,
+            diskLimitMb: sub.account.diskLimitMb,
+            scaledCpu: sub.account.scaledCpu,
+            scaledRamMb: sub.account.scaledRamMb,
+            server: sub.account.server,
+          }
+        : null,
+      events: sub.events.map((e) => ({
+        id: e.id,
+        type: e.type,
+        details: e.details as Prisma.JsonValue,
+        createdAt: e.createdAt.toISOString(),
+      })),
+    };
+  }
+}

@@ -1,0 +1,967 @@
+// =============================================================================
+// EkoHost - Prisma Schema
+// -----------------------------------------------------------------------------
+// Foundation schema covering: IAM, hosting accounts (DirectAdmin/CloudLinux LVE),
+// subscriptions (Stripe), wallet ledger, autoscaling pricing & events, telemetry,
+// audit log, support and bootstrap of new compute nodes.
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// -----------------------------------------------------------------------------
+// IAM
+// -----------------------------------------------------------------------------
+
+enum Role {
+  USER
+  STAFF
+  ADMIN
+}
+
+model User {
+  id                       String    @id @default(uuid())
+  email                    String    @unique
+  passwordHash             String
+  role                     Role      @default(USER)
+
+  // Profile
+  firstName                String?
+  lastName                 String?
+  companyName              String?
+  nip                      String?
+  address                  String?
+  city                     String?
+  postalCode               String?
+  country                  String?   @default("PL")
+  locale                   String    @default("pl")
+
+  // Wallet (Pay-As-You-Go) — derived from WalletTransaction ledger; kept as
+  // a denormalized counter for fast reads, always updated transactionally
+  // alongside ledger inserts.
+  walletBalance            Decimal   @default(0.00) @db.Decimal(12, 2)
+  walletCurrency           String    @default("PLN")
+
+  // Loyalty (Etap G)
+  ecoPoints                Int       @default(0)
+  referralCode           String?   @unique
+  referredByUserId       String?
+  referredBy             User?     @relation("UserReferrals", fields: [referredByUserId], references: [id], onDelete: SetNull)
+  referredUsers          User[]    @relation("UserReferrals")
+  /// Nieauthoryzowany token do publicznego badge SVG (`GET /public/eco/badge/:token`).
+  ecoBadgeToken          String?   @unique
+
+  // 2FA — TOTP (RFC 6238). `twoFactorSecret` and `twoFactorRecoveryCodesEnc`
+  // are encrypted at rest with the application KMS key (AES-256-GCM).
+  twoFactorSecret          String?
+  isTwoFactorEnabled       Boolean   @default(false)
+  twoFactorEnrolledAt      DateTime?
+  twoFactorRecoveryCodesEnc String?
+
+  // Stripe
+  stripeCustomerId         String?   @unique
+  defaultPaymentMethodId   String?
+
+  // Observability — staff with this flag get Editor access in Grafana via
+  // Caddy `forward_auth`. ADMINs are always granted Admin role automatically;
+  // this flag is only meaningful for STAFF.
+  canAccessGrafana         Boolean   @default(false)
+
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  // Relations
+  accounts                 Account[]
+  subscriptions            Subscription[]
+  walletTransactions       WalletTransaction[]
+  paymentMethods           PaymentMethod[]
+  invoices                 Invoice[]
+  domains                  Domain[]
+  tickets                  Ticket[]            @relation("ClientTickets")
+  assignedTickets          Ticket[]            @relation("AssignedTickets")
+  auditLogs                AuditLog[]          @relation("AuditUser")
+  approvedServers          Server[]            @relation("ServerApprover")
+  bootstrapTokensCreated   BootstrapToken[]    @relation("BootstrapTokenCreator")
+  promoRedemptions         PromoRedemption[]
+  walletAutoTopup          WalletAutoTopup?
+  ticketAttachmentsUploaded TicketAttachment[] @relation("TicketAttachmentUploader")
+  ecoPointsLedger           EcoPointsLedgerEntry[]
+}
+
+// -----------------------------------------------------------------------------
+// Etap G — księga punktów EKO (audyt przyznawania / redempcji)
+// -----------------------------------------------------------------------------
+
+model EcoPointsLedgerEntry {
+  id               String   @id @default(uuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  delta            Int
+  reason           String   @db.VarChar(64)
+  subscriptionId   String?
+  createdAt        DateTime @default(now())
+
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+// -----------------------------------------------------------------------------
+// COMPUTE NODES (Servers)
+// -----------------------------------------------------------------------------
+
+enum ServerStatus {
+  INIT             // Created in panel by admin, awaiting bootstrap handshake
+  PENDING_APPROVAL // Handshake completed, awaiting admin approval
+  ACTIVE           // Approved and ready to host new accounts
+  MAINTENANCE      // Temporarily disabled for new account placement
+  OFFLINE          // Not reachable / heartbeat missing
+  DEPROVISIONING   // Being decommissioned, no new accounts
+}
+
+model Server {
+  id              String       @id @default(uuid())
+  name            String?
+  hostname        String?
+  ipAddress       String       @unique
+  region          String?      // e.g. "PL-WAW", "DE-FRA"
+  status          ServerStatus @default(INIT)
+
+  // Capacity (reported via handshake / heartbeat)
+  totalCpuCores   Int?
+  totalMemoryMb   Int?
+  totalDiskMb     Int?
+
+  // Allocations from accounts on this server (sum of base limits)
+  allocatedCpu    Int          @default(0)
+  allocatedMemory Int          @default(0)
+  allocatedDisk   Int          @default(0)
+
+  // Identity / authentication of the node agent
+  identityToken   String?      @unique
+  publicKey       String?
+  agentVersion    String?
+  lastHandshakeAt DateTime?
+  lastHeartbeatAt DateTime?
+
+  // DirectAdmin config (encrypted at rest with the application KMS key)
+  daHost          String?
+  daPort          Int?
+  daUsername      String?
+  daPasswordEnc   String?      // AES-256-GCM (iv:tag:ciphertext, base64url)
+  daUseTls        Boolean      @default(true)
+
+  // Acceptance flow
+  approvedAt      DateTime?
+  approvedById    String?
+  approvedBy      User?        @relation("ServerApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  notes           String?
+
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  accounts        Account[]
+  bootstrapTokens BootstrapToken[]
+  probes          ServiceProbe[]
+
+  @@index([status])
+}
+
+model BootstrapToken {
+  id          String    @id @default(uuid())
+  // SHA-256 of the plaintext token; the plaintext value is shown to the admin
+  // exactly once when the token is generated and never persisted.
+  tokenHash   String    @unique
+
+  serverId    String
+  server      Server    @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  expiresAt   DateTime
+  usedAt      DateTime?
+  usedFromIp  String?
+  revokedAt   DateTime?
+
+  createdById String?
+  createdBy   User?     @relation("BootstrapTokenCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime  @default(now())
+
+  @@index([serverId])
+  @@index([expiresAt])
+}
+
+// -----------------------------------------------------------------------------
+// PLANS, SUBSCRIPTIONS, ACCOUNTS
+// -----------------------------------------------------------------------------
+
+enum BillingInterval {
+  MONTH
+  YEAR
+}
+
+model Plan {
+  id                   String   @id @default(uuid())
+  slug                 String   @unique
+  name                 String
+  description          String?
+
+  // Base resource limits (CloudLinux LVE)
+  cpuLimit             Int      // SPEED %
+  ramLimitMb           Int
+  diskLimitMb          Int
+  ioLimitKbps          Int      @default(10240)
+  iopsLimit            Int      @default(1024)
+  entryProcesses       Int      @default(40)
+  nprocLimit           Int      @default(20)
+
+  // Included transfer (GB) per billing period
+  includedTransferGb   Int?
+
+  // Pricing
+  priceMonthly         Decimal  @db.Decimal(10, 2)
+  priceYearly          Decimal  @db.Decimal(10, 2)
+  currency             String   @default("PLN")
+
+  // Stripe references
+  stripeProductId      String?
+  stripePriceMonthlyId String?  @unique
+  stripePriceYearlyId  String?  @unique
+
+  isPublic             Boolean  @default(true)
+  isActive             Boolean  @default(true)
+  sortOrder            Int      @default(0)
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  subscriptions        Subscription[]
+
+  @@index([isPublic, isActive])
+}
+
+enum SubscriptionStatus {
+  PENDING_PAYMENT // Created, waiting for first payment
+  PROVISIONING   // Payment OK, account being created on a node
+  ACTIVE
+  PAST_DUE       // Renewal failed, in grace period
+  SUSPENDED      // Suspended due to non-payment
+  CANCELED       // Customer canceled
+  EXPIRED
+}
+
+enum SubscriptionPaymentSource {
+  STRIPE_CARD
+  WALLET
+  MANUAL
+}
+
+model Subscription {
+  id                   String                    @id @default(uuid())
+
+  userId               String
+  user                 User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  planId               String
+  plan                 Plan                      @relation(fields: [planId], references: [id])
+
+  status               SubscriptionStatus        @default(PENDING_PAYMENT)
+  interval             BillingInterval
+
+  // Pricing snapshot at sale time (immutable for this subscription instance)
+  priceAmount          Decimal                   @db.Decimal(10, 2)
+  currency             String                    @default("PLN")
+
+  // Payment configuration
+  paymentSource        SubscriptionPaymentSource @default(STRIPE_CARD)
+  stripeSubscriptionId String?                   @unique
+
+  // Lifecycle
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAt             DateTime?
+  canceledAt           DateTime?
+  trialEndsAt          DateTime?
+
+  // Provisioned account (1:1)
+  account              Account?                  @relation("SubscriptionAccount")
+
+  // Autoscaling (per service)
+  autoscalingEnabled   Boolean                   @default(false)
+  autoscalingMaxCost   Decimal                   @default(0) @db.Decimal(10, 2)
+  autoscalingDisabledReason String?
+
+  // Eco mode
+  ecoModeEnabled       Boolean                   @default(false)
+
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+
+  events               SubscriptionEvent[]
+  autoscalingEvents    AutoscalingEvent[]
+  usageMetrics         UsageMetric[]
+  walletEntries        WalletTransaction[]       @relation("SubscriptionWalletEntries")
+  invoices             Invoice[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model SubscriptionEvent {
+  id             String       @id @default(uuid())
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  type           String       // CREATED, ACTIVATED, RENEWED, PAYMENT_FAILED, SUSPENDED, ...
+  details        Json?
+
+  createdAt      DateTime     @default(now())
+
+  @@index([subscriptionId])
+}
+
+enum AccountStatus {
+  PROVISIONING
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+model Account {
+  id              String        @id @default(uuid())
+
+  // DirectAdmin
+  daUsername      String        @unique
+  daPasswordEnc   String?       // initial password / managed password (encrypted)
+  domain          String        @unique // primary domain
+
+  status          AccountStatus @default(PROVISIONING)
+
+  // Effective limits (= plan + autoscaling delta)
+  cpuLimit        Int           @default(100)
+  ramLimitMb      Int           @default(1024)
+  diskLimitMb     Int           @default(5120)
+  ioLimitKbps     Int           @default(10240)
+  iopsLimit       Int           @default(1024)
+  entryProcesses  Int           @default(40)
+  nprocLimit      Int           @default(20)
+
+  // Autoscaling deltas added on top of plan base
+  scaledCpu       Int           @default(0)
+  scaledRamMb     Int           @default(0)
+
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  serverId        String
+  server          Server        @relation(fields: [serverId], references: [id])
+
+  subscriptionId  String        @unique
+  subscription    Subscription  @relation("SubscriptionAccount", fields: [subscriptionId], references: [id])
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([serverId])
+  @@index([userId])
+}
+
+// -----------------------------------------------------------------------------
+// DOMAINS (additional / verifiable)
+// -----------------------------------------------------------------------------
+
+enum DomainStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+}
+
+model Domain {
+  id        String       @id @default(uuid())
+  name      String       @unique
+  status    DomainStatus @default(PENDING)
+
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+// -----------------------------------------------------------------------------
+// WALLET LEDGER & PAYMENTS
+// -----------------------------------------------------------------------------
+
+enum WalletTxType {
+  TOPUP                // User added funds (Stripe / PayU)
+  REFUND
+  CHARGE_SUBSCRIPTION  // Subscription renewal paid from wallet
+  CHARGE_AUTOSCALING   // Hourly autoscaling cost
+  CHARGE_USAGE         // Other metered usage
+  ADJUSTMENT           // Manual adjustment by admin
+  PROMO_CREDIT
+}
+
+enum WalletTxStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model WalletTransaction {
+  id              String          @id @default(uuid())
+
+  userId          String
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  type            WalletTxType
+  status          WalletTxStatus  @default(COMPLETED)
+
+  // Signed amount: positive = credit, negative = debit
+  amount          Decimal         @db.Decimal(12, 2)
+  currency        String          @default("PLN")
+  balanceAfter    Decimal         @db.Decimal(12, 2)
+
+  // Idempotency for top-ups / charges
+  idempotencyKey  String?         @unique
+
+  // External payment refs
+  paymentProvider String?         // STRIPE, PAYU, MANUAL
+  paymentRef      String?         // intent id, charge id, etc.
+
+  subscriptionId  String?
+  subscription    Subscription?   @relation("SubscriptionWalletEntries", fields: [subscriptionId], references: [id])
+
+  description     String?
+  metadata        Json?
+
+  createdAt       DateTime        @default(now())
+
+  @@index([userId, createdAt])
+  @@index([type])
+}
+
+model PaymentMethod {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  provider    String   // STRIPE
+  providerRef String   // pm_xxx
+  brand       String?  // visa, mastercard
+  last4       String?
+  expMonth    Int?
+  expYear     Int?
+  isDefault   Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+
+  @@unique([provider, providerRef])
+  @@index([userId])
+}
+
+enum InvoiceStatus {
+  DRAFT
+  OPEN
+  PAID
+  VOID
+  UNCOLLECTIBLE
+}
+
+model Invoice {
+  id             String        @id @default(uuid())
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+
+  number         String        @unique
+  status         InvoiceStatus @default(DRAFT)
+
+  amount         Decimal       @db.Decimal(12, 2)
+  currency       String        @default("PLN")
+
+  // External (provider) invoice
+  provider       String?       // STRIPE
+  providerRef    String?       // in_xxx
+  hostedUrl      String?
+  pdfUrl         String?
+
+  issuedAt       DateTime?
+  dueAt          DateTime?
+  paidAt         DateTime?
+
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([provider, providerRef])
+  @@index([userId])
+}
+
+// -----------------------------------------------------------------------------
+// AUTOSCALING PRICING & EVENTS
+// -----------------------------------------------------------------------------
+
+enum AutoscalingResource {
+  CPU       // additional CPU% per hour
+  RAM       // additional MB per hour
+  IO        // additional I/O kbps per hour
+  TRANSFER  // outgoing transfer per GB
+}
+
+model AutoscalingPriceRule {
+  id             String              @id @default(uuid())
+  resource       AutoscalingResource
+
+  // Pricing model: linear "per unit per hour" (or per unit for transfer).
+  unit           String              // "cpu_pct", "ram_mb", "io_kbps", "transfer_gb"
+  pricePerUnit   Decimal             @db.Decimal(12, 6)
+  currency       String              @default("PLN")
+
+  // Optional tiered pricing: this rule applies above this threshold of usage
+  thresholdAbove Int                 @default(0)
+
+  isActive       Boolean             @default(true)
+  validFrom      DateTime            @default(now())
+  validUntil     DateTime?
+
+  notes          String?
+
+  createdAt      DateTime            @default(now())
+
+  @@index([resource, isActive])
+}
+
+enum AutoscalingDirection {
+  UP
+  DOWN
+  DISABLED
+  ENABLED
+}
+
+model AutoscalingEvent {
+  id             String                @id @default(uuid())
+
+  subscriptionId String
+  subscription   Subscription          @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  direction      AutoscalingDirection
+  resource       AutoscalingResource?
+
+  fromValue      Int?
+  toValue        Int?
+  reason         String                // e.g. "cpu_avg_above_85_pct", "wallet_balance_zero"
+  costSnapshot   Decimal?              @db.Decimal(12, 6)
+
+  createdAt      DateTime              @default(now())
+
+  @@index([subscriptionId, createdAt])
+}
+
+// -----------------------------------------------------------------------------
+// TELEMETRY (CloudLinux LVE) — bucketed metrics
+// -----------------------------------------------------------------------------
+
+model UsageMetric {
+  id              String       @id @default(uuid())
+
+  subscriptionId  String?
+  subscription    Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  accountId       String?
+  serverId        String?
+
+  bucketStart     DateTime
+  bucketDurationS Int          // 60 / 300 / 3600
+
+  cpuUsageAvg     Float
+  cpuUsageMax     Float        @default(0)
+  memUsageAvgMb   Float
+  memUsageMaxMb   Float        @default(0)
+  diskUsageMb     Float
+  ioUsageKbps     Float        @default(0)
+
+  createdAt       DateTime     @default(now())
+
+  @@unique([subscriptionId, bucketStart, bucketDurationS])
+  @@index([accountId, bucketStart])
+  @@index([serverId, bucketStart])
+}
+
+// -----------------------------------------------------------------------------
+// SUPPORT (Tickets)
+// -----------------------------------------------------------------------------
+
+model Ticket {
+  id              String        @id @default(uuid())
+  subject         String
+  message         String
+  status          String        @default("OPEN")     // OPEN, IN_PROGRESS, CLOSED
+  priority        String        @default("NORMAL")   // LOW, NORMAL, HIGH, URGENT
+  department      String        @default("TECHNICAL") // BILLING, TECHNICAL, SALES
+
+  userId          String
+  user            User          @relation("ClientTickets", fields: [userId], references: [id], onDelete: Cascade)
+
+  assignedToId    String?
+  assignedTo      User?         @relation("AssignedTickets", fields: [assignedToId], references: [id], onDelete: SetNull)
+
+  replies         TicketReply[]
+  attachments     TicketAttachment[]
+
+  firstResponseAt DateTime?
+  resolvedAt      DateTime?
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model TicketReply {
+  id        String   @id @default(uuid())
+  message   String
+  isStaff   Boolean  @default(false)
+
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  authorId  String
+
+  attachments TicketAttachment[]
+
+  createdAt DateTime @default(now())
+}
+
+/// Pliki dodane przez klienta lub staff do pierwszej wiadomości lub wątku (E‑4).
+model TicketAttachment {
+  id             String       @id @default(uuid())
+
+  ticketId       String
+  ticket         Ticket       @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  /// Z `null` = załączone do pierwszej wiadomości klienta; inaczej rekord doklejony do `TicketReply`.
+  replyId        String?
+  reply          TicketReply? @relation(fields: [replyId], references: [id], onDelete: Cascade)
+
+  originalName   String
+  mimeType       String
+  sizeBytes      Int
+  /// Ścieżka względem katalogu upload (np. `{ticketId}/{uuid}_{name}`).
+  storageKey     String       @unique
+
+  uploadedById   String
+  uploadedBy     User         @relation("TicketAttachmentUploader", fields: [uploadedById], references: [id], onDelete: Cascade)
+
+  createdAt      DateTime     @default(now())
+
+  @@index([ticketId])
+  @@index([replyId])
+}
+
+model CannedResponse {
+  id        String   @id @default(uuid())
+  title     String
+  content   String
+
+  createdAt DateTime @default(now())
+}
+
+// -----------------------------------------------------------------------------
+// AUDIT LOG
+// -----------------------------------------------------------------------------
+
+model AuditLog {
+  id             String   @id @default(uuid())
+  action         String   // SERVER_INIT, SERVER_APPROVED, SUBSCRIPTION_CREATED, etc.
+  details        Json?
+  ipAddress      String?
+  userAgent      String?
+
+  // The user the audit log is *about* (target)
+  userId         String?
+  user           User?    @relation("AuditUser", fields: [userId], references: [id], onDelete: SetNull)
+
+  // The actor that performed the action (if different — e.g. staff impersonation)
+  actorUserId    String?
+  impersonatedBy String?  // Convenience field: staff_id when staff impersonates
+
+  createdAt      DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+}
+
+// -----------------------------------------------------------------------------
+// SERVICE PROBES (status page)
+// -----------------------------------------------------------------------------
+
+enum ProbeKind {
+  HTTP
+  HTTPS
+  SMTP
+  IMAP
+  POP3
+  MYSQL
+  SSH
+  DA_API
+  DNS
+}
+
+enum ProbeSeverity {
+  MINOR  // POP3, IMAP, SMTP — can degrade without taking the site down
+  MAJOR  // HTTP, HTTPS, MYSQL, DA_API — full outage from customer POV
+}
+
+model ServiceProbe {
+  id             String         @id @default(uuid())
+
+  serverId       String
+  server         Server         @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  kind           ProbeKind
+  // Probe target — host:port for TCP, full URL for HTTP/S, hostname for DNS.
+  target         String
+  // Optional human-friendly label shown on the public status page.
+  label          String?
+
+  severity       ProbeSeverity  @default(MINOR)
+
+  // Customer-facing declared SLA (e.g. 99.9000). The status page renders this
+  // alongside the live computed uptime so customers see both the contractual
+  // commitment and the real number we're hitting right now.
+  declaredSlaPct Decimal        @default(99.9000) @db.Decimal(7, 4)
+
+  isEnabled      Boolean        @default(true)
+  // Whether to publish this probe on the public status page. Lets ops keep
+  // internal-only probes (e.g. DA_API) while only HTTP/HTTPS/SMTP are public.
+  isPublic       Boolean        @default(true)
+
+  // Cached counters maintained by the engine so reads are O(1).
+  consecutiveFailures Int       @default(0)
+  lastSuccessAt  DateTime?
+  lastFailureAt  DateTime?
+  lastSampleAt   DateTime?
+
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  samples        ProbeSample[]
+  incidents      ProbeIncident[]
+
+  @@unique([serverId, kind, target])
+  @@index([serverId, kind])
+  @@index([isEnabled, lastSampleAt])
+}
+
+model ProbeSample {
+  id             String       @id @default(uuid())
+
+  probeId        String
+  probe          ServiceProbe @relation(fields: [probeId], references: [id], onDelete: Cascade)
+
+  // Bucketed UTC start (1-minute by default). Lets us aggregate uptime windows
+  // efficiently and dedupe duplicate writes from the same scraper window.
+  bucketStart    DateTime
+  bucketDurationS Int         @default(60)
+
+  // Total/successful probe attempts within the bucket. The engine pushes one
+  // server-side attempt every 30s (so 2 per bucket) plus optional node-side
+  // attempts; everything aggregates here.
+  totalCount     Int          @default(0)
+  successCount   Int          @default(0)
+
+  // Aggregated latency stats over the bucket (ms). Useful for the status page
+  // sparkline and for tracking degradation that hasn't yet flipped to fail.
+  avgLatencyMs   Int          @default(0)
+  maxLatencyMs   Int          @default(0)
+  // Last error code (HTTP status, errno, etc.) — null when bucket is healthy.
+  errorCode      String?
+
+  createdAt      DateTime     @default(now())
+
+  @@unique([probeId, bucketStart, bucketDurationS])
+  @@index([probeId, bucketStart])
+}
+
+enum IncidentSeverity {
+  MINOR
+  MAJOR
+}
+
+enum IncidentStatus {
+  OPEN
+  RESOLVED
+}
+
+model ProbeIncident {
+  id             String           @id @default(uuid())
+
+  probeId        String
+  probe          ServiceProbe     @relation(fields: [probeId], references: [id], onDelete: Cascade)
+
+  severity       IncidentSeverity
+  status         IncidentStatus   @default(OPEN)
+
+  // Operator-supplied summary — the engine fills a default ("HTTP probe for
+  // example.com failing") that admin can override later from /admin/status.
+  title          String
+  // Optional public-facing description shown on the status page.
+  publicMessage  String?
+
+  startedAt      DateTime         @default(now())
+  resolvedAt     DateTime?
+  // Snapshot of how the incident was detected (consecutive failures, sample
+  // ids referenced, etc.) for post-mortem.
+  detectionMeta  Json?
+
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([probeId, status])
+  @@index([status, startedAt])
+}
+
+// -----------------------------------------------------------------------------
+// E-8 — SECURITY: login attempts
+// -----------------------------------------------------------------------------
+
+/// Every login attempt — success or failure — is recorded for rate-limiting,
+/// post-mortem, and SIEM-style detection. Pruned by the suspicious-activity
+/// scheduler (rolling 30-day retention).
+model LoginAttempt {
+  id         String   @id @default(uuid())
+
+  email      String   // case-folded
+  ip         String?
+  userAgent  String?
+
+  succeeded  Boolean
+  /// Contributing reason (`bad_password`, `unknown_user`, `2fa_failed`,
+  /// `too_many_attempts`). Free-form so the auth code can label nuanced
+  /// failure modes without a schema migration.
+  reason     String?
+
+  createdAt  DateTime @default(now())
+
+  @@index([email, createdAt])
+  @@index([ip, createdAt])
+}
+
+// -----------------------------------------------------------------------------
+// C-14 — PROMO CODES
+// -----------------------------------------------------------------------------
+
+enum PromoKind {
+  /// Fixed amount credited to the wallet (e.g. 50.00 PLN signup bonus).
+  FIXED_CREDIT
+  /// Percentage of the next top-up (e.g. +20% on next deposit).
+  /// `value` is the percentage as an integer (0..100).
+  PERCENT_BONUS
+}
+
+/// Marketing / referral codes redeemable by users for wallet credit.
+/// One code can have many redemptions up to `maxRedemptions`; per-user
+/// redemption is enforced via the unique `(promoCodeId, userId)` index on
+/// `PromoRedemption`.
+model PromoCode {
+  id                String           @id @default(uuid())
+  code              String           @unique
+  kind              PromoKind        @default(FIXED_CREDIT)
+  value             Decimal          @db.Decimal(12, 2)
+  currency          String           @default("PLN")
+
+  /// Optional human-readable description shown on the receipt + audit log.
+  description       String?
+
+  /// Lifetime redemption cap. `null` = unlimited.
+  maxRedemptions    Int?
+  /// Times redeemed across all users. Cheap counter, source of truth is the
+  /// row count in `PromoRedemption`.
+  redemptionCount   Int              @default(0)
+
+  /// Optional time bounds.
+  validFrom         DateTime?
+  validTo           DateTime?
+
+  /// Soft-disable flag — set by admin when a code has to be killed mid-flight
+  /// without breaking past redemptions.
+  active            Boolean          @default(true)
+
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+
+  redemptions       PromoRedemption[]
+
+  @@index([active, validFrom, validTo])
+}
+
+model PromoRedemption {
+  id              String      @id @default(uuid())
+
+  promoCodeId     String
+  promoCode       PromoCode   @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
+
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Amount actually credited (resolved at redemption time — for percentage
+  /// codes this is computed from a top-up reference).
+  amountCredited  Decimal     @db.Decimal(12, 2)
+  currency        String      @default("PLN")
+
+  /// Pointer to the wallet transaction that materialized the credit.
+  walletTxId      String?     @unique
+
+  redeemedAt      DateTime    @default(now())
+
+  @@unique([promoCodeId, userId])
+  @@index([userId])
+}
+
+// -----------------------------------------------------------------------------
+// C-9 — WALLET AUTO TOP-UP
+// -----------------------------------------------------------------------------
+
+/// User-level rule that automatically tops up the wallet via the saved
+/// PaymentMethod whenever the balance falls below `threshold`. Evaluated by
+/// the autoscaling/usage charge path (post-debit hook): if balance < threshold
+/// and `enabled = true`, we enqueue an off-session Stripe `PaymentIntent` for
+/// `topupAmount` against `paymentMethodId`. The `cooldownUntil` field
+/// throttles retries after a failure (so we don't hammer the user's card).
+model WalletAutoTopup {
+  id                String          @id @default(uuid())
+
+  userId            String          @unique
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  enabled           Boolean         @default(false)
+
+  /// In wallet currency. When `walletBalance < threshold`, top-up triggers.
+  threshold         Decimal         @db.Decimal(12, 2)
+  /// Amount to charge per top-up.
+  topupAmount       Decimal         @db.Decimal(12, 2)
+  currency          String          @default("PLN")
+
+  /// Reference to the saved PaymentMethod row (Stripe). Null = use default.
+  paymentMethodId   String?
+
+  /// Bookkeeping for the scheduler: when did the last attempt run + did it
+  /// succeed. Used to populate `cooldownUntil` on consecutive failures.
+  lastAttemptAt     DateTime?
+  lastAttemptOk     Boolean?
+  lastAttemptError  String?
+  cooldownUntil     DateTime?
+
+  /// Lifetime stats — handy for the Auto Top-up UI dashboard.
+  totalToppedUpAmount Decimal       @default(0) @db.Decimal(14, 2)
+  totalToppedUpCount  Int           @default(0)
+
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@index([enabled, cooldownUntil])
+}

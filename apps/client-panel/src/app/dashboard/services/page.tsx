@@ -1,0 +1,206 @@
+import {
+  Server,
+  Settings2,
+  ShieldAlert,
+  HardDrive,
+  Globe,
+  Plus,
+  Gauge,
+} from 'lucide-react';
+import Link from 'next/link';
+import type { ServiceSummaryDto, SubscriptionStatus } from '@ekohost/contracts';
+import { ApiError } from '@/lib/api';
+import { listServices } from './data';
+
+const statusLabels: Record<SubscriptionStatus, string> = {
+  PENDING_PAYMENT: 'Oczekuje płatności',
+  PROVISIONING: 'Tworzenie konta',
+  ACTIVE: 'Aktywna',
+  PAST_DUE: 'Zaległa płatność',
+  SUSPENDED: 'Zawieszona',
+  CANCELED: 'Anulowana',
+  EXPIRED: 'Wygasła',
+};
+
+const statusBadgeClass: Record<SubscriptionStatus, string> = {
+  ACTIVE: 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200',
+  PROVISIONING: 'border-sky-400/40 bg-sky-400/10 text-sky-200',
+  PENDING_PAYMENT: 'border-amber-400/40 bg-amber-400/10 text-amber-200',
+  PAST_DUE: 'border-rose-400/40 bg-rose-400/10 text-rose-200',
+  SUSPENDED: 'border-rose-400/40 bg-rose-400/10 text-rose-200',
+  CANCELED: 'border-white/20 bg-white/5 text-neutral-300',
+  EXPIRED: 'border-white/20 bg-white/5 text-neutral-300',
+};
+
+export default async function ServicesPage() {
+  let services: ServiceSummaryDto[] = [];
+  let loadError: string | null = null;
+
+  try {
+    services = await listServices();
+  } catch (err) {
+    loadError =
+      err instanceof ApiError
+        ? `Nie udało się pobrać Twoich usług (${err.status}).`
+        : err instanceof Error
+          ? err.message
+          : 'Nieznany błąd';
+  }
+
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-neutral-400">
+            Twoje Usługi
+          </h1>
+          <p className="text-neutral-400 mt-2 text-lg">
+            Zarządzaj swoimi pakietami hostingowymi i serwerami.
+          </p>
+        </div>
+        <Link
+          href="/dashboard/services/new"
+          className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-black hover:bg-neutral-200 transition-all"
+        >
+          <Plus className="h-4 w-4" />
+          Zamów nową usługę
+        </Link>
+      </div>
+
+      {loadError ? (
+        <div className="rounded-2xl border border-rose-400/30 bg-rose-400/5 p-6 text-rose-200 flex items-start gap-3">
+          <ShieldAlert className="h-5 w-5 mt-0.5" />
+          <div>
+            <p className="font-semibold">Wystąpił problem</p>
+            <p className="text-sm text-rose-200/80 mt-1">{loadError}</p>
+          </div>
+        </div>
+      ) : services.length === 0 ? (
+        <EmptyState />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
+          {services.map((service) => (
+            <ServiceCard key={service.id} service={service} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ServiceCard({ service }: { service: ServiceSummaryDto }) {
+  const account = service.account;
+  return (
+    <div className="group relative overflow-hidden rounded-[32px] p-px hover:-translate-y-1 transition-transform duration-300">
+      <div className="relative h-full w-full bg-[#0a0a0a] group-hover:bg-[#121212] transition-colors duration-300 rounded-[32px] p-6 md:p-8 flex flex-col justify-between z-10 border border-white/5">
+        <div>
+          <div className="flex items-start justify-between mb-6">
+            <div className="p-4 rounded-[20px] bg-white/5 border border-white/10 text-white transition-all duration-300 group-hover:bg-white/10 group-hover:scale-105">
+              <Server className="h-8 w-8" />
+            </div>
+            <span
+              className={`inline-flex items-center rounded-full border px-3 py-1 text-xs font-bold uppercase tracking-wider ${
+                statusBadgeClass[service.status]
+              }`}
+            >
+              {statusLabels[service.status]}
+            </span>
+          </div>
+
+          <div className="mb-8">
+            <h3 className="text-2xl font-bold text-white leading-tight mb-2">
+              {service.planName}
+            </h3>
+            <div className="flex flex-col gap-1 text-sm text-neutral-400">
+              <span className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-neutral-500" />
+                {account?.domain ?? '—'}
+              </span>
+              <span className="flex items-center gap-2">
+                <HardDrive className="w-4 h-4 text-neutral-500" />
+                {account?.daUsername ? `użytkownik DA: ${account.daUsername}` : 'brak konta DA'}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-4 mb-8">
+            <ResourceTile label="CPU" value={`${account?.cpuLimit ?? 0}%`} />
+            <ResourceTile
+              label="RAM"
+              value={
+                account ? `${(account.ramLimitMb / 1024).toFixed(1)} GB` : '—'
+              }
+            />
+            <ResourceTile
+              label="Dysk"
+              value={
+                account ? `${(account.diskLimitMb / 1024).toFixed(0)} GB` : '—'
+              }
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-between items-center pt-6 border-t border-white/5 text-sm mt-4">
+          <span className="text-neutral-500">
+            Cena:&nbsp;
+            <span className="text-white font-medium">
+              {Number(service.priceAmount).toFixed(2)} {service.currency}
+              {service.interval === 'MONTH' ? ' / mies.' : ' / rok'}
+            </span>
+          </span>
+          <div className="flex items-center gap-2">
+            <Link href={`/dashboard/services/${service.id}/autoscaling`}>
+              <button
+                className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium border transition-colors ${
+                  service.autoscalingEnabled
+                    ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200 hover:bg-emerald-400/20'
+                    : 'border-white/10 bg-white/5 text-neutral-300 hover:bg-white/10'
+                }`}
+                title="Autoskalowanie"
+              >
+                <Gauge className="h-4 w-4" />
+              </button>
+            </Link>
+            <Link href={`/dashboard/services/${service.id}`}>
+              <button className="inline-flex items-center justify-center gap-2 rounded-xl bg-white/5 hover:bg-white/10 text-white px-5 py-2.5 font-medium transition-colors">
+                <Settings2 className="h-4 w-4" />
+                Zarządzaj
+              </button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ResourceTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-center">
+      <div className="text-[10px] font-bold text-neutral-500 uppercase tracking-widest">
+        {label}
+      </div>
+      <div className="mt-1 text-lg font-semibold text-white">{value}</div>
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="rounded-[32px] border border-white/10 bg-white/[0.02] p-12 text-center">
+      <Server className="h-12 w-12 mx-auto text-neutral-500" />
+      <h3 className="mt-6 text-2xl font-bold text-white">Nie masz jeszcze żadnej usługi</h3>
+      <p className="mt-2 text-neutral-400 max-w-md mx-auto">
+        Wybierz plan dopasowany do potrzeb Twojej strony — utworzymy konto na serwerze w ciągu kilku
+        sekund.
+      </p>
+      <Link
+        href="/dashboard/services/new"
+        className="mt-8 inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-bold text-black hover:bg-neutral-200"
+      >
+        <Plus className="h-4 w-4" />
+        Wybierz plan
+      </Link>
+    </div>
+  );
+}

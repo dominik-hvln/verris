@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+
+# Build / cache
+.next/
+out/
+dist/
+apps/api/dist-cli/
+**/dist-cli/
+.turbo/
+*.tsbuildinfo
+
+# Env & secrets (keep .env.example committed)
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs & debug
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Test / coverage
+coverage/
+
+# Misc
+*.pem
+
+# Ad-hoc scripts (local debugging)
+apps/api/get_user.js

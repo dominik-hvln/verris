@@ -1,0 +1,19 @@
+{
+  "name": "@ekohost/directadmin-sdk",
+  "version": "1.0.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src/**/*.ts"
+  },
+  "dependencies": {
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "@ekohost/typescript-config": "workspace:*",
+    "@ekohost/eslint-config": "workspace:*",
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0"
+  }
+}

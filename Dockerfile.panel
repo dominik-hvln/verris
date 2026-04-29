@@ -1,0 +1,82 @@
+# =============================================================================
+# EkoHost panels — production image (Next.js)
+# Multi-stage build for any of the three panels:
+#   docker build -f Dockerfile.panel \
+#     --build-arg APP_NAME=client-panel \
+#     --build-arg APP_PORT=3001 \
+#     -t ekohost/client-panel .
+# Build context: monorepo root.
+# =============================================================================
+
+ARG NODE_VERSION=20
+ARG APP_NAME=client-panel
+ARG APP_PORT=3001
+
+FROM node:${NODE_VERSION}-bookworm-slim AS base
+ENV PNPM_HOME=/pnpm \
+    PATH=/pnpm:$PATH \
+    NODE_ENV=production
+RUN corepack enable && corepack prepare pnpm@9.5.0 --activate
+WORKDIR /workspace
+
+# -----------------------------------------------------------------------------
+# 1. Install
+# -----------------------------------------------------------------------------
+FROM base AS deps
+ARG APP_NAME
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
+COPY apps/${APP_NAME}/package.json apps/${APP_NAME}/package.json
+COPY libs/contracts/package.json libs/contracts/package.json
+COPY libs/ui/package.json libs/ui/package.json
+COPY libs/typescript-config libs/typescript-config
+COPY libs/eslint-config libs/eslint-config
+RUN --mount=type=cache,id=pnpm,target=/pnpm-store \
+    pnpm config set store-dir /pnpm-store && \
+    pnpm install --frozen-lockfile --filter @ekohost/${APP_NAME}...
+
+# -----------------------------------------------------------------------------
+# 2. Build
+# -----------------------------------------------------------------------------
+FROM deps AS build
+ARG APP_NAME
+COPY libs libs
+COPY apps/${APP_NAME} apps/${APP_NAME}
+RUN pnpm --filter @ekohost/${APP_NAME} build
+
+# -----------------------------------------------------------------------------
+# 3. Runtime
+# -----------------------------------------------------------------------------
+FROM node:${NODE_VERSION}-bookworm-slim AS runtime
+ARG APP_NAME
+ARG APP_PORT
+ENV NODE_ENV=production \
+    APP_NAME=${APP_NAME} \
+    PORT=${APP_PORT}
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates curl tini && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy the entire .next, public, package.json and node_modules. We're not
+# using "output: standalone" yet because the panels' next.config.ts disables
+# typescript build errors and we want a single Dockerfile that works for all
+# three apps without further changes.
+# Ensure a public/ folder exists so the COPY below does not fail for panels
+# that have no static assets yet.
+RUN mkdir -p ./apps/${APP_NAME}/public
+
+COPY --from=build /workspace/apps/${APP_NAME}/.next ./apps/${APP_NAME}/.next
+COPY --from=build /workspace/apps/${APP_NAME}/package.json ./apps/${APP_NAME}/package.json
+COPY --from=build /workspace/apps/${APP_NAME}/next.config.ts ./apps/${APP_NAME}/next.config.ts
+COPY --from=build /workspace/libs ./libs
+COPY --from=build /workspace/node_modules ./node_modules
+
+EXPOSE ${APP_PORT}
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -fsS http://127.0.0.1:${PORT}/api/health || exit 1
+
+WORKDIR /app/apps/${APP_NAME}
+ENTRYPOINT ["/usr/bin/tini", "--"]
+CMD ["sh", "-c", "node ../../node_modules/next/dist/bin/next start -p ${PORT}"]

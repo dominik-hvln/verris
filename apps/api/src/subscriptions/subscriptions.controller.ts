@@ -1,0 +1,80 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { SubscriptionsService } from './subscriptions.service';
+import {
+  CreateSubscriptionDto,
+  UpdateAutoscalingDto,
+  UpdateSubscriptionPreferencesDto,
+} from './dto/subscription.dto';
+
+@Controller('subscriptions')
+@UseGuards(JwtAuthGuard)
+export class SubscriptionsController {
+  constructor(private readonly subscriptions: SubscriptionsService) {}
+
+  @Get()
+  list(@CurrentUser() user: { userId: string }) {
+    return this.subscriptions.listForUser(user.userId);
+  }
+
+  @Patch(':id/preferences')
+  @HttpCode(200)
+  updatePreferences(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() dto: UpdateSubscriptionPreferencesDto,
+  ) {
+    return this.subscriptions.updatePreferences(user.userId, id, dto);
+  }
+
+  @Get(':id')
+  get(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.subscriptions.getForUser(user.userId, id);
+  }
+
+  @Post()
+  @HttpCode(201)
+  create(@CurrentUser() user: { userId: string }, @Body() dto: CreateSubscriptionDto) {
+    return this.subscriptions.create(user.userId, dto);
+  }
+
+  @Delete(':id')
+  @HttpCode(200)
+  cancel(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.subscriptions.cancel(user.userId, id);
+  }
+
+  @Patch(':id/autoscaling')
+  @HttpCode(200)
+  updateAutoscaling(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() dto: UpdateAutoscalingDto,
+  ) {
+    return this.subscriptions.setAutoscaling({
+      userId: user.userId,
+      subscriptionId: id,
+      enabled: dto.enabled,
+      maxMonthlyCost: dto.maxMonthlyCost,
+    });
+  }
+
+  @Get(':id/autoscaling/history')
+  getAutoscalingHistory(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+  ) {
+    return this.subscriptions.getAutoscalingHistory(user.userId, id);
+  }
+}

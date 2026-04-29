@@ -1,0 +1,9 @@
+{
+  "extends": "@ekohost/typescript-config/base.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "downlevelIteration": true
+  },
+  "include": ["src"]
+}
