@@ -2,6 +2,8 @@
 
 Ten dokument opisuje uruchomienie panelu, API i bazy danych na **dedykowanym serwerze** (control-plane). Węzły obliczeniowe (z DA + CloudLinux LVE + LiteSpeed) konfigurujesz osobno przez panel admina.
 
+Przed pierwszym deployem i przed każdym go-live przejdź checklistę: [GO_NO_GO_PROD.md](./GO_NO_GO_PROD.md).
+
 ## Wymagania na maszynie control-plane
 
 - Linux (Ubuntu 22.04 / Debian 12 lub nowsze)
