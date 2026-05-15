@@ -2,7 +2,7 @@ import { Injectable, Logger, ConflictException, NotFoundException, BadRequestExc
 import * as dns from 'dns';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
-import { DomainStatus } from '@ekohost/database';
+import { DomainStatus } from '@verris/database';
 import { CreateDomainDto } from './dto/create-domain.dto';
 
 @Injectable()

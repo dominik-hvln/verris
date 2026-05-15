@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { HostingSslLetsencryptDto, HostingSslPasteDto } from './dto/hosting-ssl.dto';
 import { RequestExternalMigrationDto } from './dto/migration.dto';
-import { Prisma } from '@ekohost/database';
+import { Prisma } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';

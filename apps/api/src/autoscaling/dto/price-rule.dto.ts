@@ -10,7 +10,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { AutoscalingResource } from '@ekohost/database';
+import { AutoscalingResource } from '@verris/database';
 
 export class CreatePriceRuleDto {
   @IsEnum(AutoscalingResource)

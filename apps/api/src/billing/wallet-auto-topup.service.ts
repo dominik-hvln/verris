@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { Prisma } from '@ekohost/database';
+import { Prisma } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeService } from './stripe/stripe.service';
 import { AuditService } from '../common/audit/audit.service';
@@ -171,8 +171,8 @@ export class WalletAutoTopupService {
         amountMinor: minor,
         currency: rule.currency,
         metadata: {
-          ekohost_kind: 'wallet_auto_topup',
-          ekohost_user_id: rule.userId,
+          verris_kind: 'wallet_auto_topup',
+          verris_user_id: rule.userId,
         },
         idempotencyKey: piIdempotencyKey,
       });

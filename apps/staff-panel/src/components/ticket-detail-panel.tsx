@@ -161,7 +161,7 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
                 className={`rounded-xl border px-4 py-3 text-sm ${r.isStaff ? "border-cyan-500/25 bg-cyan-500/[0.07]" : "border-white/10 bg-white/[0.03]"}`}
               >
                 <div className="mb-1 flex justify-between text-xs text-muted-foreground">
-                  <span>{r.isStaff ? "EkoHost (staff)" : "Klient"}</span>
+                  <span>{r.isStaff ? "Verris (staff)" : "Klient"}</span>
                   <span>{new Date(r.createdAt).toLocaleString("pl-PL")}</span>
                 </div>
                 <p className="text-neutral-100 whitespace-pre-wrap">{r.message}</p>

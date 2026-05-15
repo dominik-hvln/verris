@@ -2,7 +2,7 @@ import type {
   SavedPaymentMethodDto,
   WalletAutoTopupSettingsDto,
   WalletSummaryDto,
-} from '@ekohost/contracts';
+} from '@verris/contracts';
 import { apiFetch } from '@/lib/api';
 
 export async function getWalletSummary(): Promise<WalletSummaryDto> {

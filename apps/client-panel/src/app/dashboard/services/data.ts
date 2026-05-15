@@ -2,7 +2,7 @@ import type {
   PlanDto,
   ServiceDetailsDto,
   ServiceSummaryDto,
-} from '@ekohost/contracts';
+} from '@verris/contracts';
 import { apiFetch } from '@/lib/api';
 
 export async function listServices(): Promise<ServiceSummaryDto[]> {

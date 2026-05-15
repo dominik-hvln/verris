@@ -21,7 +21,7 @@
  * full procedure (maintenance window → rotate → restart with NEW_KMS_KEY).
  */
 
-import { Prisma, PrismaClient } from '@ekohost/database';
+import { Prisma, PrismaClient } from '@verris/database';
 import { CryptoService } from '../common/crypto/crypto.service';
 
 const CHUNK_SIZE = 100;

@@ -1,10 +1,10 @@
 # =============================================================================
-# EkoHost panels — production image (Next.js)
+# Verris panels — production image (Next.js)
 # Multi-stage build for any of the three panels:
 #   docker build -f Dockerfile.panel \
 #     --build-arg APP_NAME=client-panel \
 #     --build-arg APP_PORT=3001 \
-#     -t ekohost/client-panel .
+#     -t verris/client-panel .
 # Build context: monorepo root.
 # =============================================================================
 
@@ -14,8 +14,7 @@ ARG APP_PORT=3001
 
 FROM node:${NODE_VERSION}-bookworm-slim AS base
 ENV PNPM_HOME=/pnpm \
-    PATH=/pnpm:$PATH \
-    NODE_ENV=production
+    PATH=/pnpm:$PATH
 RUN corepack enable && corepack prepare pnpm@9.5.0 --activate
 WORKDIR /workspace
 
@@ -32,7 +31,7 @@ COPY libs/typescript-config libs/typescript-config
 COPY libs/eslint-config libs/eslint-config
 RUN --mount=type=cache,id=pnpm,target=/pnpm-store \
     pnpm config set store-dir /pnpm-store && \
-    pnpm install --frozen-lockfile --filter @ekohost/${APP_NAME}...
+    pnpm install --frozen-lockfile --filter @verris/${APP_NAME}...
 
 # -----------------------------------------------------------------------------
 # 2. Build
@@ -41,7 +40,7 @@ FROM deps AS build
 ARG APP_NAME
 COPY libs libs
 COPY apps/${APP_NAME} apps/${APP_NAME}
-RUN pnpm --filter @ekohost/${APP_NAME} build
+RUN pnpm --filter @verris/${APP_NAME} build
 
 # -----------------------------------------------------------------------------
 # 3. Runtime

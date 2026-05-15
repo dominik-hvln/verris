@@ -5,7 +5,7 @@ import {
   ServerStatus,
   SubscriptionStatus,
   WalletTxType,
-} from '@ekohost/database';
+} from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 
 /**
@@ -54,13 +54,13 @@ export class MetricsService {
     });
     write(
       lines,
-      'ekohost_subscriptions_total',
+      'verris_subscriptions_total',
       'Number of subscriptions per status',
       'gauge',
     );
     for (const status of Object.values(SubscriptionStatus)) {
       const value = subsByStatus.find((r) => r.status === status)?._count._all ?? 0;
-      lines.push(`ekohost_subscriptions_total{status="${status}"} ${value}`);
+      lines.push(`verris_subscriptions_total{status="${status}"} ${value}`);
     }
 
     // --- Servers (compute fleet) -----------------------------------------
@@ -68,10 +68,10 @@ export class MetricsService {
       by: ['status'],
       _count: { _all: true },
     });
-    write(lines, 'ekohost_servers_total', 'Number of compute nodes per status', 'gauge');
+    write(lines, 'verris_servers_total', 'Number of compute nodes per status', 'gauge');
     for (const status of Object.values(ServerStatus)) {
       const value = serversByStatus.find((r) => r.status === status)?._count._all ?? 0;
-      lines.push(`ekohost_servers_total{status="${status}"} ${value}`);
+      lines.push(`verris_servers_total{status="${status}"} ${value}`);
     }
 
     const staleHeartbeats = await this.prisma.server.count({
@@ -85,11 +85,11 @@ export class MetricsService {
     });
     write(
       lines,
-      'ekohost_servers_stale_heartbeat',
+      'verris_servers_stale_heartbeat',
       'Active servers without a heartbeat in the last 5 minutes',
       'gauge',
     );
-    lines.push(`ekohost_servers_stale_heartbeat ${staleHeartbeats}`);
+    lines.push(`verris_servers_stale_heartbeat ${staleHeartbeats}`);
 
     // --- Accounts (provisioned hosting accounts) -------------------------
     const accountsByStatus = await this.prisma.account.groupBy({
@@ -98,13 +98,13 @@ export class MetricsService {
     });
     write(
       lines,
-      'ekohost_accounts_total',
+      'verris_accounts_total',
       'Number of provisioned hosting accounts per status',
       'gauge',
     );
     for (const status of Object.values(AccountStatus)) {
       const value = accountsByStatus.find((r) => r.status === status)?._count._all ?? 0;
-      lines.push(`ekohost_accounts_total{status="${status}"} ${value}`);
+      lines.push(`verris_accounts_total{status="${status}"} ${value}`);
     }
 
     // --- Wallet flows (last 30 days, in PLN) -----------------------------
@@ -115,14 +115,14 @@ export class MetricsService {
     });
     write(
       lines,
-      'ekohost_wallet_amount_30d_pln',
+      'verris_wallet_amount_30d_pln',
       'Sum of wallet transactions over the last 30 days, by type, in PLN',
       'gauge',
     );
     for (const type of Object.values(WalletTxType)) {
       const sum = walletAgg.find((r) => r.type === type)?._sum.amount;
       const value = sum ? Number(sum.toString()) : 0;
-      lines.push(`ekohost_wallet_amount_30d_pln{type="${type}"} ${value.toFixed(2)}`);
+      lines.push(`verris_wallet_amount_30d_pln{type="${type}"} ${value.toFixed(2)}`);
     }
 
     // --- Stripe webhook health (proxy: invoices created last 24 h) -------
@@ -131,11 +131,11 @@ export class MetricsService {
     });
     write(
       lines,
-      'ekohost_invoices_24h_total',
+      'verris_invoices_24h_total',
       'Invoices mirrored from Stripe webhooks in the last 24 hours',
       'gauge',
     );
-    lines.push(`ekohost_invoices_24h_total ${invoices24h}`);
+    lines.push(`verris_invoices_24h_total ${invoices24h}`);
 
     // --- Autoscaling (last hour activity) --------------------------------
     const autoscaleEventsLastHour = await this.prisma.autoscalingEvent.count({
@@ -143,21 +143,21 @@ export class MetricsService {
     });
     write(
       lines,
-      'ekohost_autoscale_events_1h_total',
+      'verris_autoscale_events_1h_total',
       'Autoscaling events (UP/DOWN/DISABLED) in the last hour',
       'gauge',
     );
-    lines.push(`ekohost_autoscale_events_1h_total ${autoscaleEventsLastHour}`);
+    lines.push(`verris_autoscale_events_1h_total ${autoscaleEventsLastHour}`);
 
     // --- Probes / incidents ----------------------------------------------
     const probesByEnabled = await this.prisma.serviceProbe.groupBy({
       by: ['isEnabled'],
       _count: { _all: true },
     });
-    write(lines, 'ekohost_probes_total', 'Status probes configured per enabled flag', 'gauge');
+    write(lines, 'verris_probes_total', 'Status probes configured per enabled flag', 'gauge');
     for (const row of probesByEnabled) {
       lines.push(
-        `ekohost_probes_total{enabled="${row.isEnabled}"} ${row._count._all}`,
+        `verris_probes_total{enabled="${row.isEnabled}"} ${row._count._all}`,
       );
     }
 
@@ -168,14 +168,14 @@ export class MetricsService {
     });
     write(
       lines,
-      'ekohost_incidents_open',
+      'verris_incidents_open',
       'Currently open probe incidents by severity',
       'gauge',
     );
     for (const sev of ['MAJOR', 'MINOR'] as const) {
       const value =
         openIncidentsBySeverity.find((r) => r.severity === sev)?._count._all ?? 0;
-      lines.push(`ekohost_incidents_open{severity="${sev}"} ${value}`);
+      lines.push(`verris_incidents_open{severity="${sev}"} ${value}`);
     }
 
     // --- Provisioning queue depth (sync today; B-7 BullMQ later) ---------
@@ -184,31 +184,31 @@ export class MetricsService {
     });
     write(
       lines,
-      'ekohost_provisioning_pending',
+      'verris_provisioning_pending',
       'Subscriptions stuck in PROVISIONING — proxy for queue depth',
       'gauge',
     );
-    lines.push(`ekohost_provisioning_pending ${pendingProvision}`);
+    lines.push(`verris_provisioning_pending ${pendingProvision}`);
 
     // --- Process-level info ----------------------------------------------
     const mem = process.memoryUsage();
     write(
       lines,
-      'ekohost_process_memory_bytes',
+      'verris_process_memory_bytes',
       'API process memory usage (Node.js process.memoryUsage)',
       'gauge',
     );
-    lines.push(`ekohost_process_memory_bytes{kind="rss"} ${mem.rss}`);
-    lines.push(`ekohost_process_memory_bytes{kind="heap_used"} ${mem.heapUsed}`);
-    lines.push(`ekohost_process_memory_bytes{kind="heap_total"} ${mem.heapTotal}`);
+    lines.push(`verris_process_memory_bytes{kind="rss"} ${mem.rss}`);
+    lines.push(`verris_process_memory_bytes{kind="heap_used"} ${mem.heapUsed}`);
+    lines.push(`verris_process_memory_bytes{kind="heap_total"} ${mem.heapTotal}`);
 
     write(
       lines,
-      'ekohost_process_uptime_seconds',
+      'verris_process_uptime_seconds',
       'API process uptime in seconds',
       'counter',
     );
-    lines.push(`ekohost_process_uptime_seconds ${Math.round(process.uptime())}`);
+    lines.push(`verris_process_uptime_seconds ${Math.round(process.uptime())}`);
 
     return lines.join('\n') + '\n';
   }

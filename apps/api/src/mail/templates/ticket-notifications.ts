@@ -21,7 +21,7 @@ Status zgłoszenia możesz śledzić w panelu: ${ctx.panelUrl}/dashboard/support
 
 Standardowy czas pierwszej odpowiedzi to 1 godzina robocza. Jeśli sprawa jest pilna, zaznacz to w opisie — przyspieszymy.
 
-— Zespół EkoHost
+— Zespół Verris
 `,
   };
 }
@@ -39,7 +39,7 @@ Status Twojego zgłoszenia "${ctx.subject}" zmienił się na: ${ctx.newStatus}
 
 Pełen przebieg konwersacji jest dostępny w panelu: ${ctx.panelUrl}/dashboard/support/${ctx.ticketId}
 
-— Zespół EkoHost
+— Zespół Verris
 `,
   };
 }

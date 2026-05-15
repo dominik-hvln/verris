@@ -98,7 +98,7 @@ export interface CreateSubscriptionResponse {
 export interface HostingDomainsResponseDto {
   domains: { name: string }[];
   daUsername: string | null;
-  /** Główna domena konta wg bazy EkoHost (porównanie z listą DA). */
+  /** Główna domena konta wg bazy Verris (porównanie z listą DA). */
   primaryDomain: string | null;
   fetchError: string | null;
 }

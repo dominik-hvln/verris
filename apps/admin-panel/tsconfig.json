@@ -1,5 +1,5 @@
 {
-  "extends": "@ekohost/typescript-config/nextjs.json",
+  "extends": "@verris/typescript-config/nextjs.json",
   "compilerOptions": {
     "plugins": [
       {

@@ -11,7 +11,7 @@ export default async function CalculatorPage() {
     <div className="min-h-screen bg-black flex flex-col items-center p-6 pt-12">
       <div className="w-full max-w-5xl text-center mb-10">
         <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-neutral-400 mb-4 tracking-tight">
-          Kalkulator kosztów EkoHost
+          Kalkulator kosztów Verris
         </h1>
         <p className="text-lg text-neutral-400 max-w-2xl mx-auto">
           Sprawdź ile zapłacisz, gdy autoskalowanie tymczasowo doda Ci zasoby ponad

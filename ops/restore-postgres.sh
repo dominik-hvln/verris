@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
 # =============================================================================
-# EkoHost — Postgres restore
+# Verris — Postgres restore
 # -----------------------------------------------------------------------------
 # Restores a `pg_dump` archive (.sql.gz) into the running `postgres` container.
 # Refuses to run unless --confirm is passed because this DROPS all existing
 # objects (the dump uses --clean --if-exists).
 #
 # Usage:
-#   ops/restore-postgres.sh <path/to/ekohost-YYYY-MM-DD-HHMM.sql.gz> --confirm
+#   ops/restore-postgres.sh <path/to/verris-YYYY-MM-DD-HHMM.sql.gz> --confirm
 # =============================================================================
 
 set -Eeuo pipefail
 
 POSTGRES_SERVICE="${POSTGRES_SERVICE:-postgres}"
-POSTGRES_USER="${POSTGRES_USER:-ekohost}"
-POSTGRES_DB="${POSTGRES_DB:-ekohost_db}"
+POSTGRES_USER="${POSTGRES_USER:-verris}"
+POSTGRES_DB="${POSTGRES_DB:-verris_db}"
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
-COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-ekohost}"
+COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-verris}"
 
 log() { printf '[%s] %s\n' "$(date -Iseconds)" "$*" >&2; }
 fail() { log "ERROR: $*"; exit 1; }

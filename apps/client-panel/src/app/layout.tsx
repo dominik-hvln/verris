@@ -6,7 +6,7 @@ import { ReactNode } from "react";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "EkoHost - Menadżer Hostingu",
+  title: "Verris - Menadżer Hostingu",
   description: "Zarządzaj swoim hostingiem i serwerami łatwiej niż kiedykolwiek.",
 };
 

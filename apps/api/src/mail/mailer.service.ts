@@ -63,7 +63,7 @@ export function buildMailerProvider(config: ConfigService): MailerProvider {
   const fromAddress =
     config.get<string>('SMTP_FROM_ADDRESS') || process.env.SMTP_FROM_ADDRESS || '';
   const fromName =
-    config.get<string>('SMTP_FROM_NAME') || process.env.SMTP_FROM_NAME || 'EkoHost';
+    config.get<string>('SMTP_FROM_NAME') || process.env.SMTP_FROM_NAME || 'Verris';
   const secure =
     (config.get<string>('SMTP_SECURE') || process.env.SMTP_SECURE || 'starttls') === 'tls'
       ? 'tls'

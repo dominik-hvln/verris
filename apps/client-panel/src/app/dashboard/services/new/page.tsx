@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ArrowLeft, ShieldAlert } from 'lucide-react';
-import type { PlanDto } from '@ekohost/contracts';
+import type { PlanDto } from '@verris/contracts';
 import { ApiError } from '@/lib/api';
 import { listPublicPlans } from '../data';
 import { NewSubscriptionForm } from './form';

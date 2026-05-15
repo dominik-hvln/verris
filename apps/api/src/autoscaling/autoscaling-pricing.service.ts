@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { AutoscalingPriceRule, AutoscalingResource } from '@ekohost/database';
+import { AutoscalingPriceRule, AutoscalingResource } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { CreatePriceRuleDto, UpdatePriceRuleDto } from './dto/price-rule.dto';

@@ -89,13 +89,13 @@ export default async function EcoProgramPage() {
         {badgeSrc ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={badgeSrc} alt="Badge EKO EkoHost" className="rounded-lg border border-white/10 max-w-full" />
+            <img src={badgeSrc} alt="Badge EKO Verris" className="rounded-lg border border-white/10 max-w-full" />
             <label className="block text-xs text-neutral-500 space-y-1">
               HTML
               <textarea
                 readOnly
                 className="w-full min-h-[72px] rounded-xl border border-white/10 bg-black/50 p-3 text-xs font-mono text-neutral-300"
-                value={`<a href="https://ekohost.pl" target="_blank" rel="noopener"><img src="${badgeSrc}" width="280" height="72" alt="EkoHost EKO" /></a>`}
+                value={`<a href="https://verris.pl" target="_blank" rel="noopener"><img src="${badgeSrc}" width="280" height="72" alt="Verris EKO" /></a>`}
               />
             </label>
           </>

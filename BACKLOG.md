@@ -1,4 +1,4 @@
-# Backlog Rozwoju Platformy EkoHost
+# Backlog Rozwoju Platformy Verris
 
 W tym pliku zapisujemy luźne pomysły, funkcjonalności oraz moduły, które pojawiły się podczas dyskusji, ale ich realizacja została przesunięta na później, aby skupić się na głównych priorytetach biznesowych.
 

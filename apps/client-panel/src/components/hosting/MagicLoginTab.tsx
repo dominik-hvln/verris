@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Key, ExternalLink, Loader2 } from 'lucide-react';
-import { Button } from '@ekohost/ui';
+import { Button } from '@verris/ui';
 import { fetchHostingDaLinksAction } from '@/app/dashboard/services/[id]/hosting-mysql-links-actions';
 
 interface MagicLoginTabProps {
@@ -49,7 +49,7 @@ export default function MagicLoginTab({ serviceId }: MagicLoginTabProps) {
           Logowanie do aplikacji
         </h2>
         <p className="text-neutral-400 text-sm leading-relaxed max-w-2xl mb-6">
-          Jednorazowe tokeny SSO do WordPressa lub innych aplikacji nie są obecnie wystawiane przez EkoHost. Zaloguj się
+          Jednorazowe tokeny SSO do WordPressa lub innych aplikacji nie są obecnie wystawiane przez Verris. Zaloguj się
           hasłem aplikacji, menedżerem haseł lub — gdy dostawca oferuje integrację — przez DirectAdmin / instalator
           aplikacji (np. Softaculous).
         </p>

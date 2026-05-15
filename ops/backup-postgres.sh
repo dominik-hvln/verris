@@ -1,25 +1,25 @@
 #!/usr/bin/env bash
 # =============================================================================
-# EkoHost — Postgres backup
+# Verris — Postgres backup
 # -----------------------------------------------------------------------------
 # Streams a logical dump of the application database via `pg_dump` running
 # inside the running `postgres` container. Output is gzip-compressed and
 # written to $BACKUP_DIR with a timestamped filename:
 #
-#   ekohost-2026-04-28-0300.sql.gz
+#   verris-2026-04-28-0300.sql.gz
 #
 # Old backups are pruned after $RETENTION_DAYS days. Designed to be invoked by
-# a host-side cron job (see /etc/cron.d/ekohost-backup) or by `cron` inside a
+# a host-side cron job (see /etc/cron.d/verris-backup) or by `cron` inside a
 # scheduler container.
 #
 # Required env vars (pass via cron `--env-file` or systemd):
-#   POSTGRES_USER         — db user with read access (defaults to "ekohost")
-#   POSTGRES_DB           — db name (defaults to "ekohost_db")
+#   POSTGRES_USER         — db user with read access (defaults to "verris")
+#   POSTGRES_DB           — db name (defaults to "verris_db")
 #
 # Optional:
 #   COMPOSE_FILE          — path to docker-compose.prod.yml (default: ./docker-compose.prod.yml)
 #   COMPOSE_PROJECT_NAME  — compose project name to scope `docker compose exec`
-#   BACKUP_DIR            — destination dir on the host (default: /var/backups/ekohost)
+#   BACKUP_DIR            — destination dir on the host (default: /var/backups/verris)
 #   RETENTION_DAYS        — how many days of dumps to keep (default: 14)
 #   POSTGRES_SERVICE      — compose service name (default: postgres)
 #
@@ -33,12 +33,12 @@
 set -Eeuo pipefail
 
 POSTGRES_SERVICE="${POSTGRES_SERVICE:-postgres}"
-POSTGRES_USER="${POSTGRES_USER:-ekohost}"
-POSTGRES_DB="${POSTGRES_DB:-ekohost_db}"
-BACKUP_DIR="${BACKUP_DIR:-/var/backups/ekohost}"
+POSTGRES_USER="${POSTGRES_USER:-verris}"
+POSTGRES_DB="${POSTGRES_DB:-verris_db}"
+BACKUP_DIR="${BACKUP_DIR:-/var/backups/verris}"
 RETENTION_DAYS="${RETENTION_DAYS:-14}"
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
-COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-ekohost}"
+COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-verris}"
 
 log() { printf '[%s] %s\n' "$(date -Iseconds)" "$*" >&2; }
 fail() { log "ERROR: $*"; exit "${2:-1}"; }
@@ -55,7 +55,7 @@ fi
 
 mkdir -p "$BACKUP_DIR"
 TIMESTAMP="$(date -u +%Y-%m-%d-%H%M)"
-OUT_FILE="${BACKUP_DIR}/ekohost-${TIMESTAMP}.sql.gz"
+OUT_FILE="${BACKUP_DIR}/verris-${TIMESTAMP}.sql.gz"
 TMP_FILE="${OUT_FILE}.partial"
 
 log "starting pg_dump → ${OUT_FILE}"
@@ -92,7 +92,7 @@ mv "$TMP_FILE" "$OUT_FILE"
 log "wrote ${OUT_FILE} (${SIZE_BYTES} bytes)"
 
 log "pruning backups older than ${RETENTION_DAYS} days in ${BACKUP_DIR}"
-find "$BACKUP_DIR" -maxdepth 1 -type f -name 'ekohost-*.sql.gz' -mtime +"$RETENTION_DAYS" -print -delete \
+find "$BACKUP_DIR" -maxdepth 1 -type f -name 'verris-*.sql.gz' -mtime +"$RETENTION_DAYS" -print -delete \
   | sed 's/^/  removed: /' >&2 || true
 
 log "backup complete"

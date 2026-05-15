@@ -7,7 +7,7 @@ import {
 import { randomBytes } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { User } from '@ekohost/database';
+import { User } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto, RegisterDto } from './auth.dto';
 import { TwoFactorService } from './totp/two-factor.service';

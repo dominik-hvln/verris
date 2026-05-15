@@ -22,7 +22,7 @@ const post = (path, data, token) => new Promise((resolve, reject) => {
 
 async function test() {
   try {
-    const login = await post('/auth/login', { email: 'admin@ekohost.pl', password: 'admin123' });
+    const login = await post('/auth/login', { email: 'admin@verris.pl', password: 'admin123' });
     console.log('Login status:', login.status);
     if (!login.body.includes('access_token')) {
       console.log('Login failed:', login.body);

@@ -1,7 +1,7 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto/crypto.service';
-import type { BootstrapToken } from '@ekohost/database';
+import type { BootstrapToken } from '@verris/database';
 
 const TOKEN_PREFIX = 'eko_btk_';
 const DEFAULT_TTL_HOURS = 48;

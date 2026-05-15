@@ -4,7 +4,7 @@ import {
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { Prisma, SubscriptionStatus, WalletTxType } from '@ekohost/database';
+import { Prisma, SubscriptionStatus, WalletTxType } from '@verris/database';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';

@@ -10,7 +10,7 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import { BillingInterval, SubscriptionPaymentSource } from '@ekohost/database';
+import { BillingInterval, SubscriptionPaymentSource } from '@verris/database';
 
 export class CreateSubscriptionDto {
   @IsUUID()

@@ -4,7 +4,7 @@ import * as bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Seeding EkoHost database...');
+  console.log('Seeding Verris database...');
 
   // ---------------------------------------------------------------------------
   // Admin account (kept for development access only — change in production!)
@@ -13,13 +13,13 @@ async function main() {
   const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
   const admin = await prisma.user.upsert({
-    where: { email: 'admin@ekohost.pl' },
+    where: { email: 'admin@verris.pl' },
     update: {},
     create: {
-      email: 'admin@ekohost.pl',
+      email: 'admin@verris.pl',
       passwordHash: hashedPassword,
       firstName: 'Admin',
-      lastName: 'EkoHost',
+      lastName: 'Verris',
       role: 'ADMIN',
       walletBalance: 0,
       ecoPoints: 0,
@@ -31,13 +31,13 @@ async function main() {
   const staffPassword = process.env.SEED_STAFF_PASSWORD ?? adminPassword;
   const staffHashed = await bcrypt.hash(staffPassword, 10);
   const staffUser = await prisma.user.upsert({
-    where: { email: 'staff@ekohost.pl' },
+    where: { email: 'staff@verris.pl' },
     update: {},
     create: {
-      email: 'staff@ekohost.pl',
+      email: 'staff@verris.pl',
       passwordHash: staffHashed,
       firstName: 'Support',
-      lastName: 'EkoHost',
+      lastName: 'Verris',
       role: 'STAFF',
       walletBalance: 0,
       ecoPoints: 0,

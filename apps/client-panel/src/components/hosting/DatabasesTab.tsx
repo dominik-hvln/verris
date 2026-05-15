@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { Database, Loader2, RefreshCw, AlertCircle } from 'lucide-react';
-import { Button } from '@ekohost/ui';
+import { Button } from '@verris/ui';
 import {
   fetchHostingDatabasesAction,
   fetchHostingDaLinksAction,

@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Button } from '@ekohost/ui';
-import type { DomainDto } from '@ekohost/contracts';
+import { Button } from '@verris/ui';
+import type { DomainDto } from '@verris/contracts';
 import { verifyDomainAction, deleteDomain } from '../actions';
 import { RefreshCw, Trash2 } from 'lucide-react';
 

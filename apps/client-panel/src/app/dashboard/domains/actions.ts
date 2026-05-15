@@ -1,6 +1,6 @@
 'use server';
 
-import { DomainDto } from "@ekohost/contracts";
+import { DomainDto } from "@verris/contracts";
 import { revalidatePath } from "next/cache";
 import { apiFetch } from "@/lib/api";
 

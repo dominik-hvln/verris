@@ -1,9 +1,9 @@
 apiVersion: 1
 
 providers:
-  - name: ekohost-default
+  - name: verris-default
     orgId: 1
-    folder: 'EkoHost'
+    folder: 'Verris'
     type: file
     disableDeletion: false
     editable: false

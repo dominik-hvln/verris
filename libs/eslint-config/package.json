@@ -1,5 +1,5 @@
 {
-  "name": "@ekohost/eslint-config",
+  "name": "@verris/eslint-config",
   "version": "1.0.0",
   "private": true,
   "license": "UNLICENSED"

@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import type { CreateSubscriptionInput, CreateSubscriptionResponse } from '@ekohost/contracts';
+import type { CreateSubscriptionInput, CreateSubscriptionResponse } from '@verris/contracts';
 import { ApiError, apiFetch } from '@/lib/api';
 
 export interface CreateSubscriptionResult {

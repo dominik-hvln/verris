@@ -7,7 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma, WalletTxType } from '@ekohost/database';
+import { Prisma, WalletTxType } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { WalletLedgerService } from './wallet-ledger.service';
@@ -229,7 +229,7 @@ export class BillingService {
         userId: user.id,
         kind: 'wallet_topup',
       },
-      description: `Doładowanie portfela EkoHost (${amount.toFixed(2)} ${user.walletCurrency})`,
+      description: `Doładowanie portfela Verris (${amount.toFixed(2)} ${user.walletCurrency})`,
     });
 
     await this.audit.record({
@@ -376,7 +376,7 @@ export class BillingService {
     if (!stripeSub.id) return;
     await this.subscriptions.markCanceledFromStripe({
       stripeSubscriptionId: stripeSub.id,
-      metadataSubscriptionId: stripeSub.metadata?.ekohostSubscriptionId ?? null,
+      metadataSubscriptionId: stripeSub.metadata?.verrisSubscriptionId ?? null,
     });
   }
 
@@ -395,30 +395,30 @@ export class BillingService {
     // it's set in `SubscriptionsService.startStripeRecurring`. Some invoice
     // events (`invoice.created` for the first cycle) don't echo subscription
     // metadata directly — rely on `subscription` field + on-file mapping.
-    const ekohostSubscriptionId = invoice.metadata?.ekohostSubscriptionId ?? null;
-    let ekohostUserId = invoice.metadata?.ekohostUserId ?? null;
+    const verrisSubscriptionId = invoice.metadata?.verrisSubscriptionId ?? null;
+    let verrisUserId = invoice.metadata?.verrisUserId ?? null;
     let localSubscription: { id: string; userId: string } | null = null;
 
     if (subscriptionId) {
       const sub = await this.subscriptions.findByStripeSubscriptionId(
         subscriptionId,
-        ekohostSubscriptionId,
+        verrisSubscriptionId,
       );
       if (sub) {
         localSubscription = { id: sub.id, userId: sub.userId };
-        ekohostUserId = ekohostUserId ?? sub.userId;
+        verrisUserId = verrisUserId ?? sub.userId;
       }
     }
 
-    if (!ekohostUserId && invoice.customer) {
+    if (!verrisUserId && invoice.customer) {
       const userByCustomer = await this.prisma.user.findUnique({
         where: { stripeCustomerId: invoice.customer },
         select: { id: true },
       });
-      if (userByCustomer) ekohostUserId = userByCustomer.id;
+      if (userByCustomer) verrisUserId = userByCustomer.id;
     }
 
-    if (!ekohostUserId) {
+    if (!verrisUserId) {
       this.logger.warn(
         `${event.type}: cannot map invoice=${invoice.id} to a local user — skipping`,
       );
@@ -426,8 +426,8 @@ export class BillingService {
     }
 
     const { invoice: row, created } = await this.invoices.upsertFromStripe(invoice, {
-      ekohostUserId,
-      ekohostSubscriptionId: localSubscription?.id ?? ekohostSubscriptionId ?? null,
+      verrisUserId,
+      verrisSubscriptionId: localSubscription?.id ?? verrisSubscriptionId ?? null,
     });
 
     // Activate the subscription only when the invoice is actually paid.
@@ -435,7 +435,7 @@ export class BillingService {
       if (subscriptionId) {
         await this.subscriptions.activateAfterStripePayment({
           stripeSubscriptionId: subscriptionId,
-          metadataSubscriptionId: ekohostSubscriptionId,
+          metadataSubscriptionId: verrisSubscriptionId,
           periodStart: invoice.status_transitions?.paid_at
             ? new Date(invoice.status_transitions.paid_at * 1000)
             : undefined,
@@ -444,7 +444,7 @@ export class BillingService {
       if (created || invoice.status === 'paid') {
         await this.audit.record({
           action: 'INVOICE_PAID',
-          userId: ekohostUserId,
+          userId: verrisUserId,
           details: {
             invoiceId: row.id,
             stripeInvoiceId: invoice.id,
@@ -473,36 +473,36 @@ export class BillingService {
       return;
     }
 
-    const ekohostSubscriptionId = invoice.metadata?.ekohostSubscriptionId ?? null;
+    const verrisSubscriptionId = invoice.metadata?.verrisSubscriptionId ?? null;
 
     // Mirror the row even on failure so the customer sees the OPEN invoice in
     // the UI. We only need to look up the user — fall back to the customer.
-    let ekohostUserId = invoice.metadata?.ekohostUserId ?? null;
-    if (!ekohostUserId && invoice.customer) {
+    let verrisUserId = invoice.metadata?.verrisUserId ?? null;
+    if (!verrisUserId && invoice.customer) {
       const userByCustomer = await this.prisma.user.findUnique({
         where: { stripeCustomerId: invoice.customer },
         select: { id: true },
       });
-      if (userByCustomer) ekohostUserId = userByCustomer.id;
+      if (userByCustomer) verrisUserId = userByCustomer.id;
     }
-    if (!ekohostUserId) {
+    if (!verrisUserId) {
       const sub = await this.subscriptions.findByStripeSubscriptionId(
         subscriptionId,
-        ekohostSubscriptionId,
+        verrisSubscriptionId,
       );
-      if (sub) ekohostUserId = sub.userId;
+      if (sub) verrisUserId = sub.userId;
     }
 
-    if (ekohostUserId) {
+    if (verrisUserId) {
       await this.invoices.upsertFromStripe(invoice, {
-        ekohostUserId,
-        ekohostSubscriptionId,
+        verrisUserId,
+        verrisSubscriptionId,
       });
     }
 
     await this.subscriptions.markPastDueFromStripe({
       stripeSubscriptionId: subscriptionId,
-      metadataSubscriptionId: ekohostSubscriptionId,
+      metadataSubscriptionId: verrisSubscriptionId,
       reason: `stripe:invoice:${invoice.id}:payment_failed`,
     });
   }
@@ -520,11 +520,11 @@ export class BillingService {
       amount_received?: number;
     };
     const meta = pi.metadata ?? {};
-    if (meta.ekohost_kind !== 'wallet_auto_topup' || !meta.ekohost_user_id) {
+    if (meta.verris_kind !== 'wallet_auto_topup' || !meta.verris_user_id) {
       return;
     }
 
-    const userId = meta.ekohost_user_id;
+    const userId = meta.verris_user_id;
     const amtMajor = ((pi.amount_received ?? 0) as number) / 100;
     if (amtMajor <= 0 || !pi.id) return;
 
@@ -565,12 +565,12 @@ export class BillingService {
       last_payment_error?: { message?: string };
     };
     const meta = pi.metadata ?? {};
-    if (meta.ekohost_kind !== 'wallet_auto_topup' || !meta.ekohost_user_id) {
+    if (meta.verris_kind !== 'wallet_auto_topup' || !meta.verris_user_id) {
       return;
     }
 
     await this.prisma.walletAutoTopup.updateMany({
-      where: { userId: meta.ekohost_user_id },
+      where: { userId: meta.verris_user_id },
       data: {
         lastAttemptAt: new Date(),
         lastAttemptOk: false,
@@ -580,7 +580,7 @@ export class BillingService {
 
     await this.audit.record({
       action: 'WALLET_AUTOTOPUP_PAYMENT_FAILED',
-      userId: meta.ekohost_user_id,
+      userId: meta.verris_user_id,
       details: {
         paymentIntentId: pi.id ?? null,
         error: pi.last_payment_error?.message ?? null,

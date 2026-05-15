@@ -1,16 +1,15 @@
 # =============================================================================
-# EkoHost API — production image (NestJS)
+# Verris API — production image (NestJS)
 # Multi-stage build: deps -> build -> runtime
 # Build context: monorepo root.
-#   docker build -f Dockerfile.api -t ekohost/api .
+#   docker build -f Dockerfile.api -t verris/api .
 # =============================================================================
 
 ARG NODE_VERSION=20
 
 FROM node:${NODE_VERSION}-bookworm-slim AS base
 ENV PNPM_HOME=/pnpm \
-    PATH=/pnpm:$PATH \
-    NODE_ENV=production
+    PATH=/pnpm:$PATH
 RUN corepack enable && corepack prepare pnpm@9.5.0 --activate
 WORKDIR /workspace
 
@@ -27,7 +26,7 @@ COPY libs/typescript-config libs/typescript-config
 COPY libs/eslint-config libs/eslint-config
 RUN --mount=type=cache,id=pnpm,target=/pnpm-store \
     pnpm config set store-dir /pnpm-store && \
-    pnpm install --frozen-lockfile --filter api... --filter @ekohost/database...
+    pnpm install --frozen-lockfile --filter api... --filter @verris/database...
 
 # -----------------------------------------------------------------------------
 # 2. Build — generate Prisma client, compile TS, produce dist
@@ -35,9 +34,9 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm-store \
 FROM deps AS build
 COPY libs libs
 COPY apps/api apps/api
-RUN pnpm --filter @ekohost/database exec prisma generate && \
-    pnpm --filter @ekohost/database build && \
-    pnpm --filter @ekohost/directadmin-sdk build && \
+RUN pnpm --filter @verris/database run db:generate && \
+    pnpm --filter @verris/database build && \
+    pnpm --filter @verris/directadmin-sdk build && \
     pnpm --filter api build && \
     pnpm --filter api build:cli
 

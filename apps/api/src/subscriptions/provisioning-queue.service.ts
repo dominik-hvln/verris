@@ -4,7 +4,7 @@ import {
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
-import { Prisma, SubscriptionStatus, WalletTxType } from '@ekohost/database';
+import { Prisma, SubscriptionStatus, WalletTxType } from '@verris/database';
 import { Job, Queue, Worker } from 'bullmq';
 import IORedis from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';

@@ -8,7 +8,7 @@ import type {
   BillingInterval,
   PlanDto,
   SubscriptionPaymentSource,
-} from '@ekohost/contracts';
+} from '@verris/contracts';
 import { createSubscriptionAction } from './actions';
 
 interface Props {

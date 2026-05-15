@@ -218,7 +218,7 @@ function Shell({ children }: { children: React.ReactNode }) {
             </svg>
           </div>
           <h1 className="text-3xl font-extrabold tracking-tight text-white mb-2">
-            EkoHost
+            Verris
           </h1>
           <p className="text-base text-neutral-400">Panel zarządzania hostingiem</p>
         </div>

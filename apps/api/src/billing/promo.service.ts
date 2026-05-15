@@ -3,7 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { PromoKind, Prisma, WalletTxType } from '@ekohost/database';
+import { PromoKind, Prisma, WalletTxType } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { WalletLedgerService } from './wallet-ledger.service';

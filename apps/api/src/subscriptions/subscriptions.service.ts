@@ -14,7 +14,7 @@ import {
   SubscriptionPaymentSource,
   SubscriptionStatus,
   WalletTxType,
-} from '@ekohost/database';
+} from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { WalletLedgerService } from '../billing/wallet-ledger.service';
@@ -784,8 +784,8 @@ export class SubscriptionsService {
       customerId,
       priceId,
       metadata: {
-        ekohostSubscriptionId: subscriptionId,
-        ekohostUserId: userId,
+        verrisSubscriptionId: subscriptionId,
+        verrisUserId: userId,
         domain: dto.domain,
         preferredRegion: dto.preferredRegion ?? '',
         planSlug: plan.slug,
@@ -849,7 +849,7 @@ export class SubscriptionsService {
     const customer = await this.stripe.createCustomer({
       email: user.email,
       name,
-      metadata: { ekohostUserId: user.id },
+      metadata: { verrisUserId: user.id },
     });
 
     await this.prisma.user.update({
@@ -866,7 +866,7 @@ export class SubscriptionsService {
 
   /**
    * Resolves our local `Subscription` from a Stripe subscription id (or the
-   * `metadata.ekohostSubscriptionId` we set when we created it). Returns null
+   * `metadata.verrisSubscriptionId` we set when we created it). Returns null
    * if no match — callers should treat that as "not ours, ignore".
    */
   async findByStripeSubscriptionId(
@@ -898,7 +898,7 @@ export class SubscriptionsService {
   }): Promise<Subscription | null> {
     const sub = await this.findByStripeSubscriptionId(
       stripeSub.id,
-      stripeSub.metadata?.ekohostSubscriptionId ?? null,
+      stripeSub.metadata?.verrisSubscriptionId ?? null,
     );
     if (!sub) return null;
 

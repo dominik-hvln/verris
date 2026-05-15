@@ -196,7 +196,7 @@ Rekomendowana reakcja:
   2. Jeśli to atak — zablokuj konto przez admin-panel i włącz wymóg 2FA.
   3. Skontaktuj się z klientem na alternatywnym kanale, żeby potwierdzić.
 
-— EkoHost Security
+— Verris Security
 `,
   };
 }

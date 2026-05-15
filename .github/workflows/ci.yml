@@ -41,7 +41,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
-        run: pnpm --filter @ekohost/database db:generate
+        run: pnpm --filter @verris/database db:generate
 
       - name: Lint
         run: pnpm lint
@@ -78,7 +78,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Generate Prisma client
-        run: pnpm --filter @ekohost/database db:generate
+        run: pnpm --filter @verris/database db:generate
 
       - name: Build all workspaces
         run: pnpm build
@@ -95,19 +95,19 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: ekohost
-          POSTGRES_PASSWORD: ekohost_password
-          POSTGRES_DB: ekohost_db
+          POSTGRES_USER: verris
+          POSTGRES_PASSWORD: verris_password
+          POSTGRES_DB: verris_db
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U ekohost -d ekohost_db"
+          --health-cmd "pg_isready -U verris -d verris_db"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
 
     env:
-      DATABASE_URL: postgresql://ekohost:ekohost_password@localhost:5432/ekohost_db?schema=public
+      DATABASE_URL: postgresql://verris:verris_password@localhost:5432/verris_db?schema=public
 
     steps:
       - uses: actions/checkout@v4
@@ -129,11 +129,11 @@ jobs:
       - name: Apply migrations on a fresh DB
         working-directory: libs/database
         env:
-          DATABASE_URL: postgresql://ekohost:ekohost_password@localhost:5432/ekohost_db?schema=public
+          DATABASE_URL: postgresql://verris:verris_password@localhost:5432/verris_db?schema=public
         run: npx prisma migrate deploy
 
       - name: Confirm schema matches Prisma model (no drift)
         working-directory: libs/database
         env:
-          DATABASE_URL: postgresql://ekohost:ekohost_password@localhost:5432/ekohost_db?schema=public
+          DATABASE_URL: postgresql://verris:verris_password@localhost:5432/verris_db?schema=public
         run: npx prisma migrate status

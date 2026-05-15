@@ -103,7 +103,7 @@ export function DirectAdminConfigForm({
             value={daHost}
             onChange={(e) => setDaHost(e.target.value)}
             className="form-input"
-            placeholder="server.ekohost.com"
+            placeholder="server.verris.com"
           />
         </Field>
         <Field label="Port" required>

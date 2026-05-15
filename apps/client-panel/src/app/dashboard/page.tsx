@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { fetchUserProfile, type UserProfile } from "./settings/actions";
 import { fetchUserDomainsPortfolio, fetchUserServicesSummary } from "./dashboard-data";
-import type { DomainDto, ServiceSummaryDto } from "@ekohost/contracts";
+import type { DomainDto, ServiceSummaryDto } from "@verris/contracts";
 
 /* ────────────────────────── Main Dashboard ────────────────────────── */
 

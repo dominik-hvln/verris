@@ -8,7 +8,7 @@
       "id": 1,
       "gridPos": { "h": 5, "w": 24, "x": 0, "y": 0 },
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "ekohost_servers_total", "legendFormat": "{{status}}", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_servers_total", "legendFormat": "{{status}}", "refId": "A" }
       ]
     },
     {
@@ -17,7 +17,7 @@
       "id": 2,
       "gridPos": { "h": 5, "w": 8, "x": 0, "y": 5 },
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "ekohost_servers_stale_heartbeat", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_servers_stale_heartbeat", "refId": "A" }
       ],
       "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green" }, { "color": "red", "value": 1 }] } } }
     },
@@ -26,7 +26,7 @@
       "title": "Servers (DB view: server_safe)",
       "id": 3,
       "gridPos": { "h": 10, "w": 24, "x": 0, "y": 10 },
-      "datasource": { "type": "postgres", "uid": "EkoHost-DB (RO)" },
+      "datasource": { "type": "postgres", "uid": "Verris-DB (RO)" },
       "targets": [
         {
           "format": "table",
@@ -42,16 +42,16 @@
       "id": 4,
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 20 },
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "ekohost_provisioning_pending", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_provisioning_pending", "refId": "A" }
       ]
     }
   ],
   "schemaVersion": 36,
   "style": "dark",
-  "tags": ["ekohost", "fleet"],
+  "tags": ["verris", "fleet"],
   "templating": { "list": [] },
   "time": { "from": "now-24h", "to": "now" },
   "title": "Compute fleet",
-  "uid": "ekohost-fleet",
+  "uid": "verris-fleet",
   "version": 1
 }

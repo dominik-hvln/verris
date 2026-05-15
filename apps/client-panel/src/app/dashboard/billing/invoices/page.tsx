@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ArrowLeft, ChevronLeft, ChevronRight, Download, FileText, ShieldAlert } from 'lucide-react';
-import type { InvoiceDto, InvoiceListResponse, InvoiceStatus } from '@ekohost/contracts';
+import type { InvoiceDto, InvoiceListResponse, InvoiceStatus } from '@verris/contracts';
 import { ApiError } from '@/lib/api';
 import { getInvoiceList } from './data';
 

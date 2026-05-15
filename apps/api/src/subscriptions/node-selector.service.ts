@@ -1,5 +1,5 @@
 import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
-import { Plan, Server, ServerStatus } from '@ekohost/database';
+import { Plan, Server, ServerStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface NodeSelectionContext {

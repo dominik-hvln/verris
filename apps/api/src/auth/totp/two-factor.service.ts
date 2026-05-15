@@ -12,7 +12,7 @@ import { CryptoService } from '../../common/crypto/crypto.service';
 import { AuditService } from '../../common/audit/audit.service';
 import { TotpService } from './totp.service';
 
-const ISSUER = 'EkoHost';
+const ISSUER = 'Verris';
 
 interface RecoveryStorage {
   /** SHA-256 hex of each unused recovery code. Consumed entries are removed. */

@@ -190,7 +190,7 @@ interface RenderInput {
 }
 
 function renderEmail(input: RenderInput): string {
-  const boundary = `----=ekohost-${crypto.randomBytes(8).toString('hex')}`;
+  const boundary = `----=verris-${crypto.randomBytes(8).toString('hex')}`;
   const headers = [
     `From: "${input.from.name}" <${input.from.address}>`,
     `To: <${input.to}>`,

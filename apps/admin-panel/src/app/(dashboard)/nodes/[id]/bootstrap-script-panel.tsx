@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Terminal, RefreshCw, Copy, Check, Loader2 } from "lucide-react";
-import type { BootstrapScriptResponseDto } from "@ekohost/contracts";
+import type { BootstrapScriptResponseDto } from "@verris/contracts";
 import { generateBootstrapScript } from "../actions";
 
 export function BootstrapScriptPanel({ serverId }: { serverId: string }) {

@@ -1,5 +1,5 @@
 {
-  "name": "@ekohost/ui",
+  "name": "@verris/ui",
   "version": "1.0.0",
   "private": true,
   "exports": {
@@ -19,7 +19,7 @@
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
-    "@ekohost/typescript-config": "workspace:*",
+    "@verris/typescript-config": "workspace:*",
     "@tailwindcss/postcss": "^4.1.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",

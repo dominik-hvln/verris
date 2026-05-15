@@ -132,7 +132,7 @@ function IncidentRow({ incident }: { incident: IncidentDto }) {
             <textarea
               value={publicMessage}
               onChange={(e) => setPublicMessage(e.target.value)}
-              placeholder="Komunikat publiczny (widoczny na status.ekohost.pl)"
+              placeholder="Komunikat publiczny (widoczny na status.verris.pl)"
               rows={3}
               className="w-full rounded-md bg-black/60 border border-white/10 px-2 py-1 text-white text-xs focus:border-indigo-400 focus:outline-none"
             />

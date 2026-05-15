@@ -8,7 +8,7 @@ import type {
   BootstrapScriptResponseDto,
   UpdateDirectAdminConfigInput,
   DirectAdminTestResultDto,
-} from "@ekohost/contracts";
+} from "@verris/contracts";
 import { adminApi, AdminApiError } from "@/lib/api";
 
 export async function fetchServers() {

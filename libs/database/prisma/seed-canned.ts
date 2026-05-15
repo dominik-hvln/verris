@@ -6,7 +6,7 @@ async function main() {
     data: [
       {
         title: 'Powitanie - Ogólne',
-        content: 'Witaj [IMIE_KLIENTA],\n\nDziękuję za kontakt z administracją EkoHost. Przyjęliśmy Twoje zgłoszenie i właśnie zaczynamy nad nim pracować. Odezwiemy się najszybciej, jak to możliwe.\n\nPozdrawiam,\nZespół EkoHost',
+        content: 'Witaj [IMIE_KLIENTA],\n\nDziękuję za kontakt z administracją Verris. Przyjęliśmy Twoje zgłoszenie i właśnie zaczynamy nad nim pracować. Odezwiemy się najszybciej, jak to możliwe.\n\nPozdrawiam,\nZespół Verris',
       },
       {
         title: 'Problem z DNS',
@@ -14,7 +14,7 @@ async function main() {
       },
       {
         title: 'Zamknięcie zgłoszenia',
-        content: 'Witaj [IMIE_KLIENTA],\n\nProblem został przez nas pomyślnie rozwiązany i zamykamy to zgłoszenie. Jeśli pojawią się jakiekolwiek inne pytania lub trudności, prosimy o otwarcie nowego zgłoszenia lub odpowiedź w tym wątku.\n\nPozdrawiamy,\nEkoHost Support',
+        content: 'Witaj [IMIE_KLIENTA],\n\nProblem został przez nas pomyślnie rozwiązany i zamykamy to zgłoszenie. Jeśli pojawią się jakiekolwiek inne pytania lub trudności, prosimy o otwarcie nowego zgłoszenia lub odpowiedź w tym wątku.\n\nPozdrawiamy,\nVerris Support',
       }
     ],
     skipDuplicates: true

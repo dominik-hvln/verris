@@ -31,7 +31,7 @@ export default async function StatusIncidentsPage({ searchParams }: PageProps) {
           <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
             Każdy incydent jest tworzony automatycznie przez engine po 2 kolejnych nieudanych
             probes i zamykany po pierwszym powrocie do sukcesu. Edytuj tytuł i komunikat publiczny
-            (widoczny na <code className="text-xs">status.ekohost.pl</code>).
+            (widoczny na <code className="text-xs">status.verris.pl</code>).
           </p>
         </div>
         <div className="flex items-center gap-2">

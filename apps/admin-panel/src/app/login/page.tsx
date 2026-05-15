@@ -42,7 +42,7 @@ export default function AdminLoginPage() {
             <ShieldAlert className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold leading-tight">EkoHost Core</h1>
+            <h1 className="text-xl font-semibold leading-tight">Verris Core</h1>
             <p className="text-xs text-muted-foreground tracking-widest uppercase">
               Centrala Dowodzenia
             </p>
@@ -61,7 +61,7 @@ export default function AdminLoginPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             className="w-full rounded-lg bg-white/5 border border-white/10 focus:border-indigo-400 focus:bg-white/[0.07] outline-none px-3 py-2 text-sm placeholder:text-muted-foreground transition-colors"
-            placeholder="admin@ekohost.pl"
+            placeholder="admin@verris.pl"
           />
         </div>
 

@@ -1,5 +1,5 @@
 # =============================================================================
-# EkoHost — production stack (control-plane node)
+# Verris — production stack (control-plane node)
 # Run on the dedicated server hosting the panel + DB. Customer accounts run on
 # separate compute nodes that bootstrap themselves via /servers/handshake.
 #
@@ -26,17 +26,17 @@ services:
     restart: always
     logging: *default-logging
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-ekohost}
+      POSTGRES_USER: ${POSTGRES_USER:-verris}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
-      POSTGRES_DB: ${POSTGRES_DB:-ekohost_db}
+      POSTGRES_DB: ${POSTGRES_DB:-verris_db}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER:-ekohost} -d $${POSTGRES_DB:-ekohost_db}']
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER:-verris} -d $${POSTGRES_DB:-verris_db}']
       interval: 10s
       timeout: 5s
       retries: 5
-    networks: [ekohost_internal]
+    networks: [verris_internal]
 
   redis:
     image: redis:7-alpine
@@ -50,7 +50,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    networks: [ekohost_internal]
+    networks: [verris_internal]
 
   api:
     build:
@@ -79,7 +79,7 @@ services:
       METRICS_AUTH_TOKEN: ${METRICS_AUTH_TOKEN:-}
       REDIS_URL: redis://redis:6379
     expose: ['3000']
-    networks: [ekohost_internal, ekohost_public]
+    networks: [verris_internal, verris_public]
     healthcheck:
       test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:3000/healthz']
       interval: 30s
@@ -101,10 +101,10 @@ services:
       NODE_ENV: production
       PORT: '3001'
       NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
-      NEXT_PUBLIC_STATUS_PAGE_URL: ${PUBLIC_STATUS_URL:-https://status.ekohost.pl}
+      NEXT_PUBLIC_STATUS_PAGE_URL: ${PUBLIC_STATUS_URL:-https://status.verris.pl}
       API_URL: http://api:3000
     expose: ['3001']
-    networks: [ekohost_public]
+    networks: [verris_public]
     healthcheck:
       test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:3001/api/health']
       interval: 30s
@@ -128,7 +128,7 @@ services:
       NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
       API_URL: http://api:3000
     expose: ['3002']
-    networks: [ekohost_public]
+    networks: [verris_public]
     healthcheck:
       test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:3002/api/health']
       interval: 30s
@@ -152,7 +152,7 @@ services:
       NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
       API_URL: http://api:3000
     expose: ['3003']
-    networks: [ekohost_public]
+    networks: [verris_public]
     healthcheck:
       test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:3003/api/health']
       interval: 30s
@@ -160,7 +160,7 @@ services:
       retries: 3
       start_period: 15s
 
-  # Public status page (status.ekohost.pl) — anonymous, fed by GET /status.
+  # Public status page (status.verris.pl) — anonymous, fed by GET /status.
   # No auth, no DB cookies; the only inbound config is NEXT_PUBLIC_API_URL.
   status-page:
     build:
@@ -176,9 +176,9 @@ services:
       NODE_ENV: production
       PORT: '3004'
       NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
-      EKOHOST_API_URL: http://api:3000
+      VERRIS_API_URL: http://api:3000
     expose: ['3004']
-    networks: [ekohost_public]
+    networks: [verris_public]
     healthcheck:
       test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:3004/api/health']
       interval: 30s
@@ -188,7 +188,7 @@ services:
 
   # ---------------------------------------------------------------------------
   # Observability stack (F-12 → F-16): Prometheus + Grafana + exporters.
-  # All services are reachable only on the `ekohost_internal` network; Grafana
+  # All services are reachable only on the `verris_internal` network; Grafana
   # is exposed publicly via Caddy with `forward_auth` to /auth/grafana-validate.
   # ---------------------------------------------------------------------------
   postgres-exporter:
@@ -198,9 +198,9 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
     environment:
-      DATA_SOURCE_NAME: postgresql://${POSTGRES_USER:-ekohost}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-ekohost_db}?sslmode=disable
+      DATA_SOURCE_NAME: postgresql://${POSTGRES_USER:-verris}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-verris_db}?sslmode=disable
     expose: ['9187']
-    networks: [ekohost_internal]
+    networks: [verris_internal]
 
   redis-exporter:
     image: oliver006/redis_exporter:v1.55.0-alpine
@@ -211,7 +211,7 @@ services:
     environment:
       REDIS_ADDR: redis://redis:6379
     expose: ['9121']
-    networks: [ekohost_internal]
+    networks: [verris_internal]
 
   prometheus:
     image: prom/prometheus:v2.51.2
@@ -229,7 +229,7 @@ services:
       METRICS_AUTH_TOKEN: ${METRICS_AUTH_TOKEN:-}
     expose: ['9090']
     depends_on: [api, postgres-exporter, redis-exporter]
-    networks: [ekohost_internal, ekohost_public]
+    networks: [verris_internal, verris_public]
 
   grafana:
     image: grafana/grafana:10.4.2
@@ -237,10 +237,10 @@ services:
     logging: *default-logging
     depends_on: [prometheus]
     environment:
-      GF_SERVER_DOMAIN: ${CADDY_GRAFANA_DOMAIN:-grafana.ekohost.local}
+      GF_SERVER_DOMAIN: ${CADDY_GRAFANA_DOMAIN:-grafana.verris.local}
       GF_SECURITY_ADMIN_USER: ${GF_SECURITY_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:?GF_SECURITY_ADMIN_PASSWORD is required}
-      POSTGRES_DB: ${POSTGRES_DB:-ekohost_db}
+      POSTGRES_DB: ${POSTGRES_DB:-verris_db}
       GRAFANA_DB_RO_PASSWORD: ${GRAFANA_DB_RO_PASSWORD:?GRAFANA_DB_RO_PASSWORD is required (ALTER USER grafana_ro PASSWORD ...)}
     volumes:
       - ./ops/observability/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
@@ -248,7 +248,7 @@ services:
       - ./ops/observability/grafana/dashboards/json:/etc/grafana/provisioning/dashboards/json:ro
       - grafana_data:/var/lib/grafana
     expose: ['3000']
-    networks: [ekohost_internal, ekohost_public]
+    networks: [verris_internal, verris_public]
     healthcheck:
       test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:3000/api/health | grep -q ok']
       interval: 30s
@@ -270,7 +270,7 @@ services:
       - ./ops/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
-    networks: [ekohost_public]
+    networks: [verris_public]
 
 volumes:
   postgres_data:
@@ -281,7 +281,7 @@ volumes:
   grafana_data:
 
 networks:
-  ekohost_internal:   # DB + Redis — not exposed to anything else
+  verris_internal:   # DB + Redis — not exposed to anything else
     driver: bridge
-  ekohost_public:     # API + panels reachable through the proxy
+  verris_public:     # API + panels reachable through the proxy
     driver: bridge

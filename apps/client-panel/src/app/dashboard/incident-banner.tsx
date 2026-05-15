@@ -5,10 +5,10 @@ import { AlertTriangle, ChevronDown, ChevronUp, ExternalLink, X } from "lucide-r
 import { fetchMyIncidents, type UserIncident } from "./incident-banner-actions";
 
 const POLL_INTERVAL_MS = 60_000;
-const DISMISS_STORAGE_KEY = "ekohost.dismissed-incidents";
+const DISMISS_STORAGE_KEY = "verris.dismissed-incidents";
 
 const STATUS_PAGE_URL =
-  process.env.NEXT_PUBLIC_STATUS_PAGE_URL ?? "https://status.ekohost.pl";
+  process.env.NEXT_PUBLIC_STATUS_PAGE_URL ?? "https://status.verris.pl";
 
 function loadDismissed(): Set<string> {
   if (typeof window === "undefined") return new Set();

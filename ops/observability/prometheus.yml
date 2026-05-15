@@ -3,7 +3,7 @@ global:
   evaluation_interval: 15s
   external_labels:
     environment: production
-    project: ekohost
+    project: verris
 
 scrape_configs:
   - job_name: prometheus

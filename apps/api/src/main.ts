@@ -34,7 +34,7 @@ async function bootstrap() {
 
   const port = config.get<number>('port')!;
   await app.listen(port);
-  logger.log(`EkoHost API is running on http://localhost:${port}`);
+  logger.log(`Verris API is running on http://localhost:${port}`);
 }
 
 bootstrap().catch((err) => {

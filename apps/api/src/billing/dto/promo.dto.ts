@@ -1,5 +1,5 @@
 import { IsBoolean, IsEnum, IsInt, IsOptional, IsString, Length, Matches } from 'class-validator';
-import { PromoKind } from '@ekohost/database';
+import { PromoKind } from '@verris/database';
 
 export class RedeemPromoDto {
   @IsString()

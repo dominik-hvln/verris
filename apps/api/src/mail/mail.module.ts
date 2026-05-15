@@ -21,8 +21,8 @@ import {
       inject: [ConfigService],
       useFactory: (config: ConfigService): MailerConfig => ({
         fromAddress:
-          config.get<string>('SMTP_FROM_ADDRESS') || 'noreply@ekohost.pl',
-        fromName: config.get<string>('SMTP_FROM_NAME') || 'EkoHost',
+          config.get<string>('SMTP_FROM_ADDRESS') || 'noreply@verris.pl',
+        fromName: config.get<string>('SMTP_FROM_NAME') || 'Verris',
         // Suspicious-activity alerts must NOT block the auth flow if SMTP
         // is down. Ticket notifications are best-effort, too — we audit
         // every send so an admin can replay them later if needed.

@@ -7,7 +7,7 @@
       "title": "MRR snapshot (sum of priceAmount, monthly subs only)",
       "id": 1,
       "gridPos": { "h": 5, "w": 8, "x": 0, "y": 0 },
-      "datasource": { "type": "postgres", "uid": "EkoHost-DB (RO)" },
+      "datasource": { "type": "postgres", "uid": "Verris-DB (RO)" },
       "targets": [
         {
           "format": "table",
@@ -24,7 +24,7 @@
       "id": 2,
       "gridPos": { "h": 5, "w": 8, "x": 8, "y": 0 },
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "ekohost_wallet_amount_30d_pln{type=\"TOPUP\"}", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_wallet_amount_30d_pln{type=\"TOPUP\"}", "refId": "A" }
       ],
       "fieldConfig": { "defaults": { "unit": "currencyPLN" } }
     },
@@ -34,7 +34,7 @@
       "id": 3,
       "gridPos": { "h": 5, "w": 8, "x": 16, "y": 0 },
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "ekohost_wallet_amount_30d_pln{type=\"CHARGE_AUTOSCALING\"}", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_wallet_amount_30d_pln{type=\"CHARGE_AUTOSCALING\"}", "refId": "A" }
       ],
       "fieldConfig": { "defaults": { "unit": "currencyPLN" } }
     },
@@ -43,7 +43,7 @@
       "title": "Subscriptions by plan + status",
       "id": 4,
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
-      "datasource": { "type": "postgres", "uid": "EkoHost-DB (RO)" },
+      "datasource": { "type": "postgres", "uid": "Verris-DB (RO)" },
       "targets": [
         {
           "format": "table",
@@ -58,7 +58,7 @@
       "title": "Daily wallet flow",
       "id": 5,
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
-      "datasource": { "type": "postgres", "uid": "EkoHost-DB (RO)" },
+      "datasource": { "type": "postgres", "uid": "Verris-DB (RO)" },
       "targets": [
         {
           "format": "time_series",
@@ -73,7 +73,7 @@
       "title": "Invoices issued / day (last 30d)",
       "id": 6,
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 13 },
-      "datasource": { "type": "postgres", "uid": "EkoHost-DB (RO)" },
+      "datasource": { "type": "postgres", "uid": "Verris-DB (RO)" },
       "targets": [
         {
           "format": "time_series",
@@ -86,10 +86,10 @@
   ],
   "schemaVersion": 36,
   "style": "dark",
-  "tags": ["ekohost", "business"],
+  "tags": ["verris", "business"],
   "templating": { "list": [] },
   "time": { "from": "now-30d", "to": "now" },
   "title": "Business",
-  "uid": "ekohost-business",
+  "uid": "verris-business",
   "version": 1
 }

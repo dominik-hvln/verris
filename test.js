@@ -6,7 +6,7 @@ async function test() {
     const loginRes = await fetch('http://localhost:3000/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'admin@ekohost.pl', password: 'admin123' })
+      body: JSON.stringify({ email: 'admin@verris.pl', password: 'admin123' })
     });
     const { accessToken } = await loginRes.json();
     console.log('Got token');

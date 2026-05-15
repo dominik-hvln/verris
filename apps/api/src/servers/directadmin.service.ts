@@ -4,7 +4,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { DirectAdminClient } from '@ekohost/directadmin-sdk';
+import { DirectAdminClient } from '@verris/directadmin-sdk';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto/crypto.service';
 

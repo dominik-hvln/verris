@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@ekohost/ui"],
+  transpilePackages: ["@verris/ui"],
   eslint: {
     ignoreDuringBuilds: true,
   },

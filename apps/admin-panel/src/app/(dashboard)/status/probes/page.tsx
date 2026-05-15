@@ -23,7 +23,7 @@ export default async function StatusProbesPage() {
           </h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
             Konfiguracja monitorów dostępności (HTTP/HTTPS/SMTP/IMAP/POP3/MySQL/SSH/DA-API/DNS).
-            Wyniki zasilają publiczną stronę <code className="text-xs">status.ekohost.pl</code>{" "}
+            Wyniki zasilają publiczną stronę <code className="text-xs">status.verris.pl</code>{" "}
             oraz banner incydentu w panelu klienta.
           </p>
         </div>

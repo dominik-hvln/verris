@@ -18,7 +18,7 @@ export async function downloadWalletTransactionsCsvAction(): Promise<
       return { ok: false, error: `Eksport zwrócił HTTP ${res.status}` };
     }
     const csv = await res.text();
-    const filename = `ekohost-wallet-${new Date().toISOString().slice(0, 10)}.csv`;
+    const filename = `verris-wallet-${new Date().toISOString().slice(0, 10)}.csv`;
     return { ok: true, csv, filename };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Błąd pobierania" };

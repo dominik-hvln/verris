@@ -3,12 +3,12 @@ version: '3.8'
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: ekohost_postgres
+    container_name: verris_postgres
     restart: always
     environment:
-      POSTGRES_USER: ekohost
-      POSTGRES_PASSWORD: ekohost_password
-      POSTGRES_DB: ekohost_db
+      POSTGRES_USER: verris
+      POSTGRES_PASSWORD: verris_password
+      POSTGRES_DB: verris_db
     ports:
       - '5433:5432'
     volumes:
@@ -16,7 +16,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: ekohost_redis
+    container_name: verris_redis
     restart: always
     ports:
       - '6379:6379'

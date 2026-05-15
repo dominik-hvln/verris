@@ -1,4 +1,4 @@
-import type { InvoiceListResponse } from '@ekohost/contracts';
+import type { InvoiceListResponse } from '@verris/contracts';
 import { apiFetch } from '@/lib/api';
 
 export async function getInvoiceList(opts: {

@@ -1,5 +1,5 @@
 {
-  "extends": "@ekohost/typescript-config/base.json",
+  "extends": "@verris/typescript-config/base.json",
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",

@@ -91,7 +91,7 @@ export function AdminSidebar({ userInitials, userLabel, logoutButton }: AdminSid
         </div>
         <div>
           <span className="text-sm font-bold tracking-tight text-white drop-shadow-md">
-            EkoHost <span className="text-indigo-400">Core</span>
+            Verris <span className="text-indigo-400">Core</span>
           </span>
           <span className="block text-[10px] text-muted-foreground uppercase tracking-widest mt-0.5">
             Centrala Dowodzenia

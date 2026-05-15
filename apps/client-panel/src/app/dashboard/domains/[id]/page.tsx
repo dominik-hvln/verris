@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api';
-import type { DomainDto, ServiceSummaryDto } from '@ekohost/contracts';
+import type { DomainDto, ServiceSummaryDto } from '@verris/contracts';
 import {
   ArrowLeft,
   Globe,
@@ -135,7 +135,7 @@ export default async function DomainDetailsPage({ params }: { params: Promise<{ 
             </span>
           </div>
           <p className="mt-2 text-sm text-neutral-400">
-            Domena w portfelu EkoHost. Narzędzia hostingowe działają po powiązaniu z kontem DirectAdmin (ta sama
+            Domena w portfelu Verris. Narzędzia hostingowe działają po powiązaniu z kontem DirectAdmin (ta sama
             nazwa domeny co przy provisioning).
           </p>
         </div>

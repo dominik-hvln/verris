@@ -1,5 +1,5 @@
 {
-  "name": "@ekohost/directadmin-sdk",
+  "name": "@verris/directadmin-sdk",
   "version": "1.0.0",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -11,8 +11,8 @@
     "axios": "^1.6.0"
   },
   "devDependencies": {
-    "@ekohost/typescript-config": "workspace:*",
-    "@ekohost/eslint-config": "workspace:*",
+    "@verris/typescript-config": "workspace:*",
+    "@verris/eslint-config": "workspace:*",
     "typescript": "^5.0.0",
     "@types/node": "^20.0.0"
   }

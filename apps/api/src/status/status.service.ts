@@ -6,7 +6,7 @@ import {
   ProbeSeverity,
   ServerStatus,
   ServiceProbe,
-} from '@ekohost/database';
+} from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 
 const CACHE_TTL_MS = 30 * 1000;
@@ -71,7 +71,7 @@ interface IncidentForUser {
 /**
  * Aggregates probe state into the public `GET /status` payload (H-5) and the
  * per-customer banner feed (H-8). All read paths share a 30 s in-memory cache
- * so the public page survives spikes (status.ekohost.pl) without overloading
+ * so the public page survives spikes (status.verris.pl) without overloading
  * the DB. We intentionally don't use Redis here — the cache is per-process
  * and rebuilt on miss; if we ever scale horizontally we can swap the impl
  * without touching callers.

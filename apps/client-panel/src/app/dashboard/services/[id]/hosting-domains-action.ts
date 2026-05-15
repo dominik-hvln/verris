@@ -1,6 +1,6 @@
 'use server';
 
-import type { HostingDomainsResponseDto } from '@ekohost/contracts';
+import type { HostingDomainsResponseDto } from '@verris/contracts';
 import { apiFetch } from '@/lib/api';
 
 export async function fetchHostingDomainsAction(

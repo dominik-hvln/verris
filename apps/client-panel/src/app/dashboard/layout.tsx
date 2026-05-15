@@ -162,7 +162,7 @@ export default function DashboardLayout({
             <Layers className="text-white w-5 h-5" />
           </div>
           <div>
-            <span className="text-xl font-bold tracking-tight text-white">EkoHost</span>
+            <span className="text-xl font-bold tracking-tight text-white">Verris</span>
             <span className="block text-[10px] text-neutral-500 font-medium tracking-[0.2em] uppercase mt-0.5">
               Client Panel
             </span>

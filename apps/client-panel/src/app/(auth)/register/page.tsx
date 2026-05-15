@@ -30,7 +30,7 @@ export default function RegisterPage() {
               <path d="M2 12l10 5 10-5" />
             </svg>
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white mb-2">EkoHost</h1>
+          <h1 className="text-3xl font-extrabold tracking-tight text-white mb-2">Verris</h1>
           <p className="text-base text-neutral-400">Utwórz nowe konto</p>
         </div>
 

@@ -1,4 +1,4 @@
-# Deploy EkoHost (control-plane)
+# Deploy Verris (control-plane)
 
 Ten dokument opisuje uruchomienie panelu, API i bazy danych na **dedykowanym serwerze** (control-plane). Węzły obliczeniowe (z DA + CloudLinux LVE + LiteSpeed) konfigurujesz osobno przez panel admina.
 
@@ -15,7 +15,7 @@ Przed pierwszym deployem i przed każdym go-live przejdź checklistę: [GO_NO_GO
 
 ```bash
 # 1) Sklonuj repo
-git clone <repo> /opt/ekohost && cd /opt/ekohost
+git clone <repo> /opt/verris && cd /opt/verris
 
 # 2) Skopiuj i uzupełnij konfigurację produkcyjną
 cp .env.prod.example .env.prod
@@ -32,7 +32,7 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod \
 # UWAGA: nie używamy już `prisma db push` w produkcji — od pierwszej migracji `0_init`
 # wszystkie zmiany schematu idą przez `prisma migrate deploy` (patrz sekcja „Migracje DB").
 
-# 6) Wczytaj seed (admin@ekohost.pl + staff@ekohost.pl + plany + cennik autoskalowania)
+# 6) Wczytaj seed (admin@verris.pl + staff@verris.pl + plany + cennik autoskalowania)
 docker compose -f docker-compose.prod.yml --env-file .env.prod \
   exec -e SEED_ADMIN_PASSWORD='<silne_hasło_admina>' \
        -e SEED_STAFF_PASSWORD='<inne_silne_hasło_staff>' \
@@ -42,10 +42,10 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod \
 
 Po starcie sprawdź:
 
-- `https://api.ekohost.pl/healthz` → `{ "status": "ok" }`
-- `https://api.ekohost.pl/readyz` → `{ "status": "ok", "database": "up" }`
-- `https://admin.ekohost.pl/login` → ekran logowania administratora
-- `https://status.ekohost.pl` → publiczna strona statusu (powinna pokazać „Brak skonfigurowanych probes” jeśli żadna jeszcze nie istnieje)
+- `https://api.verris.pl/healthz` → `{ "status": "ok" }`
+- `https://api.verris.pl/readyz` → `{ "status": "ok", "database": "up" }`
+- `https://admin.verris.pl/login` → ekran logowania administratora
+- `https://status.verris.pl` → publiczna strona statusu (powinna pokazać „Brak skonfigurowanych probes” jeśli żadna jeszcze nie istnieje)
 
 ## Sekrety – minimum produkcyjne
 
@@ -105,7 +105,7 @@ W bazie i API pola planu oraz konta hostingowego to **`entryProcesses`** (CloudL
 - [ ] `/usr/local/lsws/bin/lswsctrl status` — usługa w stanie działającym; vhosty odpowiadają po HTTP/S.
 - [ ] Pod `/usr/local/lsws/lsphp*` istnieje działający `lsphp` (wersja zgodna z polityką hostingu).
 - [ ] Dostęp do WebAdmin (`https://<węzeł>:7080`) jest ograniczony (firewall i/lub `LSWS_WEBADMIN_ALLOW_IP`).
-- [ ] `cloudlinux-statistic` lub `lveinfo` działa; w logach `/var/log/ekohost-agent.log` brak stałych błędów o braku narzędzi CloudLinux.
+- [ ] `cloudlinux-statistic` lub `lveinfo` działa; w logach `/var/log/verris-agent.log` brak stałych błędów o braku narzędzi CloudLinux.
 - [ ] W panelu admina węzeł zaakceptowany; sonda DA API (Status Page) przechodzi; limity kont testowego klienta w DA zgadzają się z EP/NPROC planu.
 
 ## Observability (Prometheus + Grafana)
@@ -115,7 +115,7 @@ Stack monitoringu uruchamia się razem z całym `docker-compose.prod.yml`. Po pi
 ```bash
 # 1) Ustaw mocne hasło dla read-only roli Postgresa (utworzonej przez 0_init):
 docker compose -f docker-compose.prod.yml --env-file .env.prod \
-  exec postgres psql -U ekohost -d ekohost_db \
+  exec postgres psql -U verris -d verris_db \
   -c "ALTER USER grafana_ro PASSWORD '$(openssl rand -base64 32)';"
 # Zapisz to hasło w .env.prod jako GRAFANA_DB_RO_PASSWORD i zrestartuj Grafanę:
 docker compose -f docker-compose.prod.yml --env-file .env.prod restart grafana
@@ -129,7 +129,7 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d api prometh
 ### Co jest w stacku
 
 - **Prometheus** (port 9090, internal) — scrapuje API `/metrics`, postgres-exporter, redis-exporter co 15 s, retencja 30 dni.
-- **Grafana** (port 3000, internal, publicznie pod `grafana.ekohost.pl`) — `auth.proxy` mode + Caddy `forward_auth` do `/auth/grafana-validate`.
+- **Grafana** (port 3000, internal, publicznie pod `grafana.verris.pl`) — `auth.proxy` mode + Caddy `forward_auth` do `/auth/grafana-validate`.
 - **postgres-exporter** + **redis-exporter** — DB i Redis metryki (CPU, lag, slow queries, connections, hit ratio).
 - **4 dashboardy** prowizjonowane jako kod w `ops/observability/grafana/dashboards/json/`:
   - `01-control-plane-health` — uptime API, RAM, subscriptions per status, ostrzeżenia PAST_DUE/SUSPENDED
@@ -141,7 +141,7 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d api prometh
 
 `grafana_ro` ma `SELECT` **tylko** na `*_safe` views — passwords, tokeny i sekrety DA są niedostępne nawet przez przypadkowe nadpisanie panelu. Lista dozwolonych kolumn jest w `0_init/migration.sql` na końcu pliku.
 
-`/metrics` jest chronione (jeśli `METRICS_AUTH_TOKEN` ustawione) bearer tokenem; w domyślnej konfiguracji Caddy nie wystawia `/metrics` publicznie (Prometheus dosięga API tylko po `ekohost_internal` net).
+`/metrics` jest chronione (jeśli `METRICS_AUTH_TOKEN` ustawione) bearer tokenem; w domyślnej konfiguracji Caddy nie wystawia `/metrics` publicznie (Prometheus dosięga API tylko po `verris_internal` net).
 
 ### SSO Grafany (F-15)
 
@@ -159,7 +159,7 @@ Dostęp do Grafany jest gatekept przez API:
 Włączenie dostępu STAFF-owi:
 
 ```sql
-UPDATE "User" SET "canAccessGrafana" = true WHERE email = 'imie.nazwisko@ekohost.pl';
+UPDATE "User" SET "canAccessGrafana" = true WHERE email = 'imie.nazwisko@verris.pl';
 ```
 
 ### Logi
@@ -168,10 +168,10 @@ Każdy serwis używa `json-file` driver z 10 MB × 5 plików (= 50 MB max per ko
 
 ## Konfiguracja Status Page (probes)
 
-Publiczna strona `https://status.ekohost.pl` jest pusta dopóki admin nie skonfiguruje probes per serwer. Probes są **dwuwymiarowe**:
+Publiczna strona `https://status.verris.pl` jest pusta dopóki admin nie skonfiguruje probes per serwer. Probes są **dwuwymiarowe**:
 
 - **Server-side** (cron co 30s w API): blackbox HTTP/HTTPS/TCP/MySQL/DA-API/DNS — wykrywa problemy z DNS, firewall, certyfikatami z punktu widzenia internetu.
-- **Node-side** (`ekohost-probes.sh` zainstalowany przez bootstrap): lokalne `nc -z` co minutę — wykrywa problemy *na samym serwerze* nawet gdy z zewnątrz wygląda OK.
+- **Node-side** (`verris-probes.sh` zainstalowany przez bootstrap): lokalne `nc -z` co minutę — wykrywa problemy *na samym serwerze* nawet gdy z zewnątrz wygląda OK.
 
 Procedura konfiguracji nowego serwera:
 
@@ -184,14 +184,14 @@ Procedura konfiguracji nowego serwera:
   - `DA_API` → `https://<host>:2222/` (severity MAJOR — sygnalizuje że provisioning działa)
 3. Zaznacz „Pokaż na publicznej stronie statusu” dla wszystkich które chcesz reklamować klientom.
 4. Po zapisaniu — w ciągu 30s pojawią się pierwsze próbki, w ciągu 90s ewentualny incydent (engine wymaga 2 kolejnych failów).
-5. Dla każdego nowego incydentu, w **„Status Page → Historia Incydentów”** edytujesz **publiczny komunikat** (widoczny dla klientów na status.ekohost.pl). Engine ustawia tylko techniczny tytuł — zespół supportu dopisuje co się dzieje.
+5. Dla każdego nowego incydentu, w **„Status Page → Historia Incydentów”** edytujesz **publiczny komunikat** (widoczny dla klientów na status.verris.pl). Engine ustawia tylko techniczny tytuł — zespół supportu dopisuje co się dzieje.
 
 > Eksport historii incydentów do CSV (np. dla materiałów sprzedażowych „99.97% za 90 dni”): w **„Historia Incydentów”** kliknij **Eksport CSV**. Strumień, działa nawet dla 12-miesięcznych okien.
 
 ## Aktualizacja
 
 ```bash
-cd /opt/ekohost
+cd /opt/verris
 git pull
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 docker compose -f docker-compose.prod.yml --env-file .env.prod exec api \
@@ -220,7 +220,7 @@ Po baseline'owaniu kolejne deploye używają wyłącznie `migrate deploy` — Pr
 ```bash
 # 1) Edytuj libs/database/prisma/schema.prisma
 # 2) Wygeneruj nową migrację lokalnie (Postgres dev musi działać)
-pnpm --filter @ekohost/database db:migrate:dev -- --name <descriptive_name>
+pnpm --filter @verris/database db:migrate:dev -- --name <descriptive_name>
 # 3) Zweryfikuj migrations/<timestamp>_<name>/migration.sql w PR
 # 4) Po merge na produkcji: kolejny `migrate deploy` zaaplikuje nową migrację
 ```
@@ -228,7 +228,7 @@ pnpm --filter @ekohost/database db:migrate:dev -- --name <descriptive_name>
 ### Reset DB (TYLKO dev / staging — irreversible)
 
 ```bash
-pnpm --filter @ekohost/database db:migrate:reset
+pnpm --filter @verris/database db:migrate:reset
 # Drop + recreate + apply all migrations + (skip seed; uruchom oddzielnie jeśli trzeba)
 ```
 
@@ -238,16 +238,16 @@ W repo jest gotowy skrypt + szablon crona, który robi codzienny zrzut Postgresa
 
 ```bash
 # Manualne uruchomienie (dobre do pierwszego sprawdzenia):
-sudo BACKUP_DIR=/var/backups/ekohost \
+sudo BACKUP_DIR=/var/backups/verris \
      RETENTION_DAYS=14 \
-     COMPOSE_PROJECT_NAME=ekohost \
+     COMPOSE_PROJECT_NAME=verris \
      ./ops/backup-postgres.sh
 
 # Instalacja crona (uruchamia się codziennie o 03:17 UTC):
-sudo install -m 0644 ops/cron/ekohost-backup.cron /etc/cron.d/ekohost-backup
+sudo install -m 0644 ops/cron/verris-backup.cron /etc/cron.d/verris-backup
 
 # Sprawdzenie logów (powinien być wpis "backup complete"):
-tail -n 20 /var/log/ekohost-backup.log
+tail -n 20 /var/log/verris-backup.log
 ```
 
 Skrypt:
@@ -260,17 +260,17 @@ Skrypt:
 
 ```bash
 # UWAGA: drop wszystkich obiektów w docelowej DB (--clean --if-exists)
-sudo ./ops/restore-postgres.sh /var/backups/ekohost/ekohost-2026-04-28-0317.sql.gz --confirm
+sudo ./ops/restore-postgres.sh /var/backups/verris/verris-2026-04-28-0317.sql.gz --confirm
 ```
 
 Wolumin `redis_data` można pomijać — Redis jest cache/queue, można odtworzyć.
 
 ### Off-site (zalecane)
 
-Backupy lokalne to za mało dla produkcji. Skopiuj `/var/backups/ekohost` co dobę do zewnętrznego storage (S3/Backblaze/wewnętrzny NFS), np.:
+Backupy lokalne to za mało dla produkcji. Skopiuj `/var/backups/verris` co dobę do zewnętrznego storage (S3/Backblaze/wewnętrzny NFS), np.:
 
 ```cron
-27 3 * * *  root  rclone copy /var/backups/ekohost remote:ekohost-backups --max-age 30d
+27 3 * * *  root  rclone copy /var/backups/verris remote:verris-backups --max-age 30d
 ```
 
 ## Rotacja `APP_KMS_KEY`
@@ -368,7 +368,7 @@ Wykonaj po kolei przed pierwszym ruchem z prawdziwymi klientami (adapter **PayU*
 1. **DNS** — rekordy A/AAAA na control-plane dla `panel`, `staff`, `admin`, `api`, `status`, `grafana` (zgodnie z `CADDY_*_DOMAIN` w `.env.prod`).
 2. **Sekrety** — `JWT_SECRET`, `APP_KMS_KEY`, `POSTGRES_PASSWORD`, Stripe **live**, `STRIPE_WEBHOOK_SECRET` ustawione; webhook w Stripe wskazuje na `PUBLIC_API_URL/billing/stripe/webhook` (zdarzenia jak w „Sekrety – minimum produkcyjne”, w tym `**payment_intent.*`** przy auto‑doładowaniu portfela).
 3. `**docker compose**` — build + up jak w pierwszym uruchomieniu (`DEPLOY`), potem `**prisma migrate deploy**`.
-4. **Seed** — `admin@ekohost.pl` oraz `**staff@ekohost.pl`** (STAFF — `libs/database/prisma/seed.ts`); hasła przez `SEED_ADMIN_PASSWORD` / `**SEED_STAFF_PASSWORD**`.
+4. **Seed** — `admin@verris.pl` oraz `**staff@verris.pl`** (STAFF — `libs/database/prisma/seed.ts`); hasła przez `SEED_ADMIN_PASSWORD` / `**SEED_STAFF_PASSWORD**`.
 5. **Mail** (`SMTP_*`) — tickety, alerty (`SECURITY_ALERT_EMAIL`) jeśli używasz.
 6. **Redis** — `REDIS_URL` (domyślnie `redis://redis:6379`); auto‑top‑up wymaga Stripe.
 7. **Załączniki ticketów** — `TICKET_UPLOAD_DIR` + volume dla `api` (patrz wyżej: „Załączniki ticketów”).

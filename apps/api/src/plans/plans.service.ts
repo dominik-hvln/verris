@@ -1,5 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { Plan } from '@ekohost/database';
+import { Plan } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { CreatePlanDto, UpdatePlanDto } from './dto/plan.dto';

@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
-import type { SavedPaymentMethodDto, WalletAutoTopupSettingsDto } from '@ekohost/contracts';
+import type { SavedPaymentMethodDto, WalletAutoTopupSettingsDto } from '@verris/contracts';
 import {
   Cpu,
   Gift,

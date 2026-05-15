@@ -6,7 +6,7 @@ import {
   Prisma,
   SubscriptionStatus,
   WalletTxType,
-} from '@ekohost/database';
+} from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletLedgerService } from '../billing/wallet-ledger.service';
 import { AutoscalingEngineService } from './autoscaling-engine.service';

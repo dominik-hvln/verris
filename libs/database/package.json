@@ -1,5 +1,5 @@
 {
-  "name": "@ekohost/database",
+  "name": "@verris/database",
   "version": "1.0.0",
   "private": true,
   "main": "./dist/index.js",
@@ -19,7 +19,7 @@
     "@prisma/client": "^5.19.1"
   },
   "devDependencies": {
-    "@ekohost/typescript-config": "workspace:*",
+    "@verris/typescript-config": "workspace:*",
     "@types/bcrypt": "^6.0.0",
     "@types/node": "^20.0.0",
     "bcrypt": "^6.0.0",

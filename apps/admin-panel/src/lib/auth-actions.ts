@@ -11,7 +11,7 @@ export async function adminLogin(email: string, password: string) {
       body: { email, password },
     });
     if (res.user.role !== "ADMIN") {
-      return { error: "To konto nie ma uprawnień administratora EkoHost Core." };
+      return { error: "To konto nie ma uprawnień administratora Verris Core." };
     }
     await setAdminAuthCookie(res.access_token);
     return { success: true as const };

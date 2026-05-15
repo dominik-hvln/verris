@@ -106,7 +106,7 @@ export class StripeClient {
     body.set('line_items[0][price_data][currency]', input.currency.toLowerCase());
     body.set(
       'line_items[0][price_data][product_data][name]',
-      input.description ?? 'Doładowanie portfela EkoHost',
+      input.description ?? 'Doładowanie portfela Verris',
     );
     body.set('line_items[0][price_data][unit_amount]', String(input.amountMinor));
     body.set('line_items[0][quantity]', '1');
@@ -309,7 +309,7 @@ export class StripeClient {
       Authorization: `Basic ${Buffer.from(`${this.secretKey}:`).toString('base64')}`,
       'Content-Type':
         method === 'POST' ? 'application/x-www-form-urlencoded' : 'application/json',
-      'Stripe-Version': '2024-06-20',
+      'Stripe-Version': '2026-04-22.dahlia',
     };
     if (opts?.idempotencyKey) {
       headers['Idempotency-Key'] = opts.idempotencyKey;

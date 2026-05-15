@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Box, ExternalLink, Loader2 } from 'lucide-react';
-import { Button } from '@ekohost/ui';
+import { Button } from '@verris/ui';
 import { fetchHostingDaLinksAction } from '@/app/dashboard/services/[id]/hosting-mysql-links-actions';
 
 interface StagingTabProps {

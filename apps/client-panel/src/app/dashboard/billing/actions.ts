@@ -6,7 +6,7 @@ import type {
   CreateCheckoutSessionResponse,
   PromoRedeemSuccessDto,
   WalletAutoTopupSettingsDto,
-} from '@ekohost/contracts';
+} from '@verris/contracts';
 import { ApiError, apiFetch } from '@/lib/api';
 
 export interface TopupResult {

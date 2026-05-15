@@ -5,8 +5,8 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-  title: 'EkoHost — Status systemu',
-  description: 'Aktualny status serwerów EkoHost — uptime, incydenty, czasy odpowiedzi.',
+  title: 'Verris — Status systemu',
+  description: 'Aktualny status serwerów Verris — uptime, incydenty, czasy odpowiedzi.',
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

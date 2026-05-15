@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { ProbeKind } from '@ekohost/database';
+import { ProbeKind } from '@verris/database';
 import { connect, type Socket } from 'net';
 import { lookup as dnsLookup } from 'dns/promises';
 
@@ -62,7 +62,7 @@ export class ProbeRunnerService {
         method: 'GET',
         redirect: 'manual',
         signal: controller.signal,
-        headers: { 'User-Agent': 'ekohost-prober/1.0' },
+        headers: { 'User-Agent': 'verris-prober/1.0' },
       });
       const latency = Date.now() - start;
       const ok = res.status < 500;

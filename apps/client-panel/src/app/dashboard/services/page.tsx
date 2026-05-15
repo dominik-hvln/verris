@@ -8,7 +8,7 @@ import {
   Gauge,
 } from 'lucide-react';
 import Link from 'next/link';
-import type { ServiceSummaryDto, SubscriptionStatus } from '@ekohost/contracts';
+import type { ServiceSummaryDto, SubscriptionStatus } from '@verris/contracts';
 import { ApiError } from '@/lib/api';
 import { listServices } from './data';
 

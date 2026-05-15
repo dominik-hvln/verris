@@ -1,6 +1,6 @@
 'use server';
 
-import type { HostingSslMutationOkDto } from '@ekohost/contracts';
+import type { HostingSslMutationOkDto } from '@verris/contracts';
 import { apiFetch, ApiError } from '@/lib/api';
 
 export type HostingSslActionResult =

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Server, Plus, Cpu, MemoryStick, HardDrive, Clock, AlertCircle } from "lucide-react";
-import type { ServerSummaryDto, ServerStatus } from "@ekohost/contracts";
+import type { ServerSummaryDto, ServerStatus } from "@verris/contracts";
 import { fetchServers } from "./actions";
 
 export const dynamic = "force-dynamic";

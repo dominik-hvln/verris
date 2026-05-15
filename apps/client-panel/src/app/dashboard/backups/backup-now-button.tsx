@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Loader2, HardDrive } from 'lucide-react';
-import { Button } from '@ekohost/ui';
+import { Button } from '@verris/ui';
 import { requestHostingSiteBackupAction } from '../hosting-site-backup-action';
 
 export function BackupNowButton({ serviceId }: { serviceId: string }) {

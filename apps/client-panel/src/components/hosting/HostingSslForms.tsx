@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { KeyRound, Loader2, Sparkles } from 'lucide-react';
-import { Button } from '@ekohost/ui';
+import { Button } from '@verris/ui';
 import { fetchHostingDomainsAction } from '@/app/dashboard/services/[id]/hosting-domains-action';
 import {
   pasteCustomSslAction,

@@ -86,7 +86,7 @@ export class TicketsService {
       void this.mailer
         .send({
           to: row.assignedTo.email,
-          subject: `[EkoHost] Nowe zgłoszenie: ${row.subject}`,
+          subject: `[Verris] Nowe zgłoszenie: ${row.subject}`,
           text: `Przypisano Ci nowe zgłoszenie (#${row.id}).\n\n${row.message}\n\n— Panel: ${clientUrl}/dashboard/support`,
           tag: 'ticket.created',
         })
@@ -213,7 +213,7 @@ export class TicketsService {
       void this.mailer
         .send({
           to: full.assignedTo.email,
-          subject: `[EkoHost] Nowa wiadomość od klienta — #${ticketId}`,
+          subject: `[Verris] Nowa wiadomość od klienta — #${ticketId}`,
           text: full.subject + '\n\n' + dto.message,
           tag: 'ticket.reply.client',
         })
@@ -365,7 +365,7 @@ export class TicketsService {
       void this.mailer
         .send({
           to: full.user.email,
-          subject: `[EkoHost] Odpowiedź do zgłoszenia: ${full.subject}`,
+          subject: `[Verris] Odpowiedź do zgłoszenia: ${full.subject}`,
           text: dto.message,
           tag: 'ticket.reply.staff',
         })
@@ -544,7 +544,7 @@ export class TicketsService {
       void this.mailer
         .send({
           to: full.assignedTo.email,
-          subject: `[EkoHost] Nowa wiadomość od klienta — #${ticketId}`,
+          subject: `[Verris] Nowa wiadomość od klienta — #${ticketId}`,
           text: full.subject + '\n\n' + dto.message,
           tag: 'ticket.reply.client',
         })
@@ -601,7 +601,7 @@ export class TicketsService {
       void this.mailer
         .send({
           to: full.user.email,
-          subject: `[EkoHost] Odpowiedź do zgłoszenia: ${full.subject}`,
+          subject: `[Verris] Odpowiedź do zgłoszenia: ${full.subject}`,
           text: dto.message,
           tag: 'ticket.reply.staff',
         })

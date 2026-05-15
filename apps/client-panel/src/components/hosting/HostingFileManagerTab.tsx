@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { ExternalLink, FolderOpen, Loader2 } from 'lucide-react';
-import { Button } from '@ekohost/ui';
+import { Button } from '@verris/ui';
 import { fetchHostingDaLinksAction } from '@/app/dashboard/services/[id]/hosting-mysql-links-actions';
 
 export default function HostingFileManagerTab({ serviceId }: { serviceId: string }) {

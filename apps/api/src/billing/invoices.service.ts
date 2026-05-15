@@ -1,5 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { Invoice, InvoiceStatus, Prisma } from '@ekohost/database';
+import { Invoice, InvoiceStatus, Prisma } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { StripeInvoice } from './stripe/stripe.client';
@@ -105,8 +105,8 @@ export class InvoicesService {
   async upsertFromStripe(
     stripeInvoice: StripeInvoice,
     opts: {
-      ekohostUserId: string;
-      ekohostSubscriptionId?: string | null;
+      verrisUserId: string;
+      verrisSubscriptionId?: string | null;
     },
   ): Promise<{ invoice: Invoice; created: boolean }> {
     const status = STRIPE_STATUS_TO_LOCAL[stripeInvoice.status] ?? InvoiceStatus.OPEN;
@@ -152,8 +152,8 @@ export class InvoicesService {
 
     const created = await this.prisma.invoice.create({
       data: {
-        userId: opts.ekohostUserId,
-        subscriptionId: opts.ekohostSubscriptionId ?? null,
+        userId: opts.verrisUserId,
+        subscriptionId: opts.verrisSubscriptionId ?? null,
         number,
         status,
         amount: total,
@@ -170,7 +170,7 @@ export class InvoicesService {
 
     await this.audit.record({
       action: 'INVOICE_CREATED',
-      userId: opts.ekohostUserId,
+      userId: opts.verrisUserId,
       details: {
         invoiceId: created.id,
         provider: STRIPE_PROVIDER,

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@ekohost/ui';
+import { Button } from '@verris/ui';
 import { redeemEcoPointsAction } from './eco-actions';
 
 interface Props {

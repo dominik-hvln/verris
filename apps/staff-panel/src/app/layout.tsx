@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "EkoHost Support",
+  title: "Verris Support",
   description: "Panel obsługi klienta (BOK)",
 };
 

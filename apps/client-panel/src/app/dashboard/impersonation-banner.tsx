@@ -37,7 +37,7 @@ export function ImpersonationBanner() {
         <div className="flex items-center gap-2 min-w-0">
           <ShieldAlert className="h-4 w-4 shrink-0" />
           <span className="truncate">
-            Sesja impersonowana przez wsparcie EkoHost
+            Sesja impersonowana przez wsparcie Verris
             {ctx.actorUserId ? ` (operator ${ctx.actorUserId.slice(0, 8)}…)` : ""}.
             Wszystkie akcje są rejestrowane w logach.
             {expiresIn !== null && ` Wygasa za ~${expiresIn} min.`}

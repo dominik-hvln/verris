@@ -32,7 +32,7 @@ export function StaffShell({
               <LifeBuoy className="h-5 w-5 text-white" />
             </div>
             <div>
-              <span className="text-sm font-bold tracking-tight text-white">EkoHost </span>
+              <span className="text-sm font-bold tracking-tight text-white">Verris </span>
               <span className="text-sm font-bold tracking-tight text-cyan-400">Support</span>
             </div>
           </div>

@@ -10,7 +10,7 @@ import {
   RefreshCw,
   Globe,
 } from 'lucide-react';
-import { Button } from '@ekohost/ui';
+import { Button } from '@verris/ui';
 import { HostingSslForms } from '@/components/hosting/HostingSslForms';
 import { fetchHostingDaLinksAction } from '@/app/dashboard/services/[id]/hosting-mysql-links-actions';
 import { fetchHostingDomainsAction } from '@/app/dashboard/services/[id]/hosting-domains-action';

@@ -1,5 +1,5 @@
 {
-  "name": "@ekohost/status-page",
+  "name": "@verris/status-page",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -16,7 +16,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@ekohost/typescript-config": "workspace:*",
+    "@verris/typescript-config": "workspace:*",
     "@tailwindcss/postcss": "^4.1.0",
     "@types/node": "^20",
     "@types/react": "^19",

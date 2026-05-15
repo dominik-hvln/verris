@@ -18,7 +18,7 @@ export async function downloadIncidentsCsvAction(): Promise<
       return { ok: false, error: `API ${res.status}` };
     }
     const csv = await res.text();
-    const filename = `ekohost-incidents-${new Date().toISOString().slice(0, 10)}.csv`;
+    const filename = `verris-incidents-${new Date().toISOString().slice(0, 10)}.csv`;
     return { ok: true, csv, filename };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Unknown error" };

@@ -1,5 +1,5 @@
 {
-  "extends": "@ekohost/typescript-config/react-library.json",
+  "extends": "@verris/typescript-config/react-library.json",
   "compilerOptions": {
     "outDir": "dist",
     "baseUrl": ".",

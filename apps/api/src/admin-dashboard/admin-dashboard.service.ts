@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, Role, WalletTxStatus } from '@ekohost/database';
+import { Prisma, Role, WalletTxStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()

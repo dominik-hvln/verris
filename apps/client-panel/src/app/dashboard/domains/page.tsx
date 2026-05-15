@@ -22,11 +22,11 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator
-} from '@ekohost/ui';
+} from '@verris/ui';
 import { Globe, MoreVertical, Plus, RefreshCw, AlertCircle, Info, Trash2, CheckCircle2 } from 'lucide-react';
 import { HostingTabs } from '../components/hosting-tabs';
 import { fetchUserDomains, addDomain, deleteDomain } from './actions';
-import { DomainDto } from '@ekohost/contracts';
+import { DomainDto } from '@verris/contracts';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { toast } from 'sonner';
@@ -106,7 +106,7 @@ export default function DomainsPage() {
               <div className="flex flex-col gap-2 mb-6">
                 <h2 className="text-xl font-semibold tracking-tight">Dodaj nową domenę</h2>
                 <p className="text-sm text-muted-foreground">
-                  Wprowadź nazwę domeny, którą chcesz podpiąć pod środowisko EkoHost.
+                  Wprowadź nazwę domeny, którą chcesz podpiąć pod środowisko Verris.
                 </p>
               </div>
 
@@ -128,8 +128,8 @@ export default function DomainsPage() {
                   <div className="text-sm">
                     Po dodaniu domeny, upewnij się że jej rekordy NS wskazują na nasze NameServery:
                     <ul className="list-disc ml-5 mt-2 font-mono">
-                      <li>ns1.ekohost.pl</li>
-                      <li>ns2.ekohost.pl</li>
+                      <li>ns1.verris.pl</li>
+                      <li>ns2.verris.pl</li>
                     </ul>
                     Propagacja zmian DNS może potrwać od 1 do 24 godzin. Status się zmieni po pełnym rozgłoszeniu.
                   </div>

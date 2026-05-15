@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Rocket, ExternalLink, Loader2 } from 'lucide-react';
-import { Button } from '@ekohost/ui';
+import { Button } from '@verris/ui';
 import { fetchHostingDaLinksAction } from '@/app/dashboard/services/[id]/hosting-mysql-links-actions';
 
 interface DeployTabProps {
@@ -10,7 +10,7 @@ interface DeployTabProps {
 }
 
 /**
- * Wdrożenia z Git (webhook / CI) nie są zintegrowane z API EkoHost — użytkownik korzysta z SSH, DA lub zewnętrznego pipeline'u.
+ * Wdrożenia z Git (webhook / CI) nie są zintegrowane z API Verris — użytkownik korzysta z SSH, DA lub zewnętrznego pipeline'u.
  */
 export default function DeployTab({ serviceId }: DeployTabProps) {
   const [panelUrl, setPanelUrl] = useState<string | null>(null);

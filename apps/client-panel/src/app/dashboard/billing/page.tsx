@@ -17,7 +17,7 @@ import type {
   WalletSummaryDto,
   WalletTransactionDto,
   WalletTxType,
-} from '@ekohost/contracts';
+} from '@verris/contracts';
 import { ApiError } from '@/lib/api';
 import { getSavedPaymentMethods, getWalletAutoTopup, getWalletSummary } from './data';
 import { TopupCard } from './topup-card';

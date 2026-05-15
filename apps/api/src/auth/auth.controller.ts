@@ -21,7 +21,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { Role } from '@ekohost/database';
+import { Role } from '@verris/database';
 import { TwoFactorService } from './totp/two-factor.service';
 
 @Controller('auth')

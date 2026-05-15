@@ -1,5 +1,5 @@
 // =============================================================================
-// EkoHost - Prisma Schema
+// Verris - Prisma Schema
 // -----------------------------------------------------------------------------
 // Foundation schema covering: IAM, hosting accounts (DirectAdmin/CloudLinux LVE),
 // subscriptions (Stripe), wallet ledger, autoscaling pricing & events, telemetry,

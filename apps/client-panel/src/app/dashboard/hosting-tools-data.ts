@@ -8,7 +8,7 @@ import type {
   HostingMysqlDatabasesResponseDto,
   HostingSslResponseDto,
   ServiceSummaryDto,
-} from "@ekohost/contracts";
+} from "@verris/contracts";
 import { apiFetch } from "@/lib/api";
 
 export async function listUserServices(): Promise<ServiceSummaryDto[]> {

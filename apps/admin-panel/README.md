@@ -1,4 +1,4 @@
-# EkoHost — panel administratora
+# Verris — panel administratora
 
 ## Konfiguracja
 
@@ -10,4 +10,4 @@ Logowanie zapisuje token w httpOnly cookie `admin_auth_token` po udanym logowani
 
 ## Logowanie (dev)
 
-Po seedzie bazy (`libs/database/prisma/seed.ts`): **`admin@ekohost.pl`** / domyślne hasło **`admin123`** (lub wartość **`SEED_ADMIN_PASSWORD`** przy uruchamianiu seeda). Nie loguj się kontem STAFF ani USER — panel wymaga roli **ADMIN**.
+Po seedzie bazy (`libs/database/prisma/seed.ts`): **`admin@verris.pl`** / domyślne hasło **`admin123`** (lub wartość **`SEED_ADMIN_PASSWORD`** przy uruchamianiu seeda). Nie loguj się kontem STAFF ani USER — panel wymaga roli **ADMIN**.

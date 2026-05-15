@@ -1,6 +1,6 @@
 'use server';
 
-import type { HostingDaLinksResponseDto, HostingMysqlDatabasesResponseDto } from '@ekohost/contracts';
+import type { HostingDaLinksResponseDto, HostingMysqlDatabasesResponseDto } from '@verris/contracts';
 import { apiFetch } from '@/lib/api';
 
 export async function fetchHostingDatabasesAction(

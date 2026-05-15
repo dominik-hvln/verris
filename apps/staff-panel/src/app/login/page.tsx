@@ -38,7 +38,7 @@ export default function StaffLoginPage() {
             <LifeBuoy className="h-6 w-6 text-white" />
           </div>
           <div>
-            <h1 className="text-xl font-semibold leading-tight">EkoHost Support</h1>
+            <h1 className="text-xl font-semibold leading-tight">Verris Support</h1>
             <p className="text-xs text-muted-foreground tracking-widest uppercase">Staff / ADMIN</p>
           </div>
         </div>

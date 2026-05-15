@@ -5,7 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, WalletTransaction, WalletTxType, WalletTxStatus } from '@ekohost/database';
+import { Prisma, WalletTransaction, WalletTxType, WalletTxStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 
 export interface LedgerEntryInput {

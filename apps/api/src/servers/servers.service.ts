@@ -11,7 +11,7 @@ import { CryptoService } from '../common/crypto/crypto.service';
 import { AuditService } from '../common/audit/audit.service';
 import { BootstrapTokenService } from './bootstrap-token.service';
 import { DirectAdminService } from './directadmin.service';
-import { Prisma, ServerStatus } from '@ekohost/database';
+import { Prisma, ServerStatus } from '@verris/database';
 import { InitServerDto } from './dto/init-server.dto';
 import { HandshakeDto } from './dto/handshake.dto';
 import { UpdateServerDto } from './dto/update-server.dto';
@@ -316,13 +316,13 @@ function renderBootstrapScript(opts: { apiUrl: string; bootstrapToken: string; s
   // Single-use bootstrap script. The plaintext token is embedded once and
   // becomes invalid as soon as the node successfully completes its handshake.
   return `#!/usr/bin/env bash
-# EkoHost bootstrap — initial handshake for "${opts.serverName}"
+# Verris bootstrap — initial handshake for "${opts.serverName}"
 # This script:
 #   1. Gathers capacity info (IP/CPU/RAM/disk) and registers the node with the
-#      EkoHost control plane via /servers/handshake.
-#   2. Persists the returned X-Server-Id and X-Server-Token in /etc/ekohost.conf
+#      Verris control plane via /servers/handshake.
+#   2. Persists the returned X-Server-Id and X-Server-Token in /etc/verris.conf
 #      (mode 0600, root-only) so the metrics agent can authenticate later.
-#   3. Installs the metrics agent (/usr/local/bin/ekohost-agent.sh) and a
+#   3. Installs the metrics agent (/usr/local/bin/verris-agent.sh) and a
 #      systemd timer (or fallback cron) that pushes lveinfo samples every
 #      minute to /telemetry/lve.
 #
@@ -333,20 +333,20 @@ set -euo pipefail
 
 API_URL="${opts.apiUrl}"
 BOOTSTRAP_TOKEN="${opts.bootstrapToken}"
-CONFIG_FILE="/etc/ekohost.conf"
-AGENT_PATH="/usr/local/bin/ekohost-agent.sh"
-LOG_FILE="/var/log/ekohost-agent.log"
+CONFIG_FILE="/etc/verris.conf"
+AGENT_PATH="/usr/local/bin/verris-agent.sh"
+LOG_FILE="/var/log/verris-agent.log"
 
 require_root() {
   if [ "$(id -u)" != "0" ]; then
-    echo "[ekohost] This bootstrap must run as root. Use sudo." >&2
+    echo "[verris] This bootstrap must run as root. Use sudo." >&2
     exit 1
   fi
 }
 
 ensure_command() {
   if ! command -v "$1" >/dev/null 2>&1; then
-    echo "[ekohost] Missing required command: $1" >&2
+    echo "[verris] Missing required command: $1" >&2
     exit 1
   fi
 }
@@ -359,17 +359,17 @@ ensure_command sed
 LITESPEED_SERIAL_NO="\${LITESPEED_SERIAL_NO:-}"
 if [ ! -x /usr/local/lsws/bin/lswsctrl ]; then
   if [ -z "$LITESPEED_SERIAL_NO" ]; then
-    echo "[ekohost] LiteSpeed is not installed and LITESPEED_SERIAL_NO is missing." >&2
-    echo "[ekohost] Export LITESPEED_SERIAL_NO and rerun bootstrap." >&2
+    echo "[verris] LiteSpeed is not installed and LITESPEED_SERIAL_NO is missing." >&2
+    echo "[verris] Export LITESPEED_SERIAL_NO and rerun bootstrap." >&2
     exit 1
   fi
-  echo "[ekohost] Installing LiteSpeed Web Server..."
+  echo "[verris] Installing LiteSpeed Web Server..."
   bash <(curl -fsSL https://get.litespeed.sh) "$LITESPEED_SERIAL_NO"
 fi
 
 if ! ls /usr/local/lsws/lsphp*/bin/lsphp >/dev/null 2>&1; then
-  echo "[ekohost] LSPHP binary not found under /usr/local/lsws/lsphp*/bin/lsphp" >&2
-  echo "[ekohost] Install LSPHP from LiteSpeed repository before continuing." >&2
+  echo "[verris] LSPHP binary not found under /usr/local/lsws/lsphp*/bin/lsphp" >&2
+  echo "[verris] Install LSPHP from LiteSpeed repository before continuing." >&2
   exit 1
 fi
 
@@ -379,13 +379,13 @@ fi
 
 /usr/local/lsws/bin/lswsctrl start >/dev/null 2>&1 || true
 if ! /usr/local/lsws/bin/lswsctrl status >/dev/null 2>&1; then
-  echo "[ekohost] LiteSpeed service is not healthy after startup." >&2
+  echo "[verris] LiteSpeed service is not healthy after startup." >&2
   exit 1
 fi
 
 if command -v ss >/dev/null 2>&1; then
   if ! ss -lnt | awk '{print $4}' | grep -E '(:7080)$' >/dev/null 2>&1; then
-    echo "[ekohost] LiteSpeed WebAdmin port 7080 is not listening." >&2
+    echo "[verris] LiteSpeed WebAdmin port 7080 is not listening." >&2
     exit 1
   fi
 fi
@@ -426,7 +426,7 @@ PAYLOAD=$(cat <<JSON
 JSON
 )
 
-echo "[ekohost] Sending handshake to $API_URL ..."
+echo "[verris] Sending handshake to $API_URL ..."
 RESPONSE=$(curl -fsSL -w "\\n%{http_code}" -X POST "$API_URL/servers/handshake" \\
   -H "Content-Type: application/json" \\
   -H "X-Bootstrap-Token: $BOOTSTRAP_TOKEN" \\
@@ -436,7 +436,7 @@ HTTP_STATUS=$(echo "$RESPONSE" | tail -n1)
 BODY=$(echo "$RESPONSE" | sed '$d')
 
 if [ "$HTTP_STATUS" != "200" ] && [ "$HTTP_STATUS" != "201" ]; then
-  echo "[ekohost] Handshake failed with HTTP $HTTP_STATUS" >&2
+  echo "[verris] Handshake failed with HTTP $HTTP_STATUS" >&2
   echo "$BODY" >&2
   exit 1
 fi
@@ -448,7 +448,7 @@ SERVER_ID=$(printf '%s' "$BODY" | sed -n 's/.*"id"[[:space:]]*:[[:space:]]*"\\([
 IDENTITY_TOKEN=$(printf '%s' "$BODY" | sed -n 's/.*"identityToken"[[:space:]]*:[[:space:]]*"\\([^"]*\\)".*/\\1/p' | head -n1)
 
 if [ -z "$SERVER_ID" ]; then
-  echo "[ekohost] Handshake response did not include serverId. Aborting." >&2
+  echo "[verris] Handshake response did not include serverId. Aborting." >&2
   echo "$BODY" >&2
   exit 1
 fi
@@ -456,17 +456,17 @@ fi
 if [ -n "$IDENTITY_TOKEN" ]; then
   install -m 0600 -o root -g root /dev/null "$CONFIG_FILE"
   cat > "$CONFIG_FILE" <<CFG
-# EkoHost agent configuration — KEEP SECRET (chmod 600)
-EKOHOST_API_URL="$API_URL"
-EKOHOST_SERVER_ID="$SERVER_ID"
-EKOHOST_IDENTITY_TOKEN="$IDENTITY_TOKEN"
+# Verris agent configuration — KEEP SECRET (chmod 600)
+VERRIS_API_URL="$API_URL"
+VERRIS_SERVER_ID="$SERVER_ID"
+VERRIS_IDENTITY_TOKEN="$IDENTITY_TOKEN"
 CFG
-  echo "[ekohost] Stored agent credentials in $CONFIG_FILE"
+  echo "[verris] Stored agent credentials in $CONFIG_FILE"
 elif [ ! -f "$CONFIG_FILE" ]; then
-  echo "[ekohost] Handshake re-run before approval — no identity token returned and no existing config. Run the bootstrap with a fresh token." >&2
+  echo "[verris] Handshake re-run before approval — no identity token returned and no existing config. Run the bootstrap with a fresh token." >&2
   exit 1
 else
-  echo "[ekohost] Re-handshake (no new identity token issued) — keeping existing $CONFIG_FILE."
+  echo "[verris] Re-handshake (no new identity token issued) — keeping existing $CONFIG_FILE."
 fi
 
 # -----------------------------------------------------------------------------
@@ -475,15 +475,15 @@ fi
 
 cat > "$AGENT_PATH" <<'AGENT'
 #!/usr/bin/env bash
-# EkoHost metrics agent — sends 1-minute LVE buckets to the control plane.
+# Verris metrics agent — sends 1-minute LVE buckets to the control plane.
 set -euo pipefail
-CONFIG_FILE="/etc/ekohost.conf"
-[ -r "$CONFIG_FILE" ] || { echo "[ekohost-agent] Missing $CONFIG_FILE" >&2; exit 1; }
+CONFIG_FILE="/etc/verris.conf"
+[ -r "$CONFIG_FILE" ] || { echo "[verris-agent] Missing $CONFIG_FILE" >&2; exit 1; }
 # shellcheck disable=SC1090
 source "$CONFIG_FILE"
-: "\${EKOHOST_API_URL:?missing EKOHOST_API_URL}"
-: "\${EKOHOST_SERVER_ID:?missing EKOHOST_SERVER_ID}"
-: "\${EKOHOST_IDENTITY_TOKEN:?missing EKOHOST_IDENTITY_TOKEN}"
+: "\${VERRIS_API_URL:?missing VERRIS_API_URL}"
+: "\${VERRIS_SERVER_ID:?missing VERRIS_SERVER_ID}"
+: "\${VERRIS_IDENTITY_TOKEN:?missing VERRIS_IDENTITY_TOKEN}"
 
 BUCKET_DURATION=60
 BUCKET_START=$(date -u -d "@$(( ($(date +%s) / BUCKET_DURATION) * BUCKET_DURATION - BUCKET_DURATION ))" +%FT%TZ 2>/dev/null \\
@@ -496,7 +496,7 @@ ACCOUNTS_JSON="[]"
 # IO in kbps). If neither is available, ship an empty payload — it still
 # refreshes the heartbeat on the control plane.
 if ! command -v cloudlinux-statistic >/dev/null 2>&1 && ! command -v lveinfo >/dev/null 2>&1; then
-  echo "[ekohost-agent] CloudLinux tools missing (cloudlinux-statistic/lveinfo). Install CloudLinux LVE first." >&2
+  echo "[verris-agent] CloudLinux tools missing (cloudlinux-statistic/lveinfo). Install CloudLinux LVE first." >&2
   exit 2
 fi
 if command -v cloudlinux-statistic >/dev/null 2>&1; then
@@ -539,20 +539,20 @@ PAYLOAD=$(cat <<JSON
 JSON
 )
 
-curl -fsS --max-time 20 -X POST "$EKOHOST_API_URL/telemetry/lve" \\
+curl -fsS --max-time 20 -X POST "$VERRIS_API_URL/telemetry/lve" \\
   -H "Content-Type: application/json" \\
-  -H "X-Server-Id: $EKOHOST_SERVER_ID" \\
-  -H "X-Server-Token: $EKOHOST_IDENTITY_TOKEN" \\
+  -H "X-Server-Id: $VERRIS_SERVER_ID" \\
+  -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN" \\
   -d "$PAYLOAD" >/dev/null
 AGENT
 chmod 0755 "$AGENT_PATH"
-echo "[ekohost] Installed metrics agent at $AGENT_PATH"
+echo "[verris] Installed metrics agent at $AGENT_PATH"
 
 # Wire the agent — prefer systemd, fall back to cron.
 if command -v systemctl >/dev/null 2>&1 && [ -d /etc/systemd/system ]; then
-  cat > /etc/systemd/system/ekohost-agent.service <<UNIT
+  cat > /etc/systemd/system/verris-agent.service <<UNIT
 [Unit]
-Description=EkoHost LVE metrics agent
+Description=Verris LVE metrics agent
 After=network-online.target
 
 [Service]
@@ -562,56 +562,56 @@ StandardOutput=append:$LOG_FILE
 StandardError=append:$LOG_FILE
 UNIT
 
-  cat > /etc/systemd/system/ekohost-agent.timer <<TIMER
+  cat > /etc/systemd/system/verris-agent.timer <<TIMER
 [Unit]
-Description=Run EkoHost LVE metrics agent every minute
+Description=Run Verris LVE metrics agent every minute
 
 [Timer]
 OnBootSec=30s
 OnUnitActiveSec=60s
 AccuracySec=5s
-Unit=ekohost-agent.service
+Unit=verris-agent.service
 
 [Install]
 WantedBy=timers.target
 TIMER
 
   systemctl daemon-reload
-  systemctl enable --now ekohost-agent.timer
-  echo "[ekohost] Enabled ekohost-agent.timer (systemd)"
+  systemctl enable --now verris-agent.timer
+  echo "[verris] Enabled verris-agent.timer (systemd)"
 elif [ -d /etc/cron.d ]; then
-  cat > /etc/cron.d/ekohost-agent <<CRON
-# EkoHost LVE metrics agent
+  cat > /etc/cron.d/verris-agent <<CRON
+# Verris LVE metrics agent
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 * * * * * root $AGENT_PATH >> $LOG_FILE 2>&1
 CRON
-  echo "[ekohost] Installed cron job /etc/cron.d/ekohost-agent"
+  echo "[verris] Installed cron job /etc/cron.d/verris-agent"
 else
-  echo "[ekohost] WARNING: no systemd nor cron available — install a 1-minute scheduler manually for $AGENT_PATH" >&2
+  echo "[verris] WARNING: no systemd nor cron available — install a 1-minute scheduler manually for $AGENT_PATH" >&2
 fi
 
-PROBES_PATH="/usr/local/bin/ekohost-probes.sh"
-PROBES_LOG="/var/log/ekohost-probes.log"
+PROBES_PATH="/usr/local/bin/verris-probes.sh"
+PROBES_LOG="/var/log/verris-probes.log"
 
 cat > "$PROBES_PATH" <<'PROBES'
 #!/usr/bin/env bash
-# EkoHost local prober — pulls the probe list for this server from the
+# Verris local prober — pulls the probe list for this server from the
 # control plane and runs each check from the node itself, then pushes the
 # results back to /agent/probes/local. Catches failures invisible to the
 # control-plane prober (e.g. service crashed but external CDN still serves).
 set -euo pipefail
-CONFIG_FILE="/etc/ekohost.conf"
-[ -r "$CONFIG_FILE" ] || { echo "[ekohost-probes] Missing $CONFIG_FILE" >&2; exit 1; }
+CONFIG_FILE="/etc/verris.conf"
+[ -r "$CONFIG_FILE" ] || { echo "[verris-probes] Missing $CONFIG_FILE" >&2; exit 1; }
 # shellcheck disable=SC1090
 source "$CONFIG_FILE"
-: "\${EKOHOST_API_URL:?missing EKOHOST_API_URL}"
-: "\${EKOHOST_SERVER_ID:?missing EKOHOST_SERVER_ID}"
-: "\${EKOHOST_IDENTITY_TOKEN:?missing EKOHOST_IDENTITY_TOKEN}"
+: "\${VERRIS_API_URL:?missing VERRIS_API_URL}"
+: "\${VERRIS_SERVER_ID:?missing VERRIS_SERVER_ID}"
+: "\${VERRIS_IDENTITY_TOKEN:?missing VERRIS_IDENTITY_TOKEN}"
 
-LIST=$(curl -fsS --max-time 10 -X GET "$EKOHOST_API_URL/agent/probes/list" \\
-  -H "X-Server-Id: $EKOHOST_SERVER_ID" \\
-  -H "X-Server-Token: $EKOHOST_IDENTITY_TOKEN" || true)
+LIST=$(curl -fsS --max-time 10 -X GET "$VERRIS_API_URL/agent/probes/list" \\
+  -H "X-Server-Id: $VERRIS_SERVER_ID" \\
+  -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN" || true)
 if [ -z "$LIST" ]; then
   exit 0
 fi
@@ -692,19 +692,19 @@ PAYLOAD=$(cat <<JSON
 JSON
 )
 
-curl -fsS --max-time 15 -X POST "$EKOHOST_API_URL/agent/probes/local" \\
+curl -fsS --max-time 15 -X POST "$VERRIS_API_URL/agent/probes/local" \\
   -H "Content-Type: application/json" \\
-  -H "X-Server-Id: $EKOHOST_SERVER_ID" \\
-  -H "X-Server-Token: $EKOHOST_IDENTITY_TOKEN" \\
+  -H "X-Server-Id: $VERRIS_SERVER_ID" \\
+  -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN" \\
   -d "$PAYLOAD" >/dev/null
 PROBES
 chmod 0755 "$PROBES_PATH"
-echo "[ekohost] Installed local prober at $PROBES_PATH"
+echo "[verris] Installed local prober at $PROBES_PATH"
 
 if command -v systemctl >/dev/null 2>&1 && [ -d /etc/systemd/system ]; then
-  cat > /etc/systemd/system/ekohost-probes.service <<UNIT
+  cat > /etc/systemd/system/verris-probes.service <<UNIT
 [Unit]
-Description=EkoHost local prober
+Description=Verris local prober
 After=network-online.target
 
 [Service]
@@ -714,34 +714,34 @@ StandardOutput=append:$PROBES_LOG
 StandardError=append:$PROBES_LOG
 UNIT
 
-  cat > /etc/systemd/system/ekohost-probes.timer <<TIMER
+  cat > /etc/systemd/system/verris-probes.timer <<TIMER
 [Unit]
-Description=Run EkoHost local prober every minute
+Description=Run Verris local prober every minute
 
 [Timer]
 OnBootSec=45s
 OnUnitActiveSec=60s
 AccuracySec=5s
-Unit=ekohost-probes.service
+Unit=verris-probes.service
 
 [Install]
 WantedBy=timers.target
 TIMER
 
   systemctl daemon-reload
-  systemctl enable --now ekohost-probes.timer
-  echo "[ekohost] Enabled ekohost-probes.timer (systemd)"
+  systemctl enable --now verris-probes.timer
+  echo "[verris] Enabled verris-probes.timer (systemd)"
 elif [ -d /etc/cron.d ]; then
-  cat > /etc/cron.d/ekohost-probes <<CRON
-# EkoHost local prober
+  cat > /etc/cron.d/verris-probes <<CRON
+# Verris local prober
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 * * * * * root $PROBES_PATH >> $PROBES_LOG 2>&1
 CRON
-  echo "[ekohost] Installed cron job /etc/cron.d/ekohost-probes"
+  echo "[verris] Installed cron job /etc/cron.d/verris-probes"
 fi
 
-echo "[ekohost] Bootstrap complete. Server is awaiting admin approval in the panel."
+echo "[verris] Bootstrap complete. Server is awaiting admin approval in the panel."
 echo "$BODY"
 `;
 }

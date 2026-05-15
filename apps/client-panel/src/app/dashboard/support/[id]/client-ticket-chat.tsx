@@ -158,7 +158,7 @@ export default function ClientTicketChat({ ticket }: { ticket: TicketDetail }) {
                 ) : (
                   <>
                     <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-                    Wsparcie EkoHost - {format(new Date(reply.createdAt), "d MMM, HH:mm", { locale: pl })}
+                    Wsparcie Verris - {format(new Date(reply.createdAt), "d MMM, HH:mm", { locale: pl })}
                   </>
                 )}
               </span>

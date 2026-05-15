@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { ArrowLeft, Server, Loader2, Copy, Check, Terminal, AlertCircle } from "lucide-react";
-import type { InitServerResponseDto, BootstrapScriptResponseDto } from "@ekohost/contracts";
+import type { InitServerResponseDto, BootstrapScriptResponseDto } from "@verris/contracts";
 import { initServer, generateBootstrapScript } from "../actions";
 
 export default function InitNodePage() {
@@ -95,7 +95,7 @@ export default function InitNodePage() {
                 type="text"
                 value={hostname}
                 onChange={(e) => setHostname(e.target.value)}
-                placeholder="alpha.ekohost.internal"
+                placeholder="alpha.verris.internal"
                 className="form-input"
               />
             </Field>

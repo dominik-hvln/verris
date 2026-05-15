@@ -9,7 +9,7 @@
       "id": 1,
       "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "ekohost_process_uptime_seconds", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_process_uptime_seconds", "refId": "A" }
       ],
       "fieldConfig": { "defaults": { "unit": "s" } },
       "options": { "graphMode": "area", "colorMode": "value" }
@@ -20,7 +20,7 @@
       "id": 2,
       "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "ekohost_process_memory_bytes{kind=\"rss\"}", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_process_memory_bytes{kind=\"rss\"}", "refId": "A" }
       ],
       "fieldConfig": { "defaults": { "unit": "bytes" } }
     },
@@ -30,7 +30,7 @@
       "id": 3,
       "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "ekohost_subscriptions_total{status=\"ACTIVE\"}", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_subscriptions_total{status=\"ACTIVE\"}", "refId": "A" }
       ]
     },
     {
@@ -39,7 +39,7 @@
       "id": 4,
       "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "sum(ekohost_subscriptions_total{status=~\"PAST_DUE|SUSPENDED\"})", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "sum(verris_subscriptions_total{status=~\"PAST_DUE|SUSPENDED\"})", "refId": "A" }
       ],
       "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green" }, { "color": "red", "value": 1 }] } } }
     },
@@ -49,16 +49,16 @@
       "id": 5,
       "gridPos": { "h": 9, "w": 24, "x": 0, "y": 5 },
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "ekohost_subscriptions_total", "legendFormat": "{{status}}", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_subscriptions_total", "legendFormat": "{{status}}", "refId": "A" }
       ]
     }
   ],
   "schemaVersion": 36,
   "style": "dark",
-  "tags": ["ekohost", "control-plane"],
+  "tags": ["verris", "control-plane"],
   "templating": { "list": [] },
   "time": { "from": "now-6h", "to": "now" },
   "title": "Control plane health",
-  "uid": "ekohost-control-plane",
+  "uid": "verris-control-plane",
   "version": 1
 }

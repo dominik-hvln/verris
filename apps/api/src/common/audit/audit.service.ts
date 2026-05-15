@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { AuditLog, Prisma } from '@ekohost/database';
+import { AuditLog, Prisma } from '@verris/database';
 
 export interface AuditPayload {
   /** Symbolic name of the action, e.g. "SERVER_INIT", "SUBSCRIPTION_CREATED" */

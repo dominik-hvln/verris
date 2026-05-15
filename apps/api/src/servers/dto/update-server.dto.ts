@@ -1,5 +1,5 @@
 import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
-import { ServerStatus } from '@ekohost/database';
+import { ServerStatus } from '@verris/database';
 
 export class UpdateServerDto {
   @IsOptional()

@@ -8,7 +8,7 @@ async function test() {
     console.log("No user found");
     return;
   }
-  const token = jwt.sign({ sub: user.id }, "ekohost_jwt_secret", { expiresIn: '1h' });
+  const token = jwt.sign({ sub: user.id }, "verris_jwt_secret", { expiresIn: '1h' });
   console.log("Token:", token);
   
   const res = await fetch("http://localhost:3000/tickets", {

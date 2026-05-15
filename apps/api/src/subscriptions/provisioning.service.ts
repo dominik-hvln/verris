@@ -14,7 +14,7 @@ import {
   Subscription,
   SubscriptionStatus,
   User,
-} from '@ekohost/database';
+} from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto/crypto.service';
 import { AuditService } from '../common/audit/audit.service';

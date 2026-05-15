@@ -1,6 +1,6 @@
 'use server';
 
-import type { DomainDto, ServiceSummaryDto } from '@ekohost/contracts';
+import type { DomainDto, ServiceSummaryDto } from '@verris/contracts';
 import { apiFetch } from '@/lib/api';
 
 export async function fetchUserServicesSummary(): Promise<ServiceSummaryDto[]> {

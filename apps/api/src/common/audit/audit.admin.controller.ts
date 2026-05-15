@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { Readable } from 'node:stream';
-import { Role } from '@ekohost/database';
+import { Role } from '@verris/database';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { Roles } from '../decorators/roles.decorator';
@@ -47,7 +47,7 @@ export class AuditAdminController {
 
   @Get('export.csv')
   @Header('Content-Type', 'text/csv; charset=utf-8')
-  @Header('Content-Disposition', 'attachment; filename="ekohost-audit-log.csv"')
+  @Header('Content-Disposition', 'attachment; filename="verris-audit-log.csv"')
   async exportCsv(
     @Res({ passthrough: true }) _res: Response,
     @Query('action') action?: string,

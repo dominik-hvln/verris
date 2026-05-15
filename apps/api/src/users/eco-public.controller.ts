@@ -21,15 +21,15 @@ export class EcoPublicController {
 
     const tier =
       user.ecoPoints >= 100 ? 'Las' : user.ecoPoints >= 30 ? 'Gaj' : user.ecoPoints >= 10 ? 'Sadzonka' : 'Pączek';
-    const label = user.firstName ? this.escapeXml(user.firstName) : 'EkoHost';
+    const label = user.firstName ? this.escapeXml(user.firstName) : 'Verris';
 
     return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="280" height="72" role="img" aria-label="EKO badge">
   <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#064e3b"/><stop offset="1" stop-color="#059669"/></linearGradient></defs>
   <rect width="100%" height="100%" rx="12" fill="url(#g)" stroke="#34d399" stroke-width="1"/>
-  <text x="16" y="28" fill="#ecfdf5" font-family="system-ui,sans-serif" font-size="13" font-weight="600">EkoHost · ${label}</text>
+  <text x="16" y="28" fill="#ecfdf5" font-family="system-ui,sans-serif" font-size="13" font-weight="600">Verris · ${label}</text>
   <text x="16" y="48" fill="#a7f3d0" font-family="system-ui,sans-serif" font-size="11">Punkty EKO: ${user.ecoPoints} · ${tier}</text>
-  <text x="16" y="64" fill="#6ee7b7" font-family="system-ui,sans-serif" font-size="9">ekohost.pl</text>
+  <text x="16" y="64" fill="#6ee7b7" font-family="system-ui,sans-serif" font-size="9">verris.pl</text>
 </svg>`;
   }
 

@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { ServerStatus } from '@ekohost/database';
+import { ServerStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { ProbeRunnerService } from './probe-runner.service';
 import { ProbeIngestService } from './probe-ingest.service';

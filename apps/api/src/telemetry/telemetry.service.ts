@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Account, Prisma } from '@ekohost/database';
+import { Account, Prisma } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { CloudLinuxTelemetryDto } from './telemetry.dto';
 

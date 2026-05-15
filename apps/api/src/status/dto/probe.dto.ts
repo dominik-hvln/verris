@@ -9,7 +9,7 @@ import {
   Max,
   Min,
 } from 'class-validator';
-import { ProbeKind, ProbeSeverity } from '@ekohost/database';
+import { ProbeKind, ProbeSeverity } from '@verris/database';
 
 export class CreateProbeDto {
   @IsUUID()

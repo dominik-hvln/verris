@@ -12,9 +12,9 @@ datasources:
 
   # Read-only Postgres data-source (F-16). Uses the `grafana_ro` role created
   # by `0_init` migration; the password MUST be rotated after first deploy:
-  #   docker compose ... exec postgres psql -U ekohost -d ekohost_db \
+  #   docker compose ... exec postgres psql -U verris -d verris_db \
   #     -c "ALTER USER grafana_ro PASSWORD '<from-vault>';"
-  - name: EkoHost-DB (RO)
+  - name: Verris-DB (RO)
     type: postgres
     access: proxy
     orgId: 1

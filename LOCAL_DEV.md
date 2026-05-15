@@ -60,8 +60,8 @@ pnpm db:seed
 
 Domyślne konta z seeda (zmień hasła przez `SEED_ADMIN_PASSWORD` / `SEED_STAFF_PASSWORD` jeśli chcesz):
 
-- `admin@ekohost.pl`
-- `staff@ekohost.pl`
+- `admin@verris.pl`
+- `staff@verris.pl`
 
 Konto **klienta** zakładasz przez rejestrację w panelu klienckim (o ile masz włączony flow rejestracji).
 
@@ -78,9 +78,9 @@ pnpm dev
 | Usługa      | Port | Katalog / komenda        |
 | ----------- | ---- | ------------------------ |
 | API (Nest)  | 3000 | `pnpm --filter api dev`  |
-| Panel klienta | 3001 | `pnpm --filter @ekohost/client-panel dev` |
-| Staff       | 3002 | `pnpm --filter @ekohost/staff-panel dev` |
-| Admin       | 3003 | `pnpm --filter @ekohost/admin-panel dev` |
+| Panel klienta | 3001 | `pnpm --filter @verris/client-panel dev` |
+| Staff       | 3002 | `pnpm --filter @verris/staff-panel dev` |
+| Admin       | 3003 | `pnpm --filter @verris/admin-panel dev` |
 
 Szybkie testy:
 

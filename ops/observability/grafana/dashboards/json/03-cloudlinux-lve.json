@@ -8,7 +8,7 @@
       "id": 1,
       "gridPos": { "h": 5, "w": 8, "x": 0, "y": 0 },
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "ekohost_autoscale_events_1h_total", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_autoscale_events_1h_total", "refId": "A" }
       ]
     },
     {
@@ -17,7 +17,7 @@
       "id": 2,
       "gridPos": { "h": 5, "w": 8, "x": 8, "y": 0 },
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "ekohost_accounts_total{status=\"ACTIVE\"}", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_accounts_total{status=\"ACTIVE\"}", "refId": "A" }
       ]
     },
     {
@@ -26,7 +26,7 @@
       "id": 3,
       "gridPos": { "h": 5, "w": 8, "x": 16, "y": 0 },
       "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "ekohost_accounts_total{status=\"SUSPENDED\"}", "refId": "A" }
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_accounts_total{status=\"SUSPENDED\"}", "refId": "A" }
       ]
     },
     {
@@ -34,7 +34,7 @@
       "title": "Top 10 LVE consumers (last 30 days, avg CPU%)",
       "id": 4,
       "gridPos": { "h": 12, "w": 24, "x": 0, "y": 5 },
-      "datasource": { "type": "postgres", "uid": "EkoHost-DB (RO)" },
+      "datasource": { "type": "postgres", "uid": "Verris-DB (RO)" },
       "targets": [
         {
           "format": "table",
@@ -49,7 +49,7 @@
       "title": "Autoscaling events / minute",
       "id": 5,
       "gridPos": { "h": 8, "w": 24, "x": 0, "y": 17 },
-      "datasource": { "type": "postgres", "uid": "EkoHost-DB (RO)" },
+      "datasource": { "type": "postgres", "uid": "Verris-DB (RO)" },
       "targets": [
         {
           "format": "time_series",
@@ -62,10 +62,10 @@
   ],
   "schemaVersion": 36,
   "style": "dark",
-  "tags": ["ekohost", "lve"],
+  "tags": ["verris", "lve"],
   "templating": { "list": [] },
   "time": { "from": "now-6h", "to": "now" },
   "title": "CloudLinux LVE",
-  "uid": "ekohost-lve",
+  "uid": "verris-lve",
   "version": 1
 }

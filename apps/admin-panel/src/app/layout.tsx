@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "EkoHost Core",
-  description: "Panel administracyjny EkoHost",
+  title: "Verris Core",
+  description: "Panel administracyjny Verris",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

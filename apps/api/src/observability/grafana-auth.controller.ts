@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
-import { Role } from '@ekohost/database';
+import { Role } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 
 /**
