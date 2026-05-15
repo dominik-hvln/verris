@@ -131,7 +131,7 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d api prometh
 - **Prometheus** (port 9090, internal) — scrapuje API `/metrics`, postgres-exporter, redis-exporter co 15 s, retencja 30 dni.
 - **Grafana** (port 3000, internal, publicznie pod `grafana.verris.pl`) — `auth.proxy` mode + Caddy `forward_auth` do `/auth/grafana-validate`.
 - **postgres-exporter** + **redis-exporter** — DB i Redis metryki (CPU, lag, slow queries, connections, hit ratio).
-- **4 dashboardy** prowizjonowane jako kod w `ops/observability/grafana/dashboards/json/`:
+- **4 dashboardy** prowizjonowane jako kod w `ops/observability/grafana/provisioning/dashboards/json/`:
   - `01-control-plane-health` — uptime API, RAM, subscriptions per status, ostrzeżenia PAST_DUE/SUSPENDED
   - `02-compute-fleet` — serwery (status, stale heartbeat), tabela z `server_safe`, kolejka provisioningu
   - `03-cloudlinux-lve` — autoscaling events, top 10 LVE-żerców (CPU/RAM avg z `usage_metric_safe`), serie skalowania

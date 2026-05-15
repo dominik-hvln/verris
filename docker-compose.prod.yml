@@ -244,8 +244,9 @@ services:
       GRAFANA_DB_RO_PASSWORD: ${GRAFANA_DB_RO_PASSWORD:?GRAFANA_DB_RO_PASSWORD is required (ALTER USER grafana_ro PASSWORD ...)}
     volumes:
       - ./ops/observability/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
+      # Single bind for provisioning (JSON dashboards live under provisioning/dashboards/json).
+      # A second nested bind on .../dashboards/json breaks on Grafana 10+ (read-only root).
       - ./ops/observability/grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./ops/observability/grafana/dashboards/json:/etc/grafana/provisioning/dashboards/json:ro
       - grafana_data:/var/lib/grafana
     expose: ['3000']
     networks: [verris_internal, verris_public]
