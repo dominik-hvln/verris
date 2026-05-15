@@ -24,6 +24,8 @@ COPY libs/database/package.json libs/database/package.json
 COPY libs/directadmin-sdk/package.json libs/directadmin-sdk/package.json
 COPY libs/typescript-config libs/typescript-config
 COPY libs/eslint-config libs/eslint-config
+# pnpm isolated linker + COPY node_modules between stages breaks symlinks; hoisted layout matches Docker COPY.
+RUN echo "node-linker=hoisted" >> .npmrc
 RUN --mount=type=cache,id=pnpm,target=/pnpm-store \
     pnpm config set store-dir /pnpm-store && \
     pnpm install --frozen-lockfile --filter api... --filter @verris/database...

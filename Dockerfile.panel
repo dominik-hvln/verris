@@ -29,6 +29,7 @@ COPY libs/contracts/package.json libs/contracts/package.json
 COPY libs/ui/package.json libs/ui/package.json
 COPY libs/typescript-config libs/typescript-config
 COPY libs/eslint-config libs/eslint-config
+RUN echo "node-linker=hoisted" >> .npmrc
 RUN --mount=type=cache,id=pnpm,target=/pnpm-store \
     pnpm config set store-dir /pnpm-store && \
     pnpm install --frozen-lockfile --filter @verris/${APP_NAME}...
