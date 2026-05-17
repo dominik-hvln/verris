@@ -1,11 +1,29 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { AlertCircle, Clock, ChevronRight, MessageSquare } from "lucide-react";
-import { staffGetTickets } from "@/lib/tickets-data";
+import { staffGetTickets, type StaffTicketRow } from "@/lib/tickets-data";
+import { StaffApiError } from "@/lib/staff-api";
+
+export const dynamic = "force-dynamic";
 
 const priorityOrder: Record<string, number> = { URGENT: 0, HIGH: 1, NORMAL: 2, LOW: 3 };
 
 export default async function StaffInboxPage() {
-  let rows = await staffGetTickets();
+  let rows: StaffTicketRow[] = [];
+  let error: string | null = null;
+  try {
+    rows = await staffGetTickets();
+  } catch (e) {
+    if (e instanceof StaffApiError && e.status === 401) {
+      redirect("/login");
+    }
+    if (e instanceof StaffApiError) {
+      error = e.message;
+    } else {
+      error = e instanceof Error ? e.message : "Nie udało się pobrać zgłoszeń.";
+    }
+  }
+
   rows = [...rows]
     .filter((t) => t.status !== "CLOSED")
     .sort((a, b) => {
@@ -18,6 +36,12 @@ export default async function StaffInboxPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-2 duration-700">
+      {error ? (
+        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+          {error}
+        </div>
+      ) : null}
+
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-white drop-shadow-md">Skrzynka zgłoszeń</h1>

@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { setStaffAuthCookie } from "@/lib/staff-auth-cookie";
+import { removeStaffAuthCookie, setStaffAuthCookie } from "@/lib/staff-auth-cookie";
 import type { StaffProfile } from "@/lib/staff-session";
 
 const base = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
@@ -41,6 +41,8 @@ export async function staffSubmitLogin(
   if (!email || !password) {
     return { error: "Wypełnij wszystkie pola." };
   }
+
+  await removeStaffAuthCookie();
 
   let res: Response;
   try {
@@ -94,6 +96,8 @@ export async function staffSubmitTwoFactor(
   if (!challengeToken || !code) {
     return { error: "Wprowadź 6-cyfrowy kod z aplikacji TOTP." };
   }
+
+  await removeStaffAuthCookie();
 
   let res: Response;
   try {

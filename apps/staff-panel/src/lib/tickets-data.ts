@@ -1,7 +1,11 @@
 import { staffApi } from "./staff-api";
 
 export async function staffGetTickets() {
-  return staffApi<StaffTicketRow[]>("/tickets/admin/all");
+  const rows = await staffApi<StaffTicketRow[]>("/tickets/admin/all");
+  if (!Array.isArray(rows)) {
+    throw new Error("API zwróciło nieoczekiwany format listy zgłoszeń.");
+  }
+  return rows;
 }
 
 export async function staffGetTicket(id: string) {

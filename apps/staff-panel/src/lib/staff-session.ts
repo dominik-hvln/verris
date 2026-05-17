@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { StaffApiError, staffApi } from "./staff-api";
-import { removeStaffAuthCookie } from "./staff-auth-cookie";
+import { staffApi } from "./staff-api";
 
 export interface StaffProfile {
   id: string;
@@ -14,14 +13,12 @@ export async function getStaffSession(): Promise<StaffProfile | null> {
   try {
     const me = await staffApi<StaffProfile>("/users/me");
     if (me.role !== "STAFF" && me.role !== "ADMIN") {
-      await removeStaffAuthCookie();
       return null;
     }
     return me;
-  } catch (err) {
-    if (err instanceof StaffApiError && (err.status === 401 || err.status === 403)) {
-      await removeStaffAuthCookie();
-    }
+  } catch {
+    // Do not call cookies().delete() here — Next.js only allows cookie writes in
+    // Server Actions / Route Handlers. Stale tokens are cleared on login/logout.
     return null;
   }
 }

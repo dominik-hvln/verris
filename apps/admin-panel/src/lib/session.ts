@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
-import { adminApi, AdminApiError } from "./api";
-import { getAdminAuthToken, removeAdminAuthCookie } from "./auth";
+import { adminApi } from "./api";
+import { getAdminAuthToken } from "./auth";
 
 export interface AdminSession {
   id: string;
@@ -23,10 +23,8 @@ export async function getAdminSession(): Promise<AdminSession | null> {
       return null;
     }
     return profile;
-  } catch (err) {
-    if (err instanceof AdminApiError && (err.status === 401 || err.status === 403)) {
-      await removeAdminAuthCookie();
-    }
+  } catch {
+    // Cookie writes are only allowed in Server Actions / Route Handlers (see staff-panel).
     return null;
   }
 }

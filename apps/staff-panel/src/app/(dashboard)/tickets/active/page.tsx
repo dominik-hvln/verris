@@ -1,14 +1,34 @@
 import Link from "next/link";
-import { staffGetTickets } from "@/lib/tickets-data";
+import { staffGetTickets, type StaffTicketRow } from "@/lib/tickets-data";
+import { StaffApiError } from "@/lib/staff-api";
+
+export const dynamic = "force-dynamic";
 
 export default async function ActiveTicketsPage() {
-  let rows = await staffGetTickets();
+  let rows: StaffTicketRow[] = [];
+  let error: string | null = null;
+  try {
+    rows = await staffGetTickets();
+  } catch (e) {
+    error =
+      e instanceof StaffApiError
+        ? e.message
+        : e instanceof Error
+          ? e.message
+          : "Nie udało się pobrać zgłoszeń.";
+  }
+
   rows = rows
     .filter((t) => t.status !== "CLOSED")
     .filter((t) => t.status === "IN_PROGRESS");
 
   return (
     <div className="space-y-6 animate-in fade-in duration-700">
+      {error ? (
+        <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+          {error}
+        </div>
+      ) : null}
       <div>
         <h1 className="text-3xl font-bold text-white">W realizacji</h1>
         <p className="mt-1 text-sm text-muted-foreground">
