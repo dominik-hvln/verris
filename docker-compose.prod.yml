@@ -270,6 +270,15 @@ services:
     restart: always
     logging: *default-logging
     depends_on: [api, client-panel, staff-panel, admin-panel, status-page, grafana]
+    # Caddyfile uses {$CADDY_*_DOMAIN} — must be in the container env (not only
+    # compose --env-file interpolation) or Caddy falls back to *.verris.local.
+    environment:
+      CADDY_CLIENT_DOMAIN: ${CADDY_CLIENT_DOMAIN:-panel.verris.local}
+      CADDY_STAFF_DOMAIN: ${CADDY_STAFF_DOMAIN:-staff.verris.local}
+      CADDY_ADMIN_DOMAIN: ${CADDY_ADMIN_DOMAIN:-admin.verris.local}
+      CADDY_API_DOMAIN: ${CADDY_API_DOMAIN:-api.verris.local}
+      CADDY_STATUS_DOMAIN: ${CADDY_STATUS_DOMAIN:-status.verris.local}
+      CADDY_GRAFANA_DOMAIN: ${CADDY_GRAFANA_DOMAIN:-grafana.verris.local}
     ports:
       - '80:80'
       - '443:443'
