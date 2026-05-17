@@ -73,6 +73,10 @@ RUN mkdir -p /app/node_modules/@verris && \
     ln -sfn /app/libs/contracts /app/node_modules/@verris/contracts && \
     ln -sfn /app/libs/directadmin-sdk /app/node_modules/@verris/directadmin-sdk
 
+# Query-engine binaries must match this image (glibc + OpenSSL 3). Build-stage
+# generate can target the wrong engine or omit .prisma after COPY node_modules.
+RUN npx prisma generate --schema=libs/database/prisma/schema.prisma
+
 EXPOSE 3000
 
 # Healthcheck: simple TCP probe on the API port
