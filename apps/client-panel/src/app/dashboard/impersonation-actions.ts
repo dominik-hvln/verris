@@ -7,6 +7,8 @@ import { getAuthToken } from "@/lib/auth";
 const API_URL = process.env.API_URL || "http://localhost:3000";
 const ADMIN_PANEL_URL =
   process.env.ADMIN_PANEL_URL || "http://localhost:3003";
+const STAFF_PANEL_URL =
+  process.env.STAFF_PANEL_URL || "http://localhost:3002";
 
 export interface ImpersonationContext {
   isImpersonating: boolean;
@@ -69,6 +71,12 @@ export async function stopImpersonationAction(): Promise<never> {
     }
   }
   const store = await cookies();
+  const operator = store.get("impersonation_operator")?.value;
   store.delete("auth_token");
+  store.delete("impersonation_operator");
+
+  if (operator === "staff") {
+    redirect(`${STAFF_PANEL_URL}/crm`);
+  }
   redirect(`${ADMIN_PANEL_URL}/customers`);
 }

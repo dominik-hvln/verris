@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
   const returnToParam = url.searchParams.get("returnTo");
   const returnTo =
     returnToParam && returnToParam.startsWith("/") ? returnToParam : "/dashboard";
+  const operator = url.searchParams.get("operator") === "staff" ? "staff" : "admin";
 
   if (!token) {
     const errorUrl = new URL("/login", url);
@@ -25,6 +26,14 @@ export async function GET(req: NextRequest) {
   const response = NextResponse.redirect(target);
 
   response.cookies.set("auth_token", token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 30,
+  });
+
+  response.cookies.set("impersonation_operator", operator, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

@@ -9,7 +9,7 @@ import { staffLogout } from "@/lib/staff-auth-actions";
 const navItems = [
   { name: "Skrzynka", href: "/", icon: Inbox },
   { name: "Aktywne", href: "/tickets/active", icon: MessageSquare },
-  { name: "CRM", href: "/crm", icon: Users },
+  { name: "Klienci", href: "/crm", icon: Users },
   { name: "Knowledge", href: "/knowledge", icon: BookOpen },
 ];
 

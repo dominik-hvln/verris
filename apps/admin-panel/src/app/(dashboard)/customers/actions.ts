@@ -44,5 +44,6 @@ export async function impersonateUserAction(
   const url = new URL(`${CLIENT_PANEL_URL}/impersonate`);
   url.searchParams.set("token", res.access_token);
   url.searchParams.set("returnTo", "/dashboard");
+  url.searchParams.set("operator", "admin");
   redirect(url.toString());
 }

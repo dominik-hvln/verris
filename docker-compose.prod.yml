@@ -109,6 +109,8 @@ services:
       NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
       NEXT_PUBLIC_STATUS_PAGE_URL: ${PUBLIC_STATUS_URL:-https://status.verris.pl}
       API_URL: http://api:3000
+      STAFF_PANEL_URL: ${STAFF_PANEL_URL}
+      ADMIN_PANEL_URL: ${ADMIN_PANEL_URL}
     expose: ['3001']
     networks: [verris_public]
     healthcheck:
@@ -133,6 +135,8 @@ services:
       PORT: '3002'
       NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
       API_URL: http://api:3000
+      CLIENT_PANEL_URL: ${CLIENT_PANEL_URL}
+      STAFF_PANEL_URL: ${STAFF_PANEL_URL}
     expose: ['3002']
     networks: [verris_public]
     healthcheck:
@@ -157,6 +161,8 @@ services:
       PORT: '3003'
       NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
       API_URL: http://api:3000
+      CLIENT_PANEL_URL: ${CLIENT_PANEL_URL}
+      ADMIN_PANEL_URL: ${ADMIN_PANEL_URL}
     expose: ['3003']
     networks: [verris_public]
     healthcheck:
