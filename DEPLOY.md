@@ -34,8 +34,9 @@ cp .env.prod.example .env.prod
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 
 # 5) Zaaplikuj schemat DB przez migrate deploy (idempotentnie, produkcyjnie bezpieczne)
-docker compose -f docker-compose.prod.yml --env-file .env.prod \
-  exec api npx prisma migrate deploy --schema=libs/database/prisma/schema.prisma
+# Użyj skryptu (ustawia DATABASE_URL z POSTGRES_* — zwykły `exec api npx prisma` bez URL w .env zawiedzie):
+chmod +x ops/scripts/prod-migrate-deploy.sh
+./ops/scripts/prod-migrate-deploy.sh
 # UWAGA: nie używamy już `prisma db push` w produkcji — od pierwszej migracji `0_init`
 # wszystkie zmiany schematu idą przez `prisma migrate deploy` (patrz sekcja „Migracje DB").
 
