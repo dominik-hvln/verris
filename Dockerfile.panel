@@ -71,6 +71,9 @@ COPY --from=build /workspace/apps/${APP_NAME}/package.json ./apps/${APP_NAME}/pa
 COPY --from=build /workspace/apps/${APP_NAME}/next.config.ts ./apps/${APP_NAME}/next.config.ts
 COPY --from=build /workspace/libs ./libs
 COPY --from=build /workspace/node_modules ./node_modules
+RUN mkdir -p /app/node_modules/@verris && \
+    ln -sfn /app/libs/contracts /app/node_modules/@verris/contracts && \
+    ln -sfn /app/libs/ui /app/node_modules/@verris/ui
 
 EXPOSE ${APP_PORT}
 

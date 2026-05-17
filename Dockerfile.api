@@ -75,7 +75,11 @@ RUN mkdir -p /app/node_modules/@verris && \
 
 # Query-engine binaries must match this image (glibc + OpenSSL 3). Build-stage
 # generate can target the wrong engine or omit .prisma after COPY node_modules.
+ENV DATABASE_URL="postgresql://verris:build@localhost:5432/verris_db?schema=public"
 RUN npx prisma generate --schema=libs/database/prisma/schema.prisma
+
+COPY ops/docker/api-entrypoint.sh /usr/local/bin/api-entrypoint.sh
+RUN chmod +x /usr/local/bin/api-entrypoint.sh
 
 EXPOSE 3000
 
@@ -83,5 +87,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -fsS http://127.0.0.1:${PORT}/healthz || exit 1
 
-ENTRYPOINT ["/usr/bin/tini", "--"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/api-entrypoint.sh"]
 CMD ["node", "apps/api/dist/main.js"]

@@ -6,10 +6,17 @@ Przed pierwszym deployem i przed każdym go-live przejdź checklistę: [GO_NO_GO
 
 ## Wymagania na maszynie control-plane
 
-- Linux (Ubuntu 22.04 / Debian 12 lub nowsze)
-- Docker Engine 24+ i Docker Compose v2
+- Linux (**Ubuntu 24.04 LTS** zalecane; działa też 22.04 / Debian 12+)
+- Docker Engine 24+ i Docker Compose v2 (obrazy aplikacji bazują na `node:20-bookworm-slim`, niezależnie od dystrybucji hosta)
 - Port 80 i 443 dostępne z internetu (do TLS i Stripe webhook)
 - DNS: rekordy A dla `panel.`*, `staff.`*, `admin.*`, `api.*` i `status.*` skierowane na ten host (ostatni dla publicznej strony statusu)
+
+## `.env.prod` — hasło Postgresa i `DATABASE_URL`
+
+- Ustaw **`POSTGRES_PASSWORD`** (to samo hasło widzi kontener `postgres` i API).
+- **`DATABASE_URL` możesz zostawić puste** — skrypt `ops/docker/api-entrypoint.sh` zbuduje poprawny URL z automatycznym kodowaniem hasła (np. gdy hasło zawiera `@`, `/`, `:`).
+- Jeśli wpisujesz `DATABASE_URL` ręcznie, hasło w URL musi być **percent-encoded** (`@` → `%40` itd.) — inaczej Prisma zgłosi `P1013 invalid port number`.
+- `POSTGRES_USER` / `POSTGRES_DB` muszą być **spójne** z tym, co jest już w wolumenie Postgresa (po pierwszym `up` zmiana usera wymaga nowego volume lub migracji ról).
 
 ## Pierwsze uruchomienie
 
