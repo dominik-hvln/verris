@@ -38,6 +38,7 @@ COPY libs libs
 COPY apps/api apps/api
 RUN pnpm --filter @verris/database run db:generate && \
     pnpm --filter @verris/database build && \
+    pnpm --filter @verris/database run build:seed && \
     pnpm --filter @verris/directadmin-sdk build && \
     pnpm --filter api build && \
     pnpm --filter api build:cli
@@ -62,6 +63,7 @@ COPY --from=build /workspace/apps/api/package.json ./apps/api/package.json
 COPY --from=build /workspace/libs/database/dist ./libs/database/dist
 COPY --from=build /workspace/libs/database/package.json ./libs/database/package.json
 COPY --from=build /workspace/libs/database/prisma ./libs/database/prisma
+COPY --from=build /workspace/libs/database/prisma/dist ./libs/database/prisma/dist
 COPY --from=build /workspace/libs/contracts ./libs/contracts
 COPY --from=build /workspace/libs/directadmin-sdk/dist ./libs/directadmin-sdk/dist
 COPY --from=build /workspace/libs/directadmin-sdk/package.json ./libs/directadmin-sdk/package.json

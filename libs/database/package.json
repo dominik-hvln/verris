@@ -6,6 +6,7 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "tsc",
+    "build:seed": "tsc -p tsconfig.seed.json",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
@@ -13,7 +14,8 @@
     "db:migrate:deploy": "prisma migrate deploy",
     "db:migrate:reset": "prisma migrate reset --skip-seed",
     "db:migrate:status": "prisma migrate status",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "db:seed:prod": "node prisma/dist/seed.js"
   },
   "dependencies": {
     "@prisma/client": "^5.19.1"

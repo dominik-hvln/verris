@@ -41,11 +41,9 @@ chmod +x ops/scripts/prod-migrate-deploy.sh
 # wszystkie zmiany schematu idą przez `prisma migrate deploy` (patrz sekcja „Migracje DB").
 
 # 6) Wczytaj seed (admin@verris.pl + staff@verris.pl + plany + cennik autoskalowania)
-docker compose -f docker-compose.prod.yml --env-file .env.prod \
-  exec -e SEED_ADMIN_PASSWORD='<silne_hasło_admina>' \
-       -e SEED_STAFF_PASSWORD='<inne_silne_hasło_staff>' \
-       api \
-  node -e "require('child_process').execSync('npx --yes ts-node libs/database/prisma/seed.ts', { stdio: 'inherit' })"
+SEED_ADMIN_PASSWORD='<silne_hasło_admina>' \
+SEED_STAFF_PASSWORD='<inne_silne_hasło_staff>' \
+./ops/scripts/prod-seed.sh
 ```
 
 Po starcie sprawdź:

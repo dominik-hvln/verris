@@ -1,0 +1,10 @@
+{
+  "extends": "@verris/typescript-config/nestjs.json",
+  "compilerOptions": {
+    "outDir": "prisma/dist",
+    "rootDir": "prisma",
+    "declaration": false,
+    "declarationMap": false
+  },
+  "include": ["prisma/seed.ts"]
+}
