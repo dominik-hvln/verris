@@ -3,10 +3,12 @@ import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
   const token = request.cookies.get("auth_token")?.value;
+  const pathname = request.nextUrl.pathname;
 
-  const isAuthPage = request.nextUrl.pathname.startsWith("/login") || request.nextUrl.pathname.startsWith("/register");
+  const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/register");
+  const isPublicHandoff = pathname === "/impersonate" || pathname.startsWith("/accept-invite");
   
-  if (!token && !isAuthPage && request.nextUrl.pathname !== "/") {
+  if (!token && !isAuthPage && !isPublicHandoff && pathname !== "/") {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
