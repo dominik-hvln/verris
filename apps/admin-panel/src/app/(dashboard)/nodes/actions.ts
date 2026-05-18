@@ -90,6 +90,27 @@ export async function testDirectAdmin(id: string) {
   }
 }
 
+export async function setNodeMaintenance(
+  id: string,
+  enable: boolean,
+  reason?: string,
+) {
+  try {
+    const data = await adminApi<ServerSummaryDto>(
+      `/admin/servers/${id}/maintenance`,
+      {
+        method: "POST",
+        body: { enable, reason },
+      },
+    );
+    revalidatePath("/nodes");
+    revalidatePath(`/nodes/${id}`);
+    return { data };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
+}
+
 function extractError(err: unknown): string {
   if (err instanceof AdminApiError) return err.message;
   if (err instanceof Error) return err.message;

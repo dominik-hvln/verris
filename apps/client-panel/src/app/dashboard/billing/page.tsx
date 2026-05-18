@@ -19,18 +19,19 @@ import type {
   WalletTxType,
 } from '@verris/contracts';
 import { ApiError } from '@/lib/api';
+import { CREDIT_DISCLAIMER, CREDIT_RATE_INFO, formatCredits } from '@/lib/credits';
 import { getSavedPaymentMethods, getWalletAutoTopup, getWalletSummary } from './data';
 import { TopupCard } from './topup-card';
 import { BillingExtrasForms } from './billing-extras-forms';
 
 const txLabels: Record<WalletTxType, string> = {
-  TOPUP: 'Doładowanie',
+  TOPUP: 'Doładowanie portfela',
   REFUND: 'Zwrot środków',
   CHARGE_SUBSCRIPTION: 'Opłata subskrypcji',
   CHARGE_AUTOSCALING: 'Autoskalowanie',
   CHARGE_USAGE: 'Wykorzystanie zasobów',
-  ADJUSTMENT: 'Korekta',
-  PROMO_CREDIT: 'Bonus promocyjny',
+  ADJUSTMENT: 'Uznanie od Verris',
+  PROMO_CREDIT: 'Kod promocyjny',
 };
 
 export default async function BillingPage({
@@ -68,10 +69,10 @@ export default async function BillingPage({
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <div>
         <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-neutral-400">
-          Płatności i Billing
+          Portfel i płatności
         </h1>
         <p className="text-neutral-400 mt-2 text-lg">
-          Doładuj portfel, śledź zużycie i zarządzaj rozliczeniami.
+          Doładuj portfel, śledź zużycie i zarządzaj rozliczeniami. {CREDIT_RATE_INFO}.
         </p>
       </div>
 
@@ -101,16 +102,16 @@ export default async function BillingPage({
       ) : summary ? (
         <>
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            <TopupCard balance={summary.balance} currency={summary.currency} />
+            <TopupCard balance={summary.balance} />
             <SummaryStat
               label="Doładowania (30 dni)"
-              value={`${summary.totalTopupLast30d} ${summary.currency}`}
+              value={formatCredits(summary.totalTopupLast30d)}
               tone="positive"
               icon={<ArrowDownLeft className="h-5 w-5" />}
             />
             <SummaryStat
               label="Wydatki (30 dni)"
-              value={`${summary.totalChargesLast30d} ${summary.currency}`}
+              value={formatCredits(summary.totalChargesLast30d)}
               tone="negative"
               icon={<ArrowUpRight className="h-5 w-5" />}
             />
@@ -182,6 +183,10 @@ export default async function BillingPage({
               <ChevronRight className="h-5 w-5 text-neutral-500 group-hover:text-white transition-colors" />
             </Link>
           </section>
+
+          <p className="text-xs text-neutral-500 text-center">
+            {CREDIT_DISCLAIMER}
+          </p>
         </>
       ) : null}
     </div>
@@ -253,8 +258,7 @@ function TransactionRow({ tx }: { tx: WalletTransactionDto }) {
             isCredit ? 'text-emerald-200' : 'text-white'
           }`}
         >
-          {isCredit ? '+' : ''}
-          {tx.amount} {tx.currency}
+          {formatCredits(tx.amount, { signed: true })}
         </div>
         <div className="text-xs text-neutral-500">
           {new Date(tx.createdAt).toLocaleString('pl-PL', {
@@ -265,7 +269,7 @@ function TransactionRow({ tx }: { tx: WalletTransactionDto }) {
             minute: '2-digit',
           })}
           {' • saldo '}
-          {tx.balanceAfter} {tx.currency}
+          {formatCredits(tx.balanceAfter)}
         </div>
       </div>
     </div>

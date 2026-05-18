@@ -19,6 +19,8 @@ export interface AuditListResponse {
   offset: number;
 }
 
+export type AuditCategory = "RODO" | "ADMIN_OPS" | "SECURITY" | "IMPERSONATION";
+
 export interface AuditFilters {
   action?: string;
   userId?: string;
@@ -26,6 +28,7 @@ export interface AuditFilters {
   search?: string;
   from?: string;
   to?: string;
+  category?: AuditCategory;
   limit?: number;
   offset?: number;
 }

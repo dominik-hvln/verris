@@ -4,6 +4,8 @@ import {
   Patch,
   Body,
   UseGuards,
+  Ip,
+  Headers,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import {
@@ -70,7 +72,12 @@ export class UsersController {
   async changePassword(
     @CurrentUser() user: { userId: string },
     @Body() dto: ChangePasswordDto,
+    @Ip() ip: string,
+    @Headers('user-agent') userAgent: string | undefined,
   ) {
-    return this.usersService.changePassword(user.userId, dto);
+    return this.usersService.changePassword(user.userId, dto, {
+      ip: ip ?? null,
+      userAgent: userAgent ?? null,
+    });
   }
 }

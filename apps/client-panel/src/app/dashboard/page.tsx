@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Activity,
+  AlertTriangle,
   Globe,
   Wallet,
   HelpCircle,
@@ -17,26 +18,45 @@ import {
   Server,
 } from "lucide-react";
 import { fetchUserProfile, type UserProfile } from "./settings/actions";
-import { fetchUserDomainsPortfolio, fetchUserServicesSummary } from "./dashboard-data";
+import {
+  fetchUserDomainsPortfolio,
+  fetchUserServicesSummary,
+} from "./dashboard-data";
 import type { DomainDto, ServiceSummaryDto } from "@verris/contracts";
+import { CREDIT_RATE_INFO, formatCredits } from "@/lib/credits";
 
 /* ────────────────────────── Main Dashboard ────────────────────────── */
 
 export default function DashboardPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [services, setServices] = useState<ServiceSummaryDto[]>([]);
-  const [domains, setDomains] = useState<DomainDto[]>([]);
+  const [services, setServices] = useState<ServiceSummaryDto[] | null>(null);
+  const [domains, setDomains] = useState<DomainDto[] | null>(null);
+  const [errors, setErrors] = useState<{ services?: string; domains?: string }>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([fetchUserProfile(), fetchUserServicesSummary(), fetchUserDomainsPortfolio()]).then(
-      ([p, svc, dom]) => {
-        setProfile(p);
-        setServices(svc);
-        setDomains(dom);
-        setLoading(false);
-      },
-    );
+    Promise.all([
+      fetchUserProfile(),
+      fetchUserServicesSummary(),
+      fetchUserDomainsPortfolio(),
+    ]).then(([p, svc, dom]) => {
+      setProfile(p);
+      const nextErrors: { services?: string; domains?: string } = {};
+      if (svc.ok) {
+        setServices(svc.data);
+      } else {
+        setServices(null);
+        nextErrors.services = svc.error;
+      }
+      if (dom.ok) {
+        setDomains(dom.data);
+      } else {
+        setDomains(null);
+        nextErrors.domains = dom.error;
+      }
+      setErrors(nextErrors);
+      setLoading(false);
+    });
   }, []);
 
   if (loading) {
@@ -49,6 +69,9 @@ export default function DashboardPage() {
 
   const greeting = getGreeting();
   const firstName = profile?.firstName || "Użytkowniku";
+  const servicesList = services ?? [];
+  const domainsList = domains ?? [];
+  const hasErrors = Boolean(errors.services || errors.domains);
 
   return (
     <div className="space-y-8 pb-10">
@@ -92,33 +115,76 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {hasErrors ? (
+        <div className="flex items-start gap-3 rounded-2xl border border-rose-400/30 bg-rose-500/5 p-4 text-sm text-rose-200">
+          <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5 text-rose-300" />
+          <div className="space-y-1">
+            <p className="font-semibold text-rose-100">
+              Część danych nie jest dostępna w tej chwili
+            </p>
+            {errors.services ? (
+              <p>
+                Usługi hostingowe: <span className="text-rose-100">{errors.services}</span>
+              </p>
+            ) : null}
+            {errors.domains ? (
+              <p>
+                Domeny: <span className="text-rose-100">{errors.domains}</span>
+              </p>
+            ) : null}
+            <p className="text-rose-200/70">
+              Odśwież stronę za chwilę. Jeśli problem się powtórzy, otwórz zgłoszenie w Centrum
+              Pomocy.
+            </p>
+          </div>
+        </div>
+      ) : null}
+
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Saldo portfela"
-          value={`${Number(profile?.walletBalance || 0).toFixed(2)} zł`}
-          description="Stan z API /users/me"
+          value={formatCredits(profile?.walletBalance ?? 0)}
+          description={CREDIT_RATE_INFO}
           icon={Wallet}
         />
         <StatCard
           label="Usługi hostingowe"
-          value={`${services.filter((s) => s.status === "ACTIVE" && s.account).length} aktywnych`}
+          value={
+            services === null
+              ? "—"
+              : `${servicesList.filter((s) => s.status === "ACTIVE" && s.account).length} aktywnych`
+          }
           description={
-            services.length === 0
-              ? "Brak subskrypcji — zamów usługę"
-              : `Łącznie ${services.length} w systemie`
+            services === null
+              ? "Nie udało się pobrać listy"
+              : servicesList.length === 0
+                ? "Brak subskrypcji — zamów usługę"
+                : `Łącznie ${servicesList.length} w systemie`
           }
           icon={Server}
         />
         <StatCard
           label="Domeny w portfelu"
-          value={`${domains.length}`}
-          description="Rejestr domen (weryfikacja DNS)"
+          value={domains === null ? "—" : `${domainsList.length}`}
+          description={
+            domains === null
+              ? "Nie udało się pobrać listy"
+              : "Rejestr domen (weryfikacja DNS)"
+          }
           icon={Globe}
         />
         <StatCard
           label="Autoskalowanie"
-          value={`${services.filter((s) => s.autoscalingEnabled).length} włączonych`}
-          description="Z usług z aktywnym autoscaling"
+          value={
+            services === null
+              ? "—"
+              : `${servicesList.filter((s) => s.autoscalingEnabled).length} włączonych`
+          }
+          description={
+            services === null
+              ? "Nie udało się pobrać listy"
+              : "Z usług z aktywnym autoscaling"
+          }
           icon={Activity}
         />
       </div>
@@ -158,7 +224,7 @@ export default function DashboardPage() {
             <QuickAction
               title="Portfel Płatności"
               description="Doładuj konto lub zmień metody płatności"
-              href="/dashboard/settings"
+              href="/dashboard/billing"
               icon={CreditCard}
             />
             <QuickAction

@@ -1,0 +1,11 @@
+---
+description: Zakres prac — zawsze pełny LIVE, nie podejście MVP/minimalne
+alwaysApply: true
+---
+
+# Zakres: 100%-LIVE (nie MVP)
+
+W repozytorium **ekohost / Verris** planowanie i implementacja mają celować od razu w **produkcję (LIVE)**: komplet funkcji, RBAC, audyt, obsługa błędów i UX na poziomie wdrożenia u klientów — **bez** świadomego ucinania zakresu do „minimum na start”, „MVP” czy „na później” jako domyślnej strategii.
+
+- Jeśli wymaganie jest duże, **dziel pracę na sensowne PR/sprinty**, ale każdy merge ma być **gotowy do LIVE** w swoim obszarze (bez sztucznych połówek).
+- W dokumentach i opisach zadań **unikaj etykiety MVP** jako synonimu docelowego stanu; jeśli coś ma pozostać na później, nazwij to wyraźnie **follow-up / faza 2**, a nie „MVP”.

@@ -1,4 +1,5 @@
 import { ArrowDownToLine, ArrowUpFromLine, Coins, History } from 'lucide-react';
+import { formatCredits } from '@/lib/credits';
 import type { AutoscalingChargeDto, AutoscalingEventDto } from './data';
 
 interface Props {
@@ -106,8 +107,8 @@ function ChargeRow({ charge }: { charge: AutoscalingChargeDto }) {
         </div>
       </div>
       <div className="text-right shrink-0">
-        <div className="text-sm font-bold text-rose-200">
-          −{Number(charge.amount).toFixed(2)} PLN
+        <div className="text-sm font-bold text-rose-200 tabular-nums">
+          −{formatCredits(charge.amount)}
         </div>
         <div className="text-[11px] text-neutral-500">
           {new Date(charge.createdAt).toLocaleString('pl-PL')}

@@ -2,7 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LifeBuoy, MessageSquare, Inbox, LogOut, Users, BookOpen } from "lucide-react";
+import {
+  LifeBuoy,
+  MessageSquare,
+  Inbox,
+  LogOut,
+  Users,
+  BookOpen,
+  Settings,
+} from "lucide-react";
 import type { StaffProfile } from "@/lib/staff-session";
 import { staffLogout } from "@/lib/staff-auth-actions";
 
@@ -11,6 +19,7 @@ const navItems = [
   { name: "Aktywne", href: "/tickets/active", icon: MessageSquare },
   { name: "Klienci", href: "/crm", icon: Users },
   { name: "Knowledge", href: "/knowledge", icon: BookOpen },
+  { name: "Ustawienia", href: "/settings", icon: Settings },
 ];
 
 export function StaffShell({

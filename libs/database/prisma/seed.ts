@@ -1,5 +1,7 @@
-import { PrismaClient, BillingInterval, AutoscalingResource } from '@prisma/client';
+import { PrismaClient, BillingInterval, AutoscalingResource, LegalDocumentKind } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 const prisma = new PrismaClient();
 
@@ -149,6 +151,83 @@ async function main() {
   }
 
   console.log(`  autoscaling price rules: ${priceRules.length}`);
+
+  // ---------------------------------------------------------------------------
+  // Sprint 1 — Legal documents (drafty 1.0.0-draft)
+  //
+  // Pierwsze wersje dokumentów prawnych są seedowane jako `1.0.0-draft` — w
+  // produkcji Verris **NIE** publikuje ich do klientów (admin → Compliance →
+  // panel publikacji ich nie pokazuje na rejestracji bo `isCurrent = false`).
+  // Po lawyer review admin opublikuje `1.0.0` (zatwierdzona treść), drafty
+  // staną się historyczne. Drafty służą wyłącznie testom integracyjnym
+  // re-consent / settings flow + jako safety net, gdyby ktoś próbował
+  // zarejestrować klienta przed lawyer review (constraint: brak dokumentu z
+  // `isCurrent=true` zwraca 503 z message „Verris jeszcze nie publikuje
+  // panelu" zamiast pozwolić na rejestrację bez podpisanej zgody).
+  // ---------------------------------------------------------------------------
+  const draftsDir = join(__dirname, '..', '..', '..', 'docs', 'legal', 'drafts');
+  const legalDrafts = [
+    {
+      kind: LegalDocumentKind.TERMS,
+      file: 'terms.md',
+      title: 'Regulamin świadczenia usług hostingowych Verris',
+    },
+    {
+      kind: LegalDocumentKind.PRIVACY,
+      file: 'privacy.md',
+      title: 'Polityka prywatności Verris',
+    },
+    {
+      kind: LegalDocumentKind.COOKIES,
+      file: 'cookies.md',
+      title: 'Polityka plików cookies Verris',
+    },
+    {
+      kind: LegalDocumentKind.DPA,
+      file: 'dpa.md',
+      title: 'Umowa powierzenia przetwarzania danych osobowych (DPA)',
+    },
+  ];
+
+  for (const draft of legalDrafts) {
+    const path = join(draftsDir, draft.file);
+    let contentMarkdown: string;
+    try {
+      contentMarkdown = readFileSync(path, 'utf8');
+    } catch {
+      console.warn(`  legal draft missing: ${draft.file} — skipping`);
+      continue;
+    }
+
+    await prisma.legalDocument.upsert({
+      where: {
+        kind_version_locale: {
+          kind: draft.kind,
+          version: '1.0.0-draft',
+          locale: 'pl',
+        },
+      },
+      create: {
+        kind: draft.kind,
+        version: '1.0.0-draft',
+        locale: 'pl',
+        title: draft.title,
+        contentMarkdown,
+        changelogMarkdown:
+          'Pierwsza wersja dokumentu — przygotowany draft do lawyer review (Sprint 0). NIE PUBLIKUJ przed zatwierdzeniem przez prawnika.',
+        // Drafty są DOMYŚLNIE niewidoczne dla klientów. Admin po lawyer review
+        // dodaje wersję 1.0.0 z `isCurrent=true` i wtedy stronę pokaże się.
+        isCurrent: false,
+      },
+      update: {
+        // Re-import treści przy każdym seedzie żeby aktualne drafty z `docs/`
+        // były odzwierciedlone w bazie testowej. NIE nadpisuj `isCurrent`.
+        title: draft.title,
+        contentMarkdown,
+      },
+    });
+    console.log(`  legal draft seeded: ${draft.kind} v1.0.0-draft (locale=pl)`);
+  }
 
   console.log('Seed complete.');
 }

@@ -75,6 +75,37 @@ model User {
   // this flag is only meaningful for STAFF.
   canAccessGrafana         Boolean   @default(false)
 
+  // ---------------------------------------------------------------------------
+  // RODO / GDPR — Sprint 1 (Legal/RODO)
+  // ---------------------------------------------------------------------------
+  /// Datestamp of the *most recent* terms acceptance — refreshed by re-consent.
+  /// Null = legacy account from before we required explicit consent.
+  termsAcceptedAt          DateTime?
+  /// Datestamp of the *most recent* privacy policy acceptance.
+  privacyAcceptedAt        DateTime?
+  /// Semver of the terms version the user has accepted. Compared against the
+  /// current published version to trigger re-consent flow on next request.
+  lastConsentVersionTerms  String?
+  /// Semver of the privacy policy version the user has accepted.
+  lastConsentVersionPrivacy String?
+  /// Timestamp the user requested account deletion (Art. 17). Anonymization
+  /// happens 14 days later via `account-deletion.scheduler`. While set, the
+  /// account is in read-only grace mode and shows a banner with cancel link.
+  deletionRequestedAt      DateTime?
+  /// Timestamp when PII was anonymized. After this, the row stays for
+  /// invoicing audit (5y PL legal requirement) but contains no personal data.
+  anonymizedAt             DateTime?
+
+  // ---------------------------------------------------------------------------
+  // Sprint 4 / R-04 — operacje admina na koncie klienta (tylko USER)
+  // ---------------------------------------------------------------------------
+  /// Gdy true — logowanie do panelu klienta jest zablokowane (hasło + 2FA).
+  loginBlocked             Boolean   @default(false)
+  /// Opcjonalny powód blokady (widoczny w audycie / dla operatorów).
+  loginBlockedReason       String?   @db.Text
+  /// Notatka wewnętrzna BOK (nie pokazywana klientowi).
+  adminInternalNote        String?   @db.Text
+
   createdAt                DateTime  @default(now())
   updatedAt                DateTime  @updatedAt
 
@@ -94,6 +125,27 @@ model User {
   walletAutoTopup          WalletAutoTopup?
   ticketAttachmentsUploaded TicketAttachment[] @relation("TicketAttachmentUploader")
   ecoPointsLedger           EcoPointsLedgerEntry[]
+  featureFlagsCreated       FeatureFlag[]      @relation("FeatureFlagCreator")
+  featureFlagOverridesCreated FeatureFlagOverride[] @relation("FeatureFlagOverrideCreator")
+  featureFlagOverrides       FeatureFlagOverride[] @relation("FeatureFlagUser")
+  productAnnouncementsCreated ProductAnnouncement[] @relation("ProductAnnouncementCreator")
+  ticketEscalations          Ticket[]          @relation("TicketEscalator")
+  maintenanceWindowsCreated  MaintenanceWindow[] @relation("MaintenanceWindowCreator")
+  statusWebhooksCreated      StatusWebhookEndpoint[] @relation("StatusWebhookCreator")
+
+  // RODO relations (Sprint 1)
+  consents                  UserConsent[]
+  marketingPreferences      MarketingPreferences?
+  dataExportRequests        DataExportRequest[]
+  accountDeletionRequest    AccountDeletionRequest?
+  publishedLegalDocs        LegalDocument[]   @relation("LegalDocPublisher")
+  forcedDeletionRequests    AccountDeletionRequest[] @relation("AccountDeletionAdminAnonymizer")
+
+  // Security (Sprint 2.5)
+  loginEvents               LoginEvent[]
+
+  // Sprint 7 — pakietowe migracje
+  migrationRequests         MigrationRequest[]
 }
 
 // -----------------------------------------------------------------------------
@@ -163,12 +215,20 @@ model Server {
   approvedBy      User?        @relation("ServerApprover", fields: [approvedById], references: [id], onDelete: SetNull)
   notes           String?
 
+  // Sprint 4 / A-08 — maintenance mode metadata. Wpisywane gdy admin ręcznie
+  // przełączy węzeł do MAINTENANCE; UI klienta i NodeSelector posługują się
+  // tym powodem przy informacji o niedostępności kupna.
+  maintenanceReason     String?
+  maintenanceStartedAt  DateTime?
+  maintenanceStartedById String?
+
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
   accounts        Account[]
   bootstrapTokens BootstrapToken[]
   probes          ServiceProbe[]
+  maintenanceWindows MaintenanceWindow[]
 
   @@index([status])
 }
@@ -194,6 +254,88 @@ model BootstrapToken {
 
   @@index([serverId])
   @@index([expiresAt])
+}
+
+// -----------------------------------------------------------------------------
+// Status / maintenance calendar / webhooks (P-02/P-03 + V-16)
+// -----------------------------------------------------------------------------
+
+enum MaintenanceWindowStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELED
+}
+
+model MaintenanceWindow {
+  id             String                  @id @default(uuid())
+  serverId       String?
+  server         Server?                 @relation(fields: [serverId], references: [id], onDelete: SetNull)
+  title          String
+  publicMessage  String?                 @db.Text
+  internalNote   String?                 @db.Text
+  status         MaintenanceWindowStatus @default(SCHEDULED)
+  scheduledStart DateTime
+  scheduledEnd   DateTime
+  startedAt      DateTime?
+  completedAt    DateTime?
+
+  createdById    String?
+  createdBy      User?                   @relation("MaintenanceWindowCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  @@index([status, scheduledStart])
+  @@index([serverId])
+}
+
+enum StatusWebhookEvent {
+  INCIDENT_CREATED
+  INCIDENT_UPDATED
+  INCIDENT_RESOLVED
+  MAINTENANCE_SCHEDULED
+  MAINTENANCE_UPDATED
+}
+
+model StatusWebhookEndpoint {
+  id             String                  @id @default(uuid())
+  url            String
+  secretEnc      String?
+  isActive       Boolean                 @default(true)
+  events         StatusWebhookEvent[]
+  createdById    String?
+  createdBy      User?                   @relation("StatusWebhookCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  deliveries     StatusWebhookDelivery[]
+
+  @@index([isActive])
+}
+
+enum StatusWebhookDeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+model StatusWebhookDelivery {
+  id             String                        @id @default(uuid())
+  endpointId     String
+  endpoint       StatusWebhookEndpoint         @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  event          StatusWebhookEvent
+  payload        Json
+  status         StatusWebhookDeliveryStatus   @default(PENDING)
+  attempts       Int                           @default(0)
+  responseStatus Int?
+  lastError      String?                       @db.Text
+  nextAttemptAt  DateTime?
+  deliveredAt    DateTime?
+  createdAt      DateTime                      @default(now())
+  updatedAt      DateTime                      @updatedAt
+
+  @@index([status, nextAttemptAt])
+  @@index([endpointId, createdAt])
 }
 
 // -----------------------------------------------------------------------------
@@ -241,6 +383,7 @@ model Plan {
   updatedAt            DateTime @updatedAt
 
   subscriptions        Subscription[]
+  featureFlagPlanOverrides FeatureFlagPlanOverride[]
 
   @@index([isPublic, isActive])
 }
@@ -299,6 +442,15 @@ model Subscription {
   // Eco mode
   ecoModeEnabled       Boolean                   @default(false)
 
+  // Sprint 5 / R-11+B-7 — szczegółowy status provisioningu widoczny dla klienta.
+  // Wartości: queued, running, retrying, failed, completed.
+  // Aktualizowany przez ProvisioningQueueService; pomocniczy względem `status`.
+  provisioningStage    String?
+  provisioningAttempts Int                       @default(0)
+  provisioningLastError String?                  @db.Text
+  provisioningStartedAt DateTime?
+  provisioningCompletedAt DateTime?
+
   createdAt            DateTime                  @default(now())
   updatedAt            DateTime                  @updatedAt
 
@@ -307,6 +459,9 @@ model Subscription {
   usageMetrics         UsageMetric[]
   walletEntries        WalletTransaction[]       @relation("SubscriptionWalletEntries")
   invoices             Invoice[]
+  migrationRequests    MigrationRequest[]
+  healthSnapshots      ServiceHealthSnapshot[]
+  domainChecklists     DomainChecklist[]
 
   @@index([userId])
   @@index([status])
@@ -323,6 +478,107 @@ model SubscriptionEvent {
   createdAt      DateTime     @default(now())
 
   @@index([subscriptionId])
+}
+
+// -----------------------------------------------------------------------------
+// Sprint 7 — MigrationRequest (R-MIG-1+)
+// -----------------------------------------------------------------------------
+//
+// Pakietowe zlecenie migracji ze starego hostingu: pliki (SFTP/rsync), bazy
+// MySQL, skrzynki IMAP + opcjonalnie domena docelowa. Sekrety przechowujemy
+// zaszyfrowane przez `CryptoService` (AES-256-GCM, klucz w `APP_KMS_KEY`).
+// Status pcha kolejka workerów na compute-node (R-MIG-2+).
+
+enum MigrationStatus {
+  DRAFT
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELED
+}
+
+model MigrationRequest {
+  id              String          @id @default(uuid())
+
+  subscriptionId  String
+  subscription    Subscription    @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  userId          String
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Zaszyfrowany JSON: { ftp?: {...}, mysql?: {...}, imap?: {...}, targetDomain?, notes? }
+  sourceBundleEnc String          @db.Text
+  /// Domena docelowa pod którą migrujemy. Może być `null` jeśli klient nie zna jeszcze.
+  targetDomain    String?
+  /// Etap, na którym jest zlecenie: queued/running/completed/failed/canceled
+  status          MigrationStatus @default(QUEUED)
+  /// Krótki kod aktualnego kroku (`files`, `mysql`, `imap`, `dns`, `done`).
+  currentStep     String?
+  /// Surowy log workerów (append-only, dla staff). Trim 256 KB.
+  workerLog       String?         @db.Text
+  /// Ostatni błąd, jeśli `status == FAILED`. Krótki, sanityzowany.
+  lastError       String?         @db.Text
+  /// `Ticket.id` powiązany ze zleceniem.
+  ticketId        String?
+
+  /// Audit-friendly liczniki wykonanych transferów.
+  bytesTransferred BigInt         @default(0)
+  filesTransferred Int            @default(0)
+  databasesMigrated Int           @default(0)
+  mailboxesMigrated Int           @default(0)
+
+  startedAt       DateTime?
+  completedAt     DateTime?
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  workerJobs      MigrationWorkerJob[]
+
+  @@index([subscriptionId])
+  @@index([userId])
+  @@index([status, createdAt])
+}
+
+enum MigrationWorkerJobKind {
+  FILES_SFTP_RSYNC
+  MYSQL_IMPORT
+  IMAP_SYNC
+  HTTP_POST_CHECK
+}
+
+enum MigrationWorkerJobStatus {
+  QUEUED
+  RUNNING
+  RETRYING
+  COMPLETED
+  FAILED
+  CANCELED
+}
+
+model MigrationWorkerJob {
+  id                 String                   @id @default(uuid())
+  migrationRequestId String
+  migrationRequest   MigrationRequest         @relation(fields: [migrationRequestId], references: [id], onDelete: Cascade)
+
+  kind               MigrationWorkerJobKind
+  status             MigrationWorkerJobStatus @default(QUEUED)
+  workerId           String?
+  attempts           Int                      @default(0)
+  maxAttempts        Int                      @default(3)
+  idempotencyKey     String                   @unique
+  payload            Json?
+  lastError          String?                  @db.Text
+  log                String?                  @db.Text
+
+  startedAt          DateTime?
+  completedAt        DateTime?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+
+  @@index([migrationRequestId, status])
+  @@index([status, createdAt])
 }
 
 enum AccountStatus {
@@ -391,6 +647,8 @@ model Domain {
 
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
+
+  checklists DomainChecklist[]
 }
 
 // -----------------------------------------------------------------------------
@@ -482,11 +740,35 @@ model Invoice {
   subscriptionId String?
   subscription   Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
 
+  /// Numeracja wewnętrzna Verris: VFV/YYYY/MM/{0001} (resetuje się co miesiąc).
   number         String        @unique
   status         InvoiceStatus @default(DRAFT)
 
+  /// `amount` to kwota brutto (z VAT). `netAmount`/`vatAmount`/`vatRate`
+  /// dokładają rozbicie wymagane przez polską ustawę o VAT (art. 106e).
   amount         Decimal       @db.Decimal(12, 2)
+  netAmount      Decimal?      @db.Decimal(12, 2)
+  vatAmount      Decimal?      @db.Decimal(12, 2)
+  /// Stawka VAT (procent). 23 dla VAT 23%, 0 dla zwolnionych itp.
+  vatRate        Decimal?      @db.Decimal(5, 2)
   currency       String        @default("PLN")
+
+  /// Snapshot danych sprzedawcy (Verris) w momencie wystawienia faktury.
+  /// Trzymane jako JSON żeby zmiana adresu/NIP-u sprzedawcy w przyszłości
+  /// nie wpłynęła na archiwalne faktury (5-letni wymóg PL).
+  /// Format: { name, nip, address, city, postalCode, country, email, regon?, krs? }
+  sellerSnapshot Json?
+  /// Snapshot danych nabywcy (User) w momencie wystawienia. Format jak wyżej
+  /// + opcjonalnie companyName, firstName, lastName.
+  buyerSnapshot  Json?
+  /// Lista pozycji (line items): nazwa, ilość, cena netto jednostkowa, VAT %.
+  /// Format: Array<{ name, quantity, unitNet, vatRate, totalNet, totalVat, totalGross }>.
+  lineItems      Json?
+
+  /// Klucz w bucketcie `verris-invoices` MinIO. Null gdy PDF jeszcze nie
+  /// został wygenerowany (pre-2.2 faktury) lub gdy korzystamy tylko z linku
+  /// Stripe (`provider=STRIPE` + `hostedUrl`).
+  storageKey     String?
 
   // External (provider) invoice
   provider       String?       // STRIPE
@@ -503,6 +785,20 @@ model Invoice {
 
   @@unique([provider, providerRef])
   @@index([userId])
+}
+
+/// Atomowa numeracja faktur per (rok, miesiąc). Każda nowa faktura wykonuje
+/// `INSERT ... ON CONFLICT (year, month) DO UPDATE SET seq = seq + 1
+/// RETURNING seq` w jednej transakcji — Postgres gwarantuje unikalność i
+/// brak luk nawet pod dużą współbieżnością. Klucz złożony (year, month).
+model InvoiceCounter {
+  id        String   @id @default(uuid())
+  year      Int
+  month     Int
+  seq       Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@unique([year, month])
 }
 
 // -----------------------------------------------------------------------------
@@ -596,6 +892,153 @@ model UsageMetric {
 }
 
 // -----------------------------------------------------------------------------
+// Product operations / feature flags / customer communications
+// -----------------------------------------------------------------------------
+
+enum ProductAnnouncementStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ProductAnnouncementKind {
+  CHANGELOG
+  INCIDENT_NOTICE
+  MAINTENANCE
+  PRODUCT_UPDATE
+  PROMOTION
+}
+
+model FeatureFlag {
+  id             String   @id @default(uuid())
+  key            String   @unique
+  name           String
+  description    String?  @db.Text
+  enabledDefault Boolean  @default(false)
+  rolloutPercent Int      @default(0)
+  rules          Json?
+  startsAt       DateTime?
+  endsAt         DateTime?
+
+  createdById    String?
+  createdBy      User?    @relation("FeatureFlagCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  overrides      FeatureFlagOverride[]
+  planOverrides  FeatureFlagPlanOverride[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([enabledDefault, rolloutPercent])
+}
+
+model FeatureFlagOverride {
+  id            String      @id @default(uuid())
+  featureFlagId String
+  featureFlag   FeatureFlag @relation(fields: [featureFlagId], references: [id], onDelete: Cascade)
+
+  userId        String
+  user          User        @relation("FeatureFlagUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  enabled       Boolean
+  reason        String?     @db.Text
+  expiresAt     DateTime?
+  createdById   String?
+  createdBy     User?       @relation("FeatureFlagOverrideCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([featureFlagId, userId])
+  @@index([userId])
+}
+
+model FeatureFlagPlanOverride {
+  id            String      @id @default(uuid())
+  featureFlagId String
+  featureFlag   FeatureFlag @relation(fields: [featureFlagId], references: [id], onDelete: Cascade)
+
+  planId        String
+  plan          Plan        @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  enabled       Boolean
+  reason        String?     @db.Text
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([featureFlagId, planId])
+  @@index([planId])
+}
+
+model ProductAnnouncement {
+  id             String                    @id @default(uuid())
+  kind           ProductAnnouncementKind
+  status         ProductAnnouncementStatus @default(DRAFT)
+  title          String
+  bodyMarkdown   String                    @db.Text
+  audienceRole   Role?
+  featureFlagKey String?
+  publishedAt    DateTime?
+  expiresAt      DateTime?
+
+  createdById    String?
+  createdBy      User?                     @relation("ProductAnnouncementCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt      DateTime                  @default(now())
+  updatedAt      DateTime                  @updatedAt
+
+  @@index([status, publishedAt])
+  @@index([kind, createdAt])
+}
+
+model ServiceHealthSnapshot {
+  id             String       @id @default(uuid())
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  score          Int
+  dnsOk          Boolean?
+  tlsOk          Boolean?
+  backupFresh    Boolean?
+  incidentsOpen  Int          @default(0)
+  lveOk          Boolean?
+  phpOk          Boolean?
+  mailOk         Boolean?
+  details        Json?
+  computedAt     DateTime     @default(now())
+
+  @@index([subscriptionId, computedAt])
+}
+
+enum DomainChecklistStatus {
+  PENDING
+  OK
+  WARNING
+  FAILED
+}
+
+model DomainChecklist {
+  id              String                @id @default(uuid())
+  subscriptionId  String?
+  subscription    Subscription?         @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  domainId        String?
+  domain          Domain?               @relation(fields: [domainId], references: [id], onDelete: SetNull)
+
+  hostname        String
+  status          DomainChecklistStatus @default(PENDING)
+  requiredRecords Json?
+  observedRecords Json?
+  issues          Json?
+  checkedAt       DateTime?
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@index([subscriptionId, status])
+  @@index([hostname])
+}
+
+// -----------------------------------------------------------------------------
 // SUPPORT (Tickets)
 // -----------------------------------------------------------------------------
 
@@ -619,8 +1062,23 @@ model Ticket {
   firstResponseAt DateTime?
   resolvedAt      DateTime?
 
+  // Sprint 8+ / S-07 + V-10/V-11/V-12 — operacyjne pola BOK.
+  slaResponseDueAt DateTime?
+  slaResolveDueAt  DateTime?
+  escalatedAt      DateTime?
+  escalatedById    String?
+  escalatedBy      User?         @relation("TicketEscalator", fields: [escalatedById], references: [id], onDelete: SetNull)
+  escalationReason String?       @db.Text
+  runbookKey       String?
+  riskFlag         String?
+  riskReason       String?       @db.Text
+
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+
+  @@index([slaResponseDueAt])
+  @@index([slaResolveDueAt])
+  @@index([riskFlag])
 }
 
 model TicketReply {
@@ -695,6 +1153,179 @@ model AuditLog {
 
   @@index([userId, createdAt])
   @@index([action, createdAt])
+}
+
+// -----------------------------------------------------------------------------
+// EMAIL LOG — Sprint 2.6 (admin viewer + delivery audit)
+//
+// Każda wysyłka, niezależnie od kanału (TRANSACTIONAL/MARKETING) i providera
+// (SMTP/log), zostawia ślad w `EmailLog`. Daje to:
+//   - admin viewer "co poszło do kogo" (Sprint 2.7)
+//   - debug deliverability (jaki SMTP messageId, jaki bounce)
+//   - audyt RODO ("dowód że poprosiłem usera o zgodę")
+//   - możliwość retry przy SOFT_BOUNCE
+// -----------------------------------------------------------------------------
+
+enum EmailCategory {
+  TRANSACTIONAL  // Hosting, billing, security — nie podlegają opt-out.
+  MARKETING      // Newsletter, kampanie — wymaga MarketingPreferences.
+}
+
+enum EmailStatus {
+  QUEUED          // Wstawione do EmailLog, czeka na provider.send().
+  SENT            // Provider zwrócił sukces (nie znaczy że dotarło — patrz BOUNCED).
+  SUPPRESSED      // Nie wysłano świadomie (user wypisał się / anonymizedAt).
+  FAILED          // Provider rzucił błąd (timeout, 5xx). Można retry.
+  BOUNCED         // Mailbox provider zwrócił bounce (5.x.x lub webhook).
+}
+
+model EmailLog {
+  id              String         @id @default(uuid())
+
+  /// Adres odbiorcy (snapshot — user może później zmienić email).
+  toEmail         String
+  /// Optional FK to user. Null gdy mail leci do osoby niezarejestrowanej
+  /// (np. ticket od guesta). Zachowane SetNull żeby anonymizacja RODO nie
+  /// dropowała wpisów audytowych.
+  userId          String?
+
+  category        EmailCategory
+  /// Stabilny tag (np. `security.password-changed`) — wyciągany z template'a.
+  tag             String?
+  subject         String         @db.VarChar(512)
+
+  status          EmailStatus    @default(QUEUED)
+
+  providerId      String?        @db.VarChar(32)
+  /// Message-Id zwrócony przez SMTP/relay — pomaga zlinkować z bounce / spam reportem.
+  messageId       String?        @db.VarChar(255)
+  /// Komunikat błędu providera (gdy status=FAILED|BOUNCED). Najwyżej 1024 znaki.
+  errorMessage    String?        @db.VarChar(1024)
+
+  /// Snapshot sygnałów anty-spam zastosowanych przy wysyłce.
+  /// Pole JSON zamiast osobnych kolumn — łatwiej rozszerzać.
+  metadata        Json?
+
+  /// Optional FK gdy mail wysłany w ramach kampanii MarketingCampaign.
+  campaignId      String?
+
+  createdAt       DateTime       @default(now())
+  sentAt          DateTime?
+  updatedAt       DateTime       @updatedAt
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([category, status, createdAt(sort: Desc)])
+  @@index([campaignId])
+  @@index([tag])
+}
+
+// -----------------------------------------------------------------------------
+// MARKETING CAMPAIGN — Sprint 2.6 (newsletter w panelu)
+//
+// Admin tworzy kampanię (subject + markdown body), wybiera segment
+// (np. "all-marketing-opted-in") i klika "Send" / "Schedule".
+// Worker iteruje po segment'cie z paginacją, dla każdego usera wstawia
+// EmailLog (status=QUEUED) i wywołuje MailerService.send.
+// -----------------------------------------------------------------------------
+
+enum MarketingCampaignStatus {
+  DRAFT          // Admin pisze, jeszcze nie zatwierdzona.
+  SCHEDULED      // Zatwierdzona, scheduled na `scheduledAt`.
+  SENDING        // Worker w trakcie wysyłki.
+  SENT           // Wszystkie maile wstrzelone (lub flag SUPPRESSED).
+  FAILED         // Worker abortował (>50% bounce w pierwszej setce).
+  CANCELED       // Admin odwołał przed startem.
+}
+
+enum MarketingSegment {
+  /// Wszyscy z `marketingEmail=true` w preferences.
+  NEWSLETTER_OPT_IN
+  /// Wszyscy z `productUpdatesEmail=true`.
+  PRODUCT_UPDATES_OPT_IN
+  /// Wszyscy aktywni klienci (status nie-anonymized) — UWAGA: tylko dla
+  /// transactional-grade ogłoszeń (np. zmiana cennika, wymóg legal).
+  /// NIE używać dla marketingu — narusza RODO i List-Unsubscribe.
+  ALL_ACTIVE_USERS
+}
+
+model MarketingCampaign {
+  id            String                  @id @default(uuid())
+  name          String                  @db.VarChar(120)
+  /// Krótki opis dla zespołu (nie wysyłany w mailu).
+  description   String?                 @db.VarChar(500)
+
+  subject       String                  @db.VarChar(255)
+  /// Markdown — renderujemy przez `renderEmailShell` przy wysyłce.
+  bodyMarkdown  String
+  ctaLabel      String?                 @db.VarChar(80)
+  ctaUrl        String?                 @db.VarChar(500)
+
+  segment       MarketingSegment        @default(NEWSLETTER_OPT_IN)
+
+  status        MarketingCampaignStatus @default(DRAFT)
+  scheduledAt   DateTime?
+  startedAt     DateTime?
+  completedAt   DateTime?
+
+  /// Ostatnio przetworzona pozycja paginacji workera (offset). Pozwala
+  /// wznowić wysyłkę po crashu bez duplikatów (idempotencja po EmailLog).
+  cursorOffset  Int                     @default(0)
+
+  /// Stats — populate w trakcie wysyłki.
+  recipientCount Int                    @default(0)
+  sentCount      Int                    @default(0)
+  suppressedCount Int                   @default(0)
+  failedCount    Int                    @default(0)
+
+  createdById    String?
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  @@index([status, scheduledAt])
+}
+
+// -----------------------------------------------------------------------------
+// LOGIN EVENTS — security audit (Sprint 2.5)
+//
+// Persists every successful sign-in so we can:
+//   - detect "new device" / "new IP" logins and email the user a heads-up
+//   - power "Active sessions" view in account settings (future feature)
+//   - support compliance investigations (e.g. RODO incident response)
+//
+// We deliberately do NOT track failed login attempts here — those go through
+// rate limiting and are recorded in `AuditLog` only when relevant for abuse.
+// -----------------------------------------------------------------------------
+model LoginEvent {
+  id           String   @id @default(uuid())
+
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// IP at the moment of login. Stored verbatim (v4 / v6); not anonymized
+  /// because it has security value within the legitimate-interest balance.
+  /// Anonymized when the user requests RODO deletion.
+  ipAddress    String?
+  userAgent    String?
+  /// Coarse country code derived from IP (best-effort, no GeoIP DB required).
+  /// May be null if reverse-lookup is unavailable.
+  countryCode  String?  @db.VarChar(2)
+
+  /// Stable device fingerprint — sha256 of (userAgent || acceptLanguage ||
+  /// ip-network /24). Used to identify "new device" logins. NOT a tracking
+  /// id — purely deterministic from request headers.
+  deviceFingerprint String?
+
+  /// True when this fingerprint OR ip-network was unseen for this user
+  /// in the last 90 days — triggers `new-device-login` email.
+  isNewDevice  Boolean  @default(false)
+
+  /// Login mechanism — useful for security forensics ("password vs OAuth").
+  loginMethod  String?  @db.VarChar(32)
+
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([deviceFingerprint])
 }
 
 // -----------------------------------------------------------------------------
@@ -966,4 +1597,214 @@ model WalletAutoTopup {
   updatedAt         DateTime        @updatedAt
 
   @@index([enabled, cooldownUntil])
+}
+
+// =============================================================================
+// SPRINT 1 — LEGAL & RODO
+// -----------------------------------------------------------------------------
+// Versioned legal documents (terms, privacy, cookies, DPA), per-user consent
+// audit trail (with IP/UA), marketing opt-ins, GDPR data-subject requests
+// (Art. 17 deletion, Art. 20 export). Drafts of the actual document content
+// live in `docs/legal/drafts/` and are imported by `prisma db seed` once
+// lawyer-reviewed.
+// =============================================================================
+
+enum LegalDocumentKind {
+  TERMS
+  PRIVACY
+  COOKIES
+  DPA
+}
+
+/// Versioned legal document content (Markdown) shown under `/legal/<kind>`
+/// in the client panel and status page. Multiple versions per kind/locale
+/// retained for transparency — only one row has `isCurrent = true` per
+/// (kind, locale).
+model LegalDocument {
+  id              String            @id @default(uuid())
+  kind            LegalDocumentKind
+  /// Semver string ("1.0.0", "1.1.0", "2.0.0"). Manually assigned on publish.
+  version         String
+  /// IETF locale, e.g. "pl", "en". Polish is canonical.
+  locale          String            @default("pl")
+
+  /// Display title, e.g. "Regulamin świadczenia usług hostingowych Verris".
+  title           String
+
+  /// Full Markdown content. Rendered server-side via `react-markdown` with
+  /// strict allowlist. Never stored as raw HTML.
+  contentMarkdown String            @db.Text
+
+  /// User-friendly changelog explaining what's new vs prior version.
+  /// Shown in the re-consent modal so customers know what they're accepting.
+  changelogMarkdown String?         @db.Text
+
+  /// Effective publication date. May be in the future for staged rollouts.
+  publishedAt     DateTime          @default(now())
+
+  publishedById   String?
+  publishedBy     User?             @relation("LegalDocPublisher", fields: [publishedById], references: [id], onDelete: SetNull)
+
+  /// Only one row per (kind, locale) is `true`. Toggled by the publish action
+  /// in admin → Compliance.
+  isCurrent       Boolean           @default(false)
+
+  createdAt       DateTime          @default(now())
+
+  consents        UserConsent[]
+
+  @@unique([kind, version, locale])
+  @@index([kind, locale, isCurrent])
+}
+
+enum ConsentSource {
+  /// Granted during initial registration form.
+  REGISTRATION
+  /// Granted via the re-consent modal after a new version was published.
+  RE_CONSENT
+  /// Granted/withdrawn from the settings → Privacy tab.
+  SETTINGS
+  /// Manual override by an admin (e.g. UODO request, customer phone call).
+  ADMIN_MANUAL
+}
+
+/// Append-only audit trail of every consent grant or withdrawal (RODO Art. 7
+/// requires being able to demonstrate that consent was given). One row per
+/// kind+version+grant — withdrawals create a *new* row with `withdrawnAt` set
+/// instead of mutating the original (immutable history).
+model UserConsent {
+  id              String            @id @default(uuid())
+
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  documentKind    LegalDocumentKind
+  documentVersion String
+  /// Locale of the document version the user accepted (snapshot in case the
+  /// document was later renamed/translated).
+  locale          String            @default("pl")
+
+  /// FK to the actual `LegalDocument` row that was active at grant time.
+  /// Optional because old `ADMIN_MANUAL` rows might point to versions we
+  /// later soft-deleted.
+  documentId      String?
+  document        LegalDocument?    @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  grantedAt       DateTime          @default(now())
+  /// Set if/when the user explicitly withdraws this consent. Mainly relevant
+  /// for `MARKETING` style consents — `TERMS`/`PRIVACY` cannot be withdrawn
+  /// while account is active (in that case use account deletion).
+  withdrawnAt     DateTime?
+
+  /// Snapshot of the request origin at grant time. Mandatory for proof.
+  ipAddress       String?
+  userAgent       String?
+
+  source          ConsentSource     @default(SETTINGS)
+
+  createdAt       DateTime          @default(now())
+
+  @@index([userId, documentKind, grantedAt])
+  @@index([documentKind, documentVersion])
+}
+
+/// Per-user marketing/analytics opt-ins. Transactional and security e-mails
+/// are *not* user-controllable and have no flag here — they're always sent
+/// while the account is active (legal basis: contract performance).
+model MarketingPreferences {
+  userId               String   @id
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// General product newsletter, monthly digest.
+  marketingEmail       Boolean  @default(false)
+  /// New feature announcements and product updates.
+  productUpdatesEmail  Boolean  @default(false)
+  /// Third-party / partner promo offers (only with explicit double opt-in).
+  partnerOffersEmail   Boolean  @default(false)
+  /// Login alerts on new IP / device. Default `true` because security-positive,
+  /// but user can disable in settings.
+  loginAlertsEmail     Boolean  @default(true)
+
+  /// Token used in `List-Unsubscribe` mail header for one-click opt-out
+  /// (RFC 8058). Random hex 32B, rotated on every preference reset.
+  unsubscribeToken     String   @unique
+
+  updatedAt            DateTime @updatedAt
+  createdAt            DateTime @default(now())
+}
+
+enum DataExportStatus {
+  PENDING      // Queued, worker hasn't picked it up yet.
+  GENERATING   // Worker is building the ZIP.
+  READY        // ZIP ready, downloadable until `expiresAt`.
+  EXPIRED      // Past `expiresAt`, file deleted.
+  FAILED       // Worker errored; admin can retry.
+}
+
+/// GDPR Art. 20 — right to data portability. User clicks "Download my data"
+/// in settings → this row is created → background worker fetches user data,
+/// builds a ZIP, marks `READY`. User is e-mailed a one-time download link
+/// expiring after 7 days.
+model DataExportRequest {
+  id              String            @id @default(uuid())
+
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  status          DataExportStatus  @default(PENDING)
+
+  requestedAt     DateTime          @default(now())
+  startedAt       DateTime?
+  completedAt     DateTime?
+
+  /// Random hex 32B — included in the download URL. Single-use; consumed
+  /// on first successful download.
+  downloadToken   String?           @unique
+  downloadedAt    DateTime?
+
+  /// Filesystem path or S3 key where the ZIP is stored. Cleared when the
+  /// row transitions to `EXPIRED`.
+  storageKey      String?
+
+  /// Filesize in bytes (for showing "ZIP, 14.2 MB" in UI).
+  sizeBytes       Int?
+
+  /// `now + 7d` once `READY`.
+  expiresAt       DateTime?
+
+  errorMessage    String?
+
+  @@index([userId, requestedAt])
+  @@index([status])
+}
+
+/// GDPR Art. 17 — right to be forgotten. User initiates from settings,
+/// 14-day grace period during which they can cancel. After grace, the
+/// `account-deletion.scheduler` cron anonymizes PII and cancels Stripe
+/// subscriptions. Invoice/wallet rows are kept (5y PL accounting law)
+/// but with `userId` pointing to an anonymized `User` row.
+model AccountDeletionRequest {
+  /// One active request per user — once anonymized the user can't request
+  /// again because the row is locked read-only.
+  userId             String    @id
+  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  requestedAt        DateTime  @default(now())
+  /// `requestedAt + 14 days`. Cron compares against `now` to trigger
+  /// anonymization. Adjusted automatically if Stripe billing cycle ends
+  /// later (we wait for final invoice before anonymizing).
+  scheduledFor       DateTime
+
+  /// User cancels → row stays for audit but is no longer actionable.
+  cancelledAt        DateTime?
+
+  anonymizedAt       DateTime?
+  anonymizedById     String?
+  anonymizedByAdmin  User?     @relation("AccountDeletionAdminAnonymizer", fields: [anonymizedById], references: [id], onDelete: SetNull)
+
+  /// Optional free-form text the user wrote in the deletion modal. Useful
+  /// for product/CX feedback.
+  reason             String?
+
+  @@index([scheduledFor, anonymizedAt])
 }

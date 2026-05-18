@@ -2,10 +2,12 @@ import { BadRequestException, Injectable, Logger, ServiceUnavailableException, U
 import { ConfigService } from '@nestjs/config';
 import { createHmac, timingSafeEqual } from 'crypto';
 import {
+  DEFAULT_STRIPE_API_VERSION,
   StripeClient,
   StripeCheckoutSessionInput,
   StripeCustomer,
   StripeInvoice,
+  StripePrice,
   StripeSubscription,
 } from './stripe.client';
 
@@ -20,7 +22,12 @@ export class StripeService {
   constructor(config: ConfigService) {
     const secretKey = config.get<string>('stripeSecretKey');
     this.webhookSecret = config.get<string>('stripeWebhookSecret') ?? null;
-    this.client = secretKey ? new StripeClient(secretKey) : null;
+    // `STRIPE_API_VERSION` env override is for emergency rollback during a
+    // dahlia → next-major upgrade window. See `DEPLOY.md` →
+    // "Stripe API upgrade" runbook for the full procedure.
+    const apiVersion =
+      config.get<string>('STRIPE_API_VERSION') ?? DEFAULT_STRIPE_API_VERSION;
+    this.client = secretKey ? new StripeClient(secretKey, apiVersion) : null;
   }
 
   isConfigured(): boolean {
@@ -49,6 +56,30 @@ export class StripeService {
 
   async getCustomer(customerId: string): Promise<StripeCustomer> {
     return this.requireClient().getCustomer(customerId);
+  }
+
+  async updateCustomerEmail(customerId: string, email: string): Promise<void> {
+    await this.requireClient().updateCustomer(customerId, { email });
+  }
+
+  /**
+   * Sprint 4 / R-05 — bezpieczne odczytanie Stripe Price (zwraca `null` gdy
+   * Stripe nie jest skonfigurowany, błąd 404 podnosi do BadRequestException).
+   */
+  async retrievePriceOrThrow(priceId: string): Promise<StripePrice> {
+    if (!this.client) {
+      throw new ServiceUnavailableException(
+        'Stripe nie jest skonfigurowany — ustaw STRIPE_SECRET_KEY zanim użyjesz Price ID.',
+      );
+    }
+    try {
+      return await this.client.retrievePrice(priceId);
+    } catch (e) {
+      const msg = (e as Error).message;
+      throw new BadRequestException(
+        `Stripe odrzucił Price ID "${priceId}": ${msg}. Skopiuj poprawne ID z Dashboard.`,
+      );
+    }
   }
 
   async setDefaultPaymentMethod(

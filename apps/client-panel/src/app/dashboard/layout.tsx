@@ -7,6 +7,8 @@ import { logoutAction } from "./actions";
 import { fetchSidebarUser, type SidebarUser } from "./sidebar-actions";
 import { ImpersonationBanner } from "./impersonation-banner";
 import { IncidentBanner } from "./incident-banner";
+import { WalletBadge } from "./wallet-badge";
+import { ReConsentModal } from "./reconsent-modal";
 import {
   LayoutDashboard,
   Globe,
@@ -29,7 +31,7 @@ import {
 const mainGridItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Serwery", href: "/dashboard/services", icon: Server },
-  { name: "Bilingi", href: "/dashboard/billing", icon: CreditCard },
+  { name: "Płatności", href: "/dashboard/billing", icon: CreditCard },
   { name: "Domeny", href: "/dashboard/domains", icon: Globe },
 ];
 
@@ -152,6 +154,7 @@ export default function DashboardLayout({
     <div className="bg-black text-neutral-300 font-sans">
       <ImpersonationBanner />
       <IncidentBanner />
+      <ReConsentModal />
       <div className="flex min-h-screen relative">
 
       {/* Modern Black Minimal Sidebar */}
@@ -230,7 +233,8 @@ export default function DashboardLayout({
         {/* Top Navbar */}
         <header className="sticky top-0 z-40 flex h-20 items-center justify-between bg-black/80 backdrop-blur-xl px-8 border-b border-white/5">
           <div className="flex-1" />
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            <WalletBadge balance={user?.walletBalance ?? null} />
             <a
               href="/dashboard/support"
               className="relative rounded-[24px] p-px overflow-hidden group inline-flex"
@@ -248,6 +252,35 @@ export default function DashboardLayout({
         <main className="flex-1 p-8 min-w-0 w-full">
           {children}
         </main>
+
+        {/* Compliance footer (Sprint 1, L-09) — minimal disclaimer because
+            we use only essential cookies (auth, CSRF). No banner needed under
+            ePrivacy. */}
+        <footer className="mt-auto border-t border-white/5 bg-black/60 px-8 py-6">
+          <div className="flex flex-col gap-2 text-[11px] text-neutral-500 sm:flex-row sm:items-center sm:justify-between">
+            <p>
+              © {new Date().getFullYear()} Verris. Używamy wyłącznie niezbędnych plików
+              cookies (sesja i bezpieczeństwo).
+            </p>
+            <nav className="flex flex-wrap gap-x-4 gap-y-1">
+              <a href="/legal/terms" className="hover:text-neutral-300">
+                Regulamin
+              </a>
+              <a href="/legal/privacy" className="hover:text-neutral-300">
+                Polityka prywatności
+              </a>
+              <a href="/legal/cookies" className="hover:text-neutral-300">
+                Cookies
+              </a>
+              <a href="/legal/dpa" className="hover:text-neutral-300">
+                DPA
+              </a>
+              <a href="mailto:rodo@verris.pl" className="hover:text-neutral-300">
+                rodo@verris.pl
+              </a>
+            </nav>
+          </div>
+        </footer>
       </div>
       </div>
     </div>

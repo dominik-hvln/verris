@@ -12,6 +12,12 @@ export interface SidebarUser {
   ecoPoints?: number;
   referralCode?: string | null;
   ecoBadgeToken?: string | null;
+  /**
+   * Saldo portfela w PLN (string z Prisma Decimal). UI renderuje to jako
+   * wirtualne kredyty Verris 1:1 — patrz `lib/credits.ts`. `null` oznacza
+   * błąd fetchu (np. wygasły token), żeby topbar mógł pokazać fallback.
+   */
+  walletBalance: string | null;
 }
 
 /**
@@ -36,6 +42,12 @@ export async function fetchSidebarUser(): Promise<SidebarUser | null> {
       ecoPoints: typeof data.ecoPoints === 'number' ? data.ecoPoints : 0,
       referralCode: data.referralCode ?? null,
       ecoBadgeToken: data.ecoBadgeToken ?? null,
+      walletBalance:
+        typeof data.walletBalance === 'string'
+          ? data.walletBalance
+          : typeof data.walletBalance === 'number'
+            ? data.walletBalance.toFixed(2)
+            : null,
     };
   } catch {
     return null;

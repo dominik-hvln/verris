@@ -265,6 +265,81 @@ export class ServersService {
     return this.toPublicServer(updated);
   }
 
+  /**
+   * Sprint 4 / A-08 — przełączenie węzła do trybu MAINTENANCE (i z powrotem).
+   * - `enable=true`  → MAINTENANCE + zapis powodu, zaczyna blokować NodeSelector.
+   * - `enable=false` → ACTIVE (jeśli był MAINTENANCE) + reset powodu.
+   * Audyt: `ADMIN_NODE_MAINTENANCE_MODE_TOGGLED`.
+   */
+  async setMaintenanceMode(
+    serverId: string,
+    actorUserId: string,
+    input: { enable: boolean; reason?: string | null },
+  ) {
+    const server = await this.prisma.server.findUnique({ where: { id: serverId } });
+    if (!server) throw new NotFoundException('Server not found');
+
+    if (input.enable) {
+      if (server.status !== ServerStatus.ACTIVE && server.status !== ServerStatus.MAINTENANCE) {
+        throw new BadRequestException(
+          `Maintenance mode można włączyć tylko dla węzłów ACTIVE/MAINTENANCE (jest: ${server.status}).`,
+        );
+      }
+      const reason = input.reason?.trim() || null;
+      const updated = await this.prisma.server.update({
+        where: { id: serverId },
+        data: {
+          status: ServerStatus.MAINTENANCE,
+          maintenanceReason: reason,
+          maintenanceStartedAt: server.status === ServerStatus.MAINTENANCE
+            ? server.maintenanceStartedAt
+            : new Date(),
+          maintenanceStartedById:
+            server.status === ServerStatus.MAINTENANCE
+              ? server.maintenanceStartedById
+              : actorUserId,
+        },
+      });
+      await this.audit.record({
+        action: 'ADMIN_NODE_MAINTENANCE_MODE_TOGGLED',
+        actorUserId,
+        details: {
+          serverId,
+          to: 'MAINTENANCE',
+          reason,
+          previousStatus: server.status,
+        } as Prisma.InputJsonValue,
+      });
+      return this.toPublicServer(updated);
+    }
+
+    if (server.status !== ServerStatus.MAINTENANCE) {
+      throw new BadRequestException(
+        `Wyłączenie maintenance dotyczy tylko węzłów w MAINTENANCE (jest: ${server.status}).`,
+      );
+    }
+
+    const updated = await this.prisma.server.update({
+      where: { id: serverId },
+      data: {
+        status: ServerStatus.ACTIVE,
+        maintenanceReason: null,
+        maintenanceStartedAt: null,
+        maintenanceStartedById: null,
+      },
+    });
+    await this.audit.record({
+      action: 'ADMIN_NODE_MAINTENANCE_MODE_TOGGLED',
+      actorUserId,
+      details: {
+        serverId,
+        to: 'ACTIVE',
+        previousReason: server.maintenanceReason,
+      } as Prisma.InputJsonValue,
+    });
+    return this.toPublicServer(updated);
+  }
+
   async setDirectAdminConfig(id: string, dto: UpdateDirectAdminConfigDto, actorUserId: string) {
     const server = await this.prisma.server.findUnique({ where: { id } });
     if (!server) throw new NotFoundException('Server not found');

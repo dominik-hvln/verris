@@ -1,7 +1,10 @@
 import { staffApi } from "./staff-api";
 
-export async function staffGetTickets() {
-  const rows = await staffApi<StaffTicketRow[]>("/tickets/admin/all");
+export async function staffGetTickets(userId?: string) {
+  const q = userId?.trim()
+    ? `?userId=${encodeURIComponent(userId.trim())}`
+    : "";
+  const rows = await staffApi<StaffTicketRow[]>(`/tickets/admin/all${q}`);
   if (!Array.isArray(rows)) {
     throw new Error("API zwróciło nieoczekiwany format listy zgłoszeń.");
   }
@@ -23,9 +26,20 @@ export interface StaffTicketRow {
   priority: string;
   department: string;
   createdAt: string;
-  user: { firstName: string | null; lastName: string | null; email: string; companyName: string | null };
+  user: {
+    id: string;
+    firstName: string | null;
+    lastName: string | null;
+    email: string;
+    companyName: string | null;
+  };
   assignedToId?: string | null;
   assignedTo: { id: string; firstName: string | null; lastName: string | null } | null;
+  slaResponseDueAt?: string | null;
+  slaResolveDueAt?: string | null;
+  escalatedAt?: string | null;
+  riskFlag?: string | null;
+  runbookKey?: string | null;
   _count: { replies: number };
 }
 
@@ -43,6 +57,8 @@ export interface StaffTicketDetail extends StaffTicketRow {
   message: string;
   firstResponseAt?: string | null;
   resolvedAt?: string | null;
+  escalationReason?: string | null;
+  riskReason?: string | null;
   attachments?: TicketAttachmentRow[];
   replies: Array<{
     id: string;

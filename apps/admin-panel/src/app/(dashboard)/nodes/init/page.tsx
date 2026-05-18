@@ -149,9 +149,15 @@ export default function InitNodePage() {
             <div>
               <p className="font-semibold text-emerald-100">Węzeł utworzony.</p>
               <p className="text-sm text-emerald-100/80 mt-1">
-                ID: <code className="bg-black/30 px-1.5 py-0.5 rounded">{created.server.id}</code>.
-                Token bootstrap traci ważność{" "}
-                {scriptResp ? new Date(scriptResp.expiresAt).toLocaleString("pl-PL") : "wkrótce"}.
+                ID: <code className="bg-black/30 px-1.5 py-0.5 rounded">{created.server.id}</code>
+                {scriptResp ? (
+                  <>
+                    . Token bootstrap traci ważność{" "}
+                    {new Date(scriptResp.expiresAt).toLocaleString("pl-PL")}.
+                  </>
+                ) : (
+                  "."
+                )}
               </p>
             </div>
           </div>

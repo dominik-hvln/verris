@@ -2,10 +2,18 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { Paperclip } from "lucide-react";
 import type { AgentOption, StaffTicketDetail, TicketAttachmentRow } from "@/lib/tickets-data";
-import { staffPostReplyWithFiles, staffUpdateTicket } from "@/lib/ticket-actions";
+import {
+  staffApplyRunbook,
+  staffEscalateTicket,
+  staffPostReplyWithFiles,
+  staffSetRiskFlag,
+  staffUpdateTicket,
+} from "@/lib/ticket-actions";
 import { staffTicketAttachmentDownloadHref } from "@/lib/ticket-attachment-links";
+import { StaffImpersonateButton } from "@/app/(dashboard)/crm/impersonate-button";
 
 interface Props {
   ticket: StaffTicketDetail;
@@ -52,6 +60,7 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
   const router = useRouter();
   const [pending, transition] = useTransition();
   const [replyErr, setReplyErr] = useState<string | null>(null);
+  const [opsErr, setOpsErr] = useState<string | null>(null);
   const assignedId = ticket.assignedToId ?? ticket.assignedTo?.id ?? "";
 
   async function patchField(
@@ -75,6 +84,21 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
               {ticket.user.email}
             </a>
           </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link
+              href={`/crm/${ticket.user.id}`}
+              className="inline-flex items-center rounded-md border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-medium text-cyan-200 hover:bg-cyan-500/20"
+            >
+              Profil klienta (360°)
+            </Link>
+            <StaffImpersonateButton userId={ticket.user.id} email={ticket.user.email} />
+            <Link
+              href={`/?userId=${encodeURIComponent(ticket.user.id)}`}
+              className="inline-flex items-center rounded-md border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-neutral-200 hover:bg-white/10"
+            >
+              Skrzynka: tylko ten klient
+            </Link>
+          </div>
         </div>
         <div className="flex flex-wrap items-end gap-3">
           <Labelled label="Status">
@@ -143,6 +167,70 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
           </Labelled>
         </div>
       </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <OpsCard title="SLA">
+          <p className="text-xs text-neutral-300">
+            First response: {ticket.slaResponseDueAt ? new Date(ticket.slaResponseDueAt).toLocaleString("pl-PL") : "—"}
+          </p>
+          <p className="text-xs text-neutral-300">
+            Resolve: {ticket.slaResolveDueAt ? new Date(ticket.slaResolveDueAt).toLocaleString("pl-PL") : "—"}
+          </p>
+        </OpsCard>
+        <OpsCard title="Runbook">
+          <p className="mb-2 text-xs text-neutral-300">{ticket.runbookKey ?? "Brak przypisanego runbooka"}</p>
+          <button
+            disabled={pending}
+            onClick={() =>
+              transition(async () => {
+                setOpsErr(null);
+                const res = await staffApplyRunbook(ticket.id, ticket.department === "BILLING" ? "billing-payment-check" : "hosting-dns-tls-check");
+                if ("error" in res) setOpsErr(res.error);
+                else router.refresh();
+              })
+            }
+            className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-100"
+          >
+            Zastosuj rekomendowany
+          </button>
+        </OpsCard>
+        <OpsCard title="Eskalacja / Risk">
+          <p className="mb-2 text-xs text-neutral-300">
+            {ticket.escalatedAt ? `Eskalowano: ${new Date(ticket.escalatedAt).toLocaleString("pl-PL")}` : "Nieeskalowane"}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              disabled={pending}
+              onClick={() =>
+                transition(async () => {
+                  setOpsErr(null);
+                  const res = await staffEscalateTicket(ticket.id, "Eskalacja z panelu staff: wymagane wsparcie senior/operator node");
+                  if ("error" in res) setOpsErr(res.error);
+                  else router.refresh();
+                })
+              }
+              className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-100"
+            >
+              Eskaluj
+            </button>
+            <button
+              disabled={pending}
+              onClick={() =>
+                transition(async () => {
+                  setOpsErr(null);
+                  const res = await staffSetRiskFlag(ticket.id, "SUPPORT_RISK", "Wysokie ryzyko retencji lub awarii po sygnałach z ticketu");
+                  if ("error" in res) setOpsErr(res.error);
+                  else router.refresh();
+                })
+              }
+              className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-1.5 text-xs text-rose-100"
+            >
+              Oznacz risk
+            </button>
+          </div>
+        </OpsCard>
+      </div>
+      {opsErr ? <p className="text-sm text-rose-300">{opsErr}</p> : null}
 
       <div className="rounded-2xl border border-white/10 bg-black/25 p-6">
         <h2 className="mb-3 text-sm font-semibold text-white">Pierwsza wiadomość</h2>
@@ -216,5 +304,14 @@ function Labelled({ label, children }: { label: string; children: React.ReactNod
       <span className="text-muted-foreground">{label}</span>
       {children}
     </label>
+  );
+}
+
+function OpsCard({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="rounded-2xl border border-white/10 bg-black/25 p-4">
+      <h2 className="mb-2 text-xs font-bold uppercase tracking-widest text-neutral-500">{title}</h2>
+      {children}
+    </section>
   );
 }

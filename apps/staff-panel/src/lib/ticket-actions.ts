@@ -76,3 +76,54 @@ export async function staffUpdateTicket(
     return { error: e instanceof StaffApiError ? e.message : "Nie udało się zapisać." };
   }
 }
+
+export async function staffEscalateTicket(
+  ticketId: string,
+  reason: string,
+): Promise<{ ok: true } | { error: string }> {
+  try {
+    await staffApi(`/tickets/admin/${ticketId}/escalate`, {
+      method: "POST",
+      body: { reason },
+    });
+    revalidatePath(`/tickets/${ticketId}`);
+    revalidatePath("/");
+    revalidatePath("/tickets/active");
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof StaffApiError ? e.message : "Nie udało się eskalować." };
+  }
+}
+
+export async function staffApplyRunbook(
+  ticketId: string,
+  runbookKey: string,
+): Promise<{ ok: true } | { error: string }> {
+  try {
+    await staffApi(`/tickets/admin/${ticketId}/runbook`, {
+      method: "POST",
+      body: { runbookKey },
+    });
+    revalidatePath(`/tickets/${ticketId}`);
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof StaffApiError ? e.message : "Nie udało się przypisać runbooka." };
+  }
+}
+
+export async function staffSetRiskFlag(
+  ticketId: string,
+  riskFlag: string,
+  riskReason: string,
+): Promise<{ ok: true } | { error: string }> {
+  try {
+    await staffApi(`/tickets/admin/${ticketId}/risk`, {
+      method: "POST",
+      body: { riskFlag: riskFlag || null, riskReason: riskReason || null },
+    });
+    revalidatePath(`/tickets/${ticketId}`);
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof StaffApiError ? e.message : "Nie udało się ustawić risk flag." };
+  }
+}

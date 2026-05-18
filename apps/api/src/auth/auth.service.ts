@@ -7,11 +7,16 @@ import {
 import { randomBytes } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { User } from '@verris/database';
+import { User, Role } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoginDto, RegisterDto } from './auth.dto';
 import { TwoFactorService } from './totp/two-factor.service';
 import { SuspiciousActivityService } from '../security/suspicious-activity.service';
+import { ConsentsService } from '../compliance/consents.service';
+import { MarketingPreferencesService } from '../compliance/marketing-preferences.service';
+import { AuditService } from '../common/audit/audit.service';
+import { RodoActions } from '../common/audit/audit.actions';
+import { LoginEventService } from './login-event.service';
 
 interface LoginSuccess {
   access_token: string;
@@ -42,9 +47,13 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly twoFactor: TwoFactorService,
     private readonly suspicious: SuspiciousActivityService,
+    private readonly consents: ConsentsService,
+    private readonly marketingPrefs: MarketingPreferencesService,
+    private readonly audit: AuditService,
+    private readonly loginEvents: LoginEventService,
   ) {}
 
-  async register(dto: RegisterDto): Promise<LoginSuccess> {
+  async register(dto: RegisterDto, ctx: RequestContext = {}): Promise<LoginSuccess> {
     const existingUser = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
@@ -99,8 +108,53 @@ export class AuthService {
         });
       }
 
+      // RODO Sprint 1 / L-03 — record terms+privacy consents (creates
+      // `UserConsent` rows + sets `User.lastConsentVersion*` fields atomically).
+      // Throws ForbiddenException if no current legal documents are published.
+      await this.consents.recordRegistrationConsents(tx, created.id, {
+        ipAddress: ctx.ip ?? null,
+        userAgent: ctx.userAgent ?? null,
+      });
+
+      // Marketing preferences row — `marketingEmail` reflects the optional
+      // checkbox. `loginAlertsEmail` defaults to true (security-positive).
+      await this.marketingPrefs.ensureTx(tx, created.id, {
+        marketingEmail: dto.acceptMarketing === true,
+      });
+
       return created;
     });
+
+    // RODO audit trail — emitted outside transaction so audit failures don't
+    // roll back the new account. Both consents recorded as `CONSENT_GRANTED`.
+    await Promise.all([
+      this.audit.record({
+        action: RodoActions.CONSENT_GRANTED,
+        userId: user.id,
+        actorUserId: user.id,
+        details: { kind: 'TERMS', source: 'REGISTRATION' },
+        ipAddress: ctx.ip ?? undefined,
+        userAgent: ctx.userAgent ?? undefined,
+      }),
+      this.audit.record({
+        action: RodoActions.CONSENT_GRANTED,
+        userId: user.id,
+        actorUserId: user.id,
+        details: { kind: 'PRIVACY', source: 'REGISTRATION' },
+        ipAddress: ctx.ip ?? undefined,
+        userAgent: ctx.userAgent ?? undefined,
+      }),
+      dto.acceptMarketing === true
+        ? this.audit.record({
+            action: RodoActions.MARKETING_OPT_IN,
+            userId: user.id,
+            actorUserId: user.id,
+            details: { source: 'REGISTRATION' },
+            ipAddress: ctx.ip ?? undefined,
+            userAgent: ctx.userAgent ?? undefined,
+          })
+        : Promise.resolve(),
+    ]);
 
     return this.generateAccessTokenResponse(user);
   }
@@ -150,6 +204,8 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    this.assertNotLoginBlocked(user);
+
     if (user.isTwoFactorEnabled) {
       // Issue a 5-minute "2fa-challenge" token. It carries `sub` and a special
       // `purpose` claim so the JWT strategy refuses to mint regular requests
@@ -166,6 +222,14 @@ export class AuthService {
       email: dto.email,
       ip: ctx.ip ?? null,
       userAgent: ctx.userAgent ?? null,
+    });
+    await this.loginEvents.record({
+      userId: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      ip: ctx.ip ?? null,
+      userAgent: ctx.userAgent ?? null,
+      loginMethod: 'password',
     });
     return this.generateAccessTokenResponse(user);
   }
@@ -208,12 +272,30 @@ export class AuthService {
     const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
     if (!user) throw new UnauthorizedException('User not found');
 
+    this.assertNotLoginBlocked(user);
+
     await this.suspicious.recordSuccess({
       email: user.email,
       ip: ctx.ip ?? null,
       userAgent: ctx.userAgent ?? null,
     });
+    await this.loginEvents.record({
+      userId: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      ip: ctx.ip ?? null,
+      userAgent: ctx.userAgent ?? null,
+      loginMethod: 'password+2fa',
+    });
     return this.generateAccessTokenResponse(user);
+  }
+
+  private assertNotLoginBlocked(user: User) {
+    if (user.role === Role.USER && user.loginBlocked) {
+      throw new UnauthorizedException(
+        'Konto zostało tymczasowo zablokowane. Skontaktuj się z pomocą techniczną.',
+      );
+    }
   }
 
   private generateAccessTokenResponse(user: User): LoginSuccess {

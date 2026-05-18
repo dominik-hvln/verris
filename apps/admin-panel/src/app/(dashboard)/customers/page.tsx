@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { Mail, ShieldCheck, Search, UserCog } from "lucide-react";
 import { listAdminUsers } from "./data";
 import { ImpersonateButton } from "./impersonate-button";
+import { CreditWalletButton } from "./credit-wallet-button";
 
 export const dynamic = "force-dynamic";
 
@@ -105,6 +107,11 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
                             </div>
                             <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                               <Mail className="h-3 w-3" /> {user.email}
+                              {user.loginBlocked ? (
+                                <span className="ml-2 rounded border border-rose-500/30 px-1.5 py-0.5 text-[9px] font-bold text-rose-300">
+                                  LOGIN BLOCK
+                                </span>
+                              ) : null}
                             </div>
                           </div>
                         </div>
@@ -116,7 +123,12 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
                         {user.subscriptionsCount}
                       </td>
                       <td className="px-6 py-4 font-mono text-xs text-white">
-                        {Number.parseFloat(user.walletBalance).toFixed(2)} PLN
+                        <span className="tabular-nums">
+                          {Number.parseFloat(user.walletBalance).toFixed(2)} K
+                        </span>
+                        <div className="text-[10px] text-muted-foreground tabular-nums">
+                          ≈ {Number.parseFloat(user.walletBalance).toFixed(2)} zł
+                        </div>
                       </td>
                       <td className="px-6 py-4">
                         {user.isTwoFactorEnabled ? (
@@ -127,12 +139,27 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
                           <span className="text-xs text-muted-foreground">—</span>
                         )}
                       </td>
-                      <td className="px-6 py-4 text-right">
-                        <ImpersonateButton
-                          userId={user.id}
-                          email={user.email}
-                          role={user.role}
-                        />
+                    <td className="px-6 py-4 text-right">
+                      <div className="inline-flex flex-wrap items-center justify-end gap-2">
+                        {user.role === "USER" ? (
+                          <Link
+                            href={`/customers/${user.id}`}
+                            className="rounded-md border border-white/15 bg-white/5 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-neutral-200 hover:bg-white/10"
+                          >
+                            Operacje
+                          </Link>
+                        ) : null}
+                        <CreditWalletButton
+                            userId={user.id}
+                            email={user.email}
+                            currentBalance={user.walletBalance}
+                          />
+                          <ImpersonateButton
+                            userId={user.id}
+                            email={user.email}
+                            role={user.role}
+                          />
+                        </div>
                       </td>
                     </tr>
                   ))}

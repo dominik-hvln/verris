@@ -5,11 +5,12 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { Prisma, SubscriptionStatus, WalletTxType } from '@verris/database';
-import { Job, Queue, Worker } from 'bullmq';
+import { Job, Queue, QueueEvents, Worker } from 'bullmq';
 import IORedis from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletLedgerService } from '../billing/wallet-ledger.service';
 import { AuditService } from '../common/audit/audit.service';
+import { ProvisioningActions } from '../common/audit/audit.actions';
 import { ProvisioningService } from './provisioning.service';
 
 export type ProvisionJobData =
@@ -38,6 +39,20 @@ export type ProvisionJobData =
     };
 
 const QUEUE_NAME = 'provisioning';
+const MAX_ATTEMPTS = 3;
+const BACKOFF_DELAY_MS = 5_000;
+
+/** Sprint 5 / R-11+B-7 — etapy widoczne klientowi (string żeby uniknąć migracji enum). */
+export const ProvisioningStage = {
+  QUEUED: 'queued',
+  RUNNING: 'running',
+  RETRYING: 'retrying',
+  FAILED: 'failed',
+  COMPLETED: 'completed',
+} as const;
+
+export type ProvisioningStageValue =
+  (typeof ProvisioningStage)[keyof typeof ProvisioningStage];
 
 @Injectable()
 export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
@@ -45,6 +60,16 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
   private connection: IORedis | null = null;
   private queue: Queue<ProvisionJobData> | null = null;
   private worker: Worker<ProvisionJobData> | null = null;
+  private events: QueueEvents | null = null;
+
+  /** Sprint 5: lekki licznik dla `verris_provisioning_jobs_total{result=...}`. */
+  private readonly counters = {
+    started: 0,
+    completed: 0,
+    failed: 0,
+    retried: 0,
+    queued: 0,
+  };
 
   constructor(
     private readonly prisma: PrismaService,
@@ -69,8 +94,8 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
       defaultJobOptions: {
         removeOnComplete: 1000,
         removeOnFail: 5000,
-        attempts: 2,
-        backoff: { type: 'exponential', delay: 5000 },
+        attempts: MAX_ATTEMPTS,
+        backoff: { type: 'exponential', delay: BACKOFF_DELAY_MS },
       },
     });
 
@@ -83,22 +108,39 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
       },
     );
 
+    this.events = new QueueEvents(QUEUE_NAME, { connection: this.connection.duplicate() });
+
     this.worker.on('failed', (job, err) => {
+      this.counters.failed += 1;
       this.logger.error(
         `Provisioning job failed id=${job?.id} name=${job?.name}: ${err instanceof Error ? err.message : err}`,
       );
     });
+    this.worker.on('active', (job) => {
+      this.counters.started += 1;
+      this.logger.debug(`Provisioning job started id=${job.id} attempts=${job.attemptsMade}`);
+    });
+    this.worker.on('completed', () => {
+      this.counters.completed += 1;
+    });
 
-    this.logger.log('BullMQ provisioning worker started (REDIS_URL set).');
+    this.logger.log(
+      `BullMQ provisioning worker started (REDIS_URL set, max ${MAX_ATTEMPTS} attempts).`,
+    );
   }
 
   async onModuleDestroy() {
+    await this.events?.close();
     await this.worker?.close();
     await this.queue?.close();
     if (this.connection) {
       await this.connection.quit();
     }
   }
+
+  // ---------------------------------------------------------------------------
+  // Enqueue API (idempotent: jobId == subscriptionId, więc duplikaty są łapane)
+  // ---------------------------------------------------------------------------
 
   async enqueueWalletProvision(data: {
     subscriptionId: string;
@@ -108,13 +150,23 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
     refundAmount: Prisma.Decimal;
   }): Promise<void> {
     if (!this.queue) throw new Error('Provisioning queue not initialized');
-    await this.queue.add('wallet', {
-      type: 'wallet',
+    await this.queue.add(
+      'wallet',
+      {
+        type: 'wallet',
+        subscriptionId: data.subscriptionId,
+        userId: data.userId,
+        domain: data.domain,
+        preferredRegion: data.preferredRegion,
+        refundAmount: data.refundAmount.toString(),
+      },
+      { jobId: `wallet-${data.subscriptionId}` },
+    );
+    await this.markQueued(data.subscriptionId);
+    await this.recordQueueAudit(ProvisioningActions.PROVISIONING_JOB_QUEUED, data.userId, {
       subscriptionId: data.subscriptionId,
-      userId: data.userId,
-      domain: data.domain,
-      preferredRegion: data.preferredRegion,
-      refundAmount: data.refundAmount.toString(),
+      source: 'wallet',
+      jobId: `wallet-${data.subscriptionId}`,
     });
   }
 
@@ -125,9 +177,16 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
     preferredRegion: string | null;
   }): Promise<void> {
     if (!this.queue) throw new Error('Provisioning queue not initialized');
-    await this.queue.add('manual', {
-      type: 'manual',
-      ...data,
+    await this.queue.add(
+      'manual',
+      { type: 'manual', ...data },
+      { jobId: `manual-${data.subscriptionId}` },
+    );
+    await this.markQueued(data.subscriptionId);
+    await this.recordQueueAudit(ProvisioningActions.PROVISIONING_JOB_QUEUED, data.userId, {
+      subscriptionId: data.subscriptionId,
+      source: 'manual',
+      jobId: `manual-${data.subscriptionId}`,
     });
   }
 
@@ -139,22 +198,226 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
     stripeSubscriptionId: string;
   }): Promise<void> {
     if (!this.queue) throw new Error('Provisioning queue not initialized');
-    await this.queue.add('stripe', {
-      type: 'stripe',
-      ...data,
+    await this.queue.add(
+      'stripe',
+      { type: 'stripe', ...data },
+      { jobId: `stripe-${data.subscriptionId}` },
+    );
+    await this.markQueued(data.subscriptionId);
+    await this.recordQueueAudit(ProvisioningActions.PROVISIONING_JOB_QUEUED, data.userId, {
+      subscriptionId: data.subscriptionId,
+      source: 'stripe',
+      jobId: `stripe-${data.subscriptionId}`,
     });
   }
 
+  // ---------------------------------------------------------------------------
+  // Sprint 5 — admin operations
+  // ---------------------------------------------------------------------------
+
+  async listJobs(opts: { state?: 'failed' | 'completed' | 'active' | 'waiting' | 'delayed' } = {}) {
+    if (!this.queue) return { rows: [], counts: {} };
+    const states = opts.state
+      ? [opts.state]
+      : (['active', 'waiting', 'delayed', 'failed', 'completed'] as const);
+    const counts = await this.queue.getJobCounts(...states);
+    const jobs: Job<ProvisionJobData>[] = [];
+    for (const state of states) {
+      const list = await this.queue.getJobs([state], 0, 50, false);
+      jobs.push(...list);
+    }
+    jobs.sort((a, b) => Number(b.timestamp ?? 0) - Number(a.timestamp ?? 0));
+    const rows = await Promise.all(
+      jobs.slice(0, 100).map(async (job) => {
+        const state = await job.getState();
+        const sub = await this.prisma.subscription.findUnique({
+          where: { id: job.data.subscriptionId },
+          select: {
+            status: true,
+            provisioningStage: true,
+            provisioningAttempts: true,
+            provisioningLastError: true,
+            user: { select: { email: true, firstName: true, lastName: true } },
+            account: { select: { id: true, daUsername: true, serverId: true } },
+          },
+        });
+        return {
+          id: job.id,
+          name: job.name,
+          state,
+          timestamp: job.timestamp,
+          attemptsMade: job.attemptsMade,
+          finishedOn: job.finishedOn ?? null,
+          processedOn: job.processedOn ?? null,
+          failedReason: job.failedReason ?? null,
+          failedCategory: job.failedReason ? categorizeProvisioningError(job.failedReason) : null,
+          data: job.data,
+          subscription: sub
+            ? {
+                status: sub.status,
+                provisioningStage: sub.provisioningStage,
+                provisioningAttempts: sub.provisioningAttempts,
+                provisioningLastError: sub.provisioningLastError,
+                user: sub.user,
+                account: sub.account,
+              }
+            : null,
+        };
+      }),
+    );
+    return {
+      counts,
+      rows,
+    };
+  }
+
+  async retryJob(
+    jobId: string,
+    opts: { actorUserId?: string | null; reason?: string | null } = {},
+  ): Promise<{ ok: boolean }> {
+    if (!this.queue) throw new Error('Queue not initialized');
+    const job = await this.queue.getJob(jobId);
+    if (!job) return { ok: false };
+    await job.retry();
+    this.counters.retried += 1;
+    await this.markQueued(job.data.subscriptionId);
+    await this.audit.record({
+      action: ProvisioningActions.PROVISIONING_JOB_RETRIED_BY_ADMIN,
+      userId: job.data.userId,
+      actorUserId: opts.actorUserId ?? null,
+      details: {
+        subscriptionId: job.data.subscriptionId,
+        jobId,
+        reason: opts.reason ?? null,
+        previousFailedReason: job.failedReason ?? null,
+      },
+    });
+    return { ok: true };
+  }
+
+  /**
+   * Sprint 5 — counters dla `MetricsService`. BullMQ trzyma counts w Redis,
+   * ale dorzucamy też nasze własne counter-y które dorobimy do /metrics.
+   */
+  async getQueueMetrics(): Promise<{
+    counts: Record<string, number>;
+    process: { started: number; completed: number; failed: number; retried: number; queued: number };
+    oldestWaitingAgeSeconds: number;
+  }> {
+    if (!this.queue) {
+      return { counts: {}, process: this.counters, oldestWaitingAgeSeconds: 0 };
+    }
+    const counts = await this.queue.getJobCounts(
+      'active',
+      'waiting',
+      'delayed',
+      'failed',
+      'completed',
+      'paused',
+    );
+    const waiting = await this.queue.getJobs(['waiting', 'delayed'], 0, 0, true);
+    const oldest = waiting[0];
+    const oldestWaitingAgeSeconds = oldest?.timestamp
+      ? Math.max(0, Math.floor((Date.now() - oldest.timestamp) / 1000))
+      : 0;
+    return { counts, process: this.counters, oldestWaitingAgeSeconds };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Job runner
+  // ---------------------------------------------------------------------------
+
   private async runJob(job: Job<ProvisionJobData>): Promise<void> {
     const d = job.data;
+    const isLastAttempt = (job.attemptsMade ?? 0) + 1 >= MAX_ATTEMPTS;
+
+    await this.markStage(d.subscriptionId, ProvisioningStage.RUNNING, {
+      attempt: (job.attemptsMade ?? 0) + 1,
+    });
+    await this.recordQueueAudit(ProvisioningActions.PROVISIONING_JOB_STARTED, d.userId, {
+      subscriptionId: d.subscriptionId,
+      jobId: String(job.id),
+      attempt: (job.attemptsMade ?? 0) + 1,
+    });
+
     try {
+      // Sprint 5 — idempotency dla DA: jeśli istnieje już Account dla
+      // subskrypcji (poprzednia próba przeszła, ale błąd po stronie pipeline'u
+      // lub timeout sieci), nie wołamy DA drugi raz.
+      const existing = await this.prisma.account.findUnique({
+        where: { subscriptionId: d.subscriptionId },
+        select: { id: true },
+      });
+      if (existing) {
+        this.logger.warn(
+          `Provisioning sub=${d.subscriptionId} job=${job.id} already has account=${existing.id} — promoting subscription do ACTIVE.`,
+        );
+        await this.prisma.subscription.update({
+          where: { id: d.subscriptionId },
+          data: {
+            status: SubscriptionStatus.ACTIVE,
+          },
+        });
+        await this.markStage(d.subscriptionId, ProvisioningStage.COMPLETED);
+        await this.audit.record({
+          action: ProvisioningActions.PROVISIONING_JOB_COMPLETED,
+          userId: d.userId,
+          details: {
+            subscriptionId: d.subscriptionId,
+            existingAccountId: existing.id,
+            jobId: String(job.id),
+            recoveredFromPartial: true,
+          },
+        });
+        return;
+      }
+
       await this.provisioning.provisionForSubscription(
         d.subscriptionId,
         { domain: d.domain, preferredRegion: d.preferredRegion },
         d.userId,
       );
+      await this.markStage(d.subscriptionId, ProvisioningStage.COMPLETED);
+      await this.recordQueueAudit(ProvisioningActions.PROVISIONING_JOB_COMPLETED, d.userId, {
+        subscriptionId: d.subscriptionId,
+        jobId: String(job.id),
+      });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
+      const errCategory = categorizeProvisioningError(msg);
+
+      if (!isLastAttempt && errCategory === 'transient') {
+        await this.markStage(d.subscriptionId, ProvisioningStage.RETRYING, {
+          error: msg,
+          attempt: (job.attemptsMade ?? 0) + 1,
+        });
+        await this.audit.record({
+          action: ProvisioningActions.PROVISIONING_JOB_RETRYING,
+          userId: d.userId,
+          details: {
+            subscriptionId: d.subscriptionId,
+            jobId: String(job.id),
+            attempt: (job.attemptsMade ?? 0) + 1,
+            error: msg,
+            category: errCategory,
+          },
+        });
+        throw err;
+      }
+
+      await this.markStage(d.subscriptionId, ProvisioningStage.FAILED, {
+        error: msg,
+        attempt: (job.attemptsMade ?? 0) + 1,
+      });
+      await this.recordQueueAudit(ProvisioningActions.PROVISIONING_JOB_FAILED, d.userId, {
+        subscriptionId: d.subscriptionId,
+        jobId: String(job.id),
+        attempt: (job.attemptsMade ?? 0) + 1,
+        error: msg,
+        category: errCategory,
+      });
+
+      // Hard fail — handle wallet refund / event log per source.
       if (d.type === 'wallet') {
         const amount = new Prisma.Decimal(d.refundAmount);
         await this.walletLedger.credit({
@@ -179,6 +442,7 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
             subscriptionId: d.subscriptionId,
             stripeSubscriptionId: d.stripeSubscriptionId,
             error: msg,
+            category: errCategory,
           },
         });
       } else {
@@ -187,11 +451,94 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
           data: {
             subscriptionId: d.subscriptionId,
             type: 'PROVISIONING_FAILED',
-            details: { source: 'MANUAL', error: msg },
+            details: { source: 'MANUAL', error: msg, category: errCategory },
           },
         });
       }
       throw err;
     }
   }
+
+  private async markQueued(subscriptionId: string): Promise<void> {
+    this.counters.queued += 1;
+    await this.prisma.subscription.update({
+      where: { id: subscriptionId },
+      data: {
+        provisioningStage: ProvisioningStage.QUEUED,
+        provisioningStartedAt: null,
+        provisioningCompletedAt: null,
+        provisioningLastError: null,
+      },
+    });
+  }
+
+  private async markStage(
+    subscriptionId: string,
+    stage: ProvisioningStageValue,
+    extra: { error?: string; attempt?: number } = {},
+  ): Promise<void> {
+    const data: Prisma.SubscriptionUpdateInput = {
+      provisioningStage: stage,
+    };
+    if (stage === ProvisioningStage.RUNNING) {
+      data.provisioningStartedAt = new Date();
+      data.provisioningLastError = null;
+      if (extra.attempt) {
+        data.provisioningAttempts = extra.attempt;
+      }
+    }
+    if (stage === ProvisioningStage.RETRYING || stage === ProvisioningStage.FAILED) {
+      data.provisioningLastError = extra.error ?? null;
+      if (extra.attempt) {
+        data.provisioningAttempts = extra.attempt;
+      }
+    }
+    if (stage === ProvisioningStage.COMPLETED) {
+      data.provisioningCompletedAt = new Date();
+      data.provisioningLastError = null;
+    }
+    try {
+      await this.prisma.subscription.update({
+        where: { id: subscriptionId },
+        data,
+      });
+    } catch (err) {
+      this.logger.warn(
+        `Failed to mark provisioning stage=${stage} for sub=${subscriptionId}: ${(err as Error).message}`,
+      );
+    }
+  }
+
+  private async recordQueueAudit(
+    action: string,
+    userId: string,
+    details: Prisma.InputJsonValue,
+  ): Promise<void> {
+    await this.audit.record({ action, userId, details });
+  }
+}
+
+/**
+ * Klasyfikacja błędów DA/sieci pod retry.
+ *  - `transient`: timeout, ECONNREFUSED, ECONNRESET, 5xx z DA, „node at capacity"
+ *  - `permanent`: 4xx z DA poza 408/429, „domain already exists", validation
+ */
+export function categorizeProvisioningError(msg: string): 'transient' | 'permanent' {
+  const lower = msg.toLowerCase();
+  if (
+    lower.includes('timeout') ||
+    lower.includes('econnrefused') ||
+    lower.includes('econnreset') ||
+    lower.includes('etimedout') ||
+    lower.includes('fetch failed') ||
+    lower.includes('socket hang up') ||
+    lower.includes('502') ||
+    lower.includes('503') ||
+    lower.includes('504') ||
+    lower.includes('all compute nodes are at capacity') ||
+    lower.includes('cloudlinux lve limits could not be applied')
+  ) {
+    return 'transient';
+  }
+  return 'permanent';
 }

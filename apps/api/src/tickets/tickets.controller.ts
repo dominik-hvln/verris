@@ -5,13 +5,13 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
   StreamableFile,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { createReadStream } from 'fs';
 import { memoryStorage } from 'multer';
 import { TicketsService } from './tickets.service';
 import {
@@ -56,8 +56,8 @@ export class TicketsController {
   @Get('admin/all')
   @UseGuards(RolesGuard)
   @Roles('STAFF', 'ADMIN')
-  async adminFindAll() {
-    return this.ticketsService.adminFindAll();
+  async adminFindAll(@Query('userId') userId?: string) {
+    return this.ticketsService.adminFindAll(userId);
   }
 
   @Get('admin/canned-responses')
@@ -79,6 +79,44 @@ export class TicketsController {
   @Roles('STAFF', 'ADMIN')
   async adminUpdateTicket(@Param('id') id: string, @Body() dto: AdminUpdateTicketDto) {
     return this.ticketsService.adminUpdateTicket(id, dto);
+  }
+
+  @Post('admin/:id/escalate')
+  @UseGuards(RolesGuard)
+  @Roles('STAFF', 'ADMIN')
+  async adminEscalateTicket(
+    @Param('id') id: string,
+    @CurrentUser() user: { userId: string },
+    @Body() body: { reason: string },
+  ) {
+    return this.ticketsService.adminEscalateTicket(id, user.userId, body.reason ?? '');
+  }
+
+  @Post('admin/:id/runbook')
+  @UseGuards(RolesGuard)
+  @Roles('STAFF', 'ADMIN')
+  async adminApplyRunbook(
+    @Param('id') id: string,
+    @CurrentUser() user: { userId: string },
+    @Body() body: { runbookKey: string },
+  ) {
+    return this.ticketsService.adminApplyRunbook(id, user.userId, body.runbookKey ?? '');
+  }
+
+  @Post('admin/:id/risk')
+  @UseGuards(RolesGuard)
+  @Roles('STAFF', 'ADMIN')
+  async adminSetRiskFlag(
+    @Param('id') id: string,
+    @CurrentUser() user: { userId: string },
+    @Body() body: { riskFlag?: string | null; riskReason?: string | null },
+  ) {
+    return this.ticketsService.adminSetRiskFlag(
+      id,
+      user.userId,
+      body.riskFlag ?? null,
+      body.riskReason ?? null,
+    );
   }
 
   @Post('admin/:id/replies')
@@ -143,8 +181,7 @@ export class TicketsController {
       user.userId,
       user.role,
     );
-    const path = this.ticketsService.attachmentAbsolutePath(att.storageKey);
-    const stream = createReadStream(path);
+    const stream = await this.ticketsService.openAttachmentStream(att.storageKey);
     return new StreamableFile(stream, {
       type: att.mimeType,
       disposition: `attachment; filename="${encodeURIComponent(att.originalName)}"`,

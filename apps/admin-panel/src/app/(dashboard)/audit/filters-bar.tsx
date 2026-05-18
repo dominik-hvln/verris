@@ -11,7 +11,16 @@ interface Defaults {
   search: string;
   from: string;
   to: string;
+  category: string;
 }
+
+const CATEGORIES: { value: string; label: string }[] = [
+  { value: "", label: "— wszystkie —" },
+  { value: "ADMIN_OPS", label: "Operacje admina (plany / klienci / faktury / węzły)" },
+  { value: "RODO", label: "RODO (zgody, eksport, usunięcie konta)" },
+  { value: "SECURITY", label: "Bezpieczeństwo (logowania, hasła, 2FA)" },
+  { value: "IMPERSONATION", label: "Impersonacja" },
+];
 
 export function AuditFiltersBar({ defaults }: { defaults: Defaults }) {
   const router = useRouter();
@@ -24,6 +33,7 @@ export function AuditFiltersBar({ defaults }: { defaults: Defaults }) {
   const [search, setSearch] = useState(defaults.search);
   const [from, setFrom] = useState(defaults.from);
   const [to, setTo] = useState(defaults.to);
+  const [category, setCategory] = useState(defaults.category);
 
   const apply = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -34,6 +44,7 @@ export function AuditFiltersBar({ defaults }: { defaults: Defaults }) {
     if (search) next.set("search", search);
     if (from) next.set("from", from);
     if (to) next.set("to", to);
+    if (category) next.set("category", category);
     startTransition(() => {
       router.push(`/audit?${next.toString()}`);
     });
@@ -46,19 +57,40 @@ export function AuditFiltersBar({ defaults }: { defaults: Defaults }) {
     setSearch("");
     setFrom("");
     setTo("");
+    setCategory("");
     startTransition(() => {
       router.push("/audit");
     });
   };
 
   const hasFilters =
-    action || userId || actorUserId || search || from || to || params.toString().length > 0;
+    action ||
+    userId ||
+    actorUserId ||
+    search ||
+    from ||
+    to ||
+    category ||
+    params.toString().length > 0;
 
   return (
     <form
       onSubmit={apply}
       className="rounded-2xl border border-white/5 bg-black/40 p-5 grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-3"
     >
+      <Field label="Kategoria" hint="szybkie pogrupowanie akcji">
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          className={inputClass}
+        >
+          {CATEGORIES.map((c) => (
+            <option key={c.value} value={c.value}>
+              {c.label}
+            </option>
+          ))}
+        </select>
+      </Field>
       <Field label="Akcja" hint="np. SUBSCRIPTION_CREATED">
         <input
           value={action}

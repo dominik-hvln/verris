@@ -13,6 +13,12 @@ import {
   Radio,
   Siren,
   Ticket,
+  Tag,
+  Scale,
+  Box,
+  ListChecks,
+  Settings,
+  Rocket,
 } from "lucide-react";
 
 const adminNavItems = [
@@ -21,7 +27,10 @@ const adminNavItems = [
     items: [
       { name: "Pulpit", href: "/", icon: LayoutDashboard },
       { name: "Węzły & serwery", href: "/nodes", icon: Server },
+      { name: "Plany produktowe", href: "/plans", icon: Box },
       { name: "Subskrypcje i usługi", href: "/subscriptions", icon: Activity },
+      { name: "Kolejka provisioningu", href: "/provisioning-queue", icon: ListChecks },
+      { name: "Product Ops / NOC", href: "/product-ops", icon: Rocket },
     ],
   },
   {
@@ -35,11 +44,19 @@ const adminNavItems = [
     label: "Operacje",
     items: [
       { name: "Klienci", href: "/customers", icon: Users },
+      { name: "Operatorzy", href: "/operators", icon: ShieldAlert },
       { name: "Tickety", href: "/tickets", icon: Ticket },
+      { name: "Faktury", href: "/invoices", icon: DollarSign },
       { name: "Rozliczenia (CSV)", href: "/billing", icon: DollarSign },
+      { name: "Kody promocyjne", href: "/promo-codes", icon: Tag },
+      { name: "Compliance (RODO)", href: "/compliance", icon: Scale },
       { name: "Cennik autoskalowania", href: "/autoscaling", icon: Gauge },
       { name: "Logi bezpieczeństwa", href: "/audit", icon: ShieldAlert },
     ],
+  },
+  {
+    label: "Konto",
+    items: [{ name: "Ustawienia", href: "/settings", icon: Settings }],
   },
 ];
 

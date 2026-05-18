@@ -52,6 +52,69 @@ services:
       retries: 5
     networks: [verris_internal]
 
+  # ---------------------------------------------------------------------------
+  # MinIO — S3-compatible object storage. Holds ticket attachments, RODO
+  # data exports, DPA PDFs and (in the future) generated invoices. Lives on
+  # the control-plane node for now; can be moved to a dedicated storage
+  # node by changing `S3_ENDPOINT` in `.env.prod` (and migrating the data
+  # via `mc mirror`).
+  #
+  # Network: only `verris_internal` — no public access. The S3 API is
+  # reachable only from the API container; the admin Console can be exposed
+  # later via Caddy with `forward_auth` to /auth/grafana-validate (or kept
+  # internal-only and accessed via `kubectl port-forward` / SSH tunnel).
+  # ---------------------------------------------------------------------------
+  minio:
+    image: minio/minio:RELEASE.2025-04-08T15-41-24Z
+    restart: always
+    logging: *default-logging
+    command: ['server', '/data', '--console-address', ':9001']
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+      MINIO_BROWSER_REDIRECT_URL: ${MINIO_BROWSER_REDIRECT_URL:-}
+    volumes:
+      - minio_data:/data
+    expose: ['9000', '9001']
+    networks: [verris_internal]
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:9000/minio/health/live']
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # One-shot bucket bootstrapper. Runs each time the stack starts, but is
+  # idempotent (`mc mb -p` succeeds if the bucket already exists). Adds a
+  # 7-day lifecycle expiration for data-exports as defense-in-depth on top
+  # of our app-level RetentionScheduler.
+  minio-bootstrap:
+    image: minio/mc:RELEASE.2025-04-03T17-07-56Z
+    logging: *default-logging
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+    entrypoint: >
+      /bin/sh -c "
+        set -e;
+        mc alias set verris http://minio:9000 \"$$MINIO_ROOT_USER\" \"$$MINIO_ROOT_PASSWORD\";
+        mc mb -p verris/verris-ticket-attachments;
+        mc mb -p verris/verris-data-exports;
+        mc mb -p verris/verris-dpa-pdfs;
+        mc mb -p verris/verris-invoices;
+        mc anonymous set none verris/verris-ticket-attachments;
+        mc anonymous set none verris/verris-data-exports;
+        mc anonymous set none verris/verris-dpa-pdfs;
+        mc anonymous set none verris/verris-invoices;
+        mc ilm rule add --expire-days 7 verris/verris-data-exports || true;
+        echo 'MinIO buckets ready.';
+      "
+    restart: 'no'
+    networks: [verris_internal]
+
   api:
     build:
       context: .
@@ -61,6 +124,8 @@ services:
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
+      minio: { condition: service_healthy }
+      minio-bootstrap: { condition: service_completed_successfully }
     environment:
       NODE_ENV: production
       PORT: '3000'
@@ -84,6 +149,18 @@ services:
       STRIPE_CANCEL_URL: ${STRIPE_CANCEL_URL}
       METRICS_AUTH_TOKEN: ${METRICS_AUTH_TOKEN:-}
       REDIS_URL: redis://redis:6379
+      # Object storage (MinIO/S3) — see compose service `minio` above.
+      S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?S3_ACCESS_KEY is required}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?S3_SECRET_KEY is required}
+      S3_REGION: ${S3_REGION:-eu-central-1}
+      S3_USE_SSL: ${S3_USE_SSL:-false}
+      S3_PATH_STYLE: ${S3_PATH_STYLE:-true}
+      S3_BUCKET_TICKET_ATTACHMENTS: ${S3_BUCKET_TICKET_ATTACHMENTS:-verris-ticket-attachments}
+      S3_BUCKET_DATA_EXPORTS: ${S3_BUCKET_DATA_EXPORTS:-verris-data-exports}
+      S3_BUCKET_DPA_PDFS: ${S3_BUCKET_DPA_PDFS:-verris-dpa-pdfs}
+      S3_BUCKET_INVOICES: ${S3_BUCKET_INVOICES:-verris-invoices}
+      DATA_EXPORT_TEMP_DIR: /tmp/verris-data-exports
     expose: ['3000']
     networks: [verris_internal, verris_public]
     healthcheck:
@@ -297,6 +374,7 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  minio_data:
   caddy_data:
   caddy_config:
   prometheus_data:

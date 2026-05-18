@@ -1,0 +1,37 @@
+"use server";
+
+import { adminApi } from "@/lib/api";
+
+export interface AdminPlanRow {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  cpuLimit: number;
+  ramLimitMb: number;
+  diskLimitMb: number;
+  ioLimitKbps: number;
+  iopsLimit: number;
+  entryProcesses: number;
+  nprocLimit: number;
+  includedTransferGb: number | null;
+  priceMonthly: string;
+  priceYearly: string;
+  currency: string;
+  stripeProductId: string | null;
+  stripePriceMonthlyId: string | null;
+  stripePriceYearlyId: string | null;
+  isPublic: boolean;
+  isActive: boolean;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function listAdminPlans(): Promise<AdminPlanRow[]> {
+  return adminApi<AdminPlanRow[]>(`/admin/plans`);
+}
+
+export async function getAdminPlan(id: string): Promise<AdminPlanRow> {
+  return adminApi<AdminPlanRow>(`/admin/plans/${id}`);
+}

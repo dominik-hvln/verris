@@ -1,6 +1,4 @@
 import { BadRequestException } from '@nestjs/common';
-import { mkdir, writeFile } from 'fs/promises';
-import { dirname, join } from 'path';
 import { randomUUID } from 'crypto';
 
 /** Pojedynczy plik wg limitu (8 MB); do 5 plików na jeden request multipart. */
@@ -38,16 +36,14 @@ export function sanitizeOriginalFilename(name: string): string {
   return base.replace(/[^\w.\-+()\[\] ]+/g, '_').slice(0, 180);
 }
 
-export async function writeAttachmentFile(
-  uploadRoot: string,
-  storageKey: string,
-  buf: Buffer,
-): Promise<void> {
-  const full = join(uploadRoot, storageKey);
-  await mkdir(dirname(full), { recursive: true });
-  await writeFile(full, buf);
-}
-
+/**
+ * Storage key inside the `verris-ticket-attachments` MinIO bucket.
+ *
+ * Layout: `{ticketId}/{uuid}_{sanitizedName}` — folder per ticket so admin
+ * tooling (mc cli) can `mc cp --recursive verris/verris-ticket-attachments/{ticketId}`
+ * to dump everything related to a single ticket. The `{uuid}_` prefix
+ * prevents two attachments with the same original filename from colliding.
+ */
 export function makeStorageKey(ticketId: string, originalName: string): string {
   const safe = sanitizeOriginalFilename(originalName);
   return `${ticketId}/${randomUUID()}_${safe}`;

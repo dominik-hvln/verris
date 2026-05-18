@@ -120,6 +120,48 @@ export class StatusService {
     };
   }
 
+  async findOpenIncidentsForServers(
+    serverIds: string[],
+  ): Promise<
+    Array<{
+      id: string;
+      serverId: string;
+      serverName: string;
+      probeKind: ProbeKind;
+      probeTarget: string;
+      severity: 'MINOR' | 'MAJOR';
+      title: string;
+      publicMessage: string | null;
+      startedAt: string;
+    }>
+  > {
+    const uniq = Array.from(new Set(serverIds.filter(Boolean)));
+    if (!uniq.length) return [];
+
+    const rows = await this.prisma.probeIncident.findMany({
+      where: {
+        status: IncidentStatus.OPEN,
+        probe: { serverId: { in: uniq } },
+      },
+      orderBy: { startedAt: 'asc' },
+      include: {
+        probe: { include: { server: { select: { id: true, name: true } } } },
+      },
+    });
+
+    return rows.map((i) => ({
+      id: i.id,
+      serverId: i.probe.serverId,
+      serverName: i.probe.server.name ?? i.probe.server.id,
+      probeKind: i.probe.kind,
+      probeTarget: i.probe.target,
+      severity: i.severity as 'MINOR' | 'MAJOR',
+      title: i.title,
+      publicMessage: i.publicMessage,
+      startedAt: i.startedAt.toISOString(),
+    }));
+  }
+
   invalidate(): void {
     this.cached = null;
   }

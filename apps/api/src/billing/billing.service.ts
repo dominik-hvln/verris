@@ -12,10 +12,22 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { WalletLedgerService } from './wallet-ledger.service';
 import { StripeService } from './stripe/stripe.service';
-import { StripeInvoice, StripeSubscription } from './stripe/stripe.client';
+import {
+  getInvoiceSubscriptionId,
+  getSubscriptionPeriod,
+  StripeInvoice,
+  StripeSubscription,
+} from './stripe/stripe.client';
 import { InvoicesService } from './invoices.service';
 import { SubscriptionsService } from '../subscriptions/subscriptions.service';
+import { MailerService } from '../mail/mailer.service';
+import { adminCreditNotificationTemplate } from '../mail/templates/admin-credit-notification';
+import {
+  subscriptionRenewedTemplate,
+  subscriptionPaymentFailedTemplate,
+} from '../mail/templates/billing-lifecycle-notifications';
 import { rowsToCsv } from './csv.util';
+import { PromoService } from './promo.service';
 
 export interface TransactionsCsvFilters {
   userId?: string;
@@ -37,6 +49,8 @@ export class BillingService {
     private readonly invoices: InvoicesService,
     @Inject(forwardRef(() => SubscriptionsService))
     private readonly subscriptions: SubscriptionsService,
+    private readonly mailer: MailerService,
+    private readonly promo: PromoService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -177,11 +191,13 @@ export class BillingService {
     idempotencyKey?: string;
     actorUserId: string;
   }) {
+    const description = opts.description?.trim() || 'Uznanie od Zespołu Verris';
+
     const tx = await this.ledger.credit({
       userId: opts.userId,
       amount: opts.amount,
       type: WalletTxType.ADJUSTMENT,
-      description: opts.description ?? 'Korekta administracyjna',
+      description,
       idempotencyKey: opts.idempotencyKey,
       paymentProvider: 'MANUAL',
     });
@@ -193,18 +209,64 @@ export class BillingService {
       details: {
         walletTxId: tx.id,
         amount: tx.amount.toString(),
+        description,
         idempotencyKey: opts.idempotencyKey ?? null,
       },
     });
 
+    // Powiadom klienta. Nie blokujemy operacji, jeśli mailer padnie — ledger
+    // i audyt już są zapisane, klient zobaczy operację w historii portfela
+    // przy najbliższym otwarciu panelu.
+    void this.notifyAdminCredit({
+      userId: opts.userId,
+      amount: tx.amount.toFixed(2),
+      reason: description,
+    }).catch((err) => {
+      this.logger.warn(
+        `adminCreditWallet: powiadomienie e-mail nie zostało wysłane (userId=${opts.userId}): ${err instanceof Error ? err.message : String(err)}`,
+      );
+    });
+
     return tx;
+  }
+
+  private async notifyAdminCredit(opts: {
+    userId: string;
+    amount: string;
+    reason: string;
+  }): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: opts.userId },
+      select: { email: true, firstName: true, walletBalance: true },
+    });
+    if (!user) return;
+
+    const panelUrl =
+      this.config.get<string>('CLIENT_PANEL_URL') ??
+      this.config.get<string>('clientPanelUrl') ??
+      'https://panel.verris.pl';
+
+    const message = adminCreditNotificationTemplate({
+      customerEmail: user.email,
+      customerFirstName: user.firstName,
+      amount: opts.amount,
+      reason: opts.reason,
+      newBalance: new Prisma.Decimal(user.walletBalance).toFixed(2),
+      panelUrl,
+    });
+
+    await this.mailer.send(message);
   }
 
   // ---------------------------------------------------------------------------
   // Stripe: top-up checkout session
   // ---------------------------------------------------------------------------
 
-  async createTopupCheckoutSession(opts: { userId: string; amount: number | string }) {
+  async createTopupCheckoutSession(opts: {
+    userId: string;
+    amount: number | string;
+    promoCode?: string | null;
+  }) {
     const amount = new Prisma.Decimal(opts.amount);
     if (amount.lessThanOrEqualTo(0) || amount.greaterThan(10000)) {
       throw new BadRequestException('Kwota doładowania musi być z zakresu (0, 10000].');
@@ -216,7 +278,28 @@ export class BillingService {
     });
     if (!user) throw new NotFoundException('User not found');
 
+    // Optional percent-bonus promo code applied during checkout. We pass the
+    // promo metadata through Stripe so the post-payment webhook can credit
+    // the bonus deterministically — even if the panel restarts between
+    // checkout creation and Stripe paying out.
+    let promoMetadata:
+      | { promoCodeId: string; promoCode: string; bonusAmount: string; promoPercent: string }
+      | null = null;
+    if (opts.promoCode && opts.promoCode.trim()) {
+      const preview = await this.promo.previewPercentBonus(user.id, opts.promoCode, amount);
+      promoMetadata = {
+        promoCodeId: preview.promoCodeId,
+        promoCode: preview.code,
+        bonusAmount: preview.bonusAmount.toFixed(2),
+        promoPercent: String(preview.percent),
+      };
+    }
+
     const minor = Math.round(amount.toNumber() * 100);
+
+    const description = promoMetadata
+      ? `Doładowanie portfela Verris (${amount.toFixed(2)} ${user.walletCurrency}) + ${promoMetadata.promoPercent}% bonus „${promoMetadata.promoCode}"`
+      : `Doładowanie portfela Verris (${amount.toFixed(2)} ${user.walletCurrency})`;
 
     const session = await this.stripe.createCheckoutSession({
       amountMinor: minor,
@@ -228,17 +311,49 @@ export class BillingService {
       metadata: {
         userId: user.id,
         kind: 'wallet_topup',
+        ...(promoMetadata ?? {}),
       },
-      description: `Doładowanie portfela Verris (${amount.toFixed(2)} ${user.walletCurrency})`,
+      description,
     });
 
     await this.audit.record({
       action: 'WALLET_TOPUP_INITIATED',
       userId: user.id,
-      details: { sessionId: session.id, amount: amount.toFixed(2), currency: user.walletCurrency },
+      details: {
+        sessionId: session.id,
+        amount: amount.toFixed(2),
+        currency: user.walletCurrency,
+        ...(promoMetadata ?? {}),
+      },
     });
 
-    return { url: session.url, sessionId: session.id };
+    return {
+      url: session.url,
+      sessionId: session.id,
+      bonus: promoMetadata
+        ? { amount: promoMetadata.bonusAmount, percent: Number(promoMetadata.promoPercent), code: promoMetadata.promoCode }
+        : null,
+    };
+  }
+
+  /**
+   * Pre-checkout dry-run for the topup form. Returns the calculated bonus
+   * for `(userId, amount, promoCode)` without creating a Stripe session.
+   * Used by the client panel "Apply code" button.
+   */
+  async previewWalletTopupPromo(input: { userId: string; amount: number | string; promoCode: string }) {
+    const amount = new Prisma.Decimal(input.amount);
+    if (amount.lessThanOrEqualTo(0) || amount.greaterThan(10000)) {
+      throw new BadRequestException('Kwota doładowania musi być z zakresu (0, 10000].');
+    }
+    const preview = await this.promo.previewPercentBonus(input.userId, input.promoCode, amount);
+    return {
+      code: preview.code,
+      percent: preview.percent,
+      bonusAmount: preview.bonusAmount.toFixed(2),
+      totalCredited: amount.plus(preview.bonusAmount).toFixed(2),
+      description: preview.description,
+    };
   }
 
   // ---------------------------------------------------------------------------
@@ -339,6 +454,42 @@ export class BillingService {
         idempotent: idempotencyKey === tx.idempotencyKey,
       },
     });
+
+    // Optional percent-bonus applied at checkout time. Stripe metadata
+    // contains the canonicalized bonus amount we calculated server-side
+    // before redirecting the user to Stripe — so the user can't tamper
+    // with the percentage by editing client-side state.
+    const promoCodeId = session.metadata?.promoCodeId;
+    const bonusAmountStr = session.metadata?.bonusAmount;
+    if (promoCodeId && bonusAmountStr) {
+      try {
+        await this.promo.applyPercentBonusForTopup({
+          userId,
+          promoCodeId,
+          bonusAmount: bonusAmountStr,
+          relatedWalletTxId: tx.id,
+          sessionId: session.id ?? '',
+        });
+      } catch (err) {
+        // Topup itself succeeded — bonus failure must not roll back the
+        // top-up. Operator follow-up via audit log + Slack alert.
+        this.logger.error(
+          `applyPercentBonusForTopup failed for sessionId=${session.id} user=${userId}: ${
+            (err as Error).message
+          }`,
+        );
+        await this.audit.record({
+          action: 'PROMO_PERCENT_BONUS_FAILED',
+          userId,
+          details: {
+            sessionId: session.id,
+            promoCodeId,
+            bonusAmount: bonusAmountStr,
+            error: (err as Error).message,
+          },
+        });
+      }
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -350,15 +501,30 @@ export class BillingService {
     data: { object: Record<string, unknown> };
   }) {
     const stripeSub = event.data.object as unknown as StripeSubscription;
-    if (!stripeSub.id || typeof stripeSub.current_period_start !== 'number') {
-      this.logger.warn(`Ignoring malformed ${event.type} payload`);
+    if (!stripeSub.id) {
+      this.logger.warn(`Ignoring malformed ${event.type} payload (missing id)`);
       return;
     }
+
+    // Basil+ moved billing periods to `items.data[i]`. The helper falls back
+    // to root `current_period_*` for cross-version compatibility — the only
+    // way to truly fail here is if Stripe sent a payload with neither, which
+    // means malformed event we can't process.
+    let period: { start: number; end: number };
+    try {
+      period = getSubscriptionPeriod(stripeSub);
+    } catch (err) {
+      this.logger.warn(
+        `Ignoring ${event.type} for ${stripeSub.id}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+      return;
+    }
+
     const updated = await this.subscriptions.syncFromStripeSubscriptionEvent({
       id: stripeSub.id,
       status: stripeSub.status,
-      current_period_start: stripeSub.current_period_start,
-      current_period_end: stripeSub.current_period_end,
+      current_period_start: period.start,
+      current_period_end: period.end,
       cancel_at_period_end: stripeSub.cancel_at_period_end,
       metadata: stripeSub.metadata ?? null,
     });
@@ -388,8 +554,10 @@ export class BillingService {
     const invoice = event.data.object as unknown as StripeInvoice;
     if (!invoice.id) return;
 
-    const subscriptionId =
-      typeof invoice.subscription === 'string' ? invoice.subscription : null;
+    // Basil+ removed `invoice.subscription`; the link now lives in
+    // `invoice.parent.subscription_details.subscription`. Helper handles
+    // both shapes for transitional periods.
+    const subscriptionId = getInvoiceSubscriptionId(invoice);
 
     // Subscription metadata is what links a Stripe invoice back to our row;
     // it's set in `SubscriptionsService.startStripeRecurring`. Some invoice
@@ -453,6 +621,22 @@ export class BillingService {
             stripeSubscriptionId: subscriptionId ?? null,
           },
         });
+
+        // Notify the customer that their subscription has been renewed.
+        // Failure to email is logged but never fails the webhook — Stripe
+        // retries on non-2xx and we don't want a transient SMTP error to
+        // duplicate the activation.
+        void this.notifySubscriptionRenewed({
+          userId: verrisUserId,
+          localSubscriptionId: localSubscription?.id ?? null,
+          stripeInvoice: invoice,
+        }).catch((err) => {
+          this.logger.warn(
+            `notifySubscriptionRenewed failed for invoice=${invoice.id}: ${
+              (err as Error).message
+            }`,
+          );
+        });
       }
     }
   }
@@ -464,8 +648,7 @@ export class BillingService {
     const invoice = event.data.object as unknown as StripeInvoice;
     if (!invoice.id) return;
 
-    const subscriptionId =
-      typeof invoice.subscription === 'string' ? invoice.subscription : null;
+    const subscriptionId = getInvoiceSubscriptionId(invoice);
     if (!subscriptionId) {
       this.logger.warn(
         `invoice.payment_failed without subscription on invoice=${invoice.id} — ignoring`,
@@ -497,6 +680,19 @@ export class BillingService {
       await this.invoices.upsertFromStripe(invoice, {
         verrisUserId,
         verrisSubscriptionId,
+      });
+    }
+
+    if (verrisUserId) {
+      void this.notifySubscriptionPaymentFailed({
+        userId: verrisUserId,
+        stripeInvoice: invoice,
+      }).catch((err) => {
+        this.logger.warn(
+          `notifySubscriptionPaymentFailed failed for invoice=${invoice.id}: ${
+            (err as Error).message
+          }`,
+        );
       });
     }
 
@@ -586,5 +782,149 @@ export class BillingService {
         error: pi.last_payment_error?.message ?? null,
       },
     });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Email notifications (Sprint 2.1)
+  // ---------------------------------------------------------------------------
+
+  private async notifySubscriptionRenewed(opts: {
+    userId: string;
+    localSubscriptionId: string | null;
+    stripeInvoice: StripeInvoice;
+  }): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: opts.userId },
+      select: { email: true, firstName: true, anonymizedAt: true },
+    });
+    if (!user || user.anonymizedAt) return;
+
+    let serviceName = 'Hosting Verris';
+    let newPeriodEnd: Date = opts.stripeInvoice.status_transitions?.paid_at
+      ? new Date(opts.stripeInvoice.status_transitions.paid_at * 1000)
+      : new Date();
+
+    if (opts.localSubscriptionId) {
+      const sub = await this.prisma.subscription.findUnique({
+        where: { id: opts.localSubscriptionId },
+        select: {
+          currentPeriodEnd: true,
+          plan: { select: { name: true } },
+          account: { select: { domain: true } },
+        },
+      });
+      if (sub) {
+        if (sub.currentPeriodEnd) newPeriodEnd = sub.currentPeriodEnd;
+        const planName = sub.plan?.name ?? 'Hosting Verris';
+        serviceName = sub.account?.domain ? `${planName} (${sub.account.domain})` : planName;
+      }
+    }
+
+    const amount = ((opts.stripeInvoice.amount_paid ?? opts.stripeInvoice.total ?? 0) / 100).toFixed(
+      2,
+    );
+    const currency = (opts.stripeInvoice.currency ?? 'pln').toUpperCase() as
+      | 'PLN'
+      | 'EUR'
+      | 'USD';
+
+    const ourInvoice = opts.stripeInvoice.id
+      ? await this.prisma.invoice.findFirst({
+          where: { provider: 'STRIPE', providerRef: opts.stripeInvoice.id },
+          select: { id: true, number: true },
+        })
+      : null;
+
+    const panelUrl = this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl';
+
+    const message = subscriptionRenewedTemplate({
+      to: user.email,
+      firstName: user.firstName,
+      serviceName,
+      amount,
+      currency,
+      paidAt: opts.stripeInvoice.status_transitions?.paid_at
+        ? new Date(opts.stripeInvoice.status_transitions.paid_at * 1000)
+        : new Date(),
+      newPeriodEnd,
+      invoiceNumber: ourInvoice?.number ?? null,
+      invoiceUrl: ourInvoice?.id
+        ? `${panelUrl}/dashboard/billing/invoices/${ourInvoice.id}`
+        : null,
+      panelUrl,
+    });
+    await this.mailer.send(message);
+  }
+
+  private async notifySubscriptionPaymentFailed(opts: {
+    userId: string;
+    stripeInvoice: StripeInvoice;
+  }): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: opts.userId },
+      select: { email: true, firstName: true, anonymizedAt: true },
+    });
+    if (!user || user.anonymizedAt) return;
+
+    const subscriptionId = getInvoiceSubscriptionId(opts.stripeInvoice);
+    let serviceName = 'Hosting Verris';
+    let suspendAt: Date | null = null;
+    if (subscriptionId) {
+      const localSub = await this.prisma.subscription.findFirst({
+        where: { stripeSubscriptionId: subscriptionId },
+        select: {
+          plan: { select: { name: true } },
+          account: { select: { domain: true } },
+          currentPeriodEnd: true,
+        },
+      });
+      if (localSub) {
+        const planName = localSub.plan?.name ?? 'Hosting Verris';
+        serviceName = localSub.account?.domain
+          ? `${planName} (${localSub.account.domain})`
+          : planName;
+        // Stripe Smart Retries typically run 3 attempts over ~3 weeks; we
+        // suspend ~7 days after the last retry. We don't know the exact
+        // day from the payload — use period end + 14 days as conservative
+        // upper bound for the customer-facing communication.
+        if (localSub.currentPeriodEnd) {
+          suspendAt = new Date(localSub.currentPeriodEnd.getTime() + 14 * 24 * 60 * 60 * 1000);
+        }
+      }
+    }
+
+    const amount = (
+      (opts.stripeInvoice.amount_due ?? opts.stripeInvoice.total ?? 0) / 100
+    ).toFixed(2);
+    const currency = (opts.stripeInvoice.currency ?? 'pln').toUpperCase() as
+      | 'PLN'
+      | 'EUR'
+      | 'USD';
+
+    const nextRetryAt = opts.stripeInvoice.next_payment_attempt
+      ? new Date(opts.stripeInvoice.next_payment_attempt * 1000)
+      : null;
+    const errorReason =
+      opts.stripeInvoice.last_finalization_error?.message ??
+      opts.stripeInvoice.last_payment_error?.message ??
+      null;
+
+    const panelUrl = this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl';
+    const paymentUpdateUrl =
+      opts.stripeInvoice.hosted_invoice_url ?? `${panelUrl}/dashboard/billing`;
+
+    const message = subscriptionPaymentFailedTemplate({
+      to: user.email,
+      firstName: user.firstName,
+      serviceName,
+      amount,
+      currency,
+      errorReason,
+      nextRetryAt,
+      suspendAt,
+      paymentUpdateUrl,
+      panelUrl,
+    });
+    await this.mailer.send(message);
   }
 }

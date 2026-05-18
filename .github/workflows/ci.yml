@@ -51,6 +51,9 @@ jobs:
       - name: Typecheck (all workspaces via Turbo)
         run: pnpm typecheck
 
+      - name: API unit tests (RBAC metadata + RolesGuard)
+        run: pnpm --filter api test
+
   # ---------------------------------------------------------------------------
   # Build everything that produces a deployable artifact. Runs in parallel
   # with static-checks but reuses the pnpm cache.

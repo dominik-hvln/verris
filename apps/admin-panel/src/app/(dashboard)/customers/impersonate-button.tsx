@@ -18,6 +18,10 @@ export function ImpersonateButton({ userId, email, role }: Props) {
 
   const start = () => {
     setError(null);
+    if (reason.trim().length < 10) {
+      setError("Powód jest wymagany — min. 10 znaków (zostanie zarchiwizowany).");
+      return;
+    }
     startTransition(async () => {
       const res = await impersonateUserAction(userId, reason);
       if (res && "ok" in res && res.ok === false) {
@@ -61,7 +65,8 @@ export function ImpersonateButton({ userId, email, role }: Props) {
 
             <label className="block">
               <span className="text-xs font-bold uppercase tracking-widest text-neutral-500">
-                Powód (zostanie zarchiwizowany)
+                Powód <span className="text-rose-400">*</span> (min. 10 znaków, zostanie
+                zarchiwizowany)
               </span>
               <textarea
                 value={reason}
@@ -69,7 +74,11 @@ export function ImpersonateButton({ userId, email, role }: Props) {
                 rows={3}
                 placeholder="np. Ticket #4321 — pomoc z konfiguracją DNS"
                 className="mt-1.5 w-full rounded-lg bg-black/60 border border-white/10 px-3 py-2 text-white text-sm focus:border-amber-400 focus:outline-none placeholder:text-neutral-600 resize-none"
+                aria-invalid={reason.length > 0 && reason.trim().length < 10}
               />
+              <span className="mt-1 block text-[10px] text-muted-foreground">
+                Znaków: {reason.trim().length} / 10
+              </span>
             </label>
 
             {error && (

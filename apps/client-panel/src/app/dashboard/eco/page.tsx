@@ -58,7 +58,7 @@ export default async function EcoProgramPage() {
       <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] p-6 space-y-3">
         <h2 className="text-white font-semibold">Wymień punkty na saldo portfela</h2>
         <p className="text-sm text-neutral-400">
-          Kurs MVP: <span className="font-mono text-neutral-200">100 pkt = 10.00 PLN</span>. Zasilenie trafia od razu
+          Przelicznik: <span className="font-mono text-neutral-200">100 pkt = 10.00 K</span> (1 zł = 1 kredyt). Zasilenie trafia od razu
           do portfela i jest widoczne w historii transakcji.
         </p>
         <EcoRedeemForm maxPoints={profile.ecoPoints} />

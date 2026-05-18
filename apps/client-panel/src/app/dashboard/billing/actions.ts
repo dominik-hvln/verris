@@ -4,6 +4,8 @@ import { redirect } from 'next/navigation';
 import type {
   CreateCheckoutSessionInput,
   CreateCheckoutSessionResponse,
+  PreviewTopupPromoInput,
+  PreviewTopupPromoResponse,
   PromoRedeemSuccessDto,
   WalletAutoTopupSettingsDto,
 } from '@verris/contracts';
@@ -37,7 +39,14 @@ export async function startTopupAction(formData: FormData): Promise<TopupResult>
     };
   }
 
-  const input: CreateCheckoutSessionInput = { amount: parsed.toFixed(2) };
+  const promoRaw = formData.get('promoCode');
+  const promoCode =
+    typeof promoRaw === 'string' && promoRaw.trim().length > 0 ? promoRaw.trim() : null;
+
+  const input: CreateCheckoutSessionInput = {
+    amount: parsed.toFixed(2),
+    promoCode,
+  };
   let response: CreateCheckoutSessionResponse;
   try {
     response = await apiFetch<CreateCheckoutSessionResponse>('/billing/checkout-session', {
@@ -57,6 +66,43 @@ export async function startTopupAction(formData: FormData): Promise<TopupResult>
   }
 
   redirect(response.url);
+}
+
+export type PreviewPromoResult =
+  | { ok: true; preview: PreviewTopupPromoResponse }
+  | { ok: false; error: string };
+
+export async function previewTopupPromoAction(
+  amount: string,
+  promoCode: string,
+): Promise<PreviewPromoResult> {
+  const trimmedCode = promoCode.trim();
+  const parsed = Number.parseFloat(amount);
+  if (Number.isNaN(parsed) || parsed < MIN_TOPUP || parsed > MAX_TOPUP) {
+    return { ok: false, error: `Podaj kwotę z zakresu ${MIN_TOPUP}–${MAX_TOPUP} PLN.` };
+  }
+  if (trimmedCode.length < 3) {
+    return { ok: false, error: 'Wpisz kod promocyjny (min. 3 znaki).' };
+  }
+
+  const input: PreviewTopupPromoInput = { amount: parsed.toFixed(2), promoCode: trimmedCode };
+  try {
+    const preview = await apiFetch<PreviewTopupPromoResponse>(
+      '/billing/checkout-session/preview-promo',
+      { method: 'POST', body: JSON.stringify(input) },
+    );
+    return { ok: true, preview };
+  } catch (err) {
+    return {
+      ok: false,
+      error:
+        err instanceof ApiError
+          ? err.message
+          : err instanceof Error
+            ? err.message
+            : 'Nie udało się sprawdzić kodu promocyjnego.',
+    };
+  }
 }
 
 export async function redeemPromoAction(formData: FormData): Promise<PromoRedeemResult> {

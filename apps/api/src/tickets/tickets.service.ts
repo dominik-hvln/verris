@@ -5,7 +5,6 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { join } from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailerService } from '../mail/mailer.service';
 import {
@@ -16,12 +15,16 @@ import {
   assertAllowedMime,
   makeStorageKey,
   sanitizeOriginalFilename,
-  writeAttachmentFile,
   TICKET_MAX_ATTACHMENTS_PER_TICKET,
   TICKET_UPLOAD_MAX_BYTES,
   TICKET_UPLOAD_MAX_FILES_PER_BATCH,
 } from './ticket-attachment.utils';
 import { CreateTicketDto, AddTicketReplyDto } from './tickets.dto';
+import { ObjectStorageService } from '../storage/object-storage.service';
+import { ObjectBuckets } from '../storage/object-storage.types';
+import { AuditService } from '../common/audit/audit.service';
+import { TicketOpsActions } from '../common/audit/audit.actions';
+import type { Readable } from 'stream';
 
 @Injectable()
 export class TicketsService {
@@ -29,6 +32,8 @@ export class TicketsService {
     private prisma: PrismaService,
     private readonly mailer: MailerService,
     private readonly config: ConfigService,
+    private readonly storage: ObjectStorageService,
+    private readonly audit: AuditService,
   ) {}
 
   /**
@@ -74,6 +79,8 @@ export class TicketsService {
         department: dto.department || 'TECHNICAL',
         userId,
         assignedToId,
+        slaResponseDueAt: computeSlaResponseDueAt(dto.priority || 'NORMAL'),
+        slaResolveDueAt: computeSlaResolveDueAt(dto.priority || 'NORMAL'),
       },
       include: {
         user: { select: { email: true } },
@@ -225,12 +232,19 @@ export class TicketsService {
 
   // --- ADMIN & STAFF METHODS ---
 
-  async adminFindAll() {
+  async adminFindAll(userId?: string) {
     return this.prisma.ticket.findMany({
+      where: userId ? { userId } : undefined,
       orderBy: { createdAt: 'desc' },
       include: {
         user: {
-          select: { firstName: true, lastName: true, email: true, companyName: true },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            companyName: true,
+          },
         },
         assignedTo: {
           select: { id: true, firstName: true, lastName: true },
@@ -333,6 +347,67 @@ export class TicketsService {
     return updated;
   }
 
+  async adminEscalateTicket(ticketId: string, actorUserId: string, reason: string) {
+    if (reason.trim().length < 10) {
+      throw new BadRequestException('Powód eskalacji jest wymagany (min. 10 znaków).');
+    }
+    const ticket = await this.prisma.ticket.update({
+      where: { id: ticketId },
+      data: {
+        escalatedAt: new Date(),
+        escalatedById: actorUserId,
+        escalationReason: reason.trim(),
+        priority: 'URGENT',
+        status: 'IN_PROGRESS',
+      },
+    });
+    await this.audit.record({
+      action: TicketOpsActions.TICKET_ESCALATED,
+      userId: ticket.userId,
+      actorUserId,
+      details: { ticketId, reason: reason.trim(), priority: 'URGENT' },
+    });
+    return ticket;
+  }
+
+  async adminApplyRunbook(ticketId: string, actorUserId: string, runbookKey: string) {
+    const key = runbookKey.trim();
+    if (key.length < 3) throw new BadRequestException('Runbook key is required.');
+    const ticket = await this.prisma.ticket.update({
+      where: { id: ticketId },
+      data: { runbookKey: key },
+    });
+    await this.audit.record({
+      action: TicketOpsActions.TICKET_RUNBOOK_APPLIED,
+      userId: ticket.userId,
+      actorUserId,
+      details: { ticketId, runbookKey: key },
+    });
+    return ticket;
+  }
+
+  async adminSetRiskFlag(
+    ticketId: string,
+    actorUserId: string,
+    riskFlag: string | null,
+    riskReason: string | null,
+  ) {
+    const ticket = await this.prisma.ticket.update({
+      where: { id: ticketId },
+      data: {
+        riskFlag: riskFlag?.trim() || null,
+        riskReason: riskReason?.trim() || null,
+      },
+    });
+    await this.audit.record({
+      action: TicketOpsActions.CUSTOMER_RISK_FLAG_UPDATED,
+      userId: ticket.userId,
+      actorUserId,
+      details: { ticketId, riskFlag: ticket.riskFlag, reason: ticket.riskReason },
+    });
+    return ticket;
+  }
+
   async adminAddReply(ticketId: string, staffId: string, dto: AddTicketReplyDto) {
     const ticket = await this.prisma.ticket.findUnique({ where: { id: ticketId } });
     if (!ticket) throw new NotFoundException('Ticket not found');
@@ -382,13 +457,9 @@ export class TicketsService {
   }
 
   // ---------------------------------------------------------------------------
-  // Załączniki (E‑4)
+  // Załączniki (E‑4) — przechowywane w MinIO/S3 (`verris-ticket-attachments`).
+  // Lokalny FS nie jest używany.
   // ---------------------------------------------------------------------------
-
-  private getTicketUploadRoot(): string {
-    const env = process.env.TICKET_UPLOAD_DIR?.trim();
-    return env && env.length > 0 ? env : join(process.cwd(), 'uploads', 'tickets');
-  }
 
   /**
    * multipart: subject, message, opcja priority/department + pola `files`.
@@ -454,7 +525,6 @@ export class TicketsService {
     uploadedById: string;
     files: Express.Multer.File[];
   }) {
-    const uploadRoot = this.getTicketUploadRoot();
     const { ticketId, replyId, uploadedById } = opts;
 
     let total = await this.prisma.ticketAttachment.count({ where: { ticketId } });
@@ -479,7 +549,21 @@ export class TicketsService {
       if (!buf.length) {
         throw new BadRequestException(`Brak treści pliku (${file.originalname}).`);
       }
-      await writeAttachmentFile(uploadRoot, storageKey, buf);
+      const safeOriginal = sanitizeOriginalFilename(file.originalname ?? '');
+
+      // Upload to MinIO BEFORE creating the DB row — if storage is down we
+      // don't want orphaned DB rows pointing to a missing object. If the
+      // DB insert fails AFTER upload we'll have an orphaned object, but a
+      // periodic reconciler (storage:reconcile-orphans, future task) can
+      // clean those up and they don't break correctness.
+      await this.storage.putObject(ObjectBuckets.TICKET_ATTACHMENTS, storageKey, buf, {
+        contentType: file.mimetype ?? 'application/octet-stream',
+        originalFilename: safeOriginal,
+        custom: {
+          ticketid: ticketId,
+          uploaderid: uploadedById,
+        },
+      });
 
       await this.prisma.ticketAttachment.create({
         data: {
@@ -488,7 +572,7 @@ export class TicketsService {
           uploadedById,
           mimeType: file.mimetype ?? 'application/octet-stream',
           sizeBytes: file.size,
-          originalName: sanitizeOriginalFilename(file.originalname ?? ''),
+          originalName: safeOriginal,
           storageKey,
         },
       });
@@ -635,8 +719,36 @@ export class TicketsService {
     return att;
   }
 
-  attachmentAbsolutePath(storageKey: string): string {
-    return join(this.getTicketUploadRoot(), storageKey);
+  /**
+   * Streams a ticket attachment from MinIO. Replaces the previous
+   * `attachmentAbsolutePath` helper which read directly from local FS.
+   * Returns a `Readable` that the controller can wrap in `StreamableFile`.
+   */
+  async openAttachmentStream(storageKey: string): Promise<Readable> {
+    return this.storage.getObjectStream(ObjectBuckets.TICKET_ATTACHMENTS, storageKey);
   }
+
+  /**
+   * Permanently removes the underlying object. Called by the moderation
+   * tooling and by user account anonymization (RODO art. 17). Idempotent:
+   * a missing object is not an error. The DB row is dropped by the caller.
+   */
+  async removeAttachmentObject(storageKey: string): Promise<void> {
+    try {
+      await this.storage.removeObject(ObjectBuckets.TICKET_ATTACHMENTS, storageKey);
+    } catch {
+      // Swallow — caller is removing the DB row regardless.
+    }
+  }
+}
+
+function computeSlaResponseDueAt(priority: string): Date {
+  const hours = priority === 'URGENT' ? 1 : priority === 'HIGH' ? 4 : priority === 'NORMAL' ? 12 : 24;
+  return new Date(Date.now() + hours * 60 * 60 * 1000);
+}
+
+function computeSlaResolveDueAt(priority: string): Date {
+  const hours = priority === 'URGENT' ? 8 : priority === 'HIGH' ? 24 : priority === 'NORMAL' ? 72 : 120;
+  return new Date(Date.now() + hours * 60 * 60 * 1000);
 }
 

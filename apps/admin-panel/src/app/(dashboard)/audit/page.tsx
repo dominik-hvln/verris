@@ -3,6 +3,7 @@ import { listAuditLogs } from "./data";
 import { AuditFiltersBar } from "./filters-bar";
 import { AuditTable } from "./table";
 import { ExportCsvButton } from "./export-button";
+import type { AuditCategory } from "./types";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,7 @@ interface SearchParams {
   search?: string;
   from?: string;
   to?: string;
+  category?: string;
   page?: string;
 }
 
@@ -26,6 +28,14 @@ export default async function AuditLogPage({
   const page = Math.max(1, Number.parseInt(sp.page ?? "1", 10) || 1);
   const offset = (page - 1) * limit;
 
+  const validCategory: AuditCategory | undefined =
+    sp.category === "RODO" ||
+    sp.category === "ADMIN_OPS" ||
+    sp.category === "SECURITY" ||
+    sp.category === "IMPERSONATION"
+      ? (sp.category as AuditCategory)
+      : undefined;
+
   const filters = {
     action: sp.action,
     userId: sp.userId,
@@ -33,6 +43,7 @@ export default async function AuditLogPage({
     search: sp.search,
     from: sp.from,
     to: sp.to,
+    category: validCategory,
     limit,
     offset,
   };
@@ -66,6 +77,7 @@ export default async function AuditLogPage({
           search: sp.search ?? "",
           from: sp.from ?? "",
           to: sp.to ?? "",
+          category: validCategory ?? "",
         }}
       />
 

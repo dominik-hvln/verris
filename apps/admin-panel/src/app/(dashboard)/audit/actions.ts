@@ -17,6 +17,7 @@ export async function downloadAuditCsvAction(
   if (filters.search) params.set("search", filters.search);
   if (filters.from) params.set("from", filters.from);
   if (filters.to) params.set("to", filters.to);
+  if (filters.category) params.set("category", filters.category);
 
   try {
     const res = await fetch(`${API_URL}/admin/audit-logs/export.csv?${params}`, {

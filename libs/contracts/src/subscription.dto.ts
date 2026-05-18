@@ -23,6 +23,21 @@ export interface CreateSubscriptionInput {
   ecoModeEnabled?: boolean;
 }
 
+export type ProvisioningStage =
+  | 'queued'
+  | 'running'
+  | 'retrying'
+  | 'failed'
+  | 'completed';
+
+export interface ProvisioningProgressDto {
+  stage: ProvisioningStage;
+  attempts: number;
+  startedAt: string | null;
+  completedAt: string | null;
+  lastError: string | null;
+}
+
 export interface ServiceSummaryDto {
   id: string;
   status: SubscriptionStatus;
@@ -35,6 +50,33 @@ export interface ServiceSummaryDto {
   ecoModeEnabled: boolean;
   autoscalingEnabled: boolean;
   account: ServiceAccountSummaryDto | null;
+  /** Sprint 5 / R-11+B-7 — postęp provisioningu widoczny dla klienta. */
+  provisioning: ProvisioningProgressDto | null;
+  /** V-01 — service health score shown in client hosting UX. */
+  health: ServiceHealthSummaryDto;
+  /** V-05 — conservative plan/autoscaling recommendations. */
+  recommendations: ServiceRecommendationDto[];
+}
+
+export interface ServiceHealthSummaryDto {
+  score: number;
+  label: 'healthy' | 'attention' | 'critical';
+  checkedAt: string | null;
+  checks: {
+    dnsOk: boolean | null;
+    tlsOk: boolean | null;
+    backupFresh: boolean | null;
+    lveOk: boolean | null;
+    phpOk: boolean | null;
+    mailOk: boolean | null;
+  };
+}
+
+export interface ServiceRecommendationDto {
+  type: 'autoscaling' | 'plan' | 'domain' | 'backup';
+  severity: 'info' | 'warning' | 'critical';
+  title: string;
+  body: string;
 }
 
 export interface ServiceAccountSummaryDto {

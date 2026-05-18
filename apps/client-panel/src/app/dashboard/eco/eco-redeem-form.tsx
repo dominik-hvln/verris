@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@verris/ui';
+import { formatCredits } from '@/lib/credits';
 import { redeemEcoPointsAction } from './eco-actions';
 
 interface Props {
@@ -33,7 +34,7 @@ export function EcoRedeemForm({ maxPoints }: Props) {
             ) : (
               allowedOptions.map((opt) => (
                 <option key={opt} value={opt}>
-                  {opt} pkt → {(opt / 10).toFixed(2)} PLN do portfela
+                  {opt} pkt → {formatCredits(opt / 10)} do portfela
                 </option>
               ))
             )}
@@ -49,7 +50,11 @@ export function EcoRedeemForm({ maxPoints }: Props) {
             const r = await redeemEcoPointsAction(points);
             setBusy(false);
             if ('error' in r) setMsg({ type: 'err', text: r.error });
-            else setMsg({ type: 'ok', text: `Wymiana zakończona: +${r.creditedAmount} PLN do portfela.` });
+            else
+              setMsg({
+                type: 'ok',
+                text: `Wymiana zakończona: ${formatCredits(r.creditedAmount, { signed: true })} do portfela.`,
+              });
           }}
         >
           Wymień punkty

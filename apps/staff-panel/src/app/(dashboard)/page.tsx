@@ -8,11 +8,17 @@ export const dynamic = "force-dynamic";
 
 const priorityOrder: Record<string, number> = { URGENT: 0, HIGH: 1, NORMAL: 2, LOW: 3 };
 
-export default async function StaffInboxPage() {
+export default async function StaffInboxPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ userId?: string }>;
+}) {
+  const { userId: filterUserId } = await searchParams;
+
   let rows: StaffTicketRow[] = [];
   let error: string | null = null;
   try {
-    rows = await staffGetTickets();
+    rows = await staffGetTickets(filterUserId);
   } catch (e) {
     if (e instanceof StaffApiError && e.status === 401) {
       redirect("/login");
@@ -45,7 +51,24 @@ export default async function StaffInboxPage() {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-white drop-shadow-md">Skrzynka zgłoszeń</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Wszystkie otwarte i w toku (bez zamkniętych).</p>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {filterUserId
+              ? (
+                  <>
+                    Tylko zgłoszenia wybranego klienta.{" "}
+                    <Link href="/" className="text-cyan-400 hover:underline">
+                      Wyczyść filtr
+                    </Link>
+                    {" · "}
+                    <Link href={`/crm/${filterUserId}`} className="text-cyan-400 hover:underline">
+                      Profil 360°
+                    </Link>
+                  </>
+                )
+              : (
+                  "Wszystkie otwarte i w toku (bez zamkniętych)."
+                )}
+          </p>
         </div>
         <div className="flex gap-4">
           <Stat label="Aktywnych" value={rows.length} tone="cyan" />
@@ -56,12 +79,14 @@ export default async function StaffInboxPage() {
       <div className="relative rounded-2xl border border-white/10 bg-black/35 backdrop-blur-xl">
         <div className="divide-y divide-white/5">
           {rows.map((ticket) => (
-            <Link
+            <div
               key={ticket.id}
-              href={`/tickets/${ticket.id}`}
               className="group flex items-start justify-between gap-4 px-6 py-4 hover:bg-white/[0.04] transition-colors"
             >
-              <div className="flex min-w-0 flex-1 items-start gap-3">
+              <Link
+                href={`/tickets/${ticket.id}`}
+                className="flex min-w-0 flex-1 items-start gap-3"
+              >
                 <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5">
                   {ticket.priority === "HIGH" || ticket.priority === "URGENT" ? (
                     <AlertCircle className={`h-4 w-4 text-rose-400`} />
@@ -78,20 +103,30 @@ export default async function StaffInboxPage() {
                     · {ticket.department}
                   </p>
                 </div>
-              </div>
+              </Link>
 
-              <div className="flex shrink-0 items-center gap-4">
-                <div className="text-right text-xs">
-                  <Badge status={ticket.status} />
-                  <p className="mt-2 flex items-center justify-end gap-1 text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    {new Date(ticket.createdAt).toLocaleString("pl-PL")}
-                  </p>
-                  <p className="mt-1 text-muted-foreground">{ticket._count.replies} odpowiedzi</p>
+              <div className="flex shrink-0 items-center gap-3">
+                <Link
+                  href={`/crm/${ticket.user.id}`}
+                  className="rounded-md border border-cyan-500/25 bg-cyan-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-cyan-200 hover:bg-cyan-500/20"
+                >
+                  Profil
+                </Link>
+                <div className="flex items-center gap-4">
+                  <div className="text-right text-xs">
+                    <Badge status={ticket.status} />
+                    <p className="mt-2 flex items-center justify-end gap-1 text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      {new Date(ticket.createdAt).toLocaleString("pl-PL")}
+                    </p>
+                    <p className="mt-1 text-muted-foreground">{ticket._count.replies} odpowiedzi</p>
+                  </div>
+                  <Link href={`/tickets/${ticket.id}`}>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-0.5" />
+                  </Link>
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-0.5" />
               </div>
-            </Link>
+            </div>
           ))}
         </div>
         {rows.length === 0 ? (

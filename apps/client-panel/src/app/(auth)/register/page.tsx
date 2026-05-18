@@ -73,6 +73,61 @@ export default function RegisterPage() {
                   <label htmlFor="password" className="text-sm font-semibold text-neutral-300">Hasło</label>
                   <input id="password" name="password" type="password" required minLength={8} placeholder="Minimum 8 znaków" className="w-full rounded-xl border border-white/10 bg-neutral-900/50 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500/50 transition-all duration-300" />
                 </div>
+
+                {/* RODO Sprint 1 / L-03 — required & optional consents.
+                    Keep checkboxes uncontrolled (FormData reads `on` for ticked).
+                    Required boxes have `required` so browser validation is the
+                    first line of defense; server still re-validates. */}
+                <div className="space-y-3 pt-2">
+                  <label className="flex items-start gap-3 group cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="acceptTerms"
+                      required
+                      className="mt-1 h-4 w-4 rounded border-white/20 bg-neutral-900/50 text-sky-500 focus:ring-2 focus:ring-sky-500/30 focus:ring-offset-0 cursor-pointer accent-sky-500"
+                    />
+                    <span className="text-xs text-neutral-300 leading-relaxed">
+                      Akceptuję{" "}
+                      <a href="/legal/terms" target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:text-sky-300 underline underline-offset-2">
+                        regulamin świadczenia usług
+                      </a>{" "}
+                      Verris.{" "}
+                      <span className="text-rose-400">*</span>
+                    </span>
+                  </label>
+
+                  <label className="flex items-start gap-3 group cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="acceptPrivacy"
+                      required
+                      className="mt-1 h-4 w-4 rounded border-white/20 bg-neutral-900/50 text-sky-500 focus:ring-2 focus:ring-sky-500/30 focus:ring-offset-0 cursor-pointer accent-sky-500"
+                    />
+                    <span className="text-xs text-neutral-300 leading-relaxed">
+                      Zapoznałem/am się z{" "}
+                      <a href="/legal/privacy" target="_blank" rel="noopener noreferrer" className="text-sky-400 hover:text-sky-300 underline underline-offset-2">
+                        polityką prywatności
+                      </a>
+                      .{" "}
+                      <span className="text-rose-400">*</span>
+                    </span>
+                  </label>
+
+                  <label className="flex items-start gap-3 group cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="acceptMarketing"
+                      className="mt-1 h-4 w-4 rounded border-white/20 bg-neutral-900/50 text-sky-500 focus:ring-2 focus:ring-sky-500/30 focus:ring-offset-0 cursor-pointer accent-sky-500"
+                    />
+                    <span className="text-xs text-neutral-400 leading-relaxed">
+                      Chcę otrzymywać informacje o nowych funkcjach i ofertach Verris (opcjonalnie).
+                    </span>
+                  </label>
+
+                  <p className="text-[10px] text-neutral-500 leading-relaxed pt-2">
+                    Pola oznaczone <span className="text-rose-400">*</span> są wymagane. Twoja zgoda jest dobrowolna i może być wycofana w każdej chwili w ustawieniach konta.
+                  </p>
+                </div>
               </div>
 
               <div className="p-8 pt-2">

@@ -1,6 +1,43 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLog, Prisma } from '@verris/database';
+import {
+  ADMIN_OPS_ACTION_SET,
+  RODO_ACTION_SET,
+} from './audit.actions';
+
+/**
+ * Sprint 4 — kategorie audytu używane w UI admina (filtr `?category=...`).
+ * Zamiast wymagać dokładnej nazwy akcji, admin może w jednym kliknięciu
+ * obejrzeć wszystkie akcje z konkretnej domeny.
+ */
+export const AUDIT_CATEGORIES = {
+  RODO: 'RODO',
+  ADMIN_OPS: 'ADMIN_OPS',
+  SECURITY: 'SECURITY',
+  IMPERSONATION: 'IMPERSONATION',
+  PROVISIONING: 'PROVISIONING',
+  MIGRATION: 'MIGRATION',
+  SUPPORT: 'SUPPORT',
+  PRODUCT: 'PRODUCT',
+} as const;
+export type AuditCategory =
+  (typeof AUDIT_CATEGORIES)[keyof typeof AUDIT_CATEGORIES];
+
+const SECURITY_PREFIXES = [
+  'AUTH_',
+  'PASSWORD_',
+  'TWO_FACTOR_',
+  'LOGIN_',
+  'SECURITY_',
+  'TOKEN_',
+];
+
+const IMPERSONATION_PREFIXES = ['IMPERSONATION_'];
+const PROVISIONING_PREFIXES = ['PROVISIONING_'];
+const MIGRATION_PREFIXES = ['MIGRATION_'];
+const SUPPORT_PREFIXES = ['TICKET_', 'CUSTOMER_RISK_', 'STAFF_DNS_TLS_'];
+const PRODUCT_PREFIXES = ['FEATURE_FLAG_', 'PRODUCT_ANNOUNCEMENT_', 'INCIDENT_COMPOSER_', 'DOMAIN_ASSISTANT_', 'BACKUP_RESTORE_'];
 
 export interface AuditPayload {
   /** Symbolic name of the action, e.g. "SERVER_INIT", "SUBSCRIPTION_CREATED" */
@@ -29,6 +66,8 @@ export interface AuditQueryFilters {
   to?: Date;
   /** Free-text contains-search across `action` (case-insensitive). */
   search?: string;
+  /** Sprint 4 — predefiniowana kategoria akcji (RODO, ADMIN_OPS, ...). */
+  category?: AuditCategory;
 }
 
 export interface AuditQueryOptions extends AuditQueryFilters {
@@ -144,7 +183,67 @@ export class AuditService {
         ...(filters.to ? { lte: filters.to } : {}),
       };
     }
+    if (filters.category) {
+      const conds = this.buildCategoryWhere(filters.category);
+      if (conds) {
+        // Łączymy z istniejącym filtrem `action` (jeśli jest) — kategoria
+        // ogranicza, nie zastępuje.
+        if (where.action) {
+          where.AND = [{ action: where.action }, conds];
+          delete where.action;
+        } else {
+          Object.assign(where, conds);
+        }
+      }
+    }
     return where;
+  }
+
+  private buildCategoryWhere(category: AuditCategory): Prisma.AuditLogWhereInput | null {
+    switch (category) {
+      case 'RODO':
+        return { action: { in: Array.from(RODO_ACTION_SET) } };
+      case 'ADMIN_OPS':
+        return { action: { in: Array.from(ADMIN_OPS_ACTION_SET) } };
+      case 'SECURITY':
+        return {
+          OR: SECURITY_PREFIXES.map((prefix) => ({
+            action: { startsWith: prefix },
+          })),
+        };
+      case 'IMPERSONATION':
+        return {
+          OR: IMPERSONATION_PREFIXES.map((prefix) => ({
+            action: { startsWith: prefix },
+          })),
+        };
+      case 'PROVISIONING':
+        return {
+          OR: PROVISIONING_PREFIXES.map((prefix) => ({
+            action: { startsWith: prefix },
+          })),
+        };
+      case 'MIGRATION':
+        return {
+          OR: MIGRATION_PREFIXES.map((prefix) => ({
+            action: { startsWith: prefix },
+          })),
+        };
+      case 'SUPPORT':
+        return {
+          OR: SUPPORT_PREFIXES.map((prefix) => ({
+            action: { startsWith: prefix },
+          })),
+        };
+      case 'PRODUCT':
+        return {
+          OR: PRODUCT_PREFIXES.map((prefix) => ({
+            action: { startsWith: prefix },
+          })),
+        };
+      default:
+        return null;
+    }
   }
 
   private async hydrateUsers(rows: AuditLog[]): Promise<AuditLogWithUsers[]> {

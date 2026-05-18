@@ -6,6 +6,7 @@ import { loadConfig } from './config/configuration';
 import { PrismaModule } from './prisma/prisma.module';
 import { CryptoModule } from './common/crypto/crypto.module';
 import { AuditModule } from './common/audit/audit.module';
+import { ObjectStorageModule } from './storage/object-storage.module';
 
 import { AuthModule } from './auth/auth.module';
 import { ServersModule } from './servers/servers.module';
@@ -23,6 +24,10 @@ import { ObservabilityModule } from './observability/observability.module';
 import { MailModule } from './mail/mail.module';
 import { SecurityModule } from './security/security.module';
 import { AdminDashboardModule } from './admin-dashboard/admin-dashboard.module';
+import { ComplianceModule } from './compliance/compliance.module';
+import { MarketingModule } from './marketing/marketing.module';
+import { EmailLogAdminModule } from './email-log/email-log-admin.module';
+import { ProductOpsModule } from './product-ops/product-ops.module';
 
 @Module({
   imports: [
@@ -35,6 +40,7 @@ import { AdminDashboardModule } from './admin-dashboard/admin-dashboard.module';
     PrismaModule,
     CryptoModule,
     AuditModule,
+    ObjectStorageModule,
     AuthModule,
     ServersModule,
     TelemetryModule,
@@ -51,6 +57,10 @@ import { AdminDashboardModule } from './admin-dashboard/admin-dashboard.module';
     MailModule,
     SecurityModule,
     AdminDashboardModule,
+    ComplianceModule,
+    MarketingModule,
+    EmailLogAdminModule,
+    ProductOpsModule,
   ],
   controllers: [],
   providers: [],

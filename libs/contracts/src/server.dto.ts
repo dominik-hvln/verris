@@ -42,6 +42,11 @@ export interface ServerSummaryDto {
   approvedById: string | null;
   notes: string | null;
 
+  // Sprint 4 / A-08
+  maintenanceReason: string | null;
+  maintenanceStartedAt: string | null;
+  maintenanceStartedById: string | null;
+
   createdAt: string;
   updatedAt: string;
 

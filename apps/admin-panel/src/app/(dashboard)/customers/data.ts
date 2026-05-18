@@ -13,6 +13,7 @@ export interface AdminUserRow {
   isTwoFactorEnabled: boolean;
   subscriptionsCount: number;
   lastLoginAt: string | null;
+  loginBlocked: boolean;
 }
 
 export interface ListUsersResponse {
@@ -35,4 +36,26 @@ export async function listAdminUsers(opts: {
   if (opts.limit) params.set("limit", String(opts.limit));
   const qs = params.toString();
   return adminApi<ListUsersResponse>(`/admin/users${qs ? `?${qs}` : ""}`);
+}
+
+export interface AdminCustomerOperationalDetail {
+  id: string;
+  email: string;
+  firstName: string | null;
+  lastName: string | null;
+  role: string;
+  walletBalance: string;
+  walletCurrency: string;
+  stripeCustomerId: string | null;
+  isTwoFactorEnabled: boolean;
+  loginBlocked: boolean;
+  loginBlockedReason: string | null;
+  adminInternalNote: string | null;
+  createdAt: string;
+  deletionRequestedAt: string | null;
+  subscriptionsCount: number;
+}
+
+export async function getCustomerOperationalDetail(userId: string): Promise<AdminCustomerOperationalDetail> {
+  return adminApi<AdminCustomerOperationalDetail>(`/admin/users/${userId}/operational-detail`);
 }

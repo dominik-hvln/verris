@@ -15,7 +15,7 @@ import { WalletTxType } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { BillingService } from './billing.service';
-import { CreateTopupCheckoutDto } from './dto/checkout.dto';
+import { CreateTopupCheckoutDto, PreviewTopupPromoDto } from './dto/checkout.dto';
 import { RedeemPromoDto, UpsertWalletAutoTopupDto } from './dto/promo.dto';
 import { PromoService } from './promo.service';
 import { WalletAutoTopupService } from './wallet-auto-topup.service';
@@ -50,6 +50,20 @@ export class BillingController {
     return this.billing.createTopupCheckoutSession({
       userId: user.userId,
       amount: dto.amount,
+      promoCode: dto.promoCode ?? null,
+    });
+  }
+
+  @Post('checkout-session/preview-promo')
+  @HttpCode(200)
+  previewTopupPromo(
+    @CurrentUser() user: { userId: string },
+    @Body() dto: PreviewTopupPromoDto,
+  ) {
+    return this.billing.previewWalletTopupPromo({
+      userId: user.userId,
+      amount: dto.amount,
+      promoCode: dto.promoCode,
     });
   }
 

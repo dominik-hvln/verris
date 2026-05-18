@@ -15,11 +15,14 @@ import {
   SubscriptionStatus,
   User,
 } from '@verris/database';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto/crypto.service';
 import { AuditService } from '../common/audit/audit.service';
 import { DirectAdminService } from '../servers/directadmin.service';
 import { NodeSelectorService } from './node-selector.service';
+import { MailerService } from '../mail/mailer.service';
+import { accountProvisionedTemplate } from '../mail/templates/hosting-notifications';
 
 export interface ProvisionResult {
   subscription: Subscription;
@@ -50,6 +53,8 @@ export class ProvisioningService {
     private readonly audit: AuditService,
     private readonly nodeSelector: NodeSelectorService,
     private readonly da: DirectAdminService,
+    private readonly mailer: MailerService,
+    private readonly config: ConfigService,
   ) {}
 
   /**
@@ -228,6 +233,18 @@ export class ProvisioningService {
       }
     }
 
+    void this.notifyAccountProvisioned({
+      userId: subscription.userId,
+      domain,
+      daUsername,
+      daPassword: daResult.password,
+      planName: subscription.plan.name,
+    }).catch((err) => {
+      this.logger.warn(
+        `notifyAccountProvisioned failed for sub=${subscription.id}: ${(err as Error).message}`,
+      );
+    });
+
     return {
       subscription: result.updatedSub,
       accountId: result.account.id,
@@ -236,6 +253,34 @@ export class ProvisioningService {
       serverId: server.id,
       domain,
     };
+  }
+
+  private async notifyAccountProvisioned(opts: {
+    userId: string;
+    domain: string;
+    daUsername: string;
+    daPassword: string;
+    planName: string;
+  }): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: opts.userId },
+      select: { email: true, firstName: true, anonymizedAt: true },
+    });
+    if (!user || user.anonymizedAt) return;
+
+    const panelUrl =
+      this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl';
+
+    const message = accountProvisionedTemplate({
+      to: user.email,
+      firstName: user.firstName,
+      planName: opts.planName,
+      domain: opts.domain,
+      daUsername: opts.daUsername,
+      daPassword: opts.daPassword,
+      panelUrl,
+    });
+    await this.mailer.send(message);
   }
 
   /**

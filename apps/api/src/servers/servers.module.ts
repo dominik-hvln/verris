@@ -4,6 +4,7 @@ import { ServersController } from './servers.controller';
 import { ServersAdminController } from './servers.admin.controller';
 import { BootstrapTokenService } from './bootstrap-token.service';
 import { BootstrapTokenGuard } from './guards/bootstrap-token.guard';
+import { ServerIdentityGuard } from './guards/server-identity.guard';
 import { DirectAdminService } from './directadmin.service';
 
 @Module({
@@ -12,8 +13,9 @@ import { DirectAdminService } from './directadmin.service';
     ServersService,
     BootstrapTokenService,
     BootstrapTokenGuard,
+    ServerIdentityGuard,
     DirectAdminService,
   ],
-  exports: [ServersService, DirectAdminService],
+  exports: [ServersService, DirectAdminService, ServerIdentityGuard],
 })
 export class ServersModule {}

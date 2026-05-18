@@ -11,6 +11,7 @@ import {
   RefreshCw,
   Sparkles,
 } from 'lucide-react';
+import { CREDIT_SHORT, formatCredits, pluralCredits } from '@/lib/credits';
 import { redeemPromoAction, upsertAutoTopupAction } from './actions';
 
 interface Props {
@@ -41,7 +42,9 @@ function PromoRedeemBlock() {
     startTransition(async () => {
       const res = await redeemPromoAction(fd);
       if (res.ok) {
-        setDone(`Na konto zostało dopisane ${res.amountPln} PLN (kod ${res.code}).`);
+        setDone(
+          `Na konto zostało dopisane ${formatCredits(res.amountPln, { signed: true })} (kod ${res.code}).`,
+        );
         router.refresh();
         event.currentTarget.reset();
       } else {
@@ -61,7 +64,8 @@ function PromoRedeemBlock() {
             Kod promocyjny <Sparkles className="h-4 w-4 text-amber-200/90" aria-hidden />
           </h2>
           <p className="text-sm text-neutral-400 mt-1">
-            Wpisz kod przyznany przez support lub kampanię — nastąpi dopisanie PROMO_CREDIT na portfel (PLN).
+            Wpisz kod przyznany przez support lub kampanię — kredyty zostaną dopisane na portfel
+            jako PROMO_CREDIT (1 zł = 1 kredyt).
           </p>
         </div>
       </div>
@@ -154,7 +158,9 @@ function WalletAutotopupBlock({
 
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block space-y-1.5">
-            <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide">Próg (PLN)</span>
+            <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
+              Próg ({CREDIT_SHORT})
+            </span>
             <input
               name="thresholdPln"
               type="text"
@@ -162,10 +168,13 @@ function WalletAutotopupBlock({
               defaultValue={local.thresholdPln}
               className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-2.5 text-white focus:border-white/35 focus:outline-none"
             />
+            <span className="text-[10px] text-neutral-500">
+              Gdy saldo spadnie poniżej tej liczby kredytów.
+            </span>
           </label>
           <label className="block space-y-1.5">
             <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide">
-              Kwota doładowania (PLN)
+              Kwota doładowania ({CREDIT_SHORT})
             </span>
             <input
               name="topupAmountPln"
@@ -174,6 +183,9 @@ function WalletAutotopupBlock({
               defaultValue={local.topupAmountPln}
               className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-2.5 text-white focus:border-white/35 focus:outline-none"
             />
+            <span className="text-[10px] text-neutral-500">
+              Stripe pobierze równowartość w PLN (1 zł = 1 kredyt).
+            </span>
           </label>
         </div>
 
@@ -233,7 +245,9 @@ function WalletAutotopupBlock({
         {local.totalToppedUpCount != null && local.totalToppedUpCount > 0 ? (
           <p className="text-xs text-neutral-500">
             Łącznie auto-doładowań: {local.totalToppedUpCount}
-            {local.totalToppedUpAmountPln ? ` • suma ${local.totalToppedUpAmountPln} ${local.currency}` : ''}
+            {local.totalToppedUpAmountPln
+              ? ` • suma ${formatCredits(local.totalToppedUpAmountPln)} (${pluralCredits(Number.parseFloat(local.totalToppedUpAmountPln) || 0)})`
+              : ''}
           </p>
         ) : null}
 

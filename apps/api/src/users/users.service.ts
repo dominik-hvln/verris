@@ -1,12 +1,14 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Prisma, SubscriptionStatus, WalletTxType } from '@verris/database';
 import * as bcrypt from 'bcrypt';
-import { randomBytes } from 'crypto';
+import { randomBytes, createHash } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   UpdateProfileDto,
@@ -14,13 +16,20 @@ import {
   ApplyReferralCodeDto,
   RedeemEcoPointsDto,
 } from './users.dto';
+import { MailerService } from '../mail/mailer.service';
+import { passwordChangedTemplate } from '../mail/templates/security-notifications';
 
 @Injectable()
 export class UsersService {
   private static readonly ECO_REDEEM_STEP = 100;
   private static readonly ECO_REDEEM_PLN_PER_STEP = new Prisma.Decimal(10);
+  private readonly logger = new Logger(UsersService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly mailer: MailerService,
+    private readonly config: ConfigService,
+  ) {}
 
   /**
    * Pobiera pełny profil użytkownika (bez hash'a hasła).
@@ -270,7 +279,11 @@ export class UsersService {
    * Zmienia hasło użytkownika po weryfikacji starego hasła.
    * Zwraca komunikat sukcesu (frontend powinien wymusić ponowne logowanie).
    */
-  async changePassword(userId: string, dto: ChangePasswordDto) {
+  async changePassword(
+    userId: string,
+    dto: ChangePasswordDto,
+    ctx: { ip: string | null; userAgent: string | null } = { ip: null, userAgent: null },
+  ) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
     });
@@ -298,6 +311,49 @@ export class UsersService {
       data: { passwordHash: newHash },
     });
 
+    void this.notifyPasswordChanged({
+      to: user.email,
+      firstName: user.firstName,
+      changedAt: new Date(),
+      ip: ctx.ip,
+      userAgent: ctx.userAgent,
+    }).catch((err) => {
+      this.logger.warn(
+        `notifyPasswordChanged failed for user=${userId}: ${(err as Error).message}`,
+      );
+    });
+
     return { message: 'Hasło zostało zmienione pomyślnie' };
   }
+
+  private async notifyPasswordChanged(opts: {
+    to: string;
+    firstName: string | null;
+    changedAt: Date;
+    ip: string | null;
+    userAgent: string | null;
+  }): Promise<void> {
+    const panelUrl = this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl';
+    const message = passwordChangedTemplate({
+      to: opts.to,
+      firstName: opts.firstName,
+      changedAt: opts.changedAt,
+      deviceLabel: this.parseDeviceLabel(opts.userAgent),
+      ipAddress: opts.ip,
+      panelUrl,
+    });
+    await this.mailer.send(message);
+  }
+
+  private parseDeviceLabel(ua: string | null): string | null {
+    if (!ua) return null;
+    const browser = /(Edg|Chrome|Firefox|Safari|Opera)\/[\d.]+/.exec(ua)?.[1];
+    const os = /\((Windows|Macintosh|iPhone|iPad|Android|Linux)[^)]*\)/.exec(ua)?.[1];
+    if (!browser && !os) return null;
+    return [browser, os].filter(Boolean).join(' on ');
+  }
 }
+
+// `createHash` exposed via crypto import above keeps tree-shake aware (used
+// only for parseDeviceLabel; kept import for future device-fingerprinting).
+void createHash;

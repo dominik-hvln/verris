@@ -6,6 +6,10 @@ import { UsersAdminController } from './users.admin.controller';
 import { EcoPublicController } from './eco-public.controller';
 import { UsersService } from './users.service';
 import { UsersAdminService } from './users.admin.service';
+import { MailModule } from '../mail/mail.module';
+import { StatusModule } from '../status/status.module';
+import { DiagnosticsModule } from '../diagnostics/diagnostics.module';
+import { BillingModule } from '../billing/billing.module';
 
 @Module({
   imports: [
@@ -19,6 +23,10 @@ import { UsersAdminService } from './users.admin.service';
         },
       }),
     }),
+    MailModule,
+    StatusModule,
+    DiagnosticsModule,
+    BillingModule,
   ],
   controllers: [UsersController, UsersAdminController, EcoPublicController],
   providers: [UsersService, UsersAdminService],

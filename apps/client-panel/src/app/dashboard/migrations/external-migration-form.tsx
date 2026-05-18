@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@verris/ui';
-import { requestExternalMigrationAction } from './actions';
+import { requestMigrationBundleAction } from './actions';
 
 interface Props {
   serviceId: string;
@@ -10,6 +10,8 @@ interface Props {
 
 export function ExternalMigrationForm({ serviceId }: Props) {
   const [sourceType, setSourceType] = useState<'FTP' | 'MYSQL' | 'IMAP'>('FTP');
+  const [targetDomain, setTargetDomain] = useState('');
+  const [protocol, setProtocol] = useState<'ftp' | 'ftps' | 'sftp'>('sftp');
   const [sourceHost, setSourceHost] = useState('');
   const [sourcePort, setSourcePort] = useState(21);
   const [sourceUsername, setSourceUsername] = useState('');
@@ -26,14 +28,16 @@ export function ExternalMigrationForm({ serviceId }: Props) {
         e.preventDefault();
         setMsg(null);
         setBusy(true);
-        const res = await requestExternalMigrationAction({
+        const res = await requestMigrationBundleAction({
           serviceId,
+          targetDomain: targetDomain.trim() || undefined,
           sourceType,
           sourceHost,
           sourcePort,
           sourceUsername,
           sourcePassword,
           sourcePath: sourcePath.trim() || undefined,
+          protocol,
           notes: notes.trim() || undefined,
         });
         setBusy(false);
@@ -43,11 +47,20 @@ export function ExternalMigrationForm({ serviceId }: Props) {
         }
         setMsg({
           type: 'ok',
-          text: 'Zgłoszenie przyjęte. Worker utworzy backup DA i kolejkę migracji w dziale technicznym.',
+          text: 'Pakiet migracji został zarejestrowany. Jeśli wybrałeś SFTP/FTP, pierwszy job plikowy trafi do compute-node worker.',
         });
         setSourcePassword('');
       }}
     >
+      <label className="space-y-1.5 block">
+        <span className="text-xs text-neutral-400">Domena docelowa</span>
+        <input
+          value={targetDomain}
+          onChange={(e) => setTargetDomain(e.target.value)}
+          className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
+          placeholder="example.com"
+        />
+      </label>
       <div className="grid gap-3 md:grid-cols-2">
         <label className="space-y-1.5">
           <span className="text-xs text-neutral-400">Typ źródła</span>
@@ -61,6 +74,20 @@ export function ExternalMigrationForm({ serviceId }: Props) {
             <option value="IMAP">IMAP (poczta)</option>
           </select>
         </label>
+        {sourceType === 'FTP' ? (
+          <label className="space-y-1.5">
+            <span className="text-xs text-neutral-400">Protokół plików</span>
+            <select
+              value={protocol}
+              onChange={(e) => setProtocol(e.target.value as 'ftp' | 'ftps' | 'sftp')}
+              className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
+            >
+              <option value="sftp">SFTP</option>
+              <option value="ftps">FTPS</option>
+              <option value="ftp">FTP</option>
+            </select>
+          </label>
+        ) : null}
         <label className="space-y-1.5">
           <span className="text-xs text-neutral-400">Host źródła</span>
           <input
@@ -106,7 +133,7 @@ export function ExternalMigrationForm({ serviceId }: Props) {
         />
       </label>
       <label className="space-y-1.5 block">
-        <span className="text-xs text-neutral-400">Ścieżka / baza / skrzynka (opcjonalnie)</span>
+        <span className="text-xs text-neutral-400">Ścieżka / baza / skrzynka</span>
         <input
           value={sourcePath}
           onChange={(e) => setSourcePath(e.target.value)}
@@ -123,7 +150,7 @@ export function ExternalMigrationForm({ serviceId }: Props) {
       </label>
       {msg ? <p className={`text-sm ${msg.type === 'ok' ? 'text-emerald-300' : 'text-rose-300'}`}>{msg.text}</p> : null}
       <Button type="submit" disabled={busy} className="bg-cyan-600 hover:bg-cyan-500 text-white">
-        Wyślij migrację zewnętrzną
+        {busy ? 'Wysyłam pakiet…' : 'Zleć pakiet migracji'}
       </Button>
     </form>
   );

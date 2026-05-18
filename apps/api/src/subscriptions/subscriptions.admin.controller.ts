@@ -45,6 +45,7 @@ export class SubscriptionsAdminController {
   ) {}
 
   @Get()
+  @Roles(Role.ADMIN, Role.STAFF)
   list(@Query('status') status?: string, @Query('userId') userId?: string) {
     const where: Record<string, unknown> = {};
     if (status) {
@@ -69,13 +70,14 @@ export class SubscriptionsAdminController {
   }
 
   @Get(':id')
+  @Roles(Role.ADMIN, Role.STAFF)
   detail(@Param('id') id: string) {
     return this.prisma.subscription.findUniqueOrThrow({
       where: { id },
       include: {
         plan: true,
         user: { select: { id: true, email: true, firstName: true, lastName: true } },
-        account: { include: { server: { select: { id: true, name: true, region: true } } } },
+        account: { include: { server: { select: { id: true, name: true, region: true, hostname: true } } } },
         events: { orderBy: { createdAt: 'desc' }, take: 50 },
       },
     });

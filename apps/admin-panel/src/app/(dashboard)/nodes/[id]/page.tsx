@@ -5,6 +5,7 @@ import { fetchServer } from "../actions";
 import { ApproveServerButton } from "./approve-button";
 import { BootstrapScriptPanel } from "./bootstrap-script-panel";
 import { DirectAdminConfigForm } from "./directadmin-form";
+import { MaintenanceToggle } from "./maintenance-toggle";
 
 export const dynamic = "force-dynamic";
 
@@ -107,6 +108,13 @@ export default async function ServerDetailPage({
 
         {canBootstrap && <BootstrapScriptPanel serverId={server.id} />}
       </section>
+
+      <MaintenanceToggle
+        serverId={server.id}
+        status={server.status}
+        maintenanceReason={server.maintenanceReason}
+        maintenanceStartedAt={server.maintenanceStartedAt}
+      />
 
       <DirectAdminConfigForm
         serverId={server.id}

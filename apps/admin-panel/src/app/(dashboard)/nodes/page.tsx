@@ -145,6 +145,13 @@ function ServerCard({ server }: { server: ServerSummaryDto }) {
           </span>
         </div>
 
+        {server.status === "MAINTENANCE" && server.maintenanceReason ? (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-200">
+            <strong className="text-amber-100">Powód maintenance:</strong>{" "}
+            {server.maintenanceReason}
+          </div>
+        ) : null}
+
         <div className="grid grid-cols-2 gap-3">
           <Stat
             icon={<Cpu className="h-3 w-3" />}

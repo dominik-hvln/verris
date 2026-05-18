@@ -64,3 +64,82 @@ export class RequestInternalMigrationDto {
   notes?: string;
 }
 
+// Sprint 7 / R-MIG-1 — pakietowe zlecenie migracji.
+// Każdy z trzech bloków (FTP, MySQL, IMAP) jest opcjonalny; wymagamy co najmniej
+// jednego (walidacja ręczna w serwisie). Po stronie API enkrypujemy bundle
+// w jednym tokenie, żeby nie zostawić surowego hasła w żadnej tabeli.
+
+import { IsArray, ArrayMaxSize, ValidateNested } from 'class-validator';
+
+export class MigrationFtpSourceDto {
+  @IsString() @MinLength(3) @MaxLength(253)
+  host!: string;
+
+  @Type(() => Number) @IsInt() @Min(1) @Max(65535)
+  port!: number;
+
+  @IsString() @MinLength(1) @MaxLength(128)
+  username!: string;
+
+  @IsString() @MinLength(1) @MaxLength(2048)
+  password!: string;
+
+  @IsOptional() @IsString() @MaxLength(1024)
+  remotePath?: string;
+
+  @IsOptional() @IsString() @MaxLength(16)
+  protocol?: 'ftp' | 'ftps' | 'sftp';
+}
+
+export class MigrationMysqlSourceDto {
+  @IsString() @MinLength(3) @MaxLength(253)
+  host!: string;
+
+  @Type(() => Number) @IsInt() @Min(1) @Max(65535)
+  port!: number;
+
+  @IsString() @MinLength(1) @MaxLength(128)
+  username!: string;
+
+  @IsString() @MinLength(1) @MaxLength(2048)
+  password!: string;
+
+  @IsString() @MinLength(1) @MaxLength(64)
+  database!: string;
+}
+
+export class MigrationImapSourceDto {
+  @IsString() @MinLength(3) @MaxLength(253)
+  host!: string;
+
+  @Type(() => Number) @IsInt() @Min(1) @Max(65535)
+  port!: number;
+
+  @IsString() @MinLength(1) @MaxLength(254)
+  username!: string;
+
+  @IsString() @MinLength(1) @MaxLength(2048)
+  password!: string;
+}
+
+export class CreateMigrationBundleDto {
+  @IsOptional() @IsString() @MinLength(3) @MaxLength(253)
+  targetDomain?: string;
+
+  @IsOptional() @ValidateNested() @Type(() => MigrationFtpSourceDto)
+  ftp?: MigrationFtpSourceDto;
+
+  @IsOptional() @IsArray() @ArrayMaxSize(20)
+  @ValidateNested({ each: true })
+  @Type(() => MigrationMysqlSourceDto)
+  mysql?: MigrationMysqlSourceDto[];
+
+  @IsOptional() @IsArray() @ArrayMaxSize(50)
+  @ValidateNested({ each: true })
+  @Type(() => MigrationImapSourceDto)
+  imap?: MigrationImapSourceDto[];
+
+  @IsOptional() @IsString() @MaxLength(5000)
+  notes?: string;
+}
+

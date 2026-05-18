@@ -6,10 +6,11 @@ import {
   buildMailerProvider,
   type MailerConfig,
 } from './mailer.service';
+import { PrismaModule } from '../prisma/prisma.module';
 
 @Global()
 @Module({
-  imports: [ConfigModule],
+  imports: [ConfigModule, PrismaModule],
   providers: [
     {
       provide: MAILER_PROVIDER,

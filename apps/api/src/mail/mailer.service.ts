@@ -1,8 +1,10 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { EmailCategory, EmailStatus, Prisma } from '@verris/database';
 import { MailMessage, MailerProvider } from './mailer.interface';
 import { LogMailerProvider } from './log-mailer.provider';
 import { SmtpMailerProvider } from './smtp-mailer.provider';
+import { PrismaService } from '../prisma/prisma.service';
 
 export const MAILER_PROVIDER = Symbol('MAILER_PROVIDER');
 
@@ -15,19 +17,34 @@ export interface MailerConfig {
   swallowErrors: boolean;
 }
 
+export interface MailerSendResult {
+  providerId: string;
+  messageId: string | null;
+  /** EmailLog row id (or null jeśli z jakiegoś powodu nie zapisano). */
+  emailLogId: string | null;
+  /** Czy mail został rzeczywiście wysłany do providera. */
+  delivered: boolean;
+  /** Powód `delivered=false` (suppressed: opt-out, anonymized, brak adresu). */
+  suppressedReason?: 'OPTED_OUT' | 'ANONYMIZED' | 'NO_RECIPIENT';
+}
+
 /**
- * E-3: thin facade that exposes a single `send` method to the rest of the
- * app. Decides the active provider at construction time based on env vars:
+ * Sprint 2.6: thin facade z 3 odpowiedzialnościami:
  *
- *   SMTP_HOST + SMTP_PORT + SMTP_USER + SMTP_PASS + SMTP_FROM_ADDRESS
- *     → use SMTP (covers Resend, Postmark, SendGrid, Amazon SES SMTP relay)
+ *  1. **Opt-out enforcement** — dla `category=MARKETING` sprawdza
+ *     `MarketingPreferences` użytkownika. Jeśli user wypisany — zapisuje
+ *     EmailLog ze statusem `SUPPRESSED` i wraca bez wywołania providera.
  *
- *   else
- *     → use the log-only provider (writes to API logs, no actual delivery)
+ *  2. **EmailLog persistence** — przed wysyłką tworzy wpis (`QUEUED`),
+ *     po wysyłce updatuje na `SENT`/`FAILED` z providerId/messageId.
+ *     Każdy mail (transactional + marketing) ma ślad w bazie.
  *
- * The "no SMTP configured" path is intentional — most early-life production
- * deployments don't yet have an MTA and we don't want to crash on startup.
- * Once SMTP is configured, every message goes there.
+ *  3. **List-Unsubscribe injection** — dla `MARKETING` automatycznie
+ *     dokleja header `List-Unsubscribe` (RFC 8058) z URLem do
+ *     `GET /unsubscribe?token=...`. Wymóg deliverability dla Gmail/Outlook.
+ *
+ * Dla TRANSACTIONAL maili pomija opt-out (legal basis: contract performance),
+ * ale nadal zapisuje do EmailLog.
  */
 @Injectable()
 export class MailerService {
@@ -36,22 +53,279 @@ export class MailerService {
   constructor(
     @Inject(MAILER_PROVIDER) private readonly provider: MailerProvider,
     @Inject('MAILER_CONFIG') private readonly config: MailerConfig,
+    private readonly prisma: PrismaService,
+    private readonly cfg: ConfigService,
   ) {
     this.logger.log(`Active provider: ${provider.id}`);
   }
 
-  async send(message: MailMessage): Promise<{ providerId: string; messageId: string | null }> {
+  /**
+   * Główne API. Zwraca pełny `MailerSendResult` (delivered + suppressedReason).
+   * Stara sygnatura `{ providerId, messageId }` pozostaje kompatybilna —
+   * wszystkie istniejące callers nadal kompilują się bez zmian.
+   */
+  async send(message: MailMessage): Promise<MailerSendResult> {
+    if (!message.to) {
+      return {
+        providerId: this.provider.id,
+        messageId: null,
+        emailLogId: null,
+        delivered: false,
+        suppressedReason: 'NO_RECIPIENT',
+      };
+    }
+
+    const category: EmailCategory = (message.category ?? 'TRANSACTIONAL') as EmailCategory;
+
+    // ---- 1. Opt-out / anonymization gate ------------------------------------
+    const gate = await this.evaluateGate(message, category);
+    if (gate.allowed === false) {
+      const log = await this.persistSuppressed(message, category, gate.reason);
+      return {
+        providerId: this.provider.id,
+        messageId: null,
+        emailLogId: log?.id ?? null,
+        delivered: false,
+        suppressedReason: gate.reason,
+      };
+    }
+
+    // ---- 2. List-Unsubscribe injection (MARKETING only) --------------------
+    const enriched = await this.enrichForCategory(message, category);
+
+    // ---- 3. Pre-write EmailLog (status=QUEUED) -----------------------------
+    const log = await this.persistQueued(enriched, category);
+
+    // ---- 4. Provider call --------------------------------------------------
     try {
-      return await this.provider.send(message);
+      const result = await this.provider.send(enriched);
+      await this.markSent(log?.id ?? null, result.providerId, result.messageId);
+      return {
+        providerId: result.providerId,
+        messageId: result.messageId,
+        emailLogId: log?.id ?? null,
+        delivered: true,
+      };
     } catch (err) {
-      this.logger.error(
-        `Mailer failed to deliver to ${message.to}: ${err instanceof Error ? err.message : String(err)}`,
-      );
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Mailer failed to deliver to ${message.to}: ${msg}`);
+      await this.markFailed(log?.id ?? null, msg);
       if (this.config.swallowErrors) {
-        return { providerId: this.provider.id, messageId: null };
+        return {
+          providerId: this.provider.id,
+          messageId: null,
+          emailLogId: log?.id ?? null,
+          delivered: false,
+        };
       }
       throw err;
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Gate & enrichment
+  // ---------------------------------------------------------------------------
+
+  private async evaluateGate(
+    message: MailMessage,
+    category: EmailCategory,
+  ): Promise<
+    | { allowed: true }
+    | { allowed: false; reason: 'OPTED_OUT' | 'ANONYMIZED' | 'NO_RECIPIENT' }
+  > {
+    // 1. user-level resolution. Preferujemy `userId` z message; jeśli brak —
+    //    próbujemy znaleźć po emailu (nie nadgorliwie — tylko jeśli unikalny).
+    let user: {
+      id: string;
+      anonymizedAt: Date | null;
+      marketingPreferences: {
+        marketingEmail: boolean;
+        productUpdatesEmail: boolean;
+      } | null;
+    } | null = null;
+
+    if (message.userId) {
+      user = await this.prisma.user.findUnique({
+        where: { id: message.userId },
+        select: {
+          id: true,
+          anonymizedAt: true,
+          marketingPreferences: {
+            select: { marketingEmail: true, productUpdatesEmail: true },
+          },
+        },
+      });
+    } else {
+      // Best effort — wyszukanie po email. Rzadko używane (większość maili
+      // dziś ma userId), ale ułatwia future workflow z guest-emailami.
+      user = await this.prisma.user.findUnique({
+        where: { email: message.to },
+        select: {
+          id: true,
+          anonymizedAt: true,
+          marketingPreferences: {
+            select: { marketingEmail: true, productUpdatesEmail: true },
+          },
+        },
+      });
+    }
+
+    // 2. Anonymized = nie wysyłamy nic, nawet TRANSACTIONAL (konto martwe).
+    if (user && user.anonymizedAt) {
+      return { allowed: false, reason: 'ANONYMIZED' };
+    }
+
+    // 3. MARKETING — sprawdź preferences. TRANSACTIONAL przechodzi zawsze.
+    if (category === 'MARKETING') {
+      // Brak preferences = treat as opt-out (privacy-by-default).
+      if (!user || !user.marketingPreferences) {
+        return { allowed: false, reason: 'OPTED_OUT' };
+      }
+      const prefs = user.marketingPreferences;
+      // `productUpdatesEmail` traktujemy jako alternatywny opt-in dla
+      // newsletterów typu "co nowego". Dla generic newslettera używamy
+      // `marketingEmail`. Konkretną klasyfikację robi caller (campaign segment).
+      if (!prefs.marketingEmail && !prefs.productUpdatesEmail) {
+        return { allowed: false, reason: 'OPTED_OUT' };
+      }
+    }
+
+    return { allowed: true };
+  }
+
+  private async enrichForCategory(
+    message: MailMessage,
+    category: EmailCategory,
+  ): Promise<MailMessage> {
+    if (category !== 'MARKETING') return message;
+    if (message.listUnsubscribeUrl) return message;
+
+    // Wyciągnij token unsubscribe — jeśli mamy userId.
+    const userId = message.userId;
+    if (!userId) return message;
+
+    const prefs = await this.prisma.marketingPreferences.findUnique({
+      where: { userId },
+      select: { unsubscribeToken: true },
+    });
+    if (!prefs?.unsubscribeToken) return message;
+
+    const apiBaseUrl =
+      this.cfg.get<string>('PUBLIC_API_URL') ??
+      this.cfg.get<string>('API_BASE_URL') ??
+      'https://api.verris.pl';
+    const url = `${apiBaseUrl}/unsubscribe?token=${encodeURIComponent(prefs.unsubscribeToken)}`;
+    return { ...message, listUnsubscribeUrl: url };
+  }
+
+  // ---------------------------------------------------------------------------
+  // EmailLog persistence helpers
+  // ---------------------------------------------------------------------------
+
+  private async resolveUserId(message: MailMessage): Promise<string | null> {
+    if (message.userId) return message.userId;
+    const u = await this.prisma.user.findUnique({
+      where: { email: message.to },
+      select: { id: true },
+    });
+    return u?.id ?? null;
+  }
+
+  private async persistQueued(
+    message: MailMessage,
+    category: EmailCategory,
+  ): Promise<{ id: string } | null> {
+    try {
+      const userId = await this.resolveUserId(message);
+      const row = await this.prisma.emailLog.create({
+        data: {
+          toEmail: message.to,
+          userId,
+          category,
+          tag: message.tag ?? null,
+          subject: message.subject.slice(0, 512),
+          status: EmailStatus.QUEUED,
+          campaignId: message.campaignId ?? null,
+          metadata: this.buildMetadata(message),
+        },
+        select: { id: true },
+      });
+      return row;
+    } catch (err) {
+      this.logger.warn(`EmailLog persist (queued) failed: ${(err as Error).message}`);
+      return null;
+    }
+  }
+
+  private async persistSuppressed(
+    message: MailMessage,
+    category: EmailCategory,
+    reason: 'OPTED_OUT' | 'ANONYMIZED' | 'NO_RECIPIENT',
+  ): Promise<{ id: string } | null> {
+    try {
+      const userId = await this.resolveUserId(message);
+      return await this.prisma.emailLog.create({
+        data: {
+          toEmail: message.to || '(missing)',
+          userId,
+          category,
+          tag: message.tag ?? null,
+          subject: message.subject.slice(0, 512),
+          status: EmailStatus.SUPPRESSED,
+          providerId: this.provider.id,
+          campaignId: message.campaignId ?? null,
+          metadata: { ...this.buildMetadata(message), suppressedReason: reason },
+        },
+        select: { id: true },
+      });
+    } catch (err) {
+      this.logger.warn(`EmailLog persist (suppressed) failed: ${(err as Error).message}`);
+      return null;
+    }
+  }
+
+  private async markSent(
+    logId: string | null,
+    providerId: string,
+    messageId: string | null,
+  ): Promise<void> {
+    if (!logId) return;
+    try {
+      await this.prisma.emailLog.update({
+        where: { id: logId },
+        data: {
+          status: EmailStatus.SENT,
+          providerId,
+          messageId,
+          sentAt: new Date(),
+        },
+      });
+    } catch (err) {
+      this.logger.warn(`EmailLog markSent failed: ${(err as Error).message}`);
+    }
+  }
+
+  private async markFailed(logId: string | null, errorMessage: string): Promise<void> {
+    if (!logId) return;
+    try {
+      await this.prisma.emailLog.update({
+        where: { id: logId },
+        data: {
+          status: EmailStatus.FAILED,
+          providerId: this.provider.id,
+          errorMessage: errorMessage.slice(0, 1024),
+        },
+      });
+    } catch (err) {
+      this.logger.warn(`EmailLog markFailed failed: ${(err as Error).message}`);
+    }
+  }
+
+  private buildMetadata(message: MailMessage): Prisma.JsonObject {
+    const meta: Prisma.JsonObject = {};
+    if (message.replyTo) meta.replyTo = message.replyTo;
+    if (message.listUnsubscribeUrl) meta.listUnsubscribeUrl = message.listUnsubscribeUrl;
+    return meta;
   }
 }
 
@@ -64,21 +338,48 @@ export function buildMailerProvider(config: ConfigService): MailerProvider {
     config.get<string>('SMTP_FROM_ADDRESS') || process.env.SMTP_FROM_ADDRESS || '';
   const fromName =
     config.get<string>('SMTP_FROM_NAME') || process.env.SMTP_FROM_NAME || 'Verris';
-  const secure =
-    (config.get<string>('SMTP_SECURE') || process.env.SMTP_SECURE || 'starttls') === 'tls'
-      ? 'tls'
-      : 'starttls';
 
-  if (host && port > 0 && username && password && fromAddress) {
-    return new SmtpMailerProvider({
-      host,
-      port,
-      username,
-      password,
-      fromAddress,
-      fromName,
-      secure,
-    });
+  if (!host || port <= 0 || !fromAddress) {
+    // No host / port / from → cannot construct a working SMTP. Fall back to
+    // log-only provider so dev environments don't crash on startup.
+    return new LogMailerProvider();
   }
-  return new LogMailerProvider();
+
+  // Auto-detect "panel-local relay" (Postfix on the same host as the API).
+  // For localhost we default to plain TCP, no AUTH — explicit env vars can
+  // override this if the operator runs Postfix with submission/AUTH on
+  // localhost (rare).
+  const isLocalRelay =
+    host === 'localhost' ||
+    host === '127.0.0.1' ||
+    host === '::1' ||
+    /^localhost\.localdomain$/i.test(host);
+
+  const secureRaw = (config.get<string>('SMTP_SECURE') || process.env.SMTP_SECURE || '').toLowerCase();
+  const secure: 'tls' | 'starttls' | 'none' =
+    secureRaw === 'tls'
+      ? 'tls'
+      : secureRaw === 'none'
+        ? 'none'
+        : secureRaw === 'starttls'
+          ? 'starttls'
+          : isLocalRelay
+            ? 'none'
+            : 'starttls';
+
+  // External relay must have credentials; refusing to construct prevents
+  // AUTH-less submission to a public MTA (which would 530 anyway).
+  if (!isLocalRelay && (!username || !password)) {
+    return new LogMailerProvider();
+  }
+
+  return new SmtpMailerProvider({
+    host,
+    port,
+    username,
+    password,
+    fromAddress,
+    fromName,
+    secure,
+  });
 }

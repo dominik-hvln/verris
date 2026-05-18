@@ -18,6 +18,17 @@ import { Role } from '@verris/database';
 import { InitServerDto } from './dto/init-server.dto';
 import { UpdateServerDto } from './dto/update-server.dto';
 import { UpdateDirectAdminConfigDto } from './dto/directadmin-config.dto';
+import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
+
+class MaintenanceModeDto {
+  @IsBoolean()
+  enable!: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string;
+}
 
 @Controller('admin/servers')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -85,5 +96,21 @@ export class ServersAdminController {
   @Post(':id/directadmin/test')
   testDirectAdmin(@Param('id') id: string) {
     return this.servers.testDirectAdmin(id);
+  }
+
+  /**
+   * Sprint 4 / A-08 — toggle maintenance mode (audytowany, blokuje
+   * NodeSelector przy nowych provisioningach).
+   */
+  @Post(':id/maintenance')
+  setMaintenance(
+    @Param('id') id: string,
+    @Body() dto: MaintenanceModeDto,
+    @CurrentUser() user: { userId: string },
+  ) {
+    return this.servers.setMaintenanceMode(id, user.userId, {
+      enable: dto.enable,
+      reason: dto.reason,
+    });
   }
 }

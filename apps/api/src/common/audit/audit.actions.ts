@@ -1,0 +1,165 @@
+/**
+ * Centralized list of audit log action codes.
+ *
+ * `AuditLog.action` is a free-form `String` in the DB schema, but in code we
+ * keep all known action codes here so admin panel filters and analytics can
+ * group them by category. Adding a new action = adding a constant here +
+ * extending the `RODO_ACTIONS` / `SECURITY_ACTIONS` etc. set if relevant.
+ */
+
+// ---------------------------------------------------------------------------
+// RODO / GDPR (Sprint 1)
+// ---------------------------------------------------------------------------
+
+export const RodoActions = {
+  CONSENT_GRANTED: 'CONSENT_GRANTED',
+  CONSENT_WITHDRAWN: 'CONSENT_WITHDRAWN',
+  RE_CONSENT_GRANTED: 'RE_CONSENT_GRANTED',
+
+  MARKETING_OPT_IN: 'MARKETING_OPT_IN',
+  MARKETING_OPT_OUT: 'MARKETING_OPT_OUT',
+
+  DATA_EXPORT_REQUESTED: 'DATA_EXPORT_REQUESTED',
+  DATA_EXPORT_GENERATED: 'DATA_EXPORT_GENERATED',
+  DATA_EXPORT_DOWNLOADED: 'DATA_EXPORT_DOWNLOADED',
+  DATA_EXPORT_EXPIRED: 'DATA_EXPORT_EXPIRED',
+  DATA_EXPORT_FAILED: 'DATA_EXPORT_FAILED',
+
+  ACCOUNT_DELETION_REQUESTED: 'ACCOUNT_DELETION_REQUESTED',
+  ACCOUNT_DELETION_CANCELLED: 'ACCOUNT_DELETION_CANCELLED',
+  ACCOUNT_ANONYMIZED: 'ACCOUNT_ANONYMIZED',
+  /** DirectAdmin-side hard purge of a hosting account (30 days post-anon). */
+  ACCOUNT_DA_PURGED: 'ACCOUNT_DA_PURGED',
+
+  LEGAL_DOC_VERSION_PUBLISHED: 'LEGAL_DOC_VERSION_PUBLISHED',
+  LEGAL_DOC_VERSION_RETIRED: 'LEGAL_DOC_VERSION_RETIRED',
+
+  /** B2B clients accepting the current DPA version. */
+  DPA_ACCEPTED: 'DPA_ACCEPTED',
+  /** Successful issuance of a downloadable signed DPA PDF. */
+  DPA_PDF_GENERATED: 'DPA_PDF_GENERATED',
+
+  ADMIN_FORCED_DATA_EXPORT: 'ADMIN_FORCED_DATA_EXPORT',
+  ADMIN_FORCED_ACCOUNT_ANONYMIZED: 'ADMIN_FORCED_ACCOUNT_ANONYMIZED',
+
+  RETENTION_PURGE: 'RETENTION_PURGE',
+} as const;
+
+export type RodoAction = (typeof RodoActions)[keyof typeof RodoActions];
+
+/**
+ * Set of all RODO action codes. Used by admin panel filter
+ * `?category=RODO` to scope the audit log view.
+ */
+export const RODO_ACTION_SET: ReadonlySet<string> = new Set(Object.values(RodoActions));
+
+export function isRodoAction(action: string): boolean {
+  return RODO_ACTION_SET.has(action);
+}
+
+// ---------------------------------------------------------------------------
+// Support / BOK (Sprint 3)
+// ---------------------------------------------------------------------------
+
+export const SupportActions = {
+  /** Staff/admin uruchomił diagnostykę DNS+TLS z profilu klienta. */
+  STAFF_DNS_TLS_DIAGNOSTIC: 'STAFF_DNS_TLS_DIAGNOSTIC',
+} as const;
+
+// ---------------------------------------------------------------------------
+// Admin operacyjny (Sprint 4)
+// ---------------------------------------------------------------------------
+
+export const AdminCustomerActions = {
+  CUSTOMER_LOGIN_BLOCK_UPDATED: 'ADMIN_CUSTOMER_LOGIN_BLOCK_UPDATED',
+  CUSTOMER_INTERNAL_NOTE_UPDATED: 'ADMIN_CUSTOMER_INTERNAL_NOTE_UPDATED',
+  CUSTOMER_EMAIL_CHANGED: 'ADMIN_CUSTOMER_EMAIL_CHANGED',
+  CUSTOMER_PASSWORD_RESET_BY_ADMIN: 'ADMIN_CUSTOMER_PASSWORD_RESET_BY_ADMIN',
+  CUSTOMER_GRAFANA_ACCESS_TOGGLED: 'ADMIN_CUSTOMER_GRAFANA_ACCESS_TOGGLED',
+} as const;
+
+/**
+ * Akcje powiązane z planami produktowymi i Stripe Price IDs (Sprint 4 / R-05).
+ */
+export const AdminPlanActions = {
+  PLAN_CREATED: 'PLAN_CREATED',
+  PLAN_UPDATED: 'PLAN_UPDATED',
+  PLAN_DEACTIVATED: 'PLAN_DEACTIVATED',
+} as const;
+
+/**
+ * Akcje powiązane z fakturowaniem widziane od strony admina (Sprint 4 / R-10).
+ */
+export const AdminInvoiceActions = {
+  INVOICE_PDF_DOWNLOADED_BY_ADMIN: 'ADMIN_INVOICE_PDF_DOWNLOADED',
+  INVOICES_CSV_EXPORTED: 'ADMIN_INVOICES_CSV_EXPORTED',
+} as const;
+
+/**
+ * Akcje powiązane z infrastrukturą węzłów (maintenance mode, A-08).
+ */
+export const AdminNodeActions = {
+  NODE_MAINTENANCE_MODE_TOGGLED: 'ADMIN_NODE_MAINTENANCE_MODE_TOGGLED',
+  MAINTENANCE_WINDOW_CREATED: 'ADMIN_MAINTENANCE_WINDOW_CREATED',
+  MAINTENANCE_WINDOW_UPDATED: 'ADMIN_MAINTENANCE_WINDOW_UPDATED',
+  STATUS_WEBHOOK_ENDPOINT_CREATED: 'ADMIN_STATUS_WEBHOOK_ENDPOINT_CREATED',
+  STATUS_WEBHOOK_ENDPOINT_UPDATED: 'ADMIN_STATUS_WEBHOOK_ENDPOINT_UPDATED',
+} as const;
+
+export const ProvisioningActions = {
+  PROVISIONING_JOB_QUEUED: 'PROVISIONING_JOB_QUEUED',
+  PROVISIONING_JOB_STARTED: 'PROVISIONING_JOB_STARTED',
+  PROVISIONING_JOB_RETRYING: 'PROVISIONING_JOB_RETRYING',
+  PROVISIONING_JOB_FAILED: 'PROVISIONING_JOB_FAILED',
+  PROVISIONING_JOB_COMPLETED: 'PROVISIONING_JOB_COMPLETED',
+  PROVISIONING_JOB_RETRIED_BY_ADMIN: 'PROVISIONING_JOB_RETRIED_BY_ADMIN',
+} as const;
+
+export const MigrationActions = {
+  MIGRATION_BUNDLE_QUEUED: 'MIGRATION_BUNDLE_QUEUED',
+  MIGRATION_BUNDLE_PICKED_UP: 'MIGRATION_BUNDLE_PICKED_UP',
+  MIGRATION_SECRETS_REVEALED: 'MIGRATION_SECRETS_REVEALED',
+  MIGRATION_WORKER_JOB_QUEUED: 'MIGRATION_WORKER_JOB_QUEUED',
+  MIGRATION_WORKER_JOB_STARTED: 'MIGRATION_WORKER_JOB_STARTED',
+  MIGRATION_WORKER_JOB_COMPLETED: 'MIGRATION_WORKER_JOB_COMPLETED',
+  MIGRATION_WORKER_JOB_FAILED: 'MIGRATION_WORKER_JOB_FAILED',
+  MIGRATION_POST_CHECK_COMPLETED: 'MIGRATION_POST_CHECK_COMPLETED',
+} as const;
+
+export const TicketOpsActions = {
+  TICKET_SLA_UPDATED: 'TICKET_SLA_UPDATED',
+  TICKET_ESCALATED: 'TICKET_ESCALATED',
+  TICKET_RUNBOOK_APPLIED: 'TICKET_RUNBOOK_APPLIED',
+  CUSTOMER_RISK_FLAG_UPDATED: 'CUSTOMER_RISK_FLAG_UPDATED',
+} as const;
+
+export const ProductOpsActions = {
+  FEATURE_FLAG_CREATED: 'FEATURE_FLAG_CREATED',
+  FEATURE_FLAG_UPDATED: 'FEATURE_FLAG_UPDATED',
+  FEATURE_FLAG_OVERRIDE_SET: 'FEATURE_FLAG_OVERRIDE_SET',
+  FEATURE_FLAG_PLAN_OVERRIDE_SET: 'FEATURE_FLAG_PLAN_OVERRIDE_SET',
+  PRODUCT_ANNOUNCEMENT_CREATED: 'PRODUCT_ANNOUNCEMENT_CREATED',
+  PRODUCT_ANNOUNCEMENT_PUBLISHED: 'PRODUCT_ANNOUNCEMENT_PUBLISHED',
+  INCIDENT_COMPOSER_PUBLISHED: 'INCIDENT_COMPOSER_PUBLISHED',
+  DOMAIN_ASSISTANT_CHECK_RUN: 'DOMAIN_ASSISTANT_CHECK_RUN',
+  BACKUP_RESTORE_PREVIEW_GENERATED: 'BACKUP_RESTORE_PREVIEW_GENERATED',
+} as const;
+
+/**
+ * Pełny zbiór akcji administracyjnych użyty przez audit viewer (filtr
+ * `?category=ADMIN_OPS`).
+ */
+export const ADMIN_OPS_ACTION_SET: ReadonlySet<string> = new Set([
+  ...Object.values(AdminCustomerActions),
+  ...Object.values(AdminPlanActions),
+  ...Object.values(AdminInvoiceActions),
+  ...Object.values(AdminNodeActions),
+  ...Object.values(ProvisioningActions),
+  ...Object.values(MigrationActions),
+  ...Object.values(TicketOpsActions),
+  ...Object.values(ProductOpsActions),
+]);
+
+export function isAdminOpsAction(action: string): boolean {
+  return ADMIN_OPS_ACTION_SET.has(action);
+}

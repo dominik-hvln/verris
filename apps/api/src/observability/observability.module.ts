@@ -1,9 +1,10 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MetricsService } from './metrics.service';
 import { MetricsController } from './metrics.controller';
 import { GrafanaAuthController } from './grafana-auth.controller';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { GrafanaAuthController } from './grafana-auth.controller';
         },
       }),
     }),
+    forwardRef(() => SubscriptionsModule),
   ],
   providers: [MetricsService],
   controllers: [MetricsController, GrafanaAuthController],

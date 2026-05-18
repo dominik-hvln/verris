@@ -14,7 +14,9 @@ import { Role } from '@verris/database';
 import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { Roles } from '../decorators/roles.decorator';
-import { AuditService, AuditLogWithUsers } from './audit.service';
+import { AuditService, AuditCategory, AuditLogWithUsers, AUDIT_CATEGORIES } from './audit.service';
+
+const VALID_CATEGORIES = new Set<string>(Object.values(AUDIT_CATEGORIES));
 
 @Controller('admin/audit-logs')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -30,6 +32,7 @@ export class AuditAdminController {
     @Query('from') from?: string,
     @Query('to') to?: string,
     @Query('search') search?: string,
+    @Query('category') category?: string,
     @Query('limit', new ParseIntPipe({ optional: true })) limit?: number,
     @Query('offset', new ParseIntPipe({ optional: true })) offset?: number,
   ) {
@@ -40,6 +43,7 @@ export class AuditAdminController {
       search,
       from: parseDate(from),
       to: parseDate(to),
+      category: parseCategory(category),
       limit,
       offset,
     });
@@ -56,6 +60,7 @@ export class AuditAdminController {
     @Query('from') from?: string,
     @Query('to') to?: string,
     @Query('search') search?: string,
+    @Query('category') category?: string,
   ) {
     const audit = this.audit;
     const filters = {
@@ -65,6 +70,7 @@ export class AuditAdminController {
       search,
       from: parseDate(from),
       to: parseDate(to),
+      category: parseCategory(category),
     };
 
     // Stream to keep memory bounded — auditLog is unbounded by design and we
@@ -97,6 +103,12 @@ function parseDate(value?: string): Date | undefined {
   if (!value) return undefined;
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? undefined : parsed;
+}
+
+function parseCategory(value?: string): AuditCategory | undefined {
+  if (!value) return undefined;
+  const upper = value.toUpperCase();
+  return VALID_CATEGORIES.has(upper) ? (upper as AuditCategory) : undefined;
 }
 
 function csvRow(fields: (string | number | null | undefined)[]): string {

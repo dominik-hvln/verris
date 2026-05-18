@@ -67,7 +67,7 @@ export function AutoscalingForm({
       <div>
         <label className="block">
           <span className="text-xs font-bold uppercase tracking-widest text-neutral-500">
-            Limit miesięczny (PLN)
+            Limit miesięczny (K)
           </span>
           <input
             type="number"
@@ -82,9 +82,9 @@ export function AutoscalingForm({
           />
         </label>
         <p className="mt-2 text-[11px] text-neutral-500">
-          Po przekroczeniu kwoty silnik nie zwiększy więcej zasobów do końca okresu
-          rozliczeniowego — w razie skoku Twoja strona zwolni, ale nie wygenerujesz
-          większych kosztów.
+          Po przekroczeniu liczby kredytów (1 zł = 1 K) silnik nie zwiększy więcej zasobów
+          do końca okresu rozliczeniowego — w razie skoku strona zwolni, ale nie
+          wygenerujesz dodatkowych kosztów.
         </p>
       </div>
 

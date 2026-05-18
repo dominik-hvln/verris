@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { adminApi, AdminApiError } from "@/lib/api";
 
@@ -46,4 +47,138 @@ export async function impersonateUserAction(
   url.searchParams.set("returnTo", "/dashboard");
   url.searchParams.set("operator", "admin");
   redirect(url.toString());
+}
+
+interface AdminCreditWalletInput {
+  userId: string;
+  amount: string;
+  description?: string;
+}
+
+export interface AdminCreditWalletResult {
+  ok: boolean;
+  error?: string;
+  amount?: string;
+}
+
+/**
+ * Manualne uznanie portfela klienta przez admina. Backend (`POST
+ * /admin/billing/wallet/credit`) waliduje kwotę 0..100000, tworzy wpis w
+ * `WalletTransaction` typu `ADJUSTMENT` z `paymentProvider=MANUAL`,
+ * audyt `WALLET_ADMIN_CREDIT` i wysyła klientowi maila z naszym shellem.
+ *
+ * Klient w panelu zobaczy operację jako "Uznanie od Verris" wraz z reason'em
+ * podanym przez admina.
+ */
+export async function adminCreditWalletAction(
+  input: AdminCreditWalletInput,
+): Promise<AdminCreditWalletResult> {
+  const amount = Number.parseFloat(input.amount.replace(",", "."));
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return { ok: false, error: "Podaj prawidłową kwotę większą od 0." };
+  }
+  if (amount > 100000) {
+    return { ok: false, error: "Maksymalna kwota uznania to 100 000 K." };
+  }
+
+  try {
+    await adminApi(`/admin/billing/wallet/credit`, {
+      method: "POST",
+      body: {
+        userId: input.userId,
+        amount,
+        description: input.description?.trim() || undefined,
+        idempotencyKey: `admin-credit:${input.userId}:${Date.now()}`,
+      },
+    });
+  } catch (err) {
+    if (err instanceof AdminApiError) {
+      return { ok: false, error: err.message };
+    }
+    return {
+      ok: false,
+      error: "Nie udało się przyznać kredytów — sprawdź logi API.",
+    };
+  }
+
+  revalidatePath("/customers");
+  return { ok: true, amount: amount.toFixed(2) };
+}
+
+export interface ActionResultOk {
+  ok: true;
+}
+
+export interface ActionResultErr {
+  ok: false;
+  error: string;
+}
+
+export async function patchCustomerOperationalAction(
+  userId: string,
+  input: {
+    loginBlocked?: boolean;
+    loginBlockedReason?: string | null;
+    adminInternalNote?: string | null;
+  },
+): Promise<ActionResultOk | ActionResultErr> {
+  try {
+    await adminApi(`/admin/users/${userId}/operational`, {
+      method: "PATCH",
+      body: input,
+    });
+  } catch (err) {
+    if (err instanceof AdminApiError) {
+      return { ok: false, error: err.message };
+    }
+    return { ok: false, error: "Nie udało się zapisać ustawień." };
+  }
+  revalidatePath("/customers");
+  revalidatePath(`/customers/${userId}`);
+  return { ok: true };
+}
+
+export async function changeCustomerEmailAction(
+  userId: string,
+  newEmail: string,
+  reason?: string,
+): Promise<ActionResultOk | ActionResultErr> {
+  try {
+    await adminApi(`/admin/users/${userId}/email`, {
+      method: "POST",
+      body: { newEmail: newEmail.trim(), reason: reason?.trim() || undefined },
+    });
+  } catch (err) {
+    if (err instanceof AdminApiError) {
+      return { ok: false, error: err.message };
+    }
+    return { ok: false, error: "Nie udało się zmienić adresu e-mail." };
+  }
+  revalidatePath("/customers");
+  revalidatePath(`/customers/${userId}`);
+  return { ok: true };
+}
+
+export async function resetCustomerPasswordAction(
+  userId: string,
+  notifyUser: boolean,
+  reason?: string,
+): Promise<
+  | { ok: true; temporaryPassword: string }
+  | ActionResultErr
+> {
+  try {
+    const res = await adminApi<{ temporaryPassword: string }>(`/admin/users/${userId}/reset-password`, {
+      method: "POST",
+      body: { notifyUser, reason: reason?.trim() || undefined },
+    });
+    revalidatePath("/customers");
+    revalidatePath(`/customers/${userId}`);
+    return { ok: true, temporaryPassword: res.temporaryPassword };
+  } catch (err) {
+    if (err instanceof AdminApiError) {
+      return { ok: false, error: err.message };
+    }
+    return { ok: false, error: "Nie udało się zresetować hasła." };
+  }
 }

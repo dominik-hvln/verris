@@ -19,10 +19,18 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { WalletLedgerService } from '../billing/wallet-ledger.service';
 import { StripeService } from '../billing/stripe/stripe.service';
+import { getInvoiceClientSecret, getSubscriptionPeriod } from '../billing/stripe/stripe.client';
 import { DirectAdminService } from '../servers/directadmin.service';
 import { ProvisioningService, ProvisionResult } from './provisioning.service';
 import { ProvisioningQueueService } from './provisioning-queue.service';
 import { UpdateSubscriptionPreferencesDto, CreateSubscriptionDto } from './dto/subscription.dto';
+import { ConfigService } from '@nestjs/config';
+import { MailerService } from '../mail/mailer.service';
+import {
+  subscriptionSuspendedTemplate,
+  subscriptionCancelledTemplate,
+} from '../mail/templates/billing-lifecycle-notifications';
+import { accountSuspendedPaymentTemplate } from '../mail/templates/hosting-notifications';
 
 export type SuspendReason =
   | 'PAYMENT_FAILED'
@@ -74,6 +82,8 @@ export class SubscriptionsService {
     private readonly provisioning: ProvisioningService,
     private readonly provisionQueue: ProvisioningQueueService,
     private readonly da: DirectAdminService,
+    private readonly mailer: MailerService,
+    private readonly config: ConfigService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -373,7 +383,51 @@ export class SubscriptionsService {
       },
     });
 
+    // Account-level email — we send `account-suspended-payment` only when
+    // the cause is non-payment (most common). Manual admin / abuse cases
+    // get separate communication paths and don't blast a generic email.
+    if (
+      subscription.account &&
+      (opts.reason === 'GRACE_EXPIRED' || opts.reason === 'PAYMENT_FAILED')
+    ) {
+      void this.notifyAccountSuspendedPayment({
+        userId: subscription.userId,
+        domain: subscription.account.domain,
+        suspendedAt: new Date(),
+      }).catch((err) => {
+        this.logger.warn(
+          `notifyAccountSuspendedPayment failed for sub=${subscription.id}: ${
+            (err as Error).message
+          }`,
+        );
+      });
+    }
+
     return updated;
+  }
+
+  private async notifyAccountSuspendedPayment(opts: {
+    userId: string;
+    domain: string;
+    suspendedAt: Date;
+  }): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: opts.userId },
+      select: { email: true, firstName: true, anonymizedAt: true },
+    });
+    if (!user || user.anonymizedAt) return;
+
+    const panelUrl = this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl';
+    const hardDeleteAt = new Date(opts.suspendedAt.getTime() + 30 * 24 * 60 * 60 * 1000);
+    const message = accountSuspendedPaymentTemplate({
+      to: user.email,
+      firstName: user.firstName,
+      domain: opts.domain,
+      suspendedAt: opts.suspendedAt,
+      hardDeleteAt,
+      panelUrl,
+    });
+    await this.mailer.send(message);
   }
 
   /**
@@ -793,12 +847,16 @@ export class SubscriptionsService {
       },
     });
 
+    // Basil+: billing periods come from `items.data[0]`. Helper handles
+    // pre-Basil fallback for transitional accounts.
+    const period = getSubscriptionPeriod(stripeSub);
+
     const updated = await this.prisma.subscription.update({
       where: { id: subscriptionId },
       data: {
         stripeSubscriptionId: stripeSub.id,
-        currentPeriodStart: new Date(stripeSub.current_period_start * 1000),
-        currentPeriodEnd: new Date(stripeSub.current_period_end * 1000),
+        currentPeriodStart: new Date(period.start * 1000),
+        currentPeriodEnd: new Date(period.end * 1000),
       },
     });
 
@@ -807,10 +865,10 @@ export class SubscriptionsService {
     const latest = stripeSub.latest_invoice;
     if (latest && typeof latest !== 'string') {
       checkoutRedirectUrl = latest.hosted_invoice_url ?? undefined;
-      const intent = latest.payment_intent;
-      if (intent && typeof intent !== 'string') {
-        paymentIntentClientSecret = intent.client_secret ?? undefined;
-      }
+      // Basil+: prefer `latest_invoice.confirmation_secret.client_secret`,
+      // fall back to legacy `payment_intent.client_secret`. Helper picks the
+      // right path based on which fields the API returned.
+      paymentIntentClientSecret = getInvoiceClientSecret(latest) ?? undefined;
     }
 
     await this.audit.record({
@@ -1167,7 +1225,85 @@ export class SubscriptionsService {
         stripeSubscriptionId: opts.stripeSubscriptionId,
       },
     });
+
+    // Stripe `customer.subscription.deleted` arrives in two distinct cases:
+    //   (a) user explicitly cancelled (Stripe dashboard or our cancel flow),
+    //   (b) Smart Retries exhausted → Stripe suspended on its own.
+    // Heuristic: if the previous DB status was PAST_DUE, this is (b) — the
+    // customer's payment kept failing and Stripe gave up. We send the
+    // "suspended" email instead of "cancelled" so the wording matches the
+    // operational reality (and the customer knows they can still revive).
+    const wasPaymentFailure = sub.status === SubscriptionStatus.PAST_DUE;
+    void this.notifySubscriptionEnded({
+      userId: sub.userId,
+      subscriptionId: sub.id,
+      cancelledAt: now,
+      effectiveUntil: sub.currentPeriodEnd ?? now,
+      wasPaymentFailure,
+      userInitiated: !wasPaymentFailure,
+    }).catch((err) => {
+      this.logger.warn(
+        `notifySubscriptionEnded failed for sub=${sub.id}: ${(err as Error).message}`,
+      );
+    });
+
     return updated;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Email notifications (Sprint 2.1)
+  // ---------------------------------------------------------------------------
+
+  private async notifySubscriptionEnded(opts: {
+    userId: string;
+    subscriptionId: string;
+    cancelledAt: Date;
+    effectiveUntil: Date;
+    wasPaymentFailure: boolean;
+    userInitiated: boolean;
+  }): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: opts.userId },
+      select: { email: true, firstName: true, anonymizedAt: true },
+    });
+    if (!user || user.anonymizedAt) return;
+
+    const sub = await this.prisma.subscription.findUnique({
+      where: { id: opts.subscriptionId },
+      select: {
+        plan: { select: { name: true } },
+        account: { select: { domain: true } },
+      },
+    });
+    const planName = sub?.plan?.name ?? 'Hosting Verris';
+    const serviceName = sub?.account?.domain ? `${planName} (${sub.account.domain})` : planName;
+
+    const panelUrl = this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl';
+    // Data retention: 30 days after the service stops working.
+    const dataDeletedAt = new Date(opts.effectiveUntil.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+    const message = opts.wasPaymentFailure
+      ? subscriptionSuspendedTemplate({
+          to: user.email,
+          firstName: user.firstName,
+          serviceName,
+          suspendedAt: opts.cancelledAt,
+          dataDeletedAt,
+          paymentUpdateUrl: `${panelUrl}/dashboard/billing`,
+          panelUrl,
+        })
+      : subscriptionCancelledTemplate({
+          to: user.email,
+          firstName: user.firstName,
+          serviceName,
+          cancelledAt: opts.cancelledAt,
+          effectiveUntil: opts.effectiveUntil,
+          dataDeletedAt,
+          userInitiated: opts.userInitiated,
+          panelUrl,
+        });
+
+    await this.mailer.send(message);
   }
 }
 

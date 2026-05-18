@@ -7,10 +7,16 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CryptoService } from '../../common/crypto/crypto.service';
 import { AuditService } from '../../common/audit/audit.service';
 import { TotpService } from './totp.service';
+import { MailerService } from '../../mail/mailer.service';
+import {
+  twoFactorEnabledTemplate,
+  twoFactorDisabledTemplate,
+} from '../../mail/templates/security-notifications';
 
 const ISSUER = 'Verris';
 
@@ -28,6 +34,8 @@ export class TwoFactorService {
     private readonly crypto: CryptoService,
     private readonly audit: AuditService,
     private readonly totp: TotpService,
+    private readonly mailer: MailerService,
+    private readonly config: ConfigService,
   ) {}
 
   /**
@@ -99,6 +107,17 @@ export class TwoFactorService {
       ipAddress: ip,
     });
 
+    void this.notifyTwoFactorEnabled({
+      to: user.email,
+      firstName: user.firstName,
+      enrolledAt: new Date(),
+      recoveryCodes,
+    }).catch((err) => {
+      this.logger.warn(
+        `notifyTwoFactorEnabled failed for user=${userId}: ${(err as Error).message}`,
+      );
+    });
+
     return { recoveryCodes };
   }
 
@@ -148,6 +167,50 @@ export class TwoFactorService {
       actorUserId: opts.userId,
       ipAddress: opts.ip,
     });
+
+    void this.notifyTwoFactorDisabled({
+      to: user.email,
+      firstName: user.firstName,
+      disabledAt: new Date(),
+    }).catch((err) => {
+      this.logger.warn(
+        `notifyTwoFactorDisabled failed for user=${opts.userId}: ${
+          (err as Error).message
+        }`,
+      );
+    });
+  }
+
+  private async notifyTwoFactorEnabled(opts: {
+    to: string;
+    firstName: string | null;
+    enrolledAt: Date;
+    recoveryCodes: string[];
+  }): Promise<void> {
+    const panelUrl = this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl';
+    const message = twoFactorEnabledTemplate({
+      to: opts.to,
+      firstName: opts.firstName,
+      enrolledAt: opts.enrolledAt,
+      recoveryCodes: opts.recoveryCodes,
+      panelUrl,
+    });
+    await this.mailer.send(message);
+  }
+
+  private async notifyTwoFactorDisabled(opts: {
+    to: string;
+    firstName: string | null;
+    disabledAt: Date;
+  }): Promise<void> {
+    const panelUrl = this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl';
+    const message = twoFactorDisabledTemplate({
+      to: opts.to,
+      firstName: opts.firstName,
+      disabledAt: opts.disabledAt,
+      panelUrl,
+    });
+    await this.mailer.send(message);
   }
 
   /**

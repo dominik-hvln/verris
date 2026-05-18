@@ -19,7 +19,8 @@ export default async function MigrationsPage({
       <header>
         <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Migracje</h1>
         <p className="text-neutral-400 text-sm md:text-base">
-          G‑6/G‑7: formularz migracji zewnętrznej i status workerów migracyjnych.
+          Zlecenie migracji ze starego hostingu — formularz zapisuje zaszyfrowany pakiet
+          źródeł, a transfer plików SFTP/rsync jest kolejkowany do compute-node worker.
         </p>
       </header>
 
@@ -31,10 +32,33 @@ export default async function MigrationsPage({
         </div>
       ) : (
         <div className="space-y-6">
+          <div className="rounded-2xl border border-amber-400/20 bg-amber-400/5 p-5 text-sm text-amber-100/90 leading-relaxed">
+            <p className="font-semibold mb-1">Jak działa zlecenie migracji</p>
+            <ul className="list-disc list-inside space-y-1 text-amber-100/80 text-xs">
+              <li>
+                Po wysłaniu formularza tworzymy <strong>ticket techniczny</strong> i zapisujemy
+                Twoje dane dostępu w zaszyfrowanym schowku (KMS).
+              </li>
+              <li>
+                Operator widzi kolejkę migracji, a pierwszy krok plikowy wykonuje worker na
+                właściwym węźle. Bazy MySQL i IMAP są obsługiwane w tej samej kolejce.
+              </li>
+              <li>
+                Otrzymasz e-mail z <strong>postępem</strong> i potwierdzeniem zakończenia. Aż do
+                podmiany DNS Twoja stara strona działa bez przerwy.
+              </li>
+              <li>
+                Sekrety są odsłaniane wyłącznie przez audytowany endpoint staff lub
+                autoryzowany node agent.
+              </li>
+            </ul>
+          </div>
           <div className="rounded-2xl border border-white/10 bg-black/30 p-6 space-y-4">
-            <h2 className="text-white font-semibold">Migracja zewnętrzna (FTP / MySQL / IMAP)</h2>
+            <h2 className="text-white font-semibold">Zlecenie migracji (FTP / MySQL / IMAP)</h2>
             <p className="text-xs text-neutral-500">
-              Po zgłoszeniu worker automatycznie wykonuje backup DirectAdmin i zakłada ticket techniczny.
+              Po wysłaniu formularza otrzymasz numer ticketu — to bezpieczny kanał komunikacji
+              z operatorem migracji. Twoje hasło zostanie odczytane wyłącznie w chwili
+              wykonywania transferu i zapisane w audicie.
             </p>
             <ExternalMigrationForm serviceId={service.id} />
           </div>

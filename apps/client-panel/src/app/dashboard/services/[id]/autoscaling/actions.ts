@@ -20,7 +20,7 @@ export async function updateAutoscalingAction(
     typeof rawCap === 'string' && rawCap.trim() !== '' ? Number.parseFloat(rawCap) : undefined;
 
   if (cap !== undefined && (Number.isNaN(cap) || cap < 0 || cap > 99_999.99)) {
-    return { ok: false, error: 'Limit miesięczny musi być liczbą z zakresu 0–99 999,99 zł.' };
+    return { ok: false, error: 'Limit miesięczny musi być liczbą z zakresu 0–99 999,99 K (1 zł = 1 K).' };
   }
 
   try {

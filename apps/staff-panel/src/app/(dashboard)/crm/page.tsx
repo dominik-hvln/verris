@@ -1,6 +1,7 @@
 import { staffApi } from "@/lib/staff-api";
 import { StaffImpersonateButton } from "./impersonate-button";
 import { CrmSearchForm } from "./search-form";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -56,6 +57,7 @@ export default async function StaffCrmPage({
                 <th className="px-4 py-3">E-mail</th>
                 <th className="px-4 py-3">Firma</th>
                 <th className="px-4 py-3">Rejestracja</th>
+                <th className="px-4 py-3">Profil</th>
                 <th className="px-4 py-3">Akcje</th>
               </tr>
             </thead>
@@ -71,6 +73,14 @@ export default async function StaffCrmPage({
                   <td className="px-4 py-3 text-muted-foreground">{u.companyName ?? "—"}</td>
                   <td className="px-4 py-3 text-muted-foreground">
                     {new Date(u.createdAt).toLocaleDateString("pl-PL")}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/crm/${u.id}`}
+                      className="rounded-md border border-cyan-500/25 bg-cyan-500/10 px-2.5 py-1 text-xs font-medium text-cyan-200 hover:bg-cyan-500/20"
+                    >
+                      Profil 360°
+                    </Link>
                   </td>
                   <td className="px-4 py-3">
                     <StaffImpersonateButton userId={u.id} email={u.email} />

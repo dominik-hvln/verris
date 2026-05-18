@@ -7,6 +7,10 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { TotpService } from './totp/totp.service';
 import { TwoFactorService } from './totp/two-factor.service';
+import { ComplianceModule } from '../compliance/compliance.module';
+import { AuditModule } from '../common/audit/audit.module';
+import { MailModule } from '../mail/mail.module';
+import { LoginEventService } from './login-event.service';
 
 @Module({
   imports: [
@@ -21,9 +25,18 @@ import { TwoFactorService } from './totp/two-factor.service';
         },
       }),
     }),
+    ComplianceModule,
+    AuditModule,
+    MailModule,
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, TotpService, TwoFactorService],
-  exports: [AuthService, TwoFactorService],
+  providers: [
+    AuthService,
+    JwtStrategy,
+    TotpService,
+    TwoFactorService,
+    LoginEventService,
+  ],
+  exports: [AuthService, TwoFactorService, LoginEventService],
 })
 export class AuthModule {}

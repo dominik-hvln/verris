@@ -10,7 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { HostingSslLetsencryptDto, HostingSslPasteDto } from './dto/hosting-ssl.dto';
-import { RequestExternalMigrationDto } from './dto/migration.dto';
+import { CreateMigrationBundleDto, RequestExternalMigrationDto } from './dto/migration.dto';
 import { Prisma } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -39,6 +39,7 @@ export class UserServicesController {
       include: {
         plan: true,
         account: { include: { server: { select: { id: true, name: true, region: true } } } },
+        healthSnapshots: { orderBy: { computedAt: 'desc' }, take: 1 },
       },
     });
 
@@ -53,6 +54,26 @@ export class UserServicesController {
       currentPeriodEnd: s.currentPeriodEnd?.toISOString() ?? null,
       ecoModeEnabled: s.ecoModeEnabled,
       autoscalingEnabled: s.autoscalingEnabled,
+      provisioning: s.provisioningStage
+        ? {
+            stage: s.provisioningStage as
+              | 'queued'
+              | 'running'
+              | 'retrying'
+              | 'failed'
+              | 'completed',
+            attempts: s.provisioningAttempts,
+            startedAt: s.provisioningStartedAt?.toISOString() ?? null,
+            completedAt: s.provisioningCompletedAt?.toISOString() ?? null,
+            // Sprint 5 / R-11+B-7 — never expose raw DA error to klient,
+            // tylko top-level kategorię. Pełen tekst jest w audit / admin queue.
+            lastError: s.provisioningLastError
+              ? humanizeProvisioningError(s.provisioningLastError)
+              : null,
+          }
+        : null,
+      health: buildHealthSummary(s),
+      recommendations: buildServiceRecommendations(s),
       account: s.account
         ? {
             id: s.account.id,
@@ -255,6 +276,22 @@ export class UserServicesController {
     return this.migrations.listMigrationTimelineForUser(id, user.userId);
   }
 
+  /** Sprint 7 / R-MIG-1 — pakietowe zlecenie migracji ze starego hostingu. */
+  @Post(':id/migrations/bundle')
+  async createMigrationBundle(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: CreateMigrationBundleDto,
+  ) {
+    return this.migrations.createBundle(id, user.userId, body);
+  }
+
+  /** Lista zleceń migracji per subskrypcja (klient widzi własne). */
+  @Get(':id/migrations/bundles')
+  async listMigrationBundles(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.migrations.listBundlesForUser(id, user.userId);
+  }
+
   @Get(':id')
   async get(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
     const sub = await this.prisma.subscription.findFirst({
@@ -263,6 +300,7 @@ export class UserServicesController {
         plan: true,
         account: { include: { server: { select: { id: true, name: true, region: true } } } },
         events: { orderBy: { createdAt: 'desc' }, take: 20 },
+        healthSnapshots: { orderBy: { computedAt: 'desc' }, take: 1 },
       },
     });
     if (!sub) throw new NotFoundException('Service not found');
@@ -301,6 +339,24 @@ export class UserServicesController {
             server: sub.account.server,
           }
         : null,
+      provisioning: sub.provisioningStage
+        ? {
+            stage: sub.provisioningStage as
+              | 'queued'
+              | 'running'
+              | 'retrying'
+              | 'failed'
+              | 'completed',
+            attempts: sub.provisioningAttempts,
+            startedAt: sub.provisioningStartedAt?.toISOString() ?? null,
+            completedAt: sub.provisioningCompletedAt?.toISOString() ?? null,
+            lastError: sub.provisioningLastError
+              ? humanizeProvisioningError(sub.provisioningLastError)
+              : null,
+          }
+        : null,
+      health: buildHealthSummary(sub),
+      recommendations: buildServiceRecommendations(sub),
       events: sub.events.map((e) => ({
         id: e.id,
         type: e.type,
@@ -309,4 +365,126 @@ export class UserServicesController {
       })),
     };
   }
+}
+
+/**
+ * Sprint 5 / R-11+B-7 — sanityzowany komunikat błędu dla klienta. Nie pokazujemy
+ * stacktrace ani treści odpowiedzi DA, tylko klasę awarii zrozumiałą dla
+ * użytkownika. Dokładny payload jest dostępny tylko w panelu admina.
+ */
+function humanizeProvisioningError(raw: string): string {
+  const lower = raw.toLowerCase();
+  if (lower.includes('timeout') || lower.includes('etimedout')) {
+    return 'Tymczasowy problem z węzłem (timeout). Próbujemy ponownie.';
+  }
+  if (lower.includes('all compute nodes are at capacity')) {
+    return 'Brak wolnych węzłów. Operacja zostanie wznowiona automatycznie.';
+  }
+  if (lower.includes('cloudlinux lve limits could not be applied')) {
+    return 'Konto utworzone — finalizacja limitów jest powtarzana.';
+  }
+  if (lower.includes('domain already exists') || lower.includes('already exists')) {
+    return 'Domena jest już używana — skontaktuj się ze wsparciem.';
+  }
+  if (lower.includes('invalid credentials') || lower.includes('unauthorized')) {
+    return 'Tymczasowy problem konfiguracyjny węzła. Wsparcie zostało powiadomione.';
+  }
+  return 'Konfiguracja konta została wstrzymana. Wsparcie zostało powiadomione.';
+}
+
+function buildHealthSummary(s: {
+  status: string;
+  account: { status: string } | null;
+  provisioningStage: string | null;
+  healthSnapshots: {
+    score: number;
+    dnsOk: boolean | null;
+    tlsOk: boolean | null;
+    backupFresh: boolean | null;
+    lveOk: boolean | null;
+    phpOk: boolean | null;
+    mailOk: boolean | null;
+    computedAt: Date;
+  }[];
+}) {
+  const latest = s.healthSnapshots[0];
+  const score =
+    latest?.score ??
+    (s.status === 'ACTIVE' && s.account?.status === 'ACTIVE'
+      ? 85
+      : s.provisioningStage === 'failed'
+        ? 20
+        : s.status === 'PROVISIONING'
+          ? 45
+          : 60);
+  return {
+    score,
+    label: score >= 80 ? 'healthy' : score >= 50 ? 'attention' : 'critical',
+    checkedAt: latest?.computedAt.toISOString() ?? null,
+    checks: {
+      dnsOk: latest?.dnsOk ?? null,
+      tlsOk: latest?.tlsOk ?? null,
+      backupFresh: latest?.backupFresh ?? null,
+      lveOk: latest?.lveOk ?? null,
+      phpOk: latest?.phpOk ?? null,
+      mailOk: latest?.mailOk ?? null,
+    },
+  };
+}
+
+function buildServiceRecommendations(s: {
+  status: string;
+  autoscalingEnabled: boolean;
+  provisioningStage: string | null;
+  account: { domain: string; scaledCpu: number; cpuLimit: number; scaledRamMb: number; ramLimitMb: number } | null;
+  healthSnapshots: { score: number; backupFresh: boolean | null; dnsOk: boolean | null; tlsOk: boolean | null }[];
+}) {
+  const latest = s.healthSnapshots[0];
+  const out: {
+    type: 'autoscaling' | 'plan' | 'domain' | 'backup';
+    severity: 'info' | 'warning' | 'critical';
+    title: string;
+    body: string;
+  }[] = [];
+  if (s.provisioningStage === 'failed') {
+    out.push({
+      type: 'domain',
+      severity: 'critical',
+      title: 'Provisioning wymaga interwencji',
+      body: 'Wsparcie widzi szczegóły błędu. Nie wykonuj ponownego zamówienia tej samej domeny.',
+    });
+  }
+  if (!s.autoscalingEnabled && s.account && (s.account.scaledCpu > s.account.cpuLimit || s.account.scaledRamMb > s.account.ramLimitMb)) {
+    out.push({
+      type: 'autoscaling',
+      severity: 'warning',
+      title: 'Włącz autoscaling limitów',
+      body: 'Usługa korzystała już z podwyższonych limitów. Autoscaling ograniczy ryzyko błędów 508.',
+    });
+  }
+  if (latest?.backupFresh === false) {
+    out.push({
+      type: 'backup',
+      severity: 'warning',
+      title: 'Backup wymaga odświeżenia',
+      body: 'Uruchom backup przed większymi zmianami WordPress, DNS lub migracją.',
+    });
+  }
+  if (latest && (latest.dnsOk === false || latest.tlsOk === false)) {
+    out.push({
+      type: 'domain',
+      severity: 'critical',
+      title: 'Sprawdź DNS i SSL',
+      body: 'Asystent domeny wskaże brakujące rekordy oraz problemy certyfikatu.',
+    });
+  }
+  if (out.length === 0 && s.status === 'ACTIVE') {
+    out.push({
+      type: 'plan',
+      severity: 'info',
+      title: 'Usługa działa prawidłowo',
+      body: 'Monitorujemy health score, backup, DNS/SSL i usage. Rekomendacje pojawią się automatycznie.',
+    });
+  }
+  return out.slice(0, 3);
 }

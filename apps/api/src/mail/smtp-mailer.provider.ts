@@ -7,24 +7,42 @@ import { MailMessage, MailerProvider } from './mailer.interface';
 interface SmtpConfig {
   host: string;
   port: number;
+  /** Empty username + password → AUTH stage is skipped. Required for
+   *  localhost Postfix relay where panel server is the trusted client. */
   username: string;
   password: string;
   fromAddress: string;
   fromName: string;
-  /** TLS mode: "starttls" upgrades a plain connection (587), "tls" connects with TLS from the start (465). */
-  secure: 'starttls' | 'tls';
+  /** TLS mode:
+   *   - `tls` — connect with TLS from start (port 465).
+   *   - `starttls` — upgrade plain connection to TLS (port 587).
+   *   - `none` — plaintext, never upgrade. Use ONLY for `localhost` relays
+   *     where there is no untrusted hop between the panel and the MTA.
+   */
+  secure: 'starttls' | 'tls' | 'none';
 }
 
 /**
- * E-3: minimal STARTTLS / TLS SMTP client. We deliberately ship a hand-written
- * implementation rather than `nodemailer` because:
- *   1. The dependency tree is huge (nodemailer ~3 MB compiled).
- *   2. We only need send-with-AUTH-LOGIN; no SES/Pool/OAuth2/etc.
- *   3. Production targets (Resend, Postmark, SendGrid) all expose plain
- *      SMTP relay endpoints that work with this implementation.
+ * E-3: minimal SMTP client supporting both authenticated TLS relays and a
+ * plain localhost relay (Postfix on the panel server). Hand-written to keep
+ * the dependency footprint small and the trust surface obvious.
  *
- * If we ever need rich features (DKIM signing, attachments, OAuth) we'll
- * swap this out for nodemailer behind the same `MailerProvider` interface.
+ * Two deployment modes:
+ *
+ *  1. **Panel-local Postfix relay** (preferred — no external dependency):
+ *     - SMTP_HOST=localhost, SMTP_PORT=25, SMTP_SECURE=none, no AUTH
+ *     - Postfix on the same host handles outbound queue, DKIM signing, and
+ *       backoff/retry. We just hand off the message via 25/tcp.
+ *
+ *  2. **External SMTP relay** (Resend, Postmark, SES, etc.):
+ *     - SMTP_HOST=smtp.example.com, SMTP_PORT=587, SMTP_SECURE=starttls,
+ *       SMTP_USER=…, SMTP_PASS=…
+ *     - Standard AUTH LOGIN over STARTTLS or TLS.
+ *
+ * If we ever need rich features (DKIM signing in-process, attachments,
+ * OAuth2), we'll swap this out for nodemailer behind the same provider
+ * interface. For DKIM, however, Postfix + opendkim is the production-grade
+ * answer and lives outside the panel process.
  */
 @Injectable()
 export class SmtpMailerProvider implements MailerProvider {
@@ -64,6 +82,7 @@ export class SmtpMailerProvider implements MailerProvider {
         await readReply(upgraded, [250]);
         return await this.runAuthAndDataStage(upgraded, message, messageId);
       }
+      // `tls` (already encrypted at connect) or `none` (localhost trusted hop).
       return await this.runAuthAndDataStage(socket, message, messageId);
     } catch (err) {
       this.logger.warn(
@@ -80,12 +99,18 @@ export class SmtpMailerProvider implements MailerProvider {
     message: MailMessage,
     messageId: string,
   ): Promise<{ ok: boolean; error?: string }> {
-    await writeLine(socket, 'AUTH LOGIN\r\n');
-    await readReply(socket, [334]);
-    await writeLine(socket, Buffer.from(this.config.username).toString('base64') + '\r\n');
-    await readReply(socket, [334]);
-    await writeLine(socket, Buffer.from(this.config.password).toString('base64') + '\r\n');
-    await readReply(socket, [235]);
+    // AUTH LOGIN only when credentials are configured. Localhost Postfix
+    // relays accept connections from trusted networks (mynetworks) without
+    // SMTP-level auth; passing AUTH LOGIN there would fail with 503 "Error:
+    // authentication not enabled".
+    if (this.config.username && this.config.password) {
+      await writeLine(socket, 'AUTH LOGIN\r\n');
+      await readReply(socket, [334]);
+      await writeLine(socket, Buffer.from(this.config.username).toString('base64') + '\r\n');
+      await readReply(socket, [334]);
+      await writeLine(socket, Buffer.from(this.config.password).toString('base64') + '\r\n');
+      await readReply(socket, [235]);
+    }
 
     await writeLine(socket, `MAIL FROM:<${this.config.fromAddress}>\r\n`);
     await readReply(socket, [250]);
@@ -103,6 +128,7 @@ export class SmtpMailerProvider implements MailerProvider {
       html: message.html,
       replyTo: message.replyTo,
       messageId,
+      listUnsubscribeUrl: message.listUnsubscribeUrl,
     });
     await writeLine(socket, body + '\r\n.\r\n');
     await readReply(socket, [250]);
@@ -187,6 +213,12 @@ interface RenderInput {
   html?: string;
   replyTo?: string;
   messageId: string;
+  /**
+   * Gdy podane — dodajemy headery `List-Unsubscribe` oraz `List-Unsubscribe-Post`
+   * (RFC 8058 one-click). Wymóg deliverability dla Gmail/Outlook dla maili
+   * marketingowych.
+   */
+  listUnsubscribeUrl?: string;
 }
 
 function renderEmail(input: RenderInput): string {
@@ -198,6 +230,8 @@ function renderEmail(input: RenderInput): string {
     `Subject: ${encodeHeaderUtf8(input.subject)}`,
     `Date: ${new Date().toUTCString()}`,
     `Message-ID: ${input.messageId}`,
+    input.listUnsubscribeUrl ? `List-Unsubscribe: <${input.listUnsubscribeUrl}>` : '',
+    input.listUnsubscribeUrl ? `List-Unsubscribe-Post: List-Unsubscribe=One-Click` : '',
     `MIME-Version: 1.0`,
     input.html
       ? `Content-Type: multipart/alternative; boundary="${boundary}"`

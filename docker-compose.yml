@@ -23,6 +23,62 @@ services:
     volumes:
       - redis_data:/data
 
+  # ---------------------------------------------------------------------------
+  # MinIO — S3-compatible object storage for ticket attachments, data
+  # exports (RODO), DPA PDFs and (later) generated invoices.
+  #
+  # Console UI: http://127.0.0.1:9001  (default user/pass below — change in prod)
+  # S3 API:     http://127.0.0.1:9000
+  # ---------------------------------------------------------------------------
+  minio:
+    image: minio/minio:RELEASE.2025-04-08T15-41-24Z
+    container_name: verris_minio
+    restart: always
+    command: ['server', '/data', '--console-address', ':9001']
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-verris-dev}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-verris-dev-password}
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:9000/minio/health/live']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # One-shot bootstrapper that creates the buckets we need + a 7-day
+  # lifecycle policy for data-exports. Idempotent: if a bucket already
+  # exists, `mc mb -p` is a no-op. Container exits 0 once buckets are ready.
+  minio-bootstrap:
+    image: minio/mc:RELEASE.2025-04-03T17-07-56Z
+    container_name: verris_minio_bootstrap
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-verris-dev}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-verris-dev-password}
+    entrypoint: >
+      /bin/sh -c "
+        set -e;
+        mc alias set verris http://minio:9000 \"$$MINIO_ROOT_USER\" \"$$MINIO_ROOT_PASSWORD\";
+        mc mb -p verris/verris-ticket-attachments;
+        mc mb -p verris/verris-data-exports;
+        mc mb -p verris/verris-dpa-pdfs;
+        mc mb -p verris/verris-invoices;
+        mc anonymous set none verris/verris-ticket-attachments;
+        mc anonymous set none verris/verris-data-exports;
+        mc anonymous set none verris/verris-dpa-pdfs;
+        mc anonymous set none verris/verris-invoices;
+        mc ilm rule add --expire-days 7 verris/verris-data-exports || true;
+        echo 'MinIO buckets ready.';
+      "
+    restart: 'no'
+
 volumes:
   postgres_data:
   redis_data:
+  minio_data:

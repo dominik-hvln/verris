@@ -84,6 +84,22 @@ export class CreatePlanDto {
   stripePriceYearlyId?: string;
 }
 
+export class ValidateStripePriceDto {
+  @IsString() @Length(3, 80) @Matches(/^price_/, {
+    message: 'Stripe Price ID musi zaczynać się od "price_"',
+  })
+  priceId!: string;
+
+  @IsString() @Matches(/^(month|year)$/)
+  interval!: 'month' | 'year';
+
+  @IsNumber({ maxDecimalPlaces: 2 }) @IsPositive() @Max(1000000)
+  expectedAmount!: number;
+
+  @IsOptional() @IsString() @Length(3, 3)
+  expectedCurrency?: string;
+}
+
 export class UpdatePlanDto {
   @IsOptional() @IsString() @Length(2, 80)
   name?: string;

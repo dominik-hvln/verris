@@ -8,7 +8,11 @@ import {
   Gauge,
 } from 'lucide-react';
 import Link from 'next/link';
-import type { ServiceSummaryDto, SubscriptionStatus } from '@verris/contracts';
+import type {
+  ProvisioningProgressDto,
+  ServiceSummaryDto,
+  SubscriptionStatus,
+} from '@verris/contracts';
 import { ApiError } from '@/lib/api';
 import { listServices } from './data';
 
@@ -107,6 +111,48 @@ function ServiceCard({ service }: { service: ServiceSummaryDto }) {
             </span>
           </div>
 
+          {service.provisioning && service.status !== 'ACTIVE' && (
+            <ProvisioningBadge progress={service.provisioning} />
+          )}
+
+          <div className="mb-5 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold uppercase tracking-widest text-neutral-500">
+                Health Score
+              </span>
+              <span
+                className={`text-sm font-bold ${
+                  service.health.label === 'healthy'
+                    ? 'text-emerald-300'
+                    : service.health.label === 'attention'
+                      ? 'text-amber-300'
+                      : 'text-rose-300'
+                }`}
+              >
+                {service.health.score}/100
+              </span>
+            </div>
+            <div className="mt-2 h-2 rounded-full bg-white/10">
+              <div
+                className={`h-2 rounded-full ${
+                  service.health.label === 'healthy'
+                    ? 'bg-emerald-400'
+                    : service.health.label === 'attention'
+                      ? 'bg-amber-400'
+                      : 'bg-rose-400'
+                }`}
+                style={{ width: `${Math.max(5, Math.min(100, service.health.score))}%` }}
+              />
+            </div>
+            {service.recommendations[0] && (
+              <p className="mt-3 text-xs text-neutral-300">
+                <span className="font-semibold text-white">{service.recommendations[0].title}</span>
+                {" — "}
+                {service.recommendations[0].body}
+              </p>
+            )}
+          </div>
+
           <div className="mb-8">
             <h3 className="text-2xl font-bold text-white leading-tight mb-2">
               {service.planName}
@@ -170,6 +216,36 @@ function ServiceCard({ service }: { service: ServiceSummaryDto }) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ProvisioningBadge({ progress }: { progress: ProvisioningProgressDto }) {
+  const stageLabels: Record<ProvisioningProgressDto['stage'], string> = {
+    queued: 'W kolejce',
+    running: 'Tworzenie konta',
+    retrying: 'Powtarzamy próbę',
+    failed: 'Błąd konfiguracji',
+    completed: 'Gotowe',
+  };
+  const stageStyles: Record<ProvisioningProgressDto['stage'], string> = {
+    queued: 'border-sky-400/30 bg-sky-400/5 text-sky-200',
+    running: 'border-indigo-400/40 bg-indigo-400/10 text-indigo-200 animate-pulse',
+    retrying: 'border-amber-400/40 bg-amber-400/10 text-amber-200',
+    failed: 'border-rose-400/40 bg-rose-400/10 text-rose-200',
+    completed: 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200',
+  };
+  return (
+    <div
+      className={`mb-6 rounded-2xl border px-4 py-3 text-xs ${stageStyles[progress.stage]}`}
+    >
+      <div className="flex items-center justify-between font-semibold uppercase tracking-widest">
+        <span>{stageLabels[progress.stage]}</span>
+        <span className="text-[10px] opacity-70">próba {progress.attempts || 1}</span>
+      </div>
+      {progress.lastError && progress.stage !== 'completed' && (
+        <p className="mt-2 text-[11px] leading-snug opacity-90">{progress.lastError}</p>
+      )}
     </div>
   );
 }

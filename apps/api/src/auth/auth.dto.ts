@@ -1,4 +1,6 @@
 import {
+  Equals,
+  IsBoolean,
   IsEmail,
   IsNotEmpty,
   IsOptional,
@@ -32,6 +34,26 @@ export class RegisterDto {
   @IsString()
   @MaxLength(32)
   ref?: string;
+
+  /**
+   * RODO Sprint 1 / L-03 — wymagane zgody przy rejestracji.
+   *
+   * `acceptTerms` i `acceptPrivacy` MUSZĄ być `true`. `Equals(true)` w
+   * class-validator wymusza zarówno `boolean` jak i konkretną wartość, więc
+   * front-end nie może puścić `false` ani `undefined`.
+   */
+  @IsBoolean()
+  @Equals(true, { message: 'Musisz zaakceptować regulamin świadczenia usług.' })
+  acceptTerms!: boolean;
+
+  @IsBoolean()
+  @Equals(true, { message: 'Musisz zaakceptować politykę prywatności.' })
+  acceptPrivacy!: boolean;
+
+  /** Opcjonalny opt-in marketingowy (RODO art. 6(1)(a) — zgoda). */
+  @IsOptional()
+  @IsBoolean()
+  acceptMarketing?: boolean;
 }
 
 export class LoginDto {

@@ -33,3 +33,49 @@ export async function requestExternalMigrationAction(input: {
   }
 }
 
+export async function requestMigrationBundleAction(input: {
+  serviceId: string;
+  targetDomain?: string;
+  sourceType: 'FTP' | 'MYSQL' | 'IMAP';
+  sourceHost: string;
+  sourcePort: number;
+  sourceUsername: string;
+  sourcePassword: string;
+  sourcePath?: string;
+  protocol?: 'ftp' | 'ftps' | 'sftp';
+  notes?: string;
+}): Promise<{ ok: true } | { error: string }> {
+  try {
+    const common = {
+      host: input.sourceHost,
+      port: input.sourcePort,
+      username: input.sourceUsername,
+      password: input.sourcePassword,
+    };
+    await apiFetch(`/services/${input.serviceId}/migrations/bundle`, {
+      method: 'POST',
+      body: JSON.stringify({
+        targetDomain: input.targetDomain || undefined,
+        ftp:
+          input.sourceType === 'FTP'
+            ? {
+                ...common,
+                protocol: input.protocol ?? 'sftp',
+                remotePath: input.sourcePath || '/',
+              }
+            : undefined,
+        mysql:
+          input.sourceType === 'MYSQL'
+            ? [{ ...common, database: input.sourcePath || input.sourceUsername }]
+            : undefined,
+        imap: input.sourceType === 'IMAP' ? [common] : undefined,
+        notes: input.notes || undefined,
+      }),
+    });
+    revalidatePath('/dashboard/migrations');
+    return { ok: true };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Nie udało się wysłać pakietu migracji.' };
+  }
+}
+

@@ -46,9 +46,26 @@ export class NodeSelectorService {
     });
 
     if (candidates.length === 0) {
+      // Sprint 4 / A-08: jeżeli żaden węzeł nie jest ACTIVE, sprawdź czy
+      // wszystkie są w MAINTENANCE — wtedy klient zobaczy konkretny powód.
+      const inMaintenance = await this.prisma.server.findMany({
+        where: { status: ServerStatus.MAINTENANCE },
+        select: { maintenanceReason: true },
+      });
+      if (inMaintenance.length > 0) {
+        this.logger.warn(
+          `Provisioning blocked — ${inMaintenance.length} node(s) in MAINTENANCE.`,
+        );
+        const firstReason = inMaintenance.find((s) => s.maintenanceReason)?.maintenanceReason;
+        throw new ServiceUnavailableException(
+          firstReason
+            ? `Sprzedaż wstrzymana: trwa serwis infrastruktury (${firstReason}). Spróbuj ponownie za chwilę.`
+            : 'Sprzedaż wstrzymana: trwa serwis infrastruktury. Spróbuj ponownie za chwilę.',
+        );
+      }
       this.logger.warn('No active compute nodes available for provisioning');
       throw new ServiceUnavailableException(
-        'No active compute nodes available. Please contact support.',
+        'Brak aktywnych węzłów hostingowych. Skontaktuj się z BOK.',
       );
     }
 

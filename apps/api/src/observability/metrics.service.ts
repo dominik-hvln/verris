@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import {
   AccountStatus,
   IncidentStatus,
@@ -7,6 +7,7 @@ import {
   WalletTxType,
 } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
+import { ProvisioningQueueService } from '../subscriptions/provisioning-queue.service';
 
 /**
  * F-13: produces a Prometheus text-format metrics snapshot. We emit a small,
@@ -29,7 +30,10 @@ export class MetricsService {
   // hides a tiny amount of inter-scrape work without measurable staleness.
   private cached: { at: number; body: string } | null = null;
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly provisioningQueue?: ProvisioningQueueService,
+  ) {}
 
   async getPrometheusMetrics(): Promise<string> {
     if (this.cached && Date.now() - this.cached.at < 5_000) {
@@ -178,7 +182,7 @@ export class MetricsService {
       lines.push(`verris_incidents_open{severity="${sev}"} ${value}`);
     }
 
-    // --- Provisioning queue depth (sync today; B-7 BullMQ later) ---------
+    // --- Provisioning queue depth + per-stage status -----------------------
     const pendingProvision = await this.prisma.subscription.count({
       where: { status: SubscriptionStatus.PROVISIONING },
     });
@@ -189,6 +193,60 @@ export class MetricsService {
       'gauge',
     );
     lines.push(`verris_provisioning_pending ${pendingProvision}`);
+
+    // Per-stage breakdown widoczny dla klienta.
+    const stageRows = await this.prisma.subscription.groupBy({
+      by: ['provisioningStage'],
+      _count: { _all: true },
+      where: { provisioningStage: { not: null } },
+    });
+    write(
+      lines,
+      'verris_provisioning_stage_total',
+      'Subscriptions by current provisioning stage (queued/running/retrying/failed/completed)',
+      'gauge',
+    );
+    for (const row of stageRows) {
+      const stage = row.provisioningStage ?? 'unknown';
+      lines.push(`verris_provisioning_stage_total{stage="${stage}"} ${row._count._all}`);
+    }
+
+    if (this.provisioningQueue && this.provisioningQueue.isAsync()) {
+      try {
+        const queueMetrics = await this.provisioningQueue.getQueueMetrics();
+        write(
+          lines,
+          'verris_provisioning_queue_depth',
+          'BullMQ queue depth by state (active/waiting/delayed/failed/completed/paused)',
+          'gauge',
+        );
+        for (const [state, value] of Object.entries(queueMetrics.counts)) {
+          lines.push(`verris_provisioning_queue_depth{state="${state}"} ${value}`);
+        }
+        write(
+          lines,
+          'verris_provisioning_jobs_total',
+          'Cumulative count of provisioning jobs by lifecycle event',
+          'counter',
+        );
+        for (const [event, value] of Object.entries(queueMetrics.process)) {
+          lines.push(`verris_provisioning_jobs_total{event="${event}"} ${value}`);
+        }
+        write(
+          lines,
+          'verris_provisioning_queue_oldest_waiting_seconds',
+          'Age of the oldest waiting or delayed provisioning job',
+          'gauge',
+        );
+        lines.push(
+          `verris_provisioning_queue_oldest_waiting_seconds ${queueMetrics.oldestWaitingAgeSeconds}`,
+        );
+      } catch (err) {
+        this.logger.warn(
+          `Failed to collect provisioning queue metrics: ${(err as Error).message}`,
+        );
+      }
+    }
 
     // --- Process-level info ----------------------------------------------
     const mem = process.memoryUsage();

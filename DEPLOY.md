@@ -194,6 +194,42 @@ Procedura konfiguracji nowego serwera:
 
 > Eksport historii incydentów do CSV (np. dla materiałów sprzedażowych „99.97% za 90 dni”): w **„Historia Incydentów”** kliknij **Eksport CSV**. Strumień, działa nawet dla 12-miesięcznych okien.
 
+## Provisioning Queue — dead-letter i recovery
+
+Provisioning kont DA działa asynchronicznie, gdy `REDIS_URL` jest ustawione. Każdy zakup trafia do BullMQ z idempotentnym `jobId` per subskrypcja i źródło płatności. Status widoczny klientowi jest zapisywany na `Subscription.provisioningStage`: `queued`, `running`, `retrying`, `failed`, `completed`.
+
+### Operacyjny panel recovery
+
+1. Otwórz `https://admin.verris.pl/provisioning-queue`.
+2. Filtr `Błędne` pokazuje joby dead-letter po wyczerpaniu retry albo błędzie permanentnym.
+3. Sprawdź:
+   - kategorię błędu (`transient`/`permanent`),
+   - `subscriptionId`, klienta, domenę, konto DA i node,
+   - czy w DirectAdmin nie powstało już konto ręcznie lub po timeout.
+4. Jeśli konto istnieje w DA, ale nie ma rekordu `Account`, nie klikaj retry w ciemno. Najpierw odtwórz rekord przez procedurę importu konta lub eskaluj do operatora node.
+5. Jeśli problem był przejściowy (timeout, 502/503/504, chwilowy brak połączenia, odblokowana pojemność węzła), wpisz konkretny powód i kliknij `Retry`. Powód jest wymagany i trafia do audytu.
+6. Jeśli błąd jest permanentny (złe credentials DA, domena już istnieje, walidacja planu), popraw przyczynę przed retry. Bez tego job ponownie wróci do dead-letter.
+
+### Test matrix awarii DirectAdmin
+
+| Scenariusz | Jak zasymulować | Oczekiwany wynik |
+| --- | --- | --- |
+| Timeout DA | ustaw zły `daHost` lub regułę firewall dla portu DA | status klienta `retrying`, metryka queue depth rośnie, po wyczerpaniu prób `failed` |
+| Błędne credentials | wpisz niepoprawny login-key DA na węźle | brak podwójnego konta, `failed` z kategorią permanentną, audyt `PROVISIONING_JOB_FAILED` |
+| Brak pojemności węzła | ustaw alokację CPU/RAM/DISK powyżej limitu albo maintenance na wszystkie node | job przechodzi retry tylko dla transient capacity, klient widzi czytelny komunikat bez sekretów |
+| Timeout po utworzeniu konta | przerwij proces po stronie API po DA create | kolejne uruchomienie wykrywa istniejący `Account` i promuje subskrypcję do `ACTIVE` bez drugiego DA create |
+
+### Metryki Grafana/Prometheus
+
+`/metrics` wystawia:
+
+- `verris_provisioning_queue_depth{state=...}`,
+- `verris_provisioning_jobs_total{event=started|completed|failed|retried|queued}`,
+- `verris_provisioning_queue_oldest_waiting_seconds`,
+- `verris_provisioning_stage_total{stage=queued|running|retrying|failed|completed}`.
+
+Alerty produkcyjne: `oldest_waiting_seconds > 300`, `queue_depth{state="failed"} > 0`, `stage_total{stage="failed"} > 0`.
+
 ## Aktualizacja
 
 ```bash
@@ -353,16 +389,84 @@ CLI raportuje błędy per wiersz i kończy się z `exit code 1` jeśli były nie
 
 ---
 
-### Załączniki ticketów (E‑4)
+### Załączniki ticketów + RODO data exports + DPA PDF — MinIO (S3)
 
-API (`apps/api`) składuje pliki **na dysku** w katalogu z `TICKET_UPLOAD_DIR` (gdy puste: `uploads/tickets` względem katalogu roboczego procesu). Panele Next.js pobierają pliki przez **Route Handlery** (`/api/tickets/…/attachments/…/file`) z nagłówkiem `Authorization` z httpOnly cookie — nie trzeba JWT w URL.
+Wszystkie uploady (załączniki ticketów, eksporty RODO, PDF-y DPA, w
+przyszłości faktury) są przechowywane w **MinIO** (S3-compatible object
+storage) działającym jako serwis `minio` w `docker-compose.prod.yml`.
+Lokalny FS nie jest używany — daje to:
 
-W produkcji:
+- **Przenośność**: kiedyś można przepiąć `S3_ENDPOINT` na osobny serwer
+  storage (np. dedykowany node MinIO, AWS S3, Backblaze B2, Cloudflare R2)
+  bez zmiany jednej linii kodu.
+- **Backup w jednym miejscu**: cały MinIO volume → `restic`/off-site.
+- **Lifecycle policy**: `verris-data-exports` ma natywne 7-dniowe expiry
+  (defense in depth ponad app-level RetentionScheduler).
 
-1. Nadaj API trwały katalog: ustaw `TICKET_UPLOAD_DIR` (np. `/data/ticket-uploads`) w `.env.prod` / `docker-compose.prod.yml`.
-2. Zamontuj **named volume** lub bind mount na tę ścieżkę przy serwisie `api`; inaczej załączniki znikną przy przebudowie obrazu kontenera.
+Konfiguracja w `.env.prod`:
 
-Limity (API): najczęściej 8 MB na plik, do 5 plików na żądanie, do 40 na zgłoszenie; dozwolone MIME m.in. PDF, JPG/PNG/GIF/WebP, txt/csv, ZIP.
+```bash
+# Endpoint widoczny dla kontenera api (http://minio:9000 wewnątrz docker network)
+S3_ENDPOINT=http://minio:9000
+S3_ACCESS_KEY=verris-panel
+S3_SECRET_KEY=<openssl rand -base64 32>
+S3_REGION=eu-central-1
+S3_USE_SSL=false
+S3_PATH_STYLE=true
+
+# Buckety (domyślne nazwy)
+S3_BUCKET_TICKET_ATTACHMENTS=verris-ticket-attachments
+S3_BUCKET_DATA_EXPORTS=verris-data-exports
+S3_BUCKET_DPA_PDFS=verris-dpa-pdfs
+S3_BUCKET_INVOICES=verris-invoices
+
+# MinIO root (tylko do bootstrap-containera; api używa S3_ACCESS_KEY/SECRET)
+MINIO_ROOT_USER=verris-root
+MINIO_ROOT_PASSWORD=<openssl rand -base64 32>
+
+# Tymczasowy katalog na build ZIP-ów (przed wgraniem do MinIO)
+DATA_EXPORT_TEMP_DIR=/tmp/verris-data-exports
+```
+
+Bootstrap (przy `docker compose up -d`):
+
+1. `minio` startuje, healthcheck na `/minio/health/live`.
+2. `minio-bootstrap` (one-shot) tworzy 4 buckety, ustawia anonymous=none
+   i aplikuje 7-dniową regułę expiry na `verris-data-exports`.
+3. `api` startuje **dopiero po `minio-bootstrap` (condition: completed_successfully)**.
+4. Aplikacja przy starcie wywołuje `ObjectStorageService.onApplicationBootstrap`
+   który ponownie weryfikuje istnienie bucketów (idempotentnie) — gdyby
+   bootstrap-container nie zadziałał, panel sam je dotworzy.
+
+Tworzenie dedykowanego usera dla API (zamiast root) — **🔴 wymagane przed LIVE**:
+
+```bash
+docker compose -f docker-compose.prod.yml exec minio sh -c '
+  mc alias set local http://127.0.0.1:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
+  mc admin user add local verris-panel '"$S3_ACCESS_KEY"' '"$S3_SECRET_KEY"'
+  mc admin policy attach local readwrite --user verris-panel
+'
+```
+
+Limity (API): najczęściej 8 MB na plik, do 5 plików na żądanie, do 40 na
+zgłoszenie; dozwolone MIME m.in. PDF, JPG/PNG/GIF/WebP, txt/csv, ZIP.
+
+#### Migracja istniejących plików z FS → MinIO (jeśli były)
+
+Jeżeli przed wgraniem tej wersji istniały już załączniki na dysku (np. ze
+stagingu) to należy je przeładować do bucketów:
+
+```bash
+# Dry-run (tylko skanuje + raportuje)
+pnpm --filter api cli:storage-migrate-from-fs
+
+# Apply + usunięcie lokalnych po sukcesie
+pnpm --filter api cli:storage-migrate-from-fs -- --apply --unlink-local
+```
+
+Skrypt jest idempotentny — pliki już w MinIO są pomijane. Czyta
+`TICKET_UPLOAD_DIR` i `DATA_EXPORT_STORAGE_DIR` (jeśli ustawione) jako
+ścieżki źródłowe; ich nieobecność oznacza świeży deploy bez legacy.
 
 ---
 
@@ -377,10 +481,262 @@ Wykonaj po kolei przed pierwszym ruchem z prawdziwymi klientami (adapter **PayU*
 4. **Seed** — `admin@verris.pl` oraz `**staff@verris.pl`** (STAFF — `libs/database/prisma/seed.ts`); hasła przez `SEED_ADMIN_PASSWORD` / `**SEED_STAFF_PASSWORD**`.
 5. **Mail** (`SMTP_*`) — tickety, alerty (`SECURITY_ALERT_EMAIL`) jeśli używasz.
 6. **Redis** — `REDIS_URL` (domyślnie `redis://redis:6379`); auto‑top‑up wymaga Stripe.
-7. **Załączniki ticketów** — `TICKET_UPLOAD_DIR` + volume dla `api` (patrz wyżej: „Załączniki ticketów”).
+7. **Object storage (MinIO)** — `MINIO_ROOT_USER`/`PASSWORD` ustawione, dedykowany user `verris-panel` utworzony przez `mc admin user add`, `S3_ACCESS_KEY`/`SECRET_KEY` w `.env.prod`, smoke `mc ls verris/` pokazuje 4 buckety (patrz „Załączniki ticketów + RODO data exports + DPA PDF — MinIO (S3)” wyżej).
 8. **Stripe** — uzupełnij `**price_*`** przy planach (admin lub seed).
 9. **Pierwszy węzeł** — CloudLinux + LiteSpeed/LSPHP, zmienne `LITESPEED_SERIAL_NO` / `LSWS_WEBADMIN_ALLOW_IP` na węźle, bootstrap → akceptacja → DA → minimum probes (patrz „Węzły obliczeniowe” i „Status Page”).
 10. **Backup** — cron + zalecany off-site (`rclone` itd.).
 11. **Smoke** — rejestracja → zakup → provisioning → billing → ticket w panelu klienta + obsługa w **staff** (`/login`).
 
 W `docker-compose.prod.yml` ustawione jest `**API_URL=http://api:3000`** przy panelach (SSR do API po sieci wewnętrznej); klient przeglądarki nadal gada z `**PUBLIC_API_URL**` przez `NEXT_PUBLIC_*`.
+
+## Provisioning queue (BullMQ) — runbook dead-letter / recovery
+
+Sprint 5 (R-11+B-7) wprowadza asynchroniczną kolejkę provisioningu opartą o **BullMQ + Redis**. Worker uruchamia się automatycznie w procesie API gdy `REDIS_URL` jest ustawiony — bez Redisa kolejka działa synchronicznie (zachowanie pre-R-11) i wszystkie operacje DA wykonują się inline w request handlerze.
+
+**Aktywacja:** `REDIS_URL=redis://redis:6379` w `.env.prod` panelu API. Nie wymaga osobnego procesu/kontenera workera — pojedyncza instancja API jest jednocześnie producentem i workerem (concurrency = 1, żeby uniknąć podwójnego DA tego samego konta).
+
+**Idempotency.** `jobId` jest zawsze deterministyczny: `wallet-<subId>` / `manual-<subId>` / `stripe-<subId>`. Dorzucenie tego samego enqueue dwa razy w BullMQ jest no-op. Dodatkowo runner sprawdza istnienie `Account` po `subscriptionId` przed wywołaniem DA — jeśli poprzednia próba przeszła ale upadł krok po niej, nie wołamy DA ponownie i tylko promujemy subskrypcję do `ACTIVE`. Robi to całość bezpieczną na **podwójne wywołanie / restart Redisa / restart API**.
+
+**Klasyfikacja błędów.** `categorizeError` (`provisioning-queue.service.ts`) traktuje jako *transient* (= retry z exp backoff, `attempts=3`, `delay=5s`):
+
+- `timeout`, `etimedout`, `econnrefused`, `econnreset`, `socket hang up`, `fetch failed`
+- HTTP 502 / 503 / 504 z DA
+- `all compute nodes are at capacity` (`NodeSelectorService`)
+- `cloudlinux lve limits could not be applied` (DA już założył konto, kończymy LVE w retry)
+
+Pozostałe (4xx z DA poza 408/429, walidacja, `domain already exists`) są *permanent* — od razu hard-fail bez kolejnych prób.
+
+**Statusy widoczne dla klienta** (`Subscription.provisioningStage`): `queued | running | retrying | failed | completed`. Renderuje je panel klienta na karcie usługi. Pełen tekst błędu nigdy nie idzie do klienta — przepuszczamy go przez `humanizeProvisioningError` w `services.controller.ts`.
+
+**Obserwowalność.**
+
+- Prometheus `/metrics`:
+  - `verris_provisioning_pending` — subskrypcje w stanie `PROVISIONING`.
+  - `verris_provisioning_stage_total{stage}` — breakdown po `provisioningStage` z DB.
+  - `verris_provisioning_queue_depth{state}` — `active|waiting|delayed|failed|completed|paused` z BullMQ.
+  - `verris_provisioning_jobs_total{event}` — counters `started|completed|failed|retried` z workera.
+- Grafana: dashboard **01 control-plane health** ma panel „Provisioning queue depth" oraz „Provisioning failures" (PromQL: `increase(verris_provisioning_jobs_total{event="failed"}[1h])`).
+- Audit: każdy retry / hard-fail / recovery zapisany w `AuditLog` (`PROVISIONING_RETRY_SCHEDULED`, `SUBSCRIPTION_PROVISIONING_FAILED`, `PROVISIONING_RECOVERED_FROM_PARTIAL`).
+
+**Admin queue panel.** `https://admin.<host>/provisioning-queue` (rola ADMIN) — counts per state, lista 100 ostatnich jobów, błąd, czas trwania, przycisk **Retry** (wywołuje `POST /admin/provisioning-queue/:jobId/retry`).
+
+**Dead-letter recovery — runbook.**
+
+1. **Diagnoza:** `https://admin.<host>/provisioning-queue?state=failed` — sprawdź `failedReason` i `subscriptionId`.
+2. **Audit:** `https://admin.<host>/audit?category=ADMIN_OPS` (filtr action `PROVISIONING_*`) → potwierdź `category: transient | permanent`.
+3. **Klient:** `subscriptionId` → `https://admin.<host>/customers/<userId>` → karta usługi pokazuje stage `failed`.
+4. **Decyzja:**
+   - *Transient permanent* (np. domain exists): otwórz ticket z klientem przed retry — domena może wymagać ręcznej zmiany.
+   - *Wszystko inne*: kliknij **Retry** w admin queue. Idempotency zadba o brak podwójnego konta.
+5. **Brak Account po `subscriptionId`** ale `failed` — bezpieczny retry. Runner sam zwoła DA (sprawdzi że account nie istnieje) i ustawi stage = `running`.
+6. **Account istnieje, ale subskrypcja nie ACTIVE** — retry promuje subskrypcję do `ACTIVE` bez wywołania DA (krok recovery), audit `PROVISIONING_RECOVERED_FROM_PARTIAL`.
+7. **Wallet refund.** Hard-fail provisioningu walletowego automatycznie zwraca środki (`WalletTxType.REFUND`, `idempotencyKey=sub-<id>-initial-refund`) i przywraca status `PENDING_PAYMENT`. Klient widzi to w portfelu.
+
+**Testy awarii DA** (`apps/api/test/`, do rozbudowy w follow-up):
+
+| Scenariusz | Symulacja | Oczekiwane zachowanie |
+|------------|-----------|----------------------|
+| **Timeout** | `nc -l` na porcie DA + 30 s sleep | 3 retry z exp backoff, każdy log `PROVISIONING_RETRY_SCHEDULED`; po wyczerpaniu — refund + `PENDING_PAYMENT`. |
+| **Bad credentials** | `DA_PASSWORD` zafałszowane | 1 próba (permanent), hard-fail, audit, mail do supportu. |
+| **No capacity** | Wszystkie węzły `MAINTENANCE` lub w 100% wysycone | `ServiceUnavailableException` w runnerze, klient widzi „brak wolnych węzłów”, retry; admin manualnie zwalnia węzeł i klika **Retry**. |
+
+**Pamiętaj:** restart API (np. deploy) powoduje że BullMQ przejmie joby z Redisa — żaden job nie znika. Joby zakończone (completed) trzymane są ostatnie 1000, błędne 5000. To wystarcza do operacyjnego runbooka.
+
+## Mailing (SMTP) — Postfix na serwerze panelu
+
+Verris świadomie nie korzysta z zewnętrznych dostawców (Resend / Postmark / SES). Wszystkie maile transakcyjne wychodzą przez **Postfix uruchomiony lokalnie na serwerze control-plane**, podpisane DKIM przez `opendkim`. Daje to:
+
+- pełną kontrolę nad treścią, retry i kolejką (`mailq`),
+- brak zewnętrznych zależności / kosztów / SLA,
+- jeden wpis SPF / DKIM w DNS panel-domeny zamiast osobnych dla każdego serwisu.
+
+API łączy się z Postfixem przez `localhost:25` bez auth (zaufane `mynetworks = 127.0.0.0/8`). Provider w kodzie (`apps/api/src/mail/smtp-mailer.provider.ts`) automatycznie wykrywa `SMTP_HOST=localhost` i przełącza się w tryb plain TCP, no-AUTH.
+
+### Lista maili wysyłanych aktualnie
+
+| Trigger | Adresat | Plik wywołujący |
+|---------|---------|-----------------|
+| Klient utworzył ticket | klient | `tickets.service.ts` (`newTicketCreatedTemplate`) |
+| Klient utworzył ticket z assignee | przypisany staff | `tickets.service.ts` |
+| Klient odpowiedział w tickecie | przypisany staff | `tickets.service.ts` |
+| Staff odpowiedział w tickecie | klient | `tickets.service.ts` |
+| Zmiana statusu ticketu | klient | `tickets.service.ts` (`ticketStatusChangedTemplate`) |
+| Admin ręcznie kredytuje portfel | klient | `billing.service.ts` (`adminCreditNotificationTemplate`) |
+| 5+ nieudanych logowań na email/IP | `SECURITY_ALERT_EMAIL` | `suspicious-activity.service.ts` |
+
+Wszystkie szablony używają wspólnego `email-shell.ts` (HTML + plaintext, branding Verris, footer compliance). Pełna roadmapa pozostałych maili (potwierdzenia płatności, doładowania, RODO etc.) — `docs/mail/AUDIT.md`.
+
+### Instalacja Postfix + opendkim na panelu (Ubuntu 24.04)
+
+```bash
+# Konto poczty: domena, helo
+HOST_NAME=panel.verris.pl
+MAIL_DOMAIN=verris.pl
+
+# 1) Instalacja paczek
+apt-get update
+DEBIAN_FRONTEND=noninteractive apt-get install -y \
+  postfix postfix-pcre opendkim opendkim-tools mailutils
+
+# 2) Konfiguracja Postfix — outgoing only, nasłuch tylko na localhost
+postconf -e "myhostname = ${HOST_NAME}"
+postconf -e "mydomain = ${MAIL_DOMAIN}"
+postconf -e "myorigin = \$mydomain"
+postconf -e "inet_interfaces = loopback-only"
+postconf -e "inet_protocols = ipv4"
+postconf -e "mydestination = "                             # nic nie odbieramy lokalnie
+postconf -e "mynetworks = 127.0.0.0/8 [::1]/128"
+postconf -e "smtpd_relay_restrictions = permit_mynetworks reject_unauth_destination"
+postconf -e "smtp_tls_security_level = may"                # TLS opportunistic na egress
+postconf -e "smtp_tls_loglevel = 1"
+postconf -e "smtputf8_enable = yes"
+# Outbound MX hostname używany w EHLO — musi się rozwijać do publicznego IP serwera
+postconf -e "smtp_helo_name = ${HOST_NAME}"
+
+# 3) opendkim — klucz dla domeny
+mkdir -p /etc/opendkim/keys/${MAIL_DOMAIN}
+opendkim-genkey -b 2048 -d ${MAIL_DOMAIN} -D /etc/opendkim/keys/${MAIL_DOMAIN}/ -s panel -v
+chown -R opendkim:opendkim /etc/opendkim/keys
+chmod 600 /etc/opendkim/keys/${MAIL_DOMAIN}/panel.private
+
+cat > /etc/opendkim.conf <<EOF
+Syslog                  yes
+UMask                   002
+Mode                    s
+Canonicalization        relaxed/simple
+Domain                  ${MAIL_DOMAIN}
+Selector                panel
+KeyFile                 /etc/opendkim/keys/${MAIL_DOMAIN}/panel.private
+Socket                  inet:8891@localhost
+PidFile                 /run/opendkim/opendkim.pid
+OversignHeaders         From
+EOF
+
+# 4) Połącz Postfix z opendkim (milter)
+postconf -e "milter_default_action = accept"
+postconf -e "smtpd_milters = inet:localhost:8891"
+postconf -e "non_smtpd_milters = inet:localhost:8891"
+
+systemctl enable --now opendkim postfix
+systemctl restart postfix
+```
+
+### DNS na poziomie verris.pl
+
+Po instalacji opendkim wypisz publiczną część klucza:
+
+```bash
+cat /etc/opendkim/keys/verris.pl/panel.txt
+```
+
+Wstaw 4 rekordy DNS:
+
+| Typ  | Nazwa                          | Wartość                                                                      |
+|------|--------------------------------|------------------------------------------------------------------------------|
+| **A**    | `panel.verris.pl`             | `<publiczne IP control-plane>` (już powinno być)                              |
+| **MX**   | `verris.pl`                    | `10 panel.verris.pl.` *(opcjonalnie — wystarcza dla SMTP-out, MX nie jest wymagane)* |
+| **TXT**  | `verris.pl` (SPF)              | `v=spf1 ip4:<publiczne IP control-plane> -all`                                 |
+| **TXT**  | `panel._domainkey.verris.pl`   | wartość z `panel.txt` (zaczyna się od `v=DKIM1; k=rsa; p=…`)                    |
+| **TXT**  | `_dmarc.verris.pl`             | `v=DMARC1; p=quarantine; rua=mailto:postmaster@verris.pl; adkim=s; aspf=s`    |
+
+> **Uwaga**: jeśli serwer panelu siedzi za Cloudflare, otwórz na firewallu **wyjściowy** port 25 (Hetzner i OVH domyślnie blokują outgoing 25 — odblokuj w panelu hostingowym przed deploymentem).
+
+### `.env.prod` na panelu
+
+Wystarczy minimum:
+
+```
+SMTP_HOST=localhost
+SMTP_PORT=25
+SMTP_FROM_ADDRESS=noreply@verris.pl
+SMTP_FROM_NAME=Verris
+
+# Opcjonalnie — adres pod który lecą alerty bezpieczeństwa (5+ failed logins)
+SECURITY_ALERT_EMAIL=security@verris.pl
+```
+
+`SMTP_USER`/`SMTP_PASS`/`SMTP_SECURE` można pominąć — provider auto-detect localhost daje `secure=none` i pomija AUTH.
+
+### Smoke test po deploy
+
+```bash
+# 1) Z poziomu API kontener'a (lub serwera) — testowy mail
+docker compose -f docker-compose.prod.yml exec api node -e "
+require('./dist/main.js'); // odpalonej apki nie ruszamy — to tylko import
+" && echo "(używamy panelu — patrz niżej)"
+
+# 2) W praktyce: zaloguj się jako admin, w admin/Klienci kliknij 'Kredytuj +1 K'
+#    z dowolnego konta testowego. Klient powinien dostać mail.
+
+# 3) Sprawdź kolejkę
+mailq
+# powinna być pusta (mail wyszedł).
+# Jeśli zastygły wiadomości — `postqueue -p` + zerknij /var/log/mail.log
+
+# 4) Test deliverability
+echo "test treści" | mail -s "Verris SMTP smoke" -a "From: noreply@verris.pl" \
+  test-pl-2026@mail-tester.com
+# Otwórz https://www.mail-tester.com/test-pl-2026, oczekiwany wynik: ≥ 8/10
+# (DKIM pass, SPF pass, DMARC align).
+```
+
+### Co zrobić gdy port 25 jest zablokowany u dostawcy
+
+Część dostawców (Hetzner Cloud — domyślnie, OVH — dla nowych kont) blokuje outgoing 25 w pierwszych dniach. Trzy opcje:
+
+1. **Otwarcie w panelu hostingowym** — preferowane. Hetzner: ticket „enable port 25"; OVH: czas oczekiwania ~72h.
+2. **Smarthost przez relay innego dostawcy** — Postfix dalej zostaje (DKIM/queue/retries lokalnie), ale wysyłka leci przez np. dedykowany relay-host na porcie 587 z auth. To jest pull-back do "miniresend" — używaj tylko jako tymczasowy mostek.
+3. **Switch na port 587 publicznego MTA** — np. własny mailserver na osobnym IP z odblokowaną 25.
+
+### Logi i monitoring
+
+- `/var/log/mail.log` — logi Postfix.
+- `journalctl -u opendkim` — logi DKIM milter.
+- Probe `SMTP localhost:25` w status-page — dorzuć w `/admin/status/probes` jako `severity=MINOR`, `isPublic=false`. Daje alerting jeśli Postfix padnie.
+
+## Stripe API upgrade (runbook)
+
+Pin domyślnej wersji API Stripe leży w `apps/api/src/billing/stripe/stripe.client.ts` jako `DEFAULT_STRIPE_API_VERSION`. Aktualnie: `2026-04-22.dahlia`. Każdy request i webhook musi mieć tę samą wersję — inaczej payloady różnią się shape'm.
+
+> Zanim cokolwiek upgrade'ujesz, przeczytaj `STRIPE_DAHLIA_COMPATIBILITY.md` w katalogu repo. Tam jest aktualna lista pól które używamy z fallbackami cross-version.
+
+### Procedura upgrade na nową **major** Stripe (np. dahlia → next-major)
+
+1. **Audit kodu pod nową wersję** — dla każdego pola które używamy w `stripe.client.ts`, `billing.service.ts`, `subscriptions.service.ts`, `invoices.service.ts`:
+
+   - Sprawdzić [Stripe changelog](https://docs.stripe.com/changelog) sekcję nowego majora.
+   - Przejść każdy „Breaking change" i wyznaczyć helper z `stripe.client.ts` (`getSubscriptionPeriod`, `getInvoiceSubscriptionId`, `getInvoiceClientSecret`, …) który trzeba zaktualizować lub dopisać.
+   - Dodać typ + helper z fallbackiem do poprzedniej majora (cross-version).
+
+2. **Update `DEFAULT_STRIPE_API_VERSION` w stagingu** — w branchu, ale zostaw produkcję pinowaną na poprzednią. Można też ustawić `STRIPE_API_VERSION=<new_version>` w `.env.staging`.
+
+3. **Stripe CLI smoke test** — z planem z `STRIPE_DAHLIA_COMPATIBILITY.md` → "Smoke test plan", ale z `--api-version <new_version>`. Wszystkie 7 scenariuszy MUSI być GREEN przed promocją.
+
+4. **Promocja webhooków** — w Stripe Dashboard → Workbench → Webhooks → endpoint `/billing/stripe/webhook` → upgrade API version. Stripe ma 72h okna na rollback.
+
+5. **Promocja default API version konta** — w Stripe Dashboard → Workbench → Overview → "API versions" → upgrade. Też 72h okno na rollback.
+
+6. **Deploy na prod** — merge brancha, redeploy API. `STRIPE_API_VERSION` w `.env.prod` zostawiamy puste (default z kodu) **lub** explicit ustawiamy nową wartość (audit trail w env).
+
+7. **Obserwuj 24h** — Workbench → Webhooks → success rate musi być 100%. Logi API: brak "malformed payload", "cannot read billing period", "cannot map invoice".
+
+8. **Rollback (gdy regresja)** — w `.env.prod` ustaw `STRIPE_API_VERSION=2026-04-22.dahlia` (poprzedni major), restart API. W Stripe Dashboard → rollback webhook + default API version (jeśli w 72h oknie).
+
+9. **Cleanup po stabilnym 7 dniach** — `STRIPE_API_VERSION` env może zostać usunięte z `.env.prod`, fallbacki do poprzedniej majora można usunąć z helpers'ów (PR osobny, aby trzymać git history czyste).
+
+### Monthly minor upgrade (np. `2026-04-22.dahlia` → `2026-05-XX.dahlia`)
+
+Bezpieczne, minor zmiany są backward-compatible. Wystarczy:
+
+1. Upgrade w Stripe Dashboard → Workbench (default API + webhook).
+2. Zmiana `DEFAULT_STRIPE_API_VERSION` w kodzie i deploy (lub `STRIPE_API_VERSION` env).
+3. Smoke test: 1 zakup subskrypcji, 1 top-up, 1 invoice.paid webhook. Bez full 7-scenariuszowego testu.
+
+### Wartości na produkcji (current)
+
+| Klucz | Wartość |
+| --- | --- |
+| `DEFAULT_STRIPE_API_VERSION` (kod) | `2026-04-22.dahlia` |
+| `STRIPE_API_VERSION` (env, opcjonalne) | nieustawione (używa default z kodu) |
+| Webhook endpoint API version | musi być **identyczny** z requestami |
+| Stripe Dashboard default API version | musi być **identyczny lub kompatybilny** (bo automated jobs typu auto-renewal generują webhooki na tej wersji) |
