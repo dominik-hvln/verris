@@ -29,10 +29,10 @@ export class RegistrarProviderFactory {
   constructor(private readonly config: ConfigService) {}
 
   get(): RegistrarProvider {
-    const providerId = this.config.get<string>('REGISTRAR_PROVIDER') ?? 'http';
+    const providerId = this.config.get<string>('REGISTRAR_PROVIDER');
     const baseUrl = this.config.get<string>('REGISTRAR_API_BASE_URL');
     const token = this.config.get<string>('REGISTRAR_API_TOKEN');
-    if (!baseUrl || !token) {
+    if (!providerId || !baseUrl || !token) {
       throw new ServiceUnavailableException('Registrar provider is not configured.');
     }
     return new HttpRegistrarProvider(providerId, baseUrl, token);

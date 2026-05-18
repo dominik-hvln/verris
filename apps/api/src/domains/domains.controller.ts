@@ -36,7 +36,8 @@ export class DomainsController {
     return {
       provider,
       configured: Boolean(
-        this.config.get<string>('REGISTRAR_API_BASE_URL') &&
+        provider &&
+          this.config.get<string>('REGISTRAR_API_BASE_URL') &&
           this.config.get<string>('REGISTRAR_API_TOKEN'),
       ),
     };
