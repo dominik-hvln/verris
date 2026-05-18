@@ -75,20 +75,34 @@ export function loadConfig(): AppConfig {
   return {
     nodeEnv,
     port: readInt('PORT', 3000),
-    clientPanelUrl: readEnv('CLIENT_PANEL_URL', { default: 'http://localhost:3001' }),
-    staffPanelUrl: readEnv('STAFF_PANEL_URL', { default: 'http://localhost:3002' }),
-    adminPanelUrl: readEnv('ADMIN_PANEL_URL', { default: 'http://localhost:3003' }),
+    clientPanelUrl: readEnv('CLIENT_PANEL_URL', {
+      required: isProd,
+      default: isProd ? undefined : 'http://localhost:3001',
+    }),
+    staffPanelUrl: readEnv('STAFF_PANEL_URL', {
+      required: isProd,
+      default: isProd ? undefined : 'http://localhost:3002',
+    }),
+    adminPanelUrl: readEnv('ADMIN_PANEL_URL', {
+      required: isProd,
+      default: isProd ? undefined : 'http://localhost:3003',
+    }),
     jwtSecret,
     jwtExpiresIn: readEnv('JWT_EXPIRES_IN', { default: '1d' }),
     appKmsKey,
-    publicApiUrl: readEnv('PUBLIC_API_URL', { default: 'http://localhost:3000' }),
+    publicApiUrl: readEnv('PUBLIC_API_URL', {
+      required: isProd,
+      default: isProd ? undefined : 'http://localhost:3000',
+    }),
     stripeSecretKey: process.env.STRIPE_SECRET_KEY || null,
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || null,
     stripeSuccessUrl: readEnv('STRIPE_SUCCESS_URL', {
-      default: 'http://localhost:3001/dashboard/billing?status=success',
+      required: isProd,
+      default: isProd ? undefined : 'http://localhost:3001/dashboard/billing?status=success',
     }),
     stripeCancelUrl: readEnv('STRIPE_CANCEL_URL', {
-      default: 'http://localhost:3001/dashboard/billing?status=cancel',
+      required: isProd,
+      default: isProd ? undefined : 'http://localhost:3001/dashboard/billing?status=cancel',
     }),
   };
 }

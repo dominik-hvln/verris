@@ -16,6 +16,7 @@ type AdminTicket = {
 export default async function AdminTicketsPage() {
   let rows: AdminTicket[] = [];
   let error: string | null = null;
+  const staffPanelUrl = panelUrl("NEXT_PUBLIC_STAFF_PANEL_URL", "http://localhost:3002");
   try {
     rows = await adminApi<AdminTicket[]>("/tickets/admin/all");
   } catch (e) {
@@ -57,7 +58,7 @@ export default async function AdminTicketsPage() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <Link
-                      href={`${process.env.NEXT_PUBLIC_STAFF_PANEL_URL ?? "http://localhost:3002"}/tickets/${ticket.id}`}
+                      href={new URL(`/tickets/${ticket.id}`, staffPanelUrl).toString()}
                       target="_blank"
                       rel="noreferrer"
                       className="text-xs text-indigo-400 hover:underline"
@@ -76,4 +77,11 @@ export default async function AdminTicketsPage() {
       )}
     </div>
   );
+}
+
+function panelUrl(envName: string, devFallback: string): string {
+  const value = process.env[envName]?.trim();
+  if (value) return value.replace(/\/$/, "");
+  if (process.env.NODE_ENV !== "production") return devFallback;
+  throw new Error(`${envName} is required for production links.`);
 }
