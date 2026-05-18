@@ -94,6 +94,8 @@ export default async function ServicesPage() {
 
 function ServiceCard({ service }: { service: ServiceSummaryDto }) {
   const account = service.account;
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
+  const badgeUrl = `${apiUrl}/public/services/${service.id}/uptime-badge.svg`;
   return (
     <div className="group relative overflow-hidden rounded-[32px] p-px hover:-translate-y-1 transition-transform duration-300">
       <div className="relative h-full w-full bg-[#0a0a0a] group-hover:bg-[#121212] transition-colors duration-300 rounded-[32px] p-6 md:p-8 flex flex-col justify-between z-10 border border-white/5">
@@ -184,6 +186,19 @@ function ServiceCard({ service }: { service: ServiceSummaryDto }) {
               }
             />
           </div>
+          {account ? (
+            <div className="mb-6 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
+                Publiczny uptime badge
+              </p>
+              <div className="mt-3 flex flex-wrap items-center gap-3">
+                <img src={badgeUrl} alt="Publiczny uptime badge" className="h-6" />
+                <code className="break-all rounded-lg bg-black/30 px-2 py-1 text-[11px] text-neutral-300">
+                  {badgeUrl}
+                </code>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <div className="flex justify-between items-center pt-6 border-t border-white/5 text-sm mt-4">
