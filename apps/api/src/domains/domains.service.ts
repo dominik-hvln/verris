@@ -1,8 +1,9 @@
-import { Injectable, Logger, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger, ConflictException, NotFoundException } from '@nestjs/common';
 import * as dns from 'dns';
+import * as tls from 'tls';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
-import { DomainStatus } from '@verris/database';
+import { DomainChecklistStatus, DomainStatus } from '@verris/database';
 import { CreateDomainDto } from './dto/create-domain.dto';
 
 @Injectable()
@@ -53,24 +54,74 @@ export class DomainsService {
 
   async verifyDomain(id: string, userId: string) {
     const domain = await this.findOne(id, userId);
-    
-    if (domain.status === DomainStatus.ACTIVE) {
-      return domain;
-    }
 
-    try {
-      // Prosta weryfikacja DNS – szukamy rekordów NS lub jakichkolwiek A
-      await dns.promises.resolveNs(domain.name).catch(() => dns.promises.resolve4(domain.name));
-      
-      // Jeśli udało się rozwiązać, zakładamy że domena działa i ustawiamy ACTIVE
+    const check = await this.runChecklist(id, userId);
+    if (check.status === DomainChecklistStatus.OK) {
       return this.prisma.domain.update({
         where: { id: domain.id },
         data: { status: DomainStatus.ACTIVE },
       });
-    } catch (e) {
-      // DNS resolution failed, wait for cron or user can try later
-      return domain;
     }
+    return domain;
+  }
+
+  async runChecklist(id: string, userId: string) {
+    const domain = await this.findOne(id, userId);
+    const [aRecords, aaaaRecords, nsRecords, mxRecords, tlsResult] = await Promise.all([
+      resolveList(() => dns.promises.resolve4(domain.name)),
+      resolveList(() => dns.promises.resolve6(domain.name)),
+      resolveList(() => dns.promises.resolveNs(domain.name)),
+      resolveList(() => dns.promises.resolveMx(domain.name)),
+      probeTls(domain.name),
+    ]);
+
+    const issues: string[] = [];
+    if (aRecords.length === 0 && aaaaRecords.length === 0) {
+      issues.push('Brak rekordu A/AAAA dla domeny głównej.');
+    }
+    if (nsRecords.length === 0) {
+      issues.push('Nie udało się odczytać rekordów NS.');
+    }
+    if (!tlsResult.ok) {
+      issues.push(tlsResult.error ?? 'Certyfikat TLS nie jest jeszcze gotowy.');
+    }
+
+    const status =
+      issues.length === 0
+        ? DomainChecklistStatus.OK
+        : aRecords.length > 0 || aaaaRecords.length > 0
+          ? DomainChecklistStatus.WARNING
+          : DomainChecklistStatus.FAILED;
+
+    return this.prisma.domainChecklist.create({
+      data: {
+        domainId: domain.id,
+        hostname: domain.name,
+        status,
+        requiredRecords: {
+          root: ['A or AAAA'],
+          optional: ['MX for mail', 'valid TLS certificate'],
+        },
+        observedRecords: {
+          a: aRecords,
+          aaaa: aaaaRecords,
+          ns: nsRecords,
+          mx: mxRecords.map((mx) => `${mx.priority} ${mx.exchange}`),
+          tls: tlsResult,
+        },
+        issues,
+        checkedAt: new Date(),
+      },
+    });
+  }
+
+  async listChecklists(id: string, userId: string) {
+    const domain = await this.findOne(id, userId);
+    return this.prisma.domainChecklist.findMany({
+      where: { domainId: domain.id },
+      orderBy: { createdAt: 'desc' },
+      take: 20,
+    });
   }
 
   async remove(id: string, userId: string) {
@@ -80,5 +131,44 @@ export class DomainsService {
       where: { id: domain.id },
     });
   }
+}
+
+async function resolveList<T>(fn: () => Promise<T[]>): Promise<T[]> {
+  try {
+    return await fn();
+  } catch {
+    return [];
+  }
+}
+
+function probeTls(hostname: string): Promise<{ ok: boolean; error: string | null; validTo: string | null }> {
+  return new Promise((resolve) => {
+    const socket = tls.connect(
+      {
+        host: hostname,
+        port: 443,
+        servername: hostname,
+        rejectUnauthorized: false,
+        timeout: 5000,
+      },
+      () => {
+        const cert = socket.getPeerCertificate();
+        const authError = socket.authorizationError;
+        socket.end();
+        resolve({
+          ok: socket.authorized,
+          error: authError ? String(authError) : null,
+          validTo: cert && typeof cert.valid_to === 'string' ? new Date(cert.valid_to).toISOString() : null,
+        });
+      },
+    );
+    socket.on('timeout', () => {
+      socket.destroy();
+      resolve({ ok: false, error: 'Timeout połączenia TLS :443.', validTo: null });
+    });
+    socket.on('error', (err) => {
+      resolve({ ok: false, error: err.message, validTo: null });
+    });
+  });
 }
 
