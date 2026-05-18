@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { Wallet, Loader2, BadgePercent, X, CheckCircle2 } from 'lucide-react';
 import { CREDIT_SHORT, formatCredits, pluralCredits } from '@/lib/credits';
 import type { PreviewTopupPromoResponse } from '@verris/contracts';
-import { previewTopupPromoAction, startTopupAction, TOPUP_PRESETS } from './actions';
+import { previewTopupPromoAction, startTopupAction } from './actions';
+import { TOPUP_PRESETS } from './constants';
 
 interface Props {
   balance: string;

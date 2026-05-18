@@ -24,7 +24,6 @@ export type AutoTopupResult =
   | { ok: true; settings: WalletAutoTopupSettingsDto }
   | { ok: false; error: string };
 
-const TOPUP_PRESETS = [25, 50, 100, 200, 500] as const;
 const MIN_TOPUP = 5;
 const MAX_TOPUP = 10_000;
 
@@ -169,5 +168,3 @@ export async function upsertAutoTopupAction(formData: FormData): Promise<AutoTop
     };
   }
 }
-
-export { TOPUP_PRESETS };
