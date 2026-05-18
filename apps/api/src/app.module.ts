@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { APP_GUARD } from '@nestjs/core';
 
 import { loadConfig } from './config/configuration';
 import { PrismaModule } from './prisma/prisma.module';
@@ -28,6 +29,8 @@ import { ComplianceModule } from './compliance/compliance.module';
 import { MarketingModule } from './marketing/marketing.module';
 import { EmailLogAdminModule } from './email-log/email-log-admin.module';
 import { ProductOpsModule } from './product-ops/product-ops.module';
+import { CustomerPermissionsGuard } from './common/guards/customer-permissions.guard';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -61,8 +64,9 @@ import { ProductOpsModule } from './product-ops/product-ops.module';
     MarketingModule,
     EmailLogAdminModule,
     ProductOpsModule,
+    AiModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [{ provide: APP_GUARD, useClass: CustomerPermissionsGuard }],
 })
 export class AppModule {}

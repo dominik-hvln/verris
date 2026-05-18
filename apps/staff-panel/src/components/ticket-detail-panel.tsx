@@ -8,6 +8,7 @@ import type { AgentOption, StaffTicketDetail, TicketAttachmentRow } from "@/lib/
 import {
   staffApplyRunbook,
   staffEscalateTicket,
+  staffGenerateAiSuggestion,
   staffPostReplyWithFiles,
   staffSetRiskFlag,
   staffUpdateTicket,
@@ -61,7 +62,27 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
   const [pending, transition] = useTransition();
   const [replyErr, setReplyErr] = useState<string | null>(null);
   const [opsErr, setOpsErr] = useState<string | null>(null);
+  const [aiSuggestion, setAiSuggestion] = useState<unknown | null>(null);
   const assignedId = ticket.assignedToId ?? ticket.assignedTo?.id ?? "";
+  const runbookChecklist =
+    ticket.department === "BILLING"
+      ? [
+          "Sprawdź status ostatniej faktury i płatności.",
+          "Zweryfikuj portfel oraz domyślną metodę płatności.",
+          "Jeżeli płatność nie przeszła, zaproponuj retry/top-up i jasny termin.",
+        ]
+      : [
+          "Sprawdź otwarte incydenty dla węzła klienta.",
+          "Uruchom DNS/TLS diagnostic, jeżeli zgłoszenie dotyczy domeny.",
+          "Zweryfikuj ostatnie metryki usage i provisioning/migration timeline.",
+        ];
+  const replySuggestions = [
+    ticket.riskFlag ? `Zacznij od potwierdzenia ryzyka: ${ticket.riskFlag}.` : null,
+    ticket.escalatedAt ? "Wspomnij, że zgłoszenie jest już eskalowane do senior/operator node." : null,
+    ticket.department === "TECHNICAL"
+      ? "Poproś o domenę, timestamp i przykład błędu, jeżeli nie ma ich w pierwszej wiadomości."
+      : "Potwierdź status rozliczenia i nie podawaj danych płatniczych w treści ticketu.",
+  ].filter((v): v is string => Boolean(v));
 
   async function patchField(
     patch: Partial<{ status: string; priority: string; department: string; assignedToId: string | null }>,
@@ -231,6 +252,51 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
         </OpsCard>
       </div>
       {opsErr ? <p className="text-sm text-rose-300">{opsErr}</p> : null}
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <OpsCard title="Checklist runbooka">
+          <ul className="space-y-2 text-xs text-neutral-300">
+            {runbookChecklist.map((item) => (
+              <li key={item} className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+                {item}
+              </li>
+            ))}
+          </ul>
+        </OpsCard>
+        <OpsCard title="Sugestie odpowiedzi bez AI">
+          <ul className="space-y-2 text-xs text-neutral-300">
+            {replySuggestions.map((item) => (
+              <li key={item} className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
+                {item}
+              </li>
+            ))}
+          </ul>
+        </OpsCard>
+        <OpsCard title="AI asystent (draft, audytowany)">
+          <p className="mb-3 text-xs text-neutral-400">
+            AI generuje szkic i checklistę dla operatora. Treść nie jest wysyłana do klienta automatycznie.
+          </p>
+          <button
+            disabled={pending}
+            onClick={() =>
+              transition(async () => {
+                setOpsErr(null);
+                const res = await staffGenerateAiSuggestion(ticket.id);
+                if ("error" in res) setOpsErr(res.error);
+                else setAiSuggestion(res.suggestion);
+              })
+            }
+            className="rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-xs text-violet-100"
+          >
+            Wygeneruj sugestię AI
+          </button>
+          {aiSuggestion ? (
+            <pre className="mt-3 max-h-72 overflow-auto rounded-xl border border-white/10 bg-black/40 p-3 text-xs text-neutral-200">
+              {JSON.stringify(aiSuggestion, null, 2)}
+            </pre>
+          ) : null}
+        </OpsCard>
+      </div>
 
       <div className="rounded-2xl border border-white/10 bg-black/25 p-6">
         <h2 className="mb-3 text-sm font-semibold text-white">Pierwsza wiadomość</h2>

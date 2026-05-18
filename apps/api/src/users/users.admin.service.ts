@@ -278,6 +278,18 @@ export class UsersAdminService {
       serverIds.length > 0
         ? await this.statusService.findOpenIncidentsForServers(serverIds)
         : [];
+    const customerTimeline = buildCustomerTimeline({
+      tickets: recentTickets,
+      invoices: recentInvoices,
+      wallet: walletLedger,
+      audit: auditTrail,
+    });
+    const supportInsights = buildSupportInsights({
+      target,
+      subscriptions,
+      recentTickets,
+      openIncidents,
+    });
 
     return {
       user: {
@@ -373,6 +385,8 @@ export class UsersAdminService {
         createdAt: a.createdAt.toISOString(),
       })),
       statusPageOpenIncidents: openIncidents,
+      customerTimeline,
+      supportInsights,
     };
   }
 
@@ -995,4 +1009,99 @@ function redactAuditDetails(details: unknown): Record<string, unknown> | null {
     }
   }
   return out;
+}
+
+function buildCustomerTimeline(input: {
+  tickets: Array<{ id: string; subject: string; status: unknown; createdAt: Date }>;
+  invoices: Array<{ id: string; number: string; status: unknown; amount: Prisma.Decimal; currency: string; createdAt: Date }>;
+  wallet: Array<{ id: string; type: unknown; amount: Prisma.Decimal; currency: string; createdAt: Date }>;
+  audit: Array<{ id: string; action: string; createdAt: Date }>;
+}) {
+  return [
+    ...input.tickets.map((t) => ({
+      id: `ticket:${t.id}`,
+      kind: 'ticket',
+      title: t.subject,
+      meta: String(t.status),
+      createdAt: t.createdAt.toISOString(),
+    })),
+    ...input.invoices.map((i) => ({
+      id: `invoice:${i.id}`,
+      kind: 'invoice',
+      title: `Faktura ${i.number}`,
+      meta: `${i.status} · ${i.amount.toString()} ${i.currency}`,
+      createdAt: i.createdAt.toISOString(),
+    })),
+    ...input.wallet.map((w) => ({
+      id: `wallet:${w.id}`,
+      kind: 'wallet',
+      title: `Portfel: ${String(w.type)}`,
+      meta: `${w.amount.toString()} ${w.currency}`,
+      createdAt: w.createdAt.toISOString(),
+    })),
+    ...input.audit.slice(0, 15).map((a) => ({
+      id: `audit:${a.id}`,
+      kind: 'audit',
+      title: a.action,
+      meta: 'audit',
+      createdAt: a.createdAt.toISOString(),
+    })),
+  ]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 30);
+}
+
+function buildSupportInsights(input: {
+  target: { loginBlocked: boolean; deletionRequestedAt: Date | null };
+  subscriptions: Array<{ status: unknown; currentPeriodEnd: Date | null }>;
+  recentTickets: Array<{ status: unknown; priority: unknown }>;
+  openIncidents: Array<unknown>;
+}) {
+  let riskScore = 0;
+  const reasons: string[] = [];
+  if (input.target.loginBlocked) {
+    riskScore += 25;
+    reasons.push('Konto ma blokadę logowania.');
+  }
+  if (input.target.deletionRequestedAt) {
+    riskScore += 40;
+    reasons.push('Klient złożył wniosek o usunięcie konta.');
+  }
+  const openTickets = input.recentTickets.filter((t) => String(t.status) !== 'CLOSED');
+  if (openTickets.length >= 3) {
+    riskScore += 20;
+    reasons.push('Kilka aktywnych zgłoszeń w krótkim oknie.');
+  }
+  if (input.recentTickets.some((t) => String(t.priority) === 'URGENT')) {
+    riskScore += 15;
+    reasons.push('W historii znajduje się zgłoszenie URGENT.');
+  }
+  if (input.subscriptions.some((s) => ['PAST_DUE', 'SUSPENDED'].includes(String(s.status)))) {
+    riskScore += 25;
+    reasons.push('Subskrypcja ma problem płatniczy lub jest zawieszona.');
+  }
+  if (input.openIncidents.length > 0) {
+    riskScore += 20;
+    reasons.push('Na węźle klienta jest otwarty incydent status page.');
+  }
+
+  const suggestions = [
+    input.openIncidents.length > 0
+      ? 'Zacznij od potwierdzenia wpływu incydentu i podaj link do status page.'
+      : null,
+    openTickets.length > 0
+      ? 'Odpowiedz w najstarszym aktywnym tickecie i zamknij duplikaty linkiem do głównego zgłoszenia.'
+      : null,
+    input.subscriptions.some((s) => String(s.status) === 'PAST_DUE')
+      ? 'Sprawdź płatność i zaproponuj bezpieczny retry lub top-up portfela.'
+      : null,
+    'Jeżeli problem dotyczy domeny, uruchom DNS/TLS diagnostic z profilu klienta przed odpowiedzią.',
+  ].filter((v): v is string => Boolean(v));
+
+  return {
+    riskScore: Math.min(100, riskScore),
+    riskLevel: riskScore >= 60 ? 'high' : riskScore >= 30 ? 'medium' : 'low',
+    reasons,
+    suggestions,
+  };
 }

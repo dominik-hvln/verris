@@ -60,6 +60,8 @@ export default async function StaffCustomerProfilePage({
     paymentMethods,
     auditTrail,
     statusPageOpenIncidents,
+    customerTimeline,
+    supportInsights,
   } = profile;
 
   const displayName =
@@ -178,6 +180,63 @@ export default async function StaffCustomerProfilePage({
           </div>
         ) : null}
       </header>
+
+      <section className="grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
+        <div className="rounded-2xl border border-white/10 bg-black/30 p-5">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-white">Customer risk</h2>
+          <p
+            className={`mt-3 text-3xl font-bold ${
+              supportInsights.riskLevel === "high"
+                ? "text-rose-300"
+                : supportInsights.riskLevel === "medium"
+                  ? "text-amber-300"
+                  : "text-emerald-300"
+            }`}
+          >
+            {supportInsights.riskScore}/100
+          </p>
+          {supportInsights.reasons.length > 0 ? (
+            <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-neutral-300">
+              {supportInsights.reasons.map((reason) => (
+                <li key={reason}>{reason}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-xs text-neutral-400">Brak aktywnych sygnałów ryzyka.</p>
+          )}
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-black/30 p-5">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-white">Sugestie odpowiedzi / działań</h2>
+          <ul className="mt-3 space-y-2 text-sm text-neutral-300">
+            {supportInsights.suggestions.map((suggestion) => (
+              <li key={suggestion} className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2">
+                {suggestion}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-white/10 bg-black/30">
+        <h2 className="border-b border-white/10 px-4 py-3 text-sm font-bold uppercase tracking-wide text-white">
+          Timeline klienta
+        </h2>
+        <ul className="divide-y divide-white/5">
+          {customerTimeline.map((item) => (
+            <li key={item.id} className="px-4 py-3 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-medium text-white">{item.title}</p>
+                <span className="text-xs text-muted-foreground">
+                  {new Date(item.createdAt).toLocaleString("pl-PL")}
+                </span>
+              </div>
+              <p className="mt-1 text-xs uppercase tracking-wide text-neutral-500">
+                {item.kind} · {item.meta}
+              </p>
+            </li>
+          ))}
+        </ul>
+      </section>
 
       <section className="rounded-2xl border border-white/10 bg-black/30">
         <h2 className="border-b border-white/10 px-4 py-3 text-sm font-bold uppercase tracking-wide text-white">

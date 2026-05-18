@@ -127,3 +127,14 @@ export async function staffSetRiskFlag(
     return { error: e instanceof StaffApiError ? e.message : "Nie udało się ustawić risk flag." };
   }
 }
+
+export async function staffGenerateAiSuggestion(
+  ticketId: string,
+): Promise<{ ok: true; suggestion: unknown } | { error: string }> {
+  try {
+    const suggestion = await staffApi(`/ai/tickets/${ticketId}/suggestion`, { method: "POST" });
+    return { ok: true, suggestion };
+  } catch (e) {
+    return { error: e instanceof StaffApiError ? e.message : "Nie udało się wygenerować sugestii AI." };
+  }
+}
