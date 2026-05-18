@@ -6,14 +6,14 @@
 
 Administratorem Twoich danych osobowych jest:
 
-- **`<TODO: pełna nazwa firmy>`**
-- z siedzibą `<TODO: adres>`,
-- wpisana do `<TODO: KRS / CEIDG>`,
-- NIP `<TODO>`, REGON `<TODO>`,
-- e-mail kontaktowy: `kontakt@verris.pl`,
-- e-mail w sprawach RODO: `rodo@verris.pl`.
+- **HVLN Dominik Kowalski**
+- z siedzibą pod adresem Zacisze 2A, 65-775 Zielona Góra,
+- wpisany do Centralnej Ewidencji i Informacji o Działalności Gospodarczej,
+- NIP 9292069367, REGON 521024260,
+- e-mail kontaktowy: `kontakt@hvln.pl`,
+- e-mail w sprawach RODO: `iod@hvln.pl`.
 
-Nie wyznaczyliśmy Inspektora Ochrony Danych — w związku z naszą działalnością nie jest to obowiązkowe (art. 37 RODO). Wszystkie pytania dotyczące przetwarzania kierujesz na adres `rodo@verris.pl`, a my odpowiadamy w ciągu 30 dni.
+Wszystkie pytania dotyczące przetwarzania danych osobowych kierujesz na adres `iod@hvln.pl`, a my odpowiadamy w ciągu 30 dni.
 
 ## 2. Jakie dane przetwarzamy
 
@@ -78,12 +78,13 @@ Twoje dane mogą być przekazywane następującym kategoriom odbiorców:
 Działają na nasze zlecenie i wyłącznie w celach przez nas wskazanych, na podstawie umów powierzenia (art. 28 RODO):
 
 - **Stripe Payments Europe Ltd.** (Irlandia, EU) — operator płatności kartą i przelewem.
-- **`<TODO: SMTP provider>`** (np. Postmark / Resend / Amazon SES — region EU) — dostawca e-maili transakcyjnych.
-- **`<TODO: dostawca infrastruktury>`** (np. Hetzner / DigitalOcean / OVH — region EU) — fizyczna infrastruktura serwerowa.
-- **`<TODO: dostawca backupów>`** (np. Backblaze B2 EU / AWS S3 EU) — przechowywanie kopii zapasowych.
-- **`<TODO: dostawca monitoringu uptime>`** (jeśli używamy zewnętrznego, np. Uptime Robot) — pingowanie publicznych endpointów.
+- **Stripe Payments Europe Ltd.** (Irlandia, EU) — operator płatności kartą i przelewem.
+- Dostawca infrastruktury serwerowej — do uzupełnienia przed publikacją po wyborze produkcyjnego dostawcy.
+- Dostawca backup/off-site storage — do uzupełnienia przed publikacją po wyborze produkcyjnego dostawcy.
+- Dostawca SMTP / poczty transakcyjnej — do uzupełnienia przed publikacją po wyborze produkcyjnego dostawcy.
+- Zewnętrzne narzędzia monitoringu uptime — tylko jeśli zostaną użyte poza własnym statusem Verris.
 
-Pełna lista subprocessors jest publikowana i aktualizowana w `<TODO: URL subprocessors>`. Powiadomimy Cię e-mailem o nowym subprocessorze co najmniej 30 dni przed jego wprowadzeniem.
+Pełna lista subprocessors zostanie opublikowana i aktualizowana na publicznej stronie Verris przed rozpoczęciem świadczenia usług klientom zewnętrznym. Powiadomimy Cię e-mailem o nowym subprocessorze co najmniej 30 dni przed jego wprowadzeniem.
 
 ### 4.2 Organy państwowe
 
@@ -114,7 +115,7 @@ Możesz zażądać kopii swoich danych. W Panelu w sekcji „Prywatność i RODO
 
 ### 6.2 Prawo do sprostowania (art. 16 RODO)
 
-Większość danych aktualizujesz samodzielnie w Panelu (sekcja „Profil"). Jeśli czegoś nie da się zmienić z poziomu Panelu, napisz na `rodo@verris.pl`.
+Większość danych aktualizujesz samodzielnie w Panelu (sekcja „Profil"). Jeśli czegoś nie da się zmienić z poziomu Panelu, napisz na `iod@hvln.pl`.
 
 ### 6.3 Prawo do usunięcia („prawo do bycia zapomnianym", art. 17 RODO)
 
@@ -126,7 +127,7 @@ Możesz usunąć konto w Panelu w sekcji „Prywatność i RODO" → „Usuń ko
 
 ### 6.4 Prawo do ograniczenia przetwarzania (art. 18 RODO)
 
-Możesz wystąpić o czasowe wstrzymanie przetwarzania (np. w trakcie sporu). Skontaktuj się z `rodo@verris.pl`.
+Możesz wystąpić o czasowe wstrzymanie przetwarzania (np. w trakcie sporu). Skontaktuj się z `iod@hvln.pl`.
 
 ### 6.5 Prawo do przenoszenia danych (art. 20 RODO)
 
@@ -165,8 +166,8 @@ Stosujemy następujące techniczne i organizacyjne środki ochrony:
 - **Ograniczenie dostępu:** zasada „need-to-know" — Zespół Verris ma dostęp do danych tylko w zakresie niezbędnym do swojej roli (RBAC). Każdy dostęp zarejestrowany w `AuditLog`.
 - **Impersonacja:** gdy operator support zaglądy w Twoje konto, zawsze zostaje to odnotowane w logach z uzasadnieniem i czasem trwania (max 30 minut).
 - **Monitoring i alarmy:** 24/7 monitoring nadużyć (`SecurityAlert`), niezależny zewnętrzny monitor uptime (`status.verris.pl`).
-- **Backupy:** szyfrowane, retencja 30 dni, off-site (`<TODO: szczegóły>`).
-- **Pen-testy:** zewnętrzne audyty bezpieczeństwa raz w roku (`<TODO: po pierwszym audycie>`).
+- **Backupy:** szyfrowane, retencja i off-site zgodnie z aktualną checklistą operacyjną Verris.
+- **Pen-testy:** zewnętrzne audyty bezpieczeństwa planowane cyklicznie po uruchomieniu środowiska produkcyjnego.
 
 ## 9. Naruszenie ochrony danych
 

@@ -30,24 +30,14 @@ Pomagają nam pamiętać Twoje preferencje. Aktywują się dopiero po Twojej zgo
 | `dashboard-layout` | Twoje ulubione widgety na pulpicie | 6 miesięcy |
 | `support-draft` | Robocza wersja zgłoszenia w supporcie | 7 dni |
 
-### 2.3 Cookies analityczne (opcjonalne)
+### 2.3 Cookies analityczne
 
-`<TODO: określ przed lawyer review które rozwiązanie wybieramy>`
-
-**Opcja A — Plausible Analytics (zalecane):** cookieless analytics, **nie wymaga zgody**, bo nie używa plików cookies ani identyfikatorów osobistych. Statystyki są agregowane (countries, popular pages, referrers) bez śledzenia użytkowników. W tej opcji ta sekcja jest niepotrzebna.
-
-**Opcja B — Google Analytics 4 / Hotjar:** wymaga zgody i pełnego cookie banner z opt-in:
-
-| Nazwa | Cel | Czas życia |
-| --- | --- | --- |
-| `_ga` | Identyfikator użytkownika GA4 | 2 lata |
-| `_ga_<container>` | Stan kontenera GA4 | 2 lata |
-| `_hjSessionUser_*` | Identyfikator Hotjar | 1 rok |
+Na start LIVE Verris nie używa cookies analitycznych ani narzędzi śledzących typu Google Analytics / Hotjar. Jeśli w przyszłości włączymy analitykę wymagającą zgody, zaktualizujemy niniejszą Politykę i poprosimy Cię o zgodę przed jej aktywacją.
 
 ### 2.4 Cookies third-party (uzależnione od użytych funkcji)
 
 - **Stripe:** kiedy podajesz dane karty w panelu, Stripe ustawia cookies (m.in. `__stripe_mid`, `__stripe_sid`) niezbędne do działania Stripe Elements i ochrony przed fraudami. Te cookies są zarządzane przez Stripe — szczegóły w [Polityce prywatności Stripe](https://stripe.com/privacy).
-- **Cloudflare / CDN:** jeśli korzystamy z CDN, używa cookie `__cf_bm` do detekcji botów (1h life).
+- **CDN / ochrona antybotowa:** jeśli zostanie użyta, szczegóły cookies dostawcy zostaną dopisane przed publikacją tej konfiguracji.
 
 ## 3. Jak zarządzać cookies
 

@@ -2,6 +2,8 @@
 
 > Plan powstał na bazie `PROJECT_STATUS.md`, `ROADMAP_GAPS.md`, `BACKLOG.md`, `DEPLOY.md`, `GO_NO_GO_PROD.md` i `LOCAL_DEV.md`.
 > Cel: domknąć istniejące funkcjonalności, rozbudować panel hostingowy, zwiększyć niezawodność i dojść do kontrolowanych testów przed sprzedażą LIVE.
+>
+> Aktualny plan domknięcia przed produkcją, z kryterium **100% LIVE bez MVP, mocków i brakujących funkcji**, jest w [`LIVE_READINESS_PLAN.md`](./LIVE_READINESS_PLAN.md). Ten dokument pozostaje roadmapą historyczną i produktową; decyzję GO/NO-GO opieramy o `LIVE_READINESS_PLAN.md`, `PROD_HEALTH_CHECKLIST.md` oraz pełny smoke test.
 
 ## Założenia
 

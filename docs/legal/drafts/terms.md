@@ -6,7 +6,7 @@
 
 W niniejszym Regulaminie poniższe pojęcia mają następujące znaczenia:
 
-1. **Usługodawca / Verris** — `<TODO: pełna nazwa firmy>` z siedzibą w `<TODO: adres>`, wpisana do `<TODO: KRS / CEIDG>`, NIP `<TODO>`, REGON `<TODO>`, e-mail kontaktowy: `kontakt@verris.pl`.
+1. **Usługodawca / Verris** — HVLN Dominik Kowalski z siedzibą pod adresem Zacisze 2A, 65-775 Zielona Góra, wpisany do Centralnej Ewidencji i Informacji o Działalności Gospodarczej, NIP 9292069367, REGON 521024260, e-mail kontaktowy: `kontakt@hvln.pl`.
 2. **Usługobiorca / Klient** — osoba fizyczna posiadająca pełną zdolność do czynności prawnych, osoba prawna albo jednostka organizacyjna nieposiadająca osobowości prawnej, której ustawa przyznaje zdolność prawną, korzystająca z Usług.
 3. **Konsument** — Usługobiorca będący osobą fizyczną zawierającą umowę poza zakresem prowadzonej przez siebie działalności gospodarczej lub zawodowej.
 4. **Przedsiębiorca na prawach Konsumenta** — osoba fizyczna prowadząca działalność gospodarczą, dla której zawarcie umowy nie ma charakteru zawodowego (art. 38a ust. 1 ustawy o prawach konsumenta).
@@ -23,7 +23,7 @@ W niniejszym Regulaminie poniższe pojęcia mają następujące znaczenia:
 ## §2. Postanowienia ogólne
 
 1. Regulamin określa zasady świadczenia Usług przez Verris, prawa i obowiązki Stron, zasady zawierania i rozwiązywania Umów, postępowania reklamacyjnego oraz odpowiedzialności.
-2. Korzystanie z Usług wymaga akceptacji Regulaminu, Polityki prywatności (`<TODO: URL>`) oraz Polityki cookies (`<TODO: URL>`).
+2. Korzystanie z Usług wymaga akceptacji Regulaminu, Polityki prywatności (`https://panel.verris.pl/legal/privacy`) oraz Polityki cookies (`https://panel.verris.pl/legal/cookies`).
 3. Klient korzysta z Usług na własny rachunek i ryzyko w zakresie treści, które publikuje lub przetwarza.
 4. Językiem Umowy jest język polski. Walutą rozliczeń jest złoty polski (PLN). Faktury wystawiane są w PLN zgodnie z polskim prawem podatkowym.
 
@@ -79,13 +79,13 @@ Korzystanie z Panelu wymaga:
 
 ## §8. Cennik i opłaty
 
-1. Cennik Planów dostępny jest na stronie `<TODO: URL cennika>` i w Panelu w trakcie zakupu.
+1. Cennik Planów dostępny jest w Panelu w trakcie zakupu oraz na publicznej stronie oferty Verris po jej opublikowaniu.
 2. Verris zastrzega sobie prawo do zmiany Cennika z zachowaniem 30-dniowego okresu wypowiedzenia, doręczanego e-mailem. Zmiany Cennika nie wpływają na bieżące, opłacone okresy rozliczeniowe.
 3. Niektóre Usługi (autoskalowanie, dodatkowy transfer, dodatkowy backup) są rozliczane w modelu pay-per-use. Klient ustawia w Panelu miesięczny limit kwoty (`Limit miesięczny (K)`); po przekroczeniu limitu Verris automatycznie wstrzymuje dalsze obciążenia i powiadamia Klienta.
 
 ## §9. Reklamacje
 
-1. Klient może złożyć reklamację dotyczącą Usługi w Panelu (sekcja Wsparcie → Nowe zgłoszenie) lub e-mailem na `kontakt@verris.pl`.
+1. Klient może złożyć reklamację dotyczącą Usługi w Panelu (sekcja Wsparcie → Nowe zgłoszenie) lub e-mailem na `kontakt@hvln.pl`.
 2. Verris rozpatruje reklamację w terminie 14 dni od jej otrzymania. Brak odpowiedzi w tym terminie oznacza uwzględnienie reklamacji.
 3. Reklamacja powinna zawierać: dane identyfikujące Klienta, opis problemu, datę i godzinę wystąpienia, ewentualne logi lub zrzuty ekranu, oczekiwane rozwiązanie.
 
@@ -93,7 +93,7 @@ Korzystanie z Panelu wymaga:
 
 1. Konsument ma prawo odstąpić od Umowy w terminie 14 dni od jej zawarcia bez podania przyczyny.
 2. Konsument oświadcza w trakcie zakupu (§4 ust. 3), że żąda rozpoczęcia świadczenia Usługi przed upływem terminu odstąpienia. W takim przypadku Konsument zachowuje prawo odstąpienia, lecz **zobowiązany jest do zapłaty za świadczenia wykonane do chwili odstąpienia** (proporcjonalnie do wykorzystanego okresu).
-3. Konsument odstępuje od Umowy poprzez złożenie oświadczenia w Panelu lub e-mailem na `kontakt@verris.pl`. Wzór formularza odstąpienia: `<TODO: link do formularza>`.
+3. Konsument odstępuje od Umowy poprzez złożenie oświadczenia w Panelu lub e-mailem na `kontakt@hvln.pl`. Wzór formularza odstąpienia zostanie opublikowany razem z finalną wersją Regulaminu.
 4. Verris zwraca środki niewykorzystane w ciągu 14 dni od otrzymania oświadczenia, na rachunek z którego dokonano płatności (lub inny wskazany przez Konsumenta).
 
 ## §11. Odpowiedzialność i SLA
@@ -127,7 +127,7 @@ Korzystanie z Panelu wymaga:
 
 ## §13. Dane osobowe
 
-1. Verris jest administratorem danych osobowych Klientów w zakresie obsługi konta i świadczenia Usług. Szczegółowe zasady opisuje **Polityka prywatności** (`<TODO: URL>`).
+1. Verris jest administratorem danych osobowych Klientów w zakresie obsługi konta i świadczenia Usług. Szczegółowe zasady opisuje **Polityka prywatności** (`https://panel.verris.pl/legal/privacy`).
 2. W przypadku, gdy Klient przetwarza dane osobowe osób trzecich w ramach świadczonych przez siebie usług hostowanych w Verris (np. dane klientów sklepu internetowego Klienta), Verris jest podmiotem przetwarzającym te dane w rozumieniu art. 28 RODO, a relacja jest regulowana **Umową powierzenia przetwarzania danych** (DPA), dostępną na żądanie Klienta lub automatycznie zawieraną elektronicznie w Panelu (sekcja „Zgodność").
 
 ## §14. Postanowienia końcowe

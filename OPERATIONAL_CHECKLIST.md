@@ -417,6 +417,11 @@ weryfikacja że są zarejestrowane):
       mailowy o niskim stanie portfela (S2.1)
 - [ ] `🔴` `RenewalReminderScheduler` (co godzinę) — przypomnienie T-7/3/1
       przed odnowieniem subskrypcji (S2.1)
+- [ ] `🔴` `StatusWebhookService.deliverPending` (co minutę) — dostarcza
+      status webhooks, retry i finalne `FAILED` po limicie prób
+- [ ] `🔴` Compute-node migration worker odpytuje
+      `/node/migration-worker/lease` i raportuje `complete/fail` dla
+      `FILES_SFTP_RSYNC`, `MYSQL_IMPORT`, `IMAP_SYNC`, `HTTP_POST_CHECK`
 - [ ] `🔴` `MarketingCampaignDispatcher` (co minutę) — promote SCHEDULED do
       SENDING + flush 100 maili/min (S2.6). **Wymaga skonfigurowanego
       Postfix throttling 4.6**.

@@ -319,7 +319,7 @@ function PaymentCard({
         <span className="font-bold">{title}</span>
         {disabled ? (
           <span className="ml-auto text-[10px] uppercase tracking-widest text-neutral-500">
-            Wkrótce
+            Niedostępne
           </span>
         ) : null}
       </div>

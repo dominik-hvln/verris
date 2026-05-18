@@ -17,12 +17,12 @@
 
 ### Podmiot przetwarzający (dalej: „Verris")
 
-- **`<TODO: pełna nazwa firmy>`**
-- z siedzibą `<TODO: adres>`,
-- wpisana do `<TODO: KRS / CEIDG>`,
-- NIP `<TODO>`,
-- reprezentowana przez `<TODO>`,
-- e-mail w sprawach RODO: `rodo@verris.pl`.
+- **HVLN Dominik Kowalski**
+- z siedzibą pod adresem Zacisze 2A, 65-775 Zielona Góra,
+- wpisany do Centralnej Ewidencji i Informacji o Działalności Gospodarczej,
+- NIP 9292069367, REGON 521024260,
+- reprezentowany przez Dominika Kowalskiego,
+- e-mail w sprawach RODO: `iod@hvln.pl`.
 
 ## §2. Przedmiot, charakter i cel powierzenia
 
@@ -63,7 +63,7 @@ Powierzenie **nie obejmuje** danych osobowych Klienta jako osoby fizycznej ani o
 
 Verris zobowiązuje się do:
 
-1. **Przetwarzania danych wyłącznie na udokumentowane polecenie Klienta** (art. 28 ust. 3 lit. a RODO). Niniejsza Umowa stanowi takie polecenie. Każde dodatkowe polecenie Klient kieruje na e-mail `rodo@verris.pl` lub przez Panel.
+1. **Przetwarzania danych wyłącznie na udokumentowane polecenie Klienta** (art. 28 ust. 3 lit. a RODO). Niniejsza Umowa stanowi takie polecenie. Każde dodatkowe polecenie Klient kieruje na e-mail `iod@hvln.pl` lub przez Panel.
 2. **Zapewnienia poufności** osobom upoważnionym do przetwarzania danych (umowy o zachowaniu poufności z pracownikami, NDA z podwykonawcami).
 3. **Wdrożenia odpowiednich środków technicznych i organizacyjnych** (art. 32 RODO), opisanych w **Załączniku 1** do niniejszej Umowy.
 4. **Pomocy Klientowi w spełnianiu jego obowiązków** wynikających z RODO, w szczególności:
@@ -87,16 +87,17 @@ Pełna lista w **Załączniku 1**. W skrócie:
 - wieloskładnikowe uwierzytelnianie wymagane dla kont wewnętrznych Verris (admin/staff),
 - regularne backupy szyfrowane, retencja 30 dni, off-site,
 - monitoring 24/7 zdarzeń bezpieczeństwa (`SecurityAlert`), własna procedura incident response,
-- coroczne audyty bezpieczeństwa zewnętrzne (pen-test) — pierwszy planowany `<TODO>`,
+- coroczne audyty bezpieczeństwa zewnętrzne (pen-test) — pierwszy audyt zostanie zaplanowany po uruchomieniu środowiska produkcyjnego,
 - pracownicy Verris przeszkoleni z RODO, podpisali NDA.
 
 ## §7. Subprocessing (art. 28 ust. 2 RODO)
 
 1. Klient wyraża **ogólną zgodę** na korzystanie przez Verris z dalszych podmiotów przetwarzających (subprocessors), niezbędnych do świadczenia Usługi.
-2. Aktualna lista subprocessors jest publikowana i utrzymywana pod adresem `<TODO: URL subprocessors page>`. W szczególności:
-   - **`<TODO: dostawca infrastruktury>`** (Hetzner / DigitalOcean / OVH — region EU): hosting fizycznych serwerów.
-   - **`<TODO: SMTP provider>`** (Postmark / Resend / SES — region EU): wysyłka transakcyjnych e-maili wygenerowanych przez aplikacje Klienta (jeśli Klient korzysta z infrastruktury SMTP Verris).
-   - **`<TODO: backup provider>`** (Backblaze B2 EU / AWS S3 EU): off-site backupy.
+2. Aktualna lista subprocessors zostanie opublikowana i utrzymywana na publicznej stronie Verris przed rozpoczęciem świadczenia usług klientom zewnętrznym. W szczególności obejmie:
+   - dostawcę infrastruktury serwerowej w regionie EOG,
+   - dostawcę backup/off-site storage w regionie EOG,
+   - dostawcę SMTP / poczty transakcyjnej, jeśli będzie inny niż infrastruktura własna,
+   - Stripe Payments Europe Ltd. jako operatora płatności.
 3. Verris **powiadomi Klienta z 30-dniowym wyprzedzeniem** e-mailem o planowanym wprowadzeniu nowego subprocessora lub zmianie istniejącego. Klient ma prawo zgłosić uzasadniony sprzeciw w tym terminie. W przypadku braku konsensusu Klient ma prawo wypowiedzieć Umowę bez konsekwencji.
 4. Verris zapewnia, że każdy subprocessor podlega obowiązkom zgodnym z niniejszą Umową, w szczególności w zakresie środków bezpieczeństwa i ograniczeń terytorialnych.
 
@@ -113,7 +114,7 @@ Pełna lista w **Załączniku 1**. W skrócie:
 
 1. Klient ma prawo do **kontroli zgodności** Verris z niniejszą Umową raz w roku, na własny koszt, po uprzednim 14-dniowym powiadomieniu.
 2. Audyt może być przeprowadzony:
-   - poprzez przegląd dokumentacji udostępnionej przez Verris (raporty SOC 2, ISO 27001 — `<TODO: gdy zdobyte>`, raporty pen-testów),
+   - poprzez przegląd dokumentacji udostępnionej przez Verris (polityki bezpieczeństwa, raporty pen-testów po ich wykonaniu, certyfikaty lub raporty dostawców infrastruktury),
    - poprzez wywiady z personelem Verris,
    - w wyjątkowych przypadkach — fizyczna wizyta w lokalizacji Verris (po koordynacji terminu).
 3. Verris dołoży starań, aby audyt nie zakłócał ciągłości świadczenia Usług.
@@ -122,7 +123,7 @@ Pełna lista w **Załączniku 1**. W skrócie:
 ## §10. Po zakończeniu przetwarzania
 
 1. Po zakończeniu Umowy o świadczenie Usług (dobrowolnym lub wymuszonym):
-   - Verris **przez 30 dni** zachowuje dane Klienta umożliwiając ich odzyskanie (eksport ZIP poprzez `<TODO: procedure>`).
+   - Verris **przez 30 dni** zachowuje dane Klienta umożliwiając ich odzyskanie przez eksport danych lub zgłoszenie do wsparcia.
    - Po 30 dniach Verris **trwale usuwa** wszystkie dane Klienta z aktywnej infrastruktury i backupów rolling.
    - Backupy off-site z okresem retencji powyżej 30 dni są nadpisywane zgodnie z polityką rotacji (max 90 dni do ostatecznego usunięcia).
 2. Verris zachowuje:
@@ -166,13 +167,13 @@ Pełna lista w **Załączniku 1**. W skrócie:
 | --- | --- |
 | Zatrudnienie | NDA podpisane przez wszystkich pracowników i kontrahentów |
 | Szkolenia | Roczne szkolenie RODO dla całego zespołu |
-| Procedury | Incident response (`<TODO: link do dokumentu>`), data breach (24h notification) |
+| Procedury | Incident response i data breach (24h notification) opisane w procedurach operacyjnych Verris |
 | Ocena ryzyka | Rejestr czynności przetwarzania (RoP), DPIA dla wysokorisk |
 | Audyt | Roczny pen-test zewnętrzny, kwartalny przegląd uprawnień |
 
 ### Środki dostępu fizycznego
 
-Verris nie posiada własnej infrastruktury fizycznej — fizyczna infrastruktura jest powierzona subprocessorowi `<TODO: dostawca>`, który posiada certyfikaty ISO 27001 / SOC 2 / odpowiednie poświadczenia bezpieczeństwa centrum danych. Verris regularnie weryfikuje aktualność tych certyfikatów.
+Verris nie posiada własnej infrastruktury fizycznej — fizyczna infrastruktura jest powierzona subprocessorowi wskazanemu na aktualnej liście podwykonawców. Verris regularnie weryfikuje aktualność zabezpieczeń i dokumentacji tego dostawcy.
 
 ---
 

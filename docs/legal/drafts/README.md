@@ -1,6 +1,6 @@
 # Drafty dokumentów prawnych Verris
 
-> **Status: DRAFTY przygotowawcze do Sprintu 1 (Legal/RODO).** NIE PUBLIKOWAĆ ani nie traktować jako wiążące prawnie do czasu lawyer review. Dane administratora (firma, NIP, KRS, adres) są placeholdery `<TODO>` — uzupełnić przed review.
+> **Status: DRAFTY przygotowawcze do Sprintu 1 (Legal/RODO).** NIE PUBLIKOWAĆ ani nie traktować jako wiążące prawnie do czasu lawyer review. Dane administratora HVLN zostały uzupełnione, ale przed publikacją nadal trzeba potwierdzić subprocessors, publiczne URL-e dokumentów i akceptację prawnika.
 
 Wymagany lawyer review: **regulamin, polityka prywatności, polityka cookies, DPA**. Po review treści zostaną zaimportowane do tabeli `LegalDocument` w Sprincie 1 (task L-01) jako wersja `1.0.0`.
 
