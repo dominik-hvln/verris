@@ -25,7 +25,7 @@ import {
 } from '@verris/ui';
 import { Globe, MoreVertical, Plus, RefreshCw, AlertCircle, Info, Trash2, CheckCircle2, ShoppingCart } from 'lucide-react';
 import { HostingTabs } from '../components/hosting-tabs';
-import { fetchUserDomains, addDomain, deleteDomain } from './actions';
+import { fetchUserDomains, addDomain, deleteDomain, fetchRegistrarStatus } from './actions';
 import { DomainDto } from '@verris/contracts';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -38,6 +38,7 @@ export default function DomainsPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newDomainName, setNewDomainName] = useState('');
   const [adding, setAdding] = useState(false);
+  const [registrarConfigured, setRegistrarConfigured] = useState(false);
 
   const loadDomains = () => {
     setLoading(true);
@@ -53,6 +54,9 @@ export default function DomainsPage() {
 
   useEffect(() => {
     loadDomains();
+    fetchRegistrarStatus()
+      .then((status) => setRegistrarConfigured(status.configured))
+      .catch(() => setRegistrarConfigured(false));
   }, []);
 
   const handleAddDomain = async (e: React.FormEvent) => {
@@ -93,9 +97,11 @@ export default function DomainsPage() {
         </div>
         
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-2" onClick={() => router.push('/dashboard/domains/registrar')}>
-            <ShoppingCart className="h-4 w-4" /> Rejestrator
-          </Button>
+          {registrarConfigured ? (
+            <Button variant="outline" className="gap-2" onClick={() => router.push('/dashboard/domains/registrar')}>
+              <ShoppingCart className="h-4 w-4" /> Rejestrator
+            </Button>
+          ) : null}
           <Button className="gap-2" onClick={() => setIsAddOpen(true)}>
             <Plus className="h-4 w-4" /> Dodaj domenę
           </Button>

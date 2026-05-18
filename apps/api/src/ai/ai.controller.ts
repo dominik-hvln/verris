@@ -1,4 +1,5 @@
 import { Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Role } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -8,7 +9,10 @@ import { AiService } from './ai.service';
 @Controller('ai')
 @UseGuards(JwtAuthGuard)
 export class AiController {
-  constructor(private readonly ai: AiService) {}
+  constructor(
+    private readonly ai: AiService,
+    private readonly config: ConfigService,
+  ) {}
 
   @UseGuards(RolesGuard)
   @Roles(Role.STAFF, Role.ADMIN)
@@ -28,6 +32,10 @@ export class AiController {
 
   @Get('status')
   status() {
-    return { provider: 'openai-compatible', configuredByEnv: true };
+    const provider = this.config.get<string>('AI_PROVIDER') ?? 'openai-compatible';
+    return {
+      provider,
+      configured: Boolean(this.config.get<string>('AI_API_KEY')),
+    };
   }
 }

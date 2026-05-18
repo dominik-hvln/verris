@@ -1,4 +1,5 @@
 import { Controller, Get, Post, Delete, Body, Param, UseGuards, Req } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
 import { DomainsService } from './domains.service';
 import { CreateDomainDto } from './dto/create-domain.dto';
@@ -11,6 +12,7 @@ export class DomainsController {
   constructor(
     private readonly domainsService: DomainsService,
     private readonly registrar: DomainRegistrarService,
+    private readonly config: ConfigService,
   ) {}
 
   @Post()
@@ -26,6 +28,18 @@ export class DomainsController {
   @Post('registrar/availability')
   async availability(@Body() dto: DomainAvailabilityDto) {
     return this.registrar.availability(dto.name);
+  }
+
+  @Get('registrar/status')
+  registrarStatus() {
+    const provider = this.config.get<string>('REGISTRAR_PROVIDER') ?? null;
+    return {
+      provider,
+      configured: Boolean(
+        this.config.get<string>('REGISTRAR_API_BASE_URL') &&
+          this.config.get<string>('REGISTRAR_API_TOKEN'),
+      ),
+    };
   }
 
   @Post('registrar/register')

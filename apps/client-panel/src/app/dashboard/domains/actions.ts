@@ -60,6 +60,13 @@ export async function runDomainChecklistAction(id: string): Promise<DomainCheckl
   return row;
 }
 
+export async function fetchRegistrarStatus(): Promise<{
+  provider: string | null;
+  configured: boolean;
+}> {
+  return apiFetch('/domains/registrar/status');
+}
+
 export async function checkRegistrarAvailability(name: string) {
   return apiFetch<{
     domain: string;

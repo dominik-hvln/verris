@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { Paperclip } from "lucide-react";
 import type { AgentOption, StaffTicketDetail, TicketAttachmentRow } from "@/lib/tickets-data";
@@ -9,6 +9,7 @@ import {
   staffApplyRunbook,
   staffEscalateTicket,
   staffGenerateAiSuggestion,
+  staffGetAiStatus,
   staffPostReplyWithFiles,
   staffSetRiskFlag,
   staffUpdateTicket,
@@ -63,6 +64,7 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
   const [replyErr, setReplyErr] = useState<string | null>(null);
   const [opsErr, setOpsErr] = useState<string | null>(null);
   const [aiSuggestion, setAiSuggestion] = useState<unknown | null>(null);
+  const [aiConfigured, setAiConfigured] = useState(false);
   const assignedId = ticket.assignedToId ?? ticket.assignedTo?.id ?? "";
   const runbookChecklist =
     ticket.department === "BILLING"
@@ -83,6 +85,20 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
       ? "Poproś o domenę, timestamp i przykład błędu, jeżeli nie ma ich w pierwszej wiadomości."
       : "Potwierdź status rozliczenia i nie podawaj danych płatniczych w treści ticketu.",
   ].filter((v): v is string => Boolean(v));
+
+  useEffect(() => {
+    let active = true;
+    staffGetAiStatus()
+      .then((status) => {
+        if (active) setAiConfigured(status.configured);
+      })
+      .catch(() => {
+        if (active) setAiConfigured(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function patchField(
     patch: Partial<{ status: string; priority: string; department: string; assignedToId: string | null }>,
@@ -272,30 +288,32 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
             ))}
           </ul>
         </OpsCard>
-        <OpsCard title="AI asystent (draft, audytowany)">
-          <p className="mb-3 text-xs text-neutral-400">
-            AI generuje szkic i checklistę dla operatora. Treść nie jest wysyłana do klienta automatycznie.
-          </p>
-          <button
-            disabled={pending}
-            onClick={() =>
-              transition(async () => {
-                setOpsErr(null);
-                const res = await staffGenerateAiSuggestion(ticket.id);
-                if ("error" in res) setOpsErr(res.error);
-                else setAiSuggestion(res.suggestion);
-              })
-            }
-            className="rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-xs text-violet-100"
-          >
-            Wygeneruj sugestię AI
-          </button>
-          {aiSuggestion ? (
-            <pre className="mt-3 max-h-72 overflow-auto rounded-xl border border-white/10 bg-black/40 p-3 text-xs text-neutral-200">
-              {JSON.stringify(aiSuggestion, null, 2)}
-            </pre>
-          ) : null}
-        </OpsCard>
+        {aiConfigured ? (
+          <OpsCard title="AI asystent (draft, audytowany)">
+            <p className="mb-3 text-xs text-neutral-400">
+              AI generuje szkic i checklistę dla operatora. Treść nie jest wysyłana do klienta automatycznie.
+            </p>
+            <button
+              disabled={pending}
+              onClick={() =>
+                transition(async () => {
+                  setOpsErr(null);
+                  const res = await staffGenerateAiSuggestion(ticket.id);
+                  if ("error" in res) setOpsErr(res.error);
+                  else setAiSuggestion(res.suggestion);
+                })
+              }
+              className="rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-xs text-violet-100"
+            >
+              Wygeneruj sugestię AI
+            </button>
+            {aiSuggestion ? (
+              <pre className="mt-3 max-h-72 overflow-auto rounded-xl border border-white/10 bg-black/40 p-3 text-xs text-neutral-200">
+                {JSON.stringify(aiSuggestion, null, 2)}
+              </pre>
+            ) : null}
+          </OpsCard>
+        ) : null}
       </div>
 
       <div className="rounded-2xl border border-white/10 bg-black/25 p-6">

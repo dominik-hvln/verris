@@ -1,14 +1,34 @@
 import { Globe2, RefreshCw } from 'lucide-react';
-import { fetchRegistrarOrders, registerDomainAction, transferDomainAction } from '../actions';
+import {
+  fetchRegistrarOrders,
+  fetchRegistrarStatus,
+  registerDomainAction,
+  transferDomainAction,
+} from '../actions';
 
 export default async function RegistrarPage() {
+  const status = await fetchRegistrarStatus().catch(() => ({ provider: null, configured: false }));
+  if (!status.configured) {
+    return (
+      <div className="mx-auto max-w-3xl rounded-[28px] border border-white/10 bg-[#0a0a0a] p-8">
+        <h1 className="text-3xl font-bold text-white">Rejestrator domen</h1>
+        <p className="mt-3 text-sm leading-6 text-neutral-400">
+          Rejestrator domen nie jest jeszcze skonfigurowany, więc ukrywamy zakup, transfer i
+          odnowienia w panelu klienta. Po wyborze operatora i uzupełnieniu danych integracji ta
+          sekcja pojawi się automatycznie.
+        </p>
+      </div>
+    );
+  }
+
   const orders = await fetchRegistrarOrders().catch(() => []);
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       <div>
         <h1 className="text-3xl font-bold text-white">Rejestrator domen</h1>
         <p className="mt-2 text-sm text-neutral-400">
-          Rejestracja, transfer i odnowienia domen działają przez skonfigurowanego providera rejestratora. Gdy provider nie jest skonfigurowany, API zwróci błąd zamiast symulować zakup.
+          Rejestracja, transfer i odnowienia domen działają przez skonfigurowanego providera
+          rejestratora.
         </p>
       </div>
 

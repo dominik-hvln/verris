@@ -138,3 +138,11 @@ export async function staffGenerateAiSuggestion(
     return { error: e instanceof StaffApiError ? e.message : "Nie udało się wygenerować sugestii AI." };
   }
 }
+
+export async function staffGetAiStatus(): Promise<{ provider: string; configured: boolean }> {
+  try {
+    return await staffApi<{ provider: string; configured: boolean }>("/ai/status");
+  } catch {
+    return { provider: "openai-compatible", configured: false };
+  }
+}
