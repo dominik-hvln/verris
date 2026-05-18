@@ -27,6 +27,21 @@ enum Role {
   ADMIN
 }
 
+enum CustomerPermission {
+  BILLING_READ
+  BILLING_MANAGE
+  SERVICES_READ
+  SERVICES_MANAGE
+  DOMAINS_READ
+  DOMAINS_MANAGE
+  DNS_MANAGE
+  EMAIL_MANAGE
+  FILES_MANAGE
+  TICKETS_READ
+  TICKETS_MANAGE
+  SETTINGS_MANAGE
+}
+
 model User {
   id                       String    @id @default(uuid())
   email                    String    @unique
@@ -106,6 +121,14 @@ model User {
   /// Notatka wewnętrzna BOK (nie pokazywana klientowi).
   adminInternalNote        String?   @db.Text
 
+  // IAM / subaccounts — USER może mieć subkonta działające w kontekście ownera.
+  customerOwnerId          String?
+  customerOwner            User?     @relation("CustomerSubaccounts", fields: [customerOwnerId], references: [id], onDelete: Cascade)
+  customerSubaccounts      User[]    @relation("CustomerSubaccounts")
+  customerPermissions      CustomerPermission[] @default([])
+  subaccountDisabledAt     DateTime?
+  subaccountLabel          String?
+
   createdAt                DateTime  @default(now())
   updatedAt                DateTime  @updatedAt
 
@@ -116,6 +139,8 @@ model User {
   paymentMethods           PaymentMethod[]
   invoices                 Invoice[]
   domains                  Domain[]
+  domainRegistrarOrders    DomainRegistrarOrder[]
+  aiInteractions           AiInteractionLog[]
   tickets                  Ticket[]            @relation("ClientTickets")
   assignedTickets          Ticket[]            @relation("AssignedTickets")
   auditLogs                AuditLog[]          @relation("AuditUser")
@@ -132,6 +157,9 @@ model User {
   ticketEscalations          Ticket[]          @relation("TicketEscalator")
   maintenanceWindowsCreated  MaintenanceWindow[] @relation("MaintenanceWindowCreator")
   statusWebhooksCreated      StatusWebhookEndpoint[] @relation("StatusWebhookCreator")
+  customerInvitesSent        CustomerSubaccountInvite[] @relation("CustomerInviteSender")
+  customerInvitesReceived    CustomerSubaccountInvite[] @relation("CustomerInviteReceiver")
+  customerInviteAccepted     CustomerSubaccountInvite[] @relation("CustomerInviteAcceptedUser")
 
   // RODO relations (Sprint 1)
   consents                  UserConsent[]
@@ -146,6 +174,36 @@ model User {
 
   // Sprint 7 — pakietowe migracje
   migrationRequests         MigrationRequest[]
+}
+
+enum CustomerSubaccountInviteStatus {
+  PENDING
+  ACCEPTED
+  REVOKED
+  EXPIRED
+}
+
+model CustomerSubaccountInvite {
+  id              String                         @id @default(uuid())
+  ownerUserId     String
+  owner           User                           @relation("CustomerInviteSender", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  email           String
+  tokenHash       String                         @unique
+  permissions     CustomerPermission[]
+  label           String?
+  status          CustomerSubaccountInviteStatus @default(PENDING)
+  acceptedUserId  String?
+  acceptedUser    User?                          @relation("CustomerInviteAcceptedUser", fields: [acceptedUserId], references: [id], onDelete: SetNull)
+  invitedByUserId String?
+  invitedBy       User?                          @relation("CustomerInviteReceiver", fields: [invitedByUserId], references: [id], onDelete: SetNull)
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  revokedAt       DateTime?
+  createdAt       DateTime                       @default(now())
+  updatedAt       DateTime                       @updatedAt
+
+  @@index([ownerUserId, status])
+  @@index([email])
 }
 
 // -----------------------------------------------------------------------------
@@ -641,6 +699,14 @@ model Domain {
   id        String       @id @default(uuid())
   name      String       @unique
   status    DomainStatus @default(PENDING)
+  registrarProvider String?
+  registrarExternalId String?
+  registrarStatus String?
+  expiresAt DateTime?
+  autoRenew Boolean @default(false)
+  nameservers String[] @default([])
+  transferLock Boolean @default(true)
+  lastRegistrarSyncAt DateTime?
 
   userId    String
   user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -649,6 +715,51 @@ model Domain {
   updatedAt DateTime     @updatedAt
 
   checklists DomainChecklist[]
+  registrarOrders DomainRegistrarOrder[]
+}
+
+enum DomainRegistrarOrderType {
+  REGISTER
+  TRANSFER
+  RENEW
+}
+
+enum DomainRegistrarOrderStatus {
+  PENDING_PAYMENT
+  QUEUED
+  SUBMITTED
+  COMPLETED
+  FAILED
+  CANCELED
+}
+
+model DomainRegistrarOrder {
+  id              String                     @id @default(uuid())
+  domainName      String
+  type            DomainRegistrarOrderType
+  status          DomainRegistrarOrderStatus @default(QUEUED)
+  provider        String?
+  providerOrderId String?
+  authCodeEnc     String?                    @db.Text
+  nameservers     String[]                   @default([])
+  years           Int                        @default(1)
+  priceAmount     Decimal?                   @db.Decimal(10, 2)
+  currency        String                     @default("PLN")
+  lastError       String?                    @db.Text
+  submittedAt     DateTime?
+  completedAt     DateTime?
+
+  userId          String
+  user            User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  domainId        String?
+  domain          Domain?                    @relation(fields: [domainId], references: [id], onDelete: SetNull)
+
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status, createdAt])
+  @@index([domainName])
 }
 
 // -----------------------------------------------------------------------------
@@ -1153,6 +1264,34 @@ model AuditLog {
 
   @@index([userId, createdAt])
   @@index([action, createdAt])
+}
+
+enum AiInteractionStatus {
+  COMPLETED
+  FAILED
+}
+
+model AiInteractionLog {
+  id            String              @id @default(uuid())
+  feature       String
+  provider      String
+  model         String?
+  status        AiInteractionStatus
+  promptHash    String
+  inputSummary  Json?
+  output        Json?
+  errorMessage  String?             @db.Text
+  ticketId      String?
+  subscriptionId String?
+  userId        String?
+  user          User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  actorUserId   String?
+  createdAt     DateTime            @default(now())
+
+  @@index([feature, createdAt])
+  @@index([userId, createdAt])
+  @@index([ticketId])
+  @@index([subscriptionId])
 }
 
 // -----------------------------------------------------------------------------
