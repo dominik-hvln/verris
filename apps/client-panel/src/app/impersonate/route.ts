@@ -17,12 +17,12 @@ export async function GET(req: NextRequest) {
   const operator = url.searchParams.get("operator") === "staff" ? "staff" : "admin";
 
   if (!token) {
-    const errorUrl = new URL("/login", url);
+    const errorUrl = publicPanelUrl(req, "/login");
     errorUrl.searchParams.set("error", "impersonation_no_token");
     return NextResponse.redirect(errorUrl);
   }
 
-  const target = new URL(returnTo, url);
+  const target = publicPanelUrl(req, returnTo);
   const response = NextResponse.redirect(target);
 
   response.cookies.set("auth_token", token, {
@@ -42,4 +42,15 @@ export async function GET(req: NextRequest) {
   });
 
   return response;
+}
+
+function publicPanelUrl(req: NextRequest, path: string): URL {
+  const configuredBase = process.env.CLIENT_PANEL_URL?.trim();
+  if (configuredBase) return new URL(path, configuredBase);
+
+  const forwardedHost = req.headers.get("x-forwarded-host");
+  const forwardedProto = req.headers.get("x-forwarded-proto") ?? "https";
+  if (forwardedHost) return new URL(path, `${forwardedProto}://${forwardedHost}`);
+
+  return new URL(path, req.url);
 }

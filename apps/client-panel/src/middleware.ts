@@ -9,14 +9,25 @@ export function middleware(request: NextRequest) {
   const isPublicHandoff = pathname === "/impersonate" || pathname.startsWith("/accept-invite");
   
   if (!token && !isAuthPage && !isPublicHandoff && pathname !== "/") {
-    return NextResponse.redirect(new URL("/login", request.url));
+    return NextResponse.redirect(publicPanelUrl(request, "/login"));
   }
 
   if (token && isAuthPage) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return NextResponse.redirect(publicPanelUrl(request, "/dashboard"));
   }
 
   return NextResponse.next();
+}
+
+function publicPanelUrl(request: NextRequest, path: string): URL {
+  const configuredBase = process.env.CLIENT_PANEL_URL?.trim();
+  if (configuredBase) return new URL(path, configuredBase);
+
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto") ?? "https";
+  if (forwardedHost) return new URL(path, `${forwardedProto}://${forwardedHost}`);
+
+  return new URL(path, request.url);
 }
 
 export const config = {
