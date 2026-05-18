@@ -26,6 +26,7 @@ export async function submitLogin(
     return { error: "Wypełnij wszystkie pola" };
   }
 
+  let shouldRedirect = false;
   try {
     const data = await apiFetch<{
       access_token?: string;
@@ -42,12 +43,16 @@ export async function submitLogin(
     }
     if (data.access_token) {
       await setAuthCookie(data.access_token);
-      redirect("/dashboard");
+      shouldRedirect = true;
+    } else {
+      return { error: "Nieoczekiwana odpowiedź serwera" };
     }
-    return { error: "Nieoczekiwana odpowiedź serwera" };
   } catch {
     return { error: "Nieprawidłowe dane logowania" };
   }
+
+  if (shouldRedirect) redirect("/dashboard");
+  return { error: "Nieoczekiwana odpowiedź serwera" };
 }
 
 export async function submitTwoFactor(
@@ -61,6 +66,7 @@ export async function submitTwoFactor(
     return { error: "Wprowadź 6-cyfrowy kod z aplikacji TOTP." };
   }
 
+  let shouldRedirect = false;
   try {
     const data = await apiFetch<{ access_token?: string }>("/auth/login/2fa", {
       unauthenticated: true,
@@ -69,8 +75,11 @@ export async function submitTwoFactor(
     });
     if (!data.access_token) return { error: "Brak tokenu sesji w odpowiedzi" };
     await setAuthCookie(data.access_token);
-    redirect("/dashboard");
+    shouldRedirect = true;
   } catch {
     return { error: "Niepoprawny kod 2FA" };
   }
+
+  if (shouldRedirect) redirect("/dashboard");
+  return { error: "Brak tokenu sesji w odpowiedzi" };
 }
