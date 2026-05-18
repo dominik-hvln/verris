@@ -16,6 +16,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import { DomainRecordActions } from './domain-record-actions';
+import { fetchDomainChecklist } from '../actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -36,10 +37,12 @@ export default async function DomainDetailsPage({ params }: { params: Promise<{ 
 
   let domain: DomainDto;
   let services: ServiceSummaryDto[] = [];
+  let checklist: Awaited<ReturnType<typeof fetchDomainChecklist>> = [];
   try {
-    [domain, services] = await Promise.all([
+    [domain, services, checklist] = await Promise.all([
       apiFetch<DomainDto>(`/domains/${id}`),
       apiFetch<ServiceSummaryDto[]>('/services'),
+      fetchDomainChecklist(id).catch(() => []),
     ]);
   } catch {
     return (
@@ -155,6 +158,50 @@ export default async function DomainDetailsPage({ params }: { params: Promise<{ 
         </div>
       ) : (
         <>
+          <div className="rounded-2xl border border-white/10 bg-black/30 p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <h2 className="text-lg font-semibold text-white">Asystent domeny DNS/SSL</h2>
+                <p className="mt-1 text-sm text-neutral-400">
+                  Ostatnie sprawdzenie rekordów A/AAAA, NS, MX i certyfikatu TLS.
+                </p>
+              </div>
+              {checklist[0] ? (
+                <span
+                  className={`rounded-full border px-3 py-1 text-xs font-semibold ${
+                    checklist[0].status === 'OK'
+                      ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
+                      : checklist[0].status === 'WARNING'
+                        ? 'border-amber-500/30 bg-amber-500/10 text-amber-200'
+                        : 'border-rose-500/30 bg-rose-500/10 text-rose-200'
+                  }`}
+                >
+                  {checklist[0].status}
+                </span>
+              ) : null}
+            </div>
+            {checklist[0] ? (
+              <div className="mt-4 space-y-3">
+                <p className="text-xs text-neutral-500">
+                  Sprawdzono: {checklist[0].checkedAt ? new Date(checklist[0].checkedAt).toLocaleString('pl-PL') : '—'}
+                </p>
+                {Array.isArray(checklist[0].issues) && checklist[0].issues.length > 0 ? (
+                  <ul className="list-disc pl-5 text-sm text-amber-100">
+                    {checklist[0].issues.map((issue) => (
+                      <li key={String(issue)}>{String(issue)}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-emerald-200">Nie wykryto problemów DNS/SSL.</p>
+                )}
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-neutral-500">
+                Brak zapisanych wyników. Kliknij „Asystent DNS/SSL”, aby uruchomić pierwsze sprawdzenie.
+              </p>
+            )}
+          </div>
+
           <div className="rounded-2xl border border-white/10 bg-[#0a0a0a]/80 p-5">
             <div className="flex flex-wrap items-center gap-3 text-sm text-neutral-300">
               <Server className="h-4 w-4 text-white" />

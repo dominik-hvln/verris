@@ -128,6 +128,19 @@ export interface StaffCustomerProfile {
     publicMessage: string | null;
     startedAt: string;
   }>;
+  customerTimeline: Array<{
+    id: string;
+    kind: string;
+    title: string;
+    meta: string;
+    createdAt: string;
+  }>;
+  supportInsights: {
+    riskScore: number;
+    riskLevel: "low" | "medium" | "high";
+    reasons: string[];
+    suggestions: string[];
+  };
 }
 
 export async function staffGetCustomerProfile(userId: string): Promise<StaffCustomerProfile> {

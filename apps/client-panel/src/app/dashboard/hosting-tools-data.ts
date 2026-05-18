@@ -63,6 +63,36 @@ export async function getHostingBackups(serviceId: string) {
   return apiFetch<HostingBackupsResponseDto>(`/services/${serviceId}/hosting-backups`);
 }
 
+export interface HostingRestorePreview {
+  backup: { id: string; fileName: string } | null;
+  canPreview: boolean;
+  restoreScope: Array<{ area: string; source: string; count: number | null }>;
+  warnings: string[];
+  fetchError: string | null;
+}
+
+export async function getHostingRestorePreview(serviceId: string, backupId?: string) {
+  const q = backupId ? `?backupId=${encodeURIComponent(backupId)}` : "";
+  return apiFetch<HostingRestorePreview>(`/services/${serviceId}/hosting-backups/restore-preview${q}`);
+}
+
+export interface HostingUsageResponse {
+  window: string;
+  rows: Array<{
+    bucketStart: string;
+    cpuUsageAvg: number;
+    cpuUsageMax: number;
+    memUsageAvgMb: number;
+    memUsageMaxMb: number;
+    diskUsageMb: number;
+    ioUsageKbps: number;
+  }>;
+}
+
+export async function getHostingUsage(serviceId: string, window: "24h" | "7d") {
+  return apiFetch<HostingUsageResponse>(`/services/${serviceId}/usage?window=${window}`);
+}
+
 export async function getHostingDaLinks(serviceId: string) {
   return apiFetch<HostingDaLinksResponseDto>(`/services/${serviceId}/hosting-da-links`);
 }

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { 
   Server, Globe, Database, Shield, FolderGit2,
-  Box, Settings, ArrowLeft, TerminalSquare, Rocket, PlayCircle, FolderOpen, Key
+  Box, Settings, ArrowLeft, TerminalSquare, Rocket, PlayCircle, FolderOpen, Key, Activity
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -15,6 +15,7 @@ import StagingTab from '@/components/hosting/StagingTab';
 import DeployTab from '@/components/hosting/DeployTab';
 import MagicLoginTab from '@/components/hosting/MagicLoginTab';
 import HostingFileManagerTab from '@/components/hosting/HostingFileManagerTab';
+import UsageTab from '@/components/hosting/UsageTab';
 
 import { useParams } from 'next/navigation';
 
@@ -30,6 +31,7 @@ export default function HostingManagerPage() {
     { id: 'staging', label: 'Staging (Klony)', icon: Box },
     { id: 'deploy', label: 'Push-To-Deploy', icon: Rocket },
     { id: 'magic', label: 'Magic Login', icon: Key },
+    { id: 'usage', label: 'Usage & uptime', icon: Activity },
   ];
 
   return (
@@ -82,6 +84,7 @@ export default function HostingManagerPage() {
         {activeTab === 'deploy' && <DeployTab serviceId={params.id} />}
         {activeTab === 'magic' && <MagicLoginTab serviceId={params.id} />}
         {activeTab === 'files' && <HostingFileManagerTab serviceId={params.id} />}
+        {activeTab === 'usage' && <UsageTab serviceId={params.id} />}
       </div>
     </div>
   );

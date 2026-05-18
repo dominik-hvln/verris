@@ -20,6 +20,18 @@ class CompleteMigrationWorkerJobDto {
   @IsString()
   @MaxLength(262144)
   log?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  databasesMigrated?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  mailboxesMigrated?: number;
 }
 
 class FailMigrationWorkerJobDto {
@@ -66,6 +78,8 @@ export class MigrationWorkerController {
       jobId,
       bytesTransferred: BigInt(dto.bytesTransferred),
       filesTransferred: dto.filesTransferred,
+      databasesMigrated: dto.databasesMigrated ?? 0,
+      mailboxesMigrated: dto.mailboxesMigrated ?? 0,
       log: dto.log ?? null,
     });
   }

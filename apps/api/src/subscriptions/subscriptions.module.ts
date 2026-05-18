@@ -16,6 +16,7 @@ import { MigrationOrchestratorService } from './migration-orchestrator.service';
 import { MigrationsStaffController } from './migrations.staff.controller';
 import { MigrationWorkerScheduler } from './migration-worker.scheduler';
 import { MigrationWorkerController } from './migration-worker.controller';
+import { PublicUptimeBadgeController } from './public-uptime-badge.controller';
 
 @Module({
   imports: [ServersModule, forwardRef(() => BillingModule), MailModule],
@@ -36,6 +37,7 @@ import { MigrationWorkerController } from './migration-worker.controller';
     ProvisioningQueueAdminController,
     MigrationsStaffController,
     MigrationWorkerController,
+    PublicUptimeBadgeController,
   ],
   exports: [
     SubscriptionsService,

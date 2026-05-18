@@ -296,6 +296,9 @@ export class AuthService {
         'Konto zostało tymczasowo zablokowane. Skontaktuj się z pomocą techniczną.',
       );
     }
+    if (user.customerOwnerId && user.subaccountDisabledAt) {
+      throw new UnauthorizedException('Subkonto zostało wyłączone przez właściciela.');
+    }
   }
 
   private generateAccessTokenResponse(user: User): LoginSuccess {

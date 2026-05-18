@@ -26,6 +26,7 @@ import {
   Calculator,
   FolderOpen,
   Leaf,
+  Users,
 } from "lucide-react";
 
 const mainGridItems = [
@@ -58,6 +59,7 @@ const secondaryItems = [
     label: "Pomoc & Konto",
     items: [
       { name: "Program EKO", href: "/dashboard/eco", icon: Leaf },
+      { name: "IAM i subkonta", href: "/dashboard/iam", icon: Users },
       { name: "Centrum Pomocy", href: "/dashboard/support", icon: HelpCircle },
       { name: "Ustawienia", href: "/dashboard/settings", icon: Settings },
     ],

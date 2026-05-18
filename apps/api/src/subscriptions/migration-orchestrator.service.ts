@@ -175,24 +175,9 @@ export class MigrationOrchestratorService {
         targetDomain: dto.targetDomain ?? null,
         status: MigrationStatus.QUEUED,
         currentStep: 'queued',
-        workerJobs: dto.ftp
-          ? {
-              create: {
-                kind: MigrationWorkerJobKind.FILES_SFTP_RSYNC,
-                status: MigrationWorkerJobStatus.QUEUED,
-                idempotencyKey: `migration:${subscriptionId}:${Date.now()}:files`,
-                payload: {
-                  targetPath: 'public_html',
-                  targetDomain: dto.targetDomain ?? sub.account?.domain ?? null,
-                  sourceProtocol: dto.ftp.protocol ?? 'sftp',
-                  sourceHost: dto.ftp.host,
-                  sourcePort: dto.ftp.port,
-                  sourceUsername: dto.ftp.username,
-                  sourceRemotePath: dto.ftp.remotePath ?? '/',
-                },
-              },
-            }
-          : undefined,
+        workerJobs: {
+          create: buildWorkerJobs(subscriptionId, dto, sub.account?.domain ?? null),
+        },
       },
       include: { workerJobs: true },
     });
@@ -226,7 +211,7 @@ export class MigrationOrchestratorService {
       },
     });
 
-    if (request.workerJobs[0]) {
+    for (const job of request.workerJobs) {
       await this.audit.record({
         action: MigrationActions.MIGRATION_WORKER_JOB_QUEUED,
         userId,
@@ -234,8 +219,8 @@ export class MigrationOrchestratorService {
         details: {
           subscriptionId,
           migrationRequestId: request.id,
-          jobId: request.workerJobs[0].id,
-          kind: request.workerJobs[0].kind,
+          jobId: job.id,
+          kind: job.kind,
         },
       });
     }
@@ -365,7 +350,6 @@ export class MigrationOrchestratorService {
   async leaseFileWorkerJobForNode(serverId: string) {
     const job = await this.prisma.migrationWorkerJob.findFirst({
       where: {
-        kind: MigrationWorkerJobKind.FILES_SFTP_RSYNC,
         status: { in: [MigrationWorkerJobStatus.QUEUED, MigrationWorkerJobStatus.RETRYING] },
         migrationRequest: {
           subscription: {
@@ -384,8 +368,12 @@ export class MigrationOrchestratorService {
     });
     if (!job) return null;
 
-    const updated = await this.prisma.migrationWorkerJob.update({
-      where: { id: job.id },
+    const claimed = await this.prisma.migrationWorkerJob.updateMany({
+      where: {
+        id: job.id,
+        status: { in: [MigrationWorkerJobStatus.QUEUED, MigrationWorkerJobStatus.RETRYING] },
+        attempts: { lt: job.maxAttempts },
+      },
       data: {
         status: MigrationWorkerJobStatus.RUNNING,
         workerId: serverId,
@@ -393,27 +381,41 @@ export class MigrationOrchestratorService {
         startedAt: job.startedAt ?? new Date(),
       },
     });
+    if (claimed.count !== 1) return null;
+
+    const updated = await this.prisma.migrationWorkerJob.findUnique({
+      where: { id: job.id },
+      include: {
+        migrationRequest: {
+          include: {
+            subscription: { include: { account: true } },
+          },
+        },
+      },
+    });
+    if (!updated) return null;
+
     await this.prisma.migrationRequest.update({
-      where: { id: job.migrationRequestId },
+      where: { id: updated.migrationRequestId },
       data: {
         status: MigrationStatus.RUNNING,
-        currentStep: 'files',
-        startedAt: job.migrationRequest.startedAt ?? new Date(),
+        currentStep: workerStep(updated.kind),
+        startedAt: updated.migrationRequest.startedAt ?? new Date(),
       },
     });
 
     await this.audit.record({
       action: MigrationActions.MIGRATION_WORKER_JOB_STARTED,
-      userId: job.migrationRequest.userId,
+      userId: updated.migrationRequest.userId,
       details: {
-        migrationRequestId: job.migrationRequestId,
-        jobId: job.id,
+        migrationRequestId: updated.migrationRequestId,
+        jobId: updated.id,
         serverId,
-        kind: job.kind,
+        kind: updated.kind,
       },
     });
 
-    const bundle = JSON.parse(this.crypto.decrypt(job.migrationRequest.sourceBundleEnc)) as {
+    const bundle = JSON.parse(this.crypto.decrypt(updated.migrationRequest.sourceBundleEnc)) as {
       ftp?: {
         host: string;
         port: number;
@@ -422,33 +424,63 @@ export class MigrationOrchestratorService {
         remotePath?: string;
         protocol?: string;
       } | null;
+      mysql?: Array<{
+        host: string;
+        port: number;
+        database: string;
+        username: string;
+        password: string;
+      }>;
+      imap?: Array<{
+        host: string;
+        port: number;
+        email: string;
+        username: string;
+        password: string;
+      }>;
     };
-    if (!bundle.ftp) {
-      throw new BadRequestException('Migration bundle does not contain FTP/SFTP source.');
-    }
+    const payload = updated.payload && typeof updated.payload === 'object' && !Array.isArray(updated.payload)
+      ? (updated.payload as Record<string, unknown>)
+      : {};
 
-    return {
+    const response: Record<string, unknown> = {
       id: updated.id,
-      migrationRequestId: job.migrationRequestId,
+      migrationRequestId: updated.migrationRequestId,
       kind: updated.kind,
       attempts: updated.attempts,
-      source: {
+      target: {
+        accountUsername: updated.migrationRequest.subscription.account?.daUsername ?? null,
+        domain:
+          updated.migrationRequest.targetDomain ??
+          updated.migrationRequest.subscription.account?.domain ??
+          null,
+        path: 'public_html',
+      },
+    };
+    if (updated.kind === MigrationWorkerJobKind.FILES_SFTP_RSYNC) {
+      if (!bundle.ftp) throw new BadRequestException('Migration bundle does not contain FTP/SFTP source.');
+      response.source = {
         protocol: bundle.ftp.protocol ?? 'sftp',
         host: bundle.ftp.host,
         port: bundle.ftp.port,
         username: bundle.ftp.username,
         password: bundle.ftp.password,
         remotePath: bundle.ftp.remotePath ?? '/',
-      },
-      target: {
-        accountUsername: job.migrationRequest.subscription.account?.daUsername ?? null,
-        domain:
-          job.migrationRequest.targetDomain ??
-          job.migrationRequest.subscription.account?.domain ??
-          null,
-        path: 'public_html',
-      },
-    };
+      };
+    } else if (updated.kind === MigrationWorkerJobKind.MYSQL_IMPORT) {
+      const source = bundle.mysql?.[Number(payload.index ?? 0)];
+      if (!source) throw new BadRequestException('Migration bundle does not contain MySQL source.');
+      response.source = source;
+    } else if (updated.kind === MigrationWorkerJobKind.IMAP_SYNC) {
+      const source = bundle.imap?.[Number(payload.index ?? 0)];
+      if (!source) throw new BadRequestException('Migration bundle does not contain IMAP source.');
+      response.source = source;
+    } else if (updated.kind === MigrationWorkerJobKind.HTTP_POST_CHECK) {
+      response.check = {
+        url: `https://${updated.migrationRequest.targetDomain ?? updated.migrationRequest.subscription.account?.domain}`,
+      };
+    }
+    return response;
   }
 
   async completeWorkerJobFromNode(opts: {
@@ -456,6 +488,8 @@ export class MigrationOrchestratorService {
     jobId: string;
     bytesTransferred: bigint;
     filesTransferred: number;
+    databasesMigrated?: number;
+    mailboxesMigrated?: number;
     log?: string | null;
   }) {
     const job = await this.assertWorkerJobForServer(opts.serverId, opts.jobId);
@@ -469,14 +503,23 @@ export class MigrationOrchestratorService {
           lastError: null,
         },
       });
+      const remaining = await tx.migrationWorkerJob.count({
+        where: {
+          migrationRequestId: job.migrationRequestId,
+          id: { not: job.id },
+          status: { in: [MigrationWorkerJobStatus.QUEUED, MigrationWorkerJobStatus.RUNNING, MigrationWorkerJobStatus.RETRYING] },
+        },
+      });
       await tx.migrationRequest.update({
         where: { id: job.migrationRequestId },
         data: {
-          status: MigrationStatus.COMPLETED,
-          currentStep: 'done',
-          bytesTransferred: opts.bytesTransferred,
-          filesTransferred: opts.filesTransferred,
-          completedAt: new Date(),
+          status: remaining === 0 ? MigrationStatus.COMPLETED : MigrationStatus.RUNNING,
+          currentStep: remaining === 0 ? 'done' : 'worker-queue',
+          bytesTransferred: { increment: opts.bytesTransferred },
+          filesTransferred: { increment: opts.filesTransferred },
+          databasesMigrated: { increment: opts.databasesMigrated ?? 0 },
+          mailboxesMigrated: { increment: opts.mailboxesMigrated ?? 0 },
+          completedAt: remaining === 0 ? new Date() : null,
           lastError: null,
         },
       });
@@ -492,6 +535,25 @@ export class MigrationOrchestratorService {
         serverId: opts.serverId,
         bytesTransferred: opts.bytesTransferred.toString(),
         filesTransferred: opts.filesTransferred,
+      },
+    });
+    const request = await this.prisma.migrationRequest.findUnique({
+      where: { id: job.migrationRequestId },
+      select: { status: true, subscriptionId: true },
+    });
+    await this.prisma.subscriptionEvent.create({
+      data: {
+        subscriptionId: job.migrationRequest.subscriptionId,
+        type:
+          request?.status === MigrationStatus.COMPLETED
+            ? 'MIGRATION_BUNDLE_COMPLETED'
+            : 'MIGRATION_WORKER_JOB_COMPLETED',
+        details: {
+          migrationRequestId: job.migrationRequestId,
+          jobId: job.id,
+          kind: job.kind,
+          nextStatus: request?.status ?? null,
+        },
       },
     });
     return { ok: true as const, jobId: updated.id };
@@ -526,7 +588,7 @@ export class MigrationOrchestratorService {
             nextStatus === MigrationWorkerJobStatus.FAILED
               ? MigrationStatus.FAILED
               : MigrationStatus.RUNNING,
-          currentStep: 'files',
+          currentStep: workerStep(job.kind),
           lastError: opts.error,
           completedAt: nextStatus === MigrationWorkerJobStatus.FAILED ? new Date() : null,
         },
@@ -541,6 +603,22 @@ export class MigrationOrchestratorService {
         serverId: opts.serverId,
         retryable: opts.retryable === true,
         status: nextStatus,
+      },
+    });
+    await this.prisma.subscriptionEvent.create({
+      data: {
+        subscriptionId: job.migrationRequest.subscriptionId,
+        type:
+          nextStatus === MigrationWorkerJobStatus.FAILED
+            ? 'MIGRATION_BUNDLE_FAILED'
+            : 'MIGRATION_WORKER_JOB_RETRYING',
+        details: {
+          migrationRequestId: job.migrationRequestId,
+          jobId: job.id,
+          kind: job.kind,
+          retryable: opts.retryable === true,
+          error: opts.error,
+        },
       },
     });
     return { ok: true as const, status: nextStatus };
@@ -636,5 +714,69 @@ export class MigrationOrchestratorService {
 function trimWorkerLog(log: string | null | undefined): string | null {
   if (!log) return null;
   return log.length > 262_144 ? log.slice(-262_144) : log;
+}
+
+function buildWorkerJobs(
+  subscriptionId: string,
+  dto: CreateMigrationBundleDto,
+  accountDomain: string | null,
+): Prisma.MigrationWorkerJobCreateWithoutMigrationRequestInput[] {
+  const stamp = Date.now();
+  const targetDomain = dto.targetDomain ?? accountDomain ?? null;
+  const jobs: Prisma.MigrationWorkerJobCreateWithoutMigrationRequestInput[] = [];
+  if (dto.ftp) {
+    jobs.push({
+      kind: MigrationWorkerJobKind.FILES_SFTP_RSYNC,
+      status: MigrationWorkerJobStatus.QUEUED,
+      idempotencyKey: `migration:${subscriptionId}:${stamp}:files`,
+      payload: {
+        targetPath: 'public_html',
+        targetDomain,
+        sourceProtocol: dto.ftp.protocol ?? 'sftp',
+        sourceHost: dto.ftp.host,
+        sourcePort: dto.ftp.port,
+        sourceUsername: dto.ftp.username,
+        sourceRemotePath: dto.ftp.remotePath ?? '/',
+      },
+    });
+  }
+  dto.mysql?.forEach((source, index) => {
+    jobs.push({
+      kind: MigrationWorkerJobKind.MYSQL_IMPORT,
+      status: MigrationWorkerJobStatus.QUEUED,
+      idempotencyKey: `migration:${subscriptionId}:${stamp}:mysql:${index}`,
+      payload: { index, database: source.database, targetDomain },
+    });
+  });
+  dto.imap?.forEach((source, index) => {
+    jobs.push({
+      kind: MigrationWorkerJobKind.IMAP_SYNC,
+      status: MigrationWorkerJobStatus.QUEUED,
+      idempotencyKey: `migration:${subscriptionId}:${stamp}:imap:${index}`,
+      payload: { index, username: source.username, targetDomain },
+    });
+  });
+  if (targetDomain) {
+    jobs.push({
+      kind: MigrationWorkerJobKind.HTTP_POST_CHECK,
+      status: MigrationWorkerJobStatus.QUEUED,
+      idempotencyKey: `migration:${subscriptionId}:${stamp}:http-post-check`,
+      payload: { targetDomain, url: `https://${targetDomain}` },
+    });
+  }
+  return jobs;
+}
+
+function workerStep(kind: MigrationWorkerJobKind): string {
+  switch (kind) {
+    case MigrationWorkerJobKind.FILES_SFTP_RSYNC:
+      return 'files';
+    case MigrationWorkerJobKind.MYSQL_IMPORT:
+      return 'mysql';
+    case MigrationWorkerJobKind.IMAP_SYNC:
+      return 'imap';
+    case MigrationWorkerJobKind.HTTP_POST_CHECK:
+      return 'http-post-check';
+  }
 }
 

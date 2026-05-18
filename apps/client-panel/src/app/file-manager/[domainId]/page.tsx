@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 
 /**
- * Stary URL z mockowaną listą plików — przekierowanie na prawdziwy widok (link do DA).
+ * Legacy URL from the old file-manager screen: redirect to the current DA-backed view.
  */
 export default async function LegacyFileManagerPage() {
   redirect('/dashboard/file-manager');

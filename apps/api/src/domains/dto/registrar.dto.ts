@@ -1,0 +1,31 @@
+import { ArrayMaxSize, IsArray, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+
+export class DomainAvailabilityDto {
+  @IsString()
+  @MaxLength(253)
+  name!: string;
+}
+
+export class RegisterDomainDto {
+  @IsString()
+  @MaxLength(253)
+  name!: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(10)
+  years?: number;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(8)
+  @IsString({ each: true })
+  nameservers?: string[];
+}
+
+export class TransferDomainDto extends RegisterDomainDto {
+  @IsString()
+  @MaxLength(256)
+  authCode!: string;
+}

@@ -194,6 +194,31 @@ Procedura konfiguracji nowego serwera:
 
 > Eksport historii incydentów do CSV (np. dla materiałów sprzedażowych „99.97% za 90 dni”): w **„Historia Incydentów”** kliknij **Eksport CSV**. Strumień, działa nawet dla 12-miesięcznych okien.
 
+### Status webhooks
+
+Status webhooks są konfigurowane w panelu admina **Product Ops / NOC → Status webhooks**. Każdy endpoint:
+
+- ma listę eventów (`INCIDENT_CREATED`, `INCIDENT_UPDATED`, `INCIDENT_RESOLVED`, `MAINTENANCE_SCHEDULED`),
+- może mieć sekret podpisu; wtedy API wysyła nagłówek `x-verris-signature` jako HMAC-SHA256 z JSON body,
+- dostaje delivery id w `x-verris-delivery` i typ eventu w `x-verris-event`.
+
+Delivery scheduler działa co minutę, bierze najstarsze pending deliveries, timeoutuje request po 10 s i retry'uje maksymalnie 5 razy z backoffem. Po piątej próbie delivery przechodzi do `FAILED` i jest widoczne w admin NOC oraz w metrykach:
+
+- `verris_status_webhook_deliveries_total{status}`,
+- `verris_status_webhook_oldest_pending_seconds`.
+
+Alerty produkcyjne: `oldest_pending_seconds > 300` albo `deliveries_total{status="FAILED"} > 0`.
+
+### Public uptime badge
+
+Kliencki badge SVG jest dostępny pod:
+
+```text
+GET /public/services/:subscriptionId/uptime-badge.svg
+```
+
+Endpoint nie wymaga auth, ale nie pokazuje domeny klienta, planu ani danych konta. Zwraca tylko stan `operational/degraded` wyliczony z publicznych probes na węźle usługi. `subscriptionId` jest UUID; nie traktować badge'a jako źródła danych prywatnych.
+
 ## Provisioning Queue — dead-letter i recovery
 
 Provisioning kont DA działa asynchronicznie, gdy `REDIS_URL` jest ustawione. Każdy zakup trafia do BullMQ z idempotentnym `jobId` per subskrypcja i źródło płatności. Status widoczny klientowi jest zapisywany na `Subscription.provisioningStage`: `queued`, `running`, `retrying`, `failed`, `completed`.
@@ -229,6 +254,33 @@ Provisioning kont DA działa asynchronicznie, gdy `REDIS_URL` jest ustawione. Ka
 - `verris_provisioning_stage_total{stage=queued|running|retrying|failed|completed}`.
 
 Alerty produkcyjne: `oldest_waiting_seconds > 300`, `queue_depth{state="failed"} > 0`, `stage_total{stage="failed"} > 0`.
+
+## Migration worker protocol — compute-node
+
+Duże migracje nie idą przez control-plane. API tylko zapisuje bundle i kolejkę `MigrationWorkerJob`, a compute-node odpytuje:
+
+```text
+GET  /node/migration-worker/lease
+POST /node/migration-worker/:jobId/complete
+POST /node/migration-worker/:jobId/fail
+```
+
+Autoryzacja: ten sam `ServerIdentityGuard` co telemetry/probes (`X-Server-Id` + `X-Server-Token`). Node dostaje tylko joby dla kont hostowanych na swoim `serverId`.
+
+Typy jobów:
+
+- `FILES_SFTP_RSYNC` — transfer plików do `public_html`.
+- `MYSQL_IMPORT` — import pojedynczej bazy z bundle.
+- `IMAP_SYNC` — sync pojedynczej skrzynki.
+- `HTTP_POST_CHECK` — końcowy check `https://<targetDomain>`.
+
+Zasady LIVE:
+
+- Worker musi używać `idempotencyKey` joba lokalnie w logach i nie wykonywać destrukcyjnych operacji dwa razy bez sprawdzenia stanu docelowego.
+- `complete` przyjmuje liczniki `bytesTransferred`, `filesTransferred`, opcjonalnie `databasesMigrated`, `mailboxesMigrated` oraz log skracany do 256 KiB.
+- `fail` przyjmuje `retryable=true` tylko dla błędów przejściowych: timeout, zerwane połączenie, temporary auth lock, niedostępność źródła.
+- Request migracji przechodzi na `COMPLETED` dopiero gdy nie ma żadnych aktywnych jobów `QUEUED/RUNNING/RETRYING`.
+- Każde complete/fail zapisuje `SubscriptionEvent`, więc klient i staff widzą postęp w timeline bez dostępu do sekretów.
 
 ## Aktualizacja
 

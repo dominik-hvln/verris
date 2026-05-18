@@ -34,15 +34,29 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
 
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        customerOwnerId: true,
+        customerPermissions: true,
+        subaccountDisabledAt: true,
+      },
     });
     if (!user) {
       throw new UnauthorizedException('Token refers to a non-existent user');
     }
+    if (user.customerOwnerId && user.subaccountDisabledAt) {
+      throw new UnauthorizedException('Subaccount is disabled');
+    }
 
     return {
-      userId: payload.sub,
-      email: payload.email,
-      role: payload.role,
+      userId: user.customerOwnerId ?? user.id,
+      principalUserId: user.id,
+      email: user.email,
+      role: user.role,
+      customerOwnerId: user.customerOwnerId,
+      customerPermissions: user.customerPermissions,
       // E-5 impersonation hooks (will be set by /admin/users/:id/impersonate).
       actorUserId: payload.actorUserId,
       impersonatedBy: payload.impersonatedBy,

@@ -70,12 +70,12 @@ export class UsersController {
    */
   @Patch('password')
   async changePassword(
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: { userId: string; principalUserId?: string },
     @Body() dto: ChangePasswordDto,
     @Ip() ip: string,
     @Headers('user-agent') userAgent: string | undefined,
   ) {
-    return this.usersService.changePassword(user.userId, dto, {
+    return this.usersService.changePassword(user.principalUserId ?? user.userId, dto, {
       ip: ip ?? null,
       userAgent: userAgent ?? null,
     });

@@ -74,6 +74,50 @@ export default async function ProductOpsPage() {
           {data.maintenance.length === 0 && <Empty />}
         </Panel>
       </section>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <Panel title="Capacity planner">
+          {data.capacity.slice(0, 10).map((row) => (
+            <Row
+              key={row.id}
+              title={row.name}
+              meta={`${row.risk.toUpperCase()} · konta ${row.activeAccounts} · CPU ${row.cpuCommitted}% · RAM ${(row.ramCommittedMb / 1024).toFixed(1)} GB`}
+            />
+          ))}
+          {data.capacity.length === 0 && <Empty />}
+        </Panel>
+        <Panel title="Anomaly board">
+          <Row title="Open incidents" meta={`${data.anomalies.openIncidents.length} aktywnych`} />
+          <Row title="Failed migrations 24h" meta={`${data.anomalies.failedMigrations.length} rekordów`} />
+          <Row title="Failed provisioning 24h" meta={`${data.anomalies.failedProvisioning.length} rekordów`} />
+          <Row title="Usage spikes 24h" meta={`${data.anomalies.usageSpikes.length} rekordów`} />
+        </Panel>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <Panel title="Status webhooks">
+          {data.webhooks.slice(0, 8).map((hook) => (
+            <Row
+              key={hook.id}
+              title={hook.url}
+              meta={`${hook.isActive ? "ACTIVE" : "OFF"} · ${hook.events.join(", ")} · ${hook._count.deliveries} deliveries`}
+            />
+          ))}
+          {data.webhooks.length === 0 && <Empty />}
+        </Panel>
+        <Panel title="Webhook deliveries">
+          {data.deliveries.slice(0, 8).map((delivery) => (
+            <Row
+              key={delivery.id}
+              title={`${delivery.event} → ${delivery.endpoint.url}`}
+              meta={`${delivery.status} · attempts ${delivery.attempts}${
+                delivery.lastError ? ` · ${delivery.lastError}` : ""
+              }`}
+            />
+          ))}
+          {data.deliveries.length === 0 && <Empty />}
+        </Panel>
+      </section>
     </div>
   );
 }

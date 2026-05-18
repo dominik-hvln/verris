@@ -38,3 +38,85 @@ export async function verifyDomainAction(id: string): Promise<DomainDto> {
   return updated;
 }
 
+export interface DomainChecklistRow {
+  id: string;
+  hostname: string;
+  status: 'PENDING' | 'OK' | 'WARNING' | 'FAILED';
+  observedRecords: unknown;
+  requiredRecords: unknown;
+  issues: unknown;
+  checkedAt: string | null;
+  createdAt: string;
+}
+
+export async function fetchDomainChecklist(id: string): Promise<DomainChecklistRow[]> {
+  return apiFetch<DomainChecklistRow[]>(`/domains/${id}/checklist`);
+}
+
+export async function runDomainChecklistAction(id: string): Promise<DomainChecklistRow> {
+  const row = await apiFetch<DomainChecklistRow>(`/domains/${id}/checklist`, { method: 'POST' });
+  revalidatePath(`/dashboard/domains/${id}`);
+  revalidatePath('/dashboard/domains');
+  return row;
+}
+
+export async function checkRegistrarAvailability(name: string) {
+  return apiFetch<{
+    domain: string;
+    available: boolean;
+    premium?: boolean;
+    priceAmount?: string | null;
+    currency?: string;
+  }>('/domains/registrar/availability', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function fetchRegistrarOrders() {
+  return apiFetch<Array<{
+    id: string;
+    domainName: string;
+    type: string;
+    status: string;
+    provider: string | null;
+    years: number;
+    priceAmount: string | null;
+    currency: string;
+    lastError: string | null;
+    createdAt: string;
+    submittedAt: string | null;
+    completedAt: string | null;
+  }>>('/domains/registrar/orders');
+}
+
+export async function registerDomainAction(formData: FormData) {
+  const name = String(formData.get('name') ?? '').trim().toLowerCase();
+  const years = Number.parseInt(String(formData.get('years') ?? '1'), 10);
+  const nameservers = String(formData.get('nameservers') ?? '')
+    .split(/\s|,/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+  await apiFetch('/domains/registrar/register', {
+    method: 'POST',
+    body: JSON.stringify({ name, years, nameservers }),
+  });
+  revalidatePath('/dashboard/domains');
+  revalidatePath('/dashboard/domains/registrar');
+}
+
+export async function transferDomainAction(formData: FormData) {
+  const name = String(formData.get('name') ?? '').trim().toLowerCase();
+  const authCode = String(formData.get('authCode') ?? '').trim();
+  const years = Number.parseInt(String(formData.get('years') ?? '1'), 10);
+  const nameservers = String(formData.get('nameservers') ?? '')
+    .split(/\s|,/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+  await apiFetch('/domains/registrar/transfer', {
+    method: 'POST',
+    body: JSON.stringify({ name, authCode, years, nameservers }),
+  });
+  revalidatePath('/dashboard/domains/registrar');
+}
+

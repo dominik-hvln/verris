@@ -248,6 +248,39 @@ export class MetricsService {
       }
     }
 
+    // --- Status webhook delivery health ----------------------------------
+    const webhookDeliveriesByStatus = await this.prisma.statusWebhookDelivery.groupBy({
+      by: ['status'],
+      _count: { _all: true },
+    });
+    write(
+      lines,
+      'verris_status_webhook_deliveries_total',
+      'Status webhook deliveries by current delivery status',
+      'gauge',
+    );
+    for (const row of webhookDeliveriesByStatus) {
+      lines.push(`verris_status_webhook_deliveries_total{status="${row.status}"} ${row._count._all}`);
+    }
+    const oldestWebhookDelivery = await this.prisma.statusWebhookDelivery.findFirst({
+      where: { status: 'PENDING' },
+      orderBy: { createdAt: 'asc' },
+      select: { createdAt: true },
+    });
+    write(
+      lines,
+      'verris_status_webhook_oldest_pending_seconds',
+      'Age of the oldest pending status webhook delivery',
+      'gauge',
+    );
+    lines.push(
+      `verris_status_webhook_oldest_pending_seconds ${
+        oldestWebhookDelivery
+          ? Math.max(0, Math.floor((Date.now() - oldestWebhookDelivery.createdAt.getTime()) / 1000))
+          : 0
+      }`,
+    );
+
     // --- Process-level info ----------------------------------------------
     const mem = process.memoryUsage();
     write(

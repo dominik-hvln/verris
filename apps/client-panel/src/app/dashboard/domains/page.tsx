@@ -23,7 +23,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator
 } from '@verris/ui';
-import { Globe, MoreVertical, Plus, RefreshCw, AlertCircle, Info, Trash2, CheckCircle2 } from 'lucide-react';
+import { Globe, MoreVertical, Plus, RefreshCw, AlertCircle, Info, Trash2, CheckCircle2, ShoppingCart } from 'lucide-react';
 import { HostingTabs } from '../components/hosting-tabs';
 import { fetchUserDomains, addDomain, deleteDomain } from './actions';
 import { DomainDto } from '@verris/contracts';
@@ -92,9 +92,14 @@ export default function DomainsPage() {
           <p className="text-muted-foreground mt-1 text-sm md:text-base">Zarządzaj domenami podpiętymi do Twojego hostingu.</p>
         </div>
         
-        <Button className="gap-2" onClick={() => setIsAddOpen(true)}>
-          <Plus className="h-4 w-4" /> Dodaj domenę
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => router.push('/dashboard/domains/registrar')}>
+            <ShoppingCart className="h-4 w-4" /> Rejestrator
+          </Button>
+          <Button className="gap-2" onClick={() => setIsAddOpen(true)}>
+            <Plus className="h-4 w-4" /> Dodaj domenę
+          </Button>
+        </div>
 
         {isAddOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">

@@ -1,0 +1,43 @@
+import { ServiceUnavailableException } from '@nestjs/common';
+import { DomainRegistrarService } from './domain-registrar.service';
+
+describe('DomainRegistrarService', () => {
+  const prisma = {};
+  const audit = { record: jest.fn() };
+  const crypto = { encrypt: jest.fn((v: string) => `enc:${v}`) };
+
+  beforeEach(() => jest.clearAllMocks());
+
+  it('fails closed when registrar provider is not configured', async () => {
+    const providerFactory = {
+      get: jest.fn(() => {
+        throw new ServiceUnavailableException('Registrar provider is not configured.');
+      }),
+    };
+    const service = new DomainRegistrarService(
+      prisma as never,
+      audit as never,
+      crypto as never,
+      providerFactory as never,
+    );
+
+    await expect(service.availability('example.pl')).rejects.toBeInstanceOf(ServiceUnavailableException);
+  });
+
+  it('checks availability before registering a domain', async () => {
+    const provider = {
+      availability: jest.fn().mockResolvedValue({ domain: 'example.pl', available: false }),
+    };
+    const service = new DomainRegistrarService(
+      prisma as never,
+      audit as never,
+      crypto as never,
+      { get: () => provider } as never,
+    );
+
+    await expect(service.register('user_1', 'user_1', { name: 'Example.pl' })).rejects.toThrow(
+      'Domena nie jest dostępna',
+    );
+    expect(provider.availability).toHaveBeenCalledWith('example.pl');
+  });
+});

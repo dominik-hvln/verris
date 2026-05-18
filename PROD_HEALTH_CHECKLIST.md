@@ -2,6 +2,20 @@
 
 > Wypełniany przy każdym deploy'u kontroli stanu (po smoke teście, raz w tygodniu, przed wpuszczeniem klientów). Raport leży obok `GO_NO_GO_PROD.md` — `GO_NO_GO_PROD` jest wymogiem na wejście, ten plik jest **bieżącym statusem operacyjnym**. W razie regresji w którymkolwiek punkcie — eskalacja do tasku w Sprincie aktualnym.
 
+## 0. Wymóg 100% LIVE
+
+Przed decyzją GO trzeba potwierdzić, że wdrażany zakres jest produkcyjny: **bez MVP, bez mocków, bez stubów i bez brakujących funkcji w ścieżkach komunikowanych klientowi**. Jeśli funkcja nie jest gotowa end-to-end, musi być ukryta, jawnie wyłączona feature flagą albo opisana jako niedostępna w obecnym zakresie oferty.
+
+| Pomiar | Próg GO | Wartość | Status |
+| --- | --- | --- | --- |
+| Widoczne funkcje klienta mają realny backend/integrację | 100% | | |
+| Brak mocków/stubów w panelu klienta | 100% | | |
+| Brak placeholderów `<TODO>` w treściach prawnych i publicznych | 100% | | |
+| Krytyczne operacje mają RBAC + audit log | 100% | | |
+| Smoke test obejmuje billing, provisioning, BOK, compliance i status | 100% | | |
+
+Plan domknięcia i kolejność sprintów: [`LIVE_READINESS_PLAN.md`](./LIVE_READINESS_PLAN.md).
+
 Każdy punkt ma format:
 
 - ✅ — działa, mierzone, alert podpięty.

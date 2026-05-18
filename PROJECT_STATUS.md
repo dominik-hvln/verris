@@ -7,9 +7,9 @@
 
 | Status      | Znaczenie                                                                                  |
 | ----------- | ------------------------------------------------------------------------------------------ |
-| **DONE**    | Działa end‑to‑end (UI + API + DB + integracja). Można pokazać klientowi.                   |
-| **PARTIAL** | Kawałek istnieje (np. jest schemat DB + endpoint, ale UI mockowy / brakuje integracji).    |
-| **STUB**    | Świadomy szkielet pod kolejny sprint (np. provisioning queue) — zaplanowany, niekompletny. |
+| **DONE**    | Działa end‑to‑end (UI + API + DB + integracja), z RBAC/audytem tam gdzie wymagane. Można pokazać klientowi. |
+| **PARTIAL** | Istnieje tylko fragment i nie wolno traktować go jako gotowości LIVE ani komunikować klientowi jako dostępnej funkcji. |
+| **STUB**    | Świadomy szkielet techniczny pod kolejny sprint; musi być ukryty lub oznaczony jako niedostępny w produkcji. |
 | **TODO**    | Zaplanowane, jeszcze nie zaczęte.                                                          |
 | **AGREED**  | Ustalone z klientem co będzie i jak — czeka na implementację.                              |
 

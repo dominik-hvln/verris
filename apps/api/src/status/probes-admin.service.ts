@@ -11,11 +11,13 @@ import {
   ProbeKind,
   ProbeSeverity,
   ServiceProbe,
+  StatusWebhookEvent,
 } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { CreateProbeDto, UpdateIncidentDto, UpdateProbeDto } from './dto/probe.dto';
 import { StatusService } from './status.service';
+import { StatusWebhookService } from './status-webhook.service';
 
 @Injectable()
 export class ProbesAdminService {
@@ -25,6 +27,7 @@ export class ProbesAdminService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly status: StatusService,
+    private readonly webhooks: StatusWebhookService,
   ) {}
 
   async list(filters: { serverId?: string }): Promise<ServiceProbe[]> {
@@ -144,6 +147,13 @@ export class ProbesAdminService {
       action: 'PROBE_INCIDENT_EDITED',
       actorUserId,
       details: { incidentId: id, changes: { ...dto } },
+    });
+    await this.webhooks.enqueue(StatusWebhookEvent.INCIDENT_UPDATED, {
+      incidentId: updated.id,
+      status: updated.status,
+      title: updated.title,
+      publicMessage: updated.publicMessage,
+      updatedAt: new Date().toISOString(),
     });
     this.status.invalidate();
     return updated;
