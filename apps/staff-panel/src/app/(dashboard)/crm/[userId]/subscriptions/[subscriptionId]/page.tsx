@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { StaffApiError } from "@/lib/staff-api";
 import { staffGetAdminSubscription } from "@/lib/crm-subscription-data";
@@ -27,6 +27,7 @@ export default async function StaffSubscriptionReadonlyPage({
   try {
     sub = await staffGetAdminSubscription(subscriptionId);
   } catch (e) {
+    if (e instanceof StaffApiError && e.status === 401) redirect("/login");
     if (e instanceof StaffApiError && (e.status === 404 || e.status === 403)) notFound();
     throw e;
   }

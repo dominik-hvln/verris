@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, ExternalLink, Mail } from "lucide-react";
 import { StaffApiError } from "@/lib/staff-api";
 import { staffGetCustomerProfile } from "@/lib/crm-profile-data";
@@ -46,6 +46,7 @@ export default async function StaffCustomerProfilePage({
   try {
     profile = await staffGetCustomerProfile(userId);
   } catch (e) {
+    if (e instanceof StaffApiError && e.status === 401) redirect("/login");
     if (e instanceof StaffApiError && (e.status === 404 || e.status === 403)) notFound();
     throw e;
   }

@@ -240,7 +240,7 @@ export class UsersAdminService {
       }),
       this.prisma.paymentMethod.findMany({
         where: { userId: targetUserId },
-        orderBy: { isDefault: 'desc', createdAt: 'desc' },
+        orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
         take: 10,
         select: {
           id: true,
