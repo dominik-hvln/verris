@@ -3,9 +3,11 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UsersController } from './users.controller';
 import { UsersAdminController } from './users.admin.controller';
+import { CustomerIamController } from './customer-iam.controller';
 import { EcoPublicController } from './eco-public.controller';
 import { UsersService } from './users.service';
 import { UsersAdminService } from './users.admin.service';
+import { CustomerIamService } from './customer-iam.service';
 import { MailModule } from '../mail/mail.module';
 import { StatusModule } from '../status/status.module';
 import { DiagnosticsModule } from '../diagnostics/diagnostics.module';
@@ -28,8 +30,8 @@ import { BillingModule } from '../billing/billing.module';
     DiagnosticsModule,
     BillingModule,
   ],
-  controllers: [UsersController, UsersAdminController, EcoPublicController],
-  providers: [UsersService, UsersAdminService],
+  controllers: [UsersController, UsersAdminController, CustomerIamController, EcoPublicController],
+  providers: [UsersService, UsersAdminService, CustomerIamService],
   exports: [UsersService, UsersAdminService],
 })
 export class UsersModule {}
