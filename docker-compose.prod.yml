@@ -310,11 +310,16 @@ services:
     image: prom/prometheus:v2.51.2
     restart: always
     logging: *default-logging
+    entrypoint: ['/bin/sh', '-c']
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=30d'
-      - '--web.enable-lifecycle'
+      - >
+        sed "s|\$${METRICS_AUTH_TOKEN}|$${METRICS_AUTH_TOKEN}|g"
+        /etc/prometheus/prometheus.yml > /tmp/prometheus.yml
+        && exec /bin/prometheus
+        --config.file=/tmp/prometheus.yml
+        --storage.tsdb.path=/prometheus
+        --storage.tsdb.retention.time=30d
+        --web.enable-lifecycle
     volumes:
       - ./ops/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
