@@ -6,10 +6,12 @@ import {
   ProbeKind,
   ProbeSeverity,
   ServiceProbe,
+  StatusWebhookEvent,
 } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { ProbeRunResult } from './probe-runner.service';
+import { StatusWebhookService } from './status-webhook.service';
 
 const FAIL_THRESHOLD = 2;
 const BUCKET_DURATION_S = 60;
@@ -21,6 +23,7 @@ export class ProbeIngestService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly webhooks: StatusWebhookService,
   ) {}
 
   /**
@@ -119,6 +122,16 @@ export class ProbeIngestService {
               : null,
           },
         });
+        await this.webhooks.enqueue(StatusWebhookEvent.INCIDENT_RESOLVED, {
+          incidentId: updated.id,
+          probeId: probe.id,
+          serverId: probe.serverId,
+          kind: probe.kind,
+          target: probe.target,
+          severity: updated.severity,
+          title: updated.title,
+          resolvedAt: updated.resolvedAt?.toISOString() ?? when.toISOString(),
+        });
         this.logger.log(`Incident ${updated.id} for probe=${probe.id} resolved`);
       }
       return;
@@ -170,6 +183,16 @@ export class ProbeIngestService {
         target: probe.target,
         consecutiveFailures: next.consecutiveFailures,
       },
+    });
+    await this.webhooks.enqueue(StatusWebhookEvent.INCIDENT_CREATED, {
+      incidentId: incident.id,
+      probeId: probe.id,
+      serverId: probe.serverId,
+      kind: probe.kind,
+      target: probe.target,
+      severity: incident.severity,
+      title: incident.title,
+      startedAt: incident.startedAt.toISOString(),
     });
     this.logger.warn(
       `Incident OPENED severity=${probe.severity} probe=${probe.id} target=${probe.target}`,

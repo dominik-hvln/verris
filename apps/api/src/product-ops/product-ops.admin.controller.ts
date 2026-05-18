@@ -1,11 +1,14 @@
-import { Body, Controller, Get, HttpCode, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpCode, NotFoundException, Post, UseGuards } from '@nestjs/common';
 import {
   MaintenanceWindowStatus,
   ProductAnnouncementKind,
   ProductAnnouncementStatus,
+  IncidentSeverity,
+  IncidentStatus,
   Role,
+  StatusWebhookEvent,
 } from '@verris/database';
-import { IsBoolean, IsDateString, IsEnum, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { ArrayMaxSize, ArrayNotEmpty, IsArray, IsBoolean, IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUrl, Max, MaxLength, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -14,6 +17,10 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { AdminNodeActions, ProductOpsActions } from '../common/audit/audit.actions';
+import { CryptoService } from '../common/crypto/crypto.service';
+import { StatusWebhookService } from '../status/status-webhook.service';
+import { assertPublicWebhookUrl } from '../status/status-webhook.service';
+import { StatusService } from '../status/status.service';
 
 class CreateFeatureFlagDto {
   @IsString()
@@ -81,6 +88,40 @@ class CreateMaintenanceWindowDto {
   scheduledEnd!: string;
 }
 
+class CreateStatusWebhookEndpointDto {
+  @IsUrl({ require_tld: false })
+  @MaxLength(2000)
+  url!: string;
+
+  @IsArray()
+  @ArrayNotEmpty()
+  @ArrayMaxSize(10)
+  @IsEnum(StatusWebhookEvent, { each: true })
+  events!: StatusWebhookEvent[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  secret?: string;
+}
+
+class ComposeIncidentDto {
+  @IsString()
+  probeId!: string;
+
+  @IsEnum(IncidentSeverity)
+  severity!: IncidentSeverity;
+
+  @IsString()
+  @MaxLength(160)
+  title!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(5000)
+  publicMessage?: string;
+}
+
 @Controller('admin/product-ops')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)
@@ -88,6 +129,9 @@ export class ProductOpsAdminController {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly crypto: CryptoService,
+    private readonly webhooks: StatusWebhookService,
+    private readonly status: StatusService,
   ) {}
 
   @Get('preflight')
@@ -120,6 +164,112 @@ export class ProductOpsAdminController {
         activeFlags,
         scheduledMaintenance,
       },
+    };
+  }
+
+  @Get('capacity')
+  async capacityPlanner() {
+    const servers = await this.prisma.server.findMany({
+      where: { status: { in: ['ACTIVE', 'MAINTENANCE'] } },
+      include: {
+        accounts: { select: { cpuLimit: true, ramLimitMb: true, diskLimitMb: true, status: true } },
+      },
+      orderBy: { name: 'asc' },
+    });
+    return servers.map((server) => {
+      const activeAccounts = server.accounts.filter((a) => a.status !== 'DELETED');
+      const cpuCommitted = activeAccounts.reduce((sum, a) => sum + a.cpuLimit, 0);
+      const ramCommitted = activeAccounts.reduce((sum, a) => sum + a.ramLimitMb, 0);
+      const diskCommitted = activeAccounts.reduce((sum, a) => sum + a.diskLimitMb, 0);
+      return {
+        id: server.id,
+        name: server.name ?? server.hostname,
+        hostname: server.hostname,
+        status: server.status,
+        activeAccounts: activeAccounts.length,
+        cpuCommitted,
+        ramCommittedMb: ramCommitted,
+        latestDiskUsageMb: diskCommitted,
+        risk:
+          cpuCommitted >= 800 || ramCommitted >= 64 * 1024
+            ? 'high'
+            : cpuCommitted >= 500 || ramCommitted >= 40 * 1024
+              ? 'medium'
+              : 'low',
+      };
+    });
+  }
+
+  @Get('anomalies')
+  async anomalyBoard() {
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const [openIncidents, failedMigrations, failedProvisioning, usageSpikes] = await Promise.all([
+      this.prisma.probeIncident.findMany({
+        where: { status: IncidentStatus.OPEN },
+        orderBy: { startedAt: 'desc' },
+        take: 20,
+        select: {
+          id: true,
+          severity: true,
+          title: true,
+          publicMessage: true,
+          startedAt: true,
+          probe: { select: { id: true, kind: true, label: true, target: true, server: { select: { id: true, name: true, hostname: true } } } },
+        },
+      }),
+      this.prisma.migrationRequest.findMany({
+        where: { status: 'FAILED', updatedAt: { gte: since } },
+        orderBy: { updatedAt: 'desc' },
+        take: 20,
+        select: {
+          id: true,
+          subscriptionId: true,
+          targetDomain: true,
+          currentStep: true,
+          updatedAt: true,
+          lastError: true,
+        },
+      }),
+      this.prisma.subscription.findMany({
+        where: { provisioningStage: 'failed', updatedAt: { gte: since } },
+        orderBy: { updatedAt: 'desc' },
+        take: 20,
+        select: {
+          id: true,
+          userId: true,
+          provisioningStage: true,
+          provisioningAttempts: true,
+          provisioningLastError: true,
+          updatedAt: true,
+        },
+      }),
+      this.prisma.usageMetric.findMany({
+        where: { bucketStart: { gte: since }, OR: [{ cpuUsageMax: { gte: 90 } }, { ioUsageKbps: { gte: 50000 } }] },
+        orderBy: { bucketStart: 'desc' },
+        take: 20,
+        select: {
+          id: true,
+          subscriptionId: true,
+          serverId: true,
+          bucketStart: true,
+          cpuUsageMax: true,
+          ioUsageKbps: true,
+        },
+      }),
+    ]);
+    return {
+      openIncidents,
+      failedMigrations: failedMigrations.map((row) => ({
+        ...row,
+        lastError: row.lastError ? sanitizeOperationalError(row.lastError) : null,
+      })),
+      failedProvisioning: failedProvisioning.map((row) => ({
+        ...row,
+        provisioningLastError: row.provisioningLastError
+          ? sanitizeOperationalError(row.provisioningLastError)
+          : null,
+      })),
+      usageSpikes,
     };
   }
 
@@ -207,6 +357,117 @@ export class ProductOpsAdminController {
       actorUserId: user.userId,
       details: { maintenanceWindowId: window.id, serverId: window.serverId, title: window.title },
     });
+    await this.webhooks.enqueue(StatusWebhookEvent.MAINTENANCE_SCHEDULED, {
+      maintenanceWindowId: window.id,
+      serverId: window.serverId,
+      title: window.title,
+      publicMessage: window.publicMessage,
+      scheduledStart: window.scheduledStart.toISOString(),
+      scheduledEnd: window.scheduledEnd.toISOString(),
+    });
     return window;
   }
+
+  @Post('incidents')
+  @HttpCode(201)
+  async composeIncident(@CurrentUser() user: { userId: string }, @Body() dto: ComposeIncidentDto) {
+    const probe = await this.prisma.serviceProbe.findUnique({
+      where: { id: dto.probeId },
+      include: { server: { select: { id: true, name: true } } },
+    });
+    if (!probe) {
+      throw new NotFoundException('Probe not found');
+    }
+    const incident = await this.prisma.probeIncident.create({
+      data: {
+        probeId: probe.id,
+        severity: dto.severity,
+        status: IncidentStatus.OPEN,
+        title: dto.title.trim(),
+        publicMessage: dto.publicMessage?.trim() || null,
+        detectionMeta: { composedBy: user.userId, serverId: probe.serverId },
+      },
+    });
+    await this.audit.record({
+      action: ProductOpsActions.INCIDENT_COMPOSER_PUBLISHED,
+      actorUserId: user.userId,
+      details: { incidentId: incident.id, probeId: probe.id, serverId: probe.serverId },
+    });
+    await this.webhooks.enqueue(StatusWebhookEvent.INCIDENT_CREATED, {
+      incidentId: incident.id,
+      probeId: probe.id,
+      serverId: probe.serverId,
+      serverName: probe.server.name,
+      severity: incident.severity,
+      title: incident.title,
+      publicMessage: incident.publicMessage,
+      startedAt: incident.startedAt.toISOString(),
+    });
+    this.status.invalidate();
+    return incident;
+  }
+
+  @Get('status-webhooks')
+  listStatusWebhooks() {
+    return this.prisma.statusWebhookEndpoint.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+      select: {
+        id: true,
+        url: true,
+        isActive: true,
+        events: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: { select: { deliveries: true } },
+      },
+    });
+  }
+
+  @Post('status-webhooks')
+  @HttpCode(201)
+  async createStatusWebhook(
+    @CurrentUser() user: { userId: string },
+    @Body() dto: CreateStatusWebhookEndpointDto,
+  ) {
+    try {
+      await assertPublicWebhookUrl(dto.url.trim());
+    } catch (err) {
+      throw new BadRequestException(err instanceof Error ? err.message : 'Invalid webhook URL');
+    }
+    const endpoint = await this.prisma.statusWebhookEndpoint.create({
+      data: {
+        url: dto.url.trim(),
+        events: dto.events,
+        secretEnc: dto.secret?.trim() ? this.crypto.encrypt(dto.secret.trim()) : null,
+        createdById: user.userId,
+      },
+    });
+    await this.audit.record({
+      action: AdminNodeActions.STATUS_WEBHOOK_ENDPOINT_CREATED,
+      actorUserId: user.userId,
+      details: { statusWebhookEndpointId: endpoint.id, events: endpoint.events },
+    });
+    return endpoint;
+  }
+
+  @Get('status-webhook-deliveries')
+  listStatusWebhookDeliveries() {
+    return this.prisma.statusWebhookDelivery.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+      include: {
+        endpoint: { select: { id: true, url: true } },
+      },
+    });
+  }
+}
+
+function sanitizeOperationalError(raw: string): string {
+  const lower = raw.toLowerCase();
+  if (lower.includes('timeout') || lower.includes('etimedout')) return 'timeout';
+  if (lower.includes('capacity')) return 'capacity';
+  if (lower.includes('unauthorized') || lower.includes('credentials')) return 'auth_configuration';
+  if (lower.includes('already exists')) return 'resource_conflict';
+  return 'internal_error';
 }

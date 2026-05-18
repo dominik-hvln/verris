@@ -9,6 +9,7 @@ import { ProbesAdminController } from './probes-admin.controller';
 import { ProbeIngestController } from './probe-ingest.controller';
 import { MeStatusController } from './me-status.controller';
 import { ServerIdentityGuard } from '../servers/guards/server-identity.guard';
+import { StatusWebhookService } from './status-webhook.service';
 
 @Module({
   providers: [
@@ -18,6 +19,7 @@ import { ServerIdentityGuard } from '../servers/guards/server-identity.guard';
     ProbeScheduler,
     ProbesAdminService,
     ServerIdentityGuard,
+    StatusWebhookService,
   ],
   controllers: [
     StatusController,
@@ -25,6 +27,6 @@ import { ServerIdentityGuard } from '../servers/guards/server-identity.guard';
     ProbeIngestController,
     MeStatusController,
   ],
-  exports: [StatusService],
+  exports: [StatusService, StatusWebhookService],
 })
 export class StatusModule {}
