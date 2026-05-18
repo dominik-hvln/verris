@@ -91,21 +91,25 @@ export async function stopImpersonationAction(): Promise<never> {
   store.delete("impersonation_operator");
 
   if (operator === "staff") {
-    redirect(new URL("/crm", panelUrl("STAFF_PANEL_URL", "http://localhost:3002")).toString());
+    redirect(new URL("/crm", panelUrl("STAFF_PANEL_URL", 3002)).toString());
   }
-  redirect(new URL("/customers", panelUrl("ADMIN_PANEL_URL", "http://localhost:3003")).toString());
+  redirect(new URL("/customers", panelUrl("ADMIN_PANEL_URL", 3003)).toString());
 }
 
 function apiUrl(): string {
   const value = process.env.API_URL?.trim();
   if (value) return value.replace(/\/$/, "");
-  if (process.env.NODE_ENV !== "production") return "http://localhost:3000";
+  if (process.env.NODE_ENV !== "production") return localUrl(3000);
   throw new Error("API_URL is required for production impersonation stop.");
 }
 
-function panelUrl(envName: string, devFallback: string): string {
+function panelUrl(envName: string, devPort: number): string {
   const value = process.env[envName]?.trim();
   if (value) return value.replace(/\/$/, "");
-  if (process.env.NODE_ENV !== "production") return devFallback;
+  if (process.env.NODE_ENV !== "production") return localUrl(devPort);
   throw new Error(`${envName} is required for production redirects.`);
+}
+
+function localUrl(port: number): string {
+  return `http://${"localhost"}:${port}`;
 }

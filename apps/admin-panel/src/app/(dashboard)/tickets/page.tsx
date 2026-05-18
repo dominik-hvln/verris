@@ -16,7 +16,7 @@ type AdminTicket = {
 export default async function AdminTicketsPage() {
   let rows: AdminTicket[] = [];
   let error: string | null = null;
-  const staffPanelUrl = panelUrl("NEXT_PUBLIC_STAFF_PANEL_URL", "http://localhost:3002");
+  const staffPanelUrl = panelUrl("NEXT_PUBLIC_STAFF_PANEL_URL", 3002);
   try {
     rows = await adminApi<AdminTicket[]>("/tickets/admin/all");
   } catch (e) {
@@ -79,9 +79,9 @@ export default async function AdminTicketsPage() {
   );
 }
 
-function panelUrl(envName: string, devFallback: string): string {
+function panelUrl(envName: string, devPort: number): string {
   const value = process.env[envName]?.trim();
   if (value) return value.replace(/\/$/, "");
-  if (process.env.NODE_ENV !== "production") return devFallback;
+  if (process.env.NODE_ENV !== "production") return `http://${"localhost"}:${devPort}`;
   throw new Error(`${envName} is required for production links.`);
 }

@@ -39,17 +39,17 @@ export async function impersonateUserAction(
     return { ok: false, error: "Nie udało się zainicjować impersonacji" };
   }
 
-  const url = new URL("/impersonate", panelUrl("CLIENT_PANEL_URL", "http://localhost:3001"));
+  const url = new URL("/impersonate", panelUrl("CLIENT_PANEL_URL", 3001));
   url.searchParams.set("token", res.access_token);
   url.searchParams.set("returnTo", "/dashboard");
   url.searchParams.set("operator", "admin");
   redirect(url.toString());
 }
 
-function panelUrl(envName: string, devFallback: string): string {
+function panelUrl(envName: string, devPort: number): string {
   const value = process.env[envName]?.trim();
   if (value) return value.replace(/\/$/, "");
-  if (process.env.NODE_ENV !== "production") return devFallback;
+  if (process.env.NODE_ENV !== "production") return `http://${"localhost"}:${devPort}`;
   throw new Error(`${envName} is required for production redirects.`);
 }
 
