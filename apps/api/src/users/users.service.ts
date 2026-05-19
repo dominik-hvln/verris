@@ -10,7 +10,7 @@ import { Prisma, SubscriptionStatus, WalletTxType } from '@verris/database';
 import * as bcrypt from 'bcrypt';
 import { randomBytes, createHash } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
-import { resolveSidebarQuickLinks, isSidebarTileHref } from '@verris/contracts';
+import { resolveSidebarQuickLinks, isSidebarTileHref } from './sidebar-quick-links';
 import {
   UpdateProfileDto,
   ChangePasswordDto,
