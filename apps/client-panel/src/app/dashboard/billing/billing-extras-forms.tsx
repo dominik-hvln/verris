@@ -33,6 +33,7 @@ function PromoRedeemBlock() {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  const [code, setCode] = useState('');
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -42,11 +43,11 @@ function PromoRedeemBlock() {
     startTransition(async () => {
       const res = await redeemPromoAction(fd);
       if (res.ok) {
+        setCode('');
         setDone(
-          `Na konto zostało dopisane ${formatCredits(res.amountPln, { signed: true })} (kod ${res.code}).`,
+          `Na portfel dopisaliśmy ${formatCredits(res.amountPln, { signed: true })} — kod „${res.code}” został zrealizowany.`,
         );
         router.refresh();
-        event.currentTarget.reset();
       } else {
         setError(res.error ?? 'Błąd.');
       }
@@ -64,8 +65,7 @@ function PromoRedeemBlock() {
             Kod promocyjny <Sparkles className="h-4 w-4 text-amber-200/90" aria-hidden />
           </h2>
           <p className="text-sm text-neutral-400 mt-1">
-            Wpisz kod przyznany przez support lub kampanię — kredyty zostaną dopisane na portfel
-            jako PROMO_CREDIT (1 zł = 1 kredyt).
+            Wpisz kod od supportu lub z kampanii — kredyty trafią od razu na Twój portfel.
           </p>
         </div>
       </div>
@@ -74,6 +74,8 @@ function PromoRedeemBlock() {
           <input
             name="code"
             type="text"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
             placeholder="Np. DEMO10"
             autoComplete="off"
             className="flex-1 rounded-2xl border border-white/10 bg-black/40 px-4 py-3 uppercase tracking-wide font-mono text-sm text-white placeholder:text-neutral-600 focus:border-white/35 focus:outline-none"

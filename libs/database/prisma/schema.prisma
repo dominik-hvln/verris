@@ -150,6 +150,9 @@ model User {
   walletAutoTopup          WalletAutoTopup?
   ticketAttachmentsUploaded TicketAttachment[] @relation("TicketAttachmentUploader")
   ecoPointsLedger           EcoPointsLedgerEntry[]
+  referralProgramEnrollment ReferralProgramEnrollment?
+  referralEnrollmentsReviewed ReferralProgramEnrollment[] @relation("ReferralEnrollmentReviewer")
+  platformSettingsUpdated   PlatformSetting[] @relation("PlatformSettingUpdatedBy")
   featureFlagsCreated       FeatureFlag[]      @relation("FeatureFlagCreator")
   featureFlagOverridesCreated FeatureFlagOverride[] @relation("FeatureFlagOverrideCreator")
   featureFlagOverrides       FeatureFlagOverride[] @relation("FeatureFlagUser")
@@ -1946,4 +1949,37 @@ model AccountDeletionRequest {
   reason             String?
 
   @@index([scheduledFor, anonymizedAt])
+}
+
+/// Global product configuration (EKO thresholds, session timeouts, badge rules).
+model PlatformSetting {
+  key             String   @id
+  value           String   @db.Text
+  updatedAt       DateTime @updatedAt
+  updatedByUserId String?
+  updatedBy       User?    @relation("PlatformSettingUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@map("platform_settings")
+}
+
+enum ReferralProgramEnrollmentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// Partner / referral program — user must apply and be approved before sharing link.
+model ReferralProgramEnrollment {
+  id               String                          @id @default(uuid())
+  userId           String                          @unique
+  user             User                            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status           ReferralProgramEnrollmentStatus @default(PENDING)
+  appliedAt        DateTime                        @default(now())
+  reviewedAt       DateTime?
+  reviewedByUserId String?
+  reviewedBy       User?                           @relation("ReferralEnrollmentReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  reviewNote       String?                         @db.Text
+  termsVersion     String?
+
+  @@index([status, appliedAt])
 }

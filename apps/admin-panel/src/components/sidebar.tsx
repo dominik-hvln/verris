@@ -56,7 +56,10 @@ const adminNavItems = [
   },
   {
     label: "Konto",
-    items: [{ name: "Ustawienia", href: "/settings", icon: Settings }],
+    items: [
+      { name: "Ustawienia", href: "/settings", icon: Settings },
+      { name: "Ustawienia platformy", href: "/settings/platform", icon: Gauge },
+    ],
   },
 ];
 

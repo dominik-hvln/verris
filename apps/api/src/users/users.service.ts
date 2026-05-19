@@ -143,6 +143,15 @@ export class UsersService {
       throw new BadRequestException('Nie znaleziono kodu polecenia.');
     }
 
+    const referrerEnrollment = await this.prisma.referralProgramEnrollment.findUnique({
+      where: { userId: referrer.id },
+    });
+    if (!referrerEnrollment || referrerEnrollment.status !== 'APPROVED') {
+      throw new BadRequestException(
+        'Ten kod polecenia nie jest jeszcze aktywny — właściciel musi dołączyć do programu partnerskiego.',
+      );
+    }
+
     await this.prisma.$transaction([
       this.prisma.user.update({
         where: { id: userId },
@@ -161,6 +170,88 @@ export class UsersService {
     ]);
 
     return { ok: true as const };
+  }
+
+  async getReferralProgramStatus(userId: string) {
+    const [enrollment, user] = await Promise.all([
+      this.prisma.referralProgramEnrollment.findUnique({ where: { userId } }),
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { referralCode: true },
+      }),
+    ]);
+    if (!user) throw new NotFoundException('User not found');
+
+    const approved = enrollment?.status === 'APPROVED';
+    return {
+      status: enrollment?.status ?? null,
+      appliedAt: enrollment?.appliedAt ?? null,
+      reviewedAt: enrollment?.reviewedAt ?? null,
+      reviewNote: enrollment?.reviewNote ?? null,
+      referralCode: approved ? user.referralCode : null,
+    };
+  }
+
+  async listReferralEnrollments(status?: 'PENDING' | 'APPROVED' | 'REJECTED') {
+    return this.prisma.referralProgramEnrollment.findMany({
+      where: status ? { status } : undefined,
+      orderBy: { appliedAt: 'desc' },
+      take: 100,
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            referralCode: true,
+            ecoPoints: true,
+          },
+        },
+      },
+    });
+  }
+
+  async reviewReferralEnrollment(
+    targetUserId: string,
+    input: { status: 'APPROVED' | 'REJECTED'; reviewNote?: string },
+    reviewerUserId: string,
+  ) {
+    const row = await this.prisma.referralProgramEnrollment.findUnique({
+      where: { userId: targetUserId },
+    });
+    if (!row) {
+      throw new NotFoundException('Brak zgłoszenia do programu poleceń.');
+    }
+    if (row.status !== 'PENDING') {
+      throw new BadRequestException('To zgłoszenie zostało już rozpatrzone.');
+    }
+
+    return this.prisma.referralProgramEnrollment.update({
+      where: { userId: targetUserId },
+      data: {
+        status: input.status,
+        reviewedAt: new Date(),
+        reviewedByUserId: reviewerUserId,
+        reviewNote: input.reviewNote?.trim() || null,
+      },
+    });
+  }
+
+  async applyReferralProgram(userId: string, termsVersion?: string) {
+    const existing = await this.prisma.referralProgramEnrollment.findUnique({
+      where: { userId },
+    });
+    if (existing) {
+      throw new BadRequestException('Zgłoszenie do programu poleceń zostało już wysłane.');
+    }
+    const row = await this.prisma.referralProgramEnrollment.create({
+      data: {
+        userId,
+        termsVersion: termsVersion?.trim() || '1.0',
+      },
+    });
+    return { status: row.status, appliedAt: row.appliedAt };
   }
 
   async redeemEcoPoints(userId: string, dto: RedeemEcoPointsDto) {

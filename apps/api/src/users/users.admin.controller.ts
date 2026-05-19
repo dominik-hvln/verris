@@ -19,6 +19,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UsersAdminService } from './users.admin.service';
+import { UsersService } from './users.service';
 import { HostingDiagnosticsService } from '../diagnostics/hosting-diagnostics.service';
 import {
   DnsTlsDiagnosticDto,
@@ -68,6 +69,7 @@ export class UsersAdminController {
   constructor(
     private readonly admin: UsersAdminService,
     private readonly diagnostics: HostingDiagnosticsService,
+    private readonly users: UsersService,
   ) {}
 
   @Get()
@@ -258,6 +260,20 @@ export class UsersAdminController {
       userAgent,
       reason: dto.reason,
     });
+  }
+
+  @Get('referral-enrollments')
+  listReferralEnrollments(@Query('status') status?: 'PENDING' | 'APPROVED' | 'REJECTED') {
+    return this.users.listReferralEnrollments(status);
+  }
+
+  @Patch('referral-enrollments/:userId')
+  reviewReferralEnrollment(
+    @Param('userId') userId: string,
+    @Body() body: { status: 'APPROVED' | 'REJECTED'; reviewNote?: string },
+    @CurrentUser() actor: AuthedUser,
+  ) {
+    return this.users.reviewReferralEnrollment(userId, body, actor.userId);
   }
 
   @Post('impersonate/stop')

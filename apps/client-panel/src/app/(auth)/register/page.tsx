@@ -1,12 +1,34 @@
 "use client";
 
-import { useActionState } from "react";
+import { Suspense, useActionState } from "react";
+import { useSearchParams } from "next/navigation";
 import { submitRegister } from "./actions";
 import { Loader2, AlertCircle } from "lucide-react";
 
 const initialState = { error: "" };
 
 export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={<RegisterFallback />}
+    >
+      <RegisterContent />
+    </Suspense>
+  );
+}
+
+function RegisterFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-neutral-950">
+      <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
+    </div>
+  );
+}
+
+function RegisterContent() {
+  const searchParams = useSearchParams();
+  const refFromUrl = searchParams.get("ref")?.trim() ?? "";
+
   // @ts-ignore
   const [state, formAction, isPending] = useActionState(submitRegister, initialState);
 
@@ -45,6 +67,7 @@ export default function RegisterPage() {
             </div>
 
             <form action={formAction}>
+              {refFromUrl ? <input type="hidden" name="ref" value={refFromUrl} /> : null}
               <div className="p-8 space-y-5">
                 {state?.error && (
                   <div className="flex items-center gap-3 p-4 text-sm font-medium text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl mb-2 animate-in fade-in zoom-in-95">

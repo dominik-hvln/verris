@@ -11,6 +11,7 @@ import {
   Globe,
 } from 'lucide-react';
 import type { AutoscalingResource, PriceRuleDto } from './types';
+import { CREDIT_SHORT } from '@/lib/credits';
 
 interface Props {
   rules: PriceRuleDto[];
@@ -24,7 +25,7 @@ export function AutoscalingCalculator({ rules }: Props) {
   const [ioKbps, setIoKbps] = useState(0);
   const [transferGb, setTransferGb] = useState(0);
 
-  const currency = rules[0]?.currency ?? 'PLN';
+  const unit = CREDIT_SHORT;
 
   const breakdown = useMemo(() => {
     const cpuHourly = pickRate(rules, 'CPU', cpuPercent) * cpuPercent;
@@ -136,7 +137,7 @@ export function AutoscalingCalculator({ rules }: Props) {
             <div className="mb-8">
               <div className="text-4xl font-extrabold text-white">
                 {breakdown.monthly.toFixed(2)}{' '}
-                <span className="text-2xl text-neutral-400">{currency}</span>
+                <span className="text-2xl text-neutral-400">{unit}</span>
               </div>
               <p className="text-neutral-500 text-sm">
                 / miesiąc (przy 100% utrzymaniu skalowania){' '}
@@ -146,19 +147,19 @@ export function AutoscalingCalculator({ rules }: Props) {
             <div className="space-y-3 mb-8 text-sm">
               <Row
                 label="CPU"
-                value={`${breakdown.cpuHourly.toFixed(4)} ${currency}/h`}
+                value={`${breakdown.cpuHourly.toFixed(4)} ${unit}/h`}
               />
               <Row
                 label="RAM"
-                value={`${breakdown.ramHourly.toFixed(4)} ${currency}/h`}
+                value={`${breakdown.ramHourly.toFixed(4)} ${unit}/h`}
               />
               <Row
                 label="I/O"
-                value={`${breakdown.ioHourly.toFixed(4)} ${currency}/h`}
+                value={`${breakdown.ioHourly.toFixed(4)} ${unit}/h`}
               />
               <Row
                 label="Transfer"
-                value={`${breakdown.transferOnce.toFixed(2)} ${currency}`}
+                value={`${breakdown.transferOnce.toFixed(2)} ${unit}`}
                 hint="jednorazowo"
               />
             </div>
@@ -173,13 +174,13 @@ export function AutoscalingCalculator({ rules }: Props) {
               <div className="flex justify-between items-center text-sm">
                 <span className="text-neutral-400">Stawka godzinowa</span>
                 <span className="text-white font-medium">
-                  ~{breakdown.hourly.toFixed(4)} {currency}
+                  ~{breakdown.hourly.toFixed(4)} {unit}
                 </span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-neutral-400">Stawka dobowa</span>
                 <span className="text-white font-medium">
-                  ~{breakdown.daily.toFixed(2)} {currency}
+                  ~{breakdown.daily.toFixed(2)} {unit}
                 </span>
               </div>
             </div>

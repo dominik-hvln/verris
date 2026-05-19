@@ -12,6 +12,9 @@ export async function submitRegister(prevState: any, formData: FormData) {
   const acceptTerms = formData.get("acceptTerms") === "on";
   const acceptPrivacy = formData.get("acceptPrivacy") === "on";
   const acceptMarketing = formData.get("acceptMarketing") === "on";
+  const refRaw = formData.get("ref");
+  const ref =
+    typeof refRaw === "string" && refRaw.trim().length > 0 ? refRaw.trim() : undefined;
 
   if (!email || !password) {
     return { error: "Wypełnij wymagane pola" };
@@ -40,6 +43,7 @@ export async function submitRegister(prevState: any, formData: FormData) {
         acceptTerms,
         acceptPrivacy,
         acceptMarketing,
+        ...(ref ? { ref } : {}),
       }),
     });
     const loginData = await apiFetch<{ access_token?: string }>("/auth/login", {

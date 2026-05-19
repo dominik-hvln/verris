@@ -10,6 +10,7 @@ import type {
   SubscriptionPaymentSource,
 } from '@verris/contracts';
 import { createSubscriptionAction } from './actions';
+import { CREDIT_SHORT, formatCredits } from '@/lib/credits';
 
 interface Props {
   plans: PlanDto[];
@@ -129,12 +130,12 @@ export function NewSubscriptionForm({ plans }: Props) {
                 </div>
                 <div className="mt-6 flex items-baseline gap-2">
                   <span className="text-3xl font-bold text-white">
-                    {Number(plan.priceMonthly).toFixed(2)}
+                    {formatCredits(plan.priceMonthly, { withUnit: false })}
                   </span>
-                  <span className="text-neutral-400">{plan.currency} / mies.</span>
+                  <span className="text-neutral-400">{CREDIT_SHORT} / mies.</span>
                 </div>
                 <p className="text-xs text-neutral-500 mt-1">
-                  Rocznie: {Number(plan.priceYearly).toFixed(2)} {plan.currency}
+                  Rocznie: {formatCredits(plan.priceYearly)}
                 </p>
               </button>
             );

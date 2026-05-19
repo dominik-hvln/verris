@@ -16,13 +16,25 @@ export interface EcoLedgerRowDto {
   createdAt: string;
 }
 
+export type EcoPlatformConfig = {
+  ecoPointsPerTree: number;
+  ecoPointsPer10Credits: number;
+};
+
 export async function getEcoDashboardData(): Promise<{
   profile: EcoProfileDto;
   ledger: EcoLedgerRowDto[];
+  platform: EcoPlatformConfig;
 }> {
-  const [profile, ledger] = await Promise.all([
+  const [profile, ledger, platform] = await Promise.all([
     apiFetch<EcoProfileDto>('/users/me'),
     apiFetch<EcoLedgerRowDto[]>('/users/me/eco-ledger'),
+    apiFetch<EcoPlatformConfig>('/platform-settings/client').catch(() => ({
+      ecoPointsPerTree: 1000,
+      ecoPointsPer10Credits: 100,
+      ecoBadgeImpressionsPerPoint: 100,
+      clientIdleSessionMinutes: 60,
+    })),
   ]);
   return {
     profile: {
@@ -33,5 +45,9 @@ export async function getEcoDashboardData(): Promise<{
       referredByUserId: profile.referredByUserId ?? null,
     },
     ledger,
+    platform: {
+      ecoPointsPerTree: platform.ecoPointsPerTree,
+      ecoPointsPer10Credits: platform.ecoPointsPer10Credits,
+    },
   };
 }

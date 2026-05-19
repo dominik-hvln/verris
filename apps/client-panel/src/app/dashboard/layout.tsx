@@ -9,6 +9,7 @@ import { ImpersonationBanner } from "./impersonation-banner";
 import { IncidentBanner } from "./incident-banner";
 import { WalletBadge } from "./wallet-badge";
 import { ReConsentModal } from "./reconsent-modal";
+import { PlatformConfigLoader } from "@/components/platform-config-loader";
 import {
   LayoutDashboard,
   Globe,
@@ -27,6 +28,7 @@ import {
   FolderOpen,
   Leaf,
   Users,
+  UserPlus,
 } from "lucide-react";
 
 const mainGridItems = [
@@ -58,7 +60,8 @@ const secondaryItems = [
   {
     label: "Pomoc & Konto",
     items: [
-      { name: "Program EKO", href: "/dashboard/eco", icon: Leaf },
+      { name: "Program EKO", href: "/dashboard/eco", icon: Leaf, accent: true },
+      { name: "Program partnerski", href: "/dashboard/referral", icon: UserPlus },
       { name: "IAM i subkonta", href: "/dashboard/iam", icon: Users },
       { name: "Centrum Pomocy", href: "/dashboard/support", icon: HelpCircle },
       { name: "Ustawienia", href: "/dashboard/settings", icon: Settings },
@@ -76,7 +79,7 @@ function GridLink({ item }: { item: typeof mainGridItems[0] }) {
       href={item.href}
       className="relative block rounded-[24px] p-px overflow-hidden group hover:-translate-y-0.5 transition-transform duration-300"
     >
-      <div className={`absolute -inset-full animate-[spin_1.5s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_70%,#ffffff_100%)] opacity-0 transition-opacity duration-[1500ms] pointer-events-none ${isActive ? 'opacity-30' : 'group-hover:opacity-40'}`} />
+      <div className={`absolute -inset-full animate-[spin_8s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_70%,var(--brand-emerald)_100%)] opacity-0 transition-opacity duration-[1500ms] pointer-events-none ${isActive ? 'opacity-35' : 'group-hover:opacity-25'}`} />
       
       <div className={`relative flex flex-col items-center justify-center p-4 h-24 rounded-[calc(24px-1px)] bg-[#0a0a0a] z-10 transition-colors duration-300 ${isActive ? 'bg-[#0f0f0f]' : 'group-hover:bg-[#121212]'}`}>
         <div className={`p-2.5 rounded-xl border border-white/5 mb-2 transition-transform duration-300 ${isActive ? 'bg-white/10 scale-105' : 'bg-white/5 group-hover:scale-105'}`}>
@@ -94,31 +97,46 @@ function ListLink({
   href,
   icon: Icon,
   children,
+  accent = false,
 }: {
   href: string;
   icon: any;
   children: React.ReactNode;
+  accent?: boolean;
 }) {
   const pathname = usePathname();
   const isActive = pathname === href;
+
+  const accentIdle =
+    "text-emerald-300/90 border-emerald-500/20 bg-emerald-500/[0.06] hover:bg-emerald-500/10 hover:text-emerald-200";
+  const accentActive =
+    "bg-emerald-500/15 text-emerald-100 font-medium border-emerald-400/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]";
 
   return (
     <Link
       href={href}
       className={`
-        group flex items-center gap-3 rounded-xl px-4 py-2.5 text-[13px] transition-all duration-300 border border-transparent
+        group flex items-center gap-3 rounded-xl px-4 py-2.5 text-[13px] transition-all duration-300 border
         ${
           isActive
-            ? "bg-white/10 text-white font-medium"
-            : "text-neutral-400 hover:bg-white/5 hover:text-white"
+            ? accent
+              ? accentActive
+              : "bg-white/10 text-white font-medium border-transparent"
+            : accent
+              ? accentIdle
+              : "text-neutral-400 hover:bg-white/5 hover:text-white border-transparent"
         }
       `}
     >
       <Icon
         className={`h-4 w-4 shrink-0 transition-colors duration-300 ${
           isActive
-            ? "text-white"
-            : "text-neutral-500 group-hover:text-neutral-300"
+            ? accent
+              ? "text-emerald-300"
+              : "text-white"
+            : accent
+              ? "text-emerald-400/80 group-hover:text-emerald-300"
+              : "text-neutral-500 group-hover:text-neutral-300"
         }`}
       />
       {children}
@@ -157,6 +175,7 @@ export default function DashboardLayout({
       <ImpersonationBanner />
       <IncidentBanner />
       <ReConsentModal />
+      <PlatformConfigLoader />
       <div className="flex min-h-screen relative">
 
       {/* Modern Black Minimal Sidebar */}
@@ -192,7 +211,12 @@ export default function DashboardLayout({
                 </p>
                 <div className="space-y-1.5">
                   {group.items.map((item) => (
-                    <ListLink key={item.href} href={item.href} icon={item.icon}>
+                    <ListLink
+                      key={item.href}
+                      href={item.href}
+                      icon={item.icon}
+                      accent={"accent" in item && item.accent === true}
+                    >
                       {item.name}
                     </ListLink>
                   ))}

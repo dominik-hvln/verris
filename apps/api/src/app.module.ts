@@ -31,6 +31,7 @@ import { EmailLogAdminModule } from './email-log/email-log-admin.module';
 import { ProductOpsModule } from './product-ops/product-ops.module';
 import { CustomerPermissionsGuard } from './common/guards/customer-permissions.guard';
 import { AiModule } from './ai/ai.module';
+import { PlatformSettingsModule } from './platform-settings/platform-settings.module';
 
 @Module({
   imports: [
@@ -65,6 +66,7 @@ import { AiModule } from './ai/ai.module';
     EmailLogAdminModule,
     ProductOpsModule,
     AiModule,
+    PlatformSettingsModule,
   ],
   controllers: [],
   providers: [{ provide: APP_GUARD, useClass: CustomerPermissionsGuard }],

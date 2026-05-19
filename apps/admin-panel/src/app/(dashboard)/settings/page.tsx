@@ -12,6 +12,11 @@ export default function AdminSettingsPage() {
         </p>
       </header>
       <TwoFactorSection />
+      <p className="text-sm text-muted-foreground">
+        <a href="/settings/platform" className="text-emerald-400 hover:text-emerald-300 underline">
+          Ustawienia platformy (EKO, sesje, progi)
+        </a>
+      </p>
     </div>
   );
 }

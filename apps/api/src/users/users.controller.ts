@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Post,
   Patch,
   Body,
   UseGuards,
@@ -34,6 +35,16 @@ export class UsersController {
   @Get('me/eco-ledger')
   ecoLedger(@CurrentUser() user: { userId: string }) {
     return this.usersService.listEcoLedger(user.userId);
+  }
+
+  @Get('me/referral-program')
+  referralProgramStatus(@CurrentUser() user: { userId: string }) {
+    return this.usersService.getReferralProgramStatus(user.userId);
+  }
+
+  @Post('me/referral-program/apply')
+  applyReferralProgram(@CurrentUser() user: { userId: string }) {
+    return this.usersService.applyReferralProgram(user.userId);
   }
 
   @Patch('me/referral')
