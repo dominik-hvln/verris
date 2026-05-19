@@ -13,7 +13,7 @@ export type PlatformSettingsForm = {
 };
 
 export async function fetchPlatformSettings(): Promise<PlatformSettingsForm> {
-  return apiFetch<PlatformSettingsForm>('/admin/platform-settings');
+  return adminApi<PlatformSettingsForm>('/admin/platform-settings');
 }
 
 export async function updatePlatformSettingsAction(
