@@ -25,7 +25,7 @@ import {
   buildServiceHealthSeries,
   buildServiceStatusSeries,
   buildTicketStatusSeries,
-  buildWalletDailySeries,
+  mapWalletMonthlyFlow,
 } from './dashboard-chart-utils';
 
 type DashboardChartsProps = {
@@ -34,8 +34,8 @@ type DashboardChartsProps = {
 
 export function DashboardCharts({ snapshot }: DashboardChartsProps) {
   const walletSeries = useMemo(
-    () => buildWalletDailySeries(snapshot.wallet?.recentTransactions ?? []),
-    [snapshot.wallet?.recentTransactions],
+    () => mapWalletMonthlyFlow(snapshot.wallet?.monthlyFlowLast12 ?? []),
+    [snapshot.wallet?.monthlyFlowLast12],
   );
   const serviceSeries = useMemo(() => buildServiceStatusSeries(snapshot.services), [snapshot.services]);
   const ecoSeries = useMemo(() => buildEcoLedgerSeries(snapshot.ecoLedger), [snapshot.ecoLedger]);
@@ -59,7 +59,7 @@ export function DashboardCharts({ snapshot }: DashboardChartsProps) {
 
       <div className="grid gap-4 lg:grid-cols-3">
         <ChartCard
-          title="Portfel — przepływy (14 dni)"
+          title="Portfel — przepływy (12 mies.)"
           subtitle={
             snapshot.wallet
               ? `Doładowania 30 dni: ${formatCredits(snapshot.wallet.totalTopupLast30d)} · Wydatki: ${formatCredits(snapshot.wallet.totalChargesLast30d)}`
@@ -70,10 +70,19 @@ export function DashboardCharts({ snapshot }: DashboardChartsProps) {
           linkLabel="Portfel i płatności"
         >
           {snapshot.wallet && walletHasActivity ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={walletSeries} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={walletSeries} margin={{ top: 8, right: 8, left: 0, bottom: 4 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                <XAxis dataKey="label" tick={{ fill: '#a3a3a3', fontSize: 11 }} axisLine={false} tickLine={false} />
+                <XAxis
+                  dataKey="label"
+                  tick={{ fill: '#a3a3a3', fontSize: 10 }}
+                  axisLine={false}
+                  tickLine={false}
+                  interval={0}
+                  angle={-35}
+                  textAnchor="end"
+                  height={56}
+                />
                 <YAxis
                   tick={{ fill: '#737373', fontSize: 11 }}
                   axisLine={false}
@@ -105,7 +114,7 @@ export function DashboardCharts({ snapshot }: DashboardChartsProps) {
             <ChartEmpty
               message={
                 snapshot.wallet
-                  ? 'Brak zakończonych transakcji w ostatnich 14 dniach — doładuj portfel lub opłać usługę.'
+                  ? 'Brak zakończonych transakcji w ostatnich 12 miesiącach — doładuj portfel lub opłać usługę.'
                   : 'Nie udało się pobrać historii portfela.'
               }
             />

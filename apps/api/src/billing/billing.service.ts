@@ -91,11 +91,24 @@ export class BillingService {
       take: 25,
     });
 
+    const now = new Date();
+    const since12Months = new Date(now.getFullYear(), now.getMonth() - 11, 1, 0, 0, 0, 0);
+    const flowSource = await this.prisma.walletTransaction.findMany({
+      where: {
+        userId,
+        status: 'COMPLETED',
+        createdAt: { gte: since12Months },
+      },
+      select: { amount: true, type: true, createdAt: true },
+    });
+    const monthlyFlowLast12 = this.buildWalletMonthlyFlowLast12(flowSource, now);
+
     return {
       balance: user.walletBalance.toFixed(2),
       currency: user.walletCurrency,
       totalTopupLast30d: totalTopupLast30d.toFixed(2),
       totalChargesLast30d: totalChargesLast30d.abs().toFixed(2),
+      monthlyFlowLast12,
       recentTransactions: recent.map((tx) => ({
         id: tx.id,
         type: tx.type,
@@ -110,6 +123,57 @@ export class BillingService {
         createdAt: tx.createdAt.toISOString(),
       })),
     };
+  }
+
+  private static readonly WALLET_INFLOW_TYPES = new Set<WalletTxType>([
+    WalletTxType.TOPUP,
+    WalletTxType.REFUND,
+    WalletTxType.PROMO_CREDIT,
+    WalletTxType.ADJUSTMENT,
+  ]);
+
+  private buildWalletMonthlyFlowLast12(
+    transactions: { amount: Prisma.Decimal; type: WalletTxType; createdAt: Date }[],
+    now: Date,
+  ) {
+    const monthKeys: { month: string; label: string }[] = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const label = d.toLocaleDateString('pl-PL', { month: 'short', year: '2-digit' });
+      monthKeys.push({ month, label });
+    }
+
+    const buckets = new Map(
+      monthKeys.map((m) => [
+        m.month,
+        { label: m.label, inflow: new Prisma.Decimal(0), outflow: new Prisma.Decimal(0) },
+      ]),
+    );
+
+    for (const tx of transactions) {
+      const month = `${tx.createdAt.getFullYear()}-${String(tx.createdAt.getMonth() + 1).padStart(2, '0')}`;
+      const bucket = buckets.get(month);
+      if (!bucket) continue;
+      const numeric = tx.amount;
+      const isInflow =
+        numeric.greaterThan(0) || BillingService.WALLET_INFLOW_TYPES.has(tx.type);
+      if (isInflow) {
+        bucket.inflow = bucket.inflow.plus(numeric.abs());
+      } else {
+        bucket.outflow = bucket.outflow.plus(numeric.abs());
+      }
+    }
+
+    return monthKeys.map((m) => {
+      const b = buckets.get(m.month)!;
+      return {
+        month: m.month,
+        label: b.label,
+        inflow: b.inflow.toFixed(2),
+        outflow: b.outflow.toFixed(2),
+      };
+    });
   }
 
   /** Zapisane karty Stripe w bazie — wybór karty przy auto‑doładowaniu portfela. */

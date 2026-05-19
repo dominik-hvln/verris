@@ -1,8 +1,6 @@
-import type { ServiceSummaryDto, SubscriptionStatus, WalletTransactionDto } from '@verris/contracts';
+import type { ServiceSummaryDto, SubscriptionStatus } from '@verris/contracts';
 import type { EcoLedgerRowDto } from './eco/eco-data';
 import type { TicketSummary } from './support/actions';
-
-const INFLOW_TYPES = new Set(['TOPUP', 'REFUND', 'PROMO_CREDIT', 'ADJUSTMENT']);
 
 export const SERVICE_STATUS_LABEL: Record<SubscriptionStatus, string> = {
   ACTIVE: 'Aktywne',
@@ -24,36 +22,23 @@ const SERVICE_STATUS_COLOR: Record<SubscriptionStatus, string> = {
   EXPIRED: '#525252',
 };
 
-export function buildWalletDailySeries(transactions: WalletTransactionDto[], days = 14) {
-  const keys: string[] = [];
-  const now = new Date();
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(now);
-    d.setHours(12, 0, 0, 0);
-    d.setDate(d.getDate() - i);
-    keys.push(d.toISOString().slice(0, 10));
-  }
+export type WalletMonthlyChartPoint = {
+  month: string;
+  label: string;
+  inflow: number;
+  outflow: number;
+};
 
-  const buckets = new Map(keys.map((k) => [k, { inflow: 0, outflow: 0, label: formatDayLabel(k) }]));
-
-  for (const tx of transactions) {
-    if (tx.status !== 'COMPLETED') continue;
-    const key = tx.createdAt.slice(0, 10);
-    const bucket = buckets.get(key);
-    if (!bucket) continue;
-    const numeric = Number.parseFloat(tx.amount);
-    if (Number.isNaN(numeric)) continue;
-    if (numeric > 0 || INFLOW_TYPES.has(tx.type)) {
-      bucket.inflow += Math.abs(numeric);
-    } else {
-      bucket.outflow += Math.abs(numeric);
-    }
-  }
-
-  return keys.map((k) => {
-    const b = buckets.get(k)!;
-    return { date: k, label: b.label, inflow: round2(b.inflow), outflow: round2(b.outflow) };
-  });
+/** Mapuje agregat z API na wartości numeryczne do wykresu. */
+export function mapWalletMonthlyFlow(
+  points: { month: string; label: string; inflow: string; outflow: string }[],
+): WalletMonthlyChartPoint[] {
+  return points.map((p) => ({
+    month: p.month,
+    label: p.label,
+    inflow: round2(Number.parseFloat(p.inflow) || 0),
+    outflow: round2(Number.parseFloat(p.outflow) || 0),
+  }));
 }
 
 export function buildServiceStatusSeries(services: ServiceSummaryDto[]) {
