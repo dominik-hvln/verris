@@ -11,6 +11,7 @@ import {
   Loader2,
   Lock,
 } from "lucide-react";
+import { SpinBorder } from "@/components/spin-border";
 import {
   fetchUserProfile,
   updateUserProfile,
@@ -217,7 +218,7 @@ export default function SettingsPage() {
 
       {/* Tab Content */}
       <div className="relative rounded-[32px] p-px overflow-hidden group">
-        <div className="absolute -inset-full animate-[spin_1.5s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_70%,#ffffff_100%)] opacity-20 group-hover:opacity-40 transition-opacity duration-500 pointer-events-none" />
+        <SpinBorder variant="white" className="opacity-20 transition-opacity duration-500 group-hover:opacity-40" />
         <div className="relative rounded-[calc(32px-1px)] bg-[#0a0a0a]/80 backdrop-blur-3xl border border-white/5 shadow-[0_0_40px_rgba(0,0,0,0.5)]">
             {activeTab === "profile" && (
             <ProfileTab
@@ -330,7 +331,7 @@ function ProfileTab({
           disabled={isPending}
           className="relative group overflow-hidden rounded-xl p-px disabled:opacity-50"
         >
-          <div className="absolute -inset-full animate-[spin_1.5s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_70%,#ffffff_100%)] opacity-70" />
+          <SpinBorder variant="white" className="opacity-70" />
           <div className="relative flex items-center justify-center gap-2 rounded-[calc(0.75rem-1px)] bg-[#0a0a0a] px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#121212] min-w-[160px]">
           {isPending ? (
             <Loader2 className="h-4 w-4 animate-spin text-white" />
@@ -436,7 +437,7 @@ function SecurityTab({
           disabled={isPending}
           className="relative group overflow-hidden rounded-xl p-px disabled:opacity-50"
         >
-          <div className="absolute -inset-full animate-[spin_1.5s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_70%,#ffffff_100%)] opacity-70" />
+          <SpinBorder variant="white" className="opacity-70" />
           <div className="relative flex items-center justify-center gap-2 rounded-[calc(0.75rem-1px)] bg-[#0a0a0a] px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#121212] min-w-[160px]">
           {isPending ? (
             <Loader2 className="h-4 w-4 animate-spin text-white" />
@@ -567,7 +568,7 @@ function BillingTab({
           disabled={isPending}
           className="relative group overflow-hidden rounded-xl p-px disabled:opacity-50"
         >
-          <div className="absolute -inset-full animate-[spin_1.5s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_70%,#ffffff_100%)] opacity-70" />
+          <SpinBorder variant="white" className="opacity-70" />
           <div className="relative flex items-center justify-center gap-2 rounded-[calc(0.75rem-1px)] bg-[#0a0a0a] px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#121212] min-w-[160px]">
           {isPending ? (
             <Loader2 className="h-4 w-4 animate-spin text-white" />

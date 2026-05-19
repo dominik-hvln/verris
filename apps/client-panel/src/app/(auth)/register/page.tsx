@@ -4,6 +4,7 @@ import { Suspense, useActionState } from "react";
 import { useSearchParams } from "next/navigation";
 import { submitRegister } from "./actions";
 import { Loader2, AlertCircle } from "lucide-react";
+import { SpinBorder } from "@/components/spin-border";
 
 const initialState = { error: "" };
 
@@ -58,7 +59,7 @@ function RegisterContent() {
 
         {/* Register Card - Liquid Glass */}
         <div className="relative rounded-[32px] p-px overflow-hidden group/card shadow-[0_0_50px_rgba(0,0,0,0.5)]">
-          <div className="absolute -inset-full animate-[spin_1.5s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_75%,#0ea5e9_100%)] opacity-30 group-hover/card:opacity-60 transition-opacity duration-500 pointer-events-none" />
+          <SpinBorder className="opacity-30 transition-opacity duration-500 group-hover/card:opacity-60" />
           
           <div className="relative rounded-[calc(32px-1px)] bg-neutral-950/80 backdrop-blur-3xl border border-white/5">
             <div className="p-8 pb-6 border-b border-white/5">
@@ -155,7 +156,7 @@ function RegisterContent() {
 
               <div className="p-8 pt-2">
                 <button type="submit" disabled={isPending} className="relative w-full group overflow-hidden rounded-xl p-px disabled:opacity-50 disabled:cursor-not-allowed">
-                  <div className="absolute -inset-full animate-[spin_1.5s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_70%,#0ea5e9_100%)] opacity-70" />
+                  <SpinBorder className="opacity-70" />
                   <div className="relative flex items-center justify-center h-12 w-full rounded-[calc(0.75rem-1px)] bg-neutral-950 text-sm font-bold text-white transition-all hover:bg-neutral-900">
                     {isPending ? (
                       <span className="flex items-center gap-2">

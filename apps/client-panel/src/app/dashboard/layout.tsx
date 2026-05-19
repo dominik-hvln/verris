@@ -10,6 +10,7 @@ import { IncidentBanner } from "./incident-banner";
 import { WalletBadge } from "./wallet-badge";
 import { ReConsentModal } from "./reconsent-modal";
 import { PlatformConfigLoader } from "@/components/platform-config-loader";
+import { SpinBorder } from "@/components/spin-border";
 import {
   LayoutDashboard,
   Globe,
@@ -79,7 +80,9 @@ function GridLink({ item }: { item: typeof mainGridItems[0] }) {
       href={item.href}
       className="relative block rounded-[24px] p-px overflow-hidden group hover:-translate-y-0.5 transition-transform duration-300"
     >
-      <div className={`absolute -inset-full animate-[spin_8s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_70%,var(--brand-emerald)_100%)] opacity-0 transition-opacity duration-[1500ms] pointer-events-none ${isActive ? 'opacity-35' : 'group-hover:opacity-25'}`} />
+      <SpinBorder
+        className={`opacity-0 transition-opacity duration-[1500ms] ${isActive ? "opacity-35" : "group-hover:opacity-25"}`}
+      />
       
       <div className={`relative flex flex-col items-center justify-center p-4 h-24 rounded-[calc(24px-1px)] bg-[#0a0a0a] z-10 transition-colors duration-300 ${isActive ? 'bg-[#0f0f0f]' : 'group-hover:bg-[#121212]'}`}>
         <div className={`p-2.5 rounded-xl border border-white/5 mb-2 transition-transform duration-300 ${isActive ? 'bg-white/10 scale-105' : 'bg-white/5 group-hover:scale-105'}`}>
@@ -229,7 +232,7 @@ export default function DashboardLayout({
         {/* Premium Floating User Card */}
         <div className="p-5">
           <div className="relative rounded-[24px] p-px overflow-hidden group">
-            <div className="absolute -inset-full animate-[spin_1.5s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_70%,#ffffff_100%)] opacity-20 pointer-events-none" />
+            <SpinBorder variant="white" className="opacity-20" />
             <div className="relative flex items-center gap-3 rounded-[calc(24px-1px)] bg-[#0f0f0f] p-3 border border-white/5">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-xs font-bold text-white border border-white/10">
                 {initials}
@@ -265,7 +268,7 @@ export default function DashboardLayout({
               href="/dashboard/support"
               className="relative rounded-[24px] p-px overflow-hidden group inline-flex"
             >
-               <div className="absolute -inset-full animate-[spin_1.5s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_70%,#ffffff_100%)] opacity-40 transition-opacity duration-500 pointer-events-none group-hover:opacity-100" />
+               <SpinBorder variant="white" className="opacity-40 transition-opacity duration-500 group-hover:opacity-100" />
                <div className="relative flex items-center gap-2 rounded-[calc(24px-1px)] bg-[#0a0a0a] px-5 py-2 text-xs font-medium text-neutral-300 hover:text-white transition-colors">
                  <HelpCircle className="h-4 w-4" />
                  Wsparcie 24/7

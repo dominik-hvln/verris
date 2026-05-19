@@ -3,6 +3,7 @@
 import { useActionState, useState, useEffect } from "react";
 import { submitLogin, submitTwoFactor } from "./actions";
 import { Loader2, AlertCircle, ShieldCheck } from "lucide-react";
+import { SpinBorder } from "@/components/spin-border";
 
 const initialLoginState = {} as Awaited<ReturnType<typeof submitLogin>>;
 const initialTwoFactorState = {} as Awaited<ReturnType<typeof submitTwoFactor>>;
@@ -173,7 +174,7 @@ function SubmitButton({
       disabled={pending}
       className="relative w-full group overflow-hidden rounded-xl p-px disabled:opacity-50 disabled:cursor-not-allowed"
     >
-      <div className="absolute -inset-full animate-[spin_1.5s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_70%,#0ea5e9_100%)] opacity-70" />
+      <SpinBorder className="opacity-70" />
       <div className="relative flex items-center justify-center h-12 w-full rounded-[calc(0.75rem-1px)] bg-[#0a0a0a] text-sm font-bold text-white transition-all hover:bg-[#121212]">
         {pending ? (
           <span className="flex items-center gap-2">
@@ -224,7 +225,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="relative rounded-[32px] p-px overflow-hidden group/card shadow-[0_0_50px_rgba(0,0,0,0.5)]">
-          <div className="absolute -inset-full animate-[spin_1.5s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_75%,#0ea5e9_100%)] opacity-30 group-hover/card:opacity-60 transition-opacity duration-500 pointer-events-none" />
+          <SpinBorder className="opacity-30 transition-opacity duration-500 group-hover/card:opacity-60" />
           <div className="relative rounded-[calc(32px-1px)] bg-[#0a0a0a]/80 backdrop-blur-3xl border border-white/5">
             {children}
           </div>

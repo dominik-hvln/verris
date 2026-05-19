@@ -25,6 +25,7 @@ import {
 } from '@verris/ui';
 import { Globe, MoreVertical, Plus, RefreshCw, AlertCircle, Info, Trash2, CheckCircle2, ShoppingCart } from 'lucide-react';
 import { HostingTabs } from '../components/hosting-tabs';
+import { SpinBorder } from '@/components/spin-border';
 import { fetchUserDomains, addDomain, deleteDomain, fetchRegistrarStatus } from './actions';
 import { DomainDto } from '@verris/contracts';
 import { format } from 'date-fns';
@@ -163,7 +164,7 @@ export default function DomainsPage() {
       <HostingTabs currentTab="domains" />
 
       <div className="relative rounded-[32px] p-px overflow-hidden group">
-        <div className="absolute -inset-full animate-[spin_1.5s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_70%,#ffffff_100%)] opacity-20 pointer-events-none transition-opacity duration-1500 pointer-events-none" />
+        <SpinBorder variant="white" className="opacity-20 transition-opacity duration-[1500ms]" />
         <div className="relative rounded-[calc(32px-1px)] bg-[#0a0a0a] p-6 lg:p-8 flex flex-col z-10 transition-colors duration-300">
           
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4 border-b border-white/5 pb-6">

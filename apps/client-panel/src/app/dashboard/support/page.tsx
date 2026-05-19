@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { SpinBorder } from "@/components/spin-border";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 import {
@@ -46,7 +47,7 @@ export default function SupportPage() {
       </div>
 
       <div className="relative rounded-[24px] p-px overflow-hidden shadow-2xl group transition-transform duration-300 hover:-translate-y-1">
-        <div className="absolute -inset-full animate-[spin_1.5s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_70%,#ffffff_100%)] opacity-20 pointer-events-none transition-opacity duration-[1500ms] pointer-events-none" />
+        <SpinBorder variant="white" className="opacity-20 transition-opacity duration-[1500ms]" />
         <div className="relative h-full w-full bg-[#0a0a0a] group-hover:bg-[#121212] transition-colors duration-300 rounded-[calc(24px-1px)] overflow-hidden">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24">
