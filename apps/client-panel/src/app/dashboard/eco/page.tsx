@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Leaf, Sparkles, Trees } from 'lucide-react';
+import { Gift, History, Leaf, Sparkles, Trees } from 'lucide-react';
 import { getEcoDashboardData } from './eco-data';
 import { EcoRedeemForm } from './eco-redeem-form';
 import { EcoTreeProgress } from './eco-tree-progress';
@@ -67,133 +67,156 @@ export default async function EcoProgramPage() {
     : [];
 
   return (
-    <div className="space-y-10 max-w-4xl">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight text-white mb-2 flex items-center gap-2">
-          <Leaf className="h-8 w-8 text-emerald-400" />
-          Program EKO
-        </h1>
-        <p className="text-neutral-400 text-sm md:text-base">
-          Zbieraj punkty za ekologiczne działania na hostingu — wspieramy sadzenie drzew i pokazujemy Twój postęp w prosty sposób.
+    <div className="mx-auto w-full max-w-6xl space-y-10 px-1 pb-12 sm:px-2">
+      <header className="mx-auto max-w-2xl text-center">
+        <div className="mb-4 inline-flex items-center justify-center rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-3">
+          <Leaf className="h-8 w-8 text-emerald-400" aria-hidden />
+        </div>
+        <h1 className="text-3xl font-bold tracking-tight text-white md:text-4xl">Program EKO</h1>
+        <p className="mt-3 text-sm leading-relaxed text-neutral-400 md:text-base">
+          Zbieraj punkty za ekologiczne działania na hostingu — wspieramy sadzenie drzew i pokazujemy Twój postęp w
+          prosty sposób.
         </p>
       </header>
 
       <EcoTreeProgress points={profile.ecoPoints} pointsPerTree={platform.ecoPointsPerTree} />
 
-      <div className="rounded-2xl border border-white/10 bg-black/30 p-6 space-y-2">
-        <div className="flex items-center gap-2 text-white font-semibold">
-          <Sparkles className="h-4 w-4 text-amber-300" />
-          Status programu
-        </div>
-        <p className="text-sm text-neutral-400">
-          Tryb EKO na usłudze:{' '}
-          <span className="text-white">
-            {profile.hasActiveEcoSubscription ? 'włączony — panel ma zielony akcent' : 'wyłączony'}
-          </span>
-        </p>
-        <p className="text-sm text-neutral-400">
-          Chcesz polecać hosting znajomym?{' '}
-          <Link href="/dashboard/referral" className="text-emerald-400 hover:text-emerald-300 underline">
-            Program partnerski (zgłoszenie)
-          </Link>
-        </p>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <article className="flex h-full flex-col justify-between rounded-2xl border border-white/10 bg-black/30 p-6">
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-white font-semibold">
+              <Sparkles className="h-4 w-4 text-amber-300" aria-hidden />
+              Status programu
+            </div>
+            <p className="text-sm text-neutral-400">
+              Tryb EKO na usłudze:{' '}
+              <span className="text-white">
+                {profile.hasActiveEcoSubscription ? 'włączony — panel ma zielony akcent' : 'wyłączony'}
+              </span>
+            </p>
+            <p className="text-sm text-neutral-400">
+              Chcesz polecać hosting znajomym?{' '}
+              <Link href="/dashboard/referral" className="text-emerald-400 underline hover:text-emerald-300">
+                Program partnerski (zgłoszenie)
+              </Link>
+            </p>
+          </div>
+        </article>
+
+        <article className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] p-6">
+          <div className="mb-4 flex items-center gap-2 text-white font-semibold">
+            <Gift className="h-4 w-4 text-emerald-400" aria-hidden />
+            Wymień punkty na saldo portfela
+          </div>
+          <p className="mb-4 text-sm text-neutral-400">
+            Przelicznik:{' '}
+            <span className="font-mono text-neutral-200">
+              {platform.ecoPointsPer10Credits} pkt = 10,00 K
+            </span>
+            . Zasilenie trafia od razu do portfela i jest widoczne w historii transakcji.
+          </p>
+          <EcoRedeemForm maxPoints={profile.ecoPoints} />
+        </article>
       </div>
 
-      <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] p-6 space-y-3">
-        <h2 className="text-white font-semibold">Wymień punkty na saldo portfela</h2>
-        <p className="text-sm text-neutral-400">
-          Przelicznik:{' '}
-          <span className="font-mono text-neutral-200">
-            {platform.ecoPointsPer10Credits} pkt = 10,00 K
-          </span>
-          . Zasilenie trafia od razu
-          do portfela i jest widoczne w historii transakcji.
-        </p>
-        <EcoRedeemForm maxPoints={profile.ecoPoints} />
-      </div>
-
-      <div className="rounded-2xl border border-white/10 bg-black/30 p-6 space-y-5">
-        <div className="flex items-center gap-2 text-white font-semibold">
-          <Trees className="h-4 w-4 text-emerald-400" />
-          Badge na stronę
+      <section className="rounded-2xl border border-white/10 bg-black/30 p-6 md:p-8">
+        <div className="mx-auto mb-8 max-w-2xl text-center">
+          <div className="mb-2 flex items-center justify-center gap-2 text-white font-semibold">
+            <Trees className="h-5 w-5 text-emerald-400" aria-hidden />
+            Badge na stronę
+          </div>
+          <p className="text-sm text-neutral-400">
+            Osadź badge pokazujący, że Twoja strona korzysta z eko hostingu. Wybierz mały SVG do stopki, większy
+            wariant marketingowy albo interaktywną kartę przez{' '}
+            <span className="font-mono text-neutral-300">&lt;iframe&gt;</span>.
+          </p>
         </div>
-        <p className="text-sm text-neutral-400">
-          Osadź badge pokazujący, że Twoja strona korzysta z eko hostingu. Wybierz mały SVG do stopki,
-          większy wariant marketingowy albo interaktywną kartę do osadzenia przez{' '}
-          <span className="font-mono text-neutral-300">&lt;iframe&gt;</span>.
-        </p>
+
         {badgeVariants.length > 0 ? (
-          <div className="grid gap-4">
+          <div className="grid gap-5 md:grid-cols-2">
             {badgeVariants.map((variant) => (
-              <div key={variant.name} className="rounded-2xl border border-white/10 bg-black/30 p-4">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                  <div>
-                    <h3 className="text-sm font-semibold text-white">{variant.name}</h3>
-                    <p className="mt-1 text-xs text-neutral-500">{variant.description}</p>
-                  </div>
-                  <div className="flex min-h-[96px] items-center justify-center rounded-xl border border-white/10 bg-black/40 p-4">
-                    {variant.iframe ? (
-                      <iframe
-                        src={variant.src}
-                        title={variant.name}
-                        width={variant.width}
-                        height={variant.height}
-                        loading="lazy"
-                        className="max-w-full"
-                        style={{ border: 0 }}
-                      />
-                    ) : (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={variant.src}
-                        alt={variant.name}
-                        width={variant.width}
-                        height={variant.height}
-                        className="max-w-full"
-                      />
-                    )}
-                  </div>
+              <article
+                key={variant.name}
+                className="flex flex-col rounded-2xl border border-white/10 bg-black/40 p-5"
+              >
+                <div className="mb-4">
+                  <h3 className="text-sm font-semibold text-white">{variant.name}</h3>
+                  <p className="mt-1 text-xs text-neutral-500">{variant.description}</p>
+                </div>
+                <div className="flex min-h-[120px] flex-1 items-center justify-center rounded-xl border border-white/10 bg-black/50 p-4">
+                  {variant.iframe ? (
+                    <iframe
+                      src={variant.src}
+                      title={variant.name}
+                      width={variant.width}
+                      height={variant.height}
+                      loading="lazy"
+                      className="max-w-full"
+                      style={{ border: 0 }}
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={variant.src}
+                      alt={variant.name}
+                      width={variant.width}
+                      height={variant.height}
+                      className="max-w-full"
+                    />
+                  )}
                 </div>
                 <label className="mt-4 block space-y-1 text-xs text-neutral-500">
                   HTML
                   <textarea
                     readOnly
-                    className="w-full min-h-[88px] rounded-xl border border-white/10 bg-black/50 p-3 text-xs font-mono text-neutral-300"
+                    className="w-full min-h-[72px] rounded-xl border border-white/10 bg-black/50 p-3 text-xs font-mono text-neutral-300"
                     value={variant.html}
                   />
                 </label>
-              </div>
+              </article>
             ))}
           </div>
         ) : (
-          <p className="text-sm text-amber-200/80">Brak tokenu badge — odśwież stronę za chwilę.</p>
+          <p className="text-center text-sm text-amber-200/80">Brak tokenu badge — odśwież stronę za chwilę.</p>
         )}
-      </div>
+      </section>
 
-      <div className="rounded-2xl border border-white/10 bg-black/30 p-6 space-y-4">
-        <h2 className="text-white font-semibold">Historia punktów</h2>
+      <section className="rounded-2xl border border-white/10 bg-black/30 p-6 md:p-8">
+        <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-white">
+            <History className="h-5 w-5 text-neutral-400" aria-hidden />
+            Historia punktów
+          </h2>
+          <p className="text-sm text-neutral-500">{ledger.length} wpisów</p>
+        </div>
         {ledger.length === 0 ? (
-          <p className="text-sm text-neutral-500">Brak wpisów.</p>
+          <p className="text-center text-sm text-neutral-500 py-8">Brak wpisów — zacznij zbierać punkty EKO.</p>
         ) : (
-          <ul className="space-y-2 text-sm">
+          <ul className="grid gap-3 sm:grid-cols-2">
             {ledger.map((row) => (
               <li
                 key={row.id}
-                className="flex flex-wrap justify-between gap-2 border-b border-white/5 pb-2 text-neutral-300"
+                className="rounded-xl border border-white/5 bg-black/20 px-4 py-3 text-sm"
               >
-                <span>{REASON_LABEL[row.reason] ?? row.reason}</span>
-                <span className={row.delta >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
-                  {row.delta >= 0 ? '+' : ''}
-                  {row.delta}
-                </span>
-                <span className="text-xs text-neutral-500 w-full">
+                <div className="flex items-start justify-between gap-3">
+                  <span className="text-neutral-200">{REASON_LABEL[row.reason] ?? row.reason}</span>
+                  <span
+                    className={`shrink-0 font-mono font-semibold tabular-nums ${
+                      row.delta >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                    }`}
+                  >
+                    {row.delta >= 0 ? '+' : ''}
+                    {row.delta}
+                  </span>
+                </div>
+                <p className="mt-2 text-xs text-neutral-500">
                   {new Date(row.createdAt).toLocaleString('pl-PL')}
-                </span>
+                </p>
               </li>
             ))}
           </ul>
         )}
-      </div>
+      </section>
     </div>
   );
 }
