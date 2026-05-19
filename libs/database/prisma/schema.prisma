@@ -479,7 +479,12 @@ model Subscription {
 
   // Pricing snapshot at sale time (immutable for this subscription instance)
   priceAmount          Decimal                   @db.Decimal(10, 2)
+  /// List price before promo (null = same as priceAmount for legacy rows).
+  listPriceAmount      Decimal?                  @db.Decimal(10, 2)
   currency             String                    @default("PLN")
+
+  appliedPromoCodeId   String?
+  appliedPromo         PromoCode?                @relation("SubscriptionAppliedPromo", fields: [appliedPromoCodeId], references: [id], onDelete: SetNull)
 
   // Payment configuration
   paymentSource        SubscriptionPaymentSource @default(STRIPE_CARD)
@@ -1636,6 +1641,9 @@ enum PromoKind {
   /// Percentage of the next top-up (e.g. +20% on next deposit).
   /// `value` is the percentage as an integer (0..100).
   PERCENT_BONUS
+  /// Percentage off the first service purchase (and optionally renewals).
+  /// `value` is the discount percent (1..100).
+  SERVICE_PERCENT_OFF
 }
 
 /// Marketing / referral codes redeemable by users for wallet credit.
@@ -1666,10 +1674,14 @@ model PromoCode {
   /// without breaking past redemptions.
   active            Boolean          @default(true)
 
+  /// For `SERVICE_PERCENT_OFF`: when true, each wallet renewal uses the same % off list price.
+  appliesToRenewals Boolean          @default(false)
+
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
 
   redemptions       PromoRedemption[]
+  subscriptionsWithPromo Subscription[] @relation("SubscriptionAppliedPromo")
 
   @@index([active, validFrom, validTo])
 }
@@ -1691,9 +1703,12 @@ model PromoRedemption {
   /// Pointer to the wallet transaction that materialized the credit.
   walletTxId      String?     @unique
 
+  subscriptionId  String?
+
   redeemedAt      DateTime    @default(now())
 
   @@unique([promoCodeId, userId])
+  @@index([subscriptionId])
   @@index([userId])
 }
 

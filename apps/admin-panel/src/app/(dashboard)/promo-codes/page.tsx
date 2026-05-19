@@ -1,6 +1,7 @@
 import { Tag, Calendar, Users2, AlertCircle } from "lucide-react";
 import { listPromoCodes, type PromoCodeRow } from "./data";
 import { CreatePromoForm } from "./create-promo-form";
+import { CreateServicePromoForm } from "./create-service-promo-form";
 
 export const dynamic = "force-dynamic";
 
@@ -26,7 +27,10 @@ export default async function PromoCodesPage() {
         </p>
       </header>
 
-      <CreatePromoForm />
+      <div className="grid gap-6 xl:grid-cols-2">
+        <CreatePromoForm />
+        <CreateServicePromoForm />
+      </div>
 
       {error ? (
         <div className="flex items-center gap-2 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
@@ -72,7 +76,16 @@ export default async function PromoCodesPage() {
                       <KindBadge kind={row.kind} />
                     </td>
                     <td className="px-6 py-4 font-mono tabular-nums">
-                      <span className="text-emerald-300">+{Number.parseFloat(row.value).toFixed(2)} K</span>
+                      {row.kind === "SERVICE_PERCENT_OFF" ? (
+                        <span className="text-indigo-300">
+                          −{Number.parseFloat(row.value).toFixed(0)}%
+                          {row.appliesToRenewals ? (
+                            <span className="ml-1 text-[10px] text-muted-foreground">+ odnowienia</span>
+                          ) : null}
+                        </span>
+                      ) : (
+                        <span className="text-emerald-300">+{Number.parseFloat(row.value).toFixed(2)} K</span>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-1.5 text-xs">
@@ -115,9 +128,23 @@ function KindBadge({ kind }: { kind: PromoCodeRow["kind"] }) {
       </span>
     );
   }
+  if (kind === "SERVICE_PERCENT_OFF") {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/10 text-indigo-300 border border-indigo-500/30">
+        Rabat na usługę
+      </span>
+    );
+  }
+  if (kind === "PERCENT_BONUS") {
+    return (
+      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30">
+        Bonus % portfel
+      </span>
+    );
+  }
   return (
-    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/30">
-      Bonus % niedostępny
+    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-neutral-500/10 text-neutral-400 border border-neutral-500/30">
+      {kind}
     </span>
   );
 }

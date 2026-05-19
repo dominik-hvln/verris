@@ -4,6 +4,7 @@ import { Prisma, SubscriptionStatus, WalletTxType } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { WalletLedgerService } from '../billing/wallet-ledger.service';
+import { PromoService } from '../billing/promo.service';
 import { SubscriptionsService } from './subscriptions.service';
 
 const HOURS = 60 * 60 * 1000;
@@ -37,6 +38,7 @@ export class RenewalScheduler {
     private readonly walletLedger: WalletLedgerService,
     private readonly subs: SubscriptionsService,
     private readonly audit: AuditService,
+    private readonly promo: PromoService,
   ) {}
 
   @Cron(CronExpression.EVERY_HOUR, { name: 'subscriptions:renewal-cycle' })
@@ -131,11 +133,17 @@ export class RenewalScheduler {
       return;
     }
 
+    const renewalAmount = await this.promo.resolveSubscriptionRenewalAmount({
+      priceAmount: sub.priceAmount,
+      listPriceAmount: sub.listPriceAmount,
+      appliedPromoCodeId: sub.appliedPromoCodeId,
+    });
+
     try {
       await this.walletLedger.debit({
         userId: sub.userId,
         type: WalletTxType.CHARGE_SUBSCRIPTION,
-        amount: sub.priceAmount,
+        amount: renewalAmount,
         description: `Auto-renewal ${sub.plan.slug} (${sub.interval})`,
         idempotencyKey,
         subscriptionId: sub.id,

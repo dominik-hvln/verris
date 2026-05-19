@@ -21,6 +21,24 @@ export interface CreateSubscriptionInput {
   preferredRegion?: string;
   autoscalingEnabled?: boolean;
   ecoModeEnabled?: boolean;
+  /** Rabat % na usługę (tylko płatność z portfela). */
+  promoCode?: string;
+}
+
+export interface PreviewSubscriptionPromoInput {
+  planId: string;
+  interval: BillingInterval;
+  code: string;
+}
+
+export interface PreviewSubscriptionPromoResult {
+  code: string;
+  percent: number;
+  listPrice: string;
+  discountedAmount: string;
+  savingsAmount: string;
+  appliesToRenewals: boolean;
+  description: string | null;
 }
 
 export type ProvisioningStage =

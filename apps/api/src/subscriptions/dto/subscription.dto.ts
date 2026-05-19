@@ -43,6 +43,24 @@ export class CreateSubscriptionDto {
   @IsOptional()
   @IsBoolean()
   ecoModeEnabled?: boolean;
+
+  /** Rabat procentowy na usługę (tylko płatność z portfela). */
+  @IsOptional()
+  @IsString()
+  @Length(3, 40)
+  promoCode?: string;
+}
+
+export class PreviewSubscriptionPromoDto {
+  @IsUUID()
+  planId!: string;
+
+  @IsEnum(BillingInterval)
+  interval!: BillingInterval;
+
+  @IsString()
+  @Length(3, 40)
+  code!: string;
 }
 
 export class SuspendSubscriptionDto {

@@ -12,6 +12,7 @@ import { WalletLedgerService } from '../billing/wallet-ledger.service';
 import { AuditService } from '../common/audit/audit.service';
 import { ProvisioningActions } from '../common/audit/audit.actions';
 import { ProvisioningService } from './provisioning.service';
+import { PromoService } from '../billing/promo.service';
 
 export type ProvisionJobData =
   | {
@@ -76,6 +77,7 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
     private readonly provisioning: ProvisioningService,
     private readonly walletLedger: WalletLedgerService,
     private readonly audit: AuditService,
+    private readonly promo: PromoService,
   ) {}
 
   isAsync(): boolean {
@@ -359,6 +361,7 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
           },
         });
         await this.markStage(d.subscriptionId, ProvisioningStage.COMPLETED);
+        await this.finalizeServicePromoIfNeeded(d.subscriptionId, d.userId);
         await this.audit.record({
           action: ProvisioningActions.PROVISIONING_JOB_COMPLETED,
           userId: d.userId,
@@ -378,6 +381,7 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
         d.userId,
       );
       await this.markStage(d.subscriptionId, ProvisioningStage.COMPLETED);
+      await this.finalizeServicePromoIfNeeded(d.subscriptionId, d.userId);
       await this.recordQueueAudit(ProvisioningActions.PROVISIONING_JOB_COMPLETED, d.userId, {
         subscriptionId: d.subscriptionId,
         jobId: String(job.id),
@@ -507,6 +511,26 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
         `Failed to mark provisioning stage=${stage} for sub=${subscriptionId}: ${(err as Error).message}`,
       );
     }
+  }
+
+  private async finalizeServicePromoIfNeeded(subscriptionId: string, userId: string) {
+    const sub = await this.prisma.subscription.findUnique({
+      where: { id: subscriptionId },
+      select: {
+        appliedPromoCodeId: true,
+        listPriceAmount: true,
+        priceAmount: true,
+      },
+    });
+    if (!sub?.appliedPromoCodeId) return;
+    const listPrice = sub.listPriceAmount ?? sub.priceAmount;
+    await this.promo.recordServicePromoRedemption({
+      userId,
+      promoCodeId: sub.appliedPromoCodeId,
+      subscriptionId,
+      listPrice,
+      chargedAmount: sub.priceAmount,
+    });
   }
 
   private async recordQueueAudit(

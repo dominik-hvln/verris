@@ -3,7 +3,9 @@
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Check, Loader2, Wallet, CreditCard, Cpu, MemoryStick, HardDrive } from 'lucide-react';
+import { Check, Loader2, Wallet, CreditCard, Cpu, MemoryStick, HardDrive, Tag } from 'lucide-react';
+import type { PreviewSubscriptionPromoResult } from '@verris/contracts';
+import { previewSubscriptionPromoAction } from './promo-actions';
 import type {
   BillingInterval,
   PlanDto,
@@ -32,6 +34,10 @@ export function NewSubscriptionForm({ plans }: Props) {
     domain: string;
   } | null>(null);
   const [provisionQueuedSubId, setProvisionQueuedSubId] = useState<string | null>(null);
+  const [promoCode, setPromoCode] = useState('');
+  const [promoPreview, setPromoPreview] = useState<PreviewSubscriptionPromoResult | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [promoPending, setPromoPending] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const selectedPlan = useMemo(
@@ -39,10 +45,36 @@ export function NewSubscriptionForm({ plans }: Props) {
     [plans, planId],
   );
 
-  const totalPrice = useMemo(() => {
+  const listPrice = useMemo(() => {
     if (!selectedPlan) return null;
     return interval === 'MONTH' ? selectedPlan.priceMonthly : selectedPlan.priceYearly;
   }, [selectedPlan, interval]);
+
+  const chargePrice = promoPreview?.discountedAmount ?? listPrice;
+
+  const applyPromo = async () => {
+    if (!selectedPlan || paymentSource !== 'WALLET') return;
+    const code = promoCode.trim();
+    if (code.length < 3) {
+      setPromoError('Wpisz kod (min. 3 znaki).');
+      setPromoPreview(null);
+      return;
+    }
+    setPromoPending(true);
+    setPromoError(null);
+    const res = await previewSubscriptionPromoAction({
+      planId: selectedPlan.id,
+      interval,
+      code,
+    });
+    setPromoPending(false);
+    if (!res.ok) {
+      setPromoPreview(null);
+      setPromoError(res.error);
+      return;
+    }
+    setPromoPreview(res.data);
+  };
 
   const onSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -198,6 +230,52 @@ export function NewSubscriptionForm({ plans }: Props) {
         </div>
       </section>
 
+      {paymentSource === 'WALLET' ? (
+        <section className="max-w-2xl">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <Tag className="h-5 w-5 text-emerald-400" aria-hidden />
+            Kod rabatowy (opcjonalnie)
+          </h2>
+          <p className="text-neutral-400 text-sm mt-1">
+            Rabat procentowy na pierwszą opłatę za usługę. Działa tylko przy płatności z portfela (K).
+          </p>
+          <div className="mt-4 flex flex-col sm:flex-row gap-3">
+            <input
+              type="text"
+              value={promoCode}
+              onChange={(e) => {
+                setPromoCode(e.target.value.toUpperCase());
+                setPromoPreview(null);
+                setPromoError(null);
+              }}
+              placeholder="np. START20"
+              className="flex-1 rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-white font-mono placeholder:text-neutral-500 focus:border-emerald-500/50 focus:outline-none"
+            />
+            <button
+              type="button"
+              disabled={promoPending || !selectedPlan}
+              onClick={() => void applyPromo()}
+              className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-6 py-3 text-sm font-semibold text-emerald-200 hover:bg-emerald-500/20 disabled:opacity-50"
+            >
+              {promoPending ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : 'Zastosuj'}
+            </button>
+          </div>
+          {promoError ? <p className="mt-2 text-sm text-rose-300">{promoError}</p> : null}
+          {promoPreview ? (
+            <div className="mt-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-4 text-sm text-emerald-100">
+              Kod <strong className="font-mono">{promoPreview.code}</strong> — rabat{' '}
+              <strong>{promoPreview.percent}%</strong>
+              {promoPreview.appliesToRenewals
+                ? ' (również na kolejne odnowienia z portfela).'
+                : ' (tylko pierwsza opłata).'}
+              <br />
+              Oszczędzasz{' '}
+              <strong>{formatCredits(promoPreview.savingsAmount, { signed: true })}</strong>.
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+
       <section>
         <h2 className="text-xl font-bold text-white">5. Opcje</h2>
         <div className="mt-3 space-y-3 max-w-2xl">
@@ -226,7 +304,18 @@ export function NewSubscriptionForm({ plans }: Props) {
         <div>
           <p className="text-sm text-neutral-400">Do zapłaty teraz</p>
           <p className="text-3xl font-bold text-white mt-1">
-            {totalPrice ? `${Number(totalPrice).toFixed(2)} ${selectedPlan?.currency ?? ''}` : '—'}
+            {chargePrice ? (
+              <>
+                {promoPreview && listPrice ? (
+                  <span className="block text-lg text-neutral-500 line-through font-normal">
+                    {formatCredits(listPrice)}
+                  </span>
+                ) : null}
+                {formatCredits(chargePrice)}
+              </>
+            ) : (
+              '—'
+            )}
           </p>
           <p className="text-xs text-neutral-500 mt-1">
             {paymentSource === 'WALLET'

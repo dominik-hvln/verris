@@ -14,6 +14,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { SubscriptionsService } from './subscriptions.service';
 import {
   CreateSubscriptionDto,
+  PreviewSubscriptionPromoDto,
   UpdateAutoscalingDto,
   UpdateSubscriptionPreferencesDto,
 } from './dto/subscription.dto';
@@ -41,6 +42,15 @@ export class SubscriptionsController {
   @Get(':id')
   get(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
     return this.subscriptions.getForUser(user.userId, id);
+  }
+
+  @Post('preview-promo')
+  @HttpCode(200)
+  previewPromo(
+    @CurrentUser() user: { userId: string },
+    @Body() dto: PreviewSubscriptionPromoDto,
+  ) {
+    return this.subscriptions.previewSubscriptionPromo(user.userId, dto);
   }
 
   @Post()

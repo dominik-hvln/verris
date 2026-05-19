@@ -5,7 +5,8 @@ import { adminApi } from "@/lib/api";
 export interface PromoCodeRow {
   id: string;
   code: string;
-  kind: "FIXED_CREDIT" | "PERCENT_BONUS";
+  kind: "FIXED_CREDIT" | "PERCENT_BONUS" | "SERVICE_PERCENT_OFF";
+  appliesToRenewals?: boolean;
   value: string;
   currency: string;
   description: string | null;

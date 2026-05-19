@@ -18,12 +18,17 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { WalletLedgerService } from '../billing/wallet-ledger.service';
+import { PromoService } from '../billing/promo.service';
 import { StripeService } from '../billing/stripe/stripe.service';
 import { getInvoiceClientSecret, getSubscriptionPeriod } from '../billing/stripe/stripe.client';
 import { DirectAdminService } from '../servers/directadmin.service';
 import { ProvisioningService, ProvisionResult } from './provisioning.service';
 import { ProvisioningQueueService } from './provisioning-queue.service';
-import { UpdateSubscriptionPreferencesDto, CreateSubscriptionDto } from './dto/subscription.dto';
+import {
+  UpdateSubscriptionPreferencesDto,
+  CreateSubscriptionDto,
+  PreviewSubscriptionPromoDto,
+} from './dto/subscription.dto';
 import { ConfigService } from '@nestjs/config';
 import { MailerService } from '../mail/mailer.service';
 import {
@@ -84,7 +89,34 @@ export class SubscriptionsService {
     private readonly da: DirectAdminService,
     private readonly mailer: MailerService,
     private readonly config: ConfigService,
+    private readonly promo: PromoService,
   ) {}
+
+  async previewSubscriptionPromo(userId: string, dto: PreviewSubscriptionPromoDto) {
+    const plan = await this.prisma.plan.findUnique({ where: { id: dto.planId } });
+    if (!plan || !plan.isActive || !plan.isPublic) {
+      throw new NotFoundException('Plan not found or unavailable');
+    }
+    const listPriceRaw =
+      dto.interval === BillingInterval.MONTH ? plan.priceMonthly : plan.priceYearly;
+    if (listPriceRaw === null || listPriceRaw === undefined) {
+      throw new BadRequestException('Plan does not have a price for the requested interval');
+    }
+    const preview = await this.promo.previewServicePercentOff(
+      userId,
+      dto.code,
+      new Prisma.Decimal(listPriceRaw),
+    );
+    return {
+      code: preview.code,
+      percent: preview.percent,
+      listPrice: preview.listPrice.toFixed(2),
+      discountedAmount: preview.discountedAmount.toFixed(2),
+      savingsAmount: preview.savingsAmount.toFixed(2),
+      appliesToRenewals: preview.appliesToRenewals,
+      description: preview.description,
+    };
+  }
 
   // ---------------------------------------------------------------------------
   // Reads
@@ -180,12 +212,20 @@ export class SubscriptionsService {
       throw new NotFoundException('Plan not found or unavailable');
     }
 
-    const priceAmount =
+    const listPriceRaw =
       dto.interval === BillingInterval.MONTH ? plan.priceMonthly : plan.priceYearly;
 
-    if (priceAmount === null || priceAmount === undefined) {
+    if (listPriceRaw === null || listPriceRaw === undefined) {
       throw new BadRequestException('Plan does not have a price for the requested interval');
     }
+
+    const listPrice = new Prisma.Decimal(listPriceRaw);
+    const pricing = await this.resolveSubscriptionPricing(
+      userId,
+      listPrice,
+      dto.paymentSource,
+      dto.promoCode,
+    );
 
     // Create subscription row up-front in PENDING_PAYMENT so we can attach
     // the wallet entry / provisioning to it (and recover from failures).
@@ -195,7 +235,9 @@ export class SubscriptionsService {
         planId: plan.id,
         status: SubscriptionStatus.PENDING_PAYMENT,
         interval: dto.interval,
-        priceAmount,
+        priceAmount: pricing.chargeAmount,
+        listPriceAmount: pricing.listPrice,
+        appliedPromoCodeId: pricing.appliedPromoCodeId,
         currency: plan.currency,
         paymentSource: dto.paymentSource,
         autoscalingEnabled: dto.autoscalingEnabled ?? false,
@@ -225,7 +267,14 @@ export class SubscriptionsService {
 
     switch (dto.paymentSource) {
       case SubscriptionPaymentSource.WALLET: {
-        return this.payFromWalletAndProvision(subscription.id, priceAmount, dto, userId);
+        return this.payFromWalletAndProvision(
+          subscription.id,
+          pricing.chargeAmount,
+          pricing.listPrice,
+          pricing.appliedPromoCodeId,
+          dto,
+          userId,
+        );
       }
       case SubscriptionPaymentSource.MANUAL: {
         return this.provisionWithoutCharge(subscription.id, dto, userId);
@@ -676,9 +725,57 @@ export class SubscriptionsService {
   // Helpers
   // ---------------------------------------------------------------------------
 
+  private async resolveSubscriptionPricing(
+    userId: string,
+    listPrice: Prisma.Decimal,
+    paymentSource: SubscriptionPaymentSource,
+    promoCode?: string,
+  ): Promise<{
+    listPrice: Prisma.Decimal;
+    chargeAmount: Prisma.Decimal;
+    appliedPromoCodeId: string | null;
+  }> {
+    if (!promoCode?.trim()) {
+      return { listPrice, chargeAmount: listPrice, appliedPromoCodeId: null };
+    }
+    if (paymentSource !== SubscriptionPaymentSource.WALLET) {
+      throw new BadRequestException(
+        'Kod rabatowy przy zakupie usługi działa tylko z płatnością z portfela (K).',
+      );
+    }
+    const preview = await this.promo.previewServicePercentOff(userId, promoCode, listPrice);
+    return {
+      listPrice,
+      chargeAmount: preview.discountedAmount,
+      appliedPromoCodeId: preview.promoCodeId,
+    };
+  }
+
+  private async finalizeServicePromoRedemption(subscriptionId: string, userId: string) {
+    const sub = await this.prisma.subscription.findUnique({
+      where: { id: subscriptionId },
+      select: {
+        appliedPromoCodeId: true,
+        listPriceAmount: true,
+        priceAmount: true,
+      },
+    });
+    if (!sub?.appliedPromoCodeId) return;
+    const listPrice = sub.listPriceAmount ?? sub.priceAmount;
+    await this.promo.recordServicePromoRedemption({
+      userId,
+      promoCodeId: sub.appliedPromoCodeId,
+      subscriptionId,
+      listPrice,
+      chargedAmount: sub.priceAmount,
+    });
+  }
+
   private async payFromWalletAndProvision(
     subscriptionId: string,
     amount: Prisma.Decimal,
+    listPrice: Prisma.Decimal,
+    appliedPromoCodeId: string | null,
     dto: CreateSubscriptionDto,
     userId: string,
   ): Promise<CreatedSubscription> {
@@ -717,6 +814,9 @@ export class SubscriptionsService {
         { domain: dto.domain, preferredRegion: dto.preferredRegion ?? null },
         userId,
       );
+      if (appliedPromoCodeId) {
+        await this.finalizeServicePromoRedemption(subscriptionId, userId);
+      }
       return { subscription: provisioning.subscription, provisioning };
     } catch (err) {
       // Provisioning failed — refund the wallet so the customer isn't out of

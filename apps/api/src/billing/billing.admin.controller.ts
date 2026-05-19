@@ -56,6 +56,7 @@ export class BillingAdminController {
       maxRedemptions: dto.maxRedemptions ?? null,
       validFrom: dto.validFrom ? new Date(dto.validFrom) : null,
       validTo: dto.validTo ? new Date(dto.validTo) : null,
+      appliesToRenewals: dto.appliesToRenewals,
       actorUserId: actor.userId,
     });
   }
