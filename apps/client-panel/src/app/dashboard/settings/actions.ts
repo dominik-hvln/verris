@@ -2,6 +2,7 @@
 
 import { getAuthToken } from "@/lib/auth";
 import { apiFetch, ApiError } from "@/lib/api";
+import type { SidebarTileHref } from "@verris/contracts";
 
 export interface UserProfile {
   id: string;
@@ -20,6 +21,7 @@ export interface UserProfile {
   ecoPoints: number;
   isTwoFactorEnabled: boolean;
   createdAt: string;
+  sidebarQuickLinks?: string[];
 }
 
 /**
@@ -39,6 +41,22 @@ export async function fetchUserProfile(): Promise<UserProfile | null> {
 /**
  * Aktualizuje dane profilowe i bilingowe użytkownika.
  */
+export async function updateSidebarQuickLinks(links: SidebarTileHref[]) {
+  const token = await getAuthToken();
+  if (!token) return { error: "Brak autoryzacji" };
+
+  try {
+    await apiFetch("/users/me", {
+      method: "PATCH",
+      body: JSON.stringify({ sidebarQuickLinks: links }),
+    });
+    return { success: true as const };
+  } catch (err) {
+    if (err instanceof ApiError) return { error: err.message };
+    return { error: "Błąd połączenia z serwerem" };
+  }
+}
+
 export async function updateUserProfile(data: Partial<UserProfile>) {
   const token = await getAuthToken();
   if (!token) return { error: "Brak autoryzacji" };

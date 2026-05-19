@@ -1,8 +1,14 @@
-import { Clock } from "lucide-react";
-import { HostingTabs } from "../components/hosting-tabs";
-import { getHostingCron, resolveServiceForHostingPages } from "../hosting-tools-data";
+import { Clock } from 'lucide-react';
+import { HostingPageWrapper } from '../components/hosting-tabs';
+import { getHostingCron, resolveServiceForHostingPages } from '../hosting-tools-data';
+import {
+  HostingNoServiceState,
+  PanelCard,
+  PanelEmptyState,
+  PanelFetchError,
+} from '@/components/panel';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 export default async function CronPage({
   searchParams,
@@ -12,43 +18,41 @@ export default async function CronPage({
   const { serviceId } = await searchParams;
   const service = await resolveServiceForHostingPages(serviceId);
   const cron = service ? await getHostingCron(service.id) : null;
+
   return (
-    <div className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Zadania Cron</h1>
-        <p className="text-neutral-400 text-sm md:text-base">Harmonogram pobierany z konta DirectAdmin.</p>
-      </header>
-
-      <HostingTabs currentTab="cron" serviceId={service?.id} />
-
+    <HostingPageWrapper
+      title="Zadania Cron"
+      description="Harmonogram zadań cyklicznych na hostingu."
+      currentTab="cron"
+      serviceId={service?.id}
+    >
       {!service ? (
-        <div className="rounded-2xl border border-white/10 bg-black/30 p-6 text-sm text-muted-foreground">
-          {serviceId
-            ? 'Nie znaleziono usługi o podanym identyfikatorze.'
-            : 'Brak aktywnej usługi hostingowej.'}
-        </div>
+        <HostingNoServiceState serviceId={serviceId} />
       ) : (
-        <div className="rounded-2xl border border-white/10 bg-black/30 p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Clock className="h-5 w-5 text-white" />
-            <p className="text-white font-semibold">Harmonogram cron</p>
+        <PanelCard>
+          <div className="mb-4 flex items-center gap-2">
+            <Clock className="h-5 w-5 text-white" aria-hidden />
+            <h2 className="font-semibold text-white">Harmonogram cron</h2>
           </div>
-          {cron?.fetchError ? (
-            <p className="text-amber-300 text-sm">{cron.fetchError}</p>
-          ) : cron && cron.rows.length > 0 ? (
+          {cron?.fetchError ? <PanelFetchError message={cron.fetchError} /> : null}
+          {cron && !cron.fetchError && cron.rows.length > 0 ? (
             <div className="space-y-3">
               {cron.rows.map((row) => (
                 <div key={row.id} className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
-                  <p className="text-xs text-muted-foreground font-mono">{row.schedule}</p>
-                  <p className="text-sm text-white font-mono mt-1">{row.command}</p>
+                  <p className="font-mono text-xs text-muted-foreground">{row.schedule}</p>
+                  <p className="mt-1 font-mono text-sm text-white">{row.command}</p>
                 </div>
               ))}
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Brak zadań cron.</p>
-          )}
-        </div>
+          ) : cron && !cron.fetchError ? (
+            <PanelEmptyState
+              icon={Clock}
+              title="Brak zadań cron"
+              description="Nie skonfigurowano jeszcze zadań cyklicznych."
+            />
+          ) : null}
+        </PanelCard>
       )}
-    </div>
+    </HostingPageWrapper>
   );
 }

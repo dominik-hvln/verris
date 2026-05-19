@@ -1,8 +1,14 @@
 import { Database as DatabaseIcon, User } from 'lucide-react';
-import { HostingTabs } from '../components/hosting-tabs';
-import { getHostingDatabases, resolveServiceForHostingPages } from "../hosting-tools-data";
+import { HostingPageWrapper } from '../components/hosting-tabs';
+import { getHostingDatabases, resolveServiceForHostingPages } from '../hosting-tools-data';
+import {
+  HostingNoServiceState,
+  PanelCard,
+  PanelEmptyState,
+  PanelFetchError,
+} from '@/components/panel';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 export default async function DatabasesPage({
   searchParams,
@@ -14,46 +20,41 @@ export default async function DatabasesPage({
   const databases = service ? await getHostingDatabases(service.id) : null;
 
   return (
-    <div className="space-y-8">
-      <div>
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Bazy danych</h1>
-          <p className="text-neutral-400 text-sm md:text-base">Lista baz z konta DirectAdmin.</p>
-        </div>
-      </div>
-
-      <HostingTabs currentTab="databases" serviceId={service?.id} />
-
+    <HostingPageWrapper
+      title="Bazy danych"
+      description="Lista baz MySQL na Twoim koncie hostingowym."
+      currentTab="databases"
+      serviceId={service?.id}
+    >
       {!service ? (
-        <div className="rounded-2xl border border-white/10 bg-black/30 p-6 text-sm text-muted-foreground">
-          {serviceId
-            ? 'Nie znaleziono usługi o podanym identyfikatorze.'
-            : 'Brak aktywnej usługi hostingowej.'}
-        </div>
+        <HostingNoServiceState serviceId={serviceId} />
       ) : (
-        <div className="rounded-2xl border border-white/10 bg-black/30 p-6">
-          {databases?.fetchError ? (
-            <p className="text-amber-300 text-sm">{databases.fetchError}</p>
-          ) : databases && databases.databases.length > 0 ? (
+        <PanelCard>
+          {databases?.fetchError ? <PanelFetchError message={databases.fetchError} /> : null}
+          {databases && !databases.fetchError && databases.databases.length > 0 ? (
             <div className="space-y-3">
               {databases.databases.map((db) => (
                 <div key={db.name} className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
                   <div className="flex items-center gap-2">
-                    <DatabaseIcon className="h-4 w-4 text-white" />
+                    <DatabaseIcon className="h-4 w-4 text-white" aria-hidden />
                     <p className="text-white">{db.name}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                    <User className="h-3 w-3" />
-                    Dostęp przez DirectAdmin/phpMyAdmin
+                  <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+                    <User className="h-3 w-3" aria-hidden />
+                    Zarządzanie przez phpMyAdmin w panelu hostingu
                   </p>
                 </div>
               ))}
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Brak baz danych.</p>
-          )}
-        </div>
+          ) : databases && !databases.fetchError ? (
+            <PanelEmptyState
+              icon={DatabaseIcon}
+              title="Brak baz danych"
+              description="Na tym koncie nie utworzono jeszcze baz MySQL."
+            />
+          ) : null}
+        </PanelCard>
       )}
-    </div>
+    </HostingPageWrapper>
   );
 }

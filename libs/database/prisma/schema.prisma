@@ -123,6 +123,9 @@ model User {
   /// Notatka wewnętrzna BOK (nie pokazywana klientowi).
   adminInternalNote        String?   @db.Text
 
+  /// 4 skróty w sidebarze panelu klienta (href z katalogu `SIDEBAR_TILE_OPTIONS`).
+  sidebarQuickLinks        String[]  @default([])
+
   // IAM / subaccounts — USER może mieć subkonta działające w kontekście ownera.
   customerOwnerId          String?
   customerOwner            User?     @relation("CustomerSubaccounts", fields: [customerOwnerId], references: [id], onDelete: Cascade)

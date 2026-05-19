@@ -8,6 +8,7 @@ import {
   Gauge,
 } from 'lucide-react';
 import Link from 'next/link';
+import { PageHeaderRow } from '@/components/panel';
 import type {
   ProvisioningProgressDto,
   ServiceSummaryDto,
@@ -53,23 +54,19 @@ export default async function ServicesPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-neutral-400">
-            Twoje Usługi
-          </h1>
-          <p className="text-neutral-400 mt-2 text-lg">
-            Zarządzaj swoimi pakietami hostingowymi i serwerami.
-          </p>
-        </div>
-        <Link
-          href="/dashboard/services/new"
-          className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-black hover:bg-neutral-200 transition-all"
-        >
-          <Plus className="h-4 w-4" />
-          Zamów nową usługę
-        </Link>
-      </div>
+      <PageHeaderRow
+        title="Twoje usługi"
+        description="Zarządzaj pakietami hostingowymi i serwerami."
+        actions={
+          <Link
+            href="/dashboard/services/new"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-black transition-all hover:bg-neutral-200 sm:w-auto"
+          >
+            <Plus className="h-4 w-4" />
+            Zamów nową usługę
+          </Link>
+        }
+      />
 
       {loadError ? (
         <div className="rounded-2xl border border-rose-400/30 bg-rose-400/5 p-6 text-rose-200 flex items-start gap-3">

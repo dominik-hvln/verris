@@ -1,8 +1,9 @@
-import { FolderOpen } from "lucide-react";
-import { HostingTabs } from "../components/hosting-tabs";
-import { getHostingDaLinks, resolveServiceForHostingPages } from "../hosting-tools-data";
+import { FolderOpen } from 'lucide-react';
+import { HostingPageWrapper } from '../components/hosting-tabs';
+import { getHostingDaLinks, resolveServiceForHostingPages } from '../hosting-tools-data';
+import { HostingNoServiceState, PanelCard, PanelEmptyState } from '@/components/panel';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 export default async function FileManagerPage({
   searchParams,
@@ -12,41 +13,42 @@ export default async function FileManagerPage({
   const { serviceId } = await searchParams;
   const service = await resolveServiceForHostingPages(serviceId);
   const links = service ? await getHostingDaLinks(service.id) : null;
+
   return (
-    <div className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Menedżer plików</h1>
-        <p className="text-neutral-400 text-sm md:text-base">
-          Dostęp do panelu plików realizowany przez natywny File Manager w DirectAdmin.
-        </p>
-      </header>
-      <HostingTabs currentTab="filemanager" serviceId={service?.id} />
-      <div className="rounded-2xl border border-white/10 bg-black/30 p-6">
-        {!service ? (
-          <p className="text-sm text-muted-foreground">
-            {serviceId
-              ? "Nie znaleziono usługi o podanym identyfikatorze."
-              : "Brak aktywnej usługi hostingowej."}
-          </p>
-        ) : links?.fileManagerUrl ? (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <FolderOpen className="h-5 w-5 text-white" />
-              <p className="text-white font-semibold">DirectAdmin File Manager</p>
+    <HostingPageWrapper
+      title="Menedżer plików"
+      description="Przejdź do panelu plików na hostingu."
+      currentTab="filemanager"
+      serviceId={service?.id}
+    >
+      {!service ? (
+        <HostingNoServiceState serviceId={serviceId} />
+      ) : (
+        <PanelCard>
+          {links?.fileManagerUrl ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <FolderOpen className="h-5 w-5 text-white" aria-hidden />
+                <p className="font-semibold text-white">Panel plików</p>
+              </div>
+              <a
+                href={links.fileManagerUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm text-indigo-400 hover:underline"
+              >
+                Otwórz menedżer plików →
+              </a>
             </div>
-            <a
-              href={links.fileManagerUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="text-sm text-indigo-400 hover:underline"
-            >
-              Otwórz menedżer plików →
-            </a>
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">Brak linku do menedżera plików.</p>
-        )}
-      </div>
-    </div>
+          ) : (
+            <PanelEmptyState
+              icon={FolderOpen}
+              title="Brak linku"
+              description="Nie udało się wygenerować adresu menedżera plików."
+            />
+          )}
+        </PanelCard>
+      )}
+    </HostingPageWrapper>
   );
 }

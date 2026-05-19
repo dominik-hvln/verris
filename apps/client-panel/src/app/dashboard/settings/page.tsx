@@ -10,6 +10,7 @@ import {
   AlertCircle,
   Loader2,
   Lock,
+  LayoutGrid,
 } from "lucide-react";
 import { SpinBorder } from "@/components/spin-border";
 import {
@@ -20,6 +21,7 @@ import {
 } from "./actions";
 import { TwoFactorSection } from "./two-factor-section";
 import { PrivacyTab } from "./privacy-tab";
+import { SidebarTilesSection } from "./sidebar-tiles-section";
 
 /* ─────────────────────────── Tabs Definition ─────────────────────── */
 
@@ -28,6 +30,7 @@ const tabs = [
   { id: "security", label: "Bezpieczeństwo", icon: Shield },
   { id: "billing", label: "Dane do faktury", icon: Building2 },
   { id: "privacy", label: "Prywatność i dane", icon: Lock },
+  { id: "panel", label: "Wygląd panelu", icon: LayoutGrid },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
@@ -236,6 +239,11 @@ export default function SettingsPage() {
             />
             )}
             {activeTab === "privacy" && <PrivacyTab showToast={showToast} />}
+            {activeTab === "panel" && (
+              <div className="p-8">
+                <SidebarTilesSection initialLinks={profile.sidebarQuickLinks ?? []} />
+              </div>
+            )}
         </div>
       </div>
 

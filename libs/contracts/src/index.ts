@@ -1,3 +1,4 @@
+export * from './panel-preferences';
 export * from './domain.dto';
 export * from './server.dto';
 export * from './wallet.dto';

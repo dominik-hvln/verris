@@ -1,9 +1,15 @@
-import { Lock, ShieldCheck } from "lucide-react";
-import { HostingSslForms } from "@/components/hosting/HostingSslForms";
-import { HostingTabs } from '../components/hosting-tabs';
-import { getHostingDaLinks, getHostingSsl, resolveServiceForHostingPages } from "../hosting-tools-data";
+import { Lock, ShieldCheck } from 'lucide-react';
+import { HostingSslForms } from '@/components/hosting/HostingSslForms';
+import { HostingPageWrapper } from '../components/hosting-tabs';
+import { getHostingDaLinks, getHostingSsl, resolveServiceForHostingPages } from '../hosting-tools-data';
+import {
+  HostingNoServiceState,
+  PanelCard,
+  PanelEmptyState,
+  PanelFetchError,
+} from '@/components/panel';
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic';
 
 export default async function SslPage({
   searchParams,
@@ -16,51 +22,51 @@ export default async function SslPage({
   const links = service ? await getHostingDaLinks(service.id) : null;
 
   return (
-    <div className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Certyfikaty SSL</h1>
-        <p className="text-neutral-400 text-sm md:text-base">Widok certyfikatów i przejście do panelu SSL w DirectAdmin.</p>
-      </header>
-
-      <HostingTabs currentTab="ssl" serviceId={service?.id} />
-
+    <HostingPageWrapper
+      title="Certyfikaty SSL"
+      description="Wystawianie i podgląd certyfikatów dla domen na hostingu."
+      currentTab="ssl"
+      serviceId={service?.id}
+    >
       {!service ? (
-        <div className="rounded-2xl border border-white/10 bg-black/30 p-6 text-sm text-muted-foreground">
-          {serviceId
-            ? 'Nie znaleziono usługi o podanym identyfikatorze.'
-            : 'Brak aktywnej usługi hostingowej.'}
-        </div>
+        <HostingNoServiceState serviceId={serviceId} />
       ) : (
-        <div className="rounded-2xl border border-white/10 bg-black/30 p-6 space-y-6">
+        <PanelCard className="space-y-6">
           <HostingSslForms serviceId={service.id} />
-          <div className="flex items-center gap-3 pt-2 border-t border-white/10">
-            <ShieldCheck className="h-5 w-5 text-white" />
-            <p className="text-white font-semibold">Domeny na koncie (podgląd)</p>
+          <div className="flex items-center gap-3 border-t border-white/10 pt-2">
+            <ShieldCheck className="h-5 w-5 text-white" aria-hidden />
+            <p className="font-semibold text-white">Domeny na koncie (podgląd)</p>
           </div>
-          {ssl?.fetchError ? (
-            <p className="text-amber-300 text-sm">{ssl.fetchError}</p>
-          ) : ssl && ssl.rows.length > 0 ? (
+          {ssl?.fetchError ? <PanelFetchError message={ssl.fetchError} /> : null}
+          {ssl && !ssl.fetchError && ssl.rows.length > 0 ? (
             <div className="space-y-3">
               {ssl.rows.map((cert) => (
-                <div key={cert.id} className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
+                <article key={cert.id} className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
                   <div className="flex items-center gap-2">
-                    <Lock className="h-4 w-4 text-white" />
+                    <Lock className="h-4 w-4 text-white" aria-hidden />
                     <p className="text-white">{cert.domain}</p>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">{cert.issuer} • {cert.status}</p>
-                </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {cert.issuer} • {cert.status}
+                  </p>
+                </article>
               ))}
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">Brak danych o certyfikatach.</p>
-          )}
+          ) : ssl && !ssl.fetchError ? (
+            <PanelEmptyState icon={Lock} title="Brak certyfikatów" description="Nie znaleziono certyfikatów SSL na tym koncie." />
+          ) : null}
           {links?.sslUrl ? (
-            <a href={links.sslUrl} target="_blank" rel="noreferrer" className="text-sm text-indigo-400 hover:underline inline-block">
-              Otwórz panel SSL w DirectAdmin →
+            <a
+              href={links.sslUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-block text-sm text-indigo-400 hover:underline"
+            >
+              Otwórz zaawansowany panel SSL →
             </a>
           ) : null}
-        </div>
+        </PanelCard>
       )}
-    </div>
+    </HostingPageWrapper>
   );
 }

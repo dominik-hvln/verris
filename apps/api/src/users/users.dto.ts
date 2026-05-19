@@ -1,4 +1,16 @@
-import { IsString, IsOptional, MinLength, MaxLength, IsIn, IsInt, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  MinLength,
+  MaxLength,
+  IsIn,
+  IsInt,
+  Min,
+  Max,
+  IsArray,
+  ArrayMinSize,
+  ArrayMaxSize,
+} from 'class-validator';
 
 export class UpdateProfileDto {
   @IsOptional()
@@ -36,6 +48,14 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsIn(['pl', 'en'])
   locale?: string;
+
+  /** Dokładnie 4 href z katalogu skrótów panelu klienta. */
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(4)
+  @ArrayMaxSize(4)
+  @IsString({ each: true })
+  sidebarQuickLinks?: string[];
 }
 
 export class ApplyReferralCodeDto {

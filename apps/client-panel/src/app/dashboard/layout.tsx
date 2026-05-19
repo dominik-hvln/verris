@@ -12,32 +12,23 @@ import { ReConsentModal } from "./reconsent-modal";
 import { PlatformConfigLoader } from "@/components/platform-config-loader";
 import { SpinBorder } from "@/components/spin-border";
 import {
-  LayoutDashboard,
   Globe,
   Database,
   Mail,
   ShieldCheck,
-  Server,
-  CreditCard,
-  Settings,
   HelpCircle,
   LogOut,
   Layers,
   Terminal,
   Clock,
-  Calculator,
   FolderOpen,
   Leaf,
   Users,
   UserPlus,
+  Calculator,
+  Settings,
 } from "lucide-react";
-
-const mainGridItems = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Serwery", href: "/dashboard/services", icon: Server },
-  { name: "Płatności", href: "/dashboard/billing", icon: CreditCard },
-  { name: "Domeny", href: "/dashboard/domains", icon: Globe },
-];
+import { sidebarTilesFromLinks, type SidebarTileDef } from "@/lib/sidebar-tiles";
 
 const secondaryItems = [
   {
@@ -70,7 +61,7 @@ const secondaryItems = [
   },
 ];
 
-function GridLink({ item }: { item: typeof mainGridItems[0] }) {
+function GridLink({ item }: { item: SidebarTileDef }) {
   const pathname = usePathname();
   const isActive = pathname === item.href;
   const Icon = item.icon;
@@ -153,6 +144,14 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const [user, setUser] = useState<SidebarUser | null>(null);
+  const mainGridItems = sidebarTilesFromLinks(user?.sidebarQuickLinks);
+  const mainGridHrefs = new Set<string>(mainGridItems.map((i) => i.href));
+  const navSecondaryItems = secondaryItems
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => !mainGridHrefs.has(item.href)),
+    }))
+    .filter((group) => group.items.length > 0);
 
   useEffect(() => {
     fetchSidebarUser().then((u) => {
@@ -207,7 +206,7 @@ export default function DashboardLayout({
 
           {/* Secondary Classic List */}
           <nav className="space-y-8">
-            {secondaryItems.map((group) => (
+            {navSecondaryItems.map((group) => (
               <div key={group.label}>
                 <p className="mb-3 px-4 text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-500">
                   {group.label}

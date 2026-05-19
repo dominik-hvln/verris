@@ -10,6 +10,7 @@ import { Prisma, SubscriptionStatus, WalletTxType } from '@verris/database';
 import * as bcrypt from 'bcrypt';
 import { randomBytes, createHash } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { resolveSidebarQuickLinks, isSidebarTileHref } from '@verris/contracts';
 import {
   UpdateProfileDto,
   ChangePasswordDto,
@@ -105,6 +106,7 @@ export class UsersService {
         postalCode: true,
         country: true,
         locale: true,
+        sidebarQuickLinks: true,
         walletBalance: true,
         ecoPoints: true,
         isTwoFactorEnabled: true,
@@ -141,9 +143,11 @@ export class UsersService {
     const referralApproved = enrollment?.status === 'APPROVED';
     const isEcoProgramParticipant =
       user.ecoPoints > 0 || ecoActiveCount > 0 || referralApproved;
+    const sidebarQuickLinks = resolveSidebarQuickLinks(user.sidebarQuickLinks);
 
     return {
       ...user,
+      sidebarQuickLinks,
       hasActiveEcoSubscription: ecoActiveCount > 0,
       isEcoProgramParticipant,
       referralProgramApproved: referralApproved,
@@ -414,6 +418,20 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
+    let sidebarQuickLinks: string[] | undefined;
+    if (dto.sidebarQuickLinks !== undefined) {
+      const unique = [...new Set(dto.sidebarQuickLinks)];
+      if (unique.length !== 4) {
+        throw new BadRequestException('Wybierz dokładnie 4 różne skróty w sidebarze.');
+      }
+      for (const href of unique) {
+        if (!isSidebarTileHref(href)) {
+          throw new BadRequestException(`Niedozwolony skrót panelu: ${href}`);
+        }
+      }
+      sidebarQuickLinks = unique;
+    }
+
     const updated = await this.prisma.user.update({
       where: { id: userId },
       data: {
@@ -426,6 +444,7 @@ export class UsersService {
         ...(dto.postalCode !== undefined && { postalCode: dto.postalCode }),
         ...(dto.country !== undefined && { country: dto.country }),
         ...(dto.locale !== undefined && { locale: dto.locale }),
+        ...(sidebarQuickLinks !== undefined && { sidebarQuickLinks }),
       },
       select: {
         id: true,
@@ -439,10 +458,14 @@ export class UsersService {
         postalCode: true,
         country: true,
         locale: true,
+        sidebarQuickLinks: true,
       },
     });
 
-    return updated;
+    return {
+      ...updated,
+      sidebarQuickLinks: resolveSidebarQuickLinks(updated.sidebarQuickLinks),
+    };
   }
 
   /**
