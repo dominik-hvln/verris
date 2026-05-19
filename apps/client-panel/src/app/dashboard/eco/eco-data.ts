@@ -33,8 +33,9 @@ export async function getEcoDashboardData(): Promise<{
   profile: EcoProfileDto;
   ledger: EcoLedgerRowDto[];
   platform: EcoPlatformConfig;
+  badgeStats: EcoBadgeStats;
 }> {
-  const [profile, ledger, platform] = await Promise.all([
+  const [profile, ledger, platform, badgeStats] = await Promise.all([
     apiFetch<EcoProfileDto>('/users/me'),
     apiFetch<EcoLedgerRowDto[]>('/users/me/eco-ledger'),
     apiFetch<EcoPlatformConfig>('/platform-settings/client').catch(() => ({
@@ -42,6 +43,12 @@ export async function getEcoDashboardData(): Promise<{
       ecoPointsPer10Credits: 100,
       ecoBadgeImpressionsPerPoint: 100,
       clientIdleSessionMinutes: 60,
+    })),
+    apiFetch<EcoBadgeStats>('/users/me/eco-badge-stats').catch(() => ({
+      impressions: 0,
+      impressionsPerPoint: 100,
+      impressionsUntilNextPoint: 100,
+      pointsEarnedFromBadge: 0,
     })),
   ]);
   return {
