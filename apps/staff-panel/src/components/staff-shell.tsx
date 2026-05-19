@@ -8,6 +8,7 @@ import {
   Inbox,
   LogOut,
   Users,
+  UserPlus,
   BookOpen,
   Settings,
 } from "lucide-react";
@@ -18,6 +19,7 @@ const navItems = [
   { name: "Skrzynka", href: "/", icon: Inbox },
   { name: "Aktywne", href: "/tickets/active", icon: MessageSquare },
   { name: "Klienci", href: "/crm", icon: Users },
+  { name: "Program partnerski", href: "/referral-enrollments", icon: UserPlus },
   { name: "Knowledge", href: "/knowledge", icon: BookOpen },
   { name: "Ustawienia", href: "/settings", icon: Settings },
 ];

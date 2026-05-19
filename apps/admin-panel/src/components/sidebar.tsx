@@ -14,6 +14,7 @@ import {
   Siren,
   Ticket,
   Tag,
+  UserPlus,
   Scale,
   Box,
   ListChecks,
@@ -44,6 +45,7 @@ const adminNavItems = [
     label: "Operacje",
     items: [
       { name: "Klienci", href: "/customers", icon: Users },
+      { name: "Program partnerski", href: "/referral-enrollments", icon: UserPlus },
       { name: "Operatorzy", href: "/operators", icon: ShieldAlert },
       { name: "Tickety", href: "/tickets", icon: Ticket },
       { name: "Faktury", href: "/invoices", icon: DollarSign },

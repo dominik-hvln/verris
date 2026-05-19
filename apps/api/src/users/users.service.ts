@@ -227,6 +227,10 @@ export class UsersService {
       throw new BadRequestException('To zgłoszenie zostało już rozpatrzone.');
     }
 
+    if (input.status === 'APPROVED') {
+      await this.ensureReferralAndBadgeTokens(targetUserId);
+    }
+
     return this.prisma.referralProgramEnrollment.update({
       where: { userId: targetUserId },
       data: {
