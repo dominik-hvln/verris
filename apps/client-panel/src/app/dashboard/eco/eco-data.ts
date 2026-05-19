@@ -29,13 +29,24 @@ export type EcoBadgeStats = {
   pointsEarnedFromBadge: number;
 };
 
+export type EcoProgramOverview = {
+  ecoPoints: number;
+  ecoModeOnActiveServices: number;
+  ecoModeOnServices: number;
+  hasEcoModeOnActiveService: boolean;
+  referralProgramStatus: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
+  referralProgramApproved: boolean;
+  isEcoProgramParticipant: boolean;
+};
+
 export async function getEcoDashboardData(): Promise<{
   profile: EcoProfileDto;
   ledger: EcoLedgerRowDto[];
   platform: EcoPlatformConfig;
   badgeStats: EcoBadgeStats;
+  program: EcoProgramOverview;
 }> {
-  const [profile, ledger, platform, badgeStats] = await Promise.all([
+  const [profile, ledger, platform, badgeStats, program] = await Promise.all([
     apiFetch<EcoProfileDto>('/users/me'),
     apiFetch<EcoLedgerRowDto[]>('/users/me/eco-ledger'),
     apiFetch<EcoPlatformConfig>('/platform-settings/client').catch(() => ({
@@ -50,6 +61,7 @@ export async function getEcoDashboardData(): Promise<{
       impressionsUntilNextPoint: 100,
       pointsEarnedFromBadge: 0,
     })),
+    apiFetch<EcoProgramOverview>('/users/me/eco-program'),
   ]);
   return {
     profile: {
@@ -66,5 +78,6 @@ export async function getEcoDashboardData(): Promise<{
       ecoBadgeImpressionsPerPoint: platform.ecoBadgeImpressionsPerPoint,
     },
     badgeStats,
+    program,
   };
 }

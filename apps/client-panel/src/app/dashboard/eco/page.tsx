@@ -1,8 +1,9 @@
 import Link from 'next/link';
-import { Eye, Gift, History, Leaf, Sparkles, Trees } from 'lucide-react';
+import { Eye, Gift, History, Leaf, Trees } from 'lucide-react';
 import { getEcoDashboardData } from './eco-data';
 import { EcoRedeemForm } from './eco-redeem-form';
 import { EcoTreeProgress } from './eco-tree-progress';
+import { EcoProgramStatus } from './eco-program-status';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +25,7 @@ function badgeEmbedHtml(
 }
 
 export default async function EcoProgramPage() {
-  const { profile, ledger, platform, badgeStats } = await getEcoDashboardData();
+  const { profile, ledger, platform, badgeStats, program } = await getEcoDashboardData();
   const apiBase = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000').replace(/\/$/, '');
   const badgeSrc = profile.ecoBadgeToken
     ? `${apiBase}/public/eco/badge/${encodeURIComponent(profile.ecoBadgeToken)}`
@@ -110,43 +111,23 @@ export default async function EcoProgramPage() {
 
       <EcoTreeProgress points={profile.ecoPoints} pointsPerTree={platform.ecoPointsPerTree} />
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <article className="flex h-full flex-col justify-between rounded-2xl border border-white/10 bg-black/30 p-6">
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-white font-semibold">
-              <Sparkles className="h-4 w-4 text-amber-300" aria-hidden />
-              Status programu
-            </div>
-            <p className="text-sm text-neutral-400">
-              Tryb EKO na usłudze:{' '}
-              <span className="text-white">
-                {profile.hasActiveEcoSubscription ? 'włączony — panel ma zielony akcent' : 'wyłączony'}
-              </span>
-            </p>
-            <p className="text-sm text-neutral-400">
-              Chcesz polecać hosting znajomym?{' '}
-              <Link href="/dashboard/referral" className="text-emerald-400 underline hover:text-emerald-300">
-                Program partnerski (zgłoszenie)
-              </Link>
-            </p>
-          </div>
-        </article>
+      <EcoProgramStatus overview={program} />
 
-        <article className="rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] p-6">
-          <div className="mb-4 flex items-center gap-2 text-white font-semibold">
-            <Gift className="h-4 w-4 text-emerald-400" aria-hidden />
-            Wymień punkty na saldo portfela
-          </div>
-          <p className="mb-4 text-sm text-neutral-400">
-            Przelicznik:{' '}
-            <span className="font-mono text-neutral-200">
-              {platform.ecoPointsPer10Credits} pkt = 10,00 K
-            </span>
-            . Zasilenie trafia od razu do portfela i jest widoczne w historii transakcji.
-          </p>
-          <EcoRedeemForm maxPoints={profile.ecoPoints} />
-        </article>
-      </div>
+      <article className="mx-auto w-full max-w-xl rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] p-6">
+        <div className="mb-4 flex items-center gap-2 font-semibold text-white">
+          <Gift className="h-4 w-4 text-emerald-400" aria-hidden />
+          Wymień punkty na saldo portfela
+        </div>
+        <p className="mb-4 text-sm text-neutral-400">
+          Przelicznik:{' '}
+          <span className="font-mono text-neutral-200">
+            {platform.ecoPointsPer10Credits} pkt = 10,00 K
+          </span>
+          . Zasilenie trafia od razu do portfela i jest widoczne w historii transakcji.
+        </p>
+        <EcoRedeemForm maxPoints={profile.ecoPoints} />
+      </article>
+
 
       <section className="rounded-2xl border border-white/10 bg-black/30 p-6 md:p-8">
         <div className="mb-8 grid gap-4 sm:grid-cols-3">

@@ -37,6 +37,55 @@ export class UsersService {
     return this.ecoBadge.getStats(userId);
   }
 
+  async getEcoProgramOverview(userId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { ecoPoints: true },
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    const ecoHostingStatuses: SubscriptionStatus[] = [
+      SubscriptionStatus.ACTIVE,
+      SubscriptionStatus.PROVISIONING,
+      SubscriptionStatus.PAST_DUE,
+    ];
+
+    const [ecoModeOnActiveServices, ecoModeOnServices, enrollment] = await Promise.all([
+      this.prisma.subscription.count({
+        where: {
+          userId,
+          ecoModeEnabled: true,
+          status: { in: ecoHostingStatuses },
+        },
+      }),
+      this.prisma.subscription.count({
+        where: {
+          userId,
+          ecoModeEnabled: true,
+          status: { notIn: [SubscriptionStatus.CANCELED, SubscriptionStatus.EXPIRED] },
+        },
+      }),
+      this.prisma.referralProgramEnrollment.findUnique({
+        where: { userId },
+        select: { status: true },
+      }),
+    ]);
+
+    const referralApproved = enrollment?.status === 'APPROVED';
+
+    return {
+      ecoPoints: user.ecoPoints,
+      ecoModeOnActiveServices,
+      ecoModeOnServices,
+      hasEcoModeOnActiveService: ecoModeOnActiveServices > 0,
+      referralProgramStatus: enrollment?.status ?? null,
+      referralProgramApproved: referralApproved,
+      /** Uczestnictwo w programie EKO (punkty, hosting eko lub zaakceptowany program partnerski). */
+      isEcoProgramParticipant:
+        user.ecoPoints > 0 || ecoModeOnServices > 0 || referralApproved,
+    };
+  }
+
   /**
    * Pobiera pełny profil użytkownika (bez hash'a hasła).
    */
@@ -68,16 +117,36 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    const [ecoActiveCount, tokens] = await Promise.all([
+    const ecoHostingStatuses: SubscriptionStatus[] = [
+      SubscriptionStatus.ACTIVE,
+      SubscriptionStatus.PROVISIONING,
+      SubscriptionStatus.PAST_DUE,
+    ];
+
+    const [ecoActiveCount, enrollment, tokens] = await Promise.all([
       this.prisma.subscription.count({
-        where: { userId, status: SubscriptionStatus.ACTIVE, ecoModeEnabled: true },
+        where: {
+          userId,
+          ecoModeEnabled: true,
+          status: { in: ecoHostingStatuses },
+        },
+      }),
+      this.prisma.referralProgramEnrollment.findUnique({
+        where: { userId },
+        select: { status: true },
       }),
       this.ensureReferralAndBadgeTokens(userId),
     ]);
 
+    const referralApproved = enrollment?.status === 'APPROVED';
+    const isEcoProgramParticipant =
+      user.ecoPoints > 0 || ecoActiveCount > 0 || referralApproved;
+
     return {
       ...user,
       hasActiveEcoSubscription: ecoActiveCount > 0,
+      isEcoProgramParticipant,
+      referralProgramApproved: referralApproved,
       referralCode: tokens.referralCode,
       ecoBadgeToken: tokens.ecoBadgeToken,
     };

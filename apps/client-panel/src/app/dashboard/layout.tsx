@@ -158,7 +158,7 @@ export default function DashboardLayout({
     fetchSidebarUser().then((u) => {
       setUser(u);
       const root = document.documentElement;
-      if (u?.hasActiveEcoSubscription) root.classList.add("eco-tint");
+      if (u?.isEcoProgramParticipant) root.classList.add("eco-tint");
       else root.classList.remove("eco-tint");
     });
   }, []);

@@ -9,6 +9,7 @@ export interface SidebarUser {
   lastName: string | null;
   email: string;
   hasActiveEcoSubscription?: boolean;
+  isEcoProgramParticipant?: boolean;
   ecoPoints?: number;
   referralCode?: string | null;
   ecoBadgeToken?: string | null;
@@ -39,6 +40,9 @@ export async function fetchSidebarUser(): Promise<SidebarUser | null> {
       lastName: data.lastName,
       email: data.email,
       hasActiveEcoSubscription: Boolean(data.hasActiveEcoSubscription),
+      isEcoProgramParticipant: Boolean(
+        data.isEcoProgramParticipant ?? data.hasActiveEcoSubscription,
+      ),
       ecoPoints: typeof data.ecoPoints === 'number' ? data.ecoPoints : 0,
       referralCode: data.referralCode ?? null,
       ecoBadgeToken: data.ecoBadgeToken ?? null,

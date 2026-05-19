@@ -42,6 +42,11 @@ export class UsersController {
     return this.usersService.getEcoBadgeStats(user.userId);
   }
 
+  @Get('me/eco-program')
+  ecoProgramOverview(@CurrentUser() user: { userId: string }) {
+    return this.usersService.getEcoProgramOverview(user.userId);
+  }
+
   @Get('me/referral-program')
   referralProgramStatus(@CurrentUser() user: { userId: string }) {
     return this.usersService.getReferralProgramStatus(user.userId);
