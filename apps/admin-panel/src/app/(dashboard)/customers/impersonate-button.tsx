@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Loader2, UserCog, AlertCircle } from "lucide-react";
+import { ModalPortal } from "@/components/modal-portal";
 import { impersonateUserAction } from "./actions";
 
 interface Props {
@@ -34,6 +35,7 @@ export function ImpersonateButton({ userId, email, role }: Props) {
   return (
     <>
       <button
+        type="button"
         onClick={() => setOpen(true)}
         className="inline-flex items-center gap-1.5 rounded-md border border-amber-400/30 bg-amber-400/10 px-3 py-1.5 text-xs font-medium text-amber-200 hover:bg-amber-400/20"
       >
@@ -41,8 +43,18 @@ export function ImpersonateButton({ userId, email, role }: Props) {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur p-4">
-          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 shadow-2xl">
+        <ModalPortal>
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur p-4"
+            role="presentation"
+            onClick={() => setOpen(false)}
+          >
+            <div
+              className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 shadow-2xl"
+              role="dialog"
+              aria-modal="true"
+              onClick={(e) => e.stopPropagation()}
+            >
             <div className="flex items-start gap-3 mb-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-200">
                 <UserCog className="h-5 w-5" />
@@ -90,6 +102,7 @@ export function ImpersonateButton({ userId, email, role }: Props) {
 
             <div className="flex justify-end gap-2 mt-5">
               <button
+                type="button"
                 onClick={() => setOpen(false)}
                 disabled={pending}
                 className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white hover:bg-white/10 disabled:opacity-50"
@@ -97,6 +110,7 @@ export function ImpersonateButton({ userId, email, role }: Props) {
                 Anuluj
               </button>
               <button
+                type="button"
                 onClick={start}
                 disabled={pending}
                 className="rounded-lg bg-amber-400/20 border border-amber-400/40 px-4 py-2 text-sm font-bold text-amber-100 hover:bg-amber-400/30 disabled:opacity-50 inline-flex items-center gap-2"
@@ -110,7 +124,8 @@ export function ImpersonateButton({ userId, email, role }: Props) {
               </button>
             </div>
           </div>
-        </div>
+          </div>
+        </ModalPortal>
       )}
     </>
   );
