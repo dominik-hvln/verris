@@ -14,6 +14,14 @@ export type ClientPlatformConfigDto = {
   clientIdleSessionMinutes: number;
 };
 
+export type StaffSessionConfigDto = {
+  staffIdleSessionMinutes: number;
+};
+
+export type AdminSessionConfigDto = {
+  adminIdleSessionMinutes: number;
+};
+
 export type AdminPlatformSettingsDto = {
   ecoPointsPerTree: number;
   ecoBadgeImpressionsPerPoint: number;
@@ -33,6 +41,32 @@ export class PlatformSettingsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
   ) {}
+
+  async getStaffSessionConfig(): Promise<StaffSessionConfigDto> {
+    const map = await this.loadMap();
+    return {
+      staffIdleSessionMinutes: this.readInt(
+        map,
+        PLATFORM_SETTING_KEYS.STAFF_IDLE_MINUTES,
+        30,
+        5,
+        24 * 60,
+      ),
+    };
+  }
+
+  async getAdminSessionConfig(): Promise<AdminSessionConfigDto> {
+    const map = await this.loadMap();
+    return {
+      adminIdleSessionMinutes: this.readInt(
+        map,
+        PLATFORM_SETTING_KEYS.ADMIN_IDLE_MINUTES,
+        15,
+        5,
+        24 * 60,
+      ),
+    };
+  }
 
   async getClientConfig(): Promise<ClientPlatformConfigDto> {
     const map = await this.loadMap();

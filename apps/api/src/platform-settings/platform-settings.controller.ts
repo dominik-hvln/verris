@@ -1,5 +1,8 @@
 import { Controller, Get, HttpCode, UseGuards } from '@nestjs/common';
+import { Role } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
 import { PlatformSettingsService } from './platform-settings.service';
 
 @Controller('platform-settings')
@@ -12,5 +15,23 @@ export class PlatformSettingsController {
   @HttpCode(200)
   getClientConfig() {
     return this.settings.getClientConfig();
+  }
+
+  /** Staff panel — idle session timeout (minutes). */
+  @Get('staff')
+  @UseGuards(RolesGuard)
+  @Roles(Role.STAFF)
+  @HttpCode(200)
+  getStaffSessionConfig() {
+    return this.settings.getStaffSessionConfig();
+  }
+
+  /** Admin panel — idle session timeout (minutes). */
+  @Get('admin')
+  @UseGuards(RolesGuard)
+  @Roles(Role.ADMIN)
+  @HttpCode(200)
+  getAdminSessionConfig() {
+    return this.settings.getAdminSessionConfig();
   }
 }
