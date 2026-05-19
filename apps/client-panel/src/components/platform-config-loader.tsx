@@ -1,18 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { apiFetch } from '@/lib/api';
+import { fetchClientPlatformConfig } from '@/app/dashboard/platform-actions';
 import { SessionIdleGuard } from './session-idle-guard';
-
-type ClientPlatformConfig = {
-  clientIdleSessionMinutes: number;
-};
 
 export function PlatformConfigLoader() {
   const [idleMinutes, setIdleMinutes] = useState<number | null>(null);
 
   useEffect(() => {
-    apiFetch<ClientPlatformConfig>('/platform-settings/client')
+    fetchClientPlatformConfig()
       .then((cfg) => setIdleMinutes(cfg.clientIdleSessionMinutes))
       .catch(() => setIdleMinutes(60));
   }, []);

@@ -2,24 +2,19 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { Loader2, Share2 } from 'lucide-react';
-import { apiFetch } from '@/lib/api';
-import { applyReferralProgramAction } from './actions';
-
-type Status = {
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
-  appliedAt: string | null;
-  reviewedAt: string | null;
-  reviewNote: string | null;
-  referralCode: string | null;
-};
+import {
+  applyReferralProgramAction,
+  fetchReferralProgramStatus,
+  type ReferralProgramStatus,
+} from './actions';
 
 export function ReferralProgramClient() {
-  const [data, setData] = useState<Status | null>(null);
+  const [data, setData] = useState<ReferralProgramStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
-    apiFetch<Status>('/users/me/referral-program')
+    fetchReferralProgramStatus()
       .then(setData)
       .catch(() => setError('Nie udało się pobrać statusu programu.'));
   }, []);
@@ -29,7 +24,7 @@ export function ReferralProgramClient() {
     startTransition(async () => {
       const res = await applyReferralProgramAction();
       if (res.ok) {
-        const fresh = await apiFetch<Status>('/users/me/referral-program');
+        const fresh = await fetchReferralProgramStatus();
         setData(fresh);
       } else {
         setError(res.error ?? 'Błąd zgłoszenia.');
@@ -65,9 +60,7 @@ export function ReferralProgramClient() {
           </p>
           <label className="flex items-start gap-3 text-sm text-neutral-300">
             <input type="checkbox" required className="mt-1 accent-emerald-500" id="terms" />
-            <span>
-              Akceptuję regulamin programu poleceń i zasady wypłat / punktów EKO.
-            </span>
+            <span>Akceptuję regulamin programu poleceń i zasady wypłat / punktów EKO.</span>
           </label>
           <button
             type="button"

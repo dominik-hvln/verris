@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { apiFetch, ApiError } from '@/lib/api';
+import { adminApi, AdminApiError } from '@/lib/api';
 
 export type PlatformSettingsForm = {
   ecoPointsPerTree: number;
@@ -30,9 +30,9 @@ export async function updatePlatformSettingsAction(
   };
 
   try {
-    await apiFetch('/admin/platform-settings', {
+    await adminApi('/admin/platform-settings', {
       method: 'PATCH',
-      body: JSON.stringify(payload),
+      body: payload,
     });
     revalidatePath('/settings/platform');
     return { ok: true };
@@ -40,7 +40,7 @@ export async function updatePlatformSettingsAction(
     return {
       ok: false,
       error:
-        e instanceof ApiError
+        e instanceof AdminApiError
           ? e.message
           : e instanceof Error
             ? e.message
