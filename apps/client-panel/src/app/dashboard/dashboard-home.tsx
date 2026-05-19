@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { SpinBorder } from '@/components/spin-border';
 import { CREDIT_RATE_INFO, formatCredits } from '@/lib/credits';
+import { DashboardCharts } from './dashboard-charts';
 import type { DashboardSnapshot } from './dashboard-data';
 
 export function DashboardHome({ snapshot }: { snapshot: DashboardSnapshot }) {
@@ -110,6 +111,8 @@ export function DashboardHome({ snapshot }: { snapshot: DashboardSnapshot }) {
           icon={HelpCircle}
         />
       </div>
+
+      <DashboardCharts snapshot={snapshot} />
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">

@@ -20,14 +20,14 @@ export function EcoRedeemForm({ maxPoints }: Props) {
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
-        <label className="space-y-1 block">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <label className="block flex-1 space-y-1 lg:max-w-md">
           <span className="text-xs text-neutral-400">Ile punktów wymienić</span>
           <select
             value={points}
             onChange={(e) => setPoints(Number(e.target.value))}
             disabled={busy || allowedOptions.length === 0}
-            className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white min-w-[220px]"
+            className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white"
           >
             {allowedOptions.length === 0 ? (
               <option value={100}>Potrzeba min. 100 pkt</option>

@@ -113,18 +113,26 @@ export default async function EcoProgramPage() {
 
       <EcoProgramStatus overview={program} />
 
-      <article className="mx-auto w-full max-w-xl rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] p-6">
-        <div className="mb-4 flex items-center gap-2 font-semibold text-white">
-          <Gift className="h-4 w-4 text-emerald-400" aria-hidden />
-          Wymień punkty na saldo portfela
+      <article className="w-full rounded-2xl border border-emerald-500/20 bg-emerald-500/[0.04] p-6 md:p-8">
+        <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="max-w-2xl">
+            <div className="mb-2 flex items-center gap-2 font-semibold text-white">
+              <Gift className="h-4 w-4 text-emerald-400" aria-hidden />
+              Wymień punkty na saldo portfela
+            </div>
+            <p className="text-sm text-neutral-400">
+              Przelicznik:{' '}
+              <span className="font-mono text-neutral-200">
+                {platform.ecoPointsPer10Credits} pkt = 10,00 K
+              </span>
+              . Zasilenie trafia od razu do portfela i jest widoczne w historii transakcji.
+            </p>
+          </div>
+          <p className="text-sm text-neutral-500 lg:text-right">
+            Dostępne:{' '}
+            <span className="font-mono font-semibold text-emerald-300">{profile.ecoPoints} pkt</span>
+          </p>
         </div>
-        <p className="mb-4 text-sm text-neutral-400">
-          Przelicznik:{' '}
-          <span className="font-mono text-neutral-200">
-            {platform.ecoPointsPer10Credits} pkt = 10,00 K
-          </span>
-          . Zasilenie trafia od razu do portfela i jest widoczne w historii transakcji.
-        </p>
         <EcoRedeemForm maxPoints={profile.ecoPoints} />
       </article>
 

@@ -1,10 +1,11 @@
 'use server';
 
-import type { DomainDto, ServiceSummaryDto } from '@verris/contracts';
+import type { DomainDto, ServiceSummaryDto, WalletSummaryDto } from '@verris/contracts';
 import { apiFetch } from '@/lib/api';
+import { getWalletSummary } from './billing/data';
 import { fetchUserProfile, type UserProfile } from './settings/actions';
 import { fetchTickets, type TicketSummary } from './support/actions';
-import type { EcoProgramOverview } from './eco/eco-data';
+import type { EcoLedgerRowDto, EcoProgramOverview } from './eco/eco-data';
 
 export type DashboardFetchResult<T> =
   | { ok: true; data: T }
@@ -48,6 +49,9 @@ export type DashboardSnapshot = {
   services: ServiceSummaryDto[];
   domains: DomainDto[];
   ecoProgram: EcoProgramOverview | null;
+  wallet: WalletSummaryDto | null;
+  ecoLedger: EcoLedgerRowDto[];
+  tickets: TicketSummary[];
   openTickets: number;
   errors: { services?: string; domains?: string };
 };
@@ -55,11 +59,13 @@ export type DashboardSnapshot = {
 export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
   const errors: DashboardSnapshot['errors'] = {};
 
-  const [profile, servicesRes, domainsRes, ecoProgram, tickets] = await Promise.all([
+  const [profile, servicesRes, domainsRes, ecoProgram, wallet, ecoLedger, tickets] = await Promise.all([
     fetchUserProfile().catch(() => null),
     fetchUserServicesSummary(),
     fetchUserDomainsPortfolio(),
     apiFetch<EcoProgramOverview>('/users/me/eco-program').catch(() => null),
+    getWalletSummary().catch(() => null),
+    apiFetch<EcoLedgerRowDto[]>('/users/me/eco-ledger').catch(() => [] as EcoLedgerRowDto[]),
     fetchTickets().catch(() => [] as TicketSummary[]),
   ]);
 
@@ -78,6 +84,9 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
     services,
     domains,
     ecoProgram,
+    wallet,
+    ecoLedger,
+    tickets,
     openTickets,
     errors,
   };
