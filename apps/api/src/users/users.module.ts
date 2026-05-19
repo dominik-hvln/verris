@@ -12,6 +12,8 @@ import { MailModule } from '../mail/mail.module';
 import { StatusModule } from '../status/status.module';
 import { DiagnosticsModule } from '../diagnostics/diagnostics.module';
 import { BillingModule } from '../billing/billing.module';
+import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
+import { EcoBadgeService } from './eco-badge.service';
 
 @Module({
   imports: [
@@ -29,9 +31,10 @@ import { BillingModule } from '../billing/billing.module';
     StatusModule,
     DiagnosticsModule,
     BillingModule,
+    PlatformSettingsModule,
   ],
   controllers: [UsersController, UsersAdminController, CustomerIamController, EcoPublicController],
-  providers: [UsersService, UsersAdminService, CustomerIamService],
-  exports: [UsersService, UsersAdminService],
+  providers: [UsersService, UsersAdminService, CustomerIamService, EcoBadgeService],
+  exports: [UsersService, UsersAdminService, EcoBadgeService],
 })
 export class UsersModule {}

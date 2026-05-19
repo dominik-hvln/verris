@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Gift, History, Leaf, Sparkles, Trees } from 'lucide-react';
+import { Eye, Gift, History, Leaf, Sparkles, Trees } from 'lucide-react';
 import { getEcoDashboardData } from './eco-data';
 import { EcoRedeemForm } from './eco-redeem-form';
 import { EcoTreeProgress } from './eco-tree-progress';
@@ -8,14 +8,23 @@ export const dynamic = 'force-dynamic';
 
 const REASON_LABEL: Record<string, string> = {
   EKO_FIRST_ENABLE: 'Pierwsze włączenie trybu EKO',
+  BADGE_IMPRESSION: 'Wyświetlenia badge na stronie',
   REFERRAL_REGISTER_REFEREE: 'Polecenie (rejestracja)',
   REFERRAL_REGISTER_REFERRER: 'Polecenie — nowy klient',
   REFERRAL_APPLIED_REFEREE: 'Polecenie (kod dodany)',
   REFERRAL_APPLIED_REFERRER: 'Polecenie — kod wykorzystany',
 };
 
+function badgeEmbedHtml(
+  badgeSrc: string,
+  opts: { src: string; width: number; height: number; alt: string },
+): string {
+  const pixel = `${badgeSrc}/impression.gif`;
+  return `<a href="https://verris.pl" target="_blank" rel="noopener" style="position:relative;display:inline-block"><img src="${opts.src}" width="${opts.width}" height="${opts.height}" alt="${opts.alt}" /><img src="${pixel}" width="1" height="1" alt="" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none" /></a>`;
+}
+
 export default async function EcoProgramPage() {
-  const { profile, ledger, platform } = await getEcoDashboardData();
+  const { profile, ledger, platform, badgeStats } = await getEcoDashboardData();
   const apiBase = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000').replace(/\/$/, '');
   const badgeSrc = profile.ecoBadgeToken
     ? `${apiBase}/public/eco/badge/${encodeURIComponent(profile.ecoBadgeToken)}`
@@ -26,33 +35,53 @@ export default async function EcoProgramPage() {
           name: 'Klasyczny',
           description: 'Najlepszy do stopki albo sekcji „Partnerzy”.',
           src: `${badgeSrc}?variant=classic&theme=dark`,
-          width: 280,
-          height: 72,
-          html: `<a href="https://verris.pl" target="_blank" rel="noopener"><img src="${badgeSrc}?variant=classic&theme=dark" width="280" height="72" alt="Verris EKO hosting" /></a>`,
+          width: 292,
+          height: 76,
+          html: badgeEmbedHtml(badgeSrc, {
+            src: `${badgeSrc}?variant=classic&theme=dark`,
+            width: 292,
+            height: 76,
+            alt: 'Verris EKO hosting',
+          }),
         },
         {
           name: 'Mini',
           description: 'Mały badge do paska bocznego lub obok logotypów.',
           src: `${badgeSrc}?variant=mini&theme=dark`,
-          width: 156,
-          height: 28,
-          html: `<a href="https://verris.pl" target="_blank" rel="noopener"><img src="${badgeSrc}?variant=mini&theme=dark" width="156" height="28" alt="EKO hosting Verris" /></a>`,
+          width: 168,
+          height: 32,
+          html: badgeEmbedHtml(badgeSrc, {
+            src: `${badgeSrc}?variant=mini&theme=dark`,
+            width: 168,
+            height: 32,
+            alt: 'EKO hosting Verris',
+          }),
         },
         {
           name: 'Kompaktowy',
           description: 'Krótki komunikat: „Korzystamy z eko hostingu”.',
           src: `${badgeSrc}?variant=compact&theme=light`,
-          width: 220,
-          height: 44,
-          html: `<a href="https://verris.pl" target="_blank" rel="noopener"><img src="${badgeSrc}?variant=compact&theme=light" width="220" height="44" alt="Korzystamy z eko hostingu Verris" /></a>`,
+          width: 240,
+          height: 48,
+          html: badgeEmbedHtml(badgeSrc, {
+            src: `${badgeSrc}?variant=compact&theme=light`,
+            width: 240,
+            height: 48,
+            alt: 'Korzystamy z eko hostingu Verris',
+          }),
         },
         {
           name: 'Statement',
           description: 'Większy wariant marketingowy na landing page.',
           src: `${badgeSrc}?variant=statement&theme=dark`,
-          width: 320,
-          height: 84,
-          html: `<a href="https://verris.pl" target="_blank" rel="noopener"><img src="${badgeSrc}?variant=statement&theme=dark" width="320" height="84" alt="Nasza strona korzysta z eko hostingu Verris" /></a>`,
+          width: 336,
+          height: 88,
+          html: badgeEmbedHtml(badgeSrc, {
+            src: `${badgeSrc}?variant=statement&theme=dark`,
+            width: 336,
+            height: 88,
+            alt: 'Nasza strona korzysta z eko hostingu Verris',
+          }),
         },
         {
           name: 'Interaktywny iframe',
@@ -120,6 +149,33 @@ export default async function EcoProgramPage() {
       </div>
 
       <section className="rounded-2xl border border-white/10 bg-black/30 p-6 md:p-8">
+        <div className="mb-8 grid gap-4 sm:grid-cols-3">
+          <article className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] p-4">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-emerald-400/90">
+              <Eye className="h-3.5 w-3.5" aria-hidden />
+              Wyświetlenia badge
+            </div>
+            <p className="mt-2 text-2xl font-bold tabular-nums text-white">{badgeStats.impressions}</p>
+            <p className="mt-1 text-xs text-neutral-500">Unikalne odsłony (max 1 / IP / godz.)</p>
+          </article>
+          <article className="rounded-xl border border-white/10 bg-black/20 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Do następnego punktu</p>
+            <p className="mt-2 text-2xl font-bold tabular-nums text-white">
+              {badgeStats.impressionsUntilNextPoint}
+            </p>
+            <p className="mt-1 text-xs text-neutral-500">
+              Przyznajemy 1 pkt co {badgeStats.impressionsPerPoint} wyświetleń
+            </p>
+          </article>
+          <article className="rounded-xl border border-white/10 bg-black/20 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">Punkty z badge</p>
+            <p className="mt-2 text-2xl font-bold tabular-nums text-emerald-400">
+              +{badgeStats.pointsEarnedFromBadge}
+            </p>
+            <p className="mt-1 text-xs text-neutral-500">Łącznie z osadzenia na stronie</p>
+          </article>
+        </div>
+
         <div className="mx-auto mb-8 max-w-2xl text-center">
           <div className="mb-2 flex items-center justify-center gap-2 text-white font-semibold">
             <Trees className="h-5 w-5 text-emerald-400" aria-hidden />
@@ -128,7 +184,8 @@ export default async function EcoProgramPage() {
           <p className="text-sm text-neutral-400">
             Osadź badge pokazujący, że Twoja strona korzysta z eko hostingu. Wybierz mały SVG do stopki, większy
             wariant marketingowy albo interaktywną kartę przez{' '}
-            <span className="font-mono text-neutral-300">&lt;iframe&gt;</span>.
+            <span className="font-mono text-neutral-300">&lt;iframe&gt;</span>. Każde unikalne wyświetlenie na
+            zewnętrznej stronie przybliża Cię do kolejnego punktu EKO.
           </p>
         </div>
 

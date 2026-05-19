@@ -18,6 +18,7 @@ import {
 } from './users.dto';
 import { MailerService } from '../mail/mailer.service';
 import { passwordChangedTemplate } from '../mail/templates/security-notifications';
+import { EcoBadgeService } from './eco-badge.service';
 
 @Injectable()
 export class UsersService {
@@ -29,7 +30,12 @@ export class UsersService {
     private prisma: PrismaService,
     private readonly mailer: MailerService,
     private readonly config: ConfigService,
+    private readonly ecoBadge: EcoBadgeService,
   ) {}
+
+  getEcoBadgeStats(userId: string) {
+    return this.ecoBadge.getStats(userId);
+  }
 
   /**
    * Pobiera pełny profil użytkownika (bez hash'a hasła).

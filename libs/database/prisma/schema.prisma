@@ -73,6 +73,8 @@ model User {
   referredUsers          User[]    @relation("UserReferrals")
   /// Nieauthoryzowany token do publicznego badge SVG (`GET /public/eco/badge/:token`).
   ecoBadgeToken          String?   @unique
+  /// Łączna liczba unikalnych wyświetleń badge (po deduplikacji IP/godzina).
+  ecoBadgeImpressions    Int       @default(0)
 
   // 2FA — TOTP (RFC 6238). `twoFactorSecret` and `twoFactorRecoveryCodesEnc`
   // are encrypted at rest with the application KMS key (AES-256-GCM).
@@ -150,6 +152,7 @@ model User {
   walletAutoTopup          WalletAutoTopup?
   ticketAttachmentsUploaded TicketAttachment[] @relation("TicketAttachmentUploader")
   ecoPointsLedger           EcoPointsLedgerEntry[]
+  ecoBadgeImpressionDedups  EcoBadgeImpressionDedup[]
   referralProgramEnrollment ReferralProgramEnrollment?
   referralEnrollmentsReviewed ReferralProgramEnrollment[] @relation("ReferralEnrollmentReviewer")
   platformSettingsUpdated   PlatformSetting[] @relation("PlatformSettingUpdatedBy")
@@ -223,6 +226,17 @@ model EcoPointsLedgerEntry {
   createdAt        DateTime @default(now())
 
   @@index([userId, createdAt(sort: Desc)])
+}
+
+/// Dedup wyświetleń badge EKO (max 1 zliczenie na IP użytkownika na godzinę).
+model EcoBadgeImpressionDedup {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bucketKey String   @unique @db.VarChar(128)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 // -----------------------------------------------------------------------------

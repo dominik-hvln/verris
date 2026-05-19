@@ -19,6 +19,14 @@ export interface EcoLedgerRowDto {
 export type EcoPlatformConfig = {
   ecoPointsPerTree: number;
   ecoPointsPer10Credits: number;
+  ecoBadgeImpressionsPerPoint: number;
+};
+
+export type EcoBadgeStats = {
+  impressions: number;
+  impressionsPerPoint: number;
+  impressionsUntilNextPoint: number;
+  pointsEarnedFromBadge: number;
 };
 
 export async function getEcoDashboardData(): Promise<{
@@ -48,6 +56,8 @@ export async function getEcoDashboardData(): Promise<{
     platform: {
       ecoPointsPerTree: platform.ecoPointsPerTree,
       ecoPointsPer10Credits: platform.ecoPointsPer10Credits,
+      ecoBadgeImpressionsPerPoint: platform.ecoBadgeImpressionsPerPoint,
     },
+    badgeStats,
   };
 }
