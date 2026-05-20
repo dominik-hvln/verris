@@ -19,9 +19,9 @@
 | Status | Opis |
 |--------|------|
 | ✅ Wdrożone | Cennik i kalkulator: 3 zasoby (CPU, RAM, Dysk); I/O i transfer wycofane z katalogu |
-| 🔜 AS-1 | Silnik runtime + billing dla `scaledDiskMb` i limitu dysku w DirectAdmin |
-| 🔜 AS-2 | UX per-usługa (toggle dysk, powiadomienia, runbook support) |
-| 🔜 AS-3 | Tier pricing, symulator w adminie, metryki przychodu |
+| ✅ AS-1 | Silnik runtime + billing `scaledDiskMb`, sync quota DA, panel limitów |
+| ✅ AS-2 | Toggle CPU/RAM/dysk, prefill kalkulatora, max overscale w planie, e-mail scale-up, runbook shrink |
+| 🔜 AS-3 | Tier pricing, symulator w adminie, metryki i raport przychodu |
 
 ## Quick-wins zrealizowane i fast-follow wallet
 

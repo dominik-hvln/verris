@@ -410,6 +410,8 @@ pnpm build
 docker compose -f docker-compose.prod.yml --env-file .env.prod pull || true
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 
+# WAŻNE: migracje dopiero po `--build api` — `migrate deploy` czyta pliki z obrazu API.
+# Uruchomienie migrate przed rebuildem zgłosi „No pending migrations”, a nowe kolumny nie powstaną.
 ./ops/scripts/prod-migrate-deploy.sh
 
 docker compose -f docker-compose.prod.yml --env-file .env.prod ps
