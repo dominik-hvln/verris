@@ -42,7 +42,7 @@ export function DashboardHome({ snapshot }: { snapshot: DashboardSnapshot }) {
             </h1>
             <p className="max-w-lg text-sm text-neutral-400 sm:text-base">
               Przegląd konta: usługi, domeny, portfel i program EKO. Szczegóły hostingu i zużycia zasobów
-              znajdziesz w DirectAdmin oraz w widoku pojedynczej usługi.
+              znajdziesz w panelu hostingu oraz w widoku pojedynczej usługi.
             </p>
           </div>
           <div className="flex flex-wrap gap-3 shrink-0">
@@ -122,7 +122,7 @@ export function DashboardHome({ snapshot }: { snapshot: DashboardSnapshot }) {
             <QuickAction title="Zarządzaj domenami" description="DNS i przypisanie do usług" href="/dashboard/domains" icon={Globe} />
             <QuickAction title="Portfel i płatności" description="Doładuj kredyty (K) i faktury" href="/dashboard/billing" icon={CreditCard} />
             <QuickAction title="Certyfikaty SSL" description="Let&apos;s Encrypt na usługach" href="/dashboard/ssl" icon={ShieldCheck} />
-            <QuickAction title="Bazy danych" description="MySQL w DirectAdmin" href="/dashboard/databases" icon={Database} />
+            <QuickAction title="Bazy danych" description="MySQL na hostingu" href="/dashboard/databases" icon={Database} />
             <QuickAction title="Wsparcie" description="Zgłoszenia i odpowiedzi BOK" href="/dashboard/support" icon={HelpCircle} />
           </div>
         </div>

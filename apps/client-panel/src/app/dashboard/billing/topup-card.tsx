@@ -92,7 +92,7 @@ export function TopupCard({ balance }: Props) {
           <span className="text-2xl text-neutral-400">{CREDIT_SHORT}</span>
         </div>
         <p className="text-sm text-neutral-500 mb-8">
-          Saldo zostanie pomniejszone o opłaty subskrypcyjne i autoskalowanie. 1 zł = 1 kredyt.
+          Saldo zostanie pomniejszone o opłaty cykliczne za usługi i autoskalowanie. 1 zł = 1 kredyt.
         </p>
 
         <form onSubmit={onSubmit} className="space-y-4">

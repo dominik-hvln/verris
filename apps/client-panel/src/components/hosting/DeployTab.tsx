@@ -50,12 +50,12 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
         </h2>
         <p className="text-neutral-400 text-sm leading-relaxed max-w-2xl mb-6">
           Automatyczne „push-to-deploy” z webhookiem w tym panelu nie jest jeszcze dostępne. Wdrożenia wykonasz przez
-          SSH i Git na serwerze, skrypt w cronie, zewnętrzny GitHub Actions / GitLab CI albo narzędzia w DirectAdmin.
+          SSH i Git na serwerze, skrypt w cronie, zewnętrzny GitHub Actions / GitLab CI albo panel hostingu (zaawansowany).
         </p>
         {panelUrl ? (
           <Button asChild variant="outline" className="border-white/20 text-white gap-2">
             <a href={panelUrl} target="_blank" rel="noopener noreferrer">
-              Otwórz DirectAdmin
+              Otwórz panel hostingu
               <ExternalLink className="h-4 w-4" />
             </a>
           </Button>

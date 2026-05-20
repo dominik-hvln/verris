@@ -122,8 +122,8 @@ export function NewSubscriptionForm({ plans }: Props) {
       <section>
         <h2 className="text-xl font-bold text-white">1. Wybierz plan</h2>
         <p className="text-neutral-400 text-sm mt-1">
-          Wszystkie limity są egzekwowane na poziomie CloudLinux LVE — autoskalowanie dokupuje
-          zasoby godzinowo z portfela.
+          Limity zasobów są egzekwowane na serwerze — autoskalowanie dokupuje dodatkową moc
+          godzinowo z portfela.
         </p>
         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
           {plans.map((plan) => {
@@ -282,7 +282,7 @@ export function NewSubscriptionForm({ plans }: Props) {
           <Toggle
             checked={autoscalingEnabled}
             onChange={setAutoscalingEnabled}
-            label="Autoskalowanie CloudLinux LVE"
+            label="Autoskalowanie limitów zasobów"
             description="Aplikacja automatycznie dostanie więcej CPU/RAM, gdy będzie tego potrzebowała. Koszty rozliczane godzinowo z portfela."
           />
           <Toggle
@@ -467,9 +467,9 @@ function ProvisioningQueuedBanner({ subscriptionId }: { subscriptionId: string }
       </h2>
       <p className="text-neutral-300">
         Zamówienie zostało przyjęte i trafia do kolejki provisioningu na węźle hostingowym (wymaga
-        skonfigurowanego <span className="font-mono">REDIS_URL</span>). Status zmieni się na{' '}
-        <span className="text-white font-semibold">Aktywna</span> gdy DirectAdmin przygotuje
-        konto — możesz odświeżać stronę usługi lub Hosting Manager.
+        skonfigurowanej kolejki). Status zmieni się na{' '}
+        <span className="text-white font-semibold">Aktywna</span>, gdy konto hostingowe będzie
+        gotowe — możesz odświeżać stronę usługi lub Hosting Manager.
       </p>
       <Link
         href={`/dashboard/services/${subscriptionId}`}
@@ -502,7 +502,7 @@ function ProvisioningSuccess({
       </div>
       <dl className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
         <div className="rounded-2xl border border-white/10 bg-black/40 p-4">
-          <dt className="text-xs uppercase tracking-widest text-neutral-500">Login (DA)</dt>
+          <dt className="text-xs uppercase tracking-widest text-neutral-500">Login hostingowy</dt>
           <dd className="mt-2 font-mono text-white text-base">{daUsername}</dd>
         </div>
         <div className="rounded-2xl border border-white/10 bg-black/40 p-4">

@@ -69,7 +69,7 @@ export function AutoscalingCalculator({ rules }: Props) {
           <div className="space-y-8">
             <Slider
               icon={<Cpu className="w-5 h-5 text-emerald-400" />}
-              label="Dodatkowy CPU (LVE %)"
+              label="Dodatkowa moc CPU (%)"
               hint="100% ≈ jeden rdzeń logiczny w pełnym burst"
               min={0}
               max={400}
@@ -81,7 +81,7 @@ export function AutoscalingCalculator({ rules }: Props) {
             <Slider
               icon={<MemoryStick className="w-5 h-5 text-emerald-400" />}
               label="Dodatkowy RAM (MB)"
-              hint="Limit pmem CloudLinux LVE"
+              hint="Limit pamięci procesów na koncie"
               min={0}
               max={8192}
               step={64}
@@ -167,7 +167,7 @@ export function AutoscalingCalculator({ rules }: Props) {
             <div className="space-y-3 mb-8">
               <Bullet text="Brak długoterminowych umów" />
               <Bullet text="Skaluj w dowolnym momencie" />
-              <Bullet text="Pełna izolacja zasobów (LVE)" />
+              <Bullet text="Pełna izolacja zasobów między kontami" />
             </div>
 
             <div className="mt-auto pt-6 border-t border-white/10 space-y-3">

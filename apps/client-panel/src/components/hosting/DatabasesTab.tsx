@@ -49,7 +49,7 @@ export default function DatabasesTab({ serviceId }: Props) {
     return (
       <div className="flex items-center justify-center gap-3 py-24 text-neutral-400">
         <Loader2 className="h-6 w-6 animate-spin text-cyan-400" />
-        Wczytywanie baz MySQL z DirectAdmin…
+        Wczytywanie baz MySQL…
       </div>
     );
   }
@@ -66,13 +66,9 @@ export default function DatabasesTab({ serviceId }: Props) {
               <div>
                 <h2 className="text-2xl font-bold text-white tracking-wide">Twoje bazy MySQL</h2>
                 <p className="text-sm text-neutral-400 mt-1 max-w-xl">
-                  Lista synchronizowana z{' '}
-                  <span className="font-mono text-neutral-200">
-                    CMD_API_DATABASES
-                  </span>{' '}
-                  (
+                  Lista synchronizowana z kontem hostingowym (
                   {daUsername ?? '—'}
-                  ). Zarządzanie i phpMyAdmin w panelu DA.
+                  ). Zarządzanie i phpMyAdmin w panelu hostingu.
                 </p>
               </div>
             </div>
@@ -85,7 +81,7 @@ export default function DatabasesTab({ serviceId }: Props) {
                   className="border-white/15 bg-white/[0.04] text-white hover:bg-white/10"
                 >
                   <a href={databasesDaUrl} target="_blank" rel="noopener noreferrer">
-                    Otwórz bazy w DirectAdmin
+                    Otwórz panel baz danych
                   </a>
                 </Button>
               ) : null}
@@ -120,7 +116,7 @@ export default function DatabasesTab({ serviceId }: Props) {
           {fetchError ? (
             <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
               <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-              <span>Odczyt z DirectAdmin: {fetchError}</span>
+              <span>Nie udało się odczytać listy baz: {fetchError}</span>
             </div>
           ) : null}
 
@@ -154,7 +150,7 @@ export default function DatabasesTab({ serviceId }: Props) {
                           rel="noopener noreferrer"
                           className="inline-flex items-center justify-center h-8 px-3 whitespace-nowrap bg-[#121212] hover:bg-white/10 text-neutral-300 hover:text-white font-medium text-xs rounded-lg transition-all border border-white/10"
                         >
-                          Zarządzaj w DA →
+                          Otwórz phpMyAdmin →
                         </a>
                       ) : (
                         <span className="text-neutral-600 text-xs">—</span>

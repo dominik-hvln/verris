@@ -56,7 +56,7 @@ export default function SSLTab({ serviceId }: Props) {
     return (
       <div className="flex items-center justify-center gap-3 py-24 text-neutral-400">
         <Loader2 className="h-6 w-6 animate-spin text-cyan-400" />
-        Dane z DirectAdmin (domeny + SSL)…
+        Wczytywanie certyfikatów…
       </div>
     );
   }
@@ -73,7 +73,7 @@ export default function SSLTab({ serviceId }: Props) {
           >
             <a href={sslUrl} target="_blank" rel="noopener noreferrer">
               <Lock className="h-4 w-4" />
-              Zarządzaj SSL w DA
+              Panel SSL (zaawansowany)
               <ExternalLink className="h-3.5 w-3.5 opacity-70" />
             </a>
           </Button>
@@ -109,8 +109,8 @@ export default function SSLTab({ serviceId }: Props) {
             <div>
               <h2 className="text-xl font-bold text-white tracking-wide">Certyfikaty SSL</h2>
               <p className="text-sm text-neutral-400 mt-1">
-                Wystaw Let&apos;s Encrypt lub wklej własny PEM bez wychodzenia z panelu; pełne zarządzanie nadal w
-                DirectAdmin. Poniżej lista domen konta (<span className="font-mono">CMD_API_SHOW_DOMAINS</span>).
+                Wystaw Let&apos;s Encrypt lub wklej własny certyfikat bez wychodzenia z panelu Verris.
+                Poniżej lista domen na koncie hostingowym.
               </p>
             </div>
           </div>
@@ -149,7 +149,7 @@ export default function SSLTab({ serviceId }: Props) {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 text-sm font-semibold text-cyan-300 hover:text-white"
                   >
-                    Ustaw certyfikat w DA
+                    Zarządzaj w panelu SSL
                     <ExternalLink className="h-4 w-4" />
                   </a>
                 ) : null}

@@ -27,7 +27,7 @@ import { BillingExtrasForms } from './billing-extras-forms';
 const txLabels: Record<WalletTxType, string> = {
   TOPUP: 'Doładowanie portfela',
   REFUND: 'Zwrot środków',
-  CHARGE_SUBSCRIPTION: 'Opłata subskrypcji',
+  CHARGE_SUBSCRIPTION: 'Opłata za usługę',
   CHARGE_AUTOSCALING: 'Autoskalowanie',
   CHARGE_USAGE: 'Wykorzystanie zasobów',
   ADJUSTMENT: 'Uznanie od Verris',
@@ -175,7 +175,7 @@ export default async function BillingPage({
                 <div>
                   <p className="font-semibold text-white">Faktury</p>
                   <p className="text-sm text-neutral-400 mt-1">
-                    Pełna lista faktur z subskrypcji opłacanych kartą — pobierzesz je z hostowanej
+                    Pełna lista faktur z usług opłacanych kartą — pobierzesz je z hostowanej
                     strony Stripe.
                   </p>
                 </div>
@@ -282,7 +282,7 @@ function EmptyTransactions() {
       <Info className="h-10 w-10 mx-auto text-neutral-500" />
       <h3 className="mt-4 text-xl font-bold text-white">Brak transakcji</h3>
       <p className="mt-2 text-neutral-400">
-        Doładuj portfel, by uruchomić pierwszą subskrypcję lub odnowienia automatyczne.
+        Doładuj portfel, by uruchomić pierwszą usługę lub odnowienia automatyczne.
       </p>
     </div>
   );

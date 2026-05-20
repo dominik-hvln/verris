@@ -37,14 +37,14 @@ export default function HostingFileManagerTab({ serviceId }: { serviceId: string
   return (
     <div className="rounded-2xl border border-white/10 bg-black/30 p-6 space-y-4">
       <p className="text-sm text-neutral-400 max-w-2xl">
-        Lista katalogów i edycja plików odbywa się w natywnym File Managerze DirectAdmin (pełny dostęp do konta
+        Lista katalogów i edycja plików odbywa się w menedżerze plików panelu hostingu (pełny dostęp do konta
         hostingowego).
       </p>
       {url ? (
         <Button asChild className="bg-white text-black hover:bg-neutral-200 gap-2">
           <a href={url} target="_blank" rel="noopener noreferrer">
             <FolderOpen className="h-4 w-4" />
-            Otwórz File Manager w DirectAdmin
+            Otwórz menedżer plików
             <ExternalLink className="h-4 w-4 opacity-70" />
           </a>
         </Button>

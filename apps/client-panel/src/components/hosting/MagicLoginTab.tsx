@@ -50,18 +50,18 @@ export default function MagicLoginTab({ serviceId }: MagicLoginTabProps) {
         </h2>
         <p className="text-neutral-400 text-sm leading-relaxed max-w-2xl mb-6">
           Jednorazowe tokeny SSO do WordPressa lub innych aplikacji nie są obecnie wystawiane przez Verris. Zaloguj się
-          hasłem aplikacji, menedżerem haseł lub — gdy dostawca oferuje integrację — przez DirectAdmin / instalator
+          hasłem aplikacji, menedżerem haseł lub — gdy dostawca oferuje integrację — przez panel hostingu / instalator
           aplikacji (np. Softaculous).
         </p>
         {panelUrl ? (
           <Button asChild className="bg-white text-black hover:bg-neutral-200 gap-2">
             <a href={panelUrl} target="_blank" rel="noopener noreferrer">
-              Otwórz DirectAdmin
+              Otwórz panel hostingu
               <ExternalLink className="h-4 w-4" />
             </a>
           </Button>
         ) : (
-          <p className="text-sm text-amber-200">Brak adresu panelu DirectAdmin.</p>
+          <p className="text-sm text-amber-200">Brak adresu panelu hostingu.</p>
         )}
       </div>
     </div>

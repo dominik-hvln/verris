@@ -130,7 +130,7 @@ export function DashboardCharts({ snapshot }: DashboardChartsProps) {
           {serviceSeries.length > 0 ? (
             <ServiceStatusPie data={serviceSeries} />
           ) : (
-            <ChartEmpty message="Nie masz jeszcze usług — zamów pierwszą subskrypcję." />
+            <ChartEmpty message="Nie masz jeszcze usług — zamów pierwszą usługę hostingową." />
           )}
         </ChartCard>
 

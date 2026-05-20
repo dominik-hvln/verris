@@ -163,7 +163,7 @@ function ServiceCard({ service }: { service: ServiceSummaryDto }) {
               </span>
               <span className="flex items-center gap-2">
                 <HardDrive className="w-4 h-4 text-neutral-500" />
-                {account?.daUsername ? `użytkownik DA: ${account.daUsername}` : 'brak konta DA'}
+                {account?.daUsername ? `login hostingowy: ${account.daUsername}` : 'brak konta hostingowego'}
               </span>
             </div>
           </div>

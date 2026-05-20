@@ -63,7 +63,7 @@ export function HostingSslForms({ serviceId }: Props) {
       ) : null}
 
       <label className="block space-y-1.5 max-w-md">
-        <span className="text-xs font-medium text-neutral-400">Domena (konto DirectAdmin)</span>
+        <span className="text-xs font-medium text-neutral-400">Domena (konto hostingowe)</span>
         <select
           className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
           value={domain}
@@ -89,7 +89,7 @@ export function HostingSslForms({ serviceId }: Props) {
             Let&apos;s Encrypt
           </div>
           <p className="text-xs text-neutral-500 leading-relaxed">
-            Zlecenie wystawienia certyfikatu w DirectAdmin (HTTP-01). Może potrwać do ok. 2 minut — nie zamykaj
+            Zlecenie wystawienia certyfikatu na serwerze (HTTP-01). Może potrwać do ok. 2 minut — nie zamykaj
             karty w tym czasie.
           </p>
           <label className="flex items-center gap-2 text-sm text-neutral-300 cursor-pointer select-none">
@@ -124,7 +124,7 @@ export function HostingSslForms({ serviceId }: Props) {
               if (r.ok) {
                 setLeMsg({
                   type: 'ok',
-                  text: 'Zlecono Let’s Encrypt. Odśwież stronę za chwilę lub sprawdź panel DirectAdmin.',
+                  text: 'Zlecono Let’s Encrypt. Odśwież stronę za chwilę lub sprawdź panel SSL.',
                 });
               } else {
                 setLeMsg({ type: 'err', text: r.error });
@@ -143,7 +143,7 @@ export function HostingSslForms({ serviceId }: Props) {
           </div>
           <p className="text-xs text-neutral-500 leading-relaxed">
             Wklej certyfikat serwera, klucz prywatny i opcjonalnie łańcuch CA (PEM). Dane trafiają wyłącznie do
-            DirectAdmin dla wybranej domeny.
+            serwera dla wybranej domeny.
           </p>
           <label className="block space-y-1.5">
             <span className="text-xs font-medium text-neutral-400">Certyfikat (PEM)</span>
@@ -202,7 +202,7 @@ export function HostingSslForms({ serviceId }: Props) {
               });
               setPasteBusy(false);
               if (r.ok) {
-                setPasteMsg({ type: 'ok', text: 'Certyfikat zapisany w DirectAdmin.' });
+                setPasteMsg({ type: 'ok', text: 'Certyfikat zapisany na serwerze.' });
               } else {
                 setPasteMsg({ type: 'err', text: r.error });
               }

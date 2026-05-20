@@ -11,6 +11,6 @@ export async function requestHostingSiteBackupAction(
     revalidatePath('/dashboard/backups');
     return { ok: true };
   } catch (e) {
-    return { error: e instanceof Error ? e.message : 'Nie udało się zlecić kopii w DirectAdmin.' };
+    return { error: e instanceof Error ? e.message : 'Nie udało się zlecić kopii zapasowej.' };
   }
 }

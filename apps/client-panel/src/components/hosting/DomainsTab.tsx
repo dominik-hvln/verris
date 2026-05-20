@@ -55,7 +55,7 @@ export default function DomainsTab({ serviceId }: Props) {
     return (
       <div className="flex items-center justify-center gap-3 py-24 text-neutral-400">
         <Loader2 className="h-6 w-6 animate-spin text-cyan-400" />
-        Wczytywanie domen z DirectAdmin…
+        Wczytywanie domen z hostingu…
       </div>
     );
   }
@@ -70,7 +70,7 @@ export default function DomainsTab({ serviceId }: Props) {
                 <Globe className="h-6 w-6" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-white tracking-wide">Domeny (DirectAdmin)</h2>
+                <h2 className="text-2xl font-bold text-white tracking-wide">Domeny na koncie</h2>
                 <p className="text-sm text-neutral-400 mt-1 max-w-xl">
                   Lista synchronizowana na żywo z kontem hostingowym (
                   {daUser ? (
@@ -78,7 +78,7 @@ export default function DomainsTab({ serviceId }: Props) {
                   ) : (
                     'brak konta'
                   )}
-                  ). Dodawanie i strefy DNS zarządzasz bezpośrednio w DirectAdmin lub przez nasz support.
+                  ). Dodawanie i strefy DNS zarządzasz w panelu hostingu lub przez nasz support.
                 </p>
               </div>
             </div>
@@ -110,8 +110,8 @@ export default function DomainsTab({ serviceId }: Props) {
             <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
               <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
               <span>
-                Odczyt z DirectAdmin nie powiódł się: {fetchError}. Sprawdź połączenie z węzłem lub skontaktuj
-                się z supportem — konto lub hasło mogło ulec zmianie.
+                Nie udało się pobrać listy domen: {fetchError}. Skontaktuj się z supportem — konto
+                mogło ulec zmianie lub hosting jest w trakcie zakładania.
               </span>
             </div>
           ) : null}
@@ -129,7 +129,7 @@ export default function DomainsTab({ serviceId }: Props) {
                 {domains.length === 0 && !fetchError ? (
                   <tr>
                     <td colSpan={3} className="px-4 py-10 text-center text-neutral-500">
-                      Brak wpisów domen w DirectAdmin dla tego konta (lub konto jeszcze nie provisionowane).
+                      Brak domen na tym koncie hostingowym (lub konto jest jeszcze w trakcie zakładania).
                     </td>
                   </tr>
                 ) : null}
@@ -158,7 +158,7 @@ export default function DomainsTab({ serviceId }: Props) {
                       <td className="px-4">
                         <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-white/5 text-white border-white/20">
                           <CheckCircle2 className="w-3 h-3 mr-1" />
-                          Na serwerze DA
+                          Na serwerze
                         </div>
                       </td>
                     </tr>

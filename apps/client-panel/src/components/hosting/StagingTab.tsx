@@ -56,15 +56,15 @@ export default function StagingTab({ serviceId }: StagingTabProps) {
           Środowisko stagingowe
         </h2>
         <p className="text-neutral-400 text-sm leading-relaxed max-w-2xl mb-6">
-          Osobne środowisko testowe tworzysz w DirectAdmin: subdomena (np. <code className="text-neutral-300">staging.</code>),
-          katalog dokumentów i ewentualnie kopia bazy przez narzędzia DA lub SSH. Ten panel nie uruchamia klonów
-          jednym przyciskiem — unikamy pozornych akcji bez realizacji w DA.
+          Osobne środowisko testowe tworzysz w panelu hostingu: subdomena (np. <code className="text-neutral-300">staging.</code>),
+          katalog dokumentów i ewentualnie kopia bazy przez narzędzia panelu lub SSH. Ten panel nie uruchamia klonów
+          jednym przyciskiem — unikamy pozornych akcji bez realizacji po stronie serwera.
         </p>
         <div className="flex flex-wrap gap-3">
           {stagingUrl ? (
             <Button asChild className="bg-white text-black hover:bg-neutral-200 gap-2">
               <a href={stagingUrl} target="_blank" rel="noopener noreferrer">
-                Zarządzanie domeną w DA
+                Zarządzanie domeną w panelu
                 <ExternalLink className="h-4 w-4" />
               </a>
             </Button>
@@ -72,12 +72,12 @@ export default function StagingTab({ serviceId }: StagingTabProps) {
           {panelUrl ? (
             <Button asChild variant="outline" className="border-white/20 text-white gap-2">
               <a href={panelUrl} target="_blank" rel="noopener noreferrer">
-                Panel DirectAdmin
+                Panel hostingu
                 <ExternalLink className="h-4 w-4" />
               </a>
             </Button>
           ) : (
-            <p className="text-sm text-amber-200">Brak linków do DirectAdmin.</p>
+            <p className="text-sm text-amber-200">Brak linków do panelu hostingu.</p>
           )}
         </div>
       </div>

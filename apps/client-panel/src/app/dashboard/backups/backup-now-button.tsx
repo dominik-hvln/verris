@@ -24,12 +24,12 @@ export function BackupNowButton({ serviceId }: { serviceId: string }) {
           else
             setMsg({
               type: 'ok',
-              text: 'Backup został zlecony w DirectAdmin. Może potrwać kilka minut — odśwież listę później.',
+              text: 'Kopia zapasowa została zlecona. Może potrwać kilka minut — odśwież listę później.',
             });
         }}
       >
         {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <HardDrive className="h-4 w-4" />}
-        Utwórz kopię teraz (snapshot DA)
+        Utwórz kopię teraz
       </Button>
       {msg ? (
         <p className={`text-sm ${msg.type === 'ok' ? 'text-emerald-300' : 'text-rose-300'}`}>{msg.text}</p>

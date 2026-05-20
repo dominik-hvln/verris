@@ -9,7 +9,7 @@ interface Props {
   /**
    * Próg "niskie saldo" — poniżej tej wartości kolor zmienia się na amber.
    * Domyślnie 20 K, żeby klient widział zawczasu, że trzeba doładować przed
-   * kolejnym cyklem subskrypcji albo skalowaniem.
+   * kolejnym cyklem opłat za usługi albo skalowaniem.
    */
   lowThreshold?: number;
 }
@@ -43,7 +43,7 @@ export function WalletBadge({ balance, lowThreshold = 20 }: Props) {
         : "text-neutral-400";
 
   const tooltip = isEmpty
-    ? "Saldo jest zerowe — doładuj portfel, aby utrzymać subskrypcje."
+    ? "Saldo jest zerowe — doładuj portfel, aby utrzymać usługi i odnowienia."
     : isLow
       ? `Saldo poniżej ${lowThreshold} ${CREDIT_SHORT}. Rozważ doładowanie.`
       : hasBalance
