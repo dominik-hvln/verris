@@ -8,7 +8,6 @@ import {
   Zap,
   CheckCircle2,
   AlertCircle,
-  Globe,
 } from 'lucide-react';
 import type { AutoscalingResource, PriceRuleDto } from './types';
 import { CREDIT_SHORT } from '@/lib/credits';
@@ -22,31 +21,28 @@ const HOURS_PER_MONTH = 730; // 730 ≈ 365.25 × 24 / 12
 export function AutoscalingCalculator({ rules }: Props) {
   const [cpuPercent, setCpuPercent] = useState(50);
   const [ramMb, setRamMb] = useState(512);
-  const [ioKbps, setIoKbps] = useState(0);
-  const [transferGb, setTransferGb] = useState(0);
+  const [diskMb, setDiskMb] = useState(0);
 
   const unit = CREDIT_SHORT;
 
   const breakdown = useMemo(() => {
     const cpuHourly = pickRate(rules, 'CPU', cpuPercent) * cpuPercent;
     const ramHourly = pickRate(rules, 'RAM', ramMb) * ramMb;
-    const ioHourly = pickRate(rules, 'IO', ioKbps) * ioKbps;
-    const transferOnce = pickRate(rules, 'TRANSFER', transferGb) * transferGb;
+    const diskHourly = pickRate(rules, 'DISK', diskMb) * diskMb;
 
-    const hourly = cpuHourly + ramHourly + ioHourly;
+    const hourly = cpuHourly + ramHourly + diskHourly;
     const daily = hourly * 24;
     const monthly = hourly * HOURS_PER_MONTH;
 
     return {
       cpuHourly,
       ramHourly,
-      ioHourly,
-      transferOnce,
+      diskHourly,
       hourly,
       daily,
       monthly,
     };
-  }, [rules, cpuPercent, ramMb, ioKbps, transferGb]);
+  }, [rules, cpuPercent, ramMb, diskMb]);
 
   const noRules = rules.length === 0;
 
@@ -91,25 +87,14 @@ export function AutoscalingCalculator({ rules }: Props) {
             />
             <Slider
               icon={<HardDrive className="w-5 h-5 text-emerald-400" />}
-              label="Dodatkowe I/O (kbps)"
-              hint="Throughput dyskowy dla konta"
+              label="Dodatkowa przestrzeń dyskowa (MB)"
+              hint="Powiększenie limitu dysku konta hostingowego"
               min={0}
               max={102_400}
-              step={1024}
-              value={ioKbps}
-              setValue={setIoKbps}
-              suffix=" kbps"
-            />
-            <Slider
-              icon={<Globe className="w-5 h-5 text-emerald-400" />}
-              label="Dodatkowy transfer (GB / miesiąc)"
-              hint="Naliczane jednorazowo za wykorzystany pakiet"
-              min={0}
-              max={1000}
-              step={10}
-              value={transferGb}
-              setValue={setTransferGb}
-              suffix=" GB"
+              step={256}
+              value={diskMb}
+              setValue={setDiskMb}
+              suffix=" MB"
             />
           </div>
 
@@ -154,13 +139,8 @@ export function AutoscalingCalculator({ rules }: Props) {
                 value={`${breakdown.ramHourly.toFixed(4)} ${unit}/h`}
               />
               <Row
-                label="I/O"
-                value={`${breakdown.ioHourly.toFixed(4)} ${unit}/h`}
-              />
-              <Row
-                label="Transfer"
-                value={`${breakdown.transferOnce.toFixed(2)} ${unit}`}
-                hint="jednorazowo"
+                label="Dysk"
+                value={`${breakdown.diskHourly.toFixed(4)} ${unit}/h`}
               />
             </div>
 
@@ -270,13 +250,6 @@ function Bullet({ text }: { text: string }) {
   );
 }
 
-/**
- * Picks the price rate (PLN per unit per hour) for a given resource and amount.
- * Mirrors the API logic in `AutoscalingPricingService.estimateHourlyCost`:
- * walks rules sorted by `thresholdAbove` desc, picks the first one for which
- * the chosen amount is at or above the threshold; falls back to the lowest-
- * threshold rule.
- */
 function pickRate(
   rules: PriceRuleDto[],
   resource: AutoscalingResource,

@@ -944,8 +944,9 @@ model InvoiceCounter {
 enum AutoscalingResource {
   CPU       // additional CPU% per hour
   RAM       // additional MB per hour
-  IO        // additional I/O kbps per hour
-  TRANSFER  // outgoing transfer per GB
+  DISK      // additional disk MB per hour
+  IO        // legacy — no longer offered in catalog
+  TRANSFER  // legacy — no longer offered in catalog
 }
 
 model AutoscalingPriceRule {

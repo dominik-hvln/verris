@@ -3,7 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { adminApi, AdminApiError } from "@/lib/api";
 
-export type AutoscalingResource = "CPU" | "RAM" | "IO" | "TRANSFER";
+export type AutoscalingCatalogResource = "CPU" | "RAM" | "DISK";
+
+/** Legacy values may still exist in DB until migrated off. */
+export type AutoscalingResource = AutoscalingCatalogResource | "IO" | "TRANSFER";
 
 export interface PriceRuleDto {
   id: string;
@@ -20,8 +23,7 @@ export interface PriceRuleDto {
 }
 
 export interface CreatePriceRuleInput {
-  resource: AutoscalingResource;
-  unit: string;
+  resource: AutoscalingCatalogResource;
   pricePerUnit: number;
   currency?: string;
   thresholdAbove?: number;
@@ -33,7 +35,7 @@ export interface UpdatePriceRuleInput {
   pricePerUnit?: number;
   thresholdAbove?: number;
   isActive?: boolean;
-  notes?: string;
+  notes?: string | null;
 }
 
 export interface ActionResult<T = unknown> {

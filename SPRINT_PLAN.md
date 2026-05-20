@@ -12,6 +12,17 @@
 - Priorytet przed LIVE: brak fałszywych obietnic w UI, pewny billing, audytowalne operacje BOK/admina, odtwarzalne backupy, monitoring i smoke testy end-to-end.
 - DirectAdmin, CloudLinux LVE, LiteSpeed i Stripe są rdzeniem stacku **100%-LIVE** (produkcyjnym, nie „połówką”). PayU, domeny, Softaculous, AI i pełna automatyzacja migracji są kolejnymi warstwami.
 
+## Autoskalowanie (CPU / RAM / Dysk)
+
+> Szczegółowy breakdown sprintów **AS-1 … AS-3** (silnik dysku, UX, tier pricing): [`AUTOSCALING_SPRINT_PLAN.md`](./AUTOSCALING_SPRINT_PLAN.md).
+
+| Status | Opis |
+|--------|------|
+| ✅ Wdrożone | Cennik i kalkulator: 3 zasoby (CPU, RAM, Dysk); I/O i transfer wycofane z katalogu |
+| 🔜 AS-1 | Silnik runtime + billing dla `scaledDiskMb` i limitu dysku w DirectAdmin |
+| 🔜 AS-2 | UX per-usługa (toggle dysk, powiadomienia, runbook support) |
+| 🔜 AS-3 | Tier pricing, symulator w adminie, metryki przychodu |
+
 ## Quick-wins zrealizowane i fast-follow wallet
 
 ### Zrobione

@@ -34,9 +34,8 @@ export function AutoscalingForm({
           Ustawienia
         </h2>
         <p className="mt-1 text-xs text-neutral-400">
-          Autoskalowanie tymczasowo zwiększa CPU i RAM gdy Twoja strona dostaje skok
-          ruchu. Naliczenie godzinowe trafia do Twojego portfela według aktualnego
-          cennika.
+          Autoskalowanie tymczasowo zwiększa CPU i RAM przy skoku ruchu.
+          Naliczenie godzinowe trafia do portfela według cennika (CPU, RAM, dysk).
         </p>
       </div>
 

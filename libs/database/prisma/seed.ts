@@ -130,14 +130,9 @@ async function main() {
       pricePerUnit: 0.000117, // ~0.03 zł / h za 256 MB
     },
     {
-      resource: AutoscalingResource.IO,
-      unit: 'io_kbps',
-      pricePerUnit: 0.00002,
-    },
-    {
-      resource: AutoscalingResource.TRANSFER,
-      unit: 'transfer_gb',
-      pricePerUnit: 0.01, // 0.01 zł / GB
+      resource: AutoscalingResource.DISK,
+      unit: 'disk_mb',
+      pricePerUnit: 0.00005, // ~0.036 zł / h za 512 MB
     },
   ];
 

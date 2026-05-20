@@ -1,16 +1,16 @@
 import { AlertCircle, Gauge } from "lucide-react";
-import type { PriceRuleDto } from "./actions";
 import { listPriceRules } from "./actions";
 import { PricingTable } from "./pricing-table";
 import { CreateRuleForm } from "./create-rule-form";
 
 export const dynamic = "force-dynamic";
 
-const RESOURCE_LABELS: Record<PriceRuleDto["resource"], string> = {
+const RESOURCE_LABELS: Record<string, string> = {
   CPU: "CPU (% / godz.)",
   RAM: "RAM (MB / godz.)",
-  IO: "I/O (kbps / godz.)",
-  TRANSFER: "Transfer (GB)",
+  DISK: "Dysk (MB / godz.)",
+  IO: "I/O (kbps) — wycofane",
+  TRANSFER: "Transfer (GB) — wycofane",
 };
 
 export default async function AutoscalingPricingPage() {
@@ -26,8 +26,8 @@ export default async function AutoscalingPricingPage() {
             Cennik Autoskalowania
           </h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
-            Stawki nakładane na klienta gdy CloudLinux LVE zwiększa limity konta. Zmiany wchodzą
-            natychmiast — nowe naliczenia użyją zaktualizowanych cen, istniejące pozycje w portfelu
+            Stawki za dodatkowe CPU, RAM i dysk ponad plan bazowy. Zmiany wchodzą natychmiast —
+            nowe naliczenia użyją zaktualizowanych cen; pozycje już zaksięgowane w portfelu
             pozostają bez zmian.
           </p>
         </div>

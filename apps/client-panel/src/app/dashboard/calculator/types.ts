@@ -1,4 +1,4 @@
-export type AutoscalingResource = 'CPU' | 'RAM' | 'IO' | 'TRANSFER';
+export type AutoscalingResource = 'CPU' | 'RAM' | 'DISK';
 
 export interface PriceRuleDto {
   id: string;
@@ -8,5 +8,4 @@ export interface PriceRuleDto {
   currency: string;
   thresholdAbove: number;
   isActive: boolean;
-  notes: string | null;
 }
