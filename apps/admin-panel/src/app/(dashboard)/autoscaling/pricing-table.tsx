@@ -41,7 +41,11 @@ export function PricingTable({ rules, resourceLabels }: Props) {
       if (map.has(key)) map.get(key)!.push(rule);
     }
     for (const list of map.values()) {
-      list.sort((a, b) => a.thresholdAbove - b.thresholdAbove || b.isActive - a.isActive);
+      list.sort(
+        (a, b) =>
+          a.thresholdAbove - b.thresholdAbove ||
+          Number(b.isActive) - Number(a.isActive),
+      );
     }
     return map;
   }, [catalogRules]);
