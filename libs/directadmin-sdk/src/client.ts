@@ -52,6 +52,8 @@ export interface AccountResourceLimits {
    * Prefer `nproc`.
    */
   workers?: number;
+  /** Disk quota in megabytes (`quota` in DirectAdmin MODIFY_USER). */
+  diskQuotaMb?: number;
 }
 
 /**
@@ -165,6 +167,7 @@ export class DirectAdminClient {
     if (limits.entryProcesses !== undefined) params.ep = String(limits.entryProcesses);
     const nproc = limits.nproc ?? limits.workers;
     if (nproc !== undefined) params.nproc = String(nproc);
+    if (limits.diskQuotaMb !== undefined) params.quota = String(limits.diskQuotaMb);
 
     const response = await this.client.post(
       '/CMD_API_MODIFY_USER',

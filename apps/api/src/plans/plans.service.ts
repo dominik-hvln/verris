@@ -107,6 +107,9 @@ export class PlansService {
         sortOrder: dto.sortOrder ?? 0,
         stripePriceMonthlyId: dto.stripePriceMonthlyId ?? null,
         stripePriceYearlyId: dto.stripePriceYearlyId ?? null,
+        autoscalingMaxOverscaleCpu: dto.autoscalingMaxOverscaleCpu ?? 3,
+        autoscalingMaxOverscaleRam: dto.autoscalingMaxOverscaleRam ?? 3,
+        autoscalingMaxOverscaleDisk: dto.autoscalingMaxOverscaleDisk ?? 3,
       },
     });
 

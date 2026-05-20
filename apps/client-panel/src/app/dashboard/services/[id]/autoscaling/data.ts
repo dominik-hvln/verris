@@ -39,19 +39,31 @@ export interface ServiceDetailDto {
   interval: 'MONTH' | 'YEAR';
   autoscalingEnabled: boolean;
   autoscalingMaxCost: string;
+  autoscalingScaleCpu?: boolean;
+  autoscalingScaleRam?: boolean;
+  autoscalingScaleDisk?: boolean;
   ecoModeEnabled: boolean;
-  plan: {
-    id: string;
-    slug: string;
-    name: string;
-  };
   account: {
     id: string;
     daUsername: string;
     domain: string;
     status: string;
     serverId: string;
+    cpuLimit: number;
+    ramLimitMb: number;
+    diskLimitMb: number;
+    scaledCpu: number;
+    scaledRamMb: number;
+    scaledDiskMb: number;
   } | null;
+  plan: {
+    id: string;
+    slug: string;
+    name: string;
+    cpuLimit: number;
+    ramLimitMb: number;
+    diskLimitMb: number;
+  };
 }
 
 export async function getServiceDetails(id: string) {

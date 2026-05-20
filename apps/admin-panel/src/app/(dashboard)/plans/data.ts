@@ -24,6 +24,9 @@ export interface AdminPlanRow {
   isPublic: boolean;
   isActive: boolean;
   sortOrder: number;
+  autoscalingMaxOverscaleCpu: number;
+  autoscalingMaxOverscaleRam: number;
+  autoscalingMaxOverscaleDisk: number;
   createdAt: string;
   updatedAt: string;
 }

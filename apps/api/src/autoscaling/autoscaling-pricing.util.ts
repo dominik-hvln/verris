@@ -59,3 +59,8 @@ export function hourlyCostForCatalogAmounts(
 export function scaledRamMbToCatalogGb(scaledRamMb: number): number {
   return scaledRamMb / MB_PER_GB;
 }
+
+/** Engine billing: scaled disk is stored in MB on the account. */
+export function scaledDiskMbToCatalogGb(scaledDiskMb: number): number {
+  return scaledDiskMb / MB_PER_GB;
+}

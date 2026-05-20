@@ -1,19 +1,25 @@
 'use client';
 
-import { useActionState, useState } from 'react';
-import { Loader2, Save, Sparkles, ShieldCheck } from 'lucide-react';
+import { useActionState, useState, type ReactNode } from 'react';
+import { Loader2, Save, Sparkles, ShieldCheck, Cpu, MemoryStick, HardDrive } from 'lucide-react';
 import { updateAutoscalingAction, type UpdateAutoscalingState } from './actions';
 
 interface Props {
   subscriptionId: string;
   enabled: boolean;
   maxMonthlyCost: number;
+  scaleCpu: boolean;
+  scaleRam: boolean;
+  scaleDisk: boolean;
 }
 
 export function AutoscalingForm({
   subscriptionId,
   enabled: initialEnabled,
   maxMonthlyCost: initialCap,
+  scaleCpu: initialScaleCpu,
+  scaleRam: initialScaleRam,
+  scaleDisk: initialScaleDisk,
 }: Props) {
   const [state, formAction, pending] = useActionState<UpdateAutoscalingState, FormData>(
     (prev, formData) => updateAutoscalingAction(subscriptionId, prev, formData),
@@ -22,6 +28,9 @@ export function AutoscalingForm({
 
   const [enabled, setEnabled] = useState(initialEnabled);
   const [cap, setCap] = useState<string>(initialCap > 0 ? initialCap.toFixed(2) : '');
+  const [scaleCpu, setScaleCpu] = useState(initialScaleCpu);
+  const [scaleRam, setScaleRam] = useState(initialScaleRam);
+  const [scaleDisk, setScaleDisk] = useState(initialScaleDisk);
 
   return (
     <form
@@ -34,7 +43,7 @@ export function AutoscalingForm({
           Ustawienia
         </h2>
         <p className="mt-1 text-xs text-neutral-400">
-          Autoskalowanie tymczasowo zwiększa CPU i RAM przy skoku ruchu.
+          Autoskalowanie tymczasowo zwiększa wybrane zasoby ponad plan przy skoku ruchu.
           Naliczenie godzinowe trafia do portfela według cennika (CPU, RAM, dysk).
         </p>
       </div>
@@ -57,11 +66,44 @@ export function AutoscalingForm({
             )}
           </div>
           <p className="mt-1 text-xs text-neutral-400">
-            Bez autoskalowania Twoja strona nie skorzysta z większych zasobów podczas
-            piku ruchu — może odpowiadać wolniej, ale nie zostanie obciążona dodatkowo.
+            Bez autoskalowania strona nie skorzysta z większych limitów podczas piku —
+            może odpowiadać wolniej, ale nie zostanie obciążona dodatkowo.
           </p>
         </div>
       </label>
+
+      <fieldset
+        disabled={!enabled}
+        className={`space-y-3 rounded-xl border border-white/5 p-4 ${!enabled ? 'opacity-50' : ''}`}
+      >
+        <legend className="text-xs font-bold uppercase tracking-widest text-neutral-500 px-1">
+          Skaluj zasoby
+        </legend>
+        <ResourceToggle
+          icon={<Cpu className="h-4 w-4 text-emerald-400" />}
+          label="CPU"
+          hint="Dodatkowy procent mocy ponad plan"
+          name="scaleCpu"
+          checked={scaleCpu}
+          onChange={setScaleCpu}
+        />
+        <ResourceToggle
+          icon={<MemoryStick className="h-4 w-4 text-emerald-400" />}
+          label="RAM"
+          hint="Dodatkowa pamięć ponad plan (GB)"
+          name="scaleRam"
+          checked={scaleRam}
+          onChange={setScaleRam}
+        />
+        <ResourceToggle
+          icon={<HardDrive className="h-4 w-4 text-emerald-400" />}
+          label="Dysk"
+          hint="Dodatkowa przestrzeń ponad plan (GB)"
+          name="scaleDisk"
+          checked={scaleDisk}
+          onChange={setScaleDisk}
+        />
+      </fieldset>
 
       <div>
         <label className="block">
@@ -107,5 +149,40 @@ export function AutoscalingForm({
         {pending ? 'Zapisywanie…' : 'Zapisz ustawienia'}
       </button>
     </form>
+  );
+}
+
+function ResourceToggle({
+  icon,
+  label,
+  hint,
+  name,
+  checked,
+  onChange,
+}: {
+  icon: ReactNode;
+  label: string;
+  hint: string;
+  name: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+}) {
+  return (
+    <label className="flex items-start gap-3 cursor-pointer">
+      <input
+        type="checkbox"
+        name={name}
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="mt-0.5 h-4 w-4 rounded border-white/20 bg-black accent-emerald-500"
+      />
+      <div className="flex-1 min-w-0">
+        <div className="text-sm font-semibold text-white flex items-center gap-2">
+          {icon}
+          Skaluj {label}
+        </div>
+        <p className="text-[11px] text-neutral-500">{hint}</p>
+      </div>
+    </label>
   );
 }

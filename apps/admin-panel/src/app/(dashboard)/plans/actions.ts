@@ -37,6 +37,9 @@ interface CreatePlanPayload {
   sortOrder?: number;
   stripePriceMonthlyId?: string;
   stripePriceYearlyId?: string;
+  autoscalingMaxOverscaleCpu?: number;
+  autoscalingMaxOverscaleRam?: number;
+  autoscalingMaxOverscaleDisk?: number;
 }
 
 export async function createPlanAction(payload: CreatePlanPayload): Promise<PlanActionResult> {
@@ -70,6 +73,9 @@ interface UpdatePlanPayload {
   sortOrder?: number;
   stripePriceMonthlyId?: string;
   stripePriceYearlyId?: string;
+  autoscalingMaxOverscaleCpu?: number;
+  autoscalingMaxOverscaleRam?: number;
+  autoscalingMaxOverscaleDisk?: number;
 }
 
 export async function updatePlanAction(

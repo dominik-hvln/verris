@@ -15,7 +15,7 @@
  * Odwrotny błąd (transactional jako marketing) prowadziłby do nieświadomego
  * suppressowania krytycznych powiadomień, dlatego ten "fail-safe" default.
  */
-export type EmailCategory = 'TRANSACTIONAL' | 'MARKETING';
+export type EmailCategory = 'TRANSACTIONAL' | 'MARKETING' | 'PRODUCT_UPDATE';
 
 export interface MailMessage {
   to: string;

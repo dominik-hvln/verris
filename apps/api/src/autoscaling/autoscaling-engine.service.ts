@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import {
   Account,
@@ -14,53 +15,40 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { DirectAdminService } from '../servers/directadmin.service';
+import { MailerService } from '../mail/mailer.service';
+import { autoscalingScaleUpTemplate } from '../mail/templates/autoscaling-notifications';
 import {
   hourlyCostForCatalogAmounts,
+  scaledDiskMbToCatalogGb,
   scaledRamMbToCatalogGb,
 } from './autoscaling-pricing.util';
 
 /**
- * Autoscaling engine — the heart of EPIC D.
- *
- * Runs every minute, walks every ACTIVE subscription that has autoscaling
- * enabled, and decides whether to:
- *   - SCALE_UP   — sustained pressure across the last 5 buckets,
- *   - SCALE_DOWN — sustained slack and we previously scaled up,
- *   - HOLD       — no action,
- *   - DISABLED   — wallet is empty / monthly cap exhausted; we drop everything
- *                  back to the plan baseline and stop further upscaling.
- *
- * Decisions translate into:
- *   1. A `lvectl`-equivalent call against DirectAdmin (`setAccountLimits`),
- *   2. Updated `Account.scaledCpu/scaledRamMb` and `Account.cpuLimit/ramLimitMb`
- *      so the panel always reflects the live LVE state,
- *   3. An `AutoscalingEvent` row + audit log entry for forensics.
- *
- * The engine is intentionally idempotent: if it can't make progress (e.g. DA
- * is unreachable, or the wallet check fails), it logs and bails. The next tick
- * will retry.
+ * Autoscaling engine — scales CPU, RAM and disk when sustained pressure
+ * is observed in bucketed telemetry (CloudLinux LVE + disk usage).
  */
 @Injectable()
 export class AutoscalingEngineService {
   private readonly logger = new Logger(AutoscalingEngineService.name);
 
-  // Tunables — kept here on purpose so they're trivial to revisit when we
-  // collect production data. Move to AppConfig if/when product wants knobs.
   private readonly BUCKET_WINDOW_MIN = 5;
-  private readonly UP_PRESSURE_RATIO = 0.8; // ≥80% utilisation = pressure
-  private readonly DOWN_RELAX_RATIO = 0.3; // <30% utilisation = slack
-  private readonly UP_HITS_REQUIRED = 3; // out of last 5 buckets
-  private readonly DOWN_HITS_REQUIRED = 5; // all 5 buckets relaxed
-  private readonly SCALE_STEP_RATIO = 0.25; // grow/shrink by 25 % of plan baseline
-  private readonly MAX_OVERSCALE_RATIO = 3; // never go beyond 3× plan baseline
-  private readonly UP_CPU_PRESSURE_FLOOR = 5; // require avg ≥5 CPU% absolute
-  private readonly UP_RAM_PRESSURE_FLOOR_MB = 64; // require avg ≥64 MB absolute
-  private readonly MIN_WALLET_BALANCE = 1; // at least 1 PLN to allow a SCALE_UP
+  private readonly UP_PRESSURE_RATIO = 0.8;
+  private readonly DOWN_RELAX_RATIO = 0.3;
+  private readonly UP_HITS_REQUIRED = 3;
+  private readonly DOWN_HITS_REQUIRED = 5;
+  private readonly SCALE_STEP_RATIO = 0.25;
+  private readonly DEFAULT_MAX_OVERSCALE_RATIO = 3;
+  private readonly UP_CPU_PRESSURE_FLOOR = 5;
+  private readonly UP_RAM_PRESSURE_FLOOR_MB = 64;
+  private readonly UP_DISK_PRESSURE_FLOOR_MB = 256;
+  private readonly MIN_WALLET_BALANCE = 1;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly da: DirectAdminService,
+    private readonly mailer: MailerService,
+    private readonly config: ConfigService,
   ) {}
 
   @Cron(CronExpression.EVERY_MINUTE, { name: 'autoscaling-engine' })
@@ -72,7 +60,11 @@ export class AutoscalingEngineService {
         autoscalingEnabled: true,
         account: { isNot: null },
       },
-      include: { account: true, plan: true, user: { select: { walletBalance: true } } },
+      include: {
+        account: true,
+        plan: true,
+        user: { select: { walletBalance: true, email: true, firstName: true } },
+      },
     });
 
     if (subs.length === 0) return;
@@ -106,15 +98,11 @@ export class AutoscalingEngineService {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Core decision flow per subscription
-  // ---------------------------------------------------------------------------
-
   private async evaluate(
     sub: Subscription & {
       account: Account | null;
       plan: Plan;
-      user: { walletBalance: Prisma.Decimal };
+      user: { walletBalance: Prisma.Decimal; email: string; firstName: string | null };
     },
     rules: AutoscalingPriceRule[],
   ): Promise<'UP' | 'DOWN' | 'HOLD' | 'DISABLED'> {
@@ -131,54 +119,78 @@ export class AutoscalingEngineService {
       take: this.BUCKET_WINDOW_MIN,
     });
 
-    // Without enough samples we hold — decisions on 1-2 buckets are too noisy
-    // and the very first 5 minutes after provisioning would otherwise jitter.
     if (recent.length < 3) return 'HOLD';
 
     const baseCpu = sub.plan.cpuLimit;
     const baseRam = sub.plan.ramLimitMb;
+    const baseDisk = sub.plan.diskLimitMb;
     const scaledCpu = sub.account.scaledCpu;
     const scaledRamMb = sub.account.scaledRamMb;
+    const scaledDiskMb = sub.account.scaledDiskMb;
     const effCpu = baseCpu + scaledCpu;
     const effRam = baseRam + scaledRamMb;
+    const effDisk = baseDisk + scaledDiskMb;
 
-    // Decide per resource. We treat CPU and RAM independently — it's perfectly
-    // fine to scale CPU up while keeping RAM unchanged.
-    const cpuMove = this.decideMove({
-      avgs: recent.map((r) => r.cpuUsageAvg),
-      effective: effCpu,
-      base: baseCpu,
-      currentScaled: scaledCpu,
-      pressureFloor: this.UP_CPU_PRESSURE_FLOOR,
-    });
+    const cpuMove = this.applyResourceMove(
+      this.decideMove({
+        avgs: recent.map((r) => r.cpuUsageAvg),
+        effective: effCpu,
+        base: baseCpu,
+        currentScaled: scaledCpu,
+        pressureFloor: this.UP_CPU_PRESSURE_FLOOR,
+        maxOverscaleRatio: this.resolveMaxOverscaleRatio(sub.plan.autoscalingMaxOverscaleCpu),
+      }),
+      sub.autoscalingScaleCpu,
+    );
 
-    const ramMove = this.decideMove({
-      avgs: recent.map((r) => r.memUsageAvgMb),
-      effective: effRam,
-      base: baseRam,
-      currentScaled: scaledRamMb,
-      pressureFloor: this.UP_RAM_PRESSURE_FLOOR_MB,
-    });
+    const ramMove = this.applyResourceMove(
+      this.decideMove({
+        avgs: recent.map((r) => r.memUsageAvgMb),
+        effective: effRam,
+        base: baseRam,
+        currentScaled: scaledRamMb,
+        pressureFloor: this.UP_RAM_PRESSURE_FLOOR_MB,
+        maxOverscaleRatio: this.resolveMaxOverscaleRatio(sub.plan.autoscalingMaxOverscaleRam),
+      }),
+      sub.autoscalingScaleRam,
+    );
 
-    if (cpuMove === 0 && ramMove === 0) return 'HOLD';
+    const diskMove = this.applyResourceMove(
+      this.decideMove({
+        avgs: recent.map((r) => r.diskUsageMb),
+        effective: effDisk,
+        base: baseDisk,
+        currentScaled: scaledDiskMb,
+        pressureFloor: this.UP_DISK_PRESSURE_FLOOR_MB,
+        maxOverscaleRatio: this.resolveMaxOverscaleRatio(sub.plan.autoscalingMaxOverscaleDisk),
+      }),
+      sub.autoscalingScaleDisk,
+    );
 
-    // ---- D-7 guards: never scale up if we can't safely bill the customer ----
+    if (cpuMove === 0 && ramMove === 0 && diskMove === 0) return 'HOLD';
 
-    let isUp = cpuMove > 0 || ramMove > 0;
-    let nextScaledCpu = scaledCpu + cpuMove;
-    let nextScaledRamMb = scaledRamMb + ramMove;
+    const isUp = cpuMove > 0 || ramMove > 0 || diskMove > 0;
+    const nextScaledCpu = scaledCpu + cpuMove;
+    const nextScaledRamMb = scaledRamMb + ramMove;
+    const nextScaledDiskMb = scaledDiskMb + diskMove;
 
     if (isUp) {
-      const guard = await this.guardScaleUp(sub, rules, nextScaledCpu, nextScaledRamMb);
+      const guard = await this.guardScaleUp(
+        sub,
+        rules,
+        nextScaledCpu,
+        nextScaledRamMb,
+        nextScaledDiskMb,
+      );
       if (guard.allowed === false) {
         const blockReason = guard.reason;
         await this.recordDisabled(sub, recent, blockReason);
-        // Bring effective back to baseline if currently scaled up.
-        if (scaledCpu > 0 || scaledRamMb > 0) {
+        if (scaledCpu > 0 || scaledRamMb > 0 || scaledDiskMb > 0) {
           await this.applyChange(sub, {
             recent,
             nextScaledCpu: 0,
             nextScaledRamMb: 0,
+            nextScaledDiskMb: 0,
             reason: blockReason,
             direction: AutoscalingDirection.DOWN,
             disable: true,
@@ -188,14 +200,13 @@ export class AutoscalingEngineService {
       }
     }
 
-    // Direction = UP if either resource grew; DOWN if both shrunk; otherwise UP wins
-    // (we treat any growth as UP for accounting/event purposes).
     const direction = isUp ? AutoscalingDirection.UP : AutoscalingDirection.DOWN;
     await this.applyChange(sub, {
       recent,
       nextScaledCpu,
       nextScaledRamMb,
-      reason: this.describeReason(recent, effCpu, effRam, isUp),
+      nextScaledDiskMb,
+      reason: this.describeReason(recent, effCpu, effRam, effDisk, isUp),
       direction,
       disable: false,
     });
@@ -203,21 +214,27 @@ export class AutoscalingEngineService {
     return isUp ? 'UP' : 'DOWN';
   }
 
-  /**
-   * Returns the *delta* to add to the current scaled value:
-   *   > 0 → scale up,
-   *   < 0 → scale down,
-   *   = 0 → hold.
-   */
+  private applyResourceMove(rawMove: number, scalingEnabled: boolean): number {
+    if (scalingEnabled) return rawMove;
+    return rawMove < 0 ? rawMove : 0;
+  }
+
+  private resolveMaxOverscaleRatio(value: number): number {
+    if (!Number.isFinite(value) || value < 1) return this.DEFAULT_MAX_OVERSCALE_RATIO;
+    return Math.min(value, 10);
+  }
+
   private decideMove(opts: {
     avgs: number[];
     effective: number;
     base: number;
     currentScaled: number;
     pressureFloor: number;
+    maxOverscaleRatio: number;
   }): number {
-    const { avgs, effective, base, currentScaled, pressureFloor } = opts;
-    if (effective <= 0) return 0;
+    const { avgs, effective, base, currentScaled, pressureFloor, maxOverscaleRatio } =
+      opts;
+    if (effective <= 0 || base <= 0) return 0;
 
     const upHits = avgs.filter(
       (v) => v >= pressureFloor && v >= effective * this.UP_PRESSURE_RATIO,
@@ -225,7 +242,7 @@ export class AutoscalingEngineService {
     const downHits = avgs.filter((v) => v <= effective * this.DOWN_RELAX_RATIO).length;
 
     const step = Math.max(1, Math.ceil(base * this.SCALE_STEP_RATIO));
-    const ceilingScaled = base * (this.MAX_OVERSCALE_RATIO - 1);
+    const ceilingScaled = base * (maxOverscaleRatio - 1);
 
     if (upHits >= this.UP_HITS_REQUIRED) {
       const next = Math.min(currentScaled + step, ceilingScaled);
@@ -240,16 +257,17 @@ export class AutoscalingEngineService {
     return 0;
   }
 
-  // ---------------------------------------------------------------------------
-  // Apply / persist
-  // ---------------------------------------------------------------------------
-
   private async applyChange(
-    sub: Subscription & { account: Account | null; plan: Plan },
+    sub: Subscription & {
+      account: Account | null;
+      plan: Plan;
+      user: { email: string; firstName: string | null };
+    },
     opts: {
       recent: UsageMetric[];
       nextScaledCpu: number;
       nextScaledRamMb: number;
+      nextScaledDiskMb: number;
       reason: string;
       direction: AutoscalingDirection;
       disable: boolean;
@@ -259,17 +277,17 @@ export class AutoscalingEngineService {
 
     const baseCpu = sub.plan.cpuLimit;
     const baseRam = sub.plan.ramLimitMb;
+    const baseDisk = sub.plan.diskLimitMb;
     const newCpuLimit = baseCpu + opts.nextScaledCpu;
     const newRamLimit = baseRam + opts.nextScaledRamMb;
+    const newDiskLimit = baseDisk + opts.nextScaledDiskMb;
 
-    // 1. Push the new limits to the node first. If DA refuses (server down,
-    //    misconfigured DA creds, etc.) we abort the DB update so the panel
-    //    keeps reflecting reality.
     try {
       const client = await this.da.getClientForServer(sub.account.serverId);
       await client.setAccountLimits(sub.account.daUsername, {
         cpuPercent: newCpuLimit,
         memoryMb: newRamLimit,
+        diskQuotaMb: newDiskLimit,
         ioKbps: sub.plan.ioLimitKbps,
         iops: sub.plan.iopsLimit,
         entryProcesses: sub.plan.entryProcesses,
@@ -280,23 +298,22 @@ export class AutoscalingEngineService {
         `Autoscaling: DA setAccountLimits failed for sub=${sub.id} ` +
           `(${sub.account.daUsername}): ${(err as Error).message}`,
       );
-      return; // skip DB update — try again on next tick
+      return;
     }
 
-    // 2. Persist account state + autoscaling event in one transaction.
     await this.prisma.$transaction(async (tx) => {
       await tx.account.update({
         where: { id: sub.account!.id },
         data: {
           scaledCpu: opts.nextScaledCpu,
           scaledRamMb: opts.nextScaledRamMb,
+          scaledDiskMb: opts.nextScaledDiskMb,
           cpuLimit: newCpuLimit,
           ramLimitMb: newRamLimit,
+          diskLimitMb: newDiskLimit,
         },
       });
 
-      // Emit one event per resource that changed — the panel timeline reads
-      // these one-by-one and renders them as separate rows.
       const resourceChanges: Array<{
         resource: AutoscalingResource;
         from: number;
@@ -315,6 +332,13 @@ export class AutoscalingEngineService {
           resource: AutoscalingResource.RAM,
           from: sub.account!.scaledRamMb,
           to: opts.nextScaledRamMb,
+        });
+      }
+      if (sub.account!.scaledDiskMb !== opts.nextScaledDiskMb) {
+        resourceChanges.push({
+          resource: AutoscalingResource.DISK,
+          from: sub.account!.scaledDiskMb,
+          to: opts.nextScaledDiskMb,
         });
       }
 
@@ -365,27 +389,72 @@ export class AutoscalingEngineService {
         nextScaledCpu: opts.nextScaledCpu,
         previousScaledRamMb: sub.account.scaledRamMb,
         nextScaledRamMb: opts.nextScaledRamMb,
+        previousScaledDiskMb: sub.account.scaledDiskMb,
+        nextScaledDiskMb: opts.nextScaledDiskMb,
         reason: opts.reason,
       },
     });
+
+    if (opts.direction === AutoscalingDirection.UP && !opts.disable && sub.account) {
+      const panelUrl =
+        this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl';
+      const domain = sub.account.domain;
+      const notify: Array<{
+        resource: AutoscalingResource;
+        from: number;
+        to: number;
+      }> = [];
+      if (sub.account.scaledCpu !== opts.nextScaledCpu) {
+        notify.push({
+          resource: AutoscalingResource.CPU,
+          from: sub.account.scaledCpu,
+          to: opts.nextScaledCpu,
+        });
+      }
+      if (sub.account.scaledRamMb !== opts.nextScaledRamMb) {
+        notify.push({
+          resource: AutoscalingResource.RAM,
+          from: sub.account.scaledRamMb,
+          to: opts.nextScaledRamMb,
+        });
+      }
+      if (sub.account.scaledDiskMb !== opts.nextScaledDiskMb) {
+        notify.push({
+          resource: AutoscalingResource.DISK,
+          from: sub.account.scaledDiskMb,
+          to: opts.nextScaledDiskMb,
+        });
+      }
+      for (const item of notify) {
+        void this.mailer
+          .send(
+            autoscalingScaleUpTemplate({
+              to: sub.user.email,
+              userId: sub.userId,
+              firstName: sub.user.firstName,
+              domain,
+              resource: item.resource,
+              fromValue: item.from,
+              toValue: item.to,
+              panelUrl,
+              autoscalingUrl: `${panelUrl}/dashboard/services/${sub.id}/autoscaling`,
+            }),
+          )
+          .catch((err) => {
+            this.logger.warn(
+              `Autoscaling scale-up mail failed sub=${sub.id} resource=${item.resource}: ${(err as Error).message}`,
+            );
+          });
+      }
+    }
   }
 
-  // ---------------------------------------------------------------------------
-  // D-7 guard: wallet balance & monthly cap
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Returns whether a subscription can scale up *right now*. Two checks:
-   *   1. Customer has at least `MIN_WALLET_BALANCE` PLN in the wallet,
-   *   2. Projected monthly autoscaling spend (current 30-day spend + cost of
-   *      one extra hour at the new scaling level) does not exceed the
-   *      customer-configured cap (if cap > 0; cap=0 means no cap).
-   */
   private async guardScaleUp(
     sub: Subscription & { user: { walletBalance: Prisma.Decimal } },
     rules: AutoscalingPriceRule[],
     nextScaledCpu: number,
     nextScaledRamMb: number,
+    nextScaledDiskMb: number,
   ): Promise<{ allowed: true } | { allowed: false; reason: string }> {
     const balance = Number(sub.user.walletBalance);
     if (balance < this.MIN_WALLET_BALANCE) {
@@ -395,7 +464,12 @@ export class AutoscalingEngineService {
     const cap = Number(sub.autoscalingMaxCost);
     if (cap > 0) {
       const spent = await this.thirtyDaySpend(sub.id);
-      const projectedHourly = this.estimateHourlyCost(rules, nextScaledCpu, nextScaledRamMb);
+      const projectedHourly = this.estimateHourlyCost(
+        rules,
+        nextScaledCpu,
+        nextScaledRamMb,
+        nextScaledDiskMb,
+      );
       if (spent + projectedHourly > cap) {
         return { allowed: false, reason: 'cap_reached' };
       }
@@ -417,41 +491,36 @@ export class AutoscalingEngineService {
     return Number(sum._sum.amount ?? 0);
   }
 
-  /**
-   * Returns the projected hourly cost for the given scaled deltas, using the
-   * highest-threshold matching active rule per resource.
-   */
   estimateHourlyCost(
     rules: AutoscalingPriceRule[],
     scaledCpu: number,
     scaledRamMb: number,
+    scaledDiskMb = 0,
   ): number {
     return hourlyCostForCatalogAmounts(rules, {
       cpuPercent: scaledCpu,
       ramGb: scaledRamMbToCatalogGb(scaledRamMb),
-      diskGb: 0,
+      diskGb: scaledDiskMbToCatalogGb(scaledDiskMb),
     });
   }
-
-  // ---------------------------------------------------------------------------
-  // Helpers
-  // ---------------------------------------------------------------------------
 
   private describeReason(
     recent: UsageMetric[],
     effCpu: number,
     effRam: number,
+    effDisk: number,
     isUp: boolean,
   ): string {
-    const avgCpu =
-      recent.reduce((acc, r) => acc + r.cpuUsageAvg, 0) / Math.max(1, recent.length);
-    const avgRam =
-      recent.reduce((acc, r) => acc + r.memUsageAvgMb, 0) / Math.max(1, recent.length);
+    const n = Math.max(1, recent.length);
+    const avgCpu = recent.reduce((acc, r) => acc + r.cpuUsageAvg, 0) / n;
+    const avgRam = recent.reduce((acc, r) => acc + r.memUsageAvgMb, 0) / n;
+    const avgDisk = recent.reduce((acc, r) => acc + r.diskUsageMb, 0) / n;
     const cpuPct = effCpu > 0 ? Math.round((avgCpu / effCpu) * 100) : 0;
     const ramPct = effRam > 0 ? Math.round((avgRam / effRam) * 100) : 0;
+    const diskPct = effDisk > 0 ? Math.round((avgDisk / effDisk) * 100) : 0;
     return isUp
-      ? `pressure cpu_avg=${cpuPct}pct_eff ram_avg=${ramPct}pct_eff buckets=${recent.length}`
-      : `slack cpu_avg=${cpuPct}pct_eff ram_avg=${ramPct}pct_eff buckets=${recent.length}`;
+      ? `pressure cpu_avg=${cpuPct}pct_eff ram_avg=${ramPct}pct_eff disk_avg=${diskPct}pct_eff buckets=${recent.length}`
+      : `slack cpu_avg=${cpuPct}pct_eff ram_avg=${ramPct}pct_eff disk_avg=${diskPct}pct_eff buckets=${recent.length}`;
   }
 
   private async recordDisabled(
@@ -459,8 +528,6 @@ export class AutoscalingEngineService {
     recent: UsageMetric[],
     reason: string,
   ): Promise<void> {
-    // Light-weight signalling for engine-level "would have scaled but couldn't"
-    // — also useful for showing customer-facing CTA "doładuj portfel by włączyć".
     this.logger.warn(
       `Autoscaling blocked for sub=${sub.id} reason=${reason} buckets=${recent.length}`,
     );

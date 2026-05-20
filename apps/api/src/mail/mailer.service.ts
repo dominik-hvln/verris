@@ -75,7 +75,8 @@ export class MailerService {
       };
     }
 
-    const category: EmailCategory = (message.category ?? 'TRANSACTIONAL') as EmailCategory;
+    const category: EmailCategory =
+      (message.category as EmailCategory | undefined) ?? EmailCategory.TRANSACTIONAL;
 
     // ---- 1. Opt-out / anonymization gate ------------------------------------
     const gate = await this.evaluateGate(message, category);
@@ -175,7 +176,14 @@ export class MailerService {
       return { allowed: false, reason: 'ANONYMIZED' };
     }
 
-    // 3. MARKETING — sprawdź preferences. TRANSACTIONAL przechodzi zawsze.
+    // 3. PRODUCT_UPDATE — scale-up / zmiany usługi (opt-out per productUpdatesEmail).
+    if (category === 'PRODUCT_UPDATE') {
+      if (user?.marketingPreferences && !user.marketingPreferences.productUpdatesEmail) {
+        return { allowed: false, reason: 'OPTED_OUT' };
+      }
+    }
+
+    // 4. MARKETING — sprawdź preferences. TRANSACTIONAL przechodzi zawsze.
     if (category === 'MARKETING') {
       // Brak preferences = treat as opt-out (privacy-by-default).
       if (!user || !user.marketingPreferences) {

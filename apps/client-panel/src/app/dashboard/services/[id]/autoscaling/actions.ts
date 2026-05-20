@@ -18,9 +18,19 @@ export async function updateAutoscalingAction(
   const rawCap = formData.get('maxMonthlyCost');
   const cap =
     typeof rawCap === 'string' && rawCap.trim() !== '' ? Number.parseFloat(rawCap) : undefined;
+  const scaleCpu = formData.get('scaleCpu') === 'on';
+  const scaleRam = formData.get('scaleRam') === 'on';
+  const scaleDisk = formData.get('scaleDisk') === 'on';
 
   if (cap !== undefined && (Number.isNaN(cap) || cap < 0 || cap > 99_999.99)) {
     return { ok: false, error: 'Limit miesięczny musi być liczbą z zakresu 0–99 999,99 K (1 zł = 1 K).' };
+  }
+
+  if (enabled && !scaleCpu && !scaleRam && !scaleDisk) {
+    return {
+      ok: false,
+      error: 'Wybierz co najmniej jeden zasób do autoskalowania (CPU, RAM lub dysk).',
+    };
   }
 
   try {
@@ -29,6 +39,9 @@ export async function updateAutoscalingAction(
       body: JSON.stringify({
         enabled,
         maxMonthlyCost: cap,
+        scaleCpu: enabled ? scaleCpu : undefined,
+        scaleRam: enabled ? scaleRam : undefined,
+        scaleDisk: enabled ? scaleDisk : undefined,
       }),
     });
     revalidatePath(`/dashboard/services/${subscriptionId}/autoscaling`);

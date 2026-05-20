@@ -96,6 +96,18 @@ export class UpdateAutoscalingDto {
   @Min(0)
   @Max(99_999.99)
   maxMonthlyCost?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  scaleCpu?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  scaleRam?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  scaleDisk?: boolean;
 }
 
 export class UpdateSubscriptionPreferencesDto {

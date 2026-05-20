@@ -1,5 +1,13 @@
 import Link from 'next/link';
-import { ArrowLeft, AlertCircle, Gauge } from 'lucide-react';
+import {
+  ArrowLeft,
+  AlertCircle,
+  Calculator,
+  Cpu,
+  Gauge,
+  HardDrive,
+  MemoryStick,
+} from 'lucide-react';
 import { getAutoscalingHistory, getServiceDetails, getUserEcoPoints } from './data';
 import { AutoscalingForm } from './form';
 import { AutoscalingTimeline } from './timeline';
@@ -76,11 +84,29 @@ export default async function AutoscalingPage({
         ecoPoints={ecoPoints}
       />
 
+      {service.account ? (
+        <>
+          <CurrentLimitsCard plan={service.plan} account={service.account} />
+          <div className="flex justify-end">
+            <Link
+              href={calculatorPrefillHref(service.account)}
+              className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-2.5 text-sm font-semibold text-emerald-200 hover:bg-emerald-400/20 transition-colors"
+            >
+              <Calculator className="h-4 w-4" />
+              Szacuj koszt z aktualnej delty
+            </Link>
+          </div>
+        </>
+      ) : null}
+
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.4fr] gap-6">
         <AutoscalingForm
           subscriptionId={service.id}
           enabled={service.autoscalingEnabled}
           maxMonthlyCost={Number(service.autoscalingMaxCost)}
+          scaleCpu={service.autoscalingScaleCpu ?? true}
+          scaleRam={service.autoscalingScaleRam ?? true}
+          scaleDisk={service.autoscalingScaleDisk ?? true}
         />
 
         <SpendCard
@@ -100,6 +126,109 @@ export default async function AutoscalingPage({
       )}
     </div>
   );
+}
+
+function CurrentLimitsCard({
+  plan,
+  account,
+}: {
+  plan: {
+    cpuLimit: number;
+    ramLimitMb: number;
+    diskLimitMb: number;
+  };
+  account: {
+    cpuLimit: number;
+    ramLimitMb: number;
+    diskLimitMb: number;
+    scaledCpu: number;
+    scaledRamMb: number;
+    scaledDiskMb: number;
+  };
+}) {
+  const tiles = [
+    {
+      label: 'CPU',
+      icon: Cpu,
+      planValue: `${plan.cpuLimit}%`,
+      current: `${account.cpuLimit}%`,
+      delta:
+        account.scaledCpu > 0 ? `autoskalowanie +${account.scaledCpu}%` : null,
+    },
+    {
+      label: 'RAM',
+      icon: MemoryStick,
+      planValue: formatMbAsGb(plan.ramLimitMb),
+      current: formatMbAsGb(account.ramLimitMb),
+      delta:
+        account.scaledRamMb > 0
+          ? `autoskalowanie +${formatMbAsGb(account.scaledRamMb)}`
+          : null,
+    },
+    {
+      label: 'Dysk',
+      icon: HardDrive,
+      planValue: formatMbAsGb(plan.diskLimitMb),
+      current: formatMbAsGb(account.diskLimitMb),
+      delta:
+        account.scaledDiskMb > 0
+          ? `autoskalowanie +${formatMbAsGb(account.scaledDiskMb)}`
+          : null,
+    },
+  ];
+
+  return (
+    <section className="rounded-2xl border border-white/5 bg-[#0a0a0a] p-6">
+      <h2 className="text-sm font-bold uppercase tracking-widest text-neutral-500">
+        Aktualne limity zasobów
+      </h2>
+      <p className="mt-1 text-sm text-neutral-400">
+        Wartości efektywne na koncie hostingowym (plan + ewentualna delta autoskalowania).
+      </p>
+      <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {tiles.map((tile) => (
+          <div
+            key={tile.label}
+            className="rounded-xl border border-white/5 bg-white/[0.02] p-4"
+          >
+            <div className="flex items-center gap-2 text-neutral-500 text-xs font-bold uppercase tracking-wider">
+              <tile.icon className="h-4 w-4" />
+              {tile.label}
+            </div>
+            <div className="mt-2 text-2xl font-extrabold text-white">{tile.current}</div>
+            <div className="mt-1 text-[11px] text-neutral-500">
+              Plan: {tile.planValue}
+            </div>
+            {tile.delta ? (
+              <div className="mt-2 text-[11px] font-semibold text-emerald-400/90">
+                {tile.delta}
+              </div>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function calculatorPrefillHref(account: {
+  scaledCpu: number;
+  scaledRamMb: number;
+  scaledDiskMb: number;
+}): string {
+  const params = new URLSearchParams();
+  if (account.scaledCpu > 0) params.set('cpu', String(account.scaledCpu));
+  const ramGb = account.scaledRamMb / 1024;
+  if (ramGb > 0) params.set('ramGb', String(Math.round(ramGb * 2) / 2));
+  const diskGb = account.scaledDiskMb / 1024;
+  if (diskGb > 0) params.set('diskGb', String(Math.round(diskGb)));
+  const q = params.toString();
+  return q ? `/dashboard/calculator?${q}` : '/dashboard/calculator';
+}
+
+function formatMbAsGb(mb: number): string {
+  const gb = mb / 1024;
+  return gb % 1 === 0 ? `${gb.toFixed(0)} GB` : `${gb.toFixed(1)} GB`;
 }
 
 function SpendCard({

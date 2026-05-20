@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import {
   AccountStatus,
+  AutoscalingDirection,
   BillingInterval,
   Prisma,
   Subscription,
@@ -608,6 +609,9 @@ export class SubscriptionsService {
     subscriptionId: string;
     enabled: boolean;
     maxMonthlyCost?: number;
+    scaleCpu?: boolean;
+    scaleRam?: boolean;
+    scaleDisk?: boolean;
   }): Promise<Subscription> {
     const subscription = await this.prisma.subscription.findFirst({
       where: { id: opts.subscriptionId, userId: opts.userId },
@@ -626,6 +630,23 @@ export class SubscriptionsService {
       }
     }
 
+    const enablingFresh = opts.enabled && !subscription.autoscalingEnabled;
+    const scaleCpu = opts.enabled
+      ? (opts.scaleCpu ?? (enablingFresh ? true : subscription.autoscalingScaleCpu))
+      : subscription.autoscalingScaleCpu;
+    const scaleRam = opts.enabled
+      ? (opts.scaleRam ?? (enablingFresh ? true : subscription.autoscalingScaleRam))
+      : subscription.autoscalingScaleRam;
+    const scaleDisk = opts.enabled
+      ? (opts.scaleDisk ?? (enablingFresh ? true : subscription.autoscalingScaleDisk))
+      : subscription.autoscalingScaleDisk;
+
+    if (opts.enabled && !scaleCpu && !scaleRam && !scaleDisk) {
+      throw new BadRequestException(
+        'Przy włączonym autoskalowaniu wybierz co najmniej jeden zasób (CPU, RAM lub dysk).',
+      );
+    }
+
     const updated = await this.prisma.subscription.update({
       where: { id: subscription.id },
       data: {
@@ -635,6 +656,13 @@ export class SubscriptionsService {
             ? new Prisma.Decimal(opts.maxMonthlyCost.toFixed(2))
             : undefined,
         autoscalingDisabledReason: opts.enabled ? null : 'CUSTOMER_REQUEST',
+        ...(opts.enabled
+          ? {
+              autoscalingScaleCpu: scaleCpu,
+              autoscalingScaleRam: scaleRam,
+              autoscalingScaleDisk: scaleDisk,
+            }
+          : {}),
       },
     });
 
@@ -645,8 +673,14 @@ export class SubscriptionsService {
         details: {
           enabled: opts.enabled,
           maxMonthlyCost: opts.maxMonthlyCost ?? null,
+          scaleCpu,
+          scaleRam,
+          scaleDisk,
           previousEnabled: subscription.autoscalingEnabled,
           previousMaxMonthlyCost: subscription.autoscalingMaxCost.toString(),
+          previousScaleCpu: subscription.autoscalingScaleCpu,
+          previousScaleRam: subscription.autoscalingScaleRam,
+          previousScaleDisk: subscription.autoscalingScaleDisk,
         },
       },
     });
@@ -659,6 +693,9 @@ export class SubscriptionsService {
         subscriptionId: subscription.id,
         enabled: opts.enabled,
         maxMonthlyCost: opts.maxMonthlyCost ?? null,
+        scaleCpu,
+        scaleRam,
+        scaleDisk,
       },
     });
 
@@ -677,6 +714,9 @@ export class SubscriptionsService {
         autoscalingEnabled: true,
         autoscalingMaxCost: true,
         autoscalingDisabledReason: true,
+        autoscalingScaleCpu: true,
+        autoscalingScaleRam: true,
+        autoscalingScaleDisk: true,
       },
     });
     if (!subscription) throw new NotFoundException('Subscription not found');
@@ -703,9 +743,31 @@ export class SubscriptionsService {
     );
 
     return {
-      subscription,
-      events,
-      charges,
+      subscription: {
+        id: subscription.id,
+        autoscalingEnabled: subscription.autoscalingEnabled,
+        autoscalingMaxCost: subscription.autoscalingMaxCost.toString(),
+        autoscalingDisabledReason: subscription.autoscalingDisabledReason,
+        autoscalingScaleCpu: subscription.autoscalingScaleCpu,
+        autoscalingScaleRam: subscription.autoscalingScaleRam,
+        autoscalingScaleDisk: subscription.autoscalingScaleDisk,
+      },
+      events: events.map((e) => ({
+        id: e.id,
+        type: autoscalingDirectionToEventType(e.direction),
+        resource: e.resource,
+        fromValue: e.fromValue,
+        toValue: e.toValue,
+        costAccrued: e.costSnapshot?.toString() ?? '0',
+        reason: e.reason,
+        createdAt: e.createdAt.toISOString(),
+      })),
+      charges: charges.map((c) => ({
+        id: c.id,
+        amount: c.amount.toString(),
+        description: c.description,
+        createdAt: c.createdAt.toISOString(),
+      })),
       last30dSpend: last30dSpend.toFixed(2),
       currency: 'PLN',
     };
@@ -1412,6 +1474,21 @@ function addInterval(from: Date, interval: BillingInterval): Date {
   if (interval === BillingInterval.MONTH) next.setUTCMonth(next.getUTCMonth() + 1);
   else next.setUTCFullYear(next.getUTCFullYear() + 1);
   return next;
+}
+
+function autoscalingDirectionToEventType(direction: AutoscalingDirection): string {
+  switch (direction) {
+    case AutoscalingDirection.UP:
+      return 'SCALE_UP';
+    case AutoscalingDirection.DOWN:
+      return 'SCALE_DOWN';
+    case AutoscalingDirection.ENABLED:
+      return 'AUTOSCALING_ENABLED';
+    case AutoscalingDirection.DISABLED:
+      return 'AUTOSCALING_DISABLED';
+    default:
+      return direction;
+  }
 }
 
 // Suppress unused-warning for ForbiddenException — reserved for ownership errors

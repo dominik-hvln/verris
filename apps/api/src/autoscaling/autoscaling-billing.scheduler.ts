@@ -43,7 +43,11 @@ export class AutoscalingBillingScheduler {
         status: SubscriptionStatus.ACTIVE,
         autoscalingEnabled: true,
         account: {
-          OR: [{ scaledCpu: { gt: 0 } }, { scaledRamMb: { gt: 0 } }],
+          OR: [
+            { scaledCpu: { gt: 0 } },
+            { scaledRamMb: { gt: 0 } },
+            { scaledDiskMb: { gt: 0 } },
+          ],
         },
       },
       include: { account: true },
@@ -74,6 +78,7 @@ export class AutoscalingBillingScheduler {
         rules,
         sub.account.scaledCpu,
         sub.account.scaledRamMb,
+        sub.account.scaledDiskMb,
       );
       if (hourly <= 0) {
         skipped += 1;
@@ -88,7 +93,7 @@ export class AutoscalingBillingScheduler {
           userId: sub.userId,
           type: WalletTxType.CHARGE_AUTOSCALING,
           amount,
-          description: `Autoscaling ${bucket} (cpu+${sub.account.scaledCpu}% ram+${sub.account.scaledRamMb}MB)`,
+          description: `Autoscaling ${bucket} (cpu+${sub.account.scaledCpu}% ram+${sub.account.scaledRamMb}MB disk+${sub.account.scaledDiskMb}MB)`,
           idempotencyKey,
           subscriptionId: sub.id,
         });

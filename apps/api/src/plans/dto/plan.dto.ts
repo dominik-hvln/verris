@@ -82,6 +82,15 @@ export class CreatePlanDto {
     message: 'Stripe Price ID musi zaczynać się od "price_"',
   })
   stripePriceYearlyId?: string;
+
+  @IsOptional() @IsNumber() @Min(1) @Max(10)
+  autoscalingMaxOverscaleCpu?: number;
+
+  @IsOptional() @IsNumber() @Min(1) @Max(10)
+  autoscalingMaxOverscaleRam?: number;
+
+  @IsOptional() @IsNumber() @Min(1) @Max(10)
+  autoscalingMaxOverscaleDisk?: number;
 }
 
 export class ValidateStripePriceDto {
@@ -155,4 +164,13 @@ export class UpdatePlanDto {
     message: 'Stripe Price ID musi zaczynać się od "price_"',
   })
   stripePriceYearlyId?: string;
+
+  @IsOptional() @IsNumber() @Min(1) @Max(10)
+  autoscalingMaxOverscaleCpu?: number;
+
+  @IsOptional() @IsNumber() @Min(1) @Max(10)
+  autoscalingMaxOverscaleRam?: number;
+
+  @IsOptional() @IsNumber() @Min(1) @Max(10)
+  autoscalingMaxOverscaleDisk?: number;
 }

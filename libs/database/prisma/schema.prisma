@@ -457,6 +457,11 @@ model Plan {
   isActive             Boolean  @default(true)
   sortOrder            Int      @default(0)
 
+  // Max effective limit = base × ratio (e.g. 3 = up to 3× plan CPU/RAM/disk).
+  autoscalingMaxOverscaleCpu   Float @default(3)
+  autoscalingMaxOverscaleRam   Float @default(3)
+  autoscalingMaxOverscaleDisk  Float @default(3)
+
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 
@@ -521,6 +526,10 @@ model Subscription {
   autoscalingEnabled   Boolean                   @default(false)
   autoscalingMaxCost   Decimal                   @default(0) @db.Decimal(10, 2)
   autoscalingDisabledReason String?
+  // Per-resource toggles when autoscalingEnabled is true.
+  autoscalingScaleCpu  Boolean                   @default(true)
+  autoscalingScaleRam  Boolean                   @default(true)
+  autoscalingScaleDisk Boolean                   @default(true)
 
   // Eco mode
   ecoModeEnabled       Boolean                   @default(false)
@@ -693,6 +702,7 @@ model Account {
   // Autoscaling deltas added on top of plan base
   scaledCpu       Int           @default(0)
   scaledRamMb     Int           @default(0)
+  scaledDiskMb    Int           @default(0)
 
   userId          String
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1334,6 +1344,7 @@ model AiInteractionLog {
 enum EmailCategory {
   TRANSACTIONAL  // Hosting, billing, security — nie podlegają opt-out.
   MARKETING      // Newsletter, kampanie — wymaga MarketingPreferences.
+  PRODUCT_UPDATE // Zmiany usługi (np. autoskalowanie) — opt-out via productUpdatesEmail.
 }
 
 enum EmailStatus {

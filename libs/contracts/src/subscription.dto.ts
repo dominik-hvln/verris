@@ -107,6 +107,7 @@ export interface ServiceAccountSummaryDto {
   diskLimitMb: number;
   scaledCpu: number;
   scaledRamMb: number;
+  scaledDiskMb: number;
   server: { id: string; name: string | null; region: string | null } | null;
 }
 

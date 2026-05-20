@@ -465,7 +465,32 @@ Rollback feature-level:
 - Status webhooks: dezaktywować endpointy w admin NOC albo w DB ustawić `isActive=false`.
 - IAM: wyłączyć konkretne subkonto przez ownera lub DB `subaccountDisabledAt=now()` tylko awaryjnie.
 
-## 8. Otwarte decyzje przed LIVE
+## 8. Autoskalowanie — ręczny shrink dysku / RAM / CPU (support)
+
+Gdy klient wyłączył autoskalowanie lub zmniejszył limit, delta może pozostać na koncie do czasu, aż silnik ją zdejmie przy niskiej presji. Support może wymusić powrót do limitów planu:
+
+1. W CRM / panelu staff znajdź subskrypcję i konto (`daUsername`, `domain`).
+2. Zweryfikuj w DB: `Account.scaledCpu`, `scaledRamMb`, `scaledDiskMb` oraz efektywne `cpuLimit`, `ramLimitMb`, `diskLimitMb`.
+3. Porównaj z `Plan.*Limit*` — docelowe limity DA = wartości planu (bez delty).
+4. Na węźle DirectAdmin (przez istniejący `DirectAdminService` / panel admina serwera) ustaw quota i LVE na wartości planu:
+   - CPU: `plan.cpuLimit`
+   - RAM: `plan.ramLimitMb`
+   - Dysk (quota MB): `plan.diskLimitMb`
+5. W Postgres (tylko po potwierdzeniu DA):
+
+```sql
+UPDATE "Account"
+SET "scaledCpu" = 0, "scaledRamMb" = 0, "scaledDiskMb" = 0,
+    "cpuLimit" = <plan_cpu>, "ramLimitMb" = <plan_ram>, "diskLimitMb" = <plan_disk>
+WHERE "id" = '<account_id>';
+```
+
+6. Zapisz wpis w audycie / tickecie: powód (np. klient prosił o shrink, błąd autoskalowania).
+7. Poinformuj klienta, że kolejne naliczenia autoskalowania spadną po zerowej delcie (billing godzinowy).
+
+**Nie** zmniejszaj dysku poniżej faktycznego zużycia bez sprawdzenia `UsageMetric.diskUsageMb` — ryzyko awarii aplikacji.
+
+## 9. Otwarte decyzje przed LIVE
 
 - [ ] Wybrać i zakontraktować rejestratora domen, potwierdzić API register/transfer/renew/nameservers.
 - [ ] Potwierdzić AI provider, DPA/subprocessor i politykę retencji promptów.

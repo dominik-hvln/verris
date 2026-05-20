@@ -135,6 +135,7 @@ export class ProvisioningService {
       await daClient.setAccountLimits(daUsername, {
         cpuPercent: subscription.plan.cpuLimit,
         memoryMb: subscription.plan.ramLimitMb,
+        diskQuotaMb: subscription.plan.diskLimitMb,
         ioKbps: subscription.plan.ioLimitKbps,
         iops: subscription.plan.iopsLimit,
         entryProcesses: subscription.plan.entryProcesses,

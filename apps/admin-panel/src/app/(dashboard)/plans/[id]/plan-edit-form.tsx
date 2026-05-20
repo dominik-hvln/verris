@@ -33,6 +33,9 @@ interface FormState {
   sortOrder: string;
   stripePriceMonthlyId: string;
   stripePriceYearlyId: string;
+  autoscalingMaxOverscaleCpu: string;
+  autoscalingMaxOverscaleRam: string;
+  autoscalingMaxOverscaleDisk: string;
 }
 
 function toFormState(plan: AdminPlanRow): FormState {
@@ -54,6 +57,9 @@ function toFormState(plan: AdminPlanRow): FormState {
     sortOrder: String(plan.sortOrder),
     stripePriceMonthlyId: plan.stripePriceMonthlyId ?? "",
     stripePriceYearlyId: plan.stripePriceYearlyId ?? "",
+    autoscalingMaxOverscaleCpu: String(plan.autoscalingMaxOverscaleCpu ?? 3),
+    autoscalingMaxOverscaleRam: String(plan.autoscalingMaxOverscaleRam ?? 3),
+    autoscalingMaxOverscaleDisk: String(plan.autoscalingMaxOverscaleDisk ?? 3),
   };
 }
 
@@ -128,6 +134,9 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
         sortOrder: Number.parseInt(state.sortOrder, 10) || 0,
         stripePriceMonthlyId: state.stripePriceMonthlyId.trim(),
         stripePriceYearlyId: state.stripePriceYearlyId.trim(),
+        autoscalingMaxOverscaleCpu: Number.parseFloat(state.autoscalingMaxOverscaleCpu),
+        autoscalingMaxOverscaleRam: Number.parseFloat(state.autoscalingMaxOverscaleRam),
+        autoscalingMaxOverscaleDisk: Number.parseFloat(state.autoscalingMaxOverscaleDisk),
       };
       const res = await updatePlanAction(plan.id, payload);
       if (res.ok) {
@@ -268,6 +277,49 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
             value={state.includedTransferGb}
             onChange={(e) => setField("includedTransferGb", e.target.value)}
             placeholder="bez limitu"
+            className="form-input"
+          />
+        </Field>
+      </Section>
+
+      <Section title="Autoskalowanie — max overscale">
+        <p className="text-xs text-muted-foreground col-span-full -mt-2 mb-2">
+          Mnożnik limitu planu (np. 3 = maks. 3× CPU/RAM/dysk w skali efektywnej). Silnik nie
+          podniesie delty ponad tę wartość bez zmiany planu.
+        </p>
+        <Field label="CPU (× plan)">
+          <input
+            type="number"
+            min={1}
+            max={10}
+            step={0.1}
+            value={state.autoscalingMaxOverscaleCpu}
+            onChange={(e) => setField("autoscalingMaxOverscaleCpu", e.target.value)}
+            required
+            className="form-input"
+          />
+        </Field>
+        <Field label="RAM (× plan)">
+          <input
+            type="number"
+            min={1}
+            max={10}
+            step={0.1}
+            value={state.autoscalingMaxOverscaleRam}
+            onChange={(e) => setField("autoscalingMaxOverscaleRam", e.target.value)}
+            required
+            className="form-input"
+          />
+        </Field>
+        <Field label="Dysk (× plan)">
+          <input
+            type="number"
+            min={1}
+            max={10}
+            step={0.1}
+            value={state.autoscalingMaxOverscaleDisk}
+            onChange={(e) => setField("autoscalingMaxOverscaleDisk", e.target.value)}
+            required
             className="form-input"
           />
         </Field>

@@ -85,6 +85,7 @@ export class UserServicesController {
             diskLimitMb: s.account.diskLimitMb,
             scaledCpu: s.account.scaledCpu,
             scaledRamMb: s.account.scaledRamMb,
+            scaledDiskMb: s.account.scaledDiskMb,
             server: s.account.server
               ? {
                   id: s.account.server.id,
@@ -402,6 +403,7 @@ export class UserServicesController {
             diskLimitMb: sub.account.diskLimitMb,
             scaledCpu: sub.account.scaledCpu,
             scaledRamMb: sub.account.scaledRamMb,
+            scaledDiskMb: sub.account.scaledDiskMb,
             server: sub.account.server,
           }
         : null,
@@ -523,7 +525,15 @@ function buildServiceRecommendations(s: {
   status: string;
   autoscalingEnabled: boolean;
   provisioningStage: string | null;
-  account: { domain: string; scaledCpu: number; cpuLimit: number; scaledRamMb: number; ramLimitMb: number } | null;
+  account: {
+    domain: string;
+    scaledCpu: number;
+    cpuLimit: number;
+    scaledRamMb: number;
+    ramLimitMb: number;
+    scaledDiskMb: number;
+    diskLimitMb: number;
+  } | null;
   healthSnapshots: { score: number; backupFresh: boolean | null; dnsOk: boolean | null; tlsOk: boolean | null }[];
 }) {
   const latest = s.healthSnapshots[0];
@@ -541,7 +551,13 @@ function buildServiceRecommendations(s: {
       body: 'Wsparcie widzi szczegóły błędu. Nie wykonuj ponownego zamówienia tej samej domeny.',
     });
   }
-  if (!s.autoscalingEnabled && s.account && (s.account.scaledCpu > s.account.cpuLimit || s.account.scaledRamMb > s.account.ramLimitMb)) {
+  if (
+    !s.autoscalingEnabled &&
+    s.account &&
+    (s.account.scaledCpu > 0 ||
+      s.account.scaledRamMb > 0 ||
+      s.account.scaledDiskMb > 0)
+  ) {
     out.push({
       type: 'autoscaling',
       severity: 'warning',

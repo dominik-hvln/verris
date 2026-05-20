@@ -15,14 +15,22 @@ import { CREDIT_SHORT } from '@/lib/credits';
 
 interface Props {
   rules: PriceRuleDto[];
+  initialCpuPercent?: number;
+  initialRamGb?: number;
+  initialDiskGb?: number;
 }
 
 const HOURS_PER_MONTH = 730;
 
-export function AutoscalingCalculator({ rules }: Props) {
-  const [cpuPercent, setCpuPercent] = useState(50);
-  const [ramGb, setRamGb] = useState(0.5);
-  const [diskGb, setDiskGb] = useState(0);
+export function AutoscalingCalculator({
+  rules,
+  initialCpuPercent = 50,
+  initialRamGb = 0.5,
+  initialDiskGb = 0,
+}: Props) {
+  const [cpuPercent, setCpuPercent] = useState(initialCpuPercent);
+  const [ramGb, setRamGb] = useState(initialRamGb);
+  const [diskGb, setDiskGb] = useState(initialDiskGb);
 
   const unit = CREDIT_SHORT;
 

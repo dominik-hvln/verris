@@ -77,6 +77,9 @@ export class SubscriptionsController {
       subscriptionId: id,
       enabled: dto.enabled,
       maxMonthlyCost: dto.maxMonthlyCost,
+      scaleCpu: dto.scaleCpu,
+      scaleRam: dto.scaleRam,
+      scaleDisk: dto.scaleDisk,
     });
   }
 

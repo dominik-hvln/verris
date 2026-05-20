@@ -1,6 +1,6 @@
 # Autoskalowanie — plan sprintów (CPU / RAM / Dysk)
 
-> **Stan wdrożony (2026-05-20):** katalog cennika i kalkulator klienta operują na **3 zasobach** (CPU, RAM, Dysk). I/O i transfer wycofane z UI i publicznego API. Silnik runtime nadal skaluje **CPU + RAM**; dysk jest w cenniku, billing dysku — follow-up.
+> **Stan wdrożony (2026-05-20):** katalog cennika i kalkulator klienta operują na **3 zasobach** (CPU, RAM, Dysk). I/O i transfer wycofane z UI i publicznego API. **AS-1** (silnik + billing + panel limitów dysku) — w trakcie merge na `live-release-readiness`; wymaga migracji `20260520120000_account_scaled_disk_mb` na prod.
 
 ---
 
@@ -35,7 +35,7 @@
 
 ---
 
-## Sprint AS-2 — UX i limity dysku (LIVE)
+## Sprint AS-2 — UX i limity per zasób (CPU / RAM / dysk) (LIVE) ✅ kod
 
 **Cel:** klient rozumie koszt dysku; admin ma kontrolę nad maksymalnym overscale.
 
