@@ -81,6 +81,7 @@ export class BillingService {
     );
     const totalChargesLast30d = findSum((t) =>
       t === WalletTxType.CHARGE_SUBSCRIPTION ||
+      t === WalletTxType.CHARGE_PLAN_UPGRADE ||
       t === WalletTxType.CHARGE_AUTOSCALING ||
       t === WalletTxType.CHARGE_USAGE,
     );

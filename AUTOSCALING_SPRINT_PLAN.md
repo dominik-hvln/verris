@@ -1,6 +1,6 @@
 # Autoskalowanie — plan sprintów (CPU / RAM / Dysk)
 
-> **Stan wdrożony (2026-05-20):** katalog cennika i kalkulator klienta operują na **3 zasobach** (CPU, RAM, Dysk). I/O i transfer wycofane z UI i publicznego API. **AS-1** (silnik + billing + panel limitów dysku) — w trakcie merge na `live-release-readiness`; wymaga migracji `20260520120000_account_scaled_disk_mb` na prod.
+> **Stan wdrożony (2026-05-20):** katalog cennika i kalkulator na **3 zasobach** (CPU, RAM, Dysk). **AS-1** i **AS-2** na prod (`083d2a9` + migracje `20260520120000`, `20260520130000`). **AS-3** — backlog.
 
 ---
 

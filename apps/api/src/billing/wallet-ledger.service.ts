@@ -25,10 +25,12 @@ const CREDIT_TYPES = new Set<WalletTxType>([
   WalletTxType.TOPUP,
   WalletTxType.REFUND,
   WalletTxType.PROMO_CREDIT,
+  WalletTxType.CREDIT_PLAN_DOWNGRADE,
 ]);
 
 const DEBIT_TYPES = new Set<WalletTxType>([
   WalletTxType.CHARGE_SUBSCRIPTION,
+  WalletTxType.CHARGE_PLAN_UPGRADE,
   WalletTxType.CHARGE_AUTOSCALING,
   WalletTxType.CHARGE_USAGE,
 ]);

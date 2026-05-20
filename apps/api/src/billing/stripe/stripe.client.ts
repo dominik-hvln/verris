@@ -463,6 +463,27 @@ export class StripeClient {
     );
   }
 
+  /**
+   * Swaps the subscription's primary price and creates Stripe prorations for the
+   * unused portion of the current period (PC-1 / plan change).
+   */
+  async updateSubscriptionPrice(input: {
+    subscriptionId: string;
+    subscriptionItemId: string;
+    newPriceId: string;
+    prorationBehavior?: 'create_prorations' | 'none';
+  }): Promise<StripeSubscription> {
+    const body = new URLSearchParams();
+    body.set('items[0][id]', input.subscriptionItemId);
+    body.set('items[0][price]', input.newPriceId);
+    body.set('proration_behavior', input.prorationBehavior ?? 'create_prorations');
+    return this.request<StripeSubscription>(
+      'POST',
+      `/subscriptions/${encodeURIComponent(input.subscriptionId)}`,
+      body,
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // Prices (Sprint 4 / R-05 — admin walidacja Stripe Price IDs przy edycji planów)
   // ---------------------------------------------------------------------------

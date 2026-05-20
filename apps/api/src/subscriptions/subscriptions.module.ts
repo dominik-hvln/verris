@@ -7,6 +7,7 @@ import { ProvisioningService } from './provisioning.service';
 import { ProvisioningQueueService } from './provisioning-queue.service';
 import { ProvisioningQueueAdminController } from './provisioning-queue.admin.controller';
 import { SubscriptionsService } from './subscriptions.service';
+import { PlanChangeService } from './plan-change.service';
 import { SubscriptionsController } from './subscriptions.controller';
 import { SubscriptionsAdminController } from './subscriptions.admin.controller';
 import { UserServicesController } from './services.controller';
@@ -22,6 +23,7 @@ import { PublicUptimeBadgeController } from './public-uptime-badge.controller';
   imports: [ServersModule, forwardRef(() => BillingModule), MailModule],
   providers: [
     SubscriptionsService,
+    PlanChangeService,
     ProvisioningService,
     ProvisioningQueueService,
     NodeSelectorService,

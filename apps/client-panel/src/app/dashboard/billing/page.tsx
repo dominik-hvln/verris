@@ -28,6 +28,8 @@ const txLabels: Record<WalletTxType, string> = {
   TOPUP: 'Doładowanie portfela',
   REFUND: 'Zwrot środków',
   CHARGE_SUBSCRIPTION: 'Opłata za usługę',
+  CHARGE_PLAN_UPGRADE: 'Upgrade planu (proration)',
+  CREDIT_PLAN_DOWNGRADE: 'Downgrade planu (proration)',
   CHARGE_AUTOSCALING: 'Autoskalowanie',
   CHARGE_USAGE: 'Wykorzystanie zasobów',
   ADJUSTMENT: 'Uznanie od Verris',

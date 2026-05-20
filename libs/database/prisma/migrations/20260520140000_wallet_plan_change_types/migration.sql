@@ -1,0 +1,3 @@
+-- Plan change proration ledger types (PC-1)
+ALTER TYPE "WalletTxType" ADD VALUE IF NOT EXISTS 'CHARGE_PLAN_UPGRADE';
+ALTER TYPE "WalletTxType" ADD VALUE IF NOT EXISTS 'CREDIT_PLAN_DOWNGRADE';

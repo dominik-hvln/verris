@@ -805,6 +805,8 @@ enum WalletTxType {
   TOPUP                // User added funds (Stripe / PayU)
   REFUND
   CHARGE_SUBSCRIPTION  // Subscription renewal paid from wallet
+  CHARGE_PLAN_UPGRADE  // Prorated upgrade charge on existing subscription
+  CREDIT_PLAN_DOWNGRADE // Prorated downgrade credit on existing subscription
   CHARGE_AUTOSCALING   // Hourly autoscaling cost
   CHARGE_USAGE         // Other metered usage
   ADJUSTMENT           // Manual adjustment by admin

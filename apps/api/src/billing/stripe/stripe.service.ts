@@ -117,6 +117,15 @@ export class StripeService {
     return this.requireClient().retrieveSubscription(subscriptionId);
   }
 
+  async updateSubscriptionPrice(input: {
+    subscriptionId: string;
+    subscriptionItemId: string;
+    newPriceId: string;
+    prorationBehavior?: 'create_prorations' | 'none';
+  }): Promise<StripeSubscription> {
+    return this.requireClient().updateSubscriptionPrice(input);
+  }
+
   // ---------------------------------------------------------------------------
   // Invoices
   // ---------------------------------------------------------------------------

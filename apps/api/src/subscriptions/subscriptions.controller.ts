@@ -12,17 +12,22 @@ import {
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { SubscriptionsService } from './subscriptions.service';
+import { PlanChangeService } from './plan-change.service';
 import {
   CreateSubscriptionDto,
   PreviewSubscriptionPromoDto,
   UpdateAutoscalingDto,
   UpdateSubscriptionPreferencesDto,
 } from './dto/subscription.dto';
+import { ChangePlanDto, PreviewPlanChangeDto } from './dto/plan-change.dto';
 
 @Controller('subscriptions')
 @UseGuards(JwtAuthGuard)
 export class SubscriptionsController {
-  constructor(private readonly subscriptions: SubscriptionsService) {}
+  constructor(
+    private readonly subscriptions: SubscriptionsService,
+    private readonly planChange: PlanChangeService,
+  ) {}
 
   @Get()
   list(@CurrentUser() user: { userId: string }) {
@@ -89,5 +94,25 @@ export class SubscriptionsController {
     @Param('id') id: string,
   ) {
     return this.subscriptions.getAutoscalingHistory(user.userId, id);
+  }
+
+  @Post(':id/plan/preview')
+  @HttpCode(200)
+  previewPlanChange(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() dto: PreviewPlanChangeDto,
+  ) {
+    return this.planChange.previewForUser(user.userId, id, dto.targetPlanId);
+  }
+
+  @Patch(':id/plan')
+  @HttpCode(200)
+  changePlan(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() dto: ChangePlanDto,
+  ) {
+    return this.planChange.changeForUser(user.userId, id, dto.targetPlanId);
   }
 }

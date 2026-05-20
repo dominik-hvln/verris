@@ -119,6 +119,7 @@ export interface SubscriptionEventDto {
 }
 
 export interface ServiceDetailsDto extends Omit<ServiceSummaryDto, 'planSlug' | 'planName'> {
+  paymentSource: SubscriptionPaymentSource;
   plan: {
     id: string;
     slug: string;

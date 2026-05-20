@@ -492,6 +492,29 @@ WHERE "id" = '<account_id>';
 
 **Nie** zmniejszaj dysku poniżej faktycznego zużycia bez sprawdzenia `UsageMetric.diskUsageMb` — ryzyko awarii aplikacji.
 
+## 8.1 Zmiana planu (PC-1 / PC-2) — deploy i weryfikacja
+
+**Migracja:** `20260520140000_wallet_plan_change_types` (enum `CHARGE_PLAN_UPGRADE`, `CREDIT_PLAN_DOWNGRADE`).
+
+**Kolejność (jak przy AS-2):**
+
+```bash
+git pull
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build api client-panel
+bash ops/scripts/prod-migrate-deploy.sh
+```
+
+**Smoke test (klient, ACTIVE + konto DA):**
+
+1. `/dashboard/services` → ikona zmiany planu (tylko ACTIVE).
+2. `/dashboard/services/<id>/plan` → wybór planu → podgląd proration → potwierdzenie.
+3. API: `POST /subscriptions/:id/plan/preview`, `PATCH /subscriptions/:id/plan`.
+4. DB: `Subscription.planId`, `priceAmount`, `SubscriptionEvent` typ `PLAN_CHANGED`, `Account.scaled*` = 0, limity = plan.
+5. Portfel (WALLET): transakcja `CHARGE_PLAN_UPGRADE` lub `CREDIT_PLAN_DOWNGRADE`.
+6. Stripe (STRIPE_CARD): faktura/proration w Stripe; lokalny okres zsynchronizowany z webhookiem.
+
+**Awaria DA przy commit:** API nie zapisuje planu w DB jeśli `setAccountLimits` się nie powiedzie (rollback portfela przy WALLET upgrade).
+
 ## 9. Otwarte decyzje przed LIVE
 
 - [ ] Wybrać i zakontraktować rejestratora domen, potwierdzić API register/transfer/renew/nameservers.

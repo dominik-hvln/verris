@@ -385,6 +385,7 @@ export class UserServicesController {
         diskLimitMb: sub.plan.diskLimitMb,
       },
       interval: sub.interval,
+      paymentSource: sub.paymentSource,
       priceAmount: sub.priceAmount.toString(),
       currency: sub.currency,
       currentPeriodStart: sub.currentPeriodStart?.toISOString() ?? null,

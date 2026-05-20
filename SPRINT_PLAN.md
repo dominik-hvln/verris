@@ -23,6 +23,16 @@
 | ✅ AS-2 | Toggle CPU/RAM/dysk, prefill kalkulatora, max overscale w planie, e-mail scale-up, runbook shrink |
 | 🔜 AS-3 | Tier pricing, symulator w adminie, metryki i raport przychodu |
 
+## Zmiana planu (upgrade / downgrade na tej samej usłudze)
+
+> Szczegółowy breakdown sprintów **PC-1 … PC-3**: [`PLAN_CHANGE_SPRINT_PLAN.md`](./PLAN_CHANGE_SPRINT_PLAN.md). Odpowiednik roadmapy **U-07**.
+
+| Status | Opis |
+|--------|------|
+| ✅ PC-1 | API proration, portfel/Stripe, sync DA, reset autoskalowania, audyt, e-mail |
+| ✅ PC-2 | Panel `/dashboard/services/[id]/plan`, preview kosztu, link z listy usług |
+| 🔜 PC-3 | Admin/staff override, testy integracyjne, runbook operacyjny |
+
 ## Quick-wins zrealizowane i fast-follow wallet
 
 ### Zrobione
