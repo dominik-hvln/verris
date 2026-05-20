@@ -1,6 +1,6 @@
 # Autoskalowanie — plan sprintów (CPU / RAM / Dysk)
 
-> **Stan wdrożony (2026-05-20):** katalog cennika i kalkulator na **3 zasobach** (CPU, RAM, Dysk). **AS-1** i **AS-2** na prod (`083d2a9` + migracje `20260520120000`, `20260520130000`). **AS-3** — backlog.
+> **Stan wdrożony (2026-05-20):** katalog 3× zasoby, **AS-1 … AS-3** w kodzie (tier validation, symulator admin, metryki, raport `/autoscaling/revenue`).
 
 ---
 

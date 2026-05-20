@@ -10,6 +10,11 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletLedgerService } from '../billing/wallet-ledger.service';
 import { AutoscalingEngineService } from './autoscaling-engine.service';
+import {
+  hourlyCostBreakdownForCatalogAmounts,
+  scaledDiskMbToCatalogGb,
+  scaledRamMbToCatalogGb,
+} from './autoscaling-pricing.util';
 
 /**
  * Charges customers for active autoscaling deltas once per hour.
@@ -74,18 +79,18 @@ export class AutoscalingBillingScheduler {
         continue;
       }
 
-      const hourly = this.engine.estimateHourlyCost(
-        rules,
-        sub.account.scaledCpu,
-        sub.account.scaledRamMb,
-        sub.account.scaledDiskMb,
-      );
-      if (hourly <= 0) {
+      const breakdown = hourlyCostBreakdownForCatalogAmounts(rules, {
+        cpuPercent: sub.account.scaledCpu,
+        ramGb: scaledRamMbToCatalogGb(sub.account.scaledRamMb),
+        diskGb: scaledDiskMbToCatalogGb(sub.account.scaledDiskMb),
+      });
+      if (breakdown.total <= 0) {
         skipped += 1;
         continue;
       }
 
-      const amount = roundToCurrency(hourly);
+      const amount = roundToCurrency(breakdown.total);
+      const share = allocateChargeShares(amount, breakdown);
       const idempotencyKey = `autoscale:${sub.id}:${bucket}`;
 
       try {
@@ -96,6 +101,12 @@ export class AutoscalingBillingScheduler {
           description: `Autoscaling ${bucket} (cpu+${sub.account.scaledCpu}% ram+${sub.account.scaledRamMb}MB disk+${sub.account.scaledDiskMb}MB)`,
           idempotencyKey,
           subscriptionId: sub.id,
+          metadata: {
+            revenueCpuPln: share.cpu,
+            revenueRamPln: share.ram,
+            revenueDiskPln: share.disk,
+            bucket,
+          },
         });
 
         await this.prisma.autoscalingEvent.create({
@@ -145,4 +156,17 @@ function roundToCurrency(value: number): number {
   // 4 decimal places — we want sub-grosz precision for hourly sums but the
   // wallet column itself is `Decimal(12,2)`, so the ledger truncates anyway.
   return Math.round(value * 10_000) / 10_000;
+}
+
+function allocateChargeShares(
+  total: number,
+  breakdown: { cpu: number; ram: number; disk: number; total: number },
+): { cpu: string; ram: string; disk: string } {
+  if (breakdown.total <= 0) {
+    return { cpu: '0', ram: '0', disk: '0' };
+  }
+  const cpu = roundToCurrency((breakdown.cpu / breakdown.total) * total);
+  const ram = roundToCurrency((breakdown.ram / breakdown.total) * total);
+  const disk = roundToCurrency(Math.max(0, total - cpu - ram));
+  return { cpu: cpu.toFixed(4), ram: ram.toFixed(4), disk: disk.toFixed(4) };
 }

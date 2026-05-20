@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2, Pencil, PowerOff, Save, XCircle } from "lucide-react";
 import type { AutoscalingCatalogResource, PriceRuleDto } from "./actions";
 import { deactivatePriceRule, updatePriceRule } from "./actions";
+import { PricingSimulator } from "./pricing-simulator";
 
 const CATALOG_ORDER: AutoscalingCatalogResource[] = ["CPU", "RAM", "DISK"];
 
@@ -179,6 +180,7 @@ function RuleRow({ rule, readonly = false }: { rule: PriceRuleDto; readonly?: bo
   };
 
   return (
+    <>
     <tr className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] align-top">
       <td className="px-5 py-4">
         {editing ? (
@@ -310,6 +312,18 @@ function RuleRow({ rule, readonly = false }: { rule: PriceRuleDto; readonly?: bo
         )}
       </td>
     </tr>
+    {editing && CATALOG_ORDER.includes(rule.resource as AutoscalingCatalogResource) ? (
+      <tr className="border-b border-white/5 bg-indigo-500/[0.03]">
+        <td colSpan={5} className="px-5 py-3">
+          <PricingSimulator
+            resource={rule.resource as AutoscalingCatalogResource}
+            pricePerUnit={price}
+            thresholdAbove={threshold}
+          />
+        </td>
+      </tr>
+    ) : null}
+    </>
   );
 }
 

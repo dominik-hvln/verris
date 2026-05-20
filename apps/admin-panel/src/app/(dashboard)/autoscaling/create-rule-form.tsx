@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, Plus } from "lucide-react";
 import type { AutoscalingCatalogResource } from "./actions";
 import { createPriceRule } from "./actions";
+import { PricingSimulator } from "./pricing-simulator";
 
 const DEFAULT_PRICE: Record<AutoscalingCatalogResource, string> = {
   CPU: "0.0002",
@@ -137,6 +138,12 @@ export function CreateRuleForm() {
           placeholder="np. Wprowadzono Q2 2026 po analizie PnL"
         />
       </Field>
+
+      <PricingSimulator
+        resource={resource}
+        pricePerUnit={pricePerUnit}
+        thresholdAbove={thresholdAbove}
+      />
 
       {error && (
         <div className="rounded-md border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-200">

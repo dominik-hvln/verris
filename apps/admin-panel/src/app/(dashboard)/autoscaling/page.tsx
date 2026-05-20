@@ -1,4 +1,5 @@
-import { AlertCircle, Gauge } from "lucide-react";
+import Link from "next/link";
+import { AlertCircle, BarChart3, Gauge } from "lucide-react";
 import { listPriceRules } from "./actions";
 import { PricingTable } from "./pricing-table";
 import { CreateRuleForm } from "./create-rule-form";
@@ -31,6 +32,13 @@ export default async function AutoscalingPricingPage() {
             pozostają bez zmian.
           </p>
         </div>
+        <Link
+          href="/autoscaling/revenue"
+          className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-200 hover:bg-emerald-500/20"
+        >
+          <BarChart3 className="h-4 w-4" />
+          Raport przychodu 30d
+        </Link>
       </header>
 
       {!result.ok && (

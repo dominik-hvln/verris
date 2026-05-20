@@ -153,6 +153,62 @@ export class MetricsService {
     );
     lines.push(`verris_autoscale_events_1h_total ${autoscaleEventsLastHour}`);
 
+    const autoscaleEvents30d = await this.prisma.autoscalingEvent.groupBy({
+      by: ['resource', 'direction'],
+      where: {
+        createdAt: { gte: since30d },
+        resource: { not: null },
+      },
+      _count: { _all: true },
+    });
+    write(
+      lines,
+      'verris_autoscaling_scale_events_total',
+      'Autoscaling scale events in the last 30 days by resource and direction',
+      'gauge',
+    );
+    for (const row of autoscaleEvents30d) {
+      const resource = row.resource ?? 'unknown';
+      lines.push(
+        `verris_autoscaling_scale_events_total{resource="${resource}",direction="${row.direction}"} ${row._count._all}`,
+      );
+    }
+
+    const autoscaleCharges30d = await this.prisma.walletTransaction.findMany({
+      where: {
+        type: WalletTxType.CHARGE_AUTOSCALING,
+        status: 'COMPLETED',
+        createdAt: { gte: since30d },
+      },
+      select: { amount: true, metadata: true },
+    });
+    const chargeByResource = { CPU: 0, RAM: 0, DISK: 0, legacy: 0 };
+    for (const tx of autoscaleCharges30d) {
+      const abs = Math.abs(Number(tx.amount.toString()));
+      const meta = tx.metadata as Record<string, unknown> | null;
+      if (meta?.revenueCpuPln != null) {
+        chargeByResource.CPU += Number(meta.revenueCpuPln);
+        chargeByResource.RAM += Number(meta.revenueRamPln ?? 0);
+        chargeByResource.DISK += Number(meta.revenueDiskPln ?? 0);
+      } else {
+        chargeByResource.legacy += abs;
+      }
+    }
+    write(
+      lines,
+      'verris_autoscaling_charges_pln_30d',
+      'Autoscaling wallet charges in the last 30 days by resource (PLN)',
+      'gauge',
+    );
+    for (const resource of ['CPU', 'RAM', 'DISK'] as const) {
+      lines.push(
+        `verris_autoscaling_charges_pln_30d{resource="${resource}"} ${chargeByResource[resource].toFixed(2)}`,
+      );
+    }
+    lines.push(
+      `verris_autoscaling_charges_pln_30d{resource="legacy_unallocated"} ${chargeByResource.legacy.toFixed(2)}`,
+    );
+
     // --- Plan changes (PC-3.4) -------------------------------------------
     const planChangeEvents = await this.prisma.subscriptionEvent.findMany({
       where: { type: 'PLAN_CHANGED', createdAt: { gte: since30d } },

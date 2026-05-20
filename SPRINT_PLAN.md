@@ -21,7 +21,7 @@
 | ✅ Wdrożone | Cennik i kalkulator: 3 zasoby (CPU, RAM, Dysk); I/O i transfer wycofane z katalogu |
 | ✅ AS-1 | Silnik runtime + billing `scaledDiskMb`, sync quota DA, panel limitów |
 | ✅ AS-2 | Toggle CPU/RAM/dysk, prefill kalkulatora, max overscale w planie, e-mail scale-up, runbook shrink |
-| 🔜 AS-3 | Tier pricing, symulator w adminie, metryki i raport przychodu |
+| ✅ AS-3 | Tier validation, symulator admin, metryki Prometheus, raport przychodu 30d |
 
 ## Zmiana planu (upgrade / downgrade na tej samej usłudze)
 

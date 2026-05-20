@@ -84,6 +84,54 @@ export async function updatePriceRule(
   }
 }
 
+export async function simulatePricingAction(input: {
+  cpuPercent?: number;
+  ramGb?: number;
+  diskGb?: number;
+  draftResource?: AutoscalingCatalogResource;
+  draftPricePerUnit?: number;
+  draftThresholdAbove?: number;
+}): Promise<
+  ActionResult<{
+    currency: string;
+    breakdown: {
+      cpuHourly: string;
+      ramHourly: string;
+      diskHourly: string;
+      totalHourly: string;
+    };
+    monthly: string;
+  }>
+> {
+  try {
+    const data = await adminApi('/admin/autoscaling/pricing/simulate', {
+      method: 'POST',
+      body: input,
+    });
+    return { ok: true, data: data as never };
+  } catch (err) {
+    return { ok: false, error: errorMessage(err) };
+  }
+}
+
+export async function getAutoscalingRevenueReport(): Promise<
+  ActionResult<{
+    periodDays: number;
+    currency: string;
+    chargeCount: number;
+    totalRevenue: string;
+    byResource: { cpu: string; ram: string; disk: string; unallocatedLegacy: string };
+    scaleEvents: { resource: string | null; direction: string; count: number }[];
+  }>
+> {
+  try {
+    const data = await adminApi('/admin/autoscaling/pricing/revenue');
+    return { ok: true, data: data as never };
+  } catch (err) {
+    return { ok: false, error: errorMessage(err) };
+  }
+}
+
 export async function deactivatePriceRule(id: string): Promise<ActionResult> {
   try {
     await adminApi(`/admin/autoscaling/pricing/${id}`, { method: "DELETE" });

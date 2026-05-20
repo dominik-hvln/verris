@@ -24,10 +24,17 @@ export function toRuleBillingUnits(
   return catalogAmount;
 }
 
-export function hourlyCostForCatalogAmounts(
+export interface AutoscalingHourlyBreakdown {
+  cpu: number;
+  ram: number;
+  disk: number;
+  total: number;
+}
+
+export function hourlyCostBreakdownForCatalogAmounts(
   rules: AutoscalingPriceRule[],
   amounts: AutoscalingCatalogAmounts,
-): number {
+): AutoscalingHourlyBreakdown {
   const accrue = (resource: AutoscalingResource, catalogUnits: number): number => {
     if (catalogUnits <= 0) return 0;
     const list = rules
@@ -48,11 +55,44 @@ export function hourlyCostForCatalogAmounts(
     return billable * Number(rule.pricePerUnit);
   };
 
-  return (
-    accrue(AutoscalingResource.CPU, amounts.cpuPercent) +
-    accrue(AutoscalingResource.RAM, amounts.ramGb) +
-    accrue(AutoscalingResource.DISK, amounts.diskGb)
+  const cpu = accrue(AutoscalingResource.CPU, amounts.cpuPercent);
+  const ram = accrue(AutoscalingResource.RAM, amounts.ramGb);
+  const disk = accrue(AutoscalingResource.DISK, amounts.diskGb);
+  return { cpu, ram, disk, total: cpu + ram + disk };
+}
+
+export function hourlyCostForCatalogAmounts(
+  rules: AutoscalingPriceRule[],
+  amounts: AutoscalingCatalogAmounts,
+): number {
+  return hourlyCostBreakdownForCatalogAmounts(rules, amounts).total;
+}
+
+/**
+ * Active catalog rules cannot share the same threshold for one resource (AS-3.1).
+ */
+export function assertUniqueActiveTierThreshold(
+  existing: { id: string; resource: AutoscalingResource; thresholdAbove: number; isActive: boolean }[],
+  candidate: {
+    resource: AutoscalingResource;
+    thresholdAbove: number;
+    isActive: boolean;
+    excludeRuleId?: string;
+  },
+): void {
+  if (!candidate.isActive) return;
+  const clash = existing.find(
+    (r) =>
+      r.isActive &&
+      r.resource === candidate.resource &&
+      r.thresholdAbove === candidate.thresholdAbove &&
+      r.id !== candidate.excludeRuleId,
   );
+  if (clash) {
+    throw new Error(
+      `Aktywna reguła dla ${candidate.resource} z progiem ${candidate.thresholdAbove} już istnieje (id=${clash.id}). Zmień próg lub dezaktywuj poprzednią regułę.`,
+    );
+  }
 }
 
 /** Engine billing: scaled RAM is stored in MB on the account. */
