@@ -150,7 +150,7 @@ export class SubscriptionsAdminController {
   @HttpCode(200)
   @Roles(Role.ADMIN, Role.STAFF)
   previewPlanChange(@Param('id') id: string, @Body() dto: AdminPreviewPlanChangeDto) {
-    return this.planChange.previewForAdmin(id, dto.targetPlanId);
+    return this.planChange.previewForAdmin(id, dto.targetPlanId, dto.targetInterval);
   }
 
   @Post(':id/plan')
@@ -173,6 +173,7 @@ export class SubscriptionsAdminController {
       dto.targetPlanId,
       dto.reason,
       dto.skipBilling ?? false,
+      dto.targetInterval,
     );
   }
 }

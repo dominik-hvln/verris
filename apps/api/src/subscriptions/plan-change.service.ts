@@ -26,6 +26,7 @@ import { DirectAdminService } from '../servers/directadmin.service';
 import { MailerService } from '../mail/mailer.service';
 import { planChangedTemplate } from '../mail/templates/plan-change-notifications';
 import {
+  billingPeriodEndFrom,
   computePlanChangeProration,
   planPriceForInterval,
   type PlanChangeDirection,
@@ -52,6 +53,7 @@ interface PlanChangeContext {
   adminReason?: string;
   allowNonPublicPlan: boolean;
   sendEmail: boolean;
+  targetInterval?: BillingInterval;
 }
 
 @Injectable()
@@ -68,14 +70,29 @@ export class PlanChangeService {
     private readonly config: ConfigService,
   ) {}
 
-  async previewForUser(userId: string, subscriptionId: string, targetPlanId: string) {
+  async previewForUser(
+    userId: string,
+    subscriptionId: string,
+    targetPlanId: string,
+    targetInterval?: BillingInterval,
+  ) {
     const sub = await this.loadForOwner(userId, subscriptionId);
-    return this.buildPreview(sub, targetPlanId, { allowNonPublicPlan: false });
+    return this.buildPreview(sub, targetPlanId, {
+      allowNonPublicPlan: false,
+      targetInterval,
+    });
   }
 
-  async previewForAdmin(subscriptionId: string, targetPlanId: string) {
+  async previewForAdmin(
+    subscriptionId: string,
+    targetPlanId: string,
+    targetInterval?: BillingInterval,
+  ) {
     const sub = await this.loadById(subscriptionId);
-    return this.buildPreview(sub, targetPlanId, { allowNonPublicPlan: true });
+    return this.buildPreview(sub, targetPlanId, {
+      allowNonPublicPlan: true,
+      targetInterval,
+    });
   }
 
   async listEligiblePlansForAdmin(subscriptionId: string) {
@@ -83,7 +100,12 @@ export class PlanChangeService {
     return this.listEligibleTargets(sub, true);
   }
 
-  async changeForUser(userId: string, subscriptionId: string, targetPlanId: string) {
+  async changeForUser(
+    userId: string,
+    subscriptionId: string,
+    targetPlanId: string,
+    targetInterval?: BillingInterval,
+  ) {
     const sub = await this.loadForOwner(userId, subscriptionId);
     if (sub.paymentSource === SubscriptionPaymentSource.MANUAL) {
       throw new BadRequestException(
@@ -96,6 +118,7 @@ export class PlanChangeService {
       skipBilling: false,
       allowNonPublicPlan: false,
       sendEmail: true,
+      targetInterval,
     });
   }
 
@@ -106,6 +129,7 @@ export class PlanChangeService {
     targetPlanId: string,
     reason: string,
     skipBilling = false,
+    targetInterval?: BillingInterval,
   ) {
     if (skipBilling && actorRole !== Role.ADMIN) {
       throw new ForbiddenException(
@@ -121,33 +145,47 @@ export class PlanChangeService {
       adminReason: reason,
       allowNonPublicPlan: true,
       sendEmail: true,
+      targetInterval,
     });
   }
 
   private async buildPreview(
     sub: LoadedSub,
     targetPlanId: string,
-    opts: { allowNonPublicPlan: boolean },
+    opts: { allowNonPublicPlan: boolean; targetInterval?: BillingInterval },
   ) {
     const target = await this.resolveTargetPlan(targetPlanId, opts);
-    this.assertCanChangePlan(sub, target);
-    const proration = this.prorationFor(sub, target);
+    const effectiveInterval = opts.targetInterval ?? sub.interval;
+    this.assertCanChangePlan(sub, target, effectiveInterval);
+    await this.assertDiskAllowsDowngrade(sub, target);
+    const proration = this.prorationFor(sub, target, effectiveInterval);
     const targets = await this.listEligibleTargets(sub, opts.allowNonPublicPlan);
+    const intervalChange = effectiveInterval !== sub.interval;
+    const newPeriodStart = intervalChange ? new Date() : sub.currentPeriodStart;
+    const newPeriodEnd = intervalChange
+      ? billingPeriodEndFrom(newPeriodStart!, effectiveInterval)
+      : sub.currentPeriodEnd;
+    const peakDisk = await this.peakDiskUsageMb(sub);
 
     return {
       subscriptionId: sub.id,
       currentPlanId: sub.planId,
       currentPlanName: sub.plan.name,
       interval: sub.interval,
+      targetInterval: effectiveInterval,
+      intervalChange,
       paymentSource: sub.paymentSource,
       currentPeriodStart: sub.currentPeriodStart?.toISOString() ?? null,
       currentPeriodEnd: sub.currentPeriodEnd?.toISOString() ?? null,
+      newPeriodStart: newPeriodStart?.toISOString() ?? null,
+      newPeriodEnd: newPeriodEnd?.toISOString() ?? null,
       remainingFraction: proration.remainingFraction,
       direction: proration.direction,
       amountDue: proration.amountDue.toFixed(2),
       amountCredit: proration.amountCredit.toFixed(2),
       currency: sub.currency,
       resetsAutoscalingDeltas: this.hasAutoscalingDeltas(sub),
+      peakDiskUsageMb: peakDisk,
       targetPlans: targets,
     };
   }
@@ -160,7 +198,9 @@ export class PlanChangeService {
     const target = await this.resolveTargetPlan(targetPlanId, {
       allowNonPublicPlan: ctx.allowNonPublicPlan,
     });
-    this.assertCanChangePlan(sub, target);
+    const effectiveInterval = ctx.targetInterval ?? sub.interval;
+    this.assertCanChangePlan(sub, target, effectiveInterval);
+    await this.assertDiskAllowsDowngrade(sub, target);
 
     if (
       !ctx.skipBilling &&
@@ -172,12 +212,13 @@ export class PlanChangeService {
       );
     }
 
-    const proration = this.prorationFor(sub, target);
-    const newPrice = planPriceForInterval(target, sub.interval);
+    const proration = this.prorationFor(sub, target, effectiveInterval);
+    const intervalChange = effectiveInterval !== sub.interval;
+    const newPrice = planPriceForInterval(target, effectiveInterval);
     const idempotencyKey =
       ctx.initiatedBy === 'admin'
-        ? `plan-change-admin-${sub.id}-${target.id}-${ctx.actorUserId}`
-        : `plan-change-${sub.id}-${target.id}-${sub.currentPeriodStart?.toISOString() ?? 'no-period'}`;
+        ? `plan-change-admin-${sub.id}-${target.id}-${effectiveInterval}-${ctx.actorUserId}`
+        : `plan-change-${sub.id}-${target.id}-${effectiveInterval}-${sub.currentPeriodStart?.toISOString() ?? 'no-period'}`;
 
     if (
       !ctx.skipBilling &&
@@ -198,7 +239,7 @@ export class PlanChangeService {
 
     try {
       if (!ctx.skipBilling && sub.paymentSource === SubscriptionPaymentSource.STRIPE_CARD) {
-        await this.applyStripePlanChange(sub, target);
+        await this.applyStripePlanChange(sub, target, effectiveInterval);
         stripeUpdated = true;
       }
 
@@ -227,7 +268,16 @@ export class PlanChangeService {
 
       await this.pushDaLimits(sub, target);
 
-      const updated = await this.commitPlanChange(sub, target, newPrice, proration, idempotencyKey, ctx);
+      const updated = await this.commitPlanChange(
+        sub,
+        target,
+        newPrice,
+        effectiveInterval,
+        intervalChange,
+        proration,
+        idempotencyKey,
+        ctx,
+      );
 
       if (
         !ctx.skipBilling &&
@@ -260,6 +310,9 @@ export class PlanChangeService {
           subscriptionId: sub.id,
           fromPlanId: sub.planId,
           toPlanId: target.id,
+          fromInterval: sub.interval,
+          toInterval: effectiveInterval,
+          intervalChange,
           direction: proration.direction,
           amountDue: proration.amountDue.toFixed(2),
           amountCredit: proration.amountCredit.toFixed(2),
@@ -289,6 +342,8 @@ export class PlanChangeService {
         subscriptionId: updated.id,
         fromPlanId: sub.planId,
         toPlanId: target.id,
+        fromInterval: sub.interval,
+        toInterval: effectiveInterval,
         direction: proration.direction,
         amountDue: proration.amountDue.toFixed(2),
         amountCredit: proration.amountCredit.toFixed(2),
@@ -369,7 +424,7 @@ export class PlanChangeService {
     return plan;
   }
 
-  private assertCanChangePlan(sub: LoadedSub, target: Plan) {
+  private assertCanChangePlan(sub: LoadedSub, target: Plan, targetInterval: BillingInterval) {
     if (sub.status !== SubscriptionStatus.ACTIVE) {
       throw new BadRequestException(
         'Zmiana planu jest możliwa tylko dla aktywnej, opłaconej subskrypcji.',
@@ -380,8 +435,10 @@ export class PlanChangeService {
         'Usługa nie ma jeszcze konta hostingowego — poczekaj na provisioning.',
       );
     }
-    if (sub.planId === target.id) {
-      throw new BadRequestException('Ta usługa jest już na wybranym planie.');
+    if (sub.planId === target.id && sub.interval === targetInterval) {
+      throw new BadRequestException(
+        'Ta usługa ma już wybrany plan i okres rozliczeniowy — wybierz inny plan lub okres.',
+      );
     }
     if (!sub.currentPeriodStart || !sub.currentPeriodEnd) {
       throw new BadRequestException(
@@ -395,13 +452,43 @@ export class PlanChangeService {
     }
   }
 
-  private prorationFor(sub: LoadedSub, target: Plan) {
+  private prorationFor(sub: LoadedSub, target: Plan, targetInterval: BillingInterval) {
     return computePlanChangeProration({
       oldPeriodPrice: sub.priceAmount,
-      newPeriodPrice: planPriceForInterval(target, sub.interval),
+      newPeriodPrice: planPriceForInterval(target, targetInterval),
       periodStart: sub.currentPeriodStart!,
       periodEnd: sub.currentPeriodEnd!,
+      currentInterval: sub.interval,
+      targetInterval,
     });
+  }
+
+  private async assertDiskAllowsDowngrade(sub: LoadedSub, target: Plan) {
+    if (target.diskLimitMb >= sub.plan.diskLimitMb) return;
+
+    const peak = await this.peakDiskUsageMb(sub);
+    if (peak > target.diskLimitMb) {
+      throw new BadRequestException(
+        `Faktyczne zużycie dysku (${Math.ceil(peak)} MB) przekracza limit nowego planu (${target.diskLimitMb} MB). Zwolnij miejsce na koncie przed downgrade.`,
+      );
+    }
+  }
+
+  private async peakDiskUsageMb(sub: LoadedSub): Promise<number> {
+    const since = new Date(Date.now() - 48 * 3_600_000);
+    const rows = await this.prisma.usageMetric.findMany({
+      where: {
+        bucketStart: { gte: since },
+        OR: [
+          { subscriptionId: sub.id },
+          ...(sub.account ? [{ accountId: sub.account.id }] : []),
+        ],
+      },
+      select: { diskUsageMb: true },
+      take: 96,
+    });
+    if (rows.length === 0) return 0;
+    return Math.max(...rows.map((r) => r.diskUsageMb));
   }
 
   private hasAutoscalingDeltas(sub: LoadedSub): boolean {
@@ -431,16 +518,22 @@ export class PlanChangeService {
       ramLimitMb: p.ramLimitMb,
       diskLimitMb: p.diskLimitMb,
       priceForInterval: planPriceForInterval(p, sub.interval).toFixed(2),
+      priceMonthly: p.priceMonthly.toFixed(2),
+      priceYearly: p.priceYearly.toFixed(2),
       currency: p.currency,
     }));
   }
 
-  private async applyStripePlanChange(sub: LoadedSub, target: Plan) {
+  private async applyStripePlanChange(
+    sub: LoadedSub,
+    target: Plan,
+    targetInterval: BillingInterval,
+  ) {
     if (!sub.stripeSubscriptionId) {
       throw new BadRequestException('Brak powiązania ze Stripe — skontaktuj się z supportem.');
     }
     const priceId =
-      sub.interval === BillingInterval.YEAR
+      targetInterval === BillingInterval.YEAR
         ? target.stripePriceYearlyId
         : target.stripePriceMonthlyId;
     if (!priceId) {
@@ -488,6 +581,8 @@ export class PlanChangeService {
     sub: LoadedSub,
     target: Plan,
     newPrice: Prisma.Decimal,
+    targetInterval: BillingInterval,
+    intervalChange: boolean,
     proration: { direction: PlanChangeDirection },
     idempotencyKey: string,
     ctx: PlanChangeContext,
@@ -526,12 +621,24 @@ export class PlanChangeService {
         });
       }
 
+      const periodStart = intervalChange ? new Date() : sub.currentPeriodStart;
+      const periodEnd = intervalChange
+        ? billingPeriodEndFrom(periodStart!, targetInterval)
+        : sub.currentPeriodEnd;
+
       const updated = await tx.subscription.update({
         where: { id: sub.id },
         data: {
           planId: target.id,
           priceAmount: newPrice,
           listPriceAmount: newPrice,
+          ...(intervalChange
+            ? {
+                interval: targetInterval,
+                currentPeriodStart: periodStart,
+                currentPeriodEnd: periodEnd,
+              }
+            : {}),
         },
       });
 
@@ -544,6 +651,9 @@ export class PlanChangeService {
             fromPlanSlug: oldPlan.slug,
             toPlanId: target.id,
             toPlanSlug: target.slug,
+            fromInterval: sub.interval,
+            toInterval: targetInterval,
+            intervalChange,
             direction: proration.direction,
             idempotencyKey,
             autoscalingDeltasReset: true,

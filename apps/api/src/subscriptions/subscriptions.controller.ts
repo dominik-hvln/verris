@@ -103,7 +103,12 @@ export class SubscriptionsController {
     @Param('id') id: string,
     @Body() dto: PreviewPlanChangeDto,
   ) {
-    return this.planChange.previewForUser(user.userId, id, dto.targetPlanId);
+    return this.planChange.previewForUser(
+      user.userId,
+      id,
+      dto.targetPlanId,
+      dto.targetInterval,
+    );
   }
 
   @Patch(':id/plan')
@@ -113,6 +118,11 @@ export class SubscriptionsController {
     @Param('id') id: string,
     @Body() dto: ChangePlanDto,
   ) {
-    return this.planChange.changeForUser(user.userId, id, dto.targetPlanId);
+    return this.planChange.changeForUser(
+      user.userId,
+      id,
+      dto.targetPlanId,
+      dto.targetInterval,
+    );
   }
 }

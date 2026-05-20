@@ -10,6 +10,8 @@ export interface PlanChangeTargetPlanDto {
   ramLimitMb: number;
   diskLimitMb: number;
   priceForInterval: string;
+  priceMonthly: string;
+  priceYearly: string;
   currency: string;
 }
 
@@ -18,15 +20,20 @@ export interface PlanChangePreviewDto {
   currentPlanId: string;
   currentPlanName: string;
   interval: BillingInterval;
+  targetInterval: BillingInterval;
+  intervalChange: boolean;
   paymentSource: 'STRIPE_CARD' | 'WALLET' | 'MANUAL';
   currentPeriodStart: string | null;
   currentPeriodEnd: string | null;
+  newPeriodStart: string | null;
+  newPeriodEnd: string | null;
   remainingFraction: number;
   direction: PlanChangeDirection;
   amountDue: string;
   amountCredit: string;
   currency: string;
   resetsAutoscalingDeltas: boolean;
+  peakDiskUsageMb: number | null;
   targetPlans: PlanChangeTargetPlanDto[];
 }
 
@@ -34,6 +41,8 @@ export interface PlanChangeResultDto {
   subscriptionId: string;
   fromPlanId: string;
   toPlanId: string;
+  fromInterval: BillingInterval;
+  toInterval: BillingInterval;
   direction: PlanChangeDirection;
   amountDue: string;
   amountCredit: string;

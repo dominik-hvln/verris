@@ -51,6 +51,7 @@ describe('PlanChangeService (admin)', () => {
     da?: { setAccountLimits: jest.Mock };
     wallet?: { debit: jest.Mock; credit: jest.Mock };
     stripe?: { updateSubscriptionPrice: jest.Mock; retrieveSubscription: jest.Mock };
+    usageMetric?: { findMany: jest.Mock };
   } = {}) {
     const da = {
       getClientForServer: jest.fn().mockResolvedValue({
@@ -86,6 +87,9 @@ describe('PlanChangeService (admin)', () => {
           stripePriceMonthlyId: null,
           stripePriceYearlyId: null,
         }),
+      },
+      usageMetric: {
+        findMany: overrides.usageMetric?.findMany ?? jest.fn().mockResolvedValue([]),
       },
       subscription: {
         findFirst: jest.fn(),
@@ -139,5 +143,40 @@ describe('PlanChangeService (admin)', () => {
     const { service, walletLedger } = createService({ wallet: { debit, credit: jest.fn() } });
     await service.changeForAdmin('admin-1', Role.ADMIN, 'sub-1', 'plan-b', 'Upgrade na prośbę', false);
     expect(walletLedger.debit).toHaveBeenCalled();
+  });
+
+  it('rejects downgrade when disk usage exceeds target limit', async () => {
+    const targetPlan = {
+      id: 'plan-b',
+      slug: 'micro',
+      name: 'Micro',
+      isActive: true,
+      isPublic: false,
+      cpuLimit: 50,
+      ramLimitMb: 512,
+      diskLimitMb: 1024,
+      priceMonthly: new Prisma.Decimal(50),
+      priceYearly: new Prisma.Decimal(500),
+      ioLimitKbps: 10240,
+      iopsLimit: 1024,
+      entryProcesses: 40,
+      nprocLimit: 20,
+      stripePriceMonthlyId: null,
+      stripePriceYearlyId: null,
+    };
+    const { service, prisma } = createService({
+      usageMetric: {
+        findMany: jest.fn().mockResolvedValue([{ diskUsageMb: 2048 }]),
+      },
+    });
+    prisma.plan.findUnique.mockResolvedValue(targetPlan);
+
+    await expect(
+      service.changeForAdmin('admin-1', Role.ADMIN, 'sub-1', 'plan-b', 'Downgrade', true),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({
+        message: expect.stringContaining('zużycie dysku'),
+      }),
+    });
   });
 });

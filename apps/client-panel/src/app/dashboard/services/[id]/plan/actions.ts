@@ -13,13 +13,17 @@ export interface PlanChangeActionState {
 export async function previewPlanChangeAction(
   subscriptionId: string,
   targetPlanId: string,
+  targetInterval?: 'MONTH' | 'YEAR',
 ): Promise<{ ok: true; data: PlanChangePreviewDto } | { ok: false; error: string }> {
   try {
     const data = await apiFetch<PlanChangePreviewDto>(
       `/subscriptions/${subscriptionId}/plan/preview`,
       {
         method: 'POST',
-        body: JSON.stringify({ targetPlanId }),
+        body: JSON.stringify({
+          targetPlanId,
+          ...(targetInterval ? { targetInterval } : {}),
+        }),
       },
     );
     return { ok: true, data };
@@ -39,6 +43,11 @@ export async function changePlanAction(
   if (typeof targetPlanId !== 'string' || !targetPlanId) {
     return { ok: false, error: 'Wybierz plan docelowy.' };
   }
+  const targetIntervalRaw = formData.get('targetInterval');
+  const targetInterval =
+    targetIntervalRaw === 'MONTH' || targetIntervalRaw === 'YEAR'
+      ? targetIntervalRaw
+      : undefined;
 
   const confirmReset = formData.get('confirmReset') === 'on';
   const needsReset = formData.get('needsReset') === '1';
@@ -54,7 +63,10 @@ export async function changePlanAction(
       `/subscriptions/${subscriptionId}/plan`,
       {
         method: 'PATCH',
-        body: JSON.stringify({ targetPlanId }),
+        body: JSON.stringify({
+          targetPlanId,
+          ...(targetInterval ? { targetInterval } : {}),
+        }),
       },
     );
     revalidatePath(`/dashboard/services/${subscriptionId}/plan`);

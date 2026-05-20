@@ -41,13 +41,15 @@ export default async function PlanChangePage({
           diskLimitMb: p.diskLimitMb,
           priceForInterval:
             service.interval === 'YEAR' ? p.priceYearly : p.priceMonthly,
+          priceMonthly: p.priceMonthly,
+          priceYearly: p.priceYearly,
           currency: p.currency,
         }))
     : [];
 
   let initialPreview: PlanChangePreviewDto | null = null;
   if (service && targetPlans[0]) {
-    const res = await previewPlanChangeAction(id, targetPlans[0].id);
+    const res = await previewPlanChangeAction(id, targetPlans[0].id, service.interval);
     if (res.ok) initialPreview = res.data;
   }
 

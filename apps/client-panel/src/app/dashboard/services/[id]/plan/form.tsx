@@ -19,6 +19,8 @@ interface TargetPlan {
   ramLimitMb: number;
   diskLimitMb: number;
   priceForInterval: string;
+  priceMonthly: string;
+  priceYearly: string;
   currency: string;
 }
 
@@ -43,7 +45,8 @@ export function PlanChangeForm({
   targetPlans,
   initialPreview = null,
 }: Props) {
-  const [selectedId, setSelectedId] = useState<string>(targetPlans[0]?.id ?? '');
+  const [selectedId, setSelectedId] = useState<string>(targetPlans[0]?.id ?? currentPlanId);
+  const [targetInterval, setTargetInterval] = useState<'MONTH' | 'YEAR'>(interval);
   const [preview, setPreview] = useState<PlanChangePreviewDto | null>(initialPreview);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [pendingPreview, startPreview] = useTransition();
@@ -53,14 +56,23 @@ export function PlanChangeForm({
   );
 
   const loadPreview = useCallback(
-    (planId: string) => {
-      if (!planId || planId === currentPlanId) {
+    (planId: string, billingInterval: 'MONTH' | 'YEAR') => {
+      if (!planId) {
+        setPreview(null);
+        setPreviewError(null);
+        return;
+      }
+      if (planId === currentPlanId && billingInterval === interval) {
         setPreview(null);
         setPreviewError(null);
         return;
       }
       startPreview(async () => {
-        const res = await previewPlanChangeAction(subscriptionId, planId);
+        const res = await previewPlanChangeAction(
+          subscriptionId,
+          planId,
+          billingInterval,
+        );
         if (res.ok) {
           setPreview(res.data);
           setPreviewError(null);
@@ -70,13 +82,23 @@ export function PlanChangeForm({
         }
       });
     },
-    [subscriptionId, currentPlanId],
+    [subscriptionId, currentPlanId, interval],
   );
 
   const onSelect = (planId: string) => {
     setSelectedId(planId);
-    loadPreview(planId);
+    loadPreview(planId, targetInterval);
   };
+
+  const onIntervalChange = (billingInterval: 'MONTH' | 'YEAR') => {
+    setTargetInterval(billingInterval);
+    loadPreview(selectedId || currentPlanId, billingInterval);
+  };
+
+  useEffect(() => {
+    if (selectedId) loadPreview(selectedId, targetInterval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- initial load only
+  }, []);
 
   if (status !== 'ACTIVE') {
     return (
@@ -94,7 +116,11 @@ export function PlanChangeForm({
     );
   }
 
-  if (targetPlans.length === 0) {
+  const canChangeInterval = targetInterval !== interval;
+  const effectivePlanId = selectedId || currentPlanId;
+  const hasChange = effectivePlanId !== currentPlanId || canChangeInterval;
+
+  if (targetPlans.length === 0 && !canChangeInterval) {
     return (
       <div className="rounded-2xl border border-white/10 p-6 text-neutral-400">
         Brak innych publicznych planów do wyboru.
@@ -102,8 +128,26 @@ export function PlanChangeForm({
     );
   }
 
-  const selected = targetPlans.find((p) => p.id === selectedId);
+  const selected =
+    targetPlans.find((p) => p.id === selectedId) ??
+    (effectivePlanId === currentPlanId
+      ? {
+          id: currentPlanId,
+          name: currentPlanName,
+          priceMonthly: '',
+          priceYearly: '',
+          priceForInterval: '',
+          currency: preview?.currency ?? 'PLN',
+          cpuLimit: 0,
+          ramLimitMb: 0,
+          diskLimitMb: 0,
+          slug: '',
+        }
+      : undefined);
   const needsReset = preview?.resetsAutoscalingDeltas ?? false;
+
+  const priceForPlan = (plan: TargetPlan, billingInterval: 'MONTH' | 'YEAR') =>
+    billingInterval === 'YEAR' ? plan.priceYearly : plan.priceMonthly;
 
   return (
     <div className="space-y-6">
@@ -120,15 +164,50 @@ export function PlanChangeForm({
       </div>
 
       <form action={formAction} className="rounded-2xl border border-white/5 bg-[#0a0a0a] p-6 space-y-6">
-        <input type="hidden" name="targetPlanId" value={selectedId} />
+        <input type="hidden" name="targetPlanId" value={effectivePlanId} />
+        <input type="hidden" name="targetInterval" value={targetInterval} />
         <input type="hidden" name="needsReset" value={needsReset ? '1' : '0'} />
 
+        <div>
+          <h2 className="text-lg font-bold text-white">Okres rozliczeniowy</h2>
+          <p className="mt-1 text-xs text-neutral-400">
+            Zmiana okresu uruchamia nowy cykl rozliczeniowy od chwili zmiany (proration za
+            pozostały czas).
+          </p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            {(['MONTH', 'YEAR'] as const).map((iv) => (
+              <label
+                key={iv}
+                className={`cursor-pointer rounded-xl border px-4 py-2 text-sm transition-colors ${
+                  targetInterval === iv
+                    ? 'border-sky-400/50 bg-sky-400/10 text-white'
+                    : 'border-white/10 text-neutral-400 hover:border-white/20'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="intervalChoice"
+                  className="sr-only"
+                  checked={targetInterval === iv}
+                  onChange={() => onIntervalChange(iv)}
+                />
+                {iv === 'MONTH' ? 'Miesięczny' : 'Roczny'}
+                {iv === interval ? (
+                  <span className="ml-2 text-[10px] text-neutral-500">(aktualny)</span>
+                ) : null}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        {targetPlans.length > 0 ? (
         <div>
           <h2 className="text-lg font-bold text-white">Wybierz nowy plan</h2>
           <p className="mt-1 text-xs text-neutral-400">
             Ta sama usługa i konto hostingowe — zmieniamy tylko pakiet i limity.
           </p>
         </div>
+        ) : null}
 
         <div className="grid gap-3">
           {targetPlans.map((plan) => (
@@ -152,8 +231,8 @@ export function PlanChangeForm({
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <span className="font-semibold text-white">{plan.name}</span>
                   <span className="text-sm text-neutral-300">
-                    {plan.priceForInterval} {plan.currency}
-                    {interval === 'MONTH' ? ' / mies.' : ' / rok'}
+                    {priceForPlan(plan, targetInterval)} {plan.currency}
+                    {targetInterval === 'MONTH' ? ' / mies.' : ' / rok'}
                   </span>
                 </div>
                 <p className="mt-2 text-xs text-neutral-500">
@@ -177,9 +256,20 @@ export function PlanChangeForm({
           </div>
         )}
 
-        {preview && selected && (
+        {preview && selected && hasChange && (
           <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-3 text-sm">
             <p className="font-semibold text-white">Podsumowanie za pozostały okres</p>
+            {preview.intervalChange && preview.newPeriodEnd ? (
+              <p className="text-xs text-neutral-400">
+                Nowy okres: od teraz do{' '}
+                {new Date(preview.newPeriodEnd).toLocaleDateString('pl-PL')}
+              </p>
+            ) : null}
+            {preview.peakDiskUsageMb != null && preview.peakDiskUsageMb > 0 ? (
+              <p className="text-xs text-neutral-500">
+                Zużycie dysku (48 h): {Math.ceil(preview.peakDiskUsageMb)} MB
+              </p>
+            ) : null}
             {preview.direction === 'upgrade' && Number(preview.amountDue) > 0 ? (
               <p className="text-neutral-300">
                 Dopłata:{' '}
@@ -240,7 +330,7 @@ export function PlanChangeForm({
 
         <button
           type="submit"
-          disabled={pendingChange || !selectedId || !preview}
+          disabled={pendingChange || !hasChange || !preview}
           className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-black hover:bg-neutral-200 disabled:opacity-50"
         >
           {pendingChange ? (

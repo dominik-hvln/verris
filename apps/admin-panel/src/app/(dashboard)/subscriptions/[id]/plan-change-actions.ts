@@ -23,11 +23,18 @@ export type PlanChangePreview = {
 export async function previewAdminPlanChangeAction(
   subscriptionId: string,
   targetPlanId: string,
+  targetInterval?: 'MONTH' | 'YEAR',
 ): Promise<{ ok: true; data: PlanChangePreview } | { error: string }> {
   try {
     const data = await adminApi<PlanChangePreview>(
       `/admin/subscriptions/${subscriptionId}/plan/preview`,
-      { method: 'POST', body: { targetPlanId } },
+      {
+        method: 'POST',
+        body: {
+          targetPlanId,
+          ...(targetInterval ? { targetInterval } : {}),
+        },
+      },
     );
     return { ok: true, data };
   } catch (e) {
@@ -40,6 +47,7 @@ export async function changeAdminPlanAction(input: {
   targetPlanId: string;
   reason: string;
   skipBilling?: boolean;
+  targetInterval?: 'MONTH' | 'YEAR';
 }): Promise<{ ok: true } | { error: string }> {
   try {
     await adminApi(`/admin/subscriptions/${input.subscriptionId}/plan`, {
@@ -48,6 +56,7 @@ export async function changeAdminPlanAction(input: {
         targetPlanId: input.targetPlanId,
         reason: input.reason,
         skipBilling: input.skipBilling ?? false,
+        ...(input.targetInterval ? { targetInterval: input.targetInterval } : {}),
       },
     });
     revalidatePath(`/subscriptions/${input.subscriptionId}`);

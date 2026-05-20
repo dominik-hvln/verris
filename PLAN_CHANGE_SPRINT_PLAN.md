@@ -96,13 +96,18 @@ flowchart LR
 
 ---
 
+## PC-4 — okres rozliczeniowy + walidacja dysku (LIVE)
+
+| ID | Zakres |
+|----|--------|
+| **PC-4.1** | `targetInterval` w preview/change; proration cross-interval; reset okresu przy MONTH↔YEAR (portfel + sync Stripe) |
+| **PC-4.2** | Blokada downgrade gdy `peakDiskUsageMb` (48 h) > `target.diskLimitMb` |
+
 ## Poza zakresem (follow-up / faza 2)
 
 | Temat | Uzasadnienie |
 |-------|----------------|
-| Zmiana `interval` MONTH ↔ YEAR w jednym flow | Osobny proration Stripe + okres rozliczeniowy — osobny task **PC-4** |
 | Zmiana planu z przeniesieniem na inny węzeł | To **migracja wewnętrzna** (już jest osobno), nie change plan |
-| Downgrade poniżej faktycznego zużycia dysku | Wymaga check `UsageMetric.diskUsageMb` — **PC-4.2** |
 | Plan custom / negocjowany per klient | Admin manual pricing — **PC-4.3** |
 
 ---

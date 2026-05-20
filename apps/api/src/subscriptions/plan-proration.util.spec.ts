@@ -1,5 +1,9 @@
-import { Prisma } from '@verris/database';
-import { computePlanChangeProration } from './plan-proration.util';
+import { BillingInterval, Prisma } from '@verris/database';
+import {
+  billingPeriodEndFrom,
+  computePlanChangeProration,
+  referencePeriodMs,
+} from './plan-proration.util';
 
 describe('computePlanChangeProration', () => {
   const periodStart = new Date('2026-01-01T00:00:00Z');
@@ -56,5 +60,32 @@ describe('computePlanChangeProration', () => {
     expect(result.direction).toBe('upgrade');
     expect(result.amountDue.greaterThan(0)).toBe(true);
     expect(result.amountDue.lessThanOrEqualTo(2)).toBe(true);
+  });
+
+  it('cross-interval MONTH→YEAR prorates new cost against year reference period', () => {
+    const result = computePlanChangeProration({
+      oldPeriodPrice: 100,
+      newPeriodPrice: 2400,
+      periodStart,
+      periodEnd,
+      now: midPeriod,
+      currentInterval: BillingInterval.MONTH,
+      targetInterval: BillingInterval.YEAR,
+    });
+    expect(result.direction).toBe('upgrade');
+    expect(result.amountDue.greaterThan(0)).toBe(true);
+    expect(result.amountCredit.toFixed(2)).toBe('0.00');
+  });
+
+  it('referencePeriodMs differs for month and year', () => {
+    expect(referencePeriodMs(BillingInterval.MONTH)).toBeLessThan(
+      referencePeriodMs(BillingInterval.YEAR),
+    );
+  });
+
+  it('billingPeriodEndFrom advances one month', () => {
+    const start = new Date('2026-03-01T00:00:00Z');
+    const end = billingPeriodEndFrom(start, BillingInterval.MONTH);
+    expect(end.toISOString()).toBe('2026-04-01T00:00:00.000Z');
   });
 });

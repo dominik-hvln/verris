@@ -507,11 +507,12 @@ bash ops/scripts/prod-migrate-deploy.sh
 **Smoke test (klient, ACTIVE + konto DA):**
 
 1. `/dashboard/services` → ikona zmiany planu (tylko ACTIVE).
-2. `/dashboard/services/<id>/plan` → wybór planu → podgląd proration → potwierdzenie.
-3. API: `POST /subscriptions/:id/plan/preview`, `PATCH /subscriptions/:id/plan`.
-4. DB: `Subscription.planId`, `priceAmount`, `SubscriptionEvent` typ `PLAN_CHANGED`, `Account.scaled*` = 0, limity = plan.
-5. Portfel (WALLET): transakcja `CHARGE_PLAN_UPGRADE` lub `CREDIT_PLAN_DOWNGRADE`.
-6. Stripe (STRIPE_CARD): faktura/proration w Stripe; lokalny okres zsynchronizowany z webhookiem.
+2. `/dashboard/services/<id>/plan` → wybór planu i/lub okresu (mies./rok) → podgląd proration → potwierdzenie.
+3. API: `POST /subscriptions/:id/plan/preview`, `PATCH /subscriptions/:id/plan` (body: `targetPlanId`, opcjonalnie `targetInterval`).
+4. **PC-4:** zmiana MONTH↔YEAR → nowy `currentPeriodStart`/`End`, `interval` w DB; downgrade z wysokim `diskUsageMb` → 400.
+5. DB: `Subscription.planId`, `priceAmount`, `SubscriptionEvent` typ `PLAN_CHANGED`, `Account.scaled*` = 0, limity = plan.
+6. Portfel (WALLET): transakcja `CHARGE_PLAN_UPGRADE` lub `CREDIT_PLAN_DOWNGRADE`.
+7. Stripe (STRIPE_CARD): faktura/proration w Stripe; lokalny okres zsynchronizowany z webhookiem.
 
 **Awaria DA przy commit:** API nie zapisuje planu w DB jeśli `setAccountLimits` się nie powiedzie (rollback portfela przy WALLET upgrade).
 

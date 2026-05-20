@@ -63,7 +63,11 @@ Korzystanie z Panelu wymaga:
    - 7 dni przed końcem dla rocznych subskrypcji,
    - 3 dni przed końcem dla miesięcznych subskrypcji.
 4. W przypadku niepowodzenia automatycznego odnowienia (brak środków w Portfelu, odrzucenie karty), Verris uruchamia okres prolongaty 7 dni, w trakcie którego Usługa jest aktywna, a Klient otrzymuje powiadomienia. Po upływie prolongaty Usługa zostaje zawieszona, a po kolejnych 14 dniach — usunięta wraz z danymi.
-5. Klient może w każdej chwili upgrade'ować lub downgrade'ować Plan. Różnica w cenie jest rozliczana proporcjonalnie do pozostałego okresu i pobierana z Portfela (lub doliczana do następnej faktury).
+5. Klient może w Panelu, dla aktywnej i opłaconej subskrypcji, samodzielnie zmienić Plan lub okres rozliczeniowy (miesięczny ↔ roczny) na tym samym koncie hostingowym. Różnica w cenie za niewykorzystaną część bieżącego okresu jest rozliczana proporcjonalnie (proration) i:
+   - przy płatności z Portfela — pobierana jako dopłata (`CHARGE_PLAN_UPGRADE`) lub uznawana na Portfel (`CREDIT_PLAN_DOWNGRADE`);
+   - przy płatności kartą — rozliczana przez Stripe (proration na subskrypcji).
+   Zmiana okresu rozliczeniowego uruchamia nowy okres rozliczeniowy od chwili zmiany. Przy zmianie Planu delty autoskalowania są resetowane, a limity ustawiane według nowego Planu bazowego. Downgrade Planu z niższym limitem dysku jest niedostępny, jeżeli faktyczne zużycie dysku (metryki z ostatnich 48 h) przekracza limit docelowego Planu — Klient musi najpierw zwolnić miejsce.
+6. Subskrypcje z rozliczeniem ręcznym (`MANUAL`) lub bez powiązania ze Stripe wymagają zmiany Planu przez Zespół Verris (Panel administracyjny / ticket).
 
 ## §7. Portfel i Kredyty Verris
 
