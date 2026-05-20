@@ -9,8 +9,8 @@ export const AUTOSCALING_CATALOG_RESOURCES: AutoscalingResource[] = [
 
 export const AUTOSCALING_UNIT_BY_RESOURCE: Record<AutoscalingResource, string> = {
   [AutoscalingResource.CPU]: 'cpu_pct',
-  [AutoscalingResource.RAM]: 'ram_mb',
-  [AutoscalingResource.DISK]: 'disk_mb',
+  [AutoscalingResource.RAM]: 'ram_gb',
+  [AutoscalingResource.DISK]: 'disk_gb',
   [AutoscalingResource.IO]: 'io_kbps',
   [AutoscalingResource.TRANSFER]: 'transfer_gb',
 };

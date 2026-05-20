@@ -14,6 +14,10 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { DirectAdminService } from '../servers/directadmin.service';
+import {
+  hourlyCostForCatalogAmounts,
+  scaledRamMbToCatalogGb,
+} from './autoscaling-pricing.util';
 
 /**
  * Autoscaling engine — the heart of EPIC D.
@@ -422,16 +426,11 @@ export class AutoscalingEngineService {
     scaledCpu: number,
     scaledRamMb: number,
   ): number {
-    const pick = (resource: AutoscalingResource, units: number): number => {
-      if (units <= 0) return 0;
-      const candidates = rules
-        .filter((r) => r.resource === resource)
-        .sort((a, b) => b.thresholdAbove - a.thresholdAbove);
-      const match = candidates.find((r) => units >= r.thresholdAbove) ?? candidates[0];
-      if (!match) return 0;
-      return units * Number(match.pricePerUnit);
-    };
-    return pick(AutoscalingResource.CPU, scaledCpu) + pick(AutoscalingResource.RAM, scaledRamMb);
+    return hourlyCostForCatalogAmounts(rules, {
+      cpuPercent: scaledCpu,
+      ramGb: scaledRamMbToCatalogGb(scaledRamMb),
+      diskGb: 0,
+    });
   }
 
   // ---------------------------------------------------------------------------

@@ -8,20 +8,20 @@ import { createPriceRule } from "./actions";
 
 const DEFAULT_PRICE: Record<AutoscalingCatalogResource, string> = {
   CPU: "0.0002",
-  RAM: "0.000117",
-  DISK: "0.00005",
+  RAM: "0.12",
+  DISK: "0.05",
 };
 
 const HINTS: Record<AutoscalingCatalogResource, string> = {
   CPU: "Cena za 1% CPU na godzinę. Przykład: 0,0002 zł × 100% × 24 h ≈ 0,48 zł/dobę.",
-  RAM: "Cena za 1 MB RAM na godzinę. Przykład: 0,000117 zł × 1024 MB × 24 h ≈ 2,87 zł/dobę.",
-  DISK: "Cena za 1 MB dysku na godzinę. Przykład: 0,00005 zł × 512 MB × 24 h ≈ 0,61 zł/dobę.",
+  RAM: "Cena za 1 GB RAM na godzinę. Przykład: 0,12 zł × 1 GB × 24 h ≈ 2,88 zł/dobę.",
+  DISK: "Cena za 1 GB dysku na godzinę — osobna stawka, niezależna od RAM.",
 };
 
 const UNIT_LABEL: Record<AutoscalingCatalogResource, string> = {
   CPU: "cpu_pct",
-  RAM: "ram_mb",
-  DISK: "disk_mb",
+  RAM: "ram_gb",
+  DISK: "disk_gb",
 };
 
 export function CreateRuleForm() {
@@ -95,8 +95,8 @@ export function CreateRuleForm() {
           className="w-full rounded-md bg-black/60 border border-white/10 px-3 py-2 text-white text-sm focus:border-indigo-400 focus:outline-none"
         >
           <option value="CPU">CPU (%)</option>
-          <option value="RAM">RAM (MB)</option>
-          <option value="DISK">Dysk (MB)</option>
+          <option value="RAM">RAM (GB)</option>
+          <option value="DISK">Dysk (GB)</option>
         </select>
         <p className="mt-1 text-[11px] text-muted-foreground font-mono">
           Jednostka: {UNIT_LABEL[resource]}
@@ -115,7 +115,7 @@ export function CreateRuleForm() {
 
       <Field
         label="Próg od (jednostek)"
-        hint="Reguła obowiązuje, gdy klient zużywa co najmniej tyle jednostek ponad plan."
+        hint="Próg w jednostkach zasobu: % dla CPU, GB dla RAM i dysku (np. dysk od 10 GB wzwyż)."
       >
         <input
           type="number"

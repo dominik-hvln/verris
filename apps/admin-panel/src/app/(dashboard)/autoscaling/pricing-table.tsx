@@ -190,7 +190,9 @@ function RuleRow({ rule, readonly = false }: { rule: PriceRuleDto; readonly?: bo
               inputMode="decimal"
               className="w-full max-w-[10rem] rounded-md bg-black/60 border border-white/10 px-2 py-1 text-white text-sm font-mono focus:border-indigo-400 focus:outline-none"
             />
-            <span className="text-[10px] text-muted-foreground">{rule.currency} / {rule.unit}</span>
+            <span className="text-[10px] text-muted-foreground">
+              {rule.currency} / {formatUnitLabel(rule.unit)} / godz.
+            </span>
           </div>
         ) : (
           <div>
@@ -309,6 +311,15 @@ function RuleRow({ rule, readonly = false }: { rule: PriceRuleDto; readonly?: bo
       </td>
     </tr>
   );
+}
+
+function formatUnitLabel(unit: string): string {
+  if (unit === "cpu_pct") return "1% CPU";
+  if (unit === "ram_gb") return "1 GB RAM";
+  if (unit === "disk_gb") return "1 GB dysku";
+  if (unit === "ram_mb") return "1 MB RAM (legacy)";
+  if (unit === "disk_mb") return "1 MB dysku (legacy)";
+  return unit;
 }
 
 function formatPrice(value: string): string {

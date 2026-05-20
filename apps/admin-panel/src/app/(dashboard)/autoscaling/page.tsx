@@ -7,8 +7,8 @@ export const dynamic = "force-dynamic";
 
 const RESOURCE_LABELS: Record<string, string> = {
   CPU: "CPU (% / godz.)",
-  RAM: "RAM (MB / godz.)",
-  DISK: "Dysk (MB / godz.)",
+  RAM: "RAM (GB / godz.)",
+  DISK: "Dysk (GB / godz.)",
   IO: "I/O (kbps) — wycofane",
   TRANSFER: "Transfer (GB) — wycofane",
 };

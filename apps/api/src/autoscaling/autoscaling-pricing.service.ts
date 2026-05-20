@@ -8,6 +8,7 @@ import {
   AUTOSCALING_UNIT_BY_RESOURCE,
   isCatalogAutoscalingResource,
 } from './autoscaling-pricing.constants';
+import { hourlyCostForCatalogAmounts } from './autoscaling-pricing.util';
 
 @Injectable()
 export class AutoscalingPricingService {
@@ -135,31 +136,17 @@ export class AutoscalingPricingService {
    */
   async estimateHourlyCost(opts: {
     cpuPercent?: number;
-    ramMb?: number;
-    diskMb?: number;
+    ramGb?: number;
+    diskGb?: number;
   }): Promise<{ currency: string; hourly: string; daily: string; monthly: string }> {
     const rules = await this.listPublic();
-    const byResource = new Map<AutoscalingResource, AutoscalingPriceRule[]>();
-    for (const rule of rules) {
-      const list = byResource.get(rule.resource) ?? [];
-      list.push(rule);
-      byResource.set(rule.resource, list);
-    }
-
     const currency = rules[0]?.currency ?? 'PLN';
 
-    const accrue = (resource: AutoscalingResource, units: number): number => {
-      const list = byResource.get(resource);
-      if (!list || list.length === 0 || units <= 0) return 0;
-      const sorted = list.slice().sort((a, b) => b.thresholdAbove - a.thresholdAbove);
-      const rule = sorted.find((r) => units >= r.thresholdAbove) ?? sorted[sorted.length - 1];
-      return units * Number(rule.pricePerUnit);
-    };
-
-    const hourly =
-      accrue(AutoscalingResource.CPU, opts.cpuPercent ?? 0) +
-      accrue(AutoscalingResource.RAM, opts.ramMb ?? 0) +
-      accrue(AutoscalingResource.DISK, opts.diskMb ?? 0);
+    const hourly = hourlyCostForCatalogAmounts(rules, {
+      cpuPercent: opts.cpuPercent ?? 0,
+      ramGb: opts.ramGb ?? 0,
+      diskGb: opts.diskGb ?? 0,
+    });
 
     return {
       currency,

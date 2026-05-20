@@ -9,7 +9,7 @@
 | Obszar | Zmiana |
 |--------|--------|
 | Schema + migracja | `AutoscalingResource.DISK`, dezaktywacja aktywnych reguł IO/TRANSFER |
-| API | `listPublic` / `estimate` tylko CPU, RAM, DISK; tworzenie reguł z auto-jednostką |
+| API | `listPublic` / `estimate` tylko CPU, RAM, DISK; cena RAM i dysk **za 1 GB / godz.** |
 | Admin | Tabela pogrupowana, edycja ceny + progu + notatki, archiwum legacy |
 | Klient | Kalkulator: 3 suwaki (CPU %, RAM MB, Dysk MB) |
 
