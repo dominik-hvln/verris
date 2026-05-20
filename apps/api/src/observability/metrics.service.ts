@@ -153,6 +153,29 @@ export class MetricsService {
     );
     lines.push(`verris_autoscale_events_1h_total ${autoscaleEventsLastHour}`);
 
+    // --- Plan changes (PC-3.4) -------------------------------------------
+    const planChangeEvents = await this.prisma.subscriptionEvent.findMany({
+      where: { type: 'PLAN_CHANGED', createdAt: { gte: since30d } },
+      select: { details: true },
+    });
+    const planChangeCounts = { upgrade: 0, downgrade: 0, none: 0 };
+    for (const row of planChangeEvents) {
+      const details = row.details as { direction?: string } | null;
+      const dir = details?.direction;
+      if (dir === 'upgrade' || dir === 'downgrade' || dir === 'none') {
+        planChangeCounts[dir] += 1;
+      }
+    }
+    write(
+      lines,
+      'verris_plan_changes_total',
+      'Subscription plan changes in the last 30 days by proration direction',
+      'gauge',
+    );
+    for (const direction of ['upgrade', 'downgrade', 'none'] as const) {
+      lines.push(`verris_plan_changes_total{direction="${direction}"} ${planChangeCounts[direction]}`);
+    }
+
     // --- Probes / incidents ----------------------------------------------
     const probesByEnabled = await this.prisma.serviceProbe.groupBy({
       by: ['isEnabled'],

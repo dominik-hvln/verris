@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -9,6 +10,7 @@ import {
   BillingInterval,
   Plan,
   Prisma,
+  Role,
   Subscription,
   SubscriptionPaymentSource,
   SubscriptionStatus,
@@ -43,6 +45,15 @@ type LoadedSub = Subscription & {
   user: { id: string; email: string; firstName: string | null; walletBalance: Prisma.Decimal };
 };
 
+interface PlanChangeContext {
+  initiatedBy: 'client' | 'admin';
+  actorUserId: string;
+  skipBilling: boolean;
+  adminReason?: string;
+  allowNonPublicPlan: boolean;
+  sendEmail: boolean;
+}
+
 @Injectable()
 export class PlanChangeService {
   private readonly logger = new Logger(PlanChangeService.name);
@@ -58,11 +69,70 @@ export class PlanChangeService {
   ) {}
 
   async previewForUser(userId: string, subscriptionId: string, targetPlanId: string) {
-    const sub = await this.loadSubscription(userId, subscriptionId);
-    const target = await this.resolveTargetPlan(targetPlanId);
+    const sub = await this.loadForOwner(userId, subscriptionId);
+    return this.buildPreview(sub, targetPlanId, { allowNonPublicPlan: false });
+  }
+
+  async previewForAdmin(subscriptionId: string, targetPlanId: string) {
+    const sub = await this.loadById(subscriptionId);
+    return this.buildPreview(sub, targetPlanId, { allowNonPublicPlan: true });
+  }
+
+  async listEligiblePlansForAdmin(subscriptionId: string) {
+    const sub = await this.loadById(subscriptionId);
+    return this.listEligibleTargets(sub, true);
+  }
+
+  async changeForUser(userId: string, subscriptionId: string, targetPlanId: string) {
+    const sub = await this.loadForOwner(userId, subscriptionId);
+    if (sub.paymentSource === SubscriptionPaymentSource.MANUAL) {
+      throw new BadRequestException(
+        'Ta usługa ma rozliczenie ręczne — zmiana planu wymaga kontaktu z supportem.',
+      );
+    }
+    return this.executePlanChange(sub, targetPlanId, {
+      initiatedBy: 'client',
+      actorUserId: userId,
+      skipBilling: false,
+      allowNonPublicPlan: false,
+      sendEmail: true,
+    });
+  }
+
+  async changeForAdmin(
+    actorUserId: string,
+    actorRole: Role,
+    subscriptionId: string,
+    targetPlanId: string,
+    reason: string,
+    skipBilling = false,
+  ) {
+    if (skipBilling && actorRole !== Role.ADMIN) {
+      throw new ForbiddenException(
+        'Pominięcie rozliczenia przy zmianie planu jest dostępne tylko dla administratora.',
+      );
+    }
+
+    const sub = await this.loadById(subscriptionId);
+    return this.executePlanChange(sub, targetPlanId, {
+      initiatedBy: 'admin',
+      actorUserId,
+      skipBilling,
+      adminReason: reason,
+      allowNonPublicPlan: true,
+      sendEmail: true,
+    });
+  }
+
+  private async buildPreview(
+    sub: LoadedSub,
+    targetPlanId: string,
+    opts: { allowNonPublicPlan: boolean },
+  ) {
+    const target = await this.resolveTargetPlan(targetPlanId, opts);
     this.assertCanChangePlan(sub, target);
     const proration = this.prorationFor(sub, target);
-    const targets = await this.listEligibleTargets(sub);
+    const targets = await this.listEligibleTargets(sub, opts.allowNonPublicPlan);
 
     return {
       subscriptionId: sub.id,
@@ -82,12 +152,21 @@ export class PlanChangeService {
     };
   }
 
-  async changeForUser(userId: string, subscriptionId: string, targetPlanId: string) {
-    const sub = await this.loadSubscription(userId, subscriptionId);
-    const target = await this.resolveTargetPlan(targetPlanId);
+  private async executePlanChange(
+    sub: LoadedSub,
+    targetPlanId: string,
+    ctx: PlanChangeContext,
+  ) {
+    const target = await this.resolveTargetPlan(targetPlanId, {
+      allowNonPublicPlan: ctx.allowNonPublicPlan,
+    });
     this.assertCanChangePlan(sub, target);
 
-    if (sub.paymentSource === SubscriptionPaymentSource.MANUAL) {
+    if (
+      !ctx.skipBilling &&
+      sub.paymentSource === SubscriptionPaymentSource.MANUAL &&
+      ctx.initiatedBy === 'client'
+    ) {
       throw new BadRequestException(
         'Ta usługa ma rozliczenie ręczne — zmiana planu wymaga kontaktu z supportem.',
       );
@@ -95,9 +174,13 @@ export class PlanChangeService {
 
     const proration = this.prorationFor(sub, target);
     const newPrice = planPriceForInterval(target, sub.interval);
-    const idempotencyKey = `plan-change-${sub.id}-${target.id}-${sub.currentPeriodStart?.toISOString() ?? 'no-period'}`;
+    const idempotencyKey =
+      ctx.initiatedBy === 'admin'
+        ? `plan-change-admin-${sub.id}-${target.id}-${ctx.actorUserId}`
+        : `plan-change-${sub.id}-${target.id}-${sub.currentPeriodStart?.toISOString() ?? 'no-period'}`;
 
     if (
+      !ctx.skipBilling &&
       proration.direction === 'upgrade' &&
       sub.paymentSource === SubscriptionPaymentSource.WALLET &&
       proration.amountDue.greaterThan(0)
@@ -114,12 +197,13 @@ export class PlanChangeService {
     let stripeUpdated = false;
 
     try {
-      if (sub.paymentSource === SubscriptionPaymentSource.STRIPE_CARD) {
+      if (!ctx.skipBilling && sub.paymentSource === SubscriptionPaymentSource.STRIPE_CARD) {
         await this.applyStripePlanChange(sub, target);
         stripeUpdated = true;
       }
 
       if (
+        !ctx.skipBilling &&
         sub.paymentSource === SubscriptionPaymentSource.WALLET &&
         proration.direction === 'upgrade' &&
         proration.amountDue.greaterThan(0)
@@ -135,6 +219,7 @@ export class PlanChangeService {
             fromPlanId: sub.planId,
             toPlanId: target.id,
             direction: proration.direction,
+            initiatedBy: ctx.initiatedBy,
           },
         });
         walletTxId = debit.id;
@@ -142,9 +227,10 @@ export class PlanChangeService {
 
       await this.pushDaLimits(sub, target);
 
-      const updated = await this.commitPlanChange(sub, target, newPrice, proration, idempotencyKey);
+      const updated = await this.commitPlanChange(sub, target, newPrice, proration, idempotencyKey, ctx);
 
       if (
+        !ctx.skipBilling &&
         sub.paymentSource === SubscriptionPaymentSource.WALLET &&
         proration.direction === 'downgrade' &&
         proration.amountCredit.greaterThan(0)
@@ -160,6 +246,7 @@ export class PlanChangeService {
             fromPlanId: sub.planId,
             toPlanId: target.id,
             direction: proration.direction,
+            initiatedBy: ctx.initiatedBy,
           },
         });
         walletTxId = credit.id;
@@ -168,7 +255,7 @@ export class PlanChangeService {
       await this.audit.record({
         action: 'PLAN_CHANGED',
         userId: sub.userId,
-        actorUserId: userId,
+        actorUserId: ctx.actorUserId,
         details: {
           subscriptionId: sub.id,
           fromPlanId: sub.planId,
@@ -177,10 +264,26 @@ export class PlanChangeService {
           amountDue: proration.amountDue.toFixed(2),
           amountCredit: proration.amountCredit.toFixed(2),
           walletTransactionId: walletTxId,
+          initiatedBy: ctx.initiatedBy,
+          skipBilling: ctx.skipBilling,
+          adminReason: ctx.adminReason ?? null,
         },
       });
 
-      await this.sendPlanChangedEmail(sub, target, proration);
+      if (ctx.sendEmail) {
+        await this.sendPlanChangedEmail(sub, target, proration);
+      }
+
+      this.logger.log(
+        JSON.stringify({
+          event: 'plan_change_completed',
+          subscriptionId: sub.id,
+          direction: proration.direction,
+          initiatedBy: ctx.initiatedBy,
+          skipBilling: ctx.skipBilling,
+          actorUserId: ctx.actorUserId,
+        }),
+      );
 
       return {
         subscriptionId: updated.id,
@@ -191,9 +294,11 @@ export class PlanChangeService {
         amountCredit: proration.amountCredit.toFixed(2),
         currency: sub.currency,
         walletTransactionId: walletTxId,
+        skipBilling: ctx.skipBilling,
       };
     } catch (err) {
       if (
+        !ctx.skipBilling &&
         sub.paymentSource === SubscriptionPaymentSource.WALLET &&
         walletTxId &&
         proration.direction === 'upgrade'
@@ -222,24 +327,43 @@ export class PlanChangeService {
     }
   }
 
-  private async loadSubscription(userId: string, subscriptionId: string): Promise<LoadedSub> {
+  private async loadForOwner(userId: string, subscriptionId: string): Promise<LoadedSub> {
     const sub = await this.prisma.subscription.findFirst({
       where: { id: subscriptionId, userId },
-      include: {
-        plan: true,
-        account: true,
-        user: {
-          select: { id: true, email: true, firstName: true, walletBalance: true },
-        },
-      },
+      include: this.subscriptionInclude(),
     });
     if (!sub) throw new NotFoundException('Subskrypcja nie została znaleziona');
     return sub as LoadedSub;
   }
 
-  private async resolveTargetPlan(targetPlanId: string): Promise<Plan> {
+  private async loadById(subscriptionId: string): Promise<LoadedSub> {
+    const sub = await this.prisma.subscription.findUnique({
+      where: { id: subscriptionId },
+      include: this.subscriptionInclude(),
+    });
+    if (!sub) throw new NotFoundException('Subskrypcja nie została znaleziona');
+    return sub as LoadedSub;
+  }
+
+  private subscriptionInclude() {
+    return {
+      plan: true,
+      account: true,
+      user: {
+        select: { id: true, email: true, firstName: true, walletBalance: true },
+      },
+    } as const;
+  }
+
+  private async resolveTargetPlan(
+    targetPlanId: string,
+    opts: { allowNonPublicPlan: boolean },
+  ): Promise<Plan> {
     const plan = await this.prisma.plan.findUnique({ where: { id: targetPlanId } });
-    if (!plan || !plan.isActive || !plan.isPublic) {
+    if (!plan || !plan.isActive) {
+      throw new BadRequestException('Wybrany plan nie jest dostępny do zmiany.');
+    }
+    if (!opts.allowNonPublicPlan && !plan.isPublic) {
       throw new BadRequestException('Wybrany plan nie jest dostępny do zmiany.');
     }
     return plan;
@@ -248,11 +372,13 @@ export class PlanChangeService {
   private assertCanChangePlan(sub: LoadedSub, target: Plan) {
     if (sub.status !== SubscriptionStatus.ACTIVE) {
       throw new BadRequestException(
-        'Zmiana planu jest możliwa tylko dla aktywnej usługi z opłaconą subskrypcją.',
+        'Zmiana planu jest możliwa tylko dla aktywnej, opłaconej subskrypcji.',
       );
     }
     if (!sub.account) {
-      throw new BadRequestException('Usługa nie ma jeszcze konta hostingowego — poczekaj na provisioning.');
+      throw new BadRequestException(
+        'Usługa nie ma jeszcze konta hostingowego — poczekaj na provisioning.',
+      );
     }
     if (sub.planId === target.id) {
       throw new BadRequestException('Ta usługa jest już na wybranym planie.');
@@ -263,7 +389,9 @@ export class PlanChangeService {
       );
     }
     if (sub.currentPeriodEnd <= new Date()) {
-      throw new BadRequestException('Bieżący okres rozliczeniowy wygasł — odśwież usługę lub skontaktuj się z supportem.');
+      throw new BadRequestException(
+        'Bieżący okres rozliczeniowy wygasł — odśwież usługę lub skontaktuj się z supportem.',
+      );
     }
   }
 
@@ -286,9 +414,13 @@ export class PlanChangeService {
     );
   }
 
-  private async listEligibleTargets(sub: LoadedSub) {
+  private async listEligibleTargets(sub: LoadedSub, includeNonPublic: boolean) {
     const plans = await this.prisma.plan.findMany({
-      where: { isPublic: true, isActive: true, id: { not: sub.planId } },
+      where: {
+        isActive: true,
+        id: { not: sub.planId },
+        ...(includeNonPublic ? {} : { isPublic: true }),
+      },
       orderBy: [{ sortOrder: 'asc' }, { priceMonthly: 'asc' }],
     });
     return plans.map((p) => ({
@@ -358,6 +490,7 @@ export class PlanChangeService {
     newPrice: Prisma.Decimal,
     proration: { direction: PlanChangeDirection },
     idempotencyKey: string,
+    ctx: PlanChangeContext,
   ) {
     const oldPlan = sub.plan;
     const account = sub.account!;
@@ -414,6 +547,10 @@ export class PlanChangeService {
             direction: proration.direction,
             idempotencyKey,
             autoscalingDeltasReset: true,
+            initiatedBy: ctx.initiatedBy,
+            skipBilling: ctx.skipBilling,
+            adminReason: ctx.adminReason ?? null,
+            actorUserId: ctx.actorUserId,
           },
         },
       });

@@ -31,7 +31,8 @@
 |--------|------|
 | ✅ PC-1 | API proration, portfel/Stripe, sync DA, reset autoskalowania, audyt, e-mail |
 | ✅ PC-2 | Panel `/dashboard/services/[id]/plan`, preview kosztu, link z listy usług |
-| 🔜 PC-3 | Admin/staff override, testy integracyjne, runbook operacyjny |
+| ✅ PC-3 | Admin/staff API + panele, `skipBilling` (ADMIN), metryki, testy, runbook |
+| 🔜 PC-4 | MONTH↔YEAR, check dysku przy downgrade, plany niestandardowe |
 
 ## Quick-wins zrealizowane i fast-follow wallet
 

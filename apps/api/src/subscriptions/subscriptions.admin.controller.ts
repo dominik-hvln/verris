@@ -20,11 +20,16 @@ import {
   SuspendReason,
 } from './subscriptions.service';
 import { MigrationOrchestratorService } from './migration-orchestrator.service';
+import { PlanChangeService } from './plan-change.service';
 import {
   SuspendSubscriptionDto,
   UnsuspendSubscriptionDto,
 } from './dto/subscription.dto';
 import { RequestInternalMigrationDto } from './dto/migration.dto';
+import {
+  AdminChangePlanDto,
+  AdminPreviewPlanChangeDto,
+} from './dto/admin-plan-change.dto';
 
 const ALLOWED_REASONS: SuspendReason[] = [
   'PAYMENT_FAILED',
@@ -42,6 +47,7 @@ export class SubscriptionsAdminController {
     private readonly subs: SubscriptionsService,
     private readonly prisma: PrismaService,
     private readonly migrations: MigrationOrchestratorService,
+    private readonly planChange: PlanChangeService,
   ) {}
 
   @Get()
@@ -132,5 +138,41 @@ export class SubscriptionsAdminController {
   @Roles(Role.ADMIN, Role.STAFF)
   migrationTimeline(@Param('id') id: string) {
     return this.migrations.listMigrationTimelineForAdmin(id);
+  }
+
+  @Get(':id/plan/eligible-plans')
+  @Roles(Role.ADMIN, Role.STAFF)
+  listEligiblePlans(@Param('id') id: string) {
+    return this.planChange.listEligiblePlansForAdmin(id);
+  }
+
+  @Post(':id/plan/preview')
+  @HttpCode(200)
+  @Roles(Role.ADMIN, Role.STAFF)
+  previewPlanChange(@Param('id') id: string, @Body() dto: AdminPreviewPlanChangeDto) {
+    return this.planChange.previewForAdmin(id, dto.targetPlanId);
+  }
+
+  @Post(':id/plan')
+  @HttpCode(200)
+  @Roles(Role.ADMIN, Role.STAFF)
+  async changePlan(
+    @Param('id') id: string,
+    @Body() dto: AdminChangePlanDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: actor.userId },
+      select: { role: true },
+    });
+    if (!user) throw new BadRequestException('Actor not found');
+    return this.planChange.changeForAdmin(
+      actor.userId,
+      user.role,
+      id,
+      dto.targetPlanId,
+      dto.reason,
+      dto.skipBilling ?? false,
+    );
   }
 }

@@ -515,6 +515,13 @@ bash ops/scripts/prod-migrate-deploy.sh
 
 **Awaria DA przy commit:** API nie zapisuje planu w DB jeśli `setAccountLimits` się nie powiedzie (rollback portfela przy WALLET upgrade).
 
+### Support / admin (PC-3)
+
+- **Admin:** `/subscriptions/<id>` → sekcja „Zmiana planu”, opcjonalnie **Pomiń rozliczenie** (tylko ADMIN).
+- **Staff CRM:** profil klienta → subskrypcja → zmiana planu z rozliczeniem + szablon odpowiedzi ticket.
+- API: `GET /admin/subscriptions/:id/plan/eligible-plans`, `POST …/plan/preview`, `POST …/plan` (`reason`, `skipBilling?`).
+- Metryka Prometheus: `verris_plan_changes_total{direction="upgrade|downgrade|none"}` (ostatnie 30 dni).
+
 ## 9. Otwarte decyzje przed LIVE
 
 - [ ] Wybrać i zakontraktować rejestratora domen, potwierdzić API register/transfer/renew/nameservers.

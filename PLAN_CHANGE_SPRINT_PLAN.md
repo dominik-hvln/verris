@@ -1,6 +1,6 @@
 # Zmiana planu (upgrade / downgrade) — plan sprintów
 
-> **Stan (2026-05-20):** **PC-1 + PC-2 wdrożone w kodzie** (self-service `/dashboard/services/[id]/plan`, API `POST/PATCH …/plan`). **PC-3** (admin override, testy integracyjne, runbook operacyjny) — follow-up. Regulamin §6 ust. 5 — zsynchronizować przed publikacją prawną.
+> **Stan (2026-05-20):** **PC-1 … PC-3 wdrożone w kodzie** (self-service + admin/staff). **PC-4** (MONTH↔YEAR, check dysku) i synchronizacja regulaminu §6 — follow-up przed publikacją prawną.
 
 **Cel produktowy:** ta sama subskrypcja, to samo konto DA (`daUsername`, domena, pliki) — zmiana `planId` z rozliczeniem proporcjonalnym (portfel lub Stripe), nowymi limitami LVE/dysku i audytem.
 

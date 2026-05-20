@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { adminApi } from "@/lib/api";
+import { listAdminPlans } from "../../plans/data";
 import { InternalMigrationForm } from "./internal-migration-form";
+import { PlanChangeForm } from "./plan-change-form";
 
 export const dynamic = "force-dynamic";
 
@@ -32,12 +34,14 @@ export default async function AdminSubscriptionDetailPage({ params }: { params: 
   let detail: SubscriptionDetail | null = null;
   let servers: AdminServerRow[] = [];
   let migrations: MigrationRow[] = [];
+  let plans: Awaited<ReturnType<typeof listAdminPlans>> = [];
   let error: string | null = null;
   try {
-    [detail, servers, migrations] = await Promise.all([
+    [detail, servers, migrations, plans] = await Promise.all([
       adminApi<SubscriptionDetail>(`/admin/subscriptions/${id}`),
       adminApi<AdminServerRow[]>("/admin/servers"),
       adminApi<MigrationRow[]>(`/admin/subscriptions/${id}/migrations`),
+      listAdminPlans(),
     ]);
   } catch {
     error = "Nie udało się wczytać subskrypcji (sprawdź ID i sesję).";
@@ -86,6 +90,19 @@ export default async function AdminSubscriptionDetailPage({ params }: { params: 
               </p>
             </div>
           </div>
+
+          {detail.status === "ACTIVE" && detail.account ? (
+            <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 p-4">
+              <h2 className="text-sm font-semibold text-white mb-3">Zmiana planu (PC‑3)</h2>
+              <PlanChangeForm
+                subscriptionId={detail.id}
+                currentPlanId={detail.plan.id}
+                currentPlanName={detail.plan.name}
+                plans={plans.filter((p) => p.isActive).map((p) => ({ id: p.id, name: p.name, slug: p.slug }))}
+                isAdmin
+              />
+            </div>
+          ) : null}
 
           <div className="rounded-xl border border-white/10 bg-black/35 p-4">
             <h2 className="text-sm font-semibold text-white mb-3">Migracja wewnętrzna (G‑7)</h2>
