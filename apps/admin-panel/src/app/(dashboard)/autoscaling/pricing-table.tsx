@@ -156,7 +156,7 @@ function RuleRow({ rule, readonly = false }: { rule: PriceRuleDto; readonly?: bo
       const res = await updatePriceRule(rule.id, {
         pricePerUnit: parsedPrice,
         thresholdAbove: parsedThreshold,
-        notes: notes.trim() ? notes.trim() : null,
+        notes: notes.trim(),
       });
       if (!res.ok) {
         setError(res.error ?? "Nie udało się zapisać zmian");

@@ -92,7 +92,9 @@ export class AutoscalingPricingService {
       data.thresholdAbove = dto.thresholdAbove;
     }
     if (dto.notes !== undefined) {
-      data.notes = dto.notes.trim() ? dto.notes.trim() : null;
+      const trimmed =
+        typeof dto.notes === 'string' ? dto.notes.trim() : '';
+      data.notes = trimmed.length > 0 ? trimmed : null;
     }
     if (dto.isActive !== undefined) {
       data.isActive = dto.isActive;
