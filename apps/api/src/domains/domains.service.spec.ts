@@ -77,6 +77,41 @@ describe('DomainsService', () => {
     expect(prisma.domain.update).not.toHaveBeenCalled();
   });
 
+  it('marks checklist FAILED when DNS and TLS are both missing', async () => {
+    prisma.domain.findFirst.mockResolvedValue({ id: 'dom_1', userId: 'user_1', name: 'broken.test' });
+    prisma.domainChecklist.create.mockImplementation(async (args) => ({ id: 'chk_fail', ...args.data }));
+    jest.spyOn(dns.promises, 'resolve4').mockRejectedValue(new Error('ENOTFOUND'));
+    jest.spyOn(dns.promises, 'resolve6').mockRejectedValue(new Error('ENOTFOUND'));
+    jest.spyOn(dns.promises, 'resolveNs').mockResolvedValue([]);
+    jest.spyOn(dns.promises, 'resolveMx').mockResolvedValue([]);
+    mockTls({ authorized: false, authorizationError: 'self signed', validTo: 'May 18 12:00:00 2026 GMT' });
+
+    const result = await service().runChecklist('dom_1', 'user_1');
+
+    expect(result.status).toBe(DomainChecklistStatus.FAILED);
+    expect(result.issues).toEqual(
+      expect.arrayContaining([
+        'Brak rekordu A/AAAA dla domeny głównej.',
+        'self signed',
+      ]),
+    );
+  });
+
+  it('marks checklist WARNING when DNS resolves but TLS is not ready', async () => {
+    prisma.domain.findFirst.mockResolvedValue({ id: 'dom_1', userId: 'user_1', name: 'partial.test' });
+    prisma.domainChecklist.create.mockImplementation(async (args) => ({ id: 'chk_warn', ...args.data }));
+    jest.spyOn(dns.promises, 'resolve4').mockResolvedValue(['203.0.113.55']);
+    jest.spyOn(dns.promises, 'resolve6').mockResolvedValue([]);
+    jest.spyOn(dns.promises, 'resolveNs').mockResolvedValue(['ns1.partial.test']);
+    jest.spyOn(dns.promises, 'resolveMx').mockResolvedValue([]);
+    mockTls({ authorized: false, authorizationError: 'certificate has expired', validTo: 'May 18 12:00:00 2024 GMT' });
+
+    const result = await service().runChecklist('dom_1', 'user_1');
+
+    expect(result.status).toBe(DomainChecklistStatus.WARNING);
+    expect(result.issues).toContain('certificate has expired');
+  });
+
   it('activates the domain only when checklist is OK', async () => {
     prisma.domain.findFirst.mockResolvedValue({ id: 'dom_1', userId: 'user_1', name: 'example.test' });
     prisma.domain.update.mockResolvedValue({ id: 'dom_1', status: DomainStatus.ACTIVE });

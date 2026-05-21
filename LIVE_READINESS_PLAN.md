@@ -16,12 +16,12 @@ Przed decyzją GO każda funkcja widoczna w panelach musi spełniać komplet:
 
 Priorytet: P0, przed release branch.
 
-- Dodać testy jednostkowe dla `StatusWebhookService`: enqueue, retry, failed po limicie prób, podpis HMAC.
-- Dodać testy dla `DomainsService`: DNS/SSL checklist, status `OK/WARNING/FAILED`, brak aktywacji domeny przy niepełnej checkliście.
-- Dodać testy dla migration worker lifecycle: lease jobów `FILES/MYSQL/IMAP/HTTP_POST_CHECK`, complete partial vs final, retryable fail.
-- Dodać test dla public uptime badge: brak wycieku danych klienta, SVG dla operational/degraded.
-- Zrobić code review własnego diffu pod kątem błędów runtime: `fetch`, cron, HMAC, Prisma relacje, eventy audytu.
-- Kryterium DONE: `pnpm test`, `pnpm typecheck`, `pnpm build` przechodzą; testy obejmują najnowsze mechanizmy.
+- ✅ Testy `StatusWebhookService` (`status-webhook.service.spec.ts`): enqueue (0 / N), HMAC, retry HTTP/network, FAILED po 5 próbach, SSRF guard.
+- ✅ Testy `DomainsService` (`domains.service.spec.ts`): checklist `OK` / `WARNING` / `FAILED`, brak aktywacji bez `OK`.
+- ✅ Testy migration worker (`migration-orchestrator.service.spec.ts`): job kinds, lease secrets, complete partial/final, retryable vs FAILED.
+- ✅ Test public uptime badge (`public-uptime-badge.controller.spec.ts`): operational/degraded, brak wycieku domeny/id/subskrypcji, 404 bez konta.
+- ⏳ Code review diffu pod kątem runtime (`fetch`, cron, HMAC, Prisma, audyt) — ręczny przegląd przed GO.
+- ⏳ Kryterium DONE: pełny `npm test` + `typecheck` + `build` w CI/monorepo (lokalnie: `apps/api` testy zielone).
 
 ## Sprint B — 100% LIVE Audit Paneli
 

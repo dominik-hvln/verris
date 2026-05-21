@@ -27,6 +27,13 @@ describe('StatusWebhookService', () => {
     global.fetch = jest.fn() as unknown as typeof fetch;
   });
 
+  it('returns zero when no endpoints subscribe to the event', async () => {
+    prisma.statusWebhookEndpoint.findMany.mockResolvedValue([]);
+    const service = new StatusWebhookService(prisma as never, crypto as never);
+    await expect(service.enqueue(StatusWebhookEvent.INCIDENT_CREATED, {})).resolves.toBe(0);
+    expect(prisma.statusWebhookDelivery.createMany).not.toHaveBeenCalled();
+  });
+
   it('enqueues deliveries only for active endpoints subscribed to the event', async () => {
     prisma.statusWebhookEndpoint.findMany.mockResolvedValue([{ id: 'hook_1' }, { id: 'hook_2' }]);
     prisma.statusWebhookDelivery.createMany.mockResolvedValue({ count: 2 });
@@ -149,6 +156,58 @@ describe('StatusWebhookService', () => {
         status: StatusWebhookDeliveryStatus.FAILED,
         attempts: 5,
         nextAttemptAt: null,
+      }),
+    });
+  });
+
+  it('omits signature header when endpoint has no secret', async () => {
+    const delivery = {
+      id: 'del_plain',
+      endpointId: 'hook_plain',
+      event: StatusWebhookEvent.INCIDENT_CREATED,
+      payload: {},
+      attempts: 0,
+      createdAt: new Date(),
+      endpoint: { id: 'hook_plain', url: 'https://8.8.8.8/plain', secretEnc: null },
+    };
+    prisma.statusWebhookDelivery.findMany.mockResolvedValue([{ id: delivery.id }]);
+    prisma.statusWebhookDelivery.updateMany.mockResolvedValue({ count: 1 });
+    prisma.statusWebhookDelivery.findUnique.mockResolvedValue({ ...delivery, attempts: 1 });
+    prisma.statusWebhookDelivery.update.mockResolvedValue({});
+    (global.fetch as jest.Mock).mockResolvedValue({ ok: true, status: 200 });
+
+    const service = new StatusWebhookService(prisma as never, crypto as never);
+    await service.deliverPending();
+
+    const headers = (global.fetch as jest.Mock).mock.calls[0][1].headers as Record<string, string>;
+    expect(headers['x-verris-signature']).toBeUndefined();
+  });
+
+  it('schedules retry when fetch throws a network error', async () => {
+    const delivery = {
+      id: 'del_net',
+      endpointId: 'hook_1',
+      event: StatusWebhookEvent.INCIDENT_CREATED,
+      payload: {},
+      attempts: 1,
+      createdAt: new Date(),
+      endpoint: { id: 'hook_1', url: 'https://8.8.8.8/net', secretEnc: null },
+    };
+    prisma.statusWebhookDelivery.findMany.mockResolvedValue([{ id: delivery.id }]);
+    prisma.statusWebhookDelivery.updateMany.mockResolvedValue({ count: 1 });
+    prisma.statusWebhookDelivery.findUnique.mockResolvedValue(delivery);
+    (global.fetch as jest.Mock).mockRejectedValue(new Error('ECONNRESET'));
+
+    const service = new StatusWebhookService(prisma as never, crypto as never);
+    await service.deliverPending();
+
+    expect(prisma.statusWebhookDelivery.update).toHaveBeenCalledWith({
+      where: { id: delivery.id },
+      data: expect.objectContaining({
+        status: StatusWebhookDeliveryStatus.PENDING,
+        attempts: 1,
+        lastError: 'ECONNRESET',
+        nextAttemptAt: expect.any(Date),
       }),
     });
   });
