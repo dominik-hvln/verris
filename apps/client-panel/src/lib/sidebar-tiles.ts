@@ -14,6 +14,7 @@ import {
   resolveSidebarQuickLinks,
   type SidebarTileHref,
 } from '@verris/contracts';
+import { clientFeatures } from './client-features';
 
 export type SidebarTileDef = {
   href: SidebarTileHref;
@@ -33,10 +34,12 @@ const TILE_DEFS: Record<SidebarTileHref, Omit<SidebarTileDef, 'href'>> = {
 };
 
 export function sidebarTilesFromLinks(links: string[] | null | undefined): SidebarTileDef[] {
-  return resolveSidebarQuickLinks(links).map((href) => ({
-    href,
-    ...TILE_DEFS[href],
-  }));
+  return resolveSidebarQuickLinks(links)
+    .filter((href) => (href === '/dashboard/eco' ? clientFeatures.eco : true))
+    .map((href) => ({
+      href,
+      ...TILE_DEFS[href],
+    }));
 }
 
 export { DEFAULT_SIDEBAR_QUICK_LINKS, SIDEBAR_TILE_OPTIONS } from '@verris/contracts';

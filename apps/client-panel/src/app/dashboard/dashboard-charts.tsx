@@ -30,9 +30,10 @@ import {
 
 type DashboardChartsProps = {
   snapshot: DashboardSnapshot;
+  showEco?: boolean;
 };
 
-export function DashboardCharts({ snapshot }: DashboardChartsProps) {
+export function DashboardCharts({ snapshot, showEco = false }: DashboardChartsProps) {
   const walletSeries = useMemo(
     () => mapWalletMonthlyFlow(snapshot.wallet?.monthlyFlowLast12 ?? []),
     [snapshot.wallet?.monthlyFlowLast12],
@@ -51,8 +52,8 @@ export function DashboardCharts({ snapshot }: DashboardChartsProps) {
         <div>
           <h2 className="text-xl font-bold text-white">Wykresy i trendy</h2>
           <p className="text-sm text-neutral-500">
-            Dane z Twojego konta — portfel, usługi, program EKO i zgłoszenia. Najedź na element, aby zobaczyć
-            szczegóły.
+            Dane z Twojego konta — portfel, usługi{showEco ? ', program EKO' : ''} i zgłoszenia. Najedź na element,
+            aby zobaczyć szczegóły.
           </p>
         </div>
       </div>
@@ -134,56 +135,58 @@ export function DashboardCharts({ snapshot }: DashboardChartsProps) {
           )}
         </ChartCard>
 
-        <ChartCard
-          title="Punkty EKO (14 dni)"
-          subtitle={`Aktualnie: ${snapshot.profile?.ecoPoints ?? snapshot.ecoProgram?.ecoPoints ?? 0} pkt`}
-          className="lg:col-span-2"
-          href="/dashboard/eco"
-          linkLabel="Program EKO"
-        >
-          {ecoHasActivity ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <AreaChart data={ecoSeries} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="ecoGain" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#34d399" stopOpacity={0.45} />
-                    <stop offset="100%" stopColor="#34d399" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="ecoSpend" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#f87171" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="#f87171" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
-                <XAxis dataKey="label" tick={{ fill: '#a3a3a3', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#737373', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
-                <Tooltip content={<ChartTooltip />} />
-                <Legend wrapperStyle={{ fontSize: 12, color: '#a3a3a3' }} />
-                <Area
-                  type="monotone"
-                  dataKey="gained"
-                  name="Zdobyte"
-                  stroke="#34d399"
-                  fill="url(#ecoGain)"
-                  strokeWidth={2}
-                  animationDuration={1000}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="spent"
-                  name="Wymienione"
-                  stroke="#f87171"
-                  fill="url(#ecoSpend)"
-                  strokeWidth={2}
-                  animationDuration={1000}
-                  animationBegin={150}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          ) : (
-            <ChartEmpty message="Brak ruchów punktów w ostatnich 14 dniach — włącz tryb EKO lub osadź badge." />
-          )}
-        </ChartCard>
+        {showEco ? (
+          <ChartCard
+            title="Punkty EKO (14 dni)"
+            subtitle={`Aktualnie: ${snapshot.profile?.ecoPoints ?? snapshot.ecoProgram?.ecoPoints ?? 0} pkt`}
+            className="lg:col-span-2"
+            href="/dashboard/eco"
+            linkLabel="Program EKO"
+          >
+            {ecoHasActivity ? (
+              <ResponsiveContainer width="100%" height={280}>
+                <AreaChart data={ecoSeries} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="ecoGain" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#34d399" stopOpacity={0.45} />
+                      <stop offset="100%" stopColor="#34d399" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="ecoSpend" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#f87171" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="#f87171" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fill: '#a3a3a3', fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fill: '#737373', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Legend wrapperStyle={{ fontSize: 12, color: '#a3a3a3' }} />
+                  <Area
+                    type="monotone"
+                    dataKey="gained"
+                    name="Zdobyte"
+                    stroke="#34d399"
+                    fill="url(#ecoGain)"
+                    strokeWidth={2}
+                    animationDuration={1000}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="spent"
+                    name="Wymienione"
+                    stroke="#f87171"
+                    fill="url(#ecoSpend)"
+                    strokeWidth={2}
+                    animationDuration={1000}
+                    animationBegin={150}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <ChartEmpty message="Brak ruchów punktów w ostatnich 14 dniach — włącz tryb EKO lub osadź badge." />
+            )}
+          </ChartCard>
+        ) : null}
 
         <ChartCard
           title="Kondycja usług"

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { SpinBorder } from '@/components/spin-border';
 import { CREDIT_RATE_INFO, formatCredits } from '@/lib/credits';
+import { clientFeatures } from '@/lib/client-features';
 import { DashboardCharts } from './dashboard-charts';
 import type { DashboardSnapshot } from './dashboard-data';
 
@@ -41,8 +42,9 @@ export function DashboardHome({ snapshot }: { snapshot: DashboardSnapshot }) {
               Witaj, {firstName}!
             </h1>
             <p className="max-w-lg text-sm text-neutral-400 sm:text-base">
-              Przegląd konta: usługi, domeny, portfel i program EKO. Szczegóły hostingu i zużycia zasobów
-              znajdziesz w panelu hostingu oraz w widoku pojedynczej usługi.
+              Przegląd konta: usługi, domeny i portfel.
+              {clientFeatures.eco ? ' Program EKO jest dostępny w menu.' : ''} Szczegóły hostingu i zużycia
+              zasobów znajdziesz w panelu hostingu oraz w widoku pojedynczej usługi.
             </p>
           </div>
           <div className="flex flex-wrap gap-3 shrink-0">
@@ -73,7 +75,9 @@ export function DashboardHome({ snapshot }: { snapshot: DashboardSnapshot }) {
         </div>
       ) : null}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div
+        className={`grid gap-4 sm:grid-cols-2 ${clientFeatures.eco ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}
+      >
         <StatCard label="Saldo portfela" value={formatCredits(snapshot.profile?.walletBalance ?? 0)} description={CREDIT_RATE_INFO} icon={Wallet} />
         <StatCard
           label="Usługi aktywne"
@@ -93,17 +97,19 @@ export function DashboardHome({ snapshot }: { snapshot: DashboardSnapshot }) {
           description={snapshot.errors.domains ? 'Błąd pobierania' : 'W Twoim portfelu'}
           icon={Globe}
         />
-        <StatCard
-          label="Punkty EKO"
-          value={String(ecoPoints)}
-          description={
-            snapshot.ecoProgram?.isEcoProgramParticipant
-              ? 'Program aktywny'
-              : 'Zbieraj punkty w Programie EKO'
-          }
-          icon={Leaf}
-          accent
-        />
+        {clientFeatures.eco ? (
+          <StatCard
+            label="Punkty EKO"
+            value={String(ecoPoints)}
+            description={
+              snapshot.ecoProgram?.isEcoProgramParticipant
+                ? 'Program aktywny'
+                : 'Zbieraj punkty w Programie EKO'
+            }
+            icon={Leaf}
+            accent
+          />
+        ) : null}
         <StatCard
           label="Otwarte zgłoszenia"
           value={String(snapshot.openTickets)}
@@ -112,13 +118,21 @@ export function DashboardHome({ snapshot }: { snapshot: DashboardSnapshot }) {
         />
       </div>
 
-      <DashboardCharts snapshot={snapshot} />
+      <DashboardCharts snapshot={snapshot} showEco={clientFeatures.eco} />
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <h2 className="mb-4 mt-2 text-xl font-bold text-white">Szybkie akcje</h2>
           <div className="grid gap-4 sm:grid-cols-2">
-            <QuickAction title="Program EKO" description="Punkty, badge i wymiana na kredyty" href="/dashboard/eco" icon={Leaf} accent />
+            {clientFeatures.eco ? (
+              <QuickAction
+                title="Program EKO"
+                description="Punkty, badge i wymiana na kredyty"
+                href="/dashboard/eco"
+                icon={Leaf}
+                accent
+              />
+            ) : null}
             <QuickAction title="Zarządzaj domenami" description="DNS i przypisanie do usług" href="/dashboard/domains" icon={Globe} />
             <QuickAction title="Portfel i płatności" description="Doładuj kredyty (K) i faktury" href="/dashboard/billing" icon={CreditCard} />
             <QuickAction title="Certyfikaty SSL" description="Let&apos;s Encrypt na usługach" href="/dashboard/ssl" icon={ShieldCheck} />

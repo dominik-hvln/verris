@@ -1,5 +1,7 @@
 import Link from 'next/link';
 import { Eye, Gift, History, Leaf, Trees } from 'lucide-react';
+import { FeatureNotAvailable } from '@/components/feature-not-available';
+import { isClientFeatureEnabled } from '@/lib/client-features';
 import { getEcoDashboardData } from './eco-data';
 import { EcoRedeemForm } from './eco-redeem-form';
 import { EcoTreeProgress } from './eco-tree-progress';
@@ -25,6 +27,15 @@ function badgeEmbedHtml(
 }
 
 export default async function EcoProgramPage() {
+  if (!isClientFeatureEnabled('eco')) {
+    return (
+      <FeatureNotAvailable
+        title="Program EKO"
+        description="Program EKO nie jest jeszcze dostępny w Twojej ofercie. Hosting, portfel i wsparcie działają bez zmian."
+      />
+    );
+  }
+
   const { profile, ledger, platform, badgeStats, program } = await getEcoDashboardData();
   const apiBase = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000').replace(/\/$/, '');
   const badgeSrc = profile.ecoBadgeToken

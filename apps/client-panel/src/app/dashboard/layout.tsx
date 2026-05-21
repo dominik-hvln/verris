@@ -29,6 +29,7 @@ import {
   Settings,
 } from "lucide-react";
 import { sidebarTilesFromLinks, type SidebarTileDef } from "@/lib/sidebar-tiles";
+import { clientFeatures } from "@/lib/client-features";
 
 const secondaryItems = [
   {
@@ -52,9 +53,15 @@ const secondaryItems = [
   {
     label: "Pomoc & Konto",
     items: [
-      { name: "Program EKO", href: "/dashboard/eco", icon: Leaf, accent: true },
-      { name: "Program partnerski", href: "/dashboard/referral", icon: UserPlus },
-      { name: "IAM i subkonta", href: "/dashboard/iam", icon: Users },
+      ...(clientFeatures.eco
+        ? [{ name: "Program EKO", href: "/dashboard/eco", icon: Leaf, accent: true as const }]
+        : []),
+      ...(clientFeatures.referral
+        ? [{ name: "Program partnerski", href: "/dashboard/referral", icon: UserPlus }]
+        : []),
+      ...(clientFeatures.iam
+        ? [{ name: "IAM i subkonta", href: "/dashboard/iam", icon: Users }]
+        : []),
       { name: "Centrum Pomocy", href: "/dashboard/support", icon: HelpCircle },
       { name: "Ustawienia", href: "/dashboard/settings", icon: Settings },
     ],

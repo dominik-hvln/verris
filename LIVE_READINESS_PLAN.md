@@ -27,10 +27,11 @@ Priorytet: P0, przed release branch.
 
 Priorytet: P0, przed wpuszczeniem klientów.
 
-- Przejść klient/staff/admin/status page ekran po ekranie i oznaczyć każdą funkcję jako: realna, ukryta, albo wymagająca dokończenia.
-- Usunąć lub zastąpić wszystkie mocki/stuby w ścieżkach widocznych dla klienta.
-- Sprawdzić, czy nowe funkcje są osiągalne z nawigacji: domain assistant, usage, restore preview, uptime badge, staff timeline, NOC.
-- Dodać brakujące empty/error states dla endpointów z DirectAdmin, Stripe, MinIO i workerów.
+- ✅ Audyt panelu klienta — [`docs/SPRINT_B_PANEL_AUDIT.md`](./docs/SPRINT_B_PANEL_AUDIT.md).
+- ✅ Feature gates: `NEXT_PUBLIC_FEATURE_ECO|IAM|REFERRAL` (domyślnie wyłączone), nawigacja + strony gated.
+- ✅ Brak mocków w `client-panel` / `admin-panel` (grep); hosting tools mają `PanelFetchError` / empty states.
+- ⏳ Przejście staff/admin ekran po ekranie (tickety 360, NOC, product-ops).
+- ⏳ Nawigacja do uptime badge / restore preview — weryfikacja linków z usług.
 - Kryterium DONE: żadna strona produkcyjna nie obiecuje funkcji, której backend realnie nie wykonuje.
 
 ## Sprint C — Operacje Produkcyjne I Sekrety

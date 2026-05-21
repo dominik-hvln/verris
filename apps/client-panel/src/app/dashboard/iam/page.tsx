@@ -1,3 +1,5 @@
+import { FeatureNotAvailable } from '@/components/feature-not-available';
+import { isClientFeatureEnabled } from '@/lib/client-features';
 import { Users, Mail, ShieldCheck, Ban } from 'lucide-react';
 import {
   disableMemberAction,
@@ -8,6 +10,15 @@ import {
 import { PERMISSION_LABELS } from './constants';
 
 export default async function IamPage() {
+  if (!isClientFeatureEnabled('iam')) {
+    return (
+      <FeatureNotAvailable
+        title="IAM i subkonta"
+        description="Delegowanie dostępu do konta będzie dostępne po włączeniu modułu IAM w ofercie. Do tego czasu korzystaj z głównego konta właściciela."
+      />
+    );
+  }
+
   const data = await getIamOverview();
   return (
     <div className="mx-auto max-w-5xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">

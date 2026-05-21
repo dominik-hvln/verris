@@ -1,9 +1,20 @@
 import { Share2 } from 'lucide-react';
+import { FeatureNotAvailable } from '@/components/feature-not-available';
+import { isClientFeatureEnabled } from '@/lib/client-features';
 import { ReferralProgramClient } from './referral-program-client';
 
 export const dynamic = 'force-dynamic';
 
 export default function ReferralProgramPage() {
+  if (!isClientFeatureEnabled('referral')) {
+    return (
+      <FeatureNotAvailable
+        title="Program partnerski"
+        description="Program partnerski nie jest jeszcze aktywny w panelu. Możesz korzystać z hostingu i portfela bez ograniczeń."
+      />
+    );
+  }
+
   return (
     <div className="space-y-8 max-w-3xl">
       <header>
