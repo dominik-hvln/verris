@@ -24,26 +24,27 @@
 | `/dashboard/dns`, `ssl`, `email`, `ftp`, `cron`, `databases`, `file-manager`, `backups` | ✅ real | DA + empty/error |
 | `/dashboard/migrations` | ✅ real | Worker protocol (API) |
 | `/dashboard/support` | ✅ real | Tickety, załączniki |
-| `/dashboard/eco` | 🔒 gate | `NEXT_PUBLIC_FEATURE_ECO=true` aby włączyć |
-| `/dashboard/referral` | 🔒 gate | `NEXT_PUBLIC_FEATURE_REFERRAL=true` |
-| `/dashboard/iam` | 🔒 gate | `NEXT_PUBLIC_FEATURE_IAM=true` |
+| `/dashboard/eco` | ✅ real | Domyślnie włączone; `NEXT_PUBLIC_FEATURE_ECO=false` aby ukryć |
+| `/dashboard/referral` | ✅ real | Domyślnie włączone; `NEXT_PUBLIC_FEATURE_REFERRAL=false` aby ukryć |
+| `/dashboard/iam` | 🔒 opt-in | `NEXT_PUBLIC_FEATURE_IAM=true` (zespoły/agencje) |
 | `/dashboard/calculator` | ✅ real | Autoscaling pricing |
 | `/legal/*` | ✅ real | Wersje z API |
 
 ## Zmiany wdrożone (Sprint B)
 
-1. **`client-features.ts`** — flagi env dla EKO, IAM, program partnerski.
-2. **Nawigacja** — pozycje ukryte domyślnie (zgodnie z `LIVE_PRODUCT_SCOPE_DECISION.md`).
-3. **Strony gated** — bezpośredni URL pokazuje `FeatureNotAvailable`.
-4. **Dashboard** — stat/chart/quick action EKO tylko przy włączonej fladze.
+1. **`client-features.ts`** — EKO + referral **domyślnie ON**; IAM opt-in.
+2. **Nawigacja** — IAM ukryte bez flagi; EKO/referral widoczne jak wcześniej.
+3. **Strony gated** — tylko przy jawnym `FEATURE_*=false` lub IAM bez flagi.
+4. **Dashboard** — wykres/stat EKO przy domyślnej konfiguracji.
 
 ## Env (client-panel)
 
 ```bash
-# Domyślnie wyłączone — włącz po decyzji produktowej
-NEXT_PUBLIC_FEATURE_ECO=false
-NEXT_PUBLIC_FEATURE_IAM=false
-NEXT_PUBLIC_FEATURE_REFERRAL=false
+# Opcjonalne wyłączenie (np. staging bez programu)
+# NEXT_PUBLIC_FEATURE_ECO=false
+# NEXT_PUBLIC_FEATURE_REFERRAL=false
+# Włączenie IAM dla oferty zespołowej:
+# NEXT_PUBLIC_FEATURE_IAM=true
 ```
 
 ## Otwarte (Sprint B — dokończenie)

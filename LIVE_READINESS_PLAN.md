@@ -28,7 +28,7 @@ Priorytet: P0, przed release branch.
 Priorytet: P0, przed wpuszczeniem klientów.
 
 - ✅ Audyt panelu klienta — [`docs/SPRINT_B_PANEL_AUDIT.md`](./docs/SPRINT_B_PANEL_AUDIT.md).
-- ✅ Feature gates: `NEXT_PUBLIC_FEATURE_ECO|IAM|REFERRAL` (domyślnie wyłączone), nawigacja + strony gated.
+- ✅ Feature gates: EKO + referral domyślnie włączone; IAM opt-in (`NEXT_PUBLIC_FEATURE_IAM=true`).
 - ✅ Brak mocków w `client-panel` / `admin-panel` (grep); hosting tools mają `PanelFetchError` / empty states.
 - ⏳ Przejście staff/admin ekran po ekranie (tickety 360, NOC, product-ops).
 - ⏳ Nawigacja do uptime badge / restore preview — weryfikacja linków z usług.

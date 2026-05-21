@@ -1,22 +1,25 @@
 /**
- * Client panel feature gates for start LIVE scope (Sprint B).
- * Set `NEXT_PUBLIC_FEATURE_*=true` in env when a module is ready for customers.
+ * Client panel feature gates (Sprint B).
+ * EKO + program partnerski są LIVE — domyślnie włączone; wyłącz jawnie przez `=false`.
+ * IAM pozostaje opt-in (zespoły/agencje), dopóki nie jest w ofercie startowej.
  */
 export type ClientFeature = 'eco' | 'iam' | 'referral';
 
-function envEnabled(name: string): boolean {
+function envFlag(name: string, defaultWhenUnset: boolean): boolean {
   const v = process.env[name];
+  if (v === undefined || v === '') return defaultWhenUnset;
+  if (v === 'false' || v === '0') return false;
   return v === 'true' || v === '1';
 }
 
 export function isClientFeatureEnabled(feature: ClientFeature): boolean {
   switch (feature) {
     case 'eco':
-      return envEnabled('NEXT_PUBLIC_FEATURE_ECO');
-    case 'iam':
-      return envEnabled('NEXT_PUBLIC_FEATURE_IAM');
+      return envFlag('NEXT_PUBLIC_FEATURE_ECO', true);
     case 'referral':
-      return envEnabled('NEXT_PUBLIC_FEATURE_REFERRAL');
+      return envFlag('NEXT_PUBLIC_FEATURE_REFERRAL', true);
+    case 'iam':
+      return envFlag('NEXT_PUBLIC_FEATURE_IAM', false);
     default:
       return false;
   }
