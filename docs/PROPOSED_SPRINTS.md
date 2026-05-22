@@ -1,6 +1,6 @@
 # Proponowane sprinty — stan na 2026-05-22
 
-> Prod HEAD (przybliżenie): `a37476f` + kolejne commity (backup MinIO, IAM middleware, Grafana).  
+> Prod HEAD (przybliżenie): `848979f` (backup MinIO, IAM middleware, Grafana + linki admin/staff).  
 > Deploy: `ops/scripts/prod-deploy-release.sh` · SSH: `docs/ops/CURSOR_DEPLOY_SSH.md`
 
 ---

@@ -8,7 +8,7 @@ set -Eeuo pipefail
 BRANCH="${DEPLOY_BRANCH:-live-release-readiness}"
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 ENV_FILE="${ENV_FILE:-.env.prod}"
-SERVICES="${DEPLOY_SERVICES:-api client-panel prometheus}"
+SERVICES="${DEPLOY_SERVICES:-api client-panel admin-panel staff-panel prometheus}"
 
 cd "$(dirname "$0")/../.."
 echo "[deploy] $(pwd) branch=${BRANCH}"
