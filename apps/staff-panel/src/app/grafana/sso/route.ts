@@ -1,0 +1,28 @@
+import { NextRequest, NextResponse } from "next/server";
+import { safeGrafanaRedirectUrl } from "@verris/contracts";
+import { STAFF_AUTH_COOKIE, getStaffAuthToken } from "@/lib/staff-auth-cookie";
+import { panelAuthCookieDomain, panelAuthCookieOptions } from "@/lib/auth-cookie";
+
+export async function GET(request: NextRequest) {
+  const token = await getStaffAuthToken();
+  if (!token) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  const grafanaBase = process.env.NEXT_PUBLIC_GRAFANA_URL?.trim();
+  if (!grafanaBase) {
+    return NextResponse.json({ error: "Grafana URL not configured" }, { status: 503 });
+  }
+
+  const target = safeGrafanaRedirectUrl(
+    request.nextUrl.searchParams.get("to"),
+    grafanaBase,
+  );
+  const response = NextResponse.redirect(target);
+  response.cookies.set(
+    STAFF_AUTH_COOKIE,
+    token,
+    panelAuthCookieOptions(panelAuthCookieDomain()),
+  );
+  return response;
+}

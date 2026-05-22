@@ -154,6 +154,11 @@ Link z **admin-panel** i **staff-panel** (sekcja Monitoring): `NEXT_PUBLIC_GRAFA
 
 ### SSO Grafany (F-15)
 
+Cookie panelu (`admin_auth_token` / `staff_auth_token`) musi być widoczne na `grafana.verris.pl`:
+
+1. W `.env.prod` ustaw `AUTH_COOKIE_DOMAIN=.verris.pl` (patrz `.env.prod.example`).
+2. Otwieraj Grafanę **linkiem z panelu** (`/grafana/sso`) — hop ustawia cookie na domenie wspólnej i przekierowuje do dashboardu. Bezpośredni URL `grafana.verris.pl` bez wcześniejszego logowania w panelu zwróci 401.
+
 Dostęp do Grafany jest gatekept przez API:
 
 

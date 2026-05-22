@@ -1,16 +1,11 @@
 import { cookies } from "next/headers";
+import { panelAuthCookieOptions } from "./auth-cookie";
 
 export const ADMIN_COOKIE_NAME = "admin_auth_token";
 
 export async function setAdminAuthCookie(token: string) {
   const store = await cookies();
-  store.set(ADMIN_COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 8, // 8 hours
-  });
+  store.set(ADMIN_COOKIE_NAME, token, panelAuthCookieOptions());
 }
 
 export async function removeAdminAuthCookie() {
