@@ -1,6 +1,6 @@
 # Proponowane sprinty — stan na 2026-05-22
 
-> Prod HEAD (przybliżenie): `848979f` (backup MinIO, IAM middleware, Grafana + linki admin/staff).  
+> Prod HEAD (przybliżenie): `c8f51dc`+ (IAM presety/audyt, Grafana SSO, Sprint W / 0.3).  
 > Deploy: `ops/scripts/prod-deploy-release.sh` · SSH: `docs/ops/CURSOR_DEPLOY_SSH.md`
 
 ---
@@ -13,6 +13,9 @@
 | Backup | Postgres → MinIO `verris-backups/postgres/`, cron, restore `--from-minio` |
 | Grafana | Metryki backupu, dashboard **Storage & backupy**, alert `VerrisPostgresBackupStale` |
 | Panele | Link Grafana w **admin** i **staff** (staff po `canAccessGrafana`) |
+| IAM-F.4–5 | Presety ról, audyt IAM w panelu właściciela |
+| Sprint W (część) | Badge refresh po Stripe, skeleton, impersonacja, mail auto-topup fail |
+| Sprint 0.3 (część) | Uptime badge + restore preview w **Usage** usługi |
 | Sprint A/B (kod) | Testy krytyczne, audyt paneli |
 
 ---
@@ -74,7 +77,7 @@ flowchart TB
 | C.2 | Pierwszy dump w `verris-backups` | ✅ |
 | C.3 | Grafana: panel backupu + alert | ✅ |
 | C.4 | **Restore test** na staging, wpis w checklist | ⏳ [`ops/RESTORE_TEST.md`](./ops/RESTORE_TEST.md) |
-| C.5 | Grafana **contact point** (Slack/email) | ⏳ |
+| C.5 | Grafana **contact point** (Slack/email) | odłożone |
 | C.6 | Mirror zewnętrzny `backup-mirror-external.sh` | ⏳ faza 2 |
 | C.7 | `PROD_HEALTH_CHECKLIST.md` sekcje 1–12 | ⏳ |
 
@@ -97,14 +100,20 @@ flowchart TB
 |------|------|
 | 0.1 | Pełny smoke LIVE_RELEASE_RUNBOOK (zakup, DA, ticket, billing) |
 | 0.2 | `GO_NO_GO_PROD.md` bez NO-GO |
-| 0.3 | Linki uptime badge / restore preview z usług klienta |
+| 0.3 | Uptime badge + restore preview (Hosting Manager → Usage) | ✅ |
 | 0.4 | Zamknięcie Sprint A (code review runtime) |
 
 ---
 
 ## Sprint W — wallet polish (2–3 dni, P2)
 
-Z `SPRINT_PLAN.md` § W-03: refresh badge po Stripe, skeleton, staff K+zł, mail auto-topup fail.
+| ID | Task | Stan |
+|----|------|------|
+| W-03a | Auto-refresh badge po Stripe success | ✅ |
+| W-03b | Skeleton badge przy pierwszym ładowaniu | ✅ |
+| W-03c | Dual PLN/K w staff/admin (faktury, CSV) | ⏳ |
+| W-03d | Mail przy fail auto-topup | ✅ |
+| W-03e | Marker impersonacji na badge portfela | ✅ |
 
 ---
 
@@ -129,9 +138,12 @@ Metryki Prometheus: `verris_backup_latest_age_seconds`, `verris_backup_present`,
 
 ## Sugerowany następny krok (1 sprint)
 
-**IAM-F.3 smoke** + **C.4 restore test** równolegle — oba zamykają ryzyko przed pierwszymi klientami z subkontami i przed audytem DR.
+1. **IAM-F.3 smoke** — [`IAM_SMOKE_PROD.md`](./IAM_SMOKE_PROD.md) (ręcznie na prod).
+2. **C.4 restore test** — [`ops/RESTORE_TEST.md`](./ops/RESTORE_TEST.md) na staging.
+3. **Sprint D** — finalizacja draftów + lawyer review.
+4. **Sprint 0-ops** — pełny smoke + `GO_NO_GO_PROD.md`.
 
-Potem **Sprint D** i **0-ops smoke** → decyzja GO.
+C.5 (Grafana contact point) — **odłożone** do momentu wyboru kanału alertów.
 
 ---
 

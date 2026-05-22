@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { logoutAction } from "./actions";
 import { fetchSidebarUser, type SidebarUser } from "./sidebar-actions";
 import { ImpersonationBanner } from "./impersonation-banner";
+import { getImpersonationContext } from "./impersonation-actions";
 import { IncidentBanner } from "./incident-banner";
 import { WalletBadge } from "./wallet-badge";
 import { ReConsentModal } from "./reconsent-modal";
@@ -158,6 +159,8 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
   const [user, setUser] = useState<SidebarUser | null>(null);
+  const [userLoading, setUserLoading] = useState(true);
+  const [impersonating, setImpersonating] = useState(false);
   const navCtx = clientNavContextFromSidebar(user);
   const canAccess = (href: string) =>
     !navCtx || canAccessDashboardRoute(href, navCtx);
@@ -177,13 +180,20 @@ export default function DashboardLayout({
   const showSupportLink = canAccess("/dashboard/support");
 
   useEffect(() => {
-    fetchSidebarUser().then((u) => {
+    let cancelled = false;
+    Promise.all([fetchSidebarUser(), getImpersonationContext()]).then(([u, imp]) => {
+      if (cancelled) return;
       setUser(u);
+      setImpersonating(Boolean(imp?.isImpersonating));
+      setUserLoading(false);
       const root = document.documentElement;
       if (u?.isEcoProgramParticipant) root.classList.add("eco-tint");
       else root.classList.remove("eco-tint");
     });
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
 
   useEffect(() => {
     if (!navCtx || !pathname.startsWith("/dashboard")) return;
@@ -293,7 +303,11 @@ export default function DashboardLayout({
           <div className="flex-1" />
           <div className="flex items-center gap-3">
             {showWallet && (
-              <WalletBadge balance={user?.walletBalance ?? null} />
+              <WalletBadge
+                balance={user?.walletBalance ?? null}
+                loading={userLoading && user === null}
+                impersonating={impersonating}
+              />
             )}
             {showSupportLink && (
               <a

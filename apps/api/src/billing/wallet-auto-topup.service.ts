@@ -1,8 +1,11 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { StripeService } from './stripe/stripe.service';
 import { AuditService } from '../common/audit/audit.service';
+import { MailerService } from '../mail/mailer.service';
+import { walletAutoTopupFailedTemplate } from '../mail/templates/billing-lifecycle-notifications';
 
 const COOLDOWN_MS = 60 * 60 * 1000;
 
@@ -14,6 +17,8 @@ export class WalletAutoTopupService {
     private readonly prisma: PrismaService,
     private readonly stripe: StripeService,
     private readonly audit: AuditService,
+    private readonly mailer: MailerService,
+    private readonly config: ConfigService,
   ) {}
 
   async getForUser(userId: string) {
@@ -97,6 +102,7 @@ export class WalletAutoTopupService {
           select: {
             id: true,
             email: true,
+            firstName: true,
             walletBalance: true,
             walletCurrency: true,
             stripeCustomerId: true,
@@ -125,6 +131,8 @@ export class WalletAutoTopupService {
       currency: string;
       paymentMethodId: string | null;
       user: {
+        email: string;
+        firstName: string | null;
         walletBalance: Prisma.Decimal;
         walletCurrency: string;
         stripeCustomerId: string | null;
@@ -155,7 +163,12 @@ export class WalletAutoTopupService {
     }
 
     if (!stripePm?.startsWith('pm_')) {
-      await this.touchFailure(rule.userId, 'Brak zapisanej karty Stripe (pm_) — ustaw domyślną metodę płatności.', null);
+      await this.touchFailure(
+        rule.userId,
+        'Brak zapisanej karty Stripe (pm_) — ustaw domyślną metodę płatności.',
+        null,
+        rule,
+      );
       return;
     }
 
@@ -188,15 +201,25 @@ export class WalletAutoTopupService {
       });
 
       if (pi.status === 'requires_action') {
-        await this.touchFailure(rule.userId, 'Karta wymaga dodatkowej autoryzacji (3DS) — zmień metodę płatności lub doładuj przez Checkout.', pi.id);
+        await this.touchFailure(
+          rule.userId,
+          'Karta wymaga dodatkowej autoryzacji (3DS) — zmień metodę płatności lub doładuj przez Checkout.',
+          pi.id,
+          rule,
+        );
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      await this.touchFailure(rule.userId, msg, null);
+      await this.touchFailure(rule.userId, msg, null, rule);
     }
   }
 
-  private async touchFailure(userId: string, msg: string, stripeRef?: string | null) {
+  private async touchFailure(
+    userId: string,
+    msg: string,
+    stripeRef?: string | null,
+    rule?: { topupAmount: Prisma.Decimal; user: { email: string; firstName: string | null } },
+  ) {
     await this.prisma.walletAutoTopup.updateMany({
       where: { userId },
       data: {
@@ -206,6 +229,29 @@ export class WalletAutoTopupService {
         cooldownUntil: new Date(Date.now() + COOLDOWN_MS),
       },
     });
+    await this.audit.record({
+      action: 'WALLET_AUTO_TOPUP_FAILED',
+      userId,
+      details: { message: msg.slice(0, 500), stripeRef: stripeRef ?? null },
+    });
+    if (rule?.user.email) {
+      const panelUrl = (this.config.get<string>('clientPanelUrl') ?? 'https://panel.verris.pl').replace(
+        /\/$/,
+        '',
+      );
+      const tpl = walletAutoTopupFailedTemplate({
+        to: rule.user.email,
+        firstName: rule.user.firstName,
+        reason: msg,
+        topupAmountPln: rule.topupAmount.toFixed(2),
+        panelUrl,
+      });
+      await this.mailer.send({
+        ...tpl,
+        userId,
+        category: 'TRANSACTIONAL',
+      });
+    }
   }
 }
 

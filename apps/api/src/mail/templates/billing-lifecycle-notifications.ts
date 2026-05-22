@@ -44,6 +44,54 @@ function formatDate(d: Date): string {
 }
 
 // ---------------------------------------------------------------------------
+// 0. wallet-auto-topup-failed
+// ---------------------------------------------------------------------------
+
+export interface WalletAutoTopupFailedContext {
+  to: string;
+  firstName: string | null;
+  reason: string;
+  topupAmountPln: string;
+  panelUrl: string;
+}
+
+export function walletAutoTopupFailedTemplate(ctx: WalletAutoTopupFailedContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+
+  const { html, text } = renderEmailShell({
+    title: 'Automatyczne doładowanie nie powiodło się',
+    preheader: 'Zmień kartę lub doładuj portfel ręcznie.',
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Nie udało się wykonać **automatycznego doładowania** portfela na kwotę **${escapeHtml(
+        ctx.topupAmountPln,
+      )} K**.`,
+      ``,
+      `**Powód:** ${escapeHtml(ctx.reason)}`,
+      ``,
+      `Doładuj portfel ręcznie lub zaktualizuj zapisaną kartę w ustawieniach — inaczej odnowienia usług i autoskalowanie mogą się zatrzymać przy zerowym saldzie.`,
+    ].join('\n'),
+    cta: {
+      label: 'Portfel i karty',
+      url: `${ctx.panelUrl}/dashboard/billing`,
+    },
+    footnote: 'Kolejna próba auto-doładowania nastąpi po upływie okresu cooldown (ok. 1 h).',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+
+  return {
+    to: ctx.to,
+    tag: 'wallet.auto-topup-failed',
+    subject: '[Verris] Automatyczne doładowanie portfela nie powiodło się',
+    text,
+    html,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // 1. wallet-low-balance
 // ---------------------------------------------------------------------------
 

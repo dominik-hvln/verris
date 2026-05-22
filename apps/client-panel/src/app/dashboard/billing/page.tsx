@@ -23,6 +23,7 @@ import { CREDIT_DISCLAIMER, CREDIT_RATE_INFO, formatCredits } from '@/lib/credit
 import { getSavedPaymentMethods, getWalletAutoTopup, getWalletSummary } from './data';
 import { TopupCard } from './topup-card';
 import { BillingExtrasForms } from './billing-extras-forms';
+import { BillingWalletRefresh } from './billing-wallet-refresh';
 
 const txLabels: Record<WalletTxType, string> = {
   TOPUP: 'Doładowanie portfela',
@@ -69,6 +70,7 @@ export default async function BillingPage({
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <BillingWalletRefresh status={params.status} />
       <div>
         <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-neutral-400">
           Portfel i płatności

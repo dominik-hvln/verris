@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Activity, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@verris/ui';
 import { fetchHostingUsageAction, HostingUsageResponse } from '@/app/dashboard/services/[id]/hosting-usage-actions';
+import { ServiceUptimeBadge } from '@/components/hosting/service-uptime-badge';
+import { HostingBackupRestorePanel } from '@/components/hosting/hosting-backup-restore-panel';
 
 export default function UsageTab({ serviceId }: { serviceId: string }) {
   const [window, setWindow] = useState<'24h' | '7d'>('24h');
@@ -60,6 +62,9 @@ export default function UsageTab({ serviceId }: { serviceId: string }) {
           </Button>
         </div>
       </div>
+
+      <ServiceUptimeBadge serviceId={serviceId} />
+      <HostingBackupRestorePanel serviceId={serviceId} />
 
       {error ? <p className="text-sm text-rose-200">{error}</p> : null}
       {loading && !usage ? (
