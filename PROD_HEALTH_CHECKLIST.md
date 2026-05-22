@@ -121,14 +121,14 @@ Komenda: `dig +short TXT verris.pl`, `dig +short TXT _dmarc.verris.pl`.
 
 | Pomiar | Próg ALERT | Wartość | Status |
 | --- | --- | --- | --- |
-| Last successful Postgres backup | < 25h | | |
+| Last successful Postgres backup (MinIO `verris-backups/postgres/`) | < 25h | | |
 | Backup file size sane | _<info>_ | | |
-| Off-site backup (rclone do S3/B2) | < 25h | | |
+| External mirror (`backup-mirror-external.sh`) | < 25h lub N/A (faza 2) | | |
 | Restore test (last) | < 30 dni | | |
-| Backup encryption (gpg/age) | YES | | |
-| Tickets uploads volume mounted | YES | | |
+| MinIO bucket `verris-backups` exists | YES | | |
+| Ticket/RODO uploads w MinIO (nie lokalny FS) | YES | | |
 
-Komenda: `ls -lh /backups | tail -5`, `tail -50 /var/log/verris-backup.log`.
+Komenda: `mc ls verris/verris-backups/postgres/`, `tail -50 /var/log/verris-backup.log`.
 
 ## 8. Węzły hostingowe (compute-nodes)
 

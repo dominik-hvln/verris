@@ -1,67 +1,54 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Verris — Postgres backup
+# Verris — Postgres backup → MinIO (S3)
 # -----------------------------------------------------------------------------
-# Streams a logical dump of the application database via `pg_dump` running
-# inside the running `postgres` container. Output is gzip-compressed and
-# written to $BACKUP_DIR with a timestamped filename:
+# 1. pg_dump z kontenera postgres → gzip (staging na hoście)
+# 2. Upload do MinIO: s3://<S3_BUCKET_BACKUPS>/postgres/verris-YYYY-MM-DD-HHMM.sql.gz
+#    oraz postgres/latest.sql.gz (do szybkiego restore)
+# 3. Retencja: lifecycle na buckecie (minio-bootstrap) + opcjonalny lokalny staging
 #
-#   verris-2026-04-28-0300.sql.gz
+# Zewnętrzny serwer (faza 2): ops/backup-mirror-external.sh mirroruje cały bucket.
 #
-# Old backups are pruned after $RETENTION_DAYS days. Designed to be invoked by
-# a host-side cron job (see /etc/cron.d/verris-backup) or by `cron` inside a
-# scheduler container.
-#
-# Required env vars (pass via cron `--env-file` or systemd):
-#   POSTGRES_USER         — db user with read access (defaults to "verris")
-#   POSTGRES_DB           — db name (defaults to "verris_db")
-#
-# Optional:
-#   COMPOSE_FILE          — path to docker-compose.prod.yml (default: ./docker-compose.prod.yml)
-#   COMPOSE_PROJECT_NAME  — compose project name to scope `docker compose exec`
-#   BACKUP_DIR            — destination dir on the host (default: /var/backups/verris)
-#   RETENTION_DAYS        — how many days of dumps to keep (default: 14)
-#   POSTGRES_SERVICE      — compose service name (default: postgres)
-#
-# Exit codes:
-#   0 — backup written and verified non-empty
-#   1 — invocation problem (compose missing, container not running, …)
-#   2 — pg_dump failed
-#   3 — gzip verification failed (corrupted dump)
+# Env (.env.prod lub cron):
+#   MINIO_ROOT_USER, MINIO_ROOT_PASSWORD
+#   S3_BUCKET_BACKUPS (default: verris-backups)
+#   BACKUP_STAGING_DIR (default: /tmp/verris-backup-staging)
+#   UPLOAD_TO_MINIO (default: 1)
+#   RETENTION_DAYS (default: 14) — ILM na buckecie
 # =============================================================================
 
 set -Eeuo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
 POSTGRES_SERVICE="${POSTGRES_SERVICE:-postgres}"
 POSTGRES_USER="${POSTGRES_USER:-verris}"
 POSTGRES_DB="${POSTGRES_DB:-verris_db}"
-BACKUP_DIR="${BACKUP_DIR:-/var/backups/verris}"
+BACKUP_STAGING_DIR="${BACKUP_STAGING_DIR:-/tmp/verris-backup-staging}"
+UPLOAD_TO_MINIO="${UPLOAD_TO_MINIO:-1}"
 RETENTION_DAYS="${RETENTION_DAYS:-14}"
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-verris}"
+ENV_FILE="${ENV_FILE:-${REPO_ROOT}/.env.prod}"
 
 log() { printf '[%s] %s\n' "$(date -Iseconds)" "$*" >&2; }
 fail() { log "ERROR: $*"; exit "${2:-1}"; }
 
 command -v docker >/dev/null 2>&1 || fail "docker not in PATH"
+docker compose version >/dev/null 2>&1 || fail "docker compose plugin not available"
 
-if ! docker compose version >/dev/null 2>&1; then
-  fail "docker compose plugin not available (need v2)"
-fi
+cd "$REPO_ROOT"
+[[ -f "$COMPOSE_FILE" ]] || fail "compose file not found: $COMPOSE_FILE"
 
-if [[ ! -f "$COMPOSE_FILE" ]]; then
-  fail "compose file not found: $COMPOSE_FILE"
-fi
-
-mkdir -p "$BACKUP_DIR"
+mkdir -p "$BACKUP_STAGING_DIR"
 TIMESTAMP="$(date -u +%Y-%m-%d-%H%M)"
-OUT_FILE="${BACKUP_DIR}/verris-${TIMESTAMP}.sql.gz"
+OBJECT_NAME="verris-${TIMESTAMP}.sql.gz"
+OUT_FILE="${BACKUP_STAGING_DIR}/${OBJECT_NAME}"
 TMP_FILE="${OUT_FILE}.partial"
 
 log "starting pg_dump → ${OUT_FILE}"
 
-# `pg_dump --clean --if-exists` makes the dump idempotent for restores.
-# `--no-owner --no-privileges` keeps it portable across environments.
 if ! docker compose \
         --project-name "$COMPOSE_PROJECT_NAME" \
         --file "$COMPOSE_FILE" \
@@ -89,10 +76,22 @@ if [[ "$SIZE_BYTES" -lt 1024 ]]; then
 fi
 
 mv "$TMP_FILE" "$OUT_FILE"
-log "wrote ${OUT_FILE} (${SIZE_BYTES} bytes)"
+log "staging dump ${OUT_FILE} (${SIZE_BYTES} bytes)"
 
-log "pruning backups older than ${RETENTION_DAYS} days in ${BACKUP_DIR}"
-find "$BACKUP_DIR" -maxdepth 1 -type f -name 'verris-*.sql.gz' -mtime +"$RETENTION_DAYS" -print -delete \
-  | sed 's/^/  removed: /' >&2 || true
+if [[ "$UPLOAD_TO_MINIO" == "1" ]]; then
+  # shellcheck source=ops/lib/backup-minio.sh
+  source "${SCRIPT_DIR}/lib/backup-minio.sh"
+  backup_minio_load_env
+  log "uploading to MinIO bucket ${S3_BUCKET_BACKUPS}/postgres/${OBJECT_NAME}"
+  backup_minio_ensure_bucket
+  backup_minio_upload_file "$OUT_FILE" "$OBJECT_NAME"
+  log "MinIO upload OK (latest.sql.gz updated)"
+else
+  log "UPLOAD_TO_MINIO=0 — dump left in ${BACKUP_STAGING_DIR} only"
+fi
+
+# Staging: usuń starsze niż 2 dni (tylko tymczasowe pliki przed uploadem)
+find "$BACKUP_STAGING_DIR" -maxdepth 1 -type f -name 'verris-*.sql.gz' -mtime +2 -print -delete \
+  | sed 's/^/  removed staging: /' >&2 || true
 
 log "backup complete"

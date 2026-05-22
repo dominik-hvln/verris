@@ -42,8 +42,8 @@ Priorytet: P0, wykonywane na staging/prod-like. Runbook: [`docs/SPRINT_C_OPS.md`
 
 - ⏳ Uzupełnić `.env.prod` o nowe elementy: status webhooks, public badge URL, worker settings, MinIO, SMTP, Stripe live/test zgodnie ze środowiskiem.
 - ⏳ Zweryfikować migracje DB na czystej bazie i bazie z danymi testowymi.
-- ✅ Skrypty backup: `ops/backup-postgres.sh`, `ops/backup-offsite-sync.sh`, cron `ops/cron/verris-backup.cron`.
-- ⏳ Off-site sync włączony na prod + restore test na staging (udokumentowany).
+- ✅ Backup Postgres → MinIO (`verris-backups/postgres/`), restore `--from-minio`, mirror zewnętrzny `backup-mirror-external.sh`.
+- ⏳ Cron + pierwszy dump w MinIO na prod; restore test udokumentowany; mirror na zewn. serwer (faza 2).
 - ✅ Reguły alertów: `ops/observability/prometheus/alerts.yml` + metryka `verris_migration_worker_jobs_failed`.
 - ⏳ Contact point Grafana (Slack/email) podpięty do alertów Prometheus.
 - Udokumentować compute-node worker protocol: lease, complete/fail, idempotency, log truncation, retry policy.

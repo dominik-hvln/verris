@@ -326,46 +326,57 @@ pnpm --filter @verris/database db:migrate:reset
 # Drop + recreate + apply all migrations + (skip seed; uruchom oddzielnie jeśli trzeba)
 ```
 
-## Backup (automatyczny)
+## Backup (automatyczny) — MinIO
 
-W repo jest gotowy skrypt + szablon crona, który robi codzienny zrzut Postgresa (`pg_dump`), kompresuje go i pilnuje retencji.
+Backup Postgres i pliki użytkowników są w **tym samym MinIO** na control-plane (jak załączniki ticketów). Zewnętrzny serwer to faza 2 (`ops/backup-mirror-external.sh`).
+
+Bucket: `verris-backups` (env `S3_BUCKET_BACKUPS`), ścieżka: `postgres/verris-YYYY-MM-DD-HHMM.sql.gz` oraz `postgres/latest.sql.gz`.
 
 ```bash
-# Manualne uruchomienie (dobre do pierwszego sprawdzenia):
-sudo BACKUP_DIR=/var/backups/verris \
-     RETENTION_DAYS=14 \
-     COMPOSE_PROJECT_NAME=verris \
-     ./ops/backup-postgres.sh
+cd /opt/verris
+set -a && source .env.prod && set +a
+./ops/backup-postgres.sh
 
-# Instalacja crona (uruchamia się codziennie o 03:17 UTC):
+# Lista backupów w MinIO:
+docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm --no-deps \
+  --entrypoint /bin/sh minio-bootstrap -c '
+  mc alias set verris http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
+  mc ls verris/verris-backups/postgres/
+'
+
+# Cron (03:17 UTC, ładuje .env.prod):
 sudo install -m 0644 ops/cron/verris-backup.cron /etc/cron.d/verris-backup
-
-# Sprawdzenie logów (powinien być wpis "backup complete"):
-tail -n 20 /var/log/verris-backup.log
+tail -n 30 /var/log/verris-backup.log
 ```
 
 Skrypt:
 
-- używa `pg_dump --clean --if-exists --no-owner --no-privileges` → zrzut jest idempotentny i przenośny;
-- weryfikuje, że plik jest poprawnym gzip i ma sensowny rozmiar (≥ 1 KB) zanim go zatwierdzi (atomowe `mv` z pliku `.partial`);
-- usuwa pliki starsze niż `RETENTION_DAYS` (domyślnie 14).
+- `pg_dump` → staging `/tmp/verris-backup-staging` → upload przez `mc` do MinIO;
+- retencja 14 dni — reguła ILM na buckecie + czyszczenie stagingu;
+- bootstrap tworzy bucket `verris-backups` przy `docker compose up`.
 
 ### Restore
 
 ```bash
-# UWAGA: drop wszystkich obiektów w docelowej DB (--clean --if-exists)
-sudo ./ops/restore-postgres.sh /var/backups/verris/verris-2026-04-28-0317.sql.gz --confirm
+# Z MinIO (zalecane na prod):
+./ops/restore-postgres.sh --from-minio latest.sql.gz --confirm
+
+# Z lokalnego pliku (staging / ręczna kopia):
+./ops/restore-postgres.sh /tmp/verris-backup-staging/verris-....sql.gz --confirm
 ```
 
-Wolumin `redis_data` można pomijać — Redis jest cache/queue, można odtworzyć.
+Wolumin `redis_data` można pomijać — Redis jest cache/queue.
 
-### Off-site (zalecane)
+### Mirror na zewnętrzny serwer (faza 2)
 
-Backupy lokalne to za mało dla produkcji. Skopiuj `/var/backups/verris` co dobę do zewnętrznego storage (S3/Backblaze/wewnętrzny NFS), np.:
+Gdy będzie drugi MinIO/S3:
 
-```cron
-27 3 * * *  root  rclone copy /var/backups/verris remote:verris-backups --max-age 30d
+```bash
+# /etc/default/verris-backup — MIRROR_EXTERNAL_ENABLED=1 + OFFSITE_MC_* 
+./ops/backup-mirror-external.sh
 ```
+
+Stary `ops/backup-offsite-sync.sh` przekierowuje do tego skryptu.
 
 ## Rotacja `APP_KMS_KEY`
 
@@ -451,7 +462,7 @@ Lokalny FS nie jest używany — daje to:
 - **Przenośność**: kiedyś można przepiąć `S3_ENDPOINT` na osobny serwer
   storage (np. dedykowany node MinIO, AWS S3, Backblaze B2, Cloudflare R2)
   bez zmiany jednej linii kodu.
-- **Backup w jednym miejscu**: cały MinIO volume → `restic`/off-site.
+- **Backup w jednym miejscu**: Postgres w buckecie `verris-backups`; cały volume MinIO → mirror zewnętrzny (faza 2).
 - **Lifecycle policy**: `verris-data-exports` ma natywne 7-dniowe expiry
   (defense in depth ponad app-level RetentionScheduler).
 
@@ -471,6 +482,7 @@ S3_BUCKET_TICKET_ATTACHMENTS=verris-ticket-attachments
 S3_BUCKET_DATA_EXPORTS=verris-data-exports
 S3_BUCKET_DPA_PDFS=verris-dpa-pdfs
 S3_BUCKET_INVOICES=verris-invoices
+S3_BUCKET_BACKUPS=verris-backups
 
 # MinIO root (tylko do bootstrap-containera; api używa S3_ACCESS_KEY/SECRET)
 MINIO_ROOT_USER=verris-root
@@ -483,7 +495,7 @@ DATA_EXPORT_TEMP_DIR=/tmp/verris-data-exports
 Bootstrap (przy `docker compose up -d`):
 
 1. `minio` startuje, healthcheck na `/minio/health/live`.
-2. `minio-bootstrap` (one-shot) tworzy 4 buckety, ustawia anonymous=none
+2. `minio-bootstrap` (one-shot) tworzy buckety (w tym `verris-backups`), ustawia anonymous=none
    i aplikuje 7-dniową regułę expiry na `verris-data-exports`.
 3. `api` startuje **dopiero po `minio-bootstrap` (condition: completed_successfully)**.
 4. Aplikacja przy starcie wywołuje `ObjectStorageService.onApplicationBootstrap`
