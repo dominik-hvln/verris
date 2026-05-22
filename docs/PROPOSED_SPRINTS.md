@@ -55,9 +55,9 @@ flowchart TB
 |----|------|------|
 | IAM-F.1 | Middleware + nav + guard API | ✅ |
 | IAM-F.2 | Ustawienia subkonta (bez faktury / quick links) | ✅ |
-| IAM-F.3 | **Smoke prod**: invite → accept → login → menu + API | ⏳ |
-| IAM-F.4 | Presety ról w UI zaproszenia (support / billing / devops) | ⏳ |
-| IAM-F.5 | Podgląd audytu IAM w panelu właściciela | ⏳ |
+| IAM-F.3 | **Smoke prod**: invite → accept → login → menu + API | ⏳ [`IAM_SMOKE_PROD.md`](./IAM_SMOKE_PROD.md) |
+| IAM-F.4 | Presety ról w UI zaproszenia (support / billing / devops) | ✅ |
+| IAM-F.5 | Podgląd audytu IAM w panelu właściciela | ✅ |
 | IAM-F.6 | Testy integracyjne guard + `users/me` subaccount | częściowo ✅ |
 
 **Kryterium DONE:** smoke udokumentowany + brak regresji na prod.
@@ -73,7 +73,7 @@ flowchart TB
 | C.1 | Cron backup → MinIO | ✅ cron zainstalowany |
 | C.2 | Pierwszy dump w `verris-backups` | ✅ |
 | C.3 | Grafana: panel backupu + alert | ✅ |
-| C.4 | **Restore test** na staging, wpis w checklist | ⏳ |
+| C.4 | **Restore test** na staging, wpis w checklist | ⏳ [`ops/RESTORE_TEST.md`](./ops/RESTORE_TEST.md) |
 | C.5 | Grafana **contact point** (Slack/email) | ⏳ |
 | C.6 | Mirror zewnętrzny `backup-mirror-external.sh` | ⏳ faza 2 |
 | C.7 | `PROD_HEALTH_CHECKLIST.md` sekcje 1–12 | ⏳ |

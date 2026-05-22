@@ -31,6 +31,18 @@ export async function getIamOverview(): Promise<IamOverview> {
   return apiFetch<IamOverview>('/users/iam');
 }
 
+export interface IamAuditEntry {
+  id: string;
+  action: string;
+  createdAt: string;
+  details: unknown;
+  actor: { id: string; email: string | null; name: string | null } | null;
+}
+
+export async function getIamAudit(): Promise<{ entries: IamAuditEntry[] }> {
+  return apiFetch<{ entries: IamAuditEntry[] }>('/users/iam/audit');
+}
+
 export type IamActionResult = { ok: true } | { ok: false; error: string };
 
 export async function inviteSubaccountAction(formData: FormData): Promise<void> {

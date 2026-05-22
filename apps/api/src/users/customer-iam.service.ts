@@ -68,6 +68,50 @@ export class CustomerIamService {
     return { permissions: Object.values(CustomerPermission), members, invites };
   }
 
+  async listAudit(ownerUserId: string, actorUserId: string, limit = 50) {
+    await this.assertOwner(ownerUserId, actorUserId);
+    const take = Math.min(Math.max(limit, 1), 100);
+    const rows = await this.prisma.auditLog.findMany({
+      where: {
+        userId: ownerUserId,
+        action: { startsWith: 'CUSTOMER_IAM_' },
+      },
+      orderBy: { createdAt: 'desc' },
+      take,
+      select: {
+        id: true,
+        action: true,
+        actorUserId: true,
+        details: true,
+        createdAt: true,
+      },
+    });
+    const actorIds = [...new Set(rows.map((r) => r.actorUserId).filter(Boolean))] as string[];
+    const actors =
+      actorIds.length === 0
+        ? []
+        : await this.prisma.user.findMany({
+            where: { id: { in: actorIds } },
+            select: { id: true, email: true, firstName: true, lastName: true },
+          });
+    const actorById = new Map(actors.map((a) => [a.id, a]));
+    return {
+      entries: rows.map((row) => ({
+        id: row.id,
+        action: row.action,
+        createdAt: row.createdAt.toISOString(),
+        details: row.details,
+        actor: row.actorUserId
+          ? {
+              id: row.actorUserId,
+              email: actorById.get(row.actorUserId)?.email ?? null,
+              name: formatActorName(actorById.get(row.actorUserId)),
+            }
+          : null,
+      })),
+    };
+  }
+
   async invite(ownerUserId: string, actorUserId: string, dto: InviteSubaccountDto) {
     await this.assertOwner(ownerUserId, actorUserId);
     const email = dto.email.trim().toLowerCase();
@@ -242,4 +286,12 @@ export class CustomerIamService {
 
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
+}
+
+function formatActorName(
+  user: { firstName: string | null; lastName: string | null; email: string } | undefined,
+): string | null {
+  if (!user) return null;
+  const full = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+  return full || user.email;
 }

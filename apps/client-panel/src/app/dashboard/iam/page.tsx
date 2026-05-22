@@ -11,6 +11,8 @@ import {
   revokeInviteAction,
   updateMemberAction,
 } from './actions';
+import { IamAuditSection } from './iam-audit-section';
+import { IamPermissionPicker } from './iam-permission-picker';
 import { PERMISSION_LABELS } from './constants';
 
 export default async function IamPage() {
@@ -54,14 +56,7 @@ export default async function IamPage() {
             <input name="email" type="email" required placeholder="operator@firma.pl" className="rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white outline-none focus:border-white/40" />
             <input name="label" placeholder="np. księgowość, devops" className="rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white outline-none focus:border-white/40" />
           </div>
-          <div className="grid gap-3 md:grid-cols-3">
-            {data.permissions.map((permission) => (
-              <label key={permission} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm text-neutral-300">
-                <input name="permissions" type="checkbox" value={permission} className="h-4 w-4 accent-white" />
-                {PERMISSION_LABELS[permission] ?? permission}
-              </label>
-            ))}
-          </div>
+          <IamPermissionPicker permissions={data.permissions} />
           <button className="rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-neutral-200">
             Wyślij zaproszenie
           </button>
@@ -114,23 +109,10 @@ export default async function IamPage() {
                         placeholder="Etykieta (np. devops)"
                         className="w-full rounded-xl border border-white/10 bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-white/40"
                       />
-                      <div className="grid gap-2 sm:grid-cols-2">
-                        {data.permissions.map((permission) => (
-                          <label
-                            key={permission}
-                            className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-2.5 text-xs text-neutral-300"
-                          >
-                            <input
-                              name="permissions"
-                              type="checkbox"
-                              value={permission}
-                              defaultChecked={member.customerPermissions.includes(permission)}
-                              className="h-3.5 w-3.5 accent-white"
-                            />
-                            {PERMISSION_LABELS[permission] ?? permission}
-                          </label>
-                        ))}
-                      </div>
+                      <IamPermissionPicker
+                        permissions={data.permissions}
+                        defaultSelected={member.customerPermissions}
+                      />
                       <button className="rounded-xl bg-white px-4 py-2 text-xs font-semibold text-black hover:bg-neutral-200">
                         Zapisz uprawnienia
                       </button>
@@ -174,6 +156,8 @@ export default async function IamPage() {
           </div>
         </div>
       </section>
+
+      <IamAuditSection />
     </div>
   );
 }

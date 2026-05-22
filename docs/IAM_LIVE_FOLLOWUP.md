@@ -17,9 +17,9 @@
 |---|--------|------|-----------|
 | 1 | **Strony dashboardu** | ✅ `middleware.ts` + `fetchSessionProfile` — redirect przed renderem | — |
 | 2 | **Ustawienia subkonta** | ✅ Tylko profil / bezpieczeństwo / RODO; bez faktury i quick links | — |
-| 3 | **Presety ról** | UI „Szablon: księgowość / devops / support” mapujący na zestawy `CustomerPermission` | P2 |
-| 4 | **Audyt IAM w panelu** | Podgląd `customer.iam.*` z API audytu (owner) | P2 |
-| 5 | **E-mail zaproszenia** | Smoke: invite → link → accept → login jako subkonto | P0 smoke |
+| 3 | **Presety ról** | UI szablony Support / Księgowość / DevOps / Podgląd | ✅ |
+| 4 | **Audyt IAM w panelu** | `GET /users/iam/audit` + sekcja na stronie IAM | ✅ |
+| 5 | **E-mail zaproszenia** | Smoke: [`IAM_SMOKE_PROD.md`](./IAM_SMOKE_PROD.md) | P0 smoke ⏳ |
 | 6 | **Testy E2E API** | `customer-iam.service` + guard + `users/me` subaccount — rozszerzyć spec | P1 |
 | 7 | **Dokumentacja oferty** | Regulamin / KB: kiedy subkonto, odpowiedzialność właściciela | P2 (Sprint D) |
 

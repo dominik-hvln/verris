@@ -75,7 +75,7 @@ Reguły: `ops/observability/prometheus/alerts.yml`. Contact point w Grafana — 
 ## 6. Kryterium DONE Sprint C
 
 - [ ] Cron backup + wpis w logu + obiekt w `verris-backups/postgres/`
-- [ ] Restore test ze staging (`--from-minio`) — udokumentowany
+- [ ] Restore test ze staging (`--from-minio`) — procedura [`ops/RESTORE_TEST.md`](./ops/RESTORE_TEST.md)
 - [ ] (Faza 2) Mirror na zewnętrzny serwer włączony
 - [ ] Grafana contact point
 - [ ] `PROD_HEALTH_CHECKLIST.md` sekcje 1–12 wypełnione

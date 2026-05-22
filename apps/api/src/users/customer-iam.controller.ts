@@ -33,6 +33,12 @@ export class CustomerIamController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('audit')
+  audit(@CurrentUser() user: CustomerPrincipal) {
+    return this.iam.listAudit(user.userId, user.principalUserId ?? user.userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post('invites')
   invite(@CurrentUser() user: CustomerPrincipal, @Body() dto: InviteSubaccountDto) {
     return this.iam.invite(user.userId, user.principalUserId ?? user.userId, dto);
