@@ -20,7 +20,6 @@ import {
   ListChecks,
   Settings,
   Rocket,
-  Activity,
 } from "lucide-react";
 import { GrafanaOpsLink } from "./grafana-ops-link";
 
