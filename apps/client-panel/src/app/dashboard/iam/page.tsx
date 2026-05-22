@@ -1,5 +1,8 @@
+import { redirect } from 'next/navigation';
 import { FeatureNotAvailable } from '@/components/feature-not-available';
 import { isClientFeatureEnabled } from '@/lib/client-features';
+import { getAuthToken } from '@/lib/auth';
+import { fetchSessionProfile } from '@/lib/session-profile';
 import { Users, Mail, ShieldCheck, Ban } from 'lucide-react';
 import {
   disableMemberAction,
@@ -11,6 +14,12 @@ import {
 import { PERMISSION_LABELS } from './constants';
 
 export default async function IamPage() {
+  const token = await getAuthToken();
+  const session = token ? await fetchSessionProfile(token) : null;
+  if (session?.isSubaccount) {
+    redirect('/dashboard');
+  }
+
   if (!isClientFeatureEnabled('iam')) {
     return (
       <FeatureNotAvailable

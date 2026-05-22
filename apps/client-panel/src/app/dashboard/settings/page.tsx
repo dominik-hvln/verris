@@ -35,6 +35,13 @@ const tabs = [
 
 type TabId = (typeof tabs)[number]["id"];
 
+const SUBACCOUNT_TAB_IDS: TabId[] = ["profile", "security", "privacy"];
+
+function visibleTabsForProfile(profile: UserProfile): typeof tabs {
+  if (!profile.isSubaccount) return [...tabs];
+  return tabs.filter((t) => SUBACCOUNT_TAB_IDS.includes(t.id));
+}
+
 /* ──────────────────── Reusable Form Components ──────────────────── */
 
 function FormField({
@@ -158,6 +165,14 @@ export default function SettingsPage() {
     });
   }, []);
 
+  useEffect(() => {
+    if (!profile) return;
+    const allowed = visibleTabsForProfile(profile).map((t) => t.id);
+    if (!allowed.includes(activeTab)) {
+      setActiveTab("profile");
+    }
+  }, [profile, activeTab]);
+
   const showToast = (message: string, type: "success" | "error") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3500);
@@ -184,19 +199,26 @@ export default function SettingsPage() {
     );
   }
 
+  const visibleTabs = visibleTabsForProfile(profile);
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Page Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Ustawienia konta</h1>
         <p className="text-neutral-400 text-sm md:text-base">
-          Zarządzaj swoim profilem, bezpieczeństwem i danymi do faktur.
+          {profile.isSubaccount
+            ? "Konto operatora (subkonto). Dane firmy i układ panelu zarządza właściciel konta."
+            : "Zarządzaj swoim profilem, bezpieczeństwem i danymi do faktur."}
         </p>
+        {profile.isSubaccount && profile.subaccountLabel ? (
+          <p className="mt-2 text-xs text-neutral-500">Etykieta: {profile.subaccountLabel}</p>
+        ) : null}
       </div>
 
       {/* Tab Navigation */}
       <div className="flex gap-2 rounded-2xl bg-[#0a0a0a]/50 p-2 border border-white/5 backdrop-blur-xl shrink-0 overflow-x-auto scrollbar-none">
-        {tabs.map((tab) => {
+        {visibleTabs.map((tab) => {
           const Icon = tab;
           const isActive = activeTab === tab.id;
           return (

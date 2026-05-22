@@ -15,8 +15,8 @@
 
 | # | Obszar | Opis | Priorytet |
 |---|--------|------|-----------|
-| 1 | **Strony dashboardu** | Server-side guard na trasach Next (`middleware` lub layout per-sekcja) z tym samym mapowaniem co `client-nav-access` — dziś redirect jest client-side po załadowaniu layoutu | P1 |
-| 2 | **Ustawienia subkonta** | Ukryć sekcje billing firmy / quick links / 2FA właściciela; tylko profil operatora + hasło | P1 |
+| 1 | **Strony dashboardu** | ✅ `middleware.ts` + `fetchSessionProfile` — redirect przed renderem | — |
+| 2 | **Ustawienia subkonta** | ✅ Tylko profil / bezpieczeństwo / RODO; bez faktury i quick links | — |
 | 3 | **Presety ról** | UI „Szablon: księgowość / devops / support” mapujący na zestawy `CustomerPermission` | P2 |
 | 4 | **Audyt IAM w panelu** | Podgląd `customer.iam.*` z API audytu (owner) | P2 |
 | 5 | **E-mail zaproszenia** | Smoke: invite → link → accept → login jako subkonto | P0 smoke |

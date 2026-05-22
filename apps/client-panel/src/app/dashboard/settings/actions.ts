@@ -22,6 +22,9 @@ export interface UserProfile {
   isTwoFactorEnabled: boolean;
   createdAt: string;
   sidebarQuickLinks?: string[];
+  isSubaccount?: boolean;
+  customerPermissions?: string[] | null;
+  subaccountLabel?: string | null;
 }
 
 /**

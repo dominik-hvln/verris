@@ -1,19 +1,31 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { canAccessDashboardRoute } from "@/lib/client-nav-access";
+import { fetchSessionProfile } from "@/lib/session-profile";
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const token = request.cookies.get("auth_token")?.value;
   const pathname = request.nextUrl.pathname;
 
   const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/register");
   const isPublicHandoff = pathname === "/impersonate" || pathname.startsWith("/accept-invite");
-  
+
   if (!token && !isAuthPage && !isPublicHandoff && pathname !== "/") {
     return NextResponse.redirect(publicPanelUrl(request, "/login"));
   }
 
   if (token && isAuthPage) {
     return NextResponse.redirect(publicPanelUrl(request, "/dashboard"));
+  }
+
+  if (token && pathname.startsWith("/dashboard")) {
+    const session = await fetchSessionProfile(token);
+    if (
+      session?.isSubaccount &&
+      !canAccessDashboardRoute(pathname, session)
+    ) {
+      return NextResponse.redirect(publicPanelUrl(request, "/dashboard"));
+    }
   }
 
   return NextResponse.next();
