@@ -69,6 +69,15 @@ groups:
           summary: "Nieudane dostawy webhooków statusu"
           description: "Sprawdź endpointy klientów i logi StatusWebhookService."
 
+      - alert: VerrisPostgresBackupStale
+        expr: verris_backup_present == 0 or verris_backup_latest_age_seconds > 90000
+        for: 30m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Brak świeżego backupu Postgres w MinIO (>25h)"
+          description: "Sprawdź cron verris-backup i bucket verris-backups/postgres/ w MinIO."
+
       - alert: VerrisMigrationJobsFailed
         expr: verris_migration_worker_jobs_failed > 0
         for: 15m

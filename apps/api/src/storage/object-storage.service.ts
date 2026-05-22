@@ -202,6 +202,39 @@ export class ObjectStorageService implements OnApplicationBootstrap {
     });
   }
 
+  /**
+   * Ostatni dump Postgres w MinIO (`postgres/latest.sql.gz`) — metryki Grafana / alerty.
+   */
+  async getPostgresBackupLatestStat(): Promise<{
+    ageSeconds: number;
+    sizeBytes: number;
+    lastModifiedUnix: number;
+  } | null> {
+    const bucket =
+      this.config.get<string>('S3_BUCKET_BACKUPS') ?? 'verris-backups';
+    const key = 'postgres/latest.sql.gz';
+    try {
+      const stat = await this.client.statObject(bucket, key);
+      const lastModified = stat.lastModified ?? new Date(0);
+      const ageSeconds = Math.max(
+        0,
+        Math.floor((Date.now() - lastModified.getTime()) / 1000),
+      );
+      return {
+        ageSeconds,
+        sizeBytes: stat.size,
+        lastModifiedUnix: Math.floor(lastModified.getTime() / 1000),
+      };
+    } catch (err) {
+      const code = (err as { code?: string }).code;
+      if (code === 'NotFound' || code === 'NoSuchKey') return null;
+      this.logger.warn(
+        `Postgres backup stat failed: ${(err as Error).message}`,
+      );
+      return null;
+    }
+  }
+
   async objectExists(logical: ObjectBucket, key: string): Promise<boolean> {
     try {
       const bucket = this.resolveBucket(logical);

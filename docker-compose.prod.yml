@@ -224,6 +224,7 @@ services:
         STAFF_PANEL_URL: ${STAFF_PANEL_URL}
         ADMIN_PANEL_URL: ${ADMIN_PANEL_URL}
         NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
+        NEXT_PUBLIC_GRAFANA_URL: https://${CADDY_GRAFANA_DOMAIN:-grafana.verris.local}
     restart: always
     logging: *default-logging
     depends_on: [api]
@@ -231,6 +232,7 @@ services:
       NODE_ENV: production
       PORT: '3002'
       NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
+      NEXT_PUBLIC_GRAFANA_URL: https://${CADDY_GRAFANA_DOMAIN:-grafana.verris.local}
       API_URL: http://api:3000
       CLIENT_PANEL_URL: ${CLIENT_PANEL_URL}
       STAFF_PANEL_URL: ${STAFF_PANEL_URL}
@@ -256,6 +258,7 @@ services:
         ADMIN_PANEL_URL: ${ADMIN_PANEL_URL}
         NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
         NEXT_PUBLIC_STAFF_PANEL_URL: ${STAFF_PANEL_URL}
+        NEXT_PUBLIC_GRAFANA_URL: https://${CADDY_GRAFANA_DOMAIN:-grafana.verris.local}
     restart: always
     logging: *default-logging
     depends_on: [api]
@@ -264,6 +267,7 @@ services:
       PORT: '3003'
       NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
       NEXT_PUBLIC_STAFF_PANEL_URL: ${STAFF_PANEL_URL}
+      NEXT_PUBLIC_GRAFANA_URL: https://${CADDY_GRAFANA_DOMAIN:-grafana.verris.local}
       API_URL: http://api:3000
       CLIENT_PANEL_URL: ${CLIENT_PANEL_URL}
       ADMIN_PANEL_URL: ${ADMIN_PANEL_URL}

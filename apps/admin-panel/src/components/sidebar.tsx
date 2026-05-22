@@ -20,7 +20,9 @@ import {
   ListChecks,
   Settings,
   Rocket,
+  Activity,
 } from "lucide-react";
+import { GrafanaOpsLink } from "./grafana-ops-link";
 
 const adminNavItems = [
   {
@@ -55,6 +57,10 @@ const adminNavItems = [
       { name: "Cennik autoskalowania", href: "/autoscaling", icon: Gauge },
       { name: "Logi bezpieczeństwa", href: "/audit", icon: ShieldAlert },
     ],
+  },
+  {
+    label: "Monitoring",
+    items: [{ name: "Grafana (storage & backupy)", href: "__grafana__", icon: Activity }],
   },
   {
     label: "Konto",
@@ -128,11 +134,17 @@ export function AdminSidebar({ userInitials, userLabel, logoutButton }: AdminSid
               {group.label}
             </p>
             <div className="space-y-1">
-              {group.items.map((item) => (
-                <NavLink key={item.href} href={item.href} icon={item.icon}>
-                  {item.name}
-                </NavLink>
-              ))}
+              {group.items.map((item) =>
+                item.href === "__grafana__" ? (
+                  <div key={item.name} className="px-1">
+                    <GrafanaOpsLink />
+                  </div>
+                ) : (
+                  <NavLink key={item.href} href={item.href} icon={item.icon}>
+                    {item.name}
+                  </NavLink>
+                ),
+              )}
             </div>
           </div>
         ))}

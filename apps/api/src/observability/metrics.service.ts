@@ -7,6 +7,7 @@ import {
   WalletTxType,
 } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
+import { ObjectStorageService } from '../storage/object-storage.service';
 import { ProvisioningQueueService } from '../subscriptions/provisioning-queue.service';
 
 /**
@@ -33,6 +34,7 @@ export class MetricsService {
   constructor(
     private readonly prisma: PrismaService,
     @Optional() private readonly provisioningQueue?: ProvisioningQueueService,
+    @Optional() private readonly objectStorage?: ObjectStorageService,
   ) {}
 
   async getPrometheusMetrics(): Promise<string> {
@@ -323,6 +325,53 @@ export class MetricsService {
       } catch (err) {
         this.logger.warn(
           `Failed to collect provisioning queue metrics: ${(err as Error).message}`,
+        );
+      }
+    }
+
+    // --- Postgres backup w MinIO (latest.sql.gz) ---------------------------
+    if (this.objectStorage) {
+      try {
+        const backup = await this.objectStorage.getPostgresBackupLatestStat();
+        write(
+          lines,
+          'verris_backup_present',
+          '1 if postgres/latest.sql.gz exists in S3_BUCKET_BACKUPS',
+          'gauge',
+        );
+        lines.push(`verris_backup_present ${backup ? 1 : 0}`);
+        write(
+          lines,
+          'verris_backup_latest_age_seconds',
+          'Seconds since last successful MinIO backup object was modified',
+          'gauge',
+        );
+        write(
+          lines,
+          'verris_backup_latest_size_bytes',
+          'Size of postgres/latest.sql.gz in MinIO',
+          'gauge',
+        );
+        write(
+          lines,
+          'verris_backup_latest_timestamp_seconds',
+          'Unix timestamp of postgres/latest.sql.gz Last-Modified',
+          'gauge',
+        );
+        if (backup) {
+          lines.push(`verris_backup_latest_age_seconds ${backup.ageSeconds}`);
+          lines.push(`verris_backup_latest_size_bytes ${backup.sizeBytes}`);
+          lines.push(
+            `verris_backup_latest_timestamp_seconds ${backup.lastModifiedUnix}`,
+          );
+        } else {
+          lines.push('verris_backup_latest_age_seconds 0');
+          lines.push('verris_backup_latest_size_bytes 0');
+          lines.push('verris_backup_latest_timestamp_seconds 0');
+        }
+      } catch (err) {
+        this.logger.warn(
+          `Backup metrics skipped: ${(err as Error).message}`,
         );
       }
     }

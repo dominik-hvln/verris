@@ -89,6 +89,71 @@
       "targets": [
         { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "increase(verris_provisioning_jobs_total[5m])", "legendFormat": "{{event}}", "refId": "A" }
       ]
+    },
+    {
+      "type": "stat",
+      "title": "Postgres backup (MinIO) — wiek",
+      "id": 20,
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 32 },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_backup_latest_age_seconds", "refId": "A" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 },
+              { "color": "yellow", "value": 86400 },
+              { "color": "red", "value": 90000 }
+            ]
+          }
+        }
+      },
+      "options": { "colorMode": "value" }
+    },
+    {
+      "type": "stat",
+      "title": "Postgres backup — rozmiar",
+      "id": 21,
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 32 },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_backup_latest_size_bytes", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "bytes" } }
+    },
+    {
+      "type": "stat",
+      "title": "Backup obecny w MinIO",
+      "id": 22,
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 32 },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_backup_present", "refId": "A" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "BRAK", "color": "red" }, "1": { "text": "OK", "color": "green" } } }
+          ]
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Migracje FAILED",
+      "id": 23,
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 32 },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_migration_worker_jobs_failed", "refId": "A" }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [{ "color": "green" }, { "color": "red", "value": 1 }] }
+        }
+      }
     }
   ],
   "schemaVersion": 36,

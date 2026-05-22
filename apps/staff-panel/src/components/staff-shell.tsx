@@ -12,6 +12,7 @@ import {
   BookOpen,
   Settings,
 } from "lucide-react";
+import { GrafanaOpsLink, grafanaOpsHref } from "./grafana-ops-link";
 import type { StaffProfile } from "@/lib/staff-session";
 import { staffLogout } from "@/lib/staff-auth-actions";
 
@@ -69,6 +70,16 @@ export function StaffShell({
               </Link>
             );
           })}
+          {grafanaOpsHref() && (
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                Monitoring
+              </p>
+              <div className="px-1">
+                <GrafanaOpsLink session={session} />
+              </div>
+            </div>
+          )}
         </nav>
 
         <div className="border-t border-white/5 p-4 bg-black/20 space-y-2">

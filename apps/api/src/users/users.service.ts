@@ -122,6 +122,7 @@ export class UsersService {
         customerOwnerId: true,
         customerPermissions: true,
         subaccountLabel: true,
+        canAccessGrafana: true,
       },
     });
 
