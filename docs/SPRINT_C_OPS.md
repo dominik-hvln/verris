@@ -72,7 +72,15 @@ Reguły: `ops/observability/prometheus/alerts.yml`. Contact point w Grafana — 
 - `MINIO_ROOT_*`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`
 - `REDIS_URL`, SMTP, Stripe, `METRICS_AUTH_TOKEN`
 
-## 6. Kryterium DONE Sprint C
+## 6. Snapshot do checklisty
+
+```bash
+cd /opt/verris && bash ops/scripts/prod-health-snapshot.sh
+```
+
+Wklej output do `PROD_HEALTH_CHECKLIST.md` (sekcje 1, 2, 7).
+
+## 7. Kryterium DONE Sprint C
 
 - [ ] Cron backup + wpis w logu + obiekt w `verris-backups/postgres/`
 - [ ] Restore test ze staging (`--from-minio`) — procedura [`ops/RESTORE_TEST.md`](./ops/RESTORE_TEST.md)

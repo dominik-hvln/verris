@@ -7,3 +7,4 @@ export * from './plan-change.dto';
 export * from './subscription.dto';
 export * from './invoice.dto';
 export * from './grafana-sso';
+export * from './credits';

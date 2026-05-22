@@ -79,7 +79,7 @@ flowchart TB
 | C.4 | **Restore test** na staging, wpis w checklist | ⏳ [`ops/RESTORE_TEST.md`](./ops/RESTORE_TEST.md) |
 | C.5 | Grafana **contact point** (Slack/email) | odłożone |
 | C.6 | Mirror zewnętrzny `backup-mirror-external.sh` | ⏳ faza 2 |
-| C.7 | `PROD_HEALTH_CHECKLIST.md` sekcje 1–12 | ⏳ |
+| C.7 | `PROD_HEALTH_CHECKLIST.md` sekcje 1–12 | ⏳ skrypt [`ops/scripts/prod-health-snapshot.sh`](../ops/scripts/prod-health-snapshot.sh) |
 
 ---
 
@@ -90,7 +90,7 @@ flowchart TB
 | D.1 | Finalizacja `docs/legal/drafts/*` (firma, NIP, subprocessors) |
 | D.2 | Lawyer review + publikacja w admin |
 | D.3 | Re-consent smoke |
-| D.4 | INCIDENT_RESPONSE / RODO kontakt |
+| D.4 | INCIDENT_RESPONSE / RODO kontakt | ✅ szkielet [`ops/INCIDENT_RESPONSE.md`](./ops/INCIDENT_RESPONSE.md) |
 
 ---
 
@@ -98,7 +98,7 @@ flowchart TB
 
 | Task | Opis |
 |------|------|
-| 0.1 | Pełny smoke LIVE_RELEASE_RUNBOOK (zakup, DA, ticket, billing) |
+| 0.1 | Pełny smoke LIVE_RELEASE_RUNBOOK | ⏳ [`SPRINT_0_OPS_SMOKE.md`](./SPRINT_0_OPS_SMOKE.md) |
 | 0.2 | `GO_NO_GO_PROD.md` bez NO-GO |
 | 0.3 | Uptime badge + restore preview (Hosting Manager → Usage) | ✅ |
 | 0.4 | Zamknięcie Sprint A (code review runtime) |
@@ -111,7 +111,7 @@ flowchart TB
 |----|------|------|
 | W-03a | Auto-refresh badge po Stripe success | ✅ |
 | W-03b | Skeleton badge przy pierwszym ładowaniu | ✅ |
-| W-03c | Dual PLN/K w staff/admin (faktury, CSV) | ⏳ |
+| W-03c | Dual PLN/K w staff/admin (faktury, CSV) | ✅ |
 | W-03d | Mail przy fail auto-topup | ✅ |
 | W-03e | Marker impersonacji na badge portfela | ✅ |
 
