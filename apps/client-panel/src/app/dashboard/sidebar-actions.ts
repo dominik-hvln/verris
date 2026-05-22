@@ -20,6 +20,8 @@ export interface SidebarUser {
    * błąd fetchu (np. wygasły token), żeby topbar mógł pokazać fallback.
    */
   walletBalance: string | null;
+  isSubaccount?: boolean;
+  customerPermissions?: string[] | null;
 }
 
 /**
@@ -54,6 +56,10 @@ export async function fetchSidebarUser(): Promise<SidebarUser | null> {
           : typeof data.walletBalance === 'number'
             ? data.walletBalance.toFixed(2)
             : null,
+      isSubaccount: Boolean(data.isSubaccount),
+      customerPermissions: Array.isArray(data.customerPermissions)
+        ? data.customerPermissions.map(String)
+        : null,
     };
   } catch {
     return null;

@@ -340,6 +340,7 @@ services:
         --web.enable-lifecycle
     volumes:
       - ./ops/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./ops/observability/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
       - prometheus_data:/prometheus
     environment:
       METRICS_AUTH_TOKEN: ${METRICS_AUTH_TOKEN:-}

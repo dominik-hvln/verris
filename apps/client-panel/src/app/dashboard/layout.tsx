@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { logoutAction } from "./actions";
 import { fetchSidebarUser, type SidebarUser } from "./sidebar-actions";
@@ -30,6 +30,11 @@ import {
 } from "lucide-react";
 import { sidebarTilesFromLinks, type SidebarTileDef } from "@/lib/sidebar-tiles";
 import { clientFeatures } from "@/lib/client-features";
+import {
+  canAccessDashboardRoute,
+  canShowWalletBalance,
+  clientNavContextFromSidebar,
+} from "@/lib/client-nav-access";
 
 const secondaryItems = [
   {
@@ -150,15 +155,26 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const router = useRouter();
   const [user, setUser] = useState<SidebarUser | null>(null);
-  const mainGridItems = sidebarTilesFromLinks(user?.sidebarQuickLinks);
+  const navCtx = clientNavContextFromSidebar(user);
+  const canAccess = (href: string) =>
+    !navCtx || canAccessDashboardRoute(href, navCtx);
+  const mainGridItems = sidebarTilesFromLinks(user?.sidebarQuickLinks, navCtx);
   const mainGridHrefs = new Set<string>(mainGridItems.map((i) => i.href));
   const navSecondaryItems = secondaryItems
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) => !mainGridHrefs.has(item.href)),
+      items: group.items.filter(
+        (item) => canAccess(item.href) && !mainGridHrefs.has(item.href),
+      ),
     }))
     .filter((group) => group.items.length > 0);
+  const showWallet =
+    !navCtx ||
+    canShowWalletBalance(navCtx);
+  const showSupportLink = canAccess("/dashboard/support");
 
   useEffect(() => {
     fetchSidebarUser().then((u) => {
@@ -168,6 +184,13 @@ export default function DashboardLayout({
       else root.classList.remove("eco-tint");
     });
   }, []);
+
+  useEffect(() => {
+    if (!navCtx || !pathname.startsWith("/dashboard")) return;
+    if (!canAccessDashboardRoute(pathname, navCtx)) {
+      router.replace("/dashboard");
+    }
+  }, [navCtx, pathname, router]);
 
   const displayName =
     user?.firstName && user?.lastName
@@ -269,17 +292,21 @@ export default function DashboardLayout({
         <header className="sticky top-0 z-40 flex h-20 items-center justify-between bg-black/80 backdrop-blur-xl px-8 border-b border-white/5">
           <div className="flex-1" />
           <div className="flex items-center gap-3">
-            <WalletBadge balance={user?.walletBalance ?? null} />
-            <a
-              href="/dashboard/support"
-              className="relative rounded-[24px] p-px overflow-hidden group inline-flex"
-            >
-               <SpinBorder variant="white" className="opacity-40 transition-opacity duration-500 group-hover:opacity-100" />
-               <div className="relative flex items-center gap-2 rounded-[calc(24px-1px)] bg-[#0a0a0a] px-5 py-2 text-xs font-medium text-neutral-300 hover:text-white transition-colors">
-                 <HelpCircle className="h-4 w-4" />
-                 Wsparcie 24/7
-               </div>
-            </a>
+            {showWallet && (
+              <WalletBadge balance={user?.walletBalance ?? null} />
+            )}
+            {showSupportLink && (
+              <a
+                href="/dashboard/support"
+                className="relative rounded-[24px] p-px overflow-hidden group inline-flex"
+              >
+                <SpinBorder variant="white" className="opacity-40 transition-opacity duration-500 group-hover:opacity-100" />
+                <div className="relative flex items-center gap-2 rounded-[calc(24px-1px)] bg-[#0a0a0a] px-5 py-2 text-xs font-medium text-neutral-300 hover:text-white transition-colors">
+                  <HelpCircle className="h-4 w-4" />
+                  Wsparcie 24/7
+                </div>
+              </a>
+            )}
           </div>
         </header>
 

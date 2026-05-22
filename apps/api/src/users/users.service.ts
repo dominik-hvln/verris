@@ -6,7 +6,12 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma, SubscriptionStatus, WalletTxType } from '@verris/database';
+import {
+  CustomerPermission,
+  Prisma,
+  SubscriptionStatus,
+  WalletTxType,
+} from '@verris/database';
 import * as bcrypt from 'bcrypt';
 import { randomBytes, createHash } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -88,11 +93,13 @@ export class UsersService {
   }
 
   /**
-   * Pobiera pełny profil użytkownika (bez hash'a hasła).
+   * Pobiera profil sesji: dla subkonta to konto operatora (`principalUserId`),
+   * dane rozliczeniowe/EKO właściciela (`accountUserId`) tylko gdy ma uprawnienia.
    */
-  async getProfile(userId: string) {
+  async getProfile(accountUserId: string, principalUserId?: string) {
+    const profileId = principalUserId ?? accountUserId;
     const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: profileId },
       select: {
         id: true,
         email: true,
@@ -112,6 +119,9 @@ export class UsersService {
         isTwoFactorEnabled: true,
         createdAt: true,
         referredByUserId: true,
+        customerOwnerId: true,
+        customerPermissions: true,
+        subaccountLabel: true,
       },
     });
 
@@ -119,40 +129,54 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
+    const isSubaccount = Boolean(user.customerOwnerId);
+    const perms = new Set(user.customerPermissions ?? []);
+    const canBilling =
+      !isSubaccount ||
+      perms.has(CustomerPermission.BILLING_READ) ||
+      perms.has(CustomerPermission.BILLING_MANAGE);
+
     const ecoHostingStatuses: SubscriptionStatus[] = [
       SubscriptionStatus.ACTIVE,
       SubscriptionStatus.PROVISIONING,
       SubscriptionStatus.PAST_DUE,
     ];
 
-    const [ecoActiveCount, enrollment, tokens] = await Promise.all([
-      this.prisma.subscription.count({
-        where: {
-          userId,
-          ecoModeEnabled: true,
-          status: { in: ecoHostingStatuses },
-        },
-      }),
-      this.prisma.referralProgramEnrollment.findUnique({
-        where: { userId },
-        select: { status: true },
-      }),
-      this.ensureReferralAndBadgeTokens(userId),
-    ]);
+    const [ecoActiveCount, enrollment, tokens] = isSubaccount
+      ? [0, null, { referralCode: null as string | null, ecoBadgeToken: null as string | null }]
+      : await Promise.all([
+          this.prisma.subscription.count({
+            where: {
+              userId: accountUserId,
+              ecoModeEnabled: true,
+              status: { in: ecoHostingStatuses },
+            },
+          }),
+          this.prisma.referralProgramEnrollment.findUnique({
+            where: { userId: accountUserId },
+            select: { status: true },
+          }),
+          this.ensureReferralAndBadgeTokens(accountUserId),
+        ]);
 
     const referralApproved = enrollment?.status === 'APPROVED';
-    const isEcoProgramParticipant =
-      user.ecoPoints > 0 || ecoActiveCount > 0 || referralApproved;
+    const isEcoProgramParticipant = isSubaccount
+      ? false
+      : user.ecoPoints > 0 || ecoActiveCount > 0 || referralApproved;
     const sidebarQuickLinks = resolveSidebarQuickLinks(user.sidebarQuickLinks);
 
     return {
       ...user,
+      walletBalance: canBilling ? user.walletBalance : null,
+      ecoPoints: isSubaccount ? 0 : user.ecoPoints,
       sidebarQuickLinks,
-      hasActiveEcoSubscription: ecoActiveCount > 0,
+      hasActiveEcoSubscription: isSubaccount ? false : ecoActiveCount > 0,
       isEcoProgramParticipant,
-      referralProgramApproved: referralApproved,
-      referralCode: tokens.referralCode,
-      ecoBadgeToken: tokens.ecoBadgeToken,
+      referralProgramApproved: isSubaccount ? false : referralApproved,
+      referralCode: isSubaccount ? null : tokens.referralCode,
+      ecoBadgeToken: isSubaccount ? null : tokens.ecoBadgeToken,
+      isSubaccount,
+      customerPermissions: isSubaccount ? [...perms] : null,
     };
   }
 
@@ -409,13 +433,36 @@ export class UsersService {
   /**
    * Aktualizuje dane profilowe i bilingowe użytkownika.
    */
-  async updateProfile(userId: string, dto: UpdateProfileDto) {
+  async updateProfile(
+    accountUserId: string,
+    dto: UpdateProfileDto,
+    principalUserId?: string,
+  ) {
+    const profileId = principalUserId ?? accountUserId;
     const user = await this.prisma.user.findUnique({
-      where: { id: userId },
+      where: { id: profileId },
+      select: { id: true, customerOwnerId: true },
     });
 
     if (!user) {
       throw new NotFoundException('User not found');
+    }
+
+    const isSubaccount = Boolean(user.customerOwnerId);
+    if (isSubaccount) {
+      if (
+        dto.companyName !== undefined ||
+        dto.nip !== undefined ||
+        dto.address !== undefined ||
+        dto.city !== undefined ||
+        dto.postalCode !== undefined ||
+        dto.country !== undefined ||
+        dto.sidebarQuickLinks !== undefined
+      ) {
+        throw new BadRequestException(
+          'Subkonto może edytować wyłącznie dane osobowe (imię, nazwisko, język).',
+        );
+      }
     }
 
     let sidebarQuickLinks: string[] | undefined;
@@ -433,18 +480,18 @@ export class UsersService {
     }
 
     const updated = await this.prisma.user.update({
-      where: { id: userId },
+      where: { id: profileId },
       data: {
         ...(dto.firstName !== undefined && { firstName: dto.firstName }),
         ...(dto.lastName !== undefined && { lastName: dto.lastName }),
-        ...(dto.companyName !== undefined && { companyName: dto.companyName }),
-        ...(dto.nip !== undefined && { nip: dto.nip }),
-        ...(dto.address !== undefined && { address: dto.address }),
-        ...(dto.city !== undefined && { city: dto.city }),
-        ...(dto.postalCode !== undefined && { postalCode: dto.postalCode }),
-        ...(dto.country !== undefined && { country: dto.country }),
+        ...(!isSubaccount && dto.companyName !== undefined && { companyName: dto.companyName }),
+        ...(!isSubaccount && dto.nip !== undefined && { nip: dto.nip }),
+        ...(!isSubaccount && dto.address !== undefined && { address: dto.address }),
+        ...(!isSubaccount && dto.city !== undefined && { city: dto.city }),
+        ...(!isSubaccount && dto.postalCode !== undefined && { postalCode: dto.postalCode }),
+        ...(!isSubaccount && dto.country !== undefined && { country: dto.country }),
         ...(dto.locale !== undefined && { locale: dto.locale }),
-        ...(sidebarQuickLinks !== undefined && { sidebarQuickLinks }),
+        ...(!isSubaccount && sidebarQuickLinks !== undefined && { sidebarQuickLinks }),
       },
       select: {
         id: true,

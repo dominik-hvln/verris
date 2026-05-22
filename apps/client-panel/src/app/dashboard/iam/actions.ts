@@ -61,6 +61,27 @@ export async function revokeInviteAction(formData: FormData): Promise<void> {
   }
 }
 
+export async function updateMemberAction(formData: FormData): Promise<void> {
+  const id = String(formData.get('id') ?? '');
+  const label = String(formData.get('label') ?? '').trim();
+  const permissions = formData.getAll('permissions').map(String);
+  if (!id || permissions.length === 0) {
+    throw new Error('Wybierz co najmniej jedno uprawnienie.');
+  }
+  try {
+    await apiFetch(`/users/iam/members/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        permissions,
+        label: label || undefined,
+      }),
+    });
+    revalidatePath('/dashboard/iam');
+  } catch (err) {
+    throw new Error(normalizeError(err, 'Nie udało się zaktualizować uprawnień.'));
+  }
+}
+
 export async function disableMemberAction(formData: FormData): Promise<void> {
   const id = String(formData.get('id') ?? '');
   try {

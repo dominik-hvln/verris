@@ -1,0 +1,79 @@
+# Verris — Prometheus alert rules (Sprint C)
+# Wymaga: rule_files w prometheus.yml + mount tego pliku w docker-compose.prod.yml
+# Grafana Unified Alerting: zaimportuj te same progi lub skonfiguruj contact point (Slack/email).
+
+groups:
+  - name: verris_control_plane
+    interval: 30s
+    rules:
+      - alert: VerrisStaleComputeHeartbeat
+        expr: verris_servers_stale_heartbeat > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Aktywne węzły bez heartbeat (>5 min)"
+          description: "{{ $value }} serwer(ów) ACTIVE bez heartbeat. Sprawdź agenta na węźle i sieć."
+
+      - alert: VerrisProvisioningBacklog
+        expr: verris_provisioning_pending > 10
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Dużo subskrypcji w PROVISIONING"
+          description: "{{ $value }} subskrypcji czeka na provisioning. Panel: admin → Kolejka provisioningu."
+
+      - alert: VerrisProvisioningQueueFailed
+        expr: verris_provisioning_queue_depth{state="failed"} > 0
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Joby provisioningu w stanie failed"
+          description: "{{ $value }} jobów BullMQ failed. Retry z admin-panel lub sprawdź logi API/worker."
+
+      - alert: VerrisProvisioningQueueStale
+        expr: verris_provisioning_queue_oldest_waiting_seconds > 1800
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Najstarszy job provisioningu czeka >30 min"
+          description: "Kolejka nie opróżnia się — REDIS_URL, worker DA, limity węzła."
+
+      - alert: VerrisOpenMajorIncident
+        expr: verris_incidents_open{severity="MAJOR"} > 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Otwarty incydent MAJOR na status page"
+          description: "Sprawdź admin → Historia incydentów / status.verris.pl."
+
+      - alert: VerrisStatusWebhookBacklog
+        expr: verris_status_webhook_oldest_pending_seconds > 600
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Webhooki statusu w kolejce >10 min"
+          description: "Dostawcy badge nie dostają aktualizacji — worker webhooków / sieć."
+
+      - alert: VerrisStatusWebhookFailed
+        expr: verris_status_webhook_deliveries_total{status="FAILED"} > 0
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Nieudane dostawy webhooków statusu"
+          description: "Sprawdź endpointy klientów i logi StatusWebhookService."
+
+      - alert: VerrisMigrationJobsFailed
+        expr: verris_migration_worker_jobs_failed > 0
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Joby migracji w stanie FAILED"
+          description: "Panel klienta → migracje; logi workerów migracji."

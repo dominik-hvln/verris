@@ -1,7 +1,7 @@
 /**
  * Client panel feature gates (Sprint B).
  * EKO + program partnerski są LIVE — domyślnie włączone; wyłącz jawnie przez `=false`.
- * IAM pozostaje opt-in (zespoły/agencje), dopóki nie jest w ofercie startowej.
+ * IAM (subkonta) jest LIVE — domyślnie włączone; wyłącz jawnie przez `=false`.
  */
 export type ClientFeature = 'eco' | 'iam' | 'referral';
 
@@ -19,7 +19,7 @@ export function isClientFeatureEnabled(feature: ClientFeature): boolean {
     case 'referral':
       return envFlag('NEXT_PUBLIC_FEATURE_REFERRAL', true);
     case 'iam':
-      return envFlag('NEXT_PUBLIC_FEATURE_IAM', false);
+      return envFlag('NEXT_PUBLIC_FEATURE_IAM', true);
     default:
       return false;
   }

@@ -15,6 +15,10 @@ import {
   type SidebarTileHref,
 } from '@verris/contracts';
 import { clientFeatures } from './client-features';
+import {
+  canAccessDashboardRoute,
+  type ClientNavContext,
+} from './client-nav-access';
 
 export type SidebarTileDef = {
   href: SidebarTileHref;
@@ -33,9 +37,14 @@ const TILE_DEFS: Record<SidebarTileHref, Omit<SidebarTileDef, 'href'>> = {
   '/dashboard/calculator': { name: 'Kalkulator', icon: Calculator },
 };
 
-export function sidebarTilesFromLinks(links: string[] | null | undefined): SidebarTileDef[] {
+export function sidebarTilesFromLinks(
+  links: string[] | null | undefined,
+  nav?: ClientNavContext | null,
+): SidebarTileDef[] {
   return resolveSidebarQuickLinks(links)
     .filter((href) => (href === '/dashboard/eco' ? clientFeatures.eco : true))
+    .filter((href) => (href === '/dashboard/iam' ? clientFeatures.iam : true))
+    .filter((href) => !nav || canAccessDashboardRoute(href, nav))
     .map((href) => ({
       href,
       ...TILE_DEFS[href],

@@ -28,20 +28,24 @@ Priorytet: P0, przed release branch.
 Priorytet: P0, przed wpuszczeniem klientów.
 
 - ✅ Audyt panelu klienta — [`docs/SPRINT_B_PANEL_AUDIT.md`](./docs/SPRINT_B_PANEL_AUDIT.md).
-- ✅ Feature gates: EKO + referral domyślnie włączone; IAM opt-in (`NEXT_PUBLIC_FEATURE_IAM=true`).
-- ✅ Brak mocków w `client-panel` / `admin-panel` (grep); hosting tools mają `PanelFetchError` / empty states.
-- ⏳ Przejście staff/admin ekran po ekranie (tickety 360, NOC, product-ops).
+- ✅ Feature gates: EKO + referral + IAM domyślnie włączone (opt-out `=false`).
+- ✅ Brak mocków w panelach (grep); hosting tools: `PanelFetchError` / empty states.
+- ✅ Audyt staff + admin — [`docs/SPRINT_B_PANEL_AUDIT.md`](./docs/SPRINT_B_PANEL_AUDIT.md).
+- ✅ AI w staff: karta ukryta gdy `/ai/status` → `configured: false`.
+- ⏳ IAM pełne R-12 (middleware stron, smoke invite) — [`docs/IAM_LIVE_FOLLOWUP.md`](./docs/IAM_LIVE_FOLLOWUP.md).
 - ⏳ Nawigacja do uptime badge / restore preview — weryfikacja linków z usług.
 - Kryterium DONE: żadna strona produkcyjna nie obiecuje funkcji, której backend realnie nie wykonuje.
 
 ## Sprint C — Operacje Produkcyjne I Sekrety
 
-Priorytet: P0, wykonywane na staging/prod-like.
+Priorytet: P0, wykonywane na staging/prod-like. Runbook: [`docs/SPRINT_C_OPS.md`](./docs/SPRINT_C_OPS.md).
 
-- Uzupełnić `.env.prod` o nowe elementy: status webhooks, public badge URL, worker settings, MinIO, SMTP, Stripe live/test zgodnie ze środowiskiem.
-- Zweryfikować migracje DB na czystej bazie i bazie z danymi testowymi.
-- Skonfigurować off-site backup DB/MinIO i wykonać restore test na staging.
-- Skonfigurować alerty Grafana/Prometheus dla provisioning queue, status webhook deliveries, incidents, stale heartbeat, failed migrations.
+- ⏳ Uzupełnić `.env.prod` o nowe elementy: status webhooks, public badge URL, worker settings, MinIO, SMTP, Stripe live/test zgodnie ze środowiskiem.
+- ⏳ Zweryfikować migracje DB na czystej bazie i bazie z danymi testowymi.
+- ✅ Skrypty backup: `ops/backup-postgres.sh`, `ops/backup-offsite-sync.sh`, cron `ops/cron/verris-backup.cron`.
+- ⏳ Off-site sync włączony na prod + restore test na staging (udokumentowany).
+- ✅ Reguły alertów: `ops/observability/prometheus/alerts.yml` + metryka `verris_migration_worker_jobs_failed`.
+- ⏳ Contact point Grafana (Slack/email) podpięty do alertów Prometheus.
 - Udokumentować compute-node worker protocol: lease, complete/fail, idempotency, log truncation, retry policy.
 - Kryterium DONE: `PROD_HEALTH_CHECKLIST.md` bez punktów ❌ w sekcjach 1-12.
 

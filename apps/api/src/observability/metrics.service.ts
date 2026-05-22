@@ -327,6 +327,18 @@ export class MetricsService {
       }
     }
 
+    // --- Migration worker jobs (failed backlog) ---------------------------
+    const failedMigrationJobs = await this.prisma.migrationWorkerJob.count({
+      where: { status: 'FAILED' },
+    });
+    write(
+      lines,
+      'verris_migration_worker_jobs_failed',
+      'Migration worker jobs in FAILED status',
+      'gauge',
+    );
+    lines.push(`verris_migration_worker_jobs_failed ${failedMigrationJobs}`);
+
     // --- Status webhook delivery health ----------------------------------
     const webhookDeliveriesByStatus = await this.prisma.statusWebhookDelivery.groupBy({
       by: ['status'],

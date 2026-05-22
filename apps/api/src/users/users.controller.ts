@@ -28,8 +28,10 @@ export class UsersController {
    * Pobiera pełny profil zalogowanego użytkownika.
    */
   @Get('me')
-  async getProfile(@CurrentUser() user: { userId: string }) {
-    return this.usersService.getProfile(user.userId);
+  async getProfile(
+    @CurrentUser() user: { userId: string; principalUserId?: string },
+  ) {
+    return this.usersService.getProfile(user.userId, user.principalUserId);
   }
 
   @Get('me/eco-ledger')
@@ -79,10 +81,14 @@ export class UsersController {
    */
   @Patch('me')
   async updateProfile(
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: { userId: string; principalUserId?: string },
     @Body() dto: UpdateProfileDto,
   ) {
-    return this.usersService.updateProfile(user.userId, dto);
+    return this.usersService.updateProfile(
+      user.userId,
+      dto,
+      user.principalUserId,
+    );
   }
 
   /**

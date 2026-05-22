@@ -1,15 +1,17 @@
 # Sprint B — audyt paneli (100% LIVE)
 
-> Data: 2026-05-21 · Gałąź: `live-release-readiness` · Prod API: `4bb78cf` (healthy)
+> Data: 2026-05-21 (aktualizacja staff/admin) · Gałąź: `live-release-readiness`
 
 ## Podsumowanie
 
 | Panel | Mocki / stuby w UI | Empty/error states | Akcja Sprint B |
 |-------|-------------------|-------------------|----------------|
-| **Klient** | Brak literalnych mocków | Hosting tools: `PanelFetchError`, `HostingNoServiceState` | Feature gates EKO/IAM/referral (env) |
-| **Staff** | — (do przejścia ręcznego) | Timeline, tickety — real API | Follow-up smoke |
-| **Admin** | — | Product-ops, provisioning — real API | Follow-up smoke |
+| **Klient** | Brak literalnych mocków | `PanelFetchError`, `HostingNoServiceState` | ✅ gates + IAM nav |
+| **Staff** | Brak | API + banner błędu na każdej liście | ✅ audyt poniżej |
+| **Admin** | Brak | Real API + empty + retry provisioning | ✅ audyt poniżej |
 | **Status** | Public badge bez PII | operational/degraded | ✅ testy Sprint A |
+
+---
 
 ## Panel klienta — ekrany
 
@@ -26,34 +28,76 @@
 | `/dashboard/support` | ✅ real | Tickety, załączniki |
 | `/dashboard/eco` | ✅ real | Domyślnie włączone; `NEXT_PUBLIC_FEATURE_ECO=false` aby ukryć |
 | `/dashboard/referral` | ✅ real | Domyślnie włączone; `NEXT_PUBLIC_FEATURE_REFERRAL=false` aby ukryć |
-| `/dashboard/iam` | 🔒 opt-in | `NEXT_PUBLIC_FEATURE_IAM=true` (zespoły/agencje) |
+| `/dashboard/iam` | ✅ real | Domyślnie włączone; subkonta bez dostępu; edycja uprawnień |
 | `/dashboard/calculator` | ✅ real | Autoscaling pricing |
 | `/legal/*` | ✅ real | Wersje z API |
 
-## Zmiany wdrożone (Sprint B)
+### Zmiany wdrożone (klient + IAM)
 
-1. **`client-features.ts`** — EKO + referral **domyślnie ON**; IAM opt-in.
-2. **Nawigacja** — IAM ukryte bez flagi; EKO/referral widoczne jak wcześniej.
-3. **Strony gated** — tylko przy jawnym `FEATURE_*=false` lub IAM bez flagi.
-4. **Dashboard** — wykres/stat EKO przy domyślnej konfiguracji.
+1. **`client-features.ts`** — EKO + referral + IAM domyślnie ON (opt-out `=false`).
+2. **`client-nav-access.ts`** — menu i portfel wg `customerPermissions`.
+3. **API** — guard ścieżek hosting; `/users/me` dla `principalUserId`.
+4. **IAM UI** — edycja uprawnień członka.
 
-## Env (client-panel)
+---
 
-```bash
-# Opcjonalne wyłączenie (np. staging bez programu)
-# NEXT_PUBLIC_FEATURE_ECO=false
-# NEXT_PUBLIC_FEATURE_REFERRAL=false
-# Włączenie IAM dla oferty zespołowej:
-# NEXT_PUBLIC_FEATURE_IAM=true
-```
+## Panel staff (BOK) — ekrany
 
-## Otwarte (Sprint B — dokończenie)
+| Ścieżka | Status | API / zachowanie |
+|---------|--------|------------------|
+| `/` (skrzynka) | ✅ real | `staffGetTickets`, sort priorytetów, filtr `userId`, błąd 401→login |
+| `/tickets/active` | ✅ real | Lista aktywnych ticketów |
+| `/tickets/[id]` | ✅ real | `TicketDetailPanel`: status, priorytet, dept, assignee, odpowiedzi + załączniki, eskalacja, runbook, risk |
+| `/crm` | ✅ real | Wyszukiwarka klientów |
+| `/crm/[userId]` | ✅ real | Profil 360: subskrypcje, domeny, timeline audytu, DNS/TLS diagnostic, impersonacja (powód wymagany) |
+| `/crm/.../subscriptions/[id]` | ✅ real | Plan change staff, szablon ticketu |
+| `/referral-enrollments` | ✅ real | Approve/reject enrollment |
+| `/knowledge` | ✅ real | Canned responses z API |
+| `/settings` | ✅ real | 2FA operatora |
 
-- [ ] Przejście **staff-panel** ekran po ekranie (tickety 360, impersonacja, timeline).
-- [ ] Przejście **admin-panel** (provisioning queue, NOC, product-ops).
-- [ ] Ukryć linki AI w staff jeśli `AI_API_KEY` pusty (follow-up).
-- [ ] Spójność copy na dashboardzie (tekst „program EKO” przy wyłączonej fladze).
+### AI w ticketach
 
-## Sprint C (następny)
+| Element | Status |
+|---------|--------|
+| Przycisk „Wygeneruj sugestię AI” | ✅ tylko gdy `GET /ai/status` → `configured: true` |
+| Brak klucza `AI_API_KEY` | ✅ karta AI **nie renderuje się** (bez martwego przycisku) |
+| Runbook / sugestie bez AI | ✅ zawsze widoczne |
 
-Zobacz `LIVE_READINESS_PLAN.md` § Sprint C: backup off-site, alerty Grafana, `PROD_HEALTH_CHECKLIST.md`.
+**Wniosek:** osobny link w nawigacji do AI nie jest potrzebny — gate runtime w `ticket-detail-panel.tsx` spełnia wymóg Sprint B.
+
+---
+
+## Panel admin — ekrany
+
+| Ścieżka | Status | API / zachowanie |
+|---------|--------|------------------|
+| `/` | ✅ real | Pulpit operacyjny |
+| `/nodes`, `/nodes/init`, `/nodes/[id]` | ✅ real | Flota węzłów, init |
+| `/plans`, `/plans/new`, `/plans/[id]` | ✅ real | CRUD planów, Stripe price id |
+| `/subscriptions`, `/subscriptions/[id]` | ✅ real | Lista, plan change admin |
+| `/provisioning-queue` | ✅ real | BullMQ depth; banner gdy brak `REDIS_URL`; retry z powodem |
+| `/product-ops` | ✅ real | GO-LIVE preflight, flags, changelog, maintenance |
+| `/status/probes`, `/status/incidents` | ✅ real | Monitory, incydenty |
+| `/customers`, `/customers/[userId]` | ✅ real | Profil, impersonacja, portfel, operacje |
+| `/tickets` | ✅ real | Lista + link do staff-panel |
+| `/invoices`, `/billing` | ✅ real | Faktury, CSV rozliczeń |
+| `/promo-codes` | ✅ real | Tworzenie kodów |
+| `/referral-enrollments` | ✅ real | Review programu partnerskiego |
+| `/operators` | ✅ real | Konta operatorów |
+| `/autoscaling` | ✅ real | Cennik + revenue |
+| `/compliance` | ✅ real | Żądania usunięcia danych |
+| `/audit` | ✅ real | Filtry logów bezpieczeństwa |
+| `/settings`, `/settings/platform` | ✅ real | 2FA, konfiguracja platformy |
+
+**Wniosek:** brak mocków operacyjnych; empty states i komunikaty błędów na listach.
+
+---
+
+## Otwarte (niski priorytet)
+
+- [ ] Spójność copy EKO na dashboardzie przy `FEATURE_ECO=false` (już warunkowe w `dashboard-charts.tsx`).
+- [ ] IAM pełne R-12 — [`docs/IAM_LIVE_FOLLOWUP.md`](./IAM_LIVE_FOLLOWUP.md).
+
+## Sprint C (w toku)
+
+Zobacz [`docs/SPRINT_C_OPS.md`](./SPRINT_C_OPS.md): backup off-site, alerty Prometheus, checklist prod.

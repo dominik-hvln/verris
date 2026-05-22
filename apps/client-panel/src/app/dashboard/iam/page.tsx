@@ -6,6 +6,7 @@ import {
   getIamOverview,
   inviteSubaccountAction,
   revokeInviteAction,
+  updateMemberAction,
 } from './actions';
 import { PERMISSION_LABELS } from './constants';
 
@@ -91,6 +92,42 @@ export default async function IamPage() {
                     <span key={p} className="rounded-full border border-white/10 px-2 py-1 text-[11px] text-neutral-400">{PERMISSION_LABELS[p] ?? p}</span>
                   ))}
                 </div>
+                {!member.subaccountDisabledAt && (
+                  <details className="mt-4 rounded-xl border border-white/10 bg-black/40 p-4">
+                    <summary className="cursor-pointer text-sm font-medium text-neutral-300">
+                      Edytuj uprawnienia
+                    </summary>
+                    <form action={updateMemberAction} className="mt-4 space-y-4">
+                      <input type="hidden" name="id" value={member.id} />
+                      <input
+                        name="label"
+                        defaultValue={member.subaccountLabel ?? ''}
+                        placeholder="Etykieta (np. devops)"
+                        className="w-full rounded-xl border border-white/10 bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-white/40"
+                      />
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {data.permissions.map((permission) => (
+                          <label
+                            key={permission}
+                            className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] p-2.5 text-xs text-neutral-300"
+                          >
+                            <input
+                              name="permissions"
+                              type="checkbox"
+                              value={permission}
+                              defaultChecked={member.customerPermissions.includes(permission)}
+                              className="h-3.5 w-3.5 accent-white"
+                            />
+                            {PERMISSION_LABELS[permission] ?? permission}
+                          </label>
+                        ))}
+                      </div>
+                      <button className="rounded-xl bg-white px-4 py-2 text-xs font-semibold text-black hover:bg-neutral-200">
+                        Zapisz uprawnienia
+                      </button>
+                    </form>
+                  </details>
+                )}
               </div>
             ))}
           </div>
