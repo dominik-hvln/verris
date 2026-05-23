@@ -54,6 +54,16 @@ W trakcie korzystania z Verris zbieramy i przetwarzamy:
 - treść zgłoszeń (ticketów), załączniki, e-maile,
 - preferencje powiadomień e-mail.
 
+### 2.6 Subkonta (IAM)
+
+Jeśli jesteś **Właścicielem Konta** i zapraszasz Subkonta, przetwarzamy także:
+
+- adres e-mail Subkonta, imię (jeśli podane), przypisane uprawnienia i role,
+- logi akceptacji zaproszenia, logowania i operacji w Panelu w zakresie uprawnień,
+- wpisy audytu IAM (zaproszenia, zmiany uprawnień, wyłączenia).
+
+Właściciel Konta jest **administratorem** danych osób zaproszonych jako Subkonta w zakresie decyzji o zaproszeniu i nadaniu uprawnień; Verris przetwarza te dane jako **podmiot przetwarzający** na polecenie Właściciela (Regulamin §5a) oraz jako administrator w zakresie technicznym świadczenia Usługi.
+
 ## 3. Cele i podstawy prawne przetwarzania
 
 Przetwarzamy Twoje dane na podstawach z art. 6 RODO:
@@ -77,14 +87,12 @@ Twoje dane mogą być przekazywane następującym kategoriom odbiorców:
 
 Działają na nasze zlecenie i wyłącznie w celach przez nas wskazanych, na podstawie umów powierzenia (art. 28 RODO):
 
-- **Stripe Payments Europe Ltd.** (Irlandia, EU) — operator płatności kartą i przelewem.
-- **Stripe Payments Europe Ltd.** (Irlandia, EU) — operator płatności kartą i przelewem.
-- Dostawca infrastruktury serwerowej — do uzupełnienia przed publikacją po wyborze produkcyjnego dostawcy.
-- Dostawca backup/off-site storage — do uzupełnienia przed publikacją po wyborze produkcyjnego dostawcy.
-- Dostawca SMTP / poczty transakcyjnej — do uzupełnienia przed publikacją po wyborze produkcyjnego dostawcy.
-- Zewnętrzne narzędzia monitoringu uptime — tylko jeśli zostaną użyte poza własnym statusem Verris.
+- **Stripe Payments Europe Ltd.** (Irlandia, EOG) — operator płatności kartą, BLIK/P24, Apple Pay, Google Pay.
+- **Dostawca infrastruktury VPS** (EOG) — hosting control-plane Verris (API, panele, baza danych).
+- **MinIO (instancja self-hosted na infrastrukturze Verris, EOG)** — backupy, załączniki ticketów, eksporty RODO.
+- **Dostawca SMTP / poczty transakcyjnej** (EOG — nazwa do uzupełnienia przed publikacją, np. Resend EU) — wysyłka e-maili transakcyjnych.
 
-Pełna lista subprocessors zostanie opublikowana i aktualizowana na publicznej stronie Verris przed rozpoczęciem świadczenia usług klientom zewnętrznym. Powiadomimy Cię e-mailem o nowym subprocessorze co najmniej 30 dni przed jego wprowadzeniem.
+Pełna lista: [`subprocessors.md`](./subprocessors.md) (aktualizowana przed LIVE i przy każdej zmianie).
 
 ### 4.2 Organy państwowe
 
@@ -179,6 +187,6 @@ Zastrzegamy prawo do aktualizacji niniejszej Polityki. Każda nowa wersja jest p
 
 ---
 
-**Wersja: DRAFT 0.1 (Sprint 0)**
-**Data: maj 2026**
-**Lawyer review status: pending**
+**Wersja: DRAFT 0.2 (przed lawyer review)**  
+**Data: maj 2026**  
+**Lawyer review status: pending — gotowiec do przesłania prawnikowi**

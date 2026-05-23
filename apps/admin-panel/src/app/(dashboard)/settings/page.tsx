@@ -12,9 +12,12 @@ export default function AdminSettingsPage() {
         </p>
       </header>
       <TwoFactorSection />
-      <p className="text-sm text-muted-foreground">
+      <p className="text-sm text-muted-foreground space-x-4">
         <a href="/settings/platform" className="text-emerald-400 hover:text-emerald-300 underline">
-          Ustawienia platformy (EKO, sesje, progi)
+          Ustawienia platformy (EKO, sesje)
+        </a>
+        <a href="/settings/mail" className="text-emerald-400 hover:text-emerald-300 underline">
+          Poczta wychodząca (SMTP)
         </a>
       </p>
     </div>

@@ -1,7 +1,8 @@
 # Restore test Postgres z MinIO (C.4)
 
 > **Cel:** potwierdzić, że backup w `verris-backups/postgres/` da się odtworzyć.  
-> **Gdzie:** staging / osobna maszyna — **nie** na produkcyjnej bazie z klientami bez okna maintenance.
+> **Gdzie:** staging / osobna maszyna — **nie** na produkcyjnej bazie z klientami bez okna maintenance.  
+> **Kontakt / eskalacja (wynik testu, problemy):** dominik@hvln.pl
 
 ## Wymagania
 

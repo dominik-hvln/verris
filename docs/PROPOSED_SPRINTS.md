@@ -1,7 +1,7 @@
 # Proponowane sprinty — stan na 2026-05-22
 
-> Prod HEAD (przybliżenie): `c8f51dc`+ (IAM presety/audyt, Grafana SSO, Sprint W / 0.3).  
-> Deploy: `ops/scripts/prod-deploy-release.sh` · SSH: `docs/ops/CURSOR_DEPLOY_SSH.md`
+> **Status tasków (otwarte / done / w toku):** [`HOSTING_LAUNCH_TASKS.md`](./HOSTING_LAUNCH_TASKS.md) — **źródło prawdy**. Ten plik = kontekst sprintów.  
+> Prod HEAD: `0f8e6ca` · Deploy: `ops/scripts/prod-deploy-release.sh` · SSH: `docs/ops/CURSOR_DEPLOY_SSH.md`
 
 ---
 
@@ -79,7 +79,7 @@ flowchart TB
 | C.4 | **Restore test** na staging, wpis w checklist | ⏳ [`ops/RESTORE_TEST.md`](./ops/RESTORE_TEST.md) |
 | C.5 | Grafana **contact point** (Slack/email) | odłożone |
 | C.6 | Mirror zewnętrzny `backup-mirror-external.sh` | ⏳ faza 2 |
-| C.7 | `PROD_HEALTH_CHECKLIST.md` sekcje 1–12 | ⏳ skrypt [`ops/scripts/prod-health-snapshot.sh`](../ops/scripts/prod-health-snapshot.sh) |
+| C.7 | `PROD_HEALTH_CHECKLIST.md` sekcje 1–12 | 🟡 snapshot + prune 2026-05-23 — dysk **66%** / 25 GB wolne; pełna lista: [`HOSTING_LAUNCH_TASKS.md`](./HOSTING_LAUNCH_TASKS.md) |
 
 ---
 
@@ -138,12 +138,40 @@ Metryki Prometheus: `verris_backup_latest_age_seconds`, `verris_backup_present`,
 
 ## Sugerowany następny krok (1 sprint)
 
+**Master lista wszystkich otwartych tasków:** [`HOSTING_LAUNCH_TASKS.md`](./HOSTING_LAUNCH_TASKS.md)
+
 1. **IAM-F.3 smoke** — [`IAM_SMOKE_PROD.md`](./IAM_SMOKE_PROD.md) (ręcznie na prod).
 2. **C.4 restore test** — [`ops/RESTORE_TEST.md`](./ops/RESTORE_TEST.md) na staging.
 3. **Sprint D** — finalizacja draftów + lawyer review.
 4. **Sprint 0-ops** — pełny smoke + `GO_NO_GO_PROD.md`.
 
-C.5 (Grafana contact point) — **odłożone** do momentu wyboru kanału alertów.
+C.5 — na start **dominik@hvln.pl** (patrz tabela C-ops). Slack/Discord — później.
+
+---
+
+## Observability — rozszerzenie Grafana (follow-up)
+
+Już w repo (folder `Verris`):
+
+| UID | Dashboard |
+|-----|-----------|
+| `verris-control-plane` | Control plane health (API, kolejki, backup row) |
+| `verris-compute-fleet` | Węzły compute |
+| `verris-lve` | CloudLinux LVE |
+| `verris-business` | Metryki biznesowe |
+| `verris-ops-storage` | MinIO / backupy |
+
+**Brakuje do „pełnego” monitoringu startu hostingu** (kolejne taski, nie blokują samego kodu):
+
+| ID | Task | Opis |
+|----|------|------|
+| OBS-1 | `node_exporter` na control-plane | CPU/RAM/dysk hosta (obecnie głównie API + DB w Prometheus) |
+| OBS-2 | Blackbox / syntetyka HTTP | `client.verris.pl`, `admin`, `staff`, `api` `/healthz` — dostępność paneli |
+| OBS-3 | Dashboard **Host / Docker** | cAdvisor lub metryki kontenerów + `df` alert |
+| OBS-4 | Dashboard **Postgres / Redis** | rozszerzenie exporterów (połączenia, slow queries) |
+| OBS-5 | Dashboard **Caddy / TLS** | cert expiry, 5xx edge (jeśli metryki dostępne) |
+| OBS-6 | Contact point + reguły | C.5: email dominik@hvln.pl + powiązanie z `alerts.yml` |
+| OBS-7 | Cron `docker builder prune` | po deploy — utrzymanie dysku (build cache, nie backupy) |
 
 ---
 

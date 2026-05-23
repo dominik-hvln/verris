@@ -2,6 +2,8 @@
 
 > Wypełniany przy każdym deploy'u kontroli stanu (po smoke teście, raz w tygodniu, przed wpuszczeniem klientów). Raport leży obok `GO_NO_GO_PROD.md` — `GO_NO_GO_PROD` jest wymogiem na wejście, ten plik jest **bieżącym statusem operacyjnym**. W razie regresji w którymkolwiek punkcie — eskalacja do tasku w Sprincie aktualnym.
 
+**Ostatni snapshot (automatyczny):** 2026-05-22T22:31:22Z — `bash ops/scripts/prod-health-snapshot.sh` na prod po deploy `0f8e6ca`.
+
 ## 0. Wymóg 100% LIVE
 
 Przed decyzją GO trzeba potwierdzić, że wdrażany zakres jest produkcyjny: **bez MVP, bez mocków, bez stubów i bez brakujących funkcji w ścieżkach komunikowanych klientowi**. Jeśli funkcja nie jest gotowa end-to-end, musi być ukryta, jawnie wyłączona feature flagą albo opisana jako niedostępna w obecnym zakresie oferty.
@@ -28,19 +30,19 @@ Każdy punkt ma format:
 
 | Pomiar | Próg ALERT | Wartość pomiaru | Status |
 | --- | --- | --- | --- |
-| RAM total used | < 6.5 GB (80%) | _<wpisz_> | _<status>_ |
-| RAM api container | < 1.5 GB | | |
-| RAM postgres container | < 2.5 GB | | |
-| RAM redis container | < 256 MB | | |
-| RAM caddy container | < 200 MB | | |
-| RAM grafana container | < 300 MB | | |
-| RAM prometheus container | < 500 MB | | |
-| CPU avg load (1m) | < 3.0 | | |
-| CPU idle | > 30% | | |
-| I/O wait | < 5% | | |
-| Disk used | < 60% | | |
-| Disk free for backups | > 20 GB | | |
-| Inodes used | < 60% | | |
+| RAM total used | < 6.5 GB (80%) | ~0.93 GB (suma kontenerów) | ✅ |
+| RAM api container | < 1.5 GB | 98.5 MiB | ✅ |
+| RAM postgres container | < 2.5 GB | 34.4 MiB | ✅ |
+| RAM redis container | < 256 MB | 6.8 MiB | ✅ |
+| RAM caddy container | < 200 MB | 23.5 MiB | ✅ |
+| RAM grafana container | < 300 MB | 73.1 MiB | ✅ |
+| RAM prometheus container | < 500 MB | 53.2 MiB | ✅ |
+| CPU avg load (1m) | < 3.0 | _nie zmierzone_ | 🟡 |
+| CPU idle | > 30% | _nie zmierzone_ | 🟡 |
+| I/O wait | < 5% | _nie zmierzone_ | 🟡 |
+| Disk used | < 60% | **18%** (`/dev/sda1` 13G/75G) po `docker builder prune -af` 2026-05-23 | ✅ |
+| Disk free for backups | > 20 GB | **60 GB** wolne | ✅ |
+| Inodes used | < 60% | _nie zmierzone_ | 🟡 |
 
 Komenda: `docker stats --no-stream`, `df -h`, `df -i`, `top -b -n 1 | head -20`.
 
@@ -48,8 +50,8 @@ Komenda: `docker stats --no-stream`, `df -h`, `df -i`, `top -b -n 1 | head -20`.
 
 | Pomiar | Próg ALERT | Wartość | Status |
 | --- | --- | --- | --- |
-| `/healthz` API | 200 OK, < 50ms | | |
-| `/readyz` API | 200 OK, < 100ms (sprawdza DB+Redis+Stripe) | | |
+| `/healthz` API | 200 OK, < 50ms | OK (snapshot 2026-05-22) | ✅ |
+| `/readyz` API | 200 OK, < 100ms (sprawdza DB+Redis+Stripe) | _nie zmierzone_ | 🟡 |
 | Client panel SSR `/dashboard` | 200 OK, < 1s p95 | | |
 | Staff panel SSR `/dashboard` | 200 OK, < 1s p95 | | |
 | Admin panel SSR `/dashboard` | 200 OK, < 1s p95 | | |
@@ -121,12 +123,12 @@ Komenda: `dig +short TXT verris.pl`, `dig +short TXT _dmarc.verris.pl`.
 
 | Pomiar | Próg ALERT | Wartość | Status |
 | --- | --- | --- | --- |
-| Last successful Postgres backup (MinIO `verris-backups/postgres/`) | < 25h | | |
-| Backup file size sane | _<info>_ | | |
-| External mirror (`backup-mirror-external.sh`) | < 25h lub N/A (faza 2) | | |
-| Restore test (last) | < 30 dni | | |
-| MinIO bucket `verris-backups` exists | YES | | |
-| Ticket/RODO uploads w MinIO (nie lokalny FS) | YES | | |
+| Last successful Postgres backup (MinIO `verris-backups/postgres/`) | < 25h | `latest.sql.gz` 2026-05-22 14:07 UTC (~8 h) | ✅ |
+| Backup file size sane | _<info>_ | 24 KiB (mała baza / zweryfikować pełność) | 🟡 |
+| External mirror (`backup-mirror-external.sh`) | < 25h lub N/A (faza 2) | N/A | 🟡 |
+| Restore test (last) | < 30 dni | _brak wpisu — patrz [`ops/RESTORE_TEST.md`](./docs/ops/RESTORE_TEST.md)_ | 🟡 |
+| MinIO bucket `verris-backups` exists | YES | alias `verris` OK | ✅ |
+| Ticket/RODO uploads w MinIO (nie lokalny FS) | YES | _nie zweryfikowane w snapshot_ | 🟡 |
 
 Komenda: `mc ls verris/verris-backups/postgres/`, `tail -50 /var/log/verris-backup.log`.
 

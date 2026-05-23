@@ -1,15 +1,22 @@
 # Drafty dokumentów prawnych Verris
 
-> **Status: DRAFTY przygotowawcze do Sprintu 1 (Legal/RODO).** NIE PUBLIKOWAĆ ani nie traktować jako wiążące prawnie do czasu lawyer review. Dane administratora HVLN zostały uzupełnione, ale przed publikacją nadal trzeba potwierdzić subprocessors, publiczne URL-e dokumentów i akceptację prawnika.
+> **Status: DRAFT 0.2 — gotowce do przesłania prawnikowi.** NIE PUBLIKOWAĆ jako wiążące do czasu review i importu do `LegalDocument`.
 
-Wymagany lawyer review: **regulamin, polityka prywatności, polityka cookies, DPA**. Po review treści zostaną zaimportowane do tabeli `LegalDocument` w Sprincie 1 (task L-01) jako wersja `1.0.0`.
+## Workflow (decyzja D-4, 2026-05-23)
+
+1. **Agent** utrzymuje drafty w `docs/legal/drafts/` (regulamin, privacy, cookies, DPA, subprocessors) — wersja **0.2** z IAM, Stripe-only, listą processorów.
+2. **Dominik** przesyła paczkę do prawnika (wszystkie pliki + `README.md` założenia).
+3. **Prawnik** zwraca poprawioną treść → zapis jako `*-1.0.0-lawyer.md` lub bezpośrednia edycja draftów.
+4. **Dominik** wgrywa zatwierdzoną wersję → **LEG-3** publikacja w admin / seed `LegalDocument`.
+5. **Smoke** re-consent (LEG-4).
 
 ## Pliki
 
-- `terms.md` — Regulamin świadczenia usług hostingowych (B2C + B2B).
-- `privacy.md` — Polityka prywatności i przetwarzania danych osobowych (RODO art. 13-14).
-- `cookies.md` — Polityka plików cookies i podobnych technologii (ePrivacy + RODO).
-- `dpa.md` — Umowa powierzenia przetwarzania danych osobowych (RODO art. 28, dla B2B).
+- `terms.md` — Regulamin (B2C + B2B, IAM §5a, Stripe, portfel K).
+- `privacy.md` — Polityka prywatności (art. 13–14 RODO).
+- `cookies.md` — Polityka cookies (PTel + ePrivacy).
+- `dpa.md` — Umowa powierzenia (art. 28 RODO).
+- `subprocessors.md` — Lista podmiotów przetwarzających (załącznik do privacy/DPA).
 
 ## Założenia merytoryczne (do zatwierdzenia z prawnikiem)
 
@@ -28,7 +35,8 @@ Wymagany lawyer review: **regulamin, polityka prywatności, polityka cookies, DP
    - Email log — 12 miesięcy (deliverability/dispute resolution).
 8. **Marketing:** opt-in z double opt-in. Domyślnie OFF dla wszystkich kategorii poza transakcyjnymi.
 9. **Cookies analityczne:** preferowany Plausible (cookieless analytics) — wtedy nie trzeba banner'a opt-in dla analityki, tylko niezbędne. Jeśli zdecydujemy się na GA4 / Hotjar — pełen opt-in cookie banner wymagany.
-10. **Naruszenie ochrony danych (data breach):** zgłoszenie do PUODO w 72h (art. 33 RODO), notyfikacja użytkowników w przypadku „wysokiego ryzyka" (art. 34). Procedura wewnętrzna w `incident-response.md` (Sprint 1, task L-12).
+11. **Subkonta IAM:** od startu oferty — Właściciel zaprasza Subkonta z rolami; odpowiedzialność Właściciela (§5a Regulamin).
+12. **Płatności start:** wyłącznie **Stripe** (+ portfel K); PayU jako osobny operator — nie w pierwszej wersji Regulaminu.
 
 ## Co po lawyer review
 

@@ -3,7 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import { EmailCategory, EmailStatus, Prisma } from '@verris/database';
 import { MailMessage, MailerProvider } from './mailer.interface';
 import { LogMailerProvider } from './log-mailer.provider';
-import { SmtpMailerProvider } from './smtp-mailer.provider';
+import {
+  buildSmtpMailerProvider,
+  isLocalSmtpHost,
+} from './mail-smtp.factory';
+import type { MailSmtpSecure } from './mail-settings.keys';
 import { PrismaService } from '../prisma/prisma.service';
 
 export const MAILER_PROVIDER = Symbol('MAILER_PROVIDER');
@@ -338,52 +342,31 @@ export class MailerService {
 }
 
 export function buildMailerProvider(config: ConfigService): MailerProvider {
-  const host = config.get<string>('SMTP_HOST') || process.env.SMTP_HOST || '';
-  const port = parseInt(config.get<string>('SMTP_PORT') || process.env.SMTP_PORT || '0', 10);
+  const host = config.get<string>('SMTP_HOST') || process.env.SMTP_HOST || 'localhost';
+  const port = parseInt(config.get<string>('SMTP_PORT') || process.env.SMTP_PORT || '25', 10);
   const username = config.get<string>('SMTP_USER') || process.env.SMTP_USER || '';
   const password = config.get<string>('SMTP_PASS') || process.env.SMTP_PASS || '';
   const fromAddress =
-    config.get<string>('SMTP_FROM_ADDRESS') || process.env.SMTP_FROM_ADDRESS || '';
+    config.get<string>('SMTP_FROM_ADDRESS') || process.env.SMTP_FROM_ADDRESS || 'panel@verris.pl';
   const fromName =
     config.get<string>('SMTP_FROM_NAME') || process.env.SMTP_FROM_NAME || 'Verris';
 
-  if (!host || port <= 0 || !fromAddress) {
-    // No host / port / from → cannot construct a working SMTP. Fall back to
-    // log-only provider so dev environments don't crash on startup.
-    return new LogMailerProvider();
-  }
-
-  // Auto-detect "panel-local relay" (Postfix on the same host as the API).
-  // For localhost we default to plain TCP, no AUTH — explicit env vars can
-  // override this if the operator runs Postfix with submission/AUTH on
-  // localhost (rare).
-  const isLocalRelay =
-    host === 'localhost' ||
-    host === '127.0.0.1' ||
-    host === '::1' ||
-    /^localhost\.localdomain$/i.test(host);
-
   const secureRaw = (config.get<string>('SMTP_SECURE') || process.env.SMTP_SECURE || '').toLowerCase();
-  const secure: 'tls' | 'starttls' | 'none' =
+  const local = isLocalSmtpHost(host);
+  const secure: MailSmtpSecure =
     secureRaw === 'tls'
       ? 'tls'
       : secureRaw === 'none'
         ? 'none'
         : secureRaw === 'starttls'
           ? 'starttls'
-          : isLocalRelay
+          : local
             ? 'none'
             : 'starttls';
 
-  // External relay must have credentials; refusing to construct prevents
-  // AUTH-less submission to a public MTA (which would 530 anyway).
-  if (!isLocalRelay && (!username || !password)) {
-    return new LogMailerProvider();
-  }
-
-  return new SmtpMailerProvider({
+  return buildSmtpMailerProvider({
     host,
-    port,
+    port: Number.isFinite(port) && port > 0 ? port : local ? 25 : 587,
     username,
     password,
     fromAddress,

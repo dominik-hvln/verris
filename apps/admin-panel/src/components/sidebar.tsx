@@ -20,6 +20,7 @@ import {
   ListChecks,
   Settings,
   Rocket,
+  Mail,
 } from "lucide-react";
 import { GrafanaOpsLink } from "./grafana-ops-link";
 
@@ -66,6 +67,7 @@ const adminNavItems = [
     items: [
       { name: "Ustawienia", href: "/settings", icon: Settings },
       { name: "Ustawienia platformy", href: "/settings/platform", icon: Gauge },
+      { name: "Poczta (SMTP)", href: "/settings/mail", icon: Mail },
     ],
   },
 ];

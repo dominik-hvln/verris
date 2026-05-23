@@ -49,11 +49,21 @@ Korzystanie z Panelu wymaga:
 1. Każdy Klient może posiadać tylko jedno konto w Panelu, chyba że Verris wyrazi pisemną zgodę na konto dodatkowe.
 2. Klient zobowiązany jest do zachowania w tajemnicy danych logowania i niezwłocznego zgłoszenia Verris każdego podejrzenia ich ujawnienia.
 3. Verris zaleca aktywację dwuskładnikowego uwierzytelniania (2FA) w Panelu.
-4. Verris ma prawo zawiesić konto Klienta w przypadku:
+4. Właściciel Konta może udostępniać dostęp **Subkontom** zgodnie z §5a.
+5. Verris ma prawo zawiesić konto Klienta w przypadku:
    - podejrzenia naruszenia bezpieczeństwa konta,
    - naruszenia Regulaminu,
    - braku płatności mimo upływu okresu prolongaty,
    - na żądanie organów państwowych zgodnie z prawem.
+
+## §5a Subkonta i uprawnienia (IAM)
+
+1. **Właściciel Konta** (konto główne) może w Panelu zapraszać **Subkonta** i nadawać im uprawnienia z predefiniowanych ról (np. wsparcie, księgowość, DevOps, podgląd) lub zestawów niestandardowych.
+2. **Właściciel Konta** ponosi **pełną odpowiedzialność** za działania Subkont w ramach przyznanych uprawnień, w tym za treści, płatności z Portfela (jeśli przyznano uprawnienie billingowe) oraz za naruszenie Regulaminu przez Subkonto.
+3. Subkonto **nie może** samodzielnie zapraszać kolejnych Subkont ani zmieniać uprawnień innych Subkont, chyba że Verris wyraźnie udostępni taką funkcję w Panelu.
+4. Zaproszenie Subkonta wymaga ważnego adresu e-mail odbiorcy; link aktywacyjny ma ograniczony czas ważności. Właściciel może w każdej chwili **wyłączyć** Subkonto — dostęp wygasa niezwłocznie po wyłączeniu.
+5. Verris rejestruje operacje IAM (zaproszenia, akceptacje, zmiany uprawnień, wyłączenia) w **dzienniku audytu** dostępnym dla Właściciela Konta w Panelu.
+6. Subkonto korzysta z tych samych dokumentów prawnych co Właściciel; dane Subkonta przetwarzamy zgodnie z **Polityką prywatności**.
 
 ## §6. Subskrypcje i okresy rozliczeniowe
 
@@ -73,13 +83,14 @@ Korzystanie z Panelu wymaga:
 
 1. Portfel pozwala Klientowi zasilić swoje konto środkami z góry, w formie wirtualnej waluty „Kredyty Verris" (`K`). Kurs wymiany jest stały i wynosi **1 PLN = 1 K**.
 2. Doładowanie Portfela odbywa się poprzez:
-   - płatność kartą / przelewem przez Stripe (od 5 K),
+   - płatność **kartą płatniczą, Apple Pay, Google Pay lub BLIK/przelewem online** realizowaną przez **Stripe** (operator płatności) — od 5 K,
    - kod promocyjny od Verris,
    - manualne uznanie przez Zespół Verris (np. rekompensata za awarię).
-3. Faktury VAT wystawiane są w **PLN**, niezależnie od formy zapłaty. Verris uznaje doładowanie Portfela za zaliczkę w rozumieniu polskiego prawa podatkowego.
-4. Kredyty Verris **nie podlegają wymianie na środki pieniężne** poza wyjątkami wynikającymi z odstąpienia Konsumenta lub rozwiązania Umowy z winy Verris.
-5. Kredyty Verris **nie wygasają** w trakcie aktywnego konta. Po usunięciu konta (§5 ust. 4 lub na wniosek Klienta) niewykorzystane Kredyty są zwracane na rachunek bankowy Klienta w terminie 30 dni od potwierdzenia tożsamości, **z wyjątkiem** Kredytów otrzymanych jako bonusy promocyjne (`PROMO_CREDIT` w historii) oraz manualne uznania od Zespołu Verris (`Uznanie od Verris`) — te Kredyty mają charakter rabatu i nie podlegają zwrotowi pieniężnemu.
-6. Verris oferuje funkcję auto-doładowania (`Auto-Topup`): gdy saldo Portfela spadnie poniżej ustawionego progu, system automatycznie obciąża zapisaną kartę o ustaloną kwotę. Klient włącza/wyłącza tę funkcję w Panelu w sekcji „Portfel".
+3. Verris **nie oferuje** na dzień publikacji niniejszego Regulaminu odrębnych bramek płatności poza Stripe i Portfelem (np. PayU jako osobny operator) — ewentualne rozszerzenie zostanie ogłoszone z 30-dniowym wyprzedzeniem.
+4. Faktury VAT wystawiane są w **PLN**, niezależnie od formy zapłaty. Verris uznaje doładowanie Portfela za zaliczkę w rozumieniu polskiego prawa podatkowego.
+5. Kredyty Verris **nie podlegają wymianie na środki pieniężne** poza wyjątkami wynikającymi z odstąpienia Konsumenta lub rozwiązania Umowy z winy Verris.
+6. Kredyty Verris **nie wygasają** w trakcie aktywnego konta. Po usunięciu konta (§5 ust. 5 lub na wniosek Klienta) niewykorzystane Kredyty są zwracane na rachunek bankowy Klienta w terminie 30 dni od potwierdzenia tożsamości, **z wyjątkiem** Kredytów otrzymanych jako bonusy promocyjne (`PROMO_CREDIT` w historii) oraz manualne uznania od Zespołu Verris (`Uznanie od Verris`) — te Kredyty mają charakter rabatu i nie podlegają zwrotowi pieniężnemu.
+7. Verris oferuje funkcję auto-doładowania (`Auto-Topup`): gdy saldo Portfela spadnie poniżej ustawionego progu, system automatycznie obciąża zapisaną kartę o ustaloną kwotę. Klient włącza/wyłącza tę funkcję w Panelu w sekcji „Portfel".
 
 ## §8. Cennik i opłaty
 
@@ -143,6 +154,7 @@ Korzystanie z Panelu wymaga:
 
 ---
 
-**Wersja: DRAFT 0.1 (Sprint 0)**
-**Data: maj 2026**
-**Lawyer review status: pending**
+**Wersja: DRAFT 0.2 (przed lawyer review)**  
+**Przygotowanie:** na bazie praktyk polskich operatorów hostingu (regulamin, SLA, portfel, odstąpienie) oraz wymogów ustawy o prawach konsumenta, ustawy o świadczeniu usług drogą elektroniczną, RODO.  
+**Data: maj 2026**  
+**Lawyer review status: pending — gotowiec do przesłania prawnikowi**
