@@ -1,7 +1,7 @@
 # Hosting LIVE — master backlog (źródło prawdy)
 
 > **Ten plik = jedyna lista** do śledzenia: co zrobione, w toku, pomysły, nowe funkcje.  
-> **Ostatnia aktualizacja:** 2026-05-23 · prod `0f8e6ca` (+ hotfix Postfix/SMTP na hoście) · właściciel backlogu: agent + Dominik  
+> **Ostatnia aktualizacja:** 2026-05-23 · prod **`441e279`** · właściciel backlogu: agent + Dominik  
 > **Zasada GO:** [LIVE_PRODUCT_SCOPE_DECISION.md](../LIVE_PRODUCT_SCOPE_DECISION.md)
 
 ---
@@ -41,7 +41,7 @@
 | 2 | OPS-3 | Grafana e-mail + doc Slack | 🔄 | [GRAFANA_ALERTING.md](./ops/GRAFANA_ALERTING.md) |
 | 3 | VER-11 | IAM smoke prod (P0 — D-1) | ⏳ | [IAM_SMOKE_PROD.md](./IAM_SMOKE_PROD.md) |
 | 4 | OPS-5, HOST-*, BILL-* | Smoke E2E prod | ⏳ | |
-| 5 | MAIL-1, MAIL-3 | Postfix + admin SMTP + SPF/DKIM | 🔄 | Postfix ✅ prod; SPF/DKIM ⏳; admin UI po deploy |
+| 5 | MAIL-1, MAIL-3 | Postfix + admin SMTP + SPF/DKIM | 🔄 | Deploy `441e279`; DNS: [MAIL_DNS_CHECKLIST.md](./ops/MAIL_DNS_CHECKLIST.md) |
 | 6 | OPS-2 | Restore test **staging** | ⏳ | D-3 |
 | 7 | LEG-2, LEG-3 | Review prawnika → publikacja | ⏸️ | Ty → prawnik |
 | 8 | OPS-1, OPS-4 | Checklisty → GO | ⏳ | |
@@ -71,7 +71,7 @@
 |----|------|--------|-------|
 | OPS-1 | PROD_HEALTH §1–12 bez ❌ | 🟡 | Dysk ✅ |
 | OPS-2 | Restore test staging | ⏳ | dominik@hvln.pl |
-| OPS-3 | Grafana → dominik@hvln.pl | 🔄 | Provisioning w repo; SMTP Grafana na prod w toku |
+| OPS-3 | Grafana → dominik@hvln.pl | 🟡 | Provisioning + GF_SMTP na prod; **Test** w UI → ✅ |
 | OPS-4 | GO_NO_GO odhaczone | ⏳ | |
 | OPS-5 | Smoke SPRINT_0_OPS | ⏳ | |
 | OPS-6 | PROD_HEALTH §12 | ⏳ | |
@@ -87,9 +87,9 @@
 | LEG-3 | Publikacja admin | ⏳ | Po LEG-2 |
 | LEG-4 | Re-consent smoke | ⏳ | |
 | LEG-5…6 | Brak TODO, subprocessors | ⏳ | |
-| MAIL-1 | SMTP: Postfix lokalny + opcjonalny relay w admin | 🔄 | Kod lokalny; prod: env SMTP + override compose |
-| MAIL-2 | Min. maile LIVE (audyt triggerów) | 🟡 | Postfix: swaks + kolejka `sent` → dominik@hvln.pl (2026-05-23) |
-| MAIL-3 | Postfix na hoście + SPF/DKIM/DMARC | 🟡 | Postfix+UFW ✅ prod; DNS DKIM/SPF ⏳ |
+| MAIL-1 | SMTP: Postfix lokalny + opcjonalny relay w admin | ✅ | `441e279` — admin **Ustawienia → Poczta (SMTP)** |
+| MAIL-2 | Min. maile LIVE (audyt triggerów) | 🟡 | Postfix OK; test z admina po zalogowaniu |
+| MAIL-3 | Postfix na hoście + SPF/DKIM/DMARC | 🟡 | Postfix+UFW ✅; DNS ⏳ [MAIL_DNS_CHECKLIST.md](./ops/MAIL_DNS_CHECKLIST.md) |
 
 ---
 

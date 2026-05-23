@@ -59,6 +59,8 @@ i tymczasowo `SMTP_HOST=host.docker.internal` w `.env.prod` (lub mapowanie `netw
 
 Skonfiguruj selector `default` dla domeny `verris.pl` i dopisz rekord DNS `default._domainkey.verris.pl`.
 
+Pełna checklista DNS (SPF/DMARC): [`MAIL_DNS_CHECKLIST.md`](./MAIL_DNS_CHECKLIST.md).
+
 ## Test
 
 ```bash
