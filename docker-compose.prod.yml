@@ -177,6 +177,13 @@ services:
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS:-panel@verris.pl}
       SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Verris}
+      # MAIL-4 — skrzynki zespołu @verris.pl (mapy Postfix na hoście; SOGo osobno)
+      CONTROL_PLANE_MAIL_MAPS_DIR: ${CONTROL_PLANE_MAIL_MAPS_DIR:-/etc/postfix/verris}
+      CONTROL_PLANE_MAIL_DATA_ROOT: ${CONTROL_PLANE_MAIL_DATA_ROOT:-/var/mail/vhosts}
+      CONTROL_PLANE_MAIL_HOST: ${CONTROL_PLANE_MAIL_HOST:-mail.verris.pl}
+      SOGO_WEB_URL: ${SOGO_WEB_URL:-https://mail.verris.pl/SOGo}
+    volumes:
+      - ${CONTROL_PLANE_MAIL_MAPS_DIR:-/etc/postfix/verris}:/etc/postfix/verris
     extra_hosts:
       - 'host.docker.internal:host-gateway'
     expose: ['3000']
