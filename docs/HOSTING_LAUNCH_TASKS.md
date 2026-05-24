@@ -87,7 +87,8 @@
 | LEG-3 | Publikacja admin | ⏳ | Po LEG-2 |
 | LEG-4 | Re-consent smoke | ⏳ | |
 | LEG-5…6 | Brak TODO, subprocessors | ⏳ | |
-| MAIL-1 | SMTP: Postfix lokalny + opcjonalny relay w admin | ✅ | `441e279` — admin **Ustawienia → Poczta (SMTP)** |
+| MAIL-1 | SMTP: Postfix lokalny + opcjonalny relay w admin | ✅ | `441e279` — **Ustawienia → Poczta (SMTP)** |
+| MAIL-1b | Nadawca: nazwa „Verris” + adres From w admin | ✅ | `mail.fromName` / `mail.fromAddress` w `platform_settings`; prod: `panel@verris.pl` |
 | MAIL-2 | Min. maile LIVE (audyt triggerów) | 🟡 | Postfix OK; test z admina po zalogowaniu |
 | MAIL-3 | Postfix na hoście + SPF/DKIM/DMARC | 🟡 | DNS/MX ✅; DKIM naprawiony 2026-05-24; deliverability: [MAIL_DELIVERABILITY.md](./ops/MAIL_DELIVERABILITY.md) |
 | MAIL-4 | Poczta zespołu @verris.pl (pełny zakres) | ⏳ | Spec: [MAIL-4_CONTROL_PLANE_MAIL.md](./ops/MAIL-4_CONTROL_PLANE_MAIL.md) |

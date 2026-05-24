@@ -19,7 +19,7 @@
 
 - **Envelope From** i nagłówek **From** z tej samej domeny `@verris.pl` (np. `noreply@verris.pl`, `panel@verris.pl`).
 - Unikać `root@Panel`, `...@Panel` — psuje reputację i DMARC.
-- W API: `SMTP_FROM_ADDRESS=panel@verris.pl` (lub dedykowane adresy systemowe — patrz MAIL-4).
+- W API: domyślnie `panel@verris.pl` + nazwa **Verris** — edycja: admin **Ustawienia → Poczta (SMTP)** (`mail.fromName`, `mail.fromAddress` w DB). Dedykowane adresy per rola — MAIL-4.
 
 ### Postfix / OpenDKIM
 

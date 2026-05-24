@@ -29,11 +29,22 @@ export function MailSettingsForm({ initial }: { initial: MailSettingsForm }) {
           <legend className="text-sm font-bold text-amber-400 uppercase tracking-widest px-1">
             Nadawca
           </legend>
-          <TextField name="fromAddress" label="Adres From" defaultValue={initial.fromAddress} />
-          <TextField name="fromName" label="Nazwa nadawcy" defaultValue={initial.fromName} />
+          <TextField
+            name="fromAddress"
+            label="Adres e-mail (From)"
+            defaultValue={initial.fromAddress}
+            placeholder="panel@verris.pl"
+          />
+          <TextField
+            name="fromName"
+            label="Nazwa widoczna u odbiorcy"
+            defaultValue={initial.fromName}
+            placeholder="Verris"
+          />
           <p className="text-xs text-muted-foreground">
-            Domyślnie maile idą przez Postfix na serwerze panelu (localhost:25). Ustaw SPF/DKIM dla
-            tej domeny nadawczej.
+            W skrzynce klienta widać np. <strong className="text-white">Verris</strong> zamiast
+            samego adresu — pole „Nazwa widoczna”. Adres powinien być w domenie ze SPF/DKIM (np.
+            @verris.pl). Maile idą przez Postfix na serwerze panelu.
           </p>
         </fieldset>
 
