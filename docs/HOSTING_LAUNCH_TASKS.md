@@ -1,7 +1,7 @@
 # Hosting LIVE — master backlog (źródło prawdy)
 
 > **Ten plik = jedyna lista** do śledzenia: co zrobione, w toku, pomysły, nowe funkcje.  
-> **Ostatnia aktualizacja:** 2026-05-24 · prod **`c667d77`** · właściciel backlogu: agent + Dominik  
+> **Ostatnia aktualizacja:** 2026-05-24 · prod **`0c29aa0`** · właściciel backlogu: agent + Dominik  
 > **Zasada GO:** [LIVE_PRODUCT_SCOPE_DECISION.md](../LIVE_PRODUCT_SCOPE_DECISION.md)
 
 ---
@@ -92,7 +92,7 @@ flowchart LR
 | GO-OPS (core) | Nie | ✅ | OPS-2, OPS-3 |
 | GO-OPS (reszta) | Częściowo | 🔄 | OPS-1, OPS-4, OPS-6 — checklisty |
 | **MAIL-TX** / MAIL-2 | Nie | 🔄 | Deploy auth mail + smoke reset/top-up |
-| **GO-BILL** / BILL-1…2 | Nie | 🔄 | Stripe **Sandbox** — checklista poniżej |
+| **GO-BILL** / BILL-1…2 | Nie | ✅ | Sandbox smoke OK; live keys przed GO (#6) |
 | **LEG-D** | Nie | 🔄 / ⏸️ | Drafty → prawnik |
 | MAIL-4 | Nie (control-plane) | ⏳ | Po MAIL-TX |
 | GO-HOST | **Tak** | ⏸️ | Po licencjach |
@@ -103,10 +103,10 @@ flowchart LR
 | # | Task | OK |
 |---|------|-----|
 | 1 | W Stripe Dashboard: tryb **Test**; `sk_test_…` + `whsec_…` w `.env.prod` | ✅ 2026-05-24 (w kontenerze `api`) |
-| 2 | Webhook: `https://api.verris.pl/billing/stripe/webhook` — zdarzenia: `checkout.session.completed`, `invoice.*`, `customer.subscription.*`, `payment_intent.*` | |
+| 2 | Webhook: `https://api.verris.pl/billing/stripe/webhook` — zdarzenia: `checkout.session.completed`, `invoice.*`, `customer.subscription.*`, `payment_intent.*` | ✅ (checkout smoke top-up) |
 | 3 | `STRIPE_SUCCESS_URL` / `STRIPE_CANCEL_URL` → panel klienta | ✅ |
-| 4 | Plany: auto-sync Product + Prices w Stripe (admin zapis / „Synchronizuj”) | 🔄 do smoke |
-| 5 | Smoke: top-up testową kartą → saldo + mail `wallet.topup-ok` + webhook 200 w Stripe | |
+| 4 | Plany: auto-sync Product + Prices w Stripe (admin zapis / „Synchronizuj”) | ✅ smoke 2026-05-24 |
+| 5 | Smoke: top-up testową kartą → saldo + mail `wallet.topup-ok` + webhook 200 w Stripe | ✅ smoke 2026-05-24 |
 | 6 | Przed GO z klientami zewnętrznymi: zamiana na **live** keys (BILL-1 domknięcie) | |
 
 Deploy po zmianie env: `DEPLOY_SERVICES=api ./ops/scripts/prod-deploy-release.sh` (+ migrate jeśli schema).
@@ -115,10 +115,18 @@ Deploy po zmianie env: `DEPLOY_SERVICES=api ./ops/scripts/prod-deploy-release.sh
 
 | Obszar | Status kodu |
 |--------|-------------|
-| Welcome, reset hasła, top-up / auto-topup maile | 🔄 w deploy |
+| Welcome, reset hasła, top-up / auto-topup maile | ✅ top-up smoke · welcome/reset — smoke poniżej |
 | Billing/subscription/legal/2FA/login-alert | ✅ już w kodzie (audyt `mail/AUDIT.md` był nieaktualny) |
-| IAM invite branded, ticket replies branded | 🔄 w deploy |
-| Email verify przy rejestracji | ⏳ follow-up |
+| IAM invite branded, ticket replies branded | ✅ deploy `c667d77`+ |
+| Email verify przy rejestracji | ⏳ follow-up (faza 2 MAIL-TX) |
+
+**Smoke MAIL (~5 min, bez węzła):**
+
+1. **Welcome** — nowe konto testowe (inny email) → mail powitalny na skrzynkę.
+2. **Reset** — `/forgot-password` → link w mailu → `/reset-password` → nowe hasło → login.
+3. (Opcjonalnie) **IAM invite** — zaproszenie subkonta z panelu właściciela → mail z linkiem.
+
+Po PASS odhacz **MAIL-2** w tabeli P0.
 
 ### Smoke bez węzła (`SPRINT_0_OPS_SMOKE.md`)
 
@@ -127,7 +135,7 @@ Teraz: pkt **1, 6–10** (auth, IAM, BOK, backup, Grafana, status). Po węźle: 
 ### Kryterium „bez węzła done”
 
 - MAIL-2 P0 w audycie = DZIAŁA (bez maili provisioning/hosting)
-- BILL-2 smoke Sandbox udokumentowany
+- BILL-2 smoke Sandbox udokumentowany ✅ 2026-05-24
 - LEG-1 gotowe do prawnika
 - OPS-1/4/6 bez ❌ poza sekcją węzłów
 
@@ -167,7 +175,7 @@ Teraz: pkt **1, 6–10** (auth, IAM, BOK, backup, Grafana, status). Po węźle: 
 
 | ID | Task | Status | Uwagi |
 |----|------|--------|-------|
-| OPS-1 | PROD_HEALTH §1–12 bez ❌ | 🟡 | Dysk ✅ |
+| OPS-1 | PROD_HEALTH §1–12 bez ❌ | 🟡 | Snapshot 2026-05-24 · §1–2,7 ✅ · reszta 🟡 |
 | OPS-2 | Restore test (MinIO → DB) | ✅ | 2026-05-24: `latest.sql.gz`, drill `verris_restore_drill`, users=3, prod DB nietknięty |
 | OPS-3 | Grafana → dominik@hvln.pl | ✅ | 2026-05-24: `GF_SMTP_HOST=host.docker.internal:25`, test alertu + dostawa OK |
 | OPS-4 | GO_NO_GO odhaczone | ⏳ | |
@@ -179,9 +187,9 @@ Teraz: pkt **1, 6–10** (auth, IAM, BOK, backup, Grafana, status). Po węźle: 
 | ID | Task | Status | Uwagi |
 |----|------|--------|-------|
 | HOST-1…4 | Węzeł + DA + provisioning + operacja DA | ⏳ | Smoke |
-| BILL-1 | Stripe Sandbox skonfigurowany | 🟡 | `.env.prod`: `sk_test_`, `whsec_`, URL-e OK — brak smoke BILL-2 |
-| BILL-2 | Smoke billing (Sandbox) | ⏳ | Top-up + webhook + mail; live keys przed GO z klientami |
-| LEG-1 | Drafty 0.2 | 🔄 | IAM, Stripe, subprocessors |
+| BILL-1 | Stripe Sandbox skonfigurowany | ✅ | `sk_test_`, webhook, URL-e; live keys przed GO (#6) |
+| BILL-2 | Smoke billing (Sandbox) | ✅ | 2026-05-24: top-up testowa karta, saldo + mail OK |
+| LEG-1 | Drafty 0.2 | 🔄 | IAM, Stripe, subprocessors · pre-LIVE: `prod-legal-prelive-publish.sh` (rejestracja) |
 | LEG-2 | Lawyer review | ⏸️ | Gotowce → Ty → prawnik |
 | LEG-3 | Publikacja admin | ⏳ | Po LEG-2 |
 | LEG-4 | Re-consent smoke | ⏳ | |

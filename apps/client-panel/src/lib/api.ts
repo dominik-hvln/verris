@@ -38,8 +38,18 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
     let message: string | null = null;
     if (typeof body === 'object' && body !== null && 'message' in body) {
       const m = (body as { message?: unknown }).message;
-      if (Array.isArray(m)) message = m.filter((x): x is string => typeof x === 'string').join(', ');
-      else if (typeof m === 'string') message = m;
+      if (typeof m === 'object' && m !== null && 'message' in m) {
+        const inner = (m as { message?: unknown }).message;
+        if (Array.isArray(inner)) {
+          message = inner.filter((x): x is string => typeof x === 'string').join(', ');
+        } else if (typeof inner === 'string') {
+          message = inner;
+        }
+      } else if (Array.isArray(m)) {
+        message = m.filter((x): x is string => typeof x === 'string').join(', ');
+      } else if (typeof m === 'string') {
+        message = m;
+      }
     }
     if (message === null && typeof body === 'string' && body.length > 0) {
       message = body;

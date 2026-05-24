@@ -15,10 +15,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
         
-    const message =
+    const message = normalizeExceptionMessage(
       exception instanceof HttpException
         ? exception.getResponse()
-        : 'Wewnętrzny błąd serwera';
+        : 'Wewnętrzny błąd serwera',
+    );
 
     if (status >= 500) {
       this.logger.error(`[${request.method}] ${request.url}`, exception instanceof Error ? exception.stack : exception);

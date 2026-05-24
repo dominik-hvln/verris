@@ -2,7 +2,7 @@
 
 import { setAuthCookie } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
 
 export async function submitRegister(prevState: any, formData: FormData) {
   const email = formData.get("email") as string;
@@ -52,12 +52,13 @@ export async function submitRegister(prevState: any, formData: FormData) {
       body: JSON.stringify({ email, password }),
     });
     if (loginData.access_token) await setAuthCookie(loginData.access_token);
-  } catch (e: any) {
-    // Surface known 4xx validation errors verbatim — they're already in PL.
+  } catch (e: unknown) {
     const message =
-      typeof e?.message === "string" && e.message.length > 0 && e.message.length < 400
+      e instanceof ApiError && e.message && e.message.length < 400
         ? e.message
-        : "Błąd serwera. Spróbuj ponownie później.";
+        : e instanceof Error && e.message.length > 0 && e.message.length < 400
+          ? e.message
+          : "Błąd serwera. Spróbuj ponownie później.";
     return { error: message };
   }
 
