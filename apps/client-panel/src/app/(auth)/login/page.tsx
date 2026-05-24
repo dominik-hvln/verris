@@ -65,7 +65,7 @@ export default function LoginPage() {
                 Hasło
               </label>
               <a
-                href="#"
+                href="/forgot-password"
                 className="text-xs font-semibold text-sky-400 hover:text-sky-300 transition-colors"
               >
                 Nie pamiętasz?

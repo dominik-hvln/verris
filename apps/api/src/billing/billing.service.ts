@@ -23,8 +23,11 @@ import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { MailerService } from '../mail/mailer.service';
 import { adminCreditNotificationTemplate } from '../mail/templates/admin-credit-notification';
 import {
-  subscriptionRenewedTemplate,
   subscriptionPaymentFailedTemplate,
+  subscriptionRenewedTemplate,
+  walletAutoTopupFailedTemplate,
+  walletAutoTopupOkTemplate,
+  walletTopupOkTemplate,
 } from '../mail/templates/billing-lifecycle-notifications';
 import { rowsToCsv } from './csv.util';
 import { PromoService } from './promo.service';
@@ -556,6 +559,15 @@ export class BillingService {
         });
       }
     }
+
+    void this.notifyWalletTopupOk({
+      userId,
+      amountMajor: amountMajor.toFixed(2),
+    }).catch((err) => {
+      this.logger.warn(
+        `handleCheckoutCompleted: topup mail failed user=${userId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -816,6 +828,15 @@ export class BillingService {
       userId,
       details: { walletTxId: tx.id, paymentIntentId: pi.id, amount: amtMajor.toFixed(2) },
     });
+
+    void this.notifyWalletAutoTopupOk({
+      userId,
+      amountMajor: amtMajor.toFixed(2),
+    }).catch((err) => {
+      this.logger.warn(
+        `handlePaymentIntentSucceeded: autotopup mail failed user=${userId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    });
   }
 
   private async handlePaymentIntentFailed(event: {
@@ -840,19 +861,103 @@ export class BillingService {
       },
     });
 
+    const userId = meta.verris_user_id;
     await this.audit.record({
       action: 'WALLET_AUTOTOPUP_PAYMENT_FAILED',
-      userId: meta.verris_user_id,
+      userId,
       details: {
         paymentIntentId: pi.id ?? null,
         error: pi.last_payment_error?.message ?? null,
       },
+    });
+
+    void this.notifyWalletAutoTopupFailed({
+      userId,
+      reason: pi.last_payment_error?.message ?? 'payment_failed',
+    }).catch((err) => {
+      this.logger.warn(
+        `handlePaymentIntentFailed: autotopup fail mail user=${userId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
     });
   }
 
   // ---------------------------------------------------------------------------
   // Email notifications (Sprint 2.1)
   // ---------------------------------------------------------------------------
+
+  private panelUrl(): string {
+    return (
+      this.config.get<string>('CLIENT_PANEL_URL') ??
+      this.config.get<string>('clientPanelUrl') ??
+      'https://panel.verris.pl'
+    ).replace(/\/$/, '');
+  }
+
+  private async notifyWalletTopupOk(opts: {
+    userId: string;
+    amountMajor: string;
+  }): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: opts.userId },
+      select: { email: true, firstName: true, walletBalance: true, anonymizedAt: true },
+    });
+    if (!user || user.anonymizedAt) return;
+    const panelUrl = this.panelUrl();
+    const message = walletTopupOkTemplate({
+      to: user.email,
+      firstName: user.firstName,
+      amountPln: opts.amountMajor,
+      newBalancePln: new Prisma.Decimal(user.walletBalance).toFixed(2),
+      panelUrl,
+    });
+    await this.mailer.send({ ...message, userId: opts.userId, category: 'TRANSACTIONAL' });
+  }
+
+  private async notifyWalletAutoTopupOk(opts: {
+    userId: string;
+    amountMajor: string;
+  }): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: opts.userId },
+      select: { email: true, firstName: true, walletBalance: true, anonymizedAt: true },
+    });
+    if (!user || user.anonymizedAt) return;
+    const panelUrl = this.panelUrl();
+    const message = walletAutoTopupOkTemplate({
+      to: user.email,
+      firstName: user.firstName,
+      amountPln: opts.amountMajor,
+      newBalancePln: new Prisma.Decimal(user.walletBalance).toFixed(2),
+      panelUrl,
+    });
+    await this.mailer.send({ ...message, userId: opts.userId, category: 'TRANSACTIONAL' });
+  }
+
+  private async notifyWalletAutoTopupFailed(opts: {
+    userId: string;
+    reason: string;
+  }): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: opts.userId },
+      select: {
+        email: true,
+        firstName: true,
+        anonymizedAt: true,
+        walletAutoTopup: { select: { topupAmount: true } },
+      },
+    });
+    if (!user || user.anonymizedAt || !user.email) return;
+    const panelUrl = this.panelUrl();
+    const topupAmount = user.walletAutoTopup?.topupAmount?.toFixed(2) ?? '—';
+    const message = walletAutoTopupFailedTemplate({
+      to: user.email,
+      firstName: user.firstName,
+      reason: opts.reason,
+      topupAmountPln: topupAmount,
+      panelUrl,
+    });
+    await this.mailer.send({ ...message, userId: opts.userId, category: 'TRANSACTIONAL' });
+  }
 
   private async notifySubscriptionRenewed(opts: {
     userId: string;

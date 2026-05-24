@@ -170,10 +170,12 @@ function TextField({
   name,
   label,
   defaultValue,
+  placeholder,
 }: {
   name: string;
   label: string;
   defaultValue: string;
+  placeholder?: string;
 }) {
   return (
     <label className="block space-y-1.5">
@@ -182,6 +184,7 @@ function TextField({
         type="text"
         name={name}
         defaultValue={defaultValue}
+        placeholder={placeholder}
         required
         className="w-full rounded-xl border border-white/10 bg-black/50 px-4 py-2.5 text-white focus:border-emerald-500/40 focus:outline-none"
       />

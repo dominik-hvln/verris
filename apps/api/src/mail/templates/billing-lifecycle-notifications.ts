@@ -44,6 +44,86 @@ function formatDate(d: Date): string {
 }
 
 // ---------------------------------------------------------------------------
+// wallet-topup-ok (Stripe checkout)
+// ---------------------------------------------------------------------------
+
+export interface WalletTopupOkContext {
+  to: string;
+  firstName: string | null;
+  amountPln: string;
+  newBalancePln: string;
+  panelUrl: string;
+}
+
+export function walletTopupOkTemplate(ctx: WalletTopupOkContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: 'Portfel doładowany',
+    preheader: `${formatPLN(ctx.amountPln)} — nowe saldo ${formatPLN(ctx.newBalancePln)}.`,
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Potwierdzamy **doładowanie portfela** kartą.`,
+      ``,
+      `- **Kwota:** ${escapeHtml(formatPLN(ctx.amountPln))}`,
+      `- **Nowe saldo:** ${escapeHtml(formatPLN(ctx.newBalancePln))}`,
+    ].join('\n'),
+    cta: { label: 'Zobacz portfel', url: `${ctx.panelUrl}/dashboard/billing` },
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+
+  return {
+    to: ctx.to,
+    tag: 'wallet.topup-ok',
+    subject: `[Verris] Doładowano portfel — ${formatPLN(ctx.amountPln)}`,
+    text,
+    html,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// wallet-auto-topup-ok
+// ---------------------------------------------------------------------------
+
+export interface WalletAutoTopupOkContext {
+  to: string;
+  firstName: string | null;
+  amountPln: string;
+  newBalancePln: string;
+  panelUrl: string;
+}
+
+export function walletAutoTopupOkTemplate(ctx: WalletAutoTopupOkContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: 'Auto-doładowanie portfela',
+    preheader: `Dodano ${formatPLN(ctx.amountPln)} — saldo ${formatPLN(ctx.newBalancePln)}.`,
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Zgodnie z Twoją regułą **automatycznie doładowaliśmy portfel**.`,
+      ``,
+      `- **Kwota:** ${escapeHtml(formatPLN(ctx.amountPln))}`,
+      `- **Saldo:** ${escapeHtml(formatPLN(ctx.newBalancePln))}`,
+    ].join('\n'),
+    cta: { label: 'Ustawienia portfela', url: `${ctx.panelUrl}/dashboard/billing` },
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+
+  return {
+    to: ctx.to,
+    tag: 'wallet.auto-topup-ok',
+    subject: `[Verris] Auto-doładowanie — ${formatPLN(ctx.amountPln)}`,
+    text,
+    html,
+  };
+}
+
+// ---------------------------------------------------------------------------
 // 0. wallet-auto-topup-failed
 // ---------------------------------------------------------------------------
 

@@ -91,3 +91,19 @@ export class DisableTwoFactorDto {
   @Length(6, 32)
   code?: string;
 }
+
+export class PasswordResetRequestDto {
+  @IsEmail()
+  email!: string;
+}
+
+export class PasswordResetConfirmDto {
+  @IsString()
+  @IsNotEmpty()
+  token!: string;
+
+  @IsString()
+  @MinLength(8)
+  @MaxLength(72)
+  newPassword!: string;
+}

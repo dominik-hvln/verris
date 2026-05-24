@@ -17,6 +17,15 @@ Dashboardy: folder `Verris` w Grafana.
 
 Wymaga **GF_SMTP_*** na serwisie `grafana` w `docker-compose.prod.yml` (relay na Postfix, jak API).
 
+**Ważne:** `GF_SMTP_HOST` musi być w formacie **`host:port`** (np. `host.docker.internal:25`). Grafana **nie** łączy osobno `SMTP_HOST` + `SMTP_PORT` jak API — błąd `missing port in address` oznacza brak `:25` w `GF_SMTP_HOST`. Opcjonalnie w `.env.prod`: `GRAFANA_SMTP_HOST=host.docker.internal:25`.
+
+### Test OK w UI, brak maila w skrzynce
+
+1. **Postfix na panelu** — `/var/log/mail.log`: szukaj `to=<dominik@hvln.pl>` i `status=sent`. Jeśli jest `relay=mail.hvln.pl` + `250 Ok: queued`, wiadomość **opuściła** Verris; dalsza ścieżka to **mail.hvln.pl** (spam/kolejka/reguły).
+2. **Grafana** często wysyła **pusty `Message-ID`** — na hoście ustaw `postconf -e always_add_missing_headers=yes` i `systemctl reload postfix`.
+3. Sprawdź **spam** i filtry na **hvln.pl**; w logach MX szukaj ID z Postfix (np. `queued as B05742F20644`).
+4. Test porównawczy z hosta: temat `[Verris] OPS-3 plain test` — jeśli dojdzie, a test Grafana nie, winny jest szablon/HTML alertu (duży HTML ~30 KB).
+
 Ręcznie (jeśli provisioning nie załadował się):
 
 1. Zaloguj się do Grafana (admin/staff → link SSO lub `https://grafana.verris.pl`).

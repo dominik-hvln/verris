@@ -7,7 +7,11 @@ export async function middleware(request: NextRequest) {
   const token = request.cookies.get("auth_token")?.value;
   const pathname = request.nextUrl.pathname;
 
-  const isAuthPage = pathname.startsWith("/login") || pathname.startsWith("/register");
+  const isAuthPage =
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/register") ||
+    pathname.startsWith("/forgot-password") ||
+    pathname.startsWith("/reset-password");
   const isPublicHandoff = pathname === "/impersonate" || pathname.startsWith("/accept-invite");
 
   if (!token && !isAuthPage && !isPublicHandoff && pathname !== "/") {

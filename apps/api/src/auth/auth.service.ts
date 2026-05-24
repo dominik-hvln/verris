@@ -1,15 +1,17 @@
 import {
   BadRequestException,
   Injectable,
+  Logger,
   UnauthorizedException,
   ConflictException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { User, Role } from '@verris/database';
+import { User, Role, UserAuthTokenPurpose } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
-import { LoginDto, RegisterDto } from './auth.dto';
+import { LoginDto, PasswordResetConfirmDto, PasswordResetRequestDto, RegisterDto } from './auth.dto';
 import { TwoFactorService } from './totp/two-factor.service';
 import { SuspiciousActivityService } from '../security/suspicious-activity.service';
 import { ConsentsService } from '../compliance/consents.service';
@@ -17,6 +19,12 @@ import { MarketingPreferencesService } from '../compliance/marketing-preferences
 import { AuditService } from '../common/audit/audit.service';
 import { RodoActions } from '../common/audit/audit.actions';
 import { LoginEventService } from './login-event.service';
+import { MailerService } from '../mail/mailer.service';
+import { welcomeTemplate, passwordResetRequestTemplate } from '../mail/templates/auth-notifications';
+import { passwordChangedTemplate } from '../mail/templates/security-notifications';
+import { generateAuthToken, hashAuthToken } from './auth-token.util';
+
+const PASSWORD_RESET_TTL_MINUTES = 15;
 
 interface LoginSuccess {
   access_token: string;
@@ -42,6 +50,8 @@ interface RequestContext {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
@@ -51,6 +61,8 @@ export class AuthService {
     private readonly marketingPrefs: MarketingPreferencesService,
     private readonly audit: AuditService,
     private readonly loginEvents: LoginEventService,
+    private readonly mailer: MailerService,
+    private readonly config: ConfigService,
   ) {}
 
   async register(dto: RegisterDto, ctx: RequestContext = {}): Promise<LoginSuccess> {
@@ -156,7 +168,129 @@ export class AuthService {
         : Promise.resolve(),
     ]);
 
+    void this.notifyWelcome(user).catch((err) => {
+      this.logger.warn(
+        `register: welcome mail failed for ${user.email}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    });
+
     return this.generateAccessTokenResponse(user);
+  }
+
+  /** Always returns ok — no email enumeration. */
+  async requestPasswordReset(dto: PasswordResetRequestDto): Promise<{ ok: true }> {
+    const email = dto.email.trim().toLowerCase();
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        role: true,
+        loginBlocked: true,
+        anonymizedAt: true,
+        subaccountDisabledAt: true,
+        customerOwnerId: true,
+      },
+    });
+    if (!user || user.anonymizedAt) {
+      return { ok: true };
+    }
+    if (user.role !== Role.USER) {
+      return { ok: true };
+    }
+    if (user.loginBlocked || (user.customerOwnerId && user.subaccountDisabledAt)) {
+      return { ok: true };
+    }
+
+    const rawToken = generateAuthToken();
+    const expiresAt = new Date(Date.now() + PASSWORD_RESET_TTL_MINUTES * 60 * 1000);
+    await this.prisma.$transaction([
+      this.prisma.userAuthToken.updateMany({
+        where: {
+          userId: user.id,
+          purpose: UserAuthTokenPurpose.PASSWORD_RESET,
+          usedAt: null,
+        },
+        data: { usedAt: new Date() },
+      }),
+      this.prisma.userAuthToken.create({
+        data: {
+          userId: user.id,
+          purpose: UserAuthTokenPurpose.PASSWORD_RESET,
+          tokenHash: hashAuthToken(rawToken),
+          expiresAt,
+        },
+      }),
+    ]);
+
+    const panelUrl = this.clientPanelUrl();
+    const resetUrl = `${panelUrl}/reset-password?token=${encodeURIComponent(rawToken)}`;
+    const message = passwordResetRequestTemplate({
+      to: user.email,
+      firstName: user.firstName,
+      resetUrl,
+      expiresMinutes: PASSWORD_RESET_TTL_MINUTES,
+      panelUrl,
+    });
+    void this.mailer.send({ ...message, userId: user.id, category: 'TRANSACTIONAL' }).catch((err) => {
+      this.logger.warn(
+        `requestPasswordReset: mail failed for ${user.email}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    });
+
+    return { ok: true };
+  }
+
+  async confirmPasswordReset(dto: PasswordResetConfirmDto): Promise<{ ok: true }> {
+    const tokenHash = hashAuthToken(dto.token.trim());
+    const row = await this.prisma.userAuthToken.findUnique({
+      where: { tokenHash },
+      include: { user: { select: { id: true, email: true, firstName: true, anonymizedAt: true } } },
+    });
+    if (
+      !row ||
+      row.purpose !== UserAuthTokenPurpose.PASSWORD_RESET ||
+      row.usedAt ||
+      row.expiresAt.getTime() < Date.now() ||
+      row.user.anonymizedAt
+    ) {
+      throw new BadRequestException('Link resetu hasła jest nieprawidłowy lub wygasł.');
+    }
+
+    const saltRounds = 10;
+    const passwordHash = await bcrypt.hash(dto.newPassword, saltRounds);
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: row.userId },
+        data: { passwordHash },
+      }),
+      this.prisma.userAuthToken.update({
+        where: { id: row.id },
+        data: { usedAt: new Date() },
+      }),
+      this.prisma.userAuthToken.updateMany({
+        where: {
+          userId: row.userId,
+          purpose: UserAuthTokenPurpose.PASSWORD_RESET,
+          usedAt: null,
+        },
+        data: { usedAt: new Date() },
+      }),
+    ]);
+
+    const panelUrl = this.clientPanelUrl();
+    const message = passwordChangedTemplate({
+      to: row.user.email,
+      firstName: row.user.firstName,
+      changedAt: new Date(),
+      deviceLabel: null,
+      ipAddress: null,
+      panelUrl,
+    });
+    void this.mailer.send({ ...message, userId: row.userId, category: 'TRANSACTIONAL' }).catch(() => undefined);
+
+    return { ok: true };
   }
 
   /**
@@ -313,5 +447,23 @@ export class AuthService {
         lastName: user.lastName,
       },
     };
+  }
+
+  private clientPanelUrl(): string {
+    return (
+      this.config.get<string>('CLIENT_PANEL_URL') ??
+      this.config.get<string>('clientPanelUrl') ??
+      'https://panel.verris.pl'
+    ).replace(/\/$/, '');
+  }
+
+  private async notifyWelcome(user: Pick<User, 'id' | 'email' | 'firstName'>): Promise<void> {
+    const panelUrl = this.clientPanelUrl();
+    const message = welcomeTemplate({
+      to: user.email,
+      firstName: user.firstName,
+      panelUrl,
+    });
+    await this.mailer.send({ ...message, userId: user.id, category: 'TRANSACTIONAL' });
   }
 }

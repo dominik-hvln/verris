@@ -17,6 +17,7 @@ import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { MailerService } from '../mail/mailer.service';
+import { iamSubaccountInviteTemplate } from '../mail/templates/iam-invite-notification';
 import {
   AcceptSubaccountInviteDto,
   InviteSubaccountDto,
@@ -120,6 +121,10 @@ export class CustomerIamService {
       throw new ConflictException('Ten adres e-mail ma już konto Verris. Użyj innego adresu subkonta.');
     }
     const token = randomBytes(32).toString('base64url');
+    const owner = await this.prisma.user.findUnique({
+      where: { id: ownerUserId },
+      select: { email: true },
+    });
     const invite = await this.prisma.customerSubaccountInvite.create({
       data: {
         ownerUserId,
@@ -137,11 +142,21 @@ export class CustomerIamService {
       actorUserId,
       details: { inviteId: invite.id, email, permissions: dto.permissions },
     });
-    await this.mailer.send({
+    const panelUrl = (
+      this.config.get<string>('CLIENT_PANEL_URL') ??
+      this.config.get<string>('clientPanelUrl') ??
+      'https://panel.verris.pl'
+    ).replace(/\/$/, '');
+    const message = iamSubaccountInviteTemplate({
       to: email,
-      subject: 'Zaproszenie do konta Verris',
-      html: `<p>Otrzymujesz zaproszenie do konta Verris.</p><p><a href="${this.inviteUrl(token)}">Aktywuj subkonto</a></p><p>Link wygasa po ${INVITE_TTL_DAYS} dniach.</p>`,
-      text: `Otrzymujesz zaproszenie do konta Verris.\n\nAktywuj subkonto: ${this.inviteUrl(token)}\n\nLink wygasa po ${INVITE_TTL_DAYS} dniach.`,
+      ownerEmail: owner?.email ?? 'właściciel konta',
+      inviteUrl: this.inviteUrl(token),
+      expiresDays: INVITE_TTL_DAYS,
+      label: dto.label?.trim() || null,
+      panelUrl,
+    });
+    await this.mailer.send({
+      ...message,
       userId: ownerUserId,
       category: 'TRANSACTIONAL',
     });

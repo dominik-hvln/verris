@@ -9,6 +9,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MailerService } from '../mail/mailer.service';
 import {
   newTicketCreatedTemplate,
+  ticketReplyNotificationTemplate,
   ticketStatusChangedTemplate,
 } from '../mail/templates/ticket-notifications';
 import {
@@ -217,14 +218,7 @@ export class TicketsService {
       },
     });
     if (full?.assignedTo?.email) {
-      void this.mailer
-        .send({
-          to: full.assignedTo.email,
-          subject: `[Verris] Nowa wiadomość od klienta — #${ticketId}`,
-          text: full.subject + '\n\n' + dto.message,
-          tag: 'ticket.reply.client',
-        })
-        .catch(() => undefined);
+      this.notifyClientReplyToStaff(ticketId, full.subject, dto.message, full.assignedTo.email);
     }
 
     return reply;
@@ -437,14 +431,7 @@ export class TicketsService {
       include: { user: { select: { email: true } } },
     });
     if (full?.user?.email) {
-      void this.mailer
-        .send({
-          to: full.user.email,
-          subject: `[Verris] Odpowiedź do zgłoszenia: ${full.subject}`,
-          text: dto.message,
-          tag: 'ticket.reply.staff',
-        })
-        .catch(() => undefined);
+      this.notifyStaffReplyToClient(ticketId, full.subject, dto.message, full.user.email);
     }
 
     return reply;
@@ -625,14 +612,7 @@ export class TicketsService {
       include: { user: { select: { email: true } }, assignedTo: { select: { email: true } } },
     });
     if (full?.assignedTo?.email) {
-      void this.mailer
-        .send({
-          to: full.assignedTo.email,
-          subject: `[Verris] Nowa wiadomość od klienta — #${ticketId}`,
-          text: full.subject + '\n\n' + dto.message,
-          tag: 'ticket.reply.client',
-        })
-        .catch(() => undefined);
+      this.notifyClientReplyToStaff(ticketId, full.subject, dto.message, full.assignedTo.email);
     }
 
     return reply;
@@ -682,14 +662,7 @@ export class TicketsService {
       include: { user: { select: { email: true } } },
     });
     if (full?.user?.email) {
-      void this.mailer
-        .send({
-          to: full.user.email,
-          subject: `[Verris] Odpowiedź do zgłoszenia: ${full.subject}`,
-          text: dto.message,
-          tag: 'ticket.reply.staff',
-        })
-        .catch(() => undefined);
+      this.notifyStaffReplyToClient(ticketId, full.subject, dto.message, full.user.email);
     }
 
     return reply;
@@ -739,6 +712,59 @@ export class TicketsService {
     } catch {
       // Swallow — caller is removing the DB row regardless.
     }
+  }
+
+  private clientPanelBaseUrl(): string {
+    return (this.config.get<string>('clientPanelUrl') ?? 'http://localhost:3001').replace(/\/$/, '');
+  }
+
+  private staffPanelBaseUrl(): string {
+    return (
+      this.config.get<string>('STAFF_PANEL_URL') ??
+      this.config.get<string>('staffPanelUrl') ??
+      this.clientPanelBaseUrl()
+    ).replace(/\/$/, '');
+  }
+
+  private notifyClientReplyToStaff(
+    ticketId: string,
+    subject: string,
+    excerpt: string,
+    staffEmail: string,
+  ): void {
+    void this.mailer
+      .send(
+        ticketReplyNotificationTemplate({
+          to: staffEmail,
+          ticketId,
+          subject,
+          excerpt,
+          panelUrl: this.clientPanelBaseUrl(),
+          staffPanelUrl: this.staffPanelBaseUrl(),
+          isFromStaff: false,
+        }),
+      )
+      .catch(() => undefined);
+  }
+
+  private notifyStaffReplyToClient(
+    ticketId: string,
+    subject: string,
+    excerpt: string,
+    clientEmail: string,
+  ): void {
+    void this.mailer
+      .send(
+        ticketReplyNotificationTemplate({
+          to: clientEmail,
+          ticketId,
+          subject,
+          excerpt,
+          panelUrl: this.clientPanelBaseUrl(),
+          isFromStaff: true,
+        }),
+      )
+      .catch(() => undefined);
   }
 }
 

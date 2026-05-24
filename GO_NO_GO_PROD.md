@@ -44,6 +44,8 @@ Jeśli którykolwiek punkt krytyczny nie jest spełniony, decyzja = **NO-GO**.
 
 ## 5) Węzeł hostingowy + DirectAdmin (krytyczne dla hostingu)
 
+> **⏸️ Po węźle** — podczas negocjacji licencji; reszta bez węzła w [`docs/HOSTING_LAUNCH_TASKS.md`](docs/HOSTING_LAUNCH_TASKS.md) (sekcja „Praca bez węzła”).
+
 - Jest co najmniej 1 zaakceptowany node w panelu admina.
 - Node ma CloudLinux + LVE + LiteSpeed + LSPHP.
 - DirectAdmin na nodzie skonfigurowany i test połączenia przechodzi.
@@ -68,11 +70,18 @@ Jeśli którykolwiek punkt krytyczny nie jest spełniony, decyzja = **NO-GO**.
 
 ## 8) Smoke test po wdrożeniu (krytyczne)
 
-- Logowanie admin/staff/client działa.
+**Bez węzła (teraz):** patrz [`docs/SPRINT_0_OPS_SMOKE.md`](docs/SPRINT_0_OPS_SMOKE.md) — punkty 1, 6–10 + billing bez DA.
+
+**Po węźle:**
+
 - Utworzenie subskrypcji klienta działa.
 - Provisioning konta hostingowego działa (DA account created).
 - Co najmniej jedna operacja DA z panelu klienta działa (np. SSL/backup/DNS).
-- Billing: testowa płatność + webhook + faktura widoczna w panelu.
+
+**Zawsze (PRE-NODE):**
+
+- Logowanie admin/staff/client działa.
+- Billing: testowa płatność (Sandbox) + webhook + faktura w panelu — [`HOSTING_LAUNCH_TASKS.md`](docs/HOSTING_LAUNCH_TASKS.md) → GO-BILL.
 - Tickety: zgłoszenie + odpowiedź staff + załącznik.
 
 ---

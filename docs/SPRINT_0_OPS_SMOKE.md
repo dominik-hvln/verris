@@ -26,9 +26,9 @@ cd /opt/verris && bash ops/scripts/prod-health-snapshot.sh
 
 Wynik wklej do [`PROD_HEALTH_CHECKLIST.md`](../PROD_HEALTH_CHECKLIST.md).
 
-## Restore (staging, nie prod z klientami)
+## Restore (tryb A — pre-LIVE, bez dotykania `verris_db`)
 
-[`ops/RESTORE_TEST.md`](./ops/RESTORE_TEST.md)
+[`ops/RESTORE_TEST.md`](./ops/RESTORE_TEST.md) — **2026-05-24:** drill OK (`latest.sql.gz`, users=3).
 
 **Data smoke:** ___________  
 **Wynik:** GO / NO-GO — notatki: ___________

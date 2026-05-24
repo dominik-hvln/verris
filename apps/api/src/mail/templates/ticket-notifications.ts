@@ -46,6 +46,56 @@ export function newTicketCreatedTemplate(ctx: TicketContext): MailMessage {
   };
 }
 
+export interface TicketReplyContext {
+  to: string;
+  ticketId: string;
+  subject: string;
+  excerpt: string;
+  panelUrl: string;
+  /** Staff panel URL for internal notifications. */
+  staffPanelUrl?: string;
+  isFromStaff: boolean;
+}
+
+export function ticketReplyNotificationTemplate(ctx: TicketReplyContext): MailMessage {
+  const shortId = ctx.ticketId.slice(0, 8);
+  const ticketUrl = ctx.isFromStaff
+    ? `${ctx.panelUrl}/dashboard/support/${ctx.ticketId}`
+    : `${ctx.staffPanelUrl ?? ctx.panelUrl}/dashboard/tickets/${ctx.ticketId}`;
+  const safeSubject = escapeHtml(ctx.subject);
+  const excerpt = escapeHtml(ctx.excerpt.slice(0, 500));
+  const title = ctx.isFromStaff ? 'Nowa odpowiedź od supportu' : 'Nowa wiadomość od klienta';
+  const preheader = ctx.isFromStaff
+    ? `Support odpowiedział w sprawie #${shortId}.`
+    : `Klient dopisał w sprawie #${shortId}.`;
+
+  const { html, text } = renderEmailShell({
+    title,
+    preheader,
+    bodyMarkdown: [
+      `Cześć!`,
+      ``,
+      ctx.isFromStaff
+        ? `Nasz zespół odpowiedział w zgłoszeniu **"${safeSubject}"** (#${shortId}).`
+        : `Klient dopisał w zgłoszeniu **"${safeSubject}"** (#${shortId}).`,
+      ``,
+      `> ${excerpt}${ctx.excerpt.length > 500 ? '…' : ''}`,
+    ].join('\n'),
+    cta: { label: 'Otwórz zgłoszenie', url: ticketUrl },
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+
+  return {
+    to: ctx.to,
+    tag: ctx.isFromStaff ? 'ticket.reply.staff' : 'ticket.reply.client',
+    subject: `[#${shortId}] ${ctx.isFromStaff ? 'Odpowiedź supportu' : 'Nowa wiadomość'}: ${ctx.subject}`,
+    text,
+    html,
+  };
+}
+
 export function ticketStatusChangedTemplate(
   ctx: TicketContext & { newStatus: string },
 ): MailMessage {

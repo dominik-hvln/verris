@@ -14,6 +14,8 @@ import {
   ConfirmTwoFactorDto,
   DisableTwoFactorDto,
   LoginDto,
+  PasswordResetConfirmDto,
+  PasswordResetRequestDto,
   RegisterDto,
   VerifyTwoFactorDto,
 } from './auth.dto';
@@ -40,6 +42,18 @@ export class AuthController {
   @Post('login')
   async login(@Body() dto: LoginDto, @Req() req: Request) {
     return this.authService.login(dto, requestContext(req));
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('password-reset/request')
+  async requestPasswordReset(@Body() dto: PasswordResetRequestDto) {
+    return this.authService.requestPasswordReset(dto);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('password-reset/confirm')
+  async confirmPasswordReset(@Body() dto: PasswordResetConfirmDto) {
+    return this.authService.confirmPasswordReset(dto);
   }
 
   @HttpCode(HttpStatus.OK)

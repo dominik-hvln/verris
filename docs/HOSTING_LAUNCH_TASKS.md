@@ -1,7 +1,7 @@
 # Hosting LIVE — master backlog (źródło prawdy)
 
 > **Ten plik = jedyna lista** do śledzenia: co zrobione, w toku, pomysły, nowe funkcje.  
-> **Ostatnia aktualizacja:** 2026-05-24 · prod **`3109f31`** · właściciel backlogu: agent + Dominik  
+> **Ostatnia aktualizacja:** 2026-05-24 · prod **`5b491fc`** · właściciel backlogu: agent + Dominik  
 > **Zasada GO:** [LIVE_PRODUCT_SCOPE_DECISION.md](../LIVE_PRODUCT_SCOPE_DECISION.md)
 
 ---
@@ -29,7 +29,7 @@
 | ⏸️ | Wstrzymane (np. czeka na prawnika) |
 | 💡 | Pomysł / backlog |
 
-**Changelog:** … · **MAIL-3** mail-tester **10/10** (2026-05-24) · **MAIL-1b** nadawca Verris + panel@ (2026-05-24)
+**Changelog:** … · **OPS-3** Grafana alert e-mail OK (2026-05-24) · **OPS-2** restore drill tryb A OK (2026-05-24) · **MAIL-3** mail-tester **10/10** (2026-05-24)
 
 ---
 
@@ -42,7 +42,7 @@
 | **GO-IAM** | 3–5 d | VER-11, IAM-2 | Smoke subkont IAM na prod + mail zaproszenia |
 | **GO-OPS** | 3–5 d | OPS-2, OPS-3, OPS-5, OPS-1, OPS-4 | Restore staging, alerty Grafana, smoke ops, GO checklist |
 | **GO-HOST** | 5–7 d | HOST-1…4 | Węzeł compute, DA, provisioning, smoke operacji |
-| **GO-BILL** | 3–5 d | BILL-1…2 | Stripe live, smoke portfel/checkout/faktury |
+| **GO-BILL** | 3–5 d | BILL-1…2 | Stripe **Sandbox** (testy) → live przed GO z klientami |
 | **MAIL-TX** | 7–10 d | MAIL-2 | Maile transakcyjne LIVE ([`mail/AUDIT.md`](./mail/AUDIT.md) — auth, billing, IAM) |
 | **MAIL-4a** | 5–7 d | MAIL-4 | Postfix virtual + Dovecot + UFW inbound |
 | **MAIL-4b** | 5–7 d | MAIL-4 | Admin CRUD skrzynki + adresy systemowe |
@@ -78,7 +78,58 @@ flowchart LR
   LEG -.-> OPS
 ```
 
-**Teraz (następny sprint):** **GO-IAM** — Ty: smoke [`IAM_SMOKE_PROD.md`](./IAM_SMOKE_PROD.md); agent: ewentualne poprawki po wyniku.
+**Teraz:** fala **bez węzła** (sekcja poniżej) · po licencjach: **GO-HOST** + OPS-5.
+
+---
+
+## Praca bez węzła (do czasu pierwszego compute)
+
+> Wszystko śledzimy **tylko w tym pliku** — bez osobnych sprint-doców.
+
+| Sprint / obszar | Wymaga węzła? | Status | Następny krok |
+|-----------------|---------------|--------|----------------|
+| GO-IAM | Nie | ✅ | — |
+| GO-OPS (core) | Nie | ✅ | OPS-2, OPS-3 |
+| GO-OPS (reszta) | Częściowo | 🔄 | OPS-1, OPS-4, OPS-6 — checklisty |
+| **MAIL-TX** / MAIL-2 | Nie | 🔄 | Deploy auth mail + smoke reset/top-up |
+| **GO-BILL** / BILL-1…2 | Nie | 🔄 | Stripe **Sandbox** — checklista poniżej |
+| **LEG-D** | Nie | 🔄 / ⏸️ | Drafty → prawnik |
+| MAIL-4 | Nie (control-plane) | ⏳ | Po MAIL-TX |
+| GO-HOST | **Tak** | ⏸️ | Po licencjach |
+| OPS-5 pełny | **Tak** | ⏸️ | Po węźle |
+
+### GO-BILL — Stripe Sandbox (testy na pre-LIVE)
+
+| # | Task | OK |
+|---|------|-----|
+| 1 | W Stripe Dashboard: tryb **Test**; `sk_test_…` + `whsec_…` w `.env.prod` | |
+| 2 | Webhook: `https://api.verris.pl/billing/stripe/webhook` — zdarzenia: `checkout.session.completed`, `invoice.*`, `customer.subscription.*`, `payment_intent.*` | |
+| 3 | `STRIPE_SUCCESS_URL` / `STRIPE_CANCEL_URL` → panel klienta | |
+| 4 | Price ID **test** w planach (admin) | |
+| 5 | Smoke: top-up testową kartą → saldo + mail `wallet.topup-ok` + webhook 200 w Stripe | |
+| 6 | Przed GO z klientami zewnętrznymi: zamiana na **live** keys (BILL-1 domknięcie) | |
+
+Deploy po zmianie env: `DEPLOY_SERVICES=api ./ops/scripts/prod-deploy-release.sh` (+ migrate jeśli schema).
+
+### MAIL-TX — stan kodu (2026-05-24)
+
+| Obszar | Status kodu |
+|--------|-------------|
+| Welcome, reset hasła, top-up / auto-topup maile | 🔄 w deploy |
+| Billing/subscription/legal/2FA/login-alert | ✅ już w kodzie (audyt `mail/AUDIT.md` był nieaktualny) |
+| IAM invite branded, ticket replies branded | 🔄 w deploy |
+| Email verify przy rejestracji | ⏳ follow-up |
+
+### Smoke bez węzła (`SPRINT_0_OPS_SMOKE.md`)
+
+Teraz: pkt **1, 6–10** (auth, IAM, BOK, backup, Grafana, status). Po węźle: **2–5** (subskrypcja + DA).
+
+### Kryterium „bez węzła done”
+
+- MAIL-2 P0 w audycie = DZIAŁA (bez maili provisioning/hosting)
+- BILL-2 smoke Sandbox udokumentowany
+- LEG-1 gotowe do prawnika
+- OPS-1/4/6 bez ❌ poza sekcją węzłów
 
 ---
 
@@ -87,9 +138,9 @@ flowchart LR
 | Krok | ID | Opis | Status |
 |------|-----|------|--------|
 | 1 | GO-IAM | VER-11 + IAM-2 | ✅ | Smoke 2026-05-24 PASS |
-| 2 | GO-OPS | Restore drill, alerty, smoke, GO | 🔄 | Tryb A na pre-LIVE serwerze |
-| 3 | GO-HOST / GO-BILL | Hosting + Stripe live | ⏳ | |
-| 4 | MAIL-TX | Maile transakcyjne | ⏳ | Po GO-OPS |
+| 2 | GO-OPS | Restore drill, alerty, smoke, GO | 🔄 | OPS-2 ✅ · OPS-3 ✅ 2026-05-24; OPS-5 po węźle |
+| 3 | Bez węzła | MAIL-TX + GO-BILL (Sandbox) + LEG-D + OPS checklist | 🔄 | Sekcja „Praca bez węzła” powyżej |
+| 4 | GO-HOST | Węzeł + DA + provisioning | ⏸️ | Po licencjach |
 | 5 | MAIL-4a…d | Poczta zespołu @verris.pl | ⏳ | [MAIL-4_CONTROL_PLANE_MAIL.md](./ops/MAIL-4_CONTROL_PLANE_MAIL.md) |
 | 6 | LEG-D | Prawne | 🔄 / ⏸️ | Równolegle |
 | 7 | OBS+ | Monitoring rozszerzony | 💡 | Po GO |
@@ -117,10 +168,10 @@ flowchart LR
 | ID | Task | Status | Uwagi |
 |----|------|--------|-------|
 | OPS-1 | PROD_HEALTH §1–12 bez ❌ | 🟡 | Dysk ✅ |
-| OPS-2 | Restore test (MinIO → DB) | 🔄 | Tryb A: `restore-drill-isolated.sh` na pre-LIVE |
-| OPS-3 | Grafana → dominik@hvln.pl | 🟡 | Provisioning + GF_SMTP ✅; domknąć test alertu w UI (GO-OPS) |
+| OPS-2 | Restore test (MinIO → DB) | ✅ | 2026-05-24: `latest.sql.gz`, drill `verris_restore_drill`, users=3, prod DB nietknięty |
+| OPS-3 | Grafana → dominik@hvln.pl | ✅ | 2026-05-24: `GF_SMTP_HOST=host.docker.internal:25`, test alertu + dostawa OK |
 | OPS-4 | GO_NO_GO odhaczone | ⏳ | |
-| OPS-5 | Smoke SPRINT_0_OPS | ⏳ | |
+| OPS-5 | Smoke SPRINT_0_OPS | ⏸️ | Po podpięciu 1. węzła compute (DA/hosting) |
 | OPS-6 | PROD_HEALTH §12 | ⏳ | |
 
 ### HOST / BILL / LEG / MAIL
@@ -128,7 +179,8 @@ flowchart LR
 | ID | Task | Status | Uwagi |
 |----|------|--------|-------|
 | HOST-1…4 | Węzeł + DA + provisioning + operacja DA | ⏳ | Smoke |
-| BILL-1…2 | Stripe live + smoke billing | ⏳ | Tylko Stripe (D-2) |
+| BILL-1 | Stripe Sandbox skonfigurowany | 🔄 | `sk_test_` + webhook — checklista w sekcji GO-BILL |
+| BILL-2 | Smoke billing (Sandbox) | ⏳ | Top-up + webhook + mail; live keys przed GO z klientami |
 | LEG-1 | Drafty 0.2 | 🔄 | IAM, Stripe, subprocessors |
 | LEG-2 | Lawyer review | ⏸️ | Gotowce → Ty → prawnik |
 | LEG-3 | Publikacja admin | ⏳ | Po LEG-2 |
@@ -136,7 +188,7 @@ flowchart LR
 | LEG-5…6 | Brak TODO, subprocessors | ⏳ | |
 | MAIL-1 | SMTP: Postfix lokalny + opcjonalny relay w admin | ✅ | `441e279` — **Ustawienia → Poczta (SMTP)** |
 | MAIL-1b | Nadawca: nazwa „Verris” + adres From w admin | ✅ | `mail.fromName` / `mail.fromAddress` w `platform_settings`; prod: `panel@verris.pl` |
-| MAIL-2 | Min. maile LIVE (audyt triggerów) | ⏳ | Sprint **MAIL-TX** — [`mail/AUDIT.md`](./mail/AUDIT.md) |
+| MAIL-2 | Min. maile LIVE (audyt triggerów) | 🔄 | welcome, reset hasła, top-up mail — deploy 2026-05-24 |
 | MAIL-3 | Postfix + SPF/DKIM/DMARC | ✅ | 2026-05-24: mail-tester **10/10**; [MAIL_DELIVERABILITY.md](./ops/MAIL_DELIVERABILITY.md) |
 | MAIL-4 | Poczta zespołu @verris.pl (pełny zakres) | ⏳ | Spec: [MAIL-4_CONTROL_PLANE_MAIL.md](./ops/MAIL-4_CONTROL_PLANE_MAIL.md) |
 

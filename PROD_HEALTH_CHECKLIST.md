@@ -123,10 +123,10 @@ Komenda: `dig +short TXT verris.pl`, `dig +short TXT _dmarc.verris.pl`.
 
 | Pomiar | Próg ALERT | Wartość | Status |
 | --- | --- | --- | --- |
-| Last successful Postgres backup (MinIO `verris-backups/postgres/`) | < 25h | `latest.sql.gz` 2026-05-22 14:07 UTC (~8 h) | ✅ |
+| Last successful Postgres backup (MinIO `verris-backups/postgres/`) | < 25h | `latest.sql.gz` 2026-05-24 03:17 UTC | ✅ |
 | Backup file size sane | _<info>_ | 24 KiB (mała baza / zweryfikować pełność) | 🟡 |
 | External mirror (`backup-mirror-external.sh`) | < 25h lub N/A (faza 2) | N/A | 🟡 |
-| Restore test (last) | < 30 dni | _brak wpisu — patrz [`ops/RESTORE_TEST.md`](./docs/ops/RESTORE_TEST.md)_ | 🟡 |
+| Restore test (last) | < 30 dni | 2026-05-24 tryb A (`restore-drill-isolated.sh`, users=3) | ✅ |
 | MinIO bucket `verris-backups` exists | YES | alias `verris` OK | ✅ |
 | Ticket/RODO uploads w MinIO (nie lokalny FS) | YES | _nie zweryfikowane w snapshot_ | 🟡 |
 
