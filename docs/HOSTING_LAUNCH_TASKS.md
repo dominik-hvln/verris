@@ -1,7 +1,7 @@
 # Hosting LIVE — master backlog (źródło prawdy)
 
 > **Ten plik = jedyna lista** do śledzenia: co zrobione, w toku, do zrobienia.  
-> **Ostatnia aktualizacja:** 2026-05-24 · prod po deploy email-verify (ten commit)  
+> **Ostatnia aktualizacja:** 2026-05-24 · prod **`6338e67`** (email verify + admin delete)  
 > **Zasada GO:** [LIVE_PRODUCT_SCOPE_DECISION.md](../LIVE_PRODUCT_SCOPE_DECISION.md)
 
 ---
