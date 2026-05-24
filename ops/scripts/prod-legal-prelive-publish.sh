@@ -30,7 +30,8 @@ set -a
 source "$ENV_FILE"
 set +a
 if [[ -z "${DATABASE_URL:-}" && -n "${POSTGRES_PASSWORD:-}" ]]; then
-  enc_pass="$(node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' "$POSTGRES_PASSWORD")"
+  enc_pass="$(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" exec -T api \
+    node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' "$POSTGRES_PASSWORD")"
   export DATABASE_URL="postgresql://${POSTGRES_USER:-verris}:${enc_pass}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-verris_db}?schema=public"
 fi
 if [[ -z "${DATABASE_URL:-}" ]]; then
