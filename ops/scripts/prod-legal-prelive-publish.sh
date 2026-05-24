@@ -24,9 +24,24 @@ if [[ -z "$API_CID" ]]; then
   exit 1
 fi
 
+# DATABASE_URL jest ustawiane w api-entrypoint tylko dla PID 1 — exec potrzebuje URL z .env.prod.
+set -a
+# shellcheck disable=SC1090
+source "$ENV_FILE"
+set +a
+if [[ -z "${DATABASE_URL:-}" && -n "${POSTGRES_PASSWORD:-}" ]]; then
+  enc_pass="$(node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' "$POSTGRES_PASSWORD")"
+  export DATABASE_URL="postgresql://${POSTGRES_USER:-verris}:${enc_pass}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-verris_db}?schema=public"
+fi
+if [[ -z "${DATABASE_URL:-}" ]]; then
+  echo "[legal-prelive] Ustaw DATABASE_URL lub POSTGRES_PASSWORD w $ENV_FILE"
+  exit 1
+fi
+
 docker cp "$DRAFTS_HOST" "${API_CID}:/tmp/legal-drafts"
 
-docker exec -i "$API_CID" node - "${VERSION}" <<'NODE'
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" exec -T -e DATABASE_URL="$DATABASE_URL" api \
+  node - "${VERSION}" <<'NODE'
 const { PrismaClient } = require('@prisma/client');
 const fs = require('fs');
 const path = require('path');
