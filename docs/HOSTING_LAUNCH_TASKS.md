@@ -41,7 +41,7 @@
 | 2 | OPS-3 | Grafana e-mail + doc Slack | 🔄 | [GRAFANA_ALERTING.md](./ops/GRAFANA_ALERTING.md) |
 | 3 | VER-11 | IAM smoke prod (P0 — D-1) | ⏳ | [IAM_SMOKE_PROD.md](./IAM_SMOKE_PROD.md) |
 | 4 | OPS-5, HOST-*, BILL-* | Smoke E2E prod | ⏳ | |
-| 5 | MAIL-1, MAIL-3 | Postfix + admin SMTP + SPF/DKIM | 🔄 | Deploy `441e279`; DNS: [MAIL_DNS_CHECKLIST.md](./ops/MAIL_DNS_CHECKLIST.md) |
+| 5 | MAIL-1, MAIL-3 | Postfix + admin SMTP + SPF/DKIM | 🔄 | DNS w OVH: [OVH_DNS_VERRIS_PL.md](./ops/OVH_DNS_VERRIS_PL.md) |
 | 6 | OPS-2 | Restore test **staging** | ⏳ | D-3 |
 | 7 | LEG-2, LEG-3 | Review prawnika → publikacja | ⏸️ | Ty → prawnik |
 | 8 | OPS-1, OPS-4 | Checklisty → GO | ⏳ | |
@@ -89,7 +89,7 @@
 | LEG-5…6 | Brak TODO, subprocessors | ⏳ | |
 | MAIL-1 | SMTP: Postfix lokalny + opcjonalny relay w admin | ✅ | `441e279` — admin **Ustawienia → Poczta (SMTP)** |
 | MAIL-2 | Min. maile LIVE (audyt triggerów) | 🟡 | Postfix OK; test z admina po zalogowaniu |
-| MAIL-3 | Postfix na hoście + SPF/DKIM/DMARC | 🟡 | Postfix+UFW ✅; DNS ⏳ [MAIL_DNS_CHECKLIST.md](./ops/MAIL_DNS_CHECKLIST.md) |
+| MAIL-3 | Postfix na hoście + SPF/DKIM/DMARC | 🟡 | Postfix ✅; OVH SPF/MX ⏳ [OVH_DNS_VERRIS_PL.md](./ops/OVH_DNS_VERRIS_PL.md); PTR Hetzner ⏳ |
 
 ---
 

@@ -1,6 +1,7 @@
 # MAIL-3 — SPF, DKIM, DMARC (verris.pl)
 
-> Po uruchomieniu Postfix na panelu. Wpisz datę wdrożenia DNS w [`HOSTING_LAUNCH_TASKS.md`](../HOSTING_LAUNCH_TASKS.md).
+> Po uruchomieniu Postfix na panelu. Wpisz datę wdrożenia DNS w [`HOSTING_LAUNCH_TASKS.md`](../HOSTING_LAUNCH_TASKS.md).  
+> **OVH (krok po kroku):** [`OVH_DNS_VERRIS_PL.md`](./OVH_DNS_VERRIS_PL.md) — **zostaw NS w OVH**, nie przenoś strefy na panel na start.
 
 ## 1. SPF (TXT na `verris.pl`)
 
