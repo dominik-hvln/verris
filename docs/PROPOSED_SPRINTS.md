@@ -1,7 +1,7 @@
-# Proponowane sprinty — stan na 2026-05-22
+# Proponowane sprinty — stan na 2026-05-24
 
-> **Status tasków (otwarte / done / w toku):** [`HOSTING_LAUNCH_TASKS.md`](./HOSTING_LAUNCH_TASKS.md) — **źródło prawdy**. Ten plik = kontekst sprintów.  
-> Prod HEAD: `0f8e6ca` · Deploy: `ops/scripts/prod-deploy-release.sh` · SSH: `docs/ops/CURSOR_DEPLOY_SSH.md`
+> **Status tasków:** [`HOSTING_LAUNCH_TASKS.md`](./HOSTING_LAUNCH_TASKS.md) — **źródło prawdy** (plan sprintów + tabela ID).  
+> Prod: `3109f31` · Deploy: `ops/scripts/prod-deploy-release.sh`
 
 ---
 
@@ -17,36 +17,26 @@
 | Sprint W (część) | Badge refresh po Stripe, skeleton, impersonacja, mail auto-topup fail |
 | Sprint 0.3 (część) | Uptime badge + restore preview w **Usage** usługi |
 | Sprint A/B (kod) | Testy krytyczne, audyt paneli |
+| **MAIL infra** | Postfix, DKIM, admin SMTP, mail-tester **10/10**, nadawca Verris + panel@ |
 
 ---
 
-## Kolejność sprintów (rekomendacja)
+## Plan sprintów (od 2026-05-24)
 
-```mermaid
-flowchart TB
-  subgraph done [Zrobione]
-    B[Sprint B audyt]
-    IAM[IAM częściowy]
-    MINIO[Backup MinIO]
-    GRAF[Grafana link + metryki]
-  end
-  subgraph next [Następne 2–3 tyg.]
-    IAMF[IAM-F domknięcie]
-    COPS[Sprint C-ops]
-    LEG[Sprint D prawne]
-    SMK[Sprint 0-ops smoke]
-  end
-  subgraph later [Po GO / decyzji scope]
-    W[Wallet polish W-03]
-    E[Sprint E opcjonalne]
-  end
-  done --> IAMF
-  done --> COPS
-  IAMF --> SMK
-  COPS --> SMK
-  LEG --> SMK
-  SMK --> later
-```
+Pełna tabela i diagram: sekcja **Plan sprintów** w [`HOSTING_LAUNCH_TASKS.md`](./HOSTING_LAUNCH_TASKS.md).
+
+| Sprint | Plik | Blokuje GO? |
+|--------|------|-------------|
+| **GO-IAM** | [`SPRINT_GO_IAM.md`](./SPRINT_GO_IAM.md) | **Tak** (D-1) |
+| **GO-OPS** | [`SPRINT_GO_OPS.md`](./SPRINT_GO_OPS.md) | **Tak** |
+| **GO-HOST** | HOST-1…4 w master backlog | **Tak** |
+| **GO-BILL** | BILL-1…2 | **Tak** |
+| **MAIL-TX** | [`SPRINT_MAIL_TX.md`](./SPRINT_MAIL_TX.md) | **Tak** (auth/billing mail) |
+| **MAIL-4a…d** | [`ops/MAIL-4_CONTROL_PLANE_MAIL.md`](./ops/MAIL-4_CONTROL_PLANE_MAIL.md) | Nie (zespołowa poczta) |
+| **LEG-D** | drafty → prawnik | **Tak** (klienci zewnętrzni) |
+| **OBS+** | OBS-1…5 | Nie |
+
+**Następny sprint do startu:** **GO-IAM** (smoke ręczny na prod).
 
 ---
 
@@ -136,16 +126,16 @@ Metryki Prometheus: `verris_backup_latest_age_seconds`, `verris_backup_present`,
 
 ---
 
-## Sugerowany następny krok (1 sprint)
+## Sugerowana kolejność (4–6 tygodni do GO hostingu)
 
-**Master lista wszystkich otwartych tasków:** [`HOSTING_LAUNCH_TASKS.md`](./HOSTING_LAUNCH_TASKS.md)
+1. [**GO-IAM**](./SPRINT_GO_IAM.md) — smoke IAM na prod (3–5 d).
+2. [**GO-OPS**](./SPRINT_GO_OPS.md) — restore staging + alerty + GO checklist (3–5 d).
+3. **GO-HOST** + **GO-BILL** — równolegle jeśli 2 osoby (5–7 d każdy).
+4. [**MAIL-TX**](./SPRINT_MAIL_TX.md) — maile transakcyjne z audytu (7–10 d).
+5. **MAIL-4a→d** — poczta zespołu @verris.pl (2–3 tyg.).
+6. **LEG-D** — równolegle od dziś (prawnik na ścieżce krytycznej).
 
-1. **IAM-F.3 smoke** — [`IAM_SMOKE_PROD.md`](./IAM_SMOKE_PROD.md) (ręcznie na prod).
-2. **C.4 restore test** — [`ops/RESTORE_TEST.md`](./ops/RESTORE_TEST.md) na staging.
-3. **Sprint D** — finalizacja draftów + lawyer review.
-4. **Sprint 0-ops** — pełny smoke + `GO_NO_GO_PROD.md`.
-
-C.5 — na start **dominik@hvln.pl** (patrz tabela C-ops). Slack/Discord — później.
+Po **GO-IAM + GO-OPS + GO-HOST + GO-BILL + MAIL-TX + LEG-D** → decyzja **GO** z [`GO_NO_GO_PROD.md`](../GO_NO_GO_PROD.md).
 
 ---
 
