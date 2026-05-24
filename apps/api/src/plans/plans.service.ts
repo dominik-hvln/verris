@@ -9,6 +9,7 @@ import { Plan } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { StripeService } from '../billing/stripe/stripe.service';
+import { PlanStripeSyncService } from './plan-stripe-sync.service';
 import { CreatePlanDto, UpdatePlanDto } from './dto/plan.dto';
 
 interface PriceValidationContext {
@@ -26,6 +27,7 @@ export class PlansService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly stripe: StripeService,
+    private readonly planStripeSync: PlanStripeSyncService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -86,7 +88,9 @@ export class PlansService {
       });
     }
 
-    const plan = await this.prisma.plan.create({
+    const manualStripe = this.hasManualStripePriceIds(dto);
+
+    let plan = await this.prisma.plan.create({
       data: {
         slug: dto.slug,
         name: dto.name,
@@ -105,13 +109,17 @@ export class PlansService {
         isPublic: dto.isPublic ?? true,
         isActive: dto.isActive ?? true,
         sortOrder: dto.sortOrder ?? 0,
-        stripePriceMonthlyId: dto.stripePriceMonthlyId ?? null,
-        stripePriceYearlyId: dto.stripePriceYearlyId ?? null,
+        stripePriceMonthlyId: manualStripe ? (dto.stripePriceMonthlyId?.trim() ?? null) : null,
+        stripePriceYearlyId: manualStripe ? (dto.stripePriceYearlyId?.trim() ?? null) : null,
         autoscalingMaxOverscaleCpu: dto.autoscalingMaxOverscaleCpu ?? 3,
         autoscalingMaxOverscaleRam: dto.autoscalingMaxOverscaleRam ?? 3,
         autoscalingMaxOverscaleDisk: dto.autoscalingMaxOverscaleDisk ?? 3,
       },
     });
+
+    if (!manualStripe) {
+      plan = await this.applyStripeAutoSync(plan, actorUserId, 'create');
+    }
 
     await this.audit.record({
       action: 'PLAN_CREATED',
@@ -121,8 +129,10 @@ export class PlansService {
         slug: plan.slug,
         priceMonthly: plan.priceMonthly.toString(),
         priceYearly: plan.priceYearly.toString(),
+        stripeProductId: plan.stripeProductId,
         stripePriceMonthlyId: plan.stripePriceMonthlyId,
         stripePriceYearlyId: plan.stripePriceYearlyId,
+        stripeSyncMode: manualStripe ? 'manual' : 'auto',
       },
     });
     return plan;
@@ -160,10 +170,15 @@ export class PlansService {
     if (dto.stripePriceMonthlyId === '') data.stripePriceMonthlyId = null;
     if (dto.stripePriceYearlyId === '') data.stripePriceYearlyId = null;
 
-    const updated = await this.prisma.plan.update({
+    let updated = await this.prisma.plan.update({
       where: { id },
       data: data as never,
     });
+
+    const manualStripe = this.hasManualStripePriceIds(dto);
+    if (!manualStripe) {
+      updated = await this.applyStripeAutoSync(updated, actorUserId, 'update');
+    }
 
     await this.audit.record({
       action: 'PLAN_UPDATED',
@@ -171,6 +186,24 @@ export class PlansService {
       details: {
         planId: id,
         changes: this.summarizeChanges(current, dto) as never,
+        stripeSyncMode: manualStripe ? 'manual' : 'auto',
+      },
+    });
+    return updated;
+  }
+
+  async syncStripeCatalog(id: string, actorUserId: string): Promise<Plan> {
+    const plan = await this.getById(id);
+    const updated = await this.applyStripeAutoSync(plan, actorUserId, 'manual_sync');
+    await this.audit.record({
+      action: 'PLAN_STRIPE_SYNCED',
+      actorUserId,
+      details: {
+        planId: id,
+        slug: updated.slug,
+        stripeProductId: updated.stripeProductId,
+        stripePriceMonthlyId: updated.stripePriceMonthlyId,
+        stripePriceYearlyId: updated.stripePriceYearlyId,
       },
     });
     return updated;
@@ -272,6 +305,31 @@ export class PlansService {
     this.logger.log(
       `Stripe Price ${priceId} validated against plan: ${ctx.expectedInterval} ${ctx.expectedAmountPln} ${ctx.expectedCurrency}`,
     );
+  }
+
+  private hasManualStripePriceIds(dto: {
+    stripePriceMonthlyId?: string;
+    stripePriceYearlyId?: string;
+  }): boolean {
+    return Boolean(dto.stripePriceMonthlyId?.trim() || dto.stripePriceYearlyId?.trim());
+  }
+
+  private async applyStripeAutoSync(
+    plan: Plan,
+    _actorUserId: string,
+    trigger: 'create' | 'update' | 'manual_sync',
+  ): Promise<Plan> {
+    if (!this.stripe.isConfigured()) {
+      this.logger.warn(
+        `Plan ${plan.slug}: pominięto auto-sync Stripe (${trigger}) — brak STRIPE_SECRET_KEY`,
+      );
+      return plan;
+    }
+    const refs = await this.planStripeSync.syncPlan(plan);
+    return this.prisma.plan.update({
+      where: { id: plan.id },
+      data: refs,
+    });
   }
 
   private summarizeChanges(prev: Plan, dto: UpdatePlanDto): Record<string, unknown> {

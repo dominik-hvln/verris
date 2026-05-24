@@ -57,6 +57,12 @@ export class PlansAdminController {
     return this.plans.update(id, dto, actor.userId);
   }
 
+  @Post(':id/sync-stripe')
+  @HttpCode(200)
+  syncStripe(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
+    return this.plans.syncStripeCatalog(id, actor.userId);
+  }
+
   @Delete(':id')
   @HttpCode(200)
   deactivate(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {

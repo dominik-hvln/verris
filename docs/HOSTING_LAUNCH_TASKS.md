@@ -1,7 +1,7 @@
 # Hosting LIVE — master backlog (źródło prawdy)
 
 > **Ten plik = jedyna lista** do śledzenia: co zrobione, w toku, pomysły, nowe funkcje.  
-> **Ostatnia aktualizacja:** 2026-05-24 · prod **`5b491fc`** · właściciel backlogu: agent + Dominik  
+> **Ostatnia aktualizacja:** 2026-05-24 · prod **`c667d77`** · właściciel backlogu: agent + Dominik  
 > **Zasada GO:** [LIVE_PRODUCT_SCOPE_DECISION.md](../LIVE_PRODUCT_SCOPE_DECISION.md)
 
 ---
@@ -29,7 +29,7 @@
 | ⏸️ | Wstrzymane (np. czeka na prawnika) |
 | 💡 | Pomysł / backlog |
 
-**Changelog:** … · **OPS-3** Grafana alert e-mail OK (2026-05-24) · **OPS-2** restore drill tryb A OK (2026-05-24) · **MAIL-3** mail-tester **10/10** (2026-05-24)
+**Changelog:** … · **MAIL-TX** auth mail + reset + deploy `c667d77` (2026-05-24) · **OPS-3** Grafana OK · **OPS-2** restore drill OK · **MAIL-3** 10/10
 
 ---
 
@@ -102,10 +102,10 @@ flowchart LR
 
 | # | Task | OK |
 |---|------|-----|
-| 1 | W Stripe Dashboard: tryb **Test**; `sk_test_…` + `whsec_…` w `.env.prod` | |
+| 1 | W Stripe Dashboard: tryb **Test**; `sk_test_…` + `whsec_…` w `.env.prod` | ✅ 2026-05-24 (w kontenerze `api`) |
 | 2 | Webhook: `https://api.verris.pl/billing/stripe/webhook` — zdarzenia: `checkout.session.completed`, `invoice.*`, `customer.subscription.*`, `payment_intent.*` | |
-| 3 | `STRIPE_SUCCESS_URL` / `STRIPE_CANCEL_URL` → panel klienta | |
-| 4 | Price ID **test** w planach (admin) | |
+| 3 | `STRIPE_SUCCESS_URL` / `STRIPE_CANCEL_URL` → panel klienta | ✅ |
+| 4 | Plany: auto-sync Product + Prices w Stripe (admin zapis / „Synchronizuj”) | 🔄 do smoke |
 | 5 | Smoke: top-up testową kartą → saldo + mail `wallet.topup-ok` + webhook 200 w Stripe | |
 | 6 | Przed GO z klientami zewnętrznymi: zamiana na **live** keys (BILL-1 domknięcie) | |
 
@@ -179,7 +179,7 @@ Teraz: pkt **1, 6–10** (auth, IAM, BOK, backup, Grafana, status). Po węźle: 
 | ID | Task | Status | Uwagi |
 |----|------|--------|-------|
 | HOST-1…4 | Węzeł + DA + provisioning + operacja DA | ⏳ | Smoke |
-| BILL-1 | Stripe Sandbox skonfigurowany | 🔄 | `sk_test_` + webhook — checklista w sekcji GO-BILL |
+| BILL-1 | Stripe Sandbox skonfigurowany | 🟡 | `.env.prod`: `sk_test_`, `whsec_`, URL-e OK — brak smoke BILL-2 |
 | BILL-2 | Smoke billing (Sandbox) | ⏳ | Top-up + webhook + mail; live keys przed GO z klientami |
 | LEG-1 | Drafty 0.2 | 🔄 | IAM, Stripe, subprocessors |
 | LEG-2 | Lawyer review | ⏸️ | Gotowce → Ty → prawnik |

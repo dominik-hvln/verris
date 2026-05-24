@@ -7,11 +7,13 @@ import {
   Loader2,
   Trash2,
   Save,
+  RefreshCw,
 } from "lucide-react";
 import {
   updatePlanAction,
   validateStripePriceAction,
   deactivatePlanAction,
+  syncPlanStripeAction,
 } from "../actions";
 import type { AdminPlanRow } from "../data";
 
@@ -70,6 +72,12 @@ interface ValidationFeedback {
 
 export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
   const [state, setState] = useState<FormState>(() => toFormState(plan));
+  const [stripeManual, setStripeManual] = useState(false);
+  const stripeIds = {
+    productId: plan.stripeProductId,
+    monthlyId: plan.stripePriceMonthlyId,
+    yearlyId: plan.stripePriceYearlyId,
+  };
   const [pending, startTransition] = useTransition();
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [globalOk, setGlobalOk] = useState<string | null>(null);
@@ -132,8 +140,12 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
         isPublic: state.isPublic,
         isActive: state.isActive,
         sortOrder: Number.parseInt(state.sortOrder, 10) || 0,
-        stripePriceMonthlyId: state.stripePriceMonthlyId.trim(),
-        stripePriceYearlyId: state.stripePriceYearlyId.trim(),
+        ...(stripeManual
+          ? {
+              stripePriceMonthlyId: state.stripePriceMonthlyId.trim(),
+              stripePriceYearlyId: state.stripePriceYearlyId.trim(),
+            }
+          : {}),
         autoscalingMaxOverscaleCpu: Number.parseFloat(state.autoscalingMaxOverscaleCpu),
         autoscalingMaxOverscaleRam: Number.parseFloat(state.autoscalingMaxOverscaleRam),
         autoscalingMaxOverscaleDisk: Number.parseFloat(state.autoscalingMaxOverscaleDisk),
@@ -141,6 +153,21 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
       const res = await updatePlanAction(plan.id, payload);
       if (res.ok) {
         setGlobalOk(res.message ?? "Zapisano.");
+        window.location.reload();
+      } else {
+        setGlobalError(res.error);
+      }
+    });
+  };
+
+  const handleSyncStripe = () => {
+    setGlobalError(null);
+    setGlobalOk(null);
+    startTransition(async () => {
+      const res = await syncPlanStripeAction(plan.id);
+      if (res.ok) {
+        setGlobalOk(res.message ?? "Zsynchronizowano ze Stripe.");
+        window.location.reload();
       } else {
         setGlobalError(res.error);
       }
@@ -353,26 +380,57 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
         </Field>
       </Section>
 
-      <Section title="Stripe Subscription Prices">
+      <Section title="Stripe (subskrypcje kartą)">
         <p className="md:col-span-2 text-xs text-muted-foreground -mt-2">
-          Klient może zapłacić kartą tylko jeśli odpowiednie Price ID jest
-          ustawione i zwalidowane. Walidacja sprawdza Stripe online (active,
-          currency, kwota, interval, licensed).
+          Domyślnie przy zapisie tworzymy lub aktualizujemy Product i recurring
+          Prices w Stripe (wymaga <code className="text-indigo-300">STRIPE_SECRET_KEY</code>
+          ). Zmiana ceny archiwizuje stary Price i zakłada nowy.
         </p>
-        <PriceIdField
-          label="Stripe Price ID — miesięcznie"
-          value={state.stripePriceMonthlyId}
-          onChange={(v) => setField("stripePriceMonthlyId", v)}
-          onValidate={() => validateStripe("month")}
-          feedback={monthlyValidation}
-        />
-        <PriceIdField
-          label="Stripe Price ID — rocznie"
-          value={state.stripePriceYearlyId}
-          onChange={(v) => setField("stripePriceYearlyId", v)}
-          onValidate={() => validateStripe("year")}
-          feedback={yearlyValidation}
-        />
+        <div className="md:col-span-2 space-y-2 rounded-lg border border-white/5 bg-white/[0.02] p-3 font-mono text-[11px] text-muted-foreground">
+          <StripeIdRow label="Product" value={stripeIds.productId} />
+          <StripeIdRow label="Price mies." value={stripeIds.monthlyId} />
+          <StripeIdRow label="Price rok" value={stripeIds.yearlyId} />
+        </div>
+        <div className="md:col-span-2 flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={handleSyncStripe}
+            disabled={pending}
+            className="inline-flex items-center gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-3 py-2 text-xs font-medium text-indigo-200 hover:bg-indigo-500/20 disabled:opacity-50"
+          >
+            {pending ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : (
+              <RefreshCw className="h-3 w-3" />
+            )}
+            Synchronizuj ze Stripe
+          </button>
+        </div>
+        <div className="md:col-span-2">
+          <ToggleRow
+            checked={stripeManual}
+            onChange={setStripeManual}
+            description="Ręczne Price ID z Dashboard (zaawansowane) — wyłącza auto-sync przy zapisie."
+          />
+        </div>
+        {stripeManual ? (
+          <>
+            <PriceIdField
+              label="Stripe Price ID — miesięcznie"
+              value={state.stripePriceMonthlyId}
+              onChange={(v) => setField("stripePriceMonthlyId", v)}
+              onValidate={() => validateStripe("month")}
+              feedback={monthlyValidation}
+            />
+            <PriceIdField
+              label="Stripe Price ID — rocznie"
+              value={state.stripePriceYearlyId}
+              onChange={(v) => setField("stripePriceYearlyId", v)}
+              onValidate={() => validateStripe("year")}
+              feedback={yearlyValidation}
+            />
+          </>
+        ) : null}
       </Section>
 
       <Section title="Sprzedaż i widoczność">
@@ -494,6 +552,15 @@ function ToggleRow({
         />
       </button>
       <p className="text-[11px] text-muted-foreground leading-tight">{description}</p>
+    </div>
+  );
+}
+
+function StripeIdRow({ label, value }: { label: string; value: string | null }) {
+  return (
+    <div className="flex gap-2">
+      <span className="w-24 shrink-0 text-white/40">{label}</span>
+      <span className="text-white/80 break-all">{value ?? "— (brak — zapisz lub synchronizuj)"}</span>
     </div>
   );
 }

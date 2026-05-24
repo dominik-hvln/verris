@@ -66,6 +66,37 @@ export class StripeService {
    * Sprint 4 / R-05 — bezpieczne odczytanie Stripe Price (zwraca `null` gdy
    * Stripe nie jest skonfigurowany, błąd 404 podnosi do BadRequestException).
    */
+  async createProduct(input: {
+    name: string;
+    description?: string;
+    metadata?: Record<string, string>;
+  }): Promise<{ id: string; name: string }> {
+    return this.wrapStripe(() => this.requireClient().createProduct(input));
+  }
+
+  async updateProduct(
+    productId: string,
+    input: { name?: string; description?: string; metadata?: Record<string, string> },
+  ): Promise<{ id: string }> {
+    return this.wrapStripe(() => this.requireClient().updateProduct(productId, input));
+  }
+
+  async createRecurringPrice(input: {
+    productId: string;
+    unitAmountMinor: number;
+    currency: string;
+    interval: 'month' | 'year';
+    nickname?: string;
+    metadata?: Record<string, string>;
+    idempotencyKey?: string;
+  }): Promise<StripePrice> {
+    return this.wrapStripe(() => this.requireClient().createRecurringPrice(input));
+  }
+
+  async deactivatePrice(priceId: string): Promise<StripePrice> {
+    return this.wrapStripe(() => this.requireClient().deactivatePrice(priceId));
+  }
+
   async retrievePriceOrThrow(priceId: string): Promise<StripePrice> {
     if (!this.client) {
       throw new ServiceUnavailableException(
@@ -161,6 +192,16 @@ export class StripeService {
       );
     }
     return this.client;
+  }
+
+  private async wrapStripe<T>(fn: () => Promise<T>): Promise<T> {
+    try {
+      return await fn();
+    } catch (e) {
+      const msg = (e as Error).message;
+      this.logger.warn(`Stripe API error: ${msg}`);
+      throw new BadRequestException(`Stripe: ${msg}`);
+    }
   }
 
   /**

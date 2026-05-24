@@ -495,6 +495,77 @@ export class StripeClient {
     );
   }
 
+  async createProduct(input: {
+    name: string;
+    description?: string;
+    metadata?: Record<string, string>;
+  }): Promise<{ id: string; name: string }> {
+    const body = new URLSearchParams();
+    body.set('name', input.name);
+    if (input.description) body.set('description', input.description);
+    if (input.metadata) {
+      for (const [k, v] of Object.entries(input.metadata)) {
+        body.set(`metadata[${k}]`, v);
+      }
+    }
+    return this.request<{ id: string; name: string }>('POST', '/products', body);
+  }
+
+  async updateProduct(
+    productId: string,
+    input: { name?: string; description?: string; metadata?: Record<string, string> },
+  ): Promise<{ id: string }> {
+    const body = new URLSearchParams();
+    if (input.name !== undefined) body.set('name', input.name);
+    if (input.description !== undefined) body.set('description', input.description);
+    if (input.metadata) {
+      for (const [k, v] of Object.entries(input.metadata)) {
+        body.set(`metadata[${k}]`, v);
+      }
+    }
+    return this.request<{ id: string }>(
+      'POST',
+      `/products/${encodeURIComponent(productId)}`,
+      body,
+    );
+  }
+
+  async createRecurringPrice(input: {
+    productId: string;
+    unitAmountMinor: number;
+    currency: string;
+    interval: 'month' | 'year';
+    nickname?: string;
+    metadata?: Record<string, string>;
+    idempotencyKey?: string;
+  }): Promise<StripePrice> {
+    const body = new URLSearchParams();
+    body.set('product', input.productId);
+    body.set('currency', input.currency.toLowerCase());
+    body.set('unit_amount', String(input.unitAmountMinor));
+    body.set('recurring[interval]', input.interval);
+    body.set('recurring[interval_count]', '1');
+    if (input.nickname) body.set('nickname', input.nickname);
+    if (input.metadata) {
+      for (const [k, v] of Object.entries(input.metadata)) {
+        body.set(`metadata[${k}]`, v);
+      }
+    }
+    return this.request<StripePrice>('POST', '/prices', body, {
+      idempotencyKey: input.idempotencyKey,
+    });
+  }
+
+  async deactivatePrice(priceId: string): Promise<StripePrice> {
+    const body = new URLSearchParams();
+    body.set('active', 'false');
+    return this.request<StripePrice>(
+      'POST',
+      `/prices/${encodeURIComponent(priceId)}`,
+      body,
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // Invoices
   // ---------------------------------------------------------------------------

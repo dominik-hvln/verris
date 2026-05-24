@@ -44,9 +44,9 @@ interface CreatePlanPayload {
 
 export async function createPlanAction(payload: CreatePlanPayload): Promise<PlanActionResult> {
   try {
-    await adminApi(`/admin/plans`, { method: "POST", body: payload });
+    const created = await adminApi<{ id: string }>(`/admin/plans`, { method: "POST", body: payload });
     revalidatePath("/plans");
-    return { ok: true, message: "Plan utworzony." };
+    return { ok: true, message: "Plan utworzony.", data: created };
   } catch (e) {
     if (e instanceof AdminApiError) {
       return { ok: false, error: e.message, status: e.status };
@@ -119,6 +119,20 @@ export interface ValidatedStripePrice {
     product: string;
     interval: string | null;
   };
+}
+
+export async function syncPlanStripeAction(id: string): Promise<PlanActionResult> {
+  try {
+    await adminApi(`/admin/plans/${id}/sync-stripe`, { method: "POST" });
+    revalidatePath("/plans");
+    revalidatePath(`/plans/${id}`);
+    return { ok: true, message: "Plan zsynchronizowany ze Stripe." };
+  } catch (e) {
+    if (e instanceof AdminApiError) {
+      return { ok: false, error: e.message, status: e.status };
+    }
+    return { ok: false, error: (e as Error).message };
+  }
 }
 
 export async function validateStripePriceAction(input: {
