@@ -12,7 +12,7 @@
 
 | # | Krok | Oczekiwany wynik | OK |
 |---|------|------------------|-----|
-| 1 | Właściciel: **IAM** → szablon **Support** → e-mail testowy → wyślij zaproszenie | Mail z linkiem `/accept-invite?token=…` | |
+| 1 | Właściciel: **IAM** → szablon **Support** → e-mail testowy → wyślij zaproszenie | Mail z linkiem `/accept-invite?token=…` | ✅ |
 | 2 | Otwórz link, ustaw hasło, aktywuj | Przekierowanie na login `?invite=accepted` | |
 | 3 | Zaloguj się jako subkonto | Menu: Dashboard, Support, Ustawienia; **brak** Portfela, Serwerów, IAM | |
 | 4 | `GET https://api.verris.pl/services` z JWT subkonta | **403** | |

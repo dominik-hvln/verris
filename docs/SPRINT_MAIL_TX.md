@@ -44,9 +44,10 @@ Każda ścieżka biznesowa wymagana na start hostingu wysyła branded mail z **V
 
 ## Kryterium DONE
 
-- [ ] Tabela w `mail/AUDIT.md` — wszystkie wiersze P0 = **DZIAŁA**
-- [ ] MAIL-2 → ✅ w `HOSTING_LAUNCH_TASKS.md`
-- [ ] Brak regresji mail-tester dla `panel@verris.pl` (≥ 9/10)
+- [x] Control-plane P0 (auth, billing wallet, IAM invite) — smoke prod 2026-05-24
+- [x] MAIL-2 control-plane → ✅ w `HOSTING_LAUNCH_TASKS.md`
+- [x] mail-tester `panel@verris.pl` — 10/10 (MAIL-3)
+- [ ] Hosting maile (`SERVICE_*`, provisioning) — po **GO-HOST**
 
 ## Następny sprint
 
