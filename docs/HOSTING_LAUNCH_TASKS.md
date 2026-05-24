@@ -1,7 +1,7 @@
 # Hosting LIVE — master backlog (źródło prawdy)
 
 > **Ten plik = jedyna lista** do śledzenia: co zrobione, w toku, do zrobienia.  
-> **Ostatnia aktualizacja:** 2026-05-24 · prod **`75349b0`** (login: info box e-mail)  
+> **Ostatnia aktualizacja:** 2026-05-24 · prod **`fbc954f`** (MAIL-4 API + panele; SOGo infra ⏳)  
 > **Zasada GO:** [LIVE_PRODUCT_SCOPE_DECISION.md](../LIVE_PRODUCT_SCOPE_DECISION.md)
 
 ---
