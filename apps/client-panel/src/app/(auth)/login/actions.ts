@@ -6,6 +6,7 @@ import { apiFetch, ApiError } from "@/lib/api";
 
 interface LoginState {
   error?: string;
+  emailUnverified?: boolean;
   twoFactorRequired?: boolean;
   challengeToken?: string;
   email?: string;
@@ -50,9 +51,10 @@ export async function submitLogin(
   } catch (e: unknown) {
     if (e instanceof ApiError && e.status === 401) {
       const msg = e.message.toLowerCase();
-      if (msg.includes("potwierdź adres e-mail") || msg.includes("e-mail")) {
+      if (msg.includes("potwierdź adres e-mail")) {
         return {
-          error: e.message,
+          error:
+            "Zanim się zalogujesz, potwierdź adres e-mail — sprawdź skrzynkę (także folder spam) lub wyślij link ponownie.",
           emailUnverified: true,
           email,
         };

@@ -2,7 +2,7 @@
 
 import { useActionState, useState, useEffect } from "react";
 import { submitLogin, submitTwoFactor } from "./actions";
-import { Loader2, AlertCircle, ShieldCheck } from "lucide-react";
+import { Loader2, AlertCircle, ShieldCheck, Mail } from "lucide-react";
 import { SpinBorder } from "@/components/spin-border";
 import { Suspense } from "react";
 import { LoginNotices } from "./login-notices";
@@ -39,18 +39,27 @@ export default function LoginPage() {
           </Suspense>
           {loginState?.error && (
             <div className="space-y-2 mb-2 animate-in fade-in zoom-in-95">
-              <div className="flex items-center gap-3 p-4 text-sm font-medium text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl">
-                <AlertCircle className="h-5 w-5 shrink-0" />
-                {loginState.error}
-              </div>
-              {loginState.emailUnverified && loginState.email ? (
-                <a
-                  href={`/resend-verification?email=${encodeURIComponent(loginState.email)}`}
-                  className="block text-center text-xs font-semibold text-sky-400 hover:text-sky-300"
-                >
-                  Wyślij link potwierdzający ponownie
-                </a>
-              ) : null}
+              {loginState.emailUnverified ? (
+                <div className="flex items-start gap-3 p-4 text-sm text-sky-100 bg-sky-500/10 border border-sky-400/25 rounded-xl">
+                  <Mail className="h-5 w-5 shrink-0 mt-0.5 text-sky-300" />
+                  <div className="space-y-2">
+                    <p>{loginState.error}</p>
+                    {loginState.email ? (
+                      <a
+                        href={`/resend-verification?email=${encodeURIComponent(loginState.email)}`}
+                        className="inline-block text-xs font-semibold text-sky-300 hover:text-sky-200 underline-offset-2 hover:underline"
+                      >
+                        Wyślij link potwierdzający ponownie
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 p-4 text-sm font-medium text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl">
+                  <AlertCircle className="h-5 w-5 shrink-0" />
+                  {loginState.error}
+                </div>
+              )}
             </div>
           )}
 
