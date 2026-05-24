@@ -13,8 +13,10 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/forgot-password") ||
     pathname.startsWith("/reset-password");
   const isPublicHandoff = pathname === "/impersonate" || pathname.startsWith("/accept-invite");
+  /** Regulamin, polityka prywatności, cookies, DPA — publiczne (API /legal bez JWT). */
+  const isPublicLegal = pathname.startsWith("/legal");
 
-  if (!token && !isAuthPage && !isPublicHandoff && pathname !== "/") {
+  if (!token && !isAuthPage && !isPublicHandoff && !isPublicLegal && pathname !== "/") {
     return NextResponse.redirect(publicPanelUrl(request, "/login"));
   }
 
