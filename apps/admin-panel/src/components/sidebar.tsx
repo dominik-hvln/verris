@@ -68,6 +68,7 @@ const adminNavItems = [
       { name: "Ustawienia", href: "/settings", icon: Settings },
       { name: "Ustawienia platformy", href: "/settings/platform", icon: Gauge },
       { name: "Poczta (SMTP)", href: "/settings/mail", icon: Mail },
+      { name: "Poczta zespołu", href: "/settings/team-mail", icon: Mail },
     ],
   },
 ];

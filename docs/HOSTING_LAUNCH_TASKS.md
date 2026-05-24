@@ -75,9 +75,9 @@
 | OPS-4 | GO_NO_GO checklist | **GO-OPS** |
 | OPS-1, OPS-6 | PROD_HEALTH §1–12 | **GO-OPS** |
 | BILL-1 #6 | Stripe **live** keys przed zewnętrznymi klientami | **GO-BILL** |
-| MAIL-4a | Postfix virtual + Dovecot + UFW inbound | **MAIL-4a** |
-| MAIL-4b | Admin CRUD skrzynek | **MAIL-4b** |
-| MAIL-4c | Staff webmail + IMAP | **MAIL-4c** |
+| MAIL-4a | Postfix virtual + Dovecot + SOGo + UFW | **MAIL-4a** — [`SOGO_MAIL_DEPLOY.md`](./ops/SOGO_MAIL_DEPLOY.md) |
+| MAIL-4b | Admin CRUD skrzynek (`/settings/team-mail`) | **MAIL-4b** 🔄 w kodzie |
+| MAIL-4c | SOGo + staff IMAP info + desktop | **MAIL-4c** |
 | MAIL-4d | Aliasy, forwardy, import OVH, Rspamd | **MAIL-4d** |
 | VER-* | Weryfikacja prod (DNS, migracje, CI) | **P0-VER** |
 
@@ -108,7 +108,7 @@
 | 5 | **P0-VER** | 2–3 d | VER-1…12 | Checklisty prod, DNS, healthz/readyz |
 | 6 | **MAIL-4a** | 5–7 d | MAIL-4 | Virtual domains, Dovecot, UFW — [spec](./ops/MAIL-4_CONTROL_PLANE_MAIL.md) |
 | 7 | **MAIL-4b** | 5–7 d | MAIL-4 | Admin CRUD + adresy systemowe |
-| 8 | **MAIL-4c** | 5–7 d | MAIL-4 | Staff webmail |
+| 8 | **MAIL-4c** | 3–5 d | MAIL-4 | SOGo + IMAP desktop + staff connection-info |
 | 9 | **MAIL-4d** | 3–5 d | MAIL-4 | Aliasy, OVH import, Rspamd |
 
 **Kryterium „bez węzła done” (przed GO-HOST):**
@@ -188,7 +188,7 @@ DEPLOY_SERVICES="api client-panel admin-panel" ./ops/scripts/prod-deploy-release
 | LEG-1…6 | 🔄 / ⏸️ | |
 | MAIL-2 | ✅ | control-plane smoke 2026-05-24; hosting maile po GO-HOST |
 | MAIL-3, MAIL-1 | ✅ | |
-| MAIL-4 | ⏳ | Sprinty 4a–4d |
+| MAIL-4 | 🔄 | API skrzynek + admin UI; infra SOGo na serwerze (4a) |
 
 ---
 

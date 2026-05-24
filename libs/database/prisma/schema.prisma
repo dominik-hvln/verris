@@ -186,6 +186,9 @@ model User {
   // Auth tokens (password reset, future email verify)
   authTokens                UserAuthToken[]
 
+  // MAIL-4 — skrzynka zespołu @verris.pl (SOGo + IMAP)
+  controlPlaneMailbox       ControlPlaneMailbox?
+
   // Sprint 7 — pakietowe migracje
   migrationRequests         MigrationRequest[]
 }
@@ -2022,6 +2025,86 @@ model AccountDeletionRequest {
 }
 
 /// Global product configuration (EKO thresholds, session timeouts, badge rules).
+// -----------------------------------------------------------------------------
+// MAIL-4 — poczta zespołu @verris.pl (Postfix + Dovecot + SOGo)
+// -----------------------------------------------------------------------------
+
+enum ControlPlaneMailboxKind {
+  SYSTEM
+  STAFF
+  ALIAS_ONLY
+}
+
+enum ControlPlaneMailboxStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_MIGRATION
+}
+
+enum ControlPlaneSystemAddressRole {
+  NOREPLY
+  SUPPORT
+  SECURITY
+  RODO
+  BILLING
+  DMARC_RUA
+  PANEL
+}
+
+model ControlPlaneMailbox {
+  id           String                    @id @default(uuid())
+  localPart    String
+  domain       String                    @default("verris.pl")
+  email        String                    @unique
+  kind         ControlPlaneMailboxKind
+  status       ControlPlaneMailboxStatus @default(ACTIVE)
+  displayName  String?
+  userId       String?                   @unique
+  user         User?                     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  quotaMb      Int                       @default(1024)
+  usedBytes    BigInt                    @default(0)
+  imapEnabled  Boolean                   @default(true)
+  /// Dovecot {BLF-CRYPT} — null dla SYSTEM / ALIAS_ONLY
+  passwordHash String?
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  createdById  String?
+
+  aliases      ControlPlaneMailAlias[]   @relation("MailboxAliasTarget")
+  forwards     ControlPlaneMailForward[]
+
+  @@unique([localPart, domain])
+  @@index([status, kind])
+}
+
+model ControlPlaneMailAlias {
+  id         String              @id @default(uuid())
+  aliasEmail String              @unique
+  targetId   String
+  target     ControlPlaneMailbox @relation("MailboxAliasTarget", fields: [targetId], references: [id], onDelete: Cascade)
+  createdAt  DateTime            @default(now())
+}
+
+model ControlPlaneMailForward {
+  id                String              @id @default(uuid())
+  mailboxId         String
+  mailbox           ControlPlaneMailbox @relation(fields: [mailboxId], references: [id], onDelete: Cascade)
+  forwardTo         String
+  confirmedAt       DateTime?
+  confirmationToken String?             @unique
+  keepCopy          Boolean             @default(true)
+  createdAt         DateTime            @default(now())
+
+  @@index([mailboxId])
+}
+
+model ControlPlaneSystemAddress {
+  role      ControlPlaneSystemAddressRole @id
+  email     String                        @unique
+  mailboxId String?
+  updatedAt DateTime                      @updatedAt
+}
+
 model PlatformSetting {
   key             String   @id
   value           String   @db.Text

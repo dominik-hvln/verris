@@ -32,6 +32,7 @@ import { ProductOpsModule } from './product-ops/product-ops.module';
 import { CustomerPermissionsGuard } from './common/guards/customer-permissions.guard';
 import { AiModule } from './ai/ai.module';
 import { PlatformSettingsModule } from './platform-settings/platform-settings.module';
+import { ControlPlaneMailModule } from './control-plane-mail/control-plane-mail.module';
 
 @Module({
   imports: [
@@ -67,6 +68,7 @@ import { PlatformSettingsModule } from './platform-settings/platform-settings.mo
     ProductOpsModule,
     AiModule,
     PlatformSettingsModule,
+    ControlPlaneMailModule,
   ],
   controllers: [],
   providers: [{ provide: APP_GUARD, useClass: CustomerPermissionsGuard }],

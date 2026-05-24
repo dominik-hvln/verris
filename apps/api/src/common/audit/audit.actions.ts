@@ -133,6 +133,15 @@ export const TicketOpsActions = {
   CUSTOMER_RISK_FLAG_UPDATED: 'CUSTOMER_RISK_FLAG_UPDATED',
 } as const;
 
+export const ControlPlaneMailActions = {
+  MAILBOX_CREATED: 'MAILBOX_CREATED',
+  MAILBOX_UPDATED: 'MAILBOX_UPDATED',
+  MAILBOX_PASSWORD_RESET: 'MAILBOX_PASSWORD_RESET',
+  MAIL_ALIAS_ADDED: 'MAIL_ALIAS_ADDED',
+  MAIL_ALIAS_REMOVED: 'MAIL_ALIAS_REMOVED',
+  MAIL_POSTFIX_MAPS_SYNCED: 'MAIL_POSTFIX_MAPS_SYNCED',
+} as const;
+
 export const ProductOpsActions = {
   FEATURE_FLAG_CREATED: 'FEATURE_FLAG_CREATED',
   FEATURE_FLAG_UPDATED: 'FEATURE_FLAG_UPDATED',
@@ -158,6 +167,7 @@ export const ADMIN_OPS_ACTION_SET: ReadonlySet<string> = new Set([
   ...Object.values(MigrationActions),
   ...Object.values(TicketOpsActions),
   ...Object.values(ProductOpsActions),
+  ...Object.values(ControlPlaneMailActions),
 ]);
 
 export function isAdminOpsAction(action: string): boolean {

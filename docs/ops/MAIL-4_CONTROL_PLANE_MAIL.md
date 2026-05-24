@@ -17,7 +17,9 @@
 | **Przekierowania** | forward na zewnętrzny email (z potwierdzeniem opt-in) |
 | **Odbiór (MX)** | SMTP 25 z internetu → Postfix → Dovecot (Maildir) |
 | **Wysyłka** | API (`MailerService`) + opcjonalnie SMTP submission **587** / IMAP **993** dla staff |
-| **Webmail** | Podstawowy podgląd / lista / odczyt w **staff-panel** (lub osobna `/mail`) — nie pełny Roundcube na start, ale czytelna skrzynka LIVE |
+| **Webmail + kalendarz** | **[SOGo](https://www.sogo.nu/)** na `https://mail.verris.pl/SOGo` — nie własny webmail w React |
+| **Desktop** | IMAP 993 / SMTP 587 — Outlook, Thunderbird, Apple Mail |
+| **Panel staff** | Tylko **dane połączenia** (`/staff/mail/connection-info`) — bez skrzynki w przeglądarce Verris |
 | **Hasła skrzynek** | Generowane, rotacja, reset przez admina; opcjonalnie SSO (tylko odbiór przez panel bez hasła IMAP) |
 | **RBAC** | Tylko `SUPER_ADMIN` / rola „Poczta” zarządza skrzynkami; staff widzi **tylko swoją** skrzynkę |
 | **Audyt** | Każda zmiana skrzynki/aliasu/DNS mail w `AuditLog` |
@@ -277,7 +279,7 @@ Wszystkie triggery z [`docs/mail/AUDIT.md`](../mail/AUDIT.md) używają:
 |--------|--------------|-------------------|
 | **4a** | Postfix virtual maps + Dovecot + UFW 25/587 + generator map z API | Odbiór `@verris.pl` działa technicznie |
 | **4b** | Admin CRUD skrzynki + system addresses + audyt | Admin zarządza zespołem bez SSH |
-| **4c** | Staff webmail LIGHT + IMAP 993 | Support czyta `support@` w panelu |
+| **4c** | SOGo LIVE + staff connection-info + IMAP 993 | Webmail/kalendarz w SOGo; desktop IMAP |
 | **4d** | Aliasy, forwardy z potwierdzeniem, import OVH | Migracja zakończona |
 | **4e** | Rspamd + tuning deliverability + mail-tester w runbook | SPAM < 1% na testach |
 
