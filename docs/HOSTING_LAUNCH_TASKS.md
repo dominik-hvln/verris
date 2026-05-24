@@ -89,7 +89,8 @@
 | LEG-5…6 | Brak TODO, subprocessors | ⏳ | |
 | MAIL-1 | SMTP: Postfix lokalny + opcjonalny relay w admin | ✅ | `441e279` — admin **Ustawienia → Poczta (SMTP)** |
 | MAIL-2 | Min. maile LIVE (audyt triggerów) | 🟡 | Postfix OK; test z admina po zalogowaniu |
-| MAIL-3 | Postfix na hoście + SPF/DKIM/DMARC | 🟡 | Postfix ✅; OVH SPF/MX ⏳ [OVH_DNS_VERRIS_PL.md](./ops/OVH_DNS_VERRIS_PL.md); PTR Hetzner ⏳ |
+| MAIL-3 | Postfix na hoście + SPF/DKIM/DMARC | 🟡 | DNS/MX ✅; DKIM naprawiony 2026-05-24; deliverability: [MAIL_DELIVERABILITY.md](./ops/MAIL_DELIVERABILITY.md) |
+| MAIL-4 | Poczta zespołu @verris.pl (pełny zakres) | ⏳ | Spec: [MAIL-4_CONTROL_PLANE_MAIL.md](./ops/MAIL-4_CONTROL_PLANE_MAIL.md) |
 
 ---
 

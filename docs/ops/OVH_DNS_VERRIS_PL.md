@@ -78,19 +78,35 @@ v=spf1 ip4:204.168.174.138 a:mail.verris.pl include:mx.ovh.com ~all
 
 Na czas migracji `~all` (soft fail). Po testach mail-tester i braku problemów: `-all` i ewentualnie usunięcie `include:mx.ovh.com` jeśli OVH mail nieużywany.
 
-**B) Cała poczta @verris.pl tylko z panelu** (później, gdy Postfix odbiera):
+**B) Cała poczta @verris.pl tylko z panelu** (obecny wariant):
 
 ```
-v=spf1 ip4:204.168.174.138 mx:mail.verris.pl -all
+v=spf1 ip4:204.168.174.138 ip6:2a01:4f9:c014:da28::1 a:mail.verris.pl -all
 ```
 
-oraz **MX**:
+### Jak ustawić MX w OVH (prawidłowo)
 
-| Priorytet | Serwer |
-|-----------|--------|
-| 10 | `mail.verris.pl` |
+1. Zaloguj się: **OVHcloud Manager** → **Nazwy domenowe** → **verris.pl** → zakładka **Strefa DNS**.
+2. **Usuń** wszystkie stare rekordy MX (np. `mx1.mail.ovh.net`, `mx2.mail.ovh.net`, `mx3.mail.ovh.net` oraz **duplikaty** `mail.verris.pl` z priorytetami 1, 5, 100 — zostaw tylko jeden).
+3. **Dodaj** jeden rekord:
+   - **Typ:** `MX`
+   - **Poddomena:** zostaw puste lub `@` (apex domeny `verris.pl`)
+   - **Cel / target:** `mail.verris.pl` (kropka na końcu nie jest wymagana w UI OVH)
+   - **Priorytet:** `10` (im niższa liczba, tym wyższy priorytet — 10 jest OK)
+4. Upewnij się, że istnieje **A** i **AAAA** dla `mail`:
+   - `mail` → A → `204.168.174.138`
+   - `mail` → AAAA → `2a01:4f9:c014:da28::1`
+5. Zapisz. Weryfikacja:
 
-**Na LIVE start bez inbound na panelu:** zostaw **MX OVH**, zmień tylko **SPF (wariant A)** + **DKIM** + **DMARC** + **A `mail`**.
+```bash
+dig +short verris.pl MX | sort -n
+# Oczekiwane (jedna linia):
+# 10 mail.verris.pl.
+```
+
+**Nie** ustawiaj wielu MX z tym samym hostem i różnymi priorytetami — to nie zwiększa niezawodności, tylko myli diagnostykę.
+
+**Odbiór na panelu (po zmianie MX z OVH):** na serwerze jeszcze brak skrzynek wirtualnych (`virtual_mailbox_maps` puste) i **UFW nie wpuszcza SMTP z internetu** (port 25 tylko z Docker). Do pełnego odbioru: Dovecot + mapy skrzynek + `ufw allow 25/tcp` + UI w admin-panel (MAIL-4). Do tego czasu działa głównie **wysyłka** (API → Postfix).
 
 ---
 
