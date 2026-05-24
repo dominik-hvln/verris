@@ -1,59 +1,68 @@
-# Restore test Postgres z MinIO (C.4)
+# Restore test Postgres z MinIO (OPS-2 / C.4)
 
 > **Cel:** potwierdzić, że backup w `verris-backups/postgres/` da się odtworzyć.  
-> **Gdzie:** staging / osobna maszyna — **nie** na produkcyjnej bazie z klientami bez okna maintenance.  
-> **Kontakt / eskalacja (wynik testu, problemy):** dominik@hvln.pl
+> **Środowisko (2026-05-24):** jeden serwer pre-LIVE (`204.168.174.138`) — **bez osobnego stagingu**; przed startem LIVE 100% serwer zostanie zresetowany.  
+> **Kontakt:** dominik@hvln.pl
 
-## Wymagania
+---
 
-- Ten sam stack co prod (`docker-compose.prod.yml`) lub klon węzła
-- `.env.prod` z credentials MinIO
-- Ostatni obiekt `verris-backups/postgres/latest.sql.gz` istnieje
+## Tryb A — drill bez niszczenia `verris_db` (zalecany teraz)
 
-## Procedura (staging)
+Skrypt przywraca dump do **tymczasowej** bazy `verris_restore_drill` i usuwa ją po teście.
 
 ```bash
-cd /opt/verris   # lub katalog staging
+cd /opt/verris
 set -a && source .env.prod && set +a
 
-# 1. Zatrzymaj API (opcjonalnie, zalecane)
-docker compose -f docker-compose.prod.yml --env-file .env.prod stop api client-panel staff-panel admin-panel
-
-# 2. Restore (interaktywnie wymaga --confirm)
-./ops/restore-postgres.sh --from-minio latest.sql.gz --confirm
-
-# 3. Migracje (jeśli dump starszy niż HEAD)
-bash ops/scripts/prod-migrate-deploy.sh
-
-# 4. Smoke
-curl -sf http://127.0.0.1:3000/healthz
-docker compose -f docker-compose.prod.yml --env-file .env.prod exec -T postgres \
-  psql -U "$POSTGRES_USER" -d "$POSTGRES_DB" -c "SELECT COUNT(*) FROM \"User\";"
-
-# 5. Uruchom panele
-docker compose -f docker-compose.prod.yml --env-file .env.prod up -d api client-panel
-```
-
-## Weryfikacja MinIO przed restore
-
-```bash
+# Weryfikacja obiektu w MinIO
 docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm --no-deps \
   --entrypoint /bin/sh minio-bootstrap -c '
   mc alias set verris http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
   mc ls verris/verris-backups/postgres/
   mc stat verris/verris-backups/postgres/latest.sql.gz
 '
+
+# Drill (nie dotyka verris_db)
+chmod +x ops/scripts/restore-drill-isolated.sh
+./ops/scripts/restore-drill-isolated.sh
 ```
 
-## Po teście
+Oczekiwany koniec: `RESTORE DRILL OK` + sensowny `User count`.
 
-Wpisz w `PROD_HEALTH_CHECKLIST.md` §7:
+Opcje:
+
+- `--object nazwa.sql.gz` — inny plik z MinIO niż `latest.sql.gz`
+- `--keep-db` — zostaw `verris_restore_drill` do ręcznej inspekcji
+
+---
+
+## Tryb B — pełny restore na `verris_db` (tylko przed resetem LIVE)
+
+**Nie uruchamiaj** na serwerze z prawdziwymi klientami. Na obecnym hoście pre-LIVE — **tylko tuż przed** planowanym resetem / czystą instalacją LIVE.
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.prod stop api client-panel staff-panel admin-panel
+./ops/restore-postgres.sh --from-minio latest.sql.gz --confirm
+bash ops/scripts/prod-migrate-deploy.sh
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d api client-panel
+curl -sf http://127.0.0.1:3000/healthz
+```
+
+---
+
+## Po teście (Tryb A wystarczy dla OPS-2 na pre-LIVE)
+
+Wpisz w `PROD_HEALTH_CHECKLIST.md` §7 i `HOSTING_LAUNCH_TASKS.md` (OPS-2):
 
 | Pomiar | Wartość |
 |--------|---------|
-| Restore test (last) | data + `latest.sql.gz` + środowisko (staging) |
+| Restore drill (last) | data + `latest.sql.gz` + `verris_restore_drill` |
+| Serwer | pre-LIVE (ten sam co prod docelowo) |
 | Status | ✅ |
+
+---
 
 ## Rollback
 
-Jeśli restore na staging się nie powiódł — zostaw notatkę w issue; prod **nie** dotykaj do czasu analizy logów `/var/log/verris-backup.log` i `mc ls`.
+- Tryb A: nie wymaga rollbacku (`verris_db` nietknięty).
+- Tryb B: ponowny deploy / restore z innego dumpu lub reset serwera przed LIVE.

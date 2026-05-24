@@ -5,13 +5,13 @@
 
 ## Cel
 
-Operacyjna gotowość do startu hostingu: backup odtwarzalny na staging, alerty, pełny smoke runbook, odhaczenie GO/PROD_HEALTH.
+Operacyjna gotowość do startu hostingu: backup odtwarzalny (drill na pre-LIVE serwerze), alerty, pełny smoke runbook, odhaczenie GO/PROD_HEALTH.
 
 ## Zakres
 
 | # | Task | Dokument | DONE |
 |---|------|----------|------|
-| 1 | Restore Postgres z MinIO na **staging** | [`ops/RESTORE_TEST.md`](./ops/RESTORE_TEST.md) | ⏳ |
+| 1 | Restore drill (baza `verris_restore_drill`) | [`ops/RESTORE_TEST.md`](./ops/RESTORE_TEST.md) | 🔄 |
 | 2 | Grafana: test contact point `verris-ops-email` | [`ops/GRAFANA_ALERTING.md`](./ops/GRAFANA_ALERTING.md) | ⏳ |
 | 3 | Smoke `SPRINT_0_OPS` + `LIVE_RELEASE_RUNBOOK` | [`SPRINT_0_OPS_SMOKE.md`](./SPRINT_0_OPS_SMOKE.md) | ⏳ |
 | 4 | `PROD_HEALTH_CHECKLIST.md` §1–12 | — | 🟡 |
@@ -25,7 +25,7 @@ Operacyjna gotowość do startu hostingu: backup odtwarzalny na staging, alerty,
 
 ## Kryterium DONE
 
-- [ ] OPS-2 ✅ (data, plik `latest.sql.gz`, środowisko staging)
+- [ ] OPS-2 ✅ (data, `latest.sql.gz`, drill OK na pre-LIVE serwerze)
 - [ ] OPS-3 ✅ (test mail alertu odebrany)
 - [ ] OPS-5 + OPS-4 ✅
 - [ ] Brak otwartych **P0-BLK** w sekcji Operacje

@@ -12,7 +12,7 @@
 |----|---------|-------|
 | **D-1** | **Subkonta IAM od startu** oferty | VER-11 / IAM smoke = **P0-BLK**; Regulamin §5a |
 | **D-2** | Płatności: **tylko Stripe** (+ portfel K) | PayU/E-1 = P2, ukryte; Regulamin §7 |
-| **D-3** | **Staging jest** — restore test tam (OPS-2) | Nie restore na prod z klientami |
+| **D-3** | **Jeden serwer pre-LIVE** (brak staging) — restore drill izolowany; pełny restore przed resetem LIVE | [`RESTORE_TEST.md`](./ops/RESTORE_TEST.md) tryb A/B |
 | **D-4** | Agent przygotowuje drafty → Ty → prawnik → wgranie review | LEG-1 🔄, LEG-2 ⏸️ do prawnika |
 | **D-5** | Alerty: **dominik@hvln.pl**; Slack przygotowany, włączyć później | [GRAFANA_ALERTING.md](./ops/GRAFANA_ALERTING.md) |
 
@@ -87,7 +87,7 @@ flowchart LR
 | Krok | ID | Opis | Status |
 |------|-----|------|--------|
 | 1 | GO-IAM | VER-11 + IAM-2 | ✅ | Smoke 2026-05-24 PASS |
-| 2 | GO-OPS | Restore, alerty, smoke, GO | ⏳ | Po IAM |
+| 2 | GO-OPS | Restore drill, alerty, smoke, GO | 🔄 | Tryb A na pre-LIVE serwerze |
 | 3 | GO-HOST / GO-BILL | Hosting + Stripe live | ⏳ | |
 | 4 | MAIL-TX | Maile transakcyjne | ⏳ | Po GO-OPS |
 | 5 | MAIL-4a…d | Poczta zespołu @verris.pl | ⏳ | [MAIL-4_CONTROL_PLANE_MAIL.md](./ops/MAIL-4_CONTROL_PLANE_MAIL.md) |
@@ -117,7 +117,7 @@ flowchart LR
 | ID | Task | Status | Uwagi |
 |----|------|--------|-------|
 | OPS-1 | PROD_HEALTH §1–12 bez ❌ | 🟡 | Dysk ✅ |
-| OPS-2 | Restore test staging | ⏳ | dominik@hvln.pl |
+| OPS-2 | Restore test (MinIO → DB) | 🔄 | Tryb A: `restore-drill-isolated.sh` na pre-LIVE |
 | OPS-3 | Grafana → dominik@hvln.pl | 🟡 | Provisioning + GF_SMTP ✅; domknąć test alertu w UI (GO-OPS) |
 | OPS-4 | GO_NO_GO odhaczone | ⏳ | |
 | OPS-5 | Smoke SPRINT_0_OPS | ⏳ | |
