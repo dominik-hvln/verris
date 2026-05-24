@@ -1,7 +1,7 @@
 # Lista podmiotów przetwarzających (subprocessors) — DRAFT
 
-> **Status:** DRAFT do lawyer review. Publikować razem z Polityką prywatności i DPA.  
-> **Ostatnia aktualizacja:** 2026-05-23
+> **Status:** DRAFT do lawyer review. **Wersja kanoniczna w panelu:** sekcja 4 w `privacy.md` (tabela podmiotów przetwarzających). Ten plik = źródło robocze / załącznik do paczki dla prawnika.  
+> **Ostatnia aktualizacja:** 2026-05-24
 
 | Podmiot | Siedziba / region | Cel przetwarzania | Dane |
 |---------|-------------------|-------------------|------|

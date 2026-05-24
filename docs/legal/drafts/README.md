@@ -1,14 +1,17 @@
 # Drafty dokumentów prawnych Verris
 
-> **Status: DRAFT 0.2 — gotowce do przesłania prawnikowi.** NIE PUBLIKOWAĆ jako wiążące do czasu review i importu do `LegalDocument`.
+> **Status: DRAFT 0.2 — gotowce do przesłania prawnikowi.** Treść przygotowana pod polskie prawo (m.in. RODO, UOKiK/odstąpienie, PTel, ustawa o świadczeniu usług drogą elektroniczną) oraz praktyki operatorów hostingu w PL/EU (regulamin, SLA, portfel, IAM, Stripe).
 
 ## Workflow (decyzja D-4, 2026-05-23)
 
-1. **Agent** utrzymuje drafty w `docs/legal/drafts/` (regulamin, privacy, cookies, DPA, subprocessors) — wersja **0.2** z IAM, Stripe-only, listą processorów.
-2. **Dominik** przesyła paczkę do prawnika (wszystkie pliki + `README.md` założenia).
-3. **Prawnik** zwraca poprawioną treść → zapis jako `*-1.0.0-lawyer.md` lub bezpośrednia edycja draftów.
-4. **Dominik** wgrywa zatwierdzoną wersję → **LEG-3** publikacja w admin / seed `LegalDocument`.
-5. **Smoke** re-consent (LEG-4).
+1. **Agent** utrzymuje drafty w `docs/legal/drafts/` (regulamin, privacy, cookies, DPA; lista processorów w privacy §4).
+2. **Publikacja do panelu (przegląd, nie finał LIVE):** na prod `./ops/scripts/prod-legal-publish-draft-review.sh` → w bazie `1.0.0-draft`, `isCurrent=true` — widoczne pod `/legal/terms`, `/legal/privacy`, `/legal/cookies`, DPA w panelu. **Rejestracja** wymaga akceptacji regulaminu + polityki (te wersje draft).
+3. **Dominik** przesyła paczkę do prawnika: pliki z `docs/legal/drafts/` + ten README + linki `/legal/*` w panelu.
+4. **Prawnik** zwraca poprawioną treść → edycja draftów lub pliki `*-lawyer.md`.
+5. **Po akceptacji** — **LEG-3:** admin → Compliance → **Opublikuj** wersję **`1.0.0`** (nowa treść; wymusza re-consent u istniejących użytkowników).
+6. **Smoke** re-consent (LEG-4).
+
+> **Nie używać** `prod-legal-prelive-publish.sh` (przestarzały skrót tylko pod rejestrację). Jedyny skrypt publikacji draftów: `prod-legal-publish-draft-review.sh`.
 
 ## Pliki
 

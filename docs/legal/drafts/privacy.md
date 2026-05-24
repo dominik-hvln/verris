@@ -90,9 +90,21 @@ Działają na nasze zlecenie i wyłącznie w celach przez nas wskazanych, na pod
 - **Stripe Payments Europe Ltd.** (Irlandia, EOG) — operator płatności kartą, BLIK/P24, Apple Pay, Google Pay.
 - **Dostawca infrastruktury VPS** (EOG) — hosting control-plane Verris (API, panele, baza danych).
 - **MinIO (instancja self-hosted na infrastrukturze Verris, EOG)** — backupy, załączniki ticketów, eksporty RODO.
-- **Dostawca SMTP / poczty transakcyjnej** (EOG — nazwa do uzupełnienia przed publikacją, np. Resend EU) — wysyłka e-maili transakcyjnych.
+- **Postfix (MTA na infrastrukturze control-plane Verris, Polska / EOG)** — domyślna wysyłka maili transakcyjnych z domeny `verris.pl`.
+- **Opcjonalny zewnętrzny relay SMTP** (EOG, konfigurowany w panelu admina) — tylko gdy włączony tryb external.
 
-Pełna lista: [`subprocessors.md`](./subprocessors.md) (aktualizowana przed LIVE i przy każdej zmianie).
+**Pełna lista podmiotów przetwarzających (stan na publikację draftu):**
+
+| Podmiot | Siedziba / region | Cel przetwarzania | Zakres danych |
+| --- | --- | --- | --- |
+| **Stripe Payments Europe Ltd.** | Irlandia (EOG) | Płatności kartą, Apple/Google Pay, BLIK/P24 przez Stripe | Identyfikatory płatności, ostatnie 4 cyfry karty, status transakcji — **nie** pełny numer karty |
+| **Dostawca VPS (control-plane)** | EOG (umowa z dostawcą) | Hosting API, paneli klienta/staff/admin, PostgreSQL, Redis, MinIO | Dane przetwarzane w systemie Verris na serwerze control-plane |
+| **MinIO (self-hosted na control-plane)** | Polska / EOG | Backupy bazy, załączniki ticketów, eksporty RODO | Kopie zapasowe DB, pliki użytkowników |
+| **Postfix (MTA, HVLN / control-plane)** | Polska / EOG | Wysyłka maili transakcyjnych | Adres odbiorcy, treść wiadomości, status doręczenia |
+| **Zewnętrzny relay SMTP** (opcjonalny) | EOG | Wysyłka gdy skonfigurowany relay w adminie | Jak wyżej — tylko jeśli włączony |
+| **Węzeł obliczeniowy (compute-node)** | EOG | Usługa hostingowa (DirectAdmin, pliki Klienta) | Dane hostowane przez Klienta — Verris jako processor (DPA) |
+
+**Poza EOG:** brak planowanych transferów przy starcie oferty. W razie zmiany listy — powiadomienie Klientów min. 30 dni wcześniej (Regulamin, DPA §7).
 
 ### 4.2 Organy państwowe
 

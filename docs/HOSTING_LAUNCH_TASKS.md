@@ -189,7 +189,7 @@ Teraz: pkt **1, 6–10** (auth, IAM, BOK, backup, Grafana, status). Po węźle: 
 | HOST-1…4 | Węzeł + DA + provisioning + operacja DA | ⏳ | Smoke |
 | BILL-1 | Stripe Sandbox skonfigurowany | ✅ | `sk_test_`, webhook, URL-e; live keys przed GO (#6) |
 | BILL-2 | Smoke billing (Sandbox) | ✅ | 2026-05-24: top-up testowa karta, saldo + mail OK |
-| LEG-1 | Drafty 0.2 | 🔄 | IAM, Stripe, subprocessors · pre-LIVE: `prod-legal-prelive-publish.sh` (rejestracja) |
+| LEG-1 | Drafty 0.2 + publikacja do panelu (`1.0.0-draft`) | 🔄 | `docs/legal/drafts/` · skrypt `prod-legal-publish-draft-review.sh` → przegląd z prawnikiem · **1.0.0** po LEG-2 |
 | LEG-2 | Lawyer review | ⏸️ | Gotowce → Ty → prawnik |
 | LEG-3 | Publikacja admin | ⏳ | Po LEG-2 |
 | LEG-4 | Re-consent smoke | ⏳ | |

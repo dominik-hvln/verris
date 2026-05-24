@@ -1,8 +1,11 @@
 #!/usr/bin/env bash
-# PRZESTARZAŁE — użyj: ./ops/scripts/prod-legal-publish-draft-review.sh
-# (publikuje TERMS, PRIVACY, COOKIES, DPA jako 1.0.0-draft do przeglądu z prawnikiem)
-echo "[legal-prelive] Ten skrypt jest przestarzały. Uruchom: ./ops/scripts/prod-legal-publish-draft-review.sh" >&2
-exec "$(dirname "$0")/prod-legal-publish-draft-review.sh" "$@"
+# Publikuje WSZYSTKIE dokumenty prawne z docs/legal/drafts/ do panelu (LegalDocument).
+# Wersja domyślna: 1.0.0-draft — do przeglądu z prawnikiem PRZED LIVE (decyzja D-4).
+# Po akceptacji prawnika: admin → Compliance → publikacja wersji 1.0.0 (LEG-3).
+#
+# NIE zastępuje lawyer review. Treść = DRAFT 0.2 (PL prawo, praktyki hostingu PL/EU).
+#
+# Uruchom na serwerze: cd /opt/verris && ./ops/scripts/prod-legal-publish-draft-review.sh
 set -Eeuo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -10,21 +13,22 @@ cd "$ROOT"
 
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 ENV_FILE="${ENV_FILE:-.env.prod}"
-VERSION="${LEGAL_PRELIVE_VERSION:-1.0.0-prelive}"
+VERSION="${LEGAL_REVIEW_VERSION:-1.0.0-draft}"
 DRAFTS_HOST="${ROOT}/docs/legal/drafts"
 
+CHANGELOG='Wersja robocza DRAFT 0.2 — do przeglądu i akceptacji prawnika przed GO LIVE. Po zatwierdzeniu opublikuj wersję 1.0.0 w panelu admin (Compliance). Nie stanowi porady prawnej.'
+
 if [[ ! -d "$DRAFTS_HOST" ]]; then
-  echo "[legal-prelive] Brak katalogu $DRAFTS_HOST"
+  echo "[legal] Brak katalogu $DRAFTS_HOST"
   exit 1
 fi
 
 API_CID="$(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps -q api)"
 if [[ -z "$API_CID" ]]; then
-  echo "[legal-prelive] Kontener api nie działa"
+  echo "[legal] Kontener api nie działa"
   exit 1
 fi
 
-# DATABASE_URL jest ustawiane w api-entrypoint tylko dla PID 1 — exec potrzebuje URL z .env.prod.
 set -a
 # shellcheck disable=SC1090
 source "$ENV_FILE"
@@ -35,19 +39,23 @@ if [[ -z "${DATABASE_URL:-}" && -n "${POSTGRES_PASSWORD:-}" ]]; then
   export DATABASE_URL="postgresql://${POSTGRES_USER:-verris}:${enc_pass}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-verris_db}?schema=public"
 fi
 if [[ -z "${DATABASE_URL:-}" ]]; then
-  echo "[legal-prelive] Ustaw DATABASE_URL lub POSTGRES_PASSWORD w $ENV_FILE"
+  echo "[legal] Ustaw DATABASE_URL lub POSTGRES_PASSWORD w $ENV_FILE"
   exit 1
 fi
 
 docker cp "$DRAFTS_HOST" "${API_CID}:/tmp/legal-drafts"
 
-docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" exec -T -e DATABASE_URL="$DATABASE_URL" api \
-  node - "${VERSION}" <<'NODE'
+docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" exec -T \
+  -e DATABASE_URL="$DATABASE_URL" \
+  -e LEGAL_VERSION="$VERSION" \
+  -e LEGAL_CHANGELOG="$CHANGELOG" \
+  api node <<'NODE'
 const { PrismaClient } = require('@prisma/client');
 const fs = require('fs');
 const path = require('path');
 
-const version = process.argv[2] || '1.0.0-prelive';
+const version = process.env.LEGAL_VERSION || '1.0.0-draft';
+const changelogMarkdown = process.env.LEGAL_CHANGELOG || '';
 const draftsDir = '/tmp/legal-drafts';
 
 const docs = [
@@ -60,6 +68,16 @@ const docs = [
     kind: 'PRIVACY',
     file: 'privacy.md',
     title: 'Polityka prywatności Verris',
+  },
+  {
+    kind: 'COOKIES',
+    file: 'cookies.md',
+    title: 'Polityka plików cookies Verris',
+  },
+  {
+    kind: 'DPA',
+    file: 'dpa.md',
+    title: 'Umowa powierzenia przetwarzania danych osobowych (DPA)',
   },
 ];
 
@@ -89,26 +107,25 @@ async function publishOne(spec) {
         locale,
         title: spec.title,
         contentMarkdown,
-        changelogMarkdown:
-          'Wersja pre-LIVE (draft do lawyer review) — umożliwia rejestrację i smoke testów przed GO.',
+        changelogMarkdown,
         isCurrent: true,
         publishedAt: new Date(),
       },
       update: {
         title: spec.title,
         contentMarkdown,
-        changelogMarkdown:
-          'Wersja pre-LIVE (draft do lawyer review) — umożliwia rejestrację i smoke testów przed GO.',
+        changelogMarkdown,
         isCurrent: true,
         publishedAt: new Date(),
       },
     });
   });
 
-  console.log(`[legal-prelive] published ${spec.kind} v${version} (isCurrent=true)`);
+  console.log(`[legal] ${spec.kind} v${version} → isCurrent=true (panel /legal/${spec.kind.toLowerCase()})`);
 }
 
 async function main() {
+  console.log(`[legal] Publishing ${docs.length} documents as v${version} (lawyer review draft)`);
   for (const spec of docs) {
     await publishOne(spec);
   }
@@ -122,4 +139,4 @@ main()
   });
 NODE
 
-echo "[legal-prelive] done — rejestracja wymaga TERMS + PRIVACY isCurrent=true"
+echo "[legal] done — przegląd: panel klienta /legal/* · admin Compliance · paczka: docs/legal/drafts/"
