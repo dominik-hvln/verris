@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { FeatureNotAvailable } from '@/components/feature-not-available';
 import { isClientFeatureEnabled } from '@/lib/client-features';
@@ -12,6 +13,7 @@ import {
   updateMemberAction,
 } from './actions';
 import { IamAuditSection } from './iam-audit-section';
+import { IamNoticeBanner } from './iam-notice-banner';
 import { IamPermissionPicker } from './iam-permission-picker';
 import { PERMISSION_LABELS } from './constants';
 
@@ -40,6 +42,10 @@ export default async function IamPage() {
           Deleguj dostęp do konta bez udostępniania hasła właściciela. Każda akcja subkonta jest limitowana uprawnieniami i widoczna w audycie.
         </p>
       </div>
+
+      <Suspense fallback={null}>
+        <IamNoticeBanner />
+      </Suspense>
 
       <section className="rounded-[28px] border border-white/10 bg-[#0a0a0a]/80 p-6">
         <div className="mb-5 flex items-center gap-3">

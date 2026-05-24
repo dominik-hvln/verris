@@ -163,7 +163,7 @@ export default function DashboardLayout({
   const [impersonating, setImpersonating] = useState(false);
   const navCtx = clientNavContextFromSidebar(user);
   const canAccess = (href: string) =>
-    !navCtx || canAccessDashboardRoute(href, navCtx);
+    navCtx ? canAccessDashboardRoute(href, navCtx) : false;
   const mainGridItems = sidebarTilesFromLinks(user?.sidebarQuickLinks, navCtx);
   const mainGridHrefs = new Set<string>(mainGridItems.map((i) => i.href));
   const navSecondaryItems = secondaryItems
@@ -183,9 +183,13 @@ export default function DashboardLayout({
     let cancelled = false;
     Promise.all([fetchSidebarUser(), getImpersonationContext()]).then(([u, imp]) => {
       if (cancelled) return;
-      setUser(u);
       setImpersonating(Boolean(imp?.isImpersonating));
       setUserLoading(false);
+      if (!u) {
+        void logoutAction();
+        return;
+      }
+      setUser(u);
       const root = document.documentElement;
       if (u?.isEcoProgramParticipant) root.classList.add("eco-tint");
       else root.classList.remove("eco-tint");
@@ -205,7 +209,7 @@ export default function DashboardLayout({
   const displayName =
     user?.firstName && user?.lastName
       ? `${user.firstName} ${user.lastName}`
-      : user?.email || "Admin";
+      : user?.email || "Użytkownik";
 
   const initials =
     user?.firstName && user?.lastName

@@ -86,7 +86,7 @@ flowchart LR
 
 | Krok | ID | Opis | Status |
 |------|-----|------|--------|
-| 1 | GO-IAM | VER-11 + IAM-2 | ⏳ | Następny sprint |
+| 1 | GO-IAM | VER-11 + IAM-2 | ✅ | Smoke 2026-05-24 PASS |
 | 2 | GO-OPS | Restore, alerty, smoke, GO | ⏳ | Po IAM |
 | 3 | GO-HOST / GO-BILL | Hosting + Stripe live | ⏳ | |
 | 4 | MAIL-TX | Maile transakcyjne | ⏳ | Po GO-OPS |
@@ -109,8 +109,8 @@ flowchart LR
 
 | ID | Task | Status | Uwagi |
 |----|------|--------|-------|
-| VER-11 | Smoke prod IAM | ⏳ | Invite → accept → menu → API guard |
-| IAM-2 | E-mail zaproszenia IAM | ⏳ | Część smoke |
+| VER-11 | Smoke prod IAM | ✅ | 2026-05-24 PASS — [`IAM_SMOKE_PROD.md`](./IAM_SMOKE_PROD.md) |
+| IAM-2 | E-mail zaproszenia IAM | ✅ | Smoke: link + styl Verris |
 
 ### Operacje i GO
 

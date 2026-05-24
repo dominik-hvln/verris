@@ -17,9 +17,9 @@
 | 3 | Zaloguj się jako subkonto | Menu: Dashboard, Support, Ustawienia; **brak** Portfela, Serwerów, IAM | |
 | 4 | `GET https://api.verris.pl/services` z JWT subkonta | **403** | |
 | 5 | Utwórz ticket w panelu | **200**, ticket widoczny | |
-| 6 | Właściciel: edycja subkonta → szablon **DevOps** → zapisz | Po odświeżeniu subkonta: menu Serwery / DNS itd. | |
+| 6 | Właściciel: edycja subkonta → szablon **DevOps** → zapisz | Po odświeżeniu subkonta: menu Serwery / DNS (**bez** kalkulatora — tylko właściciel) | |
 | 7 | Właściciel: sekcja **Audyt IAM** | Wpis „Wysłano zaproszenie”, „Subkonto aktywowane”, „Zmiana uprawnień” | |
-| 8 | Właściciel: **Wyłącz** subkonto | Kolejny request subkonta → **401/403** | |
+| 8 | Właściciel: **Wyłącz** subkonto | Sesja subkonta kończy się → **login**; ponowne logowanie zablokowane | |
 
 ## API (opcjonalnie curl)
 
@@ -33,9 +33,10 @@ curl -s -o /dev/null -w "%{http_code}\n" \
 
 ## Po smoke
 
-- [ ] Wszystkie kroki OK — oznacz IAM-F.3 jako DONE w `PROPOSED_SPRINTS.md`
-- [ ] Regresja — właściciel nadal widzi pełne menu i portfel
+- [x] Wszystkie kroki OK — **PASS** (2026-05-24, Dominik)
+- [x] Regresja — właściciel: pełne menu i portfel
+- [x] Poprawki po smoke: banner zapisu IAM, kalkulator tylko właściciel, wylogowanie wyłączonego subkonta
 
-**Data wykonania:** ___________  
-**Wykonał:** ___________  
-**Wynik:** PASS / FAIL (notatki): ___________
+**Data wykonania:** 2026-05-24  
+**Wykonał:** Dominik  
+**Wynik:** **PASS** (mail zaproszenia / login alert w stylu Verris ✅)

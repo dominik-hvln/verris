@@ -33,9 +33,11 @@ export function canAccessDashboardRoute(
   if (href.startsWith('/dashboard/billing')) {
     return hasAny(perms, ['BILLING_READ', 'BILLING_MANAGE']);
   }
+  if (href === '/dashboard/calculator') {
+    return false;
+  }
   if (
     href.startsWith('/dashboard/services') ||
-    href === '/dashboard/calculator' ||
     href.startsWith('/dashboard/migrations') ||
     href.startsWith('/dashboard/autoscaling')
   ) {

@@ -4,6 +4,8 @@ import { useActionState, useState, useEffect } from "react";
 import { submitLogin, submitTwoFactor } from "./actions";
 import { Loader2, AlertCircle, ShieldCheck } from "lucide-react";
 import { SpinBorder } from "@/components/spin-border";
+import { Suspense } from "react";
+import { LoginNotices } from "./login-notices";
 
 const initialLoginState = {} as Awaited<ReturnType<typeof submitLogin>>;
 const initialTwoFactorState = {} as Awaited<ReturnType<typeof submitTwoFactor>>;
@@ -32,6 +34,9 @@ export default function LoginPage() {
 
       <form action={loginAction}>
         <div className="p-8 space-y-5">
+          <Suspense fallback={null}>
+            <LoginNotices />
+          </Suspense>
           {loginState?.error && (
             <div className="flex items-center gap-3 p-4 text-sm font-medium text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl mb-2 animate-in fade-in zoom-in-95">
               <AlertCircle className="h-5 w-5 shrink-0" />

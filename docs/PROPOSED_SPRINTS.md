@@ -48,7 +48,7 @@ Pełna tabela i diagram: sekcja **Plan sprintów** w [`HOSTING_LAUNCH_TASKS.md`]
 |----|------|------|
 | IAM-F.1 | Middleware + nav + guard API | ✅ |
 | IAM-F.2 | Ustawienia subkonta (bez faktury / quick links) | ✅ |
-| IAM-F.3 | **Smoke prod**: invite → accept → login → menu + API | ⏳ [`IAM_SMOKE_PROD.md`](./IAM_SMOKE_PROD.md) |
+| IAM-F.3 | **Smoke prod**: invite → accept → login → menu + API | ✅ 2026-05-24 [`IAM_SMOKE_PROD.md`](./IAM_SMOKE_PROD.md) |
 | IAM-F.4 | Presety ról w UI zaproszenia (support / billing / devops) | ✅ |
 | IAM-F.5 | Podgląd audytu IAM w panelu właściciela | ✅ |
 | IAM-F.6 | Testy integracyjne guard + `users/me` subaccount | częściowo ✅ |

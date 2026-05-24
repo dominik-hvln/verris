@@ -20,8 +20,15 @@ export async function middleware(request: NextRequest) {
 
   if (token && pathname.startsWith("/dashboard")) {
     const session = await fetchSessionProfile(token);
+    if (!session) {
+      const login = publicPanelUrl(request, "/login");
+      login.searchParams.set("reason", "session-ended");
+      const res = NextResponse.redirect(login);
+      res.cookies.delete("auth_token");
+      return res;
+    }
     if (
-      session?.isSubaccount &&
+      session.isSubaccount &&
       !canAccessDashboardRoute(pathname, session)
     ) {
       return NextResponse.redirect(publicPanelUrl(request, "/dashboard"));

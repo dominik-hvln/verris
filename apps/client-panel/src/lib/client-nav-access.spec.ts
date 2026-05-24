@@ -27,6 +27,17 @@ describe('client-nav-access', () => {
     expect(canAccessDashboardRoute('/dashboard/iam', ticketsOnly)).toBe(false);
   });
 
+  it('denies calculator for all subaccounts (owner-only tool)', () => {
+    const devops = {
+      isSubaccount: true,
+      customerPermissions: ['SERVICES_READ', 'SERVICES_MANAGE'],
+    };
+    expect(canAccessDashboardRoute('/dashboard/calculator', devops)).toBe(
+      false,
+    );
+    expect(canAccessDashboardRoute('/dashboard/services', devops)).toBe(true);
+  });
+
   it('hides wallet for subaccount without billing permission', () => {
     expect(canShowWalletBalance(ticketsOnly)).toBe(false);
     expect(
