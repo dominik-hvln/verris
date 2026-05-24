@@ -7,7 +7,7 @@
 
 | # | Obszar | Test | OK |
 |---|--------|------|-----|
-| 1 | Auth | Login admin / staff / klient | 🟡 |
+| 1 | Auth | Login + rejestracja (verify link) + reset hasła | ✅ verify/admin-delete 2026-05-24 · pełny login 3 ról 🟡 |
 | 2 | Zakup | Nowa subskrypcja + Stripe webhook | ⏸️ po węźle |
 | 3 | DA | Provisioning konta + jedna operacja (DNS lub SSL) | ⏸️ po węźle |
 | 4 | Billing | Faktura widoczna w panelu klienta | ⏸️ po węźle |
@@ -31,4 +31,4 @@ Wynik wklej do [`PROD_HEALTH_CHECKLIST.md`](../PROD_HEALTH_CHECKLIST.md).
 [`ops/RESTORE_TEST.md`](./ops/RESTORE_TEST.md) — **2026-05-24:** drill OK (`latest.sql.gz`, users=3).
 
 **Data smoke:** 2026-05-24 (częściowy, bez węzła)  
-**Wynik:** W toku — portfel ✅ · IAM ✅ · backup ✅ · pozostałe: auth, BOK, Grafana, status
+**Wynik:** W toku — portfel ✅ · IAM ✅ · backup ✅ · auth verify ✅ · pozostałe: BOK, Grafana, status, login 3 ról

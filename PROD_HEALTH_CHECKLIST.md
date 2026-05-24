@@ -2,7 +2,7 @@
 
 > Wypełniany przy każdym deploy'u kontroli stanu (po smoke teście, raz w tygodniu, przed wpuszczeniem klientów). Raport leży obok `GO_NO_GO_PROD.md` — `GO_NO_GO_PROD` jest wymogiem na wejście, ten plik jest **bieżącym statusem operacyjnym**. W razie regresji w którymkolwiek punkcie — eskalacja do tasku w Sprincie aktualnym.
 
-**Ostatni snapshot (automatyczny):** 2026-05-24T13:46:26Z — prod HEAD `0c29aa0` (`bash ops/scripts/prod-health-snapshot.sh`).
+**Ostatni snapshot (automatyczny):** 2026-05-24T15:16:12Z — prod HEAD `75349b0` (`bash ops/scripts/prod-health-snapshot.sh`).
 
 ## 0. Wymóg 100% LIVE
 
@@ -30,12 +30,12 @@ Każdy punkt ma format:
 
 | Pomiar | Próg ALERT | Wartość pomiaru | Status |
 | --- | --- | --- | --- |
-| RAM total used | < 6.5 GB (80%) | ~1.0 GB (suma kontenerów, snapshot 2026-05-24) | ✅ |
-| RAM api container | < 1.5 GB | 154 MiB | ✅ |
-| RAM postgres container | < 2.5 GB | 37 MiB | ✅ |
-| RAM redis container | < 256 MB | 6 MiB | ✅ |
-| RAM caddy container | < 200 MB | 15 MiB | ✅ |
-| RAM grafana container | < 300 MB | 64 MiB | ✅ |
+| RAM total used | < 6.5 GB (80%) | ~0.9 GB (suma kontenerów, snapshot 2026-05-24T15:16Z) | ✅ |
+| RAM api container | < 1.5 GB | 108 MiB | ✅ |
+| RAM postgres container | < 2.5 GB | 30 MiB | ✅ |
+| RAM redis container | < 256 MB | 5 MiB | ✅ |
+| RAM caddy container | < 200 MB | 13 MiB | ✅ |
+| RAM grafana container | < 300 MB | 38 MiB | ✅ |
 | RAM prometheus container | < 500 MB | 38 MiB | ✅ |
 | CPU avg load (1m) | < 3.0 | _nie zmierzone_ | 🟡 |
 | CPU idle | > 30% | _nie zmierzone_ | 🟡 |
@@ -189,8 +189,8 @@ Komenda: `verris admin nodes list`, Grafana `Compute nodes`.
 
 Wykonaj sekwencję raz w tygodniu (lub po każdym deployu wpływającym na te ścieżki). **Każdy krok = pojedynczy ✅ lub ❌**.
 
-- [ ] Rejestracja nowego konta klienta testowego.
-- [ ] Welcome email dotarł (po Sprincie 2).
+- [x] Rejestracja + weryfikacja e-mail (link aktywacyjny). — 2026-05-24
+- [ ] Welcome email po verify (transakcyjny).
 - [ ] Logowanie z 2FA.
 - [x] Top-up portfela z karty Stripe (test mode). — 2026-05-24 BILL-2
 - [x] Wallet credit pojawił się w panelu.

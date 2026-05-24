@@ -1,7 +1,7 @@
 # Hosting LIVE — master backlog (źródło prawdy)
 
 > **Ten plik = jedyna lista** do śledzenia: co zrobione, w toku, do zrobienia.  
-> **Ostatnia aktualizacja:** 2026-05-24 · prod **`6338e67`** (email verify + admin delete)  
+> **Ostatnia aktualizacja:** 2026-05-24 · prod **`75349b0`** (login: info box e-mail)  
 > **Zasada GO:** [LIVE_PRODUCT_SCOPE_DECISION.md](../LIVE_PRODUCT_SCOPE_DECISION.md)
 
 ---
@@ -31,8 +31,9 @@
 | **MAIL-1, MAIL-1b** | Postfix + From w admin |
 | **INF-1, INF-2** | Dysk OK · prune po deploy |
 | **Auth mail (część MAIL-2)** | Welcome, reset hasła, top-up, IAM/ticket branded (`c667d77`+) |
-| **Email verify przy rejestracji** | Link 24h, brak auto-logowania, pierwszy login bez alertu „nowe urządzenie” |
-| **Admin: usuwanie konta** | Anonimizacja RODO z `/customers/[id]` + compliance API |
+| **Email verify przy rejestracji** | Smoke prod PASS 2026-05-24 — link, login, komunikat info (nie czerwony) |
+| **Admin: usuwanie konta** | Smoke prod PASS 2026-05-24 — anonimizacja z `/customers/[id]` |
+| **MAIL-2 (auth P0)** | Verify + reset + top-up smoke OK; welcome po verify — do potwierdzenia |
 | **Legal drafty w panelu** | `1.0.0-draft` + public `/legal/*` |
 | **Registracja / błędy API** | Flatten `message` w 403 (consents) |
 
@@ -50,7 +51,7 @@
 
 | ID / sprint | Status | Następny krok |
 |-------------|--------|----------------|
-| **MAIL-TX / MAIL-2** | 🔄 | Smoke: welcome (konto + verify flow), reset, opcjonalnie IAM invite → odhacz MAIL-2 |
+| **MAIL-TX / MAIL-2** | 🔄 | Smoke: reset + verify ✅ · welcome po verify · opcj. IAM invite |
 | **LEG-D** — LEG-1 | 🔄 | Drafty w panelu → **prawnik** (LEG-2) |
 | **GO-OPS (reszta)** — OPS-1, OPS-4, OPS-6 | 🔄 | PROD_HEALTH bez ❌ · GO_NO_GO odhaczone |
 | **GO-BILL** — BILL-1 domknięcie | 🔄 | Przed GO z klientami: **live** Stripe keys (#6) |

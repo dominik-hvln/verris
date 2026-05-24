@@ -81,6 +81,7 @@ Jeśli którykolwiek punkt krytyczny nie jest spełniony, decyzja = **NO-GO**.
 
 **Zawsze (PRE-NODE):**
 
+- Rejestracja klienta: mail verify → potwierdzenie linkiem → login (smoke ✅ 2026-05-24).
 - Logowanie admin/staff/client działa.
 - Billing: testowa płatność (Sandbox) + webhook + faktura w panelu — [`HOSTING_LAUNCH_TASKS.md`](docs/HOSTING_LAUNCH_TASKS.md) → GO-BILL.
 - Tickety: zgłoszenie + odpowiedź staff + załącznik.
