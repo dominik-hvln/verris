@@ -75,3 +75,71 @@ export function passwordResetRequestTemplate(ctx: PasswordResetRequestContext): 
     html,
   };
 }
+
+export interface EmailVerifyContext {
+  to: string;
+  firstName: string | null;
+  verifyUrl: string;
+  expiresHours: number;
+  panelUrl: string;
+}
+
+export function emailVerifyTemplate(ctx: EmailVerifyContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: 'Potwierdź adres e-mail',
+    preheader: 'Aktywuj konto Verris — jeden klik.',
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Dziękujemy za rejestrację w **Verris**. Aby zalogować się do panelu, **potwierdź adres e-mail** przyciskiem poniżej.`,
+      ``,
+      `Link jest ważny **${ctx.expiresHours} godzin**. Po potwierdzeniu możesz się zalogować hasłem ustawionym przy rejestracji.`,
+      ``,
+      `Jeśli to nie Ty zakładałeś konto — zignoruj ten mail.`,
+    ].join('\n'),
+    cta: { label: 'Potwierdź e-mail', url: ctx.verifyUrl },
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+
+  return {
+    to: ctx.to,
+    tag: 'auth.email-verify',
+    subject: 'Potwierdź adres e-mail — Verris',
+    text,
+    html,
+  };
+}
+
+export interface EmailVerifiedOkContext {
+  to: string;
+  firstName: string | null;
+  panelUrl: string;
+}
+
+export function emailVerifiedOkTemplate(ctx: EmailVerifiedOkContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: 'E-mail potwierdzony',
+    preheader: 'Konto aktywne — możesz się zalogować.',
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Twój adres e-mail został **potwierdzony**. Konto jest aktywne — zaloguj się do panelu i rozpocznij konfigurację usług.`,
+    ].join('\n'),
+    cta: { label: 'Zaloguj się do panelu', url: `${ctx.panelUrl}/login` },
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+
+  return {
+    to: ctx.to,
+    tag: 'auth.email-verified',
+    subject: 'E-mail potwierdzony — Verris',
+    text,
+    html,
+  };
+}

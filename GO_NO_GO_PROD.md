@@ -53,7 +53,8 @@ Jeśli którykolwiek punkt krytyczny nie jest spełniony, decyzja = **NO-GO**.
 
 ## 6) Billing i plan sprzedaży
 
-- Price ID Stripe wpisane do planów sprzedawanych kartą.
+- Plany sprzedawane kartą: **auto-sync** Product/Prices (`0c29aa0`) lub ręczne `price_` w adminie.
+- Sandbox smoke top-up + webhook checkout — ✅ 2026-05-24 (live keys przed klientami zewn.).
 - Webhook Stripe skonfigurowany na publiczny URL API:
   - `checkout.session.completed`
   - `invoice.`*

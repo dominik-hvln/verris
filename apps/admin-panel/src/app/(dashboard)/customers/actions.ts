@@ -74,6 +74,31 @@ export interface AdminCreditWalletResult {
  * Klient w panelu zobaczy operację jako "Uznanie od Verris" wraz z reason'em
  * podanym przez admina.
  */
+export async function forceAnonymizeCustomerAction(
+  userId: string,
+  reason: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const trimmed = reason.trim();
+  if (trimmed.length < 5) {
+    return { ok: false, error: "Podaj powód anonimizacji (min. 5 znaków)." };
+  }
+  try {
+    await adminApi(`/admin/compliance/deletion-requests/${userId}/force-anonymize`, {
+      method: "POST",
+      body: { reason: trimmed },
+    });
+    revalidatePath("/customers");
+    revalidatePath(`/customers/${userId}`);
+    revalidatePath("/compliance");
+    return { ok: true };
+  } catch (err) {
+    if (err instanceof AdminApiError) {
+      return { ok: false, error: err.message };
+    }
+    return { ok: false, error: "Nie udało się zanonimizować konta." };
+  }
+}
+
 export async function adminCreditWalletAction(
   input: AdminCreditWalletInput,
 ): Promise<AdminCreditWalletResult> {

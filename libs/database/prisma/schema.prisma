@@ -112,6 +112,8 @@ model User {
   /// Timestamp when PII was anonymized. After this, the row stays for
   /// invoicing audit (5y PL legal requirement) but contains no personal data.
   anonymizedAt             DateTime?
+  /// Potwierdzenie adresu e-mail (link z rejestracji). Null = oczekuje na weryfikację.
+  emailVerifiedAt          DateTime?
 
   // ---------------------------------------------------------------------------
   // Sprint 4 / R-04 — operacje admina na koncie klienta (tylko USER)
@@ -190,6 +192,7 @@ model User {
 
 enum UserAuthTokenPurpose {
   PASSWORD_RESET
+  EMAIL_VERIFICATION
 }
 
 model UserAuthToken {

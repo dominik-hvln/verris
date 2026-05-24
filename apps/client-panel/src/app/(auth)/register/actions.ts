@@ -1,6 +1,5 @@
 "use server";
 
-import { setAuthCookie } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 
@@ -62,5 +61,6 @@ export async function submitRegister(prevState: any, formData: FormData) {
     return { error: message };
   }
 
-  redirect("/dashboard");
+  const q = new URLSearchParams({ email: email.trim().toLowerCase() });
+  redirect(`/register/check-email?${q.toString()}`);
 }

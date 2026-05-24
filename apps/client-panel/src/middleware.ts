@@ -11,7 +11,9 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/login") ||
     pathname.startsWith("/register") ||
     pathname.startsWith("/forgot-password") ||
-    pathname.startsWith("/reset-password");
+    pathname.startsWith("/reset-password") ||
+    pathname.startsWith("/verify-email") ||
+    pathname.startsWith("/resend-verification");
   const isPublicHandoff = pathname === "/impersonate" || pathname.startsWith("/accept-invite");
   /** Regulamin, polityka prywatności, cookies, DPA — publiczne (API /legal bez JWT). */
   const isPublicLegal = pathname.startsWith("/legal");

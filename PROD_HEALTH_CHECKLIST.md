@@ -2,7 +2,7 @@
 
 > Wypełniany przy każdym deploy'u kontroli stanu (po smoke teście, raz w tygodniu, przed wpuszczeniem klientów). Raport leży obok `GO_NO_GO_PROD.md` — `GO_NO_GO_PROD` jest wymogiem na wejście, ten plik jest **bieżącym statusem operacyjnym**. W razie regresji w którymkolwiek punkcie — eskalacja do tasku w Sprincie aktualnym.
 
-**Ostatni snapshot (automatyczny):** 2026-05-22T22:31:22Z — `bash ops/scripts/prod-health-snapshot.sh` na prod po deploy `0f8e6ca`.
+**Ostatni snapshot (automatyczny):** 2026-05-24T13:46:26Z — prod HEAD `0c29aa0` (`bash ops/scripts/prod-health-snapshot.sh`).
 
 ## 0. Wymóg 100% LIVE
 
@@ -30,13 +30,13 @@ Każdy punkt ma format:
 
 | Pomiar | Próg ALERT | Wartość pomiaru | Status |
 | --- | --- | --- | --- |
-| RAM total used | < 6.5 GB (80%) | ~0.93 GB (suma kontenerów) | ✅ |
-| RAM api container | < 1.5 GB | 98.5 MiB | ✅ |
-| RAM postgres container | < 2.5 GB | 34.4 MiB | ✅ |
-| RAM redis container | < 256 MB | 6.8 MiB | ✅ |
-| RAM caddy container | < 200 MB | 23.5 MiB | ✅ |
-| RAM grafana container | < 300 MB | 73.1 MiB | ✅ |
-| RAM prometheus container | < 500 MB | 53.2 MiB | ✅ |
+| RAM total used | < 6.5 GB (80%) | ~1.0 GB (suma kontenerów, snapshot 2026-05-24) | ✅ |
+| RAM api container | < 1.5 GB | 154 MiB | ✅ |
+| RAM postgres container | < 2.5 GB | 37 MiB | ✅ |
+| RAM redis container | < 256 MB | 6 MiB | ✅ |
+| RAM caddy container | < 200 MB | 15 MiB | ✅ |
+| RAM grafana container | < 300 MB | 64 MiB | ✅ |
+| RAM prometheus container | < 500 MB | 38 MiB | ✅ |
 | CPU avg load (1m) | < 3.0 | _nie zmierzone_ | 🟡 |
 | CPU idle | > 30% | _nie zmierzone_ | 🟡 |
 | I/O wait | < 5% | _nie zmierzone_ | 🟡 |
@@ -50,7 +50,7 @@ Komenda: `docker stats --no-stream`, `df -h`, `df -i`, `top -b -n 1 | head -20`.
 
 | Pomiar | Próg ALERT | Wartość | Status |
 | --- | --- | --- | --- |
-| `/healthz` API | 200 OK, < 50ms | OK (snapshot 2026-05-22) | ✅ |
+| `/healthz` API | 200 OK, < 50ms | OK (snapshot 2026-05-24) | ✅ |
 | `/readyz` API | 200 OK, < 100ms (sprawdza DB+Redis+Stripe) | _nie zmierzone_ | 🟡 |
 | Client panel SSR `/dashboard` | 200 OK, < 1s p95 | | |
 | Staff panel SSR `/dashboard` | 200 OK, < 1s p95 | | |
@@ -94,7 +94,7 @@ Komenda: `docker exec verris-redis redis-cli info`, sekcje `memory`, `stats`.
 | Pomiar | Próg ALERT | Wartość | Status |
 | --- | --- | --- | --- |
 | `Stripe-Version` w requestach | `2026-04-22.dahlia` | | |
-| Webhook deliveries success | 100% (24h window) | | |
+| Webhook deliveries success | 100% (24h window) | top-up smoke 2026-05-24 (checkout) | 🟡 |
 | Webhook handler latency p95 | < 500ms | | |
 | `customer.subscription.created/updated/deleted` ostatnio przyjęte | < 24h | | |
 | `invoice.paid` ostatnio przyjęte | < 24h | | |
@@ -192,10 +192,10 @@ Wykonaj sekwencję raz w tygodniu (lub po każdym deployu wpływającym na te ś
 - [ ] Rejestracja nowego konta klienta testowego.
 - [ ] Welcome email dotarł (po Sprincie 2).
 - [ ] Logowanie z 2FA.
-- [ ] Top-up portfela z karty Stripe (test mode).
-- [ ] Wallet credit pojawił się w panelu.
+- [x] Top-up portfela z karty Stripe (test mode). — 2026-05-24 BILL-2
+- [x] Wallet credit pojawił się w panelu.
 - [ ] Faktura wystawiona, hosted invoice URL działa.
-- [ ] Mail `WALLET_TOPUP_OK` dotarł (po Sprincie 2).
+- [x] Mail `WALLET_TOPUP_OK` dotarł — 2026-05-24 BILL-2
 - [ ] Zakup planu hostingowego.
 - [ ] Provisioning DA wykonał się pomyślnie.
 - [ ] Mail `SERVICE_PROVISIONED` dotarł (po Sprincie 2).

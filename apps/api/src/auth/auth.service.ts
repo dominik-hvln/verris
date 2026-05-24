@@ -20,11 +20,23 @@ import { AuditService } from '../common/audit/audit.service';
 import { RodoActions } from '../common/audit/audit.actions';
 import { LoginEventService } from './login-event.service';
 import { MailerService } from '../mail/mailer.service';
-import { welcomeTemplate, passwordResetRequestTemplate } from '../mail/templates/auth-notifications';
+import {
+  welcomeTemplate,
+  passwordResetRequestTemplate,
+  emailVerifyTemplate,
+  emailVerifiedOkTemplate,
+} from '../mail/templates/auth-notifications';
 import { passwordChangedTemplate } from '../mail/templates/security-notifications';
 import { generateAuthToken, hashAuthToken } from './auth-token.util';
 
 const PASSWORD_RESET_TTL_MINUTES = 15;
+const EMAIL_VERIFICATION_TTL_HOURS = 24;
+
+interface RegisterSuccess {
+  ok: true;
+  email: string;
+  message: string;
+}
 
 interface LoginSuccess {
   access_token: string;
@@ -65,7 +77,7 @@ export class AuthService {
     private readonly config: ConfigService,
   ) {}
 
-  async register(dto: RegisterDto, ctx: RequestContext = {}): Promise<LoginSuccess> {
+  async register(dto: RegisterDto, ctx: RequestContext = {}): Promise<RegisterSuccess> {
     const existingUser = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
@@ -168,13 +180,154 @@ export class AuthService {
         : Promise.resolve(),
     ]);
 
-    void this.notifyWelcome(user).catch((err) => {
+    void this.issueEmailVerification(user.id, user.email, user.firstName).catch((err) => {
       this.logger.warn(
-        `register: welcome mail failed for ${user.email}: ${err instanceof Error ? err.message : String(err)}`,
+        `register: verification mail failed for ${user.email}: ${err instanceof Error ? err.message : String(err)}`,
       );
     });
 
-    return this.generateAccessTokenResponse(user);
+    return {
+      ok: true,
+      email: user.email,
+      message:
+        'Konto utworzone. Sprawdź skrzynkę e-mail i kliknij link potwierdzający, aby się zalogować.',
+    };
+  }
+
+  /** Always returns ok — no email enumeration. */
+  async requestEmailVerification(dto: { email: string }): Promise<{ ok: true }> {
+    const email = dto.email.trim().toLowerCase();
+    const user = await this.prisma.user.findUnique({
+      where: { email },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        role: true,
+        emailVerifiedAt: true,
+        anonymizedAt: true,
+        loginBlocked: true,
+        customerOwnerId: true,
+        subaccountDisabledAt: true,
+      },
+    });
+    if (
+      !user ||
+      user.anonymizedAt ||
+      user.role !== Role.USER ||
+      user.emailVerifiedAt ||
+      user.loginBlocked ||
+      (user.customerOwnerId && user.subaccountDisabledAt)
+    ) {
+      return { ok: true };
+    }
+
+    void this.issueEmailVerification(user.id, user.email, user.firstName).catch((err) => {
+      this.logger.warn(
+        `requestEmailVerification: mail failed for ${user.email}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    });
+    return { ok: true };
+  }
+
+  async confirmEmailVerification(dto: { token: string }): Promise<{ ok: true }> {
+    const tokenHash = hashAuthToken(dto.token.trim());
+    const row = await this.prisma.userAuthToken.findUnique({
+      where: { tokenHash },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            emailVerifiedAt: true,
+            anonymizedAt: true,
+            role: true,
+          },
+        },
+      },
+    });
+    if (
+      !row ||
+      row.purpose !== UserAuthTokenPurpose.EMAIL_VERIFICATION ||
+      row.usedAt ||
+      row.expiresAt.getTime() < Date.now() ||
+      row.user.anonymizedAt ||
+      row.user.emailVerifiedAt
+    ) {
+      throw new BadRequestException('Link potwierdzenia e-mail jest nieprawidłowy lub wygasł.');
+    }
+
+    const now = new Date();
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: row.userId },
+        data: { emailVerifiedAt: now },
+      }),
+      this.prisma.userAuthToken.update({
+        where: { id: row.id },
+        data: { usedAt: now },
+      }),
+      this.prisma.userAuthToken.updateMany({
+        where: {
+          userId: row.userId,
+          purpose: UserAuthTokenPurpose.EMAIL_VERIFICATION,
+          usedAt: null,
+        },
+        data: { usedAt: now },
+      }),
+    ]);
+
+    const panelUrl = this.clientPanelUrl();
+    void this.notifyWelcome(row.user).catch(() => undefined);
+    const verifiedMsg = emailVerifiedOkTemplate({
+      to: row.user.email,
+      firstName: row.user.firstName,
+      panelUrl,
+    });
+    void this.mailer
+      .send({ ...verifiedMsg, userId: row.user.id, category: 'TRANSACTIONAL' })
+      .catch(() => undefined);
+
+    return { ok: true };
+  }
+
+  private async issueEmailVerification(
+    userId: string,
+    email: string,
+    firstName: string | null,
+  ): Promise<void> {
+    const rawToken = generateAuthToken();
+    const expiresAt = new Date(Date.now() + EMAIL_VERIFICATION_TTL_HOURS * 60 * 60 * 1000);
+    await this.prisma.$transaction([
+      this.prisma.userAuthToken.updateMany({
+        where: {
+          userId,
+          purpose: UserAuthTokenPurpose.EMAIL_VERIFICATION,
+          usedAt: null,
+        },
+        data: { usedAt: new Date() },
+      }),
+      this.prisma.userAuthToken.create({
+        data: {
+          userId,
+          purpose: UserAuthTokenPurpose.EMAIL_VERIFICATION,
+          tokenHash: hashAuthToken(rawToken),
+          expiresAt,
+        },
+      }),
+    ]);
+
+    const panelUrl = this.clientPanelUrl();
+    const verifyUrl = `${panelUrl}/verify-email?token=${encodeURIComponent(rawToken)}`;
+    const message = emailVerifyTemplate({
+      to: email,
+      firstName,
+      verifyUrl,
+      expiresHours: EMAIL_VERIFICATION_TTL_HOURS,
+      panelUrl,
+    });
+    await this.mailer.send({ ...message, userId, category: 'TRANSACTIONAL' });
   }
 
   /** Always returns ok — no email enumeration. */
@@ -339,6 +492,7 @@ export class AuthService {
     }
 
     this.assertNotLoginBlocked(user);
+    this.assertEmailVerified(user);
 
     if (user.isTwoFactorEnabled) {
       // Issue a 5-minute "2fa-challenge" token. It carries `sub` and a special
@@ -407,6 +561,7 @@ export class AuthService {
     if (!user) throw new UnauthorizedException('User not found');
 
     this.assertNotLoginBlocked(user);
+    this.assertEmailVerified(user);
 
     await this.suspicious.recordSuccess({
       email: user.email,
@@ -432,6 +587,14 @@ export class AuthService {
     }
     if (user.customerOwnerId && user.subaccountDisabledAt) {
       throw new UnauthorizedException('Subkonto zostało wyłączone przez właściciela.');
+    }
+  }
+
+  private assertEmailVerified(user: User) {
+    if (user.role === Role.USER && !user.emailVerifiedAt) {
+      throw new UnauthorizedException(
+        'Potwierdź adres e-mail — sprawdź skrzynkę lub poproś o nowy link na stronie logowania.',
+      );
     }
   }
 

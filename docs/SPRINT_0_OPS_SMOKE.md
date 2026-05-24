@@ -7,16 +7,16 @@
 
 | # | Obszar | Test | OK |
 |---|--------|------|-----|
-| 1 | Auth | Login admin / staff / klient | |
-| 2 | Zakup | Nowa subskrypcja + Stripe webhook | |
-| 3 | DA | Provisioning konta + jedna operacja (DNS lub SSL) | |
-| 4 | Billing | Faktura widoczna w panelu klienta | |
-| 5 | Portfel | Doładowanie Stripe → saldo w topbarze | |
+| 1 | Auth | Login admin / staff / klient | 🟡 |
+| 2 | Zakup | Nowa subskrypcja + Stripe webhook | ⏸️ po węźle |
+| 3 | DA | Provisioning konta + jedna operacja (DNS lub SSL) | ⏸️ po węźle |
+| 4 | Billing | Faktura widoczna w panelu klienta | ⏸️ po węźle |
+| 5 | Portfel | Doładowanie Stripe → saldo w topbarze | ✅ 2026-05-24 |
 | 6 | BOK | Ticket + odpowiedź staff + załącznik | |
-| 7 | IAM | [`IAM_SMOKE_PROD.md`](./IAM_SMOKE_PROD.md) | |
-| 8 | Backup | `ops/scripts/prod-health-snapshot.sh` + wiek backupu < 25 h | |
-| 9 | Grafana | Link z admin/staff → dashboard (SSO) | |
-| 10 | Status | `status.verris.pl` probes OK | |
+| 7 | IAM | [`IAM_SMOKE_PROD.md`](./IAM_SMOKE_PROD.md) | ✅ 2026-05-24 |
+| 8 | Backup | `ops/scripts/prod-health-snapshot.sh` + wiek backupu < 25 h | ✅ 2026-05-24 |
+| 9 | Grafana | Link z admin/staff → dashboard (SSO) | 🟡 |
+| 10 | Status | `status.verris.pl` probes OK | 🟡 |
 
 ## Metryki operacyjne
 
@@ -30,5 +30,5 @@ Wynik wklej do [`PROD_HEALTH_CHECKLIST.md`](../PROD_HEALTH_CHECKLIST.md).
 
 [`ops/RESTORE_TEST.md`](./ops/RESTORE_TEST.md) — **2026-05-24:** drill OK (`latest.sql.gz`, users=3).
 
-**Data smoke:** ___________  
-**Wynik:** GO / NO-GO — notatki: ___________
+**Data smoke:** 2026-05-24 (częściowy, bez węzła)  
+**Wynik:** W toku — portfel ✅ · IAM ✅ · backup ✅ · pozostałe: auth, BOK, Grafana, status

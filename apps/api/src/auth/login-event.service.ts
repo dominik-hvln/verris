@@ -53,6 +53,9 @@ export class LoginEventService {
     loginMethod: string;
   }): Promise<void> {
     const fingerprint = this.computeFingerprint(opts.ip, opts.userAgent);
+    const priorLoginCount = await this.prisma.loginEvent.count({
+      where: { userId: opts.userId },
+    });
     const isNewDevice = await this.isNewDevice(opts.userId, fingerprint);
 
     try {
@@ -76,6 +79,14 @@ export class LoginEventService {
     }
 
     if (!isNewDevice) return;
+    // Pierwsze logowanie po rejestracji — bez alertu „nowe urządzenie”.
+    if (priorLoginCount === 0) return;
+
+    const prefs = await this.prisma.marketingPreferences.findUnique({
+      where: { userId: opts.userId },
+      select: { loginAlertsEmail: true },
+    });
+    if (prefs && !prefs.loginAlertsEmail) return;
 
     void this.notifyNewDevice({
       to: opts.email,

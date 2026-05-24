@@ -107,3 +107,14 @@ export class PasswordResetConfirmDto {
   @MaxLength(72)
   newPassword!: string;
 }
+
+export class EmailVerificationConfirmDto {
+  @IsString()
+  @IsNotEmpty()
+  token!: string;
+}
+
+export class EmailVerificationRequestDto {
+  @IsEmail()
+  email!: string;
+}

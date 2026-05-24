@@ -2,7 +2,7 @@
 
 import { setAuthCookie } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { apiFetch } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
 
 interface LoginState {
   error?: string;
@@ -47,8 +47,18 @@ export async function submitLogin(
     } else {
       return { error: "Nieoczekiwana odpowiedź serwera" };
     }
-  } catch {
-    return { error: "Nieprawidłowe dane logowania" };
+  } catch (e: unknown) {
+    if (e instanceof ApiError && e.status === 401) {
+      const msg = e.message.toLowerCase();
+      if (msg.includes("potwierdź adres e-mail") || msg.includes("e-mail")) {
+        return {
+          error: e.message,
+          emailUnverified: true,
+          email,
+        };
+      }
+    }
+    return { error: "Nieprawidłowe dane logowania", email };
   }
 
   if (shouldRedirect) redirect("/dashboard");

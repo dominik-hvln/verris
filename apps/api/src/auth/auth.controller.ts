@@ -16,6 +16,8 @@ import {
   LoginDto,
   PasswordResetConfirmDto,
   PasswordResetRequestDto,
+  EmailVerificationConfirmDto,
+  EmailVerificationRequestDto,
   RegisterDto,
   VerifyTwoFactorDto,
 } from './auth.dto';
@@ -54,6 +56,18 @@ export class AuthController {
   @Post('password-reset/confirm')
   async confirmPasswordReset(@Body() dto: PasswordResetConfirmDto) {
     return this.authService.confirmPasswordReset(dto);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('email-verification/request')
+  async requestEmailVerification(@Body() dto: EmailVerificationRequestDto) {
+    return this.authService.requestEmailVerification(dto);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('email-verification/confirm')
+  async confirmEmailVerification(@Body() dto: EmailVerificationConfirmDto) {
+    return this.authService.confirmEmailVerification(dto);
   }
 
   @HttpCode(HttpStatus.OK)

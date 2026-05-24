@@ -35,5 +35,14 @@ export function LoginNotices() {
     );
   }
 
+  if (searchParams.get('notice') === 'email-verified') {
+    return (
+      <div className="flex items-center gap-3 p-4 text-sm text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 rounded-xl mb-2">
+        <CheckCircle2 className="h-5 w-5 shrink-0" />
+        E-mail potwierdzony. Możesz się zalogować.
+      </div>
+    );
+  }
+
   return null;
 }
