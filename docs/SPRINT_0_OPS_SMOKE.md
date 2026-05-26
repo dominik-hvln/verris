@@ -15,7 +15,7 @@
 | 6 | BOK | Ticket + odpowiedź staff + załącznik | 🟡 [`BOK_TICKET_SMOKE.md`](./ops/BOK_TICKET_SMOKE.md) + skrypt |
 | 7 | IAM | Flow + mail zaproszenia ([`IAM_SMOKE_PROD.md`](./IAM_SMOKE_PROD.md)) | ✅ 2026-05-24 (invite mail PASS) |
 | 8 | Backup | `ops/scripts/prod-health-snapshot.sh` + wiek backupu < 25 h | ✅ 2026-05-26 (03:17 UTC) |
-| 9 | Grafana | Link z admin/staff → dashboard (SSO) | 🟡 [`GRAFANA_SSO_SMOKE.md`](./ops/GRAFANA_SSO_SMOKE.md) |
+| 9 | Grafana | Link z admin/staff → dashboard (SSO) | 🟡 auto OK (`prod-smoke-grafana-bok.sh`); ręczny login w Grafanie do odhaczenia |
 | 10 | Status | `status.verris.pl` probes OK | ✅ 2026-05-26 HTTP 200 |
 
 ## Metryki operacyjne
