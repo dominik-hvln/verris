@@ -52,7 +52,7 @@
 | ID / sprint | Status | Następny krok |
 |-------------|--------|----------------|
 | **LEG-D** — LEG-1 | 🔄 | Drafty w panelu → **prawnik** (LEG-2) |
-| **GO-OPS (reszta)** — OPS-1, OPS-4, OPS-6 | 🔄 | PROD_HEALTH bez ❌ · GO_NO_GO odhaczone |
+| **GO-OPS (reszta)** — OPS-1, OPS-4, OPS-6 | ✅ | PROD_HEALTH Run #002 2026-05-26 · prune 26 GB · staff-panel RAM fix |
 | **GO-BILL** — BILL-1 domknięcie | 🔄 | Przed GO z klientami: **live** Stripe keys (#6) |
 | **P0-VER** | 🟡 | VER-1…12 — checklisty prod |
 | **MAIL-4b** | ✅ | Adresy systemowe w admin + `fromRole` w triggerach transakcyjnych |
@@ -183,7 +183,7 @@ DEPLOY_SERVICES="api client-panel admin-panel" ./ops/scripts/prod-deploy-release
 |----|--------|-------|
 | VER-11, IAM-2 | ✅ | |
 | OPS-2, OPS-3 | ✅ | |
-| OPS-1, OPS-4, OPS-6 | 🔄 | |
+| OPS-1, OPS-4, OPS-6 | ✅ | Run #002 PROD_HEALTH · sekcja 8 N/A (węzeł) |
 | OPS-5 | ⏸️ | Po węźle |
 | HOST-1…4 | ⏳ | Po licencjach |
 | BILL-1, BILL-2 | ✅ / 🔄 | live keys #6 |

@@ -14,9 +14,9 @@
 | 5 | Portfel | Doładowanie Stripe → saldo w topbarze | ✅ 2026-05-24 |
 | 6 | BOK | Ticket + odpowiedź staff + załącznik | |
 | 7 | IAM | Flow + mail zaproszenia ([`IAM_SMOKE_PROD.md`](./IAM_SMOKE_PROD.md)) | ✅ 2026-05-24 (invite mail PASS) |
-| 8 | Backup | `ops/scripts/prod-health-snapshot.sh` + wiek backupu < 25 h | ✅ 2026-05-24 |
-| 9 | Grafana | Link z admin/staff → dashboard (SSO) | 🟡 |
-| 10 | Status | `status.verris.pl` probes OK | 🟡 |
+| 8 | Backup | `ops/scripts/prod-health-snapshot.sh` + wiek backupu < 25 h | ✅ 2026-05-26 (03:17 UTC) |
+| 9 | Grafana | Link z admin/staff → dashboard (SSO) | 🟡 (kontener healthy) |
+| 10 | Status | `status.verris.pl` probes OK | ✅ 2026-05-26 HTTP 200 |
 
 ## Metryki operacyjne
 
@@ -30,5 +30,5 @@ Wynik wklej do [`PROD_HEALTH_CHECKLIST.md`](../PROD_HEALTH_CHECKLIST.md).
 
 [`ops/RESTORE_TEST.md`](./ops/RESTORE_TEST.md) — **2026-05-24:** drill OK (`latest.sql.gz`, users=3).
 
-**Data smoke:** 2026-05-24 (częściowy, bez węzła)  
-**Wynik:** W toku — portfel ✅ · IAM + invite mail ✅ · backup ✅ · auth/MAIL-TX ✅ · pozostałe: BOK, Grafana, status, login 3 ról
+**Data smoke:** 2026-05-26 (bez węzła, GO-OPS)  
+**Wynik:** portfel ✅ · IAM ✅ · backup ✅ · auth/MAIL-TX ✅ · status ✅ · GO-OPS checklist ✅ · pozostałe: BOK, Grafana SSO smoke, login 3 ról, forward MAIL-4d

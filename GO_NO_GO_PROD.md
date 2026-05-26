@@ -63,7 +63,7 @@ Jeśli którykolwiek punkt krytyczny nie jest spełniony, decyzja = **NO-GO**.
 
 ## 7) Observability / backup / operacje
 
-- `/healthz` i `/readyz` zwracają `ok`.
+- `/healthz` i `/readyz` zwracają `ok`. — ✅ 2026-05-26 (public API)
 - Prometheus scrape działa; Grafana loguje przez SSO.
 - Ustawione hasło dla `grafana_ro`, zapisane jako `GRAFANA_DB_RO_PASSWORD`.
 - Backup Postgresa działa i ma retencję.

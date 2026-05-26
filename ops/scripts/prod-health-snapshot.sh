@@ -20,17 +20,32 @@ docker stats --no-stream --format 'table {{.Name}}\t{{.CPUPerc}}\t{{.MemUsage}}\
 
 section "Dysk"
 df -h / /var 2>/dev/null | head -5
+df -i / 2>/dev/null | tail -1 | awk '{print "inodes used:", $3, "avail:", $4, "pct:", $5}'
+
+section "CPU / load"
+uptime 2>/dev/null || true
 
 section "API health"
-if curl -sf --max-time 5 https://api.verris.pl/healthz >/dev/null 2>&1; then
-  echo "GET https://api.verris.pl/healthz → OK"
-else
-  echo "GET https://api.verris.pl/healthz → FAIL (sprawdź Caddy/API)"
-fi
+for path in healthz readyz; do
+  if curl -sf --max-time 10 "https://api.verris.pl/${path}" >/dev/null 2>&1; then
+    echo "GET https://api.verris.pl/${path} → OK"
+  else
+    echo "GET https://api.verris.pl/${path} → FAIL"
+  fi
+done
+
+section "Panele (HTTP)"
+for url in \
+  "https://panel.verris.pl/" \
+  "https://staff.verris.pl/" \
+  "https://admin.verris.pl/" \
+  "https://status.verris.pl/"; do
+  code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$url" 2>/dev/null || echo "ERR")
+  echo "$url → HTTP $code"
+done
 
 section "Backup MinIO (ostatni obiekt)"
 if [[ -f "$ENV_FILE" ]]; then
-  set -a && source "$ENV_FILE" && set +a
   docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" run --rm --no-deps \
     --entrypoint /bin/sh minio-bootstrap -c '
     mc alias set verris http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" 2>/dev/null
