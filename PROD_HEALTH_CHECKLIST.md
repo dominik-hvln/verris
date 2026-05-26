@@ -2,7 +2,7 @@
 
 > Wypełniany przy każdym deploy'u kontroli stanu (po smoke teście, raz w tygodniu, przed wpuszczeniem klientów). Raport leży obok `GO_NO_GO_PROD.md` — `GO_NO_GO_PROD` jest wymogiem na wejście, ten plik jest **bieżącym statusem operacyjnym**. W razie regresji w którymkolwiek punkcie — eskalacja do tasku w Sprincie aktualnym.
 
-**Ostatni snapshot (automatyczny):** 2026-05-24T15:16:12Z — prod HEAD `75349b0` (`bash ops/scripts/prod-health-snapshot.sh`).
+**Ostatni snapshot (automatyczny):** 2026-05-26T10:15Z — prod HEAD `8e9d5db` (`bash ops/scripts/prod-health-snapshot.sh`).
 
 ## 0. Wymóg 100% LIVE
 
@@ -40,8 +40,8 @@ Każdy punkt ma format:
 | CPU avg load (1m) | < 3.0 | _nie zmierzone_ | 🟡 |
 | CPU idle | > 30% | _nie zmierzone_ | 🟡 |
 | I/O wait | < 5% | _nie zmierzone_ | 🟡 |
-| Disk used | < 60% | **18%** (`/dev/sda1` 13G/75G) po `docker builder prune -af` 2026-05-23 | ✅ |
-| Disk free for backups | > 20 GB | **60 GB** wolne | ✅ |
+| Disk used | < 60% | **62%** (`/dev/sda1` 45G/75G) snapshot 2026-05-26 — rozważ `docker builder prune` | 🟡 |
+| Disk free for backups | > 20 GB | **28 GB** wolne | ✅ |
 | Inodes used | < 60% | _nie zmierzone_ | 🟡 |
 
 Komenda: `docker stats --no-stream`, `df -h`, `df -i`, `top -b -n 1 | head -20`.
@@ -50,7 +50,7 @@ Komenda: `docker stats --no-stream`, `df -h`, `df -i`, `top -b -n 1 | head -20`.
 
 | Pomiar | Próg ALERT | Wartość | Status |
 | --- | --- | --- | --- |
-| `/healthz` API | 200 OK, < 50ms | OK (snapshot 2026-05-24) | ✅ |
+| `/healthz` API | 200 OK, < 50ms | OK (snapshot 2026-05-26) | ✅ |
 | `/readyz` API | 200 OK, < 100ms (sprawdza DB+Redis+Stripe) | _nie zmierzone_ | 🟡 |
 | Client panel SSR `/dashboard` | 200 OK, < 1s p95 | | |
 | Staff panel SSR `/dashboard` | 200 OK, < 1s p95 | | |

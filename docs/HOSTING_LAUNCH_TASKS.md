@@ -55,7 +55,7 @@
 | **GO-OPS (reszta)** — OPS-1, OPS-4, OPS-6 | 🔄 | PROD_HEALTH bez ❌ · GO_NO_GO odhaczone |
 | **GO-BILL** — BILL-1 domknięcie | 🔄 | Przed GO z klientami: **live** Stripe keys (#6) |
 | **P0-VER** | 🟡 | VER-1…12 — checklisty prod |
-| **MAIL-4b** | 🔄 | Adresy systemowe: edycja w admin + `fromRole` w MailerService |
+| **MAIL-4b** | ✅ | Adresy systemowe w admin + `fromRole` w triggerach transakcyjnych |
 | **MAIL-4d/e** | 🔄 | Forwardy + import CSV w kodzie; **Rspamd ✅ prod** (`11332`, Postfix milter) |
 
 ### Wymaga węzła compute
@@ -78,7 +78,7 @@
 | OPS-4 | GO_NO_GO checklist | **GO-OPS** |
 | OPS-1, OPS-6 | PROD_HEALTH §1–12 | **GO-OPS** |
 | BILL-1 #6 | Stripe **live** keys przed zewnętrznymi klientami | **GO-BILL** |
-| MAIL-4b | Domknięcie: `fromRole` w pozostałych triggerach maili, deploy admin+api | **MAIL-4b** |
+| MAIL-4b | ~~fromRole w triggerach~~ ✅ deploy api | **MAIL-4b** |
 | MAIL-4d | Forwardy z potwierdzeniem, import OVH CSV | **MAIL-4d** |
 | MAIL-4e | ~~Rspamd na hoście~~ ✅ `204.168.174.138` — dalsze strojenie progów po logach | **MAIL-4e** |
 | VER-* | Weryfikacja prod (DNS, migracje, CI) | **P0-VER** |
