@@ -679,22 +679,26 @@ export class PlanChangeService {
     const domain = sub.account?.domain ?? sub.id;
 
     try {
-      await this.mailer.send(
-        planChangedTemplate({
-          to: sub.user.email,
-          userId: sub.userId,
-          firstName: sub.user.firstName,
-          domain,
-          fromPlanName: sub.plan.name,
-          toPlanName: target.name,
-          direction: proration.direction,
-          amountDue: proration.amountDue.toFixed(2),
-          amountCredit: proration.amountCredit.toFixed(2),
-          currency: sub.currency,
-          panelUrl,
-          serviceUrl: `${panelUrl}/dashboard/services/${sub.id}/plan`,
-        }),
-      );
+      const message = planChangedTemplate({
+        to: sub.user.email,
+        userId: sub.userId,
+        firstName: sub.user.firstName,
+        domain,
+        fromPlanName: sub.plan.name,
+        toPlanName: target.name,
+        direction: proration.direction,
+        amountDue: proration.amountDue.toFixed(2),
+        amountCredit: proration.amountCredit.toFixed(2),
+        currency: sub.currency,
+        panelUrl,
+        serviceUrl: `${panelUrl}/dashboard/services/${sub.id}/plan`,
+      });
+      await this.mailer.send({
+        ...message,
+        userId: sub.userId,
+        category: 'TRANSACTIONAL',
+        fromRole: 'BILLING',
+      });
     } catch (err) {
       this.logger.warn(
         `Plan change email failed sub=${sub.id}: ${(err as Error).message}`,

@@ -139,7 +139,7 @@ export class WalletLowBalanceScheduler {
       });
 
       try {
-        await this.mailer.send(message);
+        await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'BILLING' });
         await this.audit.record({
           action: 'WALLET_LOW_BALANCE_NOTIFIED',
           userId: user.id,

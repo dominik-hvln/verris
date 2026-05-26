@@ -97,19 +97,23 @@ export class TicketsService {
           subject: `[Verris] Nowe zgłoszenie: ${row.subject}`,
           text: `Przypisano Ci nowe zgłoszenie (#${row.id}).\n\n${row.message}\n\n— Panel: ${clientUrl}/dashboard/support`,
           tag: 'ticket.created',
+          category: 'TRANSACTIONAL',
+          fromRole: 'NOREPLY',
         })
         .catch(() => undefined);
     }
 
     void this.mailer
-      .send(
-        newTicketCreatedTemplate({
+      .send({
+        ...newTicketCreatedTemplate({
           ticketId: row.id,
           subject: row.subject,
           customerEmail: row.user.email,
           panelUrl: clientUrl,
         }),
-      )
+        category: 'TRANSACTIONAL',
+        fromRole: 'SUPPORT',
+      })
       .catch(() => undefined);
 
     return {
@@ -326,15 +330,17 @@ export class TicketsService {
       const newLabel = statusLabel[dto.status] ?? dto.status;
 
       void this.mailer
-        .send(
-          ticketStatusChangedTemplate({
+        .send({
+          ...ticketStatusChangedTemplate({
             ticketId,
             subject: updated.subject,
             customerEmail: existing.user.email,
             panelUrl: clientUrl,
             newStatus: newLabel,
           }),
-        )
+          category: 'TRANSACTIONAL',
+          fromRole: 'SUPPORT',
+        })
         .catch(() => undefined);
     }
 
@@ -733,8 +739,8 @@ export class TicketsService {
     staffEmail: string,
   ): void {
     void this.mailer
-      .send(
-        ticketReplyNotificationTemplate({
+      .send({
+        ...ticketReplyNotificationTemplate({
           to: staffEmail,
           ticketId,
           subject,
@@ -743,7 +749,9 @@ export class TicketsService {
           staffPanelUrl: this.staffPanelBaseUrl(),
           isFromStaff: false,
         }),
-      )
+        category: 'TRANSACTIONAL',
+        fromRole: 'NOREPLY',
+      })
       .catch(() => undefined);
   }
 
@@ -754,8 +762,8 @@ export class TicketsService {
     clientEmail: string,
   ): void {
     void this.mailer
-      .send(
-        ticketReplyNotificationTemplate({
+      .send({
+        ...ticketReplyNotificationTemplate({
           to: clientEmail,
           ticketId,
           subject,
@@ -763,7 +771,9 @@ export class TicketsService {
           panelUrl: this.clientPanelBaseUrl(),
           isFromStaff: true,
         }),
-      )
+        category: 'TRANSACTIONAL',
+        fromRole: 'SUPPORT',
+      })
       .catch(() => undefined);
   }
 }

@@ -195,7 +195,7 @@ export class TwoFactorService {
       recoveryCodes: opts.recoveryCodes,
       panelUrl,
     });
-    await this.mailer.send(message);
+    await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'SECURITY' });
   }
 
   private async notifyTwoFactorDisabled(opts: {
@@ -210,7 +210,7 @@ export class TwoFactorService {
       disabledAt: opts.disabledAt,
       panelUrl,
     });
-    await this.mailer.send(message);
+    await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'SECURITY' });
   }
 
   /**

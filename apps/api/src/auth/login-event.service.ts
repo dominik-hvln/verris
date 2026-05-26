@@ -120,7 +120,7 @@ export class LoginEventService {
       countryCode: opts.countryCode,
       panelUrl,
     });
-    await this.mailer.send(message);
+    await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'SECURITY' });
   }
 
   private computeFingerprint(ip: string | null, userAgent: string | null): string {

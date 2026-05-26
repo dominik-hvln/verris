@@ -477,7 +477,7 @@ export class SubscriptionsService {
       hardDeleteAt,
       panelUrl,
     });
-    await this.mailer.send(message);
+    await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'BILLING' });
   }
 
   /**
@@ -1465,7 +1465,7 @@ export class SubscriptionsService {
           panelUrl,
         });
 
-    await this.mailer.send(message);
+    await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'BILLING' });
   }
 }
 

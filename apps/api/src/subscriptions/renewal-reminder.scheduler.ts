@@ -143,7 +143,7 @@ export class RenewalReminderScheduler {
       });
 
       try {
-        await this.mailer.send(message);
+        await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'BILLING' });
         await this.audit.record({
           action: spec.auditAction,
           userId: sub.userId,

@@ -134,6 +134,8 @@ export class MigrationWorkerScheduler {
             ? this.buildSuccessMail(row, row.subscription.user.firstName)
             : this.buildFailureMail(row, row.subscription.user.firstName),
           tag: ok ? 'migration.completed' : 'migration.failed',
+          category: 'TRANSACTIONAL',
+          fromRole: 'NOREPLY',
         });
       } catch (err) {
         this.logger.warn(

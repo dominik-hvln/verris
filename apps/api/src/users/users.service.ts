@@ -583,7 +583,7 @@ export class UsersService {
       ipAddress: opts.ip,
       panelUrl,
     });
-    await this.mailer.send(message);
+    await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'NOREPLY' });
   }
 
   private parseDeviceLabel(ua: string | null): string | null {

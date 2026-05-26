@@ -639,7 +639,9 @@ export class UsersAdminService {
         ipAddress: ctx.ipAddress ?? null,
         panelUrl,
       });
-      void this.mailer.send(message).catch((err) => {
+      void this.mailer
+        .send({ ...message, category: 'TRANSACTIONAL', fromRole: 'SECURITY' })
+        .catch((err) => {
         this.logger.warn(`password reset notify mail failed: ${(err as Error).message}`);
       });
     }

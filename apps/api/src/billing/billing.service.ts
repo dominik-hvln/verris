@@ -324,7 +324,7 @@ export class BillingService {
       panelUrl,
     });
 
-    await this.mailer.send(message);
+    await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'BILLING' });
   }
 
   // ---------------------------------------------------------------------------
@@ -910,7 +910,12 @@ export class BillingService {
       newBalancePln: new Prisma.Decimal(user.walletBalance).toFixed(2),
       panelUrl,
     });
-    await this.mailer.send({ ...message, userId: opts.userId, category: 'TRANSACTIONAL' });
+    await this.mailer.send({
+      ...message,
+      userId: opts.userId,
+      category: 'TRANSACTIONAL',
+      fromRole: 'BILLING',
+    });
   }
 
   private async notifyWalletAutoTopupOk(opts: {
@@ -930,7 +935,12 @@ export class BillingService {
       newBalancePln: new Prisma.Decimal(user.walletBalance).toFixed(2),
       panelUrl,
     });
-    await this.mailer.send({ ...message, userId: opts.userId, category: 'TRANSACTIONAL' });
+    await this.mailer.send({
+      ...message,
+      userId: opts.userId,
+      category: 'TRANSACTIONAL',
+      fromRole: 'BILLING',
+    });
   }
 
   private async notifyWalletAutoTopupFailed(opts: {
@@ -956,7 +966,12 @@ export class BillingService {
       topupAmountPln: topupAmount,
       panelUrl,
     });
-    await this.mailer.send({ ...message, userId: opts.userId, category: 'TRANSACTIONAL' });
+    await this.mailer.send({
+      ...message,
+      userId: opts.userId,
+      category: 'TRANSACTIONAL',
+      fromRole: 'BILLING',
+    });
   }
 
   private async notifySubscriptionRenewed(opts: {
@@ -1024,7 +1039,7 @@ export class BillingService {
         : null,
       panelUrl,
     });
-    await this.mailer.send(message);
+    await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'BILLING' });
   }
 
   private async notifySubscriptionPaymentFailed(opts: {
@@ -1096,6 +1111,6 @@ export class BillingService {
       paymentUpdateUrl,
       panelUrl,
     });
-    await this.mailer.send(message);
+    await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'BILLING' });
   }
 }

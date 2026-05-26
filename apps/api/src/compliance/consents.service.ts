@@ -274,7 +274,7 @@ export class ConsentsService {
       pdfUrl: `${apiUrl}/me/dpa.pdf`,
       panelUrl,
     });
-    await this.mailer.send(message);
+    await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'RODO' });
   }
 
   async acceptCurrent(userId: string, ctx: ConsentRequestContext): Promise<void> {

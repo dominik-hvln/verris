@@ -170,6 +170,8 @@ export class SuspiciousActivityService {
         subject: input.body.subject,
         text: input.body.text,
         tag: 'security.alert',
+        category: 'TRANSACTIONAL',
+        fromRole: 'SECURITY',
       });
     }
   }

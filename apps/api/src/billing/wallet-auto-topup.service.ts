@@ -250,6 +250,7 @@ export class WalletAutoTopupService {
         ...tpl,
         userId,
         category: 'TRANSACTIONAL',
+        fromRole: 'BILLING',
       });
     }
   }

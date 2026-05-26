@@ -281,7 +281,7 @@ export class ProvisioningService {
       daPassword: opts.daPassword,
       panelUrl,
     });
-    await this.mailer.send(message);
+    await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'NOREPLY' });
   }
 
   /**

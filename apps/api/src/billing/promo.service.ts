@@ -493,7 +493,7 @@ export class PromoService {
       walletBalancePln: new Prisma.Decimal(user.walletBalance).toFixed(2),
       panelUrl,
     });
-    await this.mailer.send(message);
+    await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'NOREPLY' });
   }
 
   private async resolveActivePercentPromo(userId: string, rawCode: string) {

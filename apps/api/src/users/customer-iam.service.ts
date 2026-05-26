@@ -159,6 +159,7 @@ export class CustomerIamService {
       ...message,
       userId: ownerUserId,
       category: 'TRANSACTIONAL',
+      fromRole: 'PANEL',
     });
     return { id: invite.id, email: invite.email, expiresAt: invite.expiresAt.toISOString() };
   }
