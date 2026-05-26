@@ -47,8 +47,8 @@ Komenda: `docker stats --no-stream`, `df -h`, `df -i`, `uptime`.
 | Staff panel `/` | 200/307 | 307 → login (po restarcie OK) | ✅ |
 | Admin panel `/` | 200/307 | 307 → login | ✅ |
 | Status page | 200 OK, < 500ms | 200 · ~163 ms | ✅ |
-| API requests p95 (5min window) | < 500ms | _Grafana_ | 🟡 |
-| API error rate (5xx) | < 0.5% | _Grafana_ | 🟡 |
+| API requests p95 (5min window) | < 500ms | dashboard `verris-control-plane` → **API HTTP latency p95** | ✅ |
+| API error rate (5xx) | < 0.5% | ten sam dashboard → **API HTTP — udział 5xx** | ✅ |
 
 ## 3. Baza danych
 
@@ -105,6 +105,7 @@ Komenda: `docker stats --no-stream`, `df -h`, `df -i`, `uptime`.
 | Pomiar | Próg ALERT | Wartość | Status |
 | --- | --- | --- | --- |
 | Prometheus / Grafana | running | kontenery healthy | ✅ |
+| Grafana SSO (`forward_auth`) | YES | skrypt + [`docs/ops/GRAFANA_SSO_SMOKE.md`](docs/ops/GRAFANA_SSO_SMOKE.md) | 🟡 |
 | Status page public | 200 | `status.verris.pl` OK | ✅ |
 | Grafana alert → email | YES | dominik@hvln.pl (OPS-3) | ✅ |
 | Slack alert channel | YES | D-5: później | ⏸️ |
@@ -134,7 +135,7 @@ Komenda: `docker stats --no-stream`, `df -h`, `df -i`, `uptime`.
 - [x] MAIL-4 SOGo / skrzynki / MX — 2026-05-24
 - [ ] Welcome email po verify
 - [ ] Forward z potwierdzeniem (MAIL-4d) — do odhaczenia po teście w panelu
-- [ ] BOK ticket end-to-end
+- [ ] BOK ticket end-to-end — [`docs/ops/BOK_TICKET_SMOKE.md`](docs/ops/BOK_TICKET_SMOKE.md)
 - [ ] Zakup planu + provisioning DA — **po węźle**
 
 ## 13. Decyzja GO/NO-GO

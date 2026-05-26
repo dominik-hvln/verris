@@ -9,6 +9,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { ObjectStorageService } from '../storage/object-storage.service';
 import { ProvisioningQueueService } from '../subscriptions/provisioning-queue.service';
+import { HttpMetricsService } from './http-metrics.service';
 
 /**
  * F-13: produces a Prometheus text-format metrics snapshot. We emit a small,
@@ -33,6 +34,7 @@ export class MetricsService {
 
   constructor(
     private readonly prisma: PrismaService,
+    @Optional() private readonly httpMetrics?: HttpMetricsService,
     @Optional() private readonly provisioningQueue?: ProvisioningQueueService,
     @Optional() private readonly objectStorage?: ObjectStorageService,
   ) {}
@@ -440,6 +442,11 @@ export class MetricsService {
       'counter',
     );
     lines.push(`verris_process_uptime_seconds ${Math.round(process.uptime())}`);
+
+    if (this.httpMetrics) {
+      const httpBody = this.httpMetrics.formatPrometheus();
+      if (httpBody) lines.push(httpBody.trimEnd());
+    }
 
     return lines.join('\n') + '\n';
   }
