@@ -56,3 +56,11 @@
     }
     reverse_proxy grafana:3000
 }
+
+# -----------------------------------------------------------------------------
+# SOGo webmail + CalDAV (host sogod on :20000, Dovecot/Postfix on host)
+# -----------------------------------------------------------------------------
+{$CADDY_MAIL_DOMAIN:mail.verris.local} {
+    # SOGo container on verris_verris_public (ops/docker-compose.sogo-mail.yml).
+    reverse_proxy ops-sogo-1:80
+}

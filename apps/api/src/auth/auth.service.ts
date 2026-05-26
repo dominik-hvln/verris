@@ -327,7 +327,12 @@ export class AuthService {
       expiresHours: EMAIL_VERIFICATION_TTL_HOURS,
       panelUrl,
     });
-    await this.mailer.send({ ...message, userId, category: 'TRANSACTIONAL' });
+    await this.mailer.send({
+      ...message,
+      userId,
+      category: 'TRANSACTIONAL',
+      fromRole: 'NOREPLY',
+    });
   }
 
   /** Always returns ok — no email enumeration. */
@@ -386,11 +391,13 @@ export class AuthService {
       expiresMinutes: PASSWORD_RESET_TTL_MINUTES,
       panelUrl,
     });
-    void this.mailer.send({ ...message, userId: user.id, category: 'TRANSACTIONAL' }).catch((err) => {
-      this.logger.warn(
-        `requestPasswordReset: mail failed for ${user.email}: ${err instanceof Error ? err.message : String(err)}`,
-      );
-    });
+    void this.mailer
+      .send({ ...message, userId: user.id, category: 'TRANSACTIONAL', fromRole: 'NOREPLY' })
+      .catch((err) => {
+        this.logger.warn(
+          `requestPasswordReset: mail failed for ${user.email}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      });
 
     return { ok: true };
   }
@@ -441,7 +448,14 @@ export class AuthService {
       ipAddress: null,
       panelUrl,
     });
-    void this.mailer.send({ ...message, userId: row.userId, category: 'TRANSACTIONAL' }).catch(() => undefined);
+    void this.mailer
+      .send({
+        ...message,
+        userId: row.userId,
+        category: 'TRANSACTIONAL',
+        fromRole: 'NOREPLY',
+      })
+      .catch(() => undefined);
 
     return { ok: true };
   }
@@ -627,6 +641,11 @@ export class AuthService {
       firstName: user.firstName,
       panelUrl,
     });
-    await this.mailer.send({ ...message, userId: user.id, category: 'TRANSACTIONAL' });
+    await this.mailer.send({
+      ...message,
+      userId: user.id,
+      category: 'TRANSACTIONAL',
+      fromRole: 'NOREPLY',
+    });
   }
 }

@@ -43,7 +43,7 @@ Jeśli milter znowu `Connection refused` — sprawdź **jedną** linię `Socket 
 
 - Pierwsze dni: unikaj masowych kampanii; tylko transakcje (IAM, billing, tickety).
 - Po MAIL-4: osobne adresy `noreply@`, `support@`, `security@` zamiast losowych From.
-- Opcjonalnie później: **Rspamd** na hoście (scoring wychodzącej) — nie wymagane jeśli DKIM+SPF+PTR OK.
+- **Rspamd** (inbound antispam): [`RSPAMD_MAIL.md`](./RSPAMD_MAIL.md) — `./ops/scripts/prod-rspamd-install.sh`
 
 ## Szybka naprawa na prod (runbook)
 

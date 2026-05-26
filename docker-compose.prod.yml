@@ -182,6 +182,10 @@ services:
       CONTROL_PLANE_MAIL_DATA_ROOT: ${CONTROL_PLANE_MAIL_DATA_ROOT:-/var/mail/vhosts}
       CONTROL_PLANE_MAIL_HOST: ${CONTROL_PLANE_MAIL_HOST:-mail.verris.pl}
       SOGO_WEB_URL: ${SOGO_WEB_URL:-https://mail.verris.pl/SOGo}
+      SOGO_MYSQL_HOST: ${SOGO_MYSQL_HOST:-ops-sogo-db-1}
+      SOGO_MYSQL_USER: ${SOGO_MYSQL_USER:-sogo}
+      SOGO_MYSQL_DATABASE: ${SOGO_MYSQL_DATABASE:-sogo}
+      SOGO_MYSQL_PASSWORD: ${SOGO_MYSQL_PASSWORD:-}
     volumes:
       - ${CONTROL_PLANE_MAIL_MAPS_DIR:-/etc/postfix/verris}:/etc/postfix/verris
     extra_hosts:
@@ -425,6 +429,7 @@ services:
       CADDY_API_DOMAIN: ${CADDY_API_DOMAIN:-api.verris.local}
       CADDY_STATUS_DOMAIN: ${CADDY_STATUS_DOMAIN:-status.verris.local}
       CADDY_GRAFANA_DOMAIN: ${CADDY_GRAFANA_DOMAIN:-grafana.verris.local}
+      CADDY_MAIL_DOMAIN: ${CADDY_MAIL_DOMAIN:-mail.verris.local}
     ports:
       - '80:80'
       - '443:443'

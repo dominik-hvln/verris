@@ -1,0 +1,9 @@
+[Unit]
+Description=Watch Verris Postfix map sources for changes
+
+[Path]
+PathChanged=/etc/postfix/verris/virtual_alias_maps
+PathChanged=/etc/postfix/verris/virtual_mailbox_maps
+
+[Install]
+WantedBy=multi-user.target

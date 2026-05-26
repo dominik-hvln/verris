@@ -478,7 +478,7 @@ export class InvoicesService {
       panelUrl,
       invoiceUrl: `${panelUrl}/dashboard/billing/invoices/${invoice.id}`,
     });
-    await this.mailer.send(message);
+    await this.mailer.send({ ...message, fromRole: 'NOREPLY', category: 'TRANSACTIONAL' });
   }
 
   // ---------------------------------------------------------------------------

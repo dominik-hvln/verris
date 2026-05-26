@@ -6,10 +6,12 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
-import * as bcrypt from 'bcrypt';
+import { execFile } from 'child_process';
+import { promisify } from 'util';
 import {
   ControlPlaneMailboxKind,
   ControlPlaneMailboxStatus,
+  ControlPlaneSystemAddressRole,
   Prisma,
   Role,
 } from '@verris/database';
@@ -17,6 +19,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { ControlPlaneMailActions } from '../common/audit/audit.actions';
 import { PostfixMapSyncService } from './postfix-map-sync.service';
+import { SogoAuthSyncService } from './sogo-auth-sync.service';
+import { MailerService } from '../mail/mailer.service';
+import { generateAuthToken, hashAuthToken } from '../auth/auth-token.util';
+import { mailForwardConfirmTemplate } from '../mail/templates/mail-forward-notifications';
 import {
   CONTROL_PLANE_MAIL_DOMAIN,
   LOCAL_PART_RE,
@@ -25,8 +31,12 @@ import {
 import type {
   CreateControlPlaneMailboxDto,
   CreateMailAliasDto,
+  CreateMailForwardDto,
   UpdateControlPlaneMailboxDto,
+  UpdateSystemAddressesDto,
 } from './dto/control-plane-mail.dto';
+
+const MAIL_FORWARD_CONFIRM_TTL_HOURS = 72;
 
 @Injectable()
 export class ControlPlaneMailService {
@@ -34,11 +44,13 @@ export class ControlPlaneMailService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly mapSync: PostfixMapSyncService,
+    private readonly sogoAuth: SogoAuthSyncService,
+    private readonly mailer: MailerService,
     private readonly config: ConfigService,
   ) {}
 
   async listMailboxes(opts?: { kind?: ControlPlaneMailboxKind; status?: ControlPlaneMailboxStatus }) {
-    return this.prisma.controlPlaneMailbox.findMany({
+    const rows = await this.prisma.controlPlaneMailbox.findMany({
       where: {
         ...(opts?.kind ? { kind: opts.kind } : {}),
         ...(opts?.status ? { status: opts.status } : {}),
@@ -49,6 +61,7 @@ export class ControlPlaneMailService {
       },
       orderBy: { email: 'asc' },
     });
+    return rows.map((row) => this.serializeMailbox(row));
   }
 
   async getMailbox(id: string) {
@@ -61,7 +74,15 @@ export class ControlPlaneMailService {
       },
     });
     if (!row) throw new NotFoundException('Skrzynka nie istnieje.');
-    return row;
+    return this.serializeMailbox(row);
+  }
+
+  /** JSON-safe mailbox (BigInt → string, no password hash). */
+  private serializeMailbox<T extends { usedBytes: bigint; passwordHash?: string | null }>(
+    row: T,
+  ): Omit<T, 'usedBytes' | 'passwordHash'> & { usedBytes: string } {
+    const { passwordHash: _omit, usedBytes, ...rest } = row;
+    return { ...rest, usedBytes: usedBytes.toString() };
   }
 
   async createMailbox(
@@ -74,7 +95,11 @@ export class ControlPlaneMailService {
 
     const email = `${localPart}@${domain}`;
     const existing = await this.prisma.controlPlaneMailbox.findUnique({ where: { email } });
-    if (existing) throw new ConflictException('Ten adres e-mail już istnieje.');
+    if (existing) {
+      throw new ConflictException(
+        `Skrzynka ${email} już istnieje. Odśwież stronę — jeśli nie widzisz hasła IMAP, użyj „Reset hasła”.`,
+      );
+    }
 
     if (dto.userId) {
       await this.assertUserLinkable(dto.userId);
@@ -123,6 +148,9 @@ export class ControlPlaneMailService {
     });
 
     await this.mapSync.writeMapsToDisk().catch(() => undefined);
+    if (imapPassword) {
+      await this.sogoAuth.upsert(email, imapPassword);
+    }
 
     return {
       mailbox: await this.getMailbox(mailbox.id),
@@ -192,6 +220,7 @@ export class ControlPlaneMailService {
     });
 
     await this.mapSync.writeMapsToDisk().catch(() => undefined);
+    await this.sogoAuth.upsert(mb.email, imapPassword);
     return { imapPassword };
   }
 
@@ -209,6 +238,12 @@ export class ControlPlaneMailService {
     const at = aliasEmail.indexOf('@');
     if (at < 1) throw new BadRequestException('Nieprawidłowy alias.');
     const local = aliasEmail.slice(0, at);
+    const aliasDomain = aliasEmail.slice(at + 1);
+    if (aliasDomain !== CONTROL_PLANE_MAIL_DOMAIN) {
+      throw new BadRequestException(
+        `Alias musi być w domenie @${CONTROL_PLANE_MAIL_DOMAIN}. Dla adresu zewnętrznego użyj przekierowania (forward).`,
+      );
+    }
     this.assertValidLocalPart(local);
 
     const row = await this.prisma.controlPlaneMailAlias.create({
@@ -246,14 +281,311 @@ export class ControlPlaneMailService {
     return { ok: true };
   }
 
+  async addForward(mailboxId: string, dto: CreateMailForwardDto, actorUserId: string) {
+    const mb = await this.getMailbox(mailboxId);
+    const forwardTo = dto.forwardTo.trim().toLowerCase();
+    if (forwardTo === mb.email) {
+      throw new BadRequestException('Adres docelowy musi być inny niż skrzynka źródłowa.');
+    }
+
+    const existing = await this.prisma.controlPlaneMailForward.findFirst({
+      where: { mailboxId, forwardTo },
+    });
+    if (existing?.confirmedAt) {
+      throw new ConflictException(`Przekierowanie na ${forwardTo} jest już aktywne.`);
+    }
+    if (existing) {
+      await this.prisma.controlPlaneMailForward.delete({ where: { id: existing.id } });
+    }
+
+    const rawToken = generateAuthToken();
+    const keepCopy = dto.keepCopy !== false;
+
+    const forward = await this.prisma.controlPlaneMailForward.create({
+      data: {
+        mailboxId,
+        forwardTo,
+        keepCopy,
+        confirmationToken: hashAuthToken(rawToken),
+      },
+    });
+
+    const apiBase =
+      this.config.get<string>('PUBLIC_API_URL') ??
+      this.config.get<string>('API_BASE_URL') ??
+      'https://api.verris.pl';
+    const confirmUrl = `${apiBase.replace(/\/$/, '')}/public/mail/forward-confirm?token=${encodeURIComponent(rawToken)}`;
+
+    const panelUrl =
+      this.config.get<string>('ADMIN_PANEL_URL') ??
+      this.config.get<string>('CLIENT_PANEL_URL') ??
+      'https://panel.verris.pl';
+    const message = mailForwardConfirmTemplate({
+      to: forwardTo,
+      mailboxEmail: mb.email,
+      confirmUrl,
+      expiresHours: MAIL_FORWARD_CONFIRM_TTL_HOURS,
+      panelUrl,
+    });
+    await this.mailer.send(message);
+
+    await this.audit.record({
+      action: ControlPlaneMailActions.MAIL_FORWARD_ADDED,
+      actorUserId,
+      userId: mb.userId ?? undefined,
+      details: { mailbox: mb.email, forwardTo, keepCopy, pending: true },
+    });
+
+    return {
+      forward,
+      message: `Wysłano link potwierdzający na ${forwardTo}. Przekierowanie włączy się po kliknięciu.`,
+    };
+  }
+
+  async deleteForward(forwardId: string, actorUserId: string) {
+    const row = await this.prisma.controlPlaneMailForward.findUnique({
+      where: { id: forwardId },
+      include: { mailbox: true },
+    });
+    if (!row) throw new NotFoundException('Przekierowanie nie istnieje.');
+
+    await this.prisma.controlPlaneMailForward.delete({ where: { id: forwardId } });
+
+    await this.audit.record({
+      action: ControlPlaneMailActions.MAIL_FORWARD_REMOVED,
+      actorUserId,
+      userId: row.mailbox.userId ?? undefined,
+      details: { mailbox: row.mailbox.email, forwardTo: row.forwardTo },
+    });
+
+    if (row.confirmedAt) {
+      await this.mapSync.writeMapsToDisk().catch(() => undefined);
+    }
+    return { ok: true };
+  }
+
+  async confirmMailForward(rawToken: string): Promise<{ ok: boolean; html: string }> {
+    const token = rawToken.trim();
+    if (!token) {
+      return { ok: false, html: this.forwardConfirmHtml(false, 'Brak tokenu w linku.') };
+    }
+
+    const tokenHash = hashAuthToken(token);
+    const row = await this.prisma.controlPlaneMailForward.findFirst({
+      where: { confirmationToken: tokenHash },
+      include: { mailbox: true },
+    });
+
+    if (!row) {
+      return {
+        ok: false,
+        html: this.forwardConfirmHtml(false, 'Link jest nieprawidłowy lub został już użyty.'),
+      };
+    }
+
+    const expiresAt = new Date(row.createdAt.getTime() + MAIL_FORWARD_CONFIRM_TTL_HOURS * 3600_000);
+    if (new Date() > expiresAt) {
+      await this.prisma.controlPlaneMailForward.delete({ where: { id: row.id } });
+      return { ok: false, html: this.forwardConfirmHtml(false, 'Link wygasł — poproś admina o nowe przekierowanie.') };
+    }
+
+    await this.prisma.controlPlaneMailForward.update({
+      where: { id: row.id },
+      data: { confirmedAt: new Date(), confirmationToken: null },
+    });
+
+    await this.mapSync.writeMapsToDisk().catch(() => undefined);
+
+    await this.audit.record({
+      action: ControlPlaneMailActions.MAIL_FORWARD_CONFIRMED,
+      details: { mailbox: row.mailbox.email, forwardTo: row.forwardTo },
+    });
+
+    return {
+      ok: true,
+      html: this.forwardConfirmHtml(
+        true,
+        `Przekierowanie włączone: ${row.mailbox.email} → ${row.forwardTo}`,
+      ),
+    };
+  }
+
+  private forwardConfirmHtml(success: boolean, message: string): string {
+    const title = success ? 'Przekierowanie potwierdzone' : 'Nie udało się potwierdzić';
+    const color = success ? '#10b981' : '#f43f5e';
+    return `<!DOCTYPE html><html lang="pl"><head><meta charset="utf-8"><title>${title}</title></head>
+<body style="font-family:system-ui,sans-serif;max-width:32rem;margin:3rem auto;padding:1rem;color:#e5e5e5;background:#0a0a0a">
+<h1 style="color:${color}">${title}</h1><p>${message}</p><p style="color:#737373;font-size:0.875rem">Verris — poczta zespołu</p></body></html>`;
+  }
+
+  async importMailboxesFromCsv(
+    csv: string,
+    dryRun: boolean,
+    actorUserId: string,
+  ): Promise<{
+    dryRun: boolean;
+    rows: Array<{ email: string; forwardTo?: string; action: string; error?: string }>;
+    created: number;
+  }> {
+    const lines = csv
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l && !l.startsWith('#'));
+
+    const rows: Array<{ email: string; forwardTo?: string; action: string; error?: string }> = [];
+    let created = 0;
+
+    for (const line of lines) {
+      const parts = line.split(/[,;]/).map((p) => p.trim().replace(/^"|"$/g, ''));
+      const email = (parts[0] ?? '').toLowerCase();
+      const forwardTo = parts[1]?.toLowerCase() || undefined;
+
+      if (!email || !email.includes('@')) {
+        rows.push({ email: email || line, action: 'skip', error: 'Nieprawidłowy email' });
+        continue;
+      }
+
+      const at = email.indexOf('@');
+      const domain = email.slice(at + 1);
+      if (domain !== CONTROL_PLANE_MAIL_DOMAIN) {
+        rows.push({ email, forwardTo, action: 'skip', error: `Domena musi być ${CONTROL_PLANE_MAIL_DOMAIN}` });
+        continue;
+      }
+
+      const existing = await this.prisma.controlPlaneMailbox.findUnique({ where: { email } });
+      if (existing) {
+        rows.push({ email, forwardTo, action: 'exists' });
+        continue;
+      }
+
+      if (dryRun) {
+        rows.push({ email, forwardTo, action: 'would_create' });
+        created += 1;
+        continue;
+      }
+
+      const localPart = email.slice(0, at);
+      try {
+        this.assertValidLocalPart(localPart);
+        const { mailbox } = await this.createMailbox(
+          {
+            localPart,
+            kind: ControlPlaneMailboxKind.STAFF,
+            domain: CONTROL_PLANE_MAIL_DOMAIN,
+          },
+          actorUserId,
+        );
+        rows.push({ email, forwardTo, action: 'created' });
+        created += 1;
+
+        if (forwardTo) {
+          await this.addForward(mailbox.id, { forwardTo, keepCopy: true }, actorUserId);
+          rows[rows.length - 1].action = 'created+forward_pending';
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        rows.push({ email, forwardTo, action: 'error', error: msg });
+      }
+    }
+
+    if (!dryRun && created > 0) {
+      await this.audit.record({
+        action: ControlPlaneMailActions.MAILBOX_IMPORT,
+        actorUserId,
+        details: { created, totalLines: lines.length } as Prisma.InputJsonValue,
+      });
+      await this.mapSync.writeMapsToDisk().catch(() => undefined);
+    }
+
+    return { dryRun, rows, created };
+  }
+
   async getSystemAddresses() {
     return this.prisma.controlPlaneSystemAddress.findMany({ orderBy: { role: 'asc' } });
+  }
+
+  async updateSystemAddresses(dto: UpdateSystemAddressesDto, actorUserId: string) {
+    const domain = CONTROL_PLANE_MAIL_DOMAIN;
+    const fieldToRole: Array<[keyof UpdateSystemAddressesDto, ControlPlaneSystemAddressRole]> = [
+      ['noreply', ControlPlaneSystemAddressRole.NOREPLY],
+      ['support', ControlPlaneSystemAddressRole.SUPPORT],
+      ['security', ControlPlaneSystemAddressRole.SECURITY],
+      ['rodo', ControlPlaneSystemAddressRole.RODO],
+      ['billing', ControlPlaneSystemAddressRole.BILLING],
+      ['dmarcRua', ControlPlaneSystemAddressRole.DMARC_RUA],
+      ['panel', ControlPlaneSystemAddressRole.PANEL],
+    ];
+
+    const changes: Array<{ role: ControlPlaneSystemAddressRole; from: string; to: string }> = [];
+
+    for (const [field, role] of fieldToRole) {
+      const raw = dto[field];
+      if (raw === undefined) continue;
+
+      const email = raw.trim().toLowerCase();
+      const at = email.indexOf('@');
+      if (at < 1) throw new BadRequestException(`Nieprawidłowy adres dla roli ${role}.`);
+      const emailDomain = email.slice(at + 1);
+      if (emailDomain !== domain) {
+        throw new BadRequestException(`Adres systemowy musi być w domenie @${domain}.`);
+      }
+      const local = email.slice(0, at);
+      if (!LOCAL_PART_RE.test(local)) {
+        throw new BadRequestException('Nieprawidłowy local-part adresu systemowego.');
+      }
+
+      const prev = await this.prisma.controlPlaneSystemAddress.findUnique({ where: { role } });
+      if (!prev) throw new NotFoundException(`Brak adresu systemowego: ${role}`);
+      if (prev.email === email) continue;
+
+      const taken = await this.prisma.controlPlaneSystemAddress.findFirst({
+        where: { email, NOT: { role } },
+      });
+      if (taken) {
+        throw new ConflictException(`Adres ${email} jest już przypisany do roli ${taken.role}.`);
+      }
+
+      await this.prisma.controlPlaneSystemAddress.update({
+        where: { role },
+        data: { email },
+      });
+      changes.push({ role, from: prev.email, to: email });
+    }
+
+    if (changes.length === 0) {
+      return this.getSystemAddresses();
+    }
+
+    await this.audit.record({
+      action: ControlPlaneMailActions.SYSTEM_ADDRESS_CHANGED,
+      actorUserId,
+      details: { changes } as Prisma.InputJsonValue,
+    });
+
+    return this.getSystemAddresses();
+  }
+
+  /** Domyślny From dla roli (fallback: panel@verris.pl). */
+  async resolveSystemFromEmail(role: ControlPlaneSystemAddressRole): Promise<string> {
+    const row = await this.prisma.controlPlaneSystemAddress.findUnique({ where: { role } });
+    return row?.email ?? `panel@${CONTROL_PLANE_MAIL_DOMAIN}`;
   }
 
   async syncPostfixMaps() {
     const maps = await this.mapSync.generateMaps();
     const write = await this.mapSync.writeMapsToDisk();
-    return { ...maps, write };
+    const pendingForwards = await this.prisma.controlPlaneMailForward.count({
+      where: { confirmedAt: null },
+    });
+    return {
+      ...maps,
+      write,
+      postmapRequired: write.ok,
+      pendingForwards,
+      hint: write.ok
+        ? 'Mapy zapisane w /etc/postfix/verris. Na hoście uruchom postmap + reload (prod-mail-postmap-reload.sh). Forwardy wymagają potwierdzenia linkiem.'
+        : write.message,
+    };
   }
 
   async getStaffConnectionInfo(userId: string) {
@@ -328,7 +660,17 @@ export class ControlPlaneMailService {
   }
 
   private async hashDovecotPassword(plain: string): Promise<string> {
-    const hash = await bcrypt.hash(plain, 12);
-    return `{BLF-CRYPT}${hash}`;
+    // Node bcrypt hashes are not accepted by Dovecot passwd-file; use doveadm.
+    const execFileAsync = promisify(execFile);
+    const { stdout } = await execFileAsync(
+      'doveadm',
+      ['pw', '-s', 'BLF-CRYPT', '-p', plain],
+      { encoding: 'utf8', timeout: 15_000 },
+    );
+    const hash = stdout.trim();
+    if (!hash.startsWith('{BLF-CRYPT}')) {
+      throw new Error('doveadm pw returned unexpected hash format');
+    }
+    return hash;
   }
 }

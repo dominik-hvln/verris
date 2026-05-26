@@ -1,0 +1,9 @@
+# SOGo requires at least one SOGoUserSources entry for /SOGo/connect (IMAP alone is not enough).
+WOWorkersCount: 3
+SOGoUserSources:
+  - type: sql
+    id: verris-mail-auth
+    viewURL: "mysql://sogo:PLACEHOLDER@sogo-db:3306/sogo/sogo_auth_view"
+    canAuthenticate: true
+    isAddressBook: false
+    userPasswordAlgorithm: plain

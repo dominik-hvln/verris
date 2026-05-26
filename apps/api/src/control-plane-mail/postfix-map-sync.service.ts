@@ -49,10 +49,6 @@ export class PostfixMapSyncService {
       orderBy: { email: 'asc' },
     });
 
-    const standaloneAliases = await this.prisma.controlPlaneMailAlias.findMany({
-      orderBy: { aliasEmail: 'asc' },
-    });
-
     const mailboxLines: string[] = [];
     const aliasLines: string[] = [];
     const dovecotLines: string[] = [];
@@ -70,14 +66,8 @@ export class PostfixMapSyncService {
       }
 
       for (const f of mb.forwards) {
-        aliasLines.push(`${mb.email}\t${f.forwardTo}`);
-      }
-    }
-
-    for (const a of standaloneAliases) {
-      const target = mailboxes.find((m) => m.id === a.targetId);
-      if (target) {
-        aliasLines.push(`${a.aliasEmail}\t${target.email}`);
+        const dest = f.keepCopy ? `${mb.email}, ${f.forwardTo}` : f.forwardTo;
+        aliasLines.push(`${mb.email}\t${dest}`);
       }
     }
 
@@ -111,8 +101,16 @@ export class PostfixMapSyncService {
 
     for (const [name, body] of files) {
       const filePath = path.join(dir, name);
-      await fs.writeFile(filePath, body, { encoding: 'utf8', mode: 0o640 });
+      const mode = name === 'dovecot-passwd' ? 0o644 : 0o640;
+      await fs.writeFile(filePath, body, { encoding: 'utf8', mode });
       this.logger.log(`Wrote ${filePath} (${body.length} bytes)`);
+    }
+
+    // Dovecot must traverse the maps dir (default postfix perms are 750 root:root).
+    try {
+      await fs.chmod(dir, 0o755);
+    } catch {
+      this.logger.warn(`Could not chmod ${dir} to 0755 — set manually on host for Dovecot`);
     }
 
     return { ok: true, dir };

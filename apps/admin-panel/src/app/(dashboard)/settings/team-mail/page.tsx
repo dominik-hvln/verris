@@ -1,12 +1,22 @@
 import Link from "next/link";
 import { Mail } from "lucide-react";
-import { listTeamMailboxes } from "./actions";
+import { listSystemAddresses, listTeamMailboxes } from "./actions";
 import { TeamMailClient } from "./team-mail-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function TeamMailPage() {
-  const mailboxes = await listTeamMailboxes();
+  let mailboxes: Awaited<ReturnType<typeof listTeamMailboxes>> = [];
+  let systemAddresses: Awaited<ReturnType<typeof listSystemAddresses>> = [];
+  let loadError: string | null = null;
+  try {
+    [mailboxes, systemAddresses] = await Promise.all([
+      listTeamMailboxes(),
+      listSystemAddresses(),
+    ]);
+  } catch {
+    loadError = "Nie udało się załadować listy skrzynek. Spróbuj odświeżyć stronę.";
+  }
 
   return (
     <div className="space-y-8 p-8">
@@ -27,7 +37,12 @@ export default async function TeamMailPage() {
           </p>
         </div>
       </div>
-      <TeamMailClient initial={mailboxes} />
+      {loadError ? (
+        <p className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+          {loadError}
+        </p>
+      ) : null}
+      <TeamMailClient initial={mailboxes} systemAddresses={systemAddresses} />
       <p className="text-xs text-muted-foreground">
         Deploy infrastruktury: <code className="text-neutral-400">docs/ops/SOGO_MAIL_DEPLOY.md</code>
       </p>

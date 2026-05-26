@@ -80,6 +80,31 @@ export class CreateMailAliasDto {
   aliasEmail!: string;
 }
 
+export class CreateMailForwardDto {
+  @IsEmail()
+  forwardTo!: string;
+
+  @IsOptional()
+  @IsBoolean()
+  keepCopy?: boolean;
+}
+
+export class ConfirmMailForwardDto {
+  @IsString()
+  @MinLength(16)
+  token!: string;
+}
+
+export class ImportMailboxesDto {
+  @IsString()
+  @MinLength(1)
+  csv!: string;
+
+  @IsOptional()
+  @IsBoolean()
+  dryRun?: boolean;
+}
+
 export class UpdateSystemAddressesDto {
   @IsOptional()
   @IsEmail()

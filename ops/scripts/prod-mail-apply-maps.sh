@@ -19,20 +19,21 @@ else
 fi
 
 MAP_DIR="${CONTROL_PLANE_MAIL_MAPS_DIR:-/etc/postfix/verris}"
+chmod 755 "${MAP_DIR}" 2>/dev/null || true
 if [[ ! -d "${MAP_DIR}" ]]; then
   echo "[mail-maps] Brak katalogu ${MAP_DIR}"
   exit 1
 fi
 
+VHOST_ROOT="${CONTROL_PLANE_MAIL_DATA_ROOT:-/var/mail/vhosts}"
 if [[ -f "${MAP_DIR}/virtual_mailbox_maps" ]]; then
-  postmap "${MAP_DIR}/virtual_mailbox_maps"
-  echo "[mail-maps] postmap virtual_mailbox_maps OK"
+  while IFS=$'\t' read -r _email _path; do
+    [[ -z "${_email}" || "${_email}" == \#* ]] && continue
+    _path="${_path%/}"
+    mkdir -p "${VHOST_ROOT}/${_path}"
+    chown vmail:vmail "${VHOST_ROOT}/${_path}" 2>/dev/null || true
+  done <"${MAP_DIR}/virtual_mailbox_maps"
 fi
-if [[ -f "${MAP_DIR}/virtual_alias_maps" ]]; then
-  postmap "${MAP_DIR}/virtual_alias_maps"
-  echo "[mail-maps] postmap virtual_alias_maps OK"
-fi
+chmod 644 "${MAP_DIR}/dovecot-passwd" 2>/dev/null || true
 
-systemctl reload postfix 2>/dev/null || true
-systemctl reload dovecot 2>/dev/null || true
-echo "[mail-maps] done"
+exec "$(dirname "$0")/prod-mail-postmap-reload.sh"

@@ -1,6 +1,11 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { EmailCategory, EmailStatus, Prisma } from '@verris/database';
+import {
+  ControlPlaneSystemAddressRole,
+  EmailCategory,
+  EmailStatus,
+  Prisma,
+} from '@verris/database';
 import { MailMessage, MailerProvider } from './mailer.interface';
 import { LogMailerProvider } from './log-mailer.provider';
 import {
@@ -95,8 +100,10 @@ export class MailerService {
       };
     }
 
+    const withFrom = await this.applyFromOverrides(message);
+
     // ---- 2. List-Unsubscribe injection (MARKETING only) --------------------
-    const enriched = await this.enrichForCategory(message, category);
+    const enriched = await this.enrichForCategory(withFrom, category);
 
     // ---- 3. Pre-write EmailLog (status=QUEUED) -----------------------------
     const log = await this.persistQueued(enriched, category);
@@ -203,6 +210,22 @@ export class MailerService {
     }
 
     return { allowed: true };
+  }
+
+  private async applyFromOverrides(message: MailMessage): Promise<MailMessage> {
+    let fromAddress = message.fromAddress;
+    const fromName = message.fromName ?? this.config.fromName;
+
+    if (message.fromRole) {
+      const role = message.fromRole as ControlPlaneSystemAddressRole;
+      const row = await this.prisma.controlPlaneSystemAddress.findUnique({
+        where: { role },
+      });
+      if (row) fromAddress = row.email;
+    }
+
+    if (!fromAddress) return message;
+    return { ...message, fromAddress, fromName };
   }
 
   private async enrichForCategory(

@@ -1,7 +1,7 @@
 # Hosting LIVE — master backlog (źródło prawdy)
 
 > **Ten plik = jedyna lista** do śledzenia: co zrobione, w toku, do zrobienia.  
-> **Ostatnia aktualizacja:** 2026-05-24 · prod **`fbc954f`** (MAIL-4 API + panele; SOGo infra ⏳)  
+> **Ostatnia aktualizacja:** 2026-05-24 · prod MAIL-4a–c smoke PASS (SOGo, odbiór MX, tworzenie skrzynek)  
 > **Zasada GO:** [LIVE_PRODUCT_SCOPE_DECISION.md](../LIVE_PRODUCT_SCOPE_DECISION.md)
 
 ---
@@ -35,6 +35,7 @@
 | **Admin: usuwanie konta** | Anonimizacja RODO z `/customers/[id]` |
 | **Legal drafty w panelu** | `1.0.0-draft` + public `/legal/*` |
 | **Registracja / błędy API** | Flatten `message` w 403 (consents) |
+| **MAIL-4a (infra)** | Dovecot LMTP, Postfix virtual, UFW 25/587/993, SOGo Docker + `https://mail.verris.pl/SOGo` |
 
 ### Wymaga węzła (jeszcze nie startuje hostingu end-to-end)
 
@@ -54,6 +55,8 @@
 | **GO-OPS (reszta)** — OPS-1, OPS-4, OPS-6 | 🔄 | PROD_HEALTH bez ❌ · GO_NO_GO odhaczone |
 | **GO-BILL** — BILL-1 domknięcie | 🔄 | Przed GO z klientami: **live** Stripe keys (#6) |
 | **P0-VER** | 🟡 | VER-1…12 — checklisty prod |
+| **MAIL-4b** | 🔄 | Adresy systemowe: edycja w admin + `fromRole` w MailerService |
+| **MAIL-4d/e** | 🔄 | Forwardy + import CSV w kodzie; **Rspamd ✅ prod** (`11332`, Postfix milter) |
 
 ### Wymaga węzła compute
 
@@ -75,10 +78,9 @@
 | OPS-4 | GO_NO_GO checklist | **GO-OPS** |
 | OPS-1, OPS-6 | PROD_HEALTH §1–12 | **GO-OPS** |
 | BILL-1 #6 | Stripe **live** keys przed zewnętrznymi klientami | **GO-BILL** |
-| MAIL-4a | Postfix virtual + Dovecot + SOGo + UFW | **MAIL-4a** — [`SOGO_MAIL_DEPLOY.md`](./ops/SOGO_MAIL_DEPLOY.md) |
-| MAIL-4b | Admin CRUD skrzynek (`/settings/team-mail`) | **MAIL-4b** 🔄 w kodzie |
-| MAIL-4c | SOGo + staff IMAP info + desktop | **MAIL-4c** |
-| MAIL-4d | Aliasy, forwardy, import OVH, Rspamd | **MAIL-4d** |
+| MAIL-4b | Domknięcie: `fromRole` w pozostałych triggerach maili, deploy admin+api | **MAIL-4b** |
+| MAIL-4d | Forwardy z potwierdzeniem, import OVH CSV | **MAIL-4d** |
+| MAIL-4e | ~~Rspamd na hoście~~ ✅ `204.168.174.138` — dalsze strojenie progów po logach | **MAIL-4e** |
 | VER-* | Weryfikacja prod (DNS, migracje, CI) | **P0-VER** |
 
 ### Wymaga węzła compute
@@ -188,7 +190,7 @@ DEPLOY_SERVICES="api client-panel admin-panel" ./ops/scripts/prod-deploy-release
 | LEG-1…6 | 🔄 / ⏸️ | |
 | MAIL-2 | ✅ | control-plane smoke 2026-05-24; hosting maile po GO-HOST |
 | MAIL-3, MAIL-1 | ✅ | |
-| MAIL-4 | 🔄 | API skrzynek + admin UI; infra SOGo na serwerze (4a) |
+| MAIL-4 | 🔄 | 4a–c ✅ prod; 4d aliasy UI + forwardy/Rspamd |
 
 ---
 

@@ -24,18 +24,20 @@ Pracownik:
 - DNS A/AAAA dla `mail.verris.pl` → IP panelu
 - UFW: **25/tcp**, **587/tcp**, **443/tcp** (SOGo za Caddy)
 
-## 1. Pakiety (Debian 12 / bookworm)
+## 1. Host: Dovecot + Postfix; SOGo w Docker (Ubuntu 24.04)
+
+Na **Ubuntu 24.04 (noble)** natywne pakiety `sogo` z repozytorium Alinto nie instalują się (zależności GNUstep). Używamy:
+
+- **Host:** `dovecot-*`, wirtualne skrzynki Postfix (`./ops/scripts/prod-sogo-mail-bootstrap.sh`)
+- **Docker:** SOGo + MariaDB (`./ops/scripts/prod-sogo-mail-up.sh`, `ops/docker-compose.sogo-mail.yml`)
 
 ```bash
-apt-get update
-apt-get install -y dovecot-core dovecot-imapd dovecot-lmtpd \
-  sogo sogo-activesync \
-  postgresql-client
-
-mkdir -p /var/mail/vhosts/verris.pl
-chown -R vmail:vmail /var/mail/vhosts 2>/dev/null || chown -R postfix:postfix /var/mail/vhosts
-mkdir -p /etc/postfix/verris
+cd /opt/verris
+./ops/scripts/prod-sogo-mail-bootstrap.sh   # vmail, dovecot, postfix, UFW
+# Caddy: mail.verris.pl → ops-sogo-1 (sieć verris_verris_public)
 ```
+
+Debian 12 (bookworm) — opcjonalnie natywne pakiety `sogo` z https://packages.sogo.nu (wymaga klucza GPG w `/etc/apt/keyrings/sogo.asc` jako **armored**, nie dearmor).
 
 ## 2. Postfix — wirtualne skrzynki
 
@@ -57,6 +59,8 @@ inet_interfaces = loopback-only, eth0
 ```
 
 > **Uwaga:** obecna konfiguracja ma `inet_interfaces = loopback-only` — dla MAIL-4 trzeba włączyć odbiór na interfejsie publicznym i UFW `25/tcp`.
+
+**Odbiór z internetu (MX):** na hoście musi być `smtpd_recipient_restrictions` z `reject_unauth_destination` — **nie** `smtpd_relay_restrictions = permit_mynetworks, reject` (blokuje odpowiedzi z zewnątrz). Naprawa: `./ops/scripts/prod-mail-inbound-fix.sh`.
 
 Mapy generuje API Verris (`POST /admin/mailboxes/sync-postfix`) do `/etc/postfix/verris/`, potem na hoście:
 
@@ -119,12 +123,24 @@ systemctl enable --now dovecot
 
 ## 4. SOGo
 
-Konfiguracja zależy od pakietu (`/etc/sogo/sogo.conf`). Kluczowe:
+Stack Docker (`ops/sogo/conf.d/` → `ops/sogo/runtime/` przez `prod-sogo-mail-up.sh`):
 
-- `SOGoMailingMechanism = smtp`
-- `SMTPServer = 127.0.0.1:25`
-- `SOGoUserSources` → Dovecot lub SQL (zalecane: **Dovecot** jako auth)
-- `SOGoProfileURL` = `https://mail.verris.pl/SOGo`
+- `mail.yaml` — IMAP/SMTP do Dovecot/Postfix na hoście
+- `database.yaml` — profile SOGo (MariaDB)
+- `auth.yaml` — **`SOGoUserSources` (SQL)** — wymagane do logowania w `/SOGo` (sam `SOGoIMAPServer` nie wystarcza)
+- `WOWorkersCount: 3` — wymagane przy auth przez IMAP/SQL
+
+Hasło webmailu: tabela `sogo_mail_auth` (widok `sogo_auth_view`), synchronizowana z API przy **utworzeniu skrzynki** i **„Generuj hasło IMAP”** (`SOGO_MYSQL_*` w `.env.prod` = hasło z `ops/sogo/.env.sogo`).
+
+Na istniejącej bazie SOGo (volume już utworzony):
+
+```bash
+./ops/scripts/prod-sogo-auth-schema.sh
+./ops/scripts/prod-sogo-mail-up.sh   # przebuduje runtime z auth.yaml
+docker compose -f ops/docker-compose.sogo-mail.yml --env-file ops/sogo/.env.sogo up -d --force-recreate sogo
+```
+
+Po wdrożeniu: **ponownie wygeneruj hasło IMAP** w panelu admin (stare hasła nie trafiły do `sogo_mail_auth`).
 
 Dokumentacja upstream: https://www.sogo.nu/files/pdf/SOGoInstallationGuide.pdf
 
@@ -136,15 +152,13 @@ systemctl enable --now sogo
 
 ## 5. Caddy — `mail.verris.pl`
 
-Dopisz do `ops/Caddyfile` (prod):
+W `ops/Caddyfile` (prod) kontener SOGo w sieci Docker `verris_verris_public`:
 
 ```
-mail.verris.pl {
-    reverse_proxy 127.0.0.1:20000
+{$CADDY_MAIL_DOMAIN} {
+    reverse_proxy ops-sogo-1:80
 }
 ```
-
-(port SOGo domyślnie — zweryfikuj `WOPort` w `sogo.conf`)
 
 W `.env.prod`:
 
@@ -185,5 +199,7 @@ ufw reload
 ```bash
 cd /opt/verris && ./ops/scripts/prod-mail-apply-maps.sh
 ```
+
+Antyspam inbound: [`RSPAMD_MAIL.md`](./RSPAMD_MAIL.md).
 
 Powiązane: [`MAIL-4_CONTROL_PLANE_MAIL.md`](../MAIL-4_CONTROL_PLANE_MAIL.md), [`HOSTING_LAUNCH_TASKS.md`](../HOSTING_LAUNCH_TASKS.md).

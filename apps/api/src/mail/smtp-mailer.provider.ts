@@ -112,7 +112,10 @@ export class SmtpMailerProvider implements MailerProvider {
       await readReply(socket, [235]);
     }
 
-    await writeLine(socket, `MAIL FROM:<${this.config.fromAddress}>\r\n`);
+    const fromAddress = message.fromAddress ?? this.config.fromAddress;
+    const fromName = message.fromName ?? this.config.fromName;
+
+    await writeLine(socket, `MAIL FROM:<${fromAddress}>\r\n`);
     await readReply(socket, [250]);
     await writeLine(socket, `RCPT TO:<${message.to}>\r\n`);
     await readReply(socket, [250, 251]);
@@ -121,7 +124,7 @@ export class SmtpMailerProvider implements MailerProvider {
     await readReply(socket, [354]);
 
     const body = renderEmail({
-      from: { address: this.config.fromAddress, name: this.config.fromName },
+      from: { address: fromAddress, name: fromName },
       to: message.to,
       subject: message.subject,
       text: message.text,

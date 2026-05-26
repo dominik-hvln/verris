@@ -17,6 +17,16 @@
  */
 export type EmailCategory = 'TRANSACTIONAL' | 'MARKETING' | 'PRODUCT_UPDATE';
 
+/** Nadawca z rejestru MAIL-4 (`ControlPlaneSystemAddress`). */
+export type SystemFromRole =
+  | 'NOREPLY'
+  | 'SUPPORT'
+  | 'SECURITY'
+  | 'RODO'
+  | 'BILLING'
+  | 'DMARC_RUA'
+  | 'PANEL';
+
 export interface MailMessage {
   to: string;
   subject: string;
@@ -26,6 +36,11 @@ export interface MailMessage {
   html?: string;
   /** Optional `Reply-To` header (e.g. ticket address). */
   replyTo?: string;
+  /** Envelope/header From — nadpisuje domyślny SMTP_FROM z ustawień panelu. */
+  fromAddress?: string;
+  fromName?: string;
+  /** From z tabeli adresów systemowych (MAIL-4); wygrywa z `fromAddress` gdy oba podane. */
+  fromRole?: SystemFromRole;
   /** Tag/category for analytics (Resend's `tags`, Postmark's `Tag`). */
   tag?: string;
   /**

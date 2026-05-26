@@ -1,0 +1,9 @@
+SOGoMailingMechanism: smtp
+SOGoSMTPServer: "smtp://host.docker.internal:25"
+# IMAPS 993 — Dovecot ssl=yes; snakeoil cert from SOGo container
+SOGoIMAPServer: "imaps://host.docker.internal:993/?tlsVerifyMode=none"
+NGImap4TLSVerifyMode: none
+SOGoMailDomain: verris.pl
+SOGoTimeZone: Europe/Warsaw
+NGImap4AuthMechanism: plain
+SOGoForceExternalLoginWithEmail: true

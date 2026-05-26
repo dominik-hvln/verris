@@ -1,0 +1,52 @@
+# SOGo + MariaDB for control-plane mail (Ubuntu 24.04 — native SOGo packages unavailable).
+# Usage on host: docker compose -f ops/docker-compose.sogo-mail.yml --env-file ops/sogo/.env.sogo up -d
+services:
+  sogo-db:
+    image: mariadb:11.4
+    container_name: verris-sogo-db
+    restart: unless-stopped
+    networks:
+      - sogo_internal
+      - verris_internal
+    environment:
+      MYSQL_ROOT_PASSWORD: ${SOGO_DB_ROOT_PASSWORD:?SOGO_DB_ROOT_PASSWORD required}
+      MYSQL_DATABASE: sogo
+      MYSQL_USER: sogo
+      MYSQL_PASSWORD: ${SOGO_DB_PASSWORD:?SOGO_DB_PASSWORD required}
+    volumes:
+      - sogo_mysql_data:/var/lib/mysql
+    ports:
+      - '127.0.0.1:3307:3306'
+    healthcheck:
+      test: ['CMD', 'healthcheck.sh', '--connect', '--innodb_initialized']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  sogo:
+    image: sonroyaalmerol/docker-sogo:5.12.8-1
+    restart: unless-stopped
+    depends_on:
+      sogo-db:
+        condition: service_healthy
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    networks:
+      - sogo_internal
+      - verris_public
+    volumes:
+      # Paths relative to this compose file (ops/), not repo root.
+      - ./sogo/runtime:/etc/sogo/sogo.conf.d:ro
+
+volumes:
+  sogo_mysql_data:
+
+networks:
+  sogo_internal:
+    driver: bridge
+  verris_internal:
+    external: true
+    name: verris_verris_internal
+  verris_public:
+    external: true
+    name: verris_verris_public

@@ -19,7 +19,10 @@ import { ControlPlaneMailService } from './control-plane-mail.service';
 import {
   CreateControlPlaneMailboxDto,
   CreateMailAliasDto,
+  CreateMailForwardDto,
+  ImportMailboxesDto,
   UpdateControlPlaneMailboxDto,
+  UpdateSystemAddressesDto,
 } from './dto/control-plane-mail.dto';
 
 @Controller('admin/mailboxes')
@@ -41,10 +44,36 @@ export class ControlPlaneMailAdminController {
     return this.mail.getSystemAddresses();
   }
 
+  @Patch('system-addresses')
+  updateSystemAddresses(
+    @Body() dto: UpdateSystemAddressesDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.mail.updateSystemAddresses(dto, actor.userId);
+  }
+
   @Post('sync-postfix')
   @HttpCode(200)
   syncPostfix() {
     return this.mail.syncPostfixMaps();
+  }
+
+  @Post('import')
+  @HttpCode(200)
+  importMailboxes(
+    @Body() dto: ImportMailboxesDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.mail.importMailboxesFromCsv(dto.csv, dto.dryRun !== false, actor.userId);
+  }
+
+  @Delete('forwards/:forwardId')
+  @HttpCode(200)
+  removeForward(
+    @Param('forwardId') forwardId: string,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.mail.deleteForward(forwardId, actor.userId);
   }
 
   @Get(':id')
@@ -94,5 +123,14 @@ export class ControlPlaneMailAdminController {
   @HttpCode(200)
   removeAlias(@Param('aliasId') aliasId: string, @CurrentUser() actor: { userId: string }) {
     return this.mail.deleteAlias(aliasId, actor.userId);
+  }
+
+  @Post(':id/forwards')
+  addForward(
+    @Param('id') id: string,
+    @Body() dto: CreateMailForwardDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.mail.addForward(id, dto, actor.userId);
   }
 }

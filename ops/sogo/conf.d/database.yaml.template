@@ -1,0 +1,3 @@
+SOGoProfileURL: "mysql://sogo:PLACEHOLDER@sogo-db:3306/sogo/sogo_user_profile"
+OCSFolderInfoURL: "mysql://sogo:PLACEHOLDER@sogo-db:3306/sogo/sogo_folder_info"
+OCSSessionsFolderURL: "mysql://sogo:PLACEHOLDER@sogo-db:3306/sogo/sogo_sessions_folder"
