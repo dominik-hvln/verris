@@ -28,17 +28,17 @@ fi
 echo ""
 echo "=== Grafana validate (API, bez tokenu) ==="
 code=$(docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" exec -T api \
-  wget -qO- --server-response http://127.0.0.1:3000/auth/grafana-validate 2>&1 | awk '/HTTP\//{print $2}' | tail -1 || true)
-if [[ "${code:-}" == "401" ]]; then
+  curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:3000/auth/grafana-validate 2>/dev/null || echo "000")
+if [[ "$code" == "401" ]]; then
   ok "/auth/grafana-validate bez tokenu → 401"
 else
-  bad "/auth/grafana-validate bez tokenu → ${code:-brak odpowiedzi}"
+  bad "/auth/grafana-validate bez tokenu → ${code}"
 fi
 
 echo ""
 echo "=== Admin / Staff Grafana SSO route ==="
 for path in "https://admin.verris.pl/grafana/sso" "https://staff.verris.pl/grafana/sso"; do
-  code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 -L "${path}" || echo "000")
+  code=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "${path}" || echo "000")
   if [[ "$code" == "200" || "$code" == "307" || "$code" == "302" ]]; then
     ok "${path} → ${code}"
   else
@@ -48,9 +48,9 @@ done
 
 echo ""
 echo "=== Metryki HTTP w /metrics ==="
+metrics_token=$(grep -E '^METRICS_AUTH_TOKEN=' "${ENV_FILE}" | cut -d= -f2- || true)
 metrics=$(docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" exec -T api \
-  wget -qO- --header="Authorization: Bearer $(grep -E '^METRICS_AUTH_TOKEN=' "${ENV_FILE}" | cut -d= -f2-)" \
-  http://127.0.0.1:3000/metrics 2>/dev/null || true)
+  curl -sf -H "Authorization: Bearer ${metrics_token}" http://127.0.0.1:3000/metrics 2>/dev/null || true)
 if echo "$metrics" | grep -q 'verris_http_requests_total'; then
   ok "verris_http_requests_total w /metrics"
 else
@@ -65,7 +65,7 @@ fi
 echo ""
 echo "=== Prometheus (opcjonalnie) ==="
 if docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" exec -T prometheus \
-  wget -qO- 'http://localhost:9090/api/v1/query?query=sum(rate(verris_http_requests_total[5m]))' 2>/dev/null | grep -q '"status":"success"'; then
+  curl -sf 'http://localhost:9090/api/v1/query?query=sum(rate(verris_http_requests_total[5m]))' 2>/dev/null | grep -q '"status":"success"'; then
   ok "Prometheus query verris_http_requests_total"
 else
   skip_msg "Prometheus query — brak danych lub stary scrape (poczekaj 1–2 min po deploy)"
