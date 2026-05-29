@@ -57,6 +57,7 @@ ENV API_URL=${API_URL} \
     NEXT_PUBLIC_GRAFANA_URL=${NEXT_PUBLIC_GRAFANA_URL}
 COPY libs libs
 COPY apps/${APP_NAME} apps/${APP_NAME}
+RUN mkdir -p apps/${APP_NAME}/public
 RUN pnpm --filter @verris/${APP_NAME} build
 
 # -----------------------------------------------------------------------------
