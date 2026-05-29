@@ -66,6 +66,7 @@ FROM node:${NODE_VERSION}-bookworm-slim AS runtime
 ARG APP_NAME
 ARG APP_PORT
 ENV NODE_ENV=production \
+    HOSTNAME=0.0.0.0 \
     APP_NAME=${APP_NAME} \
     PORT=${APP_PORT}
 WORKDIR /app
@@ -74,28 +75,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates curl tini && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy the entire .next, public, package.json and node_modules. We're not
-# using "output: standalone" yet because the panels' next.config.ts disables
-# typescript build errors and we want a single Dockerfile that works for all
-# three apps without further changes.
-# Ensure a public/ folder exists so the COPY below does not fail for panels
-# that have no static assets yet.
+# Next.js standalone output (panels with output: 'standalone' in next.config).
 RUN mkdir -p ./apps/${APP_NAME}/public
 
-COPY --from=build /workspace/apps/${APP_NAME}/.next ./apps/${APP_NAME}/.next
-COPY --from=build /workspace/apps/${APP_NAME}/package.json ./apps/${APP_NAME}/package.json
-COPY --from=build /workspace/apps/${APP_NAME}/next.config.ts ./apps/${APP_NAME}/next.config.ts
-COPY --from=build /workspace/libs ./libs
-COPY --from=build /workspace/node_modules ./node_modules
-RUN mkdir -p /app/node_modules/@verris && \
-    ln -sfn /app/libs/contracts /app/node_modules/@verris/contracts && \
-    ln -sfn /app/libs/ui /app/node_modules/@verris/ui
+COPY --from=build /workspace/apps/${APP_NAME}/.next/standalone ./
+COPY --from=build /workspace/apps/${APP_NAME}/.next/static ./apps/${APP_NAME}/.next/static
+COPY --from=build /workspace/apps/${APP_NAME}/public ./apps/${APP_NAME}/public
 
 EXPOSE ${APP_PORT}
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -fsS http://127.0.0.1:${PORT}/api/health || exit 1
 
-WORKDIR /app/apps/${APP_NAME}
+WORKDIR /app
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["sh", "-c", "node ../../node_modules/next/dist/bin/next start -p ${PORT}"]
+CMD ["sh", "-c", "exec node apps/$APP_NAME/server.js"]

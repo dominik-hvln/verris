@@ -1,7 +1,7 @@
 # Hosting LIVE — master backlog (źródło prawdy)
 
 > **Ten plik = jedyna lista** do śledzenia: co zrobione, w toku, do zrobienia.  
-> **Ostatnia aktualizacja:** 2026-05-24 · prod MAIL-4a–c smoke PASS (SOGo, odbiór MX, tworzenie skrzynek)  
+> **Ostatnia aktualizacja:** 2026-05-26 · MAIL-4d smoke ✅ · Grafana SSO ✅ · LEG 1.0.0 · staff-panel standalone  
 > **Zasada GO:** [LIVE_PRODUCT_SCOPE_DECISION.md](../LIVE_PRODUCT_SCOPE_DECISION.md)
 
 ---
@@ -51,12 +51,12 @@
 
 | ID / sprint | Status | Następny krok |
 |-------------|--------|----------------|
-| **LEG-D** — LEG-1 | 🔄 | Drafty w panelu → **prawnik** (LEG-2) |
+| **LEG-D** — LEG-1…3 | ✅ | Akcept prawnika · publikacja **1.0.0** (`prod-legal-publish-live.sh`) |
 | **GO-OPS (reszta)** — OPS-1, OPS-4, OPS-6 | ✅ | PROD_HEALTH Run #002 2026-05-26 · prune 26 GB · staff-panel RAM fix |
 | **GO-BILL** — BILL-1 domknięcie | 🔄 | Przed GO z klientami: **live** Stripe keys (#6) |
 | **P0-VER** | 🟡 | VER-1…12 — checklisty prod |
 | **MAIL-4b** | ✅ | Adresy systemowe w admin + `fromRole` w triggerach transakcyjnych |
-| **MAIL-4d/e** | 🔄 | Forwardy + import CSV w kodzie; **Rspamd ✅ prod** (`11332`, Postfix milter) |
+| **MAIL-4d/e** | ✅ | Forwardy smoke OK · Rspamd prod · import CSV · postmap systemd |
 
 ### Wymaga węzła compute
 
@@ -73,14 +73,11 @@
 
 | ID | Task | Sprint |
 |----|------|--------|
-| LEG-2 | Review prawnika | **LEG-D** ⏸️ na Ciebie |
-| LEG-3…6 | Publikacja `1.0.0`, re-consent, subprocessors | **LEG-D** |
+| MAIL-4e | Rspamd — strojenie progów po logach (opcjonalnie) | **MAIL-4e** |
+| LEG-4…6 | Re-consent smoke, subprocessors notice | **LEG-D** |
 | OPS-4 | GO_NO_GO checklist | **GO-OPS** |
 | OPS-1, OPS-6 | PROD_HEALTH §1–12 | **GO-OPS** |
 | BILL-1 #6 | Stripe **live** keys przed zewnętrznymi klientami | **GO-BILL** |
-| MAIL-4b | ~~fromRole w triggerach~~ ✅ deploy api | **MAIL-4b** |
-| MAIL-4d | Forwardy z potwierdzeniem, import OVH CSV | **MAIL-4d** |
-| MAIL-4e | ~~Rspamd na hoście~~ ✅ `204.168.174.138` — dalsze strojenie progów po logach | **MAIL-4e** |
 | VER-* | Weryfikacja prod (DNS, migracje, CI) | **P0-VER** |
 
 ### Wymaga węzła compute
@@ -187,10 +184,8 @@ DEPLOY_SERVICES="api client-panel admin-panel" ./ops/scripts/prod-deploy-release
 | OPS-5 | ⏸️ | Po węźle |
 | HOST-1…4 | ⏳ | Po licencjach |
 | BILL-1, BILL-2 | ✅ / 🔄 | live keys #6 |
-| LEG-1…6 | 🔄 / ⏸️ | |
-| MAIL-2 | ✅ | control-plane smoke 2026-05-24; hosting maile po GO-HOST |
-| MAIL-3, MAIL-1 | ✅ | |
-| MAIL-4 | 🔄 | 4a–c ✅ prod; 4d aliasy UI + forwardy/Rspamd |
+| LEG-1…6 | ✅ / 🔄 | 1.0.0 published · re-consent smoke (LEG-4) |
+| MAIL-4 | ✅ | 4a–e prod; forwardy smoke OK |
 
 ---
 

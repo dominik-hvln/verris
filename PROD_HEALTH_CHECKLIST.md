@@ -105,7 +105,7 @@ Komenda: `docker stats --no-stream`, `df -h`, `df -i`, `uptime`.
 | Pomiar | Próg ALERT | Wartość | Status |
 | --- | --- | --- | --- |
 | Prometheus / Grafana | running | kontenery healthy | ✅ |
-| Grafana SSO (`forward_auth`) | YES | skrypt + [`docs/ops/GRAFANA_SSO_SMOKE.md`](docs/ops/GRAFANA_SSO_SMOKE.md) | 🟡 |
+| Grafana SSO (`forward_auth`) | YES | auto + ręczny test ✅ 2026-05-26 | ✅ |
 | Status page public | 200 | `status.verris.pl` OK | ✅ |
 | Grafana alert → email | YES | dominik@hvln.pl (OPS-3) | ✅ |
 | Slack alert channel | YES | D-5: później | ⏸️ |
@@ -125,7 +125,7 @@ Komenda: `docker stats --no-stream`, `df -h`, `df -i`, `uptime`.
 | --- | --- | --- |
 | `LegalDocument` current (4 kind) | **4** aktywne w DB | ✅ |
 | Data export / account deletion | endpointy w API | 🟡 (smoke okresowy) |
-| Re-consent po `1.0.0` | po LEG-3 | ⏸️ |
+| Re-consent po `1.0.0` | po publikacji | 🔄 smoke przy logowaniu |
 
 ## 12. Smoke test biznesowy (bez węzła)
 
@@ -134,7 +134,7 @@ Komenda: `docker stats --no-stream`, `df -h`, `df -i`, `uptime`.
 - [x] IAM invite + mail — 2026-05-24
 - [x] MAIL-4 SOGo / skrzynki / MX — 2026-05-24
 - [ ] Welcome email po verify
-- [ ] Forward z potwierdzeniem (MAIL-4d) — do odhaczenia po teście w panelu
+- [x] Forward z potwierdzeniem (MAIL-4d) — 2026-05-26
 - [ ] BOK ticket end-to-end — [`docs/ops/BOK_TICKET_SMOKE.md`](docs/ops/BOK_TICKET_SMOKE.md)
 - [ ] Zakup planu + provisioning DA — **po węźle**
 

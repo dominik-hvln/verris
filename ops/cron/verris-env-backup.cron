@@ -1,0 +1,6 @@
+# Backup .env.prod (poza repo) — codziennie 04:12 UTC, po backupie Postgres.
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+WORKDIR=/opt/verris
+
+12 4 * * * root cd $WORKDIR && ./ops/scripts/prod-env-backup.sh >> /var/log/verris-env-backup.log 2>&1

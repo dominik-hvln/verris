@@ -248,8 +248,11 @@ services:
     restart: always
     logging: *default-logging
     depends_on: [api]
+    mem_limit: 768m
+    memswap_limit: 768m
     environment:
       NODE_ENV: production
+      NODE_OPTIONS: ${STAFF_PANEL_NODE_OPTIONS:---max-old-space-size=384}
       PORT: '3002'
       NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
       NEXT_PUBLIC_GRAFANA_URL: https://${CADDY_GRAFANA_DOMAIN:-grafana.verris.local}

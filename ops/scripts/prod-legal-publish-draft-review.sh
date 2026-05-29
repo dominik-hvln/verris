@@ -16,7 +16,7 @@ ENV_FILE="${ENV_FILE:-.env.prod}"
 VERSION="${LEGAL_REVIEW_VERSION:-1.0.0-draft}"
 DRAFTS_HOST="${ROOT}/docs/legal/drafts"
 
-CHANGELOG='Wersja robocza DRAFT 0.2 — do przeglądu i akceptacji prawnika przed GO LIVE. Po zatwierdzeniu opublikuj wersję 1.0.0 w panelu admin (Compliance). Nie stanowi porady prawnej.'
+CHANGELOG="${LEGAL_CHANGELOG:-Wersja robocza DRAFT 0.2 — do przeglądu i akceptacji prawnika przed GO LIVE. Po zatwierdzeniu opublikuj wersję 1.0.0 w panelu admin (Compliance). Nie stanowi porady prawnej.}"
 
 if [[ ! -d "$DRAFTS_HOST" ]]; then
   echo "[legal] Brak katalogu $DRAFTS_HOST"
