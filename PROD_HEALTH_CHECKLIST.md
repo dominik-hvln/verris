@@ -23,7 +23,8 @@ Plan domknięcia: [`LIVE_READINESS_PLAN.md`](./LIVE_READINESS_PLAN.md) · backlo
 | Pomiar | Próg ALERT | Wartość pomiaru | Status |
 | --- | --- | --- | --- |
 | RAM host available | > 1.5 GB | **5.3 GiB** avail (po restarcie staff-panel) | ✅ |
-| RAM staff-panel | < 512 MB | było **4.1 GiB** → restart → **137 MiB** (monitorować) | 🟡 |
+| RAM staff-panel | < 512 MB | standalone fix · **72 MiB / 768 MiB** po ~20 h · 0 restartów | ✅ |
+| RAM admin-panel | < 512 MB | było **~6.1 GiB** → standalone rebuild 2026-05-30 | 🔄 |
 | RAM api container | < 1.5 GB | 118 MiB | ✅ |
 | RAM postgres container | < 2.5 GB | 48 MiB | ✅ |
 | RAM redis container | < 256 MB | 6 MiB | ✅ |
@@ -125,7 +126,7 @@ Komenda: `docker stats --no-stream`, `df -h`, `df -i`, `uptime`.
 | --- | --- | --- |
 | `LegalDocument` current (4 kind) | **4** aktywne w DB | ✅ |
 | Data export / account deletion | endpointy w API | 🟡 (smoke okresowy) |
-| Re-consent po `1.0.0` | po publikacji | 🔄 smoke przy logowaniu |
+| Re-consent po `1.0.0` | po publikacji | smoke przy logowaniu ✅ 2026-05-30 | ✅ |
 
 ## 12. Smoke test biznesowy (bez węzła)
 
@@ -149,9 +150,9 @@ Komenda: `docker stats --no-stream`, `df -h`, `df -i`, `uptime`.
 ### Run #002 — 2026-05-26 — GO-OPS pass
 
 - **HEAD:** `6fb0315`
-- **Akcje:** `docker builder prune -af` (26.38 GB), restart `staff-panel` (4 GiB → 137 MiB), poprawka `GF_SMTP_FROM_NAME` w `.env.prod` (cudzysłów)
+- **Akcje:** `docker builder prune -af` (26.38 GB), staff-panel standalone (4 GiB → **~72 MiB** po 20 h), poprawka `GF_SMTP_FROM_NAME` w `.env.prod` (cudzysłów)
 - **Wynik:** sekcje 1–7 bez ❌ dla control-plane; sekcja 8 N/A
-- **Odchylenia:** staff-panel memory — obserwacja 7 dni; Grafana p95 API — 🟡
+- **Odchylenia:** Grafana p95 API — 🟡
 
 ### Run #001 — 2026-05-24 — Sprint 0 deploy
 

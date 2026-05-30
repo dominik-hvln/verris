@@ -74,7 +74,7 @@
 | ID | Task | Sprint |
 |----|------|--------|
 | MAIL-4e | Rspamd — strojenie progów po logach (opcjonalnie) | **MAIL-4e** |
-| LEG-4…6 | Re-consent smoke, subprocessors notice | **LEG-D** |
+| LEG-4…6 | Re-consent ✅ · subprocessors notice | **LEG-D** |
 | OPS-4 | GO_NO_GO checklist | **GO-OPS** |
 | OPS-1, OPS-6 | PROD_HEALTH §1–12 | **GO-OPS** |
 | BILL-1 #6 | Stripe **live** keys przed zewnętrznymi klientami | **GO-BILL** |
@@ -184,7 +184,7 @@ DEPLOY_SERVICES="api client-panel admin-panel" ./ops/scripts/prod-deploy-release
 | OPS-5 | ⏸️ | Po węźle |
 | HOST-1…4 | ⏳ | Po licencjach |
 | BILL-1, BILL-2 | ✅ / 🔄 | live keys #6 |
-| LEG-1…6 | ✅ / 🔄 | 1.0.0 published · re-consent smoke (LEG-4) |
+| LEG-1…6 | ✅ / 🔄 | 1.0.0 published · re-consent smoke ✅ |
 | MAIL-4 | ✅ | 4a–e prod; forwardy smoke OK |
 
 ---
