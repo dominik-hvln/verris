@@ -81,6 +81,7 @@ ENV DATABASE_URL="postgresql://verris:build@localhost:5432/verris_db?schema=publ
 RUN npx prisma generate --schema=libs/database/prisma/schema.prisma
 
 COPY ops/docker/api-entrypoint.sh /usr/local/bin/api-entrypoint.sh
+COPY ops/scripts/node-hosting-profile.sh ./ops/scripts/node-hosting-profile.sh
 RUN chmod +x /usr/local/bin/api-entrypoint.sh
 
 EXPOSE 3000
