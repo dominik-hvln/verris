@@ -7,12 +7,16 @@
 #   --yes, -y         bez pytań (CustomBuild build jeśli włączony)
 #   --skip-build      pomiń długi CustomBuild rebuild (tylko ustawienia + Governor + restart LS)
 #   --preflight-only  tylko weryfikacja stosu (bez zmian)
+#   --governor-only   tylko instalacja/konfiguracja MySQL Governor (wymaga CL + działającego MySQL/MariaDB)
 set -Eeuo pipefail
+
+GOVERNOR_PY="/usr/share/lve/dbgovernor/mysqlgovernor.py"
 
 DRY_RUN=0
 NONINTERACTIVE=0
 SKIP_BUILD=0
 PREFLIGHT_ONLY=0
+GOVERNOR_ONLY=0
 
 for arg in "$@"; do
   case "$arg" in
@@ -20,6 +24,7 @@ for arg in "$@"; do
     --yes|-y) NONINTERACTIVE=1 ;;
     --skip-build) SKIP_BUILD=1 ;;
     --preflight-only) PREFLIGHT_ONLY=1 ;;
+    --governor-only) GOVERNOR_ONLY=1; NONINTERACTIVE=1 ;;
   esac
 done
 
@@ -91,41 +96,135 @@ preflight_stack() {
   fi
 }
 
+mysql_client_version_line() {
+  if command -v mysql >/dev/null 2>&1; then
+    mysql -V 2>/dev/null || true
+  elif [ -x /usr/local/mysql/bin/mysql ]; then
+    /usr/local/mysql/bin/mysql -V 2>/dev/null || true
+  fi
+}
+
+# Mapuje mysql -V → słowo kluczowe CloudLinux Governor (np. mariadb106, mysql80).
+governor_mysql_version_keyword() {
+  local line="$1"
+  local ver major minor
+
+  if grep -qi mariadb <<<"$line"; then
+    ver="$(sed -n 's/.*Distrib \([0-9]\+\.[0-9]\+\).*/\1/p' <<<"$line" | head -1)"
+    if [ -n "$ver" ]; then
+      major="${ver%%.*}"
+      minor="${ver#*.}"
+      minor="${minor%%.*}"
+      echo "mariadb${major}${minor}"
+      return 0
+    fi
+  fi
+
+  if grep -qiE 'mysql|percona' <<<"$line"; then
+    ver="$(sed -n 's/.*Distrib \([0-9]\+\.[0-9]\+\).*/\1/p' <<<"$line" | head -1)"
+    if [ -n "$ver" ]; then
+      major="${ver%%.*}"
+      minor="${ver#*.}"
+      minor="${minor%%.*}"
+      echo "mysql${major}${minor}"
+      return 0
+    fi
+  fi
+
+  # DirectAdmin + CL — typowo MariaDB 10.6+; bezpieczny fallback gdy mysql -V niedostępne przed pierwszym startem.
+  echo "mariadb106"
+}
+
+governor_is_active() {
+  command -v dbctl >/dev/null 2>&1 && dbctl list >/dev/null 2>&1
+}
+
+install_governor_mysql_package() {
+  if [ -x "$GOVERNOR_PY" ]; then
+    return 0
+  fi
+  log_info "Instalacja pakietu governor-mysql (repozytorium CloudLinux)…"
+  if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then
+    log_info "dry-run: dnf install -y governor-mysql"
+    return 0
+  fi
+  if dnf install -y governor-mysql 2>/dev/null || yum install -y governor-mysql 2>/dev/null; then
+    log_ok "Pakiet governor-mysql zainstalowany"
+    return 0
+  fi
+  return 1
+}
+
+run_governor_py() {
+  local desc="$1"
+  shift
+  local out rc=0
+  if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then
+    log_info "dry-run: $GOVERNOR_PY $*"
+    return 0
+  fi
+  echo "[verris-profile] $GOVERNOR_PY $*"
+  out="$("$GOVERNOR_PY" "$@" 2>&1)" || rc=$?
+  printf '%s\n' "$out" | strip_ansi
+  if [ "$rc" -eq 0 ]; then
+    return 0
+  fi
+  local clean
+  clean="$(printf '%s' "$out" | strip_ansi)"
+  if grep -qiE 'already|completed|nothing to do' <<<"$clean"; then
+    return 0
+  fi
+  log_warn "$desc (rc=$rc)"
+  return "$rc"
+}
+
 configure_cloudlinux_governor() {
   echo "--- MySQL Governor (CloudLinux) ---"
+
   if [ "$PREFLIGHT_ONLY" = "1" ]; then
-    log_info "preflight: Governor — tylko odczyt"
-    command -v dbctl >/dev/null 2>&1 && log_ok "dbctl present" || log_skip "dbctl brak"
-    [ -d /usr/share/db-governor ] && log_ok "db-governor dir" || log_skip "pakiet Governor nie wykryty"
+    if governor_is_active; then
+      log_ok "MySQL Governor aktywny (dbctl list)"
+    elif [ -x "$GOVERNOR_PY" ]; then
+      log_skip "mysqlgovernor.py obecny, Governor nieaktywny — uruchom profil z panelu"
+    else
+      log_skip "governor-mysql niezainstalowany — profil hostingowy zainstaluje automatycznie"
+    fi
+    mysql_client_version_line | grep -q . && log_ok "mysql client: $(mysql_client_version_line | head -c 80)"
     return 0
   fi
 
-  if command -v dbctl >/dev/null 2>&1 || [ -d /usr/share/db-governor ]; then
-    run "cloudlinux-selector set --current-version mysql --version default 2>/dev/null || true"
-    if [ -x /usr/share/lve/dbgovernor/mysqlgovernor.py ]; then
-      if run "/usr/share/lve/dbgovernor/mysqlgovernor.py install 2>/dev/null"; then
-        log_ok "MySQL Governor (mysqlgovernor.py install)"
-      else
-        log_warn "MySQL Governor — install zwrócił błąd (sprawdź ręcznie cl-wizard)"
-      fi
-    elif command -v governor-mysql >/dev/null 2>&1; then
-      run "yum install -y governor-mysql 2>/dev/null || dnf install -y governor-mysql 2>/dev/null || true"
-      log_ok "MySQL Governor (pakiet governor-mysql)"
-    else
-      log_warn "MySQL Governor — brak mysqlgovernor.py; doinstaluj z repozytorium CL"
-    fi
+  if governor_is_active; then
+    log_ok "MySQL Governor już aktywny (dbctl)"
+    return 0
+  fi
+
+  if ! install_governor_mysql_package; then
+    log_warn "Nie udało się zainstalować governor-mysql — sprawdź licencję CL/trial i repozytoria (cldetect -i)"
+    return 0
+  fi
+
+  if [ ! -x "$GOVERNOR_PY" ]; then
+    log_warn "Brak $GOVERNOR_PY po instalacji governor-mysql"
+    return 0
+  fi
+
+  local mysql_line gov_ver
+  mysql_line="$(mysql_client_version_line)"
+  gov_ver="$(governor_mysql_version_keyword "$mysql_line")"
+  if [ -n "$mysql_line" ]; then
+    log_info "Wykryto silnik DB: $(echo "$mysql_line" | head -c 100)"
   else
-    for pkg in governor-mysql alt-governor; do
-      if [ "$DRY_RUN" = "1" ]; then
-        log_info "dry-run: próba dnf/yum install $pkg"
-        break
-      fi
-      if dnf install -y "$pkg" 2>/dev/null || yum install -y "$pkg" 2>/dev/null; then
-        log_ok "MySQL Governor — zainstalowano $pkg"
-        return 0
-      fi
-    done
-    log_warn "MySQL Governor — pakiet niedostępny; opcjonalnie: cl-wizard / dokumentacja CL"
+    log_warn "Brak mysql -V — Governor użyje domyślnego keyword: $gov_ver"
+  fi
+  log_info "Governor --mysql-version=$gov_ver"
+
+  run_governor_py "Ustawienie wersji MySQL/MariaDB dla Governor" --mysql-version="$gov_ver" || true
+  if run_governor_py "Instalacja MySQL Governor" --install; then
+    if governor_is_active; then
+      log_ok "MySQL Governor aktywny (dbctl list)"
+    else
+      log_ok "MySQL Governor — instalator zakończony (sprawdź: dbctl list)"
+    fi
   fi
 }
 
@@ -302,6 +401,12 @@ echo ""
 
 preflight_stack
 configure_cloudlinux_governor
+
+if [ "$GOVERNOR_ONLY" = "1" ]; then
+  print_summary
+  exit 0
+fi
+
 configure_directadmin_custombuild
 configure_litespeed
 print_lve_info

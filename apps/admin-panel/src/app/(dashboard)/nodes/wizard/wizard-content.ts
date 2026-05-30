@@ -85,7 +85,10 @@ reboot
 # Po reboot — weryfikacja:
 cldetect --help
 lveinfo --help
-cloudlinux-statistic --help 2>/dev/null || true`;
+cloudlinux-statistic --help 2>/dev/null || true
+
+# MySQL Governor — instaluje profil hostingowy (krok 7 wizarda / panel admin)
+# po DirectAdmin. Ręcznie: ops/scripts/node-cloudlinux-governor.sh`;
 
 export const INSTALL_CLOUDLINUX_AL9 = `# 1) CloudLinux 9 — konwersja z AlmaLinux 9.x (alternatywa, bardziej dojrzały stack)
 dnf -y install wget
@@ -114,6 +117,9 @@ chmod 750 setup.sh
 #   https://TWÓJ.IP:2222
 # Login key (do Verris): DirectAdmin → Account Manager → Create Login Key
 #   (API access, bez expiry lub rotacja wg polityki)
+#
+# MySQL Governor (CloudLinux) — automatycznie w kroku 7 (Profil hostingowy).
+# Wymaga działającego MariaDB/MySQL z DA. Ręcznie: bash node-cloudlinux-governor.sh
 
 # Weryfikacja:
 systemctl status directadmin --no-pager
@@ -197,6 +203,7 @@ export const BOOTSTRAP_DOES_NOT = [
   "Nie instaluje CloudLinux — zrób to wcześniej (krok 2)",
   "Nie instaluje DirectAdmin — zrób to wcześniej (krok 3)",
   "Nie instaluje LSPHP — tylko weryfikuje; doinstaluj przez DA CustomBuild lub repo LS",
-  "Nie konfiguruje MySQL Governor / cache LS — profil hostingowy (krok 7)",
+  "Nie instaluje MySQL Governor — profil hostingowy (krok 7) instaluje governor-mysql + mysqlgovernor.py --install",
+  "Nie konfiguruje cache LS — profil hostingowy (krok 7)",
   "Nie ustawia limitów LVE per klient — robi to Verris przy provisioning z planu",
 ];
