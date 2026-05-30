@@ -166,7 +166,17 @@ cloudlinux-statistic --help >/dev/null 2>&1 && echo "OK: cloudlinux-statistic"
 export const HOSTING_PROFILE_HINT = `# Alternatywa: ręcznie na węźle (gdy agent zadań niedostępny)
 scp ops/scripts/node-hosting-profile.sh root@WĘZEŁ:/root/
 ssh root@WĘZEŁ 'bash /root/node-hosting-profile.sh --yes --skip-build'
-# Pełny CustomBuild rebuild (30–90 min): usuń --skip-build`;
+
+# Węzeł sprzed agent-2 (brak verris-tasks): jednorazowo na SSH
+scp ops/scripts/install-verris-tasks.sh root@WĘZEŁ:/root/
+ssh root@WĘZEŁ 'bash /root/install-verris-tasks.sh'`;
+
+export const VERIFY_BOOTSTRAP_AGENTS = `# Po bootstrap — weryfikacja agentów (root na węźle):
+systemctl is-active verris-agent.timer verris-probes.timer
+test -x /usr/local/bin/verris-tasks.sh && echo "OK: verris-tasks"
+grep -q verris-tasks.sh /usr/local/bin/verris-probes.sh 2>/dev/null && echo "OK: probes→tasks hook"
+tail -3 /var/log/verris-agent.log
+# Oczekiwany komunikat bootstrapu: "Bootstrap complete"`;
 
 /** Co robi skrypt bootstrap z panelu (nie instaluje CL ani DA). */
 export const BOOTSTRAP_DOES = [
@@ -175,8 +185,8 @@ export const BOOTSTRAP_DOES = [
   "Handshake z api.verris.pl — rejestracja CPU/RAM/disk",
   "Zapisuje /etc/verris.conf (token agenta)",
   "Instaluje verris-agent (telemetria LVE co 1 min)",
-  "Instaluje verris-probes (sondy lokalne status page)",
-  "Instaluje verris-tasks (profil hostingowy z panelu admin)",
+  "Instaluje verris-probes (sondy lokalne + poll zadań z panelu co 1 min)",
+  "Instaluje /usr/local/bin/verris-tasks.sh (profil hostingowy z admina)",
 ];
 
 export const BOOTSTRAP_DOES_NOT = [

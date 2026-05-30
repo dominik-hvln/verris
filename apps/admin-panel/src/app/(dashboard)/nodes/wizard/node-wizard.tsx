@@ -31,6 +31,7 @@ import {
   INSTALL_OS_PREP,
   PREPARE_NODE_EXPORTS,
   VERIFY_CLOUDLINUX,
+  VERIFY_BOOTSTRAP_AGENTS,
   WIZARD_STEPS,
 } from "./wizard-content";
 
@@ -547,6 +548,7 @@ export function NodeWizard() {
                   />
                   Skrypt zakończył się komunikatem „Bootstrap complete”
                 </label>
+                <CopyBlock label="Weryfikacja agentów po bootstrap" text={VERIFY_BOOTSTRAP_AGENTS} />
               </div>
             )}
           </div>

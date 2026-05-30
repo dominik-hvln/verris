@@ -14,8 +14,8 @@ cd "$(dirname "$0")/../.."
 echo "[deploy] $(pwd) branch=${BRANCH}"
 
 git fetch origin "${BRANCH}"
-git checkout "${BRANCH}"
-git pull origin "${BRANCH}"
+git -c safe.directory="$(pwd)" checkout "${BRANCH}"
+git -c safe.directory="$(pwd)" pull origin "${BRANCH}"
 echo "[deploy] HEAD: $(git log -1 --oneline)"
 
 docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" up -d --build ${SERVICES}

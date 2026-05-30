@@ -72,6 +72,28 @@ export function HostingProfilePanel({
 
   const latest = tasks[0] ?? null;
   const canRun = serverStatus === "ACTIVE";
+  const queuedStuckMs =
+    latest?.status === "QUEUED"
+      ? Date.now() - new Date(latest.createdAt).getTime()
+      : 0;
+  const queuedStuck = queuedStuckMs > 90_000;
+
+  const loadAgentScript = useCallback(() => {
+    startTransition(async () => {
+      const result = await fetchTasksAgentInstallScript(serverId);
+      if ("data" in result && result.data) {
+        setAgentScript(result.data.script);
+      } else if ("error" in result) {
+        setError(result.error ?? "Nie udało się pobrać skryptu agenta");
+      }
+    });
+  }, [serverId]);
+
+  useEffect(() => {
+    if (queuedStuck && !agentScript && !isPending) {
+      loadAgentScript();
+    }
+  }, [queuedStuck, agentScript, isPending, loadAgentScript]);
 
   const onRun = () => {
     setError(null);
@@ -82,17 +104,6 @@ export function HostingProfilePanel({
         return;
       }
       await loadTasks();
-    });
-  };
-
-  const loadAgentScript = () => {
-    startTransition(async () => {
-      const result = await fetchTasksAgentInstallScript(serverId);
-      if ("data" in result && result.data) {
-        setAgentScript(result.data.script);
-      } else if ("error" in result) {
-        setError(result.error ?? "Nie udało się pobrać skryptu agenta");
-      }
     });
   };
 
@@ -115,9 +126,9 @@ export function HostingProfilePanel({
           <Terminal className="h-4 w-4 text-indigo-300" /> Profil hostingowy
         </h2>
         <p className="text-xs text-muted-foreground mt-1">
-          Uruchamia na węźle <code className="text-indigo-300">node-hosting-profile.sh</code> przez
-          agenta <code className="text-indigo-300">verris-tasks</code> (poll co ~1 min). Domyślnie
-          bez długiego CustomBuild rebuild.
+          Uruchamia na węźle skrypt profilu przez agenta zadań (poll co ~1 min, ten sam harmonogram co{" "}
+          <code className="text-indigo-300">verris-probes</code>). Domyślnie bez długiego CustomBuild
+          rebuild. Nowy bootstrap (agent-2) instaluje agenta automatycznie.
         </p>
       </div>
 
@@ -189,7 +200,11 @@ export function HostingProfilePanel({
           </div>
           {(latest.status === "QUEUED" || latest.status === "RUNNING") && (
             <p className="text-xs text-sky-200">
-              Agent na węźle odbierze zadanie w ciągu ~1 minuty. Odświeżanie co 5 s.
+              {latest.status === "RUNNING"
+                ? "Profil wykonywany na węźle — może potrwać kilka minut (Governor, CustomBuild)."
+                : queuedStuck
+                  ? "Zadanie czeka >90 s — na węźle brakuje agenta zadań. Zainstaluj skrypt poniżej (SSH)."
+                  : "Agent odbierze zadanie w ciągu ~1 minuty. Odświeżanie co 5 s."}
             </p>
           )}
           {latest.errorMessage && (
@@ -205,16 +220,18 @@ export function HostingProfilePanel({
 
       <div className="border-t border-white/10 pt-3 space-y-2">
         <p className="text-xs text-muted-foreground">
-          Węzeł z bootstrapem sprzed tej funkcji? Zainstaluj agenta zadań jednorazowo na SSH:
+          {queuedStuck
+            ? "Wymagana jednorazowa instalacja agenta zadań na węźle (bootstrapy sprzed agent-2):"
+            : "Węzeł sprzed agent-2? Jednorazowa instalacja agenta zadań na SSH:"}
         </p>
         {!agentScript ? (
           <button
             type="button"
             onClick={loadAgentScript}
             disabled={isPending}
-            className="text-xs text-indigo-300 hover:underline"
+            className={`text-xs hover:underline ${queuedStuck ? "text-amber-300 font-medium" : "text-indigo-300"}`}
           >
-            Pokaż skrypt instalacji agenta zadań
+            {queuedStuck ? "Pokaż skrypt instalacji (wymagane)" : "Pokaż skrypt instalacji agenta zadań"}
           </button>
         ) : (
           <div className="rounded-lg border border-white/10 overflow-hidden">

@@ -1,6 +1,8 @@
 /**
- * Bash fragments installed on compute nodes for pull-based operator tasks
- * (hosting profile from admin panel).
+ * Bash fragments for pull-based operator tasks (hosting profile from admin panel).
+ *
+ * New bootstraps: install verris-tasks.sh + verris-probes.sh calls it every minute.
+ * Legacy nodes: ops/scripts/install-verris-tasks.sh (timer + script).
  */
 
 export function renderVerrisTasksScript(): string {
@@ -87,19 +89,31 @@ esac
 `;
 }
 
-/** One-shot installer for nodes that completed bootstrap before the tasks agent existed. */
-export function renderNodeTasksAgentInstallScript(): string {
+/** Appended to verris-probes.sh — one timer runs probes + task poll. */
+export function renderProbesTasksHook(): string {
+  return `
+# Operator tasks (hosting profile from admin panel) — same schedule as probes.
+if [ -x /usr/local/bin/verris-tasks.sh ]; then
+  /usr/local/bin/verris-tasks.sh || true
+fi`;
+}
+
+function renderInstallTasksScriptFile(): string {
   const tasksScript = renderVerrisTasksScript();
-  return `#!/usr/bin/env bash
-# Instaluje agenta zadań Verris (verris-tasks) — wymaga wcześniejszego bootstrapu (/etc/verris.conf).
-set -euo pipefail
-[ "$(id -u)" = "0" ] || { echo "Uruchom jako root." >&2; exit 1; }
-[ -r /etc/verris.conf ] || { echo "Brak /etc/verris.conf — najpierw bootstrap Verris." >&2; exit 1; }
-
-cat > /usr/local/bin/verris-tasks.sh <<'__VERRIS_TASKS_SCRIPT__'
+  return `TASKS_PATH="/usr/local/bin/verris-tasks.sh"
+cat > "$TASKS_PATH" <<'__VERRIS_TASKS_SCRIPT__'
 ${tasksScript.replace(/^#!.*\n/, '')}__VERRIS_TASKS_SCRIPT__
-chmod 755 /usr/local/bin/verris-tasks.sh
+chmod 755 "$TASKS_PATH"
+echo "[verris] Installed node task worker at $TASKS_PATH"`;
+}
 
+/** Bootstrap: install task worker binary; verris-probes.timer invokes it each minute. */
+export function renderBootstrapNodeTasksInstallFragment(): string {
+  return renderInstallTasksScriptFile();
+}
+
+function renderTasksTimerInstall(): string {
+  return `
 if command -v systemctl >/dev/null 2>&1 && [ -d /etc/systemd/system ]; then
   cat > /etc/systemd/system/verris-tasks.service <<'UNIT'
 [Unit]
@@ -130,7 +144,7 @@ TIMER
 
   systemctl daemon-reload
   systemctl enable --now verris-tasks.timer
-  echo "[verris] Enabled verris-tasks.timer"
+  echo "[verris] Enabled verris-tasks.timer (legacy / standalone poll)"
 else
   cat > /etc/cron.d/verris-tasks <<'CRON'
 SHELL=/bin/bash
@@ -138,13 +152,36 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 * * * * * root flock -n /var/run/verris-tasks.lock /usr/local/bin/verris-tasks.sh >> /var/log/verris-tasks.log 2>&1
 CRON
   echo "[verris] Installed /etc/cron.d/verris-tasks"
-fi
-
-echo "[verris] Agent zadań zainstalowany. Profil hostingowy można uruchomić z panelu admin."
-`;
+fi`;
 }
 
-export function renderBootstrapNodeTasksInstallFragment(): string {
-  const installer = renderNodeTasksAgentInstallScript();
-  return installer.replace(/^#!.*\n/, '');
+/** Legacy nodes: script + dedicated timer (when verris-probes does not call verris-tasks yet). */
+export function renderNodeTasksAgentInstallScript(): string {
+  return `#!/usr/bin/env bash
+# Instaluje agenta zadań Verris — wymaga bootstrapu (/etc/verris.conf).
+# Użyj na węzłach z bootstrapem sprzed agent-2 lub gdy brak /usr/local/bin/verris-tasks.sh
+set -euo pipefail
+[ "$(id -u)" = "0" ] || { echo "Uruchom jako root." >&2; exit 1; }
+[ -r /etc/verris.conf ] || { echo "Brak /etc/verris.conf — najpierw bootstrap Verris." >&2; exit 1; }
+
+${renderInstallTasksScriptFile()}
+${renderTasksTimerInstall()}
+
+# Patch verris-probes to call task worker (agent-2 behaviour) if not already present.
+PROBES="/usr/local/bin/verris-probes.sh"
+if [ -f "$PROBES" ] && ! grep -q 'verris-tasks.sh' "$PROBES"; then
+  cat >> "$PROBES" <<'HOOK'
+
+# Operator tasks (hosting profile) — added by install-verris-tasks.sh
+if [ -x /usr/local/bin/verris-tasks.sh ]; then
+  /usr/local/bin/verris-tasks.sh || true
+fi
+HOOK
+  echo "[verris] Patched verris-probes.sh to poll tasks each run"
+  systemctl disable --now verris-tasks.timer 2>/dev/null || true
+  echo "[verris] Disabled standalone verris-tasks.timer (probes now invokes tasks)"
+fi
+
+echo "[verris] Agent zadań gotowy. Profil hostingowy uruchom z panelu admin."
+`;
 }

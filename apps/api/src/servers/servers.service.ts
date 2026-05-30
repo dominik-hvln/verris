@@ -16,7 +16,7 @@ import { InitServerDto } from './dto/init-server.dto';
 import { HandshakeDto } from './dto/handshake.dto';
 import { UpdateServerDto } from './dto/update-server.dto';
 import { UpdateDirectAdminConfigDto } from './dto/directadmin-config.dto';
-import { renderBootstrapNodeTasksInstallFragment } from './node-tasks-agent.install';
+import { renderBootstrapNodeTasksInstallFragment, renderProbesTasksHook } from './node-tasks-agent.install';
 
 @Injectable()
 export class ServersService {
@@ -506,7 +506,7 @@ PAYLOAD=$(cat <<JSON
   "totalMemoryMb": $MEM_MB,
   "totalDiskMb": $DISK_MB,
   "publicKey": "$PUB_KEY",
-  "agentVersion": "agent-1"
+  "agentVersion": "agent-2"
 }
 JSON
 )
@@ -618,7 +618,7 @@ PAYLOAD=$(cat <<JSON
 {
   "bucketDurationS": $BUCKET_DURATION,
   "bucketStart": "$BUCKET_START",
-  "agentVersion": "agent-1",
+  "agentVersion": "agent-2",
   "accounts": $ACCOUNTS_JSON
 }
 JSON
@@ -782,6 +782,7 @@ curl -fsS --max-time 15 -X POST "$VERRIS_API_URL/agent/probes/local" \\
   -H "X-Server-Id: $VERRIS_SERVER_ID" \\
   -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN" \\
   -d "$PAYLOAD" >/dev/null
+${renderProbesTasksHook()}
 PROBES
 chmod 0755 "$PROBES_PATH"
 echo "[verris] Installed local prober at $PROBES_PATH"
