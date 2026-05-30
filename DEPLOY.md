@@ -100,11 +100,12 @@ W bazie i API pola planu oraz konta hostingowego to **`entryProcesses`** (CloudL
 
 ### Pierwszy węzeł — kroki w panelu
 
-1. Zaloguj się do panelu admina i otwórz „Węzły & serwery → Dodaj nowy węzeł”.
-2. Wpisz nazwę i wygeneruj skrypt bootstrap.
-3. Na węźle ustaw `LITESPEED_SERIAL_NO` (i opcjonalnie `LSWS_WEBADMIN_ALLOW_IP`), potem uruchom skrypt jako root.
+1. **Admin → Węzły → Wizard nowego węzła** (`/nodes/wizard`) — checklist CL → DA → LS → bootstrap → profil hostingowy.
+2. Alternatywnie: szybka inicjalizacja (`/nodes/init`) tylko z formularzem i skryptem.
+3. Na węźle ustaw `LITESPEED_SERIAL_NO` (i opcjonalnie `LSWS_WEBADMIN_ALLOW_IP`), potem uruchom skrypt jako root w `tmux`.
 4. Skrypt zgłosi się do panelu — w sekcji „Czeka na akceptację” kliknij „Zaakceptuj”.
 5. Skonfiguruj DirectAdmin (host/port/login/login-key) i uruchom test połączenia.
+6. Opcjonalnie: `ops/scripts/node-hosting-profile.sh` — spójny profil Governor / CustomBuild (po DA).
 
 ### Checklist po bootstrapie (operator)
 

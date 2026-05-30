@@ -403,6 +403,9 @@ function renderBootstrapScript(opts: { apiUrl: string; bootstrapToken: string; s
 #
 # Re-running after success is harmless if the bootstrap token is still valid,
 # but normally the token is marked as used after the first successful run.
+#
+# TIP: run inside tmux/screen — LiteSpeed install may take long; SSH may drop.
+#      If interrupted, export LITESPEED_SERIAL_NO again and re-run this script.
 
 set -euo pipefail
 
@@ -430,6 +433,12 @@ require_root
 ensure_command curl
 ensure_command awk
 ensure_command sed
+
+if ! command -v lveinfo >/dev/null 2>&1 && ! command -v cloudlinux-statistic >/dev/null 2>&1; then
+  echo "[verris] CloudLinux LVE tools not found (lveinfo / cloudlinux-statistic)." >&2
+  echo "[verris] Install CloudLinux on this node first — see admin panel node wizard." >&2
+  exit 1
+fi
 
 LITESPEED_SERIAL_NO="\${LITESPEED_SERIAL_NO:-}"
 if [ ! -x /usr/local/lsws/bin/lswsctrl ]; then

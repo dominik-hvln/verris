@@ -136,7 +136,7 @@ Komenda: `docker stats --no-stream`, `df -h`, `df -i`, `uptime`.
 - [x] Top-up portfela Stripe test — 2026-05-24
 - [x] IAM invite + mail — 2026-05-24
 - [x] MAIL-4 SOGo / skrzynki / MX — 2026-05-24
-- [ ] Welcome email po verify
+- [x] Welcome email po verify — 2026-05-19
 - [x] Forward z potwierdzeniem (MAIL-4d) — 2026-05-26
 - [x] BOK ticket end-to-end — [`docs/ops/BOK_TICKET_SMOKE.md`](docs/ops/BOK_TICKET_SMOKE.md) · 2026-05-30 (maile + DKIM fix)
 - [ ] Zakup planu + provisioning DA — **po węźle**

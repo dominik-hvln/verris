@@ -20,13 +20,21 @@ export default async function AdminNodesPage() {
             DirectAdmin i monitoring obciążenia.
           </p>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
         <Link
-          href="/nodes/init"
+          href="/nodes/wizard"
           className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-medium transition-all shadow-[0_0_15px_rgba(99,102,241,0.4)]"
         >
           <Plus className="h-4 w-4" />
-          Dodaj nowy węzeł
+          Wizard nowego węzła
         </Link>
+        <Link
+          href="/nodes/init"
+          className="inline-flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-white border border-white/10 rounded-lg"
+        >
+          Szybka inicjalizacja
+        </Link>
+        </div>
       </header>
 
       {error && (
@@ -95,11 +103,11 @@ function EmptyState() {
         zainicjalizuje serwer i zarejestruje go w panelu.
       </p>
       <Link
-        href="/nodes/init"
+        href="/nodes/wizard"
         className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-medium transition-colors"
       >
         <Plus className="h-4 w-4" />
-        Inicjuj pierwszy węzeł
+        Uruchom wizard węzła
       </Link>
     </div>
   );
