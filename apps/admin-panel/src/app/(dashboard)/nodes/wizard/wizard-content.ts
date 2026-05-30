@@ -195,8 +195,8 @@ export const BOOTSTRAP_DOES = [
   "Handshake z api.verris.pl — rejestracja CPU/RAM/disk",
   "Zapisuje /etc/verris.conf (token agenta)",
   "Instaluje verris-agent (telemetria LVE co 1 min)",
-  "Instaluje verris-probes (sondy lokalne + poll zadań z panelu co 1 min)",
-  "Instaluje /usr/local/bin/verris-tasks.sh (profil hostingowy z admina)",
+  "Instaluje verris-probes (sondy lokalne co 1 min)",
+  "Instaluje verris-tasks.sh + verris-task-run.sh + verris-tasks.timer (kolejka z panelu co 1 min)",
 ];
 
 export const BOOTSTRAP_DOES_NOT = [

@@ -204,9 +204,10 @@ chmod 755 "$TASKS_PATH"
 echo "[verris] Installed node task worker at $TASKS_PATH"`;
 }
 
-/** Bootstrap: install task worker binary; verris-probes.timer invokes it each minute. */
+/** Bootstrap: task worker scripts + dedicated timer (poll co 1 min). */
 export function renderBootstrapNodeTasksInstallFragment(): string {
-  return renderInstallTasksScriptFile();
+  return `${renderInstallTasksScriptFile()}
+${renderTasksTimerInstall()}`;
 }
 
 function renderTasksTimerInstall(): string {
@@ -230,9 +231,10 @@ UNIT
 Description=Poll Verris node tasks every minute
 
 [Timer]
-OnBootSec=60s
-OnUnitActiveSec=60s
-AccuracySec=10s
+OnBootSec=90s
+OnUnitActiveSec=1min
+AccuracySec=1s
+Persistent=true
 Unit=verris-tasks.service
 
 [Install]
@@ -240,8 +242,14 @@ WantedBy=timers.target
 TIMER
 
   systemctl daemon-reload
-  systemctl enable --now verris-tasks.timer
-  echo "[verris] Enabled verris-tasks.timer (legacy / standalone poll)"
+  systemctl enable verris-tasks.timer
+  systemctl restart verris-tasks.timer
+  if systemctl is-active --quiet verris-tasks.timer; then
+    echo "[verris] OK: verris-tasks.timer active (poll co ~1 min, nie wymaga ręcznego uruchamiania)"
+    systemctl list-timers verris-tasks.timer --no-pager 2>/dev/null | sed -n '1,4p' || true
+  else
+    echo "[verris] WARN: verris-tasks.timer nieaktywny — sprawdź: systemctl status verris-tasks.timer" >&2
+  fi
 else
   cat > /etc/cron.d/verris-tasks <<'CRON'
 SHELL=/bin/bash
@@ -264,26 +272,19 @@ set -euo pipefail
 ${renderInstallTasksScriptFile()}
 ${renderTasksTimerInstall()}
 
-# Patch verris-probes to call task worker (agent-2 behaviour) if not already present.
+# Patch verris-probes to call task worker (backup poll) if not already present.
 PROBES="/usr/local/bin/verris-probes.sh"
 if [ -f "$PROBES" ] && ! grep -q 'verris-tasks.sh' "$PROBES"; then
   cat >> "$PROBES" <<'HOOK'
 
-# Operator tasks (hosting profile) — added by install-verris-tasks.sh
+# Operator tasks (hosting profile) — backup poll if verris-tasks.timer ever stops
 if [ -x /usr/local/bin/verris-tasks.sh ]; then
   /usr/local/bin/verris-tasks.sh || true
 fi
 HOOK
-  echo "[verris] Patched verris-probes.sh to poll tasks each run"
-  if [ -f /etc/systemd/system/verris-probes.service ] && ! grep -q '^TimeoutStartSec=' /etc/systemd/system/verris-probes.service; then
-    sed -i '/^\\[Service\\]/a TimeoutStartSec=7200' /etc/systemd/system/verris-probes.service
-    systemctl daemon-reload
-    echo "[verris] Set verris-probes.service TimeoutStartSec=7200 (hosting profile may run up to 2h)"
-  fi
-  systemctl disable --now verris-tasks.timer 2>/dev/null || true
-  echo "[verris] Disabled standalone verris-tasks.timer (probes now invokes tasks)"
+  echo "[verris] Patched verris-probes.sh (backup poll zadań)"
 fi
 
-echo "[verris] Agent zadań gotowy. Profil hostingowy uruchom z panelu admin."
+echo "[verris] Agent zadań gotowy — kolejka z panelu bez ręcznego uruchamiania (verris-tasks.timer)."
 `;
 }
