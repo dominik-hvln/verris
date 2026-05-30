@@ -192,10 +192,18 @@ export default function InitNodePage() {
 
           <div className="flex flex-wrap gap-3">
             <Link
-              href={`/nodes/${created.server.id}`}
+              href={`/nodes/wizard?server=${created.server.id}&step=approve-da`}
               className="inline-flex items-center gap-2 rounded-lg bg-indigo-500 hover:bg-indigo-600 px-4 py-2 text-sm font-medium transition-colors"
             >
-              Otwórz szczegóły węzła
+              Kontynuuj wizard (kroki 6–8)
+            </Link>
+            <Link
+              href={`/nodes/${created.server.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 px-4 py-2 text-sm font-medium transition-colors"
+            >
+              Szczegóły węzła (nowa karta)
             </Link>
             <Link
               href="/nodes"

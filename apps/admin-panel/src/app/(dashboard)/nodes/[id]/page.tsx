@@ -5,6 +5,7 @@ import { fetchServer } from "../actions";
 import { ApproveServerButton } from "./approve-button";
 import { BootstrapScriptPanel } from "./bootstrap-script-panel";
 import { DirectAdminConfigForm } from "./directadmin-form";
+import { HostingProfilePanel } from "./hosting-profile-panel";
 import { MaintenanceToggle } from "./maintenance-toggle";
 
 export const dynamic = "force-dynamic";
@@ -126,6 +127,8 @@ export default async function ServerDetailPage({
           daPasswordSet: server.daPasswordSet,
         }}
       />
+
+      <HostingProfilePanel serverId={server.id} serverStatus={server.status} />
     </div>
   );
 }

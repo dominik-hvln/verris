@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
@@ -15,7 +16,9 @@ import {
   ChevronRight,
 } from "lucide-react";
 import type { BootstrapScriptResponseDto, InitServerResponseDto } from "@verris/contracts";
-import { generateBootstrapScript, initServer } from "../actions";
+import { generateBootstrapScript, initServer, fetchServer } from "../actions";
+import { ApproveServerButton } from "../[id]/approve-button";
+import { HostingProfilePanel } from "../[id]/hosting-profile-panel";
 import {
   BOOTSTRAP_DOES,
   BOOTSTRAP_DOES_NOT,
@@ -29,8 +32,39 @@ import {
   PREPARE_NODE_EXPORTS,
   VERIFY_CLOUDLINUX,
   WIZARD_STEPS,
-  type WizardStepId,
 } from "./wizard-content";
+
+const WIZARD_STORAGE_KEY = "verris-node-wizard-v1";
+const APPROVE_DA_STEP_INDEX = WIZARD_STEPS.findIndex((s) => s.id === "approve-da");
+
+type PersistedWizard = {
+  stepIndex: number;
+  name: string;
+  hostname: string;
+  region: string;
+  notes: string;
+  serverId: string | null;
+  checked: Record<string, boolean>;
+};
+
+function loadPersistedWizard(): Partial<PersistedWizard> | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = sessionStorage.getItem(WIZARD_STORAGE_KEY);
+    return raw ? (JSON.parse(raw) as PersistedWizard) : null;
+  } catch {
+    return null;
+  }
+}
+
+function savePersistedWizard(data: PersistedWizard) {
+  if (typeof window === "undefined") return;
+  try {
+    sessionStorage.setItem(WIZARD_STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
 
 function CopyBlock({ label, text }: { label: string; text: string }) {
   const [copied, setCopied] = useState(false);
@@ -69,8 +103,10 @@ function CheckItem({ children }: { children: React.ReactNode }) {
 }
 
 export function NodeWizard() {
+  const searchParams = useSearchParams();
   const [stepIndex, setStepIndex] = useState(0);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
+  const [hydrated, setHydrated] = useState(false);
 
   const [name, setName] = useState("");
   const [hostname, setHostname] = useState("");
@@ -85,6 +121,65 @@ export function NodeWizard() {
 
   const step = WIZARD_STEPS[stepIndex]!;
   const serverId = created?.server.id;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function hydrate() {
+      const saved = loadPersistedWizard();
+      const paramServer = searchParams.get("server");
+      const paramStep = searchParams.get("step");
+
+      if (paramStep) {
+        const idx = WIZARD_STEPS.findIndex((s) => s.id === paramStep);
+        if (idx >= 0) setStepIndex(idx);
+      } else if (saved?.stepIndex != null) {
+        setStepIndex(saved.stepIndex);
+      }
+
+      if (saved?.name) setName(saved.name);
+      if (saved?.hostname) setHostname(saved.hostname);
+      if (saved?.region) setRegion(saved.region);
+      if (saved?.notes) setNotes(saved.notes);
+      if (saved?.checked) setChecked(saved.checked);
+
+      const serverIdToLoad = paramServer ?? saved?.serverId ?? null;
+      if (serverIdToLoad) {
+        const { data } = await fetchServer(serverIdToLoad);
+        if (!cancelled && data) {
+          setCreated({
+            server: data,
+            bootstrapToken: "",
+            bootstrapTokenId: "",
+            expiresAt: "",
+          });
+          if (!saved?.name && data.name) setName(data.name);
+          if (!saved?.hostname && data.hostname) setHostname(data.hostname ?? "");
+          if (!saved?.region && data.region) setRegion(data.region ?? "");
+        }
+      }
+
+      if (!cancelled) setHydrated(true);
+    }
+
+    void hydrate();
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    savePersistedWizard({
+      stepIndex,
+      name,
+      hostname,
+      region,
+      notes,
+      serverId: created?.server.id ?? null,
+      checked,
+    });
+  }, [hydrated, stepIndex, name, hostname, region, notes, created?.server.id, checked]);
 
   const toggleCheck = (key: string) => {
     setChecked((prev) => ({ ...prev, [key]: !prev[key] }));
@@ -109,6 +204,9 @@ export function NodeWizard() {
         setScriptResp(scriptResult.data);
       } else if ("error" in scriptResult) {
         setError(scriptResult.error ?? "Nie udało się wygenerować skryptu");
+      }
+      if (APPROVE_DA_STEP_INDEX >= 0) {
+        setStepIndex(APPROVE_DA_STEP_INDEX);
       }
     });
   };
@@ -166,6 +264,32 @@ export function NodeWizard() {
           <h2 className="text-xl font-semibold text-white">{step.title}</h2>
           <p className="text-sm text-muted-foreground mt-1">{step.subtitle}</p>
         </div>
+
+        {(step.id === "approve-da" || step.id === "hosting-profile" || step.id === "finish") && (
+          <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-4 py-3 text-sm text-indigo-100 flex gap-2">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <span>
+              Zostały kroki <strong>{stepIndex + 1}–{WIZARD_STEPS.length}</strong> wizarda.
+              Konfigurację DA możesz otworzyć w nowej karcie — po teście API wróć tutaj i przejdź
+              dalej (profil hostingowy, smoke).
+            </span>
+          </div>
+        )}
+
+        {step.id === "bootstrap" && created && stepIndex === WIZARD_STEPS.findIndex((s) => s.id === "bootstrap") && (
+          <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+            Skrypt bootstrap uruchom na węźle. Po komunikacie „Bootstrap complete” wróć do tego
+            kroku (nawigacja u góry) albo przejdź do{" "}
+            <button
+              type="button"
+              onClick={() => setStepIndex(APPROVE_DA_STEP_INDEX)}
+              className="underline font-medium hover:text-white"
+            >
+              kroku 6 — Akceptacja i DA API
+            </button>
+            .
+          </div>
+        )}
 
         {step.id === "requirements" && (
           <ul className="space-y-2">
@@ -432,23 +556,32 @@ export function NodeWizard() {
           <div className="space-y-4">
             <ol className="list-decimal list-inside space-y-2 text-sm text-zinc-300">
               <li>
-                W liście węzłów status powinien być{" "}
-                <strong className="text-white">Czeka na akceptację</strong> → kliknij{" "}
-                <em>Zaakceptuj</em>.
+                Zaakceptuj węzeł poniżej (status{" "}
+                <strong className="text-white">Czeka na akceptację</strong> →{" "}
+                <strong className="text-white">ACTIVE</strong>).
               </li>
               <li>
-                W szczegółach węzła uzupełnij <strong>DirectAdmin</strong>: host (IP/127.0.0.1),
-                port 2222, użytkownik admin, <strong>login key</strong>, TLS.
+                Uzupełnij <strong>DirectAdmin login key</strong> i uruchom test API — w nowej karcie
+                (link poniżej), żeby nie wychodzić z wizarda.
               </li>
-              <li>Kliknij <strong>Test połączenia</strong> — musi przejść zanim provisioning zadziała.</li>
+              <li>
+                Po teście DA zaznacz checkbox i kliknij <strong>Dalej</strong> — krok 7 (profil
+                hostingowy) i 8 (smoke).
+              </li>
             </ol>
             {serverId ? (
-              <Link
-                href={`/nodes/${serverId}`}
-                className="inline-flex items-center gap-2 rounded-lg bg-indigo-500 hover:bg-indigo-600 px-4 py-2 text-sm font-medium"
-              >
-                Otwórz węzeł {name || serverId.slice(0, 8)}…
-              </Link>
+              <div className="flex flex-wrap items-start gap-3">
+                <ApproveServerButton serverId={serverId} />
+                <Link
+                  href={`/nodes/${serverId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 px-4 py-2 text-sm font-medium"
+                >
+                  Konfiguracja DA i test API
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </Link>
+              </div>
             ) : (
               <p className="text-sm text-amber-200">
                 Najpierw ukończ krok 5 (utwórz węzeł i uruchom bootstrap).
@@ -469,22 +602,27 @@ export function NodeWizard() {
         {step.id === "hosting-profile" && (
           <div className="space-y-4">
             <p className="text-sm text-zinc-300">
-              <strong>Profil hostingowy Verris</strong> — osobny skrypt post-install (Governor,
-              CustomBuild LiteSpeed/PHP, wskazówki cache). Uruchamiasz go <em>raz na węzeł</em> po
-              DA, aby flota była spójna. To nie jest jeszcze pełna automatyzacja z panelu — kopiujesz
-              skrypt na serwer i uruchamiasz jako root.
+              <strong>Profil hostingowy Verris</strong> — Governor, ustawienia CustomBuild, restart
+              LiteSpeed. Po akceptacji węzła uruchomisz go <strong>z panelu</strong> (agent na węźle
+              wykona skrypt w ciągu ~1 min).
             </p>
-            <div className="rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-4 py-3 text-sm text-indigo-100">
-              Limity LVE per konto klienta (EP, NPROC, RAM) ustawia{" "}
-              <strong>Verris przy provisioning</strong> z definicji planu — nie ten skrypt. Profil
-              przygotowuje warstwę serwera (Governor, webserver, PHP).
-            </div>
-            <CopyBlock label="Instalacja profilu na węźle (z repo)" text={HOSTING_PROFILE_HINT} />
-            <p className="text-xs text-muted-foreground">
-              Lokalnie w repo: <code>ops/scripts/node-hosting-profile.sh</code> — opcja{" "}
-              <code>--dry-run</code> pokazuje plan bez zmian. CustomBuild może trwać 30–90 min —
-              użyj tmux.
-            </p>
+            {serverId ? (
+              <HostingProfilePanel
+                serverId={serverId}
+                serverStatus={
+                  checked.approve ? "ACTIVE" : (created?.server.status ?? "PENDING_APPROVAL")
+                }
+                compact
+              />
+            ) : (
+              <p className="text-sm text-amber-200">
+                Najpierw ukończ krok 5 (utwórz węzeł i bootstrap).
+              </p>
+            )}
+            <CopyBlock
+              label="Ręcznie (SSH) — alternatywa"
+              text={HOSTING_PROFILE_HINT}
+            />
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <input
                 type="checkbox"
@@ -492,7 +630,7 @@ export function NodeWizard() {
                 onChange={() => toggleCheck("profile")}
                 className="rounded border-white/20"
               />
-              Profil hostingowy uruchomiony (lub zaplanowany po smoke)
+              Profil hostingowy uruchomiony (panel lub SSH)
             </label>
           </div>
         )}
@@ -520,9 +658,12 @@ export function NodeWizard() {
               {serverId && (
                 <Link
                   href={`/nodes/${serverId}`}
-                  className="rounded-lg bg-indigo-500 hover:bg-indigo-600 px-4 py-2 text-sm"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-lg border border-white/10 px-4 py-2 text-sm hover:bg-white/5 inline-flex items-center gap-2"
                 >
                   Szczegóły węzła
+                  <ExternalLink className="h-3.5 w-3.5" />
                 </Link>
               )}
               <Link href="/status/probes" className="rounded-lg border border-white/10 px-4 py-2 text-sm hover:bg-white/5">

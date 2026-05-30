@@ -153,6 +153,7 @@ model User {
   auditLogs                AuditLog[]          @relation("AuditUser")
   approvedServers          Server[]            @relation("ServerApprover")
   bootstrapTokensCreated   BootstrapToken[]    @relation("BootstrapTokenCreator")
+  nodeTasksRequested       NodeTask[]          @relation("NodeTaskRequester")
   promoRedemptions         PromoRedemption[]
   walletAutoTopup          WalletAutoTopup?
   ticketAttachmentsUploaded TicketAttachment[] @relation("TicketAttachmentUploader")
@@ -334,8 +335,41 @@ model Server {
   bootstrapTokens BootstrapToken[]
   probes          ServiceProbe[]
   maintenanceWindows MaintenanceWindow[]
+  nodeTasks       NodeTask[]
 
   @@index([status])
+}
+
+enum NodeTaskKind {
+  HOSTING_PROFILE
+}
+
+enum NodeTaskStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model NodeTask {
+  id            String         @id @default(uuid())
+  serverId      String
+  server        Server         @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  kind          NodeTaskKind
+  status        NodeTaskStatus @default(QUEUED)
+  payload       Json?
+  outputLog     String?        @db.Text
+  errorMessage  String?        @db.Text
+  requestedById String?
+  requestedBy   User?          @relation("NodeTaskRequester", fields: [requestedById], references: [id], onDelete: SetNull)
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([serverId, status])
+  @@index([createdAt])
 }
 
 model BootstrapToken {

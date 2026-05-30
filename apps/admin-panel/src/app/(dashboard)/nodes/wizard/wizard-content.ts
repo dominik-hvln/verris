@@ -163,12 +163,10 @@ lveinfo --help >/dev/null 2>&1 && echo "OK: lveinfo"
 cloudlinux-statistic --help >/dev/null 2>&1 && echo "OK: cloudlinux-statistic"
 # Jedno z powyższych musi działać — inaczej agent Verris nie wyśle telemetrii LVE.`;
 
-export const HOSTING_PROFILE_HINT = `# Profil Verris — skopiuj z repo na węzeł (jako root):
+export const HOSTING_PROFILE_HINT = `# Alternatywa: ręcznie na węźle (gdy agent zadań niedostępny)
 scp ops/scripts/node-hosting-profile.sh root@WĘZEŁ:/root/
-ssh root@WĘZEŁ
-chmod +x /root/node-hosting-profile.sh
-/root/node-hosting-profile.sh --dry-run   # podgląd planu
-/root/node-hosting-profile.sh            # wykonanie (CustomBuild: użyj tmux)`;
+ssh root@WĘZEŁ 'bash /root/node-hosting-profile.sh --yes --skip-build'
+# Pełny CustomBuild rebuild (30–90 min): usuń --skip-build`;
 
 /** Co robi skrypt bootstrap z panelu (nie instaluje CL ani DA). */
 export const BOOTSTRAP_DOES = [
@@ -178,6 +176,7 @@ export const BOOTSTRAP_DOES = [
   "Zapisuje /etc/verris.conf (token agenta)",
   "Instaluje verris-agent (telemetria LVE co 1 min)",
   "Instaluje verris-probes (sondy lokalne status page)",
+  "Instaluje verris-tasks (profil hostingowy z panelu admin)",
 ];
 
 export const BOOTSTRAP_DOES_NOT = [

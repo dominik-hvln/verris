@@ -2,19 +2,22 @@
 # Verris — standardowy profil hostingowy na węźle compute (CloudLinux + DA + LiteSpeed).
 # Uruchom JEDNORAZOWO jako root PO instalacji DirectAdmin i połączeniu z panelem Verris.
 #
-# Nie jest częścią bootstrapu (handshake/agent). Cel: spójna konfiguracja floty.
-#
-#   scp ops/scripts/node-hosting-profile.sh root@WĘZEŁ:/root/
-#   ssh root@WĘZŁ 'bash /root/node-hosting-profile.sh'
-#
 # Opcje:
-#   --dry-run   tylko wypisuje plan, bez zmian
+#   --dry-run       tylko wypisuje plan, bez zmian
+#   --yes, -y       bez pytań (CustomBuild build jeśli włączony)
+#   --skip-build    pomiń długi CustomBuild rebuild (tylko ustawienia + Governor + restart LS)
 set -Eeuo pipefail
 
 DRY_RUN=0
-if [ "${1:-}" = "--dry-run" ]; then
-  DRY_RUN=1
-fi
+NONINTERACTIVE=0
+SKIP_BUILD=0
+for arg in "$@"; do
+  case "$arg" in
+    --dry-run) DRY_RUN=1 ;;
+    --yes|-y) NONINTERACTIVE=1 ;;
+    --skip-build) SKIP_BUILD=1 ;;
+  esac
+done
 
 run() {
   if [ "$DRY_RUN" = "1" ]; then
@@ -22,6 +25,17 @@ run() {
   else
     echo "[verris-profile] $*"
     eval "$@"
+  fi
+}
+
+custombuild_bin() {
+  local cb="$1"
+  if [ -x "$cb/build" ]; then
+    echo "$cb/build"
+  elif [ -x "$cb/custombuild" ]; then
+    echo "$cb/custombuild"
+  else
+    return 1
   fi
 }
 
@@ -64,22 +78,36 @@ if [ ! -x /usr/local/directadmin/directadmin ]; then
 else
   echo "--- DirectAdmin CustomBuild (LiteSpeed + LSPHP) ---"
   CB="/usr/local/directadmin/custombuild"
-  if [ -x "$CB/custombuild" ]; then
-    run "cd $CB && ./custombuild set webserver litespeed"
-    run "cd $CB && ./custombuild set php1_release $(./custombuild options | awk -F= '/^php1_release:/{print $2}' | tr -d ' ' || echo 8.3)"
-    run "cd $CB && ./custombuild set redis yes"
-    run "cd $CB && ./custombuild set mod_ruid2 no"
-    run "cd $CB && ./custombuild set mod_suexec no"
-    echo "INFO: uruchom pełny build (30–90 min, możliwy restart usług):"
-    echo "  cd $CB && ./custombuild build clean && ./custombuild build php n && ./custombuild build litespeed"
-    if [ "$DRY_RUN" = "0" ]; then
-      read -r -p "Uruchomić custombuild build teraz? [y/N] " ans
-      if [ "$ans" = "y" ] || [ "$ans" = "Y" ]; then
-        run "cd $CB && ./custombuild build clean"
-        run "cd $CB && ./custombuild build php n"
-        run "cd $CB && ./custombuild build litespeed"
+  BUILD=$(custombuild_bin "$CB" || true)
+  if [ -n "$BUILD" ]; then
+    run "cd $CB && $BUILD set webserver litespeed"
+    run "cd $CB && $BUILD set php1_release \$($BUILD options 2>/dev/null | awk -F= '/^php1_release:/{print \$2}' | tr -d ' ' || echo 8.3)"
+    run "cd $CB && $BUILD set redis yes"
+    run "cd $CB && $BUILD set mod_ruid2 no"
+    run "cd $CB && $BUILD set mod_suexec no"
+    if [ "$SKIP_BUILD" = "1" ]; then
+      echo "INFO: pominięto CustomBuild rebuild (--skip-build)."
+    elif [ "$DRY_RUN" = "1" ]; then
+      echo "[dry-run] cd $CB && $BUILD build clean && $BUILD build php n && $BUILD build litespeed"
+    else
+      echo "INFO: pełny CustomBuild build (30–90 min, możliwy restart usług)."
+      RUN_BUILD=0
+      if [ "$NONINTERACTIVE" = "1" ]; then
+        RUN_BUILD=1
+      else
+        read -r -p "Uruchomić custombuild build teraz? [y/N] " ans
+        if [ "$ans" = "y" ] || [ "$ans" = "Y" ]; then
+          RUN_BUILD=1
+        fi
+      fi
+      if [ "$RUN_BUILD" = "1" ]; then
+        run "cd $CB && $BUILD build clean"
+        run "cd $CB && $BUILD build php n"
+        run "cd $CB && $BUILD build litespeed"
       fi
     fi
+  else
+    echo "INFO: brak ./build w $CB — pomiń CustomBuild."
   fi
 fi
 

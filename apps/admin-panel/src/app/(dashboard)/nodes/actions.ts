@@ -8,6 +8,9 @@ import type {
   BootstrapScriptResponseDto,
   UpdateDirectAdminConfigInput,
   DirectAdminTestResultDto,
+  NodeTaskDto,
+  QueueHostingProfileTaskInput,
+  TasksAgentInstallScriptDto,
 } from "@verris/contracts";
 import { adminApi, AdminApiError } from "@/lib/api";
 
@@ -105,6 +108,42 @@ export async function setNodeMaintenance(
     );
     revalidatePath("/nodes");
     revalidatePath(`/nodes/${id}`);
+    return { data };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
+}
+
+export async function queueHostingProfile(
+  id: string,
+  input: QueueHostingProfileTaskInput = {},
+) {
+  try {
+    const data = await adminApi<NodeTaskDto>(`/admin/servers/${id}/hosting-profile/run`, {
+      method: "POST",
+      body: input,
+    });
+    revalidatePath(`/nodes/${id}`);
+    return { data };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
+}
+
+export async function fetchHostingProfileTasks(id: string) {
+  try {
+    const data = await adminApi<NodeTaskDto[]>(`/admin/servers/${id}/hosting-profile/tasks`);
+    return { data };
+  } catch (err) {
+    return { error: extractError(err), data: [] as NodeTaskDto[] };
+  }
+}
+
+export async function fetchTasksAgentInstallScript(id: string) {
+  try {
+    const data = await adminApi<TasksAgentInstallScriptDto>(
+      `/admin/servers/${id}/tasks-agent/install-script`,
+    );
     return { data };
   } catch (err) {
     return { error: extractError(err) };

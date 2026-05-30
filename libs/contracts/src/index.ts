@@ -1,6 +1,7 @@
 export * from './panel-preferences';
 export * from './domain.dto';
 export * from './server.dto';
+export * from './node-task.dto';
 export * from './wallet.dto';
 export * from './plan.dto';
 export * from './plan-change.dto';

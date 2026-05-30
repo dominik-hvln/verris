@@ -16,6 +16,7 @@ import { InitServerDto } from './dto/init-server.dto';
 import { HandshakeDto } from './dto/handshake.dto';
 import { UpdateServerDto } from './dto/update-server.dto';
 import { UpdateDirectAdminConfigDto } from './dto/directadmin-config.dto';
+import { renderBootstrapNodeTasksInstallFragment } from './node-tasks-agent.install';
 
 @Injectable()
 export class ServersService {
@@ -489,7 +490,7 @@ PUBLIC_IP=$(echo -n "$PUBLIC_IP" | tr -d '[:space:]')
 
 CPU_CORES=$(nproc)
 MEM_MB=$(free -m | awk '/^Mem:/{print $2}')
-DISK_MB=$(df -m --output=size -P / | tail -n1 | tr -d '[:space:]')
+DISK_MB=$(df -mP / | awk 'NR==2 {print $2}')
 
 PUB_KEY=""
 if [ -f /root/.ssh/id_ed25519.pub ]; then
@@ -824,6 +825,11 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 CRON
   echo "[verris] Installed cron job /etc/cron.d/verris-probes"
 fi
+
+# -----------------------------------------------------------------------------
+# Node task worker (hosting profile from admin panel)
+# -----------------------------------------------------------------------------
+${renderBootstrapNodeTasksInstallFragment()}
 
 echo "[verris] Bootstrap complete. Server is awaiting admin approval in the panel."
 echo "$BODY"
