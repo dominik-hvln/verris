@@ -29,6 +29,8 @@ mkdir -p "$PID_DIR"
 echo $$ > "$PID_DIR/\${TASK_ID}.pid"
 trap 'rm -f "$PID_DIR/\${TASK_ID}.pid"' EXIT
 
+echo "[verris-task-run] Starting task $TASK_ID at $(date -u +%FT%TZ)" >> "$LOG"
+
 auth_headers=(-H "X-Server-Id: $VERRIS_SERVER_ID" -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN")
 
 report_task_fail() {
@@ -148,17 +150,20 @@ dispatch_hosting_profile() {
 
   mkdir -p "$PID_DIR"
   if command -v systemd-run >/dev/null 2>&1 && [ -d /run/systemd/system ]; then
-    systemd-run --quiet --collect \\
-      --unit="verris-task-\${TASK_ID}" \\
+    unit_suffix=$(printf '%s' "$TASK_ID" | tr -d '-')
+    if systemd-run --collect \\
+      --unit="verris-task-\${unit_suffix}" \\
       --property=TimeoutStartSec=7200 \\
       --property=StandardOutput=append:$LOG \\
       --property=StandardError=append:$LOG \\
-      "$TASK_RUN" "$TASK_ID" "$skip_build" "$dry_run"
-    echo "[verris-tasks] Task $TASK_ID started in background (systemd-run, timeout 2h)" >> "$LOG"
-    exit 0
+      "$TASK_RUN" "$TASK_ID" "$skip_build" "$dry_run" 2>>"$LOG"; then
+      echo "[verris-tasks] Task $TASK_ID started in background (systemd-run verris-task-\${unit_suffix})" >> "$LOG"
+      exit 0
+    fi
+    echo "[verris-tasks] systemd-run failed — running task synchronously" >> "$LOG"
   fi
 
-  echo "[verris-tasks] systemd-run unavailable — running task synchronously" >> "$LOG"
+  echo "[verris-tasks] Running task synchronously (no systemd-run)" >> "$LOG"
   exec "$TASK_RUN" "$TASK_ID" "$skip_build" "$dry_run"
 }
 
