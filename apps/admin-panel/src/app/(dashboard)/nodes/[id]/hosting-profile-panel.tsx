@@ -77,6 +77,11 @@ export function HostingProfilePanel({
       ? Date.now() - new Date(latest.createdAt).getTime()
       : 0;
   const queuedStuck = queuedStuckMs > 90_000;
+  const runningStuckMs =
+    latest?.status === "RUNNING" && latest.startedAt
+      ? Date.now() - new Date(latest.startedAt).getTime()
+      : 0;
+  const runningStuck = runningStuckMs > 10 * 60_000;
 
   const loadAgentScript = useCallback(() => {
     startTransition(async () => {
@@ -200,7 +205,9 @@ export function HostingProfilePanel({
           {(latest.status === "QUEUED" || latest.status === "RUNNING") && (
             <p className="text-xs text-sky-200">
               {latest.status === "RUNNING"
-                ? "Profil wykonywany na węźle — może potrwać kilka minut (Governor, CustomBuild)."
+                ? runningStuck
+                  ? "Profil w tle (Governor/CustomBuild) — może trwać do ~60 min. Panel odświeża co 5 s; po 75 min zadanie zostanie oznaczone jako błąd. Na węźle: tail -f /var/log/verris-tasks.log oraz systemctl status verris-task-*"
+                  : "Profil wykonywany na węźle w tle — Governor/CustomBuild może potrwać kilka–kilkadziesiąt minut."
                 : queuedStuck
                   ? "Zadanie czeka >90 s — na węźle brakuje agenta zadań. Zainstaluj skrypt poniżej (SSH)."
                   : "Agent odbierze zadanie w ciągu ~1 minuty. Odświeżanie co 5 s."}

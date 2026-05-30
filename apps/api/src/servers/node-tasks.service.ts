@@ -4,6 +4,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 
 const MAX_LOG_CHARS = 120_000;
+/** RUNNING without complete/fail — reclaim so panel is not stuck (Governor can run up to ~60 min). */
+const STALE_RUNNING_MS = 75 * 60 * 1000;
 
 export type HostingProfileTaskPayload = {
   skipBuild?: boolean;
@@ -34,6 +36,8 @@ export class NodeTasksService {
         'Węzeł nie ma agenta (brak identity token). Uruchom bootstrap lub zainstaluj agenta zadań.',
       );
     }
+
+    await this.reclaimStaleRunningTasks(serverId);
 
     const inflight = await this.prisma.nodeTask.findFirst({
       where: {
@@ -71,6 +75,8 @@ export class NodeTasksService {
   }
 
   async listHostingProfileTasks(serverId: string, limit = 10) {
+    await this.reclaimStaleRunningTasks(serverId);
+
     const tasks = await this.prisma.nodeTask.findMany({
       where: { serverId, kind: NodeTaskKind.HOSTING_PROFILE },
       orderBy: { createdAt: 'desc' },
@@ -80,6 +86,8 @@ export class NodeTasksService {
   }
 
   async leaseTaskForNode(serverId: string) {
+    await this.reclaimStaleRunningTasks(serverId);
+
     const task = await this.prisma.nodeTask.findFirst({
       where: {
         serverId,
@@ -185,6 +193,33 @@ export class NodeTasksService {
     if (!log) return null;
     if (log.length <= MAX_LOG_CHARS) return log;
     return log.slice(-MAX_LOG_CHARS);
+  }
+
+  /** Fail RUNNING tasks with no agent callback — unblocks admin panel re-run. */
+  private async reclaimStaleRunningTasks(serverId: string) {
+    const cutoff = new Date(Date.now() - STALE_RUNNING_MS);
+    const stale = await this.prisma.nodeTask.findMany({
+      where: {
+        serverId,
+        status: NodeTaskStatus.RUNNING,
+        startedAt: { lt: cutoff },
+      },
+    });
+    for (const task of stale) {
+      await this.prisma.nodeTask.update({
+        where: { id: task.id },
+        data: {
+          status: NodeTaskStatus.FAILED,
+          errorMessage:
+            'Zadanie przekroczyło 75 min bez potwierdzenia z węzła (np. restart agenta podczas Governor/CustomBuild). Sprawdź /var/log/verris-tasks.log na węźle i uruchom profil ponownie.',
+          completedAt: new Date(),
+        },
+      });
+      await this.audit.record({
+        action: 'NODE_TASK_STALE_FAILED',
+        details: { serverId, taskId: task.id, kind: task.kind },
+      });
+    }
   }
 
   private toPublicTask(task: {
