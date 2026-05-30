@@ -11,6 +11,7 @@ import {
   UserPlus,
   BookOpen,
   Settings,
+  Archive,
 } from "lucide-react";
 import { GrafanaOpsLink, grafanaSsoHref } from "./grafana-ops-link";
 import type { StaffProfile } from "@/lib/staff-session";
@@ -19,6 +20,7 @@ import { staffLogout } from "@/lib/staff-auth-actions";
 const navItems = [
   { name: "Skrzynka", href: "/", icon: Inbox },
   { name: "Aktywne", href: "/tickets/active", icon: MessageSquare },
+  { name: "Zamknięte", href: "/tickets/closed", icon: Archive },
   { name: "Klienci", href: "/crm", icon: Users },
   { name: "Program partnerski", href: "/referral-enrollments", icon: UserPlus },
   { name: "Knowledge", href: "/knowledge", icon: BookOpen },

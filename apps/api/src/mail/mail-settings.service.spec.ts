@@ -50,6 +50,8 @@ describe('MailSettingsService', () => {
     expect(resolved.secure).toBe('none');
     expect(resolved.fromAddress).toBe('panel@verris.pl');
     expect(resolved.username).toBe('');
+    expect(resolved.heloName).toBeTruthy();
+    expect(resolved.messageIdDomain).toBeTruthy();
   });
 
   it('resolveSmtpConfig uses external relay from platform settings', () => {

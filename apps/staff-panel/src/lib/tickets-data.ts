@@ -33,6 +33,8 @@ export interface StaffTicketRow {
     email: string;
     companyName: string | null;
   };
+  updatedAt?: string;
+  resolvedAt?: string | null;
   assignedToId?: string | null;
   assignedTo: { id: string; firstName: string | null; lastName: string | null } | null;
   slaResponseDueAt?: string | null;

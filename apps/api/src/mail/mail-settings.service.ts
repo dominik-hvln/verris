@@ -12,6 +12,7 @@ import {
 import {
   buildSmtpMailerProvider,
   isLocalSmtpHost,
+  resolveSmtpIdentity,
   type ResolvedSmtpConfig,
 } from './mail-smtp.factory';
 import type { MailerProvider } from './mailer.interface';
@@ -172,6 +173,7 @@ export class MailSettingsService {
         fromAddress,
         fromName,
         secure: secureRaw === 'tls' || secureRaw === 'starttls' ? secureRaw : 'none',
+        ...resolveSmtpIdentity(process.env),
       };
     }
 
@@ -197,6 +199,7 @@ export class MailSettingsService {
       fromAddress,
       fromName,
       secure,
+      ...resolveSmtpIdentity(process.env),
     };
   }
 

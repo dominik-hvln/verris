@@ -11,6 +11,7 @@ import { LogMailerProvider } from './log-mailer.provider';
 import {
   buildSmtpMailerProvider,
   isLocalSmtpHost,
+  resolveSmtpIdentity,
 } from './mail-smtp.factory';
 import type { MailSmtpSecure } from './mail-settings.keys';
 import { PrismaService } from '../prisma/prisma.service';
@@ -214,18 +215,36 @@ export class MailerService {
 
   private async applyFromOverrides(message: MailMessage): Promise<MailMessage> {
     let fromAddress = message.fromAddress;
-    const fromName = message.fromName ?? this.config.fromName;
+    let fromName = message.fromName ?? this.config.fromName;
+    let replyTo = message.replyTo;
 
     if (message.fromRole) {
       const role = message.fromRole as ControlPlaneSystemAddressRole;
       const row = await this.prisma.controlPlaneSystemAddress.findUnique({
         where: { role },
       });
-      if (row) fromAddress = row.email;
+      if (row) {
+        fromAddress = row.email;
+        if (!replyTo && role === 'SUPPORT') {
+          replyTo = row.email;
+        }
+      }
+      if (!message.fromName) {
+        const roleNames: Partial<Record<ControlPlaneSystemAddressRole, string>> = {
+          SUPPORT: 'Verris Support',
+          BILLING: 'Verris Billing',
+          SECURITY: 'Verris Security',
+          RODO: 'Verris — RODO',
+          PANEL: 'Verris',
+          NOREPLY: 'Verris',
+          DMARC_RUA: 'Verris',
+        };
+        if (roleNames[role]) fromName = roleNames[role]!;
+      }
     }
 
     if (!fromAddress) return message;
-    return { ...message, fromAddress, fromName };
+    return { ...message, fromAddress, fromName, replyTo };
   }
 
   private async enrichForCategory(
@@ -395,5 +414,6 @@ export function buildMailerProvider(config: ConfigService): MailerProvider {
     fromAddress,
     fromName,
     secure,
+    ...resolveSmtpIdentity(process.env),
   });
 }

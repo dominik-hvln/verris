@@ -14,6 +14,7 @@ export async function staffPostReply(ticketId: string, message: string): Promise
     revalidatePath(`/tickets/${ticketId}`);
     revalidatePath("/");
     revalidatePath("/tickets/active");
+    revalidatePath("/tickets/closed");
     return { ok: true };
   } catch (e) {
     return { error: e instanceof StaffApiError ? e.message : "Nie udało się wysłać." };
@@ -51,6 +52,7 @@ export async function staffPostReplyWithFiles(
     revalidatePath(`/tickets/${ticketId}`);
     revalidatePath("/");
     revalidatePath("/tickets/active");
+    revalidatePath("/tickets/closed");
     return { ok: true };
   } catch (e) {
     return { error: e instanceof StaffApiError ? e.message : "Nie udało się wysłać." };
@@ -71,6 +73,7 @@ export async function staffUpdateTicket(
     revalidatePath(`/tickets/${ticketId}`);
     revalidatePath("/");
     revalidatePath("/tickets/active");
+    revalidatePath("/tickets/closed");
     return { ok: true };
   } catch (e) {
     return { error: e instanceof StaffApiError ? e.message : "Nie udało się zapisać." };
@@ -89,6 +92,7 @@ export async function staffEscalateTicket(
     revalidatePath(`/tickets/${ticketId}`);
     revalidatePath("/");
     revalidatePath("/tickets/active");
+    revalidatePath("/tickets/closed");
     return { ok: true };
   } catch (e) {
     return { error: e instanceof StaffApiError ? e.message : "Nie udało się eskalować." };

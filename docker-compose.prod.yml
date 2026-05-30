@@ -177,6 +177,8 @@ services:
       SMTP_PASS: ${SMTP_PASS:-}
       SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS:-panel@verris.pl}
       SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Verris}
+      SMTP_HELO_NAME: ${SMTP_HELO_NAME:-mail.verris.pl}
+      SMTP_MESSAGE_ID_DOMAIN: ${SMTP_MESSAGE_ID_DOMAIN:-verris.pl}
       # MAIL-4 — skrzynki zespołu @verris.pl (mapy Postfix na hoście; SOGo osobno)
       CONTROL_PLANE_MAIL_MAPS_DIR: ${CONTROL_PLANE_MAIL_MAPS_DIR:-/etc/postfix/verris}
       CONTROL_PLANE_MAIL_DATA_ROOT: ${CONTROL_PLANE_MAIL_DATA_ROOT:-/var/mail/vhosts}

@@ -11,6 +11,26 @@ export interface ResolvedSmtpConfig {
   fromAddress: string;
   fromName: string;
   secure: MailSmtpSecure;
+  /** EHLO/HELO name — must match PTR / mail.verris.pl (not host.docker.internal). */
+  heloName: string;
+  /** Domain suffix for Message-ID header (e.g. verris.pl). */
+  messageIdDomain: string;
+}
+
+/** Public HELO + Message-ID domain for outbound SMTP (deliverability). */
+export function resolveSmtpIdentity(env: NodeJS.ProcessEnv = process.env): {
+  heloName: string;
+  messageIdDomain: string;
+} {
+  const heloName =
+    env.SMTP_HELO_NAME?.trim() ||
+    env.CADDY_MAIL_DOMAIN?.trim() ||
+    'mail.verris.pl';
+  const messageIdDomain =
+    env.SMTP_MESSAGE_ID_DOMAIN?.trim() ||
+    env.CONTROL_PLANE_MAIL_DOMAIN?.trim() ||
+    'verris.pl';
+  return { heloName, messageIdDomain };
 }
 
 export function isLocalSmtpHost(host: string): boolean {
@@ -41,5 +61,7 @@ export function buildSmtpMailerProvider(config: ResolvedSmtpConfig): MailerProvi
     fromAddress: config.fromAddress,
     fromName: config.fromName,
     secure: config.secure,
+    heloName: config.heloName,
+    messageIdDomain: config.messageIdDomain,
   });
 }
