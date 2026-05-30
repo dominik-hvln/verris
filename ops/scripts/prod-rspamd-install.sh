@@ -32,9 +32,10 @@ log "Postfix milter chain"
 postconf -e 'milter_protocol = 6'
 postconf -e 'milter_default_action = accept'
 postconf -e 'milter_mail_macros = i {mail_addr} {client_addr} {client_name} {auth_authen}'
-# Inbound (MX): tylko Rspamd. Wychodzące (API/SOGo): Rspamd (łagodnie) + OpenDKIM podpis.
-postconf -e 'smtpd_milters = inet:127.0.0.1:11332'
-postconf -e 'non_smtpd_milters = inet:127.0.0.1:11332, inet:127.0.0.1:8891'
+# Inbound (MX): Rspamd antyspam + OpenDKIM (podpis tylko *@verris.pl).
+# API/SOGo wysyłają przez smtpd — OpenDKIM MUSI być w smtpd_milters (non_smtpd nie obejmuje smtpd).
+postconf -e 'smtpd_milters = inet:127.0.0.1:11332, inet:127.0.0.1:8891'
+postconf -e 'non_smtpd_milters = inet:127.0.0.1:8891'
 
 systemctl reload postfix 2>/dev/null || systemctl restart postfix
 

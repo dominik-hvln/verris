@@ -23,7 +23,12 @@
 
 ### Postfix / OpenDKIM
 
+Maile z **API (Docker → Postfix smtpd)** wymagają OpenDKIM w **`smtpd_milters`**, nie tylko `non_smtpd_milters`. Naprawa: `./ops/scripts/prod-mail-dkim-outbound-fix.sh`
+
 ```bash
+postconf smtpd_milters non_smtpd_milters
+# smtpd: inet:127.0.0.1:11332, inet:127.0.0.1:8891
+# non_smtpd: inet:127.0.0.1:8891
 postconf myhostname smtp_helo_name   # mail.verris.pl
 systemctl status opendkim
 ss -tlnp | grep 8891
