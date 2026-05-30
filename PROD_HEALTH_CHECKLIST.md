@@ -107,8 +107,8 @@ Komenda: `docker stats --no-stream`, `df -h`, `df -i`, `uptime`.
 | --- | --- | --- | --- |
 | Prometheus / Grafana | running | kontenery healthy | ✅ |
 | Grafana SSO (`forward_auth`) | YES | auto + ręczny test ✅ 2026-05-26 | ✅ |
-| Loki + Promtail (logi) | running | dashboard **Logs explorer** | 🟡 po deploy |
-| Ops overview (host/Docker) | YES | `00-ops-overview` + node-exporter/cAdvisor | 🟡 po deploy |
+| Loki + Promtail (logi) | running | dashboard **Logs explorer** | ✅ 2026-05-30 |
+| Ops overview (host/Docker) | YES | `00-ops-overview` + node-exporter/cAdvisor | ✅ 2026-05-30 |
 | Status page public | 200 | `status.verris.pl` OK | ✅ |
 | Grafana alert → email | YES | dominik@hvln.pl (OPS-3) | ✅ |
 | Slack alert channel | YES | D-5: później | ⏸️ |
