@@ -20,6 +20,12 @@ import {
   BOOTSTRAP_DOES,
   BOOTSTRAP_DOES_NOT,
   HOSTING_PROFILE_HINT,
+  INSTALL_CLOUDLINUX_AL10,
+  INSTALL_CLOUDLINUX_AL9,
+  INSTALL_DIRECTADMIN,
+  INSTALL_LITESPEED_STANDALONE,
+  INSTALL_LITESPEED_VIA_DA,
+  INSTALL_OS_PREP,
   PREPARE_NODE_EXPORTS,
   VERIFY_CLOUDLINUX,
   WIZARD_STEPS,
@@ -167,8 +173,10 @@ export function NodeWizard() {
               Osobny serwer compute (nie ten sam co control-plane Docker/Caddy).
             </CheckItem>
             <CheckItem>
-              <strong>AlmaLinux 8 lub 9</strong> (minimal), root SSH, publiczne IP.
+              <strong>AlmaLinux 9.x</strong> (produkcja / sharedlicense DA) lub{" "}
+              <strong>10.2</strong> (test, najdłuższe wsparcie — full DA na AL10).
             </CheckItem>
+            <CopyBlock label="Krok 0 — przygotowanie OS (root)" text={INSTALL_OS_PREP} />
             <CheckItem>
               Min. <strong>4 GB RAM</strong> (8+ GB zalecane), dysk SSD z zapasem na konta.
             </CheckItem>
@@ -192,9 +200,9 @@ export function NodeWizard() {
         {step.id === "cloudlinux" && (
           <div className="space-y-4">
             <p className="text-sm text-zinc-300">
-              Zainstaluj lub skonwertuj OS do <strong>CloudLinux</strong> z aktywnym trialem. Agent
-              Verris wymaga <code className="text-indigo-300">lveinfo</code> lub{" "}
-              <code className="text-indigo-300">cloudlinux-statistic</code>.
+              CloudLinux instalujesz przez <strong>konwersję</strong> AlmaLinux (CL 10 nie ma
+              osobnego ISO). Agent Verris wymaga <code className="text-indigo-300">lveinfo</code>{" "}
+              lub <code className="text-indigo-300">cloudlinux-statistic</code>.
             </p>
             <a
               href="https://docs.cloudlinux.com/cloudlinuxos/cloudlinux_installation/"
@@ -204,7 +212,15 @@ export function NodeWizard() {
             >
               Dokumentacja CloudLinux <ExternalLink className="h-3.5 w-3.5" />
             </a>
-            <CopyBlock label="Weryfikacja po instalacji CL" text={VERIFY_CLOUDLINUX} />
+            <CopyBlock
+              label="Instalacja CL 10 (AlmaLinux 10.2 → cldeploy + reboot)"
+              text={INSTALL_CLOUDLINUX_AL10}
+            />
+            <CopyBlock
+              label="Alternatywa: CL 9 (AlmaLinux 9.x)"
+              text={INSTALL_CLOUDLINUX_AL9}
+            />
+            <CopyBlock label="Weryfikacja po reboot" text={VERIFY_CLOUDLINUX} />
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <input
                 type="checkbox"
@@ -226,10 +242,20 @@ export function NodeWizard() {
             <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100 flex gap-2">
               <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
               <span>
-                DA instalujesz <em>przed</em> provisioningiem klientów. Bootstrap Verris nie
-                instaluje DA — tylko łączy się przez API (login key w kroku 6).
+                <strong>AlmaLinux 10:</strong> sharedlicense / legacy DA może nie wspierać RHEL10 —
+                wtedy full license lub test na AL9. Bootstrap Verris nie instaluje DA (tylko API w
+                kroku 6).
               </span>
             </div>
+            <a
+              href="https://docs.directadmin.com/directadmin/installation/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-sm text-indigo-300 hover:underline"
+            >
+              Dokumentacja DirectAdmin <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+            <CopyBlock label="Instalacja DirectAdmin (setup.sh)" text={INSTALL_DIRECTADMIN} />
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <input
                 type="checkbox"
@@ -261,7 +287,15 @@ export function NodeWizard() {
                 (np. przez DA CustomBuild) — wtedy bootstrap tylko robi handshake i agenta.
               </p>
             </div>
-            <CopyBlock label="Zmienne na węźle (nie wklejaj tutaj seriali — tylko na SSH)" text={PREPARE_NODE_EXPORTS} />
+            <CopyBlock
+              label="3a) LiteSpeed + LSPHP przez DA CustomBuild (zalecane)"
+              text={INSTALL_LITESPEED_VIA_DA}
+            />
+            <CopyBlock
+              label="3b) LiteSpeed standalone (get.litespeed.sh)"
+              text={INSTALL_LITESPEED_STANDALONE}
+            />
+            <CopyBlock label="4) Zmienne przed bootstrap Verris" text={PREPARE_NODE_EXPORTS} />
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <input
                 type="checkbox"
