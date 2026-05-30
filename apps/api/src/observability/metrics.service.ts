@@ -2,6 +2,7 @@ import { Injectable, Logger, Optional } from '@nestjs/common';
 import {
   AccountStatus,
   IncidentStatus,
+  Prisma,
   Role,
   ServerStatus,
   SubscriptionStatus,
@@ -121,6 +122,68 @@ export class MetricsService {
     for (const row of ticketsByStatus) {
       lines.push(`verris_tickets_total{status="${row.status}"} ${row._count._all}`);
     }
+
+    const awaitingFirstResponse = await this.prisma.ticket.count({
+      where: {
+        firstResponseAt: null,
+        status: { in: ['OPEN', 'IN_PROGRESS'] },
+      },
+    });
+    write(
+      lines,
+      'verris_tickets_awaiting_first_response_total',
+      'Open tickets without a staff first response yet',
+      'gauge',
+    );
+    lines.push(`verris_tickets_awaiting_first_response_total ${awaitingFirstResponse}`);
+
+    const [
+      staffResponseAvgSeconds,
+      staffResponseAvgSeconds30d,
+      firstResponseAvgSeconds,
+      firstResponseAvgSeconds30d,
+    ] = await Promise.all([
+      this.avgStaffResponseSeconds(),
+      this.avgStaffResponseSeconds(since30d),
+      this.avgFirstResponseSeconds(),
+      this.avgFirstResponseSeconds(since30d),
+    ]);
+    write(
+      lines,
+      'verris_ticket_staff_response_avg_seconds',
+      'Average seconds from client message to staff reply (all time)',
+      'gauge',
+    );
+    lines.push(
+      `verris_ticket_staff_response_avg_seconds ${formatMetricSeconds(staffResponseAvgSeconds)}`,
+    );
+    write(
+      lines,
+      'verris_ticket_staff_response_avg_seconds_30d',
+      'Average seconds from client message to staff reply (staff replies in last 30 days)',
+      'gauge',
+    );
+    lines.push(
+      `verris_ticket_staff_response_avg_seconds_30d ${formatMetricSeconds(staffResponseAvgSeconds30d)}`,
+    );
+    write(
+      lines,
+      'verris_ticket_first_response_avg_seconds',
+      'Average time to first staff response (createdAt → firstResponseAt, all time)',
+      'gauge',
+    );
+    lines.push(
+      `verris_ticket_first_response_avg_seconds ${formatMetricSeconds(firstResponseAvgSeconds)}`,
+    );
+    write(
+      lines,
+      'verris_ticket_first_response_avg_seconds_30d',
+      'Average time to first staff response for tickets created in the last 30 days',
+      'gauge',
+    );
+    lines.push(
+      `verris_ticket_first_response_avg_seconds_30d ${formatMetricSeconds(firstResponseAvgSeconds30d)}`,
+    );
 
     // --- Control-plane mailboxes -----------------------------------------
     const mailboxesByStatus = await this.prisma.controlPlaneMailbox.groupBy({
@@ -517,6 +580,50 @@ export class MetricsService {
 
     return lines.join('\n') + '\n';
   }
+
+  /** Średni czas od wiadomości klienta do odpowiedzi staff (wątek ticketu). */
+  private async avgStaffResponseSeconds(since?: Date): Promise<number | null> {
+    const sinceFilter = since
+      ? Prisma.sql`AND resp.ts >= ${since}`
+      : Prisma.empty;
+    const rows = await this.prisma.$queryRaw<Array<{ avg_seconds: number | null }>>`
+      WITH timeline AS (
+        SELECT t.id AS ticket_id, t."createdAt" AS ts, 'client'::text AS side
+        FROM "Ticket" t
+        UNION ALL
+        SELECT r."ticketId", r."createdAt",
+          CASE WHEN r."isStaff" THEN 'staff' ELSE 'client' END
+        FROM "TicketReply" r
+      ),
+      responses AS (
+        SELECT
+          ticket_id,
+          ts,
+          side,
+          LAG(ts) OVER (PARTITION BY ticket_id ORDER BY ts) AS prev_ts,
+          LAG(side) OVER (PARTITION BY ticket_id ORDER BY ts) AS prev_side
+        FROM timeline
+      )
+      SELECT AVG(EXTRACT(EPOCH FROM (resp.ts - resp.prev_ts)))::float AS avg_seconds
+      FROM responses resp
+      WHERE resp.side = 'staff'
+        AND resp.prev_side = 'client'
+        AND resp.prev_ts IS NOT NULL
+        ${sinceFilter}
+    `;
+    return rows[0]?.avg_seconds ?? null;
+  }
+
+  /** Średni czas do pierwszej odpowiedzi staff (TTFR). */
+  private async avgFirstResponseSeconds(since?: Date): Promise<number | null> {
+    const rows = await this.prisma.$queryRaw<Array<{ avg_seconds: number | null }>>`
+      SELECT AVG(EXTRACT(EPOCH FROM (t."firstResponseAt" - t."createdAt")))::float AS avg_seconds
+      FROM "Ticket" t
+      WHERE t."firstResponseAt" IS NOT NULL
+      ${since ? Prisma.sql`AND t."createdAt" >= ${since}` : Prisma.empty}
+    `;
+    return rows[0]?.avg_seconds ?? null;
+  }
 }
 
 function write(
@@ -527,4 +634,9 @@ function write(
 ): void {
   lines.push(`# HELP ${name} ${help}`);
   lines.push(`# TYPE ${name} ${type}`);
+}
+
+function formatMetricSeconds(value: number | null): string {
+  if (value == null || !Number.isFinite(value)) return '0';
+  return Math.max(0, value).toFixed(3);
 }
