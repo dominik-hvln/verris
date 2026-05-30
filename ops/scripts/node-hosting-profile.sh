@@ -81,7 +81,12 @@ else
   BUILD=$(custombuild_bin "$CB" || true)
   if [ -n "$BUILD" ]; then
     run "cd $CB && $BUILD set webserver litespeed"
-    run "cd $CB && $BUILD set php1_release \$($BUILD options 2>/dev/null | awk -F= '/^php1_release:/{print \$2}' | tr -d ' ' || echo 8.3)"
+    php1_release="$($BUILD options 2>/dev/null | sed -n 's/^php1_release:[[:space:]]*//p' | head -1 | tr -d '[:space:]')"
+    if [ -z "$php1_release" ]; then
+      php1_release="8.3"
+      echo "INFO: php1_release nieczytelne w custombuild options — używam domyślnie $php1_release"
+    fi
+    run "cd $CB && $BUILD set php1_release $php1_release"
     run "cd $CB && $BUILD set redis yes"
     run "cd $CB && $BUILD set mod_ruid2 no"
     run "cd $CB && $BUILD set mod_suexec no"
