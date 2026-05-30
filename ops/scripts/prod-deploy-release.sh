@@ -16,7 +16,7 @@ echo "[deploy] $(pwd) branch=${BRANCH}"
 git fetch origin "${BRANCH}"
 git -c safe.directory="$(pwd)" checkout "${BRANCH}"
 git -c safe.directory="$(pwd)" pull origin "${BRANCH}"
-echo "[deploy] HEAD: $(git log -1 --oneline)"
+echo "[deploy] HEAD: $(git -c safe.directory="$(pwd)" log -1 --oneline)"
 
 docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}" up -d --build ${SERVICES}
 bash ops/scripts/prod-migrate-deploy.sh
