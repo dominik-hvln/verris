@@ -22,9 +22,9 @@ Plan domknięcia: [`LIVE_READINESS_PLAN.md`](./LIVE_READINESS_PLAN.md) · backlo
 
 | Pomiar | Próg ALERT | Wartość pomiaru | Status |
 | --- | --- | --- | --- |
-| RAM host available | > 1.5 GB | **5.3 GiB** avail (po restarcie staff-panel) | ✅ |
+| RAM host available | > 1.5 GB | **6.0 GiB** avail (po rebuild admin-panel) | ✅ |
 | RAM staff-panel | < 512 MB | standalone fix · **72 MiB / 768 MiB** po ~20 h · 0 restartów | ✅ |
-| RAM admin-panel | < 512 MB | było **~6.1 GiB** → standalone rebuild 2026-05-30 | 🔄 |
+| RAM admin-panel | < 512 MB | standalone fix · **58 MiB / 768 MiB** po rebuild | ✅ |
 | RAM api container | < 1.5 GB | 118 MiB | ✅ |
 | RAM postgres container | < 2.5 GB | 48 MiB | ✅ |
 | RAM redis container | < 256 MB | 6 MiB | ✅ |
@@ -107,6 +107,8 @@ Komenda: `docker stats --no-stream`, `df -h`, `df -i`, `uptime`.
 | --- | --- | --- | --- |
 | Prometheus / Grafana | running | kontenery healthy | ✅ |
 | Grafana SSO (`forward_auth`) | YES | auto + ręczny test ✅ 2026-05-26 | ✅ |
+| Loki + Promtail (logi) | running | dashboard **Logs explorer** | 🟡 po deploy |
+| Ops overview (host/Docker) | YES | `00-ops-overview` + node-exporter/cAdvisor | 🟡 po deploy |
 | Status page public | 200 | `status.verris.pl` OK | ✅ |
 | Grafana alert → email | YES | dominik@hvln.pl (OPS-3) | ✅ |
 | Slack alert channel | YES | D-5: później | ⏸️ |
@@ -136,7 +138,7 @@ Komenda: `docker stats --no-stream`, `df -h`, `df -i`, `uptime`.
 - [x] MAIL-4 SOGo / skrzynki / MX — 2026-05-24
 - [ ] Welcome email po verify
 - [x] Forward z potwierdzeniem (MAIL-4d) — 2026-05-26
-- [ ] BOK ticket end-to-end — [`docs/ops/BOK_TICKET_SMOKE.md`](docs/ops/BOK_TICKET_SMOKE.md)
+- [x] BOK ticket end-to-end — [`docs/ops/BOK_TICKET_SMOKE.md`](docs/ops/BOK_TICKET_SMOKE.md) · 2026-05-30 (maile + DKIM fix)
 - [ ] Zakup planu + provisioning DA — **po węźle**
 
 ## 13. Decyzja GO/NO-GO

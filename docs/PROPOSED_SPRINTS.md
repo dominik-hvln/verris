@@ -155,13 +155,14 @@ Już w repo (folder `Verris`):
 
 | ID | Task | Opis |
 |----|------|------|
-| OBS-1 | `node_exporter` na control-plane | CPU/RAM/dysk hosta (obecnie głównie API + DB w Prometheus) |
-| OBS-2 | Blackbox / syntetyka HTTP | `client.verris.pl`, `admin`, `staff`, `api` `/healthz` — dostępność paneli |
-| OBS-3 | Dashboard **Host / Docker** | cAdvisor lub metryki kontenerów + `df` alert |
-| OBS-4 | Dashboard **Postgres / Redis** | rozszerzenie exporterów (połączenia, slow queries) |
-| OBS-5 | Dashboard **Caddy / TLS** | cert expiry, 5xx edge (jeśli metryki dostępne) |
-| OBS-6 | Contact point + reguły | C.5: email dominik@hvln.pl + powiązanie z `alerts.yml` |
-| OBS-7 | Cron `docker builder prune` | po deploy — utrzymanie dysku (build cache, nie backupy) |
+| OBS-1 | `node_exporter` na control-plane | ✅ docker `node-exporter` |
+| OBS-2 | Blackbox / syntetyka HTTP | follow-up |
+| OBS-3 | Dashboard **Host / Docker** | ✅ `00-ops-overview` + cAdvisor |
+| OBS-4 | Dashboard **Postgres / Redis** | ✅ w overview + istniejące |
+| OBS-5 | Dashboard **Caddy / TLS** | follow-up |
+| OBS-6 | Contact point + reguły | częściowo (OPS-3) |
+| OBS-7 | Cron `docker builder prune` | ✅ |
+| OBS-8 | **Loki + logi** | ✅ Promtail + `08-logs-explorer` |
 
 ---
 

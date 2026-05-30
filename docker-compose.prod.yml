@@ -363,6 +363,59 @@ services:
     expose: ['9121']
     networks: [verris_internal]
 
+  node-exporter:
+    image: prom/node-exporter:v1.8.0
+    restart: always
+    logging: *default-logging
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    expose: ['9100']
+    networks: [verris_internal]
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    restart: always
+    logging: *default-logging
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    expose: ['8080']
+    networks: [verris_internal]
+
+  loki:
+    image: grafana/loki:2.9.4
+    restart: always
+    logging: *default-logging
+    command: ['-config.file=/etc/loki/config.yaml']
+    volumes:
+      - ./ops/observability/loki/config.yaml:/etc/loki/config.yaml:ro
+      - loki_data:/loki
+    expose: ['3100']
+    networks: [verris_internal]
+
+  promtail:
+    image: grafana/promtail:2.9.4
+    restart: always
+    logging: *default-logging
+    command: ['-config.file=/etc/promtail/config.yml']
+    volumes:
+      - ./ops/observability/promtail/config.yml:/etc/promtail/config.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on: [loki]
+    networks: [verris_internal]
+
   prometheus:
     image: prom/prometheus:v2.51.2
     restart: always
@@ -384,14 +437,14 @@ services:
     environment:
       METRICS_AUTH_TOKEN: ${METRICS_AUTH_TOKEN:-}
     expose: ['9090']
-    depends_on: [api, postgres-exporter, redis-exporter]
+    depends_on: [api, postgres-exporter, redis-exporter, node-exporter, cadvisor]
     networks: [verris_internal, verris_public]
 
   grafana:
     image: grafana/grafana:10.4.2
     restart: always
     logging: *default-logging
-    depends_on: [prometheus]
+    depends_on: [prometheus, loki]
     environment:
       GF_SERVER_DOMAIN: ${CADDY_GRAFANA_DOMAIN:-grafana.verris.local}
       GF_SECURITY_ADMIN_USER: ${GF_SECURITY_ADMIN_USER:-admin}
@@ -454,6 +507,7 @@ volumes:
   caddy_data:
   caddy_config:
   prometheus_data:
+  loki_data:
   grafana_data:
 
 networks:

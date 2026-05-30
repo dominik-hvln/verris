@@ -134,15 +134,25 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d api prometh
 
 ### Co jest w stacku
 
-- **Prometheus** (port 9090, internal) — scrapuje API `/metrics`, postgres-exporter, redis-exporter co 15 s, retencja 30 dni.
+- **Prometheus** (port 9090, internal) — scrapuje API `/metrics`, postgres-exporter, redis-exporter, **node-exporter** (host CPU/RAM/dysk), **cAdvisor** (RAM/CPU kontenerów) co 15 s, retencja 30 dni.
 - **Grafana** (port 3000, internal, publicznie pod `grafana.verris.pl`) — `auth.proxy` mode + Caddy `forward_auth` do `/auth/grafana-validate`.
+- **Loki** + **Promtail** — centralne logi kontenerów `verris-*` (retencja 7 dni); dashboard **Logs explorer** w folderze `Verris`.
 - **postgres-exporter** + **redis-exporter** — DB i Redis metryki (CPU, lag, slow queries, connections, hit ratio).
-- **5 dashboardów** prowizjonowane jako kod w `ops/observability/grafana/provisioning/dashboards/json/`:
+- **node-exporter** + **cAdvisor** — metryki hosta i kontenerów Docker.
+- **Dashboardy** prowizjonowane jako kod w `ops/observability/grafana/provisioning/dashboards/json/`:
+  - `00-ops-overview` — host + kontenery + API HTTP + Postgres/Redis + linki operacyjne
   - `01-control-plane-health` — uptime API, RAM, subscriptions per status, ostrzeżenia PAST_DUE/SUSPENDED
   - `02-compute-fleet` — serwery (status, stale heartbeat), tabela z `server_safe`, kolejka provisioningu
   - `03-cloudlinux-lve` — autoscaling events, top 10 LVE-żerców (CPU/RAM avg z `usage_metric_safe`), serie skalowania
   - `04-business` — MRR (z `subscription_safe`), top-upy, autoscaling revenue, plany × statusy, dzienne flow
   - `05-ops-storage` — backup Postgres w MinIO (wiek, rozmiar), provisioning, webhooki FAILED
+  - `08-logs-explorer` — LogQL po serwisie / wyszukiwaniu tekstowym
+
+Odświeżenie stacku observability na prod:
+
+```bash
+./ops/scripts/prod-obs-stack-up.sh
+```
 
 Link z **admin-panel** i **staff-panel** (sekcja Monitoring): `NEXT_PUBLIC_GRAFANA_URL` → dashboard `verris-ops-storage`. Staff wymaga `canAccessGrafana` (Operatorzy w admin).
 
@@ -178,7 +188,9 @@ UPDATE "User" SET "canAccessGrafana" = true WHERE email = 'imie.nazwisko@verris.
 
 ### Logi
 
-Każdy serwis używa `json-file` driver z 10 MB × 5 plików (= 50 MB max per kontener; po przekroczeniu rotuje stare). Live tail: `docker compose ... logs -f api`. Aby przejść na Loki/Grafana Cloud — w `docker-compose.prod.yml` zamień driver `json-file` w bloku `x-logging` na `loki` i ustaw `loki-url`. Reszta stacka pozostaje bez zmian.
+Kontenery zapisują logi lokalnie (`json-file`, 10 MB × 5 plików). **Promtail** czyta logi Docker i wysyła je do **Loki** (retencja 7 dni). W Grafanie: folder `Verris` → **Logs explorer** — filtry `service` (compose service) i wyszukiwanie tekstowe.
+
+Live tail bez Grafany: `docker compose ... logs -f api`.
 
 ## Konfiguracja Status Page (probes)
 

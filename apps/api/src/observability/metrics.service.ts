@@ -2,6 +2,7 @@ import { Injectable, Logger, Optional } from '@nestjs/common';
 import {
   AccountStatus,
   IncidentStatus,
+  Role,
   ServerStatus,
   SubscriptionStatus,
   WalletTxType,
@@ -98,6 +99,72 @@ export class MetricsService {
       'gauge',
     );
     lines.push(`verris_servers_stale_heartbeat ${staleHeartbeats}`);
+
+    // --- Users (non-anonymized) ----------------------------------------
+    const usersByRole = await this.prisma.user.groupBy({
+      by: ['role'],
+      where: { anonymizedAt: null },
+      _count: { _all: true },
+    });
+    write(lines, 'verris_users_total', 'Registered users by role (non-anonymized)', 'gauge');
+    for (const role of Object.values(Role)) {
+      const value = usersByRole.find((r) => r.role === role)?._count._all ?? 0;
+      lines.push(`verris_users_total{role="${role}"} ${value}`);
+    }
+
+    // --- Support tickets --------------------------------------------------
+    const ticketsByStatus = await this.prisma.ticket.groupBy({
+      by: ['status'],
+      _count: { _all: true },
+    });
+    write(lines, 'verris_tickets_total', 'Support tickets by status', 'gauge');
+    for (const row of ticketsByStatus) {
+      lines.push(`verris_tickets_total{status="${row.status}"} ${row._count._all}`);
+    }
+
+    // --- Control-plane mailboxes -----------------------------------------
+    const mailboxesByStatus = await this.prisma.controlPlaneMailbox.groupBy({
+      by: ['status'],
+      _count: { _all: true },
+    });
+    write(
+      lines,
+      'verris_mailboxes_total',
+      'Team mailboxes (@verris.pl) by status',
+      'gauge',
+    );
+    for (const row of mailboxesByStatus) {
+      lines.push(`verris_mailboxes_total{status="${row.status}"} ${row._count._all}`);
+    }
+
+    const mailboxUsedBytes = await this.prisma.controlPlaneMailbox.aggregate({
+      _sum: { usedBytes: true },
+    });
+    write(
+      lines,
+      'verris_mailboxes_used_bytes_total',
+      'Sum of reported mailbox used bytes on control-plane',
+      'gauge',
+    );
+    lines.push(
+      `verris_mailboxes_used_bytes_total ${Number(mailboxUsedBytes._sum.usedBytes ?? 0n)}`,
+    );
+
+    // --- Email delivery (24h) --------------------------------------------
+    const emailByStatus24h = await this.prisma.emailLog.groupBy({
+      by: ['status'],
+      where: { createdAt: { gte: since24h } },
+      _count: { _all: true },
+    });
+    write(
+      lines,
+      'verris_email_log_24h_total',
+      'Outbound email log entries in the last 24 hours by status',
+      'gauge',
+    );
+    for (const row of emailByStatus24h) {
+      lines.push(`verris_email_log_24h_total{status="${row.status}"} ${row._count._all}`);
+    }
 
     // --- Accounts (provisioned hosting accounts) -------------------------
     const accountsByStatus = await this.prisma.account.groupBy({
