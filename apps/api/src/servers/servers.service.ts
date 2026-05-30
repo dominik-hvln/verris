@@ -796,6 +796,7 @@ After=network-online.target
 [Service]
 Type=oneshot
 ExecStart=$PROBES_PATH
+TimeoutStartSec=7200
 StandardOutput=append:$PROBES_LOG
 StandardError=append:$PROBES_LOG
 UNIT

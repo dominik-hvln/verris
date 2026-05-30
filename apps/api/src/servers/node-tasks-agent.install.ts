@@ -39,6 +39,16 @@ fi
 
 echo "[verris-tasks] Running task $TASK_ID ($KIND) at $(date -u +%FT%TZ)" >> "$LOG"
 
+report_task_fail() {
+  local err="$1"
+  local log="\${2:-}"
+  echo "[verris-tasks] Task $TASK_ID failed: $err" >> "$LOG"
+  curl -fsS --max-time 30 -X POST "\${auth_headers[@]}" \\
+    -H "Content-Type: application/json" \\
+    -d "$(python3 -c 'import json,sys; err,log=sys.argv[1],sys.argv[2]; print(json.dumps({"error": err, "outputLog": log or None}))' "$err" "$log")" \\
+    "$VERRIS_API_URL/agent/tasks/$TASK_ID/fail" >/dev/null 2>&1 || true
+}
+
 run_hosting_profile() {
   local skip_build dry_run flags tmp out rc
   skip_build=$(printf '%s' "$LEASE_JSON" | python3 -c 'import json,sys; d=json.load(sys.stdin); print("1" if d.get("payload",{}).get("skipBuild", True) else "0")' 2>/dev/null || echo 1)
@@ -47,7 +57,10 @@ run_hosting_profile() {
   [ "$skip_build" = "1" ] && flags="$flags --skip-build"
   [ "$dry_run" = "1" ] && flags="$flags --dry-run"
 
-  curl -fsS "\${auth_headers[@]}" "$VERRIS_API_URL/agent/tasks/hosting-profile/script" -o "$PROFILE_BIN"
+  if ! curl -fsS --max-time 60 "\${auth_headers[@]}" "$VERRIS_API_URL/agent/tasks/hosting-profile/script" -o "$PROFILE_BIN" 2>>"$LOG"; then
+    report_task_fail "Nie udało się pobrać skryptu profilu z API (HTTP/curl — np. 502 podczas restartu control-plane)."
+    exit 1
+  fi
   chmod 755 "$PROFILE_BIN"
 
   tmp=$(mktemp)
@@ -59,10 +72,13 @@ run_hosting_profile() {
   rm -f "$tmp"
 
   if [ "$rc" -eq 0 ]; then
-    curl -fsS --max-time 30 -X POST "\${auth_headers[@]}" \\
+    if ! curl -fsS --max-time 30 -X POST "\${auth_headers[@]}" \\
       -H "Content-Type: application/json" \\
       -d "$(python3 -c 'import json,sys; print(json.dumps({"outputLog": sys.stdin.read()}))' <<< "$out")" \\
-      "$VERRIS_API_URL/agent/tasks/$TASK_ID/complete" >/dev/null
+      "$VERRIS_API_URL/agent/tasks/$TASK_ID/complete" >/dev/null 2>>"$LOG"; then
+      report_task_fail "Profil wykonany lokalnie, ale API nie przyjęło potwierdzenia (HTTP/curl)." "$out"
+      exit 1
+    fi
     echo "[verris-tasks] Task $TASK_ID completed" >> "$LOG"
   else
     err=$(printf '%s' "$out" | tail -n 5 | tr '\\n' ' ' | head -c 500)
@@ -178,6 +194,11 @@ if [ -x /usr/local/bin/verris-tasks.sh ]; then
 fi
 HOOK
   echo "[verris] Patched verris-probes.sh to poll tasks each run"
+  if [ -f /etc/systemd/system/verris-probes.service ] && ! grep -q '^TimeoutStartSec=' /etc/systemd/system/verris-probes.service; then
+    sed -i '/^\\[Service\\]/a TimeoutStartSec=7200' /etc/systemd/system/verris-probes.service
+    systemctl daemon-reload
+    echo "[verris] Set verris-probes.service TimeoutStartSec=7200 (hosting profile may run up to 2h)"
+  fi
   systemctl disable --now verris-tasks.timer 2>/dev/null || true
   echo "[verris] Disabled standalone verris-tasks.timer (probes now invokes tasks)"
 fi
