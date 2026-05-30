@@ -163,13 +163,17 @@ lveinfo --help >/dev/null 2>&1 && echo "OK: lveinfo"
 cloudlinux-statistic --help >/dev/null 2>&1 && echo "OK: cloudlinux-statistic"
 # Jedno z powyższych musi działać — inaczej agent Verris nie wyśle telemetrii LVE.`;
 
-export const HOSTING_PROFILE_HINT = `# Alternatywa: ręcznie na węźle (gdy agent zadań niedostępny)
-scp ops/scripts/node-hosting-profile.sh root@WĘZEŁ:/root/
+export const HOSTING_PROFILE_HINT = `# Preflight (tylko odczyt, bez zmian):
+scp ops/scripts/node-stack-preflight.sh ops/scripts/node-hosting-profile.sh root@WĘZEŁ:/root/
+ssh root@WĘZEŁ 'bash /root/node-stack-preflight.sh'
+
+# Z panelu admin (zalecane): Node → Profil hostingowy → Uruchom (agent verris-tasks)
+# Domyślnie --skip-build (bez 30–90 min CustomBuild rebuild)
+
+# Ręcznie na węźle:
 ssh root@WĘZEŁ 'bash /root/node-hosting-profile.sh --yes --skip-build'
 
-# Węzeł sprzed agent-2 (brak verris-tasks): jednorazowo na SSH
-scp ops/scripts/install-verris-tasks.sh root@WĘZEŁ:/root/
-ssh root@WĘZEŁ 'bash /root/install-verris-tasks.sh'`;
+# Węzeł sprzed agent-2: jednorazowo zainstaluj agenta zadań (skrypt z panelu → Pokaż skrypt instalacji)`;
 
 export const VERIFY_BOOTSTRAP_AGENTS = `# Po bootstrap — weryfikacja agentów (root na węźle):
 systemctl is-active verris-agent.timer verris-probes.timer

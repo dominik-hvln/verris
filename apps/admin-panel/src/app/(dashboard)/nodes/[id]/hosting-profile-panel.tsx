@@ -126,9 +126,9 @@ export function HostingProfilePanel({
           <Terminal className="h-4 w-4 text-indigo-300" /> Profil hostingowy
         </h2>
         <p className="text-xs text-muted-foreground mt-1">
-          Uruchamia na węźle skrypt profilu przez agenta zadań (poll co ~1 min, ten sam harmonogram co{" "}
-          <code className="text-indigo-300">verris-probes</code>). Domyślnie bez długiego CustomBuild
-          rebuild. Nowy bootstrap (agent-2) instaluje agenta automatycznie.
+          Idempotentna konfiguracja floty: Governor (CL), CustomBuild (LiteSpeed/LSPHP, pomija opcje Apache
+          gdy niedostępne), restart LS. Domyślnie bez długiego CustomBuild rebuild. Preflight:{" "}
+          <code className="text-indigo-300">ops/scripts/node-stack-preflight.sh</code>.
         </p>
       </div>
 
