@@ -24,7 +24,9 @@ import { QueueHostingProfileTaskDto } from './dto/queue-hosting-profile.dto';
 import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
 import { NodeTasksService } from './node-tasks.service';
 import { NodeAuditService } from './node-audit.service';
+import { NodeDnsService } from './node-dns.service';
 import { renderNodeTasksAgentInstallScript } from './node-tasks-agent.install';
+import { IsIP } from 'class-validator';
 
 class MaintenanceModeDto {
   @IsBoolean()
@@ -34,6 +36,13 @@ class MaintenanceModeDto {
   @IsString()
   @MaxLength(500)
   reason?: string;
+}
+
+class ProvisionNsDto {
+  /** Optional IPv6 to record for the node (enables AAAA glue + zone). */
+  @IsOptional()
+  @IsIP(6)
+  ipv6?: string;
 }
 
 class NodeRepairDto {
@@ -51,6 +60,7 @@ export class ServersAdminController {
     private readonly servers: ServersService,
     private readonly nodeTasks: NodeTasksService,
     private readonly nodeAudit: NodeAuditService,
+    private readonly nodeDns: NodeDnsService,
   ) {}
 
   @Get()
@@ -126,6 +136,28 @@ export class ServersAdminController {
     @CurrentUser() user: { userId: string },
   ) {
     return this.servers.setNodeNameservers(id, dto, user.userId);
+  }
+
+  /** Whether the OVH automation is configured (drives the admin button state). */
+  @Get('dns/status')
+  dnsStatus() {
+    return { ovhConfigured: this.nodeDns.isConfigured() };
+  }
+
+  /**
+   * One-click branded nameserver provisioning at OVH for this node:
+   * creates/reconciles A/AAAA + glue records and assigns NS to the node.
+   */
+  @Post(':id/nameservers/provision')
+  provisionNameservers(
+    @Param('id') id: string,
+    @Body() dto: ProvisionNsDto,
+    @CurrentUser() user: { userId: string },
+  ) {
+    return this.nodeDns.provisionNodeNameservers(id, {
+      actorUserId: user.userId,
+      ipv6: dto.ipv6 ?? null,
+    });
   }
 
   @Patch(':id/directadmin')

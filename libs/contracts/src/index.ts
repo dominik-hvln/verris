@@ -10,3 +10,4 @@ export * from './subscription.dto';
 export * from './invoice.dto';
 export * from './grafana-sso';
 export * from './credits';
+export * from './ai.dto';

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import {
+  AlertCircle,
   Check,
   Copy,
   Database,
@@ -11,6 +12,7 @@ import {
   Loader2,
   Mail,
   Network,
+  RefreshCw,
   Server,
   TerminalSquare,
   Wifi,
@@ -128,14 +130,19 @@ function MetricRow({
 export default function ServiceConnectionCard({ serviceId }: { serviceId: string }) {
   const [info, setInfo] = useState<ServiceConnectionInfoDto | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(
     async (silent = false) => {
       if (!silent) setLoading(true);
       try {
-        setInfo(await fetchConnectionInfoAction(serviceId));
-      } catch {
-        // niewidoczny błąd — panel pokaże stan „w przygotowaniu”
+        const data = await fetchConnectionInfoAction(serviceId);
+        setInfo(data);
+        setError(null);
+      } catch (e) {
+        // Surface the failure (unless we already have data from a prior load,
+        // in which case keep showing it and don't replace with an error card).
+        setError(e instanceof Error ? e.message : 'Nie udało się pobrać danych dostępowych.');
       } finally {
         if (!silent) setLoading(false);
       }
@@ -163,7 +170,32 @@ export default function ServiceConnectionCard({ serviceId }: { serviceId: string
     );
   }
 
-  if (!info) return null;
+  if (!info) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <div className="rounded-xl border border-white/10 bg-white/5 p-2 text-white">
+            <Network className="h-4 w-4" />
+          </div>
+          <div>
+            <h2 className="text-sm font-bold text-white">Dane dostępowe</h2>
+            <p className="text-[11px] text-neutral-500">Adresy serwera i limity konta</p>
+          </div>
+        </div>
+        <div className="flex items-start gap-2 rounded-xl border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[12px] text-amber-100">
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+          <span>{error ?? 'Dane dostępowe będą widoczne po aktywacji konta hostingowego.'}</span>
+        </div>
+        <button
+          type="button"
+          onClick={() => void load()}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-[12px] text-neutral-200 hover:bg-white/5"
+        >
+          <RefreshCw className="h-3.5 w-3.5" /> Spróbuj ponownie
+        </button>
+      </div>
+    );
+  }
 
   const ns = info.nameservers.filter(Boolean);
 

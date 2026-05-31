@@ -11,12 +11,41 @@ import {
   Globe,
 } from 'lucide-react';
 import { Button } from '@verris/ui';
+import type { HostingSslRowDto, HostingSslStatus } from '@verris/contracts';
 import { HostingSslForms } from '@/components/hosting/HostingSslForms';
 import { fetchHostingDaLinksAction } from '@/app/dashboard/services/[id]/hosting-mysql-links-actions';
 import { fetchHostingDomainsAction } from '@/app/dashboard/services/[id]/hosting-domains-action';
+import { getHostingSsl } from '@/app/dashboard/hosting-tools-data';
 
 interface Props {
   serviceId: string;
+}
+
+const SSL_BADGE: Record<HostingSslStatus, { label: string; className: string }> = {
+  VALID: { label: 'Aktywny', className: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200' },
+  EXPIRING: { label: 'Wygasa wkrótce', className: 'border-amber-400/30 bg-amber-400/10 text-amber-200' },
+  EXPIRED: { label: 'Wygasły', className: 'border-rose-400/30 bg-rose-400/10 text-rose-200' },
+  NONE: { label: 'Brak certyfikatu', className: 'border-white/15 bg-white/5 text-neutral-300' },
+};
+
+function SslBadge({ row }: { row: HostingSslRowDto | undefined }) {
+  const status = row?.status ?? 'NONE';
+  const meta = SSL_BADGE[status];
+  return (
+    <div className="flex flex-col items-start gap-1 md:items-end">
+      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${meta.className}`}>
+        {meta.label}
+      </span>
+      {row && row.status !== 'NONE' ? (
+        <span className="text-[11px] text-neutral-500">
+          {row.issuer}
+          {row.expiresAt
+            ? ` · do ${new Date(row.expiresAt).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' })}`
+            : ''}
+        </span>
+      ) : null}
+    </div>
+  );
 }
 
 export default function SSLTab({ serviceId }: Props) {
@@ -25,20 +54,25 @@ export default function SSLTab({ serviceId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [domains, setDomains] = useState<{ name: string }[]>([]);
   const [domainFetchError, setDomainFetchError] = useState<string | null>(null);
+  const [sslRows, setSslRows] = useState<Record<string, HostingSslRowDto>>({});
   const [sslUrl, setSslUrl] = useState<string | null>(null);
   const [panelBase, setPanelBase] = useState<string>('');
 
   const load = useCallback(async () => {
     setError(null);
     try {
-      const [domRes, links] = await Promise.all([
+      const [domRes, links, sslRes] = await Promise.all([
         fetchHostingDomainsAction(serviceId),
         fetchHostingDaLinksAction(serviceId),
+        getHostingSsl(serviceId).catch(() => null),
       ]);
       setDomains(domRes.domains);
       setDomainFetchError(domRes.fetchError);
       setSslUrl(links.sslUrl || null);
       setPanelBase(links.panelBaseUrl || '');
+      const map: Record<string, HostingSslRowDto> = {};
+      for (const r of sslRes?.rows ?? []) map[r.domain] = r;
+      setSslRows(map);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Nie udało się wczytać danych SSL.');
       setDomains([]);
@@ -142,17 +176,20 @@ export default function SSLTab({ serviceId }: Props) {
                     <div className="text-lg font-bold text-white tracking-wide font-mono">{d.name}</div>
                   </div>
                 </div>
-                {sslUrl ? (
-                  <a
-                    href={sslUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-sm font-semibold text-cyan-300 hover:text-white"
-                  >
-                    Zarządzaj w panelu SSL
-                    <ExternalLink className="h-4 w-4" />
-                  </a>
-                ) : null}
+                <div className="flex flex-col items-start gap-3 md:flex-row md:items-center">
+                  <SslBadge row={sslRows[d.name]} />
+                  {sslUrl ? (
+                    <a
+                      href={sslUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-sm font-semibold text-cyan-300 hover:text-white"
+                    >
+                      Zarządzaj w panelu SSL
+                      <ExternalLink className="h-4 w-4" />
+                    </a>
+                  ) : null}
+                </div>
               </div>
             ))}
           </div>

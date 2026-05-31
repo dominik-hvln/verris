@@ -14,6 +14,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { SubscriptionsService } from './subscriptions.service';
 import { PlanChangeService } from './plan-change.service';
 import {
+  CancelSubscriptionDto,
   CreateSubscriptionDto,
   PreviewSubscriptionPromoDto,
   UpdateAutoscalingDto,
@@ -66,8 +67,12 @@ export class SubscriptionsController {
 
   @Delete(':id')
   @HttpCode(200)
-  cancel(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
-    return this.subscriptions.cancel(user.userId, id);
+  cancel(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() dto: CancelSubscriptionDto = {},
+  ) {
+    return this.subscriptions.cancel(user.userId, id, { atPeriodEnd: dto.atPeriodEnd });
   }
 
   @Patch(':id/autoscaling')

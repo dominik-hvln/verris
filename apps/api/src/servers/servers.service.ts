@@ -11,6 +11,7 @@ import { CryptoService } from '../common/crypto/crypto.service';
 import { AuditService } from '../common/audit/audit.service';
 import { BootstrapTokenService } from './bootstrap-token.service';
 import { DirectAdminService } from './directadmin.service';
+import { NodeDnsService } from './node-dns.service';
 import { Prisma, Server, ServerStatus } from '@verris/database';
 import { InitServerDto } from './dto/init-server.dto';
 import { HandshakeDto } from './dto/handshake.dto';
@@ -32,6 +33,7 @@ export class ServersService {
     private readonly directAdmin: DirectAdminService,
     private readonly config: ConfigService,
     private readonly platformSettings: PlatformSettingsService,
+    private readonly nodeDns: NodeDnsService,
   ) {}
 
   /**
@@ -308,6 +310,12 @@ export class ServersService {
         `requestWildcardTlsDeploy failed for server=${serverId}: ${err instanceof Error ? err.message : String(err)}`,
       );
     });
+
+    // Post-ACTIVE hook: auto-provision branded nameservers at OVH (glue + zone)
+    // and assign them to the node. Best-effort and idempotent — if OVH isn't
+    // configured or the node already has NS provisioned it no-ops. The admin can
+    // also trigger/reconcile this from the node panel.
+    await this.nodeDns.tryAutoProvision(serverId);
 
     return updated;
   }

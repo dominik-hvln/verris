@@ -71,8 +71,9 @@ export interface CreatedSubscription {
  *   - Records sale price snapshot
  *   - For WALLET source: debits the wallet immediately and provisions DA inline
  *   - For STRIPE_CARD: creates the row in PENDING_PAYMENT and returns a hint
- *     so the caller can spin up Stripe Checkout (Stripe recurring will land
- *     in EPIC C — for now we accept that this branch is "stub").
+ *     so the caller can spin up Stripe Checkout; on first `invoice.paid` the
+ *     webhook activates + provisions DA, and Stripe drives recurring renewals
+ *     (see `startStripeRecurring` / `activateAfterStripePayment`).
  *   - For MANUAL: marks PROVISIONING and provisions DA inline (used for
  *     comp accounts, bug bounties, free trials).
  */
@@ -289,10 +290,27 @@ export class SubscriptionsService {
   }
 
   /**
-   * Cancels a subscription. By default we suspend at the current period end —
-   * but for now (no recurring) we cancel immediately and tear down DA.
+   * Cancels a subscription initiated by the customer.
+   *
+   * Two modes:
+   *   - `atPeriodEnd` (default true): the hosting stays active until the end of
+   *     the already-paid period. For Stripe-recurring subs we set Stripe's
+   *     `cancel_at_period_end=true` so no further card charges happen; the
+   *     `customer.subscription.deleted` webhook finalizes the teardown at the
+   *     period boundary. For wallet subs the renewal scheduler stops renewing
+   *     once `cancelAt` is set and expires the sub at the period end.
+   *   - immediate (`atPeriodEnd=false`): we cancel the Stripe subscription now
+   *     and tear down (suspend DA + status CANCELED) right away.
+   *
+   * CRITICAL: we never tear down locally while leaving Stripe charging — if the
+   * Stripe cancel call fails we abort so the customer can retry.
    */
-  async cancel(userId: string, subscriptionId: string) {
+  async cancel(
+    userId: string,
+    subscriptionId: string,
+    opts: { atPeriodEnd?: boolean } = {},
+  ) {
+    const atPeriodEnd = opts.atPeriodEnd ?? true;
     const subscription = await this.prisma.subscription.findFirst({
       where: { id: subscriptionId, userId },
       include: { account: true },
@@ -302,27 +320,99 @@ export class SubscriptionsService {
       throw new ConflictException('Subscription is already canceled');
     }
 
-    // Try to suspend on the node first — we don't delete the DA account on
-    // customer-initiated cancel so they have time to download backups.
-    if (subscription.account && subscription.account.status === AccountStatus.ACTIVE) {
-      await this.suspendOnDa(subscription.account.serverId, subscription.account.daUsername).catch(
-        (err) => {
-          this.logger.warn(
-            `DA suspend failed during cancel for sub=${subscriptionId}: ${(err as Error).message}`,
-          );
-        },
-      );
+    const isStripeRecurring =
+      subscription.paymentSource === SubscriptionPaymentSource.STRIPE_CARD &&
+      !!subscription.stripeSubscriptionId;
+    const periodEnd = subscription.currentPeriodEnd;
+    const deferToPeriodEnd = atPeriodEnd && !!periodEnd && periodEnd > new Date();
+
+    // 1) Stop future charges in Stripe FIRST (so we never end up in a state
+    //    where DA is torn down but the card keeps being billed). Errors here
+    //    abort the whole cancel — the customer retries rather than risk a
+    //    silent over-charge.
+    if (isStripeRecurring) {
+      try {
+        await this.stripe.cancelSubscription(subscription.stripeSubscriptionId!, {
+          atPeriodEnd: deferToPeriodEnd,
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        this.logger.error(
+          `Stripe cancel failed for sub=${subscriptionId} (atPeriodEnd=${deferToPeriodEnd}): ${msg}`,
+        );
+        throw new ConflictException(
+          'Nie udało się anulować subskrypcji w systemie płatności. Spróbuj ponownie za chwilę lub skontaktuj się z pomocą — Twoja karta nie została obciążona dodatkowo.',
+        );
+      }
     }
 
+    // 2a) Deferred cancel: keep hosting active until period end.
+    if (deferToPeriodEnd) {
+      const updated = await this.prisma.subscription.update({
+        where: { id: subscription.id },
+        data: { cancelAt: periodEnd! },
+      });
+      await this.prisma.subscriptionEvent.create({
+        data: {
+          subscriptionId: subscription.id,
+          type: 'CANCEL_SCHEDULED',
+          details: { actor: userId, source: 'CUSTOMER', effectiveAt: periodEnd!.toISOString() },
+        },
+      });
+      await this.audit.record({
+        action: 'SUBSCRIPTION_CANCEL_SCHEDULED',
+        userId,
+        actorUserId: userId,
+        details: { subscriptionId, effectiveAt: periodEnd!.toISOString() },
+      });
+      return updated;
+    }
+
+    // 2b) Immediate cancel: tear down now.
+    const updated = await this.tearDownCanceledSubscription(subscription, {
+      account: subscription.account,
+      source: 'CUSTOMER',
+      actorUserId: userId,
+    });
+    await this.audit.record({
+      action: 'SUBSCRIPTION_CANCELED',
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, immediate: true },
+    });
+    return updated;
+  }
+
+  /**
+   * Shared teardown used by immediate customer cancel and by the scheduler that
+   * finalizes a deferred (period-end) cancellation. Suspends the DA account
+   * (best-effort — we keep it so the customer can still pull backups) and marks
+   * the subscription CANCELED. Idempotent.
+   */
+  private async tearDownCanceledSubscription(
+    subscription: { id: string },
+    ctx: {
+      account: { id: string; serverId: string; daUsername: string; status: AccountStatus } | null;
+      source: 'CUSTOMER' | 'SCHEDULED';
+      actorUserId?: string;
+    },
+  ) {
+    if (ctx.account && ctx.account.status === AccountStatus.ACTIVE) {
+      await this.suspendOnDa(ctx.account.serverId, ctx.account.daUsername).catch((err) => {
+        this.logger.warn(
+          `DA suspend failed during cancel for sub=${subscription.id}: ${(err as Error).message}`,
+        );
+      });
+    }
     const now = new Date();
-    const updated = await this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx) => {
       const sub = await tx.subscription.update({
         where: { id: subscription.id },
         data: { status: SubscriptionStatus.CANCELED, canceledAt: now, cancelAt: now },
       });
-      if (subscription.account) {
+      if (ctx.account) {
         await tx.account.update({
-          where: { id: subscription.account.id },
+          where: { id: ctx.account.id },
           data: { status: AccountStatus.SUSPENDED },
         });
       }
@@ -330,20 +420,29 @@ export class SubscriptionsService {
         data: {
           subscriptionId: sub.id,
           type: 'CANCELED',
-          details: { actor: userId, source: 'CUSTOMER' },
+          details: { actor: ctx.actorUserId ?? null, source: ctx.source },
         },
       });
       return sub;
     });
+  }
 
-    await this.audit.record({
-      action: 'SUBSCRIPTION_CANCELED',
-      userId,
-      actorUserId: userId,
-      details: { subscriptionId },
+  /**
+   * Finalizes a deferred (period-end) cancellation for a wallet-paid sub. Called
+   * by the renewal scheduler when `cancelAt <= now`. Stripe subs are finalized
+   * by the `customer.subscription.deleted` webhook instead.
+   */
+  async finalizeScheduledCancellation(subscriptionId: string) {
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { id: subscriptionId },
+      include: { account: true },
     });
-
-    return updated;
+    if (!subscription) return null;
+    if (subscription.status === SubscriptionStatus.CANCELED) return subscription;
+    return this.tearDownCanceledSubscription(subscription, {
+      account: subscription.account,
+      source: 'SCHEDULED',
+    });
   }
 
   // ---------------------------------------------------------------------------

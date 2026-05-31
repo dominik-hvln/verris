@@ -97,6 +97,19 @@ export class UsersAdminService {
       }),
     ]);
 
+    // Last successful login per user on this page (single grouped query — no N+1).
+    const lastLoginByUser = new Map<string, Date>();
+    if (rows.length > 0) {
+      const grouped = await this.prisma.loginEvent.groupBy({
+        by: ['userId'],
+        where: { userId: { in: rows.map((u) => u.id) } },
+        _max: { createdAt: true },
+      });
+      for (const g of grouped) {
+        if (g._max.createdAt) lastLoginByUser.set(g.userId, g._max.createdAt);
+      }
+    }
+
     return {
       total,
       limit,
@@ -111,7 +124,7 @@ export class UsersAdminService {
         createdAt: u.createdAt.toISOString(),
         isTwoFactorEnabled: u.isTwoFactorEnabled,
         subscriptionsCount: u._count.subscriptions,
-        lastLoginAt: null, // Reserved for future telemetry
+        lastLoginAt: lastLoginByUser.get(u.id)?.toISOString() ?? null,
         loginBlocked: u.loginBlocked,
         canAccessGrafana: u.canAccessGrafana,
       })),

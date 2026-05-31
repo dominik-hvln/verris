@@ -273,7 +273,8 @@ export default function ServiceOverviewTab({
           <div className="mt-4 flex flex-wrap gap-2">
             <CheckPill ok={health.checks.dnsOk} label="DNS" />
             <CheckPill ok={health.checks.tlsOk} label="HTTPS" />
-            <CheckPill ok={health.checks.phpOk} label="Panel hostingu" />
+            <CheckPill ok={health.checks.panelTlsOk} label="Panel hostingu" />
+            <CheckPill ok={health.checks.mailOk} label="Poczta" />
             <CheckPill ok={health.checks.lveOk} label="Obciążenie CPU" />
           </div>
         ) : null}

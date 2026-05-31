@@ -21,6 +21,7 @@ import {
   Settings,
   Rocket,
   Mail,
+  Brain,
 } from "lucide-react";
 import { GrafanaOpsLink } from "./grafana-ops-link";
 
@@ -34,6 +35,7 @@ const adminNavItems = [
       { name: "Subskrypcje i usługi", href: "/subscriptions", icon: Activity },
       { name: "Kolejka provisioningu", href: "/provisioning-queue", icon: ListChecks },
       { name: "Product Ops / NOC", href: "/product-ops", icon: Rocket },
+      { name: "Baza wiedzy AI", href: "/ai-knowledge", icon: Brain },
     ],
   },
   {

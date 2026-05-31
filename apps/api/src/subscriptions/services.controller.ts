@@ -559,7 +559,7 @@ function buildHealthSummary(s: {
     tlsOk: boolean | null;
     backupFresh: boolean | null;
     lveOk: boolean | null;
-    phpOk: boolean | null;
+    panelTlsOk: boolean | null;
     mailOk: boolean | null;
     computedAt: Date;
     details: unknown;
@@ -580,7 +580,7 @@ function buildHealthSummary(s: {
         tlsOk: null,
         backupFresh: null,
         lveOk: null,
-        phpOk: null,
+        panelTlsOk: null,
         mailOk: null,
       },
     };
@@ -601,7 +601,7 @@ function buildHealthSummary(s: {
       tlsOk: latest.tlsOk,
       backupFresh: latest.backupFresh,
       lveOk: latest.lveOk,
-      phpOk: latest.phpOk,
+      panelTlsOk: latest.panelTlsOk,
       mailOk: latest.mailOk,
     },
   };

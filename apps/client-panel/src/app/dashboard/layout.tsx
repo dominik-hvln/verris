@@ -12,6 +12,7 @@ import { WalletBadge } from "./wallet-badge";
 import { ReConsentModal } from "./reconsent-modal";
 import { PlatformConfigLoader } from "@/components/platform-config-loader";
 import { SpinBorder } from "@/components/spin-border";
+import HostingAssistant from "@/components/assistant/HostingAssistant";
 import {
   Globe,
   Database,
@@ -363,6 +364,7 @@ export default function DashboardLayout({
         </footer>
       </div>
       </div>
+      <HostingAssistant />
     </div>
   );
 }

@@ -87,8 +87,9 @@ export interface ServiceHealthSummaryDto {
     tlsOk: boolean | null;
     backupFresh: boolean | null;
     lveOk: boolean | null;
-    /** Panel DirectAdmin (TLS :2222) — nazwa historyczna pola w DB. */
-    phpOk: boolean | null;
+    /** Panel DirectAdmin (:2222) — zaufany certyfikat TLS. */
+    panelTlsOk: boolean | null;
+    /** Serwer poczty węzła odpowiada (IMAPS/SMTPS). */
     mailOk: boolean | null;
   };
 }
@@ -314,11 +315,17 @@ export interface HostingCronJobsResponseDto {
   fetchError: string | null;
 }
 
+export type HostingSslStatus = 'VALID' | 'EXPIRING' | 'EXPIRED' | 'NONE';
+
 export interface HostingSslRowDto {
   id: string;
   domain: string;
+  /** Issuer organisation/CN parsed from the live certificate, or '—' when none. */
   issuer: string;
-  status: string;
+  status: HostingSslStatus;
+  /** Certificate expiry (ISO) or null when there is no certificate. */
+  expiresAt: string | null;
+  isLetsEncrypt: boolean;
 }
 
 export interface HostingSslResponseDto {

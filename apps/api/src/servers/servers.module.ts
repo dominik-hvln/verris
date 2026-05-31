@@ -9,6 +9,8 @@ import { ServerIdentityGuard } from './guards/server-identity.guard';
 import { DirectAdminService } from './directadmin.service';
 import { NodeTasksService } from './node-tasks.service';
 import { NodeAuditService } from './node-audit.service';
+import { OvhClient } from './ovh.client';
+import { NodeDnsService } from './node-dns.service';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 
 @Module({
@@ -22,7 +24,16 @@ import { PlatformSettingsModule } from '../platform-settings/platform-settings.m
     BootstrapTokenGuard,
     ServerIdentityGuard,
     DirectAdminService,
+    OvhClient,
+    NodeDnsService,
   ],
-  exports: [ServersService, DirectAdminService, ServerIdentityGuard, NodeTasksService, NodeAuditService],
+  exports: [
+    ServersService,
+    DirectAdminService,
+    ServerIdentityGuard,
+    NodeTasksService,
+    NodeAuditService,
+    NodeDnsService,
+  ],
 })
 export class ServersModule {}

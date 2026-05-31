@@ -5,7 +5,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { DirectAdminClient } from '@verris/directadmin-sdk';
-import type { ServiceConnectionInfoDto } from '@verris/contracts';
+import type { HostingSslRowDto, HostingSslStatus, ServiceConnectionInfoDto } from '@verris/contracts';
+import { X509Certificate } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto/crypto.service';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
@@ -719,15 +720,96 @@ export class DirectAdminService {
     return { ok: true as const };
   }
 
-  async listHostingSslCertificates(subscriptionId: string, userId: string) {
-    const domains = await this.listHostingDomainsForSubscription(subscriptionId, userId);
-    const rows = domains.domains.map((d) => ({
-      id: d.name,
-      domain: d.name,
+  /**
+   * Lists the LIVE TLS certificate per domain on the account. For each domain we
+   * read the installed certificate via DA `CMD_API_SSL` and parse the X.509 to
+   * surface real issuer + expiry + status (no placeholders).
+   */
+  async listHostingSslCertificates(
+    subscriptionId: string,
+    userId: string,
+  ): Promise<{ rows: HostingSslRowDto[]; fetchError: string | null }> {
+    const domainsRes = await this.listHostingDomainsForSubscription(subscriptionId, userId);
+    if (domainsRes.fetchError) {
+      return { rows: [], fetchError: domainsRes.fetchError };
+    }
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id: subscriptionId, userId },
+      include: { account: true },
+    });
+    if (!sub?.account?.id) {
+      return { rows: [], fetchError: 'Konto hostingowe nie jest jeszcze gotowe.' };
+    }
+
+    let axiosClient: { get: Function } | undefined;
+    try {
+      const client = await this.getClientForHostingAccount(sub.account.id, userId);
+      axiosClient = (client as unknown as { client?: { get: Function } }).client;
+    } catch (err) {
+      return { rows: [], fetchError: err instanceof Error ? err.message : String(err) };
+    }
+    if (!axiosClient) {
+      return { rows: [], fetchError: 'DirectAdmin client is not available' };
+    }
+
+    // Cap to keep the call bounded for accounts with many domains.
+    const domains = domainsRes.domains.slice(0, 50);
+    const rows: HostingSslRowDto[] = [];
+    for (const d of domains) {
+      rows.push(await this.inspectDomainSsl(axiosClient, d.name));
+    }
+    return { rows, fetchError: null };
+  }
+
+  private async inspectDomainSsl(
+    axiosClient: { get: Function },
+    domain: string,
+  ): Promise<HostingSslRowDto> {
+    const none: HostingSslRowDto = {
+      id: domain,
+      domain,
       issuer: '—',
-      status: 'DOMAIN',
-    }));
-    return { rows, fetchError: domains.fetchError };
+      status: 'NONE',
+      expiresAt: null,
+      isLetsEncrypt: false,
+    };
+    try {
+      const res = await axiosClient.get('/CMD_API_SSL', {
+        params: { domain, action: 'view' },
+        timeout: 15_000,
+      });
+      const kv = this.parseKvPayload(String(res?.data ?? ''));
+      // Find the certificate PEM among the returned values (never the private key).
+      let certPem = '';
+      for (const [, value] of kv.entries()) {
+        if (value.includes('BEGIN CERTIFICATE')) {
+          certPem = value;
+          break;
+        }
+      }
+      if (!certPem.includes('BEGIN CERTIFICATE')) return none;
+
+      const cert = new X509Certificate(certPem);
+      const validTo = new Date(cert.validTo);
+      if (Number.isNaN(validTo.getTime())) return none;
+      const now = new Date();
+      const issuer = parseCertOrg(cert.issuer);
+      const isLetsEncrypt = /let'?s encrypt/i.test(cert.issuer);
+      let status: HostingSslStatus = 'VALID';
+      if (validTo <= now) status = 'EXPIRED';
+      else if (validTo.getTime() - now.getTime() < 14 * 24 * 60 * 60 * 1000) status = 'EXPIRING';
+      return {
+        id: domain,
+        domain,
+        issuer,
+        status,
+        expiresAt: validTo.toISOString(),
+        isLetsEncrypt,
+      };
+    } catch {
+      // No cert installed / DA returned an error for this domain → treat as none.
+      return none;
+    }
   }
 
   async listHostingBackups(subscriptionId: string, userId: string) {
@@ -975,6 +1057,19 @@ export class DirectAdminService {
 
 function emptyMetric(): { used: number | null; limit: number | null } {
   return { used: null, limit: null };
+}
+
+/**
+ * Extracts a human label from an X.509 issuer string (Node renders it as
+ * newline-separated `C=…\nO=…\nCN=…`). Prefer the organisation, then the CN.
+ */
+function parseCertOrg(issuer: string): string {
+  const fields: Record<string, string> = {};
+  for (const line of issuer.split(/\r?\n/)) {
+    const idx = line.indexOf('=');
+    if (idx > 0) fields[line.slice(0, idx).trim().toUpperCase()] = line.slice(idx + 1).trim();
+  }
+  return fields.O || fields.CN || issuer.replace(/\s+/g, ' ').trim() || '—';
 }
 
 /** Parses a DirectAdmin numeric value; returns null for empty/non-numeric. */

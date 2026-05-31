@@ -184,6 +184,45 @@ export async function updateNodeNameservers(id: string, input: UpdateNameservers
   }
 }
 
+export interface NsProvisionStepDto {
+  step: string;
+  status: "created" | "updated" | "unchanged" | "skipped" | "error";
+  detail?: string;
+}
+
+export interface NsProvisionResultDto {
+  ns1: string;
+  ns2: string;
+  ipv4: string;
+  ipv6: string | null;
+  baseDomain: string;
+  steps: NsProvisionStepDto[];
+  ok: boolean;
+}
+
+export async function fetchNodeDnsStatus() {
+  try {
+    return {
+      data: await adminApi<{ ovhConfigured: boolean }>(`/admin/servers/dns/status`),
+    };
+  } catch (err) {
+    return { data: null, error: extractError(err) };
+  }
+}
+
+export async function provisionNodeNameservers(id: string, ipv6?: string) {
+  try {
+    const data = await adminApi<NsProvisionResultDto>(
+      `/admin/servers/${id}/nameservers/provision`,
+      { method: "POST", body: ipv6 ? { ipv6 } : {} },
+    );
+    revalidatePath(`/nodes/${id}`);
+    return { data };
+  } catch (err) {
+    return { data: null, error: extractError(err) };
+  }
+}
+
 export interface NodeAccountRow {
   id: string;
   daUsername: string;

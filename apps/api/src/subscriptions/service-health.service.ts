@@ -18,7 +18,7 @@ export interface ComputedHealthSummary {
     tlsOk: boolean | null;
     backupFresh: boolean | null;
     lveOk: boolean | null;
-    phpOk: boolean | null;
+    panelTlsOk: boolean | null;
     mailOk: boolean | null;
   };
   summary: string;
@@ -88,7 +88,7 @@ export class ServiceHealthService {
       tlsOk: null as boolean | null,
       backupFresh: null as boolean | null,
       lveOk: null as boolean | null,
-      phpOk: null as boolean | null,
+      panelTlsOk: null as boolean | null,
       mailOk: null as boolean | null,
     };
 
@@ -120,9 +120,16 @@ export class ServiceHealthService {
     possible += 15;
     const panelHost = server.hostname ?? server.daHost ?? server.ipAddress;
     const panelTls = await this.probeTls(panelHost, server.daPort ?? 2222);
-    checks.phpOk = panelTls.ok && panelTls.authorized === true;
-    if (checks.phpOk) earned += 15;
+    checks.panelTlsOk = panelTls.ok && panelTls.authorized === true;
+    if (checks.panelTlsOk) earned += 15;
     else if (panelTls.ok) earned += 5;
+
+    // Poczta węzła (IMAPS :993) — usługa odpowiada i kończy handshake TLS (10)
+    possible += 10;
+    const mailHost = server.hostname ?? server.ipAddress;
+    const mailTls = await this.probeTls(mailHost, 993);
+    checks.mailOk = mailTls.ok;
+    if (checks.mailOk) earned += mailTls.authorized === true ? 10 : 7;
 
     // LVE / CPU z ostatniej metryki (20)
     possible += 20;
@@ -168,9 +175,9 @@ export class ServiceHealthService {
         tlsOk: checks.tlsOk,
         backupFresh: checks.backupFresh,
         lveOk: checks.lveOk,
-        phpOk: checks.phpOk,
+        panelTlsOk: checks.panelTlsOk,
         mailOk: checks.mailOk,
-        details: { summary, earned, possible, panelHost },
+        details: { summary, earned, possible, panelHost, mailHost },
       },
     });
 
@@ -183,7 +190,7 @@ export class ServiceHealthService {
     tlsOk: boolean | null;
     backupFresh: boolean | null;
     lveOk: boolean | null;
-    phpOk: boolean | null;
+    panelTlsOk: boolean | null;
     mailOk: boolean | null;
     computedAt: Date;
     details: unknown;
@@ -202,7 +209,7 @@ export class ServiceHealthService {
         tlsOk: row.tlsOk,
         backupFresh: row.backupFresh,
         lveOk: row.lveOk,
-        phpOk: row.phpOk,
+        panelTlsOk: row.panelTlsOk,
         mailOk: row.mailOk,
       },
       summary: details.summary ?? 'Ostatnia diagnostyka zapisana.',
@@ -268,7 +275,7 @@ export class ServiceHealthService {
         tlsOk: null,
         backupFresh: null,
         lveOk: null,
-        phpOk: null,
+        panelTlsOk: null,
         mailOk: null,
       },
       summary: text,
@@ -284,7 +291,8 @@ export class ServiceHealthService {
     const parts: string[] = [];
     if (checks.dnsOk === false) parts.push(`DNS domeny ${domain} nie wskazuje na serwer hostingu`);
     if (checks.tlsOk === false) parts.push('brak ważnego certyfikatu HTTPS na domenie');
-    if (checks.phpOk === false) parts.push('panel hostingu wymaga uwagi');
+    if (checks.panelTlsOk === false) parts.push('panel hostingu wymaga uwagi');
+    if (checks.mailOk === false) parts.push('serwer poczty nie odpowiada');
     if (checks.lveOk === false) parts.push('wysokie obciążenie CPU');
     if (checks.backupFresh === false) parts.push('brak świeżej kopii zapasowej (>8 dni)');
     if (parts.length === 0) return 'Wszystkie sprawdzone parametry w normie.';

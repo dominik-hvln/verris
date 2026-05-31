@@ -85,6 +85,17 @@ export class UnsuspendSubscriptionDto {
   chargeRenewal?: boolean;
 }
 
+export class CancelSubscriptionDto {
+  /**
+   * When true (default), the subscription stays active until the end of the
+   * already-paid period and Stripe is told to cancel at period end (no further
+   * charges). When false, we cancel immediately and tear down the hosting now.
+   */
+  @IsOptional()
+  @IsBoolean()
+  atPeriodEnd?: boolean;
+}
+
 export class UpdateAutoscalingDto {
   @IsBoolean()
   enabled!: boolean;

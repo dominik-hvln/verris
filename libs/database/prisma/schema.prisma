@@ -148,6 +148,7 @@ model User {
   domains                  Domain[]
   domainRegistrarOrders    DomainRegistrarOrder[]
   aiInteractions           AiInteractionLog[]
+  aiKnowledgeDocs          AiKnowledgeDoc[]    @relation("AiKnowledgeDocAuthor")
   tickets                  Ticket[]            @relation("ClientTickets")
   assignedTickets          Ticket[]            @relation("AssignedTickets")
   auditLogs                AuditLog[]          @relation("AuditUser")
@@ -288,8 +289,13 @@ model Server {
   name            String?
   hostname        String?
   ipAddress       String       @unique
+  ipv6Address     String?      // public IPv6 of the node (for AAAA glue + zone records)
   region          String?      // e.g. "PL-WAW", "DE-FRA"
   status          ServerStatus @default(INIT)
+
+  // Branded nameserver provisioning status (OVH glue + zone). Set by the
+  // node-DNS automation so we don't re-create glue on every activation.
+  nsProvisionedAt DateTime?
 
   // Capacity (reported via handshake / heartbeat)
   totalCpuCores   Int?
@@ -1243,7 +1249,9 @@ model ServiceHealthSnapshot {
   backupFresh    Boolean?
   incidentsOpen  Int          @default(0)
   lveOk          Boolean?
-  phpOk          Boolean?
+  // Panel (DirectAdmin :2222) TLS trust check. DB column kept as `phpOk` for
+  // backward-compat; the field was historically misnamed.
+  panelTlsOk     Boolean?     @map("phpOk")
   mailOk         Boolean?
   details        Json?
   computedAt     DateTime     @default(now())
@@ -1437,6 +1445,54 @@ model AuditLog {
 enum AiInteractionStatus {
   COMPLETED
   FAILED
+}
+
+enum AiKnowledgeAudience {
+  CLIENT // visible to the client-facing hosting chatbot
+  STAFF // internal-only (BOK/ops)
+  ALL // usable by both client + staff assistants
+}
+
+enum AiKnowledgeStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+/// A document/snippet added to the AI "memory" (knowledge base) used for RAG.
+/// Admins/staff add hosting FAQs, policies, runbooks; the chatbot retrieves
+/// relevant chunks at query time.
+model AiKnowledgeDoc {
+  id          String              @id @default(uuid())
+  title       String
+  sourceType  String              @default("TEXT") // TEXT | MARKDOWN | URL | FILE
+  sourceRef   String? // URL or original filename, if any
+  audience    AiKnowledgeAudience @default(ALL)
+  status      AiKnowledgeStatus   @default(ACTIVE)
+  charCount   Int                 @default(0)
+  createdById String?
+  createdBy   User?               @relation("AiKnowledgeDocAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  chunks      AiKnowledgeChunk[]
+
+  @@index([audience, status])
+  @@index([createdAt])
+}
+
+/// A retrievable chunk of a knowledge doc with its embedding vector (stored as
+/// a float array; cosine similarity computed in-app). Embedding may be empty if
+/// no embedding model is configured — retrieval then falls back to keyword scoring.
+model AiKnowledgeChunk {
+  id        String         @id @default(uuid())
+  docId     String
+  doc       AiKnowledgeDoc @relation(fields: [docId], references: [id], onDelete: Cascade)
+  ordinal   Int
+  content   String         @db.Text
+  embedding Float[]
+  tokens    Int            @default(0)
+  createdAt DateTime       @default(now())
+
+  @@index([docId, ordinal])
 }
 
 model AiInteractionLog {

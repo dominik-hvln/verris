@@ -81,11 +81,34 @@ export class RenewalScheduler {
 
     if (due.length === 0) return;
 
+    // Subs the customer scheduled to cancel at period end: once we reach the
+    // period boundary, finalize the cancellation instead of renewing/charging.
+    // (Stripe-recurring subs are finalized by the subscription.deleted webhook;
+    // here we only handle wallet/legacy rows so we never renew a sub the user
+    // already asked to cancel.)
+    const now2 = new Date();
+    const scheduledCancels = due.filter(
+      (sub) => sub.cancelAt != null && sub.cancelAt <= now2,
+    );
+    for (const sub of scheduledCancels) {
+      if (sub.paymentSource === 'STRIPE_CARD' && sub.stripeSubscriptionId) continue;
+      try {
+        await this.subs.finalizeScheduledCancellation(sub.id);
+        this.logger.log(`Finalized scheduled cancellation for sub=${sub.id}`);
+      } catch (err) {
+        this.logger.error(
+          `Failed to finalize scheduled cancellation for sub=${sub.id}: ${(err as Error).message}`,
+        );
+      }
+    }
+
     // Skip Stripe-managed recurring subs — Stripe handles their renewals via
     // `invoice.paid` webhook (C-7). We only debit the wallet for WALLET and
     // legacy STRIPE_CARD rows that have no Stripe Subscription attached yet
     // (those existed before C-7 landed).
     const eligible = due.filter((sub) => {
+      // Never renew a sub the customer scheduled to cancel.
+      if (sub.cancelAt != null && sub.cancelAt <= now2) return false;
       if (sub.paymentSource === 'STRIPE_CARD' && sub.stripeSubscriptionId) {
         this.logger.debug(
           `Skipping Stripe-managed sub=${sub.id} (stripeSubscriptionId=${sub.stripeSubscriptionId})`,
