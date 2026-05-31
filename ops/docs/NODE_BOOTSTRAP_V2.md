@@ -77,10 +77,13 @@ Docelowy flow wymagał wielu ręcznych kroków poza skryptem panelu.
 
 ### Najważniejszy bug: pakiety „Bez ograniczeń”
 
-W API DA pole liczbowe `foo` **razem z** `ufoo=yes` oznacza unlimited i wartość
-liczbowa jest ignorowana. Stary payload (`uquota=yes`, `ubandwidth=yes`, …)
-dawał puste pola w UI mimo `quota=10240`. **Naprawa:** dla realnych limitów
-wysyłać `ufoo=no`. Patrz `libs/directadmin-sdk/src/client.ts → buildPackageParams`.
+W API DA o "Bez ograniczeń" decyduje **sama obecność** parametru `ufoo` —
+jego wartość jest IGNOROWANA. Zweryfikowane na **DA 1.697** (2026-05-31):
+`ufoo=no` **też** daje unlimited (oba warianty zwracają `error=0&text=Saved`,
+ale `.pkg` zapisuje `quota=unlimited`). To był defekt Node-PL-01: pakiet zapisywał
+się jako unlimited mimo `quota=10240&uquota=no`. **Naprawa:** dla realnych limitów
+wysyłać WYŁĄCZNIE `foo=<n>` **bez** `ufoo`; `ufoo=yes` tylko dla prawdziwego
+unlimited. Patrz `libs/directadmin-sdk/src/client.ts → buildPackageParams`.
 
 ---
 
@@ -92,9 +95,9 @@ Współdzielone przez provisioning (`ensureUserPackage`) i audyt/naprawę
 
 | Źródło `Plan` | Pole DA | Reguła |
 |---------------|---------|--------|
-| `diskLimitMb` | `quota` + `uquota=no` | realny MB, nie unlimited |
-| `includedTransferGb`×1024 | `bandwidth` + `ubandwidth=no` | unlimited tylko gdy plan nie ma transferu |
-| polityka per slug (`packagePolicyForSlug`) | `vdomains`, `nsubdomains`, `nemails`, `nemailf`, `nemailml`, `nemailr`, `mysql`, `domainptr`, `ftp` + `u*=no` gdy liczbowe | starter/pro/business; nieznany slug → bezpieczny default (nie unlimited) |
+| `diskLimitMb` | `quota` (bez `uquota`) | realny MB, nie unlimited |
+| `includedTransferGb`×1024 | `bandwidth` (bez `ubandwidth`) | unlimited (`ubandwidth=yes`) tylko gdy plan nie ma transferu |
+| polityka per slug (`packagePolicyForSlug`) | `vdomains`, `nsubdomains`, `nemails`, `nemailf`, `nemailml`, `nemailr`, `mysql`, `domainptr`, `ftp` — liczbowe BEZ `u*`, unlimited = `u*=yes` | starter/pro/business; nieznany slug → bezpieczny default (nie unlimited) |
 | `cpuLimit`, `ramLimitMb`, `ioLimitKbps`, `iopsLimit`, `entryProcesses`, `nprocLimit` | LVE pakietu: `cpu`, `mem`, `io`, `iops`, `ep`, `nproc` | **zweryfikuj nazwy pól z wersją DA** (Stack pin) |
 | — | `language=pl` | domyślny język panelu (PL) |
 | — | `skin=evolution` | do czasu custom skin (faza 2) |

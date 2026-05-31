@@ -559,7 +559,7 @@ export class NodeAuditService {
       serverId: server.id,
       actionId: `repair-da-package-${slug}`,
       ok: true,
-      message: `Pakiet ${slug} zapisany z limitami planu (u*=no, język ${DA_DEFAULT_LANGUAGE}).`,
+      message: `Pakiet ${slug} zapisany z realnymi limitami planu (bez flag u*, język ${DA_DEFAULT_LANGUAGE}).`,
       check: await this.checkDaPackage(client, plan),
     };
   }
@@ -573,7 +573,7 @@ export class NodeAuditService {
       {
         vendor: 'DirectAdmin',
         statement:
-          'W CMD_API_MANAGE_USER_PACKAGES pole liczbowe + u<pole>=yes oznacza "Bez ograniczeń" (wartość ignorowana). Realny limit wymaga u<pole>=no.',
+          'W CMD_API_MANAGE_USER_PACKAGES (zweryfikowane na DA 1.697) o "Bez ograniczeń" decyduje SAMA OBECNOŚĆ parametru u<pole> — wartość jest ignorowana (u<pole>=no też daje unlimited). Realny limit wymaga wysłania tylko <pole>=<n> BEZ u<pole>.',
         reference: 'https://docs.directadmin.com/developer/api/legacy-api.html',
         verifiedAt: '2026-05-31',
       },
@@ -591,7 +591,7 @@ export class NodeAuditService {
       actionId: `repair-da-package-${slug}`,
       risk,
       label: `Napraw pakiet ${slug}`,
-      description: `Zapisze pakiet "${slug}" w DirectAdmin z limitami z planu (dysk, transfer, LVE) i u*=no, język ${DA_DEFAULT_LANGUAGE}. Wpływa na NOWE konta z tego pakietu; nie zmienia limitów istniejących kont (te są ustawiane osobno przez provisioning).`,
+      description: `Zapisze pakiet "${slug}" w DirectAdmin z realnymi limitami z planu (dysk, transfer, LVE) — bez flag u* (które w DA oznaczają "Bez ograniczeń"), język ${DA_DEFAULT_LANGUAGE}. Wpływa na NOWE konta z tego pakietu; nie zmienia limitów istniejących kont (te są ustawiane osobno przez provisioning).`,
       requiresConfirmation: true,
       confirmValue: null,
       warning:

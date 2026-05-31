@@ -70,10 +70,11 @@ export interface DaPackageLveLimits {
  * Full DirectAdmin user-package definition derived from a Verris `Plan`.
  *
  * IMPORTANT: every numeric field is paired with an `u<field>` "unlimited"
- * toggle in the DA API. When a real limit is provided we send `u<field>=no`
- * so the value is honoured; sending `u<field>=yes` makes DA ignore the number
- * and show "Bez ograniczeń" in the UI (the Node-PL-01 bug). The `unlimited`
- * sentinel opts a field back into the unlimited toggle on purpose.
+ * toggle in the DA API. DA decides "unlimited" by the **presence** of
+ * `u<field>` (the value is ignored — even `u<field>=no` means unlimited), so a
+ * real limit is sent as `<field>=<n>` with NO `u<field>`, while the
+ * `unlimited` sentinel emits `u<field>=yes`. Sending a number together with
+ * any `u<field>` made DA show "Bez ograniczeń" — the Node-PL-01 bug.
  */
 export interface DaPackageSpec {
   /** Package name — must match `Plan.slug`. */
@@ -190,22 +191,28 @@ export class DirectAdminClient {
   /**
    * Builds the `CMD_API_MANAGE_USER_PACKAGES` body from a full package spec.
    *
-   * The key correctness rule: a numeric limit is sent together with
-   * `u<field>=no`; an `unlimited` sentinel sends `u<field>=yes`. Mixing a
-   * number with `u<field>=yes` (the previous behaviour) makes DA ignore the
-   * number and show "Bez ograniczeń" — that was the Node-PL-01 defect.
+   * The key correctness rule (verified live against DirectAdmin 1.697 on
+   * 2026-05-31): DA flags a field as "unlimited" by the **presence** of the
+   * `u<field>` parameter — its value is irrelevant. Sending `u<field>=no`
+   * still makes the field unlimited (the Node-PL-01 defect, where every limit
+   * came back "Bez ograniczeń" despite a numeric value). Therefore:
+   *   - real numeric limit  → send `<field>=<n>` and OMIT `u<field>` entirely;
+   *   - unlimited           → send `u<field>=yes` (DA stores `<field>=unlimited`).
    */
   buildPackageParams(spec: DaPackageSpec): URLSearchParams {
     const params = new URLSearchParams({ add: 'Save', packagename: spec.name });
 
     const setLimit = (field: string, value: DaLimit, minWhenLimited = 0) => {
       if (value === 'unlimited') {
-        params.set(field, 'unlimited');
+        // Presence of u<field> (any value) = unlimited; value is ignored by DA.
         params.set(`u${field}`, 'yes');
+        params.set(field, 'unlimited');
       } else {
+        // Real limit: ONLY the number. Never emit u<field>, or DA 1.6x+ treats
+        // the field as unlimited regardless of the value sent.
         const n = Math.max(minWhenLimited, Math.floor(value));
         params.set(field, String(n));
-        params.set(`u${field}`, 'no');
+        params.delete(`u${field}`);
       }
     };
 
@@ -531,9 +538,9 @@ export class DirectAdminClient {
 /**
  * Accepts either a full {@link DaPackageSpec} or the legacy disk-only input and
  * always returns a complete spec. Legacy callers (disk quota only) get a
- * conservative limited package: real disk quota with `uquota=no`, generous but
- * bounded e-mail/db/ftp counts and unlimited bandwidth — never the old
- * "everything unlimited" payload.
+ * conservative limited package: a real disk quota (number, no `uquota`),
+ * generous but bounded e-mail/db/ftp counts and unlimited bandwidth — never
+ * the old "everything unlimited" payload.
  */
 export function normalisePackageSpec(input: DaPackageSpec | EnsureUserPackageInput): DaPackageSpec {
   if (isFullPackageSpec(input)) return input;

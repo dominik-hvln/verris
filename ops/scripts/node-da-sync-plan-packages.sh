@@ -3,10 +3,11 @@
 # business) na węźle z REALNYMI limitami z planów Verris.
 # Nazwy MUSZĄ odpowiadać Plan.slug w panelu Verris.
 #
-# WAŻNE (bug Node-PL-01): w API DA pole liczbowe `foo` razem z `ufoo=yes`
-# oznacza "Bez ograniczeń" i wartość liczbowa jest IGNOROWANA. Dlatego dla
-# realnych limitów wysyłamy `ufoo=no`. Ten skrypt jest idempotentny — DA
-# `CMD_API_MANAGE_USER_PACKAGES` z `add=Save` tworzy LUB nadpisuje pakiet,
+# WAŻNE (bug Node-PL-01, zweryfikowane na DA 1.697): w API DA o "Bez ograniczeń"
+# decyduje SAMA OBECNOŚĆ parametru `ufoo` — jego wartość jest IGNOROWANA, więc
+# `ufoo=no` także daje unlimited. Dla realnych limitów wysyłamy WYŁĄCZNIE `foo=<n>`
+# BEZ `ufoo`; `ufoo=yes` tylko dla prawdziwego unlimited. Skrypt jest idempotentny
+# — DA `CMD_API_MANAGE_USER_PACKAGES` z `add=Save` tworzy LUB nadpisuje pakiet,
 # więc bezpiecznie naprawia istniejące pakiety "unlimited".
 #
 # Mapowanie limitów musi być spójne z:
@@ -88,17 +89,19 @@ upsert_package() {
   echo "[OK] zapisano pakiet: $name"
 }
 
-# limit_pair <field> <value|unlimited> → "&field=..&ufield=.."
+# limit_pair <field> <value|unlimited>
+#   - realny limit → "&field=<n>"           (BEZ u<field> — inaczej DA = unlimited)
+#   - unlimited    → "&field=unlimited&ufield=yes"
 limit_pair() {
   local field="$1" value="$2"
   if [ "$value" = "unlimited" ]; then
     printf '&%s=unlimited&u%s=yes' "$field" "$field"
   else
-    printf '&%s=%s&u%s=no' "$field" "$value" "$field"
+    printf '&%s=%s' "$field" "$value"
   fi
 }
 
-echo "=== Verris — sync pakietów DirectAdmin (realne limity, u*=no) ==="
+echo "=== Verris — sync pakietów DirectAdmin (realne limity, bez flag u*) ==="
 echo "Host: $base (user=$DA_USER, język=$DA_LANGUAGE)"
 echo ""
 echo "Istniejące pakiety:"
