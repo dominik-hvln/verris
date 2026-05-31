@@ -50,6 +50,13 @@ export class TelemetryService {
       data: {
         lastHeartbeatAt: new Date(),
         agentVersion: data.agentVersion ?? undefined,
+        ...(data.node
+          ? {
+              cagefsEnabled: data.node.cagefsEnabled ?? null,
+              cagefsEnabledCount: data.node.cagefsEnabledCount ?? null,
+              cagefsCheckedAt: new Date(),
+            }
+          : {}),
       },
     });
 

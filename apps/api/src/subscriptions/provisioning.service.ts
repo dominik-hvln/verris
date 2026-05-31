@@ -20,6 +20,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto/crypto.service';
 import { AuditService } from '../common/audit/audit.service';
 import { DirectAdminService } from '../servers/directadmin.service';
+import { ServersService } from '../servers/servers.service';
 import { NodeSelectorService } from './node-selector.service';
 import { MailerService } from '../mail/mailer.service';
 import { accountProvisionedTemplate } from '../mail/templates/hosting-notifications';
@@ -67,6 +68,7 @@ export class ProvisioningService {
     private readonly audit: AuditService,
     private readonly nodeSelector: NodeSelectorService,
     private readonly da: DirectAdminService,
+    private readonly servers: ServersService,
     private readonly mailer: MailerService,
     private readonly config: ConfigService,
   ) {}
@@ -138,6 +140,7 @@ export class ProvisioningService {
       );
     }
 
+    const ns = await this.servers.resolveNameservers(server);
     let daResult;
     try {
       daResult = await daClient.createAccount({
@@ -148,6 +151,8 @@ export class ProvisioningService {
         notify: 'no',
         ip: resolveDaAccountIp(server),
         language: DA_DEFAULT_LANGUAGE,
+        ns1: ns.ns1 || undefined,
+        ns2: ns.ns2 || undefined,
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

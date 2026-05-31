@@ -42,6 +42,17 @@ function healthColor(label: ServiceHealthSummaryDto['label']) {
   return 'rgba(255,255,255,0.25)';
 }
 
+/** Used value in GB with 1-decimal (0.1) precision, e.g. 1536 MB -> "1.5 GB". */
+function mbToGbUsed(mb: number) {
+  return `${(mb / 1024).toFixed(1)} GB`;
+}
+
+/** Limit in GB without trailing ".0", e.g. 51200 MB -> "50 GB", 1536 -> "1.5 GB". */
+function mbToGbMax(mb: number) {
+  const gb = mb / 1024;
+  return `${Number.isInteger(gb) ? gb : gb.toFixed(1)} GB`;
+}
+
 function CheckPill({ ok, label }: { ok: boolean | null; label: string }) {
   if (ok === null) return null;
   return (
@@ -115,13 +126,26 @@ export default function ServiceOverviewTab({
     const ramVal = latest?.memUsageAvgMb ?? 0;
     const diskVal = latest?.diskUsageMb ?? 0;
     return {
-      cpu: { value: cpuVal, max: account.cpuLimit, label: 'CPU' },
-      ram: { value: ramVal, max: account.ramLimitMb, label: 'RAM', unit: ' MB' as const },
+      cpu: {
+        value: cpuVal,
+        max: account.cpuLimit,
+        label: 'CPU',
+        valueLabel: `${Math.round(cpuVal)}%`,
+        sub: `/ ${account.cpuLimit}%`,
+      },
+      ram: {
+        value: ramVal,
+        max: account.ramLimitMb,
+        label: 'RAM',
+        valueLabel: mbToGbUsed(ramVal),
+        sub: `/ ${mbToGbMax(account.ramLimitMb)}`,
+      },
       disk: {
         value: diskVal,
         max: account.diskLimitMb,
         label: 'Dysk',
-        unit: ' MB' as const,
+        valueLabel: mbToGbUsed(diskVal),
+        sub: `/ ${mbToGbMax(account.diskLimitMb)}`,
       },
     };
   }, [account, latest]);
@@ -209,6 +233,8 @@ export default function ServiceOverviewTab({
                   label={gauges.cpu.label}
                   value={gauges.cpu.value}
                   max={gauges.cpu.max}
+                  valueLabel={gauges.cpu.valueLabel}
+                  sub={gauges.cpu.sub}
                   color={gaugeColors.cyan}
                   delayMs={100}
                 />
@@ -218,7 +244,8 @@ export default function ServiceOverviewTab({
                   label={gauges.ram.label}
                   value={gauges.ram.value}
                   max={gauges.ram.max}
-                  unit={gauges.ram.unit}
+                  valueLabel={gauges.ram.valueLabel}
+                  sub={gauges.ram.sub}
                   color={gaugeColors.violet}
                   delayMs={200}
                 />
@@ -228,7 +255,8 @@ export default function ServiceOverviewTab({
                   label={gauges.disk.label}
                   value={gauges.disk.value}
                   max={gauges.disk.max}
-                  unit={gauges.disk.unit}
+                  valueLabel={gauges.disk.valueLabel}
+                  sub={gauges.disk.sub}
                   color={gaugeColors.amber}
                   delayMs={300}
                 />

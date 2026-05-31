@@ -5,8 +5,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { DirectAdminClient } from '@verris/directadmin-sdk';
+import type { ServiceConnectionInfoDto } from '@verris/contracts';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto/crypto.service';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 
 /**
  * Resolves a Server record into a configured DirectAdminClient instance.
@@ -19,6 +21,7 @@ export class DirectAdminService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly crypto: CryptoService,
+    private readonly platformSettings: PlatformSettingsService,
   ) {}
 
   async getClientForServer(serverId: string): Promise<DirectAdminClient> {
@@ -327,6 +330,91 @@ export class DirectAdminService {
       return this.parseKvPayload(raw);
     }
     return new URLSearchParams();
+  }
+
+  /**
+   * Dane dostępowe usługi dla panelu klienta: IP węzła, host FTP/poczty, SSH,
+   * serwery DNS (NS węzła → platforma) oraz liczniki użycia/limity konta DA
+   * (CMD_API_SHOW_USER_USAGE + CMD_API_SHOW_USER_CONFIG).
+   */
+  async getConnectionInfo(
+    subscriptionId: string,
+    userId: string,
+  ): Promise<ServiceConnectionInfoDto> {
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id: subscriptionId, userId },
+      include: { account: { include: { server: true } } },
+    });
+    if (!sub) throw new NotFoundException('Service not found');
+
+    const account = sub.account;
+    const server = account?.server ?? null;
+    const ipv4 = server?.ipAddress ?? null;
+    const host = server?.hostname || ipv4;
+
+    const nameservers = server
+      ? await this.resolveNameserversForServer(server)
+      : [];
+
+    const info: ServiceConnectionInfoDto = {
+      ipv4,
+      ftpHost: host,
+      mailHost: host,
+      sshEnabled: null,
+      sshHost: host,
+      sshPort: null,
+      nameservers,
+      diskMb: emptyMetric(),
+      bandwidthMb: emptyMetric(),
+      emails: emptyMetric(),
+      ftpAccounts: emptyMetric(),
+      databases: emptyMetric(),
+      inodes: emptyMetric(),
+      fetchError: null,
+    };
+
+    if (!account?.id) {
+      info.fetchError = 'Konto hostingowe nie jest jeszcze gotowe.';
+      return info;
+    }
+
+    try {
+      const client = await this.getClientForHostingAccount(account.id, userId);
+      const axiosClient = (client as unknown as { client?: { get: Function } }).client;
+      if (!axiosClient) throw new BadRequestException('DirectAdmin client is not available');
+      const [usageRes, configRes] = await Promise.all([
+        axiosClient.get('/CMD_API_SHOW_USER_USAGE', { timeout: 15_000 }),
+        axiosClient.get('/CMD_API_SHOW_USER_CONFIG', { timeout: 15_000 }),
+      ]);
+      const usage = this.parseKvPayload(String(usageRes?.data ?? ''));
+      const config = this.parseKvPayload(String(configRes?.data ?? ''));
+
+      info.sshEnabled = parseDaBool(config.get('ssh'));
+      if (info.sshEnabled) info.sshPort = 22;
+      info.diskMb = daMetric(usage.get('quota'), config.get('quota'));
+      info.bandwidthMb = daMetric(usage.get('bandwidth'), config.get('bandwidth'));
+      info.emails = daMetric(usage.get('nemails'), config.get('nemails'));
+      info.ftpAccounts = daMetric(usage.get('nftp'), config.get('nftp'));
+      info.databases = daMetric(usage.get('nmysql'), config.get('nmysql'));
+      info.inodes = daMetric(usage.get('inode'), config.get('inode'));
+    } catch (err) {
+      info.fetchError = err instanceof Error ? err.message : String(err);
+    }
+    return info;
+  }
+
+  /** Mirror of ServersService.resolveNameservers without the module cycle. */
+  private async resolveNameserversForServer(server: {
+    ns1: string | null;
+    ns2: string | null;
+    ns3: string | null;
+  }): Promise<string[]> {
+    const nodeNs = [server.ns1, server.ns2, server.ns3].map((v) => (v ?? '').trim());
+    if (nodeNs[0] && nodeNs[1]) {
+      return nodeNs.filter(Boolean);
+    }
+    const platform = await this.platformSettings.getHostingNameservers();
+    return [platform.ns1, platform.ns2, platform.ns3].filter(Boolean);
   }
 
   private async assertDomainOnSubscription(
@@ -747,6 +835,71 @@ export class DirectAdminService {
     await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_SITE_BACKUP', form, {
       timeoutMs: 120_000,
     });
+    // Record the trigger so the health score reflects a fresh backup even before
+    // the next DA backup-list refresh.
+    await this.prisma.account
+      .update({ where: { subscriptionId }, data: { lastBackupAt: new Date() } })
+      .catch(() => undefined);
+    return { ok: true as const };
+  }
+
+  /**
+   * Restores a previously created DirectAdmin site backup onto the account
+   * (`CMD_API_SITE_BACKUP action=restore`). `userId` must be the account owner
+   * (the restore worker passes the owner's id). Scope flags select which areas
+   * to overwrite; at least one must be true. Long-running — pass a generous
+   * timeout. This OVERWRITES the selected areas on the live account.
+   */
+  async restoreHostingBackup(
+    subscriptionId: string,
+    userId: string,
+    opts: { fileName: string; files: boolean; databases: boolean; email: boolean },
+  ): Promise<{ ok: true }> {
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id: subscriptionId, userId },
+      include: { account: true },
+    });
+    if (!sub?.account?.domain) {
+      throw new BadRequestException('Brak konta hostingowego lub domeny dla tej usługi.');
+    }
+    if (!opts.files && !opts.databases && !opts.email) {
+      throw new BadRequestException('Wybierz przynajmniej jeden zakres do przywrócenia.');
+    }
+
+    const selects: string[] = [];
+    const push = (v: string) => selects.push(v);
+    if (opts.files) {
+      push('domain');
+      push('subdomain');
+      push('ftp');
+      push('ftpsettings');
+    }
+    if (opts.email) {
+      push('email');
+      push('emailsettings');
+      push('email_data');
+      push('forwarder');
+      push('autoresponder');
+      push('vacation');
+      push('list');
+    }
+    if (opts.databases) {
+      push('database');
+      push('database_data');
+    }
+
+    const form: Record<string, string> = {
+      action: 'restore',
+      domain: sub.account.domain,
+      file: opts.fileName,
+    };
+    selects.forEach((value, idx) => {
+      form[`select${idx}`] = value;
+    });
+
+    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_SITE_BACKUP', form, {
+      timeoutMs: 600_000,
+    });
     return { ok: true as const };
   }
 
@@ -818,4 +971,41 @@ export class DirectAdminService {
       fetchError: daPassword ? null : 'Hasło do panelu hostingu jest niedostępne — skontaktuj się z pomocą techniczną.',
     };
   }
+}
+
+function emptyMetric(): { used: number | null; limit: number | null } {
+  return { used: null, limit: null };
+}
+
+/** Parses a DirectAdmin numeric value; returns null for empty/non-numeric. */
+function daNumber(value: string | null | undefined): number | null {
+  if (value == null) return null;
+  const trimmed = value.trim();
+  if (trimmed === '') return null;
+  const n = Number(trimmed);
+  return Number.isFinite(n) ? n : null;
+}
+
+/** DA limit: 'unlimited' or empty → null (∞); otherwise the numeric value. */
+function daLimit(value: string | null | undefined): number | null {
+  if (value == null) return null;
+  const trimmed = value.trim().toLowerCase();
+  if (trimmed === '' || trimmed === 'unlimited') return null;
+  const n = Number(trimmed);
+  return Number.isFinite(n) ? n : null;
+}
+
+function daMetric(
+  used: string | null | undefined,
+  limit: string | null | undefined,
+): { used: number | null; limit: number | null } {
+  return { used: daNumber(used), limit: daLimit(limit) };
+}
+
+function parseDaBool(value: string | null | undefined): boolean | null {
+  if (value == null) return null;
+  const v = value.trim().toLowerCase();
+  if (v === 'on' || v === 'yes' || v === '1' || v === 'true') return true;
+  if (v === 'off' || v === 'no' || v === '0' || v === 'false') return false;
+  return null;
 }

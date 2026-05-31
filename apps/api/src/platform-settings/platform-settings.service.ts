@@ -179,6 +179,47 @@ export class PlatformSettingsService {
     return this.getAdminSettings();
   }
 
+  /**
+   * Platform-default authoritative nameservers for provisioned hosting accounts.
+   * Resolution: PlatformSetting `hosting.ns*` → env `HOSTING_NS*` → empty.
+   * Per-node overrides (Server.ns1/2/3) take precedence in ServersService.
+   */
+  async getHostingNameservers(): Promise<{ ns1: string; ns2: string; ns3: string }> {
+    const map = await this.loadMap();
+    return {
+      ns1: this.readStr(map, PLATFORM_SETTING_KEYS.HOSTING_NS1, process.env.HOSTING_NS1 ?? ''),
+      ns2: this.readStr(map, PLATFORM_SETTING_KEYS.HOSTING_NS2, process.env.HOSTING_NS2 ?? ''),
+      ns3: this.readStr(map, PLATFORM_SETTING_KEYS.HOSTING_NS3, process.env.HOSTING_NS3 ?? ''),
+    };
+  }
+
+  async updateHostingNameservers(
+    input: { ns1?: string; ns2?: string; ns3?: string },
+    actorUserId: string,
+  ): Promise<{ ns1: string; ns2: string; ns3: string }> {
+    const entries: Array<[PlatformSettingKey, string]> = [
+      [PLATFORM_SETTING_KEYS.HOSTING_NS1, normaliseHostname(input.ns1)],
+      [PLATFORM_SETTING_KEYS.HOSTING_NS2, normaliseHostname(input.ns2)],
+      [PLATFORM_SETTING_KEYS.HOSTING_NS3, normaliseHostname(input.ns3)],
+    ];
+    await this.prisma.$transaction(
+      entries.map(([key, value]) =>
+        this.prisma.platformSetting.upsert({
+          where: { key },
+          create: { key, value, updatedByUserId: actorUserId },
+          update: { value, updatedByUserId: actorUserId },
+        }),
+      ),
+    );
+    this.invalidateCache();
+    await this.audit.record({
+      action: 'PLATFORM_NAMESERVERS_UPDATED',
+      userId: actorUserId,
+      details: { ns1: entries[0][1], ns2: entries[1][1], ns3: entries[2][1] },
+    });
+    return this.getHostingNameservers();
+  }
+
   async getIdleMinutesForRole(role: string): Promise<number> {
     const map = await this.loadMap();
     if (role === 'ADMIN') {
@@ -222,4 +263,19 @@ export class PlatformSettingsService {
     if (!Number.isFinite(n)) return fallback;
     return Math.min(max, Math.max(min, n));
   }
+
+  private readStr(map: Map<string, string>, key: PlatformSettingKey, fallback: string): string {
+    const raw = map.get(key);
+    return raw && raw.trim() ? raw.trim() : fallback;
+  }
+}
+
+/** Lowercases + strips a hostname; empty when blank or syntactically invalid. */
+function normaliseHostname(raw?: string): string {
+  const v = (raw ?? '').trim().toLowerCase().replace(/\.$/, '');
+  if (!v) return '';
+  if (!/^(?=.{1,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/.test(v)) {
+    throw new BadRequestException(`Nieprawidłowy hostname serwera nazw: "${raw}".`);
+  }
+  return v;
 }

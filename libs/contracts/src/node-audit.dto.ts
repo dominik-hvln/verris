@@ -62,7 +62,8 @@ export type AuditCheckCategory =
   | 'HOSTNAME'
   | 'TLS'
   | 'AGENT'
-  | 'DNS';
+  | 'DNS'
+  | 'CAGEFS';
 
 export interface AuditCheckDto {
   id: string;

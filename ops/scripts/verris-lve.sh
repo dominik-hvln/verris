@@ -48,7 +48,18 @@ if ! command -v lvectl >/dev/null 2>&1; then
   exit 0
 fi
 
-export VERRIS_API_URL VERRIS_SERVER_ID VERRIS_IDENTITY_TOKEN STATE LOG
+# CageFS status (reported to control-plane every cycle for the node audit).
+# cagefsctl --cagefs-status prints "CageFS is enabled" / "... disabled".
+CAGEFS_ENABLED=0
+CAGEFS_COUNT=0
+if command -v cagefsctl >/dev/null 2>&1; then
+  if cagefsctl --cagefs-status 2>/dev/null | grep -qi 'enabled'; then
+    CAGEFS_ENABLED=1
+  fi
+  CAGEFS_COUNT=$(cagefsctl --list-enabled 2>/dev/null | grep -c . 2>/dev/null || echo 0)
+fi
+
+export VERRIS_API_URL VERRIS_SERVER_ID VERRIS_IDENTITY_TOKEN STATE LOG CAGEFS_ENABLED CAGEFS_COUNT
 
 python3 - <<'PYEOF'
 import json, os, re, subprocess, sys, time, pwd, urllib.request, urllib.error
@@ -282,6 +293,23 @@ def telemetry(desired):
     return len(accounts)
 
 # --------------------------------------------------------------------------
+# 3) NODE STATUS — CageFS etc. (always reported, even with no accounts)
+# --------------------------------------------------------------------------
+def node_block():
+    return {
+        "cagefsEnabled": os.environ.get("CAGEFS_ENABLED") == "1",
+        "cagefsEnabledCount": to_int(os.environ.get("CAGEFS_COUNT")),
+    }
+
+def report_node_status():
+    try:
+        api_post("/telemetry/lve", {"agentVersion": AGENT_VERSION, "accounts": [], "node": node_block()})
+        log("node status: cagefs_enabled=%s caged_accounts=%s"
+            % (os.environ.get("CAGEFS_ENABLED"), os.environ.get("CAGEFS_COUNT")))
+    except Exception as e:
+        log("node status POST failed: %s" % e)
+
+# --------------------------------------------------------------------------
 def main():
     try:
         desired = api_get("/agent/tasks/lve/desired")
@@ -299,6 +327,10 @@ def main():
         telemetry(desired)
     except Exception as e:
         log("telemetry error: %s" % e)
+    try:
+        report_node_status()
+    except Exception as e:
+        log("node status error: %s" % e)
 
 main()
 PYEOF

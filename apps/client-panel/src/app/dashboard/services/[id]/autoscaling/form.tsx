@@ -44,7 +44,7 @@ export function AutoscalingForm({
         </h2>
         <p className="mt-1 text-xs text-neutral-400">
           Autoskalowanie tymczasowo zwiększa wybrane zasoby ponad plan przy skoku ruchu.
-          Naliczenie godzinowe trafia do portfela według cennika (CPU, RAM, dysk).
+          Naliczane w blokach po 15 min (każde podbicie to min. jeden blok), z portfela według cennika (CPU, RAM, dysk).
         </p>
       </div>
 

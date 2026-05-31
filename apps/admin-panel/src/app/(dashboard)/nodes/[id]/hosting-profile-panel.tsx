@@ -131,8 +131,9 @@ export function HostingProfilePanel({
           <Terminal className="h-4 w-4 text-indigo-300" /> Profil hostingowy
         </h2>
         <p className="text-xs text-muted-foreground mt-1">
-          Idempotentna konfiguracja floty: MySQL Governor (governor-mysql + dbctl), CustomBuild
-          (LiteSpeed/LSPHP), restart LS. Domyślnie bez długiego CustomBuild rebuild.
+          Idempotentna konfiguracja floty: CageFS (cagefsctl --init + --enable-all, izolacja kont +
+          integracja LVE w DA), MySQL Governor (governor-mysql + dbctl), CustomBuild (LiteSpeed/LSPHP),
+          restart LS. Domyślnie bez długiego CustomBuild rebuild.
         </p>
       </div>
 

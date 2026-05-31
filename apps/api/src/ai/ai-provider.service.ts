@@ -13,6 +13,10 @@ export class AiProviderService {
     return this.config.get<string>('AI_MODEL') ?? 'gpt-4o-mini';
   }
 
+  isConfigured(): boolean {
+    return Boolean(this.config.get<string>('AI_API_KEY'));
+  }
+
   async complete(input: { system: string; user: string; temperature?: number }) {
     const baseUrl = this.config.get<string>('AI_API_BASE_URL') ?? 'https://api.openai.com/v1';
     const key = this.config.get<string>('AI_API_KEY');

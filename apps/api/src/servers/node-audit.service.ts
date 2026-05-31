@@ -19,6 +19,7 @@ import { DirectAdminClient } from '@verris/directadmin-sdk';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { DirectAdminService } from './directadmin.service';
+import { NodeTasksService } from './node-tasks.service';
 import {
   DA_DEFAULT_LANGUAGE,
   buildDaPackageSpecFromPlan,
@@ -27,6 +28,8 @@ import {
 
 const WILDCARD_TLS_SAN = '*.verris.pl';
 const HEARTBEAT_FRESH_MS = 5 * 60 * 1000;
+/** CageFS status is reported by verris-lve.timer (~60 s); allow generous slack. */
+const CAGEFS_FRESH_MS = 10 * 60 * 1000;
 
 /**
  * Verris "wzorzec walidatora": for every action a node performs, prove the
@@ -46,6 +49,7 @@ export class NodeAuditService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly da: DirectAdminService,
+    private readonly nodeTasks: NodeTasksService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -60,6 +64,7 @@ export class NodeAuditService {
 
     const checks: AuditCheckDto[] = [];
     checks.push(await this.checkAgent(server));
+    checks.push(this.checkCagefs(server));
     checks.push(await this.checkHostname(server));
     checks.push(await this.checkDns(server));
     checks.push(await this.checkDaHost(server));
@@ -80,7 +85,7 @@ export class NodeAuditService {
       status: worstStatus(checks.map((c) => c.status)),
       stackVersions: {
         directadmin: null,
-        cloudlinux: null,
+        cloudlinux: server.cagefsEnabled === true ? 'CageFS enabled' : null,
         litespeed: null,
         agent: server.agentVersion,
       },
@@ -99,6 +104,9 @@ export class NodeAuditService {
 
     if (actionId === 'repair-da-host') {
       return this.repairDaHost(server, actorUserId);
+    }
+    if (actionId === 'repair-cagefs-enable') {
+      return this.repairCagefsEnable(server, actorUserId);
     }
     if (actionId.startsWith('repair-da-package-')) {
       const slug = actionId.replace('repair-da-package-', '');
@@ -152,6 +160,78 @@ export class NodeAuditService {
         },
       ],
       repair: null,
+    };
+  }
+
+  private checkCagefs(server: Server): AuditCheckDto {
+    const checkedAt = server.cagefsCheckedAt;
+    const fresh = checkedAt ? Date.now() - checkedAt.getTime() < CAGEFS_FRESH_MS : false;
+    const enabled = server.cagefsEnabled === true;
+    const count = server.cagefsEnabledCount;
+
+    let status: AuditCheckStatus;
+    let summary: string;
+    if (!checkedAt || !fresh) {
+      status = 'UNKNOWN';
+      summary = checkedAt
+        ? `Agent nie zgłosił statusu CageFS od ${checkedAt.toISOString()} — sprawdź verris-lve.timer na węźle.`
+        : 'Agent nie zgłosił jeszcze statusu CageFS — poczekaj na cykl agenta (1 min) lub zaktualizuj agenta.';
+    } else if (enabled) {
+      status = 'OK';
+      summary = `CageFS aktywny — konta izolowane, integracja LVE w DirectAdmin działa${
+        count != null ? ` (kont w klatce: ${count})` : ''
+      }.`;
+    } else {
+      status = 'FAIL';
+      summary =
+        'CageFS nieaktywny — DirectAdmin spada na limity systemd-cgroup zamiast pełnej izolacji i integracji LVE. Uruchom profil hostingowy (instaluje i włącza CageFS).';
+    }
+
+    const canRepair =
+      checkedAt != null &&
+      fresh &&
+      !enabled &&
+      server.status === ServerStatus.ACTIVE &&
+      Boolean(server.identityToken);
+
+    return {
+      id: 'cagefs',
+      title: 'CloudLinux CageFS',
+      category: 'CAGEFS',
+      status,
+      summary,
+      records: [
+        {
+          label: 'CageFS (cagefsctl --cagefs-status)',
+          expected: 'enabled',
+          actual: checkedAt ? (enabled ? 'enabled' : 'disabled') : 'brak danych',
+          ok: enabled && fresh,
+        },
+        { label: 'Kont w klatce (--list-enabled)', actual: count != null ? String(count) : '—' },
+        { label: 'Ostatni raport agenta', actual: checkedAt ? checkedAt.toISOString() : 'brak' },
+      ],
+      docAttestation: [
+        {
+          vendor: 'CloudLinux',
+          statement:
+            'CageFS (cagefsctl --init + --enable-all) izoluje każde konto we własnym wirtualnym FS i jest warunkiem integracji LVE w DirectAdmin (limity pakietów/LVE egzekwowane przez panel). Bez CageFS DA używa limitów systemd-cgroup.',
+          reference: 'https://docs.cloudlinux.com/cloudlinuxos/cloudlinux_os_components/#cagefs',
+          verifiedAt: '2026-05-31',
+        },
+      ],
+      repair: canRepair
+        ? {
+            actionId: 'repair-cagefs-enable',
+            risk: 'caution',
+            label: 'Zainstaluj/włącz CageFS (profil hostingowy)',
+            description:
+              'Zleci profil hostingowy na węźle, który zainstaluje pakiet cagefs, wykona cagefsctl --init oraz --enable-all (izolacja wszystkich kont). Operacja idempotentna; --init może potrwać kilka minut. Postęp i log widoczne w sekcji „Profil hostingowy”.',
+            requiresConfirmation: true,
+            confirmValue: null,
+            warning:
+              'Pierwsza inicjalizacja CageFS przebudowuje skeleton i może chwilowo obciążyć węzeł; wszystkie konta zostaną wprowadzone do klatki (caged).',
+          }
+        : null,
     };
   }
 
@@ -559,6 +639,33 @@ export class NodeAuditService {
       ok: true,
       message: `daHost zaktualizowany na ${hostname}.`,
       check: updated ? await this.checkDaHost(updated) : null,
+    };
+  }
+
+  private async repairCagefsEnable(
+    server: Server,
+    actorUserId: string,
+  ): Promise<NodeRepairResultDto> {
+    // CageFS install/init/enable runs on the node — queue the idempotent
+    // hosting profile (skip the long CustomBuild rebuild). The profile's
+    // configure_cloudlinux_cagefs step installs cagefs, runs --init and
+    // --enable-all, and verifies cagefsctl --cagefs-status before exiting.
+    const task = await this.nodeTasks.queueHostingProfile(server.id, actorUserId, {
+      skipBuild: true,
+    });
+    await this.audit.record({
+      action: 'NODE_AUDIT_REPAIR',
+      actorUserId,
+      details: { serverId: server.id, actionId: 'repair-cagefs-enable', taskId: task.id },
+    });
+    const updated = await this.prisma.server.findUnique({ where: { id: server.id } });
+    return {
+      serverId: server.id,
+      actionId: 'repair-cagefs-enable',
+      ok: true,
+      message:
+        'Zlecono profil hostingowy — CageFS zostanie zainstalowany i włączony na węźle. Śledź log w sekcji „Profil hostingowy”. Status CageFS zaktualizuje się po następnym raporcie agenta.',
+      check: updated ? this.checkCagefs(updated) : null,
     };
   }
 

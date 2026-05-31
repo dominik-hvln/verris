@@ -38,6 +38,11 @@ export interface ServerSummaryDto {
   daUseTls: boolean;
   daPasswordSet: boolean;
 
+  /** Per-node authoritative nameservers (null = inherit platform default). */
+  ns1: string | null;
+  ns2: string | null;
+  ns3: string | null;
+
   approvedAt: string | null;
   approvedById: string | null;
   notes: string | null;
@@ -51,6 +56,26 @@ export interface ServerSummaryDto {
   updatedAt: string;
 
   _count?: { accounts: number };
+}
+
+export interface NodeNameserversDto {
+  serverId: string;
+  ns1: string | null;
+  ns2: string | null;
+  ns3: string | null;
+  effective: {
+    ns1: string;
+    ns2: string;
+    ns3: string;
+    source: 'node' | 'platform' | 'none';
+  };
+  platformDefault: { ns1: string; ns2: string; ns3: string };
+}
+
+export interface UpdateNameserversInput {
+  ns1?: string;
+  ns2?: string;
+  ns3?: string;
 }
 
 export interface InitServerInput {

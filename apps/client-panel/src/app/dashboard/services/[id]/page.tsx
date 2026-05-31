@@ -27,6 +27,7 @@ import HostingFileManagerTab from '@/components/hosting/HostingFileManagerTab';
 import UsageTab from '@/components/hosting/UsageTab';
 import ServiceOverviewTab from '@/components/hosting/ServiceOverviewTab';
 import HostingPanelCard from '@/components/hosting/HostingPanelCard';
+import ServiceConnectionCard from '@/components/hosting/ServiceConnectionCard';
 import { HostingLinksProvider } from '@/components/hosting/hosting-links-context';
 
 const TABS = [
@@ -107,6 +108,7 @@ export default function HostingManagerPage() {
               </Link>
             </nav>
             <HostingPanelCard />
+            <ServiceConnectionCard serviceId={params.id} />
           </aside>
 
           <main className="min-w-0 overflow-hidden">

@@ -5,6 +5,8 @@ describe('DomainRegistrarService', () => {
   const prisma = {};
   const audit = { record: jest.fn() };
   const crypto = { encrypt: jest.fn((v: string) => `enc:${v}`) };
+  const wallet = { debit: jest.fn(), credit: jest.fn() };
+  const config = { get: jest.fn(() => '1.0') };
 
   beforeEach(() => jest.clearAllMocks());
 
@@ -19,6 +21,8 @@ describe('DomainRegistrarService', () => {
       audit as never,
       crypto as never,
       providerFactory as never,
+      wallet as never,
+      config as never,
     );
 
     await expect(service.availability('example.pl')).rejects.toBeInstanceOf(ServiceUnavailableException);
@@ -33,6 +37,8 @@ describe('DomainRegistrarService', () => {
       audit as never,
       crypto as never,
       { get: () => provider } as never,
+      wallet as never,
+      config as never,
     );
 
     await expect(service.register('user_1', 'user_1', { name: 'Example.pl' })).rejects.toThrow(

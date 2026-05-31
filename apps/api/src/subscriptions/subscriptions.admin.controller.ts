@@ -21,6 +21,8 @@ import {
 } from './subscriptions.service';
 import { MigrationOrchestratorService } from './migration-orchestrator.service';
 import { PlanChangeService } from './plan-change.service';
+import { HostingRestoreService } from './hosting-restore.service';
+import { HostingRestoreDto } from './dto/hosting-restore.dto';
 import {
   SuspendSubscriptionDto,
   UnsuspendSubscriptionDto,
@@ -48,7 +50,32 @@ export class SubscriptionsAdminController {
     private readonly prisma: PrismaService,
     private readonly migrations: MigrationOrchestratorService,
     private readonly planChange: PlanChangeService,
+    private readonly hostingRestore: HostingRestoreService,
   ) {}
+
+  /** Admin-initiated restore (no domain confirmation required; full audit trail). */
+  @Post(':id/hosting-restore')
+  @Roles(Role.ADMIN, Role.STAFF)
+  runHostingRestore(
+    @Param('id') id: string,
+    @Body() dto: HostingRestoreDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.hostingRestore.enqueue(id, actor.userId, {
+      backupId: dto.backupId,
+      scopeFiles: dto.scopeFiles,
+      scopeDatabases: dto.scopeDatabases,
+      scopeEmail: dto.scopeEmail,
+      safetyBackup: dto.safetyBackup,
+      isAdmin: true,
+    });
+  }
+
+  @Get(':id/hosting-restore/status')
+  @Roles(Role.ADMIN, Role.STAFF)
+  hostingRestoreStatus(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
+    return this.hostingRestore.latestForSubscription(id, actor.userId, true);
+  }
 
   @Get()
   @Roles(Role.ADMIN, Role.STAFF)

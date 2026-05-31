@@ -8,6 +8,8 @@ import { DirectAdminConfigForm } from "./directadmin-form";
 import { HostingProfilePanel } from "./hosting-profile-panel";
 import { MaintenanceToggle } from "./maintenance-toggle";
 import { NodeAuditPanel } from "./node-audit-panel";
+import { NodeInsightsPanel } from "./node-insights-panel";
+import { NameserversForm } from "./nameservers-form";
 
 export const dynamic = "force-dynamic";
 
@@ -111,6 +113,12 @@ export default async function ServerDetailPage({
         {canBootstrap && <BootstrapScriptPanel serverId={server.id} />}
       </section>
 
+      {(server.status === "ACTIVE" || server.status === "MAINTENANCE") && (
+        <div id="zuzycie" className="scroll-mt-24">
+          <NodeInsightsPanel serverId={server.id} />
+        </div>
+      )}
+
       <MaintenanceToggle
         serverId={server.id}
         status={server.status}
@@ -129,6 +137,10 @@ export default async function ServerDetailPage({
             daPasswordSet: server.daPasswordSet,
           }}
         />
+      </div>
+
+      <div id="nameservers" className="scroll-mt-24">
+        <NameserversForm serverId={server.id} />
       </div>
 
       <div id="hosting-profile" className="scroll-mt-24">

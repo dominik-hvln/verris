@@ -2,9 +2,12 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import * as dns from 'node:dns/promises';
 import * as tls from 'node:tls';
 import { PrismaService } from '../prisma/prisma.service';
+import { DirectAdminService } from '../servers/directadmin.service';
 
 const PROBE_TIMEOUT_MS = 8_000;
 const SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
+/** A backup counts as "fresh" if it's no older than this (covers weekly EKO + buffer). */
+const BACKUP_FRESH_WINDOW_MS = 8 * 24 * 60 * 60 * 1000;
 
 export interface ComputedHealthSummary {
   score: number | null;
@@ -25,7 +28,10 @@ export interface ComputedHealthSummary {
 export class ServiceHealthService {
   private readonly logger = new Logger(ServiceHealthService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly directAdmin: DirectAdminService,
+  ) {}
 
   async getOrRefreshForSubscription(
     subscriptionId: string,
@@ -131,8 +137,16 @@ export class ServiceHealthService {
       else if (usage.cpuUsageAvg < limit) earned += 10;
     }
 
-    // Backup — brak źródła LIVE na razie (10 rezerwowane, nie liczone)
-    checks.backupFresh = null;
+    // Backup freshness (10) — realny sygnał: nasz lastBackupAt + lista backupów DA.
+    const backup = await this.assessBackupFreshness(subscriptionId, account);
+    if (backup.counted) {
+      possible += 10;
+      checks.backupFresh = backup.fresh;
+      if (backup.fresh) earned += backup.partial ? 6 : 10;
+    } else {
+      // DA niedostępne i brak własnego sygnału — nie karzemy (null, poza pulą).
+      checks.backupFresh = null;
+    }
 
     const score = possible > 0 ? Math.round((earned / possible) * 100) : null;
     const label =
@@ -195,6 +209,55 @@ export class ServiceHealthService {
     };
   }
 
+  /**
+   * Real backup-freshness signal combining:
+   *  - `account.lastBackupAt` (set when we trigger a backup), and
+   *  - the live DirectAdmin backup list (presence + best-effort filename date).
+   * Returns `counted=false` only when DA is unreachable AND we have no own signal,
+   * so a transient DA outage never tanks the score.
+   */
+  private async assessBackupFreshness(
+    subscriptionId: string,
+    account: { userId: string; lastBackupAt: Date | null },
+  ): Promise<{ counted: boolean; fresh: boolean; partial: boolean }> {
+    const lastManual = account.lastBackupAt?.getTime() ?? null;
+
+    let listError = false;
+    let listCount = 0;
+    let newestFromList: number | null = null;
+    try {
+      const { rows, fetchError } = await this.directAdmin.listHostingBackups(
+        subscriptionId,
+        account.userId,
+      );
+      if (fetchError) {
+        listError = true;
+      } else {
+        listCount = rows.length;
+        const dates = rows
+          .map((r) => parseBackupDate(r.fileName))
+          .filter((d): d is number => d != null);
+        newestFromList = dates.length ? Math.max(...dates) : null;
+      }
+    } catch {
+      listError = true;
+    }
+
+    const newest = Math.max(lastManual ?? 0, newestFromList ?? 0) || null;
+    if (newest) {
+      return { counted: true, fresh: Date.now() - newest <= BACKUP_FRESH_WINDOW_MS, partial: false };
+    }
+    if (listError && lastManual == null) {
+      return { counted: false, fresh: false, partial: false };
+    }
+    if (listCount > 0) {
+      // Backups exist but age is unknown — partial credit, treat as present.
+      return { counted: true, fresh: true, partial: true };
+    }
+    // No backups found at all.
+    return { counted: true, fresh: false, partial: false };
+  }
+
   private pendingSummary(text: string): ComputedHealthSummary {
     return {
       score: null,
@@ -223,6 +286,7 @@ export class ServiceHealthService {
     if (checks.tlsOk === false) parts.push('brak ważnego certyfikatu HTTPS na domenie');
     if (checks.phpOk === false) parts.push('panel hostingu wymaga uwagi');
     if (checks.lveOk === false) parts.push('wysokie obciążenie CPU');
+    if (checks.backupFresh === false) parts.push('brak świeżej kopii zapasowej (>8 dni)');
     if (parts.length === 0) return 'Wszystkie sprawdzone parametry w normie.';
     return parts.join('; ') + '.';
   }
@@ -275,4 +339,39 @@ export class ServiceHealthService {
       });
     });
   }
+}
+
+const MONTHS: Record<string, number> = {
+  jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
+  jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+};
+
+/**
+ * Best-effort extraction of a date from a DirectAdmin backup filename.
+ * Handles common shapes: `...2024-04-15...`, `...Apr-15-2024...`,
+ * `...20240415...` and 10-digit unix epochs. Returns epoch ms or null.
+ */
+function parseBackupDate(fileName: string): number | null {
+  if (!fileName) return null;
+  const lower = fileName.toLowerCase();
+
+  const iso = lower.match(/(20\d{2})[-_.]?(\d{2})[-_.]?(\d{2})/);
+  if (iso) {
+    const t = Date.UTC(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+    if (!Number.isNaN(t)) return t;
+  }
+
+  const named = lower.match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[-_.]?(\d{1,2})[-_.]?(20\d{2})/);
+  if (named && MONTHS[named[1]] != null) {
+    const t = Date.UTC(Number(named[3]), MONTHS[named[1]], Number(named[2]));
+    if (!Number.isNaN(t)) return t;
+  }
+
+  const epoch = lower.match(/\b(1\d{9})\b/);
+  if (epoch) {
+    const t = Number(epoch[1]) * 1000;
+    if (t > Date.UTC(2015, 0, 1) && t < Date.now() + 86_400_000) return t;
+  }
+
+  return null;
 }

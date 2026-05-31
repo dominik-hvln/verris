@@ -19,6 +19,8 @@ import { MigrationWorkerScheduler } from './migration-worker.scheduler';
 import { MigrationWorkerController } from './migration-worker.controller';
 import { ServiceHealthService } from './service-health.service';
 import { HostingDnsPointingService } from './hosting-dns-pointing.service';
+import { HostingRestoreService } from './hosting-restore.service';
+import { HostingRestoreScheduler } from './hosting-restore.scheduler';
 import { PublicUptimeBadgeController } from './public-uptime-badge.controller';
 
 @Module({
@@ -35,6 +37,8 @@ import { PublicUptimeBadgeController } from './public-uptime-badge.controller';
     MigrationWorkerScheduler,
     ServiceHealthService,
     HostingDnsPointingService,
+    HostingRestoreService,
+    HostingRestoreScheduler,
   ],
   controllers: [
     SubscriptionsController,

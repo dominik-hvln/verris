@@ -7,6 +7,10 @@ export const PLATFORM_SETTING_KEYS = {
   CLIENT_IDLE_MINUTES: 'session.clientIdleMinutes',
   STAFF_IDLE_MINUTES: 'session.staffIdleMinutes',
   ADMIN_IDLE_MINUTES: 'session.adminIdleMinutes',
+  /** Platform-default authoritative nameservers for provisioned hosting accounts. */
+  HOSTING_NS1: 'hosting.ns1',
+  HOSTING_NS2: 'hosting.ns2',
+  HOSTING_NS3: 'hosting.ns3',
 } as const;
 
 export type PlatformSettingKey =
@@ -19,4 +23,7 @@ export const PLATFORM_SETTING_DEFAULTS: Record<PlatformSettingKey, string> = {
   [PLATFORM_SETTING_KEYS.CLIENT_IDLE_MINUTES]: '60',
   [PLATFORM_SETTING_KEYS.STAFF_IDLE_MINUTES]: '30',
   [PLATFORM_SETTING_KEYS.ADMIN_IDLE_MINUTES]: '15',
+  [PLATFORM_SETTING_KEYS.HOSTING_NS1]: '',
+  [PLATFORM_SETTING_KEYS.HOSTING_NS2]: '',
+  [PLATFORM_SETTING_KEYS.HOSTING_NS3]: '',
 };

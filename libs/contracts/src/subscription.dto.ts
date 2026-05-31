@@ -121,6 +121,57 @@ export interface SubscriptionEventDto {
   createdAt: string;
 }
 
+export type ForecastResource = 'CPU' | 'RAM' | 'DISK' | 'IO';
+export type ForecastTrend = 'up' | 'down' | 'flat' | 'unknown';
+export type ForecastConfidence = 'low' | 'medium' | 'high';
+
+export interface ServiceForecastResourceDto {
+  resource: ForecastResource;
+  currentPct: number | null;
+  predictedPct: number | null;
+  trend: ForecastTrend;
+  daysToLimit: number | null;
+  note?: string | null;
+}
+
+export interface ServiceForecastDto {
+  generatedAt: string;
+  /** false when the AI provider is not configured or there is too little data. */
+  available: boolean;
+  unavailableReason?: string | null;
+  confidence: ForecastConfidence;
+  horizonDays: number;
+  summary: string;
+  resources: ServiceForecastResourceDto[];
+  recommendations: string[];
+}
+
+/** A single used/limit metric. `limit === null` means unlimited (∞). */
+export interface ConnectionMetricDto {
+  used: number | null;
+  limit: number | null;
+}
+
+/** GET /services/:id/connection-info — dane dostępowe i limity konta hostingowego. */
+export interface ServiceConnectionInfoDto {
+  ipv4: string | null;
+  ftpHost: string | null;
+  mailHost: string | null;
+  sshEnabled: boolean | null;
+  sshHost: string | null;
+  sshPort: number | null;
+  nameservers: string[];
+  /** Wszystkie wartości w MB. */
+  diskMb: ConnectionMetricDto;
+  /** Transfer miesięczny w MB. */
+  bandwidthMb: ConnectionMetricDto;
+  emails: ConnectionMetricDto;
+  ftpAccounts: ConnectionMetricDto;
+  databases: ConnectionMetricDto;
+  inodes: ConnectionMetricDto;
+  fetchError: string | null;
+}
+
 export interface ServiceDetailsDto extends Omit<ServiceSummaryDto, 'planSlug' | 'planName'> {
   paymentSource: SubscriptionPaymentSource;
   plan: {

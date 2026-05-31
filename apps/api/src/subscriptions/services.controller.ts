@@ -19,6 +19,8 @@ import { DirectAdminService } from '../servers/directadmin.service';
 import { MigrationOrchestratorService } from './migration-orchestrator.service';
 import { ServiceHealthService } from './service-health.service';
 import { HostingDnsPointingService } from './hosting-dns-pointing.service';
+import { HostingRestoreService } from './hosting-restore.service';
+import { HostingRestoreDto } from './dto/hosting-restore.dto';
 
 /**
  * Customer-facing "services" view — denormalized projection over Subscription
@@ -33,6 +35,7 @@ export class UserServicesController {
     private readonly migrations: MigrationOrchestratorService,
     private readonly serviceHealth: ServiceHealthService,
     private readonly dnsPointing: HostingDnsPointingService,
+    private readonly hostingRestore: HostingRestoreService,
   ) {}
 
   @Get()
@@ -116,6 +119,11 @@ export class UserServicesController {
   @Get(':id/hosting-da-links')
   async hostingDaLinks(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
     return this.directAdmin.getHostingDaLinksForSubscription(id, user.userId);
+  }
+
+  @Get(':id/connection-info')
+  async connectionInfo(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.getConnectionInfo(id, user.userId);
   }
 
   @Get(':id/hosting-domain-pointing')
@@ -307,6 +315,32 @@ export class UserServicesController {
         backups.fetchError ?? domains.fetchError ?? databases.fetchError ?? mailboxes.fetchError,
       ),
     };
+  }
+
+  /** Enqueues an async restore of a DA backup onto the account (overwrites live data). */
+  @Post(':id/hosting-restore')
+  async runHostingRestore(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() dto: HostingRestoreDto,
+  ) {
+    return this.hostingRestore.enqueue(id, user.userId, {
+      backupId: dto.backupId,
+      scopeFiles: dto.scopeFiles,
+      scopeDatabases: dto.scopeDatabases,
+      scopeEmail: dto.scopeEmail,
+      safetyBackup: dto.safetyBackup,
+      confirmDomain: dto.confirmDomain,
+      isAdmin: false,
+    });
+  }
+
+  @Get(':id/hosting-restore/status')
+  async hostingRestoreStatus(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+  ) {
+    return this.hostingRestore.latestForSubscription(id, user.userId, false);
   }
 
   @Get(':id/health')

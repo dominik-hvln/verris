@@ -13,6 +13,8 @@ import type {
   TasksAgentInstallScriptDto,
   NodeAuditReportDto,
   NodeRepairResultDto,
+  NodeNameserversDto,
+  UpdateNameserversInput,
 } from "@verris/contracts";
 import { adminApi, AdminApiError } from "@/lib/api";
 
@@ -159,6 +161,101 @@ export async function fetchNodeAudit(id: string) {
   } catch (err) {
     return { error: extractError(err), data: null };
   }
+}
+
+export async function fetchNodeNameservers(id: string) {
+  try {
+    return { data: await adminApi<NodeNameserversDto>(`/admin/servers/${id}/nameservers`) };
+  } catch (err) {
+    return { data: null, error: extractError(err) };
+  }
+}
+
+export async function updateNodeNameservers(id: string, input: UpdateNameserversInput) {
+  try {
+    const data = await adminApi<NodeNameserversDto>(`/admin/servers/${id}/nameservers`, {
+      method: "PATCH",
+      body: input,
+    });
+    revalidatePath(`/nodes/${id}`);
+    return { data };
+  } catch (err) {
+    return { data: null, error: extractError(err) };
+  }
+}
+
+export interface NodeAccountRow {
+  id: string;
+  daUsername: string;
+  domain: string;
+  status: string;
+  cpuLimit: number;
+  ramLimitMb: number;
+  diskLimitMb: number;
+  scaledCpu: number;
+  scaledRamMb: number;
+  scaledDiskMb: number;
+  subscriptionId: string;
+  subscriptionStatus: string | null;
+  planName: string | null;
+  ownerEmail: string | null;
+  latest: null | {
+    bucketStart: string;
+    cpuUsageAvg: number;
+    memUsageAvgMb: number;
+    diskUsageMb: number;
+    ioUsageKbps: number;
+  };
+}
+
+export interface NodeAccountsResponse {
+  serverId: string;
+  count: number;
+  accounts: NodeAccountRow[];
+}
+
+export interface NodeUsageResponse {
+  window: string;
+  server: {
+    id: string;
+    name: string | null;
+    ipAddress: string | null;
+    hostname: string | null;
+    totalCpuCores: number | null;
+    totalMemoryMb: number | null;
+    totalDiskMb: number | null;
+    allocatedCpu: number;
+    allocatedMemory: number;
+    allocatedDisk: number;
+  };
+  accountCount: number;
+  activeAccountCount: number;
+  scaledTotals: { cpu: number; ramMb: number; diskMb: number };
+  series: Array<{
+    bucketStart: string;
+    cpuUsageAvg: number;
+    memUsageAvgMb: number;
+    diskUsageMb: number;
+    ioUsageKbps: number;
+  }>;
+  latest: null | {
+    bucketStart: string;
+    cpuUsageAvg: number;
+    memUsageAvgMb: number;
+    diskUsageMb: number;
+    ioUsageKbps: number;
+  };
+}
+
+export async function fetchNodeAccounts(id: string): Promise<NodeAccountsResponse> {
+  return adminApi<NodeAccountsResponse>(`/admin/servers/${id}/accounts`);
+}
+
+export async function fetchNodeUsage(
+  id: string,
+  window: "24h" | "7d" = "24h",
+): Promise<NodeUsageResponse> {
+  return adminApi<NodeUsageResponse>(`/admin/servers/${id}/usage?window=${window}`);
 }
 
 export async function repairNode(id: string, actionId: string, confirm?: string) {

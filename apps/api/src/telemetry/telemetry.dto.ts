@@ -1,6 +1,7 @@
 import {
   ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsInt,
   IsISO8601,
   IsNotEmpty,
@@ -53,11 +54,32 @@ export class AccountMetricsDto {
   bucketStart?: string;
 }
 
+/**
+ * Node-level runtime status reported by the agent every cycle (independent of
+ * per-account telemetry, so it flows even when the node has no hosting
+ * accounts yet). Feeds the node audit "CageFS" check.
+ */
+export class NodeStatusDto {
+  /** Whether CloudLinux CageFS is enabled on the node (cagefsctl --cagefs-status). */
+  @IsOptional() @IsBoolean()
+  cagefsEnabled?: boolean;
+
+  /** Number of accounts currently caged (cagefsctl --list-enabled). */
+  @IsOptional() @IsInt() @Min(0)
+  cagefsEnabledCount?: number;
+}
+
 export class CloudLinuxTelemetryDto {
   // serverId is authoritative from X-Server-Id; kept optional for self-tests.
   @IsOptional()
   @IsString()
   serverId?: string;
+
+  /** Node-level runtime status (CageFS etc.), reported each agent cycle. */
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => NodeStatusDto)
+  node?: NodeStatusDto;
 
   /**
    * Bucket length in seconds. The agent typically pushes 60 s buckets every

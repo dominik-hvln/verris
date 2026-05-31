@@ -16,12 +16,21 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { DirectAdminService } from '../servers/directadmin.service';
 import { MailerService } from '../mail/mailer.service';
-import { autoscalingScaleUpTemplate } from '../mail/templates/autoscaling-notifications';
+import {
+  AutoscalingEndReason,
+  AutoscalingResourceDelta,
+  autoscalingEndedTemplate,
+  autoscalingStartedTemplate,
+} from '../mail/templates/autoscaling-notifications';
 import {
   hourlyCostForCatalogAmounts,
   scaledDiskMbToCatalogGb,
   scaledRamMbToCatalogGb,
 } from './autoscaling-pricing.util';
+import {
+  AutoscalingBillingService,
+  BILLING_BLOCK_MINUTES,
+} from './autoscaling-billing.service';
 
 /**
  * Autoscaling engine — scales CPU, RAM and disk when sustained pressure
@@ -49,6 +58,7 @@ export class AutoscalingEngineService {
     private readonly da: DirectAdminService,
     private readonly mailer: MailerService,
     private readonly config: ConfigService,
+    private readonly billing: AutoscalingBillingService,
   ) {}
 
   @Cron(CronExpression.EVERY_MINUTE, { name: 'autoscaling-engine' })
@@ -278,12 +288,23 @@ export class AutoscalingEngineService {
   ) {
     if (!sub.account) return;
 
+    const now = new Date();
     const baseCpu = sub.plan.cpuLimit;
     const baseRam = sub.plan.ramLimitMb;
     const baseDisk = sub.plan.diskLimitMb;
     const newCpuLimit = baseCpu + opts.nextScaledCpu;
     const newRamLimit = baseRam + opts.nextScaledRamMb;
     const newDiskLimit = baseDisk + opts.nextScaledDiskMb;
+
+    const wasScaled =
+      sub.account.scaledCpu > 0 ||
+      sub.account.scaledRamMb > 0 ||
+      sub.account.scaledDiskMb > 0;
+    const nowScaled =
+      opts.nextScaledCpu > 0 || opts.nextScaledRamMb > 0 || opts.nextScaledDiskMb > 0;
+    const episodeStart = !wasScaled && nowScaled;
+    const episodeEnd = wasScaled && !nowScaled;
+    const episodeSince = sub.account.scaledSince;
 
     try {
       const client = await this.da.getClientForServer(sub.account.serverId);
@@ -314,6 +335,9 @@ export class AutoscalingEngineService {
           cpuLimit: newCpuLimit,
           ramLimitMb: newRamLimit,
           diskLimitMb: newDiskLimit,
+          // Open/close the block-billing episode in lockstep with the delta.
+          ...(episodeStart ? { scaledSince: now, scaledBilledUntil: now } : {}),
+          ...(episodeEnd ? { scaledSince: null, scaledBilledUntil: null } : {}),
         },
       });
 
@@ -398,66 +422,109 @@ export class AutoscalingEngineService {
       },
     });
 
-    if (opts.direction === AutoscalingDirection.UP && !opts.disable && sub.account) {
-      const panelUrl =
-        this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl';
-      const domain = sub.account.domain;
-      const notify: Array<{
-        resource: AutoscalingResource;
-        from: number;
-        to: number;
-      }> = [];
-      if (sub.account.scaledCpu !== opts.nextScaledCpu) {
-        notify.push({
-          resource: AutoscalingResource.CPU,
-          from: sub.account.scaledCpu,
-          to: opts.nextScaledCpu,
-        });
+    // Bill immediately while scaled so even a brief spike that reverts before
+    // the next cron tick still pays its first 15-minute block. Idempotent with
+    // the scheduler, so this never double-bills.
+    if (nowScaled) {
+      try {
+        await this.billing.billDueBlocks(
+          {
+            id: sub.account.id,
+            subscriptionId: sub.id,
+            userId: sub.userId,
+            domain: sub.account.domain,
+            scaledCpu: opts.nextScaledCpu,
+            scaledRamMb: opts.nextScaledRamMb,
+            scaledDiskMb: opts.nextScaledDiskMb,
+            scaledSince: episodeStart ? now : episodeSince,
+            scaledBilledUntil: episodeStart ? now : sub.account.scaledBilledUntil,
+          },
+          opts.rules,
+          now,
+        );
+      } catch (err) {
+        this.logger.error(
+          `Autoscaling immediate block billing failed sub=${sub.id}: ${(err as Error).message}`,
+        );
       }
-      if (sub.account.scaledRamMb !== opts.nextScaledRamMb) {
-        notify.push({
-          resource: AutoscalingResource.RAM,
-          from: sub.account.scaledRamMb,
-          to: opts.nextScaledRamMb,
-        });
-      }
-      if (sub.account.scaledDiskMb !== opts.nextScaledDiskMb) {
-        notify.push({
-          resource: AutoscalingResource.DISK,
-          from: sub.account.scaledDiskMb,
-          to: opts.nextScaledDiskMb,
-        });
-      }
-      // Estimated hourly cost of the new total autoscaling delta (billed hourly
-      // from the wallet). Surfaced in the email so the customer sees the rate.
+    }
+
+    const panelUrl =
+      this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl';
+    const autoscalingUrl = `${panelUrl}/dashboard/services/${sub.id}/autoscaling`;
+    const domain = sub.account.domain;
+
+    // ONE email when the episode begins (no per-resource / per-tick spam).
+    if (episodeStart && !opts.disable) {
+      const deltas: AutoscalingResourceDelta[] = [];
+      if (opts.nextScaledCpu > 0)
+        deltas.push({ resource: AutoscalingResource.CPU, toValue: opts.nextScaledCpu });
+      if (opts.nextScaledRamMb > 0)
+        deltas.push({ resource: AutoscalingResource.RAM, toValue: opts.nextScaledRamMb });
+      if (opts.nextScaledDiskMb > 0)
+        deltas.push({ resource: AutoscalingResource.DISK, toValue: opts.nextScaledDiskMb });
       const hourlyCostPln = this.estimateHourlyCost(
         opts.rules,
         opts.nextScaledCpu,
         opts.nextScaledRamMb,
         opts.nextScaledDiskMb,
       );
-      for (const item of notify) {
-        void this.mailer
-          .send(
-            autoscalingScaleUpTemplate({
-              to: sub.user.email,
-              userId: sub.userId,
-              firstName: sub.user.firstName,
-              domain,
-              resource: item.resource,
-              fromValue: item.from,
-              toValue: item.to,
-              hourlyCostPln,
-              panelUrl,
-              autoscalingUrl: `${panelUrl}/dashboard/services/${sub.id}/autoscaling`,
-            }),
-          )
-          .catch((err) => {
-            this.logger.warn(
-              `Autoscaling scale-up mail failed sub=${sub.id} resource=${item.resource}: ${(err as Error).message}`,
-            );
-          });
-      }
+      void this.mailer
+        .send(
+          autoscalingStartedTemplate({
+            to: sub.user.email,
+            userId: sub.userId,
+            firstName: sub.user.firstName,
+            domain,
+            deltas,
+            hourlyCostPln,
+            blockCostPln: hourlyCostPln * (BILLING_BLOCK_MINUTES / 60),
+            blockMinutes: BILLING_BLOCK_MINUTES,
+            panelUrl,
+            autoscalingUrl,
+          }),
+        )
+        .catch((err) => {
+          this.logger.warn(
+            `Autoscaling started mail failed sub=${sub.id}: ${(err as Error).message}`,
+          );
+        });
+    }
+
+    // ONE summary email when everything returns to the baseline plan.
+    if (episodeEnd) {
+      const durationMinutes = episodeSince
+        ? (now.getTime() - episodeSince.getTime()) / 60_000
+        : BILLING_BLOCK_MINUTES;
+      const totalCostPln = episodeSince
+        ? await this.billing.episodeSpendPln(sub.id, episodeSince).catch(() => 0)
+        : 0;
+      const reason: AutoscalingEndReason = opts.disable
+        ? opts.reason.startsWith('cap_reached')
+          ? 'CAP_REACHED'
+          : opts.reason.startsWith('wallet_empty')
+            ? 'WALLET_EMPTY'
+            : 'AUTO_DISABLED'
+        : 'RELAXED';
+      void this.mailer
+        .send(
+          autoscalingEndedTemplate({
+            to: sub.user.email,
+            userId: sub.userId,
+            firstName: sub.user.firstName,
+            domain,
+            durationMinutes,
+            totalCostPln,
+            reason,
+            panelUrl,
+            autoscalingUrl,
+          }),
+        )
+        .catch((err) => {
+          this.logger.warn(
+            `Autoscaling ended mail failed sub=${sub.id}: ${(err as Error).message}`,
+          );
+        });
     }
   }
 

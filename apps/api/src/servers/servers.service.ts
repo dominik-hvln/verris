@@ -11,11 +11,13 @@ import { CryptoService } from '../common/crypto/crypto.service';
 import { AuditService } from '../common/audit/audit.service';
 import { BootstrapTokenService } from './bootstrap-token.service';
 import { DirectAdminService } from './directadmin.service';
-import { Prisma, ServerStatus } from '@verris/database';
+import { Prisma, Server, ServerStatus } from '@verris/database';
 import { InitServerDto } from './dto/init-server.dto';
 import { HandshakeDto } from './dto/handshake.dto';
 import { UpdateServerDto } from './dto/update-server.dto';
 import { UpdateDirectAdminConfigDto } from './dto/directadmin-config.dto';
+import { UpdateNameserversDto } from './dto/nameservers.dto';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 import { renderBootstrapNodeTasksInstallFragment, renderNodeDeploySshKeyBootstrapCall, renderProbesTasksHook } from './node-tasks-agent.install';
 
 @Injectable()
@@ -29,7 +31,75 @@ export class ServersService {
     private readonly tokens: BootstrapTokenService,
     private readonly directAdmin: DirectAdminService,
     private readonly config: ConfigService,
+    private readonly platformSettings: PlatformSettingsService,
   ) {}
+
+  /**
+   * Resolves the authoritative nameservers handed to accounts on a node:
+   * per-node override (Server.ns1/2/3) wins, otherwise the platform default
+   * (PlatformSetting `hosting.ns*` → env HOSTING_NS*). `source` tells the admin
+   * UI which level supplied them.
+   */
+  async resolveNameservers(
+    server: Pick<Server, 'ns1' | 'ns2' | 'ns3'>,
+  ): Promise<{ ns1: string; ns2: string; ns3: string; source: 'node' | 'platform' | 'none' }> {
+    const nodeNs = [server.ns1, server.ns2, server.ns3].map((v) => (v ?? '').trim());
+    if (nodeNs[0] && nodeNs[1]) {
+      return { ns1: nodeNs[0], ns2: nodeNs[1], ns3: nodeNs[2] ?? '', source: 'node' };
+    }
+    const platform = await this.platformSettings.getHostingNameservers();
+    if (platform.ns1 && platform.ns2) {
+      return { ...platform, source: 'platform' };
+    }
+    return { ns1: '', ns2: '', ns3: '', source: 'none' };
+  }
+
+  async getNodeNameservers(id: string) {
+    const server = await this.prisma.server.findUnique({
+      where: { id },
+      select: { id: true, ns1: true, ns2: true, ns3: true },
+    });
+    if (!server) throw new NotFoundException('Server not found');
+    const [effective, platformDefault] = await Promise.all([
+      this.resolveNameservers(server),
+      this.platformSettings.getHostingNameservers(),
+    ]);
+    return {
+      serverId: server.id,
+      ns1: server.ns1,
+      ns2: server.ns2,
+      ns3: server.ns3,
+      effective,
+      platformDefault,
+    };
+  }
+
+  async setNodeNameservers(id: string, dto: UpdateNameserversDto, actorUserId: string) {
+    const server = await this.prisma.server.findUnique({ where: { id } });
+    if (!server) throw new NotFoundException('Server not found');
+
+    const ns1 = normaliseNs(dto.ns1);
+    const ns2 = normaliseNs(dto.ns2);
+    const ns3 = normaliseNs(dto.ns3);
+    if ((ns1 && !ns2) || (!ns1 && ns2)) {
+      throw new BadRequestException(
+        'Podaj oba ns1 i ns2 (DirectAdmin honoruje NS konta tylko gdy oba są ustawione) lub wyczyść oba, by dziedziczyć z platformy.',
+      );
+    }
+
+    await this.prisma.server.update({
+      where: { id },
+      data: { ns1: ns1 || null, ns2: ns2 || null, ns3: ns3 || null },
+    });
+
+    await this.audit.record({
+      action: 'SERVER_NAMESERVERS_UPDATED',
+      actorUserId,
+      details: { serverId: id, ns1, ns2, ns3 },
+    });
+
+    return this.getNodeNameservers(id);
+  }
 
   // ---------------------------------------------------------------------------
   // Admin: lifecycle
@@ -316,6 +386,178 @@ export class ServersService {
     return this.toPublicServer(server);
   }
 
+  /**
+   * Admin per-node drill-down: every hosting account placed on this node with
+   * its owner, plan, effective + scaled limits and most recent telemetry
+   * bucket. Powers the "Konta na węźle" table on the node detail page.
+   */
+  async getNodeAccounts(id: string) {
+    const server = await this.prisma.server.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!server) throw new NotFoundException('Server not found');
+
+    const accounts = await this.prisma.account.findMany({
+      where: { serverId: id },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        daUsername: true,
+        domain: true,
+        status: true,
+        cpuLimit: true,
+        ramLimitMb: true,
+        diskLimitMb: true,
+        scaledCpu: true,
+        scaledRamMb: true,
+        scaledDiskMb: true,
+        subscriptionId: true,
+        subscription: {
+          select: { id: true, status: true, plan: { select: { name: true } } },
+        },
+        user: { select: { id: true, email: true } },
+      },
+    });
+
+    const latest = await Promise.all(
+      accounts.map((a) =>
+        this.prisma.usageMetric.findFirst({
+          where: { subscriptionId: a.subscriptionId },
+          orderBy: { bucketStart: 'desc' },
+          select: {
+            bucketStart: true,
+            cpuUsageAvg: true,
+            memUsageAvgMb: true,
+            diskUsageMb: true,
+            ioUsageKbps: true,
+          },
+        }),
+      ),
+    );
+
+    return {
+      serverId: id,
+      count: accounts.length,
+      accounts: accounts.map((a, i) => ({
+        id: a.id,
+        daUsername: a.daUsername,
+        domain: a.domain,
+        status: a.status,
+        cpuLimit: a.cpuLimit,
+        ramLimitMb: a.ramLimitMb,
+        diskLimitMb: a.diskLimitMb,
+        scaledCpu: a.scaledCpu,
+        scaledRamMb: a.scaledRamMb,
+        scaledDiskMb: a.scaledDiskMb,
+        subscriptionId: a.subscriptionId,
+        subscriptionStatus: a.subscription?.status ?? null,
+        planName: a.subscription?.plan?.name ?? null,
+        ownerEmail: a.user?.email ?? null,
+        latest: latest[i]
+          ? {
+              bucketStart: latest[i]!.bucketStart.toISOString(),
+              cpuUsageAvg: latest[i]!.cpuUsageAvg,
+              memUsageAvgMb: latest[i]!.memUsageAvgMb,
+              diskUsageMb: latest[i]!.diskUsageMb,
+              ioUsageKbps: latest[i]!.ioUsageKbps,
+            }
+          : null,
+      })),
+    };
+  }
+
+  /**
+   * Admin per-node usage aggregate: capacity + allocation + a node-wide
+   * telemetry time series (summed across every account's LVE buckets) so ops
+   * can see the real load a node is carrying, not just allocated quotas.
+   */
+  async getNodeUsage(id: string, window: '24h' | '7d' = '24h') {
+    const server = await this.prisma.server.findUnique({ where: { id } });
+    if (!server) throw new NotFoundException('Server not found');
+
+    const accounts = await this.prisma.account.findMany({
+      where: { serverId: id },
+      select: {
+        subscriptionId: true,
+        status: true,
+        scaledCpu: true,
+        scaledRamMb: true,
+        scaledDiskMb: true,
+      },
+    });
+    const subIds = accounts.map((a) => a.subscriptionId);
+
+    const hours = window === '7d' ? 24 * 7 : 24;
+    const since = new Date(Date.now() - hours * 60 * 60 * 1000);
+    const rows = subIds.length
+      ? await this.prisma.usageMetric.findMany({
+          where: { subscriptionId: { in: subIds }, bucketStart: { gte: since } },
+          orderBy: { bucketStart: 'asc' },
+          select: {
+            bucketStart: true,
+            cpuUsageAvg: true,
+            memUsageAvgMb: true,
+            diskUsageMb: true,
+            ioUsageKbps: true,
+          },
+        })
+      : [];
+
+    const buckets = new Map<
+      string,
+      { cpuUsageAvg: number; memUsageAvgMb: number; diskUsageMb: number; ioUsageKbps: number }
+    >();
+    for (const row of rows) {
+      const key = row.bucketStart.toISOString();
+      const acc = buckets.get(key) ?? {
+        cpuUsageAvg: 0,
+        memUsageAvgMb: 0,
+        diskUsageMb: 0,
+        ioUsageKbps: 0,
+      };
+      acc.cpuUsageAvg += row.cpuUsageAvg;
+      acc.memUsageAvgMb += row.memUsageAvgMb;
+      acc.diskUsageMb += row.diskUsageMb;
+      acc.ioUsageKbps += row.ioUsageKbps;
+      buckets.set(key, acc);
+    }
+    const series = [...buckets.entries()]
+      .map(([bucketStart, v]) => ({
+        bucketStart,
+        cpuUsageAvg: Math.round(v.cpuUsageAvg * 10) / 10,
+        memUsageAvgMb: Math.round(v.memUsageAvgMb),
+        diskUsageMb: Math.round(v.diskUsageMb),
+        ioUsageKbps: Math.round(v.ioUsageKbps),
+      }))
+      .sort((a, b) => a.bucketStart.localeCompare(b.bucketStart));
+
+    return {
+      window,
+      server: {
+        id: server.id,
+        name: server.name,
+        ipAddress: server.ipAddress,
+        hostname: server.hostname,
+        totalCpuCores: server.totalCpuCores,
+        totalMemoryMb: server.totalMemoryMb,
+        totalDiskMb: server.totalDiskMb,
+        allocatedCpu: server.allocatedCpu,
+        allocatedMemory: server.allocatedMemory,
+        allocatedDisk: server.allocatedDisk,
+      },
+      accountCount: accounts.length,
+      activeAccountCount: accounts.filter((a) => a.status === 'ACTIVE').length,
+      scaledTotals: {
+        cpu: accounts.reduce((s, a) => s + a.scaledCpu, 0),
+        ramMb: accounts.reduce((s, a) => s + a.scaledRamMb, 0),
+        diskMb: accounts.reduce((s, a) => s + a.scaledDiskMb, 0),
+      },
+      series,
+      latest: series.at(-1) ?? null,
+    };
+  }
+
   async updateServer(id: string, dto: UpdateServerDto, actorUserId: string) {
     const server = await this.prisma.server.findUnique({ where: { id } });
     if (!server) throw new NotFoundException('Server not found');
@@ -460,6 +702,16 @@ export class ServersService {
       daPasswordSet: Boolean(_enc),
     };
   }
+}
+
+/** Lowercases + trims a nameserver hostname; '' when blank/invalid. */
+function normaliseNs(raw?: string): string {
+  const v = (raw ?? '').trim().toLowerCase().replace(/\.$/, '');
+  if (!v) return '';
+  if (!/^(?=.{1,253}$)([a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/.test(v)) {
+    throw new BadRequestException(`Nieprawidłowy hostname serwera nazw: "${raw}".`);
+  }
+  return v;
 }
 
 function renderBootstrapScript(opts: {

@@ -27,6 +27,9 @@ export interface CreateAccountInput {
   notify?: 'yes' | 'no';
   /** Default panel language for the new account (e.g. `pl`). */
   language?: string;
+  /** Authoritative nameservers for the account's zone (DA ns1/ns2). */
+  ns1?: string;
+  ns2?: string;
 }
 
 /** A numeric DA package limit that may instead be "unlimited". */
@@ -372,6 +375,12 @@ export class DirectAdminClient {
       notify: input.notify ?? 'no',
     };
     if (input.language) body.language = input.language;
+    // Authoritative NS for the new account's zone. DA only honours these when
+    // both are present; otherwise it falls back to the server's NS config.
+    if (input.ns1 && input.ns2) {
+      body.ns1 = input.ns1;
+      body.ns2 = input.ns2;
+    }
     const response = await this.client.post(
       '/CMD_API_ACCOUNT_USER',
       new URLSearchParams(body).toString(),

@@ -99,7 +99,7 @@ function ChargeRow({ charge }: { charge: AutoscalingChargeDto }) {
         <div className="min-w-0">
           <div className="text-sm font-semibold text-white">Naliczenie autoskalowania</div>
           <div className="text-[11px] text-neutral-400 truncate">
-            {charge.description ?? 'Hourly autoscaling charge'}
+            {charge.description ?? 'Naliczenie autoskalowania (blok 15 min)'}
           </div>
         </div>
       </div>

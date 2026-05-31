@@ -9,8 +9,10 @@ import { ServerIdentityGuard } from './guards/server-identity.guard';
 import { DirectAdminService } from './directadmin.service';
 import { NodeTasksService } from './node-tasks.service';
 import { NodeAuditService } from './node-audit.service';
+import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 
 @Module({
+  imports: [PlatformSettingsModule],
   controllers: [ServersController, ServersAdminController, NodeTasksAgentController],
   providers: [
     ServersService,

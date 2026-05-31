@@ -1,25 +1,53 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { DomainRegistrarOrderStatus, DomainRegistrarOrderType, DomainStatus, Prisma } from '@verris/database';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import {
+  DomainRegistrarOrder,
+  DomainRegistrarOrderStatus,
+  DomainRegistrarOrderType,
+  DomainStatus,
+  Prisma,
+  WalletTxType,
+} from '@verris/database';
 import { createHash } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { CryptoService } from '../common/crypto/crypto.service';
-import { RegistrarProviderFactory } from './registrar.provider';
+import { WalletLedgerService } from '../billing/wallet-ledger.service';
+import {
+  RegistrarOperation,
+  RegistrarOrderResult,
+  RegistrarProviderFactory,
+} from './registrar.provider';
 
 @Injectable()
 export class DomainRegistrarService {
+  private readonly logger = new Logger(DomainRegistrarService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly crypto: CryptoService,
     private readonly providerFactory: RegistrarProviderFactory,
+    private readonly wallet: WalletLedgerService,
+    private readonly config: ConfigService,
   ) {}
 
   async availability(name: string) {
-    return this.providerFactory.get().availability(normalizeDomain(name));
+    const provider = this.providerFactory.get();
+    const availability = await provider.availability(normalizeDomain(name));
+    // Surface the *customer* price (reseller cost × markup), not the raw cost.
+    if (availability.priceAmount) {
+      const customer = this.applyMarkup(availability.priceAmount);
+      return { ...availability, priceAmount: customer.amount, currency: availability.currency };
+    }
+    return availability;
   }
 
-  async register(userId: string, actorUserId: string, input: { name: string; years?: number; nameservers?: string[] }) {
+  async register(
+    userId: string,
+    actorUserId: string,
+    input: { name: string; years?: number; nameservers?: string[] },
+  ) {
     const domain = normalizeDomain(input.name);
     const provider = this.providerFactory.get();
     const availability = await provider.availability(domain);
@@ -28,14 +56,42 @@ export class DomainRegistrarService {
     }
     const years = input.years ?? 1;
     const nameservers = sanitizeNameservers(input.nameservers);
-    const result = await provider.register({ domain, years, nameservers });
-    const row = await this.prisma.$transaction(async (tx) => {
-      const domainRow = await tx.domain.upsert({
+
+    const price = await this.resolvePrice(provider, domain, years, 'register', availability.priceAmount);
+
+    // 1. Create the order first so the wallet charge has a stable idempotency anchor.
+    const order = await this.prisma.domainRegistrarOrder.create({
+      data: {
+        domainName: domain,
+        type: DomainRegistrarOrderType.REGISTER,
+        status: DomainRegistrarOrderStatus.QUEUED,
+        userId,
+        years,
+        nameservers,
+        priceAmount: new Prisma.Decimal(price.amount),
+        currency: price.currency,
+      },
+    });
+
+    // 2. Charge the wallet (fail-closed: no funds → no registration).
+    const tx = await this.charge(userId, order, price, `Rejestracja domeny ${domain} (${years} lata/lat)`);
+
+    // 3. Call the registrar; refund + fail the order on provider error.
+    let result: RegistrarOrderResult;
+    try {
+      result = await provider.register({ domain, years, nameservers });
+    } catch (err) {
+      await this.refundAndFail(userId, order, tx.id, err, price);
+      throw err;
+    }
+
+    const completed = await this.prisma.$transaction(async (db) => {
+      const domainRow = await db.domain.upsert({
         where: { name: domain },
         create: {
           name: domain,
           userId,
-          status: DomainStatus.PENDING,
+          status: DomainStatus.ACTIVE,
           registrarProvider: result.provider,
           registrarExternalId: result.externalDomainId,
           registrarStatus: 'REGISTERED',
@@ -51,60 +107,97 @@ export class DomainRegistrarService {
           lastRegistrarSyncAt: new Date(),
         },
       });
-      return tx.domainRegistrarOrder.create({
+      return db.domainRegistrarOrder.update({
+        where: { id: order.id },
         data: {
-          domainName: domain,
-          type: DomainRegistrarOrderType.REGISTER,
           status: DomainRegistrarOrderStatus.COMPLETED,
           provider: result.provider,
           providerOrderId: result.providerOrderId,
           domainId: domainRow.id,
-          userId,
-          years,
-          nameservers,
-          priceAmount: availability.priceAmount ? new Prisma.Decimal(availability.priceAmount) : undefined,
-          currency: availability.currency ?? 'PLN',
           submittedAt: new Date(),
           completedAt: new Date(),
         },
       });
     });
+
     await this.audit.record({
       action: 'DOMAIN_REGISTRAR_REGISTERED',
       userId,
       actorUserId,
-      details: { orderId: row.id, domain, provider: result.provider, years },
+      details: {
+        orderId: completed.id,
+        domain,
+        provider: result.provider,
+        years,
+        priceAmount: price.amount,
+        currency: price.currency,
+        walletTxId: tx.id,
+      },
     });
-    return row;
+    return completed;
   }
 
-  async transfer(userId: string, actorUserId: string, input: { name: string; authCode: string; years?: number; nameservers?: string[] }) {
+  async transfer(
+    userId: string,
+    actorUserId: string,
+    input: { name: string; authCode: string; years?: number; nameservers?: string[] },
+  ) {
     const domain = normalizeDomain(input.name);
     const provider = this.providerFactory.get();
     const years = input.years ?? 1;
     const nameservers = sanitizeNameservers(input.nameservers);
-    const result = await provider.transfer({ domain, years, nameservers, authCode: input.authCode });
+
+    const price = await this.resolvePrice(provider, domain, years, 'transfer');
+
     const order = await this.prisma.domainRegistrarOrder.create({
       data: {
         domainName: domain,
         type: DomainRegistrarOrderType.TRANSFER,
-        status: DomainRegistrarOrderStatus.SUBMITTED,
-        provider: result.provider,
-        providerOrderId: result.providerOrderId,
+        status: DomainRegistrarOrderStatus.QUEUED,
         authCodeEnc: this.crypto.encrypt(input.authCode),
         userId,
         years,
         nameservers,
+        priceAmount: new Prisma.Decimal(price.amount),
+        currency: price.currency,
+      },
+    });
+
+    const tx = await this.charge(userId, order, price, `Transfer domeny ${domain}`);
+
+    let result: RegistrarOrderResult;
+    try {
+      result = await provider.transfer({ domain, years, nameservers, authCode: input.authCode });
+    } catch (err) {
+      await this.refundAndFail(userId, order, tx.id, err, price);
+      throw err;
+    }
+
+    const submitted = await this.prisma.domainRegistrarOrder.update({
+      where: { id: order.id },
+      data: {
+        status: DomainRegistrarOrderStatus.SUBMITTED,
+        provider: result.provider,
+        providerOrderId: result.providerOrderId,
         submittedAt: new Date(),
       },
     });
+
     await this.audit.record({
       action: 'DOMAIN_REGISTRAR_TRANSFER_SUBMITTED',
       userId,
       actorUserId,
-      details: { orderId: order.id, domain, provider: result.provider, authCodeHash: hashSecret(input.authCode) },
+      details: {
+        orderId: submitted.id,
+        domain,
+        provider: result.provider,
+        priceAmount: price.amount,
+        currency: price.currency,
+        walletTxId: tx.id,
+        authCodeHash: hashSecret(input.authCode),
+      },
     });
-    return order;
+    return submitted;
   }
 
   async orders(userId: string) {
@@ -121,6 +214,7 @@ export class DomainRegistrarService {
         years: true,
         priceAmount: true,
         currency: true,
+        walletTxId: true,
         lastError: true,
         createdAt: true,
         submittedAt: true,
@@ -133,28 +227,170 @@ export class DomainRegistrarService {
     const domain = await this.prisma.domain.findFirst({ where: { id: domainId, userId } });
     if (!domain) throw new NotFoundException('Domena nie została znaleziona.');
     const provider = this.providerFactory.get();
-    const result = await provider.renew({ domain: domain.name, years, externalId: domain.registrarExternalId });
+
+    const price = await this.resolvePrice(provider, domain.name, years, 'renew');
+
     const order = await this.prisma.domainRegistrarOrder.create({
       data: {
         domainName: domain.name,
         type: DomainRegistrarOrderType.RENEW,
-        status: DomainRegistrarOrderStatus.COMPLETED,
-        provider: result.provider,
-        providerOrderId: result.providerOrderId,
+        status: DomainRegistrarOrderStatus.QUEUED,
         userId,
         domainId: domain.id,
         years,
-        submittedAt: new Date(),
-        completedAt: new Date(),
+        priceAmount: new Prisma.Decimal(price.amount),
+        currency: price.currency,
       },
     });
+
+    const tx = await this.charge(userId, order, price, `Odnowienie domeny ${domain.name} (${years} lata/lat)`);
+
+    let result: RegistrarOrderResult;
+    try {
+      result = await provider.renew({
+        domain: domain.name,
+        years,
+        externalId: domain.registrarExternalId,
+      });
+    } catch (err) {
+      await this.refundAndFail(userId, order, tx.id, err, price);
+      throw err;
+    }
+
+    const completed = await this.prisma.$transaction(async (db) => {
+      if (result.expiresAt) {
+        await db.domain.update({
+          where: { id: domain.id },
+          data: { expiresAt: new Date(result.expiresAt), lastRegistrarSyncAt: new Date() },
+        });
+      }
+      return db.domainRegistrarOrder.update({
+        where: { id: order.id },
+        data: {
+          status: DomainRegistrarOrderStatus.COMPLETED,
+          provider: result.provider,
+          providerOrderId: result.providerOrderId,
+          submittedAt: new Date(),
+          completedAt: new Date(),
+        },
+      });
+    });
+
     await this.audit.record({
       action: 'DOMAIN_REGISTRAR_RENEWED',
       userId,
       actorUserId,
-      details: { orderId: order.id, domainId, years },
+      details: {
+        orderId: completed.id,
+        domainId,
+        years,
+        priceAmount: price.amount,
+        currency: price.currency,
+        walletTxId: tx.id,
+      },
     });
-    return order;
+    return completed;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Billing helpers
+  // ---------------------------------------------------------------------------
+
+  /** Resolves the customer price (reseller cost × markup) for an operation. */
+  private async resolvePrice(
+    provider: ReturnType<RegistrarProviderFactory['get']>,
+    domain: string,
+    years: number,
+    operation: RegistrarOperation,
+    fallbackCost?: string | null,
+  ): Promise<{ amount: string; currency: string }> {
+    try {
+      const p = await provider.price({ domain, years, operation });
+      return this.applyMarkup(p.amount, p.currency);
+    } catch (err) {
+      if (fallbackCost) {
+        return this.applyMarkup(fallbackCost);
+      }
+      this.logger.error(
+        `Brak ceny rejestratora dla ${domain}/${operation}: ${(err as Error).message}`,
+      );
+      throw new BadRequestException('Nie udało się ustalić ceny domeny u rejestratora.');
+    }
+  }
+
+  private applyMarkup(rawAmount: string | number, currency = 'PLN'): { amount: string; currency: string } {
+    const markup = Number.parseFloat(this.config.get<string>('DOMAIN_PRICE_MARKUP') ?? '1.0');
+    const factor = Number.isFinite(markup) && markup > 0 ? markup : 1.0;
+    const amount = new Prisma.Decimal(rawAmount).mul(factor).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+    return { amount: amount.toFixed(2), currency };
+  }
+
+  private async charge(
+    userId: string,
+    order: DomainRegistrarOrder,
+    price: { amount: string; currency: string },
+    description: string,
+  ) {
+    try {
+      const tx = await this.wallet.debit({
+        userId,
+        amount: price.amount,
+        type: WalletTxType.CHARGE_DOMAIN,
+        description,
+        idempotencyKey: `domain-${order.type.toLowerCase()}:${order.id}`,
+        metadata: { orderId: order.id, domain: order.domainName, years: order.years } as Prisma.InputJsonValue,
+      });
+      await this.prisma.domainRegistrarOrder.update({
+        where: { id: order.id },
+        data: { walletTxId: tx.id },
+      });
+      return tx;
+    } catch (err) {
+      await this.prisma.domainRegistrarOrder.update({
+        where: { id: order.id },
+        data: {
+          status: DomainRegistrarOrderStatus.PENDING_PAYMENT,
+          lastError: (err as Error).message.slice(0, 1000),
+        },
+      });
+      throw new BadRequestException(
+        'Brak wystarczających środków w portfelu na opłacenie domeny. Doładuj portfel i spróbuj ponownie.',
+      );
+    }
+  }
+
+  private async refundAndFail(
+    userId: string,
+    order: DomainRegistrarOrder,
+    walletTxId: string,
+    err: unknown,
+    price: { amount: string; currency: string },
+  ): Promise<void> {
+    const message = err instanceof Error ? err.message : String(err);
+    this.logger.error(`Registrar ${order.type} ${order.domainName} failed, refunding: ${message}`);
+    try {
+      await this.wallet.credit({
+        userId,
+        amount: price.amount,
+        type: WalletTxType.REFUND,
+        description: `Zwrot za nieudaną operację domeny ${order.domainName}`,
+        idempotencyKey: `domain-${order.type.toLowerCase()}-refund:${order.id}`,
+        metadata: { orderId: order.id, originalTxId: walletTxId } as Prisma.InputJsonValue,
+      });
+    } catch (refundErr) {
+      this.logger.error(
+        `Refund failed for order=${order.id}: ${(refundErr as Error).message} — wymaga ręcznej korekty.`,
+      );
+    }
+    await this.prisma.domainRegistrarOrder.update({
+      where: { id: order.id },
+      data: { status: DomainRegistrarOrderStatus.FAILED, lastError: message.slice(0, 1000) },
+    });
+    await this.audit.record({
+      action: 'DOMAIN_REGISTRAR_FAILED',
+      userId,
+      details: { orderId: order.id, domain: order.domainName, type: order.type, error: message },
+    });
   }
 }
 

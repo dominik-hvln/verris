@@ -8,6 +8,7 @@
 #   --skip-build      pomiń długi CustomBuild rebuild (tylko ustawienia + Governor + restart LS)
 #   --preflight-only  tylko weryfikacja stosu (bez zmian)
 #   --governor-only   tylko instalacja/konfiguracja MySQL Governor (wymaga CL + działającego MySQL/MariaDB)
+#   --cagefs-only     tylko instalacja/inicjalizacja CloudLinux CageFS (izolacja kont + integracja LVE w DA)
 set -Eeuo pipefail
 
 GOVERNOR_PY="/usr/share/lve/dbgovernor/mysqlgovernor.py"
@@ -17,6 +18,7 @@ NONINTERACTIVE=0
 SKIP_BUILD=0
 PREFLIGHT_ONLY=0
 GOVERNOR_ONLY=0
+CAGEFS_ONLY=0
 
 for arg in "$@"; do
   case "$arg" in
@@ -25,6 +27,7 @@ for arg in "$@"; do
     --skip-build) SKIP_BUILD=1 ;;
     --preflight-only) PREFLIGHT_ONLY=1 ;;
     --governor-only) GOVERNOR_ONLY=1; NONINTERACTIVE=1 ;;
+    --cagefs-only) CAGEFS_ONLY=1; NONINTERACTIVE=1 ;;
   esac
 done
 
@@ -33,6 +36,7 @@ PROFILE_SKIP=0
 PROFILE_WARN=0
 PROFILE_FAIL=0
 GOVERNOR_REQUIRED=1
+CAGEFS_REQUIRED=1
 
 log_ok() { echo "[OK] $*"; PROFILE_OK=$((PROFILE_OK + 1)); }
 log_skip() { echo "[SKIP] $*"; PROFILE_SKIP=$((PROFILE_SKIP + 1)); }
@@ -96,6 +100,111 @@ preflight_stack() {
     log_ok "LiteSpeed (lswsctrl)"
   else
     log_warn "LiteSpeed nie wykryty — restart LS zostanie pominięty"
+  fi
+}
+
+cagefsctl_bin() {
+  command -v cagefsctl 2>/dev/null || { [ -x /usr/sbin/cagefsctl ] && echo /usr/sbin/cagefsctl; }
+}
+
+# CageFS aktywny? cagefsctl --cagefs-status zwraca "CageFS is enabled" / "... disabled".
+cagefs_is_enabled() {
+  local bin
+  bin="$(cagefsctl_bin)" || return 1
+  [ -n "$bin" ] || return 1
+  "$bin" --cagefs-status 2>/dev/null | strip_ansi | grep -qi 'enabled'
+}
+
+# Instalacja + inicjalizacja CloudLinux CageFS (izolacja kont, wymagana dla pełnej integracji LVE w DA).
+# Idempotentne: instaluje pakiet tylko gdy brak, --init tylko gdy brak skeletonu, w przeciwnym razie --force-update.
+# Dokumentacja: https://docs.cloudlinux.com/cloudlinuxos/cloudlinux_os_components/#cagefs
+configure_cloudlinux_cagefs() {
+  echo "--- CageFS (CloudLinux) ---"
+  local bin status
+
+  if [ "$PREFLIGHT_ONLY" = "1" ]; then
+    bin="$(cagefsctl_bin)" || true
+    if [ -n "$bin" ]; then
+      status="$("$bin" --cagefs-status 2>/dev/null | strip_ansi | head -1)"
+      if cagefs_is_enabled; then
+        log_ok "CageFS aktywny (${status:-cagefsctl})"
+      else
+        log_skip "CageFS zainstalowany, nieaktywny — uruchom profil z panelu (${status:-?})"
+      fi
+    else
+      log_skip "CageFS niezainstalowany — profil hostingowy zainstaluje automatycznie"
+    fi
+    return 0
+  fi
+
+  # 1) pakiet cagefs
+  if [ -z "$(cagefsctl_bin)" ] && ! rpm -q cagefs >/dev/null 2>&1; then
+    log_info "Instalacja pakietu cagefs (repozytorium CloudLinux)…"
+    if [ "$DRY_RUN" = "1" ]; then
+      log_info "dry-run: dnf install -y cagefs"
+    elif dnf install -y cagefs 2>&1 | strip_ansi || yum install -y cagefs 2>&1 | strip_ansi; then
+      log_ok "Pakiet cagefs zainstalowany"
+    else
+      log_fail "Instalacja cagefs nie powiodła się — sprawdź licencję CL/trial i repozytoria (cldetect -i)"
+      return 0
+    fi
+  else
+    log_ok "Pakiet cagefs już zainstalowany"
+  fi
+
+  bin="$(cagefsctl_bin)" || true
+  if [ -z "$bin" ]; then
+    log_fail "Brak cagefsctl po instalacji — nie można zainicjalizować CageFS"
+    return 0
+  fi
+
+  if [ "$DRY_RUN" = "1" ]; then
+    log_info "dry-run: $bin --init && $bin --enable-all && $bin --force-update"
+    return 0
+  fi
+
+  # 2) inicjalizacja skeletonu (raz; --init bywa kosztowny, więc tylko gdy brak)
+  local did_init=0
+  if [ ! -d /usr/share/cagefs-skeleton ] || ! cagefs_is_enabled; then
+    log_info "Inicjalizacja CageFS (cagefsctl --init — może potrwać kilka minut)…"
+    if "$bin" --init 2>&1 | strip_ansi; then
+      log_ok "CageFS zainicjalizowany (cagefsctl --init)"
+      did_init=1
+    else
+      log_fail "cagefsctl --init nie powiódł się — sprawdź /var/log/cagefs.log"
+      return 0
+    fi
+  else
+    log_ok "CageFS już zainicjalizowany (skeleton + status enabled)"
+  fi
+
+  # 3) włącz CageFS dla wszystkich kont (DA mapuje użytkowników automatycznie)
+  log_info "Włączanie CageFS dla wszystkich kont (cagefsctl --enable-all)…"
+  if "$bin" --enable-all 2>&1 | strip_ansi; then
+    log_ok "CageFS włączony dla wszystkich kont (--enable-all)"
+  else
+    log_warn "cagefsctl --enable-all zwrócił błąd — sprawdź cagefsctl --list-disabled"
+  fi
+
+  # 4) odśwież skeleton po zmianach oprogramowania (gdy nie było świeżego --init)
+  if [ "$did_init" = "0" ]; then
+    log_info "Aktualizacja skeletonu CageFS (cagefsctl --force-update)…"
+    "$bin" --force-update 2>&1 | strip_ansi || log_warn "cagefsctl --force-update — częściowy błąd"
+  fi
+
+  # 5) usługa systemd
+  if systemctl list-unit-files cagefs.service >/dev/null 2>&1; then
+    systemctl enable cagefs 2>/dev/null || true
+  fi
+
+  # 6) walidacja końcowa (wzorzec walidatora Verris: udowodnij efekt)
+  status="$("$bin" --cagefs-status 2>/dev/null | strip_ansi | head -1)"
+  if cagefs_is_enabled; then
+    local enabled_n
+    enabled_n="$("$bin" --list-enabled 2>/dev/null | strip_ansi | grep -c . || echo '?')"
+    log_ok "Weryfikacja: CageFS aktywny (${status:-enabled}; kont włączonych: ${enabled_n})"
+  else
+    log_fail "Weryfikacja: CageFS nieaktywny po konfiguracji (${status:-?})"
   fi
 }
 
@@ -590,9 +699,14 @@ configure_litespeed() {
 }
 
 print_lve_info() {
-  echo "--- LVE ---"
-  log_info "Limity EP/NPROC per konto ustawia Verris przy provisioning (plan → DA)"
-  log_info "Sprawdź: lvectl list, cagefsctl --list-enabled"
+  echo "--- LVE / CageFS ---"
+  log_info "Limity EP/NPROC per konto ustawia Verris przy provisioning (plan → DA) + agent verris-lve.sh"
+  if cagefs_is_enabled; then
+    log_info "CageFS aktywny — konta izolowane, integracja LVE w DirectAdmin działa (limity pakietów egzekwowane)"
+  else
+    log_warn "CageFS nieaktywny — DA spada na limity systemd-cgroup zamiast pełnej integracji LVE"
+  fi
+  log_info "Sprawdź: lvectl list, cagefsctl --cagefs-status, cagefsctl --list-enabled"
 }
 
 print_summary() {
@@ -608,7 +722,11 @@ print_summary() {
   else
     echo "=== Profil zakończony ==="
   fi
-  if [ "$GOVERNOR_REQUIRED" = "1" ] && [ "$PREFLIGHT_ONLY" != "1" ] && [ "$DRY_RUN" != "1" ] && ! governor_is_active; then
+  if [ "$CAGEFS_REQUIRED" = "1" ] && [ "$GOVERNOR_ONLY" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ] && [ "$DRY_RUN" != "1" ] && ! cagefs_is_enabled; then
+    echo "BŁĄD: CageFS nieaktywny — wymagany dla izolacji kont i integracji LVE w DirectAdmin." >&2
+    exit_code=1
+  fi
+  if [ "$GOVERNOR_REQUIRED" = "1" ] && [ "$CAGEFS_ONLY" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ] && [ "$DRY_RUN" != "1" ] && ! governor_is_active; then
     echo "BŁĄD: MySQL Governor nieaktywny — wymagany przed LIVE provisioning." >&2
     exit_code=1
   fi
@@ -623,6 +741,17 @@ echo "Data: $(date -u +%FT%TZ)"
 echo ""
 
 preflight_stack
+
+if [ "$GOVERNOR_ONLY" != "1" ]; then
+  configure_cloudlinux_cagefs
+fi
+
+if [ "$CAGEFS_ONLY" = "1" ]; then
+  print_lve_info
+  print_summary
+  exit $?
+fi
+
 configure_cloudlinux_governor
 
 if [ "$GOVERNOR_ONLY" = "1" ]; then

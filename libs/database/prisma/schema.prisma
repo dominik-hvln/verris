@@ -308,6 +308,20 @@ model Server {
   lastHandshakeAt DateTime?
   lastHeartbeatAt DateTime?
 
+  // CloudLinux CageFS runtime status, reported by the verris-lve agent each
+  // cycle (POST /telemetry/lve `node` block). Drives the node audit check.
+  cagefsEnabled      Boolean?
+  cagefsEnabledCount Int?
+  cagefsCheckedAt    DateTime?
+
+  // Authoritative nameservers handed to every account provisioned on this node
+  // (DA `CMD_API_ACCOUNT_USER` ns1/ns2). Per-node override; when null the
+  // platform default (PlatformSetting `hosting.ns*`, then env HOSTING_NS*) is
+  // used. Start: point at OVH NS for the single node; later: ns1/ns2/ns3.verris.pl.
+  ns1             String?
+  ns2             String?
+  ns3             String?
+
   // DirectAdmin config (encrypted at rest with the application KMS key)
   daHost          String?
   daPort          Int?
@@ -615,6 +629,7 @@ model Subscription {
   migrationRequests    MigrationRequest[]
   healthSnapshots      ServiceHealthSnapshot[]
   domainChecklists     DomainChecklist[]
+  hostingRestoreJobs   HostingRestoreJob[]
 
   @@index([userId])
   @@index([status])
@@ -765,6 +780,18 @@ model Account {
   scaledRamMb     Int           @default(0)
   scaledDiskMb    Int           @default(0)
 
+  // Autoscaling block-billing episode tracking (event-driven, per 15-min block).
+  // `scaledSince` = start of the current scaled episode (set when any scaled*
+  // goes 0 -> >0, cleared back to NULL when it returns to baseline). Every
+  // episode bills at least one full 15-min block; longer episodes bill block
+  // by block (round up). `scaledBilledUntil` = end of the last billed block.
+  scaledSince       DateTime?
+  scaledBilledUntil DateTime?
+
+  // Last time a backup was triggered for this account (manual "backup now" or a
+  // platform-initiated snapshot). Feeds the health-score backup-freshness check.
+  lastBackupAt    DateTime?
+
   userId          String
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -841,6 +868,8 @@ model DomainRegistrarOrder {
   years           Int                        @default(1)
   priceAmount     Decimal?                   @db.Decimal(10, 2)
   currency        String                     @default("PLN")
+  // Wallet transaction that paid for this order (billing trail).
+  walletTxId      String?
   lastError       String?                    @db.Text
   submittedAt     DateTime?
   completedAt     DateTime?
@@ -870,6 +899,7 @@ enum WalletTxType {
   CREDIT_PLAN_DOWNGRADE // Prorated downgrade credit on existing subscription
   CHARGE_AUTOSCALING   // Hourly autoscaling cost
   CHARGE_USAGE         // Other metered usage
+  CHARGE_DOMAIN        // Domain registration / renewal / transfer
   ADJUSTMENT           // Manual adjustment by admin
   PROMO_CREDIT
 }
@@ -1219,6 +1249,45 @@ model ServiceHealthSnapshot {
   computedAt     DateTime     @default(now())
 
   @@index([subscriptionId, computedAt])
+}
+
+enum HostingRestoreStatus {
+  QUEUED
+  RUNNING
+  SAFETY_BACKUP
+  RESTORING
+  COMPLETED
+  FAILED
+}
+
+/// Async restore of a DirectAdmin backup onto a hosting account. Processed by a
+/// worker that (optionally) takes a pre-restore safety backup first, then runs
+/// the selective restore. Gives the client/admin a live status in the panel.
+model HostingRestoreJob {
+  id                String               @id @default(uuid())
+  subscriptionId    String
+  subscription      Subscription         @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  requestedByUserId String
+  isAdminInitiated  Boolean              @default(false)
+
+  backupId          String
+  backupFileName    String
+  scopeFiles        Boolean              @default(true)
+  scopeDatabases    Boolean              @default(true)
+  scopeEmail        Boolean              @default(true)
+  safetyBackup      Boolean              @default(true)
+
+  status            HostingRestoreStatus @default(QUEUED)
+  error             String?              @db.Text
+  startedAt         DateTime?
+  completedAt       DateTime?
+
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  @@index([status, createdAt])
+  @@index([subscriptionId, createdAt])
 }
 
 enum DomainChecklistStatus {

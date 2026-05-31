@@ -6,6 +6,7 @@ import { Button } from '@verris/ui';
 import { fetchHostingUsageAction, HostingUsageResponse } from '@/app/dashboard/services/[id]/hosting-usage-actions';
 import { ServiceUptimeBadge } from '@/components/hosting/service-uptime-badge';
 import { HostingBackupRestorePanel } from '@/components/hosting/hosting-backup-restore-panel';
+import ServiceForecastPanel from '@/components/hosting/ServiceForecastPanel';
 
 export default function UsageTab({ serviceId }: { serviceId: string }) {
   const [window, setWindow] = useState<'24h' | '7d'>('24h');
@@ -107,6 +108,8 @@ export default function UsageTab({ serviceId }: { serviceId: string }) {
           </div>
         </div>
       )}
+
+      <ServiceForecastPanel serviceId={serviceId} />
     </div>
   );
 }

@@ -33,6 +33,7 @@ const DEBIT_TYPES = new Set<WalletTxType>([
   WalletTxType.CHARGE_PLAN_UPGRADE,
   WalletTxType.CHARGE_AUTOSCALING,
   WalletTxType.CHARGE_USAGE,
+  WalletTxType.CHARGE_DOMAIN,
 ]);
 
 /**

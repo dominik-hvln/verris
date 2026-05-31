@@ -22,6 +22,8 @@ export function ServiceGaugeRing({
   unit = '%',
   color = COLORS.cyan,
   delayMs = 0,
+  valueLabel,
+  sub,
 }: {
   label: string;
   value: number;
@@ -29,6 +31,10 @@ export function ServiceGaugeRing({
   unit?: string;
   color?: string;
   delayMs?: number;
+  /** Overrides the big bold number (e.g. "0.3 GB"). Falls back to value+unit. */
+  valueLabel?: string;
+  /** Subtle limit line shown right under the bold number (e.g. "/ 2 GB"). */
+  sub?: string;
 }) {
   const pct = max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0;
   const [animated, setAnimated] = useState(0);
@@ -40,11 +46,12 @@ export function ServiceGaugeRing({
 
   const offset = ARC - (animated / 100) * ARC;
   const display =
-    unit === '%'
+    valueLabel ??
+    (unit === '%'
       ? `${Math.round(value)}%`
       : unit === ''
         ? `${Math.round(value)}`
-        : `${Math.round(value)}${unit}`;
+        : `${Math.round(value)}${unit}`);
 
   return (
     <div className="flex flex-col items-center">
@@ -71,7 +78,7 @@ export function ServiceGaugeRing({
         />
         <text
           x={CX}
-          y={CY - 4}
+          y={sub ? CY - 8 : CY - 4}
           textAnchor="middle"
           className="fill-white text-[13px] font-bold"
           style={{ fontSize: 13, fontWeight: 700, fill: '#fff' }}
@@ -79,6 +86,11 @@ export function ServiceGaugeRing({
           {display}
         </text>
       </svg>
+      {sub ? (
+        <p className="-mt-2.5 text-[9.5px] font-medium tabular-nums text-neutral-500 leading-none text-center">
+          {sub}
+        </p>
+      ) : null}
       <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500 mt-1 text-center">
         {label}
       </p>

@@ -5,6 +5,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -18,6 +19,7 @@ import { Role } from '@verris/database';
 import { InitServerDto } from './dto/init-server.dto';
 import { UpdateServerDto } from './dto/update-server.dto';
 import { UpdateDirectAdminConfigDto } from './dto/directadmin-config.dto';
+import { UpdateNameserversDto } from './dto/nameservers.dto';
 import { QueueHostingProfileTaskDto } from './dto/queue-hosting-profile.dto';
 import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
 import { NodeTasksService } from './node-tasks.service';
@@ -73,6 +75,18 @@ export class ServersAdminController {
     return this.servers.getServer(id);
   }
 
+  /** Per-node drill-down: hosting accounts placed on this node + latest telemetry. */
+  @Get(':id/accounts')
+  nodeAccounts(@Param('id') id: string) {
+    return this.servers.getNodeAccounts(id);
+  }
+
+  /** Per-node aggregate usage (summed LVE buckets) + capacity/allocation. */
+  @Get(':id/usage')
+  nodeUsage(@Param('id') id: string, @Query('window') window = '24h') {
+    return this.servers.getNodeUsage(id, window === '7d' ? '7d' : '24h');
+  }
+
   @Patch(':id')
   update(
     @Param('id') id: string,
@@ -97,6 +111,21 @@ export class ServersAdminController {
       ip: req.ip,
       userAgent: req.headers['user-agent'],
     });
+  }
+
+  /** Per-node authoritative nameservers (override / inherit platform default). */
+  @Get(':id/nameservers')
+  getNameservers(@Param('id') id: string) {
+    return this.servers.getNodeNameservers(id);
+  }
+
+  @Patch(':id/nameservers')
+  setNameservers(
+    @Param('id') id: string,
+    @Body() dto: UpdateNameserversDto,
+    @CurrentUser() user: { userId: string },
+  ) {
+    return this.servers.setNodeNameservers(id, dto, user.userId);
   }
 
   @Patch(':id/directadmin')
