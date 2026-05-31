@@ -3,6 +3,7 @@ import type { Request } from 'express';
 import { ServerIdentityGuard } from './guards/server-identity.guard';
 import { NodeTasksService } from './node-tasks.service';
 import { loadHostingProfileScript } from './hosting-profile.script';
+import { loadLveAgentScript } from './lve-agent.script';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 
 class CompleteNodeTaskDto {
@@ -54,6 +55,19 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   hostingProfileScript() {
     return loadHostingProfileScript();
+  }
+
+  /** Desired CloudLinux LVE state for the calling node (plans + accounts). */
+  @Get('lve/desired')
+  lveDesired(@Req() req: Request & { serverId?: string }) {
+    return this.tasks.getDesiredLveForServer(req.serverId!);
+  }
+
+  /** Canonical on-node LVE agent script (reconcile + telemetry). */
+  @Get('lve/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  lveAgentScript() {
+    return loadLveAgentScript();
   }
 
   @Post(':taskId/progress')

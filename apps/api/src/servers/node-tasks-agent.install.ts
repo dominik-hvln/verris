@@ -404,6 +404,65 @@ CRON
 fi`;
 }
 
+/** Installs the on-node LVE agent (verris-lve.sh) + 1-min systemd timer (cron fallback). */
+function renderInstallLveAgentFragment(): string {
+  return `
+# --- Verris LVE agent (limity CloudLinux + telemetria) ---
+# shellcheck disable=SC1090
+source /etc/verris.conf
+LVE_BIN="/usr/local/bin/verris-lve.sh"
+if curl -fsS --max-time 30 -H "X-Server-Id: $VERRIS_SERVER_ID" -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN" \\
+  "$VERRIS_API_URL/agent/tasks/lve/script" -o "$LVE_BIN" 2>/dev/null && [ -s "$LVE_BIN" ]; then
+  chmod 755 "$LVE_BIN"
+  echo "[verris] Installed $LVE_BIN"
+else
+  echo "[verris] WARN: nie pobrano verris-lve.sh z API (sprawdź token/URL)" >&2
+fi
+
+if command -v systemctl >/dev/null 2>&1 && [ -d /etc/systemd/system ]; then
+  cat > /etc/systemd/system/verris-lve.service <<'UNIT'
+[Unit]
+Description=Verris LVE agent (reconcile limits + telemetry)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash /usr/local/bin/verris-lve.sh
+TimeoutStartSec=120
+StandardOutput=append:/var/log/verris-lve.log
+StandardError=append:/var/log/verris-lve.log
+UNIT
+
+  cat > /etc/systemd/system/verris-lve.timer <<'TIMER'
+[Unit]
+Description=Run Verris LVE agent every minute
+
+[Timer]
+OnBootSec=120s
+OnUnitActiveSec=1min
+AccuracySec=5s
+Persistent=true
+Unit=verris-lve.service
+
+[Install]
+WantedBy=timers.target
+TIMER
+
+  systemctl daemon-reload
+  systemctl enable verris-lve.timer
+  systemctl restart verris-lve.timer
+  echo "[verris] Installed verris-lve.timer (1 min)"
+else
+  cat > /etc/cron.d/verris-lve <<'CRON'
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+* * * * * root flock -n /var/run/verris-lve.lock /usr/local/bin/verris-lve.sh >> /var/log/verris-lve.log 2>&1
+CRON
+  echo "[verris] Installed /etc/cron.d/verris-lve (brak systemd)"
+fi`;
+}
+
 function renderInstallVerifyFragment(): string {
   return `
 echo ""
@@ -463,6 +522,25 @@ else
   echo "[FAIL] hosting-profile script endpoint"
   FAIL=1
 fi
+if [ -x /usr/local/bin/verris-lve.sh ]; then
+  echo "[OK] /usr/local/bin/verris-lve.sh"
+  if command -v lvectl >/dev/null 2>&1; then
+    if /usr/bin/bash /usr/local/bin/verris-lve.sh 2>/dev/null; then
+      echo "[OK] verris-lve.sh wykonany (reconcile + telemetria)"
+    else
+      echo "[WARN] verris-lve.sh zwrócił błąd — sprawdź /var/log/verris-lve.log"
+    fi
+    if systemctl is-active --quiet verris-lve.timer 2>/dev/null; then
+      echo "[OK] verris-lve.timer active"
+    else
+      echo "[WARN] verris-lve.timer nieaktywny — systemctl enable --now verris-lve.timer"
+    fi
+  else
+    echo "[INFO] lvectl brak — węzeł bez CloudLinux, agent LVE pominie limity"
+  fi
+else
+  echo "[WARN] brak /usr/local/bin/verris-lve.sh (limity CloudLinux nie będą egzekwowane)"
+fi
 echo ""
 echo "Logi agenta:    /var/log/verris-tasks.log"
 echo "Logi profilu:   /var/log/verris-tasks/<task-uuid>.log"
@@ -479,7 +557,8 @@ fi`;
 /** Bootstrap + legacy install: scripts, systemd units, weryfikacja. */
 export function renderBootstrapNodeTasksInstallFragment(): string {
   return `${renderInstallTasksScriptFile()}
-${renderTaskSystemdTemplateInstall()}`;
+${renderTaskSystemdTemplateInstall()}
+${renderInstallLveAgentFragment()}`;
 }
 
 /** Pełny skrypt instalacji agenta (panel admin → Pokaż skrypt instalacji). */
@@ -494,6 +573,7 @@ echo "=== Verris node task agent install (agent-3) ==="
 
 ${renderInstallTasksScriptFile()}
 ${renderTaskSystemdTemplateInstall()}
+${renderInstallLveAgentFragment()}
 
 PROBES="/usr/local/bin/verris-probes.sh"
 if [ -f "$PROBES" ] && ! grep -q 'verris-tasks.sh' "$PROBES"; then

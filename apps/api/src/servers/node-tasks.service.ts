@@ -1,7 +1,30 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { NodeTaskKind, NodeTaskStatus, ServerStatus } from '@verris/database';
+import { AccountStatus, NodeTaskKind, NodeTaskStatus, ServerStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
+
+/** Desired CloudLinux LVE state for a node (consumed by the on-node verris-lve agent). */
+export interface NodeDesiredLve {
+  packages: Array<{
+    name: string;
+    speedPct: number;
+    pmemMb: number;
+    vmemMb: number;
+    ioKbps: number;
+    iops: number;
+    ep: number;
+    nproc: number;
+  }>;
+  accounts: Array<{
+    username: string;
+    speedPct: number;
+    pmemMb: number;
+    ioKbps: number;
+    iops: number;
+    ep: number;
+    nproc: number;
+  }>;
+}
 
 const MAX_LOG_CHARS = 120_000;
 /** RUNNING without complete/fail — reclaim so panel is not stuck (Governor can run up to ~60 min). */
@@ -74,6 +97,44 @@ export class NodeTasksService {
     });
 
     return this.toPublicTask(task);
+  }
+
+  /**
+   * Computes the desired CloudLinux LVE state the node should converge to:
+   * one entry per active plan (package-level, so new accounts inherit limits)
+   * and one per ACTIVE hosting account on this server (effective limits =
+   * plan base + autoscaling delta, mirrored on `Account`). The on-node
+   * `verris-lve` agent pulls this and applies it via `lvectl` — DA's API does
+   * not actually enforce LVE (verified on DA 1.697).
+   */
+  async getDesiredLveForServer(serverId: string): Promise<NodeDesiredLve> {
+    const [plans, accounts] = await Promise.all([
+      this.prisma.plan.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } }),
+      this.prisma.account.findMany({
+        where: { serverId, status: AccountStatus.ACTIVE },
+      }),
+    ]);
+    return {
+      packages: plans.map((p) => ({
+        name: p.slug,
+        speedPct: p.cpuLimit,
+        pmemMb: p.ramLimitMb,
+        vmemMb: 0,
+        ioKbps: p.ioLimitKbps,
+        iops: p.iopsLimit,
+        ep: p.entryProcesses,
+        nproc: p.nprocLimit,
+      })),
+      accounts: accounts.map((a) => ({
+        username: a.daUsername,
+        speedPct: a.cpuLimit,
+        pmemMb: a.ramLimitMb,
+        ioKbps: a.ioLimitKbps,
+        iops: a.iopsLimit,
+        ep: a.entryProcesses,
+        nproc: a.nprocLimit,
+      })),
+    };
   }
 
   async listHostingProfileTasks(serverId: string, limit = 10) {
