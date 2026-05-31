@@ -23,6 +23,13 @@ class FailNodeTaskDto {
   outputLog?: string;
 }
 
+class ProgressNodeTaskDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(120_000)
+  outputLog?: string;
+}
+
 /**
  * Pull-based node task protocol — same auth as telemetry (`X-Server-Id` + `X-Server-Token`).
  * The on-node `verris-tasks` agent polls `lease`, executes locally, then reports complete/fail.
@@ -31,6 +38,12 @@ class FailNodeTaskDto {
 @UseGuards(ServerIdentityGuard)
 export class NodeTasksAgentController {
   constructor(private readonly tasks: NodeTasksService) {}
+
+  @Get('deploy-ssh-pubkey')
+  deploySshPubkey() {
+    const publicKey = (process.env.VERRIS_NODE_DEPLOY_SSH_PUBKEY ?? '').trim() || null;
+    return { publicKey };
+  }
 
   @Get('lease')
   async lease(@Req() req: Request & { serverId?: string }) {
@@ -41,6 +54,20 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   hostingProfileScript() {
     return loadHostingProfileScript();
+  }
+
+  @Post(':taskId/progress')
+  @HttpCode(200)
+  progress(
+    @Req() req: Request & { serverId?: string },
+    @Param('taskId') taskId: string,
+    @Body() dto: ProgressNodeTaskDto,
+  ) {
+    return this.tasks.progressTaskFromNode({
+      serverId: req.serverId!,
+      taskId,
+      outputLog: dto.outputLog,
+    });
   }
 
   @Post(':taskId/complete')

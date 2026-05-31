@@ -179,7 +179,7 @@ ssh root@WĘZEŁ 'bash /root/node-stack-preflight.sh'
 # Ręcznie na węźle:
 ssh root@WĘZEŁ 'bash /root/node-hosting-profile.sh --yes --skip-build'
 
-# Węzeł sprzed agent-2: jednorazowo zainstaluj agenta zadań (skrypt z panelu → Pokaż skrypt instalacji)`;
+# Węzeł sprzed agent-3: jednorazowo zainstaluj agenta zadań (skrypt z panelu → Pokaż skrypt instalacji)`;
 
 export const VERIFY_BOOTSTRAP_AGENTS = `# Po bootstrap — weryfikacja agentów (root na węźle):
 systemctl is-active verris-agent.timer verris-probes.timer
@@ -194,6 +194,7 @@ export const BOOTSTRAP_DOES = [
   "Sprawdza obecność LSPHP",
   "Handshake z api.verris.pl — rejestracja CPU/RAM/disk",
   "Zapisuje /etc/verris.conf (token agenta)",
+  "Instaluje klucz SSH deploy control-plane (do wildcard TLS i ops) — gdy ustawiony na panelu",
   "Instaluje verris-agent (telemetria LVE co 1 min)",
   "Instaluje verris-probes (sondy lokalne co 1 min)",
   "Instaluje verris-tasks.sh + verris-task-run.sh + verris-tasks.timer (kolejka z panelu co 1 min)",
@@ -206,4 +207,20 @@ export const BOOTSTRAP_DOES_NOT = [
   "Nie instaluje MySQL Governor — profil hostingowy (krok 7) instaluje governor-mysql + mysqlgovernor.py --install",
   "Nie konfiguruje cache LS — profil hostingowy (krok 7)",
   "Nie ustawia limitów LVE per klient — robi to Verris przy provisioning z planu",
+  "Nie tworzy pakietów DA (starter/pro/business) — synchronizuj po teście login key (sekcja Konfiguracja węzła)",
+];
+
+/**
+ * Definition of Done dla węzła ACTIVE (bootstrap v2). Każdy punkt ma swój
+ * walidator w sekcji „Audyt i naprawa” na stronie węzła.
+ */
+export const DOD_ACTIVE_CHECKLIST = [
+  "Status węzła ACTIVE, agent + sondy zielone (heartbeat < 5 min)",
+  "Hostname (FQDN) ustawiony, rekord A w OVH wskazuje IP węzła",
+  "daHost = hostname (nie surowe IP) — linki panelu i TLS po hostname",
+  "Login key DA ma scope packages + accounts (test API OK)",
+  "Pakiety DA starter/pro/business z realnymi limitami (NIE „Bez ograniczeń”), język PL",
+  "Profil hostingowy (Governor/LiteSpeed) wykonany — task SUCCESS",
+  "Wildcard *.verris.pl na :2222 (CN/SAN, nie IP)",
+  "Smoke: zakup planu → konto DA z limitami planu",
 ];

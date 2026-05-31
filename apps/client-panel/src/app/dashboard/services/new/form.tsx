@@ -466,10 +466,9 @@ function ProvisioningQueuedBanner({ subscriptionId }: { subscriptionId: string }
         Trwa zakładanie konta
       </h2>
       <p className="text-neutral-300">
-        Zamówienie zostało przyjęte i trafia do kolejki provisioningu na węźle hostingowym (wymaga
-        skonfigurowanej kolejki). Status zmieni się na{' '}
-        <span className="text-white font-semibold">Aktywna</span>, gdy konto hostingowe będzie
-        gotowe — możesz odświeżać stronę usługi lub Hosting Manager.
+        Trwa konfiguracja konta hostingowego. Status zmieni się na{' '}
+        <span className="text-white font-semibold">Aktywna</span>, gdy wszystko będzie gotowe — możesz
+        odświeżać stronę usługi.
       </p>
       <Link
         href={`/dashboard/services/${subscriptionId}`}

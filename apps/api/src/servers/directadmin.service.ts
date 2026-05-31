@@ -43,19 +43,63 @@ export class DirectAdminService {
   }
 
   /**
-   * Lightweight ping that exercises the DA credentials by listing domains.
-   * Used by the admin panel to verify that DA config is correct.
+   * Verifies the DA credentials *and* the login-key scope required for
+   * provisioning: listing packages (CMD_API_PACKAGES_USER) and accounts
+   * (CMD_API_SHOW_USERS). A key that can read domains but not packages/accounts
+   * passes the old "ping" test yet fails real provisioning — so we probe both.
    */
-  async testConnection(serverId: string): Promise<{ ok: true; sampleCount: number } | { ok: false; error: string }> {
+  async testConnection(serverId: string): Promise<{
+    ok: boolean;
+    sampleCount?: number;
+    error?: string;
+    scope?: { packages: boolean; accounts: boolean; packageCount: number | null };
+  }> {
+    let client: DirectAdminClient;
     try {
-      const client = await this.getClientForServer(serverId);
-      const domains = await client.getDomains();
-      return { ok: true, sampleCount: domains.length };
+      client = await this.getClientForServer(serverId);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      this.logger.warn(`DA test failed for server=${serverId}: ${msg}`);
       return { ok: false, error: msg };
     }
+
+    let sampleCount: number | undefined;
+    try {
+      const domains = await client.getDomains();
+      sampleCount = domains.length;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`DA test (connectivity) failed for server=${serverId}: ${msg}`);
+      return { ok: false, error: msg };
+    }
+
+    let packages = false;
+    let packageCount: number | null = null;
+    let accounts = false;
+    const scopeErrors: string[] = [];
+    try {
+      const list = await client.listUserPackages();
+      packages = true;
+      packageCount = list.length;
+    } catch (err) {
+      scopeErrors.push(`pakiety: ${err instanceof Error ? err.message : String(err)}`);
+    }
+    try {
+      await client.listAccounts();
+      accounts = true;
+    } catch (err) {
+      scopeErrors.push(`konta: ${err instanceof Error ? err.message : String(err)}`);
+    }
+
+    const scope = { packages, accounts, packageCount };
+    if (!packages || !accounts) {
+      return {
+        ok: false,
+        sampleCount,
+        scope,
+        error: `Login key działa, ale brakuje uprawnień (scope) — ${scopeErrors.join('; ')}. Wygeneruj klucz ze scope: packages + accounts.`,
+      };
+    }
+    return { ok: true, sampleCount, scope };
   }
 
   /**
@@ -74,7 +118,7 @@ export class DirectAdminService {
       );
     }
     const server = account.server;
-    const host = server.daHost ?? server.ipAddress;
+    const host = server.hostname ?? server.daHost ?? server.ipAddress;
     const port = server.daPort ?? 2222;
     const loginKey = this.crypto.decrypt(account.daPasswordEnc);
     return new DirectAdminClient({
@@ -137,17 +181,47 @@ export class DirectAdminService {
     }
   }
 
-  /** URL do panelu użytkownika DA (bez logowania — klient się uwierzytelnia osobno). */
+  /** Hostname węzła do linków panelu (preferuj DNS węzła zamiast surowego IP). */
+  hostingPanelDisplayHost(server: {
+    hostname: string | null;
+    daHost: string | null;
+    ipAddress: string | null;
+  }): string {
+    return server.hostname ?? server.daHost ?? server.ipAddress ?? 'localhost';
+  }
+
+  /** URL do panelu użytkownika DA (Evolution) — bez logowania. */
   hostingPanelBaseUrl(server: {
+    hostname: string | null;
     daHost: string | null;
     daPort: number | null;
     daUseTls: boolean;
     ipAddress: string | null;
   }): string {
-    const host = server.daHost ?? server.ipAddress ?? 'localhost';
+    const host = this.hostingPanelDisplayHost(server);
     const port = server.daPort ?? 2222;
     const secure = server.daUseTls !== false;
     return `${secure ? 'https' : 'http'}://${host}:${port}`;
+  }
+
+  /** Deep-linki do Evolution skin (DirectAdmin ≥1.6). */
+  hostingEvolutionLinks(panelBaseUrl: string, domain: string): {
+    databasesUrl: string;
+    sslUrl: string;
+    fileManagerUrl: string;
+    domainsUrl: string;
+    dnsUrl: string;
+    domainManageUrl: string;
+  } {
+    const domainPath = encodeURIComponent(domain);
+    return {
+      databasesUrl: `${panelBaseUrl}/evo/user/databases/mysql`,
+      sslUrl: `${panelBaseUrl}/evo/user/ssl`,
+      fileManagerUrl: `${panelBaseUrl}/evo/user/filemanager/domains/${domainPath}`,
+      domainsUrl: `${panelBaseUrl}/evo/user/domains`,
+      dnsUrl: `${panelBaseUrl}/evo/user/dns/control/${domainPath}`,
+      domainManageUrl: `${panelBaseUrl}/evo/user/domains/domain/${domainPath}`,
+    };
   }
 
   /**
@@ -681,10 +755,16 @@ export class DirectAdminService {
    */
   async getHostingDaLinksForSubscription(subscriptionId: string, userId: string): Promise<{
     panelBaseUrl: string;
+    panelDisplayHost: string;
     databasesUrl: string;
     sslUrl: string;
     fileManagerUrl: string;
+    domainsUrl: string;
+    dnsUrl: string;
+    domainManageUrl: string;
     stagingHint: string;
+    daUsername: string | null;
+    daPassword: string | null;
     fetchError: string | null;
   }> {
     const sub = await this.prisma.subscription.findFirst({
@@ -695,26 +775,47 @@ export class DirectAdminService {
     if (!sub.account?.server) {
       return {
         panelBaseUrl: '',
+        panelDisplayHost: '',
         databasesUrl: '',
         sslUrl: '',
         fileManagerUrl: '',
+        domainsUrl: '',
+        dnsUrl: '',
+        domainManageUrl: '',
         stagingHint: '',
+        daUsername: null,
+        daPassword: null,
         fetchError: null,
       };
     }
     const server = sub.account.server;
     const panelBaseUrl = this.hostingPanelBaseUrl(server);
-    const domainEnc = encodeURIComponent(sub.account.domain);
-    const databasesUrl = `${panelBaseUrl}/CMD_DATABASES`;
-    const sslUrl = `${panelBaseUrl}/CMD_SSL`;
-    const fileManagerUrl = `${panelBaseUrl}/CMD_FILE_MANAGER/${domainEnc}`;
+    const panelDisplayHost = this.hostingPanelDisplayHost(server);
+    const evo = this.hostingEvolutionLinks(panelBaseUrl, sub.account.domain);
+    let daPassword: string | null = null;
+    if (sub.account.daPasswordEnc) {
+      try {
+        daPassword = this.crypto.decrypt(sub.account.daPasswordEnc);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        this.logger.warn(
+          `Could not decrypt DA password for account=${sub.account.id}: ${msg}`,
+        );
+      }
+    }
     return {
       panelBaseUrl,
-      databasesUrl,
-      sslUrl,
-      fileManagerUrl,
-      stagingHint: `${panelBaseUrl}/CMD_SHOW_DOMAIN?domain=${domainEnc}`,
-      fetchError: null,
+      panelDisplayHost,
+      databasesUrl: evo.databasesUrl,
+      sslUrl: evo.sslUrl,
+      fileManagerUrl: evo.fileManagerUrl,
+      domainsUrl: evo.domainsUrl,
+      dnsUrl: evo.dnsUrl,
+      domainManageUrl: evo.domainManageUrl,
+      stagingHint: evo.domainManageUrl,
+      daUsername: sub.account.daUsername,
+      daPassword,
+      fetchError: daPassword ? null : 'Hasło do panelu hostingu jest niedostępne — skontaktuj się z pomocą techniczną.',
     };
   }
 }

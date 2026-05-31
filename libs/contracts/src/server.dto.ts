@@ -55,7 +55,8 @@ export interface ServerSummaryDto {
 
 export interface InitServerInput {
   name: string;
-  hostname?: string;
+  /** Required FQDN for bootstrap v2 (TLS wildcard + panel links resolve by hostname). */
+  hostname: string;
   region?: string;
   notes?: string;
 }
@@ -86,4 +87,10 @@ export interface DirectAdminTestResultDto {
   ok: boolean;
   sampleCount?: number;
   error?: string;
+  /** Login-key scope probe — provisioning needs both packages + accounts. */
+  scope?: {
+    packages: boolean;
+    accounts: boolean;
+    packageCount: number | null;
+  };
 }

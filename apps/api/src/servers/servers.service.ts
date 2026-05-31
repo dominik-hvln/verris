@@ -16,7 +16,7 @@ import { InitServerDto } from './dto/init-server.dto';
 import { HandshakeDto } from './dto/handshake.dto';
 import { UpdateServerDto } from './dto/update-server.dto';
 import { UpdateDirectAdminConfigDto } from './dto/directadmin-config.dto';
-import { renderBootstrapNodeTasksInstallFragment, renderProbesTasksHook } from './node-tasks-agent.install';
+import { renderBootstrapNodeTasksInstallFragment, renderNodeDeploySshKeyBootstrapCall, renderProbesTasksHook } from './node-tasks-agent.install';
 
 @Injectable()
 export class ServersService {
@@ -96,10 +96,15 @@ export class ServersService {
     });
 
     const apiUrl = this.config.get<string>('publicApiUrl')!;
+    const deployPubKey = (process.env.VERRIS_NODE_DEPLOY_SSH_PUBKEY ?? '').trim();
+    const deployPubKeyB64 = deployPubKey
+      ? Buffer.from(deployPubKey, 'utf8').toString('base64')
+      : null;
     const script = renderBootstrapScript({
       apiUrl,
       bootstrapToken: issued.plaintext,
       serverName: server.name ?? server.id,
+      deployPubKeyB64,
     });
 
     await this.audit.record({
@@ -198,6 +203,14 @@ export class ServersService {
         `Only servers in PENDING_APPROVAL state can be approved (current: ${server.status}).`,
       );
     }
+    // Bootstrap v2 DoD: an ACTIVE node must always have an FQDN so the wildcard
+    // TLS cert and client-panel links resolve by hostname (never raw IP).
+    const hostname = server.hostname?.trim() ?? '';
+    if (!hostname || !hostname.includes('.')) {
+      throw new BadRequestException(
+        'Węzeł nie ma hostname (FQDN). Ustaw hostname przed akceptacją — wymagany dla wildcard TLS i linków panelu.',
+      );
+    }
 
     const updated = await this.prisma.server.update({
       where: { id: serverId },
@@ -211,12 +224,73 @@ export class ServersService {
     await this.audit.record({
       action: 'SERVER_APPROVED',
       actorUserId,
-      details: { serverId },
+      details: { serverId, hostname },
       ipAddress: ctx?.ip ?? null,
       userAgent: ctx?.userAgent ?? null,
     });
 
+    // Post-ACTIVE hook: request the wildcard TLS deploy for this node. The
+    // certificate is issued centrally on the control plane (DNS-01 via OVH) and
+    // pushed to the node's DA :2222; we record the request so the audit panel
+    // tracks it and the operator can trigger it from one place.
+    await this.requestWildcardTlsDeploy(updated, actorUserId).catch((err) => {
+      this.logger.warn(
+        `requestWildcardTlsDeploy failed for server=${serverId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    });
+
     return updated;
+  }
+
+  /**
+   * Requests the wildcard `*.verris.pl` TLS deploy for a freshly-approved node.
+   *
+   * The cert is issued centrally on the control plane (DNS-01 via OVH) and
+   * pushed to the node's DirectAdmin `:2222`. If `VERRIS_TLS_DEPLOY_WEBHOOK` is
+   * configured we POST the deploy request to the control-plane runner;
+   * otherwise we record a pending request with the exact command so the
+   * operator runs it from one place. Either way the audit log and node audit
+   * panel track TLS readiness — no silent gap.
+   */
+  private async requestWildcardTlsDeploy(
+    server: { id: string; hostname: string | null; name: string | null },
+    actorUserId: string,
+  ): Promise<void> {
+    const hostname = server.hostname?.trim() ?? '';
+    const webhook = (process.env.VERRIS_TLS_DEPLOY_WEBHOOK ?? '').trim();
+    const command = `ops/scripts/verris-node-wildcard-tls.sh --node=${hostname}`;
+
+    if (webhook) {
+      try {
+        const res = await fetch(webhook, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ serverId: server.id, hostname, command }),
+        });
+        if (!res.ok) {
+          throw new Error(`webhook HTTP ${res.status}`);
+        }
+        await this.audit.record({
+          action: 'SERVER_TLS_DEPLOY_REQUESTED',
+          actorUserId,
+          details: { serverId: server.id, hostname, via: 'webhook' },
+        });
+        return;
+      } catch (err) {
+        this.logger.warn(
+          `TLS deploy webhook failed for server=${server.id}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      }
+    }
+
+    await this.audit.record({
+      action: 'SERVER_TLS_DEPLOY_PENDING',
+      actorUserId,
+      details: { serverId: server.id, hostname, command, via: 'manual' },
+    });
+    this.logger.log(
+      `[verris] Wildcard TLS deploy pending for ${hostname} — run on control plane: ${command}`,
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -388,7 +462,12 @@ export class ServersService {
   }
 }
 
-function renderBootstrapScript(opts: { apiUrl: string; bootstrapToken: string; serverName: string }) {
+function renderBootstrapScript(opts: {
+  apiUrl: string;
+  bootstrapToken: string;
+  serverName: string;
+  deployPubKeyB64?: string | null;
+}) {
   // Single-use bootstrap script. The plaintext token is embedded once and
   // becomes invalid as soon as the node successfully completes its handshake.
   return `#!/usr/bin/env bash
@@ -401,6 +480,8 @@ function renderBootstrapScript(opts: { apiUrl: string; bootstrapToken: string; s
 #   3. Installs the metrics agent (/usr/local/bin/verris-agent.sh) and a
 #      systemd timer (or fallback cron) that pushes lveinfo samples every
 #      minute to /telemetry/lve.
+#   4. Installs control-plane deploy SSH public key in /root/.ssh/authorized_keys
+#      (wildcard TLS + ops — wymaga VERRIS_NODE_DEPLOY_SSH_PUBKEY na panelu).
 #
 # Re-running after success is harmless if the bootstrap token is still valid,
 # but normally the token is marked as used after the first successful run.
@@ -506,7 +587,7 @@ PAYLOAD=$(cat <<JSON
   "totalMemoryMb": $MEM_MB,
   "totalDiskMb": $DISK_MB,
   "publicKey": "$PUB_KEY",
-  "agentVersion": "agent-2"
+  "agentVersion": "agent-3"
 }
 JSON
 )
@@ -553,6 +634,8 @@ elif [ ! -f "$CONFIG_FILE" ]; then
 else
   echo "[verris] Re-handshake (no new identity token issued) — keeping existing $CONFIG_FILE."
 fi
+
+${renderNodeDeploySshKeyBootstrapCall(opts.deployPubKeyB64 ?? null)}
 
 # -----------------------------------------------------------------------------
 # Install metrics agent
@@ -618,7 +701,7 @@ PAYLOAD=$(cat <<JSON
 {
   "bucketDurationS": $BUCKET_DURATION,
   "bucketStart": "$BUCKET_START",
-  "agentVersion": "agent-2",
+  "agentVersion": "agent-3",
   "accounts": $ACCOUNTS_JSON
 }
 JSON

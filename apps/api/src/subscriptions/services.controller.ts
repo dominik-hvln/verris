@@ -17,6 +17,8 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { DirectAdminService } from '../servers/directadmin.service';
 import { MigrationOrchestratorService } from './migration-orchestrator.service';
+import { ServiceHealthService } from './service-health.service';
+import { HostingDnsPointingService } from './hosting-dns-pointing.service';
 
 /**
  * Customer-facing "services" view — denormalized projection over Subscription
@@ -29,6 +31,8 @@ export class UserServicesController {
     private readonly prisma: PrismaService,
     private readonly directAdmin: DirectAdminService,
     private readonly migrations: MigrationOrchestratorService,
+    private readonly serviceHealth: ServiceHealthService,
+    private readonly dnsPointing: HostingDnsPointingService,
   ) {}
 
   @Get()
@@ -112,6 +116,19 @@ export class UserServicesController {
   @Get(':id/hosting-da-links')
   async hostingDaLinks(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
     return this.directAdmin.getHostingDaLinksForSubscription(id, user.userId);
+  }
+
+  @Get(':id/hosting-domain-pointing')
+  async hostingDomainPointing(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.dnsPointing.verifyForSubscription(id, user.userId);
+  }
+
+  @Post(':id/hosting-domain-pointing/verify')
+  async verifyHostingDomainPointing(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+  ) {
+    return this.dnsPointing.verifyForSubscription(id, user.userId);
   }
 
   @Get(':id/hosting-dns')
@@ -292,6 +309,22 @@ export class UserServicesController {
     };
   }
 
+  @Get(':id/health')
+  async health(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Query('refresh') refresh?: string,
+  ) {
+    return this.serviceHealth.getOrRefreshForSubscription(id, user.userId, {
+      force: refresh === '1' || refresh === 'true',
+    });
+  }
+
+  @Post(':id/health/refresh')
+  async refreshHealth(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.serviceHealth.getOrRefreshForSubscription(id, user.userId, { force: true });
+  }
+
   @Get(':id/usage')
   async usage(
     @CurrentUser() user: { userId: string },
@@ -424,7 +457,7 @@ export class UserServicesController {
               : null,
           }
         : null,
-      health: buildHealthSummary(sub),
+      health: await this.serviceHealth.getOrRefreshForSubscription(id, user.userId),
       recommendations: buildServiceRecommendations(sub),
       events: sub.events.map((e) => ({
         id: e.id,
@@ -495,29 +528,47 @@ function buildHealthSummary(s: {
     phpOk: boolean | null;
     mailOk: boolean | null;
     computedAt: Date;
+    details: unknown;
   }[];
 }) {
   const latest = s.healthSnapshots[0];
-  const score =
-    latest?.score ??
-    (s.status === 'ACTIVE' && s.account?.status === 'ACTIVE'
-      ? 85
-      : s.provisioningStage === 'failed'
-        ? 20
-        : s.status === 'PROVISIONING'
-          ? 45
-          : 60);
+  if (!latest) {
+    return {
+      score: null,
+      label: 'pending' as const,
+      checkedAt: null,
+      summary:
+        s.status === 'ACTIVE' && s.account?.status === 'ACTIVE'
+          ? 'Otwórz usługę, aby uruchomić pierwszą diagnostykę.'
+          : 'Health score dostępny po aktywacji usługi.',
+      checks: {
+        dnsOk: null,
+        tlsOk: null,
+        backupFresh: null,
+        lveOk: null,
+        phpOk: null,
+        mailOk: null,
+      },
+    };
+  }
+  const details =
+    latest.details && typeof latest.details === 'object' && !Array.isArray(latest.details)
+      ? (latest.details as { summary?: string })
+      : {};
+  const score = latest.score;
   return {
     score,
-    label: score >= 80 ? 'healthy' : score >= 50 ? 'attention' : 'critical',
-    checkedAt: latest?.computedAt.toISOString() ?? null,
+    label:
+      score >= 80 ? ('healthy' as const) : score >= 50 ? ('attention' as const) : ('critical' as const),
+    checkedAt: latest.computedAt.toISOString(),
+    summary: details.summary ?? undefined,
     checks: {
-      dnsOk: latest?.dnsOk ?? null,
-      tlsOk: latest?.tlsOk ?? null,
-      backupFresh: latest?.backupFresh ?? null,
-      lveOk: latest?.lveOk ?? null,
-      phpOk: latest?.phpOk ?? null,
-      mailOk: latest?.mailOk ?? null,
+      dnsOk: latest.dnsOk,
+      tlsOk: latest.tlsOk,
+      backupFresh: latest.backupFresh,
+      lveOk: latest.lveOk,
+      phpOk: latest.phpOk,
+      mailOk: latest.mailOk,
     },
   };
 }

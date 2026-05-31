@@ -33,15 +33,15 @@ export default function UsageTab({ serviceId }: { serviceId: string }) {
   const chart = useMemo(() => usage?.rows.slice(-48) ?? [], [usage]);
 
   return (
-    <div className="rounded-[32px] border border-white/10 bg-[#0a0a0a] p-6 lg:p-8">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-6">
-        <div className="flex items-center gap-4">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-white">
-            <Activity className="h-6 w-6" />
+    <div className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 sm:p-5 min-w-0 overflow-hidden">
+      <div className="mb-4 flex flex-col gap-3 border-b border-white/5 pb-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="rounded-xl border border-white/10 bg-white/5 p-2 text-white">
+            <Activity className="h-4 w-4" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-white">Usage 24h / 7d</h2>
-            <p className="text-sm text-neutral-400">Dane telemetryczne z `UsageMetric` dla CPU, RAM, dysku i I/O.</p>
+            <h2 className="text-lg font-bold text-white">Usage &amp; backup</h2>
+            <p className="text-xs text-neutral-400">Metryki CPU/RAM/dysk oraz badge uptime (w tej zakładce).</p>
           </div>
         </div>
         <div className="flex gap-2">

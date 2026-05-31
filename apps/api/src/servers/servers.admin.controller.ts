@@ -21,6 +21,7 @@ import { UpdateDirectAdminConfigDto } from './dto/directadmin-config.dto';
 import { QueueHostingProfileTaskDto } from './dto/queue-hosting-profile.dto';
 import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
 import { NodeTasksService } from './node-tasks.service';
+import { NodeAuditService } from './node-audit.service';
 import { renderNodeTasksAgentInstallScript } from './node-tasks-agent.install';
 
 class MaintenanceModeDto {
@@ -33,6 +34,13 @@ class MaintenanceModeDto {
   reason?: string;
 }
 
+class NodeRepairDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  confirm?: string;
+}
+
 @Controller('admin/servers')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)
@@ -40,6 +48,7 @@ export class ServersAdminController {
   constructor(
     private readonly servers: ServersService,
     private readonly nodeTasks: NodeTasksService,
+    private readonly nodeAudit: NodeAuditService,
   ) {}
 
   @Get()
@@ -140,5 +149,28 @@ export class ServersAdminController {
   @Get(':id/tasks-agent/install-script')
   tasksAgentInstallScript() {
     return { script: renderNodeTasksAgentInstallScript() };
+  }
+
+  /**
+   * Read-only node audit (two-phase validators). Safe to run on a production
+   * node with live customers — performs only reads against DA API / DB / DNS / TLS.
+   */
+  @Get(':id/audit')
+  audit(@Param('id') id: string) {
+    return this.nodeAudit.runAudit(id);
+  }
+
+  /**
+   * Runs a single repair action for a detected non-compliance. `danger`
+   * repairs require `confirm` equal to the server name (enforced in the service).
+   */
+  @Post(':id/repair/:actionId')
+  repair(
+    @Param('id') id: string,
+    @Param('actionId') actionId: string,
+    @Body() dto: NodeRepairDto,
+    @CurrentUser() user: { userId: string },
+  ) {
+    return this.nodeAudit.runRepair(id, actionId, user.userId, { confirm: dto.confirm });
   }
 }

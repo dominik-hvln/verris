@@ -77,14 +77,17 @@ export interface ServiceSummaryDto {
 }
 
 export interface ServiceHealthSummaryDto {
-  score: number;
-  label: 'healthy' | 'attention' | 'critical';
+  score: number | null;
+  label: 'healthy' | 'attention' | 'critical' | 'pending';
   checkedAt: string | null;
+  /** Krótki opis na podstawie realnych checków (nie domyślny placeholder). */
+  summary?: string;
   checks: {
     dnsOk: boolean | null;
     tlsOk: boolean | null;
     backupFresh: boolean | null;
     lveOk: boolean | null;
+    /** Panel DirectAdmin (TLS :2222) — nazwa historyczna pola w DB. */
     phpOk: boolean | null;
     mailOk: boolean | null;
   };
@@ -172,14 +175,26 @@ export interface HostingMysqlDatabasesResponseDto {
   fetchError: string | null;
 }
 
-/** GET /services/:id/hosting-da-links — adresy absolutne do stron DA (File Manager, SSL, bazy). */
+/** GET /services/:id/hosting-da-links — adresy absolutne do stron DA (Evolution skin). */
 export interface HostingDaLinksResponseDto {
   panelBaseUrl: string;
+  /** Hostname do wyświetlenia (np. node-pl-01.verris.pl) — bez portu. */
+  panelDisplayHost: string;
   databasesUrl: string;
   sslUrl: string;
   fileManagerUrl: string;
-  /** Podpowiedź dla klonów/subdomen — ekran konfiguracji domeny w DA. */
+  /** Lista domen w panelu Evolution. */
+  domainsUrl: string;
+  /** Strefa DNS głównej domeny usługi. */
+  dnsUrl: string;
+  /** Ustawienia głównej domeny (staging, subdomeny). */
+  domainManageUrl: string;
+  /** @deprecated Użyj domainManageUrl — zachowane dla kompatybilności. */
   stagingHint: string;
+  /** Login użytkownika DirectAdmin (konto hostingowe). */
+  daUsername: string | null;
+  /** Hasło konta DA zapisane przy provisioningu (null gdy brak konta / w trakcie). */
+  daPassword: string | null;
   fetchError: string | null;
 }
 
@@ -195,6 +210,23 @@ export interface HostingDnsRecordsResponseDto {
   domain: string | null;
   records: HostingDnsRecordDto[];
   fetchError: string | null;
+}
+
+/** GET /services/:id/hosting-domain-pointing — live weryfikacja A → IP węzła. */
+export interface HostingDnsPointingDto {
+  domain: string | null;
+  expectedIpv4: string | null;
+  serverName: string | null;
+  observedA: string[];
+  observedAaaa: string[];
+  observedWwwA: string[];
+  nameservers: string[];
+  pointsToServer: boolean;
+  wwwPointsToServer: boolean | null;
+  status: 'ok' | 'partial' | 'fail' | 'pending';
+  message: string;
+  issues: string[];
+  checkedAt: string;
 }
 
 export interface HostingFtpAccountDto {

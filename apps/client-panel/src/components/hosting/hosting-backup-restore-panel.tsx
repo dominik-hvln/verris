@@ -9,6 +9,7 @@ import {
 } from '@/app/dashboard/services/[id]/hosting-backup-actions';
 import type { HostingRestorePreview } from '@/app/dashboard/hosting-tools-data';
 import type { HostingBackupsResponseDto } from '@verris/contracts';
+import { hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 
 export function HostingBackupRestorePanel({ serviceId }: { serviceId: string }) {
   const [backups, setBackups] = useState<HostingBackupsResponseDto | null>(null);
@@ -48,9 +49,7 @@ export function HostingBackupRestorePanel({ serviceId }: { serviceId: string }) 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm font-semibold text-white">Kopie zapasowe i podgląd restore</p>
-          <p className="text-xs text-neutral-500">
-            Lista z DirectAdmin — podgląd nie wykonuje przywracania.
-          </p>
+          <p className="text-xs text-neutral-500">Podgląd dostępnych kopii zapasowych.</p>
         </div>
         <Link
           href={`/dashboard/backups?serviceId=${encodeURIComponent(serviceId)}`}
@@ -109,7 +108,7 @@ export function HostingBackupRestorePanel({ serviceId }: { serviceId: string }) 
         <p className="text-sm text-neutral-500">Brak archiwów backup na koncie.</p>
       ) : null}
       {backups?.fetchError ? (
-        <p className="text-xs text-amber-200">{backups.fetchError}</p>
+        <p className="text-xs text-amber-200">{hostingFetchErrorMessage(backups.fetchError)}</p>
       ) : null}
     </div>
   );

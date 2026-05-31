@@ -24,7 +24,7 @@ export default function InitNodePage() {
     startTransition(async () => {
       const result = await initServer({
         name,
-        hostname: hostname || undefined,
+        hostname: hostname.trim(),
         region: region || undefined,
         notes: notes || undefined,
       });
@@ -90,14 +90,21 @@ export default function InitNodePage() {
           </Field>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label="Hostname (opcjonalnie)">
+            <Field label="Hostname (FQDN)" required>
               <input
                 type="text"
+                required
                 value={hostname}
                 onChange={(e) => setHostname(e.target.value)}
-                placeholder="alpha.verris.internal"
+                placeholder="node-pl-02.verris.pl"
+                pattern="^(?=.{1,253}$)([a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$"
+                title="Poprawny FQDN, np. node-pl-02.verris.pl — nie surowe IP"
                 className="form-input"
               />
+              <span className="text-[11px] text-muted-foreground">
+                Wymagany — certyfikat wildcard <code>*.verris.pl</code> i linki panelu działają po
+                hostname, nie po IP. Dodaj wcześniej rekord A w OVH.
+              </span>
             </Field>
             <Field label="Region (opcjonalnie)">
               <input

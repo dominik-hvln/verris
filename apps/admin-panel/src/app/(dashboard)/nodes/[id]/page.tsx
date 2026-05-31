@@ -7,6 +7,7 @@ import { BootstrapScriptPanel } from "./bootstrap-script-panel";
 import { DirectAdminConfigForm } from "./directadmin-form";
 import { HostingProfilePanel } from "./hosting-profile-panel";
 import { MaintenanceToggle } from "./maintenance-toggle";
+import { NodeAuditPanel } from "./node-audit-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -117,18 +118,28 @@ export default async function ServerDetailPage({
         maintenanceStartedAt={server.maintenanceStartedAt}
       />
 
-      <DirectAdminConfigForm
-        serverId={server.id}
-        initial={{
-          daHost: server.daHost ?? "",
-          daPort: server.daPort ?? 2222,
-          daUsername: server.daUsername ?? "",
-          daUseTls: server.daUseTls,
-          daPasswordSet: server.daPasswordSet,
-        }}
-      />
+      <div id="directadmin" className="scroll-mt-24">
+        <DirectAdminConfigForm
+          serverId={server.id}
+          initial={{
+            daHost: server.daHost ?? "",
+            daPort: server.daPort ?? 2222,
+            daUsername: server.daUsername ?? "",
+            daUseTls: server.daUseTls,
+            daPasswordSet: server.daPasswordSet,
+          }}
+        />
+      </div>
 
-      <HostingProfilePanel serverId={server.id} serverStatus={server.status} />
+      <div id="hosting-profile" className="scroll-mt-24">
+        <HostingProfilePanel serverId={server.id} serverStatus={server.status} />
+      </div>
+
+      {(server.status === "ACTIVE" || server.status === "MAINTENANCE") && (
+        <div id="audyt" className="scroll-mt-24">
+          <NodeAuditPanel serverId={server.id} serverName={server.name} />
+        </div>
+      )}
     </div>
   );
 }

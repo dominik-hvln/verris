@@ -6,6 +6,8 @@ import { AuditService } from '../common/audit/audit.service';
 const MAX_LOG_CHARS = 120_000;
 /** RUNNING without complete/fail — reclaim so panel is not stuck (Governor can run up to ~60 min). */
 const STALE_RUNNING_MS = 75 * 60 * 1000;
+/** No progress heartbeat from agent — orphan detection (verris-task-run sends every 60 s). */
+const HEARTBEAT_STALE_MS = 15 * 60 * 1000;
 
 export type HostingProfileTaskPayload = {
   skipBuild?: boolean;
@@ -147,6 +149,25 @@ export class NodeTasksService {
     return this.toPublicTask(updated);
   }
 
+  async progressTaskFromNode(opts: {
+    serverId: string;
+    taskId: string;
+    outputLog?: string;
+  }) {
+    const task = await this.assertRunningTask(opts.serverId, opts.taskId);
+    const log = this.trimLog(opts.outputLog);
+    if (!log) {
+      return this.toPublicTask(task);
+    }
+
+    const updated = await this.prisma.nodeTask.update({
+      where: { id: task.id },
+      data: { outputLog: log },
+    });
+
+    return this.toPublicTask(updated);
+  }
+
   async failTaskFromNode(opts: {
     serverId: string;
     taskId: string;
@@ -197,21 +218,25 @@ export class NodeTasksService {
 
   /** Fail RUNNING tasks with no agent callback — unblocks admin panel re-run. */
   private async reclaimStaleRunningTasks(serverId: string) {
-    const cutoff = new Date(Date.now() - STALE_RUNNING_MS);
+    const absoluteCutoff = new Date(Date.now() - STALE_RUNNING_MS);
+    const heartbeatCutoff = new Date(Date.now() - HEARTBEAT_STALE_MS);
     const stale = await this.prisma.nodeTask.findMany({
       where: {
         serverId,
         status: NodeTaskStatus.RUNNING,
-        startedAt: { lt: cutoff },
+        OR: [{ startedAt: { lt: absoluteCutoff } }, { updatedAt: { lt: heartbeatCutoff } }],
       },
     });
     for (const task of stale) {
+      const noHeartbeat =
+        task.updatedAt < heartbeatCutoff && task.startedAt && task.startedAt >= absoluteCutoff;
       await this.prisma.nodeTask.update({
         where: { id: task.id },
         data: {
           status: NodeTaskStatus.FAILED,
-          errorMessage:
-            'Zadanie przekroczyło 75 min bez potwierdzenia z węzła (np. restart agenta podczas Governor/CustomBuild). Sprawdź /var/log/verris-tasks.log na węźle i uruchom profil ponownie.',
+          errorMessage: noHeartbeat
+            ? 'Brak heartbeat z węzła przez 15 min (agent mógł paść po starcie). Na węźle: journalctl -u verris-task@<instance>, tail /var/log/verris-tasks/<task-id>.log, potem uruchom install agenta (agent-3) i profil ponownie.'
+            : 'Zadanie przekroczyło 75 min bez potwierdzenia z węzła (np. restart agenta podczas Governor/CustomBuild). Sprawdź /var/log/verris-tasks/<task-id>.log na węźle i uruchom profil ponownie.',
           completedAt: new Date(),
         },
       });

@@ -40,6 +40,8 @@ ssh -i ~/.ssh/verris_cursor_deploy -o BatchMode=yes root@204.168.174.138 'hostna
 
 Napisz w Cursorze „deploy na prod” — agent użyje `-i ~/.ssh/verris_cursor_deploy`.
 
+**Nowe węzły:** ten sam pubkey jest automatycznie dodawany do `authorized_keys` podczas bootstrapu Verris (wymaga `VERRIS_NODE_DEPLOY_SSH_PUBKEY` w `.env.prod` API). Ręczne dodawanie na węzłach nie jest potrzebne.
+
 ## Rotacja / revoke
 
 Usuń odpowiadającą linię z `/root/.ssh/authorized_keys` na serwerze i wygeneruj nową parę kluczy.

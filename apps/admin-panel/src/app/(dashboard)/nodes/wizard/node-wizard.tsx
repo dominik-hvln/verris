@@ -22,6 +22,7 @@ import { HostingProfilePanel } from "../[id]/hosting-profile-panel";
 import {
   BOOTSTRAP_DOES,
   BOOTSTRAP_DOES_NOT,
+  DOD_ACTIVE_CHECKLIST,
   HOSTING_PROFILE_HINT,
   INSTALL_CLOUDLINUX_AL10,
   INSTALL_CLOUDLINUX_AL9,
@@ -100,6 +101,74 @@ function CheckItem({ children }: { children: React.ReactNode }) {
       <ChevronRight className="h-4 w-4 shrink-0 text-indigo-400 mt-0.5" />
       <span>{children}</span>
     </li>
+  );
+}
+
+/**
+ * Every wizard link to an external page or another panel section MUST open in a
+ * new tab so the operator never loses wizard progress (state lives in
+ * sessionStorage but step focus + scroll do not).
+ */
+function WizardExternalLink({
+  href,
+  children,
+  variant = "secondary",
+}: {
+  href: string;
+  children: React.ReactNode;
+  variant?: "primary" | "secondary";
+}) {
+  const base =
+    "inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors";
+  const cls =
+    variant === "primary"
+      ? "bg-indigo-500 hover:bg-indigo-600 text-white"
+      : "border border-white/15 bg-white/5 hover:bg-white/10 text-zinc-100";
+  return (
+    <a href={href} target="_blank" rel="noopener noreferrer" className={`${base} ${cls}`}>
+      {children}
+      <ExternalLink className="h-3.5 w-3.5" />
+    </a>
+  );
+}
+
+/**
+ * Post-ACTIVE action panel ("Konfiguracja węzła w panelu"). Visible once a node
+ * record exists; every action opens in a new tab. Centralises the steps the
+ * operator previously had to remember from the runbook (DA config, package
+ * sync/audit, hosting profile, TLS, probes, smoke).
+ */
+function NodeConfigActions({ serverId }: { serverId: string }) {
+  return (
+    <div className="rounded-2xl border border-indigo-500/25 bg-indigo-500/5 p-5 space-y-3">
+      <div className="flex items-center gap-2 text-sm font-semibold text-white">
+        <Server className="h-4 w-4 text-indigo-300" /> Konfiguracja węzła w panelu
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Po podłączeniu węzła dokończ konfigurację stąd — wszystko otwiera się w nowej karcie, więc
+        nie tracisz postępu wizarda. Audyt na stronie węzła zweryfikuje każdą akcję (pakiety, język,
+        hostname, TLS) i pokaże raport zgodności z dokumentacją.
+      </p>
+      <div className="flex flex-wrap gap-2.5">
+        <WizardExternalLink href={`/nodes/${serverId}`} variant="primary">
+          Szczegóły węzła
+        </WizardExternalLink>
+        <WizardExternalLink href={`/nodes/${serverId}#directadmin`}>
+          Konfiguracja DA i test API (scope)
+        </WizardExternalLink>
+        <WizardExternalLink href={`/nodes/${serverId}#audyt`}>
+          Audyt i naprawa (pakiety DA, język, TLS)
+        </WizardExternalLink>
+        <WizardExternalLink href={`/nodes/${serverId}#hosting-profile`}>
+          Profil hostingowy (LiteSpeed + Governor)
+        </WizardExternalLink>
+        <WizardExternalLink href="/status/probes">Status probes węzła</WizardExternalLink>
+      </div>
+      <p className="text-[11px] text-muted-foreground">
+        Synchronizacja pakietów DA (starter/pro/business z limitami planu) i ich weryfikacja: sekcja
+        „Audyt i naprawa” → „Napraw pakiet …”.
+      </p>
+    </div>
   );
 }
 
@@ -191,7 +260,7 @@ export function NodeWizard() {
     startTransition(async () => {
       const result = await initServer({
         name,
-        hostname: hostname || undefined,
+        hostname: hostname.trim(),
         region: region || undefined,
         notes: notes || undefined,
       });
@@ -484,17 +553,25 @@ export function NodeWizard() {
                   </label>
                 </div>
                 <label className="block space-y-1 text-sm">
-                  <span className="text-muted-foreground">Hostname (opcjonalnie)</span>
+                  <span className="text-muted-foreground">Hostname (FQDN) *</span>
                   <input
+                    required
                     value={hostname}
                     onChange={(e) => setHostname(e.target.value)}
+                    placeholder="node-pl-02.verris.pl"
+                    pattern="^(?=.{1,253}$)([a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$"
+                    title="Poprawny FQDN, np. node-pl-02.verris.pl — nie surowe IP"
                     className="wizard-input"
                   />
+                  <span className="text-[11px] text-muted-foreground">
+                    Wymagany — wildcard <code>*.verris.pl</code> i linki panelu działają po hostname.
+                    Dodaj rekord A w OVH zanim zaakceptujesz węzeł.
+                  </span>
                 </label>
                 {error && <p className="text-sm text-rose-300">{error}</p>}
                 <button
                   type="submit"
-                  disabled={isPending || !name.trim()}
+                  disabled={isPending || !name.trim() || !hostname.trim()}
                   className="inline-flex items-center gap-2 rounded-lg bg-indigo-500 hover:bg-indigo-600 disabled:opacity-60 px-4 py-2 text-sm font-medium"
                 >
                   {isPending ? (
@@ -598,6 +675,7 @@ export function NodeWizard() {
               />
               Węzeł zaakceptowany i test DA API OK
             </label>
+            {serverId && <NodeConfigActions serverId={serverId} />}
           </div>
         )}
 
@@ -634,43 +712,45 @@ export function NodeWizard() {
               />
               Profil hostingowy uruchomiony (panel lub SSH)
             </label>
+            {serverId && <NodeConfigActions serverId={serverId} />}
           </div>
         )}
 
         {step.id === "finish" && (
-          <div className="space-y-4">
+          <div className="space-y-5">
+            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+              <p className="text-sm font-semibold text-emerald-200 mb-2">
+                Definition of Done — węzeł ACTIVE
+              </p>
+              <ul className="space-y-1.5">
+                {DOD_ACTIVE_CHECKLIST.map((item) => (
+                  <CheckItem key={item}>{item}</CheckItem>
+                ))}
+              </ul>
+              <p className="mt-3 text-[11px] text-muted-foreground">
+                Każdy punkt ma walidator w sekcji „Audyt i naprawa” na stronie węzła — uruchom audyt,
+                aby potwierdzić zgodność z planem i dokumentacją (DA/CloudLinux), z atestem źródła.
+              </p>
+            </div>
+
             <ul className="space-y-2 text-sm text-zinc-300">
-              <CheckItem>
-                Admin → Status → probes dla węzła (HTTP/DA-API/MySQL).
-              </CheckItem>
-              <CheckItem>
-                Smoke: zakup planu (Stripe sandbox) → provisioning konta DA.
-              </CheckItem>
+              <CheckItem>Smoke: zakup planu (Stripe sandbox) → provisioning konta DA.</CheckItem>
               <CheckItem>
                 Grafana → dashboard <em>Compute fleet</em> — heartbeat węzła.
               </CheckItem>
-              <CheckItem>
-                HOST-4: WWW, FTP, mail hosting na koncie testowym.
-              </CheckItem>
+              <CheckItem>HOST-4: WWW, FTP, mail hosting na koncie testowym.</CheckItem>
             </ul>
+
+            {serverId && <NodeConfigActions serverId={serverId} />}
+
             <div className="flex flex-wrap gap-3">
-              <Link href="/nodes" className="rounded-lg border border-white/10 px-4 py-2 text-sm hover:bg-white/5">
-                Lista węzłów
-              </Link>
+              <WizardExternalLink href="/nodes">Lista węzłów</WizardExternalLink>
               {serverId && (
-                <Link
-                  href={`/nodes/${serverId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-lg border border-white/10 px-4 py-2 text-sm hover:bg-white/5 inline-flex items-center gap-2"
-                >
-                  Szczegóły węzła
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </Link>
+                <WizardExternalLink href={`/nodes/${serverId}#audyt`} variant="primary">
+                  Uruchom audyt węzła
+                </WizardExternalLink>
               )}
-              <Link href="/status/probes" className="rounded-lg border border-white/10 px-4 py-2 text-sm hover:bg-white/5">
-                Status probes
-              </Link>
+              <WizardExternalLink href="/status/probes">Status probes</WizardExternalLink>
             </div>
           </div>
         )}

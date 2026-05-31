@@ -8,17 +8,19 @@ import { BootstrapTokenGuard } from './guards/bootstrap-token.guard';
 import { ServerIdentityGuard } from './guards/server-identity.guard';
 import { DirectAdminService } from './directadmin.service';
 import { NodeTasksService } from './node-tasks.service';
+import { NodeAuditService } from './node-audit.service';
 
 @Module({
   controllers: [ServersController, ServersAdminController, NodeTasksAgentController],
   providers: [
     ServersService,
     NodeTasksService,
+    NodeAuditService,
     BootstrapTokenService,
     BootstrapTokenGuard,
     ServerIdentityGuard,
     DirectAdminService,
   ],
-  exports: [ServersService, DirectAdminService, ServerIdentityGuard, NodeTasksService],
+  exports: [ServersService, DirectAdminService, ServerIdentityGuard, NodeTasksService, NodeAuditService],
 })
 export class ServersModule {}

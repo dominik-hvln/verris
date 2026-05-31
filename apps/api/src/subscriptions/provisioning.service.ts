@@ -23,6 +23,11 @@ import { DirectAdminService } from '../servers/directadmin.service';
 import { NodeSelectorService } from './node-selector.service';
 import { MailerService } from '../mail/mailer.service';
 import { accountProvisionedTemplate } from '../mail/templates/hosting-notifications';
+import {
+  DA_DEFAULT_LANGUAGE,
+  buildDaPackageSpecFromPlan,
+  planResourceFields,
+} from '../servers/da-package-spec';
 
 export interface ProvisionResult {
   subscription: Subscription;
@@ -34,6 +39,15 @@ export interface ProvisionResult {
 }
 
 const DA_USERNAME_MAX = 8;
+
+/** DirectAdmin `ip=` for CMD_API_ACCOUNT_USER — single-IP nodes need the public IP, not `shared`. */
+function resolveDaAccountIp(server: Pick<Server, 'ipAddress'>): string {
+  const ip = server.ipAddress?.trim();
+  if (ip && ip !== '0.0.0.0' && !ip.startsWith('pending-')) {
+    return ip;
+  }
+  return 'shared';
+}
 
 /**
  * End-to-end provisioning flow for a paid subscription.
@@ -98,6 +112,32 @@ export class ProvisioningService {
 
     const daClient = await this.da.getClientForServer(server.id);
 
+    try {
+      await daClient.ensureUserPackage(
+        buildDaPackageSpecFromPlan(planResourceFields(subscription.plan)),
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.error(
+        `DA ensureUserPackage failed for sub=${subscription.id} pkg=${subscription.plan.slug}: ${msg}`,
+      );
+      await this.audit.record({
+        action: 'PROVISIONING_FAILED',
+        userId: subscription.userId,
+        actorUserId: actorUserId ?? null,
+        details: {
+          subscriptionId,
+          serverId: server.id,
+          stage: 'ensureUserPackage',
+          package: subscription.plan.slug,
+          error: msg,
+        },
+      });
+      throw new ServiceUnavailableException(
+        `DirectAdmin package "${subscription.plan.slug}" is missing on the node and could not be created automatically. Contact support.`,
+      );
+    }
+
     let daResult;
     try {
       daResult = await daClient.createAccount({
@@ -106,7 +146,8 @@ export class ProvisioningService {
         domain,
         packageName: subscription.plan.slug,
         notify: 'no',
-        ip: 'shared',
+        ip: resolveDaAccountIp(server),
+        language: DA_DEFAULT_LANGUAGE,
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

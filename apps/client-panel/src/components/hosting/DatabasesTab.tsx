@@ -1,37 +1,31 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Database, Loader2, RefreshCw, AlertCircle } from 'lucide-react';
+import { Database, Loader2, RefreshCw, AlertCircle, ExternalLink } from 'lucide-react';
 import { Button } from '@verris/ui';
-import {
-  fetchHostingDatabasesAction,
-  fetchHostingDaLinksAction,
-} from '@/app/dashboard/services/[id]/hosting-mysql-links-actions';
+import { fetchHostingDatabasesAction } from '@/app/dashboard/services/[id]/hosting-mysql-links-actions';
+import { HostingTabShell, DaExternalLink } from '@/components/hosting/HostingTabShell';
+import { hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
+import { useHostingLinks } from '@/components/hosting/hosting-links-context';
 
 interface Props {
   serviceId: string;
 }
 
 export default function DatabasesTab({ serviceId }: Props) {
+  const { links } = useHostingLinks();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [databases, setDatabases] = useState<{ name: string }[]>([]);
-  const [daUsername, setDaUsername] = useState<string | null>(null);
-  const [databasesDaUrl, setDatabasesDaUrl] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
     try {
-      const [dbRes, linksRes] = await Promise.all([
-        fetchHostingDatabasesAction(serviceId),
-        fetchHostingDaLinksAction(serviceId).catch(() => null),
-      ]);
+      const dbRes = await fetchHostingDatabasesAction(serviceId);
       setDatabases(dbRes.databases);
-      setDaUsername(dbRes.daUsername);
       setFetchError(dbRes.fetchError);
-      setDatabasesDaUrl(linksRes?.databasesUrl ?? null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Nie udało się pobrać listy baz.');
       setDatabases([]);
@@ -47,122 +41,99 @@ export default function DatabasesTab({ serviceId }: Props) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center gap-3 py-24 text-neutral-400">
-        <Loader2 className="h-6 w-6 animate-spin text-cyan-400" />
-        Wczytywanie baz MySQL…
+      <div className="flex items-center justify-center gap-2 py-16 text-sm text-neutral-400">
+        <Loader2 className="h-5 w-5 animate-spin" />
+        Wczytywanie baz…
       </div>
     );
   }
 
+  const databasesUrl = links.databasesUrl;
+
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="relative rounded-[32px] p-px overflow-hidden group">
-        <div className="relative rounded-[calc(32px-1px)] bg-[#0a0a0a] p-6 lg:p-8 flex flex-col z-10 transition-colors duration-300 border border-white/10">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4 border-b border-white/5 pb-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-2xl bg-white/5 text-white border border-white/10 shadow-inner">
-                <Database className="h-6 w-6" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-white tracking-wide">Twoje bazy MySQL</h2>
-                <p className="text-sm text-neutral-400 mt-1 max-w-xl">
-                  Lista synchronizowana z kontem hostingowym (
-                  {daUsername ?? '—'}
-                  ). Zarządzanie i phpMyAdmin w panelu hostingu.
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2 justify-end">
-              {databasesDaUrl ? (
-                <Button
-                  asChild
-                  variant="outline"
-                  size="sm"
-                  className="border-white/15 bg-white/[0.04] text-white hover:bg-white/10"
-                >
-                  <a href={databasesDaUrl} target="_blank" rel="noopener noreferrer">
-                    Otwórz panel baz danych
-                  </a>
-                </Button>
-              ) : null}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={refreshing}
-                onClick={() => {
-                  setRefreshing(true);
-                  void load();
-                }}
-                className="gap-2 border-white/15 bg-white/[0.04] text-white hover:bg-white/10"
-              >
-                {refreshing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4" />
-                )}
-                Odśwież
-              </Button>
-            </div>
-          </div>
-
-          {error ? (
-            <div className="mb-4 flex items-start gap-2 rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
-              <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-              {error}
-            </div>
+    <HostingTabShell
+      title="Bazy MySQL"
+      description="Lista baz danych przypisanych do usługi."
+      icon={<Database className="h-4 w-4" />}
+      actions={
+        <>
+          {databasesUrl ? (
+            <DaExternalLink href={databasesUrl} variant="primary">
+              Zarządzaj bazami
+              <ExternalLink className="h-3 w-3 opacity-70" />
+            </DaExternalLink>
           ) : null}
-
-          {fetchError ? (
-            <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-              <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-              <span>Nie udało się odczytać listy baz: {fetchError}</span>
-            </div>
-          ) : null}
-
-          <div className="rounded-xl border border-white/5 bg-[#050505] overflow-x-auto shadow-inner">
-            <table className="w-full text-sm">
-              <thead className="bg-white/5 border-b border-white/5 text-left">
-                <tr>
-                  <th className="py-4 px-4 text-neutral-300 font-semibold">Nazwa bazy</th>
-                  <th className="px-4 text-right text-neutral-300 font-semibold">/phpMyAdmin</th>
-                </tr>
-              </thead>
-              <tbody>
-                {databases.length === 0 && !fetchError ? (
-                  <tr>
-                    <td colSpan={2} className="px-4 py-10 text-center text-neutral-500">
-                      Brak utworzonych baz lub konto nie jest jeszcze provisionowane.
-                    </td>
-                  </tr>
-                ) : null}
-                {databases.map((db) => (
-                  <tr
-                    key={db.name}
-                    className="border-b border-white/5 hover:bg-white/5 group/row transition-colors"
-                  >
-                    <td className="font-mono py-4 px-4 text-white">{db.name}</td>
-                    <td className="px-4 text-right">
-                      {databasesDaUrl ? (
-                        <a
-                          href={databasesDaUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center h-8 px-3 whitespace-nowrap bg-[#121212] hover:bg-white/10 text-neutral-300 hover:text-white font-medium text-xs rounded-lg transition-all border border-white/10"
-                        >
-                          Otwórz phpMyAdmin →
-                        </a>
-                      ) : (
-                        <span className="text-neutral-600 text-xs">—</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={refreshing}
+            onClick={() => {
+              setRefreshing(true);
+              void load();
+            }}
+            className="h-8 gap-1.5 border-white/15 bg-white/[0.04] text-white hover:bg-white/10 text-xs"
+          >
+            {refreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            Odśwież
+          </Button>
+        </>
+      }
+    >
+      {error ? (
+        <div className="mb-3 flex items-start gap-2 rounded-lg border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-xs text-rose-100">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {error}
         </div>
+      ) : null}
+
+      {fetchError ? (
+        <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {hostingFetchErrorMessage(fetchError)}
+        </div>
+      ) : null}
+
+      <div className="rounded-xl border border-white/5 bg-[#050505] overflow-hidden">
+        <table className="w-full text-xs sm:text-sm">
+          <thead className="bg-white/5 border-b border-white/5 text-left">
+            <tr>
+              <th className="py-3 px-3 text-neutral-300 font-semibold">Nazwa bazy</th>
+              <th className="py-3 px-3 text-right text-neutral-300 font-semibold">phpMyAdmin</th>
+            </tr>
+          </thead>
+          <tbody>
+            {databases.length === 0 && !fetchError ? (
+              <tr>
+                <td colSpan={2} className="px-3 py-8 text-center text-neutral-500 text-xs">
+                  Brak baz — utwórz je w panelu hostingu.
+                </td>
+              </tr>
+            ) : null}
+            {databases.map((db) => (
+              <tr key={db.name} className="border-b border-white/5 hover:bg-white/[0.02]">
+                <td className="font-mono py-3 px-3 text-white truncate max-w-[200px]" title={db.name}>
+                  {db.name}
+                </td>
+                <td className="py-3 px-3 text-right">
+                  {databasesUrl ? (
+                    <a
+                      href={databasesUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-neutral-300 hover:text-white whitespace-nowrap"
+                    >
+                      Otwórz →
+                    </a>
+                  ) : (
+                    <span className="text-neutral-600 text-xs">—</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-    </div>
+    </HostingTabShell>
   );
 }

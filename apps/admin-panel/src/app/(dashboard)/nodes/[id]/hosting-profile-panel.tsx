@@ -206,8 +206,8 @@ export function HostingProfilePanel({
             <p className="text-xs text-sky-200">
               {latest.status === "RUNNING"
                 ? runningStuck
-                  ? "Profil w tle (Governor/CustomBuild) — może trwać do ~60 min. Panel odświeża co 5 s; po 75 min zadanie zostanie oznaczone jako błąd. Na węźle: tail -f /var/log/verris-tasks.log oraz systemctl status verris-task-*"
-                  : "Profil wykonywany na węźle w tle — Governor/CustomBuild może potrwać kilka–kilkadziesiąt minut."
+                  ? `Profil w tle (Governor/CustomBuild) — może trwać do ~60 min. Log na żywo poniżej (heartbeat co ~60 s). Na węźle: tail -f /var/log/verris-tasks/${latest.id}.log oraz systemctl status verris-task@${latest.id.replace(/-/g, "")}`
+                  : "Profil wykonywany na węźle — log odświeża się co ~60 s. Governor/CustomBuild może potrwać kilka–kilkadziesiąt minut."
                 : queuedStuck
                   ? "Zadanie czeka >90 s — na węźle brakuje agenta zadań. Zainstaluj skrypt poniżej (SSH)."
                   : "Agent odbierze zadanie w ciągu ~1 minuty. Odświeżanie co 5 s."}
@@ -217,7 +217,11 @@ export function HostingProfilePanel({
             <pre className="text-xs text-rose-200 whitespace-pre-wrap">{latest.errorMessage}</pre>
           )}
           {latest.outputLog && (
-            <pre className="text-[11px] text-zinc-400 max-h-48 overflow-auto whitespace-pre-wrap border-t border-white/5 pt-2">
+            <pre
+              className={`text-[11px] text-zinc-400 overflow-auto whitespace-pre-wrap border-t border-white/5 pt-2 ${
+                latest.status === "RUNNING" ? "max-h-96" : "max-h-48"
+              }`}
+            >
               {latest.outputLog}
             </pre>
           )}
@@ -227,8 +231,8 @@ export function HostingProfilePanel({
       <div className="border-t border-white/10 pt-3 space-y-2">
         <p className="text-xs text-muted-foreground">
           {queuedStuck
-            ? "Wymagana jednorazowa instalacja agenta zadań na węźle (bootstrapy sprzed agent-2):"
-            : "Węzeł sprzed agent-2? Jednorazowa instalacja agenta zadań na SSH:"}
+            ? "Wymagana jednorazowa instalacja agenta zadań na węźle (agent-3 — systemd template + logi):"
+            : "Węzeł sprzed agent-3? Jednorazowa instalacja agenta zadań na SSH:"}
         </p>
         {!agentScript ? (
           <button

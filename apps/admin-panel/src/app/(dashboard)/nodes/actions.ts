@@ -11,6 +11,8 @@ import type {
   NodeTaskDto,
   QueueHostingProfileTaskInput,
   TasksAgentInstallScriptDto,
+  NodeAuditReportDto,
+  NodeRepairResultDto,
 } from "@verris/contracts";
 import { adminApi, AdminApiError } from "@/lib/api";
 
@@ -147,6 +149,28 @@ export async function fetchTasksAgentInstallScript(id: string) {
     return { data };
   } catch (err) {
     return { error: extractError(err) };
+  }
+}
+
+export async function fetchNodeAudit(id: string) {
+  try {
+    const data = await adminApi<NodeAuditReportDto>(`/admin/servers/${id}/audit`);
+    return { data };
+  } catch (err) {
+    return { error: extractError(err), data: null };
+  }
+}
+
+export async function repairNode(id: string, actionId: string, confirm?: string) {
+  try {
+    const data = await adminApi<NodeRepairResultDto>(
+      `/admin/servers/${id}/repair/${actionId}`,
+      { method: "POST", body: { confirm } },
+    );
+    revalidatePath(`/nodes/${id}`);
+    return { data };
+  } catch (err) {
+    return { error: extractError(err), data: null };
   }
 }
 

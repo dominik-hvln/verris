@@ -31,10 +31,13 @@ done
 PROFILE_OK=0
 PROFILE_SKIP=0
 PROFILE_WARN=0
+PROFILE_FAIL=0
+GOVERNOR_REQUIRED=1
 
 log_ok() { echo "[OK] $*"; PROFILE_OK=$((PROFILE_OK + 1)); }
 log_skip() { echo "[SKIP] $*"; PROFILE_SKIP=$((PROFILE_SKIP + 1)); }
 log_warn() { echo "[WARN] $*" >&2; PROFILE_WARN=$((PROFILE_WARN + 1)); }
+log_fail() { echo "[FAIL] $*" >&2; PROFILE_FAIL=$((PROFILE_FAIL + 1)); }
 log_info() { echo "[INFO] $*"; }
 
 strip_ansi() {
@@ -136,7 +139,186 @@ governor_mysql_version_keyword() {
 }
 
 governor_is_active() {
-  command -v dbctl >/dev/null 2>&1 && dbctl list >/dev/null 2>&1
+  local out
+  command -v dbctl >/dev/null 2>&1 || return 1
+  out="$(dbctl list 2>&1)" || return 1
+  if grep -qiE "can't connect to socket|governor is not started|not responsive" <<<"$out"; then
+    return 1
+  fi
+  return 0
+}
+
+mysql_system_user_exists() {
+  getent passwd mysql >/dev/null 2>&1
+}
+
+mariadb_service_name() {
+  if systemctl list-unit-files mariadb.service >/dev/null 2>&1; then
+    echo mariadb
+  elif systemctl list-unit-files mysqld.service >/dev/null 2>&1; then
+    echo mysqld
+  else
+    echo mariadb
+  fi
+}
+
+# Pakiety CL MariaDB per keyword Governor (świeży węzeł bez mysql -V / użytkownika mysql).
+cl_mariadb_packages_for_keyword() {
+  case "$1" in
+    mariadb106) echo "cl-MariaDB106 cl-MariaDB106-server" ;;
+    mariadb105) echo "cl-MariaDB105 cl-MariaDB105-server" ;;
+    mariadb104) echo "cl-MariaDB104 cl-MariaDB104-server" ;;
+    mariadb103) echo "cl-MariaDB103 cl-MariaDB103-server" ;;
+    *) return 1 ;;
+  esac
+}
+
+ensure_mariadb_before_governor() {
+  local gov_ver="$1"
+  local pkgs svc
+
+  if mysql_system_user_exists && mysql_client_version_line | grep -q .; then
+    svc="$(mariadb_service_name)"
+    systemctl enable "$svc" 2>/dev/null || true
+    systemctl start "$svc" 2>/dev/null || true
+    return 0
+  fi
+
+  pkgs="$(cl_mariadb_packages_for_keyword "$gov_ver" || true)"
+  if [ -z "$pkgs" ]; then
+    log_warn "Brak mapowania pakietów CL dla $gov_ver — Governor zainstaluje silnik samodzielnie"
+    return 0
+  fi
+
+  log_info "Brak użytkownika mysql / mysql -V — instalacja $pkgs przed Governor (wymagane na świeżym węźle)"
+  if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then
+    log_info "dry-run: dnf install -y $pkgs"
+    return 0
+  fi
+
+  if ! dnf install -y $pkgs 2>&1 | strip_ansi; then
+    log_warn "dnf install $pkgs nie powiódł się — kontynuuję z mysqlgovernor.py --install"
+    return 0
+  fi
+
+  svc="$(mariadb_service_name)"
+  systemctl enable "$svc" 2>/dev/null || true
+  systemctl start "$svc" 2>/dev/null || true
+
+  if mysql_system_user_exists && mysql -e "SELECT 1" >/dev/null 2>&1; then
+    log_ok "MariaDB $gov_ver działa (mysql -e SELECT 1)"
+  elif mysql_system_user_exists; then
+    log_warn "Użytkownik mysql istnieje, ale mysql -e SELECT 1 nie działa — sprawdź journalctl -u $svc"
+  else
+    log_warn "Po dnf install nadal brak użytkownika mysql — Governor może paść na getpwnam('mysql')"
+  fi
+}
+
+prepare_governor_install() {
+  if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then
+    return 0
+  fi
+  log_info "Przygotowanie Governor (reset modułu mariadb, czyszczenie cache instalatora)"
+  remove_cl_mariadb_meta_packages
+  dnf module reset mariadb -y 2>/dev/null || true
+  dnf module enable mariadb:cl-MariaDB106 -y 2>/dev/null || true
+  rm -rf /usr/share/lve/dbgovernor/tmp/governor-tmp/* 2>/dev/null || true
+  find /usr/share/lve/dbgovernor/tmp -type f \( -name '*meta*11.8*' -o -name '*MariaDB1108*' -o -name '*meta-devel*' \) -delete 2>/dev/null || true
+  if [ -f /var/lve/dbgovernor-shm/governor_bad_users_list ]; then
+    mv /var/lve/dbgovernor-shm/governor_bad_users_list \
+      "/var/lve/dbgovernor-shm/governor_bad_users_list.bak.$(date +%s)" 2>/dev/null || true
+  fi
+}
+
+remove_cl_mariadb_meta_packages() {
+  local pkgs
+  if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then
+    return 0
+  fi
+  pkgs=$(rpm -qa | grep -iE '^cl-MariaDB-meta' || true)
+  if [ -n "$pkgs" ]; then
+    log_info "Usuwanie konfliktowych pakietów cl-MariaDB-meta (EL10 / mariadb106)"
+    # shellcheck disable=SC2086
+    dnf remove -y $pkgs 2>&1 | strip_ansi || log_warn "dnf remove cl-MariaDB-meta — częściowy błąd"
+  fi
+}
+
+wait_for_mariadb_ready() {
+  local svc="$1"
+  local i
+  for i in $(seq 1 45); do
+    if mysql -e "SELECT 1" >/dev/null 2>&1; then
+      return 0
+    fi
+    systemctl start "$svc" 2>/dev/null || true
+    sleep 2
+  done
+  return 1
+}
+
+ensure_mariadb106_server_running() {
+  local svc pkgs
+  if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then
+    return 0
+  fi
+
+  pkgs="cl-MariaDB106 cl-MariaDB106-server"
+  if ! rpm -q cl-MariaDB106-server >/dev/null 2>&1; then
+    log_info "Instalacja $pkgs (wymagane przed Governor na świeżym węźle)"
+    if ! dnf install -y $pkgs 2>&1 | strip_ansi; then
+      log_fail "dnf install $pkgs nie powiódł się"
+      return 1
+    fi
+  fi
+
+  svc="$(mariadb_service_name)"
+  systemctl enable "$svc" 2>/dev/null || true
+  systemctl start "$svc" 2>/dev/null || true
+
+  if wait_for_mariadb_ready "$svc"; then
+    log_ok "MariaDB 10.6 działa (mysql -e SELECT 1)"
+    return 0
+  fi
+
+  log_fail "MariaDB nie odpowiada po 90 s — journalctl -u $svc"
+  return 1
+}
+
+recover_governor_after_install() {
+  local svc gov_ver="${1:-mariadb106}"
+  if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then
+    return 0
+  fi
+
+  if governor_is_active; then
+    return 0
+  fi
+
+  log_info "Governor nieaktywny po instalacji — odzyskiwanie (MariaDB + db_governor)"
+  ensure_mariadb106_server_running || true
+  svc="$(mariadb_service_name)"
+  systemctl restart "$svc" 2>/dev/null || true
+  sleep 3
+
+  run_governor_py "Ponowne ustawienie wersji Governor" --mysql-version="$gov_ver" || true
+  run_governor_py "Ponowny hook Governor" --install --yes || true
+  restart_db_governor_service
+}
+
+restart_db_governor_service() {
+  if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then
+    return 0
+  fi
+  if systemctl list-unit-files db_governor.service >/dev/null 2>&1; then
+    systemctl enable db_governor 2>/dev/null || true
+    systemctl restart db_governor 2>/dev/null || true
+    sleep 2
+  fi
+}
+
+governor_output_indicates_failure() {
+  local out="$1"
+  grep -qiE 'traceback|keyerror|error:|problem [0-9]+:|conflicting requests|installation of mysql packages will not be completed' <<<"$out"
 }
 
 install_governor_mysql_package() {
@@ -158,23 +340,31 @@ install_governor_mysql_package() {
 run_governor_py() {
   local desc="$1"
   shift
-  local out rc=0
+  local out rc=0 clean
   if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then
     log_info "dry-run: $GOVERNOR_PY $*"
     return 0
   fi
   echo "[verris-profile] $GOVERNOR_PY $*"
   out="$("$GOVERNOR_PY" "$@" 2>&1)" || rc=$?
-  printf '%s\n' "$out" | strip_ansi
+  clean="$(printf '%s' "$out" | strip_ansi)"
+  printf '%s\n' "$clean"
+
+  if governor_output_indicates_failure "$clean"; then
+    log_fail "$desc — wyjście Governor wskazuje na błąd (patrz Traceback/Error powyżej)"
+    return 1
+  fi
+
   if [ "$rc" -eq 0 ]; then
     return 0
   fi
-  local clean
-  clean="$(printf '%s' "$out" | strip_ansi)"
-  if grep -qiE 'already|completed|nothing to do' <<<"$clean"; then
+
+  # Tylko komunikaty samego Governor — NIE traktuj dnf „already installed” jako sukcesu.
+  if grep -qiE 'governor.*already|db governor.*already|nothing to do.*governor|already installed.*governor' <<<"$clean"; then
     return 0
   fi
-  log_warn "$desc (rc=$rc)"
+
+  log_fail "$desc (rc=$rc)"
   return "$rc"
 }
 
@@ -218,12 +408,36 @@ configure_cloudlinux_governor() {
   fi
   log_info "Governor --mysql-version=$gov_ver"
 
+  remove_cl_mariadb_meta_packages
+  ensure_mariadb106_server_running || true
+  ensure_mariadb_before_governor "$gov_ver"
+  prepare_governor_install
+
   run_governor_py "Ustawienie wersji MySQL/MariaDB dla Governor" --mysql-version="$gov_ver" || true
-  if run_governor_py "Instalacja MySQL Governor" --install; then
+
+  local install_args=(--install)
+  if [ "$NONINTERACTIVE" = "1" ]; then
+    install_args+=(--yes)
+  fi
+
+  if run_governor_py "Instalacja MySQL Governor" "${install_args[@]}"; then
+    restart_db_governor_service
     if governor_is_active; then
       log_ok "MySQL Governor aktywny (dbctl list)"
     else
-      log_ok "MySQL Governor — instalator zakończony (sprawdź: dbctl list)"
+      recover_governor_after_install "$gov_ver"
+      if governor_is_active; then
+        log_ok "MySQL Governor aktywny po odzyskaniu (dbctl list)"
+      else
+        log_fail "MySQL Governor — dbctl nadal nie działa (journalctl -u db_governor -u mariadb)"
+      fi
+    fi
+  else
+    recover_governor_after_install "$gov_ver"
+    if governor_is_active; then
+      log_ok "MySQL Governor aktywny po odzyskaniu (dbctl list)"
+    else
+      log_fail "Instalacja MySQL Governor nie powiodła się"
     fi
   fi
 }
@@ -382,15 +596,24 @@ print_lve_info() {
 }
 
 print_summary() {
+  local exit_code=0
   echo ""
   echo "=== Podsumowanie profilu ==="
-  echo "OK=$PROFILE_OK  SKIP=$PROFILE_SKIP  WARN=$PROFILE_WARN"
-  if [ "$PROFILE_WARN" -gt 0 ]; then
+  echo "OK=$PROFILE_OK  SKIP=$PROFILE_SKIP  WARN=$PROFILE_WARN  FAIL=$PROFILE_FAIL"
+  if [ "$PROFILE_FAIL" -gt 0 ]; then
+    echo "Profil zakończony BŁĘDEM — napraw [FAIL] powyżej przed provisioningiem."
+    exit_code=1
+  elif [ "$PROFILE_WARN" -gt 0 ]; then
     echo "Profil zakończony z ostrzeżeniami (patrz [WARN] powyżej)."
   else
     echo "=== Profil zakończony ==="
   fi
+  if [ "$GOVERNOR_REQUIRED" = "1" ] && [ "$PREFLIGHT_ONLY" != "1" ] && [ "$DRY_RUN" != "1" ] && ! governor_is_active; then
+    echo "BŁĄD: MySQL Governor nieaktywny — wymagany przed LIVE provisioning." >&2
+    exit_code=1
+  fi
   echo "Następnie: panel admin → węzeł → Test DirectAdmin → status probes → smoke provisioning."
+  return "$exit_code"
 }
 
 require_root
@@ -404,13 +627,11 @@ configure_cloudlinux_governor
 
 if [ "$GOVERNOR_ONLY" = "1" ]; then
   print_summary
-  exit 0
+  exit $?
 fi
 
 configure_directadmin_custombuild
 configure_litespeed
 print_lve_info
 print_summary
-
-# Ostrzeżenia nie blokują sukcesu; błędy krytyczne (custombuild set) kończą skrypt wcześniej przez set -e.
-exit 0
+exit $?
