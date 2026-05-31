@@ -15,7 +15,7 @@ import type { HostingSslRowDto, HostingSslStatus } from '@verris/contracts';
 import { HostingSslForms } from '@/components/hosting/HostingSslForms';
 import { fetchHostingDaLinksAction } from '@/app/dashboard/services/[id]/hosting-mysql-links-actions';
 import { fetchHostingDomainsAction } from '@/app/dashboard/services/[id]/hosting-domains-action';
-import { getHostingSsl } from '@/app/dashboard/hosting-tools-data';
+import { fetchHostingSslAction } from '@/app/dashboard/services/[id]/hosting-ssl-actions';
 
 interface Props {
   serviceId: string;
@@ -64,7 +64,7 @@ export default function SSLTab({ serviceId }: Props) {
       const [domRes, links, sslRes] = await Promise.all([
         fetchHostingDomainsAction(serviceId),
         fetchHostingDaLinksAction(serviceId),
-        getHostingSsl(serviceId).catch(() => null),
+        fetchHostingSslAction(serviceId),
       ]);
       setDomains(domRes.domains);
       setDomainFetchError(domRes.fetchError);

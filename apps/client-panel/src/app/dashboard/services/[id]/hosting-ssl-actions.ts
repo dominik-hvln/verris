@@ -1,7 +1,17 @@
 'use server';
 
-import type { HostingSslMutationOkDto } from '@verris/contracts';
+import type { HostingSslMutationOkDto, HostingSslResponseDto } from '@verris/contracts';
 import { apiFetch, ApiError } from '@/lib/api';
+
+export async function fetchHostingSslAction(
+  serviceId: string,
+): Promise<HostingSslResponseDto | null> {
+  try {
+    return await apiFetch<HostingSslResponseDto>(`/services/${serviceId}/hosting-ssl`);
+  } catch {
+    return null;
+  }
+}
 
 export type HostingSslActionResult =
   | (HostingSslMutationOkDto & { error?: undefined })
