@@ -50,6 +50,11 @@ export interface DaPackageFeatures {
  * CloudLinux LVE limits stored at the *package* level (DA "Resource Limits"
  * section in the package editor). Applied so every account created from the
  * package inherits them, in addition to the per-account MODIFY_USER call.
+ *
+ * NOTE: DirectAdmin only persists these `cpu/mem/io/iops/ep/nproc` package
+ * params when its CloudLinux LVE integration is active (CageFS / LVE Manager
+ * installed). On nodes without that integration DA silently drops them and
+ * uses its native systemd-cgroup limiter instead — see {@link DaPackageCgroupLimits}.
  */
 export interface DaPackageLveLimits {
   /** CPU SPEED %, e.g. 100 = one core full burst. */
@@ -64,6 +69,37 @@ export interface DaPackageLveLimits {
   entryProcesses?: number;
   /** Max processes / NPROC (DA `nproc`). */
   nproc?: number;
+}
+
+/**
+ * DirectAdmin native systemd-cgroup resource limits (package "Limity zasobów"
+ * section, shown when `cgroup=1` / `HAVE_CGROUPS=1`). These are enforced by
+ * systemd on each user's slice and are the active limiter on DA nodes that are
+ * NOT CloudLinux-LVE-integrated.
+ *
+ * Verified live on DA 1.697 (2026-05-31): a blank value = unlimited (there is
+ * NO `u<field>` flag here — unlike the quota/bandwidth fields). Setting them on
+ * the package propagates to existing users and applies immediately via systemd
+ * (e.g. `CPUQuotaPerSecUSec`, `MemoryMax`, `TasksMax`). They coexist with
+ * CloudLinux LVE at identical ceilings.
+ */
+export interface DaPackageCgroupLimits {
+  /** systemd `CPUQuota` in % of one core (100 = 1 core). */
+  cpuQuotaPercent?: number;
+  /** systemd `MemoryHigh` soft throttle, in MB. */
+  memoryHighMb?: number;
+  /** systemd `MemoryMax` hard limit (OOM), in MB. */
+  memoryMaxMb?: number;
+  /** systemd `IOReadBandwidthMax`, in KB/s. */
+  ioReadBandwidthKbps?: number;
+  /** systemd `IOWriteBandwidthMax`, in KB/s. */
+  ioWriteBandwidthKbps?: number;
+  /** systemd `IOReadIOPSMax`. */
+  ioReadIops?: number;
+  /** systemd `IOWriteIOPSMax`. */
+  ioWriteIops?: number;
+  /** systemd `TasksMax` (max processes + threads on the slice). */
+  tasksMax?: number;
 }
 
 /**
@@ -103,6 +139,8 @@ export interface DaPackageSpec {
   ftpAccounts: DaLimit;
   features?: DaPackageFeatures;
   lve?: DaPackageLveLimits;
+  /** DirectAdmin systemd-cgroup limits (active limiter on non-LVE-integrated nodes). */
+  cgroup?: DaPackageCgroupLimits;
   /** Default panel language for accounts created from this package (e.g. `pl`). */
   language?: string;
   /** DirectAdmin skin (default `evolution`). */
@@ -253,6 +291,24 @@ export class DirectAdminClient {
       if (lve.entryProcesses !== undefined) params.set('ep', String(Math.floor(lve.entryProcesses)));
       if (lve.nproc !== undefined) params.set('nproc', String(Math.floor(lve.nproc)));
     }
+
+    // DirectAdmin systemd-cgroup limits (the active limiter when DA is not
+    // CloudLinux-LVE-integrated). blank value = unlimited; no u<field> flag.
+    // Always emit the 8 fields so "unlimited" can be set explicitly. Value
+    // formats verified on DA 1.697: CPUQuota "<n>%", Memory* "<n>M",
+    // IO*BandwidthMax "<n>K" (KB/s), IO*IOPSMax/TasksMax plain integers.
+    const cg = spec.cgroup;
+    const cgField = (field: string, value: number | undefined, suffix: string) => {
+      params.set(field, value === undefined ? '' : `${Math.max(0, Math.floor(value))}${suffix}`);
+    };
+    cgField('CPUQuota', cg?.cpuQuotaPercent, '%');
+    cgField('MemoryHigh', cg?.memoryHighMb, 'M');
+    cgField('MemoryMax', cg?.memoryMaxMb, 'M');
+    cgField('IOReadBandwidthMax', cg?.ioReadBandwidthKbps, 'K');
+    cgField('IOWriteBandwidthMax', cg?.ioWriteBandwidthKbps, 'K');
+    cgField('IOReadIOPSMax', cg?.ioReadIops, '');
+    cgField('IOWriteIOPSMax', cg?.ioWriteIops, '');
+    cgField('TasksMax', cg?.tasksMax, '');
 
     if (spec.language) params.set('language', spec.language);
     params.set('skin', spec.skin ?? 'evolution');

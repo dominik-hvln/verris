@@ -414,14 +414,46 @@ export class NodeAuditService {
       records.push({ label: `LVE ${label}`, expected: String(expected), actual, ok });
     }
 
-    const hardFail = !quotaOk || !bwOk;
-    const softWarn = !langOk || lveMismatch;
+    // DirectAdmin systemd-cgroup limits (active limiter on non-LVE-integrated
+    // nodes). Blank = "Bez ograniczeń" → hardFail. Values carry suffixes
+    // (100%, 1024M, 10240K), so compare the leading numeric part.
+    const cg = spec.cgroup;
+    const cgChecks: Array<[string, string, number | undefined]> = cg
+      ? [
+          ['CPUQuota %', 'CPUQuota', cg.cpuQuotaPercent],
+          ['MemoryMax (MB)', 'MemoryMax', cg.memoryMaxMb],
+          ['IO read (KB/s)', 'IOReadBandwidthMax', cg.ioReadBandwidthKbps],
+          ['IO write (KB/s)', 'IOWriteBandwidthMax', cg.ioWriteBandwidthKbps],
+          ['IOPS read', 'IOReadIOPSMax', cg.ioReadIops],
+          ['IOPS write', 'IOWriteIOPSMax', cg.ioWriteIops],
+          ['Tasks max', 'TasksMax', cg.tasksMax],
+        ]
+      : [];
+    let cgroupUnlimited = false;
+    let cgroupMismatch = false;
+    for (const [label, field, expected] of cgChecks) {
+      if (expected === undefined) continue;
+      const actual = info![field];
+      const blank = !actual || actual.trim() === '';
+      const ok = !blank && cgroupNumEq(actual, expected);
+      if (blank) cgroupUnlimited = true;
+      else if (!ok) cgroupMismatch = true;
+      records.push({
+        label: `cgroup ${label}`,
+        expected: String(expected),
+        actual: blank ? 'Bez ograniczeń' : actual!,
+        ok,
+      });
+    }
+
+    const hardFail = !quotaOk || !bwOk || cgroupUnlimited;
+    const softWarn = !langOk || lveMismatch || cgroupMismatch;
     const status: AuditCheckStatus = hardFail ? 'FAIL' : softWarn ? 'WARN' : 'OK';
     let summary: string;
     if (hardFail) {
-      summary = `Pakiet ${plan.slug}: dysk/transfer są "Bez ograniczeń" lub nie zgadzają się z planem — napraw.`;
+      summary = `Pakiet ${plan.slug}: dysk/transfer/cgroups są "Bez ograniczeń" lub nie zgadzają się z planem — napraw.`;
     } else if (softWarn) {
-      summary = `Pakiet ${plan.slug}: limity dysku/transferu OK, ale język lub LVE wymagają korekty.`;
+      summary = `Pakiet ${plan.slug}: limity dysku/transferu OK, ale język, LVE lub cgroups wymagają korekty.`;
     } else {
       summary = `Pakiet ${plan.slug} zgodny z planem (limity nie są "Bez ograniczeń", język ${DA_DEFAULT_LANGUAGE}).`;
     }
@@ -580,8 +612,15 @@ export class NodeAuditService {
       {
         vendor: 'CloudLinux',
         statement:
-          'Limity LVE (cpu/mem/io/iops/ep/nproc) na poziomie pakietu dziedziczone przez nowe konta; zweryfikuj nazwy pól z wersją DA na węźle.',
+          'Limity LVE (cpu/mem/io/iops/ep/nproc) na poziomie pakietu utrwalane tylko przy integracji LVE w DA (CageFS). Egzekucja per-konto realizowana przez agenta verris-lve.sh (lvectl) i potwierdzona na żywo.',
         reference: 'https://docs.cloudlinux.com/lve_manager/',
+      },
+      {
+        vendor: 'DirectAdmin',
+        statement:
+          'Limity systemd-cgroups pakietu (CPUQuota, MemoryHigh/Max, IO*BandwidthMax, IO*IOPSMax, TasksMax; cgroup=1, HAVE_CGROUPS=1) — puste pole = "Bez ograniczeń" (BRAK flagi u<pole>). Zweryfikowane na DA 1.697: zapis pakietu propaguje na istniejące konta i jest egzekwowany przez systemd (CPUQuotaPerSecUSec, MemoryMax, TasksMax na slice user-<uid>).',
+        reference: 'https://www.directadmin.com/features.php?id=2934',
+        verifiedAt: '2026-05-31',
       },
     ];
   }
@@ -591,11 +630,11 @@ export class NodeAuditService {
       actionId: `repair-da-package-${slug}`,
       risk,
       label: `Napraw pakiet ${slug}`,
-      description: `Zapisze pakiet "${slug}" w DirectAdmin z realnymi limitami z planu (dysk, transfer, LVE) — bez flag u* (które w DA oznaczają "Bez ograniczeń"), język ${DA_DEFAULT_LANGUAGE}. Wpływa na NOWE konta z tego pakietu; nie zmienia limitów istniejących kont (te są ustawiane osobno przez provisioning).`,
+      description: `Zapisze pakiet "${slug}" w DirectAdmin z realnymi limitami z planu: dysk, transfer (bez flag u*, które w DA oznaczają "Bez ograniczeń") oraz limity systemd-cgroups (CPUQuota, MemoryMax, IO, TasksMax — puste = bez ograniczeń) i język ${DA_DEFAULT_LANGUAGE}. Limity cgroups propagują również na ISTNIEJĄCE konta z tego pakietu (egzekwowane przez systemd).`,
       requiresConfirmation: true,
       confirmValue: null,
       warning:
-        'Operacja nadpisuje definicję pakietu na węźle. Istniejące konta zachowują swoje limity do następnej zmiany planu.',
+        'Operacja nadpisuje definicję pakietu i zaostrza limity systemd istniejących kont z tego pakietu do wartości planu (CPU/RAM/IO/Tasks). Egzekucja jest natychmiastowa.',
     };
   }
 
@@ -685,6 +724,14 @@ function numEq(actual: string | undefined, expected: number): boolean {
   if (actual === undefined) return false;
   const n = Number(actual);
   return Number.isFinite(n) && Math.floor(n) === Math.floor(expected);
+}
+
+/** Compare a DA cgroup value (e.g. "100%", "1024M", "10240K") by leading number. */
+function cgroupNumEq(actual: string | undefined, expected: number): boolean {
+  if (actual === undefined) return false;
+  const m = actual.trim().match(/^(\d+)/);
+  if (!m) return false;
+  return Number(m[1]) === Math.floor(expected);
 }
 
 function isAllEmpty(info: Record<string, string>): boolean {

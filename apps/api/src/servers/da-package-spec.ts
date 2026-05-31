@@ -136,6 +136,20 @@ export function buildDaPackageSpecFromPlan(
       entryProcesses: plan.entryProcesses,
       nproc: plan.nprocLimit,
     },
+    // DirectAdmin systemd-cgroup limits — the active per-user limiter on nodes
+    // without CloudLinux LVE integration (CageFS). Mirrors the plan 1:1 so the
+    // package editor shows real values and systemd enforces the same ceilings
+    // as LVE. CPU% == LVE SPEED, RAM == pmem, IO == LVE io, Tasks == NPROC.
+    cgroup: {
+      cpuQuotaPercent: plan.cpuLimit,
+      memoryHighMb: plan.ramLimitMb,
+      memoryMaxMb: plan.ramLimitMb,
+      ioReadBandwidthKbps: plan.ioLimitKbps,
+      ioWriteBandwidthKbps: plan.ioLimitKbps,
+      ioReadIops: plan.iopsLimit,
+      ioWriteIops: plan.iopsLimit,
+      tasksMax: plan.nprocLimit,
+    },
     language: opts.language ?? DA_DEFAULT_LANGUAGE,
     skin: opts.skin ?? 'evolution',
   };

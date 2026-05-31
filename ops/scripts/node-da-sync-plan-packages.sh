@@ -74,9 +74,16 @@ upsert_package() {
   body="${body}$(limit_pair mysql "$mysql")"
   body="${body}$(limit_pair domainptr "$domptr")"
   body="${body}$(limit_pair ftp "$ftp")"
-  # CloudLinux LVE (poziom pakietu). Zweryfikuj nazwy pól z wersją DA na węźle
-  # (ops/docs/NODE_BOOTSTRAP_V2.md → Vendor documentation & stack versions).
+  # CloudLinux LVE (poziom pakietu) — utrwalane tylko gdy DA ma integrację LVE
+  # (CageFS). Na węzłach bez integracji DA je ignoruje i używa cgroups (niżej).
   body="${body}&cpu=${cpu}&mem=${mem}&io=${io}&iops=${iops}&ep=${ep}&nproc=${nproc}"
+  # DirectAdmin systemd-cgroups (aktywny limiter bez integracji LVE; cgroup=1).
+  # Puste = bez ograniczeń (BRAK flagi u<field>). Format zweryfikowany na DA 1.697:
+  # CPUQuota "<n>%", Memory* "<n>M", IO*BandwidthMax "<n>K" (KB/s), IOPS/Tasks = int.
+  # Wartości mapują 1:1 z LVE: CPUQuota=cpu%, MemoryMax=mem MB, IO=io KB/s, TasksMax=nproc.
+  body="${body}&CPUQuota=${cpu}%25&MemoryHigh=${mem}M&MemoryMax=${mem}M"
+  body="${body}&IOReadBandwidthMax=${io}K&IOWriteBandwidthMax=${io}K"
+  body="${body}&IOReadIOPSMax=${iops}&IOWriteIOPSMax=${iops}&TasksMax=${nproc}"
   body="${body}&cgi=ON&php=ON&ssl=ON&spam=ON&cron=ON&dnscontrol=ON&ssh=OFF"
   body="${body}&language=${DA_LANGUAGE}&skin=evolution"
 
