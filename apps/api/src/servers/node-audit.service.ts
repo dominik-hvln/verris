@@ -134,7 +134,7 @@ export class NodeAuditService {
       summary = 'Brak danych o heartbeat — poczekaj na pierwszy cykl agenta (1 min).';
     } else if (!fresh) {
       status = 'WARN';
-      summary = 'Ostatni heartbeat starszy niż 5 min — sprawdź verris-agent.timer na węźle.';
+      summary = 'Ostatni heartbeat starszy niż 5 min — sprawdź verris-lve.timer na węźle.';
     }
     return {
       id: 'node-agent',
@@ -147,7 +147,7 @@ export class NodeAuditService {
         {
           vendor: 'Verris',
           statement:
-            'Agent (verris-agent.timer) wysyła telemetrię LVE co 60 s; identity token wydawany jednorazowo przy handshake.',
+            'Agent (verris-lve.timer) wysyła telemetrię LVE z /proc/lve/list co 60 s i egzekwuje limity planów/kont przez lvectl; identity token wydawany jednorazowo przy handshake.',
           reference: 'ops/docs/NODE_BOOTSTRAP_V2.md',
         },
       ],

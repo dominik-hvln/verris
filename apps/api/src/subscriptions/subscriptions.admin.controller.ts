@@ -89,6 +89,66 @@ export class SubscriptionsAdminController {
     });
   }
 
+  /** Per-service resource usage drill-down for ops (CPU/RAM/disk/IO buckets + effective LVE limits). */
+  @Get(':id/usage')
+  @Roles(Role.ADMIN, Role.STAFF)
+  async usage(@Param('id') id: string, @Query('window') window = '24h') {
+    const hours = window === '7d' ? 24 * 7 : 24;
+    const since = new Date(Date.now() - hours * 60 * 60 * 1000);
+    const [rows, account] = await Promise.all([
+      this.prisma.usageMetric.findMany({
+        where: { subscriptionId: id, bucketStart: { gte: since } },
+        orderBy: { bucketStart: 'asc' },
+        take: window === '7d' ? 500 : 200,
+      }),
+      this.prisma.account.findUnique({
+        where: { subscriptionId: id },
+        select: {
+          daUsername: true,
+          domain: true,
+          status: true,
+          serverId: true,
+          cpuLimit: true,
+          ramLimitMb: true,
+          diskLimitMb: true,
+          ioLimitKbps: true,
+          iopsLimit: true,
+          entryProcesses: true,
+          nprocLimit: true,
+          scaledCpu: true,
+          scaledRamMb: true,
+          scaledDiskMb: true,
+        },
+      }),
+    ]);
+    const latest = rows.at(-1) ?? null;
+    return {
+      window,
+      account,
+      latest: latest
+        ? {
+            bucketStart: latest.bucketStart.toISOString(),
+            cpuUsageAvg: latest.cpuUsageAvg,
+            cpuUsageMax: latest.cpuUsageMax,
+            memUsageAvgMb: latest.memUsageAvgMb,
+            memUsageMaxMb: latest.memUsageMaxMb,
+            diskUsageMb: latest.diskUsageMb,
+            ioUsageKbps: latest.ioUsageKbps,
+          }
+        : null,
+      rows: rows.map((row) => ({
+        bucketStart: row.bucketStart.toISOString(),
+        bucketDurationS: row.bucketDurationS,
+        cpuUsageAvg: row.cpuUsageAvg,
+        cpuUsageMax: row.cpuUsageMax,
+        memUsageAvgMb: row.memUsageAvgMb,
+        memUsageMaxMb: row.memUsageMaxMb,
+        diskUsageMb: row.diskUsageMb,
+        ioUsageKbps: row.ioUsageKbps,
+      })),
+    };
+  }
+
   @Post(':id/suspend')
   @HttpCode(200)
   suspend(

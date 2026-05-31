@@ -477,9 +477,9 @@ function renderBootstrapScript(opts: {
 #      Verris control plane via /servers/handshake.
 #   2. Persists the returned X-Server-Id and X-Server-Token in /etc/verris.conf
 #      (mode 0600, root-only) so the metrics agent can authenticate later.
-#   3. Installs the metrics agent (/usr/local/bin/verris-agent.sh) and a
-#      systemd timer (or fallback cron) that pushes lveinfo samples every
-#      minute to /telemetry/lve.
+#   3. Installs the node LVE agent (/usr/local/bin/verris-lve.sh) and a 1-min
+#      systemd timer that enforces plan/account CloudLinux limits via lvectl
+#      and pushes live /proc/lve/list telemetry to /telemetry/lve.
 #   4. Installs control-plane deploy SSH public key in /root/.ssh/authorized_keys
 #      (wildcard TLS + ops — wymaga VERRIS_NODE_DEPLOY_SSH_PUBKEY na panelu).
 #
@@ -494,8 +494,6 @@ set -euo pipefail
 API_URL="${opts.apiUrl}"
 BOOTSTRAP_TOKEN="${opts.bootstrapToken}"
 CONFIG_FILE="/etc/verris.conf"
-AGENT_PATH="/usr/local/bin/verris-agent.sh"
-LOG_FILE="/var/log/verris-agent.log"
 
 require_root() {
   if [ "$(id -u)" != "0" ]; then
@@ -638,126 +636,18 @@ fi
 ${renderNodeDeploySshKeyBootstrapCall(opts.deployPubKeyB64 ?? null)}
 
 # -----------------------------------------------------------------------------
-# Install metrics agent
+# Telemetria + limity CloudLinux LVE
 # -----------------------------------------------------------------------------
-
-cat > "$AGENT_PATH" <<'AGENT'
-#!/usr/bin/env bash
-# Verris metrics agent — sends 1-minute LVE buckets to the control plane.
-set -euo pipefail
-CONFIG_FILE="/etc/verris.conf"
-[ -r "$CONFIG_FILE" ] || { echo "[verris-agent] Missing $CONFIG_FILE" >&2; exit 1; }
-# shellcheck disable=SC1090
-source "$CONFIG_FILE"
-: "\${VERRIS_API_URL:?missing VERRIS_API_URL}"
-: "\${VERRIS_SERVER_ID:?missing VERRIS_SERVER_ID}"
-: "\${VERRIS_IDENTITY_TOKEN:?missing VERRIS_IDENTITY_TOKEN}"
-
-BUCKET_DURATION=60
-BUCKET_START=$(date -u -d "@$(( ($(date +%s) / BUCKET_DURATION) * BUCKET_DURATION - BUCKET_DURATION ))" +%FT%TZ 2>/dev/null \\
-  || date -u -r $(( ($(date +%s) / BUCKET_DURATION) * BUCKET_DURATION - BUCKET_DURATION )) +%FT%TZ)
-
-ACCOUNTS_JSON="[]"
-
-# Prefer cloudlinux-statistic if present; fall back to lveinfo. Both share the
-# same field semantics (CPU% averaged over the period, memory in pages × 4 KB,
-# IO in kbps). If neither is available, ship an empty payload — it still
-# refreshes the heartbeat on the control plane.
-if ! command -v cloudlinux-statistic >/dev/null 2>&1 && ! command -v lveinfo >/dev/null 2>&1; then
-  echo "[verris-agent] CloudLinux tools missing (cloudlinux-statistic/lveinfo). Install CloudLinux LVE first." >&2
-  exit 2
-fi
-if command -v cloudlinux-statistic >/dev/null 2>&1; then
-  RAW=$(cloudlinux-statistic --period=last_minute --output=csv 2>/dev/null || true)
-  if [ -n "$RAW" ]; then
-    ACCOUNTS_JSON=$(printf '%s\\n' "$RAW" \\
-      | awk -F',' 'NR>1 && $1!="" {
-          username=$1
-          cpu=$2+0
-          mem_mb=($3+0)*4/1024
-          disk_mb=($4+0)
-          io_kbps=($5+0)
-          gsub(/\\"/, "\\\\\\"", username)
-          printf "%s{\\"username\\":\\"%s\\",\\"cpuUsagePercent\\":%.2f,\\"memUsageMb\\":%.2f,\\"diskUsageMb\\":%.2f,\\"ioUsageKbps\\":%.2f}", (NR==2?"":","), username, cpu, mem_mb, disk_mb, io_kbps
-        } END {}' \\
-      | awk 'BEGIN{print "["} {print} END{print "]"}')
-  fi
-elif command -v lveinfo >/dev/null 2>&1; then
-  RAW=$(lveinfo --period=1m -o id,aCPU,aEP,aMEM,aIO --csv 2>/dev/null || true)
-  if [ -n "$RAW" ]; then
-    ACCOUNTS_JSON=$(printf '%s\\n' "$RAW" \\
-      | awk -F',' 'NR>1 && $1!="" {
-          username=$1
-          cpu=$2+0
-          mem_mb=($4+0)*4/1024
-          io_kbps=($5+0)
-          printf "%s{\\"username\\":\\"%s\\",\\"cpuUsagePercent\\":%.2f,\\"memUsageMb\\":%.2f,\\"diskUsageMb\\":0,\\"ioUsageKbps\\":%.2f}", (NR==2?"":","), username, cpu, mem_mb, io_kbps
-        } END {}' \\
-      | awk 'BEGIN{print "["} {print} END{print "]"}')
-  fi
-fi
-
-PAYLOAD=$(cat <<JSON
-{
-  "bucketDurationS": $BUCKET_DURATION,
-  "bucketStart": "$BUCKET_START",
-  "agentVersion": "agent-3",
-  "accounts": $ACCOUNTS_JSON
-}
-JSON
-)
-
-curl -fsS --max-time 20 -X POST "$VERRIS_API_URL/telemetry/lve" \\
-  -H "Content-Type: application/json" \\
-  -H "X-Server-Id: $VERRIS_SERVER_ID" \\
-  -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN" \\
-  -d "$PAYLOAD" >/dev/null
-AGENT
-chmod 0755 "$AGENT_PATH"
-echo "[verris] Installed metrics agent at $AGENT_PATH"
-
-# Wire the agent — prefer systemd, fall back to cron.
-if command -v systemctl >/dev/null 2>&1 && [ -d /etc/systemd/system ]; then
-  cat > /etc/systemd/system/verris-agent.service <<UNIT
-[Unit]
-Description=Verris LVE metrics agent
-After=network-online.target
-
-[Service]
-Type=oneshot
-ExecStart=$AGENT_PATH
-StandardOutput=append:$LOG_FILE
-StandardError=append:$LOG_FILE
-UNIT
-
-  cat > /etc/systemd/system/verris-agent.timer <<TIMER
-[Unit]
-Description=Run Verris LVE metrics agent every minute
-
-[Timer]
-OnBootSec=30s
-OnUnitActiveSec=60s
-AccuracySec=5s
-Unit=verris-agent.service
-
-[Install]
-WantedBy=timers.target
-TIMER
-
-  systemctl daemon-reload
-  systemctl enable --now verris-agent.timer
-  echo "[verris] Enabled verris-agent.timer (systemd)"
-elif [ -d /etc/cron.d ]; then
-  cat > /etc/cron.d/verris-agent <<CRON
-# Verris LVE metrics agent
-SHELL=/bin/bash
-PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-* * * * * root $AGENT_PATH >> $LOG_FILE 2>&1
-CRON
-  echo "[verris] Installed cron job /etc/cron.d/verris-agent"
-else
-  echo "[verris] WARNING: no systemd nor cron available — install a 1-minute scheduler manually for $AGENT_PATH" >&2
-fi
+# Obsługiwane przez agenta verris-lve.sh (instalowany niżej w sekcji agenta
+# zadań): reconcile limitów planów/kont przez lvectl oraz telemetria na żywo
+# z /proc/lve/list → POST /telemetry/lve. Stary verris-agent.sh został wycofany —
+# opierał się na lveinfo/cloudlinux-statistic, które na DA 1.697 + CloudLinux 10
+# zwracają puste próbki (snapshot daemon nie nadąża), więc telemetria była zerowa.
+# Sprzątanie po starym agencie (gdyby istniał z wcześniejszego bootstrapu):
+systemctl disable --now verris-agent.timer 2>/dev/null || true
+rm -f /etc/systemd/system/verris-agent.service /etc/systemd/system/verris-agent.timer \
+      /etc/cron.d/verris-agent /usr/local/bin/verris-agent.sh 2>/dev/null || true
+systemctl daemon-reload 2>/dev/null || true
 
 PROBES_PATH="/usr/local/bin/verris-probes.sh"
 PROBES_LOG="/var/log/verris-probes.log"

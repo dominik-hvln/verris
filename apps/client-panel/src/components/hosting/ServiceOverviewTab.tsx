@@ -96,6 +96,16 @@ export default function ServiceOverviewTab({
     void load(true);
   }, [load]);
 
+  // Live gauges: silently refetch usage every 45 s (no health re-probe, no spinner).
+  useEffect(() => {
+    const id = setInterval(() => {
+      void fetchHostingUsageAction(serviceId, '24h')
+        .then((res) => setUsage(res))
+        .catch(() => undefined);
+    }, 45_000);
+    return () => clearInterval(id);
+  }, [serviceId]);
+
   const latest = usage?.rows.at(-1);
   const account = service?.account;
 

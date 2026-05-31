@@ -3,6 +3,7 @@ import { adminApi } from "@/lib/api";
 import { listAdminPlans } from "../../plans/data";
 import { InternalMigrationForm } from "./internal-migration-form";
 import { PlanChangeForm } from "./plan-change-form";
+import { ServiceUsagePanel } from "./usage-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -90,6 +91,8 @@ export default async function AdminSubscriptionDetailPage({ params }: { params: 
               </p>
             </div>
           </div>
+
+          {detail.account ? <ServiceUsagePanel subscriptionId={detail.id} /> : null}
 
           {detail.status === "ACTIVE" && detail.account ? (
             <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 p-4">

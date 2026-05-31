@@ -13,20 +13,30 @@ export default function UsageTab({ serviceId }: { serviceId: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      setUsage(await fetchHostingUsageAction(serviceId, window));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Nie udało się pobrać metryk użycia.');
-    } finally {
-      setLoading(false);
-    }
-  }, [serviceId, window]);
+  const load = useCallback(
+    async (silent = false) => {
+      if (!silent) setLoading(true);
+      setError(null);
+      try {
+        setUsage(await fetchHostingUsageAction(serviceId, window));
+      } catch (e) {
+        if (!silent) setError(e instanceof Error ? e.message : 'Nie udało się pobrać metryk użycia.');
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    },
+    [serviceId, window],
+  );
 
   useEffect(() => {
     void load();
+  }, [load]);
+
+  // Live refresh: the node agent pushes a new 1-minute bucket each minute, so we
+  // silently refetch every 30 s (no spinner) while the tab is open.
+  useEffect(() => {
+    const id = setInterval(() => void load(true), 30_000);
+    return () => clearInterval(id);
   }, [load]);
 
   const latest = usage?.rows.at(-1);
@@ -40,8 +50,14 @@ export default function UsageTab({ serviceId }: { serviceId: string }) {
             <Activity className="h-4 w-4" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-white">Usage &amp; backup</h2>
-            <p className="text-xs text-neutral-400">Metryki CPU/RAM/dysk oraz badge uptime (w tej zakładce).</p>
+            <h2 className="flex items-center gap-2 text-lg font-bold text-white">
+              Usage &amp; backup
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-medium text-emerald-200">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+                na żywo
+              </span>
+            </h2>
+            <p className="text-xs text-neutral-400">Metryki CPU/RAM/dysk (odświeżane co ~30&nbsp;s) oraz badge uptime.</p>
           </div>
         </div>
         <div className="flex gap-2">
