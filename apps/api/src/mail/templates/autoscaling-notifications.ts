@@ -25,6 +25,8 @@ export interface AutoscalingScaleUpContext {
   resource: AutoscalingResource;
   fromValue: number;
   toValue: number;
+  /** Estimated total hourly cost of the current autoscaling delta, in PLN. */
+  hourlyCostPln?: number;
   panelUrl: string;
   autoscalingUrl: string;
 }
@@ -34,6 +36,10 @@ export function autoscalingScaleUpTemplate(ctx: AutoscalingScaleUpContext): Mail
   const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**!` : 'Cześć!';
   const deltaFrom = formatDelta(ctx.resource, ctx.fromValue);
   const deltaTo = formatDelta(ctx.resource, ctx.toValue);
+  const costLine =
+    ctx.hourlyCostPln != null && ctx.hourlyCostPln > 0
+      ? `- **Szacowany koszt:** ${ctx.hourlyCostPln.toFixed(2)} PLN/h (naliczane godzinowo z portfela, dopóki utrzymuje się podwyższony limit)`
+      : `- **Koszt:** naliczany godzinowo z portfela według cennika, dopóki utrzymuje się podwyższony limit`;
 
   const { html, text } = renderEmailShell({
     title: 'Autoskalowanie zwiększyło limity',
@@ -45,8 +51,9 @@ export function autoscalingScaleUpTemplate(ctx: AutoscalingScaleUpContext): Mail
       ``,
       `- **Zasób:** ${escapeHtml(label)}`,
       `- **Delta autoskalowania:** ${escapeHtml(deltaFrom)} → ${escapeHtml(deltaTo)} (ponad plan bazowy)`,
+      costLine,
       ``,
-      `Naliczenie godzinowe trafia do portfela według cennika. Możesz zmienić, które zasoby skalujemy (CPU, RAM, dysk), lub wyłączyć autoskalowanie w panelu.`,
+      `Pełną historię zmian i kosztów (co i kiedy zwiększono, ile kosztowało) znajdziesz w panelu → Autoskalowanie. Możesz tam zmienić skalowane zasoby (CPU, RAM, dysk), ustawić miesięczny limit kosztu lub wyłączyć autoskalowanie.`,
     ].join('\n'),
     cta: {
       label: 'Ustawienia autoskalowania',

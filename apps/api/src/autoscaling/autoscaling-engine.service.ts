@@ -194,6 +194,7 @@ export class AutoscalingEngineService {
             reason: blockReason,
             direction: AutoscalingDirection.DOWN,
             disable: true,
+            rules,
           });
         }
         return 'DISABLED';
@@ -209,6 +210,7 @@ export class AutoscalingEngineService {
       reason: this.describeReason(recent, effCpu, effRam, effDisk, isUp),
       direction,
       disable: false,
+      rules,
     });
 
     return isUp ? 'UP' : 'DOWN';
@@ -271,6 +273,7 @@ export class AutoscalingEngineService {
       reason: string;
       direction: AutoscalingDirection;
       disable: boolean;
+      rules: AutoscalingPriceRule[];
     },
   ) {
     if (!sub.account) return;
@@ -425,6 +428,14 @@ export class AutoscalingEngineService {
           to: opts.nextScaledDiskMb,
         });
       }
+      // Estimated hourly cost of the new total autoscaling delta (billed hourly
+      // from the wallet). Surfaced in the email so the customer sees the rate.
+      const hourlyCostPln = this.estimateHourlyCost(
+        opts.rules,
+        opts.nextScaledCpu,
+        opts.nextScaledRamMb,
+        opts.nextScaledDiskMb,
+      );
       for (const item of notify) {
         void this.mailer
           .send(
@@ -436,6 +447,7 @@ export class AutoscalingEngineService {
               resource: item.resource,
               fromValue: item.from,
               toValue: item.to,
+              hourlyCostPln,
               panelUrl,
               autoscalingUrl: `${panelUrl}/dashboard/services/${sub.id}/autoscaling`,
             }),

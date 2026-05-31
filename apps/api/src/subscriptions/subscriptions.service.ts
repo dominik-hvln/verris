@@ -737,8 +737,9 @@ export class SubscriptionsService {
     // 30-day spend total — handy for the panel header.
     const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const recentCharges = charges.filter((c) => c.createdAt >= since);
+    // Charges are debits stored as negative amounts; report spend as a positive total.
     const last30dSpend = recentCharges.reduce(
-      (acc, c) => acc + Number(c.amount),
+      (acc, c) => acc + Math.abs(Number(c.amount)),
       0,
     );
 

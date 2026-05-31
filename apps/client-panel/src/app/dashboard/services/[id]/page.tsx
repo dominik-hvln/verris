@@ -12,6 +12,8 @@ import {
   FolderOpen,
   Activity,
   LayoutDashboard,
+  Gauge,
+  ArrowRightLeft,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -86,6 +88,23 @@ export default function HostingManagerPage() {
                   </button>
                 );
               })}
+
+              <div className="my-1 border-t border-white/5" />
+
+              <Link
+                href={`/dashboard/services/${params.id}/plan`}
+                className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-neutral-400 transition-colors hover:bg-white/5 hover:text-white"
+              >
+                <ArrowRightLeft className="h-4 w-4 shrink-0 opacity-60" />
+                <span className="truncate">Zmiana planu</span>
+              </Link>
+              <Link
+                href={`/dashboard/services/${params.id}/autoscaling`}
+                className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-neutral-400 transition-colors hover:bg-white/5 hover:text-white"
+              >
+                <Gauge className="h-4 w-4 shrink-0 opacity-60" />
+                <span className="truncate">Autoskalowanie</span>
+              </Link>
             </nav>
             <HostingPanelCard />
           </aside>
