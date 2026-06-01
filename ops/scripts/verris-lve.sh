@@ -286,6 +286,7 @@ def telemetry(desired):
             "bucketDurationS": bucket,
             "agentVersion": AGENT_VERSION,
             "accounts": accounts,
+            "node": node_block(),
         })
         log("telemetry: posted %d account(s), bucket=%ds" % (len(accounts), bucket))
     except Exception as e:

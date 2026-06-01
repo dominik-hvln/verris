@@ -722,29 +722,51 @@ enable_and_restart_unit() {
   return 1
 }
 
+# DirectAdmin: `./build list` i `build <komponent>` — tylko binarka `build`.
+# Wrapper `custombuild` ma inną listę (bez pureftpd) — nie używać do FTP/poczty.
+resolve_custombuild_build_bin() {
+  CB="${CB:-/usr/local/directadmin/custombuild}"
+  if [ -x "$CB/build" ]; then
+    BUILD="$CB/build"
+  elif [ -n "${BUILD:-}" ] && [ -x "$BUILD" ]; then
+    :
+  elif [ -x "$CB/custombuild" ]; then
+    BUILD="$CB/custombuild"
+    log_warn "Używam custombuild zamiast build — lista komponentów może być niepełna"
+  else
+    BUILD=""
+  fi
+  export CB BUILD
+}
+
 custombuild_component_available() {
   local component="$1"
-  [ -n "${BUILD:-}" ] && [ -n "${CB:-}" ] || return 1
-  (cd "$CB" && "$BUILD" list 2>/dev/null) | grep -qw "$component"
+  resolve_custombuild_build_bin
+  [ -n "$BUILD" ] || return 1
+  (cd "$CB" && "$BUILD" list 2>/dev/null) | strip_ansi | grep -qw "$component"
 }
 
 custombuild_build_component() {
   local component="$1"
-  [ -n "${BUILD:-}" ] && [ -n "${CB:-}" ] || return 1
-
-  if ! custombuild_component_available "$component"; then
-    log_skip "CustomBuild: brak komponentu $component na liście build"
-    return 1
-  fi
+  resolve_custombuild_build_bin
+  [ -n "$BUILD" ] || return 1
 
   if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then
     log_info "dry-run: custombuild build $component"
     return 0
   fi
 
+  if ! custombuild_component_available "$component"; then
+    log_warn "CustomBuild list: brak $component — próbuję build mimo to"
+  fi
+
   log_info "CustomBuild build $component (może potrwać kilka–kilkanaście min)…"
   local out rc=0
-  out="$(cd "$CB" && "$BUILD" build "$component" 2>&1)" || rc=$?
+  # DA: komponenty (exim, dovecot, pureftpd) → `./build <name>`; meta (clean, php n) → `./build build …`
+  out="$(cd "$CB" && "$BUILD" "$component" 2>&1)" || rc=$?
+  if [ "$rc" -ne 0 ] && grep -qiE 'usage|help|unknown|invalid' <<<"$(printf '%s' "$out" | strip_ansi | head -20)"; then
+    out="$(cd "$CB" && "$BUILD" build "$component" 2>&1)" || rc=$?
+  fi
   printf '%s\n' "$out" | strip_ansi | tail -n 20
   if [ "$rc" -eq 0 ]; then
     log_ok "CustomBuild build $component"
@@ -770,9 +792,7 @@ ensure_hosting_core_services() {
   if [ ! -x /usr/local/directadmin/directadmin ]; then
     log_skip "DirectAdmin — brak binarki, pomijam pocztę/FTP CustomBuild"
   else
-    CB="${CB:-/usr/local/directadmin/custombuild}"
-    BUILD="$(custombuild_bin "$CB" || true)"
-    export CB BUILD
+    resolve_custombuild_build_bin
 
     if [ -n "$BUILD" ]; then
       cb_set_option exim yes
@@ -787,14 +807,23 @@ ensure_hosting_core_services() {
         enable_and_restart_unit dovecot.service || enable_and_restart_unit dovecot || true
       fi
 
-      local ftp_component
-      ftp_component="$(cb_ftp_build_component)"
       if port_is_listening 21; then
         log_ok "FTP — port 21 już nasłuchuje"
       else
-        custombuild_build_component "$ftp_component" || true
-        enable_and_restart_unit pure-ftpd.service || enable_and_restart_unit pureftpd.service \
-          || enable_and_restart_unit proftpd.service || enable_and_restart_unit proftpd || true
+        local ftp_component ftp_built=0
+        ftp_component="$(cb_ftp_build_component)"
+        if custombuild_build_component "$ftp_component"; then
+          ftp_built=1
+        elif [ "$ftp_component" != "pureftpd" ] && custombuild_build_component pureftpd; then
+          ftp_built=1
+        elif custombuild_build_component proftpd; then
+          ftp_built=1
+        fi
+        if [ "$ftp_built" = "1" ]; then
+          enable_and_restart_unit pure-ftpd.service || enable_and_restart_unit pureftpd.service \
+            || enable_and_restart_unit proftpd.service || enable_and_restart_unit proftpd \
+            || /usr/local/directadmin/directadmin taskq --run || true
+        fi
       fi
     else
       log_warn "CustomBuild niedostępny — nie można zbudować exim/dovecot/FTP"
