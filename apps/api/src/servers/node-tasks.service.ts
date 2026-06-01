@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { AccountStatus, NodeTaskKind, NodeTaskStatus, ServerStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
@@ -40,6 +40,8 @@ export type HostingProfileTaskPayload = {
 
 @Injectable()
 export class NodeTasksService {
+  private readonly logger = new Logger(NodeTasksService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
