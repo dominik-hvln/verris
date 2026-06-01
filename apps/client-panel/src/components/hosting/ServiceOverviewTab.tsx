@@ -11,6 +11,7 @@ import {
   Globe,
   Gauge,
   Loader2,
+  Mail,
   RefreshCw,
   Shield,
   ArrowRightLeft,
@@ -24,6 +25,7 @@ import { useHostingLinks } from '@/components/hosting/hosting-links-context';
 import { ServiceGaugeRing, gaugeColors } from '@/components/hosting/ServiceGaugeRing';
 import { HostingTabShell } from '@/components/hosting/HostingTabShell';
 import DomainPointingPanel from '@/components/hosting/DomainPointingPanel';
+import { HealthCheckDetails } from '@/components/hosting/HealthCheckDetails';
 
 const statusLabels: Record<string, string> = {
   ACTIVE: 'Aktywna',
@@ -51,21 +53,6 @@ function mbToGbUsed(mb: number) {
 function mbToGbMax(mb: number) {
   const gb = mb / 1024;
   return `${Number.isInteger(gb) ? gb : gb.toFixed(1)} GB`;
-}
-
-function CheckPill({ ok, label }: { ok: boolean | null; label: string }) {
-  if (ok === null) return null;
-  return (
-    <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium border ${
-        ok
-          ? 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200'
-          : 'border-amber-400/30 bg-amber-400/10 text-amber-200'
-      }`}
-    >
-      {label}: {ok ? 'OK' : 'Uwaga'}
-    </span>
-  );
 }
 
 export default function ServiceOverviewTab({
@@ -269,15 +256,7 @@ export default function ServiceOverviewTab({
           )}
         </div>
 
-        {health ? (
-          <div className="mt-4 flex flex-wrap gap-2">
-            <CheckPill ok={health.checks.dnsOk} label="DNS" />
-            <CheckPill ok={health.checks.tlsOk} label="HTTPS" />
-            <CheckPill ok={health.checks.panelTlsOk} label="Panel hostingu" />
-            <CheckPill ok={health.checks.mailOk} label="Poczta" />
-            <CheckPill ok={health.checks.lveOk} label="Obciążenie CPU" />
-          </div>
-        ) : null}
+        {health ? <HealthCheckDetails health={health} /> : null}
       </HostingTabShell>
 
       <DomainPointingPanel
@@ -378,6 +357,20 @@ export default function ServiceOverviewTab({
               </a>
             ) : (
               <ShortcutButton icon={FolderOpen} label="Pliki" onClick={() => onNavigate('files')} />
+            )}
+            {links.emailUrl ? (
+              <a
+                href={links.emailUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-xs font-medium text-white hover:bg-white/10"
+              >
+                <Mail className="h-3.5 w-3.5" />
+                Poczta (panel)
+                <ExternalLink className="h-3 w-3 opacity-50" />
+              </a>
+            ) : (
+              <ShortcutButton icon={Mail} label="Poczta" onClick={() => onNavigate('mail')} />
             )}
             {links.sslUrl ? (
               <a

@@ -76,6 +76,22 @@ export interface ServiceSummaryDto {
   recommendations: ServiceRecommendationDto[];
 }
 
+export type ServiceHealthCheckKey =
+  | 'dnsOk'
+  | 'tlsOk'
+  | 'backupFresh'
+  | 'lveOk'
+  | 'panelTlsOk'
+  | 'mailOk';
+
+/** Rozwinięcie pojedynczego checku health score dla klienta. */
+export interface ServiceHealthCheckDetailDto {
+  status: 'ok' | 'warn' | 'unknown';
+  label: string;
+  explanation: string;
+  whatToDo: string;
+}
+
 export interface ServiceHealthSummaryDto {
   score: number | null;
   label: 'healthy' | 'attention' | 'critical' | 'pending';
@@ -92,6 +108,8 @@ export interface ServiceHealthSummaryDto {
     /** Serwer poczty węzła odpowiada (IMAPS/SMTPS). */
     mailOk: boolean | null;
   };
+  /** Szczegóły per check — co jest nie tak i co zrobić (LIVE UX). */
+  checkDetails?: Partial<Record<ServiceHealthCheckKey, ServiceHealthCheckDetailDto>>;
 }
 
 export interface ServiceRecommendationDto {
@@ -233,6 +251,8 @@ export interface HostingDaLinksResponseDto {
   /** Hostname do wyświetlenia (np. node-pl-01.verris.pl) — bez portu. */
   panelDisplayHost: string;
   databasesUrl: string;
+  /** Skrzynki e-mail w panelu Evolution. */
+  emailUrl: string;
   sslUrl: string;
   fileManagerUrl: string;
   /** Lista domen w panelu Evolution. */

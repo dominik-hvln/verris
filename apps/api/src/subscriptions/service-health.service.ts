@@ -1,8 +1,14 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import type { ServiceHealthCheckDetailDto, ServiceHealthCheckKey } from '@verris/contracts';
 import * as dns from 'node:dns/promises';
 import * as tls from 'node:tls';
 import { PrismaService } from '../prisma/prisma.service';
 import { DirectAdminService } from '../servers/directadmin.service';
+import {
+  buildHealthCheckDetails,
+  fallbackHealthCheckDetails,
+  type HealthProbeMeta,
+} from './service-health-hints';
 
 const PROBE_TIMEOUT_MS = 8_000;
 const SNAPSHOT_MAX_AGE_MS = 30 * 60 * 1000;
@@ -22,6 +28,7 @@ export interface ComputedHealthSummary {
     mailOk: boolean | null;
   };
   summary: string;
+  checkDetails?: Partial<Record<ServiceHealthCheckKey, ServiceHealthCheckDetailDto>>;
 }
 
 @Injectable()
@@ -99,11 +106,15 @@ export class ServiceHealthService {
     possible += 15;
     if (account.status === 'ACTIVE') earned += 15;
 
+    const panelHost = server.hostname ?? server.daHost ?? server.ipAddress;
+    const mailHost = server.hostname ?? server.ipAddress;
+    let dnsResolved: string[] = [];
+
     // DNS domeny klienta → IP węzła (25)
     possible += 25;
     try {
-      const ips = await dns.resolve4(account.domain);
-      checks.dnsOk = ips.includes(server.ipAddress);
+      dnsResolved = await dns.resolve4(account.domain);
+      checks.dnsOk = dnsResolved.includes(server.ipAddress);
       if (checks.dnsOk) earned += 25;
     } catch {
       checks.dnsOk = false;
@@ -118,7 +129,6 @@ export class ServiceHealthService {
 
     // Panel DA (hostname węzła :2222) — cert zaufany (15)
     possible += 15;
-    const panelHost = server.hostname ?? server.daHost ?? server.ipAddress;
     const panelTls = await this.probeTls(panelHost, server.daPort ?? 2222);
     checks.panelTlsOk = panelTls.ok && panelTls.authorized === true;
     if (checks.panelTlsOk) earned += 15;
@@ -126,18 +136,20 @@ export class ServiceHealthService {
 
     // Poczta węzła (IMAPS :993) — usługa odpowiada i kończy handshake TLS (10)
     possible += 10;
-    const mailHost = server.hostname ?? server.ipAddress;
     const mailTls = await this.probeTls(mailHost, 993);
     checks.mailOk = mailTls.ok;
     if (checks.mailOk) earned += mailTls.authorized === true ? 10 : 7;
 
     // LVE / CPU z ostatniej metryki (20)
     possible += 20;
+    let cpuUsageAvg: number | null = null;
+    const cpuLimit = account.cpuLimit;
     const usage = await this.prisma.usageMetric.findFirst({
       where: { subscriptionId },
       orderBy: { bucketStart: 'desc' },
     });
     if (usage) {
+      cpuUsageAvg = usage.cpuUsageAvg;
       const limit = Math.max(1, account.cpuLimit);
       checks.lveOk = usage.cpuUsageAvg < limit * 0.92;
       if (checks.lveOk) earned += 20;
@@ -167,6 +179,21 @@ export class ServiceHealthService {
 
     const summary = this.buildSummaryText(score, checks, account.domain);
 
+    const probeMeta: HealthProbeMeta = {
+      domain: account.domain,
+      serverIp: server.ipAddress,
+      dnsResolved,
+      siteTls,
+      panelHost,
+      panelTls,
+      mailHost,
+      mailTls,
+      cpuUsageAvg,
+      cpuLimit,
+      backupCounted: backup.counted,
+    };
+    const checkDetails = buildHealthCheckDetails(checks, probeMeta);
+
     const snapshot = await this.prisma.serviceHealthSnapshot.create({
       data: {
         subscriptionId,
@@ -177,7 +204,7 @@ export class ServiceHealthService {
         lveOk: checks.lveOk,
         panelTlsOk: checks.panelTlsOk,
         mailOk: checks.mailOk,
-        details: { summary, earned, possible, panelHost, mailHost },
+        details: { summary, earned, possible, panelHost, mailHost, probeMeta, checkDetails },
       },
     });
 
@@ -197,22 +224,35 @@ export class ServiceHealthService {
   }): ComputedHealthSummary {
     const details =
       row.details && typeof row.details === 'object' && !Array.isArray(row.details)
-        ? (row.details as { summary?: string })
+        ? (row.details as {
+            summary?: string;
+            checkDetails?: Partial<Record<ServiceHealthCheckKey, ServiceHealthCheckDetailDto>>;
+            probeMeta?: HealthProbeMeta;
+          })
         : {};
     const score = row.score;
+    const checks = {
+      dnsOk: row.dnsOk,
+      tlsOk: row.tlsOk,
+      backupFresh: row.backupFresh,
+      lveOk: row.lveOk,
+      panelTlsOk: row.panelTlsOk,
+      mailOk: row.mailOk,
+    };
+    let checkDetails = details.checkDetails;
+    if (!checkDetails && details.probeMeta) {
+      checkDetails = buildHealthCheckDetails(checks, details.probeMeta);
+    }
+    if (!checkDetails) {
+      checkDetails = fallbackHealthCheckDetails(checks);
+    }
     return {
       score,
       label: score >= 80 ? 'healthy' : score >= 50 ? 'attention' : 'critical',
       checkedAt: row.computedAt.toISOString(),
-      checks: {
-        dnsOk: row.dnsOk,
-        tlsOk: row.tlsOk,
-        backupFresh: row.backupFresh,
-        lveOk: row.lveOk,
-        panelTlsOk: row.panelTlsOk,
-        mailOk: row.mailOk,
-      },
+      checks,
       summary: details.summary ?? 'Ostatnia diagnostyka zapisana.',
+      checkDetails,
     };
   }
 
@@ -279,6 +319,7 @@ export class ServiceHealthService {
         mailOk: null,
       },
       summary: text,
+      checkDetails: {},
     };
   }
 

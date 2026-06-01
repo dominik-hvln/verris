@@ -189,6 +189,28 @@ services:
       SOGO_MYSQL_USER: ${SOGO_MYSQL_USER:-sogo}
       SOGO_MYSQL_DATABASE: ${SOGO_MYSQL_DATABASE:-sogo}
       SOGO_MYSQL_PASSWORD: ${SOGO_MYSQL_PASSWORD:-}
+      # OVH DNS automation (node branded NS + glue)
+      OVH_ENDPOINT: ${OVH_ENDPOINT:-ovh-eu}
+      OVH_APP_KEY: ${OVH_APP_KEY:-}
+      OVH_APP_SECRET: ${OVH_APP_SECRET:-}
+      OVH_CONSUMER_KEY: ${OVH_CONSUMER_KEY:-}
+      HOSTING_NS_BASE_DOMAIN: ${HOSTING_NS_BASE_DOMAIN:-verris.pl}
+      # sequential: ns1+ns2, ns3+ns4… | block100: ns100+ns101, ns102+ns103…
+      HOSTING_NS_NUMBERING: ${HOSTING_NS_NUMBERING:-sequential}
+      HOSTING_NS1: ${HOSTING_NS1:-}
+      HOSTING_NS2: ${HOSTING_NS2:-}
+      HOSTING_NS3: ${HOSTING_NS3:-}
+      # AI assistant (chat + RAG embeddings)
+      AI_PROVIDER: ${AI_PROVIDER:-openai-compatible}
+      AI_API_BASE_URL: ${AI_API_BASE_URL:-https://api.openai.com/v1}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-gpt-4o-mini}
+      AI_EMBED_MODEL: ${AI_EMBED_MODEL:-text-embedding-3-small}
+      AI_EMBED_DISABLED: ${AI_EMBED_DISABLED:-false}
+      # Domain registrar (optional — fail-closed when unset)
+      REGISTRAR_PROVIDER: ${REGISTRAR_PROVIDER:-}
+      REGISTRAR_API_BASE_URL: ${REGISTRAR_API_BASE_URL:-}
+      REGISTRAR_API_TOKEN: ${REGISTRAR_API_TOKEN:-}
     volumes:
       - ${CONTROL_PLANE_MAIL_MAPS_DIR:-/etc/postfix/verris}:/etc/postfix/verris
     extra_hosts:

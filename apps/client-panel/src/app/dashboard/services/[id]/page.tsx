@@ -5,6 +5,7 @@ import {
   Server,
   Globe,
   Database,
+  Mail,
   Shield,
   Box,
   ArrowLeft,
@@ -20,6 +21,7 @@ import { useParams } from 'next/navigation';
 
 import DomainsTab from '@/components/hosting/DomainsTab';
 import DatabasesTab from '@/components/hosting/DatabasesTab';
+import MailTab from '@/components/hosting/MailTab';
 import SSLTab from '@/components/hosting/SSLTab';
 import StagingTab from '@/components/hosting/StagingTab';
 import DeployTab from '@/components/hosting/DeployTab';
@@ -34,6 +36,7 @@ const TABS = [
   { id: 'overview', label: 'Przegląd', icon: LayoutDashboard },
   { id: 'domains', label: 'Domeny & DNS', icon: Globe },
   { id: 'databases', label: 'Bazy MySQL', icon: Database },
+  { id: 'mail', label: 'Poczta', icon: Mail },
   { id: 'files', label: 'Pliki', icon: FolderOpen },
   { id: 'ssl', label: 'SSL', icon: Shield },
   { id: 'staging', label: 'Staging', icon: Box },
@@ -117,6 +120,7 @@ export default function HostingManagerPage() {
             )}
             {activeTab === 'domains' && <DomainsTab serviceId={params.id} />}
             {activeTab === 'databases' && <DatabasesTab serviceId={params.id} />}
+            {activeTab === 'mail' && <MailTab serviceId={params.id} />}
             {activeTab === 'ssl' && <SSLTab serviceId={params.id} />}
             {activeTab === 'staging' && <StagingTab serviceId={params.id} />}
             {activeTab === 'deploy' && <DeployTab serviceId={params.id} />}

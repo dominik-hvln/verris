@@ -211,6 +211,7 @@ export class DirectAdminService {
   /** Deep-linki do Evolution skin (DirectAdmin ≥1.6). */
   hostingEvolutionLinks(panelBaseUrl: string, domain: string): {
     databasesUrl: string;
+    emailUrl: string;
     sslUrl: string;
     fileManagerUrl: string;
     domainsUrl: string;
@@ -220,6 +221,7 @@ export class DirectAdminService {
     const domainPath = encodeURIComponent(domain);
     return {
       databasesUrl: `${panelBaseUrl}/evo/user/databases/mysql`,
+      emailUrl: `${panelBaseUrl}/evo/user/email`,
       sslUrl: `${panelBaseUrl}/evo/user/ssl`,
       fileManagerUrl: `${panelBaseUrl}/evo/user/filemanager/domains/${domainPath}`,
       domainsUrl: `${panelBaseUrl}/evo/user/domains`,
@@ -992,6 +994,7 @@ export class DirectAdminService {
     panelBaseUrl: string;
     panelDisplayHost: string;
     databasesUrl: string;
+    emailUrl: string;
     sslUrl: string;
     fileManagerUrl: string;
     domainsUrl: string;
@@ -1012,6 +1015,7 @@ export class DirectAdminService {
         panelBaseUrl: '',
         panelDisplayHost: '',
         databasesUrl: '',
+        emailUrl: '',
         sslUrl: '',
         fileManagerUrl: '',
         domainsUrl: '',
@@ -1042,6 +1046,7 @@ export class DirectAdminService {
       panelBaseUrl,
       panelDisplayHost,
       databasesUrl: evo.databasesUrl,
+      emailUrl: evo.emailUrl,
       sslUrl: evo.sslUrl,
       fileManagerUrl: evo.fileManagerUrl,
       domainsUrl: evo.domainsUrl,

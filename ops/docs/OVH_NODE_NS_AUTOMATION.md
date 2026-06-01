@@ -6,27 +6,36 @@ podpina **markowe serwery nazw** dla tego węzła w OVH i przypisuje je do węz�
 (*Serwery nazw → Automat OVH → Podepnij NS w OVH*). Automat jest **idempotentny** —
 ponowne uruchomienie uzgadnia istniejące rekordy.
 
+## Schemat nazw (krótkie, globalne)
+
+Domena bazowa: `HOSTING_NS_BASE_DOMAIN` (domyślnie `verris.pl`).
+
+| Tryb (`HOSTING_NS_NUMBERING`) | Węzeł 1 | Węzeł 2 | Węzeł 3 |
+|------------------------------|---------|---------|---------|
+| `sequential` (domyślny) | `ns1.verris.pl`, `ns2.verris.pl` | `ns3`, `ns4` | `ns5`, `ns6` |
+| `block100` | `ns100`, `ns101` | `ns102`, `ns103` | `ns104`, `ns105` |
+
+Numeracja jest **globalna** w całej platformie (kolejna wolna para). Stary format
+`ns1.node-pl-01.verris.pl` nie jest już używany — ponowne uruchomienie automatu na
+węźle tworzy krótkie NS i usuwa stare rekordy A/AAAA ze strefy (legacy).
+
 ## Co robi automat
 
-Dla węzła o slug `<węzeł>` (z nazwy/regionu) i domeny bazowej `HOSTING_NS_BASE_DOMAIN`
-(domyślnie `verris.pl`):
-
-1. **Strefa DNS** (`HOSTING_NS_BASE_DOMAIN`):
-   - `A  ns1.<węzeł>` → IPv4 węzła, `A  ns2.<węzeł>` → IPv4 węzła
-   - `AAAA ns1.<węzeł>` / `AAAA ns2.<węzeł>` → IPv6 (jeśli podane)
+1. **Strefa DNS** (`verris.pl`):
+   - `A ns1` → IPv4 węzła, `A ns2` → IPv4 węzła (lub `ns3`/`ns4` dla drugiego węzła)
+   - `AAAA` — jeśli podano IPv6 węzła
    - `refresh` strefy
-2. **Glue records** na domenie bazowej:
-   - `ns1.<węzeł>.<baza>` → `[IPv4 (, IPv6)]`
-   - `ns2.<węzeł>.<baza>` → `[IPv4 (, IPv6)]`
-3. **Przypisanie NS** do węzła: `Server.ns1 = ns1.<węzeł>.<baza>`,
-   `Server.ns2 = ns2.<węzeł>.<baza>`, `nsProvisionedAt = now`.
+2. **Glue records** na domenie `verris.pl` (parametr `host` = **FQDN**, np. `ns1.verris.pl`):
+   - glue `ns1.verris.pl` → `[IPv4 (, IPv6)]`
+   - glue `ns2.verris.pl` → `[IPv4 (, IPv6)]`
+3. **Przypisanie NS** do węzła + opcjonalne usunięcie starych rekordów `ns1.<slug>.*`
 
 > Do czasu uruchomienia własnego klastra PowerDNS oba NS węzła wskazują na ten sam
-> węzeł (autorytatywny pojedynczy host). Faza PowerDNS rozłoży je na różne hosty.
+> węzeł (autorytatywny pojedynczy host).
 
 ## Konfiguracja
 
-W `.env.prod` (te same klucze co automat wildcard-TLS):
+W `.env.prod` (te same klucze co automat wildcard-TLS **plus** glue — patrz niżej):
 
 ```
 OVH_ENDPOINT=ovh-eu
@@ -34,34 +43,42 @@ OVH_APP_KEY=...
 OVH_APP_SECRET=...
 OVH_CONSUMER_KEY=...
 HOSTING_NS_BASE_DOMAIN=verris.pl
+HOSTING_NS_NUMBERING=sequential
 ```
-
-Brak kluczy → automat wyłączony (przycisk pokazuje komunikat, NS ustawiasz ręcznie).
 
 ## Wymagane uprawnienia consumer key (OVH)
 
-Wygeneruj consumer key z dostępem (https://eu.api.ovh.com/createToken/):
+Klucz użyty wyłącznie do **certbot / strefy DNS** (`/domain/zone/*`) **nie wystarczy**
+do glue — dostaniesz `403 This call has not been granted`.
+
+Wygeneruj consumer key na https://eu.api.ovh.com/createToken/ z dostępem:
 
 ```
-GET    /domain/*
-POST   /domain/*
-PUT    /domain/*
-DELETE /domain/*
 GET    /domain/zone/*
 POST   /domain/zone/*
 PUT    /domain/zone/*
 DELETE /domain/zone/*
-GET    /auth/time
+
+GET    /domain/verris.pl/glueRecord
+GET    /domain/verris.pl/glueRecord/*
+POST   /domain/verris.pl/glueRecord
+POST   /domain/verris.pl/glueRecord/*/update
+DELETE /domain/verris.pl/glueRecord/*
 ```
 
-(Można zawęzić do konkretnej domeny bazowej zamiast `*`, jeśli wolisz minimalny zakres.)
+(lub szersze `GET/POST/PUT/DELETE /domain/*` jeśli wolisz jeden klucz na całą domenę)
+
+Dodatkowo: `GET /auth/time`
+
+Po wygenerowaniu nowego consumer key zaktualizuj `OVH_CONSUMER_KEY` w `.env.prod`
+i przeładuj kontener `api`.
 
 ## Weryfikacja po uruchomieniu
 
 ```
-dig +short NS <domena-klienta>
-dig +short A  ns1.<węzeł>.verris.pl
-dig +short AAAA ns1.<węzeł>.verris.pl
+dig +short NS example-konto.pl
+dig +short A ns1.verris.pl
+dig +short A ns2.verris.pl
 ```
 
 Raport kroków (created/updated/unchanged/skipped/error) widać w panelu zaraz po

@@ -587,23 +587,28 @@ function buildHealthSummary(s: {
   }
   const details =
     latest.details && typeof latest.details === 'object' && !Array.isArray(latest.details)
-      ? (latest.details as { summary?: string })
+      ? (latest.details as {
+          summary?: string;
+          checkDetails?: import('@verris/contracts').ServiceHealthSummaryDto['checkDetails'];
+        })
       : {};
   const score = latest.score;
+  const checks = {
+    dnsOk: latest.dnsOk,
+    tlsOk: latest.tlsOk,
+    backupFresh: latest.backupFresh,
+    lveOk: latest.lveOk,
+    panelTlsOk: latest.panelTlsOk,
+    mailOk: latest.mailOk,
+  };
   return {
     score,
     label:
       score >= 80 ? ('healthy' as const) : score >= 50 ? ('attention' as const) : ('critical' as const),
     checkedAt: latest.computedAt.toISOString(),
     summary: details.summary ?? undefined,
-    checks: {
-      dnsOk: latest.dnsOk,
-      tlsOk: latest.tlsOk,
-      backupFresh: latest.backupFresh,
-      lveOk: latest.lveOk,
-      panelTlsOk: latest.panelTlsOk,
-      mailOk: latest.mailOk,
-    },
+    checks,
+    checkDetails: details.checkDetails,
   };
 }
 

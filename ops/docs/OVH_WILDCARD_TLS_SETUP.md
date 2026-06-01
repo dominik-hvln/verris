@@ -21,7 +21,7 @@ Panel klienta linkuje przez `server.hostname` (`node-pl-01.verris.pl`). Wejdź p
 
 2. **Opis:** `verris-wildcard-tls`
 
-3. **Prawa (ważne — tylko strefa DNS):**
+3. **Prawa minimalne (certbot / rekordy strefy):**
 
    | Metoda | Ścieżka |
    |--------|---------|
@@ -29,6 +29,10 @@ Panel klienta linkuje przez `server.hostname` (`node-pl-01.verris.pl`). Wejdź p
    | POST | `/domain/zone/*` |
    | PUT | `/domain/zone/*` |
    | DELETE | `/domain/zone/*` |
+
+   **Automat NS w panelu** wymaga dodatkowo glue na domenie — patrz
+   [`OVH_NODE_NS_AUTOMATION.md`](./OVH_NODE_NS_AUTOMATION.md) (POST `/domain/verris.pl/glueRecord`).
+   Możesz użyć **jednego** consumer key z oboma zestawami praw.
 
 4. Zapisz trzy wartości:
    - **Application key** → `OVH_APP_KEY`

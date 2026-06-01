@@ -9,6 +9,7 @@ const emptyLinks: HostingDaLinksResponseDto = {
   panelBaseUrl: '',
   panelDisplayHost: '',
   databasesUrl: '',
+  emailUrl: '',
   sslUrl: '',
   fileManagerUrl: '',
   domainsUrl: '',
