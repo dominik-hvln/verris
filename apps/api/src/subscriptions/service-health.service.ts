@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@verris/database';
 import type { ServiceHealthCheckDetailDto, ServiceHealthCheckKey } from '@verris/contracts';
 import * as dns from 'node:dns/promises';
 import * as tls from 'node:tls';
@@ -204,7 +205,15 @@ export class ServiceHealthService {
         lveOk: checks.lveOk,
         panelTlsOk: checks.panelTlsOk,
         mailOk: checks.mailOk,
-        details: { summary, earned, possible, panelHost, mailHost, probeMeta, checkDetails },
+        details: {
+          summary,
+          earned,
+          possible,
+          panelHost,
+          mailHost,
+          probeMeta,
+          checkDetails,
+        } as Prisma.InputJsonValue,
       },
     });
 
