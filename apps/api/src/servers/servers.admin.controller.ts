@@ -228,6 +228,12 @@ export class ServersAdminController {
     return this.nodeStack.ensureStack(id, user.userId, dto.skipBuild !== false);
   }
 
+  /** Nadpisuje pakiety DA realnymi limitami planów (naprawa „Bez ograniczeń”). */
+  @Post(':id/stack-readiness/repair-packages')
+  repairDaPackages(@Param('id') id: string) {
+    return this.nodeStack.repairDaPackages(id);
+  }
+
   @Get(':id/tasks-agent/install-script')
   tasksAgentInstallScript() {
     return { script: renderNodeTasksAgentInstallScript() };

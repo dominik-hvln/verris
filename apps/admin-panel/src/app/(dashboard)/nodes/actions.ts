@@ -165,6 +165,19 @@ export async function fetchNodeStackReadiness(id: string) {
   }
 }
 
+export async function repairNodeStackPackages(id: string) {
+  try {
+    const data = await adminApi<{ synced: string[] }>(
+      `/admin/servers/${id}/stack-readiness/repair-packages`,
+      { method: "POST" },
+    );
+    revalidatePath(`/nodes/${id}`);
+    return { data };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
+}
+
 export async function ensureNodeStack(id: string, input: EnsureNodeStackInput = {}) {
   try {
     const data = await adminApi<NodeTaskDto>(`/admin/servers/${id}/stack-readiness/ensure`, {

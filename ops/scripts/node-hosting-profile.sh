@@ -821,8 +821,7 @@ ensure_hosting_core_services() {
         fi
         if [ "$ftp_built" = "1" ]; then
           enable_and_restart_unit pure-ftpd.service || enable_and_restart_unit pureftpd.service \
-            || enable_and_restart_unit proftpd.service || enable_and_restart_unit proftpd \
-            || /usr/local/directadmin/directadmin taskq --run || true
+            || enable_and_restart_unit proftpd.service || enable_and_restart_unit proftpd || true
         fi
       fi
     else

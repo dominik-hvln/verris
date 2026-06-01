@@ -10,6 +10,7 @@ import { X509Certificate } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto/crypto.service';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
+import { buildDaPackageSpecFromPlan, planResourceFields } from './da-package-spec';
 
 /**
  * Resolves a Server record into a configured DirectAdminClient instance.
@@ -1057,6 +1058,26 @@ export class DirectAdminService {
       daPassword,
       fetchError: daPassword ? null : 'Hasło do panelu hostingu jest niedostępne — skontaktuj się z pomocą techniczną.',
     };
+  }
+
+  /**
+   * Idempotentnie nadpisuje pakiety DA (starter/pro/business) realnymi limitami
+   * z planów Verris — bez flag u* (obecność u<pole> w DA 1.697 = „Bez ograniczeń”).
+   */
+  async syncPlanPackagesForServer(serverId: string): Promise<{ synced: string[] }> {
+    const client = await this.getClientForServer(serverId);
+    const plans = await this.prisma.plan.findMany({
+      where: { isActive: true },
+      orderBy: { sortOrder: 'asc' },
+    });
+    const synced: string[] = [];
+    for (const plan of plans) {
+      const spec = buildDaPackageSpecFromPlan(planResourceFields(plan));
+      await client.upsertUserPackage(spec);
+      synced.push(plan.slug);
+      this.logger.log(`DA package synced server=${serverId} slug=${plan.slug}`);
+    }
+    return { synced };
   }
 }
 

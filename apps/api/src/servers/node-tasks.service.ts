@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { AccountStatus, NodeTaskKind, NodeTaskStatus, ServerStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
+import { DirectAdminService } from './directadmin.service';
 
 /** Desired CloudLinux LVE state for a node (consumed by the on-node verris-lve agent). */
 export interface NodeDesiredLve {
@@ -42,6 +43,7 @@ export class NodeTasksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly directAdmin: DirectAdminService,
   ) {}
 
   async queueHostingProfile(
@@ -206,6 +208,16 @@ export class NodeTasksService {
       action: 'NODE_TASK_COMPLETED',
       details: { serverId: opts.serverId, taskId: task.id, kind: task.kind },
     });
+
+    if (task.kind === NodeTaskKind.HOSTING_PROFILE) {
+      await this.directAdmin.syncPlanPackagesForServer(opts.serverId).catch((err) => {
+        this.logger.warn(
+          `syncPlanPackagesForServer after profile failed server=${opts.serverId}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      });
+    }
 
     return this.toPublicTask(updated);
   }

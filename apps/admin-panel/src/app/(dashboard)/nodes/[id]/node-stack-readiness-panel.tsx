@@ -12,7 +12,7 @@ import {
   XCircle,
 } from "lucide-react";
 import type { AuditCheckStatus, NodeStackReadinessDto } from "@verris/contracts";
-import { ensureNodeStack, fetchNodeStackReadiness } from "../actions";
+import { ensureNodeStack, fetchNodeStackReadiness, repairNodeStackPackages } from "../actions";
 
 const STATUS_LABEL: Record<AuditCheckStatus, string> = {
   OK: "Działa",
@@ -52,6 +52,7 @@ export function NodeStackReadinessPanel({
   const [report, setReport] = useState<NodeStackReadinessDto | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [repairMsg, setRepairMsg] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const load = useCallback(async () => {
@@ -79,6 +80,24 @@ export function NodeStackReadinessPanel({
     const id = window.setInterval(() => void load(), 5000);
     return () => window.clearInterval(id);
   }, [taskInflight, load]);
+
+  const onRepairPackages = () => {
+    setError(null);
+    setRepairMsg(null);
+    startTransition(async () => {
+      const result = await repairNodeStackPackages(serverId);
+      if ("error" in result && result.error) {
+        setError(result.error);
+        return;
+      }
+      setRepairMsg(
+        result.data?.synced?.length
+          ? `Pakiety DA zsynchronizowane: ${result.data.synced.join(", ")}.`
+          : "Pakiety DA zsynchronizowane.",
+      );
+      await load();
+    });
+  };
 
   const onEnsure = () => {
     setError(null);
@@ -144,6 +163,14 @@ export function NodeStackReadinessPanel({
         </button>
         <button
           type="button"
+          onClick={onRepairPackages}
+          disabled={!canEnsure || isPending}
+          className="inline-flex items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 disabled:opacity-50 px-3 py-2 text-sm"
+        >
+          Napraw pakiety DA (limity planów)
+        </button>
+        <button
+          type="button"
           onClick={() => void load()}
           disabled={isPending}
           className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm hover:bg-white/5"
@@ -152,6 +179,8 @@ export function NodeStackReadinessPanel({
           Odśwież diagnostykę
         </button>
       </div>
+
+      {repairMsg && <p className="text-sm text-emerald-300">{repairMsg}</p>}
 
       {report?.probeHost && (
         <p className="text-[11px] text-muted-foreground">

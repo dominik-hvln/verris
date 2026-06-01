@@ -75,6 +75,10 @@ export class NodeStackReadinessService {
     return this.nodeTasks.queueHostingProfile(serverId, actorUserId, { skipBuild });
   }
 
+  async repairDaPackages(serverId: string) {
+    return this.da.syncPlanPackagesForServer(serverId);
+  }
+
   private resolveProbeHost(server: Server): string {
     const hostname = server.hostname?.trim();
     if (hostname && hostname.includes('.')) return hostname;
@@ -351,8 +355,13 @@ export class NodeStackReadinessService {
     const fresh = checkedAt ? Date.now() - checkedAt.getTime() < CAGEFS_FRESH_MS : false;
     const enabled = server.cagefsEnabled === true;
     let status: AuditCheckStatus = 'UNKNOWN';
-    if (fresh && enabled) status = 'OK';
-    else if (fresh && !enabled) status = 'FAIL';
+    if (enabled && !checkedAt) {
+      status = 'OK';
+    } else if (fresh && enabled) {
+      status = 'OK';
+    } else if (fresh && !enabled) {
+      status = 'FAIL';
+    }
     return {
       id: 'cagefs',
       title: 'CloudLinux CageFS',
@@ -389,12 +398,19 @@ export class NodeStackReadinessService {
 
   private async checkGovernorHint(server: Server): Promise<NodeStackServiceCheckDto> {
     const latest = await this.prisma.nodeTask.findFirst({
-      where: { serverId: server.id, kind: NodeTaskKind.HOSTING_PROFILE, status: 'COMPLETED' },
-      orderBy: { completedAt: 'desc' },
+      where: {
+        serverId: server.id,
+        kind: NodeTaskKind.HOSTING_PROFILE,
+        status: { in: ['COMPLETED', 'RUNNING'] },
+      },
+      orderBy: { createdAt: 'desc' },
     });
     const log = latest?.outputLog ?? '';
     const active =
-      /Governor aktywny|dbctl list/i.test(log) && !/Governor nieaktywny|dbctl nadal nie działa/i.test(log);
+      /MySQL Governor.*aktywny|Governor aktywny|dbctl list/i.test(log) &&
+      !/Governor nieaktywny|dbctl nadal nie działa|Instalacja MySQL Governor nie powiodła/i.test(
+        log,
+      );
     const failed = /Instalacja MySQL Governor nie powiodła się|Governor nieaktywny/i.test(log);
 
     let status: AuditCheckStatus = 'UNKNOWN';
