@@ -37,7 +37,7 @@ export class NodeStackReadinessService {
       await this.checkHttps(probeHost),
       await this.checkHttp(probeHost),
       await this.checkDaPanel(server),
-      this.checkCagefs(server),
+      await this.checkCagefs(server),
       await this.checkGovernorHint(server),
       await this.checkWebServer(probeHost),
     ];
@@ -350,10 +350,17 @@ export class NodeStackReadinessService {
     };
   }
 
-  private checkCagefs(server: Server): NodeStackServiceCheckDto {
+  private async checkCagefs(server: Server): Promise<NodeStackServiceCheckDto> {
+    const latest = await this.prisma.nodeTask.findFirst({
+      where: { serverId: server.id, kind: NodeTaskKind.HOSTING_PROFILE },
+      orderBy: { createdAt: 'desc' },
+    });
+    const profileSummary = this.parseVerrisProfileSummary(latest?.outputLog ?? '');
     const checkedAt = server.cagefsCheckedAt;
     const fresh = checkedAt ? Date.now() - checkedAt.getTime() < CAGEFS_FRESH_MS : false;
-    const enabled = server.cagefsEnabled === true;
+    const enabled =
+      server.cagefsEnabled === true ||
+      profileSummary?.cagefs === 'enabled';
     let status: AuditCheckStatus = 'UNKNOWN';
     if (enabled && !checkedAt) {
       status = 'OK';
@@ -396,35 +403,54 @@ export class NodeStackReadinessService {
     };
   }
 
+  private parseVerrisProfileSummary(log: string): Record<string, string> | null {
+    const line = log
+      .split('\n')
+      .reverse()
+      .find((l) => l.includes('[VERRIS_PROFILE]') && l.includes('governor='));
+    if (!line) return null;
+    const out: Record<string, string> = {};
+    for (const part of line.split(/\s+/)) {
+      const m = part.match(/^([^=]+)=(.+)$/);
+      if (m) out[m[1]] = m[2];
+    }
+    return Object.keys(out).length ? out : null;
+  }
+
   private async checkGovernorHint(server: Server): Promise<NodeStackServiceCheckDto> {
     const latest = await this.prisma.nodeTask.findFirst({
-      where: {
-        serverId: server.id,
-        kind: NodeTaskKind.HOSTING_PROFILE,
-        status: { in: ['COMPLETED', 'RUNNING'] },
-      },
+      where: { serverId: server.id, kind: NodeTaskKind.HOSTING_PROFILE },
       orderBy: { createdAt: 'desc' },
     });
     const log = latest?.outputLog ?? '';
+    const summary = this.parseVerrisProfileSummary(log);
+    const summaryGov = summary?.governor;
+
     const active =
-      /MySQL Governor.*aktywny|Governor aktywny|dbctl list/i.test(log) &&
-      !/Governor nieaktywny|dbctl nadal nie działa|Instalacja MySQL Governor nie powiodła/i.test(
-        log,
-      );
-    const failed = /Instalacja MySQL Governor nie powiodła się|Governor nieaktywny/i.test(log);
+      summaryGov === 'active' ||
+      (/MySQL Governor.*aktywny|Governor aktywny|Governor już aktywny/i.test(log) &&
+        !/Governor nieaktywny|dbctl nadal nie działa|Instalacja MySQL Governor nie powiodła/i.test(
+          log,
+        ));
+    const failed =
+      summaryGov === 'inactive' ||
+      /Instalacja MySQL Governor nie powiodła się|Governor nieaktywny/i.test(log);
 
     let status: AuditCheckStatus = 'UNKNOWN';
-    let summary =
+    let summaryText =
       'Governor weryfikowany na węźle (dbctl list) podczas profilu — uruchom „Zainstaluj usługi hostingowe”.';
     if (latest && active) {
       status = 'OK';
-      summary = 'Ostatni profil hostingowy: MySQL Governor aktywny (dbctl).';
+      summaryText = 'MySQL Governor aktywny (dbctl) — potwierdzone na węźle.';
     } else if (latest && failed) {
       status = 'FAIL';
-      summary = 'Ostatni profil: Governor nie przeszedł weryfikacji — sprawdź log zadania.';
+      summaryText = 'Governor nieaktywny — sprawdź log profilu lub uruchom profil ponownie.';
     } else if (latest?.status === 'RUNNING' || latest?.status === 'QUEUED') {
       status = 'UNKNOWN';
-      summary = 'Profil hostingowy w toku — Governor zostanie zweryfikowany po zakończeniu.';
+      summaryText = 'Profil hostingowy w toku — Governor zostanie zweryfikowany po zakończeniu.';
+    } else if (latest?.status === 'COMPLETED' && !summary) {
+      summaryText =
+        'Profil zakończony, ale brak linii [VERRIS_PROFILE] w logu (stary skrypt?) — odśwież agent/skrypt i uruchom profil ponownie.';
     }
 
     return {
@@ -432,13 +458,17 @@ export class NodeStackReadinessService {
       title: 'MySQL Governor',
       required: true,
       status,
-      summary,
+      summary: summaryText,
       records: [
         {
           label: 'Ostatni profil',
           actual: latest
             ? `${latest.status} (${latest.completedAt?.toISOString() ?? latest.createdAt.toISOString()})`
-            : 'brak ukończonego zadania',
+            : 'brak zadania',
+        },
+        {
+          label: '[VERRIS_PROFILE]',
+          actual: summaryGov ?? (summary ? JSON.stringify(summary) : 'brak w logu'),
         },
         {
           label: 'Weryfikacja na węźle',

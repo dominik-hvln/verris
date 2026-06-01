@@ -128,7 +128,8 @@ export function NodeStackReadinessPanel({
             Podsumowanie wymaganych modułów (poczta, FTP, baza, WWW, DirectAdmin, CageFS) —
             sondy TCP/TLS z panelu sterowania oraz zgodność z dokumentacją DirectAdmin /
             CloudLinux. Przycisk poniżej uruchamia profil na węźle (Exim, Dovecot, FTP,
-            Governor, MariaDB).
+            Governor, MariaDB). Profil nie edytuje pakietów DA — przy błędnym widoku
+            «Bez ograniczeń» użyj «Napraw pakiety DA» (limity z planów Verris).
           </p>
         </div>
         {report && (

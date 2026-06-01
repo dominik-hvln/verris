@@ -928,8 +928,27 @@ print_summary() {
     echo "BŁĄD: MySQL Governor nieaktywny — wymagany przed LIVE provisioning." >&2
     exit_code=1
   fi
+
+  # Jedna linia na końcu logu — panel Verris obcina log do ~120 KB (zostaje koniec);
+  # bez tego Governor/CageFS z początku profilu nie są widoczne w diagnostyce API.
+  emit_verris_profile_summary
+
   echo "Następnie: panel admin → węzeł → Test DirectAdmin → status probes → smoke provisioning."
+  echo "Pakiety DA (starter/pro/business): ten skrypt ich NIE zmienia. Po profilu API może zsynchronizować limity z planów."
+  echo "Jeśli edytor DA pokazuje «Bez ograniczeń» przy poprawnych limitach w API — użyj «Napraw pakiety DA» w panelu admin."
   return "$exit_code"
+}
+
+emit_verris_profile_summary() {
+  local gov="inactive"
+  governor_is_active && gov="active"
+  local cfs="disabled"
+  cagefs_is_enabled && cfs="enabled"
+  local mail="fail" ftp="fail" db="fail"
+  if port_is_listening 993 || port_is_listening 587; then mail="ok"; fi
+  if port_is_listening 21; then ftp="ok"; fi
+  if mysql -e "SELECT 1" >/dev/null 2>&1; then db="ok"; fi
+  echo "[VERRIS_PROFILE] governor=${gov} cagefs=${cfs} mail_ports=${mail} ftp_port=${ftp} mariadb=${db} da_packages=unchanged_by_script"
 }
 
 require_root
