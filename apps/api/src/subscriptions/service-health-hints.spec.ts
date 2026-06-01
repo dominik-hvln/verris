@@ -9,6 +9,7 @@ describe('buildHealthCheckDetails', () => {
     panelHost: 'node.example.pl',
     panelTls: { ok: true, authorized: true },
     mailHost: 'node.example.pl',
+    mailPort: 993,
     mailTls: { ok: false, error: 'ECONNREFUSED' },
     cpuUsageAvg: 95,
     cpuLimit: 100,

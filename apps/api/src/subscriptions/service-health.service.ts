@@ -135,11 +135,26 @@ export class ServiceHealthService {
     if (checks.panelTlsOk) earned += 15;
     else if (panelTls.ok) earned += 5;
 
-    // Poczta węzła (IMAPS :993) — usługa odpowiada i kończy handshake TLS (10)
-    possible += 10;
-    const mailTls = await this.probeTls(mailHost, 993);
-    checks.mailOk = mailTls.ok;
-    if (checks.mailOk) earned += mailTls.authorized === true ? 10 : 7;
+    // Poczta węzła — IMAPS :993 (fallback :587). Brak nasłuchu = infra niegotowa, nie karzemy klienta.
+    let mailTls = await this.probeTls(mailHost, 993);
+    let mailPort = 993;
+    if (!mailTls.ok && this.isMailPortClosed(mailTls.error)) {
+      const smtpTls = await this.probeTls(mailHost, 587);
+      if (smtpTls.ok) {
+        mailTls = smtpTls;
+        mailPort = 587;
+      }
+    }
+    if (mailTls.ok) {
+      possible += 10;
+      checks.mailOk = true;
+      earned += mailTls.authorized === true ? 10 : 7;
+    } else if (this.isMailPortClosed(mailTls.error)) {
+      checks.mailOk = null;
+    } else {
+      possible += 10;
+      checks.mailOk = false;
+    }
 
     // LVE / CPU z ostatniej metryki (20)
     possible += 20;
@@ -189,6 +204,7 @@ export class ServiceHealthService {
       panelTls,
       mailHost,
       mailTls,
+      mailPort,
       cpuUsageAvg,
       cpuLimit,
       backupCounted: backup.counted,
@@ -332,6 +348,13 @@ export class ServiceHealthService {
       summary: text,
       checkDetails: {},
     };
+  }
+
+  /** Port closed on node — hosting mail stack (Exim/Dovecot) not listening yet. */
+  private isMailPortClosed(error?: string): boolean {
+    if (!error) return false;
+    const e = error.toLowerCase();
+    return e.includes('econnrefused') || e.includes('connect econnrefused');
   }
 
   private buildSummaryText(

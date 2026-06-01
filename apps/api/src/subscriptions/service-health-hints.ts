@@ -8,6 +8,7 @@ export interface HealthProbeMeta {
   panelHost: string;
   panelTls: { ok: boolean; authorized?: boolean; error?: string };
   mailHost: string;
+  mailPort: number;
   mailTls: { ok: boolean; authorized?: boolean; error?: string };
   cpuUsageAvg: number | null;
   cpuLimit: number | null;
@@ -84,13 +85,13 @@ export function buildHealthCheckDetails(
   if (checks.mailOk === true) {
     out.mailOk = okDetail(
       'Poczta',
-      `Serwer poczty ${meta.mailHost} (IMAPS :993) odpowiada.`,
+      `Serwer poczty ${meta.mailHost}:${meta.mailPort} odpowiada (TLS).`,
     );
   } else if (checks.mailOk === false) {
     out.mailOk = warnDetail(
       'Poczta',
-      `Serwer poczty ${meta.mailHost}:993 nie odpowiada lub TLS się nie powiódł${meta.mailTls.error ? ` (${meta.mailTls.error})` : ''}.`,
-      'Sprawdź skrzynki w zakładce „Poczta” i ustawienia IMAP w kliencie pocztowym. Jeśli problem dotyczy całego węzła, zgłoś ticket do supportu.',
+      `Serwer poczty ${meta.mailHost}:${meta.mailPort} — problem połączenia${meta.mailTls.error ? ` (${meta.mailTls.error})` : ''}.`,
+      'Sprawdź ustawienia IMAP/SMTP w zakładce „Poczta”. Jeśli skrzynki w panelu działają, a klient pocztowy nie — zweryfikuj port i SSL. W razie wątpliwości napisz do supportu.',
     );
   }
 
