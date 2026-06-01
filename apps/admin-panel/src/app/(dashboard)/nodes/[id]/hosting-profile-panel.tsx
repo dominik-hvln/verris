@@ -131,9 +131,9 @@ export function HostingProfilePanel({
           <Terminal className="h-4 w-4 text-indigo-300" /> Profil hostingowy
         </h2>
         <p className="text-xs text-muted-foreground mt-1">
-          Idempotentna konfiguracja floty: CageFS (cagefsctl --init + --enable-all, izolacja kont +
-          integracja LVE w DA), MySQL Governor (governor-mysql + dbctl), CustomBuild (LiteSpeed/LSPHP),
-          restart LS. Domyślnie bez długiego CustomBuild rebuild.
+          Idempotentna konfiguracja floty: Exim/Dovecot, FTP, MariaDB/Governor, CageFS, CustomBuild
+          (LiteSpeed/LSPHP), restart LS. Sekcja „Usługi hostingowe” powyżej pokazuje status sond —
+          ten panel uruchamia ten sam profil (log zadań poniżej). Domyślnie bez długiego rebuild PHP/LS.
         </p>
       </div>
 

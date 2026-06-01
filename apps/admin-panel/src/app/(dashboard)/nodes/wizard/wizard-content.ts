@@ -50,7 +50,7 @@ export const WIZARD_STEPS: WizardStep[] = [
   {
     id: "hosting-profile",
     title: "Profil hostingowy",
-    subtitle: "Spójna konfiguracja floty (Governor, LS)",
+    subtitle: "Governor, poczta, FTP, LS (auto po ACTIVE)",
   },
   {
     id: "finish",

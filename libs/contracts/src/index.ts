@@ -2,6 +2,7 @@ export * from './panel-preferences';
 export * from './domain.dto';
 export * from './server.dto';
 export * from './node-audit.dto';
+export * from './node-stack-readiness.dto';
 export * from './node-task.dto';
 export * from './wallet.dto';
 export * from './plan.dto';

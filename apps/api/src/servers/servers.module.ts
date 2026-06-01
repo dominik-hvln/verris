@@ -9,6 +9,7 @@ import { ServerIdentityGuard } from './guards/server-identity.guard';
 import { DirectAdminService } from './directadmin.service';
 import { NodeTasksService } from './node-tasks.service';
 import { NodeAuditService } from './node-audit.service';
+import { NodeStackReadinessService } from './node-stack-readiness.service';
 import { OvhClient } from './ovh.client';
 import { NodeDnsService } from './node-dns.service';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
@@ -20,6 +21,7 @@ import { PlatformSettingsModule } from '../platform-settings/platform-settings.m
     ServersService,
     NodeTasksService,
     NodeAuditService,
+    NodeStackReadinessService,
     BootstrapTokenService,
     BootstrapTokenGuard,
     ServerIdentityGuard,
@@ -33,6 +35,7 @@ import { PlatformSettingsModule } from '../platform-settings/platform-settings.m
     ServerIdentityGuard,
     NodeTasksService,
     NodeAuditService,
+    NodeStackReadinessService,
     NodeDnsService,
   ],
 })

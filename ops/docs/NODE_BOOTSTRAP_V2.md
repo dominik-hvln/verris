@@ -74,6 +74,7 @@ Docelowy flow wymagał wielu ręcznych kroków poza skryptem panelu.
 | Locale | brak ustawienia języka panelu | EN zamiast PL (lub zależne od przeglądarki) |
 | TLS | cert na węźle (HTTP-01), potem migracja na CP; wejścia po IP | dwa modele; wildcard nie pokrywa IP |
 | Hostname | `daHost` = IP zamiast hostname | linki/health po IP, gorszy TLS |
+| Poczta/FTP | profil z `--skip-build` nie budował Exim/Dovecot; brak auto-queue po ACTIVE | `ECONNREFUSED` :993; klient bez działającej poczty |
 
 ### Najważniejszy bug: pakiety „Bez ograniczeń”
 
@@ -151,7 +152,8 @@ sequenceDiagram
   API->>API: hook TLS deploy (webhook lub audyt: pending)
   Op->>Admin: DA login key + test (scope packages+accounts)
   Op->>Admin: Audyt → napraw pakiety (limity + PL)
-  Op->>Admin: Profil hostingowy (Governor/LS) z panelu
+  API->>API: auto-queue profil hostingowy (Governor, poczta, FTP)
+  Op->>Admin: Śledź profil hostingowy (task agenta)
   Op->>Admin: Smoke provision (konto z limitami planu)
 ```
 
@@ -159,8 +161,8 @@ sequenceDiagram
 
 - **Bootstrap panelu** (`renderBootstrapScript`): handshake + agent + probes +
   tasks + deploy SSH key. Zostaje jednym entrypointem na węźle.
-- **Po ACTIVE**: akcje wykonywane z panelu/API (audyt+naprawa pakietów, profil
-  hostingowy jako task agenta, TLS hook) zamiast ręcznego `scp`/SSH.
+- **Po ACTIVE**: API kolejkuje profil hostingowy (agent: Governor, Exim/Dovecot,
+  FTP, MariaDB) oraz hook TLS; audyt/naprawa pakietów z panelu zamiast `scp`/SSH.
 
 ---
 
@@ -240,7 +242,7 @@ stanem LIVE.
 - [ ] Login key DA: scope packages + accounts (test API OK).
 - [ ] Pakiety DA starter/pro/business z realnymi limitami (nie „Bez ograniczeń”),
       język PL.
-- [ ] Profil hostingowy (Governor/LiteSpeed) — task SUCCESS.
+- [ ] Profil hostingowy (Governor, Exim/Dovecot :993/:587, FTP :21, MariaDB) — task SUCCESS.
 - [ ] Wildcard `*.verris.pl` na :2222 (CN/SAN, nie IP).
 - [ ] Smoke: zakup planu → konto DA z limitami planu.
 

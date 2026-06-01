@@ -24,6 +24,7 @@ import { QueueHostingProfileTaskDto } from './dto/queue-hosting-profile.dto';
 import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
 import { NodeTasksService } from './node-tasks.service';
 import { NodeAuditService } from './node-audit.service';
+import { NodeStackReadinessService } from './node-stack-readiness.service';
 import { NodeDnsService } from './node-dns.service';
 import { renderNodeTasksAgentInstallScript } from './node-tasks-agent.install';
 import { IsIP } from 'class-validator';
@@ -60,6 +61,7 @@ export class ServersAdminController {
     private readonly servers: ServersService,
     private readonly nodeTasks: NodeTasksService,
     private readonly nodeAudit: NodeAuditService,
+    private readonly nodeStack: NodeStackReadinessService,
     private readonly nodeDns: NodeDnsService,
   ) {}
 
@@ -205,6 +207,25 @@ export class ServersAdminController {
   @Get(':id/hosting-profile/tasks')
   listHostingProfileTasks(@Param('id') id: string) {
     return this.nodeTasks.listHostingProfileTasks(id);
+  }
+
+  /** Sondy TCP/TLS + status agenta — podsumowanie usług hostingowych na węźle. */
+  @Get(':id/stack-readiness')
+  stackReadiness(@Param('id') id: string) {
+    return this.nodeStack.getReadiness(id);
+  }
+
+  /**
+   * Zleca profil hostingowy (Exim, Dovecot, FTP, Governor, CageFS, MariaDB).
+   * Idempotentny — bezpieczny do ponowienia.
+   */
+  @Post(':id/stack-readiness/ensure')
+  ensureStack(
+    @Param('id') id: string,
+    @Body() dto: QueueHostingProfileTaskDto,
+    @CurrentUser() user: { userId: string },
+  ) {
+    return this.nodeStack.ensureStack(id, user.userId, dto.skipBuild !== false);
   }
 
   @Get(':id/tasks-agent/install-script')

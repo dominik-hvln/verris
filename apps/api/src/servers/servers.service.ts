@@ -12,6 +12,7 @@ import { AuditService } from '../common/audit/audit.service';
 import { BootstrapTokenService } from './bootstrap-token.service';
 import { DirectAdminService } from './directadmin.service';
 import { NodeDnsService } from './node-dns.service';
+import { NodeTasksService } from './node-tasks.service';
 import { Prisma, Server, ServerStatus } from '@verris/database';
 import { InitServerDto } from './dto/init-server.dto';
 import { HandshakeDto } from './dto/handshake.dto';
@@ -34,6 +35,7 @@ export class ServersService {
     private readonly config: ConfigService,
     private readonly platformSettings: PlatformSettingsService,
     private readonly nodeDns: NodeDnsService,
+    private readonly nodeTasks: NodeTasksService,
   ) {}
 
   /**
@@ -316,6 +318,16 @@ export class ServersService {
     // configured or the node already has NS provisioned it no-ops. The admin can
     // also trigger/reconcile this from the node panel.
     await this.nodeDns.tryAutoProvision(serverId);
+
+    // Post-ACTIVE: profil hostingowy (Governor, CageFS, Exim/Dovecot, FTP) — agent
+    // pobiera skrypt z API i uruchamia z --skip-build (bez pełnego rebuild PHP/LS).
+    await this.nodeTasks
+      .queueHostingProfile(serverId, actorUserId, { skipBuild: true })
+      .catch((err) => {
+        this.logger.warn(
+          `queueHostingProfile failed for server=${serverId}: ${err instanceof Error ? err.message : String(err)}`,
+        );
+      });
 
     return updated;
   }

@@ -151,7 +151,7 @@ Weryfikacja techniczna (prod, Node-PL-01):
 |------|------|
 | `ops/scripts/node-onboard-live.sh` | **Główny skrypt onboardingu** (zastępuje ręczną sekwencję) |
 | `ops/scripts/node-live-readiness.sh` | Agent + profil + weryfikacja |
-| `ops/scripts/node-hosting-profile.sh` | Governor, MariaDB, CustomBuild, LiteSpeed |
+| `ops/scripts/node-hosting-profile.sh` | Governor, MariaDB, Exim/Dovecot, FTP, CustomBuild, LiteSpeed |
 | `ops/scripts/node-verris-tasks-install.sh` | Instalacja agenta zadań |
 | `ops/scripts/node-da-sync-plan-packages.sh` | Pakiety DA = plany |
 | `ops/scripts/verris-tasks.sh` | Poll lease zadań |

@@ -13,6 +13,8 @@ import type {
   TasksAgentInstallScriptDto,
   NodeAuditReportDto,
   NodeRepairResultDto,
+  NodeStackReadinessDto,
+  EnsureNodeStackInput,
   NodeNameserversDto,
   UpdateNameserversInput,
 } from "@verris/contracts";
@@ -148,6 +150,28 @@ export async function fetchTasksAgentInstallScript(id: string) {
     const data = await adminApi<TasksAgentInstallScriptDto>(
       `/admin/servers/${id}/tasks-agent/install-script`,
     );
+    return { data };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
+}
+
+export async function fetchNodeStackReadiness(id: string) {
+  try {
+    const data = await adminApi<NodeStackReadinessDto>(`/admin/servers/${id}/stack-readiness`);
+    return { data };
+  } catch (err) {
+    return { error: extractError(err), data: null };
+  }
+}
+
+export async function ensureNodeStack(id: string, input: EnsureNodeStackInput = {}) {
+  try {
+    const data = await adminApi<NodeTaskDto>(`/admin/servers/${id}/stack-readiness/ensure`, {
+      method: "POST",
+      body: { skipBuild: input.skipBuild !== false },
+    });
+    revalidatePath(`/nodes/${id}`);
     return { data };
   } catch (err) {
     return { error: extractError(err) };

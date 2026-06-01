@@ -241,6 +241,20 @@ verify_live_readiness() {
   else
     log_warn "lvectl niedostępny"
   fi
+
+  # Poczta / FTP (wymagane dla hostingu współdzielonego)
+  if command -v ss >/dev/null 2>&1; then
+    if ss -lnt 2>/dev/null | awk '{print $4}' | grep -qE ':993$|:587$'; then
+      log_ok "poczta — IMAP/SMTP (:993 lub :587)"
+    else
+      log_fail "poczta — brak nasłuchu :993/:587 (profil: exim + dovecot)"
+    fi
+    if ss -lnt 2>/dev/null | awk '{print $4}' | grep -qE ':21$'; then
+      log_ok "FTP — :21"
+    else
+      log_warn "FTP — brak :21 (pure-ftpd/proftpd)"
+    fi
+  fi
 }
 
 print_final_summary() {

@@ -2,6 +2,9 @@
 # Verris — standardowy profil hostingowy na węźle compute (CloudLinux + DA + LiteSpeed).
 # Uruchom JEDNORAZOWO jako root PO instalacji DirectAdmin i połączeniu z panelem Verris.
 #
+# Zawsze (także przy --skip-build): buduje i uruchamia usługi podstawowe hostingu —
+# Exim, Dovecot, FTP (CustomBuild), weryfikuje nasłuch :993/:587/:21 i MariaDB.
+#
 # Opcje:
 #   --dry-run         tylko wypisuje plan, bez zmian
 #   --yes, -y         bez pytań (CustomBuild build jeśli włączony)
@@ -641,6 +644,8 @@ configure_directadmin_custombuild() {
   # Moduły Apache — tylko gdy CustomBuild je eksponuje (przy LiteSpeed zwykle brak mod_suexec).
   cb_set_option mod_ruid2 no
   cb_set_option mod_suexec no
+  cb_set_option exim yes
+  cb_set_option dovecot yes
 
   if [ "$PREFLIGHT_ONLY" = "1" ]; then
     log_info "preflight: pominięto custombuild build"
@@ -675,6 +680,171 @@ configure_directadmin_custombuild() {
     log_ok "CustomBuild build zakończony"
   else
     log_skip "CustomBuild build — pominięty przez operatora"
+  fi
+}
+
+port_is_listening() {
+  local port="$1"
+  if command -v ss >/dev/null 2>&1; then
+    ss -lnt 2>/dev/null | awk '{print $4}' | grep -qE ":${port}\$"
+    return $?
+  fi
+  if command -v netstat >/dev/null 2>&1; then
+    netstat -lnt 2>/dev/null | grep -qE ":${port}[[:space:]]"
+    return $?
+  fi
+  return 1
+}
+
+systemd_unit_exists() {
+  local unit="$1"
+  systemctl list-unit-files "$unit" >/dev/null 2>&1
+}
+
+enable_and_restart_unit() {
+  local unit="$1"
+  if ! systemd_unit_exists "$unit"; then
+    return 1
+  fi
+  if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then
+    log_info "dry-run: systemctl enable --now $unit"
+    return 0
+  fi
+  systemctl enable "$unit" 2>/dev/null || true
+  if systemctl restart "$unit" 2>/dev/null; then
+    log_ok "systemctl restart $unit"
+    return 0
+  fi
+  if systemctl start "$unit" 2>/dev/null; then
+    log_ok "systemctl start $unit"
+    return 0
+  fi
+  return 1
+}
+
+custombuild_component_available() {
+  local component="$1"
+  [ -n "${BUILD:-}" ] && [ -n "${CB:-}" ] || return 1
+  (cd "$CB" && "$BUILD" list 2>/dev/null) | grep -qw "$component"
+}
+
+custombuild_build_component() {
+  local component="$1"
+  [ -n "${BUILD:-}" ] && [ -n "${CB:-}" ] || return 1
+
+  if ! custombuild_component_available "$component"; then
+    log_skip "CustomBuild: brak komponentu $component na liście build"
+    return 1
+  fi
+
+  if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then
+    log_info "dry-run: custombuild build $component"
+    return 0
+  fi
+
+  log_info "CustomBuild build $component (może potrwać kilka–kilkanaście min)…"
+  local out rc=0
+  out="$(cd "$CB" && "$BUILD" build "$component" 2>&1)" || rc=$?
+  printf '%s\n' "$out" | strip_ansi | tail -n 20
+  if [ "$rc" -eq 0 ]; then
+    log_ok "CustomBuild build $component"
+    return 0
+  fi
+  log_fail "CustomBuild build $component (rc=$rc)"
+  return "$rc"
+}
+
+cb_ftp_build_component() {
+  local ftpserver
+  ftpserver="$(cb_option_value ftpserver 2>/dev/null || true)"
+  case "$ftpserver" in
+    proftpd) echo proftpd ;;
+    pureftpd|pure-ftpd|"") echo pureftpd ;;
+    *) echo pureftpd ;;
+  esac
+}
+
+ensure_hosting_core_services() {
+  echo "--- Usługi podstawowe (poczta, FTP, baza) ---"
+
+  if [ ! -x /usr/local/directadmin/directadmin ]; then
+    log_skip "DirectAdmin — brak binarki, pomijam pocztę/FTP CustomBuild"
+  else
+    CB="${CB:-/usr/local/directadmin/custombuild}"
+    BUILD="$(custombuild_bin "$CB" || true)"
+    export CB BUILD
+
+    if [ -n "$BUILD" ]; then
+      cb_set_option exim yes
+      cb_set_option dovecot yes
+
+      if port_is_listening 993 || port_is_listening 587; then
+        log_ok "Poczta — port IMAP/SMTP już nasłuchuje"
+      else
+        custombuild_build_component exim || true
+        custombuild_build_component dovecot || true
+        enable_and_restart_unit exim.service || enable_and_restart_unit exim || true
+        enable_and_restart_unit dovecot.service || enable_and_restart_unit dovecot || true
+      fi
+
+      local ftp_component
+      ftp_component="$(cb_ftp_build_component)"
+      if port_is_listening 21; then
+        log_ok "FTP — port 21 już nasłuchuje"
+      else
+        custombuild_build_component "$ftp_component" || true
+        enable_and_restart_unit pure-ftpd.service || enable_and_restart_unit pureftpd.service \
+          || enable_and_restart_unit proftpd.service || enable_and_restart_unit proftpd || true
+      fi
+    else
+      log_warn "CustomBuild niedostępny — nie można zbudować exim/dovecot/FTP"
+    fi
+  fi
+
+  # MariaDB — Governor instaluje silnik; tu tylko upewniamy się, że usługa działa.
+  local db_unit="mariadb"
+  if systemd_unit_exists mysqld.service; then
+    db_unit="mysqld"
+  fi
+  if [ "$PREFLIGHT_ONLY" = "1" ] || [ "$DRY_RUN" = "1" ]; then
+    log_info "dry-run: weryfikacja $db_unit + mysql SELECT 1"
+  elif mysql -e "SELECT 1" >/dev/null 2>&1; then
+    log_ok "MariaDB/MySQL odpowiada (SELECT 1)"
+  else
+    enable_and_restart_unit "${db_unit}.service" || true
+    if mysql -e "SELECT 1" >/dev/null 2>&1; then
+      log_ok "MariaDB/MySQL odpowiada po restarcie $db_unit"
+    else
+      log_fail "MariaDB/MySQL nie odpowiada — uruchom sekcję Governor lub sprawdź journalctl -u $db_unit"
+    fi
+  fi
+
+  if [ "$PREFLIGHT_ONLY" = "1" ] || [ "$DRY_RUN" = "1" ]; then
+    if port_is_listening 993; then
+      log_ok "preflight: IMAPS :993"
+    elif port_is_listening 587; then
+      log_ok "preflight: SMTP submission :587"
+    else
+      log_warn "preflight: brak nasłuchu na :993/:587 (po profilu uruchom build exim/dovecot)"
+    fi
+    if port_is_listening 21; then
+      log_ok "preflight: FTP :21"
+    else
+      log_warn "preflight: brak nasłuchu na :21"
+    fi
+    return 0
+  fi
+
+  if port_is_listening 993 || port_is_listening 587; then
+    log_ok "Poczta — IMAP/SMTP nasłuchuje (:993 lub :587)"
+  else
+    log_fail "Poczta — brak nasłuchu na :993 i :587 po build exim/dovecot"
+  fi
+
+  if port_is_listening 21; then
+    log_ok "FTP — port 21 nasłuchuje"
+  else
+    log_warn "FTP — port 21 nie nasłuchuje (sprawdź pure-ftpd/proftpd w CustomBuild)"
   fi
 }
 
@@ -760,6 +930,7 @@ if [ "$GOVERNOR_ONLY" = "1" ]; then
 fi
 
 configure_directadmin_custombuild
+ensure_hosting_core_services
 configure_litespeed
 print_lve_info
 print_summary
