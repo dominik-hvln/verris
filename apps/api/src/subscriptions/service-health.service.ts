@@ -205,15 +205,17 @@ export class ServiceHealthService {
         lveOk: checks.lveOk,
         panelTlsOk: checks.panelTlsOk,
         mailOk: checks.mailOk,
-        details: {
-          summary,
-          earned,
-          possible,
-          panelHost,
-          mailHost,
-          probeMeta,
-          checkDetails,
-        } as Prisma.InputJsonValue,
+        details: JSON.parse(
+          JSON.stringify({
+            summary,
+            earned,
+            possible,
+            panelHost,
+            mailHost,
+            probeMeta,
+            checkDetails,
+          }),
+        ) as Prisma.InputJsonValue,
       },
     });
 
