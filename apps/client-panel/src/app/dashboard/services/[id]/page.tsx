@@ -52,7 +52,7 @@ export default function HostingManagerPage() {
 
   return (
     <HostingLinksProvider serviceId={params.id}>
-      <div className="mx-auto max-w-6xl space-y-5 animate-in fade-in duration-500 min-w-0">
+      <div className="mx-auto max-w-7xl space-y-5 animate-in fade-in duration-500 min-w-0">
         <div className="flex items-center gap-3 min-w-0">
           <Link
             href="/dashboard/services"
@@ -71,8 +71,8 @@ export default function HostingManagerPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)]">
-          <aside className="space-y-4 min-w-0 lg:sticky lg:top-6 lg:self-start">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
+          <aside className="order-2 min-w-0 space-y-4 lg:order-1 lg:sticky lg:top-6 lg:self-start">
             <nav className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-2 space-y-0.5">
               {TABS.map((tab) => {
                 const active = activeTab === tab.id;
@@ -88,7 +88,7 @@ export default function HostingManagerPage() {
                     }`}
                   >
                     <tab.icon className={`h-4 w-4 shrink-0 ${active ? 'text-white' : 'opacity-60'}`} />
-                    <span className="truncate">{tab.label}</span>
+                    <span>{tab.label}</span>
                   </button>
                 );
               })}
@@ -100,21 +100,21 @@ export default function HostingManagerPage() {
                 className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-neutral-400 transition-colors hover:bg-white/5 hover:text-white"
               >
                 <ArrowRightLeft className="h-4 w-4 shrink-0 opacity-60" />
-                <span className="truncate">Zmiana planu</span>
+                <span>Zmiana planu</span>
               </Link>
               <Link
                 href={`/dashboard/services/${params.id}/autoscaling`}
                 className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-neutral-400 transition-colors hover:bg-white/5 hover:text-white"
               >
                 <Gauge className="h-4 w-4 shrink-0 opacity-60" />
-                <span className="truncate">Autoskalowanie</span>
+                <span>Autoskalowanie</span>
               </Link>
             </nav>
             <HostingPanelCard />
             <ServiceConnectionCard serviceId={params.id} />
           </aside>
 
-          <main className="min-w-0 overflow-hidden">
+          <main className="order-1 min-w-0 overflow-hidden lg:order-2">
             {activeTab === 'overview' && (
               <ServiceOverviewTab serviceId={params.id} onNavigate={(t) => setActiveTab(t as TabId)} />
             )}

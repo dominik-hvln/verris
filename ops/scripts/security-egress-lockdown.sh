@@ -68,7 +68,7 @@ COMMON_ALLOW_TCP="{ 53, 80, 443 }"
 COMMON_ALLOW_UDP="{ 53, 123 }"
 
 if [ "$ROLE" = "control-plane" ]; then
-  EXTRA_TCP="{ 25, 465, 587, 993, 995, 3306, 5432, 6379, 9000, 9001 }"
+  EXTRA_TCP="{ 25, 465, 587, 993, 995, 2222, 3306, 5432, 6379, 9000, 9001 }"
 else
   EXTRA_TCP="{ 2222, 3306 }"
 fi
@@ -106,17 +106,24 @@ if [ "$DRY_RUN" -eq 1 ]; then
   exit 0
 fi
 
+if [ "$ROLE" = "control-plane" ]; then
+  cat <<'EOF'
+ERROR: control-plane egress lock via nftables is disabled.
+Reason: this can flush/override Docker NAT rules and break API/container connectivity.
+Use UFW ingress hardening on control-plane and apply this nftables script only to node hosts.
+EOF
+  exit 2
+fi
+
 if [ ! -f /etc/nftables.conf ]; then
   cat >/etc/nftables.conf <<'EOF'
 #!/usr/sbin/nft -f
-flush ruleset
 include "/etc/nftables.d/*.nft"
 EOF
 elif ! grep -q 'include "/etc/nftables.d/\*.nft"' /etc/nftables.conf; then
   cp /etc/nftables.conf "/etc/nftables.conf.bak.$(date -u +%Y%m%dT%H%M%SZ)"
   cat >/etc/nftables.conf <<'EOF'
 #!/usr/sbin/nft -f
-flush ruleset
 include "/etc/nftables.d/*.nft"
 EOF
 fi

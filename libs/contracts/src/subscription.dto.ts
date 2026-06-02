@@ -289,10 +289,12 @@ export interface HostingDnsPointingDto {
   domain: string | null;
   expectedIpv4: string | null;
   serverName: string | null;
+  expectedNameservers: string[];
   observedA: string[];
   observedAaaa: string[];
   observedWwwA: string[];
   nameservers: string[];
+  delegatedToExpectedNs: boolean;
   pointsToServer: boolean;
   wwwPointsToServer: boolean | null;
   status: 'ok' | 'partial' | 'fail' | 'pending';

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import * as dns from 'node:dns/promises';
 import { PrismaService } from '../prisma/prisma.service';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 
 export type DnsPointingStatus = 'ok' | 'partial' | 'fail' | 'pending';
 
@@ -8,10 +9,12 @@ export interface HostingDnsPointingResult {
   domain: string | null;
   expectedIpv4: string | null;
   serverName: string | null;
+  expectedNameservers: string[];
   observedA: string[];
   observedAaaa: string[];
   observedWwwA: string[];
   nameservers: string[];
+  delegatedToExpectedNs: boolean;
   pointsToServer: boolean;
   wwwPointsToServer: boolean | null;
   status: DnsPointingStatus;
@@ -22,7 +25,10 @@ export interface HostingDnsPointingResult {
 
 @Injectable()
 export class HostingDnsPointingService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly platformSettings: PlatformSettingsService,
+  ) {}
 
   async verifyForSubscription(
     subscriptionId: string,
@@ -39,10 +45,12 @@ export class HostingDnsPointingService {
         domain: null,
         expectedIpv4: null,
         serverName: null,
+        expectedNameservers: [],
         observedA: [],
         observedAaaa: [],
         observedWwwA: [],
         nameservers: [],
+        delegatedToExpectedNs: false,
         pointsToServer: false,
         wwwPointsToServer: null,
         status: 'pending',
@@ -55,6 +63,14 @@ export class HostingDnsPointingService {
     const domain = sub.account.domain;
     const expected = sub.account.server.ipAddress;
     const serverName = sub.account.server.name ?? sub.account.server.hostname;
+    const serverNs = [sub.account.server.ns1, sub.account.server.ns2, sub.account.server.ns3]
+      .map((value) => (value ?? '').trim().toLowerCase())
+      .filter(Boolean);
+    const platformNs = await this.platformSettings.getHostingNameservers();
+    const fallbackNs = [platformNs.ns1, platformNs.ns2, platformNs.ns3]
+      .map((value) => value.trim().toLowerCase())
+      .filter(Boolean);
+    const expectedNameservers = (serverNs[0] && serverNs[1] ? serverNs : fallbackNs).filter(Boolean);
 
     const [aRecords, aaaaRecords, wwwA, nsRecords] = await Promise.all([
       resolveSafe(() => dns.resolve4(domain)),
@@ -66,33 +82,47 @@ export class HostingDnsPointingService {
     const pointsToServer = aRecords.includes(expected);
     const wwwPointsToServer =
       wwwA.length === 0 ? null : wwwA.includes(expected) || wwwA.some((ip) => aRecords.includes(ip));
+    const delegatedToExpectedNs =
+      expectedNameservers.length >= 2 &&
+      expectedNameservers.every((ns) => nsRecords.map((entry) => entry.toLowerCase()).includes(ns));
+    const pointsByA = pointsToServer && (wwwPointsToServer === true || wwwPointsToServer === null);
+    const pointsByNs = delegatedToExpectedNs;
 
     const issues: string[] = [];
-    if (aRecords.length === 0 && aaaaRecords.length === 0) {
-      issues.push(`Brak rekordu A/AAAA dla ${domain} — domena nie wskazuje nigdzie.`);
-    } else if (!pointsToServer) {
-      issues.push(
-        `Rekord A wskazuje na ${aRecords.join(', ') || '—'}, oczekiwany adres serwera to ${expected}.`,
-      );
+    if (!pointsByNs && !pointsByA) {
+      if (aRecords.length === 0 && aaaaRecords.length === 0) {
+        issues.push(`Brak rekordu A/AAAA dla ${domain} — domena nie wskazuje nigdzie.`);
+      } else if (!pointsToServer) {
+        issues.push(
+          `Rekord A wskazuje na ${aRecords.join(', ') || '—'}, oczekiwany adres serwera to ${expected}.`,
+        );
+      }
+      if (expectedNameservers.length >= 2 && nsRecords.length > 0 && !delegatedToExpectedNs) {
+        issues.push(
+          `Delegacja NS wskazuje na ${nsRecords.join(', ')}, oczekiwane NS: ${expectedNameservers.join(', ')}.`,
+        );
+      }
     }
     if (wwwA.length > 0 && wwwPointsToServer === false) {
       issues.push(`Subdomena www.${domain} nie wskazuje na serwer hostingu (${expected}).`);
     }
 
     let status: DnsPointingStatus = 'fail';
-    if (pointsToServer && (wwwPointsToServer === true || wwwPointsToServer === null)) {
+    if (pointsByNs || pointsByA) {
       status = 'ok';
-    } else if (pointsToServer || aRecords.length > 0) {
+    } else if (aRecords.length > 0 || aaaaRecords.length > 0 || nsRecords.length > 0) {
       status = 'partial';
-    } else if (aRecords.length === 0 && aaaaRecords.length === 0) {
+    } else if (aRecords.length === 0 && aaaaRecords.length === 0 && nsRecords.length === 0) {
       status = 'fail';
     }
 
     const message =
       status === 'ok'
-        ? `Domena ${domain} wskazuje na Twój serwer (${expected}).`
+        ? pointsByNs
+          ? `Domena ${domain} jest poprawnie delegowana na NS hostingu Verris.`
+          : `Domena ${domain} wskazuje na Twój serwer (${expected}) przez rekordy A/AAAA.`
         : status === 'partial'
-          ? `Domena częściowo skonfigurowana — sprawdź rekordy A poniżej.`
+          ? `Domena częściowo skonfigurowana — sprawdź konfigurację NS oraz rekordy A/AAAA.`
           : status === 'fail'
             ? `Domena nie kieruje jeszcze na hosting Verris.`
             : 'Oczekiwanie na konto hostingowe.';
@@ -101,10 +131,12 @@ export class HostingDnsPointingService {
       domain,
       expectedIpv4: expected,
       serverName,
+      expectedNameservers,
       observedA: aRecords,
       observedAaaa: aaaaRecords,
       observedWwwA: wwwA,
       nameservers: nsRecords,
+      delegatedToExpectedNs,
       pointsToServer,
       wwwPointsToServer,
       status,

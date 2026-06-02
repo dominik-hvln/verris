@@ -53,16 +53,20 @@ function InfoRow({
   muted?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-2 py-1.5">
-      <Icon className="h-3.5 w-3.5 shrink-0 text-neutral-500" />
-      <span className="w-20 shrink-0 text-[11px] text-neutral-500">{label}</span>
-      <span
-        className={`min-w-0 flex-1 truncate font-mono text-[12px] ${muted ? 'text-neutral-500' : 'text-neutral-200'}`}
-        title={value}
-      >
-        {value}
-      </span>
-      {copy ? <CopyButton value={copy} label={label} /> : null}
+    <div className="py-2">
+      <div className="flex items-start gap-2">
+        <Icon className="mt-0.5 h-3.5 w-3.5 shrink-0 text-neutral-500" />
+        <div className="min-w-0 flex-1">
+          <p className="text-[11px] text-neutral-500">{label}</p>
+          <p
+            className={`break-all font-mono text-[12px] leading-snug ${muted ? 'text-neutral-500' : 'text-neutral-200'}`}
+            title={value}
+          >
+            {value}
+          </p>
+        </div>
+        {copy ? <CopyButton value={copy} label={label} /> : null}
+      </div>
     </div>
   );
 }
@@ -108,10 +112,10 @@ function MetricRow({
   const barColor = danger ? 'bg-rose-400/80' : warn ? 'bg-amber-400/80' : 'bg-cyan-400/70';
   return (
     <div className="py-1.5">
-      <div className="flex items-center gap-2">
+      <div className="flex items-start gap-2">
         <Icon className="h-3.5 w-3.5 shrink-0 text-neutral-500" />
-        <span className="min-w-0 flex-1 truncate text-[11px] text-neutral-400">{label}</span>
-        <span className="shrink-0 text-[12px] text-neutral-200">
+        <span className="min-w-0 flex-1 text-[11px] leading-snug text-neutral-400">{label}</span>
+        <span className="shrink-0 text-right text-[12px] text-neutral-200">
           <span className="font-semibold text-white">{t.used}</span>
           <span className="text-neutral-500"> / {t.limit}</span>
         </span>
@@ -235,7 +239,7 @@ export default function ServiceConnectionCard({ serviceId }: { serviceId: string
           <div className="space-y-1">
             {ns.map((host) => (
               <div key={host} className="flex items-center gap-2">
-                <span className="min-w-0 flex-1 truncate font-mono text-[12px] text-neutral-200">
+                <span className="min-w-0 flex-1 break-all font-mono text-[12px] text-neutral-200">
                   {host}
                 </span>
                 <CopyButton value={host} label="NS" />

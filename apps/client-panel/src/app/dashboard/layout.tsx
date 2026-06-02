@@ -14,6 +14,7 @@ import { PlatformConfigLoader } from "@/components/platform-config-loader";
 import { SpinBorder } from "@/components/spin-border";
 import HostingAssistant from "@/components/assistant/HostingAssistant";
 import {
+  Menu,
   Globe,
   Database,
   Mail,
@@ -29,6 +30,7 @@ import {
   UserPlus,
   Calculator,
   Settings,
+  X,
 } from "lucide-react";
 import { sidebarTilesFromLinks, type SidebarTileDef } from "@/lib/sidebar-tiles";
 import { clientFeatures } from "@/lib/client-features";
@@ -162,6 +164,7 @@ export default function DashboardLayout({
   const [user, setUser] = useState<SidebarUser | null>(null);
   const [userLoading, setUserLoading] = useState(true);
   const [impersonating, setImpersonating] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const navCtx = clientNavContextFromSidebar(user);
   const canAccess = (href: string) =>
     navCtx ? canAccessDashboardRoute(href, navCtx) : false;
@@ -207,6 +210,10 @@ export default function DashboardLayout({
     }
   }, [navCtx, pathname, router]);
 
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [pathname]);
+
   const displayName =
     user?.firstName && user?.lastName
       ? `${user.firstName} ${user.lastName}`
@@ -225,8 +232,26 @@ export default function DashboardLayout({
       <PlatformConfigLoader />
       <div className="flex min-h-screen relative">
 
+      {sidebarOpen ? (
+        <button
+          type="button"
+          aria-label="Zamknij menu"
+          className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      ) : null}
+
       {/* Modern Black Minimal Sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-50 flex w-[300px] flex-col bg-[#050505] border-r border-white/5">
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-[300px] flex-col bg-[#050505] border-r border-white/5 transition-transform duration-300 lg:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+        onClick={(e) => {
+          if (window.innerWidth >= 1024) return;
+          const target = e.target as HTMLElement;
+          if (target.closest("a")) setSidebarOpen(false);
+        }}
+      >
         {/* Brand Header */}
         <div className="flex h-20 items-center gap-4 px-8 relative border-b border-white/5">
           <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 border border-white/10">
@@ -238,6 +263,14 @@ export default function DashboardLayout({
               Client Panel
             </span>
           </div>
+          <button
+            type="button"
+            className="ml-auto rounded-lg border border-white/10 p-2 text-neutral-300 hover:bg-white/10 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Zamknij menu"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
         {/* Navigation Content */}
@@ -302,10 +335,19 @@ export default function DashboardLayout({
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-1 pl-[300px] relative z-10 flex flex-col min-h-screen">
+      <div className="relative z-10 flex min-h-screen flex-1 flex-col pl-0 lg:pl-[300px]">
         {/* Top Navbar */}
-        <header className="sticky top-0 z-40 flex h-20 items-center justify-between bg-black/80 backdrop-blur-xl px-8 border-b border-white/5">
-          <div className="flex-1" />
+        <header className="sticky top-0 z-40 flex h-20 items-center justify-between border-b border-white/5 bg-black/80 px-4 backdrop-blur-xl sm:px-8">
+          <div className="flex flex-1 items-center gap-2">
+            <button
+              type="button"
+              className="inline-flex rounded-lg border border-white/10 p-2 text-neutral-300 hover:bg-white/10 lg:hidden"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Otwórz menu"
+            >
+              <Menu className="h-4 w-4" />
+            </button>
+          </div>
           <div className="flex items-center gap-3">
             {showWallet && (
               <WalletBadge
@@ -330,7 +372,7 @@ export default function DashboardLayout({
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-8 min-w-0 w-full">
+        <main className="min-w-0 w-full flex-1 p-4 sm:p-8">
           {children}
         </main>
 

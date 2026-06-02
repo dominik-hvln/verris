@@ -51,7 +51,7 @@ const STATUS_STYLES: Record<
 };
 
 const STATUS_LABELS: Record<HostingDnsPointingDto['status'], string> = {
-  ok: 'Domena wskazuje na serwer',
+  ok: 'Domena poprawnie skierowana',
   partial: 'Konfiguracja niepełna',
   fail: 'Domena nie wskazuje na hosting',
   pending: 'Oczekiwanie',
@@ -182,6 +182,20 @@ export default function DomainPointingPanel({
 
       <div className="grid gap-2 sm:grid-cols-2 text-xs">
         <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
+          <p className="text-[10px] uppercase tracking-wider text-neutral-500">Wykryte NS ({data.domain})</p>
+          <p className="font-mono text-white mt-1 break-all">
+            {data.nameservers.length ? data.nameservers.join(', ') : '— brak —'}
+          </p>
+          {data.expectedNameservers.length ? (
+            <p className="text-[10px] text-neutral-500 mt-1">
+              Oczekiwane NS: <span className="font-mono">{data.expectedNameservers.join(', ')}</span>
+            </p>
+          ) : null}
+          <p className="text-[10px] mt-1 text-neutral-400">
+            Tryb NS: {data.delegatedToExpectedNs ? 'poprawny' : 'niepotwierdzony'}
+          </p>
+        </div>
+        <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
           <p className="text-[10px] uppercase tracking-wider text-neutral-500">Wykryte A ({data.domain})</p>
           <p className="font-mono text-white mt-1 break-all">
             {data.observedA.length ? data.observedA.join(', ') : '— brak —'}
@@ -242,7 +256,22 @@ export default function DomainPointingPanel({
                 2
               </span>
               <div>
-                <p className="font-medium text-white">Dodaj rekord A dla domeny głównej</p>
+                <p className="font-medium text-white">Wybierz 1 z 2 wariantów konfiguracji</p>
+                <p className="text-neutral-400 mt-0.5">
+                  Wariant A: delegacja domeny na nameservery hostingu (zalecane, pełna obsługa DNS/mail z panelu).
+                </p>
+                {data.expectedNameservers.length ? (
+                  <div className="mt-2 rounded-lg border border-white/10 bg-black/30 p-2 font-mono text-[11px] text-neutral-200 space-y-1">
+                    {data.expectedNameservers.map((ns) => (
+                      <p key={ns}>
+                        <span className="text-neutral-500">NS:</span> {ns}
+                      </p>
+                    ))}
+                  </div>
+                ) : null}
+                <p className="text-neutral-400 mt-2">
+                  Wariant B: zostaw obecne NS i ustaw rekordy A/AAAA ręcznie (np. gdy poczta zostaje u innego dostawcy).
+                </p>
                 <div className="mt-2 rounded-lg border border-white/10 bg-black/30 p-2 font-mono text-[11px] text-neutral-200 space-y-1">
                   <p>
                     <span className="text-neutral-500">Host:</span> @ &nbsp;
@@ -274,7 +303,8 @@ export default function DomainPointingPanel({
               <div>
                 <p className="font-medium text-white">Poczekaj na propagację i kliknij „Sprawdź teraz”</p>
                 <p className="text-neutral-400 mt-0.5">
-                  Zwykle 5–60 minut. Włącz „Auto”, aby odświeżać co 30 s.
+                  Zwykle 5–60 minut. Włącz „Auto”, aby odświeżać co 30 s. Status będzie PASS dla poprawnej delegacji NS
+                  albo poprawnych rekordów A/AAAA.
                 </p>
               </div>
             </li>

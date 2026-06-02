@@ -144,6 +144,20 @@ EOF"
 }
 
 configure_firewall_ingress() {
+  local control_plane_ip=""
+  if [ "$ROLE" = "node" ]; then
+    control_plane_ip="${CONTROL_PLANE_IP:-}"
+    if [ -z "$control_plane_ip" ] && [ -r /etc/verris.conf ]; then
+      # shellcheck disable=SC1091
+      source /etc/verris.conf || true
+      if [ -n "${VERRIS_API_URL:-}" ]; then
+        local api_host
+        api_host="$(echo "$VERRIS_API_URL" | sed -E 's#^https?://([^/:]+).*$#\1#')"
+        control_plane_ip="$(getent ahostsv4 "$api_host" 2>/dev/null | awk 'NR==1{print $1}')"
+      fi
+    fi
+  fi
+
   if command -v ufw >/dev/null 2>&1; then
     run "ufw --force reset"
     run "ufw default deny incoming"
@@ -160,6 +174,14 @@ configure_firewall_ingress() {
     run "ufw allow 443/tcp"
     if [ "$ROLE" = "node" ]; then
       run "ufw allow 2222/tcp"
+      run "ufw allow 21/tcp"
+      run "ufw allow 25/tcp"
+      run "ufw allow 587/tcp"
+      run "ufw allow 993/tcp"
+      if [ -n "$control_plane_ip" ]; then
+        # Remote MySQL stays private by default; allow only control-plane.
+        run "ufw allow proto tcp from ${control_plane_ip} to any port 3306"
+      fi
     fi
     run "ufw --force enable"
     run "ufw status verbose"
@@ -171,6 +193,14 @@ configure_firewall_ingress() {
     run "firewall-cmd --permanent --add-service=https"
     if [ "$ROLE" = "node" ]; then
       run "firewall-cmd --permanent --add-port=2222/tcp"
+      run "firewall-cmd --permanent --add-service=ftp"
+      run "firewall-cmd --permanent --add-port=25/tcp"
+      run "firewall-cmd --permanent --add-port=587/tcp"
+      run "firewall-cmd --permanent --add-port=993/tcp"
+      if [ -n "$control_plane_ip" ]; then
+        # Remote MySQL stays private by default; allow only control-plane.
+        run \"firewall-cmd --permanent --add-rich-rule='rule family=\\\"ipv4\\\" source address=\\\"${control_plane_ip}\\\" port port=\\\"3306\\\" protocol=\\\"tcp\\\" accept'\"
+      fi
     fi
     run "firewall-cmd --reload"
     run "firewall-cmd --list-all"

@@ -48,10 +48,9 @@ Never apply strict egress policy to all hosts at once.
 ```bash
 sudo bash ops/scripts/security-hardening-baseline.sh --role control-plane --dry-run
 sudo bash ops/scripts/security-hardening-baseline.sh --role control-plane
-
-sudo bash ops/scripts/security-egress-lockdown.sh --role control-plane --dry-run
-sudo bash ops/scripts/security-egress-lockdown.sh --role control-plane --apply
 ```
+
+`security-egress-lockdown.sh` is intentionally disabled for `control-plane` role, because nftables override can remove Docker NAT and break panel/API connectivity.
 
 ## Compute node commands
 
@@ -73,6 +72,8 @@ sudo bash ops/scripts/security-egress-lockdown.sh --role node --apply
 - API/panels health checks are green.
 - DirectAdmin node still reachable (for node hosts).
 - No unexpected blocked legitimate outbound traffic.
+- For control-plane: Docker NAT still present (`iptables -t nat -S` shows MASQUERADE for Docker subnets).
+- For node: public hosting access ports work (`21`, `587`, `993`), while `3306` remains restricted (control-plane only unless explicitly opened).
 
 ## Incident-specific validation (current case)
 
