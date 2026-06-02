@@ -7,3 +7,4 @@ export { PanelModal } from './panel-modal';
 export { PanelEmptyState } from './panel-empty';
 export { PanelFetchError } from './panel-fetch-error';
 export { HostingNoServiceState } from './hosting-no-service';
+export { MobileTabStrip, type MobileTabItem } from './mobile-tab-strip';

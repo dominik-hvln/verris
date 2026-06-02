@@ -188,7 +188,8 @@ export default function DomainPointingPanel({
           </p>
           {data.expectedNameservers.length ? (
             <p className="text-[10px] text-neutral-500 mt-1">
-              Oczekiwane NS: <span className="font-mono">{data.expectedNameservers.join(', ')}</span>
+              Oczekiwane NS:{' '}
+              <span className="break-all font-mono">{data.expectedNameservers.join(', ')}</span>
             </p>
           ) : null}
           <p className="text-[10px] mt-1 text-neutral-400">

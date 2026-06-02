@@ -168,12 +168,12 @@ export default function SSLTab({ serviceId }: Props) {
                 key={d.name}
                 className="group/row relative flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl border border-white/5 bg-[#050505]/40 hover:bg-[#121212]/60 transition-all"
               >
-                <div className="flex items-center gap-4 min-w-[200px]">
+                <div className="flex min-w-0 items-center gap-4">
                   <div className="h-12 w-12 rounded-xl bg-white/10 flex items-center justify-center text-white border border-white/20">
                     <Globe className="h-5 w-5" />
                   </div>
                   <div>
-                    <div className="text-lg font-bold text-white tracking-wide font-mono">{d.name}</div>
+                    <div className="break-all text-base font-bold tracking-wide text-white font-mono sm:text-lg">{d.name}</div>
                   </div>
                 </div>
                 <div className="flex flex-col items-start gap-3 md:flex-row md:items-center">

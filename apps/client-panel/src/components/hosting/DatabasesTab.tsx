@@ -5,6 +5,7 @@ import { Database, Loader2, RefreshCw, AlertCircle, ExternalLink } from 'lucide-
 import { Button } from '@verris/ui';
 import { fetchHostingDatabasesAction } from '@/app/dashboard/services/[id]/hosting-mysql-links-actions';
 import { HostingTabShell, DaExternalLink } from '@/components/hosting/HostingTabShell';
+import { ResponsiveDataView } from '@/components/panel';
 import { hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { useHostingLinks } from '@/components/hosting/hosting-links-context';
 
@@ -94,46 +95,62 @@ export default function DatabasesTab({ serviceId }: Props) {
         </div>
       ) : null}
 
-      <div className="rounded-xl border border-white/5 bg-[#050505] overflow-hidden">
-        <table className="w-full text-xs sm:text-sm">
-          <thead className="bg-white/5 border-b border-white/5 text-left">
-            <tr>
-              <th className="py-3 px-3 text-neutral-300 font-semibold">Nazwa bazy</th>
-              <th className="py-3 px-3 text-right text-neutral-300 font-semibold">phpMyAdmin</th>
-            </tr>
-          </thead>
-          <tbody>
-            {databases.length === 0 && !fetchError ? (
-              <tr>
-                <td colSpan={2} className="px-3 py-8 text-center text-neutral-500 text-xs">
-                  Brak baz — utwórz je w panelu hostingu.
-                </td>
-              </tr>
-            ) : null}
-            {databases.map((db) => (
-              <tr key={db.name} className="border-b border-white/5 hover:bg-white/[0.02]">
-                <td className="font-mono py-3 px-3 text-white truncate max-w-[200px]" title={db.name}>
+      {databases.length === 0 && !fetchError ? (
+        <p className="rounded-xl border border-white/5 bg-[#050505] px-3 py-8 text-center text-xs text-neutral-500">
+          Brak baz — utwórz je w panelu hostingu.
+        </p>
+      ) : (
+        <ResponsiveDataView
+          rows={databases}
+          rowKey={(db) => db.name}
+          tableClassName="rounded-xl border border-white/5 bg-[#050505]"
+          columns={[
+            {
+              key: 'name',
+              header: 'Nazwa bazy',
+              cell: (db) => (
+                <span className="font-mono text-white" title={db.name}>
                   {db.name}
-                </td>
-                <td className="py-3 px-3 text-right">
-                  {databasesUrl ? (
-                    <a
-                      href={databasesUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-neutral-300 hover:text-white whitespace-nowrap"
-                    >
-                      Otwórz →
-                    </a>
-                  ) : (
-                    <span className="text-neutral-600 text-xs">—</span>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                </span>
+              ),
+            },
+            {
+              key: 'pma',
+              header: 'phpMyAdmin',
+              headerClassName: 'text-right',
+              cellClassName: 'text-right',
+              cell: (db) =>
+                databasesUrl ? (
+                  <a
+                    href={databasesUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-neutral-300 hover:text-white"
+                  >
+                    Otwórz →
+                  </a>
+                ) : (
+                  <span className="text-xs text-neutral-600">—</span>
+                ),
+            },
+          ]}
+          renderMobileCard={(db) => (
+            <div className="flex items-start justify-between gap-3 rounded-xl border border-white/5 bg-[#050505] p-3">
+              <span className="min-w-0 flex-1 break-all font-mono text-sm text-white">{db.name}</span>
+              {databasesUrl ? (
+                <a
+                  href={databasesUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 text-xs font-medium text-neutral-300 hover:text-white"
+                >
+                  phpMyAdmin →
+                </a>
+              ) : null}
+            </div>
+          )}
+        />
+      )}
     </HostingTabShell>
   );
 }

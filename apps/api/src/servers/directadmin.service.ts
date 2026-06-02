@@ -271,15 +271,10 @@ export class DirectAdminService {
       };
     }
     try {
-      let raw: URLSearchParams;
-      try {
-        raw = await this.daGetForSubscription(subscriptionId, userId, '/CMD_API_DATABASES', {});
-      } catch {
-        raw = await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_DATABASES', {});
-      }
-      const databases = this.parseDaListEntries(raw).map((name) => ({ name }));
+      const client = await this.getClientForHostingAccount(sub.account.id, userId);
+      const names = await client.listMysqlDatabases();
       return {
-        databases,
+        databases: names.map((name) => ({ name })),
         daUsername,
         fetchError: null,
       };
@@ -726,30 +721,18 @@ export class DirectAdminService {
     }
     const domain = sub.account.domain;
     try {
-      let raw: URLSearchParams;
-      try {
-        raw = await this.daGetForSubscription(subscriptionId, userId, '/CMD_API_POP', {
-          action: 'list',
-          domain,
-        });
-      } catch {
-        raw = await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_POP', {
-          action: 'list',
-          domain,
-        });
-      }
-      const rows: Array<{ id: string; email: string; quotaMb: number | null }> = [];
-      for (const [k, v] of raw.entries()) {
-        if (!/^list\d+$/i.test(k)) continue;
-        const idx = k.replace(/\D/g, '');
-        const localPart = v.trim();
-        if (!localPart) continue;
-        rows.push({
-          id: `${localPart}@${domain}`,
-          email: localPart.includes('@') ? localPart : `${localPart}@${domain}`,
-          quotaMb: raw.get(`quota${idx}`) ? Number(raw.get(`quota${idx}`)) : null,
-        });
-      }
+      const client = await this.getClientForHostingAccount(sub.account.id, userId);
+      const accounts = await client.listEmailAccounts(domain);
+      const rows = accounts.map((box) => {
+        const email = box.localPart.includes('@')
+          ? box.localPart
+          : `${box.localPart}@${domain}`;
+        return {
+          id: email,
+          email,
+          quotaMb: box.quotaMb,
+        };
+      });
       return { rows, fetchError: null as string | null };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);

@@ -13,6 +13,7 @@ import { Button } from '@verris/ui';
 import { fetchHostingEmailAction } from '@/app/dashboard/services/[id]/hosting-email-actions';
 import { fetchConnectionInfoAction } from '@/app/dashboard/services/[id]/hosting-connection-actions';
 import { HostingTabShell, DaExternalLink } from '@/components/hosting/HostingTabShell';
+import { ResponsiveDataView } from '@/components/panel';
 import { hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { useHostingLinks } from '@/components/hosting/hosting-links-context';
 
@@ -123,12 +124,12 @@ export default function MailTab({ serviceId }: Props) {
         <dl className="grid gap-2 text-xs sm:grid-cols-2">
           <div>
             <dt className="text-neutral-500">Serwer przychodzący (IMAP)</dt>
-            <dd className="font-mono text-neutral-200 mt-0.5">{imapHost}</dd>
+            <dd className="mt-0.5 break-all font-mono text-neutral-200">{imapHost}</dd>
             <dd className="text-neutral-500 mt-0.5">Port 993 · SSL/TLS</dd>
           </div>
           <div>
             <dt className="text-neutral-500">Serwer wychodzący (SMTP)</dt>
-            <dd className="font-mono text-neutral-200 mt-0.5">{imapHost}</dd>
+            <dd className="mt-0.5 break-all font-mono text-neutral-200">{imapHost}</dd>
             <dd className="text-neutral-500 mt-0.5">Port 587 · STARTTLS (lub 465 SSL)</dd>
           </div>
         </dl>
@@ -144,53 +145,80 @@ export default function MailTab({ serviceId }: Props) {
         ) : null}
       </div>
 
-      <div className="rounded-xl border border-white/5 bg-[#050505] overflow-hidden">
-        <table className="w-full text-xs sm:text-sm">
-          <thead className="bg-white/5 border-b border-white/5 text-left">
-            <tr>
-              <th className="py-3 px-3 text-neutral-300 font-semibold">Adres e-mail</th>
-              <th className="py-3 px-3 text-neutral-300 font-semibold hidden sm:table-cell">Limit</th>
-              <th className="py-3 px-3 text-right text-neutral-300 font-semibold">Panel</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.length === 0 && !fetchError ? (
-              <tr>
-                <td colSpan={3} className="px-3 py-8 text-center text-neutral-500 text-xs">
-                  Brak skrzynek — utwórz je w panelu hostingu (Zarządzaj skrzynkami).
-                </td>
-              </tr>
-            ) : null}
-            {rows.map((box) => (
-              <tr key={box.id} className="border-b border-white/5 hover:bg-white/[0.02]">
-                <td className="py-3 px-3 text-white truncate max-w-[220px]" title={box.email}>
-                  <span className="inline-flex items-center gap-2">
-                    <Mail className="h-3.5 w-3.5 shrink-0 text-neutral-500" />
-                    {box.email}
-                  </span>
-                </td>
-                <td className="py-3 px-3 text-neutral-400 hidden sm:table-cell">
+      {rows.length === 0 && !fetchError ? (
+        <p className="rounded-xl border border-white/5 bg-[#050505] px-3 py-8 text-center text-xs text-neutral-500">
+          Brak skrzynek — utwórz je w panelu hostingu (Zarządzaj skrzynkami).
+        </p>
+      ) : (
+        <ResponsiveDataView
+          rows={rows}
+          rowKey={(box) => box.id}
+          tableClassName="rounded-xl border border-white/5 bg-[#050505]"
+          columns={[
+            {
+              key: 'email',
+              header: 'Adres e-mail',
+              cell: (box) => (
+                <span className="inline-flex items-center gap-2 text-white">
+                  <Mail className="h-3.5 w-3.5 shrink-0 text-neutral-500" />
+                  {box.email}
+                </span>
+              ),
+            },
+            {
+              key: 'quota',
+              header: 'Limit',
+              cell: (box) => (
+                <span className="text-neutral-400">
                   {box.quotaMb != null ? `${box.quotaMb} MB` : 'bez limitu'}
-                </td>
-                <td className="py-3 px-3 text-right">
-                  {emailUrl ? (
-                    <a
-                      href={emailUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-neutral-300 hover:text-white whitespace-nowrap"
-                    >
-                      Otwórz →
-                    </a>
-                  ) : (
-                    <span className="text-neutral-600 text-xs">—</span>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                </span>
+              ),
+            },
+            {
+              key: 'panel',
+              header: 'Panel',
+              headerClassName: 'text-right',
+              cellClassName: 'text-right',
+              cell: () =>
+                emailUrl ? (
+                  <a
+                    href={emailUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-neutral-300 hover:text-white"
+                  >
+                    Otwórz →
+                  </a>
+                ) : (
+                  <span className="text-xs text-neutral-600">—</span>
+                ),
+            },
+          ]}
+          renderMobileCard={(box) => (
+            <div className="rounded-xl border border-white/5 bg-[#050505] p-3">
+              <div className="flex items-start justify-between gap-2">
+                <span className="inline-flex min-w-0 flex-1 items-start gap-2 break-all text-sm text-white">
+                  <Mail className="mt-0.5 h-3.5 w-3.5 shrink-0 text-neutral-500" />
+                  {box.email}
+                </span>
+                {emailUrl ? (
+                  <a
+                    href={emailUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="shrink-0 text-xs font-medium text-neutral-300 hover:text-white"
+                  >
+                    Panel →
+                  </a>
+                ) : null}
+              </div>
+              <p className="mt-2 text-[11px] text-neutral-500">
+                Limit: {box.quotaMb != null ? `${box.quotaMb} MB` : 'bez limitu'}
+              </p>
+            </div>
+          )}
+        />
+      )}
 
       <p className="mt-3 flex items-start gap-2 text-[11px] text-neutral-500">
         <Server className="h-3.5 w-3.5 shrink-0 mt-0.5" />

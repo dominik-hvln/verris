@@ -88,12 +88,12 @@ export default function HostingAssistant() {
           type="button"
           aria-label="Otwórz asystenta Verris"
           onClick={() => setOpen(true)}
-          className="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-gradient-to-br from-cyan-500/90 to-violet-600/90 text-white shadow-lg shadow-cyan-500/20 transition-transform hover:scale-105"
+          className="fixed bottom-[max(1rem,env(safe-area-inset-bottom,1rem))] right-4 z-50 flex h-14 w-14 items-center justify-center rounded-full border border-white/10 bg-gradient-to-br from-cyan-500/90 to-violet-600/90 text-white shadow-lg shadow-cyan-500/20 transition-transform hover:scale-105 sm:bottom-6 sm:right-6"
         >
           <MessageCircle className="h-6 w-6" />
         </button>
       ) : (
-        <div className="fixed bottom-6 right-6 z-50 flex h-[560px] max-h-[80vh] w-[380px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0a0a0a] shadow-2xl shadow-black/60">
+        <div className="fixed bottom-[max(1rem,env(safe-area-inset-bottom,1rem))] right-4 z-50 flex h-[min(560px,80dvh)] max-h-[80dvh] w-[min(380px,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0a0a0a] shadow-2xl shadow-black/60 sm:bottom-6 sm:right-6">
           <div className="flex items-center justify-between border-b border-white/10 bg-gradient-to-r from-cyan-500/10 to-violet-600/10 px-4 py-3">
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 text-white">

@@ -8,6 +8,7 @@ import { HostingTabShell, DaExternalLink } from '@/components/hosting/HostingTab
 import { hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { useHostingLinks } from '@/components/hosting/hosting-links-context';
 import DomainPointingPanel from '@/components/hosting/DomainPointingPanel';
+import { ResponsiveDataView } from '@/components/panel';
 
 interface Props {
   serviceId: string;
@@ -103,66 +104,105 @@ export default function DomainsTab({ serviceId }: Props) {
 
       <DomainPointingPanel serviceId={serviceId} dnsManageUrl={links.dnsUrl} variant="full" />
 
-      <div className="rounded-xl border border-white/5 bg-[#050505] overflow-hidden mt-4">
-        <table className="w-full text-xs sm:text-sm table-fixed">
-          <thead className="bg-white/5 border-b border-white/5 text-left">
-            <tr>
-              <th className="py-3 px-3 text-neutral-300 font-semibold w-[45%]">Domena</th>
-              <th className="py-3 px-2 text-neutral-300 font-semibold hidden sm:table-cell">Rola</th>
-              <th className="py-3 px-2 text-neutral-300 font-semibold text-right w-[88px]">Akcje</th>
-            </tr>
-          </thead>
-          <tbody>
-            {domains.length === 0 && !fetchError ? (
-              <tr>
-                <td colSpan={3} className="px-3 py-8 text-center text-neutral-500 text-xs">
-                  Brak domen — dodaj je w panelu hostingu.
-                </td>
-              </tr>
-            ) : null}
-            {domains.map((d) => {
+      <div className="mt-4 min-w-0">
+        {domains.length === 0 && !fetchError ? (
+          <p className="rounded-xl border border-white/5 bg-[#050505] px-3 py-8 text-center text-xs text-neutral-500">
+            Brak domen — dodaj je w panelu hostingu.
+          </p>
+        ) : (
+          <ResponsiveDataView
+            rows={domains}
+            rowKey={(d) => d.name}
+            tableClassName="rounded-xl border border-white/5 bg-[#050505]"
+            columns={[
+              {
+                key: 'name',
+                header: 'Domena',
+                cell: (d) => {
+                  const primary =
+                    primaryDomain && d.name.toLowerCase() === primaryDomain.toLowerCase();
+                  return (
+                    <div className="flex min-w-0 items-center gap-2 font-medium text-white">
+                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                      <span className="truncate" title={d.name}>
+                        {d.name}
+                      </span>
+                      {primary ? (
+                        <span className="shrink-0 rounded border border-cyan-500/30 bg-cyan-500/15 px-2 py-0.5 text-[10px] text-cyan-200">
+                          Główna
+                        </span>
+                      ) : null}
+                    </div>
+                  );
+                },
+              },
+              {
+                key: 'role',
+                header: 'Rola',
+                cell: (d) => {
+                  const primary =
+                    primaryDomain && d.name.toLowerCase() === primaryDomain.toLowerCase();
+                  return primary ? (
+                    <span className="text-[10px] text-cyan-200">Główna</span>
+                  ) : (
+                    <span className="text-[10px] text-neutral-500">Dodatkowa</span>
+                  );
+                },
+              },
+              {
+                key: 'actions',
+                header: 'Akcje',
+                headerClassName: 'text-right',
+                cellClassName: 'text-right',
+                cell: (d) => {
+                  const primary =
+                    primaryDomain && d.name.toLowerCase() === primaryDomain.toLowerCase();
+                  const dnsLink = links.dnsUrl && primary ? links.dnsUrl : null;
+                  return dnsLink ? (
+                    <a
+                      href={dnsLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-neutral-300 hover:text-white"
+                    >
+                      DNS →
+                    </a>
+                  ) : (
+                    <span className="text-xs text-neutral-600">—</span>
+                  );
+                },
+              },
+            ]}
+            renderMobileCard={(d) => {
               const primary =
                 primaryDomain && d.name.toLowerCase() === primaryDomain.toLowerCase();
               const dnsLink = links.dnsUrl && primary ? links.dnsUrl : null;
               return (
-                <tr key={d.name} className="border-b border-white/5 hover:bg-white/[0.02]">
-                  <td className="py-3 px-3 text-white font-medium truncate" title={d.name}>
-                    <div className="flex items-center gap-2 min-w-0">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 shrink-0" />
-                      <span className="truncate">{d.name}</span>
+                <div className="flex items-start justify-between gap-3 rounded-xl border border-white/5 bg-[#050505] p-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex min-w-0 items-start gap-2">
+                      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                      <span className="break-all text-sm font-medium text-white">{d.name}</span>
                     </div>
-                    {primary ? (
-                      <span className="sm:hidden mt-1 inline-block text-[10px] text-cyan-300">Główna</span>
-                    ) : null}
-                  </td>
-                  <td className="py-3 px-2 hidden sm:table-cell">
-                    {primary ? (
-                      <span className="text-[10px] bg-cyan-500/15 text-cyan-200 px-2 py-0.5 rounded border border-cyan-500/30">
-                        Główna
-                      </span>
-                    ) : (
-                      <span className="text-[10px] text-neutral-500">Dodatkowa</span>
-                    )}
-                  </td>
-                  <td className="py-3 px-2 text-right">
-                    {dnsLink ? (
-                      <a
-                        href={dnsLink}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[10px] sm:text-xs text-neutral-300 hover:text-white whitespace-nowrap"
-                      >
-                        DNS →
-                      </a>
-                    ) : (
-                      <span className="text-neutral-600 text-xs">—</span>
-                    )}
-                  </td>
-                </tr>
+                    <p className="mt-1 text-[11px] text-neutral-500">
+                      {primary ? 'Domena główna' : 'Dodatkowa'}
+                    </p>
+                  </div>
+                  {dnsLink ? (
+                    <a
+                      href={dnsLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 text-xs font-medium text-neutral-300 hover:text-white"
+                    >
+                      DNS →
+                    </a>
+                  ) : null}
+                </div>
               );
-            })}
-          </tbody>
-        </table>
+            }}
+          />
+        )}
       </div>
     </HostingTabShell>
   );

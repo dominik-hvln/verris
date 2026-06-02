@@ -29,16 +29,16 @@ export function DashboardHome({ snapshot }: { snapshot: DashboardSnapshot }) {
   const ecoPoints = snapshot.profile?.ecoPoints ?? snapshot.ecoProgram?.ecoPoints ?? 0;
 
   return (
-    <div className="space-y-8 pb-10">
-      <div className="relative overflow-hidden rounded-[32px] p-px group">
+    <div className="w-full min-w-0 max-w-full space-y-6 pb-8 sm:space-y-8 sm:pb-10">
+      <div className="group relative max-w-full overflow-hidden rounded-2xl p-px sm:rounded-[32px]">
         <SpinBorder variant="emerald" className="opacity-30" />
-        <div className="relative z-10 flex flex-col items-start justify-between gap-6 rounded-[calc(32px-1px)] bg-[#050505] p-8 sm:flex-row sm:items-center sm:p-10">
+        <div className="relative z-10 flex flex-col items-start justify-between gap-5 rounded-[calc(1rem-1px)] bg-[#050505] p-5 sm:gap-6 sm:rounded-[calc(32px-1px)] sm:flex-row sm:items-center sm:p-10">
           <div>
             <div className="mb-2 flex items-center gap-2 text-sm text-emerald-400/90">
               <Sparkles className="h-4 w-4" aria-hidden />
               {getGreeting()}
             </div>
-            <h1 className="mb-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            <h1 className="mb-2 text-2xl font-bold tracking-tight text-white sm:text-4xl">
               Witaj, {firstName}!
             </h1>
             <p className="max-w-lg text-sm text-neutral-400 sm:text-base">

@@ -225,12 +225,12 @@ export default function DashboardLayout({
       : user?.email?.[0]?.toUpperCase() || "A";
 
   return (
-    <div className="bg-black text-neutral-300 font-sans">
+    <div className="w-full max-w-[100vw] overflow-x-hidden bg-black font-sans text-neutral-300">
       <ImpersonationBanner />
       <IncidentBanner />
       <ReConsentModal />
       <PlatformConfigLoader />
-      <div className="flex min-h-screen relative">
+      <div className="relative flex min-h-screen w-full max-w-full overflow-x-hidden">
 
       {sidebarOpen ? (
         <button
@@ -335,10 +335,10 @@ export default function DashboardLayout({
       </aside>
 
       {/* Main Content Area */}
-      <div className="relative z-10 flex min-h-screen flex-1 flex-col pl-0 lg:pl-[300px]">
+      <div className="relative z-10 flex min-h-screen w-full min-w-0 max-w-full flex-1 flex-col overflow-x-hidden pl-0 lg:pl-[300px]">
         {/* Top Navbar */}
-        <header className="sticky top-0 z-40 flex h-20 items-center justify-between border-b border-white/5 bg-black/80 px-4 backdrop-blur-xl sm:px-8">
-          <div className="flex flex-1 items-center gap-2">
+        <header className="sticky top-0 z-40 flex h-14 min-w-0 items-center justify-between gap-2 border-b border-white/5 bg-black/90 px-3 backdrop-blur-xl sm:h-20 sm:gap-3 sm:px-6 lg:px-8">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
             <button
               type="button"
               className="inline-flex rounded-lg border border-white/10 p-2 text-neutral-300 hover:bg-white/10 lg:hidden"
@@ -348,7 +348,7 @@ export default function DashboardLayout({
               <Menu className="h-4 w-4" />
             </button>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             {showWallet && (
               <WalletBadge
                 balance={user?.walletBalance ?? null}
@@ -359,12 +359,13 @@ export default function DashboardLayout({
             {showSupportLink && (
               <a
                 href="/dashboard/support"
-                className="relative rounded-[24px] p-px overflow-hidden group inline-flex"
+                title="Wsparcie 24/7"
+                className="group relative inline-flex overflow-hidden rounded-[24px] p-px"
               >
                 <SpinBorder variant="white" className="opacity-40 transition-opacity duration-500 group-hover:opacity-100" />
-                <div className="relative flex items-center gap-2 rounded-[calc(24px-1px)] bg-[#0a0a0a] px-5 py-2 text-xs font-medium text-neutral-300 hover:text-white transition-colors">
-                  <HelpCircle className="h-4 w-4" />
-                  Wsparcie 24/7
+                <div className="relative flex items-center gap-2 rounded-[calc(24px-1px)] bg-[#0a0a0a] px-2.5 py-2 text-xs font-medium text-neutral-300 transition-colors hover:text-white sm:px-5">
+                  <HelpCircle className="h-4 w-4 shrink-0" />
+                  <span className="hidden sm:inline">Wsparcie 24/7</span>
                 </div>
               </a>
             )}
@@ -372,14 +373,14 @@ export default function DashboardLayout({
         </header>
 
         {/* Page Content */}
-        <main className="min-w-0 w-full flex-1 p-4 sm:p-8">
+        <main className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
           {children}
         </main>
 
         {/* Compliance footer (Sprint 1, L-09) — minimal disclaimer because
             we use only essential cookies (auth, CSRF). No banner needed under
             ePrivacy. */}
-        <footer className="mt-auto border-t border-white/5 bg-black/60 px-8 py-6">
+        <footer className="mt-auto border-t border-white/5 bg-black/60 px-3 py-5 pb-safe sm:px-8 sm:py-6">
           <div className="flex flex-col gap-2 text-[11px] text-neutral-500 sm:flex-row sm:items-center sm:justify-between">
             <p>
               © {new Date().getFullYear()} Verris. Używamy wyłącznie niezbędnych plików

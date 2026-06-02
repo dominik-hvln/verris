@@ -523,10 +523,74 @@ export class DirectAdminClient {
    * See DirectAdmin user API: CMD_API_DATABASES (list / create / delete).
    */
   async listMysqlDatabases(): Promise<string[]> {
-    const response = await this.client.get('/CMD_API_DATABASES', {
-      params: { api: 'yes', json: 'yes' },
-    });
-    return this.parseMysqlDatabaseList(response.data);
+    const paramSets: Array<Record<string, string>> = [
+      {},
+      { api: 'yes' },
+      { json: 'yes' },
+      { api: 'yes', json: 'yes' },
+    ];
+    let lastError: unknown;
+    for (const params of paramSets) {
+      try {
+        const response = await this.client.get('/CMD_API_DATABASES', { params });
+        return this.parseMysqlDatabaseList(response.data);
+      } catch (err) {
+        lastError = this.normalizeDaClientError(err, lastError);
+      }
+    }
+    throw this.normalizeDaClientError(lastError, 'Unable to list MySQL databases');
+  }
+
+  /**
+   * Lists POP mailboxes for a domain (CMD_API_POP).
+   * DA builds differ: `list0` vs `user0`, GET vs POST, with/without `action=list`.
+   */
+  async listEmailAccounts(
+    domain: string,
+  ): Promise<Array<{ localPart: string; quotaMb: number | null }>> {
+    const domainParam = domain.trim();
+    if (!domainParam) return [];
+
+    const getAttempts: Array<Record<string, string>> = [
+      { domain: domainParam, action: 'list' },
+      { domain: domainParam, action: 'list', json: 'yes' },
+      { domain: domainParam, action: 'list', api: 'yes' },
+      { domain: domainParam, action: 'list', api: 'yes', json: 'yes' },
+    ];
+
+    let lastError: unknown;
+    for (const params of getAttempts) {
+      try {
+        const response = await this.client.get('/CMD_API_POP', { params });
+        const rows = this.parsePopAccountList(response.data, domainParam);
+        if (rows.length > 0 || !this.popPayloadIndicatesError(response.data)) {
+          return rows;
+        }
+      } catch (err) {
+        lastError = this.normalizeDaClientError(err, lastError);
+      }
+    }
+
+    const postBodies: Array<Record<string, string>> = [
+      { domain: domainParam, action: 'list', api: 'yes', json: 'yes' },
+      { domain: domainParam, action: 'list', api: 'yes' },
+    ];
+    for (const form of postBodies) {
+      try {
+        const body = new URLSearchParams(form).toString();
+        const response = await this.client.post('/CMD_API_POP', body, {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        });
+        const rows = this.parsePopAccountList(response.data, domainParam);
+        if (rows.length > 0 || !this.popPayloadIndicatesError(response.data)) {
+          return rows;
+        }
+      } catch (err) {
+        lastError = this.normalizeDaClientError(err, lastError);
+      }
+    }
+
+    throw this.normalizeDaClientError(lastError, 'Unable to list email accounts');
   }
 
   // ---------------------------------------------------------------------------
@@ -543,22 +607,165 @@ export class DirectAdminClient {
   // Internals
   // ---------------------------------------------------------------------------
 
+  private daPayloadToParams(data: unknown): URLSearchParams {
+    if (data == null) return new URLSearchParams();
+    if (typeof data === 'string') {
+      const text = data.trim();
+      if (!text || text.startsWith('<')) return new URLSearchParams();
+      return new URLSearchParams(text);
+    }
+    if (typeof data === 'object' && !Array.isArray(data)) {
+      const record = data as Record<string, unknown>;
+      const err = record.error;
+      if (err != null && String(err) !== '0' && String(err) !== 'false') {
+        const errText = String(record.text ?? record.details ?? record.message ?? 'Unknown DA error');
+        throw new Error(`DirectAdmin API Error: ${errText}`.trim());
+      }
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(record)) {
+        if (value == null) continue;
+        if (Array.isArray(value)) {
+          value.forEach((item, index) => {
+            if (item != null && String(item).trim()) {
+              params.set(`list${index}`, String(item));
+            }
+          });
+          continue;
+        }
+        if (typeof value === 'object') continue;
+        params.set(key, String(value));
+      }
+      return params;
+    }
+    return new URLSearchParams();
+  }
+
+  private popPayloadIndicatesError(data: unknown): boolean {
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+      const err = (data as Record<string, unknown>).error;
+      return err != null && String(err) !== '0' && String(err) !== 'false';
+    }
+    if (typeof data === 'string') {
+      const p = new URLSearchParams(data);
+      const err = p.get('error');
+      return Boolean(err && err !== '0');
+    }
+    return false;
+  }
+
+  private normalizeDaClientError(err: unknown, fallback: unknown): Error {
+    if (err && typeof err === 'object' && 'response' in err) {
+      const ax = err as { response?: { data?: unknown }; message?: string };
+      const data = ax.response?.data;
+      if (data && typeof data === 'object' && !Array.isArray(data)) {
+        const record = data as Record<string, unknown>;
+        const result = record.result ?? record.text ?? record.details;
+        if (result != null && String(result).trim()) {
+          return new Error(String(result).trim());
+        }
+      }
+      if (typeof data === 'string' && data.trim() && !data.trim().startsWith('<')) {
+        try {
+          const parsed = JSON.parse(data) as Record<string, unknown>;
+          const result = parsed.result ?? parsed.text ?? parsed.details;
+          if (result != null && String(result).trim()) {
+            return new Error(String(result).trim());
+          }
+        } catch {
+          /* ignore */
+        }
+      }
+      if (ax.message) return new Error(ax.message);
+    }
+    if (err instanceof Error) return err;
+    if (typeof fallback === 'string') return new Error(fallback);
+    if (fallback instanceof Error) return fallback;
+    return new Error(String(err ?? fallback ?? 'DirectAdmin request failed'));
+  }
+
+  private parsePopAccountList(
+    data: unknown,
+    domain: string,
+  ): Array<{ localPart: string; quotaMb: number | null }> {
+    if (Array.isArray(data)) {
+      const rows: Array<{ localPart: string; quotaMb: number | null }> = [];
+      const seen = new Set<string>();
+      for (const item of data) {
+        if (item == null) continue;
+        const raw = String(item).trim();
+        if (!raw) continue;
+        const localPart = raw.includes('@') ? raw.split('@')[0]! : raw;
+        const key = `${localPart.toLowerCase()}@${domain.toLowerCase()}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        rows.push({ localPart, quotaMb: null });
+      }
+      return rows;
+    }
+
+    const params = this.daPayloadToParams(data);
+    const rows: Array<{ localPart: string; quotaMb: number | null }> = [];
+    const seen = new Set<string>();
+    const domainLower = domain.toLowerCase();
+
+    const pushLocal = (raw: string, idx: string) => {
+      const trimmed = raw.trim();
+      if (!trimmed) return;
+      const localPart = trimmed.includes('@')
+        ? trimmed.split('@')[0]!
+        : trimmed;
+      const emailKey = `${localPart.toLowerCase()}@${domainLower}`;
+      if (seen.has(emailKey)) return;
+      seen.add(emailKey);
+      const quotaRaw = params.get(`quota${idx}`) ?? params.get(`Quota${idx}`);
+      rows.push({
+        localPart,
+        quotaMb: quotaRaw && !Number.isNaN(Number(quotaRaw)) ? Number(quotaRaw) : null,
+      });
+    };
+
+    const indexes = new Set<string>();
+    for (const key of params.keys()) {
+      const m = /^(list|user)(\d+)$/i.exec(key);
+      if (m) indexes.add(m[2]!);
+    }
+    for (const idx of [...indexes].sort((a, b) => Number(a) - Number(b))) {
+      const v = params.get(`list${idx}`) ?? params.get(`List${idx}`) ?? params.get(`user${idx}`) ?? params.get(`User${idx}`);
+      if (v) pushLocal(v, idx);
+    }
+
+    if (rows.length > 0) return rows;
+
+    for (const [key, value] of params.entries()) {
+      if (!value.trim()) continue;
+      if (['error', 'text', 'details', 'success', 'domain', 'action'].includes(key)) continue;
+      if (/^(list|user)\d+$/i.test(key)) pushLocal(value, key.replace(/\D/g, ''));
+    }
+
+    return rows;
+  }
+
   private parseMysqlDatabaseList(data: unknown): string[] {
-    const text = typeof data === 'string' ? data : String(data ?? '');
-    if (!text.includes('=') && text.trim().startsWith('<')) {
+    if (Array.isArray(data)) {
+      const names: string[] = [];
+      const seen = new Set<string>();
+      for (const item of data) {
+        const name = String(item ?? '').trim();
+        if (!name || seen.has(name)) continue;
+        seen.add(name);
+        names.push(name);
+      }
+      return names;
+    }
+    if (typeof data === 'string' && data.trim().startsWith('<')) {
       return [];
     }
-    const params = new URLSearchParams(text);
-    const error = params.get('error');
-    if (error && error !== '0') {
-      const errText = params.get('text') ?? params.get('details') ?? 'Unknown DA error';
-      throw new Error(`DirectAdmin API Error: ${errText}`.trim());
-    }
+    const params = this.daPayloadToParams(data);
     const names: string[] = [];
     const seen = new Set<string>();
     for (const [key, value] of params.entries()) {
       if (!value || !value.trim()) continue;
-      if (/^list\d+$/.test(key) || /^name\d+$/.test(key) || /^database\d+$/i.test(key)) {
+      if (/^list\d+$/i.test(key) || /^name\d+$/i.test(key) || /^database\d+$/i.test(key)) {
         if (!seen.has(value)) {
           seen.add(value);
           names.push(value);
@@ -568,11 +775,25 @@ export class DirectAdminClient {
     if (names.length > 0) return names;
     for (const [key, value] of params.entries()) {
       if (!value.trim()) continue;
-      if (['error', 'text', 'details', 'success'].includes(key)) continue;
+      if (['error', 'text', 'details', 'success', 'info'].includes(key)) continue;
       if (/^db\S*$/i.test(key) || key.toLowerCase() === 'database') {
         if (!seen.has(value)) {
           seen.add(value);
           names.push(value);
+        }
+      }
+    }
+    if (names.length > 0) return names;
+
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+      for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
+        if (['error', 'text', 'details', 'success', 'info'].includes(key)) continue;
+        if (typeof value === 'object') continue;
+        if (key.includes('_') && /^[a-z0-9_]+$/i.test(key)) {
+          if (!seen.has(key)) {
+            seen.add(key);
+            names.push(key);
+          }
         }
       }
     }

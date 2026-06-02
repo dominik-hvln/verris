@@ -31,6 +31,7 @@ import ServiceOverviewTab from '@/components/hosting/ServiceOverviewTab';
 import HostingPanelCard from '@/components/hosting/HostingPanelCard';
 import ServiceConnectionCard from '@/components/hosting/ServiceConnectionCard';
 import { HostingLinksProvider } from '@/components/hosting/hosting-links-context';
+import { MobileTabStrip } from '@/components/panel';
 
 const TABS = [
   { id: 'overview', label: 'Przegląd', icon: LayoutDashboard },
@@ -52,8 +53,8 @@ export default function HostingManagerPage() {
 
   return (
     <HostingLinksProvider serviceId={params.id}>
-      <div className="mx-auto max-w-7xl space-y-5 animate-in fade-in duration-500 min-w-0">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="mx-auto w-full max-w-7xl min-w-0 space-y-4 animate-in fade-in duration-500 sm:space-y-5">
+        <div className="flex min-w-0 items-center gap-3">
           <Link
             href="/dashboard/services"
             className="shrink-0 rounded-xl border border-white/5 bg-[#0a0a0a] p-2.5 text-neutral-400 transition-colors hover:bg-[#121212] hover:text-white"
@@ -71,9 +72,28 @@ export default function HostingManagerPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
-          <aside className="order-2 min-w-0 space-y-4 lg:order-1 lg:sticky lg:top-6 lg:self-start">
-            <nav className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-2 space-y-0.5">
+        <MobileTabStrip tabs={TABS} active={activeTab} onChange={setActiveTab} />
+
+        <div className="flex flex-wrap gap-2 lg:hidden">
+          <Link
+            href={`/dashboard/services/${params.id}/plan`}
+            className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-neutral-300 hover:text-white"
+          >
+            <ArrowRightLeft className="h-3.5 w-3.5 shrink-0 opacity-70" />
+            Zmiana planu
+          </Link>
+          <Link
+            href={`/dashboard/services/${params.id}/autoscaling`}
+            className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-neutral-300 hover:text-white"
+          >
+            <Gauge className="h-3.5 w-3.5 shrink-0 opacity-70" />
+            Autoskalowanie
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-5">
+          <aside className="hidden min-w-0 space-y-4 lg:sticky lg:top-6 lg:block lg:self-start">
+            <nav className="space-y-0.5 rounded-2xl border border-white/10 bg-[#0a0a0a] p-2">
               {TABS.map((tab) => {
                 const active = activeTab === tab.id;
                 return (
@@ -114,7 +134,7 @@ export default function HostingManagerPage() {
             <ServiceConnectionCard serviceId={params.id} />
           </aside>
 
-          <main className="order-1 min-w-0 overflow-hidden lg:order-2">
+          <main className="min-w-0 max-w-full overflow-x-hidden">
             {activeTab === 'overview' && (
               <ServiceOverviewTab serviceId={params.id} onNavigate={(t) => setActiveTab(t as TabId)} />
             )}
@@ -127,6 +147,11 @@ export default function HostingManagerPage() {
             {activeTab === 'files' && <HostingFileManagerTab serviceId={params.id} />}
             {activeTab === 'usage' && <UsageTab serviceId={params.id} />}
           </main>
+
+          <div className="min-w-0 space-y-4 lg:hidden">
+            <HostingPanelCard />
+            <ServiceConnectionCard serviceId={params.id} />
+          </div>
         </div>
       </div>
     </HostingLinksProvider>
