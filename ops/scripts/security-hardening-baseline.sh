@@ -148,6 +148,13 @@ configure_firewall_ingress() {
     run "ufw --force reset"
     run "ufw default deny incoming"
     run "ufw default allow outgoing"
+    if [ "$ROLE" = "control-plane" ]; then
+      # Control-plane uses Docker bridge networking (build/runtime); routed traffic
+      # must stay allowed or container DNS/egress breaks with UFW default deny routed.
+      run "ufw default allow routed"
+    else
+      run "ufw default deny routed"
+    fi
     run "ufw allow ${SSH_PORT}/tcp"
     run "ufw allow 80/tcp"
     run "ufw allow 443/tcp"
