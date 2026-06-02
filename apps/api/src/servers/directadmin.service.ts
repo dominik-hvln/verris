@@ -237,7 +237,7 @@ export class DirectAdminService {
       sslUrl: `${panelBaseUrl}/evo/user/ssl`,
       fileManagerUrl: `${panelBaseUrl}/evo/user/filemanager/domains/${domainPath}`,
       domainsUrl: `${panelBaseUrl}/evo/user/domains`,
-      dnsUrl: `${panelBaseUrl}/evo/user/dns/control/${domainPath}`,
+      dnsUrl: `${panelBaseUrl}/evo/user/dns`,
       domainManageUrl: `${panelBaseUrl}/evo/user/domains/domain/${domainPath}`,
     };
   }
@@ -334,7 +334,7 @@ export class DirectAdminService {
     const client = await this.getClientForHostingAccount(sub.account.id, userId);
     const axiosClient = (client as unknown as { client?: { post: Function } }).client;
     if (!axiosClient) throw new BadRequestException('DirectAdmin client is not available');
-    const body = new URLSearchParams(form).toString();
+    const body = new URLSearchParams({ ...form, api: 'yes' }).toString();
     const response = await axiosClient.post(path, body, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       timeout: options?.timeoutMs ?? 15_000,
@@ -634,9 +634,26 @@ export class DirectAdminService {
   }
 
   async listHostingEmailAccounts(subscriptionId: string, userId: string) {
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id: subscriptionId, userId },
+      include: { account: true },
+    });
+    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub.account) {
+      return { rows: [], fetchError: null as string | null };
+    }
+    if (!sub.account.daPasswordEnc) {
+      return {
+        rows: [],
+        fetchError:
+          'Brak zapisanego dostępu do DirectAdmin dla tego konta (provisioningu).',
+      };
+    }
+    const domain = sub.account.domain;
     try {
       const raw = await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_POP', {
         action: 'list',
+        domain,
       });
       const rows: Array<{ id: string; email: string; quotaMb: number | null }> = [];
       for (const [k, v] of raw.entries()) {
@@ -644,13 +661,14 @@ export class DirectAdminService {
         const idx = k.replace(/\D/g, '');
         rows.push({
           id: `${v}:${idx}`,
-          email: v.includes('@') ? v : `${v}`,
+          email: v.includes('@') ? v : `${v}@${domain}`,
           quotaMb: raw.get(`quota${idx}`) ? Number(raw.get(`quota${idx}`)) : null,
         });
       }
       return { rows, fetchError: null as string | null };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`listHostingEmailAccounts sub=${subscriptionId}: ${msg}`);
       return { rows: [], fetchError: msg };
     }
   }
