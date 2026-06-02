@@ -722,7 +722,9 @@ export class DirectAdminService {
     const domain = sub.account.domain;
     try {
       const client = await this.getClientForHostingAccount(sub.account.id, userId);
-      const accounts = await client.listEmailAccounts(domain);
+      const accounts = await client.listEmailAccounts(domain, {
+        accountUsername: sub.account.daUsername,
+      });
       const rows = accounts.map((box) => {
         const email = box.localPart.includes('@')
           ? box.localPart

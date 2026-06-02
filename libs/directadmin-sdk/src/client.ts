@@ -547,6 +547,7 @@ export class DirectAdminClient {
    */
   async listEmailAccounts(
     domain: string,
+    options?: { accountUsername?: string },
   ): Promise<Array<{ localPart: string; quotaMb: number | null }>> {
     const domainParam = domain.trim();
     if (!domainParam) return [];
@@ -556,14 +557,19 @@ export class DirectAdminClient {
       { domain: domainParam, action: 'list', json: 'yes' },
       { domain: domainParam, action: 'list', api: 'yes' },
       { domain: domainParam, action: 'list', api: 'yes', json: 'yes' },
+      { domain: domainParam, action: 'list', type: 'quota' },
+      { domain: domainParam, action: 'list', type: 'quota', json: 'yes' },
     ];
 
     let lastError: unknown;
     for (const params of getAttempts) {
       try {
         const response = await this.client.get('/CMD_API_POP', { params });
-        const rows = this.parsePopAccountList(response.data, domainParam);
-        if (rows.length > 0 || !this.popPayloadIndicatesError(response.data)) {
+        const rows = params.type === 'quota'
+          ? this.parsePopQuotaList(response.data, domainParam)
+          : this.parsePopAccountList(response.data, domainParam);
+        if (rows.length > 0) return rows;
+        if (!params.type && !this.popPayloadIndicatesError(response.data)) {
           return rows;
         }
       } catch (err) {
@@ -574,6 +580,7 @@ export class DirectAdminClient {
     const postBodies: Array<Record<string, string>> = [
       { domain: domainParam, action: 'list', api: 'yes', json: 'yes' },
       { domain: domainParam, action: 'list', api: 'yes' },
+      { domain: domainParam, action: 'list', type: 'quota', api: 'yes' },
     ];
     for (const form of postBodies) {
       try {
@@ -581,8 +588,11 @@ export class DirectAdminClient {
         const response = await this.client.post('/CMD_API_POP', body, {
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         });
-        const rows = this.parsePopAccountList(response.data, domainParam);
-        if (rows.length > 0 || !this.popPayloadIndicatesError(response.data)) {
+        const rows = form.type === 'quota'
+          ? this.parsePopQuotaList(response.data, domainParam)
+          : this.parsePopAccountList(response.data, domainParam);
+        if (rows.length > 0) return rows;
+        if (!form.type && !this.popPayloadIndicatesError(response.data)) {
           return rows;
         }
       } catch (err) {
@@ -590,7 +600,26 @@ export class DirectAdminClient {
       }
     }
 
-    throw this.normalizeDaClientError(lastError, 'Unable to list email accounts');
+    const fallback = await this.listEmailAccountsUsageFallback(
+      domainParam,
+      options?.accountUsername,
+    );
+    if (fallback.length > 0) return fallback;
+
+    if (lastError) {
+      throw this.normalizeDaClientError(lastError, 'Unable to list email accounts');
+    }
+    return [];
+  }
+
+  /** Usage counters from CMD_API_SHOW_USER_USAGE (nemails, …). */
+  async getUserUsageCounts(): Promise<{ nemails: number }> {
+    const response = await this.client.get('/CMD_API_SHOW_USER_USAGE');
+    const params = this.daPayloadToParams(response.data);
+    const nemails = Number(params.get('nemails') ?? 0);
+    return {
+      nemails: Number.isFinite(nemails) ? nemails : 0,
+    };
   }
 
   // ---------------------------------------------------------------------------
@@ -742,6 +771,65 @@ export class DirectAdminClient {
       if (/^(list|user)\d+$/i.test(key)) pushLocal(value, key.replace(/\D/g, ''));
     }
 
+    return rows;
+  }
+
+  /**
+   * DA Evolution sometimes leaves mailboxes in /etc/virtual/{domain}/passwd while
+   * CMD_API_POP action=list returns []. When usage reports nemails>0, expose the
+   * default account mailbox ({daUsername}@domain) created at provisioning.
+   */
+  private async listEmailAccountsUsageFallback(
+    domain: string,
+    accountUsername?: string,
+  ): Promise<Array<{ localPart: string; quotaMb: number | null }>> {
+    const owner = accountUsername?.trim().toLowerCase();
+    if (!owner) return [];
+    try {
+      const usage = await this.getUserUsageCounts();
+      if (usage.nemails <= 0) return [];
+      return [{ localPart: owner, quotaMb: null }];
+    } catch {
+      return [];
+    }
+  }
+
+  /** POP list with type=quota — each listN is a urlencoded user=…&quota=… string. */
+  private parsePopQuotaList(
+    data: unknown,
+    domain: string,
+  ): Array<{ localPart: string; quotaMb: number | null }> {
+    const params = this.daPayloadToParams(data);
+    if (params.get('error') && params.get('error') !== '0') {
+      return [];
+    }
+    const rows: Array<{ localPart: string; quotaMb: number | null }> = [];
+    const seen = new Set<string>();
+    const domainLower = domain.toLowerCase();
+
+    const pushParsed = (chunk: string) => {
+      const trimmed = chunk.trim();
+      if (!trimmed) return;
+      const inner = trimmed.includes('=') ? new URLSearchParams(trimmed) : null;
+      const user = inner?.get('user') ?? inner?.get('email') ?? trimmed.split('@')[0] ?? trimmed;
+      const localPart = user.includes('@') ? user.split('@')[0]! : user;
+      if (!localPart) return;
+      const key = `${localPart.toLowerCase()}@${domainLower}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      const quotaRaw = inner?.get('quota');
+      rows.push({
+        localPart,
+        quotaMb:
+          quotaRaw != null && quotaRaw !== '' && !Number.isNaN(Number(quotaRaw))
+            ? Number(quotaRaw)
+            : null,
+      });
+    };
+
+    for (const [key, value] of params.entries()) {
+      if (/^list\d+$/i.test(key)) pushParsed(value);
+    }
     return rows;
   }
 
