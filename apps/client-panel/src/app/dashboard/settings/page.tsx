@@ -37,7 +37,7 @@ type TabId = (typeof tabs)[number]["id"];
 
 const SUBACCOUNT_TAB_IDS: TabId[] = ["profile", "security", "privacy"];
 
-function visibleTabsForProfile(profile: UserProfile): typeof tabs {
+function visibleTabsForProfile(profile: UserProfile): (typeof tabs)[number][] {
   if (!profile.isSubaccount) return [...tabs];
   return tabs.filter((t) => SUBACCOUNT_TAB_IDS.includes(t.id));
 }

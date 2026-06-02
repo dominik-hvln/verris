@@ -66,7 +66,8 @@ Skopiuj bundle na węzeł:
 
 ```bash
 scp ops/scripts/{node-onboard-live,node-live-readiness,node-hosting-profile,\
-  node-verris-tasks-install,node-da-sync-plan-packages,verris-tasks,verris-task-run}.sh \
+  node-verris-tasks-install,node-da-sync-plan-packages,verris-tasks,verris-task-run,\
+  security-hardening-baseline,security-egress-lockdown}.sh \
   root@WĘZEŁ:/root/verris/
 ```
 
@@ -83,10 +84,14 @@ Skrypt `node-onboard-live.sh`:
 | Krok | Co robi |
 |------|---------|
 | Preflight | CloudLinux, DA :2222, LiteSpeed, public IP |
+| Security baseline | SSH/fail2ban/sysctl/auto-updates/firewall ingress + egress deny-by-default |
 | Wymaga | `/etc/verris.conf` z bootstrapu |
 | DA IP | Rejestruje publiczne IP w DA (wymagane przy `ip=` w provisioning — nie `shared`) |
 | DA pakiety | `starter`, `pro`, `business` (= `Plan.slug` w panelu) |
 | LIVE readiness | Agent zadań + Governor/MariaDB 10.6 + profil hostingowy + weryfikacja |
+
+> Security hardening jest domyślnie **włączony** przy onboardingu.
+> Flaga `--skip-security` istnieje tylko awaryjnie (NIEZALECANA dla LIVE).
 
 Logi: `/var/log/verris-node-onboard.log`, `/var/log/verris-live-readiness.log`.
 
@@ -156,6 +161,8 @@ Weryfikacja techniczna (prod, Node-PL-01):
 | `ops/scripts/node-da-sync-plan-packages.sh` | Pakiety DA = plany |
 | `ops/scripts/verris-tasks.sh` | Poll lease zadań |
 | `ops/scripts/verris-task-run.sh` | Wykonanie pojedynczego zadania |
+| `ops/scripts/security-hardening-baseline.sh` | Bazowy hardening hosta |
+| `ops/scripts/security-egress-lockdown.sh` | Egress deny-by-default (nftables) |
 | `apps/api/src/servers/servers.service.ts` | Generator bootstrap |
 | `apps/api/src/servers/node-tasks-agent.install.ts` | Fragment bootstrap → task agent |
 | `apps/api/src/subscriptions/provisioning.service.ts` | Provisioning DA |

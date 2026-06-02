@@ -18,10 +18,15 @@ describe('UsersService.getProfile (IAM)', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.spyOn(service as never, 'ensureReferralAndBadgeTokens').mockResolvedValue({
-      referralCode: 'EKO-TEST',
-      ecoBadgeToken: 'badge-test',
-    });
+    jest
+      .spyOn(
+        service as unknown as { ensureReferralAndBadgeTokens: () => Promise<unknown> },
+        'ensureReferralAndBadgeTokens',
+      )
+      .mockResolvedValue({
+        referralCode: 'EKO-TEST',
+        ecoBadgeToken: 'badge-test',
+      });
   });
 
   it('returns principal profile for subaccount session without owner wallet', async () => {

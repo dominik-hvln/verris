@@ -36,7 +36,7 @@ Pełna tabela i diagram: sekcja **Plan sprintów** w [`HOSTING_LAUNCH_TASKS.md`]
 | **LEG-D** | drafty → prawnik | **Tak** (klienci zewnętrzni) |
 | **OBS+** | OBS-1…5 | Nie |
 
-**Następny sprint do startu:** **GO-IAM** (smoke ręczny na prod).
+**Następny sprint do startu:** kod IAM/panelu domknięty 2026-06-01 (patrz [`LIVE_VERIFICATION_REPORT.md`](./LIVE_VERIFICATION_REPORT.md)). Pozostają czynności operacyjne poza kodem: **GO-OPS** (sekrety/Stripe live), **LEG-D** (prawnik) oraz smoke E2E na prod.
 
 ---
 

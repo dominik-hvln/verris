@@ -378,3 +378,94 @@ export interface HostingBackupsResponseDto {
   rows: HostingBackupRowDto[];
   fetchError: string | null;
 }
+
+// -----------------------------------------------------------------------------
+// Staging — subdomena + opcjonalna baza klona (CMD_API_SUBDOMAINS / CMD_API_DATABASES)
+// -----------------------------------------------------------------------------
+
+export interface HostingStagingEnvDto {
+  /** `subdomena.domena` — identyfikator środowiska. */
+  id: string;
+  subdomain: string;
+  domain: string;
+  /** Pełny adres staging, np. https://staging.example.com */
+  url: string;
+}
+
+/** GET /services/:id/hosting-staging */
+export interface HostingStagingResponseDto {
+  rows: HostingStagingEnvDto[];
+  /** Domeny konta, pod którymi można utworzyć staging. */
+  domains: string[];
+  primaryDomain: string | null;
+  fetchError: string | null;
+}
+
+/** POST /services/:id/hosting-staging */
+export interface HostingStagingCreateRequestDto {
+  domain: string;
+  /** Etykieta poddomeny (a-z0-9-), domyślnie „staging". */
+  label?: string;
+  /** Gdy true, tworzymy też dedykowaną bazę MySQL dla środowiska staging. */
+  withDatabase?: boolean;
+}
+
+/** Dane bazy staging — pokazywane tylko raz, zaraz po utworzeniu. */
+export interface HostingStagingDatabaseDto {
+  name: string;
+  user: string;
+  password: string;
+}
+
+export interface HostingStagingCreatedDto {
+  ok: true;
+  env: HostingStagingEnvDto;
+  database: HostingStagingDatabaseDto | null;
+}
+
+export type HostingStagingMutationOkDto = { ok: true };
+
+// -----------------------------------------------------------------------------
+// Deploy — automatyczne wdrożenia Git oparte o harmonogram (cron DirectAdmin)
+// -----------------------------------------------------------------------------
+//
+// DirectAdmin (user API) nie udostępnia wykonywania komend „na żądanie", więc
+// realne, w pełni działające wdrożenia budujemy na cronie konta: harmonogram
+// wykonuje `git pull` + build w docroot. To standardowy mechanizm auto-deploy
+// na hostingu współdzielonym (bez pozornego przycisku „push").
+
+export type DeployFrequency = 'every_15m' | 'hourly' | 'daily';
+
+export interface DeployJobDto {
+  /** Indeks zadania cron w DirectAdmin. */
+  id: string;
+  /** Domena, której docroot dotyczy wdrożenie. */
+  domain: string;
+  /** Pełna komenda wdrożenia uruchamiana przez cron. */
+  command: string;
+  branch: string | null;
+  frequency: DeployFrequency;
+  /** Surowy harmonogram cron (5 pól) — informacyjnie. */
+  schedule: string;
+}
+
+/** GET /services/:id/deploy-jobs */
+export interface DeployJobsResponseDto {
+  rows: DeployJobDto[];
+  /** Domeny konta dostępne do skonfigurowania wdrożeń. */
+  domains: string[];
+  primaryDomain: string | null;
+  fetchError: string | null;
+}
+
+/** POST /services/:id/deploy-jobs */
+export interface DeployJobCreateRequestDto {
+  domain: string;
+  /** Gałąź Git do wdrożenia (domyślnie bieżąca). */
+  branch?: string;
+  /** Dodatkowa komenda build po `git pull` (np. `composer install --no-dev`). */
+  buildCommand?: string;
+  frequency: DeployFrequency;
+}
+
+export type DeployJobMutationOkDto = { ok: true };

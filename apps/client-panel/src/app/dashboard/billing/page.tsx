@@ -19,6 +19,7 @@ import type {
   WalletTxType,
 } from '@verris/contracts';
 import { ApiError } from '@/lib/api';
+import { PanelPageHeader } from '@/components/panel';
 import { CREDIT_DISCLAIMER, CREDIT_RATE_INFO, formatCredits } from '@/lib/credits';
 import { getSavedPaymentMethods, getWalletAutoTopup, getWalletSummary } from './data';
 import { TopupCard } from './topup-card';
@@ -69,16 +70,12 @@ export default async function BillingPage({
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <BillingWalletRefresh status={params.status} />
-      <div>
-        <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-neutral-400">
-          Portfel i płatności
-        </h1>
-        <p className="text-neutral-400 mt-2 text-lg">
-          Doładuj portfel, śledź zużycie i zarządzaj rozliczeniami. {CREDIT_RATE_INFO}.
-        </p>
-      </div>
+      <PanelPageHeader
+        title="Portfel i płatności"
+        description={`Doładuj portfel, śledź zużycie i zarządzaj rozliczeniami. ${CREDIT_RATE_INFO}.`}
+      />
 
       {params.status === 'success' ? (
         <StatusBanner

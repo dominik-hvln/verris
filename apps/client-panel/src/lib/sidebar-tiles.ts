@@ -43,7 +43,6 @@ export function sidebarTilesFromLinks(
 ): SidebarTileDef[] {
   return resolveSidebarQuickLinks(links)
     .filter((href) => (href === '/dashboard/eco' ? clientFeatures.eco : true))
-    .filter((href) => (href === '/dashboard/iam' ? clientFeatures.iam : true))
     .filter((href) => !nav || canAccessDashboardRoute(href, nav))
     .map((href) => ({
       href,

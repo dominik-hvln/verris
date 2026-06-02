@@ -337,7 +337,7 @@ function buildWorkerLifecycleMocks(
       update: jest.fn().mockResolvedValue({}),
     },
     subscriptionEvent: { create: jest.fn().mockResolvedValue({}) },
-    $transaction: jest.fn(async (fn: (tx: typeof prisma) => Promise<unknown>) => fn(prisma)),
+    $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) => fn(prisma)),
   };
   const crypto = {
     encrypt: jest.fn((value: string) => `enc:${value}`),

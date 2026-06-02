@@ -21,7 +21,7 @@ Te elementy muszą być gotowe, przetestowane i opisane w smoke teście przed wp
 Te elementy nie blokują kontrolowanego startu LIVE, pod warunkiem że nie występują w ofercie, menu lub komunikacji sprzedażowej jako gotowe:
 
 - **PayU/BLIK (`C-13`)** — Stripe może być jedynym gatewayem startowym, jeśli oferta mówi jasno „płatności kartą/Stripe i portfel”.
-- **IAM/subkonta klienta (`E-12/R-12`)** — nie blokuje startu shared hostingu dla pojedynczego właściciela konta; blokuje ofertę dla zespołów/agencji, jeśli ją reklamujemy.
+- **IAM/subkonta klienta (`E-12/R-12`)** — **decyzja 2026-06-01: P0 dla wszystkich.** IAM jest standardowym elementem panelu (nie opcją), zgodnie z `HOSTING_LAUNCH` D-1. Moduł jest wdrożony i widoczny dla każdego klienta.
 - **Rejestracja/transfer domen (`R-13`)** — nie blokuje, jeśli Verris komunikuje „podłącz własną domenę”, nie „kup domenę u nas”.
 - **Softaculous/WP installer (`R-15`)** — nie blokuje, jeśli w panelu nie obiecujemy 1-click installera.
 - **AWStats/Webalizer/statystyki ruchu (`R-19`)** — nie blokuje, jeśli usage w panelu dotyczy zasobów LVE, a statystyki ruchu są dostępne przez DA albo nie są komunikowane.
@@ -36,4 +36,4 @@ Te elementy nie blokują kontrolowanego startu LIVE, pod warunkiem że nie wyst�
 
 ## Decyzja Rekomendowana
 
-Start LIVE powinien obejmować hosting z DirectAdmin, CloudLinux LVE, billing Stripe/portfel, BOK/staff/admin/NOC, compliance i status page. PayU, IAM, rejestrator domen, Softaculous, statystyki ruchu, EKO/referral i AI traktujemy jako osobne sprinty produktowe po potwierdzeniu stabilności core hostingu.
+Start LIVE powinien obejmować hosting z DirectAdmin, CloudLinux LVE, billing Stripe/portfel, IAM/subkonta klienta (P0 — decyzja 2026-06-01), BOK/staff/admin/NOC, compliance i status page. PayU, rejestrator domen, Softaculous, statystyki ruchu, EKO/referral i AI traktujemy jako osobne sprinty produktowe po potwierdzeniu stabilności core hostingu.

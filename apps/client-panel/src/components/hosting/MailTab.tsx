@@ -134,7 +134,7 @@ export default function MailTab({ serviceId }: Props) {
         </dl>
         <p className="text-[11px] text-neutral-500 leading-relaxed">
           Login to pełny adres skrzynki (np. kontakt@twojadomena.pl). Hasło ustawiasz przy tworzeniu skrzynki w
-          panelu hostingu. Webmail, jeśli jest włączony na węźle, otwierasz z panelu DirectAdmin.
+          panelu hostingu. Webmail, jeśli jest włączony na węźle, otwierasz z zaawansowanego panelu hostingu.
         </p>
         {emailQuota ? (
           <p className="text-[11px] text-neutral-400">
@@ -194,7 +194,7 @@ export default function MailTab({ serviceId }: Props) {
 
       <p className="mt-3 flex items-start gap-2 text-[11px] text-neutral-500">
         <Server className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-        Tworzenie i usuwanie skrzynek oraz zmiana haseł odbywa się w panelu DirectAdmin — tutaj widzisz listę i dane
+        Tworzenie i usuwanie skrzynek oraz zmiana haseł odbywa się w zaawansowanym panelu hostingu — tutaj widzisz listę i dane
         do konfiguracji programu pocztowego.
       </p>
     </HostingTabShell>

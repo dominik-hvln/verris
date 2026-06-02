@@ -244,6 +244,53 @@ export class UserServicesController {
     return this.directAdmin.deleteHostingCronJob(id, user.userId, cronId);
   }
 
+  @Get(':id/hosting-staging')
+  async hostingStaging(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.listHostingStaging(id, user.userId);
+  }
+
+  @Post(':id/hosting-staging')
+  async createHostingStaging(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { domain: string; label?: string; withDatabase?: boolean },
+  ) {
+    return this.directAdmin.createHostingStaging(id, user.userId, body);
+  }
+
+  @Delete(':id/hosting-staging')
+  async deleteHostingStaging(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { domain: string; subdomain: string },
+  ) {
+    return this.directAdmin.deleteHostingStaging(id, user.userId, body);
+  }
+
+  @Get(':id/deploy-jobs')
+  async deployJobs(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.listDeployJobs(id, user.userId);
+  }
+
+  @Post(':id/deploy-jobs')
+  async createDeployJob(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body()
+    body: { domain: string; branch?: string; buildCommand?: string; frequency: 'every_15m' | 'hourly' | 'daily' },
+  ) {
+    return this.directAdmin.createDeployJob(id, user.userId, body);
+  }
+
+  @Delete(':id/deploy-jobs/:cronId')
+  async deleteDeployJob(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('cronId') cronId: string,
+  ) {
+    return this.directAdmin.deleteDeployJob(id, user.userId, cronId);
+  }
+
   @Get(':id/hosting-ssl')
   async hostingSsl(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
     return this.directAdmin.listHostingSslCertificates(id, user.userId);

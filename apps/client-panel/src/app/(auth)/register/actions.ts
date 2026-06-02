@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
+import { setAuthCookie } from "@/lib/auth";
 
 export async function submitRegister(prevState: any, formData: FormData) {
   const email = formData.get("email") as string;

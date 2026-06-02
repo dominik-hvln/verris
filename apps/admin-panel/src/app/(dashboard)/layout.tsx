@@ -2,6 +2,7 @@ import { requireAdminSession } from "@/lib/session";
 import { AdminSidebar } from "@/components/sidebar";
 import { LogoutButton } from "@/components/logout-button";
 import { PlatformConfigLoader } from "@/components/platform-config-loader";
+import { FleetStatusBadge } from "@/components/fleet-status-badge";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await requireAdminSession();
@@ -24,13 +25,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <header className="sticky top-0 z-40 flex h-20 items-center gap-4 border-b border-white/5 bg-black/20 backdrop-blur-md px-8">
           <div className="flex-1" />
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-3 py-1.5 text-xs font-medium text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-              </span>
-              Wszystkie Węzły Operacyjne
-            </div>
+            <FleetStatusBadge />
           </div>
         </header>
 

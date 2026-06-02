@@ -5,8 +5,19 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { DirectAdminClient } from '@verris/directadmin-sdk';
-import type { HostingSslRowDto, HostingSslStatus, ServiceConnectionInfoDto } from '@verris/contracts';
-import { X509Certificate } from 'crypto';
+import type {
+  DeployFrequency,
+  DeployJobDto,
+  DeployJobsResponseDto,
+  HostingSslRowDto,
+  HostingSslStatus,
+  HostingStagingCreatedDto,
+  HostingStagingDatabaseDto,
+  HostingStagingEnvDto,
+  HostingStagingResponseDto,
+  ServiceConnectionInfoDto,
+} from '@verris/contracts';
+import { randomBytes, X509Certificate } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto/crypto.service';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
@@ -723,6 +734,200 @@ export class DirectAdminService {
     return { ok: true as const };
   }
 
+  // ---------------------------------------------------------------------------
+  // Staging — poddomena + opcjonalna baza (CMD_API_SUBDOMAINS / CMD_API_DATABASES)
+  // ---------------------------------------------------------------------------
+
+  /** GET — lista poddomen konta (potencjalne środowiska staging). */
+  async listHostingStaging(
+    subscriptionId: string,
+    userId: string,
+  ): Promise<HostingStagingResponseDto> {
+    const domainsRes = await this.listHostingDomainsForSubscription(subscriptionId, userId);
+    const domains = domainsRes.domains.map((d) => d.name);
+    if (domainsRes.fetchError) {
+      return {
+        rows: [],
+        domains,
+        primaryDomain: domainsRes.primaryDomain,
+        fetchError: domainsRes.fetchError,
+      };
+    }
+    const rows: HostingStagingEnvDto[] = [];
+    try {
+      for (const domain of domains.slice(0, 25)) {
+        const raw = await this.daGetForSubscription(subscriptionId, userId, '/CMD_API_SUBDOMAINS', {
+          domain,
+        });
+        for (const [k, v] of raw.entries()) {
+          if (!/^list\d+$/i.test(k) || !v) continue;
+          rows.push({ id: `${v}.${domain}`, subdomain: v, domain, url: `https://${v}.${domain}` });
+        }
+      }
+      return { rows, domains, primaryDomain: domainsRes.primaryDomain, fetchError: null };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { rows, domains, primaryDomain: domainsRes.primaryDomain, fetchError: msg };
+    }
+  }
+
+  async createHostingStaging(
+    subscriptionId: string,
+    userId: string,
+    input: { domain: string; label?: string; withDatabase?: boolean },
+  ): Promise<HostingStagingCreatedDto> {
+    const domain = input.domain.trim();
+    if (!domain) throw new BadRequestException('Domena jest wymagana.');
+    await this.assertDomainOnSubscription(subscriptionId, userId, domain);
+
+    const label = (input.label?.trim() || 'staging').toLowerCase();
+    if (!/^[a-z0-9-]{1,32}$/.test(label)) {
+      throw new BadRequestException('Nazwa poddomeny: a-z, 0-9 i myślnik (maks. 32 znaki).');
+    }
+
+    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_SUBDOMAINS', {
+      action: 'create',
+      domain,
+      subdomain: label,
+    });
+
+    let database: HostingStagingDatabaseDto | null = null;
+    if (input.withDatabase) {
+      const sub = await this.prisma.subscription.findFirst({
+        where: { id: subscriptionId, userId },
+        include: { account: true },
+      });
+      const daUsername = sub?.account?.daUsername;
+      if (!daUsername) {
+        throw new BadRequestException('Konto hostingowe nie ma jeszcze loginu DirectAdmin.');
+      }
+      const suffix = label.replace(/-/g, '').slice(0, 12) || 'staging';
+      const password = generateDbPassword();
+      await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_DATABASES', {
+        action: 'create',
+        name: suffix,
+        user: suffix,
+        passwd: password,
+        passwd2: password,
+      });
+      database = {
+        name: `${daUsername}_${suffix}`,
+        user: `${daUsername}_${suffix}`,
+        password,
+      };
+    }
+
+    return {
+      ok: true,
+      env: { id: `${label}.${domain}`, subdomain: label, domain, url: `https://${label}.${domain}` },
+      database,
+    };
+  }
+
+  async deleteHostingStaging(
+    subscriptionId: string,
+    userId: string,
+    input: { domain: string; subdomain: string },
+  ): Promise<{ ok: true }> {
+    const domain = input.domain.trim();
+    const subdomain = input.subdomain.trim();
+    if (!domain || !subdomain) throw new BadRequestException('Domena i poddomena są wymagane.');
+    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_SUBDOMAINS', {
+      action: 'delete',
+      domain,
+      select0: subdomain,
+      contents: 'yes',
+    });
+    return { ok: true as const };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Deploy — automatyczne wdrożenia Git oparte o cron DirectAdmin (CMD_API_CRON)
+  // ---------------------------------------------------------------------------
+  //
+  // Każde zadanie wdrożenia to wpis cron z komendą `git pull` w docroot domeny.
+  // Komendy zarządzane przez Verris kończą się markerem `# verris-deploy …`,
+  // dzięki czemu odróżniamy je od zwykłych cronów klienta.
+
+  async listDeployJobs(
+    subscriptionId: string,
+    userId: string,
+  ): Promise<DeployJobsResponseDto> {
+    const domainsRes = await this.listHostingDomainsForSubscription(subscriptionId, userId);
+    const domains = domainsRes.domains.map((d) => d.name);
+    const cron = await this.listHostingCronJobs(subscriptionId, userId);
+    if (cron.fetchError) {
+      return { rows: [], domains, primaryDomain: domainsRes.primaryDomain, fetchError: cron.fetchError };
+    }
+    const rows: DeployJobDto[] = [];
+    for (const job of cron.rows) {
+      const parsed = parseDeployCommand(job.command);
+      if (!parsed) continue;
+      rows.push({
+        id: job.id,
+        domain: parsed.domain,
+        command: job.command,
+        branch: parsed.branch,
+        frequency: scheduleToFrequency(job.schedule),
+        schedule: job.schedule,
+      });
+    }
+    return { rows, domains, primaryDomain: domainsRes.primaryDomain, fetchError: null };
+  }
+
+  async createDeployJob(
+    subscriptionId: string,
+    userId: string,
+    input: { domain: string; branch?: string; buildCommand?: string; frequency: DeployFrequency },
+  ): Promise<{ ok: true }> {
+    const domain = input.domain.trim();
+    if (!domain) throw new BadRequestException('Domena jest wymagana.');
+    await this.assertDomainOnSubscription(subscriptionId, userId, domain);
+
+    const branch = (input.branch?.trim() || '').replace(/[^A-Za-z0-9._/-]/g, '');
+    const build = (input.buildCommand?.trim() || '').replace(/[\r\n]+/g, ' ');
+    if (build && /[;&|`$<>]/.test(build)) {
+      throw new BadRequestException('Komenda build zawiera niedozwolone znaki specjalne.');
+    }
+    const schedule = frequencyToSchedule(input.frequency);
+    const command = buildDeployCommand({ domain, branch, build });
+
+    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_CRON', {
+      action: 'create',
+      minute: schedule.minute,
+      hour: schedule.hour,
+      day_of_month: schedule.dayOfMonth,
+      month: schedule.month,
+      day_of_week: schedule.dayOfWeek,
+      command,
+    });
+    return { ok: true as const };
+  }
+
+  async deleteDeployJob(subscriptionId: string, userId: string, id: string) {
+    return this.deleteHostingCronJob(subscriptionId, userId, id);
+  }
+
+  /** GET helper (mirror of daFormForSubscription) for DA endpoints that list via query params. */
+  private async daGetForSubscription(
+    subscriptionId: string,
+    userId: string,
+    path: string,
+    params: Record<string, string>,
+  ): Promise<URLSearchParams> {
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id: subscriptionId, userId },
+      include: { account: true },
+    });
+    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub.account?.id) throw new BadRequestException('Subscription has no hosting account yet');
+    const client = await this.getClientForHostingAccount(sub.account.id, userId);
+    const axiosClient = (client as unknown as { client?: { get: Function } }).client;
+    if (!axiosClient) throw new BadRequestException('DirectAdmin client is not available');
+    const res = await axiosClient.get(path, { params, timeout: 15_000 });
+    return this.parseKvPayload(String(res?.data ?? ''));
+  }
+
   /**
    * Lists the LIVE TLS certificate per domain on the account. For each domain we
    * read the installed certificate via DA `CMD_API_SSL` and parse the X.509 to
@@ -1129,4 +1334,61 @@ function parseDaBool(value: string | null | undefined): boolean | null {
   if (v === 'on' || v === 'yes' || v === '1' || v === 'true') return true;
   if (v === 'off' || v === 'no' || v === '0' || v === 'false') return false;
   return null;
+}
+
+/** Strong, DirectAdmin-friendly database password (no shell-significant chars). */
+function generateDbPassword(): string {
+  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+  const bytes = randomBytes(20);
+  let out = '';
+  for (const b of bytes) out += alphabet[b % alphabet.length];
+  return `Vs${out}`;
+}
+
+const DEPLOY_MARKER = '# verris-deploy';
+
+/** Builds the cron command for a scheduled Git deploy in a domain's docroot. */
+function buildDeployCommand(input: { domain: string; branch: string; build: string }): string {
+  const docroot = `$HOME/domains/${input.domain}/public_html`;
+  const pull = input.branch ? `git pull origin ${input.branch}` : 'git pull';
+  const parts = [`cd ${docroot}`, pull];
+  if (input.build) parts.push(input.build);
+  const marker = `${DEPLOY_MARKER} d=${input.domain}${input.branch ? ` b=${input.branch}` : ''}`;
+  return `${parts.join(' && ')} ${marker}`;
+}
+
+/** Extracts the Verris-managed deploy metadata from a cron command, or null. */
+function parseDeployCommand(command: string): { domain: string; branch: string | null } | null {
+  const idx = command.indexOf(DEPLOY_MARKER);
+  if (idx === -1) return null;
+  const marker = command.slice(idx);
+  const domain = /\bd=([^\s]+)/.exec(marker)?.[1] ?? null;
+  if (!domain) return null;
+  const branch = /\bb=([^\s]+)/.exec(marker)?.[1] ?? null;
+  return { domain, branch };
+}
+
+function frequencyToSchedule(frequency: DeployFrequency): {
+  minute: string;
+  hour: string;
+  dayOfMonth: string;
+  month: string;
+  dayOfWeek: string;
+} {
+  switch (frequency) {
+    case 'every_15m':
+      return { minute: '*/15', hour: '*', dayOfMonth: '*', month: '*', dayOfWeek: '*' };
+    case 'hourly':
+      return { minute: '0', hour: '*', dayOfMonth: '*', month: '*', dayOfWeek: '*' };
+    case 'daily':
+      return { minute: '30', hour: '3', dayOfMonth: '*', month: '*', dayOfWeek: '*' };
+  }
+}
+
+function scheduleToFrequency(schedule: string): DeployFrequency {
+  const minute = schedule.trim().split(/\s+/)[0] ?? '';
+  if (minute.startsWith('*/')) return 'every_15m';
+  const hour = schedule.trim().split(/\s+/)[1] ?? '';
+  if (hour === '*') return 'hourly';
+  return 'daily';
 }

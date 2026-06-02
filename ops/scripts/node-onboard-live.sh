@@ -12,11 +12,13 @@
 #
 # SKRYPTY (w tym samym katalogu co ten plik):
 #   node-live-readiness.sh, node-hosting-profile.sh, node-verris-tasks-install.sh,
-#   node-da-sync-plan-packages.sh, verris-tasks.sh, verris-task-run.sh
+#   node-da-sync-plan-packages.sh, verris-tasks.sh, verris-task-run.sh,
+#   security-hardening-baseline.sh, security-egress-lockdown.sh
 #
 # Użycie:
 #   scp -r ops/scripts/{node-onboard-live,node-live-readiness,node-hosting-profile,\
-#     node-verris-tasks-install,node-da-sync-plan-packages,verris-tasks,verris-task-run}.sh \
+#     node-verris-tasks-install,node-da-sync-plan-packages,verris-tasks,verris-task-run,\
+#     security-hardening-baseline,security-egress-lockdown}.sh \
 #     root@WĘZEŁ:/root/verris/
 #   ssh root@WĘZEŁ 'bash /root/verris/node-onboard-live.sh'
 #
@@ -25,6 +27,7 @@
 #   --skip-da              pomiń rejestrację IP i sync pakietów DA
 #   --skip-readiness       tylko kroki DA (gdy profil już OK)
 #   --governor-only        tylko Governor/MariaDB (przekazywane do live-readiness)
+#   --skip-security        pomiń baseline hardening + egress lockdown (NIEZALECANE)
 #   --public-ip IP         wymuszenie publicznego IP (domyślnie: auto-detect)
 #
 # Zmienne środowiskowe (opcjonalne, krok DirectAdmin):
@@ -48,6 +51,7 @@ DRY_RUN=0
 SKIP_DA=0
 SKIP_READINESS=0
 GOVERNOR_ONLY=0
+SKIP_SECURITY=0
 PUBLIC_IP="${PUBLIC_IP:-}"
 FAIL=0
 
@@ -57,6 +61,7 @@ for arg in "$@"; do
     --skip-da) SKIP_DA=1 ;;
     --skip-readiness) SKIP_READINESS=1 ;;
     --governor-only) GOVERNOR_ONLY=1 ;;
+    --skip-security) SKIP_SECURITY=1 ;;
     --public-ip=*) PUBLIC_IP="${arg#*=}" ;;
     --public-ip) ;; # value in next arg handled below
     -h|--help)
@@ -115,7 +120,8 @@ require_verris_conf() {
 require_bundle_scripts() {
   local missing=0
   for f in node-live-readiness.sh node-hosting-profile.sh node-verris-tasks-install.sh \
-           node-da-sync-plan-packages.sh verris-tasks.sh verris-task-run.sh; do
+           node-da-sync-plan-packages.sh verris-tasks.sh verris-task-run.sh \
+           security-hardening-baseline.sh security-egress-lockdown.sh; do
     if [ ! -f "$SCRIPT_DIR/$f" ]; then
       log_fail "Brak $SCRIPT_DIR/$f"
       missing=1
@@ -166,6 +172,35 @@ preflight_stack() {
   fi
 }
 
+run_security_hardening() {
+  log_step "1/4 Security hardening baseline (host + egress)"
+
+  if [ "$SKIP_SECURITY" = "1" ]; then
+    log_warn "Pominięto hardening (--skip-security). To NIE jest zalecane dla LIVE."
+    return 0
+  fi
+
+  if [ "$DRY_RUN" = "1" ]; then
+    log_info "dry-run: security-hardening-baseline.sh --role node --dry-run"
+    log_info "dry-run: security-egress-lockdown.sh --role node --dry-run"
+    return 0
+  fi
+
+  if bash "$SCRIPT_DIR/security-hardening-baseline.sh" --role node; then
+    log_ok "security-hardening-baseline.sh zakończony"
+  else
+    log_fail "security-hardening-baseline.sh zakończony błędem"
+    return 1
+  fi
+
+  if bash "$SCRIPT_DIR/security-egress-lockdown.sh" --role node --apply; then
+    log_ok "security-egress-lockdown.sh --apply zakończony"
+  else
+    log_fail "security-egress-lockdown.sh --apply zakończony błędem"
+    return 1
+  fi
+}
+
 da_ip_registered() {
   local ip="$1"
   local ips_dir="/usr/local/directadmin/data/admin/ips"
@@ -178,7 +213,7 @@ da_ip_registered() {
 }
 
 ensure_da_ip() {
-  log_step "1/3 DirectAdmin — IP i pakiety planów"
+  log_step "2/4 DirectAdmin — IP i pakiety planów"
 
   if [ "$SKIP_DA" = "1" ]; then
     log_info "Pominięto (--skip-da)"
@@ -236,7 +271,7 @@ ensure_da_ip() {
 }
 
 run_live_readiness() {
-  log_step "2/3 LIVE readiness (agent + profil + weryfikacja)"
+  log_step "3/4 LIVE readiness (agent + profil + weryfikacja)"
 
   if [ "$SKIP_READINESS" = "1" ]; then
     log_info "Pominięto (--skip-readiness)"
@@ -256,7 +291,7 @@ run_live_readiness() {
 }
 
 print_admin_checklist() {
-  log_step "3/3 Checklist panel admin"
+  log_step "4/4 Checklist panel admin"
 
   # shellcheck disable=SC1090
   source /etc/verris.conf 2>/dev/null || true
@@ -304,6 +339,7 @@ main() {
   require_root
   require_bundle_scripts
   preflight_stack
+  run_security_hardening
   require_verris_conf
   ensure_da_ip
   run_live_readiness

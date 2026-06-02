@@ -398,6 +398,13 @@ Lista podwykonawców do uzupełnienia w `docs/legal/v1/dpa.md` po akceptacji:
       kraju / wiele nieudanych logowań → mail
 - [ ] `🟡` Reguły IP blacklist: jeśli IP > 10 nieudanych logowań / 5 min
       → block na 1h (sprawdzić czy `SuspiciousActivityService` jest aktywny)
+- [ ] `🔴` Outbound abuse guard: monitoruj i alarmuj nieautoryzowany ruch egress
+      (scan/C2). Incydent referencyjny: Hetzner + Spamhaus XBL 2026-06-01
+      (`204.168.174.138`, IOC: `216.218.185.162:80`) - runbook
+      `docs/ops/HETZNER_ABUSE_2026-06-01.md`
+- [ ] `🔴` Firewall egress allow-list wdrozony dla hostow panel/node
+      (domyslnie deny, wyjątki tylko dla wymaganych uslug: DNS, apt repo,
+      Stripe/API, monitoring, backup). Udokumentuj aktualna polityke.
 
 ---
 
@@ -497,6 +504,8 @@ Po pierwszym tygodniu działania spisać w `docs/runbooks/`:
 - [ ] `🟡` `stripe-webhook-replay.md` — odzyskiwanie z dropniętych webhooków
 - [ ] `🟡` `db-failover.md` — restore z backupu, promote replica
 - [ ] `🟢` `compute-node-add.md` — onboarding nowego serwera DA
+- [ ] `🔴` `security-hardening-baseline.md` - rollout host hardening + egress lockdown
+      na control-plane i wszystkich node'ach (patrz `docs/ops/SECURITY_HARDENING_BASELINE.md`)
 
 ---
 
