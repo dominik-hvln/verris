@@ -27,6 +27,7 @@ export interface AppConfig {
   // Stripe (optional in dev — endpoints return 503 when missing)
   stripeSecretKey: string | null;
   stripeWebhookSecret: string | null;
+  stripeApiVersion: string;
   stripeSuccessUrl: string;
   stripeCancelUrl: string;
 }
@@ -96,6 +97,7 @@ export function loadConfig(): AppConfig {
     }),
     stripeSecretKey: process.env.STRIPE_SECRET_KEY || null,
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || null,
+    stripeApiVersion: readEnv('STRIPE_API_VERSION', { default: '2026-04-22.dahlia' }),
     stripeSuccessUrl: readEnv('STRIPE_SUCCESS_URL', {
       required: isProd,
       default: isProd ? undefined : 'http://localhost:3001/dashboard/billing?status=success',

@@ -26,7 +26,7 @@ export class StripeService {
     // dahlia → next-major upgrade window. See `DEPLOY.md` →
     // "Stripe API upgrade" runbook for the full procedure.
     const apiVersion =
-      config.get<string>('STRIPE_API_VERSION') ?? DEFAULT_STRIPE_API_VERSION;
+      config.get<string>('stripeApiVersion') ?? DEFAULT_STRIPE_API_VERSION;
     this.client = secretKey ? new StripeClient(secretKey, apiVersion) : null;
   }
 

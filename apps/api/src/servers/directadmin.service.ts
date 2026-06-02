@@ -233,7 +233,7 @@ export class DirectAdminService {
     const domainPath = encodeURIComponent(domain);
     return {
       databasesUrl: `${panelBaseUrl}/evo/user/databases/mysql`,
-      emailUrl: `${panelBaseUrl}/evo/user/email`,
+      emailUrl: `${panelBaseUrl}/evo/user/email/accounts`,
       sslUrl: `${panelBaseUrl}/evo/user/ssl`,
       fileManagerUrl: `${panelBaseUrl}/evo/user/filemanager/domains/${domainPath}`,
       domainsUrl: `${panelBaseUrl}/evo/user/domains`,
@@ -271,9 +271,13 @@ export class DirectAdminService {
       };
     }
     try {
-      const client = await this.getClientForHostingAccount(sub.account.id, userId);
-      const raw = await client.listMysqlDatabases();
-      const databases = raw.map((name) => ({ name }));
+      let raw: URLSearchParams;
+      try {
+        raw = await this.daGetForSubscription(subscriptionId, userId, '/CMD_API_DATABASES', {});
+      } catch {
+        raw = await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_DATABASES', {});
+      }
+      const databases = this.parseDaListEntries(raw).map((name) => ({ name }));
       return {
         databases,
         daUsername,
@@ -291,7 +295,78 @@ export class DirectAdminService {
   }
 
   private parseKvPayload(payload: unknown): URLSearchParams {
+    if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
+      const record = payload as Record<string, unknown>;
+      if ('error' in record) {
+        const err = String(record.error ?? '');
+        if (err && err !== '0' && err !== 'false') {
+          throw new BadRequestException(
+            String(record.text ?? record.details ?? record.message ?? 'DirectAdmin error'),
+          );
+        }
+      }
+      const params = new URLSearchParams();
+      for (const [key, value] of Object.entries(record)) {
+        if (value == null) continue;
+        if (Array.isArray(value)) {
+          value.forEach((item, index) => {
+            if (item != null && String(item).trim()) {
+              params.set(`list${index}`, String(item));
+            }
+          });
+          continue;
+        }
+        if (typeof value === 'object') continue;
+        params.set(key, String(value));
+      }
+      return params;
+    }
     return new URLSearchParams(typeof payload === 'string' ? payload : String(payload ?? ''));
+  }
+
+  /** Values from DA list responses (`list0`, `list1`, …). */
+  private parseDaListEntries(raw: URLSearchParams): string[] {
+    const names: string[] = [];
+    const seen = new Set<string>();
+    for (const [key, value] of raw.entries()) {
+      if (!value.trim()) continue;
+      if (/^list\d+$/i.test(key)) {
+        if (!seen.has(value)) {
+          seen.add(value);
+          names.push(value);
+        }
+      }
+    }
+    if (names.length > 0) return names;
+    for (const [key, value] of raw.entries()) {
+      if (!value.trim()) continue;
+      if (['error', 'text', 'details', 'success'].includes(key)) continue;
+      if (/^name\d+$/i.test(key) || /^database\d+$/i.test(key)) {
+        if (!seen.has(value)) {
+          seen.add(value);
+          names.push(value);
+        }
+      }
+    }
+    return names;
+  }
+
+  private parseDaBackupFileRows(raw: URLSearchParams): Array<{ id: string; fileName: string }> {
+    const rows: Array<{ id: string; fileName: string }> = [];
+    const seen = new Set<string>();
+    for (const [key, value] of raw.entries()) {
+      const fileName = value.trim();
+      if (!fileName) continue;
+      if (['error', 'text', 'details', 'success', 'domain'].includes(key)) continue;
+      const isList = /^list\d+$/i.test(key);
+      const isArchive =
+        /^file\d+$/i.test(key) && /\.(tar|gz|tgz|zip)/i.test(fileName);
+      if (!isList && !isArchive) continue;
+      if (seen.has(fileName)) continue;
+      seen.add(fileName);
+      rows.push({ id: key, fileName });
+    }
+    return rows;
   }
 
   /** Obsługa odpowiedzi CMD_API_* jako tekstu key=value lub JSON z polem `error`. */
@@ -651,17 +726,27 @@ export class DirectAdminService {
     }
     const domain = sub.account.domain;
     try {
-      const raw = await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_POP', {
-        action: 'list',
-        domain,
-      });
+      let raw: URLSearchParams;
+      try {
+        raw = await this.daGetForSubscription(subscriptionId, userId, '/CMD_API_POP', {
+          action: 'list',
+          domain,
+        });
+      } catch {
+        raw = await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_POP', {
+          action: 'list',
+          domain,
+        });
+      }
       const rows: Array<{ id: string; email: string; quotaMb: number | null }> = [];
       for (const [k, v] of raw.entries()) {
-        if (!/^user\d+$/i.test(k)) continue;
+        if (!/^list\d+$/i.test(k)) continue;
         const idx = k.replace(/\D/g, '');
+        const localPart = v.trim();
+        if (!localPart) continue;
         rows.push({
-          id: `${v}:${idx}`,
-          email: v.includes('@') ? v : `${v}@${domain}`,
+          id: `${localPart}@${domain}`,
+          email: localPart.includes('@') ? localPart : `${localPart}@${domain}`,
           quotaMb: raw.get(`quota${idx}`) ? Number(raw.get(`quota${idx}`)) : null,
         });
       }
@@ -942,8 +1027,11 @@ export class DirectAdminService {
     const client = await this.getClientForHostingAccount(sub.account.id, userId);
     const axiosClient = (client as unknown as { client?: { get: Function } }).client;
     if (!axiosClient) throw new BadRequestException('DirectAdmin client is not available');
-    const res = await axiosClient.get(path, { params, timeout: 15_000 });
-    return this.parseKvPayload(String(res?.data ?? ''));
+    const res = await axiosClient.get(path, {
+      params: { ...params, api: 'yes', json: 'yes' },
+      timeout: 15_000,
+    });
+    return this.parseKvPayload(res?.data);
   }
 
   /**
@@ -1039,16 +1127,44 @@ export class DirectAdminService {
   }
 
   async listHostingBackups(subscriptionId: string, userId: string) {
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id: subscriptionId, userId },
+      include: { account: true },
+    });
+    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub.account) {
+      return { rows: [], fetchError: null as string | null };
+    }
+    if (!sub.account.daPasswordEnc) {
+      return {
+        rows: [],
+        fetchError:
+          'Brak zapisanego dostępu do DirectAdmin dla tego konta (provisioningu).',
+      };
+    }
+    const domain = sub.account.domain;
     try {
-      const raw = await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_BACKUP', { action: 'list' });
-      const rows: Array<{ id: string; fileName: string }> = [];
-      for (const [k, v] of raw.entries()) {
-        if (!/^list\d+$/i.test(k)) continue;
-        rows.push({ id: k, fileName: v });
+      let raw: URLSearchParams;
+      try {
+        raw = await this.daGetForSubscription(subscriptionId, userId, '/CMD_API_SITE_BACKUP', {
+          domain,
+        });
+      } catch {
+        raw = await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_SITE_BACKUP', {
+          domain,
+        });
       }
-      return { rows, fetchError: null as string | null };
+      const rows = this.parseDaBackupFileRows(raw);
+      if (rows.length > 0) {
+        return { rows, fetchError: null as string | null };
+      }
+      const fm = await this.daGetForSubscription(subscriptionId, userId, '/CMD_API_FILE_MANAGER', {
+        path: '/backups',
+      });
+      return { rows: this.parseDaBackupFileRows(fm), fetchError: null as string | null };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`listHostingBackups sub=${subscriptionId}: ${msg}`);
       return { rows: [], fetchError: msg };
     }
   }

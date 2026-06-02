@@ -523,7 +523,9 @@ export class DirectAdminClient {
    * See DirectAdmin user API: CMD_API_DATABASES (list / create / delete).
    */
   async listMysqlDatabases(): Promise<string[]> {
-    const response = await this.client.get('/CMD_API_DATABASES');
+    const response = await this.client.get('/CMD_API_DATABASES', {
+      params: { api: 'yes', json: 'yes' },
+    });
     return this.parseMysqlDatabaseList(response.data);
   }
 
