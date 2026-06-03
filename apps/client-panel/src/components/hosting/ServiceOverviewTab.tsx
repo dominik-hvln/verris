@@ -25,6 +25,7 @@ import { useHostingLinks } from '@/components/hosting/hosting-links-context';
 import { ServiceGaugeRing, gaugeColors } from '@/components/hosting/ServiceGaugeRing';
 import { HostingTabShell } from '@/components/hosting/HostingTabShell';
 import DomainPointingPanel from '@/components/hosting/DomainPointingPanel';
+import { UnpaidServiceBanner } from '@/components/hosting/UnpaidServiceBanner';
 import { HealthCheckDetails } from '@/components/hosting/HealthCheckDetails';
 
 const statusLabels: Record<string, string> = {
@@ -160,6 +161,11 @@ export default function ServiceOverviewTab({
 
   return (
     <div className="space-y-4 min-w-0">
+      <UnpaidServiceBanner
+        serviceId={serviceId}
+        status={service.status}
+        paymentSource={service.paymentSource}
+      />
       <HostingTabShell
         title={service.plan.name}
         description={account?.domain ?? 'Dashboard usługi hostingowej'}

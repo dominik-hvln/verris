@@ -75,6 +75,13 @@ export class SubscriptionsController {
     return this.subscriptions.cancel(user.userId, id, { atPeriodEnd: dto.atPeriodEnd });
   }
 
+  /** Dokończ pierwszą płatność Stripe (Hosted Invoice) dla PENDING_PAYMENT. */
+  @Post(':id/payment-retry')
+  @HttpCode(200)
+  paymentRetry(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.subscriptions.getPaymentRetryUrl(user.userId, id);
+  }
+
   @Patch(':id/autoscaling')
   @HttpCode(200)
   updateAutoscaling(

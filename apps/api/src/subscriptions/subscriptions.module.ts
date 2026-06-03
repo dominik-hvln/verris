@@ -12,6 +12,7 @@ import { SubscriptionsController } from './subscriptions.controller';
 import { SubscriptionsAdminController } from './subscriptions.admin.controller';
 import { UserServicesController } from './services.controller';
 import { RenewalScheduler } from './renewal.scheduler';
+import { SubscriptionAbandonmentScheduler } from './subscription-abandonment.scheduler';
 import { RenewalReminderScheduler } from './renewal-reminder.scheduler';
 import { MigrationOrchestratorService } from './migration-orchestrator.service';
 import { MigrationsStaffController } from './migrations.staff.controller';
@@ -33,6 +34,7 @@ import { PlatformSettingsModule } from '../platform-settings/platform-settings.m
     ProvisioningQueueService,
     NodeSelectorService,
     RenewalScheduler,
+    SubscriptionAbandonmentScheduler,
     RenewalReminderScheduler,
     MigrationOrchestratorService,
     MigrationWorkerScheduler,

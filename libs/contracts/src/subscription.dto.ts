@@ -59,6 +59,8 @@ export interface ProvisioningProgressDto {
 export interface ServiceSummaryDto {
   id: string;
   status: SubscriptionStatus;
+  /** WALLET | STRIPE_CARD | MANUAL — do akcji „Opłać” / anuluj. */
+  paymentSource?: 'WALLET' | 'STRIPE_CARD' | 'MANUAL';
   planSlug: string;
   planName: string;
   interval: BillingInterval;

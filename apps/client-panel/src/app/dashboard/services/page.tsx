@@ -16,6 +16,7 @@ import type {
   SubscriptionStatus,
 } from '@verris/contracts';
 import { ApiError } from '@/lib/api';
+import { UnpaidServiceBanner } from '@/components/hosting/UnpaidServiceBanner';
 import { listServices } from './data';
 
 const statusLabels: Record<SubscriptionStatus, string> = {
@@ -107,6 +108,12 @@ function ServiceCard({ service }: { service: ServiceSummaryDto }) {
             {statusLabels[service.status]}
           </span>
         </div>
+
+        <UnpaidServiceBanner
+          serviceId={service.id}
+          status={service.status}
+          paymentSource={service.paymentSource}
+        />
 
         {service.provisioning && service.status !== 'ACTIVE' && (
           <ProvisioningBadge progress={service.provisioning} />

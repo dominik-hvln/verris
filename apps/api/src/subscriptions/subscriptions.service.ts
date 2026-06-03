@@ -310,7 +310,6 @@ export class SubscriptionsService {
     subscriptionId: string,
     opts: { atPeriodEnd?: boolean } = {},
   ) {
-    const atPeriodEnd = opts.atPeriodEnd ?? true;
     const subscription = await this.prisma.subscription.findFirst({
       where: { id: subscriptionId, userId },
       include: { account: true },
@@ -320,11 +319,23 @@ export class SubscriptionsService {
       throw new ConflictException('Subscription is already canceled');
     }
 
+    // Nieopłacone / niedokończone zamówienia — zawsze natychmiastowe anulowanie
+    // (inaczej Stripe ustawia cancel_at_period_end i wiersz wisi jako PENDING_PAYMENT).
+    const isUnpaidDraft =
+      subscription.status === SubscriptionStatus.PENDING_PAYMENT ||
+      (subscription.status === SubscriptionStatus.PROVISIONING &&
+        subscription.provisioningStage === 'failed');
+    const atPeriodEnd = isUnpaidDraft ? false : (opts.atPeriodEnd ?? true);
+
     const isStripeRecurring =
       subscription.paymentSource === SubscriptionPaymentSource.STRIPE_CARD &&
       !!subscription.stripeSubscriptionId;
     const periodEnd = subscription.currentPeriodEnd;
-    const deferToPeriodEnd = atPeriodEnd && !!periodEnd && periodEnd > new Date();
+    const deferToPeriodEnd =
+      atPeriodEnd &&
+      subscription.status === SubscriptionStatus.ACTIVE &&
+      !!periodEnd &&
+      periodEnd > new Date();
 
     // 1) Stop future charges in Stripe FIRST (so we never end up in a state
     //    where DA is torn down but the card keeps being billed). Errors here
@@ -1150,6 +1161,100 @@ export class SubscriptionsService {
       checkoutRedirectUrl,
       paymentIntentClientSecret,
     };
+  }
+
+  /**
+   * Hosted Invoice URL for a subscription still in PENDING_PAYMENT (Stripe).
+   * Lets the customer finish the first payment from the panel.
+   */
+  async getPaymentRetryUrl(userId: string, subscriptionId: string): Promise<{ url: string }> {
+    const subscription = await this.prisma.subscription.findFirst({
+      where: { id: subscriptionId, userId },
+    });
+    if (!subscription) throw new NotFoundException('Subscription not found');
+    if (subscription.status !== SubscriptionStatus.PENDING_PAYMENT) {
+      throw new BadRequestException(
+        'Link do płatności jest dostępny tylko dla nieopłaconych zamówień.',
+      );
+    }
+    if (
+      subscription.paymentSource !== SubscriptionPaymentSource.STRIPE_CARD ||
+      !subscription.stripeSubscriptionId
+    ) {
+      throw new BadRequestException(
+        'Ta usługa nie oczekuje na płatność kartą — doładuj portfel i zamów ponownie lub anuluj zamówienie.',
+      );
+    }
+
+    const stripeSub = await this.stripe.retrieveSubscription(subscription.stripeSubscriptionId);
+    const latest = stripeSub.latest_invoice;
+    const url =
+      latest && typeof latest !== 'string' ? (latest.hosted_invoice_url ?? null) : null;
+    if (!url) {
+      throw new BadRequestException(
+        'Brak aktywnej faktury Stripe — anuluj zamówienie i utwórz usługę ponownie.',
+      );
+    }
+    return { url };
+  }
+
+  /**
+   * Auto-cleanup: nieopłacone zamówienia bez konta hostingowego starsze niż 48h.
+   */
+  async abandonStalePendingPayments(): Promise<{ canceled: number }> {
+    const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
+    const stale = await this.prisma.subscription.findMany({
+      where: {
+        status: SubscriptionStatus.PENDING_PAYMENT,
+        account: null,
+        createdAt: { lt: cutoff },
+      },
+      take: 100,
+    });
+
+    let canceled = 0;
+    for (const sub of stale) {
+      try {
+        await this.cancelSystem(sub.id, 'ABANDONED_UNPAID_TIMEOUT');
+        canceled += 1;
+      } catch (err) {
+        this.logger.warn(
+          `abandonStalePendingPayments failed sub=${sub.id}: ${(err as Error).message}`,
+        );
+      }
+    }
+    if (canceled > 0) {
+      this.logger.log(`Abandoned ${canceled} stale PENDING_PAYMENT subscription(s)`);
+    }
+    return { canceled };
+  }
+
+  /** System cancel (cron) — same teardown as customer immediate cancel. */
+  private async cancelSystem(subscriptionId: string, reason: string) {
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { id: subscriptionId },
+      include: { account: true },
+    });
+    if (!subscription || subscription.status === SubscriptionStatus.CANCELED) return;
+
+    if (
+      subscription.paymentSource === SubscriptionPaymentSource.STRIPE_CARD &&
+      subscription.stripeSubscriptionId
+    ) {
+      await this.stripe.cancelSubscription(subscription.stripeSubscriptionId, {
+        atPeriodEnd: false,
+      });
+    }
+
+    await this.tearDownCanceledSubscription(subscription, {
+      account: subscription.account,
+      source: 'SCHEDULED',
+    });
+    await this.audit.record({
+      action: 'SUBSCRIPTION_CANCELED',
+      userId: subscription.userId,
+      details: { subscriptionId, immediate: true, reason },
+    });
   }
 
   private async ensureStripeCustomer(user: {

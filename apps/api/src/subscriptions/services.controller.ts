@@ -11,7 +11,7 @@ import {
 } from '@nestjs/common';
 import { HostingSslLetsencryptDto, HostingSslPasteDto } from './dto/hosting-ssl.dto';
 import { CreateMigrationBundleDto, RequestExternalMigrationDto } from './dto/migration.dto';
-import { Prisma } from '@verris/database';
+import { Prisma, SubscriptionStatus } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
@@ -39,9 +39,22 @@ export class UserServicesController {
   ) {}
 
   @Get()
-  async list(@CurrentUser() user: { userId: string }) {
+  async list(
+    @CurrentUser() user: { userId: string },
+    @Query('includeCanceled') includeCanceled?: string,
+  ) {
+    const showCanceled = includeCanceled === '1' || includeCanceled === 'true';
     const subs = await this.prisma.subscription.findMany({
-      where: { userId: user.userId },
+      where: {
+        userId: user.userId,
+        ...(showCanceled
+          ? {}
+          : {
+              status: {
+                notIn: [SubscriptionStatus.CANCELED, SubscriptionStatus.EXPIRED],
+              },
+            }),
+      },
       orderBy: { createdAt: 'desc' },
       include: {
         plan: true,
@@ -53,6 +66,7 @@ export class UserServicesController {
     return subs.map((s) => ({
       id: s.id,
       status: s.status,
+      paymentSource: s.paymentSource,
       planSlug: s.plan.slug,
       planName: s.plan.name,
       interval: s.interval,
