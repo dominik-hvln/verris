@@ -177,4 +177,39 @@ html.dark.eco-tint {
   .pb-safe {
     padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0px));
   }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  /* Wysokość fixed nagłówka dashboardu (mobile) */
+  .h-mobile-header {
+    height: calc(3.5rem + env(safe-area-inset-top, 0px));
+  }
+  .top-mobile-header {
+    top: calc(3.5rem + env(safe-area-inset-top, 0px));
+  }
+  .pt-mobile-header {
+    padding-top: calc(3.5rem + env(safe-area-inset-top, 0px));
+  }
+  @media (min-width: 640px) {
+    .h-mobile-header {
+      height: calc(5rem + env(safe-area-inset-top, 0px));
+    }
+    .top-mobile-header {
+      top: calc(5rem + env(safe-area-inset-top, 0px));
+    }
+    .pt-mobile-header {
+      padding-top: calc(5rem + env(safe-area-inset-top, 0px));
+    }
+  }
+  @media (min-width: 1024px) {
+    .h-mobile-header {
+      height: auto;
+    }
+    .top-mobile-header {
+      top: 0;
+    }
+    .pt-mobile-header {
+      padding-top: 0;
+    }
+  }
 }

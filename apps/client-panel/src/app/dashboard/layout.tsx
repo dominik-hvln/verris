@@ -230,7 +230,7 @@ export default function DashboardLayout({
       <IncidentBanner />
       <ReConsentModal />
       <PlatformConfigLoader />
-      <div className="relative flex min-h-screen w-full max-w-full overflow-x-hidden">
+      <div className="relative flex min-h-screen w-full max-w-full">
 
       {sidebarOpen ? (
         <button
@@ -243,7 +243,7 @@ export default function DashboardLayout({
 
       {/* Modern Black Minimal Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 flex w-[300px] flex-col bg-[#050505] border-r border-white/5 transition-transform duration-300 lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-[60] flex w-[300px] flex-col bg-[#050505] border-r border-white/5 transition-transform duration-300 lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
         onClick={(e) => {
@@ -335,9 +335,9 @@ export default function DashboardLayout({
       </aside>
 
       {/* Main Content Area */}
-      <div className="relative z-10 flex min-h-screen w-full min-w-0 max-w-full flex-1 flex-col overflow-x-hidden pl-0 lg:pl-[300px]">
-        {/* Top Navbar */}
-        <header className="sticky top-0 z-40 flex h-14 min-w-0 items-center justify-between gap-2 border-b border-white/5 bg-black/90 px-3 backdrop-blur-xl sm:h-20 sm:gap-3 sm:px-6 lg:px-8">
+      <div className="relative z-10 flex min-h-screen w-full min-w-0 max-w-full flex-1 flex-col pl-0 lg:pl-[300px]">
+        {/* Top Navbar — na mobile fixed (hamburger zawsze dostępny), na desktop sticky */}
+        <header className="fixed inset-x-0 top-0 z-50 flex h-mobile-header min-h-14 min-w-0 items-center justify-between gap-2 border-b border-white/5 bg-black/95 px-3 backdrop-blur-xl sm:min-h-20 sm:gap-3 sm:px-6 lg:sticky lg:inset-x-auto lg:z-40 lg:h-20 lg:min-h-0 lg:bg-black/90 lg:px-8">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <button
               type="button"
@@ -373,7 +373,7 @@ export default function DashboardLayout({
         </header>
 
         {/* Page Content */}
-        <main className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 py-4 sm:px-6 sm:py-6 lg:px-8 lg:py-8">
+        <main className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-4 pt-mobile-header sm:px-6 sm:pb-6 sm:pt-mobile-header lg:px-8 lg:py-8">
           {children}
         </main>
 

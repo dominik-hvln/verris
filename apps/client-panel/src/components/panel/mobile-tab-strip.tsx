@@ -15,14 +15,24 @@ export function MobileTabStrip<T extends string>({
   active,
   onChange,
   className,
+  stickyBelowHeader = false,
 }: {
   tabs: readonly MobileTabItem<T>[];
   active: T;
   onChange: (id: T) => void;
   className?: string;
+  /** Przyklej pod fixed nagłówkiem dashboardu podczas scrolla treści usługi. */
+  stickyBelowHeader?: boolean;
 }) {
   return (
-    <div className={cx('lg:hidden w-full min-w-0', className)}>
+    <div
+      className={cx(
+        'lg:hidden w-full min-w-0',
+        stickyBelowHeader &&
+          'sticky top-mobile-header z-30 -mx-3 border-b border-white/5 bg-black/95 px-3 py-2 backdrop-blur-xl sm:-mx-6 sm:px-6',
+        className,
+      )}
+    >
       <div
         className="flex w-full max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none snap-x snap-mandatory touch-pan-x"
         role="tablist"

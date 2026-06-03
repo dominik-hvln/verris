@@ -72,7 +72,12 @@ export default function HostingManagerPage() {
           </div>
         </div>
 
-        <MobileTabStrip tabs={TABS} active={activeTab} onChange={setActiveTab} />
+        <MobileTabStrip
+          tabs={TABS}
+          active={activeTab}
+          onChange={setActiveTab}
+          stickyBelowHeader
+        />
 
         <div className="flex flex-wrap gap-2 lg:hidden">
           <Link
