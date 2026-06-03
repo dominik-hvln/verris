@@ -434,6 +434,62 @@ export class DirectAdminClient {
    * request — DA requires sending the full settings payload, so callers
    * normally pass effective values (plan + autoscaling delta).
    */
+  /**
+   * Admin → Admin Settings → ns1/ns2 (zapis do directadmin.conf).
+   * Próbuje scalić z bieżącą konfiguracją (GET), potem POST action=config.
+   */
+  async setAdminDefaultNameservers(ns1: string, ns2: string): Promise<void> {
+    const payload: Record<string, string> = { action: 'config', ns1, ns2 };
+    try {
+      const getRes = await this.client.get('/CMD_API_ADMIN_SETTINGS', {
+        params: { json: 'yes' },
+      });
+      const merged = mergeAdminSettingsPayload(getRes.data);
+      merged.action = 'config';
+      merged.ns1 = ns1;
+      merged.ns2 = ns2;
+      Object.assign(payload, merged);
+    } catch {
+      // Minimal POST — działa na części wersji DA bez pełnego GET.
+    }
+    const response = await this.client.post(
+      '/CMD_API_ADMIN_SETTINGS',
+      new URLSearchParams(payload).toString(),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 30_000 },
+    );
+    this.parseDaResponseBody(response.data);
+  }
+
+  /**
+   * Reseller → Nameservers → domyślne NS dla nowo tworzonych kont użytkowników.
+   */
+  async setResellerDefaultNameservers(ns1: string, ns2: string): Promise<void> {
+    const response = await this.client.post(
+      '/CMD_API_NAME_SERVER',
+      new URLSearchParams({ action: 'modify', ns1, ns2 }).toString(),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
+    );
+    this.parseDaResponseBody(response.data);
+  }
+
+  /**
+   * NS jednego konta hostingowego bez zmiany pakietu (action=single).
+   */
+  async setUserNameservers(username: string, ns1: string, ns2: string): Promise<void> {
+    const response = await this.client.post(
+      '/CMD_API_MODIFY_USER',
+      new URLSearchParams({
+        action: 'single',
+        user: username,
+        ns1,
+        ns2,
+        ns: 'verris',
+      }).toString(),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
+    );
+    this.parseDaResponseBody(response.data);
+  }
+
   async setAccountLimits(username: string, limits: AccountResourceLimits) {
     const params: Record<string, string> = {
       action: 'modify',
@@ -918,6 +974,47 @@ export class DirectAdminClient {
       details: params.get('details'),
     };
   }
+
+  /** Obsługa odpowiedzi tekstowej lub JSON (json=yes). */
+  private parseDaResponseBody(data: unknown): void {
+    if (typeof data === 'string') {
+      this.parseResponse(data);
+      return;
+    }
+    if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
+      const o = data as Record<string, unknown>;
+      if ('error' in o) {
+        const err = o.error;
+        if (String(err) !== '0' && String(err) !== 'false') {
+          throw new Error(
+            `DirectAdmin API Error: ${String(o.text ?? o.details ?? o.message ?? err)}`,
+          );
+        }
+      }
+    }
+  }
+}
+
+/** Wyciąga pola formularza Admin Settings do POST action=config. */
+export function mergeAdminSettingsPayload(data: unknown): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (typeof data === 'string') {
+    const params = new URLSearchParams(data);
+    for (const [key, value] of params.entries()) {
+      if (!['error', 'text', 'details'].includes(key)) out[key] = value;
+    }
+    return out;
+  }
+  if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
+    const root = data as Record<string, unknown>;
+    const serverSettings = root.server_settings ?? root.serverSettings;
+    if (serverSettings && typeof serverSettings === 'object' && !Array.isArray(serverSettings)) {
+      for (const [key, value] of Object.entries(serverSettings)) {
+        if (value != null && typeof value !== 'object') out[key] = String(value);
+      }
+    }
+  }
+  return out;
 }
 
 /**

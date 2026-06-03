@@ -4,7 +4,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { DirectAdminClient } from '@verris/directadmin-sdk';
+import { DirectAdminClient, mergeAdminSettingsPayload } from '@verris/directadmin-sdk';
 import type {
   DeployFrequency,
   DeployJobDto,
@@ -58,6 +58,117 @@ export class DirectAdminService {
       loginKey,
       secure: server.daUseTls,
     });
+  }
+
+  /**
+   * Po przypisaniu markowych NS do węzła (OVH): ustawia domyślne NS w DirectAdmin
+   * (Admin Settings + domyślne NS resellerów) i synchronizuje istniejące konta hostingowe.
+   */
+  async applyBrandedNameserversOnNode(
+    serverId: string,
+    ns1: string,
+    ns2: string,
+  ): Promise<{
+    adminSettings: 'updated' | 'unchanged' | 'skipped' | 'error';
+    nameServerDefaults: 'updated' | 'unchanged' | 'skipped' | 'error';
+    hostingAccounts: { updated: number; skipped: number; failed: number };
+  }> {
+    const skipped = {
+      adminSettings: 'skipped' as const,
+      nameServerDefaults: 'skipped' as const,
+      hostingAccounts: { updated: 0, skipped: 0, failed: 0 },
+    };
+    const server = await this.prisma.server.findUnique({ where: { id: serverId } });
+    if (!server?.daHost || !server.daPasswordEnc) return skipped;
+
+    const n1 = ns1.trim();
+    const n2 = ns2.trim();
+    if (!n1 || !n2) return skipped;
+
+    let client: DirectAdminClient;
+    try {
+      client = await this.getClientForServer(serverId);
+    } catch (err) {
+      this.logger.warn(
+        `applyBrandedNameserversOnNode server=${serverId}: ${(err as Error).message}`,
+      );
+      return {
+        adminSettings: 'error',
+        nameServerDefaults: 'error',
+        hostingAccounts: { updated: 0, skipped: 0, failed: 0 },
+      };
+    }
+
+    const norm = (d: string) => d.trim().toLowerCase();
+    let adminSettings: 'updated' | 'unchanged' | 'error' = 'updated';
+    try {
+      const axiosClient = (client as unknown as { client?: { get: Function } }).client;
+      let currentNs1 = '';
+      let currentNs2 = '';
+      if (axiosClient) {
+        try {
+          const getRes = await axiosClient.get('/CMD_API_ADMIN_SETTINGS', {
+            params: { json: 'yes' },
+            timeout: 15_000,
+          });
+          const cur = mergeAdminSettingsPayload(getRes?.data);
+          currentNs1 = cur.ns1 ?? '';
+          currentNs2 = cur.ns2 ?? '';
+        } catch {
+          // ignore — still attempt set
+        }
+      }
+      if (norm(currentNs1) === norm(n1) && norm(currentNs2) === norm(n2)) {
+        adminSettings = 'unchanged';
+      } else {
+        await client.setAdminDefaultNameservers(n1, n2);
+      }
+    } catch (err) {
+      adminSettings = 'error';
+      this.logger.warn(
+        `DA Admin Settings ns1/ns2 server=${serverId}: ${(err as Error).message}`,
+      );
+    }
+
+    let nameServerDefaults: 'updated' | 'unchanged' | 'error' = 'updated';
+    try {
+      await client.setResellerDefaultNameservers(n1, n2);
+    } catch (err) {
+      nameServerDefaults = 'error';
+      this.logger.warn(
+        `DA NAME_SERVER defaults server=${serverId}: ${(err as Error).message}`,
+      );
+    }
+
+    const accounts = await this.prisma.account.findMany({
+      where: { serverId, status: 'ACTIVE' },
+      select: { daUsername: true },
+    });
+    let updated = 0;
+    let failed = 0;
+    let skippedAccounts = 0;
+    for (const acc of accounts) {
+      try {
+        await client.setUserNameservers(acc.daUsername, n1, n2);
+        updated += 1;
+      } catch (err) {
+        const msg = (err as Error).message ?? '';
+        if (/already|unchanged|identical/i.test(msg)) {
+          skippedAccounts += 1;
+        } else {
+          failed += 1;
+          this.logger.warn(
+            `DA user NS sync server=${serverId} user=${acc.daUsername}: ${msg}`,
+          );
+        }
+      }
+    }
+
+    return {
+      adminSettings,
+      nameServerDefaults,
+      hostingAccounts: { updated, skipped: skippedAccounts, failed },
+    };
   }
 
   /**

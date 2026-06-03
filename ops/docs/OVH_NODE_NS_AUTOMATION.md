@@ -29,6 +29,10 @@ węźle tworzy krótkie NS i usuwa stare rekordy A/AAAA ze strefy (legacy).
    - glue `ns1.verris.pl` → `[IPv4 (, IPv6)]`
    - glue `ns2.verris.pl` → `[IPv4 (, IPv6)]`
 3. **Przypisanie NS** do węzła + opcjonalne usunięcie starych rekordów `ns1.<slug>.*`
+4. **DirectAdmin** (przez API admina węzła, gdy DA jest skonfigurowane w panelu Verris):
+   - `Admin Settings` → `ns1` / `ns2` w `directadmin.conf` (zamiast `*.da.direct`)
+   - `Reseller → Nameservers` → domyślne NS dla nowych kont
+   - `MODIFY_USER` (`action=single`) dla **istniejących** kont `ACTIVE` na węźle
 
 > Do czasu uruchomienia własnego klastra PowerDNS oba NS węzła wskazują na ten sam
 > węzeł (autorytatywny pojedynczy host).
@@ -83,3 +87,9 @@ dig +short A ns2.verris.pl
 
 Raport kroków (created/updated/unchanged/skipped/error) widać w panelu zaraz po
 kliknięciu „Podepnij NS w OVH" oraz w logu audytu (`NODE_NS_PROVISION`).
+
+Kroki DirectAdmin pojawią się jako osobne linie w raporcie (Admin Settings, domyślne NS,
+synchronizacja kont). Wymaga działającego połączenia API do DA (host/port/login key w karcie węzła).
+
+**Ponowne uruchomienie** „Podepnij NS w OVH" jest bezpieczne (idempotentne) — ponownie
+uzgodni OVH i DirectAdmin, jeśli wcześniej zostały tylko rekordy glue bez zmiany DA.

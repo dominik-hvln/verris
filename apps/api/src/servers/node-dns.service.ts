@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { OvhClient } from './ovh.client';
+import { DirectAdminService } from './directadmin.service';
 import {
   allocateNsPairIndices,
   normalizeGlueFqdn,
@@ -63,6 +64,7 @@ export class NodeDnsService {
     private readonly ovh: OvhClient,
     private readonly audit: AuditService,
     private readonly config: ConfigService,
+    private readonly directAdmin: DirectAdminService,
   ) {}
 
   isConfigured(): boolean {
@@ -196,6 +198,9 @@ export class NodeDnsService {
     });
     steps.push({ step: 'Przypisanie NS do węzła', status: 'updated', detail: `${ns1Host}, ${ns2Host}` });
 
+    // 5) DirectAdmin — domyślne NS serwera (Admin Settings) + konta hostingowe.
+    await this.applyDirectAdminNameservers(serverId, ns1Host, ns2Host, steps);
+
     const ok = !steps.some((s) => s.status === 'error');
     await this.audit.record({
       action: 'NODE_NS_PROVISION',
@@ -205,6 +210,55 @@ export class NodeDnsService {
     });
 
     return { ns1: ns1Host, ns2: ns2Host, ipv4, ipv6, baseDomain: base, steps, ok };
+  }
+
+  private async applyDirectAdminNameservers(
+    serverId: string,
+    ns1: string,
+    ns2: string,
+    steps: NsProvisionStep[],
+  ): Promise<void> {
+    try {
+      const da = await this.directAdmin.applyBrandedNameserversOnNode(serverId, ns1, ns2);
+      const mapStatus = (
+        s: 'updated' | 'unchanged' | 'skipped' | 'error',
+      ): NsProvisionStepStatus =>
+        s === 'updated'
+          ? 'updated'
+          : s === 'unchanged'
+            ? 'unchanged'
+            : s === 'skipped'
+              ? 'skipped'
+              : 'error';
+
+      steps.push({
+        step: 'DirectAdmin: Admin Settings (ns1/ns2)',
+        status: mapStatus(da.adminSettings),
+        detail:
+          da.adminSettings === 'skipped'
+            ? 'Brak konfiguracji DA na węźle.'
+            : `${ns1}, ${ns2}`,
+      });
+      steps.push({
+        step: 'DirectAdmin: domyślne NS dla nowych kont',
+        status: mapStatus(da.nameServerDefaults),
+        detail: `${ns1}, ${ns2}`,
+      });
+      const { updated, skipped, failed } = da.hostingAccounts;
+      steps.push({
+        step: 'DirectAdmin: NS istniejących kont hostingowych',
+        status: failed > 0 ? 'error' : updated > 0 ? 'updated' : 'unchanged',
+        detail: `zaktualizowano: ${updated}, bez zmian: ${skipped}, błędy: ${failed}`,
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`applyDirectAdminNameservers server=${serverId}: ${msg}`);
+      steps.push({
+        step: 'DirectAdmin: synchronizacja NS',
+        status: 'error',
+        detail: msg,
+      });
+    }
   }
 
   /** Auto-trigger used on node activation — never throws, logs instead. */
