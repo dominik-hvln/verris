@@ -17,21 +17,27 @@ Po incydencie **Spamhaus XBL / Ranbyus** na `204.168.174.138` (czerwiec 2026) do
 
 ## Jednorazowa instalacja (control-plane)
 
-Na serwerze z repozytorium w `/opt/verris`:
+Na serwerze z repozytorium w `/opt/verris` — **na LIVE preferuj** `security-install` (nie resetuje UFW, nie instaluje `iptables-persistent`):
 
 ```bash
 cd /opt/verris
+git pull
+sudo bash ops/scripts/security-install-verris-security.sh --role control-plane
+```
+
+Pełny `security-hardening-baseline.sh` uruchamiaj tylko na **świeżym** hoście lub po `--dry-run`; na działającym CP **`ufw --force reset`** może na chwilę uciąć SSH/Docker.
+
+```bash
 sudo bash ops/scripts/security-hardening-baseline.sh --role control-plane --dry-run
 sudo bash ops/scripts/security-hardening-baseline.sh --role control-plane
 ```
 
-To instaluje m.in. timer `verris-security-watch.timer` i reguły IOC.
+### SSH odmawia polegania (port 22 zamknięty)
 
-Ręcznie (jeśli baseline już był):
-
-```bash
-sudo bash ops/scripts/security-install-verris-security.sh --role control-plane
-```
+1. Wejdź przez **Hetzner Console** (KVM).
+2. Sprawdź: `systemctl status ssh`, `ss -lntp | grep :22`, `ufw status`.
+3. Przywróć ingress: `ufw allow 22/tcp && ufw allow 80/tcp && ufw allow 443/tcp && ufw default allow routed && ufw enable`
+4. Ponów `security-install-verris-security.sh` (dopina 22/80/443 przed regułami IOC).
 
 ## Węzły hostingowe (node-pl-01, …)
 

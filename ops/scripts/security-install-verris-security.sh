@@ -40,8 +40,20 @@ run "install -m 0644 '$REPO_ROOT/ops/etc/verris/security/ioc-ips.txt' /etc/verri
 run "install -m 0644 '$REPO_ROOT/ops/etc/verris/security/egress-allow-hostnames.txt' /etc/verris/security/egress-allow-hostnames.txt"
 
 if command -v apt-get >/dev/null 2>&1; then
-  run "DEBIAN_FRONTEND=noninteractive apt-get install -y ipset iptables-persistent auditd dnsutils"
+  # Bez iptables-persistent — apt często usuwa ufw; egress CP jest w security-control-plane-egress.sh.
+  run "DEBIAN_FRONTEND=noninteractive apt-get install -y ipset auditd dnsutils ufw"
 fi
+
+ensure_control_plane_ufw_ingress() {
+  command -v ufw >/dev/null 2>&1 || return 0
+  run "ufw default allow routed || true"
+  run "ufw allow 22/tcp comment 'verris-ssh' || true"
+  run "ufw allow 80/tcp comment 'verris-http' || true"
+  run "ufw allow 443/tcp comment 'verris-https' || true"
+  if ! ufw status 2>/dev/null | grep -q 'Status: active'; then
+    run "ufw --force enable"
+  fi
+}
 
 # auditd — minimal rules
 AUDIT_RULES="/etc/audit/rules.d/verris-security.rules"
@@ -76,6 +88,7 @@ if [ "$ROLE" = "control-plane" ]; then
   if [ "$DRY_RUN" -eq 1 ]; then
     run "bash '$REPO_ROOT/ops/scripts/security-control-plane-egress.sh' --dry-run"
   else
+    ensure_control_plane_ufw_ingress
     run "bash '$REPO_ROOT/ops/scripts/security-control-plane-egress.sh'"
     # UFW deny out to IOC (backup layer)
     if [ -f /etc/verris/security/ioc-ips.txt ] && command -v ufw >/dev/null 2>&1; then
