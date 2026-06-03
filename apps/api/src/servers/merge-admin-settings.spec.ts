@@ -19,4 +19,14 @@ describe('mergeAdminSettingsPayload', () => {
       ns2: 'old2.pl',
     });
   });
+
+  it('reads flat keys from CMD_ADMIN_SETTINGS JSON', () => {
+    expect(
+      mergeAdminSettingsPayload({
+        success: 'saved',
+        ns1: 'ns1.verris.pl',
+        auto_update: 'yes',
+      }),
+    ).toMatchObject({ ns1: 'ns1.verris.pl', auto_update: 'yes' });
+  });
 });

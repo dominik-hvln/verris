@@ -30,7 +30,7 @@ węźle tworzy krótkie NS i usuwa stare rekordy A/AAAA ze strefy (legacy).
    - glue `ns2.verris.pl` → `[IPv4 (, IPv6)]`
 3. **Przypisanie NS** do węzła + opcjonalne usunięcie starych rekordów `ns1.<slug>.*`
 4. **DirectAdmin** (przez API admina węzła, gdy DA jest skonfigurowane w panelu Verris):
-   - `Admin Settings` → `ns1` / `ns2` w `directadmin.conf` (zamiast `*.da.direct`)
+   - `Admin Settings` → `ns1` / `ns2` w `directadmin.conf` (POST `CMD_ADMIN_SETTINGS`, nie `CMD_API_*` — na DA 1.6x API zwraca 405)
    - `Reseller → Nameservers` → domyślne NS dla nowych kont
    - `MODIFY_USER` (`action=single`) dla **istniejących** kont `ACTIVE` na węźle
 

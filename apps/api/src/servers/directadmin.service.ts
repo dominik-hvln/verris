@@ -70,11 +70,13 @@ export class DirectAdminService {
     ns2: string,
   ): Promise<{
     adminSettings: 'updated' | 'unchanged' | 'skipped' | 'error';
+    adminSettingsDetail: string | null;
     nameServerDefaults: 'updated' | 'unchanged' | 'skipped' | 'error';
     hostingAccounts: { updated: number; skipped: number; failed: number };
   }> {
     const skipped = {
       adminSettings: 'skipped' as const,
+      adminSettingsDetail: null as string | null,
       nameServerDefaults: 'skipped' as const,
       hostingAccounts: { updated: 0, skipped: 0, failed: 0 },
     };
@@ -94,6 +96,7 @@ export class DirectAdminService {
       );
       return {
         adminSettings: 'error',
+        adminSettingsDetail: (err as Error).message,
         nameServerDefaults: 'error',
         hostingAccounts: { updated: 0, skipped: 0, failed: 0 },
       };
@@ -101,32 +104,39 @@ export class DirectAdminService {
 
     const norm = (d: string) => d.trim().toLowerCase();
     let adminSettings: 'updated' | 'unchanged' | 'error' = 'updated';
+    let adminSettingsDetail: string | null = null;
     try {
       const axiosClient = (client as unknown as { client?: { get: Function } }).client;
       let currentNs1 = '';
       let currentNs2 = '';
       if (axiosClient) {
-        try {
-          const getRes = await axiosClient.get('/CMD_API_ADMIN_SETTINGS', {
-            params: { json: 'yes' },
-            timeout: 15_000,
-          });
-          const cur = mergeAdminSettingsPayload(getRes?.data);
-          currentNs1 = cur.ns1 ?? '';
-          currentNs2 = cur.ns2 ?? '';
-        } catch {
-          // ignore — still attempt set
+        for (const getPath of ['/CMD_ADMIN_SETTINGS', '/CMD_API_ADMIN_SETTINGS'] as const) {
+          try {
+            const getRes = await axiosClient.get(getPath, {
+              params: { json: 'yes' },
+              timeout: 15_000,
+            });
+            const cur = mergeAdminSettingsPayload(getRes?.data);
+            currentNs1 = cur.ns1 ?? '';
+            currentNs2 = cur.ns2 ?? '';
+            if (currentNs1 || currentNs2) break;
+          } catch {
+            // try alternate GET
+          }
         }
       }
       if (norm(currentNs1) === norm(n1) && norm(currentNs2) === norm(n2)) {
         adminSettings = 'unchanged';
+        adminSettingsDetail = 'Już ustawione w Admin Settings.';
       } else {
         await client.setAdminDefaultNameservers(n1, n2);
+        adminSettingsDetail = 'Zapisano przez CMD_ADMIN_SETTINGS.';
       }
     } catch (err) {
       adminSettings = 'error';
+      adminSettingsDetail = (err as Error).message;
       this.logger.warn(
-        `DA Admin Settings ns1/ns2 server=${serverId}: ${(err as Error).message}`,
+        `DA Admin Settings ns1/ns2 server=${serverId}: ${adminSettingsDetail}`,
       );
     }
 
@@ -166,6 +176,7 @@ export class DirectAdminService {
 
     return {
       adminSettings,
+      adminSettingsDetail,
       nameServerDefaults,
       hostingAccounts: { updated, skipped: skippedAccounts, failed },
     };

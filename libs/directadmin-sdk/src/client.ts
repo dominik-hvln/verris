@@ -436,28 +436,96 @@ export class DirectAdminClient {
    */
   /**
    * Admin → Admin Settings → ns1/ns2 (zapis do directadmin.conf).
-   * Próbuje scalić z bieżącą konfiguracją (GET), potem POST action=config.
+   * DA 1.6x: POST na CMD_API_ADMIN_SETTINGS często zwraca 405 — używamy CMD_ADMIN_SETTINGS.
    */
   async setAdminDefaultNameservers(ns1: string, ns2: string): Promise<void> {
-    const payload: Record<string, string> = { action: 'config', ns1, ns2 };
-    try {
-      const getRes = await this.client.get('/CMD_API_ADMIN_SETTINGS', {
-        params: { json: 'yes' },
-      });
-      const merged = mergeAdminSettingsPayload(getRes.data);
-      merged.action = 'config';
-      merged.ns1 = ns1;
-      merged.ns2 = ns2;
-      Object.assign(payload, merged);
-    } catch {
-      // Minimal POST — działa na części wersji DA bez pełnego GET.
+    const payload = await this.buildAdminSettingsSavePayload(ns1, ns2);
+    let lastError: unknown;
+    for (const path of ['/CMD_ADMIN_SETTINGS', '/CMD_API_ADMIN_SETTINGS'] as const) {
+      try {
+        const response = await this.client.post(
+          path,
+          new URLSearchParams(payload).toString(),
+          {
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            timeout: 30_000,
+          },
+        );
+        this.parseDaAdminSettingsSaveResponse(response.data);
+        return;
+      } catch (err) {
+        lastError = err;
+        if (this.shouldRetryAdminSettingsOnAlternatePath(err, path)) continue;
+        throw err;
+      }
     }
-    const response = await this.client.post(
-      '/CMD_API_ADMIN_SETTINGS',
-      new URLSearchParams(payload).toString(),
-      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 30_000 },
-    );
-    this.parseDaResponseBody(response.data);
+    throw lastError instanceof Error ? lastError : new Error(String(lastError));
+  }
+
+  private adminSettingsFormDefaults(ns1: string, ns2: string): Record<string, string> {
+    return {
+      action: 'save',
+      json: 'yes',
+      ns1,
+      ns2,
+      auto_update: 'yes',
+      backup_threshold: '90',
+      demo_admin: 'no',
+      demo_reseller: 'no',
+      demo_user: 'no',
+      oversell: 'yes',
+      service_email_active: 'yes',
+      suspend: 'yes',
+      user_backup: 'yes',
+    };
+  }
+
+  private async buildAdminSettingsSavePayload(ns1: string, ns2: string): Promise<Record<string, string>> {
+    const defaults = this.adminSettingsFormDefaults(ns1, ns2);
+    for (const getPath of ['/CMD_ADMIN_SETTINGS', '/CMD_API_ADMIN_SETTINGS'] as const) {
+      try {
+        const getRes = await this.client.get(getPath, { params: { json: 'yes' }, timeout: 20_000 });
+        const merged = mergeAdminSettingsPayload(getRes.data);
+        return { ...merged, ...defaults, ns1, ns2 };
+      } catch {
+        // try next GET path
+      }
+    }
+    return defaults;
+  }
+
+  private shouldRetryAdminSettingsOnAlternatePath(err: unknown, path: string): boolean {
+    if (path !== '/CMD_API_ADMIN_SETTINGS') return false;
+    const ax = err as { response?: { status?: number; data?: unknown } };
+    if (ax.response?.status === 405) return true;
+    const body =
+      typeof ax.response?.data === 'string'
+        ? ax.response.data
+        : JSON.stringify(ax.response?.data ?? '');
+    return /cannot execute that command/i.test(body);
+  }
+
+  private parseDaAdminSettingsSaveResponse(data: unknown): void {
+    if (typeof data === 'string') {
+      if (/cannot execute that command/i.test(data)) {
+        throw new Error('DirectAdmin: CMD_ADMIN_SETTINGS not available for this session');
+      }
+      this.parseResponse(data);
+      return;
+    }
+    if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
+      const o = data as Record<string, unknown>;
+      const success = o.success;
+      if (success === 'saved' || success === true || success === 'true') return;
+      if ('error' in o) {
+        const err = o.error;
+        if (String(err) !== '0' && String(err) !== 'false') {
+          throw new Error(
+            `DirectAdmin API Error: ${String(o.text ?? o.details ?? o.message ?? err)}`,
+          );
+        }
+      }
+    }
   }
 
   /**
@@ -995,23 +1063,37 @@ export class DirectAdminClient {
   }
 }
 
-/** Wyciąga pola formularza Admin Settings do POST action=config. */
+const ADMIN_SETTINGS_SKIP_KEYS = new Set([
+  'error',
+  'text',
+  'details',
+  'success',
+  'result',
+  'timezones',
+  'json',
+]);
+
+/** Wyciąga pola formularza Admin Settings do POST action=save. */
 export function mergeAdminSettingsPayload(data: unknown): Record<string, string> {
   const out: Record<string, string> = {};
   if (typeof data === 'string') {
     const params = new URLSearchParams(data);
     for (const [key, value] of params.entries()) {
-      if (!['error', 'text', 'details'].includes(key)) out[key] = value;
+      if (!ADMIN_SETTINGS_SKIP_KEYS.has(key)) out[key] = value;
     }
     return out;
   }
   if (typeof data === 'object' && data !== null && !Array.isArray(data)) {
     const root = data as Record<string, unknown>;
-    const serverSettings = root.server_settings ?? root.serverSettings;
-    if (serverSettings && typeof serverSettings === 'object' && !Array.isArray(serverSettings)) {
-      for (const [key, value] of Object.entries(serverSettings)) {
+    const nested = root.server_settings ?? root.serverSettings ?? root.config;
+    if (nested && typeof nested === 'object' && !Array.isArray(nested)) {
+      for (const [key, value] of Object.entries(nested)) {
         if (value != null && typeof value !== 'object') out[key] = String(value);
       }
+    }
+    for (const [key, value] of Object.entries(root)) {
+      if (ADMIN_SETTINGS_SKIP_KEYS.has(key)) continue;
+      if (value != null && typeof value !== 'object') out[key] = String(value);
     }
   }
   return out;

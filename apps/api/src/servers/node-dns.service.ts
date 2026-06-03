@@ -237,7 +237,7 @@ export class NodeDnsService {
         detail:
           da.adminSettings === 'skipped'
             ? 'Brak konfiguracji DA na węźle.'
-            : `${ns1}, ${ns2}`,
+            : da.adminSettingsDetail ?? `${ns1}, ${ns2}`,
       });
       steps.push({
         step: 'DirectAdmin: domyślne NS dla nowych kont',
