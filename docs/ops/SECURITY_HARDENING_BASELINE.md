@@ -26,9 +26,14 @@ This document covers prevention for abuse incidents (netscan/C2) and common serv
 
 ## Scripts
 
-- `ops/scripts/security-hardening-baseline.sh`
-- `ops/scripts/security-egress-lockdown.sh`
-- `ops/scripts/security-incident-collect.sh`
+- `ops/scripts/security-hardening-baseline.sh` — SSH, fail2ban, UFW ingress + **instaluje stos poniżej**
+- `ops/scripts/security-install-verris-security.sh` — IOC, auditd, timer watch
+- `ops/scripts/security-control-plane-egress.sh` — iptables DROP IOC (Docker-safe)
+- `ops/scripts/security-egress-watch.sh` — monitoring co 5 min
+- `ops/scripts/security-egress-lockdown.sh` — strict nft egress (**tylko node**)
+- `ops/scripts/security-incident-collect.sh` — triage po incydencie
+
+Szczegóły operacyjne: `docs/ops/SECURITY_PREVENTION_STACK.md`.
 
 ## Rollout order (mandatory)
 

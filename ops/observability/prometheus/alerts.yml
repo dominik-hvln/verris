@@ -86,3 +86,24 @@ groups:
         annotations:
           summary: "Joby migracji w stanie FAILED"
           description: "Panel klienta → migracje; logi workerów migracji."
+
+  - name: verris_host_security
+    interval: 1m
+    rules:
+      - alert: VerrisSecurityWatchFindings
+        expr: verris_security_findings > 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Wykryto podejrzaną aktywność na hoście (security watch)"
+          description: "Sprawdź journalctl -u verris-security-watch.service i /var/log/verris-security/. Możliwy IOC/C2 lub zmiana cron."
+
+      - alert: VerrisSecurityWatchStale
+        expr: absent(verris_security_findings)
+        for: 20m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Brak metryki security watch (timer nie działa?)"
+          description: "Zainstaluj ops/scripts/security-install-verris-security.sh i sprawdź verris-security-watch.timer."

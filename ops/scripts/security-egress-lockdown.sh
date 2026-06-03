@@ -70,7 +70,9 @@ COMMON_ALLOW_UDP="{ 53, 123 }"
 if [ "$ROLE" = "control-plane" ]; then
   EXTRA_TCP="{ 25, 465, 587, 993, 995, 2222, 3306, 5432, 6379, 9000, 9001 }"
 else
-  EXTRA_TCP="{ 2222, 3306 }"
+  # DirectAdmin / hosting: SMTP, SMTPS, FTP, IMAP — nie blokuje ruchu klientów (inbound)
+  # ani normalnej poczty wychodzącej; blokuje tylko losowy egress poza allowlistą.
+  EXTRA_TCP="{ 21, 25, 465, 587, 993, 995, 2222, 3306 }"
 fi
 
 cat >"$NFT_CONF" <<EOF

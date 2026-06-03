@@ -1,0 +1,9 @@
+[Unit]
+Description=Weekly Verris security audit
+
+[Timer]
+OnCalendar=Sun *-*-* 04:30:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

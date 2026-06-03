@@ -107,6 +107,16 @@ Verris Security Team
 
 ---
 
+## Prevention (po zamknięciu incydentu)
+
+Zainstaluj na control-plane i węzłach stos z `docs/ops/SECURITY_PREVENTION_STACK.md`:
+
+```bash
+cd /opt/verris
+sudo bash ops/scripts/security-hardening-baseline.sh --role control-plane
+sudo bash ops/scripts/security-egress-lockdown.sh --role node --apply   # na każdym węźle DA
+```
+
 ## Follow-up in repo governance
 
 - Track this as OPS blocker in `docs/LIVE_VERIFICATION_MATRIX.md`.

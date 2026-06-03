@@ -1,0 +1,11 @@
+# Opcjonalna lista hostów dla trybu STRICT (security-control-plane-egress.sh --strict).
+# Używaj tylko po przetestowaniu — CDN zmienia IP.
+#
+# github.com
+# api.github.com
+# registry-1.docker.io
+# auth.docker.io
+# production.cloudflare.docker.com
+# api.stripe.com
+# hooks.stripe.com
+# node-pl-01.verris.pl

@@ -1,0 +1,12 @@
+[Unit]
+Description=Verris security egress and integrity watch
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c '@REPO_ROOT@/ops/scripts/security-egress-watch.sh --prometheus-textfile /var/lib/verris-node-exporter-textfile'
+# Non-zero exit when findings — visible in journal for alerting
+SuccessExitStatus=0 1
+
+[Install]
+WantedBy=multi-user.target

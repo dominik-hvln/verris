@@ -199,7 +199,7 @@ configure_firewall_ingress() {
       run "firewall-cmd --permanent --add-port=993/tcp"
       if [ -n "$control_plane_ip" ]; then
         # Remote MySQL stays private by default; allow only control-plane.
-        run \"firewall-cmd --permanent --add-rich-rule='rule family=\\\"ipv4\\\" source address=\\\"${control_plane_ip}\\\" port port=\\\"3306\\\" protocol=\\\"tcp\\\" accept'\"
+        run "firewall-cmd --permanent --add-rich-rule='rule family=\"ipv4\" source address=\"${control_plane_ip}\" port port=\"3306\" protocol=\"tcp\" accept'"
       fi
     fi
     run "firewall-cmd --reload"
@@ -217,11 +217,31 @@ Role: ${ROLE}
 SSH port: ${SSH_PORT}
 Dry-run: ${DRY_RUN}
 
-Next step (required):
-  Apply strict egress policy with:
-  ops/scripts/security-egress-lockdown.sh
+Installed (if repo present):
+  - /etc/verris/security (IOC list)
+  - verris-security-watch.timer (every 5 min)
+  - control-plane: iptables IOC drop + egress log
+
+Next step for compute nodes (required):
+  sudo bash ops/scripts/security-egress-lockdown.sh --role node --apply
+
+Optional control-plane strict egress (test first):
+  sudo bash ops/scripts/security-control-plane-egress.sh --strict
 EOF
 }
+
+install_verris_security_stack() {
+  local installer="${REPO_ROOT:-}/ops/scripts/security-install-verris-security.sh"
+  if [ ! -f "$installer" ]; then
+    log "SKIP verris security stack (repo path unknown — run from /opt/verris)"
+    return 0
+  fi
+  local args="--role ${ROLE}"
+  [ "$DRY_RUN" -eq 1 ] && args="$args --dry-run"
+  run "bash '$installer' $args"
+}
+
+REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 
 log "Starting baseline hardening (role=${ROLE}, ssh_port=${SSH_PORT}, dry_run=${DRY_RUN})"
 install_packages
@@ -230,4 +250,5 @@ harden_ssh
 configure_fail2ban
 configure_auto_updates
 configure_firewall_ingress
+install_verris_security_stack
 write_summary
