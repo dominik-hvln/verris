@@ -500,6 +500,14 @@ export class UserServicesController {
     });
     if (!sub) throw new NotFoundException('Service not found');
 
+    if (sub.account?.daPasswordEnc) {
+      const syncedDomain = await this.directAdmin.syncPrimaryDomainForSubscription(
+        id,
+        user.userId,
+      );
+      if (syncedDomain) sub.account.domain = syncedDomain;
+    }
+
     return {
       id: sub.id,
       status: sub.status,

@@ -89,8 +89,17 @@ export class ServiceHealthService {
       return summary;
     }
 
-    const account = sub.account;
+    let account = sub.account;
     const server = account.server;
+    if (account.daPasswordEnc) {
+      const synced = await this.directAdmin.syncPrimaryDomainForSubscription(
+        subscriptionId,
+        sub.userId,
+      );
+      if (synced) {
+        account = { ...account, domain: synced };
+      }
+    }
     const checks = {
       dnsOk: null as boolean | null,
       tlsOk: null as boolean | null,

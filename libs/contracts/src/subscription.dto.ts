@@ -235,7 +235,7 @@ export interface CreateSubscriptionResponse {
 export interface HostingDomainsResponseDto {
   domains: { name: string }[];
   daUsername: string | null;
-  /** Główna domena konta wg bazy Verris (porównanie z listą DA). */
+  /** Główna domena konta — synchronizowana z DirectAdmin przy odczycie. */
   primaryDomain: string | null;
   fetchError: string | null;
 }

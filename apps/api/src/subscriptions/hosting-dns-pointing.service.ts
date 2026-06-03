@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import * as dns from 'node:dns/promises';
 import { PrismaService } from '../prisma/prisma.service';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
+import { DirectAdminService } from '../servers/directadmin.service';
 
 export type DnsPointingStatus = 'ok' | 'partial' | 'fail' | 'pending';
 
@@ -28,6 +29,7 @@ export class HostingDnsPointingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly platformSettings: PlatformSettingsService,
+    private readonly directAdmin: DirectAdminService,
   ) {}
 
   async verifyForSubscription(
@@ -39,6 +41,15 @@ export class HostingDnsPointingService {
       include: { account: { include: { server: true } } },
     });
     if (!sub) throw new NotFoundException('Service not found');
+
+    if (sub.account?.daPasswordEnc) {
+      await this.directAdmin.syncPrimaryDomainForSubscription(subscriptionId, userId);
+      const refreshed = await this.prisma.account.findUnique({
+        where: { id: sub.account.id },
+        select: { domain: true },
+      });
+      if (refreshed) sub.account.domain = refreshed.domain;
+    }
 
     if (!sub.account) {
       return {

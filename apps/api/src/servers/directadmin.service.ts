@@ -18,10 +18,12 @@ import type {
   ServiceConnectionInfoDto,
 } from '@verris/contracts';
 import { randomBytes, X509Certificate } from 'crypto';
+import { Prisma } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto/crypto.service';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 import { buildDaPackageSpecFromPlan, planResourceFields } from './da-package-spec';
+import { resolveHostingPrimaryDomain } from './hosting-primary-domain';
 
 /**
  * Resolves a Server record into a configured DirectAdminClient instance.
@@ -166,7 +168,7 @@ export class DirectAdminService {
     if (!sub.account) {
       return { domains: [], daUsername: null, primaryDomain: null, fetchError: null };
     }
-    const primaryDomain = sub.account.domain;
+    let primaryDomain = sub.account.domain;
     if (!sub.account.daPasswordEnc) {
       return {
         domains: [],
@@ -179,6 +181,7 @@ export class DirectAdminService {
     try {
       const client = await this.getClientForHostingAccount(sub.account.id, userId);
       const names = await client.getDomains();
+      primaryDomain = await this.syncPrimaryDomainFromDirectAdmin(sub.account, client, names);
       return {
         domains: names.map((name) => ({ name })),
         daUsername: sub.account.daUsername,
@@ -194,6 +197,83 @@ export class DirectAdminService {
         primaryDomain,
         fetchError: msg,
       };
+    }
+  }
+
+  /**
+   * Synchronizuje Account.domain z DirectAdmin (gdy klient zmieni domenę w DA).
+   * Zwraca aktualną główną domenę po syncu.
+   */
+  async syncPrimaryDomainForSubscription(
+    subscriptionId: string,
+    userId: string,
+  ): Promise<string | null> {
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id: subscriptionId, userId },
+      include: { account: true },
+    });
+    if (!sub?.account) return null;
+    if (!sub.account.daPasswordEnc) return sub.account.domain;
+    try {
+      const client = await this.getClientForHostingAccount(sub.account.id, userId);
+      return await this.syncPrimaryDomainFromDirectAdmin(sub.account, client);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`syncPrimaryDomainForSubscription sub=${subscriptionId}: ${msg}`);
+      return sub.account.domain;
+    }
+  }
+
+  private async readDaUserConfigDomain(client: DirectAdminClient): Promise<string | null> {
+    const axiosClient = (client as unknown as { client?: { get: Function } }).client;
+    if (!axiosClient) return null;
+    try {
+      const res = await axiosClient.get('/CMD_API_SHOW_USER_CONFIG', { timeout: 15_000 });
+      const config = this.parseKvPayload(String(res?.data ?? ''));
+      const domain = config.get('domain')?.trim();
+      return domain || null;
+    } catch {
+      return null;
+    }
+  }
+
+  private async syncPrimaryDomainFromDirectAdmin(
+    account: { id: string; domain: string },
+    client: DirectAdminClient,
+    prefetchedDomains?: string[],
+  ): Promise<string> {
+    const daDomains = prefetchedDomains ?? (await client.getDomains());
+    const daConfigDomain = await this.readDaUserConfigDomain(client);
+    const resolved = resolveHostingPrimaryDomain({
+      storedDomain: account.domain,
+      daConfigDomain,
+      daDomains,
+    });
+
+    if (
+      !resolved ||
+      resolved.trim().toLowerCase() === account.domain.trim().toLowerCase()
+    ) {
+      return account.domain;
+    }
+
+    try {
+      await this.prisma.account.update({
+        where: { id: account.id },
+        data: { domain: resolved },
+      });
+      this.logger.log(
+        `Primary domain synced account=${account.id}: ${account.domain} → ${resolved} (DA: ${daDomains.join(', ')})`,
+      );
+      return resolved;
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        this.logger.warn(
+          `Primary domain sync skipped account=${account.id}: ${resolved} already assigned`,
+        );
+        return account.domain;
+      }
+      throw err;
     }
   }
 
@@ -719,7 +799,10 @@ export class DirectAdminService {
           'Brak zapisanego dostępu do DirectAdmin dla tego konta (provisioningu).',
       };
     }
-    const domain = sub.account.domain;
+    const domain = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
+    if (!domain) {
+      return { rows: [], fetchError: 'Brak domeny dla konta hostingowego.' };
+    }
     try {
       const client = await this.getClientForHostingAccount(sub.account.id, userId);
       const accounts = await client.listEmailAccounts(domain, {
@@ -1127,7 +1210,10 @@ export class DirectAdminService {
           'Brak zapisanego dostępu do DirectAdmin dla tego konta (provisioningu).',
       };
     }
-    const domain = sub.account.domain;
+    const domain = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
+    if (!domain) {
+      return { rows: [], fetchError: 'Brak domeny dla konta hostingowego.' };
+    }
     try {
       let raw: URLSearchParams;
       try {
@@ -1217,10 +1303,13 @@ export class DirectAdminService {
       where: { id: subscriptionId, userId },
       include: { account: true },
     });
-    if (!sub?.account?.domain) {
-      throw new BadRequestException('Brak konta hostingowego lub domeny dla tej usługi.');
+    if (!sub?.account) {
+      throw new BadRequestException('Brak konta hostingowego dla tej usługi.');
     }
-    const domain = sub.account.domain;
+    const domain = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
+    if (!domain) {
+      throw new BadRequestException('Brak domeny dla konta hostingowego.');
+    }
     const form: Record<string, string> = {
       action: 'backup',
       type: 'sitebackup',
@@ -1268,8 +1357,12 @@ export class DirectAdminService {
       where: { id: subscriptionId, userId },
       include: { account: true },
     });
-    if (!sub?.account?.domain) {
-      throw new BadRequestException('Brak konta hostingowego lub domeny dla tej usługi.');
+    if (!sub?.account) {
+      throw new BadRequestException('Brak konta hostingowego dla tej usługi.');
+    }
+    const restoreDomain = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
+    if (!restoreDomain) {
+      throw new BadRequestException('Brak domeny dla konta hostingowego.');
     }
     if (!opts.files && !opts.databases && !opts.email) {
       throw new BadRequestException('Wybierz przynajmniej jeden zakres do przywrócenia.');
@@ -1299,7 +1392,7 @@ export class DirectAdminService {
 
     const form: Record<string, string> = {
       action: 'restore',
-      domain: sub.account.domain,
+      domain: restoreDomain,
       file: opts.fileName,
     };
     selects.forEach((value, idx) => {
@@ -1355,7 +1448,10 @@ export class DirectAdminService {
     const server = sub.account.server;
     const panelBaseUrl = this.hostingPanelBaseUrl(server);
     const panelDisplayHost = this.hostingPanelDisplayHost(server);
-    const evo = this.hostingEvolutionLinks(panelBaseUrl, sub.account.domain);
+    const primaryDomain =
+      (await this.syncPrimaryDomainForSubscription(subscriptionId, userId)) ??
+      sub.account.domain;
+    const evo = this.hostingEvolutionLinks(panelBaseUrl, primaryDomain);
     let daPassword: string | null = null;
     if (sub.account.daPasswordEnc) {
       try {
