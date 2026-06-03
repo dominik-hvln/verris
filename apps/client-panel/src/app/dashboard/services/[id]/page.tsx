@@ -15,6 +15,7 @@ import {
   LayoutDashboard,
   Gauge,
   ArrowRightLeft,
+  Receipt,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -28,6 +29,7 @@ import DeployTab from '@/components/hosting/DeployTab';
 import HostingFileManagerTab from '@/components/hosting/HostingFileManagerTab';
 import UsageTab from '@/components/hosting/UsageTab';
 import ServiceOverviewTab from '@/components/hosting/ServiceOverviewTab';
+import ServiceSubscriptionTab from '@/components/hosting/ServiceSubscriptionTab';
 import HostingPanelCard from '@/components/hosting/HostingPanelCard';
 import ServiceConnectionCard from '@/components/hosting/ServiceConnectionCard';
 import { HostingLinksProvider } from '@/components/hosting/hosting-links-context';
@@ -35,6 +37,7 @@ import { MobileTabStrip } from '@/components/panel';
 
 const TABS = [
   { id: 'overview', label: 'Przegląd', icon: LayoutDashboard },
+  { id: 'subscription', label: 'Subskrypcja', icon: Receipt },
   { id: 'domains', label: 'Domeny & DNS', icon: Globe },
   { id: 'databases', label: 'Bazy MySQL', icon: Database },
   { id: 'mail', label: 'Poczta', icon: Mail },
@@ -143,6 +146,7 @@ export default function HostingManagerPage() {
             {activeTab === 'overview' && (
               <ServiceOverviewTab serviceId={params.id} onNavigate={(t) => setActiveTab(t as TabId)} />
             )}
+            {activeTab === 'subscription' && <ServiceSubscriptionTab serviceId={params.id} />}
             {activeTab === 'domains' && <DomainsTab serviceId={params.id} />}
             {activeTab === 'databases' && <DatabasesTab serviceId={params.id} />}
             {activeTab === 'mail' && <MailTab serviceId={params.id} />}

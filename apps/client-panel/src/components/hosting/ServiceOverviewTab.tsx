@@ -25,7 +25,6 @@ import { useHostingLinks } from '@/components/hosting/hosting-links-context';
 import { ServiceGaugeRing, gaugeColors } from '@/components/hosting/ServiceGaugeRing';
 import { HostingTabShell } from '@/components/hosting/HostingTabShell';
 import DomainPointingPanel from '@/components/hosting/DomainPointingPanel';
-import { UnpaidServiceBanner } from '@/components/hosting/UnpaidServiceBanner';
 import { HealthCheckDetails } from '@/components/hosting/HealthCheckDetails';
 
 const statusLabels: Record<string, string> = {
@@ -159,13 +158,25 @@ export default function ServiceOverviewTab({
       })
     : null;
 
+  const needsBilling =
+    service.status === 'PENDING_PAYMENT' ||
+    service.status === 'PAST_DUE' ||
+    service.status === 'SUSPENDED';
+
   return (
     <div className="space-y-4 min-w-0">
-      <UnpaidServiceBanner
-        serviceId={serviceId}
-        status={service.status}
-        paymentSource={service.paymentSource}
-      />
+      {needsBilling ? (
+        <button
+          type="button"
+          onClick={() => onNavigate('subscription')}
+          className="w-full rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-left text-sm text-amber-100 hover:bg-amber-500/15 transition-colors"
+        >
+          <span className="font-semibold text-amber-50">Płatność i subskrypcja</span>
+          <span className="mt-1 block text-xs text-amber-100/80">
+            Opłać, anuluj zamówienie lub zarządzaj rozliczeniem → zakładka Subskrypcja
+          </span>
+        </button>
+      ) : null}
       <HostingTabShell
         title={service.plan.name}
         description={account?.domain ?? 'Dashboard usługi hostingowej'}

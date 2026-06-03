@@ -30,10 +30,17 @@ export async function retrySubscriptionPaymentAction(
 export async function abandonUnpaidSubscriptionAction(
   subscriptionId: string,
 ): Promise<ActionResult> {
+  return cancelSubscriptionAction(subscriptionId, { atPeriodEnd: false });
+}
+
+export async function cancelSubscriptionAction(
+  subscriptionId: string,
+  opts: { atPeriodEnd?: boolean } = {},
+): Promise<ActionResult> {
   try {
     await apiFetch(`/subscriptions/${subscriptionId}`, {
       method: 'DELETE',
-      body: JSON.stringify({ atPeriodEnd: false }),
+      body: JSON.stringify({ atPeriodEnd: opts.atPeriodEnd ?? true }),
     });
     revalidatePath('/dashboard/services');
     revalidatePath(`/dashboard/services/${subscriptionId}`);
@@ -45,7 +52,7 @@ export async function abandonUnpaidSubscriptionAction(
         ? err.message
         : err instanceof Error
           ? err.message
-          : 'Nie udało się anulować zamówienia';
+          : 'Nie udało się anulować usługi';
     return { ok: false, error: message };
   }
 }

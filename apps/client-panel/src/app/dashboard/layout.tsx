@@ -230,7 +230,7 @@ export default function DashboardLayout({
       <IncidentBanner />
       <ReConsentModal />
       <PlatformConfigLoader />
-      <div className="relative flex min-h-screen w-full max-w-full">
+      <div className="relative flex min-h-screen w-full max-w-full flex-col lg:flex-row">
 
       {sidebarOpen ? (
         <button
@@ -241,10 +241,10 @@ export default function DashboardLayout({
         />
       ) : null}
 
-      {/* Modern Black Minimal Sidebar */}
+      {/* Sidebar: drawer na mobile, stały panel na desktop (lg+) */}
       <aside
-        className={`fixed inset-y-0 left-0 z-[60] flex w-[300px] flex-col bg-[#050505] border-r border-white/5 transition-transform duration-300 lg:translate-x-0 ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        className={`fixed inset-y-0 left-0 z-[60] flex w-[300px] shrink-0 flex-col border-r border-white/5 bg-[#050505] transition-transform duration-300 max-lg:duration-300 lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:translate-x-0 ${
+          sidebarOpen ? "max-lg:translate-x-0" : "max-lg:-translate-x-full"
         }`}
         onClick={(e) => {
           if (window.innerWidth >= 1024) return;
@@ -335,7 +335,7 @@ export default function DashboardLayout({
       </aside>
 
       {/* Main Content Area */}
-      <div className="relative z-10 flex min-h-screen w-full min-w-0 max-w-full flex-1 flex-col pl-0 lg:pl-[300px]">
+      <div className="relative z-10 flex min-h-screen w-full min-w-0 max-w-full flex-1 flex-col">
         {/* Top Navbar — na mobile fixed (hamburger zawsze dostępny), na desktop sticky */}
         <header className="fixed inset-x-0 top-0 z-50 flex h-mobile-header min-h-14 min-w-0 items-center justify-between gap-2 border-b border-white/5 bg-black/95 px-3 backdrop-blur-xl sm:min-h-20 sm:gap-3 sm:px-6 lg:sticky lg:inset-x-auto lg:z-40 lg:h-20 lg:min-h-0 lg:bg-black/90 lg:px-8">
           <div className="flex min-w-0 flex-1 items-center gap-2">
