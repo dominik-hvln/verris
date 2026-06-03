@@ -569,9 +569,6 @@ export class DirectAdminClient {
           ? this.parsePopQuotaList(response.data, domainParam)
           : this.parsePopAccountList(response.data, domainParam);
         if (rows.length > 0) return rows;
-        if (!params.type && !this.popPayloadIndicatesError(response.data)) {
-          return rows;
-        }
       } catch (err) {
         lastError = this.normalizeDaClientError(err, lastError);
       }
@@ -592,9 +589,6 @@ export class DirectAdminClient {
           ? this.parsePopQuotaList(response.data, domainParam)
           : this.parsePopAccountList(response.data, domainParam);
         if (rows.length > 0) return rows;
-        if (!form.type && !this.popPayloadIndicatesError(response.data)) {
-          return rows;
-        }
       } catch (err) {
         lastError = this.normalizeDaClientError(err, lastError);
       }
@@ -730,6 +724,28 @@ export class DirectAdminClient {
         rows.push({ localPart, quotaMb: null });
       }
       return rows;
+    }
+
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+      const record = data as Record<string, unknown>;
+      if (!('error' in record) || String(record.error ?? '0') === '0') {
+        const rows: Array<{ localPart: string; quotaMb: number | null }> = [];
+        const seen = new Set<string>();
+        const domainLower = domain.toLowerCase();
+        for (const [key, value] of Object.entries(record)) {
+          if (['error', 'text', 'details', 'success', 'domain', 'action', 'result'].includes(key)) {
+            continue;
+          }
+          const raw = value == null ? key : String(value).trim() || key;
+          const localPart = raw.includes('@') ? raw.split('@')[0]! : raw;
+          if (!localPart || localPart.includes('.')) continue;
+          const emailKey = `${localPart.toLowerCase()}@${domainLower}`;
+          if (seen.has(emailKey)) continue;
+          seen.add(emailKey);
+          rows.push({ localPart, quotaMb: null });
+        }
+        if (rows.length > 0) return rows;
+      }
     }
 
     const params = this.daPayloadToParams(data);
