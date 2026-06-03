@@ -202,8 +202,10 @@ html.dark.eco-tint {
     }
   }
   @media (min-width: 1024px) {
-    .h-mobile-header {
-      height: auto;
+    /* Desktop: sticky header w flow — bez padding-top na main, stała wysokość paska */
+    .h-dashboard-topbar {
+      height: 5.5rem;
+      min-height: 5.5rem;
     }
     .top-mobile-header {
       top: 0;

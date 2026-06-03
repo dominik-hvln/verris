@@ -253,7 +253,7 @@ export default function DashboardLayout({
         }}
       >
         {/* Brand Header */}
-        <div className="flex h-20 items-center gap-4 px-8 relative border-b border-white/5">
+        <div className="flex h-[5.5rem] shrink-0 items-center gap-4 px-8 relative border-b border-white/5">
           <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 border border-white/10">
             <Layers className="text-white w-5 h-5" />
           </div>
@@ -337,7 +337,7 @@ export default function DashboardLayout({
       {/* Main Content Area */}
       <div className="relative z-10 flex min-h-screen w-full min-w-0 max-w-full flex-1 flex-col">
         {/* Top Navbar — na mobile fixed (hamburger zawsze dostępny), na desktop sticky */}
-        <header className="fixed inset-x-0 top-0 z-50 flex h-mobile-header min-h-14 min-w-0 items-center justify-between gap-2 border-b border-white/5 bg-black/95 px-3 backdrop-blur-xl sm:min-h-20 sm:gap-3 sm:px-6 lg:sticky lg:inset-x-auto lg:z-40 lg:h-20 lg:min-h-0 lg:bg-black/90 lg:px-8">
+        <header className="fixed inset-x-0 top-0 z-50 flex max-lg:h-mobile-header min-h-14 min-w-0 shrink-0 items-center justify-between gap-3 border-b border-white/5 bg-black/95 px-4 backdrop-blur-xl sm:min-h-[5rem] sm:gap-4 sm:px-6 lg:sticky lg:inset-x-auto lg:z-40 lg:h-dashboard-topbar lg:bg-black/90 lg:px-8 lg:py-5">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <button
               type="button"
@@ -373,7 +373,7 @@ export default function DashboardLayout({
         </header>
 
         {/* Page Content */}
-        <main className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-4 pt-mobile-header sm:px-6 sm:pb-6 sm:pt-mobile-header lg:px-8 lg:py-8">
+        <main className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-4 pt-mobile-header sm:px-6 sm:pb-6 sm:pt-mobile-header lg:px-8 lg:pb-10 lg:pt-10">
           {children}
         </main>
 
