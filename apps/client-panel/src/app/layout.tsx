@@ -1,13 +1,15 @@
 import { Toaster } from "sonner";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { Inter } from "next/font/google";
-import { ReactNode } from "react";
+import { hanken, jetbrains, schibsted } from "./fonts";
 
-const inter = Inter({ subsets: ["latin"] });
+export const metadata: Metadata = {
+  title: "Verris — Panel klienta",
+  description: "Hosting, który liczy realne zużycie.",
+};
 
-export const metadata = {
-  title: "Verris - Menadżer Hostingu",
-  description: "Zarządzaj swoim hostingiem i serwerami łatwiej niż kiedykolwiek.",
+export const viewport: Viewport = {
+  themeColor: "#091410",
 };
 
 export default function RootLayout({
@@ -16,8 +18,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="pl" className="dark" suppressHydrationWarning>
-      <body className={`${inter.className} min-h-screen bg-background antialiased text-foreground`}>
+    <html
+      lang="pl"
+      className={`dark ${schibsted.variable} ${hanken.variable} ${jetbrains.variable}`}
+      suppressHydrationWarning
+    >
+      <body className="min-h-screen bg-background antialiased text-foreground">
         {children}
         <Toaster theme="dark" position="bottom-right" />
       </body>

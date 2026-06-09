@@ -330,8 +330,12 @@ function ChartCard({
 
 function ChartEmpty({ message }: { message: string }) {
   return (
-    <div className="flex h-[240px] items-center justify-center rounded-xl border border-dashed border-white/10 bg-black/20 px-6 text-center text-sm text-neutral-500">
-      {message}
+    <div className="relative flex h-[240px] items-center justify-center overflow-hidden rounded-xl border border-dashed border-border bg-card/30 px-6 text-center text-sm text-muted-foreground">
+      <div
+        aria-hidden
+        className="verris-pattern-bg pointer-events-none absolute inset-0 opacity-[0.05]"
+      />
+      <p className="relative z-10">{message}</p>
     </div>
   );
 }

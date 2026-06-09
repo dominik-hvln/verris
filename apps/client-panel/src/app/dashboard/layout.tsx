@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentType } from "react";
 import { logoutAction } from "./actions";
 import { fetchSidebarUser, type SidebarUser } from "./sidebar-actions";
 import { ImpersonationBanner } from "./impersonation-banner";
@@ -12,6 +12,8 @@ import { WalletBadge } from "./wallet-badge";
 import { ReConsentModal } from "./reconsent-modal";
 import { PlatformConfigLoader } from "@/components/platform-config-loader";
 import { SpinBorder } from "@/components/spin-border";
+import { VerrisLockup, VerrisMark } from "@/components/logo";
+import { VerrisEcoIcon } from "@/components/icons/verris-eco-icon";
 import HostingAssistant from "@/components/assistant/HostingAssistant";
 import {
   Menu,
@@ -21,11 +23,9 @@ import {
   ShieldCheck,
   HelpCircle,
   LogOut,
-  Layers,
   Terminal,
   Clock,
   FolderOpen,
-  Leaf,
   Users,
   UserPlus,
   Calculator,
@@ -63,7 +63,7 @@ const secondaryItems = [
     label: "Pomoc & Konto",
     items: [
       ...(clientFeatures.eco
-        ? [{ name: "Program EKO", href: "/dashboard/eco", icon: Leaf, accent: true as const }]
+        ? [{ name: "Program EKO", href: "/dashboard/eco", icon: VerrisEcoIcon, accent: true as const }]
         : []),
       ...(clientFeatures.referral
         ? [{ name: "Program partnerski", href: "/dashboard/referral", icon: UserPlus }]
@@ -91,11 +91,11 @@ function GridLink({ item }: { item: SidebarTileDef }) {
         className={`opacity-0 transition-opacity duration-[1500ms] ${isActive ? "opacity-35" : "group-hover:opacity-25"}`}
       />
       
-      <div className={`relative flex flex-col items-center justify-center p-4 h-24 rounded-[calc(24px-1px)] bg-[#0a0a0a] z-10 transition-colors duration-300 ${isActive ? 'bg-[#0f0f0f]' : 'group-hover:bg-[#121212]'}`}>
-        <div className={`p-2.5 rounded-xl border border-white/5 mb-2 transition-transform duration-300 ${isActive ? 'bg-white/10 scale-105' : 'bg-white/5 group-hover:scale-105'}`}>
-          <Icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-neutral-400 group-hover:text-white transition-colors duration-300'}`} />
+      <div className={`relative z-10 flex h-24 flex-col items-center justify-center rounded-[calc(24px-1px)] bg-verris-page p-4 transition-colors duration-300 ${isActive ? "bg-verris-card" : "group-hover:bg-verris-pine"}`}>
+        <div className={`mb-2 rounded-xl border border-verris-hairline p-2.5 transition-transform duration-300 ${isActive ? "scale-105 bg-verris-mint/10" : "bg-verris-pine/40 group-hover:scale-105"}`}>
+          <Icon className={`h-5 w-5 transition-colors duration-300 ${isActive ? "text-verris-mint" : "text-verris-stone group-hover:text-verris-paper"}`} />
         </div>
-        <span className={`text-[12px] font-medium tracking-wide transition-colors duration-300 ${isActive ? 'text-white' : 'text-neutral-400 group-hover:text-white'}`}>
+        <span className={`text-[12px] font-medium tracking-wide transition-colors duration-300 ${isActive ? "text-verris-paper" : "text-verris-stone group-hover:text-verris-paper"}`}>
           {item.name}
         </span>
       </div>
@@ -110,7 +110,7 @@ function ListLink({
   accent = false,
 }: {
   href: string;
-  icon: any;
+  icon: ComponentType<{ className?: string }>;
   children: React.ReactNode;
   accent?: boolean;
 }) {
@@ -118,35 +118,29 @@ function ListLink({
   const isActive = pathname === href;
 
   const accentIdle =
-    "text-emerald-300/90 border-emerald-500/20 bg-emerald-500/[0.06] hover:bg-emerald-500/10 hover:text-emerald-200";
+    "border-eko/40 bg-eko-bg/60 text-eko-foreground hover:bg-eko-bg hover:border-eko";
   const accentActive =
-    "bg-emerald-500/15 text-emerald-100 font-medium border-emerald-400/30 shadow-[0_0_20px_rgba(16,185,129,0.08)]";
+    "border-l-2 border-l-accent bg-sidebar-accent font-medium text-sidebar-accent-foreground border-eko/30";
 
   return (
     <Link
       href={href}
       className={`
-        group flex items-center gap-3 rounded-xl px-4 py-2.5 text-[13px] transition-all duration-300 border
+        group flex items-center gap-3 rounded-xl border border-transparent px-4 py-2.5 text-[13px] transition-all duration-300
         ${
           isActive
             ? accent
               ? accentActive
-              : "bg-white/10 text-white font-medium border-transparent"
+              : "border-l-2 border-l-accent bg-sidebar-accent font-medium text-sidebar-accent-foreground"
             : accent
               ? accentIdle
-              : "text-neutral-400 hover:bg-white/5 hover:text-white border-transparent"
+              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
         }
       `}
     >
       <Icon
         className={`h-4 w-4 shrink-0 transition-colors duration-300 ${
-          isActive
-            ? accent
-              ? "text-emerald-300"
-              : "text-white"
-            : accent
-              ? "text-emerald-400/80 group-hover:text-emerald-300"
-              : "text-neutral-500 group-hover:text-neutral-300"
+          isActive ? "text-accent" : accent ? "text-eko-foreground" : "text-muted-foreground group-hover:text-sidebar-accent-foreground"
         }`}
       />
       {children}
@@ -225,7 +219,7 @@ export default function DashboardLayout({
       : user?.email?.[0]?.toUpperCase() || "A";
 
   return (
-    <div className="w-full max-w-[100vw] overflow-x-hidden bg-black font-sans text-neutral-300">
+    <div className="w-full max-w-[100vw] overflow-x-hidden bg-background font-sans text-sidebar-foreground">
       <ImpersonationBanner />
       <IncidentBanner />
       <ReConsentModal />
@@ -243,7 +237,7 @@ export default function DashboardLayout({
 
       {/* Sidebar: drawer na mobile, stały panel na desktop (lg+) */}
       <aside
-        className={`fixed inset-y-0 left-0 z-[60] flex w-[300px] shrink-0 flex-col border-r border-white/5 bg-[#050505] transition-transform duration-300 max-lg:duration-300 lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-[60] flex w-[300px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform duration-300 max-lg:duration-300 lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:translate-x-0 ${
           sidebarOpen ? "max-lg:translate-x-0" : "max-lg:-translate-x-full"
         }`}
         onClick={(e) => {
@@ -253,16 +247,8 @@ export default function DashboardLayout({
         }}
       >
         {/* Brand Header */}
-        <div className="flex h-[5.5rem] shrink-0 items-center gap-4 px-8 relative border-b border-white/5">
-          <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-white/5 border border-white/10">
-            <Layers className="text-white w-5 h-5" />
-          </div>
-          <div>
-            <span className="text-xl font-bold tracking-tight text-white">Verris</span>
-            <span className="block text-[10px] text-neutral-500 font-medium tracking-[0.2em] uppercase mt-0.5">
-              Client Panel
-            </span>
-          </div>
+        <div className="relative flex h-[5.5rem] shrink-0 items-center border-b border-sidebar-border px-6">
+          <VerrisLockup size="sm" />
           <button
             type="button"
             className="ml-auto rounded-lg border border-white/10 p-2 text-neutral-300 hover:bg-white/10 lg:hidden"
@@ -286,7 +272,7 @@ export default function DashboardLayout({
           <nav className="space-y-8">
             {navSecondaryItems.map((group) => (
               <div key={group.label}>
-                <p className="mb-3 px-4 text-[10px] font-bold uppercase tracking-[0.15em] text-neutral-500">
+                <p className="mb-3 px-4 text-[10px] font-bold uppercase tracking-[0.15em] text-verris-stone">
                   {group.label}
                 </p>
                 <div className="space-y-1.5">
@@ -310,20 +296,20 @@ export default function DashboardLayout({
         <div className="p-5">
           <div className="relative rounded-[24px] p-px overflow-hidden group">
             <SpinBorder variant="white" className="opacity-20" />
-            <div className="relative flex items-center gap-3 rounded-[calc(24px-1px)] bg-[#0f0f0f] p-3 border border-white/5">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-xs font-bold text-white border border-white/10">
+            <div className="relative flex items-center gap-3 rounded-[calc(24px-1px)] border border-verris-hairline bg-verris-card p-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-verris-hairline bg-verris-pine text-xs font-bold text-verris-paper">
                 {initials}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-white truncate">{displayName}</p>
-                <p className="text-[11px] text-neutral-400 truncate tracking-wide mt-0.5">
+                <p className="truncate text-sm font-semibold text-verris-paper">{displayName}</p>
+                <p className="mt-0.5 truncate text-[11px] tracking-wide text-verris-stone">
                   {user?.email || "Pro Member"}
                 </p>
               </div>
               <form action={logoutAction}>
                 <button
                   type="submit"
-                  className="rounded-lg p-2.5 text-neutral-400 hover:bg-white/10 hover:text-white transition-all duration-200"
+                  className="rounded-lg p-2.5 text-verris-stone transition-all duration-200 hover:bg-verris-pine/60 hover:text-verris-paper"
                   title="Wyloguj się"
                 >
                   <LogOut className="h-4 w-4" />
@@ -337,7 +323,7 @@ export default function DashboardLayout({
       {/* Main Content Area */}
       <div className="relative z-10 flex min-h-screen w-full min-w-0 max-w-full flex-1 flex-col">
         {/* Top Navbar — na mobile fixed (hamburger zawsze dostępny), na desktop sticky */}
-        <header className="fixed inset-x-0 top-0 z-50 flex max-lg:h-mobile-header min-h-14 min-w-0 shrink-0 items-center justify-between gap-3 border-b border-white/5 bg-black/95 px-4 backdrop-blur-xl sm:min-h-[5rem] sm:gap-4 sm:px-6 lg:sticky lg:inset-x-auto lg:z-40 lg:h-dashboard-topbar lg:bg-black/90 lg:px-8 lg:py-5">
+        <header className="fixed inset-x-0 top-0 z-50 flex max-lg:h-mobile-header min-h-14 min-w-0 shrink-0 items-center justify-between gap-3 border-b border-border bg-background/95 px-4 backdrop-blur-xl sm:min-h-[5rem] sm:gap-4 sm:px-6 lg:sticky lg:inset-x-auto lg:z-40 lg:h-dashboard-topbar lg:bg-background/90 lg:px-8 lg:py-5">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <button
               type="button"
@@ -383,8 +369,8 @@ export default function DashboardLayout({
         <footer className="mt-auto border-t border-white/5 bg-black/60 px-3 py-5 pb-safe sm:px-8 sm:py-6">
           <div className="flex flex-col gap-2 text-[11px] text-neutral-500 sm:flex-row sm:items-center sm:justify-between">
             <p>
-              © {new Date().getFullYear()} Verris. Używamy wyłącznie niezbędnych plików
-              cookies (sesja i bezpieczeństwo).
+              © {new Date().getFullYear()} Verris — hosting, który liczy realne zużycie.
+              Używamy wyłącznie niezbędnych plików cookies (sesja i bezpieczeństwo).
             </p>
             <nav className="flex flex-wrap gap-x-4 gap-y-1">
               <a href="/legal/terms" className="hover:text-neutral-300">

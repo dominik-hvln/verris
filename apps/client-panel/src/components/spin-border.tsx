@@ -1,15 +1,15 @@
-type SpinBorderVariant = 'emerald' | 'white';
+type SpinBorderVariant = "mint" | "emerald" | "white";
 
 type SpinBorderProps = {
-  /** Kolor akcentu na obwodzie — domyślnie emerald (brand). */
+  /** Kolor akcentu na obwodzie — domyślnie mint (marka Verris). */
   variant?: SpinBorderVariant;
   className?: string;
 };
 
 /** Wolno obracająca się poświata wokół karty / przycisku (`--spin-duration`, domyślnie 10s). */
-export function SpinBorder({ variant = 'emerald', className = '' }: SpinBorderProps) {
+export function SpinBorder({ variant = "mint", className = "" }: SpinBorderProps) {
   const variantClass =
-    variant === 'white' ? 'spin-border-glow--white' : 'spin-border-glow--emerald';
+    variant === "white" ? "spin-border-glow--white" : "spin-border-glow--mint";
 
   return (
     <div

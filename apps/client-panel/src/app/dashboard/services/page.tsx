@@ -259,16 +259,22 @@ function ResourceTile({ label, value }: { label: string; value: string }) {
 
 function EmptyState() {
   return (
-    <div className="rounded-[32px] border border-white/10 bg-white/[0.02] p-12 text-center">
-      <Server className="h-12 w-12 mx-auto text-neutral-500" />
-      <h3 className="mt-6 text-2xl font-bold text-white">Nie masz jeszcze żadnej usługi</h3>
-      <p className="mt-2 text-neutral-400 max-w-md mx-auto">
+    <div className="relative overflow-hidden rounded-[32px] border border-border bg-card/30 p-12 text-center">
+      <div
+        aria-hidden
+        className="verris-pattern-bg pointer-events-none absolute inset-0 opacity-[0.06]"
+      />
+      <Server className="relative z-10 mx-auto h-12 w-12 text-muted-foreground" />
+      <h3 className="relative z-10 mt-6 font-display text-2xl font-bold text-foreground">
+        Nie masz jeszcze żadnej usługi
+      </h3>
+      <p className="relative z-10 mx-auto mt-2 max-w-md text-muted-foreground">
         Wybierz plan dopasowany do potrzeb Twojej strony — utworzymy konto na serwerze w ciągu kilku
         sekund.
       </p>
       <Link
         href="/dashboard/services/new"
-        className="mt-8 inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-bold text-black hover:bg-neutral-200"
+        className="relative z-10 mt-8 inline-flex items-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-verris-tip"
       >
         <Plus className="h-4 w-4" />
         Wybierz plan

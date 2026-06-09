@@ -1,0 +1,14 @@
+<!doctype html><html lang="pl"><head><meta charset="utf-8">
+<title>Verris — element generatywny</title>
+<style>html,body{margin:0;height:100%;background:#091410}canvas{display:block}</style></head>
+<body><canvas id="c"></canvas><script>
+const cv=document.getElementById('c'),x=cv.getContext('2d');let W,H;
+function rs(){W=cv.width=innerWidth;H=cv.height=innerHeight;}addEventListener('resize',rs);rs();
+const GA=Math.PI*(3-Math.sqrt(5));let t=0;
+function lerp(a,b,p){return a+(b-a)*p}
+function draw(){x.fillStyle='#091410';x.fillRect(0,0,W,H);const cx=W/2,cy=H/2,n=460,k=Math.min(W,H)*0.021;
+ for(let i=1;i<=n;i++){const a=i*GA+t*0.0006,r=k*Math.sqrt(i),px=cx+r*Math.cos(a),py=cy+r*Math.sin(a),p=i/n;
+ const cr=Math.round(lerp(15,91,p)),cg=Math.round(lerp(122,255,p)),cb=Math.round(lerp(82,192,p));
+ x.fillStyle='rgba('+cr+','+cg+','+cb+','+(0.35+0.6*p)+')';x.beginPath();x.arc(px,py,2+9*p,0,7);x.fill();}
+ t++;requestAnimationFrame(draw);}draw();
+</script></body></html>

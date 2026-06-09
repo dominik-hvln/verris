@@ -53,16 +53,16 @@ export function WalletBadge({
       : isLow
         ? "border-amber-400/40 bg-amber-400/10 text-amber-100 hover:bg-amber-400/15"
         : hasBalance
-          ? "border-emerald-400/30 bg-emerald-400/[0.06] text-emerald-100 hover:bg-emerald-400/10"
-          : "border-white/10 bg-white/[0.03] text-neutral-300 hover:bg-white/[0.06]";
+          ? "border-accent/30 bg-accent/[0.06] text-verris-paper hover:bg-accent/10"
+          : "border-border bg-card/30 text-muted-foreground hover:bg-card/50";
 
   const iconTone = isEmpty
     ? "text-rose-300"
     : isLow
       ? "text-amber-300"
       : hasBalance
-        ? "text-emerald-300"
-        : "text-neutral-400";
+        ? "text-accent"
+        : "text-muted-foreground";
 
   const tooltip = impersonating
     ? "Saldo konta klienta (sesja impersonacji — uważaj przy operacjach finansowych)."

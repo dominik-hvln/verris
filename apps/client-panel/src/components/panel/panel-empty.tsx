@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
+import { VerrisPatternLayer } from '@/components/brand/brand-pattern';
 import { cx } from './cx';
 
 export function PanelEmptyState({
@@ -18,14 +19,15 @@ export function PanelEmptyState({
   return (
     <div
       className={cx(
-        'flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-black/20 p-8 text-center text-muted-foreground',
+        'relative flex flex-col items-center gap-2 overflow-hidden rounded-xl border border-border bg-card/40 p-8 text-center text-muted-foreground',
         className,
       )}
     >
-      {Icon ? <Icon className="h-8 w-8 opacity-30" aria-hidden /> : null}
-      <p className="font-medium text-neutral-300">{title}</p>
-      {description ? <p className="max-w-md text-sm">{description}</p> : null}
-      {action ? <div className="mt-2">{action}</div> : null}
+      <VerrisPatternLayer opacity={0.05} className="rounded-xl" />
+      {Icon ? <Icon className="relative z-10 h-8 w-8 opacity-40 text-accent" aria-hidden /> : null}
+      <p className="relative z-10 font-medium text-foreground">{title}</p>
+      {description ? <p className="relative z-10 max-w-md text-sm">{description}</p> : null}
+      {action ? <div className="relative z-10 mt-2">{action}</div> : null}
     </div>
   );
 }
