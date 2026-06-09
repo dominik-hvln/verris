@@ -77,29 +77,136 @@ is_stock_index() {
   grep -qiE 'directadmin|Something amazing will be constructed|layers.*l10 5|#10b981|#10B981' "$file" 2>/dev/null
 }
 
+is_verris_unhydrated_index() {
+  local file="$1"
+  [ -f "$file" ] || return 1
+  grep -q '|DOMAIN|' "$file" 2>/dev/null && grep -qi 'witamy na stronie' "$file" 2>/dev/null
+}
+
+is_verris_hosting_index() {
+  local file="$1"
+  [ -f "$file" ] || return 1
+  grep -qi 'witamy na stronie' "$file" 2>/dev/null && grep -qi 'hosting verris' "$file" 2>/dev/null
+}
+
+should_replace_index() {
+  is_stock_index "$1" || is_verris_unhydrated_index "$1" || is_verris_hosting_index "$1"
+}
+
+cleanup_public_html_artifacts() {
+  local pub_dir="$1"
+  find "${pub_dir}" -name '._*' -delete 2>/dev/null || true
+  find "${pub_dir}" -name '.DS_Store' -delete 2>/dev/null || true
+}
+
+fix_public_html_permissions() {
+  local pub_dir="$1"
+  local user="$2"
+  local idx="${pub_dir}/index.html"
+
+  chmod 755 "${pub_dir}" 2>/dev/null || true
+  [ -d "${pub_dir}/assets" ] && chmod 755 "${pub_dir}/assets"
+  [ -f "$idx" ] && chmod 644 "$idx"
+  if [ -d "${pub_dir}/assets" ]; then
+    find "${pub_dir}/assets" -type f -exec chmod 644 {} \;
+    find "${pub_dir}/assets" -type d -exec chmod 755 {} \;
+  fi
+  if [ -n "$user" ] && id "$user" &>/dev/null; then
+    chown -R "${user}:${user}" "${pub_dir}"
+  fi
+}
+
+parse_public_html_context() {
+  local pub_dir="$1"
+  PUBLIC_HTML_USER="$(sed -n 's#^/home/\([^/]*\)/domains/\([^/]*\)/public_html$#\1#p' <<<"$pub_dir")"
+  PUBLIC_HTML_DOMAIN="$(sed -n 's#^/home/\([^/]*\)/domains/\([^/]*\)/public_html$#\2#p' <<<"$pub_dir")"
+}
+
+format_date_created() {
+  local raw="$1"
+  if [ -z "$raw" ]; then
+    echo "—"
+    return 0
+  fi
+  if formatted="$(date -d "$raw" +"%d.%m.%Y" 2>/dev/null)"; then
+    echo "$formatted"
+  else
+    echo "$raw"
+  fi
+}
+
+read_da_tokens() {
+  local user="$1"
+  local domain="$2"
+  local user_conf="/usr/local/directadmin/data/users/${user}/user.conf"
+  local domain_conf="/usr/local/directadmin/data/users/${user}/domains/${domain}.conf"
+
+  DA_TOKEN_USERNAME="$user"
+  DA_TOKEN_DOMAIN="$domain"
+  DA_TOKEN_DATE_CREATED="$(format_date_created "$(grep -m1 '^date_created=' "$user_conf" 2>/dev/null | cut -d= -f2- || true)")"
+  DA_TOKEN_IP="$(grep -m1 '^ip=' "$domain_conf" 2>/dev/null | cut -d= -f2- || true)"
+  if [ -z "$DA_TOKEN_IP" ]; then
+    DA_TOKEN_IP="$(grep -m1 '^ip=' "$user_conf" 2>/dev/null | cut -d= -f2- || true)"
+  fi
+  if [ -z "$DA_TOKEN_IP" ]; then
+    DA_TOKEN_IP="$(hostname -I 2>/dev/null | awk '{print $1}')"
+  fi
+}
+
+hydrate_index_tokens() {
+  local index_file="$1"
+  local user="$2"
+  local domain="$3"
+  [ -f "$index_file" ] || return 1
+
+  read_da_tokens "$user" "$domain"
+  local tmp
+  tmp="$(mktemp)"
+  sed \
+    -e "s/|DOMAIN|/${DA_TOKEN_DOMAIN}/g" \
+    -e "s/|USERNAME|/${DA_TOKEN_USERNAME}/g" \
+    -e "s/|DATECREATED|/${DA_TOKEN_DATE_CREATED}/g" \
+    -e "s/|IP|/${DA_TOKEN_IP}/g" \
+    "$index_file" >"$tmp"
+  mv "$tmp" "$index_file"
+  chmod 644 "$index_file"
+}
+
+deploy_public_html() {
+  local pub_dir="$1"
+  local idx="${pub_dir}/index.html"
+
+  if [ "$DRY_RUN" = "1" ]; then
+    parse_public_html_context "$pub_dir"
+    log "DRY-RUN: rsync + tokeny -> ${pub_dir} (${PUBLIC_HTML_DOMAIN:-?})"
+    return 0
+  fi
+
+  rsync -a "${SRC_DIR}/" "${pub_dir}/"
+  cleanup_public_html_artifacts "${pub_dir}"
+  parse_public_html_context "$pub_dir"
+  if [ -n "${PUBLIC_HTML_USER:-}" ] && [ -n "${PUBLIC_HTML_DOMAIN:-}" ]; then
+    hydrate_index_tokens "$idx" "$PUBLIC_HTML_USER" "$PUBLIC_HTML_DOMAIN"
+    read_da_tokens "$PUBLIC_HTML_USER" "$PUBLIC_HTML_DOMAIN"
+    log "Tokeny: ${PUBLIC_HTML_DOMAIN} / ${PUBLIC_HTML_USER} / ${DA_TOKEN_DATE_CREATED} / ${DA_TOKEN_IP}"
+  else
+    log "WARN: nie udało się odczytać user/domeny z ${pub_dir} — tokeny bez zmian"
+  fi
+
+  fix_public_html_permissions "${pub_dir}" "${PUBLIC_HTML_USER:-}"
+  log "Podmieniono: ${pub_dir}"
+}
+
 replace_existing_public_html() {
   if [ "$REPLACE_EXISTING" != "1" ]; then
     return 0
   fi
 
-  log "Szukam public_html/index.html ze stockową lub starą stroną…"
+  log "Szukam public_html/index.html ze stockową lub nieuzupełnioną stroną Verris…"
   local count=0
   while IFS= read -r -d '' idx; do
-    if is_stock_index "$idx"; then
-      local pub_dir
-      pub_dir="$(dirname "$idx")"
-      if [ "$DRY_RUN" = "1" ]; then
-        log "DRY-RUN: rsync do ${pub_dir}"
-      else
-        rsync -a "${SRC_DIR}/" "${pub_dir}/"
-        chmod -R a+rX "${pub_dir}"
-        local user
-        user="$(stat -c '%U' "$(dirname "$(dirname "$pub_dir")")" 2>/dev/null || echo "")"
-        if [ -n "$user" ] && id "$user" &>/dev/null; then
-          chown -R "$user:$user" "${pub_dir}/index.html" "${pub_dir}/assets" 2>/dev/null || true
-        fi
-        log "Podmieniono: ${pub_dir}"
-      fi
+    if should_replace_index "$idx"; then
+      deploy_public_html "$(dirname "$idx")"
       count=$((count + 1))
     fi
   done < <(find /home -path '*/domains/*/public_html/index.html' -print0 2>/dev/null)

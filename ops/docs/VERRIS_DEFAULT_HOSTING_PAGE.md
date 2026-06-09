@@ -48,9 +48,8 @@ Jeśli konta tworzy inny reseller: `--reseller=nazwa`.
 
 DA **nie** nadpisuje `public_html/index.html` po utworzeniu domeny. Opcje:
 
-1. `--replace-existing` na węźle (tylko gdy plik wygląda na stock DA), lub
-2. Ręcznie: skopiuj `ops/hosting-default-page/index.html` do  
-   `/home/USER/domains/DOMENA/public_html/index.html` i podmień tokeny ręcznie / utwórz domenę od nowa w DEV.
+1. `--replace-existing` na węźle — podmienia stock DA **lub** stronę Verris z niewypełnionymi tokenami (`|DOMAIN|` itd.) i **uzupełnia tokeny** z `user.conf` / `domena.conf` (user, data utworzenia konta, IP węzła).
+2. Nowe domeny: DA sam podstawia tokeny przy tworzeniu z szablonu `templates/custom/default`.
 
 ## Walidacja
 
