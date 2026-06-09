@@ -13,23 +13,26 @@ import { ReConsentModal } from "./reconsent-modal";
 import { PlatformConfigLoader } from "@/components/platform-config-loader";
 import { SpinBorder } from "@/components/spin-border";
 import { VerrisLockup, VerrisMark } from "@/components/logo";
-import { VerrisEcoIcon } from "@/components/icons/verris-eco-icon";
+import {
+  VerrisBazyDanychIcon,
+  VerrisCronIcon,
+  VerrisDomenyIcon,
+  VerrisEkoIcon,
+  VerrisFtpIcon,
+  VerrisManagerPlikowIcon,
+  VerrisPocztaIcon,
+  VerrisProgramPartnerskiIcon,
+  VerrisSslIcon,
+  VerrisSupportIcon,
+  VerrisUstawieniaIcon,
+} from "@/components/icons";
 import HostingAssistant from "@/components/assistant/HostingAssistant";
 import {
   Menu,
   Globe,
-  Database,
-  Mail,
-  ShieldCheck,
-  HelpCircle,
   LogOut,
-  Terminal,
-  Clock,
-  FolderOpen,
   Users,
-  UserPlus,
   Calculator,
-  Settings,
   X,
 } from "lucide-react";
 import { sidebarTilesFromLinks, type SidebarTileDef } from "@/lib/sidebar-tiles";
@@ -44,17 +47,17 @@ const secondaryItems = [
   {
     label: "Zarządzanie",
     items: [
-      { name: "Menedżer plików", href: "/dashboard/file-manager", icon: FolderOpen },
-      { name: "Bazy danych", href: "/dashboard/databases", icon: Database },
-      { name: "Poczta e-mail", href: "/dashboard/email", icon: Mail },
-      { name: "Certyfikaty SSL", href: "/dashboard/ssl", icon: ShieldCheck },
+      { name: "Menedżer plików", href: "/dashboard/file-manager", icon: VerrisManagerPlikowIcon },
+      { name: "Bazy danych", href: "/dashboard/databases", icon: VerrisBazyDanychIcon },
+      { name: "Poczta e-mail", href: "/dashboard/email", icon: VerrisPocztaIcon },
+      { name: "Certyfikaty SSL", href: "/dashboard/ssl", icon: VerrisSslIcon },
     ],
   },
   {
     label: "Zaawansowane",
     items: [
-      { name: "Dostęp FTP", href: "/dashboard/ftp", icon: Terminal },
-      { name: "Zadania Cron", href: "/dashboard/cron", icon: Clock },
+      { name: "Dostęp FTP", href: "/dashboard/ftp", icon: VerrisFtpIcon },
+      { name: "Zadania Cron", href: "/dashboard/cron", icon: VerrisCronIcon },
       { name: "Migracje", href: "/dashboard/migrations", icon: Globe },
       { name: "Kalkulator", href: "/dashboard/calculator", icon: Calculator },
     ],
@@ -63,16 +66,16 @@ const secondaryItems = [
     label: "Pomoc & Konto",
     items: [
       ...(clientFeatures.eco
-        ? [{ name: "Program EKO", href: "/dashboard/eco", icon: VerrisEcoIcon, accent: true as const }]
+        ? [{ name: "Program EKO", href: "/dashboard/eco", icon: VerrisEkoIcon, accent: true as const }]
         : []),
       ...(clientFeatures.referral
-        ? [{ name: "Program partnerski", href: "/dashboard/referral", icon: UserPlus }]
+        ? [{ name: "Program partnerski", href: "/dashboard/referral", icon: VerrisProgramPartnerskiIcon }]
         : []),
       ...(clientFeatures.iam
         ? [{ name: "IAM i subkonta", href: "/dashboard/iam", icon: Users }]
         : []),
-      { name: "Centrum Pomocy", href: "/dashboard/support", icon: HelpCircle },
-      { name: "Ustawienia", href: "/dashboard/settings", icon: Settings },
+      { name: "Centrum Pomocy", href: "/dashboard/support", icon: VerrisSupportIcon },
+      { name: "Ustawienia", href: "/dashboard/settings", icon: VerrisUstawieniaIcon },
     ],
   },
 ];
@@ -350,7 +353,7 @@ export default function DashboardLayout({
               >
                 <SpinBorder variant="white" className="opacity-40 transition-opacity duration-500 group-hover:opacity-100" />
                 <div className="relative flex items-center gap-2 rounded-[calc(24px-1px)] bg-[#0a0a0a] px-2.5 py-2 text-xs font-medium text-neutral-300 transition-colors hover:text-white sm:px-5">
-                  <HelpCircle className="h-4 w-4 shrink-0" />
+                  <VerrisSupportIcon className="h-4 w-4 shrink-0" />
                   <span className="hidden sm:inline">Wsparcie 24/7</span>
                 </div>
               </a>

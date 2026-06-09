@@ -1,14 +1,14 @@
 import type { ComponentType } from 'react';
+import { Calculator } from 'lucide-react';
 import {
-  Calculator,
-  CreditCard,
-  Globe,
-  HelpCircle,
-  LayoutDashboard,
-  Leaf,
-  Server,
-  Settings,
-} from 'lucide-react';
+  VerrisDomenyIcon,
+  VerrisEkoIcon,
+  VerrisPortfelIcon,
+  VerrisSerweryIcon,
+  VerrisStatystykiIcon,
+  VerrisSupportIcon,
+  VerrisUstawieniaIcon,
+} from '@/components/icons';
 import {
   DEFAULT_SIDEBAR_QUICK_LINKS,
   resolveSidebarQuickLinks,
@@ -27,13 +27,13 @@ export type SidebarTileDef = {
 };
 
 const TILE_DEFS: Record<SidebarTileHref, Omit<SidebarTileDef, 'href'>> = {
-  '/dashboard': { name: 'Dashboard', icon: LayoutDashboard },
-  '/dashboard/services': { name: 'Serwery', icon: Server },
-  '/dashboard/billing': { name: 'Płatności', icon: CreditCard },
-  '/dashboard/domains': { name: 'Domeny', icon: Globe },
-  '/dashboard/eco': { name: 'Program EKO', icon: Leaf },
-  '/dashboard/support': { name: 'Centrum Pomocy', icon: HelpCircle },
-  '/dashboard/settings': { name: 'Ustawienia', icon: Settings },
+  '/dashboard': { name: 'Dashboard', icon: VerrisStatystykiIcon },
+  '/dashboard/services': { name: 'Serwery', icon: VerrisSerweryIcon },
+  '/dashboard/billing': { name: 'Płatności', icon: VerrisPortfelIcon },
+  '/dashboard/domains': { name: 'Domeny', icon: VerrisDomenyIcon },
+  '/dashboard/eco': { name: 'Program EKO', icon: VerrisEkoIcon },
+  '/dashboard/support': { name: 'Centrum Pomocy', icon: VerrisSupportIcon },
+  '/dashboard/settings': { name: 'Ustawienia', icon: VerrisUstawieniaIcon },
   '/dashboard/calculator': { name: 'Kalkulator', icon: Calculator },
 };
 
