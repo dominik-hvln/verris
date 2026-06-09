@@ -85,6 +85,38 @@ dig +short A ns1.verris.pl
 dig +short A ns2.verris.pl
 ```
 
+### Delegacja domeny klienta w OVH (np. `tprstudio.pl` → `ns1.verris.pl`)
+
+OVH przed zapisem NS sprawdza, czy **nameserver odpowiada na porcie 53** z rekordem
+strefy domeny. Sam glue + rekordy `A` w strefie `verris.pl` to za mało.
+
+Na węźlu hostingowym muszą być:
+
+1. **Glue** na `verris.pl` (automat Verris) + publiczne `A`/`AAAA` dla `ns1`/`ns2` — OK jeśli `dig +short A ns1.verris.pl` zwraca IP węzła.
+2. **Port 53/tcp i 53/udp** otwarty w UFW/firewalld (skrypt `security-hardening-baseline.sh --role node`).
+3. **BIND/named** działający (DirectAdmin) — strefa `tprstudio.pl` utworzona na koncie DA.
+
+Test z zewnątrz (musi zwrócić SOA/NS, nie timeout):
+
+```
+dig +short SOA tprstudio.pl @ns1.verris.pl
+dig +short SOA tprstudio.pl @62.238.0.223
+```
+
+Jeśli OVH pisze *„Please ensure that ns1.verris.pl (62.238.0.223) is correctly configured”*,
+najczęściej **port 53 jest zablokowany** na węźle albo `named` nie nasłuchuje.
+
+Na węźle (KVM / root):
+
+```bash
+ufw allow 53/tcp
+ufw allow 53/udp
+systemctl enable --now named
+dig @127.0.0.1 SOA tprstudio.pl +short
+```
+
+W panelu OVH dla `tprstudio.pl` ustaw **oba** NS: `ns1.verris.pl` i `ns2.verris.pl` (nie tylko jeden).
+
 Raport kroków (created/updated/unchanged/skipped/error) widać w panelu zaraz po
 kliknięciu „Podepnij NS w OVH" oraz w logu audytu (`NODE_NS_PROVISION`).
 

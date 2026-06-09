@@ -131,9 +131,9 @@ export function HostingProfilePanel({
           <Terminal className="h-4 w-4 text-indigo-300" /> Profil hostingowy
         </h2>
         <p className="text-xs text-muted-foreground mt-1">
-          Idempotentna konfiguracja floty: Exim/Dovecot, FTP, MariaDB/Governor, CageFS, CustomBuild
-          (LiteSpeed/LSPHP), restart LS. Sekcja „Usługi hostingowe” powyżej pokazuje status sond —
-          ten panel uruchamia ten sam profil (log zadań poniżej). Domyślnie bez długiego rebuild PHP/LS.
+          Jednym kliknięciem: profil hostingowy (Exim/Dovecot, FTP, MariaDB/Governor, CageFS,
+          LiteSpeed/LSPHP) oraz szablon strony domyślnej Verris w DirectAdmin — każda nowa domena
+          na węźle dostanie placeholder od razu. Domyślnie bez długiego rebuild PHP/LS.
         </p>
       </div>
 

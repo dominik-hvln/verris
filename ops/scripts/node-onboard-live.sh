@@ -11,14 +11,16 @@
 #   - Bootstrap Verris z panelu admin WYKONANY → /etc/verris.conf istnieje
 #
 # SKRYPTY (w tym samym katalogu co ten plik):
-#   node-live-readiness.sh, node-hosting-profile.sh, node-verris-tasks-install.sh,
+#   node-live-readiness.sh, node-hosting-profile.sh, install-verris-default-page.sh,
+#   hosting-default-page/ (katalog), node-verris-tasks-install.sh,
 #   node-da-sync-plan-packages.sh, verris-tasks.sh, verris-task-run.sh,
 #   security-hardening-baseline.sh, security-egress-lockdown.sh
 #
 # Użycie:
-#   scp -r ops/scripts/{node-onboard-live,node-live-readiness,node-hosting-profile,\
-#     node-verris-tasks-install,node-da-sync-plan-packages,verris-tasks,verris-task-run,\
-#     security-hardening-baseline,security-egress-lockdown}.sh \
+#   scp -r ops/hosting-default-page \
+#     ops/scripts/{node-onboard-live,node-live-readiness,node-hosting-profile,\
+#     install-verris-default-page,node-verris-tasks-install,node-da-sync-plan-packages,\
+#     verris-tasks,verris-task-run,security-hardening-baseline,security-egress-lockdown}.sh \
 #     root@WĘZEŁ:/root/verris/
 #   ssh root@WĘZEŁ 'bash /root/verris/node-onboard-live.sh'
 #

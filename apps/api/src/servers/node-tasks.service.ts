@@ -294,11 +294,16 @@ export class NodeTasksService {
     return `${summary}\n\n[… log obcięty — pełny na węźle: /var/log/verris-tasks/<task-id>.log …]\n\n${tail}`;
   }
 
-  /** Lines emitted at end of node-hosting-profile.sh — survive tail truncation in DB. */
+  /** Lines emitted at end of profile + default page — survive tail truncation in DB. */
   private extractVerrisProfileSummary(log: string): string | null {
-    const lines = log.split('\n').filter((l) => l.includes('[VERRIS_PROFILE]'));
+    const lines = log.split('\n').filter(
+      (l) =>
+        l.includes('[VERRIS_PROFILE]') ||
+        l.includes('[VERRIS_DEFAULT_PAGE]') ||
+        l.includes('[verris-default-page]'),
+    );
     if (lines.length === 0) return null;
-    return lines.slice(-3).join('\n');
+    return lines.slice(-6).join('\n');
   }
 
   /** Fail RUNNING tasks with no agent callback — unblocks admin panel re-run. */

@@ -30,7 +30,7 @@ ewaluacja forka dopiero gdy override okaże się niewystarczający.
 
 ## Proces wdrożenia (szkic)
 
-1. Spec wizualny: logo, paleta (zgodna z client-panel), typografia, PL/EN.
+1. Spec wizualny: [`docs/brand/VERRIS_KEY_VISUAL.md`](../../docs/brand/VERRIS_KEY_VISUAL.md) (logo, paleta, typografia, PL/EN).
 2. Build skinu/brandingu → artefakt w repo (`ops/skins/verris/`).
 3. Dystrybucja na węzły: rsync/ansible w bundlu onboard (po deploy SSH key).
 4. `skin=verris` w `buildDaPackageSpecFromPlan` (parametr `skin`) + sync pakietów.

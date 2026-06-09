@@ -1,7 +1,22 @@
-import { Body, Controller, Get, Header, HttpCode, Param, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Header,
+  HttpCode,
+  Param,
+  Post,
+  Req,
+  StreamableFile,
+  UseGuards,
+} from '@nestjs/common';
 import type { Request } from 'express';
 import { ServerIdentityGuard } from './guards/server-identity.guard';
 import { NodeTasksService } from './node-tasks.service';
+import {
+  buildDefaultHostingPageBundle,
+  loadDefaultHostingPageInstallScript,
+} from './default-hosting-page.assets';
 import { loadHostingProfileScript } from './hosting-profile.script';
 import { loadLveAgentScript } from './lve-agent.script';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
@@ -55,6 +70,21 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   hostingProfileScript() {
     return loadHostingProfileScript();
+  }
+
+  @Get('hosting-profile/default-page/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  defaultHostingPageInstallScript() {
+    return loadDefaultHostingPageInstallScript();
+  }
+
+  @Get('hosting-profile/default-page/bundle')
+  async defaultHostingPageBundle() {
+    const buffer = await buildDefaultHostingPageBundle();
+    return new StreamableFile(buffer, {
+      type: 'application/gzip',
+      disposition: 'attachment; filename="verris-default-page.tar.gz"',
+    });
   }
 
   /** Desired CloudLinux LVE state for the calling node (plans + accounts). */

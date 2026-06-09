@@ -8,10 +8,11 @@
 #   1. Preflight stosu (CL, DA, LS, verris.conf)
 #   2. Agent zadań Verris (agent-3): timer, systemd template, skrypty z shebang
 #   3. Profil hostingowy: Governor/MariaDB 10.6, CustomBuild (skip rebuild), LiteSpeed
-#   4. Weryfikacja końcowa LIVE (Governor, MariaDB, agent, API)
+#   4. Strona domyślna Verris (szablon DA dla nowych domen)
+#   5. Weryfikacja końcowa LIVE (Governor, MariaDB, agent, API)
 #
 # Użycie:
-#   scp ops/scripts/{node-live-readiness,node-hosting-profile,node-verris-tasks-install,verris-tasks,verris-task-run}.sh root@WĘZEŁ:/root/verris/
+#   scp -r ops/hosting-default-page ops/scripts/{node-live-readiness,node-hosting-profile,node-verris-tasks-install,install-verris-default-page,verris-tasks,verris-task-run}.sh root@WĘZEŁ:/root/verris/
 #   ssh root@WĘZEŁ 'bash /root/verris/node-live-readiness.sh'
 #
 # Opcje:
@@ -147,6 +148,30 @@ run_hosting_profile() {
   fi
 }
 
+install_default_hosting_page() {
+  log_step "4/5 Strona domyślna Verris (DA template)"
+  if [ "$SKIP_PROFILE" = "1" ] || [ "$GOVERNOR_ONLY" = "1" ]; then
+    log_info "Pominięto (profil hostingowy wyłączony)"
+    return 0
+  fi
+  if [ ! -x "$SCRIPT_DIR/install-verris-default-page.sh" ]; then
+    log_fail "Brak $SCRIPT_DIR/install-verris-default-page.sh — dołącz do bundle onboard"
+    return 1
+  fi
+  if [ ! -f "$SCRIPT_DIR/hosting-default-page/index.html" ]; then
+    log_fail "Brak $SCRIPT_DIR/hosting-default-page/ — scp -r ops/hosting-default-page na węzeł"
+    return 1
+  fi
+  local args=()
+  [ "$DRY_RUN" = "1" ] && args+=(--dry-run)
+  if bash "$SCRIPT_DIR/install-verris-default-page.sh" "${args[@]}"; then
+    log_ok "Szablon domyślnej strony Verris zainstalowany"
+  else
+    log_fail "install-verris-default-page.sh zakończony błędem (rc=$?)"
+    return 1
+  fi
+}
+
 governor_is_live() {
   local out
   command -v dbctl >/dev/null 2>&1 || return 1
@@ -156,7 +181,7 @@ governor_is_live() {
 }
 
 verify_live_readiness() {
-  log_step "4/4 Weryfikacja LIVE"
+  log_step "5/5 Weryfikacja LIVE"
 
   # MariaDB
   if getent passwd mysql >/dev/null 2>&1; then
@@ -297,6 +322,7 @@ main() {
   preflight_stack
   install_task_agent
   run_hosting_profile
+  install_default_hosting_page
   verify_live_readiness
   print_final_summary
 }

@@ -173,6 +173,9 @@ configure_firewall_ingress() {
     run "ufw allow 80/tcp"
     run "ufw allow 443/tcp"
     if [ "$ROLE" = "node" ]; then
+      # Autorytatywny DNS (BIND/DA) — wymagane, żeby OVH zaakceptował delegację ns1/ns2.verris.pl
+      run "ufw allow 53/tcp comment 'verris-dns'"
+      run "ufw allow 53/udp comment 'verris-dns'"
       run "ufw allow 2222/tcp"
       run "ufw allow 21/tcp"
       run "ufw allow 25/tcp"
@@ -192,6 +195,8 @@ configure_firewall_ingress() {
     run "firewall-cmd --permanent --add-service=http"
     run "firewall-cmd --permanent --add-service=https"
     if [ "$ROLE" = "node" ]; then
+      run "firewall-cmd --permanent --add-port=53/tcp"
+      run "firewall-cmd --permanent --add-port=53/udp"
       run "firewall-cmd --permanent --add-port=2222/tcp"
       run "firewall-cmd --permanent --add-service=ftp"
       run "firewall-cmd --permanent --add-port=25/tcp"

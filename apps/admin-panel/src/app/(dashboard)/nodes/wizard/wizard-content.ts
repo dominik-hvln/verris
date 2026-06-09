@@ -50,7 +50,7 @@ export const WIZARD_STEPS: WizardStep[] = [
   {
     id: "hosting-profile",
     title: "Profil hostingowy",
-    subtitle: "Governor, poczta, FTP, LS (auto po ACTIVE)",
+    subtitle: "Governor, poczta, FTP, LS + strona domyślna Verris",
   },
   {
     id: "finish",

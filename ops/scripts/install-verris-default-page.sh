@@ -9,8 +9,30 @@
 set -Eeuo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
-SRC_DIR="${REPO_ROOT}/ops/hosting-default-page"
+
+resolve_src_dir() {
+  if [ -n "${VERRIS_DEFAULT_PAGE_SRC:-}" ] && [ -f "${VERRIS_DEFAULT_PAGE_SRC}/index.html" ]; then
+    echo "${VERRIS_DEFAULT_PAGE_SRC}"
+    return 0
+  fi
+  if [ -f "${SCRIPT_DIR}/hosting-default-page/index.html" ]; then
+    echo "${SCRIPT_DIR}/hosting-default-page"
+    return 0
+  fi
+  if [ -f "/var/lib/verris/hosting-default-page/index.html" ]; then
+    echo "/var/lib/verris/hosting-default-page"
+    return 0
+  fi
+  local repo_root
+  repo_root="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+  if [ -f "${repo_root}/ops/hosting-default-page/index.html" ]; then
+    echo "${repo_root}/ops/hosting-default-page"
+    return 0
+  fi
+  return 1
+}
+
+SRC_DIR="$(resolve_src_dir || true)"
 
 DRY_RUN=0
 RESELLER="admin"
@@ -216,8 +238,8 @@ replace_existing_public_html() {
 
 require_root
 
-if [ ! -f "${SRC_DIR}/index.html" ]; then
-  echo "Uruchom z katalogu repozytorium ekohost (brak ops/hosting-default-page/index.html)." >&2
+if [ -z "${SRC_DIR}" ] || [ ! -f "${SRC_DIR}/index.html" ]; then
+  echo "Brak ops/hosting-default-page/index.html (repo, VERRIS_DEFAULT_PAGE_SRC lub ${SCRIPT_DIR}/hosting-default-page/)." >&2
   exit 1
 fi
 
@@ -228,3 +250,4 @@ replace_existing_public_html
 
 log "Gotowe. Nowe domeny od ${RESELLER} dostaną stronę Verris (tokeny |DOMAIN| itd.)."
 log "Istniejące domeny: uruchom z --replace-existing."
+echo "[VERRIS_DEFAULT_PAGE] status=installed reseller=${RESELLER} src=${SRC_DIR}"

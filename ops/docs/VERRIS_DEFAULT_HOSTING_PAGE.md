@@ -26,6 +26,18 @@ W `index.html` (tylko ten plik jest tokenizowany przy tworzeniu domeny):
 
 ## Instalacja na węźle
 
+**Najprościej (panel admin):** węzeł ACTIVE → **Profil hostingowy** → **Uruchom profil na węźle**. Po Governor/LiteSpeed API automatycznie pobiera szablon i instaluje go w DirectAdmin (wymaga wdrożonego API z endpointami `hosting-profile/default-page/*`).
+
+**Onboard SSH:** każdy nowy węzeł z `node-onboard-live.sh` → `node-live-readiness.sh` instaluje szablon po profilu hostingowym. Wymaga bundle:
+
+```bash
+scp -r ops/hosting-default-page \
+  ops/scripts/{install-verris-default-page,node-live-readiness,node-onboard-live,...}.sh \
+  root@WĘZEŁ:/root/verris/
+```
+
+Ręcznie (aktualizacja szablonu bez pełnego onboardu):
+
 ```bash
 # z repozytorium na węźle (po rsync/git pull)
 sudo bash ops/scripts/install-verris-default-page.sh
@@ -60,5 +72,6 @@ curl -sI https://tprstudio.pl/ | head -5
 
 ## Powiązania
 
-- Profil węzła: `ops/scripts/node-hosting-profile.sh` (nie instaluje strony — osobny krok)
+- Onboard węzła: `ops/scripts/node-live-readiness.sh` (krok 4/5 — instalacja szablonu)
+- Profil węzła: `ops/scripts/node-hosting-profile.sh` (krok poprzedzający)
 - Skin DA (faza 2): `ops/docs/DA_CUSTOM_SKIN_ROADMAP.md`

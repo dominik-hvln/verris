@@ -65,9 +65,10 @@ bash bootstrap-verris.sh             # skrypt z panelu
 Skopiuj bundle na węzeł:
 
 ```bash
-scp ops/scripts/{node-onboard-live,node-live-readiness,node-hosting-profile,\
-  node-verris-tasks-install,node-da-sync-plan-packages,verris-tasks,verris-task-run,\
-  security-hardening-baseline,security-egress-lockdown}.sh \
+scp -r ops/hosting-default-page \
+  ops/scripts/{node-onboard-live,node-live-readiness,node-hosting-profile,\
+  install-verris-default-page,node-verris-tasks-install,node-da-sync-plan-packages,\
+  verris-tasks,verris-task-run,security-hardening-baseline,security-egress-lockdown}.sh \
   root@WĘZEŁ:/root/verris/
 ```
 
@@ -179,6 +180,7 @@ Weryfikacja techniczna (prod, Node-PL-01):
 - [ ] Publiczne IP w `/usr/local/directadmin/data/admin/ips/`
 - [ ] Smoke provisioning → klient widzi dane w Magic Login
 - [ ] Port 2222 otwarty w firewallu (CSF: `2222/tcp`)
+- [ ] Szablon strony domyślnej Verris w DA (`templates/custom/default` + `admin/domains/default`)
 
 ## Kolejne węzły (skrót)
 

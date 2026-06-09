@@ -907,6 +907,71 @@ print_lve_info() {
   log_info "Sprawdź: lvectl list, cagefsctl --cagefs-status, cagefsctl --list-enabled"
 }
 
+# Po udanym profilu z panelu admin: pobierz szablon strony domyślnej z API i zainstaluj w DA.
+install_verris_default_page_from_api() {
+  if [ "$DRY_RUN" = "1" ]; then
+    echo "[VERRIS_DEFAULT_PAGE] status=skipped reason=dry_run"
+    return 0
+  fi
+  if [ "$GOVERNOR_ONLY" = "1" ] || [ "$CAGEFS_ONLY" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then
+    echo "[VERRIS_DEFAULT_PAGE] status=skipped reason=partial_profile"
+    return 0
+  fi
+  if [ ! -r /etc/verris.conf ]; then
+    echo "[VERRIS_DEFAULT_PAGE] status=skipped reason=no_verris_conf"
+    return 0
+  fi
+
+  # shellcheck disable=SC1090
+  source /etc/verris.conf
+  : "${VERRIS_API_URL:?missing VERRIS_API_URL}"
+  : "${VERRIS_SERVER_ID:?missing VERRIS_SERVER_ID}"
+  : "${VERRIS_IDENTITY_TOKEN:?missing VERRIS_IDENTITY_TOKEN}"
+
+  local auth_headers=(-H "X-Server-Id: $VERRIS_SERVER_ID" -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN")
+  local dest="/var/lib/verris/hosting-default-page"
+  local install_bin="/usr/local/bin/verris-install-default-page.sh"
+  local bundle="/tmp/verris-default-page-bundle.tar.gz"
+
+  echo ""
+  echo "=== Verris — strona domyślna hostingu ==="
+
+  if ! curl -fsS --max-time 120 "${auth_headers[@]}" \
+    "$VERRIS_API_URL/agent/tasks/hosting-profile/default-page/script" -o "$install_bin"; then
+    echo "[VERRIS_DEFAULT_PAGE] status=fail reason=script_download" >&2
+    return 1
+  fi
+  chmod 755 "$install_bin"
+
+  if ! curl -fsS --max-time 180 "${auth_headers[@]}" \
+    "$VERRIS_API_URL/agent/tasks/hosting-profile/default-page/bundle" -o "$bundle"; then
+    echo "[VERRIS_DEFAULT_PAGE] status=fail reason=bundle_download" >&2
+    return 1
+  fi
+
+  rm -rf "$dest"
+  mkdir -p "$dest"
+  if ! tar -xzf "$bundle" -C "$dest"; then
+    echo "[VERRIS_DEFAULT_PAGE] status=fail reason=extract" >&2
+    return 1
+  fi
+
+  local src="$dest"
+  if [ ! -f "$src/index.html" ] && [ -f "$src/hosting-default-page/index.html" ]; then
+    src="$src/hosting-default-page"
+  fi
+  if [ ! -f "$src/index.html" ]; then
+    echo "[VERRIS_DEFAULT_PAGE] status=fail reason=missing_index" >&2
+    return 1
+  fi
+
+  if VERRIS_DEFAULT_PAGE_SRC="$src" bash "$install_bin"; then
+    return 0
+  fi
+  echo "[VERRIS_DEFAULT_PAGE] status=fail reason=install_script" >&2
+  return 1
+}
+
 print_summary() {
   local exit_code=0
   echo ""
@@ -927,6 +992,13 @@ print_summary() {
   if [ "$GOVERNOR_REQUIRED" = "1" ] && [ "$CAGEFS_ONLY" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ] && [ "$DRY_RUN" != "1" ] && ! governor_is_active; then
     echo "BŁĄD: MySQL Governor nieaktywny — wymagany przed LIVE provisioning." >&2
     exit_code=1
+  fi
+
+  if [ "$exit_code" -eq 0 ]; then
+    if ! install_verris_default_page_from_api; then
+      echo "BŁĄD: instalacja strony domyślnej Verris nie powiodła się." >&2
+      exit_code=1
+    fi
   fi
 
   # Jedna linia na końcu logu — panel Verris obcina log do ~120 KB (zostaje koniec);
