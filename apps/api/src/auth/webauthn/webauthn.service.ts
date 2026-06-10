@@ -1,4 +1,4 @@
-import { createHash } from 'crypto';
+import { createHash, randomUUID } from 'crypto';
 import {
   BadRequestException,
   Injectable,
@@ -56,12 +56,13 @@ export class WebAuthnService {
         transports: this.parseTransports(cred.transports),
       })),
       authenticatorSelection: {
-        residentKey: 'preferred',
+        residentKey: 'required',
+        requireResidentKey: true,
         userVerification: 'preferred',
       },
     });
 
-    await this.storeChallenge(userId, options.challenge);
+    await this.storeRegistrationChallenge(userId, options.challenge);
     return options;
   }
 
@@ -76,7 +77,7 @@ export class WebAuthnService {
 
     const verification = await verifyRegistrationResponse({
       response,
-      expectedChallenge: (challenge) => this.matchesStoredChallenge(user, challenge),
+      expectedChallenge: (challenge) => this.matchesRegistrationChallenge(user, challenge),
       expectedOrigin: this.origins,
       expectedRPID: this.rpID,
       requireUserVerification: true,
@@ -119,28 +120,35 @@ export class WebAuthnService {
     return { ok: true as const };
   }
 
-  async authenticationOptions(email: string) {
+  /**
+   * Opcje logowania passkey. Bez e-mail → discoverable credentials (passkey z urządzenia).
+   * Z e-mailem → zawęża listę (opcjonalnie, kompatybilność wsteczna).
+   */
+  async authenticationOptions(email?: string) {
     this.assertConfigured();
-    const normalized = email.trim().toLowerCase();
-    const user = await this.prisma.user.findUnique({
-      where: { email: normalized },
-      include: { webauthnCredentials: true },
-    });
+    const normalized = email?.trim().toLowerCase();
+    const user = normalized
+      ? await this.prisma.user.findUnique({
+          where: { email: normalized },
+          include: { webauthnCredentials: true },
+        })
+      : null;
+
+    const hasKnownCredentials = Boolean(user && user.webauthnCredentials.length > 0);
 
     const options = await generateAuthenticationOptions({
       rpID: this.rpID,
       userVerification: 'preferred',
-      allowCredentials:
-        user?.webauthnCredentials.map((cred) => ({
-          id: cred.credentialId,
-          transports: this.parseTransports(cred.transports),
-        })) ?? [],
+      // undefined = discoverable (przeglądarka pokazuje passkeys zapisane dla tej domeny)
+      allowCredentials: hasKnownCredentials
+        ? user!.webauthnCredentials.map((cred) => ({
+            id: cred.credentialId,
+            transports: this.parseTransports(cred.transports),
+          }))
+        : undefined,
     });
 
-    if (user && user.webauthnCredentials.length > 0) {
-      await this.storeChallenge(user.id, options.challenge);
-    }
-
+    await this.storeLoginChallenge(options.challenge, user?.id ?? null);
     return options;
   }
 
@@ -155,10 +163,15 @@ export class WebAuthnService {
       throw new UnauthorizedException('Logowanie passkey nie powiodło się.');
     }
 
+    let matchedChallenge: string | null = null;
+
     const verification = await verifyAuthenticationResponse({
       response,
-      expectedChallenge: (challenge) =>
-        this.matchesStoredChallenge(stored.user, challenge),
+      expectedChallenge: async (challenge) => {
+        const ok = await this.matchesLoginChallenge(challenge, stored.userId);
+        if (ok) matchedChallenge = challenge;
+        return ok;
+      },
       expectedOrigin: this.origins,
       expectedRPID: this.rpID,
       credential: {
@@ -182,11 +195,18 @@ export class WebAuthnService {
           lastUsedAt: new Date(),
         },
       }),
-      this.prisma.user.update({
-        where: { id: stored.userId },
-        data: { webauthnChallenge: null, webauthnChallengeExpires: null },
-      }),
+      ...(matchedChallenge
+        ? [
+            this.prisma.webAuthnLoginChallenge.deleteMany({
+              where: { challenge: matchedChallenge },
+            }),
+          ]
+        : []),
     ]);
+
+    void this.prisma.webAuthnLoginChallenge
+      .deleteMany({ where: { expiresAt: { lt: new Date() } } })
+      .catch(() => undefined);
 
     return { userId: stored.userId };
   }
@@ -250,7 +270,7 @@ export class WebAuthnService {
     return values.length ? (values as AuthenticatorTransportFuture[]) : undefined;
   }
 
-  private async storeChallenge(userId: string, challenge: string): Promise<void> {
+  private async storeRegistrationChallenge(userId: string, challenge: string): Promise<void> {
     await this.prisma.user.update({
       where: { id: userId },
       data: {
@@ -260,12 +280,35 @@ export class WebAuthnService {
     });
   }
 
-  private matchesStoredChallenge(
+  private matchesRegistrationChallenge(
     user: { webauthnChallenge: string | null; webauthnChallengeExpires: Date | null },
     challenge: string,
   ): boolean {
     if (!user.webauthnChallenge || !user.webauthnChallengeExpires) return false;
     if (user.webauthnChallengeExpires.getTime() < Date.now()) return false;
     return user.webauthnChallenge === challenge;
+  }
+
+  private async storeLoginChallenge(challenge: string, userId: string | null): Promise<void> {
+    await this.prisma.webAuthnLoginChallenge.create({
+      data: {
+        id: randomUUID(),
+        challenge,
+        userId,
+        expiresAt: new Date(Date.now() + CHALLENGE_TTL_MS),
+      },
+    });
+    void this.prisma.webAuthnLoginChallenge
+      .deleteMany({ where: { expiresAt: { lt: new Date() } } })
+      .catch(() => undefined);
+  }
+
+  private async matchesLoginChallenge(challenge: string, userId: string): Promise<boolean> {
+    const row = await this.prisma.webAuthnLoginChallenge.findUnique({
+      where: { challenge },
+    });
+    if (!row || row.expiresAt.getTime() < Date.now()) return false;
+    if (row.userId && row.userId !== userId) return false;
+    return true;
   }
 }

@@ -7,6 +7,7 @@ import { SpinBorder } from "@/components/spin-border";
 import { Suspense } from "react";
 import { LoginNotices } from "./login-notices";
 import { PasskeyLoginButton } from "./passkey-login-button";
+import { PasskeyConditionalAutofill } from "./passkey-conditional-autofill";
 import { VerrisLockup } from "@/components/logo";
 import { VerrisPatternLayer } from "@/components/brand/brand-pattern";
 
@@ -36,6 +37,7 @@ export default function LoginPage() {
       </div>
 
       <form action={loginAction}>
+        <PasskeyConditionalAutofill />
         <div className="space-y-5 p-8">
           <Suspense fallback={null}>
             <LoginNotices />
@@ -74,6 +76,7 @@ export default function LoginPage() {
               id="email"
               name="email"
               type="email"
+              autoComplete="username webauthn"
               placeholder="jan@kowalski.pl"
               required
               defaultValue={loginState?.email ?? ""}

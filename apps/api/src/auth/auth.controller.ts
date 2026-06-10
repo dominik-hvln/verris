@@ -188,11 +188,11 @@ export class AuthController {
     );
   }
 
-  /** Opcje logowania passkey dla danego e-maila (bez ujawniania istnienia konta). */
-  @RateLimit({ limit: 20, windowMs: 60 * 1000, scope: 'auth:webauthn-login', keyByBodyField: 'email' })
+  /** Opcje logowania passkey — e-mail opcjonalny (discoverable credentials). */
+  @RateLimit({ limit: 20, windowMs: 60 * 1000, scope: 'auth:webauthn-login' })
   @Post('webauthn/login/options')
   @HttpCode(HttpStatus.OK)
-  webauthnLoginOptions(@Body() dto: { email: string }) {
+  webauthnLoginOptions(@Body() dto: { email?: string }) {
     return this.webauthn.authenticationOptions(dto.email);
   }
 

@@ -3,14 +3,14 @@
 import { apiFetch, ApiError } from '@/lib/api';
 import { setAuthCookie } from '@/lib/auth';
 
-/** Passkey login step 1 — authentication options for an email. */
+/** Passkey login step 1 — authentication options (e-mail opcjonalny). */
 export async function getPasskeyLoginOptions(
-  email: string,
+  email?: string,
 ): Promise<{ ok: true; options: unknown } | { ok: false; error: string }> {
   try {
     const options = await apiFetch<unknown>('/auth/webauthn/login/options', {
       method: 'POST',
-      body: JSON.stringify({ email }),
+      body: JSON.stringify(email?.trim() ? { email: email.trim() } : {}),
       unauthenticated: true,
     });
     return { ok: true, options };

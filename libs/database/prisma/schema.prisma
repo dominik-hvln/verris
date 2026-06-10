@@ -91,6 +91,7 @@ model User {
   webauthnChallenge        String?
   webauthnChallengeExpires DateTime?
   webauthnCredentials      WebAuthnCredential[]
+  webauthnLoginChallenges  WebAuthnLoginChallenge[]
 
   // Stripe
   stripeCustomerId         String?   @unique
@@ -239,6 +240,18 @@ model WebAuthnCredential {
   lastUsedAt   DateTime?
 
   @@index([userId])
+}
+
+/// Krótkotrwały challenge logowania passkey (discoverable — bez wcześniejszego e-mail).
+model WebAuthnLoginChallenge {
+  id        String   @id @default(uuid())
+  challenge String   @unique
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
 }
 
 enum CustomerSubaccountInviteStatus {
