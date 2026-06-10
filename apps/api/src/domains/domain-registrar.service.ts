@@ -13,12 +13,12 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { CryptoService } from '../common/crypto/crypto.service';
 import { WalletLedgerService } from '../billing/wallet-ledger.service';
-import {
-  REGISTRAR_TLD_CATALOG,
-  type DomainCustomerPriceDto,
-  type DomainPeriodQuotesDto,
-  type DomainSearchResultDto,
+import type {
+  DomainCustomerPriceDto,
+  DomainPeriodQuotesDto,
+  DomainSearchResultDto,
 } from '@verris/contracts';
+import { REGISTRAR_TLD_CATALOG } from './registrar-tld-catalog';
 import type { CustomerDomainPrice } from './domain-pricing.util';
 import {
   parseDomainPricingConfig,

@@ -6,7 +6,7 @@ import { CreateDomainDto } from './dto/create-domain.dto';
 import { DomainRegistrarService } from './domain-registrar.service';
 import { NbpFxService } from './nbp-fx.service';
 import { parseDomainPricingConfig } from './domain-pricing.util';
-import { REGISTRAR_TLD_CATALOG } from '@verris/contracts';
+import { REGISTRAR_TLD_CATALOG } from './registrar-tld-catalog';
 import {
   DomainAvailabilityDto,
   DomainQuoteDto,
