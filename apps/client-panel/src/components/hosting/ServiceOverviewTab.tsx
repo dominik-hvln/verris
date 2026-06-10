@@ -28,7 +28,7 @@ import DomainPointingPanel from '@/components/hosting/DomainPointingPanel';
 import { HealthCheckDetails } from '@/components/hosting/HealthCheckDetails';
 import { EcoModeCard } from '@/app/dashboard/services/[id]/autoscaling/eco-mode-card';
 import { clientFeatures } from '@/lib/client-features';
-import { apiFetch } from '@/lib/api';
+import { fetchSidebarUser } from '@/app/dashboard/sidebar-actions';
 
 const statusLabels: Record<string, string> = {
   ACTIVE: 'Aktywna',
@@ -83,7 +83,7 @@ export default function ServiceOverviewTab({
           fetchHostingUsageAction(serviceId, '24h').catch(() => null),
           fetchServiceHealthAction(serviceId, forceHealth).catch(() => null),
           clientFeatures.eco
-            ? apiFetch<{ ecoPoints?: number }>('/users/me').catch(() => ({ ecoPoints: 0 }))
+            ? fetchSidebarUser().then((u) => ({ ecoPoints: u?.ecoPoints ?? 0 }))
             : Promise.resolve({ ecoPoints: 0 }),
         ]);
         setService(svc);
