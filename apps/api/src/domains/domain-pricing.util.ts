@@ -42,7 +42,33 @@ export function wholesaleToWalletCurrency(
   throw new Error(`Unsupported registrar currency: ${code}`);
 }
 
-/** Reseller quote (any supported currency) → customer price in wallet currency (with markup). */
+/** Psychologiczne zaokrąglenie do najbliższej kwoty x,99 PLN. */
+export function roundToNearest99(amount: Prisma.Decimal | string | number): Prisma.Decimal {
+  const n = new Prisma.Decimal(amount).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+  if (n.lte('0.99')) {
+    return new Prisma.Decimal('0.99');
+  }
+
+  const integerPart = n.floor();
+  const candidates = [
+    integerPart.minus(1).plus('0.99'),
+    integerPart.plus('0.99'),
+    integerPart.plus(1).plus('0.99'),
+  ].filter((c) => c.gt(0));
+
+  let best = candidates[0]!;
+  let bestDistance = n.minus(best).abs();
+  for (const candidate of candidates.slice(1)) {
+    const distance = n.minus(candidate).abs();
+    if (distance.lt(bestDistance) || (distance.eq(bestDistance) && candidate.gt(best))) {
+      best = candidate;
+      bestDistance = distance;
+    }
+  }
+  return best.toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+}
+
+/** Reseller quote (any supported currency) → customer price in wallet currency (with markup + .99). */
 export function toCustomerDomainPrice(
   amount: string | number,
   sourceCurrency: string,
@@ -52,6 +78,7 @@ export function toCustomerDomainPrice(
     2,
     Prisma.Decimal.ROUND_HALF_UP,
   );
-  const customer = wholesale.mul(cfg.markup).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+  const withMarkup = wholesale.mul(cfg.markup);
+  const customer = roundToNearest99(withMarkup);
   return { amount: customer.toFixed(2), currency: cfg.walletCurrency };
 }

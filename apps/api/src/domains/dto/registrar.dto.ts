@@ -6,6 +6,14 @@ export class DomainAvailabilityDto {
   name!: string;
 }
 
+export class DomainQuoteDto extends DomainAvailabilityDto {
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(10)
+  years?: number;
+}
+
 export class RegisterDomainDto {
   @IsString()
   @MaxLength(253)

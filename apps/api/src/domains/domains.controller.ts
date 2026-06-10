@@ -6,7 +6,12 @@ import { CreateDomainDto } from './dto/create-domain.dto';
 import { DomainRegistrarService } from './domain-registrar.service';
 import { NbpFxService } from './nbp-fx.service';
 import { parseDomainPricingConfig } from './domain-pricing.util';
-import { DomainAvailabilityDto, RegisterDomainDto, TransferDomainDto } from './dto/registrar.dto';
+import {
+  DomainAvailabilityDto,
+  DomainQuoteDto,
+  RegisterDomainDto,
+  TransferDomainDto,
+} from './dto/registrar.dto';
 
 @Controller('domains')
 @UseGuards(AuthGuard('jwt'))
@@ -31,6 +36,11 @@ export class DomainsController {
   @Post('registrar/availability')
   async availability(@Body() dto: DomainAvailabilityDto) {
     return this.registrar.availability(dto.name);
+  }
+
+  @Post('registrar/quote')
+  async quote(@Body() dto: DomainQuoteDto) {
+    return this.registrar.quote(dto.name, dto.years ?? 1);
   }
 
   @Get('registrar/status')

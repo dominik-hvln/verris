@@ -80,6 +80,35 @@ export async function checkRegistrarAvailability(name: string) {
   });
 }
 
+export async function quoteDomainAction(name: string, years: number) {
+  return apiFetch<{
+    domain: string;
+    available: boolean;
+    premium?: boolean;
+    years: number;
+    priceAmount: string | null;
+    currency: string;
+  }>('/domains/registrar/quote', {
+    method: 'POST',
+    body: JSON.stringify({ name, years }),
+  });
+}
+
+export type RegistrarOrderRow = {
+  id: string;
+  domainName: string;
+  type: string;
+  status: string;
+  provider: string | null;
+  years: number;
+  priceAmount: string | null;
+  currency: string;
+  lastError: string | null;
+  createdAt: string;
+  submittedAt: string | null;
+  completedAt: string | null;
+};
+
 export async function fetchRegistrarOrders() {
   return apiFetch<Array<{
     id: string;
@@ -97,6 +126,19 @@ export async function fetchRegistrarOrders() {
   }>>('/domains/registrar/orders');
 }
 
+export async function registerDomainClientAction(input: {
+  name: string;
+  years: number;
+  nameservers: string[];
+}) {
+  await apiFetch('/domains/registrar/register', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  revalidatePath('/dashboard/domains');
+  revalidatePath('/dashboard/domains/buy');
+}
+
 export async function registerDomainAction(formData: FormData) {
   const name = String(formData.get('name') ?? '').trim().toLowerCase();
   const years = Number.parseInt(String(formData.get('years') ?? '1'), 10);
@@ -109,7 +151,7 @@ export async function registerDomainAction(formData: FormData) {
     body: JSON.stringify({ name, years, nameservers }),
   });
   revalidatePath('/dashboard/domains');
-  revalidatePath('/dashboard/domains/registrar');
+  revalidatePath('/dashboard/domains/buy');
 }
 
 export async function transferDomainAction(formData: FormData) {
@@ -124,6 +166,6 @@ export async function transferDomainAction(formData: FormData) {
     method: 'POST',
     body: JSON.stringify({ name, authCode, years, nameservers }),
   });
-  revalidatePath('/dashboard/domains/registrar');
+  revalidatePath('/dashboard/domains/buy');
 }
 

@@ -89,9 +89,9 @@ export default function DomainsPage() {
               <Button
                 variant="outline"
                 className="w-full gap-2 sm:w-auto"
-                onClick={() => router.push('/dashboard/domains/registrar')}
+                onClick={() => router.push('/dashboard/domains/buy')}
               >
-                <ShoppingCart className="h-4 w-4" /> Rejestrator
+                <ShoppingCart className="h-4 w-4" /> Kup domenę
               </Button>
             ) : null}
             <Button className="w-full gap-2 sm:w-auto" onClick={() => setIsAddOpen(true)}>

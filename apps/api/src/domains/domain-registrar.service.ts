@@ -39,6 +39,36 @@ export class DomainRegistrarService {
     private readonly nbpFx: NbpFxService,
   ) {}
 
+  async quote(name: string, years = 1) {
+    const domain = normalizeDomain(name);
+    const provider = this.providerFactory.get();
+    const availability = await provider.availability(domain);
+    if (!availability.available) {
+      return {
+        domain,
+        available: false,
+        premium: availability.premium ?? false,
+        years,
+        priceAmount: null,
+        currency: 'PLN',
+      };
+    }
+
+    const price = await this.resolvePrice(provider, domain, years, 'register', {
+      amount: availability.priceAmount,
+      currency: availability.currency,
+    });
+
+    return {
+      domain,
+      available: true,
+      premium: availability.premium ?? false,
+      years,
+      priceAmount: price.amount,
+      currency: price.currency,
+    };
+  }
+
   async availability(name: string) {
     const provider = this.providerFactory.get();
     const availability = await provider.availability(normalizeDomain(name));
