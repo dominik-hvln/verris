@@ -178,6 +178,9 @@ configure_firewall_ingress() {
       run "ufw allow 53/udp comment 'verris-dns'"
       run "ufw allow 2222/tcp"
       run "ufw allow 21/tcp"
+      # FTPS (PROT P) encrypts the control channel — firewalld/ufw ftp helpers cannot
+      # parse PASV replies; passive data ports must be opened explicitly (pure-ftpd range).
+      run "ufw allow 35000:35999/tcp comment 'verris-ftps-passive'"
       run "ufw allow 25/tcp"
       run "ufw allow 587/tcp"
       run "ufw allow 993/tcp"
@@ -199,6 +202,7 @@ configure_firewall_ingress() {
       run "firewall-cmd --permanent --add-port=53/udp"
       run "firewall-cmd --permanent --add-port=2222/tcp"
       run "firewall-cmd --permanent --add-service=ftp"
+      run "firewall-cmd --permanent --add-port=35000-35999/tcp"
       run "firewall-cmd --permanent --add-port=25/tcp"
       run "firewall-cmd --permanent --add-port=587/tcp"
       run "firewall-cmd --permanent --add-port=993/tcp"

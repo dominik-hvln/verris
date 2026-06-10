@@ -122,11 +122,11 @@ export class SubscriptionsAdminController {
   async usage(@Param('id') id: string, @Query('window') window = '24h') {
     const hours = window === '7d' ? 24 * 7 : 24;
     const since = new Date(Date.now() - hours * 60 * 60 * 1000);
-    const [rows, account] = await Promise.all([
+    const [rowsDesc, account] = await Promise.all([
       this.prisma.usageMetric.findMany({
         where: { subscriptionId: id, bucketStart: { gte: since } },
-        orderBy: { bucketStart: 'asc' },
-        take: window === '7d' ? 500 : 200,
+        orderBy: { bucketStart: 'desc' },
+        take: window === '7d' ? 500 : 1440,
       }),
       this.prisma.account.findUnique({
         where: { subscriptionId: id },
@@ -148,6 +148,7 @@ export class SubscriptionsAdminController {
         },
       }),
     ]);
+    const rows = rowsDesc.reverse();
     const latest = rows.at(-1) ?? null;
     return {
       window,

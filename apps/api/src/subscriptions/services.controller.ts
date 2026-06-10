@@ -452,11 +452,15 @@ export class UserServicesController {
     await this.assertSubscriptionForUser(id, user.userId);
     const hours = window === '7d' ? 24 * 7 : 24;
     const since = new Date(Date.now() - hours * 60 * 60 * 1000);
-    const rows = await this.prisma.usageMetric.findMany({
-      where: { subscriptionId: id, bucketStart: { gte: since } },
-      orderBy: { bucketStart: 'asc' },
-      take: window === '7d' ? 500 : 200,
-    });
+    // Newest buckets first — with 1-min telemetry, 24h can exceed 1400 rows; asc+take
+    // used to return the *oldest* slice, so the panel showed stale 0% / 1 MB disk.
+    const rows = (
+      await this.prisma.usageMetric.findMany({
+        where: { subscriptionId: id, bucketStart: { gte: since } },
+        orderBy: { bucketStart: 'desc' },
+        take: window === '7d' ? 500 : 1440,
+      })
+    ).reverse();
     return {
       window,
       rows: rows.map((row) => ({

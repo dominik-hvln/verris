@@ -47,9 +47,13 @@ function healthColor(label: ServiceHealthSummaryDto['label']) {
   return 'rgba(255,255,255,0.25)';
 }
 
-/** Used value in GB with 1-decimal (0.1) precision, e.g. 1536 MB -> "1.5 GB". */
+/** Used value — MB below 1 GB so idle/small accounts are not shown as "0.0 GB". */
 function mbToGbUsed(mb: number) {
-  return `${(mb / 1024).toFixed(1)} GB`;
+  if (mb < 1024) {
+    return mb < 10 ? `${mb.toFixed(1)} MB` : `${Math.round(mb)} MB`;
+  }
+  const gb = mb / 1024;
+  return `${Number.isInteger(gb) ? gb : gb.toFixed(1)} GB`;
 }
 
 /** Limit in GB without trailing ".0", e.g. 51200 MB -> "50 GB", 1536 -> "1.5 GB". */
@@ -125,7 +129,7 @@ export default function ServiceOverviewTab({
         value: cpuVal,
         max: account.cpuLimit,
         label: 'CPU',
-        valueLabel: `${Math.round(cpuVal)}%`,
+        valueLabel: cpuVal < 10 ? `${cpuVal.toFixed(1)}%` : `${Math.round(cpuVal)}%`,
         sub: `/ ${account.cpuLimit}%`,
       },
       ram: {
