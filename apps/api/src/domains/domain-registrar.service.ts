@@ -352,7 +352,8 @@ export class DomainRegistrarService {
       return await this.toCustomerPrice(p.amount, p.currency);
     } catch (err) {
       if (fallback?.amount) {
-        return await this.toCustomerPrice(fallback.amount, fallback.currency ?? 'USD');
+        const wholesaleTotal = new Prisma.Decimal(fallback.amount).mul(years);
+        return await this.toCustomerPrice(wholesaleTotal.toString(), fallback.currency ?? 'USD');
       }
       this.logger.error(
         `Brak ceny rejestratora dla ${domain}/${operation}: ${(err as Error).message}`,

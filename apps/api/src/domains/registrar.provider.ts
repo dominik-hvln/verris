@@ -153,12 +153,25 @@ class OpenProviderRegistrarProvider implements RegistrarProvider {
     };
   }
 
-  async price(input: { domain: string; operation: RegistrarOperation }): Promise<RegistrarPrice> {
+  async price(input: {
+    domain: string;
+    years: number;
+    operation: RegistrarOperation;
+  }): Promise<RegistrarPrice> {
     const { name, extension } = splitDomain(input.domain);
-    const operation = input.operation === 'renew' ? 'renew' : input.operation === 'transfer' ? 'transfer' : 'create';
+    const operation =
+      input.operation === 'renew' ? 'renew' : input.operation === 'transfer' ? 'transfer' : 'create';
+    const period = Math.min(10, Math.max(1, Math.trunc(input.years)));
+    const qs = new URLSearchParams({
+      'domain.name': name,
+      'domain.extension': extension,
+      operation,
+      period: String(period),
+    });
     const res = await this.request<{ data: { price?: { reseller?: OpPrice; product?: OpPrice } } }>(
-      '/v1beta/domains/prices',
-      { domain: { name, extension }, operation },
+      `/v1beta/domains/prices?${qs.toString()}`,
+      null,
+      'GET',
     );
     const price = res.data?.price?.reseller ?? res.data?.price?.product;
     if (!price) {
@@ -245,8 +258,12 @@ class OpenProviderRegistrarProvider implements RegistrarProvider {
     const token = await this.ensureToken();
     const res = await fetch(`${this.baseUrl.replace(/\/$/, '')}${path}`, {
       method,
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: method === 'GET' ? undefined : JSON.stringify(payload),
+      headers: {
+        Accept: 'application/json',
+        ...(method === 'GET' ? {} : { 'Content-Type': 'application/json' }),
+        Authorization: `Bearer ${token}`,
+      },
+      body: method === 'GET' || payload == null ? undefined : JSON.stringify(payload),
     });
     const body = (await res.json().catch(() => null)) as
       | { data?: T; code?: number; desc?: string }
