@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   Req,
   UseGuards,
@@ -28,12 +29,18 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Role } from '@verris/database';
 import { TwoFactorService } from './totp/two-factor.service';
+import { WebAuthnService } from './webauthn/webauthn.service';
+import type {
+  RegistrationResponseJSON,
+  AuthenticationResponseJSON,
+} from '@simplewebauthn/server';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly twoFactor: TwoFactorService,
+    private readonly webauthn: WebAuthnService,
   ) {}
 
   // Audit F-09: strict per-route limits — registration and mail-out endpoints
@@ -146,6 +153,77 @@ export class AuthController {
       ip,
     });
     return { ok: true };
+  }
+
+  // ---------------------------------------------------------------------------
+  // C2 — Passkeys (WebAuthn)
+  // ---------------------------------------------------------------------------
+
+  /** Status: czy passkeys są dostępne (RP skonfigurowane). */
+  @Get('webauthn/status')
+  webauthnStatus() {
+    return { available: this.webauthn.isConfigured() };
+  }
+
+  /** Opcje rejestracji nowego passkey (zalogowany użytkownik). */
+  @UseGuards(JwtAuthGuard)
+  @Post('webauthn/register/options')
+  @HttpCode(HttpStatus.OK)
+  webauthnRegisterOptions(@CurrentUser() user: { principalUserId?: string; userId: string }) {
+    return this.webauthn.registrationOptions(user.principalUserId ?? user.userId);
+  }
+
+  /** Weryfikacja i zapis nowego passkey. */
+  @UseGuards(JwtAuthGuard)
+  @Post('webauthn/register/verify')
+  @HttpCode(HttpStatus.OK)
+  webauthnRegisterVerify(
+    @CurrentUser() user: { principalUserId?: string; userId: string },
+    @Body() dto: { response: RegistrationResponseJSON; deviceName?: string },
+  ) {
+    return this.webauthn.verifyRegistration(
+      user.principalUserId ?? user.userId,
+      dto.response,
+      dto.deviceName,
+    );
+  }
+
+  /** Opcje logowania passkey dla danego e-maila (bez ujawniania istnienia konta). */
+  @RateLimit({ limit: 20, windowMs: 60 * 1000, scope: 'auth:webauthn-login', keyByBodyField: 'email' })
+  @Post('webauthn/login/options')
+  @HttpCode(HttpStatus.OK)
+  webauthnLoginOptions(@Body() dto: { email: string }) {
+    return this.webauthn.authenticationOptions(dto.email);
+  }
+
+  /** Weryfikacja logowania passkey → wydanie JWT. */
+  @RateLimit({ limit: 20, windowMs: 60 * 1000, scope: 'auth:webauthn-verify' })
+  @Post('webauthn/login/verify')
+  @HttpCode(HttpStatus.OK)
+  async webauthnLoginVerify(
+    @Body() dto: { response: AuthenticationResponseJSON },
+    @Req() req: Request,
+  ) {
+    const { userId } = await this.webauthn.verifyAuthentication(dto.response);
+    return this.authService.loginWithVerifiedUser(userId, requestContext(req), 'passkey');
+  }
+
+  /** Lista zarejestrowanych passkeys. */
+  @UseGuards(JwtAuthGuard)
+  @Get('webauthn/credentials')
+  webauthnList(@CurrentUser() user: { principalUserId?: string; userId: string }) {
+    return this.webauthn.listCredentials(user.principalUserId ?? user.userId);
+  }
+
+  /** Usunięcie passkey. */
+  @UseGuards(JwtAuthGuard)
+  @Post('webauthn/credentials/:id/delete')
+  @HttpCode(HttpStatus.OK)
+  webauthnDelete(
+    @CurrentUser() user: { principalUserId?: string; userId: string },
+    @Param('id') id: string,
+  ) {
+    return this.webauthn.deleteCredential(user.principalUserId ?? user.userId, id);
   }
 
   /** C3 — wyloguj wszystkie urządzenia (unieważnij wszystkie tokeny). */

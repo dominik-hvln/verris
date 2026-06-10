@@ -24,6 +24,7 @@ import { HostingRestoreService } from './hosting-restore.service';
 import { HostingRestoreScheduler } from './hosting-restore.scheduler';
 import { PublicUptimeBadgeController } from './public-uptime-badge.controller';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
+import { WordpressService } from './wordpress.service';
 
 @Module({
   imports: [ServersModule, PlatformSettingsModule, forwardRef(() => BillingModule), MailModule],
@@ -42,6 +43,7 @@ import { PlatformSettingsModule } from '../platform-settings/platform-settings.m
     HostingDnsPointingService,
     HostingRestoreService,
     HostingRestoreScheduler,
+    WordpressService,
   ],
   controllers: [
     SubscriptionsController,

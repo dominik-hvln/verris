@@ -24,6 +24,7 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^10.0.0",
     "@nestjs/schedule": "^6.1.1",
+    "@simplewebauthn/server": "^13.1.0",
     "@verris/contracts": "workspace:^",
     "@verris/database": "workspace:*",
     "@verris/directadmin-sdk": "workspace:^",

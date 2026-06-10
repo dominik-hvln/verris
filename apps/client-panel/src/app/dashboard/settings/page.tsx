@@ -20,6 +20,7 @@ import {
   type UserProfile,
 } from "./actions";
 import { TwoFactorSection } from "./two-factor-section";
+import { PasskeysSection } from "./passkeys-section";
 import { PrivacyTab } from "./privacy-tab";
 import { SidebarTilesSection } from "./sidebar-tiles-section";
 
@@ -460,6 +461,7 @@ function SecurityTab({
       </div>
 
       <TwoFactorSection showToast={showToast} />
+      <PasskeysSection showToast={showToast} />
 
       <div className="flex justify-end pt-8 mt-8 border-t border-white/5">
         <button

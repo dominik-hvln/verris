@@ -1058,6 +1058,19 @@ configure_hosting_capabilities() {
   # A3 — wtyczka LSCache w nowych instalacjach WP (flaga dla instalatora A4).
   cb_set_option redis yes  # A6 — Redis dostępny serwerowo (per-konto włącza pakiet planu)
 
+  # B2 — ModSecurity WAF (OWASP CRS) na LiteSpeed. CustomBuild ma moduł
+  # `modsecurity` + zestaw reguł `modsecurity_ruleset` (comodo/owasp).
+  if cb_option_supported modsecurity; then
+    cb_set_option modsecurity yes
+    cb_set_option modsecurity_ruleset owasp
+    # Domyślnie tryb detekcji (DetectionOnly) — bloki włącza się per konto/globalnie
+    # w panelu (plik konfiguracyjny zarządzany przez agenta).
+    da_set_conf modsecurity_enabled 1
+    log_ok "ModSecurity WAF (OWASP CRS) włączony w CustomBuild"
+  else
+    log_skip "ModSecurity — opcja niedostępna w tym CustomBuild (sprawdź webserver/litespeed)"
+  fi
+
   # A2 — PHP Selector (CloudLinux): wymaga lvemanager + alt-php. Best-effort.
   if command -v cloudlinux-config >/dev/null 2>&1 || [ -d /opt/alt ]; then
     if [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ]; then

@@ -25,6 +25,7 @@ import DatabasesTab from '@/components/hosting/DatabasesTab';
 import MailTab from '@/components/hosting/MailTab';
 import SSLTab from '@/components/hosting/SSLTab';
 import StagingTab from '@/components/hosting/StagingTab';
+import WordpressTab from '@/components/hosting/WordpressTab';
 import DeployTab from '@/components/hosting/DeployTab';
 import HostingFileManagerTab from '@/components/hosting/HostingFileManagerTab';
 import UsageTab from '@/components/hosting/UsageTab';
@@ -43,6 +44,7 @@ const TABS = [
   { id: 'mail', label: 'Poczta', icon: Mail },
   { id: 'files', label: 'Pliki', icon: FolderOpen },
   { id: 'ssl', label: 'SSL', icon: Shield },
+  { id: 'apps', label: 'Aplikacje', icon: Globe },
   { id: 'staging', label: 'Staging', icon: Box },
   { id: 'deploy', label: 'Deploy', icon: Rocket },
   { id: 'usage', label: 'Usage', icon: Activity },
@@ -151,6 +153,7 @@ export default function HostingManagerPage() {
             {activeTab === 'databases' && <DatabasesTab serviceId={params.id} />}
             {activeTab === 'mail' && <MailTab serviceId={params.id} />}
             {activeTab === 'ssl' && <SSLTab serviceId={params.id} />}
+            {activeTab === 'apps' && <WordpressTab serviceId={params.id} />}
             {activeTab === 'staging' && <StagingTab serviceId={params.id} />}
             {activeTab === 'deploy' && <DeployTab serviceId={params.id} />}
             {activeTab === 'files' && <HostingFileManagerTab serviceId={params.id} />}

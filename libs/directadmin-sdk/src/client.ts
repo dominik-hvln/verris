@@ -196,8 +196,10 @@ export interface AccountResourceLimits {
  */
 export class DirectAdminClient {
   private client: AxiosInstance;
+  private readonly usernameValue: string;
 
   constructor(config: DirectAdminConfig) {
+    this.usernameValue = config.username;
     const protocol = config.secure !== false ? 'https' : 'http';
     const baseURL = `${protocol}://${config.host}:${config.port}`;
     const token = Buffer.from(`${config.username}:${config.loginKey}`).toString('base64');
@@ -688,6 +690,40 @@ export class DirectAdminClient {
   // ---------------------------------------------------------------------------
   // MySQL — user level (CMD_API_DATABASES)
   // ---------------------------------------------------------------------------
+
+  /**
+   * A4 — creates a MySQL database + dedicated user in one call (DA tracks it,
+   * so quotas and the user's panel stay consistent). `name`/`user` are the
+   * SHORT parts; DA prefixes them with the account username (`acct_name`).
+   * Returns the full (prefixed) db + user names for the WP config.
+   */
+  async createMysqlDatabase(input: {
+    name: string;
+    user: string;
+    password: string;
+  }): Promise<{ database: string; username: string }> {
+    const accountUser = this.usernameForDbPrefix();
+    await this.client.post(
+      '/CMD_API_DATABASES',
+      new URLSearchParams({
+        action: 'create',
+        name: input.name,
+        user: input.user,
+        passwd: input.password,
+        passwd2: input.password,
+      }).toString(),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
+    );
+    return {
+      database: `${accountUser}_${input.name}`,
+      username: `${accountUser}_${input.user}`,
+    };
+  }
+
+  /** Account username used by DA as the db/user prefix. */
+  private usernameForDbPrefix(): string {
+    return this.usernameValue;
+  }
 
   /**
    * Lists MySQL database names for the authenticated (user-level) session.

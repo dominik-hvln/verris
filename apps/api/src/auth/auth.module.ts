@@ -11,6 +11,7 @@ import { ComplianceModule } from '../compliance/compliance.module';
 import { AuditModule } from '../common/audit/audit.module';
 import { MailModule } from '../mail/mail.module';
 import { LoginEventService } from './login-event.service';
+import { WebAuthnService } from './webauthn/webauthn.service';
 
 @Module({
   imports: [
@@ -36,7 +37,8 @@ import { LoginEventService } from './login-event.service';
     TotpService,
     TwoFactorService,
     LoginEventService,
+    WebAuthnService,
   ],
-  exports: [AuthService, TwoFactorService, LoginEventService],
+  exports: [AuthService, TwoFactorService, LoginEventService, WebAuthnService],
 })
 export class AuthModule {}

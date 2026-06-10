@@ -96,6 +96,7 @@ source "$CONFIG_FILE"
 [ -f "$JOB_JSON" ] || { log "Missing job file $JOB_JSON"; exit 1; }
 
 TASK_ID=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["id"])' "$JOB_JSON")
+TASK_KIND=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("kind") or "HOSTING_PROFILE")' "$JOB_JSON")
 SKIP_BUILD=$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print("1" if d.get("payload",{}).get("skipBuild", True) else "0")' "$JOB_JSON")
 DRY_RUN=$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print("1" if d.get("payload",{}).get("dryRun") else "0")' "$JOB_JSON")
 
@@ -151,18 +152,46 @@ on_exit() {
 }
 trap on_exit EXIT
 
-log "Starting task $TASK_ID (instance=$INSTANCE) → $TASK_LOG"
+log "Starting task $TASK_ID (kind=$TASK_KIND instance=$INSTANCE) → $TASK_LOG"
 
-flags="-y"
-[ "$SKIP_BUILD" = "1" ] && flags="$flags --skip-build"
-[ "$DRY_RUN" = "1" ] && flags="$flags --dry-run"
-
-[ -x "$PROFILE_BIN" ] || { report_fail "Brak $PROFILE_BIN"; exit 1; }
+# Build the command for this task kind. HOSTING_PROFILE runs the cached profile
+# binary; WP_INSTALL fetches its script + exports the payload as WP_* env vars.
+RUN_BIN=""
+declare -a RUN_ENV=()
+if [ "$TASK_KIND" = "WP_INSTALL" ]; then
+  RUN_BIN="/usr/local/bin/verris-wp-install.sh"
+  if ! curl -fsS --max-time 30 "\${auth_headers[@]}" "$VERRIS_API_URL/agent/tasks/wp-install/script" -o "$RUN_BIN" 2>>"$AGENT_LOG"; then
+    report_fail "Nie udało się pobrać skryptu wp-install z API."
+    exit 1
+  fi
+  chmod 755 "$RUN_BIN"
+  # Eksport payloadu WordPressa do zmiennych środowiskowych (klucz→WP_<UPPER>).
+  while IFS='=' read -r k v; do
+    [ -n "$k" ] && RUN_ENV+=("WP_\${k}=$v")
+  done < <(python3 -c '
+import json, sys
+p = json.load(open(sys.argv[1])).get("payload", {})
+m = {
+  "daUser":"DA_USER","domain":"DOMAIN","dbName":"DB_NAME","dbUser":"DB_USER",
+  "dbPass":"DB_PASS","siteTitle":"SITE_TITLE","adminUser":"ADMIN_USER",
+  "adminPass":"ADMIN_PASS","adminEmail":"ADMIN_EMAIL","locale":"LOCALE",
+}
+for src,dst in m.items():
+    if p.get(src) is not None:
+        print(dst + "=" + str(p[src]))
+' "$JOB_JSON")
+else
+  flags="-y"
+  [ "$SKIP_BUILD" = "1" ] && flags="$flags --skip-build"
+  [ "$DRY_RUN" = "1" ] && flags="$flags --dry-run"
+  RUN_BIN="$PROFILE_BIN"
+  [ -x "$RUN_BIN" ] || { report_fail "Brak $RUN_BIN"; exit 1; }
+fi
 
 {
-  echo "=== Verris task $TASK_ID ==="
+  echo "=== Verris task $TASK_ID (kind=$TASK_KIND) ==="
   echo "Start: $(date -u +%FT%TZ)"
-  echo "Command: $PROFILE_BIN $flags"
+  echo "Command: $RUN_BIN \${flags:-}"
   echo "---"
 } >> "$TASK_LOG"
 
@@ -177,7 +206,11 @@ send_progress "$(cat "$TASK_LOG" 2>/dev/null || true)"
 HB_PID=$!
 
 set +e
-bash "$PROFILE_BIN" $flags 2>&1 | tee -a "$TASK_LOG"
+if [ "$TASK_KIND" = "WP_INSTALL" ]; then
+  env "\${RUN_ENV[@]}" bash "$RUN_BIN" 2>&1 | tee -a "$TASK_LOG"
+else
+  bash "$RUN_BIN" \${flags:-} 2>&1 | tee -a "$TASK_LOG"
+fi
 rc=\${PIPESTATUS[0]}
 set -e
 
@@ -302,8 +335,27 @@ dispatch_hosting_profile() {
   exit 1
 }
 
+# A4 — WP_INSTALL i inne zadania per-konto: run-script sam pobiera właściwy
+# skrypt (po kind), więc dispatch jest generyczny (zapis job JSON + start unit).
+dispatch_generic() {
+  mkdir -p "$STATE_DIR"
+  printf '%s' "$LEASE_JSON" > "$STATE_DIR/\${INSTANCE}.json"
+  if command -v systemctl >/dev/null 2>&1 && systemctl cat verris-task@.service >/dev/null 2>&1; then
+    if systemctl start "verris-task@\${INSTANCE}.service" 2>>"$LOG"; then
+      echo "[verris-tasks] Started verris-task@\${INSTANCE}.service ($KIND, log: /var/log/verris-tasks/\${TASK_ID}.log)" >> "$LOG"
+      exit 0
+    fi
+  fi
+  if [ -x /usr/local/bin/verris-task-run.sh ]; then
+    exec /usr/local/bin/verris-task-run.sh "$INSTANCE"
+  fi
+  report_task_fail "Brak verris-task@.service i /usr/local/bin/verris-task-run.sh — uruchom install agenta."
+  exit 1
+}
+
 case "$KIND" in
   HOSTING_PROFILE) dispatch_hosting_profile ;;
+  WP_INSTALL) dispatch_generic ;;
   *)
     report_task_fail "Unknown task kind: $KIND"
     exit 1

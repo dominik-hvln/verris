@@ -160,6 +160,10 @@ services:
       METRICS_AUTH_TOKEN: ${METRICS_AUTH_TOKEN:-}
       # Pre-LIVE hardening + VPN (ETAP 7/8)
       REQUIRE_2FA_FOR_STAFF: ${REQUIRE_2FA_FOR_STAFF:-0}
+      # C2 — Passkeys (WebAuthn). RP_ID = domena rejestrowalna (bez https://).
+      WEBAUTHN_RP_ID: ${WEBAUTHN_RP_ID:-}
+      WEBAUTHN_RP_NAME: ${WEBAUTHN_RP_NAME:-Verris}
+      WEBAUTHN_ORIGINS: ${WEBAUTHN_ORIGINS:-}
       VPN_WG_SERVER_PUBLIC_KEY: ${VPN_WG_SERVER_PUBLIC_KEY:-}
       VPN_WG_ENDPOINT: ${VPN_WG_ENDPOINT:-}
       VPN_WG_SUBNET: ${VPN_WG_SUBNET:-10.88.0.0/24}

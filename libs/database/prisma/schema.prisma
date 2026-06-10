@@ -87,6 +87,11 @@ model User {
   twoFactorEnrolledAt      DateTime?
   twoFactorRecoveryCodesEnc String?
 
+  // C2 — WebAuthn / passkeys. Transient challenge for registration/auth ceremony.
+  webauthnChallenge        String?
+  webauthnChallengeExpires DateTime?
+  webauthnCredentials      WebAuthnCredential[]
+
   // Stripe
   stripeCustomerId         String?   @unique
   defaultPaymentMethodId   String?
@@ -216,6 +221,24 @@ model UserAuthToken {
 
   @@index([userId, purpose])
   @@index([expiresAt])
+}
+
+/// C2 — passkey (WebAuthn) credential. Stores only public material.
+model WebAuthnCredential {
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentialId String    @unique
+  publicKey    String    @db.Text
+  counter      BigInt    @default(0)
+  transports   String?
+  deviceType   String?
+  backedUp     Boolean   @default(false)
+  name         String?
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
+
+  @@index([userId])
 }
 
 enum CustomerSubaccountInviteStatus {
@@ -375,6 +398,14 @@ model Server {
 
 enum NodeTaskKind {
   HOSTING_PROFILE
+  WP_INSTALL        // A4 — instalator WordPress per konto klienta
+  WAF_APPLY         // B2 — zastosowanie trybu ModSecurity WAF per konto
+}
+
+enum WafMode {
+  OFF
+  DETECTION   // SecRuleEngine DetectionOnly — loguje, nie blokuje
+  ON          // SecRuleEngine On — blokuje
 }
 
 enum NodeTaskStatus {
@@ -391,6 +422,9 @@ model NodeTask {
   server        Server         @relation(fields: [serverId], references: [id], onDelete: Cascade)
   kind          NodeTaskKind
   status        NodeTaskStatus @default(QUEUED)
+  // A4 — per-account tasks (WP_INSTALL) carry the target account; server-wide
+  // tasks (HOSTING_PROFILE) leave it null.
+  accountId     String?
   payload       Json?
   outputLog     String?        @db.Text
   errorMessage  String?        @db.Text
@@ -788,6 +822,10 @@ model Account {
   domain          String        @unique // primary domain
 
   status          AccountStatus @default(PROVISIONING)
+
+  // B2 — ModSecurity WAF mode for this account (applied via WAF_APPLY task).
+  wafMode         WafMode       @default(DETECTION)
+  wafAppliedAt    DateTime?
 
   // Effective limits (= plan + autoscaling delta)
   cpuLimit        Int           @default(100)

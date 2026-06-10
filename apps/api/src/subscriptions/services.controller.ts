@@ -21,6 +21,8 @@ import { ServiceHealthService } from './service-health.service';
 import { HostingDnsPointingService } from './hosting-dns-pointing.service';
 import { HostingRestoreService } from './hosting-restore.service';
 import { HostingRestoreDto } from './dto/hosting-restore.dto';
+import { WordpressService } from './wordpress.service';
+import { InstallWordpressDto } from './dto/wordpress.dto';
 
 /**
  * Customer-facing "services" view — denormalized projection over Subscription
@@ -36,7 +38,28 @@ export class UserServicesController {
     private readonly serviceHealth: ServiceHealthService,
     private readonly dnsPointing: HostingDnsPointingService,
     private readonly hostingRestore: HostingRestoreService,
+    private readonly wordpress: WordpressService,
   ) {}
+
+  // A4 — WordPress 1-click installer
+  @Get(':id/wordpress/status')
+  wordpressStatus(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.wordpress.statusForSubscription(id, user.userId);
+  }
+
+  @Post(':id/wordpress/install')
+  installWordpress(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() dto: InstallWordpressDto,
+  ) {
+    return this.wordpress.install(id, user.userId, {
+      siteTitle: dto.siteTitle,
+      adminUser: dto.adminUser,
+      adminEmail: dto.adminEmail,
+      locale: dto.locale,
+    });
+  }
 
   @Get()
   async list(

@@ -17,14 +17,14 @@ const wordSize: Record<LogoSize, string> = {
 
 const lockupGap: Record<LogoLayout, Record<LogoSize, string>> = {
   horizontal: {
-    sm: "gap-1.5",
-    md: "gap-2",
-    lg: "gap-2.5",
+    sm: "gap-0.5",
+    md: "gap-1",
+    lg: "gap-1.5",
   },
   vertical: {
-    sm: "gap-1.5",
-    md: "gap-2",
-    lg: "gap-2.5",
+    sm: "gap-0.5",
+    md: "gap-1",
+    lg: "gap-1",
   },
 };
 

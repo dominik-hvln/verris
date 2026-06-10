@@ -19,6 +19,7 @@ import {
 } from './default-hosting-page.assets';
 import { loadHostingProfileScript } from './hosting-profile.script';
 import { loadLveAgentScript } from './lve-agent.script';
+import { loadWpInstallScript } from './wp-install.script';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 
 class CompleteNodeTaskDto {
@@ -70,6 +71,13 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   hostingProfileScript() {
     return loadHostingProfileScript();
+  }
+
+  /** A4 — WordPress installer script (run with WP_* env from the task payload). */
+  @Get('wp-install/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  wpInstallScript() {
+    return loadWpInstallScript();
   }
 
   @Get('hosting-profile/default-page/script')

@@ -6,6 +6,7 @@ import { Loader2, AlertCircle, ShieldCheck, Mail } from "lucide-react";
 import { SpinBorder } from "@/components/spin-border";
 import { Suspense } from "react";
 import { LoginNotices } from "./login-notices";
+import { PasskeyLoginButton } from "./passkey-login-button";
 import { VerrisLockup } from "@/components/logo";
 import { VerrisPatternLayer } from "@/components/brand/brand-pattern";
 
@@ -102,8 +103,14 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <div className="p-8 pt-2">
+        <div className="space-y-3 p-8 pt-2">
           <SubmitButton pending={loginPending} label="Zaloguj się" pendingLabel="Logowanie..." />
+          <div className="flex items-center gap-3">
+            <span className="h-px flex-1 bg-border" />
+            <span className="text-xs text-muted-foreground">lub</span>
+            <span className="h-px flex-1 bg-border" />
+          </div>
+          <PasskeyLoginButton />
         </div>
       </form>
     </Shell>
