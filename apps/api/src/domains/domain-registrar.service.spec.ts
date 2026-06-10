@@ -7,6 +7,16 @@ describe('DomainRegistrarService', () => {
   const crypto = { encrypt: jest.fn((v: string) => `enc:${v}`) };
   const wallet = { debit: jest.fn(), credit: jest.fn() };
   const config = { get: jest.fn(() => '1.0') };
+  const nbpFx = {
+    getRates: jest.fn().mockResolvedValue({
+      usdPln: 3.65,
+      eurPln: 4.32,
+      source: 'env',
+      nbpTableNo: null,
+      nbpEffectiveDate: null,
+      fetchedAt: new Date().toISOString(),
+    }),
+  };
 
   beforeEach(() => jest.clearAllMocks());
 
@@ -23,6 +33,7 @@ describe('DomainRegistrarService', () => {
       providerFactory as never,
       wallet as never,
       config as never,
+      nbpFx as never,
     );
 
     await expect(service.availability('example.pl')).rejects.toBeInstanceOf(ServiceUnavailableException);
@@ -39,6 +50,7 @@ describe('DomainRegistrarService', () => {
       { get: () => provider } as never,
       wallet as never,
       config as never,
+      nbpFx as never,
     );
 
     await expect(service.register('user_1', 'user_1', { name: 'Example.pl' })).rejects.toThrow(

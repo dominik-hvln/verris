@@ -16,7 +16,9 @@ import { WalletLedgerService } from '../billing/wallet-ledger.service';
 import {
   parseDomainPricingConfig,
   toCustomerDomainPrice,
+  type DomainPricingConfig,
 } from './domain-pricing.util';
+import { NbpFxService } from './nbp-fx.service';
 import {
   RegistrarOperation,
   RegistrarOrderResult,
@@ -34,6 +36,7 @@ export class DomainRegistrarService {
     private readonly providerFactory: RegistrarProviderFactory,
     private readonly wallet: WalletLedgerService,
     private readonly config: ConfigService,
+    private readonly nbpFx: NbpFxService,
   ) {}
 
   async availability(name: string) {
@@ -41,7 +44,7 @@ export class DomainRegistrarService {
     const availability = await provider.availability(normalizeDomain(name));
     // Surface the *customer* price (reseller cost × markup), not the raw cost.
     if (availability.priceAmount) {
-      const customer = this.toCustomerPrice(
+      const customer = await this.toCustomerPrice(
         availability.priceAmount,
         availability.currency ?? 'USD',
       );
@@ -316,10 +319,10 @@ export class DomainRegistrarService {
   ): Promise<{ amount: string; currency: string }> {
     try {
       const p = await provider.price({ domain, years, operation });
-      return this.toCustomerPrice(p.amount, p.currency);
+      return await this.toCustomerPrice(p.amount, p.currency);
     } catch (err) {
       if (fallback?.amount) {
-        return this.toCustomerPrice(fallback.amount, fallback.currency ?? 'USD');
+        return await this.toCustomerPrice(fallback.amount, fallback.currency ?? 'USD');
       }
       this.logger.error(
         `Brak ceny rejestratora dla ${domain}/${operation}: ${(err as Error).message}`,
@@ -328,14 +331,21 @@ export class DomainRegistrarService {
     }
   }
 
-  private pricingConfig() {
-    return parseDomainPricingConfig((key) => this.config.get<string>(key));
+  private async pricingConfig(): Promise<DomainPricingConfig> {
+    const base = parseDomainPricingConfig((key) => this.config.get<string>(key));
+    const fx = await this.nbpFx.getRates();
+    return {
+      ...base,
+      usdPln: fx.usdPln,
+      eurPln: fx.eurPln,
+    };
   }
 
-  private toCustomerPrice(rawAmount: string | number, sourceCurrency?: string | null) {
+  private async toCustomerPrice(rawAmount: string | number, sourceCurrency?: string | null) {
     try {
-      return toCustomerDomainPrice(rawAmount, sourceCurrency ?? 'USD', this.pricingConfig());
-    } catch (fxErr) {
+      const cfg = await this.pricingConfig();
+      return toCustomerDomainPrice(rawAmount, sourceCurrency ?? 'USD', cfg);
+    } catch {
       throw new BadRequestException(
         `Nieobsługiwana waluta cennika rejestratora: ${sourceCurrency ?? '?'}`,
       );

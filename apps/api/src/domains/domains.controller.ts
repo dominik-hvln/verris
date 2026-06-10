@@ -4,6 +4,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { DomainsService } from './domains.service';
 import { CreateDomainDto } from './dto/create-domain.dto';
 import { DomainRegistrarService } from './domain-registrar.service';
+import { NbpFxService } from './nbp-fx.service';
 import { parseDomainPricingConfig } from './domain-pricing.util';
 import { DomainAvailabilityDto, RegisterDomainDto, TransferDomainDto } from './dto/registrar.dto';
 
@@ -14,6 +15,7 @@ export class DomainsController {
     private readonly domainsService: DomainsService,
     private readonly registrar: DomainRegistrarService,
     private readonly config: ConfigService,
+    private readonly nbpFx: NbpFxService,
   ) {}
 
   @Post()
@@ -32,7 +34,7 @@ export class DomainsController {
   }
 
   @Get('registrar/status')
-  registrarStatus() {
+  async registrarStatus() {
     const provider = (this.config.get<string>('REGISTRAR_PROVIDER') ?? '').toLowerCase() || null;
     let configured = false;
     let apiBaseUrl: string | null = null;
@@ -53,6 +55,7 @@ export class DomainsController {
     }
 
     const pricing = parseDomainPricingConfig((key) => this.config.get<string>(key));
+    const fx = await this.nbpFx.getRates();
     return {
       provider,
       configured,
@@ -66,8 +69,14 @@ export class DomainsController {
       priceMarkup: pricing.markup,
       walletCurrency: pricing.walletCurrency,
       fxRates: {
-        USD_PLN: pricing.usdPln,
-        EUR_PLN: pricing.eurPln,
+        USD_PLN: fx.usdPln,
+        EUR_PLN: fx.eurPln,
+        source: fx.source,
+        nbpTableNo: fx.nbpTableNo,
+        nbpEffectiveDate: fx.nbpEffectiveDate,
+        fetchedAt: fx.fetchedAt,
+        envFallbackUsdPln: pricing.usdPln,
+        envFallbackEurPln: pricing.eurPln,
       },
     };
   }
