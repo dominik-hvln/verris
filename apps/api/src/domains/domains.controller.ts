@@ -32,14 +32,37 @@ export class DomainsController {
 
   @Get('registrar/status')
   registrarStatus() {
-    const provider = this.config.get<string>('REGISTRAR_PROVIDER') ?? null;
+    const provider = (this.config.get<string>('REGISTRAR_PROVIDER') ?? '').toLowerCase() || null;
+    let configured = false;
+    let apiBaseUrl: string | null = null;
+
+    if (provider === 'openprovider') {
+      configured = Boolean(
+        this.config.get<string>('OPENPROVIDER_USERNAME') &&
+          this.config.get<string>('OPENPROVIDER_PASSWORD') &&
+          this.config.get<string>('OPENPROVIDER_OWNER_HANDLE'),
+      );
+      apiBaseUrl = this.config.get<string>('OPENPROVIDER_API_BASE_URL') ?? 'https://api.openprovider.eu';
+    } else if (provider) {
+      configured = Boolean(
+        this.config.get<string>('REGISTRAR_API_BASE_URL') &&
+          this.config.get<string>('REGISTRAR_API_TOKEN'),
+      );
+      apiBaseUrl = this.config.get<string>('REGISTRAR_API_BASE_URL') ?? null;
+    }
+
+    const markup = Number.parseFloat(this.config.get<string>('DOMAIN_PRICE_MARKUP') ?? '1');
     return {
       provider,
-      configured: Boolean(
-        provider &&
-          this.config.get<string>('REGISTRAR_API_BASE_URL') &&
-          this.config.get<string>('REGISTRAR_API_TOKEN'),
-      ),
+      configured,
+      apiBaseUrl,
+      environment:
+        apiBaseUrl?.includes('cte.openprovider') || apiBaseUrl?.includes('api.cte.')
+          ? 'sandbox'
+          : provider === 'openprovider'
+            ? 'production'
+            : null,
+      priceMarkup: Number.isFinite(markup) && markup > 0 ? markup : 1,
     };
   }
 
