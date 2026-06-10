@@ -222,12 +222,12 @@ export default function DashboardLayout({
       : user?.email?.[0]?.toUpperCase() || "A";
 
   return (
-    <div className="w-full max-w-[100vw] overflow-x-hidden bg-background font-sans text-sidebar-foreground">
+    <div className="w-full max-w-[100vw] bg-background font-sans text-sidebar-foreground">
       <ImpersonationBanner />
       <IncidentBanner />
       <ReConsentModal />
       <PlatformConfigLoader />
-      <div className="relative flex min-h-screen w-full max-w-full flex-col lg:flex-row">
+      <div className="relative flex min-h-screen w-full max-w-full flex-col lg:flex-row lg:items-start">
 
       {sidebarOpen ? (
         <button
@@ -240,7 +240,7 @@ export default function DashboardLayout({
 
       {/* Sidebar: drawer na mobile, stały panel na desktop (lg+) */}
       <aside
-        className={`fixed inset-y-0 left-0 z-[60] flex w-[300px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform duration-300 max-lg:duration-300 lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:translate-x-0 ${
+        className={`max-lg:fixed max-lg:inset-y-0 max-lg:left-0 z-[60] flex w-[300px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform duration-300 max-lg:duration-300 lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:max-h-screen lg:self-start lg:translate-x-0 ${
           sidebarOpen ? "max-lg:translate-x-0" : "max-lg:-translate-x-full"
         }`}
         onClick={(e) => {
@@ -324,7 +324,7 @@ export default function DashboardLayout({
       </aside>
 
       {/* Main Content Area */}
-      <div className="relative z-10 flex min-h-screen w-full min-w-0 max-w-full flex-1 flex-col">
+      <div className="relative z-10 flex min-h-screen w-full min-w-0 max-w-full flex-1 flex-col overflow-x-hidden">
         {/* Top Navbar — na mobile fixed (hamburger zawsze dostępny), na desktop sticky */}
         <header className="z-50 flex min-h-14 min-w-0 shrink-0 items-center justify-between gap-3 border-b border-border bg-background/95 px-4 backdrop-blur-xl max-lg:fixed max-lg:inset-x-0 max-lg:top-0 max-lg:h-mobile-header sm:min-h-[5rem] sm:gap-4 sm:px-6 lg:sticky lg:top-0 lg:z-40 lg:h-dashboard-topbar lg:bg-background/90 lg:px-10 lg:py-5">
           <div className="flex min-w-0 flex-1 items-center gap-2">
