@@ -225,7 +225,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 
       <div className="relative z-10 mx-4 w-full max-w-[420px] animate-in duration-[1500ms] fade-in slide-in-from-bottom-8">
         <div className="mb-10 flex justify-center">
-          <VerrisLockup size="lg" showTagline className="items-center" />
+          <VerrisLockup size="lg" layout="vertical" showTagline className="items-center" />
         </div>
 
         <div className="group/card relative overflow-hidden rounded-[32px] p-px shadow-[0_0_50px_rgba(0,0,0,0.35)]">

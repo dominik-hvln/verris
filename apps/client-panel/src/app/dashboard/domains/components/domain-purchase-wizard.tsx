@@ -482,15 +482,11 @@ export function DomainPurchaseWizard({ initialOrders }: { initialOrders: Registr
               </div>
 
               {renewalPerYear?.grossAmount ? (
-                <p className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-sm text-amber-100/90">
-                  Po zakończeniu opłaconego okresu odnowienie kosztuje{' '}
-                  <span className="font-semibold text-white">
-                    {formatPln(renewalPerYear.grossAmount)}/rok brutto
+                <p className="text-sm text-neutral-400">
+                  Odnowienie:{' '}
+                  <span className="font-medium text-neutral-200">
+                    {formatPln(renewalPerYear.grossAmount)} / rok brutto
                   </span>
-                  {Number.parseFloat(renewalPerYear.grossAmount) >
-                  Number.parseFloat(selectedQuote?.priceAmount ?? '0') / Math.max(years, 1) ? (
-                    <span className="text-amber-200/80"> — wyżej niż cena pierwszego roku.</span>
-                  ) : null}
                 </p>
               ) : null}
 

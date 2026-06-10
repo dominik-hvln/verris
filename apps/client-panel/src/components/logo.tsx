@@ -1,17 +1,31 @@
 import { cx } from "@/components/panel/cx";
 
 type LogoSize = "sm" | "md" | "lg";
+type LogoLayout = "horizontal" | "vertical";
 
 const markSize: Record<LogoSize, string> = {
-  sm: "h-7 w-7",
-  md: "h-8 w-8",
-  lg: "h-10 w-10",
+  sm: "h-9 w-9",
+  md: "h-10 w-10",
+  lg: "h-16 w-16",
 };
 
 const wordSize: Record<LogoSize, string> = {
   sm: "text-xl",
   md: "text-2xl",
   lg: "text-3xl",
+};
+
+const lockupGap: Record<LogoLayout, Record<LogoSize, string>> = {
+  horizontal: {
+    sm: "gap-1.5",
+    md: "gap-2",
+    lg: "gap-2.5",
+  },
+  vertical: {
+    sm: "gap-1.5",
+    md: "gap-2",
+    lg: "gap-2.5",
+  },
 };
 
 export function VerrisMark({ className }: { className?: string }) {
@@ -39,6 +53,7 @@ export function VerrisMark({ className }: { className?: string }) {
 
 type VerrisLockupProps = {
   size?: LogoSize;
+  layout?: LogoLayout;
   showTagline?: boolean;
   className?: string;
 };
@@ -46,12 +61,27 @@ type VerrisLockupProps = {
 /** Znak P3 + wordmark jako żywy tekst (Schibsted Grotesk). */
 export function VerrisLockup({
   size = "md",
+  layout = "horizontal",
   showTagline = false,
   className,
 }: VerrisLockupProps) {
+  const isVertical = layout === "vertical";
+
   return (
-    <div className={cx("inline-flex flex-col items-start gap-1", className)}>
-      <span className="inline-flex items-center gap-2">
+    <div
+      className={cx(
+        "inline-flex flex-col gap-1",
+        isVertical ? "items-center" : "items-start",
+        className,
+      )}
+    >
+      <span
+        className={cx(
+          "inline-flex items-center",
+          isVertical ? "flex-col" : "flex-row",
+          lockupGap[layout][size],
+        )}
+      >
         <VerrisMark className={cx(markSize[size], "shrink-0 text-verris-paper")} />
         <span
           className={cx(
