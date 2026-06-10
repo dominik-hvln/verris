@@ -26,22 +26,57 @@ WP_SITE_TITLE="${WP_SITE_TITLE:-Moja strona}"
 WP_LOCALE="${WP_LOCALE:-pl_PL}"
 
 DOCROOT="/home/${WP_DA_USER}/domains/${WP_DOMAIN}/public_html"
-WP_CLI="/usr/local/bin/wp"
+WP_DIR="/home/${WP_DA_USER}/.verris"
+WP_PHAR="${WP_DIR}/wp-cli.phar"
 
 log() { echo "[wp-install] $*"; }
 
-# wp-cli — pobierz jeśli brak.
-if [ ! -x "$WP_CLI" ]; then
-  log "Pobieram wp-cli…"
-  curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o "$WP_CLI"
-  chmod +x "$WP_CLI"
-fi
-
 [ -d "$DOCROOT" ] || { log "Brak docroot $DOCROOT — czy domena istnieje w DA?"; exit 1; }
 
-# Helper: wp-cli jako użytkownik konta (CageFS-safe).
+# wp-cli w home użytkownika — /usr/local/bin nie jest widoczny w CageFS.
+ensure_wp_cli() {
+  mkdir -p "$WP_DIR"
+  if [ ! -s "$WP_PHAR" ]; then
+    log "Pobieram wp-cli…"
+    curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
+      -o "${WP_PHAR}.tmp"
+    mv "${WP_PHAR}.tmp" "$WP_PHAR"
+  fi
+  chown -R "$WP_DA_USER:$(id -gn "$WP_DA_USER" 2>/dev/null || echo "$WP_DA_USER")" "$WP_DIR"
+  chmod 755 "$WP_DIR"
+  chmod 644 "$WP_PHAR"
+}
+
+# PHP CLI dostępny w klatce CageFS użytkownika (nie shebang z phar).
+resolve_user_php() {
+  local p
+  p=$(su -s /bin/bash -l "$WP_DA_USER" -c 'command -v php 2>/dev/null | head -1' || true)
+  if [ -n "$p" ] && su -s /bin/bash -l "$WP_DA_USER" -c "test -x '$p'" 2>/dev/null; then
+    echo "$p"
+    return 0
+  fi
+  for candidate in \
+    "/usr/local/bin/php" \
+    "/usr/bin/php" \
+    /opt/alt/php*/usr/bin/php; do
+    if [ -x "$candidate" ] 2>/dev/null && \
+      su -s /bin/bash -l "$WP_DA_USER" -c "test -x '$candidate'" 2>/dev/null; then
+      echo "$candidate"
+      return 0
+    fi
+  done
+  log "Brak PHP CLI dla użytkownika $WP_DA_USER (CageFS / alt-php)."
+  exit 1
+}
+
+ensure_wp_cli
+WP_PHP="$(resolve_user_php)"
+log "PHP CLI: $WP_PHP"
+
+# Helper: wp-cli jako użytkownik konta (jawnie: php phar, bez shebang).
 wp_as_user() {
-  su -s /bin/bash -l "$WP_DA_USER" -c "cd '$DOCROOT' && $WP_CLI $*"
+  # shellcheck disable=SC2086
+  su -s /bin/bash -l "$WP_DA_USER" -c "cd '$DOCROOT' && '$WP_PHP' '$WP_PHAR' $*"
 }
 
 # Idempotencja: jeśli już zainstalowany, nie nadpisuj.
