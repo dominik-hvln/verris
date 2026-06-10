@@ -59,7 +59,13 @@ if command -v cagefsctl >/dev/null 2>&1; then
   CAGEFS_COUNT=$(cagefsctl --list-enabled 2>/dev/null | grep -c . 2>/dev/null || echo 0)
 fi
 
-export VERRIS_API_URL VERRIS_SERVER_ID VERRIS_IDENTITY_TOKEN STATE LOG CAGEFS_ENABLED CAGEFS_COUNT
+# Security hardening marker (audit F-07) — written by
+# security-hardening-baseline.sh; reported so the panel audit can verify the
+# node went through the LIVE onboarding hardening.
+HARDENED=0
+[ -f /etc/verris-hardened ] && HARDENED=1
+
+export VERRIS_API_URL VERRIS_SERVER_ID VERRIS_IDENTITY_TOKEN STATE LOG CAGEFS_ENABLED CAGEFS_COUNT HARDENED
 
 python3 - <<'PYEOF'
 import json, os, re, subprocess, sys, time, pwd, urllib.request, urllib.error
@@ -300,6 +306,7 @@ def node_block():
     return {
         "cagefsEnabled": os.environ.get("CAGEFS_ENABLED") == "1",
         "cagefsEnabledCount": to_int(os.environ.get("CAGEFS_COUNT")),
+        "hardened": os.environ.get("HARDENED") == "1",
     }
 
 def report_node_status():

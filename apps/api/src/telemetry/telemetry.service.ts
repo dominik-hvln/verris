@@ -55,6 +55,9 @@ export class TelemetryService {
               cagefsEnabled: data.node.cagefsEnabled ?? null,
               cagefsEnabledCount: data.node.cagefsEnabledCount ?? null,
               cagefsCheckedAt: new Date(),
+              ...(data.node.hardened !== undefined
+                ? { hardenedEnabled: data.node.hardened, hardenedCheckedAt: new Date() }
+                : {}),
             }
           : {}),
       },

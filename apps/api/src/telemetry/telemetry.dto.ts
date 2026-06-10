@@ -67,6 +67,13 @@ export class NodeStatusDto {
   /** Number of accounts currently caged (cagefsctl --list-enabled). */
   @IsOptional() @IsInt() @Min(0)
   cagefsEnabledCount?: number;
+
+  /**
+   * Audit F-07: whether the node carries the /etc/verris-hardened marker
+   * (written by security-hardening-baseline.sh during LIVE onboarding).
+   */
+  @IsOptional() @IsBoolean()
+  hardened?: boolean;
 }
 
 export class CloudLinuxTelemetryDto {

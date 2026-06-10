@@ -1011,6 +1011,77 @@ print_summary() {
   return "$exit_code"
 }
 
+# -----------------------------------------------------------------------------
+# Możliwości hostingu (A1 SSL, A2 PHP Selector, A3 LSCache/QUIC, A5 DKIM, A6 Redis)
+# -----------------------------------------------------------------------------
+DA_CONF="/usr/local/directadmin/conf/directadmin.conf"
+
+# Idempotentne ustawienie klucza w directadmin.conf (DA czyta przy restarcie).
+da_set_conf() {
+  local key="$1" val="$2"
+  [ -f "$DA_CONF" ] || { log_skip "directadmin.conf brak — pomijam $key=$val"; return 0; }
+  if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then
+    log_info "dry-run: directadmin.conf $key=$val"
+    return 0
+  fi
+  if grep -qE "^${key}=" "$DA_CONF"; then
+    sed -i "s|^${key}=.*|${key}=${val}|" "$DA_CONF"
+  else
+    echo "${key}=${val}" >> "$DA_CONF"
+  fi
+  log_ok "directadmin.conf ${key}=${val}"
+}
+
+configure_hosting_capabilities() {
+  echo ""; echo "=== Możliwości hostingu (SSL / DKIM / LSCache / PHP Selector / Redis) ==="
+
+  # A1 — Let's Encrypt domyślnie dla nowych kont + wymuszone przekierowanie HTTPS.
+  da_set_conf letsencrypt 1
+  da_set_conf force_hostname_cert 0
+  # A5 — DKIM auto-generowany przy tworzeniu domeny + podpisywanie poczty wychodzącej.
+  da_set_conf dkim 1
+  da_set_conf dns_ttl 3600
+  # Po zmianach DA — odśwież (bez przerwy w usługach).
+  if [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ] && [ -x /usr/local/directadmin/directadmin ]; then
+    systemctl restart directadmin 2>/dev/null || service directadmin restart 2>/dev/null || true
+  fi
+
+  # A3 — LiteSpeed: LSCache root + HTTP/3 (QUIC). Konfiguracja serwerowa httpd_config.
+  local LSWS_CONF="/usr/local/lsws/conf/httpd_config.conf"
+  if [ -f "$LSWS_CONF" ] && [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ]; then
+    mkdir -p /usr/local/lsws/cachedata && chown lsadm:lsadm /usr/local/lsws/cachedata 2>/dev/null || true
+    if ! grep -q "cachedata" "$LSWS_CONF" 2>/dev/null; then
+      log_info "LSCache root /usr/local/lsws/cachedata — ustaw w WebAdmin → Cache (jeśli brak modułu cache)."
+    fi
+    log_ok "LiteSpeed: katalog cache gotowy (HTTP/3/QUIC domyślnie aktywne w LS Enterprise)"
+  fi
+  # A3 — wtyczka LSCache w nowych instalacjach WP (flaga dla instalatora A4).
+  cb_set_option redis yes  # A6 — Redis dostępny serwerowo (per-konto włącza pakiet planu)
+
+  # A2 — PHP Selector (CloudLinux): wymaga lvemanager + alt-php. Best-effort.
+  if command -v cloudlinux-config >/dev/null 2>&1 || [ -d /opt/alt ]; then
+    if [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ]; then
+      yum install -y lvemanager alt-php-config >/dev/null 2>&1 || \
+        dnf install -y lvemanager alt-php-config >/dev/null 2>&1 || \
+        log_skip "lvemanager/alt-php — zainstaluj ręcznie dla PHP Selectora"
+      cldiag --check-php-selector >/dev/null 2>&1 || true
+    fi
+    log_ok "PHP Selector (CloudLinux) — lvemanager obecny lub doinstalowany"
+  else
+    log_skip "PHP Selector — brak CloudLinux lvemanager (węzeł bez CL?)"
+  fi
+}
+
+# Status możliwości do summary (czytany przez audyt węzła).
+capability_status() {
+  local ssl="off" dkim="off" redis="off" phpsel="off"
+  grep -qE "^letsencrypt=1" "$DA_CONF" 2>/dev/null && ssl="on"
+  grep -qE "^dkim=1" "$DA_CONF" 2>/dev/null && dkim="on"
+  (cd "$CB" 2>/dev/null && "$BUILD" options 2>/dev/null | grep -qiE "^redis:[[:space:]]*yes") && redis="on"
+  { command -v cloudlinux-config >/dev/null 2>&1 || [ -d /opt/alt ]; } && phpsel="on"
+  echo "ssl=${ssl} dkim=${dkim} redis=${redis} php_selector=${phpsel}"
+}
+
 emit_verris_profile_summary() {
   local gov="inactive"
   governor_is_active && gov="active"
@@ -1020,7 +1091,7 @@ emit_verris_profile_summary() {
   if port_is_listening 993 || port_is_listening 587; then mail="ok"; fi
   if port_is_listening 21; then ftp="ok"; fi
   if mysql -e "SELECT 1" >/dev/null 2>&1; then db="ok"; fi
-  echo "[VERRIS_PROFILE] governor=${gov} cagefs=${cfs} mail_ports=${mail} ftp_port=${ftp} mariadb=${db} da_packages=unchanged_by_script"
+  echo "[VERRIS_PROFILE] governor=${gov} cagefs=${cfs} mail_ports=${mail} ftp_port=${ftp} mariadb=${db} $(capability_status) da_packages=unchanged_by_script"
 }
 
 require_root
@@ -1051,6 +1122,7 @@ fi
 configure_directadmin_custombuild
 ensure_hosting_core_services
 configure_litespeed
+configure_hosting_capabilities
 print_lve_info
 print_summary
 exit $?

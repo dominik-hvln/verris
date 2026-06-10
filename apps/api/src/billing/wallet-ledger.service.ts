@@ -87,6 +87,10 @@ export class WalletLedgerService {
       throw new BadRequestException('Amount must be positive');
     }
 
+    // Fast-path idempotency check (outside the transaction). The authoritative
+    // guarantee is the unique constraint on `idempotencyKey` + the P2002
+    // handler below — this read just avoids opening a transaction for the
+    // common webhook-retry case.
     if (input.idempotencyKey) {
       const existing = await this.findByIdempotencyKey(input.idempotencyKey);
       if (existing) {
@@ -99,43 +103,67 @@ export class WalletLedgerService {
 
     const signedAmount = direction === 'credit' ? amount : amount.negated();
 
-    return this.prisma.$transaction(async (tx) => {
-      const user = await tx.user.findUnique({
-        where: { id: input.userId },
-        select: { id: true, walletBalance: true, walletCurrency: true },
-      });
-      if (!user) throw new NotFoundException('User not found');
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        // Audit F-02: lock the user row for the duration of the transaction.
+        // Without `FOR UPDATE`, two concurrent entries (renewal cron +
+        // autoscaling block + top-up webhook…) could read the same balance and
+        // overwrite each other (lost update under READ COMMITTED).
+        const locked = await tx.$queryRaw<
+          Array<{ id: string; walletBalance: Prisma.Decimal; walletCurrency: string }>
+        >`SELECT "id", "walletBalance", "walletCurrency" FROM "User" WHERE "id" = ${input.userId} FOR UPDATE`;
+        const user = locked[0];
+        if (!user) throw new NotFoundException('User not found');
 
-      const newBalance = new Prisma.Decimal(user.walletBalance).plus(signedAmount);
-      if (newBalance.isNegative()) {
-        throw new ConflictException(
-          'Insufficient wallet balance for this charge',
-        );
+        const newBalance = new Prisma.Decimal(user.walletBalance).plus(signedAmount);
+        if (newBalance.isNegative()) {
+          throw new ConflictException(
+            'Insufficient wallet balance for this charge',
+          );
+        }
+
+        await tx.user.update({
+          where: { id: user.id },
+          data: { walletBalance: newBalance },
+        });
+
+        const created = await tx.walletTransaction.create({
+          data: {
+            userId: user.id,
+            type: input.type,
+            status: WalletTxStatus.COMPLETED,
+            amount: signedAmount,
+            currency: user.walletCurrency,
+            balanceAfter: newBalance,
+            idempotencyKey: input.idempotencyKey ?? null,
+            paymentProvider: input.paymentProvider ?? null,
+            paymentRef: input.paymentRef ?? null,
+            subscriptionId: input.subscriptionId ?? null,
+            description: input.description ?? null,
+            metadata: input.metadata ?? Prisma.JsonNull,
+          },
+        });
+
+        return created;
+      });
+    } catch (err) {
+      // Concurrent duplicate with the same idempotency key: the loser of the
+      // race hits the unique constraint — return the winner's entry instead of
+      // surfacing an error (the money moved exactly once).
+      if (
+        input.idempotencyKey &&
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
+        const existing = await this.findByIdempotencyKey(input.idempotencyKey);
+        if (existing) {
+          this.logger.log(
+            `Idempotent ledger race resolved (key=${input.idempotencyKey}, id=${existing.id})`,
+          );
+          return existing;
+        }
       }
-
-      await tx.user.update({
-        where: { id: user.id },
-        data: { walletBalance: newBalance },
-      });
-
-      const created = await tx.walletTransaction.create({
-        data: {
-          userId: user.id,
-          type: input.type,
-          status: WalletTxStatus.COMPLETED,
-          amount: signedAmount,
-          currency: user.walletCurrency,
-          balanceAfter: newBalance,
-          idempotencyKey: input.idempotencyKey ?? null,
-          paymentProvider: input.paymentProvider ?? null,
-          paymentRef: input.paymentRef ?? null,
-          subscriptionId: input.subscriptionId ?? null,
-          description: input.description ?? null,
-          metadata: input.metadata ?? Prisma.JsonNull,
-        },
-      });
-
-      return created;
-    });
+      throw err;
+    }
   }
 }

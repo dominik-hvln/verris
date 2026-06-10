@@ -75,7 +75,9 @@ export class NodeAuditService {
       for (const plan of plans) {
         checks.push(await this.checkDaPackage(daClient.client, plan));
       }
+      checks.push(await this.checkDaIpRegistered(server, daClient.client));
     }
+    checks.push(this.checkHardening(server));
     checks.push(await this.checkTls(server));
 
     return {
@@ -550,6 +552,126 @@ export class NodeAuditService {
     };
   }
 
+  /**
+   * Audit F-07: provisioning calls `CMD_API_ACCOUNT_USER` with
+   * `ip=<server.ipAddress>` — the public IP must be registered in DA's IP
+   * manager (node-onboard-live.sh does this), otherwise account creation
+   * fails with "A valid IP was not provided".
+   */
+  private async checkDaIpRegistered(
+    server: Server,
+    client: DirectAdminClient,
+  ): Promise<AuditCheckDto> {
+    const publicIp = server.ipAddress?.trim() ?? '';
+    const hasRealIp = /^\d{1,3}(\.\d{1,3}){3}$/.test(publicIp);
+
+    let ips: string[] = [];
+    let fetchError: string | null = null;
+    try {
+      ips = await client.listServerIps();
+    } catch (err) {
+      fetchError = err instanceof Error ? err.message : String(err);
+    }
+
+    const registered = hasRealIp && ips.includes(publicIp);
+    let status: AuditCheckStatus = 'OK';
+    let summary = `Publiczne IP ${publicIp} jest zarejestrowane w DirectAdmin (IP manager).`;
+    if (!hasRealIp) {
+      status = 'WARN';
+      summary = `Węzeł nie ma jeszcze publicznego IP w panelu (ipAddress="${publicIp}") — uruchom bootstrap/handshake.`;
+    } else if (fetchError) {
+      status = 'UNKNOWN';
+      summary = `Nie udało się pobrać listy IP z DA (${fetchError}).`;
+    } else if (!registered) {
+      status = 'FAIL';
+      summary =
+        `IP ${publicIp} NIE jest zarejestrowane w DA — provisioning kont zakończy się błędem ` +
+        `„A valid IP was not provided". Uruchom node-onboard-live.sh (Faza 3 wizarda) lub dodaj IP ` +
+        `w DA → Admin → IP Manager.`;
+    }
+
+    return {
+      id: 'da-ip-registered',
+      title: 'Publiczne IP w DirectAdmin',
+      category: 'DA_IP',
+      status,
+      summary,
+      records: [
+        { label: 'IP węzła (panel)', actual: publicIp || '—', ok: hasRealIp },
+        {
+          label: 'IP w DA IP manager',
+          expected: publicIp || '—',
+          actual: fetchError ? `błąd: ${fetchError}` : ips.join(', ') || 'brak',
+          ok: registered,
+        },
+      ],
+      docAttestation: [
+        {
+          vendor: 'DirectAdmin',
+          statement:
+            'CMD_API_ACCOUNT_USER z ip= wymaga IP obecnego w konfiguracji IP serwera (single-IP node: publiczne IP, nie `shared`).',
+          reference: 'ops/docs/NODE_ONBOARD_RUNBOOK.md',
+        },
+      ],
+      repair: null,
+    };
+  }
+
+  /**
+   * Audit F-07: LIVE onboarding hardening (security-hardening-baseline.sh +
+   * egress lockdown). The verris-lve agent reports the /etc/verris-hardened
+   * marker every cycle (`node.hardened`).
+   */
+  private checkHardening(server: Server): AuditCheckDto {
+    const checkedAt = server.hardenedCheckedAt;
+    const fresh = checkedAt
+      ? Date.now() - checkedAt.getTime() < HEARTBEAT_FRESH_MS
+      : false;
+    const hardened = server.hardenedEnabled === true;
+
+    let status: AuditCheckStatus = 'UNKNOWN';
+    let summary =
+      'Brak raportu hardeningu z agenta — zaktualizuj agenta (verris-lve) lub poczekaj na cykl (1 min).';
+    if (checkedAt && hardened) {
+      status = 'OK';
+      summary = 'Security hardening wykonany (marker /etc/verris-hardened raportowany przez agenta).';
+    } else if (checkedAt && !hardened && fresh) {
+      status = 'FAIL';
+      summary =
+        'Węzeł NIE przeszedł hardeningu LIVE — uruchom node-onboard-live.sh (baseline + egress lockdown) ' +
+        'zanim trafią na niego płacący klienci.';
+    } else if (checkedAt && !fresh) {
+      status = 'WARN';
+      summary = 'Raport hardeningu nieświeży — sprawdź verris-lve.timer na węźle.';
+    }
+
+    return {
+      id: 'security-hardening',
+      title: 'Security hardening (LIVE onboarding)',
+      category: 'SECURITY',
+      status,
+      summary,
+      records: [
+        {
+          label: 'Marker /etc/verris-hardened',
+          expected: 'obecny',
+          actual: checkedAt ? (hardened ? 'obecny' : 'BRAK') : 'brak raportu',
+          ok: hardened,
+        },
+        { label: 'Ostatni raport', actual: checkedAt?.toISOString() ?? 'brak' },
+      ],
+      docAttestation: [
+        {
+          vendor: 'Verris',
+          statement:
+            'Onboard LIVE (Faza 3): security-hardening-baseline.sh + security-egress-lockdown.sh są obowiązkowe przed klientami.',
+          reference: 'ops/docs/NODE_ONBOARD_RUNBOOK.md',
+        },
+      ],
+      repair: null,
+    };
+  }
+
   private async checkTls(server: Server): Promise<AuditCheckDto> {
     const host = server.hostname?.trim() || server.daHost?.trim() || '';
     const port = server.daPort ?? 2222;
@@ -590,6 +712,16 @@ export class NodeAuditService {
       summary = `Certyfikat na :${port} nie pokrywa ${WILDCARD_TLS_SAN} ani ${host} (prawdopodobnie self-signed).`;
     }
 
+    // Audit F-04: a node left with disabled cert verification is a standing
+    // MITM exposure for the DA admin login key — always FAIL until fixed.
+    if (server.daAllowInvalidCert) {
+      status = 'FAIL';
+      summary =
+        `Weryfikacja certyfikatu DA jest WYŁĄCZONA (daAllowInvalidCert) — połączenie API↔DA ` +
+        `podatne na MITM. Wdroż certyfikat na :${port} (verris-node-wildcard-tls.sh / ` +
+        `node-directadmin-tls-http01.sh) i wyłącz opcję w konfiguracji DA węzła.`;
+    }
+
     return {
       id: 'da-tls',
       title: 'Certyfikat TLS panelu DA',
@@ -601,6 +733,12 @@ export class NodeAuditService {
         { label: 'CN', actual: cn || '—' },
         { label: 'SAN', expected: WILDCARD_TLS_SAN, actual: sans || '—', ok },
         { label: 'Ważny do', actual: cert?.valid_to ?? '—' },
+        {
+          label: 'Weryfikacja cert w API',
+          expected: 'włączona',
+          actual: server.daAllowInvalidCert ? 'WYŁĄCZONA (escape hatch)' : 'włączona',
+          ok: !server.daAllowInvalidCert,
+        },
       ],
       docAttestation: [
         {

@@ -158,6 +158,14 @@ services:
       STRIPE_SUCCESS_URL: ${STRIPE_SUCCESS_URL}
       STRIPE_CANCEL_URL: ${STRIPE_CANCEL_URL}
       METRICS_AUTH_TOKEN: ${METRICS_AUTH_TOKEN:-}
+      # Pre-LIVE hardening + VPN (ETAP 7/8)
+      REQUIRE_2FA_FOR_STAFF: ${REQUIRE_2FA_FOR_STAFF:-0}
+      VPN_WG_SERVER_PUBLIC_KEY: ${VPN_WG_SERVER_PUBLIC_KEY:-}
+      VPN_WG_ENDPOINT: ${VPN_WG_ENDPOINT:-}
+      VPN_WG_SUBNET: ${VPN_WG_SUBNET:-10.88.0.0/24}
+      VPN_WG_CLIENT_ALLOWED_IPS: ${VPN_WG_CLIENT_ALLOWED_IPS:-}
+      VPN_WG_DNS: ${VPN_WG_DNS:-}
+      VPN_SYNC_TOKEN: ${VPN_SYNC_TOKEN:-}
       REDIS_URL: redis://redis:6379
       # Object storage (MinIO/S3) — see compose service `minio` above.
       S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}
@@ -212,6 +220,11 @@ services:
       REGISTRAR_PROVIDER: ${REGISTRAR_PROVIDER:-}
       REGISTRAR_API_BASE_URL: ${REGISTRAR_API_BASE_URL:-}
       REGISTRAR_API_TOKEN: ${REGISTRAR_API_TOKEN:-}
+      # C4 - OpenProvider (hurtowy rejestrator domen)
+      OPENPROVIDER_API_BASE_URL: ${OPENPROVIDER_API_BASE_URL:-https://api.openprovider.eu}
+      OPENPROVIDER_USERNAME: ${OPENPROVIDER_USERNAME:-}
+      OPENPROVIDER_PASSWORD: ${OPENPROVIDER_PASSWORD:-}
+      OPENPROVIDER_OWNER_HANDLE: ${OPENPROVIDER_OWNER_HANDLE:-}
     volumes:
       - ${CONTROL_PLANE_MAIL_MAPS_DIR:-/etc/postfix/verris}:/etc/postfix/verris
     extra_hosts:
@@ -517,6 +530,9 @@ services:
       CADDY_STATUS_DOMAIN: ${CADDY_STATUS_DOMAIN:-status.verris.local}
       CADDY_GRAFANA_DOMAIN: ${CADDY_GRAFANA_DOMAIN:-grafana.verris.local}
       CADDY_MAIL_DOMAIN: ${CADDY_MAIL_DOMAIN:-mail.verris.local}
+      # ETAP 8: po uruchomieniu VPN ustaw np. "10.88.0.0/24" — panele staff/admin
+      # przestaną odpowiadać spoza tunelu (puste = brak restrykcji).
+      CADDY_INTERNAL_ALLOW_CIDR: ${CADDY_INTERNAL_ALLOW_CIDR:-0.0.0.0/0 ::/0}
     ports:
       - '80:80'
       - '443:443'

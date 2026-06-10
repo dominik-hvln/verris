@@ -5,16 +5,51 @@
 }
 
 # -----------------------------------------------------------------------------
+# Shared security headers (pre-LIVE hardening). HSTS only makes sense on the
+# HTTPS production domains — Caddy serves HTTP only for local *.verris.local.
+# `-Server` strips the server banner.
+# -----------------------------------------------------------------------------
+(security_headers) {
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+}
+
+(panel_headers) {
+    import security_headers
+    header {
+        X-Frame-Options "DENY"
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    }
+}
+
+# -----------------------------------------------------------------------------
 # Public client panel
 # -----------------------------------------------------------------------------
 {$CADDY_CLIENT_DOMAIN:panel.verris.local} {
+    import panel_headers
     reverse_proxy client-panel:3001
 }
 
 # -----------------------------------------------------------------------------
-# Internal staff panel — restrict to office IPs in production!
+# Internal panels (staff/admin) — VPN-only access (ETAP 8).
+#
+# Set CADDY_INTERNAL_ALLOW_CIDR to the WireGuard subnet (e.g. "10.88.0.0/24")
+# in .env.prod AFTER the VPN is up and your own peer works — the default
+# allows everything so a fresh deploy can't lock the operator out.
+# Multiple CIDRs: space-separated ("10.88.0.0/24 203.0.113.7/32").
 # -----------------------------------------------------------------------------
+(vpn_only) {
+    @outside_vpn not remote_ip {$CADDY_INTERNAL_ALLOW_CIDR:0.0.0.0/0 ::/0}
+    respond @outside_vpn "403 — dostęp do tego panelu wyłącznie przez VPN Verris." 403
+}
+
 {$CADDY_STAFF_DOMAIN:staff.verris.local} {
+    import panel_headers
+    import vpn_only
     reverse_proxy staff-panel:3002
 }
 
@@ -22,6 +57,8 @@
 # Admin / Core panel
 # -----------------------------------------------------------------------------
 {$CADDY_ADMIN_DOMAIN:admin.verris.local} {
+    import panel_headers
+    import vpn_only
     reverse_proxy admin-panel:3003
 }
 
@@ -29,6 +66,7 @@
 # Public API (also receives Stripe webhooks at /billing/stripe/webhook)
 # -----------------------------------------------------------------------------
 {$CADDY_API_DOMAIN:api.verris.local} {
+    import security_headers
     reverse_proxy api:3000
 }
 
@@ -37,6 +75,7 @@
 # No auth required, fully cacheable for ~30 s at the edge.
 # -----------------------------------------------------------------------------
 {$CADDY_STATUS_DOMAIN:status.verris.local} {
+    import security_headers
     reverse_proxy status-page:3004
     header Cache-Control "public, max-age=30"
 }
@@ -50,6 +89,7 @@
 # Grafana's `auth.proxy` mode picks them up and auto-creates the user.
 # -----------------------------------------------------------------------------
 {$CADDY_GRAFANA_DOMAIN:grafana.verris.local} {
+    import security_headers
     forward_auth api:3000 {
         uri /auth/grafana-validate
         copy_headers X-Webauth-User X-Webauth-Role
@@ -61,6 +101,6 @@
 # SOGo webmail + CalDAV (host sogod on :20000, Dovecot/Postfix on host)
 # -----------------------------------------------------------------------------
 {$CADDY_MAIL_DOMAIN:mail.verris.local} {
-    # SOGo container on verris_verris_public (ops/docker-compose.sogo-mail.yml).
+    import security_headers
     reverse_proxy ops-sogo-1:80
 }

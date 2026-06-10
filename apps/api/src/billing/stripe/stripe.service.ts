@@ -219,15 +219,15 @@ export class StripeService {
       throw new UnauthorizedException('Missing Stripe-Signature header');
     }
 
-    const parts = Object.fromEntries(
-      signatureHeader
-        .split(',')
-        .map((kv) => kv.trim().split('='))
-        .filter((p): p is [string, string] => p.length === 2),
-    );
-    const timestamp = parts['t'];
-    const v1 = parts['v1'];
-    if (!timestamp || !v1) {
+    // Audit F-16: during a webhook-secret roll Stripe sends MULTIPLE `v1`
+    // entries — the delivery is valid if ANY of them matches our secret.
+    const entries = signatureHeader
+      .split(',')
+      .map((kv) => kv.trim().split('='))
+      .filter((p): p is [string, string] => p.length === 2);
+    const timestamp = entries.find(([k]) => k === 't')?.[1];
+    const v1Signatures = entries.filter(([k]) => k === 'v1').map(([, v]) => v);
+    if (!timestamp || v1Signatures.length === 0) {
       throw new UnauthorizedException('Invalid Stripe-Signature header');
     }
 
@@ -243,10 +243,13 @@ export class StripeService {
     const expected = createHmac('sha256', this.webhookSecret)
       .update(signedPayload, 'utf8')
       .digest('hex');
-
-    const sig = Buffer.from(v1, 'hex');
     const expectedBuf = Buffer.from(expected, 'hex');
-    if (sig.length !== expectedBuf.length || !timingSafeEqual(sig, expectedBuf)) {
+
+    const anyMatch = v1Signatures.some((v1) => {
+      const sig = Buffer.from(v1, 'hex');
+      return sig.length === expectedBuf.length && timingSafeEqual(sig, expectedBuf);
+    });
+    if (!anyMatch) {
       throw new UnauthorizedException('Stripe signature mismatch');
     }
   }

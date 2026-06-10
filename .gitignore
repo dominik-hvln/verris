@@ -37,3 +37,5 @@ coverage/
 
 # Ad-hoc scripts (local debugging)
 apps/api/get_user.js
+.agent-ssh/
+**/__MACOSX/

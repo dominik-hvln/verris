@@ -1,10 +1,24 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers as incomingHeaders } from "next/headers";
 import { removeStaffAuthCookie, setStaffAuthCookie } from "@/lib/staff-auth-cookie";
 import type { StaffProfile } from "@/lib/staff-session";
 
 const base = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
+
+
+/** Pre-LIVE: forward the real client IP (Caddy XFF) to auth endpoints so
+ * per-IP rate limits and login lockouts apply to the user, not the panel. */
+async function clientIpHeaders(): Promise<Record<string, string>> {
+  try {
+    const incoming = await incomingHeaders();
+    const xff = incoming.get("x-forwarded-for");
+    return xff ? { "x-forwarded-for": xff } : {};
+  } catch {
+    return {};
+  }
+}
 
 interface LoginState {
   error?: string;
@@ -48,7 +62,7 @@ export async function staffSubmitLogin(
   try {
     res = await fetch(`${base}/auth/login`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...(await clientIpHeaders()) },
       body: JSON.stringify({ email, password }),
     });
   } catch {
@@ -103,7 +117,7 @@ export async function staffSubmitTwoFactor(
   try {
     res = await fetch(`${base}/auth/login/2fa`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...(await clientIpHeaders()) },
       body: JSON.stringify({ challengeToken, code }),
     });
   } catch {

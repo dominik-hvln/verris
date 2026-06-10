@@ -825,3 +825,72 @@ Bezpieczne, minor zmiany są backward-compatible. Wystarczy:
 | `STRIPE_API_VERSION` (env, opcjonalne) | nieustawione (używa default z kodu) |
 | Webhook endpoint API version | musi być **identyczny** z requestami |
 | Stripe Dashboard default API version | musi być **identyczny lub kompatybilny** (bo automated jobs typu auto-renewal generują webhooki na tej wersji) |
+---
+
+## Ograniczenie: pojedyncza replika API (crony + rate limiting)
+
+> **Audit F-14 (2026-06-09).** API uruchamiamy w **dokładnie jednej replice**.
+
+Dwa mechanizmy w API zakładają jeden proces:
+
+1. **Crony `@nestjs/schedule`** (~20 zadań: autoscaling engine co 1 min, block billing co 5 min,
+   renewal co 1 h, retention 04:00, …) **nie mają leader-election** — druga replika
+   oznaczałaby podwójne wykonania (podwójne wywołania DA, wyścigi na portfelu mimo
+   `FOR UPDATE` — idempotency by uratowała pieniądze, ale nie spam e-mail/audyt).
+2. **Rate limiting** (`RateLimitGuard`) trzyma okna w pamięci procesu.
+
+**Skalowanie dozwolone:** wertykalne (CPU/RAM kontenera `api`).
+**Przed skalowaniem horyzontalnym wymagane:** distributed lock (Redis/redlock) dla każdego
+crona + przeniesienie rate-limit store do Redis. Do tego czasu w `docker-compose.prod.yml`
+nie ustawiaj `deploy.replicas > 1` dla `api`.
+
+## Migracje audytu 2026-06-09
+
+Po wdrożeniu tego release uruchom:
+
+```
+docker compose -f docker-compose.prod.yml --env-file .env.prod exec api \
+  npx prisma migrate deploy --schema=libs/database/prisma/schema.prisma
+```
+
+Nowe migracje:
+- `20260609120000_server_da_tls_verification` — `Server.daAllowInvalidCert`
+  (istniejące węzły z DA dostają `true` — zachowanie bez zmian; audyt węzła flaguje
+  do czasu wdrożenia certu na :2222 i wyłączenia opcji),
+- `20260609121000_server_hardening_status` — raport hardeningu z agenta,
+- `20260609122000_stripe_webhook_event_dedupe` — dedupe webhooków Stripe.
+
+**Identity tokeny węzłów (F-03):** lazy-migracja — przy pierwszym żądaniu agenta po
+deployu wpis w DB jest podnoszony do SHA-256 (log `Upgraded legacy plaintext identity
+token`). Węzły NIE wymagają żadnej akcji.
+
+## VPN WireGuard dla paneli wewnętrznych (ETAP 8)
+
+Panele **admin** i **staff** mogą (i powinny) być dostępne wyłącznie przez VPN.
+Zarządzanie dostępami pracowników odbywa się w panelu admina (**/vpn**):
+generowanie konfiguracji per urządzenie (klucz prywatny zwracany jednorazowo,
+nigdy nie zapisywany), cofanie dostępu działa do ~1 min.
+
+Kolejność wdrożenia (WAŻNA — inaczej można odciąć sobie panel):
+
+1. Na control-plane: `bash ops/scripts/vpn-wireguard-setup.sh`
+   (instaluje wireguard-tools, generuje klucze serwera, stawia `wg0` 10.88.0.1/24:51820/udp).
+2. Wypisane wartości wpisz do `.env.prod`:
+   `VPN_WG_SERVER_PUBLIC_KEY`, `VPN_WG_ENDPOINT`, `VPN_SYNC_TOKEN`
+   oraz zalecane `VPN_WG_CLIENT_ALLOWED_IPS=10.88.0.0/24,<public-ip>/32`
+   (publiczny IP control-plane — żeby ruch do paneli szedł tunelem).
+3. `docker compose ... up -d api` (restart API z nowym env).
+4. Timer synchronizacji peerów na hoście:
+   `bash ops/scripts/vpn-sync-peers.sh --install`
+   → uzupełnij `/etc/default/verris-vpn-sync` (URL API od strony hosta + token).
+5. Panel admin → **VPN (dostęp paneli)** → wygeneruj profil dla SIEBIE,
+   zaimportuj do aplikacji WireGuard, połącz się i sprawdź, że panele działają.
+6. Dopiero teraz włącz restrykcję: `CADDY_INTERNAL_ALLOW_CIDR=10.88.0.0/24`
+   w `.env.prod` + `docker compose ... up -d caddy`. Od tej chwili
+   staff./admin. odpowiadają 403 spoza tunelu.
+
+Rollback awaryjny (utrata dostępu): na hoście usuń/zmień
+`CADDY_INTERNAL_ALLOW_CIDR` w `.env.prod` i `docker compose ... up -d caddy`.
+
+Audyt: każde utworzenie/cofnięcie peera trafia do logu audytowego
+(`VPN_PEER_CREATED` / `VPN_PEER_REVOKED`).

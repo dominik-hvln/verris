@@ -23,13 +23,9 @@ export interface AccountProvisionedContext {
   domain: string;
   /** Login to the DirectAdmin control panel for this account. */
   daUsername: string;
-  /**
-   * Initial password for DA — sent in the email because the user has no
-   * way to retrieve it later (we only store an encrypted copy; not even
-   * staff has plaintext access). User is encouraged to change it on
-   * first login. **This is a one-time email — never resend.**
-   */
-  daPassword: string;
+  // Audit F-15: the DA password is intentionally NOT part of this e-mail.
+  // The customer retrieves credentials via the client panel ("Magic Login"),
+  // which is authenticated — e-mail is plaintext at rest on foreign servers.
   panelUrl: string;
 }
 
@@ -49,11 +45,11 @@ export function accountProvisionedTemplate(ctx: AccountProvisionedContext): Mail
       `- **Plan:** ${escapeHtml(ctx.planName)}`,
       `- **Domena główna:** ${escapeHtml(ctx.domain)}`,
       `- **Login do DirectAdmin:** \`${escapeHtml(ctx.daUsername)}\``,
-      `- **Hasło tymczasowe:** \`${escapeHtml(ctx.daPassword)}\``,
+      `- **Hasło:** dostępne w panelu klienta — usługa → **Magic Login** (nie wysyłamy haseł e-mailem)`,
       ``,
       `**Pierwsze kroki:**`,
       ``,
-      `1. Zaloguj się do DirectAdmin (link niżej) i **zmień hasło** w sekcji "Account Manager → Change Password".`,
+      `1. Zaloguj się do DirectAdmin przez **Magic Login** w panelu klienta (Subskrypcje → Twoja usługa).`,
       `2. Skonfiguruj rekordy DNS swojej domeny — albo skieruj nameservery na nasze, albo ustaw rekordy A/AAAA wskazujące na adres serwera podany w panelu Verris.`,
       `3. Zainstaluj certyfikat SSL (Let's Encrypt — jednym kliknięciem w DA) lub wgraj własny.`,
       `4. Wgraj swoje pliki przez **File Manager** lub FTP/SFTP.`,
@@ -65,7 +61,7 @@ export function accountProvisionedTemplate(ctx: AccountProvisionedContext): Mail
       url: `${ctx.panelUrl}/dashboard/subscriptions`,
     },
     footnote:
-      'Hasło tymczasowe wysyłamy tylko raz, w tym mailu. Nie udostępniaj go nikomu i zmień je przy pierwszym logowaniu.',
+      'Ze względów bezpieczeństwa nie wysyłamy haseł e-mailem (audit F-15). Dane logowania znajdziesz w panelu klienta — sekcja Magic Login przy Twojej usłudze.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',

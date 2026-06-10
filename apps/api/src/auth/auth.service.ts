@@ -423,7 +423,9 @@ export class AuthService {
     await this.prisma.$transaction([
       this.prisma.user.update({
         where: { id: row.userId },
-        data: { passwordHash },
+        // C3: a password reset invalidates every existing session — if the
+        // reset was triggered by a compromise, old tokens stop working now.
+        data: { passwordHash, tokenVersion: { increment: 1 } },
       }),
       this.prisma.userAuthToken.update({
         where: { id: row.id },
@@ -507,6 +509,26 @@ export class AuthService {
 
     this.assertNotLoginBlocked(user);
     this.assertEmailVerified(user);
+
+    // Pre-LIVE hardening: privileged accounts (ADMIN/STAFF) can be required
+    // to have 2FA. Enable with REQUIRE_2FA_FOR_STAFF=1 *after* both seed
+    // accounts enrolled TOTP — otherwise you lock yourself out of enrollment.
+    if (
+      user.role !== Role.USER &&
+      !user.isTwoFactorEnabled &&
+      process.env.REQUIRE_2FA_FOR_STAFF === '1'
+    ) {
+      await this.audit.record({
+        action: 'LOGIN_BLOCKED_2FA_REQUIRED',
+        userId: user.id,
+        details: { role: user.role },
+        ipAddress: ctx.ip ?? undefined,
+        userAgent: ctx.userAgent ?? undefined,
+      });
+      throw new UnauthorizedException(
+        'Konta ADMIN/STAFF wymagają włączonego 2FA. Skontaktuj się z innym administratorem, aby tymczasowo zdjąć wymóg i skonfigurować TOTP.',
+      );
+    }
 
     if (user.isTwoFactorEnabled) {
       // Issue a 5-minute "2fa-challenge" token. It carries `sub` and a special
@@ -612,8 +634,54 @@ export class AuthService {
     }
   }
 
+  /**
+   * C2 — completes login for a user already verified out-of-band (passkey).
+   * Mirrors the post-2FA path: enforces blocks/verification, records the login
+   * event, mints the JWT.
+   */
+  async loginWithVerifiedUser(
+    userId: string,
+    ctx: RequestContext = {},
+    method = 'passkey',
+  ): Promise<LoginSuccess> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new UnauthorizedException('User not found');
+
+    this.assertNotLoginBlocked(user);
+    this.assertEmailVerified(user);
+
+    await this.suspicious.recordSuccess({
+      email: user.email,
+      ip: ctx.ip ?? null,
+      userAgent: ctx.userAgent ?? null,
+    });
+    await this.loginEvents.record({
+      userId: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      ip: ctx.ip ?? null,
+      userAgent: ctx.userAgent ?? null,
+      loginMethod: method,
+    });
+    return this.generateAccessTokenResponse(user);
+  }
+
+  /** C3 — invalidate all active sessions for a user (logout everywhere). */
+  async logoutAllDevices(userId: string): Promise<{ ok: true }> {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { tokenVersion: { increment: 1 } },
+    });
+    await this.audit.record({
+      action: 'SESSIONS_INVALIDATED_ALL',
+      userId,
+      actorUserId: userId,
+    });
+    return { ok: true };
+  }
+
   private generateAccessTokenResponse(user: User): LoginSuccess {
-    const payload = { email: user.email, sub: user.id, role: user.role };
+    const payload = { email: user.email, sub: user.id, role: user.role, tv: user.tokenVersion };
     return {
       access_token: this.jwtService.sign(payload),
       user: {

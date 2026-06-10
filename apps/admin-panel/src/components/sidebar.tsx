@@ -22,6 +22,7 @@ import {
   Rocket,
   Mail,
   Brain,
+  Lock,
 } from "lucide-react";
 import { GrafanaOpsLink } from "./grafana-ops-link";
 
@@ -58,6 +59,7 @@ const adminNavItems = [
       { name: "Compliance (RODO)", href: "/compliance", icon: Scale },
       { name: "Cennik autoskalowania", href: "/autoscaling", icon: Gauge },
       { name: "Logi bezpieczeństwa", href: "/audit", icon: ShieldAlert },
+      { name: "VPN (dostęp paneli)", href: "/vpn", icon: Lock },
     ],
   },
   {

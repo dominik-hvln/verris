@@ -248,6 +248,22 @@ install_verris_security_stack() {
 
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 
+# Audit F-07: marker konsumowany przez agenta verris-lve (telemetria `node.hardened`)
+# i walidator "Security hardening" w audycie wezla panelu admin.
+write_hardened_marker() {
+  if [ "$DRY_RUN" -eq 1 ]; then
+    log "DRY-RUN: skip /etc/verris-hardened marker"
+    return 0
+  fi
+  {
+    echo "hardened_at=$(date -u +%FT%TZ)"
+    echo "role=${ROLE}"
+    echo "script=security-hardening-baseline.sh"
+  } > /etc/verris-hardened
+  chmod 0644 /etc/verris-hardened
+  log "Wrote /etc/verris-hardened marker"
+}
+
 log "Starting baseline hardening (role=${ROLE}, ssh_port=${SSH_PORT}, dry_run=${DRY_RUN})"
 install_packages
 harden_sysctl
@@ -256,4 +272,5 @@ configure_fail2ban
 configure_auto_updates
 configure_firewall_ingress
 install_verris_security_stack
+write_hardened_marker
 write_summary

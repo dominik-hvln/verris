@@ -24,7 +24,7 @@ export class ServersController {
   @HttpCode(HttpStatus.OK)
   @UseGuards(BootstrapTokenGuard)
   async handshake(
-    @Req() req: Request & { bootstrapServerId?: string },
+    @Req() req: Request & { bootstrapServerId?: string; bootstrapTokenId?: string },
     @Body() dto: HandshakeDto,
   ) {
     const serverId = req.bootstrapServerId!;
@@ -32,6 +32,7 @@ export class ServersController {
     return this.servers.handleHandshake(serverId, dto, {
       ip,
       userAgent: req.headers['user-agent'],
+      bootstrapTokenId: req.bootstrapTokenId,
     });
   }
 }

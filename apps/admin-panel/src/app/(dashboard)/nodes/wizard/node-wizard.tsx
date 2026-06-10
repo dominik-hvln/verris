@@ -30,6 +30,10 @@ import {
   INSTALL_LITESPEED_STANDALONE,
   INSTALL_LITESPEED_VIA_DA,
   INSTALL_OS_PREP,
+  ONBOARD_LIVE_DOES,
+  ONBOARD_LIVE_RUN,
+  ONBOARD_LIVE_SCP,
+  ONBOARD_LIVE_VERIFY,
   PREPARE_NODE_EXPORTS,
   VERIFY_CLOUDLINUX,
   VERIFY_BOOTSTRAP_AGENTS,
@@ -674,6 +678,43 @@ export function NodeWizard() {
                 className="rounded border-white/20"
               />
               Węzeł zaakceptowany i test DA API OK
+            </label>
+            {serverId && <NodeConfigActions serverId={serverId} />}
+          </div>
+        )}
+
+        {step.id === "onboard-live" && (
+          <div className="space-y-4">
+            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100 flex gap-2">
+              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+              <span>
+                <strong>Krok obowiązkowy przed klientami LIVE.</strong> Bez niego węzeł nie ma
+                hardeningu bezpieczeństwa, a provisioning może zakończyć się błędem{" "}
+                <code className="text-amber-200">A valid IP was not provided</code> (brak
+                publicznego IP w DirectAdmin).
+              </span>
+            </div>
+            <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+              <p className="font-medium text-emerald-200 mb-2 text-sm">
+                Skrypt node-onboard-live.sh robi
+              </p>
+              <ul className="space-y-1 text-zinc-300 text-xs">
+                {ONBOARD_LIVE_DOES.map((line) => (
+                  <li key={line}>• {line}</li>
+                ))}
+              </ul>
+            </div>
+            <CopyBlock label="5a) Skopiuj bundle na węzeł (scp)" text={ONBOARD_LIVE_SCP} />
+            <CopyBlock label="5b) Uruchom onboarding (root na węźle)" text={ONBOARD_LIVE_RUN} />
+            <CopyBlock label="5c) Weryfikacja" text={ONBOARD_LIVE_VERIFY} />
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!!checked.onboardLive}
+                onChange={() => toggleCheck("onboardLive")}
+                className="rounded border-white/20"
+              />
+              node-onboard-live.sh zakończony bez [FAIL] (hardening + IP w DA + pakiety planów)
             </label>
             {serverId && <NodeConfigActions serverId={serverId} />}
           </div>

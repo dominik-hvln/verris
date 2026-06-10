@@ -59,6 +59,10 @@ model User {
   country                  String?   @default("PL")
   locale                   String    @default("pl")
 
+  // C3 — bumped to invalidate every issued JWT for this user ("wyloguj
+  // wszystkie urządzenia" / forced logout after password change/compromise).
+  tokenVersion             Int       @default(0)
+
   // Wallet (Pay-As-You-Go) — derived from WalletTransaction ledger; kept as
   // a denormalized counter for fast reads, always updated transactionally
   // alongside ledger inserts.
@@ -320,6 +324,11 @@ model Server {
   cagefsEnabledCount Int?
   cagefsCheckedAt    DateTime?
 
+  // Audit F-07: security hardening status reported by the verris-lve agent
+  // (presence of /etc/verris-hardened written by security-hardening-baseline.sh).
+  hardenedEnabled    Boolean?
+  hardenedCheckedAt  DateTime?
+
   // Authoritative nameservers handed to every account provisioned on this node
   // (DA `CMD_API_ACCOUNT_USER` ns1/ns2). Per-node override; when null the
   // platform default (PlatformSetting `hosting.ns*`, then env HOSTING_NS*) is
@@ -334,6 +343,10 @@ model Server {
   daUsername      String?
   daPasswordEnc   String?      // AES-256-GCM (iv:tag:ciphertext, base64url)
   daUseTls        Boolean      @default(true)
+  // Audit F-04: TLS certificate verification for the DA API connection is ON
+  // by default. This per-node escape hatch exists ONLY for the onboarding
+  // window before a proper cert lands on :2222 — the node audit flags it.
+  daAllowInvalidCert Boolean   @default(false)
 
   // Acceptance flow
   approvedAt      DateTime?
@@ -537,6 +550,10 @@ model Plan {
   isPublic             Boolean  @default(true)
   isActive             Boolean  @default(true)
   sortOrder            Int      @default(0)
+
+  // B6 — SSH/Git shell access for this plan (CageFS-jailed). Off by default;
+  // higher tiers can enable it. Applied to the DA package `ssh` feature.
+  sshAccess            Boolean  @default(false)
 
   // Max effective limit = base × ratio (e.g. 3 = up to 3× plan CPU/RAM/disk).
   autoscalingMaxOverscaleCpu   Float @default(3)
@@ -2294,4 +2311,41 @@ model ReferralProgramEnrollment {
   termsVersion     String?
 
   @@index([status, appliedAt])
+}
+
+/// Audit F-16: deduplication of Stripe webhook deliveries. Money movements are
+/// already idempotent at the ledger level — this additionally makes the
+/// stateful handlers (subscription sync, counters, e-mails) replay-safe.
+model StripeWebhookEvent {
+  id        String   @id @default(uuid())
+  /// Stripe event id (`evt_…`) — unique across retries of the same delivery.
+  eventId   String   @unique
+  type      String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+/// ETAP 8 — WireGuard VPN dla paneli wewnętrznych (admin/staff).
+/// Przechowujemy WYŁĄCZNIE klucz publiczny peera — klucz prywatny jest
+/// generowany w API i zwracany dokładnie raz (config do pobrania).
+/// PSK jest szyfrowany KMS (potrzebny do renderu konfiguracji serwera).
+model VpnPeer {
+  id            String    @id @default(uuid())
+  /// Etykieta operatora, np. "Dominik — laptop".
+  name          String
+  /// Opcjonalne powiązanie z kontem staff/admin (informacyjne).
+  ownerEmail    String?
+  publicKey     String    @unique
+  presharedKeyEnc String?
+  /// Adres w subnecie VPN, np. 10.88.0.7/32 (część przed maską).
+  assignedIp    String    @unique
+  enabled       Boolean   @default(true)
+  revokedAt     DateTime?
+  revokedById   String?
+  createdById   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([enabled])
 }

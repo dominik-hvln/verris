@@ -22,6 +22,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     email: string;
     role: string;
     purpose?: string;
+    tv?: number;
     actorUserId?: string;
     impersonatedBy?: string;
   }) {
@@ -38,6 +39,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         id: true,
         email: true,
         role: true,
+        loginBlocked: true,
+        anonymizedAt: true,
+        tokenVersion: true,
         customerOwnerId: true,
         customerPermissions: true,
         subaccountDisabledAt: true,
@@ -45,6 +49,21 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
     if (!user) {
       throw new UnauthorizedException('Token refers to a non-existent user');
+    }
+    // C3: a bumped tokenVersion invalidates every token minted before it
+    // ("wyloguj wszystkie urządzenia", forced logout after password reset).
+    // Tokens issued before this field existed carry no `tv` → treat as 0.
+    if ((payload.tv ?? 0) !== user.tokenVersion) {
+      throw new UnauthorizedException('Session has been invalidated');
+    }
+    // Audit F-08: a block must take effect immediately, not when the JWT
+    // expires — the strategy already hits the DB per request, so this check
+    // is free. Same for RODO-anonymised accounts.
+    if (user.loginBlocked && user.role === 'USER') {
+      throw new UnauthorizedException('Account is blocked');
+    }
+    if (user.anonymizedAt) {
+      throw new UnauthorizedException('Account no longer exists');
     }
     if (user.customerOwnerId && user.subaccountDisabledAt) {
       throw new UnauthorizedException('Subaccount is disabled');

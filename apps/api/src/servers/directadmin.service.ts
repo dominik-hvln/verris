@@ -57,6 +57,9 @@ export class DirectAdminService {
       username: server.daUsername,
       loginKey,
       secure: server.daUseTls,
+      // Audit F-04: cert verification ON unless the node explicitly opted out
+      // (onboarding window with a self-signed cert on :2222).
+      rejectUnauthorized: !server.daAllowInvalidCert,
     });
   }
 
@@ -267,7 +270,56 @@ export class DirectAdminService {
       username: account.daUsername,
       loginKey,
       secure: server.daUseTls,
+      rejectUnauthorized: !server.daAllowInvalidCert,
     });
+  }
+
+  /**
+   * A1 — wystawienie/odnowienie certyfikatu Let's Encrypt dla konta klienta.
+   * Best-effort: jeśli DNS jeszcze nie wskazuje na węzeł, DA zwróci błąd ACME —
+   * w tym wypadku DA i tak ponowi przy `letsencrypt=1` (auto-issue), a klient
+   * może kliknąć „Wystaw SSL" w panelu, gdy DNS się rozpropaguje.
+   */
+  async requestLetsEncryptForSubscription(
+    subscriptionId: string,
+    userId: string,
+  ): Promise<{ ok: boolean; domain: string | null; error: string | null }> {
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id: subscriptionId, userId },
+      include: { account: true },
+    });
+    if (!sub?.account) throw new NotFoundException('Service not found');
+    const client = await this.getClientForHostingAccount(sub.account.id, userId);
+    try {
+      await client.requestLetsEncrypt(sub.account.domain);
+      return { ok: true, domain: sub.account.domain, error: null };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`requestLetsEncrypt failed sub=${subscriptionId}: ${msg}`);
+      return { ok: false, domain: sub.account.domain, error: msg };
+    }
+  }
+
+  /**
+   * A1 — wewnętrzny best-effort trigger LE używany zaraz po provisioningu
+   * (mamy świeże hasło konta w pamięci, bez odczytu z DB).
+   */
+  async requestLetsEncryptDirect(
+    server: { hostname: string | null; daHost: string | null; ipAddress: string | null; daPort: number | null; daUseTls: boolean; daAllowInvalidCert: boolean },
+    daUsername: string,
+    password: string,
+    domain: string,
+  ): Promise<void> {
+    const host = server.hostname ?? server.daHost ?? server.ipAddress ?? '';
+    const client = new DirectAdminClient({
+      host,
+      port: server.daPort ?? 2222,
+      username: daUsername,
+      loginKey: password,
+      secure: server.daUseTls,
+      rejectUnauthorized: !server.daAllowInvalidCert,
+    });
+    await client.requestLetsEncrypt(domain);
   }
 
   /**

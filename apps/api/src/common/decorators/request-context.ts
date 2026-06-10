@@ -28,7 +28,10 @@ export function extractRequestContext(req: Request): RequestContextDto {
       : Array.isArray(xffHeader)
       ? xffHeader[0]
       : null;
-  const ipAddress = xff?.split(',')[0]?.trim() || req.ip || null;
+  // Audit F-10: `req.ip` is authoritative — `trust proxy` is set in main.ts,
+  // so Express resolves it from the XFF entry appended by OUR proxy (Caddy).
+  // The left-most XFF value is client-controlled and only used as a fallback.
+  const ipAddress = req.ip || xff?.split(',')[0]?.trim() || null;
   const ua = req.headers['user-agent'];
   const userAgent = typeof ua === 'string' ? ua : null;
   return { ipAddress, userAgent };

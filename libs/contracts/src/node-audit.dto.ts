@@ -59,11 +59,13 @@ export type AuditCheckCategory =
   | 'DA_CONNECTIVITY'
   | 'DA_PACKAGES'
   | 'DA_LOCALE'
+  | 'DA_IP'
   | 'HOSTNAME'
   | 'TLS'
   | 'AGENT'
   | 'DNS'
-  | 'CAGEFS';
+  | 'CAGEFS'
+  | 'SECURITY';
 
 export interface AuditCheckDto {
   id: string;

@@ -612,6 +612,13 @@ export class SubscriptionsService {
       );
     }
 
+    // Audit F-05: the idempotency key must be deterministic — a retry or a
+    // double-click on "unsuspend + charge" has to map onto the SAME ledger
+    // entry. We anchor it to the period being paid for (currentPeriodEnd of
+    // the suspended subscription), never to wall-clock time.
+    const renewAnchor = subscription.currentPeriodEnd
+      ? subscription.currentPeriodEnd.toISOString()
+      : 'no-period';
     let renewalTxId: string | null = null;
     if (opts.chargeRenewal) {
       const debit = await this.walletLedger.debit({
@@ -619,7 +626,7 @@ export class SubscriptionsService {
         type: WalletTxType.CHARGE_SUBSCRIPTION,
         amount: subscription.priceAmount,
         description: `Manual renewal during unsuspend (${subscription.id})`,
-        idempotencyKey: `sub-${subscription.id}-manual-renew-${Date.now()}`,
+        idempotencyKey: `sub-${subscription.id}-manual-renew-${renewAnchor}`,
         subscriptionId: subscription.id,
       });
       renewalTxId = debit.id;
@@ -645,7 +652,7 @@ export class SubscriptionsService {
               type: WalletTxType.REFUND,
               amount: subscription.priceAmount,
               description: `Refund: failed unsuspend on DA for ${subscription.id}`,
-              idempotencyKey: `sub-${subscription.id}-manual-renew-refund-${Date.now()}`,
+              idempotencyKey: `sub-${subscription.id}-manual-renew-refund-${renewAnchor}`,
               subscriptionId: subscription.id,
             })
             .catch(() => undefined);

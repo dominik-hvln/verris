@@ -435,6 +435,21 @@ export class BillingService {
 
     this.logger.log(`Stripe webhook: ${event.type} (${event.id})`);
 
+    // Audit F-16: replay-safe processing. Money movements are idempotent at
+    // the ledger level, but the stateful handlers (counters, sync, e-mails)
+    // must run at most once per Stripe event id.
+    try {
+      await this.prisma.stripeWebhookEvent.create({
+        data: { eventId: event.id, type: event.type },
+      });
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        this.logger.log(`Duplicate Stripe webhook delivery ignored: ${event.id}`);
+        return { received: true, duplicate: true };
+      }
+      throw err;
+    }
+
     switch (event.type) {
       case 'checkout.session.completed':
       case 'checkout.session.async_payment_succeeded':
@@ -802,6 +817,10 @@ export class BillingService {
     const amtMajor = ((pi.amount_received ?? 0) as number) / 100;
     if (amtMajor <= 0 || !pi.id) return;
 
+    // Audit F-16: only bump the statistics when this delivery actually moved
+    // money (a replayed webhook returns the existing ledger entry).
+    const alreadyCredited = await this.ledger.findByIdempotencyKey(`stripe:pi:${pi.id}`);
+
     const tx = await this.ledger.credit({
       userId,
       amount: amtMajor,
@@ -813,15 +832,17 @@ export class BillingService {
       metadata: { channel: 'wallet_auto_topup' },
     });
 
-    await this.prisma.walletAutoTopup.updateMany({
-      where: { userId },
-      data: {
-        totalToppedUpAmount: { increment: amtMajor },
-        totalToppedUpCount: { increment: 1 },
-        lastAttemptOk: true,
-        lastAttemptError: null,
-      },
-    });
+    if (!alreadyCredited) {
+      await this.prisma.walletAutoTopup.updateMany({
+        where: { userId },
+        data: {
+          totalToppedUpAmount: { increment: amtMajor },
+          totalToppedUpCount: { increment: 1 },
+          lastAttemptOk: true,
+          lastAttemptError: null,
+        },
+      });
+    }
 
     await this.audit.record({
       action: 'WALLET_AUTOTOPUP_SUCCEEDED',

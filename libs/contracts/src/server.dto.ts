@@ -36,6 +36,8 @@ export interface ServerSummaryDto {
   daPort: number | null;
   daUsername: string | null;
   daUseTls: boolean;
+  /** Audit F-04: true = node accepts an unverified (self-signed) DA TLS cert. */
+  daAllowInvalidCert?: boolean;
   daPasswordSet: boolean;
 
   /** Per-node authoritative nameservers (null = inherit platform default). */
@@ -106,6 +108,8 @@ export interface UpdateDirectAdminConfigInput {
   daUsername: string;
   daPassword?: string;
   daUseTls?: boolean;
+  /** Audit F-04: onboarding-only escape hatch for self-signed DA certs. */
+  daAllowInvalidCert?: boolean;
 }
 
 export interface DirectAdminTestResultDto {

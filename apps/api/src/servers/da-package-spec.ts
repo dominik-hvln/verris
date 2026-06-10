@@ -84,6 +84,8 @@ export interface PlanResourceFields {
   iopsLimit: number;
   entryProcesses: number;
   nprocLimit: number;
+  /** B6 — SSH/Git shell access per plan (off by default; CageFS isolates). */
+  sshAccess?: boolean;
 }
 
 export function packagePolicyForSlug(slug: string): DaPackagePolicy {
@@ -126,7 +128,13 @@ export function buildDaPackageSpecFromPlan(
       spam: true,
       cron: true,
       dnscontrol: true,
-      ssh: false,
+      // A6 — Redis (object cache, np. dla WordPress); A4 — instalator WordPress;
+      // B6 — Git deploy. CageFS izoluje konta, więc bezpieczne do włączenia
+      // platformowo. SSH pozostaje per-plan (pole Plan.sshAccess), domyślnie off.
+      redis: true,
+      git: true,
+      wordpress: true,
+      ssh: plan.sshAccess === true,
     },
     lve: {
       cpuPercent: plan.cpuLimit,
@@ -167,5 +175,6 @@ export function planResourceFields(plan: Plan): PlanResourceFields {
     iopsLimit: plan.iopsLimit,
     entryProcesses: plan.entryProcesses,
     nprocLimit: plan.nprocLimit,
+    sshAccess: plan.sshAccess ?? false,
   };
 }

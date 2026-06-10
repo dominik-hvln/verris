@@ -210,7 +210,9 @@ export class DirectAdminClient {
       },
       timeout: config.timeoutMs ?? 15_000,
       httpsAgent: new https.Agent({
-        rejectUnauthorized: config.rejectUnauthorized ?? false,
+        // Audit F-04: verify TLS certs by default. Callers must opt OUT
+        // explicitly (per-node `daAllowInvalidCert`) — never silently.
+        rejectUnauthorized: config.rejectUnauthorized ?? true,
       }),
     });
   }
@@ -218,6 +220,22 @@ export class DirectAdminClient {
   // ---------------------------------------------------------------------------
   // Accounts
   // ---------------------------------------------------------------------------
+
+  /**
+   * Admin IP manager — IPs registered on the server (`CMD_API_IP_CONFIG`).
+   * Provisioning with `ip=<public IP>` requires the node's public IP to be on
+   * this list; otherwise DA rejects account creation with
+   * "A valid IP was not provided" (audit F-07 validator).
+   */
+  async listServerIps(): Promise<string[]> {
+    const response = await this.client.get('/CMD_API_IP_CONFIG');
+    const params = new URLSearchParams(response.data);
+    const list: string[] = [];
+    for (const [key, value] of params.entries()) {
+      if (key.startsWith('list')) list.push(value);
+    }
+    return list;
+  }
 
   async listUserPackages(): Promise<string[]> {
     const response = await this.client.get('/CMD_API_PACKAGES_USER');
@@ -619,6 +637,35 @@ export class DirectAdminClient {
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
     );
     return this.parseResponse(response.data);
+  }
+
+  /**
+   * A1 — request a free Let's Encrypt certificate for a domain (+www), covering
+   * the account control panel where applicable. Idempotent: DA renews/replaces
+   * the existing cert. The user session (account login key) issues against the
+   * account's own domains.
+   *
+   * Best-effort by design — DNS may not have propagated to the node yet at
+   * provisioning time; callers should not fail the whole flow if this throws.
+   */
+  async requestLetsEncrypt(domain: string, opts: { includeWww?: boolean } = {}): Promise<void> {
+    const names = opts.includeWww === false ? domain : `${domain},www.${domain}`;
+    await this.client.post(
+      '/CMD_API_SSL',
+      new URLSearchParams({
+        domain,
+        action: 'save',
+        type: 'create',
+        request: 'letsencrypt',
+        name: names,
+        keysize: 'secp384r1',
+        encryption: 'sha256',
+        background: 'yes',
+        acme_provider: 'letsencrypt',
+        le_force: 'yes',
+      }).toString(),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
+    );
   }
 
   async getDomains(): Promise<string[]> {

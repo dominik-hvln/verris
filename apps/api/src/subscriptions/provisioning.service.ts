@@ -41,10 +41,18 @@ export interface ProvisionResult {
 
 const DA_USERNAME_MAX = 8;
 
-/** DirectAdmin `ip=` for CMD_API_ACCOUNT_USER — single-IP nodes need the public IP, not `shared`. */
+/** Loose-but-safe IPv4 / IPv6 shape check (rejects bootstrap sentinels like `pending-…`). */
+const IP_SHAPE = /^(\d{1,3}(\.\d{1,3}){3}|[0-9a-fA-F:]+:[0-9a-fA-F:.]*)$/;
+
+/**
+ * DirectAdmin `ip=` for CMD_API_ACCOUNT_USER — single-IP nodes need the public
+ * IP, not `shared`. Audit F-12: validate the actual IP shape instead of
+ * string-matching the reservation sentinel (which historically diverged:
+ * `pending:` in initServer vs `pending-` here).
+ */
 function resolveDaAccountIp(server: Pick<Server, 'ipAddress'>): string {
   const ip = server.ipAddress?.trim();
-  if (ip && ip !== '0.0.0.0' && !ip.startsWith('pending-')) {
+  if (ip && ip !== '0.0.0.0' && IP_SHAPE.test(ip)) {
     return ip;
   }
   return 'shared';
@@ -192,6 +200,44 @@ export class ProvisioningService {
       this.logger.error(
         `DA setAccountLimits failed for sub=${subscription.id} user=${daUsername}: ${msg}`,
       );
+      // Audit F-11: the DA account was already created above — remove it so
+      // the domain isn't orphaned on the node (a retry would otherwise fail
+      // with "domain already exists" and require manual cleanup).
+      try {
+        await daClient.deleteAccount(daUsername);
+        await this.audit.record({
+          action: 'PROVISIONING_ROLLBACK',
+          userId: subscription.userId,
+          actorUserId: actorUserId ?? null,
+          details: {
+            subscriptionId,
+            serverId: server.id,
+            daUsername,
+            domain,
+            stage: 'setAccountLimits',
+            reason: msg,
+          },
+        });
+      } catch (cleanupErr) {
+        const cleanupMsg =
+          cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr);
+        this.logger.error(
+          `PROVISIONING ROLLBACK FAILED — orphaned DA account ${daUsername} (domain=${domain}) ` +
+            `on server=${server.id}: ${cleanupMsg}. Manual cleanup required.`,
+        );
+        await this.audit.record({
+          action: 'PROVISIONING_ROLLBACK_FAILED',
+          userId: subscription.userId,
+          actorUserId: actorUserId ?? null,
+          details: {
+            subscriptionId,
+            serverId: server.id,
+            daUsername,
+            domain,
+            error: cleanupMsg,
+          },
+        });
+      }
       throw new ServiceUnavailableException(
         'CloudLinux LVE limits could not be applied on this node. Provisioning aborted.',
       );
@@ -280,11 +326,27 @@ export class ProvisioningService {
       }
     }
 
+    // A1 — best-effort auto-SSL (Let's Encrypt) right after provisioning. DNS
+    // may not point at the node yet, so failures are expected and harmless:
+    // DA's `letsencrypt=1` flag retries auto-issue, and the panel exposes a
+    // manual "Wystaw SSL" button. Never fails the provisioning flow.
+    void this.da
+      .requestLetsEncryptDirect(server, daUsername, daResult.password, domain)
+      .then(() =>
+        this.logger.log(`Auto-SSL (LE) requested for ${domain} (sub=${subscription.id})`),
+      )
+      .catch((err) => {
+        this.logger.log(
+          `Auto-SSL deferred for ${domain} (sub=${subscription.id}): ${
+            err instanceof Error ? err.message : String(err)
+          } — DA auto-issue / panel button will retry`,
+        );
+      });
+
     void this.notifyAccountProvisioned({
       userId: subscription.userId,
       domain,
       daUsername,
-      daPassword: daResult.password,
       planName: subscription.plan.name,
     }).catch((err) => {
       this.logger.warn(
@@ -306,7 +368,6 @@ export class ProvisioningService {
     userId: string;
     domain: string;
     daUsername: string;
-    daPassword: string;
     planName: string;
   }): Promise<void> {
     const user = await this.prisma.user.findUnique({
@@ -324,7 +385,6 @@ export class ProvisioningService {
       planName: opts.planName,
       domain: opts.domain,
       daUsername: opts.daUsername,
-      daPassword: opts.daPassword,
       panelUrl,
     });
     await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'NOREPLY' });

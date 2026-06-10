@@ -233,8 +233,13 @@ export class AutoscalingBillingService {
   }
 }
 
+/**
+ * Audit F-19: the wallet columns are Decimal(12,2) — rounding to 2 dp here
+ * keeps the in-memory totals identical to what the DB actually stores (no
+ * grosze drift between pass results and the ledger).
+ */
 function roundToCurrency(value: number): number {
-  return Math.round(value * 10_000) / 10_000;
+  return Math.round(value * 100) / 100;
 }
 
 function allocateShares(
@@ -245,5 +250,5 @@ function allocateShares(
   const cpu = roundToCurrency((block.cpu / block.total) * total);
   const ram = roundToCurrency((block.ram / block.total) * total);
   const disk = roundToCurrency(Math.max(0, total - cpu - ram));
-  return { cpu: cpu.toFixed(4), ram: ram.toFixed(4), disk: disk.toFixed(4) };
+  return { cpu: cpu.toFixed(2), ram: ram.toFixed(2), disk: disk.toFixed(2) };
 }

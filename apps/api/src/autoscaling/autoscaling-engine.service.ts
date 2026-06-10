@@ -182,7 +182,25 @@ export class AutoscalingEngineService {
     const isUp = cpuMove > 0 || ramMove > 0 || diskMove > 0;
     const nextScaledCpu = scaledCpu + cpuMove;
     const nextScaledRamMb = scaledRamMb + ramMove;
-    const nextScaledDiskMb = scaledDiskMb + diskMove;
+    let nextScaledDiskMb = scaledDiskMb + diskMove;
+
+    // Audit F-06: CPU/RAM are ephemeral, disk is NOT. Never shrink the disk
+    // quota below what the customer is actually using (+5% headroom) — an
+    // over-quota account breaks writes for websites, mail and cron.
+    if (diskMove < 0) {
+      const floor = this.minScaledDiskMb(recent, baseDisk);
+      if (nextScaledDiskMb < floor) {
+        nextScaledDiskMb = Math.min(scaledDiskMb, floor);
+      }
+    }
+
+    if (
+      nextScaledCpu === scaledCpu &&
+      nextScaledRamMb === scaledRamMb &&
+      nextScaledDiskMb === scaledDiskMb
+    ) {
+      return 'HOLD';
+    }
 
     if (isUp) {
       const guard = await this.guardScaleUp(
@@ -196,12 +214,32 @@ export class AutoscalingEngineService {
         const blockReason = guard.reason;
         await this.recordDisabled(sub, recent, blockReason);
         if (scaledCpu > 0 || scaledRamMb > 0 || scaledDiskMb > 0) {
+          // Forced return to baseline — but the disk floor still applies
+          // (audit F-06). If the customer's data exceeds the plan quota, we
+          // hold the disk delta, flag it for BOK in the audit log and keep
+          // billing the remaining delta block-by-block once funds appear.
+          const diskFloor = this.minScaledDiskMb(recent, baseDisk);
+          const heldDiskMb = Math.min(scaledDiskMb, diskFloor);
+          if (heldDiskMb > 0) {
+            await this.audit.record({
+              action: 'AUTOSCALING_DISK_FLOOR_HELD',
+              userId: sub.userId,
+              details: {
+                subscriptionId: sub.id,
+                reason: blockReason,
+                heldScaledDiskMb: heldDiskMb,
+                baseDiskMb: baseDisk,
+                note:
+                  'Wymuszony powrót do baseline zatrzymany na poziomie faktycznego zużycia dysku — wymaga kontaktu BOK (zwolnienie miejsca lub upgrade planu).',
+              },
+            });
+          }
           await this.applyChange(sub, {
             recent,
             nextScaledCpu: 0,
             nextScaledRamMb: 0,
-            nextScaledDiskMb: 0,
-            reason: blockReason,
+            nextScaledDiskMb: heldDiskMb,
+            reason: heldDiskMb > 0 ? `${blockReason} disk_floor_held` : blockReason,
             direction: AutoscalingDirection.DOWN,
             disable: true,
             rules,
@@ -229,6 +267,19 @@ export class AutoscalingEngineService {
   private applyResourceMove(rawMove: number, scalingEnabled: boolean): number {
     if (scalingEnabled) return rawMove;
     return rawMove < 0 ? rawMove : 0;
+  }
+
+  /**
+   * Audit F-06: the minimum `scaledDiskMb` an account may be reduced to so the
+   * effective quota (plan base + delta) stays >= the customer's real usage
+   * with 5% headroom. 0 when usage fits the base plan.
+   */
+  private minScaledDiskMb(recent: UsageMetric[], baseDiskMb: number): number {
+    if (recent.length === 0) return 0;
+    const maxUsage = Math.max(...recent.map((r) => r.diskUsageMb ?? 0));
+    if (maxUsage <= 0) return 0;
+    const required = Math.ceil(maxUsage * 1.05);
+    return Math.max(0, required - baseDiskMb);
   }
 
   private resolveMaxOverscaleRatio(value: number): number {
@@ -567,7 +618,11 @@ export class AutoscalingEngineService {
       },
       _sum: { amount: true },
     });
-    return Number(sum._sum.amount ?? 0);
+    // Charges are stored as NEGATIVE debits in the ledger (see
+    // WalletLedgerService.applyEntry → amount.negated()). The cap guard needs
+    // the spend as a positive total — without Math.abs the comparison
+    // `spent + projectedHourly > cap` would never trigger (audit F-01).
+    return Math.abs(Number(sum._sum.amount ?? 0));
   }
 
   estimateHourlyCost(

@@ -135,6 +135,7 @@ export default async function ServerDetailPage({
             daPort: server.daPort ?? 2222,
             daUsername: server.daUsername ?? "",
             daUseTls: server.daUseTls,
+            daAllowInvalidCert: server.daAllowInvalidCert ?? false,
             daPasswordSet: server.daPasswordSet,
           }}
         />

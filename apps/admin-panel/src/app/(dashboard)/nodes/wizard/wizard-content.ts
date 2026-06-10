@@ -7,6 +7,7 @@ export type WizardStepId =
   | "litespeed"
   | "bootstrap"
   | "approve-da"
+  | "onboard-live"
   | "hosting-profile"
   | "finish";
 
@@ -46,6 +47,11 @@ export const WIZARD_STEPS: WizardStep[] = [
     id: "approve-da",
     title: "Akceptacja i DA API",
     subtitle: "Panel admin → login key",
+  },
+  {
+    id: "onboard-live",
+    title: "Onboard LIVE (SSH)",
+    subtitle: "Hardening, egress lockdown, IP w DA, pakiety planów",
   },
   {
     id: "hosting-profile",
@@ -211,6 +217,40 @@ export const BOOTSTRAP_DOES_NOT = [
 ];
 
 /**
+ * Faza 3 runbooka (NODE_ONBOARD_RUNBOOK.md) — jeden skrypt na węźle: security
+ * hardening + egress lockdown + rejestracja publicznego IP w DA + pakiety
+ * planów + LIVE readiness. Audit F-07: ten krok był poza wizardem.
+ */
+export const ONBOARD_LIVE_SCP = `# 5a) Z repo (control-plane / stacja robocza) — skopiuj bundle na węzeł:
+scp -r ops/hosting-default-page \\
+  ops/scripts/{node-onboard-live,node-live-readiness,node-hosting-profile,\\
+install-verris-default-page,node-verris-tasks-install,node-da-sync-plan-packages,\\
+verris-tasks,verris-task-run,security-hardening-baseline,security-egress-lockdown}.sh \\
+  root@WĘZEŁ:/root/verris/`;
+
+export const ONBOARD_LIVE_RUN = `# 5b) Na węźle (root) — login key z DA → Account Manager → Login Keys:
+export DA_USER=admin
+export DA_KEY='login-key-z-DA'
+bash /root/verris/node-onboard-live.sh
+# Log: /var/log/verris-node-onboard.log
+# Hardening jest domyślnie WŁĄCZONY (--skip-security tylko awaryjnie, NIEZALECANE)`;
+
+export const ONBOARD_LIVE_VERIFY = `# 5c) Weryfikacja po onboardingu:
+dbctl list                                   # Governor odpowiada
+mysql -e 'SELECT 1'                          # MariaDB OK
+ls /usr/local/directadmin/data/admin/ips/    # publiczne IP zarejestrowane w DA
+nft list ruleset | head -20                  # egress lockdown aktywny
+test -f /etc/verris-hardened && echo "OK: hardening marker"`;
+
+export const ONBOARD_LIVE_DOES = [
+  "Security baseline: SSH, fail2ban, sysctl, auto-updates, firewall ingress",
+  "Egress lockdown: deny-by-default (nftables) z dziurami na API/repo",
+  "Rejestruje publiczne IP węzła w DA — bez tego provisioning kończy się błędem „A valid IP was not provided”",
+  "Tworzy pakiety DA starter/pro/business zgodne z planami panelu",
+  "LIVE readiness: agent zadań + Governor/MariaDB 10.6 + profil hostingowy + weryfikacja",
+];
+
+/**
  * Definition of Done dla węzła ACTIVE (bootstrap v2). Każdy punkt ma swój
  * walidator w sekcji „Audyt i naprawa” na stronie węzła.
  */
@@ -219,8 +259,9 @@ export const DOD_ACTIVE_CHECKLIST = [
   "Hostname (FQDN) ustawiony, rekord A w OVH wskazuje IP węzła",
   "daHost = hostname (nie surowe IP) — linki panelu i TLS po hostname",
   "Login key DA ma scope packages + accounts (test API OK)",
+  "Onboard LIVE wykonany: hardening + egress lockdown + publiczne IP w DA",
   "Pakiety DA starter/pro/business z realnymi limitami (NIE „Bez ograniczeń”), język PL",
   "Profil hostingowy (Governor/LiteSpeed) wykonany — task SUCCESS",
-  "Wildcard *.verris.pl na :2222 (CN/SAN, nie IP)",
+  "Wildcard *.verris.pl na :2222 (CN/SAN, nie IP) + weryfikacja cert w API włączona",
   "Smoke: zakup planu → konto DA z limitami planu",
 ];

@@ -115,8 +115,10 @@ export class ServersService {
     ctx?: { ip?: string; userAgent?: string },
   ) {
     // Reserve a placeholder ipAddress unique value until handshake fills it in.
-    // We use the server id as a sentinel — it's unique by construction.
-    const reservedIp = `pending:${this.crypto.generateRandomToken(8)}`;
+    // Audit F-12: keep the `pending-` prefix in sync with consumers that
+    // filter out unresolved nodes (provisioning additionally validates the
+    // IP shape, so any non-IP sentinel is safe).
+    const reservedIp = `pending-${this.crypto.generateRandomToken(8)}`;
 
     const server = await this.prisma.server.create({
       data: {
@@ -202,7 +204,7 @@ export class ServersService {
   async handleHandshake(
     serverId: string,
     dto: HandshakeDto,
-    ctx?: { ip?: string; userAgent?: string },
+    ctx?: { ip?: string; userAgent?: string; bootstrapTokenId?: string },
   ) {
     const server = await this.prisma.server.findUnique({ where: { id: serverId } });
     if (!server) throw new NotFoundException('Server not found for bootstrap token');
@@ -211,7 +213,9 @@ export class ServersService {
       // Idempotency: accept additional handshakes from already-active servers
       // as a no-op so the bootstrap script never breaks an existing node. We
       // intentionally do *not* return the identity token here — it was
-      // delivered exactly once on the first successful handshake.
+      // delivered exactly once on the first successful handshake. Audit F-13:
+      // the bootstrap token is NOT consumed for this no-op, so the operator
+      // can re-run the same script later without regenerating it.
       return {
         ...this.toPublicServer(server),
         identityToken: null,
@@ -239,11 +243,20 @@ export class ServersService {
         totalDiskMb: dto.totalDiskMb ?? undefined,
         publicKey: dto.publicKey ?? undefined,
         agentVersion: dto.agentVersion ?? undefined,
-        identityToken,
+        // Audit F-03: persist ONLY the SHA-256 hash. The plaintext lives in
+        // the handshake response (returned once) and in /etc/verris.conf on
+        // the node — never in our DB or backups.
+        identityToken: this.crypto.sha256Hex(identityToken),
         lastHandshakeAt: new Date(),
         status: ServerStatus.PENDING_APPROVAL,
       },
     });
+
+    // The handshake mutated the server — only now is the single-use token
+    // actually consumed (race-safe updateMany inside markUsed).
+    if (ctx?.bootstrapTokenId) {
+      await this.tokens.markUsed(ctx.bootstrapTokenId, { ipAddress: ctx?.ip });
+    }
 
     await this.audit.record({
       action: 'SERVER_HANDSHAKE',
@@ -578,9 +591,47 @@ export class ServersService {
     };
   }
 
+  /**
+   * Audit F-18: status changes through the generic PATCH are restricted to
+   * operational transitions. INIT → PENDING_APPROVAL happens only via the
+   * bootstrap handshake; PENDING_APPROVAL → ACTIVE only via `approveServer`
+   * (which enforces the FQDN requirement and runs the post-ACTIVE hooks).
+   */
+  private static readonly PATCH_STATUS_TRANSITIONS: Record<ServerStatus, ServerStatus[]> = {
+    [ServerStatus.INIT]: [ServerStatus.DEPROVISIONING],
+    [ServerStatus.PENDING_APPROVAL]: [ServerStatus.DEPROVISIONING],
+    [ServerStatus.ACTIVE]: [
+      ServerStatus.MAINTENANCE,
+      ServerStatus.OFFLINE,
+      ServerStatus.DEPROVISIONING,
+    ],
+    [ServerStatus.MAINTENANCE]: [
+      ServerStatus.ACTIVE,
+      ServerStatus.OFFLINE,
+      ServerStatus.DEPROVISIONING,
+    ],
+    [ServerStatus.OFFLINE]: [
+      ServerStatus.ACTIVE,
+      ServerStatus.MAINTENANCE,
+      ServerStatus.DEPROVISIONING,
+    ],
+    [ServerStatus.DEPROVISIONING]: [ServerStatus.OFFLINE],
+  };
+
   async updateServer(id: string, dto: UpdateServerDto, actorUserId: string) {
     const server = await this.prisma.server.findUnique({ where: { id } });
     if (!server) throw new NotFoundException('Server not found');
+
+    if (dto.status && dto.status !== server.status) {
+      const allowed = ServersService.PATCH_STATUS_TRANSITIONS[server.status] ?? [];
+      if (!allowed.includes(dto.status)) {
+        throw new BadRequestException(
+          `Niedozwolona zmiana statusu ${server.status} → ${dto.status}. ` +
+            `Aktywacja węzła przebiega przez handshake + „Zatwierdź węzeł" (wymóg FQDN i hooki TLS/NS/profil), ` +
+            `a maintenance przez dedykowany przełącznik.`,
+        );
+      }
+    }
 
     const updated = await this.prisma.server.update({
       where: { id },
@@ -686,6 +737,7 @@ export class ServersService {
       daPort: dto.daPort,
       daUsername: dto.daUsername,
       daUseTls: dto.daUseTls ?? server.daUseTls,
+      daAllowInvalidCert: dto.daAllowInvalidCert ?? server.daAllowInvalidCert,
     };
 
     if (dto.daPassword) {
@@ -702,6 +754,7 @@ export class ServersService {
         daHost: dto.daHost,
         daUsername: dto.daUsername,
         passwordChanged: Boolean(dto.daPassword),
+        daAllowInvalidCert: (data.daAllowInvalidCert as boolean) ?? false,
       },
     });
 

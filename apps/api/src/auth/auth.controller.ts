@@ -23,6 +23,7 @@ import {
 } from './auth.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
+import { RateLimit } from '../common/guards/rate-limit.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Role } from '@verris/database';
@@ -35,29 +36,46 @@ export class AuthController {
     private readonly twoFactor: TwoFactorService,
   ) {}
 
+  // Audit F-09: strict per-route limits — registration and mail-out endpoints
+  // are the main spam / enumeration vectors.
+  @RateLimit({ limit: 5, windowMs: 60 * 60 * 1000, scope: 'auth:register' })
   @Post('register')
   async register(@Body() dto: RegisterDto, @Req() req: Request) {
     return this.authService.register(dto, requestContext(req));
   }
 
+  @RateLimit({ limit: 10, windowMs: 60 * 1000, scope: 'auth:login', keyByBodyField: 'email' })
   @HttpCode(HttpStatus.OK)
   @Post('login')
   async login(@Body() dto: LoginDto, @Req() req: Request) {
     return this.authService.login(dto, requestContext(req));
   }
 
+  @RateLimit({
+    limit: 3,
+    windowMs: 60 * 60 * 1000,
+    scope: 'auth:pwd-reset',
+    keyByBodyField: 'email',
+  })
   @HttpCode(HttpStatus.OK)
   @Post('password-reset/request')
   async requestPasswordReset(@Body() dto: PasswordResetRequestDto) {
     return this.authService.requestPasswordReset(dto);
   }
 
+  @RateLimit({ limit: 10, windowMs: 60 * 60 * 1000, scope: 'auth:pwd-reset-confirm' })
   @HttpCode(HttpStatus.OK)
   @Post('password-reset/confirm')
   async confirmPasswordReset(@Body() dto: PasswordResetConfirmDto) {
     return this.authService.confirmPasswordReset(dto);
   }
 
+  @RateLimit({
+    limit: 3,
+    windowMs: 60 * 60 * 1000,
+    scope: 'auth:email-verify',
+    keyByBodyField: 'email',
+  })
   @HttpCode(HttpStatus.OK)
   @Post('email-verification/request')
   async requestEmailVerification(@Body() dto: EmailVerificationRequestDto) {
@@ -70,6 +88,7 @@ export class AuthController {
     return this.authService.confirmEmailVerification(dto);
   }
 
+  @RateLimit({ limit: 10, windowMs: 60 * 1000, scope: 'auth:2fa' })
   @HttpCode(HttpStatus.OK)
   @Post('login/2fa')
   async loginVerifyTwoFactor(@Body() dto: VerifyTwoFactorDto, @Req() req: Request) {
@@ -127,6 +146,14 @@ export class AuthController {
       ip,
     });
     return { ok: true };
+  }
+
+  /** C3 — wyloguj wszystkie urządzenia (unieważnij wszystkie tokeny). */
+  @UseGuards(JwtAuthGuard)
+  @Post('logout-all')
+  @HttpCode(HttpStatus.OK)
+  async logoutAll(@CurrentUser() user: { userId: string; principalUserId?: string }) {
+    return this.authService.logoutAllDevices(user.principalUserId ?? user.userId);
   }
 
   @UseGuards(JwtAuthGuard)

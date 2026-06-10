@@ -1,4 +1,4 @@
-import { cookies } from 'next/headers';
+import { cookies, headers as incomingHeaders } from 'next/headers';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
 
@@ -23,6 +23,17 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
     const cookieStore = await cookies();
     const token = cookieStore.get('auth_token')?.value;
     if (token) headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  // Pre-LIVE: forward the real client IP (set by Caddy on the incoming
+  // request). Without this every panel user reaches the API from the panel
+  // container's IP — breaking per-IP rate limits, lockouts and audit logs.
+  try {
+    const incoming = await incomingHeaders();
+    const xff = incoming.get('x-forwarded-for');
+    if (xff && !headers.has('x-forwarded-for')) headers.set('x-forwarded-for', xff);
+  } catch {
+    /* outside request scope (build/ISR) — skip */
   }
 
   const response = await fetch(`${API_URL}${path}`, {

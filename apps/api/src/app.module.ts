@@ -30,9 +30,11 @@ import { MarketingModule } from './marketing/marketing.module';
 import { EmailLogAdminModule } from './email-log/email-log-admin.module';
 import { ProductOpsModule } from './product-ops/product-ops.module';
 import { CustomerPermissionsGuard } from './common/guards/customer-permissions.guard';
+import { RateLimitGuard } from './common/guards/rate-limit.guard';
 import { AiModule } from './ai/ai.module';
 import { PlatformSettingsModule } from './platform-settings/platform-settings.module';
 import { ControlPlaneMailModule } from './control-plane-mail/control-plane-mail.module';
+import { VpnModule } from './vpn/vpn.module';
 
 @Module({
   imports: [
@@ -69,8 +71,14 @@ import { ControlPlaneMailModule } from './control-plane-mail/control-plane-mail.
     AiModule,
     PlatformSettingsModule,
     ControlPlaneMailModule,
+    VpnModule,
   ],
   controllers: [],
-  providers: [{ provide: APP_GUARD, useClass: CustomerPermissionsGuard }],
+  providers: [
+    // Audit F-09: global sliding-window rate limit (per-IP). Registered FIRST
+    // so abusive traffic is rejected before any auth/db work happens.
+    { provide: APP_GUARD, useClass: RateLimitGuard },
+    { provide: APP_GUARD, useClass: CustomerPermissionsGuard },
+  ],
 })
 export class AppModule {}
