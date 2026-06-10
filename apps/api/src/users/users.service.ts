@@ -25,6 +25,7 @@ import {
 import { MailerService } from '../mail/mailer.service';
 import { passwordChangedTemplate } from '../mail/templates/security-notifications';
 import { EcoBadgeService } from './eco-badge.service';
+import { EcoPointsService, isBillingProfileComplete } from '../eco/eco-points.service';
 
 @Injectable()
 export class UsersService {
@@ -37,6 +38,7 @@ export class UsersService {
     private readonly mailer: MailerService,
     private readonly config: ConfigService,
     private readonly ecoBadge: EcoBadgeService,
+    private readonly ecoPoints: EcoPointsService,
   ) {}
 
   getEcoBadgeStats(userId: string) {
@@ -442,7 +444,16 @@ export class UsersService {
     const profileId = principalUserId ?? accountUserId;
     const user = await this.prisma.user.findUnique({
       where: { id: profileId },
-      select: { id: true, customerOwnerId: true },
+      select: {
+        id: true,
+        customerOwnerId: true,
+        companyName: true,
+        nip: true,
+        address: true,
+        city: true,
+        postalCode: true,
+        country: true,
+      },
     });
 
     if (!user) {
@@ -509,6 +520,16 @@ export class UsersService {
         sidebarQuickLinks: true,
       },
     });
+
+    if (
+      !isSubaccount &&
+      !isBillingProfileComplete(user) &&
+      isBillingProfileComplete(updated)
+    ) {
+      void this.ecoPoints.safeAward(`billing_profile:${profileId}`, async () => {
+        await this.ecoPoints.awardBillingProfileComplete(this.prisma, profileId);
+      });
+    }
 
     return {
       ...updated,

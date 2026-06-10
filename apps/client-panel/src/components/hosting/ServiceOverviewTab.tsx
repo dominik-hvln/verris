@@ -26,6 +26,9 @@ import { ServiceGaugeRing, gaugeColors } from '@/components/hosting/ServiceGauge
 import { HostingTabShell } from '@/components/hosting/HostingTabShell';
 import DomainPointingPanel from '@/components/hosting/DomainPointingPanel';
 import { HealthCheckDetails } from '@/components/hosting/HealthCheckDetails';
+import { EcoModeCard } from '@/app/dashboard/services/[id]/autoscaling/eco-mode-card';
+import { clientFeatures } from '@/lib/client-features';
+import { apiFetch } from '@/lib/api';
 
 const statusLabels: Record<string, string> = {
   ACTIVE: 'Aktywna',
@@ -70,18 +73,23 @@ export default function ServiceOverviewTab({
   );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [ecoPoints, setEcoPoints] = useState(0);
 
   const load = useCallback(
     async (forceHealth = false) => {
       try {
-        const [svc, usageRes, healthRes] = await Promise.all([
+        const [svc, usageRes, healthRes, me] = await Promise.all([
           fetchServiceDetailsAction(serviceId),
           fetchHostingUsageAction(serviceId, '24h').catch(() => null),
           fetchServiceHealthAction(serviceId, forceHealth).catch(() => null),
+          clientFeatures.eco
+            ? apiFetch<{ ecoPoints?: number }>('/users/me').catch(() => ({ ecoPoints: 0 }))
+            : Promise.resolve({ ecoPoints: 0 }),
         ]);
         setService(svc);
         setUsage(usageRes);
         setHealth(healthRes ?? svc.health);
+        setEcoPoints(typeof me.ecoPoints === 'number' ? me.ecoPoints : 0);
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -163,6 +171,11 @@ export default function ServiceOverviewTab({
     service.status === 'PAST_DUE' ||
     service.status === 'SUSPENDED';
 
+  const showEcoMode =
+    clientFeatures.eco &&
+    service.status !== 'CANCELED' &&
+    service.status !== 'EXPIRED';
+
   return (
     <div className="space-y-4 min-w-0">
       {needsBilling ? (
@@ -177,6 +190,15 @@ export default function ServiceOverviewTab({
           </span>
         </button>
       ) : null}
+
+      {showEcoMode ? (
+        <EcoModeCard
+          subscriptionId={serviceId}
+          ecoModeEnabled={service.ecoModeEnabled}
+          ecoPoints={ecoPoints}
+        />
+      ) : null}
+
       <HostingTabShell
         title={service.plan.name}
         description={account?.domain ?? 'Dashboard usługi hostingowej'}
@@ -309,6 +331,14 @@ export default function ServiceOverviewTab({
               <>
                 <dt className="text-neutral-500">Login hostingu</dt>
                 <dd className="text-white font-mono text-[11px]">{account.daUsername}</dd>
+              </>
+            ) : null}
+            {clientFeatures.eco ? (
+              <>
+                <dt className="text-neutral-500">Tryb EKO</dt>
+                <dd className={service.ecoModeEnabled ? 'text-emerald-400 font-medium' : 'text-neutral-400'}>
+                  {service.ecoModeEnabled ? 'Włączony' : 'Wyłączony'}
+                </dd>
               </>
             ) : null}
           </dl>

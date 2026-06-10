@@ -9,14 +9,8 @@ import { EcoProgramStatus } from './eco-program-status';
 
 export const dynamic = 'force-dynamic';
 
-const REASON_LABEL: Record<string, string> = {
-  EKO_FIRST_ENABLE: 'Pierwsze włączenie trybu EKO',
-  BADGE_IMPRESSION: 'Wyświetlenia badge na stronie',
-  REFERRAL_REGISTER_REFEREE: 'Polecenie (rejestracja)',
-  REFERRAL_REGISTER_REFERRER: 'Polecenie — nowy klient',
-  REFERRAL_APPLIED_REFEREE: 'Polecenie (kod dodany)',
-  REFERRAL_APPLIED_REFERRER: 'Polecenie — kod wykorzystany',
-};
+import { EcoPointsGuide } from './eco-points-guide';
+import { ECO_LEDGER_REASON_LABEL } from '@/lib/eco-point-rules';
 
 function badgeEmbedHtml(
   badgeSrc: string,
@@ -121,6 +115,8 @@ export default async function EcoProgramPage() {
       </header>
 
       <EcoTreeProgress points={profile.ecoPoints} pointsPerTree={platform.ecoPointsPerTree} />
+
+      <EcoPointsGuide platform={platform} />
 
       <EcoProgramStatus overview={program} />
 
@@ -256,7 +252,7 @@ export default async function EcoProgramPage() {
                 className="rounded-xl border border-white/5 bg-black/20 px-4 py-3 text-sm"
               >
                 <div className="flex items-start justify-between gap-3">
-                  <span className="text-neutral-200">{REASON_LABEL[row.reason] ?? row.reason}</span>
+                  <span className="text-neutral-200">{ECO_LEDGER_REASON_LABEL[row.reason] ?? row.reason}</span>
                   <span
                     className={`shrink-0 font-mono font-semibold tabular-nums ${
                       row.delta >= 0 ? 'text-emerald-400' : 'text-rose-400'

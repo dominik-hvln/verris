@@ -1031,9 +1031,7 @@ export class DirectAdminService {
 
   async listHostingCronJobs(subscriptionId: string, userId: string) {
     try {
-      const raw = await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_CRON', {
-        action: 'list',
-      });
+      const raw = await this.daGetForSubscription(subscriptionId, userId, '/CMD_API_CRON', {});
       const rows: Array<{ id: string; schedule: string; command: string }> = [];
       for (const [k, v] of raw.entries()) {
         if (!/^command\d+$/i.test(k)) continue;

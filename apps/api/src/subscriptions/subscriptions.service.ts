@@ -37,6 +37,7 @@ import {
   subscriptionCancelledTemplate,
 } from '../mail/templates/billing-lifecycle-notifications';
 import { accountSuspendedPaymentTemplate } from '../mail/templates/hosting-notifications';
+import { EcoPointsService, ECO_POINT_DELTAS } from '../eco/eco-points.service';
 
 export type SuspendReason =
   | 'PAYMENT_FAILED'
@@ -92,6 +93,7 @@ export class SubscriptionsService {
     private readonly mailer: MailerService,
     private readonly config: ConfigService,
     private readonly promo: PromoService,
+    private readonly ecoPoints: EcoPointsService,
   ) {}
 
   async previewSubscriptionPromo(userId: string, dto: PreviewSubscriptionPromoDto) {
@@ -160,7 +162,12 @@ export class SubscriptionsService {
     userId: string,
     subscriptionId: string,
     dto: UpdateSubscriptionPreferencesDto,
-  ): Promise<Subscription & { ecoDaSync?: { adjusted: number; notice: string | null } }> {
+  ): Promise<
+    Subscription & {
+      ecoDaSync?: { adjusted: number; notice: string | null };
+      ecoPointsAwarded?: boolean;
+    }
+  > {
     const prev = await this.prisma.subscription.findFirst({
       where: { id: subscriptionId, userId },
       include: { account: { select: { id: true } } },
@@ -168,23 +175,18 @@ export class SubscriptionsService {
     if (!prev) throw new NotFoundException('Subscription not found');
 
     const ecoToggle = dto.ecoModeEnabled;
+    let ecoPointsAwarded = false;
     const updated = await this.prisma.$transaction(async (tx) => {
       const subRow = await tx.subscription.update({
         where: { id: subscriptionId },
         data: { ecoModeEnabled: ecoToggle },
       });
-      if (ecoToggle && !prev.ecoModeEnabled) {
-        await tx.user.update({
-          where: { id: userId },
-          data: { ecoPoints: { increment: 5 } },
-        });
-        await tx.ecoPointsLedgerEntry.create({
-          data: {
-            userId,
-            delta: 5,
-            reason: 'EKO_FIRST_ENABLE',
-            subscriptionId,
-          },
+      if (ecoToggle === true) {
+        ecoPointsAwarded = await this.ecoPoints.awardOnce(tx, {
+          userId,
+          delta: ECO_POINT_DELTAS.EKO_FIRST_ENABLE,
+          reason: 'EKO_FIRST_ENABLE',
+          subscriptionId,
         });
       }
       return subRow;
@@ -201,7 +203,10 @@ export class SubscriptionsService {
       }
     }
 
-    return Object.assign(updated, ecoDaSync !== undefined ? { ecoDaSync } : {});
+    return Object.assign(updated, {
+      ...(ecoDaSync !== undefined ? { ecoDaSync } : {}),
+      ecoPointsAwarded,
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -1356,6 +1361,7 @@ export class SubscriptionsService {
     metadataSubscriptionId?: string | null;
     periodStart?: Date;
     periodEnd?: Date;
+    stripeInvoiceId?: string;
   }): Promise<Subscription | null> {
     const sub = await this.findByStripeSubscriptionId(
       opts.stripeSubscriptionId,
@@ -1369,6 +1375,15 @@ export class SubscriptionsService {
     }
 
     if (sub.status === SubscriptionStatus.ACTIVE) {
+      if (opts.stripeInvoiceId) {
+        void this.ecoPoints.safeAward(`subscription_renewal:${opts.stripeInvoiceId}`, async () => {
+          await this.ecoPoints.awardSubscriptionRenewal(this.prisma, {
+            userId: sub.userId,
+            subscriptionId: sub.id,
+            referenceId: opts.stripeInvoiceId!,
+          });
+        });
+      }
       // Already activated — just extend the period if Stripe gave us a new one.
       if (opts.periodEnd && (!sub.currentPeriodEnd || opts.periodEnd > sub.currentPeriodEnd)) {
         await this.prisma.subscription.update({
@@ -1423,6 +1438,12 @@ export class SubscriptionsService {
 
     if (sub.status === SubscriptionStatus.PENDING_PAYMENT) {
       // First-time activation — provision DA.
+      if (sub.paymentSource === SubscriptionPaymentSource.STRIPE_CARD) {
+        void this.ecoPoints.safeAward(`stripe_card:${sub.id}`, async () => {
+          await this.ecoPoints.awardStripeCardLinked(this.prisma, sub.userId, sub.id);
+        });
+      }
+
       const intent = await this.prisma.subscriptionEvent.findFirst({
         where: { subscriptionId: sub.id, type: 'PROVISIONING_INTENT' },
         orderBy: { createdAt: 'desc' },

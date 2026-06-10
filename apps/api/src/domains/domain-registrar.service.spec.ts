@@ -17,6 +17,7 @@ describe('DomainRegistrarService', () => {
       fetchedAt: new Date().toISOString(),
     }),
   };
+  const ecoPoints = { safeAward: jest.fn(), awardDomainFirstPaid: jest.fn(), awardDomainRenewal: jest.fn() };
 
   beforeEach(() => jest.clearAllMocks());
 
@@ -34,6 +35,7 @@ describe('DomainRegistrarService', () => {
       wallet as never,
       config as never,
       nbpFx as never,
+      ecoPoints as never,
     );
 
     await expect(service.availability('example.pl')).rejects.toBeInstanceOf(ServiceUnavailableException);
@@ -51,6 +53,7 @@ describe('DomainRegistrarService', () => {
       wallet as never,
       config as never,
       nbpFx as never,
+      ecoPoints as never,
     );
 
     await expect(service.register('user_1', 'user_1', { name: 'Example.pl' })).rejects.toThrow(

@@ -28,6 +28,7 @@ import {
 } from '../mail/templates/auth-notifications';
 import { passwordChangedTemplate } from '../mail/templates/security-notifications';
 import { generateAuthToken, hashAuthToken } from './auth-token.util';
+import { EcoPointsService } from '../eco/eco-points.service';
 
 const PASSWORD_RESET_TTL_MINUTES = 15;
 const EMAIL_VERIFICATION_TTL_HOURS = 24;
@@ -75,6 +76,7 @@ export class AuthService {
     private readonly loginEvents: LoginEventService,
     private readonly mailer: MailerService,
     private readonly config: ConfigService,
+    private readonly ecoPoints: EcoPointsService,
   ) {}
 
   async register(dto: RegisterDto, ctx: RequestContext = {}): Promise<RegisterSuccess> {
@@ -288,6 +290,10 @@ export class AuthService {
     void this.mailer
       .send({ ...verifiedMsg, userId: row.user.id, category: 'TRANSACTIONAL' })
       .catch(() => undefined);
+
+    void this.ecoPoints.safeAward(`email_verified:${row.userId}`, async () => {
+      await this.ecoPoints.awardEmailVerified(this.prisma, row.userId);
+    });
 
     return { ok: true };
   }

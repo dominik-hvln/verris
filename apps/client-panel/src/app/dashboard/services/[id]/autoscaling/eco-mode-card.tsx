@@ -1,8 +1,10 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState, useTransition } from 'react';
 import { Leaf, Loader2, Sparkles } from 'lucide-react';
 import { patchSubscriptionEcoMode } from '../eco-mode-actions';
+import { ECO_FIRST_ENABLE_POINTS } from '@/lib/eco-point-rules';
 
 interface Props {
   subscriptionId: string;
@@ -37,15 +39,11 @@ export function EcoModeCard({ subscriptionId, ecoModeEnabled: initial, ecoPoints
         setError(res.error);
         return;
       }
-      if (next && !prev) {
-        setPoints((p) => p + 5);
+      if (res.ecoPointsAwarded) {
+        setPoints((p) => p + ECO_FIRST_ENABLE_POINTS);
       }
-      if (res.ok && res.ecoDaNotice) {
-        setError(null);
-        // Pozytywny komunikat DA (nie jest błędem — pokazujemy pod kartą).
+      if (res.ecoDaNotice) {
         setDaInfo(res.ecoDaNotice);
-      } else {
-        setDaInfo(null);
       }
     });
   };
@@ -59,11 +57,14 @@ export function EcoModeCard({ subscriptionId, ecoModeEnabled: initial, ecoPoints
             Tryb EKO
           </h2>
           <p className="mt-1 text-xs text-neutral-400">{label}</p>
-          <div className="mt-3 flex items-center gap-2 text-xs text-neutral-300">
-            <Sparkles className="h-3.5 w-3.5 text-emerald-400/80" />
-            <span>
-              Twoje punkty EKO (konto): <span className="font-semibold text-white">{points}</span>
+          <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-neutral-300">
+            <span className="inline-flex items-center gap-2">
+              <Sparkles className="h-3.5 w-3.5 text-emerald-400/80" />
+              Twoje punkty EKO: <span className="font-semibold text-white">{points}</span>
             </span>
+            <Link href="/dashboard/eco" className="text-emerald-400/90 hover:text-emerald-300 underline-offset-2 hover:underline">
+              Jak zdobywać punkty →
+            </Link>
           </div>
         </div>
       </div>
@@ -79,8 +80,8 @@ export function EcoModeCard({ subscriptionId, ecoModeEnabled: initial, ecoPoints
         <div className="flex-1">
           <div className="text-sm font-semibold text-white">Oszczędzaj energię i nagradzaj EKO</div>
           <p className="mt-1 text-xs text-neutral-500">
-            Pierwsze włączenie tej usługi dodaje +5 pkt EKO na Twoim koncie (można wykorzystać w przyszłych
-            funkcjach programu lojalnościowego).
+            Pierwsze włączenie na tej usłudze daje +5 pkt EKO (raz na usługę). Tryb zmniejsza częstotliwość
+            kopii zapasowych — mniejsze obciążenie serwera.
           </p>
         </div>
         {pending ? <Loader2 className="h-5 w-5 animate-spin text-emerald-400 shrink-0" /> : null}

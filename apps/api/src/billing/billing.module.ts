@@ -15,9 +15,10 @@ import { WalletAutoTopupService } from './wallet-auto-topup.service';
 import { WalletAutoTopupScheduler } from './wallet-auto-topup.scheduler';
 import { WalletLowBalanceScheduler } from './wallet-low-balance.scheduler';
 import { MailModule } from '../mail/mail.module';
+import { EcoModule } from '../eco/eco.module';
 
 @Module({
-  imports: [forwardRef(() => SubscriptionsModule), MailModule],
+  imports: [forwardRef(() => SubscriptionsModule), MailModule, EcoModule],
   controllers: [
     BillingController,
     BillingAdminController,

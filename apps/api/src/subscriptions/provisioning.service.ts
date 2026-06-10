@@ -16,6 +16,7 @@ import {
   User,
 } from '@verris/database';
 import { ConfigService } from '@nestjs/config';
+import { EcoPointsService, ECO_POINT_DELTAS } from '../eco/eco-points.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto/crypto.service';
 import { AuditService } from '../common/audit/audit.service';
@@ -79,6 +80,7 @@ export class ProvisioningService {
     private readonly servers: ServersService,
     private readonly mailer: MailerService,
     private readonly config: ConfigService,
+    private readonly ecoPoints: EcoPointsService,
   ) {}
 
   /**
@@ -308,6 +310,14 @@ export class ProvisioningService {
       },
     });
 
+    void this.ecoPoints.safeAward(`subscription_first_paid:${subscription.id}`, async () => {
+      await this.ecoPoints.awardSubscriptionFirstPaid(
+        this.prisma,
+        subscription.userId,
+        subscription.id,
+      );
+    });
+
     if (subscription.ecoModeEnabled) {
       try {
         const ecoSync = await this.da.applyEcoModeBackupCronPolicy(
@@ -324,6 +334,13 @@ export class ProvisioningService {
         const msg = err instanceof Error ? err.message : String(err);
         this.logger.warn(`Provisioning EKO DA sync failed sub=${subscription.id}: ${msg}`);
       }
+
+      await this.ecoPoints.awardOnce(this.prisma, {
+        userId: subscription.userId,
+        delta: ECO_POINT_DELTAS.EKO_FIRST_ENABLE,
+        reason: 'EKO_FIRST_ENABLE',
+        subscriptionId: subscription.id,
+      });
     }
 
     // A1 — best-effort auto-SSL (Let's Encrypt) right after provisioning. DNS

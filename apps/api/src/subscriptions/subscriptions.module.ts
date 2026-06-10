@@ -25,9 +25,10 @@ import { HostingRestoreScheduler } from './hosting-restore.scheduler';
 import { PublicUptimeBadgeController } from './public-uptime-badge.controller';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { WordpressService } from './wordpress.service';
+import { EcoModule } from '../eco/eco.module';
 
 @Module({
-  imports: [ServersModule, PlatformSettingsModule, forwardRef(() => BillingModule), MailModule],
+  imports: [ServersModule, PlatformSettingsModule, EcoModule, forwardRef(() => BillingModule), MailModule],
   providers: [
     SubscriptionsService,
     PlanChangeService,

@@ -12,6 +12,7 @@ import { AuditModule } from '../common/audit/audit.module';
 import { MailModule } from '../mail/mail.module';
 import { LoginEventService } from './login-event.service';
 import { WebAuthnService } from './webauthn/webauthn.service';
+import { EcoModule } from '../eco/eco.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { WebAuthnService } from './webauthn/webauthn.service';
     ComplianceModule,
     AuditModule,
     MailModule,
+    EcoModule,
   ],
   controllers: [AuthController],
   providers: [

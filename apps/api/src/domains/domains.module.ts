@@ -8,9 +8,10 @@ import { DomainRegistrarService } from './domain-registrar.service';
 import { NbpFxService } from './nbp-fx.service';
 import { RegistrarProviderFactory } from './registrar.provider';
 import { BillingModule } from '../billing/billing.module';
+import { EcoModule } from '../eco/eco.module';
 
 @Module({
-  imports: [PrismaModule, ConfigModule, CryptoModule, BillingModule],
+  imports: [PrismaModule, ConfigModule, CryptoModule, BillingModule, EcoModule],
   controllers: [DomainsController],
   providers: [DomainsService, DomainRegistrarService, RegistrarProviderFactory, NbpFxService],
 })

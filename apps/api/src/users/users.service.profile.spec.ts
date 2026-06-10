@@ -14,6 +14,7 @@ describe('UsersService.getProfile (IAM)', () => {
     { get: jest.fn() } as never,
     {} as never,
     {} as never,
+    { safeAward: jest.fn(), awardBillingProfileComplete: jest.fn() } as never,
   );
 
   beforeEach(() => {

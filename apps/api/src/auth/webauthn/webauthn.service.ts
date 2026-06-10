@@ -19,6 +19,7 @@ import type {
 } from '@simplewebauthn/server';
 import { isoBase64URL } from '@simplewebauthn/server/helpers';
 import { PrismaService } from '../../prisma/prisma.service';
+import { EcoPointsService } from '../../eco/eco-points.service';
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 
@@ -27,6 +28,7 @@ export class WebAuthnService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly ecoPoints: EcoPointsService,
   ) {}
 
   isConfigured(): boolean {
@@ -87,6 +89,8 @@ export class WebAuthnService {
     const { registrationInfo } = verification;
     const credentialId = registrationInfo.credential.id;
 
+    const existingCount = await this.prisma.webAuthnCredential.count({ where: { userId } });
+
     await this.prisma.$transaction([
       this.prisma.webAuthnCredential.create({
         data: {
@@ -105,6 +109,12 @@ export class WebAuthnService {
         data: { webauthnChallenge: null, webauthnChallengeExpires: null },
       }),
     ]);
+
+    if (existingCount === 0) {
+      void this.ecoPoints.safeAward(`passkey:${credentialId}`, async () => {
+        await this.ecoPoints.awardPasskeyRegistered(this.prisma, userId, credentialId);
+      });
+    }
 
     return { ok: true as const };
   }

@@ -31,6 +31,7 @@ import {
   RegistrarOrderResult,
   RegistrarProviderFactory,
 } from './registrar.provider';
+import { EcoPointsService } from '../eco/eco-points.service';
 
 @Injectable()
 export class DomainRegistrarService {
@@ -44,6 +45,7 @@ export class DomainRegistrarService {
     private readonly wallet: WalletLedgerService,
     private readonly config: ConfigService,
     private readonly nbpFx: NbpFxService,
+    private readonly ecoPoints: EcoPointsService,
   ) {}
 
   async quote(name: string, years = 1) {
@@ -283,6 +285,17 @@ export class DomainRegistrarService {
         walletTxId: tx.id,
       },
     });
+
+    const domainRow = await this.prisma.domain.findUnique({
+      where: { name: domain },
+      select: { id: true },
+    });
+    if (domainRow) {
+      void this.ecoPoints.safeAward(`domain_first:${domainRow.id}`, async () => {
+        await this.ecoPoints.awardDomainFirstPaid(this.prisma, userId, domainRow.id);
+      });
+    }
+
     return completed;
   }
 
@@ -438,6 +451,15 @@ export class DomainRegistrarService {
         walletTxId: tx.id,
       },
     });
+
+    void this.ecoPoints.safeAward(`domain_renewal:${completed.id}`, async () => {
+      await this.ecoPoints.awardDomainRenewal(this.prisma, {
+        userId,
+        domainId,
+        referenceId: completed.id,
+      });
+    });
+
     return completed;
   }
 

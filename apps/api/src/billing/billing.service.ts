@@ -31,6 +31,7 @@ import {
 } from '../mail/templates/billing-lifecycle-notifications';
 import { rowsToCsv } from './csv.util';
 import { PromoService } from './promo.service';
+import { EcoPointsService } from '../eco/eco-points.service';
 
 export interface TransactionsCsvFilters {
   userId?: string;
@@ -54,6 +55,7 @@ export class BillingService {
     private readonly subscriptions: SubscriptionsService,
     private readonly mailer: MailerService,
     private readonly promo: PromoService,
+    private readonly ecoPoints: EcoPointsService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -583,6 +585,17 @@ export class BillingService {
         `handleCheckoutCompleted: topup mail failed user=${userId}: ${err instanceof Error ? err.message : String(err)}`,
       );
     });
+
+    void this.ecoPoints.safeAward(`wallet_topup:${tx.id}`, async () => {
+      const pts = await this.ecoPoints.awardWalletTopup(this.prisma, {
+        userId,
+        amountMajor,
+        walletTxId: tx.id,
+      });
+      if (pts > 0) {
+        this.logger.log(`EKO +${pts} WALLET_TOPUP user=${userId} tx=${tx.id}`);
+      }
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -700,6 +713,7 @@ export class BillingService {
           periodStart: invoice.status_transitions?.paid_at
             ? new Date(invoice.status_transitions.paid_at * 1000)
             : undefined,
+          stripeInvoiceId: invoice.id,
         });
       }
       if (created || invoice.status === 'paid') {
@@ -858,6 +872,19 @@ export class BillingService {
         `handlePaymentIntentSucceeded: autotopup mail failed user=${userId}: ${err instanceof Error ? err.message : String(err)}`,
       );
     });
+
+    if (!alreadyCredited) {
+      void this.ecoPoints.safeAward(`wallet_autotopup:${tx.id}`, async () => {
+        const pts = await this.ecoPoints.awardWalletTopup(this.prisma, {
+          userId,
+          amountMajor: amtMajor,
+          walletTxId: tx.id,
+        });
+        if (pts > 0) {
+          this.logger.log(`EKO +${pts} WALLET_TOPUP (auto) user=${userId} tx=${tx.id}`);
+        }
+      });
+    }
   }
 
   private async handlePaymentIntentFailed(event: {

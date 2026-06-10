@@ -6,6 +6,7 @@ import { AuditService } from '../common/audit/audit.service';
 import { WalletLedgerService } from '../billing/wallet-ledger.service';
 import { PromoService } from '../billing/promo.service';
 import { SubscriptionsService } from './subscriptions.service';
+import { EcoPointsService } from '../eco/eco-points.service';
 
 const HOURS = 60 * 60 * 1000;
 const DAYS = 24 * HOURS;
@@ -39,6 +40,7 @@ export class RenewalScheduler {
     private readonly subs: SubscriptionsService,
     private readonly audit: AuditService,
     private readonly promo: PromoService,
+    private readonly ecoPoints: EcoPointsService,
   ) {}
 
   @Cron(CronExpression.EVERY_HOUR, { name: 'subscriptions:renewal-cycle' })
@@ -153,6 +155,13 @@ export class RenewalScheduler {
       );
       // Treat as already-paid; just extend period if not extended yet.
       await this.extendPeriod(sub.id, periodEnd, sub.interval);
+      void this.ecoPoints.safeAward(`wallet_renewal:${idempotencyKey}`, async () => {
+        await this.ecoPoints.awardSubscriptionRenewal(this.prisma, {
+          userId: sub.userId,
+          subscriptionId: sub.id,
+          referenceId: idempotencyKey,
+        });
+      });
       return;
     }
 
@@ -180,6 +189,14 @@ export class RenewalScheduler {
     }
 
     await this.extendPeriod(sub.id, periodEnd, sub.interval);
+
+    void this.ecoPoints.safeAward(`wallet_renewal:${idempotencyKey}`, async () => {
+      await this.ecoPoints.awardSubscriptionRenewal(this.prisma, {
+        userId: sub.userId,
+        subscriptionId: sub.id,
+        referenceId: idempotencyKey,
+      });
+    });
   }
 
   private async extendPeriod(

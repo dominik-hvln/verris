@@ -14,6 +14,7 @@ import { DiagnosticsModule } from '../diagnostics/diagnostics.module';
 import { BillingModule } from '../billing/billing.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { EcoBadgeService } from './eco-badge.service';
+import { EcoModule } from '../eco/eco.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { EcoBadgeService } from './eco-badge.service';
     DiagnosticsModule,
     BillingModule,
     PlatformSettingsModule,
+    EcoModule,
   ],
   controllers: [UsersController, UsersAdminController, CustomerIamController, EcoPublicController],
   providers: [UsersService, UsersAdminService, CustomerIamService, EcoBadgeService],

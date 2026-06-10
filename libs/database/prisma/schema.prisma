@@ -282,9 +282,12 @@ model EcoPointsLedgerEntry {
   delta            Int
   reason           String   @db.VarChar(64)
   subscriptionId   String?
+  /// Idempotencja: walletTxId, stripeInvoiceId, orderId itd.
+  referenceId      String?  @db.VarChar(128)
   createdAt        DateTime @default(now())
 
   @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, reason, referenceId])
 }
 
 /// Dedup wyświetleń badge EKO (max 1 zliczenie na IP użytkownika na godzinę).
