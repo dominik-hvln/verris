@@ -1,5 +1,25 @@
 import { ArrayMaxSize, IsArray, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 
+export class DomainSearchDto {
+  @IsString()
+  @MaxLength(63)
+  label!: string;
+}
+
+export class DomainQuotePeriodsDto {
+  @IsString()
+  @MaxLength(253)
+  name!: string;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(10)
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  @Max(10, { each: true })
+  years?: number[];
+}
+
 export class DomainAvailabilityDto {
   @IsString()
   @MaxLength(253)

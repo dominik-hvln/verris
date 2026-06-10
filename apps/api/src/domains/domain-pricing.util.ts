@@ -5,6 +5,17 @@ export interface DomainPricingConfig {
   usdPln: number;
   eurPln: number;
   walletCurrency: string;
+  /** Stawka VAT w % (ceny rejestratora są netto — doliczamy VAT do ceny brutto). */
+  vatRate: number;
+}
+
+export interface CustomerDomainPrice {
+  /** Kwota brutto pobierana z portfela klienta. */
+  grossAmount: string;
+  netAmount: string;
+  vatAmount: string;
+  currency: string;
+  vatRate: number;
 }
 
 function parsePositiveFloat(value: string | undefined, fallback: number): number {
@@ -13,11 +24,14 @@ function parsePositiveFloat(value: string | undefined, fallback: number): number
 }
 
 export function parseDomainPricingConfig(get: (key: string) => string | undefined): DomainPricingConfig {
+  const vatRaw = Number.parseFloat(get('DOMAIN_VAT_RATE') ?? '');
+  const vatRate = Number.isFinite(vatRaw) && vatRaw >= 0 ? vatRaw : 23;
   return {
     markup: parsePositiveFloat(get('DOMAIN_PRICE_MARKUP'), 1),
     usdPln: parsePositiveFloat(get('DOMAIN_FX_USD_PLN'), 3.65),
     eurPln: parsePositiveFloat(get('DOMAIN_FX_EUR_PLN'), 4.32),
     walletCurrency: (get('DOMAIN_WALLET_CURRENCY') ?? 'PLN').trim().toUpperCase() || 'PLN',
+    vatRate,
   };
 }
 
@@ -68,17 +82,30 @@ export function roundToNearest99(amount: Prisma.Decimal | string | number): Pris
   return best.toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
 }
 
-/** Reseller quote (any supported currency) → customer price in wallet currency (with markup + .99). */
+/** Reseller netto → cena klienta brutto (marża na netto + VAT + zaokrąglenie do .99). */
 export function toCustomerDomainPrice(
   amount: string | number,
   sourceCurrency: string,
   cfg: DomainPricingConfig,
-): { amount: string; currency: string } {
+): CustomerDomainPrice {
   const wholesale = wholesaleToWalletCurrency(amount, sourceCurrency, cfg).toDecimalPlaces(
     2,
     Prisma.Decimal.ROUND_HALF_UP,
   );
-  const withMarkup = wholesale.mul(cfg.markup);
-  const customer = roundToNearest99(withMarkup);
-  return { amount: customer.toFixed(2), currency: cfg.walletCurrency };
+  const netWithMarkup = wholesale.mul(cfg.markup);
+  const vatFactor = new Prisma.Decimal(100).plus(cfg.vatRate).div(100);
+  const grossBeforeRound = netWithMarkup.mul(vatFactor);
+  const grossRounded = roundToNearest99(grossBeforeRound);
+
+  const grossFactor = new Prisma.Decimal(100).plus(cfg.vatRate);
+  const netFromGross = grossRounded.mul(100).div(grossFactor).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+  const vatFromGross = grossRounded.minus(netFromGross).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+
+  return {
+    grossAmount: grossRounded.toFixed(2),
+    netAmount: netFromGross.toFixed(2),
+    vatAmount: vatFromGross.toFixed(2),
+    currency: cfg.walletCurrency,
+    vatRate: cfg.vatRate,
+  };
 }

@@ -1,5 +1,6 @@
 export * from './panel-preferences';
 export * from './domain.dto';
+export * from './registrar.dto';
 export * from './server.dto';
 export * from './node-audit.dto';
 export * from './node-stack-readiness.dto';

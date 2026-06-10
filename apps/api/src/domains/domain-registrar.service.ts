@@ -14,6 +14,13 @@ import { AuditService } from '../common/audit/audit.service';
 import { CryptoService } from '../common/crypto/crypto.service';
 import { WalletLedgerService } from '../billing/wallet-ledger.service';
 import {
+  REGISTRAR_TLD_CATALOG,
+  type DomainCustomerPriceDto,
+  type DomainPeriodQuotesDto,
+  type DomainSearchResultDto,
+} from '@verris/contracts';
+import type { CustomerDomainPrice } from './domain-pricing.util';
+import {
   parseDomainPricingConfig,
   toCustomerDomainPrice,
   type DomainPricingConfig,
@@ -78,9 +85,108 @@ export class DomainRegistrarService {
         availability.priceAmount,
         availability.currency ?? 'USD',
       );
-      return { ...availability, priceAmount: customer.amount, currency: customer.currency };
+      return {
+        ...availability,
+        priceAmount: customer.grossAmount,
+        currency: customer.currency,
+      };
     }
     return availability;
+  }
+
+  /** Jedno żądanie batch do rejestratora — wszystkie TLD z katalogu. */
+  async search(label: string): Promise<DomainSearchResultDto[]> {
+    const clean = sanitizeDomainLabel(label);
+    if (!clean) {
+      throw new BadRequestException('Podaj poprawną nazwę domeny (litery, cyfry, myślnik).');
+    }
+
+    const provider = this.providerFactory.get();
+    const extensions = REGISTRAR_TLD_CATALOG.map((t) => t.extension);
+    const batch = await provider.batchAvailability(clean, extensions);
+
+    const renewalWholesale = new Map<string, { amount: string; currency: string } | null>();
+    await Promise.all(
+      batch
+        .filter((row) => row.available)
+        .map(async (row) => {
+          try {
+            const p = await provider.price({ domain: row.domain, years: 1, operation: 'renew' });
+            renewalWholesale.set(row.domain, { amount: p.amount, currency: p.currency });
+          } catch (err) {
+            this.logger.warn(
+              `Brak ceny odnowienia dla ${row.domain}: ${(err as Error).message}`,
+            );
+            renewalWholesale.set(row.domain, null);
+          }
+        }),
+    );
+
+    const rows = await Promise.all(
+      batch.map(async (row, i) => {
+        const catalog = REGISTRAR_TLD_CATALOG[i];
+        const emptyRegister = await this.emptyCustomerPriceDto();
+        let register = emptyRegister;
+        let renewal: DomainCustomerPriceDto | null = null;
+
+        if (row.available && row.priceAmount) {
+          register = this.toPriceDto(
+            await this.toCustomerPrice(row.priceAmount, row.currency ?? 'USD'),
+          );
+          const renewRaw = renewalWholesale.get(row.domain);
+          if (renewRaw) {
+            renewal = this.toPriceDto(
+              await this.toCustomerPrice(renewRaw.amount, renewRaw.currency),
+            );
+          }
+        }
+
+        return {
+          domain: row.domain,
+          extension: catalog.extension,
+          label: catalog.label,
+          popular: catalog.popular,
+          available: row.available,
+          premium: Boolean(row.premium),
+          register,
+          renewal,
+          priceAmount: register.grossAmount,
+          currency: register.currency,
+        } satisfies DomainSearchResultDto;
+      }),
+    );
+
+    return rows.sort((a, b) => {
+      if (a.popular !== b.popular) return a.popular ? -1 : 1;
+      if (a.available !== b.available) return a.available ? -1 : 1;
+      return a.label.localeCompare(b.label);
+    });
+  }
+
+  /** Ceny wielu okresów bez ponownego sprawdzania dostępności. */
+  async quotePeriods(name: string, yearsList: number[] = [1, 2, 3, 5, 10]): Promise<DomainPeriodQuotesDto> {
+    const domain = normalizeDomain(name);
+    const provider = this.providerFactory.get();
+    const uniqueYears = [...new Set(yearsList)].filter((y) => y >= 1 && y <= 10).sort((a, b) => a - b);
+
+    const [quotes, renewalPerYear] = await Promise.all([
+      Promise.all(
+        uniqueYears.map(async (years) => {
+          const price = await this.resolvePrice(provider, domain, years, 'register');
+          return {
+            years,
+            priceAmount: price.amount,
+            netAmount: price.netAmount,
+            vatAmount: price.vatAmount,
+            currency: price.currency,
+            vatRate: price.vatRate,
+          };
+        }),
+      ),
+      this.resolveRenewalPerYear(provider, domain),
+    ]);
+
+    return { domain, quotes, renewalPerYear };
   }
 
   async register(
@@ -339,27 +445,79 @@ export class DomainRegistrarService {
   // Billing helpers
   // ---------------------------------------------------------------------------
 
-  /** Resolves customer price: FX → PLN wholesale → markup. */
+  /** Resolves customer gross price: FX → net wholesale → markup → VAT. */
   private async resolvePrice(
     provider: ReturnType<RegistrarProviderFactory['get']>,
     domain: string,
     years: number,
     operation: RegistrarOperation,
     fallback?: { amount?: string | null; currency?: string | null },
-  ): Promise<{ amount: string; currency: string }> {
+  ): Promise<{
+    amount: string;
+    currency: string;
+    netAmount: string;
+    vatAmount: string;
+    vatRate: number;
+  }> {
     try {
       const p = await provider.price({ domain, years, operation });
-      return await this.toCustomerPrice(p.amount, p.currency);
+      return this.toResolvedPrice(await this.toCustomerPrice(p.amount, p.currency));
     } catch (err) {
       if (fallback?.amount) {
         const wholesaleTotal = new Prisma.Decimal(fallback.amount).mul(years);
-        return await this.toCustomerPrice(wholesaleTotal.toString(), fallback.currency ?? 'USD');
+        return this.toResolvedPrice(
+          await this.toCustomerPrice(wholesaleTotal.toString(), fallback.currency ?? 'USD'),
+        );
       }
       this.logger.error(
         `Brak ceny rejestratora dla ${domain}/${operation}: ${(err as Error).message}`,
       );
       throw new BadRequestException('Nie udało się ustalić ceny domeny u rejestratora.');
     }
+  }
+
+  private async resolveRenewalPerYear(
+    provider: ReturnType<RegistrarProviderFactory['get']>,
+    domain: string,
+  ): Promise<DomainCustomerPriceDto | null> {
+    try {
+      const p = await provider.price({ domain, years: 1, operation: 'renew' });
+      return this.toPriceDto(await this.toCustomerPrice(p.amount, p.currency));
+    } catch (err) {
+      this.logger.warn(`Brak ceny odnowienia dla ${domain}: ${(err as Error).message}`);
+      return null;
+    }
+  }
+
+  private toResolvedPrice(customer: CustomerDomainPrice) {
+    return {
+      amount: customer.grossAmount,
+      currency: customer.currency,
+      netAmount: customer.netAmount,
+      vatAmount: customer.vatAmount,
+      vatRate: customer.vatRate,
+    };
+  }
+
+  private toPriceDto(customer: CustomerDomainPrice): DomainCustomerPriceDto {
+    return {
+      grossAmount: customer.grossAmount,
+      netAmount: customer.netAmount,
+      vatAmount: customer.vatAmount,
+      currency: customer.currency,
+      vatRate: customer.vatRate,
+    };
+  }
+
+  private async emptyCustomerPriceDto(): Promise<DomainCustomerPriceDto> {
+    const cfg = await this.pricingConfig();
+    return {
+      grossAmount: null,
+      netAmount: null,
+      vatAmount: null,
+      currency: cfg.walletCurrency,
+      vatRate: cfg.vatRate,
+    };
   }
 
   private async pricingConfig(): Promise<DomainPricingConfig> {
@@ -372,7 +530,10 @@ export class DomainRegistrarService {
     };
   }
 
-  private async toCustomerPrice(rawAmount: string | number, sourceCurrency?: string | null) {
+  private async toCustomerPrice(
+    rawAmount: string | number,
+    sourceCurrency?: string | null,
+  ): Promise<CustomerDomainPrice> {
     try {
       const cfg = await this.pricingConfig();
       return toCustomerDomainPrice(rawAmount, sourceCurrency ?? 'USD', cfg);
@@ -454,6 +615,17 @@ export class DomainRegistrarService {
 
 function normalizeDomain(value: string): string {
   return value.trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+}
+
+function sanitizeDomainLabel(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, '')
+    .replace(/\/.*$/, '')
+    .split('.')[0]
+    .replace(/[^a-z0-9-]/g, '')
+    .replace(/^-+|-+$/g, '');
 }
 
 function sanitizeNameservers(value?: string[]): string[] {

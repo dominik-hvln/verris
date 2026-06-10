@@ -26,6 +26,8 @@ export interface RegistrarOrderResult {
 export interface RegistrarProvider {
   readonly id: string;
   availability(domain: string): Promise<RegistrarAvailability>;
+  /** Jedno żądanie do rejestratora — wiele TLD dla tej samej etykiety. */
+  batchAvailability(name: string, extensions: string[]): Promise<RegistrarAvailability[]>;
   /** Wholesale/reseller price for an operation; used to bill the customer wallet. */
   price(input: { domain: string; years: number; operation: RegistrarOperation }): Promise<RegistrarPrice>;
   register(input: { domain: string; years: number; nameservers: string[] }): Promise<RegistrarOrderResult>;
@@ -73,6 +75,14 @@ class HttpRegistrarProvider implements RegistrarProvider {
 
   availability(domain: string): Promise<RegistrarAvailability> {
     return this.request(`/availability?domain=${encodeURIComponent(domain)}`, { method: 'GET' });
+  }
+
+  async batchAvailability(name: string, extensions: string[]): Promise<RegistrarAvailability[]> {
+    const results: RegistrarAvailability[] = [];
+    for (const extension of extensions) {
+      results.push(await this.availability(`${name}.${extension}`));
+    }
+    return results;
   }
 
   async price(input: { domain: string; years: number; operation: RegistrarOperation }): Promise<RegistrarPrice> {
@@ -137,20 +147,36 @@ class OpenProviderRegistrarProvider implements RegistrarProvider {
   ) {}
 
   async availability(domain: string): Promise<RegistrarAvailability> {
-    const { name, extension } = splitDomain(domain);
+    const [row] = await this.batchAvailabilityByFqdn([domain]);
+    return row ?? { domain, available: false, priceAmount: null, currency: 'EUR' };
+  }
+
+  async batchAvailability(name: string, extensions: string[]): Promise<RegistrarAvailability[]> {
+    const fqdns = extensions.map((extension) => `${name}.${extension}`);
+    return this.batchAvailabilityByFqdn(fqdns);
+  }
+
+  private async batchAvailabilityByFqdn(fqdns: string[]): Promise<RegistrarAvailability[]> {
+    const domains = fqdns.map((fqdn) => {
+      const { name, extension } = splitDomain(fqdn);
+      return { name, extension };
+    });
     const res = await this.request<{ data: { results: OpReachableResult[] } }>(
       '/v1beta/domains/check',
-      { domains: [{ name, extension }], with_price: true },
+      { domains, with_price: true },
     );
-    const result = res.data?.results?.[0];
-    const price = result?.price?.reseller ?? result?.price?.product;
-    return {
-      domain,
-      available: result?.status === 'free',
-      premium: Boolean(result?.is_premium),
-      priceAmount: price ? String(price.price) : null,
-      currency: price?.currency ?? 'EUR',
-    };
+    const results = res.data?.results ?? [];
+    return fqdns.map((fqdn, i) => {
+      const result = results[i];
+      const price = result?.price?.reseller ?? result?.price?.product;
+      return {
+        domain: fqdn,
+        available: result?.status === 'free',
+        premium: Boolean(result?.is_premium),
+        priceAmount: price ? String(price.price) : null,
+        currency: price?.currency ?? 'USD',
+      };
+    });
   }
 
   async price(input: {

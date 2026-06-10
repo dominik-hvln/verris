@@ -1,6 +1,10 @@
 'use server';
 
-import { DomainDto } from "@verris/contracts";
+import {
+  DomainDto,
+  type DomainPeriodQuotesDto,
+  type DomainSearchResultDto,
+} from "@verris/contracts";
 import { revalidatePath } from "next/cache";
 import { apiFetch } from "@/lib/api";
 
@@ -89,6 +93,20 @@ export async function quoteDomainAction(name: string, years: number) {
     priceAmount: string | null;
     currency: string;
   }>('/domains/registrar/quote', {
+    method: 'POST',
+    body: JSON.stringify({ name, years }),
+  });
+}
+
+export async function searchDomainsAction(label: string) {
+  return apiFetch<DomainSearchResultDto[]>('/domains/registrar/search', {
+    method: 'POST',
+    body: JSON.stringify({ label }),
+  });
+}
+
+export async function quotePeriodsAction(name: string, years: number[] = [1, 2, 3, 5, 10]) {
+  return apiFetch<DomainPeriodQuotesDto>('/domains/registrar/quote-periods', {
     method: 'POST',
     body: JSON.stringify({ name, years }),
   });

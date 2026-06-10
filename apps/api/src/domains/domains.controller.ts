@@ -6,9 +6,12 @@ import { CreateDomainDto } from './dto/create-domain.dto';
 import { DomainRegistrarService } from './domain-registrar.service';
 import { NbpFxService } from './nbp-fx.service';
 import { parseDomainPricingConfig } from './domain-pricing.util';
+import { REGISTRAR_TLD_CATALOG } from '@verris/contracts';
 import {
   DomainAvailabilityDto,
   DomainQuoteDto,
+  DomainQuotePeriodsDto,
+  DomainSearchDto,
   RegisterDomainDto,
   TransferDomainDto,
 } from './dto/registrar.dto';
@@ -41,6 +44,21 @@ export class DomainsController {
   @Post('registrar/quote')
   async quote(@Body() dto: DomainQuoteDto) {
     return this.registrar.quote(dto.name, dto.years ?? 1);
+  }
+
+  @Get('registrar/tlds')
+  registrarTlds() {
+    return REGISTRAR_TLD_CATALOG;
+  }
+
+  @Post('registrar/search')
+  async search(@Body() dto: DomainSearchDto) {
+    return this.registrar.search(dto.label);
+  }
+
+  @Post('registrar/quote-periods')
+  async quotePeriods(@Body() dto: DomainQuotePeriodsDto) {
+    return this.registrar.quotePeriods(dto.name, dto.years);
   }
 
   @Get('registrar/status')
