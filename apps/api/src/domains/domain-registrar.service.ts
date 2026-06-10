@@ -14,6 +14,10 @@ import { AuditService } from '../common/audit/audit.service';
 import { CryptoService } from '../common/crypto/crypto.service';
 import { WalletLedgerService } from '../billing/wallet-ledger.service';
 import {
+  parseDomainPricingConfig,
+  toCustomerDomainPrice,
+} from './domain-pricing.util';
+import {
   RegistrarOperation,
   RegistrarOrderResult,
   RegistrarProviderFactory,
@@ -37,8 +41,11 @@ export class DomainRegistrarService {
     const availability = await provider.availability(normalizeDomain(name));
     // Surface the *customer* price (reseller cost × markup), not the raw cost.
     if (availability.priceAmount) {
-      const customer = this.applyMarkup(availability.priceAmount);
-      return { ...availability, priceAmount: customer.amount, currency: availability.currency };
+      const customer = this.toCustomerPrice(
+        availability.priceAmount,
+        availability.currency ?? 'USD',
+      );
+      return { ...availability, priceAmount: customer.amount, currency: customer.currency };
     }
     return availability;
   }
@@ -57,7 +64,10 @@ export class DomainRegistrarService {
     const years = input.years ?? 1;
     const nameservers = sanitizeNameservers(input.nameservers);
 
-    const price = await this.resolvePrice(provider, domain, years, 'register', availability.priceAmount);
+    const price = await this.resolvePrice(provider, domain, years, 'register', {
+      amount: availability.priceAmount,
+      currency: availability.currency,
+    });
 
     // 1. Create the order first so the wallet charge has a stable idempotency anchor.
     const order = await this.prisma.domainRegistrarOrder.create({
@@ -296,20 +306,20 @@ export class DomainRegistrarService {
   // Billing helpers
   // ---------------------------------------------------------------------------
 
-  /** Resolves the customer price (reseller cost × markup) for an operation. */
+  /** Resolves customer price: FX → PLN wholesale → markup. */
   private async resolvePrice(
     provider: ReturnType<RegistrarProviderFactory['get']>,
     domain: string,
     years: number,
     operation: RegistrarOperation,
-    fallbackCost?: string | null,
+    fallback?: { amount?: string | null; currency?: string | null },
   ): Promise<{ amount: string; currency: string }> {
     try {
       const p = await provider.price({ domain, years, operation });
-      return this.applyMarkup(p.amount, p.currency);
+      return this.toCustomerPrice(p.amount, p.currency);
     } catch (err) {
-      if (fallbackCost) {
-        return this.applyMarkup(fallbackCost);
+      if (fallback?.amount) {
+        return this.toCustomerPrice(fallback.amount, fallback.currency ?? 'USD');
       }
       this.logger.error(
         `Brak ceny rejestratora dla ${domain}/${operation}: ${(err as Error).message}`,
@@ -318,11 +328,18 @@ export class DomainRegistrarService {
     }
   }
 
-  private applyMarkup(rawAmount: string | number, currency = 'PLN'): { amount: string; currency: string } {
-    const markup = Number.parseFloat(this.config.get<string>('DOMAIN_PRICE_MARKUP') ?? '1.0');
-    const factor = Number.isFinite(markup) && markup > 0 ? markup : 1.0;
-    const amount = new Prisma.Decimal(rawAmount).mul(factor).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
-    return { amount: amount.toFixed(2), currency };
+  private pricingConfig() {
+    return parseDomainPricingConfig((key) => this.config.get<string>(key));
+  }
+
+  private toCustomerPrice(rawAmount: string | number, sourceCurrency?: string | null) {
+    try {
+      return toCustomerDomainPrice(rawAmount, sourceCurrency ?? 'USD', this.pricingConfig());
+    } catch (fxErr) {
+      throw new BadRequestException(
+        `Nieobsługiwana waluta cennika rejestratora: ${sourceCurrency ?? '?'}`,
+      );
+    }
   }
 
   private async charge(

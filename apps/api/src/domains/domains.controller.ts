@@ -4,6 +4,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { DomainsService } from './domains.service';
 import { CreateDomainDto } from './dto/create-domain.dto';
 import { DomainRegistrarService } from './domain-registrar.service';
+import { parseDomainPricingConfig } from './domain-pricing.util';
 import { DomainAvailabilityDto, RegisterDomainDto, TransferDomainDto } from './dto/registrar.dto';
 
 @Controller('domains')
@@ -51,7 +52,7 @@ export class DomainsController {
       apiBaseUrl = this.config.get<string>('REGISTRAR_API_BASE_URL') ?? null;
     }
 
-    const markup = Number.parseFloat(this.config.get<string>('DOMAIN_PRICE_MARKUP') ?? '1');
+    const pricing = parseDomainPricingConfig((key) => this.config.get<string>(key));
     return {
       provider,
       configured,
@@ -62,7 +63,12 @@ export class DomainsController {
           : provider === 'openprovider'
             ? 'production'
             : null,
-      priceMarkup: Number.isFinite(markup) && markup > 0 ? markup : 1,
+      priceMarkup: pricing.markup,
+      walletCurrency: pricing.walletCurrency,
+      fxRates: {
+        USD_PLN: pricing.usdPln,
+        EUR_PLN: pricing.eurPln,
+      },
     };
   }
 
