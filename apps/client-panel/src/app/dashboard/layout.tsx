@@ -326,7 +326,7 @@ export default function DashboardLayout({
       {/* Main Content Area */}
       <div className="relative z-10 flex min-h-screen w-full min-w-0 max-w-full flex-1 flex-col">
         {/* Top Navbar — na mobile fixed (hamburger zawsze dostępny), na desktop sticky */}
-        <header className="fixed inset-x-0 top-0 z-50 flex max-lg:h-mobile-header min-h-14 min-w-0 shrink-0 items-center justify-between gap-3 border-b border-border bg-background/95 px-4 backdrop-blur-xl sm:min-h-[5rem] sm:gap-4 sm:px-6 lg:sticky lg:inset-x-auto lg:z-40 lg:h-dashboard-topbar lg:shrink-0 lg:bg-background/90 lg:px-10 lg:py-5">
+        <header className="z-50 flex min-h-14 min-w-0 shrink-0 items-center justify-between gap-3 border-b border-border bg-background/95 px-4 backdrop-blur-xl max-lg:fixed max-lg:inset-x-0 max-lg:top-0 max-lg:h-mobile-header sm:min-h-[5rem] sm:gap-4 sm:px-6 lg:sticky lg:top-0 lg:z-40 lg:h-dashboard-topbar lg:bg-background/90 lg:px-10 lg:py-5">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <button
               type="button"
@@ -362,7 +362,7 @@ export default function DashboardLayout({
         </header>
 
         {/* Page Content */}
-        <main className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-4 pt-mobile-header sm:px-6 sm:pb-6 sm:pt-mobile-header lg:px-10 lg:pb-12 lg:pt-14">
+        <main className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-4 max-lg:pt-mobile-header sm:px-6 sm:pb-6 lg:px-10 lg:pb-12 lg:pt-10">
           {children}
         </main>
 
