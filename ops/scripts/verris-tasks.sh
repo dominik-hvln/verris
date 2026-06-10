@@ -95,8 +95,26 @@ dispatch_hosting_profile() {
   exit 1
 }
 
+# WP_INSTALL, WAF_APPLY itd. — run-script pobiera skrypt z API po kind.
+dispatch_generic() {
+  mkdir -p "$STATE_DIR"
+  printf '%s' "$LEASE_JSON" > "$STATE_DIR/${INSTANCE}.json"
+  if command -v systemctl >/dev/null 2>&1 && systemctl cat verris-task@.service >/dev/null 2>&1; then
+    if systemctl start "verris-task@${INSTANCE}.service" 2>>"$LOG"; then
+      echo "[verris-tasks] Started verris-task@${INSTANCE}.service ($KIND, log: /var/log/verris-tasks/${TASK_ID}.log)" >> "$LOG"
+      exit 0
+    fi
+  fi
+  if [ -x /usr/local/bin/verris-task-run.sh ]; then
+    exec /usr/local/bin/verris-task-run.sh "$INSTANCE"
+  fi
+  report_task_fail "Brak verris-task@.service i /usr/local/bin/verris-task-run.sh — uruchom install agenta."
+  exit 1
+}
+
 case "$KIND" in
   HOSTING_PROFILE) dispatch_hosting_profile ;;
+  WP_INSTALL|WAF_APPLY) dispatch_generic ;;
   *)
     report_task_fail "Unknown task kind: $KIND"
     exit 1
