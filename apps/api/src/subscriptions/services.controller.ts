@@ -23,6 +23,12 @@ import { HostingRestoreService } from './hosting-restore.service';
 import { HostingRestoreDto } from './dto/hosting-restore.dto';
 import { WordpressService } from './wordpress.service';
 import { InstallWordpressDto } from './dto/wordpress.dto';
+import { WafService } from './waf.service';
+import { SetWafModeDto } from './dto/waf.dto';
+import { SiteMonitorService } from './site-monitor.service';
+import { StagingService } from './staging.service';
+import { SetMonitoringDto } from './dto/site-monitor.dto';
+import { EcoReportService } from '../eco/eco-report.service';
 
 /**
  * Customer-facing "services" view — denormalized projection over Subscription
@@ -39,7 +45,68 @@ export class UserServicesController {
     private readonly dnsPointing: HostingDnsPointingService,
     private readonly hostingRestore: HostingRestoreService,
     private readonly wordpress: WordpressService,
+    private readonly waf: WafService,
+    private readonly siteMonitor: SiteMonitorService,
+    private readonly staging: StagingService,
+    private readonly ecoReport: EcoReportService,
   ) {}
+
+  // C5 — raport energetyczny z realnych metryk LVE (szacunki, jawna metodologia)
+  @Get(':id/eco-report')
+  ecoReportFor(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.ecoReport.reportForSubscription(id, user.userId);
+  }
+
+  // B3 — monitoring strony (jeden przełącznik, zero konfiguracji)
+  @Get(':id/monitoring')
+  monitoringStatus(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.siteMonitor.statusForSubscription(id, user.userId);
+  }
+
+  @Post(':id/monitoring')
+  setMonitoring(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() dto: SetMonitoringDto,
+  ) {
+    return this.siteMonitor.setEnabled(id, user.userId, dto.enabled);
+  }
+
+  // B5 — staging 1-click (klon LIVE → staging.<domena>, publikacja z powrotem)
+  @Get(':id/staging-env')
+  stagingStatus(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.staging.statusForSubscription(id, user.userId);
+  }
+
+  @Post(':id/staging-env/create')
+  stagingCreate(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.staging.createOrRefresh(id, user.userId);
+  }
+
+  @Post(':id/staging-env/push')
+  stagingPush(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.staging.pushToLive(id, user.userId);
+  }
+
+  @Delete(':id/staging-env')
+  stagingDelete(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.staging.remove(id, user.userId);
+  }
+
+  // B2 — ModSecurity WAF (klient zarządza trybem dla własnej usługi)
+  @Get(':id/waf')
+  wafStatus(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.waf.statusForSubscription(id, user.userId);
+  }
+
+  @Post(':id/waf/mode')
+  setWafMode(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() dto: SetWafModeDto,
+  ) {
+    return this.waf.setModeForSubscription(id, user.userId, dto.mode);
+  }
 
   // A4 — WordPress 1-click installer
   @Get(':id/wordpress/status')

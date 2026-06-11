@@ -1071,6 +1071,29 @@ configure_hosting_capabilities() {
     log_skip "ModSecurity — opcja niedostępna w tym CustomBuild (sprawdź webserver/litespeed)"
   fi
 
+  # SEC — wymuszenie FTP przez TLS (FTPS). DirectAdmin CustomBuild:
+  # `ftpd_tls=yes` (pure-ftpd/proftpd budowane z TLS) + dla pure-ftpd opcja
+  # TLS=2 (tylko szyfrowane sesje) tam, gdzie config jest dostępny.
+  if cb_option_supported ftpd_tls; then
+    cb_set_option ftpd_tls yes
+    log_ok "FTP TLS (FTPS) wymuszony w CustomBuild"
+  else
+    log_skip "ftpd_tls — opcja niedostępna w tym CustomBuild"
+  fi
+  if [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ]; then
+    local pf_conf="/etc/pure-ftpd.conf"
+    [ -f "$pf_conf" ] || pf_conf="/usr/local/etc/pure-ftpd.conf"
+    if [ -f "$pf_conf" ]; then
+      if grep -qiE '^[#[:space:]]*TLS' "$pf_conf"; then
+        sed -i 's/^[#[:space:]]*TLS.*/TLS 2/I' "$pf_conf"
+      else
+        echo "TLS 2" >> "$pf_conf"
+      fi
+      systemctl restart pure-ftpd 2>/dev/null || service pure-ftpd restart 2>/dev/null || true
+      log_ok "pure-ftpd: wymuszone tylko sesje TLS (TLS 2)"
+    fi
+  fi
+
   # A2 — PHP Selector (CloudLinux): wymaga lvemanager + alt-php. Best-effort.
   if command -v cloudlinux-config >/dev/null 2>&1 || [ -d /opt/alt ]; then
     if [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ]; then

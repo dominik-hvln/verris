@@ -221,6 +221,48 @@ export class NodeTasksService {
       });
     }
 
+    // B5 — a completed STAGING_SYNC(TO_STAGING) confirms the staging exists
+    // and is freshly cloned; the timestamps drive the panel UI.
+    if (task.kind === NodeTaskKind.STAGING_SYNC && task.accountId) {
+      const direction = (task.payload as { direction?: string } | null)?.direction;
+      if (direction === 'TO_STAGING') {
+        const now = new Date();
+        await this.prisma
+          .$transaction([
+            // createdAt only on the FIRST successful clone…
+            this.prisma.account.updateMany({
+              where: { id: task.accountId, stagingCreatedAt: null },
+              data: { stagingCreatedAt: now },
+            }),
+            // …syncedAt on every successful clone/refresh.
+            this.prisma.account.update({
+              where: { id: task.accountId },
+              data: { stagingSyncedAt: now },
+            }),
+          ])
+          .catch((err) => {
+            this.logger.warn(
+              `staging timestamps update failed account=${task.accountId}: ${
+                err instanceof Error ? err.message : String(err)
+              }`,
+            );
+          });
+      }
+    }
+
+    // B2 — a completed WAF_APPLY confirms the mode is live on the node.
+    if (task.kind === NodeTaskKind.WAF_APPLY && task.accountId) {
+      await this.prisma.account
+        .update({ where: { id: task.accountId }, data: { wafAppliedAt: new Date() } })
+        .catch((err) => {
+          this.logger.warn(
+            `wafAppliedAt update failed account=${task.accountId}: ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          );
+        });
+    }
+
     return this.toPublicTask(updated);
   }
 

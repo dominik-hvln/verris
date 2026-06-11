@@ -20,6 +20,8 @@ import {
 import { loadHostingProfileScript } from './hosting-profile.script';
 import { loadLveAgentScript } from './lve-agent.script';
 import { loadWpInstallScript } from './wp-install.script';
+import { loadWafApplyScript } from './waf-apply.script';
+import { loadStagingSyncScript } from './staging-sync.script';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 
 class CompleteNodeTaskDto {
@@ -78,6 +80,20 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   wpInstallScript() {
     return loadWpInstallScript();
+  }
+
+  /** B2 — ModSecurity per-account apply script (run with WAF_* env). */
+  @Get('waf-apply/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  wafApplyScript() {
+    return loadWafApplyScript();
+  }
+
+  /** B5 — staging clone/publish script (run with STG_* env). */
+  @Get('staging-sync/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  stagingSyncScript() {
+    return loadStagingSyncScript();
   }
 
   @Get('hosting-profile/default-page/script')

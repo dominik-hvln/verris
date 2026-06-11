@@ -100,3 +100,26 @@ export async function getUserEcoPoints() {
     return 0;
   }
 }
+
+export interface EcoReportDto {
+  periodDays: number;
+  samples: number;
+  cpuCoreHours: number;
+  avgRamGb: number;
+  energyKwh: number;
+  co2Kg: number;
+  baselineEnergyKwh: number;
+  savedEnergyKwh: number;
+  savedCo2Kg: number;
+  treeMonthsEquivalent: number;
+  ecoModeEnabled: boolean;
+  methodology: string;
+}
+
+export async function getEcoReport(serviceId: string): Promise<EcoReportDto | null> {
+  try {
+    return await apiFetch<EcoReportDto>(`/services/${serviceId}/eco-report`);
+  } catch {
+    return null;
+  }
+}

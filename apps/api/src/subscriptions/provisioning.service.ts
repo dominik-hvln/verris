@@ -14,6 +14,7 @@ import {
   Subscription,
   SubscriptionStatus,
   User,
+  WafMode,
 } from '@verris/database';
 import { ConfigService } from '@nestjs/config';
 import { EcoPointsService, ECO_POINT_DELTAS } from '../eco/eco-points.service';
@@ -30,6 +31,7 @@ import {
   buildDaPackageSpecFromPlan,
   planResourceFields,
 } from '../servers/da-package-spec';
+import { WafService } from './waf.service';
 
 export interface ProvisionResult {
   subscription: Subscription;
@@ -81,6 +83,7 @@ export class ProvisioningService {
     private readonly mailer: MailerService,
     private readonly config: ConfigService,
     private readonly ecoPoints: EcoPointsService,
+    private readonly waf: WafService,
   ) {}
 
   /**
@@ -342,6 +345,19 @@ export class ProvisioningService {
         subscriptionId: subscription.id,
       });
     }
+
+    // B2 — apply the default WAF mode (DETECTION) explicitly so the managed
+    // .htaccess block exists from day one. Best-effort: the agent retries via
+    // the task queue; a failure never blocks provisioning.
+    void this.waf
+      .setModeForAccount(result.account.id, WafMode.DETECTION, subscription.userId)
+      .catch((err) => {
+        this.logger.warn(
+          `WAF default apply failed for sub=${subscription.id}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      });
 
     // A1 — best-effort auto-SSL (Let's Encrypt) right after provisioning. DNS
     // may not point at the node yet, so failures are expected and harmless:

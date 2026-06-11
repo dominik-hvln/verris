@@ -416,6 +416,7 @@ enum NodeTaskKind {
   HOSTING_PROFILE
   WP_INSTALL        // A4 — instalator WordPress per konto klienta
   WAF_APPLY         // B2 — zastosowanie trybu ModSecurity WAF per konto
+  STAGING_SYNC      // B5 — klon LIVE→staging lub publikacja staging→LIVE
 }
 
 enum WafMode {
@@ -670,6 +671,9 @@ model Subscription {
   // Provisioned account (1:1)
   account              Account?                  @relation("SubscriptionAccount")
 
+  // B3 — opt-in site monitor (1:1)
+  siteMonitor          SiteMonitor?
+
   // Autoscaling (per service)
   autoscalingEnabled   Boolean                   @default(false)
   autoscalingMaxCost   Decimal                   @default(0) @db.Decimal(10, 2)
@@ -842,6 +846,11 @@ model Account {
   // B2 — ModSecurity WAF mode for this account (applied via WAF_APPLY task).
   wafMode         WafMode       @default(DETECTION)
   wafAppliedAt    DateTime?
+
+  // B5 — staging (`staging.<domain>`): created/last-cloned timestamps,
+  // confirmed by the STAGING_SYNC node task on completion.
+  stagingCreatedAt DateTime?
+  stagingSyncedAt  DateTime?
 
   // Effective limits (= plan + autoscaling delta)
   cpuLimit        Int           @default(100)
@@ -2402,4 +2411,52 @@ model VpnPeer {
   updatedAt     DateTime  @updatedAt
 
   @@index([enabled])
+}
+
+/// B3 — monitoring strony klienta (opt-in per usługa). Prosty model: jeden
+/// monitor HTTP per subskrypcja, sprawdzany przez control-plane co minutę.
+enum SiteMonitorStatus {
+  UNKNOWN
+  UP
+  DOWN
+}
+
+model SiteMonitor {
+  id               String            @id @default(uuid())
+  subscriptionId   String            @unique
+  subscription     Subscription      @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  enabled          Boolean           @default(true)
+  /// Pełny URL sprawdzany przez monitor (https://<domena glowna>).
+  url              String
+  lastStatus       SiteMonitorStatus @default(UNKNOWN)
+  consecutiveFails Int               @default(0)
+  lastCheckedAt    DateTime?
+  lastHttpStatus   Int?
+  lastError        String?
+  downSince        DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  events           SiteMonitorEvent[]
+
+  @@index([enabled])
+}
+
+enum SiteMonitorEventType {
+  DOWN
+  RECOVERED
+}
+
+model SiteMonitorEvent {
+  id         String               @id @default(uuid())
+  monitorId  String
+  monitor    SiteMonitor          @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+  type       SiteMonitorEventType
+  message    String?
+  httpStatus Int?
+  /// Dla RECOVERED: czas trwania awarii w sekundach.
+  durationS  Int?
+  createdAt  DateTime             @default(now())
+
+  @@index([monitorId, createdAt])
 }

@@ -8,10 +8,11 @@ import {
   HardDrive,
   MemoryStick,
 } from 'lucide-react';
-import { getAutoscalingHistory, getServiceDetails, getUserEcoPoints } from './data';
+import { getAutoscalingHistory, getEcoReport, getServiceDetails, getUserEcoPoints } from './data';
 import { AutoscalingForm } from './form';
 import { AutoscalingTimeline } from './timeline';
 import { EcoModeCard } from './eco-mode-card';
+import { EcoReportCard } from './eco-report-card';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,10 +23,11 @@ export default async function AutoscalingPage({
 }) {
   const { id } = await params;
 
-  const [serviceResult, historyResult, ecoPoints] = await Promise.all([
+  const [serviceResult, historyResult, ecoPoints, ecoReport] = await Promise.all([
     getServiceDetails(id),
     getAutoscalingHistory(id),
     getUserEcoPoints(),
+    getEcoReport(id),
   ]);
 
   if (!serviceResult.ok) {
@@ -83,6 +85,8 @@ export default async function AutoscalingPage({
         ecoModeEnabled={service.ecoModeEnabled}
         ecoPoints={ecoPoints}
       />
+
+      <EcoReportCard report={ecoReport} />
 
       {service.account ? (
         <>
@@ -258,11 +262,22 @@ function SpendCard({
 
       {maxCap > 0 ? (
         <>
-          <div className="mt-5">
+          {/* C1 — bezpiecznik kosztów: twarda gwarancja egzekwowana przez silnik */}
+          <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3">
+            <p className="text-sm font-semibold text-emerald-200">
+              🛡️ Bezpiecznik kosztów: nie zapłacisz więcej niż {maxCap.toFixed(2)} {currency} / 30 dni
+            </p>
+            <p className="mt-1 text-[11px] text-emerald-200/70">
+              Limit jest egzekwowany automatycznie przez silnik autoskalowania — po jego
+              osiągnięciu zasoby wracają do poziomu z planu, a kolejne skalowania są
+              wstrzymane. Strona dalej działa w ramach planu.
+            </p>
+          </div>
+          <div className="mt-4">
             <div className="flex justify-between text-xs text-neutral-400 mb-1.5">
-              <span>Limit miesięczny</span>
+              <span>Wykorzystanie bezpiecznika</span>
               <span className="text-white font-semibold">
-                {maxCap.toFixed(2)} {currency}
+                {spend.toFixed(2)} / {maxCap.toFixed(2)} {currency} ({capProgress}%)
               </span>
             </div>
             <div className="h-2 rounded-full bg-white/5 overflow-hidden">
@@ -277,18 +292,22 @@ function SpendCard({
                 style={{ width: `${capProgress}%` }}
               />
             </div>
-            <p className="mt-2 text-[11px] text-neutral-500">
-              Po przekroczeniu limitu silnik autoskalowania nie zwiększy zasobów aż do
-              końca miesiąca lub podniesienia limitu.
-            </p>
           </div>
         </>
       ) : (
-        <p className="mt-5 text-sm text-neutral-400">
-          {enabled
-            ? 'Brak miesięcznego limitu — koszty są naliczane bez ograniczenia.'
-            : 'Autoskalowanie jest wyłączone — brak naliczeń.'}
-        </p>
+        <div className="mt-5 space-y-2">
+          <p className="text-sm text-neutral-400">
+            {enabled
+              ? 'Nie ustawiłeś bezpiecznika kosztów — autoskalowanie nalicza bez górnego limitu.'
+              : 'Autoskalowanie jest wyłączone — brak naliczeń.'}
+          </p>
+          {enabled && (
+            <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-200">
+              💡 Ustaw „Limit miesięczny" w formularzu obok, a zagwarantujemy, że
+              autoskalowanie <strong>nigdy</strong> nie przekroczy tej kwoty.
+            </p>
+          )}
+        </div>
       )}
     </div>
   );

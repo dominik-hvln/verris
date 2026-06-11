@@ -25,6 +25,10 @@ import { HostingRestoreScheduler } from './hosting-restore.scheduler';
 import { PublicUptimeBadgeController } from './public-uptime-badge.controller';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { WordpressService } from './wordpress.service';
+import { WafService } from './waf.service';
+import { WafAdminController } from './waf.admin.controller';
+import { SiteMonitorService } from './site-monitor.service';
+import { StagingService } from './staging.service';
 import { EcoModule } from '../eco/eco.module';
 
 @Module({
@@ -45,6 +49,9 @@ import { EcoModule } from '../eco/eco.module';
     HostingRestoreService,
     HostingRestoreScheduler,
     WordpressService,
+    WafService,
+    SiteMonitorService,
+    StagingService,
   ],
   controllers: [
     SubscriptionsController,
@@ -54,6 +61,7 @@ import { EcoModule } from '../eco/eco.module';
     MigrationsStaffController,
     MigrationWorkerController,
     PublicUptimeBadgeController,
+    WafAdminController,
   ],
   exports: [
     SubscriptionsService,

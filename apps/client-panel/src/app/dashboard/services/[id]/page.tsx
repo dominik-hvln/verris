@@ -26,6 +26,8 @@ import MailTab from '@/components/hosting/MailTab';
 import SSLTab from '@/components/hosting/SSLTab';
 import StagingTab from '@/components/hosting/StagingTab';
 import WordpressTab from '@/components/hosting/WordpressTab';
+import WafTab from '@/components/hosting/WafTab';
+import MonitoringTab from '@/components/hosting/MonitoringTab';
 import DeployTab from '@/components/hosting/DeployTab';
 import HostingFileManagerTab from '@/components/hosting/HostingFileManagerTab';
 import UsageTab from '@/components/hosting/UsageTab';
@@ -45,6 +47,8 @@ const TABS = [
   { id: 'files', label: 'Pliki', icon: FolderOpen },
   { id: 'ssl', label: 'SSL', icon: Shield },
   { id: 'apps', label: 'Aplikacje', icon: Globe },
+  { id: 'waf', label: 'WAF', icon: Shield },
+  { id: 'monitoring', label: 'Monitoring', icon: Activity },
   { id: 'staging', label: 'Staging', icon: Box },
   { id: 'deploy', label: 'Deploy', icon: Rocket },
   { id: 'usage', label: 'Usage', icon: Activity },
@@ -154,6 +158,8 @@ export default function HostingManagerPage() {
             {activeTab === 'mail' && <MailTab serviceId={params.id} />}
             {activeTab === 'ssl' && <SSLTab serviceId={params.id} />}
             {activeTab === 'apps' && <WordpressTab serviceId={params.id} />}
+            {activeTab === 'waf' && <WafTab serviceId={params.id} />}
+            {activeTab === 'monitoring' && <MonitoringTab serviceId={params.id} />}
             {activeTab === 'staging' && <StagingTab serviceId={params.id} />}
             {activeTab === 'deploy' && <DeployTab serviceId={params.id} />}
             {activeTab === 'files' && <HostingFileManagerTab serviceId={params.id} />}

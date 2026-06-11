@@ -83,6 +83,8 @@ RUN npx prisma generate --schema=libs/database/prisma/schema.prisma
 COPY ops/docker/api-entrypoint.sh /usr/local/bin/api-entrypoint.sh
 COPY ops/scripts/node-hosting-profile.sh ./ops/scripts/node-hosting-profile.sh
 COPY ops/scripts/node-wp-install.sh ./ops/scripts/node-wp-install.sh
+COPY ops/scripts/node-waf-apply.sh ./ops/scripts/node-waf-apply.sh
+COPY ops/scripts/node-staging-sync.sh ./ops/scripts/node-staging-sync.sh
 COPY ops/scripts/install-verris-default-page.sh ./ops/scripts/install-verris-default-page.sh
 COPY ops/scripts/verris-lve.sh ./ops/scripts/verris-lve.sh
 COPY ops/hosting-default-page ./ops/hosting-default-page

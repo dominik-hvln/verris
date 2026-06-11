@@ -114,7 +114,7 @@ dispatch_generic() {
 
 case "$KIND" in
   HOSTING_PROFILE) dispatch_hosting_profile ;;
-  WP_INSTALL|WAF_APPLY) dispatch_generic ;;
+  WP_INSTALL|WAF_APPLY|STAGING_SYNC) dispatch_generic ;;
   *)
     report_task_fail "Unknown task kind: $KIND"
     exit 1

@@ -163,17 +163,45 @@ Rollback awaryjny: usuń tę zmienną i zrestartuj caddy.
 
 Audyt węzła pokazuje status nowych możliwości (`[VERRIS_PROFILE] ssl=… dkim=… redis=… php_selector=…`).
 
+### Zrobione w drugiej iteracji (2026-06-10b) ✅
+| Task | Co | Kluczowe pliki |
+|---|---|---|
+| **C2** Passkeys (WebAuthn) | logowanie bez hasła (discoverable credentials), zarządzanie kluczami w panelu klienta (Ustawienia → Passkeys), przycisk „Zaloguj się passkey" na ekranie logowania, challenge w DB z TTL, eco-punkty za pierwszy passkey | `apps/api/src/auth/webauthn/*`, `auth.controller.ts` (`/auth/webauthn/*`), `passkeys-section.tsx`, `passkey-login-button.tsx`, migracje `20260610100000` + `20260610140000` |
+| **A4** WordPress 1-click | task `WP_INSTALL` per konto: DA tworzy bazę+usera (tracked), agent węzła pobiera skrypt i instaluje wp-cli jako użytkownik konta (CageFS-safe, tar zamiast unzip w PHP), LiteSpeed Cache + permalinki out-of-the-box, zakładka **Aplikacje** w usłudze (formularz, polling statusu, hasło admina pokazane raz) | `node-wp-install.sh`, `wordpress.service.ts`, `WordpressTab.tsx`, SDK `createMysqlDatabase`, migracja `20260610110000` |
+| **B2** WAF ModSecurity | OWASP CRS serwerowo (CustomBuild `modsecurity` + `modsecurity_ruleset owasp` w profilu hostingowym), tryb per konto OFF/DETECTION/ON przez task `WAF_APPLY` (zarządzany blok `SecRuleEngine` w .htaccess), **zakładka WAF w panelu klienta** (3 tryby z opisami), **panel WAF na stronie węzła w adminie** (tabela kont + przełączniki), domyślnie DETECTION dla nowych kont (auto przy provisioningu), `wafAppliedAt` potwierdzane przez agenta | `node-waf-apply.sh`, `waf.service.ts`, `waf.admin.controller.ts`, `WafTab.tsx`, `waf-panel.tsx`, migracja `20260610120000` |
+
+> Po deployu: profil hostingowy trzeba uruchomić ponownie na węźle (panel → węzeł →
+> „Profil hostingowy"), żeby CustomBuild dograł ModSecurity + OWASP CRS.
+> Wymagane env dla passkeys: `WEBAUTHN_RP_ID`, `WEBAUTHN_ORIGINS` (przykład w `.env.prod.example`).
+> Zależności: `pnpm install` doinstaluje `@simplewebauthn/server` (api) i `@simplewebauthn/browser` (client-panel).
+
+### Zrobione w trzeciej iteracji (2026-06-10c) ✅
+| Task | Co | Kluczowe pliki |
+|---|---|---|
+| **B3** Monitoring stron | Opt-in per usługa: **jeden przełącznik, zero konfiguracji** (URL = domena główna). Control-plane sprawdza co minutę (timeout 10 s, UP = odpowiedź < 500), anti-flap (2 nieudane checki przed alarmem), **e-mail przy awarii + e-mail przy powrocie z czasem przerwy**, zakładka **Monitoring** w usłudze: status na żywo (auto-odświeżanie 30 s) + historia zdarzeń | `site-monitor.service.ts` (serwis+cron), `site-monitoring-notifications.ts` (szablony), `MonitoringTab.tsx`, migracja `20260610150000` |
+| **B5** Staging 1-click | Jedna kopia robocza per usługa (`staging.<domena>`), 3 akcje: **Utwórz/Odśwież z produkcji** (rsync plików + dla WordPressa kopia bazy z `wp search-replace` adresów i `blog_public 0`), **Opublikuj na produkcję** (z potwierdzeniem; najpierw tar-backup plików + dump bazy LIVE do `~/.verris/backups`, retencja 3), **Usuń**. Operacje na węźle jako użytkownik konta (CageFS), task `STAGING_SYNC`, polling statusu w UI, przepisana zakładka **Staging** | `node-staging-sync.sh`, `staging.service.ts`, `StagingTab.tsx` (nowy 1-click flow), runner/poller agenta |
+
+> B3: monitor sprawdza tylko usługi ACTIVE; wyłączenie subskrypcji wyłącza
+> sprawdzanie automatycznie. B5: dla stron nie-WordPress kopiowane są pliki
+> (baza pomijana — komunikowane w logu zadania `wp=no`).
+
+### Zrobione w czwartej iteracji (2026-06-10d) ✅
+| Task | Co | Kluczowe pliki |
+|---|---|---|
+| **C1** Bezpiecznik kosztów | Wyraźny komunikat-gwarancja w panelu autoskalowania: „nie zapłacisz więcej niż X / 30 dni", pasek wykorzystania bezpiecznika, podpowiedź ustawienia limitu gdy brak. Cap egzekwowany przez silnik (F-01) | `autoscaling/page.tsx` (SpendCard) |
+| **C5** Raport EKO | Energia (kWh) + ślad CO₂e + oszczędność vs „VPS 24/7" + ekwiwalent pracy drzewa — liczone z **REALNYCH** metryk LVE (cpuUsageAvg, memUsageAvgMb), jawna metodologia w UI (szacunki). Sekcja na stronie autoskalowania | `eco-report.service.ts`, `eco-report-card.tsx` |
+| **SEC** FTPS | Wymuszenie FTP-over-TLS w profilu hostingowym (`ftpd_tls=yes` + pure-ftpd `TLS 2`) | `node-hosting-profile.sh` |
+
+### Ocena prawno-bezpieczeństwowa
+Pełny raport: **`OCENA_PRAWNA_I_BEZPIECZENSTWO_2026-06-10.md`** (część techniczna + RODO,
+z priorytetami i werdyktem).
+
 ### Do dokończenia — wymaga decyzji / zależności / osobnej iteracji
 | Task | Co brakuje |
 |---|---|
-| **A1** | utworzyć **registrant/owner handle** + uzupełnić `OPENPROVIDER_*` (konto + depozyt OpenProvider) — dot. C4 |
-| **A4** WordPress 1-click | nowy rodzaj NodeTask `WP_INSTALL` + wp-cli na węźle + UI w panelu klienta (większy task, zaplanuję następny) |
-| **B2** Malware/WAF | wymaga licencji **Imunify360/ImunifyAV+** per węzeł (decyzja kosztowa) lub ModSecurity+OWASP CRS (darmowe) |
-| **B3** Monitoring stron | rozszerzenie istniejącego probera o probe per domena klienta (opt-in) + notyfikacje |
-| **B5** Staging 1-click | NodeTask `STAGING_CLONE` (kopia plików+bazy do subdomeny, push-to-live) |
-| **C1** Marketing capa | cap działa (F-01) — zostało copy/UI w panelu klienta „nigdy nie zapłacisz > X" |
-| **C2** Passkeys | wymaga zależności `@simplewebauthn/server` + `@simplewebauthn/browser` (instalacja `pnpm add` lokalnie — sandbox nie ma dostępu do registry) |
-| **C5** EKO raport | model CO₂/kWh per konto + badge (Etap G w PROJECT_STATUS) |
+| **C4** OpenProvider LIVE | utworzyć **registrant/owner handle** + uzupełnić `OPENPROVIDER_*` (konto + depozyt) — instrukcja w sekcji 0 |
+| **B1** Backupy kont klientów | off-node + self-restore w panelu (najwyższy priorytet wg oceny S-1) |
+| **L-1** Review prawnika | dokumenty DRAFT → LIVE + dane rejestrowe + DPA z subprocesorami (blocker organizacyjny) |
 
 > **Ważne po stronie buildu:** uruchom lokalnie `pnpm --filter @verris/database db:generate`
 > (nowe pola Plan.sshAccess, User.tokenVersion, VpnPeer, Server.*), potem

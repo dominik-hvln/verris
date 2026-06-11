@@ -7,6 +7,7 @@ import { BootstrapScriptPanel } from "./bootstrap-script-panel";
 import { DirectAdminConfigForm } from "./directadmin-form";
 import { HostingProfilePanel } from "./hosting-profile-panel";
 import { NodeStackReadinessPanel } from "./node-stack-readiness-panel";
+import { WafPanel } from "./waf-panel";
 import { MaintenanceToggle } from "./maintenance-toggle";
 import { NodeAuditPanel } from "./node-audit-panel";
 import { NodeInsightsPanel } from "./node-insights-panel";
@@ -148,6 +149,10 @@ export default async function ServerDetailPage({
       {(server.status === "ACTIVE" || server.status === "MAINTENANCE") && (
         <NodeStackReadinessPanel serverId={server.id} serverStatus={server.status} />
       )}
+
+      <div id="waf" className="scroll-mt-24">
+        <WafPanel serverId={server.id} />
+      </div>
 
       <div id="hosting-profile" className="scroll-mt-24">
         <HostingProfilePanel serverId={server.id} serverStatus={server.status} />
