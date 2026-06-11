@@ -15,10 +15,12 @@ import { WalletAutoTopupService } from './wallet-auto-topup.service';
 import { WalletAutoTopupScheduler } from './wallet-auto-topup.scheduler';
 import { WalletLowBalanceScheduler } from './wallet-low-balance.scheduler';
 import { MailModule } from '../mail/mail.module';
+import { KsefModule } from '../ksef/ksef.module';
+import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { EcoModule } from '../eco/eco.module';
 
 @Module({
-  imports: [forwardRef(() => SubscriptionsModule), MailModule, EcoModule],
+  imports: [forwardRef(() => SubscriptionsModule), MailModule, EcoModule, KsefModule, PlatformSettingsModule],
   controllers: [
     BillingController,
     BillingAdminController,

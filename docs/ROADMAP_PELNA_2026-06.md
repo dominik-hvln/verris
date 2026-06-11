@@ -175,3 +175,36 @@ Legenda wartości: 💰 przychód · 🛡️ ryzyko/bezpieczeństwo · ⭐ reten
 > Zasada: najpierw to, co **chroni przychód i zgodność** (backupy, KSeF, abuse,
 > testy ścieżki zakupu), potem **rośnie przychód** (trial, migracja, e-mail,
 > dunning), na końcu **skaluje i wyróżnia** (HA, zielony marketing, i18n).
+
+---
+
+# KOLEJNOŚĆ USTALONA (decyzja Dominika, 2026-06-11)
+
+Zasady nadrzędne: bezpieczeństwo, zgodność z prawem, prostota użycia,
+prześciganie konkurencji. Realizacja sekwencyjna:
+
+| # | Pozycja | Status |
+|---|---------|--------|
+| 1 | **B-1 KSeF** | ✅ zaimplementowane (moduł `ksef/`: FA(2) XML, klient sesji tokenowej, scheduler co 10 min, statusy na fakturze, admin overview+retry, smoke `ops/scripts/ksef-smoke.ts`) — wymaga smoke na ksef-test + creds |
+| 2 | **Passkeys admin+staff** | ✅ zaimplementowane (przyciski logowania + weryfikacja roli przed cookie; passkey = MFA odporne na phishing, spełnia REQUIRE_2FA_FOR_STAFF) |
+| 3 | **O-1 free trial** | następne |
+| 4 | **O-2 migracja od konkurencji** (pliki, DB, poczta; self-service lub zlecenie) | — |
+| 5 | **O-3 domena w checkout** | — |
+| 6 | **P-1 e-mail jako produkt na Roundcube** (custom design pod branding Verris) + **P-2 deliverability dashboard** | — |
+| 7 | R-1 → R-5 (HA, rebalansowanie, degradacja, maintenance window, SLO) | — |
+| 8 | P-4, P-5, P-6, P-7, P-3 | — |
+| 9 | O-4, O-5 | — |
+| 10 | SUP-1 → SUP-5 | — |
+| 11 | A-1, A-2, A-3, A-4, A-6, A-5 | — |
+| 12 | U-1 → U-5 | — |
+| 13 | Q-1 → Q-5 | — |
+| 14 | SX-2, SX-3, SX-4, SX-5 | — |
+| 15 | G-1 → G-4 | — |
+| 16 | **Analiza rynku PL+zagranica** + propozycje wyprzedzenia konkurencji (dokument) | — |
+| 17 | **VPS/Cloud resale przez API** (Hetzner Cloud / OVH Public Cloud / polskie DC) — nowy typ produktu obok hostingu | — |
+
+> Notatka do #17 (VPS/Cloud): architektura przygotowana — wzorzec
+> `RegistrarProvider` (OpenProvider) pokazuje jak dodać `ComputeProvider`
+> (Hetzner Cloud API jest najprostsze: tokeny projektowe, /servers, /images;
+> OVH PL ma DC w Warszawie — atut „dane w Polsce"). Billing z portfela
+> godzinowego już istnieje — naturalnie pasuje do VPS per-hour.

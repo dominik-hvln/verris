@@ -196,6 +196,18 @@ Audyt węzła pokazuje status nowych możliwości (`[VERRIS_PROFILE] ssl=… dki
 Pełny raport: **`OCENA_PRAWNA_I_BEZPIECZENSTWO_2026-06-10.md`** (część techniczna + RODO,
 z priorytetami i werdyktem).
 
+### Zrobione w czwartej iteracji (2026-06-11) ✅
+| Task | Co | Kluczowe pliki |
+|---|---|---|
+| **B-1 KSeF** | Pełny moduł e-Faktur: generator **FA(2) XML** z realnych danych faktury (snapshoty, rozbicie VAT, pozycje; walidacja NIP/kwot, escape XML, BrakID dla konsumentów), **klient KSeF** (challenge → sesja tokenowa z szyfrowaniem RSA kluczem MF → Invoice/Send → polling statusu → terminate), **scheduler co 10 min** z trybem offline (awaria KSeF = retry, nic nie ginie), statusy na fakturze (PENDING/SUBMITTED/ACCEPTED/REJECTED + numer KSeF), hook przy finalizacji faktury, admin `/admin/ksef/overview` + retry odrzuconych, testy jednostkowe buildera, smoke `ops/scripts/ksef-smoke.ts` | `apps/api/src/ksef/*`, migracja `20260611100000_ksef`, env `KSEF_*` |
+| **Passkeys admin+staff** | Przyciski „Zaloguj się passkey" na loginach obu paneli (discoverable credentials), **weryfikacja roli przed zapisem cookie** (ADMIN / STAFF-ADMIN), passkey przechodzi wymóg `REQUIRE_2FA_FOR_STAFF` (phishing-resistant MFA — silniejsze niż TOTP) | `apps/{admin,staff}-panel/src/app/login/passkey-*` |
+
+**Aktywacja KSeF (po deployu):**
+1. Konto na **ksef-test.mf.gov.pl** → wygeneruj token (uprawnienie: wystawianie) + pobierz klucz publiczny MF dla środowiska testowego.
+2. `KSEF_NIP/KSEF_TOKEN/KSEF_PUBLIC_KEY_PEM_B64` (test) → `npx tsx ops/scripts/ksef-smoke.ts` → musi wypisać numer KSeF. ⚠️ Smoke weryfikuje też kontrakt API (implementacja wg dokumentowanego API v1 online; KSeF 2.0 może wymagać korekt endpointów — smoke to wykryje).
+3. Po sukcesie: env produkcyjne (`KSEF_ENV=prod`, prod-token, prod-klucz) + `KSEF_ENABLED=1`.
+4. 🧑‍⚖️ Decyzja prawnika: czy faktury Stripe-hosted też raportować (dziś: tylko własne VERRIS — przełącznik w `KsefService.qualifies`).
+
 ### Do dokończenia — wymaga decyzji / zależności / osobnej iteracji
 | Task | Co brakuje |
 |---|---|

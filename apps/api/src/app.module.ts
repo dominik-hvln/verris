@@ -35,6 +35,7 @@ import { AiModule } from './ai/ai.module';
 import { PlatformSettingsModule } from './platform-settings/platform-settings.module';
 import { ControlPlaneMailModule } from './control-plane-mail/control-plane-mail.module';
 import { VpnModule } from './vpn/vpn.module';
+import { KsefModule } from './ksef/ksef.module';
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { VpnModule } from './vpn/vpn.module';
     PlatformSettingsModule,
     ControlPlaneMailModule,
     VpnModule,
+    KsefModule,
   ],
   controllers: [],
   providers: [

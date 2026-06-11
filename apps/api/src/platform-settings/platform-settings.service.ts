@@ -1,11 +1,41 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
+import { CryptoService } from '../common/crypto/crypto.service';
 import {
   PLATFORM_SETTING_DEFAULTS,
   PLATFORM_SETTING_KEYS,
   type PlatformSettingKey,
 } from './platform-settings.keys';
+
+export interface SellerCompanyDto {
+  name: string;
+  nip: string;
+  regon: string;
+  krs: string;
+  address: string;
+  city: string;
+  postalCode: string;
+  country: string;
+  email: string;
+  bankAccount: string;
+}
+
+export interface KsefSettingsDto {
+  enabled: boolean;
+  env: 'test' | 'prod';
+  nip: string;
+  tokenSet: boolean;
+  publicKeySet: boolean;
+}
+
+export interface KsefRuntimeConfig {
+  enabled: boolean;
+  env: 'test' | 'prod';
+  nip: string;
+  token: string;
+  publicKeyPem: string;
+}
 
 export type ClientPlatformConfigDto = {
   ecoPointsPerTree: number;
@@ -40,6 +70,7 @@ export class PlatformSettingsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly crypto: CryptoService,
   ) {}
 
   async getStaffSessionConfig(): Promise<StaffSessionConfigDto> {
@@ -267,6 +298,175 @@ export class PlatformSettingsService {
   private readStr(map: Map<string, string>, key: PlatformSettingKey, fallback: string): string {
     const raw = map.get(key);
     return raw && raw.trim() ? raw.trim() : fallback;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Dane sprzedawcy (faktury) — DB → env fallback
+  // ---------------------------------------------------------------------------
+
+  async getSellerCompany(): Promise<SellerCompanyDto> {
+    const map = await this.loadMap();
+    const K = PLATFORM_SETTING_KEYS;
+    return {
+      name: this.readStr(map, K.COMPANY_NAME, process.env.VERRIS_COMPANY_NAME ?? ''),
+      nip: this.readStr(map, K.COMPANY_NIP, process.env.VERRIS_COMPANY_NIP ?? ''),
+      regon: this.readStr(map, K.COMPANY_REGON, process.env.VERRIS_COMPANY_REGON ?? ''),
+      krs: this.readStr(map, K.COMPANY_KRS, process.env.VERRIS_COMPANY_KRS ?? ''),
+      address: this.readStr(map, K.COMPANY_ADDRESS, process.env.VERRIS_COMPANY_ADDRESS ?? ''),
+      city: this.readStr(map, K.COMPANY_CITY, process.env.VERRIS_COMPANY_CITY ?? ''),
+      postalCode: this.readStr(map, K.COMPANY_POSTAL, process.env.VERRIS_COMPANY_POSTAL ?? ''),
+      country: this.readStr(map, K.COMPANY_COUNTRY, process.env.VERRIS_COMPANY_COUNTRY ?? 'PL'),
+      email: this.readStr(map, K.COMPANY_EMAIL, process.env.VERRIS_COMPANY_EMAIL ?? ''),
+      bankAccount: this.readStr(
+        map,
+        K.COMPANY_BANK_ACCOUNT,
+        process.env.VERRIS_COMPANY_BANK_ACCOUNT ?? '',
+      ),
+    };
+  }
+
+  async updateSellerCompany(input: SellerCompanyDto, actorUserId: string): Promise<SellerCompanyDto> {
+    const nip = (input.nip ?? '').replace(/\D/g, '');
+    if (nip && nip.length !== 10) {
+      throw new BadRequestException('NIP musi mieć 10 cyfr.');
+    }
+    if (!input.name?.trim()) {
+      throw new BadRequestException('Nazwa firmy jest wymagana.');
+    }
+    const K = PLATFORM_SETTING_KEYS;
+    const entries: Array<[PlatformSettingKey, string]> = [
+      [K.COMPANY_NAME, input.name.trim()],
+      [K.COMPANY_NIP, nip],
+      [K.COMPANY_REGON, (input.regon ?? '').trim()],
+      [K.COMPANY_KRS, (input.krs ?? '').trim()],
+      [K.COMPANY_ADDRESS, (input.address ?? '').trim()],
+      [K.COMPANY_CITY, (input.city ?? '').trim()],
+      [K.COMPANY_POSTAL, (input.postalCode ?? '').trim()],
+      [K.COMPANY_COUNTRY, (input.country ?? 'PL').trim().toUpperCase().slice(0, 2)],
+      [K.COMPANY_EMAIL, (input.email ?? '').trim()],
+      [K.COMPANY_BANK_ACCOUNT, (input.bankAccount ?? '').trim()],
+    ];
+    await this.upsertMany(entries, actorUserId);
+    await this.audit.record({
+      action: 'COMPANY_SELLER_DATA_UPDATED',
+      userId: actorUserId,
+      details: { name: input.name, nip },
+    });
+    return this.getSellerCompany();
+  }
+
+  // ---------------------------------------------------------------------------
+  // KSeF — konfiguracja (sekrety szyfrowane KMS)
+  // ---------------------------------------------------------------------------
+
+  async getKsefSettings(): Promise<KsefSettingsDto> {
+    const map = await this.loadMap();
+    const K = PLATFORM_SETTING_KEYS;
+    return {
+      enabled: this.readStr(map, K.KSEF_ENABLED, process.env.KSEF_ENABLED ?? '0') === '1',
+      env: (this.readStr(map, K.KSEF_ENV, process.env.KSEF_ENV ?? 'test') === 'prod'
+        ? 'prod'
+        : 'test') as 'test' | 'prod',
+      nip: this.readStr(map, K.KSEF_NIP, process.env.KSEF_NIP ?? ''),
+      tokenSet: Boolean(map.get(K.KSEF_TOKEN_ENC) || process.env.KSEF_TOKEN),
+      publicKeySet: Boolean(map.get(K.KSEF_PUBLIC_KEY_ENC) || process.env.KSEF_PUBLIC_KEY_PEM_B64),
+    };
+  }
+
+  /** Pełna konfiguracja runtime (z odszyfrowanymi sekretami) — tylko dla KsefService. */
+  async getKsefRuntimeConfig(): Promise<KsefRuntimeConfig> {
+    const map = await this.loadMap();
+    const K = PLATFORM_SETTING_KEYS;
+    const tokenEnc = map.get(K.KSEF_TOKEN_ENC) ?? '';
+    const keyEnc = map.get(K.KSEF_PUBLIC_KEY_ENC) ?? '';
+    let token = '';
+    let publicKeyPem = '';
+    try {
+      token = tokenEnc ? this.crypto.decrypt(tokenEnc) : process.env.KSEF_TOKEN ?? '';
+    } catch {
+      token = '';
+    }
+    try {
+      publicKeyPem = keyEnc
+        ? this.crypto.decrypt(keyEnc)
+        : process.env.KSEF_PUBLIC_KEY_PEM_B64
+          ? Buffer.from(process.env.KSEF_PUBLIC_KEY_PEM_B64, 'base64').toString('utf8')
+          : '';
+    } catch {
+      publicKeyPem = '';
+    }
+    return {
+      enabled: this.readStr(map, K.KSEF_ENABLED, process.env.KSEF_ENABLED ?? '0') === '1',
+      env: (this.readStr(map, K.KSEF_ENV, process.env.KSEF_ENV ?? 'test') === 'prod'
+        ? 'prod'
+        : 'test') as 'test' | 'prod',
+      nip: this.readStr(map, K.KSEF_NIP, process.env.KSEF_NIP ?? ''),
+      token,
+      publicKeyPem,
+    };
+  }
+
+  async updateKsefSettings(
+    input: {
+      enabled: boolean;
+      env: 'test' | 'prod';
+      nip: string;
+      /** Nowy token — gdy puste, zachowujemy obecny. */
+      token?: string;
+      /** Nowy klucz publiczny PEM — gdy puste, zachowujemy obecny. */
+      publicKeyPem?: string;
+    },
+    actorUserId: string,
+  ): Promise<KsefSettingsDto> {
+    const nip = (input.nip ?? '').replace(/\D/g, '');
+    if (input.enabled && nip.length !== 10) {
+      throw new BadRequestException('KSeF: NIP (10 cyfr) jest wymagany przy włączeniu.');
+    }
+    const K = PLATFORM_SETTING_KEYS;
+    const entries: Array<[PlatformSettingKey, string]> = [
+      [K.KSEF_ENABLED, input.enabled ? '1' : '0'],
+      [K.KSEF_ENV, input.env === 'prod' ? 'prod' : 'test'],
+      [K.KSEF_NIP, nip],
+    ];
+    if (input.token && input.token.trim()) {
+      entries.push([K.KSEF_TOKEN_ENC, this.crypto.encrypt(input.token.trim())]);
+    }
+    if (input.publicKeyPem && input.publicKeyPem.trim()) {
+      const pem = input.publicKeyPem.trim();
+      if (!/-----BEGIN (PUBLIC KEY|RSA PUBLIC KEY|CERTIFICATE)-----/.test(pem)) {
+        throw new BadRequestException('Klucz publiczny KSeF musi być w formacie PEM.');
+      }
+      entries.push([K.KSEF_PUBLIC_KEY_ENC, this.crypto.encrypt(pem)]);
+    }
+    await this.upsertMany(entries, actorUserId);
+    await this.audit.record({
+      action: 'KSEF_SETTINGS_UPDATED',
+      userId: actorUserId,
+      details: {
+        enabled: input.enabled,
+        env: input.env,
+        nip,
+        tokenChanged: Boolean(input.token),
+        publicKeyChanged: Boolean(input.publicKeyPem),
+      },
+    });
+    return this.getKsefSettings();
+  }
+
+  private async upsertMany(
+    entries: Array<[PlatformSettingKey, string]>,
+    actorUserId: string,
+  ): Promise<void> {
+    await this.prisma.$transaction(
+      entries.map(([key, value]) =>
+        this.prisma.platformSetting.upsert({
+          where: { key },
+          create: { key, value, updatedByUserId: actorUserId },
+          update: { value, updatedByUserId: actorUserId },
+        }),
+      ),
+    );
+    this.invalidateCache();
   }
 }
 

@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { Loader2, LifeBuoy, AlertCircle, ShieldCheck } from "lucide-react";
 import {
+import { StaffPasskeyLoginButton } from "./passkey-login-button";
   staffSubmitLogin,
   staffSubmitTwoFactor,
 } from "./actions";
@@ -93,6 +94,15 @@ export default function StaffLoginPage() {
           Sesja 8 godzin (httpOnly). Przy włączonym 2FA dostaniesz krok kodu jak w panelu klienta.
         </p>
       </form>
+
+      <div className="mt-4 space-y-3">
+        <div className="flex items-center gap-3">
+          <span className="h-px flex-1 bg-white/10" />
+          <span className="text-xs text-neutral-500">lub</span>
+          <span className="h-px flex-1 bg-white/10" />
+        </div>
+        <StaffPasskeyLoginButton />
+      </div>
     </main>
   );
 }

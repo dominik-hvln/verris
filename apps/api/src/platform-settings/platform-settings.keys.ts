@@ -11,6 +11,25 @@ export const PLATFORM_SETTING_KEYS = {
   HOSTING_NS1: 'hosting.ns1',
   HOSTING_NS2: 'hosting.ns2',
   HOSTING_NS3: 'hosting.ns3',
+
+  // Dane sprzedawcy (Verris) na fakturach — edytowalne w panelu admina.
+  COMPANY_NAME: 'company.name',
+  COMPANY_NIP: 'company.nip',
+  COMPANY_REGON: 'company.regon',
+  COMPANY_KRS: 'company.krs',
+  COMPANY_ADDRESS: 'company.address',
+  COMPANY_CITY: 'company.city',
+  COMPANY_POSTAL: 'company.postal',
+  COMPANY_COUNTRY: 'company.country',
+  COMPANY_EMAIL: 'company.email',
+  COMPANY_BANK_ACCOUNT: 'company.bankAccount',
+
+  // KSeF — konfiguracja i sekrety (token/klucz szyfrowane KMS at-rest).
+  KSEF_ENABLED: 'ksef.enabled',
+  KSEF_ENV: 'ksef.env',
+  KSEF_NIP: 'ksef.nip',
+  KSEF_TOKEN_ENC: 'ksef.tokenEnc',
+  KSEF_PUBLIC_KEY_ENC: 'ksef.publicKeyEnc',
 } as const;
 
 export type PlatformSettingKey =
@@ -26,4 +45,19 @@ export const PLATFORM_SETTING_DEFAULTS: Record<PlatformSettingKey, string> = {
   [PLATFORM_SETTING_KEYS.HOSTING_NS1]: '',
   [PLATFORM_SETTING_KEYS.HOSTING_NS2]: '',
   [PLATFORM_SETTING_KEYS.HOSTING_NS3]: '',
+  [PLATFORM_SETTING_KEYS.COMPANY_NAME]: '',
+  [PLATFORM_SETTING_KEYS.COMPANY_NIP]: '',
+  [PLATFORM_SETTING_KEYS.COMPANY_REGON]: '',
+  [PLATFORM_SETTING_KEYS.COMPANY_KRS]: '',
+  [PLATFORM_SETTING_KEYS.COMPANY_ADDRESS]: '',
+  [PLATFORM_SETTING_KEYS.COMPANY_CITY]: '',
+  [PLATFORM_SETTING_KEYS.COMPANY_POSTAL]: '',
+  [PLATFORM_SETTING_KEYS.COMPANY_COUNTRY]: 'PL',
+  [PLATFORM_SETTING_KEYS.COMPANY_EMAIL]: '',
+  [PLATFORM_SETTING_KEYS.COMPANY_BANK_ACCOUNT]: '',
+  [PLATFORM_SETTING_KEYS.KSEF_ENABLED]: '0',
+  [PLATFORM_SETTING_KEYS.KSEF_ENV]: 'test',
+  [PLATFORM_SETTING_KEYS.KSEF_NIP]: '',
+  [PLATFORM_SETTING_KEYS.KSEF_TOKEN_ENC]: '',
+  [PLATFORM_SETTING_KEYS.KSEF_PUBLIC_KEY_ENC]: '',
 };

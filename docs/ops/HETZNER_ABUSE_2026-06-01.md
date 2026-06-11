@@ -113,9 +113,21 @@ Zainstaluj na control-plane i węzłach stos z `docs/ops/SECURITY_PREVENTION_STA
 
 ```bash
 cd /opt/verris
-sudo bash ops/scripts/security-hardening-baseline.sh --role control-plane
+sudo bash ops/scripts/security-install-verris-security.sh --role control-plane
+sudo bash ops/scripts/security-sync-cp-egress-hosts.sh
+sudo ALLOW_HOSTS=/etc/verris/security/egress-allow-hostnames.merged.txt \
+  bash ops/scripts/security-control-plane-egress.sh --strict
 sudo bash ops/scripts/security-egress-lockdown.sh --role node --apply   # na każdym węźle DA
 ```
+
+**Ważne:** sam `security-install` włącza **anti-netscan** (>80 nowych TCP/80,443/min → DROP). Tryb `--strict` wymaga pełnej allowlisty; na hoście z Docker SNAT stosuj dopiero po teście (patrz `SECURITY_PREVENTION_STACK.md`).
+
+## Powtórka 2026-06-11 (netscan → 71.248.198.0/24)
+
+- Skan sekwencyjny portów 80/443 z `204.168.174.138` (~12:39–12:43 UTC).
+- Wzorzec identyczny z incydentem 2026-06-01 (malware/netscan), **nie** z ruchem API (logi Nest czyste w tym oknie).
+- Poprzednia „naprawa” wdrożyła tylko logowanie + DROP do 1 IP IOC — **bez blokady skanowania**.
+- Po 2026-06-11: anti-netscan aktywny na prod; allowlist przygotowana; zalecany **rebuild CP** jeśli kompromitacji nie da się wykluczyć.
 
 ## Follow-up in repo governance
 

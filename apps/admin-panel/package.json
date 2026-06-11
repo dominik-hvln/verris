@@ -10,6 +10,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@simplewebauthn/browser": "^13.1.0",
     "@verris/contracts": "workspace:^",
     "@verris/ui": "workspace:*",
     "date-fns": "^4.1.0",

@@ -1105,11 +1105,33 @@ model Invoice {
   dueAt          DateTime?
   paidAt         DateTime?
 
+  // B-1 — KSeF (Krajowy System e-Faktur). Faktury VERRIS (provider=null)
+  // są wysyłane do KSeF; numer KSeF + UPO potwierdzają wystawienie.
+  ksefStatus     KsefStatus    @default(NOT_APPLICABLE)
+  /// Numer KSeF nadany przez system MF (z UPO).
+  ksefNumber     String?       @unique
+  /// Numer referencyjny elementu w sesji (do odpytywania statusu).
+  ksefElementRef String?
+  ksefSubmittedAt DateTime?
+  ksefAcceptedAt  DateTime?
+  ksefError      String?
+
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
   @@unique([provider, providerRef])
   @@index([userId])
+  @@index([ksefStatus])
+}
+
+/// B-1 — cykl życia faktury w KSeF.
+enum KsefStatus {
+  NOT_APPLICABLE // faktura Stripe-hosted / przed włączeniem KSeF
+  PENDING        // zakwalifikowana do wysyłki
+  SUBMITTED      // wysłana, czekamy na numer KSeF (status z sesji)
+  ACCEPTED       // numer KSeF nadany (UPO)
+  REJECTED       // odrzucona przez KSeF (walidacja) — wymaga interwencji
+  OFFLINE        // wystawiona w trybie offline (awaria KSeF) — do dosłania
 }
 
 /// Atomowa numeracja faktur per (rok, miesiąc). Każda nowa faktura wykonuje

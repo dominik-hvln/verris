@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ShieldAlert, Loader2 } from "lucide-react";
 import { adminLogin } from "@/lib/auth-actions";
+import { AdminPasskeyLoginButton } from "./passkey-login-button";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -100,6 +101,15 @@ export default function AdminLoginPage() {
           Sesja administratora wygasa po 8 godzinach bezczynności.
         </p>
       </form>
+
+      <div className="mt-4 space-y-3">
+        <div className="flex items-center gap-3">
+          <span className="h-px flex-1 bg-white/10" />
+          <span className="text-xs text-neutral-500">lub</span>
+          <span className="h-px flex-1 bg-white/10" />
+        </div>
+        <AdminPasskeyLoginButton />
+      </div>
     </main>
   );
 }

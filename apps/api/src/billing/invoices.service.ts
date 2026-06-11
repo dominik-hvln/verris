@@ -4,6 +4,8 @@ import { Invoice, InvoiceStatus, Prisma } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { MailerService } from '../mail/mailer.service';
+import { KsefService } from '../ksef/ksef.service';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 import { ObjectStorageService } from '../storage/object-storage.service';
 import { ObjectBuckets } from '../storage/object-storage.types';
 import { invoiceIssuedTemplate } from '../mail/templates/invoice-notifications';
@@ -66,6 +68,8 @@ export class InvoicesService {
     private readonly mailer: MailerService,
     private readonly storage: ObjectStorageService,
     private readonly pdf: InvoicePdfService,
+    private readonly ksef: KsefService,
+    private readonly platformSettings: PlatformSettingsService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -293,8 +297,9 @@ export class InvoicesService {
     const totalNetDec = totalGrossDec.mul(100).dividedBy(factor).toDecimalPlaces(2);
     const totalVatDec = totalGrossDec.minus(totalNetDec).toDecimalPlaces(2);
 
-    // 3) Snapshot seller + buyer.
-    const seller = this.buildSellerSnapshot();
+    // 3) Snapshot seller + buyer. Seller data comes from admin settings
+    //    (PlatformSetting) with env fallback — edytowalne w panelu admina.
+    const seller = await this.buildSellerSnapshot();
     const buyer = await this.buildBuyerSnapshot(opts.verrisUserId);
 
     // 4) Build line items. Today we mirror Stripe's "single line per invoice"
@@ -380,6 +385,13 @@ export class InvoicesService {
       },
     });
 
+    // 8b) B-1 — kwalifikacja do KSeF (no-op gdy KSEF_ENABLED!=1).
+    void this.ksef.enqueueInvoice(updated.id).catch((err) => {
+      this.logger.warn(
+        `KSeF enqueue failed for invoice=${invoice.id}: ${(err as Error).message}`,
+      );
+    });
+
     // 8) Email — non-blocking; if it fails we keep going (invoice is
     //    already in DB + MinIO, customer can grab from panel).
     void this.sendInvoiceIssuedEmail(updated, opts.verrisUserId).catch((err) => {
@@ -389,18 +401,19 @@ export class InvoicesService {
     });
   }
 
-  private buildSellerSnapshot(): SellerSnapshot {
+  private async buildSellerSnapshot(): Promise<SellerSnapshot> {
+    const c = await this.platformSettings.getSellerCompany();
     return {
-      name: this.config.get<string>('VERRIS_COMPANY_NAME') ?? 'Verris Sp. z o.o.',
-      nip: this.config.get<string>('VERRIS_COMPANY_NIP') ?? '0000000000',
-      address: this.config.get<string>('VERRIS_COMPANY_ADDRESS') ?? '— adres — uzupełnij w .env',
-      city: this.config.get<string>('VERRIS_COMPANY_CITY') ?? 'Warszawa',
-      postalCode: this.config.get<string>('VERRIS_COMPANY_POSTAL') ?? '00-000',
-      country: this.config.get<string>('VERRIS_COMPANY_COUNTRY') ?? 'PL',
-      email: this.config.get<string>('VERRIS_COMPANY_EMAIL') ?? 'kontakt@verris.pl',
-      bankAccount: this.config.get<string>('VERRIS_COMPANY_BANK_ACCOUNT') ?? undefined,
-      regon: this.config.get<string>('VERRIS_COMPANY_REGON') ?? undefined,
-      krs: this.config.get<string>('VERRIS_COMPANY_KRS') ?? undefined,
+      name: c.name || (this.config.get<string>('VERRIS_COMPANY_NAME') ?? 'Verris Sp. z o.o.'),
+      nip: c.nip || (this.config.get<string>('VERRIS_COMPANY_NIP') ?? '0000000000'),
+      address: c.address || (this.config.get<string>('VERRIS_COMPANY_ADDRESS') ?? '— adres —'),
+      city: c.city || (this.config.get<string>('VERRIS_COMPANY_CITY') ?? 'Warszawa'),
+      postalCode: c.postalCode || (this.config.get<string>('VERRIS_COMPANY_POSTAL') ?? '00-000'),
+      country: c.country || 'PL',
+      email: c.email || (this.config.get<string>('VERRIS_COMPANY_EMAIL') ?? 'kontakt@verris.pl'),
+      bankAccount: c.bankAccount || undefined,
+      regon: c.regon || undefined,
+      krs: c.krs || undefined,
     };
   }
 

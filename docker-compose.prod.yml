@@ -170,6 +170,13 @@ services:
       VPN_WG_CLIENT_ALLOWED_IPS: ${VPN_WG_CLIENT_ALLOWED_IPS:-}
       VPN_WG_DNS: ${VPN_WG_DNS:-}
       VPN_SYNC_TOKEN: ${VPN_SYNC_TOKEN:-}
+      # B-1 — KSeF
+      KSEF_ENABLED: ${KSEF_ENABLED:-0}
+      KSEF_ENV: ${KSEF_ENV:-test}
+      KSEF_BASE_URL: ${KSEF_BASE_URL:-}
+      KSEF_NIP: ${KSEF_NIP:-}
+      KSEF_TOKEN: ${KSEF_TOKEN:-}
+      KSEF_PUBLIC_KEY_PEM_B64: ${KSEF_PUBLIC_KEY_PEM_B64:-}
       REDIS_URL: redis://redis:6379
       # Object storage (MinIO/S3) — see compose service `minio` above.
       S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}

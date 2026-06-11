@@ -9,8 +9,10 @@ Po incydencie **Spamhaus XBL / Ranbyus** na `204.168.174.138` (czerwiec 2026) do
 | **Baseline** | `security-hardening-baseline.sh` | SSH tylko klucz, fail2ban, auto-updates, UFW ingress |
 | **IOC drop** | `security-control-plane-egress.sh` | `iptables` DROP do znanych IP C2 (nie rusza Docker NAT) |
 | **UFW backup** | instalator | `ufw deny out` do IOC |
-| **Egress log** | control-plane egress | log kernela przy nowym TCP/80 (forenzja) |
-| **Watch 5 min** | `security-egress-watch.sh` + timer | połączenia do IOC, burst HTTP, zmiana cron |
+| **Egress log** | control-plane egress | log kernela przy nowym TCP/80 i /443 (forenzja) |
+| **Anti-netscan** | control-plane egress | DROP przy >80 nowych TCP/80,443 / 60s (netscan) |
+| **Strict egress** | `--strict` + merged allowlist | nowe TCP/80,443 tylko do znanych hostów (ipset) |
+| **Watch 5 min** | `security-egress-watch.sh` + timer | IOC, burst HTTP/S, SYN-SENT, unikalne DST w kern.log |
 | **Auditd** | `verris-security.rules` | alert na zmiany cron/systemd |
 | **Node egress** | `security-egress-lockdown.sh --role node` | deny-by-default wyjście na węzłach DA |
 | **Prometheus** | `verris_security_findings` | alert `VerrisSecurityWatchFindings` |
@@ -80,16 +82,20 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d node-export
 - **Węzeł DA:** `security-egress-lockdown` blokuje **nowe** połączenia wychodzące z **systemu węzła** poza listą (DNS, HTTP/S, SMTP, FTP, IMAP, DA, MySQL). Ruch **przychodzący** klientów (WWW, poczta, FTP) **nie jest** filtrowany tym łańcuchem.
 - **Nie wdrażaj** `--strict` na control-plane bez pełnej allowlisty — może uciąć deploy/API.
 
-## Tryb STRICT (opcjonalny)
+## Tryb STRICT (wymagany na control-plane LIVE)
 
-Ogranicza **nowe** połączenia TCP/80 i /443 tylko do hostów z `egress-allow-hostnames.txt` (ipset).
-
-**Ryzyko:** zepsucie `git pull`, Stripe, Docker registry jeśli lista niepełna.
+Ogranicza **nowe** połączenia TCP/80 i /443 tylko do hostów z allowlisty (ipset).
 
 ```bash
-# Najpierw uzupełnij hosty (odkomentuj w pliku), potem:
-sudo bash ops/scripts/security-control-plane-egress.sh --strict
+cd /opt/verris
+sudo bash ops/scripts/security-sync-cp-egress-hosts.sh
+sudo ALLOW_HOSTS=/etc/verris/security/egress-allow-hostnames.merged.txt \
+  bash ops/scripts/security-control-plane-egress.sh --strict
 ```
+
+`security-install-verris-security.sh --role control-plane` robi to automatycznie, jeśli Postgres działa.
+
+**Ryzyko:** niepełna lista → ucięcie deploy/Stripe; po nowej domenie klienta uruchom `security-sync-cp-egress-hosts.sh` i ponów `--strict`.
 
 ## Co dalej operacyjnie
 

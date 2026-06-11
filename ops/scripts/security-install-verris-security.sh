@@ -90,6 +90,13 @@ if [ "$ROLE" = "control-plane" ]; then
   else
     ensure_control_plane_ufw_ingress
     run "bash '$REPO_ROOT/ops/scripts/security-control-plane-egress.sh'"
+    if [ -x "$REPO_ROOT/ops/scripts/security-sync-cp-egress-hosts.sh" ]; then
+      run "bash '$REPO_ROOT/ops/scripts/security-sync-cp-egress-hosts.sh' || true"
+      MERGED_ALLOW="/etc/verris/security/egress-allow-hostnames.merged.txt"
+      if [ -f "$MERGED_ALLOW" ]; then
+        run "ALLOW_HOSTS='$MERGED_ALLOW' bash '$REPO_ROOT/ops/scripts/security-control-plane-egress.sh' --strict || true"
+      fi
+    fi
     # UFW deny out to IOC (backup layer)
     if [ -f /etc/verris/security/ioc-ips.txt ] && command -v ufw >/dev/null 2>&1; then
       while IFS= read -r line || [ -n "$line" ]; do
