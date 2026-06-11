@@ -113,7 +113,7 @@ export class KsefService {
       data: { ksefStatus: KsefStatus.PENDING },
     });
 
-    const client = this.buildClient();
+    const client = await this.buildClient();
     if (!client) {
       this.logger.warn('KSeF włączony, ale konfiguracja niepełna (NIP/token/klucz publiczny).');
       return;
