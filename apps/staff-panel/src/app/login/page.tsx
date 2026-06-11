@@ -2,8 +2,8 @@
 
 import { useActionState, useEffect, useState } from "react";
 import { Loader2, LifeBuoy, AlertCircle, ShieldCheck } from "lucide-react";
-import {
 import { StaffPasskeyLoginButton } from "./passkey-login-button";
+import {
   staffSubmitLogin,
   staffSubmitTwoFactor,
 } from "./actions";
