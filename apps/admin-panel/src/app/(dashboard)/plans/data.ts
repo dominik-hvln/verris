@@ -24,6 +24,8 @@ export interface AdminPlanRow {
   isPublic: boolean;
   isActive: boolean;
   sortOrder: number;
+  /** O-1 — free trial length in days. 0 = no trial available. */
+  trialDays: number;
   autoscalingMaxOverscaleCpu: number;
   autoscalingMaxOverscaleRam: number;
   autoscalingMaxOverscaleDisk: number;
