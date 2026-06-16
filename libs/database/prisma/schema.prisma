@@ -131,6 +131,8 @@ model User {
   anonymizedAt             DateTime?
   /// Potwierdzenie adresu e-mail (link z rejestracji). Null = oczekuje na weryfikację.
   emailVerifiedAt          DateTime?
+  /// O-1 — timestamp pierwszego uruchomienia darmowego okresu próbnego (jeden trial na konto).
+  trialStartedAt           DateTime?
 
   // ---------------------------------------------------------------------------
   // Sprint 4 / R-04 — operacje admina na koncie klienta (tylko USER)
