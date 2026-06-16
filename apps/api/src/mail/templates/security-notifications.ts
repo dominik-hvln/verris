@@ -285,3 +285,114 @@ export function passwordChangedTemplate(ctx: PasswordChangedContext): MailMessag
     html,
   };
 }
+
+// ---------------------------------------------------------------------------
+// 5. break-glass codes issued (privileged passkey fallback)
+// ---------------------------------------------------------------------------
+
+export interface BreakGlassCodesIssuedContext {
+  to: string;
+  firstName: string | null;
+  issuedAt: Date;
+  count: number;
+  panelUrl: string;
+}
+
+export function breakGlassCodesIssuedTemplate(
+  ctx: BreakGlassCodesIssuedContext,
+): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**!` : 'Cześć!';
+  const { html, text } = renderEmailShell({
+    title: 'Wygenerowano awaryjne kody logowania (break-glass)',
+    preheader: 'Nowy zestaw kodów awaryjnych dla Twojego konta.',
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Dla Twojego konta **wygenerowano ${ctx.count} jednorazowych kodów awaryjnych (break-glass)**. Służą one wyłącznie do logowania, gdy **nie masz przy sobie passkey** — wymagają dodatkowo hasła i kodu 2FA.`,
+      ``,
+      `**Czas wygenerowania:** ${escapeHtml(formatDateTime(ctx.issuedAt))}.`,
+      ``,
+      `## Zasady`,
+      ``,
+      `1. Każdy kod **działa tylko raz**. Stary zestaw został właśnie unieważniony.`,
+      `2. Użycie kodu **powiadamia wszystkich administratorów** i trafia do logu audytu.`,
+      `3. Przechowuj kody **offline** (np. w menedżerze haseł), nigdy w skrzynce e-mail.`,
+      ``,
+      `Jeśli to **nie Ty** wygenerowałeś kody — Twoje konto mogło zostać przejęte. Natychmiast zmień hasło, wyloguj wszystkie sesje i napisz na ${escapeHtml('security@verris.pl')}.`,
+    ].join('\n'),
+    cta: { label: 'Ustawienia bezpieczeństwa', url: `${ctx.panelUrl}/settings/security` },
+    footnote:
+      'Same kody pokazujemy tylko raz, w panelu, w momencie generowania — nie wysyłamy ich mailem.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return {
+    to: ctx.to,
+    tag: 'security.break-glass-issued',
+    subject: '[Verris] Wygenerowano awaryjne kody logowania',
+    text,
+    html,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 6. break-glass used — alert to every admin
+// ---------------------------------------------------------------------------
+
+export interface BreakGlassUsedAlertContext {
+  to: string;
+  firstName: string | null;
+  /** The account that performed the break-glass login. */
+  accountEmail: string;
+  role: string;
+  usedAt: Date;
+  ipAddress: string | null;
+  userAgent: string | null;
+  remaining: number;
+  panelUrl: string;
+}
+
+export function breakGlassUsedAlertTemplate(
+  ctx: BreakGlassUsedAlertContext,
+): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**!` : 'Cześć!';
+  const ipLine = ctx.ipAddress
+    ? `- **IP:** ${escapeHtml(ctx.ipAddress)}`
+    : `- **IP:** _(nieustalone)_`;
+  const uaLine = ctx.userAgent
+    ? `- **Klient:** ${escapeHtml(ctx.userAgent)}`
+    : null;
+  const { html, text } = renderEmailShell({
+    title: 'Użyto awaryjnego logowania break-glass',
+    preheader: `Konto ${ctx.accountEmail} zalogowało się kodem awaryjnym.`,
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `**Uwaga bezpieczeństwa.** Konto uprzywilejowane właśnie zalogowało się **z pominięciem passkey**, używając awaryjnego kodu break-glass (hasło + 2FA + jednorazowy kod).`,
+      ``,
+      `## Szczegóły`,
+      ``,
+      `- **Konto:** ${escapeHtml(ctx.accountEmail)} (${escapeHtml(ctx.role)})`,
+      `- **Czas:** ${escapeHtml(formatDateTime(ctx.usedAt))}`,
+      ipLine,
+      ...(uaLine ? [uaLine] : []),
+      `- **Pozostałe kody:** ${ctx.remaining}`,
+      ``,
+      `Jeśli to **zaplanowana** akcja (np. utrata urządzenia z passkey) — możesz zignorować ten alert. Jeśli **nie** — potraktuj to jako możliwe przejęcie konta: zablokuj konto, wymuś reset hasła i przejrzyj log audytu.`,
+    ].join('\n'),
+    cta: { label: 'Otwórz log audytu', url: `${ctx.panelUrl}/security/audit` },
+    footnote:
+      'Ten alert otrzymuje każdy administrator przy każdym użyciu kodu break-glass — nie da się go wyłączyć.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return {
+    to: ctx.to,
+    tag: 'security.break-glass-used',
+    subject: '[Verris] ⚠️ Użyto awaryjnego logowania (break-glass)',
+    text,
+    html,
+  };
+}

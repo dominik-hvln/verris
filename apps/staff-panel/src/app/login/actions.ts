@@ -100,6 +100,58 @@ export async function staffSubmitLogin(
   redirect("/");
 }
 
+export async function staffSubmitBreakGlass(
+  _prev: VerifyState | undefined,
+  formData: FormData,
+): Promise<VerifyState> {
+  const email = formData.get("email")?.toString().trim();
+  const password = formData.get("password")?.toString();
+  const code = formData.get("code")?.toString().trim();
+  const breakGlassCode = formData.get("breakGlassCode")?.toString().trim();
+
+  if (!email || !password || !code || !breakGlassCode) {
+    return { error: "Wypełnij wszystkie pola logowania awaryjnego." };
+  }
+
+  await removeStaffAuthCookie();
+
+  let res: Response;
+  try {
+    res = await fetch(`${base}/auth/login/break-glass`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(await clientIpHeaders()) },
+      body: JSON.stringify({ email, password, code, breakGlassCode }),
+    });
+  } catch {
+    return { error: "Błąd połączenia z API." };
+  }
+
+  if (!res.ok) {
+    let message = "Logowanie awaryjne nie powiodło się.";
+    try {
+      const body = (await res.json()) as { message?: string };
+      if (typeof body?.message === "string") message = body.message;
+    } catch {
+      /* ignore */
+    }
+    return { error: message };
+  }
+
+  let data: { access_token?: string };
+  try {
+    data = (await res.json()) as { access_token?: string };
+  } catch {
+    return { error: "Nieprawidłowa odpowiedź serwera." };
+  }
+  if (!data.access_token) return { error: "Brak tokenu sesji." };
+
+  const roleCheck = await ensureStaffRole(data.access_token);
+  if ("error" in roleCheck) return { error: roleCheck.error };
+
+  await setStaffAuthCookie(data.access_token);
+  redirect("/settings");
+}
+
 export async function staffSubmitTwoFactor(
   _prev: VerifyState | undefined,
   formData: FormData,

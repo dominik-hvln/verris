@@ -7,6 +7,24 @@ export type ActionResult<T = void> =
   | { ok: true; data?: T }
   | { ok: false; error: string };
 
+/** O-1 — convert a running free trial to a paid wallet subscription. */
+export async function convertTrialAction(subscriptionId: string): Promise<ActionResult> {
+  try {
+    await apiFetch(`/subscriptions/${subscriptionId}/convert`, { method: 'POST' });
+    revalidatePath('/dashboard/services');
+    revalidatePath('/dashboard');
+    return { ok: true };
+  } catch (err) {
+    const message =
+      err instanceof ApiError
+        ? err.message
+        : err instanceof Error
+          ? err.message
+          : 'Nie udało się przekształcić usługi na płatną';
+    return { ok: false, error: message };
+  }
+}
+
 export async function retrySubscriptionPaymentAction(
   subscriptionId: string,
 ): Promise<ActionResult<{ url: string }>> {

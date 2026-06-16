@@ -118,3 +118,34 @@ export class EmailVerificationRequestDto {
   @IsEmail()
   email!: string;
 }
+
+/** #30 — break-glass login for privileged accounts (password + TOTP + code). */
+export class BreakGlassLoginDto {
+  @IsEmail()
+  email!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  password!: string;
+
+  /** TOTP or 2FA recovery code. */
+  @IsString()
+  @Length(6, 32)
+  code!: string;
+
+  /** Single-use break-glass code (xxxxx-xxxxx). */
+  @IsString()
+  @Length(8, 32)
+  breakGlassCode!: string;
+}
+
+/** #30 — re-auth before (re)generating break-glass codes. */
+export class RegenerateBreakGlassDto {
+  @IsString()
+  @IsNotEmpty()
+  password!: string;
+
+  @IsString()
+  @Length(6, 32)
+  code!: string;
+}

@@ -13,6 +13,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { SubscriptionsService } from './subscriptions.service';
 import { PlanChangeService } from './plan-change.service';
+import { TrialService } from './trial.service';
 import {
   CancelSubscriptionDto,
   CreateSubscriptionDto,
@@ -20,7 +21,9 @@ import {
   UpdateAutoscalingDto,
   UpdateSubscriptionPreferencesDto,
 } from './dto/subscription.dto';
+import { StartTrialDto } from './dto/trial.dto';
 import { ChangePlanDto, PreviewPlanChangeDto } from './dto/plan-change.dto';
+import { RateLimit } from '../common/guards/rate-limit.guard';
 
 @Controller('subscriptions')
 @UseGuards(JwtAuthGuard)
@@ -28,11 +31,35 @@ export class SubscriptionsController {
   constructor(
     private readonly subscriptions: SubscriptionsService,
     private readonly planChange: PlanChangeService,
+    private readonly trial: TrialService,
   ) {}
 
   @Get()
   list(@CurrentUser() user: { userId: string }) {
     return this.subscriptions.listForUser(user.userId);
+  }
+
+  // O-1 — free trial -----------------------------------------------------------
+
+  /** Czy to konto może jeszcze uruchomić darmowy okres próbny. */
+  @Get('trial/eligibility')
+  trialEligibility(@CurrentUser() user: { userId: string }) {
+    return this.trial.eligibility(user.userId);
+  }
+
+  /** Uruchom darmowy okres próbny (jeden na konto). */
+  @RateLimit({ limit: 3, windowMs: 60 * 60 * 1000, scope: 'subscriptions:trial-start' })
+  @Post('trial')
+  @HttpCode(201)
+  startTrial(@CurrentUser() user: { userId: string }, @Body() dto: StartTrialDto) {
+    return this.trial.startTrial(user.userId, dto);
+  }
+
+  /** Przekształć trwający okres próbny na płatną usługę (płatność z portfela). */
+  @Post(':id/convert')
+  @HttpCode(200)
+  convertTrial(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.trial.convertFromWallet(user.userId, id);
   }
 
   @Patch(':id/preferences')

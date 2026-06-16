@@ -13,6 +13,12 @@ export default function AdminSettingsPage() {
       </header>
       <TwoFactorSection />
       <p className="text-sm text-muted-foreground space-x-4">
+        <a href="/settings/security" className="text-emerald-400 hover:text-emerald-300 underline">
+          Bezpieczeństwo (passkey, break-glass)
+        </a>
+        <a href="/settings/company" className="text-emerald-400 hover:text-emerald-300 underline">
+          Firma i faktury (KSeF)
+        </a>
         <a href="/settings/platform" className="text-emerald-400 hover:text-emerald-300 underline">
           Ustawienia platformy (EKO, sesje)
         </a>

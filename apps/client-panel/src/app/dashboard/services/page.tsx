@@ -17,6 +17,7 @@ import type {
 } from '@verris/contracts';
 import { ApiError } from '@/lib/api';
 import { UnpaidServiceBanner } from '@/components/hosting/UnpaidServiceBanner';
+import { ConvertTrialButton } from './convert-trial-button';
 import { listServices } from './data';
 
 const statusLabels: Record<SubscriptionStatus, string> = {
@@ -114,6 +115,18 @@ function ServiceCard({ service }: { service: ServiceSummaryDto }) {
           status={service.status}
           paymentSource={service.paymentSource}
         />
+
+        {service.isTrial && service.status !== 'EXPIRED' ? (
+          <div className="mb-3 rounded-xl border border-emerald-400/25 bg-emerald-400/[0.06] px-3 py-2">
+            <p className="text-[11px] font-semibold text-emerald-200">
+              Okres próbny
+              {service.trialEndsAt
+                ? ` — do ${new Date(service.trialEndsAt).toLocaleDateString('pl-PL')}`
+                : ''}
+            </p>
+            <ConvertTrialButton serviceId={service.id} />
+          </div>
+        ) : null}
 
         {service.provisioning && service.status !== 'ACTIVE' && (
           <ProvisioningBadge progress={service.provisioning} />

@@ -69,6 +69,10 @@ export class CreatePlanDto {
   @IsOptional() @IsInt()
   sortOrder?: number;
 
+  /** O-1 — długość darmowego okresu próbnego w dniach (0 = brak). */
+  @IsOptional() @IsInt() @Min(0) @Max(90)
+  trialDays?: number;
+
   // Stripe recurring price IDs — required only if you intend to sell this plan
   // through Stripe Subscriptions (paymentSource=STRIPE_CARD on /subscriptions).
   // Format: "price_..." copied from the Stripe Dashboard. Leave blank to disable
@@ -154,6 +158,10 @@ export class UpdatePlanDto {
 
   @IsOptional() @IsInt()
   sortOrder?: number;
+
+  /** O-1 — długość darmowego okresu próbnego w dniach (0 = brak). */
+  @IsOptional() @IsInt() @Min(0) @Max(90)
+  trialDays?: number;
 
   @IsOptional() @IsString() @Length(3, 80) @Matches(/^price_/, {
     message: 'Stripe Price ID musi zaczynać się od "price_"',

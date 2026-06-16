@@ -83,7 +83,7 @@ export class KsefService {
 
   /** Oznacza fakturę jako PENDING do wysyłki (idempotentne). */
   async enqueueInvoice(invoiceId: string): Promise<void> {
-    if (!this.isEnabled()) return;
+    if (!(await this.isEnabled())) return;
     const inv = await this.prisma.invoice.findUnique({ where: { id: invoiceId } });
     if (!inv || !this.qualifies(inv)) return;
     if (inv.ksefStatus !== KsefStatus.NOT_APPLICABLE) return;
@@ -100,7 +100,7 @@ export class KsefService {
   /** Co 10 min: dokwalifikuj zaległe, wyślij PENDING, sprawdź SUBMITTED. */
   @Cron('0 */10 * * * *', { name: 'ksef:submit-cycle' })
   async tick(): Promise<void> {
-    if (!this.isEnabled()) return;
+    if (!(await this.isEnabled())) return;
 
     // Catch-up: faktury sprzed włączenia KSeF / z pominiętym enqueue.
     await this.prisma.invoice.updateMany({
@@ -272,7 +272,7 @@ export class KsefService {
       }),
     ]);
     return {
-      config: this.configStatus(),
+      config: await this.configStatus(),
       counts: Object.fromEntries(counts.map((c) => [c.ksefStatus, c._count._all])),
       recentRejected: recentRejected.map((r) => ({
         id: r.id,

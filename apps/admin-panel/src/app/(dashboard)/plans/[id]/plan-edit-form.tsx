@@ -33,6 +33,7 @@ interface FormState {
   isPublic: boolean;
   isActive: boolean;
   sortOrder: string;
+  trialDays: string;
   stripePriceMonthlyId: string;
   stripePriceYearlyId: string;
   autoscalingMaxOverscaleCpu: string;
@@ -57,6 +58,7 @@ function toFormState(plan: AdminPlanRow): FormState {
     isPublic: plan.isPublic,
     isActive: plan.isActive,
     sortOrder: String(plan.sortOrder),
+    trialDays: String(plan.trialDays ?? 0),
     stripePriceMonthlyId: plan.stripePriceMonthlyId ?? "",
     stripePriceYearlyId: plan.stripePriceYearlyId ?? "",
     autoscalingMaxOverscaleCpu: String(plan.autoscalingMaxOverscaleCpu ?? 3),
@@ -140,6 +142,7 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
         isPublic: state.isPublic,
         isActive: state.isActive,
         sortOrder: Number.parseInt(state.sortOrder, 10) || 0,
+        trialDays: Number.parseInt(state.trialDays, 10) || 0,
         ...(stripeManual
           ? {
               stripePriceMonthlyId: state.stripePriceMonthlyId.trim(),
@@ -453,6 +456,16 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
             type="number"
             value={state.sortOrder}
             onChange={(e) => setField("sortOrder", e.target.value)}
+            className="form-input"
+          />
+        </Field>
+        <Field label="Okres próbny (dni, 0 = brak)">
+          <input
+            type="number"
+            min={0}
+            max={90}
+            value={state.trialDays}
+            onChange={(e) => setField("trialDays", e.target.value)}
             className="form-input"
           />
         </Field>

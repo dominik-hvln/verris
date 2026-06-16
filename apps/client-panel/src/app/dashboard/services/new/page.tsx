@@ -4,6 +4,7 @@ import type { PlanDto } from '@verris/contracts';
 import { ApiError } from '@/lib/api';
 import { listPublicPlans } from '../data';
 import { NewSubscriptionForm } from './form';
+import { TrialCallout } from './trial-callout';
 
 export default async function NewServicePage() {
   let plans: PlanDto[] = [];
@@ -48,7 +49,10 @@ export default async function NewServicePage() {
       ) : plans.length === 0 ? (
         <EmptyPlans />
       ) : (
-        <NewSubscriptionForm plans={plans} />
+        <>
+          <TrialCallout plans={plans} />
+          <NewSubscriptionForm plans={plans} />
+        </>
       )}
     </div>
   );

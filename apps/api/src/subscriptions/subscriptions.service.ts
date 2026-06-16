@@ -896,6 +896,67 @@ export class SubscriptionsService {
     };
   }
 
+  /**
+   * O-1 — terminal expiry of a free trial that wasn't converted. Suspends the
+   * DA account (best-effort) and moves the subscription to EXPIRED. Idempotent.
+   */
+  async expireTrial(subscriptionId: string): Promise<Subscription> {
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { id: subscriptionId },
+      include: { account: true },
+    });
+    if (!subscription) throw new NotFoundException('Subscription not found');
+    if (!subscription.isTrial) {
+      throw new ConflictException('Subscription is not a trial');
+    }
+    if (
+      subscription.status === SubscriptionStatus.EXPIRED ||
+      subscription.status === SubscriptionStatus.CANCELED
+    ) {
+      return subscription;
+    }
+
+    if (subscription.account && subscription.account.status !== AccountStatus.SUSPENDED) {
+      try {
+        await this.suspendOnDa(subscription.account.serverId, subscription.account.daUsername);
+      } catch (err) {
+        this.logger.error(
+          `Trial expiry: DA suspend failed for sub=${subscriptionId}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const next = await tx.subscription.update({
+        where: { id: subscriptionId },
+        data: { status: SubscriptionStatus.EXPIRED },
+      });
+      if (subscription.account) {
+        await tx.account.update({
+          where: { id: subscription.account.id },
+          data: { status: AccountStatus.SUSPENDED },
+        });
+      }
+      await tx.subscriptionEvent.create({
+        data: {
+          subscriptionId,
+          type: 'TRIAL_EXPIRED',
+          details: { trialEndsAt: subscription.trialEndsAt?.toISOString() ?? null },
+        },
+      });
+      return next;
+    });
+
+    await this.audit.record({
+      action: 'TRIAL_EXPIRED',
+      userId: subscription.userId,
+      details: { subscriptionId },
+    });
+    return updated;
+  }
+
   private async suspendOnDa(serverId: string, daUsername: string) {
     const client = await this.da.getClientForServer(serverId);
     await client.suspendAccount(daUsername);

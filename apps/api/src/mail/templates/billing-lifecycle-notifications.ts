@@ -615,3 +615,129 @@ export function subscriptionCancelledTemplate(ctx: SubscriptionCancelledContext)
     html,
   };
 }
+
+// ---------------------------------------------------------------------------
+// O-1 — free trial lifecycle
+// ---------------------------------------------------------------------------
+
+export interface TrialStartedContext {
+  to: string;
+  firstName: string | null;
+  planName: string;
+  trialEndsAt: Date;
+  panelUrl: string;
+}
+
+export function trialStartedTemplate(ctx: TrialStartedContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: 'Twój darmowy okres próbny wystartował',
+    preheader: `Hosting ${escapeHtml(ctx.planName)} działa do ${escapeHtml(formatDate(ctx.trialEndsAt))}.`,
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Uruchomiliśmy dla Ciebie **darmowy okres próbny planu ${escapeHtml(ctx.planName)}**. Konto hostingowe jest już zakładane — za chwilę będzie gotowe w panelu.`,
+      ``,
+      `## Co warto wiedzieć`,
+      ``,
+      `- **Okres próbny trwa do:** ${escapeHtml(formatDate(ctx.trialEndsAt))}.`,
+      `- W trakcie próby masz pełnię możliwości planu (pliki, bazy, poczta, WordPress 1-click).`,
+      `- Aby zachować dane po próbie — **doładuj portfel i przekształć usługę na płatną** w panelu. Zrobisz to jednym kliknięciem.`,
+      `- Jeśli nic nie zrobisz, po tej dacie usługa zostanie zawieszona, a dane przechowamy jeszcze 30 dni.`,
+    ].join('\n'),
+    cta: { label: 'Otwórz panel', url: `${ctx.panelUrl}/dashboard` },
+    footnote: 'Okres próbny jest jednorazowy na konto. Bez automatycznych opłat — przekształcenie na płatną usługę zawsze potwierdzasz sam.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return { to: ctx.to, tag: 'trial.started', subject: '[Verris] Darmowy okres próbny aktywny', text, html };
+}
+
+export interface TrialEndingSoonContext {
+  to: string;
+  firstName: string | null;
+  planName: string;
+  trialEndsAt: Date;
+  daysLeft: number;
+  panelUrl: string;
+}
+
+export function trialEndingSoonTemplate(ctx: TrialEndingSoonContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: `Okres próbny kończy się za ${ctx.daysLeft} ${ctx.daysLeft === 1 ? 'dzień' : 'dni'}`,
+    preheader: `Przekształć ${escapeHtml(ctx.planName)} na płatny, aby zachować dane.`,
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Twój **darmowy okres próbny planu ${escapeHtml(ctx.planName)}** kończy się **${escapeHtml(formatDate(ctx.trialEndsAt))}**.`,
+      ``,
+      `Aby usługa działała dalej bez przerwy: **doładuj portfel** i kliknij **„Przekształć na płatną"** przy usłudze. Pobierzemy wtedy opłatę za pierwszy miesiąc, a dalej rozliczamy się z portfela.`,
+      ``,
+      `Jeśli nie przedłużysz — po tej dacie usługa zostanie zawieszona. Dane przechowamy jeszcze 30 dni, więc nadal zdążysz wrócić.`,
+    ].join('\n'),
+    cta: { label: 'Przekształć usługę', url: `${ctx.panelUrl}/dashboard/subscriptions` },
+    footnote: 'Wysyłamy to przypomnienie raz, przed końcem okresu próbnego.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return { to: ctx.to, tag: 'trial.ending-soon', subject: `[Verris] Okres próbny kończy się ${formatDate(ctx.trialEndsAt)}`, text, html };
+}
+
+export interface TrialExpiredContext {
+  to: string;
+  firstName: string | null;
+  planName: string;
+  panelUrl: string;
+}
+
+export function trialExpiredTemplate(ctx: TrialExpiredContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: 'Okres próbny dobiegł końca',
+    preheader: 'Usługa została zawieszona — dane przechowujemy 30 dni.',
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Twój darmowy okres próbny planu **${escapeHtml(ctx.planName)}** się zakończył, więc usługa została **zawieszona**.`,
+      ``,
+      `Nic nie przepadło: **Twoje pliki, bazy i poczta są bezpieczne jeszcze przez 30 dni**. Aby je przywrócić i wznowić usługę — doładuj portfel i przekształć usługę na płatną w panelu.`,
+    ].join('\n'),
+    cta: { label: 'Wznów usługę', url: `${ctx.panelUrl}/dashboard/subscriptions` },
+    footnote: 'Po 30 dniach od zawieszenia dane mogą zostać trwale usunięte.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return { to: ctx.to, tag: 'trial.expired', subject: '[Verris] Okres próbny zakończony — usługa zawieszona', text, html };
+}
+
+export interface TrialConvertedContext {
+  to: string;
+  firstName: string | null;
+  planName: string;
+  panelUrl: string;
+}
+
+export function trialConvertedTemplate(ctx: TrialConvertedContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: 'Dziękujemy — usługa jest już płatna',
+    preheader: `Plan ${escapeHtml(ctx.planName)} działa dalej bez przerwy.`,
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Twój okres próbny planu **${escapeHtml(ctx.planName)}** został pomyślnie **przekształcony na usługę płatną**. Wszystko działa dalej — bez przerwy i bez migracji danych.`,
+      ``,
+      `Kolejne rozliczenia pobieramy z portfela. Saldo i faktury znajdziesz w panelu.`,
+    ].join('\n'),
+    cta: { label: 'Przejdź do rozliczeń', url: `${ctx.panelUrl}/dashboard/billing` },
+    footnote: 'Dziękujemy, że jesteś z Verris.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return { to: ctx.to, tag: 'trial.converted', subject: '[Verris] Okres próbny przekształcony na płatny', text, html };
+}

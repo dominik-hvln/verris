@@ -18,4 +18,6 @@ export interface PlanDto {
   isPublic: boolean;
   isActive: boolean;
   sortOrder: number;
+  /** O-1 — free trial length in days. 0 = no trial available. */
+  trialDays: number;
 }

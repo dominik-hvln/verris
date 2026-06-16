@@ -92,6 +92,13 @@ model User {
   webauthnChallengeExpires DateTime?
   webauthnCredentials      WebAuthnCredential[]
   webauthnLoginChallenges  WebAuthnLoginChallenge[]
+  // Passkey enforcement for ADMIN/STAFF. Once a privileged user has logged in
+  // with a passkey under enforcement we set `passkeyEnforcedAt`; afterwards the
+  // password-only path is rejected (must use passkey or audited break-glass).
+  passkeyEnforcedAt          DateTime?
+  staffBreakGlassCodesEnc    String?
+  staffBreakGlassGeneratedAt DateTime?
+  staffBreakGlassUsedAt      DateTime?
 
   // Stripe
   stripeCustomerId         String?   @unique
@@ -368,6 +375,12 @@ model Server {
   hardenedEnabled    Boolean?
   hardenedCheckedAt  DateTime?
 
+  // Incydent Hetzner 2026-06-11: detektor wychodzącego skanu na węźle zgłasza
+  // alarm fan-outu; pokazywane w audycie węzła i alertach admina.
+  lastSecurityAlertAt    DateTime?
+  lastSecurityAlertKind  String?
+  lastSecurityAlertInfo  String?
+
   // Authoritative nameservers handed to every account provisioned on this node
   // (DA `CMD_API_ACCOUNT_USER` ns1/ns2). Per-node override; when null the
   // platform default (PlatformSetting `hosting.ns*`, then env HOSTING_NS*) is
@@ -602,6 +615,9 @@ model Plan {
   isActive             Boolean  @default(true)
   sortOrder            Int      @default(0)
 
+  // O-1 — free trial length in days. 0 = no trial available for this plan.
+  trialDays            Int      @default(0)
+
   // B6 — SSH/Git shell access for this plan (CageFS-jailed). Off by default;
   // higher tiers can enable it. Applied to the DA package `ssh` feature.
   sshAccess            Boolean  @default(false)
@@ -667,6 +683,10 @@ model Subscription {
   cancelAt             DateTime?
   canceledAt           DateTime?
   trialEndsAt          DateTime?
+  // O-1 — free trial bookkeeping.
+  isTrial              Boolean                   @default(false)
+  trialConvertedAt     DateTime?
+  trialReminderSentAt  DateTime?
 
   // Provisioned account (1:1)
   account              Account?                  @relation("SubscriptionAccount")

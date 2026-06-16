@@ -69,6 +69,9 @@ export interface ServiceSummaryDto {
   currentPeriodEnd: string | null;
   ecoModeEnabled: boolean;
   autoscalingEnabled: boolean;
+  /** O-1 — true while in a free trial; `trialEndsAt` is the window end. */
+  isTrial: boolean;
+  trialEndsAt: string | null;
   account: ServiceAccountSummaryDto | null;
   /** Sprint 5 / R-11+B-7 — postęp provisioningu widoczny dla klienta. */
   provisioning: ProvisioningProgressDto | null;

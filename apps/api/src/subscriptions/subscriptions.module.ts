@@ -29,6 +29,8 @@ import { WafService } from './waf.service';
 import { WafAdminController } from './waf.admin.controller';
 import { SiteMonitorService } from './site-monitor.service';
 import { StagingService } from './staging.service';
+import { TrialService } from './trial.service';
+import { TrialExpiryScheduler } from './trial-expiry.scheduler';
 import { EcoModule } from '../eco/eco.module';
 
 @Module({
@@ -51,6 +53,8 @@ import { EcoModule } from '../eco/eco.module';
     WordpressService,
     WafService,
     SiteMonitorService,
+    TrialService,
+    TrialExpiryScheduler,
     StagingService,
   ],
   controllers: [

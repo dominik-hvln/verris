@@ -39,6 +39,7 @@ export function NewPlanForm() {
     priceYearly: "",
     currency: "PLN",
     sortOrder: "0",
+    trialDays: "0",
     stripePriceMonthlyId: "",
     stripePriceYearlyId: "",
     isPublic: true,
@@ -98,6 +99,7 @@ export function NewPlanForm() {
         isPublic: form.isPublic,
         isActive: form.isActive,
         sortOrder: Number.parseInt(form.sortOrder, 10) || 0,
+        trialDays: Number.parseInt(form.trialDays, 10) || 0,
         ...(stripeManual
           ? {
               stripePriceMonthlyId: form.stripePriceMonthlyId.trim() || undefined,
@@ -215,6 +217,7 @@ export function NewPlanForm() {
           <ToggleRow checked={form.isPublic} onChange={(v) => setField("isPublic", v)} description="Pokaż w cenniku panelu klienta." />
         </Field>
         <NumField label="Sort order" value={form.sortOrder} onChange={(v) => setField("sortOrder", v)} />
+        <NumField label="Trial (dni, 0=brak)" value={form.trialDays} onChange={(v) => setField("trialDays", v)} />
       </Card>
 
       <div className="pt-4 border-t border-white/5 flex justify-end">

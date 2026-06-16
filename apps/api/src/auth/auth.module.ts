@@ -12,6 +12,7 @@ import { AuditModule } from '../common/audit/audit.module';
 import { MailModule } from '../mail/mail.module';
 import { LoginEventService } from './login-event.service';
 import { WebAuthnService } from './webauthn/webauthn.service';
+import { PasskeyPolicyService } from './passkey-policy.service';
 import { EcoModule } from '../eco/eco.module';
 
 @Module({
@@ -40,7 +41,14 @@ import { EcoModule } from '../eco/eco.module';
     TwoFactorService,
     LoginEventService,
     WebAuthnService,
+    PasskeyPolicyService,
   ],
-  exports: [AuthService, TwoFactorService, LoginEventService, WebAuthnService],
+  exports: [
+    AuthService,
+    TwoFactorService,
+    LoginEventService,
+    WebAuthnService,
+    PasskeyPolicyService,
+  ],
 })
 export class AuthModule {}

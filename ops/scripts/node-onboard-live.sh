@@ -201,6 +201,24 @@ run_security_hardening() {
     log_fail "security-egress-lockdown.sh --apply zakończony błędem"
     return 1
   fi
+
+  # Incydent Hetzner 2026-06-11: detektor wychodzącego skanu z auto-blockiem.
+  if [ -f "$SCRIPT_DIR/security-outbound-scan-detect.sh" ]; then
+    if bash "$SCRIPT_DIR/security-outbound-scan-detect.sh" --install --block; then
+      log_ok "security-outbound-scan-detect.sh zainstalowany (timer 1 min, auto-block)"
+    else
+      log_warn "security-outbound-scan-detect.sh — instalacja nieudana (sprawdź ręcznie)"
+    fi
+  fi
+
+  # O-2: worker migracji od konkurencji (lease + rsync/mysql/imap na węźle).
+  if [ -f "$SCRIPT_DIR/node-migration-worker.sh" ]; then
+    if bash "$SCRIPT_DIR/node-migration-worker.sh" --install; then
+      log_ok "node-migration-worker.sh zainstalowany (timer 2 min)"
+    else
+      log_warn "node-migration-worker.sh — instalacja nieudana (sprawdź jq/lftp/imapsync)"
+    fi
+  fi
 }
 
 da_ip_registered() {

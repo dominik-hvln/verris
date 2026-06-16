@@ -29,6 +29,7 @@ import {
 import { passwordChangedTemplate } from '../mail/templates/security-notifications';
 import { generateAuthToken, hashAuthToken } from './auth-token.util';
 import { EcoPointsService } from '../eco/eco-points.service';
+import { PasskeyPolicyService } from './passkey-policy.service';
 
 const PASSWORD_RESET_TTL_MINUTES = 15;
 const EMAIL_VERIFICATION_TTL_HOURS = 24;
@@ -48,6 +49,11 @@ interface LoginSuccess {
     firstName: string | null;
     lastName: string | null;
   };
+  /**
+   * True for privileged accounts under passkey enforcement that don't yet have
+   * a working passkey — the panel must force enrollment before anything else.
+   */
+  passkeyEnrollmentRequired?: boolean;
 }
 
 interface LoginChallenge {
@@ -77,6 +83,7 @@ export class AuthService {
     private readonly mailer: MailerService,
     private readonly config: ConfigService,
     private readonly ecoPoints: EcoPointsService,
+    private readonly passkeyPolicy: PasskeyPolicyService,
   ) {}
 
   async register(dto: RegisterDto, ctx: RequestContext = {}): Promise<RegisterSuccess> {
@@ -536,6 +543,24 @@ export class AuthService {
       );
     }
 
+    // Passkey enforcement (#30): privileged accounts that have already enrolled
+    // a passkey under enforcement cannot complete a password-only login — they
+    // must use the passkey or the audited break-glass fallback. Checked before
+    // issuing the 2FA challenge so a stolen password+TOTP still can't get in.
+    const passkeyDecision = await this.passkeyPolicy.evaluatePasswordLogin(user);
+    if (passkeyDecision === 'block-use-passkey') {
+      await this.audit.record({
+        action: 'LOGIN_BLOCKED_PASSKEY_REQUIRED',
+        userId: user.id,
+        details: { role: user.role },
+        ipAddress: ctx.ip ?? undefined,
+        userAgent: ctx.userAgent ?? undefined,
+      });
+      throw new UnauthorizedException(
+        'To konto loguje się kluczem passkey. Użyj passkey, a jeśli nie masz do niego dostępu — awaryjnego logowania (break-glass).',
+      );
+    }
+
     if (user.isTwoFactorEnabled) {
       // Issue a 5-minute "2fa-challenge" token. It carries `sub` and a special
       // `purpose` claim so the JWT strategy refuses to mint regular requests
@@ -561,7 +586,9 @@ export class AuthService {
       userAgent: ctx.userAgent ?? null,
       loginMethod: 'password',
     });
-    return this.generateAccessTokenResponse(user);
+    return this.generateAccessTokenResponse(user, {
+      passkeyEnrollmentRequired: passkeyDecision === 'enroll-required',
+    });
   }
 
   /**
@@ -618,7 +645,91 @@ export class AuthService {
       userAgent: ctx.userAgent ?? null,
       loginMethod: 'password+2fa',
     });
-    return this.generateAccessTokenResponse(user);
+    return this.generateAccessTokenResponse(user, {
+      passkeyEnrollmentRequired: await this.passkeyPolicy.needsEnrollment(user),
+    });
+  }
+
+  /**
+   * #30 — Break-glass fallback for privileged accounts that can't use their
+   * passkey (lost/broken device). Deliberately heavy: requires password + a
+   * live TOTP code + a single-use break-glass code. Every use consumes the
+   * code, writes an audit entry and e-mails every administrator.
+   */
+  async loginWithBreakGlass(
+    dto: { email: string; password: string; code: string; breakGlassCode: string },
+    ctx: RequestContext = {},
+  ): Promise<LoginSuccess> {
+    if (await this.suspicious.isEmailLockedOut(dto.email)) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const recordFailure = (
+      reason:
+        | 'break_glass_invalid'
+        | 'break_glass_bad_password'
+        | 'break_glass_no_2fa'
+        | 'break_glass_bad_2fa'
+        | 'break_glass_bad_code',
+    ) =>
+      this.suspicious.recordFailure({
+        email: dto.email,
+        ip: ctx.ip ?? null,
+        userAgent: ctx.userAgent ?? null,
+        reason,
+      });
+
+    if (!user || (user.role !== Role.ADMIN && user.role !== Role.STAFF)) {
+      await recordFailure('break_glass_invalid');
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    const passwordOk = await bcrypt.compare(dto.password, user.passwordHash);
+    if (!passwordOk) {
+      await recordFailure('break_glass_bad_password');
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    this.assertNotLoginBlocked(user);
+
+    // 2FA is mandatory for the fallback — without a second factor a leaked
+    // break-glass code + password would be enough, defeating the purpose.
+    if (!user.isTwoFactorEnabled) {
+      await recordFailure('break_glass_no_2fa');
+      throw new UnauthorizedException(
+        'Logowanie awaryjne wymaga aktywnego 2FA na koncie.',
+      );
+    }
+    const totpOk = await this.twoFactor.verifyCodeForLogin(user.id, dto.code);
+    if (!totpOk) {
+      await recordFailure('break_glass_bad_2fa');
+      throw new UnauthorizedException('Niepoprawny kod 2FA.');
+    }
+    const codeOk = await this.passkeyPolicy.consumeBreakGlass(user.id, dto.breakGlassCode);
+    if (!codeOk) {
+      await recordFailure('break_glass_bad_code');
+      throw new UnauthorizedException('Niepoprawny lub zużyty kod awaryjny.');
+    }
+
+    const status = await this.passkeyPolicy.breakGlassStatus(user.id);
+    void this.passkeyPolicy
+      .alertBreakGlassUsed(user, ctx, status.remaining)
+      .catch(() => undefined);
+
+    await this.suspicious.recordSuccess({
+      email: user.email,
+      ip: ctx.ip ?? null,
+      userAgent: ctx.userAgent ?? null,
+    });
+    await this.loginEvents.record({
+      userId: user.id,
+      email: user.email,
+      firstName: user.firstName,
+      ip: ctx.ip ?? null,
+      userAgent: ctx.userAgent ?? null,
+      loginMethod: 'break-glass',
+    });
+    // After a break-glass login we always steer the user back to passkey
+    // enrollment (their device is presumably gone), so signal it.
+    return this.generateAccessTokenResponse(user, { passkeyEnrollmentRequired: true });
   }
 
   private assertNotLoginBlocked(user: User) {
@@ -656,6 +767,12 @@ export class AuthService {
     this.assertNotLoginBlocked(user);
     this.assertEmailVerified(user);
 
+    // #30 — first successful passkey login under enforcement locks the
+    // password-only path for this privileged account (credential now proven).
+    if (method === 'passkey') {
+      await this.passkeyPolicy.markEnforcedOnPasskeyLogin(user);
+    }
+
     await this.suspicious.recordSuccess({
       email: user.email,
       ip: ctx.ip ?? null,
@@ -686,7 +803,10 @@ export class AuthService {
     return { ok: true };
   }
 
-  private generateAccessTokenResponse(user: User): LoginSuccess {
+  private generateAccessTokenResponse(
+    user: User,
+    opts?: { passkeyEnrollmentRequired?: boolean },
+  ): LoginSuccess {
     const payload = { email: user.email, sub: user.id, role: user.role, tv: user.tokenVersion };
     return {
       access_token: this.jwtService.sign(payload),
@@ -697,6 +817,7 @@ export class AuthService {
         firstName: user.firstName,
         lastName: user.lastName,
       },
+      ...(opts?.passkeyEnrollmentRequired ? { passkeyEnrollmentRequired: true } : {}),
     };
   }
 

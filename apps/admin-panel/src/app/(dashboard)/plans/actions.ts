@@ -35,6 +35,7 @@ interface CreatePlanPayload {
   isPublic?: boolean;
   isActive?: boolean;
   sortOrder?: number;
+  trialDays?: number;
   stripePriceMonthlyId?: string;
   stripePriceYearlyId?: string;
   autoscalingMaxOverscaleCpu?: number;
@@ -71,6 +72,7 @@ interface UpdatePlanPayload {
   isPublic?: boolean;
   isActive?: boolean;
   sortOrder?: number;
+  trialDays?: number;
   stripePriceMonthlyId?: string;
   stripePriceYearlyId?: string;
   autoscalingMaxOverscaleCpu?: number;

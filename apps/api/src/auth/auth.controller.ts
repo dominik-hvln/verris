@@ -12,6 +12,7 @@ import {
 import type { Request } from 'express';
 import { AuthService } from './auth.service';
 import {
+  BreakGlassLoginDto,
   ConfirmTwoFactorDto,
   DisableTwoFactorDto,
   LoginDto,
@@ -19,9 +20,11 @@ import {
   PasswordResetRequestDto,
   EmailVerificationConfirmDto,
   EmailVerificationRequestDto,
+  RegenerateBreakGlassDto,
   RegisterDto,
   VerifyTwoFactorDto,
 } from './auth.dto';
+import { PasskeyPolicyService } from './passkey-policy.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { RateLimit } from '../common/guards/rate-limit.guard';
@@ -41,6 +44,7 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly twoFactor: TwoFactorService,
     private readonly webauthn: WebAuthnService,
+    private readonly passkeyPolicy: PasskeyPolicyService,
   ) {}
 
   // Audit F-09: strict per-route limits — registration and mail-out endpoints
@@ -100,6 +104,44 @@ export class AuthController {
   @Post('login/2fa')
   async loginVerifyTwoFactor(@Body() dto: VerifyTwoFactorDto, @Req() req: Request) {
     return this.authService.verifyTwoFactor(dto, requestContext(req));
+  }
+
+  // ---------------------------------------------------------------------------
+  // #30 — Break-glass fallback (privileged accounts that can't use passkey)
+  // ---------------------------------------------------------------------------
+
+  /** Awaryjne logowanie: hasło + kod 2FA + jednorazowy kod break-glass. */
+  @RateLimit({
+    limit: 3,
+    windowMs: 60 * 60 * 1000,
+    scope: 'auth:break-glass',
+    keyByBodyField: 'email',
+  })
+  @HttpCode(HttpStatus.OK)
+  @Post('login/break-glass')
+  async loginBreakGlass(@Body() dto: BreakGlassLoginDto, @Req() req: Request) {
+    return this.authService.loginWithBreakGlass(dto, requestContext(req));
+  }
+
+  /** Status kodów break-glass dla zalogowanego konta uprzywilejowanego. */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @Get('break-glass/status')
+  breakGlassStatus(@CurrentUser() user: { userId: string }) {
+    return this.passkeyPolicy.breakGlassStatus(user.userId);
+  }
+
+  /** (Re)generacja kodów break-glass — wymaga ponownej autoryzacji hasło+TOTP. */
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @RateLimit({ limit: 5, windowMs: 60 * 60 * 1000, scope: 'auth:break-glass-gen' })
+  @HttpCode(HttpStatus.OK)
+  @Post('break-glass/regenerate')
+  breakGlassRegenerate(
+    @CurrentUser() user: { userId: string },
+    @Body() dto: RegenerateBreakGlassDto,
+  ) {
+    return this.passkeyPolicy.regenerateBreakGlass(user.userId, dto.password, dto.code);
   }
 
   // ---------------------------------------------------------------------------

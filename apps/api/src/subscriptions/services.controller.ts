@@ -165,6 +165,8 @@ export class UserServicesController {
       currentPeriodEnd: s.currentPeriodEnd?.toISOString() ?? null,
       ecoModeEnabled: s.ecoModeEnabled,
       autoscalingEnabled: s.autoscalingEnabled,
+      isTrial: s.isTrial,
+      trialEndsAt: s.trialEndsAt?.toISOString() ?? null,
       provisioning: s.provisioningStage
         ? {
             stage: s.provisioningStage as
@@ -622,6 +624,8 @@ export class UserServicesController {
       currentPeriodEnd: sub.currentPeriodEnd?.toISOString() ?? null,
       ecoModeEnabled: sub.ecoModeEnabled,
       autoscalingEnabled: sub.autoscalingEnabled,
+      isTrial: sub.isTrial,
+      trialEndsAt: sub.trialEndsAt?.toISOString() ?? null,
       autoscalingMaxCost: sub.autoscalingMaxCost.toString(),
       account: sub.account
         ? {

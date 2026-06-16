@@ -109,6 +109,7 @@ export class PlansService {
         isPublic: dto.isPublic ?? true,
         isActive: dto.isActive ?? true,
         sortOrder: dto.sortOrder ?? 0,
+        trialDays: dto.trialDays ?? 0,
         stripePriceMonthlyId: manualStripe ? (dto.stripePriceMonthlyId?.trim() ?? null) : null,
         stripePriceYearlyId: manualStripe ? (dto.stripePriceYearlyId?.trim() ?? null) : null,
         autoscalingMaxOverscaleCpu: dto.autoscalingMaxOverscaleCpu ?? 3,

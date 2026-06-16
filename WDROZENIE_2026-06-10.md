@@ -1,5 +1,60 @@
 # Wdrożenie 2026-06-10 — commit, deploy, VPN, batch funkcji
 
+## 0a. Passkey enforcement admin/staff + break-glass (#30) — aktywacja
+
+Nowy mechanizm: konta **ADMIN/STAFF** po pierwszym logowaniu hasłem są zmuszane
+do skonfigurowania passkey; po pierwszym **udanym logowaniu passkey** ścieżka
+hasłowa jest dla nich blokowana. Awaryjne wejście (utrata urządzenia) to
+**break-glass**: hasło + kod 2FA + jednorazowy kod awaryjny — każde użycie
+powiadamia wszystkich adminów i trafia do audytu.
+
+Kolejność włączania (żeby się nie zablokować):
+1. Deploy kodu + migracja `20260616100000_staff_passkey_enforcement` (`prisma migrate deploy`) + `db:generate`.
+2. Każdy admin/staff loguje się hasłem → **dodaje passkey** w `Ustawienia → Bezpieczeństwo` (admin) / `Ustawienia → Passkeys i kody awaryjne` (staff).
+3. Tam samym ekranie **wygeneruj kody break-glass** (wymaga hasła + TOTP; 2FA musi być włączone). Zapisz je offline.
+4. Dopiero gdy **wszystkie** konta uprzywilejowane mają passkey + kody → ustaw `REQUIRE_PASSKEY_FOR_STAFF=1` w env API i zrestartuj API.
+5. Od teraz: logowanie hasłem dla admin/staff bez passkey wymusza enrollment; z passkey — blokuje hasło (tylko passkey lub break-glass).
+
+> ⚠️ Bez kroku 2–3 **nie** ustawiaj `REQUIRE_PASSKEY_FOR_STAFF=1` — zablokujesz sobie wejście.
+> Endpointy: `POST /auth/login/break-glass`, `GET/POST /auth/break-glass/{status,regenerate}`.
+
+## 0b. Free trial (O-1) — aktywacja
+
+Darmowy okres próbny. Plan z `trialDays > 0` można uruchomić bez płatności
+(jeden okres próbny na konto, wymaga zweryfikowanego e-maila). Po okresie:
+scheduler wysyła przypomnienie (≤3 dni przed), a po terminie zawiesza konto DA i
+ustawia status `EXPIRED` (dane trzymane 30 dni). Klient może w panelu w każdej
+chwili **przekształcić próbę na płatną** (pobranie z portfela).
+
+Uruchomienie:
+1. Deploy + migracja `20260616120000_free_trial` (`prisma migrate deploy`) + `db:generate`.
+2. W panelu admina (`Plany → edycja`) ustaw **Okres próbny (dni)** dla wybranych planów (np. 14).
+3. Gotowe — w panelu klienta na ekranie „Zamów nową usługę" pojawia się sekcja „Wypróbuj za darmo", a próbne usługi mają przycisk „Przekształć na płatną".
+
+> Endpointy: `GET /subscriptions/trial/eligibility`, `POST /subscriptions/trial`, `POST /subscriptions/:id/convert`.
+> Scheduler `TrialExpiryScheduler` chodzi co godzinę (przypomnienia + wygaszanie).
+> Anty-nadużycie: jeden trial na konto (`User.trialStartedAt`, atomowe `updateMany`), wymóg weryfikacji e-mail, rate-limit 3/h na start.
+
+## 0c. Migracja od konkurencji (O-2) — worker na węźle
+
+Stos migracji (pliki/DB/poczta) był już gotowy po stronie API i panelu klienta
+(self-service formularz FTP/SFTP/MySQL/IMAP → zaszyfrowany pakiet → orchestrator
+→ kolejka jobów; staff może podejrzeć sekrety i zarządzać statusem). Brakującym
+elementem był **agent-worker na węźle**, który faktycznie wykonuje transfer —
+dodany jako `ops/scripts/node-migration-worker.sh`.
+
+Worker dzierżawi joby (`GET /node/migration-worker/lease`), wykonuje je na węźle
+docelowym (rsync/lftp dla plików, `mysqldump|mysql` dla baz, `imapsync` dla
+poczty, curl dla health-checku) i raportuje `complete`/`fail` z metrykami. Ruch
+transferowy nie przechodzi przez API.
+
+Instalacja:
+1. Nowe węzły: instaluje się automatycznie w `node-onboard-live.sh` (timer 2 min). 
+2. Istniejące węzły: skopiuj skrypt i `bash node-migration-worker.sh --install` (zainstaluje też `jq/lftp/mariadb/imapsync`).
+3. Dla migracji IMAP ustaw w `/etc/verris.conf`: `VERRIS_DOVECOT_MASTER_USER` + `VERRIS_DOVECOT_MASTER_PASS` (master-user dovecot z bootstrapu) — bez tego joby IMAP zgłoszą retryable-fail, a pliki/DB działają niezależnie.
+
+> Bezpieczeństwo: worker uwierzytelnia się tożsamością węzła (`X-Server-Id`/`X-Server-Token`), a sekrety źródła są deszyfrowane dopiero w odpowiedzi `lease` (AES-256-GCM at-rest). Logi workera trymowane do 200 KB i widoczne dla staff.
+
 ## 0. Konfiguracja OpenProvider (rejestrator domen, C4)
 
 Kod integracji jest gotowy (`apps/api/src/domains/registrar.provider.ts`). Żeby
