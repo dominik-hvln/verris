@@ -28,6 +28,8 @@ export function AddonsClient({ overview }: { overview: AddonsOverview }) {
         return;
       }
       toast.success('Dodatek kupiony', { description: res.note });
+      // Odśwież licznik salda w topbarze (layout nasłuchuje tego zdarzenia).
+      window.dispatchEvent(new Event('wallet:refresh'));
       router.refresh();
     });
   };

@@ -12,15 +12,18 @@ export function AdminPasskeyLoginButton() {
   const [error, setError] = useState<string | null>(null);
   const [available, setAvailable] = useState<boolean | null>(null);
   const [isPending, setIsPending] = useState(false);
+  // Render dopiero po montażu — inaczej hydration mismatch (React #418).
+  const [mounted, setMounted] = useState(false);
   const prefetchedOptions = useRef<unknown | null>(null);
   const supported =
     typeof window !== "undefined" && typeof window.PublicKeyCredential !== "undefined";
 
   useEffect(() => {
+    setMounted(true);
     void getAdminPasskeyAvailability().then(setAvailable);
   }, []);
 
-  if (!supported || available === false) return null;
+  if (!mounted || !supported || available === false) return null;
 
   const onPointerDown = () => {
     void fetchPasskeyLoginOptions()

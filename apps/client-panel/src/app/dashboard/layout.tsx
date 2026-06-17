@@ -187,21 +187,28 @@ export default function DashboardLayout({
 
   useEffect(() => {
     let cancelled = false;
-    Promise.all([fetchSidebarUser(), getImpersonationContext()]).then(([u, imp]) => {
-      if (cancelled) return;
-      setImpersonating(Boolean(imp?.isImpersonating));
-      setUserLoading(false);
-      if (!u) {
-        void logoutAction();
-        return;
-      }
-      setUser(u);
-      const root = document.documentElement;
-      if (u?.isEcoProgramParticipant) root.classList.add("eco-tint");
-      else root.classList.remove("eco-tint");
-    });
+    const loadUser = () => {
+      void Promise.all([fetchSidebarUser(), getImpersonationContext()]).then(([u, imp]) => {
+        if (cancelled) return;
+        setImpersonating(Boolean(imp?.isImpersonating));
+        setUserLoading(false);
+        if (!u) {
+          void logoutAction();
+          return;
+        }
+        setUser(u);
+        const root = document.documentElement;
+        if (u?.isEcoProgramParticipant) root.classList.add("eco-tint");
+        else root.classList.remove("eco-tint");
+      });
+    };
+    loadUser();
+    // Pozwala odświeżyć saldo/usera bez nawigacji (np. po zakupie dodatku):
+    // dowolny komponent woła window.dispatchEvent(new Event("wallet:refresh")).
+    window.addEventListener("wallet:refresh", loadUser);
     return () => {
       cancelled = true;
+      window.removeEventListener("wallet:refresh", loadUser);
     };
   }, [pathname]);
 

@@ -48,6 +48,7 @@ export interface TicketDetail {
   firstResponseAt?: string | null;
   slaResponseDueAt?: string | null;
   supportSlaHours?: number;
+  priority?: string;
 }
 
 /**

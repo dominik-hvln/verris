@@ -15,15 +15,19 @@ export function PasskeyLoginButton() {
   const [error, setError] = useState<string | null>(null);
   const [available, setAvailable] = useState<boolean | null>(null);
   const [isPending, setIsPending] = useState(false);
+  // Render dopiero po montażu — inaczej serwer (brak window) i klient renderują
+  // różny HTML → hydration mismatch (React #418).
+  const [mounted, setMounted] = useState(false);
   const prefetchedOptions = useRef<unknown | null>(null);
   const supported =
     typeof window !== 'undefined' && typeof window.PublicKeyCredential !== 'undefined';
 
   useEffect(() => {
+    setMounted(true);
     void getPasskeyAvailability().then(setAvailable);
   }, []);
 
-  if (!supported || available === false) return null;
+  if (!mounted || !supported || available === false) return null;
 
   const loadOptions = async (email?: string) => {
     const options = await fetchPasskeyLoginOptions(email);

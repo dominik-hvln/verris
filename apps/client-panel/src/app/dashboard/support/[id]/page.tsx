@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
-import { ChevronLeft, Clock, AlertCircle, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, Clock, AlertCircle, CheckCircle2, Sparkles } from "lucide-react";
 import { fetchTicketDetail } from "../actions";
 import ClientTicketChat from "./client-ticket-chat";
 import { TicketCsat } from "./ticket-csat";
@@ -35,12 +35,14 @@ export default async function ClientTicketPage(props: { params: Promise<{ id: st
             Zgłoszenie #{ticket.id.slice(-8).toUpperCase()} utworzone {format(new Date(ticket.createdAt), "d MMMM yyyy, HH:mm", { locale: pl })}
           </p>
         </div>
-        <div className="hidden sm:block">
+        <div className="hidden sm:flex items-center gap-2">
+          <PriorityBadge priority={ticket.priority} />
           <StatusBadge status={ticket.status} />
         </div>
       </div>
 
-      <div className="sm:hidden -mt-2">
+      <div className="sm:hidden -mt-2 flex items-center gap-2">
+        <PriorityBadge priority={ticket.priority} />
         <StatusBadge status={ticket.status} />
       </div>
 
@@ -99,6 +101,27 @@ function SlaBadge({
             due ? ` (do ${format(due, "d MMM, HH:mm", { locale: pl })})` : ""
           }.`}
     </div>
+  );
+}
+
+/** Pokazuje priorytet tylko gdy podwyższony (HIGH/URGENT) — np. dzięki dodatkowi
+ * „Priorytetowe wsparcie". Dla NORMAL/LOW nic nie renderuje, by nie zaśmiecać. */
+function PriorityBadge({ priority }: { priority?: string }) {
+  const p = (priority ?? "").toUpperCase();
+  if (p !== "HIGH" && p !== "URGENT") return null;
+  const isUrgent = p === "URGENT";
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium border ${
+        isUrgent
+          ? "bg-rose-500/10 text-rose-200 border-rose-400/30"
+          : "bg-amber-500/10 text-amber-200 border-amber-400/30"
+      }`}
+      title="Twoje zgłoszenie jest obsługiwane priorytetowo."
+    >
+      <Sparkles className="h-4 w-4" />
+      {isUrgent ? "Priorytet pilny" : "Priorytet wysoki"}
+    </span>
   );
 }
 

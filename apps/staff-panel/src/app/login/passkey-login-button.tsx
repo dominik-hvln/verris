@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { startAuthentication } from "@simplewebauthn/browser";
 import { fetchPasskeyLoginOptions, verifyPasskeyLoginClient } from "@/lib/passkey-client";
@@ -12,9 +12,12 @@ export function StaffPasskeyLoginButton() {
   const [error, setError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
   const prefetchedOptions = useRef<unknown | null>(null);
+  // Render dopiero po montażu — inaczej hydration mismatch (React #418).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const supported =
     typeof window !== "undefined" && typeof window.PublicKeyCredential !== "undefined";
-  if (!supported) return null;
+  if (!mounted || !supported) return null;
 
   const onPointerDown = () => {
     void fetchPasskeyLoginOptions()
