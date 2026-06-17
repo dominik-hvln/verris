@@ -50,20 +50,26 @@ for pair in "PANEL:$PANEL" "ADMIN:$ADMIN" "STAFF:$STAFF" "STATUS:$STATUS"; do
   else fail "$name $url → $c"; fi
 done
 
-sec "3. TLS / HTTPS (przekierowanie z http, ważny cert)"
+sec "3. TLS / HTTPS (przekierowanie z http, ważność certu)"
 for url in "$API" "$PANEL" "$ADMIN"; do
   host="${url#https://}"
   hc=$(code "http://$host/")
   [[ "$hc" =~ ^(301|302|307|308)$ ]] && ok "http://$host przekierowuje ($hc)" \
     || warn "http://$host nie przekierowuje na https ($hc)"
-  if echo | timeout 12 openssl s_client -connect "${host}:443" -servername "$host" 2>/dev/null \
+  enddate=$(echo | openssl s_client -connect "${host}:443" -servername "$host" 2>/dev/null \
+    | openssl x509 -noout -enddate 2>/dev/null | cut -d= -f2)
+  if [ -n "$enddate" ] && echo | openssl s_client -connect "${host}:443" -servername "$host" 2>/dev/null \
       | openssl x509 -noout -checkend 604800 >/dev/null 2>&1; then
-    ok "Cert $host ważny >7 dni"
-  else warn "Cert $host wygasa <7 dni lub niedostępny"; fi
+    ok "Cert $host ważny >7 dni (do $enddate)"
+  elif [ -n "$enddate" ]; then
+    warn "Cert $host wygasa wkrótce (do $enddate)"
+  else
+    warn "Cert $host — nie udało się odczytać (openssl/s_client)"
+  fi
 done
 
-sec "4. Nagłówki bezpieczeństwa (panel kliencki)"
-H=$(hdrs "$PANEL/")
+sec "4. Nagłówki bezpieczeństwa (panel kliencki — /login)"
+H=$(hdrs "$PANEL/login")
 check_hdr() { echo "$H" | grep -qi "^$1:" && ok "$1 obecny" || warn "$1 BRAK"; }
 check_hdr "strict-transport-security"
 check_hdr "x-content-type-options"
