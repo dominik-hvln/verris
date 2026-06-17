@@ -1,51 +1,70 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { startAuthentication } from "@simplewebauthn/browser";
-import { getStaffPasskeyLoginOptions, verifyStaffPasskeyLogin } from "./passkey-actions";
+import { fetchPasskeyLoginOptions, verifyPasskeyLoginClient } from "@/lib/passkey-client";
+import { setStaffPasskeyAuthCookie } from "./passkey-actions";
 
 /** Logowanie passkey do panelu staff (discoverable credentials). */
 export function StaffPasskeyLoginButton() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
+  const prefetchedOptions = useRef<unknown | null>(null);
   const supported =
     typeof window !== "undefined" && typeof window.PublicKeyCredential !== "undefined";
   if (!supported) return null;
 
-  const onClick = () => {
+  const onPointerDown = () => {
+    void fetchPasskeyLoginOptions()
+      .then((options) => {
+        prefetchedOptions.current = options;
+      })
+      .catch(() => {
+        prefetchedOptions.current = null;
+      });
+  };
+
+  const onClick = async () => {
     setError(null);
-    startTransition(async () => {
-      const opt = await getStaffPasskeyLoginOptions();
-      if (!opt.ok) {
-        setError(opt.error);
+    setIsPending(true);
+    try {
+      const options = prefetchedOptions.current ?? (await fetchPasskeyLoginOptions());
+      prefetchedOptions.current = null;
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const asseResp = await startAuthentication({ optionsJSON: options as any });
+      const { access_token, user } = await verifyPasskeyLoginClient(asseResp);
+      if (user?.role !== "STAFF" && user?.role !== "ADMIN") {
+        setError("To konto nie ma uprawnień do panelu Support (wymagana rola STAFF lub ADMIN).");
         return;
       }
-      try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const asseResp = await startAuthentication({ optionsJSON: opt.options as any });
-        const res = await verifyStaffPasskeyLogin(asseResp);
-        if (!res.ok) {
-          setError(res.error);
-          return;
-        }
-        router.push("/");
-        router.refresh();
-      } catch (err) {
+      await setStaffPasskeyAuthCookie(access_token);
+      router.push("/");
+      router.refresh();
+    } catch (err) {
+      prefetchedOptions.current = null;
+      const name = err instanceof Error ? err.name : "";
+      if (name === "NotAllowedError" || name === "AbortError") {
+        setError("Anulowano logowanie passkey.");
+      } else {
         setError(
-          err instanceof Error && err.name === "NotAllowedError"
-            ? "Anulowano logowanie passkey."
+          err instanceof Error && err.message
+            ? err.message
             : "Nie znaleziono passkey dla Verris na tym urządzeniu.",
         );
       }
-    });
+    } finally {
+      setIsPending(false);
+    }
   };
 
   return (
     <div className="space-y-2">
       <button
         type="button"
+        onPointerDown={onPointerDown}
         onClick={onClick}
         disabled={isPending}
         className="w-full rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50"
