@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { submitRegister } from "./actions";
 import { Loader2, AlertCircle } from "lucide-react";
 import { SpinBorder } from "@/components/spin-border";
-import { TrustStats } from "@/components/brand/trust-stats";
+import { VerrisLockup } from "@/components/logo";
 
 const initialState = { error: "" };
 
@@ -46,15 +46,9 @@ function RegisterContent() {
       <div className="relative z-10 w-full max-w-[480px] mx-4 animate-in fade-in slide-in-from-bottom-8 duration-[1500ms]">
         {/* Logo / Brand */}
         <div className="text-center mb-10">
-          <div className="relative inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-neutral-900/80 border border-white/10 mb-6 group overflow-hidden">
-             <div className="absolute inset-0 bg-gradient-to-tr from-sky-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-sky-400">
-              <path d="M12 2L2 7l10 5 10-5-10-5z" />
-              <path d="M2 17l10 5 10-5" />
-              <path d="M2 12l10 5 10-5" />
-            </svg>
+          <div className="mb-6 flex justify-center">
+            <VerrisLockup size="lg" layout="vertical" showTagline className="items-center" />
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white mb-2">Verris</h1>
           <p className="text-base text-neutral-400">Utwórz nowe konto</p>
         </div>
 
@@ -176,8 +170,6 @@ function RegisterContent() {
           Masz już konto?{" "}
           <a href="/login" className="text-white hover:text-sky-400 hover:underline underline-offset-4 transition-colors font-semibold">Zaloguj się</a>
         </p>
-
-        <TrustStats className="mt-6" />
       </div>
     </div>
   );

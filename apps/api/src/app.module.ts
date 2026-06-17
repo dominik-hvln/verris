@@ -37,6 +37,7 @@ import { LiveReadinessModule } from './admin-readiness/live-readiness.module';
 import { VpsModule } from './vps/vps.module';
 import { PublicStatsModule } from './public-stats/public-stats.module';
 import { AddonModule } from './addons/addon.module';
+import { FilesModule } from './files/files.module';
 import { ControlPlaneMailModule } from './control-plane-mail/control-plane-mail.module';
 import { VpnModule } from './vpn/vpn.module';
 import { KsefModule } from './ksef/ksef.module';
@@ -82,6 +83,7 @@ import { KsefModule } from './ksef/ksef.module';
     VpsModule,
     PublicStatsModule,
     AddonModule,
+    FilesModule,
   ],
   controllers: [],
   providers: [

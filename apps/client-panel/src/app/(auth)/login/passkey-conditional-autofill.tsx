@@ -3,7 +3,8 @@
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { browserSupportsWebAuthnAutofill, startAuthentication } from '@simplewebauthn/browser';
-import { getPasskeyLoginOptions, verifyPasskeyLogin } from './passkey-actions';
+import { fetchPasskeyLoginOptions, verifyPasskeyLoginClient } from '@/lib/passkey-client';
+import { setPasskeyAuthCookie } from './passkey-actions';
 
 /**
  * Conditional UI — passkey w autouzupełnianiu pola e-mail (Safari / Chrome).
@@ -22,16 +23,17 @@ export function PasskeyConditionalAutofill() {
         if (typeof window.PublicKeyCredential === 'undefined') return;
         if (!(await browserSupportsWebAuthnAutofill())) return;
 
-        const opt = await getPasskeyLoginOptions();
-        if (!opt.ok) return;
+        const options = await fetchPasskeyLoginOptions();
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const asseResp = await startAuthentication({
-          optionsJSON: opt.options as any,
+          optionsJSON: options as any,
           useBrowserAutofill: true,
         });
-        const res = await verifyPasskeyLogin(asseResp);
-        if (res.ok) router.push('/dashboard');
+        const { access_token } = await verifyPasskeyLoginClient(asseResp);
+        await setPasskeyAuthCookie(access_token);
+        router.push('/dashboard');
+        router.refresh();
       } catch {
         // Użytkownik może zalogować się hasłem lub przyciskiem passkey.
       }

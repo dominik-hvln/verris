@@ -14,6 +14,15 @@ export interface DirectAdminConfig {
   rejectUnauthorized?: boolean;
 }
 
+/** A single entry returned by the file manager listing (P-4). */
+export interface DaFileEntry {
+  name: string;
+  type: 'dir' | 'file';
+  sizeBytes: number;
+  /** DA-reported modified timestamp (string as returned), or null. */
+  modified: string | null;
+}
+
 export interface CreateAccountInput {
   username: string;
   email: string;
@@ -197,8 +206,10 @@ export interface AccountResourceLimits {
 export class DirectAdminClient {
   private client: AxiosInstance;
   private readonly usernameValue: string;
+  private readonly config: DirectAdminConfig;
 
   constructor(config: DirectAdminConfig) {
+    this.config = config;
     this.usernameValue = config.username;
     const protocol = config.secure !== false ? 'https' : 'http';
     const baseURL = `${protocol}://${config.host}:${config.port}`;
@@ -217,6 +228,162 @@ export class DirectAdminClient {
         rejectUnauthorized: config.rejectUnauthorized ?? true,
       }),
     });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Impersonation (P-4)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Returns a client that issues API calls **as a specific user**, using the
+   * admin/reseller login key with DirectAdmin's `admin|user` auth convention
+   * (Basic auth username "admin|targetUser"). All commands then run scoped to
+   * that account — required for per-account file operations.
+   *
+   * The caller (this client) must be an admin/reseller whose login key can
+   * impersonate `targetUser`.
+   */
+  asUser(targetUser: string): DirectAdminClient {
+    const base = this.usernameValue.split('|')[0];
+    return new DirectAdminClient({
+      ...this.config,
+      username: `${base}|${targetUser}`,
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // File manager (P-4)
+  //
+  // NOTE: exact DA file-manager command/param names vary slightly by version;
+  // these target DirectAdmin 1.6x. Verify against the live node and adjust if
+  // a call returns an unexpected payload. All paths are account-relative
+  // (e.g. "/domains/example.com/public_html"); the caller (FilesModule) is
+  // responsible for sandboxing them to the account home.
+  // ---------------------------------------------------------------------------
+
+  /** Lists a directory. Returns entries with type/size/modified. */
+  async listDir(path: string): Promise<DaFileEntry[]> {
+    const response = await this.client.get('/CMD_API_FILE_MANAGER', {
+      params: { path },
+    });
+    const params = new URLSearchParams(response.data);
+    // DA error payloads surface as error=1&text=...&details=...
+    if (params.get('error') === '1') {
+      throw new Error(params.get('text') || 'DirectAdmin file manager error');
+    }
+    const entries: DaFileEntry[] = [];
+    for (const [key, value] of params.entries()) {
+      if (key === 'error' || key === 'text' || key === 'details') continue;
+      // Each value is a urlencoded sub-record: type=dir&size=..&date=..
+      const info = new URLSearchParams(value);
+      const type = (info.get('type') || '').toLowerCase();
+      entries.push({
+        name: decodeURIComponent(key),
+        type: type === 'dir' ? 'dir' : 'file',
+        sizeBytes: Number.parseInt(info.get('size') || '0', 10) || 0,
+        modified: info.get('date') || null,
+      });
+    }
+    return entries.sort((a, b) =>
+      a.type === b.type ? a.name.localeCompare(b.name) : a.type === 'dir' ? -1 : 1,
+    );
+  }
+
+  /** Reads a (text) file's raw content. */
+  async readFile(path: string): Promise<string> {
+    const response = await this.client.get(`/CMD_FILE_MANAGER${ensureLeadingSlash(path)}`, {
+      responseType: 'text',
+      transformResponse: [(d) => d],
+    });
+    return typeof response.data === 'string' ? response.data : String(response.data ?? '');
+  }
+
+  /** Downloads a file as raw bytes (for binary download / streaming). */
+  async downloadFile(path: string): Promise<Buffer> {
+    const response = await this.client.get(`/CMD_FILE_MANAGER${ensureLeadingSlash(path)}`, {
+      responseType: 'arraybuffer',
+    });
+    return Buffer.from(response.data as ArrayBuffer);
+  }
+
+  /** Writes/overwrites a text file (`action=edit`). */
+  async writeFile(dir: string, filename: string, content: string): Promise<void> {
+    const data = await this.client.post(
+      '/CMD_FILE_MANAGER',
+      new URLSearchParams({
+        action: 'edit',
+        path: dir,
+        text: content,
+        filename,
+      }).toString(),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
+    );
+    this.assertFileManagerOk(data.data);
+  }
+
+  /** Creates a new folder inside `dir`. */
+  async makeDir(dir: string, name: string): Promise<void> {
+    const data = await this.client.post(
+      '/CMD_FILE_MANAGER',
+      new URLSearchParams({ action: 'folder', path: dir, name }).toString(),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
+    );
+    this.assertFileManagerOk(data.data);
+  }
+
+  /** Renames a single entry within `dir`. */
+  async renameEntry(dir: string, oldName: string, newName: string): Promise<void> {
+    const data = await this.client.post(
+      '/CMD_FILE_MANAGER',
+      new URLSearchParams({
+        action: 'rename',
+        path: dir,
+        old: `${stripTrailingSlash(dir)}/${oldName}`,
+        filename: newName,
+        overwrite: 'no',
+      }).toString(),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
+    );
+    this.assertFileManagerOk(data.data);
+  }
+
+  /** Deletes one or more entries within `dir` (files or folders). */
+  async deleteEntries(dir: string, names: string[]): Promise<void> {
+    const body = new URLSearchParams({ action: 'multiple', button: 'delete', path: dir });
+    names.forEach((n, i) => body.append(`select${i}`, n));
+    const data = await this.client.post('/CMD_FILE_MANAGER', body.toString(), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    });
+    this.assertFileManagerOk(data.data);
+  }
+
+  /** Uploads a file into `dir`. `content` is the raw file bytes. */
+  async uploadFile(dir: string, filename: string, content: Buffer): Promise<void> {
+    // DA upload expects multipart/form-data with action=upload + path + file1.
+    const boundary = `----verris${Date.now().toString(16)}`;
+    const head =
+      `--${boundary}\r\nContent-Disposition: form-data; name="action"\r\n\r\nupload\r\n` +
+      `--${boundary}\r\nContent-Disposition: form-data; name="path"\r\n\r\n${dir}\r\n` +
+      `--${boundary}\r\nContent-Disposition: form-data; name="file1"; filename="${filename}"\r\n` +
+      `Content-Type: application/octet-stream\r\n\r\n`;
+    const tail = `\r\n--${boundary}--\r\n`;
+    const payload = Buffer.concat([Buffer.from(head, 'utf8'), content, Buffer.from(tail, 'utf8')]);
+    const data = await this.client.post('/CMD_FILE_MANAGER', payload, {
+      headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+    });
+    this.assertFileManagerOk(data.data);
+  }
+
+  /** Throws if a DA file-manager response signals an error. */
+  private assertFileManagerOk(data: unknown): void {
+    const params = this.daPayloadToParams(data);
+    if (params.get('error') === '1') {
+      throw new Error(
+        params.get('text') || params.get('details') || 'DirectAdmin file manager operation failed',
+      );
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -1157,6 +1324,16 @@ const ADMIN_SETTINGS_SKIP_KEYS = new Set([
 ]);
 
 /** Wyciąga pola formularza Admin Settings do POST action=save. */
+/** Ensures a path begins with exactly one leading slash. */
+function ensureLeadingSlash(path: string): string {
+  return `/${path.replace(/^\/+/, '')}`;
+}
+
+/** Removes a single trailing slash (keeps "/" as-is). */
+function stripTrailingSlash(path: string): string {
+  return path.length > 1 ? path.replace(/\/+$/, '') : path;
+}
+
 export function mergeAdminSettingsPayload(data: unknown): Record<string, string> {
   const out: Record<string, string> = {};
   if (typeof data === 'string') {

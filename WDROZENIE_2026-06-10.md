@@ -206,6 +206,22 @@ włącz SSL, skonfiguruj pocztę. Stan kroków DNS/SSL wykrywany z health-score
 (`dnsOk`/`tlsOk`); dla produktu e-mail osobny zestaw kroków. Zamykalny
 (localStorage). Czysto kliencki — reużywa `/services`, bez zmian API/schematu.
 
+## 0r. Menedżer plików w panelu (P-4)
+
+Interaktywny menedżer plików hostingu w panelu klienta (`/dashboard/file-manager`),
+bez FTP. Architektura: agent węzła jest asynchroniczny (poll ~1 min), więc operacje
+idą **synchronicznie przez DirectAdmin File Manager API** z impersonacją usera.
+
+- **SDK** (`directadmin-sdk`): `asUser(targetUser)` — klient działający jako konkretny user przez login key admina w konwencji `admin|user`; metody `listDir`, `readFile`, `downloadFile`, `writeFile`, `makeDir`, `renameEntry`, `deleteEntries`, `uploadFile`.
+- **API** (`FilesModule`, `services/:id/files/*`): account-scoped (weryfikacja właściciela + status ACTIVE), **sandbox ścieżek** (normalizacja, blok `..`/absolutnych/null — przetestowany, 12/12), limity (edycja 1 MB, upload/zapis 25 MB), rate-limit per operacja.
+- **UI**: breadcrumb, tabela (nazwa/rozmiar/data), wejście do folderów, nowy folder, upload, zmiana nazwy, usuwanie (z potwierdzeniem), pobieranie, edytor plików tekstowych. Wpięte w istniejące zakładki hostingu (`HostingPageWrapper`), selekcja usługi jak w pozostałych narzędziach.
+- Przy okazji: naprawiony istniejący bug w `passkey-conditional-autofill` (import nieistniejących funkcji → autofill passkey był martwy).
+
+> ⚠️ **Do weryfikacji na żywym węźle:** dokładne nazwy komend/parametrów DA File
+> Manager API różnią się między wersjami DirectAdmin (celowane w 1.6x). Po deployu
+> przetestować listowanie/odczyt/zapis/upload/rename/delete na realnym koncie i
+> dostroić w `directadmin-sdk` jeśli któraś komenda zwróci nieoczekiwany payload.
+
 ## 0p. Plany roczne + dodatki (P-7 / P-8)
 
 - **P-7** — plany roczne (`interval=YEAR`, `priceYearly`) i kody promocyjne już działały; dołożono **wyróżnienie oszczędności** przy wyborze rocznego okresu w checkoucie (% i kwota vs 12× miesięcznie). Pakiet „domena+hosting+mail" realizowany przez O-3 (domena w checkoucie) + pocztę wliczoną w hosting.

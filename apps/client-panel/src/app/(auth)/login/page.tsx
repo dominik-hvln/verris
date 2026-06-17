@@ -9,7 +9,6 @@ import { LoginNotices } from "./login-notices";
 import { PasskeyLoginButton } from "./passkey-login-button";
 import { PasskeyConditionalAutofill } from "./passkey-conditional-autofill";
 import { VerrisLockup } from "@/components/logo";
-import { TrustStats } from "@/components/brand/trust-stats";
 import { VerrisPatternLayer } from "@/components/brand/brand-pattern";
 
 const initialLoginState = {} as Awaited<ReturnType<typeof submitLogin>>;
@@ -117,7 +116,6 @@ export default function LoginPage() {
           <PasskeyLoginButton />
         </div>
       </form>
-      <TrustStats className="mt-8" />
     </Shell>
   );
 }
