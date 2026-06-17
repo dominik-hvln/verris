@@ -75,6 +75,18 @@ export function canAccessDashboardRoute(
   if (href.startsWith('/dashboard/support')) {
     return hasAny(perms, ['TICKETS_READ', 'TICKETS_MANAGE']);
   }
+  if (href.startsWith('/dashboard/vps')) {
+    return hasAny(perms, ['SERVICES_READ', 'SERVICES_MANAGE']);
+  }
+  if (href.startsWith('/dashboard/php')) {
+    return hasAny(perms, ['SERVICES_READ', 'SERVICES_MANAGE', 'FILES_MANAGE']);
+  }
+  if (href.startsWith('/dashboard/apps')) {
+    return hasAny(perms, ['SERVICES_MANAGE', 'FILES_MANAGE']);
+  }
+  if (href.startsWith('/dashboard/addons')) {
+    return hasAny(perms, ['BILLING_MANAGE', 'SERVICES_MANAGE']);
+  }
 
   return false;
 }

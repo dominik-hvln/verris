@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   NotFoundException,
   Param,
   Post,
@@ -29,6 +30,9 @@ import { SiteMonitorService } from './site-monitor.service';
 import { StagingService } from './staging.service';
 import { SetMonitoringDto } from './dto/site-monitor.dto';
 import { EcoReportService } from '../eco/eco-report.service';
+import { DeliverabilityService } from '../deliverability/deliverability.service';
+import { PhpService } from './php.service';
+import { AppInstallService } from './app-install.service';
 
 /**
  * Customer-facing "services" view — denormalized projection over Subscription
@@ -49,7 +53,48 @@ export class UserServicesController {
     private readonly siteMonitor: SiteMonitorService,
     private readonly staging: StagingService,
     private readonly ecoReport: EcoReportService,
+    private readonly deliverability: DeliverabilityService,
+    private readonly php: PhpService,
+    private readonly appInstall: AppInstallService,
   ) {}
+
+  // P-3 — marketplace 1-click (Nextcloud/PrestaShop).
+  @Get(':id/apps')
+  appsStatus(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.appInstall.statusForSubscription(id, user.userId);
+  }
+
+  @Post(':id/apps/install')
+  @HttpCode(200)
+  appsInstall(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { app: string; adminUser: string; adminEmail: string; adminPassword?: string },
+  ) {
+    return this.appInstall.install(id, user.userId, body);
+  }
+
+  // P-2 — diagnostyka dostarczalności poczty (SPF/DKIM/DMARC + RBL).
+  @Get(':id/deliverability')
+  deliverabilityFor(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.deliverability.forSubscription(id, user.userId);
+  }
+
+  // P-6 — wersja PHP konta.
+  @Get(':id/hosting-php')
+  hostingPhp(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.php.statusForSubscription(id, user.userId);
+  }
+
+  @Post(':id/hosting-php')
+  @HttpCode(200)
+  setHostingPhp(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { version: string },
+  ) {
+    return this.php.setVersionForSubscription(id, user.userId, body.version);
+  }
 
   // C5 — raport energetyczny z realnych metryk LVE (szacunki, jawna metodologia)
   @Get(':id/eco-report')
@@ -167,6 +212,7 @@ export class UserServicesController {
       autoscalingEnabled: s.autoscalingEnabled,
       isTrial: s.isTrial,
       trialEndsAt: s.trialEndsAt?.toISOString() ?? null,
+      productKind: s.plan.productKind,
       provisioning: s.provisioningStage
         ? {
             stage: s.provisioningStage as
@@ -626,6 +672,7 @@ export class UserServicesController {
       autoscalingEnabled: sub.autoscalingEnabled,
       isTrial: sub.isTrial,
       trialEndsAt: sub.trialEndsAt?.toISOString() ?? null,
+      productKind: sub.plan.productKind,
       autoscalingMaxCost: sub.autoscalingMaxCost.toString(),
       account: sub.account
         ? {

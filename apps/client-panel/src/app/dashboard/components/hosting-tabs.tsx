@@ -41,6 +41,8 @@ export interface HostingTabsProps {
     | 'ftp'
     | 'cron'
     | 'email'
+    | 'php'
+    | 'apps'
     | 'backups'
     | 'filemanager'
     | 'migrations';
@@ -66,6 +68,8 @@ export function HostingTabs({ currentTab, serviceId, dnsZone }: HostingTabsProps
     { id: 'ssl', label: 'Certyfikaty SSL', icon: ShieldCheck, href: hostingHref('/dashboard/ssl', serviceId) },
     { id: 'ftp', label: 'Konta FTP', icon: FolderKanban, href: hostingHref('/dashboard/ftp', serviceId) },
     { id: 'cron', label: 'Zadania Cron', icon: Terminal, href: hostingHref('/dashboard/cron', serviceId) },
+    { id: 'php', label: 'Wersja PHP', icon: Terminal, href: hostingHref('/dashboard/php', serviceId) },
+    { id: 'apps', label: 'Aplikacje 1-click', icon: FolderOpen, href: hostingHref('/dashboard/apps', serviceId) },
     { id: 'email', label: 'Poczta E-mail', icon: Mail, href: hostingHref('/dashboard/email', serviceId) },
     {
       id: 'backups',

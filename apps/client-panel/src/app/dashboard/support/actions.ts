@@ -42,6 +42,12 @@ export interface TicketDetail {
   updatedAt: string;
   attachments?: TicketAttachment[];
   replies: TicketReply[];
+  // SUP-4 / SUP-5
+  csatRating?: number | null;
+  csatAt?: string | null;
+  firstResponseAt?: string | null;
+  slaResponseDueAt?: string | null;
+  supportSlaHours?: number;
 }
 
 /**
@@ -114,6 +120,30 @@ export async function createTicket(subject: string, message: string) {
   }
 }
 
+export interface KbSuggestion {
+  docId: string;
+  title: string;
+  snippet: string;
+}
+
+/** SUP-1 — podpowiedzi z bazy wiedzy do formularza zgłoszenia (deflekcja). */
+export async function fetchKbSuggestions(query: string, topic?: string): Promise<KbSuggestion[]> {
+  const token = await getAuthToken();
+  if (!token || query.trim().length < 3) return [];
+  try {
+    const res = await fetch(`${API_URL}/ai/kb-suggest`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ query, topic }),
+      cache: "no-store",
+    });
+    if (!res.ok) return [];
+    return res.json();
+  } catch {
+    return [];
+  }
+}
+
 /** Multipart (`/tickets/with-attachments`): subject, message, opcjonalnie pliki pole `files`. */
 export async function createTicketWithFiles(formData: FormData) {
   const subject = formData.get("subject")?.toString() ?? "";
@@ -128,6 +158,8 @@ export async function createTicketWithFiles(formData: FormData) {
   const outbound = new FormData();
   outbound.append("subject", subject);
   outbound.append("message", message);
+  const topic = formData.get("topic")?.toString();
+  if (topic) outbound.append("topic", topic);
   for (const entry of rawFiles) {
     if (entry instanceof File && entry.size > 0) {
       outbound.append("files", entry);
@@ -178,6 +210,26 @@ export async function addTicketReply(ticketId: string, message: string) {
     }
 
     return { success: true, data: await res.json() };
+  } catch {
+    return { error: "Błąd połączenia z serwerem" };
+  }
+}
+
+/** SUP-4 — ocena wsparcia (1-5) po zamknięciu zgłoszenia. */
+export async function submitCsatAction(ticketId: string, rating: number, comment?: string) {
+  const token = await getAuthToken();
+  if (!token) return { error: "Brak autoryzacji" };
+  try {
+    const res = await fetch(`${API_URL}/tickets/${ticketId}/csat`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ rating, comment }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      return { error: body.message || "Nie udało się zapisać oceny" };
+    }
+    return { success: true };
   } catch {
     return { error: "Błąd połączenia z serwerem" };
   }

@@ -4,6 +4,7 @@ import { ServersController } from './servers.controller';
 import { ServersAdminController } from './servers.admin.controller';
 import { NodeTasksAgentController } from './node-tasks.agent.controller';
 import { NodeSecurityAgentController } from './node-security.agent.controller';
+import { NodeBackupAgentController } from './node-backup.agent.controller';
 import { BootstrapTokenService } from './bootstrap-token.service';
 import { BootstrapTokenGuard } from './guards/bootstrap-token.guard';
 import { ServerIdentityGuard } from './guards/server-identity.guard';
@@ -22,6 +23,7 @@ import { PlatformSettingsModule } from '../platform-settings/platform-settings.m
     ServersAdminController,
     NodeTasksAgentController,
     NodeSecurityAgentController,
+    NodeBackupAgentController,
   ],
   providers: [
     ServersService,

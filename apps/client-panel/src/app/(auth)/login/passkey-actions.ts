@@ -3,6 +3,18 @@
 import { apiFetch, ApiError } from '@/lib/api';
 import { setAuthCookie } from '@/lib/auth';
 
+/** Czy serwer ma skonfigurowane passkey (RP). Gdy false — nie pokazujemy przycisku. */
+export async function getPasskeyAvailability(): Promise<boolean> {
+  try {
+    const res = await apiFetch<{ available: boolean }>('/auth/webauthn/status', {
+      unauthenticated: true,
+    });
+    return res.available === true;
+  } catch {
+    return false;
+  }
+}
+
 /** Passkey login step 1 — authentication options (e-mail opcjonalny). */
 export async function getPasskeyLoginOptions(
   email?: string,

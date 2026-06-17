@@ -42,6 +42,8 @@ export type ClientPlatformConfigDto = {
   ecoBadgeImpressionsPerPoint: number;
   ecoPointsPer10Credits: number;
   clientIdleSessionMinutes: number;
+  /** P-1 — custom-branded Roundcube webmail URL ('' = not configured). */
+  webmailUrl: string;
 };
 
 export type StaffSessionConfigDto = {
@@ -123,6 +125,11 @@ export class PlatformSettingsService {
         60,
         5,
         24 * 60,
+      ),
+      webmailUrl: this.readStr(
+        map,
+        PLATFORM_SETTING_KEYS.WEBMAIL_URL,
+        (process.env.WEBMAIL_URL ?? '').trim(),
       ),
     };
   }
@@ -215,6 +222,20 @@ export class PlatformSettingsService {
    * Resolution: PlatformSetting `hosting.ns*` → env `HOSTING_NS*` → empty.
    * Per-node overrides (Server.ns1/2/3) take precedence in ServersService.
    */
+  /** P-6 — PHP versions selectable by clients (platform setting, comma-separated). */
+  async getAvailablePhpVersions(): Promise<string[]> {
+    const map = await this.loadMap();
+    const raw = this.readStr(
+      map,
+      PLATFORM_SETTING_KEYS.PHP_AVAILABLE_VERSIONS,
+      '8.3,8.2,8.1,8.0,7.4',
+    );
+    return raw
+      .split(',')
+      .map((v) => v.trim())
+      .filter((v) => /^\d+\.\d+$/.test(v));
+  }
+
   async getHostingNameservers(): Promise<{ ns1: string; ns2: string; ns3: string }> {
     const map = await this.loadMap();
     return {

@@ -12,6 +12,8 @@ import type {
   SubscriptionPaymentSource,
 } from '@verris/contracts';
 import { createSubscriptionAction } from './actions';
+import { registerDomainClientAction } from '@/app/dashboard/domains/actions';
+import { DomainStep, type DomainSelection } from './domain-step';
 import { CREDIT_SHORT, formatCredits } from '@/lib/credits';
 
 interface Props {
@@ -20,11 +22,30 @@ interface Props {
 
 export function NewSubscriptionForm({ plans }: Props) {
   const router = useRouter();
-  const [planId, setPlanId] = useState<string>(plans[0]?.id ?? '');
+  const hasEmailPlans = useMemo(() => plans.some((p) => p.productKind === 'EMAIL'), [plans]);
+  const [productKind, setProductKind] = useState<'HOSTING' | 'EMAIL'>('HOSTING');
+  const visiblePlans = useMemo(
+    () => plans.filter((p) => (p.productKind ?? 'HOSTING') === productKind),
+    [plans, productKind],
+  );
+  const [planId, setPlanId] = useState<string>(
+    plans.find((p) => (p.productKind ?? 'HOSTING') === 'HOSTING')?.id ?? plans[0]?.id ?? '',
+  );
+
+  const switchKind = (kind: 'HOSTING' | 'EMAIL') => {
+    setProductKind(kind);
+    const first = plans.find((p) => (p.productKind ?? 'HOSTING') === kind);
+    if (first) setPlanId(first.id);
+  };
   const [interval, setInterval] = useState<BillingInterval>('MONTH');
   const [paymentSource, setPaymentSource] =
     useState<SubscriptionPaymentSource>('WALLET');
-  const [domain, setDomain] = useState<string>('');
+  const [domainSel, setDomainSel] = useState<DomainSelection>({
+    mode: 'own',
+    domain: '',
+    register: null,
+  });
+  const domain = domainSel.domain;
   const [autoscalingEnabled, setAutoscalingEnabled] = useState(false);
   const [ecoModeEnabled, setEcoModeEnabled] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -51,6 +72,22 @@ export function NewSubscriptionForm({ plans }: Props) {
   }, [selectedPlan, interval]);
 
   const chargePrice = promoPreview?.discountedAmount ?? listPrice;
+
+  // P-7 — zachęta do planu rocznego: oszczędność vs 12× miesięcznie.
+  const { annualSavingsPct, annualSavingsAmount } = useMemo(() => {
+    if (!selectedPlan) return { annualSavingsPct: 0, annualSavingsAmount: 0 };
+    const m = Number(selectedPlan.priceMonthly);
+    const y = Number(selectedPlan.priceYearly);
+    if (!Number.isFinite(m) || !Number.isFinite(y) || m <= 0 || y <= 0) {
+      return { annualSavingsPct: 0, annualSavingsAmount: 0 };
+    }
+    const full = m * 12;
+    if (y >= full) return { annualSavingsPct: 0, annualSavingsAmount: 0 };
+    return {
+      annualSavingsPct: Math.round((1 - y / full) * 100),
+      annualSavingsAmount: Math.round((full - y) * 100) / 100,
+    };
+  }, [selectedPlan]);
 
   const applyPromo = async () => {
     if (!selectedPlan || paymentSource !== 'WALLET') return;
@@ -81,6 +118,29 @@ export function NewSubscriptionForm({ plans }: Props) {
     if (!selectedPlan) return;
     setError(null);
     startTransition(async () => {
+      // O-3: when the customer chose to register a new domain, register it
+      // first (wallet charge) so hosting and domain are ordered together. If it
+      // fails we stop before provisioning. A registered domain the customer
+      // keeps even if the subsequent hosting step were to fail.
+      if (domainSel.mode === 'register') {
+        if (!domainSel.register) {
+          setError('Wybierz domenę do rejestracji lub przełącz na własną domenę.');
+          return;
+        }
+        try {
+          await registerDomainClientAction({
+            name: domainSel.register.name,
+            years: domainSel.register.years,
+            nameservers: [],
+          });
+        } catch (err) {
+          setError(
+            err instanceof Error ? err.message : 'Rejestracja domeny nie powiodła się.',
+          );
+          return;
+        }
+      }
+
       const res = await createSubscriptionAction({
         planId: selectedPlan.id,
         interval,
@@ -119,14 +179,38 @@ export function NewSubscriptionForm({ plans }: Props) {
 
   return (
     <form onSubmit={onSubmit} className="space-y-8">
+      {hasEmailPlans ? (
+        <div className="inline-flex rounded-2xl border border-white/10 bg-white/[0.03] p-1">
+          <button
+            type="button"
+            onClick={() => switchKind('HOSTING')}
+            className={`rounded-xl px-5 py-2 text-sm font-semibold transition-colors ${
+              productKind === 'HOSTING' ? 'bg-white text-black' : 'text-neutral-300 hover:text-white'
+            }`}
+          >
+            Hosting
+          </button>
+          <button
+            type="button"
+            onClick={() => switchKind('EMAIL')}
+            className={`rounded-xl px-5 py-2 text-sm font-semibold transition-colors ${
+              productKind === 'EMAIL' ? 'bg-white text-black' : 'text-neutral-300 hover:text-white'
+            }`}
+          >
+            Poczta e-mail
+          </button>
+        </div>
+      ) : null}
+
       <section>
         <h2 className="text-xl font-bold text-white">1. Wybierz plan</h2>
         <p className="text-neutral-400 text-sm mt-1">
-          Limity zasobów są egzekwowane na serwerze — autoskalowanie dokupuje dodatkową moc
-          godzinowo z portfela.
+          {productKind === 'EMAIL'
+            ? 'Profesjonalna poczta na Twojej domenie — skrzynki, webmail Roundcube, antyspam.'
+            : 'Limity zasobów są egzekwowane na serwerze — autoskalowanie dokupuje dodatkową moc godzinowo z portfela.'}
         </p>
         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-          {plans.map((plan) => {
+          {visiblePlans.map((plan) => {
             const active = plan.id === planId;
             return (
               <button
@@ -169,6 +253,11 @@ export function NewSubscriptionForm({ plans }: Props) {
                 <p className="text-xs text-neutral-500 mt-1">
                   Rocznie: {formatCredits(plan.priceYearly)}
                 </p>
+                {plan.supportSlaHours > 0 ? (
+                  <p className="text-[11px] text-emerald-300/90 mt-2">
+                    Wsparcie: odpowiedź do {plan.supportSlaHours} h
+                  </p>
+                ) : null}
               </button>
             );
           })}
@@ -191,22 +280,15 @@ export function NewSubscriptionForm({ plans }: Props) {
             onChange={setInterval}
           />
         </div>
+        {annualSavingsPct > 0 ? (
+          <p className="mt-3 text-sm text-emerald-300">
+            💡 Płacąc rocznie oszczędzasz <strong>{annualSavingsPct}%</strong>
+            {annualSavingsAmount ? ` (${formatCredits(annualSavingsAmount)} / rok)` : ''} względem płatności miesięcznej.
+          </p>
+        ) : null}
       </section>
 
-      <section>
-        <h2 className="text-xl font-bold text-white">3. Domena główna</h2>
-        <p className="text-neutral-400 text-sm mt-1">
-          Domena pod którą uruchomimy konto na serwerze. Możesz ją podpiąć później — wpisz roboczą.
-        </p>
-        <input
-          type="text"
-          required
-          value={domain}
-          onChange={(e) => setDomain(e.target.value)}
-          placeholder="mojadomena.pl"
-          className="mt-4 w-full max-w-md rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-white placeholder:text-neutral-500 focus:border-white/40 focus:outline-none"
-        />
-      </section>
+      <DomainStep value={domainSel} onChange={setDomainSel} />
 
       <section>
         <h2 className="text-xl font-bold text-white">4. Sposób płatności</h2>
@@ -325,11 +407,19 @@ export function NewSubscriptionForm({ plans }: Props) {
         </div>
         <button
           type="submit"
-          disabled={pending || !selectedPlan || !domain.trim()}
+          disabled={
+            pending ||
+            !selectedPlan ||
+            (domainSel.mode === 'own' ? !domain.trim() : !domainSel.register)
+          }
           className="inline-flex items-center gap-2 rounded-2xl bg-white px-8 py-4 text-base font-bold text-black hover:bg-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          {pending ? 'Tworzenie usługi…' : 'Zamów i opłać'}
+          {pending
+            ? 'Tworzenie usługi…'
+            : domainSel.mode === 'register'
+              ? 'Zarejestruj domenę, zamów i opłać'
+              : 'Zamów i opłać'}
         </button>
       </div>
     </form>

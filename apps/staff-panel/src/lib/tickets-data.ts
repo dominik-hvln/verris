@@ -42,6 +42,7 @@ export interface StaffTicketRow {
   escalatedAt?: string | null;
   riskFlag?: string | null;
   runbookKey?: string | null;
+  topic?: string | null;
   _count: { replies: number };
 }
 

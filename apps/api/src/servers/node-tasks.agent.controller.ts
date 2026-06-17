@@ -22,6 +22,8 @@ import { loadLveAgentScript } from './lve-agent.script';
 import { loadWpInstallScript } from './wp-install.script';
 import { loadWafApplyScript } from './waf-apply.script';
 import { loadStagingSyncScript } from './staging-sync.script';
+import { loadPhpApplyScript } from './php-apply.script';
+import { loadAppInstallScript } from './app-install.script';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 
 class CompleteNodeTaskDto {
@@ -87,6 +89,20 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   wafApplyScript() {
     return loadWafApplyScript();
+  }
+
+  /** P-6 — per-account PHP version apply script (run with PHP_* env). */
+  @Get('php-apply/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  phpApplyScript() {
+    return loadPhpApplyScript();
+  }
+
+  /** P-3 — 1-click app installer script (run with APP_* env). */
+  @Get('app-install/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  appInstallScript() {
+    return loadAppInstallScript();
   }
 
   /** B5 — staging clone/publish script (run with STG_* env). */

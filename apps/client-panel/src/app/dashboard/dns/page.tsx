@@ -1,7 +1,7 @@
 import { Network } from 'lucide-react';
 import { HostingPageWrapper } from '../components/hosting-tabs';
 import { getHostingDns, resolveServiceForHostingPages } from '../hosting-tools-data';
-import { DnsRecordsList } from './dns-records-list';
+import { DnsManager } from './dns-manager';
 import { HostingNoServiceState, PanelCard, PanelFetchError } from '@/components/panel';
 
 export const dynamic = 'force-dynamic';
@@ -35,7 +35,9 @@ export default async function DnsPage({
             </div>
           </div>
           {dns?.fetchError ? <PanelFetchError message={dns.fetchError} /> : null}
-          {dns && !dns.fetchError ? <DnsRecordsList records={dns.records} /> : null}
+          {dns && !dns.fetchError ? (
+            <DnsManager serviceId={service.id} domain={dns.domain} records={dns.records} />
+          ) : null}
         </PanelCard>
       )}
     </HostingPageWrapper>

@@ -18,7 +18,15 @@ import {
   TICKET_UPLOAD_MAX_BYTES,
   TICKET_UPLOAD_MAX_FILES_PER_BATCH,
 } from './ticket-attachment.utils';
-import { CreateTicketDto, AddTicketReplyDto, AdminUpdateTicketDto } from './tickets.dto';
+import {
+  CreateTicketDto,
+  AddTicketReplyDto,
+  AdminUpdateTicketDto,
+  SubmitCsatDto,
+  CannedResponseDto,
+} from './tickets.dto';
+import { CannedResponseService } from './canned-response.service';
+import { Delete, HttpCode } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -32,7 +40,51 @@ const FILES_MEMORY = FilesInterceptor('files', TICKET_UPLOAD_MAX_FILES_PER_BATCH
 @Controller('tickets')
 @UseGuards(JwtAuthGuard)
 export class TicketsController {
-  constructor(private readonly ticketsService: TicketsService) {}
+  constructor(
+    private readonly ticketsService: TicketsService,
+    private readonly canned: CannedResponseService,
+  ) {}
+
+  // SUP-2 — szablony odpowiedzi (staff: lista; admin: CRUD).
+  @Get('canned')
+  @UseGuards(RolesGuard)
+  @Roles('STAFF', 'ADMIN')
+  cannedList(@Query('topic') topic?: string) {
+    return this.canned.listForStaff(topic);
+  }
+
+  @Get('canned/all')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  cannedAll() {
+    return this.canned.listAll();
+  }
+
+  @Post('canned')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  cannedCreate(@CurrentUser() user: { userId: string }, @Body() dto: CannedResponseDto) {
+    return this.canned.create(dto, user.userId);
+  }
+
+  @Patch('canned/:id')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  cannedUpdate(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() dto: Partial<CannedResponseDto>,
+  ) {
+    return this.canned.update(id, dto, user.userId);
+  }
+
+  @Delete('canned/:id')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  @HttpCode(200)
+  cannedDelete(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.canned.remove(id, user.userId);
+  }
 
   @Post()
   async create(@CurrentUser() user: { userId: string }, @Body() dto: CreateTicketDto) {
@@ -48,9 +100,14 @@ export class TicketsController {
     @Body('message') message: string,
     @Body('priority') priority?: string,
     @Body('department') department?: string,
+    @Body('topic') topic?: string,
     @UploadedFiles() files?: Express.Multer.File[],
   ) {
-    return this.ticketsService.createWithOptionalFiles(user.userId, { subject, message, priority, department }, files);
+    return this.ticketsService.createWithOptionalFiles(
+      user.userId,
+      { subject, message, priority, department, topic },
+      files,
+    );
   }
 
   @Get('admin/all')
@@ -200,5 +257,15 @@ export class TicketsController {
     @Body() dto: AddTicketReplyDto,
   ) {
     return this.ticketsService.addReply(id, user.userId, dto);
+  }
+
+  // SUP-4 — ocena wsparcia po zamknięciu zgłoszenia.
+  @Post(':id/csat')
+  async submitCsat(
+    @Param('id') id: string,
+    @CurrentUser() user: { userId: string },
+    @Body() dto: SubmitCsatDto,
+  ) {
+    return this.ticketsService.submitCsat(id, user.userId, dto.rating, dto.comment);
   }
 }

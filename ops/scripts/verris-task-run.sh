@@ -122,6 +122,14 @@ elif [ "$TASK_KIND" = "STAGING_SYNC" ]; then
   RUN_BIN="/usr/local/bin/verris-staging-sync.sh"
   fetch_task_script "/agent/tasks/staging-sync/script" "$RUN_BIN"
   payload_env "STG" "{'daUser':'DA_USER','domain':'DOMAIN','sub':'SUB','direction':'DIRECTION','dbName':'DB_NAME','dbUser':'DB_USER','dbPass':'DB_PASS'}"
+elif [ "$TASK_KIND" = "PHP_APPLY" ]; then
+  RUN_BIN="/usr/local/bin/verris-php-apply.sh"
+  fetch_task_script "/agent/tasks/php-apply/script" "$RUN_BIN"
+  payload_env "PHP" "{'daUser':'DA_USER','domain':'DOMAIN','version':'VERSION'}"
+elif [ "$TASK_KIND" = "APP_INSTALL" ]; then
+  RUN_BIN="/usr/local/bin/verris-app-install.sh"
+  fetch_task_script "/agent/tasks/app-install/script" "$RUN_BIN"
+  payload_env "APP" "{'app':'APP','daUser':'DA_USER','domain':'DOMAIN','dbName':'DB_NAME','dbUser':'DB_USER','dbPass':'DB_PASS','adminUser':'ADMIN_USER','adminPass':'ADMIN_PASS','adminEmail':'ADMIN_EMAIL'}"
 else
   flags="-y"
   [ "$SKIP_BUILD" = "1" ] && flags="$flags --skip-build"

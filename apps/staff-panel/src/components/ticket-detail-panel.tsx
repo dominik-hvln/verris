@@ -8,11 +8,13 @@ import type { AgentOption, StaffTicketDetail, TicketAttachmentRow } from "@/lib/
 import {
   staffApplyRunbook,
   staffEscalateTicket,
+  staffFetchCanned,
   staffGenerateAiSuggestion,
   staffGetAiStatus,
   staffPostReplyWithFiles,
   staffSetRiskFlag,
   staffUpdateTicket,
+  type CannedResponseRow,
 } from "@/lib/ticket-actions";
 import { staffTicketAttachmentDownloadHref } from "@/lib/ticket-attachment-links";
 import { StaffImpersonateButton } from "@/app/(dashboard)/crm/impersonate-button";
@@ -65,6 +67,13 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
   const [opsErr, setOpsErr] = useState<string | null>(null);
   const [aiSuggestion, setAiSuggestion] = useState<unknown | null>(null);
   const [aiConfigured, setAiConfigured] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  const [canned, setCanned] = useState<CannedResponseRow[]>([]);
+
+  // SUP-2 — pobierz szablony posortowane pod temat zgłoszenia.
+  useEffect(() => {
+    void staffFetchCanned(ticket.topic ?? undefined).then(setCanned);
+  }, [ticket.topic]);
   const assignedId = ticket.assignedToId ?? ticket.assignedTo?.id ?? "";
   const runbookChecklist =
     ticket.department === "BILLING"
@@ -352,10 +361,34 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
           }}
           className="mt-8 space-y-3 border-t border-white/10 pt-6"
         >
-          <label className="block text-sm font-medium text-white">Twoja odpowiedź</label>
+          <div className="flex items-center justify-between gap-3">
+            <label className="block text-sm font-medium text-white">Twoja odpowiedź</label>
+            {canned.length > 0 ? (
+              <select
+                defaultValue=""
+                onChange={(e) => {
+                  const c = canned.find((x) => x.id === e.target.value);
+                  if (c) setReplyText((prev) => (prev ? `${prev}\n\n${c.content}` : c.content));
+                  e.currentTarget.value = "";
+                }}
+                className="rounded-lg border border-white/10 bg-black/40 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-500/40"
+                title="Wstaw szablon odpowiedzi"
+              >
+                <option value="">↪ Wstaw szablon…</option>
+                {canned.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.topic ? `[${c.topic}] ` : ""}
+                    {c.title}
+                  </option>
+                ))}
+              </select>
+            ) : null}
+          </div>
           <textarea
             name="message"
             rows={6}
+            value={replyText}
+            onChange={(e) => setReplyText(e.target.value)}
             className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm outline-none focus:border-cyan-500/40"
             placeholder="Napisz odpowiedź — klient dostanie wiadomość e-mailem."
           />

@@ -133,7 +133,14 @@ function ServiceCard({ service }: { service: ServiceSummaryDto }) {
         )}
 
         <div className="mb-4 min-w-0">
-          <h3 className="text-lg font-bold text-white leading-tight truncate">{service.planName}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-bold text-white leading-tight truncate">{service.planName}</h3>
+            {service.productKind === 'EMAIL' ? (
+              <span className="shrink-0 rounded-full border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-sky-200">
+                Poczta
+              </span>
+            ) : null}
+          </div>
           <div className="mt-2 space-y-1 text-xs text-neutral-400">
             <span className="flex items-center gap-2 min-w-0">
               <Globe className="w-3.5 h-3.5 text-neutral-500 shrink-0" />

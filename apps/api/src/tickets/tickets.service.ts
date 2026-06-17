@@ -72,16 +72,32 @@ export class TicketsService {
   async create(userId: string, dto: CreateTicketDto) {
     const assignedToId = await this.getLeastBusyAgentId();
 
+    // P-8 — active priority-support add-on bumps the ticket to at least HIGH.
+    const buyer = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { prioritySupport: true, prioritySupportUntil: true },
+    });
+    const priorityActive =
+      !!buyer?.prioritySupport &&
+      !!buyer.prioritySupportUntil &&
+      buyer.prioritySupportUntil.getTime() > Date.now();
+    const order = ['LOW', 'NORMAL', 'HIGH', 'URGENT'];
+    let priority = dto.priority || 'NORMAL';
+    if (priorityActive && order.indexOf(priority) < order.indexOf('HIGH')) {
+      priority = 'HIGH';
+    }
+
     const row = await this.prisma.ticket.create({
       data: {
         subject: dto.subject,
         message: dto.message,
-        priority: dto.priority || 'NORMAL',
+        priority,
         department: dto.department || 'TECHNICAL',
+        topic: dto.topic || null,
         userId,
         assignedToId,
-        slaResponseDueAt: computeSlaResponseDueAt(dto.priority || 'NORMAL'),
-        slaResolveDueAt: computeSlaResolveDueAt(dto.priority || 'NORMAL'),
+        slaResponseDueAt: computeSlaResponseDueAt(priority),
+        slaResolveDueAt: computeSlaResolveDueAt(priority),
       },
       include: {
         user: { select: { email: true } },
@@ -188,7 +204,39 @@ export class TicketsService {
     if (!ticket) throw new NotFoundException('Zgłoszenie nie zostało znalezione');
     if (ticket.userId !== userId) throw new ForbiddenException('Brak dostępu');
 
-    return ticket;
+    // SUP-5 — surface the customer's guaranteed first-response time (best plan).
+    const supportSlaHours = await this.getUserSupportSla(userId);
+    return { ...ticket, supportSlaHours };
+  }
+
+  /** SUP-5 — highest support SLA (hours) across the user's active subscriptions. */
+  async getUserSupportSla(userId: string): Promise<number> {
+    const subs = await this.prisma.subscription.findMany({
+      where: { userId, status: { in: ['ACTIVE', 'PROVISIONING', 'PAST_DUE'] } },
+      include: { plan: { select: { supportSlaHours: true } } },
+    });
+    return subs.reduce((max, s) => Math.max(max, s.plan.supportSlaHours ?? 0), 0);
+  }
+
+  /** SUP-4 — customer rates support after the ticket is closed (once). */
+  async submitCsat(ticketId: string, userId: string, rating: number, comment?: string) {
+    const ticket = await this.prisma.ticket.findUnique({ where: { id: ticketId } });
+    if (!ticket) throw new NotFoundException('Zgłoszenie nie zostało znalezione');
+    if (ticket.userId !== userId) throw new ForbiddenException('Brak dostępu');
+    if (ticket.status !== 'CLOSED') {
+      throw new BadRequestException('Ocenić można tylko zamknięte zgłoszenie.');
+    }
+    if (ticket.csatRating != null) {
+      throw new BadRequestException('To zgłoszenie zostało już ocenione.');
+    }
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      throw new BadRequestException('Ocena musi być liczbą 1-5.');
+    }
+    await this.prisma.ticket.update({
+      where: { id: ticketId },
+      data: { csatRating: rating, csatComment: comment?.slice(0, 2000) ?? null, csatAt: new Date() },
+    });
+    return { ok: true as const };
   }
 
   /**
@@ -460,7 +508,7 @@ export class TicketsService {
    */
   async createWithOptionalFiles(
     userId: string,
-    fields: { subject: string; message: string; priority?: string; department?: string },
+    fields: { subject: string; message: string; priority?: string; department?: string; topic?: string },
     files?: Express.Multer.File[] | null,
   ) {
     const dto: CreateTicketDto = {
@@ -468,6 +516,7 @@ export class TicketsService {
       message: fields.message,
       priority: (fields.priority as CreateTicketDto['priority']) ?? 'NORMAL',
       department: (fields.department as CreateTicketDto['department']) ?? 'TECHNICAL',
+      topic: fields.topic as CreateTicketDto['topic'],
     };
 
     const row = await this.create(userId, dto);

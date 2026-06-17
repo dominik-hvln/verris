@@ -32,6 +32,33 @@ export class AiChatService {
     private readonly audit: AuditService,
   ) {}
 
+  /**
+   * SUP-1 — lightweight KB suggestions for the client support form (ticket
+   * deflection). Pure retrieval (no LLM call), returns top distinct articles
+   * with a short snippet. Optional topic is appended to the query for relevance.
+   */
+  async kbSuggest(
+    query: string,
+    topic?: string,
+  ): Promise<Array<{ docId: string; title: string; snippet: string }>> {
+    const q = `${(query ?? '').trim()} ${topic ?? ''}`.trim().slice(0, 400);
+    if (q.length < 2) return [];
+    const chunks = await this.kb.retrieve(q, 'CLIENT', 8);
+    const seen = new Set<string>();
+    const out: Array<{ docId: string; title: string; snippet: string }> = [];
+    for (const c of chunks) {
+      if (seen.has(c.docId)) continue;
+      seen.add(c.docId);
+      out.push({
+        docId: c.docId,
+        title: c.title,
+        snippet: c.content.replace(/\s+/g, ' ').trim().slice(0, 180),
+      });
+      if (out.length >= 3) break;
+    }
+    return out;
+  }
+
   async ask(input: {
     question: string;
     audience: 'CLIENT' | 'STAFF';

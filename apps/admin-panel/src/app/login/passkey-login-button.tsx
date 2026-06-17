@@ -1,18 +1,28 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { startAuthentication } from "@simplewebauthn/browser";
-import { getAdminPasskeyLoginOptions, verifyAdminPasskeyLogin } from "./passkey-actions";
+import {
+  getAdminPasskeyAvailability,
+  getAdminPasskeyLoginOptions,
+  verifyAdminPasskeyLogin,
+} from "./passkey-actions";
 
 /** Logowanie passkey do panelu admina (discoverable credentials). */
 export function AdminPasskeyLoginButton() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [available, setAvailable] = useState<boolean | null>(null);
   const [isPending, startTransition] = useTransition();
   const supported =
     typeof window !== "undefined" && typeof window.PublicKeyCredential !== "undefined";
-  if (!supported) return null;
+
+  useEffect(() => {
+    void getAdminPasskeyAvailability().then(setAvailable);
+  }, []);
+
+  if (!supported || available === false) return null;
 
   const onClick = () => {
     setError(null);
@@ -33,11 +43,18 @@ export function AdminPasskeyLoginButton() {
         router.push("/");
         router.refresh();
       } catch (err) {
-        setError(
-          err instanceof Error && err.name === "NotAllowedError"
-            ? "Anulowano logowanie passkey."
-            : "Nie znaleziono passkey dla Verris na tym urządzeniu.",
-        );
+        const name = err instanceof Error ? err.name : "";
+        if (name === "NotAllowedError" || name === "AbortError") {
+          setError("Logowanie passkey anulowane lub przerwane. Spróbuj ponownie.");
+        } else if (name === "InvalidStateError") {
+          setError("Passkey jest w użyciu. Odśwież stronę i spróbuj ponownie.");
+        } else {
+          setError(
+            err instanceof Error && err.message
+              ? `Nie udało się: ${err.message}`
+              : "Nie znaleziono passkey dla Verris na tym urządzeniu.",
+          );
+        }
       }
     });
   };

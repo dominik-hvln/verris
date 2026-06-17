@@ -7,6 +7,8 @@ export type ClientPlatformConfig = {
   ecoBadgeImpressionsPerPoint: number;
   ecoPointsPer10Credits: number;
   clientIdleSessionMinutes: number;
+  /** P-1 — custom-branded Roundcube webmail URL ('' = not configured). */
+  webmailUrl: string;
 };
 
 export async function fetchClientPlatformConfig(): Promise<ClientPlatformConfig> {
@@ -18,6 +20,7 @@ export async function fetchClientPlatformConfig(): Promise<ClientPlatformConfig>
       ecoBadgeImpressionsPerPoint: 100,
       ecoPointsPer10Credits: 100,
       clientIdleSessionMinutes: 60,
+      webmailUrl: '',
     };
   }
 }

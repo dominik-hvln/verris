@@ -33,6 +33,7 @@ import {
   LogOut,
   Users,
   Calculator,
+  Server as ServerIcon,
   X,
 } from "lucide-react";
 import { sidebarTilesFromLinks, type SidebarTileDef } from "@/lib/sidebar-tiles";
@@ -51,6 +52,8 @@ const secondaryItems = [
       { name: "Bazy danych", href: "/dashboard/databases", icon: VerrisBazyDanychIcon },
       { name: "Poczta e-mail", href: "/dashboard/email", icon: VerrisPocztaIcon },
       { name: "Certyfikaty SSL", href: "/dashboard/ssl", icon: VerrisSslIcon },
+      { name: "Wersja PHP", href: "/dashboard/php", icon: ServerIcon },
+      { name: "Aplikacje 1-click", href: "/dashboard/apps", icon: ServerIcon },
     ],
   },
   {
@@ -59,6 +62,8 @@ const secondaryItems = [
       { name: "Dostęp FTP", href: "/dashboard/ftp", icon: VerrisFtpIcon },
       { name: "Zadania Cron", href: "/dashboard/cron", icon: VerrisCronIcon },
       { name: "Migracje", href: "/dashboard/migrations", icon: Globe },
+      { name: "Dodatki", href: "/dashboard/addons", icon: Calculator },
+      { name: "VPS / Cloud", href: "/dashboard/vps", icon: ServerIcon },
       { name: "Kalkulator", href: "/dashboard/calculator", icon: Calculator },
     ],
   },

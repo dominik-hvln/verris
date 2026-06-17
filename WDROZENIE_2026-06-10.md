@@ -55,6 +55,170 @@ Instalacja:
 
 > Bezpieczeństwo: worker uwierzytelnia się tożsamością węzła (`X-Server-Id`/`X-Server-Token`), a sekrety źródła są deszyfrowane dopiero w odpowiedzi `lease` (AES-256-GCM at-rest). Logi workera trymowane do 200 KB i widoczne dla staff.
 
+## 0d. Poczta / webmail Roundcube (P-1)
+
+Zarządzanie skrzynkami klienta (twórz/usuwaj, limit MB) jest teraz interaktywne
+w panelu (`Poczta e-mail`) — przez DirectAdmin (CMD_API_POP). Dochodzi własny,
+brandowany **webmail Roundcube** zamiast domyślnego.
+
+Wdrożenie webmaila:
+1. Na węźle pocztowym: `sudo WEBMAIL_HOST=webmail.verris.pl RC_DB_PASS=... ops/scripts/prod-roundcube-install.sh` (instaluje Roundcube, skórkę „verris", vhost nginx, wskazuje na lokalny Dovecot 993 / Postfix 587).
+2. TLS: `certbot --nginx -d webmail.verris.pl` albo wepnij istniejący wildcard.
+3. W panelu/ENV API ustaw `WEBMAIL_URL=https://webmail.verris.pl` (klucz `mail.webmailUrl` lub env). Panel klienta pokaże wtedy przyciski „Otwórz webmail" przy skrzynkach (deep-link `?_user=`).
+
+Branding: skórka `skins/verris` rozszerza Elastic — kolory emerald, nazwa
+produktu (`BRAND_NAME`, domyślnie „Verris Poczta"), opcjonalne logo
+(`BRAND_LOGO_URL`) i podpis na ekranie logowania.
+
+> Pełny **osobny, samodzielnie rozliczany produkt e-mail** (własny plan + checkout + provisioning konta mail-only) to kolejny krok — reużywa wzorca z hostingowego checkoutu (Plan/Subscription) i tych samych metod DA POP. Obecnie poczta jest częścią usługi hostingowej + brandowany webmail.
+
+## 0e. Backupy off-node / offsite (B-1, krytyczne do LIVE)
+
+Dotychczas backupy były tylko lokalne na węźle (DA SITE_BACKUP) — utrata węzła =
+utrata backupów. Dodany **offsite backup**: `ops/scripts/node-offsite-backup.sh`
+wyzwala backupy DA per-konto, a następnie `rclone sync` wysyła je do magazynu
+S3-compatible (zalecany remote typu **crypt** — szyfrowanie po stronie węzła),
+z retencją wersji. Każdy przebieg raportuje do control-plane
+(`POST /agent/backup/offsite-report` → `Server.lastOffsiteBackup*`), więc panel
+może oznaczać nieaktualne/niedziałające backupy.
+
+Wdrożenie:
+1. Deploy + migracja `20260616140000_offsite_backup` (`prisma migrate deploy`) + `db:generate`.
+2. Na węźle: `rclone config` → utwórz remote (np. Backblaze B2/Wasabi) i opakuj go w `crypt` (klucze tylko na węźle).
+3. Utwórz `/etc/verris-backup.conf`: `RCLONE_REMOTE="verris-crypt:"`, `BACKUP_PREFIX="nodes/<host>"`, `RETENTION_DAYS=30`, `DA_BACKUP=1`.
+4. Timer instaluje się automatycznie w onboardingu (codziennie 03:30); ręcznie: `node-offsite-backup.sh --install`, test: `node-offsite-backup.sh run`.
+
+> Razem z istniejącym self-restore w panelu (HostingRestoreJob) daje to pełny cykl: offsite kopia → przywracanie. Spełnia wymóg S-1 (trwałość danych / RODO).
+
+## 0f. Osobny produkt e-mail (P-1b) — plan + checkout + provisioning
+
+Pełny, **samodzielnie rozliczany produkt poczty**. Zamiast budować równoległy
+silnik provisioningu, plan dostał pole `productKind` (`HOSTING` | `EMAIL`).
+Plany `EMAIL` przechodzą przez **ten sam, sprawdzony checkout/provisioning/
+billing/lifecycle** co hosting (konto DA już zapewnia pocztę), a panel
+prezentuje je jako produkt pocztowy (zakładka „Poczta e-mail" w zamawianiu,
+plakietka „Poczta" na usłudze, zarządzanie skrzynkami + webmail Roundcube).
+
+Wdrożenie:
+1. Deploy + migracja `20260616160000_plan_product_kind` (`prisma migrate deploy`) + `db:generate`.
+2. W panelu admina utwórz plan(y) z **Rodzaj produktu = Poczta e-mail** (np. mały dysk web, większy limit poczty, cena za skrzynki/pakiet).
+3. Klient w „Zamów nową usługę" przełącza zakładkę **Poczta e-mail**, wybiera plan + domenę (własną lub rejestruje w checkoucie — O-3), płaci z portfela; konto stawiane jest automatycznie.
+4. Skrzynki + webmail: zakładka „Poczta e-mail" w panelu (twórz/usuwaj skrzynki, „Otwórz webmail" — wymaga `WEBMAIL_URL`, sekcja 0d).
+
+> Reużyte: Plan/Subscription/Account, ProvisioningService, wallet billing, renewal/cancel, faktury/KSeF. Zero równoległego kodu rozliczeń — produkt e-mail jest pełnoprawny od pierwszego dnia.
+
+## 0g. Gotowość LIVE + ops watchdog
+
+- **Check gotowości** (panel admina → Ustawienia → „Gotowość do startu LIVE", `GET /admin/live-readiness`): agreguje GO/NO-GO po sekretach, Stripe, SMTP, danych firmy, węzłach, dokumentach prawnych, NS + ostrzeżenia (KSeF, webmail, OpenProvider, backup). Pełny runbook: `CHECKLISTA_STARTU_LIVE.md`.
+- **Ops watchdog** (`OpsWatchdogScheduler`): co 5 min wykrywa węzły bez heartbeatu (>10 min) i alarmuje mailowo wszystkich adminów (cooldown 6h, + powiadomienie o przywróceniu); codziennie 08:00 wysyła raport floty (GO/NO-GO, węzły offline/backup nieaktualny, usługi ACTIVE/PAST_DUE/SUSPENDED, trials kończące się, domeny wygasające). Dedup przez audyt (bez zmian schematu). Wymaga skonfigurowanego SMTP.
+
+## 0h. VPS / Cloud (odsprzedaż Hetzner) — fundament
+
+Backend odsprzedaży VPS oparty o **Hetzner Cloud API**:
+- Modele `VpsPlan` (mapowanie na `server_type`/image/lokalizację Hetznera) i `VpsInstance` (instancja klienta) + migracja `20260616180000_vps_cloud`.
+- Realny klient `HetznerClient` (create/get/delete server, power on/off/reboot, katalog server_types) — auth `HETZNER_API_TOKEN`.
+- `VpsService.order`: pobranie z portfela → utworzenie serwera w Hetznerze → zapis IP/ID + zaszyfrowane hasło root (pokazane raz); przy błędzie provisioning **automatyczny zwrot** + status ERROR.
+- Cykl życia: start/stop/reboot/usuń. Kontrolery: klient (`/vps`, `/vps/plans`, `/vps/:id/power`) + admin (`/admin/vps/plans`, `/admin/vps/server-types`).
+
+Wdrożenie:
+1. Migracja + `db:generate` + deploy.
+2. Ustaw `HETZNER_API_TOKEN` (projekt Hetzner Cloud) w env API.
+3. W panelu admina utwórz plany VPS (mapowane na np. `cx22`, image `ubuntu-24.04`, lokalizacja `nbg1`), ustaw ceny.
+
+**UI klienta (gotowe):** zakładka **VPS / Cloud** w panelu — wybór planu, zamówienie (opłata z portfela), jednorazowe pokazanie hasła root, akcje start/stop/restart/usuń, statusy na żywo; toasty + skeleton podczas ładowania.
+
+**Rozliczanie (gotowe):** `VpsRenewalScheduler` (codziennie 04:00) — pobiera miesięczną opłatę z portfela; przy braku środków **wyłącza** VPS i wysyła mail (karencja 7 dni), po karencji **usuwa** serwer w Hetznerze i powiadamia; po doładowaniu kolejne rozliczenie automatycznie wznawia serwer.
+
+**Klucze SSH (gotowe):** klienci dodają klucze publiczne w panelu (zakładka VPS → „Klucze SSH"); przy zamawianiu można wybrać klucz(e) — wtedy serwer powstaje **bez hasła root** (logowanie kluczem). Klucze są leniwie wgrywane do projektu Hetzner przy pierwszym użyciu (`SshKey.hetznerKeyId` cache), usuwane też z Hetznera. Migracja `20260616200000_ssh_keys`.
+
+**Admin (gotowe):** panel admina → „VPS / Cloud" — zarządzanie planami (lista/dodaj/edytuj/wyłącz) z auto-uzupełnianiem specyfikacji z katalogu Hetznera.
+
+> Pętla VPS kompletna: admin tworzy plany → klient zamawia (hasło root lub klucz SSH) → provisioning Hetzner → rozliczanie miesięczne z suspend/karencją/usunięciem. Opcjonalne rozszerzenia: rozliczanie godzinowe, rescue mode / snapshoty / rebuild obrazu.
+
+## 0i. Deliverability dashboard (P-2)
+
+Diagnostyka „dlaczego mail nie dochodzi" per domena, w panelu klienta (zakładka
+Poczta). `DeliverabilityService` robi **realne zapytania DNS**: SPF (TXT domeny),
+DMARC (`_dmarc.`), DKIM (sondaż typowych selektorów: x/default/mail/…), oraz
+sprawdza IP serwera na blacklistach RBL (Spamhaus ZEN, SpamCop, Barracuda,
+SORBS). Zwraca wynik %, status każdego checku i **gotowe rekordy do skopiowania**
+(SPF/DMARC). Endpoint `GET /services/:id/deliverability`; klient ma przycisk
+„Sprawdź ponownie". Brak zależności zewnętrznych — używa wbudowanego resolvera DNS.
+
+> Uwaga: trafność RBL/DKIM zależy od poprawnej konfiguracji DNS węzła (PTR, selektor DKIM ustawiony przez `prod-mail-dkim-outbound-fix.sh`). Dashboard tylko diagnozuje — nie zmienia rekordów.
+
+## 0j. Wsparcie i retencja (SUP-3 / SUP-4 / SUP-5)
+
+Migracja `20260616220000_sup_csat_sla` (Plan.supportSlaHours, Ticket.csat*).
+
+- **SUP-4 · CSAT** — po zamknięciu zgłoszenia klient ocenia wsparcie (1-5 gwiazdek + komentarz). Endpoint `POST /tickets/:id/csat` (jednorazowo, tylko własne zamknięte zgłoszenie). Ocena zapisywana na tickecie (do raportów BOK).
+- **SUP-5 · SLA wsparcia** — `Plan.supportSlaHours` ustawiany w panelu admina (formularze planów). Klient widzi gwarancję „odpowiemy do X h" na zgłoszeniu (status: oczekuje / po terminie / odpowiedziano) oraz na karcie planu w checkout. Wartość = max SLA z aktywnych subskrypcji.
+- **SUP-3 · Proaktywne podpowiedzi** — na pulpicie klienta widget „Rzeczy do zrobienia" agreguje rekomendacje usług (DNS/SSL/backup/autoskalowanie/provisioning/health), które API już liczy — mniej ticketów, lepsza retencja.
+
+> Bez nowych zależności; SUP-3 reużywa istniejące `recommendations` z `/services`. Deploy: migracja + `db:generate` + build.
+
+## 0k. Wersja PHP per konto (P-6)
+
+Klient wybiera wersję PHP konta w panelu (zakładka „Wersja PHP"). Mechanizm jak
+przy WAF: `PhpService` kolejkuje **NodeTask `PHP_APPLY`**, agent na węźle pobiera
+skrypt `node-php-apply.sh` i ustawia wersję przez **CloudLinux PHP Selector**
+(`selectorctl`), z fallbackiem do DA. Po sukcesie API stempluje `Account.phpAppliedAt`.
+
+- Dostępne wersje: ustawienie platformy `php.availableVersions` (domyślnie `8.3,8.2,8.1,8.0,7.4`).
+- Endpointy: `GET/POST /services/:id/hosting-php`; serwowanie skryptu: `GET /agent/tasks/php-apply/script`.
+- Migracja `20260616240000_php_per_account` (Account.phpVersion/phpAppliedAt + NodeTaskKind PHP_APPLY).
+
+Wdrożenie: migracja + `db:generate` + build + deploy. Na węźle wymagane alt-php
+(CloudLinux) z włączonymi wersjami w `php.availableVersions`.
+
+## 0l. Wsparcie: temat + KB + szablony (SUP-1/2)
+
+Migracja `20260616260000_ticket_topic_canned`. Roczne plany i AI-suggestion dla
+staff (`/ai/tickets/:id/suggestion`) już istniały — tu dochodzą:
+
+- **Temat zgłoszenia** (`Ticket.topic`: HOSTING/DOMAIN/EMAIL/DNS/SSL/BILLING/OTHER) — klient wybiera w formularzu; staff widzi temat i dopasowane szablony.
+- **Podpowiedzi z bazy wiedzy dla klienta** — formularz zgłoszenia pyta `POST /ai/kb-suggest` (RAG po KB audience CLIENT) i pokazuje „Zanim wyślesz — może to pomoże" (deflekcja ticketów). Bez wywołania LLM (samo retrieval).
+- **Szablony odpowiedzi (canned)** — `CannedResponse` (topic/isActive) + CRUD w panelu admina (Ustawienia → Szablony odpowiedzi) + lista dla staff (`GET /tickets/canned?topic=`) z wstawianiem w pole odpowiedzi (posortowane: temat ticketu → globalne).
+
+> Działa od razu po dodaniu szablonów w panelu admina i (dla KB) opublikowaniu artykułów audience CLIENT/ALL. AI-suggestion „co odpisać / co zweryfikować" jest już dostępny przyciskiem w panelu staff.
+
+## 0m. Marketplace 1-click — Nextcloud / PrestaShop (P-3)
+
+Po WordPressie (A4) — generyczny instalator aplikacji w tej samej architekturze
+NodeTask. `AppInstallService` tworzy bazę DA + dane administratora i kolejkuje
+`APP_INSTALL`; agent pobiera `node-app-install.sh` i instaluje **realnymi
+instalatorami CLI**:
+- **Nextcloud** — `occ maintenance:install` (+ trusted_domains),
+- **PrestaShop** — `install/index_cli.php` (+ usunięcie katalogu install).
+
+Bezpieczeństwo: instalacja tylko na **pustym** katalogu domeny (chroni istniejące
+strony), hasło admina pokazywane raz. Endpointy `GET/POST /services/:id/apps*`;
+skrypt: `GET /agent/tasks/app-install/script`; UI: zakładka „Aplikacje 1-click".
+
+> Wymagania węzła: `php-cli` (Nextcloud occ), `unzip` (PrestaShop). Migracja `20260616280000_app_install` (NodeTaskKind APP_INSTALL). Łatwo dołożyć kolejne aplikacje (Joomla via web-wizard, Matomo, Ghost-na-VPS) jako kolejne wpisy katalogu + gałęzie skryptu.
+
+## 0n. Onboarding wizard (O-4)
+
+Kreator „Pierwsze kroki" na pulpicie klienta prowadzi za rękę po pierwszym
+zakupie: brak usługi → CTA „Zamów hosting/pocztę"; po zakupie → kroki postaw
+stronę (migracja O-2 / WordPress A4 / aplikacje P-3), skieruj domenę (DNS),
+włącz SSL, skonfiguruj pocztę. Stan kroków DNS/SSL wykrywany z health-score
+(`dnsOk`/`tlsOk`); dla produktu e-mail osobny zestaw kroków. Zamykalny
+(localStorage). Czysto kliencki — reużywa `/services`, bez zmian API/schematu.
+
+## 0p. Plany roczne + dodatki (P-7 / P-8)
+
+- **P-7** — plany roczne (`interval=YEAR`, `priceYearly`) i kody promocyjne już działały; dołożono **wyróżnienie oszczędności** przy wyborze rocznego okresu w checkoucie (% i kwota vs 12× miesięcznie). Pakiet „domena+hosting+mail" realizowany przez O-3 (domena w checkoucie) + pocztę wliczoną w hosting.
+- **P-8** — **sklep z dodatkami** (`/dashboard/addons`) opłacany z portfela. Migracja `20260616300000_addons` (`PurchasedAddon` + `User.prioritySupport*`). Dwa tryby realizacji: **flaga** (priorytetowe wsparcie 30 dni → podbija priorytet i SLA kolejnych zgłoszeń) oraz **zlecenie** (konfiguracja przez specjalistę / dedykowane IP → automatyczne zgłoszenie do BOK). Endpointy `GET /addons`, `POST /addons/purchase`.
+
+## 0o. Trust signals (O-5)
+
+Publiczny endpoint `GET /public/stats` (bez auth, cache 60 s) zwraca **realne
+liczby**: aktywne konta hostingowe, domeny, węzły. Komponent `TrustStats`
+pokazuje je na stronie logowania i rejestracji jako social proof („X stron
+hostowanych"). Bezpieczne dla świeżej instalacji — nie pokazuje nic, dopóki
+liczby nie są sensowne (>0). Bez zmian schematu.
+
 ## 0. Konfiguracja OpenProvider (rejestrator domen, C4)
 
 Kod integracji jest gotowy (`apps/api/src/domains/registrar.provider.ts`). Żeby

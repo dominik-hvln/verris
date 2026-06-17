@@ -7,6 +7,12 @@ export const PLATFORM_SETTING_KEYS = {
   CLIENT_IDLE_MINUTES: 'session.clientIdleMinutes',
   STAFF_IDLE_MINUTES: 'session.staffIdleMinutes',
   ADMIN_IDLE_MINUTES: 'session.adminIdleMinutes',
+  /** P-1 — base URL of the custom-branded Roundcube webmail (e.g. https://webmail.verris.pl). */
+  WEBMAIL_URL: 'mail.webmailUrl',
+
+  /** P-6 — comma-separated PHP versions selectable by clients (e.g. "8.3,8.2,8.1,8.0,7.4"). */
+  PHP_AVAILABLE_VERSIONS: 'php.availableVersions',
+
   /** Platform-default authoritative nameservers for provisioned hosting accounts. */
   HOSTING_NS1: 'hosting.ns1',
   HOSTING_NS2: 'hosting.ns2',
@@ -40,6 +46,8 @@ export const PLATFORM_SETTING_DEFAULTS: Record<PlatformSettingKey, string> = {
   [PLATFORM_SETTING_KEYS.ECO_BADGE_IMPRESSIONS_PER_POINT]: '100',
   [PLATFORM_SETTING_KEYS.ECO_POINTS_PER_10_CREDITS]: '100',
   [PLATFORM_SETTING_KEYS.CLIENT_IDLE_MINUTES]: '60',
+  [PLATFORM_SETTING_KEYS.WEBMAIL_URL]: '',
+  [PLATFORM_SETTING_KEYS.PHP_AVAILABLE_VERSIONS]: '8.3,8.2,8.1,8.0,7.4',
   [PLATFORM_SETTING_KEYS.STAFF_IDLE_MINUTES]: '30',
   [PLATFORM_SETTING_KEYS.ADMIN_IDLE_MINUTES]: '15',
   [PLATFORM_SETTING_KEYS.HOSTING_NS1]: '',

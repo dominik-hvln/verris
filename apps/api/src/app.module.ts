@@ -33,6 +33,10 @@ import { CustomerPermissionsGuard } from './common/guards/customer-permissions.g
 import { RateLimitGuard } from './common/guards/rate-limit.guard';
 import { AiModule } from './ai/ai.module';
 import { PlatformSettingsModule } from './platform-settings/platform-settings.module';
+import { LiveReadinessModule } from './admin-readiness/live-readiness.module';
+import { VpsModule } from './vps/vps.module';
+import { PublicStatsModule } from './public-stats/public-stats.module';
+import { AddonModule } from './addons/addon.module';
 import { ControlPlaneMailModule } from './control-plane-mail/control-plane-mail.module';
 import { VpnModule } from './vpn/vpn.module';
 import { KsefModule } from './ksef/ksef.module';
@@ -74,6 +78,10 @@ import { KsefModule } from './ksef/ksef.module';
     ControlPlaneMailModule,
     VpnModule,
     KsefModule,
+    LiveReadinessModule,
+    VpsModule,
+    PublicStatsModule,
+    AddonModule,
   ],
   controllers: [],
   providers: [

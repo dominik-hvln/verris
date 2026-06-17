@@ -5,6 +5,7 @@ import { pl } from "date-fns/locale";
 import { ChevronLeft, Clock, AlertCircle, CheckCircle2 } from "lucide-react";
 import { fetchTicketDetail } from "../actions";
 import ClientTicketChat from "./client-ticket-chat";
+import { TicketCsat } from "./ticket-csat";
 
 export const dynamic = "force-dynamic";
 
@@ -43,10 +44,60 @@ export default async function ClientTicketPage(props: { params: Promise<{ id: st
         <StatusBadge status={ticket.status} />
       </div>
 
+      <SlaBadge
+        slaHours={ticket.supportSlaHours ?? 0}
+        firstResponseAt={ticket.firstResponseAt ?? null}
+        dueAt={ticket.slaResponseDueAt ?? null}
+        status={ticket.status}
+      />
+
       {/* Czat kontener */}
       <div className="rounded-xl border border-border/50 bg-card overflow-hidden flex flex-col h-[600px] max-h-[70vh]">
         <ClientTicketChat ticket={ticket} />
       </div>
+
+      {ticket.status === "CLOSED" ? (
+        <TicketCsat ticketId={ticket.id} existingRating={ticket.csatRating ?? null} />
+      ) : null}
+    </div>
+  );
+}
+
+function SlaBadge({
+  slaHours,
+  firstResponseAt,
+  dueAt,
+  status,
+}: {
+  slaHours: number;
+  firstResponseAt: string | null;
+  dueAt: string | null;
+  status: string;
+}) {
+  if (slaHours <= 0) return null;
+  if (firstResponseAt) {
+    return (
+      <div className="rounded-lg border border-emerald-400/25 bg-emerald-400/5 px-4 py-2.5 text-sm text-emerald-200 flex items-center gap-2">
+        <CheckCircle2 className="h-4 w-4" />
+        Odpowiedzieliśmy na to zgłoszenie. Gwarancja Twojego planu: pierwsza odpowiedź do {slaHours} h.
+      </div>
+    );
+  }
+  if (status === "CLOSED") return null;
+  const due = dueAt ? new Date(dueAt) : null;
+  const overdue = due ? due.getTime() < Date.now() : false;
+  return (
+    <div
+      className={`rounded-lg border px-4 py-2.5 text-sm flex items-center gap-2 ${
+        overdue ? "border-amber-500/30 bg-amber-500/10 text-amber-200" : "border-sky-400/25 bg-sky-400/5 text-sky-200"
+      }`}
+    >
+      <Clock className="h-4 w-4" />
+      {overdue
+        ? `Przekraczamy gwarantowany czas odpowiedzi (${slaHours} h) — priorytetyzujemy Twoje zgłoszenie.`
+        : `Gwarantowany czas pierwszej odpowiedzi wg Twojego planu: do ${slaHours} h${
+            due ? ` (do ${format(due, "d MMM, HH:mm", { locale: pl })})` : ""
+          }.`}
     </div>
   );
 }

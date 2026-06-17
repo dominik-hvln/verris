@@ -40,6 +40,8 @@ export function NewPlanForm() {
     currency: "PLN",
     sortOrder: "0",
     trialDays: "0",
+    supportSlaHours: "0",
+    productKind: "HOSTING" as "HOSTING" | "EMAIL",
     stripePriceMonthlyId: "",
     stripePriceYearlyId: "",
     isPublic: true,
@@ -100,6 +102,8 @@ export function NewPlanForm() {
         isActive: form.isActive,
         sortOrder: Number.parseInt(form.sortOrder, 10) || 0,
         trialDays: Number.parseInt(form.trialDays, 10) || 0,
+        supportSlaHours: Number.parseInt(form.supportSlaHours, 10) || 0,
+        productKind: form.productKind,
         ...(stripeManual
           ? {
               stripePriceMonthlyId: form.stripePriceMonthlyId.trim() || undefined,
@@ -162,6 +166,16 @@ export function NewPlanForm() {
       </Card>
 
       <Card title="Ceny">
+        <Field label="Rodzaj produktu">
+          <select
+            value={form.productKind}
+            onChange={(e) => setField("productKind", e.target.value as "HOSTING" | "EMAIL")}
+            className="form-input"
+          >
+            <option value="HOSTING">Hosting (web)</option>
+            <option value="EMAIL">Poczta e-mail</option>
+          </select>
+        </Field>
         <Field label="Waluta">
           <select
             value={form.currency}
@@ -218,6 +232,7 @@ export function NewPlanForm() {
         </Field>
         <NumField label="Sort order" value={form.sortOrder} onChange={(v) => setField("sortOrder", v)} />
         <NumField label="Trial (dni, 0=brak)" value={form.trialDays} onChange={(v) => setField("trialDays", v)} />
+        <NumField label="SLA wsparcia (h, 0=brak)" value={form.supportSlaHours} onChange={(v) => setField("supportSlaHours", v)} />
       </Card>
 
       <div className="pt-4 border-t border-white/5 flex justify-end">

@@ -57,6 +57,7 @@ export default function AdminLoginPage() {
         <div className="absolute bottom-[-10%] right-[-5%] w-[30%] h-[50%] rounded-full bg-violet-600/10 blur-[120px]" />
       </div>
 
+      <div className="relative z-10 w-full max-w-md flex flex-col">
       <form
         onSubmit={onSubmit}
         className="relative w-full max-w-md rounded-2xl bg-black/50 backdrop-blur-2xl border border-white/10 shadow-2xl p-8 space-y-6"
@@ -183,6 +184,7 @@ export default function AdminLoginPage() {
           <span className="h-px flex-1 bg-white/10" />
         </div>
         <AdminPasskeyLoginButton />
+      </div>
       </div>
     </main>
   );

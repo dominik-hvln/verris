@@ -72,6 +72,8 @@ export interface ServiceSummaryDto {
   /** O-1 — true while in a free trial; `trialEndsAt` is the window end. */
   isTrial: boolean;
   trialEndsAt: string | null;
+  /** P-1b — product family of the underlying plan (drives panel UX). */
+  productKind: 'HOSTING' | 'EMAIL';
   account: ServiceAccountSummaryDto | null;
   /** Sprint 5 / R-11+B-7 — postęp provisioningu widoczny dla klienta. */
   provisioning: ProvisioningProgressDto | null;

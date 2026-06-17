@@ -263,6 +263,19 @@ export class NodeTasksService {
         });
     }
 
+    // P-6 — a completed PHP_APPLY confirms the PHP version is live on the node.
+    if (task.kind === NodeTaskKind.PHP_APPLY && task.accountId) {
+      await this.prisma.account
+        .update({ where: { id: task.accountId }, data: { phpAppliedAt: new Date() } })
+        .catch((err) => {
+          this.logger.warn(
+            `phpAppliedAt update failed account=${task.accountId}: ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          );
+        });
+    }
+
     return this.toPublicTask(updated);
   }
 

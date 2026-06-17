@@ -34,6 +34,8 @@ interface FormState {
   isActive: boolean;
   sortOrder: string;
   trialDays: string;
+  supportSlaHours: string;
+  productKind: "HOSTING" | "EMAIL";
   stripePriceMonthlyId: string;
   stripePriceYearlyId: string;
   autoscalingMaxOverscaleCpu: string;
@@ -59,6 +61,8 @@ function toFormState(plan: AdminPlanRow): FormState {
     isActive: plan.isActive,
     sortOrder: String(plan.sortOrder),
     trialDays: String(plan.trialDays ?? 0),
+    supportSlaHours: String(plan.supportSlaHours ?? 0),
+    productKind: (plan.productKind ?? "HOSTING") as "HOSTING" | "EMAIL",
     stripePriceMonthlyId: plan.stripePriceMonthlyId ?? "",
     stripePriceYearlyId: plan.stripePriceYearlyId ?? "",
     autoscalingMaxOverscaleCpu: String(plan.autoscalingMaxOverscaleCpu ?? 3),
@@ -143,6 +147,8 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
         isActive: state.isActive,
         sortOrder: Number.parseInt(state.sortOrder, 10) || 0,
         trialDays: Number.parseInt(state.trialDays, 10) || 0,
+        supportSlaHours: Number.parseInt(state.supportSlaHours, 10) || 0,
+        productKind: state.productKind,
         ...(stripeManual
           ? {
               stripePriceMonthlyId: state.stripePriceMonthlyId.trim(),
@@ -466,6 +472,26 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
             max={90}
             value={state.trialDays}
             onChange={(e) => setField("trialDays", e.target.value)}
+            className="form-input"
+          />
+        </Field>
+        <Field label="Rodzaj produktu">
+          <select
+            value={state.productKind}
+            onChange={(e) => setField("productKind", e.target.value as "HOSTING" | "EMAIL")}
+            className="form-input"
+          >
+            <option value="HOSTING">Hosting (web)</option>
+            <option value="EMAIL">Poczta e-mail</option>
+          </select>
+        </Field>
+        <Field label="SLA wsparcia (godz., 0 = brak)">
+          <input
+            type="number"
+            min={0}
+            max={720}
+            value={state.supportSlaHours}
+            onChange={(e) => setField("supportSlaHours", e.target.value)}
             className="form-input"
           />
         </Field>

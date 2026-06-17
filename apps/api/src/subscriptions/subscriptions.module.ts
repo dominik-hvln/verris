@@ -31,6 +31,9 @@ import { SiteMonitorService } from './site-monitor.service';
 import { StagingService } from './staging.service';
 import { TrialService } from './trial.service';
 import { TrialExpiryScheduler } from './trial-expiry.scheduler';
+import { PhpService } from './php.service';
+import { AppInstallService } from './app-install.service';
+import { DeliverabilityService } from '../deliverability/deliverability.service';
 import { EcoModule } from '../eco/eco.module';
 
 @Module({
@@ -55,6 +58,9 @@ import { EcoModule } from '../eco/eco.module';
     SiteMonitorService,
     TrialService,
     TrialExpiryScheduler,
+    PhpService,
+    AppInstallService,
+    DeliverabilityService,
     StagingService,
   ],
   controllers: [

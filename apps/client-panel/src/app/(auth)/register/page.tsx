@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { submitRegister } from "./actions";
 import { Loader2, AlertCircle } from "lucide-react";
 import { SpinBorder } from "@/components/spin-border";
+import { TrustStats } from "@/components/brand/trust-stats";
 
 const initialState = { error: "" };
 
@@ -175,6 +176,8 @@ function RegisterContent() {
           Masz już konto?{" "}
           <a href="/login" className="text-white hover:text-sky-400 hover:underline underline-offset-4 transition-colors font-semibold">Zaloguj się</a>
         </p>
+
+        <TrustStats className="mt-6" />
       </div>
     </div>
   );

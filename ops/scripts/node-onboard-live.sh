@@ -219,6 +219,17 @@ run_security_hardening() {
       log_warn "node-migration-worker.sh — instalacja nieudana (sprawdź jq/lftp/imapsync)"
     fi
   fi
+
+  # B-1 LIVE: backupy off-node (offsite). Timer instalujemy zawsze; pierwszy
+  # przebieg wymaga /etc/verris-backup.conf + rclone.conf (sekrety na węźle).
+  if [ -f "$SCRIPT_DIR/node-offsite-backup.sh" ]; then
+    if bash "$SCRIPT_DIR/node-offsite-backup.sh" --install; then
+      log_ok "node-offsite-backup.sh zainstalowany (timer 03:30)"
+      [ -r /etc/verris-backup.conf ] || log_warn "Utwórz /etc/verris-backup.conf + rclone.conf, inaczej backup offsite nie wystartuje"
+    else
+      log_warn "node-offsite-backup.sh — instalacja nieudana"
+    fi
+  fi
 }
 
 da_ip_registered() {

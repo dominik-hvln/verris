@@ -33,6 +33,7 @@ const adminNavItems = [
       { name: "Pulpit", href: "/", icon: LayoutDashboard },
       { name: "Węzły & serwery", href: "/nodes", icon: Server },
       { name: "Plany produktowe", href: "/plans", icon: Box },
+      { name: "VPS / Cloud", href: "/vps", icon: Server },
       { name: "Subskrypcje i usługi", href: "/subscriptions", icon: Activity },
       { name: "Kolejka provisioningu", href: "/provisioning-queue", icon: ListChecks },
       { name: "Product Ops / NOC", href: "/product-ops", icon: Rocket },

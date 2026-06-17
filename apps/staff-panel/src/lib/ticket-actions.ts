@@ -3,6 +3,23 @@
 import { revalidatePath } from "next/cache";
 import { StaffApiError, staffApi, staffApiMultipart } from "./staff-api";
 
+export interface CannedResponseRow {
+  id: string;
+  title: string;
+  content: string;
+  topic: string | null;
+}
+
+/** SUP-2 — szablony odpowiedzi (posortowane pod temat zgłoszenia). */
+export async function staffFetchCanned(topic?: string): Promise<CannedResponseRow[]> {
+  try {
+    const q = topic ? `?topic=${encodeURIComponent(topic)}` : "";
+    return await staffApi<CannedResponseRow[]>(`/tickets/canned${q}`);
+  } catch {
+    return [];
+  }
+}
+
 export async function staffPostReply(ticketId: string, message: string): Promise<{ ok: true } | { error: string }> {
   const m = message.trim();
   if (m.length < 2) return { error: "Wiadomość jest za krótka." };

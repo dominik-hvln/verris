@@ -165,6 +165,12 @@ model User {
   paymentMethods           PaymentMethod[]
   invoices                 Invoice[]
   domains                  Domain[]
+  vpsInstances             VpsInstance[]
+  sshKeys                  SshKey[]
+  purchasedAddons          PurchasedAddon[]
+  // P-8 — priority support add-on (flag + expiry). Consumed by ticket SLA.
+  prioritySupport          Boolean   @default(false)
+  prioritySupportUntil     DateTime?
   domainRegistrarOrders    DomainRegistrarOrder[]
   aiInteractions           AiInteractionLog[]
   aiKnowledgeDocs          AiKnowledgeDoc[]    @relation("AiKnowledgeDocAuthor")
@@ -383,6 +389,12 @@ model Server {
   lastSecurityAlertKind  String?
   lastSecurityAlertInfo  String?
 
+  // B-1 LIVE: off-node (offsite) backup agent reports last successful run so
+  // the panel can flag stale/missing offsite backups (data-durability SLA).
+  lastOffsiteBackupAt      DateTime?
+  lastOffsiteBackupOk      Boolean   @default(false)
+  lastOffsiteBackupInfo    String?
+
   // Authoritative nameservers handed to every account provisioned on this node
   // (DA `CMD_API_ACCOUNT_USER` ns1/ns2). Per-node override; when null the
   // platform default (PlatformSetting `hosting.ns*`, then env HOSTING_NS*) is
@@ -432,6 +444,8 @@ enum NodeTaskKind {
   WP_INSTALL        // A4 — instalator WordPress per konto klienta
   WAF_APPLY         // B2 — zastosowanie trybu ModSecurity WAF per konto
   STAGING_SYNC      // B5 — klon LIVE→staging lub publikacja staging→LIVE
+  PHP_APPLY         // P-6 — zmiana wersji PHP konta (CloudLinux PHP Selector)
+  APP_INSTALL       // P-3 — instalator 1-click aplikacji (Nextcloud/PrestaShop)
 }
 
 enum WafMode {
@@ -585,6 +599,13 @@ enum BillingInterval {
   YEAR
 }
 
+// P-1b — what kind of product a Plan represents. HOSTING = classic web hosting,
+// EMAIL = standalone mailbox product (same DA-account machinery, mail-focused).
+enum ProductKind {
+  HOSTING
+  EMAIL
+}
+
 model Plan {
   id                   String   @id @default(uuid())
   slug                 String   @unique
@@ -619,6 +640,12 @@ model Plan {
 
   // O-1 — free trial length in days. 0 = no trial available for this plan.
   trialDays            Int      @default(0)
+
+  // P-1b — product family this plan belongs to (hosting vs standalone e-mail).
+  productKind          ProductKind @default(HOSTING)
+
+  // SUP-5 — guaranteed support first-response time (hours). 0 = no SLA promise.
+  supportSlaHours      Int      @default(0)
 
   // B6 — SSH/Git shell access for this plan (CageFS-jailed). Off by default;
   // higher tiers can enable it. Applied to the DA package `ssh` feature.
@@ -869,6 +896,11 @@ model Account {
   wafMode         WafMode       @default(DETECTION)
   wafAppliedAt    DateTime?
 
+  // P-6 — per-account PHP version (CloudLinux PHP Selector), applied by the
+  // node agent via a PHP_APPLY task. Null = node/account default.
+  phpVersion      String?
+  phpAppliedAt    DateTime?
+
   // B5 — staging (`staging.<domain>`): created/last-cloned timestamps,
   // confirmed by the STAGING_SYNC node task on completion.
   stagingCreatedAt DateTime?
@@ -998,6 +1030,24 @@ model DomainRegistrarOrder {
 // -----------------------------------------------------------------------------
 // WALLET LEDGER & PAYMENTS
 // -----------------------------------------------------------------------------
+
+/// P-8 — one-time add-on purchase (work-order or instant flag).
+model PurchasedAddon {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slug           String
+  name           String
+  amount         Decimal  @db.Decimal(10, 2)
+  currency       String   @default("PLN")
+  subscriptionId String?
+  /// QUEUED (work-order created) | APPLIED (instant flag) | DONE
+  status         String   @default("APPLIED")
+  ticketId       String?
+  createdAt      DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
 
 enum WalletTxType {
   TOPUP                // User added funds (Stripe / PayU)
@@ -1460,6 +1510,8 @@ model Ticket {
   status          String        @default("OPEN")     // OPEN, IN_PROGRESS, CLOSED
   priority        String        @default("NORMAL")   // LOW, NORMAL, HIGH, URGENT
   department      String        @default("TECHNICAL") // BILLING, TECHNICAL, SALES
+  // SUP-1 — temat zgłoszenia wybrany przez klienta (grupowanie + podpowiedzi KB).
+  topic           String?       // HOSTING, DOMAIN, EMAIL, DNS, BILLING, SSL, OTHER
 
   userId          String
   user            User          @relation("ClientTickets", fields: [userId], references: [id], onDelete: Cascade)
@@ -1472,6 +1524,11 @@ model Ticket {
 
   firstResponseAt DateTime?
   resolvedAt      DateTime?
+
+  // SUP-4 — customer satisfaction after the ticket is closed (1-5 + optional note).
+  csatRating      Int?
+  csatComment     String?       @db.Text
+  csatAt          DateTime?
 
   // Sprint 8+ / S-07 + V-10/V-11/V-12 — operacyjne pola BOK.
   slaResponseDueAt DateTime?
@@ -1534,11 +1591,18 @@ model TicketAttachment {
 }
 
 model CannedResponse {
-  id        String   @id @default(uuid())
-  title     String
-  content   String
+  id          String   @id @default(uuid())
+  title       String
+  content     String   @db.Text
+  // SUP-2 — temat szablonu (do filtrowania pod temat ticketu).
+  topic       String?  // HOSTING, DOMAIN, EMAIL, DNS, BILLING, SSL, OTHER
+  isActive    Boolean  @default(true)
+  createdById String?
 
-  createdAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([topic, isActive])
 }
 
 // -----------------------------------------------------------------------------
@@ -2503,4 +2567,105 @@ model SiteMonitorEvent {
   createdAt  DateTime             @default(now())
 
   @@index([monitorId, createdAt])
+}
+
+// ===========================================================================
+// VPS / Cloud (resale via Hetzner Cloud API)
+// ===========================================================================
+
+enum VpsStatus {
+  PROVISIONING // create requested, Hetzner building
+  RUNNING
+  STOPPED
+  REBOOTING
+  ERROR        // provisioning/action failed
+  DELETING
+  DELETED
+}
+
+/// A sellable VPS plan mapped to a concrete Hetzner Cloud server type.
+model VpsPlan {
+  id                String    @id @default(uuid())
+  slug              String    @unique
+  name              String
+  description       String?
+
+  // Hetzner mapping
+  hetznerServerType String    // e.g. "cx22"
+  hetznerImage      String    @default("ubuntu-24.04")
+  location          String    @default("nbg1") // nbg1/fsn1/hel1/ash/hil
+
+  // Display specs
+  vcpu              Int
+  ramGb             Int
+  diskGb            Int
+  trafficTb         Int       @default(20)
+
+  priceMonthly      Decimal   @db.Decimal(10, 2)
+  currency          String    @default("PLN")
+
+  isPublic          Boolean   @default(true)
+  isActive          Boolean   @default(true)
+  sortOrder         Int       @default(0)
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  instances         VpsInstance[]
+
+  @@index([isPublic, isActive])
+}
+
+/// Customer SSH public key, reusable across VPS orders. Uploaded to the
+/// Hetzner project lazily on first use (`hetznerKeyId` cached afterwards).
+model SshKey {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  publicKey    String   @db.Text
+  fingerprint  String
+  hetznerKeyId String?
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, fingerprint])
+  @@index([userId])
+}
+
+/// A provisioned VPS owned by a customer, backed by a Hetzner server.
+model VpsInstance {
+  id               String    @id @default(uuid())
+
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  planId           String
+  plan             VpsPlan   @relation(fields: [planId], references: [id])
+
+  /// Customer-facing hostname/label.
+  name             String
+
+  status           VpsStatus @default(PROVISIONING)
+
+  // Hetzner references
+  hetznerServerId  String?   @unique
+  location         String?
+  ipv4             String?
+  ipv6             String?
+  /// Initial root password (AES-256-GCM at-rest); shown once to the customer.
+  rootPasswordEnc  String?
+
+  // Pricing snapshot + period (monthly prepaid from wallet)
+  priceMonthly     Decimal   @db.Decimal(10, 2)
+  currency         String    @default("PLN")
+  currentPeriodEnd DateTime?
+
+  lastError        String?   @db.Text
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
+
+  @@index([userId, createdAt])
+  @@index([status])
 }

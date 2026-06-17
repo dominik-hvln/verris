@@ -35,6 +35,13 @@ export class AiController {
     );
   }
 
+  /** SUP-1 — KB article suggestions for the client support form (deflection). */
+  @Post('kb-suggest')
+  @HttpCode(200)
+  kbSuggest(@Body() body: { query: string; topic?: string }) {
+    return this.chat.kbSuggest(body?.query ?? '', body?.topic);
+  }
+
   /** Client-facing hosting assistant (RAG over the CLIENT/ALL knowledge base). */
   @Post('chat')
   @HttpCode(200)

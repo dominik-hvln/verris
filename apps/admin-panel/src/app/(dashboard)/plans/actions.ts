@@ -36,6 +36,8 @@ interface CreatePlanPayload {
   isActive?: boolean;
   sortOrder?: number;
   trialDays?: number;
+  productKind?: "HOSTING" | "EMAIL";
+  supportSlaHours?: number;
   stripePriceMonthlyId?: string;
   stripePriceYearlyId?: string;
   autoscalingMaxOverscaleCpu?: number;
@@ -73,6 +75,8 @@ interface UpdatePlanPayload {
   isActive?: boolean;
   sortOrder?: number;
   trialDays?: number;
+  productKind?: "HOSTING" | "EMAIL";
+  supportSlaHours?: number;
   stripePriceMonthlyId?: string;
   stripePriceYearlyId?: string;
   autoscalingMaxOverscaleCpu?: number;
