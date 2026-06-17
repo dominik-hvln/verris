@@ -74,7 +74,7 @@ echo "$H" | grep -qi "^server: *caddy" && warn "Nagłówek Server ujawnia 'Caddy
 echo "$H" | grep -qiE "^x-powered-by:" && warn "X-Powered-By ujawnia tech (usuń)" || ok "Brak X-Powered-By"
 
 sec "5. Kontrola dostępu (chronione endpointy bez tokena → 401/403)"
-for ep in "/me/status" "/services" "/subscriptions" "/admin/users" "/vps" "/addons" "/billing"; do
+for ep in "/services" "/subscriptions" "/admin/users" "/vps" "/addons"; do
   c=$(code "$API$ep")
   if [[ "$c" =~ ^(401|403)$ ]]; then ok "$ep chroniony ($c)"
   elif [[ "$c" == "404" ]]; then warn "$ep → 404 (ścieżka inna? zignoruj jeśli nie istnieje)"

@@ -15,11 +15,21 @@
         X-Content-Type-Options "nosniff"
         Referrer-Policy "strict-origin-when-cross-origin"
         -Server
+        # Nie ujawniaj frameworka (Next/Express ustawiają to na backendzie).
+        -X-Powered-By
     }
+}
+
+# CSP dla paneli (Next.js + Stripe). 'unsafe-inline' w script/style jest wymagane
+# przez Next bez nonce; reszta zacieśniona. frame-ancestors 'none' = anty-clickjacking.
+# connect-src wskazuje API; dostosuj domenę gdy inna niż api.verris.pl.
+(panel_csp) {
+    header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://js.stripe.com; connect-src 'self' https://api.verris.pl https://*.stripe.com; frame-src https://js.stripe.com https://hooks.stripe.com"
 }
 
 (panel_headers) {
     import security_headers
+    import panel_csp
     header {
         X-Frame-Options "DENY"
         Permissions-Policy "camera=(), microphone=(), geolocation=()"
@@ -67,6 +77,8 @@
 # -----------------------------------------------------------------------------
 {$CADDY_API_DOMAIN:api.verris.local} {
     import security_headers
+    # API zwraca JSON — niczego nie renderuje, więc najostrzejszy CSP.
+    header Content-Security-Policy "default-src 'none'; frame-ancestors 'none'"
     reverse_proxy api:3000
 }
 
