@@ -173,7 +173,14 @@ export default function DomainsPage() {
                   <article key={domain.id} className="rounded-xl border border-white/10 bg-[#050505] p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="truncate font-bold text-white">{domain.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="truncate font-bold text-white">{domain.name}</p>
+                          {domain.kind === 'HOSTING' && (
+                            <span className="shrink-0 rounded-full border border-violet-400/30 bg-violet-400/10 px-2 py-0.5 text-[10px] font-semibold text-violet-200">
+                              Hosting
+                            </span>
+                          )}
+                        </div>
                         <p className="mt-2 text-xs text-neutral-500">
                           {domain.createdAt
                             ? format(new Date(domain.createdAt), 'dd.MM.yyyy HH:mm', { locale: pl })
@@ -193,20 +200,32 @@ export default function DomainsPage() {
                       </div>
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2">
-                      <Button size="sm" variant="outline" onClick={() => router.push(`/dashboard/domains/${domain.id}`)}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          router.push(
+                            domain.kind === 'HOSTING' && domain.serviceId
+                              ? `/dashboard/services/${domain.serviceId}`
+                              : `/dashboard/domains/${domain.id}`,
+                          )
+                        }
+                      >
                         Zarządzaj
                       </Button>
                       <Button size="sm" variant="ghost" onClick={() => loadDomains()}>
                         Odśwież
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-red-400"
-                        onClick={() => handleDeleteDomain(domain.id, domain.name)}
-                      >
-                        Usuń
-                      </Button>
+                      {domain.kind !== 'HOSTING' && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-red-400"
+                          onClick={() => handleDeleteDomain(domain.id, domain.name)}
+                        >
+                          Usuń
+                        </Button>
+                      )}
                     </div>
                   </article>
                 ))}
@@ -240,6 +259,11 @@ export default function DomainsPage() {
                                 <Globe className="h-4 w-4" />
                               </div>
                               {domain.name}
+                              {domain.kind === 'HOSTING' && (
+                                <span className="rounded-full border border-violet-400/30 bg-violet-400/10 px-2 py-0.5 text-[10px] font-semibold text-violet-200">
+                                  Hosting
+                                </span>
+                              )}
                             </div>
                           </td>
                           <td className="px-4">
@@ -266,9 +290,15 @@ export default function DomainsPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="bg-[#121212] border-white/10 text-white">
-                                <DropdownMenuItem 
-                                  className="cursor-pointer font-medium hover:bg-white/10 focus:bg-white/10 focus:text-white" 
-                                  onClick={() => router.push(`/dashboard/domains/${domain.id}`)}
+                                <DropdownMenuItem
+                                  className="cursor-pointer font-medium hover:bg-white/10 focus:bg-white/10 focus:text-white"
+                                  onClick={() =>
+                                    router.push(
+                                      domain.kind === 'HOSTING' && domain.serviceId
+                                        ? `/dashboard/services/${domain.serviceId}`
+                                        : `/dashboard/domains/${domain.id}`,
+                                    )
+                                  }
                                 >
                                   Zarządzaj
                                 </DropdownMenuItem>
@@ -276,13 +306,17 @@ export default function DomainsPage() {
                                 <DropdownMenuItem className="cursor-pointer hover:bg-white/10 focus:bg-white/10 focus:text-white" onClick={() => loadDomains()}>
                                   <RefreshCw className="w-4 h-4 mr-2" /> Odśwież status
                                 </DropdownMenuItem>
-                                <DropdownMenuSeparator className="bg-white/10" />
-                                <DropdownMenuItem 
-                                  className="cursor-pointer text-red-400 hover:bg-red-500/10 focus:bg-red-500/10 focus:text-red-400"
-                                  onClick={() => handleDeleteDomain(domain.id, domain.name)}
-                                >
-                                  <Trash2 className="w-4 h-4 mr-2" /> Usuń domenę
-                                </DropdownMenuItem>
+                                {domain.kind !== 'HOSTING' && (
+                                  <>
+                                    <DropdownMenuSeparator className="bg-white/10" />
+                                    <DropdownMenuItem
+                                      className="cursor-pointer text-red-400 hover:bg-red-500/10 focus:bg-red-500/10 focus:text-red-400"
+                                      onClick={() => handleDeleteDomain(domain.id, domain.name)}
+                                    >
+                                      <Trash2 className="w-4 h-4 mr-2" /> Usuń domenę
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </td>

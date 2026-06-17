@@ -124,7 +124,10 @@ export function HostingSslForms({ serviceId }: Props) {
               if (r.ok) {
                 setLeMsg({
                   type: 'ok',
-                  text: 'Zlecono Let’s Encrypt. Odśwież stronę za chwilę lub sprawdź panel SSL.',
+                  text:
+                    'Zlecono wystawienie certyfikatu (w tle). Aby się powiodło, domena musi już ' +
+                    'wskazywać na nasz serwer (rekord A) — inaczej walidacja Let’s Encrypt nie przejdzie. ' +
+                    'Status zaktualizuje się tu po wydaniu (zwykle do kilku minut).',
                 });
               } else {
                 setLeMsg({ type: 'err', text: r.error });
