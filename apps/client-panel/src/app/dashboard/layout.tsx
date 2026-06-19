@@ -14,15 +14,9 @@ import { PlatformConfigLoader } from "@/components/platform-config-loader";
 import { SpinBorder } from "@/components/spin-border";
 import { VerrisLockup, VerrisMark } from "@/components/logo";
 import {
-  VerrisBazyDanychIcon,
-  VerrisCronIcon,
   VerrisDomenyIcon,
   VerrisEkoIcon,
-  VerrisFtpIcon,
-  VerrisManagerPlikowIcon,
-  VerrisPocztaIcon,
   VerrisProgramPartnerskiIcon,
-  VerrisSslIcon,
   VerrisSupportIcon,
   VerrisUstawieniaIcon,
 } from "@/components/icons";
@@ -44,23 +38,13 @@ import {
   clientNavContextFromSidebar,
 } from "@/lib/client-nav-access";
 
+// Menu boczne zawiera wyłącznie elementy GLOBALNE (konto/usługi/płatności).
+// Narzędzia per-usługa (pliki, bazy, poczta, SSL, PHP, aplikacje, FTP, cron,
+// kopie) żyją wewnątrz konkretnej usługi: Usługi → wybierz usługę → zakładki.
 const secondaryItems = [
   {
-    label: "Zarządzanie",
+    label: "Usługi i zasoby",
     items: [
-      { name: "Menedżer plików", href: "/dashboard/file-manager", icon: VerrisManagerPlikowIcon },
-      { name: "Bazy danych", href: "/dashboard/databases", icon: VerrisBazyDanychIcon },
-      { name: "Poczta e-mail", href: "/dashboard/email", icon: VerrisPocztaIcon },
-      { name: "Certyfikaty SSL", href: "/dashboard/ssl", icon: VerrisSslIcon },
-      { name: "Wersja PHP", href: "/dashboard/php", icon: ServerIcon },
-      { name: "Aplikacje 1-click", href: "/dashboard/apps", icon: ServerIcon },
-    ],
-  },
-  {
-    label: "Zaawansowane",
-    items: [
-      { name: "Dostęp FTP", href: "/dashboard/ftp", icon: VerrisFtpIcon },
-      { name: "Zadania Cron", href: "/dashboard/cron", icon: VerrisCronIcon },
       { name: "Migracje", href: "/dashboard/migrations", icon: Globe },
       { name: "Dodatki", href: "/dashboard/addons", icon: Calculator },
       { name: "VPS / Cloud", href: "/dashboard/vps", icon: ServerIcon },

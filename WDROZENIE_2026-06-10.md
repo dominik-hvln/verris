@@ -206,6 +206,18 @@ włącz SSL, skonfiguruj pocztę. Stan kroków DNS/SSL wykrywany z health-score
 (`dnsOk`/`tlsOk`); dla produktu e-mail osobny zestaw kroków. Zamykalny
 (localStorage). Czysto kliencki — reużywa `/services`, bez zmian API/schematu.
 
+## 0s. Reorganizacja nawigacji — hub usługi (model cPanel)
+
+Uporządkowanie IA: **menu boczne zawiera tylko elementy globalne** (Pulpit, Usługi,
+Domeny, Płatności, Migracje, Dodatki, VPS/Cloud, Kalkulator, Pomoc, Ustawienia +
+warunkowo EKO/Partnerski/IAM). **Wszystkie narzędzia per-usługa** wchodzą przez:
+Usługi → wybierz usługę → zakładki huba.
+
+- Hub `services/[id]` to jedyny punkt zarządzania usługą. Dodane brakujące zakładki: **Wersja PHP, Konta FTP, Cron, Kopie zapasowe** (klienckie wrappery reużywające istniejących komponentów/akcji).
+- Zakładka **Pliki** w hubie używa teraz **realnego menedżera plików** (P-4, in-panel) zamiast linku do zewnętrznego DA — koniec „dwóch różnych widoków".
+- Usunięto z menu bocznego pozycje per-usługa (pliki, bazy, poczta, SSL, PHP, aplikacje, FTP, cron), które wcześniej działały na auto-wybranej pierwszej usłudze (źródło pomyłek „pokazuje tylko jedną usługę").
+- Stare trasy (`/dashboard/file-manager`, `/dashboard/databases` …) pozostają jako deep-linki (z `?serviceId`), ale nie są już w menu.
+
 ## 0r. Menedżer plików w panelu (P-4)
 
 Interaktywny menedżer plików hostingu w panelu klienta (`/dashboard/file-manager`),

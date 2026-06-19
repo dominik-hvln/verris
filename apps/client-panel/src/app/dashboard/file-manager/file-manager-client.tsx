@@ -42,7 +42,7 @@ function formatSize(bytes: number): string {
   return `${n.toFixed(n < 10 && i > 0 ? 1 : 0)} ${units[i]}`;
 }
 
-export function FileManagerClient({ serviceId, domain }: { serviceId: string; domain: string }) {
+export function FileManagerClient({ serviceId, domain }: { serviceId: string; domain?: string }) {
   const [path, setPath] = useState('/');
   const [entries, setEntries] = useState<FmEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -249,7 +249,7 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
         >
           <RefreshCw className="h-4 w-4" /> Odśwież
         </button>
-        <span className="ml-auto text-xs text-neutral-500">{domain}</span>
+        {domain ? <span className="ml-auto text-xs text-neutral-500">{domain}</span> : null}
       </div>
 
       {/* Breadcrumb */}

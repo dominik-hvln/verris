@@ -16,6 +16,10 @@ import {
   Gauge,
   ArrowRightLeft,
   Receipt,
+  Terminal,
+  Clock,
+  FolderKanban,
+  Archive,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -29,7 +33,11 @@ import WordpressTab from '@/components/hosting/WordpressTab';
 import WafTab from '@/components/hosting/WafTab';
 import MonitoringTab from '@/components/hosting/MonitoringTab';
 import DeployTab from '@/components/hosting/DeployTab';
-import HostingFileManagerTab from '@/components/hosting/HostingFileManagerTab';
+import { FileManagerClient } from '@/app/dashboard/file-manager/file-manager-client';
+import PhpTab from '@/components/hosting/PhpTab';
+import FtpTab from '@/components/hosting/FtpTab';
+import CronTab from '@/components/hosting/CronTab';
+import BackupsTab from '@/components/hosting/BackupsTab';
 import UsageTab from '@/components/hosting/UsageTab';
 import ServiceOverviewTab from '@/components/hosting/ServiceOverviewTab';
 import ServiceSubscriptionTab from '@/components/hosting/ServiceSubscriptionTab';
@@ -45,8 +53,12 @@ const TABS = [
   { id: 'databases', label: 'Bazy MySQL', icon: Database },
   { id: 'mail', label: 'Poczta', icon: Mail },
   { id: 'files', label: 'Pliki', icon: FolderOpen },
+  { id: 'php', label: 'Wersja PHP', icon: Terminal },
   { id: 'ssl', label: 'SSL', icon: Shield },
   { id: 'apps', label: 'Aplikacje', icon: Globe },
+  { id: 'ftp', label: 'Konta FTP', icon: FolderKanban },
+  { id: 'cron', label: 'Cron', icon: Clock },
+  { id: 'backups', label: 'Kopie zapasowe', icon: Archive },
   { id: 'waf', label: 'WAF', icon: Shield },
   { id: 'monitoring', label: 'Monitoring', icon: Activity },
   { id: 'staging', label: 'Staging', icon: Box },
@@ -158,11 +170,15 @@ export default function HostingManagerPage() {
             {activeTab === 'mail' && <MailTab serviceId={params.id} />}
             {activeTab === 'ssl' && <SSLTab serviceId={params.id} />}
             {activeTab === 'apps' && <WordpressTab serviceId={params.id} />}
+            {activeTab === 'php' && <PhpTab serviceId={params.id} />}
+            {activeTab === 'ftp' && <FtpTab serviceId={params.id} />}
+            {activeTab === 'cron' && <CronTab serviceId={params.id} />}
+            {activeTab === 'backups' && <BackupsTab serviceId={params.id} />}
             {activeTab === 'waf' && <WafTab serviceId={params.id} />}
             {activeTab === 'monitoring' && <MonitoringTab serviceId={params.id} />}
             {activeTab === 'staging' && <StagingTab serviceId={params.id} />}
             {activeTab === 'deploy' && <DeployTab serviceId={params.id} />}
-            {activeTab === 'files' && <HostingFileManagerTab serviceId={params.id} />}
+            {activeTab === 'files' && <FileManagerClient serviceId={params.id} />}
             {activeTab === 'usage' && <UsageTab serviceId={params.id} />}
           </main>
 
