@@ -10,6 +10,7 @@ import {
   FilePen,
   Folder,
   FolderPlus,
+  Pencil,
   Loader2,
   RefreshCw,
   Trash2,
@@ -29,6 +30,18 @@ import {
 } from './data';
 
 const EDITABLE = /\.(txt|md|html?|css|js|mjs|cjs|ts|jsx|tsx|json|xml|ya?ml|ini|conf|env|htaccess|php|py|sh|sql|log)$/i;
+
+function formatModified(raw: string | null): string {
+  if (!raw) return '—';
+  // DA returns epoch seconds (sometimes ms); render a readable local date.
+  const num = Number(raw);
+  if (Number.isFinite(num) && num > 0) {
+    const ms = num < 1e12 ? num * 1000 : num;
+    const d = new Date(ms);
+    if (!Number.isNaN(d.getTime())) return d.toLocaleString('pl-PL');
+  }
+  return raw;
+}
 
 function formatSize(bytes: number): string {
   if (!bytes) return '—';
@@ -311,7 +324,7 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
                   <td className="px-4 py-2 text-neutral-400">
                     {entry.type === 'dir' ? '—' : formatSize(entry.sizeBytes)}
                   </td>
-                  <td className="px-4 py-2 text-neutral-500">{entry.modified ?? '—'}</td>
+                  <td className="px-4 py-2 text-neutral-500">{formatModified(entry.modified)}</td>
                   <td className="px-4 py-2">
                     <div className="flex items-center justify-end gap-1">
                       {entry.type === 'file' && EDITABLE.test(entry.name) ? (
@@ -325,8 +338,7 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
                         </IconBtn>
                       ) : null}
                       <IconBtn title="Zmień nazwę" onClick={() => void onRename(entry.name)}>
-                        <FilePen className="h-4 w-4 opacity-0" />
-                        <span className="text-xs">Aa</span>
+                        <Pencil className="h-4 w-4" />
                       </IconBtn>
                       <IconBtn title="Usuń" danger onClick={() => void onDelete(entry)}>
                         <Trash2 className="h-4 w-4" />

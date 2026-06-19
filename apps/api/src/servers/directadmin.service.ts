@@ -910,10 +910,25 @@ export class DirectAdminService {
     return { ok: true as const };
   }
 
+  /** Primary domain of the account behind a subscription (for DA calls that
+   *  require a `domain` param, e.g. CMD_API_FTP). */
+  private async accountDomainForSubscription(subscriptionId: string, userId: string): Promise<string> {
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id: subscriptionId, userId },
+      include: { account: { select: { domain: true } } },
+    });
+    if (!sub?.account?.domain) {
+      throw new BadRequestException('Subscription has no hosting account yet');
+    }
+    return sub.account.domain;
+  }
+
   async listHostingFtpAccounts(subscriptionId: string, userId: string) {
     try {
+      const domain = await this.accountDomainForSubscription(subscriptionId, userId);
       const raw = await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_FTP', {
         action: 'list',
+        domain,
       });
       const rows: Array<{ id: string; username: string; path: string; suspended: boolean }> = [];
       for (const [k, v] of raw.entries()) {
@@ -938,21 +953,25 @@ export class DirectAdminService {
     userId: string,
     input: { username: string; password: string; directory?: string },
   ) {
+    const domain = await this.accountDomainForSubscription(subscriptionId, userId);
     await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_FTP', {
       action: 'create',
       user: input.username,
       passwd: input.password,
       passwd2: input.password,
-      domain: '',
+      domain,
       path: input.directory ?? '/',
     });
     return { ok: true as const };
   }
 
   async deleteHostingFtpAccount(subscriptionId: string, userId: string, username: string) {
+    const domain = await this.accountDomainForSubscription(subscriptionId, userId);
     await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_FTP', {
       action: 'delete',
+      domain,
       user: username,
+      'select0': username,
     });
     return { ok: true as const };
   }

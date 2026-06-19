@@ -274,11 +274,16 @@ export class DirectAdminClient {
     const entries: DaFileEntry[] = [];
     for (const [key, value] of params.entries()) {
       if (key === 'error' || key === 'text' || key === 'details') continue;
+      // DA keys entries by full account-relative path (e.g. "/domains/ex.pl");
+      // we display/operate on the basename only.
+      const full = decodeURIComponent(key);
+      const name = full.replace(/\/+$/, '').split('/').pop() || '';
+      if (!name) continue; // skip the current-dir / empty entry DA may emit
       // Each value is a urlencoded sub-record: type=dir&size=..&date=..
       const info = new URLSearchParams(value);
       const type = (info.get('type') || '').toLowerCase();
       entries.push({
-        name: decodeURIComponent(key),
+        name,
         type: type === 'dir' ? 'dir' : 'file',
         sizeBytes: Number.parseInt(info.get('size') || '0', 10) || 0,
         modified: info.get('date') || null,

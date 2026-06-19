@@ -12,7 +12,6 @@ import {
   DropdownMenuSeparator,
 } from '@verris/ui';
 import { Globe, MoreVertical, Plus, RefreshCw, AlertCircle, Info, Trash2, CheckCircle2, ShoppingCart } from 'lucide-react';
-import { HostingTabs } from '../components/hosting-tabs';
 import { SpinBorder } from '@/components/spin-border';
 import { PageHeaderRow, PanelModal } from '@/components/panel';
 import { fetchUserDomains, addDomain, deleteDomain, fetchRegistrarStatus } from './actions';
@@ -135,8 +134,6 @@ export default function DomainsPage() {
           </div>
         </form>
       </PanelModal>
-
-      <HostingTabs currentTab="domains" />
 
       <div className="relative rounded-[32px] p-px overflow-hidden group">
         <SpinBorder variant="white" className="opacity-20 transition-opacity duration-[1500ms]" />

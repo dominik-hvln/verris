@@ -22,7 +22,7 @@ import {
   Archive,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 
 import DomainsTab from '@/components/hosting/DomainsTab';
 import DatabasesTab from '@/components/hosting/DatabasesTab';
@@ -70,7 +70,14 @@ type TabId = (typeof TABS)[number]['id'];
 
 export default function HostingManagerPage() {
   const params = useParams() as { id: string };
-  const [activeTab, setActiveTab] = useState<TabId>('overview');
+  const searchParams = useSearchParams();
+  // Pozwala wejść prosto w konkretną zakładkę (np. ze starych tras / linków):
+  // /dashboard/services/<id>?tab=files
+  const initialTab = ((): TabId => {
+    const t = searchParams.get('tab');
+    return t && TABS.some((tab) => tab.id === t) ? (t as TabId) : 'overview';
+  })();
+  const [activeTab, setActiveTab] = useState<TabId>(initialTab);
 
   return (
     <HostingLinksProvider serviceId={params.id}>
