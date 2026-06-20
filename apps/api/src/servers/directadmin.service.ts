@@ -1307,6 +1307,90 @@ export class DirectAdminService {
   }
 
   // ---------------------------------------------------------------------------
+  // Subdomeny (ogólne, w zakładce Domeny & DNS) — CMD_API_SUBDOMAINS
+  // ---------------------------------------------------------------------------
+
+  /** Lista wszystkich poddomen konta (po wszystkich domenach konta). */
+  async listHostingSubdomains(
+    subscriptionId: string,
+    userId: string,
+  ): Promise<{
+    rows: Array<{ id: string; subdomain: string; domain: string; url: string }>;
+    domains: string[];
+    fetchError: string | null;
+  }> {
+    const domainsRes = await this.listHostingDomainsForSubscription(subscriptionId, userId);
+    const domains = domainsRes.domains.map((d) => d.name);
+    if (domainsRes.fetchError) {
+      return { rows: [], domains, fetchError: domainsRes.fetchError };
+    }
+    const rows: Array<{ id: string; subdomain: string; domain: string; url: string }> = [];
+    try {
+      for (const domain of domains.slice(0, 25)) {
+        const raw = await this.daGetForSubscription(subscriptionId, userId, '/CMD_API_SUBDOMAINS', {
+          domain,
+        });
+        for (const [k, v] of raw.entries()) {
+          if (!/^list\d+$/i.test(k) || !v) continue;
+          rows.push({ id: `${v}.${domain}`, subdomain: v, domain, url: `https://${v}.${domain}` });
+        }
+      }
+      return { rows, domains, fetchError: null };
+    } catch (err) {
+      return { rows, domains, fetchError: err instanceof Error ? err.message : String(err) };
+    }
+  }
+
+  async createHostingSubdomain(
+    subscriptionId: string,
+    userId: string,
+    input: { domain: string; subdomain: string },
+  ): Promise<{ ok: true; url: string }> {
+    const domain = input.domain.trim();
+    const label = input.subdomain.trim().toLowerCase();
+    if (!domain) throw new BadRequestException('Domena jest wymagana.');
+    if (!/^[a-z0-9-]{1,63}$/.test(label)) {
+      throw new BadRequestException('Nazwa poddomeny: a-z, 0-9 i myślnik (maks. 63 znaki).');
+    }
+    await this.assertDomainOnSubscription(subscriptionId, userId, domain);
+    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_SUBDOMAINS', {
+      action: 'create',
+      domain,
+      subdomain: label,
+    });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_SUBDOMAIN_CREATED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, subdomain: `${label}.${domain}` },
+    });
+    return { ok: true as const, url: `https://${label}.${domain}` };
+  }
+
+  async deleteHostingSubdomain(
+    subscriptionId: string,
+    userId: string,
+    input: { domain: string; subdomain: string },
+  ): Promise<{ ok: true }> {
+    const domain = input.domain.trim();
+    const subdomain = input.subdomain.trim();
+    if (!domain || !subdomain) throw new BadRequestException('Domena i poddomena są wymagane.');
+    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_SUBDOMAINS', {
+      action: 'delete',
+      domain,
+      select0: subdomain,
+      contents: 'yes',
+    });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_SUBDOMAIN_DELETED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, subdomain: `${subdomain}.${domain}` },
+    });
+    return { ok: true as const };
+  }
+
+  // ---------------------------------------------------------------------------
   // Deploy — automatyczne wdrożenia Git oparte o cron DirectAdmin (CMD_API_CRON)
   // ---------------------------------------------------------------------------
   //

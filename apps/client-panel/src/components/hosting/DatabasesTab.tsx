@@ -10,7 +10,7 @@ import {
   fetchHostingDatabasesAction,
 } from '@/app/dashboard/services/[id]/hosting-mysql-links-actions';
 import { HostingTabShell, DaExternalLink } from '@/components/hosting/HostingTabShell';
-import { hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
+import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { useHostingLinks } from '@/components/hosting/hosting-links-context';
 
 interface Props {
@@ -68,7 +68,7 @@ export default function DatabasesTab({ serviceId }: Props) {
     });
     setCreating(false);
     if (!res.ok) {
-      toast.error('Nie udało się utworzyć bazy', { description: res.error });
+      toast.error('Nie udało się utworzyć bazy', { description: daErrorMessage(res.error) });
       return;
     }
     toast.success('Baza utworzona', { description: `${res.database} (użytkownik ${res.username})` });
@@ -84,7 +84,7 @@ export default function DatabasesTab({ serviceId }: Props) {
     const res = await deleteHostingDatabaseAction(serviceId, full);
     setDeleting(null);
     if (!res.ok) {
-      toast.error('Nie udało się usunąć bazy', { description: res.error });
+      toast.error('Nie udało się usunąć bazy', { description: daErrorMessage(res.error) });
       return;
     }
     toast.success('Baza usunięta');

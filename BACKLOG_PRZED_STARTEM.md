@@ -21,7 +21,7 @@ Cel: 100% zarządzania w panelu (jak najlepsza konkurencja), bez wychodzenia do 
 - **[P1] Cron w panelu** — dodawanie/edycja/usuwanie zadań (dziś tylko lista). 
 - **[P1] Konta FTP w panelu** — tworzenie/usuwanie (endpointy gotowe; dołożyć formularz w zakładce).
 - **[P1] Użytkownicy baz MySQL** — zarządzanie userami i uprawnieniami (dziś tylko baza+user przy tworzeniu).
-- **[P2] Subdomeny** — tworzenie/usuwanie w zakładce Domeny&DNS.
+- **[✅ zrobione] Subdomeny** — tworzenie/usuwanie w zakładce Domeny&DNS (z audytem).
 - **[P2] Menedżer plików — rozszerzenia:** zapis pliku (test na żywo), nowy pusty plik, kopiuj/przenieś, wielozaznaczenie, rozpakuj ZIP, podgląd uprawnień.
 - **[P2] Przekierowania/aliasy domen, „parked domains”.**
 
@@ -38,7 +38,7 @@ Cel: 100% zarządzania w panelu (jak najlepsza konkurencja), bez wychodzenia do 
 ## D. Stabilność i niezawodność (P0/P1)
 
 - **[P0] Intermittentne 503 na server-action POST** (zakup/kb-suggest) — diagnoza logów client-panel + Caddy, zasoby kontenera; potwierdzić czy to przeciążenie czy konfiguracja.
-- **[P1] Spójna obsługa błędów DA** we wszystkich zakładkach huba — zamiast surowego „Could not execute your request" pokazywać przyjazny komunikat (część poprawiona: FTP).
+- **[✅ zrobione] Spójna obsługa błędów DA** — helper `daErrorMessage` mapuje typowe błędy DA na przyjazne komunikaty PL; zastosowany w hubie (DB/FTP/cron/mail/backupy) i menedżerze plików. Pozostaje monitoring (Sentry).
 - **[P1] Naprawa resztkowego błędu tsc** `vps-client.tsx` (`sshKeyIds`) — niezwiązany z Prisma, realny do poprawienia.
 - **[P1] Monitoring błędów** (np. Sentry) dla API i paneli — łapanie wyjątków na produkcji.
 - **[P1] Drill przywracania backupu** (restore) — potwierdzić, że kopie offsite da się odtworzyć.

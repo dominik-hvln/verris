@@ -10,6 +10,7 @@ import {
   deleteHostingFtpAction,
   fetchHostingFtpAction,
 } from '@/app/dashboard/services/[id]/hosting-extra-actions';
+import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 
 function genPassword(len = 18): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*';
@@ -51,7 +52,10 @@ export default function FtpTab({ serviceId }: { serviceId: string }) {
       directory: directory.trim() || undefined,
     });
     setCreating(false);
-    if (!res.ok) return toast.error('Nie udało się utworzyć konta FTP', { description: res.error });
+    if (!res.ok)
+      return toast.error('Nie udało się utworzyć konta FTP', {
+        description: daErrorMessage(res.error),
+      });
     toast.success('Konto FTP utworzone');
     setUsername('');
     setPassword('');
@@ -64,7 +68,7 @@ export default function FtpTab({ serviceId }: { serviceId: string }) {
     setDeleting(u);
     const res = await deleteHostingFtpAction(serviceId, u);
     setDeleting(null);
-    if (!res.ok) return toast.error('Nie udało się usunąć', { description: res.error });
+    if (!res.ok) return toast.error('Nie udało się usunąć', { description: daErrorMessage(res.error) });
     toast.success('Konto FTP usunięte');
     load();
   };
@@ -131,7 +135,7 @@ export default function FtpTab({ serviceId }: { serviceId: string }) {
         </div>
       ) : error ? (
         <p className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-sm text-amber-200/90">
-          {error}
+          {hostingFetchErrorMessage(error)}
         </p>
       ) : rows.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-10 text-center text-sm text-neutral-500">

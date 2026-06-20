@@ -5,6 +5,7 @@ import { Database, Loader2 } from 'lucide-react';
 import type { HostingBackupRowDto } from '@verris/contracts';
 import { fetchHostingBackupsAction } from '@/app/dashboard/services/[id]/hosting-extra-actions';
 import { BackupNowButton } from '@/app/dashboard/backups/backup-now-button';
+import { hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 
 export default function BackupsTab({ serviceId }: { serviceId: string }) {
   const [rows, setRows] = useState<HostingBackupRowDto[]>([]);
@@ -31,7 +32,7 @@ export default function BackupsTab({ serviceId }: { serviceId: string }) {
         </div>
       ) : error ? (
         <p className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-sm text-amber-200/90">
-          {error}
+          {hostingFetchErrorMessage(error)}
         </p>
       ) : rows.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-8 text-center text-sm text-neutral-500">

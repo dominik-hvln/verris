@@ -418,6 +418,29 @@ export class UserServicesController {
     return this.directAdmin.deleteHostingCronJob(id, user.userId, cronId);
   }
 
+  @Get(':id/hosting-subdomains')
+  async hostingSubdomains(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.listHostingSubdomains(id, user.userId);
+  }
+
+  @Post(':id/hosting-subdomains')
+  async createHostingSubdomain(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { domain: string; subdomain: string },
+  ) {
+    return this.directAdmin.createHostingSubdomain(id, user.userId, body);
+  }
+
+  @Post(':id/hosting-subdomains/delete')
+  async deleteHostingSubdomain(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { domain: string; subdomain: string },
+  ) {
+    return this.directAdmin.deleteHostingSubdomain(id, user.userId, body);
+  }
+
   @Get(':id/hosting-staging')
   async hostingStaging(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
     return this.directAdmin.listHostingStaging(id, user.userId);

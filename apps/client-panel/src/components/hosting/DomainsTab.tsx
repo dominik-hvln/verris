@@ -8,6 +8,7 @@ import { HostingTabShell, DaExternalLink } from '@/components/hosting/HostingTab
 import { hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { useHostingLinks } from '@/components/hosting/hosting-links-context';
 import DomainPointingPanel from '@/components/hosting/DomainPointingPanel';
+import SubdomainsManager from '@/components/hosting/SubdomainsManager';
 import { ResponsiveDataView } from '@/components/panel';
 
 interface Props {
@@ -103,6 +104,10 @@ export default function DomainsTab({ serviceId }: Props) {
       ) : null}
 
       <DomainPointingPanel serviceId={serviceId} dnsManageUrl={links.dnsUrl} variant="full" />
+
+      <div className="mt-4">
+        <SubdomainsManager serviceId={serviceId} />
+      </div>
 
       <div className="mt-4 min-w-0">
         {domains.length === 0 && !fetchError ? (

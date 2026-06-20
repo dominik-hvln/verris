@@ -99,3 +99,52 @@ export async function deleteHostingCronAction(
     return { ok: false, error: mutErr(e) };
   }
 }
+
+// --- Subdomeny ---
+export interface SubdomainRow {
+  id: string;
+  subdomain: string;
+  domain: string;
+  url: string;
+}
+export interface SubdomainsResponse {
+  rows: SubdomainRow[];
+  domains: string[];
+  fetchError: string | null;
+}
+
+export async function fetchHostingSubdomainsAction(
+  serviceId: string,
+): Promise<SubdomainsResponse> {
+  return apiFetch<SubdomainsResponse>(`/services/${serviceId}/hosting-subdomains`);
+}
+
+export async function createHostingSubdomainAction(
+  serviceId: string,
+  input: { domain: string; subdomain: string },
+): Promise<MutResult> {
+  try {
+    await apiFetch(`/services/${serviceId}/hosting-subdomains`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: mutErr(e) };
+  }
+}
+
+export async function deleteHostingSubdomainAction(
+  serviceId: string,
+  input: { domain: string; subdomain: string },
+): Promise<MutResult> {
+  try {
+    await apiFetch(`/services/${serviceId}/hosting-subdomains/delete`, {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: mutErr(e) };
+  }
+}

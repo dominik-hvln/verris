@@ -28,6 +28,7 @@ import {
   fmWrite,
   type FmEntry,
 } from './data';
+import { daErrorMessage } from '@/lib/client-hosting-messages';
 
 const EDITABLE = /\.(txt|md|html?|css|js|mjs|cjs|ts|jsx|tsx|json|xml|ya?ml|ini|conf|env|htaccess|php|py|sh|sql|log)$/i;
 
@@ -73,7 +74,7 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
         setEntries(res.entries);
       } catch (e) {
         toast.error('Nie udało się wczytać katalogu', {
-          description: e instanceof Error ? e.message : undefined,
+          description: daErrorMessage(e instanceof Error ? e.message : undefined),
         });
       } finally {
         setLoading(false);
@@ -104,7 +105,7 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
       await load(path);
     } catch (e) {
       toast.error('Nie udało się utworzyć folderu', {
-        description: e instanceof Error ? e.message : undefined,
+        description: daErrorMessage(e instanceof Error ? e.message : undefined),
       });
     } finally {
       setBusy(false);
@@ -121,7 +122,7 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
       await load(path);
     } catch (e) {
       toast.error('Nie udało się zmienić nazwy', {
-        description: e instanceof Error ? e.message : undefined,
+        description: daErrorMessage(e instanceof Error ? e.message : undefined),
       });
     } finally {
       setBusy(false);
@@ -137,7 +138,7 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
       await load(path);
     } catch (e) {
       toast.error('Nie udało się usunąć', {
-        description: e instanceof Error ? e.message : undefined,
+        description: daErrorMessage(e instanceof Error ? e.message : undefined),
       });
     } finally {
       setBusy(false);
@@ -150,7 +151,7 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
       const filePath = `${path === '/' ? '' : path}/${name}`;
       const res = await fmDownload(serviceId, filePath);
       if ('error' in res) {
-        toast.error(res.error);
+        toast.error(daErrorMessage(res.error));
         return;
       }
       const bin = atob(res.base64);
@@ -164,7 +165,7 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
       URL.revokeObjectURL(url);
     } catch (e) {
       toast.error('Nie udało się pobrać pliku', {
-        description: e instanceof Error ? e.message : undefined,
+        description: daErrorMessage(e instanceof Error ? e.message : undefined),
       });
     } finally {
       setBusy(false);
@@ -179,7 +180,7 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
       setEditing({ name, content: res.content });
     } catch (e) {
       toast.error('Nie udało się otworzyć pliku', {
-        description: e instanceof Error ? e.message : undefined,
+        description: daErrorMessage(e instanceof Error ? e.message : undefined),
       });
     } finally {
       setBusy(false);
@@ -196,7 +197,7 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
       await load(path);
     } catch (e) {
       toast.error('Nie udało się zapisać', {
-        description: e instanceof Error ? e.message : undefined,
+        description: daErrorMessage(e instanceof Error ? e.message : undefined),
       });
     } finally {
       setEditorSaving(false);
@@ -213,7 +214,7 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
         form.append('dir', path);
         form.append('file', file);
         const res = await fmUpload(form);
-        if ('error' in res) toast.error('Nie udało się wgrać pliku', { description: res.error });
+        if ('error' in res) toast.error('Nie udało się wgrać pliku', { description: daErrorMessage(res.error) });
         else {
           toast.success('Wgrano plik');
           await load(path);

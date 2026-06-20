@@ -22,7 +22,7 @@ import {
 import { fetchHostingDomainsAction } from '@/app/dashboard/services/[id]/hosting-domains-action';
 import { fetchConnectionInfoAction } from '@/app/dashboard/services/[id]/hosting-connection-actions';
 import { HostingTabShell, DaExternalLink } from '@/components/hosting/HostingTabShell';
-import { hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
+import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { useHostingLinks } from '@/components/hosting/hosting-links-context';
 
 function genPassword(len = 18): string {
@@ -104,7 +104,7 @@ export default function MailTab({ serviceId }: Props) {
     });
     setCreating(false);
     if (!res.ok) {
-      toast.error('Nie udało się utworzyć skrzynki', { description: res.error });
+      toast.error('Nie udało się utworzyć skrzynki', { description: daErrorMessage(res.error) });
       return;
     }
     toast.success('Skrzynka utworzona', { description: `${localPart.trim()}@${domain}` });
@@ -119,7 +119,7 @@ export default function MailTab({ serviceId }: Props) {
     const res = await deleteHostingEmailAction(serviceId, email);
     setDeleting(null);
     if (!res.ok) {
-      toast.error('Nie udało się usunąć skrzynki', { description: res.error });
+      toast.error('Nie udało się usunąć skrzynki', { description: daErrorMessage(res.error) });
       return;
     }
     toast.success('Skrzynka usunięta');
