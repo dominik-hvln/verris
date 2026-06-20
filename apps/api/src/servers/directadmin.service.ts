@@ -722,6 +722,14 @@ export class DirectAdminService {
     });
     if (!sub) throw new NotFoundException('Service not found');
     if (!sub.account?.id) throw new BadRequestException('Subscription has no hosting account yet');
+    // SEC-2: blokuj mutacje na koncie zawieszonym/usuniętym (PROVISIONING dozwolony,
+    // bo provisioning wykonuje operacje przed przejściem w ACTIVE). Odczyty
+    // (daGetForSubscription) celowo nie są tu blokowane.
+    if (sub.account.status === 'SUSPENDED' || sub.account.status === 'DELETED') {
+      throw new BadRequestException(
+        'Konto hostingowe jest zawieszone — operacja niedostępna. Skontaktuj się z pomocą.',
+      );
+    }
     const client = await this.getClientForHostingAccount(sub.account.id, userId);
     const axiosClient = (client as unknown as { client?: { post: Function } }).client;
     if (!axiosClient) throw new BadRequestException('DirectAdmin client is not available');

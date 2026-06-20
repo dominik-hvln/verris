@@ -54,6 +54,32 @@ export class KnowledgeBaseService {
     }));
   }
 
+  /** Client-facing: lista aktywnych artykułów widocznych dla klienta (CLIENT/ALL). */
+  async listClientDocs(): Promise<Array<{ id: string; title: string; updatedAt: string }>> {
+    const docs = await this.prisma.aiKnowledgeDoc.findMany({
+      where: {
+        status: AiKnowledgeStatus.ACTIVE,
+        audience: { in: [AiKnowledgeAudience.CLIENT, AiKnowledgeAudience.ALL] },
+      },
+      orderBy: { title: 'asc' },
+      select: { id: true, title: true, updatedAt: true },
+      take: 500,
+    });
+    return docs.map((d) => ({ id: d.id, title: d.title, updatedAt: d.updatedAt.toISOString() }));
+  }
+
+  /** Client-facing: pojedynczy artykuł — tylko jeśli widoczny dla klienta. */
+  async getClientDoc(id: string) {
+    const doc = await this.getDoc(id);
+    if (
+      doc.status !== AiKnowledgeStatus.ACTIVE ||
+      (doc.audience !== AiKnowledgeAudience.CLIENT && doc.audience !== AiKnowledgeAudience.ALL)
+    ) {
+      throw new NotFoundException('Artykuł nie istnieje.');
+    }
+    return { id: doc.id, title: doc.title, content: doc.content, updatedAt: doc.updatedAt };
+  }
+
   async getDoc(id: string) {
     const doc = await this.prisma.aiKnowledgeDoc.findUnique({
       where: { id },

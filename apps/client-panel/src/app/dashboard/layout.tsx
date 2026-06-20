@@ -28,6 +28,7 @@ import {
   Users,
   Calculator,
   Server as ServerIcon,
+  BookOpen,
   X,
 } from "lucide-react";
 import { sidebarTilesFromLinks, type SidebarTileDef } from "@/lib/sidebar-tiles";
@@ -63,6 +64,7 @@ const secondaryItems = [
       ...(clientFeatures.iam
         ? [{ name: "IAM i subkonta", href: "/dashboard/iam", icon: Users }]
         : []),
+      { name: "Baza wiedzy", href: "/dashboard/knowledge", icon: BookOpen },
       { name: "Centrum Pomocy", href: "/dashboard/support", icon: VerrisSupportIcon },
       { name: "Ustawienia", href: "/dashboard/settings", icon: VerrisUstawieniaIcon },
     ],

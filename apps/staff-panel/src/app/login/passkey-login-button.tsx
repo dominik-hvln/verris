@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { startAuthentication } from "@simplewebauthn/browser";
 import { fetchPasskeyLoginOptions, verifyPasskeyLoginClient } from "@/lib/passkey-client";
@@ -15,11 +15,12 @@ export function StaffPasskeyLoginButton() {
   // Render dopiero po montażu — inaczej hydration mismatch (React #418).
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
-  const supported =
-    typeof window !== "undefined" && typeof window.PublicKeyCredential !== "undefined";
-  if (!mounted || !supported) return null;
 
-  const onPointerDown = () => {
+  // Safari wymaga, by startAuthentication() ruszyło SYNCHRONICZNIE w geście
+  // użytkownika. Dlatego prefetchujemy opcje (świeży challenge) zawczasu:
+  // na montażu oraz na focus/hover — wtedy onClick wywoła startAuthentication
+  // bez żadnego await przed nim (Safari nie blokuje).
+  const prefetch = useCallback(() => {
     void fetchPasskeyLoginOptions()
       .then((options) => {
         prefetchedOptions.current = options;
@@ -27,7 +28,17 @@ export function StaffPasskeyLoginButton() {
       .catch(() => {
         prefetchedOptions.current = null;
       });
-  };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && typeof window.PublicKeyCredential !== "undefined") {
+      prefetch();
+    }
+  }, [prefetch]);
+
+  const supported =
+    typeof window !== "undefined" && typeof window.PublicKeyCredential !== "undefined";
+  if (!mounted || !supported) return null;
 
   const onClick = async () => {
     setError(null);
@@ -60,6 +71,8 @@ export function StaffPasskeyLoginButton() {
       }
     } finally {
       setIsPending(false);
+      // Odśwież challenge na ewentualną kolejną próbę (zachowuje ścieżkę synchroniczną).
+      prefetch();
     }
   };
 
@@ -67,7 +80,8 @@ export function StaffPasskeyLoginButton() {
     <div className="space-y-2">
       <button
         type="button"
-        onPointerDown={onPointerDown}
+        onPointerEnter={prefetch}
+        onFocus={prefetch}
         onClick={onClick}
         disabled={isPending}
         className="w-full rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 px-4 py-2.5 text-sm font-medium text-white disabled:opacity-50"

@@ -30,6 +30,10 @@ export function canAccessDashboardRoute(
   if (href === '/dashboard/settings' || href.startsWith('/dashboard/settings')) {
     return true;
   }
+  // Baza wiedzy — pomoc/poradniki, dostępne dla każdego (też subkont).
+  if (href.startsWith('/dashboard/knowledge')) {
+    return true;
+  }
   if (href.startsWith('/dashboard/billing')) {
     return hasAny(perms, ['BILLING_READ', 'BILLING_MANAGE']);
   }

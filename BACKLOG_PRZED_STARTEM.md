@@ -27,6 +27,10 @@ Cel: 100% zarządzania w panelu (jak najlepsza konkurencja), bez wychodzenia do 
 
 ## C. Bezpieczeństwo (P0/P1)
 
+- **[✅ zrobione] CVE-2025-29927 (Next.js middleware bypass)** — Next 15.2.0 podatny; podbito wszystkie panele do 15.2.3. Wymaga `pnpm install` + rebuild + deploy.
+- **[✅ zrobione] Limit pobierania pliku** — cap 100 MB z pre-checkiem rozmiaru (ochrona pamięci kontenera).
+- **[✅ zrobione] Blokada mutacji na koncie SUSPENDED/DELETED** — w `daFormForSubscription` (email/FTP/cron/subdomeny/bazy).
+
 - **[✅ zrobione] Audyt destrukcyjnych akcji** — wpisy AuditLog dla: utworzenie/usunięcie bazy, konta FTP, skrzynki, zadania cron oraz zapis/zmiana nazwy/usunięcie/upload plików (`HostingResourceActions`). Widoczne w logu audytu admina.
 - **[P1] Rate-limit na nowych endpointach** hostingowych (DB create/delete, file ops mają limit; dołożyć dla DB/FTP/cron mutacji).
 - **[P1] Przegląd CSP po włączeniu** — sprawdzić w konsoli, czy nic nie blokuje (Stripe/webmail) po wdrożeniu.

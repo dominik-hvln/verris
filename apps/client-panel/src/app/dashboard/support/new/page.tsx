@@ -132,7 +132,14 @@ export default function NewTicketPage() {
               <ul className="mt-2 space-y-2">
                 {kb.map((s) => (
                   <li key={s.docId} className="text-sm">
-                    <span className="font-medium text-white">{s.title}</span>
+                    <a
+                      href={`/dashboard/knowledge?article=${encodeURIComponent(s.docId)}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-medium text-white underline-offset-2 hover:text-emerald-200 hover:underline"
+                    >
+                      {s.title} →
+                    </a>
                     <span className="block text-xs text-neutral-400">{s.snippet}…</span>
                   </li>
                 ))}

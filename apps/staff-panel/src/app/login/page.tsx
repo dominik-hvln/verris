@@ -36,9 +36,10 @@ export default function StaffLoginPage() {
         <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] rounded-full bg-blue-600/10 blur-[120px]" />
       </div>
 
+      <div className="relative z-10 flex w-full max-w-md flex-col">
       <form
         action={loginAction}
-        className="relative w-full max-w-md rounded-2xl bg-black/50 backdrop-blur-2xl border border-white/10 shadow-2xl p-8 space-y-6"
+        className="relative w-full rounded-2xl bg-black/50 backdrop-blur-2xl border border-white/10 shadow-2xl p-8 space-y-6"
       >
         <div className="flex items-center gap-3 mb-2">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-cyan-500 to-blue-600 border border-white/10">
@@ -116,6 +117,7 @@ export default function StaffLoginPage() {
           <KeyRound className="h-3 w-3" />
           Nie mam dostępu do passkey (break-glass)
         </button>
+      </div>
       </div>
     </main>
   );

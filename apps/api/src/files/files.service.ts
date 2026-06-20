@@ -15,6 +15,8 @@ import { HostingResourceActions } from '../common/audit/audit.actions';
 const MAX_EDIT_BYTES = 1_000_000; // 1 MB
 /** Max upload / write size. */
 const MAX_WRITE_BYTES = 25_000_000; // 25 MB
+/** Max in-panel download size — larger files must go via FTP (memory guard). */
+const MAX_DOWNLOAD_BYTES = 100_000_000; // 100 MB
 
 @Injectable()
 export class FilesService {
@@ -97,6 +99,26 @@ export class FilesService {
     return { path: safe, entries };
   }
 
+  /**
+   * Best-effort file size from the parent directory listing — lets us reject
+   * oversized files BEFORE loading them into memory. Returns null if unknown.
+   */
+  private async fileSizeBytes(
+    client: Awaited<ReturnType<FilesService['clientFor']>>,
+    safe: string,
+  ): Promise<number | null> {
+    const idx = safe.lastIndexOf('/');
+    const dir = idx <= 0 ? '/' : safe.slice(0, idx);
+    const name = safe.slice(idx + 1);
+    try {
+      const entries = await client.listDir(dir);
+      const hit = entries.find((e) => e.name === name && e.type === 'file');
+      return hit ? hit.sizeBytes : null;
+    } catch {
+      return null;
+    }
+  }
+
   async read(
     subscriptionId: string,
     userId: string,
@@ -106,6 +128,10 @@ export class FilesService {
     const safe = this.safePath(path);
     if (safe === '/') throw new BadRequestException('Wskaż plik do odczytu.');
     const client = await this.clientFor(account);
+    const size = await this.fileSizeBytes(client, safe);
+    if (size != null && size > MAX_EDIT_BYTES) {
+      throw new PayloadTooLargeException('Plik jest zbyt duży do edycji w panelu.');
+    }
     const buf = await client.downloadFile(safe);
     if (buf.length > MAX_EDIT_BYTES) {
       throw new PayloadTooLargeException('Plik jest zbyt duży do edycji w panelu.');
@@ -122,7 +148,19 @@ export class FilesService {
     const safe = this.safePath(path);
     if (safe === '/') throw new BadRequestException('Wskaż plik do pobrania.');
     const client = await this.clientFor(account);
+    // Guard memory: reject oversized files before loading them into RAM.
+    const size = await this.fileSizeBytes(client, safe);
+    if (size != null && size > MAX_DOWNLOAD_BYTES) {
+      throw new PayloadTooLargeException(
+        'Plik jest zbyt duży do pobrania przez panel (limit 100 MB). Użyj FTP.',
+      );
+    }
     const data = await client.downloadFile(safe);
+    if (data.length > MAX_DOWNLOAD_BYTES) {
+      throw new PayloadTooLargeException(
+        'Plik jest zbyt duży do pobrania przez panel (limit 100 MB). Użyj FTP.',
+      );
+    }
     return { filename: safe.split('/').pop() || 'plik', data };
   }
 

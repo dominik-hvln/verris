@@ -7,6 +7,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { AiService } from './ai.service';
 import { AiChatService } from './ai-chat.service';
 import { AiProviderService } from './ai-provider.service';
+import { KnowledgeBaseService } from './knowledge-base.service';
 import { AiChatRequestDto } from './dto/ai.dto';
 
 @Controller('ai')
@@ -16,8 +17,21 @@ export class AiController {
     private readonly ai: AiService,
     private readonly chat: AiChatService,
     private readonly provider: AiProviderService,
+    private readonly knowledge: KnowledgeBaseService,
     private readonly config: ConfigService,
   ) {}
+
+  /** Client-facing: lista artykułów Bazy Wiedzy widocznych dla klienta. */
+  @Get('kb')
+  listKb() {
+    return this.knowledge.listClientDocs();
+  }
+
+  /** Client-facing: pełna treść artykułu (tylko CLIENT/ALL). */
+  @Get('kb/:id')
+  getKb(@Param('id') id: string) {
+    return this.knowledge.getClientDoc(id);
+  }
 
   @UseGuards(RolesGuard)
   @Roles(Role.STAFF, Role.ADMIN)
