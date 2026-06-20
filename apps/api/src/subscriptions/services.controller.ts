@@ -268,6 +268,28 @@ export class UserServicesController {
     return this.directAdmin.listHostingMysqlForSubscription(id, user.userId);
   }
 
+  @Post(':id/hosting-databases')
+  async createHostingDatabase(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { name: string; user: string; password: string },
+  ) {
+    return this.directAdmin.createHostingMysqlDatabase(id, user.userId, {
+      name: body?.name,
+      user: body?.user,
+      password: body?.password,
+    });
+  }
+
+  @Delete(':id/hosting-databases/:name')
+  async deleteHostingDatabase(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('name') name: string,
+  ) {
+    return this.directAdmin.deleteHostingMysqlDatabase(id, user.userId, name);
+  }
+
   @Get(':id/hosting-da-links')
   async hostingDaLinks(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
     return this.directAdmin.getHostingDaLinksForSubscription(id, user.userId);

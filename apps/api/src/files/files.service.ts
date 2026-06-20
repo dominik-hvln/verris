@@ -8,6 +8,8 @@ import {
 import type { DaFileEntry } from '@verris/directadmin-sdk';
 import { PrismaService } from '../prisma/prisma.service';
 import { DirectAdminService } from '../servers/directadmin.service';
+import { AuditService } from '../common/audit/audit.service';
+import { HostingResourceActions } from '../common/audit/audit.actions';
 
 /** Max bytes we will read into the in-panel text editor. */
 const MAX_EDIT_BYTES = 1_000_000; // 1 MB
@@ -19,6 +21,7 @@ export class FilesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly da: DirectAdminService,
+    private readonly audit: AuditService,
   ) {}
 
   // --- account resolution -----------------------------------------------------
@@ -138,6 +141,12 @@ export class FilesService {
     const name = this.safeName(filename);
     const client = await this.clientFor(account);
     await client.writeFile(safeDir, name, content ?? '');
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_FILE_WRITTEN,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, accountId: account.id, path: `${safeDir}/${name}` },
+    });
     return { ok: true };
   }
 
@@ -168,6 +177,12 @@ export class FilesService {
     const newN = this.safeName(newName);
     const client = await this.clientFor(account);
     await client.renameEntry(safeDir, oldN, newN);
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_FILE_RENAMED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, accountId: account.id, dir: safeDir, from: oldN, to: newN },
+    });
     return { ok: true };
   }
 
@@ -185,6 +200,12 @@ export class FilesService {
     const safeNames = names.map((n) => this.safeName(n));
     const client = await this.clientFor(account);
     await client.deleteEntries(safeDir, safeNames);
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_FILE_DELETED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, accountId: account.id, dir: safeDir, names: safeNames },
+    });
     return { ok: true, deleted: safeNames.length };
   }
 
@@ -204,6 +225,12 @@ export class FilesService {
     const name = this.safeName(filename);
     const client = await this.clientFor(account);
     await client.uploadFile(safeDir, name, data);
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_FILE_UPLOADED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, accountId: account.id, path: `${safeDir}/${name}`, bytes: data.length },
+    });
     return { ok: true };
   }
 }

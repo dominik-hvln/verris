@@ -29,11 +29,11 @@ import DatabasesTab from '@/components/hosting/DatabasesTab';
 import MailTab from '@/components/hosting/MailTab';
 import SSLTab from '@/components/hosting/SSLTab';
 import StagingTab from '@/components/hosting/StagingTab';
-import WordpressTab from '@/components/hosting/WordpressTab';
 import WafTab from '@/components/hosting/WafTab';
 import MonitoringTab from '@/components/hosting/MonitoringTab';
 import DeployTab from '@/components/hosting/DeployTab';
 import { FileManagerClient } from '@/app/dashboard/file-manager/file-manager-client';
+import AppsTab from '@/components/hosting/AppsTab';
 import PhpTab from '@/components/hosting/PhpTab';
 import FtpTab from '@/components/hosting/FtpTab';
 import CronTab from '@/components/hosting/CronTab';
@@ -176,7 +176,7 @@ export default function HostingManagerPage() {
             {activeTab === 'databases' && <DatabasesTab serviceId={params.id} />}
             {activeTab === 'mail' && <MailTab serviceId={params.id} />}
             {activeTab === 'ssl' && <SSLTab serviceId={params.id} />}
-            {activeTab === 'apps' && <WordpressTab serviceId={params.id} />}
+            {activeTab === 'apps' && <AppsTab serviceId={params.id} />}
             {activeTab === 'php' && <PhpTab serviceId={params.id} />}
             {activeTab === 'ftp' && <FtpTab serviceId={params.id} />}
             {activeTab === 'cron' && <CronTab serviceId={params.id} />}

@@ -921,6 +921,25 @@ export class DirectAdminClient {
   }
 
   /**
+   * Deletes a MySQL database (CMD_API_DATABASES action=delete). `fullName` is the
+   * DA database name including the account prefix (e.g. "user_appdb"), as returned
+   * by listMysqlDatabases.
+   */
+  async deleteMysqlDatabase(fullName: string): Promise<void> {
+    const response = await this.client.post(
+      '/CMD_API_DATABASES',
+      new URLSearchParams({ action: 'delete', select0: fullName }).toString(),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
+    );
+    const params = this.daPayloadToParams(response.data);
+    if (params.get('error') === '1') {
+      throw new Error(
+        params.get('text') || params.get('details') || 'Nie udało się usunąć bazy danych',
+      );
+    }
+  }
+
+  /**
    * Lists POP mailboxes for a domain (CMD_API_POP).
    * DA builds differ: `list0` vs `user0`, GET vs POST, with/without `action=list`.
    */

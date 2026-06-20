@@ -21,6 +21,8 @@ import { randomBytes, X509Certificate } from 'crypto';
 import { Prisma } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto/crypto.service';
+import { AuditService } from '../common/audit/audit.service';
+import { HostingResourceActions } from '../common/audit/audit.actions';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 import { buildDaPackageSpecFromPlan, planResourceFields } from './da-package-spec';
 import { resolveHostingPrimaryDomain } from './hosting-primary-domain';
@@ -37,6 +39,7 @@ export class DirectAdminService {
     private readonly prisma: PrismaService,
     private readonly crypto: CryptoService,
     private readonly platformSettings: PlatformSettingsService,
+    private readonly audit: AuditService,
   ) {}
 
   async getClientForServer(serverId: string): Promise<DirectAdminClient> {
@@ -543,6 +546,70 @@ export class DirectAdminService {
     }
   }
 
+  /** Creates a MySQL database + user on the account (in-panel DB management). */
+  async createHostingMysqlDatabase(
+    subscriptionId: string,
+    userId: string,
+    input: { name: string; user: string; password: string },
+  ): Promise<{ database: string; username: string }> {
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id: subscriptionId, userId },
+      include: { account: true },
+    });
+    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub.account?.id || !sub.account.daPasswordEnc) {
+      throw new BadRequestException('Konto hostingowe nie jest jeszcze gotowe.');
+    }
+    const namePart = /^[a-zA-Z0-9_]{1,16}$/;
+    if (!namePart.test(input.name)) {
+      throw new BadRequestException('Nazwa bazy: 1–16 znaków (litery, cyfry, _).');
+    }
+    if (!namePart.test(input.user)) {
+      throw new BadRequestException('Nazwa użytkownika: 1–16 znaków (litery, cyfry, _).');
+    }
+    if (!input.password || input.password.length < 8) {
+      throw new BadRequestException('Hasło bazy musi mieć co najmniej 8 znaków.');
+    }
+    const client = await this.getClientForHostingAccount(sub.account.id, userId);
+    const result = await client.createMysqlDatabase({
+      name: input.name,
+      user: input.user,
+      password: input.password,
+    });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_DB_CREATED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, accountId: sub.account.id, database: result.database },
+    });
+    return result;
+  }
+
+  /** Deletes a MySQL database (full prefixed name, as returned by listing). */
+  async deleteHostingMysqlDatabase(
+    subscriptionId: string,
+    userId: string,
+    fullName: string,
+  ): Promise<{ ok: true }> {
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id: subscriptionId, userId },
+      include: { account: true },
+    });
+    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub.account?.id || !sub.account.daPasswordEnc) {
+      throw new BadRequestException('Konto hostingowe nie jest jeszcze gotowe.');
+    }
+    const client = await this.getClientForHostingAccount(sub.account.id, userId);
+    await client.deleteMysqlDatabase(fullName);
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_DB_DELETED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, accountId: sub.account.id, database: fullName },
+    });
+    return { ok: true as const };
+  }
+
   private parseKvPayload(payload: unknown): URLSearchParams {
     if (payload && typeof payload === 'object' && !Array.isArray(payload)) {
       const record = payload as Record<string, unknown>;
@@ -962,6 +1029,12 @@ export class DirectAdminService {
       domain,
       path: input.directory ?? '/',
     });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_FTP_CREATED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, username: input.username, domain },
+    });
     return { ok: true as const };
   }
 
@@ -972,6 +1045,12 @@ export class DirectAdminService {
       domain,
       user: username,
       'select0': username,
+    });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_FTP_DELETED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, username, domain },
     });
     return { ok: true as const };
   }
@@ -1034,6 +1113,12 @@ export class DirectAdminService {
       passwd2: input.password,
       quota: String(input.quotaMb ?? 1024),
     });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_EMAIL_CREATED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, email: input.email },
+    });
     return { ok: true as const };
   }
 
@@ -1044,6 +1129,12 @@ export class DirectAdminService {
       action: 'delete',
       user,
       domain,
+    });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_EMAIL_DELETED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, email },
     });
     return { ok: true as const };
   }
@@ -1085,6 +1176,12 @@ export class DirectAdminService {
       day_of_week: input.dayOfWeek,
       command: input.command,
     });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_CRON_CREATED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, command: input.command },
+    });
     return { ok: true as const };
   }
 
@@ -1092,6 +1189,12 @@ export class DirectAdminService {
     await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_CRON', {
       action: 'delete',
       select0: id,
+    });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_CRON_DELETED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, cronId: id },
     });
     return { ok: true as const };
   }

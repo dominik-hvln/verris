@@ -4,18 +4,33 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   AlertCircle,
   ExternalLink,
+  KeyRound,
   Loader2,
   Mail,
+  Plus,
   RefreshCw,
   Server,
+  Trash2,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@verris/ui';
-import { fetchHostingEmailAction } from '@/app/dashboard/services/[id]/hosting-email-actions';
+import {
+  createHostingEmailAction,
+  deleteHostingEmailAction,
+  fetchHostingEmailAction,
+} from '@/app/dashboard/services/[id]/hosting-email-actions';
+import { fetchHostingDomainsAction } from '@/app/dashboard/services/[id]/hosting-domains-action';
 import { fetchConnectionInfoAction } from '@/app/dashboard/services/[id]/hosting-connection-actions';
 import { HostingTabShell, DaExternalLink } from '@/components/hosting/HostingTabShell';
-import { ResponsiveDataView } from '@/components/panel';
 import { hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { useHostingLinks } from '@/components/hosting/hosting-links-context';
+
+function genPassword(len = 18): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*';
+  const arr = new Uint32Array(len);
+  crypto.getRandomValues(arr);
+  return Array.from(arr, (n) => chars[n % chars.length]).join('');
+}
 
 interface Props {
   serviceId: string;
@@ -30,16 +45,29 @@ export default function MailTab({ serviceId }: Props) {
   const [rows, setRows] = useState<{ id: string; email: string; quotaMb: number | null }[]>([]);
   const [mailHost, setMailHost] = useState<string | null>(null);
   const [emailQuota, setEmailQuota] = useState<{ used: string; limit: string } | null>(null);
+  const [domains, setDomains] = useState<string[]>([]);
+
+  // create form
+  const [localPart, setLocalPart] = useState('');
+  const [domain, setDomain] = useState('');
+  const [password, setPassword] = useState('');
+  const [quota, setQuota] = useState('1024');
+  const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
     try {
-      const [emailRes, conn] = await Promise.all([
+      const [emailRes, conn, domRes] = await Promise.all([
         fetchHostingEmailAction(serviceId),
         fetchConnectionInfoAction(serviceId).catch(() => null),
+        fetchHostingDomainsAction(serviceId).catch(() => null),
       ]);
       setRows(emailRes.rows);
       setFetchError(emailRes.fetchError);
+      const domNames = (domRes?.domains ?? []).map((d) => d.name);
+      setDomains(domNames);
+      setDomain((cur) => cur || domNames[0] || '');
       setMailHost(conn?.mailHost ?? null);
       if (conn?.emails) {
         const used =
@@ -61,6 +89,43 @@ export default function MailTab({ serviceId }: Props) {
     void load();
   }, [load]);
 
+  const onCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!domain) {
+      toast.error('Brak domeny na koncie do utworzenia skrzynki.');
+      return;
+    }
+    setCreating(true);
+    const res = await createHostingEmailAction({
+      subscriptionId: serviceId,
+      email: `${localPart.trim()}@${domain}`,
+      password,
+      quotaMb: Number.parseInt(quota, 10) || 1024,
+    });
+    setCreating(false);
+    if (!res.ok) {
+      toast.error('Nie udało się utworzyć skrzynki', { description: res.error });
+      return;
+    }
+    toast.success('Skrzynka utworzona', { description: `${localPart.trim()}@${domain}` });
+    setLocalPart('');
+    setPassword('');
+    void load();
+  };
+
+  const onDelete = async (email: string) => {
+    if (!window.confirm(`Usunąć skrzynkę „${email}"? Tej operacji nie można cofnąć.`)) return;
+    setDeleting(email);
+    const res = await deleteHostingEmailAction(serviceId, email);
+    setDeleting(null);
+    if (!res.ok) {
+      toast.error('Nie udało się usunąć skrzynki', { description: res.error });
+      return;
+    }
+    toast.success('Skrzynka usunięta');
+    void load();
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center gap-2 py-16 text-sm text-neutral-400">
@@ -81,8 +146,8 @@ export default function MailTab({ serviceId }: Props) {
       actions={
         <>
           {emailUrl ? (
-            <DaExternalLink href={emailUrl} variant="primary">
-              Zarządzaj skrzynkami
+            <DaExternalLink href={emailUrl} variant="outline">
+              Webmail / panel
               <ExternalLink className="h-3 w-3 opacity-70" />
             </DaExternalLink>
           ) : null}
@@ -145,85 +210,128 @@ export default function MailTab({ serviceId }: Props) {
         ) : null}
       </div>
 
+      {/* Create mailbox */}
+      <form onSubmit={onCreate} className="mb-5 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+        <p className="mb-3 text-sm font-semibold text-white">Nowa skrzynka e-mail</p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="space-y-1">
+            <span className="text-xs text-neutral-400">Adres</span>
+            <div className="flex items-stretch gap-1.5">
+              <input
+                value={localPart}
+                onChange={(e) => setLocalPart(e.target.value)}
+                placeholder="kontakt"
+                className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-white/30"
+              />
+              <span className="flex items-center text-sm text-neutral-500">@</span>
+              <select
+                value={domain}
+                onChange={(e) => setDomain(e.target.value)}
+                disabled={domains.length === 0}
+                className="rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-sm text-white outline-none focus:border-white/30"
+              >
+                {domains.length === 0 ? <option value="">—</option> : null}
+                {domains.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </label>
+          <label className="space-y-1">
+            <span className="text-xs text-neutral-400">Hasło</span>
+            <div className="flex gap-1.5">
+              <input
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="min. 8 znaków"
+                className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-sm text-white outline-none focus:border-white/30"
+              />
+              <button
+                type="button"
+                title="Wygeneruj hasło"
+                onClick={() => setPassword(genPassword())}
+                className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-2.5 text-neutral-300 hover:bg-white/10"
+              >
+                <KeyRound className="h-4 w-4" />
+              </button>
+            </div>
+          </label>
+        </div>
+        <div className="mt-3 flex items-end justify-between gap-3">
+          <label className="space-y-1">
+            <span className="text-xs text-neutral-400">Limit (MB)</span>
+            <input
+              value={quota}
+              onChange={(e) => setQuota(e.target.value.replace(/\D/g, ''))}
+              className="w-28 rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-white/30"
+            />
+          </label>
+          <Button
+            type="submit"
+            size="sm"
+            disabled={creating || !localPart.trim() || !domain || password.length < 8}
+            className="h-8 gap-1.5 bg-white text-black hover:bg-neutral-200 text-xs"
+          >
+            {creating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+            Utwórz skrzynkę
+          </Button>
+        </div>
+      </form>
+
       {rows.length === 0 && !fetchError ? (
         <p className="rounded-xl border border-white/5 bg-[#050505] px-3 py-8 text-center text-xs text-neutral-500">
-          Brak skrzynek — utwórz je w panelu hostingu (Zarządzaj skrzynkami).
+          Brak skrzynek — utwórz pierwszą powyżej.
         </p>
       ) : (
-        <ResponsiveDataView
-          rows={rows}
-          rowKey={(box) => box.id}
-          tableClassName="rounded-xl border border-white/5 bg-[#050505]"
-          columns={[
-            {
-              key: 'email',
-              header: 'Adres e-mail',
-              cell: (box) => (
-                <span className="inline-flex items-center gap-2 text-white">
-                  <Mail className="h-3.5 w-3.5 shrink-0 text-neutral-500" />
-                  {box.email}
-                </span>
-              ),
-            },
-            {
-              key: 'quota',
-              header: 'Limit',
-              cell: (box) => (
-                <span className="text-neutral-400">
+        <div className="overflow-hidden rounded-xl border border-white/5 bg-[#050505]">
+          {rows.map((box) => (
+            <div
+              key={box.id}
+              className="flex items-center justify-between gap-3 border-b border-white/5 px-4 py-2.5 last:border-0"
+            >
+              <span className="inline-flex min-w-0 flex-1 items-center gap-2 break-all text-sm text-white">
+                <Mail className="h-3.5 w-3.5 shrink-0 text-neutral-500" />
+                {box.email}
+              </span>
+              <div className="flex shrink-0 items-center gap-3">
+                <span className="text-xs text-neutral-500">
                   {box.quotaMb != null ? `${box.quotaMb} MB` : 'bez limitu'}
-                </span>
-              ),
-            },
-            {
-              key: 'panel',
-              header: 'Panel',
-              headerClassName: 'text-right',
-              cellClassName: 'text-right',
-              cell: () =>
-                emailUrl ? (
-                  <a
-                    href={emailUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-neutral-300 hover:text-white"
-                  >
-                    Otwórz →
-                  </a>
-                ) : (
-                  <span className="text-xs text-neutral-600">—</span>
-                ),
-            },
-          ]}
-          renderMobileCard={(box) => (
-            <div className="rounded-xl border border-white/5 bg-[#050505] p-3">
-              <div className="flex items-start justify-between gap-2">
-                <span className="inline-flex min-w-0 flex-1 items-start gap-2 break-all text-sm text-white">
-                  <Mail className="mt-0.5 h-3.5 w-3.5 shrink-0 text-neutral-500" />
-                  {box.email}
                 </span>
                 {emailUrl ? (
                   <a
                     href={emailUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="shrink-0 text-xs font-medium text-neutral-300 hover:text-white"
+                    className="text-xs text-neutral-400 hover:text-white"
                   >
-                    Panel →
+                    Webmail →
                   </a>
                 ) : null}
+                <button
+                  type="button"
+                  title="Usuń skrzynkę"
+                  disabled={deleting === box.email}
+                  onClick={() => void onDelete(box.email)}
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-white/5 text-rose-300 hover:bg-rose-500/10 disabled:opacity-50"
+                >
+                  {deleting === box.email ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </button>
               </div>
-              <p className="mt-2 text-[11px] text-neutral-500">
-                Limit: {box.quotaMb != null ? `${box.quotaMb} MB` : 'bez limitu'}
-              </p>
             </div>
-          )}
-        />
+          ))}
+        </div>
       )}
 
       <p className="mt-3 flex items-start gap-2 text-[11px] text-neutral-500">
         <Server className="h-3.5 w-3.5 shrink-0 mt-0.5" />
-        Tworzenie i usuwanie skrzynek oraz zmiana haseł odbywa się w zaawansowanym panelu hostingu — tutaj widzisz listę i dane
-        do konfiguracji programu pocztowego.
+        Skrzynki tworzysz i usuwasz tutaj. Webmail (jeśli włączony na węźle) i zaawansowane opcje są dostępne w
+        panelu hostingu.
       </p>
     </HostingTabShell>
   );
