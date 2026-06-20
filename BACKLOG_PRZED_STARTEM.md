@@ -10,7 +10,7 @@ Stan na 2026-06-17. Pogrupowane wg priorytetu i obszaru. Oznaczenia:
 - **[P0] LiteSpeed — licencja produkcyjna** na węźle (trial wygasł; bez niej strony i Let's Encrypt nie działają). Do testów: shared/trial; do LIVE: oficjalna.
 - **[P0] Zmienne env na prod:** `STRIPE_SECRET_KEY=sk_live_…` + `STRIPE_WEBHOOK_SECRET`, `WEBAUTHN_RP_ID`/`WEBAUTHN_ORIGINS` (✅ ustawione), `HETZNER_API_TOKEN` (VPS), `WEBMAIL_URL` (webmail), `OPENPROVIDER_*` (rejestracja domen).
 - **[P0] Certy TLS** dla paneli — potwierdzić auto-odnawianie Caddy (był warn „<7 dni").
-- **[P1] Treści Bazy Wiedzy (KB)** w panelu admina — bez artykułów podpowiedzi KB (klient) i sugestie AI (staff) są puste.
+- **[częściowo] Treści Bazy Wiedzy (KB)** — seed 13 startowych artykułów PL gotowy (`pnpm --filter api cli:seed-kb`), zasila podpowiedzi KB + sugestie AI (keyword-fallback, bez embeddingów). Admin może dopisać kolejne w panelu. Do uruchomienia na prod.
 - **[P1] Dane firmy + KSeF** (sprzedawca, NIP) — wymagane na fakturach; potwierdzić w „Gotowość LIVE".
 
 ## B. Funkcje — dopięcie zarządzania usługą (P1)
