@@ -29,12 +29,30 @@
     }
 }
 
+# Blok oczywistych skanerów/exploitów (control-plane to Next/Nest — brak PHP/WP/.git).
+# Caddy wykonuje `respond` przed `reverse_proxy`, więc dopasowane ścieżki dostają 403,
+# a reszta normalnie trafia do upstreamu.
+(block_scanners) {
+    @scanners path *.php /.env /.env.* /.git /.git/* /vendor/* /.aws/* /wp-login.php /wp-admin /wp-admin/* /xmlrpc.php /cgi-bin/* /.svn/* /.DS_Store
+    respond @scanners 403
+}
+
+# Odporność na okno restartu przy deployu: zamiast natychmiastowego 502/503,
+# Caddy ponawia połączenie do upstreamu przez ~10 s (kontener zdąży wstać).
+(deploy_resilient) {
+    lb_try_duration 10s
+    lb_try_interval 250ms
+}
+
 # -----------------------------------------------------------------------------
 # Public client panel
 # -----------------------------------------------------------------------------
 {$CADDY_CLIENT_DOMAIN:panel.verris.local} {
     import panel_headers
-    reverse_proxy client-panel:3001
+    import block_scanners
+    reverse_proxy client-panel:3001 {
+        import deploy_resilient
+    }
 }
 
 # -----------------------------------------------------------------------------
@@ -53,7 +71,10 @@
 {$CADDY_STAFF_DOMAIN:staff.verris.local} {
     import panel_headers
     import vpn_only
-    reverse_proxy staff-panel:3002
+    import block_scanners
+    reverse_proxy staff-panel:3002 {
+        import deploy_resilient
+    }
 }
 
 # -----------------------------------------------------------------------------
@@ -62,7 +83,10 @@
 {$CADDY_ADMIN_DOMAIN:admin.verris.local} {
     import panel_headers
     import vpn_only
-    reverse_proxy admin-panel:3003
+    import block_scanners
+    reverse_proxy admin-panel:3003 {
+        import deploy_resilient
+    }
 }
 
 # -----------------------------------------------------------------------------
@@ -70,9 +94,12 @@
 # -----------------------------------------------------------------------------
 {$CADDY_API_DOMAIN:api.verris.local} {
     import security_headers
+    import block_scanners
     # API zwraca JSON — niczego nie renderuje, więc najostrzejszy CSP.
     header Content-Security-Policy "default-src 'none'; frame-ancestors 'none'"
-    reverse_proxy api:3000
+    reverse_proxy api:3000 {
+        import deploy_resilient
+    }
 }
 
 # -----------------------------------------------------------------------------
@@ -81,7 +108,10 @@
 # -----------------------------------------------------------------------------
 {$CADDY_STATUS_DOMAIN:status.verris.local} {
     import security_headers
-    reverse_proxy status-page:3004
+    import block_scanners
+    reverse_proxy status-page:3004 {
+        import deploy_resilient
+    }
     header Cache-Control "public, max-age=30"
 }
 

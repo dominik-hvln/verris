@@ -37,7 +37,7 @@ Cel: 100% zarządzania w panelu (jak najlepsza konkurencja), bez wychodzenia do 
 
 ## D. Stabilność i niezawodność (P0/P1)
 
-- **[P0] Intermittentne 503 na server-action POST** (zakup/kb-suggest) — diagnoza logów client-panel + Caddy, zasoby kontenera; potwierdzić czy to przeciążenie czy konfiguracja.
+- **[✅ zrobione] Intermittentne 503/502** — zdiagnozowane: NIE przeciążenie (panel 1% RAM, 0 OOM/restartów, 20 równoległych POST = 307). Przyczyna: okno restartu przy deployu + skanery/boty. Mitygacja w Caddy: `lb_try_duration 10s` (retry do upstreamu podczas restartu) + blok skanerów (PHP/.env/.git/wp/xmlrpc → 403). Opcjonalnie później: zero-downtime/rolling deploy.
 - **[✅ zrobione] Spójna obsługa błędów DA** — helper `daErrorMessage` mapuje typowe błędy DA na przyjazne komunikaty PL; zastosowany w hubie (DB/FTP/cron/mail/backupy) i menedżerze plików. Pozostaje monitoring (Sentry).
 - **[P1] Naprawa resztkowego błędu tsc** `vps-client.tsx` (`sshKeyIds`) — niezwiązany z Prisma, realny do poprawienia.
 - **[P1] Monitoring błędów** (np. Sentry) dla API i paneli — łapanie wyjątków na produkcji.
