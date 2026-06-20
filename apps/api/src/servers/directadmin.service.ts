@@ -1225,7 +1225,7 @@ export class DirectAdminService {
           domain,
         });
         for (const [k, v] of raw.entries()) {
-          if (!/^list\d+$/i.test(k) || !v) continue;
+          if (!/^list(\d+|\[\])?$/i.test(k) || !v) continue;
           rows.push({ id: `${v}.${domain}`, subdomain: v, domain, url: `https://${v}.${domain}` });
         }
       }
@@ -1331,7 +1331,8 @@ export class DirectAdminService {
           domain,
         });
         for (const [k, v] of raw.entries()) {
-          if (!/^list\d+$/i.test(k) || !v) continue;
+          // DA zwraca listę jako list0=, list1=… ALBO list[]= (zależnie od wersji).
+          if (!/^list(\d+|\[\])?$/i.test(k) || !v) continue;
           rows.push({ id: `${v}.${domain}`, subdomain: v, domain, url: `https://${v}.${domain}` });
         }
       }
