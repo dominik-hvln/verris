@@ -1330,6 +1330,10 @@ export class DirectAdminService {
         const raw = await this.daGetForSubscription(subscriptionId, userId, '/CMD_API_SUBDOMAINS', {
           domain,
         });
+        // TEMP DEBUG (subdomeny): log surowych kluczy odpowiedzi DA, by ustalić format.
+        this.logger.warn(
+          `SUBDOMAIN-DEBUG list ${domain}: ${JSON.stringify(Array.from(raw.entries()))}`,
+        );
         for (const [k, v] of raw.entries()) {
           // DA zwraca listę jako list0=, list1=… ALBO list[]= (zależnie od wersji).
           if (!/^list(\d+|\[\])?$/i.test(k) || !v) continue;
@@ -1354,11 +1358,16 @@ export class DirectAdminService {
       throw new BadRequestException('Nazwa poddomeny: a-z, 0-9 i myślnik (maks. 63 znaki).');
     }
     await this.assertDomainOnSubscription(subscriptionId, userId, domain);
-    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_SUBDOMAINS', {
-      action: 'create',
-      domain,
-      subdomain: label,
-    });
+    const createResp = await this.daFormForSubscription(
+      subscriptionId,
+      userId,
+      '/CMD_API_SUBDOMAINS',
+      { action: 'create', domain, subdomain: label },
+    );
+    // TEMP DEBUG (subdomeny): log surowej odpowiedzi DA na create.
+    this.logger.warn(
+      `SUBDOMAIN-DEBUG create ${label}.${domain}: ${JSON.stringify(Array.from(createResp.entries()))}`,
+    );
     await this.audit.record({
       action: HostingResourceActions.HOSTING_SUBDOMAIN_CREATED,
       userId,
