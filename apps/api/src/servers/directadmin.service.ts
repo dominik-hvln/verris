@@ -1224,9 +1224,8 @@ export class DirectAdminService {
         const raw = await this.daGetForSubscription(subscriptionId, userId, '/CMD_API_SUBDOMAINS', {
           domain,
         });
-        for (const [k, v] of raw.entries()) {
-          if (!/^list(\d+|\[\])?$/i.test(k) || !v) continue;
-          rows.push({ id: `${v}.${domain}`, subdomain: v, domain, url: `https://${v}.${domain}` });
+        for (const sub of parseDaSubdomainList(raw)) {
+          rows.push({ id: `${sub}.${domain}`, subdomain: sub, domain, url: `https://${sub}.${domain}` });
         }
       }
       return { rows, domains, primaryDomain: domainsRes.primaryDomain, fetchError: null };
@@ -1330,14 +1329,8 @@ export class DirectAdminService {
         const raw = await this.daGetForSubscription(subscriptionId, userId, '/CMD_API_SUBDOMAINS', {
           domain,
         });
-        // TEMP DEBUG (subdomeny): log surowych kluczy odpowiedzi DA, by ustalić format.
-        this.logger.warn(
-          `SUBDOMAIN-DEBUG list ${domain}: ${JSON.stringify(Array.from(raw.entries()))}`,
-        );
-        for (const [k, v] of raw.entries()) {
-          // DA zwraca listę jako list0=, list1=… ALBO list[]= (zależnie od wersji).
-          if (!/^list(\d+|\[\])?$/i.test(k) || !v) continue;
-          rows.push({ id: `${v}.${domain}`, subdomain: v, domain, url: `https://${v}.${domain}` });
+        for (const sub of parseDaSubdomainList(raw)) {
+          rows.push({ id: `${sub}.${domain}`, subdomain: sub, domain, url: `https://${sub}.${domain}` });
         }
       }
       return { rows, domains, fetchError: null };
@@ -1358,16 +1351,11 @@ export class DirectAdminService {
       throw new BadRequestException('Nazwa poddomeny: a-z, 0-9 i myślnik (maks. 63 znaki).');
     }
     await this.assertDomainOnSubscription(subscriptionId, userId, domain);
-    const createResp = await this.daFormForSubscription(
-      subscriptionId,
-      userId,
-      '/CMD_API_SUBDOMAINS',
-      { action: 'create', domain, subdomain: label },
-    );
-    // TEMP DEBUG (subdomeny): log surowej odpowiedzi DA na create.
-    this.logger.warn(
-      `SUBDOMAIN-DEBUG create ${label}.${domain}: ${JSON.stringify(Array.from(createResp.entries()))}`,
-    );
+    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_SUBDOMAINS', {
+      action: 'create',
+      domain,
+      subdomain: label,
+    });
     await this.audit.record({
       action: HostingResourceActions.HOSTING_SUBDOMAIN_CREATED,
       userId,
@@ -1897,6 +1885,27 @@ function emptyMetric(): { used: number | null; limit: number | null } {
  * Extracts a human label from an X.509 issuer string (Node renders it as
  * newline-separated `C=…\nO=…\nCN=…`). Prefer the organisation, then the CN.
  */
+/**
+ * Parsuje listę poddomen z odpowiedzi DA `CMD_API_SUBDOMAINS`.
+ * Ten DirectAdmin zwraca każdą poddomenę jako KLUCZ (wartość pusta), np.
+ * `qatest2=`. Starsze/inne wersje używają `list0=qatest2` lub `list[]=qatest2`
+ * — obsługujemy oba warianty. Pomijamy meta-klucze (error/text/details).
+ */
+function parseDaSubdomainList(raw: URLSearchParams): string[] {
+  const META = new Set(['error', 'text', 'details']);
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const [k, v] of raw.entries()) {
+    const key = k.trim();
+    if (!key || META.has(key.toLowerCase())) continue;
+    const name = /^list(\d+|\[\])?$/i.test(key) ? v.trim() : key;
+    if (!name || seen.has(name)) continue;
+    seen.add(name);
+    out.push(name);
+  }
+  return out;
+}
+
 function parseCertOrg(issuer: string): string {
   const fields: Record<string, string> = {};
   for (const line of issuer.split(/\r?\n/)) {
