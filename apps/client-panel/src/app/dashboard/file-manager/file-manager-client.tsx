@@ -8,6 +8,7 @@ import {
   Download,
   File as FileIcon,
   FilePen,
+  FilePlus,
   Folder,
   FolderPlus,
   Pencil,
@@ -105,6 +106,23 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
       await load(path);
     } catch (e) {
       toast.error('Nie udało się utworzyć folderu', {
+        description: daErrorMessage(e instanceof Error ? e.message : undefined),
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onNewFile = async () => {
+    const name = window.prompt('Nazwa nowego pliku (np. index.html):');
+    if (!name) return;
+    setBusy(true);
+    try {
+      await fmWrite(serviceId, path, name, '');
+      toast.success('Plik utworzony');
+      await load(path);
+    } catch (e) {
+      toast.error('Nie udało się utworzyć pliku', {
         description: daErrorMessage(e instanceof Error ? e.message : undefined),
       });
     } finally {
@@ -245,6 +263,14 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
           className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white hover:bg-white/10 disabled:opacity-40"
         >
           <FolderPlus className="h-4 w-4" /> Nowy folder
+        </button>
+        <button
+          type="button"
+          onClick={onNewFile}
+          disabled={busy}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-white hover:bg-white/10 disabled:opacity-40"
+        >
+          <FilePlus className="h-4 w-4" /> Nowy plik
         </button>
         <button
           type="button"

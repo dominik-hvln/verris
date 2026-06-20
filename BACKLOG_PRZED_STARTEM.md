@@ -22,7 +22,7 @@ Cel: 100% zarządzania w panelu (jak najlepsza konkurencja), bez wychodzenia do 
 - **[P1] Konta FTP w panelu** — tworzenie/usuwanie (endpointy gotowe; dołożyć formularz w zakładce).
 - **[P1] Użytkownicy baz MySQL** — zarządzanie userami i uprawnieniami (dziś tylko baza+user przy tworzeniu).
 - **[✅ zrobione] Subdomeny** — tworzenie/usuwanie w zakładce Domeny&DNS (z audytem).
-- **[P2] Menedżer plików — rozszerzenia:** zapis pliku (test na żywo), nowy pusty plik, kopiuj/przenieś, wielozaznaczenie, rozpakuj ZIP, podgląd uprawnień.
+- **[częściowo] Menedżer plików — rozszerzenia:** ✅ nowy pusty plik; pozostaje kopiuj/przenieś, wielozaznaczenie, rozpakuj ZIP, podgląd uprawnień (wymagają nowych komend DA — weryfikacja na żywo).
 - **[P2] Przekierowania/aliasy domen, „parked domains”.**
 
 ## C. Bezpieczeństwo (P0/P1)
