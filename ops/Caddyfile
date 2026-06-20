@@ -37,13 +37,6 @@
     respond @scanners 403
 }
 
-# Odporność na okno restartu przy deployu: zamiast natychmiastowego 502/503,
-# Caddy ponawia połączenie do upstreamu przez ~10 s (kontener zdąży wstać).
-(deploy_resilient) {
-    lb_try_duration 10s
-    lb_try_interval 250ms
-}
-
 # -----------------------------------------------------------------------------
 # Public client panel
 # -----------------------------------------------------------------------------
@@ -51,7 +44,8 @@
     import panel_headers
     import block_scanners
     reverse_proxy client-panel:3001 {
-        import deploy_resilient
+        lb_try_duration 10s
+        lb_try_interval 250ms
     }
 }
 
@@ -73,7 +67,8 @@
     import vpn_only
     import block_scanners
     reverse_proxy staff-panel:3002 {
-        import deploy_resilient
+        lb_try_duration 10s
+        lb_try_interval 250ms
     }
 }
 
@@ -85,7 +80,8 @@
     import vpn_only
     import block_scanners
     reverse_proxy admin-panel:3003 {
-        import deploy_resilient
+        lb_try_duration 10s
+        lb_try_interval 250ms
     }
 }
 
@@ -98,7 +94,8 @@
     # API zwraca JSON — niczego nie renderuje, więc najostrzejszy CSP.
     header Content-Security-Policy "default-src 'none'; frame-ancestors 'none'"
     reverse_proxy api:3000 {
-        import deploy_resilient
+        lb_try_duration 10s
+        lb_try_interval 250ms
     }
 }
 
@@ -110,7 +107,8 @@
     import security_headers
     import block_scanners
     reverse_proxy status-page:3004 {
-        import deploy_resilient
+        lb_try_duration 10s
+        lb_try_interval 250ms
     }
     header Cache-Control "public, max-age=30"
 }
