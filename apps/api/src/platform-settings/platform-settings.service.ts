@@ -228,6 +228,7 @@ export class PlatformSettingsService {
       monthlyDiscountPct: this.readInt(map, PLATFORM_SETTING_KEYS.TRIAL_MONTHLY_DISCOUNT_PCT, 10, 0, 90),
       annualPromoCode: this.readStr(map, PLATFORM_SETTING_KEYS.TRIAL_ANNUAL_PROMO_CODE, '').trim(),
       monthlyPromoCode: this.readStr(map, PLATFORM_SETTING_KEYS.TRIAL_MONTHLY_PROMO_CODE, '').trim(),
+      introDiscountPeriods: this.readInt(map, PLATFORM_SETTING_KEYS.TRIAL_INTRO_PERIODS, 1, 1, 24),
     };
   }
 
@@ -239,9 +240,11 @@ export class PlatformSettingsService {
       monthlyDiscountPct: number;
       annualPromoCode?: string;
       monthlyPromoCode?: string;
+      introDiscountPeriods: number;
     },
     actorUserId: string,
   ): Promise<TrialOfferConfig> {
+    const periods = Math.min(Math.max(Math.round(input.introDiscountPeriods) || 1, 1), 24);
     await this.upsertMany(
       [
         [PLATFORM_SETTING_KEYS.TRIAL_FREE_ENABLED, input.freeEnabled ? '1' : '0'],
@@ -250,6 +253,7 @@ export class PlatformSettingsService {
         [PLATFORM_SETTING_KEYS.TRIAL_MONTHLY_DISCOUNT_PCT, String(input.monthlyDiscountPct)],
         [PLATFORM_SETTING_KEYS.TRIAL_ANNUAL_PROMO_CODE, (input.annualPromoCode ?? '').trim()],
         [PLATFORM_SETTING_KEYS.TRIAL_MONTHLY_PROMO_CODE, (input.monthlyPromoCode ?? '').trim()],
+        [PLATFORM_SETTING_KEYS.TRIAL_INTRO_PERIODS, String(periods)],
       ],
       actorUserId,
     );

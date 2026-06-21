@@ -20,6 +20,8 @@ export const PLATFORM_SETTING_KEYS = {
   TRIAL_MONTHLY_DISCOUNT_PCT: 'trial.monthlyDiscountPct',
   TRIAL_ANNUAL_PROMO_CODE: 'trial.annualPromoCode',
   TRIAL_MONTHLY_PROMO_CODE: 'trial.monthlyPromoCode',
+  /** BILL-1 — liczba pierwszych okresów objętych rabatem startowym (1 = tylko start). */
+  TRIAL_INTRO_PERIODS: 'trial.introDiscountPeriods',
 
   /** Platform-default authoritative nameservers for provisioned hosting accounts. */
   HOSTING_NS1: 'hosting.ns1',
@@ -62,6 +64,7 @@ export const PLATFORM_SETTING_DEFAULTS: Record<PlatformSettingKey, string> = {
   [PLATFORM_SETTING_KEYS.TRIAL_MONTHLY_DISCOUNT_PCT]: '10',
   [PLATFORM_SETTING_KEYS.TRIAL_ANNUAL_PROMO_CODE]: '',
   [PLATFORM_SETTING_KEYS.TRIAL_MONTHLY_PROMO_CODE]: '',
+  [PLATFORM_SETTING_KEYS.TRIAL_INTRO_PERIODS]: '1',
   [PLATFORM_SETTING_KEYS.STAFF_IDLE_MINUTES]: '30',
   [PLATFORM_SETTING_KEYS.ADMIN_IDLE_MINUTES]: '15',
   [PLATFORM_SETTING_KEYS.HOSTING_NS1]: '',

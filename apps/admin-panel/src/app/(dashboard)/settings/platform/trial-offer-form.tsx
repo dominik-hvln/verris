@@ -30,8 +30,9 @@ export function TrialOfferSettingsForm({ initial }: { initial: TrialOfferForm })
       <div className="grid gap-4 sm:grid-cols-2">
         <NumberField name="annualDiscountPct" label="Rabat % — rok z góry" defaultValue={initial.annualDiscountPct} hint="0–90. Wyświetlany na kaflu Rok z góry." />
         <NumberField name="monthlyDiscountPct" label="Rabat % — miesięcznie (1. rok)" defaultValue={initial.monthlyDiscountPct} hint="0–90. Zwykle mniejszy niż roczny." />
-        <TextField name="annualPromoCode" label="Kod promo — ścieżka roczna" defaultValue={initial.annualPromoCode} hint="Auto-stosowany w checkout. Pusty = bez auto-rabatu." />
-        <TextField name="monthlyPromoCode" label="Kod promo — ścieżka miesięczna" defaultValue={initial.monthlyPromoCode} />
+        <NumberField name="introDiscountPeriods" label="Rabat startowy — liczba okresów" defaultValue={initial.introDiscountPeriods} hint="1 = tylko pierwsza opłata. Np. 3 = pierwsze 3 okresy z rabatem, potem pełna cena." />
+        <TextField name="annualPromoCode" label="Kod promo — ścieżka roczna (opcjonalny)" defaultValue={initial.annualPromoCode} hint="Pozostawione dla zgodności; rabat startowy liczy się z procentów powyżej." />
+        <TextField name="monthlyPromoCode" label="Kod promo — ścieżka miesięczna (opcjonalny)" defaultValue={initial.monthlyPromoCode} />
       </div>
 
       <div className="flex items-center gap-3 pt-2">

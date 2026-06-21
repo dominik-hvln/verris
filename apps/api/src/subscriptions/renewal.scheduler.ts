@@ -165,11 +165,21 @@ export class RenewalScheduler {
       return;
     }
 
-    const renewalAmount = await this.promo.resolveSubscriptionRenewalAmount({
-      priceAmount: sub.priceAmount,
-      listPriceAmount: sub.listPriceAmount,
-      appliedPromoCodeId: sub.appliedPromoCodeId,
-    });
+    // BILL-1 — rabat startowy obejmuje pierwsze N okresów. Dopóki zostają
+    // okresy z rabatem, odnawiamy po cenie z rabatem startowym (z ceny listowej,
+    // bez kuponów). Kupony/kody NIE łączą się z rabatem startowym, więc gdy
+    // introDiscountPeriodsLeft > 0 ignorujemy appliedPromoCodeId.
+    const useIntro = sub.introDiscountPeriodsLeft > 0 && sub.introDiscountPct > 0;
+    const renewalAmount = useIntro
+      ? sub.listPriceAmount
+          .mul(new Prisma.Decimal(100 - Math.min(Math.max(sub.introDiscountPct, 0), 100)))
+          .div(100)
+          .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP)
+      : await this.promo.resolveSubscriptionRenewalAmount({
+          priceAmount: sub.priceAmount,
+          listPriceAmount: sub.listPriceAmount,
+          appliedPromoCodeId: sub.appliedPromoCodeId,
+        });
 
     try {
       await this.walletLedger.debit({
@@ -189,6 +199,15 @@ export class RenewalScheduler {
     }
 
     await this.extendPeriod(sub.id, periodEnd, sub.interval);
+
+    // Zużyj jeden okres rabatu startowego po udanej opłacie. Gdy spadnie do 0,
+    // kolejne odnowienia idą pełną ceną listową.
+    if (useIntro) {
+      await this.prisma.subscription.update({
+        where: { id: sub.id },
+        data: { introDiscountPeriodsLeft: { decrement: 1 } },
+      });
+    }
 
     void this.ecoPoints.safeAward(`wallet_renewal:${idempotencyKey}`, async () => {
       await this.ecoPoints.awardSubscriptionRenewal(this.prisma, {

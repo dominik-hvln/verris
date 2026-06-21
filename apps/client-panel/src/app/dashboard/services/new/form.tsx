@@ -16,15 +16,23 @@ import { registerDomainClientAction } from '@/app/dashboard/domains/actions';
 import { DomainStep, type DomainSelection } from './domain-step';
 import { CREDIT_SHORT, formatCredits } from '@/lib/credits';
 
+interface StartOffer {
+  cardEnabled: boolean;
+  monthlyDiscountPct: number;
+  annualDiscountPct: number;
+}
+
 interface Props {
   plans: PlanDto[];
   /** UX-3 — wstępnie wybrany interwał (ze ścieżki z kartą: rocznie/miesięcznie). */
   initialInterval?: BillingInterval;
   /** UX-3 — kod promo auto-stosowany dla ścieżki z kartą (rabat 1. roku). */
   initialPromo?: string;
+  /** BILL-1 — rabat startowy z ustawień (auto-naliczany z portfela, bez kuponu). */
+  startOffer?: StartOffer;
 }
 
-export function NewSubscriptionForm({ plans, initialInterval, initialPromo }: Props) {
+export function NewSubscriptionForm({ plans, initialInterval, initialPromo, startOffer }: Props) {
   const router = useRouter();
   const hasEmailPlans = useMemo(() => plans.some((p) => p.productKind === 'EMAIL'), [plans]);
   const hasHostingPlans = useMemo(
@@ -86,7 +94,26 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo }: Pr
     return interval === 'MONTH' ? selectedPlan.priceMonthly : selectedPlan.priceYearly;
   }, [selectedPlan, interval]);
 
-  const chargePrice = promoPreview?.discountedAmount ?? listPrice;
+  // BILL-1 — rabat startowy z ustawień (tylko portfel, tylko gdy włączona ścieżka
+  // z kartą/rabatem). Naliczany automatycznie, bez kodu; odnowienie pełną kwotą.
+  const startPct =
+    paymentSource === 'WALLET' && startOffer?.cardEnabled
+      ? interval === 'YEAR'
+        ? startOffer.annualDiscountPct
+        : startOffer.monthlyDiscountPct
+      : 0;
+  const startDiscounted = useMemo(() => {
+    if (listPrice == null || startPct <= 0) return null;
+    const n = Number(listPrice);
+    if (!Number.isFinite(n)) return null;
+    return (Math.round(n * (100 - startPct)) / 100).toFixed(2);
+  }, [listPrice, startPct]);
+
+  // BILL-1 — kwota do zapłaty wg reguły „nie łączymy promocji": kod (jeśli wygrywa)
+  // → rabat startowy → cena listowa.
+  const chargePrice = promoPreview?.effectiveDiscounted ?? startDiscounted ?? listPrice;
+  const showStrike =
+    chargePrice != null && listPrice != null && Number(chargePrice) !== Number(listPrice);
 
   // P-7 — zachęta do planu rocznego: oszczędność vs 12× miesięcznie.
   const { annualSavingsPct, annualSavingsAmount } = useMemo(() => {
@@ -371,16 +398,32 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo }: Pr
           </div>
           {promoError ? <p className="mt-2 text-sm text-rose-300">{promoError}</p> : null}
           {promoPreview ? (
-            <div className="mt-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-4 text-sm text-emerald-100">
-              Kod <strong className="font-mono">{promoPreview.code}</strong> — rabat{' '}
-              <strong>{promoPreview.percent}%</strong>
-              {promoPreview.appliesToRenewals
-                ? ' (również na kolejne odnowienia z portfela).'
-                : ' (tylko pierwsza opłata).'}
-              <br />
-              Oszczędzasz{' '}
-              <strong>{formatCredits(promoPreview.savingsAmount, { signed: true })}</strong>.
-            </div>
+            promoPreview.codeWins ? (
+              <div className="mt-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-4 text-sm text-emerald-100">
+                Kod <strong className="font-mono">{promoPreview.code}</strong> — rabat{' '}
+                <strong>{promoPreview.percent}%</strong>
+                {promoPreview.appliesToRenewals
+                  ? ' (również na kolejne odnowienia z portfela).'
+                  : ' (tylko pierwsza opłata).'}
+                <br />
+                Oszczędzasz{' '}
+                <strong>{formatCredits(promoPreview.savingsAmount, { signed: true })}</strong>.
+                {promoPreview.comparisonMessage ? (
+                  <span className="mt-1 block text-xs text-emerald-200/80">
+                    {promoPreview.comparisonMessage}
+                  </span>
+                ) : null}
+              </div>
+            ) : (
+              // BILL-1 — kod gorszy od promocji startowej: nie łączymy, zostawiamy lepszą.
+              <div className="mt-3 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 text-sm text-amber-100">
+                {promoPreview.comparisonMessage ??
+                  `Ten kod daje mniejszy rabat niż promocja na start — naliczamy korzystniejszą promocję (${promoPreview.startPercent}%).`}
+                <br />
+                Naliczona cena uwzględnia rabat startowy{' '}
+                <strong>{promoPreview.startPercent}%</strong>.
+              </div>
+            )
           ) : null}
         </section>
       ) : null}
@@ -415,7 +458,7 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo }: Pr
           <p className="text-3xl font-bold text-white mt-1">
             {chargePrice ? (
               <>
-                {promoPreview && listPrice ? (
+                {showStrike ? (
                   <span className="block text-lg text-neutral-500 line-through font-normal">
                     {formatCredits(listPrice)}
                   </span>
@@ -426,6 +469,11 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo }: Pr
               '—'
             )}
           </p>
+          {!promoPreview && startPct > 0 ? (
+            <p className="mt-1 text-xs font-medium text-emerald-300">
+              Rabat na start −{startPct}% (pierwsza opłata). Odnowienie pełną kwotą.
+            </p>
+          ) : null}
           <p className="text-xs text-neutral-500 mt-1">
             {paymentSource === 'WALLET'
               ? 'Środki zostaną pobrane z portfela.'

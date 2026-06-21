@@ -14,6 +14,8 @@ export interface TrialOfferConfig {
   annualPromoCode: string;
   /** Kod promo auto-stosowany dla ścieżki miesięcznej. */
   monthlyPromoCode: string;
+  /** BILL-1 — liczba pierwszych okresów objętych rabatem startowym (1 = tylko start). */
+  introDiscountPeriods: number;
 }
 
 export class UpdateTrialOfferDto {
@@ -42,4 +44,9 @@ export class UpdateTrialOfferDto {
   @IsString()
   @MaxLength(40)
   monthlyPromoCode?: string;
+
+  @IsInt()
+  @Min(1)
+  @Max(24)
+  introDiscountPeriods!: number;
 }

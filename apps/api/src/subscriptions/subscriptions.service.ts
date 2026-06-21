@@ -20,6 +20,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { WalletLedgerService } from '../billing/wallet-ledger.service';
 import { PromoService } from '../billing/promo.service';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 import { StripeService } from '../billing/stripe/stripe.service';
 import { getInvoiceClientSecret, getSubscriptionPeriod } from '../billing/stripe/stripe.client';
 import { DirectAdminService } from '../servers/directadmin.service';
@@ -94,6 +95,7 @@ export class SubscriptionsService {
     private readonly config: ConfigService,
     private readonly promo: PromoService,
     private readonly ecoPoints: EcoPointsService,
+    private readonly platformSettings: PlatformSettingsService,
   ) {}
 
   async previewSubscriptionPromo(userId: string, dto: PreviewSubscriptionPromoDto) {
@@ -106,11 +108,34 @@ export class SubscriptionsService {
     if (listPriceRaw === null || listPriceRaw === undefined) {
       throw new BadRequestException('Plan does not have a price for the requested interval');
     }
-    const preview = await this.promo.previewServicePercentOff(
-      userId,
-      dto.code,
-      new Prisma.Decimal(listPriceRaw),
-    );
+    const listPrice = new Prisma.Decimal(listPriceRaw);
+    const preview = await this.promo.previewServicePercentOff(userId, dto.code, listPrice);
+
+    // BILL-1 — reguła NIE-ŁĄCZENIA: porównaj kod z rabatem startowym z ustawień.
+    const offer = await this.platformSettings.getTrialOffer();
+    const startPercent = offer.cardEnabled
+      ? dto.interval === BillingInterval.MONTH
+        ? offer.monthlyDiscountPct
+        : offer.annualDiscountPct
+      : 0;
+
+    // Kod wygrywa przy remisie (klient wpisał go świadomie).
+    const codeWins = preview.percent >= startPercent;
+    const effectivePercent = Math.max(preview.percent, startPercent);
+    const effectiveDiscounted = codeWins
+      ? preview.discountedAmount
+      : this.applyPct(listPrice, startPercent);
+
+    let comparisonMessage: string | null = null;
+    if (!codeWins && startPercent > 0) {
+      comparisonMessage =
+        `Ten kod daje rabat ${preview.percent}%, a promocja na start ${startPercent}%. ` +
+        `Zostawiamy korzystniejszą promocję startową — kod nie zostanie użyty.`;
+    } else if (codeWins && startPercent > 0 && preview.percent > startPercent) {
+      comparisonMessage =
+        `Ten kod (${preview.percent}%) jest lepszy niż promocja na start (${startPercent}%) — używamy kodu.`;
+    }
+
     return {
       code: preview.code,
       percent: preview.percent,
@@ -119,6 +144,12 @@ export class SubscriptionsService {
       savingsAmount: preview.savingsAmount.toFixed(2),
       appliesToRenewals: preview.appliesToRenewals,
       description: preview.description,
+      // BILL-1 — transparentność reguły „nie łączymy promocji"
+      startPercent,
+      effectivePercent,
+      effectiveDiscounted: effectiveDiscounted.toFixed(2),
+      codeWins,
+      comparisonMessage,
     };
   }
 
@@ -231,6 +262,7 @@ export class SubscriptionsService {
       userId,
       listPrice,
       dto.paymentSource,
+      dto.interval,
       dto.promoCode,
     );
 
@@ -245,6 +277,8 @@ export class SubscriptionsService {
         priceAmount: pricing.chargeAmount,
         listPriceAmount: pricing.listPrice,
         appliedPromoCodeId: pricing.appliedPromoCodeId,
+        introDiscountPct: pricing.introDiscountPct,
+        introDiscountPeriodsLeft: pricing.introDiscountPeriodsLeft,
         currency: plan.currency,
         paymentSource: dto.paymentSource,
         autoscalingEnabled: dto.autoscalingEnabled ?? false,
@@ -971,29 +1005,84 @@ export class SubscriptionsService {
   // Helpers
   // ---------------------------------------------------------------------------
 
+  /** BILL-1 — % zniżki od ceny listowej, zaokrąglone do 2 miejsc (HALF_UP). */
+  private applyPct(listPrice: Prisma.Decimal, pct: number): Prisma.Decimal {
+    const p = Math.min(Math.max(pct, 0), 100);
+    return listPrice
+      .mul(new Prisma.Decimal(100 - p))
+      .div(100)
+      .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+  }
+
+  /**
+   * BILL-1 — wycena z regułą NIE-ŁĄCZENIA: porównujemy rabat startowy (z ustawień
+   * oferty, tylko portfel) z ewentualnym kodem rabatowym i stosujemy LEPSZY.
+   * Rabat startowy obejmuje pierwsze N okresów (introDiscountPeriods); na
+   * subskrypcji zapisujemy ile okresów rabatu zostaje po pierwszej opłacie.
+   */
   private async resolveSubscriptionPricing(
     userId: string,
     listPrice: Prisma.Decimal,
     paymentSource: SubscriptionPaymentSource,
+    interval: BillingInterval,
     promoCode?: string,
   ): Promise<{
     listPrice: Prisma.Decimal;
     chargeAmount: Prisma.Decimal;
     appliedPromoCodeId: string | null;
+    introDiscountPct: number;
+    introDiscountPeriodsLeft: number;
   }> {
-    if (!promoCode?.trim()) {
-      return { listPrice, chargeAmount: listPrice, appliedPromoCodeId: null };
+    const isWallet = paymentSource === SubscriptionPaymentSource.WALLET;
+
+    // Rabat startowy z ustawień — tylko portfel (jak istniejący silnik promo).
+    const offer = await this.platformSettings.getTrialOffer();
+    const startPct =
+      isWallet && offer.cardEnabled
+        ? interval === BillingInterval.MONTH
+          ? offer.monthlyDiscountPct
+          : offer.annualDiscountPct
+        : 0;
+
+    // Rabat z wpisanego kodu (tylko portfel).
+    let codePct = 0;
+    let codePreview: Awaited<ReturnType<PromoService['previewServicePercentOff']>> | null = null;
+    if (promoCode?.trim()) {
+      if (!isWallet) {
+        throw new BadRequestException(
+          'Kod rabatowy przy zakupie usługi działa tylko z płatnością z portfela (K).',
+        );
+      }
+      codePreview = await this.promo.previewServicePercentOff(userId, promoCode, listPrice);
+      codePct = codePreview.percent;
     }
-    if (paymentSource !== SubscriptionPaymentSource.WALLET) {
-      throw new BadRequestException(
-        'Kod rabatowy przy zakupie usługi działa tylko z płatnością z portfela (K).',
-      );
+
+    // NIE ŁĄCZYMY — wygrywa wyższy. Remis → kod (klient go wpisał świadomie).
+    if (codePreview && codePct >= startPct) {
+      return {
+        listPrice,
+        chargeAmount: codePreview.discountedAmount,
+        appliedPromoCodeId: codePreview.promoCodeId,
+        introDiscountPct: 0,
+        introDiscountPeriodsLeft: 0,
+      };
     }
-    const preview = await this.promo.previewServicePercentOff(userId, promoCode, listPrice);
+    if (startPct > 0) {
+      return {
+        listPrice,
+        chargeAmount: this.applyPct(listPrice, startPct),
+        appliedPromoCodeId: null,
+        introDiscountPct: startPct,
+        // pierwsza opłata zużywa 1 okres rabatu
+        introDiscountPeriodsLeft: Math.max(offer.introDiscountPeriods - 1, 0),
+      };
+    }
     return {
       listPrice,
-      chargeAmount: preview.discountedAmount,
-      appliedPromoCodeId: preview.promoCodeId,
+      chargeAmount: listPrice,
+      appliedPromoCodeId: null,
+      introDiscountPct: 0,
+      introDiscountPeriodsLeft: 0,
     };
   }
 

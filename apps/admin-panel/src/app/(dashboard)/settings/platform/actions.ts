@@ -24,6 +24,7 @@ export type TrialOfferForm = {
   monthlyDiscountPct: number;
   annualPromoCode: string;
   monthlyPromoCode: string;
+  introDiscountPeriods: number;
 };
 
 export async function fetchTrialOffer(): Promise<TrialOfferForm> {
@@ -41,6 +42,7 @@ export async function updateTrialOfferAction(
     monthlyDiscountPct: Number(formData.get('monthlyDiscountPct')),
     annualPromoCode: String(formData.get('annualPromoCode') ?? '').trim(),
     monthlyPromoCode: String(formData.get('monthlyPromoCode') ?? '').trim(),
+    introDiscountPeriods: Math.max(1, Number(formData.get('introDiscountPeriods')) || 1),
   };
   try {
     await adminApi('/admin/platform-settings/trial-offer', { method: 'PATCH', body: payload });

@@ -56,7 +56,20 @@ export function OrderFlow({ plans, offer }: { plans: PlanDto[]; offer: TrialOffe
               </div>
             ) : null}
             <div id="checkout">
-              <NewSubscriptionForm plans={typed} initialInterval={initialInterval} initialPromo={promo} />
+              <NewSubscriptionForm
+                plans={typed}
+                initialInterval={initialInterval}
+                initialPromo={promo}
+                startOffer={
+                  type === 'hosting'
+                    ? {
+                        cardEnabled: offer.cardEnabled,
+                        monthlyDiscountPct: offer.monthlyDiscountPct,
+                        annualDiscountPct: offer.annualDiscountPct,
+                      }
+                    : undefined
+                }
+              />
             </div>
           </>
         )}
@@ -166,9 +179,10 @@ function StartChooser({ offer, trialPlansExist }: { offer: TrialOffer; trialPlan
   // Gdy tylko ścieżka darmowa (bez karty) — TrialCallout sam ją pokaże; chooser zbędny.
   if (!offer.cardEnabled) return null;
 
-  const goCard = (iv: 'YEAR' | 'MONTH', code: string) => {
+  // BILL-1 — rabat na start liczy się automatycznie z ustawień (bez kuponu),
+  // więc ścieżka z kartą przekazuje tylko interwał; rabat naliczy formularz/back-end.
+  const goCard = (iv: 'YEAR' | 'MONTH') => {
     const q = new URLSearchParams({ type: 'hosting', interval: iv });
-    if (code) q.set('promo', code);
     router.push(`/dashboard/services/new?${q.toString()}`);
     setTimeout(() => document.getElementById('checkout')?.scrollIntoView({ behavior: 'smooth' }), 60);
   };
@@ -197,7 +211,7 @@ function StartChooser({ offer, trialPlansExist }: { offer: TrialOffer; trialPlan
 
         <button
           type="button"
-          onClick={() => goCard('YEAR', offer.annualPromoCode)}
+          onClick={() => goCard('YEAR')}
           className="relative flex flex-col rounded-2xl border border-sky-400/30 bg-sky-400/[0.06] p-4 text-left transition-colors hover:bg-sky-400/10"
         >
           <span className="absolute right-3 top-3 rounded-full border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-[10px] font-semibold text-sky-200">
@@ -214,7 +228,7 @@ function StartChooser({ offer, trialPlansExist }: { offer: TrialOffer; trialPlan
 
         <button
           type="button"
-          onClick={() => goCard('MONTH', offer.monthlyPromoCode)}
+          onClick={() => goCard('MONTH')}
           className="flex flex-col rounded-2xl border border-white/15 bg-white/[0.03] p-4 text-left transition-colors hover:bg-white/[0.06]"
         >
           <span className="flex items-center gap-2 text-sm font-semibold text-white">

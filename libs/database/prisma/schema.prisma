@@ -745,6 +745,12 @@ model Subscription {
   appliedPromoCodeId   String?
   appliedPromo         PromoCode?                @relation("SubscriptionAppliedPromo", fields: [appliedPromoCodeId], references: [id], onDelete: SetNull)
 
+  // BILL-1 — rabat startowy z ustawień oferty (nie z kodu). % zniżki na
+  // pierwsze N okresów; `introDiscountPeriodsLeft` dekrementowany przy każdym
+  // naliczeniu — gdy 0, odnowienia idą pełną kwotą (lub wg kodu, jeśli był).
+  introDiscountPct        Int    @default(0)
+  introDiscountPeriodsLeft Int   @default(0)
+
   // Payment configuration
   paymentSource        SubscriptionPaymentSource @default(STRIPE_CARD)
   stripeSubscriptionId String?                   @unique

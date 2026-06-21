@@ -81,6 +81,7 @@ export class PlatformSettingsAdminController {
         monthlyDiscountPct: dto.monthlyDiscountPct,
         annualPromoCode: dto.annualPromoCode,
         monthlyPromoCode: dto.monthlyPromoCode,
+        introDiscountPeriods: dto.introDiscountPeriods,
       },
       actor.userId,
     );

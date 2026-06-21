@@ -39,6 +39,16 @@ export interface PreviewSubscriptionPromoResult {
   savingsAmount: string;
   appliesToRenewals: boolean;
   description: string | null;
+  /** BILL-1 — rabat startowy z ustawień (dla porównania, reguła „nie łączymy"). */
+  startPercent: number;
+  /** Wyższy z: rabat kodu vs rabat startowy. */
+  effectivePercent: number;
+  /** Kwota do zapłaty po zastosowaniu korzystniejszej promocji. */
+  effectiveDiscounted: string;
+  /** true gdy kod jest co najmniej tak dobry jak promocja startowa. */
+  codeWins: boolean;
+  /** Komunikat dla klienta gdy kod jest gorszy/lepszy od promocji startowej. */
+  comparisonMessage: string | null;
 }
 
 export type ProvisioningStage =
