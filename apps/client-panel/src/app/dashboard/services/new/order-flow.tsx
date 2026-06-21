@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { getTrialEligibilityAction } from './actions';
 import { ArrowLeft, Server, Mail, Cpu, ArrowRight, Gift, Check, CreditCard, CalendarClock } from 'lucide-react';
 import type { BillingInterval, PlanDto } from '@verris/contracts';
 import { NewSubscriptionForm } from './form';
@@ -46,7 +48,7 @@ export function OrderFlow({ plans, offer }: { plans: PlanDto[]; offer: TrialOffe
         ) : (
           <>
             {type === 'hosting' ? (
-              <StartChooser offer={offer} />
+              <StartChooser offer={offer} trialPlansExist={typed.some((p) => p.trialDays > 0)} />
             ) : null}
             {type === 'hosting' && offer.freeEnabled ? (
               <div id="trial">
@@ -58,6 +60,50 @@ export function OrderFlow({ plans, offer }: { plans: PlanDto[]; offer: TrialOffe
             </div>
           </>
         )}
+      </div>
+    );
+  }
+
+  // --- Krok 2b: VPS — spójny krok z powrotem (zamiast wyskoku do innej sekcji) ---
+  if (type === 'vps') {
+    return (
+      <div className="space-y-6">
+        <button
+          type="button"
+          onClick={() => router.push('/dashboard/services/new')}
+          className="inline-flex items-center gap-2 text-sm text-neutral-400 hover:text-white"
+        >
+          <ArrowLeft className="h-4 w-4" /> Zmień typ usługi
+        </button>
+        <h2 className="text-xl font-bold text-white">VPS / Cloud</h2>
+        <div className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-6">
+          <div className="flex items-start gap-3">
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-violet-400/30 bg-violet-500/15 text-violet-300">
+              <Cpu className="h-5 w-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm text-neutral-300">
+                Serwery VPS uruchamiane w chmurze — pełen root przez SSH, skalowalne zasoby,
+                rozliczenie miesięczne z portfela. Zarządzanie cyklem życia (start/stop/reinstalacja)
+                i kluczami SSH odbywa się w dedykowanej sekcji VPS.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                <Link
+                  href="/dashboard/vps"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-black hover:bg-neutral-200"
+                >
+                  Otwórz sekcję VPS / Cloud <ArrowRight className="h-4 w-4" />
+                </Link>
+                <Link
+                  href="/dashboard/services"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.04] px-4 py-2 text-sm font-medium text-white hover:bg-white/10"
+                >
+                  Wróć do moich usług
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -91,9 +137,8 @@ export function OrderFlow({ plans, offer }: { plans: PlanDto[]; offer: TrialOffe
           title="VPS / Cloud"
           desc="Własny serwer z dostępem root. Rozliczenie miesięczne."
           bullets={['Pełny root + SSH', 'Skalowalne zasoby', 'Snapshoty']}
-          href="/dashboard/vps"
+          href="/dashboard/services/new?type=vps"
           accent="violet"
-          external
         />
       </div>
     </div>
@@ -101,10 +146,24 @@ export function OrderFlow({ plans, offer }: { plans: PlanDto[]; offer: TrialOffe
 }
 
 /** UX-3 — „Jak chcesz zacząć?" — darmowy trial vs ścieżka z kartą + rabat. */
-function StartChooser({ offer }: { offer: TrialOffer }) {
+function StartChooser({ offer, trialPlansExist }: { offer: TrialOffer; trialPlansExist: boolean }) {
   const router = useRouter();
-  if (!offer.cardEnabled && !offer.freeEnabled) return null;
-  // Gdy tylko jedna ścieżka — nie pokazuj choosera (zbędny szum).
+  // Darmowy trial pokazujemy TYLKO gdy realnie dostępny: włączony w ofercie,
+  // istnieje plan z trialem ORAZ konto jest jeszcze uprawnione (1 trial/konto).
+  const [trialEligible, setTrialEligible] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (!offer.freeEnabled || !trialPlansExist) {
+      setTrialEligible(false);
+      return;
+    }
+    void getTrialEligibilityAction()
+      .then((r) => setTrialEligible(r.eligible))
+      .catch(() => setTrialEligible(false));
+  }, [offer.freeEnabled, trialPlansExist]);
+
+  const showFree = offer.freeEnabled && trialPlansExist && trialEligible === true;
+  if (!offer.cardEnabled && !showFree) return null;
+  // Gdy tylko ścieżka darmowa (bez karty) — TrialCallout sam ją pokaże; chooser zbędny.
   if (!offer.cardEnabled) return null;
 
   const goCard = (iv: 'YEAR' | 'MONTH', code: string) => {
@@ -118,10 +177,11 @@ function StartChooser({ offer }: { offer: TrialOffer }) {
     <div className="rounded-[24px] border border-white/10 bg-white/[0.02] p-5">
       <h3 className="text-sm font-bold text-white">Jak chcesz zacząć?</h3>
       <p className="mt-1 text-xs text-neutral-400">
-        Wypróbuj bez zobowiązań albo od razu z kartą i rabatem na pierwszy rok.
+        Wypróbuj bez zobowiązań albo zamów od razu z rabatem na start. Rabat dotyczy pierwszej
+        opłaty — odnowienie pełną kwotą.
       </p>
       <div className="mt-4 grid gap-3 md:grid-cols-3">
-        {offer.freeEnabled ? (
+        {showFree ? (
           <button
             type="button"
             onClick={() => document.getElementById('trial')?.scrollIntoView({ behavior: 'smooth' })}
@@ -147,9 +207,9 @@ function StartChooser({ offer }: { offer: TrialOffer }) {
             <CalendarClock className="h-4 w-4 text-sky-300" /> Rok z góry
           </span>
           <span className="mt-1 text-xs text-sky-100/80">
-            Rabat <strong className="text-white">−{offer.annualDiscountPct}%</strong> na pierwszy rok.
+            Rabat <strong className="text-white">−{offer.annualDiscountPct}%</strong> na start + niższa cena roczna.
           </span>
-          <span className="mt-3 text-[11px] font-medium text-sky-300">Wybierz z kartą →</span>
+          <span className="mt-3 text-[11px] font-medium text-sky-300">Wybierz →</span>
         </button>
 
         <button
@@ -161,9 +221,9 @@ function StartChooser({ offer }: { offer: TrialOffer }) {
             <CreditCard className="h-4 w-4 text-neutral-300" /> Miesięcznie
           </span>
           <span className="mt-1 text-xs text-neutral-400">
-            Rabat <strong className="text-white">−{offer.monthlyDiscountPct}%</strong> przez pierwszy rok. Karta wymagana.
+            Rabat <strong className="text-white">−{offer.monthlyDiscountPct}%</strong> na pierwszą opłatę.
           </span>
-          <span className="mt-3 text-[11px] font-medium text-neutral-300">Wybierz z kartą →</span>
+          <span className="mt-3 text-[11px] font-medium text-neutral-300">Wybierz →</span>
         </button>
       </div>
     </div>

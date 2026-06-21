@@ -1,44 +1,53 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { AlertCircle, CheckCircle2, Loader2, Plus, Tag } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2, Plus, Tag, Gift, Percent } from "lucide-react";
 import { createPromoAction } from "./actions";
 
-const VALUE_PRESETS = ["10", "25", "50", "100", "200"];
+type Kind = "FIXED_CREDIT" | "SERVICE_PERCENT_OFF";
+
+const CREDIT_PRESETS = ["10", "25", "50", "100", "200"];
+const PERCENT_PRESETS = ["5", "10", "15", "20", "25"];
 
 /**
- * Formularz tworzenia kodu zasilającego portfel klienta kredytami.
- * Używa typu `FIXED_CREDIT` z backendu — po wpisaniu kodu w panelu klienta
- * (`/dashboard/billing` → "Kod promocyjny"), wartość zostanie dopisana na
- * portfel jako PROMO_CREDIT (1 zł = 1 kredyt).
- *
- * `PERCENT_BONUS` (kupon przy doładowaniu) blokujemy w UI — backend nadal
- * rzuca BadRequest przy redempcji, więc nie chcemy żeby admin tworzył kody
- * które klient i tak dostałby błąd. Ten typ wraca w późniejszym sprincie.
+ * Tworzenie kodów promo. Dwa typy z UI:
+ *  - FIXED_CREDIT — voucher dodający kredyty na portfel (1 zł = 1 K).
+ *  - SERVICE_PERCENT_OFF — rabat % na zakup usługi (pierwsza opłata, opcjonalnie odnowienia).
+ * (PERCENT_BONUS — bonus przy doładowaniu — zostaje po stronie API.)
  */
 export function CreatePromoForm() {
+  const [kind, setKind] = useState<Kind>("FIXED_CREDIT");
   const [code, setCode] = useState("");
   const [value, setValue] = useState("50");
   const [description, setDescription] = useState("");
   const [maxRedemptions, setMaxRedemptions] = useState("");
   const [validTo, setValidTo] = useState("");
+  const [appliesToRenewals, setAppliesToRenewals] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const isService = kind === "SERVICE_PERCENT_OFF";
+  const presets = isService ? PERCENT_PRESETS : CREDIT_PRESETS;
+
+  const pickKind = (k: Kind) => {
+    setKind(k);
+    setValue(k === "SERVICE_PERCENT_OFF" ? "15" : "50");
+  };
 
   const submit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
     setSuccess(null);
-
     startTransition(async () => {
       const res = await createPromoAction({
         code,
-        kind: "FIXED_CREDIT",
+        kind,
         value,
         description: description || undefined,
         maxRedemptions: maxRedemptions ? Number.parseInt(maxRedemptions, 10) : null,
         validTo: validTo ? new Date(validTo).toISOString() : null,
+        appliesToRenewals: isService ? appliesToRenewals : false,
       });
       if (!res.ok) {
         setError(res.error ?? "Nieznany błąd.");
@@ -46,10 +55,11 @@ export function CreatePromoForm() {
       }
       setSuccess(`Kod "${res.code}" został utworzony.`);
       setCode("");
-      setValue("50");
+      setValue(isService ? "15" : "50");
       setDescription("");
       setMaxRedemptions("");
       setValidTo("");
+      setAppliesToRenewals(false);
     });
   };
 
@@ -63,11 +73,45 @@ export function CreatePromoForm() {
           <Tag className="h-5 w-5" />
         </div>
         <div>
-          <h2 className="text-base font-bold text-white">Utwórz kod zasilający kredyty</h2>
+          <h2 className="text-base font-bold text-white">Utwórz kod promocyjny</h2>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Po wpisaniu w panelu klienta kod doda na portfel ustaloną liczbę kredytów (1 zł = 1 K).
+            Voucher zasilający portfel kredytami albo rabat procentowy na zakup usługi.
           </p>
         </div>
+      </div>
+
+      {/* Wybór typu kodu */}
+      <div className="grid gap-2 sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={() => pickKind("FIXED_CREDIT")}
+          className={`flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-left transition-colors ${
+            !isService
+              ? "border-emerald-400/60 bg-emerald-400/10"
+              : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
+          }`}
+        >
+          <Gift className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+          <span>
+            <span className="block text-sm font-semibold text-white">Voucher — kredyty na portfel</span>
+            <span className="block text-[11px] text-neutral-400">Dodaje stałą kwotę K po wpisaniu kodu.</span>
+          </span>
+        </button>
+        <button
+          type="button"
+          onClick={() => pickKind("SERVICE_PERCENT_OFF")}
+          className={`flex items-start gap-2.5 rounded-xl border px-3.5 py-3 text-left transition-colors ${
+            isService
+              ? "border-emerald-400/60 bg-emerald-400/10"
+              : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
+          }`}
+        >
+          <Percent className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+          <span>
+            <span className="block text-sm font-semibold text-white">Rabat na usługę %</span>
+            <span className="block text-[11px] text-neutral-400">Zniżka na zakup usługi w kreatorze.</span>
+          </span>
+        </button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -79,7 +123,7 @@ export function CreatePromoForm() {
             type="text"
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
-            placeholder="np. WELCOME50"
+            placeholder={isService ? "np. START15" : "np. WELCOME50"}
             required
             maxLength={40}
             className="mt-1.5 w-full rounded-lg bg-black/60 border border-white/10 px-3 py-2.5 text-white text-sm font-mono focus:border-emerald-400 focus:outline-none placeholder:text-neutral-600"
@@ -88,10 +132,10 @@ export function CreatePromoForm() {
 
         <label className="block">
           <span className="text-xs font-bold uppercase tracking-widest text-neutral-500">
-            Wartość kredytów (K)
+            {isService ? "Rabat (%)" : "Wartość kredytów (K)"}
           </span>
           <div className="grid grid-cols-5 gap-1.5 mt-2 mb-2">
-            {VALUE_PRESETS.map((preset) => (
+            {presets.map((preset) => (
               <button
                 key={preset}
                 type="button"
@@ -103,6 +147,7 @@ export function CreatePromoForm() {
                 }`}
               >
                 {preset}
+                {isService ? "%" : ""}
               </button>
             ))}
           </div>
@@ -117,16 +162,33 @@ export function CreatePromoForm() {
         </label>
       </div>
 
+      {isService ? (
+        <label className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <input
+            type="checkbox"
+            checked={appliesToRenewals}
+            onChange={(e) => setAppliesToRenewals(e.target.checked)}
+            className="h-4 w-4 accent-emerald-500"
+          />
+          <span className="text-sm text-white">
+            Rabat dotyczy też kolejnych odnowień
+            <span className="block text-[11px] text-neutral-400">
+              Domyślnie: tylko pierwsza opłata. Zaznacz, by % obowiązywał przy każdym odnowieniu z portfela.
+            </span>
+          </span>
+        </label>
+      ) : null}
+
       <label className="block">
         <span className="text-xs font-bold uppercase tracking-widest text-neutral-500">
-          Opis (klient widzi w historii transakcji)
+          Opis (widoczny w historii / na rachunku)
         </span>
         <input
           type="text"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           maxLength={120}
-          placeholder="np. Bonus powitalny — kampania styczeń"
+          placeholder={isService ? "np. Promocja startowa −15%" : "np. Bonus powitalny — styczeń"}
           className="mt-1.5 w-full rounded-lg bg-black/60 border border-white/10 px-3 py-2 text-white text-sm focus:border-emerald-400 focus:outline-none placeholder:text-neutral-600"
         />
       </label>
@@ -178,11 +240,7 @@ export function CreatePromoForm() {
         disabled={pending}
         className="rounded-lg bg-emerald-400/20 border border-emerald-400/40 px-5 py-2.5 text-sm font-bold text-emerald-100 hover:bg-emerald-400/30 disabled:opacity-50 inline-flex items-center gap-2"
       >
-        {pending ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : (
-          <Plus className="h-4 w-4" />
-        )}
+        {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
         Utwórz kod
       </button>
     </form>
