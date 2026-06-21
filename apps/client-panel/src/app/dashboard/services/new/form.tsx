@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Check, Loader2, Wallet, CreditCard, Cpu, MemoryStick, HardDrive, Tag } from 'lucide-react';
@@ -18,18 +18,33 @@ import { CREDIT_SHORT, formatCredits } from '@/lib/credits';
 
 interface Props {
   plans: PlanDto[];
+  /** UX-3 — wstępnie wybrany interwał (ze ścieżki z kartą: rocznie/miesięcznie). */
+  initialInterval?: BillingInterval;
+  /** UX-3 — kod promo auto-stosowany dla ścieżki z kartą (rabat 1. roku). */
+  initialPromo?: string;
 }
 
-export function NewSubscriptionForm({ plans }: Props) {
+export function NewSubscriptionForm({ plans, initialInterval, initialPromo }: Props) {
   const router = useRouter();
   const hasEmailPlans = useMemo(() => plans.some((p) => p.productKind === 'EMAIL'), [plans]);
-  const [productKind, setProductKind] = useState<'HOSTING' | 'EMAIL'>('HOSTING');
+  const hasHostingPlans = useMemo(
+    () => plans.some((p) => (p.productKind ?? 'HOSTING') === 'HOSTING'),
+    [plans],
+  );
+  // UX-4 — pokaż wewnętrzny przełącznik typu TYLKO gdy w przekazanych planach są
+  // oba rodzaje. Po redesignie wybór typu robi chooser (OrderFlow), więc tu
+  // zwykle dostajemy jeden rodzaj — domyślny `productKind` musi z niego wynikać.
+  const showKindToggle = hasEmailPlans && hasHostingPlans;
+  const initialKind: 'HOSTING' | 'EMAIL' = (plans[0]?.productKind ?? 'HOSTING') as
+    | 'HOSTING'
+    | 'EMAIL';
+  const [productKind, setProductKind] = useState<'HOSTING' | 'EMAIL'>(initialKind);
   const visiblePlans = useMemo(
     () => plans.filter((p) => (p.productKind ?? 'HOSTING') === productKind),
     [plans, productKind],
   );
   const [planId, setPlanId] = useState<string>(
-    plans.find((p) => (p.productKind ?? 'HOSTING') === 'HOSTING')?.id ?? plans[0]?.id ?? '',
+    plans.find((p) => (p.productKind ?? 'HOSTING') === initialKind)?.id ?? plans[0]?.id ?? '',
   );
 
   const switchKind = (kind: 'HOSTING' | 'EMAIL') => {
@@ -37,7 +52,7 @@ export function NewSubscriptionForm({ plans }: Props) {
     const first = plans.find((p) => (p.productKind ?? 'HOSTING') === kind);
     if (first) setPlanId(first.id);
   };
-  const [interval, setInterval] = useState<BillingInterval>('MONTH');
+  const [interval, setInterval] = useState<BillingInterval>(initialInterval ?? 'MONTH');
   const [paymentSource, setPaymentSource] =
     useState<SubscriptionPaymentSource>('WALLET');
   const [domainSel, setDomainSel] = useState<DomainSelection>({
@@ -55,7 +70,7 @@ export function NewSubscriptionForm({ plans }: Props) {
     domain: string;
   } | null>(null);
   const [provisionQueuedSubId, setProvisionQueuedSubId] = useState<string | null>(null);
-  const [promoCode, setPromoCode] = useState('');
+  const [promoCode, setPromoCode] = useState(initialPromo ?? '');
   const [promoPreview, setPromoPreview] = useState<PreviewSubscriptionPromoResult | null>(null);
   const [promoError, setPromoError] = useState<string | null>(null);
   const [promoPending, setPromoPending] = useState(false);
@@ -112,6 +127,18 @@ export function NewSubscriptionForm({ plans }: Props) {
     }
     setPromoPreview(res.data);
   };
+
+  // UX-3 — auto-zastosowanie kodu rabatowego ze ścieżki z kartą (raz, po
+  // załadowaniu planu). Best-effort: gdy kod jest nieprawidłowy, po prostu
+  // pokaże się błąd promo, a klient może go usunąć.
+  const autoPromoTried = useRef(false);
+  useEffect(() => {
+    if (autoPromoTried.current) return;
+    if (!initialPromo || !selectedPlan || paymentSource !== 'WALLET') return;
+    autoPromoTried.current = true;
+    void applyPromo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPromo, selectedPlan, paymentSource]);
 
   const onSubmit = (event: React.FormEvent) => {
     event.preventDefault();
@@ -179,7 +206,7 @@ export function NewSubscriptionForm({ plans }: Props) {
 
   return (
     <form onSubmit={onSubmit} className="space-y-8">
-      {hasEmailPlans ? (
+      {showKindToggle ? (
         <div className="inline-flex rounded-2xl border border-white/10 bg-white/[0.03] p-1">
           <button
             type="button"

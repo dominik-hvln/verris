@@ -7,6 +7,7 @@ import {
   PLATFORM_SETTING_KEYS,
   type PlatformSettingKey,
 } from './platform-settings.keys';
+import type { TrialOfferConfig } from './dto/trial-offer.dto';
 
 export interface SellerCompanyDto {
   name: string;
@@ -215,6 +216,49 @@ export class PlatformSettingsService {
     });
 
     return this.getAdminSettings();
+  }
+
+  // UX-3 — oferta okresu próbnego (czytana publicznie + edytowalna przez admina).
+  async getTrialOffer(): Promise<TrialOfferConfig> {
+    const map = await this.loadMap();
+    return {
+      freeEnabled: this.readStr(map, PLATFORM_SETTING_KEYS.TRIAL_FREE_ENABLED, '1') === '1',
+      cardEnabled: this.readStr(map, PLATFORM_SETTING_KEYS.TRIAL_CARD_ENABLED, '1') === '1',
+      annualDiscountPct: this.readInt(map, PLATFORM_SETTING_KEYS.TRIAL_ANNUAL_DISCOUNT_PCT, 15, 0, 90),
+      monthlyDiscountPct: this.readInt(map, PLATFORM_SETTING_KEYS.TRIAL_MONTHLY_DISCOUNT_PCT, 10, 0, 90),
+      annualPromoCode: this.readStr(map, PLATFORM_SETTING_KEYS.TRIAL_ANNUAL_PROMO_CODE, '').trim(),
+      monthlyPromoCode: this.readStr(map, PLATFORM_SETTING_KEYS.TRIAL_MONTHLY_PROMO_CODE, '').trim(),
+    };
+  }
+
+  async updateTrialOffer(
+    input: {
+      freeEnabled: boolean;
+      cardEnabled: boolean;
+      annualDiscountPct: number;
+      monthlyDiscountPct: number;
+      annualPromoCode?: string;
+      monthlyPromoCode?: string;
+    },
+    actorUserId: string,
+  ): Promise<TrialOfferConfig> {
+    await this.upsertMany(
+      [
+        [PLATFORM_SETTING_KEYS.TRIAL_FREE_ENABLED, input.freeEnabled ? '1' : '0'],
+        [PLATFORM_SETTING_KEYS.TRIAL_CARD_ENABLED, input.cardEnabled ? '1' : '0'],
+        [PLATFORM_SETTING_KEYS.TRIAL_ANNUAL_DISCOUNT_PCT, String(input.annualDiscountPct)],
+        [PLATFORM_SETTING_KEYS.TRIAL_MONTHLY_DISCOUNT_PCT, String(input.monthlyDiscountPct)],
+        [PLATFORM_SETTING_KEYS.TRIAL_ANNUAL_PROMO_CODE, (input.annualPromoCode ?? '').trim()],
+        [PLATFORM_SETTING_KEYS.TRIAL_MONTHLY_PROMO_CODE, (input.monthlyPromoCode ?? '').trim()],
+      ],
+      actorUserId,
+    );
+    await this.audit.record({
+      action: 'PLATFORM_TRIAL_OFFER_UPDATED',
+      userId: actorUserId,
+      details: { ...input },
+    });
+    return this.getTrialOffer();
   }
 
   /**

@@ -7,11 +7,16 @@ import {
   Building2,
   Save,
   Check,
+  X,
   AlertCircle,
   Loader2,
   Lock,
   LayoutGrid,
+  Wand2,
+  Eye,
+  EyeOff,
 } from "lucide-react";
+import { checkPassword, generatePassword, PASSWORD_MIN_LENGTH } from "@/lib/password-policy";
 import { SpinBorder } from "@/components/spin-border";
 import {
   fetchUserProfile,
@@ -69,6 +74,15 @@ function FormField({
         <p className="text-xs text-neutral-500">{description}</p>
       )}
     </div>
+  );
+}
+
+function PwReq({ ok, children }: { ok: boolean; children: React.ReactNode }) {
+  return (
+    <li className={`flex items-center gap-1.5 ${ok ? "text-emerald-400" : "text-neutral-500"}`}>
+      {ok ? <Check className="h-3 w-3 shrink-0" /> : <X className="h-3 w-3 shrink-0" />}
+      {children}
+    </li>
   );
 }
 
@@ -401,19 +415,29 @@ function SecurityTab({
   showToast: (msg: string, type: "success" | "error") => void;
 }) {
   const [isPending, startTransition] = useTransition();
+  const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
 
+  const pw = checkPassword(form.newPassword);
+  const pwBars = ["bg-rose-500", "bg-rose-500", "bg-amber-500", "bg-emerald-500", "bg-emerald-400"];
+
+  const fillGenerated = () => {
+    const g = generatePassword();
+    setForm((f) => ({ ...f, newPassword: g, confirmPassword: g }));
+    setShowNew(true);
+  };
+
   const handleChangePassword = () => {
     if (form.newPassword !== form.confirmPassword) {
       showToast("Hasła nie są identyczne", "error");
       return;
     }
-    if (form.newPassword.length < 8) {
-      showToast("Nowe hasło musi mieć minimum 8 znaków", "error");
+    if (!pw.valid) {
+      showToast(`Hasło nie spełnia wymagań (min. ${PASSWORD_MIN_LENGTH} znaków, 3 klasy, nie popularne).`, "error");
       return;
     }
 
@@ -455,14 +479,54 @@ function SecurityTab({
           />
         </FormField>
         <FormField label="Nowe hasło">
-          <Input
-            type="password"
-            value={form.newPassword}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, newPassword: e.target.value }))
-            }
-            placeholder="Min. 8 znaków"
-          />
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Input
+                type={showNew ? "text" : "password"}
+                value={form.newPassword}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, newPassword: e.target.value }))
+                }
+                placeholder={`Min. ${PASSWORD_MIN_LENGTH} znaków`}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowNew((s) => !s)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white"
+                title={showNew ? "Ukryj" : "Pokaż"}
+              >
+                {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={fillGenerated}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-white/10 bg-[#0a0a0a]/50 px-3 text-sm text-neutral-200 hover:bg-white/5"
+              title="Wygeneruj mocne hasło"
+            >
+              <Wand2 className="h-4 w-4" /> Generuj
+            </button>
+          </div>
+          {form.newPassword.length > 0 ? (
+            <div className="space-y-1.5 pt-2">
+              <div className="flex gap-1">
+                {[0, 1, 2, 3].map((i) => (
+                  <span
+                    key={i}
+                    className={`h-1 flex-1 rounded-full transition-colors ${
+                      i < pw.score ? pwBars[pw.score] : "bg-white/10"
+                    }`}
+                  />
+                ))}
+              </div>
+              <ul className="space-y-0.5 text-[11px]">
+                <PwReq ok={pw.lengthOk}>Co najmniej {PASSWORD_MIN_LENGTH} znaków</PwReq>
+                <PwReq ok={pw.classesOk}>3 z 4: mała i wielka litera, cyfra, symbol</PwReq>
+                <PwReq ok={pw.notCommon}>Nie jest popularnym hasłem</PwReq>
+              </ul>
+            </div>
+          ) : null}
         </FormField>
         <FormField label="Powtórz nowe hasło">
           <Input

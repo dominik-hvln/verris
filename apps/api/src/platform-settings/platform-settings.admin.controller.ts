@@ -7,6 +7,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { PlatformSettingsService } from './platform-settings.service';
 import { UpdatePlatformSettingsDto } from './dto/platform-settings.dto';
 import { UpdateSellerCompanyDto, UpdateKsefSettingsDto } from './dto/company-settings.dto';
+import { UpdateTrialOfferDto } from './dto/trial-offer.dto';
 
 @Controller('admin/platform-settings')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -54,6 +55,32 @@ export class PlatformSettingsAdminController {
         country: dto.country ?? 'PL',
         email: dto.email ?? '',
         bankAccount: dto.bankAccount ?? '',
+      },
+      actor.userId,
+    );
+  }
+
+  // UX-3 — oferta okresu próbnego
+  @Get('trial-offer')
+  @HttpCode(200)
+  getTrialOffer() {
+    return this.settings.getTrialOffer();
+  }
+
+  @Patch('trial-offer')
+  @HttpCode(200)
+  updateTrialOffer(
+    @Body() dto: UpdateTrialOfferDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.settings.updateTrialOffer(
+      {
+        freeEnabled: dto.freeEnabled,
+        cardEnabled: dto.cardEnabled,
+        annualDiscountPct: dto.annualDiscountPct,
+        monthlyDiscountPct: dto.monthlyDiscountPct,
+        annualPromoCode: dto.annualPromoCode,
+        monthlyPromoCode: dto.monthlyPromoCode,
       },
       actor.userId,
     );

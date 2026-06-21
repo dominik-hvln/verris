@@ -13,6 +13,14 @@ export const PLATFORM_SETTING_KEYS = {
   /** P-6 — comma-separated PHP versions selectable by clients (e.g. "8.3,8.2,8.1,8.0,7.4"). */
   PHP_AVAILABLE_VERSIONS: 'php.availableVersions',
 
+  // UX-3 — oferta okresu próbnego (zarządzalna z panelu admina).
+  TRIAL_FREE_ENABLED: 'trial.freeEnabled',
+  TRIAL_CARD_ENABLED: 'trial.cardEnabled',
+  TRIAL_ANNUAL_DISCOUNT_PCT: 'trial.annualDiscountPct',
+  TRIAL_MONTHLY_DISCOUNT_PCT: 'trial.monthlyDiscountPct',
+  TRIAL_ANNUAL_PROMO_CODE: 'trial.annualPromoCode',
+  TRIAL_MONTHLY_PROMO_CODE: 'trial.monthlyPromoCode',
+
   /** Platform-default authoritative nameservers for provisioned hosting accounts. */
   HOSTING_NS1: 'hosting.ns1',
   HOSTING_NS2: 'hosting.ns2',
@@ -48,6 +56,12 @@ export const PLATFORM_SETTING_DEFAULTS: Record<PlatformSettingKey, string> = {
   [PLATFORM_SETTING_KEYS.CLIENT_IDLE_MINUTES]: '60',
   [PLATFORM_SETTING_KEYS.WEBMAIL_URL]: '',
   [PLATFORM_SETTING_KEYS.PHP_AVAILABLE_VERSIONS]: '8.3,8.2,8.1,8.0,7.4',
+  [PLATFORM_SETTING_KEYS.TRIAL_FREE_ENABLED]: '1',
+  [PLATFORM_SETTING_KEYS.TRIAL_CARD_ENABLED]: '1',
+  [PLATFORM_SETTING_KEYS.TRIAL_ANNUAL_DISCOUNT_PCT]: '15',
+  [PLATFORM_SETTING_KEYS.TRIAL_MONTHLY_DISCOUNT_PCT]: '10',
+  [PLATFORM_SETTING_KEYS.TRIAL_ANNUAL_PROMO_CODE]: '',
+  [PLATFORM_SETTING_KEYS.TRIAL_MONTHLY_PROMO_CODE]: '',
   [PLATFORM_SETTING_KEYS.STAFF_IDLE_MINUTES]: '30',
   [PLATFORM_SETTING_KEYS.ADMIN_IDLE_MINUTES]: '15',
   [PLATFORM_SETTING_KEYS.HOSTING_NS1]: '',

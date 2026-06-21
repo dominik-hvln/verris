@@ -17,6 +17,13 @@ export class PlatformSettingsController {
     return this.settings.getClientConfig();
   }
 
+  /** UX-3 — oferta okresu próbnego (chooser zamawiania). */
+  @Get('trial-offer')
+  @HttpCode(200)
+  getTrialOffer() {
+    return this.settings.getTrialOffer();
+  }
+
   /** Staff panel — idle session timeout (minutes). */
   @Get('staff')
   @UseGuards(RolesGuard)

@@ -31,6 +31,35 @@ function classes(pw: string): number {
   return c;
 }
 
+/**
+ * Generuje losowe, mocne hasło spełniające politykę (≥ długość, 4 klasy znaków,
+ * nie-popularne). Używa crypto.getRandomValues. Domyślnie 16 znaków.
+ */
+export function generatePassword(len = 16): string {
+  const lower = 'abcdefghijkmnpqrstuvwxyz';
+  const upper = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
+  const digits = '23456789';
+  const symbols = '!@#$%^&*?-_=+';
+  const all = lower + upper + digits + symbols;
+  const length = Math.max(len, PASSWORD_MIN_LENGTH + 2);
+  const pick = (set: string, n: number) => {
+    const arr = new Uint32Array(n);
+    crypto.getRandomValues(arr);
+    return Array.from(arr, (x) => set[x % set.length]).join('');
+  };
+  // Gwarantuj po jednym znaku z każdej klasy, resztę losowo.
+  let chars = pick(lower, 1) + pick(upper, 1) + pick(digits, 1) + pick(symbols, 1) + pick(all, length - 4);
+  // Przetasuj (Fisher–Yates na bazie crypto).
+  const arr = chars.split('');
+  const rnd = new Uint32Array(arr.length);
+  crypto.getRandomValues(rnd);
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = rnd[i] % (i + 1);
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr.join('');
+}
+
 export function checkPassword(pw: string): PasswordCheck {
   const lengthOk = pw.length >= PASSWORD_MIN_LENGTH;
   const cls = classes(pw);

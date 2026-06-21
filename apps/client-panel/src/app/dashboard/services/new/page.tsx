@@ -2,13 +2,14 @@ import Link from 'next/link';
 import { ArrowLeft, ShieldAlert } from 'lucide-react';
 import type { PlanDto } from '@verris/contracts';
 import { ApiError } from '@/lib/api';
-import { listPublicPlans } from '../data';
-import { NewSubscriptionForm } from './form';
-import { TrialCallout } from './trial-callout';
+import { listPublicPlans, getTrialOffer, type TrialOffer } from '../data';
+import { Suspense } from 'react';
+import { OrderFlow } from './order-flow';
 
 export default async function NewServicePage() {
   let plans: PlanDto[] = [];
   let loadError: string | null = null;
+  const offer: TrialOffer = await getTrialOffer();
   try {
     plans = await listPublicPlans();
   } catch (err) {
@@ -49,10 +50,9 @@ export default async function NewServicePage() {
       ) : plans.length === 0 ? (
         <EmptyPlans />
       ) : (
-        <>
-          <TrialCallout plans={plans} />
-          <NewSubscriptionForm plans={plans} />
-        </>
+        <Suspense fallback={null}>
+          <OrderFlow plans={plans} offer={offer} />
+        </Suspense>
       )}
     </div>
   );

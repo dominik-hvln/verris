@@ -16,6 +16,49 @@ export async function fetchPlatformSettings(): Promise<PlatformSettingsForm> {
   return adminApi<PlatformSettingsForm>('/admin/platform-settings');
 }
 
+// UX-3 — oferta okresu próbnego
+export type TrialOfferForm = {
+  freeEnabled: boolean;
+  cardEnabled: boolean;
+  annualDiscountPct: number;
+  monthlyDiscountPct: number;
+  annualPromoCode: string;
+  monthlyPromoCode: string;
+};
+
+export async function fetchTrialOffer(): Promise<TrialOfferForm> {
+  return adminApi<TrialOfferForm>('/admin/platform-settings/trial-offer');
+}
+
+export async function updateTrialOfferAction(
+  _prev: { ok?: boolean; error?: string },
+  formData: FormData,
+): Promise<{ ok?: boolean; error?: string }> {
+  const payload: TrialOfferForm = {
+    freeEnabled: formData.get('freeEnabled') === 'on',
+    cardEnabled: formData.get('cardEnabled') === 'on',
+    annualDiscountPct: Number(formData.get('annualDiscountPct')),
+    monthlyDiscountPct: Number(formData.get('monthlyDiscountPct')),
+    annualPromoCode: String(formData.get('annualPromoCode') ?? '').trim(),
+    monthlyPromoCode: String(formData.get('monthlyPromoCode') ?? '').trim(),
+  };
+  try {
+    await adminApi('/admin/platform-settings/trial-offer', { method: 'PATCH', body: payload });
+    revalidatePath('/settings/platform');
+    return { ok: true };
+  } catch (e) {
+    return {
+      ok: false,
+      error:
+        e instanceof AdminApiError
+          ? e.message
+          : e instanceof Error
+            ? e.message
+            : 'Nie udało się zapisać oferty trialu.',
+    };
+  }
+}
+
 export async function updatePlatformSettingsAction(
   _prev: { ok?: boolean; error?: string },
   formData: FormData,

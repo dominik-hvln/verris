@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Gift, Loader2 } from 'lucide-react';
+import { Gift, Loader2, Check } from 'lucide-react';
 import type { PlanDto } from '@verris/contracts';
 import { getTrialEligibilityAction, startTrialAction } from './actions';
 
@@ -65,31 +65,50 @@ export function TrialCallout({ plans }: { plans: PlanDto[] }) {
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <label className="space-y-1">
-          <span className="text-xs font-medium text-neutral-300">Plan próbny</span>
-          <select
-            value={planId}
-            onChange={(e) => setPlanId(e.target.value)}
-            className="w-full rounded-lg bg-black/30 border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-emerald-400/60"
-          >
-            {trialPlans.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} — {p.trialDays} dni
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="space-y-1">
-          <span className="text-xs font-medium text-neutral-300">Domena</span>
-          <input
-            value={domain}
-            onChange={(e) => setDomain(e.target.value)}
-            placeholder="mojafirma.pl"
-            className="w-full rounded-lg bg-black/30 border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-emerald-400/60"
-          />
-        </label>
+      {/* Wybór planu — klikalne kafle zamiast brzydkiego selecta */}
+      <div className="mt-4 space-y-2">
+        <span className="text-xs font-medium text-neutral-300">Wybierz plan próbny</span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+          {trialPlans.map((p) => {
+            const active = p.id === planId;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => setPlanId(p.id)}
+                aria-pressed={active}
+                className={`flex flex-col items-start rounded-xl border px-3.5 py-3 text-left transition-colors ${
+                  active
+                    ? 'border-emerald-400/60 bg-emerald-400/10'
+                    : 'border-white/10 bg-black/20 hover:bg-white/[0.04]'
+                }`}
+              >
+                <span className="flex w-full items-center justify-between gap-2">
+                  <span className="text-sm font-semibold text-white">{p.name}</span>
+                  <span
+                    className={`flex h-4 w-4 items-center justify-center rounded-full border ${
+                      active ? 'border-emerald-400 bg-emerald-400' : 'border-white/30'
+                    }`}
+                  >
+                    {active ? <Check className="h-3 w-3 text-black" /> : null}
+                  </span>
+                </span>
+                <span className="mt-1 text-[11px] text-emerald-200/90">{p.trialDays} dni za darmo</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
+
+      <label className="mt-3 block space-y-1">
+        <span className="text-xs font-medium text-neutral-300">Domena</span>
+        <input
+          value={domain}
+          onChange={(e) => setDomain(e.target.value)}
+          placeholder="mojafirma.pl"
+          className="w-full rounded-lg bg-black/30 border border-white/10 px-3 py-2 text-sm text-white outline-none focus:border-emerald-400/60"
+        />
+      </label>
 
       {error && <p className="mt-3 text-sm text-rose-300">{error}</p>}
 
