@@ -728,6 +728,177 @@ export class ServersService {
     return this.toPublicServer(updated);
   }
 
+  /**
+   * OPS-1 — polityka pojemności węzła. Niezależna od MAINTENANCE:
+   *  - acceptsNewAccounts=false „cordonuje" węzeł (istniejące konta działają,
+   *    scheduler nie kładzie nowych) — bez wstrzymywania sprzedaży globalnie.
+   *  - maxAccounts: twardy limit liczby kont (null = bez limitu).
+   *  - reservedHeadroomPercent: 0–90, rezerwa pojemności pod burst autoskalowania.
+   */
+  async setCapacityPolicy(
+    id: string,
+    actorUserId: string,
+    input: {
+      acceptsNewAccounts?: boolean;
+      maxAccounts?: number | null;
+      reservedHeadroomPercent?: number;
+    },
+  ) {
+    const server = await this.prisma.server.findUnique({ where: { id } });
+    if (!server) throw new NotFoundException('Server not found');
+
+    const data: Record<string, unknown> = {};
+    if (typeof input.acceptsNewAccounts === 'boolean') {
+      data.acceptsNewAccounts = input.acceptsNewAccounts;
+    }
+    if (input.maxAccounts !== undefined) {
+      if (input.maxAccounts === null) {
+        data.maxAccounts = null;
+      } else {
+        if (!Number.isInteger(input.maxAccounts) || input.maxAccounts < 0) {
+          throw new BadRequestException('maxAccounts musi być nieujemną liczbą całkowitą lub pusty.');
+        }
+        data.maxAccounts = input.maxAccounts;
+      }
+    }
+    if (input.reservedHeadroomPercent !== undefined) {
+      const v = input.reservedHeadroomPercent;
+      if (!Number.isInteger(v) || v < 0 || v > 90) {
+        throw new BadRequestException('reservedHeadroomPercent musi być z zakresu 0–90.');
+      }
+      data.reservedHeadroomPercent = v;
+    }
+
+    const updated = await this.prisma.server.update({ where: { id }, data });
+
+    await this.audit.record({
+      action: 'ADMIN_NODE_CAPACITY_POLICY_UPDATED',
+      actorUserId,
+      details: { serverId: id, changes: data } as Prisma.InputJsonValue,
+    });
+
+    return this.toPublicServer(updated);
+  }
+
+  /**
+   * OPS-4 (drain, część 1) — „wyłącz węzeł z rotacji". BEZPIECZNE: ustawia
+   * cordon (acceptsNewAccounts=false), NIE rusza danych klientów. Faktyczne
+   * przeniesienie kont to osobny, ręcznie potwierdzany krok (patrz plan migracji).
+   */
+  async drainNode(serverId: string, actorUserId: string, reason?: string | null) {
+    const server = await this.prisma.server.findUnique({ where: { id: serverId } });
+    if (!server) throw new NotFoundException('Server not found');
+    const updated = await this.prisma.server.update({
+      where: { id: serverId },
+      data: { acceptsNewAccounts: false },
+    });
+    await this.audit.record({
+      action: 'ADMIN_NODE_DRAIN_STARTED',
+      actorUserId,
+      details: { serverId, reason: reason?.trim() || null } as Prisma.InputJsonValue,
+    });
+    return this.toPublicServer(updated);
+  }
+
+  /**
+   * OPS-4 (drain, część 2) — READ-ONLY plan migracji kont z węzła. Dla każdego
+   * konta sugeruje najmniej obciążony węzeł docelowy, który zmieści jego plan
+   * (limity bazowe), uwzględniając tymczasowe alokacje w trakcie planowania.
+   * Nic nie przenosi — to materiał decyzyjny dla operatora.
+   */
+  async getNodeMigrationPlan(serverId: string) {
+    const source = await this.prisma.server.findUnique({ where: { id: serverId } });
+    if (!source) throw new NotFoundException('Server not found');
+
+    const accounts = await this.prisma.account.findMany({
+      where: { serverId },
+      select: {
+        id: true,
+        daUsername: true,
+        domain: true,
+        status: true,
+        subscription: {
+          select: {
+            plan: { select: { name: true, cpuLimit: true, ramLimitMb: true, diskLimitMb: true } },
+          },
+        },
+      },
+      orderBy: { domain: 'asc' },
+    });
+
+    // Kandydaci docelowi: ACTIVE, przyjmujący konta, z pojemnością, ≠ źródło.
+    const candidates = await this.prisma.server.findMany({
+      where: {
+        status: ServerStatus.ACTIVE,
+        acceptsNewAccounts: true,
+        id: { not: serverId },
+      },
+    });
+    const targets = candidates
+      .filter((c) => (c.totalCpuCores ?? 0) > 0 && (c.totalMemoryMb ?? 0) > 0 && (c.totalDiskMb ?? 0) > 0)
+      .map((c) => ({
+        id: c.id,
+        name: c.name ?? c.hostname ?? c.id,
+        totalCpu: (c.totalCpuCores ?? 0) * 100,
+        totalRam: c.totalMemoryMb ?? 0,
+        totalDisk: c.totalDiskMb ?? 0,
+        // alokacje narastające w trakcie planowania (start = bieżące)
+        usedCpu: c.allocatedCpu,
+        usedRam: c.allocatedMemory,
+        usedDisk: c.allocatedDisk,
+        headroom: Math.min(Math.max(c.reservedHeadroomPercent ?? 0, 0), 90) / 100,
+      }));
+
+    const plan = accounts.map((acc) => {
+      const p = acc.subscription?.plan;
+      const need = {
+        cpu: p?.cpuLimit ?? 0,
+        ram: p?.ramLimitMb ?? 0,
+        disk: p?.diskLimitMb ?? 0,
+      };
+      // wybierz najmniej obciążony target, który zmieści (z rezerwą)
+      let best: (typeof targets)[number] | null = null;
+      let bestLoad = Number.POSITIVE_INFINITY;
+      for (const t of targets) {
+        const freeCpu = t.totalCpu - t.usedCpu - t.totalCpu * t.headroom;
+        const freeRam = t.totalRam - t.usedRam - t.totalRam * t.headroom;
+        const freeDisk = t.totalDisk - t.usedDisk - t.totalDisk * t.headroom;
+        if (freeCpu < need.cpu || freeRam < need.ram || freeDisk < need.disk) continue;
+        const load =
+          (t.usedCpu / t.totalCpu + t.usedRam / t.totalRam + t.usedDisk / t.totalDisk) / 3;
+        if (load < bestLoad) {
+          bestLoad = load;
+          best = t;
+        }
+      }
+      if (best) {
+        best.usedCpu += need.cpu;
+        best.usedRam += need.ram;
+        best.usedDisk += need.disk;
+      }
+      return {
+        accountId: acc.id,
+        daUsername: acc.daUsername,
+        domain: acc.domain,
+        status: acc.status,
+        planName: p?.name ?? '—',
+        footprint: need,
+        suggestedTarget: best ? { id: best.id, name: best.name } : null,
+      };
+    });
+
+    const unplaceable = plan.filter((r) => r.suggestedTarget === null).length;
+    return {
+      sourceId: source.id,
+      sourceName: source.name ?? source.hostname ?? source.id,
+      acceptsNewAccounts: source.acceptsNewAccounts,
+      accounts: plan,
+      totalAccounts: plan.length,
+      unplaceable,
+      targetNodeCount: targets.length,
+    };
+  }
+
   async setDirectAdminConfig(id: string, dto: UpdateDirectAdminConfigDto, actorUserId: string) {
     const server = await this.prisma.server.findUnique({ where: { id } });
     if (!server) throw new NotFoundException('Server not found');

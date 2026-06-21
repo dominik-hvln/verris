@@ -107,6 +107,11 @@ export default function DatabasesTab({ serviceId }: Props) {
       title="Bazy MySQL"
       description="Twórz, przeglądaj i usuwaj bazy danych — bez wychodzenia z panelu."
       icon={<Database className="h-4 w-4" />}
+      help={{
+        blurb:
+          'Nie musisz znać się na bazach. Wpisz nazwę, a my utworzymy bazę i użytkownika z prefiksem konta. Dane do podłączenia aplikacji pokażemy od razu.',
+        kbQuery: 'baza danych MySQL',
+      }}
       actions={
         <>
           {databasesUrl ? (

@@ -192,6 +192,40 @@ export class ServersAdminController {
     });
   }
 
+  /**
+   * OPS-1 — polityka pojemności węzła (cordon / max kont / rezerwa headroom).
+   * Niezależna od MAINTENANCE — nie wstrzymuje sprzedaży globalnie.
+   */
+  @Post(':id/capacity-policy')
+  setCapacityPolicy(
+    @Param('id') id: string,
+    @Body()
+    dto: {
+      acceptsNewAccounts?: boolean;
+      maxAccounts?: number | null;
+      reservedHeadroomPercent?: number;
+    },
+    @CurrentUser() user: { userId: string },
+  ) {
+    return this.servers.setCapacityPolicy(id, user.userId, dto);
+  }
+
+  /** OPS-4 — drain węzła (cordon, bez ruszania danych). */
+  @Post(':id/drain')
+  drainNode(
+    @Param('id') id: string,
+    @Body() dto: { reason?: string },
+    @CurrentUser() user: { userId: string },
+  ) {
+    return this.servers.drainNode(id, user.userId, dto?.reason);
+  }
+
+  /** OPS-4 — read-only plan migracji kont z węzła (sugerowane cele). */
+  @Get(':id/migration-plan')
+  migrationPlan(@Param('id') id: string) {
+    return this.servers.getNodeMigrationPlan(id);
+  }
+
   @Post(':id/hosting-profile/run')
   queueHostingProfile(
     @Param('id') id: string,

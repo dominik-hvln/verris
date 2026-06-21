@@ -7,11 +7,13 @@ import { fetchKbArticle, type KbArticle, type KbListItem } from './knowledge-act
 export function KnowledgeClient({
   articles,
   initialArticleId,
+  initialQuery = '',
 }: {
   articles: KbListItem[];
   initialArticleId: string | null;
+  initialQuery?: string;
 }) {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery);
   const [openId, setOpenId] = useState<string | null>(initialArticleId);
   const [article, setArticle] = useState<KbArticle | null>(null);
   const [loading, setLoading] = useState(false);

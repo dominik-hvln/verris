@@ -119,6 +119,7 @@ export class UsersService {
         walletBalance: true,
         ecoPoints: true,
         isTwoFactorEnabled: true,
+        requireStrongAuth: true,
         createdAt: true,
         referredByUserId: true,
         customerOwnerId: true,
@@ -162,6 +163,9 @@ export class UsersService {
           this.ensureReferralAndBadgeTokens(accountUserId),
         ]);
 
+    const passkeyCount = await this.prisma.webAuthnCredential.count({
+      where: { userId: profileId },
+    });
     const referralApproved = enrollment?.status === 'APPROVED';
     const isEcoProgramParticipant = isSubaccount
       ? false
@@ -180,7 +184,36 @@ export class UsersService {
       ecoBadgeToken: isSubaccount ? null : tokens.ecoBadgeToken,
       isSubaccount,
       customerPermissions: isSubaccount ? [...perms] : null,
+      hasPasskey: passkeyCount > 0,
     };
+  }
+
+  /**
+   * SEC-6 — włącz/wyłącz wymóg silnego logowania (passkey/2FA) dla konta.
+   * Włączyć można TYLKO gdy konto ma już czynnik (2FA lub passkey) — inaczej
+   * groziłoby to zablokowaniem dostępu.
+   */
+  async setStrongAuthRequirement(userId: string, enabled: boolean) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, isTwoFactorEnabled: true },
+    });
+    if (!user) throw new NotFoundException('User not found');
+
+    if (enabled) {
+      const passkeys = await this.prisma.webAuthnCredential.count({ where: { userId } });
+      if (!user.isTwoFactorEnabled && passkeys === 0) {
+        throw new BadRequestException(
+          'Najpierw włącz 2FA lub dodaj passkey — bez drugiego składnika nie można wymusić silnego logowania.',
+        );
+      }
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { requireStrongAuth: enabled },
+    });
+    return { ok: true as const, requireStrongAuth: enabled };
   }
 
   /** Uzupełnia brakujące kody (użytkownicy sprzed migracji G). */
@@ -586,6 +619,92 @@ export class UsersService {
     });
 
     return { message: 'Hasło zostało zmienione pomyślnie' };
+  }
+
+  /**
+   * SEC-7 — historia logowań dla zalogowanego użytkownika (self-service).
+   * Zwraca ostatnie pomyślne logowania (LoginEvent) z bezpiecznymi polami —
+   * BEZ deviceFingerprint (wewnętrzny hash). Pozwala klientowi zauważyć obce
+   * logowanie i zareagować (zmiana hasła / passkey).
+   */
+  async listMyLoginHistory(userId: string, limit = 20) {
+    const take = Math.min(Math.max(limit, 1), 50);
+    const events = await this.prisma.loginEvent.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take,
+      select: {
+        id: true,
+        createdAt: true,
+        ipAddress: true,
+        userAgent: true,
+        countryCode: true,
+        isNewDevice: true,
+        loginMethod: true,
+      },
+    });
+    return {
+      events: events.map((e) => ({
+        id: e.id,
+        at: e.createdAt.toISOString(),
+        ipAddress: e.ipAddress,
+        device: this.parseDeviceLabel(e.userAgent),
+        countryCode: e.countryCode,
+        isNewDevice: e.isNewDevice,
+        loginMethod: e.loginMethod,
+      })),
+    };
+  }
+
+  /**
+   * SEC-8 — dziennik aktywności konta widoczny dla klienta (transparentność +
+   * RODO). Zwraca ostatnie, ISTOTNE DLA KLIENTA wpisy audytu dotyczące jego
+   * konta (jako cel lub wykonawca), z bezpiecznym, krótkim kontekstem.
+   */
+  async listMyActivity(userId: string, limit = 30) {
+    const VISIBLE = new Set<string>([
+      'HOSTING_DB_CREATED',
+      'HOSTING_DB_DELETED',
+      'HOSTING_FTP_CREATED',
+      'HOSTING_FTP_DELETED',
+      'HOSTING_EMAIL_CREATED',
+      'HOSTING_EMAIL_DELETED',
+      'HOSTING_EMAIL_PASSWORD_CHANGED',
+      'HOSTING_CRON_CREATED',
+      'HOSTING_CRON_DELETED',
+      'HOSTING_FILE_DELETED',
+      'HOSTING_FILE_RENAMED',
+      'HOSTING_FILE_UPLOADED',
+      'HOSTING_SUBDOMAIN_CREATED',
+      'HOSTING_SUBDOMAIN_DELETED',
+    ]);
+    const take = Math.min(Math.max(limit, 1), 100);
+    const rows = await this.prisma.auditLog.findMany({
+      where: {
+        action: { in: [...VISIBLE] },
+        OR: [{ userId }, { actorUserId: userId }],
+      },
+      orderBy: { createdAt: 'desc' },
+      take,
+      select: { id: true, action: true, details: true, createdAt: true },
+    });
+    const ctxOf = (d: unknown): string | null => {
+      if (!d || typeof d !== 'object') return null;
+      const o = d as Record<string, unknown>;
+      for (const k of ['email', 'domain', 'name', 'path', 'command', 'database', 'user']) {
+        const v = o[k];
+        if (typeof v === 'string' && v.trim()) return v.length > 80 ? `${v.slice(0, 80)}…` : v;
+      }
+      return null;
+    };
+    return {
+      events: rows.map((r) => ({
+        id: r.id,
+        action: r.action,
+        at: r.createdAt.toISOString(),
+        context: ctxOf(r.details),
+      })),
+    };
   }
 
   private async notifyPasswordChanged(opts: {

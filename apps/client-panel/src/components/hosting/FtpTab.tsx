@@ -11,6 +11,7 @@ import {
   fetchHostingFtpAction,
 } from '@/app/dashboard/services/[id]/hosting-extra-actions';
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
+import { HostingHelpHint } from '@/components/hosting/HostingTabShell';
 
 function genPassword(len = 18): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*';
@@ -75,6 +76,13 @@ export default function FtpTab({ serviceId }: { serviceId: string }) {
 
   return (
     <div className="space-y-5">
+      <HostingHelpHint
+        help={{
+          blurb:
+            'Konto FTP to dostęp do plików strony z programu typu FileZilla. Tworzysz login i hasło — to bezpieczne i w każdej chwili możesz je usunąć.',
+          kbQuery: 'konto FTP',
+        }}
+      />
       <form onSubmit={onCreate} className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
         <p className="mb-3 text-sm font-semibold text-white">Nowe konto FTP</p>
         <div className="grid gap-3 sm:grid-cols-3">

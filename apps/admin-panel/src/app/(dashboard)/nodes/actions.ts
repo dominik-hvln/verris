@@ -120,6 +120,69 @@ export async function setNodeMaintenance(
   }
 }
 
+export async function setNodeCapacityPolicy(
+  id: string,
+  input: {
+    acceptsNewAccounts?: boolean;
+    maxAccounts?: number | null;
+    reservedHeadroomPercent?: number;
+  },
+) {
+  try {
+    const data = await adminApi<ServerSummaryDto>(
+      `/admin/servers/${id}/capacity-policy`,
+      { method: "POST", body: input },
+    );
+    revalidatePath("/nodes");
+    revalidatePath(`/nodes/${id}`);
+    return { data };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
+}
+
+export interface MigrationPlanRow {
+  accountId: string;
+  daUsername: string;
+  domain: string;
+  status: string;
+  planName: string;
+  footprint: { cpu: number; ram: number; disk: number };
+  suggestedTarget: { id: string; name: string } | null;
+}
+
+export interface MigrationPlan {
+  sourceId: string;
+  sourceName: string;
+  acceptsNewAccounts: boolean;
+  accounts: MigrationPlanRow[];
+  totalAccounts: number;
+  unplaceable: number;
+  targetNodeCount: number;
+}
+
+export async function drainNode(id: string, reason?: string) {
+  try {
+    const data = await adminApi<ServerSummaryDto>(`/admin/servers/${id}/drain`, {
+      method: "POST",
+      body: { reason },
+    });
+    revalidatePath("/nodes");
+    revalidatePath(`/nodes/${id}`);
+    return { data };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
+}
+
+export async function fetchMigrationPlan(id: string) {
+  try {
+    return { data: await adminApi<MigrationPlan>(`/admin/servers/${id}/migration-plan`) };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
+}
+
 export async function queueHostingProfile(
   id: string,
   input: QueueHostingProfileTaskInput = {},

@@ -9,6 +9,8 @@ import { HostingProfilePanel } from "./hosting-profile-panel";
 import { NodeStackReadinessPanel } from "./node-stack-readiness-panel";
 import { WafPanel } from "./waf-panel";
 import { MaintenanceToggle } from "./maintenance-toggle";
+import { CapacityPolicyPanel } from "./capacity-policy-panel";
+import { DrainPanel } from "./drain-panel";
 import { NodeAuditPanel } from "./node-audit-panel";
 import { NodeInsightsPanel } from "./node-insights-panel";
 import { NameserversForm } from "./nameservers-form";
@@ -127,6 +129,20 @@ export default async function ServerDetailPage({
         maintenanceReason={server.maintenanceReason}
         maintenanceStartedAt={server.maintenanceStartedAt}
       />
+
+      {(server.status === "ACTIVE" || server.status === "MAINTENANCE") && (
+        <CapacityPolicyPanel
+          serverId={server.id}
+          acceptsNewAccounts={server.acceptsNewAccounts}
+          maxAccounts={server.maxAccounts}
+          reservedHeadroomPercent={server.reservedHeadroomPercent}
+          accountCount={server._count?.accounts ?? 0}
+        />
+      )}
+
+      {(server.status === "ACTIVE" || server.status === "MAINTENANCE") && (
+        <DrainPanel serverId={server.id} acceptsNewAccounts={server.acceptsNewAccounts} />
+      )}
 
       <div id="directadmin" className="scroll-mt-24">
         <DirectAdminConfigForm

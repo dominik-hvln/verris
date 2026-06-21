@@ -44,8 +44,13 @@
     import panel_headers
     import block_scanners
     reverse_proxy client-panel:3001 {
-        lb_try_duration 10s
-        lb_try_interval 250ms
+        # STAB-1 — aktywny health-check zdejmuje upstream w trakcie restartu,
+        # a szersze okno prób „przetrzymuje" żądanie aż nowy kontener wstanie.
+        health_uri /api/health
+        health_interval 3s
+        health_timeout 2s
+        lb_try_duration 30s
+        lb_try_interval 500ms
     }
 }
 
@@ -67,8 +72,11 @@
     import vpn_only
     import block_scanners
     reverse_proxy staff-panel:3002 {
-        lb_try_duration 10s
-        lb_try_interval 250ms
+        health_uri /api/health
+        health_interval 3s
+        health_timeout 2s
+        lb_try_duration 30s
+        lb_try_interval 500ms
     }
 }
 
@@ -80,8 +88,11 @@
     import vpn_only
     import block_scanners
     reverse_proxy admin-panel:3003 {
-        lb_try_duration 10s
-        lb_try_interval 250ms
+        health_uri /api/health
+        health_interval 3s
+        health_timeout 2s
+        lb_try_duration 30s
+        lb_try_interval 500ms
     }
 }
 
@@ -94,8 +105,13 @@
     # API zwraca JSON — niczego nie renderuje, więc najostrzejszy CSP.
     header Content-Security-Policy "default-src 'none'; frame-ancestors 'none'"
     reverse_proxy api:3000 {
-        lb_try_duration 10s
-        lb_try_interval 250ms
+        # STAB-1 — health-check na /readyz (DB + flaga drain). Przy SIGTERM API
+        # zwraca tu 503 → Caddy przestaje kierować ruch zanim kontener padnie.
+        health_uri /readyz
+        health_interval 3s
+        health_timeout 2s
+        lb_try_duration 30s
+        lb_try_interval 500ms
     }
 }
 
@@ -107,8 +123,11 @@
     import security_headers
     import block_scanners
     reverse_proxy status-page:3004 {
-        lb_try_duration 10s
-        lb_try_interval 250ms
+        health_uri /api/health
+        health_interval 3s
+        health_timeout 2s
+        lb_try_duration 30s
+        lb_try_interval 500ms
     }
     header Cache-Control "public, max-age=30"
 }

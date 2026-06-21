@@ -1,6 +1,32 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { LifeBuoy, ArrowRight } from 'lucide-react';
+
+/** Kontekstowa, uspokajająca podpowiedź w zakładce — „jesteś tu zaopiekowany". */
+export interface HostingTabHelp {
+  /** Krótkie, przyjazne zdanie wyjaśniające, że to bezpieczne i jak działa. */
+  blurb: string;
+  /** Fraza do wyszukania w Bazie wiedzy (deep-link /dashboard/knowledge?q=…). */
+  kbQuery: string;
+}
+
+export function HostingHelpHint({ help }: { help: HostingTabHelp }) {
+  return (
+    <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-violet-400/20 bg-violet-400/[0.06] px-3.5 py-2.5">
+      <LifeBuoy className="mt-0.5 h-4 w-4 shrink-0 text-violet-300" />
+      <div className="min-w-0 text-xs leading-relaxed text-neutral-300">
+        {help.blurb}{' '}
+        <a
+          href={`/dashboard/knowledge?q=${encodeURIComponent(help.kbQuery)}`}
+          className="inline-flex items-center gap-0.5 font-medium text-violet-200 underline-offset-2 hover:text-white hover:underline"
+        >
+          Poradnik krok po kroku <ArrowRight className="h-3 w-3" />
+        </a>
+      </div>
+    </div>
+  );
+}
 
 /** Wspólna, wąska ramka treści zakładek hostingu — bez poziomego scrolla. */
 export function HostingTabShell({
@@ -8,12 +34,14 @@ export function HostingTabShell({
   description,
   icon,
   actions,
+  help,
   children,
 }: {
   title: string;
   description?: string;
   icon?: ReactNode;
   actions?: ReactNode;
+  help?: HostingTabHelp;
   children: ReactNode;
 }) {
   return (
@@ -34,6 +62,7 @@ export function HostingTabShell({
           <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:flex-wrap">{actions}</div>
         ) : null}
       </div>
+      {help ? <HostingHelpHint help={help} /> : null}
       <div className="min-w-0">{children}</div>
     </div>
   );

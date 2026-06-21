@@ -39,6 +39,23 @@ export async function createHostingEmailAction(input: {
   }
 }
 
+/** Zmiana hasła istniejącej skrzynki (DA action=modify, quota zachowana po stronie API). */
+export async function changeHostingEmailPasswordAction(input: {
+  subscriptionId: string;
+  email: string;
+  password: string;
+}): Promise<EmailActionResult> {
+  try {
+    await apiFetch(`/services/${input.subscriptionId}/hosting-email/password`, {
+      method: 'POST',
+      body: JSON.stringify({ email: input.email, password: input.password }),
+    });
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: errMsg(err) };
+  }
+}
+
 /** P-1 — delete a mailbox. */
 export async function deleteHostingEmailAction(
   subscriptionId: string,

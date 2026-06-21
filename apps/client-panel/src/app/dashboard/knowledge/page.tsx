@@ -8,9 +8,9 @@ export const dynamic = 'force-dynamic';
 export default async function KnowledgePage({
   searchParams,
 }: {
-  searchParams: Promise<{ article?: string }>;
+  searchParams: Promise<{ article?: string; q?: string }>;
 }) {
-  const { article } = await searchParams;
+  const { article, q } = await searchParams;
   const articles = await fetchKbArticles();
 
   return (
@@ -21,7 +21,7 @@ export default async function KnowledgePage({
         description="Poradniki i odpowiedzi na najczęstsze pytania o hosting, domeny i pocztę."
       />
       <PanelCard>
-        <KnowledgeClient articles={articles} initialArticleId={article ?? null} />
+        <KnowledgeClient articles={articles} initialArticleId={article ?? null} initialQuery={q ?? ''} />
       </PanelCard>
     </div>
   );

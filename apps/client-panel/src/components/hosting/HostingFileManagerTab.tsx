@@ -16,6 +16,11 @@ export default function HostingFileManagerTab({ serviceId: _serviceId }: { servi
       title="Menedżer plików"
       description="Przeglądaj i edytuj pliki swojej strony."
       icon={<FolderOpen className="h-4 w-4" />}
+      help={{
+        blurb:
+          'Pliki Twojej strony są zwykle w katalogu domeny (public_html). Możesz bezpiecznie przeglądać i edytować — operacje działają tylko na Twoim koncie.',
+        kbQuery: 'menedżer plików',
+      }}
       actions={
         links.fileManagerUrl ? (
           <DaExternalLink href={links.fileManagerUrl} variant="primary">

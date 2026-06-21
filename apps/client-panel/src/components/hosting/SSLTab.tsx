@@ -13,6 +13,7 @@ import {
 import { Button } from '@verris/ui';
 import type { HostingSslRowDto, HostingSslStatus } from '@verris/contracts';
 import { HostingSslForms } from '@/components/hosting/HostingSslForms';
+import { HostingHelpHint } from '@/components/hosting/HostingTabShell';
 import { fetchHostingDaLinksAction } from '@/app/dashboard/services/[id]/hosting-mysql-links-actions';
 import { fetchHostingDomainsAction } from '@/app/dashboard/services/[id]/hosting-domains-action';
 import { fetchHostingSslAction } from '@/app/dashboard/services/[id]/hosting-ssl-actions';
@@ -97,6 +98,13 @@ export default function SSLTab({ serviceId }: Props) {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      <HostingHelpHint
+        help={{
+          blurb:
+            'Certyfikat SSL (kłódka, HTTPS) wystawiamy za darmo (Let’s Encrypt). Warunek: domena musi już wskazywać na nasz serwer. Jeśli status to „brak", najpierw skieruj domenę i ponów.',
+          kbQuery: 'certyfikat SSL',
+        }}
+      />
       <div className="flex flex-wrap justify-end gap-3 mb-2">
         {sslUrl ? (
           <Button

@@ -162,6 +162,96 @@ W razie podejrzenia naruszenia zmień hasło i skontaktuj się z pomocą technic
 4. Konto: czy konto/domena istnieją w DirectAdmin i konto jest ACTIVE (nie zawieszone/za provisioningu).
 5. PHP/aplikacja: błąd 500 po zmianie PHP → sprawdź wymagania wersji i logi błędów w public_html.`,
   },
+  {
+    title: 'Migracja strony z innego hostingu do Verris',
+    audience: AiKnowledgeAudience.ALL,
+    content: `Stronę z innego hostingu przeniesiesz w panelu: Usługa → Migracja. Dostępne są dwa tryby:
+
+1. Self-service: podajesz dane dostępowe (FTP/SFTP, baza danych, opcjonalnie poczta) źródłowego hostingu, a my pobieramy pliki, bazę i skrzynki i odtwarzamy je na koncie Verris. Dane dostępowe są szyfrowane i używane jednorazowo do migracji.
+2. Zlecenie migracji: jeśli wolisz, zlecasz przeniesienie naszemu zespołowi — zajmiemy się całością.
+
+Najpierw przenieś dane, przetestuj stronę pod adresem tymczasowym/na poddomenie, a dopiero na końcu przełącz DNS (NS lub rekord A) na Verris — wtedy ruch przejdzie bez przerwy. Migracja nie usuwa danych po stronie starego hostingu.`,
+  },
+  {
+    title: 'Środowisko testowe (staging) i publikacja na produkcję',
+    audience: AiKnowledgeAudience.ALL,
+    content: `Staging to kopia Twojej strony pod osobną poddomeną, na której bezpiecznie testujesz zmiany (aktualizacje, wtyczki, motyw) bez ryzyka dla strony produkcyjnej.
+
+W panelu: Usługa → Staging → „Utwórz staging" tworzy klon LIVE → staging. Po przetestowaniu zmian użyj „Opublikuj na produkcję" (push staging → LIVE).
+
+Uwaga: publikacja nadpisuje stronę produkcyjną wersją ze stagingu. Jeśli na produkcji są świeże dane (np. nowe zamówienia w sklepie), zrób kopię zapasową przed publikacją.`,
+  },
+  {
+    title: 'Zapora aplikacyjna (WAF / ModSecurity) — ochrona strony',
+    audience: AiKnowledgeAudience.ALL,
+    content: `Twoje strony chroni zapora aplikacyjna WAF (ModSecurity z regułami OWASP CRS), która blokuje typowe ataki (SQL injection, XSS, skanery).
+
+Tryby (Usługa → Bezpieczeństwo/WAF):
+- Wykrywanie (DetectionOnly): tylko loguje, nie blokuje — przydatne do testów.
+- Włączony (On): aktywnie blokuje podejrzane żądania.
+
+Jeśli WAF blokuje legalną akcję (np. zapis długiego artykułu w CMS), zgłoś to wsparciu — dostroimy reguły dla Twojej domeny. Domyślnie zalecamy tryb włączony.`,
+  },
+  {
+    title: 'Monitoring dostępności strony (uptime) i alerty',
+    audience: AiKnowledgeAudience.ALL,
+    content: `Verris może monitorować dostępność Twojej strony i powiadomić Cię e-mailem, gdy przestanie odpowiadać. Włączysz to w panelu: Usługa → Monitoring (przełącznik).
+
+Sprawdzamy stronę cyklicznie z naszej infrastruktury; przy wykryciu awarii (oraz po przywróceniu) wysyłamy powiadomienie na adres konta. To pozwala reagować szybciej niż zgłoszenia od użytkowników.`,
+  },
+  {
+    title: 'Tryb EKO i raport CO₂ — jak działa',
+    audience: AiKnowledgeAudience.ALL,
+    content: `Tryb EKO optymalizuje zużycie energii Twojej usługi w okresach niższego ruchu, a panel pokazuje realny raport zużycia energii (kWh) i emisji CO₂ liczony z metryk Twojego konta.
+
+Włączysz EKO przy usłudze; raport znajdziesz w sekcji EKO panelu. Uczestnictwo w programie EKO nagradzane jest punktami, a oszczędności środowiskowe możesz pokazać odznaką. To realna przewaga: płacisz mniej za prąd i komunikujesz odpowiedzialność środowiskową.`,
+  },
+  {
+    title: 'Autoskalowanie — jak działa i jak kontrolować koszty',
+    audience: AiKnowledgeAudience.ALL,
+    content: `Autoskalowanie automatycznie dokupuje dodatkową moc (CPU/RAM) na godziny, gdy Twoja usługa potrzebuje więcej zasobów (np. skok ruchu), i zwalnia ją, gdy ruch spada. Opłata pobierana jest godzinowo z portfela.
+
+Kontrola kosztów (Usługa → Autoskalowanie):
+- Włącz/wyłącz autoskalowanie.
+- Ustaw „bezpiecznik kosztów" — miesięczny limit wydatków na autoskalowanie.
+- Podgląd bieżącego zużycia i kosztu.
+
+Dzięki temu strona wytrzymuje skoki ruchu, a Ty nie przepłacasz w spokojnych okresach.`,
+  },
+  {
+    title: 'VPS / serwer Cloud — pierwsze kroki i klucze SSH',
+    audience: AiKnowledgeAudience.ALL,
+    content: `VPS zamówisz w panelu (sekcja VPS / Cloud). Po uruchomieniu otrzymujesz własny serwer z dostępem root.
+
+Bezpieczny dostęp: zamiast hasła root używaj klucza SSH. W panelu dodaj swój klucz publiczny SSH (sekcja Klucze SSH) przed utworzeniem VPS — zostanie wgrany na serwer i zalogujesz się bez hasła: ssh root@adres-ip.
+
+VPS rozliczany jest miesięcznie. Cyklem życia (start, stop, restart, reinstalacja) zarządzasz z panelu.`,
+  },
+  {
+    title: 'Dostarczalność poczty (SPF, DKIM, DMARC) i RBL',
+    audience: AiKnowledgeAudience.ALL,
+    content: `Aby Twoje e-maile nie trafiały do spamu, domena potrzebuje poprawnych rekordów uwierzytelniania. W panelu: Usługa → Deliverability sprawdzisz status:
+- SPF: wskazuje, które serwery mogą wysyłać pocztę z Twojej domeny.
+- DKIM: podpis kryptograficzny wiadomości.
+- DMARC: polityka postępowania z pocztą, która nie przejdzie SPF/DKIM.
+- RBL: sprawdzenie, czy IP nie jest na czarnych listach.
+
+Panel podpowiada brakujące rekordy do dodania w DNS. Po ich ustawieniu odczekaj na propagację i sprawdź ponownie.`,
+  },
+  {
+    title: 'Plan testowy (free trial) — co obejmuje',
+    audience: AiKnowledgeAudience.ALL,
+    content: `Plan testowy pozwala wypróbować hosting Verris bez opłat przez ograniczony czas. Obejmuje podstawowe zasoby wystarczające do postawienia i przetestowania strony.
+
+Ograniczenia trialu chronią przed nadużyciami (limity zasobów/funkcji). Po zakończeniu okresu próbnego przejdziesz na wybrany plan płatny — dane pozostają, wystarczy zasilić portfel i aktywować usługę. Status i czas pozostały do końca trialu widzisz na pulpicie.`,
+  },
+  {
+    title: 'Menedżer plików — zarządzanie plikami strony w panelu',
+    audience: AiKnowledgeAudience.ALL,
+    content: `Pliki strony przejrzysz i edytujesz w panelu: Usługa → Menedżer plików, bez potrzeby klienta FTP. Możesz przeglądać katalogi, podglądać i edytować pliki tekstowe, zmieniać nazwy, usuwać oraz wgrywać nowe pliki.
+
+Pliki strony znajdują się zwykle w katalogu domeny (np. domains/twojadomena.pl/public_html). Operacje są ograniczone do Twojego konta (bezpieczna izolacja ścieżek). Do dużych transferów nadal wygodniejszy bywa klient FTP/FTPS.`,
+  },
 ];
 
 async function main() {

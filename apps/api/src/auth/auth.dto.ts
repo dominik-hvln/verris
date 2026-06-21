@@ -7,16 +7,16 @@ import {
   IsString,
   Length,
   MaxLength,
-  MinLength,
 } from 'class-validator';
+import { IsStrongPassword } from './password-policy.validator';
 
 export class RegisterDto {
   @IsEmail()
   email!: string;
 
   @IsString()
-  @MinLength(8)
   @MaxLength(72)
+  @IsStrongPassword()
   password!: string;
 
   @IsOptional()
@@ -103,12 +103,28 @@ export class PasswordResetConfirmDto {
   token!: string;
 
   @IsString()
-  @MinLength(8)
   @MaxLength(72)
+  @IsStrongPassword()
   newPassword!: string;
 }
 
 export class EmailVerificationConfirmDto {
+  @IsString()
+  @IsNotEmpty()
+  token!: string;
+}
+
+/** SEC-9 — żądanie zmiany adresu e-mail (wymaga potwierdzenia hasłem). */
+export class RequestEmailChangeDto {
+  @IsEmail()
+  newEmail!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  password!: string;
+}
+
+export class ConfirmEmailChangeDto {
   @IsString()
   @IsNotEmpty()
   token!: string;

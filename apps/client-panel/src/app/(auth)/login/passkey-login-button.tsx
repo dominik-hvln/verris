@@ -37,11 +37,14 @@ export function PasskeyLoginButton() {
 
   useEffect(() => {
     setMounted(true);
+    // Prefetch NATYCHMIAST (równolegle do sprawdzania dostępności) — by w chwili
+    // kliknięcia opcje były gotowe i startAuthentication ruszyło synchronicznie
+    // w geście (krytyczne dla Safari).
+    if (supported) prefetch();
     void getPasskeyAvailability().then((ok) => {
       setAvailable(ok);
-      if (ok) prefetch();
     });
-  }, [prefetch]);
+  }, [prefetch, supported]);
 
   if (!mounted || !supported || available === false) return null;
 

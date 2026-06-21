@@ -28,6 +28,11 @@ export interface ServerSummaryDto {
   allocatedMemory: number;
   allocatedDisk: number;
 
+  // OPS-1 — capacity guardrails (placement policy)
+  acceptsNewAccounts: boolean;
+  maxAccounts: number | null;
+  reservedHeadroomPercent: number;
+
   agentVersion: string | null;
   lastHandshakeAt: string | null;
   lastHeartbeatAt: string | null;

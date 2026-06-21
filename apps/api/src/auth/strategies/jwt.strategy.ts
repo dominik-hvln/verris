@@ -23,6 +23,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     role: string;
     purpose?: string;
     tv?: number;
+    sid?: string;
     actorUserId?: string;
     impersonatedBy?: string;
   }) {
@@ -69,6 +70,24 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       throw new UnauthorizedException('Subaccount is disabled');
     }
 
+    // SEC-10 — sesyjna rewokacja pojedynczego urządzenia. Backward-compatible:
+    // tokeny BEZ `sid` (sprzed wdrożenia) pomijają tę kontrolę i działają dalej.
+    if (payload.sid) {
+      const session = await this.prisma.userSession.findUnique({
+        where: { id: payload.sid },
+        select: { id: true, userId: true, revokedAt: true, lastSeenAt: true },
+      });
+      if (!session || session.userId !== user.id || session.revokedAt) {
+        throw new UnauthorizedException('Session has been revoked');
+      }
+      // Throttlowany zapis „ostatnio widziano" (maks. raz na 5 min — bez write/req).
+      if (Date.now() - session.lastSeenAt.getTime() > 5 * 60 * 1000) {
+        void this.prisma.userSession
+          .update({ where: { id: session.id }, data: { lastSeenAt: new Date() } })
+          .catch(() => undefined);
+      }
+    }
+
     return {
       userId: user.customerOwnerId ?? user.id,
       principalUserId: user.id,
@@ -76,6 +95,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       role: user.role,
       customerOwnerId: user.customerOwnerId,
       customerPermissions: user.customerPermissions,
+      sid: payload.sid,
       // E-5 impersonation hooks (will be set by /admin/users/:id/impersonate).
       actorUserId: payload.actorUserId,
       impersonatedBy: payload.impersonatedBy,

@@ -21,6 +21,11 @@ import {
 } from "./actions";
 import { TwoFactorSection } from "./two-factor-section";
 import { PasskeysSection } from "./passkeys-section";
+import { LoginHistorySection } from "./login-history-section";
+import { StrongAuthSection } from "./strong-auth-section";
+import { ActivityLogSection } from "./activity-log-section";
+import { ActiveSessionsSection } from "./active-sessions-section";
+import { EmailChangeSection } from "./email-change-section";
 import { PrivacyTab } from "./privacy-tab";
 import { SidebarTilesSection } from "./sidebar-tiles-section";
 
@@ -253,7 +258,7 @@ export default function SettingsPage() {
                 showToast={showToast}
             />
             )}
-            {activeTab === "security" && <SecurityTab showToast={showToast} />}
+            {activeTab === "security" && <SecurityTab profile={profile} showToast={showToast} />}
             {activeTab === "billing" && (
             <BillingTab
                 profile={profile}
@@ -336,8 +341,17 @@ function ProfileTab({
         </FormField>
       </div>
 
-      <FormField label="Adres e-mail" description="Aby zmienić adres e-mail przypisany do konta, skontaktuj się z biurem obsługi klienta.">
+      <FormField label="Adres e-mail">
         <Input value={profile.email} disabled className="opacity-50 bg-[#0a0a0a] border-white/5" />
+        {!profile.isSubaccount ? (
+          <div className="pt-2">
+            <EmailChangeSection currentEmail={profile.email} showToast={showToast} />
+          </div>
+        ) : (
+          <p className="text-xs text-neutral-500">
+            Adres e-mail subkonta zmienia właściciel konta.
+          </p>
+        )}
       </FormField>
 
       <FormField
@@ -380,8 +394,10 @@ function ProfileTab({
 /* ────────────────────── Tab: Bezpieczeństwo ────────────────────── */
 
 function SecurityTab({
+  profile,
   showToast,
 }: {
+  profile: UserProfile;
   showToast: (msg: string, type: "success" | "error") => void;
 }) {
   const [isPending, startTransition] = useTransition();
@@ -462,6 +478,14 @@ function SecurityTab({
 
       <TwoFactorSection showToast={showToast} />
       <PasskeysSection showToast={showToast} />
+      <StrongAuthSection
+        initialEnabled={Boolean(profile.requireStrongAuth)}
+        hasFactor={Boolean(profile.isTwoFactorEnabled) || Boolean(profile.hasPasskey)}
+        showToast={showToast}
+      />
+      <ActiveSessionsSection showToast={showToast} />
+      <LoginHistorySection />
+      <ActivityLogSection />
 
       <div className="flex justify-end pt-8 mt-8 border-t border-white/5">
         <button

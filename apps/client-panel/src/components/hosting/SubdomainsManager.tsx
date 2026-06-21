@@ -11,6 +11,7 @@ import {
   type SubdomainRow,
 } from '@/app/dashboard/services/[id]/hosting-extra-actions';
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
+import { HostingHelpHint } from '@/components/hosting/HostingTabShell';
 
 export default function SubdomainsManager({ serviceId }: { serviceId: string }) {
   const [rows, setRows] = useState<SubdomainRow[]>([]);
@@ -66,6 +67,13 @@ export default function SubdomainsManager({ serviceId }: { serviceId: string }) 
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+      <HostingHelpHint
+        help={{
+          blurb:
+            'Poddomena (np. sklep.twojadomena.pl) to osobny adres z własnym katalogiem na pliki. Dodanie jest bezpieczne; pamiętaj o certyfikacie SSL dla HTTPS.',
+          kbQuery: 'poddomeny',
+        }}
+      />
       <div className="mb-3 flex items-center gap-2">
         <Globe className="h-4 w-4 text-violet-300" />
         <h3 className="text-sm font-semibold text-white">Poddomeny</h3>

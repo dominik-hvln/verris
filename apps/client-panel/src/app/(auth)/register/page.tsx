@@ -1,11 +1,12 @@
 "use client";
 
-import { Suspense, useActionState } from "react";
+import { Suspense, useActionState, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { submitRegister } from "./actions";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, Check, X } from "lucide-react";
 import { SpinBorder } from "@/components/spin-border";
 import { VerrisLockup } from "@/components/logo";
+import { checkPassword, PASSWORD_MIN_LENGTH } from "@/lib/password-policy";
 
 const initialState = { error: "" };
 
@@ -33,6 +34,9 @@ function RegisterContent() {
 
   // @ts-ignore
   const [state, formAction, isPending] = useActionState(submitRegister, initialState);
+  const [password, setPassword] = useState("");
+  const pw = checkPassword(password);
+  const pwBars = ["bg-rose-500", "bg-rose-500", "bg-amber-500", "bg-emerald-500", "bg-emerald-400"];
 
   return (
     <div className="relative flex items-center justify-center min-h-screen bg-neutral-950 overflow-hidden py-12">
@@ -90,7 +94,36 @@ function RegisterContent() {
 
                 <div className="space-y-2">
                   <label htmlFor="password" className="text-sm font-semibold text-neutral-300">Hasło</label>
-                  <input id="password" name="password" type="password" required minLength={8} placeholder="Minimum 8 znaków" className="w-full rounded-xl border border-white/10 bg-neutral-900/50 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500/50 transition-all duration-300" />
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    required
+                    minLength={PASSWORD_MIN_LENGTH}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder={`Minimum ${PASSWORD_MIN_LENGTH} znaków`}
+                    className="w-full rounded-xl border border-white/10 bg-neutral-900/50 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500/50 transition-all duration-300"
+                  />
+                  {password.length > 0 ? (
+                    <div className="space-y-1.5 pt-1">
+                      <div className="flex gap-1">
+                        {[0, 1, 2, 3].map((i) => (
+                          <span
+                            key={i}
+                            className={`h-1 flex-1 rounded-full transition-colors ${
+                              i < pw.score ? pwBars[pw.score] : "bg-white/10"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <ul className="space-y-0.5 text-[11px]">
+                        <Req ok={pw.lengthOk}>Co najmniej {PASSWORD_MIN_LENGTH} znaków</Req>
+                        <Req ok={pw.classesOk}>3 z 4: mała i wielka litera, cyfra, symbol</Req>
+                        <Req ok={pw.notCommon}>Nie jest popularnym hasłem</Req>
+                      </ul>
+                    </div>
+                  ) : null}
                 </div>
 
                 {/* RODO Sprint 1 / L-03 — required & optional consents.
@@ -172,5 +205,14 @@ function RegisterContent() {
         </p>
       </div>
     </div>
+  );
+}
+
+function Req({ ok, children }: { ok: boolean; children: React.ReactNode }) {
+  return (
+    <li className={`flex items-center gap-1.5 ${ok ? "text-emerald-400" : "text-neutral-500"}`}>
+      {ok ? <Check className="h-3 w-3 shrink-0" /> : <X className="h-3 w-3 shrink-0" />}
+      {children}
+    </li>
   );
 }

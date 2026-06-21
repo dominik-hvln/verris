@@ -129,6 +129,9 @@ services:
       dockerfile: Dockerfile.api
     restart: always
     logging: *default-logging
+    # STAB-1 — daj czas na graceful drain (SHUTDOWN_DRAIN_MS + zamknięcie HTTP)
+    # zanim Docker wyśle SIGKILL. Musi być > SHUTDOWN_DRAIN_MS (domyślnie 8s).
+    stop_grace_period: 30s
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -137,6 +140,8 @@ services:
     environment:
       NODE_ENV: production
       PORT: '3000'
+      # STAB-1 — okno drenowania ruchu przy SIGTERM (musi być < stop_grace_period)
+      SHUTDOWN_DRAIN_MS: ${SHUTDOWN_DRAIN_MS:-8000}
       CLIENT_PANEL_URL: ${CLIENT_PANEL_URL}
       STAFF_PANEL_URL: ${STAFF_PANEL_URL}
       ADMIN_PANEL_URL: ${ADMIN_PANEL_URL}

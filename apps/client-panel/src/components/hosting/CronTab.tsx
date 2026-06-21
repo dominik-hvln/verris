@@ -11,6 +11,7 @@ import {
   fetchHostingCronAction,
 } from '@/app/dashboard/services/[id]/hosting-extra-actions';
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
+import { HostingHelpHint } from '@/components/hosting/HostingTabShell';
 
 type Sched = { minute: string; hour: string; dayOfMonth: string; month: string; dayOfWeek: string };
 const EVERY: Sched = { minute: '*', hour: '*', dayOfMonth: '*', month: '*', dayOfWeek: '*' };
@@ -79,6 +80,13 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
 
   return (
     <div className="space-y-5">
+      <HostingHelpHint
+        help={{
+          blurb:
+            'Cron uruchamia Twój skrypt automatycznie o wybranych porach. Użyj gotowego presetu (np. „Codziennie 3:00") — nie musisz znać składni.',
+          kbQuery: 'cron zadania',
+        }}
+      />
       <form onSubmit={onCreate} className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
         <p className="mb-3 text-sm font-semibold text-white">Nowe zadanie cron</p>
         <div className="mb-3 flex flex-wrap gap-1.5">

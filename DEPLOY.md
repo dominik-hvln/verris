@@ -305,6 +305,31 @@ Zasady LIVE:
 
 ## Aktualizacja
 
+### Zalecane: rolling deploy (STAB-1 — bez okna 502/503)
+
+```bash
+cd /opt/verris
+./ops/scripts/prod-deploy-rolling.sh
+```
+
+Skrypt: buduje wszystkie obrazy (stare kontenery dalej obsługują ruch) → migruje
+DB → recreuje usługi **pojedynczo** z bramką health-check (API → panele → status),
+więc nigdy nie padają wszystkie naraz. Współgra z:
+
+- **aktywnym health-check Caddy** (`health_uri` + `lb_try_duration 30s`) — proxy
+  zdejmuje upstream w trakcie restartu i przetrzymuje/retryuje żądanie aż nowy
+  kontener wstanie, zamiast zwracać 502/503;
+- **graceful-drain API** — na SIGTERM `/readyz` zwraca 503 (`SHUTDOWN_DRAIN_MS`,
+  domyślnie 8 s), Caddy przestaje kierować ruch, żądania w locie się kończą,
+  dopiero potem kontener się zamyka (`stop_grace_period: 30s`).
+
+> **Migracje muszą być wstecznie zgodne** (expand→contract): nie usuwaj
+> kolumny/tabeli w tej samej migracji, w której kod przestaje jej używać —
+> najpierw wdroż kod, w osobnym kroku „contract". Zmiany niezgodne → okno
+> maintenance (toggle węzła / pełny `up -d --build`).
+
+### Pełny restart (fallback — krótka przerwa)
+
 ```bash
 cd /opt/verris
 git pull
@@ -312,6 +337,14 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 docker compose -f docker-compose.prod.yml --env-file .env.prod exec api \
   npx prisma migrate deploy --schema=libs/database/prisma/schema.prisma
 ```
+
+### Prawdziwe zero-downtime API (opcjonalnie, następny krok)
+
+Dla pełnej eliminacji nawet chwilowego okna na samym API: uruchom **2 repliki**
+API i recreuj je po jednej (`docker compose up -d --scale api=2 --no-deps api`
+po jednej instancji). Caddy z dynamicznymi upstreamami (DNS) rozłoży ruch na obie
+i zawsze jedna będzie zdrowa. Wymaga drobnej zmiany w Caddyfile (`dynamic a`) —
+opisane w `docs/PLAN_DALSZYCH_PRAC_2026-06.md`.
 
 ## Migracje DB
 

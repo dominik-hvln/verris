@@ -15,6 +15,7 @@ import {
 import { toast } from 'sonner';
 import { Button } from '@verris/ui';
 import {
+  changeHostingEmailPasswordAction,
   createHostingEmailAction,
   deleteHostingEmailAction,
   fetchHostingEmailAction,
@@ -54,6 +55,10 @@ export default function MailTab({ serviceId }: Props) {
   const [quota, setQuota] = useState('1024');
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  // zmiana hasła per skrzynka
+  const [pwEditing, setPwEditing] = useState<string | null>(null);
+  const [pwValue, setPwValue] = useState('');
+  const [pwSaving, setPwSaving] = useState(false);
 
   const load = useCallback(async () => {
     setError(null);
@@ -113,6 +118,27 @@ export default function MailTab({ serviceId }: Props) {
     void load();
   };
 
+  const onChangePassword = async (email: string) => {
+    if (pwValue.length < 8) {
+      toast.error('Hasło musi mieć co najmniej 8 znaków.');
+      return;
+    }
+    setPwSaving(true);
+    const res = await changeHostingEmailPasswordAction({
+      subscriptionId: serviceId,
+      email,
+      password: pwValue,
+    });
+    setPwSaving(false);
+    if (!res.ok) {
+      toast.error('Nie udało się zmienić hasła', { description: daErrorMessage(res.error) });
+      return;
+    }
+    toast.success('Hasło skrzynki zmienione', { description: email });
+    setPwEditing(null);
+    setPwValue('');
+  };
+
   const onDelete = async (email: string) => {
     if (!window.confirm(`Usunąć skrzynkę „${email}"? Tej operacji nie można cofnąć.`)) return;
     setDeleting(email);
@@ -143,6 +169,11 @@ export default function MailTab({ serviceId }: Props) {
       title="Poczta e-mail"
       description="Skrzynki na koncie hostingowym oraz ustawienia IMAP/SMTP do klienta pocztowego."
       icon={<Mail className="h-4 w-4" />}
+      help={{
+        blurb:
+          'Spokojnie — tworzenie skrzynki niczego nie psuje. Podajesz adres i hasło, a my zajmujemy się resztą. Dane do Outlooka/telefonu masz poniżej.',
+        kbQuery: 'poczta',
+      }}
       actions={
         <>
           {emailUrl ? (
@@ -287,42 +318,85 @@ export default function MailTab({ serviceId }: Props) {
       ) : (
         <div className="overflow-hidden rounded-xl border border-white/5 bg-[#050505]">
           {rows.map((box) => (
-            <div
-              key={box.id}
-              className="flex items-center justify-between gap-3 border-b border-white/5 px-4 py-2.5 last:border-0"
-            >
-              <span className="inline-flex min-w-0 flex-1 items-center gap-2 break-all text-sm text-white">
-                <Mail className="h-3.5 w-3.5 shrink-0 text-neutral-500" />
-                {box.email}
-              </span>
-              <div className="flex shrink-0 items-center gap-3">
-                <span className="text-xs text-neutral-500">
-                  {box.quotaMb != null ? `${box.quotaMb} MB` : 'bez limitu'}
+            <div key={box.id} className="border-b border-white/5 last:border-0">
+              <div className="flex items-center justify-between gap-3 px-4 py-2.5">
+                <span className="inline-flex min-w-0 flex-1 items-center gap-2 break-all text-sm text-white">
+                  <Mail className="h-3.5 w-3.5 shrink-0 text-neutral-500" />
+                  {box.email}
                 </span>
-                {emailUrl ? (
-                  <a
-                    href={emailUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-neutral-400 hover:text-white"
+                <div className="flex shrink-0 items-center gap-3">
+                  <span className="text-xs text-neutral-500">
+                    {box.quotaMb != null ? `${box.quotaMb} MB` : 'bez limitu'}
+                  </span>
+                  {emailUrl ? (
+                    <a
+                      href={emailUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-neutral-400 hover:text-white"
+                    >
+                      Webmail →
+                    </a>
+                  ) : null}
+                  <button
+                    type="button"
+                    title="Zmień hasło"
+                    onClick={() => {
+                      setPwEditing((cur) => (cur === box.email ? null : box.email));
+                      setPwValue('');
+                    }}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-white/5 text-neutral-300 hover:bg-white/10"
                   >
-                    Webmail →
-                  </a>
-                ) : null}
-                <button
-                  type="button"
-                  title="Usuń skrzynkę"
-                  disabled={deleting === box.email}
-                  onClick={() => void onDelete(box.email)}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-white/5 text-rose-300 hover:bg-rose-500/10 disabled:opacity-50"
-                >
-                  {deleting === box.email ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Trash2 className="h-4 w-4" />
-                  )}
-                </button>
+                    <KeyRound className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    title="Usuń skrzynkę"
+                    disabled={deleting === box.email}
+                    onClick={() => void onDelete(box.email)}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-white/5 text-rose-300 hover:bg-rose-500/10 disabled:opacity-50"
+                  >
+                    {deleting === box.email ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
               </div>
+              {pwEditing === box.email ? (
+                <div className="flex items-end gap-2 px-4 pb-3">
+                  <label className="flex-1 space-y-1">
+                    <span className="text-[11px] text-neutral-400">Nowe hasło (min. 8 znaków)</span>
+                    <div className="flex gap-1.5">
+                      <input
+                        value={pwValue}
+                        onChange={(e) => setPwValue(e.target.value)}
+                        placeholder="nowe hasło"
+                        className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-sm text-white outline-none focus:border-white/30"
+                      />
+                      <button
+                        type="button"
+                        title="Wygeneruj hasło"
+                        onClick={() => setPwValue(genPassword())}
+                        className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-2.5 text-neutral-300 hover:bg-white/10"
+                      >
+                        <KeyRound className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </label>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={pwSaving || pwValue.length < 8}
+                    onClick={() => void onChangePassword(box.email)}
+                    className="h-9 gap-1.5 bg-white text-black hover:bg-neutral-200 text-xs"
+                  >
+                    {pwSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                    Zapisz hasło
+                  </Button>
+                </div>
+              ) : null}
             </div>
           ))}
         </div>

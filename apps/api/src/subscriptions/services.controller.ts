@@ -378,6 +378,15 @@ export class UserServicesController {
     return this.directAdmin.createHostingEmailAccount(id, user.userId, body);
   }
 
+  @Post(':id/hosting-email/password')
+  async changeHostingEmailPassword(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { email: string; password: string },
+  ) {
+    return this.directAdmin.changeHostingEmailPassword(id, user.userId, body);
+  }
+
   @Delete(':id/hosting-email/:email')
   async deleteHostingEmail(
     @CurrentUser() user: { userId: string },

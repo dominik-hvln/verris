@@ -26,13 +26,18 @@ import {
   emailVerifyTemplate,
   emailVerifiedOkTemplate,
 } from '../mail/templates/auth-notifications';
-import { passwordChangedTemplate } from '../mail/templates/security-notifications';
+import {
+  passwordChangedTemplate,
+  emailChangeVerifyTemplate,
+  emailChangeAlertTemplate,
+} from '../mail/templates/security-notifications';
 import { generateAuthToken, hashAuthToken } from './auth-token.util';
 import { EcoPointsService } from '../eco/eco-points.service';
 import { PasskeyPolicyService } from './passkey-policy.service';
 
 const PASSWORD_RESET_TTL_MINUTES = 15;
 const EMAIL_VERIFICATION_TTL_HOURS = 24;
+const EMAIL_CHANGE_TTL_MINUTES = 60;
 
 interface RegisterSuccess {
   ok: true;
@@ -476,6 +481,148 @@ export class AuthService {
   }
 
   /**
+   * SEC-9 — self-service zmiana adresu e-mail (krok 1). Wymaga potwierdzenia
+   * hasłem. Nie zmienia adresu od razu: zapisuje `pendingEmail`, wysyła link
+   * weryfikacyjny na NOWY adres i alert na STARY. Zmiana wejdzie dopiero po
+   * kliknięciu w link (confirmEmailChange).
+   */
+  async requestEmailChange(
+    userId: string,
+    newEmailRaw: string,
+    password: string,
+  ): Promise<{ ok: true }> {
+    const newEmail = newEmailRaw.trim().toLowerCase();
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, firstName: true, passwordHash: true, role: true },
+    });
+    if (!user) throw new UnauthorizedException('User not found');
+    if (user.role !== Role.USER) {
+      throw new BadRequestException('Zmiana e-mail z panelu dotyczy kont klientów.');
+    }
+    const passwordOk = await bcrypt.compare(password, user.passwordHash);
+    if (!passwordOk) throw new UnauthorizedException('Nieprawidłowe hasło.');
+    if (newEmail === user.email.toLowerCase()) {
+      throw new BadRequestException('To jest już Twój aktualny adres e-mail.');
+    }
+    const taken = await this.prisma.user.findUnique({ where: { email: newEmail }, select: { id: true } });
+    if (taken) {
+      throw new BadRequestException('Ten adres e-mail jest już używany.');
+    }
+
+    const rawToken = generateAuthToken();
+    const expiresAt = new Date(Date.now() + EMAIL_CHANGE_TTL_MINUTES * 60 * 1000);
+    await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id: userId }, data: { pendingEmail: newEmail } }),
+      this.prisma.userAuthToken.updateMany({
+        where: { userId, purpose: UserAuthTokenPurpose.EMAIL_CHANGE, usedAt: null },
+        data: { usedAt: new Date() },
+      }),
+      this.prisma.userAuthToken.create({
+        data: {
+          userId,
+          purpose: UserAuthTokenPurpose.EMAIL_CHANGE,
+          tokenHash: hashAuthToken(rawToken),
+          expiresAt,
+        },
+      }),
+    ]);
+
+    const panelUrl = this.clientPanelUrl();
+    const confirmUrl = `${panelUrl}/confirm-email-change?token=${encodeURIComponent(rawToken)}`;
+    // Weryfikacja na NOWY adres.
+    void this.mailer
+      .send({
+        ...emailChangeVerifyTemplate({
+          to: newEmail,
+          firstName: user.firstName,
+          confirmUrl,
+          expiresMinutes: EMAIL_CHANGE_TTL_MINUTES,
+          panelUrl,
+        }),
+        userId,
+        category: 'TRANSACTIONAL',
+        fromRole: 'SECURITY',
+      })
+      .catch(() => undefined);
+    // Alert na STARY adres.
+    void this.mailer
+      .send({
+        ...emailChangeAlertTemplate({
+          to: user.email,
+          firstName: user.firstName,
+          newEmail,
+          at: new Date(),
+          panelUrl,
+        }),
+        userId,
+        category: 'TRANSACTIONAL',
+        fromRole: 'SECURITY',
+      })
+      .catch(() => undefined);
+
+    await this.audit.record({
+      action: 'EMAIL_CHANGE_REQUESTED',
+      userId,
+      actorUserId: userId,
+      details: { newEmail },
+    });
+    return { ok: true };
+  }
+
+  /** SEC-9 — potwierdzenie zmiany e-mail (krok 2, z linku na nowej skrzynce). */
+  async confirmEmailChange(tokenRaw: string): Promise<{ ok: true }> {
+    const tokenHash = hashAuthToken(tokenRaw.trim());
+    const row = await this.prisma.userAuthToken.findUnique({
+      where: { tokenHash },
+      include: {
+        user: { select: { id: true, email: true, firstName: true, pendingEmail: true, anonymizedAt: true } },
+      },
+    });
+    if (
+      !row ||
+      row.purpose !== UserAuthTokenPurpose.EMAIL_CHANGE ||
+      row.usedAt ||
+      row.expiresAt.getTime() < Date.now() ||
+      row.user.anonymizedAt ||
+      !row.user.pendingEmail
+    ) {
+      throw new BadRequestException('Link zmiany adresu e-mail jest nieprawidłowy lub wygasł.');
+    }
+    const newEmail = row.user.pendingEmail.toLowerCase();
+    // Wyścig: ktoś mógł w międzyczasie zająć adres.
+    const taken = await this.prisma.user.findFirst({
+      where: { email: newEmail, id: { not: row.userId } },
+      select: { id: true },
+    });
+    if (taken) {
+      throw new BadRequestException('Ten adres e-mail jest już używany. Rozpocznij zmianę ponownie.');
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({
+        where: { id: row.userId },
+        data: {
+          email: newEmail,
+          pendingEmail: null,
+          emailVerifiedAt: new Date(),
+          // Zmiana tożsamości konta → unieważnij istniejące sesje.
+          tokenVersion: { increment: 1 },
+        },
+      }),
+      this.prisma.userAuthToken.update({ where: { id: row.id }, data: { usedAt: new Date() } }),
+    ]);
+
+    await this.audit.record({
+      action: 'EMAIL_CHANGE_CONFIRMED',
+      userId: row.userId,
+      actorUserId: row.userId,
+      details: { newEmail },
+    });
+    return { ok: true };
+  }
+
+  /**
    * Step 1 of login: validate email + password. If 2FA is enabled, return a
    * short-lived `challengeToken` instead of a full JWT — the panel must call
    * `verifyTwoFactor()` with a TOTP/recovery code to complete the login.
@@ -561,6 +708,25 @@ export class AuthService {
       );
     }
 
+    // SEC-6 — opcjonalny wymóg silnego logowania dla klienta (opt-in). Gdy
+    // włączony i konto NIE ma 2FA, ale ma passkey → blokujemy login hasłem
+    // (trzeba użyć passkey). Gdy ma 2FA — pójdzie poniżej normalnym torem 2FA.
+    if (user.role === Role.USER && user.requireStrongAuth && !user.isTwoFactorEnabled) {
+      const passkeys = await this.passkeyPolicy.countPasskeys(user.id);
+      if (passkeys > 0) {
+        await this.audit.record({
+          action: 'LOGIN_BLOCKED_STRONG_AUTH_REQUIRED',
+          userId: user.id,
+          ipAddress: ctx.ip ?? undefined,
+          userAgent: ctx.userAgent ?? undefined,
+        });
+        throw new UnauthorizedException(
+          'To konto wymaga logowania kluczem passkey lub kodem 2FA. Zaloguj się passkey.',
+        );
+      }
+      // Brak czynnika — nie blokujemy (nie da się); UI nie pozwala włączyć wymogu bez czynnika.
+    }
+
     if (user.isTwoFactorEnabled) {
       // Issue a 5-minute "2fa-challenge" token. It carries `sub` and a special
       // `purpose` claim so the JWT strategy refuses to mint regular requests
@@ -586,9 +752,11 @@ export class AuthService {
       userAgent: ctx.userAgent ?? null,
       loginMethod: 'password',
     });
-    return this.generateAccessTokenResponse(user, {
-      passkeyEnrollmentRequired: passkeyDecision === 'enroll-required',
-    });
+    return this.generateAccessTokenResponse(
+      user,
+      { passkeyEnrollmentRequired: passkeyDecision === 'enroll-required' },
+      { ip: ctx.ip ?? null, userAgent: ctx.userAgent ?? null, loginMethod: 'password' },
+    );
   }
 
   /**
@@ -645,9 +813,11 @@ export class AuthService {
       userAgent: ctx.userAgent ?? null,
       loginMethod: 'password+2fa',
     });
-    return this.generateAccessTokenResponse(user, {
-      passkeyEnrollmentRequired: await this.passkeyPolicy.needsEnrollment(user),
-    });
+    return this.generateAccessTokenResponse(
+      user,
+      { passkeyEnrollmentRequired: await this.passkeyPolicy.needsEnrollment(user) },
+      { ip: ctx.ip ?? null, userAgent: ctx.userAgent ?? null, loginMethod: 'password+2fa' },
+    );
   }
 
   /**
@@ -729,7 +899,11 @@ export class AuthService {
     });
     // After a break-glass login we always steer the user back to passkey
     // enrollment (their device is presumably gone), so signal it.
-    return this.generateAccessTokenResponse(user, { passkeyEnrollmentRequired: true });
+    return this.generateAccessTokenResponse(
+      user,
+      { passkeyEnrollmentRequired: true },
+      { ip: ctx.ip ?? null, userAgent: ctx.userAgent ?? null, loginMethod: 'break-glass' },
+    );
   }
 
   private assertNotLoginBlocked(user: User) {
@@ -786,7 +960,11 @@ export class AuthService {
       userAgent: ctx.userAgent ?? null,
       loginMethod: method,
     });
-    return this.generateAccessTokenResponse(user);
+    return this.generateAccessTokenResponse(user, undefined, {
+      ip: ctx.ip ?? null,
+      userAgent: ctx.userAgent ?? null,
+      loginMethod: method,
+    });
   }
 
   /** C3 — invalidate all active sessions for a user (logout everywhere). */
@@ -794,6 +972,11 @@ export class AuthService {
     await this.prisma.user.update({
       where: { id: userId },
       data: { tokenVersion: { increment: 1 } },
+    });
+    // SEC-10 — oznacz wszystkie aktywne sesje jako wygaszone (porządek w liście).
+    await this.prisma.userSession.updateMany({
+      where: { userId, revokedAt: null },
+      data: { revokedAt: new Date() },
     });
     await this.audit.record({
       action: 'SESSIONS_INVALIDATED_ALL',
@@ -803,11 +986,39 @@ export class AuthService {
     return { ok: true };
   }
 
-  private generateAccessTokenResponse(
+  private async generateAccessTokenResponse(
     user: User,
     opts?: { passkeyEnrollmentRequired?: boolean },
-  ): LoginSuccess {
-    const payload = { email: user.email, sub: user.id, role: user.role, tv: user.tokenVersion };
+    ctx?: { ip?: string | null; userAgent?: string | null; loginMethod?: string },
+  ): Promise<LoginSuccess> {
+    // SEC-10 — utwórz rekord sesji i osadź jego id (sid) w tokenie, by można
+    // było wylogować to konkretne urządzenie. Best-effort: gdy zapis sesji się
+    // nie powiedzie, wydajemy token bez sid (logowanie nie może paść).
+    let sid: string | undefined;
+    try {
+      const session = await this.prisma.userSession.create({
+        data: {
+          userId: user.id,
+          tokenVersion: user.tokenVersion,
+          ipAddress: ctx?.ip ?? null,
+          userAgent: ctx?.userAgent ?? null,
+          deviceLabel: this.parseDeviceLabel(ctx?.userAgent ?? null),
+          loginMethod: ctx?.loginMethod ?? null,
+        },
+        select: { id: true },
+      });
+      sid = session.id;
+    } catch (err) {
+      this.logger.warn(`Nie udało się utworzyć sesji dla user=${user.id}: ${(err as Error).message}`);
+    }
+
+    const payload = {
+      email: user.email,
+      sub: user.id,
+      role: user.role,
+      tv: user.tokenVersion,
+      ...(sid ? { sid } : {}),
+    };
     return {
       access_token: this.jwtService.sign(payload),
       user: {
@@ -819,6 +1030,70 @@ export class AuthService {
       },
       ...(opts?.passkeyEnrollmentRequired ? { passkeyEnrollmentRequired: true } : {}),
     };
+  }
+
+  /** SEC-10 — minimalny parser etykiety urządzenia z User-Agent. */
+  private parseDeviceLabel(ua: string | null): string | null {
+    if (!ua) return null;
+    const browser = /(Edg|Chrome|Firefox|Safari|Opera)\/[\d.]+/.exec(ua)?.[1];
+    const os = /\((Windows|Macintosh|iPhone|iPad|Android|Linux)[^)]*\)/.exec(ua)?.[1];
+    if (!browser && !os) return null;
+    return [browser, os].filter(Boolean).join(' · ');
+  }
+
+  /** SEC-10 — lista aktywnych sesji użytkownika (do panelu). */
+  async listSessions(userId: string, currentSid?: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { tokenVersion: true },
+    });
+    if (!user) return { sessions: [] };
+    const rows = await this.prisma.userSession.findMany({
+      where: { userId, revokedAt: null, tokenVersion: user.tokenVersion },
+      orderBy: { lastSeenAt: 'desc' },
+      take: 50,
+      select: {
+        id: true,
+        ipAddress: true,
+        deviceLabel: true,
+        loginMethod: true,
+        createdAt: true,
+        lastSeenAt: true,
+      },
+    });
+    return {
+      sessions: rows.map((r) => ({
+        id: r.id,
+        ipAddress: r.ipAddress,
+        deviceLabel: r.deviceLabel,
+        loginMethod: r.loginMethod,
+        createdAt: r.createdAt.toISOString(),
+        lastSeenAt: r.lastSeenAt.toISOString(),
+        current: currentSid != null && r.id === currentSid,
+      })),
+    };
+  }
+
+  /** SEC-10 — wyloguj pojedynczą sesję (zdalne wylogowanie urządzenia). */
+  async revokeSession(userId: string, sessionId: string): Promise<{ ok: true }> {
+    const row = await this.prisma.userSession.findFirst({
+      where: { id: sessionId, userId },
+      select: { id: true, revokedAt: true },
+    });
+    if (!row) throw new BadRequestException('Nie znaleziono sesji.');
+    if (!row.revokedAt) {
+      await this.prisma.userSession.update({
+        where: { id: sessionId },
+        data: { revokedAt: new Date() },
+      });
+      await this.audit.record({
+        action: 'SESSION_REVOKED',
+        userId,
+        actorUserId: userId,
+        details: { sessionId },
+      });
+    }
+    return { ok: true };
   }
 
   private clientPanelUrl(): string {

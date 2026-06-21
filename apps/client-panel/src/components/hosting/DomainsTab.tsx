@@ -58,6 +58,11 @@ export default function DomainsTab({ serviceId }: Props) {
       title="Domeny na koncie"
       description="Lista domen przypisanych do usługi."
       icon={<Globe className="h-4 w-4" />}
+      help={{
+        blurb:
+          'Aby domena działała na hostingu, trzeba ją „skierować" (nameservery lub rekord A). Pokażemy dokładnie co ustawić u rejestratora i sprawdzimy, czy już działa.',
+        kbQuery: 'skierować domenę',
+      }}
       actions={
         <>
           {links.domainsUrl ? (

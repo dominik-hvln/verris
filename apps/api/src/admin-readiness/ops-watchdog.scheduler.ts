@@ -9,12 +9,17 @@ import { LiveReadinessService } from './live-readiness.service';
 import {
   nodeOfflineAlertTemplate,
   nodeRecoveredTemplate,
+  nodeCapacityAlertTemplate,
   opsDailyDigestTemplate,
 } from '../mail/templates/ops-notifications';
 
 const OFFLINE_AFTER_MS = 10 * 60 * 1000; // no heartbeat for 10 min => offline
 const ALERT_COOLDOWN_MS = 6 * 60 * 60 * 1000; // re-alert at most every 6h per node
 const STALE_BACKUP_MS = 36 * 60 * 60 * 1000; // offsite backup older than 36h is stale
+// OPS-3 — progi pojemności (alokacja planów / pojemność węzła).
+const CAPACITY_WARN_PCT = 85; // alert do adminów
+const CAPACITY_AUTO_CORDON_PCT = 95; // auto-cordon (gdy OPS_AUTO_CORDON=1)
+const CAPACITY_ALERT_COOLDOWN_MS = 12 * 60 * 60 * 1000; // re-alert max co 12h/węzeł
 
 /**
  * Proactive fleet protection for a LIVE platform:
@@ -118,6 +123,115 @@ export class OpsWatchdogScheduler {
       }
     } catch (err) {
       this.logger.error(`checkNodes failed: ${(err as Error).message}`);
+    }
+  }
+
+  /**
+   * OPS-3 — proaktywny alert pojemności. Co godzinę liczy obłożenie (alokacja
+   * planów / pojemność) dla ACTIVE węzłów; gdy najwyższy wymiar przekroczy próg
+   * — alert do adminów (cooldown 12h via audit). Gdy OPS_AUTO_CORDON=1 i ≥95% —
+   * automatycznie ustawia cordon (istniejące konta działają, nowe nie trafiają).
+   */
+  @Cron(CronExpression.EVERY_HOUR)
+  async checkCapacity(): Promise<void> {
+    try {
+      const autoCordon = process.env.OPS_AUTO_CORDON === '1';
+      const servers = await this.prisma.server.findMany({
+        where: { status: ServerStatus.ACTIVE },
+        select: {
+          id: true,
+          name: true,
+          hostname: true,
+          totalCpuCores: true,
+          totalMemoryMb: true,
+          totalDiskMb: true,
+          allocatedCpu: true,
+          allocatedMemory: true,
+          allocatedDisk: true,
+          acceptsNewAccounts: true,
+          maxAccounts: true,
+        },
+      });
+
+      const accountCounts = await this.prisma.account.groupBy({
+        by: ['serverId'],
+        where: { serverId: { in: servers.map((s) => s.id) } },
+        _count: { _all: true },
+      });
+      const countByServer = new Map<string, number>(
+        accountCounts.map((row) => [row.serverId, row._count._all]),
+      );
+
+      const now = Date.now();
+      const since = new Date(now - 25 * 60 * 60 * 1000);
+      const recent = await this.prisma.auditLog.findMany({
+        where: { action: 'NODE_CAPACITY_ALERT', createdAt: { gte: since } },
+        orderBy: { createdAt: 'desc' },
+        select: { details: true, createdAt: true },
+      });
+      const lastAlertFor = (serverId: string) =>
+        recent.find((r) => (r.details as { serverId?: string } | null)?.serverId === serverId)
+          ?.createdAt ?? null;
+
+      const admins = await this.admins();
+
+      for (const s of servers) {
+        const totalCpu = (s.totalCpuCores ?? 0) * 100;
+        const totalRam = s.totalMemoryMb ?? 0;
+        const totalDisk = s.totalDiskMb ?? 0;
+        if (totalCpu === 0 || totalRam === 0 || totalDisk === 0) continue;
+
+        const cpuPct = Math.round((s.allocatedCpu / totalCpu) * 100);
+        const ramPct = Math.round((s.allocatedMemory / totalRam) * 100);
+        const diskPct = Math.round((s.allocatedDisk / totalDisk) * 100);
+        const top = Math.max(cpuPct, ramPct, diskPct);
+        if (top < CAPACITY_WARN_PCT) continue;
+
+        // Auto-cordon (opcjonalny) — tylko gdy bardzo wysoko i jeszcze przyjmuje.
+        let autoCordoned = false;
+        if (autoCordon && top >= CAPACITY_AUTO_CORDON_PCT && s.acceptsNewAccounts) {
+          await this.prisma.server.update({
+            where: { id: s.id },
+            data: { acceptsNewAccounts: false },
+          });
+          await this.audit.record({
+            action: 'ADMIN_NODE_CAPACITY_POLICY_UPDATED',
+            details: { serverId: s.id, changes: { acceptsNewAccounts: false }, auto: true, reason: `capacity ${top}%` },
+          });
+          autoCordoned = true;
+          this.logger.warn(`Auto-cordon węzła ${s.name ?? s.id} przy ${top}% obłożenia`);
+        }
+
+        const last = lastAlertFor(s.id);
+        const onCooldown = last && now - last.getTime() < CAPACITY_ALERT_COOLDOWN_MS;
+        if (onCooldown && !autoCordoned) continue;
+        if (admins.length === 0) continue;
+
+        const name = s.name ?? s.hostname ?? s.id;
+        await this.audit.record({
+          action: 'NODE_CAPACITY_ALERT',
+          details: { serverId: s.id, name, top, cpuPct, ramPct, diskPct, autoCordoned },
+        });
+        await this.fanOut(admins, (a) =>
+          nodeCapacityAlertTemplate({
+            to: a.email,
+            firstName: a.firstName,
+            nodeName: name,
+            nodeId: s.id,
+            topUtilizationPct: top,
+            cpuPct,
+            ramPct,
+            diskPct,
+            accounts: countByServer.get(s.id) ?? 0,
+            maxAccounts: s.maxAccounts,
+            autoCordoned,
+            panelUrl: this.panelUrl(),
+          }),
+        );
+        this.logger.warn(`Capacity alert sent: ${name} (${top}%)`);
+      }
+    } catch (err) {
+      this.logger.error(`checkCapacity failed: ${(err as Error).message}`);
     }
   }
 

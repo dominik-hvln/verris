@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Server, Plus, Cpu, MemoryStick, HardDrive, Clock, AlertCircle } from "lucide-react";
+import { Server, Plus, Cpu, MemoryStick, HardDrive, Clock, AlertCircle, Gauge } from "lucide-react";
 import type { ServerSummaryDto, ServerStatus } from "@verris/contracts";
 import { fetchServers } from "./actions";
 
@@ -27,6 +27,13 @@ export default async function AdminNodesPage() {
         >
           <Plus className="h-4 w-4" />
           Wizard nowego węzła
+        </Link>
+        <Link
+          href="/nodes/capacity"
+          className="inline-flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-white border border-white/10 rounded-lg"
+        >
+          <Gauge className="h-4 w-4" />
+          Pojemność floty
         </Link>
         <Link
           href="/nodes/init"

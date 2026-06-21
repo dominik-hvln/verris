@@ -1147,6 +1147,44 @@ export class DirectAdminService {
     return { ok: true as const };
   }
 
+  async changeHostingEmailPassword(
+    subscriptionId: string,
+    userId: string,
+    input: { email: string; password: string },
+  ) {
+    const [user, domain] = input.email.split('@');
+    if (!user || !domain) throw new BadRequestException('Email must be in user@domain format');
+    if (!input.password || input.password.length < 8) {
+      throw new BadRequestException('Hasło skrzynki musi mieć co najmniej 8 znaków.');
+    }
+    // DA CMD_API_POP action=modify wymaga quota — pobieramy bieżącą, by jej nie wyzerować.
+    let quota = '1024';
+    try {
+      const list = await this.listHostingEmailAccounts(subscriptionId, userId);
+      const box = list.rows.find((r) => r.email === input.email);
+      if (box && typeof box.quotaMb === 'number' && box.quotaMb >= 0) {
+        quota = String(box.quotaMb);
+      }
+    } catch {
+      // brak listy → użyj domyślnej; modyfikacja hasła i tak ma priorytet
+    }
+    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_POP', {
+      action: 'modify',
+      user,
+      domain,
+      passwd: input.password,
+      passwd2: input.password,
+      quota,
+    });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_EMAIL_PASSWORD_CHANGED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, email: input.email },
+    });
+    return { ok: true as const };
+  }
+
   async listHostingCronJobs(subscriptionId: string, userId: string) {
     try {
       const raw = await this.daGetForSubscription(subscriptionId, userId, '/CMD_API_CRON', {});

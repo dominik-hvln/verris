@@ -6,6 +6,7 @@ import type { HostingBackupRowDto } from '@verris/contracts';
 import { fetchHostingBackupsAction } from '@/app/dashboard/services/[id]/hosting-extra-actions';
 import { BackupNowButton } from '@/app/dashboard/backups/backup-now-button';
 import { hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
+import { HostingHelpHint } from '@/components/hosting/HostingTabShell';
 
 export default function BackupsTab({ serviceId }: { serviceId: string }) {
   const [rows, setRows] = useState<HostingBackupRowDto[]>([]);
@@ -25,6 +26,13 @@ export default function BackupsTab({ serviceId }: { serviceId: string }) {
 
   return (
     <div className="space-y-4">
+      <HostingHelpHint
+        help={{
+          blurb:
+            'Kopia zapasowa to Twoja siatka bezpieczeństwa. Dodatkowo robimy kopie poza serwerem. Przed dużymi zmianami zrób kopię jednym kliknięciem.',
+          kbQuery: 'kopie zapasowe',
+        }}
+      />
       <BackupNowButton serviceId={serviceId} />
       {loading ? (
         <div className="flex items-center justify-center gap-2 py-8 text-sm text-neutral-400">

@@ -20,6 +20,8 @@ import {
   PasswordResetRequestDto,
   EmailVerificationConfirmDto,
   EmailVerificationRequestDto,
+  RequestEmailChangeDto,
+  ConfirmEmailChangeDto,
   RegenerateBreakGlassDto,
   RegisterDto,
   VerifyTwoFactorDto,
@@ -97,6 +99,30 @@ export class AuthController {
   @Post('email-verification/confirm')
   async confirmEmailVerification(@Body() dto: EmailVerificationConfirmDto) {
     return this.authService.confirmEmailVerification(dto);
+  }
+
+  /** SEC-9 — self-service zmiana e-mail (krok 1: żądanie z hasłem). */
+  @UseGuards(JwtAuthGuard)
+  @RateLimit({ limit: 5, windowMs: 60 * 60 * 1000, scope: 'auth:email-change' })
+  @HttpCode(HttpStatus.OK)
+  @Post('email-change/request')
+  async requestEmailChange(
+    @CurrentUser() user: { userId: string; principalUserId?: string },
+    @Body() dto: RequestEmailChangeDto,
+  ) {
+    return this.authService.requestEmailChange(
+      user.principalUserId ?? user.userId,
+      dto.newEmail,
+      dto.password,
+    );
+  }
+
+  /** SEC-9 — self-service zmiana e-mail (krok 2: potwierdzenie z linku). */
+  @RateLimit({ limit: 10, windowMs: 60 * 60 * 1000, scope: 'auth:email-change-confirm' })
+  @HttpCode(HttpStatus.OK)
+  @Post('email-change/confirm')
+  async confirmEmailChange(@Body() dto: ConfirmEmailChangeDto) {
+    return this.authService.confirmEmailChange(dto.token);
   }
 
   @RateLimit({ limit: 10, windowMs: 60 * 1000, scope: 'auth:2fa' })
@@ -274,6 +300,26 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   async logoutAll(@CurrentUser() user: { userId: string; principalUserId?: string }) {
     return this.authService.logoutAllDevices(user.principalUserId ?? user.userId);
+  }
+
+  /** SEC-10 — lista aktywnych sesji (urządzeń) zalogowanego użytkownika. */
+  @UseGuards(JwtAuthGuard)
+  @Get('sessions')
+  async listSessions(
+    @CurrentUser() user: { userId: string; principalUserId?: string; sid?: string },
+  ) {
+    return this.authService.listSessions(user.principalUserId ?? user.userId, user.sid);
+  }
+
+  /** SEC-10 — zdalne wylogowanie pojedynczej sesji (urządzenia). */
+  @UseGuards(JwtAuthGuard)
+  @Post('sessions/:id/revoke')
+  @HttpCode(HttpStatus.OK)
+  async revokeSession(
+    @CurrentUser() user: { userId: string; principalUserId?: string },
+    @Param('id') id: string,
+  ) {
+    return this.authService.revokeSession(user.principalUserId ?? user.userId, id);
   }
 
   @UseGuards(JwtAuthGuard)

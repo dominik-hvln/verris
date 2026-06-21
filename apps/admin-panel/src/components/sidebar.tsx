@@ -32,6 +32,7 @@ const adminNavItems = [
     items: [
       { name: "Pulpit", href: "/", icon: LayoutDashboard },
       { name: "Węzły & serwery", href: "/nodes", icon: Server },
+      { name: "Pojemność floty", href: "/nodes/capacity", icon: Gauge },
       { name: "Plany produktowe", href: "/plans", icon: Box },
       { name: "VPS / Cloud", href: "/vps", icon: Server },
       { name: "Subskrypcje i usługi", href: "/subscriptions", icon: Activity },

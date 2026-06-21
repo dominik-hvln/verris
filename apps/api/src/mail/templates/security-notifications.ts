@@ -396,3 +396,154 @@ export function breakGlassUsedAlertTemplate(
     html,
   };
 }
+
+// ---------------------------------------------------------------------------
+// 7. passkey added / removed (klucz bezpieczeństwa — ATO persistence vector)
+// ---------------------------------------------------------------------------
+
+export interface PasskeyChangeContext {
+  to: string;
+  firstName: string | null;
+  at: Date;
+  /** Nazwa passkey nadana przez użytkownika (jeśli była). */
+  deviceName: string | null;
+  panelUrl: string;
+}
+
+export function passkeyAddedTemplate(ctx: PasskeyChangeContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**!` : 'Cześć!';
+  const nameLine = ctx.deviceName ? `- **Nazwa:** ${escapeHtml(ctx.deviceName)}` : null;
+  const { html, text } = renderEmailShell({
+    title: 'Dodano nowy passkey do konta',
+    preheader: 'Do Twojego konta dodano klucz passkey.',
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Do Twojego konta Verris **dodano nowy passkey** (klucz logowania bez hasła). Jeśli to Ty — wszystko w porządku.`,
+      ``,
+      `**Czas:** ${escapeHtml(formatDateTime(ctx.at))}.`,
+      ...(nameLine ? ['', nameLine] : []),
+      ``,
+      `## Czy to NIE byłeś Ty?`,
+      ``,
+      `Dodanie passkey przez osobę trzecią pozwoliłoby jej logować się do Twojego konta. Jeśli to nie Ty:`,
+      ``,
+      `1. **Usuń nieznany passkey** (Ustawienia → Bezpieczeństwo → Passkeys).`,
+      `2. **Zmień hasło** i **wyloguj wszystkie sesje**.`,
+      `3. Napisz do nas: ${escapeHtml('support@verris.pl')}.`,
+    ].join('\n'),
+    cta: { label: 'Zarządzaj passkey', url: `${ctx.panelUrl}/settings/security` },
+    footnote:
+      'Ten alert otrzymujesz przy każdym dodaniu passkey — nie da się go wyłączyć (security-critical).',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return {
+    to: ctx.to,
+    tag: 'security.passkey-added',
+    subject: '[Verris] Dodano nowy passkey do konta',
+    text,
+    html,
+  };
+}
+
+export interface EmailChangeVerifyContext {
+  to: string; // NOWY adres
+  firstName: string | null;
+  confirmUrl: string;
+  expiresMinutes: number;
+  panelUrl: string;
+}
+
+export function emailChangeVerifyTemplate(ctx: EmailChangeVerifyContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**!` : 'Cześć!';
+  const { html, text } = renderEmailShell({
+    title: 'Potwierdź nowy adres e-mail',
+    preheader: 'Kliknij, aby potwierdzić zmianę adresu e-mail konta.',
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Otrzymaliśmy prośbę o zmianę adresu e-mail Twojego konta Verris na **ten adres**. Aby dokończyć, potwierdź klikając przycisk poniżej.`,
+      ``,
+      `Link wygasa za **${ctx.expiresMinutes} min**. Jeśli to nie Ty prosiłeś o zmianę — zignoruj tę wiadomość, nic się nie zmieni.`,
+    ].join('\n'),
+    cta: { label: 'Potwierdź nowy e-mail', url: ctx.confirmUrl },
+    footnote: 'Adres konta zmieni się dopiero po kliknięciu tego potwierdzenia.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return { to: ctx.to, tag: 'security.email-change-verify', subject: '[Verris] Potwierdź nowy adres e-mail', text, html };
+}
+
+export interface EmailChangeAlertContext {
+  to: string; // STARY adres
+  firstName: string | null;
+  newEmail: string;
+  at: Date;
+  panelUrl: string;
+}
+
+export function emailChangeAlertTemplate(ctx: EmailChangeAlertContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: 'Zlecono zmianę adresu e-mail konta',
+    preheader: 'Ktoś poprosił o zmianę adresu e-mail Twojego konta.',
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Na Twoim koncie Verris **zlecono zmianę adresu e-mail** na: \`${escapeHtml(ctx.newEmail)}\`.`,
+      ``,
+      `**Czas:** ${escapeHtml(formatDateTime(ctx.at))}.`,
+      ``,
+      `## Czy to NIE byłeś Ty?`,
+      ``,
+      `Jeśli nie zlecałeś tej zmiany, **natychmiast zmień hasło** i skontaktuj się z nami: ${escapeHtml('support@verris.pl')}. Zmiana wejdzie w życie dopiero po potwierdzeniu z nowej skrzynki — możesz jeszcze zareagować.`,
+    ].join('\n'),
+    cta: { label: 'Otwórz ustawienia bezpieczeństwa', url: `${ctx.panelUrl}/settings` },
+    footnote: 'Alert wysyłany na dotychczasowy adres przy każdej próbie zmiany e-mail.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return { to: ctx.to, tag: 'security.email-change-alert', subject: '[Verris] Zlecono zmianę adresu e-mail konta', text, html };
+}
+
+export function passkeyRemovedTemplate(ctx: PasskeyChangeContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**!` : 'Cześć!';
+  const nameLine = ctx.deviceName ? `- **Nazwa:** ${escapeHtml(ctx.deviceName)}` : null;
+  const { html, text } = renderEmailShell({
+    title: 'Usunięto passkey z konta',
+    preheader: 'Z Twojego konta usunięto klucz passkey.',
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Z Twojego konta Verris **usunięto passkey**. Jeśli to Ty — możesz zignorować tego maila.`,
+      ``,
+      `**Czas:** ${escapeHtml(formatDateTime(ctx.at))}.`,
+      ...(nameLine ? ['', nameLine] : []),
+      ``,
+      `## Czy to NIE byłeś Ty?`,
+      ``,
+      `Jeśli nie usuwałeś tego klucza, ktoś mógł uzyskać dostęp do Twojego konta:`,
+      ``,
+      `1. **Zmień hasło** i **wyloguj wszystkie sesje** (Ustawienia → Bezpieczeństwo).`,
+      `2. Sprawdź listę passkey i 2FA.`,
+      `3. Napisz do nas: ${escapeHtml('support@verris.pl')}.`,
+    ].join('\n'),
+    cta: { label: 'Otwórz ustawienia bezpieczeństwa', url: `${ctx.panelUrl}/settings/security` },
+    footnote:
+      'Ten alert otrzymujesz przy każdym usunięciu passkey — nie da się go wyłączyć (security-critical).',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return {
+    to: ctx.to,
+    tag: 'security.passkey-removed',
+    subject: '[Verris] Usunięto passkey z konta',
+    text,
+    html,
+  };
+}

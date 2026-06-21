@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'crypto';
 import {
   BadRequestException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -20,15 +21,23 @@ import type {
 import { isoBase64URL } from '@simplewebauthn/server/helpers';
 import { PrismaService } from '../../prisma/prisma.service';
 import { EcoPointsService } from '../../eco/eco-points.service';
+import { MailerService } from '../../mail/mailer.service';
+import {
+  passkeyAddedTemplate,
+  passkeyRemovedTemplate,
+} from '../../mail/templates/security-notifications';
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 
 @Injectable()
 export class WebAuthnService {
+  private readonly logger = new Logger(WebAuthnService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly ecoPoints: EcoPointsService,
+    private readonly mailer: MailerService,
   ) {}
 
   isConfigured(): boolean {
@@ -116,6 +125,11 @@ export class WebAuthnService {
         await this.ecoPoints.awardPasskeyRegistered(this.prisma, userId, credentialId);
       });
     }
+
+    // SEC-7 — alert bezpieczeństwa o dodaniu passkey (ATO persistence vector).
+    void this.notifyPasskeyChange(user, 'added', deviceName?.trim() || null).catch((err) =>
+      this.logger.warn(`notifyPasskey(added) failed user=${userId}: ${(err as Error).message}`),
+    );
 
     return { ok: true as const };
   }
@@ -232,7 +246,31 @@ export class WebAuthnService {
     });
     if (!row) throw new NotFoundException('Passkey not found');
     await this.prisma.webAuthnCredential.delete({ where: { id } });
+
+    // SEC-7 — alert bezpieczeństwa o usunięciu passkey.
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true, firstName: true },
+    });
+    if (user) {
+      void this.notifyPasskeyChange(user, 'removed', row.name ?? null).catch((err) =>
+        this.logger.warn(`notifyPasskey(removed) failed user=${userId}: ${(err as Error).message}`),
+      );
+    }
     return { ok: true as const };
+  }
+
+  private async notifyPasskeyChange(
+    user: { email: string; firstName: string | null },
+    kind: 'added' | 'removed',
+    deviceName: string | null,
+  ): Promise<void> {
+    const panelUrl =
+      this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl';
+    const ctx = { to: user.email, firstName: user.firstName, at: new Date(), deviceName, panelUrl };
+    const message =
+      kind === 'added' ? passkeyAddedTemplate(ctx) : passkeyRemovedTemplate(ctx);
+    await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'SECURITY' });
   }
 
   private get rpID(): string {

@@ -26,6 +26,7 @@ import { ServiceGaugeRing, gaugeColors } from '@/components/hosting/ServiceGauge
 import { HostingTabShell } from '@/components/hosting/HostingTabShell';
 import DomainPointingPanel from '@/components/hosting/DomainPointingPanel';
 import { HealthCheckDetails } from '@/components/hosting/HealthCheckDetails';
+import { FirstStepsAssistant } from '@/components/hosting/FirstStepsAssistant';
 import { EcoModeCard } from '@/app/dashboard/services/[id]/autoscaling/eco-mode-card';
 import { clientFeatures } from '@/lib/client-features';
 import { fetchSidebarUser } from '@/app/dashboard/sidebar-actions';
@@ -201,6 +202,10 @@ export default function ServiceOverviewTab({
           ecoModeEnabled={service.ecoModeEnabled}
           ecoPoints={ecoPoints}
         />
+      ) : null}
+
+      {!needsBilling && service.status === 'ACTIVE' ? (
+        <FirstStepsAssistant health={health} onNavigate={onNavigate} />
       ) : null}
 
       <HostingTabShell

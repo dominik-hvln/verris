@@ -78,6 +78,61 @@ export function nodeRecoveredTemplate(ctx: NodeOfflineContext): MailMessage {
   return { to: ctx.to, tag: 'ops.node-recovered', subject: `[Verris] ✅ Węzeł ${ctx.nodeName} znów online`, text, html };
 }
 
+export interface NodeCapacityContext {
+  to: string;
+  firstName: string | null;
+  nodeName: string;
+  nodeId: string;
+  /** Najwyższe obłożenie spośród CPU/RAM/dysku (%). */
+  topUtilizationPct: number;
+  cpuPct: number;
+  ramPct: number;
+  diskPct: number;
+  accounts: number;
+  maxAccounts: number | null;
+  /** Czy watchdog automatycznie ustawił cordon. */
+  autoCordoned: boolean;
+  panelUrl: string;
+}
+
+export function nodeCapacityAlertTemplate(ctx: NodeCapacityContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: `Węzeł ${ctx.nodeName} blisko zapełnienia`,
+    preheader: `Obłożenie ${ctx.topUtilizationPct}% — rozważ dodanie węzła.`,
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `**Węzeł \`${escapeHtml(ctx.nodeName)}\` zbliża się do limitu pojemności** (alokacja planów, bez burstu autoskalowania).`,
+      ``,
+      `- **Węzeł:** ${escapeHtml(ctx.nodeName)} (\`${escapeHtml(ctx.nodeId)}\`)`,
+      `- **CPU:** ${ctx.cpuPct}% · **RAM:** ${ctx.ramPct}% · **Dysk:** ${ctx.diskPct}%`,
+      `- **Konta:** ${ctx.accounts}${ctx.maxAccounts != null ? ` / ${ctx.maxAccounts}` : ''}`,
+      ...(ctx.autoCordoned
+        ? ['', `> ⚠️ Watchdog **automatycznie ustawił cordon** na tym węźle — nie przyjmuje nowych kont, istniejące działają.`]
+        : []),
+      ``,
+      `## Co zrobić`,
+      ``,
+      `1. **Dodaj nowy węzł** (wizard) lub zwiększ pojemność istniejącego.`,
+      `2. Rozważ **rebalans** części kont na mniej obciążony węzeł.`,
+      `3. Sprawdź szczegóły w panelu: Pojemność floty.`,
+    ].join('\n'),
+    cta: { label: 'Otwórz pojemność floty', url: `${ctx.panelUrl}/nodes/capacity` },
+    footnote: 'Alert wysyłany z cooldownem na węzeł. Otrzymują go wszyscy administratorzy.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return {
+    to: ctx.to,
+    tag: 'ops.node-capacity',
+    subject: `[Verris] ⚠️ Węzeł ${ctx.nodeName} blisko zapełnienia (${ctx.topUtilizationPct}%)`,
+    text,
+    html,
+  };
+}
+
 export interface OpsDigestContext {
   to: string;
   firstName: string | null;

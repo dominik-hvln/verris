@@ -5,6 +5,7 @@ import { ConfigService } from '@nestjs/config';
 import type { Request, Response, NextFunction } from 'express';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { beginDraining } from './health/lifecycle';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -51,9 +52,30 @@ async function bootstrap() {
 
   app.useGlobalFilters(new AllExceptionsFilter());
 
+  // STAB-1 — pozwól Nestowi wywołać onModuleDestroy/onApplicationShutdown
+  // (np. zamknięcie połączeń Prisma/Redis) przy zamykaniu.
+  app.enableShutdownHooks();
+
   const port = config.get<number>('port')!;
   await app.listen(port);
   logger.log(`Verris API is running on http://localhost:${port}`);
+
+  // STAB-1 — graceful drain: na SIGTERM (wdrożenie) najpierw oznacz /readyz jako
+  // 503, odczekaj aż reverse-proxy przestanie kierować ruch, dopiero potem zamknij.
+  const drainMs = Number.parseInt(process.env.SHUTDOWN_DRAIN_MS ?? '8000', 10) || 8000;
+  let shuttingDown = false;
+  const shutdown = async (signal: string) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    logger.log(`${signal} received — drenowanie ruchu przez ${drainMs}ms…`);
+    beginDraining();
+    await new Promise((resolve) => setTimeout(resolve, drainMs));
+    logger.log('Zamykanie serwera HTTP…');
+    await app.close();
+    process.exit(0);
+  };
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
+  process.on('SIGINT', () => void shutdown('SIGINT'));
 }
 
 bootstrap().catch((err) => {

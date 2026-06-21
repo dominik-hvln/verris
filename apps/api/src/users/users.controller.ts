@@ -34,6 +34,27 @@ export class UsersController {
     return this.usersService.getProfile(user.userId, user.principalUserId);
   }
 
+  /** SEC-7 — historia logowań zalogowanego użytkownika (self-service). */
+  @Get('me/login-history')
+  loginHistory(@CurrentUser() user: { userId: string }) {
+    return this.usersService.listMyLoginHistory(user.userId);
+  }
+
+  /** SEC-8 — dziennik aktywności konta (self-service, transparentność/RODO). */
+  @Get('me/activity')
+  activity(@CurrentUser() user: { userId: string }) {
+    return this.usersService.listMyActivity(user.userId);
+  }
+
+  /** SEC-6 — włącz/wyłącz wymóg silnego logowania (passkey/2FA) dla konta. */
+  @Patch('me/strong-auth')
+  setStrongAuth(
+    @CurrentUser() user: { userId: string },
+    @Body() body: { enabled: boolean },
+  ) {
+    return this.usersService.setStrongAuthRequirement(user.userId, Boolean(body.enabled));
+  }
+
   @Get('me/eco-ledger')
   ecoLedger(@CurrentUser() user: { userId: string }) {
     return this.usersService.listEcoLedger(user.userId);
