@@ -11,6 +11,15 @@ export interface MonitoringStatus {
   lastHttpStatus: number | null;
   lastError: string | null;
   downSince: string | null;
+  /** B3+ — dostępność z ostatnich 30 dni (lub od początku monitorowania). */
+  uptime: {
+    pct: string;
+    windowDays: number;
+    sinceIso: string;
+    downtimeSeconds: number;
+    incidents: number;
+    measuredFullWindow: boolean;
+  } | null;
   events: Array<{
     id: string;
     type: 'DOWN' | 'RECOVERED';

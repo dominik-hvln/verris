@@ -283,6 +283,34 @@ export class PromoService {
     return this.applyPercentDiscount(listPrice, new Prisma.Decimal(promo.value));
   }
 
+  /**
+   * BILL-1/BILL-2 — kwota najbliższego odnowienia z uwzględnieniem rabatu
+   * startowego. Jedno źródło prawdy dla schedulera obciążeń ORAZ dla maili
+   * przypominających, żeby kwota w przypomnieniu zawsze zgadzała się z realnym
+   * obciążeniem.
+   *
+   * Reguła: dopóki zostają okresy rabatu startowego (`introDiscountPeriodsLeft`)
+   * odnowienie idzie po cenie listowej pomniejszonej o `introDiscountPct`
+   * (rabat startowy NIE łączy się z kodami). Po wyzerowaniu — standardowa logika
+   * (cena listowa albo kod z `appliesToRenewals`).
+   */
+  async resolveNextRenewalAmount(sub: {
+    priceAmount: Prisma.Decimal;
+    listPriceAmount: Prisma.Decimal | null;
+    appliedPromoCodeId: string | null;
+    introDiscountPct: number;
+    introDiscountPeriodsLeft: number;
+  }): Promise<Prisma.Decimal> {
+    if (sub.introDiscountPeriodsLeft > 0 && sub.introDiscountPct > 0) {
+      const listPrice = sub.listPriceAmount ?? sub.priceAmount;
+      return this.applyPercentDiscount(
+        listPrice,
+        new Prisma.Decimal(sub.introDiscountPct),
+      );
+    }
+    return this.resolveSubscriptionRenewalAmount(sub);
+  }
+
   private applyPercentDiscount(
     listPrice: Prisma.Decimal,
     percent: Prisma.Decimal,

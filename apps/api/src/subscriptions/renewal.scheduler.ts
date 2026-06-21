@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { Prisma, SubscriptionStatus, WalletTxType } from '@verris/database';
+import { SubscriptionStatus, WalletTxType } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { WalletLedgerService } from '../billing/wallet-ledger.service';
@@ -165,21 +165,16 @@ export class RenewalScheduler {
       return;
     }
 
-    // BILL-1 — rabat startowy obejmuje pierwsze N okresów. Dopóki zostają
-    // okresy z rabatem, odnawiamy po cenie z rabatem startowym (z ceny listowej,
-    // bez kuponów). Kupony/kody NIE łączą się z rabatem startowym, więc gdy
-    // introDiscountPeriodsLeft > 0 ignorujemy appliedPromoCodeId.
+    // BILL-1/BILL-2 — kwota odnowienia (z rabatem startowym, jeśli zostały okresy)
+    // liczona w jednym miejscu (PromoService), wspólnie z mailem przypominającym.
     const useIntro = sub.introDiscountPeriodsLeft > 0 && sub.introDiscountPct > 0;
-    const renewalAmount = useIntro
-      ? sub.listPriceAmount
-          .mul(new Prisma.Decimal(100 - Math.min(Math.max(sub.introDiscountPct, 0), 100)))
-          .div(100)
-          .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP)
-      : await this.promo.resolveSubscriptionRenewalAmount({
-          priceAmount: sub.priceAmount,
-          listPriceAmount: sub.listPriceAmount,
-          appliedPromoCodeId: sub.appliedPromoCodeId,
-        });
+    const renewalAmount = await this.promo.resolveNextRenewalAmount({
+      priceAmount: sub.priceAmount,
+      listPriceAmount: sub.listPriceAmount,
+      appliedPromoCodeId: sub.appliedPromoCodeId,
+      introDiscountPct: sub.introDiscountPct,
+      introDiscountPeriodsLeft: sub.introDiscountPeriodsLeft,
+    });
 
     try {
       await this.walletLedger.debit({
@@ -324,6 +319,3 @@ function addInterval(from: Date, interval: 'MONTH' | 'YEAR'): Date {
   else next.setUTCFullYear(next.getUTCFullYear() + 1);
   return next;
 }
-
-// suppress unused-import warning
-void Prisma;

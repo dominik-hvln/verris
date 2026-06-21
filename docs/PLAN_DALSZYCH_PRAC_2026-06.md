@@ -13,6 +13,32 @@ cyberfolks, home.pl), zero mocków na produkcji.
 
 ## 1. Zrobione w tej iteracji
 
+- **MON-1 — karta dostępności (uptime 30 dni) w panelu klienta.** Z realnych
+  zdarzeń `SiteMonitorEvent` liczymy % dostępności w oknie 30 dni (suma czasu
+  awarii + trwająca awaria), z oknem przyciętym do daty utworzenia monitora —
+  nie udajemy 100% za czas, gdy jeszcze nie monitorowaliśmy. `UptimeCard` w
+  zakładce Monitoring pokazuje %, łączną niedostępność, liczbę awarii i notkę,
+  gdy danych jest mniej niż 30 dni. Bez migracji, bez płatności. (Świadomie nie
+  obiecujemy SLA dla strony klienta — uptime strony zależy od jego aplikacji;
+  infrastrukturalne SLA pozostaje na status page jako `declaredSlaPct`.)
+
+- **BILL-1 — rabat startowy z ustawień admina (bez kuponów Stripe).** Rabat na
+  pierwsze N okresów liczony z oferty trialu (roczny/miesięczny %, tylko
+  portfel). Reguła **nie-łączenia**: porównujemy rabat startowy z wpisanym
+  kodem i stosujemy korzystniejszy (remis → kod). Na subskrypcji zapisujemy
+  `introDiscountPct` + `introDiscountPeriodsLeft`; scheduler odnowień nalicza
+  rabat dopóki zostają okresy, potem pełna cena. Klient widzi przekreśloną
+  cenę + komunikat „ten kod daje mniejszy rabat niż promocja na start". Migracja
+  `20260621000000_bill1_intro_discount`. ⚠️ dotyka pieniędzy — wymaga E2E
+  rozliczeniowego (zakup z rabatem/kodem + odnowienie z dekrementacją).
+- **BILL-2 — przypomnienia o odnowieniu zgodne z realną kwotą + ostrzeżenie o
+  niedoborze.** Po BILL-1 mail T-7/T-3/T-1 pokazywałby `priceAmount` (cena
+  1. okresu z rabatem), a portfel obciążany jest kwotą odnowienia — naprawione:
+  jedno źródło prawdy `PromoService.resolveNextRenewalAmount()` używane przez
+  scheduler obciążeń ORAZ maile. Gdy płatność z portfela i saldo < kwota
+  odnowienia, mail dostaje czytelne ostrzeżenie „doładuj co najmniej X K, aby
+  uniknąć zawieszenia" + zmieniony temat/CTA. Anty-churn dla modelu prepaid.
+
 - **Safari passkey** — przyczyna: conditional-UI autofill (mediation:
   'conditional') trzymał oczekującą ceremonię WebAuthn; na WebKit blokuje to
   modalne logowanie przyciskiem. Fix: `isAppleWebKit()` → na Safari nie

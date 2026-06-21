@@ -141,6 +141,11 @@ export default function MonitoringTab({ serviceId }: Props) {
         </div>
       )}
 
+      {/* B3+ — dostępność z 30 dni (realne dane z monitoringu) */}
+      {status.enabled && status.uptime && (
+        <UptimeCard uptime={status.uptime} />
+      )}
+
       {/* Historia awarii */}
       {status.enabled && status.events.length > 0 && (
         <div className="rounded-2xl border border-white/10 bg-black/30 p-6">
@@ -180,6 +185,65 @@ export default function MonitoringTab({ serviceId }: Props) {
       {status.enabled && status.events.length === 0 && status.lastStatus === 'UP' && (
         <p className="flex items-center gap-2 text-sm text-neutral-500 px-1">
           <AlertCircle className="h-4 w-4" /> Brak awarii w historii — oby tak dalej.
+        </p>
+      )}
+    </div>
+  );
+}
+
+function formatDowntime(seconds: number): string {
+  if (seconds <= 0) return '0 min';
+  const d = Math.floor(seconds / 86400);
+  const h = Math.floor((seconds % 86400) / 3600);
+  const m = Math.max(1, Math.round((seconds % 3600) / 60));
+  if (d > 0) return `${d} d ${h} h`;
+  if (h > 0) return `${h} h ${m} min`;
+  return `${m} min`;
+}
+
+/** B3+ — karta dostępności (uptime) z realnych zdarzeń monitoringu. */
+function UptimeCard({
+  uptime,
+}: {
+  uptime: NonNullable<MonitoringStatus['uptime']>;
+}) {
+  const pct = Number.parseFloat(uptime.pct);
+  // Próg „bardzo dobrze" — informacyjny, nie obietnica SLA dla strony klienta.
+  const good = pct >= 99.9;
+  const ok = pct >= 99 && pct < 99.9;
+  const tone = good
+    ? { ring: 'border-emerald-500/30 bg-emerald-500/5', text: 'text-emerald-300' }
+    : ok
+      ? { ring: 'border-amber-400/30 bg-amber-400/5', text: 'text-amber-300' }
+      : { ring: 'border-rose-500/30 bg-rose-500/5', text: 'text-rose-300' };
+
+  return (
+    <div className={`rounded-2xl border p-6 ${tone.ring}`}>
+      <div className="flex items-end justify-between gap-4 flex-wrap">
+        <div>
+          <p className="text-xs uppercase tracking-wider text-neutral-400">
+            Dostępność{' '}
+            {uptime.measuredFullWindow
+              ? `(ostatnie ${uptime.windowDays} dni)`
+              : 'od początku monitorowania'}
+          </p>
+          <p className={`mt-1 text-4xl font-bold ${tone.text}`}>{uptime.pct}%</p>
+        </div>
+        <div className="text-right text-xs text-neutral-400 space-y-0.5">
+          <p>
+            Niedostępność:{' '}
+            <span className="text-neutral-200">{formatDowntime(uptime.downtimeSeconds)}</span>
+          </p>
+          <p>
+            Awarie w okresie:{' '}
+            <span className="text-neutral-200">{uptime.incidents}</span>
+          </p>
+        </div>
+      </div>
+      {!uptime.measuredFullWindow && (
+        <p className="mt-3 text-[11px] text-neutral-500">
+          Monitorujemy od {new Date(uptime.sinceIso).toLocaleDateString('pl-PL')}. Pełne 30 dni
+          pokażemy, gdy uzbiera się więcej danych.
         </p>
       )}
     </div>

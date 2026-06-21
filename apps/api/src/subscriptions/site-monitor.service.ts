@@ -63,6 +63,10 @@ export class SiteMonitorService {
       lastHttpStatus: monitor?.lastHttpStatus ?? null,
       lastError: monitor?.lastError ?? null,
       downSince: monitor?.downSince?.toISOString() ?? null,
+      // B3+ — uptime z ostatnich 30 dni (lub od początku monitorowania) z
+      // realnych zdarzeń DOWN/RECOVERED. Uczciwie: okno nie sięga przed
+      // utworzenie monitora, więc nie udajemy 100% za czas, gdy nie patrzyliśmy.
+      uptime: monitor ? await this.computeUptimeWindow(monitor) : null,
       events: (monitor?.events ?? []).map((e) => ({
         id: e.id,
         type: e.type,
@@ -71,6 +75,60 @@ export class SiteMonitorService {
         durationS: e.durationS,
         createdAt: e.createdAt.toISOString(),
       })),
+    };
+  }
+
+  /**
+   * Liczy dostępność (%) w oknie ostatnich `windowDays` dni na podstawie sumy
+   * czasu awarii (zdarzenia RECOVERED z `durationS`) + ewentualnej trwającej
+   * awarii (`downSince`). Okno przycinamy do momentu utworzenia monitora.
+   */
+  private async computeUptimeWindow(
+    monitor: SiteMonitor,
+    windowDays = 30,
+  ): Promise<{
+    pct: string;
+    windowDays: number;
+    sinceIso: string;
+    downtimeSeconds: number;
+    incidents: number;
+    measuredFullWindow: boolean;
+  }> {
+    const now = Date.now();
+    const fullWindowStart = now - windowDays * 24 * 60 * 60 * 1000;
+    const windowStartMs = Math.max(fullWindowStart, monitor.createdAt.getTime());
+    const windowSeconds = Math.max(1, Math.round((now - windowStartMs) / 1000));
+
+    const recovered = await this.prisma.siteMonitorEvent.findMany({
+      where: {
+        monitorId: monitor.id,
+        type: SiteMonitorEventType.RECOVERED,
+        createdAt: { gte: new Date(windowStartMs) },
+      },
+      select: { durationS: true },
+    });
+
+    let downtimeSeconds = recovered.reduce((acc, e) => acc + (e.durationS ?? 0), 0);
+    let incidents = recovered.length;
+
+    // Trwająca awaria (jeszcze bez RECOVERED) — dolicz czas od downSince,
+    // przycięty do początku okna.
+    if (monitor.downSince) {
+      const ongoingFrom = Math.max(monitor.downSince.getTime(), windowStartMs);
+      downtimeSeconds += Math.max(0, Math.round((now - ongoingFrom) / 1000));
+      incidents += 1;
+    }
+
+    downtimeSeconds = Math.min(downtimeSeconds, windowSeconds);
+    const pctNum = Math.max(0, Math.min(100, (1 - downtimeSeconds / windowSeconds) * 100));
+
+    return {
+      pct: pctNum.toFixed(3),
+      windowDays,
+      sinceIso: new Date(windowStartMs).toISOString(),
+      downtimeSeconds,
+      incidents,
+      measuredFullWindow: monitor.createdAt.getTime() <= fullWindowStart,
     };
   }
 

@@ -266,6 +266,11 @@ export interface SubscriptionRenewalReminderContext {
   /** Pre-formatted "Twój plan" details that vary per service kind. */
   planSummary: string;
   panelUrl: string;
+  /**
+   * BILL-2 — gdy płatność idzie z portfela i saldo nie wystarcza na odnowienie,
+   * to kwota do doładowania (string „12.00"). null/undefined = brak niedoboru.
+   */
+  shortfallAmount?: string | null;
 }
 
 const WINDOW_LABEL: Record<RenewalReminderWindow, string> = {
@@ -281,13 +286,31 @@ export function subscriptionRenewalReminderTemplate(
   const when = WINDOW_LABEL[ctx.window];
   const amount = ctx.currency === 'PLN' ? formatPLN(ctx.amount) : `${ctx.amount} ${ctx.currency}`;
 
-  const sourceLine = ctx.payFromWallet
-    ? `Płatność zostanie pobrana z **portfela Verris** (saldo: **${escapeHtml(
-        ctx.walletBalance,
-      )} K**). Jeśli środków zabraknie — usługa może zostać zawieszona.`
-    : 'Płatność zostanie pobrana **automatycznie ze Stripe** z karty zapisanej w Twoim koncie.';
+  const hasShortfall =
+    ctx.payFromWallet && !!ctx.shortfallAmount && Number.parseFloat(ctx.shortfallAmount) > 0;
+  const shortfall = hasShortfall
+    ? ctx.currency === 'PLN'
+      ? formatPLN(ctx.shortfallAmount as string)
+      : `${ctx.shortfallAmount} ${ctx.currency}`
+    : null;
 
-  const ctaLabel = ctx.payFromWallet ? 'Sprawdź saldo portfela' : 'Zarządzaj subskrypcją';
+  const sourceLine = !ctx.payFromWallet
+    ? 'Płatność zostanie pobrana **automatycznie ze Stripe** z karty zapisanej w Twoim koncie.'
+    : hasShortfall
+      ? `⚠️ **Uwaga — środków w portfelu może zabraknąć.** Saldo to **${escapeHtml(
+          ctx.walletBalance,
+        )} K**, a odnowienie kosztuje **${escapeHtml(amount)}**. Doładuj co najmniej **${escapeHtml(
+          shortfall as string,
+        )}**, aby uniknąć zawieszenia usługi. Jeśli odnowienie się nie powiedzie, usługa zostanie wstrzymana — Twoje dane i pliki zachowujemy.`
+      : `Płatność zostanie pobrana z **portfela Verris** (saldo: **${escapeHtml(
+          ctx.walletBalance,
+        )} K**). Środków wystarczy na to odnowienie.`;
+
+  const ctaLabel = hasShortfall
+    ? 'Doładuj portfel'
+    : ctx.payFromWallet
+      ? 'Sprawdź saldo portfela'
+      : 'Zarządzaj subskrypcją';
   const ctaUrl = ctx.payFromWallet
     ? `${ctx.panelUrl}/dashboard/billing`
     : `${ctx.panelUrl}/dashboard/subscriptions`;
@@ -327,7 +350,9 @@ export function subscriptionRenewalReminderTemplate(
   return {
     to: ctx.to,
     tag: `subscription.renewal-reminder.${tagSuffix}`,
-    subject: `[Verris] Odnowienie ${ctx.serviceName} ${when}`,
+    subject: hasShortfall
+      ? `[Verris] Doładuj portfel — odnowienie ${ctx.serviceName} ${when}`
+      : `[Verris] Odnowienie ${ctx.serviceName} ${when}`,
     text,
     html,
   };
