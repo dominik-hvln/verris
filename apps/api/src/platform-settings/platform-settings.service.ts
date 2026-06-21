@@ -265,6 +265,74 @@ export class PlatformSettingsService {
     return this.getTrialOffer();
   }
 
+  // MON-3 — ustawienia monitoringu strony (interwały + cena płatnego tieru).
+  async getMonitoringSettings(): Promise<{
+    freeIntervalMinutes: number;
+    paidIntervalMinutes: number;
+    paidMonthlyPrice: number;
+    paidOffered: boolean;
+  }> {
+    const map = await this.loadMap();
+    return {
+      freeIntervalMinutes: this.readInt(
+        map,
+        PLATFORM_SETTING_KEYS.MONITORING_FREE_INTERVAL_MIN,
+        30,
+        1,
+        1440,
+      ),
+      paidIntervalMinutes: this.readInt(
+        map,
+        PLATFORM_SETTING_KEYS.MONITORING_PAID_INTERVAL_MIN,
+        1,
+        1,
+        60,
+      ),
+      paidMonthlyPrice: this.readInt(
+        map,
+        PLATFORM_SETTING_KEYS.MONITORING_PAID_PRICE,
+        5,
+        0,
+        100000,
+      ),
+      paidOffered: this.readStr(map, PLATFORM_SETTING_KEYS.MONITORING_PAID_OFFERED, '1') === '1',
+    };
+  }
+
+  async updateMonitoringSettings(
+    input: {
+      freeIntervalMinutes: number;
+      paidIntervalMinutes: number;
+      paidMonthlyPrice: number;
+      paidOffered: boolean;
+    },
+    actorUserId: string,
+  ): Promise<{
+    freeIntervalMinutes: number;
+    paidIntervalMinutes: number;
+    paidMonthlyPrice: number;
+    paidOffered: boolean;
+  }> {
+    const free = Math.min(Math.max(Math.round(input.freeIntervalMinutes) || 30, 1), 1440);
+    const paid = Math.min(Math.max(Math.round(input.paidIntervalMinutes) || 1, 1), 60);
+    const price = Math.min(Math.max(Math.round(input.paidMonthlyPrice) || 0, 0), 100000);
+    await this.upsertMany(
+      [
+        [PLATFORM_SETTING_KEYS.MONITORING_FREE_INTERVAL_MIN, String(free)],
+        [PLATFORM_SETTING_KEYS.MONITORING_PAID_INTERVAL_MIN, String(paid)],
+        [PLATFORM_SETTING_KEYS.MONITORING_PAID_PRICE, String(price)],
+        [PLATFORM_SETTING_KEYS.MONITORING_PAID_OFFERED, input.paidOffered ? '1' : '0'],
+      ],
+      actorUserId,
+    );
+    await this.audit.record({
+      action: 'PLATFORM_MONITORING_SETTINGS_UPDATED',
+      userId: actorUserId,
+      details: { ...input },
+    });
+    return this.getMonitoringSettings();
+  }
+
   /**
    * Platform-default authoritative nameservers for provisioned hosting accounts.
    * Resolution: PlatformSetting `hosting.ns*` → env `HOSTING_NS*` → empty.

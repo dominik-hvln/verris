@@ -313,6 +313,27 @@ export class ProvisioningService {
       },
     });
 
+    // MON-2 — monitoring strony domyślnie włączony dla usług hostingowych
+    // (darmowy, zawsze-on; klient może wyłączyć w panelu). Best-effort: nie
+    // blokuje aktywacji. Przy re-provisioningu nie nadpisujemy decyzji klienta.
+    if (subscription.plan.productKind === 'HOSTING') {
+      try {
+        await this.prisma.siteMonitor.upsert({
+          where: { subscriptionId: subscription.id },
+          create: {
+            subscriptionId: subscription.id,
+            enabled: true,
+            url: `https://${domain}`,
+          },
+          update: {},
+        });
+      } catch (err) {
+        this.logger.warn(
+          `Nie udało się włączyć domyślnego monitoringu dla sub=${subscription.id}: ${(err as Error).message}`,
+        );
+      }
+    }
+
     void this.ecoPoints.safeAward(`subscription_first_paid:${subscription.id}`, async () => {
       await this.ecoPoints.awardSubscriptionFirstPaid(
         this.prisma,

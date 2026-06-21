@@ -2583,20 +2583,41 @@ model SiteMonitor {
   subscriptionId   String            @unique
   subscription     Subscription      @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
   enabled          Boolean           @default(true)
+  /// MON-6 — czy wysyłać klientowi maile o awarii/powrocie/SSL (monitoring działa
+  /// niezależnie). Płatne powiadomienia rozliczeniowe idą zawsze.
+  notifyEmail      Boolean           @default(true)
   /// Pełny URL sprawdzany przez monitor (https://<domena glowna>).
   url              String
   lastStatus       SiteMonitorStatus @default(UNKNOWN)
   consecutiveFails Int               @default(0)
   lastCheckedAt    DateTime?
   lastHttpStatus   Int?
+  /// MON-4 — czas odpowiedzi ostatniego udanego sprawdzenia (ms).
+  lastResponseMs   Int?
   lastError        String?
   downSince        DateTime?
+  // MON-5 — wygasanie certyfikatu TLS (odczyt przez handshake, nie z DA).
+  tlsExpiresAt        DateTime?
+  tlsCheckedAt        DateTime?
+  /// Wartość `tlsExpiresAt`, dla której wysłaliśmy już ostrzeżenie (anty-spam;
+  /// po odnowieniu certyfikatu zmienia się i ostrzeżenie może pójść ponownie).
+  tlsExpiryNotifiedFor DateTime?
+  // MON-3 — płatny tier monitoringu (szybsze sprawdzanie), rozliczany
+  // miesięcznie z portfela. Gdy false → darmowy interwał. Przy braku środków
+  // scheduler ustawia paidTier=false (powrót do darmowego — usługa nie znika).
+  paidTier              Boolean   @default(false)
+  paidActivatedAt       DateTime?
+  /// Następna miesięczna opłata za płatny monitoring.
+  paidNextChargeAt      DateTime?
+  /// Klient wyłączył odnawianie — szybki tier do końca opłaconego okresu.
+  paidCancelAtPeriodEnd Boolean   @default(false)
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
   events           SiteMonitorEvent[]
 
   @@index([enabled])
+  @@index([paidTier, paidNextChargeAt])
 }
 
 enum SiteMonitorEventType {

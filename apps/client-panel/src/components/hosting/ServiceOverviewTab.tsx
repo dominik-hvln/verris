@@ -15,8 +15,14 @@ import {
   RefreshCw,
   Shield,
   ArrowRightLeft,
+  Lightbulb,
+  ArrowRight,
 } from 'lucide-react';
-import type { ServiceDetailsDto, ServiceHealthSummaryDto } from '@verris/contracts';
+import type {
+  ServiceDetailsDto,
+  ServiceHealthSummaryDto,
+  ServiceRecommendationDto,
+} from '@verris/contracts';
 import { Button } from '@verris/ui';
 import { fetchServiceDetailsAction } from '@/app/dashboard/services/[id]/hosting-service-actions';
 import { fetchHostingUsageAction } from '@/app/dashboard/services/[id]/hosting-usage-actions';
@@ -307,6 +313,13 @@ export default function ServiceOverviewTab({
         {health ? <HealthCheckDetails health={health} /> : null}
       </HostingTabShell>
 
+      {/* #19 — rekomendacje (autoscaling / plan / domena / backup) z realnych danych */}
+      <RecommendationsCard
+        recommendations={service.recommendations}
+        serviceId={serviceId}
+        onNavigate={onNavigate}
+      />
+
       <DomainPointingPanel
         serviceId={serviceId}
         dnsManageUrl={links.dnsUrl}
@@ -451,6 +464,87 @@ export default function ServiceOverviewTab({
             Usage, backup i badge uptime →
           </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** #19 — karta rekomendacji/upsell z realnych danych usługi. */
+function RecommendationsCard({
+  recommendations,
+  serviceId,
+  onNavigate,
+}: {
+  recommendations: ServiceRecommendationDto[];
+  serviceId: string;
+  onNavigate: (tab: string) => void;
+}) {
+  // Pomijamy „wszystko gra" filler (type plan + severity info + tytuł o poprawnym
+  // działaniu) — pokazujemy tylko realnie actionable rekomendacje.
+  const items = recommendations.filter(
+    (r) => !(r.severity === 'info' && r.title.startsWith('Usługa działa')),
+  );
+  if (items.length === 0) return null;
+
+  const tone: Record<ServiceRecommendationDto['severity'], string> = {
+    critical: 'border-rose-500/30 bg-rose-500/5',
+    warning: 'border-amber-400/30 bg-amber-400/5',
+    info: 'border-sky-400/25 bg-sky-400/5',
+  };
+
+  const cta = (r: ServiceRecommendationDto): { label: string; href?: string; tab?: string } => {
+    switch (r.type) {
+      case 'plan':
+        return { label: 'Zobacz plany', href: `/dashboard/services/${serviceId}/plan` };
+      case 'autoscaling':
+        return { label: 'Ustaw autoscaling', href: `/dashboard/services/${serviceId}/autoscaling` };
+      case 'backup':
+        return { label: 'Przejdź do kopii', tab: 'backups' };
+      case 'domain':
+      default:
+        return { label: 'Sprawdź domenę i DNS', tab: 'domains' };
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 space-y-3">
+      <h3 className="text-sm font-bold text-white flex items-center gap-2">
+        <Lightbulb className="h-4 w-4 text-amber-300" />
+        Rekomendacje
+      </h3>
+      <div className="space-y-2">
+        {items.map((r, i) => {
+          const c = cta(r);
+          return (
+            <div
+              key={`${r.type}-${i}`}
+              className={`flex items-start justify-between gap-3 rounded-xl border p-3 ${tone[r.severity]}`}
+            >
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-white">{r.title}</p>
+                <p className="text-xs text-neutral-300 mt-0.5">{r.body}</p>
+              </div>
+              {c.href ? (
+                <Link
+                  href={c.href}
+                  className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-white/15 bg-white/[0.04] px-2.5 py-1.5 text-[11px] font-medium text-white hover:bg-white/10"
+                >
+                  {c.label}
+                  <ArrowRight className="h-3 w-3" />
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => onNavigate(c.tab!)}
+                  className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-white/15 bg-white/[0.04] px-2.5 py-1.5 text-[11px] font-medium text-white hover:bg-white/10"
+                >
+                  {c.label}
+                  <ArrowRight className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

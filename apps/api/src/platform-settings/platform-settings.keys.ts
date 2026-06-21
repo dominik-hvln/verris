@@ -23,6 +23,16 @@ export const PLATFORM_SETTING_KEYS = {
   /** BILL-1 — liczba pierwszych okresów objętych rabatem startowym (1 = tylko start). */
   TRIAL_INTRO_PERIODS: 'trial.introDiscountPeriods',
 
+  // MON-3 — monitoring strony: interwały (min) per tier + cena płatnego.
+  /** Darmowy interwał sprawdzania w minutach (default 30). */
+  MONITORING_FREE_INTERVAL_MIN: 'monitoring.freeIntervalMinutes',
+  /** Płatny interwał sprawdzania w minutach (default 1). */
+  MONITORING_PAID_INTERVAL_MIN: 'monitoring.paidIntervalMinutes',
+  /** Miesięczna cena płatnego monitoringu w K (default 5). */
+  MONITORING_PAID_PRICE: 'monitoring.paidMonthlyPrice',
+  /** Czy oferować klientom upgrade do płatnego monitoringu (1/0). */
+  MONITORING_PAID_OFFERED: 'monitoring.paidOffered',
+
   /** Platform-default authoritative nameservers for provisioned hosting accounts. */
   HOSTING_NS1: 'hosting.ns1',
   HOSTING_NS2: 'hosting.ns2',
@@ -65,6 +75,10 @@ export const PLATFORM_SETTING_DEFAULTS: Record<PlatformSettingKey, string> = {
   [PLATFORM_SETTING_KEYS.TRIAL_ANNUAL_PROMO_CODE]: '',
   [PLATFORM_SETTING_KEYS.TRIAL_MONTHLY_PROMO_CODE]: '',
   [PLATFORM_SETTING_KEYS.TRIAL_INTRO_PERIODS]: '1',
+  [PLATFORM_SETTING_KEYS.MONITORING_FREE_INTERVAL_MIN]: '30',
+  [PLATFORM_SETTING_KEYS.MONITORING_PAID_INTERVAL_MIN]: '1',
+  [PLATFORM_SETTING_KEYS.MONITORING_PAID_PRICE]: '5',
+  [PLATFORM_SETTING_KEYS.MONITORING_PAID_OFFERED]: '1',
   [PLATFORM_SETTING_KEYS.STAFF_IDLE_MINUTES]: '30',
   [PLATFORM_SETTING_KEYS.ADMIN_IDLE_MINUTES]: '15',
   [PLATFORM_SETTING_KEYS.HOSTING_NS1]: '',

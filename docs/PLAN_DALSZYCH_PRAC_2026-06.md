@@ -13,6 +13,56 @@ cyberfolks, home.pl), zero mocków na produkcji.
 
 ## 1. Zrobione w tej iteracji
 
+- **MON-6 — sterowanie powiadomieniami e-mail per usługa.** Klient może wyciszyć
+  maile o awarii/powrocie/SSL, zostawiając monitoring włączony (wcześniej jedyną
+  opcją było wyłączenie całego monitoringu). `SiteMonitor.notifyEmail`
+  (migracja `20260621130000_mon6_notify_email`), endpoint
+  `/services/:id/monitoring/notify`, przełącznik w zakładce Monitoring. Maile
+  rozliczeniowe (np. wygaśnięcie płatnego tieru) idą zawsze — wyciszamy tylko
+  alerty monitoringu.
+
+- **MON-5 — ostrzeżenia o wygasającym certyfikacie SSL.** Dzienny sweep czyta
+  datę wygaśnięcia certu przez handshake TLS na :443 (bez obciążania DA;
+  `rejectUnauthorized:false`, więc widzi też certy wygasłe/samopodpisane).
+  Zapis `SiteMonitor.tlsExpiresAt/tlsCheckedAt/tlsExpiryNotifiedFor` (migracja
+  `20260621120000_mon5_ssl_expiry`). Gdy ≤14 dni do końca — e-mail do klienta
+  (anty-spam per certyfikat; po odnowieniu ostrzeżenie może pójść ponownie).
+  Panel: linia „Certyfikat SSL ważny jeszcze X dni / wygasł" z kolorem ostrzeżenia.
+
+- **MON-4 — czas odpowiedzi (response time).** Każde udane sprawdzenie zapisuje
+  `SiteMonitor.lastResponseMs` (migracja `20260621110000_mon4_response_time`),
+  pokazywany w panelu klienta w linii statusu („odpowiedź X ms"). Fundament pod
+  ewentualny wykres TTFB. Bez płatności.
+- **MON-3 (uzupełnienie) — e-mail przy zejściu z płatnego tieru.** Gdy
+  miesięczna opłata nie przejdzie z braku środków, klient dostaje wiadomość
+  „szybki monitoring wstrzymany, wróciliśmy do co X min — doładuj i włącz
+  ponownie" (zamiast cichego downgrade'u). Dodatkowo: revert do darmowego
+  następuje WYŁĄCZNIE przy realnym braku środków (`ConflictException`); błędy
+  przejściowe (DB/lock) są ponawiane w kolejnej godzinie, nie obniżają tieru.
+
+- **MON-3 — płatny tier monitoringu + ustawienia w adminie.** Darmowy interwał
+  rozrzedzony i konfigurowalny (default 30 min). Klient może włączyć „szybki
+  monitoring" (default co 1 min) rozliczany **miesięcznie z portfela**; przy
+  braku środków scheduler wraca do darmowego interwału (usługa nie znika).
+  Rezygnacja = szybki tier do końca opłaconego okresu (`paidCancelAtPeriodEnd`),
+  można wznowić bez ponownej opłaty. Admin ustawia: darmowy/płatny interwał,
+  cenę miesięczną i czy oferta jest widoczna (`/admin/platform-settings/monitoring`).
+  Schemat: `SiteMonitor.paidTier/paidActivatedAt/paidNextChargeAt/paidCancelAtPeriodEnd`
+  (migracja `20260621100000_mon3_paid_monitoring`). UI: upsell/zarządzanie w
+  zakładce Monitoring + formularz w ustawieniach platformy. ⚠️ dotyka pieniędzy
+  — wymaga E2E (włączenie+opłata, miesięczne obciążenie, brak środków→powrót do
+  darmowego, rezygnacja+wznowienie).
+
+- **MON-2 — monitoring strony domyślnie włączony (free, always-on).** Decyzja
+  produktowa: monitoring to darmowy wyróżnik, domyślnie ON dla **nowych** usług
+  hostingowych (provisioning tworzy `SiteMonitor enabled=true` dla głównej
+  domeny; best-effort, nie blokuje aktywacji, nie nadpisuje decyzji klienta przy
+  re-provisioningu; tylko `productKind=HOSTING`, więc poczta/VPS pomijane).
+  Istniejące konta bez zmian (świadomie — uniknięcie nagłej fali maili). Opt-out
+  w panelu zostaje. Tiering interwału w schedulerze: usługi płatne sprawdzane co
+  1 min, darmowe/trial co 5 min (`priceAmount>0`) — taniej przy skali, nadal
+  szybko. Bez migracji.
+
 - **MON-1 — karta dostępności (uptime 30 dni) w panelu klienta.** Z realnych
   zdarzeń `SiteMonitorEvent` liczymy % dostępności w oknie 30 dni (suma czasu
   awarii + trwająca awaria), z oknem przyciętym do daty utworzenia monitora —

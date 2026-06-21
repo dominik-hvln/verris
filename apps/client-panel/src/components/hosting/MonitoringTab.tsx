@@ -9,9 +9,12 @@ import {
   HeartPulse,
   Loader2,
 } from 'lucide-react';
+import { Zap, Loader2 as Loader, ShieldCheck } from 'lucide-react';
 import {
   getMonitoringStatus,
   setMonitoringEnabled,
+  setMonitoringNotify,
+  setPaidMonitoring,
   type MonitoringStatus,
 } from '@/app/dashboard/services/[id]/monitoring-actions';
 
@@ -133,7 +136,7 @@ export default function MonitoringTab({ serviceId }: Props) {
                   : status.lastCheckedAt
                     ? `Ostatnie sprawdzenie: ${new Date(status.lastCheckedAt).toLocaleTimeString('pl-PL')}${
                         status.lastHttpStatus ? ` (HTTP ${status.lastHttpStatus})` : ''
-                      }`
+                      }${status.lastResponseMs != null ? ` · odpowiedź ${status.lastResponseMs} ms` : ''}`
                     : 'Pierwszy wynik pojawi się w ciągu minuty.'}
               </p>
             </div>
@@ -141,9 +144,26 @@ export default function MonitoringTab({ serviceId }: Props) {
         </div>
       )}
 
+      {/* MON-6 — powiadomienia e-mail (monitoring działa niezależnie) */}
+      {status.enabled && (
+        <NotifyToggle serviceId={serviceId} notifyEmail={status.notifyEmail} onChange={setStatus} />
+      )}
+
+      {/* MON-5 — wygasanie certyfikatu SSL */}
+      {status.enabled && status.tlsExpiresAt && <SslLine tlsExpiresAt={status.tlsExpiresAt} />}
+
       {/* B3+ — dostępność z 30 dni (realne dane z monitoringu) */}
       {status.enabled && status.uptime && (
         <UptimeCard uptime={status.uptime} />
+      )}
+
+      {/* MON-3 — płatny tier: szybsze sprawdzanie */}
+      {status.enabled && (
+        <PaidMonitoringCard
+          serviceId={serviceId}
+          paid={status.paid}
+          onChange={setStatus}
+        />
       )}
 
       {/* Historia awarii */}
@@ -187,6 +207,172 @@ export default function MonitoringTab({ serviceId }: Props) {
           <AlertCircle className="h-4 w-4" /> Brak awarii w historii — oby tak dalej.
         </p>
       )}
+    </div>
+  );
+}
+
+/** MON-3 — upsell/zarządzanie płatnym monitoringiem (szybkie sprawdzanie). */
+function PaidMonitoringCard({
+  serviceId,
+  paid,
+  onChange,
+}: {
+  serviceId: string;
+  paid: NonNullable<MonitoringStatus['paid']>;
+  onChange: (s: MonitoringStatus) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Nie pokazuj upsellu, gdy admin wyłączył ofertę i klient nie ma płatnego.
+  if (!paid.offered && !paid.active) return null;
+
+  const act = async (enabled: boolean) => {
+    setError(null);
+    setBusy(true);
+    const res = await setPaidMonitoring(serviceId, enabled);
+    setBusy(false);
+    if ('error' in res) setError(res.error);
+    else onChange(res);
+  };
+
+  const nextDate = paid.nextChargeAt
+    ? new Date(paid.nextChargeAt).toLocaleDateString('pl-PL')
+    : null;
+
+  if (paid.active) {
+    return (
+      <div className="rounded-2xl border border-amber-400/30 bg-amber-400/[0.06] p-6">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="space-y-1 min-w-0">
+            <h4 className="flex items-center gap-2 text-sm font-semibold text-white">
+              <Zap className="h-4 w-4 text-amber-300" /> Szybki monitoring aktywny
+            </h4>
+            <p className="text-sm text-neutral-300 max-w-xl">
+              Sprawdzamy stronę co {paid.paidIntervalMinutes === 1 ? 'minutę' : `${paid.paidIntervalMinutes} min`} —
+              awarię wykryjemy niemal natychmiast.
+              {paid.cancelAtPeriodEnd
+                ? nextDate
+                  ? ` Rezygnacja zaplanowana: szybki tryb działa do ${nextDate}, potem wraca standardowy (co ${paid.freeIntervalMinutes} min).`
+                  : ' Rezygnacja zaplanowana — wróci tryb standardowy.'
+                : nextDate
+                  ? ` Następna opłata: ${nextDate} (${paid.monthlyPrice} K/mies.).`
+                  : ''}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => act(!paid.cancelAtPeriodEnd ? false : true)}
+            disabled={busy}
+            className="shrink-0 rounded-lg border border-white/15 bg-white/[0.04] px-4 py-2 text-sm font-medium text-white hover:bg-white/10 disabled:opacity-50"
+          >
+            {busy ? <Loader className="h-4 w-4 animate-spin" /> : paid.cancelAtPeriodEnd ? 'Wznów' : 'Zrezygnuj'}
+          </button>
+        </div>
+        {error && <p className="mt-3 text-sm text-rose-300">{error}</p>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/30 p-6">
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div className="space-y-1 min-w-0">
+          <h4 className="flex items-center gap-2 text-sm font-semibold text-white">
+            <Zap className="h-4 w-4 text-amber-300" /> Przyspiesz monitoring
+          </h4>
+          <p className="text-sm text-neutral-400 max-w-xl">
+            Standardowo sprawdzamy stronę co {paid.freeIntervalMinutes} min (za darmo). Włącz
+            szybki monitoring, by sprawdzać co{' '}
+            {paid.paidIntervalMinutes === 1 ? 'minutę' : `${paid.paidIntervalMinutes} min`} i wykrywać
+            awarie niemal natychmiast — <strong className="text-neutral-200">{paid.monthlyPrice} K/mies.</strong> z portfela.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => act(true)}
+          disabled={busy}
+          className="shrink-0 inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-black hover:bg-amber-400 disabled:opacity-50"
+        >
+          {busy ? <Loader className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+          Włącz za {paid.monthlyPrice} K/mies.
+        </button>
+      </div>
+      {error && <p className="mt-3 text-sm text-rose-300">{error}</p>}
+    </div>
+  );
+}
+
+/** MON-6 — przełącznik powiadomień e-mail (bez wyłączania monitoringu). */
+function NotifyToggle({
+  serviceId,
+  notifyEmail,
+  onChange,
+}: {
+  serviceId: string;
+  notifyEmail: boolean;
+  onChange: (s: MonitoringStatus) => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const toggle = async () => {
+    setBusy(true);
+    const res = await setMonitoringNotify(serviceId, !notifyEmail);
+    setBusy(false);
+    if (!('error' in res)) onChange(res);
+  };
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+      <div className="min-w-0">
+        <p className="text-sm text-white">Powiadomienia e-mail o awariach i SSL</p>
+        <p className="text-xs text-neutral-500">
+          {notifyEmail
+            ? 'Wyślemy maila przy awarii, powrocie i zbliżającym się wygaśnięciu certyfikatu.'
+            : 'Maile wyłączone — monitoring działa, ale nie powiadamiamy mailem.'}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={() => void toggle()}
+        disabled={busy}
+        role="switch"
+        aria-checked={notifyEmail}
+        className={`relative inline-flex h-7 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
+          notifyEmail ? 'bg-emerald-500' : 'bg-white/15'
+        }`}
+        style={{ width: 52 }}
+      >
+        <span
+          className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+            notifyEmail ? 'translate-x-7' : 'translate-x-1'
+          }`}
+        />
+      </button>
+    </div>
+  );
+}
+
+/** MON-5 — linia statusu certyfikatu SSL z dni do wygaśnięcia. */
+function SslLine({ tlsExpiresAt }: { tlsExpiresAt: string }) {
+  const exp = new Date(tlsExpiresAt);
+  const daysLeft = Math.floor((exp.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+  const expired = daysLeft <= 0;
+  const soon = daysLeft <= 14;
+  const tone = expired
+    ? 'border-rose-500/30 bg-rose-500/5 text-rose-200'
+    : soon
+      ? 'border-amber-400/30 bg-amber-400/5 text-amber-200'
+      : 'border-white/10 bg-black/20 text-neutral-300';
+  const label = expired
+    ? 'Certyfikat SSL wygasł'
+    : daysLeft === 1
+      ? 'Certyfikat SSL wygaśnie jutro'
+      : `Certyfikat SSL ważny jeszcze ${daysLeft} dni`;
+  return (
+    <div className={`flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm ${tone}`}>
+      <ShieldCheck className="h-4 w-4 shrink-0" />
+      <span>
+        {label} <span className="text-neutral-500">· do {exp.toLocaleDateString('pl-PL')}</span>
+      </span>
     </div>
   );
 }

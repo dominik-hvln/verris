@@ -61,6 +61,45 @@ export async function updateTrialOfferAction(
   }
 }
 
+// MON-3 — ustawienia monitoringu strony (interwały + cena płatnego)
+export type MonitoringSettingsForm = {
+  freeIntervalMinutes: number;
+  paidIntervalMinutes: number;
+  paidMonthlyPrice: number;
+  paidOffered: boolean;
+};
+
+export async function fetchMonitoringSettings(): Promise<MonitoringSettingsForm> {
+  return adminApi<MonitoringSettingsForm>('/admin/platform-settings/monitoring');
+}
+
+export async function updateMonitoringSettingsAction(
+  _prev: { ok?: boolean; error?: string },
+  formData: FormData,
+): Promise<{ ok?: boolean; error?: string }> {
+  const payload: MonitoringSettingsForm = {
+    freeIntervalMinutes: Math.max(1, Number(formData.get('freeIntervalMinutes')) || 30),
+    paidIntervalMinutes: Math.max(1, Number(formData.get('paidIntervalMinutes')) || 1),
+    paidMonthlyPrice: Math.max(0, Number(formData.get('paidMonthlyPrice')) || 0),
+    paidOffered: formData.get('paidOffered') === 'on',
+  };
+  try {
+    await adminApi('/admin/platform-settings/monitoring', { method: 'PATCH', body: payload });
+    revalidatePath('/settings/platform');
+    return { ok: true };
+  } catch (e) {
+    return {
+      ok: false,
+      error:
+        e instanceof AdminApiError
+          ? e.message
+          : e instanceof Error
+            ? e.message
+            : 'Nie udało się zapisać ustawień monitoringu.',
+    };
+  }
+}
+
 export async function updatePlatformSettingsAction(
   _prev: { ok?: boolean; error?: string },
   formData: FormData,

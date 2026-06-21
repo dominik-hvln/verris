@@ -117,6 +117,26 @@ export class UserServicesController {
     return this.siteMonitor.setEnabled(id, user.userId, dto.enabled);
   }
 
+  // MON-6 — przełącznik powiadomień e-mail (monitoring działa niezależnie)
+  @Post(':id/monitoring/notify')
+  setMonitoringNotify(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() dto: SetMonitoringDto,
+  ) {
+    return this.siteMonitor.setNotifyEmail(id, user.userId, dto.enabled);
+  }
+
+  // MON-3 — płatny monitoring (szybkie sprawdzanie), rozliczany miesięcznie z portfela
+  @Post(':id/monitoring/paid')
+  setPaidMonitoring(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() dto: SetMonitoringDto,
+  ) {
+    return this.siteMonitor.setPaidMonitoring(id, user.userId, dto.enabled);
+  }
+
   // B5 — staging 1-click (klon LIVE → staging.<domena>, publikacja z powrotem)
   @Get(':id/staging-env')
   stagingStatus(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
@@ -910,18 +930,25 @@ function buildServiceRecommendations(s: {
       body: 'Wsparcie widzi szczegóły błędu. Nie wykonuj ponownego zamówienia tej samej domeny.',
     });
   }
-  if (
-    !s.autoscalingEnabled &&
-    s.account &&
-    (s.account.scaledCpu > 0 ||
-      s.account.scaledRamMb > 0 ||
-      s.account.scaledDiskMb > 0)
-  ) {
+  const usedScaling =
+    !!s.account &&
+    (s.account.scaledCpu > 0 || s.account.scaledRamMb > 0 || s.account.scaledDiskMb > 0);
+  if (!s.autoscalingEnabled && usedScaling) {
     out.push({
       type: 'autoscaling',
       severity: 'warning',
       title: 'Włącz autoscaling limitów',
       body: 'Usługa korzystała już z podwyższonych limitów. Autoscaling ograniczy ryzyko błędów 508.',
+    });
+  } else if (s.autoscalingEnabled && usedScaling && s.status === 'ACTIVE') {
+    // #19 — upsell oparty na realnym użyciu: konto regularnie sięga po
+    // dopłacane (godzinowe) zasoby autoskalowania, więc wyższy plan ze stałą
+    // ceną bywa tańszy i stabilniejszy niż ciągłe dopłaty.
+    out.push({
+      type: 'plan',
+      severity: 'info',
+      title: 'Rozważ wyższy plan',
+      body: 'Twoja usługa regularnie korzysta z autoskalowania (dopłaty godzinowe). Wyższy plan ze stałą ceną może być tańszy i bardziej przewidywalny.',
     });
   }
   if (latest?.backupFresh === false) {

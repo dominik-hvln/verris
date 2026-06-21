@@ -8,6 +8,7 @@ import { PlatformSettingsService } from './platform-settings.service';
 import { UpdatePlatformSettingsDto } from './dto/platform-settings.dto';
 import { UpdateSellerCompanyDto, UpdateKsefSettingsDto } from './dto/company-settings.dto';
 import { UpdateTrialOfferDto } from './dto/trial-offer.dto';
+import { UpdateMonitoringSettingsDto } from './dto/monitoring-settings.dto';
 
 @Controller('admin/platform-settings')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -82,6 +83,30 @@ export class PlatformSettingsAdminController {
         annualPromoCode: dto.annualPromoCode,
         monthlyPromoCode: dto.monthlyPromoCode,
         introDiscountPeriods: dto.introDiscountPeriods,
+      },
+      actor.userId,
+    );
+  }
+
+  // MON-3 — ustawienia monitoringu strony (interwały + cena płatnego)
+  @Get('monitoring')
+  @HttpCode(200)
+  getMonitoring() {
+    return this.settings.getMonitoringSettings();
+  }
+
+  @Patch('monitoring')
+  @HttpCode(200)
+  updateMonitoring(
+    @Body() dto: UpdateMonitoringSettingsDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.settings.updateMonitoringSettings(
+      {
+        freeIntervalMinutes: dto.freeIntervalMinutes,
+        paidIntervalMinutes: dto.paidIntervalMinutes,
+        paidMonthlyPrice: dto.paidMonthlyPrice,
+        paidOffered: dto.paidOffered,
       },
       actor.userId,
     );
