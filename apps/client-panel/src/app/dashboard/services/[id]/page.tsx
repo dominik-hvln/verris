@@ -84,22 +84,35 @@ export default function HostingManagerPage() {
   // dla poczty. productKind pobieramy raz; do czasu odpowiedzi zakładamy HOSTING
   // (pełny zestaw), więc nic nie miga dla typowych usług.
   const [productKind, setProductKind] = useState<'HOSTING' | 'EMAIL'>('HOSTING');
+  // Dopóki nie znamy typu usługi, NIE pokazujemy pełnego (hostingowego) zestawu
+  // zakładek — inaczej dla poczty migają na sekundę wszystkie zakładki hostingu.
+  const [kindResolved, setKindResolved] = useState(false);
   useEffect(() => {
     let cancelled = false;
     fetchServiceDetailsAction(params.id)
       .then((svc) => {
-        if (!cancelled && svc?.productKind === 'EMAIL') setProductKind('EMAIL');
+        if (cancelled) return;
+        if (svc?.productKind === 'EMAIL') setProductKind('EMAIL');
+        setKindResolved(true);
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (!cancelled) setKindResolved(true);
+      });
     return () => {
       cancelled = true;
     };
   }, [params.id]);
 
   const EMAIL_TAB_IDS: TabId[] = ['overview', 'subscription', 'domains', 'mail', 'backups'];
-  const visibleTabs =
-    productKind === 'EMAIL' ? TABS.filter((t) => EMAIL_TAB_IDS.includes(t.id)) : TABS;
   const isEmail = productKind === 'EMAIL';
+  // Przed rozpoznaniem typu pokazujemy tylko bezpieczny podzbiór (pocztowy), który
+  // jest zawarty w zestawie hostingu — hosting po prostu „dobierze" zakładki po
+  // załadowaniu, a poczta nigdy nie pokaże narzędzi hostingu.
+  const visibleTabs =
+    isEmail || !kindResolved ? TABS.filter((t) => EMAIL_TAB_IDS.includes(t.id)) : TABS;
+  // Elementy „hostingowe" (autoskalowanie, karta Panel hostingu) pokazujemy
+  // dopiero, gdy wiemy, że to NIE poczta — w przeciwnym razie migają dla poczty.
+  const showHostingChrome = kindResolved && !isEmail;
 
   // Gdy poczta, a aktywna zakładka jest hostingowa (np. deep-link ?tab=ssl) —
   // wróć na Przegląd, żeby nie pokazać narzędzi hostingu.
@@ -148,7 +161,7 @@ export default function HostingManagerPage() {
             <ArrowRightLeft className="h-3.5 w-3.5 shrink-0 opacity-70" />
             Zmiana planu
           </Link>
-          {!isEmail ? (
+          {showHostingChrome ? (
             <Link
               href={`/dashboard/services/${params.id}/autoscaling`}
               className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-neutral-300 hover:text-white"
@@ -190,7 +203,7 @@ export default function HostingManagerPage() {
                 <ArrowRightLeft className="h-4 w-4 shrink-0 opacity-60" />
                 <span>Zmiana planu</span>
               </Link>
-              {!isEmail ? (
+              {showHostingChrome ? (
                 <Link
                   href={`/dashboard/services/${params.id}/autoscaling`}
                   className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-neutral-400 transition-colors hover:bg-white/5 hover:text-white"
@@ -200,8 +213,8 @@ export default function HostingManagerPage() {
                 </Link>
               ) : null}
             </nav>
-            {!isEmail ? <HostingPanelCard /> : null}
-            <ServiceConnectionCard serviceId={params.id} />
+            {showHostingChrome ? <HostingPanelCard /> : null}
+            <ServiceConnectionCard serviceId={params.id} productKind={productKind} />
           </aside>
 
           <main className="min-w-0 max-w-full overflow-x-hidden">
@@ -227,8 +240,8 @@ export default function HostingManagerPage() {
           </main>
 
           <div className="min-w-0 space-y-4 lg:hidden">
-            {!isEmail ? <HostingPanelCard /> : null}
-            <ServiceConnectionCard serviceId={params.id} />
+            {showHostingChrome ? <HostingPanelCard /> : null}
+            <ServiceConnectionCard serviceId={params.id} productKind={productKind} />
           </div>
         </div>
       </div>

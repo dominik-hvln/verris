@@ -210,19 +210,21 @@ function ServiceCard({ service }: { service: ServiceSummaryDto }) {
                 </button>
               </Link>
             ) : null}
-            <Link href={`/dashboard/services/${service.id}/autoscaling`}>
-              <button
-                type="button"
-                className={`inline-flex items-center justify-center rounded-lg p-2 text-sm border transition-colors ${
-                  service.autoscalingEnabled
-                    ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200 hover:bg-emerald-400/20'
-                    : 'border-white/10 bg-white/5 text-neutral-300 hover:bg-white/10'
-                }`}
-                title="Autoskalowanie"
-              >
-                <Gauge className="h-4 w-4" />
-              </button>
-            </Link>
+            {service.productKind !== 'EMAIL' ? (
+              <Link href={`/dashboard/services/${service.id}/autoscaling`}>
+                <button
+                  type="button"
+                  className={`inline-flex items-center justify-center rounded-lg p-2 text-sm border transition-colors ${
+                    service.autoscalingEnabled
+                      ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200 hover:bg-emerald-400/20'
+                      : 'border-white/10 bg-white/5 text-neutral-300 hover:bg-white/10'
+                  }`}
+                  title="Autoskalowanie"
+                >
+                  <Gauge className="h-4 w-4" />
+                </button>
+              </Link>
+            ) : null}
             <Link href={`/dashboard/services/${service.id}`}>
               <button className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-white px-3 py-2 text-xs font-semibold transition-colors">
                 <Settings2 className="h-3.5 w-3.5" />

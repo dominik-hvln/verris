@@ -431,12 +431,15 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
       <section>
         <h2 className="text-xl font-bold text-white">5. Opcje</h2>
         <div className="mt-3 space-y-3 max-w-2xl">
-          <Toggle
-            checked={autoscalingEnabled}
-            onChange={setAutoscalingEnabled}
-            label="Autoskalowanie limitów zasobów"
-            description="Aplikacja automatycznie dostanie więcej CPU/RAM, gdy będzie tego potrzebowała. Koszty rozliczane godzinowo z portfela."
-          />
+          {/* Autoskalowanie nie dotyczy poczty — pokazujemy tylko dla hostingu. */}
+          {selectedPlan?.productKind !== 'EMAIL' ? (
+            <Toggle
+              checked={autoscalingEnabled}
+              onChange={setAutoscalingEnabled}
+              label="Autoskalowanie limitów zasobów"
+              description="Aplikacja automatycznie dostanie więcej CPU/RAM, gdy będzie tego potrzebowała. Koszty rozliczane godzinowo z portfela."
+            />
+          ) : null}
           <Toggle
             checked={ecoModeEnabled}
             onChange={setEcoModeEnabled}

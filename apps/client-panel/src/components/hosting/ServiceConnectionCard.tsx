@@ -131,7 +131,14 @@ function MetricRow({
 }
 
 /** Stały panel boczny — dane dostępowe usługi (IP/FTP/poczta/SSH/NS + limity). */
-export default function ServiceConnectionCard({ serviceId }: { serviceId: string }) {
+export default function ServiceConnectionCard({
+  serviceId,
+  productKind = 'HOSTING',
+}: {
+  serviceId: string;
+  productKind?: 'HOSTING' | 'EMAIL';
+}) {
+  const isEmail = productKind === 'EMAIL';
   const [info, setInfo] = useState<ServiceConnectionInfoDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -217,18 +224,23 @@ export default function ServiceConnectionCard({ serviceId }: { serviceId: string
 
       <div className="rounded-xl border border-white/5 bg-black/30 px-3 py-1 divide-y divide-white/5">
         <InfoRow icon={Server} label="IP serwera" value={info.ipv4 ?? '—'} copy={info.ipv4} />
-        <InfoRow icon={Wifi} label="Serwer FTP" value={info.ftpHost ?? '—'} copy={info.ftpHost} />
+        {/* FTP/SSH dotyczą hostingu WWW — ukrywamy dla usług poczty. */}
+        {!isEmail ? (
+          <InfoRow icon={Wifi} label="Serwer FTP" value={info.ftpHost ?? '—'} copy={info.ftpHost} />
+        ) : null}
         <InfoRow icon={Mail} label="Poczta" value={info.mailHost ?? '—'} copy={info.mailHost} />
-        <InfoRow
-          icon={TerminalSquare}
-          label="SSH"
-          muted={!info.sshEnabled}
-          value={
-            info.sshEnabled
-              ? `${info.sshHost ?? ''}${info.sshPort ? `:${info.sshPort}` : ''} (aktywny)`
-              : 'nieaktywny'
-          }
-        />
+        {!isEmail ? (
+          <InfoRow
+            icon={TerminalSquare}
+            label="SSH"
+            muted={!info.sshEnabled}
+            value={
+              info.sshEnabled
+                ? `${info.sshHost ?? ''}${info.sshPort ? `:${info.sshPort}` : ''} (aktywny)`
+                : 'nieaktywny'
+            }
+          />
+        ) : null}
       </div>
 
       {ns.length > 0 ? (

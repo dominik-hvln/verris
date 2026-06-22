@@ -15,6 +15,17 @@ Legenda: **S** ≤ ~0,5 dnia · **M** ~1–3 dni · **L** > 3 dni · 💰 dotyka
 
 ## 0. Status na dziś
 
+> **2026-06-21 — E2E poczty na prod ZWERYFIKOWANE.** Utworzono plan „Poczta
+> Standard" (nowy formularz), kupiono pocztę (mailtest-verris.pl) z portfela:
+> rabat startowy −10% (8,99 zamiast 9,99), portfel pobrany poprawnie, jedna
+> usługa (bez dubli), provisioning AKTYWNA. Hub poczty pokazał TYLKO zakładki
+> poczty (Przegląd/Subskrypcja/Domeny&DNS/Poczta/Kopie) + onboarding poczty,
+> bez hostingu/autoskalowania/Panelu DA. Admin: formularze SLA/Monitoring i
+> „Operacje węzłów" (retry) działają. Domknięto 3 kosmetyczne przecieki
+> autoskalowania/FTP dla poczty (kafel listy, formularz zamówienia, karta Dane
+> dostępowe). Do potwierdzenia node-side: pakiet DA poczty faktycznie z php=OFF
+> (MAIL-SEC) — sprawdzić w DA dla konta mailtest-verris.pl.
+>
 > **2026-06-21 (sesja rozwojowa, c.d.⁷):** **Pakiet DA poczty bez hostingu WWW
 > (bezpieczeństwo).** `buildDaPackageSpecFromPlan` dla `productKind=EMAIL` wyłącza
 > PHP/CGI/WordPress/Git/Redis/SSH oraz ustawia bazy=0, FTP=0, subdomeny=0,
