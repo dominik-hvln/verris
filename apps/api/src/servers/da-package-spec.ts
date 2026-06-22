@@ -34,6 +34,24 @@ const DEFAULT_PACKAGE_POLICY: DaPackagePolicy = {
   ftpAccounts: 10,
 };
 
+/**
+ * P-1b — polityka pakietu DA dla produktu POCZTA. Świadomie BEZ hostingu WWW:
+ * brak baz, brak FTP (dostęp do plików), brak domain-pointerów/subdomen — tylko
+ * 1 domena pocztowa. Skrzynki/forwardery/autorespondery hojnie (to sedno usługi).
+ * Zapobiega „darmowemu hostingowi strony" na koncie pocztowym.
+ */
+const EMAIL_PACKAGE_POLICY: DaPackagePolicy = {
+  domains: 1,
+  subdomains: 0,
+  emailAccounts: 'unlimited',
+  emailForwarders: 'unlimited',
+  mailingLists: 25,
+  autoresponders: 'unlimited',
+  databases: 0,
+  domainPointers: 0,
+  ftpAccounts: 0,
+};
+
 const PACKAGE_POLICY_BY_SLUG: Record<string, DaPackagePolicy> = {
   starter: {
     domains: 1,
@@ -86,6 +104,8 @@ export interface PlanResourceFields {
   nprocLimit: number;
   /** B6 — SSH/Git shell access per plan (off by default; CageFS isolates). */
   sshAccess?: boolean;
+  /** P-1b — rodzina produktu; EMAIL = pakiet pocztowy bez hostingu WWW. */
+  productKind?: 'HOSTING' | 'EMAIL';
 }
 
 export function packagePolicyForSlug(slug: string): DaPackagePolicy {
@@ -102,7 +122,8 @@ export function buildDaPackageSpecFromPlan(
   plan: PlanResourceFields,
   opts: { language?: string; skin?: string } = {},
 ): DaPackageSpec {
-  const policy = packagePolicyForSlug(plan.slug);
+  const isEmail = plan.productKind === 'EMAIL';
+  const policy = isEmail ? EMAIL_PACKAGE_POLICY : packagePolicyForSlug(plan.slug);
   const bandwidthMb: DaLimit =
     plan.includedTransferGb && plan.includedTransferGb > 0
       ? plan.includedTransferGb * 1024
@@ -121,21 +142,37 @@ export function buildDaPackageSpecFromPlan(
     databases: policy.databases,
     domainPointers: policy.domainPointers,
     ftpAccounts: policy.ftpAccounts,
-    features: {
-      cgi: true,
-      php: true,
-      ssl: true,
-      spam: true,
-      cron: true,
-      dnscontrol: true,
-      // A6 — Redis (object cache, np. dla WordPress); A4 — instalator WordPress;
-      // B6 — Git deploy. CageFS izoluje konta, więc bezpieczne do włączenia
-      // platformowo. SSH pozostaje per-plan (pole Plan.sshAccess), domyślnie off.
-      redis: true,
-      git: true,
-      wordpress: true,
-      ssh: plan.sshAccess === true,
-    },
+    // P-1b — pakiet POCZTY: wyłączamy hosting WWW (PHP/CGI/WordPress/Git/Redis/
+    // SSH), żeby konto pocztowe nie dało „darmowej strony". Zostaje SSL (TLS dla
+    // poczty/webmaila), antyspam i kontrola DNS (klient ustawia MX/SPF/DKIM).
+    features: isEmail
+      ? {
+          cgi: false,
+          php: false,
+          ssl: true,
+          spam: true,
+          cron: false,
+          dnscontrol: true,
+          redis: false,
+          git: false,
+          wordpress: false,
+          ssh: false,
+        }
+      : {
+          cgi: true,
+          php: true,
+          ssl: true,
+          spam: true,
+          cron: true,
+          dnscontrol: true,
+          // A6 — Redis (object cache, np. dla WordPress); A4 — instalator WordPress;
+          // B6 — Git deploy. CageFS izoluje konta, więc bezpieczne do włączenia
+          // platformowo. SSH pozostaje per-plan (pole Plan.sshAccess), domyślnie off.
+          redis: true,
+          git: true,
+          wordpress: true,
+          ssh: plan.sshAccess === true,
+        },
     lve: {
       cpuPercent: plan.cpuLimit,
       memoryMb: plan.ramLimitMb,
@@ -176,5 +213,6 @@ export function planResourceFields(plan: Plan): PlanResourceFields {
     entryProcesses: plan.entryProcesses,
     nprocLimit: plan.nprocLimit,
     sshAccess: plan.sshAccess ?? false,
+    productKind: plan.productKind,
   };
 }

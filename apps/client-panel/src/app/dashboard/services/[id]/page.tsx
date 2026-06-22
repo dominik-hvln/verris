@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Server,
   Globe,
@@ -45,6 +45,7 @@ import HostingPanelCard from '@/components/hosting/HostingPanelCard';
 import ServiceConnectionCard from '@/components/hosting/ServiceConnectionCard';
 import { HostingLinksProvider } from '@/components/hosting/hosting-links-context';
 import { MobileTabStrip } from '@/components/panel';
+import { fetchServiceDetailsAction } from '@/app/dashboard/services/[id]/hosting-service-actions';
 
 const TABS = [
   { id: 'overview', label: 'Przegląd', icon: LayoutDashboard },
@@ -79,6 +80,36 @@ export default function HostingManagerPage() {
   })();
   const [activeTab, setActiveTab] = useState<TabId>(initialTab);
 
+  // P-1b — usługa POCZTY nie ma hostingu WWW: pokazujemy tylko zakładki istotne
+  // dla poczty. productKind pobieramy raz; do czasu odpowiedzi zakładamy HOSTING
+  // (pełny zestaw), więc nic nie miga dla typowych usług.
+  const [productKind, setProductKind] = useState<'HOSTING' | 'EMAIL'>('HOSTING');
+  useEffect(() => {
+    let cancelled = false;
+    fetchServiceDetailsAction(params.id)
+      .then((svc) => {
+        if (!cancelled && svc?.productKind === 'EMAIL') setProductKind('EMAIL');
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [params.id]);
+
+  const EMAIL_TAB_IDS: TabId[] = ['overview', 'subscription', 'domains', 'mail', 'backups'];
+  const visibleTabs =
+    productKind === 'EMAIL' ? TABS.filter((t) => EMAIL_TAB_IDS.includes(t.id)) : TABS;
+  const isEmail = productKind === 'EMAIL';
+
+  // Gdy poczta, a aktywna zakładka jest hostingowa (np. deep-link ?tab=ssl) —
+  // wróć na Przegląd, żeby nie pokazać narzędzi hostingu.
+  useEffect(() => {
+    if (isEmail && !EMAIL_TAB_IDS.includes(activeTab)) {
+      setActiveTab('overview');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEmail, activeTab]);
+
   return (
     <HostingLinksProvider serviceId={params.id}>
       <div className="mx-auto w-full max-w-7xl min-w-0 space-y-4 animate-in fade-in duration-500 sm:space-y-5">
@@ -95,13 +126,15 @@ export default function HostingManagerPage() {
               <span className="truncate">Twoja usługa</span>
             </h1>
             <p className="text-xs sm:text-sm text-neutral-400 mt-0.5 truncate">
-              Dashboard, statystyki i narzędzia hostingowe.
+              {isEmail
+                ? 'Zarządzanie pocztą e-mail w Twojej domenie.'
+                : 'Dashboard, statystyki i narzędzia hostingowe.'}
             </p>
           </div>
         </div>
 
         <MobileTabStrip
-          tabs={TABS}
+          tabs={visibleTabs}
           active={activeTab}
           onChange={setActiveTab}
           stickyBelowHeader
@@ -115,19 +148,21 @@ export default function HostingManagerPage() {
             <ArrowRightLeft className="h-3.5 w-3.5 shrink-0 opacity-70" />
             Zmiana planu
           </Link>
-          <Link
-            href={`/dashboard/services/${params.id}/autoscaling`}
-            className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-neutral-300 hover:text-white"
-          >
-            <Gauge className="h-3.5 w-3.5 shrink-0 opacity-70" />
-            Autoskalowanie
-          </Link>
+          {!isEmail ? (
+            <Link
+              href={`/dashboard/services/${params.id}/autoscaling`}
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-neutral-300 hover:text-white"
+            >
+              <Gauge className="h-3.5 w-3.5 shrink-0 opacity-70" />
+              Autoskalowanie
+            </Link>
+          ) : null}
         </div>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-5">
           <aside className="hidden min-w-0 space-y-4 lg:sticky lg:top-6 lg:block lg:self-start">
             <nav className="space-y-0.5 rounded-2xl border border-white/10 bg-[#0a0a0a] p-2">
-              {TABS.map((tab) => {
+              {visibleTabs.map((tab) => {
                 const active = activeTab === tab.id;
                 return (
                   <button
@@ -155,15 +190,17 @@ export default function HostingManagerPage() {
                 <ArrowRightLeft className="h-4 w-4 shrink-0 opacity-60" />
                 <span>Zmiana planu</span>
               </Link>
-              <Link
-                href={`/dashboard/services/${params.id}/autoscaling`}
-                className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-neutral-400 transition-colors hover:bg-white/5 hover:text-white"
-              >
-                <Gauge className="h-4 w-4 shrink-0 opacity-60" />
-                <span>Autoskalowanie</span>
-              </Link>
+              {!isEmail ? (
+                <Link
+                  href={`/dashboard/services/${params.id}/autoscaling`}
+                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-neutral-400 transition-colors hover:bg-white/5 hover:text-white"
+                >
+                  <Gauge className="h-4 w-4 shrink-0 opacity-60" />
+                  <span>Autoskalowanie</span>
+                </Link>
+              ) : null}
             </nav>
-            <HostingPanelCard />
+            {!isEmail ? <HostingPanelCard /> : null}
             <ServiceConnectionCard serviceId={params.id} />
           </aside>
 
@@ -190,7 +227,7 @@ export default function HostingManagerPage() {
           </main>
 
           <div className="min-w-0 space-y-4 lg:hidden">
-            <HostingPanelCard />
+            {!isEmail ? <HostingPanelCard /> : null}
             <ServiceConnectionCard serviceId={params.id} />
           </div>
         </div>

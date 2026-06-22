@@ -15,6 +15,26 @@ Legenda: **S** ≤ ~0,5 dnia · **M** ~1–3 dni · **L** > 3 dni · 💰 dotyka
 
 ## 0. Status na dziś
 
+> **2026-06-21 (sesja rozwojowa, c.d.⁷):** **Pakiet DA poczty bez hostingu WWW
+> (bezpieczeństwo).** `buildDaPackageSpecFromPlan` dla `productKind=EMAIL` wyłącza
+> PHP/CGI/WordPress/Git/Redis/SSH oraz ustawia bazy=0, FTP=0, subdomeny=0,
+> domain-pointery=0 (zostaje SSL/antyspam/DNS + skrzynki). Zapobiega „darmowej
+> stronie" na koncie pocztowym nawet po zalogowaniu do DA. `productKind`
+> przepływa przez `planResourceFields` do provisioningu i audytu/naprawy węzła.
+> ⚠️ DA-touching — do potwierdzenia E2E na realnym węźle (php=OFF itd.).
+> RESIDUAL: statyczny HTML przez wbudowany File Manager DA wciąż teoretycznie
+> możliwy → follow-up: wyłączyć vhost web dla domen pocztowych (node task).
+>
+> **2026-06-21 (sesja rozwojowa, c.d.⁶):** **Produkt POCZTA jako osobny byt.**
+> (a) Admin: dedykowany formularz „Nowy plan poczty" (`/plans/new-email`) — tylko
+> pola istotne dla poczty (pojemność skrzynek, cena, trial, SLA, sprzedaż);
+> limity LVE ustawiane pod spodem na minimum, productKind=EMAIL. Przycisk obok
+> „Nowy plan hostingu". (b) Klient: hub usługi pocztowej pokazuje TYLKO zakładki
+> poczty (Przegląd, Subskrypcja, Domeny & DNS, Poczta, Kopie) — bez hostingu WWW
+> (SSL/PHP/WAF/Pliki/Bazy/Staging/Deploy/Aplikacje/FTP/Cron/Monitoring/Usage),
+> bez autoskalowania i bez karty „Panel hostingu". Konfiguracja domeny dla poczty
+> (MX/SPF/DKIM) prowadzona przez Asystenta startu (#26) → Domeny & DNS. Frontend-only.
+>
 > **2026-06-21 (sesja rozwojowa, c.d.⁵):** zrobione **#26 Onboarding per produkt**
 > — Asystent startu rozróżnia hosting vs poczta: dla usług EMAIL pokazuje kroki
 > poczty (DNS MX/SPF/DKIM → skrzynki → dostarczalność, bazowane na dnsOk+mailOk)
