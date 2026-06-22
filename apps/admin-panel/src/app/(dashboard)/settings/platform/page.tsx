@@ -1,17 +1,24 @@
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
-import { fetchPlatformSettings, fetchTrialOffer, fetchMonitoringSettings } from './actions';
+import {
+  fetchPlatformSettings,
+  fetchTrialOffer,
+  fetchMonitoringSettings,
+  fetchSlaCreditPolicy,
+} from './actions';
 import { PlatformSettingsForm } from './platform-settings-form';
 import { TrialOfferSettingsForm } from './trial-offer-form';
 import { MonitoringSettingsForm } from './monitoring-settings-form';
+import { SlaCreditsForm } from './sla-credits-form';
 
 export const dynamic = 'force-dynamic';
 
 export default async function PlatformSettingsPage() {
-  const [settings, trialOffer, monitoring] = await Promise.all([
+  const [settings, trialOffer, monitoring, slaCredits] = await Promise.all([
     fetchPlatformSettings(),
     fetchTrialOffer(),
     fetchMonitoringSettings(),
+    fetchSlaCreditPolicy(),
   ]);
 
   return (
@@ -32,6 +39,7 @@ export default async function PlatformSettingsPage() {
       <PlatformSettingsForm initial={settings} />
       <TrialOfferSettingsForm initial={trialOffer} />
       <MonitoringSettingsForm initial={monitoring} />
+      <SlaCreditsForm initial={slaCredits} />
     </div>
   );
 }

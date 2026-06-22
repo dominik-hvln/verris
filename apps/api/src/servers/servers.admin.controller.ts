@@ -15,7 +15,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { Role } from '@verris/database';
+import { Role, NodeTaskStatus } from '@verris/database';
 import { InitServerDto } from './dto/init-server.dto';
 import { UpdateServerDto } from './dto/update-server.dto';
 import { UpdateDirectAdminConfigDto } from './dto/directadmin-config.dto';
@@ -68,6 +68,24 @@ export class ServersAdminController {
   @Get()
   list() {
     return this.servers.listServers();
+  }
+
+  // #13 — operacje węzłów (NodeTask): lista + ręczne ponowienie nieudanych
+  @Get('node-tasks')
+  listNodeTasks(
+    @Query('status') status?: string,
+    @Query('serverId') serverId?: string,
+  ) {
+    const allowed = ['QUEUED', 'RUNNING', 'COMPLETED', 'FAILED', 'CANCELLED'];
+    return this.nodeTasks.listRecentTasks({
+      status: status && allowed.includes(status) ? (status as NodeTaskStatus) : undefined,
+      serverId: serverId || undefined,
+    });
+  }
+
+  @Post('node-tasks/:id/retry')
+  retryNodeTask(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
+    return this.nodeTasks.retryFailedTask(id, actor.userId);
   }
 
   @Post()

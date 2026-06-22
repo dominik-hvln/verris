@@ -15,6 +15,40 @@ Legenda: **S** ≤ ~0,5 dnia · **M** ~1–3 dni · **L** > 3 dni · 💰 dotyka
 
 ## 0. Status na dziś
 
+> **2026-06-21 (sesja rozwojowa, c.d.⁵):** zrobione **#26 Onboarding per produkt**
+> — Asystent startu rozróżnia hosting vs poczta: dla usług EMAIL pokazuje kroki
+> poczty (DNS MX/SPF/DKIM → skrzynki → dostarczalność, bazowane na dnsOk+mailOk)
+> zamiast WordPress/SSL. Frontend-only, bez migracji.
+>
+> **2026-06-21 (sesja rozwojowa, c.d.⁴):** zrobione **#15 Polityka rotacji
+> sekretów** — runbook `docs/ops/SECRET_ROTATION.md`: inwentarz wszystkich
+> realnych sekretów (JWT, KMS, Stripe, Hetzner, OpenProvider/OVH, SMTP, KSeF,
+> VPN, tokeny węzłów, hasła DA), kadencja, procedury rotacji bez przestoju,
+> checklista weryfikacji, ścieżka awaryjna (wyciek) + dług (JWT key-ring, widok
+> wieku sekretów). Dokument, bez kodu.
+>
+> **2026-06-21 (sesja rozwojowa, c.d.³):** zrobione **#13 Operacje węzłów (kolejka
+> + retry)** — admin widzi wszystkie NodeTaski (instalacje WP/aplikacji, profil
+> hostingu, WAF, PHP, staging) z kontekstem węzła/konta/zlecającego i błędem;
+> nieudane (FAILED) można ręcznie ponowić (→ QUEUED, agent podejmie), audytowane.
+> Sekcja „Operacje węzłów" na stronie Kolejka provisioningu. Bez migracji.
+>
+> **2026-06-21 (sesja rozwojowa, c.d.²):** zrobione **#11 Kredyty SLA** —
+> automatyczne uznanie portfela za przestój infrastruktury (incydenty status-probe
+> MAJOR). Schema `SlaCredit` + `ProbeIncident.slaCreditedAt` (migracja
+> `20260621140000_sla_credits`), scheduler `SlaCreditScheduler` (kredyt pro-rata =
+> miesięczna cena × czas_przestoju × mnożnik / 30d, ≤ limit%, idempotentny),
+> polityka w adminie (włącz/grace/mnożnik/limit), e-mail do klienta, wpis w
+> portfelu. **Domyślnie WYŁĄCZONE** (admin włącza po przeglądzie). ⚠️ dotyka
+> pieniędzy — wymaga E2E (incydent MAJOR → kredyt + mail + idempotencja).
+>
+> **2026-06-21 (sesja rozwojowa, c.d.):** zrobione **#12 Centrum powiadomień** —
+> dedykowana zakładka „Powiadomienia" w ustawieniach klienta: krytyczne kategorie
+> (bezpieczeństwo, płatności, alerty usług) jako zawsze-włączone (info+lock) +
+> opcjonalne przełączniki (alerty logowania, nowości, newsletter, oferty
+> partnerskie) na istniejącym backendzie `/me/marketing-preferences`. Usunięto
+> duplikat z „Prywatność" (RODO zostaje tam). Frontend-only, bez migracji.
+>
 > **2026-06-21 (sesja rozwojowa):** zrobione **#19 Upsell kontekstowy** (realny
 > upsell planu wg użycia autoskalowania + render rekomendacji w Przeglądzie).
 > **#22 Two-person approval — odłożone**: brak dziś twardego „admin hard-delete"

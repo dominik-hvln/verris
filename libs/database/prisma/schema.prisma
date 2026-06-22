@@ -99,6 +99,8 @@ model User {
   webauthnLoginChallenges  WebAuthnLoginChallenge[]
   // SEC-10 — aktywne sesje (lista urządzeń + zdalne wylogowanie pojedynczej sesji).
   sessions                 UserSession[]            @relation("UserSessions")
+  // #11 — kredyty SLA przyznane użytkownikowi
+  slaCredits               SlaCredit[]
   // Passkey enforcement for ADMIN/STAFF. Once a privileged user has logged in
   // with a passkey under enforcement we set `passkeyEnforcedAt`; afterwards the
   // password-only path is rejected (must use passkey or audited break-glass).
@@ -771,6 +773,9 @@ model Subscription {
 
   // B3 — opt-in site monitor (1:1)
   siteMonitor          SiteMonitor?
+
+  // #11 — kredyty SLA przyznane tej subskrypcji
+  slaCredits           SlaCredit[]
 
   // Autoscaling (per service)
   autoscalingEnabled   Boolean                   @default(false)
@@ -2051,12 +2056,47 @@ model ProbeIncident {
   // Snapshot of how the incident was detected (consecutive failures, sample
   // ids referenced, etc.) for post-mortem.
   detectionMeta  Json?
+  // #11 — znacznik przetworzenia kredytów SLA (raz na incydent, po RESOLVED).
+  slaCreditedAt  DateTime?
 
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
 
+  slaCredits     SlaCredit[]
+
   @@index([probeId, status])
   @@index([status, startedAt])
+  @@index([status, slaCreditedAt])
+}
+
+// -----------------------------------------------------------------------------
+// #11 — Kredyty SLA: automatyczne uznanie portfela za przestój infrastruktury.
+// Jeden rekord = jeden kredyt dla (incydent × subskrypcja). Idempotencja przez
+// @@unique. Powiązany wpis w WalletTransaction tworzy WalletLedgerService.
+// -----------------------------------------------------------------------------
+model SlaCredit {
+  id             String        @id @default(uuid())
+
+  incidentId     String
+  incident       ProbeIncident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  subscriptionId String
+  subscription   Subscription  @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Czas przestoju zaliczony do kredytu (sekundy).
+  downtimeS      Int
+  /// Kwota uznania w walucie portfela (K).
+  amount         Decimal       @db.Decimal(12, 2)
+  currency       String        @default("PLN")
+
+  createdAt      DateTime      @default(now())
+
+  @@unique([incidentId, subscriptionId])
+  @@index([userId])
+  @@index([subscriptionId])
 }
 
 // -----------------------------------------------------------------------------

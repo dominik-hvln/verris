@@ -20,6 +20,64 @@ import { renderEmailShell, escapeHtml } from './_layouts/email-shell';
  * (or our automation) took on their account. No `MARKETING` opt-in check.
  */
 
+// #11 — kredyt SLA przyznany za przestój infrastruktury.
+export interface SlaCreditContext {
+  to: string;
+  firstName: string | null;
+  serviceName: string;
+  /** Kwota uznania jako string „12.00". */
+  amount: string;
+  currency: 'PLN' | 'EUR' | 'USD';
+  downtimeMinutes: number;
+  incidentDate: Date;
+  newWalletBalance: string;
+  panelUrl: string;
+}
+
+export function slaCreditTemplate(ctx: SlaCreditContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const amount =
+    ctx.currency === 'PLN'
+      ? new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(
+          Number(ctx.amount),
+        )
+      : `${ctx.amount} ${ctx.currency}`;
+  const dur =
+    ctx.downtimeMinutes < 60
+      ? `${Math.max(1, Math.round(ctx.downtimeMinutes))} min`
+      : `${Math.floor(ctx.downtimeMinutes / 60)} h ${Math.round(ctx.downtimeMinutes % 60)} min`;
+  const { html, text } = renderEmailShell({
+    title: `Przyznaliśmy Ci kredyt SLA (${amount})`,
+    preheader: `Rekompensata za przestój usługi ${escapeHtml(ctx.serviceName)}.`,
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Wykryliśmy przestój infrastruktury dotyczący Twojej usługi **${escapeHtml(
+        ctx.serviceName,
+      )}** (${escapeHtml(ctx.incidentDate.toLocaleDateString('pl-PL'))}, ~${dur}). Zgodnie z naszą gwarancją SLA **automatycznie doliczyliśmy rekompensatę do Twojego portfela** — nie musisz o nią wnioskować.`,
+      ``,
+      `- **Kredyt SLA:** ${escapeHtml(amount)}`,
+      `- **Czas przestoju:** ~${dur}`,
+      `- **Nowe saldo portfela:** ${escapeHtml(ctx.newWalletBalance)} K`,
+      ``,
+      `Przepraszamy za niedogodności i dziękujemy za zaufanie. Środki możesz wykorzystać na dowolną usługę lub odnowienie.`,
+    ].join('\n'),
+    cta: { label: 'Zobacz portfel', url: `${ctx.panelUrl}/dashboard/billing` },
+    footnote: 'Kredyt SLA naliczany jest automatycznie na podstawie naszego monitoringu floty.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+
+  return {
+    to: ctx.to,
+    tag: 'billing.sla-credit',
+    subject: `[Verris] Kredyt SLA ${amount} za przestój ${ctx.serviceName}`,
+    text,
+    html,
+  };
+}
+
 const PLN_FORMATTER = new Intl.NumberFormat('pl-PL', {
   style: 'currency',
   currency: 'PLN',

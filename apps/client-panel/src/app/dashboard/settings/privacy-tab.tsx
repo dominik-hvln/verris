@@ -17,13 +17,10 @@ import {
   fetchConsentHistory,
   fetchDataExports,
   fetchDeletionStatus,
-  fetchMarketingPreferences,
   requestAccountDeletion,
   requestDataExport,
-  updateMarketingPreferences,
   type DataExportSummary,
   type DeletionStatus,
-  type MarketingPreferences,
   type UserConsentRow,
 } from "./privacy-actions";
 
@@ -85,7 +82,6 @@ export function PrivacyTab({
 }: {
   showToast: (msg: string, type: "success" | "error") => void;
 }) {
-  const [prefs, setPrefs] = useState<MarketingPreferences | null>(null);
   const [consents, setConsents] = useState<UserConsentRow[]>([]);
   const [exports, setExports] = useState<DataExportSummary[]>([]);
   const [deletion, setDeletion] = useState<DeletionStatus>({ active: false });
@@ -93,12 +89,10 @@ export function PrivacyTab({
 
   useEffect(() => {
     Promise.all([
-      fetchMarketingPreferences(),
       fetchConsentHistory(),
       fetchDataExports(),
       fetchDeletionStatus(),
-    ]).then(([p, c, e, d]) => {
-      setPrefs(p);
+    ]).then(([c, e, d]) => {
       setConsents(c);
       setExports(e);
       setDeletion(d);
@@ -124,13 +118,12 @@ export function PrivacyTab({
       <header>
         <h2 className="text-xl font-bold text-white mb-2">Prywatność i dane</h2>
         <p className="text-neutral-400">
-          Zarządzaj swoimi zgodami marketingowymi, pobierz kopię swoich danych lub złóż wniosek o
-          usunięcie konta zgodnie z RODO.
+          Przejrzyj swoje zgody, pobierz kopię danych lub złóż wniosek o usunięcie konta zgodnie z
+          RODO. Preferencje e-mail znajdziesz w zakładce „Powiadomienia".
         </p>
       </header>
 
       <ConsentsSection consents={consents} />
-      <MarketingSection prefs={prefs} onChange={setPrefs} showToast={showToast} />
       <DataExportSection exports={exports} onRefresh={refreshExports} showToast={showToast} />
       <AccountDeletionSection
         deletion={deletion}
@@ -184,99 +177,6 @@ function ConsentsSection({ consents }: { consents: UserConsentRow[] }) {
             </tbody>
           </table>
         )}
-      </div>
-    </section>
-  );
-}
-
-function MarketingSection({
-  prefs,
-  onChange,
-  showToast,
-}: {
-  prefs: MarketingPreferences | null;
-  onChange: (p: MarketingPreferences) => void;
-  showToast: (msg: string, type: "success" | "error") => void;
-}) {
-  const [pending, startTransition] = useTransition();
-  if (!prefs) {
-    return (
-      <section>
-        <p className="text-sm text-neutral-500">Nie udało się pobrać preferencji marketingowych.</p>
-      </section>
-    );
-  }
-
-  const togglesConfig: Array<{
-    key: keyof MarketingPreferences;
-    label: string;
-    description: string;
-  }> = [
-    {
-      key: "marketingEmail",
-      label: "Newsletter Verris",
-      description: "Comiesięczne podsumowanie i nowości produktowe.",
-    },
-    {
-      key: "productUpdatesEmail",
-      label: "Aktualizacje funkcji",
-      description: "Informacje o nowych funkcjach panelu.",
-    },
-    {
-      key: "partnerOffersEmail",
-      label: "Oferty partnerskie",
-      description: "Promocje od starannie wybranych partnerów (rzadko).",
-    },
-    {
-      key: "loginAlertsEmail",
-      label: "Alerty bezpieczeństwa",
-      description: "Powiadomienia o nowym logowaniu z nieznanego urządzenia.",
-    },
-  ];
-
-  const updateField = (key: keyof MarketingPreferences, value: boolean) => {
-    startTransition(async () => {
-      const result = await updateMarketingPreferences({ [key]: value });
-      if (!result.ok) {
-        showToast(result.error, "error");
-        return;
-      }
-      onChange({ ...prefs, [key]: value });
-      showToast("Preferencje zaktualizowane", "success");
-    });
-  };
-
-  return (
-    <section className="space-y-4">
-      <div>
-        <h3 className="text-base font-semibold text-white">Preferencje komunikacji</h3>
-        <p className="text-xs text-neutral-500 mt-1">
-          E-maile transakcyjne i bilingowe (faktury, alerty wykorzystania) są wysyłane zawsze, bo
-          wynikają z umowy. Tutaj kontrolujesz wyłącznie marketing.
-        </p>
-      </div>
-      <div className="rounded-xl border border-white/10 bg-[#0a0a0a]/40 divide-y divide-white/5">
-        {togglesConfig.map(({ key, label, description }) => {
-          const value = prefs[key] as boolean;
-          return (
-            <div key={key} className="flex items-center justify-between gap-6 p-4">
-              <div className="flex-1">
-                <p className="text-sm font-medium text-white">{label}</p>
-                <p className="text-xs text-neutral-500 mt-0.5">{description}</p>
-              </div>
-              <label className="relative inline-flex cursor-pointer items-center">
-                <input
-                  type="checkbox"
-                  checked={value}
-                  disabled={pending}
-                  onChange={(e) => updateField(key, e.target.checked)}
-                  className="peer sr-only"
-                />
-                <div className="h-6 w-11 rounded-full bg-neutral-700 peer-checked:bg-sky-500 peer-disabled:opacity-50 transition-colors after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-5" />
-              </label>
-            </div>
-          );
-        })}
       </div>
     </section>
   );

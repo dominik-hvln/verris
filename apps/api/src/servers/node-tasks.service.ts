@@ -152,6 +152,85 @@ export class NodeTasksService {
     return tasks.map((t) => this.toPublicTask(t));
   }
 
+  /**
+   * #13 — admin: ostatnie operacje węzłów (wszystkie rodzaje) z kontekstem
+   * serwera/konta/zlecającego. Do widoku „Operacje" i ręcznego ponawiania.
+   */
+  async listRecentTasks(filter: { status?: NodeTaskStatus; serverId?: string; limit?: number }) {
+    const limit = Math.min(Math.max(filter.limit ?? 100, 1), 300);
+    const rows = await this.prisma.nodeTask.findMany({
+      where: {
+        ...(filter.status ? { status: filter.status } : {}),
+        ...(filter.serverId ? { serverId: filter.serverId } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      include: {
+        server: { select: { name: true, hostname: true } },
+        requestedBy: { select: { email: true } },
+      },
+    });
+
+    // `account` nie jest relacją na NodeTask (tylko accountId) — dociągamy domeny
+    // jednym zapytaniem i mapujemy.
+    const accountIds = Array.from(
+      new Set(rows.map((t) => t.accountId).filter((id): id is string => !!id)),
+    );
+    const accounts = accountIds.length
+      ? await this.prisma.account.findMany({
+          where: { id: { in: accountIds } },
+          select: { id: true, domain: true },
+        })
+      : [];
+    const domainById = new Map(accounts.map((a) => [a.id, a.domain]));
+
+    return rows.map((t) => ({
+      id: t.id,
+      kind: t.kind,
+      status: t.status,
+      serverId: t.serverId,
+      serverName: t.server?.name ?? t.server?.hostname ?? t.serverId,
+      accountDomain: t.accountId ? (domainById.get(t.accountId) ?? null) : null,
+      requestedByEmail: t.requestedBy?.email ?? null,
+      errorMessage: t.errorMessage,
+      startedAt: t.startedAt?.toISOString() ?? null,
+      completedAt: t.completedAt?.toISOString() ?? null,
+      createdAt: t.createdAt.toISOString(),
+    }));
+  }
+
+  /**
+   * #13 — ręczne ponowienie nieudanej operacji (admin). Ustawia FAILED → QUEUED,
+   * czyści ślady poprzedniego przebiegu; agent węzła ponownie ją podejmie.
+   * Tylko dla FAILED (świadoma decyzja operatora, audytowana).
+   */
+  async retryFailedTask(taskId: string, actorUserId: string) {
+    const task = await this.prisma.nodeTask.findUnique({ where: { id: taskId } });
+    if (!task) {
+      throw new NotFoundException('Zadanie nie istnieje.');
+    }
+    if (task.status !== NodeTaskStatus.FAILED) {
+      throw new BadRequestException('Ponowić można tylko zadanie ze statusem FAILED.');
+    }
+    await this.prisma.nodeTask.update({
+      where: { id: taskId },
+      data: {
+        status: NodeTaskStatus.QUEUED,
+        errorMessage: null,
+        outputLog: null,
+        startedAt: null,
+        completedAt: null,
+      },
+    });
+    await this.audit.record({
+      action: 'NODE_TASK_RETRIED',
+      userId: actorUserId,
+      actorUserId,
+      details: { taskId, kind: task.kind, serverId: task.serverId },
+    });
+    return { ok: true as const };
+  }
+
   async leaseTaskForNode(serverId: string) {
     await this.reclaimStaleRunningTasks(serverId);
 

@@ -33,6 +33,16 @@ export const PLATFORM_SETTING_KEYS = {
   /** Czy oferować klientom upgrade do płatnego monitoringu (1/0). */
   MONITORING_PAID_OFFERED: 'monitoring.paidOffered',
 
+  // #11 — kredyty SLA za przestój infrastruktury (domyślnie wyłączone).
+  /** Czy automatycznie przyznawać kredyty SLA (1/0). Domyślnie 0 (admin włącza). */
+  SLA_CREDITS_ENABLED: 'sla.creditsEnabled',
+  /** Próg w minutach — przestój krótszy nie generuje kredytu. */
+  SLA_GRACE_MINUTES: 'sla.graceMinutes',
+  /** Mnożnik kredytu (kredytujemy `multiplier ×` czas przestoju jako czas usługi). */
+  SLA_MULTIPLIER: 'sla.multiplier',
+  /** Górny limit kredytu jako % miesięcznej ceny usługi na incydent. */
+  SLA_CAP_PERCENT: 'sla.capPercent',
+
   /** Platform-default authoritative nameservers for provisioned hosting accounts. */
   HOSTING_NS1: 'hosting.ns1',
   HOSTING_NS2: 'hosting.ns2',
@@ -79,6 +89,10 @@ export const PLATFORM_SETTING_DEFAULTS: Record<PlatformSettingKey, string> = {
   [PLATFORM_SETTING_KEYS.MONITORING_PAID_INTERVAL_MIN]: '1',
   [PLATFORM_SETTING_KEYS.MONITORING_PAID_PRICE]: '5',
   [PLATFORM_SETTING_KEYS.MONITORING_PAID_OFFERED]: '1',
+  [PLATFORM_SETTING_KEYS.SLA_CREDITS_ENABLED]: '0',
+  [PLATFORM_SETTING_KEYS.SLA_GRACE_MINUTES]: '5',
+  [PLATFORM_SETTING_KEYS.SLA_MULTIPLIER]: '10',
+  [PLATFORM_SETTING_KEYS.SLA_CAP_PERCENT]: '100',
   [PLATFORM_SETTING_KEYS.STAFF_IDLE_MINUTES]: '30',
   [PLATFORM_SETTING_KEYS.ADMIN_IDLE_MINUTES]: '15',
   [PLATFORM_SETTING_KEYS.HOSTING_NS1]: '',

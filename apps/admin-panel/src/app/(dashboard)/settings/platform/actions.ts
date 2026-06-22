@@ -100,6 +100,45 @@ export async function updateMonitoringSettingsAction(
   }
 }
 
+// #11 — polityka kredytów SLA
+export type SlaCreditPolicyForm = {
+  enabled: boolean;
+  graceMinutes: number;
+  multiplier: number;
+  capPercent: number;
+};
+
+export async function fetchSlaCreditPolicy(): Promise<SlaCreditPolicyForm> {
+  return adminApi<SlaCreditPolicyForm>('/admin/platform-settings/sla-credits');
+}
+
+export async function updateSlaCreditPolicyAction(
+  _prev: { ok?: boolean; error?: string },
+  formData: FormData,
+): Promise<{ ok?: boolean; error?: string }> {
+  const payload: SlaCreditPolicyForm = {
+    enabled: formData.get('enabled') === 'on',
+    graceMinutes: Math.max(0, Number(formData.get('graceMinutes')) || 0),
+    multiplier: Math.max(1, Number(formData.get('multiplier')) || 1),
+    capPercent: Math.max(1, Number(formData.get('capPercent')) || 1),
+  };
+  try {
+    await adminApi('/admin/platform-settings/sla-credits', { method: 'PATCH', body: payload });
+    revalidatePath('/settings/platform');
+    return { ok: true };
+  } catch (e) {
+    return {
+      ok: false,
+      error:
+        e instanceof AdminApiError
+          ? e.message
+          : e instanceof Error
+            ? e.message
+            : 'Nie udało się zapisać polityki SLA.',
+    };
+  }
+}
+
 export async function updatePlatformSettingsAction(
   _prev: { ok?: boolean; error?: string },
   formData: FormData,

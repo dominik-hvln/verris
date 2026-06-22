@@ -211,7 +211,11 @@ export default function ServiceOverviewTab({
       ) : null}
 
       {!needsBilling && service.status === 'ACTIVE' ? (
-        <FirstStepsAssistant health={health} onNavigate={onNavigate} />
+        <FirstStepsAssistant
+          health={health}
+          productKind={service.productKind}
+          onNavigate={onNavigate}
+        />
       ) : null}
 
       <HostingTabShell

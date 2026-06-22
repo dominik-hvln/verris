@@ -15,6 +15,7 @@ import {
   Wand2,
   Eye,
   EyeOff,
+  Bell,
 } from "lucide-react";
 import { checkPassword, generatePassword, PASSWORD_MIN_LENGTH } from "@/lib/password-policy";
 import { SpinBorder } from "@/components/spin-border";
@@ -32,6 +33,7 @@ import { ActivityLogSection } from "./activity-log-section";
 import { ActiveSessionsSection } from "./active-sessions-section";
 import { EmailChangeSection } from "./email-change-section";
 import { PrivacyTab } from "./privacy-tab";
+import { NotificationsTab } from "./notifications-tab";
 import { SidebarTilesSection } from "./sidebar-tiles-section";
 
 /* ─────────────────────────── Tabs Definition ─────────────────────── */
@@ -40,13 +42,14 @@ const tabs = [
   { id: "profile", label: "Profil", icon: User },
   { id: "security", label: "Bezpieczeństwo", icon: Shield },
   { id: "billing", label: "Dane do faktury", icon: Building2 },
+  { id: "notifications", label: "Powiadomienia", icon: Bell },
   { id: "privacy", label: "Prywatność i dane", icon: Lock },
   { id: "panel", label: "Wygląd panelu", icon: LayoutGrid },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
 
-const SUBACCOUNT_TAB_IDS: TabId[] = ["profile", "security", "privacy"];
+const SUBACCOUNT_TAB_IDS: TabId[] = ["profile", "security", "notifications", "privacy"];
 
 function visibleTabsForProfile(profile: UserProfile): (typeof tabs)[number][] {
   if (!profile.isSubaccount) return [...tabs];
@@ -280,6 +283,7 @@ export default function SettingsPage() {
                 showToast={showToast}
             />
             )}
+            {activeTab === "notifications" && <NotificationsTab showToast={showToast} />}
             {activeTab === "privacy" && <PrivacyTab showToast={showToast} />}
             {activeTab === "panel" && (
               <div className="p-8">

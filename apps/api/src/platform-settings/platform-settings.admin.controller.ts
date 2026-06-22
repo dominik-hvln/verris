@@ -9,6 +9,7 @@ import { UpdatePlatformSettingsDto } from './dto/platform-settings.dto';
 import { UpdateSellerCompanyDto, UpdateKsefSettingsDto } from './dto/company-settings.dto';
 import { UpdateTrialOfferDto } from './dto/trial-offer.dto';
 import { UpdateMonitoringSettingsDto } from './dto/monitoring-settings.dto';
+import { UpdateSlaCreditPolicyDto } from './dto/sla-credit-policy.dto';
 
 @Controller('admin/platform-settings')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -107,6 +108,30 @@ export class PlatformSettingsAdminController {
         paidIntervalMinutes: dto.paidIntervalMinutes,
         paidMonthlyPrice: dto.paidMonthlyPrice,
         paidOffered: dto.paidOffered,
+      },
+      actor.userId,
+    );
+  }
+
+  // #11 — polityka kredytów SLA
+  @Get('sla-credits')
+  @HttpCode(200)
+  getSlaCredits() {
+    return this.settings.getSlaCreditPolicy();
+  }
+
+  @Patch('sla-credits')
+  @HttpCode(200)
+  updateSlaCredits(
+    @Body() dto: UpdateSlaCreditPolicyDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.settings.updateSlaCreditPolicy(
+      {
+        enabled: dto.enabled,
+        graceMinutes: dto.graceMinutes,
+        multiplier: dto.multiplier,
+        capPercent: dto.capPercent,
       },
       actor.userId,
     );

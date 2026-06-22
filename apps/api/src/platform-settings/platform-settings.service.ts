@@ -333,6 +333,46 @@ export class PlatformSettingsService {
     return this.getMonitoringSettings();
   }
 
+  // #11 — polityka kredytów SLA.
+  async getSlaCreditPolicy(): Promise<{
+    enabled: boolean;
+    graceMinutes: number;
+    multiplier: number;
+    capPercent: number;
+  }> {
+    const map = await this.loadMap();
+    return {
+      enabled: this.readStr(map, PLATFORM_SETTING_KEYS.SLA_CREDITS_ENABLED, '0') === '1',
+      graceMinutes: this.readInt(map, PLATFORM_SETTING_KEYS.SLA_GRACE_MINUTES, 5, 0, 1440),
+      multiplier: this.readInt(map, PLATFORM_SETTING_KEYS.SLA_MULTIPLIER, 10, 1, 1000),
+      capPercent: this.readInt(map, PLATFORM_SETTING_KEYS.SLA_CAP_PERCENT, 100, 1, 1000),
+    };
+  }
+
+  async updateSlaCreditPolicy(
+    input: { enabled: boolean; graceMinutes: number; multiplier: number; capPercent: number },
+    actorUserId: string,
+  ): Promise<{ enabled: boolean; graceMinutes: number; multiplier: number; capPercent: number }> {
+    const grace = Math.min(Math.max(Math.round(input.graceMinutes) || 0, 0), 1440);
+    const mult = Math.min(Math.max(Math.round(input.multiplier) || 1, 1), 1000);
+    const cap = Math.min(Math.max(Math.round(input.capPercent) || 1, 1), 1000);
+    await this.upsertMany(
+      [
+        [PLATFORM_SETTING_KEYS.SLA_CREDITS_ENABLED, input.enabled ? '1' : '0'],
+        [PLATFORM_SETTING_KEYS.SLA_GRACE_MINUTES, String(grace)],
+        [PLATFORM_SETTING_KEYS.SLA_MULTIPLIER, String(mult)],
+        [PLATFORM_SETTING_KEYS.SLA_CAP_PERCENT, String(cap)],
+      ],
+      actorUserId,
+    );
+    await this.audit.record({
+      action: 'PLATFORM_SLA_CREDIT_POLICY_UPDATED',
+      userId: actorUserId,
+      details: { ...input },
+    });
+    return this.getSlaCreditPolicy();
+  }
+
   /**
    * Platform-default authoritative nameservers for provisioned hosting accounts.
    * Resolution: PlatformSetting `hosting.ns*` → env `HOSTING_NS*` → empty.

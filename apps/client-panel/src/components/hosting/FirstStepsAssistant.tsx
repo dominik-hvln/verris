@@ -12,27 +12,63 @@ import type { ServiceHealthSummaryDto } from '@verris/contracts';
  */
 export function FirstStepsAssistant({
   health,
+  productKind = 'HOSTING',
   onNavigate,
 }: {
   health: ServiceHealthSummaryDto | null;
+  productKind?: 'HOSTING' | 'EMAIL';
   onNavigate: (tab: string) => void;
 }) {
   const dnsOk = health?.checks.dnsOk === true;
   const tlsOk = health?.checks.tlsOk === true;
+  const mailOk = health?.checks.mailOk === true;
+  const isEmail = productKind === 'EMAIL';
 
-  // Podstawy gotowe → nie pokazujemy asystenta (strona skonfigurowana).
-  if (dnsOk && tlsOk) return null;
-
-  const baseDone = (dnsOk ? 1 : 0) + (tlsOk ? 1 : 0);
-
-  const steps: Array<{
+  type Step = {
     icon: React.ComponentType<{ className?: string }>;
     title: string;
     desc: string;
     done: boolean;
     cta: string;
     tab: string;
-  }> = [
+  };
+
+  // #26 — kroki dopasowane do produktu (hosting vs poczta).
+  const baseDone = isEmail
+    ? (dnsOk ? 1 : 0) + (mailOk ? 1 : 0)
+    : (dnsOk ? 1 : 0) + (tlsOk ? 1 : 0);
+
+  // Podstawy gotowe → nie pokazujemy asystenta (usługa skonfigurowana).
+  if (baseDone === 2) return null;
+
+  const emailSteps: Step[] = [
+    {
+      icon: Globe,
+      title: 'Skonfiguruj DNS poczty (MX, SPF, DKIM)',
+      desc: 'Wskaż domenę na nasze serwery poczty — pokażemy dokładne rekordy do wpisania.',
+      done: dnsOk,
+      cta: dnsOk ? 'Gotowe' : 'Przejdź do Domen & DNS',
+      tab: 'domains',
+    },
+    {
+      icon: Mail,
+      title: 'Załóż skrzynki e-mail',
+      desc: 'Utwórz adresy w swojej domenie, np. kontakt@twojadomena.pl, i ustaw hasła.',
+      done: false,
+      cta: 'Przejdź do Poczty',
+      tab: 'mail',
+    },
+    {
+      icon: ShieldCheck,
+      title: 'Sprawdź dostarczalność',
+      desc: 'Potwierdź, że serwer poczty odpowiada i wiadomości nie trafiają do spamu.',
+      done: mailOk,
+      cta: mailOk ? 'Gotowe' : 'Sprawdź pocztę',
+      tab: 'mail',
+    },
+  ];
+
+  const hostingSteps: Step[] = [
     {
       icon: Globe,
       title: 'Skieruj domenę na hosting',
@@ -66,6 +102,8 @@ export function FirstStepsAssistant({
       tab: 'mail',
     },
   ];
+
+  const steps = isEmail ? emailSteps : hostingSteps;
 
   return (
     <div className="rounded-2xl border border-violet-400/25 bg-gradient-to-br from-violet-500/[0.08] to-transparent p-4 sm:p-5">

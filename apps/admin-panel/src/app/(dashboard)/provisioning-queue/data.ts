@@ -38,3 +38,23 @@ export async function listProvisioningQueue(state?: string): Promise<Provisionin
   const qs = state ? `?state=${encodeURIComponent(state)}` : "";
   return adminApi<ProvisioningQueueResponse>(`/admin/provisioning-queue${qs}`);
 }
+
+// #13 — operacje węzłów (NodeTask)
+export interface NodeTaskRow {
+  id: string;
+  kind: string;
+  status: string;
+  serverId: string;
+  serverName: string;
+  accountDomain: string | null;
+  requestedByEmail: string | null;
+  errorMessage: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  createdAt: string;
+}
+
+export async function listNodeTasks(status?: string): Promise<NodeTaskRow[]> {
+  const qs = status ? `?status=${encodeURIComponent(status)}` : "";
+  return adminApi<NodeTaskRow[]>(`/admin/servers/node-tasks${qs}`);
+}
