@@ -139,9 +139,11 @@ export default function HostingManagerPage() {
               <span className="truncate">Twoja usługa</span>
             </h1>
             <p className="text-xs sm:text-sm text-neutral-400 mt-0.5 truncate">
-              {isEmail
-                ? 'Zarządzanie pocztą e-mail w Twojej domenie.'
-                : 'Dashboard, statystyki i narzędzia hostingowe.'}
+              {!kindResolved
+                ? 'Wczytywanie usługi…'
+                : isEmail
+                  ? 'Zarządzanie pocztą e-mail w Twojej domenie.'
+                  : 'Dashboard, statystyki i narzędzia hostingowe.'}
             </p>
           </div>
         </div>
@@ -214,7 +216,7 @@ export default function HostingManagerPage() {
               ) : null}
             </nav>
             {showHostingChrome ? <HostingPanelCard /> : null}
-            <ServiceConnectionCard serviceId={params.id} productKind={productKind} />
+            <ServiceConnectionCard serviceId={params.id} productKind={showHostingChrome ? 'HOSTING' : 'EMAIL'} />
           </aside>
 
           <main className="min-w-0 max-w-full overflow-x-hidden">
@@ -241,7 +243,7 @@ export default function HostingManagerPage() {
 
           <div className="min-w-0 space-y-4 lg:hidden">
             {showHostingChrome ? <HostingPanelCard /> : null}
-            <ServiceConnectionCard serviceId={params.id} productKind={productKind} />
+            <ServiceConnectionCard serviceId={params.id} productKind={showHostingChrome ? 'HOSTING' : 'EMAIL'} />
           </div>
         </div>
       </div>

@@ -76,7 +76,7 @@ export class ServiceHealthService {
   async computeAndPersist(subscriptionId: string): Promise<ComputedHealthSummary> {
     const sub = await this.prisma.subscription.findUnique({
       where: { id: subscriptionId },
-      include: { account: { include: { server: true } } },
+      include: { account: { include: { server: true } }, plan: { select: { productKind: true } } },
     });
     if (!sub) throw new NotFoundException('Service not found');
 
@@ -109,6 +109,10 @@ export class ServiceHealthService {
       mailOk: null as boolean | null,
     };
 
+    // MAIL-HEALTH — usługa poczty nie ma strony WWW: health liczymy z checków
+    // mailowych (MX + serwer poczty), bez HTTPS strony i panelu DA.
+    const isEmail = sub.plan?.productKind === 'EMAIL';
+
     let earned = 0;
     let possible = 0;
 
@@ -118,31 +122,52 @@ export class ServiceHealthService {
 
     const panelHost = server.hostname ?? server.daHost ?? server.ipAddress;
     const mailHost = server.hostname ?? server.ipAddress;
+
+    // Deklaracje na poziomie funkcji — używane też w probeMeta poniżej.
     let dnsResolved: string[] = [];
+    let siteTls: { ok: boolean; authorized?: boolean; error?: string } = { ok: false };
+    let panelTls: { ok: boolean; authorized?: boolean; error?: string } = { ok: false };
 
-    // DNS domeny klienta → IP węzła (25)
-    possible += 25;
-    try {
-      dnsResolved = await dns.resolve4(account.domain);
-      checks.dnsOk = dnsResolved.includes(server.ipAddress);
-      if (checks.dnsOk) earned += 25;
-    } catch {
-      checks.dnsOk = false;
+    if (isEmail) {
+      // DNS poczty: MX domeny wskazuje na serwer poczty węzła (25).
+      possible += 25;
+      try {
+        const mx = await dns.resolveMx(account.domain);
+        const target = mailHost.toLowerCase();
+        checks.dnsOk = mx.some((r) => {
+          const ex = r.exchange.toLowerCase().replace(/\.$/, '');
+          return ex === target || ex.endsWith('.verris.pl');
+        });
+        if (checks.dnsOk) earned += 25;
+      } catch {
+        checks.dnsOk = false;
+      }
+      // TLS strony i panel DA nie dotyczą poczty — poza pulą (null).
+    } else {
+      // DNS domeny klienta → IP węzła (25)
+      possible += 25;
+      try {
+        dnsResolved = await dns.resolve4(account.domain);
+        checks.dnsOk = dnsResolved.includes(server.ipAddress);
+        if (checks.dnsOk) earned += 25;
+      } catch {
+        checks.dnsOk = false;
+      }
+
+      // TLS :443 domeny klienta (15)
+      possible += 15;
+      siteTls = await this.probeTls(account.domain, 443);
+      checks.tlsOk = siteTls.ok && siteTls.authorized === true;
+      if (checks.tlsOk) earned += 15;
+      else if (siteTls.ok) earned += 5;
+
+      // Panel DA (hostname węzła :2222) — cert zaufany (15)
+      possible += 15;
+      panelTls = await this.probeTls(panelHost, server.daPort ?? 2222);
+      checks.panelTlsOk = panelTls.ok && panelTls.authorized === true;
+      if (checks.panelTlsOk) earned += 15;
+      else if (panelTls.ok) earned += 5;
     }
-
-    // TLS :443 domeny klienta (15)
-    possible += 15;
-    const siteTls = await this.probeTls(account.domain, 443);
-    checks.tlsOk = siteTls.ok && siteTls.authorized === true;
-    if (checks.tlsOk) earned += 15;
-    else if (siteTls.ok) earned += 5;
-
-    // Panel DA (hostname węzła :2222) — cert zaufany (15)
-    possible += 15;
-    const panelTls = await this.probeTls(panelHost, server.daPort ?? 2222);
-    checks.panelTlsOk = panelTls.ok && panelTls.authorized === true;
-    if (checks.panelTlsOk) earned += 15;
-    else if (panelTls.ok) earned += 5;
 
     // Poczta węzła — IMAPS :993 (fallback :587). Brak nasłuchu = infra niegotowa, nie karzemy klienta.
     let mailTls = await this.probeTls(mailHost, 993);

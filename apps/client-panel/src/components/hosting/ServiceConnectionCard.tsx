@@ -265,9 +265,14 @@ export default function ServiceConnectionCard({
         <MetricRow icon={HardDrive} label="Miejsce na dysku" metric={info.diskMb} kind="mb" />
         <MetricRow icon={Wifi} label="Transfer" metric={info.bandwidthMb} kind="mb" />
         <MetricRow icon={Mail} label="E-maile" metric={info.emails} kind="count" />
-        <MetricRow icon={Server} label="Konta FTP" metric={info.ftpAccounts} kind="count" />
-        <MetricRow icon={Database} label="Bazy danych" metric={info.databases} kind="count" />
-        <MetricRow icon={FileText} label="Liczba plików" metric={info.inodes} kind="count" />
+        {/* FTP/bazy/inody dotyczą hostingu WWW — ukrywamy dla poczty. */}
+        {!isEmail ? (
+          <>
+            <MetricRow icon={Server} label="Konta FTP" metric={info.ftpAccounts} kind="count" />
+            <MetricRow icon={Database} label="Bazy danych" metric={info.databases} kind="count" />
+            <MetricRow icon={FileText} label="Liczba plików" metric={info.inodes} kind="count" />
+          </>
+        ) : null}
       </div>
 
       {info.fetchError ? (

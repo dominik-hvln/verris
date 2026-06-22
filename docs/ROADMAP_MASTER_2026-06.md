@@ -15,6 +15,14 @@ Legenda: **S** ≤ ~0,5 dnia · **M** ~1–3 dni · **L** > 3 dni · 💰 dotyka
 
 ## 0. Status na dziś
 
+> **2026-06-22 — Poczta v2 domknięta.** MAIL-FIX2 (Przegląd bez skrótów
+> Bazy/Pliki/SSL/autoscaling/usage), MAIL-SEC2 (klient poczty bez danych DA —
+> instrukcja mailowa zamiast loginu), karta „Dane dostępowe" bez FTP/SSH/metryk
+> hostingu, podtytuł/ConnectionCard bezpieczne podczas ładowania (bez migania).
+> **MAIL-HEALTH (#118)**: health-score poczty liczony z MX + serwer poczty,
+> z pominięciem HTTPS strony i panelu DA (server-side ServiceHealthService).
+> Do potwierdzenia E2E po deployu (świeży Prisma client) + MX dla domeny testowej.
+>
 > **2026-06-21 — E2E poczty na prod ZWERYFIKOWANE.** Utworzono plan „Poczta
 > Standard" (nowy formularz), kupiono pocztę (mailtest-verris.pl) z portfela:
 > rabat startowy −10% (8,99 zamiast 9,99), portfel pobrany poprawnie, jedna
