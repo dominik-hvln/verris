@@ -76,6 +76,7 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
     daUsername: string;
     daPassword: string;
     domain: string;
+    productKind: 'HOSTING' | 'EMAIL';
   } | null>(null);
   const [provisionQueuedSubId, setProvisionQueuedSubId] = useState<string | null>(null);
   const [promoCode, setPromoCode] = useState(initialPromo ?? '');
@@ -211,6 +212,7 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
         setSuccess({
           daUsername: res.data.provisioning.daUsername,
           daPassword: res.data.provisioning.daPassword,
+          productKind: (selectedPlan?.productKind ?? 'HOSTING') as 'HOSTING' | 'EMAIL',
           domain: res.data.provisioning.domain,
         });
       } else if (res.data?.provisioningQueued && res.data.subscription?.id) {
@@ -652,11 +654,40 @@ function ProvisioningSuccess({
   daUsername,
   daPassword,
   domain,
+  productKind,
 }: {
   daUsername: string;
   daPassword: string;
   domain: string;
+  productKind: 'HOSTING' | 'EMAIL';
 }) {
+  // Poczta nie ma hostingu WWW ani logowania do panelu DA — skrzynkami zarządza
+  // się w panelu (zakładka Poczta) i przez webmail. Nie pokazujemy danych DA.
+  if (productKind === 'EMAIL') {
+    return (
+      <div className="rounded-3xl border border-emerald-400/30 bg-emerald-400/5 p-8 space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-white">Usługa poczty uruchomiona</h2>
+          <p className="text-neutral-300 mt-1">
+            Poczta dla domeny <strong>{domain}</strong> jest gotowa. Skrzynki zakładasz i obsługujesz
+            w panelu — bez osobnego logowania do panelu hostingu.
+          </p>
+        </div>
+        <ol className="space-y-2 text-sm text-neutral-300">
+          <li>1. Skonfiguruj DNS poczty (rekordy <strong>MX, SPF, DKIM</strong>) w zakładce „Domeny &amp; DNS".</li>
+          <li>2. Załóż skrzynki e-mail w zakładce „Poczta" i ustaw hasła.</li>
+          <li>3. Zaloguj się do webmaila adresem skrzynki (nie danymi panelu).</li>
+        </ol>
+        <a
+          href="/dashboard/services"
+          className="inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-bold text-black hover:bg-neutral-200"
+        >
+          Przejdź do usługi poczty
+        </a>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-3xl border border-emerald-400/30 bg-emerald-400/5 p-8 space-y-6">
       <div>

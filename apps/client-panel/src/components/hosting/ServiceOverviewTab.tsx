@@ -182,6 +182,9 @@ export default function ServiceOverviewTab({
     service.status === 'PAST_DUE' ||
     service.status === 'SUSPENDED';
 
+  // Poczta nie ma hostingu WWW — ukrywamy hostingowe skróty/autoscaling/usage.
+  const isEmail = service.productKind === 'EMAIL';
+
   const showEcoMode =
     clientFeatures.eco &&
     service.status !== 'CANCELED' &&
@@ -376,13 +379,15 @@ export default function ServiceOverviewTab({
               <ArrowRightLeft className="h-3 w-3" />
               Zmiana planu
             </Link>
-            <Link
-              href={`/dashboard/services/${serviceId}/autoscaling`}
-              className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2.5 py-1.5 text-[11px] text-neutral-300 hover:bg-white/5"
-            >
-              <Gauge className="h-3 w-3" />
-              Autoscaling
-            </Link>
+            {!isEmail ? (
+              <Link
+                href={`/dashboard/services/${serviceId}/autoscaling`}
+                className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2.5 py-1.5 text-[11px] text-neutral-300 hover:bg-white/5"
+              >
+                <Gauge className="h-3 w-3" />
+                Autoscaling
+              </Link>
+            ) : null}
           </div>
         </div>
 
@@ -403,34 +408,38 @@ export default function ServiceOverviewTab({
             ) : (
               <ShortcutButton icon={Globe} label="Domeny" onClick={() => onNavigate('domains')} />
             )}
-            {links.databasesUrl ? (
-              <a
-                href={links.databasesUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-xs font-medium text-white hover:bg-white/10"
-              >
-                <Database className="h-3.5 w-3.5" />
-                Bazy MySQL
-                <ExternalLink className="h-3 w-3 opacity-50" />
-              </a>
-            ) : (
-              <ShortcutButton icon={Database} label="Bazy" onClick={() => onNavigate('databases')} />
-            )}
-            {links.fileManagerUrl ? (
-              <a
-                href={links.fileManagerUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-xs font-medium text-white hover:bg-white/10"
-              >
-                <FolderOpen className="h-3.5 w-3.5" />
-                Pliki
-                <ExternalLink className="h-3 w-3 opacity-50" />
-              </a>
-            ) : (
-              <ShortcutButton icon={FolderOpen} label="Pliki" onClick={() => onNavigate('files')} />
-            )}
+            {!isEmail ? (
+              links.databasesUrl ? (
+                <a
+                  href={links.databasesUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-xs font-medium text-white hover:bg-white/10"
+                >
+                  <Database className="h-3.5 w-3.5" />
+                  Bazy MySQL
+                  <ExternalLink className="h-3 w-3 opacity-50" />
+                </a>
+              ) : (
+                <ShortcutButton icon={Database} label="Bazy" onClick={() => onNavigate('databases')} />
+              )
+            ) : null}
+            {!isEmail ? (
+              links.fileManagerUrl ? (
+                <a
+                  href={links.fileManagerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-xs font-medium text-white hover:bg-white/10"
+                >
+                  <FolderOpen className="h-3.5 w-3.5" />
+                  Pliki
+                  <ExternalLink className="h-3 w-3 opacity-50" />
+                </a>
+              ) : (
+                <ShortcutButton icon={FolderOpen} label="Pliki" onClick={() => onNavigate('files')} />
+              )
+            ) : null}
             {links.emailUrl ? (
               <a
                 href={links.emailUrl}
@@ -445,27 +454,29 @@ export default function ServiceOverviewTab({
             ) : (
               <ShortcutButton icon={Mail} label="Poczta" onClick={() => onNavigate('mail')} />
             )}
-            {links.sslUrl ? (
-              <a
-                href={links.sslUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-xs font-medium text-white hover:bg-white/10"
-              >
-                <Shield className="h-3.5 w-3.5" />
-                SSL
-                <ExternalLink className="h-3 w-3 opacity-50" />
-              </a>
-            ) : (
-              <ShortcutButton icon={Shield} label="SSL" onClick={() => onNavigate('ssl')} />
-            )}
+            {!isEmail ? (
+              links.sslUrl ? (
+                <a
+                  href={links.sslUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-xs font-medium text-white hover:bg-white/10"
+                >
+                  <Shield className="h-3.5 w-3.5" />
+                  SSL
+                  <ExternalLink className="h-3 w-3 opacity-50" />
+                </a>
+              ) : (
+                <ShortcutButton icon={Shield} label="SSL" onClick={() => onNavigate('ssl')} />
+              )
+            ) : null}
           </div>
           <button
             type="button"
-            onClick={() => onNavigate('usage')}
+            onClick={() => onNavigate(isEmail ? 'backups' : 'usage')}
             className="w-full text-left rounded-lg border border-white/10 px-3 py-2 text-[11px] text-neutral-400 hover:bg-white/5 hover:text-white"
           >
-            Usage, backup i badge uptime →
+            {isEmail ? 'Kopie zapasowe →' : 'Usage, backup i badge uptime →'}
           </button>
         </div>
       </div>
