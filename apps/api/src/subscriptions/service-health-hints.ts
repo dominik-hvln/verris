@@ -3,6 +3,8 @@ import type { ServiceHealthCheckDetailDto, ServiceHealthCheckKey } from '@verris
 export interface HealthProbeMeta {
   domain: string;
   serverIp: string;
+  /** MAIL-HEALTH — dla EMAIL DNS dotyczy MX/SPF/DKIM, nie rekordu A strony. */
+  productKind?: 'HOSTING' | 'EMAIL';
   dnsResolved: string[];
   siteTls: { ok: boolean; authorized?: boolean; error?: string };
   panelHost: string;
@@ -42,18 +44,26 @@ export function buildHealthCheckDetails(
 ): Partial<Record<ServiceHealthCheckKey, ServiceHealthCheckDetailDto>> {
   const out: Partial<Record<ServiceHealthCheckKey, ServiceHealthCheckDetailDto>> = {};
 
+  const isEmail = meta.productKind === 'EMAIL';
   if (checks.dnsOk === true) {
-    out.dnsOk = okDetail(
-      'DNS',
-      `Domena ${meta.domain} wskazuje na serwer hostingu (${meta.serverIp}).`,
-    );
+    out.dnsOk = isEmail
+      ? okDetail('DNS poczty', `Domena ${meta.domain} ma rekord MX wskazujący na nasz serwer poczty.`)
+      : okDetail('DNS', `Domena ${meta.domain} wskazuje na serwer hostingu (${meta.serverIp}).`);
   } else if (checks.dnsOk === false) {
-    const seen = meta.dnsResolved.length ? meta.dnsResolved.join(', ') : 'brak rekordu A / błąd zapytania';
-    out.dnsOk = warnDetail(
-      'DNS',
-      `Domena ${meta.domain} nie wskazuje na ${meta.serverIp}. Wykryte adresy A: ${seen}.`,
-      'U rejestratora lub w zakładce „Domeny & DNS” ustaw rekord A (oraz www) na adres IP z panelu „Dane dostępowe”. Propagacja DNS może potrwać do 24 h.',
-    );
+    if (isEmail) {
+      out.dnsOk = warnDetail(
+        'DNS poczty',
+        `Domena ${meta.domain} nie ma jeszcze rekordu MX wskazującego na nasz serwer poczty.`,
+        'W zakładce „Domeny & DNS” (lub u rejestratora) ustaw rekord MX na serwer poczty z panelu „Dane dostępowe”, a także rekordy SPF i DKIM dla poprawnej dostarczalności. Propagacja DNS może potrwać do 24 h.',
+      );
+    } else {
+      const seen = meta.dnsResolved.length ? meta.dnsResolved.join(', ') : 'brak rekordu A / błąd zapytania';
+      out.dnsOk = warnDetail(
+        'DNS',
+        `Domena ${meta.domain} nie wskazuje na ${meta.serverIp}. Wykryte adresy A: ${seen}.`,
+        'U rejestratora lub w zakładce „Domeny & DNS” ustaw rekord A (oraz www) na adres IP z panelu „Dane dostępowe”. Propagacja DNS może potrwać do 24 h.',
+      );
+    }
   }
 
   if (checks.tlsOk === true) {

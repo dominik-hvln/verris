@@ -232,6 +232,7 @@ export class ServiceHealthService {
     const probeMeta: HealthProbeMeta = {
       domain: account.domain,
       serverIp: server.ipAddress,
+      productKind: isEmail ? 'EMAIL' : 'HOSTING',
       dnsResolved,
       siteTls,
       panelHost,
