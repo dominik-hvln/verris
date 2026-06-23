@@ -48,7 +48,13 @@
         # a szersze okno prób „przetrzymuje" żądanie aż nowy kontener wstanie.
         health_uri /api/health
         health_interval 3s
-        health_timeout 2s
+        # STAB-2 — 2s bywało zbyt agresywne: chwilowe obciążenie (np. seria
+        # server-action POST w menedżerze plików) potrafiło przekroczyć 2s na
+        # pojedynczym procesie Node, przez co Caddy zdejmował CAŁY upstream i
+        # zwracał 503 na bieżące żądania. Realnie martwy kontener i tak odpada
+        # natychmiast (connection refused), więc dłuższy timeout nie spowalnia
+        # wykrywania restartu (STAB-1), a eliminuje fałszywe 503.
+        health_timeout 5s
         lb_try_duration 30s
         lb_try_interval 500ms
     }
@@ -74,7 +80,13 @@
     reverse_proxy staff-panel:3002 {
         health_uri /api/health
         health_interval 3s
-        health_timeout 2s
+        # STAB-2 — 2s bywało zbyt agresywne: chwilowe obciążenie (np. seria
+        # server-action POST w menedżerze plików) potrafiło przekroczyć 2s na
+        # pojedynczym procesie Node, przez co Caddy zdejmował CAŁY upstream i
+        # zwracał 503 na bieżące żądania. Realnie martwy kontener i tak odpada
+        # natychmiast (connection refused), więc dłuższy timeout nie spowalnia
+        # wykrywania restartu (STAB-1), a eliminuje fałszywe 503.
+        health_timeout 5s
         lb_try_duration 30s
         lb_try_interval 500ms
     }
@@ -90,7 +102,13 @@
     reverse_proxy admin-panel:3003 {
         health_uri /api/health
         health_interval 3s
-        health_timeout 2s
+        # STAB-2 — 2s bywało zbyt agresywne: chwilowe obciążenie (np. seria
+        # server-action POST w menedżerze plików) potrafiło przekroczyć 2s na
+        # pojedynczym procesie Node, przez co Caddy zdejmował CAŁY upstream i
+        # zwracał 503 na bieżące żądania. Realnie martwy kontener i tak odpada
+        # natychmiast (connection refused), więc dłuższy timeout nie spowalnia
+        # wykrywania restartu (STAB-1), a eliminuje fałszywe 503.
+        health_timeout 5s
         lb_try_duration 30s
         lb_try_interval 500ms
     }
@@ -109,7 +127,13 @@
         # zwraca tu 503 → Caddy przestaje kierować ruch zanim kontener padnie.
         health_uri /readyz
         health_interval 3s
-        health_timeout 2s
+        # STAB-2 — 2s bywało zbyt agresywne: chwilowe obciążenie (np. seria
+        # server-action POST w menedżerze plików) potrafiło przekroczyć 2s na
+        # pojedynczym procesie Node, przez co Caddy zdejmował CAŁY upstream i
+        # zwracał 503 na bieżące żądania. Realnie martwy kontener i tak odpada
+        # natychmiast (connection refused), więc dłuższy timeout nie spowalnia
+        # wykrywania restartu (STAB-1), a eliminuje fałszywe 503.
+        health_timeout 5s
         lb_try_duration 30s
         lb_try_interval 500ms
     }
@@ -125,7 +149,13 @@
     reverse_proxy status-page:3004 {
         health_uri /api/health
         health_interval 3s
-        health_timeout 2s
+        # STAB-2 — 2s bywało zbyt agresywne: chwilowe obciążenie (np. seria
+        # server-action POST w menedżerze plików) potrafiło przekroczyć 2s na
+        # pojedynczym procesie Node, przez co Caddy zdejmował CAŁY upstream i
+        # zwracał 503 na bieżące żądania. Realnie martwy kontener i tak odpada
+        # natychmiast (connection refused), więc dłuższy timeout nie spowalnia
+        # wykrywania restartu (STAB-1), a eliminuje fałszywe 503.
+        health_timeout 5s
         lb_try_duration 30s
         lb_try_interval 500ms
     }

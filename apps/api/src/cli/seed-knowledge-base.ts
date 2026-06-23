@@ -252,6 +252,84 @@ Ograniczenia trialu chronią przed nadużyciami (limity zasobów/funkcji). Po za
 
 Pliki strony znajdują się zwykle w katalogu domeny (np. domains/twojadomena.pl/public_html). Operacje są ograniczone do Twojego konta (bezpieczna izolacja ścieżek). Do dużych transferów nadal wygodniejszy bywa klient FTP/FTPS.`,
   },
+  {
+    title: 'Identyfikator usługi (ID) — co to jest i do czego służy',
+    audience: AiKnowledgeAudience.ALL,
+    content: `Każda usługa Verris ma swój unikalny identyfikator (ID), widoczny obok nazwy pakietu na liście usług i w nagłówku usługi (np. „domi3a8k"). To krótki, niepowtarzalny znacznik ułatwiający odnalezienie konkretnej usługi.
+
+Do czego służy:
+- Szybkie odszukanie usługi, gdy masz ich kilka.
+- Podanie go w zgłoszeniu do wsparcia — dzięki niemu od razu wiemy, której usługi dotyczy sprawa.
+- Dla hostingu jest to jednocześnie login do panelu serwera (DirectAdmin) oraz prefiks nazw baz danych i kont (np. baza „domi3a8k_sklep").
+
+Identyfikatora nie trzeba nigdzie wpisywać samodzielnie — nadajemy go automatycznie przy zakupie usługi.`,
+  },
+  {
+    title: 'Usługa e-mail (poczta bez hostingu strony)',
+    audience: AiKnowledgeAudience.ALL,
+    content: `Usługa e-mail to samodzielny produkt pocztowy: profesjonalna poczta w Twojej domenie bez hostingu strony WWW. W panelu takiej usługi dostępne są wyłącznie funkcje pocztowe (skrzynki, konfiguracja DNS poczty), bez narzędzi hostingu stron.
+
+Aby poczta działała, skonfiguruj w DNS domeny rekordy:
+- MX — kierujący pocztę na serwer poczty Verris (adres w zakładce „Dane dostępowe"),
+- SPF i DKIM — dla poprawnej dostarczalności (mniej spamu),
+- opcjonalnie DMARC — polityka uwierzytelniania.
+
+Skrzynki zakładasz w zakładce Poczta. Konfigurację programu pocztowego (IMAP 993, SMTP 587) znajdziesz w osobnym artykule. Jeśli potrzebujesz też strony WWW, wybierz plan hostingowy zamiast samej poczty.`,
+  },
+  {
+    title: 'Faktury i dane do faktury (KSeF)',
+    audience: AiKnowledgeAudience.ALL,
+    content: `Faktury za usługi znajdziesz w panelu w sekcji Płatności → Faktury. Możesz je pobrać w dowolnym momencie.
+
+Dane nabywcy (Twojej firmy) do faktur ustawisz w ustawieniach konta — uzupełnij nazwę, NIP i adres przed zakupem, aby faktury były wystawiane poprawnie. Faktury wystawiamy automatycznie po zaksięgowaniu płatności.
+
+Obsługujemy KSeF (Krajowy System e-Faktur): faktury są wysyłane do KSeF zgodnie z przepisami, a w panelu widzisz status wysyłki. Jeśli zmienisz dane firmy, dotyczą one faktur wystawianych po zmianie.`,
+  },
+  {
+    title: 'Zmiana planu usługi (upgrade / downgrade)',
+    audience: AiKnowledgeAudience.ALL,
+    content: `Plan usługi zmienisz w panelu: Usługa → „Zmiana planu". Wybierz nowy plan — panel pokaże różnicę w parametrach (CPU/RAM/dysk) i cenie.
+
+Upgrade (wyższy plan) zwiększa limity zasobów i jest zwykle stosowany od razu. Przy planach o stałej cenie wyższy plan bywa tańszy i stabilniejszy niż ciągłe dopłaty za autoskalowanie — jeśli usługa regularnie sięga po dodatkowe zasoby, rozważ wyższy plan.
+
+Dane, pliki i bazy pozostają nienaruszone przy zmianie planu. Rozliczenie różnicy odbywa się przez portfel.`,
+  },
+  {
+    title: 'Zgłoszenia do wsparcia (tickety) i gwarancja SLA',
+    audience: AiKnowledgeAudience.ALL,
+    content: `Pomoc techniczną poprosisz w panelu: Wsparcie → „Nowe zgłoszenie". Wybierz temat, opisz problem i (jeśli to możliwe) podaj identyfikator usługi oraz domenę, której dotyczy — przyspieszy to diagnozę. Do zgłoszenia możesz dołączyć pliki/zrzuty ekranu.
+
+Podczas pisania panel podpowiada artykuły Bazy Wiedzy, które mogą od razu rozwiązać sprawę.
+
+Czas reakcji zależy od Twojego planu (gwarancja SLA widoczna przy zgłoszeniu). Po zamknięciu zgłoszenia możesz ocenić jakość obsługi (CSAT) — Twoja opinia pomaga nam się poprawiać.`,
+  },
+  {
+    title: 'Twoje dane: eksport i usunięcie konta (RODO)',
+    audience: AiKnowledgeAudience.ALL,
+    content: `Masz pełną kontrolę nad swoimi danymi. W ustawieniach konta (sekcja Prywatność) możesz:
+- pobrać eksport swoich danych (kopia informacji z konta),
+- zażądać usunięcia konta i powiązanych danych.
+
+Usunięcie konta jest operacją nieodwracalną — kasuje usługi i dane. Niektóre dane (np. wystawione faktury) możemy przechowywać przez okres wymagany przepisami prawa. Szczegóły znajdziesz w Polityce prywatności i dokumencie DPA. W razie pytań o przetwarzanie danych napisz na rodo@verris.pl.`,
+  },
+  {
+    title: 'Centrum powiadomień — kategorie i ustawienia',
+    audience: AiKnowledgeAudience.ALL,
+    content: `Centrum powiadomień (ustawienia konta → Powiadomienia) pozwala zdecydować, o czym chcesz być informowany e-mailem.
+
+Powiadomienia krytyczne (np. awaria usługi, problem z płatnością, sprawy bezpieczeństwa) są zawsze włączone — dotyczą działania i bezpieczeństwa Twoich usług. Powiadomienia opcjonalne (np. nowości, porady, podsumowania) możesz włączać i wyłączać według uznania.
+
+Alertami konkretnej usługi (np. monitoring dostępności) sterujesz dodatkowo przy danej usłudze, bez wyłączania monitoringu.`,
+  },
+  {
+    title: 'Logowanie bez hasła (passkey) — konfiguracja',
+    audience: AiKnowledgeAudience.ALL,
+    content: `Passkey to bezpieczne logowanie bez hasła, oparte o Twoje urządzenie (odcisk palca, Face ID, PIN lub klucz sprzętowy). Jest odporne na phishing i wygodniejsze niż hasło.
+
+Konfiguracja: ustawienia konta → sekcja Passkey/Bezpieczeństwo → „Dodaj passkey" i postępuj zgodnie z monitem przeglądarki/systemu. Możesz dodać kilka passkeyów (np. laptop i telefon). Przy kolejnym logowaniu wybierz „Zaloguj się passkey".
+
+Zalecamy dodanie co najmniej dwóch passkeyów lub zachowanie metody zapasowej, aby nie stracić dostępu po zmianie urządzenia. Dodanie/usunięcie passkeya jest odnotowywane, a przy zmianach wysyłamy alert bezpieczeństwa.`,
+  },
 ];
 
 async function main() {

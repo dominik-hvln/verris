@@ -33,6 +33,29 @@ import { daErrorMessage } from '@/lib/client-hosting-messages';
 
 const EDITABLE = /\.(txt|md|html?|css|js|mjs|cjs|ts|jsx|tsx|json|xml|ya?ml|ini|conf|env|htaccess|php|py|sh|sql|log)$/i;
 
+/**
+ * STAB-2 — krótki retry transientnych błędów (głównie 503, gdy proxy chwilowo
+ * zdejmie panel pod obciążeniem). Server-action przy 503 nie wykonał się na
+ * serwerze, więc ponowienie odczytu jest bezpieczne. Dzięki temu wejście w
+ * zagnieżdżony katalog nie „zacina się" przy chwilowym 503.
+ */
+async function withRetry<T>(fn: () => Promise<T>, attempts = 3, delayMs = 600): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e;
+      const msg = e instanceof Error ? e.message : String(e);
+      // Ponawiamy tylko błędy transientne (503 / proxy / sieć), nie błędy DA.
+      const transient = /\b503\b|service unavailable|failed to fetch|network|fetch failed/i.test(msg);
+      if (!transient || i === attempts - 1) break;
+      await new Promise((r) => setTimeout(r, delayMs * (i + 1)));
+    }
+  }
+  throw lastErr;
+}
+
 function formatModified(raw: string | null): string {
   if (!raw) return '—';
   // DA returns epoch seconds (sometimes ms); render a readable local date.
@@ -70,7 +93,7 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
     async (p: string) => {
       setLoading(true);
       try {
-        const res = await fmList(serviceId, p);
+        const res = await withRetry(() => fmList(serviceId, p));
         setPath(res.path);
         setEntries(res.entries);
       } catch (e) {
