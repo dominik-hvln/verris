@@ -227,7 +227,7 @@ export class ServiceHealthService {
             ? 'attention'
             : 'critical';
 
-    const summary = this.buildSummaryText(score, checks, account.domain);
+    const summary = this.buildSummaryText(score, checks, account.domain, isEmail);
 
     const probeMeta: HealthProbeMeta = {
       domain: account.domain,
@@ -396,10 +396,16 @@ export class ServiceHealthService {
     score: number | null,
     checks: ComputedHealthSummary['checks'],
     domain: string,
+    isEmail = false,
   ): string {
     if (score == null) return 'Brak wystarczających danych do oceny.';
     const parts: string[] = [];
-    if (checks.dnsOk === false) parts.push(`DNS domeny ${domain} nie wskazuje na serwer hostingu`);
+    if (checks.dnsOk === false)
+      parts.push(
+        isEmail
+          ? `domena ${domain} nie ma rekordu MX wskazującego na serwer poczty`
+          : `DNS domeny ${domain} nie wskazuje na serwer hostingu`,
+      );
     if (checks.tlsOk === false) parts.push('brak ważnego certyfikatu HTTPS na domenie');
     if (checks.panelTlsOk === false) parts.push('panel hostingu wymaga uwagi');
     if (checks.mailOk === false) parts.push('serwer poczty nie odpowiada');

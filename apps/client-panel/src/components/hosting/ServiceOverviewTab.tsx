@@ -327,12 +327,17 @@ export default function ServiceOverviewTab({
         onNavigate={onNavigate}
       />
 
-      <DomainPointingPanel
-        serviceId={serviceId}
-        dnsManageUrl={links.dnsUrl}
-        variant="compact"
-        onGoToDomains={() => onNavigate('domains')}
-      />
+      {/* Karta „kierowania domeny na hosting" (rekord A) dotyczy hostingu WWW.
+          Dla poczty konfigurację DNS (MX/SPF/DKIM) prowadzą Pierwsze kroki,
+          hint Health Score oraz zakładka Domeny & DNS — bez mylącego rekordu A. */}
+      {!isEmail ? (
+        <DomainPointingPanel
+          serviceId={serviceId}
+          dnsManageUrl={links.dnsUrl}
+          variant="compact"
+          onGoToDomains={() => onNavigate('domains')}
+        />
+      ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 space-y-3">

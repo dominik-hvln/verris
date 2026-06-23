@@ -904,6 +904,7 @@ function buildServiceRecommendations(s: {
   status: string;
   autoscalingEnabled: boolean;
   provisioningStage: string | null;
+  plan?: { productKind?: string | null } | null;
   account: {
     domain: string;
     scaledCpu: number;
@@ -959,13 +960,23 @@ function buildServiceRecommendations(s: {
       body: 'Uruchom backup przed większymi zmianami WordPress, DNS lub migracją.',
     });
   }
+  const isEmail = s.plan?.productKind === 'EMAIL';
   if (latest && (latest.dnsOk === false || latest.tlsOk === false)) {
-    out.push({
-      type: 'domain',
-      severity: 'critical',
-      title: 'Sprawdź DNS i SSL',
-      body: 'Asystent domeny wskaże brakujące rekordy oraz problemy certyfikatu.',
-    });
+    out.push(
+      isEmail
+        ? {
+            type: 'domain',
+            severity: 'critical',
+            title: 'Skonfiguruj DNS poczty',
+            body: 'Ustaw rekordy MX, SPF i DKIM, aby poczta działała i nie trafiała do spamu — Asystent domeny wskaże brakujące rekordy.',
+          }
+        : {
+            type: 'domain',
+            severity: 'critical',
+            title: 'Sprawdź DNS i SSL',
+            body: 'Asystent domeny wskaże brakujące rekordy oraz problemy certyfikatu.',
+          },
+    );
   }
   if (out.length === 0 && s.status === 'ACTIVE') {
     out.push({
