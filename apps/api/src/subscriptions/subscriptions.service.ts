@@ -26,6 +26,7 @@ import { getInvoiceClientSecret, getSubscriptionPeriod } from '../billing/stripe
 import { DirectAdminService } from '../servers/directadmin.service';
 import { ProvisioningService, ProvisionResult } from './provisioning.service';
 import { ProvisioningQueueService } from './provisioning-queue.service';
+import { generateUniqueServiceTag } from './service-tag.util';
 import {
   UpdateSubscriptionPreferencesDto,
   CreateSubscriptionDto,
@@ -268,10 +269,14 @@ export class SubscriptionsService {
 
     // Create subscription row up-front in PENDING_PAYMENT so we can attach
     // the wallet entry / provisioning to it (and recover from failures).
+    // SVC-TAG — unikalny handle nadawany od razu przy zakupie (widoczny obok
+    // pakietu); dla hostingu provisioning użyje go jako loginu DA (prefiks baz).
+    const serviceTag = await generateUniqueServiceTag(this.prisma);
     const subscription = await this.prisma.subscription.create({
       data: {
         userId,
         planId: plan.id,
+        serviceTag,
         status: SubscriptionStatus.PENDING_PAYMENT,
         interval: dto.interval,
         priceAmount: pricing.chargeAmount,

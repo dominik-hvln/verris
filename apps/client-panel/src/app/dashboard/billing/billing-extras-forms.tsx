@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { CREDIT_SHORT, formatCredits, pluralCredits } from '@/lib/credits';
 import { redeemPromoAction, upsertAutoTopupAction } from './actions';
+import { Select } from '@/components/panel';
 
 interface Props {
   initialAuto: WalletAutoTopupSettingsDto;
@@ -115,6 +116,7 @@ function WalletAutotopupBlock({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [local, setLocal] = useState(initialAuto);
+  const [cardId, setCardId] = useState(initialAuto.paymentMethodId ?? '');
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -196,24 +198,25 @@ function WalletAutotopupBlock({
             <Landmark className="h-3.5 w-3.5" />
             Karta (rekord Stripe w bazie)
           </span>
-          <select
-            name="localPaymentMethodId"
-            defaultValue={local.paymentMethodId ?? ''}
-            className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-2.5 text-sm text-white focus:border-white/35 focus:outline-none"
-          >
-            <option value="">
-              Automatycznie — pierwszy zapis na koncie lub domyślna przy Stripe Checkout
-            </option>
-            {savedCards.map((c) => {
-              const lbl = `${(c.brand ?? 'Karta').toUpperCase()} •••• ${c.last4 ?? '····'}`;
-              return (
-                <option key={c.id} value={c.id}>
-                  {lbl}
-                  {c.isDefault ? ' (domyślna)' : ''}
-                </option>
-              );
-            })}
-          </select>
+          {/* hidden input utrzymuje pole `localPaymentMethodId` w FormData */}
+          <input type="hidden" name="localPaymentMethodId" value={cardId} />
+          <Select
+            value={cardId}
+            onChange={setCardId}
+            aria-label="Karta (rekord Stripe w bazie)"
+            options={[
+              {
+                value: '',
+                label: 'Automatycznie — pierwszy zapis na koncie lub domyślna przy Stripe Checkout',
+              },
+              ...savedCards.map((c) => ({
+                value: c.id,
+                label: `${(c.brand ?? 'Karta').toUpperCase()} •••• ${c.last4 ?? '····'}${
+                  c.isDefault ? ' (domyślna)' : ''
+                }`,
+              })),
+            ]}
+          />
         </label>
 
         {savedCards.length === 0 ? (

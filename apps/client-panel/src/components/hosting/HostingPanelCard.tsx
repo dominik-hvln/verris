@@ -29,7 +29,7 @@ function CredentialRow({ label, value, mono = true }: { label: string; value: st
     <div className="space-y-1">
       <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500">{label}</p>
       <div className="flex items-start gap-2 min-w-0">
-        <p className={`text-sm text-white break-all min-w-0 flex-1 ${mono ? 'font-mono' : ''}`}>{value}</p>
+        <p className={`text-[12px] leading-snug text-white break-all min-w-0 flex-1 ${mono ? 'font-mono' : ''}`}>{value}</p>
         <CopyButton value={value} label={label} />
       </div>
     </div>

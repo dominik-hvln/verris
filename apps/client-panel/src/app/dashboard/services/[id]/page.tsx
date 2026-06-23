@@ -45,7 +45,7 @@ import HostingPanelCard from '@/components/hosting/HostingPanelCard';
 import ServiceConnectionCard from '@/components/hosting/ServiceConnectionCard';
 import { HostingLinksProvider } from '@/components/hosting/hosting-links-context';
 import { MobileTabStrip } from '@/components/panel';
-import { fetchServiceDetailsAction } from '@/app/dashboard/services/[id]/hosting-service-actions';
+import { fetchServiceKindAction } from '@/app/dashboard/services/[id]/hosting-service-actions';
 
 const TABS = [
   { id: 'overview', label: 'Przegląd', icon: LayoutDashboard },
@@ -81,18 +81,29 @@ export default function HostingManagerPage() {
   const [activeTab, setActiveTab] = useState<TabId>(initialTab);
 
   // P-1b — usługa POCZTY nie ma hostingu WWW: pokazujemy tylko zakładki istotne
-  // dla poczty. productKind pobieramy raz; do czasu odpowiedzi zakładamy HOSTING
-  // (pełny zestaw), więc nic nie miga dla typowych usług.
-  const [productKind, setProductKind] = useState<'HOSTING' | 'EMAIL'>('HOSTING');
-  // Dopóki nie znamy typu usługi, NIE pokazujemy pełnego (hostingowego) zestawu
-  // zakładek — inaczej dla poczty migają na sekundę wszystkie zakładki hostingu.
-  const [kindResolved, setKindResolved] = useState(false);
+  // dla poczty. PERF-1 — typ usługi bierzemy najpierw z parametru URL (?kind=…),
+  // który lista usług dokleja do linku „Zarządzaj" — dzięki temu właściwy zestaw
+  // zakładek jest gotowy NATYCHMIAST, bez ciężkiego /services/:id (live health).
+  const kindHint = ((): 'HOSTING' | 'EMAIL' | null => {
+    const k = searchParams.get('kind');
+    return k === 'EMAIL' || k === 'HOSTING' ? k : null;
+  })();
+  const [productKind, setProductKind] = useState<'HOSTING' | 'EMAIL'>(kindHint ?? 'HOSTING');
+  // Mając hint z URL traktujemy typ jako rozpoznany od razu (zero migania).
+  // Bez hinta (deep-link) dobieramy typ lekkim endpointem :id/kind i do tego
+  // czasu pokazujemy neutralny szkielet nawigacji zamiast błędnego zestawu.
+  const [kindResolved, setKindResolved] = useState(kindHint != null);
+  // SVC-TAG — handle usługi do nagłówka (zawsze dociągamy lekko w tle).
+  const [serviceTag, setServiceTag] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
-    fetchServiceDetailsAction(params.id)
+    // Zawsze dociągamy lekki endpoint dla handle'a (i dla typu, gdy brak hinta);
+    // przy obecnym hincie zakładki są już gotowe, więc to nie blokuje widoku.
+    fetchServiceKindAction(params.id)
       .then((svc) => {
         if (cancelled) return;
-        if (svc?.productKind === 'EMAIL') setProductKind('EMAIL');
+        if (kindHint == null && svc?.productKind === 'EMAIL') setProductKind('EMAIL');
+        if (svc?.serviceTag) setServiceTag(svc.serviceTag);
         setKindResolved(true);
       })
       .catch(() => {
@@ -101,6 +112,7 @@ export default function HostingManagerPage() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 
   const EMAIL_TAB_IDS: TabId[] = ['overview', 'subscription', 'domains', 'mail', 'backups'];
@@ -137,6 +149,14 @@ export default function HostingManagerPage() {
             <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2 min-w-0">
               <Server className="h-5 w-5 shrink-0" />
               <span className="truncate">Twoja usługa</span>
+              {serviceTag ? (
+                <span
+                  className="shrink-0 rounded-md border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-[11px] font-normal text-neutral-300"
+                  title="Identyfikator usługi"
+                >
+                  {serviceTag}
+                </span>
+              ) : null}
             </h1>
             <p className="text-xs sm:text-sm text-neutral-400 mt-0.5 truncate">
               {!kindResolved

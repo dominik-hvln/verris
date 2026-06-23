@@ -264,6 +264,9 @@ export default async function StaffCustomerProfilePage({
                   <tr key={s.id}>
                     <td className="px-4 py-3">
                       <span className="font-medium">{s.plan.name}</span>
+                      {s.serviceTag ? (
+                        <p className="font-mono text-[11px] text-cyan-300/80">{s.serviceTag}</p>
+                      ) : null}
                       <p className="text-xs text-muted-foreground">{s.interval}</p>
                     </td>
                     <td className="px-4 py-3">

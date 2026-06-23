@@ -8,6 +8,7 @@ import {
   pasteCustomSslAction,
   requestLetsEncryptSslAction,
 } from '@/app/dashboard/services/[id]/hosting-ssl-actions';
+import { Select } from '@/components/panel';
 
 interface Props {
   serviceId: string;
@@ -64,22 +65,14 @@ export function HostingSslForms({ serviceId }: Props) {
 
       <label className="block space-y-1.5 max-w-md">
         <span className="text-xs font-medium text-neutral-400">Domena (konto hostingowe)</span>
-        <select
-          className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
+        <Select
           value={domain}
-          onChange={(e) => setDomain(e.target.value)}
+          onChange={setDomain}
           disabled={loadingDomains || domains.length === 0}
-        >
-          {domains.length === 0 ? (
-            <option value="">—</option>
-          ) : (
-            domains.map((d) => (
-              <option key={d.name} value={d.name}>
-                {d.name}
-              </option>
-            ))
-          )}
-        </select>
+          aria-label="Domena (konto hostingowe)"
+          placeholder="—"
+          options={domains.map((d) => ({ value: d.name, label: d.name }))}
+        />
       </label>
 
       <div className="grid gap-6 lg:grid-cols-2">

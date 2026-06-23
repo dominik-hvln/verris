@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, BookOpen, Loader2, Send } from "lucide-react";
 import { createTicketWithFiles, fetchKbSuggestions, type KbSuggestion } from "../actions";
+import { Select } from "@/components/panel";
 import { toast } from "sonner";
 
 const TOPICS = [
@@ -92,20 +93,15 @@ export default function NewTicketPage() {
             <label htmlFor="topic" className="text-sm font-medium">
               Czego dotyczy zgłoszenie?
             </label>
-            <select
-              id="topic"
-              name="topic"
+            {/* hidden input zachowuje pole `topic` w FormData formularza */}
+            <input type="hidden" name="topic" value={topic} />
+            <Select
               value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-            >
-              <option value="">— wybierz temat —</option>
-              {TOPICS.map((t) => (
-                <option key={t.value} value={t.value}>
-                  {t.label}
-                </option>
-              ))}
-            </select>
+              onChange={setTopic}
+              aria-label="Czego dotyczy zgłoszenie?"
+              placeholder="— wybierz temat —"
+              options={TOPICS.map((t) => ({ value: t.value, label: t.label }))}
+            />
           </div>
 
           <div className="space-y-2">

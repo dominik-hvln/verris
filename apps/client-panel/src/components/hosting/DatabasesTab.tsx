@@ -31,6 +31,7 @@ export default function DatabasesTab({ serviceId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [databases, setDatabases] = useState<{ name: string }[]>([]);
+  const [engine, setEngine] = useState<{ name: string; version: string } | null>(null);
 
   // create form
   const [name, setName] = useState('');
@@ -44,6 +45,7 @@ export default function DatabasesTab({ serviceId }: Props) {
     try {
       const dbRes = await fetchHostingDatabasesAction(serviceId);
       setDatabases(dbRes.databases);
+      setEngine(dbRes.engine);
       setFetchError(dbRes.fetchError);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Nie udało się pobrać listy baz.');
@@ -142,7 +144,18 @@ export default function DatabasesTab({ serviceId }: Props) {
         onSubmit={onCreate}
         className="mb-5 rounded-xl border border-white/10 bg-white/[0.03] p-4"
       >
-        <p className="mb-3 text-sm font-semibold text-white">Nowa baza danych</p>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <p className="text-sm font-semibold text-white">Nowa baza danych</p>
+          {engine ? (
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[11px] text-neutral-300"
+              title="Silnik bazy danych na Twoim serwerze"
+            >
+              <Database className="h-3 w-3 text-emerald-400" />
+              Silnik: <span className="font-mono text-white">{engine.name} {engine.version}</span>
+            </span>
+          ) : null}
+        </div>
         <div className="grid gap-3 sm:grid-cols-3">
           <label className="space-y-1">
             <span className="text-xs text-neutral-400">Nazwa bazy</span>

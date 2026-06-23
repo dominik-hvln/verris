@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@verris/ui';
 import { requestMigrationBundleAction } from './actions';
+import { Select } from '@/components/panel';
 
 interface Props {
   serviceId: string;
@@ -64,28 +65,30 @@ export function ExternalMigrationForm({ serviceId }: Props) {
       <div className="grid gap-3 md:grid-cols-2">
         <label className="space-y-1.5">
           <span className="text-xs text-neutral-400">Typ źródła</span>
-          <select
+          <Select
             value={sourceType}
-            onChange={(e) => setSourceType(e.target.value as 'FTP' | 'MYSQL' | 'IMAP')}
-            className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
-          >
-            <option value="FTP">FTP (pliki)</option>
-            <option value="MYSQL">MySQL (baza)</option>
-            <option value="IMAP">IMAP (poczta)</option>
-          </select>
+            onChange={(v) => setSourceType(v as 'FTP' | 'MYSQL' | 'IMAP')}
+            aria-label="Typ źródła"
+            options={[
+              { value: 'FTP', label: 'FTP (pliki)' },
+              { value: 'MYSQL', label: 'MySQL (baza)' },
+              { value: 'IMAP', label: 'IMAP (poczta)' },
+            ]}
+          />
         </label>
         {sourceType === 'FTP' ? (
           <label className="space-y-1.5">
             <span className="text-xs text-neutral-400">Protokół plików</span>
-            <select
+            <Select
               value={protocol}
-              onChange={(e) => setProtocol(e.target.value as 'ftp' | 'ftps' | 'sftp')}
-              className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
-            >
-              <option value="sftp">SFTP</option>
-              <option value="ftps">FTPS</option>
-              <option value="ftp">FTP</option>
-            </select>
+              onChange={(v) => setProtocol(v as 'ftp' | 'ftps' | 'sftp')}
+              aria-label="Protokół plików"
+              options={[
+                { value: 'sftp', label: 'SFTP' },
+                { value: 'ftps', label: 'FTPS' },
+                { value: 'ftp', label: 'FTP' },
+              ]}
+            />
           </label>
         ) : null}
         <label className="space-y-1.5">

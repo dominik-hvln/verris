@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 type SubscriptionDetail = {
   id: string;
   status: string;
+  serviceTag: string | null;
   interval: string;
   priceAmount: string;
   currency: string;
@@ -72,6 +73,10 @@ export default async function AdminSubscriptionDetailPage({ params }: { params: 
             <div>
               <p className="text-muted-foreground">Plan</p>
               <p className="text-white">{detail.plan.name} ({detail.plan.slug})</p>
+            </div>
+            <div>
+              <p className="text-muted-foreground">Usługa (ID)</p>
+              <p className="font-mono text-white">{detail.serviceTag ?? detail.account?.daUsername ?? "—"}</p>
             </div>
             <div>
               <p className="text-muted-foreground">Cena</p>

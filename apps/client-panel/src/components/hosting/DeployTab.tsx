@@ -12,6 +12,7 @@ import {
 import { HostingTabShell, DaExternalLink } from '@/components/hosting/HostingTabShell';
 import { hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { useHostingLinks } from '@/components/hosting/hosting-links-context';
+import { Select } from '@/components/panel';
 
 interface DeployTabProps {
   serviceId: string;
@@ -145,32 +146,27 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <label className="block text-xs text-neutral-400">
             Domena
-            <select
+            <Select
               value={domain}
-              onChange={(e) => setDomain(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-white/10 bg-[#050505] px-3 py-2 text-sm text-white"
-            >
-              {domains.length === 0 ? <option value="">Brak domen na koncie</option> : null}
-              {domains.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
+              onChange={setDomain}
+              aria-label="Domena"
+              className="mt-1"
+              placeholder="Brak domen na koncie"
+              options={domains.map((d) => ({ value: d, label: d }))}
+            />
           </label>
           <label className="block text-xs text-neutral-400">
             Częstotliwość
-            <select
+            <Select
               value={frequency}
-              onChange={(e) => setFrequency(e.target.value as DeployFrequency)}
-              className="mt-1 w-full rounded-lg border border-white/10 bg-[#050505] px-3 py-2 text-sm text-white"
-            >
-              {(Object.keys(FREQUENCY_LABEL) as DeployFrequency[]).map((f) => (
-                <option key={f} value={f}>
-                  {FREQUENCY_LABEL[f]}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => setFrequency(v as DeployFrequency)}
+              aria-label="Częstotliwość"
+              className="mt-1"
+              options={(Object.keys(FREQUENCY_LABEL) as DeployFrequency[]).map((f) => ({
+                value: f,
+                label: FREQUENCY_LABEL[f],
+              }))}
+            />
           </label>
           <label className="block text-xs text-neutral-400">
             Gałąź Git (opcjonalnie)

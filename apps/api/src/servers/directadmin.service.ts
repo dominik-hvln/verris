@@ -508,6 +508,7 @@ export class DirectAdminService {
   ): Promise<{
     databases: { name: string }[];
     daUsername: string | null;
+    engine: { name: string; version: string } | null;
     fetchError: string | null;
   }> {
     const sub = await this.prisma.subscription.findFirst({
@@ -516,13 +517,20 @@ export class DirectAdminService {
     });
     if (!sub) throw new NotFoundException('Service not found');
     if (!sub.account) {
-      return { databases: [], daUsername: null, fetchError: null };
+      return { databases: [], daUsername: null, engine: null, fetchError: null };
     }
     const daUsername = sub.account.daUsername;
+    // DB-1 — realny silnik+wersja bazy z węzła (bez mocków). Czytamy łańcuch
+    // wersji z powitalnego pakietu MySQL/MariaDB na :3306 (przed autoryzacją),
+    // więc nie potrzebujemy żadnych poświadczeń. Best-effort — gdy port zamknięty
+    // (firewall), po prostu nie pokazujemy wersji.
+    const engineHost = sub.account.server?.hostname || sub.account.server?.ipAddress || null;
+    const engine = engineHost ? await this.probeDbEngineVersion(engineHost) : null;
     if (!sub.account.daPasswordEnc) {
       return {
         databases: [],
         daUsername,
+        engine,
         fetchError:
           'Brak zapisanego dostępu do DirectAdmin dla tego konta (provisioningu).',
       };
@@ -533,6 +541,7 @@ export class DirectAdminService {
       return {
         databases: names.map((name) => ({ name })),
         daUsername,
+        engine,
         fetchError: null,
       };
     } catch (err) {
@@ -541,9 +550,62 @@ export class DirectAdminService {
       return {
         databases: [],
         daUsername,
+        engine,
         fetchError: msg,
       };
     }
+  }
+
+  /**
+   * DB-1 — odczytuje silnik i wersję bazy z powitalnego pakietu MySQL/MariaDB
+   * (handshake v10) na porcie 3306. Serwer wysyła wersję zaraz po nawiązaniu
+   * połączenia TCP, jeszcze przed logowaniem — nie używamy żadnych poświadczeń.
+   * MariaDB zwraca np. „5.5.5-10.6.18-MariaDB-…”, MySQL np. „8.0.36”.
+   */
+  private probeDbEngineVersion(
+    host: string,
+    port = 3306,
+    timeoutMs = 2500,
+  ): Promise<{ name: string; version: string } | null> {
+    return new Promise((resolve) => {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const net = require('net') as typeof import('net');
+      let settled = false;
+      const done = (val: { name: string; version: string } | null) => {
+        if (settled) return;
+        settled = true;
+        try {
+          socket.destroy();
+        } catch {
+          /* ignore */
+        }
+        resolve(val);
+      };
+      const socket = net.createConnection({ host, port });
+      socket.setTimeout(timeoutMs);
+      socket.once('data', (buf: Buffer) => {
+        try {
+          // 4 bajty nagłówka pakietu, potem 1 bajt protocol version (10),
+          // następnie null-zakończony łańcuch wersji serwera.
+          if (buf.length < 6 || buf[4] !== 10) return done(null);
+          const end = buf.indexOf(0x00, 5);
+          if (end < 0) return done(null);
+          let version = buf.toString('latin1', 5, end).trim();
+          if (!version) return done(null);
+          // MariaDB poprzedza wersję „5.5.5-” dla kompatybilności — usuwamy.
+          version = version.replace(/^5\.5\.5-/, '');
+          const isMaria = /mariadb/i.test(version);
+          const name = isMaria ? 'MariaDB' : 'MySQL';
+          // Wytnij sam numer (np. „10.6.18” lub „8.0.36”).
+          const num = version.match(/^\d+\.\d+\.\d+/)?.[0] ?? version.split('-')[0];
+          done({ name, version: num });
+        } catch {
+          done(null);
+        }
+      });
+      socket.once('timeout', () => done(null));
+      socket.once('error', () => done(null));
+    });
   }
 
   /** Creates a MySQL database + user on the account (in-panel DB management). */

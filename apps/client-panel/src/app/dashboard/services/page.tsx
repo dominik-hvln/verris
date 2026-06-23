@@ -141,6 +141,11 @@ function ServiceCard({ service }: { service: ServiceSummaryDto }) {
               </span>
             ) : null}
           </div>
+          {service.serviceTag ? (
+            <p className="mt-1 font-mono text-[11px] text-neutral-500" title="Identyfikator usługi">
+              ID: <span className="text-neutral-300">{service.serviceTag}</span>
+            </p>
+          ) : null}
           <div className="mt-2 space-y-1 text-xs text-neutral-400">
             <span className="flex items-center gap-2 min-w-0">
               <Globe className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
@@ -225,7 +230,9 @@ function ServiceCard({ service }: { service: ServiceSummaryDto }) {
                 </button>
               </Link>
             ) : null}
-            <Link href={`/dashboard/services/${service.id}`}>
+            {/* Przekazujemy typ usługi w URL — hub od razu pokaże właściwy zestaw
+                zakładek bez „migania" (zanim dojedzie wolniejszy detal z health). */}
+            <Link href={`/dashboard/services/${service.id}?kind=${service.productKind ?? 'HOSTING'}`}>
               <button className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-white px-3 py-2 text-xs font-semibold transition-colors">
                 <Settings2 className="h-3.5 w-3.5" />
                 Zarządzaj

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Button } from '@verris/ui';
 import { formatCredits } from '@/lib/credits';
 import { redeemEcoPointsAction } from './eco-actions';
+import { Select } from '@/components/panel';
 
 interface Props {
   maxPoints: number;
@@ -23,22 +24,20 @@ export function EcoRedeemForm({ maxPoints }: Props) {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <label className="block flex-1 space-y-1 lg:max-w-md">
           <span className="text-xs text-neutral-400">Ile punktów wymienić</span>
-          <select
-            value={points}
-            onChange={(e) => setPoints(Number(e.target.value))}
+          <Select
+            value={String(points)}
+            onChange={(v) => setPoints(Number(v))}
             disabled={busy || allowedOptions.length === 0}
-            className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-sm text-white"
-          >
-            {allowedOptions.length === 0 ? (
-              <option value={100}>Potrzeba min. 100 pkt</option>
-            ) : (
-              allowedOptions.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt} pkt → {formatCredits(opt / 10)} do portfela
-                </option>
-              ))
-            )}
-          </select>
+            aria-label="Ile punktów wymienić"
+            options={
+              allowedOptions.length === 0
+                ? [{ value: '100', label: 'Potrzeba min. 100 pkt', disabled: true }]
+                : allowedOptions.map((opt) => ({
+                    value: String(opt),
+                    label: `${opt} pkt → ${formatCredits(opt / 10)} do portfela`,
+                  }))
+            }
+          />
         </label>
         <Button
           type="button"

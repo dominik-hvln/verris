@@ -61,7 +61,14 @@ export default async function StaffSubscriptionReadonlyPage({
       </div>
 
       <header className="rounded-2xl border border-white/10 bg-black/35 p-6">
-        <h1 className="text-2xl font-bold text-white">{sub.plan.name}</h1>
+        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          {sub.plan.name}
+          {sub.serviceTag ?? sub.account?.daUsername ? (
+            <span className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-sm font-normal text-neutral-300">
+              {sub.serviceTag ?? sub.account?.daUsername}
+            </span>
+          ) : null}
+        </h1>
         <p className="mt-1 font-mono text-xs text-neutral-500">{sub.id}</p>
         <p className="mt-3 text-sm text-muted-foreground">
           Klient:{" "}

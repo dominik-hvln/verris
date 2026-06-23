@@ -10,6 +10,7 @@ import {
   fetchHostingSubdomainsAction,
   type SubdomainRow,
 } from '@/app/dashboard/services/[id]/hosting-extra-actions';
+import { Select } from '@/components/panel';
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { HostingHelpHint } from '@/components/hosting/HostingTabShell';
 
@@ -92,19 +93,15 @@ export default function SubdomainsManager({ serviceId }: { serviceId: string }) 
         <span className="pb-2 text-sm text-neutral-500">.</span>
         <label className="space-y-1">
           <span className="text-xs text-neutral-400">Domena</span>
-          <select
+          <Select
             value={domain}
-            onChange={(e) => setDomain(e.target.value)}
+            onChange={setDomain}
             disabled={domains.length === 0}
-            className="rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-sm text-white outline-none focus:border-white/30"
-          >
-            {domains.length === 0 ? <option value="">—</option> : null}
-            {domains.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
+            aria-label="Domena"
+            className="min-w-[10rem]"
+            placeholder="—"
+            options={domains.map((d) => ({ value: d, label: d }))}
+          />
         </label>
         <Button
           type="submit"

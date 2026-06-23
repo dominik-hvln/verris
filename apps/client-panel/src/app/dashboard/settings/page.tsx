@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { checkPassword, generatePassword, PASSWORD_MIN_LENGTH } from "@/lib/password-policy";
 import { SpinBorder } from "@/components/spin-border";
+import { Select as PanelSelect } from "@/components/panel";
 import {
   fetchUserProfile,
   updateUserProfile,
@@ -107,35 +108,30 @@ function Input({
   );
 }
 
+// UI-1 — most do wspólnego, customowego (niesystemowego) dropdownu. Zachowujemy
+// dotychczasowe API z eventem (onChange(e).target.value), aby nie ruszać miejsc
+// użycia, ale pod spodem renderujemy ładną listę z panelu.
 function Select({
   options,
-  ...props
+  value,
+  onChange,
+  disabled,
+  className,
+  "aria-label": ariaLabel,
 }: React.SelectHTMLAttributes<HTMLSelectElement> & {
   options: { value: string; label: string }[];
 }) {
   return (
-    <div className="relative">
-        <select
-        {...props}
-        className={`
-            w-full appearance-none rounded-xl border border-white/10 bg-[#0a0a0a]/50 px-4 py-2.5 text-sm text-white
-            focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-white/50
-            transition-all duration-200
-            ${props.className || ""}
-        `}
-        >
-        {options.map((opt) => (
-            <option key={opt.value} value={opt.value} className="bg-[#0a0a0a] text-white">
-            {opt.label}
-            </option>
-        ))}
-        </select>
-        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-neutral-400">
-            <svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
-            </svg>
-        </div>
-    </div>
+    <PanelSelect
+      value={typeof value === "string" ? value : String(value ?? "")}
+      onChange={(v) =>
+        onChange?.({ target: { value: v } } as unknown as React.ChangeEvent<HTMLSelectElement>)
+      }
+      options={options}
+      disabled={disabled}
+      className={className}
+      aria-label={ariaLabel}
+    />
   );
 }
 

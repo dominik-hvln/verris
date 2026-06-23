@@ -31,6 +31,7 @@ export default async function AdminSubscriptionsPage() {
               <tr>
                 <th className="px-4 py-3">Klient</th>
                 <th className="px-4 py-3">Plan</th>
+                <th className="px-4 py-3">Usługa (ID)</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Interval</th>
                 <th className="px-4 py-3 text-right">Cena</th>
@@ -44,6 +45,9 @@ export default async function AdminSubscriptionsPage() {
                     <p className="font-medium truncate max-w-[14rem]">{r.user.email}</p>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground">{r.plan.name}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                    {r.serviceTag ?? r.account?.daUsername ?? "—"}
+                  </td>
                   <td className="px-4 py-3">{r.status}</td>
                   <td className="px-4 py-3">{r.interval}</td>
                   <td className="px-4 py-3 text-right tabular-nums">

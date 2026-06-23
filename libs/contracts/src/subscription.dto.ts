@@ -69,6 +69,8 @@ export interface ProvisioningProgressDto {
 export interface ServiceSummaryDto {
   id: string;
   status: SubscriptionStatus;
+  /** SVC-TAG — unikalny handle usługi (np. „wnbgswgc”); dla hostingu = login DA. */
+  serviceTag?: string | null;
   /** WALLET | STRIPE_CARD | MANUAL — do akcji „Opłać” / anuluj. */
   paymentSource?: 'WALLET' | 'STRIPE_CARD' | 'MANUAL';
   planSlug: string;
@@ -259,6 +261,8 @@ export interface HostingDomainsResponseDto {
 export interface HostingMysqlDatabasesResponseDto {
   databases: { name: string }[];
   daUsername: string | null;
+  /** DB-1 — realny silnik+wersja bazy odczytany z węzła (null, gdy nieosiągalny). */
+  engine: { name: string; version: string } | null;
   fetchError: string | null;
 }
 

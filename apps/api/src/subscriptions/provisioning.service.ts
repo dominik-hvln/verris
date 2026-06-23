@@ -123,7 +123,25 @@ export class ProvisioningService {
     const server = await this.nodeSelector.pickServerForPlan(subscription.plan, {
       preferredRegion: options.preferredRegion,
     });
-    const daUsername = await this.allocateUniqueDaUsername(subscription.user, subscription.id);
+    // SVC-TAG — login DirectAdmin = handle usługi (realny prefiks baz danych).
+    // Gdy handle istnieje i jest wolny na węźle/w bazie, używamy go; w innym
+    // wypadku awaryjnie alokujemy nowy i zapisujemy z powrotem na subskrypcję,
+    // aby handle pozostał spójny z loginem konta.
+    let daUsername: string;
+    const tag = subscription.serviceTag;
+    if (tag && /^[a-z][a-z0-9]{0,7}$/.test(tag)) {
+      const taken = await this.prisma.account.findUnique({ where: { daUsername: tag } });
+      daUsername = taken ? await this.allocateUniqueDaUsername(subscription.user, subscription.id) : tag;
+    } else {
+      daUsername = await this.allocateUniqueDaUsername(subscription.user, subscription.id);
+    }
+    if (subscription.serviceTag !== daUsername) {
+      // Dosynchronizuj handle z faktycznym loginem DA (np. po awaryjnej alokacji
+      // lub dla starszych subskrypcji bez handle'a).
+      await this.prisma.subscription
+        .update({ where: { id: subscription.id }, data: { serviceTag: daUsername } })
+        .catch(() => undefined);
+    }
 
     const daClient = await this.da.getClientForServer(server.id);
 

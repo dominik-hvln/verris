@@ -768,6 +768,11 @@ model Subscription {
   trialConvertedAt     DateTime?
   trialReminderSentAt  DateTime?
 
+  // SVC-TAG — unikalny, krótki handle usługi (Cyberfolks-style, np. "wnbgswgc").
+  // Widoczny obok pakietu dla klienta i admina/staff, ułatwia odnalezienie usługi.
+  // Dla hostingu jest jednocześnie loginem DirectAdmin (realny prefiks baz danych).
+  serviceTag           String?                   @unique
+
   // Provisioned account (1:1)
   account              Account?                  @relation("SubscriptionAccount")
 

@@ -21,6 +21,7 @@ import {
   fetchHostingEmailAction,
 } from '@/app/dashboard/services/[id]/hosting-email-actions';
 import { fetchHostingDomainsAction } from '@/app/dashboard/services/[id]/hosting-domains-action';
+import { Select } from '@/components/panel';
 import { fetchConnectionInfoAction } from '@/app/dashboard/services/[id]/hosting-connection-actions';
 import { HostingTabShell, DaExternalLink } from '@/components/hosting/HostingTabShell';
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
@@ -255,19 +256,15 @@ export default function MailTab({ serviceId }: Props) {
                 className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-white/30"
               />
               <span className="flex items-center text-sm text-neutral-500">@</span>
-              <select
+              <Select
                 value={domain}
-                onChange={(e) => setDomain(e.target.value)}
+                onChange={setDomain}
                 disabled={domains.length === 0}
-                className="rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-sm text-white outline-none focus:border-white/30"
-              >
-                {domains.length === 0 ? <option value="">—</option> : null}
-                {domains.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </select>
+                aria-label="Domena"
+                className="min-w-[10rem]"
+                placeholder="—"
+                options={domains.map((d) => ({ value: d, label: d }))}
+              />
             </div>
           </label>
           <label className="space-y-1">

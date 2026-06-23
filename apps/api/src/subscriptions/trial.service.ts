@@ -25,6 +25,7 @@ import {
   trialStartedTemplate,
   trialConvertedTemplate,
 } from '../mail/templates/billing-lifecycle-notifications';
+import { generateUniqueServiceTag } from './service-tag.util';
 import type { StartTrialDto } from './dto/trial.dto';
 import type { CreatedSubscription } from './subscriptions.service';
 
@@ -102,12 +103,15 @@ export class TrialService {
     const trialEndsAt = new Date(now.getTime() + plan.trialDays * 24 * 60 * 60 * 1000);
     const listPrice = new Prisma.Decimal(plan.priceMonthly);
 
+    // SVC-TAG — unikalny handle także dla usług próbnych (= login DA).
+    const serviceTag = await generateUniqueServiceTag(this.prisma);
     let subscription;
     try {
       subscription = await this.prisma.subscription.create({
         data: {
           userId,
           planId: plan.id,
+          serviceTag,
           status: SubscriptionStatus.PROVISIONING,
           interval: BillingInterval.MONTH,
           priceAmount: new Prisma.Decimal(0),

@@ -58,6 +58,27 @@ export class UserServicesController {
     private readonly appInstall: AppInstallService,
   ) {}
 
+  // PERF-1 — bardzo lekki endpoint zwracający tylko typ usługi (productKind).
+  // Hub używa go do natychmiastowego doboru zakładek BEZ ciężkiego /services/:id,
+  // które uruchamia live-probe health (DNS/TLS/poczta) i przez to bywa wolne.
+  @Get(':id/kind')
+  async serviceKind(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id, userId: user.userId },
+      select: {
+        id: true,
+        serviceTag: true,
+        account: { select: { daUsername: true } },
+        plan: { select: { productKind: true } },
+      },
+    });
+    if (!sub) throw new NotFoundException('Usługa nie istnieje.');
+    return {
+      productKind: sub.plan?.productKind ?? 'HOSTING',
+      serviceTag: sub.serviceTag ?? sub.account?.daUsername ?? null,
+    };
+  }
+
   // P-3 — marketplace 1-click (Nextcloud/PrestaShop).
   @Get(':id/apps')
   appsStatus(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
@@ -221,6 +242,7 @@ export class UserServicesController {
     return subs.map((s) => ({
       id: s.id,
       status: s.status,
+      serviceTag: s.serviceTag ?? s.account?.daUsername ?? null,
       paymentSource: s.paymentSource,
       planSlug: s.plan.slug,
       planName: s.plan.name,
@@ -727,6 +749,7 @@ export class UserServicesController {
     return {
       id: sub.id,
       status: sub.status,
+      serviceTag: sub.serviceTag ?? sub.account?.daUsername ?? null,
       plan: {
         id: sub.plan.id,
         slug: sub.plan.slug,
