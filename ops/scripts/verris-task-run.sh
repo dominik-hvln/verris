@@ -130,6 +130,10 @@ elif [ "$TASK_KIND" = "APP_INSTALL" ]; then
   RUN_BIN="/usr/local/bin/verris-app-install.sh"
   fetch_task_script "/agent/tasks/app-install/script" "$RUN_BIN"
   payload_env "APP" "{'app':'APP','daUser':'DA_USER','domain':'DOMAIN','dbName':'DB_NAME','dbUser':'DB_USER','dbPass':'DB_PASS','adminUser':'ADMIN_USER','adminPass':'ADMIN_PASS','adminEmail':'ADMIN_EMAIL'}"
+elif [ "$TASK_KIND" = "DB_UPGRADE" ]; then
+  RUN_BIN="/usr/local/bin/verris-db-upgrade.sh"
+  fetch_task_script "/agent/tasks/db-upgrade/script" "$RUN_BIN"
+  payload_env "DB" "{'version':'TARGET_VERSION'}"
 else
   flags="-y"
   [ "$SKIP_BUILD" = "1" ] && flags="$flags --skip-build"
