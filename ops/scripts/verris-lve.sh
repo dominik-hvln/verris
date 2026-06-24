@@ -302,12 +302,42 @@ def telemetry(desired):
 # --------------------------------------------------------------------------
 # 3) NODE STATUS — CageFS etc. (always reported, even with no accounts)
 # --------------------------------------------------------------------------
+def db_engine_version():
+    # DB-1 — odczyt silnika+wersji bazy lokalnie na węźle (3306 jest zamknięty
+    # z control-plane, więc wersję raportuje agent). Best-effort: parsujemy
+    # `mariadbd --version` / `mysqld --version`, np.:
+    #   "mariadbd  Ver 10.6.18-MariaDB for ..." -> ("MariaDB", "10.6.18")
+    #   "mysqld  Ver 8.0.36 for Linux ..."      -> ("MySQL", "8.0.36")
+    import subprocess, re, shutil
+    for binname in ("mariadbd", "mysqld"):
+        path = shutil.which(binname)
+        if not path:
+            continue
+        try:
+            out = subprocess.run([path, "--version"], capture_output=True, text=True, timeout=5)
+            text = (out.stdout or "") + (out.stderr or "")
+        except Exception:
+            continue
+        if not text:
+            continue
+        ver = re.search(r"Ver\s+([0-9]+\.[0-9]+\.[0-9]+)", text)
+        engine = "MariaDB" if re.search(r"mariadb", text, re.I) else "MySQL"
+        if ver:
+            return engine, ver.group(1)
+    return None, None
+
 def node_block():
-    return {
+    engine, version = db_engine_version()
+    block = {
         "cagefsEnabled": os.environ.get("CAGEFS_ENABLED") == "1",
         "cagefsEnabledCount": to_int(os.environ.get("CAGEFS_COUNT")),
         "hardened": os.environ.get("HARDENED") == "1",
     }
+    if engine:
+        block["dbEngine"] = engine
+    if version:
+        block["dbVersion"] = version
+    return block
 
 def report_node_status():
     try:

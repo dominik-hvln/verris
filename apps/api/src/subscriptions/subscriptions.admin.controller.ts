@@ -22,6 +22,7 @@ import {
 import { MigrationOrchestratorService } from './migration-orchestrator.service';
 import { PlanChangeService } from './plan-change.service';
 import { HostingRestoreService } from './hosting-restore.service';
+import { DiagnosticsService } from './diagnostics.service';
 import { HostingRestoreDto } from './dto/hosting-restore.dto';
 import {
   SuspendSubscriptionDto,
@@ -51,7 +52,15 @@ export class SubscriptionsAdminController {
     private readonly migrations: MigrationOrchestratorService,
     private readonly planChange: PlanChangeService,
     private readonly hostingRestore: HostingRestoreService,
+    private readonly diagnostics: DiagnosticsService,
   ) {}
+
+  /** ADM-2 — Centrum diagnostyki: jedno wywołanie składa pełen obraz usługi. */
+  @Get(':id/diagnostics')
+  @Roles(Role.ADMIN, Role.STAFF)
+  runDiagnostics(@Param('id') id: string) {
+    return this.diagnostics.forSubscription(id);
+  }
 
   /** Admin-initiated restore (no domain confirmation required; full audit trail). */
   @Post(':id/hosting-restore')

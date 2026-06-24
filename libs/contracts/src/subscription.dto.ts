@@ -138,6 +138,39 @@ export interface ServiceRecommendationDto {
   body: string;
 }
 
+// -----------------------------------------------------------------------------
+// ADM-2 — Centrum diagnostyki klienta (admin/staff). Jeden „Diagnozuj" składa
+// sygnały (subskrypcja, konto, węzeł, DNS/SSL/poczta/backup/CPU, płatności) w
+// listę ustaleń z sugerowaną akcją. Autorskie reguły, bez słowa „AI".
+// -----------------------------------------------------------------------------
+export type DiagnosticArea =
+  | 'SUBSCRIPTION'
+  | 'ACCOUNT'
+  | 'NODE'
+  | 'DNS'
+  | 'SSL'
+  | 'MAIL'
+  | 'BACKUP'
+  | 'PERFORMANCE'
+  | 'BILLING';
+
+export interface DiagnosticFindingDto {
+  area: DiagnosticArea;
+  status: 'ok' | 'warn' | 'critical';
+  title: string;
+  detail: string;
+  /** Sugerowana akcja operatora (lub null, gdy brak / wszystko OK). */
+  action: string | null;
+}
+
+export interface ServiceDiagnosticsDto {
+  subscriptionId: string;
+  generatedAt: string;
+  overall: 'ok' | 'attention' | 'critical';
+  summary: string;
+  findings: DiagnosticFindingDto[];
+}
+
 export interface ServiceAccountSummaryDto {
   id: string;
   domain: string;

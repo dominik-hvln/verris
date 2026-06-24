@@ -230,6 +230,37 @@ model User {
 
   // Sprint 7 — pakietowe migracje
   migrationRequests         MigrationRequest[]
+
+  // NTF-2 — powiadomienia in-app (dzwonek w panelu klienta)
+  notifications             Notification[]
+}
+
+/**
+ * NTF-2 — trwałe powiadomienia in-app pokazywane w dzwonku panelu klienta.
+ * Tworzone obok dotychczasowych e-maili przy kluczowych zdarzeniach (awaria
+ * strony, wygasający SSL, kredyt SLA, sprawy płatności/bezpieczeństwa).
+ */
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /** Kategoria do filtrowania/ikon: MONITORING, SSL, BILLING, SECURITY, SLA, SYSTEM. */
+  category  String
+  /** info | warning | critical — steruje kolorem i wagą. */
+  severity  String   @default("info")
+  title     String
+  body      String   @db.Text
+  /** Opcjonalny link wewnątrz panelu (np. /dashboard/services/<id>). */
+  link      String?
+  /** Powiązana usługa (kontekst), opcjonalnie. */
+  subscriptionId String?
+
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
 }
 
 enum UserAuthTokenPurpose {
@@ -427,6 +458,14 @@ model Server {
   // (presence of /etc/verris-hardened written by security-hardening-baseline.sh).
   hardenedEnabled    Boolean?
   hardenedCheckedAt  DateTime?
+
+  // DB-1 — silnik i wersja bazy danych węzła (np. "MariaDB" / "10.6.18"),
+  // raportowane przez agenta verris-lve (mariadbd --version). Pokazywane
+  // klientowi w zakładce Bazy; port 3306 jest zamknięty z control-plane, więc
+  // wersji nie da się odczytać bezpośrednio — bierzemy ją z telemetrii węzła.
+  dbEngine           String?
+  dbVersion          String?
+  dbCheckedAt        DateTime?
 
   // Incydent Hetzner 2026-06-11: detektor wychodzącego skanu na węźle zgłasza
   // alarm fan-outu; pokazywane w audycie węzła i alertach admina.

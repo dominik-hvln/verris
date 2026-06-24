@@ -12,6 +12,9 @@ import { ObjectStorageModule } from './storage/object-storage.module';
 import { AuthModule } from './auth/auth.module';
 import { ServersModule } from './servers/servers.module';
 import { TelemetryModule } from './telemetry/telemetry.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { SearchModule } from './search/search.module';
+import { BusinessMetricsModule } from './metrics/business-metrics.module';
 import { DomainsModule } from './domains/domains.module';
 import { UsersModule } from './users/users.module';
 import { TicketsModule } from './tickets/tickets.module';
@@ -57,6 +60,9 @@ import { KsefModule } from './ksef/ksef.module';
     AuthModule,
     ServersModule,
     TelemetryModule,
+    NotificationsModule,
+    SearchModule,
+    BusinessMetricsModule,
     DomainsModule,
     UsersModule,
     TicketsModule,

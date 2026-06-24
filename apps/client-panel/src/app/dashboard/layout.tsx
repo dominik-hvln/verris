@@ -9,6 +9,7 @@ import { ImpersonationBanner } from "./impersonation-banner";
 import { getImpersonationContext } from "./impersonation-actions";
 import { IncidentBanner } from "./incident-banner";
 import { WalletBadge } from "./wallet-badge";
+import { NotificationBell } from "./notification-bell";
 import { ReConsentModal } from "./reconsent-modal";
 import { PlatformConfigLoader } from "@/components/platform-config-loader";
 import { SpinBorder } from "@/components/spin-border";
@@ -336,6 +337,7 @@ export default function DashboardLayout({
             </button>
           </div>
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <NotificationBell />
             {showWallet && (
               <WalletBadge
                 balance={user?.walletBalance ?? null}

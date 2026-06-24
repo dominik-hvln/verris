@@ -71,7 +71,7 @@ export class AiService {
     if (!subscription) throw new NotFoundException('Service not found');
 
     if (!this.provider.isConfigured()) {
-      return unavailableForecast('Prognoza AI jest chwilowo niedostępna.');
+      return unavailableForecast('Prognoza zasobów jest chwilowo niedostępna.');
     }
     if (subscription.usageMetrics.length < 6) {
       return unavailableForecast(

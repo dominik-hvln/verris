@@ -4,6 +4,7 @@ import { listAdminPlans } from "../../plans/data";
 import { InternalMigrationForm } from "./internal-migration-form";
 import { PlanChangeForm } from "./plan-change-form";
 import { ServiceUsagePanel } from "./usage-panel";
+import { DiagnosticsPanel } from "./diagnostics-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -96,6 +97,8 @@ export default async function AdminSubscriptionDetailPage({ params }: { params: 
               </p>
             </div>
           </div>
+
+          <DiagnosticsPanel subscriptionId={detail.id} />
 
           {detail.account ? <ServiceUsagePanel subscriptionId={detail.id} /> : null}
 

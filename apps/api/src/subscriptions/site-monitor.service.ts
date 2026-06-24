@@ -20,6 +20,7 @@ import { AuditService } from '../common/audit/audit.service';
 import { MailerService } from '../mail/mailer.service';
 import { WalletLedgerService } from '../billing/wallet-ledger.service';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import * as tls from 'node:tls';
 import {
   siteDownTemplate,
@@ -63,6 +64,7 @@ export class SiteMonitorService {
     private readonly config: ConfigService,
     private readonly walletLedger: WalletLedgerService,
     private readonly platformSettings: PlatformSettingsService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -477,6 +479,16 @@ export class SiteMonitorService {
 
           if (shouldWarn && m.subscription.user && !m.subscription.user.anonymizedAt) {
             warned += 1;
+            // NTF-2 — dzwonek in-app obok e-maila o wygasającym certyfikacie.
+            void this.notifications.create({
+              userId: m.subscription.userId,
+              category: 'SSL',
+              severity: daysLeft <= 3 ? 'critical' : 'warning',
+              title: 'Certyfikat SSL wkrótce wygaśnie',
+              body: `Certyfikat dla ${domain} wygasa za ${daysLeft} dni. Odnów go (Let's Encrypt zwykle odnawia automatycznie — sprawdź zakładkę SSL).`,
+              link: `/dashboard/services/${m.subscriptionId}`,
+              subscriptionId: m.subscriptionId,
+            });
             const panelUrl = this.panelUrl();
             const message = sslExpiringTemplate({
               to: m.subscription.user.email,
@@ -690,9 +702,19 @@ export class SiteMonitorService {
     reason: string,
     at: Date,
   ): void {
-    if (!monitor.notifyEmail) return;
     const { user, account, id: subId, userId } = monitor.subscription;
     if (!account || user.anonymizedAt) return;
+    // NTF-2 — dzwonek in-app niezależnie od wyciszenia e-maila (krytyczne).
+    void this.notifications.create({
+      userId,
+      category: 'MONITORING',
+      severity: 'critical',
+      title: 'Strona niedostępna',
+      body: `${account.domain} nie odpowiada (${reason}). Monitorujemy i damy znać po przywróceniu.`,
+      link: `/dashboard/services/${subId}`,
+      subscriptionId: subId,
+    });
+    if (!monitor.notifyEmail) return;
     const panelUrl = this.panelUrl();
     const message = siteDownTemplate({
       to: user.email,
@@ -725,9 +747,19 @@ export class SiteMonitorService {
     durationS: number,
     at: Date,
   ): void {
-    if (!monitor.notifyEmail) return;
     const { user, account, id: subId, userId } = monitor.subscription;
     if (!account || user.anonymizedAt) return;
+    // NTF-2 — dzwonek in-app: przywrócenie dostępności (niezależnie od e-maila).
+    void this.notifications.create({
+      userId,
+      category: 'MONITORING',
+      severity: 'info',
+      title: 'Strona znów działa',
+      body: `${account.domain} odpowiada ponownie. Przerwa trwała ok. ${Math.max(1, Math.round(durationS / 60))} min.`,
+      link: `/dashboard/services/${subId}`,
+      subscriptionId: subId,
+    });
+    if (!monitor.notifyEmail) return;
     const panelUrl = this.panelUrl();
     const message = siteRecoveredTemplate({
       to: user.email,

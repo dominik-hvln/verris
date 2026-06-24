@@ -2,6 +2,7 @@ import { forwardRef, Module } from '@nestjs/common';
 import { ServersModule } from '../servers/servers.module';
 import { BillingModule } from '../billing/billing.module';
 import { MailModule } from '../mail/mail.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 import { NodeSelectorService } from './node-selector.service';
 import { ProvisioningService } from './provisioning.service';
 import { ProvisioningQueueService } from './provisioning-queue.service';
@@ -10,6 +11,7 @@ import { SubscriptionsService } from './subscriptions.service';
 import { PlanChangeService } from './plan-change.service';
 import { SubscriptionsController } from './subscriptions.controller';
 import { SubscriptionsAdminController } from './subscriptions.admin.controller';
+import { MigrationsAdminController } from './migrations.admin.controller';
 import { UserServicesController } from './services.controller';
 import { RenewalScheduler } from './renewal.scheduler';
 import { SubscriptionAbandonmentScheduler } from './subscription-abandonment.scheduler';
@@ -21,6 +23,7 @@ import { MigrationWorkerController } from './migration-worker.controller';
 import { ServiceHealthService } from './service-health.service';
 import { HostingDnsPointingService } from './hosting-dns-pointing.service';
 import { HostingRestoreService } from './hosting-restore.service';
+import { DiagnosticsService } from './diagnostics.service';
 import { HostingRestoreScheduler } from './hosting-restore.scheduler';
 import { PublicUptimeBadgeController } from './public-uptime-badge.controller';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
@@ -50,6 +53,7 @@ import { EcoModule } from '../eco/eco.module';
     MigrationOrchestratorService,
     MigrationWorkerScheduler,
     ServiceHealthService,
+    DiagnosticsService,
     HostingDnsPointingService,
     HostingRestoreService,
     HostingRestoreScheduler,
@@ -68,6 +72,7 @@ import { EcoModule } from '../eco/eco.module';
     SubscriptionsAdminController,
     UserServicesController,
     ProvisioningQueueAdminController,
+    MigrationsAdminController,
     MigrationsStaffController,
     MigrationWorkerController,
     PublicUptimeBadgeController,

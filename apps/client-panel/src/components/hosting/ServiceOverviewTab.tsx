@@ -317,7 +317,14 @@ export default function ServiceOverviewTab({
           )}
         </div>
 
-        {health ? <HealthCheckDetails health={health} /> : null}
+        {health ? (
+          <HealthCheckDetails
+            health={health}
+            serviceId={serviceId}
+            domain={account?.domain ?? null}
+            onNavigate={onNavigate}
+          />
+        ) : null}
       </HostingTabShell>
 
       {/* #19 — rekomendacje (autoscaling / plan / domena / backup) z realnych danych */}

@@ -17,6 +17,7 @@ import { SpinBorder } from '@/components/spin-border';
 import { CREDIT_RATE_INFO, formatCredits } from '@/lib/credits';
 import { clientFeatures } from '@/lib/client-features';
 import { DashboardCharts } from './dashboard-charts';
+import { ServicesHealthOverview } from './services-health-overview';
 import type { DashboardSnapshot } from './dashboard-data';
 
 export function DashboardHome({ snapshot }: { snapshot: DashboardSnapshot }) {
@@ -117,6 +118,8 @@ export function DashboardHome({ snapshot }: { snapshot: DashboardSnapshot }) {
           icon={HelpCircle}
         />
       </div>
+
+      {snapshot.errors.services ? null : <ServicesHealthOverview services={servicesList} />}
 
       <DashboardCharts snapshot={snapshot} showEco={clientFeatures.eco} />
 

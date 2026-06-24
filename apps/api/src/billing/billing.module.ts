@@ -19,9 +19,10 @@ import { MailModule } from '../mail/mail.module';
 import { KsefModule } from '../ksef/ksef.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { EcoModule } from '../eco/eco.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [forwardRef(() => SubscriptionsModule), MailModule, EcoModule, KsefModule, PlatformSettingsModule],
+  imports: [forwardRef(() => SubscriptionsModule), MailModule, EcoModule, KsefModule, PlatformSettingsModule, NotificationsModule],
   controllers: [
     BillingController,
     BillingAdminController,

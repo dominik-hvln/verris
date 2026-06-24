@@ -14,6 +14,7 @@ import {
   Archive,
 } from "lucide-react";
 import { GrafanaOpsLink, grafanaSsoHref } from "./grafana-ops-link";
+import { CommandPalette } from "./command-palette";
 import type { StaffProfile } from "@/lib/staff-session";
 import { staffLogout } from "@/lib/staff-auth-actions";
 
@@ -108,8 +109,11 @@ export function StaffShell({
       </aside>
 
       <div className="relative flex flex-1 flex-col pl-72">
-        <header className="sticky top-0 z-40 flex h-14 items-center border-b border-white/5 bg-black/30 px-8 backdrop-blur-md">
+        <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b border-white/5 bg-black/30 px-8 backdrop-blur-md">
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Panel BOK</p>
+          <div className="ml-auto">
+            <CommandPalette />
+          </div>
         </header>
         <main className="flex-1 p-8">{children}</main>
       </div>

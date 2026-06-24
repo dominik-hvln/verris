@@ -63,7 +63,7 @@ export default function ServiceForecastPanel({ serviceId }: { serviceId: string 
             <Sparkles className="h-4 w-4" />
           </div>
           <div>
-            <h3 className="flex items-center gap-2 text-base font-bold text-white">Prognoza AI</h3>
+            <h3 className="flex items-center gap-2 text-base font-bold text-white">Prognoza zasobów</h3>
             <p className="text-xs text-neutral-400">
               Szacowany trend wykorzystania zasobów na podstawie ostatnich metryk.
             </p>
@@ -141,7 +141,7 @@ export default function ServiceForecastPanel({ serviceId }: { serviceId: string 
           ) : null}
 
           <p className="text-[11px] text-neutral-500">
-            Prognoza orientacyjna, generowana przez AI na podstawie historycznych metryk — nie stanowi gwarancji.
+            Prognoza orientacyjna, generowana przez autorski mechanizm Verris na podstawie historycznych metryk — nie stanowi gwarancji.
           </p>
         </div>
       ) : null}

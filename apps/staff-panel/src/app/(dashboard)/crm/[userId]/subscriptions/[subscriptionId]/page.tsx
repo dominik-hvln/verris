@@ -6,6 +6,7 @@ import { staffApi } from "@/lib/staff-api";
 import { staffGetAdminSubscription } from "@/lib/crm-subscription-data";
 import { PlanChangeTicketTemplate } from "./ticket-template";
 import { StaffPlanChangeForm } from "./staff-plan-change-form";
+import { StaffDiagnosticsPanel } from "./diagnostics-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -105,6 +106,8 @@ export default async function StaffSubscriptionReadonlyPage({
           </div>
         </dl>
       </header>
+
+      <StaffDiagnosticsPanel subscriptionId={subscriptionId} />
 
       <section className="rounded-2xl border border-white/10 bg-black/30">
         <h2 className="border-b border-white/10 px-4 py-3 text-sm font-bold uppercase tracking-wide text-white">

@@ -9,6 +9,7 @@ import {
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -74,6 +75,14 @@ export class NodeStatusDto {
    */
   @IsOptional() @IsBoolean()
   hardened?: boolean;
+
+  /** DB-1 — silnik bazy danych węzła, np. "MariaDB" / "MySQL" (mariadbd --version). */
+  @IsOptional() @IsString() @MaxLength(40)
+  dbEngine?: string;
+
+  /** DB-1 — wersja silnika bazy, np. "10.6.18". */
+  @IsOptional() @IsString() @MaxLength(40)
+  dbVersion?: string;
 }
 
 export class CloudLinuxTelemetryDto {

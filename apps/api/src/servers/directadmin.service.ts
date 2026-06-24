@@ -524,8 +524,16 @@ export class DirectAdminService {
     // wersji z powitalnego pakietu MySQL/MariaDB na :3306 (przed autoryzacją),
     // więc nie potrzebujemy żadnych poświadczeń. Best-effort — gdy port zamknięty
     // (firewall), po prostu nie pokazujemy wersji.
-    const engineHost = sub.account.server?.hostname || sub.account.server?.ipAddress || null;
-    const engine = engineHost ? await this.probeDbEngineVersion(engineHost) : null;
+    // Preferujemy wersję raportowaną przez agenta węzła (telemetria), bo port
+    // 3306 jest zwykle zamknięty z control-plane. Greeting-probe zostaje jako
+    // fallback dla węzłów współlokowanych / osiągalnych po 3306.
+    const srv = sub.account.server;
+    let engine: { name: string; version: string } | null =
+      srv?.dbEngine && srv?.dbVersion ? { name: srv.dbEngine, version: srv.dbVersion } : null;
+    if (!engine) {
+      const engineHost = srv?.hostname || srv?.ipAddress || null;
+      engine = engineHost ? await this.probeDbEngineVersion(engineHost) : null;
+    }
     if (!sub.account.daPasswordEnc) {
       return {
         databases: [],

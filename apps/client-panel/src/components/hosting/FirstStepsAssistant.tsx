@@ -111,13 +111,24 @@ export function FirstStepsAssistant({
         <div className="rounded-xl border border-violet-400/30 bg-violet-500/15 p-2 text-violet-200">
           <Sparkles className="h-4 w-4" />
         </div>
-        <div className="min-w-0">
-          <h3 className="text-sm font-bold text-white sm:text-base">Pierwsze kroki — przeprowadzimy Cię za rękę</h3>
+        <div className="min-w-0 flex-1">
+          <h3 className="text-sm font-bold text-white sm:text-base">
+            {isEmail ? 'Uruchom pocztę — przeprowadzimy Cię za rękę' : 'Uruchom stronę — przeprowadzimy Cię za rękę'}
+          </h3>
           <p className="text-xs text-neutral-400">
             Podstawy: <span className="text-white">{baseDone}/2</span> gotowe. Spokojnie — nic nie zepsujesz,
             a my podpowiadamy na każdym kroku.
           </p>
         </div>
+        <span className="shrink-0 text-xs font-bold text-violet-200">{Math.round((baseDone / 2) * 100)}%</span>
+      </div>
+
+      {/* Pasek postępu podstaw (domena + SSL / domena + poczta). */}
+      <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-white/10">
+        <div
+          className="h-full rounded-full bg-gradient-to-r from-violet-500 to-emerald-400 transition-all duration-500"
+          style={{ width: `${(baseDone / 2) * 100}%` }}
+        />
       </div>
 
       <ol className="space-y-2">

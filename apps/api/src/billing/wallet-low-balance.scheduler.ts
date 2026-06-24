@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { MailerService } from '../mail/mailer.service';
 import { walletLowBalanceTemplate } from '../mail/templates/billing-lifecycle-notifications';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const DEFAULT_DAILY_HOUR = 9; // 09:00 in the server's timezone (config trumps).
 
@@ -44,6 +45,7 @@ export class WalletLowBalanceScheduler {
     private readonly mailer: MailerService,
     private readonly audit: AuditService,
     private readonly config: ConfigService,
+    private readonly notifications: NotificationsService,
   ) {
     const raw = this.config.get<string>('WALLET_LOW_BALANCE_DEFAULT_PLN');
     const parsed = raw ? Number.parseFloat(raw) : NaN;
@@ -140,6 +142,15 @@ export class WalletLowBalanceScheduler {
 
       try {
         await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'BILLING' });
+        // NTF-2 — dzwonek in-app obok e-maila.
+        await this.notifications.create({
+          userId: user.id,
+          category: 'BILLING',
+          severity: 'warning',
+          title: 'Niskie saldo portfela',
+          body: `Saldo (${user.walletBalance.toFixed(2)}) spadło poniżej progu ${threshold.toFixed(2)}. Doładuj, aby usługi działały bez przerw.`,
+          link: '/dashboard/billing',
+        });
         await this.audit.record({
           action: 'WALLET_LOW_BALANCE_NOTIFIED',
           userId: user.id,

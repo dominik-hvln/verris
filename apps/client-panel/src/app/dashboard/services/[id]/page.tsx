@@ -116,12 +116,38 @@ export default function HostingManagerPage() {
   }, [params.id]);
 
   const EMAIL_TAB_IDS: TabId[] = ['overview', 'subscription', 'domains', 'mail', 'backups'];
+  // GUIDE-4 — zakładki „zaawansowane" ukrywane w trybie prostym (dla osób, które
+  // chcą tylko podstaw). Nie dotyczy poczty (ma własny, krótki zestaw).
+  const ADVANCED_TAB_IDS: TabId[] = ['php', 'ftp', 'cron', 'waf', 'staging', 'deploy', 'usage'];
   const isEmail = productKind === 'EMAIL';
+
+  // GUIDE-4 — tryb prosty/zaawansowany, zapamiętany lokalnie per przeglądarka.
+  const [simpleMode, setSimpleMode] = useState(false);
+  useEffect(() => {
+    try {
+      setSimpleMode(localStorage.getItem('verris-simple-mode') === '1');
+    } catch {
+      /* brak localStorage — pełny tryb */
+    }
+  }, []);
+  const toggleSimpleMode = () => {
+    setSimpleMode((v) => {
+      const next = !v;
+      try {
+        localStorage.setItem('verris-simple-mode', next ? '1' : '0');
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
+
   // Przed rozpoznaniem typu pokazujemy tylko bezpieczny podzbiór (pocztowy), który
   // jest zawarty w zestawie hostingu — hosting po prostu „dobierze" zakładki po
   // załadowaniu, a poczta nigdy nie pokaże narzędzi hostingu.
-  const visibleTabs =
-    isEmail || !kindResolved ? TABS.filter((t) => EMAIL_TAB_IDS.includes(t.id)) : TABS;
+  const visibleTabs = (
+    isEmail || !kindResolved ? TABS.filter((t) => EMAIL_TAB_IDS.includes(t.id)) : TABS
+  ).filter((t) => !(simpleMode && !isEmail && ADVANCED_TAB_IDS.includes(t.id)));
   // Elementy „hostingowe" (autoskalowanie, karta Panel hostingu) pokazujemy
   // dopiero, gdy wiemy, że to NIE poczta — w przeciwnym razie migają dla poczty.
   const showHostingChrome = kindResolved && !isEmail;
@@ -134,6 +160,14 @@ export default function HostingManagerPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEmail, activeTab]);
+
+  // GUIDE-4 — gdy tryb prosty ukryje aktywną zakładkę, wróć na Przegląd.
+  useEffect(() => {
+    if (simpleMode && !isEmail && ADVANCED_TAB_IDS.includes(activeTab)) {
+      setActiveTab('overview');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [simpleMode, isEmail, activeTab]);
 
   return (
     <HostingLinksProvider serviceId={params.id}>
@@ -166,6 +200,20 @@ export default function HostingManagerPage() {
                   : 'Dashboard, statystyki i narzędzia hostingowe.'}
             </p>
           </div>
+          {showHostingChrome ? (
+            <button
+              type="button"
+              onClick={toggleSimpleMode}
+              title={
+                simpleMode
+                  ? 'Pokaż wszystkie narzędzia (tryb zaawansowany)'
+                  : 'Ukryj zaawansowane narzędzia (tryb prosty)'
+              }
+              className="ml-auto shrink-0 rounded-lg border border-white/10 bg-[#0a0a0a] px-3 py-1.5 text-xs font-medium text-neutral-300 transition-colors hover:bg-white/5 hover:text-white"
+            >
+              {simpleMode ? 'Tryb: prosty' : 'Tryb: zaawansowany'}
+            </button>
+          ) : null}
         </div>
 
         <MobileTabStrip

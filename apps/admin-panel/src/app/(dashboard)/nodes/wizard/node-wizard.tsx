@@ -19,6 +19,7 @@ import type { BootstrapScriptResponseDto, InitServerResponseDto } from "@verris/
 import { generateBootstrapScript, initServer, fetchServer } from "../actions";
 import { ApproveServerButton } from "../[id]/approve-button";
 import { HostingProfilePanel } from "../[id]/hosting-profile-panel";
+import { NodeLiveStatus, type NodeLiveSignals } from "./node-live-status";
 import {
   BOOTSTRAP_DOES,
   BOOTSTRAP_DOES_NOT,
@@ -257,6 +258,17 @@ export function NodeWizard() {
 
   const toggleCheck = (key: string) => {
     setChecked((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  // ADM-1+ — auto-potwierdzanie kroków na podstawie realnego stanu węzła.
+  // Nie odznaczamy ręcznych zaznaczeń; tylko dostawiamy potwierdzone sygnały.
+  const applyLiveSignals = (s: NodeLiveSignals) => {
+    setChecked((prev) => {
+      const bootstrap = prev.bootstrap || s.handshake;
+      const approve = prev.approve || (s.active && s.daConfigured);
+      if (bootstrap === prev.bootstrap && approve === prev.approve) return prev;
+      return { ...prev, bootstrap, approve };
+    });
   };
 
   const createNodeAndScript = () => {
@@ -653,17 +665,20 @@ export function NodeWizard() {
               </li>
             </ol>
             {serverId ? (
-              <div className="flex flex-wrap items-start gap-3">
-                <ApproveServerButton serverId={serverId} />
-                <Link
-                  href={`/nodes/${serverId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 px-4 py-2 text-sm font-medium"
-                >
-                  Konfiguracja DA i test API
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </Link>
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-start gap-3">
+                  <ApproveServerButton serverId={serverId} />
+                  <Link
+                    href={`/nodes/${serverId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 px-4 py-2 text-sm font-medium"
+                  >
+                    Konfiguracja DA i test API
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </Link>
+                </div>
+                <NodeLiveStatus serverId={serverId} onSignals={applyLiveSignals} />
               </div>
             ) : (
               <p className="text-sm text-amber-200">

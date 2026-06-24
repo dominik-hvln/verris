@@ -3,6 +3,7 @@ import { AdminSidebar } from "@/components/sidebar";
 import { LogoutButton } from "@/components/logout-button";
 import { PlatformConfigLoader } from "@/components/platform-config-loader";
 import { FleetStatusBadge } from "@/components/fleet-status-badge";
+import { CommandPalette } from "@/components/command-palette";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await requireAdminSession();
@@ -23,7 +24,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
       <div className="flex-1 pl-72 relative z-10 flex flex-col">
         <header className="sticky top-0 z-40 flex h-20 items-center gap-4 border-b border-white/5 bg-black/20 backdrop-blur-md px-8">
-          <div className="flex-1" />
+          <div className="flex flex-1 items-center">
+            <CommandPalette />
+          </div>
           <div className="flex items-center gap-4">
             <FleetStatusBadge />
           </div>

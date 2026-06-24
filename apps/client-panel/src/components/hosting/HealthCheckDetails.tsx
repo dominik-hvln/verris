@@ -1,8 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { AlertCircle, CheckCircle2, ChevronDown, ChevronUp, HelpCircle } from 'lucide-react';
+import { useState, useTransition } from 'react';
+import { AlertCircle, CheckCircle2, ChevronDown, ChevronUp, HelpCircle, Loader2, Wrench } from 'lucide-react';
+import { toast } from 'sonner';
 import type { ServiceHealthCheckDetailDto, ServiceHealthCheckKey, ServiceHealthSummaryDto } from '@verris/contracts';
+import { requestLetsEncryptSslAction } from '@/app/dashboard/services/[id]/hosting-ssl-actions';
+import { requestHostingSiteBackupAction } from '@/app/dashboard/hosting-site-backup-action';
 
 const CHECK_ORDER: ServiceHealthCheckKey[] = [
   'dnsOk',
@@ -69,7 +72,101 @@ function fallbackDetail(
       };
 }
 
-export function HealthCheckDetails({ health }: { health: ServiceHealthSummaryDto }) {
+/**
+ * GUIDE-3 — przycisk „Napraw jednym kliknięciem". Dla checków, które potrafimy
+ * naprawić realną akcją (SSL → Let's Encrypt, kopia → backup) wykonujemy ją od
+ * razu; dla pozostałych prowadzimy do właściwej zakładki.
+ */
+function QuickFix({
+  checkKey,
+  serviceId,
+  domain,
+  onNavigate,
+}: {
+  checkKey: ServiceHealthCheckKey;
+  serviceId: string;
+  domain: string | null;
+  onNavigate?: (tab: string) => void;
+}) {
+  const [pending, start] = useTransition();
+
+  if (checkKey === 'tlsOk' && domain) {
+    return (
+      <FixButton
+        pending={pending}
+        label="Napraw: wystaw certyfikat SSL"
+        onClick={() =>
+          start(async () => {
+            const res = await requestLetsEncryptSslAction(serviceId, domain, true);
+            if (res.ok) toast.success('Zlecono wystawienie certyfikatu Let’s Encrypt', {
+              description: 'Certyfikat pojawi się zwykle w kilka minut (po poprawnym DNS).',
+            });
+            else toast.error('Nie udało się zlecić SSL', { description: res.error });
+          })
+        }
+      />
+    );
+  }
+  if (checkKey === 'backupFresh') {
+    return (
+      <FixButton
+        pending={pending}
+        label="Napraw: uruchom kopię zapasową"
+        onClick={() =>
+          start(async () => {
+            const res = await requestHostingSiteBackupAction(serviceId);
+            if ('ok' in res) toast.success('Zlecono kopię zapasową', {
+              description: 'Kopia pojawi się na liście po zakończeniu.',
+            });
+            else toast.error('Nie udało się zlecić kopii', { description: res.error });
+          })
+        }
+      />
+    );
+  }
+  if (!onNavigate) return null;
+  if (checkKey === 'dnsOk') {
+    return <FixButton label="Przejdź do Domeny & DNS" onClick={() => onNavigate('domains')} />;
+  }
+  if (checkKey === 'mailOk') {
+    return <FixButton label="Przejdź do Poczty" onClick={() => onNavigate('mail')} />;
+  }
+  return null;
+}
+
+function FixButton({
+  label,
+  onClick,
+  pending,
+}: {
+  label: string;
+  onClick: () => void;
+  pending?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={pending}
+      className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-100 hover:bg-emerald-400/20 disabled:opacity-50"
+    >
+      {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wrench className="h-3.5 w-3.5" />}
+      {label}
+    </button>
+  );
+}
+
+export function HealthCheckDetails({
+  health,
+  serviceId,
+  domain,
+  onNavigate,
+}: {
+  health: ServiceHealthSummaryDto;
+  serviceId?: string;
+  domain?: string | null;
+  onNavigate?: (tab: string) => void;
+}) {
   const [openKey, setOpenKey] = useState<ServiceHealthCheckKey | null>(() => {
     for (const key of CHECK_ORDER) {
       const ok = health.checks[CHECK_FROM_BOOL[key]];
@@ -139,6 +236,14 @@ export function HealthCheckDetails({ health }: { health: ServiceHealthSummaryDto
                     </p>
                     <p className="text-xs text-neutral-200 leading-relaxed">{detail.whatToDo}</p>
                   </div>
+                  {detail.status === 'warn' && serviceId ? (
+                    <QuickFix
+                      checkKey={key}
+                      serviceId={serviceId}
+                      domain={domain ?? null}
+                      onNavigate={onNavigate}
+                    />
+                  ) : null}
                 </div>
               ) : null}
             </li>

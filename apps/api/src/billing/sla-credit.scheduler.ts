@@ -14,6 +14,7 @@ import { MailerService } from '../mail/mailer.service';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 import { WalletLedgerService } from './wallet-ledger.service';
 import { slaCreditTemplate } from '../mail/templates/billing-lifecycle-notifications';
+import { NotificationsService } from '../notifications/notifications.service';
 
 /** Minut w "miesiącu rozliczeniowym" — przyjmujemy 30 dni (standard SLA). */
 const MINUTES_IN_MONTH = 30 * 24 * 60;
@@ -41,6 +42,7 @@ export class SlaCreditScheduler {
     private readonly platformSettings: PlatformSettingsService,
     private readonly audit: AuditService,
     private readonly config: ConfigService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   @Cron(CronExpression.EVERY_HOUR, { name: 'billing:sla-credits' })
@@ -155,6 +157,17 @@ export class SlaCreditScheduler {
               amount: amount.toFixed(2),
               downtimeS,
             },
+          });
+
+          // NTF-2 — wpis do dzwonka in-app obok e-maila (best-effort).
+          await this.notifications.create({
+            userId: sub.userId,
+            category: 'SLA',
+            severity: 'info',
+            title: 'Przyznano kredyt SLA',
+            body: `Za przestój infrastruktury doliczyliśmy ${amount.toFixed(2)} ${(sub.currency ?? 'PLN').toUpperCase()} do Twojego portfela.`,
+            link: '/dashboard/billing',
+            subscriptionId: sub.id,
           });
 
           const serviceName = sub.account?.domain
