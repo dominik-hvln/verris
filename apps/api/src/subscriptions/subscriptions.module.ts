@@ -40,7 +40,7 @@ import { DeliverabilityService } from '../deliverability/deliverability.service'
 import { EcoModule } from '../eco/eco.module';
 
 @Module({
-  imports: [ServersModule, PlatformSettingsModule, EcoModule, forwardRef(() => BillingModule), MailModule],
+  imports: [ServersModule, PlatformSettingsModule, EcoModule, forwardRef(() => BillingModule), MailModule, NotificationsModule],
   providers: [
     SubscriptionsService,
     PlanChangeService,
