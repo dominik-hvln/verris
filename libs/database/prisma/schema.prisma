@@ -235,25 +235,21 @@ model User {
   notifications             Notification[]
 }
 
-/**
- * NTF-2 — trwałe powiadomienia in-app pokazywane w dzwonku panelu klienta.
- * Tworzone obok dotychczasowych e-maili przy kluczowych zdarzeniach (awaria
- * strony, wygasający SSL, kredyt SLA, sprawy płatności/bezpieczeństwa).
- */
+// NTF-2 — trwałe powiadomienia in-app (dzwonek panelu klienta).
 model Notification {
   id        String   @id @default(uuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  /** Kategoria do filtrowania/ikon: MONITORING, SSL, BILLING, SECURITY, SLA, SYSTEM. */
+  // Kategoria: MONITORING, SSL, BILLING, SECURITY, SLA, SYSTEM.
   category  String
-  /** info | warning | critical — steruje kolorem i wagą. */
+  // info | warning | critical
   severity  String   @default("info")
   title     String
   body      String   @db.Text
-  /** Opcjonalny link wewnątrz panelu (np. /dashboard/services/<id>). */
+  // Opcjonalny link wewnątrz panelu (np. /dashboard/services/<id>).
   link      String?
-  /** Powiązana usługa (kontekst), opcjonalnie. */
+  // Powiązana usługa (kontekst), opcjonalnie.
   subscriptionId String?
 
   readAt    DateTime?
