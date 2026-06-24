@@ -5,7 +5,8 @@
 #   docker build -f Dockerfile.api -t verris/api .
 # =============================================================================
 
-ARG NODE_VERSION=20
+# Node 22 LTS — Node 20 osiągnął EOL 30.04.2026 (brak łatek bezpieczeństwa).
+ARG NODE_VERSION=22
 
 FROM node:${NODE_VERSION}-bookworm-slim AS base
 ENV PNPM_HOME=/pnpm \
@@ -87,6 +88,7 @@ COPY ops/scripts/node-waf-apply.sh ./ops/scripts/node-waf-apply.sh
 COPY ops/scripts/node-staging-sync.sh ./ops/scripts/node-staging-sync.sh
 COPY ops/scripts/install-verris-default-page.sh ./ops/scripts/install-verris-default-page.sh
 COPY ops/scripts/verris-lve.sh ./ops/scripts/verris-lve.sh
+COPY ops/scripts/node-db-upgrade.sh ./ops/scripts/node-db-upgrade.sh
 COPY ops/hosting-default-page ./ops/hosting-default-page
 RUN chmod +x /usr/local/bin/api-entrypoint.sh
 

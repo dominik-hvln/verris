@@ -208,6 +208,29 @@ export async function fetchHostingProfileTasks(id: string) {
   }
 }
 
+// VER-UPG — zlecenie upgrade silnika MariaDB węzła (11.4/11.8/12.3) + historia.
+export async function queueDbUpgrade(id: string, version: string) {
+  try {
+    const data = await adminApi<NodeTaskDto>(`/admin/servers/${id}/db-upgrade`, {
+      method: "POST",
+      body: { version },
+    });
+    revalidatePath(`/nodes/${id}`);
+    return { data };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
+}
+
+export async function fetchDbUpgradeTasks(id: string) {
+  try {
+    const data = await adminApi<NodeTaskDto[]>(`/admin/servers/${id}/db-upgrade/tasks`);
+    return { data };
+  } catch (err) {
+    return { error: extractError(err), data: [] as NodeTaskDto[] };
+  }
+}
+
 export async function fetchTasksAgentInstallScript(id: string) {
   try {
     const data = await adminApi<TasksAgentInstallScriptDto>(

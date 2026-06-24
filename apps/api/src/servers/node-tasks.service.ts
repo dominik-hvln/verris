@@ -38,6 +38,10 @@ export type HostingProfileTaskPayload = {
   dryRun?: boolean;
 };
 
+/** VER-UPG — dozwolone docelowe wersje MariaDB (aktualne LTS, czerwiec 2026). */
+export const ALLOWED_DB_VERSIONS = ['11.4', '11.8', '12.3'] as const;
+export type AllowedDbVersion = (typeof ALLOWED_DB_VERSIONS)[number];
+
 @Injectable()
 export class NodeTasksService {
   private readonly logger = new Logger(NodeTasksService.name);
@@ -101,6 +105,98 @@ export class NodeTasksService {
     });
 
     return this.toPublicTask(task);
+  }
+
+  /**
+   * VER-UPG — zleca upgrade silnika MariaDB węzła do wybranej wersji LTS.
+   * Agent węzła (NodeTask DB_UPGRADE) robi pełny zrzut baz, a potem CustomBuild
+   * `set mariadb X.Y && build mariadb`. Operacja długa i wrażliwa — wymaga węzła
+   * ACTIVE z agentem, nie pozwala na równoległe zlecenia i jest audytowana.
+   */
+  async queueDbUpgrade(serverId: string, actorUserId: string, version: string) {
+    const target = (version ?? '').trim();
+    if (!(ALLOWED_DB_VERSIONS as readonly string[]).includes(target)) {
+      throw new BadRequestException(
+        `Niedozwolona wersja docelowa „${target}". Dozwolone: ${ALLOWED_DB_VERSIONS.join(', ')}.`,
+      );
+    }
+
+    const server = await this.prisma.server.findUnique({ where: { id: serverId } });
+    if (!server) throw new NotFoundException('Server not found');
+    if (server.status !== ServerStatus.ACTIVE) {
+      throw new BadRequestException(
+        `Upgrade DB można uruchomić tylko na węźle ACTIVE (obecny: ${server.status}).`,
+      );
+    }
+    if (!server.identityToken) {
+      throw new BadRequestException(
+        'Węzeł nie ma agenta (brak identity token). Zainstaluj agenta zadań i spróbuj ponownie.',
+      );
+    }
+
+    // Ochrona przed downgrade po stronie control-plane (twardy guard jest też w skrypcie węzła).
+    const verNum = (v: string) => {
+      const [maj, min] = v.split('.').map((n) => Number.parseInt(n, 10) || 0);
+      return maj * 1000 + min;
+    };
+    if (server.dbVersion) {
+      const current = (server.dbVersion.match(/\d+\.\d+/) ?? [])[0];
+      if (current && verNum(current) > verNum(target)) {
+        throw new BadRequestException(
+          `Downgrade ${current} → ${target} nie jest wspierany przez MariaDB (ryzyko utraty danych).`,
+        );
+      }
+      if (current && verNum(current) === verNum(target)) {
+        throw new BadRequestException(`Węzeł jest już na MariaDB ${target}.`);
+      }
+    }
+
+    await this.reclaimStaleRunningTasks(serverId);
+
+    const inflight = await this.prisma.nodeTask.findFirst({
+      where: {
+        serverId,
+        kind: NodeTaskKind.DB_UPGRADE,
+        status: { in: [NodeTaskStatus.QUEUED, NodeTaskStatus.RUNNING] },
+      },
+    });
+    if (inflight) {
+      throw new BadRequestException('Upgrade DB jest już w kolejce lub w trakcie na tym węźle.');
+    }
+
+    const task = await this.prisma.nodeTask.create({
+      data: {
+        serverId,
+        kind: NodeTaskKind.DB_UPGRADE,
+        status: NodeTaskStatus.QUEUED,
+        payload: { version: target },
+        requestedById: actorUserId,
+      },
+    });
+
+    await this.prisma.server.update({
+      where: { id: serverId },
+      data: { targetDbVersion: target, dbUpgradeRequestedAt: new Date() },
+    });
+
+    await this.audit.record({
+      action: 'NODE_DB_UPGRADE_QUEUED',
+      actorUserId,
+      details: { serverId, taskId: task.id, from: server.dbVersion ?? null, to: target },
+    });
+
+    return this.toPublicTask(task);
+  }
+
+  /** VER-UPG — historia zleceń upgrade DB dla węzła (panel admina). */
+  async listDbUpgradeTasks(serverId: string, limit = 10) {
+    await this.reclaimStaleRunningTasks(serverId);
+    const tasks = await this.prisma.nodeTask.findMany({
+      where: { serverId, kind: NodeTaskKind.DB_UPGRADE },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+    });
+    return tasks.map((t) => this.toPublicTask(t));
   }
 
   /**
@@ -298,6 +394,29 @@ export class NodeTasksService {
           }`,
         );
       });
+    }
+
+    // VER-UPG — a completed DB_UPGRADE clears the pending marker; the actual
+    // dbVersion is updated by the node telemetry (verris-lve) within ~1 min.
+    if (task.kind === NodeTaskKind.DB_UPGRADE) {
+      const target = (task.payload as { version?: string } | null)?.version ?? null;
+      await this.prisma.server
+        .update({
+          where: { id: opts.serverId },
+          data: {
+            dbUpgradeRequestedAt: null,
+            // optymistycznie pokazujemy wersję docelową od razu; telemetria potwierdzi/poprawi
+            ...(target ? { dbVersion: target, dbCheckedAt: new Date() } : {}),
+            targetDbVersion: null,
+          },
+        })
+        .catch((err) => {
+          this.logger.warn(
+            `DB_UPGRADE post-complete update failed server=${opts.serverId}: ${
+              err instanceof Error ? err.message : String(err)
+            }`,
+          );
+        });
     }
 
     // B5 — a completed STAGING_SYNC(TO_STAGING) confirms the staging exists

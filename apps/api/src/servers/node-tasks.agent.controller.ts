@@ -24,6 +24,7 @@ import { loadWafApplyScript } from './waf-apply.script';
 import { loadStagingSyncScript } from './staging-sync.script';
 import { loadPhpApplyScript } from './php-apply.script';
 import { loadAppInstallScript } from './app-install.script';
+import { loadDbUpgradeScript } from './db-upgrade.script';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 
 class CompleteNodeTaskDto {
@@ -103,6 +104,13 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   appInstallScript() {
     return loadAppInstallScript();
+  }
+
+  /** VER-UPG — MariaDB engine upgrade script (run with DB_TARGET_VERSION env). */
+  @Get('db-upgrade/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  dbUpgradeScript() {
+    return loadDbUpgradeScript();
   }
 
   /** B5 — staging clone/publish script (run with STG_* env). */

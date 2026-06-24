@@ -8,7 +8,8 @@
 # Build context: monorepo root.
 # =============================================================================
 
-ARG NODE_VERSION=20
+# Node 22 LTS — Node 20 osiągnął EOL 30.04.2026 (brak łatek bezpieczeństwa).
+ARG NODE_VERSION=22
 ARG APP_NAME=client-panel
 ARG APP_PORT=3001
 

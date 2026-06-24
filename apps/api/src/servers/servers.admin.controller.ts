@@ -53,6 +53,14 @@ class NodeRepairDto {
   confirm?: string;
 }
 
+class QueueDbUpgradeDto {
+  // VER-UPG — docelowa wersja MariaDB. Twarda walidacja wartości jest w serwisie
+  // (ALLOWED_DB_VERSIONS), tu pilnujemy tylko kształtu „X.Y”.
+  @IsString()
+  @MaxLength(8)
+  version!: string;
+}
+
 @Controller('admin/servers')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)
@@ -259,6 +267,24 @@ export class ServersAdminController {
   @Get(':id/hosting-profile/tasks')
   listHostingProfileTasks(@Param('id') id: string) {
     return this.nodeTasks.listHostingProfileTasks(id);
+  }
+
+  /**
+   * VER-UPG — zleca upgrade silnika MariaDB węzła do wybranej wersji LTS
+   * (11.4 / 11.8 / 12.3). Agent robi pełny backup baz, potem CustomBuild.
+   */
+  @Post(':id/db-upgrade')
+  queueDbUpgrade(
+    @Param('id') id: string,
+    @Body() dto: QueueDbUpgradeDto,
+    @CurrentUser() user: { userId: string },
+  ) {
+    return this.nodeTasks.queueDbUpgrade(id, user.userId, dto.version);
+  }
+
+  @Get(':id/db-upgrade/tasks')
+  listDbUpgradeTasks(@Param('id') id: string) {
+    return this.nodeTasks.listDbUpgradeTasks(id);
   }
 
   /** Sondy TCP/TLS + status agenta — podsumowanie usług hostingowych na węźle. */

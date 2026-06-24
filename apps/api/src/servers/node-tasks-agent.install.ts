@@ -196,6 +196,10 @@ elif [ "$TASK_KIND" = "STAGING_SYNC" ]; then
   RUN_BIN="/usr/local/bin/verris-staging-sync.sh"
   fetch_task_script "/agent/tasks/staging-sync/script" "$RUN_BIN"
   payload_env "STG" "{'daUser':'DA_USER','domain':'DOMAIN','sub':'SUB','direction':'DIRECTION','dbName':'DB_NAME','dbUser':'DB_USER','dbPass':'DB_PASS'}"
+elif [ "$TASK_KIND" = "DB_UPGRADE" ]; then
+  RUN_BIN="/usr/local/bin/verris-db-upgrade.sh"
+  fetch_task_script "/agent/tasks/db-upgrade/script" "$RUN_BIN"
+  payload_env "DB" "{'version':'TARGET_VERSION'}"
 else
   flags="-y"
   [ "$SKIP_BUILD" = "1" ] && flags="$flags --skip-build"
@@ -371,7 +375,7 @@ dispatch_generic() {
 
 case "$KIND" in
   HOSTING_PROFILE) dispatch_hosting_profile ;;
-  WP_INSTALL|WAF_APPLY|STAGING_SYNC) dispatch_generic ;;
+  WP_INSTALL|WAF_APPLY|STAGING_SYNC|DB_UPGRADE) dispatch_generic ;;
   *)
     report_task_fail "Unknown task kind: $KIND"
     exit 1

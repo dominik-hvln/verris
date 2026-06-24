@@ -8,7 +8,7 @@
 
 generator client {
   provider      = "prisma-client-js"
-  // native = dev machines; debian-openssl-3.0.x = node:20-bookworm-slim (prod Docker)
+  // native = dev machines; debian-openssl-3.0.x = node:22-bookworm-slim (prod Docker)
   binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
@@ -463,6 +463,13 @@ model Server {
   dbVersion          String?
   dbCheckedAt        DateTime?
 
+  // VER-UPG — docelowa wersja silnika DB wybrana przez admina w edycji węzła
+  // (np. "11.4"). Ustawiana przy zleceniu DB_UPGRADE; faktyczna wersja po
+  // upgrade jest raportowana telemetrią agenta do dbVersion. Pokazywana w panelu
+  // jako „upgrade w toku do X".
+  targetDbVersion      String?
+  dbUpgradeRequestedAt DateTime?
+
   // Incydent Hetzner 2026-06-11: detektor wychodzącego skanu na węźle zgłasza
   // alarm fan-outu; pokazywane w audycie węzła i alertach admina.
   lastSecurityAlertAt    DateTime?
@@ -526,6 +533,7 @@ enum NodeTaskKind {
   STAGING_SYNC      // B5 — klon LIVE→staging lub publikacja staging→LIVE
   PHP_APPLY         // P-6 — zmiana wersji PHP konta (CloudLinux PHP Selector)
   APP_INSTALL       // P-3 — instalator 1-click aplikacji (Nextcloud/PrestaShop)
+  DB_UPGRADE        // VER-UPG — upgrade silnika MariaDB węzła (CustomBuild) do wybranej wersji LTS
 }
 
 enum WafMode {

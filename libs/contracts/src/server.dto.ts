@@ -45,6 +45,14 @@ export interface ServerSummaryDto {
   daAllowInvalidCert?: boolean;
   daPasswordSet: boolean;
 
+  // DB-1 / VER-UPG — silnik i wersja DB węzła (telemetria agenta) + docelowa
+  // wersja wybrana w panelu przy zleceniu upgrade'u MariaDB.
+  dbEngine?: string | null;
+  dbVersion?: string | null;
+  dbCheckedAt?: string | null;
+  targetDbVersion?: string | null;
+  dbUpgradeRequestedAt?: string | null;
+
   /** Per-node authoritative nameservers (null = inherit platform default). */
   ns1: string | null;
   ns2: string | null;

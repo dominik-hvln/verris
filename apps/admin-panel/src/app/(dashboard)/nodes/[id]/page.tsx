@@ -7,6 +7,7 @@ import { BootstrapScriptPanel } from "./bootstrap-script-panel";
 import { DirectAdminConfigForm } from "./directadmin-form";
 import { HostingProfilePanel } from "./hosting-profile-panel";
 import { NodeStackReadinessPanel } from "./node-stack-readiness-panel";
+import { DbUpgradePanel } from "./db-upgrade-panel";
 import { WafPanel } from "./waf-panel";
 import { MaintenanceToggle } from "./maintenance-toggle";
 import { CapacityPolicyPanel } from "./capacity-policy-panel";
@@ -164,6 +165,18 @@ export default async function ServerDetailPage({
 
       {(server.status === "ACTIVE" || server.status === "MAINTENANCE") && (
         <NodeStackReadinessPanel serverId={server.id} serverStatus={server.status} />
+      )}
+
+      {(server.status === "ACTIVE" || server.status === "MAINTENANCE") && (
+        <div id="baza-danych" className="scroll-mt-24">
+          <DbUpgradePanel
+            serverId={server.id}
+            dbEngine={server.dbEngine}
+            dbVersion={server.dbVersion}
+            targetDbVersion={server.targetDbVersion}
+            dbUpgradeRequestedAt={server.dbUpgradeRequestedAt}
+          />
+        </div>
       )}
 
       <div id="waf" className="scroll-mt-24">
