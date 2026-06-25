@@ -185,11 +185,17 @@ html.dark.eco-tint {
   /* klasa zachowana dla kompatybilności — gradient w .spin-border-glow */
 }
 
+/* Neutralny wariant — TA SAMA niesymetryczna geometria „komety” co wariant
+   mint/emerald (karta powitalna), tylko w odcieniach paper. Dzięki temu każdy
+   animowany border w panelu ma identyczny, niesymetryczny ruch — różni się
+   wyłącznie barwą i przezroczystością (sterowaną per element klasą opacity-*). */
 .spin-border-glow--white {
   background: conic-gradient(
     from 90deg at 50% 50%,
-    transparent 65%,
-    var(--verris-paper) 100%
+    rgba(244, 244, 238, 0.25) 0%,
+    rgba(244, 244, 238, 0.6) 40%,
+    var(--verris-paper) 72%,
+    transparent 88%
   );
 }
 
