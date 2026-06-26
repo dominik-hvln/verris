@@ -32,7 +32,15 @@ export default async function StatusPage() {
               <p className="text-sm text-neutral-400">Aktualny stan serwerów i usług</p>
             </div>
           </div>
-          {payload ? <RefreshNote generatedAt={payload.generatedAt} /> : null}
+          <div className="flex items-center gap-4">
+            <a
+              href="/zaufanie"
+              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-emerald-300 transition hover:bg-white/[0.08]"
+            >
+              <ShieldAlert className="h-4 w-4" /> Zaufanie i gwarancje
+            </a>
+            {payload ? <RefreshNote generatedAt={payload.generatedAt} /> : null}
+          </div>
         </header>
 
         {error ? (

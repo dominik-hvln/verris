@@ -107,30 +107,32 @@ function TldResultCard({
 
       {result.available ? (
         <div className="mt-3 space-y-2">
-          <div className="flex items-end justify-between gap-2">
-            <div>
+          <div className="flex items-stretch gap-2">
+            <div className="flex-1 rounded-lg border border-white/10 bg-white/[0.02] px-2.5 py-2">
               <p className="text-[10px] uppercase tracking-wide text-neutral-500">Rejestracja (1. rok)</p>
               <p className="text-lg font-bold text-white">
                 {formatPln(result.register.grossAmount ?? result.priceAmount)}
               </p>
+              <p className="text-[10px] text-neutral-500">brutto · VAT {result.register.vatRate}%</p>
+            </div>
+            <div className="flex-1 rounded-lg border border-white/10 bg-white/[0.02] px-2.5 py-2">
+              <p className="text-[10px] uppercase tracking-wide text-neutral-500">Odnowienie / rok</p>
+              <p className="text-lg font-bold text-emerald-300">
+                {result.renewal?.grossAmount ? formatPln(result.renewal.grossAmount) : '—'}
+              </p>
               <p className="text-[10px] text-neutral-500">
-                brutto · VAT {result.register.vatRate}%
+                {result.renewal?.grossAmount ? `brutto · VAT ${result.renewal.vatRate}%` : 'wg cennika'}
               </p>
             </div>
             {result.premium ? (
-              <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-200">
+              <span className="inline-flex h-fit shrink-0 items-center gap-1 self-start rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] text-amber-200">
                 <Sparkles className="h-3 w-3" /> Premium
               </span>
             ) : null}
           </div>
-          {result.renewal?.grossAmount ? (
-            <p className="text-[11px] text-neutral-500">
-              Odnowienie od 2. roku:{' '}
-              <span className="font-medium text-neutral-300">
-                {formatPln(result.renewal.grossAmount)}/rok brutto
-              </span>
-            </p>
-          ) : null}
+          <p className="text-[10px] text-emerald-300/80">
+            Cenę odnowienia pokazujemy od razu — bez niespodzianek przy przedłużeniu.
+          </p>
         </div>
       ) : (
         <p className="mt-3 text-xs text-neutral-600">Spróbuj innej końcówki</p>
