@@ -66,6 +66,20 @@ export const PLATFORM_SETTING_KEYS = {
   KSEF_NIP: 'ksef.nip',
   KSEF_TOKEN_ENC: 'ksef.tokenEnc',
   KSEF_PUBLIC_KEY_ENC: 'ksef.publicKeyEnc',
+
+  // RESELL — program partnerski (afiliacja).
+  /** Czy program partnerski jest aktywny (1/0). */
+  PARTNER_ENABLED: 'partner.enabled',
+  /** Procent prowizji recurring od płatności poleconych klientów (np. 15). */
+  PARTNER_COMMISSION_PCT: 'partner.commissionPct',
+  /** Dni karencji prowizji (PENDING → AVAILABLE), ochrona przed zwrotami. */
+  PARTNER_HOLD_DAYS: 'partner.holdDays',
+  /** Minimalna kwota wypłaty na konto bankowe (K). */
+  PARTNER_MIN_PAYOUT: 'partner.minPayout',
+  /** Próg N aktywnych (płacących) poleceń dla bonusu „darmowy hosting". 0 = wyłączony. */
+  PARTNER_FREE_HOSTING_THRESHOLD: 'partner.freeHostingThreshold',
+  /** Wartość kredytu bonusu za każdy osiągnięty próg N poleceń (K). */
+  PARTNER_FREE_HOSTING_CREDIT: 'partner.freeHostingCredit',
 } as const;
 
 export type PlatformSettingKey =
@@ -113,4 +127,10 @@ export const PLATFORM_SETTING_DEFAULTS: Record<PlatformSettingKey, string> = {
   [PLATFORM_SETTING_KEYS.KSEF_NIP]: '',
   [PLATFORM_SETTING_KEYS.KSEF_TOKEN_ENC]: '',
   [PLATFORM_SETTING_KEYS.KSEF_PUBLIC_KEY_ENC]: '',
+  [PLATFORM_SETTING_KEYS.PARTNER_ENABLED]: '1',
+  [PLATFORM_SETTING_KEYS.PARTNER_COMMISSION_PCT]: '15',
+  [PLATFORM_SETTING_KEYS.PARTNER_HOLD_DAYS]: '30',
+  [PLATFORM_SETTING_KEYS.PARTNER_MIN_PAYOUT]: '100',
+  [PLATFORM_SETTING_KEYS.PARTNER_FREE_HOSTING_THRESHOLD]: '5',
+  [PLATFORM_SETTING_KEYS.PARTNER_FREE_HOSTING_CREDIT]: '50',
 };

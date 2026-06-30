@@ -65,6 +65,7 @@ const adminNavItems: NavGroup[] = [
       { name: "Faktury", href: "/invoices", icon: DollarSign, perm: "BILLING_VIEW" },
       { name: "Rozliczenia (CSV)", href: "/billing", icon: DollarSign, perm: "BILLING_VIEW" },
       { name: "Kody promocyjne", href: "/promo-codes", icon: Tag, perm: "PROMO_MANAGE" },
+      { name: "Newsletter / mailing", href: "/marketing", icon: Mail, perm: "PROMO_MANAGE" },
       { name: "Compliance (RODO)", href: "/compliance", icon: Scale, perm: "COMPLIANCE_MANAGE" },
       { name: "Cennik autoskalowania", href: "/autoscaling", icon: Gauge, perm: "PLANS_MANAGE" },
       { name: "Logi bezpieczeństwa", href: "/audit", icon: ShieldAlert, perm: "AUDIT_VIEW" },

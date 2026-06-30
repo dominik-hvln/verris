@@ -373,6 +373,83 @@ export class PlatformSettingsService {
     return this.getSlaCreditPolicy();
   }
 
+  // ---------------------------------------------------------------------------
+  // RESELL — program partnerski (afiliacja)
+  // ---------------------------------------------------------------------------
+
+  async getPartnerProgram(): Promise<{
+    enabled: boolean;
+    commissionPct: number;
+    holdDays: number;
+    minPayout: number;
+    freeHostingThreshold: number;
+    freeHostingCredit: number;
+  }> {
+    const map = await this.loadMap();
+    return {
+      enabled: this.readStr(map, PLATFORM_SETTING_KEYS.PARTNER_ENABLED, '1') === '1',
+      commissionPct: this.readInt(map, PLATFORM_SETTING_KEYS.PARTNER_COMMISSION_PCT, 15, 0, 90),
+      holdDays: this.readInt(map, PLATFORM_SETTING_KEYS.PARTNER_HOLD_DAYS, 30, 0, 365),
+      minPayout: this.readInt(map, PLATFORM_SETTING_KEYS.PARTNER_MIN_PAYOUT, 100, 0, 100000),
+      freeHostingThreshold: this.readInt(
+        map,
+        PLATFORM_SETTING_KEYS.PARTNER_FREE_HOSTING_THRESHOLD,
+        5,
+        0,
+        1000,
+      ),
+      freeHostingCredit: this.readInt(
+        map,
+        PLATFORM_SETTING_KEYS.PARTNER_FREE_HOSTING_CREDIT,
+        50,
+        0,
+        100000,
+      ),
+    };
+  }
+
+  async updatePartnerProgram(
+    input: {
+      enabled: boolean;
+      commissionPct: number;
+      holdDays: number;
+      minPayout: number;
+      freeHostingThreshold: number;
+      freeHostingCredit: number;
+    },
+    actorUserId: string,
+  ): Promise<{
+    enabled: boolean;
+    commissionPct: number;
+    holdDays: number;
+    minPayout: number;
+    freeHostingThreshold: number;
+    freeHostingCredit: number;
+  }> {
+    const pct = Math.min(Math.max(Math.round(input.commissionPct) || 0, 0), 90);
+    const hold = Math.min(Math.max(Math.round(input.holdDays) || 0, 0), 365);
+    const minPayout = Math.min(Math.max(Math.round(input.minPayout) || 0, 0), 100000);
+    const threshold = Math.min(Math.max(Math.round(input.freeHostingThreshold) || 0, 0), 1000);
+    const credit = Math.min(Math.max(Math.round(input.freeHostingCredit) || 0, 0), 100000);
+    await this.upsertMany(
+      [
+        [PLATFORM_SETTING_KEYS.PARTNER_ENABLED, input.enabled ? '1' : '0'],
+        [PLATFORM_SETTING_KEYS.PARTNER_COMMISSION_PCT, String(pct)],
+        [PLATFORM_SETTING_KEYS.PARTNER_HOLD_DAYS, String(hold)],
+        [PLATFORM_SETTING_KEYS.PARTNER_MIN_PAYOUT, String(minPayout)],
+        [PLATFORM_SETTING_KEYS.PARTNER_FREE_HOSTING_THRESHOLD, String(threshold)],
+        [PLATFORM_SETTING_KEYS.PARTNER_FREE_HOSTING_CREDIT, String(credit)],
+      ],
+      actorUserId,
+    );
+    await this.audit.record({
+      action: 'PLATFORM_PARTNER_PROGRAM_UPDATED',
+      userId: actorUserId,
+      details: { ...input },
+    });
+    return this.getPartnerProgram();
+  }
+
   /**
    * Platform-default authoritative nameservers for provisioned hosting accounts.
    * Resolution: PlatformSetting `hosting.ns*` → env `HOSTING_NS*` → empty.

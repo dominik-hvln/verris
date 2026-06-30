@@ -22,6 +22,12 @@ import {
   FileText,
   Upload,
   Copy,
+  Eye,
+  ArrowLeft,
+  LayoutGrid,
+  Search,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 import { fmWrite, fmRead, fmList, fmUpload, type FmEntry } from '@/app/dashboard/file-manager/data';
 
@@ -131,6 +137,42 @@ const RAW_TEMPLATES: Record<string, () => RawTpl> = {
   cv: () => ({ title: 'CV / wizytówka osobista', description: 'Cześć! Oto kim jestem i co robię.', theme: { primary: '#0ea5e9', accent: '#a855f7', bg: 'dark', font: 'sans', radius: 'xl', width: 'normal' }, sections: SEC(['navbar', 'hero', 'about', 'timeline', 'portfolio', 'social', 'contact', 'footer']) }),
   organizacja: () => ({ title: 'Fundacja / NGO', description: 'Razem możemy więcej. Dołącz do nas.', theme: { primary: '#16a34a', accent: '#0ea5e9', bg: 'light', font: 'sans', radius: 'md', width: 'normal' }, sections: SEC(['navbar', 'hero', 'stats', 'about', 'steps', 'team', 'cta', 'contact', 'footer']) }),
 };
+/* Kategorie szablonów (galeria startowa z filtrami) + krótkie opisy do kart. */
+const TPL_GROUPS: { cat: string; items: { key: string; name: string }[] }[] = [
+  { cat: 'Biznes / firma', items: [
+    { key: 'landing', name: 'Landing page' }, { key: 'wizytowka', name: 'Wizytówka firmy' },
+    { key: 'uslugi', name: 'Usługi lokalne' }, { key: 'agencja', name: 'Agencja / portfolio' },
+    { key: 'kancelaria', name: 'Kancelaria' }, { key: 'organizacja', name: 'Fundacja / NGO' },
+  ] },
+  { cat: 'Produkt / online', items: [
+    { key: 'produkt', name: 'Produkt — landing' }, { key: 'saas', name: 'Aplikacja / SaaS' },
+    { key: 'sklep', name: 'Sklep online' }, { key: 'kursy', name: 'Kursy / edukacja' },
+  ] },
+  { cat: 'Treść / blog', items: [
+    { key: 'blog', name: 'Blog / magazyn' }, { key: 'wpis', name: 'Wpis bloga' },
+    { key: 'cv', name: 'CV / wizytówka osobista' }, { key: 'freelancer', name: 'Freelancer' },
+  ] },
+  { cat: 'Lokal / wydarzenia', items: [
+    { key: 'restauracja', name: 'Restauracja' }, { key: 'kawiarnia', name: 'Kawiarnia / bar' },
+    { key: 'fitness', name: 'Klub fitness' }, { key: 'przychodnia', name: 'Przychodnia / gabinet' },
+    { key: 'nieruchomosci', name: 'Nieruchomości' }, { key: 'wydarzenie', name: 'Wydarzenie / konferencja' },
+    { key: 'fotograf', name: 'Fotograf' },
+  ] },
+];
+const TPL_CATS = ['Wszystkie', ...TPL_GROUPS.map((g) => g.cat)];
+const ALL_TPLS = TPL_GROUPS.flatMap((g) => g.items.map((i) => ({ ...i, cat: g.cat })));
+
+/* Grupy bloków dla wizualnego insertera (jak panel bloków w Gutenbergu). */
+const SECTION_GROUPS: { cat: string; items: SectionType[] }[] = [
+  { cat: 'Układ i nagłówki', items: ['navbar', 'banner', 'hero', 'cta', 'footer', 'divider'] },
+  { cat: 'Treść', items: ['features', 'steps', 'about', 'richtext', 'imagetext', 'quote', 'table', 'tabs', 'timeline', 'faq'] },
+  { cat: 'Media i galeria', items: ['gallery', 'portfolio', 'video', 'logos', 'embed'] },
+  { cat: 'Sprzedaż i oferta', items: ['pricing', 'menu', 'stats', 'testimonials'] },
+  { cat: 'Blog', items: ['blog', 'article'] },
+  { cat: 'Kontakt i lokal', items: ['contact', 'map', 'hours', 'social', 'newsletter', 'countdown', 'download', 'team'] },
+  { cat: 'Inne', items: ['cookies'] },
+];
+
 /** PHP handler publikowany obok stron — zapisuje zgłoszenia do CSV i wysyła e-mail (PHP mail()). */
 function genFormHandler(recipient: string): string {
   const to = (recipient || 'kontakt@twojadomena.pl').replace(/[\r\n"'\\]/g, '');
@@ -184,6 +226,9 @@ const COLOR_PRESETS: { label: string; primary: string; accent: string }[] = [
   { label: 'Coral', primary: '#fb7185', accent: '#f59e0b' },
   { label: 'Graphite', primary: '#3f3f46', accent: '#71717a' },
 ];
+
+/* Neutralny motyw do miniatur pojedynczych bloków w inserterze. */
+const PREVIEW_THEME: Theme = { primary: '#6366f1', accent: '#22d3ee', bg: 'dark', font: 'sans', radius: 'xl', width: 'normal' };
 
 /* ============================ HTML GENERATOR ============================ */
 const esc = (s: unknown) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -553,6 +598,47 @@ export default function SiteBuilderTab({ serviceId }: { serviceId: string }) {
   const loadedRef = useRef(false);
   const [dragId, setDragId] = useState<string | null>(null);
   const [overId, setOverId] = useState<string | null>(null);
+  // Gutenberg-style: najpierw galeria szablonów, potem edytor.
+  const [view, setView] = useState<'gallery' | 'editor'>('gallery');
+  const [inserterOpen, setInserterOpen] = useState(false);
+  // Builder domyślnie otwiera się na pełną szerokość (nakładka na panel).
+  const [fullscreen, setFullscreen] = useState(true);
+
+  // Blokada przewijania tła, gdy builder jest na pełnym ekranie.
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const prev = document.body.style.overflow;
+    if (fullscreen) document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [fullscreen]);
+
+  // Miniatury szablonów (pełne strony) i bloków — liczone raz, statyczne wejścia.
+  const tplThumbs = useMemo(() => {
+    const out: Record<string, string> = {};
+    for (const t of ALL_TPLS) {
+      const m = asModel(RAW_TEMPLATES[t.key]());
+      const pg = m.pages[0];
+      out[t.key] = genHtml(pg, m.theme, m.meta.description, [{ name: pg.name, href: pageHref(pg.slug) }]);
+    }
+    return out;
+  }, []);
+  const blockThumbs = useMemo(() => {
+    const out = {} as Record<SectionType, string>;
+    for (const t of Object.keys(SECTION_LABEL) as SectionType[]) {
+      const pg: Page = { id: 'thumb', name: '', slug: 'index', title: '', sections: [defaultSection(t)] };
+      out[t] = genHtml(pg, PREVIEW_THEME, '', []);
+    }
+    return out;
+  }, []);
+
+  function applyTemplate(key: string) {
+    if (!RAW_TEMPLATES[key]) return;
+    const nm = asModel(RAW_TEMPLATES[key]());
+    setModel(nm);
+    setActivePageId(nm.pages[0].id);
+    setSelected(null);
+    setView('editor');
+  }
 
   const activePage = model.pages.find((p) => p.id === activePageId) ?? model.pages[0];
   const nav: NavLink[] = model.pages.map((p) => ({ name: p.name, href: pageHref(p.slug) }));
@@ -570,7 +656,7 @@ export default function SiteBuilderTab({ serviceId }: { serviceId: string }) {
           let next: PageModel | null = null;
           if (Array.isArray(parsed.pages) && parsed.pages.length) next = { meta: parsed.meta && 'description' in parsed.meta ? { description: parsed.meta.description ?? '' } : { description: '' }, theme: parsed.theme, pages: parsed.pages };
           else if (Array.isArray(parsed.sections)) next = { meta: { description: parsed.meta?.description ?? '' }, theme: parsed.theme, pages: [{ id: uid(), name: 'Strona główna', slug: 'index', title: parsed.meta?.title ?? 'Strona', sections: parsed.sections }] };
-          if (next) { setModel(next); setActivePageId(next.pages[0].id); }
+          if (next) { setModel(next); setActivePageId(next.pages[0].id); setView('editor'); }
         }
       } catch { /* brak szkicu */ }
     })();
@@ -652,36 +738,46 @@ export default function SiteBuilderTab({ serviceId }: { serviceId: string }) {
 
   const sel = activePage.sections.find((s) => s.id === selected) ?? null;
 
-  return (
+  const fsToggleEl = (
+    <button onClick={() => setFullscreen((f) => !f)} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/40 px-3 py-1.5 text-sm text-neutral-200 hover:text-white" title={fullscreen ? 'Zwiń do panelu' : 'Pełny ekran'}>
+      {fullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+      <span className="hidden sm:inline">{fullscreen ? 'Zwiń' : 'Pełny ekran'}</span>
+    </button>
+  );
+  // Funkcja (nie komponent) — unikamy remountu edytora/iframe przy każdym renderze.
+  const wrap = (children: React.ReactNode) =>
+    fullscreen ? (
+      <div className="fixed inset-0 z-40 overflow-auto bg-neutral-950">
+        <div className="mx-auto w-full max-w-[1800px] p-4 lg:p-6">{children}</div>
+      </div>
+    ) : (
+      <div>{children}</div>
+    );
+
+  if (view === 'gallery') {
+    return wrap(
+      <TemplateGallery thumbs={tplThumbs} onPick={applyTemplate} onContinue={() => setView('editor')} fsToggle={fsToggleEl} />,
+    );
+  }
+
+  return wrap(
     <div className="space-y-4">
+      {inserterOpen && (
+        <BlockInserter
+          thumbs={blockThumbs}
+          onPick={(t) => { add(t); setInserterOpen(false); }}
+          onClose={() => setInserterOpen(false)}
+        />
+      )}
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-1.5">
-          <LayoutTemplate className="h-4 w-4 text-neutral-400" />
-          <select onChange={(e) => { if (e.target.value && RAW_TEMPLATES[e.target.value]) { const nm = asModel(RAW_TEMPLATES[e.target.value]()); setModel(nm); setActivePageId(nm.pages[0].id); setSelected(null); } }} defaultValue="" className="rounded-lg border border-white/10 bg-black/40 px-2 py-1.5 text-sm text-white">
-            <option value="">Szablon startowy…</option>
-            <optgroup label="Biznes / firma">
-              <option value="landing">Landing page</option><option value="wizytowka">Wizytówka firmy</option>
-              <option value="uslugi">Usługi lokalne</option><option value="agencja">Agencja / portfolio</option>
-              <option value="kancelaria">Kancelaria</option><option value="organizacja">Fundacja / NGO</option>
-            </optgroup>
-            <optgroup label="Produkt / online">
-              <option value="produkt">Produkt — landing</option><option value="saas">Aplikacja / SaaS</option>
-              <option value="sklep">Sklep online</option><option value="kursy">Kursy / edukacja</option>
-            </optgroup>
-            <optgroup label="Treść / blog">
-              <option value="blog">Blog / magazyn</option><option value="wpis">Wpis bloga</option>
-              <option value="cv">CV / wizytówka osobista</option><option value="freelancer">Freelancer</option>
-            </optgroup>
-            <optgroup label="Lokal / wydarzenia">
-              <option value="restauracja">Restauracja</option><option value="kawiarnia">Kawiarnia / bar</option>
-              <option value="fitness">Klub fitness</option><option value="przychodnia">Przychodnia / gabinet</option>
-              <option value="nieruchomosci">Nieruchomości</option><option value="wydarzenie">Wydarzenie / konferencja</option>
-              <option value="fotograf">Fotograf</option>
-            </optgroup>
-          </select>
+          <button onClick={() => setView('gallery')} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/40 px-3 py-1.5 text-sm text-neutral-200 hover:text-white" title="Wróć do galerii szablonów">
+            <LayoutGrid className="h-4 w-4" /> Szablony
+          </button>
         </div>
         <div className="ml-auto flex items-center gap-2">
+          {fsToggleEl}
           <div className="flex rounded-lg border border-white/10 bg-black/40 p-0.5">
             <button onClick={() => setDevice('desktop')} className={`rounded-md px-2 py-1 ${device === 'desktop' ? 'bg-white/10' : ''}`} aria-label="Desktop"><Monitor className="h-4 w-4" /></button>
             <button onClick={() => setDevice('mobile')} className={`rounded-md px-2 py-1 ${device === 'mobile' ? 'bg-white/10' : ''}`} aria-label="Mobile"><Smartphone className="h-4 w-4" /></button>
@@ -709,11 +805,11 @@ export default function SiteBuilderTab({ serviceId }: { serviceId: string }) {
         </p>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-[240px_1fr_310px]">
+      <div className="grid gap-4 xl:grid-cols-[270px_minmax(0,1fr)_340px]">
         {/* Sekcje */}
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-widest text-neutral-500">Sekcje — {activePage.name}</p>
-          <p className="text-[10px] text-neutral-600">Przeciągnij uchwyt, aby zmienić kolejność.</p>
+          <p className="text-[10px] text-neutral-600">Przeciągnij uchwyt, aby zmienić kolejność. Kliknij sekcję, aby edytować.</p>
           {activePage.sections.map((s) => (
             <div
               key={s.id}
@@ -732,16 +828,15 @@ export default function SiteBuilderTab({ serviceId }: { serviceId: string }) {
               <button onClick={() => remove(s.id)} className="text-neutral-500 hover:text-rose-300" aria-label="Usuń"><Trash2 className="h-3.5 w-3.5" /></button>
             </div>
           ))}
-          <select onChange={(e) => { if (e.target.value) { add(e.target.value as SectionType); e.target.value = ''; } }} defaultValue="" className="w-full rounded-lg border border-dashed border-white/15 bg-black/40 px-2 py-1.5 text-sm text-neutral-300">
-            <option value="">+ Dodaj sekcję…</option>
-            {(Object.keys(SECTION_LABEL) as SectionType[]).map((t) => <option key={t} value={t}>{SECTION_LABEL[t]}</option>)}
-          </select>
+          <button onClick={() => setInserterOpen(true)} className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-emerald-500/40 bg-emerald-500/5 px-2 py-2 text-sm font-medium text-emerald-200 hover:bg-emerald-500/10">
+            <Plus className="h-4 w-4" /> Dodaj sekcję
+          </button>
         </div>
 
         {/* Podgląd */}
         <div className="rounded-xl border border-white/10 bg-white/[0.02] p-2">
-          <div className="mx-auto overflow-hidden rounded-lg bg-white transition-all" style={{ width: device === 'mobile' ? 390 : '100%', maxWidth: '100%' }}>
-            <iframe title="Podgląd strony" srcDoc={html} className="h-[640px] w-full border-0" />
+          <div className="mx-auto overflow-hidden rounded-lg bg-white shadow-lg transition-all" style={{ width: device === 'mobile' ? 390 : '100%', maxWidth: '100%' }}>
+            <iframe title="Podgląd strony" srcDoc={html} className="h-[760px] w-full border-0" />
           </div>
         </div>
 
@@ -797,7 +892,7 @@ export default function SiteBuilderTab({ serviceId }: { serviceId: string }) {
           </div>
         </div>
       </div>
-    </div>
+    </div>,
   );
 }
 
@@ -1024,6 +1119,152 @@ function MediaPicker({ serviceId, onPick, onClose }: { serviceId: string; onPick
           </div>
         )}
         <p className="mt-3 text-[11px] text-neutral-500">Obrazy wgrywasz wprost tutaj („Wgraj obraz") do bieżącego folderu w <code>public_html</code> — od razu pojawią się na opublikowanej stronie.</p>
+      </div>
+    </div>
+  );
+}
+
+/* ============================ GUTENBERG-STYLE UI ============================ */
+
+/** Skalowana miniatura strony/bloku — renderuje wygenerowany HTML w „desktopowym" układzie. */
+function FrameThumb({ html, aspect = '16 / 10', tall = '2200px' }: { html: string; aspect?: string; tall?: string }) {
+  return (
+    <div style={{ width: '100%', aspectRatio: aspect, overflow: 'hidden', position: 'relative', background: '#fff' }}>
+      <iframe
+        title="Miniatura"
+        srcDoc={html}
+        scrolling="no"
+        tabIndex={-1}
+        aria-hidden
+        style={{ position: 'absolute', top: 0, left: 0, width: '333.33%', height: tall, transform: 'scale(0.3)', transformOrigin: 'top left', border: 0, pointerEvents: 'none' }}
+      />
+    </div>
+  );
+}
+
+/** Ekran startowy — galeria szablonów z filtrami, wyszukiwarką i pełnym podglądem. */
+function TemplateGallery({ thumbs, onPick, onContinue, fsToggle }: { thumbs: Record<string, string>; onPick: (key: string) => void; onContinue: () => void; fsToggle?: React.ReactNode }) {
+  const [cat, setCat] = useState<string>('Wszystkie');
+  const [q, setQ] = useState('');
+  const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop');
+  const [previewKey, setPreviewKey] = useState<string | null>(null);
+
+  const descs = useMemo(() => Object.fromEntries(ALL_TPLS.map((t) => [t.key, RAW_TEMPLATES[t.key]().description])), []);
+  const items = ALL_TPLS.filter((t) => (cat === 'Wszystkie' || t.cat === cat) && (q.trim() === '' || t.name.toLowerCase().includes(q.toLowerCase())));
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-bold text-white">Wybierz szablon startowy</h2>
+          <p className="mt-1 text-sm text-neutral-400">Gotowe, profesjonalne układy — po wybraniu edytujesz sekcje i treść. Najedź, aby zobaczyć podgląd.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {fsToggle}
+          <button onClick={onContinue} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-sm text-neutral-200 hover:text-white">
+            <ArrowLeft className="h-4 w-4" /> Wróć do edytora
+          </button>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap gap-1.5">
+          {TPL_CATS.map((c) => (
+            <button key={c} onClick={() => setCat(c)} className={`rounded-full px-3 py-1 text-xs font-medium transition ${cat === c ? 'bg-emerald-500/15 text-emerald-200 border border-emerald-500/30' : 'border border-white/10 text-neutral-300 hover:bg-white/5'}`}>{c}</button>
+          ))}
+        </div>
+        <div className="relative ml-auto">
+          <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-500" />
+          <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Szukaj szablonu…" className="w-48 rounded-lg border border-white/10 bg-black/40 py-1.5 pl-8 pr-2 text-sm text-white" />
+        </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {items.map((t) => (
+          <div key={t.key} className="group overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] transition hover:border-emerald-500/40">
+            <button onClick={() => setPreviewKey(t.key)} className="block w-full" title="Podgląd">
+              <FrameThumb html={thumbs[t.key]} />
+            </button>
+            <div className="space-y-2 p-3">
+              <div>
+                <p className="text-sm font-semibold text-white">{t.name}</p>
+                <p className="mt-0.5 line-clamp-2 text-[11px] text-neutral-500">{descs[t.key]}</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button onClick={() => onPick(t.key)} className="flex-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500">Użyj szablonu</button>
+                <button onClick={() => setPreviewKey(t.key)} className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2.5 py-1.5 text-xs text-neutral-200 hover:text-white"><Eye className="h-3.5 w-3.5" /> Podgląd</button>
+              </div>
+            </div>
+          </div>
+        ))}
+        {items.length === 0 && <p className="col-span-full py-10 text-center text-sm text-neutral-500">Brak szablonów dla tego filtra.</p>}
+      </div>
+
+      {previewKey && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-black/80 p-4 backdrop-blur-sm" onClick={() => setPreviewKey(null)}>
+          <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col overflow-hidden rounded-2xl border border-white/10 bg-neutral-950" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between gap-2 border-b border-white/10 px-4 py-2.5">
+              <p className="text-sm font-semibold text-white">{ALL_TPLS.find((t) => t.key === previewKey)?.name}</p>
+              <div className="flex items-center gap-2">
+                <div className="flex rounded-lg border border-white/10 bg-black/40 p-0.5">
+                  <button onClick={() => setDevice('desktop')} className={`rounded-md px-2 py-1 ${device === 'desktop' ? 'bg-white/10' : ''}`}><Monitor className="h-4 w-4" /></button>
+                  <button onClick={() => setDevice('mobile')} className={`rounded-md px-2 py-1 ${device === 'mobile' ? 'bg-white/10' : ''}`}><Smartphone className="h-4 w-4" /></button>
+                </div>
+                <button onClick={() => { onPick(previewKey); }} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-500">Użyj ten szablon</button>
+                <button onClick={() => setPreviewKey(null)} className="rounded-lg border border-white/10 p-1.5 text-neutral-300 hover:text-white"><X className="h-4 w-4" /></button>
+              </div>
+            </div>
+            <div className="flex-1 overflow-auto bg-neutral-900 p-3">
+              <div className="mx-auto overflow-hidden rounded-lg bg-white shadow-xl transition-all" style={{ width: device === 'mobile' ? 390 : '100%', maxWidth: '100%' }}>
+                <iframe title="Podgląd szablonu" srcDoc={thumbs[previewKey]} className="h-[70vh] w-full border-0" />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Wizualny inserter bloków (podgląd każdej sekcji jak w Gutenbergu). */
+function BlockInserter({ thumbs, onPick, onClose }: { thumbs: Record<SectionType, string>; onPick: (t: SectionType) => void; onClose: () => void }) {
+  const [q, setQ] = useState('');
+  const ql = q.trim().toLowerCase();
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/80 p-4 backdrop-blur-sm" onClick={onClose}>
+      <div className="mt-6 flex max-h-[88vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-neutral-950" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between gap-2 border-b border-white/10 px-4 py-3">
+          <p className="text-sm font-semibold text-white">Dodaj sekcję</p>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-500" />
+              <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Szukaj bloku…" className="w-56 rounded-lg border border-white/10 bg-black/40 py-1.5 pl-8 pr-2 text-sm text-white" />
+            </div>
+            <button onClick={onClose} className="rounded-lg border border-white/10 p-1.5 text-neutral-300 hover:text-white"><X className="h-4 w-4" /></button>
+          </div>
+        </div>
+        <div className="flex-1 space-y-5 overflow-auto p-4">
+          {SECTION_GROUPS.map((g) => {
+            const items = g.items.filter((t) => ql === '' || SECTION_LABEL[t].toLowerCase().includes(ql));
+            if (items.length === 0) return null;
+            return (
+              <div key={g.cat}>
+                <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-neutral-500">{g.cat}</p>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {items.map((t) => (
+                    <button key={t} onClick={() => onPick(t)} className="group overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] text-left transition hover:border-emerald-500/40">
+                      <FrameThumb html={thumbs[t]} aspect="16 / 7" tall="1400px" />
+                      <div className="flex items-center justify-between gap-1 px-3 py-2">
+                        <span className="text-xs font-medium text-white">{SECTION_LABEL[t]}</span>
+                        <Plus className="h-3.5 w-3.5 text-emerald-300 opacity-0 transition group-hover:opacity-100" />
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

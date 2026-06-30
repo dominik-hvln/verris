@@ -26,6 +26,9 @@ const CREDIT_TYPES = new Set<WalletTxType>([
   WalletTxType.REFUND,
   WalletTxType.PROMO_CREDIT,
   WalletTxType.CREDIT_PLAN_DOWNGRADE,
+  // RESELL — wypłata prowizji partnerskiej. Wartość enuma dodana w migracji;
+  // generowany klient Prisma dostaje ją w buildzie prod, więc rzutujemy string.
+  'COMMISSION_CREDIT' as WalletTxType,
 ]);
 
 const DEBIT_TYPES = new Set<WalletTxType>([

@@ -14,6 +14,8 @@ import { Role, MarketingCampaignStatus, MarketingSegment } from '@verris/databas
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard';
+import { StaffPerm } from '../common/decorators/staff-permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { MarketingCampaignService } from './marketing-campaign.service';
 
@@ -35,8 +37,9 @@ interface ScheduleCampaignDto {
 }
 
 @Controller('admin/marketing/campaigns')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(Role.ADMIN)
+@UseGuards(JwtAuthGuard, RolesGuard, StaffPermissionsGuard)
+@Roles(Role.ADMIN, Role.STAFF)
+@StaffPerm('PROMO_MANAGE')
 export class MarketingAdminController {
   constructor(private readonly campaigns: MarketingCampaignService) {}
 
@@ -63,6 +66,13 @@ export class MarketingAdminController {
   @Get()
   list(@Query('status') status?: MarketingCampaignStatus) {
     return this.campaigns.list({ status });
+  }
+
+  @Get('segments/:segment/count')
+  estimate(@Param('segment') segment: MarketingSegment) {
+    return this.campaigns
+      .estimateRecipients(segment)
+      .then((count) => ({ segment, count }));
   }
 
   @Get(':id')

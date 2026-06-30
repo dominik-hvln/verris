@@ -95,6 +95,10 @@ model User {
   referredByUserId       String?
   referredBy             User?     @relation("UserReferrals", fields: [referredByUserId], references: [id], onDelete: SetNull)
   referredUsers          User[]    @relation("UserReferrals")
+  // RESELL — program partnerski (afiliacja).
+  partnerCommissions     PartnerCommission[] @relation("PartnerCommissions")
+  referredCommissions    PartnerCommission[] @relation("ReferredCommissions")
+  partnerPayouts         PartnerPayout[]     @relation("PartnerPayouts")
   /// Nieauthoryzowany token do publicznego badge SVG (`GET /public/eco/badge/:token`).
   ecoBadgeToken          String?   @unique
   /// Łączna liczba unikalnych wyświetleń badge (po deduplikacji IP/godzina).
@@ -1183,6 +1187,7 @@ enum WalletTxType {
   CHARGE_DOMAIN        // Domain registration / renewal / transfer
   ADJUSTMENT           // Manual adjustment by admin
   PROMO_CREDIT
+  COMMISSION_CREDIT    // RESELL — wypłata prowizji partnerskiej do portfela
 }
 
 enum WalletTxStatus {
@@ -2875,4 +2880,96 @@ model VpsInstance {
 
   @@index([userId, createdAt])
   @@index([status])
+}
+
+// =====================================================================
+// RESELL — Program partnerski (afiliacja). Partner = zatwierdzony uczestnik
+// (ReferralProgramEnrollment.status = APPROVED). Klient polecony (User.referredByUserId)
+// generuje prowizję % od każdej realnej płatności (CHARGE_SUBSCRIPTION) oraz
+// bonusy „darmowy hosting za N poleceń". Wypłata: do portfela lub na konto.
+// =====================================================================
+
+enum PartnerCommissionKind {
+  RECURRING_PCT    // % od płatności poleconego klienta
+  MILESTONE_BONUS  // bonus za osiągnięcie progu N aktywnych poleceń
+}
+
+enum PartnerCommissionStatus {
+  PENDING    // naliczona, w okresie karencji (ochrona przed zwrotem)
+  AVAILABLE  // dojrzała, gotowa do wypłaty
+  PAID       // wypłacona (do portfela lub przelewem)
+  CANCELED   // anulowana (np. zwrot płatności klienta)
+}
+
+model PartnerCommission {
+  id             String                  @id @default(uuid())
+
+  partnerUserId  String
+  partner        User                    @relation("PartnerCommissions", fields: [partnerUserId], references: [id], onDelete: Cascade)
+
+  referredUserId String?
+  referred       User?                   @relation("ReferredCommissions", fields: [referredUserId], references: [id], onDelete: SetNull)
+
+  kind           PartnerCommissionKind   @default(RECURRING_PCT)
+  /// Klucz idempotencji: "tx:<walletTxId>" dla % lub "ms:<partnerId>:<n>" dla bonusu.
+  dedupeKey      String                  @unique
+
+  /// Kwota płatności klienta, od której liczona jest prowizja (dla RECURRING_PCT).
+  baseAmount     Decimal?                @db.Decimal(12, 2)
+  /// Zastosowany procent prowizji (snapshot z chwili naliczenia).
+  pct            Int?
+  /// Faktyczna kwota prowizji/bonusu w walucie portfela.
+  amount         Decimal                 @db.Decimal(12, 2)
+  currency       String                  @default("PLN")
+
+  status         PartnerCommissionStatus @default(PENDING)
+  /// Kiedy prowizja dojrzewa (PENDING → AVAILABLE).
+  availableAt    DateTime?
+
+  payoutId       String?
+  payout         PartnerPayout?          @relation(fields: [payoutId], references: [id], onDelete: SetNull)
+
+  description    String?
+  createdAt      DateTime                @default(now())
+
+  @@index([partnerUserId, status])
+  @@index([referredUserId])
+}
+
+enum PartnerPayoutMethod {
+  WALLET  // kredyt do portfela partnera (natychmiast)
+  BANK    // wypłata przelewem (wymaga obsługi przez admina)
+}
+
+enum PartnerPayoutStatus {
+  REQUESTED  // zlecona przez partnera (BANK)
+  PAID       // wypłacona
+  REJECTED   // odrzucona przez admina (prowizje wracają do AVAILABLE)
+}
+
+model PartnerPayout {
+  id                String              @id @default(uuid())
+
+  partnerUserId     String
+  partner           User                @relation("PartnerPayouts", fields: [partnerUserId], references: [id], onDelete: Cascade)
+
+  method            PartnerPayoutMethod
+  amount            Decimal             @db.Decimal(12, 2)
+  currency          String              @default("PLN")
+  status            PartnerPayoutStatus @default(REQUESTED)
+
+  /// Snapshot numeru konta dla wypłaty BANK (z profilu nabywcy partnera).
+  bankAccount       String?
+  /// Powiązana transakcja portfela przy method=WALLET (kredyt COMMISSION_CREDIT).
+  walletTxId        String?
+
+  note              String?             @db.Text
+  requestedAt       DateTime            @default(now())
+  processedAt       DateTime?
+  processedByUserId String?
+
+  commissions       PartnerCommission[]
+
+  @@index([partnerUserId, status])
+  @@index([status, requestedAt])
 }
