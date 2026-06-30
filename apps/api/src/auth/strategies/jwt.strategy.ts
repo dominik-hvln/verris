@@ -60,7 +60,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     // Audit F-08: a block must take effect immediately, not when the JWT
     // expires — the strategy already hits the DB per request, so this check
     // is free. Same for RODO-anonymised accounts.
-    if (user.loginBlocked && user.role === 'USER') {
+    // Blokada dotyczy klientów (USER) i operatorów (STAFF — dezaktywacja w „Mój zespół").
+    // ADMIN nigdy nie jest blokowany, by nie odciąć całego dostępu administracyjnego.
+    if (user.loginBlocked && user.role !== 'ADMIN') {
       throw new UnauthorizedException('Account is blocked');
     }
     if (user.anonymizedAt) {

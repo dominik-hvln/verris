@@ -9,6 +9,7 @@ import { hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { useHostingLinks } from '@/components/hosting/hosting-links-context';
 import DomainPointingPanel from '@/components/hosting/DomainPointingPanel';
 import SubdomainsManager from '@/components/hosting/SubdomainsManager';
+import AdditionalDomains from '@/components/hosting/AdditionalDomains';
 import { ResponsiveDataView } from '@/components/panel';
 
 interface Props {
@@ -214,6 +215,7 @@ export default function DomainsTab({ serviceId }: Props) {
           />
         )}
       </div>
+      <AdditionalDomains serviceId={serviceId} />
     </HostingTabShell>
   );
 }

@@ -10,6 +10,7 @@ import {
   fetchHostingDatabasesAction,
 } from '@/app/dashboard/services/[id]/hosting-mysql-links-actions';
 import { HostingTabShell, DaExternalLink } from '@/components/hosting/HostingTabShell';
+import DbAccessHosts from '@/components/hosting/DbAccessHosts';
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { useHostingLinks } from '@/components/hosting/hosting-links-context';
 
@@ -236,8 +237,9 @@ export default function DatabasesTab({ serviceId }: Props) {
           {databases.map((db) => (
             <div
               key={db.name}
-              className="flex items-center justify-between gap-3 border-b border-white/5 px-4 py-2.5 last:border-0"
+              className="border-b border-white/5 px-4 py-2.5 last:border-0"
             >
+              <div className="flex items-center justify-between gap-3">
               <span className="min-w-0 flex-1 break-all font-mono text-sm text-white" title={db.name}>
                 {db.name}
               </span>
@@ -266,6 +268,8 @@ export default function DatabasesTab({ serviceId }: Props) {
                   )}
                 </button>
               </div>
+              </div>
+              <DbAccessHosts serviceId={serviceId} db={db.name} />
             </div>
           ))}
         </div>

@@ -5,10 +5,11 @@ import { MailModule } from '../mail/mail.module';
 import { LiveReadinessService } from './live-readiness.service';
 import { LiveReadinessAdminController } from './live-readiness.admin.controller';
 import { OpsWatchdogScheduler } from './ops-watchdog.scheduler';
+import { RblReputationScheduler } from './rbl-reputation.scheduler';
 
 @Module({
   imports: [PlatformSettingsModule, ComplianceModule, MailModule],
-  providers: [LiveReadinessService, OpsWatchdogScheduler],
+  providers: [LiveReadinessService, OpsWatchdogScheduler, RblReputationScheduler],
   controllers: [LiveReadinessAdminController],
 })
 export class LiveReadinessModule {}

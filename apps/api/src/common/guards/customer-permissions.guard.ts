@@ -49,7 +49,12 @@ export function inferCustomerRoutePermissions(
   if (normalized.includes('hosting-dns')) {
     return [CustomerPermission.DNS_MANAGE];
   }
-  if (normalized.includes('hosting-email')) {
+  if (
+    normalized.includes('hosting-email') ||
+    normalized.includes('hosting-autoresponders') ||
+    normalized.includes('hosting-catchall') ||
+    normalized.includes('hosting-spamfilter')
+  ) {
     return [CustomerPermission.EMAIL_MANAGE];
   }
   if (normalized.includes('file-manager') || normalized.includes('hosting-files')) {

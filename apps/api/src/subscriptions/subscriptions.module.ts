@@ -37,6 +37,9 @@ import { TrialExpiryScheduler } from './trial-expiry.scheduler';
 import { PhpService } from './php.service';
 import { AppInstallService } from './app-install.service';
 import { DeliverabilityService } from '../deliverability/deliverability.service';
+import { BackupScheduleService } from './backup-schedule.service';
+import { BackupScheduleScheduler } from './backup-schedule.scheduler';
+import { QuotaAlertScheduler } from './quota-alert.scheduler';
 import { EcoModule } from '../eco/eco.module';
 
 @Module({
@@ -66,6 +69,9 @@ import { EcoModule } from '../eco/eco.module';
     AppInstallService,
     DeliverabilityService,
     StagingService,
+    BackupScheduleService,
+    BackupScheduleScheduler,
+    QuotaAlertScheduler,
   ],
   controllers: [
     SubscriptionsController,

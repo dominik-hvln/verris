@@ -15,6 +15,8 @@ import { Role, WalletTxType } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard';
+import { StaffPerm } from '../common/decorators/staff-permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { BillingService } from './billing.service';
 import { AdminCreditWalletDto } from './dto/admin-credit.dto';
@@ -32,6 +34,9 @@ export class BillingAdminController {
 
   @Post('wallet/credit')
   @HttpCode(200)
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('BILLING_MANAGE')
   creditWallet(
     @Body() dto: AdminCreditWalletDto,
     @CurrentUser() actor: { userId: string },
@@ -47,6 +52,9 @@ export class BillingAdminController {
 
   @Post('promo-codes')
   @HttpCode(201)
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('PROMO_MANAGE')
   createPromo(@Body() dto: AdminCreatePromoDto, @CurrentUser() actor: { userId: string }) {
     return this.promo.createPromoCode({
       code: dto.code,
@@ -63,11 +71,17 @@ export class BillingAdminController {
 
   @Get('promo-codes')
   @HttpCode(200)
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('PROMO_MANAGE')
   listPromoCodes() {
     return this.promo.listPromoCodes();
   }
 
   @Get('wallet/transactions.csv')
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('BILLING_VIEW')
   @Header('Cache-Control', 'no-store')
   async exportTransactionsCsv(
     @Res() res: Response,

@@ -3,6 +3,8 @@ import { Role, MigrationStatus } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard';
+import { StaffPerm } from '../common/decorators/staff-permissions.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 
 /**
@@ -11,8 +13,9 @@ import { PrismaService } from '../prisma/prisma.service';
  * migracją (retry/log) pozostaje na stronie subskrypcji.
  */
 @Controller('admin/migrations')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, StaffPermissionsGuard)
 @Roles(Role.ADMIN, Role.STAFF)
+@StaffPerm('MIGRATIONS_MANAGE')
 export class MigrationsAdminController {
   constructor(private readonly prisma: PrismaService) {}
 

@@ -7,6 +7,7 @@ import { fetchHostingUsageAction, HostingUsageResponse } from '@/app/dashboard/s
 import { ServiceUptimeBadge } from '@/components/hosting/service-uptime-badge';
 import { HostingBackupRestorePanel } from '@/components/hosting/hosting-backup-restore-panel';
 import ServiceForecastPanel from '@/components/hosting/ServiceForecastPanel';
+import AccountStatsCard from '@/components/hosting/AccountStatsCard';
 
 export default function UsageTab({ serviceId }: { serviceId: string }) {
   const [window, setWindow] = useState<'24h' | '7d'>('24h');
@@ -44,6 +45,8 @@ export default function UsageTab({ serviceId }: { serviceId: string }) {
   const chart = useMemo(() => usage?.rows.slice(-48) ?? [], [usage]);
 
   return (
+    <div className="space-y-4 min-w-0">
+    <AccountStatsCard serviceId={serviceId} />
     <div className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 sm:p-5 min-w-0 overflow-hidden">
       <div className="mb-4 flex flex-col gap-3 border-b border-white/5 pb-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
@@ -110,6 +113,7 @@ export default function UsageTab({ serviceId }: { serviceId: string }) {
       )}
 
       <ServiceForecastPanel serviceId={serviceId} />
+    </div>
     </div>
   );
 }

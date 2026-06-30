@@ -15,13 +15,16 @@ import { AiKnowledgeAudience, AiKnowledgeStatus, Role } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard';
+import { StaffPerm } from '../common/decorators/staff-permissions.decorator';
 import { KnowledgeBaseService } from './knowledge-base.service';
 import { CreateKnowledgeDocDto, UpdateKnowledgeDocDto } from './dto/ai.dto';
 
 /** Admin/Staff management of the AI knowledge base ("train the AI"). */
 @Controller('admin/ai/knowledge')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, StaffPermissionsGuard)
 @Roles(Role.ADMIN, Role.STAFF)
+@StaffPerm('DASHBOARD_VIEW')
 export class AiKnowledgeAdminController {
   constructor(private readonly kb: KnowledgeBaseService) {}
 

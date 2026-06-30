@@ -217,3 +217,32 @@ export function domainExpiryReminderTemplate(
     html,
   };
 }
+
+/* ===================== PANEL-14 — alert o limitach konta ===================== */
+export interface AccountQuotaAlertContext {
+  to: string;
+  firstName: string | null;
+  domain: string;
+  diskPct: number | null;
+  bandwidthPct: number | null;
+  panelUrl: string;
+}
+
+export function accountQuotaAlertTemplate(ctx: AccountQuotaAlertContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const lines: string[] = [greeting, '', `Twoje konto **${escapeHtml(ctx.domain)}** zbliża się do limitów:`, ''];
+  if (ctx.diskPct != null) lines.push(`- **Dysk:** wykorzystane ${ctx.diskPct}%`);
+  if (ctx.bandwidthPct != null) lines.push(`- **Transfer (bież. okres):** wykorzystany ${ctx.bandwidthPct}%`);
+  lines.push('', '## Co możesz zrobić', '', '1. Usuń zbędne pliki/backupy lub wyczyść logi.', '2. Rozważ wyższy plan, jeśli potrzebujesz więcej zasobów.', '3. Szczegóły i wykresy znajdziesz w panelu (zakładka „Usage").');
+  const { html, text } = renderEmailShell({
+    title: `Konto ${ctx.domain} zbliża się do limitu`,
+    preheader: 'Wykorzystanie zasobów konta jest wysokie.',
+    bodyMarkdown: lines.join('\n'),
+    cta: { label: 'Sprawdź wykorzystanie', url: ctx.panelUrl },
+    footnote: 'Alert wysyłany maksymalnie raz na kilka dni, gdy wykorzystanie jest wysokie.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return { to: ctx.to, tag: 'hosting.quota-alert', subject: `[Verris] Konto ${ctx.domain} zbliża się do limitu zasobów`, text, html };
+}

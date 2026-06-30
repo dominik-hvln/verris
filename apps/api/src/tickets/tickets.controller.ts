@@ -31,6 +31,8 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
+import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard';
+import { StaffPerm } from '../common/decorators/staff-permissions.decorator';
 
 const FILES_MEMORY = FilesInterceptor('files', TICKET_UPLOAD_MAX_FILES_PER_BATCH, {
   storage: memoryStorage(),
@@ -47,8 +49,9 @@ export class TicketsController {
 
   // SUP-2 — szablony odpowiedzi (staff: lista; admin: CRUD).
   @Get('canned')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, StaffPermissionsGuard)
   @Roles('STAFF', 'ADMIN')
+  @StaffPerm('TICKETS_VIEW')
   cannedList(@Query('topic') topic?: string) {
     return this.canned.listForStaff(topic);
   }
@@ -111,36 +114,41 @@ export class TicketsController {
   }
 
   @Get('admin/all')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, StaffPermissionsGuard)
   @Roles('STAFF', 'ADMIN')
+  @StaffPerm('TICKETS_VIEW')
   async adminFindAll(@Query('userId') userId?: string) {
     return this.ticketsService.adminFindAll(userId);
   }
 
   @Get('admin/canned-responses')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, StaffPermissionsGuard)
   @Roles('STAFF', 'ADMIN')
+  @StaffPerm('TICKETS_VIEW')
   async getCannedResponses() {
     return this.ticketsService.getCannedResponses();
   }
 
   @Get('admin/:id')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, StaffPermissionsGuard)
   @Roles('STAFF', 'ADMIN')
+  @StaffPerm('TICKETS_VIEW')
   async adminFindOne(@Param('id') id: string): Promise<unknown> {
     return this.ticketsService.adminFindOne(id);
   }
 
   @Patch('admin/:id')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, StaffPermissionsGuard)
   @Roles('STAFF', 'ADMIN')
+  @StaffPerm('TICKETS_MANAGE')
   async adminUpdateTicket(@Param('id') id: string, @Body() dto: AdminUpdateTicketDto) {
     return this.ticketsService.adminUpdateTicket(id, dto);
   }
 
   @Post('admin/:id/escalate')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, StaffPermissionsGuard)
   @Roles('STAFF', 'ADMIN')
+  @StaffPerm('TICKETS_MANAGE')
   async adminEscalateTicket(
     @Param('id') id: string,
     @CurrentUser() user: { userId: string },
@@ -150,8 +158,9 @@ export class TicketsController {
   }
 
   @Post('admin/:id/runbook')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, StaffPermissionsGuard)
   @Roles('STAFF', 'ADMIN')
+  @StaffPerm('TICKETS_MANAGE')
   async adminApplyRunbook(
     @Param('id') id: string,
     @CurrentUser() user: { userId: string },
@@ -161,8 +170,9 @@ export class TicketsController {
   }
 
   @Post('admin/:id/risk')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, StaffPermissionsGuard)
   @Roles('STAFF', 'ADMIN')
+  @StaffPerm('TICKETS_MANAGE')
   async adminSetRiskFlag(
     @Param('id') id: string,
     @CurrentUser() user: { userId: string },
@@ -177,8 +187,9 @@ export class TicketsController {
   }
 
   @Post('admin/:id/replies')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, StaffPermissionsGuard)
   @Roles('STAFF', 'ADMIN')
+  @StaffPerm('TICKETS_MANAGE')
   async adminAddReply(
     @Param('id') id: string,
     @CurrentUser() user: { userId: string },
@@ -188,8 +199,9 @@ export class TicketsController {
   }
 
   @Post('admin/:id/replies/with-files')
-  @UseGuards(RolesGuard)
+  @UseGuards(RolesGuard, StaffPermissionsGuard)
   @Roles('STAFF', 'ADMIN')
+  @StaffPerm('TICKETS_MANAGE')
   @UseInterceptors(FILES_MEMORY)
   async adminAddReplyWithFiles(
     @Param('id') id: string,

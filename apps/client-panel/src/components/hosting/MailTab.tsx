@@ -24,6 +24,7 @@ import { fetchHostingDomainsAction } from '@/app/dashboard/services/[id]/hosting
 import { Select } from '@/components/panel';
 import { fetchConnectionInfoAction } from '@/app/dashboard/services/[id]/hosting-connection-actions';
 import { HostingTabShell, DaExternalLink } from '@/components/hosting/HostingTabShell';
+import MailExtras from '@/components/hosting/MailExtras';
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { useHostingLinks } from '@/components/hosting/hosting-links-context';
 
@@ -398,6 +399,8 @@ export default function MailTab({ serviceId }: Props) {
           ))}
         </div>
       )}
+
+      <MailExtras serviceId={serviceId} />
 
       <p className="mt-3 flex items-start gap-2 text-[11px] text-neutral-500">
         <Server className="h-3.5 w-3.5 shrink-0 mt-0.5" />

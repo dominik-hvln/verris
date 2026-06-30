@@ -42,11 +42,31 @@ enum CustomerPermission {
   SETTINGS_MANAGE
 }
 
+/// RBAC-1 — rola/dział staffa. `permissions` to lista kluczy z katalogu
+/// (StaffPermission, trzymana w kodzie, by dodawanie nowych nie wymagało migracji enum).
+/// `isSystem` = wstępnie zasiane działy (edytowalne, nieusuwalne).
+model StaffRole {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  permissions String[] @default([])
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members     User[]
+}
+
 model User {
   id                       String    @id @default(uuid())
   email                    String    @unique
   passwordHash             String
   role                     Role      @default(USER)
+
+  // RBAC-1 — dział/rola staffa (granularne uprawnienia panelu admina/staff).
+  // Dotyczy tylko kont STAFF; ADMIN ma pełny dostęp niezależnie od roli.
+  staffRoleId              String?
+  staffRole                StaffRole? @relation(fields: [staffRoleId], references: [id], onDelete: SetNull)
 
   // Profile
   firstName                String?
@@ -858,6 +878,7 @@ model Subscription {
   healthSnapshots      ServiceHealthSnapshot[]
   domainChecklists     DomainChecklist[]
   hostingRestoreJobs   HostingRestoreJob[]
+  backupSchedule       BackupSchedule?
 
   @@index([userId])
   @@index([status])
@@ -1572,6 +1593,34 @@ model HostingRestoreJob {
 
   @@index([status, createdAt])
   @@index([subscriptionId, createdAt])
+}
+
+enum BackupFrequency {
+  OFF
+  DAILY
+  WEEKLY
+}
+
+/// PANEL-11 — harmonogram automatycznych backupów konta (per subskrypcja).
+/// Scheduler co godzinę wyzwala DA site-backup dla pasujących, włączonych wpisów.
+model BackupSchedule {
+  id             String          @id @default(uuid())
+  subscriptionId String          @unique
+  subscription   Subscription    @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  frequency      BackupFrequency @default(OFF)
+  hour           Int             @default(3) // godzina UTC 0-23
+  dayOfWeek      Int             @default(1) // 0=niedziela .. 6=sobota (dla WEEKLY)
+  enabled        Boolean         @default(false)
+  retainCount    Int             @default(7) // ile najnowszych kopii zostawić (0 = bez czyszczenia)
+
+  lastRunAt      DateTime?
+  lastStatus     String?
+
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([enabled, frequency])
 }
 
 enum DomainChecklistStatus {

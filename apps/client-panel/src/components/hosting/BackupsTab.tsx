@@ -12,6 +12,7 @@ import {
 import { BackupNowButton } from '@/app/dashboard/backups/backup-now-button';
 import { hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { HostingHelpHint } from '@/components/hosting/HostingTabShell';
+import BackupScheduleCard from '@/components/hosting/BackupScheduleCard';
 
 const STATUS_LABEL: Record<HostingRestoreJobDto['status'], string> = {
   QUEUED: 'W kolejce',
@@ -75,6 +76,7 @@ export default function BackupsTab({ serviceId }: { serviceId: string }) {
           kbQuery: 'kopie zapasowe',
         }}
       />
+      <BackupScheduleCard serviceId={serviceId} />
       <BackupNowButton serviceId={serviceId} />
 
       {job && (job.active || job.status === 'COMPLETED' || job.status === 'FAILED') && (

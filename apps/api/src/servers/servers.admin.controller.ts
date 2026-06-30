@@ -14,6 +14,8 @@ import { ServersService } from './servers.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard';
+import { StaffPerm } from '../common/decorators/staff-permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Role, NodeTaskStatus } from '@verris/database';
 import { InitServerDto } from './dto/init-server.dto';
@@ -74,12 +76,18 @@ export class ServersAdminController {
   ) {}
 
   @Get()
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('NODES_VIEW')
   list() {
     return this.servers.listServers();
   }
 
   // #13 — operacje węzłów (NodeTask): lista + ręczne ponowienie nieudanych
   @Get('node-tasks')
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('NODES_VIEW')
   listNodeTasks(
     @Query('status') status?: string,
     @Query('serverId') serverId?: string,
@@ -92,6 +100,9 @@ export class ServersAdminController {
   }
 
   @Post('node-tasks/:id/retry')
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('NODES_MANAGE')
   retryNodeTask(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
     return this.nodeTasks.retryFailedTask(id, actor.userId);
   }
@@ -109,18 +120,27 @@ export class ServersAdminController {
   }
 
   @Get(':id')
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('NODES_VIEW')
   get(@Param('id') id: string) {
     return this.servers.getServer(id);
   }
 
   /** Per-node drill-down: hosting accounts placed on this node + latest telemetry. */
   @Get(':id/accounts')
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('NODES_VIEW')
   nodeAccounts(@Param('id') id: string) {
     return this.servers.getNodeAccounts(id);
   }
 
   /** Per-node aggregate usage (summed LVE buckets) + capacity/allocation. */
   @Get(':id/usage')
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('NODES_VIEW')
   nodeUsage(@Param('id') id: string, @Query('window') window = '24h') {
     return this.servers.getNodeUsage(id, window === '7d' ? '7d' : '24h');
   }
@@ -207,6 +227,9 @@ export class ServersAdminController {
    * NodeSelector przy nowych provisioningach).
    */
   @Post(':id/maintenance')
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('NODES_MANAGE')
   setMaintenance(
     @Param('id') id: string,
     @Body() dto: MaintenanceModeDto,
@@ -223,6 +246,9 @@ export class ServersAdminController {
    * Niezależna od MAINTENANCE — nie wstrzymuje sprzedaży globalnie.
    */
   @Post(':id/capacity-policy')
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('NODES_MANAGE')
   setCapacityPolicy(
     @Param('id') id: string,
     @Body()
@@ -238,6 +264,9 @@ export class ServersAdminController {
 
   /** OPS-4 — drain węzła (cordon, bez ruszania danych). */
   @Post(':id/drain')
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('NODES_MANAGE')
   drainNode(
     @Param('id') id: string,
     @Body() dto: { reason?: string },
@@ -322,6 +351,9 @@ export class ServersAdminController {
    * node with live customers — performs only reads against DA API / DB / DNS / TLS.
    */
   @Get(':id/audit')
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('NODES_VIEW')
   audit(@Param('id') id: string) {
     return this.nodeAudit.runAudit(id);
   }

@@ -46,6 +46,44 @@ export function DnsManager({
 
   const refresh = () => router.refresh();
 
+  // PANEL-7 — szybkie presety DNS (zestawy rekordów jednym kliknięciem).
+  const dnsPresets = (d: string): { id: string; label: string; desc: string; records: { name: string; type: string; value: string }[] }[] => {
+    const tenant = d.replace(/\./g, '-');
+    return [
+      { id: 'google', label: 'Poczta Google Workspace', desc: '5 rekordów MX Google', records: [
+        { name: '@', type: 'MX', value: '1 ASPMX.L.GOOGLE.COM.' },
+        { name: '@', type: 'MX', value: '5 ALT1.ASPMX.L.GOOGLE.COM.' },
+        { name: '@', type: 'MX', value: '5 ALT2.ASPMX.L.GOOGLE.COM.' },
+        { name: '@', type: 'MX', value: '10 ALT3.ASPMX.L.GOOGLE.COM.' },
+        { name: '@', type: 'MX', value: '10 ALT4.ASPMX.L.GOOGLE.COM.' },
+      ] },
+      { id: 'm365', label: 'Poczta Microsoft 365', desc: 'MX + autodiscover', records: [
+        { name: '@', type: 'MX', value: `0 ${tenant}.mail.protection.outlook.com.` },
+        { name: 'autodiscover', type: 'CNAME', value: 'autodiscover.outlook.com.' },
+      ] },
+      { id: 'spf', label: 'SPF (poczta Verris)', desc: 'Rekord TXT SPF', records: [
+        { name: '@', type: 'TXT', value: 'v=spf1 include:_spf.verris.pl ~all' },
+      ] },
+      { id: 'dmarc', label: 'DMARC (ochrona poczty)', desc: 'Rekord _dmarc TXT', records: [
+        { name: '_dmarc', type: 'TXT', value: `v=DMARC1; p=quarantine; rua=mailto:dmarc@${d}` },
+      ] },
+    ];
+  };
+  const applyPreset = (preset: { label: string; records: { name: string; type: string; value: string }[] }) => {
+    if (!domain) return;
+    if (!window.confirm(`Dodać zestaw „${preset.label}" (${preset.records.length} rekord(ów)) do strefy ${domain}?`)) return;
+    setError(null);
+    startTransition(async () => {
+      let ok = 0;
+      for (const r of preset.records) {
+        const res = await createDnsRecordAction({ serviceId, domain, name: r.name, type: r.type, value: r.value, ttl: 3600 });
+        if (res.ok) ok++; else setError(res.error);
+      }
+      toast.success(`Dodano ${ok}/${preset.records.length} rekord(ów) z presetu „${preset.label}".`);
+      refresh();
+    });
+  };
+
   const onDelete = (r: HostingDnsRecordDto) => {
     if (!domain) return;
     setError(null);
@@ -87,6 +125,27 @@ export function DnsManager({
           </button>
         ) : null}
       </div>
+
+      {domain ? (
+        <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-neutral-500">Szybkie zestawy rekordów</p>
+          <div className="flex flex-wrap gap-2">
+            {dnsPresets(domain).map((p) => (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => applyPreset(p)}
+                disabled={pending}
+                title={p.desc}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/30 px-2.5 py-1.5 text-xs text-neutral-200 hover:border-emerald-400/40 hover:text-white disabled:opacity-50"
+              >
+                <Plus className="h-3 w-3 text-emerald-300" /> {p.label}
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-[11px] text-neutral-500">Dodaje gotowe rekordy (np. pocztę Google/Microsoft, SPF, DMARC) jednym kliknięciem. Zawsze możesz je potem edytować lub usunąć.</p>
+        </div>
+      ) : null}
 
       {error ? (
         <div className="flex items-center gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">

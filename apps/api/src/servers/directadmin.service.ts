@@ -18,6 +18,7 @@ import type {
   ServiceConnectionInfoDto,
 } from '@verris/contracts';
 import { randomBytes, X509Certificate } from 'crypto';
+import * as bcrypt from 'bcrypt';
 import { Prisma } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto/crypto.service';
@@ -26,6 +27,15 @@ import { HostingResourceActions } from '../common/audit/audit.actions';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 import { buildDaPackageSpecFromPlan, planResourceFields } from './da-package-spec';
 import { resolveHostingPrimaryDomain } from './hosting-primary-domain';
+
+export interface WebToolsState {
+  redirects: Array<{ from: string; to: string; type: '301' | '302' }>;
+  hotlink: { enabled: boolean; extensions: string; allow: string[] };
+  blockedIps: string[];
+  protectedDirs: string[];
+  forceHttps?: boolean;
+  wwwMode?: 'none' | 'www' | 'nonwww';
+}
 
 /**
  * Resolves a Server record into a configured DirectAdminClient instance.
@@ -1251,6 +1261,655 @@ export class DirectAdminService {
       userId,
       actorUserId: userId,
       details: { subscriptionId, email: input.email },
+    });
+    return { ok: true as const };
+  }
+
+  /* ===================== Poczta: forwardery (aliasy) ===================== */
+  async listHostingEmailForwarders(subscriptionId: string, userId: string) {
+    const domain = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
+    if (!domain) return { rows: [], fetchError: 'Brak domeny dla konta hostingowego.' };
+    try {
+      const raw = await this.daGetForSubscription(subscriptionId, userId, '/CMD_API_EMAIL_FORWARDERS', { domain });
+      const meta = new Set(['error', 'text', 'details', 'message', 'result']);
+      const rows: Array<{ id: string; name: string; email: string; destinations: string[] }> = [];
+      for (const [k, v] of raw.entries()) {
+        if (meta.has(k) || !k) continue;
+        const destinations = String(v).split(/[,\s]+/).map((x) => x.trim()).filter(Boolean);
+        rows.push({ id: k, name: k, email: `${k}@${domain}`, destinations });
+      }
+      return { rows, fetchError: null as string | null };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`listHostingEmailForwarders sub=${subscriptionId}: ${msg}`);
+      return { rows: [], fetchError: msg };
+    }
+  }
+
+  async createHostingEmailForward(
+    subscriptionId: string,
+    userId: string,
+    input: { name: string; destinations: string },
+  ) {
+    const domain = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
+    if (!domain) throw new BadRequestException('Brak domeny dla konta hostingowego.');
+    const name = (input.name || '').trim().toLowerCase().replace(/@.*/, '');
+    if (!/^[a-z0-9._-]+$/.test(name)) throw new BadRequestException('Nieprawidłowa nazwa aliasu (lewa część przed @).');
+    const dests = (input.destinations || '')
+      .split(/[,\s;]+/).map((x) => x.trim()).filter(Boolean);
+    if (dests.length === 0) throw new BadRequestException('Podaj co najmniej jeden adres docelowy.');
+    for (const d of dests) {
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d)) throw new BadRequestException(`Nieprawidłowy adres docelowy: ${d}`);
+    }
+    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_EMAIL_FORWARDERS', {
+      action: 'create',
+      domain,
+      user: name,
+      email: dests.join(','),
+    });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_EMAIL_FORWARD_CREATED,
+      userId, actorUserId: userId,
+      details: { subscriptionId, forward: `${name}@${domain}`, destinations: dests },
+    });
+    return { ok: true as const };
+  }
+
+  async deleteHostingEmailForward(subscriptionId: string, userId: string, name: string) {
+    const domain = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
+    if (!domain) throw new BadRequestException('Brak domeny dla konta hostingowego.');
+    const local = (name || '').trim().toLowerCase().replace(/@.*/, '');
+    if (!local) throw new BadRequestException('Brak nazwy aliasu do usunięcia.');
+    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_EMAIL_FORWARDERS', {
+      action: 'delete',
+      domain,
+      select0: local,
+    });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_EMAIL_FORWARD_DELETED,
+      userId, actorUserId: userId,
+      details: { subscriptionId, forward: `${local}@${domain}` },
+    });
+    return { ok: true as const };
+  }
+
+  /* ===================== Poczta: autorespondery ===================== */
+  async listHostingAutoresponders(subscriptionId: string, userId: string) {
+    const domain = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
+    if (!domain) return { rows: [], fetchError: 'Brak domeny dla konta hostingowego.' };
+    try {
+      const raw = await this.daGetForSubscription(subscriptionId, userId, '/CMD_API_EMAIL_AUTORESPONDER', { domain });
+      const meta = new Set(['error', 'text', 'details', 'message', 'result']);
+      const rows: Array<{ id: string; name: string; email: string; cc: string }> = [];
+      for (const [k, v] of raw.entries()) {
+        if (meta.has(k) || !k) continue;
+        rows.push({ id: k, name: k, email: `${k}@${domain}`, cc: String(v ?? '') });
+      }
+      return { rows, fetchError: null as string | null };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`listHostingAutoresponders sub=${subscriptionId}: ${msg}`);
+      return { rows: [], fetchError: msg };
+    }
+  }
+
+  async setHostingAutoresponder(
+    subscriptionId: string,
+    userId: string,
+    input: { name: string; text: string; cc?: string },
+  ) {
+    const domain = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
+    if (!domain) throw new BadRequestException('Brak domeny dla konta hostingowego.');
+    const name = (input.name || '').trim().toLowerCase().replace(/@.*/, '');
+    if (!/^[a-z0-9._-]+$/.test(name)) throw new BadRequestException('Nieprawidłowa nazwa skrzynki autorespondera.');
+    const text = (input.text || '').trim();
+    if (!text) throw new BadRequestException('Treść autorespondera nie może być pusta.');
+    // create gdy nie istnieje, w przeciwnym razie modify (DA rozróżnia akcje)
+    let action = 'create';
+    try {
+      const existing = await this.listHostingAutoresponders(subscriptionId, userId);
+      if (existing.rows.some((r) => r.name === name)) action = 'modify';
+    } catch { /* domyślnie create */ }
+    // DA: cc=ON/OFF + email=<adres kopii> (nie adres bezpośrednio w cc).
+    const form: Record<string, string> = { action, domain, user: name, text };
+    if (input.cc && input.cc.trim()) { form.cc = 'ON'; form.email = input.cc.trim(); }
+    else { form.cc = 'OFF'; }
+    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_EMAIL_AUTORESPONDER', form);
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_AUTORESPONDER_SET,
+      userId, actorUserId: userId,
+      details: { subscriptionId, mailbox: `${name}@${domain}`, mode: action },
+    });
+    return { ok: true as const };
+  }
+
+  async deleteHostingAutoresponder(subscriptionId: string, userId: string, name: string) {
+    const domain = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
+    if (!domain) throw new BadRequestException('Brak domeny dla konta hostingowego.');
+    const local = (name || '').trim().toLowerCase().replace(/@.*/, '');
+    if (!local) throw new BadRequestException('Brak nazwy skrzynki autorespondera.');
+    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_EMAIL_AUTORESPONDER', {
+      action: 'delete',
+      domain,
+      select0: local,
+    });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_AUTORESPONDER_DELETED,
+      userId, actorUserId: userId,
+      details: { subscriptionId, mailbox: `${local}@${domain}` },
+    });
+    return { ok: true as const };
+  }
+
+  /* ===================== Narzędzia WWW (.htaccess) =====================
+   * PANEL-2 (przekierowania, ochrona katalogu) + PANEL-4 (antyhotlink, blokada IP).
+   * Reguły zapisywane do Verris-zarządzanego bloku w public_html/.htaccess,
+   * a stan trzymany w public_html/.verris-webtools.json (źródło prawdy dla UI).
+   * Wszystko realnie na koncie klienta — bez mocków. */
+  private readonly WT_STATE_DIR = 'public_html';
+  private readonly WT_STATE_FILE = '.verris-webtools.json';
+  private readonly WT_BEGIN = '# BEGIN VERRIS WEBTOOLS (zarządzane przez panel — nie edytuj ręcznie)';
+  private readonly WT_END = '# END VERRIS WEBTOOLS';
+
+  private async readAccountTextFile(client: DirectAdminClient, path: string): Promise<string> {
+    try {
+      const buf = await client.downloadFile(path);
+      return buf.toString('utf8');
+    } catch {
+      return '';
+    }
+  }
+
+  private spliceManagedBlock(existing: string, body: string | null): string {
+    const begin = existing.indexOf(this.WT_BEGIN);
+    let base = existing;
+    if (begin !== -1) {
+      const end = existing.indexOf(this.WT_END, begin);
+      if (end !== -1) {
+        base = (existing.slice(0, begin) + existing.slice(end + this.WT_END.length)).replace(/\n{3,}/g, '\n\n').trim();
+      }
+    }
+    if (!body || !body.trim()) return base ? base + '\n' : '';
+    const block = `${this.WT_BEGIN}\n${body.trim()}\n${this.WT_END}`;
+    return (block + (base ? '\n\n' + base : '') + '\n');
+  }
+
+  private renderWebToolsHtaccess(state: WebToolsState, domain: string): string {
+    const lines: string[] = [];
+    const esc = (s: string) => s.replace(/\./g, '\\.');
+    // Reguły rewrite (HTTPS / www) muszą iść przed regułami blokującymi.
+    const needsRewrite = state.forceHttps || (state.wwwMode && state.wwwMode !== 'none') || state.hotlink?.enabled;
+    if (needsRewrite) lines.push('RewriteEngine On');
+    if (state.wwwMode === 'nonwww') {
+      lines.push('RewriteCond %{HTTP_HOST} ^www\\.(.+)$ [NC]');
+      lines.push('RewriteRule ^ %{REQUEST_SCHEME}://%1%{REQUEST_URI} [L,R=301]');
+    } else if (state.wwwMode === 'www') {
+      lines.push('RewriteCond %{HTTP_HOST} !^www\\. [NC]');
+      lines.push('RewriteCond %{HTTP_HOST} !^[0-9.]+$');
+      lines.push('RewriteRule ^ %{REQUEST_SCHEME}://www.%{HTTP_HOST}%{REQUEST_URI} [L,R=301]');
+    }
+    if (state.forceHttps) {
+      lines.push('RewriteCond %{HTTPS} off');
+      lines.push('RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]');
+    }
+    for (const r of state.redirects ?? []) {
+      if (!r.from || !r.to) continue;
+      const from = r.from.startsWith('/') ? r.from : `/${r.from}`;
+      lines.push(`Redirect ${r.type === '302' ? '302' : '301'} ${from} ${r.to}`);
+    }
+    if (state.hotlink?.enabled) {
+      const exts = (state.hotlink.extensions || 'jpg,jpeg,png,gif,webp,svg,bmp')
+        .split(/[,\s]+/).map((x) => x.replace(/[^a-z0-9]/gi, '')).filter(Boolean).join('|') || 'jpg|jpeg|png|gif|webp';
+      lines.push('RewriteCond %{HTTP_REFERER} !^$');
+      lines.push(`RewriteCond %{HTTP_REFERER} !^https?://([^/]+\\.)?${esc(domain)}(/|$) [NC]`);
+      for (const a of state.hotlink.allow ?? []) {
+        const host = a.trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+        if (host) lines.push(`RewriteCond %{HTTP_REFERER} !^https?://([^/]+\\.)?${esc(host)}(/|$) [NC]`);
+      }
+      lines.push(`RewriteRule \\.(${exts})$ - [F,NC]`);
+    }
+    const ips = (state.blockedIps ?? []).map((x) => x.trim()).filter(Boolean);
+    if (ips.length) {
+      lines.push('<RequireAll>');
+      lines.push('Require all granted');
+      for (const ip of ips) lines.push(`Require not ip ${ip}`);
+      lines.push('</RequireAll>');
+    }
+    return lines.join('\n');
+  }
+
+  private defaultWebToolsState(): WebToolsState {
+    return { redirects: [], hotlink: { enabled: false, extensions: 'jpg,jpeg,png,gif,webp,svg', allow: [] }, blockedIps: [], protectedDirs: [], forceHttps: false, wwwMode: 'none' };
+  }
+
+  async getHostingWebTools(subscriptionId: string, userId: string): Promise<{ state: WebToolsState; fetchError: string | null }> {
+    const sub = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, include: { account: true } });
+    if (!sub?.account?.id) return { state: this.defaultWebToolsState(), fetchError: 'Brak konta hostingowego.' };
+    try {
+      const client = await this.getClientForHostingAccount(sub.account.id, userId);
+      const raw = await this.readAccountTextFile(client, `${this.WT_STATE_DIR}/${this.WT_STATE_FILE}`);
+      if (!raw.trim()) return { state: this.defaultWebToolsState(), fetchError: null };
+      const parsed = JSON.parse(raw) as Partial<WebToolsState>;
+      return {
+        state: {
+          redirects: Array.isArray(parsed.redirects) ? parsed.redirects : [],
+          hotlink: parsed.hotlink ?? this.defaultWebToolsState().hotlink,
+          blockedIps: Array.isArray(parsed.blockedIps) ? parsed.blockedIps : [],
+          protectedDirs: Array.isArray(parsed.protectedDirs) ? parsed.protectedDirs : [],
+          forceHttps: Boolean(parsed.forceHttps),
+          wwwMode: parsed.wwwMode === 'www' || parsed.wwwMode === 'nonwww' ? parsed.wwwMode : 'none',
+        },
+        fetchError: null,
+      };
+    } catch (err) {
+      return { state: this.defaultWebToolsState(), fetchError: err instanceof Error ? err.message : String(err) };
+    }
+  }
+
+  /** Zapisuje stan (redirecty + hotlink + blokada IP) i regeneruje blok .htaccess. */
+  async saveHostingWebTools(subscriptionId: string, userId: string, input: Partial<WebToolsState>): Promise<{ ok: true }> {
+    const sub = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, include: { account: true } });
+    if (!sub?.account?.id) throw new BadRequestException('Brak konta hostingowego.');
+    const domain = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
+    if (!domain) throw new BadRequestException('Brak domeny dla konta hostingowego.');
+    // walidacja
+    const redirects = (input.redirects ?? []).slice(0, 100).map((r) => ({
+      from: String(r.from || '').trim(),
+      to: String(r.to || '').trim(),
+      type: r.type === '302' ? '302' as const : '301' as const,
+    })).filter((r) => r.from && r.to);
+    for (const r of redirects) {
+      if (!/^\/[\w\-./]*$/.test(r.from)) throw new BadRequestException(`Nieprawidłowa ścieżka źródłowa: ${r.from}`);
+      if (!/^(https?:\/\/|\/)[\w\-./:?=&#%~+@.]*$/i.test(r.to)) throw new BadRequestException(`Nieprawidłowy cel: ${r.to}`);
+    }
+    const ipRe = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$|^[0-9a-f:]+(\/\d{1,3})?$/i;
+    const blockedIps = (input.blockedIps ?? []).map((x) => String(x).trim()).filter(Boolean).slice(0, 500);
+    for (const ip of blockedIps) if (!ipRe.test(ip)) throw new BadRequestException(`Nieprawidłowy adres IP: ${ip}`);
+    const current = await this.getHostingWebTools(subscriptionId, userId);
+    const state: WebToolsState = {
+      redirects,
+      hotlink: {
+        enabled: Boolean(input.hotlink?.enabled),
+        extensions: String(input.hotlink?.extensions ?? 'jpg,jpeg,png,gif,webp,svg').slice(0, 200),
+        allow: (input.hotlink?.allow ?? []).map((x) => String(x).trim()).filter(Boolean).slice(0, 50),
+      },
+      blockedIps,
+      protectedDirs: current.state.protectedDirs ?? [],
+      forceHttps: Boolean(input.forceHttps),
+      wwwMode: input.wwwMode === 'www' || input.wwwMode === 'nonwww' ? input.wwwMode : 'none',
+    };
+    const client = await this.getClientForHostingAccount(sub.account.id, userId);
+    const existing = await this.readAccountTextFile(client, `${this.WT_STATE_DIR}/.htaccess`);
+    const merged = this.spliceManagedBlock(existing, this.renderWebToolsHtaccess(state, domain));
+    await client.writeFile(this.WT_STATE_DIR, '.htaccess', merged);
+    await client.writeFile(this.WT_STATE_DIR, this.WT_STATE_FILE, JSON.stringify(state, null, 2));
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_HTACCESS_RULES_SET,
+      userId, actorUserId: userId,
+      details: { subscriptionId, redirects: redirects.length, hotlink: state.hotlink.enabled, blockedIps: blockedIps.length },
+    });
+    return { ok: true as const };
+  }
+
+  /** Ochrona katalogu hasłem: .htpasswd (bcrypt) + .htaccess Basic Auth w wybranym katalogu. */
+  async setHostingDirectoryProtection(
+    subscriptionId: string,
+    userId: string,
+    input: { dir: string; realm?: string; user: string; password: string },
+  ): Promise<{ ok: true }> {
+    const sub = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, include: { account: true } });
+    if (!sub?.account?.id || !sub.account.daUsername) throw new BadRequestException('Brak konta hostingowego.');
+    const domain = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
+    if (!domain) throw new BadRequestException('Brak domeny dla konta hostingowego.');
+    const rel = String(input.dir || '').replace(/^\/+|\/+$/g, '').replace(/\\/g, '/');
+    if (rel.includes('..') || /[^a-zA-Z0-9 _./-]/.test(rel)) throw new BadRequestException('Nieprawidłowa ścieżka katalogu.');
+    const username = String(input.user || '').trim();
+    if (!/^[a-zA-Z0-9._-]{2,}$/.test(username)) throw new BadRequestException('Nieprawidłowa nazwa użytkownika.');
+    if (!input.password || input.password.length < 6) throw new BadRequestException('Hasło musi mieć co najmniej 6 znaków.');
+    const realm = (input.realm || 'Obszar chroniony').replace(/["\r\n]/g, '').slice(0, 80);
+    const dir = rel ? `${this.WT_STATE_DIR}/${rel}` : this.WT_STATE_DIR;
+    const absHtpasswd = `/home/${sub.account.daUsername}/domains/${domain}/public_html/${rel ? rel + '/' : ''}.htpasswd`;
+    const hash = bcrypt.hashSync(input.password, 10).replace(/^\$2[ab]\$/, '$2y$');
+    const client = await this.getClientForHostingAccount(sub.account.id, userId);
+    await client.writeFile(dir, '.htpasswd', `${username}:${hash}\n`);
+    const authBlock = ['AuthType Basic', `AuthName "${realm}"`, `AuthUserFile ${absHtpasswd}`, 'Require valid-user'].join('\n');
+    const existing = await this.readAccountTextFile(client, `${dir}/.htaccess`);
+    const merged = this.spliceManagedBlock(existing, authBlock);
+    await client.writeFile(dir, '.htaccess', merged);
+    // zapamiętaj chroniony katalog w stanie
+    const cur = await this.getHostingWebTools(subscriptionId, userId);
+    const protectedDirs = Array.from(new Set([...(cur.state.protectedDirs ?? []), rel || '/']));
+    await client.writeFile(this.WT_STATE_DIR, this.WT_STATE_FILE, JSON.stringify({ ...cur.state, protectedDirs }, null, 2));
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_DIRPROTECT_SET,
+      userId, actorUserId: userId, details: { subscriptionId, dir: rel || '/' },
+    });
+    return { ok: true as const };
+  }
+
+  async removeHostingDirectoryProtection(subscriptionId: string, userId: string, dirRaw: string): Promise<{ ok: true }> {
+    const sub = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, include: { account: true } });
+    if (!sub?.account?.id) throw new BadRequestException('Brak konta hostingowego.');
+    const rel = String(dirRaw || '').replace(/^\/+|\/+$/g, '').replace(/\\/g, '/');
+    if (rel.includes('..') || /[^a-zA-Z0-9 _./-]/.test(rel)) throw new BadRequestException('Nieprawidłowa ścieżka katalogu.');
+    const dir = rel ? `${this.WT_STATE_DIR}/${rel}` : this.WT_STATE_DIR;
+    const client = await this.getClientForHostingAccount(sub.account.id, userId);
+    const existing = await this.readAccountTextFile(client, `${dir}/.htaccess`);
+    await client.writeFile(dir, '.htaccess', this.spliceManagedBlock(existing, null));
+    const cur = await this.getHostingWebTools(subscriptionId, userId);
+    const protectedDirs = (cur.state.protectedDirs ?? []).filter((d) => d !== (rel || '/'));
+    await client.writeFile(this.WT_STATE_DIR, this.WT_STATE_FILE, JSON.stringify({ ...cur.state, protectedDirs }, null, 2));
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_DIRPROTECT_DELETED,
+      userId, actorUserId: userId, details: { subscriptionId, dir: rel || '/' },
+    });
+    return { ok: true as const };
+  }
+
+  /* ===================== PANEL-3: domeny dodatkowe na koncie ===================== */
+  async listHostingAdditionalDomains(subscriptionId: string, userId: string) {
+    const sub = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, include: { account: true } });
+    if (!sub?.account?.id) return { rows: [], primary: null as string | null, fetchError: 'Brak konta hostingowego.' };
+    try {
+      const primary = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
+      const client = await this.getClientForHostingAccount(sub.account.id, userId);
+      const domains = await client.getDomains();
+      const rows = domains.map((d) => ({ domain: d, isPrimary: d === primary }));
+      return { rows, primary, fetchError: null as string | null };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`listHostingAdditionalDomains sub=${subscriptionId}: ${msg}`);
+      return { rows: [], primary: null as string | null, fetchError: msg };
+    }
+  }
+
+  async createHostingAdditionalDomain(subscriptionId: string, userId: string, input: { domain: string }) {
+    const sub = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, include: { account: true } });
+    if (!sub?.account?.id) throw new BadRequestException('Brak konta hostingowego.');
+    const domain = String(input.domain || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain)) throw new BadRequestException('Nieprawidłowa nazwa domeny.');
+    const client = await this.getClientForHostingAccount(sub.account.id, userId);
+    await client.createDomain(domain);
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_ADDON_DOMAIN_CREATED,
+      userId, actorUserId: userId, details: { subscriptionId, domain },
+    });
+    return { ok: true as const };
+  }
+
+  async deleteHostingAdditionalDomain(subscriptionId: string, userId: string, domainRaw: string) {
+    const domain = String(domainRaw || '').trim().toLowerCase();
+    if (!domain) throw new BadRequestException('Brak domeny do usunięcia.');
+    const primary = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
+    if (domain === primary) throw new BadRequestException('Nie można usunąć domeny głównej konta.');
+    // DA: usuwanie domeny przez select0 + delete=yes + confirmed=yes (bez action).
+    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_DOMAIN', {
+      delete: 'yes',
+      confirmed: 'yes',
+      select0: domain,
+    });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_ADDON_DOMAIN_DELETED,
+      userId, actorUserId: userId, details: { subscriptionId, domain },
+    });
+    return { ok: true as const };
+  }
+
+  /* ===================== PANEL-12: statystyki konta (transfer/dysk) ===================== */
+  async getHostingAccountStats(subscriptionId: string, userId: string) {
+    const num = (v: unknown) => {
+      const n = parseFloat(String(v ?? '').replace(',', '.'));
+      return Number.isFinite(n) ? n : 0;
+    };
+    // DA: '0' lub 'unlimited' = bez limitu.
+    const lim = (v: unknown): number | null => {
+      const s = String(v ?? '').trim().toLowerCase();
+      if (!s || s === 'unlimited' || s === '0') return null;
+      const n = parseFloat(s);
+      return Number.isFinite(n) ? n : null;
+    };
+    try {
+      const [usage, config] = await Promise.all([
+        this.daGetForSubscription(subscriptionId, userId, '/CMD_API_SHOW_USER_USAGE', {}),
+        this.daGetForSubscription(subscriptionId, userId, '/CMD_API_SHOW_USER_CONFIG', {}).catch(() => new URLSearchParams()),
+      ]);
+      return {
+        bandwidth: { usedMb: num(usage.get('bandwidth')), limitMb: lim(config.get('bandwidth')) },
+        disk: { usedMb: num(usage.get('quota')), limitMb: lim(config.get('quota')) },
+        counts: {
+          domains: Math.round(num(usage.get('vdomains'))),
+          subdomains: Math.round(num(usage.get('nsubdomains'))),
+          emails: Math.round(num(usage.get('nemails'))),
+          databases: Math.round(num(usage.get('mysql'))),
+          ftp: Math.round(num(usage.get('ftp'))),
+        },
+        fetchError: null as string | null,
+      };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`getHostingAccountStats sub=${subscriptionId}: ${msg}`);
+      return {
+        bandwidth: { usedMb: 0, limitMb: null },
+        disk: { usedMb: 0, limitMb: null },
+        counts: { domains: 0, subdomains: 0, emails: 0, databases: 0, ftp: 0 },
+        fetchError: msg,
+      };
+    }
+  }
+
+  /** PANEL-11b: retencja — zostaw `keep` najnowszych archiwów w /backups, usuń starsze. */
+  async pruneHostingBackups(subscriptionId: string, userId: string, keep: number): Promise<number> {
+    if (!keep || keep < 1) return 0;
+    const sub = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, include: { account: true } });
+    if (!sub?.account?.id) return 0;
+    try {
+      const client = await this.getClientForHostingAccount(sub.account.id, userId);
+      const entries = await client.listDir('/backups').catch(() => []);
+      const archives = entries
+        .filter((e) => e.type === 'file' && /\.(tar\.gz|tgz|tar|zip)$/i.test(e.name))
+        .sort((a, b) => {
+          const ta = a.modified ? Date.parse(a.modified) : NaN;
+          const tb = b.modified ? Date.parse(b.modified) : NaN;
+          if (Number.isFinite(ta) && Number.isFinite(tb) && ta !== tb) return tb - ta; // najnowsze pierwsze
+          return b.name.localeCompare(a.name); // fallback: po nazwie (zwykle z datą)
+        });
+      const toDelete = archives.slice(keep).map((e) => e.name);
+      if (toDelete.length === 0) return 0;
+      await client.deleteEntries('/backups', toDelete);
+      this.logger.log(`Retencja backupów sub=${subscriptionId}: usunięto ${toDelete.length}, zostawiono ${keep}.`);
+      return toDelete.length;
+    } catch (err) {
+      this.logger.warn(`pruneHostingBackups sub=${subscriptionId}: ${(err as Error).message}`);
+      return 0;
+    }
+  }
+
+  /* ===================== PANEL-8: catch-all e-mail ===================== */
+  async getHostingCatchAll(subscriptionId: string, userId: string) {
+    const domain = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
+    if (!domain) return { value: '', mode: 'fail' as const, address: '', fetchError: 'Brak domeny dla konta hostingowego.' };
+    try {
+      const raw = await this.daGetForSubscription(subscriptionId, userId, '/CMD_API_EMAIL_CATCH_ALL', { domain });
+      const value = (raw.get('value') ?? raw.get('catch') ?? '').trim();
+      let mode: 'fail' | 'blackhole' | 'address' = 'fail';
+      let address = '';
+      if (value === ':blackhole:') mode = 'blackhole';
+      else if (value && value !== ':fail:') { mode = 'address'; address = value; }
+      return { value, mode, address, fetchError: null as string | null };
+    } catch (err) {
+      return { value: '', mode: 'fail' as const, address: '', fetchError: err instanceof Error ? err.message : String(err) };
+    }
+  }
+
+  async setHostingCatchAll(subscriptionId: string, userId: string, input: { mode: 'fail' | 'blackhole' | 'address'; address?: string }) {
+    const domain = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
+    if (!domain) throw new BadRequestException('Brak domeny dla konta hostingowego.');
+    const form: Record<string, string> = { domain, update: 'Update' };
+    if (input.mode === 'blackhole') form.catch = ':blackhole:';
+    else if (input.mode === 'address') {
+      const addr = String(input.address || '').trim();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(addr)) throw new BadRequestException('Podaj prawidłowy adres docelowy catch-all.');
+      form.catch = 'address';
+      form.value = addr;
+    } else form.catch = ':fail:';
+    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_EMAIL_CATCH_ALL', form);
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_CATCHALL_SET,
+      userId, actorUserId: userId, details: { subscriptionId, domain, mode: input.mode },
+    });
+    return { ok: true as const };
+  }
+
+  /* ===================== PANEL-9: filtr antyspam (SpamAssassin) ===================== */
+  async getHostingSpamFilter(subscriptionId: string, userId: string) {
+    const domain = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
+    if (!domain) return { isOn: false, requiredScore: '5', subjectTag: '', fetchError: 'Brak domeny dla konta hostingowego.' };
+    try {
+      const raw = await this.daGetForSubscription(subscriptionId, userId, '/CMD_API_SPAMASSASSIN', { domain });
+      return {
+        isOn: (raw.get('is_on') ?? '').toLowerCase() === 'yes',
+        requiredScore: raw.get('required_score') ?? raw.get('required_hits') ?? '5',
+        subjectTag: raw.get('subject_tag') ?? '',
+        fetchError: null as string | null,
+      };
+    } catch (err) {
+      return { isOn: false, requiredScore: '5', subjectTag: '', fetchError: err instanceof Error ? err.message : String(err) };
+    }
+  }
+
+  async setHostingSpamFilter(subscriptionId: string, userId: string, input: { enabled: boolean; requiredScore?: string; subjectTag?: string }) {
+    const domain = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
+    if (!domain) throw new BadRequestException('Brak domeny dla konta hostingowego.');
+    if (!input.enabled) {
+      await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_SPAMASSASSIN', { action: 'disable', domain });
+    } else {
+      // GET aktualne tokeny i nadpisz tylko wybrane — DA action=save oczekuje pełnego zestawu pól.
+      let tokens: Record<string, string> = {};
+      try {
+        const raw = await this.daGetForSubscription(subscriptionId, userId, '/CMD_API_SPAMASSASSIN', { domain });
+        for (const [k, v] of raw.entries()) tokens[k] = v;
+      } catch { /* domyślne */ }
+      const score = String(input.requiredScore ?? tokens.required_score ?? '5').replace(/[^0-9.]/g, '') || '5';
+      const form: Record<string, string> = {
+        action: 'save', domain,
+        is_on: 'yes',
+        required_score: score,
+        report_safe: tokens.report_safe ?? '1',
+        high_score: tokens.high_score ?? '',
+        high_score_block: tokens.high_score_block ?? 'no',
+        subject_tag: input.subjectTag ?? tokens.subject_tag ?? '***SPAM*** ',
+        rewrite_subject: tokens.rewrite_subject ?? 'yes',
+        where: tokens.where ?? 'INBOX',
+      };
+      await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_SPAMASSASSIN', form);
+    }
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_SPAMFILTER_SET,
+      userId, actorUserId: userId, details: { subscriptionId, domain, enabled: input.enabled },
+    });
+    return { ok: true as const };
+  }
+
+  /* ===================== PANEL-10: zdalny dostęp MySQL (access hosts) ===================== */
+  async listHostingDbAccessHosts(subscriptionId: string, userId: string, db: string) {
+    const dbName = String(db || '').trim();
+    if (!dbName) return { hosts: [] as string[], fetchError: 'Brak nazwy bazy.' };
+    try {
+      const raw = await this.daGetForSubscription(subscriptionId, userId, '/CMD_API_DATABASES', { action: 'accesshosts', db: dbName });
+      const meta = new Set(['error', 'text', 'details', 'message', 'result']);
+      const hosts: string[] = [];
+      for (const [k, v] of raw.entries()) {
+        if (meta.has(k)) continue;
+        if (/^list\d+$/i.test(k) || k === 'host') hosts.push(v);
+        else if (v && k.includes('.')) hosts.push(k);
+      }
+      return { hosts: Array.from(new Set(hosts.filter(Boolean))), fetchError: null as string | null };
+    } catch (err) {
+      return { hosts: [] as string[], fetchError: err instanceof Error ? err.message : String(err) };
+    }
+  }
+
+  async addHostingDbAccessHost(subscriptionId: string, userId: string, input: { db: string; host: string }) {
+    const dbName = String(input.db || '').trim();
+    const host = String(input.host || '').trim();
+    if (!dbName) throw new BadRequestException('Brak nazwy bazy.');
+    if (!/^[a-zA-Z0-9._%-]+$/.test(host)) throw new BadRequestException('Nieprawidłowy host (dozwolone: IP, nazwa, % jako wildcard).');
+    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_DATABASES', {
+      action: 'accesshosts', create: 'yes', db: dbName, host,
+    });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_DB_ACCESSHOST_ADDED,
+      userId, actorUserId: userId, details: { subscriptionId, db: dbName, host },
+    });
+    return { ok: true as const };
+  }
+
+  async deleteHostingDbAccessHost(subscriptionId: string, userId: string, input: { db: string; host: string }) {
+    const dbName = String(input.db || '').trim();
+    const host = String(input.host || '').trim();
+    if (!dbName || !host) throw new BadRequestException('Brak bazy lub hosta.');
+    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_DATABASES', {
+      action: 'accesshosts', delete: 'yes', db: dbName, select0: host,
+    });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_DB_ACCESSHOST_DELETED,
+      userId, actorUserId: userId, details: { subscriptionId, db: dbName, host },
+    });
+    return { ok: true as const };
+  }
+
+  /* ===================== PANEL-5: aliasy domeny (domain pointers) ===================== */
+  async listHostingDomainPointers(subscriptionId: string, userId: string) {
+    const domain = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
+    if (!domain) return { rows: [], primary: null as string | null, fetchError: 'Brak domeny dla konta hostingowego.' };
+    try {
+      const raw = await this.daGetForSubscription(subscriptionId, userId, '/CMD_API_DOMAIN_POINTER', { domain });
+      const meta = new Set(['error', 'text', 'details', 'message', 'result']);
+      const rows: Array<{ alias: string; type: string }> = [];
+      for (const [k, v] of raw.entries()) {
+        if (meta.has(k) || !k) continue;
+        rows.push({ alias: k, type: String(v || 'alias') });
+      }
+      return { rows, primary: domain, fetchError: null as string | null };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`listHostingDomainPointers sub=${subscriptionId}: ${msg}`);
+      return { rows: [], primary: domain, fetchError: msg };
+    }
+  }
+
+  async createHostingDomainPointer(subscriptionId: string, userId: string, input: { alias: string }) {
+    const domain = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
+    if (!domain) throw new BadRequestException('Brak domeny głównej konta.');
+    const alias = String(input.alias || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
+    if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(alias)) throw new BadRequestException('Nieprawidłowa nazwa aliasu domeny.');
+    if (alias === domain) throw new BadRequestException('Alias nie może być tożsamy z domeną główną.');
+    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_DOMAIN_POINTER', {
+      action: 'add',
+      domain,
+      from: alias,
+      alias: 'yes',
+    });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_DOMAIN_POINTER_CREATED,
+      userId, actorUserId: userId, details: { subscriptionId, domain, alias },
+    });
+    return { ok: true as const };
+  }
+
+  async deleteHostingDomainPointer(subscriptionId: string, userId: string, aliasRaw: string) {
+    const domain = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
+    if (!domain) throw new BadRequestException('Brak domeny głównej konta.');
+    const alias = String(aliasRaw || '').trim().toLowerCase();
+    if (!alias) throw new BadRequestException('Brak aliasu do usunięcia.');
+    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_DOMAIN_POINTER', {
+      action: 'delete',
+      domain,
+      select0: alias,
+    });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_DOMAIN_POINTER_DELETED,
+      userId, actorUserId: userId, details: { subscriptionId, domain, alias },
     });
     return { ok: true as const };
   }

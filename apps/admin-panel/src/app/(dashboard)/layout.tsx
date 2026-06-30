@@ -1,4 +1,5 @@
 import { requireAdminSession } from "@/lib/session";
+import { fetchStaffAccess } from "@/lib/staff-access";
 import { AdminSidebar } from "@/components/sidebar";
 import { LogoutButton } from "@/components/logout-button";
 import { PlatformConfigLoader } from "@/components/platform-config-loader";
@@ -7,6 +8,7 @@ import { CommandPalette } from "@/components/command-palette";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await requireAdminSession();
+  const access = await fetchStaffAccess();
 
   return (
     <div className="flex min-h-screen">
@@ -20,6 +22,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
         userInitials={getInitials(session)}
         userLabel={[session.firstName, session.lastName].filter(Boolean).join(" ") || session.email}
         logoutButton={<LogoutButton />}
+        isAdmin={access.isAdmin}
+        permissions={access.permissions}
+        roleName={access.roleName ?? null}
       />
 
       <div className="flex-1 pl-72 relative z-10 flex flex-col">

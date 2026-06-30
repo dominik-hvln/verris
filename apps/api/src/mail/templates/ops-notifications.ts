@@ -198,3 +198,69 @@ export function opsDailyDigestTemplate(ctx: OpsDigestContext): MailMessage {
     html,
   };
 }
+
+/* ===================== CMP-5b — reputacja IP (RBL) ===================== */
+export interface NodeRblContext {
+  to: string;
+  firstName: string | null;
+  nodeName: string;
+  nodeId: string;
+  ip: string;
+  zones: string[];
+  panelUrl: string;
+}
+
+export function nodeRblAlertTemplate(ctx: NodeRblContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const zonesList = ctx.zones.map((z) => `- \`${escapeHtml(z)}\``).join('\n');
+  const { html, text } = renderEmailShell({
+    title: `IP węzła ${ctx.nodeName} trafiło na blacklistę`,
+    preheader: 'Reputacja IP zagrożona — może to wpłynąć na dostarczalność poczty.',
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `**IP \`${escapeHtml(ctx.ip)}\` (węzeł ${escapeHtml(ctx.nodeName)}) figuruje na blacklistach DNS (RBL).** Poczta wychodząca z kont na tym węźle może być odrzucana lub trafiać do spamu.`,
+      ``,
+      `- **Węzeł:** ${escapeHtml(ctx.nodeName)} (\`${escapeHtml(ctx.nodeId)}\`)`,
+      `- **IP:** ${escapeHtml(ctx.ip)}`,
+      `- **Wykryto na:**`,
+      zonesList,
+      ``,
+      `## Co zrobić`,
+      ``,
+      `1. Sprawdź, czy żadne konto nie zostało przejęte/nie wysyła spamu (logi SMTP, kolejka).`,
+      `2. Złóż wniosek o delisting w danym RBL (Spamhaus/Spamcop/Barracuda/SORBS).`,
+      `3. Zweryfikuj SPF/DKIM/DMARC i rate-limit wysyłki na węźle.`,
+    ].join('\n'),
+    cta: { label: 'Otwórz panel floty', url: `${ctx.panelUrl}/servers` },
+    footnote: 'Alert wysyłany raz na incydent (cooldown 12h). Otrzymują go wszyscy administratorzy.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return { to: ctx.to, tag: 'ops.node-rbl', subject: `[Verris] ⚠️ IP węzła ${ctx.nodeName} na blacklistcie (RBL)`, text, html };
+}
+
+export function nodeRblClearedTemplate(ctx: NodeRblContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: `IP węzła ${ctx.nodeName} czyste`,
+    preheader: 'IP zniknęło z blacklist — reputacja przywrócona.',
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Dobre wieści: **IP \`${escapeHtml(ctx.ip)}\` (węzeł ${escapeHtml(ctx.nodeName)}) nie figuruje już na sprawdzanych blacklistach.**`,
+      ``,
+      `- **Węzeł:** ${escapeHtml(ctx.nodeName)} (\`${escapeHtml(ctx.nodeId)}\`)`,
+      `- **Czas:** ${escapeHtml(fmt(new Date()))}`,
+      ``,
+      `Monitoruj dostarczalność przez kolejne dni, aby upewnić się, że reputacja jest stabilna.`,
+    ].join('\n'),
+    cta: { label: 'Otwórz panel floty', url: `${ctx.panelUrl}/servers` },
+    footnote: 'Powiadomienie o przywróceniu reputacji IP.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return { to: ctx.to, tag: 'ops.node-rbl-cleared', subject: `[Verris] ✅ IP węzła ${ctx.nodeName} znów czyste (RBL)`, text, html };
+}

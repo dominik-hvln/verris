@@ -16,7 +16,7 @@ import { Prisma, SubscriptionStatus } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
-import { DirectAdminService } from '../servers/directadmin.service';
+import { DirectAdminService, type WebToolsState } from '../servers/directadmin.service';
 import { MigrationOrchestratorService } from './migration-orchestrator.service';
 import { ServiceHealthService } from './service-health.service';
 import { HostingDnsPointingService } from './hosting-dns-pointing.service';
@@ -28,6 +28,7 @@ import { WafService } from './waf.service';
 import { SetWafModeDto } from './dto/waf.dto';
 import { SiteMonitorService } from './site-monitor.service';
 import { StagingService } from './staging.service';
+import { BackupScheduleService } from './backup-schedule.service';
 import { SetMonitoringDto } from './dto/site-monitor.dto';
 import { EcoReportService } from '../eco/eco-report.service';
 import { DeliverabilityService } from '../deliverability/deliverability.service';
@@ -56,6 +57,7 @@ export class UserServicesController {
     private readonly deliverability: DeliverabilityService,
     private readonly php: PhpService,
     private readonly appInstall: AppInstallService,
+    private readonly backupSchedule: BackupScheduleService,
   ) {}
 
   // PERF-1 — bardzo lekki endpoint zwracający tylko typ usługi (productKind).
@@ -438,6 +440,185 @@ export class UserServicesController {
     return this.directAdmin.deleteHostingEmailAccount(id, user.userId, decodeURIComponent(email));
   }
 
+  @Get(':id/hosting-email-forwarders')
+  async hostingEmailForwarders(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.listHostingEmailForwarders(id, user.userId);
+  }
+
+  @Post(':id/hosting-email-forwarders')
+  async createHostingEmailForwarder(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { name: string; destinations: string },
+  ) {
+    return this.directAdmin.createHostingEmailForward(id, user.userId, body);
+  }
+
+  @Delete(':id/hosting-email-forwarders/:name')
+  async deleteHostingEmailForwarder(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('name') name: string,
+  ) {
+    return this.directAdmin.deleteHostingEmailForward(id, user.userId, decodeURIComponent(name));
+  }
+
+  @Get(':id/hosting-autoresponders')
+  async hostingAutoresponders(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.listHostingAutoresponders(id, user.userId);
+  }
+
+  @Post(':id/hosting-autoresponders')
+  async setHostingAutoresponderEndpoint(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { name: string; text: string; cc?: string },
+  ) {
+    return this.directAdmin.setHostingAutoresponder(id, user.userId, body);
+  }
+
+  @Delete(':id/hosting-autoresponders/:name')
+  async deleteHostingAutoresponderEndpoint(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('name') name: string,
+  ) {
+    return this.directAdmin.deleteHostingAutoresponder(id, user.userId, decodeURIComponent(name));
+  }
+
+  @Get(':id/hosting-webtools')
+  async hostingWebTools(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.getHostingWebTools(id, user.userId);
+  }
+
+  @Post(':id/hosting-webtools')
+  async saveHostingWebTools(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: Partial<import('../servers/directadmin.service').WebToolsState>,
+  ) {
+    return this.directAdmin.saveHostingWebTools(id, user.userId, body);
+  }
+
+  @Post(':id/hosting-dir-protection')
+  async setHostingDirProtection(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { dir: string; realm?: string; user: string; password: string },
+  ) {
+    return this.directAdmin.setHostingDirectoryProtection(id, user.userId, body);
+  }
+
+  @Post(':id/hosting-dir-protection/remove')
+  async removeHostingDirProtection(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { dir: string },
+  ) {
+    return this.directAdmin.removeHostingDirectoryProtection(id, user.userId, body.dir);
+  }
+
+  @Get(':id/hosting-additional-domains')
+  async hostingAdditionalDomains(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.listHostingAdditionalDomains(id, user.userId);
+  }
+
+  @Post(':id/hosting-additional-domains')
+  async createHostingAdditionalDomain(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { domain: string },
+  ) {
+    return this.directAdmin.createHostingAdditionalDomain(id, user.userId, body);
+  }
+
+  @Delete(':id/hosting-additional-domains/:domain')
+  async deleteHostingAdditionalDomain(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('domain') domain: string,
+  ) {
+    return this.directAdmin.deleteHostingAdditionalDomain(id, user.userId, decodeURIComponent(domain));
+  }
+
+  @Get(':id/hosting-domain-pointers')
+  async hostingDomainPointers(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.listHostingDomainPointers(id, user.userId);
+  }
+
+  @Post(':id/hosting-domain-pointers')
+  async createHostingDomainPointer(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { alias: string },
+  ) {
+    return this.directAdmin.createHostingDomainPointer(id, user.userId, body);
+  }
+
+  @Delete(':id/hosting-domain-pointers/:alias')
+  async deleteHostingDomainPointer(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('alias') alias: string,
+  ) {
+    return this.directAdmin.deleteHostingDomainPointer(id, user.userId, decodeURIComponent(alias));
+  }
+
+  @Get(':id/hosting-catchall')
+  async hostingCatchAll(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.getHostingCatchAll(id, user.userId);
+  }
+
+  @Post(':id/hosting-catchall')
+  async setHostingCatchAll(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { mode: 'fail' | 'blackhole' | 'address'; address?: string },
+  ) {
+    return this.directAdmin.setHostingCatchAll(id, user.userId, body);
+  }
+
+  @Get(':id/hosting-spamfilter')
+  async hostingSpamFilter(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.getHostingSpamFilter(id, user.userId);
+  }
+
+  @Post(':id/hosting-spamfilter')
+  async setHostingSpamFilter(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { enabled: boolean; requiredScore?: string; subjectTag?: string },
+  ) {
+    return this.directAdmin.setHostingSpamFilter(id, user.userId, body);
+  }
+
+  @Get(':id/hosting-db-access-hosts')
+  async hostingDbAccessHosts(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Query('db') db: string,
+  ) {
+    return this.directAdmin.listHostingDbAccessHosts(id, user.userId, db);
+  }
+
+  @Post(':id/hosting-db-access-hosts')
+  async addHostingDbAccessHost(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { db: string; host: string },
+  ) {
+    return this.directAdmin.addHostingDbAccessHost(id, user.userId, body);
+  }
+
+  @Post(':id/hosting-db-access-hosts/remove')
+  async removeHostingDbAccessHost(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { db: string; host: string },
+  ) {
+    return this.directAdmin.deleteHostingDbAccessHost(id, user.userId, body);
+  }
+
   @Get(':id/hosting-cron')
   async hostingCron(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
     return this.directAdmin.listHostingCronJobs(id, user.userId);
@@ -691,6 +872,27 @@ export class UserServicesController {
   @Post(':id/hosting-site-backup')
   async hostingSiteBackupNow(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
     return this.directAdmin.createHostingSiteBackupNow(id, user.userId);
+  }
+
+  /** PANEL-11: harmonogram automatycznych backupów konta. */
+  @Get(':id/hosting-backup-schedule')
+  async hostingBackupSchedule(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.backupSchedule.get(id, user.userId);
+  }
+
+  @Post(':id/hosting-backup-schedule')
+  async setHostingBackupSchedule(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { frequency: 'OFF' | 'DAILY' | 'WEEKLY'; hour: number; dayOfWeek: number; enabled: boolean; retainCount?: number },
+  ) {
+    return this.backupSchedule.set(id, user.userId, body);
+  }
+
+  /** PANEL-12: statystyki konta — transfer/dysk/liczniki (DA SHOW_USER_USAGE + CONFIG). */
+  @Get(':id/hosting-stats')
+  async hostingStats(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.getHostingAccountStats(id, user.userId);
   }
 
   /** G‑6: zgłoszenie migracji zewnętrznej (FTP/MySQL/IMAP) przez formularz klienta. */

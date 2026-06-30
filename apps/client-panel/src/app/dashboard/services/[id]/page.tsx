@@ -21,6 +21,7 @@ import {
   FolderKanban,
   Archive,
   Wand2,
+  Wrench,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
@@ -40,6 +41,7 @@ import FtpTab from '@/components/hosting/FtpTab';
 import CronTab from '@/components/hosting/CronTab';
 import BackupsTab from '@/components/hosting/BackupsTab';
 import SiteBuilderTab from '@/components/hosting/SiteBuilderTab';
+import WebToolsTab from '@/components/hosting/WebToolsTab';
 import UsageTab from '@/components/hosting/UsageTab';
 import ServiceOverviewTab from '@/components/hosting/ServiceOverviewTab';
 import ServiceSubscriptionTab from '@/components/hosting/ServiceSubscriptionTab';
@@ -60,6 +62,7 @@ const TABS = [
   { id: 'ssl', label: 'SSL', icon: Shield },
   { id: 'apps', label: 'Aplikacje', icon: Globe },
   { id: 'builder', label: 'Kreator stron', icon: Wand2 },
+  { id: 'webtools', label: 'Narzędzia WWW', icon: Wrench },
   { id: 'ftp', label: 'Konta FTP', icon: FolderKanban },
   { id: 'cron', label: 'Cron', icon: Clock },
   { id: 'backups', label: 'Kopie zapasowe', icon: Archive },
@@ -301,6 +304,7 @@ export default function HostingManagerPage() {
             {activeTab === 'ssl' && <SSLTab serviceId={params.id} />}
             {activeTab === 'apps' && <AppsTab serviceId={params.id} />}
             {activeTab === 'builder' && <SiteBuilderTab serviceId={params.id} />}
+            {activeTab === 'webtools' && <WebToolsTab serviceId={params.id} />}
             {activeTab === 'php' && <PhpTab serviceId={params.id} />}
             {activeTab === 'ftp' && <FtpTab serviceId={params.id} />}
             {activeTab === 'cron' && <CronTab serviceId={params.id} />}

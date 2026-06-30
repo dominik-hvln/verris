@@ -41,6 +41,7 @@ import { VpsModule } from './vps/vps.module';
 import { PublicStatsModule } from './public-stats/public-stats.module';
 import { AddonModule } from './addons/addon.module';
 import { FilesModule } from './files/files.module';
+import { StaffRolesModule } from './staff-roles/staff-roles.module';
 import { ControlPlaneMailModule } from './control-plane-mail/control-plane-mail.module';
 import { VpnModule } from './vpn/vpn.module';
 import { KsefModule } from './ksef/ksef.module';
@@ -90,6 +91,7 @@ import { KsefModule } from './ksef/ksef.module';
     PublicStatsModule,
     AddonModule,
     FilesModule,
+    StaffRolesModule,
   ],
   controllers: [],
   providers: [
