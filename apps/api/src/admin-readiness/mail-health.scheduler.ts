@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { EmailStatus, Role } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
@@ -39,7 +39,7 @@ export class MailHealthScheduler {
     ).replace(/\/$/, '');
   }
 
-  @Cron(CronExpression.EVERY_15_MINUTES)
+  @Cron('*/15 * * * *') // co 15 minut
   async checkFailureRate(): Promise<void> {
     try {
       const since = new Date(Date.now() - WINDOW_MINUTES * 60 * 1000);
