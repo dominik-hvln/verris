@@ -58,20 +58,32 @@ export async function updateMailSettingsAction(
   }
 }
 
-export async function testMailSettingsAction(): Promise<{
+export async function testMailSettingsAction(to?: string): Promise<{
   ok?: boolean;
   error?: string;
   to?: string;
+  providerId?: string;
 }> {
   try {
-    const result = await adminApi<{ ok: boolean; to?: string; error?: string }>(
-      '/admin/mail-settings/test',
-      { method: 'POST', body: {} },
-    );
+    const result = await adminApi<{
+      ok: boolean;
+      to?: string;
+      error?: string;
+      providerId?: string;
+    }>('/admin/mail-settings/test', {
+      method: 'POST',
+      body: to?.trim() ? { to: to.trim() } : {},
+    });
     if (!result.ok) {
-      return { ok: false, error: 'Wysyłka testowa nie powiodła się (sprawdź logi API / Postfix).' };
+      return {
+        ok: false,
+        providerId: result.providerId,
+        error:
+          `Wysyłka nie powiodła się (provider: ${result.providerId ?? '—'}). ` +
+          'Zobacz dokładny błąd w EmailLog / logach API.',
+      };
     }
-    return { ok: true, to: result.to };
+    return { ok: true, to: result.to, providerId: result.providerId };
   } catch (e) {
     return {
       ok: false,

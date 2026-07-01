@@ -71,7 +71,10 @@ export class SmtpMailerProvider implements MailerProvider {
       if (this.config.secure === 'starttls') {
         await send('STARTTLS');
         await expect([220]);
-        const upgraded = upgrade(socket, helo);
+        // TLS servername/cert-verification MUST use the real connect host
+        // (np. email-smtp.eu-central-1.amazonaws.com), NIE nazwę HELO
+        // (mail.verris.pl) — inaczej walidacja altnames certyfikatu pada.
+        const upgraded = upgrade(socket, this.config.host);
         await waitSecure(upgraded);
         await writeLine(upgraded, `EHLO ${helo}\r\n`);
         await readReply(upgraded, [250]);
