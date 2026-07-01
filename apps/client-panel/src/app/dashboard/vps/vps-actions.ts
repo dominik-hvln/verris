@@ -65,6 +65,7 @@ export async function fetchVpsInstances(): Promise<VpsInstanceDto[]> {
 export async function orderVpsAction(input: {
   planId: string;
   name?: string;
+  sshKeyIds?: string[];
 }): Promise<Result<VpsInstanceDto & { rootPassword: string | null }>> {
   try {
     const data = await apiFetch<VpsInstanceDto & { rootPassword: string | null }>('/vps', {
