@@ -35,26 +35,51 @@ jobs:
           - image: verris-api
             dockerfile: Dockerfile.api
             build_args: ""
+          # UWAGA: w Next.js zmienne NEXT_PUBLIC_* są WPALANE do bundla przeglądarki
+          # na etapie `next build`. Muszą tu być jako build-arg (nie tylko runtime
+          # env), inaczej front (np. passkey) uderza w pusty/localhost adres API.
+          # Odwzorowanie build-argów z docker-compose.prod.yml. Wartości publiczne
+          # (domeny) — z repo Variables, z fallbackiem na produkcję verris.pl.
           - image: verris-client-panel
             dockerfile: Dockerfile.panel
             build_args: |
               APP_NAME=client-panel
               APP_PORT=3001
+              API_URL=http://api:3000
+              CLIENT_PANEL_URL=${{ vars.CLIENT_PANEL_URL || 'https://panel.verris.pl' }}
+              STAFF_PANEL_URL=${{ vars.STAFF_PANEL_URL || 'https://staff.verris.pl' }}
+              ADMIN_PANEL_URL=${{ vars.ADMIN_PANEL_URL || 'https://admin.verris.pl' }}
+              NEXT_PUBLIC_API_URL=${{ vars.PUBLIC_API_URL || 'https://api.verris.pl' }}
+              NEXT_PUBLIC_STATUS_PAGE_URL=${{ vars.PUBLIC_STATUS_URL || 'https://status.verris.pl' }}
           - image: verris-staff-panel
             dockerfile: Dockerfile.panel
             build_args: |
               APP_NAME=staff-panel
               APP_PORT=3002
+              API_URL=http://api:3000
+              CLIENT_PANEL_URL=${{ vars.CLIENT_PANEL_URL || 'https://panel.verris.pl' }}
+              STAFF_PANEL_URL=${{ vars.STAFF_PANEL_URL || 'https://staff.verris.pl' }}
+              ADMIN_PANEL_URL=${{ vars.ADMIN_PANEL_URL || 'https://admin.verris.pl' }}
+              NEXT_PUBLIC_API_URL=${{ vars.PUBLIC_API_URL || 'https://api.verris.pl' }}
+              NEXT_PUBLIC_GRAFANA_URL=${{ vars.PUBLIC_GRAFANA_URL || 'https://grafana.verris.pl' }}
           - image: verris-admin-panel
             dockerfile: Dockerfile.panel
             build_args: |
               APP_NAME=admin-panel
               APP_PORT=3003
+              API_URL=http://api:3000
+              CLIENT_PANEL_URL=${{ vars.CLIENT_PANEL_URL || 'https://panel.verris.pl' }}
+              STAFF_PANEL_URL=${{ vars.STAFF_PANEL_URL || 'https://staff.verris.pl' }}
+              ADMIN_PANEL_URL=${{ vars.ADMIN_PANEL_URL || 'https://admin.verris.pl' }}
+              NEXT_PUBLIC_API_URL=${{ vars.PUBLIC_API_URL || 'https://api.verris.pl' }}
+              NEXT_PUBLIC_STAFF_PANEL_URL=${{ vars.STAFF_PANEL_URL || 'https://staff.verris.pl' }}
+              NEXT_PUBLIC_GRAFANA_URL=${{ vars.PUBLIC_GRAFANA_URL || 'https://grafana.verris.pl' }}
           - image: verris-status-page
             dockerfile: Dockerfile.panel
             build_args: |
               APP_NAME=status-page
               APP_PORT=3004
+              NEXT_PUBLIC_API_URL=${{ vars.PUBLIC_API_URL || 'https://api.verris.pl' }}
     steps:
       - uses: actions/checkout@v4
 
