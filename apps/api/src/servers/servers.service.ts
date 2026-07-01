@@ -958,7 +958,7 @@ function normaliseNs(raw?: string): string {
   return v;
 }
 
-function renderBootstrapScript(opts: {
+export function renderBootstrapScript(opts: {
   apiUrl: string;
   bootstrapToken: string;
   serverName: string;

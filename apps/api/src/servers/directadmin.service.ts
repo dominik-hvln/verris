@@ -933,29 +933,36 @@ export class DirectAdminService {
   async requestLetsEncryptCertificate(
     subscriptionId: string,
     userId: string,
-    input: { domain: string; includeWww?: boolean },
+    input: { domain: string; includeWww?: boolean; wildcard?: boolean },
   ): Promise<{ ok: true }> {
     const domain = input.domain.trim();
     if (!domain) throw new BadRequestException('Domena jest wymagana.');
     await this.assertDomainOnSubscription(subscriptionId, userId, domain);
 
+    // Wildcard (*.domena) wymaga walidacji DNS-01 — DA robi to automatycznie,
+    // gdy strefa DNS domeny jest hostowana na tym węźle. HTTP-01 nie obsługuje
+    // wildcardów, dlatego przy wildcard=yes DA używa DNS-01.
+    const wildcard = input.wildcard === true;
     const form: Record<string, string> = {
       action: 'save',
       type: 'create',
       request: 'letsencrypt',
       domain,
-      name: domain,
+      name: wildcard ? `${domain},*.${domain}` : domain,
       submit: 'Save',
       background: 'auto',
-      wildcard: 'no',
+      wildcard: wildcard ? 'yes' : 'no',
       keysize: 'secp384r1',
       encryption: 'sha256',
       le_select0: domain,
     };
-    if (input.includeWww) {
+    if (wildcard) {
+      // Pokryj apex + wszystkie subdomeny.
+      form.le_select1 = `*.${domain}`;
+    } else if (input.includeWww) {
       form.le_select1 = `www.${domain}`;
     }
-    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_SSL', form, { timeoutMs: 120_000 });
+    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_SSL', form, { timeoutMs: 180_000 });
     return { ok: true as const };
   }
 
@@ -2305,6 +2312,9 @@ export class DirectAdminService {
       status: 'NONE',
       expiresAt: null,
       isLetsEncrypt: false,
+      daysLeft: null,
+      coveredNames: [],
+      isWildcard: false,
     };
     try {
       const res = await axiosClient.get('/CMD_API_SSL', {
@@ -2331,6 +2341,13 @@ export class DirectAdminService {
       let status: HostingSslStatus = 'VALID';
       if (validTo <= now) status = 'EXPIRED';
       else if (validTo.getTime() - now.getTime() < 14 * 24 * 60 * 60 * 1000) status = 'EXPIRING';
+      const daysLeft = Math.floor((validTo.getTime() - now.getTime()) / (24 * 60 * 60 * 1000));
+      // SAN → lista pokrywanych nazw (np. „example.pl", „*.example.pl").
+      const coveredNames = (cert.subjectAltName ?? '')
+        .split(',')
+        .map((s) => s.trim().replace(/^DNS:/i, '').trim())
+        .filter((s) => s.length > 0);
+      const isWildcard = coveredNames.some((n) => n.startsWith('*.'));
       return {
         id: domain,
         domain,
@@ -2338,6 +2355,9 @@ export class DirectAdminService {
         status,
         expiresAt: validTo.toISOString(),
         isLetsEncrypt,
+        daysLeft,
+        coveredNames,
+        isWildcard,
       };
     } catch {
       // No cert installed / DA returned an error for this domain → treat as none.

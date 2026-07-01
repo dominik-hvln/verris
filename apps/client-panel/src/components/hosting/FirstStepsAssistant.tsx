@@ -16,7 +16,7 @@ export function FirstStepsAssistant({
   onNavigate,
 }: {
   health: ServiceHealthSummaryDto | null;
-  productKind?: 'HOSTING' | 'EMAIL';
+  productKind?: 'HOSTING' | 'EMAIL' | 'EMAIL_MARKETING';
   onNavigate: (tab: string) => void;
 }) {
   const dnsOk = health?.checks.dnsOk === true;

@@ -23,11 +23,16 @@ export class CreateSubscriptionDto {
   @IsEnum(SubscriptionPaymentSource)
   paymentSource!: SubscriptionPaymentSource;
 
-  /** Primary domain that will be created in DirectAdmin. */
+  /**
+   * Primary domain that will be created in DirectAdmin. Required for hosting /
+   * e-mail products; ignored for app-level products (EMAIL_MARKETING), which
+   * activate without a DA account. Walidacja obecności jest w serwisie wg planu.
+   */
+  @IsOptional()
   @IsString()
   @Length(4, 253)
   @Matches(/^[a-z0-9.-]+\.[a-z]{2,}$/i, { message: 'Niepoprawny format domeny' })
-  domain!: string;
+  domain?: string;
 
   /** Optional region preference (e.g. "PL-WAW"). Used as a tie-breaker. */
   @IsOptional()

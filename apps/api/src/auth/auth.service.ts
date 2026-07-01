@@ -114,6 +114,15 @@ export class AuthService {
       if (referrer) referredByUserId = referrer.id;
     }
 
+    // RSL — wiązanie klienta z resellerem (white-label) po kodzie zaproszenia.
+    let resellerOwnerId: string | undefined;
+    if (dto.reseller?.trim()) {
+      const rp = await (this.prisma as unknown as {
+        resellerProfile: { findUnique(a: { where: { code: string }; select: { userId: boolean; status: boolean } }): Promise<{ userId: string; status: string } | null> };
+      }).resellerProfile.findUnique({ where: { code: dto.reseller.trim() }, select: { userId: true, status: true } });
+      if (rp && rp.status === 'ACTIVE') resellerOwnerId = rp.userId;
+    }
+
     const user = await this.prisma.$transaction(async (tx) => {
       const created = await tx.user.create({
         data: {
@@ -128,6 +137,12 @@ export class AuthService {
           referredByUserId,
         },
       });
+
+      if (resellerOwnerId) {
+        await (tx as unknown as {
+          user: { update(a: { where: { id: string }; data: { resellerOwnerId: string } }): Promise<unknown> };
+        }).user.update({ where: { id: created.id }, data: { resellerOwnerId } });
+      }
 
       if (referredByUserId) {
         await tx.user.update({

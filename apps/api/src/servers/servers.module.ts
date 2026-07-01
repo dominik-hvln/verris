@@ -14,6 +14,9 @@ import { NodeAuditService } from './node-audit.service';
 import { NodeStackReadinessService } from './node-stack-readiness.service';
 import { OvhClient } from './ovh.client';
 import { NodeDnsService } from './node-dns.service';
+import { NodeBootstrapService } from './node-bootstrap.service';
+import { NodeBootstrapAgentController } from './node-bootstrap.agent.controller';
+import { NodeBootstrapAdminController } from './node-bootstrap.admin.controller';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 
 @Module({
@@ -24,6 +27,8 @@ import { PlatformSettingsModule } from '../platform-settings/platform-settings.m
     NodeTasksAgentController,
     NodeSecurityAgentController,
     NodeBackupAgentController,
+    NodeBootstrapAgentController,
+    NodeBootstrapAdminController,
   ],
   providers: [
     ServersService,
@@ -36,6 +41,7 @@ import { PlatformSettingsModule } from '../platform-settings/platform-settings.m
     DirectAdminService,
     OvhClient,
     NodeDnsService,
+    NodeBootstrapService,
   ],
   exports: [
     ServersService,

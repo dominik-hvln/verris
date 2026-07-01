@@ -21,11 +21,12 @@ export async function requestLetsEncryptSslAction(
   serviceId: string,
   domain: string,
   includeWww: boolean,
+  wildcard = false,
 ): Promise<HostingSslActionResult> {
   try {
     await apiFetch<HostingSslMutationOkDto>(`/services/${serviceId}/hosting-ssl/letsencrypt`, {
       method: 'POST',
-      body: JSON.stringify({ domain, includeWww }),
+      body: JSON.stringify({ domain, includeWww, wildcard }),
     });
     return { ok: true };
   } catch (err) {

@@ -734,6 +734,7 @@ export class UserServicesController {
     return this.directAdmin.requestLetsEncryptCertificate(id, user.userId, {
       domain: body.domain,
       includeWww: body.includeWww === true,
+      wildcard: body.wildcard === true,
     });
   }
 

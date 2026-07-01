@@ -146,6 +146,13 @@ export class MailerService {
     | { allowed: true }
     | { allowed: false; reason: 'OPTED_OUT' | 'ANONYMIZED' | 'NO_RECIPIENT' }
   > {
+    // EMM — odbiorca zewnętrzny: zgoda zarządzana przez nadawcę (double opt-in
+    // + status kontaktu), więc nie stosujemy platformowego user-gate. Nie
+    // ujawniamy też, czy adres jest użytkownikiem Verris.
+    if (message.externalRecipient) {
+      return { allowed: true };
+    }
+
     // 1. user-level resolution. Preferujemy `userId` z message; jeśli brak —
     //    próbujemy znaleźć po emailu (nie nadgorliwie — tylko jeśli unikalny).
     let user: {

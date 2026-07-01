@@ -107,6 +107,24 @@ export class ServersAdminController {
     return this.nodeTasks.retryFailedTask(id, actor.userId);
   }
 
+  /** NODE-6 — aktualizacja CAŁEJ floty (rolling). Trasa przed :id, by nie kolidować. */
+  @Post('fleet-update')
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('NODES_MANAGE')
+  updateFleet(@CurrentUser() actor: { userId: string }) {
+    return this.nodeTasks.queueFleetUpdate(actor.userId);
+  }
+
+  /** NODE-6 — aktualizacja stacku pojedynczego węzła do latest-stable. */
+  @Post(':id/update')
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('NODES_MANAGE')
+  updateNode(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
+    return this.nodeTasks.queueNodeUpdate(id, actor.userId);
+  }
+
   @Post()
   init(
     @Body() dto: InitServerDto,

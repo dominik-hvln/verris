@@ -59,6 +59,8 @@ const adminNavItems: NavGroup[] = [
     items: [
       { name: "Klienci", href: "/customers", icon: Users, perm: "CUSTOMERS_VIEW" },
       { name: "Program partnerski", href: "/referral-enrollments", icon: UserPlus, perm: "PROMO_MANAGE" },
+      { name: "Prowizje partnerów", href: "/partners", icon: DollarSign, perm: "BILLING_VIEW" },
+      { name: "Resellerzy (white-label)", href: "/resellers", icon: Users, perm: "CUSTOMERS_MANAGE" },
       { name: "Operatorzy", href: "/operators", icon: ShieldAlert, perm: "STAFF_MANAGE" },
       { name: "Role i uprawnienia", href: "/roles", icon: ShieldCheck, perm: "STAFF_MANAGE" },
       { name: "Tickety", href: "/tickets", icon: Ticket, perm: "TICKETS_VIEW" },

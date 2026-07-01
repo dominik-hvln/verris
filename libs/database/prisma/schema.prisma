@@ -99,6 +99,18 @@ model User {
   partnerCommissions     PartnerCommission[] @relation("PartnerCommissions")
   referredCommissions    PartnerCommission[] @relation("ReferredCommissions")
   partnerPayouts         PartnerPayout[]     @relation("PartnerPayouts")
+  // API-1 — publiczne API klienta (tokeny).
+  apiTokens              ApiToken[]          @relation("UserApiTokens")
+  // EMM — produkt email-marketingu (listy/kampanie należące do klienta).
+  emmLists               EmmList[]           @relation("UserEmmLists")
+  emmCampaigns           EmmCampaign[]       @relation("UserEmmCampaigns")
+  // AN — analityka stron (privacy-first).
+  analyticsSites         AnalyticsSite[]     @relation("UserAnalyticsSites")
+  // RSL — reseller white-label.
+  resellerProfile        ResellerProfile?    @relation("UserResellerProfile")
+  resellerOwnerId        String?
+  resellerOwner          User?               @relation("ResellerClients", fields: [resellerOwnerId], references: [id], onDelete: SetNull)
+  resellerClients        User[]              @relation("ResellerClients")
   /// Nieauthoryzowany token do publicznego badge SVG (`GET /public/eco/badge/:token`).
   ecoBadgeToken          String?   @unique
   /// Łączna liczba unikalnych wyświetleń badge (po deduplikacji IP/godzina).
@@ -487,6 +499,14 @@ model Server {
   dbVersion          String?
   dbCheckedAt        DateTime?
 
+  // NODE-6 — wersje stacku raportowane telemetrią agenta (do wykrywania „update
+  // dostępny" i aktualizacji floty). daVersion np. „1.670", clVersion z kernela
+  // LVE, lsVersion np. „6.3.1".
+  daVersion          String?
+  clVersion          String?
+  lsVersion          String?
+  versionsCheckedAt  DateTime?
+
   // VER-UPG — docelowa wersja silnika DB wybrana przez admina w edycji węzła
   // (np. "11.4"). Ustawiana przy zleceniu DB_UPGRADE; faktyczna wersja po
   // upgrade jest raportowana telemetrią agenta do dbVersion. Pokazywana w panelu
@@ -541,13 +561,46 @@ model Server {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
+  // NODE-1 — wznawialny bootstrap (odporny na restarty). Faza jest pchana przez
+  // skrypt oneshot na węźle przy każdym starcie systemu, aż osiągnie DONE.
+  //  PENDING → PREFLIGHT → AGENT → HARDENING → CLOUDLINUX → STACK → REGISTER →
+  //  CANARY → DONE (lub FAILED). CLOUDLINUX kończy się rebootem — po powrocie
+  //  oneshot wznawia od STACK.
+  bootstrapPhase     String?
+  bootstrapState     Json?
+  bootstrapError     String?
+  bootstrapStartedAt DateTime?
+  bootstrapUpdatedAt DateTime?
+
+  // NODE-5 — klucze licencyjne wstrzykiwane do skryptu bootstrapu (szyfrowane
+  // AES-256-GCM jak daPasswordEnc). Podawane przez admina w wizardzie; nie da
+  // się ich wygenerować automatycznie (kupowane u producentów).
+  daLicenseKeyEnc    String?
+  clActivationKeyEnc String?
+  lsSerialEnc        String?
+
   accounts        Account[]
   bootstrapTokens BootstrapToken[]
+  bootstrapEvents NodeBootstrapEvent[]
   probes          ServiceProbe[]
   maintenanceWindows MaintenanceWindow[]
   nodeTasks       NodeTask[]
 
   @@index([status])
+}
+
+// NODE-1 — historia faz bootstrapu (streaming postępu do panelu, przetrwa
+// restarty węzła). Każdy wpis = jedno zdarzenie fazy raportowane przez skrypt.
+model NodeBootstrapEvent {
+  id        String   @id @default(uuid())
+  serverId  String
+  server    Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  phase     String
+  status    String   // STARTED | OK | FAILED | REBOOT
+  message   String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([serverId, createdAt])
 }
 
 enum NodeTaskKind {
@@ -558,6 +611,7 @@ enum NodeTaskKind {
   PHP_APPLY         // P-6 — zmiana wersji PHP konta (CloudLinux PHP Selector)
   APP_INSTALL       // P-3 — instalator 1-click aplikacji (Nextcloud/PrestaShop)
   DB_UPGRADE        // VER-UPG — upgrade silnika MariaDB węzła (CustomBuild) do wybranej wersji LTS
+  FLEET_UPDATE      // NODE-6 — aktualizacja stacku węzła do latest-stable (CustomBuild + yum)
 }
 
 enum WafMode {
@@ -716,6 +770,9 @@ enum BillingInterval {
 enum ProductKind {
   HOSTING
   EMAIL
+  // EMM — produkt email-marketingu: klient wysyła newslettery do WŁASNYCH
+  // subskrybentów (listy/kontakty/kampanie). Aplikacyjny, bez konta DA/węzła.
+  EMAIL_MARKETING
 }
 
 model Plan {
@@ -755,6 +812,11 @@ model Plan {
 
   // P-1b — product family this plan belongs to (hosting vs standalone e-mail).
   productKind          ProductKind @default(HOSTING)
+
+  // EMM — limity planu email-marketingu (tylko gdy productKind=EMAIL_MARKETING).
+  // null = nielimitowane (nie zalecane przy starcie). Egzekwowane w EmailMarketingService.
+  emmMaxContacts       Int?
+  emmMonthlySends      Int?
 
   // SUP-5 — guaranteed support first-response time (hours). 0 = no SLA promise.
   supportSlaHours      Int      @default(0)
@@ -883,6 +945,13 @@ model Subscription {
   domainChecklists     DomainChecklist[]
   hostingRestoreJobs   HostingRestoreJob[]
   backupSchedule       BackupSchedule?
+
+  // EMM — produkt email-marketingu (1:N listy/kampanie pod tą subskrypcją).
+  emmLists             EmmList[]
+  emmCampaigns         EmmCampaign[]
+
+  // AN — analityka stron (privacy-first). 1:N property pod tą subskrypcją.
+  analyticsSites       AnalyticsSite[]
 
   @@index([userId])
   @@index([status])
@@ -2972,4 +3041,253 @@ model PartnerPayout {
 
   @@index([partnerUserId, status])
   @@index([status, requestedAt])
+}
+
+enum ResellerStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+// RSL — Reseller white-label. Profil resellera (włączany przez admina): narzut
+// cenowy (markup %), nazwa marki i unikalny kod zapraszający. Klienci końcowi
+// rejestrujący się z kodem dostają resellerOwnerId = id resellera.
+model ResellerProfile {
+  id         String         @id @default(uuid())
+  userId     String         @unique
+  user       User           @relation("UserResellerProfile", fields: [userId], references: [id], onDelete: Cascade)
+  status     ResellerStatus @default(ACTIVE)
+  brandName  String?
+  markupPct  Int            @default(20)
+  code       String         @unique
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+}
+
+// =====================================================================
+// API-1 — Publiczne API klienta. Token = sekret pokazany raz; w bazie tylko
+// hash (bcrypt) + publiczny prefiks do identyfikacji. Uprawnienia (scopes)
+// minimalne, account-scoped, nigdy ADMIN. Pełny token: "<prefix>.<secret>".
+// =====================================================================
+model ApiToken {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation("UserApiTokens", fields: [userId], references: [id], onDelete: Cascade)
+  /// Etykieta nadana przez klienta, np. „CI deploy", „Terraform".
+  name        String
+  /// Publiczny prefiks (vrs_live_xxxx) — po nim wyszukujemy token; bezpieczny do pokazania.
+  prefix      String    @unique
+  /// bcrypt(secret) — sam sekret nie jest przechowywany.
+  hash        String
+  /// Lista uprawnień, np. ["services:read","billing:read"].
+  scopes      String[]
+  lastUsedAt  DateTime?
+  lastUsedIp  String?
+  expiresAt   DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// =====================================================================
+// EMM — Produkt email-marketingu. Klient zarządza WŁASNYMI listami,
+// kontaktami i kampaniami pod aktywną subskrypcją EMAIL_MARKETING.
+// RODO: double opt-in (token potwierdzenia), List-Unsubscribe + publiczny
+// token wypisu, status kontaktu (PENDING/SUBSCRIBED/UNSUBSCRIBED/BOUNCED/
+// COMPLAINED). Limity (kontakty / wysyłki miesięczne) z planu.
+// =====================================================================
+
+enum EmmContactStatus {
+  PENDING      // dodany, czeka na potwierdzenie (double opt-in)
+  SUBSCRIBED   // potwierdzony, można wysyłać
+  UNSUBSCRIBED // wypisał się
+  BOUNCED      // twardy bounce — nie wysyłamy
+  COMPLAINED   // zgłosił spam — nie wysyłamy
+}
+
+enum EmmCampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  CANCELED
+  FAILED
+}
+
+enum EmmSendStatus {
+  SENT
+  SUPPRESSED
+  FAILED
+}
+
+model EmmList {
+  id             String   @id @default(uuid())
+
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User     @relation("UserEmmLists", fields: [userId], references: [id], onDelete: Cascade)
+
+  name           String
+  description    String?
+  /// Wymagaj potwierdzenia subskrypcji (double opt-in). Domyślnie tak (RODO-safe).
+  doubleOptIn    Boolean  @default(true)
+  /// Domyślne pola nagłówka „od" widoczne dla odbiorcy (nazwa nadawcy).
+  fromName       String?
+  /// Adres reply-to (np. firmowy). Wysyłka idzie z infrastruktury Verris.
+  replyTo        String?
+
+  contacts       EmmContact[]
+  campaigns      EmmCampaign[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([subscriptionId])
+  @@index([userId])
+}
+
+model EmmContact {
+  id             String   @id @default(uuid())
+
+  listId         String
+  list           EmmList  @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  email          String
+  firstName      String?
+  lastName       String?
+
+  status         EmmContactStatus @default(PENDING)
+
+  /// Token double opt-in (potwierdzenie zapisu). Zerowany po potwierdzeniu.
+  confirmToken   String?  @unique
+  confirmedAt    DateTime?
+  /// Token wypisu (List-Unsubscribe / link w stopce). Stały dla kontaktu.
+  unsubToken     String   @unique
+  unsubscribedAt DateTime?
+
+  /// Skąd trafił kontakt: import, api, form.
+  source         String?
+  /// IP zapisu (dowód zgody — RODO).
+  consentIp      String?
+
+  sends          EmmSend[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Jeden e-mail może wystąpić tylko raz na danej liście.
+  @@unique([listId, email])
+  @@index([listId, status])
+}
+
+model EmmCampaign {
+  id             String   @id @default(uuid())
+
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User     @relation("UserEmmCampaigns", fields: [userId], references: [id], onDelete: Cascade)
+
+  listId         String
+  list           EmmList  @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  name           String
+  subject        String
+  /// Treść w Markdown — renderowana przez wspólny email-shell.
+  bodyMarkdown   String   @db.Text
+  ctaLabel       String?
+  ctaUrl         String?
+
+  status         EmmCampaignStatus @default(DRAFT)
+  scheduledAt    DateTime?
+  startedAt      DateTime?
+  completedAt    DateTime?
+
+  // Statystyki + kursor batcha (idempotentna wysyłka).
+  recipientCount Int      @default(0)
+  cursorOffset   Int      @default(0)
+  sentCount      Int      @default(0)
+  suppressedCount Int     @default(0)
+  failedCount    Int      @default(0)
+
+  sends          EmmSend[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([subscriptionId])
+  @@index([status])
+}
+
+model EmmSend {
+  id             String   @id @default(uuid())
+
+  campaignId     String
+  campaign       EmmCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contactId      String
+  contact        EmmContact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  status         EmmSendStatus
+  reason         String?
+
+  createdAt      DateTime @default(now())
+
+  // Idempotencja wysyłki — jeden rekord na (kampania, kontakt).
+  @@unique([campaignId, contactId])
+  @@index([campaignId])
+}
+
+// =====================================================================
+// AN — Analityka stron (privacy-first, alternatywa Google Analytics).
+// Bez cookies, bez zapisu IP. Odwiedzający identyfikowany jednokierunkowym
+// hashem z DZIENNĄ solą (rotowaną, nieprzechowywaną) — po dobie nie da się
+// go odtworzyć. Zgodne z RODO bez bannera zgód (brak danych osobowych).
+// =====================================================================
+
+model AnalyticsSite {
+  id             String   @id @default(uuid())
+
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User     @relation("UserAnalyticsSites", fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Domena śledzona (np. „example.pl"). Informacyjnie + do walidacji origin.
+  domain         String
+  /// Publiczny klucz property wstawiany do snippetu (bezpieczny do ujawnienia).
+  siteKey        String   @unique
+  enabled        Boolean  @default(true)
+
+  events         AnalyticsEvent[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([subscriptionId])
+  @@index([userId])
+}
+
+model AnalyticsEvent {
+  id           String   @id @default(uuid())
+
+  siteId       String
+  site         AnalyticsSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  /// Ścieżka strony (bez query z PII — obcinamy do pathname).
+  path         String
+  /// Host referrera (bez pełnego URL/query). null = wejście bezpośrednie.
+  refHost      String?
+  /// Kraj (ISO-2) z nagłówka geo proxy, jeśli dostępny. Bez miasta/IP.
+  country      String?
+  /// desktop | mobile | tablet — z klasyfikacji User-Agenta (bez zapisu UA).
+  deviceType   String?
+  /// Jednokierunkowy hash odwiedzającego (dzienna sól, bez IP). Do liczenia unikalnych.
+  visitorHash  String
+
+  ts           DateTime @default(now())
+
+  @@index([siteId, ts])
+  @@index([siteId, path])
 }

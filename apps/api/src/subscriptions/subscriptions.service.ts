@@ -251,6 +251,15 @@ export class SubscriptionsService {
       throw new NotFoundException('Plan not found or unavailable');
     }
 
+    // EMM — produkty aplikacyjne (email-marketing) nie tworzą konta DA i nie
+    // potrzebują domeny. Dla pozostałych produktów domena jest wymagana.
+    // Cast przez string — generated Prisma client regeneruje enum w prod
+    // (Dockerfile.api); w sandboxie literal EMAIL_MARKETING jeszcze nie istnieje.
+    const isAppLevel = (plan.productKind as string) === 'EMAIL_MARKETING';
+    if (!isAppLevel && !dto.domain) {
+      throw new BadRequestException('Domena jest wymagana dla tego produktu.');
+    }
+
     const listPriceRaw =
       dto.interval === BillingInterval.MONTH ? plan.priceMonthly : plan.priceYearly;
 
@@ -313,6 +322,12 @@ export class SubscriptionsService {
 
     switch (dto.paymentSource) {
       case SubscriptionPaymentSource.WALLET: {
+        if (isAppLevel) {
+          return this.activateAppLevelSubscription(subscription.id, dto, userId, {
+            charge: pricing.chargeAmount,
+            appliedPromoCodeId: pricing.appliedPromoCodeId,
+          });
+        }
         return this.payFromWalletAndProvision(
           subscription.id,
           pricing.chargeAmount,
@@ -323,6 +338,12 @@ export class SubscriptionsService {
         );
       }
       case SubscriptionPaymentSource.MANUAL: {
+        if (isAppLevel) {
+          return this.activateAppLevelSubscription(subscription.id, dto, userId, {
+            charge: null,
+            appliedPromoCodeId: pricing.appliedPromoCodeId,
+          });
+        }
         return this.provisionWithoutCharge(subscription.id, dto, userId);
       }
       case SubscriptionPaymentSource.STRIPE_CARD: {
@@ -1143,7 +1164,7 @@ export class SubscriptionsService {
         await this.provisionQueue.enqueueWalletProvision({
           subscriptionId,
           userId,
-          domain: dto.domain,
+          domain: dto.domain!,
           preferredRegion: dto.preferredRegion ?? null,
           refundAmount: amount,
         });
@@ -1151,7 +1172,7 @@ export class SubscriptionsService {
       }
       const provisioning = await this.provisioning.provisionForSubscription(
         subscriptionId,
-        { domain: dto.domain, preferredRegion: dto.preferredRegion ?? null },
+        { domain: dto.domain!, preferredRegion: dto.preferredRegion ?? null },
         userId,
       );
       if (appliedPromoCodeId) {
@@ -1200,17 +1221,94 @@ export class SubscriptionsService {
       await this.provisionQueue.enqueueManualProvision({
         subscriptionId,
         userId,
-        domain: dto.domain,
+        domain: dto.domain!,
         preferredRegion: dto.preferredRegion ?? null,
       });
       return { subscription, provisioningQueued: true };
     }
     const provisioning = await this.provisioning.provisionForSubscription(
       subscriptionId,
-      { domain: dto.domain, preferredRegion: dto.preferredRegion ?? null },
+      { domain: dto.domain!, preferredRegion: dto.preferredRegion ?? null },
       userId,
     );
     return { subscription: provisioning.subscription, provisioning };
+  }
+
+  /**
+   * EMM — aktywacja produktu aplikacyjnego (email-marketing) bez konta DA.
+   * Brak węzła, brak domeny, brak provisioning queue: opcjonalnie pobieramy z
+   * portfela i od razu ustawiamy ACTIVE. Idempotentny debit (klucz
+   * `sub-<id>-initial`); przy braku środków rollback do PENDING_PAYMENT.
+   */
+  private async activateAppLevelSubscription(
+    subscriptionId: string,
+    dto: CreateSubscriptionDto,
+    userId: string,
+    opts: { charge: Prisma.Decimal | null; appliedPromoCodeId: string | null },
+  ): Promise<CreatedSubscription> {
+    if (opts.charge && opts.charge.greaterThan(0)) {
+      await this.walletLedger.debit({
+        userId,
+        type: WalletTxType.CHARGE_SUBSCRIPTION,
+        amount: opts.charge,
+        description: `Subscription ${subscriptionId} (initial payment)`,
+        idempotencyKey: `sub-${subscriptionId}-initial`,
+        subscriptionId,
+      });
+    }
+
+    try {
+      const now = new Date();
+      const subscription = await this.prisma.subscription.update({
+        where: { id: subscriptionId },
+        data: {
+          status: SubscriptionStatus.ACTIVE,
+          currentPeriodStart: now,
+          currentPeriodEnd: addInterval(now, dto.interval),
+        },
+      });
+
+      await this.prisma.subscriptionEvent.create({
+        data: {
+          subscriptionId,
+          type: 'ACTIVATED',
+          details: { appLevel: true, productKind: 'EMAIL_MARKETING' },
+        },
+      });
+      await this.audit.record({
+        action: 'SUBSCRIPTION_ACTIVATED',
+        userId,
+        actorUserId: userId,
+        details: { subscriptionId, appLevel: true },
+      });
+
+      if (opts.appliedPromoCodeId) {
+        await this.finalizeServicePromoRedemption(subscriptionId, userId);
+      }
+
+      void this.ecoPoints.safeAward(`subscription_first_paid:${subscriptionId}`, async () => {
+        await this.ecoPoints.awardSubscriptionFirstPaid(this.prisma, userId, subscriptionId);
+      });
+
+      return { subscription };
+    } catch (err) {
+      // Aktywacja po debecie zawiodła — zwróć środki i cofnij do PENDING_PAYMENT.
+      if (opts.charge && opts.charge.greaterThan(0)) {
+        await this.walletLedger.credit({
+          userId,
+          type: WalletTxType.REFUND,
+          amount: opts.charge,
+          description: `Auto-refund: activation failed for ${subscriptionId}`,
+          idempotencyKey: `sub-${subscriptionId}-initial-refund`,
+          subscriptionId,
+        });
+      }
+      await this.prisma.subscription.update({
+        where: { id: subscriptionId },
+        data: { status: SubscriptionStatus.PENDING_PAYMENT },
+      });
+      throw err;
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -1268,7 +1366,7 @@ export class SubscriptionsService {
         subscriptionId,
         type: 'PROVISIONING_INTENT',
         details: {
-          domain: dto.domain,
+          domain: dto.domain ?? null,
           preferredRegion: dto.preferredRegion ?? null,
         },
       },
@@ -1280,7 +1378,7 @@ export class SubscriptionsService {
       metadata: {
         verrisSubscriptionId: subscriptionId,
         verrisUserId: userId,
-        domain: dto.domain,
+        domain: dto.domain ?? '',
         preferredRegion: dto.preferredRegion ?? '',
         planSlug: plan.slug,
         interval: dto.interval,
@@ -1597,6 +1695,36 @@ export class SubscriptionsService {
         void this.ecoPoints.safeAward(`stripe_card:${sub.id}`, async () => {
           await this.ecoPoints.awardStripeCardLinked(this.prisma, sub.userId, sub.id);
         });
+      }
+
+      // EMM — produkt aplikacyjny (email-marketing) nie ma konta DA: po
+      // pierwszej płatności Stripe od razu ACTIVE, bez provisioningu/domeny.
+      const planForActivation = await this.prisma.plan.findUnique({
+        where: { id: sub.planId },
+        select: { productKind: true },
+      });
+      if ((planForActivation?.productKind as string | undefined) === 'EMAIL_MARKETING') {
+        const activated = await this.prisma.subscription.update({
+          where: { id: sub.id },
+          data: {
+            status: SubscriptionStatus.ACTIVE,
+            currentPeriodStart: opts.periodStart ?? new Date(),
+            currentPeriodEnd: opts.periodEnd ?? sub.currentPeriodEnd,
+          },
+        });
+        await this.prisma.subscriptionEvent.create({
+          data: {
+            subscriptionId: sub.id,
+            type: 'ACTIVATED',
+            details: { source: 'STRIPE', appLevel: true, productKind: 'EMAIL_MARKETING' },
+          },
+        });
+        await this.audit.record({
+          action: 'SUBSCRIPTION_ACTIVATED',
+          userId: sub.userId,
+          details: { subscriptionId: sub.id, appLevel: true, stripeSubscriptionId: opts.stripeSubscriptionId },
+        });
+        return activated;
       }
 
       const intent = await this.prisma.subscriptionEvent.findFirst({

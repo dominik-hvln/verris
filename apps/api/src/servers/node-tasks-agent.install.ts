@@ -200,6 +200,9 @@ elif [ "$TASK_KIND" = "DB_UPGRADE" ]; then
   RUN_BIN="/usr/local/bin/verris-db-upgrade.sh"
   fetch_task_script "/agent/tasks/db-upgrade/script" "$RUN_BIN"
   payload_env "DB" "{'version':'TARGET_VERSION'}"
+elif [ "$TASK_KIND" = "FLEET_UPDATE" ]; then
+  RUN_BIN="/usr/local/bin/verris-node-update.sh"
+  fetch_task_script "/agent/tasks/node-update/script" "$RUN_BIN"
 else
   flags="-y"
   [ "$SKIP_BUILD" = "1" ] && flags="$flags --skip-build"
@@ -375,7 +378,7 @@ dispatch_generic() {
 
 case "$KIND" in
   HOSTING_PROFILE) dispatch_hosting_profile ;;
-  WP_INSTALL|WAF_APPLY|STAGING_SYNC|DB_UPGRADE) dispatch_generic ;;
+  WP_INSTALL|WAF_APPLY|STAGING_SYNC|DB_UPGRADE|FLEET_UPDATE) dispatch_generic ;;
   *)
     report_task_fail "Unknown task kind: $KIND"
     exit 1

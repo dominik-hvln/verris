@@ -4,6 +4,7 @@ import { ArrowLeft, Server, AlertCircle, Cpu, MemoryStick, HardDrive, Clock, Glo
 import { fetchServer } from "../actions";
 import { ApproveServerButton } from "./approve-button";
 import { BootstrapScriptPanel } from "./bootstrap-script-panel";
+import { NodeBootstrapProgress } from "./node-bootstrap-progress";
 import { DirectAdminConfigForm } from "./directadmin-form";
 import { HostingProfilePanel } from "./hosting-profile-panel";
 import { NodeStackReadinessPanel } from "./node-stack-readiness-panel";
@@ -117,6 +118,13 @@ export default async function ServerDetailPage({
 
         {canBootstrap && <BootstrapScriptPanel serverId={server.id} />}
       </section>
+
+      {canBootstrap && (
+        <section id="bootstrap" className="scroll-mt-24">
+          <h2 className="mb-3 text-lg font-bold text-white">Zaawansowany kreator podpięcia (verris-bootstrap)</h2>
+          <NodeBootstrapProgress serverId={server.id} />
+        </section>
+      )}
 
       {(server.status === "ACTIVE" || server.status === "MAINTENANCE") && (
         <div id="zuzycie" className="scroll-mt-24">

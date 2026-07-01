@@ -32,17 +32,36 @@ const SSL_BADGE: Record<HostingSslStatus, { label: string; className: string }> 
 function SslBadge({ row }: { row: HostingSslRowDto | undefined }) {
   const status = row?.status ?? 'NONE';
   const meta = SSL_BADGE[status];
+  const daysLeft = row?.daysLeft ?? null;
   return (
     <div className="flex flex-col items-start gap-1 md:items-end">
-      <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${meta.className}`}>
-        {meta.label}
-      </span>
+      <div className="flex items-center gap-1.5">
+        <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium ${meta.className}`}>
+          {meta.label}
+        </span>
+        {row?.isWildcard ? (
+          <span className="inline-flex items-center rounded-full border border-violet-400/30 bg-violet-400/10 px-2 py-0.5 text-[10px] font-semibold text-violet-200">
+            wildcard
+          </span>
+        ) : null}
+      </div>
       {row && row.status !== 'NONE' ? (
         <span className="text-[11px] text-neutral-500">
           {row.issuer}
           {row.expiresAt
             ? ` · do ${new Date(row.expiresAt).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' })}`
             : ''}
+          {daysLeft !== null
+            ? daysLeft >= 0
+              ? ` (${daysLeft} dni)`
+              : ' (wygasł)'
+            : ''}
+        </span>
+      ) : null}
+      {row && row.coveredNames && row.coveredNames.length > 1 ? (
+        <span className="text-[10px] text-neutral-600 md:text-right">
+          Pokrywa: {row.coveredNames.slice(0, 4).join(', ')}
+          {row.coveredNames.length > 4 ? ` +${row.coveredNames.length - 4}` : ''}
         </span>
       ) : null}
     </div>

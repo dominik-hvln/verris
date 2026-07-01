@@ -25,6 +25,7 @@ import { loadStagingSyncScript } from './staging-sync.script';
 import { loadPhpApplyScript } from './php-apply.script';
 import { loadAppInstallScript } from './app-install.script';
 import { loadDbUpgradeScript } from './db-upgrade.script';
+import { loadNodeUpdateScript } from './node-update.script';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 
 class CompleteNodeTaskDto {
@@ -111,6 +112,13 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   dbUpgradeScript() {
     return loadDbUpgradeScript();
+  }
+
+  /** NODE-6 — fleet update script (CustomBuild + yum → latest-stable). */
+  @Get('node-update/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  nodeUpdateScript() {
+    return loadNodeUpdateScript();
   }
 
   /** B5 — staging clone/publish script (run with STG_* env). */

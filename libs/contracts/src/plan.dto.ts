@@ -20,8 +20,8 @@ export interface PlanDto {
   sortOrder: number;
   /** O-1 — free trial length in days. 0 = no trial available. */
   trialDays: number;
-  /** P-1b — 'HOSTING' (web) or 'EMAIL' (standalone mailbox product). */
-  productKind: 'HOSTING' | 'EMAIL';
+  /** P-1b / EMM — 'HOSTING' (web), 'EMAIL' (mailbox), 'EMAIL_MARKETING' (newsletter app). */
+  productKind: 'HOSTING' | 'EMAIL' | 'EMAIL_MARKETING';
   /** SUP-5 — guaranteed support first-response time in hours (0 = no promise). */
   supportSlaHours: number;
 }

@@ -61,6 +61,73 @@ export async function generateBootstrapScript(id: string) {
   }
 }
 
+export interface BootstrapEventDto {
+  phase: string;
+  status: string;
+  message: string | null;
+  createdAt: string;
+}
+export interface BootstrapStatusDto {
+  serverId: string;
+  phase: string | null;
+  error: string | null;
+  startedAt: string | null;
+  updatedAt: string | null;
+  events: BootstrapEventDto[];
+}
+
+export async function fetchBootstrapStatus(id: string) {
+  try {
+    return { data: await adminApi<BootstrapStatusDto>(`/admin/nodes/${id}/bootstrap`) };
+  } catch (err) {
+    return { data: null, error: extractError(err) };
+  }
+}
+
+export async function saveNodeLicenseKeys(
+  id: string,
+  keys: { daLicenseKey?: string; clActivationKey?: string; lsSerial?: string },
+) {
+  try {
+    await adminApi(`/admin/nodes/${id}/bootstrap/license-keys`, { method: "PUT", body: keys });
+    return { ok: true as const };
+  } catch (err) {
+    return { ok: false as const, error: extractError(err) };
+  }
+}
+
+export async function generateBootstrapOneLiner(id: string) {
+  try {
+    const data = await adminApi<{ oneLiner: string; expiresAt: string }>(
+      `/admin/nodes/${id}/bootstrap/one-liner`,
+      { method: "POST" },
+    );
+    return { data };
+  } catch (err) {
+    return { data: null, error: extractError(err) };
+  }
+}
+
+export async function updateNode(id: string) {
+  try {
+    const data = await adminApi<NodeTaskDto>(`/admin/servers/${id}/update`, { method: "POST" });
+    return { data };
+  } catch (err) {
+    return { data: null, error: extractError(err) };
+  }
+}
+
+export async function updateFleet() {
+  try {
+    const data = await adminApi<{ queued: number; skipped: number }>(`/admin/servers/fleet-update`, {
+      method: "POST",
+    });
+    return { data };
+  } catch (err) {
+    return { data: null, error: extractError(err) };
+  }
+}
+
 export async function approveServer(id: string) {
   try {
     const data = await adminApi<ServerSummaryDto>(`/admin/servers/${id}/approve`, {

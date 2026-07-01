@@ -61,7 +61,8 @@ const TABS = [
   { id: 'php', label: 'Wersja PHP', icon: Terminal },
   { id: 'ssl', label: 'SSL', icon: Shield },
   { id: 'apps', label: 'Aplikacje', icon: Globe },
-  { id: 'builder', label: 'Kreator stron', icon: Wand2 },
+  // Kreator stron tymczasowo ukryty (komponent i kod pozostają — wystarczy przywrócić ten wpis).
+  // { id: 'builder', label: 'Kreator stron', icon: Wand2 },
   { id: 'webtools', label: 'Narzędzia WWW', icon: Wrench },
   { id: 'ftp', label: 'Konta FTP', icon: FolderKanban },
   { id: 'cron', label: 'Cron', icon: Clock },
@@ -303,7 +304,8 @@ export default function HostingManagerPage() {
             {activeTab === 'mail' && <MailTab serviceId={params.id} />}
             {activeTab === 'ssl' && <SSLTab serviceId={params.id} />}
             {activeTab === 'apps' && <AppsTab serviceId={params.id} />}
-            {activeTab === 'builder' && <SiteBuilderTab serviceId={params.id} />}
+            {/* Kreator stron tymczasowo ukryty — przywróć wpis w tablicy zakładek powyżej, aby włączyć. */}
+            {/* {activeTab === 'builder' && <SiteBuilderTab serviceId={params.id} />} */}
             {activeTab === 'webtools' && <WebToolsTab serviceId={params.id} />}
             {activeTab === 'php' && <PhpTab serviceId={params.id} />}
             {activeTab === 'ftp' && <FtpTab serviceId={params.id} />}

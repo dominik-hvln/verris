@@ -188,6 +188,79 @@ export class NodeTasksService {
     return this.toPublicTask(task);
   }
 
+  /**
+   * NODE-6 — zleca aktualizację stacku węzła do latest-stable (CustomBuild +
+   * yum). Idempotentne: nie duplikuje zadania, gdy jedno już czeka/trwa.
+   */
+  async queueNodeUpdate(serverId: string, actorUserId: string) {
+    const server = await this.prisma.server.findUnique({ where: { id: serverId } });
+    if (!server) throw new NotFoundException('Server not found');
+    if (server.status !== ServerStatus.ACTIVE) {
+      throw new BadRequestException(`Aktualizację można zlecić tylko na węźle ACTIVE (obecny: ${server.status}).`);
+    }
+    if (!server.identityToken) {
+      throw new BadRequestException('Węzeł nie ma agenta (brak identity token).');
+    }
+
+    await this.reclaimStaleRunningTasks(serverId);
+    const inflight = await this.prisma.nodeTask.findFirst({
+      where: {
+        serverId,
+        kind: 'FLEET_UPDATE' as NodeTaskKind,
+        status: { in: [NodeTaskStatus.QUEUED, NodeTaskStatus.RUNNING] },
+      },
+    });
+    if (inflight) return this.toPublicTask(inflight);
+
+    const task = await this.prisma.nodeTask.create({
+      data: {
+        serverId,
+        kind: 'FLEET_UPDATE' as NodeTaskKind,
+        status: NodeTaskStatus.QUEUED,
+        payload: {},
+        requestedById: actorUserId,
+      },
+    });
+    await this.audit.record({
+      action: 'NODE_FLEET_UPDATE_QUEUED',
+      actorUserId,
+      details: { serverId, taskId: task.id },
+    });
+    return this.toPublicTask(task);
+  }
+
+  /**
+   * NODE-6 — aktualizacja CAŁEJ floty. Zleca zadanie na każdym węźle ACTIVE z
+   * agentem. Rolling z natury: agent każdego węzła leasuje jedno zadanie naraz,
+   * a admin może zawczasu zdrainować węzły. Zwraca liczbę zleconych.
+   */
+  async queueFleetUpdate(actorUserId: string): Promise<{ queued: number; skipped: number }> {
+    const servers = await this.prisma.server.findMany({
+      where: { status: ServerStatus.ACTIVE },
+      select: { id: true, identityToken: true },
+    });
+    let queued = 0;
+    let skipped = 0;
+    for (const s of servers) {
+      if (!s.identityToken) {
+        skipped++;
+        continue;
+      }
+      try {
+        await this.queueNodeUpdate(s.id, actorUserId);
+        queued++;
+      } catch {
+        skipped++;
+      }
+    }
+    await this.audit.record({
+      action: 'FLEET_UPDATE_QUEUED',
+      actorUserId,
+      details: { queued, skipped, total: servers.length },
+    });
+    return { queued, skipped };
+  }
+
   /** VER-UPG — historia zleceń upgrade DB dla węzła (panel admina). */
   async listDbUpgradeTasks(serverId: string, limit = 10) {
     await this.reclaimStaleRunningTasks(serverId);

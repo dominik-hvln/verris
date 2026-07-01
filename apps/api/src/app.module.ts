@@ -43,6 +43,11 @@ import { AddonModule } from './addons/addon.module';
 import { FilesModule } from './files/files.module';
 import { StaffRolesModule } from './staff-roles/staff-roles.module';
 import { PartnersModule } from './partners/partners.module';
+import { ApiTokensModule } from './api-tokens/api-tokens.module';
+import { ResellerModule } from './reseller/reseller.module';
+import { EmailMarketingModule } from './email-marketing/email-marketing.module';
+import { AnalyticsSitesModule } from './analytics-sites/analytics-sites.module';
+import { FontsProxyModule } from './fonts-proxy/fonts-proxy.module';
 import { ControlPlaneMailModule } from './control-plane-mail/control-plane-mail.module';
 import { VpnModule } from './vpn/vpn.module';
 import { KsefModule } from './ksef/ksef.module';
@@ -94,6 +99,11 @@ import { KsefModule } from './ksef/ksef.module';
     FilesModule,
     StaffRolesModule,
     PartnersModule,
+    ApiTokensModule,
+    ResellerModule,
+    EmailMarketingModule,
+    AnalyticsSitesModule,
+    FontsProxyModule,
   ],
   controllers: [],
   providers: [

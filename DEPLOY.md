@@ -927,3 +927,30 @@ Rollback awaryjny (utrata dostępu): na hoście usuń/zmień
 
 Audyt: każde utworzenie/cofnięcie peera trafia do logu audytowego
 (`VPN_PEER_CREATED` / `VPN_PEER_REVOKED`).
+
+## CI/CD — auto-deploy z GitHub (DEPLOY-1)
+
+Model „jak Vercel/Render": push na `main` → GitHub Actions buduje 5 obrazów
+(api + client/staff/admin panel + status-page), wypycha do **GHCR**, a serwer
+control-plane POBIERA gotowe obrazy (nie buduje u siebie), robi rolling restart,
+`prisma migrate deploy` i health-gate `/healthz` z auto-rollbackiem.
+
+Pliki: `.github/workflows/deploy.yml`, `docker-compose.ghcr.yml`,
+`ops/scripts/prod-deploy-ghcr.sh`.
+
+### Wymagane GitHub Secrets (Settings → Secrets and variables → Actions)
+- `DEPLOY_SSH_HOST` — IP/host serwera control-plane
+- `DEPLOY_SSH_USER` — użytkownik SSH (z dostępem do docker)
+- `DEPLOY_SSH_KEY` — prywatny klucz SSH (deploy key)
+- `DEPLOY_SSH_PORT` — opcjonalnie (domyślnie 22)
+- `DEPLOY_PATH` — katalog repo na serwerze, np. `/opt/verris`
+- `GHCR_PULL_TOKEN` — PAT (read:packages) do logowania GHCR na serwerze
+  (push w Actions używa wbudowanego `GITHUB_TOKEN`, osobny sekret niepotrzebny)
+
+### Na serwerze (jednorazowo)
+- w `.env.prod` ustaw `REGISTRY_PREFIX=ghcr.io/<owner>` (małymi literami),
+- repo sklonowane w `DEPLOY_PATH`, `.env.prod` z sekretami produkcyjnymi,
+- Docker + `docker compose` v2.
+
+Pierwszy deploy nie ma jeszcze „ostatniego dobrego tagu" (brak rollbacku) —
+to normalne; kolejne już mają.

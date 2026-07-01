@@ -1,0 +1,20 @@
+# DEPLOY-1 — override wdrożeniowy: zamiast budować obrazy NA serwerze, pobieramy
+# gotowe obrazy zbudowane w GitHub Actions i wypchnięte do GHCR. Używane razem z
+# bazowym compose:
+#   docker compose -f docker-compose.prod.yml -f docker-compose.ghcr.yml \
+#     --env-file .env.prod up -d --no-build <serwisy>
+#
+# Wymaga w środowisku (np. .env.prod):
+#   REGISTRY_PREFIX=ghcr.io/<owner>        (np. ghcr.io/hvln)
+#   IMAGE_TAG=<git-sha>                    (ustawiane przez skrypt deployu)
+services:
+  api:
+    image: ${REGISTRY_PREFIX}/verris-api:${IMAGE_TAG}
+  client-panel:
+    image: ${REGISTRY_PREFIX}/verris-client-panel:${IMAGE_TAG}
+  staff-panel:
+    image: ${REGISTRY_PREFIX}/verris-staff-panel:${IMAGE_TAG}
+  admin-panel:
+    image: ${REGISTRY_PREFIX}/verris-admin-panel:${IMAGE_TAG}
+  status-page:
+    image: ${REGISTRY_PREFIX}/verris-status-page:${IMAGE_TAG}

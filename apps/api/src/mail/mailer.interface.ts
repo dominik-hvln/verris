@@ -67,6 +67,13 @@ export interface MailMessage {
    * `MarketingPreferences.unsubscribeToken`.
    */
   listUnsubscribeUrl?: string;
+  /**
+   * EMM — odbiorca zewnętrzny (subskrybent klienta, NIE użytkownik Verris).
+   * Zgoda jest zarządzana przez nadawcę (double opt-in + status kontaktu po
+   * stronie EMM), więc pomijamy platformowy user-gate (opt-out/anonimizacja).
+   * Wymaga jawnego `listUnsubscribeUrl` (publiczny link wypisu).
+   */
+  externalRecipient?: boolean;
 }
 
 export interface MailerProvider {

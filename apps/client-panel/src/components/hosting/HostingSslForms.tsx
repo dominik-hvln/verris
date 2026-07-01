@@ -21,6 +21,7 @@ export function HostingSslForms({ serviceId }: Props) {
 
   const [domain, setDomain] = useState('');
   const [includeWww, setIncludeWww] = useState(true);
+  const [wildcard, setWildcard] = useState(false);
   const [leBusy, setLeBusy] = useState(false);
   const [leMsg, setLeMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
@@ -82,7 +83,7 @@ export function HostingSslForms({ serviceId }: Props) {
             Let&apos;s Encrypt
           </div>
           <p className="text-xs text-neutral-500 leading-relaxed">
-            Zlecenie wystawienia certyfikatu na serwerze (HTTP-01). Może potrwać do ok. 2 minut — nie zamykaj
+            Zlecenie wystawienia certyfikatu na serwerze. Może potrwać do ok. 2–3 minut — nie zamykaj
             karty w tym czasie.
           </p>
           <label className="flex items-center gap-2 text-sm text-neutral-300 cursor-pointer select-none">
@@ -90,9 +91,24 @@ export function HostingSslForms({ serviceId }: Props) {
               type="checkbox"
               className="rounded border-white/20 bg-black/40"
               checked={includeWww}
+              disabled={wildcard}
               onChange={(e) => setIncludeWww(e.target.checked)}
             />
             Uwzględnij <span className="font-mono text-neutral-200">www</span> (jeśli domena jest na koncie)
+          </label>
+          <label className="flex items-start gap-2 text-sm text-neutral-300 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="mt-0.5 rounded border-white/20 bg-black/40"
+              checked={wildcard}
+              onChange={(e) => setWildcard(e.target.checked)}
+            />
+            <span>
+              Wildcard <span className="font-mono text-neutral-200">*.{domain || 'domena'}</span> — pokrywa wszystkie subdomeny.
+              <span className="mt-0.5 block text-[11px] text-amber-200/80">
+                Wymaga, aby DNS domeny był hostowany na tym serwerze (walidacja DNS-01).
+              </span>
+            </span>
           </label>
           {leMsg ? (
             <p
@@ -112,15 +128,17 @@ export function HostingSslForms({ serviceId }: Props) {
             onClick={async () => {
               setLeMsg(null);
               setLeBusy(true);
-              const r = await requestLetsEncryptSslAction(serviceId, domain.trim(), includeWww);
+              const r = await requestLetsEncryptSslAction(serviceId, domain.trim(), includeWww, wildcard);
               setLeBusy(false);
               if (r.ok) {
                 setLeMsg({
                   type: 'ok',
-                  text:
-                    'Zlecono wystawienie certyfikatu (w tle). Aby się powiodło, domena musi już ' +
-                    'wskazywać na nasz serwer (rekord A) — inaczej walidacja Let’s Encrypt nie przejdzie. ' +
-                    'Status zaktualizuje się tu po wydaniu (zwykle do kilku minut).',
+                  text: wildcard
+                    ? 'Zlecono wystawienie certyfikatu wildcard (w tle). Walidacja DNS-01 wymaga, aby strefa ' +
+                      'DNS domeny była na tym serwerze. Status zaktualizuje się tu po wydaniu (zwykle do kilku minut).'
+                    : 'Zlecono wystawienie certyfikatu (w tle). Aby się powiodło, domena musi już ' +
+                      'wskazywać na nasz serwer (rekord A) — inaczej walidacja Let’s Encrypt nie przejdzie. ' +
+                      'Status zaktualizuje się tu po wydaniu (zwykle do kilku minut).',
                 });
               } else {
                 setLeMsg({ type: 'err', text: r.error });

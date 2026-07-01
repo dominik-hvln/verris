@@ -30,6 +30,9 @@ import {
   Calculator,
   Server as ServerIcon,
   BookOpen,
+  KeyRound,
+  Megaphone,
+  BarChart3,
   X,
 } from "lucide-react";
 import { sidebarTilesFromLinks, type SidebarTileDef } from "@/lib/sidebar-tiles";
@@ -50,6 +53,7 @@ const secondaryItems = [
       { name: "Migracje", href: "/dashboard/migrations", icon: Globe },
       { name: "Dodatki", href: "/dashboard/addons", icon: Calculator },
       { name: "VPS / Cloud", href: "/dashboard/vps", icon: ServerIcon },
+      { name: "Reseller (white-label)", href: "/dashboard/reseller", icon: Users },
       { name: "Kalkulator", href: "/dashboard/calculator", icon: Calculator },
     ],
   },
@@ -65,6 +69,9 @@ const secondaryItems = [
       ...(clientFeatures.iam
         ? [{ name: "IAM i subkonta", href: "/dashboard/iam", icon: Users }]
         : []),
+      { name: "Email marketing", href: "/dashboard/email-marketing", icon: Megaphone },
+      { name: "Analityka stron", href: "/dashboard/analytics", icon: BarChart3 },
+      { name: "API i integracje", href: "/dashboard/api-tokens", icon: KeyRound },
       { name: "Baza wiedzy", href: "/dashboard/knowledge", icon: BookOpen },
       { name: "Centrum Pomocy", href: "/dashboard/support", icon: VerrisSupportIcon },
       { name: "Ustawienia", href: "/dashboard/settings", icon: VerrisUstawieniaIcon },

@@ -84,8 +84,8 @@ export interface ServiceSummaryDto {
   /** O-1 — true while in a free trial; `trialEndsAt` is the window end. */
   isTrial: boolean;
   trialEndsAt: string | null;
-  /** P-1b — product family of the underlying plan (drives panel UX). */
-  productKind: 'HOSTING' | 'EMAIL';
+  /** P-1b / EMM — product family of the underlying plan (drives panel UX). */
+  productKind: 'HOSTING' | 'EMAIL' | 'EMAIL_MARKETING';
   account: ServiceAccountSummaryDto | null;
   /** Sprint 5 / R-11+B-7 — postęp provisioningu widoczny dla klienta. */
   provisioning: ProvisioningProgressDto | null;
@@ -402,6 +402,12 @@ export interface HostingSslRowDto {
   /** Certificate expiry (ISO) or null when there is no certificate. */
   expiresAt: string | null;
   isLetsEncrypt: boolean;
+  /** Dni do wygaśnięcia (ujemne = wygasł), null gdy brak certu. */
+  daysLeft: number | null;
+  /** Nazwy pokrywane przez certyfikat (SAN) — pokazuje np. wildcard *.domena. */
+  coveredNames: string[];
+  /** Czy certyfikat pokrywa wildcard (*.domena). */
+  isWildcard: boolean;
 }
 
 export interface HostingSslResponseDto {

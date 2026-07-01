@@ -36,17 +36,29 @@ type SectionType =
   | 'navbar' | 'banner' | 'hero' | 'stats' | 'features' | 'steps' | 'imagetext' | 'gallery' | 'portfolio' | 'pricing' | 'menu'
   | 'testimonials' | 'quote' | 'team' | 'timeline' | 'tabs' | 'table' | 'faq' | 'logos' | 'about' | 'richtext'
   | 'blog' | 'article' | 'video' | 'map' | 'hours' | 'countdown' | 'download' | 'social' | 'cta' | 'newsletter'
-  | 'contact' | 'embed' | 'divider' | 'cookies' | 'footer';
+  | 'contact' | 'embed' | 'divider' | 'cookies' | 'footer'
+  | 'bento' | 'marqueeText' | 'pricingToggle' | 'testimonialWall' | 'heroSplit' | 'showcase'
+  | 'heroEditorial' | 'workRows' | 'serviceList';
 
 type Section = { id: string; type: SectionType; data: Record<string, unknown> };
 type ThemeFont = 'sans' | 'serif' | 'mono' | 'rounded' | 'condensed';
-type Theme = { primary: string; accent: string; bg: 'light' | 'dark'; font: ThemeFont; radius: 'sm' | 'md' | 'xl'; width: 'normal' | 'wide' };
+type ThemeStyle = 'modern' | 'minimal' | 'bold' | 'editorial' | 'soft';
+type Theme = { primary: string; accent: string; bg: 'light' | 'dark'; font: ThemeFont; radius: 'sm' | 'md' | 'xl'; width: 'normal' | 'wide'; style?: ThemeStyle };
 const FONT_STACK: Record<ThemeFont, string> = {
   sans: 'system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif',
   serif: 'Georgia, "Times New Roman", serif',
   mono: 'ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
   rounded: '"Trebuchet MS", "Segoe UI", Verdana, system-ui, sans-serif',
   condensed: '"Arial Narrow", "Roboto Condensed", "Helvetica Neue", system-ui, sans-serif',
+};
+/** Dobrane pary fontów Google per krój — display (nagłówki) + body (treść). Podnosi jakość każdego szablonu. */
+type FontPair = { displayName: string; bodyName: string; display: string; body: string; query: string };
+const FONT_PAIRS: Record<ThemeFont, FontPair> = {
+  sans: { displayName: 'Space Grotesk', bodyName: 'Inter', display: `'Space Grotesk', ${FONT_STACK.sans}`, body: `'Inter', ${FONT_STACK.sans}`, query: 'family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700' },
+  serif: { displayName: 'Fraunces', bodyName: 'Inter', display: `'Fraunces', ${FONT_STACK.serif}`, body: `'Inter', ${FONT_STACK.sans}`, query: 'family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600' },
+  rounded: { displayName: 'Poppins', bodyName: 'Poppins', display: `'Poppins', ${FONT_STACK.rounded}`, body: `'Poppins', ${FONT_STACK.rounded}`, query: 'family=Poppins:wght@400;500;600;700;800' },
+  condensed: { displayName: 'Archivo', bodyName: 'Inter', display: `'Archivo', ${FONT_STACK.condensed}`, body: `'Inter', ${FONT_STACK.sans}`, query: 'family=Archivo:wght@600;700;800;900&family=Inter:wght@400;500;600' },
+  mono: { displayName: 'Space Grotesk', bodyName: 'JetBrains Mono', display: `'Space Grotesk', ${FONT_STACK.sans}`, body: `'JetBrains Mono', ${FONT_STACK.mono}`, query: 'family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500;700' },
 };
 type Page = { id: string; name: string; slug: string; title: string; sections: Section[] };
 type PageModel = { meta: { description: string }; theme: Theme; pages: Page[] };
@@ -67,6 +79,9 @@ const SECTION_LABEL: Record<SectionType, string> = {
   video: 'Wideo (YouTube/Vimeo)', map: 'Mapa (Google)', hours: 'Godziny otwarcia', countdown: 'Licznik odliczający',
   download: 'Pliki do pobrania', social: 'Social media', cta: 'Wezwanie do działania', newsletter: 'Newsletter',
   contact: 'Kontakt', embed: 'Własny kod HTML', divider: 'Odstęp / linia', cookies: 'Baner cookies (RODO)', footer: 'Stopka',
+  bento: 'Bento — siatka korzyści', marqueeText: 'Przewijany tekst (banner)', pricingToggle: 'Cennik z przełącznikiem', testimonialWall: 'Ściana opinii',
+  heroSplit: 'Hero z mockupem (split)', showcase: 'Prezentacja (okno aplikacji)',
+  heroEditorial: 'Hero edytorialny (duży)', workRows: 'Realizacje — wiersze', serviceList: 'Usługi — lista numerowana',
 };
 
 function defaultSection(type: SectionType): Section {
@@ -108,6 +123,32 @@ function defaultSection(type: SectionType): Section {
     newsletter: { title: 'Bądź na bieżąco', subtitle: 'Zapisz się i odbieraj nowości oraz porady.', buttonText: 'Zapisz się', placeholder: 'Twój e-mail' },
     contact: { title: 'Kontakt', email: 'kontakt@twojadomena.pl', phone: '+48 000 000 000', address: 'ul. Przykładowa 1, Warszawa', showForm: true },
     footer: { brand: 'Twoja Firma', note: `© ${y} Wszelkie prawa zastrzeżone.`, links: ['Polityka prywatności', 'Regulamin'] },
+    bento: { title: 'Dlaczego my', subtitle: 'Wszystko, co naprawdę się liczy — w jednym miejscu.', items: [
+      { icon: '🚀', title: 'Szybkość bez kompromisów', desc: 'Strony ładują się w ułamku sekundy dzięki nowoczesnej infrastrukturze i pamięci NVMe.' },
+      { icon: '🔒', title: 'Bezpieczeństwo', desc: 'SSL, kopie zapasowe i WAF w standardzie.' },
+      { icon: '📊', title: 'Analityka', desc: 'Pełny wgląd w ruch i konwersje.' },
+      { icon: '⚙️', title: 'Automatyzacja', desc: 'Mniej pracy ręcznej, więcej efektów.' },
+      { icon: '💬', title: 'Wsparcie 24/7', desc: 'Realni ludzie, zawsze gotowi pomóc.' },
+    ] },
+    marqueeText: { text: 'Projektujemy, Budujemy, Wdrażamy, Skalujemy, Wspieramy' },
+    pricingToggle: { title: 'Prosty, uczciwy cennik', subtitle: 'Przełącz na rozliczenie roczne i oszczędzaj 20%.', plans: [
+      { name: 'Start', monthly: '29', annual: '23', period: '/mies.', features: '1 strona WWW\n10 GB SSD\nCertyfikat SSL\nWsparcie e-mail', ctaText: 'Wybieram', featured: false },
+      { name: 'Pro', monthly: '59', annual: '47', period: '/mies.', features: 'Nielimitowane strony\n50 GB NVMe\nCodzienne backupy\nWsparcie 24/7', ctaText: 'Wybieram', featured: true },
+      { name: 'Biznes', monthly: '119', annual: '95', period: '/mies.', features: 'Wszystko z Pro\n200 GB NVMe\nDedykowane IP\nOpiekun konta', ctaText: 'Wybieram', featured: false },
+    ] },
+    heroSplit: { eyebrow: 'Nowość', title: 'Wszystko, czego potrzebuje Twój biznes online', subtitle: 'Hosting, domena, poczta i kreator stron w jednym panelu. Uruchom się dziś — bez kodowania.', ctaText: 'Zacznij za darmo', ctaHref: '#kontakt', ctaSecondary: 'Zobacz demo', kpis: [{ value: '99,99%', label: 'Uptime' }, { value: '12 tys.', label: 'Stron' }, { value: '30 s', label: 'Wdrożenie' }] },
+    showcase: { title: 'Wszystko pod kontrolą', subtitle: 'Intuicyjny panel, w którym zarządzisz całą obecnością online.', caption: 'Podgląd panelu Verris', kpis: [{ value: '1 240', label: 'Wizyt dziś' }, { value: '64 ms', label: 'Czas odpowiedzi' }, { value: '4,9/5', label: 'Ocena' }] },
+    heroEditorial: { title: 'Projektujemy marki, które mają znaczenie', subtitle: 'Niezależne studio. Tworzymy marki, strony i produkty cyfrowe, które ludzie zapamiętują.', tag: 'Dostępni do współpracy', badge: 'STUDIO · EST. 2014', image: 'https://picsum.photos/seed/edhero/1600/900', meta: [{ k: 'Założone', v: '2014, Warszawa' }, { k: 'Specjalizacja', v: 'Branding · Web' }, { k: 'Nagrody', v: 'Awwwards · FWA' }] },
+    workRows: { title: 'Wybrane realizacje', subtitle: 'Projekty, z których jesteśmy dumni.', items: [{ image: 'https://picsum.photos/seed/wr1/900/600', title: 'Aurora Cosmetics', cat: 'Branding · Sklep online', href: '#' }, { image: 'https://picsum.photos/seed/wr2/900/600', title: 'Nordic Coffee', cat: 'Identyfikacja · Opakowania', href: '#' }, { image: 'https://picsum.photos/seed/wr3/900/600', title: 'Lumen Banking', cat: 'Produkt · Aplikacja', href: '#' }] },
+    serviceList: { title: 'Co robimy', subtitle: 'Cztery rzeczy, w których jesteśmy najlepsi.', items: [{ title: 'Strategia i branding', desc: 'Pozycjonowanie, naming i pełny system identyfikacji wizualnej.' }, { title: 'Projektowanie stron', desc: 'Strony i landing page, które ładnie wyglądają i realnie sprzedają.' }, { title: 'Produkt i UX', desc: 'Aplikacje webowe i mobilne projektowane wokół użytkownika.' }, { title: 'Motion i 3D', desc: 'Animacje i treści, które ożywiają markę w każdym kanale.' }] },
+    testimonialWall: { title: 'Kochają nas klienci', subtitle: 'Dołącz do tysięcy zadowolonych firm.', items: [
+      { quote: 'Postawiłem sklep w godzinę. Najlepszy hosting, z jakiego korzystałem.', author: 'Marek Kowalski', role: 'Właściciel sklepu' },
+      { quote: 'Wsparcie odpowiada błyskawicznie, a strona po prostu śmiga.', author: 'Anna Wiśniewska', role: 'Agencja Pixel' },
+      { quote: 'Migracja przebiegła bezboleśnie. Polecam każdemu.', author: 'Tomasz Lewandowski', role: 'Bloger' },
+      { quote: 'Panel jest intuicyjny, a ceny uczciwe. Nareszcie.', author: 'Katarzyna Zając', role: 'Fotografka' },
+      { quote: 'Uptime bez zarzutu od pół roku. Konkretna robota.', author: 'Piotr Mazur', role: 'E-commerce' },
+      { quote: 'Backupy uratowały mi skórę. Czuję się zaopiekowany.', author: 'Magda Król', role: 'Restauratorka' },
+    ] },
   };
   return { id: uid(), type, data: base[type] };
 }
@@ -136,16 +177,23 @@ const RAW_TEMPLATES: Record<string, () => RawTpl> = {
   uslugi: () => ({ title: 'Usługi lokalne', description: 'Solidnie, terminowo, w dobrej cenie.', theme: { primary: '#16a34a', accent: '#f59e0b', bg: 'light', font: 'sans', radius: 'md', width: 'normal' }, sections: SEC(['navbar', 'hero', 'features', 'steps', 'portfolio', 'pricing', 'testimonials', 'contact', 'footer']) }),
   cv: () => ({ title: 'CV / wizytówka osobista', description: 'Cześć! Oto kim jestem i co robię.', theme: { primary: '#0ea5e9', accent: '#a855f7', bg: 'dark', font: 'sans', radius: 'xl', width: 'normal' }, sections: SEC(['navbar', 'hero', 'about', 'timeline', 'portfolio', 'social', 'contact', 'footer']) }),
   organizacja: () => ({ title: 'Fundacja / NGO', description: 'Razem możemy więcej. Dołącz do nas.', theme: { primary: '#16a34a', accent: '#0ea5e9', bg: 'light', font: 'sans', radius: 'md', width: 'normal' }, sections: SEC(['navbar', 'hero', 'stats', 'about', 'steps', 'team', 'cta', 'contact', 'footer']) }),
+  startup: () => ({ title: 'Startup / SaaS — premium', description: 'Twój produkt zasługuje na stronę, która robi wrażenie.', theme: { primary: '#6d28d9', accent: '#06b6d4', bg: 'dark', font: 'sans', radius: 'xl', width: 'wide' }, sections: SEC(['navbar', 'hero', 'marqueeText', 'logos', 'bento', 'stats', 'pricingToggle', 'testimonialWall', 'faq', 'cta', 'footer']) }),
+  studio: () => ({ title: 'Studio kreatywne — premium', description: 'Pokaż portfolio z klasą i przyciągnij klientów.', theme: { primary: '#e11d48', accent: '#f59e0b', bg: 'dark', font: 'serif', radius: 'md', width: 'wide' }, sections: SEC(['navbar', 'hero', 'marqueeText', 'bento', 'portfolio', 'testimonialWall', 'about', 'contact', 'footer']) }),
+  saaspro: () => ({ title: 'SaaS Pro — z mockupem', description: 'Strona produktu jak z najlepszych startupów: split-hero z podglądem aplikacji.', theme: { primary: '#4f46e5', accent: '#06b6d4', bg: 'dark', font: 'sans', radius: 'md', width: 'wide' }, sections: SEC(['navbar', 'heroSplit', 'logos', 'bento', 'showcase', 'pricingToggle', 'testimonialWall', 'faq', 'cta', 'footer']) }),
+  agencjapro: () => ({ title: 'Studio / agencja — edytorial', description: 'Edytorialny, prestiżowy szablon dla studia kreatywnego.', theme: { primary: '#ff4a1c', accent: '#14110d', bg: 'light', font: 'serif', radius: 'sm', width: 'wide' }, sections: SEC(['navbar', 'heroEditorial', 'marqueeText', 'workRows', 'serviceList', 'stats', 'quote', 'cta', 'footer']) }),
+  architekt: () => ({ title: 'Architekt / wnętrza — edytorial', description: 'Elegancki, minimalistyczny szablon dla architekta lub projektanta wnętrz.', theme: { primary: '#9a7b4f', accent: '#1c1a17', bg: 'light', font: 'serif', radius: 'sm', width: 'wide' }, sections: SEC(['navbar', 'heroEditorial', 'workRows', 'serviceList', 'about', 'quote', 'contact', 'footer']) }),
+  restauracjapro: () => ({ title: 'Restauracja — edytorial', description: 'Apetyczny, prestiżowy szablon dla restauracji z dużą fotografią.', theme: { primary: '#b91c1c', accent: '#d97706', bg: 'dark', font: 'serif', radius: 'sm', width: 'normal' }, sections: SEC(['navbar', 'heroEditorial', 'marqueeText', 'menu', 'gallery', 'serviceList', 'hours', 'quote', 'contact', 'footer']) }),
 };
 /* Kategorie szablonów (galeria startowa z filtrami) + krótkie opisy do kart. */
 const TPL_GROUPS: { cat: string; items: { key: string; name: string }[] }[] = [
   { cat: 'Biznes / firma', items: [
-    { key: 'landing', name: 'Landing page' }, { key: 'wizytowka', name: 'Wizytówka firmy' },
+    { key: 'agencjapro', name: 'Studio / agencja — edytorial ✦' }, { key: 'architekt', name: 'Architekt / wnętrza ✦' },
+    { key: 'landing', name: 'Landing page' }, { key: 'studio', name: 'Studio kreatywne (premium) ✦' }, { key: 'wizytowka', name: 'Wizytówka firmy' },
     { key: 'uslugi', name: 'Usługi lokalne' }, { key: 'agencja', name: 'Agencja / portfolio' },
     { key: 'kancelaria', name: 'Kancelaria' }, { key: 'organizacja', name: 'Fundacja / NGO' },
   ] },
   { cat: 'Produkt / online', items: [
-    { key: 'produkt', name: 'Produkt — landing' }, { key: 'saas', name: 'Aplikacja / SaaS' },
+    { key: 'saaspro', name: 'SaaS Pro — mockup ✦' }, { key: 'startup', name: 'Startup / SaaS (premium) ✦' }, { key: 'produkt', name: 'Produkt — landing' }, { key: 'saas', name: 'Aplikacja / SaaS' },
     { key: 'sklep', name: 'Sklep online' }, { key: 'kursy', name: 'Kursy / edukacja' },
   ] },
   { cat: 'Treść / blog', items: [
@@ -153,7 +201,7 @@ const TPL_GROUPS: { cat: string; items: { key: string; name: string }[] }[] = [
     { key: 'cv', name: 'CV / wizytówka osobista' }, { key: 'freelancer', name: 'Freelancer' },
   ] },
   { cat: 'Lokal / wydarzenia', items: [
-    { key: 'restauracja', name: 'Restauracja' }, { key: 'kawiarnia', name: 'Kawiarnia / bar' },
+    { key: 'restauracjapro', name: 'Restauracja — edytorial ✦' }, { key: 'restauracja', name: 'Restauracja' }, { key: 'kawiarnia', name: 'Kawiarnia / bar' },
     { key: 'fitness', name: 'Klub fitness' }, { key: 'przychodnia', name: 'Przychodnia / gabinet' },
     { key: 'nieruchomosci', name: 'Nieruchomości' }, { key: 'wydarzenie', name: 'Wydarzenie / konferencja' },
     { key: 'fotograf', name: 'Fotograf' },
@@ -162,12 +210,28 @@ const TPL_GROUPS: { cat: string; items: { key: string; name: string }[] }[] = [
 const TPL_CATS = ['Wszystkie', ...TPL_GROUPS.map((g) => g.cat)];
 const ALL_TPLS = TPL_GROUPS.flatMap((g) => g.items.map((i) => ({ ...i, cat: g.cat })));
 
+/* Styl wizualny per szablon — żeby szablony realnie się od siebie różniły. */
+const TPL_STYLE: Record<string, ThemeStyle> = {
+  landing: 'modern', produkt: 'modern', saas: 'modern', sklep: 'modern', uslugi: 'modern',
+  agencja: 'bold', freelancer: 'bold', fitness: 'bold', wydarzenie: 'bold',
+  wizytowka: 'minimal', fotograf: 'minimal', cv: 'minimal',
+  restauracja: 'editorial', kancelaria: 'editorial', blog: 'editorial', wpis: 'editorial', nieruchomosci: 'editorial',
+  przychodnia: 'soft', kursy: 'soft', kawiarnia: 'soft', organizacja: 'soft',
+  startup: 'bold', studio: 'editorial', saaspro: 'modern',
+  agencjapro: 'editorial', architekt: 'editorial', restauracjapro: 'editorial',
+};
+function buildTplModel(key: string): PageModel {
+  const m = asModel(RAW_TEMPLATES[key]());
+  m.theme.style = TPL_STYLE[key] ?? 'modern';
+  return m;
+}
+
 /* Grupy bloków dla wizualnego insertera (jak panel bloków w Gutenbergu). */
 const SECTION_GROUPS: { cat: string; items: SectionType[] }[] = [
-  { cat: 'Układ i nagłówki', items: ['navbar', 'banner', 'hero', 'cta', 'footer', 'divider'] },
-  { cat: 'Treść', items: ['features', 'steps', 'about', 'richtext', 'imagetext', 'quote', 'table', 'tabs', 'timeline', 'faq'] },
-  { cat: 'Media i galeria', items: ['gallery', 'portfolio', 'video', 'logos', 'embed'] },
-  { cat: 'Sprzedaż i oferta', items: ['pricing', 'menu', 'stats', 'testimonials'] },
+  { cat: 'Układ i nagłówki', items: ['navbar', 'banner', 'hero', 'heroEditorial', 'heroSplit', 'marqueeText', 'cta', 'footer', 'divider'] },
+  { cat: 'Treść', items: ['bento', 'features', 'serviceList', 'steps', 'about', 'richtext', 'imagetext', 'quote', 'table', 'tabs', 'timeline', 'faq'] },
+  { cat: 'Media i galeria', items: ['workRows', 'showcase', 'gallery', 'portfolio', 'video', 'logos', 'embed'] },
+  { cat: 'Sprzedaż i oferta', items: ['pricingToggle', 'pricing', 'menu', 'stats', 'testimonialWall', 'testimonials'] },
   { cat: 'Blog', items: ['blog', 'article'] },
   { cat: 'Kontakt i lokal', items: ['contact', 'map', 'hours', 'social', 'newsletter', 'countdown', 'download', 'team'] },
   { cat: 'Inne', items: ['cookies'] },
@@ -233,6 +297,25 @@ const PREVIEW_THEME: Theme = { primary: '#6366f1', accent: '#22d3ee', bg: 'dark'
 /* ============================ HTML GENERATOR ============================ */
 const esc = (s: unknown) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
+/** Hex (#rgb / #rrggbb) → rgba() z alfą. Bezpieczny fallback. */
+function rgba(hex: string, a: number): string {
+  let h = (hex || '').trim().replace('#', '');
+  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+  if (!/^[0-9a-fA-F]{6}$/.test(h)) return `rgba(99,102,241,${a})`;
+  const n = parseInt(h, 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+/** Czytelny kolor tekstu (ciemny/jasny) na danym tle wg luminancji. */
+function textOn(hex: string): string {
+  let h = (hex || '').trim().replace('#', '');
+  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+  if (!/^[0-9a-fA-F]{6}$/.test(h)) return '#0a0a0a';
+  const n = parseInt(h, 16);
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  return lum > 0.62 ? '#0a0a0a' : '#ffffff';
+}
+
 const FORM_ACTION = 'form-handler.php';
 const SOCIAL_ICON: Record<string, { e: string; l: string }> = {
   facebook: { e: '📘', l: 'Facebook' }, instagram: { e: '📷', l: 'Instagram' }, linkedin: { e: '💼', l: 'LinkedIn' },
@@ -256,10 +339,28 @@ function videoEmbed(raw: string): { kind: 'frame' | 'file'; src: string } | null
 type NavLink = { name: string; href: string };
 type Ctx = { p: string; a: string; fg: string; mut: string; card: string; line: string; bg2: string; dark: boolean; rad: string; nav: NavLink[] };
 
-function genHtml(page: Page, theme: Theme, description: string, nav: NavLink[]): string {
+/** Dodaje klasę `reveal` do kluczowych elementów (animacja wejścia przy scrollu). */
+function addReveal(html: string): string {
+  return html
+    .replace(/class="head"/g, 'class="head reveal"')
+    .replace(/class="card"/g, 'class="card reveal"')
+    .replace(/class="card /g, 'class="card reveal ')
+    .replace(/class="stat /g, 'class="stat reveal ')
+    .replace(/class="cta-panel"/g, 'class="cta-panel reveal"')
+    .replace(/class="bigquote"/g, 'class="bigquote reveal"')
+    .replace(/class="eyebrow"/g, 'class="eyebrow reveal"')
+    .replace(/class="hero-actions"/g, 'class="hero-actions reveal"');
+}
+
+function genHtml(page: Page, theme: Theme, description: string, nav: NavLink[], animate = true): string {
   const t = theme;
   const dark = t.bg === 'dark';
-  const font = FONT_STACK[t.font] ?? FONT_STACK.sans;
+  const pair = FONT_PAIRS[t.font] ?? FONT_PAIRS.sans;
+  const font = pair.body;
+  // RODO — fonty serwujemy przez proxy Verris (self-hosting), nie bezpośrednio
+  // z Google. Dzięki temu IP odwiedzającego stronę nigdy nie trafia do Google.
+  const fontsBase = (process.env.NEXT_PUBLIC_API_URL ?? 'https://api.verris.pl').replace(/\/$/, '');
+  const fontsLink = `<link rel="preconnect" href="${fontsBase}" crossorigin/><link href="${fontsBase}/fonts/css2?${pair.query}&display=swap" rel="stylesheet"/>`;
   const bg = dark ? '#0b0b0e' : '#ffffff';
   const bg2 = dark ? '#121217' : '#f6f7f9';
   const fg = dark ? '#f5f5f7' : '#16161a';
@@ -268,8 +369,12 @@ function genHtml(page: Page, theme: Theme, description: string, nav: NavLink[]):
   const line = dark ? '#26262e' : '#e6e6ec';
   const rad = t.radius === 'sm' ? '8px' : t.radius === 'md' ? '14px' : '22px';
   const maxw = t.width === 'wide' ? '1240px' : '1080px';
+  const style: ThemeStyle = t.style ?? 'modern';
+  const grad = `linear-gradient(135deg, ${t.primary}, ${t.accent})`;
+  const onP = textOn(t.primary);
   const ctx: Ctx = { p: t.primary, a: t.accent, fg, mut, card, line, bg2, dark, rad, nav };
-  const body = page.sections.map((s) => renderSection(s, ctx)).join('\n');
+  const rawBody = page.sections.map((s) => renderSection(s, ctx)).join('\n');
+  const body = animate ? addReveal(rawBody) : rawBody;
   return `<!DOCTYPE html>
 <html lang="pl"><head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
 <title>${esc(page.title)}</title>
@@ -277,48 +382,69 @@ function genHtml(page: Page, theme: Theme, description: string, nav: NavLink[]):
 <meta property="og:title" content="${esc(page.title)}"/>
 <meta property="og:description" content="${esc(description)}"/>
 <meta property="og:type" content="website"/>
+${fontsLink}
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 html{scroll-behavior:smooth}
-body{font-family:${font};background:${bg};color:${fg};line-height:1.6}
+body{font-family:${font};background:${bg};color:${fg};line-height:1.65;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 img{max-width:100%;display:block}
 .wrap{max-width:${maxw};margin:0 auto;padding:0 24px}
 a{color:inherit;text-decoration:none}
-.btn{display:inline-flex;align-items:center;gap:8px;background:${t.primary};color:${dark ? '#04100b' : '#0a0a0a'};font-weight:700;padding:13px 26px;border-radius:${rad};transition:transform .15s,opacity .2s;border:none;cursor:pointer}
-.btn:hover{transform:translateY(-1px);opacity:.92}
-.btn.ghost{background:transparent;color:${fg};border:1px solid ${line}}
-section{padding:80px 0}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:${grad};color:${onP};font-weight:700;font-size:15px;padding:14px 28px;border-radius:${rad};transition:transform .18s ease,box-shadow .25s ease;border:none;cursor:pointer;box-shadow:0 8px 24px ${rgba(t.primary, 0.32)}}
+.btn:hover{transform:translateY(-2px);box-shadow:0 14px 36px ${rgba(t.primary, 0.42)}}
+.btn.ghost{background:transparent;color:${fg};border:1px solid ${line};box-shadow:none}
+.btn.ghost:hover{border-color:${t.primary};background:${rgba(t.primary, 0.06)};box-shadow:none}
+section{padding:clamp(64px,9vw,104px) 0;position:relative}
 .sec-tint{background:${bg2}}
-h1{font-size:clamp(34px,6vw,60px);line-height:1.04;font-weight:800;letter-spacing:-.02em}
-h2{font-size:clamp(26px,3.6vw,38px);font-weight:800}
-h3{font-size:20px;font-weight:700}
+h1,h2,h3,.nav .brand,.amt,.stat .v,.mock .kpi b,.bento .b.lg h3,.mtext .mt span,.edhero .meta .v,.wrow .no,.srow .n{font-family:${pair.display}}
+h1{font-size:clamp(40px,6.4vw,68px);line-height:1.02;font-weight:800;letter-spacing:-.035em}
+h2{font-size:clamp(28px,4vw,44px);font-weight:800;line-height:1.1;letter-spacing:-.025em}
+h3{font-size:20px;font-weight:700;letter-spacing:-.01em}
 .center{text-align:center}
-.lead{color:${mut};font-size:clamp(16px,2vw,20px);margin-top:16px;max-width:62ch}
-.sub{color:${mut};margin-top:8px;max-width:60ch}
+.lead{color:${mut};font-size:clamp(17px,1.7vw,21px);margin-top:20px;max-width:62ch;line-height:1.6}
+.sub{color:${mut};margin-top:10px;max-width:60ch}
 .muted{color:${mut}}
-.head{max-width:680px;margin:0 auto 44px;text-align:center}
-.grid{display:grid;gap:22px}
+.grad-text{background:${grad};-webkit-background-clip:text;background-clip:text;color:transparent}
+.head{max-width:720px;margin:0 auto 56px;text-align:center}
+.grid{display:grid;gap:24px}
 .g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
-.card{background:${card};border:1px solid ${line};border-radius:${rad};padding:26px}
-.shadow{box-shadow:0 10px 40px rgba(0,0,0,${dark ? '.35' : '.06'})}
-.nav{display:flex;align-items:center;justify-content:space-between;padding:18px 0}
-.nav.sticky{position:sticky;top:0;z-index:50;background:${bg}cc;backdrop-filter:blur(10px);border-bottom:1px solid ${line}}
-.nav .links{display:flex;gap:26px}
-.eyebrow{display:inline-block;color:${t.primary};font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:13px;margin-bottom:14px}
-.hero-actions{display:flex;gap:14px;margin-top:34px;flex-wrap:wrap}
-.hero-bg{background-size:cover;background-position:center;border-radius:${rad};padding:96px 40px;position:relative}
-.hero-bg::before{content:"";position:absolute;inset:0;background:rgba(0,0,0,.5);border-radius:${rad}}
+.card{background:${card};border:1px solid ${line};border-radius:${rad};padding:30px;transition:transform .2s ease,box-shadow .25s ease,border-color .2s ease}
+.card:hover{transform:translateY(-4px);box-shadow:0 18px 50px rgba(0,0,0,${dark ? '.45' : '.10'});border-color:${rgba(t.primary, 0.4)}}
+.shadow{box-shadow:0 18px 60px rgba(0,0,0,${dark ? '.4' : '.08'})}
+.nav{display:flex;align-items:center;justify-content:space-between;padding:20px 0;gap:16px}
+.nav.sticky{position:sticky;top:0;z-index:50;background:${rgba(dark ? '#0b0b0e' : '#ffffff', 0.72)};backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-bottom:1px solid ${line}}
+.nav .brand{font-size:19px;font-weight:800;letter-spacing:-.02em}
+.nav .links{display:flex;gap:30px}
+.nav .links a{font-size:15px;color:${mut};font-weight:500;transition:color .15s}
+.nav .links a:hover{color:${fg}}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;color:${t.primary};font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:12.5px;margin-bottom:18px;padding:6px 14px;border-radius:999px;background:${rgba(t.primary, 0.1)};border:1px solid ${rgba(t.primary, 0.22)}}
+.hero{padding:clamp(76px,12vh,148px) 0 clamp(64px,9vh,116px);position:relative;overflow:hidden}
+.hero::before{content:"";position:absolute;inset:0;z-index:0;pointer-events:none;background:radial-gradient(58% 50% at 12% -5%, ${rgba(t.primary, dark ? 0.3 : 0.16)} 0%, transparent 62%),radial-gradient(52% 46% at 92% 12%, ${rgba(t.accent, dark ? 0.28 : 0.14)} 0%, transparent 60%)}
+.hero .wrap{position:relative;z-index:1}
+.hero h1{max-width:19ch}
+.hero.center{text-align:center}
+.hero.center h1,.hero.center .lead{margin-left:auto;margin-right:auto}
+.hero-actions{display:flex;gap:14px;margin-top:36px;flex-wrap:wrap}
+.hero.center .hero-actions{justify-content:center}
+.hero-bg{background-size:cover;background-position:center;border-radius:${rad};padding:clamp(64px,9vw,104px) 40px;position:relative;overflow:hidden}
+.hero-bg::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.35),rgba(0,0,0,.62));border-radius:${rad}}
 .hero-bg>*{position:relative;color:#fff}
-.stat .v{font-size:clamp(28px,4vw,44px);font-weight:800;color:${t.primary}}
-.stat .l{color:${mut};margin-top:6px;font-size:14px}
-.icon{font-size:28px;margin-bottom:14px}
+.hero-bg.center{text-align:center}.hero-bg.center h1,.hero-bg.center .lead{margin-left:auto;margin-right:auto}.hero-bg.center .hero-actions{justify-content:center}
+.cta-panel{position:relative;overflow:hidden;text-align:center;border-radius:${rad};padding:clamp(44px,6vw,76px);background:${grad};color:${onP};box-shadow:0 22px 70px ${rgba(t.primary, 0.35)}}
+.cta-panel h2{color:${onP}}
+.cta-panel .btn{background:${onP === '#ffffff' ? '#ffffff' : '#0a0a0a'};color:${onP === '#ffffff' ? t.primary : '#ffffff'};box-shadow:0 10px 28px rgba(0,0,0,.2)}
+.cta-panel .btn:hover{transform:translateY(-2px)}
+.stat .v{font-size:clamp(32px,4.4vw,52px);font-weight:800;letter-spacing:-.03em;background:${grad};-webkit-background-clip:text;background-clip:text;color:transparent}
+.stat .l{color:${mut};margin-top:8px;font-size:14.5px}
+.icon{display:inline-flex;align-items:center;justify-content:center;width:54px;height:54px;border-radius:${t.radius === 'xl' ? '16px' : '12px'};font-size:26px;margin-bottom:18px;background:${rgba(t.primary, 0.12)};border:1px solid ${rgba(t.primary, 0.2)}}
 .gal img{border-radius:${rad};aspect-ratio:3/2;object-fit:cover;width:100%}
 .price{position:relative;text-align:center}
-.price.feat{border-color:${t.primary};box-shadow:0 0 0 2px ${t.primary} inset}
-.price .amt{font-size:40px;font-weight:800;margin:12px 0}
+.price.feat{border-color:${rgba(t.primary, 0.55)};box-shadow:0 0 0 2px ${rgba(t.primary, 0.55)} inset,0 22px 60px rgba(0,0,0,${dark ? '.5' : '.12'});transform:scale(1.035)}
+.price .amt{font-size:44px;font-weight:800;letter-spacing:-.03em;margin:14px 0}
 .price ul{list-style:none;margin:18px 0;text-align:left}
-.price li{padding:7px 0;border-bottom:1px solid ${line};color:${mut}}
-.badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:${t.primary};color:#04100b;font-size:12px;font-weight:700;padding:4px 12px;border-radius:999px}
+.price li{padding:9px 0 9px 26px;border-bottom:1px solid ${line};color:${mut};position:relative}
+.price li::before{content:"✓";position:absolute;left:0;color:${t.primary};font-weight:800}
+.badge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:${grad};color:${onP};font-size:12px;font-weight:700;padding:5px 14px;border-radius:999px;box-shadow:0 6px 18px ${rgba(t.primary, 0.4)}}
 .quote{font-size:18px;font-style:italic}
 .avatar{width:56px;height:56px;border-radius:50%;object-fit:cover}
 .author{display:flex;align-items:center;gap:12px;margin-top:18px}
@@ -333,7 +459,7 @@ h3{font-size:20px;font-weight:700}
 .vidwrap{position:relative;width:100%;max-width:920px;margin:0 auto;aspect-ratio:16/9;border-radius:${rad};overflow:hidden;background:#000;box-shadow:0 10px 40px rgba(0,0,0,${dark ? '.4' : '.1'})}
 .vid{position:absolute;inset:0;width:100%;height:100%;border:0;object-fit:cover}
 .map{width:100%;border:1px solid ${line};border-radius:${rad}}
-.banner{background:${t.primary};color:#04100b;text-align:center;padding:12px 24px;font-weight:600;font-size:15px}
+.banner{background:${grad};color:${onP};text-align:center;padding:13px 24px;font-weight:600;font-size:15px}
 .banner a{text-decoration:underline;font-weight:800;margin-left:8px}
 .steps{counter-reset:step}
 .step-card{position:relative;padding-top:30px}
@@ -393,14 +519,147 @@ h3{font-size:20px;font-weight:700}
 .fnote{display:none;margin-top:10px;color:${t.primary};font-weight:600}
 .footer{border-top:1px solid ${line};padding:36px 0;color:${mut};display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px}
 .footer .fl{display:flex;gap:20px;flex-wrap:wrap}
-@media(max-width:820px){.g2,.g3,.g4,.split{grid-template-columns:1fr}.nav .links{display:none}}
+/* ===== Warianty stylu (różnicują szablony) ===== */
+/* MINIMAL — dużo światła, płaskie przyciski, stonowane akcenty */
+body[data-style=minimal] section{padding:clamp(72px,10vw,128px) 0}
+body[data-style=minimal] .btn{background:${t.primary};box-shadow:none}
+body[data-style=minimal] .btn:hover{transform:translateY(-1px);box-shadow:none;opacity:.9}
+body[data-style=minimal] .eyebrow{background:transparent;border:none;padding:0;letter-spacing:.2em}
+body[data-style=minimal] .card{box-shadow:none}
+body[data-style=minimal] .card:hover{transform:none;box-shadow:none;border-color:${t.primary}}
+body[data-style=minimal] .hero::before{opacity:.45}
+body[data-style=minimal] h1,body[data-style=minimal] h2{font-weight:700;letter-spacing:-.02em}
+/* BOLD — wielka, mocna typografia + gradientowy nagłówek hero */
+body[data-style=bold] h1{font-size:clamp(46px,9vw,96px);font-weight:900;letter-spacing:-.045em}
+body[data-style=bold] .hero h1{background:${grad};-webkit-background-clip:text;background-clip:text;color:transparent}
+body[data-style=bold] .hero::before{background:radial-gradient(60% 55% at 10% -10%, ${rgba(t.primary, dark ? 0.42 : 0.22)} 0%, transparent 62%),radial-gradient(55% 50% at 95% 10%, ${rgba(t.accent, dark ? 0.4 : 0.2)} 0%, transparent 60%)}
+body[data-style=bold] .btn{padding:16px 34px;font-size:16px}
+body[data-style=bold] h2{font-weight:900}
+/* EDITORIAL — magazynowy, hero do lewej, subtelne akcenty */
+body[data-style=editorial] .hero{text-align:left}
+body[data-style=editorial] .hero h1,body[data-style=editorial] .hero .lead{margin-left:0}
+body[data-style=editorial] .eyebrow{background:transparent;border:none;padding:0;color:${mut};letter-spacing:.24em}
+body[data-style=editorial] .card{box-shadow:none}
+body[data-style=editorial] h1{font-weight:700;letter-spacing:-.015em}
+body[data-style=editorial] .head{text-align:left;margin-left:0}
+/* SOFT — przyjazny, mocno zaokrąglony, pastelowe poświaty */
+body[data-style=soft] .btn,body[data-style=soft] .card,body[data-style=soft] .field,body[data-style=soft] .price,body[data-style=soft] .faq details{border-radius:26px}
+body[data-style=soft] .icon{border-radius:20px}
+body[data-style=soft] .hero::before{background:radial-gradient(55% 50% at 18% 0%, ${rgba(t.primary, dark ? 0.26 : 0.16)} 0%, transparent 60%),radial-gradient(50% 45% at 85% 8%, ${rgba(t.accent, dark ? 0.24 : 0.15)} 0%, transparent 58%),radial-gradient(60% 50% at 50% 110%, ${rgba(t.accent, dark ? 0.18 : 0.1)} 0%, transparent 60%)}
+body[data-style=soft] .card:hover{box-shadow:0 22px 60px rgba(0,0,0,${dark ? '.4' : '.1'})}
+.footer{border-top:1px solid ${line};padding:44px 0;color:${mut};display:flex;justify-content:space-between;flex-wrap:wrap;gap:14px;align-items:center}
+.footer .fl a{transition:color .15s}.footer .fl a:hover{color:${fg}}
+/* ===== Nowe bloki premium ===== */
+.hsplit{display:grid;grid-template-columns:1.04fr .96fr;gap:clamp(28px,5vw,64px);align-items:center}
+.hsplit .lead{margin-top:18px}
+@media(max-width:900px){.hsplit{grid-template-columns:1fr}}
+.mock{border:1px solid ${line};border-radius:16px;overflow:hidden;background:${card};box-shadow:0 30px 80px rgba(0,0,0,${dark ? '.5' : '.16'})}
+.mock .bar{display:flex;gap:7px;align-items:center;padding:13px 16px;border-bottom:1px solid ${line};background:${bg2}}
+.mock .bar i{width:11px;height:11px;border-radius:50%;display:block;background:${line}}
+.mock .bar i:nth-child(1){background:#ff5f57}.mock .bar i:nth-child(2){background:#febc2e}.mock .bar i:nth-child(3){background:#28c840}
+.mock .bar em{margin-left:12px;font-style:normal;font-size:12px;color:${mut};background:${card};border:1px solid ${line};border-radius:8px;padding:4px 12px;flex:1;max-width:280px}
+.mock .mbody{padding:20px;display:grid;gap:16px}
+.mock .kpi{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.mock .kpi div{background:${bg2};border:1px solid ${line};border-radius:12px;padding:14px 16px}
+.mock .kpi b{font-size:24px;display:block;letter-spacing:-.02em;background:${grad};-webkit-background-clip:text;background-clip:text;color:transparent}
+.mock .kpi span{font-size:11px;color:${mut}}
+.mock .chart{display:flex;align-items:flex-end;gap:9px;height:130px;padding:12px;background:${bg2};border:1px solid ${line};border-radius:12px}
+.mock .chart i{flex:1;border-radius:6px 6px 0 0;background:${grad};opacity:.9;display:block}
+.mock .mline{height:11px;border-radius:6px;background:${bg2};border:1px solid ${line}}
+.edhero{padding:clamp(56px,8vw,96px) 0 36px;position:relative}
+.edhero .leadrow{display:flex;justify-content:flex-end;margin-bottom:18px}
+.edhero .lead{max-width:440px;margin-top:0}
+.edhero h1{font-size:clamp(46px,11vw,150px);line-height:.94;font-weight:700;letter-spacing:-.03em}
+.edhero .meta{display:flex;gap:40px;flex-wrap:wrap;margin-top:32px;border-top:1px solid ${line};padding-top:20px}
+.edhero .meta .k{display:block;color:${mut};font-size:12px;letter-spacing:.12em;text-transform:uppercase}
+.edhero .meta .v{display:block;font-size:22px;margin-top:4px}
+.edhero .ed-img{margin-top:42px;height:clamp(260px,42vw,520px);border-radius:${rad};overflow:hidden;position:relative;background:linear-gradient(135deg,${bg2},${rgba(t.primary, 0.25)})}
+.edhero .ed-img img{width:100%;height:100%;object-fit:cover;filter:grayscale(.2) contrast(1.05)}
+.ed-badge{position:absolute;right:22px;top:22px;width:112px;height:112px;background:${card};border-radius:50%;box-shadow:0 10px 30px rgba(0,0,0,.18)}
+.ed-badge svg{width:100%;height:100%;animation:spin 16s linear infinite}
+.ed-badge .st{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:${t.primary};font-size:24px}
+.edhero .tag{position:absolute;left:20px;bottom:20px;background:${card};padding:9px 16px;border-radius:40px;font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
+.edhero .tag::before{content:"";width:8px;height:8px;border-radius:50%;background:${t.primary}}
+.wrows{display:flex;flex-direction:column;gap:16px}
+.wrow{display:grid;grid-template-columns:70px 1fr 1fr;gap:28px;align-items:center;padding:20px;border:1px solid ${line};border-radius:${rad};background:${card};transition:transform .3s,box-shadow .3s}
+.wrow:hover{transform:translateY(-4px);box-shadow:0 22px 56px rgba(0,0,0,${dark ? '.5' : '.1'})}
+.wrow .no{font-size:32px;color:${t.primary}}
+.wrow .ph{height:210px;border-radius:12px;overflow:hidden;background:linear-gradient(135deg,${bg2},${rgba(t.primary, 0.2)})}
+.wrow .ph img{width:100%;height:100%;object-fit:cover;filter:grayscale(.3) contrast(1.05);transition:transform .5s,filter .5s}
+.wrow:hover .ph img{transform:scale(1.05);filter:grayscale(0)}
+.wrow h3{font-size:28px}
+.wrow .cat{font-size:14px;margin-top:8px}
+.wrow .arrow{margin-top:14px;display:inline-flex;gap:8px;font-weight:600;font-size:14px}.wrow .arrow b{color:${t.primary}}
+@media(max-width:860px){.wrow{grid-template-columns:1fr}}
+.slist{border-top:1px solid ${line}}
+.srow{display:grid;grid-template-columns:60px 1fr 1.1fr;gap:28px;align-items:center;padding:28px 6px;border-bottom:1px solid ${line};transition:background .25s,padding .25s}
+.srow:hover{background:${bg2};padding-left:16px;padding-right:16px}
+.srow .n{color:${mut};font-size:18px}
+.srow h3{font-size:clamp(24px,3.2vw,40px)}
+.srow:hover h3{color:${t.primary}}
+.srow p{color:${mut}}
+@media(max-width:860px){.srow{grid-template-columns:40px 1fr}.srow p{grid-column:1 / -1}}
+.bento{display:grid;grid-template-columns:repeat(6,1fr);grid-auto-rows:1fr;gap:18px}
+.bento .b{background:${card};border:1px solid ${line};border-radius:${rad};padding:28px;position:relative;overflow:hidden;grid-column:span 2;transition:transform .2s,box-shadow .25s,border-color .2s}
+.bento .b:hover{transform:translateY(-4px);box-shadow:0 18px 50px rgba(0,0,0,${dark ? '.45' : '.10'});border-color:${rgba(t.primary, 0.4)}}
+.bento .b.lg{grid-column:span 4;grid-row:span 2;display:flex;flex-direction:column;justify-content:flex-end}
+.bento .b.lg::before{content:"";position:absolute;inset:0;background:${grad};opacity:.1;pointer-events:none}
+.bento .b.lg h3{font-size:clamp(22px,2.6vw,30px)}
+.mtext{overflow:hidden;border-top:1px solid ${line};border-bottom:1px solid ${line};padding:24px 0;background:${bg2};-webkit-mask:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+.mtext .mt{display:flex;align-items:center;width:max-content}
+.mtext .mt span{font-size:clamp(30px,6vw,72px);font-weight:900;letter-spacing:-.03em;white-space:nowrap;padding:0 .3em;background:${grad};-webkit-background-clip:text;background-clip:text;color:transparent}
+.mtext .mt span.dot{-webkit-text-fill-color:${t.primary};color:${t.primary}}
+.toggle{display:inline-flex;gap:4px;padding:5px;border:1px solid ${line};border-radius:999px;background:${card};margin:0 auto 40px}
+.toggle button{border:none;background:transparent;color:${mut};font:inherit;font-weight:700;font-size:14px;padding:9px 20px;border-radius:999px;cursor:pointer;transition:color .2s}
+.toggle button.on{background:${grad};color:${onP}}
+.save-pill{font-size:11px;opacity:.9}
+.wall{column-count:3;column-gap:20px}
+.wall .tcard{break-inside:avoid;-webkit-column-break-inside:avoid;margin-bottom:20px;background:${card};border:1px solid ${line};border-radius:${rad};padding:24px}
+.wall .tq{font-size:15.5px;line-height:1.6}
+.wall .ta{display:flex;align-items:center;gap:10px;margin-top:16px}
+.wall .av{width:42px;height:42px;border-radius:50%;flex:none;background:${grad};color:${onP};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px}
+@media(max-width:980px){.wall{column-count:2}.bento{grid-template-columns:repeat(2,1fr)}.bento .b,.bento .b.lg{grid-column:span 1;grid-row:auto}}
+@media(max-width:620px){.wall{column-count:1}.bento{grid-template-columns:1fr}}
+/* ===== Autorskie efekty „wow" (CSS + vanilla JS, bez bibliotek) ===== */
+/* Spotlight pod kursorem na kartach */
+.card{position:relative;overflow:hidden}
+.card::after{content:"";position:absolute;inset:0;border-radius:inherit;opacity:0;transition:opacity .35s;pointer-events:none;background:radial-gradient(220px circle at var(--mx,50%) var(--my,50%), ${rgba(t.primary, 0.16)}, transparent 60%)}
+.card:hover::after{opacity:1}
+/* Marquee logo (auto-przewijanie) */
+.marquee{overflow:hidden;-webkit-mask:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent);mask:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent)}
+.mq-track{display:flex;align-items:center;gap:56px;width:max-content;opacity:.62}
+.mq-track span{font-weight:800;font-size:20px;letter-spacing:.04em;white-space:nowrap}
+/* Animowany pierścień gradientowy na wyróżnionym planie */
+.price.feat{z-index:0}
+.price.feat::before{content:"";position:absolute;inset:-1.5px;border-radius:inherit;z-index:-1;background:conic-gradient(from 0deg, ${t.primary}, ${t.accent}, ${t.primary})}
+/* ===== Animacje (tylko gdy body.anim; respektują reduced-motion) ===== */
+body.anim .reveal{opacity:0;transform:translateY(28px);transition:opacity .7s cubic-bezier(.16,.7,.3,1),transform .7s cubic-bezier(.16,.7,.3,1)}
+body.anim .reveal.in{opacity:1;transform:none}
+body.anim .grid>.reveal:nth-child(2){transition-delay:.07s}
+body.anim .grid>.reveal:nth-child(3){transition-delay:.14s}
+body.anim .grid>.reveal:nth-child(4){transition-delay:.21s}
+body.anim .hero::before{inset:auto;width:50vw;height:50vw;left:-12vw;top:-18vw;border-radius:50%;background:radial-gradient(circle, ${t.primary} 0%, transparent 68%);filter:blur(72px);opacity:${dark ? '.55' : '.4'};animation:drift1 20s ease-in-out infinite alternate}
+body.anim .hero::after{content:"";position:absolute;z-index:0;pointer-events:none;width:44vw;height:44vw;right:-10vw;top:-10vw;border-radius:50%;background:radial-gradient(circle, ${t.accent} 0%, transparent 68%);filter:blur(72px);opacity:${dark ? '.5' : '.38'};animation:drift2 24s ease-in-out infinite alternate}
+body.anim .mq-track{animation:mq 30s linear infinite}
+body.anim .price.feat::before{animation:spin 8s linear infinite}
+@keyframes drift1{to{transform:translate(8vw,6vw) scale(1.18)}}
+@keyframes drift2{to{transform:translate(-7vw,8vw) scale(1.12)}}
+@keyframes mq{to{transform:translateX(-50%)}}
+@keyframes spin{to{transform:rotate(1turn)}}
+@media(prefers-reduced-motion:reduce){body.anim .reveal{opacity:1!important;transform:none!important}body.anim .hero::before,body.anim .hero::after,body.anim .mq-track,body.anim .price.feat::before,.ed-badge svg{animation:none!important}}
+@media(max-width:820px){.g2,.g3,.g4,.split{grid-template-columns:1fr}.nav .links{display:none}.price.feat{transform:none}.hero{padding:72px 0 56px}}
 </style></head>
-<body>
+<body data-style="${style}" class="${animate ? 'anim' : ''}">
 ${body}
 <script>(function(){if(location.search.indexOf('sent=1')>-1){document.querySelectorAll('.fnote').forEach(function(e){e.style.display='block';});var b=document.createElement('div');b.textContent='Dziękujemy! Wiadomość została wysłana.';b.style.cssText='position:fixed;left:50%;top:20px;transform:translateX(-50%);background:${t.primary};color:#04100b;font-weight:700;padding:12px 22px;border-radius:12px;z-index:9999;box-shadow:0 10px 40px rgba(0,0,0,.35)';document.body.appendChild(b);setTimeout(function(){b.remove();},5000);}
 var cds=document.querySelectorAll('.cd[data-deadline]');if(cds.length){function pad(n){return(n<10?'0':'')+n;}function tick(){cds.forEach(function(cd){var end=new Date(cd.getAttribute('data-deadline')).getTime();if(isNaN(end))return;var diff=end-Date.now();if(diff<=0){cd.innerHTML='<div class="u" style="min-width:auto;padding:16px 24px"><div class="n">'+(cd.getAttribute('data-expired')||'Zakończono')+'</div></div>';return;}var d=Math.floor(diff/864e5),h=Math.floor(diff/36e5)%24,m=Math.floor(diff/6e4)%60,s=Math.floor(diff/1e3)%60;var set=function(k,v){var el=cd.querySelector('[data-cd="'+k+'"]');if(el)el.textContent=v;};set('d',d);set('h',pad(h));set('m',pad(m));set('s',pad(s));});}tick();setInterval(tick,1000);}
 document.querySelectorAll('.tab-btn').forEach(function(b){b.addEventListener('click',function(){var g=b.getAttribute('data-tab'),i=b.getAttribute('data-i');document.querySelectorAll('.tab-btn[data-tab="'+g+'"]').forEach(function(x){x.classList.toggle('active',x===b);});document.querySelectorAll('.tab-pane[data-pane="'+g+'"]').forEach(function(p){p.classList.toggle('active',p.getAttribute('data-i')===i);});});});
-var cb=document.querySelector('[data-cookiebar]');if(cb){try{if(!localStorage.getItem('cookieok'))cb.hidden=false;}catch(e){cb.hidden=false;}var ac=cb.querySelector('[data-cookie-accept]');if(ac)ac.addEventListener('click',function(){try{localStorage.setItem('cookieok','1');}catch(e){}cb.hidden=true;});}})();</script>
+document.querySelectorAll('[data-toggle]').forEach(function(tg){tg.addEventListener('click',function(e){var b=e.target.closest('button[data-mode]');if(!b)return;var mode=b.getAttribute('data-mode');tg.querySelectorAll('button').forEach(function(x){x.classList.toggle('on',x===b);});var sc=tg.closest('section');if(!sc)return;sc.querySelectorAll('[data-price]').forEach(function(p){var v=p.getAttribute(mode==='a'?'data-a':'data-m');if(v!=null)p.textContent=v;});sc.querySelectorAll('[data-per]').forEach(function(pe){pe.textContent=mode==='a'?'/mies. (rocznie)':'/mies.';});});});
+var cb=document.querySelector('[data-cookiebar]');if(cb){try{if(!localStorage.getItem('cookieok'))cb.hidden=false;}catch(e){cb.hidden=false;}var ac=cb.querySelector('[data-cookie-accept]');if(ac)ac.addEventListener('click',function(){try{localStorage.setItem('cookieok','1');}catch(e){}cb.hidden=true;});}
+if(document.body.classList.contains('anim')){var rm=window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches;var rev=[].slice.call(document.querySelectorAll('.reveal'));if(rm){rev.forEach(function(e){e.classList.add('in');});}else if('IntersectionObserver' in window){var io=new IntersectionObserver(function(es){es.forEach(function(en){if(en.isIntersecting){en.target.classList.add('in');io.unobserve(en.target);}});},{threshold:.12,rootMargin:'0px 0px -8% 0px'});rev.forEach(function(e){io.observe(e);});}else{rev.forEach(function(e){e.classList.add('in');});}
+document.querySelectorAll('.card').forEach(function(c){c.addEventListener('pointermove',function(e){var r=c.getBoundingClientRect();c.style.setProperty('--mx',(e.clientX-r.left)+'px');c.style.setProperty('--my',(e.clientY-r.top)+'px');});});
+if(!rm){var run=function(el){var txt=el.textContent;var m=txt.match(/([0-9]+(?:[.,][0-9]+)?)/);if(!m)return;var target=parseFloat(m[1].replace(',','.'));var dec=(m[1].split(/[.,]/)[1]||'').length;var pre=txt.slice(0,m.index),post=txt.slice(m.index+m[1].length);var t0=null,dur=1400;function step(ts){if(!t0)t0=ts;var p=Math.min((ts-t0)/dur,1);var ease=1-Math.pow(1-p,3);var disp=dec?(target*ease).toFixed(dec).replace('.',','):Math.round(target*ease).toString();el.textContent=pre+disp+post;if(p<1)requestAnimationFrame(step);}requestAnimationFrame(step);};var nums=[].slice.call(document.querySelectorAll('.stat .v'));if('IntersectionObserver' in window){var io2=new IntersectionObserver(function(es){es.forEach(function(en){if(en.isIntersecting){run(en.target);io2.unobserve(en.target);}});},{threshold:.5});nums.forEach(function(e){io2.observe(e);});}else{nums.forEach(run);}}}
+})();</script>
 </body></html>`;
 }
 
@@ -410,21 +669,27 @@ function sec(inner: string, tint = false, id = '') {
 function headBlock(title: unknown, sub?: unknown) {
   return `<div class="head"><h2>${esc(title)}</h2>${sub ? `<p class="sub" style="margin:8px auto 0">${esc(sub)}</p>` : ''}</div>`;
 }
+/** Czysty-CSS „mockup" okna aplikacji (pasek tytułu + KPI + wykres słupkowy). */
+function mockWindow(kpis: { value: string; label: string }[]): string {
+  const bars = [44, 66, 52, 78, 60, 92, 70, 84];
+  const k = kpis.slice(0, 3).map((x) => `<div><b>${esc(x.value)}</b><span>${esc(x.label)}</span></div>`).join('');
+  return `<div class="mock"><div class="bar"><i></i><i></i><i></i><em>panel.twojafirma.pl</em></div><div class="mbody"><div class="kpi">${k}</div><div class="chart">${bars.map((h) => `<i style="height:${h}%"></i>`).join('')}</div><div class="mline" style="width:82%"></div><div class="mline" style="width:64%"></div><div class="mline" style="width:73%"></div></div></div>`;
+}
 
 function renderSection(s: Section, c: Ctx): string {
   const d = s.data;
   switch (s.type) {
     case 'navbar': {
       const links = c.nav.length > 1 ? c.nav : ((d.links as string[]) ?? []).map((l) => ({ name: l, href: '#' }));
-      return `<div class="wrap"><nav class="nav ${d.sticky ? 'sticky' : ''}"><strong style="font-size:18px">${esc(d.brand)}</strong><div class="links">${links
+      return `<div class="wrap"><nav class="nav ${d.sticky ? 'sticky' : ''}"><strong class="brand">${esc(d.brand)}</strong><div class="links">${links
         .map((l) => `<a href="${esc(l.href)}">${esc(l.name)}</a>`)
         .join('')}</div><a class="btn" href="#kontakt">${esc(d.ctaText)}</a></nav></div>`;
     }
     case 'hero': {
-      const align = (d.align as string) === 'center' ? 'center' : '';
-      const inner = `${d.eyebrow ? `<span class="eyebrow">${esc(d.eyebrow)}</span>` : ''}<h1>${esc(d.title)}</h1><p class="lead" ${align ? 'style="margin-left:auto;margin-right:auto"' : ''}>${esc(d.subtitle)}</p><div class="hero-actions" ${align ? 'style="justify-content:center"' : ''}><a class="btn" href="${esc(d.ctaHref || '#')}">${esc(d.ctaText)}</a>${d.ctaSecondary ? `<a class="btn ghost" href="#">${esc(d.ctaSecondary)}</a>` : ''}</div>`;
-      if (d.bgImage) return `<section><div class="wrap"><div class="hero-bg ${align}" style="background-image:url('${esc(d.bgImage)}')">${inner}</div></div></section>`;
-      return `<section><div class="wrap ${align}">${inner}</div></section>`;
+      const center = (d.align as string) === 'center';
+      const inner = `${d.eyebrow ? `<span class="eyebrow">${esc(d.eyebrow)}</span>` : ''}<h1>${esc(d.title)}</h1><p class="lead">${esc(d.subtitle)}</p><div class="hero-actions"><a class="btn" href="${esc(d.ctaHref || '#')}">${esc(d.ctaText)}</a>${d.ctaSecondary ? `<a class="btn ghost" href="#">${esc(d.ctaSecondary)}</a>` : ''}</div>`;
+      if (d.bgImage) return `<section class="hero"><div class="wrap"><div class="hero-bg ${center ? 'center' : ''}" style="background-image:url('${esc(d.bgImage)}')">${inner}</div></div></section>`;
+      return `<section class="hero ${center ? 'center' : ''}"><div class="wrap">${inner}</div></section>`;
     }
     case 'stats': {
       const items = (d.items as { value: string; label: string }[]) ?? [];
@@ -459,7 +724,8 @@ function renderSection(s: Section, c: Ctx): string {
     }
     case 'logos': {
       const items = (d.items as string[]) ?? [];
-      return sec(`${d.title ? `<p class="center muted" style="margin-bottom:24px">${esc(d.title)}</p>` : ''}<div class="logos">${items.map((l) => `<span>${esc(l)}</span>`).join('')}</div>`);
+      const set = items.map((l) => `<span>${esc(l)}</span>`).join('');
+      return sec(`${d.title ? `<p class="center muted" style="margin-bottom:28px">${esc(d.title)}</p>` : ''}<div class="marquee"><div class="mq-track">${set}${set}</div></div>`);
     }
     case 'about':
       return sec(`<div class="split"><div><h2>${esc(d.title)}</h2><p class="lead" style="max-width:none">${esc(d.body)}</p></div>${d.image ? `<img class="shadow" style="border-radius:${c.rad}" src="${esc(d.image)}" alt="${esc(d.title)}"/>` : ''}</div>`);
@@ -568,7 +834,7 @@ function renderSection(s: Section, c: Ctx): string {
     case 'cookies':
       return `<div class="cookies" data-cookiebar hidden><p>${esc(d.text)}${d.moreText ? ` <a href="${esc(d.moreHref || '#')}" style="color:${c.p};text-decoration:underline">${esc(d.moreText)}</a>` : ''}</p><div class="cbtns"><button class="btn" data-cookie-accept type="button">${esc(d.acceptText || 'Akceptuję')}</button></div></div>`;
     case 'cta':
-      return sec(`<div class="card center shadow" style="padding:56px"><h2>${esc(d.title)}</h2><p class="muted" style="margin:12px auto 26px">${esc(d.subtitle)}</p><a class="btn" href="${esc(d.buttonHref || '#')}">${esc(d.buttonText)}</a></div>`);
+      return sec(`<div class="cta-panel"><h2>${esc(d.title)}</h2><p style="margin:14px auto 28px;max-width:54ch;opacity:.92">${esc(d.subtitle)}</p><a class="btn" href="${esc(d.buttonHref || '#')}">${esc(d.buttonText)}</a></div>`);
     case 'newsletter':
       return sec(`<div class="card center" style="padding:48px"><h2>${esc(d.title)}</h2><p class="muted" style="margin:10px auto 22px">${esc(d.subtitle)}</p><form method="post" action="${FORM_ACTION}" style="display:flex;gap:10px;max-width:440px;margin:0 auto;flex-wrap:wrap;justify-content:center"><input type="hidden" name="_type" value="Newsletter"/><input class="hp" type="text" name="_company" tabindex="-1" autocomplete="off" aria-hidden="true"/><input class="field" style="margin:0;flex:1;min-width:200px" type="email" name="email" required placeholder="${esc(d.placeholder)}"/><button class="btn" type="submit">${esc(d.buttonText)}</button></form><p class="fnote">Dziękujemy! Zapis przyjęty.</p></div>`, true);
     case 'contact':
@@ -576,6 +842,62 @@ function renderSection(s: Section, c: Ctx): string {
     case 'footer': {
       const links = (d.links as string[]) ?? [];
       return `<div class="wrap"><div class="footer"><strong>${esc(d.brand)}</strong><div class="fl">${links.map((l) => `<a href="#">${esc(l)}</a>`).join('')}</div><span>${esc(d.note)}</span></div></div>`;
+    }
+    case 'bento': {
+      const items = (d.items as { icon?: string; title: string; desc: string }[]) ?? [];
+      return sec(`${headBlock(d.title, d.subtitle)}<div class="bento">${items.map((it, i) => `<div class="b ${i === 0 ? 'lg' : ''}"><div class="icon">${esc(it.icon || '◆')}</div><h3>${esc(it.title)}</h3><p class="muted" style="margin-top:8px">${esc(it.desc)}</p></div>`).join('')}</div>`);
+    }
+    case 'marqueeText': {
+      const words = String(d.text ?? '').split(/[,\n•]/).map((w) => w.trim()).filter(Boolean);
+      if (!words.length) return '';
+      const one = words.map((w) => `<span>${esc(w)}</span><span class="dot">•</span>`).join('');
+      return `<section style="padding:0"><div class="mtext"><div class="mt">${one}${one}</div></div></section>`;
+    }
+    case 'pricingToggle': {
+      const plans = (d.plans as { name: string; monthly: string; annual: string; period?: string; features: string; ctaText: string; featured?: boolean }[]) ?? [];
+      const cards = plans.map((p) => {
+        const feats = String(p.features || '').split('\n').filter(Boolean);
+        return `<div class="card price ${p.featured ? 'feat' : ''}">${p.featured ? '<span class="badge">Polecany</span>' : ''}<h3>${esc(p.name)}</h3><div class="amt"><span data-price data-m="${esc(p.monthly)}" data-a="${esc(p.annual)}">${esc(p.monthly)}</span> zł<span style="font-size:14px;color:${c.mut};font-weight:400" data-per>${esc(p.period || '/mies.')}</span></div><ul>${feats.map((f) => `<li>${esc(f)}</li>`).join('')}</ul><a class="btn" href="#kontakt" style="width:100%;justify-content:center">${esc(p.ctaText)}</a></div>`;
+      }).join('');
+      return sec(`${headBlock(d.title, d.subtitle)}<div class="center"><div class="toggle" data-toggle><button type="button" class="on" data-mode="m">Miesięcznie</button><button type="button" data-mode="a">Rocznie <span class="save-pill">−20%</span></button></div></div><div class="grid g3">${cards}</div>`, true);
+    }
+    case 'testimonialWall': {
+      const items = (d.items as { quote: string; author: string; role: string }[]) ?? [];
+      return sec(`${headBlock(d.title, d.subtitle)}<div class="wall">${items.map((t2) => {
+        const init = String(t2.author || '?').trim().split(/\s+/).map((w) => w[0] || '').slice(0, 2).join('').toUpperCase();
+        return `<div class="tcard"><p class="tq">“${esc(t2.quote)}”</p><div class="ta"><div class="av">${esc(init)}</div><div><strong>${esc(t2.author)}</strong><div class="muted" style="font-size:13px">${esc(t2.role)}</div></div></div></div>`;
+      }).join('')}</div>`);
+    }
+    case 'heroSplit': {
+      const kpis = (d.kpis as { value: string; label: string }[]) ?? [];
+      const txt = `<div>${d.eyebrow ? `<span class="eyebrow">${esc(d.eyebrow)}</span>` : ''}<h1>${esc(d.title)}</h1><p class="lead" style="max-width:54ch">${esc(d.subtitle)}</p><div class="hero-actions"><a class="btn" href="${esc(d.ctaHref || '#')}">${esc(d.ctaText)}</a>${d.ctaSecondary ? `<a class="btn ghost" href="#">${esc(d.ctaSecondary)}</a>` : ''}</div></div>`;
+      return `<section class="hero"><div class="wrap"><div class="hsplit">${txt}${mockWindow(kpis)}</div></div></section>`;
+    }
+    case 'showcase': {
+      const kpis = (d.kpis as { value: string; label: string }[]) ?? [];
+      return sec(`${headBlock(d.title, d.subtitle)}<div style="max-width:980px;margin:0 auto">${mockWindow(kpis)}</div>${d.caption ? `<p class="center muted" style="margin-top:18px;font-size:14px">${esc(d.caption)}</p>` : ''}`);
+    }
+    case 'heroEditorial': {
+      const meta = (d.meta as { k: string; v: string }[]) ?? [];
+      const pid = `edbc-${s.id}`;
+      const badge = d.badge
+        ? `<div class="ed-badge"><svg viewBox="0 0 120 120"><path id="${pid}" d="M60,60 m-43,0 a43,43 0 1,1 86,0 a43,43 0 1,1 -86,0" fill="none"/><text font-size="11" letter-spacing="2" fill="${c.fg}" font-weight="600"><textPath href="#${pid}" startOffset="0">${esc(d.badge)} · ${esc(d.badge)} · </textPath></text></svg><span class="st">✦</span></div>`
+        : '';
+      const img = d.image
+        ? `<img src="${esc(d.image)}" alt="${esc(d.title)}" onerror="this.style.display='none'"/>`
+        : '';
+      return `<section class="edhero"><div class="wrap">${d.subtitle ? `<div class="leadrow"><p class="lead">${esc(d.subtitle)}</p></div>` : ''}<h1>${esc(d.title)}</h1>${meta.length ? `<div class="meta">${meta.map((m) => `<div><span class="k">${esc(m.k)}</span><span class="v">${esc(m.v)}</span></div>`).join('')}</div>` : ''}<div class="ed-img">${img}${badge}${d.tag ? `<span class="tag">${esc(d.tag)}</span>` : ''}</div></div></section>`;
+    }
+    case 'workRows': {
+      const items = (d.items as { image: string; title: string; cat?: string; href?: string }[]) ?? [];
+      return sec(`${headBlock(d.title, d.subtitle)}<div class="wrows">${items.map((it, i) => {
+        const inner = `<div class="no">${String(i + 1).padStart(2, '0')}</div><div class="ph"><img src="${esc(it.image)}" alt="${esc(it.title)}" onerror="this.style.display='none'"/></div><div><h3>${esc(it.title)}</h3>${it.cat ? `<div class="cat muted">${esc(it.cat)}</div>` : ''}<span class="arrow">Zobacz <b>→</b></span></div>`;
+        return it.href ? `<a class="wrow" href="${esc(it.href)}">${inner}</a>` : `<div class="wrow">${inner}</div>`;
+      }).join('')}</div>`);
+    }
+    case 'serviceList': {
+      const items = (d.items as { title: string; desc: string }[]) ?? [];
+      return sec(`${headBlock(d.title, d.subtitle)}<div class="slist">${items.map((it, i) => `<div class="srow"><span class="n">${String(i + 1).padStart(2, '0')}</span><h3>${esc(it.title)}</h3><p>${esc(it.desc)}</p></div>`).join('')}</div>`);
     }
     default:
       return '';
@@ -588,7 +910,7 @@ const DRAFT_FILE = '.verris-site.json';
 const PUBLISH_DEFAULT = 'public_html';
 
 export default function SiteBuilderTab({ serviceId }: { serviceId: string }) {
-  const [model, setModel] = useState<PageModel>(() => asModel(RAW_TEMPLATES.landing()));
+  const [model, setModel] = useState<PageModel>(() => buildTplModel('landing'));
   const [activePageId, setActivePageId] = useState<string>(() => model.pages[0].id);
   const [selected, setSelected] = useState<string | null>(null);
   const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop');
@@ -616,9 +938,9 @@ export default function SiteBuilderTab({ serviceId }: { serviceId: string }) {
   const tplThumbs = useMemo(() => {
     const out: Record<string, string> = {};
     for (const t of ALL_TPLS) {
-      const m = asModel(RAW_TEMPLATES[t.key]());
+      const m = buildTplModel(t.key);
       const pg = m.pages[0];
-      out[t.key] = genHtml(pg, m.theme, m.meta.description, [{ name: pg.name, href: pageHref(pg.slug) }]);
+      out[t.key] = genHtml(pg, m.theme, m.meta.description, [{ name: pg.name, href: pageHref(pg.slug) }], false);
     }
     return out;
   }, []);
@@ -626,14 +948,14 @@ export default function SiteBuilderTab({ serviceId }: { serviceId: string }) {
     const out = {} as Record<SectionType, string>;
     for (const t of Object.keys(SECTION_LABEL) as SectionType[]) {
       const pg: Page = { id: 'thumb', name: '', slug: 'index', title: '', sections: [defaultSection(t)] };
-      out[t] = genHtml(pg, PREVIEW_THEME, '', []);
+      out[t] = genHtml(pg, PREVIEW_THEME, '', [], false);
     }
     return out;
   }, []);
 
   function applyTemplate(key: string) {
     if (!RAW_TEMPLATES[key]) return;
-    const nm = asModel(RAW_TEMPLATES[key]());
+    const nm = buildTplModel(key);
     setModel(nm);
     setActivePageId(nm.pages[0].id);
     setSelected(null);
@@ -874,6 +1196,7 @@ export default function SiteBuilderTab({ serviceId }: { serviceId: string }) {
               <Row label="Kolor główny"><input type="color" value={model.theme.primary} onChange={(e) => setTheme({ primary: e.target.value })} className="h-7 w-12 rounded border border-white/10 bg-transparent" /></Row>
               <Row label="Akcent"><input type="color" value={model.theme.accent} onChange={(e) => setTheme({ accent: e.target.value })} className="h-7 w-12 rounded border border-white/10 bg-transparent" /></Row>
               <Row label="Tło"><Sel value={model.theme.bg} onChange={(v) => setTheme({ bg: v as Theme['bg'] })} opts={[['light', 'Jasne'], ['dark', 'Ciemne']]} /></Row>
+              <Row label="Styl"><Sel value={model.theme.style ?? 'modern'} onChange={(v) => setTheme({ style: v as ThemeStyle })} opts={[['modern', 'Nowoczesny'], ['minimal', 'Minimalistyczny'], ['bold', 'Odważny'], ['editorial', 'Magazynowy'], ['soft', 'Przyjazny']]} /></Row>
               <Row label="Font"><Sel value={model.theme.font} onChange={(v) => setTheme({ font: v as Theme['font'] })} opts={[['sans', 'Bezszeryfowy'], ['serif', 'Szeryfowy'], ['rounded', 'Zaokrąglony'], ['condensed', 'Wąski'], ['mono', 'Monospace']]} /></Row>
               <Row label="Zaokrąglenia"><Sel value={model.theme.radius} onChange={(v) => setTheme({ radius: v as Theme['radius'] })} opts={[['sm', 'Małe'], ['md', 'Średnie'], ['xl', 'Duże']]} /></Row>
               <Row label="Szerokość"><Sel value={model.theme.width} onChange={(v) => setTheme({ width: v as Theme['width'] })} opts={[['normal', 'Normalna'], ['wide', 'Szeroka']]} /></Row>
@@ -997,6 +1320,24 @@ function SectionEditor({ section, serviceId, onChange }: { section: Section; ser
       return <div className="space-y-2">{F('title', 'Tytuł')}{F('email', 'E-mail')}{F('phone', 'Telefon')}{F('address', 'Adres')}{Bool('showForm', 'Pokaż formularz kontaktowy')}</div>;
     case 'footer':
       return <div className="space-y-2">{F('brand', 'Nazwa')}{F('note', 'Notka')}<StrList label="Linki w stopce" items={(d.links as string[]) ?? []} onChange={(links) => onChange({ links })} /></div>;
+    case 'bento':
+      return <div className="space-y-2">{F('title', 'Tytuł')}{F('subtitle', 'Podtytuł')}<ObjList label="Kafle (pierwszy jest duży)" items={(d.items as Rec[]) ?? []} fields={[['icon', 'Ikona (emoji)'], ['title', 'Tytuł'], ['desc', 'Opis', true]]} factory={() => ({ icon: '◆', title: 'Nowy kafel', desc: 'Opis…' })} onChange={(items) => onChange({ items })} /><p className="text-[11px] text-neutral-500">Pierwszy kafel wyświetla się jako duży (bento). Najlepiej 5 kafli.</p></div>;
+    case 'marqueeText':
+      return <div className="space-y-2">{F('text', 'Słowa (oddziel przecinkami)')}<p className="text-[11px] text-neutral-500">Wielki, przewijający się napis. Np. „Projektujemy, Budujemy, Wdrażamy".</p></div>;
+    case 'pricingToggle':
+      return <div className="space-y-2">{F('title', 'Tytuł')}{F('subtitle', 'Podtytuł')}<ObjList label="Plany" items={(d.plans as Rec[]) ?? []} fields={[['name', 'Nazwa'], ['monthly', 'Cena miesięczna'], ['annual', 'Cena roczna (za mies.)'], ['period', 'Okres (np. /mies.)'], ['features', 'Cechy (po jednej w wierszu)', true], ['ctaText', 'Przycisk']]} bools={[['featured', 'Polecany']]} factory={() => ({ name: 'Plan', monthly: '49', annual: '39', period: '/mies.', features: 'Cecha 1\nCecha 2', ctaText: 'Wybieram', featured: false })} onChange={(plans) => onChange({ plans })} /><p className="text-[11px] text-neutral-500">Przełącznik mies./rok działa automatycznie na opublikowanej stronie.</p></div>;
+    case 'testimonialWall':
+      return <div className="space-y-2">{F('title', 'Tytuł')}{F('subtitle', 'Podtytuł')}<ObjList label="Opinie" items={(d.items as Rec[]) ?? []} fields={[['quote', 'Cytat', true], ['author', 'Autor'], ['role', 'Rola / firma']]} factory={() => ({ quote: 'Świetna usługa!', author: 'Klient', role: '' })} onChange={(items) => onChange({ items })} /><p className="text-[11px] text-neutral-500">Awatary tworzymy automatycznie z inicjałów autora.</p></div>;
+    case 'heroSplit':
+      return <div className="space-y-2">{F('eyebrow', 'Etykieta')}{F('title', 'Tytuł')}{F('subtitle', 'Podtytuł', true)}{F('ctaText', 'Przycisk główny')}{F('ctaHref', 'Link przycisku')}{F('ctaSecondary', 'Przycisk drugi (opcjonalnie)')}<ObjList label="Wskaźniki w mockupie (3)" items={(d.kpis as Rec[]) ?? []} fields={[['value', 'Wartość'], ['label', 'Opis']]} factory={() => ({ value: '100%', label: 'Opis' })} onChange={(kpis) => onChange({ kpis })} /><p className="text-[11px] text-neutral-500">Po prawej generujemy podgląd „okna aplikacji" (czysty CSS — bez obrazów).</p></div>;
+    case 'showcase':
+      return <div className="space-y-2">{F('title', 'Tytuł')}{F('subtitle', 'Podtytuł')}{F('caption', 'Podpis pod oknem')}<ObjList label="Wskaźniki w mockupie (3)" items={(d.kpis as Rec[]) ?? []} fields={[['value', 'Wartość'], ['label', 'Opis']]} factory={() => ({ value: '100%', label: 'Opis' })} onChange={(kpis) => onChange({ kpis })} /></div>;
+    case 'heroEditorial':
+      return <div className="space-y-2">{F('title', 'Wielki nagłówek', true)}{F('subtitle', 'Akapit (do prawej)', true)}{F('tag', 'Etykieta na zdjęciu')}{F('badge', 'Tekst wirującego znaczka')}{Img('image', 'Zdjęcie hero (URL lub z plików)')}<ObjList label="Pasek meta (3 pozycje)" items={(d.meta as Rec[]) ?? []} fields={[['k', 'Etykieta'], ['v', 'Wartość']]} factory={() => ({ k: 'Etykieta', v: 'Wartość' })} onChange={(meta) => onChange({ meta })} /></div>;
+    case 'workRows':
+      return <div className="space-y-2">{F('title', 'Tytuł')}{F('subtitle', 'Podtytuł')}<ObjList label="Realizacje" serviceId={serviceId} items={(d.items as Rec[]) ?? []} fields={[['image', 'Zdjęcie', false, true], ['title', 'Tytuł'], ['cat', 'Kategoria'], ['href', 'Link (opcjonalnie)']]} factory={() => ({ image: 'https://picsum.photos/seed/x/900/600', title: 'Projekt', cat: 'Kategoria', href: '' })} onChange={(items) => onChange({ items })} /></div>;
+    case 'serviceList':
+      return <div className="space-y-2">{F('title', 'Tytuł')}{F('subtitle', 'Podtytuł')}<ObjList label="Usługi" items={(d.items as Rec[]) ?? []} fields={[['title', 'Nazwa usługi'], ['desc', 'Opis', true]]} factory={() => ({ title: 'Nowa usługa', desc: 'Opis…' })} onChange={(items) => onChange({ items })} /></div>;
     default:
       return null;
   }

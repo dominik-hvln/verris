@@ -35,6 +35,12 @@ export class RegisterDto {
   @MaxLength(32)
   ref?: string;
 
+  /** RSL — kod resellera; klient zostaje powiązany z resellerem (white-label). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  reseller?: string;
+
   /**
    * RODO Sprint 1 / L-03 — wymagane zgody przy rejestracji.
    *
