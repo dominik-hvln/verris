@@ -33,18 +33,18 @@ async function call<T>(path: string, init?: RequestInit): Promise<Res<T>> {
 
 const base = (sub: string) => `/analytics-sites/${sub}`;
 
-export function fetchSites(sub: string) {
+export async function fetchSites(sub: string) {
   return call<AnalyticsSite[]>(base(sub));
 }
-export function createSite(sub: string, domain: string) {
+export async function createSite(sub: string, domain: string) {
   return call<AnalyticsSite>(base(sub), { method: 'POST', body: JSON.stringify({ domain }) });
 }
-export function setSiteEnabled(sub: string, siteId: string, enabled: boolean) {
+export async function setSiteEnabled(sub: string, siteId: string, enabled: boolean) {
   return call<AnalyticsSite>(`${base(sub)}/${siteId}`, { method: 'PATCH', body: JSON.stringify({ enabled }) });
 }
-export function deleteSite(sub: string, siteId: string) {
+export async function deleteSite(sub: string, siteId: string) {
   return call<{ ok: true }>(`${base(sub)}/${siteId}`, { method: 'DELETE' });
 }
-export function fetchStats(sub: string, siteId: string, days: number) {
+export async function fetchStats(sub: string, siteId: string, days: number) {
   return call<AnalyticsStats>(`${base(sub)}/${siteId}/stats?days=${days}`);
 }

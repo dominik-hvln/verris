@@ -104,8 +104,8 @@ export interface PlanResourceFields {
   nprocLimit: number;
   /** B6 — SSH/Git shell access per plan (off by default; CageFS isolates). */
   sshAccess?: boolean;
-  /** P-1b — rodzina produktu; EMAIL = pakiet pocztowy bez hostingu WWW. */
-  productKind?: 'HOSTING' | 'EMAIL';
+  /** P-1b / EMM — rodzina produktu; EMAIL = pakiet pocztowy, EMAIL_MARKETING = aplikacyjny (bez DA). */
+  productKind?: 'HOSTING' | 'EMAIL' | 'EMAIL_MARKETING';
 }
 
 export function packagePolicyForSlug(slug: string): DaPackagePolicy {

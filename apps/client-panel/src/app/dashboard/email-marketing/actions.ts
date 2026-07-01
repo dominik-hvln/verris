@@ -63,25 +63,25 @@ async function call<T>(path: string, init?: RequestInit): Promise<Res<T>> {
 
 const base = (sub: string) => `/email-marketing/${sub}`;
 
-export function fetchOverview(sub: string) {
+export async function fetchOverview(sub: string) {
   return call<EmmOverview>(`${base(sub)}/overview`);
 }
-export function fetchLists(sub: string) {
+export async function fetchLists(sub: string) {
   return call<EmmList[]>(`${base(sub)}/lists`);
 }
-export function createList(
+export async function createList(
   sub: string,
   input: { name: string; description?: string; doubleOptIn?: boolean; fromName?: string; replyTo?: string },
 ) {
   return call<EmmList>(`${base(sub)}/lists`, { method: 'POST', body: JSON.stringify(input) });
 }
-export function deleteList(sub: string, listId: string) {
+export async function deleteList(sub: string, listId: string) {
   return call<{ ok: true }>(`${base(sub)}/lists/${listId}`, { method: 'DELETE' });
 }
-export function fetchContacts(sub: string, listId: string) {
+export async function fetchContacts(sub: string, listId: string) {
   return call<EmmContact[]>(`${base(sub)}/lists/${listId}/contacts`);
 }
-export function addContact(
+export async function addContact(
   sub: string,
   listId: string,
   input: { email: string; firstName?: string; lastName?: string },
@@ -91,7 +91,7 @@ export function addContact(
     body: JSON.stringify(input),
   });
 }
-export function importContacts(
+export async function importContacts(
   sub: string,
   listId: string,
   rows: Array<{ email: string; firstName?: string; lastName?: string }>,
@@ -102,21 +102,21 @@ export function importContacts(
     { method: 'POST', body: JSON.stringify({ rows, consentConfirmed }) },
   );
 }
-export function deleteContact(sub: string, listId: string, contactId: string) {
+export async function deleteContact(sub: string, listId: string, contactId: string) {
   return call<{ ok: true }>(`${base(sub)}/lists/${listId}/contacts/${contactId}`, { method: 'DELETE' });
 }
-export function fetchCampaigns(sub: string) {
+export async function fetchCampaigns(sub: string) {
   return call<EmmCampaign[]>(`${base(sub)}/campaigns`);
 }
-export function createCampaign(
+export async function createCampaign(
   sub: string,
   input: { name: string; subject: string; bodyMarkdown: string; listId: string; ctaLabel?: string; ctaUrl?: string },
 ) {
   return call<EmmCampaign>(`${base(sub)}/campaigns`, { method: 'POST', body: JSON.stringify(input) });
 }
-export function sendCampaign(sub: string, campaignId: string) {
+export async function sendCampaign(sub: string, campaignId: string) {
   return call<EmmCampaign>(`${base(sub)}/campaigns/${campaignId}/send`, { method: 'POST' });
 }
-export function deleteCampaign(sub: string, campaignId: string) {
+export async function deleteCampaign(sub: string, campaignId: string) {
   return call<{ ok: true }>(`${base(sub)}/campaigns/${campaignId}`, { method: 'DELETE' });
 }
