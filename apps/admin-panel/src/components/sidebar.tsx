@@ -84,6 +84,7 @@ const adminNavItems: NavGroup[] = [
       { name: "Ustawienia", href: "/settings", icon: Settings },
       { name: "Ustawienia platformy", href: "/settings/platform", icon: Gauge, perm: "SETTINGS_MANAGE" },
       { name: "Poczta (SMTP)", href: "/settings/mail", icon: Mail, perm: "SETTINGS_MANAGE" },
+      { name: "Dziennik poczty", href: "/settings/mail/log", icon: Mail, perm: "SETTINGS_MANAGE" },
       { name: "Poczta zespołu", href: "/settings/team-mail", icon: Mail, perm: "SETTINGS_MANAGE" },
     ],
   },

@@ -39,6 +39,7 @@ import {
   subscriptionCancelledTemplate,
 } from '../mail/templates/billing-lifecycle-notifications';
 import { accountSuspendedPaymentTemplate } from '../mail/templates/hosting-notifications';
+import { orderReceivedTemplate } from '../mail/templates/order-notifications';
 import { EcoPointsService, ECO_POINT_DELTAS } from '../eco/eco-points.service';
 
 export type SuspendReason =
@@ -320,6 +321,20 @@ export class SubscriptionsService {
       },
     });
 
+    // MAIL-W2 — potwierdzenie zamówienia (fire-and-forget, nie blokuje flow).
+    void this.notifyOrderReceived({
+      userId,
+      planName: plan.name,
+      serviceTag,
+      amount: pricing.chargeAmount,
+      currency: plan.currency,
+      interval: dto.interval,
+      domain: dto.domain ?? null,
+      paymentSource: dto.paymentSource,
+    }).catch((err) =>
+      this.logger.warn(`notifyOrderReceived failed sub=${subscription.id}: ${(err as Error).message}`),
+    );
+
     switch (dto.paymentSource) {
       case SubscriptionPaymentSource.WALLET: {
         if (isAppLevel) {
@@ -352,6 +367,49 @@ export class SubscriptionsService {
       default:
         throw new BadRequestException('Unsupported payment source');
     }
+  }
+
+  /** MAIL-W2 — wysyła potwierdzenie zamówienia do klienta (best-effort). */
+  private async notifyOrderReceived(opts: {
+    userId: string;
+    planName: string;
+    serviceTag: string;
+    amount: Prisma.Decimal | null;
+    currency: string;
+    interval: BillingInterval;
+    domain: string | null;
+    paymentSource: SubscriptionPaymentSource;
+  }): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: opts.userId },
+      select: { email: true, firstName: true },
+    });
+    if (!user?.email) return;
+    const panelUrl = this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl';
+    const amountLabel = opts.amount ? `${opts.amount.toFixed(2)} ${opts.currency}` : '—';
+    const paymentLabel =
+      opts.paymentSource === SubscriptionPaymentSource.WALLET
+        ? 'Portfel Verris'
+        : opts.paymentSource === SubscriptionPaymentSource.STRIPE_CARD
+          ? 'Karta płatnicza'
+          : 'Płatność ręczna';
+    const message = orderReceivedTemplate({
+      to: user.email,
+      firstName: user.firstName,
+      planName: opts.planName,
+      serviceTag: opts.serviceTag,
+      amountLabel,
+      interval: opts.interval === BillingInterval.YEAR ? 'YEAR' : 'MONTH',
+      domain: opts.domain,
+      paymentLabel,
+      panelUrl,
+    });
+    await this.mailer.send({
+      ...message,
+      userId: opts.userId,
+      category: 'TRANSACTIONAL',
+      fromRole: 'BILLING',
+    });
   }
 
   /**

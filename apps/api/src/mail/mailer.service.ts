@@ -109,9 +109,9 @@ export class MailerService {
     // ---- 3. Pre-write EmailLog (status=QUEUED) -----------------------------
     const log = await this.persistQueued(enriched, category);
 
-    // ---- 4. Provider call --------------------------------------------------
+    // ---- 4. Provider call (z retry na przejściowe błędy) -------------------
     try {
-      const result = await this.provider.send(enriched);
+      const result = await this.sendWithRetry(enriched);
       await this.markSent(log?.id ?? null, result.providerId, result.messageId);
       return {
         providerId: result.providerId,
@@ -133,6 +133,53 @@ export class MailerService {
       }
       throw err;
     }
+  }
+
+  /**
+   * Provider.send z ponownymi próbami dla PRZEJŚCIOWYCH błędów (timeout,
+   * ECONNRESET, chwilowe 4xx SMTP typu „try again later"). Trwałe odrzucenia
+   * (5xx: zła autoryzacja 535, odrzucony adres) nie są retry'owane — nie ma
+   * sensu i grozi to duplikatami. Backoff: 1s, 3s (max 3 próby łącznie).
+   */
+  private async sendWithRetry(
+    message: MailMessage,
+  ): Promise<{ providerId: string; messageId: string | null }> {
+    const delays = [1000, 3000];
+    let lastErr: unknown;
+    for (let attempt = 0; attempt <= delays.length; attempt++) {
+      try {
+        return await this.provider.send(message);
+      } catch (err) {
+        lastErr = err;
+        if (attempt === delays.length || !this.isTransientError(err)) throw err;
+        const wait = delays[attempt];
+        this.logger.warn(
+          `Mailer transient error (próba ${attempt + 1}) do ${message.to}: ` +
+            `${err instanceof Error ? err.message : String(err)} — ponawiam za ${wait}ms`,
+        );
+        await new Promise((r) => setTimeout(r, wait));
+      }
+    }
+    throw lastErr;
+  }
+
+  /** Heurystyka: czy błąd SMTP jest przejściowy (wart ponowienia). */
+  private isTransientError(err: unknown): boolean {
+    const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+    // Trwałe — NIE ponawiamy.
+    if (/\b5\d\d\b/.test(msg)) return false; // dowolny kod 5xx
+    if (msg.includes('auth') || msg.includes('535')) return false;
+    // Przejściowe — ponawiamy.
+    return (
+      msg.includes('etimedout') ||
+      msg.includes('econnreset') ||
+      msg.includes('econnrefused') ||
+      msg.includes('timeout') ||
+      msg.includes('socket') ||
+      msg.includes('network') ||
+      /\b4\d\d\b/.test(msg) || // chwilowe 4xx SMTP
+      msg.includes('try again')
+    );
   }
 
   // ---------------------------------------------------------------------------

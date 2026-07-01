@@ -264,3 +264,49 @@ export function nodeRblClearedTemplate(ctx: NodeRblContext): MailMessage {
   });
   return { to: ctx.to, tag: 'ops.node-rbl-cleared', subject: `[Verris] ✅ IP węzła ${ctx.nodeName} znów czyste (RBL)`, text, html };
 }
+
+/* ===================== MAIL-W1 — watchdog wysyłki poczty ===================== */
+export interface MailDeliveryFailureContext {
+  to: string;
+  firstName: string | null;
+  windowMinutes: number;
+  failed: number;
+  total: number;
+  ratePct: number;
+  /** Najczęstszy komunikat błędu w oknie (do szybkiej diagnozy). */
+  topError: string | null;
+  panelUrl: string;
+}
+
+export function mailDeliveryFailureAlertTemplate(ctx: MailDeliveryFailureContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: `Rośnie odsetek nieudanych maili (${ctx.ratePct}%)`,
+    preheader: 'Wysyłka poczty systemowej zawodzi — sprawdź konfigurację SMTP.',
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `**W ostatnich ${ctx.windowMinutes} min ${ctx.failed} z ${ctx.total} maili zakończyło się statusem FAILED (${ctx.ratePct}%).** Powiadomienia (reset hasła, faktury, alerty) mogą nie docierać do klientów.`,
+      ``,
+      ctx.topError ? `- **Najczęstszy błąd:** \`${escapeHtml(ctx.topError)}\`` : `- Szczegóły błędów w dzienniku EmailLog.`,
+      ``,
+      `## Co sprawdzić`,
+      ``,
+      `1. Ustawienia poczty (SMTP host/login/hasło, tryb transportu).`,
+      `2. Dziennik EmailLog — kolumna błędu przy statusie FAILED.`,
+      `3. Stan relaya (SES/Postfix) i limity/reputację nadawcy.`,
+    ].join('\n'),
+    cta: { label: 'Otwórz dziennik poczty', url: `${ctx.panelUrl}/settings/mail/log` },
+    footnote: 'Alert wysyłany z cooldownem (max raz na 3h). Otrzymują go wszyscy administratorzy.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return {
+    to: ctx.to,
+    tag: 'ops.mail-failure-rate',
+    subject: `[Verris] ⚠️ Nieudane maile: ${ctx.ratePct}% w ${ctx.windowMinutes} min`,
+    text,
+    html,
+  };
+}
