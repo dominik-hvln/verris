@@ -15,7 +15,9 @@ COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 GHCR_OVERRIDE="${GHCR_OVERRIDE:-docker-compose.ghcr.yml}"
 ENV_FILE="${ENV_FILE:-.env.prod}"
 APP_SERVICES="api client-panel staff-panel admin-panel status-page"
-HEALTH_URL="${HEALTH_URL:-http://127.0.0.1:3000/healthz}"
+# API nie publikuje portu 3000 na host (słucha tylko w sieci dockera, Caddy woła
+# je po nazwie), więc health-check MUSI iść WEWNĄTRZ kontenera api, nie z hosta.
+HEALTH_PATH="${HEALTH_PATH:-http://127.0.0.1:3000/healthz}"
 LAST_GOOD_FILE=".last-good-image-tag"
 
 : "${REGISTRY_PREFIX:?REGISTRY_PREFIX wymagany (np. ghcr.io/owner)}"
@@ -52,11 +54,19 @@ if ! bash ops/scripts/prod-migrate-deploy.sh; then
   exit 1
 fi
 
-# 4) Health-gate.
-echo "[deploy] health-check ${HEALTH_URL}…"
+# 4) Health-gate — WEWNĄTRZ kontenera api (port 3000 nie jest na hoście).
+#    Próbujemy wget, potem curl, a na końcu node (obraz api zawsze ma node).
+echo "[deploy] health-check (in-container) ${HEALTH_PATH}…"
+health_probe() {
+  compose exec -T api sh -lc '
+    wget -qO- "'"$HEALTH_PATH"'" 2>/dev/null \
+      || curl -sf "'"$HEALTH_PATH"'" 2>/dev/null \
+      || node -e "fetch(\"'"$HEALTH_PATH"'\").then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+  ' >/dev/null 2>&1
+}
 OK=0
 for i in $(seq 1 30); do
-  if curl -sf "$HEALTH_URL" >/dev/null 2>&1; then OK=1; break; fi
+  if health_probe; then OK=1; break; fi
   sleep 3
 done
 
