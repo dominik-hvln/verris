@@ -95,6 +95,13 @@ const PALETTE = {
   danger: '#b91c1c',
 } as const;
 
+/** Publiczny URL znaku Verris (PNG serwowany przez API `/brand/logo.png`). */
+const BRAND_LOGO_URL =
+  (process.env.PUBLIC_API_URL || process.env.API_BASE_URL || 'https://api.verris.pl').replace(
+    /\/$/,
+    '',
+  ) + '/brand/logo.png';
+
 // ------------------------------------------------------------------ helpers
 
 /** Escape do bezpiecznego umieszczania w atrybutach i tekście HTML. */
@@ -278,7 +285,16 @@ ${preheaderTrick}
               <tr>
                 <td>
                   <a href="${escapeHtml(panelUrl)}" style="text-decoration:none;">
-                    <span style="display:inline-block;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:22px;font-weight:800;letter-spacing:-0.045em;color:${PALETTE.onDark};">verris</span><span style="display:inline-block;color:${PALETTE.mint};font-size:22px;font-weight:800;">.</span>
+                    <table role="presentation" border="0" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td valign="middle" width="36" style="width:36px;">
+                          <img src="${BRAND_LOGO_URL}" width="36" height="36" alt="Verris" style="display:block;width:36px;height:36px;border:0;outline:none;text-decoration:none;" />
+                        </td>
+                        <td valign="middle" style="padding-left:10px;">
+                          <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:22px;font-weight:800;letter-spacing:-0.045em;color:${PALETTE.onDark};">verris</span><span style="color:${PALETTE.mint};font-size:22px;font-weight:800;">.</span>
+                        </td>
+                      </tr>
+                    </table>
                   </a>
                 </td>
                 <td align="right">
