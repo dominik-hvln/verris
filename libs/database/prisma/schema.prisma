@@ -3291,3 +3291,60 @@ model AnalyticsEvent {
   @@index([siteId, ts])
   @@index([siteId, path])
 }
+
+// -----------------------------------------------------------------------------
+// KB CMS — Baza Wiedzy (KB-CMS): własny CMS z kategoriami/podkategoriami,
+// edytorem Markdown, statusem draft/published i polami SEO. Publiczny widok
+// (pomoc.verris.pl) indeksuje tylko PUBLISHED.
+// -----------------------------------------------------------------------------
+
+enum KbArticleStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model KbCategory {
+  id          String       @id @default(uuid())
+  slug        String       @unique
+  name        String
+  description String?
+  /// Ikona (nazwa lucide) do publicznego widoku — opcjonalna.
+  icon        String?
+  /// Self-relacja: podkategorie. parentId=null → kategoria najwyższego poziomu.
+  parentId    String?
+  parent      KbCategory?  @relation("KbCategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children    KbCategory[] @relation("KbCategoryTree")
+  order       Int          @default(0)
+  articles    KbArticle[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([parentId])
+}
+
+model KbArticle {
+  id             String          @id @default(uuid())
+  slug           String          @unique
+  categoryId     String
+  category       KbCategory      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  title          String
+  /// Krótki wstęp/lead (lista + meta description fallback).
+  excerpt        String?
+  /// Treść w Markdown (renderowana po stronie serwera).
+  bodyMarkdown   String          @db.Text
+  status         KbArticleStatus @default(DRAFT)
+  /// Pola SEO — nadpisują domyślne (title/excerpt) w publicznym widoku.
+  seoTitle       String?
+  seoDescription String?
+  /// Snapshot autora (bez relacji do User — unikamy zmian w modelu User).
+  authorUserId   String?
+  authorName     String?
+  order          Int             @default(0)
+  views          Int             @default(0)
+  publishedAt    DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([categoryId, status])
+  @@index([status, publishedAt])
+}

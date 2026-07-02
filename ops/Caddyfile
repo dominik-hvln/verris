@@ -186,3 +186,22 @@
     import security_headers
     reverse_proxy ops-sogo-1:80
 }
+
+# -----------------------------------------------------------------------------
+# KB-PUBLIC — publiczna Baza Wiedzy (pomoc.verris.pl). Anonimowo, indeksowalne.
+# Kieruje na API z prefiksem /kb (kontroler KbPublicController: /kb, /kb/a/:slug,
+# /kb/c/:slug, /kb/sitemap.xml, /kb/robots.txt).
+# -----------------------------------------------------------------------------
+{$CADDY_KB_DOMAIN:pomoc.verris.local} {
+    import security_headers
+    import block_scanners
+    rewrite * /kb{uri}
+    reverse_proxy api:3000 {
+        health_uri /readyz
+        health_interval 3s
+        health_timeout 5s
+        lb_try_duration 30s
+        lb_try_interval 500ms
+    }
+    header Cache-Control "public, max-age=300"
+}

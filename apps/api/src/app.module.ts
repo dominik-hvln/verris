@@ -49,6 +49,7 @@ import { EmailMarketingModule } from './email-marketing/email-marketing.module';
 import { AnalyticsSitesModule } from './analytics-sites/analytics-sites.module';
 import { FontsProxyModule } from './fonts-proxy/fonts-proxy.module';
 import { BrandModule } from './brand/brand.module';
+import { KbModule } from './kb/kb.module';
 import { ControlPlaneMailModule } from './control-plane-mail/control-plane-mail.module';
 import { VpnModule } from './vpn/vpn.module';
 import { KsefModule } from './ksef/ksef.module';
@@ -106,6 +107,7 @@ import { KsefModule } from './ksef/ksef.module';
     AnalyticsSitesModule,
     FontsProxyModule,
     BrandModule,
+    KbModule,
   ],
   controllers: [],
   providers: [

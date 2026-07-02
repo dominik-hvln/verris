@@ -552,6 +552,7 @@ services:
       CADDY_STATUS_DOMAIN: ${CADDY_STATUS_DOMAIN:-status.verris.local}
       CADDY_GRAFANA_DOMAIN: ${CADDY_GRAFANA_DOMAIN:-grafana.verris.local}
       CADDY_MAIL_DOMAIN: ${CADDY_MAIL_DOMAIN:-mail.verris.local}
+      CADDY_KB_DOMAIN: ${CADDY_KB_DOMAIN:-pomoc.verris.local}
       # ETAP 8: po uruchomieniu VPN ustaw np. "10.88.0.0/24" — panele staff/admin
       # przestaną odpowiadać spoza tunelu (puste = brak restrykcji).
       CADDY_INTERNAL_ALLOW_CIDR: ${CADDY_INTERNAL_ALLOW_CIDR:-0.0.0.0/0 ::/0}
