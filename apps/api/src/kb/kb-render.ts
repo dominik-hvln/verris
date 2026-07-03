@@ -153,7 +153,7 @@ export function renderCtaBanner(cta?: CtaBanner): string {
     .join('');
   const showPattern = cta.pattern !== false;
   const patternLayer = showPattern
-    ? `<div aria-hidden="true" style="position:absolute;inset:0;background-image:url('${BRAND_PATTERN_URL}');background-size:cover;background-position:center;opacity:.5;pointer-events:none;"></div>
+    ? `<div aria-hidden="true" style="position:absolute;inset:0;background-image:url('${BRAND_PATTERN_URL}');background-repeat:repeat;background-size:46px 77px;opacity:.18;pointer-events:none;"></div>
     <div aria-hidden="true" style="position:absolute;top:-40%;right:-10%;width:60%;height:180%;background:radial-gradient(circle,${BRAND.mint}22,transparent 70%);pointer-events:none;"></div>`
     : '';
   return `<aside style="position:relative;overflow:hidden;margin:32px 0 8px;background:${BRAND.pine};background-image:linear-gradient(135deg,${BRAND.pine},${BRAND.card});border:1px solid ${BRAND.mint}40;border-radius:16px;padding:26px 28px;">
