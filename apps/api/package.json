@@ -13,6 +13,7 @@
     "cli:rotate-kms": "pnpm build:cli && node dist-cli/cli/rotate-kms.js",
     "cli:storage-migrate-from-fs": "pnpm build:cli && node dist-cli/cli/storage-migrate-from-fs.js",
     "cli:seed-kb": "pnpm build:cli && node dist-cli/cli/seed-knowledge-base.js",
+    "cli:seed-kb-cms": "pnpm build:cli && node dist-cli/cli/seed-kb-cms.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "jest --config jest.config.cjs",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix"
