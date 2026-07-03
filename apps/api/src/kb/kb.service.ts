@@ -58,6 +58,8 @@ export interface KbCtaConfig {
   buttonUrl: string;
   statusUrl: string;
   statusLabel: string;
+  /** Warstwa wzorca brandingowego (siatka chevronów V) w tle baneru. */
+  pattern: boolean;
 }
 
 const DEFAULT_CTA: KbCtaConfig = {
@@ -69,6 +71,7 @@ const DEFAULT_CTA: KbCtaConfig = {
   buttonUrl: 'https://panel.verris.pl/register',
   statusUrl: 'https://status.verris.pl',
   statusLabel: 'Status usług na żywo',
+  pattern: true,
 };
 
 const KB_CTA_KEY = 'kb.cta';

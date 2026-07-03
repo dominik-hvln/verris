@@ -1,5 +1,6 @@
 import { Controller, Get, Res } from '@nestjs/common';
 import type { Response } from 'express';
+import { CTA_PATTERN_SVG } from './cta-pattern.svg';
 
 /**
  * Publiczny znak Verris dla maili (i innych miejsc). Serwowany jako PNG
@@ -20,5 +21,14 @@ export class BrandController {
     res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.end(LOGO_PNG);
+  }
+
+  /** Wzorzec brandingowy baneru CTA (SVG, przezroczyste tło). */
+  @Get('cta-pattern.svg')
+  ctaPattern(@Res() res: Response): void {
+    res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.end(CTA_PATTERN_SVG);
   }
 }

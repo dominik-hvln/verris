@@ -24,6 +24,19 @@ export const VERRIS_MARK_SVG = `<svg width="34" height="34" viewBox="0 0 100 100
   <path d="M44 55 L56 55 L50 69 Z" fill="none" stroke="${BRAND.mint}" stroke-width="1.6"/>
 </svg>`;
 
+/**
+ * Wzorzec brandingowy Verris — autorski znak „V" (wariant „opacity-green").
+ * Serwowany przez API jako /brand/cta-pattern.svg (publiczny URL, cache+CORS),
+ * więc działa jako tło CSS na pomoc.verris.pl i w panelu bez osadzania SVG na
+ * każdej stronie. Bazę URL bierzemy z tego samego źródła co logo w mailach.
+ */
+const BRAND_ASSET_BASE = (
+  process.env.PUBLIC_API_URL ||
+  process.env.API_BASE_URL ||
+  'https://api.verris.pl'
+).replace(/\/$/, '');
+export const BRAND_PATTERN_URL = `${BRAND_ASSET_BASE}/brand/cta-pattern.svg`;
+
 export function escapeHtml(v: string): string {
   return v
     .replace(/&/g, '&amp;')
@@ -67,7 +80,9 @@ export function renderMarkdown(md: string): string {
       i++;
       while (i < lines.length && !lines[i].trim().startsWith('```')) { buf.push(lines[i]); i++; }
       i++;
-      out.push(`<pre style="background:${BRAND.pine};color:${BRAND.paper};padding:14px 16px;border-radius:10px;overflow:auto;font-family:ui-monospace,Menlo,monospace;font-size:13px;line-height:1.5;"><code>${escapeHtml(buf.join('\n'))}</code></pre>`);
+      out.push(
+        `<div class="codeblock"><button class="copybtn" type="button">Kopiuj</button><pre style="background:${BRAND.pine};color:${BRAND.paper};padding:16px;border-radius:10px;overflow:auto;font-family:ui-monospace,Menlo,monospace;font-size:13px;line-height:1.55;margin:0;"><code>${escapeHtml(buf.join('\n'))}</code></pre></div>`,
+      );
       continue;
     }
     // heading
@@ -122,6 +137,8 @@ export interface CtaBanner {
   buttonUrl: string;
   statusUrl: string;
   statusLabel: string;
+  /** Warstwa wzorca brandingowego (siatka chevronów V). Domyślnie włączona. */
+  pattern?: boolean;
 }
 
 /** Baner CTA (KV) — realne dane + link do publicznego statusu. Jedno źródło. */
@@ -134,13 +151,21 @@ export function renderCtaBanner(cta?: CtaBanner): string {
         `<li style="display:flex;align-items:center;gap:8px;margin:6px 0;color:${BRAND.paper};font-size:14px;"><span style="color:${BRAND.mint};font-weight:800;">✓</span>${escapeHtml(b)}</li>`,
     )
     .join('');
-  return `<aside style="margin:32px 0 8px;background:${BRAND.pine};background-image:linear-gradient(135deg,${BRAND.pine},${BRAND.card});border:1px solid ${BRAND.mint}40;border-radius:16px;padding:26px 28px;">
-    <h2 style="margin:0 0 6px;color:${BRAND.paper};font-size:22px;line-height:1.25;">${escapeHtml(cta.headline)}</h2>
-    <p style="margin:0 0 14px;color:${BRAND.stone};font-size:15px;line-height:1.6;">${escapeHtml(cta.subtext)}</p>
-    ${bullets ? `<ul style="list-style:none;padding:0;margin:0 0 18px;">${bullets}</ul>` : ''}
-    <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
-      <a href="${escapeHtml(cta.buttonUrl)}" style="display:inline-block;background:${BRAND.mint};color:${BRAND.pine};font-weight:700;text-decoration:none;padding:11px 22px;border-radius:10px;font-size:15px;">${escapeHtml(cta.buttonLabel)}</a>
-      ${cta.statusUrl ? `<a href="${escapeHtml(cta.statusUrl)}" style="color:${BRAND.mint};text-decoration:none;font-size:14px;">${escapeHtml(cta.statusLabel || 'Status usług')} →</a>` : ''}
+  const showPattern = cta.pattern !== false;
+  const patternLayer = showPattern
+    ? `<div aria-hidden="true" style="position:absolute;inset:0;background-image:url('${BRAND_PATTERN_URL}');background-size:cover;background-position:center;opacity:.5;pointer-events:none;"></div>
+    <div aria-hidden="true" style="position:absolute;top:-40%;right:-10%;width:60%;height:180%;background:radial-gradient(circle,${BRAND.mint}22,transparent 70%);pointer-events:none;"></div>`
+    : '';
+  return `<aside style="position:relative;overflow:hidden;margin:32px 0 8px;background:${BRAND.pine};background-image:linear-gradient(135deg,${BRAND.pine},${BRAND.card});border:1px solid ${BRAND.mint}40;border-radius:16px;padding:26px 28px;">
+    ${patternLayer}
+    <div style="position:relative;">
+      <h2 style="margin:0 0 6px;color:${BRAND.paper};font-size:22px;line-height:1.25;">${escapeHtml(cta.headline)}</h2>
+      <p style="margin:0 0 14px;color:${BRAND.stone};font-size:15px;line-height:1.6;">${escapeHtml(cta.subtext)}</p>
+      ${bullets ? `<ul style="list-style:none;padding:0;margin:0 0 18px;">${bullets}</ul>` : ''}
+      <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+        <a href="${escapeHtml(cta.buttonUrl)}" style="display:inline-block;background:${BRAND.mint};color:${BRAND.pine};font-weight:700;text-decoration:none;padding:11px 22px;border-radius:10px;font-size:15px;">${escapeHtml(cta.buttonLabel)}</a>
+        ${cta.statusUrl ? `<a href="${escapeHtml(cta.statusUrl)}" style="color:${BRAND.mint};text-decoration:none;font-size:14px;">${escapeHtml(cta.statusLabel || 'Status usług')} →</a>` : ''}
+      </div>
     </div>
   </aside>`;
 }
@@ -224,7 +249,7 @@ export function renderPublicPage(p: PublicPageInput): string {
 <style>
   body{margin:0;background:${BRAND.pageBg};color:${BRAND.body};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;}
   a{color:${BRAND.green};}
-  .wrap{max-width:820px;margin:0 auto;padding:0 20px;}
+  .wrap{max-width:900px;margin:0 auto;padding:0 20px;}
   header.kv{background:${BRAND.pine};background-image:linear-gradient(135deg,${BRAND.pine},${BRAND.card});border-bottom:2px solid ${BRAND.mint};}
   header.kv .wrap{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;}
   .brand{display:flex;align-items:center;gap:10px;text-decoration:none;}
@@ -250,13 +275,26 @@ export function renderPublicPage(p: PublicPageInput): string {
   ul.arts a span{display:block;color:${BRAND.textMuted};font-weight:400;font-size:14px;margin-top:2px;}
   footer{border-top:1px solid ${BRAND.border};padding:24px 0;color:${BRAND.textMuted};font-size:13px;}
   .meta{color:${BRAND.textMuted};font-size:13px;margin-top:26px;}
+  .codeblock{position:relative;margin:16px 0;}
+  .codeblock .copybtn{position:absolute;top:8px;right:8px;background:${BRAND.card};color:${BRAND.paper};border:1px solid ${BRAND.mint}55;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;}
+  .codeblock .copybtn:hover{background:${BRAND.green};}
+  .search{position:relative;}
+  .search input{width:220px;max-width:46vw;background:rgba(255,255,255,.08);border:1px solid ${BRAND.mint}33;border-radius:10px;padding:8px 12px;color:${BRAND.paper};font-size:14px;outline:none;}
+  .search input::placeholder{color:${BRAND.stone};}
+  .search .results{position:absolute;top:44px;right:0;width:340px;max-width:80vw;max-height:60vh;overflow:auto;background:${BRAND.cardBg};border:1px solid ${BRAND.border};border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.25);z-index:20;display:none;}
+  .search .results a{display:block;padding:10px 14px;text-decoration:none;color:${BRAND.pine};border-top:1px solid ${BRAND.border};}
+  .search .results a:first-child{border-top:0;}
+  .search .results a:hover{background:${BRAND.pageBg};}
+  .search .results a span{display:block;color:${BRAND.textMuted};font-size:12px;}
+  .search .results .empty{padding:12px 14px;color:${BRAND.textMuted};font-size:13px;}
+  @media(max-width:640px){header.kv .tag{display:none;}}
 </style>
 ${jsonLdScript}
 </head>
 <body>
 <header class="kv"><div class="wrap">
   <a class="brand" href="${escapeHtml(p.baseUrl)}"><span class="mark">${VERRIS_MARK_SVG}</span><span class="wm">verris<i>.</i></span></a>
-  <span class="tag">Pomoc &amp; Baza wiedzy</span>
+  <div class="search"><input id="kbsearch" type="search" placeholder="Szukaj w bazie wiedzy…" autocomplete="off" aria-label="Szukaj w bazie wiedzy" /><div class="results" id="kbresults"></div></div>
 </div></header>
 <main><div class="wrap">
   <nav class="crumbs">${crumbs}</nav>
@@ -269,6 +307,22 @@ ${jsonLdScript}
   <a href="https://panel.verris.pl" style="color:${BRAND.green};">Panel klienta</a> ·
   <a href="${escapeHtml(p.baseUrl)}" style="color:${BRAND.green};">Baza wiedzy</a>
 </div></footer>
+<script>
+(function(){
+  var BASE=${JSON.stringify(p.baseUrl)};
+  document.querySelectorAll('.codeblock .copybtn').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var pre=btn.parentElement.querySelector('pre');var txt=pre?pre.innerText:'';
+      if(navigator.clipboard){navigator.clipboard.writeText(txt).then(function(){var o=btn.textContent;btn.textContent='Skopiowano ✓';setTimeout(function(){btn.textContent=o;},1500);});}
+    });
+  });
+  var inp=document.getElementById('kbsearch'),box=document.getElementById('kbresults'),idx=null,loading=false;
+  function esc(s){return (s||'').replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+  function load(cb){if(idx){cb();return;}if(loading)return;loading=true;fetch(BASE+'/api/tree').then(function(r){return r.json();}).then(function(t){idx=[];(t||[]).forEach(function(c){(c.articles||[]).forEach(function(a){idx.push({slug:a.slug,title:a.title,excerpt:a.excerpt||'',cat:c.name||''});});});cb();}).catch(function(){loading=false;});}
+  function render(q){if(!q){box.style.display='none';box.innerHTML='';return;}var ql=q.toLowerCase();var hits=idx.filter(function(a){return (a.title+' '+a.excerpt+' '+a.cat).toLowerCase().indexOf(ql)>-1;}).slice(0,8);if(hits.length===0){box.innerHTML='<div class="empty">Brak wyników dla „'+esc(q)+'"</div>';}else{box.innerHTML=hits.map(function(a){return '<a href="'+BASE+'/a/'+encodeURIComponent(a.slug)+'"><strong>'+esc(a.title)+'</strong>'+(a.excerpt?'<span>'+esc(a.excerpt)+'</span>':'')+'</a>';}).join('');}box.style.display='block';}
+  if(inp){inp.addEventListener('input',function(){var q=inp.value.trim();if(!q){render('');return;}load(function(){render(q);});});document.addEventListener('click',function(e){if(!e.target.closest('.search'))box.style.display='none';});}
+})();
+</script>
 </body>
 </html>`;
 }

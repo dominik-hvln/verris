@@ -128,6 +128,7 @@ export type KbCtaConfig = {
   buttonUrl: string;
   statusUrl: string;
   statusLabel: string;
+  pattern: boolean;
 };
 
 export async function fetchCta(): Promise<KbCtaConfig | null> {

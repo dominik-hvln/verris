@@ -261,6 +261,9 @@ function CtaPanel() {
         <label className="flex items-center gap-2 text-sm text-white sm:col-span-2">
           <input type="checkbox" checked={cta.enabled} onChange={(e) => upd('enabled', e.target.checked)} /> Baner włączony
         </label>
+        <label className="flex items-center gap-2 text-sm text-white sm:col-span-2">
+          <input type="checkbox" checked={cta.pattern !== false} onChange={(e) => upd('pattern', e.target.checked)} /> Wzorzec brandingowy w tle (siatka „V")
+        </label>
         <label className="space-y-1 sm:col-span-2"><span className="text-xs text-white/70">Nagłówek</span>
           <input className={inputCls} value={cta.headline} onChange={(e) => upd('headline', e.target.value)} /></label>
         <label className="space-y-1 sm:col-span-2"><span className="text-xs text-white/70">Podtytuł</span>
