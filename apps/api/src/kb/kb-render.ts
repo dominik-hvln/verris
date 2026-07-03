@@ -18,6 +18,12 @@ const BRAND = {
   textMuted: '#5b655f',
 };
 
+/** Znak Verris (ten sam wektor co w panelu: chevron „V" + mint akcent). */
+export const VERRIS_MARK_SVG = `<svg width="34" height="34" viewBox="0 0 100 100" role="img" aria-label="Verris" style="display:block;">
+  <path d="M26 30 L40 30 L50 52 L60 30 L74 30 L50 78 Z M44 55 L56 55 L50 69 Z" fill="${BRAND.paper}" fill-rule="evenodd"/>
+  <path d="M44 55 L56 55 L50 69 Z" fill="none" stroke="${BRAND.mint}" stroke-width="1.6"/>
+</svg>`;
+
 export function escapeHtml(v: string): string {
   return v
     .replace(/&/g, '&amp;')
@@ -156,7 +162,7 @@ export function renderPublicPage(p: PublicPageInput): string {
   header.kv{background:${BRAND.pine};background-image:linear-gradient(135deg,${BRAND.pine},${BRAND.card});border-bottom:2px solid ${BRAND.mint};}
   header.kv .wrap{display:flex;align-items:center;justify-content:space-between;padding:18px 20px;}
   .brand{display:flex;align-items:center;gap:10px;text-decoration:none;}
-  .brand .mark{width:32px;height:32px;border-radius:8px;background:${BRAND.mint};color:${BRAND.pine};font-weight:800;font-size:19px;display:flex;align-items:center;justify-content:center;}
+  .brand .mark{display:flex;align-items:center;}
   .brand .wm{color:${BRAND.paper};font-weight:800;font-size:20px;letter-spacing:-.04em;}
   .brand .wm i{color:${BRAND.mint};font-style:normal;}
   header.kv .tag{color:${BRAND.stone};font-size:12px;text-transform:uppercase;letter-spacing:.12em;}
@@ -183,7 +189,7 @@ ${jsonLdScript}
 </head>
 <body>
 <header class="kv"><div class="wrap">
-  <a class="brand" href="${escapeHtml(p.baseUrl)}"><span class="mark">V</span><span class="wm">verris<i>.</i></span></a>
+  <a class="brand" href="${escapeHtml(p.baseUrl)}"><span class="mark">${VERRIS_MARK_SVG}</span><span class="wm">verris<i>.</i></span></a>
   <span class="tag">Pomoc &amp; Baza wiedzy</span>
 </div></header>
 <main><div class="wrap">

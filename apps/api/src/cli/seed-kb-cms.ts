@@ -559,6 +559,54 @@ W panelu obecnego dostawcy (cPanel/Plesk/DirectAdmin) znajdziesz dane FTP/SFTP, 
     { t: 'Migracja hostingu do Verris z cPanel, Plesk i DirectAdmin', d: 'Jak przenieść hosting do Verris: migracja automatyczna lub z pomocą pracownika — pliki, bazy, poczta, domeny i subdomeny bez przestoju.' }),
 ];
 
+function toPlain(md: string): string {
+  return md
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/[#>*_`]/g, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function chunkText(text: string, size = 900, overlap = 150): string[] {
+  if (text.length <= size) return [text];
+  const out: string[] = [];
+  let start = 0;
+  while (start < text.length) {
+    let end = Math.min(start + size, text.length);
+    if (end < text.length) {
+      const dot = text.slice(start, end).lastIndexOf('. ');
+      if (dot > size * 0.5) end = start + dot + 1;
+    }
+    out.push(text.slice(start, end).trim());
+    if (end >= text.length) break;
+    start = end - overlap;
+  }
+  return out.filter(Boolean);
+}
+
+/** KB-UNIFY-1 — zasil indeks AI (podpowiedzi w ticketach) treścią artykułu. */
+async function indexAi(a: Art): Promise<void> {
+  const ref = `kb-cms:${a.slug}`;
+  const existing = await prisma.aiKnowledgeDoc.findFirst({ where: { sourceRef: ref } });
+  if (existing) return;
+  const plain = toPlain(`${a.title}\n\n${a.excerpt}\n\n${a.body}`);
+  const doc = await prisma.aiKnowledgeDoc.create({
+    data: {
+      title: a.title,
+      sourceType: 'MARKDOWN',
+      sourceRef: ref,
+      audience: 'ALL',
+      status: 'ACTIVE',
+      charCount: plain.length,
+    },
+  });
+  const chunks = chunkText(plain);
+  await prisma.aiKnowledgeChunk.createMany({
+    data: chunks.map((content, ordinal) => ({ docId: doc.id, ordinal, content, embedding: [], tokens: 0 })),
+  });
+}
+
 async function upsertCategory(c: Cat, parentId: string | null): Promise<string> {
   const existing = await prisma.kbCategory.findUnique({ where: { slug: c.slug } });
   if (existing) {
@@ -614,6 +662,7 @@ async function main() {
         publishedAt: new Date(),
       },
     });
+    await indexAi(a).catch(() => {});
     created++;
   }
 

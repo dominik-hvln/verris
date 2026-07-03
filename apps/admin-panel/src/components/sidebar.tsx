@@ -22,10 +22,12 @@ import {
   Rocket,
   Mail,
   Brain,
+  BookOpen,
   Lock,
   ShieldCheck,
 } from "lucide-react";
 import { GrafanaOpsLink } from "./grafana-ops-link";
+import { VerrisMark } from "./verris-mark";
 
 type NavItem = { name: string; href: string; icon: React.ComponentType<{ className?: string }>; perm?: string };
 type NavGroup = { label: string; items: NavItem[] };
@@ -45,6 +47,7 @@ const adminNavItems: NavGroup[] = [
       { name: "Migracje (cockpit)", href: "/migrations", icon: ListChecks, perm: "MIGRATIONS_MANAGE" },
       { name: "Product Ops / NOC", href: "/product-ops", icon: Rocket, perm: "NODES_VIEW" },
       { name: "Baza wiedzy AI", href: "/ai-knowledge", icon: Brain, perm: "DASHBOARD_VIEW" },
+      { name: "Baza wiedzy (CMS)", href: "/knowledge-base", icon: BookOpen, perm: "DASHBOARD_VIEW" },
     ],
   },
   {
@@ -140,8 +143,8 @@ export function AdminSidebar({ userInitials, userLabel, logoutButton, isAdmin = 
   return (
     <aside className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-white/5 bg-black/40 backdrop-blur-3xl shadow-2xl">
       <div className="flex h-20 items-center gap-3 border-b border-white/5 px-6">
-        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-indigo-500 to-violet-600 border border-white/10 shadow-[0_0_20px_rgba(99,102,241,0.3)]">
-          <ShieldAlert className="h-5 w-5 text-white" />
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0c1a14] border border-[#34e5a0]/30 shadow-[0_0_20px_rgba(52,229,160,0.25)]">
+          <VerrisMark className="h-6 w-6 text-[#f4f4ee]" />
         </div>
         <div>
           <span className="text-sm font-bold tracking-tight text-white drop-shadow-md">

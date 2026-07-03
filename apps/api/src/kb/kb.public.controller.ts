@@ -163,10 +163,25 @@ export class KbPublicController {
     res.end(`User-agent: *\nAllow: /\nSitemap: ${base}/sitemap.xml\n`);
   }
 
-  // ---- JSON (reużycie w panelach)
+  // ---- JSON (reużycie w panelach klienta/staff)
   @Get('api/tree')
   apiTree() {
     return this.kb.publicTree();
+  }
+
+  @Get('api/article/:slug')
+  async apiArticle(@Param('slug') slug: string) {
+    const found = await this.kb.publicArticleBySlug(slug);
+    if (!found) return null;
+    return {
+      slug: found.article.slug,
+      title: found.article.title,
+      excerpt: found.article.excerpt,
+      bodyMarkdown: found.article.bodyMarkdown,
+      updatedAt: found.article.updatedAt,
+      categoryName: found.category?.name ?? null,
+      categorySlug: found.category?.slug ?? null,
+    };
   }
 
   private notFound(base: string): string {

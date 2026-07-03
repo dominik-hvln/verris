@@ -184,7 +184,7 @@ export class KbService {
     if (!cat) throw new BadRequestException('Wybrana kategoria nie istnieje.');
     const slug = await this.uniqueSlug(KbService.slugify(input.slug || input.title), 'article');
     const status = input.status ?? 'DRAFT';
-    return this.articles.create({
+    const created = await this.articles.create({
       data: {
         slug,
         categoryId: input.categoryId,
@@ -200,6 +200,9 @@ export class KbService {
         publishedAt: status === 'PUBLISHED' ? new Date() : null,
       },
     });
+    // KB-UNIFY-1 — publikacja zasila indeks AI (podpowiedzi w ticketach / asystent).
+    if (created.status === 'PUBLISHED') await this.syncToAiIndex(created).catch(() => {});
+    return created;
   }
 
   async updateArticle(id: string, input: Partial<UpsertArticleInput>): Promise<KbArticleRow> {
@@ -217,12 +220,102 @@ export class KbService {
       data.status = input.status;
       data.publishedAt = input.status === 'PUBLISHED' ? (existing.publishedAt ?? new Date()) : null;
     }
-    return this.articles.update({ where: { id }, data });
+    const updated = await this.articles.update({ where: { id }, data });
+    // KB-UNIFY-1 — utrzymuj indeks AI w zgodzie ze stanem publikacji.
+    if (updated.status === 'PUBLISHED') await this.syncToAiIndex(updated).catch(() => {});
+    else await this.removeFromAiIndex(updated.slug).catch(() => {});
+    return updated;
   }
 
   async deleteArticle(id: string): Promise<{ ok: true }> {
+    const existing = await this.articles.findUnique({ where: { id } });
     await this.articles.delete({ where: { id } });
+    if (existing) await this.removeFromAiIndex(existing.slug).catch(() => {});
     return { ok: true };
+  }
+
+  // --------------------------------------------------------------- AI index sync (KB-UNIFY-1)
+  /** Ref w AiKnowledgeDoc jednoznacznie wiążący dokument AI z artykułem CMS. */
+  private aiRef(slug: string): string {
+    return `kb-cms:${slug}`;
+  }
+
+  /** Prosty strip Markdown → plaintext do indeksu wyszukiwania. */
+  private toPlain(md: string): string {
+    return md
+      .replace(/```[\s\S]*?```/g, ' ')
+      .replace(/[#>*_`]/g, '')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  private chunk(text: string, size = 900, overlap = 150): string[] {
+    if (text.length <= size) return [text];
+    const out: string[] = [];
+    let start = 0;
+    while (start < text.length) {
+      let end = Math.min(start + size, text.length);
+      if (end < text.length) {
+        const dot = text.slice(start, end).lastIndexOf('. ');
+        if (dot > size * 0.5) end = start + dot + 1;
+      }
+      out.push(text.slice(start, end).trim());
+      if (end >= text.length) break;
+      start = end - overlap;
+    }
+    return out.filter(Boolean);
+  }
+
+  /** Publikuje/odświeża artykuł CMS w indeksie AI (AiKnowledgeDoc + chunki). */
+  private async syncToAiIndex(article: KbArticleRow): Promise<void> {
+    const ref = this.aiRef(article.slug);
+    const plain = this.toPlain(`${article.title}\n\n${article.excerpt ?? ''}\n\n${article.bodyMarkdown}`);
+    const prisma = this.prisma as unknown as {
+      aiKnowledgeDoc: {
+        findFirst(args: unknown): Promise<{ id: string } | null>;
+        create(args: unknown): Promise<{ id: string }>;
+        update(args: unknown): Promise<unknown>;
+      };
+      aiKnowledgeChunk: {
+        deleteMany(args: unknown): Promise<unknown>;
+        createMany(args: unknown): Promise<unknown>;
+      };
+    };
+    const existing = await prisma.aiKnowledgeDoc.findFirst({ where: { sourceRef: ref } });
+    let docId: string;
+    if (existing) {
+      await prisma.aiKnowledgeDoc.update({
+        where: { id: existing.id },
+        data: { title: article.title, charCount: plain.length, status: 'ACTIVE', audience: 'ALL' },
+      });
+      docId = existing.id;
+      await prisma.aiKnowledgeChunk.deleteMany({ where: { docId } });
+    } else {
+      const created = await prisma.aiKnowledgeDoc.create({
+        data: {
+          title: article.title,
+          sourceType: 'MARKDOWN',
+          sourceRef: ref,
+          audience: 'ALL',
+          status: 'ACTIVE',
+          charCount: plain.length,
+        },
+      });
+      docId = created.id;
+    }
+    const chunks = this.chunk(plain);
+    await prisma.aiKnowledgeChunk.createMany({
+      data: chunks.map((content, ordinal) => ({ docId, ordinal, content, embedding: [], tokens: 0 })),
+    });
+  }
+
+  /** Usuwa artykuł CMS z indeksu AI (np. po unpublish/delete). */
+  private async removeFromAiIndex(slug: string): Promise<void> {
+    const prisma = this.prisma as unknown as {
+      aiKnowledgeDoc: { deleteMany(args: unknown): Promise<unknown> };
+    };
+    await prisma.aiKnowledgeDoc.deleteMany({ where: { sourceRef: this.aiRef(slug) } });
   }
 
   // --------------------------------------------------------------- public reads

@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
-import { Loader2, LifeBuoy, AlertCircle, ShieldCheck, KeyRound } from "lucide-react";
+import { Loader2, AlertCircle, ShieldCheck, KeyRound } from "lucide-react";
+import { VerrisMark } from "@/components/verris-mark";
 import { StaffPasskeyLoginButton } from "./passkey-login-button";
 import {
   staffSubmitLogin,
@@ -42,8 +43,8 @@ export default function StaffLoginPage() {
         className="relative w-full rounded-2xl bg-black/50 backdrop-blur-2xl border border-white/10 shadow-2xl p-8 space-y-6"
       >
         <div className="flex items-center gap-3 mb-2">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-cyan-500 to-blue-600 border border-white/10">
-            <LifeBuoy className="h-6 w-6 text-white" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0c1a14] border border-[#34e5a0]/30 shadow-[0_0_20px_rgba(52,229,160,0.25)]">
+            <VerrisMark className="h-7 w-7 text-[#f4f4ee]" />
           </div>
           <div>
             <h1 className="text-xl font-semibold leading-tight">Verris Support</h1>

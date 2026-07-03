@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ShieldAlert, Loader2, KeyRound } from "lucide-react";
+import { Loader2, KeyRound } from "lucide-react";
+import { VerrisMark } from "@/components/verris-mark";
 import { adminLogin, adminBreakGlassLogin } from "@/lib/auth-actions";
 import { AdminPasskeyLoginButton } from "./passkey-login-button";
 
@@ -63,8 +64,8 @@ export default function AdminLoginPage() {
         className="relative w-full max-w-md rounded-2xl bg-black/50 backdrop-blur-2xl border border-white/10 shadow-2xl p-8 space-y-6"
       >
         <div className="flex items-center gap-3 mb-2">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-indigo-500 to-violet-600 shadow-[0_0_20px_rgba(99,102,241,0.4)]">
-            <ShieldAlert className="h-6 w-6 text-white" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#0c1a14] border border-[#34e5a0]/30 shadow-[0_0_20px_rgba(52,229,160,0.25)]">
+            <VerrisMark className="h-7 w-7 text-[#f4f4ee]" />
           </div>
           <div>
             <h1 className="text-xl font-semibold leading-tight">Verris Core</h1>

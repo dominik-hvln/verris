@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LifeBuoy,
   MessageSquare,
   Inbox,
   LogOut,
@@ -15,6 +14,7 @@ import {
 } from "lucide-react";
 import { GrafanaOpsLink, grafanaSsoHref } from "./grafana-ops-link";
 import { CommandPalette } from "./command-palette";
+import { VerrisMark } from "./verris-mark";
 import type { StaffProfile } from "@/lib/staff-session";
 import { staffLogout } from "@/lib/staff-auth-actions";
 
@@ -43,8 +43,8 @@ export function StaffShell({
       <aside className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-white/5 bg-black/40 backdrop-blur-3xl shadow-2xl">
         <div className="flex h-20 items-center border-b border-white/5 px-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-cyan-500 to-blue-600 border border-white/10">
-              <LifeBuoy className="h-5 w-5 text-white" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0c1a14] border border-[#34e5a0]/30 shadow-[0_0_20px_rgba(52,229,160,0.25)]">
+              <VerrisMark className="h-6 w-6 text-[#f4f4ee]" />
             </div>
             <div>
               <span className="text-sm font-bold tracking-tight text-white">Verris </span>

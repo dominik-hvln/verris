@@ -1,8 +1,42 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { ArrowLeft, BookOpen, Loader2, Search } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, BookOpen, ExternalLink, Loader2, Search } from 'lucide-react';
 import { fetchKbArticle, type KbArticle, type KbListItem } from './knowledge-actions';
+
+/** Lekki render Markdown → HTML na potrzeby czytnika w panelu (treść od zespołu). */
+function mdToHtml(md: string): string {
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const inline = (s: string) =>
+    esc(s)
+      .replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_m, l: string, u: string) => `<a href="${u}" target="_blank" rel="noopener" style="color:#34e5a0">${l}</a>`)
+      .replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,.08);padding:1px 5px;border-radius:4px">$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+      .replace(/(^|[^*])\*([^*]+)\*/g, '$1<em>$2</em>');
+  const lines = md.replace(/\r\n/g, '\n').split('\n');
+  const out: string[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const line = lines[i];
+    if (!line.trim()) { i++; continue; }
+    const h = /^(#{1,4})\s+(.*)$/.exec(line);
+    if (h) { const l = Math.min(h[1].length + 1, 4); out.push(`<h${l}>${inline(h[2])}</h${l}>`); i++; continue; }
+    if (/^\d+\.\s+/.test(line)) {
+      const it: string[] = [];
+      while (i < lines.length && /^\d+\.\s+/.test(lines[i])) { it.push(`<li>${inline(lines[i].replace(/^\d+\.\s+/, ''))}</li>`); i++; }
+      out.push(`<ol>${it.join('')}</ol>`); continue;
+    }
+    if (/^[-*]\s+/.test(line)) {
+      const it: string[] = [];
+      while (i < lines.length && /^[-*]\s+/.test(lines[i])) { it.push(`<li>${inline(lines[i].replace(/^[-*]\s+/, ''))}</li>`); i++; }
+      out.push(`<ul>${it.join('')}</ul>`); continue;
+    }
+    const buf: string[] = [line]; i++;
+    while (i < lines.length && lines[i].trim() && !/^(#{1,4}\s|[-*]\s|\d+\.\s)/.test(lines[i])) { buf.push(lines[i]); i++; }
+    out.push(`<p>${inline(buf.join(' '))}</p>`);
+  }
+  return out.join('\n');
+}
 
 export function KnowledgeClient({
   articles,
@@ -19,27 +53,19 @@ export function KnowledgeClient({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!openId) {
-      setArticle(null);
-      return;
-    }
+    if (!openId) { setArticle(null); return; }
     setLoading(true);
-    void fetchKbArticle(openId)
-      .then(setArticle)
-      .finally(() => setLoading(false));
+    void fetchKbArticle(openId).then(setArticle).finally(() => setLoading(false));
   }, [openId]);
 
   const filtered = articles.filter((a) => a.title.toLowerCase().includes(query.trim().toLowerCase()));
+  const html = useMemo(() => (article ? mdToHtml(article.content) : ''), [article]);
 
   // --- Reading view ---
   if (openId) {
     return (
       <div className="space-y-4">
-        <button
-          type="button"
-          onClick={() => setOpenId(null)}
-          className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-white"
-        >
+        <button type="button" onClick={() => setOpenId(null)} className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-white">
           <ArrowLeft className="h-4 w-4" /> Wróć do listy
         </button>
         {loading ? (
@@ -50,16 +76,23 @@ export function KnowledgeClient({
           <article className="max-w-3xl">
             <h1 className="text-xl font-bold text-white">{article.title}</h1>
             <p className="mt-1 text-xs text-neutral-500">
-              Aktualizacja: {new Date(article.updatedAt).toLocaleDateString('pl-PL')}
+              {article.category ? `${article.category} · ` : ''}Aktualizacja: {new Date(article.updatedAt).toLocaleDateString('pl-PL')}
             </p>
-            <div className="mt-4 whitespace-pre-wrap text-sm leading-relaxed text-neutral-200">
-              {article.content}
-            </div>
+            <div
+              className="mt-4 text-sm leading-relaxed text-neutral-200 [&_a]:text-emerald-400 [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-white [&_h3]:mt-4 [&_h3]:mb-1 [&_h3]:font-semibold [&_h3]:text-white [&_li]:my-1 [&_ol]:my-2 [&_ol]:pl-5 [&_ol]:list-decimal [&_p]:my-2 [&_ul]:my-2 [&_ul]:pl-5 [&_ul]:list-disc"
+              dangerouslySetInnerHTML={{ __html: html }}
+            />
+            <a
+              href={`https://pomoc.verris.pl/a/${article.id}`}
+              target="_blank"
+              rel="noopener"
+              className="mt-6 inline-flex items-center gap-1.5 text-sm text-emerald-400 hover:text-emerald-300"
+            >
+              Otwórz w pełnej Bazie wiedzy <ExternalLink className="h-3.5 w-3.5" />
+            </a>
           </article>
         ) : (
-          <p className="py-12 text-center text-sm text-neutral-400">
-            Nie znaleziono artykułu (mógł zostać usunięty).
-          </p>
+          <p className="py-12 text-center text-sm text-neutral-400">Nie znaleziono artykułu.</p>
         )}
       </div>
     );
@@ -81,9 +114,7 @@ export function KnowledgeClient({
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center gap-2 py-12 text-center text-sm text-neutral-500">
           <BookOpen className="h-8 w-8 opacity-20" />
-          {articles.length === 0
-            ? 'Baza wiedzy jest jeszcze pusta.'
-            : 'Brak artykułów pasujących do wyszukiwania.'}
+          {articles.length === 0 ? 'Baza wiedzy jest jeszcze pusta.' : 'Brak artykułów pasujących do wyszukiwania.'}
         </div>
       ) : (
         <div className="grid gap-2 sm:grid-cols-2">
@@ -94,12 +125,23 @@ export function KnowledgeClient({
               onClick={() => setOpenId(a.id)}
               className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4 text-left hover:bg-white/[0.05]"
             >
-              <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-violet-300" />
-              <span className="text-sm font-medium text-white">{a.title}</span>
+              <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+              <span>
+                <span className="block text-sm font-medium text-white">{a.title}</span>
+                {a.category ? <span className="block text-xs text-neutral-500">{a.category}</span> : null}
+              </span>
             </button>
           ))}
         </div>
       )}
+
+      <p className="pt-2 text-xs text-neutral-500">
+        Pełna baza wiedzy dostępna też publicznie na{' '}
+        <a href="https://pomoc.verris.pl" target="_blank" rel="noopener" className="text-emerald-400 hover:underline">
+          pomoc.verris.pl
+        </a>
+        .
+      </p>
     </div>
   );
 }
