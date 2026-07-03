@@ -17,6 +17,9 @@ import { RenewalScheduler } from './renewal.scheduler';
 import { SubscriptionAbandonmentScheduler } from './subscription-abandonment.scheduler';
 import { RenewalReminderScheduler } from './renewal-reminder.scheduler';
 import { MigrationOrchestratorService } from './migration-orchestrator.service';
+import { MigrationDiscoveryService } from './migration-discovery.service';
+import { MigrationPreflightService } from './migration-preflight.service';
+import { MigrationCutoverService } from './migration-cutover.service';
 import { MigrationsStaffController } from './migrations.staff.controller';
 import { MigrationWorkerScheduler } from './migration-worker.scheduler';
 import { MigrationWorkerController } from './migration-worker.controller';
@@ -54,6 +57,9 @@ import { EcoModule } from '../eco/eco.module';
     SubscriptionAbandonmentScheduler,
     RenewalReminderScheduler,
     MigrationOrchestratorService,
+    MigrationDiscoveryService,
+    MigrationPreflightService,
+    MigrationCutoverService,
     MigrationWorkerScheduler,
     ServiceHealthService,
     DiagnosticsService,

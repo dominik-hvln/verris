@@ -14,13 +14,14 @@
 #   node-live-readiness.sh, node-hosting-profile.sh, install-verris-default-page.sh,
 #   hosting-default-page/ (katalog), node-verris-tasks-install.sh,
 #   node-da-sync-plan-packages.sh, verris-tasks.sh, verris-task-run.sh,
-#   security-hardening-baseline.sh, security-egress-lockdown.sh
+#   node-migration-worker.sh, security-hardening-baseline.sh, security-egress-lockdown.sh
 #
 # Użycie:
 #   scp -r ops/hosting-default-page \
 #     ops/scripts/{node-onboard-live,node-live-readiness,node-hosting-profile,\
 #     install-verris-default-page,node-verris-tasks-install,node-da-sync-plan-packages,\
-#     verris-tasks,verris-task-run,security-hardening-baseline,security-egress-lockdown}.sh \
+#     verris-tasks,verris-task-run,node-migration-worker,\
+#     security-hardening-baseline,security-egress-lockdown}.sh \
 #     root@WĘZEŁ:/root/verris/
 #   ssh root@WĘZEŁ 'bash /root/verris/node-onboard-live.sh'
 #
@@ -123,6 +124,7 @@ require_bundle_scripts() {
   local missing=0
   for f in node-live-readiness.sh node-hosting-profile.sh node-verris-tasks-install.sh \
            node-da-sync-plan-packages.sh verris-tasks.sh verris-task-run.sh \
+           node-migration-worker.sh \
            security-hardening-baseline.sh security-egress-lockdown.sh; do
     if [ ! -f "$SCRIPT_DIR/$f" ]; then
       log_fail "Brak $SCRIPT_DIR/$f"
@@ -211,12 +213,26 @@ run_security_hardening() {
     fi
   fi
 
-  # O-2: worker migracji od konkurencji (lease + rsync/mysql/imap na węźle).
+  # O-2: worker migracji od konkurencji (lease + rsync/mysql/imap/wp-cli na węźle).
+  # `--install` dociąga też zależności transferu: rsync, sshpass, lftp, imapsync,
+  # wp-cli, klient mysql (ensure_deps). Dzięki temu nowy węzeł jest gotowy do
+  # przyjmowania migracji od razu po onboardzie — bez ręcznej instalacji narzędzi.
   if [ -f "$SCRIPT_DIR/node-migration-worker.sh" ]; then
     if bash "$SCRIPT_DIR/node-migration-worker.sh" --install; then
       log_ok "node-migration-worker.sh zainstalowany (timer 2 min)"
+      # Weryfikacja narzędzi transferu — brak = migracje danego typu będą się
+      # zgłaszać jako retryable-fail i trafią do kolejki „Pilne”.
+      MIG_MISSING=""
+      for tool in jq curl rsync sshpass lftp mysql imapsync wp; do
+        command -v "$tool" >/dev/null 2>&1 || MIG_MISSING="$MIG_MISSING $tool"
+      done
+      if [ -n "$MIG_MISSING" ]; then
+        log_warn "Migrator — brak narzędzi:$MIG_MISSING (doinstaluj ręcznie; EPEL wymagany dla imapsync/sshpass)"
+      else
+        log_ok "Migrator — komplet narzędzi transferu (rsync/sshpass/lftp/imapsync/wp-cli/mysql)"
+      fi
     else
-      log_warn "node-migration-worker.sh — instalacja nieudana (sprawdź jq/lftp/imapsync)"
+      log_warn "node-migration-worker.sh — instalacja nieudana (sprawdź jq/rsync/lftp/imapsync/wp-cli)"
     fi
   fi
 

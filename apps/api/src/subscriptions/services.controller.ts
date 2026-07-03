@@ -11,7 +11,15 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { HostingSslLetsencryptDto, HostingSslPasteDto } from './dto/hosting-ssl.dto';
-import { CreateMigrationBundleDto, RequestExternalMigrationDto } from './dto/migration.dto';
+import {
+  CreateMigrationBundleDto,
+  DiscoverMigrationSourceDto,
+  RequestExternalMigrationDto,
+} from './dto/migration.dto';
+import { RateLimit } from '../common/guards/rate-limit.guard';
+import { MigrationDiscoveryService } from './migration-discovery.service';
+import { MigrationPreflightService } from './migration-preflight.service';
+import { MigrationCutoverService } from './migration-cutover.service';
 import { Prisma, SubscriptionStatus } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -58,6 +66,9 @@ export class UserServicesController {
     private readonly php: PhpService,
     private readonly appInstall: AppInstallService,
     private readonly backupSchedule: BackupScheduleService,
+    private readonly migrationDiscovery: MigrationDiscoveryService,
+    private readonly migrationPreflight: MigrationPreflightService,
+    private readonly migrationCutover: MigrationCutoverService,
   ) {}
 
   // PERF-1 — bardzo lekki endpoint zwracający tylko typ usługi (productKind).
@@ -926,6 +937,105 @@ export class UserServicesController {
   @Get(':id/migrations/bundles')
   async listMigrationBundles(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
     return this.migrations.listBundlesForUser(id, user.userId);
+  }
+
+  /**
+   * Migrator v2 / O-2+#18 — auto-discovery: logujemy się do panelu starego
+   * hostingu (cPanel/DA/Plesk) i zwracamy domeny, bazy i skrzynki do pre-fillu
+   * kreatora. Sekrety nie są zapisywane.
+   */
+  @Post(':id/migrations/discover')
+  @HttpCode(200)
+  // Endpoint nawiązuje połączenia wychodzące pod adres podany przez klienta —
+  // limit chroni przed użyciem go jako skanera portów / sondy SSRF.
+  @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: 'migration:discover' })
+  async discoverMigrationSource(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: DiscoverMigrationSourceDto,
+  ) {
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id, userId: user.userId },
+      select: { id: true },
+    });
+    if (!sub) throw new NotFoundException('Service not found');
+    return this.migrationDiscovery.discover(body, user.userId, id);
+  }
+
+  /**
+   * Migrator v2 — preflight: realny test logowania do każdego źródła
+   * (FTP/FTPS pełny login, IMAP pełny login, MySQL handshake, SSH baner)
+   * PRZED zakolejkowaniem. Body = ten sam kształt co bundle.
+   */
+  @Post(':id/migrations/preflight')
+  @HttpCode(200)
+  // Preflight łączy się z host:port podanym przez klienta — ten sam wektor
+  // nadużycia co discover, więc również limitowany.
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'migration:preflight' })
+  async preflightMigration(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: CreateMigrationBundleDto,
+  ) {
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id, userId: user.userId },
+      select: { id: true },
+    });
+    if (!sub) throw new NotFoundException('Service not found');
+    return this.migrationPreflight.preflightBundle(body, user.userId, id);
+  }
+
+  /** Migrator v2 — szczegóły zlecenia z krokami i postępem na żywo (polling z panelu). */
+  @Get(':id/migrations/bundles/:migrationId')
+  async getMigrationBundleDetail(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('migrationId') migrationId: string,
+  ) {
+    return this.migrations.getBundleDetailForUser(id, user.userId, migrationId);
+  }
+
+  /** Migrator v2 — anulowanie migracji przez klienta (zatrzymuje worker). */
+  @Post(':id/migrations/bundles/:migrationId/cancel')
+  @HttpCode(200)
+  async cancelMigrationBundle(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('migrationId') migrationId: string,
+  ) {
+    return this.migrations.cancelBundle(id, user.userId, migrationId);
+  }
+
+  /** Migrator v2 — delta-sync plików i poczty przed cutoverem DNS. */
+  @Post(':id/migrations/bundles/:migrationId/delta-sync')
+  @HttpCode(200)
+  async queueMigrationDeltaSync(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('migrationId') migrationId: string,
+  ) {
+    return this.migrations.queueDeltaSync(id, user.userId, migrationId);
+  }
+
+  /** Migrator v2 — plan cutoveru DNS (rekordy do ustawienia / opcja zmiany NS). */
+  @Get(':id/migrations/bundles/:migrationId/cutover')
+  async getMigrationCutoverPlan(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('migrationId') migrationId: string,
+  ) {
+    return this.migrationCutover.plan(id, user.userId, migrationId);
+  }
+
+  /** Migrator v2 — weryfikacja DNS po zmianie u rejestratora; sukces = cutover done. */
+  @Post(':id/migrations/bundles/:migrationId/cutover/verify')
+  @HttpCode(200)
+  async verifyMigrationCutover(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('migrationId') migrationId: string,
+  ) {
+    return this.migrationCutover.verify(id, user.userId, migrationId);
   }
 
   @Get(':id')

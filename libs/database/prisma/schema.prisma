@@ -983,6 +983,8 @@ enum MigrationStatus {
   DRAFT
   QUEUED
   RUNNING
+  /// Automat zatrzymany (błąd/stall) — zlecenie czeka na staffa („Pilne” na górze kolejki).
+  ATTENTION
   COMPLETED
   FAILED
   CANCELED
@@ -1012,6 +1014,20 @@ model MigrationRequest {
   /// `Ticket.id` powiązany ze zleceniem.
   ticketId        String?
 
+  /// Wykryty/wybrany panel źródłowy: cpanel | directadmin | plesk | manual.
+  sourcePanelType String?
+  /// Eskalacja: automat zatrzymany, wymaga dokończenia przez staffa.
+  needsAttention  Boolean         @default(false)
+  attentionReason String?         @db.Text
+  attentionAt     DateTime?
+  /// Cutover DNS: auto (NS u nas, przez DA DNS) | instructions | manual.
+  cutoverMode     String?
+  cutoverAt       DateTime?
+
+  /// Retencja sekretów: po tej chwili `sourceBundleEnc` jest wyczyszczony
+  /// (hasła źródła skasowane po zakończeniu migracji + oknie na delta-sync).
+  secretsPurgedAt DateTime?
+
   /// Audit-friendly liczniki wykonanych transferów.
   bytesTransferred BigInt         @default(0)
   filesTransferred Int            @default(0)
@@ -1036,6 +1052,12 @@ enum MigrationWorkerJobKind {
   MYSQL_IMPORT
   IMAP_SYNC
   HTTP_POST_CHECK
+  /// Auto-fix WordPress po imporcie DB: wp-config (DB creds), search-replace URL, ownership.
+  WP_FIXUP
+  /// Ponowny rsync/mirror różnicowy tuż przed cutoverem DNS.
+  FILES_DELTA
+  /// Ponowny imapsync (dosync nowej poczty) tuż przed cutoverem DNS.
+  IMAP_DELTA
 }
 
 enum MigrationWorkerJobStatus {
@@ -1062,12 +1084,18 @@ model MigrationWorkerJob {
   lastError          String?                  @db.Text
   log                String?                  @db.Text
 
+  /// Kolejność w ramach zlecenia — lease zwraca najniższą nieukończoną sekwencję.
+  sequence           Int                      @default(0)
+  /// Ostatni sygnał postępu od workera (watchdog eskaluje wiszące joby).
+  lastHeartbeatAt    DateTime?
+
   startedAt          DateTime?
   completedAt        DateTime?
   createdAt          DateTime                 @default(now())
   updatedAt          DateTime                 @updatedAt
 
   @@index([migrationRequestId, status])
+  @@index([migrationRequestId, sequence])
   @@index([status, createdAt])
 }
 

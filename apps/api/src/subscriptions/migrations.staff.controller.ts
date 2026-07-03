@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import {
   IsEnum,
+  IsIn,
   IsOptional,
   IsString,
   MaxLength,
@@ -42,6 +43,16 @@ class StatusUpdateDto {
   @IsOptional()
   @IsString()
   @MaxLength(500)
+  note?: string;
+}
+
+class ResolveAttentionDto {
+  @IsIn(['requeue', 'completed', 'failed'])
+  outcome!: 'requeue' | 'completed' | 'failed';
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
   note?: string;
 }
 
@@ -108,6 +119,43 @@ export class MigrationsStaffController {
       actorUserId: user.userId,
       status: dto.status,
       note: dto.note ?? null,
+    });
+  }
+
+  /** Migrator v2 — szczegóły zlecenia z jobami, logami i payloadami (bez sekretów bundla). */
+  @Get(':id/detail')
+  async detail(@Param('id') id: string) {
+    return this.migrations.getBundleDetailForStaff(id);
+  }
+
+  /** Migrator v2 — rozwiązanie eskalacji: wznowienie automatu / zamknięcie. */
+  @Post(':id/resolve-attention')
+  @HttpCode(200)
+  async resolveAttention(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthedUser,
+    @Body() dto: ResolveAttentionDto,
+  ) {
+    return this.migrations.resolveAttentionForStaff({
+      migrationRequestId: id,
+      actorUserId: user.userId,
+      outcome: dto.outcome,
+      note: dto.note ?? null,
+    });
+  }
+
+  /** Migrator v2 — ponowienie pojedynczego kroku (świeży licznik prób). */
+  @Post(':id/jobs/:jobId/retry')
+  @HttpCode(200)
+  async retryJob(
+    @Param('id') id: string,
+    @Param('jobId') jobId: string,
+    @CurrentUser() user: AuthedUser,
+  ) {
+    return this.migrations.retryWorkerJobForStaff({
+      migrationRequestId: id,
+      jobId,
+      actorUserId: user.userId,
     });
   }
 }

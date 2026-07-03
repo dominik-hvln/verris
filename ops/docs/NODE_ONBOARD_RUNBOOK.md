@@ -68,7 +68,8 @@ Skopiuj bundle na węzeł:
 scp -r ops/hosting-default-page \
   ops/scripts/{node-onboard-live,node-live-readiness,node-hosting-profile,\
   install-verris-default-page,node-verris-tasks-install,node-da-sync-plan-packages,\
-  verris-tasks,verris-task-run,security-hardening-baseline,security-egress-lockdown}.sh \
+  verris-tasks,verris-task-run,node-migration-worker,\
+  security-hardening-baseline,security-egress-lockdown}.sh \
   root@WĘZEŁ:/root/verris/
 ```
 
@@ -89,6 +90,7 @@ Skrypt `node-onboard-live.sh`:
 | Wymaga | `/etc/verris.conf` z bootstrapu |
 | DA IP | Rejestruje publiczne IP w DA (wymagane przy `ip=` w provisioning — nie `shared`) |
 | DA pakiety | `starter`, `pro`, `business` (= `Plan.slug` w panelu) |
+| Migrator | Worker migracji (timer 2 min) + narzędzia transferu: rsync, sshpass, lftp, imapsync, wp-cli, klient mysql — instalowane automatycznie |
 | LIVE readiness | Agent zadań + Governor/MariaDB 10.6 + profil hostingowy + weryfikacja |
 
 > Security hardening jest domyślnie **włączony** przy onboardingu.

@@ -27,7 +27,8 @@ export class MigrationsAdminController {
         : {};
     const rows = await this.prisma.migrationRequest.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      // Eskalacje („Pilne”) zawsze na górze kolejki staffa.
+      orderBy: [{ needsAttention: 'desc' }, { createdAt: 'desc' }],
       take: 100,
       select: {
         id: true,
@@ -35,21 +36,50 @@ export class MigrationsAdminController {
         status: true,
         currentStep: true,
         targetDomain: true,
+        sourcePanelType: true,
+        needsAttention: true,
+        attentionReason: true,
+        attentionAt: true,
+        cutoverMode: true,
+        cutoverAt: true,
+        ticketId: true,
         lastError: true,
         createdAt: true,
         updatedAt: true,
         user: { select: { email: true } },
         subscription: { select: { serviceTag: true, plan: { select: { name: true } } } },
-        workerJobs: { select: { kind: true, status: true, attempts: true, maxAttempts: true } },
+        workerJobs: {
+          orderBy: { sequence: 'asc' },
+          select: {
+            id: true,
+            kind: true,
+            status: true,
+            attempts: true,
+            maxAttempts: true,
+            sequence: true,
+            lastError: true,
+          },
+        },
       },
     });
+    const attentionCount = await this.prisma.migrationRequest.count({
+      where: { needsAttention: true },
+    });
     return {
+      attentionCount,
       rows: rows.map((r) => ({
         id: r.id,
         subscriptionId: r.subscriptionId,
         status: r.status,
         currentStep: r.currentStep,
         targetDomain: r.targetDomain,
+        sourcePanelType: r.sourcePanelType,
+        needsAttention: r.needsAttention,
+        attentionReason: r.attentionReason,
+        attentionAt: r.attentionAt?.toISOString() ?? null,
+        cutoverMode: r.cutoverMode,
+        cutoverAt: r.cutoverAt?.toISOString() ?? null,
+        ticketId: r.ticketId,
         lastError: r.lastError,
         createdAt: r.createdAt.toISOString(),
         updatedAt: r.updatedAt.toISOString(),
@@ -57,10 +87,13 @@ export class MigrationsAdminController {
         serviceTag: r.subscription?.serviceTag ?? null,
         planName: r.subscription?.plan?.name ?? null,
         jobs: r.workerJobs.map((j) => ({
+          id: j.id,
           kind: j.kind,
           status: j.status,
           attempts: j.attempts,
           maxAttempts: j.maxAttempts,
+          sequence: j.sequence,
+          lastError: j.lastError,
         })),
       })),
     };

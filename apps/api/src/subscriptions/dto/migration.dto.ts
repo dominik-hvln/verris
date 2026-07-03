@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   IsEnum,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -120,11 +121,26 @@ export class MigrationImapSourceDto {
 
   @IsString() @MinLength(1) @MaxLength(2048)
   password!: string;
+
+  /** Docelowy adres skrzynki u nas. Gdy brak — przyjmujemy `username`. */
+  @IsOptional() @IsString() @MinLength(3) @MaxLength(254)
+  email?: string;
 }
 
 export class CreateMigrationBundleDto {
   @IsOptional() @IsString() @MinLength(3) @MaxLength(253)
   targetDomain?: string;
+
+  /**
+   * Domena, pod którą strona działała u starego dostawcy. Gdy różna od
+   * `targetDomain`, WP_FIXUP wykona `wp search-replace` starej domeny na nową.
+   */
+  @IsOptional() @IsString() @MinLength(3) @MaxLength(253)
+  sourceDomain?: string;
+
+  /** Skąd przyszły dane: cpanel | directadmin | plesk | manual (statystyka + kontekst dla staffa). */
+  @IsOptional() @IsString() @MaxLength(32)
+  sourcePanelType?: string;
 
   @IsOptional() @ValidateNested() @Type(() => MigrationFtpSourceDto)
   ftp?: MigrationFtpSourceDto;
@@ -141,5 +157,23 @@ export class CreateMigrationBundleDto {
 
   @IsOptional() @IsString() @MaxLength(5000)
   notes?: string;
+}
+
+/** O-2/#18 — auto-discovery: dane logowania do panelu starego hostingu. */
+export class DiscoverMigrationSourceDto {
+  @IsString() @MinLength(3) @MaxLength(253)
+  host!: string;
+
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(65535)
+  port?: number;
+
+  @IsString() @MinLength(1) @MaxLength(128)
+  username!: string;
+
+  @IsString() @MinLength(1) @MaxLength(2048)
+  password!: string;
+
+  @IsOptional() @IsIn(['cpanel', 'directadmin', 'plesk'])
+  panelType?: 'cpanel' | 'directadmin' | 'plesk';
 }
 
