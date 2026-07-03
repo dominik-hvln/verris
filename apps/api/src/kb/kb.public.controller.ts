@@ -1,7 +1,7 @@
 import { Controller, Get, Param, Res } from '@nestjs/common';
 import type { Response } from 'express';
 import { KbService } from './kb.service';
-import { renderMarkdown, renderPublicPage, escapeHtml } from './kb-render';
+import { renderMarkdown, renderPublicPage, escapeHtml, renderFaq, renderRelated, renderReadingTime } from './kb-render';
 
 /**
  * KB-PUBLIC — publiczny, indeksowalny widok Bazy Wiedzy (SSR + SEO).
@@ -51,6 +51,7 @@ export class KbPublicController {
         baseUrl: base,
         breadcrumbs: [{ label: 'Baza wiedzy' }],
         bodyHtml: body,
+        cta: await this.kb.getCtaConfig(),
         jsonLd: {
           '@context': 'https://schema.org',
           '@type': 'WebSite',
@@ -92,6 +93,7 @@ export class KbPublicController {
         baseUrl: base,
         breadcrumbs: [{ label: 'Baza wiedzy', url: base + '/' }, { label: cat.name }],
         bodyHtml: body,
+        cta: await this.kb.getCtaConfig(),
       }),
     );
   }
@@ -107,10 +109,53 @@ export class KbPublicController {
     }
     const { article, category } = found;
     void this.kb.incrementViews(article.id);
+
+    const readingMin = this.kb.readingTimeMin(article.bodyMarkdown);
+    const faq = this.kb.parseFaq(article.faq);
+    const related = await this.kb.getRelated(article);
+
     const bodyHtml = `<h1>${escapeHtml(article.title)}</h1>
       ${article.excerpt ? `<p class="lead">${escapeHtml(article.excerpt)}</p>` : ''}
-      <div class="card">${renderMarkdown(article.bodyMarkdown)}</div>`;
+      <p style="margin:0 0 14px;">${renderReadingTime(readingMin)}</p>
+      <div class="card">${renderMarkdown(article.bodyMarkdown)}</div>
+      ${renderFaq(faq)}
+      ${renderRelated(base, related)}`;
     const desc = article.seoDescription || article.excerpt || `${article.title} — Baza wiedzy Verris.`;
+    const published = (article.publishedAt ?? article.createdAt)?.toISOString?.();
+    const modified = article.updatedAt?.toISOString?.();
+
+    // JSON-LD @graph: Article + BreadcrumbList (+ FAQPage gdy są pytania).
+    const graph: object[] = [
+      {
+        '@type': 'Article',
+        headline: article.title,
+        description: desc,
+        author: { '@type': 'Organization', name: 'Verris' },
+        publisher: { '@type': 'Organization', name: 'Verris' },
+        datePublished: published,
+        dateModified: modified,
+        mainEntityOfPage: `${base}/a/${article.slug}`,
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Baza wiedzy', item: base + '/' },
+          ...(category ? [{ '@type': 'ListItem', position: 2, name: category.name, item: `${base}/c/${category.slug}` }] : []),
+          { '@type': 'ListItem', position: category ? 3 : 2, name: article.title, item: `${base}/a/${article.slug}` },
+        ],
+      },
+    ];
+    if (faq.length) {
+      graph.push({
+        '@type': 'FAQPage',
+        mainEntity: faq.map((f) => ({
+          '@type': 'Question',
+          name: f.q,
+          acceptedAnswer: { '@type': 'Answer', text: f.a },
+        })),
+      });
+    }
+
     this.html(
       res,
       renderPublicPage({
@@ -125,17 +170,8 @@ export class KbPublicController {
           { label: article.title },
         ],
         bodyHtml,
-        jsonLd: {
-          '@context': 'https://schema.org',
-          '@type': 'Article',
-          headline: article.title,
-          description: desc,
-          author: { '@type': 'Organization', name: 'Verris' },
-          publisher: { '@type': 'Organization', name: 'Verris' },
-          datePublished: (article.publishedAt ?? article.createdAt)?.toISOString?.() ?? undefined,
-          dateModified: article.updatedAt?.toISOString?.() ?? undefined,
-          mainEntityOfPage: `${base}/a/${article.slug}`,
-        },
+        cta: await this.kb.getCtaConfig(),
+        jsonLd: { '@context': 'https://schema.org', '@graph': graph },
       }),
     );
   }
@@ -163,6 +199,29 @@ export class KbPublicController {
     res.end(`User-agent: *\nAllow: /\nSitemap: ${base}/sitemap.xml\n`);
   }
 
+  // ---- llms.txt (standard dla crawlerów/AI) — spis bazy wiedzy
+  @Get('llms.txt')
+  async llms(@Res() res: Response): Promise<void> {
+    const base = this.base();
+    const arts = await this.kb.llmsData();
+    const lines = [
+      '# Verris — Baza wiedzy',
+      '',
+      '> Hosting nowej generacji (Polska): hosting, domeny, poczta, DNS, SSL, WordPress, bezpieczeństwo, rozliczenia, migracja od konkurencji. Poradniki i FAQ.',
+      '',
+      '## Artykuły',
+      ...arts.map((a) => `- [${a.title}](${base}/a/${a.slug})${a.excerpt ? `: ${a.excerpt}` : ''}`),
+      '',
+      '## Zasoby',
+      `- Panel klienta: https://panel.verris.pl`,
+      `- Status usług: https://status.verris.pl`,
+      `- Sitemap: ${base}/sitemap.xml`,
+    ];
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.end(lines.join('\n'));
+  }
+
   // ---- JSON (reużycie w panelach klienta/staff)
   @Get('api/tree')
   apiTree() {
@@ -173,6 +232,7 @@ export class KbPublicController {
   async apiArticle(@Param('slug') slug: string) {
     const found = await this.kb.publicArticleBySlug(slug);
     if (!found) return null;
+    const related = await this.kb.getRelated(found.article);
     return {
       slug: found.article.slug,
       title: found.article.title,
@@ -181,7 +241,15 @@ export class KbPublicController {
       updatedAt: found.article.updatedAt,
       categoryName: found.category?.name ?? null,
       categorySlug: found.category?.slug ?? null,
+      readingMin: this.kb.readingTimeMin(found.article.bodyMarkdown),
+      faq: this.kb.parseFaq(found.article.faq),
+      related,
     };
+  }
+
+  @Get('api/cta')
+  cta() {
+    return this.kb.getCtaConfig();
   }
 
   private notFound(base: string): string {

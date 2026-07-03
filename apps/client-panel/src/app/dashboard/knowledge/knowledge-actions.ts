@@ -19,6 +19,9 @@ export interface KbArticle {
   content: string; // Markdown
   updatedAt: string;
   category?: string | null;
+  readingMin?: number;
+  faq?: Array<{ q: string; a: string }>;
+  related?: Array<{ slug: string; title: string; excerpt: string | null }>;
 }
 
 type PublicTree = Array<{
@@ -51,9 +54,21 @@ export async function fetchKbArticle(slug: string): Promise<KbArticle | null> {
       bodyMarkdown: string;
       updatedAt: string;
       categoryName: string | null;
+      readingMin?: number;
+      faq?: Array<{ q: string; a: string }>;
+      related?: Array<{ slug: string; title: string; excerpt: string | null }>;
     } | null>(`/kb/api/article/${encodeURIComponent(slug)}`, { unauthenticated: true });
     if (!a) return null;
-    return { id: a.slug, title: a.title, content: a.bodyMarkdown, updatedAt: a.updatedAt, category: a.categoryName };
+    return {
+      id: a.slug,
+      title: a.title,
+      content: a.bodyMarkdown,
+      updatedAt: a.updatedAt,
+      category: a.categoryName,
+      readingMin: a.readingMin,
+      faq: a.faq ?? [],
+      related: a.related ?? [],
+    };
   } catch {
     return null;
   }

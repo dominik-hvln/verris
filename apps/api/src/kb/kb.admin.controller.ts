@@ -15,7 +15,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
-import { KbService, type UpsertArticleInput, type UpsertCategoryInput } from './kb.service';
+import { KbService, type KbCtaConfig, type UpsertArticleInput, type UpsertCategoryInput } from './kb.service';
 
 /**
  * KB-CMS — autoring Bazy Wiedzy. Dostęp: ADMIN + STAFF (treść pomocy, nieinwazyjne
@@ -88,5 +88,16 @@ export class KbAdminController {
   @Delete('articles/:id')
   deleteArticle(@Param('id') id: string) {
     return this.kb.deleteArticle(id);
+  }
+
+  // ------- baner CTA (KB-SEO-4) — jedno miejsce edycji
+  @Get('cta')
+  getCta() {
+    return this.kb.getCtaConfig();
+  }
+
+  @Patch('cta')
+  setCta(@Body() body: Partial<KbCtaConfig>, @CurrentUser() actor: { userId: string }) {
+    return this.kb.setCtaConfig(body, actor.userId);
   }
 }

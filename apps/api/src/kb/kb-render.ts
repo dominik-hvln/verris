@@ -113,6 +113,71 @@ export function renderMarkdown(md: string): string {
   return out.join('\n');
 }
 
+export interface CtaBanner {
+  enabled: boolean;
+  headline: string;
+  subtext: string;
+  bullets: string[];
+  buttonLabel: string;
+  buttonUrl: string;
+  statusUrl: string;
+  statusLabel: string;
+}
+
+/** Baner CTA (KV) — realne dane + link do publicznego statusu. Jedno źródło. */
+export function renderCtaBanner(cta?: CtaBanner): string {
+  if (!cta || !cta.enabled) return '';
+  const bullets = (cta.bullets ?? [])
+    .filter(Boolean)
+    .map(
+      (b) =>
+        `<li style="display:flex;align-items:center;gap:8px;margin:6px 0;color:${BRAND.paper};font-size:14px;"><span style="color:${BRAND.mint};font-weight:800;">✓</span>${escapeHtml(b)}</li>`,
+    )
+    .join('');
+  return `<aside style="margin:32px 0 8px;background:${BRAND.pine};background-image:linear-gradient(135deg,${BRAND.pine},${BRAND.card});border:1px solid ${BRAND.mint}40;border-radius:16px;padding:26px 28px;">
+    <h2 style="margin:0 0 6px;color:${BRAND.paper};font-size:22px;line-height:1.25;">${escapeHtml(cta.headline)}</h2>
+    <p style="margin:0 0 14px;color:${BRAND.stone};font-size:15px;line-height:1.6;">${escapeHtml(cta.subtext)}</p>
+    ${bullets ? `<ul style="list-style:none;padding:0;margin:0 0 18px;">${bullets}</ul>` : ''}
+    <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+      <a href="${escapeHtml(cta.buttonUrl)}" style="display:inline-block;background:${BRAND.mint};color:${BRAND.pine};font-weight:700;text-decoration:none;padding:11px 22px;border-radius:10px;font-size:15px;">${escapeHtml(cta.buttonLabel)}</a>
+      ${cta.statusUrl ? `<a href="${escapeHtml(cta.statusUrl)}" style="color:${BRAND.mint};text-decoration:none;font-size:14px;">${escapeHtml(cta.statusLabel || 'Status usług')} →</a>` : ''}
+    </div>
+  </aside>`;
+}
+
+export function renderReadingTime(min: number): string {
+  return `<span style="display:inline-block;color:${BRAND.textMuted};font-size:13px;">⏱ ${min} min czytania</span>`;
+}
+
+export function renderFaq(items: Array<{ q: string; a: string }>): string {
+  if (!items?.length) return '';
+  const rows = items
+    .map(
+      (f) => `<div style="border-top:1px solid ${BRAND.border};padding:14px 0;">
+        <h3 style="margin:0 0 6px;font-size:16px;color:${BRAND.pine};">${escapeHtml(f.q)}</h3>
+        <p style="margin:0;color:#22302a;font-size:15px;line-height:1.6;">${escapeHtml(f.a)}</p>
+      </div>`,
+    )
+    .join('');
+  return `<section style="margin:28px 0 8px;"><h2 style="font-size:22px;color:${BRAND.pine};margin:0 0 8px;">Najczęstsze pytania</h2>${rows}</section>`;
+}
+
+export function renderRelated(
+  base: string,
+  items: Array<{ slug: string; title: string; excerpt: string | null }>,
+): string {
+  if (!items?.length) return '';
+  const cards = items
+    .map(
+      (r) => `<a href="${base}/a/${escapeHtml(r.slug)}" style="display:block;background:${BRAND.cardBg};border:1px solid ${BRAND.border};border-radius:12px;padding:14px 16px;text-decoration:none;color:${BRAND.pine};">
+        <strong style="display:block;font-size:15px;">${escapeHtml(r.title)}</strong>
+        ${r.excerpt ? `<span style="display:block;color:${BRAND.textMuted};font-size:13px;margin-top:4px;">${escapeHtml(r.excerpt)}</span>` : ''}
+      </a>`,
+    )
+    .join('');
+  return `<section style="margin:28px 0 8px;"><h2 style="font-size:20px;color:${BRAND.pine};margin:0 0 12px;">Powiązane artykuły</h2><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;">${cards}</div></section>`;
+}
+
 export interface PublicPageInput {
   title: string;
   description: string;
@@ -122,6 +187,7 @@ export interface PublicPageInput {
   breadcrumbs: Array<{ label: string; url?: string }>;
   jsonLd?: object;
   updatedAt?: Date;
+  cta?: CtaBanner;
 }
 
 /** Pełny dokument HTML publicznej strony KB (SSR, brand KV, SEO). */
@@ -196,6 +262,7 @@ ${jsonLdScript}
   <nav class="crumbs">${crumbs}</nav>
   ${p.bodyHtml}
   ${p.updatedAt ? `<p class="meta">Ostatnia aktualizacja: ${escapeHtml(new Intl.DateTimeFormat('pl-PL', { dateStyle: 'long' }).format(p.updatedAt))}</p>` : ''}
+  ${renderCtaBanner(p.cta)}
 </div></main>
 <footer><div class="wrap">
   © ${new Date().getFullYear()} Verris — skaluj świadomie ·

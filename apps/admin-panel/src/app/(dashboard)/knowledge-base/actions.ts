@@ -23,6 +23,8 @@ export type KbArticle = {
   status: 'DRAFT' | 'PUBLISHED';
   seoTitle: string | null;
   seoDescription: string | null;
+  faq: Array<{ q: string; a: string }> | null;
+  relatedSlugs: string[] | null;
   authorName: string | null;
   order: number;
   views: number;
@@ -101,6 +103,8 @@ export async function getArticle(id: string): Promise<KbArticle | null> {
   }
 }
 
+export type KbFaqItem = { q: string; a: string };
+
 export type ArticleInput = {
   title: string;
   slug?: string;
@@ -110,8 +114,39 @@ export type ArticleInput = {
   status?: 'DRAFT' | 'PUBLISHED';
   seoTitle?: string;
   seoDescription?: string;
+  faq?: KbFaqItem[];
+  relatedSlugs?: string[];
   order?: number;
 };
+
+export type KbCtaConfig = {
+  enabled: boolean;
+  headline: string;
+  subtext: string;
+  bullets: string[];
+  buttonLabel: string;
+  buttonUrl: string;
+  statusUrl: string;
+  statusLabel: string;
+};
+
+export async function fetchCta(): Promise<KbCtaConfig | null> {
+  try {
+    return await adminApi<KbCtaConfig>('/admin/kb/cta');
+  } catch {
+    return null;
+  }
+}
+
+export async function saveCta(input: Partial<KbCtaConfig>): Promise<Res<KbCtaConfig>> {
+  try {
+    const data = await adminApi<KbCtaConfig>('/admin/kb/cta', { method: 'PATCH', body: input });
+    revalidatePath('/knowledge-base');
+    return { ok: true, data };
+  } catch (e) {
+    return { ok: false, error: err(e) };
+  }
+}
 
 export async function createArticle(input: ArticleInput): Promise<Res<KbArticle>> {
   try {

@@ -35,12 +35,43 @@ type KbArticleRow = {
   seoDescription: string | null;
   authorUserId: string | null;
   authorName: string | null;
+  faq: unknown;
+  relatedSlugs: string[];
   order: number;
   views: number;
   publishedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 };
+
+export interface KbFaqItem {
+  q: string;
+  a: string;
+}
+
+export interface KbCtaConfig {
+  enabled: boolean;
+  headline: string;
+  subtext: string;
+  bullets: string[];
+  buttonLabel: string;
+  buttonUrl: string;
+  statusUrl: string;
+  statusLabel: string;
+}
+
+const DEFAULT_CTA: KbCtaConfig = {
+  enabled: true,
+  headline: 'Hosting, który Cię zaopiekuje',
+  subtext: 'Szybki hosting z realnym SLA, kopiami co noc i wsparciem 24/7. Bez sztuczek w cenniku.',
+  bullets: ['Backup off-node co noc', 'Autoskalowanie z bezpiecznikiem kosztów', 'Passkey i WAF w standardzie'],
+  buttonLabel: 'Zobacz plany hostingu',
+  buttonUrl: 'https://panel.verris.pl/register',
+  statusUrl: 'https://status.verris.pl',
+  statusLabel: 'Status usług na żywo',
+};
+
+const KB_CTA_KEY = 'kb.cta';
 
 interface Delegate<Row> {
   findMany(args?: unknown): Promise<Row[]>;
@@ -70,6 +101,8 @@ export interface UpsertArticleInput {
   status?: 'DRAFT' | 'PUBLISHED';
   seoTitle?: string | null;
   seoDescription?: string | null;
+  faq?: KbFaqItem[] | null;
+  relatedSlugs?: string[];
   order?: number;
 }
 
@@ -194,6 +227,8 @@ export class KbService {
         status,
         seoTitle: input.seoTitle ?? null,
         seoDescription: input.seoDescription ?? null,
+        faq: (input.faq ?? undefined) as unknown,
+        relatedSlugs: input.relatedSlugs ?? [],
         authorUserId: author.userId,
         authorName: author.name,
         order: input.order ?? 0,
@@ -214,6 +249,8 @@ export class KbService {
     if (input.bodyMarkdown !== undefined) data.bodyMarkdown = input.bodyMarkdown;
     if (input.seoTitle !== undefined) data.seoTitle = input.seoTitle;
     if (input.seoDescription !== undefined) data.seoDescription = input.seoDescription;
+    if (input.faq !== undefined) data.faq = (input.faq ?? undefined) as unknown;
+    if (input.relatedSlugs !== undefined) data.relatedSlugs = input.relatedSlugs;
     if (input.order !== undefined) data.order = input.order;
     if (input.slug !== undefined) data.slug = await this.uniqueSlug(KbService.slugify(input.slug), 'article', id);
     if (input.status !== undefined && input.status !== existing.status) {
@@ -356,5 +393,80 @@ export class KbService {
       orderBy: [{ updatedAt: 'desc' }],
     });
     return arts.map((a) => ({ slug: a.slug, updatedAt: a.updatedAt }));
+  }
+
+  // --------------------------------------------------------------- SEO helpers (KB-SEO-1/2)
+  readingTimeMin(md: string): number {
+    const words = md.trim().split(/\s+/).filter(Boolean).length;
+    return Math.max(1, Math.round(words / 200));
+  }
+
+  parseFaq(raw: unknown): KbFaqItem[] {
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map((x) => {
+        const o = (x ?? {}) as { q?: unknown; a?: unknown };
+        return { q: String(o.q ?? '').trim(), a: String(o.a ?? '').trim() };
+      })
+      .filter((x) => x.q && x.a);
+  }
+
+  async getRelated(article: KbArticleRow): Promise<Array<{ slug: string; title: string; excerpt: string | null }>> {
+    const manualSlugs = (article.relatedSlugs ?? []).filter(Boolean);
+    const manual = manualSlugs.length
+      ? await this.articles.findMany({ where: { slug: { in: manualSlugs }, status: 'PUBLISHED' } })
+      : [];
+    const need = Math.max(0, 4 - manual.length);
+    let auto: KbArticleRow[] = [];
+    if (need > 0) {
+      auto = await this.articles.findMany({
+        where: {
+          categoryId: article.categoryId,
+          status: 'PUBLISHED',
+          id: { not: article.id },
+          slug: { notIn: manualSlugs },
+        },
+        orderBy: [{ order: 'asc' }, { title: 'asc' }],
+        take: need,
+      });
+    }
+    return [...manual, ...auto].map((a) => ({ slug: a.slug, title: a.title, excerpt: a.excerpt }));
+  }
+
+  // --------------------------------------------------------------- CTA config (KB-SEO-4)
+  async getCtaConfig(): Promise<KbCtaConfig> {
+    const prisma = this.prisma as unknown as {
+      platformSetting: { findUnique(a: unknown): Promise<{ value: string } | null> };
+    };
+    const row = await prisma.platformSetting.findUnique({ where: { key: KB_CTA_KEY } });
+    if (!row?.value) return DEFAULT_CTA;
+    try {
+      return { ...DEFAULT_CTA, ...(JSON.parse(row.value) as Partial<KbCtaConfig>) };
+    } catch {
+      return DEFAULT_CTA;
+    }
+  }
+
+  async setCtaConfig(input: Partial<KbCtaConfig>, actorUserId: string): Promise<KbCtaConfig> {
+    const merged: KbCtaConfig = { ...(await this.getCtaConfig()), ...input };
+    const value = JSON.stringify(merged);
+    const prisma = this.prisma as unknown as {
+      platformSetting: { upsert(a: unknown): Promise<unknown> };
+    };
+    await prisma.platformSetting.upsert({
+      where: { key: KB_CTA_KEY },
+      create: { key: KB_CTA_KEY, value, updatedByUserId: actorUserId },
+      update: { value, updatedByUserId: actorUserId },
+    });
+    return merged;
+  }
+
+  // --------------------------------------------------------------- llms.txt (KB-SEO-3)
+  async llmsData(): Promise<Array<{ slug: string; title: string; excerpt: string | null }>> {
+    const arts = await this.articles.findMany({
+      where: { status: 'PUBLISHED' },
+      orderBy: [{ order: 'asc' }, { title: 'asc' }],
+    });
+    return arts.map((a) => ({ slug: a.slug, title: a.title, excerpt: a.excerpt }));
   }
 }

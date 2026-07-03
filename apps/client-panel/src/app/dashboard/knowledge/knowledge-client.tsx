@@ -76,12 +76,45 @@ export function KnowledgeClient({
           <article className="max-w-3xl">
             <h1 className="text-xl font-bold text-white">{article.title}</h1>
             <p className="mt-1 text-xs text-neutral-500">
-              {article.category ? `${article.category} · ` : ''}Aktualizacja: {new Date(article.updatedAt).toLocaleDateString('pl-PL')}
+              {article.category ? `${article.category} · ` : ''}
+              {article.readingMin ? `⏱ ${article.readingMin} min · ` : ''}
+              Aktualizacja: {new Date(article.updatedAt).toLocaleDateString('pl-PL')}
             </p>
             <div
               className="mt-4 text-sm leading-relaxed text-neutral-200 [&_a]:text-emerald-400 [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-white [&_h3]:mt-4 [&_h3]:mb-1 [&_h3]:font-semibold [&_h3]:text-white [&_li]:my-1 [&_ol]:my-2 [&_ol]:pl-5 [&_ol]:list-decimal [&_p]:my-2 [&_ul]:my-2 [&_ul]:pl-5 [&_ul]:list-disc"
               dangerouslySetInnerHTML={{ __html: html }}
             />
+            {article.faq && article.faq.length > 0 ? (
+              <section className="mt-6">
+                <h2 className="text-lg font-bold text-white">Najczęstsze pytania</h2>
+                <div className="mt-2 divide-y divide-white/10 rounded-xl border border-white/10">
+                  {article.faq.map((f, i) => (
+                    <details key={i} className="p-3">
+                      <summary className="cursor-pointer text-sm font-semibold text-white">{f.q}</summary>
+                      <p className="mt-2 text-sm text-neutral-300">{f.a}</p>
+                    </details>
+                  ))}
+                </div>
+              </section>
+            ) : null}
+            {article.related && article.related.length > 0 ? (
+              <section className="mt-6">
+                <h2 className="text-sm font-bold uppercase tracking-wide text-neutral-400">Powiązane</h2>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  {article.related.map((r) => (
+                    <button
+                      key={r.slug}
+                      type="button"
+                      onClick={() => setOpenId(r.slug)}
+                      className="rounded-lg border border-white/10 bg-white/[0.02] p-3 text-left hover:bg-white/[0.05]"
+                    >
+                      <span className="block text-sm font-medium text-white">{r.title}</span>
+                      {r.excerpt ? <span className="block text-xs text-neutral-500">{r.excerpt}</span> : null}
+                    </button>
+                  ))}
+                </div>
+              </section>
+            ) : null}
             <a
               href={`https://pomoc.verris.pl/a/${article.id}`}
               target="_blank"

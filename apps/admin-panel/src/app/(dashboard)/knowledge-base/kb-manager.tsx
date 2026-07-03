@@ -9,13 +9,16 @@ import {
   deleteCategory,
   fetchArticles,
   fetchCategories,
+  fetchCta,
   getArticle,
+  saveCta,
   updateArticle,
   updateCategory,
   type ArticleInput,
   type KbArticle,
   type KbArticleListItem,
   type KbCategory,
+  type KbCtaConfig,
 } from './actions';
 
 /** Lekki renderer Markdown → HTML na potrzeby podglądu (treść od autora). */
@@ -68,7 +71,7 @@ function mdToHtml(md: string): string {
   return out.join('\n');
 }
 
-const EMPTY: ArticleInput = { title: '', categoryId: '', excerpt: '', bodyMarkdown: '', status: 'DRAFT', seoTitle: '', seoDescription: '' };
+const EMPTY: ArticleInput = { title: '', categoryId: '', excerpt: '', bodyMarkdown: '', status: 'DRAFT', seoTitle: '', seoDescription: '', faq: [], relatedSlugs: [] };
 
 export function KbManager() {
   const [cats, setCats] = useState<KbCategory[]>([]);
@@ -125,6 +128,7 @@ export function KbManager() {
     setForm({
       title: a.title, slug: a.slug, categoryId: a.categoryId, excerpt: a.excerpt ?? '',
       bodyMarkdown: a.bodyMarkdown, status: a.status, seoTitle: a.seoTitle ?? '', seoDescription: a.seoDescription ?? '',
+      faq: a.faq ?? [], relatedSlugs: a.relatedSlugs ?? [],
     });
     setMsg({});
   }
@@ -151,6 +155,8 @@ export function KbManager() {
     setForm((f) => ({ ...f, [k]: e.target.value }));
 
   return (
+    <div className="space-y-6">
+    <CtaPanel />
     <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
       {/* Kategorie */}
       <aside className="space-y-2 rounded-2xl border border-white/10 bg-black/30 p-4">
@@ -227,6 +233,56 @@ export function KbManager() {
         )}
       </section>
     </div>
+    </div>
+  );
+}
+
+function CtaPanel() {
+  const [cta, setCta] = useState<KbCtaConfig | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  useEffect(() => { void fetchCta().then(setCta); }, []);
+  if (!cta) return null;
+  const upd = (k: keyof KbCtaConfig, v: unknown) => setCta((c) => (c ? { ...c, [k]: v } : c));
+  const inputCls = 'w-full rounded-lg border border-white/10 bg-black/50 px-3 py-2 text-sm text-white focus:border-emerald-500/40 focus:outline-none';
+  async function submit() {
+    if (!cta) return;
+    setSaving(true); setSaved(false);
+    const r = await saveCta(cta);
+    setSaving(false);
+    if (r.ok) { setSaved(true); setTimeout(() => setSaved(false), 2500); }
+  }
+  return (
+    <details className="rounded-2xl border border-white/10 bg-black/30 p-4">
+      <summary className="cursor-pointer text-sm font-bold uppercase tracking-widest text-amber-400">
+        Baner CTA (wspólny dla całej bazy wiedzy)
+      </summary>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        <label className="flex items-center gap-2 text-sm text-white sm:col-span-2">
+          <input type="checkbox" checked={cta.enabled} onChange={(e) => upd('enabled', e.target.checked)} /> Baner włączony
+        </label>
+        <label className="space-y-1 sm:col-span-2"><span className="text-xs text-white/70">Nagłówek</span>
+          <input className={inputCls} value={cta.headline} onChange={(e) => upd('headline', e.target.value)} /></label>
+        <label className="space-y-1 sm:col-span-2"><span className="text-xs text-white/70">Podtytuł</span>
+          <input className={inputCls} value={cta.subtext} onChange={(e) => upd('subtext', e.target.value)} /></label>
+        <label className="space-y-1 sm:col-span-2"><span className="text-xs text-white/70">Bullety (po jednym w linii) — cena, parametry, SLA</span>
+          <textarea className={`${inputCls} min-h-[80px]`} value={cta.bullets.join('\n')} onChange={(e) => upd('bullets', e.target.value.split('\n').map((s) => s.trim()).filter(Boolean))} /></label>
+        <label className="space-y-1"><span className="text-xs text-white/70">Tekst przycisku</span>
+          <input className={inputCls} value={cta.buttonLabel} onChange={(e) => upd('buttonLabel', e.target.value)} /></label>
+        <label className="space-y-1"><span className="text-xs text-white/70">URL przycisku</span>
+          <input className={inputCls} value={cta.buttonUrl} onChange={(e) => upd('buttonUrl', e.target.value)} /></label>
+        <label className="space-y-1"><span className="text-xs text-white/70">Link statusu (publiczny monitoring)</span>
+          <input className={inputCls} value={cta.statusUrl} onChange={(e) => upd('statusUrl', e.target.value)} /></label>
+        <label className="space-y-1"><span className="text-xs text-white/70">Etykieta linku statusu</span>
+          <input className={inputCls} value={cta.statusLabel} onChange={(e) => upd('statusLabel', e.target.value)} /></label>
+      </div>
+      <div className="mt-3 flex items-center gap-3">
+        <button type="button" onClick={() => void submit()} disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-50">
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Zapisz baner
+        </button>
+        {saved ? <span className="text-sm text-emerald-300">Zapisano.</span> : null}
+      </div>
+    </details>
   );
 }
 
@@ -296,6 +352,53 @@ function Editor({ form, set, setForm, cats, busy, isNew, onSave, onDelete, onClo
             dangerouslySetInnerHTML={{ __html: preview }} />
         </div>
       </div>
+
+      <div className="space-y-3 rounded-2xl border border-white/10 bg-black/20 p-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-white/80">FAQ (rich snippets w Google)</h3>
+          <button
+            type="button"
+            onClick={() => setForm((f) => ({ ...f, faq: [...(f.faq ?? []), { q: '', a: '' }] }))}
+            className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-white hover:bg-white/10"
+          >
+            <Plus className="h-3.5 w-3.5" /> Pytanie
+          </button>
+        </div>
+        {(form.faq ?? []).length === 0 ? (
+          <p className="text-xs text-white/40">Brak pytań. Dodaj FAQ, aby zwiększyć szansę na rich snippet w Google.</p>
+        ) : null}
+        {(form.faq ?? []).map((item, idx) => (
+          <div key={idx} className="space-y-2 rounded-xl border border-white/5 bg-black/30 p-3">
+            <div className="flex items-center gap-2">
+              <input
+                className={inputCls}
+                value={item.q}
+                onChange={(e) => setForm((f) => { const faq = [...(f.faq ?? [])]; faq[idx] = { ...faq[idx], q: e.target.value }; return { ...f, faq }; })}
+                placeholder="Pytanie (np. Jak podpiąć domenę?)"
+              />
+              <button type="button" onClick={() => setForm((f) => ({ ...f, faq: (f.faq ?? []).filter((_, i) => i !== idx) }))} className="text-white/40 hover:text-rose-400">
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+            <textarea
+              className={`${inputCls} min-h-[70px]`}
+              value={item.a}
+              onChange={(e) => setForm((f) => { const faq = [...(f.faq ?? [])]; faq[idx] = { ...faq[idx], a: e.target.value }; return { ...f, faq }; })}
+              placeholder="Odpowiedź (zwięźle, 1–3 zdania)"
+            />
+          </div>
+        ))}
+      </div>
+
+      <label className="block space-y-1">
+        <span className="text-xs font-medium text-white/70">Powiązane artykuły — slugi po przecinku (puste = auto po kategorii)</span>
+        <input
+          className={inputCls}
+          value={(form.relatedSlugs ?? []).join(', ')}
+          onChange={(e) => setForm((f) => ({ ...f, relatedSlugs: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) }))}
+          placeholder="jak-podpiac-domene, certyfikat-ssl"
+        />
+      </label>
 
       <details className="rounded-2xl border border-white/10 bg-black/20 p-4">
         <summary className="cursor-pointer text-sm font-semibold text-white/80">SEO (opcjonalnie — nadpisuje tytuł/opis)</summary>

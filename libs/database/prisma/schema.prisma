@@ -3339,6 +3339,10 @@ model KbArticle {
   /// Snapshot autora (bez relacji do User — unikamy zmian w modelu User).
   authorUserId   String?
   authorName     String?
+  /// KB-SEO-1 — FAQ (tablica {q,a}) → FAQPage JSON-LD (rich snippets).
+  faq            Json?
+  /// KB-SEO-2 — ręcznie powiązane artykuły (slugi). Puste = auto po kategorii.
+  relatedSlugs   String[]        @default([])
   order          Int             @default(0)
   views          Int             @default(0)
   publishedAt    DateTime?
