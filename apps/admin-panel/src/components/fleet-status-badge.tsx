@@ -1,5 +1,6 @@
 import type { ServerStatus, ServerSummaryDto } from "@verris/contracts";
 import { adminApi } from "@/lib/api";
+import { plural } from "@/lib/pl";
 
 type Tone = "emerald" | "amber" | "rose" | "zinc";
 
@@ -74,7 +75,7 @@ function resolveFleetState(
   if (counts.OFFLINE > 0) {
     return {
       tone: "rose",
-      label: counts.OFFLINE === 1 ? "1 węzeł offline" : `${counts.OFFLINE} węzły offline`,
+      label: `${plural(counts.OFFLINE, "węzeł", "węzły", "węzłów")} offline`,
       pulse: true,
     };
   }

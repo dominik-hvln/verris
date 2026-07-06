@@ -51,6 +51,8 @@ jobs:
               ADMIN_PANEL_URL=${{ vars.ADMIN_PANEL_URL || 'https://admin.verris.pl' }}
               NEXT_PUBLIC_API_URL=${{ vars.PUBLIC_API_URL || 'https://api.verris.pl' }}
               NEXT_PUBLIC_STATUS_PAGE_URL=${{ vars.PUBLIC_STATUS_URL || 'https://status.verris.pl' }}
+              NEXT_PUBLIC_CAPTCHA_PROVIDER=${{ vars.CAPTCHA_PROVIDER || 'recaptcha' }}
+              NEXT_PUBLIC_CAPTCHA_SITE_KEY=${{ vars.CAPTCHA_SITE_KEY }}
           - image: verris-staff-panel
             dockerfile: Dockerfile.panel
             build_args: |
@@ -62,6 +64,8 @@ jobs:
               ADMIN_PANEL_URL=${{ vars.ADMIN_PANEL_URL || 'https://admin.verris.pl' }}
               NEXT_PUBLIC_API_URL=${{ vars.PUBLIC_API_URL || 'https://api.verris.pl' }}
               NEXT_PUBLIC_GRAFANA_URL=${{ vars.PUBLIC_GRAFANA_URL || 'https://grafana.verris.pl' }}
+              NEXT_PUBLIC_CAPTCHA_PROVIDER=${{ vars.CAPTCHA_PROVIDER || 'recaptcha' }}
+              NEXT_PUBLIC_CAPTCHA_SITE_KEY=${{ vars.CAPTCHA_SITE_KEY }}
           - image: verris-admin-panel
             dockerfile: Dockerfile.panel
             build_args: |
@@ -74,6 +78,8 @@ jobs:
               NEXT_PUBLIC_API_URL=${{ vars.PUBLIC_API_URL || 'https://api.verris.pl' }}
               NEXT_PUBLIC_STAFF_PANEL_URL=${{ vars.STAFF_PANEL_URL || 'https://staff.verris.pl' }}
               NEXT_PUBLIC_GRAFANA_URL=${{ vars.PUBLIC_GRAFANA_URL || 'https://grafana.verris.pl' }}
+              NEXT_PUBLIC_CAPTCHA_PROVIDER=${{ vars.CAPTCHA_PROVIDER || 'recaptcha' }}
+              NEXT_PUBLIC_CAPTCHA_SITE_KEY=${{ vars.CAPTCHA_SITE_KEY }}
           - image: verris-status-page
             dockerfile: Dockerfile.panel
             build_args: |

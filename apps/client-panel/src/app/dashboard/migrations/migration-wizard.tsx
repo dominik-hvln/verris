@@ -58,6 +58,7 @@ export function MigrationWizard({ serviceId, onQueued }: Props) {
   const [targetDomain, setTargetDomain] = useState('');
   const [sourceDomain, setSourceDomain] = useState('');
   const [notes, setNotes] = useState('');
+  const [consent, setConsent] = useState(false);
 
   const [includeFiles, setIncludeFiles] = useState(true);
   const [ftpProtocol, setFtpProtocol] = useState<'ftp' | 'ftps' | 'sftp'>('sftp');
@@ -173,8 +174,16 @@ export function MigrationWizard({ serviceId, onQueued }: Props) {
       setMsg({ type: 'err', text: 'Wskaż co najmniej jedno źródło: pliki, bazę lub skrzynkę.' });
       return;
     }
+    if (!consent) {
+      setMsg({ type: 'err', text: 'Zaznacz zgodę na przeniesienie danych, aby uruchomić migrację.' });
+      return;
+    }
     setBusy(true);
-    const res = await createMigrationBundleAction({ ...buildInput(), notes: notes.trim() || undefined });
+    const res = await createMigrationBundleAction({
+      ...buildInput(),
+      notes: notes.trim() || undefined,
+      consentAccepted: true,
+    });
     setBusy(false);
     if ('error' in res) {
       setMsg({ type: 'err', text: res.error });
@@ -265,6 +274,8 @@ export function MigrationWizard({ serviceId, onQueued }: Props) {
           targetDomain={targetDomain}
           notes={notes}
           setNotes={setNotes}
+          consent={consent}
+          setConsent={setConsent}
         />
       ) : null}
 
@@ -305,7 +316,7 @@ export function MigrationWizard({ serviceId, onQueued }: Props) {
           {step === 3 ? (
             <Button
               type="button"
-              disabled={busy || !hasAnySource}
+              disabled={busy || !hasAnySource || !consent}
               onClick={submit}
               className="bg-cyan-600 hover:bg-cyan-500 text-white disabled:opacity-40"
             >
@@ -663,6 +674,8 @@ function StepStart(props: {
   targetDomain: string;
   notes: string;
   setNotes: (v: string) => void;
+  consent: boolean;
+  setConsent: (v: boolean) => void;
 }) {
   return (
     <div className="space-y-4">
@@ -690,9 +703,27 @@ function StepStart(props: {
         <textarea value={props.notes} onChange={(e) => props.setNotes(e.target.value)} className={`${input} min-h-[64px]`} />
       </label>
       <p className="rounded-lg border border-cyan-500/20 bg-cyan-500/[0.05] px-3 py-2 text-xs text-cyan-100/90">
-        Po uruchomieniu zobaczysz postęp na żywo. Twoja obecna strona działa bez przerwy aż do
-        przełączenia DNS — ten krok wykonasz sam(a) na końcu, jednym kliknięciem.
+        Hasła szyfrujemy, używamy tylko na czas transferu i kasujemy po zakończeniu. Twoja obecna
+        strona działa bez przerwy aż do przełączenia DNS — ten krok wykonasz sam(a) na końcu.
       </p>
+
+      {/* Zgoda / upoważnienie (RODO) — wymagane do startu. */}
+      <label className="flex items-start gap-2.5 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs leading-relaxed text-neutral-300">
+        <input
+          type="checkbox"
+          checked={props.consent}
+          onChange={(e) => props.setConsent(e.target.checked)}
+          className="mt-0.5 h-4 w-4 shrink-0 accent-cyan-500"
+        />
+        <span>
+          Oświadczam, że mam prawo przenieść wskazane dane i <strong>upoważniam Verris</strong> do
+          jednorazowego dostępu do wskazanego hostingu źródłowego w celu wykonania migracji. Rozumiem,
+          że dane dostępowe są szyfrowane i usuwane po zakończeniu. Akceptuję{' '}
+          <a href="/legal/dpa" target="_blank" className="text-cyan-300 hover:underline">Umowę powierzenia (DPA)</a>,{' '}
+          <a href="/legal/privacy" target="_blank" className="text-cyan-300 hover:underline">Politykę prywatności</a>{' '}
+          i <a href="/legal/terms" target="_blank" className="text-cyan-300 hover:underline">Regulamin</a>.
+        </span>
+      </label>
     </div>
   );
 }

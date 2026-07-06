@@ -53,6 +53,7 @@ import { KbModule } from './kb/kb.module';
 import { ControlPlaneMailModule } from './control-plane-mail/control-plane-mail.module';
 import { VpnModule } from './vpn/vpn.module';
 import { KsefModule } from './ksef/ksef.module';
+import { DeliverabilityModule } from './deliverability/deliverability.module';
 
 @Module({
   imports: [
@@ -94,6 +95,7 @@ import { KsefModule } from './ksef/ksef.module';
     ControlPlaneMailModule,
     VpnModule,
     KsefModule,
+    DeliverabilityModule,
     LiveReadinessModule,
     VpsModule,
     PublicStatsModule,

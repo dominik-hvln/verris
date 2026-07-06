@@ -37,12 +37,28 @@
     respond @scanners 403
 }
 
+# CYBER-11 — responsible disclosure. RFC 9116 security.txt na /.well-known/.
+# Zaktualizuj `Expires` co ~roku. Kanał: security@verris.pl.
+(security_txt) {
+    @securitytxt path /.well-known/security.txt /security.txt
+    handle @securitytxt {
+        header Content-Type "text/plain; charset=utf-8"
+        respond `Contact: mailto:security@verris.pl
+Expires: 2027-07-04T00:00:00.000Z
+Preferred-Languages: pl, en
+Canonical: https://panel.verris.pl/.well-known/security.txt
+Policy: https://panel.verris.pl/legal/security
+` 200
+    }
+}
+
 # -----------------------------------------------------------------------------
 # Public client panel
 # -----------------------------------------------------------------------------
 {$CADDY_CLIENT_DOMAIN:panel.verris.local} {
     import panel_headers
     import block_scanners
+    import security_txt
     reverse_proxy client-panel:3001 {
         # STAB-1 — aktywny health-check zdejmuje upstream w trakcie restartu,
         # a szersze okno prób „przetrzymuje" żądanie aż nowy kontener wstanie.
@@ -177,6 +193,18 @@
         copy_headers X-Webauth-User X-Webauth-Role
     }
     reverse_proxy grafana:3000
+}
+
+# -----------------------------------------------------------------------------
+# GlitchTip (CYBER-9) — self-hosted monitoring błędów runtime (Sentry-compatible).
+# Ma własny system logowania (konta admin/staff zakładane w GlitchTip), więc NIE
+# stawiamy tu forward_auth. Dostęp do UI ograniczony do VPN (jak panele staff/admin).
+# Ingest zdarzeń z API idzie wewnętrznie (verris_internal), nie przez Caddy.
+# -----------------------------------------------------------------------------
+{$CADDY_GLITCHTIP_DOMAIN:glitchtip.verris.local} {
+    import security_headers
+    import vpn_only
+    reverse_proxy glitchtip-web:8080
 }
 
 # -----------------------------------------------------------------------------

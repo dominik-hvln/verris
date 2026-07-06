@@ -77,6 +77,10 @@ wymaga powodu min. 10 znaków).
   IP prywatne, łączy się z przypiętym IP (SNI/Host = oryginalna nazwa).
 - **Współbieżność**: max `MIGRATION_MAX_ACTIVE_PER_SUBSCRIPTION` (1) aktywnych
   migracji na usługę.
+- **Zgoda / RODO (powierzenie przetwarzania)**: start migracji wymaga
+  `consentAccepted=true` (checkbox w kroku „Start" z linkami do DPA/Polityki/
+  Regulaminu). Egzekwowane serwerowo w `createBundle`; ślad zgody (kto/kiedy/
+  podstawa) zapisany w audycie `MIGRATION_BUNDLE_QUEUED.details.consent`.
 
 ## Węzeł — zależności i tuning
 

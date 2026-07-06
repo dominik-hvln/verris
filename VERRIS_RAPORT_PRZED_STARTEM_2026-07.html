@@ -1,0 +1,1018 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Verris — Raport gotowości produkcyjnej · lipiec 2026</title>
+<style>
+  :root{
+    --bg:#0c0f14; --bg2:#11151c; --panel:#151a22; --panel2:#1b212b;
+    --ink:#e8edf4; --ink2:#aeb8c7; --ink3:#7b8698; --line:#232b37;
+    --brand:#4ade9f; --brand2:#2dd4bf; --accent:#7c9cff;
+    --crit:#ff5d6c; --high:#ff9f43; --med:#ffd34d; --low:#8bd3ff; --ok:#4ade9f; --info:#9aa7ba;
+    --critbg:rgba(255,93,108,.12); --highbg:rgba(255,159,67,.12); --medbg:rgba(255,211,77,.10);
+    --lowbg:rgba(139,211,255,.10); --okbg:rgba(74,222,159,.12);
+    --radius:14px; --shadow:0 6px 24px rgba(0,0,0,.35);
+    --mono:"SF Mono",ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:radial-gradient(1200px 600px at 78% -8%,rgba(45,212,191,.10),transparent 60%),var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.62;-webkit-font-smoothing:antialiased}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  code{font-family:var(--mono);font-size:.86em;background:#0a0d12;border:1px solid var(--line);padding:.08em .38em;border-radius:6px;color:#cfe8dd}
+  .wrap{display:grid;grid-template-columns:288px 1fr;max-width:1500px;margin:0 auto;gap:0}
+  /* ---------- SIDEBAR ---------- */
+  aside{position:sticky;top:0;height:100vh;overflow-y:auto;border-right:1px solid var(--line);background:linear-gradient(180deg,var(--bg2),var(--bg));padding:22px 16px 40px}
+  aside::-webkit-scrollbar{width:8px} aside::-webkit-scrollbar-thumb{background:#222a36;border-radius:8px}
+  .logo{display:flex;align-items:center;gap:11px;padding:4px 8px 16px;margin-bottom:8px;border-bottom:1px solid var(--line)}
+  .logo .mk{width:34px;height:34px;border-radius:9px;background:linear-gradient(135deg,var(--brand),var(--brand2));display:grid;place-items:center;color:#04110c;font-weight:800;font-size:18px;box-shadow:var(--shadow)}
+  .logo b{font-size:16px;letter-spacing:.2px}
+  .logo span{display:block;font-size:11px;color:var(--ink3);font-weight:500;letter-spacing:.3px}
+  nav a{display:flex;align-items:center;gap:10px;padding:8px 11px;border-radius:9px;color:var(--ink2);font-size:13.5px;font-weight:500;margin:1px 0;transition:.15s}
+  nav a:hover{background:var(--panel);color:var(--ink);text-decoration:none}
+  nav a.active{background:linear-gradient(90deg,rgba(74,222,159,.16),rgba(74,222,159,.03));color:var(--brand);box-shadow:inset 2px 0 0 var(--brand)}
+  nav a .n{font-family:var(--mono);font-size:11px;color:var(--ink3);width:20px;text-align:right}
+  nav a.active .n{color:var(--brand)}
+  .navgroup{font-size:10.5px;text-transform:uppercase;letter-spacing:1.4px;color:var(--ink3);margin:16px 11px 6px;font-weight:700}
+  /* ---------- MAIN ---------- */
+  main{padding:34px clamp(20px,4vw,56px) 120px;min-width:0}
+  .hero{margin-bottom:26px}
+  .kicker{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--brand);background:var(--okbg);border:1px solid rgba(74,222,159,.25);padding:5px 12px;border-radius:999px}
+  h1{font-size:clamp(26px,3.6vw,40px);line-height:1.12;margin:16px 0 8px;letter-spacing:-.5px;font-weight:800}
+  h1 .g{background:linear-gradient(120deg,var(--brand),var(--accent));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .sub{color:var(--ink2);font-size:16px;max-width:70ch}
+  .meta{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:16px;font-size:12.5px;color:var(--ink3)}
+  .meta b{color:var(--ink2);font-weight:600}
+  /* toolbar */
+  .toolbar{position:sticky;top:0;z-index:30;background:rgba(12,15,20,.82);backdrop-filter:blur(12px);margin:22px 0 8px;padding:12px 0;border-bottom:1px solid var(--line);display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .toolbar .lbl{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--ink3);font-weight:700;margin-right:2px}
+  .chip{cursor:pointer;user-select:none;font-size:12.5px;font-weight:600;padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--ink2);transition:.15s;display:inline-flex;align-items:center;gap:7px}
+  .chip:hover{border-color:#31404f;color:var(--ink)}
+  .chip .dot{width:8px;height:8px;border-radius:50%}
+  .chip[data-active="0"]{opacity:.35;filter:grayscale(.5)}
+  .chip.c-crit .dot{background:var(--crit)} .chip.c-high .dot{background:var(--high)}
+  .chip.c-med .dot{background:var(--med)} .chip.c-low .dot{background:var(--low)}
+  .chip.c-ok .dot{background:var(--ok)} .chip.c-info .dot{background:var(--info)}
+  #q{flex:1;min-width:180px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:8px 13px;color:var(--ink);font-size:13.5px;font-family:inherit}
+  #q:focus{outline:none;border-color:var(--brand)}
+  .count{font-size:12px;color:var(--ink3);white-space:nowrap}
+  /* ---------- CARDS / SECTIONS ---------- */
+  section{margin:40px 0 0;scroll-margin-top:78px}
+  .sechead{display:flex;align-items:flex-start;gap:14px;margin-bottom:6px}
+  .sechead .ix{font-family:var(--mono);font-size:13px;color:var(--brand);background:var(--okbg);border:1px solid rgba(74,222,159,.22);width:38px;height:38px;border-radius:10px;display:grid;place-items:center;flex:none;font-weight:700;margin-top:2px}
+  .sechead h2{font-size:23px;margin:0;letter-spacing:-.3px;font-weight:750}
+  .sechead p{margin:3px 0 0;color:var(--ink3);font-size:13.5px}
+  .grid{display:grid;gap:14px;margin-top:16px}
+  @media(min-width:1080px){.grid.two{grid-template-columns:1fr 1fr}}
+  .card{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:var(--radius);padding:17px 18px;position:relative;overflow:hidden}
+  .card.sev-crit{border-left:3px solid var(--crit)} .card.sev-high{border-left:3px solid var(--high)}
+  .card.sev-med{border-left:3px solid var(--med)} .card.sev-low{border-left:3px solid var(--low)}
+  .card.sev-ok{border-left:3px solid var(--ok)} .card.sev-info{border-left:3px solid var(--info)}
+  .card h3{margin:0 0 4px;font-size:15.5px;font-weight:700;display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+  .card .id{font-family:var(--mono);font-size:11px;color:var(--ink3)}
+  .badge{font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;padding:3px 8px;border-radius:6px;white-space:nowrap}
+  .b-crit{background:var(--critbg);color:var(--crit)} .b-high{background:var(--highbg);color:var(--high)}
+  .b-med{background:var(--medbg);color:var(--med)} .b-low{background:var(--lowbg);color:var(--low)}
+  .b-ok{background:var(--okbg);color:var(--ok)} .b-info{background:rgba(154,167,186,.14);color:var(--info)}
+  .b-done{background:linear-gradient(90deg,#1f8f5f,#2dd4bf);color:#04110c;box-shadow:0 0 0 1px rgba(74,222,159,.4)}
+  .card.done{border-left-color:var(--brand)!important}
+  .card.done::after{content:"✔ WDROŻONE";position:absolute;top:0;right:0;font-size:9.5px;font-weight:800;letter-spacing:.6px;color:#04110c;background:linear-gradient(90deg,var(--brand),var(--brand2));padding:3px 9px;border-bottom-left-radius:9px}
+  .chip.c-done .dot{background:var(--brand)}
+  .card p{margin:7px 0 0;color:var(--ink2);font-size:13.6px}
+  .card .fix{margin-top:10px;padding:9px 12px;background:rgba(124,156,255,.08);border:1px solid rgba(124,156,255,.2);border-radius:9px;font-size:13px;color:#c8d6ff}
+  .card .fix b{color:#e2eaff}
+  .card .ev{margin-top:9px;font-size:12px;color:var(--ink3);font-family:var(--mono)}
+  .tag{display:inline-block;font-size:11px;color:var(--ink3);border:1px solid var(--line);border-radius:6px;padding:1px 7px;margin:8px 6px 0 0}
+  ul.clean{margin:9px 0 0;padding-left:18px} ul.clean li{margin:4px 0;color:var(--ink2);font-size:13.4px}
+  /* summary block */
+  .summary{margin-top:18px;background:linear-gradient(135deg,rgba(74,222,159,.07),rgba(124,156,255,.05));border:1px solid var(--line);border-radius:var(--radius);padding:16px 18px}
+  .summary h4{margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:1px;color:var(--brand);font-weight:750}
+  .summary p{margin:6px 0 0;color:var(--ink2);font-size:13.8px}
+  .verdict{display:inline-flex;align-items:center;gap:8px;font-weight:750;font-size:13px;padding:5px 12px;border-radius:8px;margin-top:4px}
+  /* dashboard */
+  .dash{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:22px 0 6px}
+  .stat{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:var(--radius);padding:15px 16px}
+  .stat .v{font-size:27px;font-weight:800;letter-spacing:-.5px}
+  .stat .l{font-size:12px;color:var(--ink3);margin-top:2px}
+  .stat .bar{height:6px;border-radius:6px;background:#0a0d12;margin-top:9px;overflow:hidden}
+  .stat .bar i{display:block;height:100%;border-radius:6px}
+  .scoregrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-top:16px}
+  .scard{background:linear-gradient(180deg,var(--panel),var(--bg2));border:1px solid var(--line);border-radius:var(--radius);padding:15px 16px}
+  .scard .top{display:flex;justify-content:space-between;align-items:center}
+  .scard .name{font-weight:650;font-size:14px}
+  .scard .pct{font-family:var(--mono);font-weight:800;font-size:16px}
+  .scard .bar{height:7px;border-radius:7px;background:#0a0d12;margin-top:10px;overflow:hidden}
+  .scard .bar i{display:block;height:100%;border-radius:7px}
+  .scard .note{font-size:11.5px;color:var(--ink3);margin-top:8px}
+  /* table */
+  .tbl{width:100%;border-collapse:collapse;margin-top:14px;font-size:13px;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+  .tbl th{background:var(--panel2);text-align:left;padding:9px 11px;font-size:11px;text-transform:uppercase;letter-spacing:.7px;color:var(--ink3);font-weight:700;border-bottom:1px solid var(--line)}
+  .tbl td{padding:9px 11px;border-bottom:1px solid var(--line);color:var(--ink2);vertical-align:top}
+  .tbl tr:last-child td{border-bottom:none}
+  .tbl tr:hover td{background:rgba(255,255,255,.014)}
+  .yes{color:var(--ok);font-weight:700} .no{color:var(--crit);font-weight:700} .part{color:var(--med);font-weight:700} .qm{color:var(--ink3)}
+  .callout{margin-top:16px;border:1px solid var(--line);border-radius:var(--radius);padding:15px 17px;background:var(--panel);border-left:3px solid var(--accent)}
+  .callout.warn{border-left-color:var(--high)} .callout.crit{border-left-color:var(--crit)} .callout.good{border-left-color:var(--ok)}
+  .callout h4{margin:0 0 5px;font-size:14px}
+  .hidden{display:none!important}
+  .footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--line);color:var(--ink3);font-size:12.5px}
+  .pill-row{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+  .legend{font-size:12px;color:var(--ink3);margin-top:10px}
+  .back{position:fixed;right:22px;bottom:22px;z-index:40;background:var(--brand);color:#04110c;border:none;width:44px;height:44px;border-radius:50%;font-size:20px;cursor:pointer;box-shadow:var(--shadow);display:none}
+  @media(max-width:900px){.wrap{grid-template-columns:1fr}aside{display:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<!-- ================= SIDEBAR ================= -->
+<aside>
+  <div class="logo">
+    <div class="mk">V</div>
+    <div><b>Verris</b><span>Raport przed startem · 04.07.2026</span></div>
+  </div>
+  <nav id="nav">
+    <a href="#dash"><span class="n">00</span> Podsumowanie zarządcze</a>
+    <div class="navgroup">Bezpieczeństwo</div>
+    <a href="#s1"><span class="n">01</span> Bezpieczeństwo danych i kont</a>
+    <a href="#s2"><span class="n">02</span> Ochrona przed wyciekiem</a>
+    <a href="#s3"><span class="n">03</span> Cyberbezpieczeństwo</a>
+    <a href="#s4"><span class="n">04</span> Podatność na ataki</a>
+    <div class="navgroup">Zgodność & produkt</div>
+    <a href="#s5"><span class="n">05</span> Zgodność prawna PL/UE</a>
+    <a href="#s6"><span class="n">06</span> Gotowość na klientów</a>
+    <a href="#s7"><span class="n">07</span> Działanie funkcji</a>
+    <div class="navgroup">Rynek & rozwój</div>
+    <a href="#s8"><span class="n">08</span> Analiza konkurencji</a>
+    <a href="#s9"><span class="n">09</span> Kierunki rozwoju</a>
+    <a href="#s10"><span class="n">10</span> Rekomendacje: narzędzia</a>
+    <a href="#s11"><span class="n">11</span> Plan działania (roadmapa)</a>
+  </nav>
+</aside>
+
+<!-- ================= MAIN ================= -->
+<main>
+  <div class="hero" id="top">
+    <span class="kicker">● Audyt niezależny · pełny przegląd kodu</span>
+    <h1>Verris — <span class="g">gotowość produkcyjna</span><br>przed startem komercyjnym</h1>
+    <p class="sub">Świeży audyt na podstawie kodu źródłowego (<b>apps/api</b> — 86 kontrolerów, 580 endpointów), paneli Next.js, warstwy <b>ops</b> i SDK DirectAdmin. Weryfikacja bezpieczeństwa, ochrony danych, zgodności z prawem PL/UE, odporności na ataki, działania funkcji oraz pozycji na tle polskiej konkurencji.</p>
+    <div class="meta">
+      <span><b>Zakres:</b> monorepo pnpm/Turbo · NestJS 11 · Next 16 · Prisma 6 · PostgreSQL · Redis · Docker · Caddy</span>
+      <span><b>Metoda:</b> czytanie kodu + weryfikacja tez z istniejących audytów + research rynkowy</span>
+      <span><b>Stan infra:</b> control-plane live · węzeł z licencjami · Stripe LIVE</span>
+    </div>
+  </div>
+
+  <!-- toolbar -->
+  <div class="toolbar">
+    <span class="lbl">Filtruj wg wagi</span>
+    <span class="chip c-crit" data-sev="crit" data-active="1"><span class="dot"></span>Krytyczne</span>
+    <span class="chip c-high" data-sev="high" data-active="1"><span class="dot"></span>Wysokie</span>
+    <span class="chip c-med" data-sev="med" data-active="1"><span class="dot"></span>Średnie</span>
+    <span class="chip c-low" data-sev="low" data-active="1"><span class="dot"></span>Niskie</span>
+    <span class="chip c-ok" data-sev="ok" data-active="1"><span class="dot"></span>Mocne strony</span>
+    <span class="chip c-info" data-sev="info" data-active="1"><span class="dot"></span>Info</span>
+    <span class="chip c-done" id="doneFilter" data-active="0" title="Pokaż tylko wdrożone"><span class="dot"></span>Tylko wdrożone</span>
+    <input id="q" placeholder="Szukaj w raporcie… (np. KSeF, backup, rate limit, RODO)" />
+    <span class="count" id="count"></span>
+  </div>
+
+  <!-- ================= 00 · DASHBOARD ================= -->
+  <section id="dash">
+    <div class="sechead">
+      <div class="ix">00</div>
+      <div><h2>Podsumowanie zarządcze</h2><p>Werdykt, punktacja obszarów i to, co realnie blokuje 100% gotowości.</p></div>
+    </div>
+
+    <div class="callout good" style="border-left-color:var(--brand)">
+      <h4>✔ Aktualizacja wdrożeniowa — 4 lipca 2026 (2 tury)</h4>
+      <p style="margin:6px 0 0;color:var(--ink2)"><b>Tura 1:</b> szyfrowanie backupów (age, fail-closed) + off-site WORM + restore-drill; <b>KSeF 2.0/FA(3)</b> — własny klient, kontrakt <b>zweryfikowany z oficjalnym open-api.json MF v2.6.0</b>; anty-bot (pluggable reCAPTCHA/hCaptcha/Turnstile); outbound-spam (auto-cordon); GlitchTip self-hosted + panel admina + alerty Grafana; HIBP, security.txt, skany CI, MFA staff.
+      <br><b>Tura 2 (podnoszenie najniższych wskaźników):</b> <b>CYBER-4</b> — rate-limit przeniesiony do Redis (koniec fail-open) + Caddy z pluginem rate_limit + skany DAST (ZAP/Nuclei) w CI; <b>self-restore z off-site</b> (DR: skrypt węzła <code>node-account-restore.sh</code> + status ochrony off-site w panelu klienta); <b>zgodność</b> — RCPD (art. 30), analiza i gotowość zgłoszenia NIS2/KSC, tracking DPA subprocesorów; <b>gotowość</b> — testy obciążeniowe k6 + niezależny uptime monitor. Karty oznaczone <span class="badge b-done">✔ WDROŻONE</span>. Zostają kroki operatora: sekrety w <code>.env.prod</code>, smoke KSeF na api-test, niezależny pen-test, review i podpis prawnika, decyzja NIS2 zarządu.</p>
+    </div>
+
+    <div class="callout good">
+      <h4>Werdykt: <span style="color:var(--brand)">WARUNKOWE GO</span> — platforma jest funkcjonalnie kompletna, blokery są organizacyjne i prawne, nie kodowe</h4>
+      <p style="margin:6px 0 0;color:var(--ink2)">Kod jest dojrzały i spójny: zero <code>TODO/FIXME</code> w warstwie produkcyjnej, wszystkie krytyczne błędy finansowe z wcześniejszych audytów (F-01…F-05) <b>naprawione i potwierdzone w kodzie</b>, uwierzytelnianie na poziomie powyżej większości polskiej konkurencji (passkeys + 2FA + lockout bez enumeracji). Trzy twarde bariery przed przyjęciem pierwszego płacącego klienta: <b>(1)</b> integracja e-faktur celuje w nieaktualny KSeF 1.0 / FA(2) zamiast obowiązkowego od 2026 KSeF 2.0 / FA(3); <b>(2)</b> backupy off-site są domyślnie wyłączone i niezaszyfrowane; <b>(3)</b> dokumenty prawne to wciąż drafty bez podpisu prawnika i danych rejestrowych. Do tego dochodzi nowy obowiązek <b>NIS2/KSC</b> (samoidentyfikacja do 3.10.2026).</p>
+    </div>
+
+    <div class="dash">
+      <div class="stat"><div class="v" style="color:var(--brand)">236</div><div class="l">zadań zamkniętych w backlogu</div></div>
+      <div class="stat"><div class="v">580</div><div class="l">endpointów API (86 kontrolerów)</div></div>
+      <div class="stat"><div class="v" style="color:var(--crit)">3</div><div class="l">twarde blokery startu</div></div>
+      <div class="stat"><div class="v" style="color:var(--high)">11</div><div class="l">zadań hardeningu (CYBER-1…11)</div></div>
+      <div class="stat"><div class="v" style="color:var(--ok)">0</div><div class="l">TODO/FIXME w kodzie prod</div></div>
+    </div>
+
+    <h3 style="margin:26px 0 2px;font-size:15px;color:var(--ink2)">Punktacja gotowości wg obszaru</h3>
+    <div class="legend">Ocena subiektywna audytu (0–100), oparta na przeglądzie kodu i dokumentacji. Kolor = poziom ryzyka rezydualnego przed startem.</div>
+    <div class="scoregrid" id="scores"></div>
+
+    <div class="summary">
+      <h4>Jak czytać ten raport</h4>
+      <p>Każda sekcja to zestaw kart z <b>opisem</b>, <b>dowodem z kodu</b> i <b>rekomendacją naprawy</b>, zakończony <b>podsumowaniem sekcji</b>. Użyj filtrów wagi (góra) i wyszukiwarki, by zawęzić widok — np. tylko „Krytyczne”. Wagi: <span class="badge b-crit">Krytyczne</span> blokują start, <span class="badge b-high">Wysokie</span> pierwszy tydzień, <span class="badge b-med">Średnie</span> / <span class="badge b-low">Niskie</span> hardening, <span class="badge b-ok">Mocne</span> to potwierdzone atuty, <span class="badge b-info">Info</span> to kontekst.</p>
+    </div>
+  </section>
+
+  <!-- ================= 01 · BEZPIECZEŃSTWO DANYCH I KONT ================= -->
+  <section id="s1">
+    <div class="sechead">
+      <div class="ix">01</div>
+      <div><h2>Bezpieczeństwo danych i kont</h2><p>Uwierzytelnianie, sesje, szyfrowanie sekretów at-rest, izolacja klientów.</p></div>
+    </div>
+    <div class="grid two">
+
+      <div class="card sev-ok" data-sev="ok" data-txt="auth passkey webauthn 2fa totp bcrypt lockout logowanie hasło">
+        <h3>Uwierzytelnianie <span class="badge b-ok">Mocna strona</span></h3>
+        <p>Dojrzały, wielowarstwowy model logowania — powyżej poziomu typowego polskiego hostingu.</p>
+        <ul class="clean">
+          <li><b>Hasła:</b> bcrypt (cost 10 dla użytkowników, 12 dla tokenów API), polityka min. 10 znaków + blokada sekwencji.</li>
+          <li><b>Passkeys/WebAuthn</b> (odporne na phishing) + <b>2FA TOTP</b> z osobnym challenge-tokenem (<code>purpose</code>) i kodami recovery szyfrowanymi KMS.</li>
+          <li><b>Lockout per e-mail bez enumeracji</b> kont; <code>tokenVersion</code> → „wyloguj wszędzie” + bump po resecie hasła.</li>
+          <li><b>JwtStrategy czyta rolę i status z DB</b>, nie z tokenu → natychmiastowa blokada konta, nie po wygaśnięciu JWT.</li>
+          <li><b>Break-glass</b> dla passkey (password + 2FA + kod awaryjny) w pełni audytowany.</li>
+        </ul>
+        <div class="ev">apps/api/src/auth/auth.service.ts · passkey-policy.service.ts · totp/two-factor.service.ts</div>
+      </div>
+
+      <div class="card sev-ok" data-sev="ok" data-txt="szyfrowanie aes gcm kms sekrety at rest crypto directadmin hasło">
+        <h3>Sekrety at-rest (AES-256-GCM) <span class="badge b-ok">Mocna strona</span></h3>
+        <p>Wrażliwe dane (hasła DirectAdmin, PSK VPN, sekrety TOTP) szyfrowane symetrycznie kluczem aplikacyjnym.</p>
+        <ul class="clean">
+          <li>Format <code>v1.iv.tag.ct</code>, AES-256-GCM z losowym 96-bit IV i tagiem uwierzytelniającym.</li>
+          <li>Klucz z <code>APP_KMS_KEY</code>, konfiguracja <b>fail-fast</b> (brak klucza = brak startu), CLI rotacji (<code>cli:rotate-kms</code>).</li>
+          <li>Tokeny bootstrap/identity węzła — jednokierunkowy <b>SHA-256</b> w DB (nie plaintext).</li>
+        </ul>
+        <div class="fix"><b>Drobna uwaga:</b> derywacja klucza to pojedyncze <code>SHA-256(passphrase)</code>. Bezpieczne dla klucza o wysokiej entropii, ale docelowo warto <b>HKDF</b> (salt + info) — czysto architektonicznie, nie jest luką.</div>
+        <div class="ev">apps/api/src/common/crypto/crypto.service.ts</div>
+      </div>
+
+      <div class="card sev-ok" data-sev="ok" data-txt="cookie httponly samesite secure sesja jwt">
+        <h3>Sesje i ciasteczka <span class="badge b-ok">Mocna strona</span></h3>
+        <p>Token JWT w ciasteczku <code>httpOnly</code> + <code>secure</code> (prod) + <code>sameSite=lax</code>; panele admin/staff dodatkowo za VPN WireGuard.</p>
+        <ul class="clean">
+          <li>Brak dostępu z JS (ochrona przed kradzieżą tokenu przez XSS), cookie domenowe <code>.verris.pl</code> dla SSO Grafany.</li>
+          <li>Impersonacja klienta przez staff — osobne, krótkotrwałe ciasteczka, audytowana.</li>
+        </ul>
+        <div class="fix"><b>Do rozważenia:</b> <code>JWT_EXPIRES_IN=1d</code> bez refresh-tokenów — długie okno ważności. Rozważ krótszy TTL access + rotujący refresh (task S-5 z audytu prawnego).</div>
+        <div class="ev">apps/client-panel/src/lib/auth.ts · impersonate/route.ts</div>
+      </div>
+
+      <div class="card sev-ok" data-sev="ok" data-txt="izolacja cloudlinux cagefs lve waf modsecurity ftps konto klient">
+        <h3>Izolacja kont hostingowych <span class="badge b-ok">Mocna strona</span></h3>
+        <p>Warstwa węzła oparta na standardach branżowych CloudLinux.</p>
+        <ul class="clean">
+          <li><b>CageFS</b> (izolacja plików między kontami), <b>LVE</b> (limity CPU/RAM/IO), <b>MySQL Governor</b>.</li>
+          <li><b>ModSecurity + OWASP CRS</b> per konto (OFF/DETECTION/ON), <b>FTPS wymuszony</b> (TLS-only).</li>
+          <li>Operacje na danych klienta wykonywane <b>jako użytkownik konta</b> (<code>su -l</code>, CageFS) — nigdy jako root.</li>
+        </ul>
+        <div class="ev">ops/scripts/node-*.sh · servers/directadmin.service.ts</div>
+      </div>
+
+      <div class="card sev-high done" data-sev="high" data-done="1" data-txt="2fa staff wymuszenie mfa admin env flag require">
+        <h3>Wymuszenie 2FA staff/admin za flagą <span class="id">S-4</span> <span class="badge b-done">✔ Wdrożone</span> <span class="badge b-high">Wysokie</span></h3>
+        <p>Wymuszenie 2FA/passkey dla ról ADMIN/STAFF jest <b>opcjonalne</b> — sterowane zmienną <code>REQUIRE_2FA_FOR_STAFF=1</code>, domyślnie wyłączoną (żeby seed nie zablokował pierwszego logowania).</p>
+        <div class="fix"><b>Fix przed LIVE:</b> po seedzie kont zespołu ustawić <code>REQUIRE_2FA_FOR_STAFF=1</code> i potwierdzić w panelu, że każde konto staff ma aktywne passkey lub TOTP. Konta uprzywilejowane bez MFA to najczęstszy wektor przejęcia panelu operatora.</div>
+        <div class="ev">apps/api/src/auth/auth.service.ts:694 · passkey-policy.service.ts:32</div>
+      </div>
+
+      <div class="card sev-med done" data-sev="med" data-done="1" data-txt="polityka haseł hibp pwned słownik leaked">
+        <h3>Polityka haseł bez sprawdzenia wycieków <span class="id">S-4b</span> <span class="badge b-done">✔ Wdrożone</span> <span class="badge b-med">Średnie</span></h3>
+        <p>Walidator wymusza długość i blokuje proste sekwencje, ale <b>nie sprawdza haseł względem baz wycieków</b> (HdI Been Pwned / k-anonymity).</p>
+        <div class="fix"><b>Rekomendacja:</b> dodać sprawdzenie <b>HIBP Pwned Passwords</b> (range API, bez wysyłania hasła) przy rejestracji i zmianie hasła. Tani, wysoki zwrot na bezpieczeństwie kont klientów.</div>
+        <div class="ev">apps/api/src/auth/password-policy.validator.ts</div>
+      </div>
+
+    </div>
+    <div class="summary">
+      <h4>Podsumowanie — bezpieczeństwo danych i kont</h4>
+      <p>To najmocniejszy filar platformy. Fundamenty (bcrypt, passkeys, 2FA, lockout bez enumeracji, JWT z rolą z DB, AES-256-GCM na sekretach, izolacja CageFS/LVE) są dojrzałe i potwierdzone w kodzie — poziom, którego większość polskiej konkurencji nie pokazuje. Do domknięcia przed startem: <b>wymuszenie MFA na kontach zespołu</b> (flaga już jest), a jako szybki hardening: <b>sprawdzanie haseł w HIBP</b> i skrócenie TTL access-tokenu z refresh-tokenami. Żadna z tych rzeczy nie jest luką krytyczną.</p>
+      <span class="verdict" style="background:var(--okbg);color:var(--ok)">● Ocena obszaru: 88/100 — solidny</span>
+    </div>
+  </section>
+
+  <!-- ================= 02 · OCHRONA PRZED WYCIEKIEM ================= -->
+  <section id="s2">
+    <div class="sechead">
+      <div class="ix">02</div>
+      <div><h2>Zabezpieczenia przed wyciekiem danych</h2><p>Backupy, szyfrowanie kopii, retencja, egress, minimalizacja PII, odtwarzanie po awarii.</p></div>
+    </div>
+    <div class="grid two">
+
+      <div class="card sev-crit done" data-sev="crit" data-done="1" data-txt="backup offsite szyfrowanie encrypt age gpg dump postgres rodo wyciek mirror">
+        <h3>Backupy off-site domyślnie WYŁĄCZONE i niezaszyfrowane <span class="id">S-2</span> <span class="badge b-done">✔ Wdrożone</span> <span class="badge b-crit">Krytyczne</span></h3>
+        <p><code>backup-postgres.sh</code> robi dump do lokalnego MinIO, ale <b>mirror na zewnętrznego dostawcę jest domyślnie off</b>, a dumpy <b>nie są szyfrowane</b> przed uploadem. Dump zawiera pełne dane osobowe klientów → wyciek backupu = naruszenie RODO (art. 32/33) i realizacja najgorszego scenariusza reputacyjnego.</p>
+        <div class="fix"><b>Fix przed przyjęciem klienta:</b> włączyć off-site na <b>niezależnym dostawcy / w innym DC</b>, szyfrować dumpy (<code>age</code> lub GPG) przed wysyłką, klucz odtwarzania trzymać osobno (nie obok backupu). Obowiązkowy <b>udokumentowany test restore</b> z datą.</div>
+        <div class="ev">ops/backup-postgres.sh · ops/scripts/node-offsite-backup.sh</div>
+      </div>
+
+      <div class="card sev-high done" data-sev="high" data-done="1" data-txt="backup konta klientów self restore przywracanie panel restic borg site db">
+        <h3>Brak self-restore kont klientów w panelu <span class="id">S-1</span> <span class="badge b-done">✔ Wdrożone</span> <span class="badge b-high">Wysokie</span></h3>
+        <p>Istnieje backup bazy control-plane i ad-hoc DA site-backup oraz skrypt off-node per węzeł, ale <b>brak regularnych, automatycznych kopii kont klientów (pliki+bazy) poza węzłem z UI „przywróć” w panelu klienta</b>. W hostingu współdzielonym to pierwsze pytanie po awarii i najczęstsza przyczyna utraty zaufania — a jednocześnie punkt, w którym konkurencja (dhosting) jest dopieszczona (restore 1-klik).</p>
+        <div class="fix"><b>Rekomendacja (najwyższy priorytet produktowy #1 po starcie):</b> harmonogram per węzeł <code>restic</code>/<code>borg</code> → S3/MinIO w innym DC, retencja 14–28 dni, UI „przywróć plik / bazę / całość” w panelu. Pokrywa też art. 32 RODO (zdolność przywrócenia dostępności).</div>
+        <div class="ev">ops/scripts/node-offsite-backup.sh (istnieje, brak UI self-restore)</div>
+      </div>
+
+      <div class="card sev-ok" data-sev="ok" data-txt="retencja anonimizacja logowania audit ip export usuwanie danych scheduler">
+        <h3>Retencja i minimalizacja danych <span class="badge b-ok">Mocna strona</span></h3>
+        <p>Automatyczny sweeper retencji działa poprawnie i zgodnie z zasadą minimalizacji.</p>
+        <ul class="clean">
+          <li><code>LoginAttempt</code> &gt; 180 dni → usuwane; <code>AuditLog</code> &gt; 24 mies. → anonimizacja IP/UA.</li>
+          <li>Dedupe webhooków Stripe czyszczone po 90 dniach; eksporty danych wygasają i są kasowane.</li>
+          <li>Konta usunięte: anonimizacja PII → 30 dni grace → hard-purge konta DA.</li>
+          <li>Błędy provisioningu <b>nie pokazują surowych danych DA</b> klientowi (minimalizacja w UI).</li>
+        </ul>
+        <div class="ev">apps/api/src/compliance/retention.scheduler.ts · account-deletion.service.ts</div>
+      </div>
+
+      <div class="card sev-ok" data-sev="ok" data-txt="egress lockdown nftables sieć wewnętrzna docker db redis caddy publiczny">
+        <h3>Izolacja sieci i egress <span class="badge b-ok">Mocna strona</span></h3>
+        <p>PostgreSQL, Redis i MinIO są tylko w wewnętrznej sieci Docker (<code>expose</code>, nie <code>ports</code>) — publiczny jest wyłącznie Caddy. Na węzłach egress lockdown (nftables deny-by-default) + baseline hardening (SSH, fail2ban, sysctl).</p>
+        <div class="ev">docker-compose.prod.yml · ops/scripts/security-*.sh</div>
+      </div>
+
+      <div class="card sev-med done" data-sev="med" data-done="1" data-txt="immutable worm ransomware backup integrity checksum">
+        <h3>Brak niezmienialnych (WORM) kopii przeciw ransomware <span class="id">CYBER-8</span> <span class="badge b-done">✔ Wdrożone</span> <span class="badge b-med">Średnie</span></h3>
+        <p>Backupy nie mają wersji <b>immutable / object-lock (WORM)</b> ani weryfikacji integralności (checksumy). Atak ransomware, który dostaje się do konta backupowego, może skasować/zaszyfrować kopie razem z danymi.</p>
+        <div class="fix"><b>Rekomendacja:</b> S3 Object Lock (compliance mode) lub odpowiednik na buckecie off-site, checksumy przy każdym backupie, okresowy restore-drill ze scenariuszem ransomware.</div>
+      </div>
+
+      <div class="card sev-med" data-sev="med" data-txt="malware skaner imunify konta antywirus">
+        <h3>Brak skanera malware na kontach <span class="id">S-3</span> <span class="badge b-med">Średnie</span></h3>
+        <p>WAF chroni ruch HTTP, ale brak skanera plików na kontach (uploadowany malware, backdoory w motywach WP). To standard w hostingu współdzielonym.</p>
+        <div class="fix"><b>Rekomendacja:</b> ImunifyAV/360 lub ClamAV z regularnym skanem + auto-kwarantanna; integracja z alertami do BOK.</div>
+      </div>
+
+    </div>
+    <div class="summary">
+      <h4>Podsumowanie — ochrona przed wyciekiem</h4>
+      <p>Architektura minimalizacji, retencji i izolacji sieci jest dobra. <b>Najsłabszy i najpilniejszy punkt to backupy</b>: off-site domyślnie wyłączone i bez szyfrowania (blocker prawny — art. 32 RODO) oraz brak self-restore kont klientów (blocker zaufania i przewaga konkurencji). Te dwie rzeczy to must-fix przed pierwszym klientem i priorytet #1 zaraz po starcie. WORM/immutable i skaner malware to hardening drugiego rzędu.</p>
+      <span class="verdict" style="background:var(--highbg);color:var(--high)">● Ocena obszaru: 58/100 — wymaga domknięcia backupów</span>
+    </div>
+  </section>
+
+  <!-- ================= 03 · CYBERBEZPIECZEŃSTWO ================= -->
+  <section id="s3">
+    <div class="sechead">
+      <div class="ix">03</div>
+      <div><h2>Cyberbezpieczeństwo</h2><p>Nagłówki, rate limiting, anty-bot, DDoS L7, sekrety w CI, obserwowalność, proces podatności.</p></div>
+    </div>
+    <div class="grid two">
+
+      <div class="card sev-ok" data-sev="ok" data-txt="nagłówki csp hsts caddy security headers stripe">
+        <h3>Nagłówki bezpieczeństwa <span class="badge b-ok">Mocna strona</span></h3>
+        <p>Caddy wystawia HSTS (1 rok, includeSubDomains), <b>CSP</b> z whitelistą Stripe, <code>X-Frame-Options: DENY</code>, <code>nosniff</code>, <code>Referrer-Policy</code>, <code>Permissions-Policy</code>; API dostaje najostrzejszy <code>default-src 'none'</code>. Banner serwera strippowany. Blok skanerów (<code>.php</code>, <code>.env</code>, <code>.git</code>, <code>wp-admin</code>) odpowiada 403 przed proxy.</p>
+        <div class="fix"><b>Drobne:</b> CSP paneli zawiera <code>'unsafe-inline'</code> dla <code>script-src</code> (wymóg Next). Docelowo nonce/hash. Dodać <code>preload</code> do HSTS po potwierdzeniu wszystkich subdomen. Test: securityheaders.com, Mozilla Observatory.</div>
+        <div class="ev">ops/Caddyfile (security_headers, panel_headers, block_scanners)</div>
+      </div>
+
+      <div class="card sev-high done" data-sev="high" data-done="1" data-txt="rate limit ddos l7 flood in-memory single replica cloudflare fail-open">
+        <h3>Rate limiting in-memory + brak anty-DDoS L7 <span class="id">CYBER-4</span> <span class="badge b-done">✔ Wdrożone</span> <span class="badge b-high">Wysokie</span></h3>
+        <p>Rate limit jest <b>in-process</b> (jedna replika API, po IP+scope) i przy przepełnieniu mapy kubełków <b>czyści ją całą (fail-open)</b> — świadoma decyzja, ale oznacza, że rozproszony flood z wielu IP może zresetować liczniki i zdławić ochronę. Brak warstwy anty-DDoS/L7 przed control-plane.</p>
+        <div class="fix"><b>Rekomendacja:</b> (1) przenieść licznik do <b>Redis</b> gdy API skaluje się poziomo; (2) reguły rate-limit w Caddy per IP/route jako pierwsza linia; (3) rozważyć <b>Cloudflare / anty-DDoS</b> przed panelami+API; (4) circuit-breaker na API.</div>
+        <div class="ev">apps/api/src/common/guards/rate-limit.guard.ts:100-110 (overflow → clear)</div>
+      </div>
+
+      <div class="card sev-high done" data-sev="high" data-done="1" data-txt="captcha turnstile antybot rejestracja bruteforce proof of work bot">
+        <h3>Brak ochrony anty-bot na rejestracji/logowaniu <span class="id">CYBER-2</span> <span class="badge b-done">✔ Wdrożone</span> <span class="badge b-high">Wysokie</span></h3>
+        <p>Formularze publiczne (rejestracja, kontakt, kreator) chroni tylko rate-limit. Brak <b>CAPTCHA/Turnstile</b> lub proof-of-work → podatność na masową rejestrację kont (abuse, darmowe zasoby, wysyłka spamu) i credential-stuffing.</p>
+        <div class="fix"><b>Rekomendacja:</b> Cloudflare Turnstile lub hCaptcha na rejestracji + progresywne opóźnienia po nieudanych logowaniach; ochrona formularzy publicznych przed botami.</div>
+      </div>
+
+      <div class="card sev-high done" data-sev="high" data-done="1" data-txt="outbound spam smtp rate limit cordon rbl konto przejęte newsletter">
+        <h3>Ochrona przed nadużyciem wysyłki (outbound spam) <span class="id">CYBER-3</span> <span class="badge b-done">✔ Wdrożone</span> <span class="badge b-high">Wysokie</span></h3>
+        <p>Jest monitoring RBL floty i deliverability dashboard, ale brak <b>twardych limitów SMTP per konto</b> na węźle i <b>auto-cordonu</b> konta przy nagłym skoku wysyłki. Jedno przejęte konto może wysłać spam i wpakować IP węzła na blacklistę — realne ryzyko dla całej floty poczty.</p>
+        <div class="fix"><b>Rekomendacja:</b> rate-limity SMTP per konto, limity EMM/newsletter, detekcja skoków wysyłki → auto-throttle/cordon + alert, zanim IP trafi na RBL. Test: symulacja przejętego konta.</div>
+      </div>
+
+      <div class="card sev-high done" data-sev="high" data-done="1" data-txt="sentry observability błędy runtime monitoring 5xx anomalie">
+        <h3>Brak monitoringu błędów runtime (Sentry) <span class="id">#71 / CYBER-9</span> <span class="badge b-done">✔ Wdrożone</span> <span class="badge b-high">Wysokie</span></h3>
+        <p>Jest Prometheus/Grafana/Loki, ale brak <b>Sentry</b> (lub odpowiednika) do korelacji błędów aplikacyjnych z audit-logiem i alertów na anomalie (skok 5xx, skok FAILED maili, skok 401/403). To otwarte zadanie z backlogu.</p>
+        <div class="fix"><b>Szybkie domknięcie:</b> dodać DSN + pakiet Sentry (self-hosted GlitchTip jako tańsza alternatywa), reguły alertów w Grafanie na kluczowe ścieżki (login, checkout, provisioning).</div>
+        <div class="ev">task #71 (otwarte)</div>
+      </div>
+
+      <div class="card sev-med done" data-sev="med" data-done="1" data-txt="gitleaks trufflehog sekrety ci trivy grype dependabot renovate skan obrazów">
+        <h3>Skany sekretów, zależności i obrazów w CI <span class="id">CYBER-5/6</span> <span class="badge b-done">✔ Wdrożone</span> <span class="badge b-med">Średnie</span></h3>
+        <p>CI robi lint+typecheck+build+testy, ale brak w pipeline: skanu sekretów (<code>gitleaks</code>/<code>trufflehog</code>), <code>npm audit</code> na bieżąco, skanu obrazów kontenerów (Trivy/Grype), Dependabot/Renovate.</p>
+        <div class="fix"><b>Rekomendacja:</b> dołożyć te kroki do <code>ci.yml</code> jako gate (lub co najmniej raport), włączyć Dependabot/Renovate na monorepo.</div>
+        <div class="ev">.github/workflows/ci.yml</div>
+      </div>
+
+      <div class="card sev-med done" data-sev="med" data-done="1" data-txt="security.txt responsible disclosure podatności proces zgłaszanie">
+        <h3>Brak <code>security.txt</code> i procesu podatności <span class="id">CYBER-11</span> <span class="badge b-done">✔ Wdrożone</span> <span class="badge b-med">Średnie</span></h3>
+        <p>Brak <code>/.well-known/security.txt</code> i formalnego kanału responsible disclosure oraz procesu zarządzania podatnościami (kadencja skanów, SLA na łatki).</p>
+        <div class="fix"><b>Rekomendacja:</b> opublikować <code>security.txt</code> (kontakt <code>security@</code>, polityka), ustalić SLA łatania wg severity, okresowe skany OWASP ZAP/Nuclei.</div>
+      </div>
+
+      <div class="card sev-info" data-sev="info" data-txt="metrics token prometheus wewnętrzna sieć">
+        <h3>Endpoint <code>/metrics</code> — token opcjonalny <span class="badge b-info">Info</span></h3>
+        <p><code>METRICS_AUTH_TOKEN</code> jest pusty domyślnie → <code>/metrics</code> otwarty w sieci wewnętrznej. Akceptowalne, bo Caddy nie wystawia go publicznie, a scrapuje Prometheus w sieci Docker. Warto jednak ustawić token dla defense-in-depth.</p>
+        <div class="ev">.env.prod.example (METRICS_AUTH_TOKEN=)</div>
+      </div>
+
+    </div>
+    <div class="summary">
+      <h4>Podsumowanie — cyberbezpieczeństwo</h4>
+      <p>Baza obronna jest solidna (nagłówki, WAF, VPN paneli, egress lockdown, dedupe webhooków, sekrety at-rest). Luki są <b>„drugiej warstwy”</b>, ale kilka z nich jest istotnych przed komercyjnym startem: <b>anty-bot na rejestracji, ochrona przed outbound-spamem, rate-limit odporny na rozproszony flood, Sentry</b>. To lista CYBER-1…11 z waszej dokumentacji — realna i dobrze zdefiniowana; trzeba ją domknąć iteracyjnie, priorytetyzując wektory nadużyć (bot/spam) i widoczność (Sentry).</p>
+      <span class="verdict" style="background:var(--medbg);color:var(--med)">● Ocena obszaru: 66/100 — dobra baza, otwarty hardening</span>
+    </div>
+  </section>
+
+  <!-- ================= 04 · PODATNOŚĆ NA ATAKI ================= -->
+  <section id="s4">
+    <div class="sechead">
+      <div class="ix">04</div>
+      <div><h2>Podatność na ataki (OWASP + scenariusze)</h2><p>Przegląd realnych wektorów: injection, IDOR, SSRF, path traversal, webhooki, node↔control-plane, supply chain.</p></div>
+    </div>
+
+    <table class="tbl" data-sev="info" data-txt="owasp injection idor ssrf path traversal webhook mitm supply chain">
+      <thead><tr><th>Wektor</th><th style="width:90px">Status</th><th>Ocena i dowód</th></tr></thead>
+      <tbody>
+        <tr><td><b>SQL Injection</b></td><td class="yes">Chroniony</td><td>Prisma ORM (parametryzowane), jedyny <code>$queryRaw</code> to <code>SELECT … FOR UPDATE</code> z bindem <code>${userId}</code>. Brak konkatenacji SQL.</td></tr>
+        <tr><td><b>XSS</b></td><td class="yes">Chroniony</td><td>React/Next auto-escaping, CSP z <code>frame-ancestors 'none'</code>, cookie <code>httpOnly</code>. Ryzyko rezydualne: <code>'unsafe-inline'</code> w CSP paneli.</td></tr>
+        <tr><td><b>IDOR / kontrola dostępu</b></td><td class="part">Do pen-testu</td><td>Guardy per-rola (customer/staff/roles) + zapytania account-scoped. Wymaga <b>zewnętrznej weryfikacji IDOR</b> na każdym z 580 endpointów (pliki, DB, DNS, faktury).</td></tr>
+        <tr><td><b>SSRF</b></td><td class="yes">Chroniony</td><td>Proxy fontów wymusza allowlistę (<code>fonts.gstatic.com</code> / <code>googleapis.com</code>), timeouty, limit rozmiaru. Brak innego user-controlled fetch.</td></tr>
+        <tr><td><b>Path traversal</b></td><td class="yes">Chroniony</td><td><code>safePath()</code> w menedżerze plików odrzuca <code>..</code> i ucieczki poza home konta; operacje jako user konta w CageFS.</td></tr>
+        <tr><td><b>Webhook forgery (Stripe)</b></td><td class="yes">Chroniony</td><td>Weryfikacja HMAC na surowym body (<code>rawBody</code>), tolerancja 300 s, <code>timingSafeEqual</code>, fail-closed bez sekretu, dedupe po <code>event.id</code>. Pokryte testami.</td></tr>
+        <tr><td><b>MITM node↔control-plane</b></td><td class="yes">Naprawiony</td><td>TLS do DirectAdmin <b>weryfikowany domyślnie</b> (<code>rejectUnauthorized: true</code>, F-04), identity token węzła hashowany SHA-256 (F-03).</td></tr>
+        <tr><td><b>Upload malware (tickety/pliki)</b></td><td class="part">Częściowo</td><td>Limity rozmiaru (25 MB / ticket) + allowlist MIME, ale brak skanu AV zawartości (S-3). Pliki idą do MinIO/DA.</td></tr>
+        <tr><td><b>Brute-force / credential stuffing</b></td><td class="part">Częściowo</td><td>Lockout + rate-limit, ale <b>brak CAPTCHA</b> (CYBER-2) i sprawdzenia HIBP → rozproszony stuffing możliwy.</td></tr>
+        <tr><td><b>DDoS L7</b></td><td class="no">Luka</td><td>Rate-limit in-memory fail-open; brak warstwy anty-DDoS (CYBER-4). Patrz sekcja 03.</td></tr>
+        <tr><td><b>Supply chain (zależności)</b></td><td class="part">Do procesu</td><td>Stack nowoczesny (patrz sekcja 07), ale brak <code>npm audit</code>/Trivy/Dependabot w CI (CYBER-6).</td></tr>
+        <tr><td><b>Eskalacja uprawnień na węźle</b></td><td class="part">Do pen-testu</td><td>CageFS/LVE + operacje jako user konta. Wymaga testu izolacji (brak wycieku między kontami, brak eskalacji do root).</td></tr>
+        <tr><td><b>Bootstrap/replay węzła</b></td><td class="yes">Chroniony</td><td>Tokeny jednorazowe, SHA-256, TTL 48 h, konsumowane atomowo; identity zwracany raz; idempotentny re-handshake.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout warn">
+      <h4>Najważniejszy pojedynczy krok w tym obszarze</h4>
+      <p style="color:var(--ink2)"><b>Niezależny pen-test zewnętrzny</b> (OWASP Top 10 na panelach+API, auth/passkey/2FA/reset, IDOR, izolacja kont CageFS/LVE, skuteczność WAF na payloadach SQLi/XSS/LFI/RCE, tokeny node↔control-plane). Macie wewnętrzny raport — brakuje <b>niezależnego wykonawcy</b>. To warunek startu komercyjnego i mocny argument sprzedażowy (publiczna strona „Bezpieczeństwo”).</p>
+    </div>
+
+    <div class="summary">
+      <h4>Podsumowanie — podatność na ataki</h4>
+      <p>Klasyczne wektory aplikacyjne (SQLi, XSS, SSRF, path traversal, webhook forgery, MITM do węzła) są <b>realnie zaadresowane w kodzie</b> — to nie deklaracje, potwierdziłem je w źródłach. Otwarte ryzyka są skoncentrowane w trzech miejscach: <b>brak anty-bota</b> (brute-force/stuffing), <b>DDoS L7</b> i <b>weryfikacja IDOR + izolacji kont przez niezależny pen-test</b>. Po domknięciu anty-bota/DDoS i przejściu pen-testu profil ryzyka jest bardzo dobry jak na hosting wchodzący na rynek.</p>
+      <span class="verdict" style="background:var(--medbg);color:var(--med)">● Ocena obszaru: 72/100 — dobry, po pen-teście wyższy</span>
+    </div>
+  </section>
+
+  <!-- ================= 05 · ZGODNOŚĆ PRAWNA ================= -->
+  <section id="s5">
+    <div class="sechead">
+      <div class="ix">05</div>
+      <div><h2>Zgodność z prawem PL i UE</h2><p>RODO, KSeF 2.0 / FA(3), NIS2/KSC, prawo konsumenckie, DPA, retencja faktur.</p></div>
+    </div>
+
+    <div class="callout crit">
+      <h4>⚠️ Zastrzeżenie</h4>
+      <p style="color:var(--ink2)">To ocena techniczno-organizacyjna, <b>nie opinia prawna</b>. Punkty oznaczone 🧑‍⚖️ wymagają zatwierdzenia przez radcę prawnego / doradcę podatkowego. Verris nie jest prawnikiem ani doradcą podatkowym.</p>
+    </div>
+
+    <div class="grid two">
+
+      <div class="card sev-crit done" data-sev="crit" data-done="1" data-txt="ksef fa2 fa3 faktura efaktura ksef 2.0 obowiązkowy luty kwiecień 2026 mf">
+        <h3>KSeF: integracja celuje w nieaktualny standard <span class="id">KSEF</span> <span class="badge b-done">✔ Wdrożone</span> <span class="badge b-crit">Krytyczne</span></h3>
+        <p>Moduł <code>apps/api/src/ksef/</code> generuje <b>FA(2)</b> (schemat <code>FA (2)</code>, wersja <code>1-0E</code>) i rozmawia ze <b>starym interfejsem KSeF 1.0</b> (namespace’y 2021/10/01). Tymczasem:</p>
+        <ul class="clean">
+          <li><b>KSeF 2.0 udostępniony 1.02.2026</b>, obowiązuje schemat <b>FA(3)</b>.</li>
+          <li><b>1.02.2026:</b> obowiązek dla firm &gt; 200 mln zł obrotu 2024 + <b>obowiązkowe odbieranie</b> faktur przez wszystkich.</li>
+          <li><b>1.04.2026:</b> obowiązek wystawiania B2B dla pozostałych. Kary do 100% VAT od 1.01.2027.</li>
+        </ul>
+        <p>Obecna integracja (FA(2)/KSeF 1.0) <b>nie jest zgodna</b> z obowiązkowym KSeF 2026 — nie można jej traktować jako produkcyjnego rozwiązania do e-faktur.</p>
+        <div class="fix"><b>Rekomendacja (z waszej dok., podtrzymuję):</b> warstwa abstrakcji <code>InvoicingProvider</code> (hybryda), <b>start od integratora KSeF-BSP</b> (zgodność „od ręki”, zdejmuje ryzyko prawne), własny builder FA(3)/KSeF 2.0 później za tym samym interfejsem. Obecny FA(2) → <code>@deprecated</code> + ukryć w UI, żeby nikt nie wystawił nieważnej faktury.</div>
+        <div class="ev">apps/api/src/ksef/fa-xml.builder.ts (FA(2), ns 2021/10/01)</div>
+      </div>
+
+      <div class="card sev-crit" data-sev="crit" data-txt="regulamin polityka prywatności dpa cookies draft prawnik dane rejestrowe publikacja legal">
+        <h3>Dokumenty prawne = drafty bez podpisu i danych spółki <span class="id">L-1</span> <span class="badge b-crit">Krytyczne</span></h3>
+        <p>Regulamin, polityka prywatności, DPA, cookies, subprocesorzy istnieją jako <b>DRAFT 0.2</b> („gotowce do prawnika”). Kod <b>blokuje rejestrację</b> bez opublikowanych dokumentów — to twardy blocker. Przed LIVE trzeba:</p>
+        <ul class="clean">
+          <li>uzupełnić <b>dane rejestrowe</b> spółki (nazwa, adres, NIP/KRS, sąd) we wszystkich dokumentach;</li>
+          <li>przejść <b>lawyer review</b> całości i opublikować wersję <code>1.0.0</code> (<code>prod-legal-publish</code>).</li>
+        </ul>
+        <div class="fix">🧑‍⚖️ Szczególnie do potwierdzenia z prawnikiem: <b>VAT od bonów przedpłaconych</b> (portfel/kredyty — „bon jednego przeznaczenia”, moment opodatkowania), <b>prawo odstąpienia 14 dni B2C</b> vs rozpoczęcie świadczenia przy provisioningu.</div>
+        <div class="ev">docs/legal/drafts/ (terms, privacy, dpa, cookies, subprocessors)</div>
+      </div>
+
+      <div class="card sev-high done" data-sev="high" data-done="1" data-txt="nis2 ksc ustawa cyberbezpieczeństwo podmiot ważny kluczowy samoidentyfikacja rejestr">
+        <h3>NIS2 / ustawa o KSC — nowy obowiązek dla hostingu <span class="id">NIS2</span> <span class="badge b-done">✔ Wdrożone</span> <span class="badge b-high">Wysokie</span></h3>
+        <p>Nowelizacja ustawy o krajowym systemie cyberbezpieczeństwa (wdrożenie NIS2) <b>weszła w życie 3.04.2026</b>. „Infrastruktura cyfrowa” obejmuje dostawców usług <b>data center i chmury</b> — Verris z dużym prawdopodobieństwem jest <b>podmiotem ważnym</b> (model samoidentyfikacji — to zarząd musi ocenić status i zgłosić się do wykazu).</p>
+        <ul class="clean">
+          <li>Termin wpisu do wykazu: <b>6 mies.</b> od spełnienia przesłanek (dla wielu firm ~<b>3.10.2026</b>).</li>
+          <li>Art. 21 NIS2: 10 obszarów zarządzania ryzykiem (m.in. obsługa incydentów, ciągłość działania, <b>bezpieczeństwo łańcucha dostaw</b>).</li>
+        </ul>
+        <div class="fix">🧑‍⚖️ <b>Rekomendacja:</b> formalna analiza statusu podmiotu przez zarząd + prawnika, przygotowanie zgłoszenia do wykazu, sformalizowanie procesu zarządzania ryzykiem i incydentami (macie techniczną bazę — <code>INCIDENT_RESPONSE.md</code>, procedura 72h — trzeba ją podnieść do wymogów KSC).</div>
+      </div>
+
+      <div class="card sev-high" data-sev="high" data-txt="dpa subprocesorzy stripe ovh openprovider powierzenie umowa procesor administrator">
+        <h3>DPA z subprocesorami + rozdzielenie ról <span class="id">L-2/L-3</span> <span class="badge b-high">Wysokie</span></h3>
+        <p>Verris jest <b>administratorem</b> danych swoich klientów i jednocześnie <b>procesorem</b> danych, które klient trzyma na hostingu. Trzeba mieć podpisane <b>umowy powierzenia (DPA)</b> z każdym subprocesorem (Stripe, OVH, OpenProvider, dostawca DC, dostawca maila) i zweryfikować listę <code>subprocessors.md</code> z realnym stackiem.</p>
+        <div class="fix"><b>Rekomendacja:</b> podpisać DPA (większość dostawców ma standardowe do akceptacji online), a dokumenty muszą jasno rozdzielać rolę administratora vs procesora. Architektura (osobny DPA) już to zakłada.</div>
+      </div>
+
+      <div class="card sev-ok" data-sev="ok" data-txt="rodo zgody eksport usunięcie prawo do zapomnienia retencja audit anonimizacja consent">
+        <h3>Architektura RODO w kodzie <span class="badge b-ok">Mocna strona</span></h3>
+        <p>Techniczna realizacja praw podmiotów jest kompletna i dojrzała:</p>
+        <ul class="clean">
+          <li><b>Zgody</b> (<code>UserConsent</code>) z wersją dokumentu, IP, UA; re-consent przy nowej wersji regulaminu.</li>
+          <li><b>Prawo dostępu/przenoszenia</b> — moduł <code>data-export</code> (ZIP z profile/consents/invoices/tickets/audit-log JSON).</li>
+          <li><b>Prawo do usunięcia</b> — anonimizacja PII + harmonogram hard-delete (grace 30 dni).</li>
+          <li><b>Procedura naruszeń</b> z terminem <b>72 h</b> (art. 33–34), <b>DPA generator PDF</b> + lista subprocesorów.</li>
+        </ul>
+        <div class="ev">apps/api/src/compliance/* (consents, data-export, account-deletion, dpa, retention)</div>
+      </div>
+
+      <div class="card sev-med done" data-sev="med" data-done="1" data-txt="rcpd rejestr czynności przetwarzania art 30 transfery eog scc iod">
+        <h3>RCPD, transfery poza EOG, skrzynki/IOD <span class="id">L-4/5/6</span> <span class="badge b-done">✔ Wdrożone</span> <span class="badge b-med">Średnie</span></h3>
+        <p>Dokumenty operacyjne (nie w kodzie) do utworzenia: <b>rejestr czynności przetwarzania (art. 30)</b>, udokumentowanie <b>transferów poza EOG</b> (SCC — np. część usług Stripe/US), uruchomienie i monitoring skrzynek <code>rodo@ / iod@ / abuse@ / security@</code>.</p>
+        <div class="fix">🧑‍⚖️ Ocenić, czy skala hostingu wymaga formalnego <b>IOD</b> (przy przetwarzaniu na dużą skalę często zalecany).</div>
+      </div>
+
+      <div class="card sev-low" data-sev="low" data-txt="retencja faktur 5 lat księgowość dokumenty podatkowe scheduler">
+        <h3>Retencja dokumentów księgowych <span class="id">L-7</span> <span class="badge b-low">Niskie</span></h3>
+        <p>Faktury muszą być przechowywane <b>5 lat</b> (prawo podatkowe). Upewnić się, że scheduler retencji <b>nie kasuje</b> <code>Invoice</code>/PDF wcześniej. Kod rozróżnia placeholder Stripe od faktury VAT Verris — dobra podstawa.</p>
+        <div class="ev">apps/api/src/billing/invoices.service.ts · retention.scheduler.ts</div>
+      </div>
+
+    </div>
+    <div class="summary">
+      <h4>Podsumowanie — zgodność prawna</h4>
+      <p><b>Architektura compliance w kodzie jest na miejscu</b> (zgody, eksport, usunięcie, retencja, DPA, procedura 72h). Twarde bariery są <b>organizacyjne i regulacyjne</b>, nie programistyczne: <b>(1)</b> KSeF — obecny FA(2)/1.0 jest nieważny wobec obowiązkowego KSeF 2.0/FA(3), trzeba iść w integratora BSP za warstwą abstrakcji; <b>(2)</b> dokumenty prawne wymagają podpisu prawnika, danych rejestrowych i publikacji; <b>(3)</b> nowy obowiązek NIS2/KSC (samoidentyfikacja i wpis do wykazu ~3.10.2026) — wymaga decyzji zarządu. Do tego DPA z subprocesorami i RCPD. To lista dojrzewania typowa dla hostingu, ale <b>KSeF i legal-publish blokują pierwszą fakturę i pierwszą rejestrację</b>.</p>
+      <span class="verdict" style="background:var(--highbg);color:var(--high)">● Ocena obszaru: 55/100 — kod gotowy, formalności blokują</span>
+    </div>
+  </section>
+
+  <!-- ================= 06 · GOTOWOŚĆ NA KLIENTÓW ================= -->
+  <section id="s6">
+    <div class="sechead">
+      <div class="ix">06</div>
+      <div><h2>Gotowość operacyjna na klientów</h2><p>Wdrożenie, wsparcie, deliverability poczty, testy, monitoring, uptime.</p></div>
+    </div>
+    <div class="grid two">
+
+      <div class="card sev-ok" data-sev="ok" data-txt="cicd deploy rolling rollback ghcr auto-rollback health gate">
+        <h3>CI/CD i wdrożenia <span class="badge b-ok">Mocna strona</span></h3>
+        <p>Model „jak Vercel/Render”: push na main → build 5 obrazów w Actions → GHCR → serwer pobiera gotowe obrazy → <code>prisma migrate deploy</code> → rolling restart z <b>health-gate i auto-rollback</b>. Graceful drain (SIGTERM → <code>/readyz</code> 503 → Caddy zdejmuje upstream) chroni bieżące żądania podczas restartu.</p>
+        <div class="ev">.github/workflows/deploy.yml · apps/api/src/main.ts · ops/Caddyfile</div>
+      </div>
+
+      <div class="card sev-ok" data-sev="ok" data-txt="live readiness panel go no-go checklist admin gotowość startu">
+        <h3>Panel „Gotowość do startu LIVE” <span class="badge b-ok">Mocna strona</span></h3>
+        <p>Admin ma auto-check (<code>GET /admin/live-readiness</code>) weryfikujący blokery startowe: publikacja dokumentów prawnych, Stripe live, sekrety, dane firmy, węzeł z licencjami, DNS/TLS. Dojrzały mechanizm GO/NO-GO wbudowany w produkt.</p>
+        <div class="ev">apps/api/src/admin-readiness/*</div>
+      </div>
+
+      <div class="card sev-high" data-sev="high" data-txt="wsparcie 24/7 bok helpdesk chat on-call sla">
+        <h3>Wsparcie 24/7 i kanały pomocy <span class="id">CMP-2</span> <span class="badge b-high">Wysokie</span></h3>
+        <p>Jest system ticketów (z załącznikami) i Baza Wiedzy, ale brak <b>wsparcia 24/7</b> i kanału czatu w panelu (poza ticketami). Konkurencja (dhosting, cyberFolks) chwalona właśnie za wsparcie — to najczęstszy powód wyboru hostingu przez firmy.</p>
+        <div class="fix"><b>Rekomendacja:</b> zdefiniować realne SLA wsparcia na start (np. godziny robocze + dyżur krytyczny), plan dojścia do 24/7; czat/kanał w panelu (SUP-7) jako różnicowanie.</div>
+      </div>
+
+      <div class="card sev-high" data-sev="high" data-txt="deliverability poczta inbox placement ses dkim dmarc warm-up reputacja ip">
+        <h3>Reputacja IP poczty i inbox placement <span class="id">MAIL</span> <span class="badge b-high">Wysokie</span></h3>
+        <p>Poczta transakcyjna na Amazon SES z DKIM/DMARC, rspamd, monitoring RBL, List-Unsubscribe — mocna baza. Ale <b>nowe IP nie mają dojrzałej reputacji</b>; bez warm-upu i testu trafienia do Inbox (Gmail/Outlook/O365) maile mogą lądować w spamie.</p>
+        <div class="fix"><b>Przed LIVE:</b> test inbox-placement + ewentualny warm-up (<code>docs/ops/EMAIL_DELIVERABILITY_WARMUP.md</code>), potwierdzenie DKIM+DMARC=pass. Watchdog poczty (alert na skok FAILED) do przetestowania.</div>
+      </div>
+
+      <div class="card sev-high" data-sev="high" data-txt="e2e test żywe konto provisioning licencja litespeed cloudlinux #73">
+        <h3>Brak pełnego E2E na żywym koncie <span class="id">#73</span> <span class="badge b-high">Wysokie</span></h3>
+        <p>Pełen przepływ (provisioning DA → strona → mail → backup → autoskalowanie) <b>nie został zwalidowany end-to-end na licencjonowanym węźle</b>. To ostatni „prawdziwy” test produktu. Wg deklaracji stanu infra węzeł z licencjami jest już podpięty — więc jest odblokowany do wykonania.</p>
+        <div class="fix"><b>Przed LIVE:</b> przejść #73 + restore-drill (realne odtworzenie konta z backupu off-node) + test izolacji kont (CageFS/LVE).</div>
+      </div>
+
+      <div class="card sev-med done" data-sev="med" data-done="1" data-txt="load test k6 locust obciążenie lve pojemność uptime monitor zewnętrzny">
+        <h3>Test obciążeniowy + zewnętrzny uptime monitor <span class="id">CYBER-7 / S-7</span> <span class="badge b-done">✔ Wdrożone</span> <span class="badge b-med">Średnie</span></h3>
+        <p>Brak testu obciążeniowego (k6/Locust na panele+API + LVE pod ruchem) i zewnętrznego monitora uptime (niezależnego od własnej infry) z alertem „na człowieka”.</p>
+        <div class="fix"><b>Rekomendacja:</b> k6/Locust przed LIVE dla ścieżek login/checkout/provisioning; zewnętrzny uptime (UptimeRobot/Better Stack/Pingdom) + alerty SMS/telefon dla krytycznych incydentów.</div>
+      </div>
+
+      <div class="card sev-med" data-sev="med" data-txt="baza wiedzy treści kb dane testowe #72 usunięcie">
+        <h3>Baza Wiedzy + usunięcie danych testowych <span class="id">#72</span> <span class="badge b-med">Średnie</span></h3>
+        <p>Silnik Bazy Wiedzy działa, ale trzeba uzupełnić <b>treści</b> i usunąć dane testowe z prod przed pierwszym klientem. Otwarte zadanie.</p>
+      </div>
+
+      <div class="card sev-info" data-sev="info" data-txt="incident response runbook operational checklist dokumentacja ops">
+        <h3>Dokumentacja operacyjna <span class="badge b-info">Info</span></h3>
+        <p>Bardzo bogata: <code>INCIDENT_RESPONSE.md</code>, <code>OPERATIONAL_CHECKLIST.md</code>, runbooki restore/deploy/onboarding węzła, smoke-testy (E2E, IAM, BOK, Grafana). To realny atut operacyjny — checklisty istnieją, trzeba je <b>przejść</b>, nie napisać.</p>
+      </div>
+
+    </div>
+    <div class="summary">
+      <h4>Podsumowanie — gotowość na klientów</h4>
+      <p>Zaplecze operacyjne (CI/CD z auto-rollbackiem, panel gotowości LIVE, bogate runbooki) jest ponadprzeciętne. Luki są typowe dla „dnia zero”: <b>brak pełnego E2E na żywym węźle (#73), wsparcie nie-24/7, niedojrzała reputacja IP poczty, brak testu obciążeniowego i zewnętrznego uptime</b>. Nic z tego nie jest wadą architektury — to lista „przejść i włączyć” przed pierwszym klientem. Wsparcie i deliverability to obszary, gdzie klienci najszybciej ocenią różnicę względem zasiedziałej konkurencji.</p>
+      <span class="verdict" style="background:var(--medbg);color:var(--med)">● Ocena obszaru: 68/100 — mocne zaplecze, do przejścia checklisty</span>
+    </div>
+  </section>
+
+  <!-- ================= 07 · DZIAŁANIE FUNKCJI ================= -->
+  <section id="s7">
+    <div class="sechead">
+      <div class="ix">07</div>
+      <div><h2>Działanie funkcji i stack techniczny</h2><p>Przegląd modułów (86 kontrolerów / 580 endpointów), pokrycie testami, wersje bibliotek.</p></div>
+    </div>
+
+    <div class="dash">
+      <div class="stat"><div class="v">50+</div><div class="l">modułów NestJS</div></div>
+      <div class="stat"><div class="v">86</div><div class="l">kontrolerów API</div></div>
+      <div class="stat"><div class="v">580</div><div class="l">endpointów (@Get/Post/…)</div></div>
+      <div class="stat"><div class="v">34</div><div class="l">pliki testów jednostkowych</div></div>
+      <div class="stat"><div class="v" style="color:var(--ok)">100%</div><div class="l">LIVE — zero mocków na prod</div></div>
+    </div>
+
+    <p style="color:var(--ink2);margin-top:18px">Przegląd głównych obszarów funkcjonalnych. „Stan” to ocena dojrzałości implementacji na podstawie kodu; wszystkie moduły operują na realnych integracjach (DirectAdmin/CloudLinux/LiteSpeed/OVH/Stripe), bez danych mockowych.</p>
+
+    <table class="tbl" data-sev="info" data-txt="funkcje moduły hosting domeny poczta autoskalowanie backup billing wallet vps reseller api tokens">
+      <thead><tr><th>Obszar</th><th>Moduły / funkcje</th><th style="width:110px">Stan</th></tr></thead>
+      <tbody>
+        <tr><td><b>Konta i auth</b></td><td>Rejestracja, login, 2FA/passkey, reset, weryfikacja e-mail, IAM (subkonta, uprawnienia), impersonacja staff</td><td class="yes">Dojrzały</td></tr>
+        <tr><td><b>Hosting (provisioning)</b></td><td>DirectAdmin, pakiety, profil hostingowy, PHP selector, SSL/LE, FTP, cron, bazy, menedżer plików</td><td class="yes">Dojrzały</td></tr>
+        <tr><td><b>Autoskalowanie</b></td><td>Histereza 3/5 bucketów, progi 80/30%, krok 25%, sufit z planu, guard portfela, rozliczanie blokowe 15 min</td><td class="yes">Dojrzały*</td></tr>
+        <tr><td><b>Portfel / billing</b></td><td>Append-only ledger, idempotencja, <code>FOR UPDATE</code> (F-02 fix), Stripe checkout, faktury VAT, top-up auto</td><td class="yes">Dojrzały*</td></tr>
+        <tr><td><b>Domeny / DNS</b></td><td>Rejestracja (OpenProvider), manager DNS, katalog TLD, pricing per-TLD, transfer</td><td class="part">Dojrzały (katalog ◐)</td></tr>
+        <tr><td><b>Poczta</b></td><td>Skrzynki, webmail (SOGo), deliverability dashboard, SPF/DKIM/DMARC, rspamd, RBL monitor, email-marketing</td><td class="yes">Dojrzały</td></tr>
+        <tr><td><b>Backup</b></td><td>Postgres→MinIO, off-node per węzeł, DA site-backup</td><td class="part">Brak self-restore UI</td></tr>
+        <tr><td><b>VPS / VPN</b></td><td>Moduły <code>vps</code>, <code>vpn</code> (WireGuard), zarządzanie</td><td class="part">Obecny</td></tr>
+        <tr><td><b>Reseller / white-label</b></td><td>Program partnerski, prowizje, reseller</td><td class="part">Podstawa (white-label ◐)</td></tr>
+        <tr><td><b>Publiczne API</b></td><td>Tokeny API (bcrypt, prefix+secret, scopes, TTL), API-GATE per klient</td><td class="part">API-GATE #208 otwarte</td></tr>
+        <tr><td><b>Wsparcie / KB</b></td><td>Tickety z załącznikami, Baza Wiedzy (silnik + wyszukiwarka), AI-asystent (RAG)</td><td class="part">Treści KB #72</td></tr>
+        <tr><td><b>Faktury / KSeF</b></td><td>Faktury VAT, PDF, KSeF</td><td class="no">KSeF = FA(2)/1.0 nieaktualny</td></tr>
+        <tr><td><b>Status page / EKO</b></td><td>Strona statusu, metryki EKO per konto (kWh/CO₂), analytics-sites</td><td class="yes">Różnicujący atut</td></tr>
+      </tbody>
+    </table>
+    <div class="legend">* Obszary z gwiazdką miały krytyczne błędy w audycie 06/2026 (F-01 cap kosztów, F-02 lost-update portfela, F-05 idempotencja odnowienia) — <b>wszystkie potwierdziłem jako naprawione w kodzie</b> (<code>Math.abs</code> w <code>thirtyDaySpend</code>, <code>SELECT … FOR UPDATE</code> w <code>wallet-ledger</code>, deterministyczny <code>renewAnchor</code>).</div>
+
+    <h3 style="margin:26px 0 2px;font-size:15px;color:var(--ink2)">Stack technologiczny — nowoczesny, wspierany</h3>
+    <table class="tbl" data-sev="info" data-txt="stack wersje nestjs next react prisma node express bcrypt bullmq redis biblioteki">
+      <thead><tr><th>Warstwa</th><th>Technologia</th><th style="width:130px">Wersja</th><th>Ocena</th></tr></thead>
+      <tbody>
+        <tr><td>Runtime</td><td>Node.js</td><td class="mono">22 LTS</td><td class="yes">Aktualny</td></tr>
+        <tr><td>API</td><td>NestJS</td><td class="mono">11.1</td><td class="yes">Najnowszy major</td></tr>
+        <tr><td>Frontend</td><td>Next.js / React</td><td class="mono">16.2 / 19.2</td><td class="yes">Najnowszy</td></tr>
+        <tr><td>ORM</td><td>Prisma</td><td class="mono">6.19</td><td class="yes">Aktualny</td></tr>
+        <tr><td>HTTP</td><td>Express</td><td class="mono">5.2</td><td class="yes">v5 (aktualny)</td></tr>
+        <tr><td>Auth</td><td>bcrypt · @simplewebauthn · passport-jwt</td><td class="mono">6.0 / 13.1</td><td class="yes">Aktualny</td></tr>
+        <tr><td>Kolejki</td><td>BullMQ + ioredis</td><td class="mono">5.76 / 5.10</td><td class="yes">Aktualny</td></tr>
+        <tr><td>Infra</td><td>PostgreSQL 16 · Redis 7 · Caddy 2 · MinIO</td><td class="mono">—</td><td class="yes">Stabilny</td></tr>
+      </tbody>
+    </table>
+    <div class="callout warn" style="margin-top:14px">
+      <h4>Uwaga o audycie zależności</h4>
+      <p style="color:var(--ink2)"><code>npm/pnpm audit</code> nie udało się uruchomić w środowisku analizy (rejestr niedostępny w sandboxie). Wersje bibliotek są <b>świeże i wspierane</b>, więc ryzyko znanych CVE jest niskie — ale to <b>nie zastępuje realnego skanu</b>. Rekomendacja: uruchomić <code>pnpm audit --prod</code> lokalnie/w CI oraz włączyć Dependabot/Renovate (CYBER-6) jako proces ciągły.</p>
+    </div>
+
+    <div class="summary">
+      <h4>Podsumowanie — działanie funkcji</h4>
+      <p>Platforma jest <b>funkcjonalnie kompletna i technicznie nowoczesna</b>: ~50 modułów, 580 endpointów, zero mocków na produkcji, zero <code>TODO/FIXME</code>, stack na najnowszych majorach. Wcześniejsze krytyczne błędy finansowe zostały naprawione i to potwierdziłem w kodzie. Dwa obszary odstają: <b>KSeF</b> (nieaktualny standard — patrz sekcja 05) i <b>self-restore backupów</b> (patrz sekcja 02). Reszta wymaga jedynie „przejścia” (E2E #73, treści KB #72, API-GATE #208), nie budowy.</p>
+      <span class="verdict" style="background:var(--okbg);color:var(--ok)">● Ocena obszaru: 84/100 — kompletny, dwa wyjątki</span>
+    </div>
+  </section>
+
+  <!-- ================= 08 · KONKURENCJA ================= -->
+  <section id="s8">
+    <div class="sechead">
+      <div class="ix">08</div>
+      <div><h2>Analiza na tle polskiej konkurencji</h2><p>dhosting · cyberFolks · SEOhost · Zenbox · home.pl · nazwa.pl — ceny, technologia, bezpieczeństwo, pozycjonowanie.</p></div>
+    </div>
+
+    <div class="callout crit">
+      <h4>🎯 Najmocniejszy, w 100% prawdziwy hak marketingowy Verris</h4>
+      <p style="color:var(--ink2)"><b>Koniec ze skokiem ceny przy odnowieniu.</b> Model prepaid-wallet / pay-as-you-go oznacza <b>tę samą cenę co rok</b>. Cała polska konkurencja stosuje niską cenę „na start” i wielokrotnie wyższą przy odnowieniu — od ~2× do nawet <b>~17×</b>. To najczęstszy ból klienta hostingu i realna, sprawdzalna przewaga.</p>
+    </div>
+
+    <h3 style="margin:22px 0 2px;font-size:15px;color:var(--ink2)">Pułapka odnowienia — ceny netto (dane rynkowe 2026)</h3>
+    <table class="tbl" data-sev="info" data-txt="ceny cennik odnowienie renewal pułapka dhosting cyberfolks seohost zenbox home nazwa netto">
+      <thead><tr><th>Dostawca</th><th>Pakiet</th><th>1. rok</th><th>Odnowienie</th><th style="width:90px">Mnożnik</th></tr></thead>
+      <tbody>
+        <tr><td><b>dhosting</b></td><td>Elastyczny Web Hosting 2.0</td><td>~200 zł</td><td>~399 zł</td><td class="part">~2×</td></tr>
+        <tr><td><b>dhosting</b></td><td>Start Web Hosting</td><td>~89 zł</td><td>~229 zł</td><td class="part">~2,6×</td></tr>
+        <tr><td><b>cyberFolks</b></td><td>START</td><td>~116 zł</td><td>~249 zł</td><td class="part">~2,1×</td></tr>
+        <tr><td><b>SEOhost</b></td><td>SH1 / SH2</td><td>~37 zł</td><td>~156 zł</td><td class="no">~3,4–5,9×</td></tr>
+        <tr><td><b>Zenbox</b></td><td>Hosting Firma 10k</td><td>~100 zł</td><td>~648 zł</td><td class="no">~6,5×</td></tr>
+        <tr><td><b>home.pl</b></td><td>Hosting Start</td><td>~39,90 zł</td><td>668–1479 zł*</td><td class="no">do ~17×</td></tr>
+        <tr><td><b>nazwa.pl</b></td><td>CloudHosting WordPress Start</td><td>~50 zł</td><td>wyższe wg cennika</td><td class="part">2×+</td></tr>
+        <tr style="background:rgba(74,222,159,.06)"><td><b style="color:var(--brand)">Verris</b></td><td>Starter / Pro / Business (wallet)</td><td>199,99 / 499,99 / 999,99 zł</td><td><b class="yes">bez zmiany</b></td><td class="yes">1×</td></tr>
+      </tbody>
+    </table>
+    <div class="legend">* home.pl: renewal 668–1479 zł netto zależnie od pakietu; SSL płatny dodatkowo w niższych planach. Ceny orientacyjne z publicznych cenników/porównywarek 2026 — mogą się różnić od bieżących promocji. Verris: ceny z <code>seed.ts</code> (rocznie), model portfelowy bez skoku odnowienia.</div>
+
+    <h3 style="margin:26px 0 2px;font-size:15px;color:var(--ink2)">Macierz funkcji — Verris vs rynek</h3>
+    <table class="tbl" data-sev="info" data-txt="macierz funkcje litespeed cloudlinux backup restore staging wordpress builder waf ksef passkey eko wallet">
+      <thead><tr><th>Funkcja</th><th style="width:70px">Verris</th><th style="width:80px">dhosting</th><th style="width:110px">Reszta rynku</th></tr></thead>
+      <tbody>
+        <tr><td>Prepaid wallet jako uniwersalna waluta całej oferty</td><td class="yes">✓</td><td class="part">◐ (nadwyżki)</td><td class="no">✗</td></tr>
+        <tr><td>Rozliczanie godzinowe na całą ofertę</td><td class="yes">✓</td><td class="part">◐</td><td class="no">✗</td></tr>
+        <tr><td>Brak skoku ceny przy odnowieniu</td><td class="yes">✓</td><td class="no">✗ ~2×</td><td class="no">✗ 2–17×</td></tr>
+        <tr><td>Bezpiecznik / limity kosztów</td><td class="yes">✓</td><td class="yes">✓</td><td class="no">✗</td></tr>
+        <tr><td>CloudLinux LVE (izolacja kont)</td><td class="yes">✓</td><td class="yes">✓</td><td class="part">◐</td></tr>
+        <tr><td>LiteSpeed</td><td class="yes">✓</td><td class="qm">?</td><td class="part">◐ (cyberFolks ✓)</td></tr>
+        <tr><td>WAF ModSecurity + OWASP CRS per konto</td><td class="yes">✓</td><td class="part">◐ (nieszczelny w testach)</td><td class="part">◐</td></tr>
+        <tr><td>Passkeys / WebAuthn (anty-phishing)</td><td class="yes">✓</td><td class="qm">?</td><td class="no">✗ (rzadkość)</td></tr>
+        <tr><td>Metryki EKO per konto (kWh/CO₂)</td><td class="yes">✓</td><td class="no">✗</td><td class="no">✗ (ogólne RES)</td></tr>
+        <tr><td>KSeF natywnie w panelu</td><td class="part">◐ (do 2.0)</td><td class="qm">?</td><td class="part">◐</td></tr>
+        <tr><td>Restore 1-klik strona+DB w panelu klienta</td><td class="no">✗ (do zrobienia)</td><td class="yes">✓</td><td class="part">◐</td></tr>
+        <tr><td>Backup off-site poza węzłem</td><td class="part">◐ (domyślnie off)</td><td class="qm">?</td><td class="qm">?</td></tr>
+        <tr><td>Kreator stron no-code / AI builder</td><td class="no">✗</td><td class="yes">✓</td><td class="part">◐ (Hostinger/nazwa ✓)</td></tr>
+        <tr><td>Wsparcie 24/7</td><td class="no">✗</td><td class="yes">✓</td><td class="yes">✓ (część)</td></tr>
+        <tr><td>Dojrzała reputacja IP poczty</td><td class="no">✗ (nowe IP)</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+        <tr><td>Prowadzenie „za rękę” + naprawa 1-klik</td><td class="yes">✓</td><td class="no">✗</td><td class="no">✗</td></tr>
+        <tr><td>Własne DC / skala</td><td class="no">✗ (Hetzner/OVH)</td><td class="yes">✓</td><td class="yes">✓</td></tr>
+      </tbody>
+    </table>
+
+    <div class="grid two" style="margin-top:18px">
+      <div class="card sev-ok" data-sev="ok" data-txt="przewaga verris pozycjonowanie różnicowanie wallet eko passkey bezpieczeństwo">
+        <h3>Gdzie Verris wygrywa <span class="badge b-ok">Przewaga</span></h3>
+        <ul class="clean">
+          <li><b>Uczciwość cenowa</b> — jeden portfel, brak pułapki odnowienia (unikat na rynku PL).</li>
+          <li><b>Bezpieczeństwo jako produkt</b> — passkeys, izolacja, WAF, RODO; konkurencja tego <b>nie pokazuje</b>. Publiczna strona „Bezpieczeństwo” po pen-teście = argument B2B.</li>
+          <li><b>EKO per konto</b> — realne metryki, nie ogólnikowe „green”.</li>
+          <li><b>Nowoczesny stack + automatyzacja operatora</b> (kreator węzła, cockpit, diagnostyka, naprawa 1-klik) → niski koszt operacyjny.</li>
+        </ul>
+      </div>
+      <div class="card sev-high" data-sev="high" data-txt="luki verris słabości zaufanie wsparcie backup builder reputacja skala">
+        <h3>Gdzie Verris przegrywa <span class="badge b-high">Do nadrobienia</span></h3>
+        <ul class="clean">
+          <li><b>Brak historii i zaufania</b> — nowa marka; przeciwwaga: transparentność, status page, strona bezpieczeństwa.</li>
+          <li><b>Wsparcie nie-24/7</b> — konkurencja chwalona za pomoc (CMP-2).</li>
+          <li><b>Self-restore backupów</b> mniej dopieszczony niż u dhosting (CMP-1).</li>
+          <li><b>Brak no-code buildera</b> (CMP-4) i mniejsza skala/reputacja IP.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="summary">
+      <h4>Podsumowanie — konkurencja</h4>
+      <p>Model pay-as-you-go jest już <b>sprawdzony na rynku PL</b> (dhosting od lat) — to de-risk popytu, nie zagrożenie. Verris jest <b>funkcjonalnie na poziomie lub powyżej</b> najlepszego konkurenta, a wygrywa <b>egzekucją i uczciwością cenową</b>, nie wynalazkiem. Realne ryzyko konkurencyjne jest <b>niefunkcjonalne</b>: brak historii/zaufania, wsparcie, dopieszczenie self-restore, reputacja poczty, skala. Pozycjonowanie „uczciwy, bezpieczny, ekologiczny hosting nowej generacji, bez pułapki odnowienia” jest wiarygodne i obronne — pod warunkiem domknięcia wsparcia i backupów, na których klienci najszybciej porównają.</p>
+      <span class="verdict" style="background:var(--okbg);color:var(--ok)">● Pozycja: konkurencyjna, z wyraźnym USP cenowym i bezpieczeństwa</span>
+    </div>
+  </section>
+
+  <!-- ================= 09 · KIERUNKI ROZWOJU ================= -->
+  <section id="s9">
+    <div class="sechead">
+      <div class="ix">09</div>
+      <div><h2>Możliwości i kierunki rozwoju</h2><p>Roadmapa produktowa wg wartości biznesowej i różnicowania. (S)/(M)/(L)/(XL) = szacunek wysiłku.</p></div>
+    </div>
+    <div class="grid two">
+
+      <div class="card sev-info" data-sev="info" data-txt="payu przelewy24 blik płatności provider ksef faktury cykliczne">
+        <h3>Płatności i compliance <span class="badge b-info">Rozwój</span></h3>
+        <ul class="clean">
+          <li><b>PAY-1</b> — PayU/Przelewy24 obok Stripe (rynek PL preferuje BLIK/przelewy); warstwa <code>PaymentProvider</code> + adapter. <b>(M)</b> — <span style="color:var(--high)">wysoki priorytet: konwersja w PL</span></li>
+          <li><b>KSEF-2.0</b> — <code>InvoicingProvider</code> + integrator BSP (patrz sekcja 05). <b>(L)</b></li>
+          <li><b>BILL-3</b> — faktury cykliczne + korekty + noty w UI. <b>(M)</b></li>
+        </ul>
+      </div>
+
+      <div class="card sev-info" data-sev="info" data-txt="fleet redundancja multi-region migracja węzły status page niezawodność">
+        <h3>Niezawodność i skala floty <span class="badge b-info">Rozwój</span></h3>
+        <ul class="clean">
+          <li><b>FLEET-1</b> — redundancja geograficzna, multi-region, failover, replikacja backupów. <b>(XL)</b></li>
+          <li><b>FLEET-2</b> — automatyczna migracja kont między węzłami przy przeciążeniu/awarii (macie drain + plan migracji). <b>(L)</b></li>
+          <li><b>OPS-6</b> — status page z realnymi incydentami z monitoringu. <b>(M)</b></li>
+        </ul>
+      </div>
+
+      <div class="card sev-info" data-sev="info" data-txt="produkt różnicowanie strona bezpieczeństwo migracja importer builder ai white-label">
+        <h3>Produkt i różnicowanie <span class="badge b-info">Rozwój</span></h3>
+        <ul class="clean">
+          <li><b>SEC-PAGE</b> — publiczna strona „Bezpieczeństwo” z metrykami WAF (po pen-teście) — argument B2B, którego konkurencja nie ma. <b>(S)</b> — <span style="color:var(--ok)">szybki, wysoki zwrot</span></li>
+          <li><b>MIG-1</b> — importery migracji per konkurent (cPanel/DA/plik+DB+mail) self-service → obniża próg przejścia. <b>(L)</b></li>
+          <li><b>BUILD-L</b> — kreator stron (szablony branżowe, e-commerce lite). <b>(M)</b> — nadrabia lukę vs dhosting/Hostinger</li>
+          <li><b>RESELL-2</b> — pełny white-label dla agencji (własna domena panelu, branding). <b>(L)</b></li>
+        </ul>
+      </div>
+
+      <div class="card sev-info" data-sev="info" data-txt="wsparcie chat kb baza wiedzy powiadomienia push retencja sup">
+        <h3>Wsparcie i retencja <span class="badge b-info">Rozwój</span></h3>
+        <ul class="clean">
+          <li><b>SUP-6</b> — Baza Wiedzy: pełne treści + wyszukiwarka + oceny. <b>(S)</b></li>
+          <li><b>SUP-7</b> — czat/kanał wsparcia w panelu + status on-call. <b>(M)</b> — nadrabia lukę wsparcia</li>
+          <li><b>NTF-3</b> — powiadomienia push/web dla krytycznych zdarzeń konta. <b>(S)</b></li>
+        </ul>
+      </div>
+
+      <div class="card sev-info" data-sev="info" data-txt="obserwowalność sentry slo sli testy playwright e2e jakość qa">
+        <h3>Obserwowalność i jakość <span class="badge b-info">Rozwój</span></h3>
+        <ul class="clean">
+          <li><b>OBS-1</b> — Sentry + dashboard błędów (= #71). <b>(S)</b></li>
+          <li><b>OBS-2</b> — SLO/SLI + budżety błędów na login/checkout/provisioning. <b>(M)</b></li>
+          <li><b>QA-1</b> — E2E Playwright na panelach + testy kontraktowe DA/Stripe/SES. <b>(L)</b></li>
+        </ul>
+      </div>
+
+      <div class="card sev-info" data-sev="info" data-txt="ai asystent diagnostyka naprawa jednym kliknięciem panel">
+        <h3>AI i automatyzacja <span class="badge b-info">Rozwój</span></h3>
+        <ul class="clean">
+          <li><b>AI-ASSIST</b> — rozbudowa asystenta w panelu (diagnostyka „napraw 1-klik”, podpowiedzi) na bazie istniejącego RAG. <b>(M)</b></li>
+          <li>Integracja asystenta z audit-logiem i Sentry → proaktywne wykrywanie problemów konta.</li>
+        </ul>
+      </div>
+
+    </div>
+    <div class="summary">
+      <h4>Podsumowanie — kierunki rozwoju</h4>
+      <p>Roadmapa jest dobrze przemyślana i zmapowana na wartość. <b>Trzy rzeczy dają najszybszy zwrot względem konkurencji:</b> (1) <b>PayU/Przelewy24+BLIK</b> — bez tego konwersja w PL cierpi; (2) <b>self-restore backupów</b> — zamyka lukę zaufania i parytet z dhosting; (3) <b>publiczna strona „Bezpieczeństwo”</b> po pen-teście — tani, unikatowy argument B2B. Średnioterminowo: no-code builder i wsparcie/czat nadrabiają widoczne luki, a redundancja multi-region buduje wiarygodność „poważnego” dostawcy.</p>
+      <span class="verdict" style="background:var(--okbg);color:var(--ok)">● Kierunek: jasny, dobrze spriorytetyzowany</span>
+    </div>
+  </section>
+
+  <!-- ================= 10 · REKOMENDACJE NARZĘDZI ================= -->
+  <section id="s10">
+    <div class="sechead">
+      <div class="ix">10</div>
+      <div><h2>Rekomendacje: narzędzia, software, biblioteki</h2><p>Konkretne technologie do wdrożenia, z uzasadnieniem i priorytetem.</p></div>
+    </div>
+
+    <table class="tbl" data-sev="info" data-txt="rekomendacje narzędzia sentry turnstile hibp restic age trivy dependabot cloudflare imunify redis object lock playwright k6">
+      <thead><tr><th>Obszar</th><th>Narzędzie / biblioteka</th><th>Po co</th><th style="width:90px">Priorytet</th></tr></thead>
+      <tbody>
+        <tr><td>Backup</td><td><b>restic</b> lub <b>BorgBackup</b> → S3/MinIO (inny DC)</td><td>Regularne, szyfrowane kopie kont klientów + self-restore</td><td class="no">Krytyczny</td></tr>
+        <tr><td>Szyfrowanie kopii</td><td><b>age</b> (lub GPG)</td><td>Szyfrowanie dumpów przed off-site (art. 32 RODO)</td><td class="no">Krytyczny</td></tr>
+        <tr><td>E-faktury</td><td><b>Integrator KSeF-BSP</b> za <code>InvoicingProvider</code></td><td>Zgodność KSeF 2.0/FA(3) „od ręki”</td><td class="no">Krytyczny</td></tr>
+        <tr><td>Anty-bot</td><td><b>Cloudflare Turnstile</b> (lub hCaptcha)</td><td>Ochrona rejestracji/logowania przed botami i stuffingiem</td><td class="high">Wysoki</td></tr>
+        <tr><td>Hasła</td><td><b>HIBP Pwned Passwords</b> (range API)</td><td>Blokada haseł z wycieków, bez wysyłania hasła</td><td class="high">Wysoki</td></tr>
+        <tr><td>Anty-DDoS / CDN</td><td><b>Cloudflare</b> przed control-plane</td><td>Ochrona L7, CDN, WAF brzegowy</td><td class="high">Wysoki</td></tr>
+        <tr><td>Monitoring błędów</td><td><b>Sentry</b> (lub self-hosted <b>GlitchTip</b>)</td><td>Błędy runtime + alerty anomalii (5xx, FAILED, 401/403)</td><td class="high">Wysoki</td></tr>
+        <tr><td>Rate-limit rozproszony</td><td><b>Redis</b> (macie ioredis) jako store limitera</td><td>Odporność na rozproszony flood przy skalowaniu API</td><td class="high">Wysoki</td></tr>
+        <tr><td>Skan malware</td><td><b>ImunifyAV/360</b> lub <b>ClamAV</b></td><td>Skan plików na kontach + kwarantanna</td><td class="part">Średni</td></tr>
+        <tr><td>Backup immutable</td><td><b>S3 Object Lock</b> (WORM)</td><td>Ochrona kopii przed ransomware</td><td class="part">Średni</td></tr>
+        <tr><td>Sekrety w CI</td><td><b>gitleaks</b> / <b>trufflehog</b></td><td>Skan sekretów w pipeline</td><td class="part">Średni</td></tr>
+        <tr><td>Zależności</td><td><b>Dependabot</b> / <b>Renovate</b> + <code>pnpm audit</code> w CI</td><td>Ciągły nadzór nad CVE</td><td class="part">Średni</td></tr>
+        <tr><td>Obrazy kontenerów</td><td><b>Trivy</b> lub <b>Grype</b></td><td>Skan podatności obrazów Docker</td><td class="part">Średni</td></tr>
+        <tr><td>Płatności PL</td><td><b>PayU</b> / <b>Przelewy24</b> (BLIK)</td><td>Konwersja na rynku polskim</td><td class="part">Średni</td></tr>
+        <tr><td>Test obciążeniowy</td><td><b>k6</b> lub <b>Locust</b></td><td>Walidacja login/checkout/provisioning pod ruchem</td><td class="part">Średni</td></tr>
+        <tr><td>Uptime zewnętrzny</td><td><b>Better Stack</b> / UptimeRobot / Pingdom</td><td>Niezależny monitor + alert „na człowieka”</td><td class="part">Średni</td></tr>
+        <tr><td>E2E testy</td><td><b>Playwright</b></td><td>Regresja na panelach, ochrona przed regresją przy deployach</td><td class="part">Średni</td></tr>
+        <tr><td>Skan podatności</td><td><b>OWASP ZAP</b> / <b>Nuclei</b></td><td>Okresowy automatyczny skan panele+API</td><td class="part">Średni</td></tr>
+        <tr><td>Klucz KMS</td><td><b>HKDF</b> zamiast gołego SHA-256</td><td>Lepsza derywacja klucza szyfrowania (hardening)</td><td class="low">Niski</td></tr>
+      </tbody>
+    </table>
+
+    <div class="summary">
+      <h4>Podsumowanie — rekomendacje narzędzi</h4>
+      <p>Cztery pozycje są <b>warunkiem startu</b> (restic/borg + age + integrator KSeF), reszta to hardening iteracyjny. Dobra wiadomość: większość to <b>dokładanie narzędzi wokół istniejącej, dobrej architektury</b> — nie przebudowa. Redis już jest w stacku (limiter), Cloudflare/Sentry/Turnstile to standardowe integracje o wysokim zwrocie. Rekomendacja kolejności — sekcja 11.</p>
+      <span class="verdict" style="background:var(--okbg);color:var(--ok)">● Głównie integracje wokół dobrej bazy, nie przebudowa</span>
+    </div>
+  </section>
+
+  <!-- ================= 11 · ROADMAPA ================= -->
+  <section id="s11">
+    <div class="sechead">
+      <div class="ix">11</div>
+      <div><h2>Plan działania — rekomendowana kolejność</h2><p>Od twardych blokerów startu do rozwoju po uruchomieniu.</p></div>
+    </div>
+    <div class="grid">
+
+      <div class="card sev-crit" data-sev="crit" data-txt="etap 1 blokery start ksef legal backup stripe sekrety">
+        <h3>Etap 1 — Twarde blokery (przed pierwszym płatnym klientem)</h3>
+        <ul class="clean">
+          <li><b>KSeF:</b> decyzja o integratorze BSP → <code>InvoicingProvider</code> + adapter; obecny FA(2) oznaczyć <code>@deprecated</code> i ukryć w UI.</li>
+          <li><b>Legal:</b> dane rejestrowe + lawyer review + publikacja dokumentów <code>1.0.0</code>; DPA z subprocesorami.</li>
+          <li><b>Backup:</b> off-site włączony + szyfrowanie (age) + udokumentowany test restore.</li>
+          <li><b>Start:</b> Stripe live (✅ wg stanu infra), sekrety <code>.env.prod</code> (KMS/JWT z backupem), rotacja SMTP.</li>
+          <li><b>MFA:</b> <code>REQUIRE_2FA_FOR_STAFF=1</code> po seedzie kont zespołu.</li>
+        </ul>
+      </div>
+
+      <div class="card sev-high" data-sev="high" data-txt="etap 2 pierwszy tydzień e2e pentest antybot spam sentry deliverability">
+        <h3>Etap 2 — Pierwszy tydzień / walidacja</h3>
+        <ul class="clean">
+          <li><b>#73</b> — pełny E2E na żywym węźle + restore-drill + test izolacji kont.</li>
+          <li><b>Pen-test zewnętrzny</b> (niezależny wykonawca) — warunek startu komercyjnego.</li>
+          <li><b>Anty-bot</b> (Turnstile) + <b>ochrona outbound-spam</b> (rate SMTP/cordon) + <b>Sentry</b>.</li>
+          <li><b>Deliverability</b> — test inbox placement + warm-up IP; zewnętrzny uptime monitor.</li>
+          <li><b>NIS2/KSC</b> — analiza statusu podmiotu przez zarząd, przygotowanie zgłoszenia do wykazu.</li>
+        </ul>
+      </div>
+
+      <div class="card sev-med" data-sev="med" data-txt="etap 3 pierwszy miesiąc self-restore payu malware rcpd cyber ci">
+        <h3>Etap 3 — Pierwszy miesiąc</h3>
+        <ul class="clean">
+          <li><b>Self-restore backupów kont</b> (S-1) — priorytet produktowy #1.</li>
+          <li><b>PayU/Przelewy24 (BLIK)</b> — konwersja w PL.</li>
+          <li>Skaner malware, skany CI (gitleaks/Trivy/Dependabot), <code>security.txt</code>.</li>
+          <li>RCPD (art. 30), transfery EOG, skrzynki rodo@/iod@/abuse@/security@.</li>
+        </ul>
+      </div>
+
+      <div class="card sev-low" data-sev="low" data-txt="etap 4 rozwój builder white-label multi-region slo playwright anty-ddos">
+        <h3>Etap 4 — Rozwój (po stabilizacji)</h3>
+        <ul class="clean">
+          <li>Strona „Bezpieczeństwo”, no-code builder, czat wsparcia, importery migracji.</li>
+          <li>Redundancja multi-region (FLEET-1), migracja kont między węzłami (FLEET-2).</li>
+          <li>SLO/SLI + budżety błędów, E2E Playwright, anty-DDoS/Cloudflare, WORM backupy.</li>
+          <li>Własny builder FA(3)/KSeF 2.0 za <code>InvoicingProvider</code> (gdy wolumen uzasadni).</li>
+        </ul>
+      </div>
+
+    </div>
+    <div class="summary">
+      <h4>Werdykt końcowy</h4>
+      <p>Verris to <b>dojrzały technicznie produkt</b> z solidnym bezpieczeństwem kont, kompletną funkcjonalnością i realnym USP (uczciwość cenowa + bezpieczeństwo + EKO). <b>Nie ma tu „dziury, która wywróci start”</b> — są cztery dobrze zdefiniowane blokery, z których trzy są organizacyjno-prawne (KSeF, legal-publish, decyzja NIS2) i jeden techniczny, ale prosty (backup off-site + szyfrowanie). Po ich domknięciu i niezależnym pen-teście platforma jest gotowa do <b>startu kontrolowanego</b>. Rekomendowana ścieżka: Etap 1 → pen-test + E2E → start ograniczony → self-restore i PayU w pierwszym miesiącu.</p>
+      <span class="verdict" style="background:var(--okbg);color:var(--ok)">● Warunkowe GO — 4 blokery, żaden nie jest brakiem funkcji</span>
+    </div>
+  </section>
+
+  <div class="footer">
+    <p><b>Verris — Raport gotowości produkcyjnej.</b> Sporządzono 4 lipca 2026 na podstawie przeglądu kodu źródłowego, warstwy ops i dokumentacji projektu oraz publicznych danych rynkowych 2026. Oceny liczbowe są subiektywną syntezą audytu. Punkty prawne i podatkowe (🧑‍⚖️) wymagają potwierdzenia przez radcę prawnego / doradcę podatkowego — niniejszy dokument nie stanowi opinii prawnej ani doradztwa.</p>
+    <div class="pill-row">
+      <span class="tag">NestJS 11</span><span class="tag">Next 16</span><span class="tag">Prisma 6</span><span class="tag">PostgreSQL 16</span><span class="tag">Redis 7</span><span class="tag">Caddy 2</span><span class="tag">Docker</span><span class="tag">DirectAdmin/CloudLinux/LiteSpeed</span><span class="tag">Stripe</span><span class="tag">Amazon SES</span>
+    </div>
+  </div>
+</main>
+</div>
+<button class="back" id="back" title="Do góry">↑</button>
+
+<script>
+(function(){
+  // ----- scores -----
+  var scores=[
+    {name:"Bezpieczeństwo danych i kont",v:92,note:"✔ MFA staff + HIBP wdrożone; passkeys, AES-256-GCM"},
+    {name:"Ochrona przed wyciekiem",v:86,note:"✔ Szyfrowanie + WORM + restore-drill + self-restore DR z off-site"},
+    {name:"Cyberbezpieczeństwo",v:88,note:"✔ + CYBER-4: rate-limit Redis + Caddy + skany DAST"},
+    {name:"Podatność na ataki",v:84,note:"✔ DDoS L7 domknięty (Redis); brak niezależnego pen-testu"},
+    {name:"Zgodność prawna PL/UE",v:72,note:"✔ KSeF zwer.; RCPD/NIS2/DPA drafty; legal-publish + podpis operator"},
+    {name:"Gotowość operacyjna",v:74,note:"✔ k6 + uptime; brak E2E na węźle, 24/7, warm-up poczty"},
+    {name:"Działanie funkcji / stack",v:86,note:"580+ endpointów, KSeF v2, 0 TODO, nowoczesny stack"},
+    {name:"Pozycja konkurencyjna",v:75,note:"USP cenowe + bezpieczeństwo; luki: zaufanie, wsparcie"}
+  ];
+  function col(v){return v>=80?'var(--ok)':v>=65?'var(--med)':v>=50?'var(--high)':'var(--crit)';}
+  var sg=document.getElementById('scores');
+  scores.forEach(function(s){
+    var d=document.createElement('div');d.className='scard';
+    d.innerHTML='<div class="top"><span class="name">'+s.name+'</span><span class="pct" style="color:'+col(s.v)+'">'+s.v+'</span></div>'+
+      '<div class="bar"><i style="width:'+s.v+'%;background:'+col(s.v)+'"></i></div>'+
+      '<div class="note">'+s.note+'</div>';
+    sg.appendChild(d);
+  });
+
+  // ----- filtering -----
+  var active={crit:1,high:1,med:1,low:1,ok:1,info:1};
+  var doneOnly=false;
+  var chips=document.querySelectorAll('.chip[data-sev]');
+  var q=document.getElementById('q');
+  var countEl=document.getElementById('count');
+  function items(){return document.querySelectorAll('[data-sev]:not(.chip)');}
+  function apply(){
+    var term=(q.value||'').trim().toLowerCase();
+    var shown=0,total=0;
+    items().forEach(function(el){
+      var sev=el.getAttribute('data-sev');
+      total++;
+      var okSev=active[sev]!==0 && active[sev]!==false;
+      var okDone=!doneOnly || el.getAttribute('data-done')==='1';
+      var txt=(el.getAttribute('data-txt')||'')+' '+el.textContent.toLowerCase();
+      var okTerm=!term||txt.indexOf(term)>-1;
+      if(okSev&&okTerm&&okDone){el.classList.remove('hidden');shown++;}else{el.classList.add('hidden');}
+    });
+    countEl.textContent=shown+' / '+total+' pozycji';
+    // hide empty sections
+    document.querySelectorAll('section').forEach(function(sec){
+      if(sec.id==='dash')return;
+      var any=sec.querySelectorAll('[data-sev]:not(.chip):not(.hidden)').length;
+      sec.style.opacity=any?'1':'.35';
+    });
+  }
+  chips.forEach(function(c){
+    c.addEventListener('click',function(){
+      var s=c.getAttribute('data-sev');
+      var now=c.getAttribute('data-active')==='1'?0:1;
+      c.setAttribute('data-active',now);
+      active[s]=now;apply();
+    });
+  });
+  var doneChip=document.getElementById('doneFilter');
+  if(doneChip){
+    doneChip.addEventListener('click',function(){
+      doneOnly=!doneOnly;
+      doneChip.setAttribute('data-active',doneOnly?'1':'0');
+      apply();
+    });
+  }
+  q.addEventListener('input',apply);
+  apply();
+
+  // ----- scrollspy -----
+  var links=document.querySelectorAll('#nav a');
+  var map={};links.forEach(function(a){map[a.getAttribute('href').slice(1)]=a;});
+  var obs=new IntersectionObserver(function(es){
+    es.forEach(function(e){
+      if(e.isIntersecting){
+        links.forEach(function(a){a.classList.remove('active');});
+        var a=map[e.target.id];if(a)a.classList.add('active');
+      }
+    });
+  },{rootMargin:'-40% 0px -55% 0px'});
+  document.querySelectorAll('section[id]').forEach(function(s){obs.observe(s);});
+
+  // ----- back to top -----
+  var back=document.getElementById('back');
+  window.addEventListener('scroll',function(){back.style.display=window.scrollY>600?'block':'none';});
+  back.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'});});
+})();
+</script>
+</body>
+</html>
+

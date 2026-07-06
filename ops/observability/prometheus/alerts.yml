@@ -87,6 +87,25 @@ groups:
           summary: "Joby migracji w stanie FAILED"
           description: "Panel klienta → migracje; logi workerów migracji."
 
+      # CYBER-9 — skok błędów runtime (5xx). Alert na przyrost licznika.
+      - alert: VerrisRuntimeErrorsSpike
+        expr: sum(increase(verris_runtime_errors_total[5m])) > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Skok błędów runtime API (>10 w 5 min)"
+          description: "Sprawdź panel admin → Błędy runtime lub GlitchTip (glitchtip.verris.pl)."
+
+      - alert: VerrisRuntimeErrorsHigh
+        expr: sum(increase(verris_runtime_errors_total[5m])) > 50
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Bardzo wysoka liczba błędów runtime API (>50 w 5 min)"
+          description: "Prawdopodobna awaria. GlitchTip: glitchtip.verris.pl, logi API (Loki)."
+
   - name: verris_host_security
     interval: 1m
     rules:

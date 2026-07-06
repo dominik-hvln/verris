@@ -71,6 +71,7 @@ describe('MigrationOrchestratorService', () => {
     }));
 
     await service().createBundle('sub_1', 'user_1', {
+      consentAccepted: true,
       targetDomain: 'target.example',
       ftp: {
         protocol: 'sftp',
@@ -135,6 +136,7 @@ describe('MigrationOrchestratorService', () => {
     }));
 
     await service().createBundle('sub_1', 'user_1', {
+      consentAccepted: true,
       targetDomain: 'target.example',
       ftp: { protocol: 'sftp', host: 'old.example', port: 22, username: 'u', password: 'p' },
     });
@@ -167,9 +169,25 @@ describe('MigrationOrchestratorService', () => {
 
     await expect(
       service().createBundle('sub_1', 'user_1', {
+        consentAccepted: true,
         ftp: { protocol: 'sftp', host: 'old.example', port: 22, username: 'u', password: 'p' },
       }),
     ).rejects.toThrow('trwa już migracja');
+    expect(prisma.migrationRequest.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects a migration without RODO consent', async () => {
+    prisma.subscription.findFirst.mockResolvedValue({
+      id: 'sub_1',
+      userId: 'user_1',
+      account: { domain: 'target.example' },
+    });
+
+    await expect(
+      service().createBundle('sub_1', 'user_1', {
+        ftp: { protocol: 'sftp', host: 'old.example', port: 22, username: 'u', password: 'p' },
+      }),
+    ).rejects.toThrow('potwierdź upoważnienie');
     expect(prisma.migrationRequest.create).not.toHaveBeenCalled();
   });
 

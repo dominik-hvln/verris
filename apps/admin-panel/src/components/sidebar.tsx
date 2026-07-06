@@ -79,7 +79,10 @@ const adminNavItems: NavGroup[] = [
   },
   {
     label: "Monitoring",
-    items: [{ name: "Grafana (storage & backupy)", href: "__grafana__", icon: Activity, perm: "NODES_VIEW" }],
+    items: [
+      { name: "Grafana (storage & backupy)", href: "__grafana__", icon: Activity, perm: "NODES_VIEW" },
+      { name: "Błędy runtime", href: "/observability/errors", icon: Siren, perm: "NODES_VIEW" },
+    ],
   },
   {
     label: "Konto",

@@ -11,6 +11,7 @@ import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { MailerService } from '../mail/mailer.service';
+import { OutboundAbuseGuard } from '../deliverability/outbound-abuse.guard';
 import { renderEmailShell } from '../mail/templates/_layouts/email-shell';
 import type {
   AddEmmContactDto,
@@ -97,6 +98,7 @@ export class EmailMarketingService {
     private readonly audit: AuditService,
     private readonly mailer: MailerService,
     private readonly config: ConfigService,
+    private readonly outbound: OutboundAbuseGuard,
   ) {}
 
   private get lists(): Delegate {
@@ -528,6 +530,8 @@ export class EmailMarketingService {
    * pracę wykonuje dispatcher (batchami, idempotentnie).
    */
   async sendCampaign(userId: string, subscriptionId: string, campaignId: string): Promise<EmmCampaignView> {
+    // CYBER-3 — nie pozwól wystartować kampanii z konta w cordonie (outbound spam).
+    await this.outbound.assertNotCordoned(userId);
     const ws = await this.resolveWorkspace(userId, subscriptionId);
     const c = await this.ownedCampaign(subscriptionId, campaignId);
     if (c.status !== 'DRAFT') throw new ConflictException(`Kampania w stanie ${c.status} nie może być wysłana.`);
@@ -611,6 +615,15 @@ export class EmailMarketingService {
     });
     if (!campaign || campaign.status !== 'SENDING') return { done: true, processed: 0 };
 
+    // CYBER-3 — jeśli konto właściciela jest w cordonie, wstrzymaj wysyłkę.
+    // Kampania zostaje SENDING; wznowi się automatycznie po zwolnieniu cordonu.
+    if (await this.outbound.isCordoned(campaign.userId)) {
+      this.logger.warn(
+        `EMM campaign ${campaignId} wstrzymana — konto ${campaign.userId} w cordonie (outbound).`,
+      );
+      return { done: true, processed: 0 };
+    }
+
     const recipients = await this.contacts.findMany({
       where: { listId: campaign.listId, status: 'SUBSCRIBED' },
       orderBy: { id: 'asc' },
@@ -667,6 +680,20 @@ export class EmailMarketingService {
         failedCount: { increment: failed },
       },
     });
+
+    // CYBER-3 — zlicz realnie wysłane wiadomości do limitów per konto. Gdy
+    // przekroczą próg (skok/godzina/doba), guard nakłada cordon i rzuca —
+    // przechwytujemy, by zatrzymać kampanię bez wywracania dispatchera.
+    if (sent > 0) {
+      try {
+        await this.outbound.recordSends(campaign.userId, sent, {
+          subscriptionId: campaign.subscriptionId,
+          source: 'emm',
+        });
+      } catch {
+        return { done: true, processed: recipients.length };
+      }
+    }
     return { done: false, processed: recipients.length };
   }
 

@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
 # =============================================================================
-# Verris — Postgres backup → MinIO (S3)
+# Verris — Postgres backup → MinIO (S3)  [S-2: szyfrowanie at-rest + integralność]
 # -----------------------------------------------------------------------------
 # 1. pg_dump z kontenera postgres → gzip (staging na hoście)
-# 2. Upload do MinIO: s3://<S3_BUCKET_BACKUPS>/postgres/verris-YYYY-MM-DD-HHMM.sql.gz
-#    oraz postgres/latest.sql.gz (do szybkiego restore)
-# 3. Retencja: lifecycle na buckecie (minio-bootstrap) + opcjonalny lokalny staging
+# 2. SZYFROWANIE age (X25519) — dump zawiera dane osobowe, więc nigdy nie opuszcza
+#    hosta w plaintext (RODO art. 32). Plaintext jest usuwany (shred) po szyfrowaniu.
+# 3. Suma kontrolna SHA-256 (integralność + wykrycie manipulacji).
+# 4. Upload do MinIO: s3://<S3_BUCKET_BACKUPS>/postgres/verris-YYYY-MM-DD-HHMM.sql.gz.age
+#    (+ .sha256) oraz postgres/latest.sql.gz.age (do szybkiego restore).
+# 5. Retencja: lifecycle na buckecie (minio-bootstrap) + opcjonalny lokalny staging.
 #
-# Zewnętrzny serwer (faza 2): ops/backup-mirror-external.sh mirroruje cały bucket.
+# Off-site (niezależny DC): ops/backup-mirror-external.sh mirroruje bucket + WORM.
 #
 # Env (.env.prod lub cron):
 #   MINIO_ROOT_USER, MINIO_ROOT_PASSWORD
@@ -15,6 +18,8 @@
 #   BACKUP_STAGING_DIR (default: /tmp/verris-backup-staging)
 #   UPLOAD_TO_MINIO (default: 1)
 #   RETENTION_DAYS (default: 14) — ILM na buckecie
+#   BACKUP_ENCRYPTION_ENABLED (default: 1) — w prod OBOWIĄZKOWE (fail-closed)
+#   BACKUP_AGE_RECIPIENTS / BACKUP_AGE_RECIPIENTS_FILE — klucze publiczne age
 # =============================================================================
 
 set -Eeuo pipefail
@@ -78,6 +83,24 @@ fi
 mv "$TMP_FILE" "$OUT_FILE"
 log "staging dump ${OUT_FILE} (${SIZE_BYTES} bytes)"
 
+# --- Szyfrowanie at-rest (age) — OBOWIĄZKOWE, chyba że jawnie wyłączone -------
+# shellcheck source=ops/lib/backup-crypto.sh
+source "${SCRIPT_DIR}/lib/backup-crypto.sh"
+if backup_crypto_enabled; then
+  log "szyfrowanie dumpa (age)…"
+  # backup_crypto_encrypt_file usuwa plaintext (shred) i zwraca ścieżkę *.age
+  OUT_FILE="$(backup_crypto_encrypt_file "$OUT_FILE")"
+  OBJECT_NAME="${OBJECT_NAME}.age"
+  log "zaszyfrowano → ${OUT_FILE}"
+else
+  log "UWAGA: BACKUP_ENCRYPTION_ENABLED=0 — backup NIE jest szyfrowany (niezgodne z RODO art. 32!)"
+fi
+
+# --- Suma kontrolna SHA-256 (integralność) -----------------------------------
+CHECKSUM="$(backup_crypto_write_checksum "$OUT_FILE")"
+CHECKSUM_FILE="${OUT_FILE}.sha256"
+log "sha256=${CHECKSUM}"
+
 if [[ "$UPLOAD_TO_MINIO" == "1" ]]; then
   # shellcheck source=ops/lib/backup-minio.sh
   source "${SCRIPT_DIR}/lib/backup-minio.sh"
@@ -85,13 +108,16 @@ if [[ "$UPLOAD_TO_MINIO" == "1" ]]; then
   log "uploading to MinIO bucket ${S3_BUCKET_BACKUPS}/postgres/${OBJECT_NAME}"
   backup_minio_ensure_bucket
   backup_minio_upload_file "$OUT_FILE" "$OBJECT_NAME"
-  log "MinIO upload OK (latest.sql.gz updated)"
+  # suma kontrolna obok szyfrogramu (nazwa: <object>.sha256 oraz latest.sql.gz.age.sha256 pilnowane przez upload)
+  backup_minio_upload_file "$CHECKSUM_FILE" "${OBJECT_NAME}.sha256"
+  log "MinIO upload OK (${OBJECT_NAME} + checksum, latest zaktualizowany)"
 else
   log "UPLOAD_TO_MINIO=0 — dump left in ${BACKUP_STAGING_DIR} only"
 fi
 
-# Staging: usuń starsze niż 2 dni (tylko tymczasowe pliki przed uploadem)
-find "$BACKUP_STAGING_DIR" -maxdepth 1 -type f -name 'verris-*.sql.gz' -mtime +2 -print -delete \
-  | sed 's/^/  removed staging: /' >&2 || true
+# Staging: usuń starsze niż 2 dni (tymczasowe pliki przed uploadem, w tym *.age/*.sha256)
+find "$BACKUP_STAGING_DIR" -maxdepth 1 -type f \
+  \( -name 'verris-*.sql.gz' -o -name 'verris-*.sql.gz.age' -o -name 'verris-*.sha256' \) \
+  -mtime +2 -print -delete | sed 's/^/  removed staging: /' >&2 || true
 
 log "backup complete"

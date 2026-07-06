@@ -3,6 +3,7 @@
 import { setAuthCookie } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
+import { captchaTokenFromForm } from "@/lib/captcha";
 
 interface LoginState {
   error?: string;
@@ -22,6 +23,7 @@ export async function submitLogin(
 ): Promise<LoginState> {
   const email = formData.get("email")?.toString().trim();
   const password = formData.get("password")?.toString();
+  const captchaToken = captchaTokenFromForm(formData);
 
   if (!email || !password) {
     return { error: "Wypełnij wszystkie pola" };
@@ -36,7 +38,7 @@ export async function submitLogin(
     }>("/auth/login", {
       unauthenticated: true,
       method: "POST",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, captchaToken }),
     });
     if (data.twoFactorRequired) {
       if (!data.challengeToken) return { error: "Brak tokenu 2FA — spróbuj ponownie." };

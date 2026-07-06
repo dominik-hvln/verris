@@ -12,6 +12,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ObjectStorageService } from '../storage/object-storage.service';
 import { ProvisioningQueueService } from '../subscriptions/provisioning-queue.service';
 import { HttpMetricsService } from './http-metrics.service';
+import { RuntimeErrorTracker } from './runtime-error-tracker.service';
 
 /**
  * F-13: produces a Prometheus text-format metrics snapshot. We emit a small,
@@ -39,6 +40,7 @@ export class MetricsService {
     @Optional() private readonly httpMetrics?: HttpMetricsService,
     @Optional() private readonly provisioningQueue?: ProvisioningQueueService,
     @Optional() private readonly objectStorage?: ObjectStorageService,
+    @Optional() private readonly runtimeErrors?: RuntimeErrorTracker,
   ) {}
 
   async getPrometheusMetrics(): Promise<string> {
@@ -572,6 +574,11 @@ export class MetricsService {
       'counter',
     );
     lines.push(`verris_process_uptime_seconds ${Math.round(process.uptime())}`);
+
+    // --- Runtime errors (CYBER-9) ----------------------------------------
+    if (this.runtimeErrors) {
+      lines.push(...this.runtimeErrors.prometheusLines());
+    }
 
     if (this.httpMetrics) {
       const httpBody = this.httpMetrics.formatPrometheus();

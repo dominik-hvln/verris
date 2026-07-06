@@ -5,9 +5,13 @@
 # Restores a `pg_dump` archive (.sql.gz). Refuses without --confirm.
 #
 # Usage:
-#   ops/restore-postgres.sh <path/to/verris-....sql.gz> --confirm
+#   ops/restore-postgres.sh <path/to/verris-....sql.gz[.age]> --confirm
 #   ops/restore-postgres.sh --from-minio [object-name] --confirm
-#     object-name default: latest.sql.gz (bucket S3_BUCKET_BACKUPS/postgres/)
+#     object-name default: latest.sql.gz.age (bucket S3_BUCKET_BACKUPS/postgres/)
+#
+# Zaszyfrowane backupy (*.age) są automatycznie deszyfrowane — wymaga
+# BACKUP_AGE_IDENTITY_FILE (klucz prywatny age, trzymany OFFLINE).
+# Jeśli obok jest plik .sha256, integralność jest weryfikowana przed restore.
 # =============================================================================
 
 set -Eeuo pipefail
@@ -28,7 +32,7 @@ fail() { log "ERROR: $*"; exit 1; }
 
 FROM_MINIO=0
 DUMP_FILE=""
-OBJECT_NAME="latest.sql.gz"
+OBJECT_NAME="latest.sql.gz.age"
 CONFIRM=0
 
 while [[ $# -gt 0 ]]; do
@@ -65,12 +69,37 @@ if [[ "$FROM_MINIO" -eq 1 ]]; then
   DUMP_FILE="${RESTORE_STAGING}/${OBJECT_NAME}"
   log "downloading MinIO ${S3_BUCKET_BACKUPS}/postgres/${OBJECT_NAME} → ${DUMP_FILE}"
   backup_minio_download_file "$OBJECT_NAME" "$DUMP_FILE"
+  # Pobierz też sumę kontrolną (jeśli istnieje) do weryfikacji integralności.
+  backup_minio_download_file "${OBJECT_NAME}.sha256" "${DUMP_FILE}.sha256" 2>/dev/null || true
 fi
 
-[[ -n "$DUMP_FILE" ]] || fail "Usage: $0 <backup.sql.gz> --confirm  OR  $0 --from-minio [name] --confirm"
+[[ -n "$DUMP_FILE" ]] || fail "Usage: $0 <backup.sql.gz[.age]> --confirm  OR  $0 --from-minio [name] --confirm"
 [[ -f "$DUMP_FILE" ]] || fail "dump not found: $DUMP_FILE"
 
 cd "$REPO_ROOT"
+
+# --- Weryfikacja integralności (SHA-256) na szyfrogramie, przed deszyfrowaniem ---
+if [[ -f "${DUMP_FILE}.sha256" ]]; then
+  log "weryfikacja SHA-256…"
+  EXPECTED="$(awk '{print $1}' "${DUMP_FILE}.sha256")"
+  if command -v sha256sum >/dev/null 2>&1; then
+    ACTUAL="$(sha256sum "$DUMP_FILE" | awk '{print $1}')"
+  else
+    ACTUAL="$(shasum -a 256 "$DUMP_FILE" | awk '{print $1}')"
+  fi
+  [[ "$EXPECTED" == "$ACTUAL" ]] || fail "checksum mismatch! oczekiwano ${EXPECTED}, jest ${ACTUAL} — backup uszkodzony lub zmanipulowany"
+  log "integralność OK (${ACTUAL})"
+fi
+
+# --- Deszyfrowanie (age) gdy plik jest zaszyfrowany --------------------------
+if [[ "$DUMP_FILE" == *.age ]]; then
+  # shellcheck source=ops/lib/backup-crypto.sh
+  source "${SCRIPT_DIR}/lib/backup-crypto.sh"
+  log "deszyfrowanie backupu (age)…"
+  DUMP_FILE="$(backup_crypto_decrypt_file "$DUMP_FILE")"
+  log "odszyfrowano → ${DUMP_FILE}"
+fi
+
 log "restoring ${DUMP_FILE} → ${POSTGRES_SERVICE} (${POSTGRES_DB})"
 
 gunzip -c "$DUMP_FILE" \
@@ -79,5 +108,10 @@ gunzip -c "$DUMP_FILE" \
       --file "$COMPOSE_FILE" \
       exec -T "$POSTGRES_SERVICE" \
       psql --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" --quiet --single-transaction
+
+# Sprzątanie: usuń odszyfrowany plaintext ze stagingu (dane osobowe!)
+if [[ "$FROM_MINIO" -eq 1 && "$DUMP_FILE" == "${RESTORE_STAGING}/"* && "$DUMP_FILE" != *.age ]]; then
+  shred -u "$DUMP_FILE" 2>/dev/null || rm -f "$DUMP_FILE"
+fi
 
 log "restore complete"

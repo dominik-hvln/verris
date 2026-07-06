@@ -30,6 +30,15 @@ export interface AppConfig {
   stripeApiVersion: string;
   stripeSuccessUrl: string;
   stripeCancelUrl: string;
+
+  // CYBER-2 — pluggable captcha (anty-bot). Optional in dev.
+  captchaProvider: string;
+  captchaSecretKey: string | null;
+  captchaEnabled: boolean | undefined;
+  captchaScoreThreshold: number;
+
+  // CYBER-9 / OBS-1 — Sentry/GlitchTip DSN (monitoring błędów runtime). Optional.
+  sentryDsn: string | null;
 }
 
 function readEnv(name: string, opts?: { default?: string; required?: boolean }): string {
@@ -106,5 +115,19 @@ export function loadConfig(): AppConfig {
       required: isProd,
       default: isProd ? undefined : 'http://localhost:3001/dashboard/billing?status=cancel',
     }),
+    // CYBER-2 — pluggable captcha. Domyślny dostawca: reCAPTCHA v2 (checkbox).
+    captchaProvider: readEnv('CAPTCHA_PROVIDER', { default: 'recaptcha' }),
+    captchaSecretKey: process.env.CAPTCHA_SECRET_KEY || null,
+    captchaEnabled:
+      process.env.CAPTCHA_ENABLED === undefined || process.env.CAPTCHA_ENABLED === ''
+        ? undefined
+        : process.env.CAPTCHA_ENABLED === '1' || process.env.CAPTCHA_ENABLED === 'true',
+    captchaScoreThreshold: (() => {
+      const raw = process.env.CAPTCHA_SCORE_THRESHOLD;
+      if (!raw) return 0.5;
+      const n = Number(raw);
+      return Number.isFinite(n) && n >= 0 && n <= 1 ? n : 0.5;
+    })(),
+    sentryDsn: process.env.SENTRY_DSN || process.env.GLITCHTIP_DSN || null,
   };
 }

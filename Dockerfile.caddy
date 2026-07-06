@@ -1,0 +1,18 @@
+# CYBER-4 — Caddy z pluginem rate_limit (L7 anty-DDoS na brzegu).
+# Standardowy obraz caddy:2-alpine NIE ma dyrektywy `rate_limit`; budujemy własny
+# przez xcaddy z pluginem mholt/caddy-ratelimit (+ opcjonalnie DNS Cloudflare do
+# TLS-ALPN/DNS-01, przydatne przy Cloudflare przed control-plane).
+#
+# Użycie: w docker-compose.prod.yml zamień w usłudze `caddy`:
+#   image: caddy:2-alpine
+# na:
+#   build: { context: ., dockerfile: Dockerfile.caddy }
+# a w ops/Caddyfile zaimportuj snippet z ops/Caddyfile.rate-limit.example.
+
+FROM caddy:2-builder AS builder
+RUN xcaddy build \
+    --with github.com/mholt/caddy-ratelimit \
+    --with github.com/caddy-dns/cloudflare
+
+FROM caddy:2-alpine
+COPY --from=builder /usr/bin/caddy /usr/bin/caddy

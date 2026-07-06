@@ -6,6 +6,7 @@ import { submitRegister } from "./actions";
 import { Loader2, AlertCircle, Check, X } from "lucide-react";
 import { SpinBorder } from "@/components/spin-border";
 import { VerrisLockup } from "@/components/logo";
+import { Captcha } from "@/components/captcha";
 import { checkPassword, PASSWORD_MIN_LENGTH } from "@/lib/password-policy";
 
 const initialState = { error: "" };
@@ -183,6 +184,7 @@ function RegisterContent() {
               </div>
 
               <div className="p-8 pt-2">
+                <div className="mb-4"><Captcha action="register" /></div>
                 <button type="submit" disabled={isPending} className="relative w-full group overflow-hidden rounded-xl p-px disabled:opacity-50 disabled:cursor-not-allowed">
                   <SpinBorder className="opacity-70" />
                   <div className="relative flex items-center justify-center h-12 w-full rounded-[calc(0.75rem-1px)] bg-neutral-950 text-sm font-bold text-white transition-all hover:bg-neutral-900">

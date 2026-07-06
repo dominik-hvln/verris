@@ -35,6 +35,7 @@ export interface MigrationBundleInput {
   mysql?: MigrationMysqlInput[];
   imap?: MigrationImapInput[];
   notes?: string;
+  consentAccepted?: boolean;
 }
 
 type ActionOk<T> = ({ ok: true } & T) | { error: string };
@@ -57,6 +58,7 @@ function bundleBody(input: MigrationBundleInput) {
     mysql: input.mysql && input.mysql.length > 0 ? input.mysql : undefined,
     imap: input.imap && input.imap.length > 0 ? input.imap : undefined,
     notes: input.notes?.trim() || undefined,
+    consentAccepted: input.consentAccepted === true ? true : undefined,
   };
 }
 

@@ -34,6 +34,7 @@ import {
 import { generateAuthToken, hashAuthToken } from './auth-token.util';
 import { EcoPointsService } from '../eco/eco-points.service';
 import { PasskeyPolicyService } from './passkey-policy.service';
+import { PwnedPasswordService } from './pwned-password.service';
 
 const PASSWORD_RESET_TTL_MINUTES = 15;
 const EMAIL_VERIFICATION_TTL_HOURS = 24;
@@ -89,6 +90,7 @@ export class AuthService {
     private readonly config: ConfigService,
     private readonly ecoPoints: EcoPointsService,
     private readonly passkeyPolicy: PasskeyPolicyService,
+    private readonly pwned: PwnedPasswordService,
   ) {}
 
   async register(dto: RegisterDto, ctx: RequestContext = {}): Promise<RegisterSuccess> {
@@ -98,6 +100,9 @@ export class AuthService {
     if (existingUser) {
       throw new ConflictException('Email already exists');
     }
+
+    // S-4b — odrzuć hasła znane z wycieków (HIBP, k-anonimowość).
+    await this.pwned.assertNotPwned(dto.password);
 
     const saltRounds = 10;
     const hashedPassword = await bcrypt.hash(dto.password, saltRounds);
@@ -450,6 +455,9 @@ export class AuthService {
     ) {
       throw new BadRequestException('Link resetu hasła jest nieprawidłowy lub wygasł.');
     }
+
+    // S-4b — nowe hasło nie może pochodzić z wycieków (HIBP).
+    await this.pwned.assertNotPwned(dto.newPassword);
 
     const saltRounds = 10;
     const passwordHash = await bcrypt.hash(dto.newPassword, saltRounds);

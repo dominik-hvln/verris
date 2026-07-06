@@ -32,9 +32,12 @@ export interface KsefSettingsDto {
 
 export interface KsefRuntimeConfig {
   enabled: boolean;
-  env: 'test' | 'prod';
+  env: 'test' | 'demo' | 'prod';
+  /** v2 = obowiązkowy KSeF 2.0/FA(3); v1 = legacy FA(2) (@deprecated). */
+  apiVersion: 'v1' | 'v2';
   nip: string;
   token: string;
+  /** Wymagany tylko dla v1 (legacy). v2 pobiera klucze publiczne z API. */
   publicKeyPem: string;
 }
 
@@ -649,11 +652,15 @@ export class PlatformSettingsService {
     } catch {
       publicKeyPem = '';
     }
+    const envRaw = this.readStr(map, K.KSEF_ENV, process.env.KSEF_ENV ?? 'test');
+    const env: 'test' | 'demo' | 'prod' =
+      envRaw === 'prod' ? 'prod' : envRaw === 'demo' ? 'demo' : 'test';
+    const apiVersion: 'v1' | 'v2' =
+      (process.env.KSEF_API_VERSION ?? 'v2') === 'v1' ? 'v1' : 'v2';
     return {
       enabled: this.readStr(map, K.KSEF_ENABLED, process.env.KSEF_ENABLED ?? '0') === '1',
-      env: (this.readStr(map, K.KSEF_ENV, process.env.KSEF_ENV ?? 'test') === 'prod'
-        ? 'prod'
-        : 'test') as 'test' | 'prod',
+      env,
+      apiVersion,
       nip: this.readStr(map, K.KSEF_NIP, process.env.KSEF_NIP ?? ''),
       token,
       publicKeyPem,

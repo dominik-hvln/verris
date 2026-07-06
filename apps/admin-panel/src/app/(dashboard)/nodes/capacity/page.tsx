@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, AlertCircle, Cpu, MemoryStick, HardDrive, Gauge, Ban } from "lucide-react";
 import type { ServerSummaryDto } from "@verris/contracts";
 import { fetchServers } from "../actions";
+import { nodes as nodesLabel } from "@/lib/pl";
 
 export const dynamic = "force-dynamic";
 
@@ -76,7 +77,7 @@ export default async function FleetCapacityPage() {
 
       {/* Sumy floty */}
       <section className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        <FleetStat icon={<Cpu className="h-4 w-4" />} label="CPU floty" pct={pct(totals.cpuUsed, totals.cpuTotal)} sub={`${nodes.length} węzłów`} />
+        <FleetStat icon={<Cpu className="h-4 w-4" />} label="CPU floty" pct={pct(totals.cpuUsed, totals.cpuTotal)} sub={nodesLabel(nodes.length)} />
         <FleetStat icon={<MemoryStick className="h-4 w-4" />} label="RAM floty" pct={pct(totals.ramUsed, totals.ramTotal)} sub={`${formatMb(freeRam)} wolne`} />
         <FleetStat icon={<HardDrive className="h-4 w-4" />} label="Dysk floty" pct={pct(totals.diskUsed, totals.diskTotal)} sub={`${formatMb(freeDisk)} wolne`} />
         <div className="rounded-xl border border-white/5 bg-black/30 backdrop-blur-md p-4">

@@ -10,6 +10,7 @@ import { PasskeyLoginButton } from "./passkey-login-button";
 import { PasskeyConditionalAutofill } from "./passkey-conditional-autofill";
 import { VerrisLockup } from "@/components/logo";
 import { VerrisPatternLayer } from "@/components/brand/brand-pattern";
+import { Captcha } from "@/components/captcha";
 
 const initialLoginState = {} as Awaited<ReturnType<typeof submitLogin>>;
 const initialTwoFactorState = {} as Awaited<ReturnType<typeof submitTwoFactor>>;
@@ -107,6 +108,7 @@ export default function LoginPage() {
         </div>
 
         <div className="space-y-3 p-8 pt-2">
+          <Captcha action="login" />
           <SubmitButton pending={loginPending} label="Zaloguj się" pendingLabel="Logowanie..." />
           <div className="flex items-center gap-3">
             <span className="h-px flex-1 bg-border" />

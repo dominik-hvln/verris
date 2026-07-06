@@ -2368,22 +2368,35 @@ export class DirectAdminService {
   async listHostingBackups(subscriptionId: string, userId: string) {
     const sub = await this.prisma.subscription.findFirst({
       where: { id: subscriptionId, userId },
-      include: { account: true },
+      include: { account: { include: { server: true } } },
     });
     if (!sub) throw new NotFoundException('Service not found');
+
+    // S-1 — status ochrony off-site (utrata węzła ≠ utrata danych). Czytany z
+    // ostatniego raportu node-offsite-backup.sh zapisanego na Server.
+    const srv = sub.account?.server;
+    const offsite = srv
+      ? {
+          protected: Boolean(srv.lastOffsiteBackupOk),
+          lastRunAt: srv.lastOffsiteBackupAt ? srv.lastOffsiteBackupAt.toISOString() : null,
+          lastRunOk: srv.lastOffsiteBackupOk ?? null,
+        }
+      : { protected: false, lastRunAt: null, lastRunOk: null };
+
     if (!sub.account) {
-      return { rows: [], fetchError: null as string | null };
+      return { rows: [], fetchError: null as string | null, offsite };
     }
     if (!sub.account.daPasswordEnc) {
       return {
         rows: [],
         fetchError:
           'Brak zapisanego dostępu do DirectAdmin dla tego konta (provisioningu).',
+        offsite,
       };
     }
     const domain = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
     if (!domain) {
-      return { rows: [], fetchError: 'Brak domeny dla konta hostingowego.' };
+      return { rows: [], fetchError: 'Brak domeny dla konta hostingowego.', offsite };
     }
     try {
       let raw: URLSearchParams;
@@ -2398,16 +2411,16 @@ export class DirectAdminService {
       }
       const rows = this.parseDaBackupFileRows(raw);
       if (rows.length > 0) {
-        return { rows, fetchError: null as string | null };
+        return { rows, fetchError: null as string | null, offsite };
       }
       const fm = await this.daGetForSubscription(subscriptionId, userId, '/CMD_API_FILE_MANAGER', {
         path: '/backups',
       });
-      return { rows: this.parseDaBackupFileRows(fm), fetchError: null as string | null };
+      return { rows: this.parseDaBackupFileRows(fm), fetchError: null as string | null, offsite };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.warn(`listHostingBackups sub=${subscriptionId}: ${msg}`);
-      return { rows: [], fetchError: msg };
+      return { rows: [], fetchError: msg, offsite };
     }
   }
 

@@ -436,9 +436,20 @@ export interface HostingBackupRowDto {
   fileName: string;
 }
 
+/** S-1 — status ochrony kopią off-site (utrata węzła ≠ utrata danych). */
+export interface HostingOffsiteStatusDto {
+  /** Czy ostatni backup off-site węzła zakończył się sukcesem. */
+  protected: boolean;
+  /** ISO daty ostatniego przebiegu backupu off-site (lub null). */
+  lastRunAt: string | null;
+  lastRunOk: boolean | null;
+}
+
 export interface HostingBackupsResponseDto {
   rows: HostingBackupRowDto[];
   fetchError: string | null;
+  /** Obecne od S-1; starsze odpowiedzi mogą nie zawierać. */
+  offsite?: HostingOffsiteStatusDto;
 }
 
 // -----------------------------------------------------------------------------

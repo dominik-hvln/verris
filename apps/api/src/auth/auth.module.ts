@@ -13,6 +13,8 @@ import { MailModule } from '../mail/mail.module';
 import { LoginEventService } from './login-event.service';
 import { WebAuthnService } from './webauthn/webauthn.service';
 import { PasskeyPolicyService } from './passkey-policy.service';
+import { CaptchaService } from './captcha.service';
+import { PwnedPasswordService } from './pwned-password.service';
 import { EcoModule } from '../eco/eco.module';
 
 @Module({
@@ -42,6 +44,8 @@ import { EcoModule } from '../eco/eco.module';
     LoginEventService,
     WebAuthnService,
     PasskeyPolicyService,
+    CaptchaService,
+    PwnedPasswordService,
   ],
   exports: [
     AuthService,
@@ -49,6 +53,8 @@ import { EcoModule } from '../eco/eco.module';
     LoginEventService,
     WebAuthnService,
     PasskeyPolicyService,
+    CaptchaService,
+    PwnedPasswordService,
   ],
 })
 export class AuthModule {}

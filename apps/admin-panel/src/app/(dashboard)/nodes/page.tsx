@@ -3,6 +3,7 @@ import { Server, Plus, Cpu, MemoryStick, HardDrive, Clock, AlertCircle, Gauge } 
 import type { ServerSummaryDto, ServerStatus } from "@verris/contracts";
 import { fetchServers } from "./actions";
 import { FleetUpdateButton } from "./fleet-update-button";
+import { accounts as accountsLabel, days as daysLabel } from "@/lib/pl";
 
 export const dynamic = "force-dynamic";
 
@@ -195,7 +196,7 @@ function ServerCard({ server }: { server: ServerSummaryDto }) {
 
         <div className="border-t border-white/10 pt-4 flex justify-between items-center text-xs">
           <span className="text-muted-foreground">
-            {server._count?.accounts ?? 0} kont na serwerze
+            {accountsLabel(server._count?.accounts ?? 0)} na serwerze
           </span>
           <span className="text-indigo-400 group-hover:underline">Szczegóły →</span>
         </div>
@@ -302,5 +303,5 @@ function formatRelative(iso: string | null): string {
   if (ms < 60_000) return "przed chwilą";
   if (ms < 3_600_000) return `${Math.floor(ms / 60_000)} min temu`;
   if (ms < 86_400_000) return `${Math.floor(ms / 3_600_000)} h temu`;
-  return `${Math.floor(ms / 86_400_000)} dni temu`;
+  return `${daysLabel(Math.floor(ms / 86_400_000))} temu`;
 }

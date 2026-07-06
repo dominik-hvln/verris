@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { adminApi } from "@/lib/api";
+import { nodes as nodesLabel, accounts as accountsLabel } from "@/lib/pl";
 
 export const dynamic = "force-dynamic";
 
@@ -109,14 +111,26 @@ export default async function BusinessMetricsPage() {
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-black/35 p-5">
-              <h2 className="mb-3 text-sm font-semibold text-white">
-                Wykorzystanie floty ({m.fleet.nodes} węzłów · {m.fleet.accounts} kont)
-              </h2>
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold text-white">
+                  Wykorzystanie floty ({nodesLabel(m.fleet.nodes)} · {accountsLabel(m.fleet.accounts)})
+                </h2>
+                <Link
+                  href="/nodes/capacity"
+                  className="shrink-0 text-xs font-medium text-sky-400 hover:text-sky-300 hover:underline"
+                >
+                  Pojemność floty →
+                </Link>
+              </div>
               <div className="space-y-3">
                 <Bar label="CPU (alokacja planów)" pct={m.fleet.cpuUtilPct} />
                 <Bar label="RAM" pct={m.fleet.ramUtilPct} />
                 <Bar label="Dysk" pct={m.fleet.diskUtilPct} />
               </div>
+              <p className="mt-3 text-[10px] text-muted-foreground">
+                To alokacja (suma limitów planów) — realne planowanie miejsca i „ile kont jeszcze
+                wejdzie" jest w widoku Pojemność floty.
+              </p>
             </div>
           </div>
 

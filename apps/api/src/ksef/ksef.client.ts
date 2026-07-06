@@ -2,6 +2,10 @@ import { createHash, publicEncrypt, constants as cryptoConstants } from 'crypto'
 import { Logger } from '@nestjs/common';
 
 /**
+ * @deprecated Legacy KSeF 1.0 / FA(2). Od 1.02.2026 obowiązuje KSeF 2.0 / FA(3)
+ * — używaj `KsefV2Client`. Ten klient jest utrzymywany wyłącznie jako awaryjny
+ * fallback (`KSEF_API_VERSION=v1`) i do wygaszenia. Nie rozwijać.
+ *
  * B-1 — klient KSeF (sesja interaktywna, uwierzytelnienie tokenem).
  *
  * Implementuje udokumentowany przepływ API KSeF (batch/online v1, stabilny od

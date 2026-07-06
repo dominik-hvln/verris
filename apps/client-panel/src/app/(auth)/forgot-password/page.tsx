@@ -5,6 +5,7 @@ import Link from "next/link";
 import { requestPasswordReset } from "./actions";
 import { AlertCircle, Loader2, Mail } from "lucide-react";
 import { SpinBorder } from "@/components/spin-border";
+import { Captcha } from "@/components/captcha";
 
 type ForgotState = { error?: string; ok?: boolean };
 
@@ -69,6 +70,8 @@ export default function ForgotPasswordPage() {
                       className="w-full rounded-xl border border-white/10 bg-[#121212]/50 px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/30"
                     />
                   </div>
+
+                  <Captcha action="password-reset" />
 
                   <button
                     type="submit"

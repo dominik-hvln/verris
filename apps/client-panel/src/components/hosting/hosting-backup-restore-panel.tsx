@@ -188,6 +188,28 @@ export function HostingBackupRestorePanel({ serviceId }: { serviceId: string }) 
         </div>
       ) : null}
 
+      {/* S-1 — status ochrony kopią off-site (utrata węzła ≠ utrata danych) */}
+      {backups?.offsite ? (
+        <div
+          className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs ${
+            backups.offsite.protected
+              ? 'border-emerald-400/30 bg-emerald-500/10 text-emerald-100'
+              : 'border-amber-400/30 bg-amber-500/10 text-amber-100'
+          }`}
+        >
+          <span aria-hidden>{backups.offsite.protected ? '🛡️' : '⚠️'}</span>
+          <span>
+            {backups.offsite.protected
+              ? `Twoje konto jest chronione kopią off-site (poza tym serwerem).${
+                  backups.offsite.lastRunAt
+                    ? ' Ostatnia: ' + new Date(backups.offsite.lastRunAt).toLocaleString('pl-PL') + '.'
+                    : ''
+                }`
+              : 'Kopia off-site dla tego konta nie została jeszcze potwierdzona — skontaktuj się z pomocą, jeśli to niezbędne.'}
+          </span>
+        </div>
+      ) : null}
+
       {/* Backup picker */}
       {backups && backups.rows.length > 0 ? (
         <ul className="space-y-2">

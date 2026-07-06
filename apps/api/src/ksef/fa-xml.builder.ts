@@ -1,6 +1,9 @@
 import { Invoice } from '@verris/database';
 
 /**
+ * @deprecated Schemat FA(2). Od 1.02.2026 obowiązuje FA(3) — używaj
+ * `buildFa3Xml`. Zachowane jako fallback legacy (`KSEF_API_VERSION=v1`).
+ *
  * B-1 — generator XML e-Faktury w schemacie FA(2)
  * (http://crd.gov.pl/wzor/2023/06/29/12648/ — obowiązujący wzór faktury
  * ustrukturyzowanej VAT). Buduje dokument WYŁĄCZNIE z realnych danych

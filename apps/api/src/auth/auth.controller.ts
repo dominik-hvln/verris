@@ -27,9 +27,10 @@ import {
   VerifyTwoFactorDto,
 } from './auth.dto';
 import { PasskeyPolicyService } from './passkey-policy.service';
+import { CaptchaService } from './captcha.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
-import { RateLimit } from '../common/guards/rate-limit.guard';
+import { RateLimit, SkipRateLimit } from '../common/guards/rate-limit.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Role } from '@verris/database';
@@ -47,21 +48,38 @@ export class AuthController {
     private readonly twoFactor: TwoFactorService,
     private readonly webauthn: WebAuthnService,
     private readonly passkeyPolicy: PasskeyPolicyService,
+    private readonly captcha: CaptchaService,
   ) {}
+
+  /**
+   * CYBER-2 — publiczna konfiguracja auth dla frontu (czy i jaki widget captchy
+   * renderować). Bez sekretów; tylko flaga on/off + nazwa dostawcy.
+   */
+  @SkipRateLimit()
+  @Get('config')
+  authConfig() {
+    return { captcha: this.captcha.publicConfig() };
+  }
 
   // Audit F-09: strict per-route limits — registration and mail-out endpoints
   // are the main spam / enumeration vectors.
   @RateLimit({ limit: 5, windowMs: 60 * 60 * 1000, scope: 'auth:register' })
   @Post('register')
   async register(@Body() dto: RegisterDto, @Req() req: Request) {
-    return this.authService.register(dto, requestContext(req));
+    const ctx = requestContext(req);
+    // CYBER-2 — anty-bot przed utworzeniem konta (blokuje masową rejestrację).
+    await this.captcha.verify(dto.captchaToken, ctx.ip, 'register');
+    return this.authService.register(dto, ctx);
   }
 
   @RateLimit({ limit: 10, windowMs: 60 * 1000, scope: 'auth:login', keyByBodyField: 'email' })
   @HttpCode(HttpStatus.OK)
   @Post('login')
   async login(@Body() dto: LoginDto, @Req() req: Request) {
-    return this.authService.login(dto, requestContext(req));
+    const ctx = requestContext(req);
+    // CYBER-2 — anty-bot przed próbą logowania (utrudnia credential-stuffing).
+    await this.captcha.verify(dto.captchaToken, ctx.ip, 'login');
+    return this.authService.login(dto, ctx);
   }
 
   @RateLimit({
@@ -72,7 +90,9 @@ export class AuthController {
   })
   @HttpCode(HttpStatus.OK)
   @Post('password-reset/request')
-  async requestPasswordReset(@Body() dto: PasswordResetRequestDto) {
+  async requestPasswordReset(@Body() dto: PasswordResetRequestDto, @Req() req: Request) {
+    // CYBER-2 — anty-bot przed wysyłką maila resetu (ochrona przed spamem mailowym).
+    await this.captcha.verify(dto.captchaToken, requestContext(req).ip, 'password-reset');
     return this.authService.requestPasswordReset(dto);
   }
 
@@ -91,7 +111,9 @@ export class AuthController {
   })
   @HttpCode(HttpStatus.OK)
   @Post('email-verification/request')
-  async requestEmailVerification(@Body() dto: EmailVerificationRequestDto) {
+  async requestEmailVerification(@Body() dto: EmailVerificationRequestDto, @Req() req: Request) {
+    // CYBER-2 — anty-bot przed ponowną wysyłką maila weryfikacyjnego.
+    await this.captcha.verify(dto.captchaToken, requestContext(req).ip, 'email-verification');
     return this.authService.requestEmailVerification(dto);
   }
 

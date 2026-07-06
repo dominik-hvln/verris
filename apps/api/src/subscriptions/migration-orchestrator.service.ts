@@ -257,6 +257,14 @@ export class MigrationOrchestratorService {
       );
     }
 
+    // RODO / powierzenie przetwarzania — bez wyraźnego upoważnienia nie ruszamy
+    // cudzych systemów ani nie kopiujemy danych. Wymóg egzekwowany serwerowo.
+    if (dto.consentAccepted !== true) {
+      throw new BadRequestException(
+        'Aby uruchomić migrację, potwierdź upoważnienie do przeniesienia danych (zgoda RODO).',
+      );
+    }
+
     // Limit współbieżnych migracji na usługę — nie pozwalamy zakolejkować
     // kolejnej, dopóki poprzednia jest w toku/oczekuje (ochrona przed
     // zalaniem węzła backupami DA i transferami z jednego konta).
@@ -327,6 +335,12 @@ export class MigrationOrchestratorService {
         migrationRequestId: request.id,
         targetDomain: request.targetDomain,
         firstWorkerJobId: request.workerJobs[0]?.id ?? null,
+        // Ślad zgody/upoważnienia (RODO) — kto, kiedy, na jakiej podstawie.
+        consent: {
+          accepted: true,
+          at: new Date().toISOString(),
+          basis: 'client_authorization_dpa',
+        },
       },
     });
 

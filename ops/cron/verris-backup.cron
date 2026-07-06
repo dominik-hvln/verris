@@ -19,3 +19,7 @@ COMPOSE_PROJECT_NAME=verris
 
 # Mirror na zewnętrzny storage (odłączony domyślnie — ustaw MIRROR_EXTERNAL_ENABLED=1)
 27 3 * * *  root  cd $WORKDIR && set -a && [ -f .env.prod ] && . ./.env.prod && set +a && [ -f /etc/default/verris-backup ] && . /etc/default/verris-backup; ./ops/backup-mirror-external.sh >> /var/log/verris-backup-mirror.log 2>&1
+
+# Restore-drill (test odtwarzalności) — co tydzień, niedziela 04:10. Wymaga
+# BACKUP_AGE_IDENTITY_FILE dostępnego dla roota (lub uruchamiaj ręcznie przed LIVE).
+10 4 * * 0  root  cd $WORKDIR && set -a && [ -f .env.prod ] && . ./.env.prod && set +a && COMPOSE_PROJECT_NAME=$COMPOSE_PROJECT_NAME ./ops/backup-verify.sh >> /var/log/verris-backup-verify.log 2>&1

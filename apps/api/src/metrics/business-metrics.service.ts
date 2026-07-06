@@ -85,7 +85,10 @@ export class BusinessMetricsService {
 
     const sum = (sel: (s: (typeof servers)[number]) => number | null) =>
       servers.reduce((a, s) => a + (sel(s) ?? 0), 0);
-    const totalCpu = sum((s) => s.totalCpuCores);
+    // JEDNOSTKI: allocatedCpu jest w „% rdzenia" (LVE SPEED; 100 = 1 rdzeń), więc
+    // pojemność CPU floty to liczba_rdzeni × 100 (tak liczy node-selector i
+    // ops-watchdog). RAM/Dysk: allocated i total są w tych samych MB.
+    const totalCpu = sum((s) => s.totalCpuCores) * 100;
     const totalRam = sum((s) => s.totalMemoryMb);
     const totalDisk = sum((s) => s.totalDiskMb);
     const allocCpu = sum((s) => s.allocatedCpu);

@@ -60,6 +60,12 @@ export class RegisterDto {
   @IsOptional()
   @IsBoolean()
   acceptMarketing?: boolean;
+
+  /** CYBER-2 — token Cloudflare Turnstile (cf-turnstile-response). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  captchaToken?: string;
 }
 
 export class LoginDto {
@@ -69,6 +75,12 @@ export class LoginDto {
   @IsString()
   @IsNotEmpty()
   password!: string;
+
+  /** CYBER-2 — token Cloudflare Turnstile (cf-turnstile-response). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  captchaToken?: string;
 }
 
 export class VerifyTwoFactorDto {
@@ -101,6 +113,12 @@ export class DisableTwoFactorDto {
 export class PasswordResetRequestDto {
   @IsEmail()
   email!: string;
+
+  /** CYBER-2 — token Cloudflare Turnstile (cf-turnstile-response). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  captchaToken?: string;
 }
 
 export class PasswordResetConfirmDto {
@@ -139,6 +157,12 @@ export class ConfirmEmailChangeDto {
 export class EmailVerificationRequestDto {
   @IsEmail()
   email!: string;
+
+  /** CYBER-2 — token Cloudflare Turnstile (cf-turnstile-response). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  captchaToken?: string;
 }
 
 /** #30 — break-glass login for privileged accounts (password + TOTP + code). */

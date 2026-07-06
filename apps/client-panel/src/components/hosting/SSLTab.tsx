@@ -10,6 +10,7 @@ import {
   RefreshCw,
   Globe,
 } from 'lucide-react';
+import { days as daysLabel } from '@/lib/pl';
 import { Button } from '@verris/ui';
 import type { HostingSslRowDto, HostingSslStatus } from '@verris/contracts';
 import { HostingSslForms } from '@/components/hosting/HostingSslForms';
@@ -53,7 +54,7 @@ function SslBadge({ row }: { row: HostingSslRowDto | undefined }) {
             : ''}
           {daysLeft !== null
             ? daysLeft >= 0
-              ? ` (${daysLeft} dni)`
+              ? ` (${daysLabel(daysLeft)})`
               : ' (wygasł)'
             : ''}
         </span>

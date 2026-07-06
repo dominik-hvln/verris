@@ -7,6 +7,9 @@ import { MetricsController } from './metrics.controller';
 import { GrafanaAuthController } from './grafana-auth.controller';
 import { HttpMetricsService } from './http-metrics.service';
 import { HttpMetricsInterceptor } from './http-metrics.interceptor';
+import { RuntimeErrorTracker } from './runtime-error-tracker.service';
+import { ErrorCaptureInterceptor } from './error-capture.interceptor';
+import { RuntimeErrorsController } from './runtime-errors.controller';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
@@ -26,9 +29,11 @@ import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
   providers: [
     MetricsService,
     HttpMetricsService,
+    RuntimeErrorTracker,
     { provide: APP_INTERCEPTOR, useClass: HttpMetricsInterceptor },
+    { provide: APP_INTERCEPTOR, useClass: ErrorCaptureInterceptor },
   ],
-  controllers: [MetricsController, GrafanaAuthController],
-  exports: [MetricsService, HttpMetricsService],
+  controllers: [MetricsController, GrafanaAuthController, RuntimeErrorsController],
+  exports: [MetricsService, HttpMetricsService, RuntimeErrorTracker],
 })
 export class ObservabilityModule {}

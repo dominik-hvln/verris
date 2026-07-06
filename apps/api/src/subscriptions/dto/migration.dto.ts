@@ -157,6 +157,16 @@ export class CreateMigrationBundleDto {
 
   @IsOptional() @IsString() @MaxLength(5000)
   notes?: string;
+
+  /**
+   * Zgoda/upoważnienie klienta (RODO): potwierdza prawo do przeniesienia danych
+   * i upoważnia nas do dostępu do hostingu źródłowego (powierzenie przetwarzania,
+   * DPA). Wymagane przy starcie migracji (egzekwowane w `createBundle`),
+   * pomijane przy preflightcie. Zapisujemy w audycie jako podstawę operacji.
+   */
+  @IsOptional()
+  @Type(() => Boolean)
+  consentAccepted?: boolean;
 }
 
 /** O-2/#18 — auto-discovery: dane logowania do panelu starego hostingu. */
