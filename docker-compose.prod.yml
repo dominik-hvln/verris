@@ -584,7 +584,12 @@ services:
       postgres: { condition: service_healthy }
     environment: &glitchtip_env
       DATABASE_URL: postgres://${POSTGRES_USER:-verris}:${POSTGRES_PASSWORD}@postgres:5432/glitchtip
-      SECRET_KEY: ${GLITCHTIP_SECRET_KEY:?GLITCHTIP_SECRET_KEY is required (min 50 random chars)}
+      # UWAGA: celowo `:-` (nie `:?`) — compose interpoluje zmienne CAŁEGO pliku
+      # na etapie parsowania, także dla usług wyłączonych profilem, więc twardy
+      # wymóg blokowałby każdy deploy. Przy włączaniu profilu `glitchtip` ustaw
+      # GLITCHTIP_SECRET_KEY w .env.prod (min 50 losowych znaków) — entrypoint
+      # niżej odmówi startu z pustym kluczem.
+      SECRET_KEY: ${GLITCHTIP_SECRET_KEY:-}
       REDIS_URL: redis://redis:6379/1
       PORT: '8080'
       GLITCHTIP_DOMAIN: https://${CADDY_GLITCHTIP_DOMAIN:-glitchtip.verris.local}
@@ -596,6 +601,7 @@ services:
     entrypoint: ['/bin/sh', '-c']
     command:
       - >
+        test -n "$${SECRET_KEY}" || { echo "GLITCHTIP_SECRET_KEY wymagany (min 50 losowych znaków) — ustaw w .env.prod"; exit 1; };
         PGPASSWORD="$${POSTGRES_PASSWORD}" psql -h postgres -U "$${POSTGRES_USER:-verris}" -tc
         "SELECT 1 FROM pg_database WHERE datname='glitchtip'" | grep -q 1 ||
         PGPASSWORD="$${POSTGRES_PASSWORD}" psql -h postgres -U "$${POSTGRES_USER:-verris}" -c
