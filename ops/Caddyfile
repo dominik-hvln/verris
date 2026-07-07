@@ -23,7 +23,11 @@
 (panel_headers) {
     import security_headers
     header {
-        Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://js.stripe.com; connect-src 'self' https://api.verris.pl https://*.stripe.com; frame-src https://js.stripe.com https://hooks.stripe.com"
+        # script/connect/frame-src rozszerzone o GTM/GA4/Google Ads/Meta Pixel
+        # (Consent Mode v2 — tagi i tak odpalają się dopiero po zgodzie z banera;
+        # CSP musi jedynie nie blokować ich ładowania). img-src `https:` pokrywa
+        # piksele zliczające (google-analytics collect, facebook /tr).
+        Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; img-src 'self' data: blob: https:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://*.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://connect.facebook.net; connect-src 'self' https://api.verris.pl https://*.stripe.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://googleads.g.doubleclick.net https://www.google.com https://www.facebook.com; frame-src https://js.stripe.com https://hooks.stripe.com https://td.doubleclick.net https://www.googletagmanager.com"
         X-Frame-Options "DENY"
         Permissions-Policy "camera=(), microphone=(), geolocation=()"
     }
