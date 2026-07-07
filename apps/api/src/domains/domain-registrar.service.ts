@@ -368,6 +368,27 @@ export class DomainRegistrarService {
     return submitted;
   }
 
+  /**
+   * Czy na koncie obowiązuje już oświadczenie konsumenckie dot. domen
+   * (żądanie natychmiastowej rejestracji + wiedza o utracie prawa odstąpienia).
+   * Oświadczenie składane przy pierwszym zamówieniu zachowuje skuteczność dla
+   * kolejnych rejestracji (Regulamin §12 ust. 8) — każde ukończone zamówienie
+   * rejestracji wymagało `withdrawalWaiverConsent=true` (walidacja DTO), więc
+   * istnienie takiego zamówienia jest dowodem złożonego oświadczenia.
+   */
+  async hasStandingWaiverConsent(userId: string): Promise<{ granted: boolean; grantedAt: string | null }> {
+    const first = await this.prisma.domainRegistrarOrder.findFirst({
+      where: {
+        userId,
+        type: 'REGISTER' as never,
+        status: { in: ['SUBMITTED', 'COMPLETED'] as never[] },
+      },
+      orderBy: { createdAt: 'asc' },
+      select: { createdAt: true },
+    });
+    return { granted: Boolean(first), grantedAt: first?.createdAt.toISOString() ?? null };
+  }
+
   async orders(userId: string) {
     return this.prisma.domainRegistrarOrder.findMany({
       where: { userId },

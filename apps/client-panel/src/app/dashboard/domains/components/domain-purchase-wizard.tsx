@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useState, useTransition } from 'react';
+import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -21,6 +21,7 @@ import { PageHeaderRow } from '@/components/panel';
 import { SpinBorder } from '@/components/spin-border';
 import { toast } from 'sonner';
 import {
+  getWaiverConsentAction,
   quotePeriodsAction,
   registerDomainClientAction,
   searchDomainsAction,
@@ -158,6 +159,15 @@ export function DomainPurchaseWizard({ initialOrders }: { initialOrders: Registr
   const [waiverConsent, setWaiverConsent] = useState(false);
   // Zbiorcza akceptacja dokumentów przy zamówieniu (jak u liderów rynku).
   const [acceptDocs, setAcceptDocs] = useState(false);
+  // Zgoda raz na koncie (Regulamin §12 ust. 8): oświadczenie z pierwszego zakupu
+  // obejmuje kolejne rejestracje — wtedy zamiast checkboxa pokazujemy przypomnienie.
+  const [standingConsent, setStandingConsent] = useState<{ granted: boolean; grantedAt: string | null } | null>(null);
+  useEffect(() => {
+    void getWaiverConsentAction().then((r) => {
+      setStandingConsent(r);
+      if (r.granted) setWaiverConsent(true);
+    });
+  }, []);
   const [transferOpen, setTransferOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -613,26 +623,44 @@ export function DomainPurchaseWizard({ initialOrders }: { initialOrders: Registr
                   .
                 </span>
               </label>
-              {/* Oświadczenie konsumenckie — art. 38 ust. 1 pkt 1 upk (Regulamin §12 ust. 7–8). */}
-              <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-                <input
-                  type="checkbox"
-                  checked={waiverConsent}
-                  onChange={(e) => setWaiverConsent(e.target.checked)}
-                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-white/5 accent-white"
-                />
-                <span className="text-xs leading-relaxed text-neutral-300">
-                  Żądam natychmiastowego wykonania usługi rejestracji domeny{' '}
-                  <strong className="text-white">{selectedDomain}</strong> i przyjmuję do
-                  wiadomości, że z chwilą jej zarejestrowania (pełnego wykonania usługi){' '}
-                  <strong className="text-white">tracę prawo odstąpienia</strong> od umowy w tym
-                  zakresie (art. 38 ust. 1 pkt 1 ustawy o prawach konsumenta,{' '}
+              {/* Oświadczenie konsumenckie — art. 38 ust. 1 pkt 1 upk (Regulamin §12 ust. 7–8).
+                  Zgoda raz na koncie: przy kolejnych zakupach przypomnienie zamiast checkboxa. */}
+              {standingConsent?.granted ? (
+                <p className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 text-xs leading-relaxed text-neutral-400">
+                  Obejmuje to zamówienie: Twoje oświadczenie o żądaniu natychmiastowej
+                  rejestracji domen i utracie prawa odstąpienia z chwilą rejestracji, złożone
+                  przy pierwszym zakupie domeny
+                  {standingConsent.grantedAt
+                    ? ` (${new Date(standingConsent.grantedAt).toLocaleDateString('pl-PL')})`
+                    : ''}{' '}
+                  — {' '}
                   <a href="/legal/terms" target="_blank" className="underline hover:text-white">
-                    Regulamin §12
+                    Regulamin §12 ust. 8
                   </a>
-                  ).
-                </span>
-              </label>
+                  .
+                </p>
+              ) : (
+                <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+                  <input
+                    type="checkbox"
+                    checked={waiverConsent}
+                    onChange={(e) => setWaiverConsent(e.target.checked)}
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-white/5 accent-white"
+                  />
+                  <span className="text-xs leading-relaxed text-neutral-300">
+                    Żądam natychmiastowego wykonania usługi rejestracji domeny{' '}
+                    <strong className="text-white">{selectedDomain}</strong> i przyjmuję do
+                    wiadomości, że z chwilą jej zarejestrowania (pełnego wykonania usługi){' '}
+                    <strong className="text-white">tracę prawo odstąpienia</strong> od umowy w tym
+                    zakresie (art. 38 ust. 1 pkt 1 ustawy o prawach konsumenta,{' '}
+                    <a href="/legal/terms" target="_blank" className="underline hover:text-white">
+                      Regulamin §12
+                    </a>
+                    ). Oświadczenie obejmuje również kolejne rejestracje domen na tym koncie
+                    (możesz je odwołać, pisząc na kontakt@verris.pl).
+                  </span>
+                </label>
+              )}
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
                 <Button variant="outline" onClick={() => setStep('config')}>
                   Wstecz

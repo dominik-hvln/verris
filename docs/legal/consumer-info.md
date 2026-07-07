@@ -28,7 +28,7 @@ Masz prawo odstąpić od umowy w terminie **14 dni od jej zawarcia**, bez podawa
 **Ważne wyjątki:**
 
 1. Jeżeli przy zakupie zażądasz rozpoczęcia świadczenia usługi przed upływem terminu odstąpienia (usługa aktywowana od razu), w razie odstąpienia zapłacisz za część usługi wykonaną do chwili odstąpienia (proporcjonalnie do ceny). Po **pełnym wykonaniu** usługi, na którą wyraziłeś taką zgodę, prawo odstąpienia nie przysługuje (art. 38 ust. 1 pkt 1 ustawy o prawach konsumenta).
-2. **Rejestracja domeny** jest wykonywana w całości niezwłocznie po opłaceniu — z chwilą zarejestrowania domeny prawo odstąpienia w tym zakresie **wygasa**. Przed zakupem domeny poprosimy Cię o wyraźną zgodę na natychmiastowe wykonanie usługi i potwierdzenie, że przyjmujesz to do wiadomości.
+2. **Rejestracja domeny** jest wykonywana w całości niezwłocznie po opłaceniu — z chwilą zarejestrowania domeny prawo odstąpienia w tym zakresie **wygasa**. Przy pierwszym zakupie domeny poprosimy Cię o wyraźną zgodę na natychmiastowe wykonanie usługi i potwierdzenie, że przyjmujesz to do wiadomości; oświadczenie to obejmuje również kolejne rejestracje domen na Twoim koncie (przy kolejnych zamówieniach przypomnimy o nim zamiast pytać ponownie). Możesz je w każdej chwili odwołać na przyszłość, pisząc na `kontakt@verris.pl`.
 
 ## 6. Reklamacje
 

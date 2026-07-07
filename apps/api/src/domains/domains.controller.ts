@@ -109,6 +109,12 @@ export class DomainsController {
     };
   }
 
+  /** Czy na koncie obowiązuje już oświadczenie domenowe (Regulamin §12 ust. 8). */
+  @Get('registrar/waiver-consent')
+  async waiverConsent(@Req() req) {
+    return this.registrar.hasStandingWaiverConsent(req.user.userId);
+  }
+
   @Post('registrar/register')
   async register(@Req() req, @Body() dto: RegisterDomainDto) {
     return this.registrar.register(req.user.userId, req.user.principalUserId ?? req.user.userId, dto);

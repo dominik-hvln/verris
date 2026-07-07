@@ -144,6 +144,17 @@ export async function fetchRegistrarOrders() {
   }>>('/domains/registrar/orders');
 }
 
+/** Czy na koncie obowiązuje już oświadczenie domenowe (Regulamin §12 ust. 8). */
+export async function getWaiverConsentAction(): Promise<{ granted: boolean; grantedAt: string | null }> {
+  try {
+    return await apiFetch<{ granted: boolean; grantedAt: string | null }>(
+      '/domains/registrar/waiver-consent',
+    );
+  } catch {
+    return { granted: false, grantedAt: null };
+  }
+}
+
 export async function registerDomainClientAction(input: {
   name: string;
   years: number;

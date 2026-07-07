@@ -12,7 +12,7 @@ import type {
   SubscriptionPaymentSource,
 } from '@verris/contracts';
 import { createSubscriptionAction } from './actions';
-import { registerDomainClientAction } from '@/app/dashboard/domains/actions';
+import { getWaiverConsentAction, registerDomainClientAction } from '@/app/dashboard/domains/actions';
 import { DomainStep, type DomainSelection } from './domain-step';
 import { CREDIT_SHORT, formatCredits } from '@/lib/credits';
 
@@ -75,6 +75,15 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
   // (zawsze przy zakupie) + utrata odstąpienia przy rejestracji domeny.
   const [immediateConsent, setImmediateConsent] = useState(false);
   const [domainWaiverConsent, setDomainWaiverConsent] = useState(false);
+  // Zgoda domenowa raz na koncie (Regulamin §12 ust. 8).
+  const [standingWaiver, setStandingWaiver] = useState<{ granted: boolean; grantedAt: string | null } | null>(null);
+  useEffect(() => {
+    if (domainSel.mode !== 'register' || standingWaiver !== null) return;
+    void getWaiverConsentAction().then((r) => {
+      setStandingWaiver(r);
+      if (r.granted) setDomainWaiverConsent(true);
+    });
+  }, [domainSel.mode, standingWaiver]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{
     daUsername: string;
@@ -499,28 +508,43 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
           </span>
         </label>
         {domainSel.mode === 'register' ? (
-          <label className="flex cursor-pointer items-start gap-3">
-            <input
-              type="checkbox"
-              required
-              checked={domainWaiverConsent}
-              onChange={(e) => setDomainWaiverConsent(e.target.checked)}
-              className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-white/5 accent-white"
-            />
-            <span className="text-xs leading-relaxed text-neutral-300">
-              Żądam natychmiastowego wykonania usługi rejestracji domeny
-              {domainSel.register ? (
-                <> <strong className="text-white">{domainSel.register.name}</strong></>
-              ) : null}{' '}
-              i przyjmuję do wiadomości, że z chwilą jej zarejestrowania (pełnego wykonania
-              usługi) <strong className="text-white">tracę prawo odstąpienia</strong> od umowy w
-              tym zakresie (art. 38 ust. 1 pkt 1 ustawy o prawach konsumenta,{' '}
+          standingWaiver?.granted ? (
+            <p className="text-xs leading-relaxed text-neutral-400">
+              Rejestrację domeny obejmuje Twoje wcześniejsze oświadczenie o natychmiastowej
+              rejestracji i utracie prawa odstąpienia
+              {standingWaiver.grantedAt
+                ? ` (złożone ${new Date(standingWaiver.grantedAt).toLocaleDateString('pl-PL')})`
+                : ''}{' '}
+              —{' '}
               <a href="/legal/terms" target="_blank" className="underline hover:text-white">
-                Regulamin §12 ust. 7–8
+                Regulamin §12 ust. 8
               </a>
-              ).
-            </span>
-          </label>
+              .
+            </p>
+          ) : (
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                required
+                checked={domainWaiverConsent}
+                onChange={(e) => setDomainWaiverConsent(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-white/5 accent-white"
+              />
+              <span className="text-xs leading-relaxed text-neutral-300">
+                Żądam natychmiastowego wykonania usługi rejestracji domeny
+                {domainSel.register ? (
+                  <> <strong className="text-white">{domainSel.register.name}</strong></>
+                ) : null}{' '}
+                i przyjmuję do wiadomości, że z chwilą jej zarejestrowania (pełnego wykonania
+                usługi) <strong className="text-white">tracę prawo odstąpienia</strong> od umowy w
+                tym zakresie (art. 38 ust. 1 pkt 1 ustawy o prawach konsumenta,{' '}
+                <a href="/legal/terms" target="_blank" className="underline hover:text-white">
+                  Regulamin §12 ust. 7–8
+                </a>
+                ). Oświadczenie obejmuje również kolejne rejestracje domen na tym koncie.
+              </span>
+            </label>
+          )
         ) : null}
       </section>
 
