@@ -29,10 +29,19 @@ if [[ -z "$API_CID" ]]; then
   exit 1
 fi
 
-set -a
-# shellcheck disable=SC1090
-source "$ENV_FILE"
-set +a
+# NIE source'ujemy całego .env.prod — plik jest w formacie dotenv (Compose),
+# nie bash: wartości ze spacjami bez cudzysłowów (np. klucze SSH) wysypałyby
+# `source`. Wyciągamy wyłącznie potrzebne klucze, zdejmując ewentualne cudzysłowy.
+env_get() {
+  grep -E "^${1}=" "$ENV_FILE" | tail -1 | cut -d= -f2- \
+    | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'\$//"
+}
+DATABASE_URL="${DATABASE_URL:-$(env_get DATABASE_URL)}"
+POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-$(env_get POSTGRES_PASSWORD)}"
+POSTGRES_USER="${POSTGRES_USER:-$(env_get POSTGRES_USER)}"
+POSTGRES_HOST="${POSTGRES_HOST:-$(env_get POSTGRES_HOST)}"
+POSTGRES_PORT="${POSTGRES_PORT:-$(env_get POSTGRES_PORT)}"
+POSTGRES_DB="${POSTGRES_DB:-$(env_get POSTGRES_DB)}"
 if [[ -z "${DATABASE_URL:-}" && -n "${POSTGRES_PASSWORD:-}" ]]; then
   enc_pass="$(docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" exec -T api \
     node -e 'process.stdout.write(encodeURIComponent(process.argv[1]))' "$POSTGRES_PASSWORD")"

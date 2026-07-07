@@ -10,17 +10,19 @@ import {
 } from "@/lib/cookie-consent";
 
 /**
- * Cookie banner + preferences modal (art. 399–402 PKE).
+ * Cookie banner + preferences modal (art. 399–402 PKE, art. 7 ust. 3 RODO).
  *
  * UX rules (must stay in sync with Polityka cookies §3):
  *  - "Akceptuj wszystkie" and "Tylko niezbędne" are equally prominent —
  *    refusing takes exactly as many clicks as accepting.
  *  - Optional categories default to OFF in the preferences view.
- *  - The banner never blocks access to legal pages.
- *  - Footer "Preferencje cookies" reopens the modal at any time via
- *    the OPEN_PREFERENCES_EVENT custom event.
+ *  - Withdrawal is as easy as consent: after a decision is saved, a
+ *    persistent floating trigger (bottom-left, every page — also auth and
+ *    /legal pages without the dashboard footer) reopens the preferences
+ *    modal at any time. The footer "Preferencje cookies" link does the same.
  */
 export function CookieConsentManager() {
+  const [decided, setDecided] = useState(true); // pesymistycznie: bez flasha banera
   const [bannerOpen, setBannerOpen] = useState(false);
   const [prefsOpen, setPrefsOpen] = useState(false);
   const [functional, setFunctional] = useState(false);
@@ -32,8 +34,10 @@ export function CookieConsentManager() {
   useEffect(() => {
     const existing = readConsent();
     if (!existing) {
+      setDecided(false);
       setBannerOpen(true);
     } else {
+      setDecided(true);
       setFunctional(existing.functional);
       setAnalytics(existing.analytics);
       setMarketing(existing.marketing);
@@ -58,6 +62,7 @@ export function CookieConsentManager() {
       setFunctional(choice.functional);
       setAnalytics(choice.analytics);
       setMarketing(choice.marketing);
+      setDecided(true);
       setBannerOpen(false);
       setPrefsOpen(false);
     },
@@ -74,7 +79,23 @@ export function CookieConsentManager() {
       marketing: cats.marketing && marketing,
     });
 
-  if (!bannerOpen && !prefsOpen) return null;
+  if (!bannerOpen && !prefsOpen) {
+    // Decyzja zapadła → stały, dyskretny trigger do zmiany zgody (art. 7 ust. 3
+    // RODO — wycofanie równie łatwe jak wyrażenie), obecny także na stronach
+    // bez stopki panelu (login, rejestracja, /legal/*).
+    if (!decided) return null;
+    return (
+      <button
+        type="button"
+        aria-label="Preferencje cookies"
+        title="Preferencje cookies"
+        onClick={() => window.dispatchEvent(new CustomEvent(OPEN_PREFERENCES_EVENT))}
+        className="fixed bottom-4 left-4 z-[90] flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-[#0d0d0d]/90 text-base shadow-lg backdrop-blur transition-transform hover:scale-105 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+      >
+        <CookieIcon className="h-5 w-5 text-neutral-300" />
+      </button>
+    );
+  }
 
   return (
     <div
@@ -97,8 +118,8 @@ export function CookieConsentManager() {
               {cats.analytics || cats.marketing
                 ? " — funkcjonalnych, analitycznych i marketingowych"
                 : " — funkcjonalnych (zapamiętywanie udogodnień)"}
-              . Zgodę możesz w każdej chwili wycofać w stopce („Preferencje cookies").
-              Szczegóły:{" "}
+              . Zgodę możesz w każdej chwili zmienić lub wycofać — przycisk „Preferencje
+              cookies" jest stale dostępny w rogu ekranu i w stopce. Szczegóły:{" "}
               <a href="/legal/cookies" className="underline hover:text-neutral-200">
                 Polityka cookies
               </a>
@@ -130,7 +151,21 @@ export function CookieConsentManager() {
           </>
         ) : (
           <>
-            <h2 className="text-sm font-semibold text-white">Preferencje cookies</h2>
+            <div className="flex items-start justify-between gap-3">
+              <h2 className="text-sm font-semibold text-white">Preferencje cookies</h2>
+              <button
+                type="button"
+                aria-label="Zamknij"
+                onClick={() => (decided ? setPrefsOpen(false) : undefined)}
+                className={
+                  decided
+                    ? "rounded-md px-2 text-neutral-400 hover:text-white"
+                    : "hidden"
+                }
+              >
+                ✕
+              </button>
+            </div>
             <div className="mt-4 space-y-3">
               <ConsentRow
                 label="Niezbędne"
@@ -191,6 +226,7 @@ export function CookieConsentManager() {
   );
 }
 
+/** Wiersz kategorii z przełącznikiem (switch, nie checkbox). */
 function ConsentRow(props: {
   label: string;
   description: string;
@@ -198,22 +234,45 @@ function ConsentRow(props: {
   disabled?: boolean;
   onChange?: (value: boolean) => void;
 }) {
+  const { label, description, checked, disabled, onChange } = props;
   return (
-    <label className="flex items-start justify-between gap-4 rounded-xl border border-white/5 bg-white/[0.02] p-3">
-      <span>
-        <span className="block text-xs font-semibold text-white">{props.label}</span>
-        <span className="mt-0.5 block text-[11px] leading-relaxed text-neutral-400">
-          {props.description}
-        </span>
-      </span>
-      <input
-        type="checkbox"
-        className="mt-1 h-4 w-4 shrink-0 accent-white disabled:opacity-50"
-        checked={props.checked}
-        disabled={props.disabled}
-        onChange={(e) => props.onChange?.(e.target.checked)}
-      />
-    </label>
+    <div className="flex items-start justify-between gap-4 rounded-xl border border-white/5 bg-white/[0.02] p-3">
+      <div>
+        <p className="text-xs font-semibold text-white">{label}</p>
+        <p className="mt-0.5 text-[11px] leading-relaxed text-neutral-400">{description}</p>
+      </div>
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
+        disabled={disabled}
+        onClick={() => onChange?.(!checked)}
+        className={[
+          "relative mt-1 inline-flex h-6 w-11 shrink-0 items-center rounded-full border transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60",
+          checked ? "border-emerald-400/60 bg-emerald-500/80" : "border-white/15 bg-white/10",
+          disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer",
+        ].join(" ")}
+      >
+        <span
+          className={[
+            "inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform",
+            checked ? "translate-x-6" : "translate-x-1",
+          ].join(" ")}
+        />
+      </button>
+    </div>
+  );
+}
+
+function CookieIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className} aria-hidden="true">
+      <path d="M21 12a9 9 0 1 1-9.5-8.98 3.5 3.5 0 0 0 4.2 4.2A3.5 3.5 0 0 0 21 12Z" />
+      <circle cx="9" cy="10" r="0.9" fill="currentColor" stroke="none" />
+      <circle cx="13.5" cy="14.5" r="0.9" fill="currentColor" stroke="none" />
+      <circle cx="9.5" cy="15.5" r="0.9" fill="currentColor" stroke="none" />
+    </svg>
   );
 }
 

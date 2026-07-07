@@ -63,7 +63,7 @@ Szczegóły przetwarzania danych przez Google i Meta oraz zasady transferu danyc
 ## 3. Zgoda
 
 1. Przy pierwszej wizycie wyświetlamy okno z opcjami: **„Akceptuj wszystkie"**, **„Tylko niezbędne"** oraz **„Personalizuj"** (wybór per kategoria). Obie pierwsze opcje są równie łatwo dostępne — odmowa nie wymaga więcej kliknięć niż akceptacja.
-2. Zgoda spełnia wymogi RODO (art. 402 PKE): jest dobrowolna, konkretna, świadoma i jednoznaczna. Możesz ją w każdej chwili wycofać w stopce panelu („Preferencje cookies") — wycofanie jest równie łatwe jak wyrażenie.
+2. Zgoda spełnia wymogi RODO (art. 402 PKE): jest dobrowolna, konkretna, świadoma i jednoznaczna. Możesz ją w każdej chwili zmienić lub wycofać — służy do tego stały przycisk „Preferencje cookies" w lewym dolnym rogu każdej strony oraz link w stopce panelu; wycofanie jest równie łatwe jak wyrażenie.
 3. Twoją decyzję przechowujemy 12 miesięcy, po czym zapytamy ponownie.
 4. Odmowa zgody na cookies opcjonalne nie ogranicza dostępu do usług Verris.
 
