@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { PanelEmptyState } from '@/components/panel';
 import { formatCredits } from '@/lib/credits';
+import { trackPurchase } from '@/lib/analytics-events';
 import {
   addSshKeyAction,
   deleteSshKeyAction,
@@ -97,6 +98,18 @@ export function VpsClient({
       if (!res.ok) {
         toast.error('Nie udało się zamówić VPS', { description: res.error });
         return;
+      }
+      // GA4: purchase — VPS płacony z Portfela, cena miesięczna z planu.
+      {
+        const plan = plans.find((p) => p.id === planId);
+        const paid = plan ? Number(plan.priceMonthly) : NaN;
+        if (plan && Number.isFinite(paid)) {
+          trackPurchase({
+            transactionId: `vps-${res.data?.name ?? Date.now()}`,
+            value: paid,
+            items: [{ item_name: plan.name, item_category: 'vps', price: paid, quantity: 1 }],
+          });
+        }
       }
       toast.success('VPS uruchomiony');
       setOrdering(false);

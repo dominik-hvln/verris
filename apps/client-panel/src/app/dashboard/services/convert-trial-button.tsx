@@ -4,6 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, Sparkles } from 'lucide-react';
 import { convertTrialAction } from './subscription-payment-actions';
+import { trackPurchase } from '@/lib/analytics-events';
 
 /**
  * O-1 — converts a trial to a paid wallet subscription (charges one month).
@@ -24,6 +25,13 @@ export function ConvertTrialButton({ serviceId }: { serviceId: string }) {
         setError(res.error ?? 'Nie udało się przekształcić usługi.');
         return;
       }
+      // GA4: purchase bez `value` (cena planu nieznana w tym komponencie) —
+      // GA4 przyjmie zdarzenie, a wartość doda docelowy pomiar server-side.
+      trackPurchase({
+        transactionId: `trial-convert-${serviceId}`,
+        value: 0,
+        items: [{ item_name: 'Konwersja triala', item_category: 'hosting', quantity: 1 }],
+      });
       router.refresh();
     });
   };

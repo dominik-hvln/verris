@@ -563,7 +563,11 @@ services:
       - '80:80'
       - '443:443'
     volumes:
-      - ./ops/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Montowanie KATALOGOWE (nie per-plik): bind-mount pojedynczego pliku
+      # trzyma się inode'a, więc `git checkout` (podmiana pliku) zostawiał
+      # w kontenerze starą wersję i `caddy reload` czytał nieaktualny config.
+      # Katalog nie ma tego problemu — po zmianie Caddyfile wystarczy reload.
+      - ./ops/caddy:/etc/caddy:ro
       - caddy_data:/data
       - caddy_config:/config
     networks: [verris_public]

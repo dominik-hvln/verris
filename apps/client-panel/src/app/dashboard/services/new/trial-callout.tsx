@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Gift, Loader2, Check } from 'lucide-react';
 import type { PlanDto } from '@verris/contracts';
 import { getTrialEligibilityAction, startTrialAction } from './actions';
+import { trackGenerateLead } from '@/lib/analytics-events';
 
 /**
  * O-1 — free trial entry point shown above the paid order form. Renders only
@@ -45,6 +46,7 @@ export function TrialCallout({ plans }: { plans: PlanDto[] }) {
         setError(res.error ?? 'Nie udało się uruchomić okresu próbnego.');
         return;
       }
+      trackGenerateLead(selected.name); // GA4: trial = lead
       router.push('/dashboard/services');
       router.refresh();
     });

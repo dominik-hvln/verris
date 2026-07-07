@@ -15,6 +15,7 @@ import { createSubscriptionAction } from './actions';
 import { getWaiverConsentAction, registerDomainClientAction } from '@/app/dashboard/domains/actions';
 import { DomainStep, type DomainSelection } from './domain-step';
 import { CREDIT_SHORT, formatCredits } from '@/lib/credits';
+import { trackBeginCheckout, trackPurchase } from '@/lib/analytics-events';
 
 interface StartOffer {
   cardEnabled: boolean;
@@ -181,6 +182,24 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialPromo, selectedPlan, paymentSource]);
 
+  // GA4: begin_checkout — raz, po wejściu w formularz zamówienia.
+  const checkoutTracked = useRef(false);
+  useEffect(() => {
+    if (checkoutTracked.current || !selectedPlan) return;
+    checkoutTracked.current = true;
+    trackBeginCheckout(
+      [
+        {
+          item_name: selectedPlan.name,
+          item_category: productKind === 'EMAIL' ? 'email' : 'hosting',
+          quantity: 1,
+        },
+      ],
+      chargePrice != null ? Number(chargePrice) : undefined,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPlan]);
+
   const onSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!selectedPlan) return;
@@ -222,6 +241,23 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
       if (!res.ok) {
         setError(res.error ?? 'Nie udało się utworzyć usługi');
         return;
+      }
+      // GA4: purchase tylko dla płatności z Portfela (kwota znana; Stripe ma
+      // własny event na stronie powrotu). transaction_id deduplikuje w GA4.
+      if (paymentSource === 'WALLET' && !res.data?.checkoutRedirectUrl) {
+        const paid = chargePrice != null ? Number(chargePrice) : NaN;
+        trackPurchase({
+          transactionId: res.data?.subscription?.id ?? `sub-${Date.now()}`,
+          value: paid,
+          items: [
+            {
+              item_name: selectedPlan.name,
+              item_category: productKind === 'EMAIL' ? 'email' : 'hosting',
+              price: Number.isFinite(paid) ? paid : undefined,
+              quantity: 1,
+            },
+          ],
+        });
       }
       if (res.data?.provisioning) {
         setSuccess({

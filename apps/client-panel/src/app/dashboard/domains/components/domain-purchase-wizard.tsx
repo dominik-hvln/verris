@@ -28,6 +28,7 @@ import {
   transferDomainAction,
   type RegistrarOrderRow,
 } from '../actions';
+import { trackPurchase } from '@/lib/analytics-events';
 
 const YEAR_OPTIONS = [1, 2, 3, 5, 10] as const;
 
@@ -287,6 +288,19 @@ export function DomainPurchaseWizard({ initialOrders }: { initialOrders: Registr
           nameservers: [ns1, ns2].map((n) => n.trim().toLowerCase()).filter(Boolean),
           withdrawalWaiverConsent: waiverConsent,
         });
+        // GA4: purchase — domena płacona z Portfela, kwota z wyceny.
+        {
+          const paid = Number(selectedQuote.priceAmount);
+          if (Number.isFinite(paid)) {
+            trackPurchase({
+              transactionId: `domain-${selectedDomain}-${Date.now()}`,
+              value: paid,
+              items: [
+                { item_name: selectedDomain, item_category: 'domena', price: paid, quantity: 1 },
+              ],
+            });
+          }
+        }
         toast.success(`Zamówiono rejestrację ${selectedDomain}`);
         router.push('/dashboard/domains');
         router.refresh();

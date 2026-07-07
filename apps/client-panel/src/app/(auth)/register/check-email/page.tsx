@@ -2,13 +2,19 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { Mail } from "lucide-react";
 import { SpinBorder } from "@/components/spin-border";
+import { trackSignUp } from "@/lib/analytics-events";
 
 function CheckEmailContent() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email")?.trim();
+
+  // Konwersja sign_up — ta strona renderuje się wyłącznie po udanej rejestracji.
+  useEffect(() => {
+    trackSignUp();
+  }, []);
 
   return (
     <div className="p-8 space-y-5">
