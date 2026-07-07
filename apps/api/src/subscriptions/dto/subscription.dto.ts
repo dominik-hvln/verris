@@ -1,4 +1,5 @@
 import {
+  Equals,
   IsBoolean,
   IsEnum,
   IsNumber,
@@ -12,9 +13,32 @@ import {
 } from 'class-validator';
 import { BillingInterval, SubscriptionPaymentSource } from '@verris/database';
 
+/** Konwersja triala na plan płatny — wymaga oświadczenia konsumenckiego. */
+export class ConvertTrialDto {
+  @IsBoolean()
+  @Equals(true, {
+    message:
+      'Wymagane jest oświadczenie o żądaniu rozpoczęcia świadczenia usługi przed upływem terminu odstąpienia od umowy.',
+  })
+  immediatePerformanceConsent!: boolean;
+}
+
 export class CreateSubscriptionDto {
   @IsUUID()
   planId!: string;
+
+  /**
+   * Oświadczenie konsumenckie: żądanie rozpoczęcia świadczenia przed upływem
+   * 14-dniowego terminu odstąpienia (art. 15 ust. 3 i art. 21 ust. 2 ustawy
+   * o prawach konsumenta; Regulamin §4 ust. 4). Bez `true` zamówienie jest
+   * odrzucane; fakt złożenia oświadczenia trafia do dziennika audytu (dowód).
+   */
+  @IsBoolean()
+  @Equals(true, {
+    message:
+      'Wymagane jest oświadczenie o żądaniu rozpoczęcia świadczenia usługi przed upływem terminu odstąpienia od umowy.',
+  })
+  immediatePerformanceConsent!: boolean;
 
   @IsEnum(BillingInterval)
   interval!: BillingInterval;

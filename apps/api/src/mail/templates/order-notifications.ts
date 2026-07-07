@@ -40,6 +40,14 @@ export function orderReceivedTemplate(ctx: OrderReceivedContext): MailMessage {
     `- **Płatność:** ${escapeHtml(ctx.paymentLabel)}`,
     ``,
     `Gdy usługa będzie gotowa, wyślemy osobną wiadomość z danymi dostępowymi. Fakturę znajdziesz w panelu w zakładce Rozliczenia.`,
+    ``,
+    // Potwierdzenie zawarcia umowy na trwałym nośniku (art. 21 ust. 1 ustawy
+    // o prawach konsumenta) — treść umowy + pouczenie o odstąpieniu.
+    `## Twoja umowa`,
+    ``,
+    `Do zamówienia ma zastosowanie [Regulamin świadczenia usług Verris](${ctx.panelUrl}/legal/terms) w wersji obowiązującej w dniu zakupu (archiwum wersji dostępne w panelu) oraz [Polityka prywatności](${ctx.panelUrl}/legal/privacy).`,
+    ``,
+    `Składając zamówienie, zażądałeś rozpoczęcia świadczenia usługi przed upływem 14-dniowego terminu odstąpienia od umowy. Możesz odstąpić od umowy w ciągu 14 dni od jej zawarcia (e-mailem na kontakt@verris.pl lub w panelu) — w takim przypadku zapłacisz proporcjonalnie za świadczenia spełnione do chwili odstąpienia, a po pełnym wykonaniu usługi prawo odstąpienia wygasa. W przypadku rejestracji domeny prawo odstąpienia wygasa z chwilą jej zarejestrowania. Szczegóły i wzór formularza odstąpienia: §21 i Załącznik 1 Regulaminu.`,
   ].filter((l): l is string => l !== null);
 
   const { html, text } = renderEmailShell({

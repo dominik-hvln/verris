@@ -8,9 +8,15 @@ export type ActionResult<T = void> =
   | { ok: false; error: string };
 
 /** O-1 — convert a running free trial to a paid wallet subscription. */
-export async function convertTrialAction(subscriptionId: string): Promise<ActionResult> {
+export async function convertTrialAction(
+  subscriptionId: string,
+  immediatePerformanceConsent: boolean,
+): Promise<ActionResult> {
   try {
-    await apiFetch(`/subscriptions/${subscriptionId}/convert`, { method: 'POST' });
+    await apiFetch(`/subscriptions/${subscriptionId}/convert`, {
+      method: 'POST',
+      body: JSON.stringify({ immediatePerformanceConsent }),
+    });
     revalidatePath('/dashboard/services');
     revalidatePath('/dashboard');
     return { ok: true };

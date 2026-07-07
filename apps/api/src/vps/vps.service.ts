@@ -208,7 +208,16 @@ export class VpsService {
         action: 'VPS_PROVISIONED',
         userId,
         actorUserId: userId,
-        details: { instanceId: instance.id, plan: plan.slug, hetznerServerId: String(created.server.id) },
+        details: {
+          instanceId: instance.id,
+          plan: plan.slug,
+          hetznerServerId: String(created.server.id),
+          // Dowód oświadczenia konsumenckiego (art. 15 ust. 3 / 21 ust. 2 upk):
+          // żądanie rozpoczęcia świadczenia przed upływem terminu odstąpienia.
+          immediatePerformanceConsent: dto.immediatePerformanceConsent,
+          consentStatement:
+            'Żądam rozpoczęcia świadczenia usługi przed upływem 14-dniowego terminu odstąpienia i przyjmuję do wiadomości obowiązek zapłaty za świadczenia spełnione do chwili odstąpienia (Regulamin §4 ust. 4, §21).',
+        },
       });
       void this.sendReady(userId, updated.name, updated.ipv4).catch(() => undefined);
       return { ...this.toDto(updated), rootPassword: created.rootPassword };

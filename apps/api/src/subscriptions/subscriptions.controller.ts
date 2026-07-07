@@ -16,6 +16,7 @@ import { PlanChangeService } from './plan-change.service';
 import { TrialService } from './trial.service';
 import {
   CancelSubscriptionDto,
+  ConvertTrialDto,
   CreateSubscriptionDto,
   PreviewSubscriptionPromoDto,
   UpdateAutoscalingDto,
@@ -55,10 +56,17 @@ export class SubscriptionsController {
     return this.trial.startTrial(user.userId, dto);
   }
 
-  /** Przekształć trwający okres próbny na płatną usługę (płatność z portfela). */
+  /**
+   * Przekształć trwający okres próbny na płatną usługę (płatność z portfela).
+   * Wymaga oświadczenia konsumenckiego (upk) — walidacja Equals(true) w DTO.
+   */
   @Post(':id/convert')
   @HttpCode(200)
-  convertTrial(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+  convertTrial(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() _dto: ConvertTrialDto,
+  ) {
     return this.trial.convertFromWallet(user.userId, id);
   }
 

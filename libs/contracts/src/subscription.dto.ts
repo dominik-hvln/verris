@@ -23,6 +23,13 @@ export interface CreateSubscriptionInput {
   ecoModeEnabled?: boolean;
   /** Rabat % na usługę (tylko płatność z portfela). */
   promoCode?: string;
+  /**
+   * Oświadczenie konsumenckie (art. 15 ust. 3 i art. 21 ust. 2 ustawy o prawach
+   * konsumenta): żądanie rozpoczęcia świadczenia usługi przed upływem
+   * 14-dniowego terminu odstąpienia. Wymagane `true` — API odrzuca zamówienia
+   * bez oświadczenia (Regulamin §4 ust. 4, §21).
+   */
+  immediatePerformanceConsent: boolean;
 }
 
 export interface PreviewSubscriptionPromoInput {

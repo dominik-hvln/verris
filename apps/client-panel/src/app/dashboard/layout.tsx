@@ -370,7 +370,10 @@ export default function DashboardLayout({
         </header>
 
         {/* Page Content */}
-        <main className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-4 max-lg:pt-mobile-header sm:px-6 sm:pb-6 lg:px-10 lg:pb-12 lg:pt-10">
+        <main
+          id="main"
+          className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-4 max-lg:pt-mobile-header sm:px-6 sm:pb-6 lg:px-10 lg:pb-12 lg:pt-10"
+        >
           {children}
         </main>
 

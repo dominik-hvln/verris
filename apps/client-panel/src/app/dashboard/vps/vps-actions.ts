@@ -66,6 +66,8 @@ export async function orderVpsAction(input: {
   planId: string;
   name?: string;
   sshKeyIds?: string[];
+  /** Oświadczenie: rozpoczęcie świadczenia przed upływem terminu odstąpienia (upk). */
+  immediatePerformanceConsent: boolean;
 }): Promise<Result<VpsInstanceDto & { rootPassword: string | null }>> {
   try {
     const data = await apiFetch<VpsInstanceDto & { rootPassword: string | null }>('/vps', {

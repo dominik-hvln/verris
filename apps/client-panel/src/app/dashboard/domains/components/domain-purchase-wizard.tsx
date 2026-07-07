@@ -154,6 +154,10 @@ export function DomainPurchaseWizard({ initialOrders }: { initialOrders: Registr
   const [premium, setPremium] = useState(false);
   const [ns1, setNs1] = useState(DEFAULT_NS[0]);
   const [ns2, setNs2] = useState(DEFAULT_NS[1]);
+  // Oświadczenie: natychmiastowa rejestracja + utrata prawa odstąpienia (art. 38 pkt 1 upk).
+  const [waiverConsent, setWaiverConsent] = useState(false);
+  // Zbiorcza akceptacja dokumentów przy zamówieniu (jak u liderów rynku).
+  const [acceptDocs, setAcceptDocs] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -261,12 +265,17 @@ export function DomainPurchaseWizard({ initialOrders }: { initialOrders: Registr
 
   const onRegister = () => {
     if (!selectedDomain || !selectedQuote?.priceAmount) return;
+    if (!waiverConsent) {
+      toast.error('Zaznacz oświadczenie o natychmiastowej rejestracji i utracie prawa odstąpienia.');
+      return;
+    }
     startTransition(async () => {
       try {
         await registerDomainClientAction({
           name: selectedDomain,
           years,
           nameservers: [ns1, ns2].map((n) => n.trim().toLowerCase()).filter(Boolean),
+          withdrawalWaiverConsent: waiverConsent,
         });
         toast.success(`Zamówiono rejestrację ${selectedDomain}`);
         router.push('/dashboard/domains');
@@ -580,11 +589,59 @@ export function DomainPurchaseWizard({ initialOrders }: { initialOrders: Registr
               <p className="text-xs text-neutral-500">
                 Kwota brutto zostanie pobrana z portfela Verris. Przy braku środków doładuj portfel w panelu.
               </p>
+              {/* Zbiorcza akceptacja dokumentów przy zamówieniu. */}
+              <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+                <input
+                  type="checkbox"
+                  checked={acceptDocs}
+                  onChange={(e) => setAcceptDocs(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-white/5 accent-white"
+                />
+                <span className="text-xs leading-relaxed text-neutral-300">
+                  Zamawiając, akceptuję:{' '}
+                  <a href="/legal/terms" target="_blank" className="underline hover:text-white">
+                    Regulamin świadczenia usług Verris
+                  </a>{' '}
+                  (w tym warunki rejestracji domen — §12),{' '}
+                  <a href="/legal/privacy" target="_blank" className="underline hover:text-white">
+                    Politykę prywatności
+                  </a>{' '}
+                  oraz{' '}
+                  <a href="/legal/dpa" target="_blank" className="underline hover:text-white">
+                    DPA
+                  </a>
+                  .
+                </span>
+              </label>
+              {/* Oświadczenie konsumenckie — art. 38 ust. 1 pkt 1 upk (Regulamin §12 ust. 7–8). */}
+              <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+                <input
+                  type="checkbox"
+                  checked={waiverConsent}
+                  onChange={(e) => setWaiverConsent(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-white/5 accent-white"
+                />
+                <span className="text-xs leading-relaxed text-neutral-300">
+                  Żądam natychmiastowego wykonania usługi rejestracji domeny{' '}
+                  <strong className="text-white">{selectedDomain}</strong> i przyjmuję do
+                  wiadomości, że z chwilą jej zarejestrowania (pełnego wykonania usługi){' '}
+                  <strong className="text-white">tracę prawo odstąpienia</strong> od umowy w tym
+                  zakresie (art. 38 ust. 1 pkt 1 ustawy o prawach konsumenta,{' '}
+                  <a href="/legal/terms" target="_blank" className="underline hover:text-white">
+                    Regulamin §12
+                  </a>
+                  ).
+                </span>
+              </label>
               <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
                 <Button variant="outline" onClick={() => setStep('config')}>
                   Wstecz
                 </Button>
-                <Button className="gap-2" disabled={isPending} onClick={onRegister}>
+                <Button
+                  className="gap-2"
+                  disabled={isPending || !waiverConsent || !acceptDocs}
+                  onClick={onRegister}
+                >
                   {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}
                   Zamów rejestrację
                 </Button>

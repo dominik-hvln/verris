@@ -1,4 +1,5 @@
 import {
+  Equals,
   IsArray,
   IsBoolean,
   IsIn,
@@ -26,6 +27,17 @@ export class OrderVpsDto {
   @IsArray()
   @IsString({ each: true })
   sshKeyIds?: string[];
+
+  /**
+   * Oświadczenie konsumenckie: żądanie rozpoczęcia świadczenia przed upływem
+   * terminu odstąpienia (art. 15 ust. 3 / 21 ust. 2 upk; Regulamin §4 ust. 4).
+   */
+  @IsBoolean()
+  @Equals(true, {
+    message:
+      'Wymagane jest oświadczenie o żądaniu rozpoczęcia świadczenia usługi przed upływem terminu odstąpienia od umowy.',
+  })
+  immediatePerformanceConsent!: boolean;
 }
 
 export class AddSshKeyDto {

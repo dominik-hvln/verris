@@ -318,6 +318,12 @@ export class SubscriptionsService {
         plan: plan.slug,
         interval: dto.interval,
         source: dto.paymentSource,
+        // Dowód oświadczenia konsumenckiego (art. 15 ust. 3 / 21 ust. 2 upk):
+        // klient zażądał rozpoczęcia świadczenia przed upływem terminu
+        // odstąpienia. Walidacja `Equals(true)` w DTO gwarantuje obecność.
+        immediatePerformanceConsent: dto.immediatePerformanceConsent,
+        consentStatement:
+          'Żądam rozpoczęcia świadczenia usługi przed upływem 14-dniowego terminu odstąpienia i przyjmuję do wiadomości obowiązek zapłaty za świadczenia spełnione do chwili odstąpienia (Regulamin §4 ust. 4, §21).',
       },
     });
 

@@ -71,6 +71,10 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
   const domain = domainSel.domain;
   const [autoscalingEnabled, setAutoscalingEnabled] = useState(false);
   const [ecoModeEnabled, setEcoModeEnabled] = useState(true);
+  // Oświadczenia konsumenckie (upk): natychmiastowe rozpoczęcie świadczenia
+  // (zawsze przy zakupie) + utrata odstąpienia przy rejestracji domeny.
+  const [immediateConsent, setImmediateConsent] = useState(false);
+  const [domainWaiverConsent, setDomainWaiverConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{
     daUsername: string;
@@ -187,6 +191,7 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
             name: domainSel.register.name,
             years: domainSel.register.years,
             nameservers: [],
+            withdrawalWaiverConsent: domainWaiverConsent,
           });
         } catch (err) {
           setError(
@@ -203,6 +208,7 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
         domain: domain.trim().toLowerCase(),
         autoscalingEnabled,
         ecoModeEnabled,
+        immediatePerformanceConsent: immediateConsent,
       });
       if (!res.ok) {
         setError(res.error ?? 'Nie udało się utworzyć usługi');
@@ -452,10 +458,71 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
       </section>
 
       {error ? (
-        <div className="rounded-2xl border border-rose-400/30 bg-rose-400/5 p-4 text-sm text-rose-200">
+        <div
+          role="alert"
+          className="rounded-2xl border border-rose-400/30 bg-rose-400/5 p-4 text-sm text-rose-200"
+        >
           {error}
         </div>
       ) : null}
+
+      {/* Oświadczenia konsumenckie — model jak u liderów rynku: jeden zbiorczy
+          checkbox akceptacji dokumentów (z wplecionym żądaniem natychmiastowego
+          rozpoczęcia świadczenia — art. 15 ust. 3 / 21 ust. 2 upk), a przy
+          rejestracji domeny dodatkowo odrębne oświadczenie o utracie prawa
+          odstąpienia (art. 38 ust. 1 pkt 1 upk). */}
+      <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+        <label className="flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            required
+            checked={immediateConsent}
+            onChange={(e) => setImmediateConsent(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-white/5 accent-white"
+          />
+          <span className="text-xs leading-relaxed text-neutral-300">
+            Zamawiając, akceptuję:{' '}
+            <a href="/legal/terms" target="_blank" className="underline hover:text-white">
+              Regulamin świadczenia usług Verris
+            </a>{' '}
+            (wraz z SLA i warunkami poszczególnych usług),{' '}
+            <a href="/legal/privacy" target="_blank" className="underline hover:text-white">
+              Politykę prywatności
+            </a>{' '}
+            oraz{' '}
+            <a href="/legal/dpa" target="_blank" className="underline hover:text-white">
+              Umowę powierzenia danych (DPA)
+            </a>
+            , a także <strong className="text-white">żądam rozpoczęcia świadczenia usługi przed
+            upływem 14-dniowego terminu odstąpienia</strong> od umowy (w razie odstąpienia
+            zapłacę za świadczenia spełnione do tej chwili — Regulamin §4 ust. 4 i §21).
+          </span>
+        </label>
+        {domainSel.mode === 'register' ? (
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              required
+              checked={domainWaiverConsent}
+              onChange={(e) => setDomainWaiverConsent(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-white/5 accent-white"
+            />
+            <span className="text-xs leading-relaxed text-neutral-300">
+              Żądam natychmiastowego wykonania usługi rejestracji domeny
+              {domainSel.register ? (
+                <> <strong className="text-white">{domainSel.register.name}</strong></>
+              ) : null}{' '}
+              i przyjmuję do wiadomości, że z chwilą jej zarejestrowania (pełnego wykonania
+              usługi) <strong className="text-white">tracę prawo odstąpienia</strong> od umowy w
+              tym zakresie (art. 38 ust. 1 pkt 1 ustawy o prawach konsumenta,{' '}
+              <a href="/legal/terms" target="_blank" className="underline hover:text-white">
+                Regulamin §12 ust. 7–8
+              </a>
+              ).
+            </span>
+          </label>
+        ) : null}
+      </section>
 
       <div className="flex items-center justify-between rounded-3xl border border-white/10 bg-white/[0.03] p-6">
         <div>
@@ -490,6 +557,8 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
           disabled={
             pending ||
             !selectedPlan ||
+            !immediateConsent ||
+            (domainSel.mode === 'register' && !domainWaiverConsent) ||
             (domainSel.mode === 'own' ? !domain.trim() : !domainSel.register)
           }
           className="inline-flex items-center gap-2 rounded-2xl bg-white px-8 py-4 text-base font-bold text-black hover:bg-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
@@ -602,8 +671,10 @@ function Toggle({
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className={`flex w-full items-start justify-between gap-4 rounded-2xl border p-5 text-left transition-all ${
+      className={`flex w-full items-start justify-between gap-4 rounded-2xl border p-5 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
         checked
           ? 'border-white/30 bg-white/[0.06]'
           : 'border-white/10 bg-white/[0.03] hover:border-white/20'

@@ -283,6 +283,12 @@ export class DomainRegistrarService {
         priceAmount: price.amount,
         currency: price.currency,
         walletTxId: tx.id,
+        // Dowód oświadczenia konsumenckiego (art. 38 ust. 1 pkt 1 upk):
+        // żądanie natychmiastowej rejestracji + wiedza o utracie prawa
+        // odstąpienia z chwilą zarejestrowania domeny (Regulamin §12 ust. 7–8).
+        withdrawalWaiverConsent: true,
+        consentStatement:
+          'Żądam natychmiastowego wykonania usługi rejestracji domeny i przyjmuję do wiadomości, że z chwilą jej zarejestrowania tracę prawo odstąpienia od umowy w tym zakresie.',
       },
     });
 

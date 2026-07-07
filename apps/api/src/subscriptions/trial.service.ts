@@ -233,7 +233,15 @@ export class TrialService {
       action: 'TRIAL_CONVERTED',
       userId,
       actorUserId: userId,
-      details: { subscriptionId, amount: amount.toString() },
+      details: {
+        subscriptionId,
+        amount: amount.toString(),
+        // Dowód oświadczenia konsumenckiego (art. 15 ust. 3 / 21 ust. 2 upk)
+        // złożonego przy konwersji na plan płatny (walidacja Equals(true) w DTO).
+        immediatePerformanceConsent: true,
+        consentStatement:
+          'Żądam rozpoczęcia świadczenia usługi przed upływem 14-dniowego terminu odstąpienia i przyjmuję do wiadomości obowiązek zapłaty za świadczenia spełnione do chwili odstąpienia (Regulamin §4 ust. 4, §21).',
+      },
     });
 
     void this.sendTrialConverted(userId, subscription.plan.name).catch(() => undefined);

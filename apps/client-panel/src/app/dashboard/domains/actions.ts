@@ -148,6 +148,8 @@ export async function registerDomainClientAction(input: {
   name: string;
   years: number;
   nameservers: string[];
+  /** Oświadczenie: natychmiastowa rejestracja + utrata prawa odstąpienia (art. 38 pkt 1 upk). */
+  withdrawalWaiverConsent: boolean;
 }) {
   await apiFetch('/domains/registrar/register', {
     method: 'POST',
@@ -164,9 +166,10 @@ export async function registerDomainAction(formData: FormData) {
     .split(/\s|,/)
     .map((x) => x.trim())
     .filter(Boolean);
+  const withdrawalWaiverConsent = formData.get('withdrawalWaiverConsent') === 'on';
   await apiFetch('/domains/registrar/register', {
     method: 'POST',
-    body: JSON.stringify({ name, years, nameservers }),
+    body: JSON.stringify({ name, years, nameservers, withdrawalWaiverConsent }),
   });
   revalidatePath('/dashboard/domains');
   revalidatePath('/dashboard/domains/buy');
@@ -180,9 +183,10 @@ export async function transferDomainAction(formData: FormData) {
     .split(/\s|,/)
     .map((x) => x.trim())
     .filter(Boolean);
+  const withdrawalWaiverConsent = formData.get('withdrawalWaiverConsent') === 'on';
   await apiFetch('/domains/registrar/transfer', {
     method: 'POST',
-    body: JSON.stringify({ name, authCode, years, nameservers }),
+    body: JSON.stringify({ name, authCode, years, nameservers, withdrawalWaiverConsent }),
   });
   revalidatePath('/dashboard/domains/buy');
 }

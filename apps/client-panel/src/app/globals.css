@@ -304,3 +304,12 @@ select optgroup {
   background-color: #0e1f17;
   color: #f4f4ee;
 }
+
+/* === Dostępność (EAA/WCAG 2.4.7) — globalny, widoczny wskaźnik fokusa ===
+   Dotyczy nawigacji klawiaturą; nie zmienia wyglądu przy kliknięciu myszą.
+   Komponenty z własnym focus-visible (ring) nadpisują to lokalnie. */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.75);
+  outline-offset: 2px;
+  border-radius: 6px;
+}

@@ -67,6 +67,8 @@ export function VpsClient({
   const [name, setName] = useState('');
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
   const [rootPw, setRootPw] = useState<{ name: string; pw: string } | null>(null);
+  // Oświadczenie konsumenckie: natychmiastowe rozpoczęcie świadczenia (upk).
+  const [immediateConsent, setImmediateConsent] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const selectedPlan = plans.find((p) => p.id === planId);
@@ -90,6 +92,7 @@ export function VpsClient({
         planId,
         name: name.trim() || undefined,
         sshKeyIds: selectedKeys.length ? selectedKeys : undefined,
+        immediatePerformanceConsent: immediateConsent,
       });
       if (!res.ok) {
         toast.error('Nie udało się zamówić VPS', { description: res.error });
@@ -237,7 +240,7 @@ export function VpsClient({
             <button
               type="button"
               onClick={onOrder}
-              disabled={pending || !selectedPlan}
+              disabled={pending || !selectedPlan || !immediateConsent}
               className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-500 px-5 py-2 text-sm font-semibold text-black hover:bg-emerald-600 disabled:opacity-50"
             >
               {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
@@ -247,6 +250,33 @@ export function VpsClient({
               Anuluj
             </button>
           </div>
+          {/* Zbiorczy checkbox akceptacji (z żądaniem natychmiastowego
+              rozpoczęcia świadczenia — art. 15 ust. 3 / 21 ust. 2 upk). */}
+          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-3">
+            <input
+              type="checkbox"
+              checked={immediateConsent}
+              onChange={(e) => setImmediateConsent(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-white/5 accent-emerald-400"
+            />
+            <span className="text-[11px] leading-relaxed text-neutral-300">
+              Zamawiając, akceptuję:{' '}
+              <a href="/legal/terms" target="_blank" className="underline hover:text-white">
+                Regulamin świadczenia usług Verris
+              </a>{' '}
+              (wraz z SLA),{' '}
+              <a href="/legal/privacy" target="_blank" className="underline hover:text-white">
+                Politykę prywatności
+              </a>{' '}
+              oraz{' '}
+              <a href="/legal/dpa" target="_blank" className="underline hover:text-white">
+                DPA
+              </a>
+              , a także <strong className="text-white">żądam rozpoczęcia świadczenia usługi
+              przed upływem 14-dniowego terminu odstąpienia</strong> (w razie odstąpienia
+              zapłacę za świadczenia spełnione do tej chwili — Regulamin §4 ust. 4 i §21).
+            </span>
+          </label>
           <p className="text-[11px] text-neutral-500">
             Opłata za pierwszy miesiąc zostanie pobrana z portfela. Kolejne miesiące rozliczamy automatycznie.
           </p>
