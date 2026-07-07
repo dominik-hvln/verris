@@ -90,7 +90,7 @@ function RegisterContent() {
 
                 <div className="space-y-2">
                   <label htmlFor="email" className="text-sm font-semibold text-neutral-300">Adres E-mail</label>
-                  <input id="email" name="email" type="email" placeholder="jan@kowalski.pl" required className="w-full rounded-xl border border-white/10 bg-neutral-900/50 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500/50 transition-all duration-300" />
+                  <input id="email" name="email" type="email" autoComplete="email" placeholder="jan@kowalski.pl" required className="w-full rounded-xl border border-white/10 bg-neutral-900/50 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500/50 transition-all duration-300" />
                 </div>
 
                 <div className="space-y-2">
@@ -99,6 +99,7 @@ function RegisterContent() {
                     id="password"
                     name="password"
                     type="password"
+                    autoComplete="new-password"
                     required
                     minLength={PASSWORD_MIN_LENGTH}
                     value={password}
