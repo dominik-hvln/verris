@@ -34,24 +34,31 @@ argumentem przy klientach B2B i publicznych. Punkt odniesienia: WCAG 2.1 AA (EN 
 | 4 | 4.1.3 Status Messages | błąd zamówienia w koszyku nieogłaszany | `role="alert"` na banerze błędu w formularzu zakupu |
 | 5 | 1.3.1 / 3.3.2 | oświadczenia konsumenckie — nowe checkboxy | natywne `<input type="checkbox">` w `<label>` (pełna dostępność out-of-the-box) |
 
-## 4. Backlog (do zrobienia przy rozwoju — nie blokuje)
+## 4. Backlog — stan po wdrożeniu 2026-07-07
 
-1. **`role="alert"` na pozostałych banerach błędów** — wzorzec z koszyka powtórzyć w
-   formularzach ustawień, portfela i domen (wyszukiwanie: `border-rose-` + `{error}`).
-2. **Ikonowe przyciski** — przejrzeć komponenty z samą ikoną; standard: `aria-label`
-   (obecnie 51 użyć `aria-label`/`title` — pokrycie dobre, ale niepełne, np. część
-   przycisków kopiowania w sekcjach hostingu).
-3. **Drobny tekst pomocniczy** — `text-[10px]/[11px]` z `text-neutral-500` na jasnych
-   kartach bywa blisko granicy 4,5:1; przy nowych widokach używać `neutral-400`+.
-4. **Pułapki fokusa w modalach** — `ReConsentModal` i modale hostingu nie zamykają
-   fokusa w obrębie dialogu (focus trap) ani nie wracają fokusem do wyzwalacza po
-   zamknięciu; do wdrożenia wspólny hook (np. `useFocusTrap`).
-5. **Klawiaturowa obsługa list rozwijanych własnej roboty** (jeśli są poza natywnym
-   `<select>`) — przegląd `data-styled` Selectów pod strzałki/Escape.
-6. **Test z czytnikiem** — smoke NVDA/VoiceOver na ścieżce: rejestracja → zakup hostingu
-   → faktura; oraz test „tylko klawiatura" tej samej ścieżki.
-7. **prefers-reduced-motion** — animacje (SpinBorder, przejścia) nie respektują
-   preferencji ograniczenia ruchu; dodać wariant `motion-reduce:`.
+1. ✅ **`role="alert"` na banerach błędów** — dodane w: program poleceń, tokeny API,
+   analityka stron, kreator stron (wybór obrazu), modal re-consent; komunikaty sukcesu
+   oznaczone `role="status"`, ikony dekoracyjne `aria-hidden`.
+2. ✅ **Ikonowe przyciski** — przegląd wykonany; przyciski kopiowania mają widoczne
+   etykiety tekstowe („Kopiuj"/„Skopiowano"), pływający trigger cookies ma `aria-label`.
+   Przy nowych komponentach nadal obowiązuje standard `aria-label`.
+3. ⏳ **Drobny tekst pomocniczy** — zasada na przyszłość (bez zmian wstecznych):
+   `text-[10px]/[11px]` łączyć z `text-neutral-400`+, nie `neutral-500`.
+4. ✅ **Pułapki fokusa w modalach** — wspólny hook `hooks/use-focus-trap.ts`
+   (Tab/Shift+Tab w pętli, fokus startowy, powrót fokusa do wyzwalacza, opcjonalny
+   Escape); wdrożony w `ReConsentModal` (bez Escape — modal blokujący) i w modalu
+   preferencji cookies (Escape zamyka tylko po zapisanej decyzji, jak przycisk ✕).
+   Modale hostingu: stosować hook przy kolejnych zmianach w tych widokach.
+5. ✅ **Klawiaturowa obsługa własnego Selecta** — audyt `components/panel/select.tsx`:
+   strzałki, Home/End, Enter/Spacja, Escape, Tab, typeahead — kompletna. Poprawiono
+   wzorzec ARIA: `role="combobox"` + `aria-activedescendant`/`aria-controls` na
+   przycisku (zamiast na liście), `id` na listboxie — czytnik ogłasza aktywną opcję.
+6. ⏳ **Test z czytnikiem** — smoke NVDA/VoiceOver na ścieżce: rejestracja → zakup
+   hostingu → faktura; oraz test „tylko klawiatura" tej samej ścieżki (do wykonania
+   ręcznie przed startem).
+7. ✅ **prefers-reduced-motion** — globalna reguła w `globals.css`
+   (`@media (prefers-reduced-motion: reduce)` — animacje i przejścia ~0 ms,
+   `scroll-behavior: auto`); obejmuje SpinBorder, `animate-in`, przejścia Tailwind.
 
 ## 5. Kiedy wrócić do tematu (obowiązkowo)
 

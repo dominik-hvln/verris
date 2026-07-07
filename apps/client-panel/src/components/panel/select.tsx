@@ -150,8 +150,11 @@ export function Select({
       <button
         type="button"
         disabled={disabled}
+        role="combobox"
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-controls={open ? `${baseId}-listbox` : undefined}
+        aria-activedescendant={open ? `${baseId}-opt-${active}` : undefined}
         aria-label={ariaLabel}
         onClick={() => (open ? close() : openMenu())}
         onKeyDown={onKeyDown}
@@ -173,9 +176,9 @@ export function Select({
       {open ? (
         <ul
           ref={listRef}
+          id={`${baseId}-listbox`}
           role="listbox"
           aria-label={ariaLabel}
-          aria-activedescendant={`${baseId}-opt-${active}`}
           tabIndex={-1}
           className={cx(
             'absolute z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-white/10',

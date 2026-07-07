@@ -1451,7 +1451,7 @@ function MediaPicker({ serviceId, onPick, onClose }: { serviceId: string; onPick
         {loading ? (
           <div className="py-8 text-center text-sm text-neutral-400"><Loader2 className="mx-auto h-4 w-4 animate-spin" /></div>
         ) : err ? (
-          <p className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">{err}</p>
+          <p role="alert" className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">{err}</p>
         ) : (
           <div className="max-h-[50vh] space-y-1 overflow-auto">
             {dirs.map((e) => (<button key={e.name} onClick={() => setDir(`${dir}/${e.name}`)} className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-white hover:bg-white/5"><Folder className="h-4 w-4 text-amber-300" /> {e.name}</button>))}

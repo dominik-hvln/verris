@@ -162,8 +162,8 @@ function PartnerEarnings() {
 
   return (
     <div className="space-y-5">
-      {err ? <p className="flex items-center gap-2 text-sm text-rose-200 border border-rose-500/30 bg-rose-500/10 rounded-xl px-4 py-2"><AlertCircle className="h-4 w-4" /> {err}</p> : null}
-      {ok ? <p className="flex items-center gap-2 text-sm text-emerald-200 border border-emerald-500/30 bg-emerald-500/10 rounded-xl px-4 py-2"><CheckCircle2 className="h-4 w-4" /> {ok}</p> : null}
+      {err ? <p role="alert" className="flex items-center gap-2 text-sm text-rose-200 border border-rose-500/30 bg-rose-500/10 rounded-xl px-4 py-2"><AlertCircle className="h-4 w-4" aria-hidden="true" /> {err}</p> : null}
+      {ok ? <p role="status" className="flex items-center gap-2 text-sm text-emerald-200 border border-emerald-500/30 bg-emerald-500/10 rounded-xl px-4 py-2"><CheckCircle2 className="h-4 w-4" aria-hidden="true" /> {ok}</p> : null}
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard icon={<Wallet className="h-4 w-4" />} label="Do wypłaty" value={pln(ov.earnings.available)} accent />

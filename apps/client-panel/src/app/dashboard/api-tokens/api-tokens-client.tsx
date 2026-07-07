@@ -70,7 +70,7 @@ export function ApiTokensClient() {
 
   return (
     <div className="space-y-6">
-      {err ? <p className="flex items-center gap-2 text-sm text-rose-200 border border-rose-500/30 bg-rose-500/10 rounded-xl px-4 py-2"><AlertCircle className="h-4 w-4" /> {err}</p> : null}
+      {err ? <p role="alert" className="flex items-center gap-2 text-sm text-rose-200 border border-rose-500/30 bg-rose-500/10 rounded-xl px-4 py-2"><AlertCircle className="h-4 w-4" aria-hidden="true" /> {err}</p> : null}
 
       {created ? (
         <section className="rounded-2xl border border-emerald-500/40 bg-emerald-500/5 p-5 space-y-3">

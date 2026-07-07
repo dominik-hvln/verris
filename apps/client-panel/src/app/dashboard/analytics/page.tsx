@@ -29,7 +29,7 @@ export default async function AnalyticsPage() {
         description="Prywatna analityka odwiedzin bez cookies i bez danych osobowych — zgodna z RODO, bez bannera zgód. Wklej jeden lekki snippet i śledź ruch."
       />
       {error ? (
-        <div className="rounded-2xl border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">{error}</div>
+        <div role="alert" className="rounded-2xl border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">{error}</div>
       ) : (
         <AnalyticsClient services={hosting} />
       )}

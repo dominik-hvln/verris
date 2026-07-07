@@ -8,6 +8,7 @@ import {
   writeConsent,
   type CookieConsent,
 } from "@/lib/cookie-consent";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 
 /**
  * Cookie banner + preferences modal (art. 399–402 PKE, art. 7 ust. 3 RODO).
@@ -30,6 +31,14 @@ export function CookieConsentManager() {
   const [marketing, setMarketing] = useState(false);
 
   const cats = availableCategories();
+
+  // Focus trap tylko dla widoku modalnego preferencji (banner jest nieblokujący).
+  // Escape zamyka modal wyłącznie, gdy decyzja już zapadła (jak przycisk ✕).
+  const trapRef = useFocusTrap<HTMLDivElement>(prefsOpen, {
+    onEscape: () => {
+      if (decided) setPrefsOpen(false);
+    },
+  });
 
   useEffect(() => {
     const existing = readConsent();
@@ -108,7 +117,11 @@ export function CookieConsentManager() {
           : "fixed inset-x-0 bottom-0 z-[100] p-3 sm:p-4"
       }
     >
-      <div className="w-full max-w-2xl rounded-2xl border border-white/10 bg-[#0d0d0d] p-4 shadow-2xl sm:p-6">
+      <div
+        ref={trapRef}
+        tabIndex={-1}
+        className="w-full max-w-2xl rounded-2xl border border-white/10 bg-[#0d0d0d] p-4 shadow-2xl outline-none sm:p-6"
+      >
         {!prefsOpen ? (
           <>
             <h2 className="text-sm font-semibold text-white">Pliki cookies</h2>
