@@ -244,7 +244,11 @@ export class ControlPlaneMailService {
         `Alias musi być w domenie @${CONTROL_PLANE_MAIL_DOMAIN}. Dla adresu zewnętrznego użyj przekierowania (forward).`,
       );
     }
-    this.assertValidLocalPart(local);
+    // Reserved local-parts (abuse@, postmaster@, dmarc@…) are intentionally
+    // allowed as ALIASES: the endpoint is ADMIN-only and RFC 2142 / DSA art. 12
+    // require these addresses to be deliverable. The reservation still blocks
+    // creating standalone mailboxes under these names (assertValidLocalPart).
+    this.assertValidLocalPart(local, { allowReserved: true });
 
     const row = await this.prisma.controlPlaneMailAlias.create({
       data: { aliasEmail, targetId: mailboxId },
@@ -635,12 +639,14 @@ export class ControlPlaneMailService {
     };
   }
 
-  private assertValidLocalPart(localPart: string) {
+  private assertValidLocalPart(localPart: string, opts?: { allowReserved?: boolean }) {
     if (!LOCAL_PART_RE.test(localPart)) {
       throw new BadRequestException('Nieprawidłowy local-part adresu.');
     }
-    if (RESERVED_LOCAL_PARTS.has(localPart)) {
-      throw new BadRequestException(`Local-part „${localPart}” jest zarezerwowany.`);
+    if (!opts?.allowReserved && RESERVED_LOCAL_PARTS.has(localPart)) {
+      throw new BadRequestException(
+        `Local-part „${localPart}” jest zarezerwowany — możesz go wskazać wyłącznie jako alias istniejącej skrzynki.`,
+      );
     }
   }
 

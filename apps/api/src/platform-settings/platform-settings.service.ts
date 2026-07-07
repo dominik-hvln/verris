@@ -24,21 +24,16 @@ export interface SellerCompanyDto {
 
 export interface KsefSettingsDto {
   enabled: boolean;
-  env: 'test' | 'prod';
+  env: 'test' | 'demo' | 'prod';
   nip: string;
   tokenSet: boolean;
-  publicKeySet: boolean;
 }
 
 export interface KsefRuntimeConfig {
   enabled: boolean;
   env: 'test' | 'demo' | 'prod';
-  /** v2 = obowiązkowy KSeF 2.0/FA(3); v1 = legacy FA(2) (@deprecated). */
-  apiVersion: 'v1' | 'v2';
   nip: string;
   token: string;
-  /** Wymagany tylko dla v1 (legacy). v2 pobiera klucze publiczne z API. */
-  publicKeyPem: string;
 }
 
 export type ClientPlatformConfigDto = {
@@ -621,61 +616,42 @@ export class PlatformSettingsService {
     const K = PLATFORM_SETTING_KEYS;
     return {
       enabled: this.readStr(map, K.KSEF_ENABLED, process.env.KSEF_ENABLED ?? '0') === '1',
-      env: (this.readStr(map, K.KSEF_ENV, process.env.KSEF_ENV ?? 'test') === 'prod'
-        ? 'prod'
-        : 'test') as 'test' | 'prod',
+      env: this.normalizeKsefEnv(this.readStr(map, K.KSEF_ENV, process.env.KSEF_ENV ?? 'test')),
       nip: this.readStr(map, K.KSEF_NIP, process.env.KSEF_NIP ?? ''),
       tokenSet: Boolean(map.get(K.KSEF_TOKEN_ENC) || process.env.KSEF_TOKEN),
-      publicKeySet: Boolean(map.get(K.KSEF_PUBLIC_KEY_ENC) || process.env.KSEF_PUBLIC_KEY_PEM_B64),
     };
   }
 
-  /** Pełna konfiguracja runtime (z odszyfrowanymi sekretami) — tylko dla KsefService. */
+  private normalizeKsefEnv(raw: string): 'test' | 'demo' | 'prod' {
+    return raw === 'prod' ? 'prod' : raw === 'demo' ? 'demo' : 'test';
+  }
+
+  /** Pełna konfiguracja runtime (z odszyfrowanym tokenem) — tylko dla KsefService. */
   async getKsefRuntimeConfig(): Promise<KsefRuntimeConfig> {
     const map = await this.loadMap();
     const K = PLATFORM_SETTING_KEYS;
     const tokenEnc = map.get(K.KSEF_TOKEN_ENC) ?? '';
-    const keyEnc = map.get(K.KSEF_PUBLIC_KEY_ENC) ?? '';
     let token = '';
-    let publicKeyPem = '';
     try {
       token = tokenEnc ? this.crypto.decrypt(tokenEnc) : process.env.KSEF_TOKEN ?? '';
     } catch {
       token = '';
     }
-    try {
-      publicKeyPem = keyEnc
-        ? this.crypto.decrypt(keyEnc)
-        : process.env.KSEF_PUBLIC_KEY_PEM_B64
-          ? Buffer.from(process.env.KSEF_PUBLIC_KEY_PEM_B64, 'base64').toString('utf8')
-          : '';
-    } catch {
-      publicKeyPem = '';
-    }
-    const envRaw = this.readStr(map, K.KSEF_ENV, process.env.KSEF_ENV ?? 'test');
-    const env: 'test' | 'demo' | 'prod' =
-      envRaw === 'prod' ? 'prod' : envRaw === 'demo' ? 'demo' : 'test';
-    const apiVersion: 'v1' | 'v2' =
-      (process.env.KSEF_API_VERSION ?? 'v2') === 'v1' ? 'v1' : 'v2';
     return {
       enabled: this.readStr(map, K.KSEF_ENABLED, process.env.KSEF_ENABLED ?? '0') === '1',
-      env,
-      apiVersion,
+      env: this.normalizeKsefEnv(this.readStr(map, K.KSEF_ENV, process.env.KSEF_ENV ?? 'test')),
       nip: this.readStr(map, K.KSEF_NIP, process.env.KSEF_NIP ?? ''),
       token,
-      publicKeyPem,
     };
   }
 
   async updateKsefSettings(
     input: {
       enabled: boolean;
-      env: 'test' | 'prod';
+      env: 'test' | 'demo' | 'prod';
       nip: string;
-      /** Nowy token — gdy puste, zachowujemy obecny. */
+      /** Nowy token KSeF — gdy puste, zachowujemy obecny. */
       token?: string;
-      /** Nowy klucz publiczny PEM — gdy puste, zachowujemy obecny. */
-      publicKeyPem?: string;
     },
     actorUserId: string,
   ): Promise<KsefSettingsDto> {
@@ -686,18 +662,11 @@ export class PlatformSettingsService {
     const K = PLATFORM_SETTING_KEYS;
     const entries: Array<[PlatformSettingKey, string]> = [
       [K.KSEF_ENABLED, input.enabled ? '1' : '0'],
-      [K.KSEF_ENV, input.env === 'prod' ? 'prod' : 'test'],
+      [K.KSEF_ENV, this.normalizeKsefEnv(input.env)],
       [K.KSEF_NIP, nip],
     ];
     if (input.token && input.token.trim()) {
       entries.push([K.KSEF_TOKEN_ENC, this.crypto.encrypt(input.token.trim())]);
-    }
-    if (input.publicKeyPem && input.publicKeyPem.trim()) {
-      const pem = input.publicKeyPem.trim();
-      if (!/-----BEGIN (PUBLIC KEY|RSA PUBLIC KEY|CERTIFICATE)-----/.test(pem)) {
-        throw new BadRequestException('Klucz publiczny KSeF musi być w formacie PEM.');
-      }
-      entries.push([K.KSEF_PUBLIC_KEY_ENC, this.crypto.encrypt(pem)]);
     }
     await this.upsertMany(entries, actorUserId);
     await this.audit.record({
@@ -708,7 +677,6 @@ export class PlatformSettingsService {
         env: input.env,
         nip,
         tokenChanged: Boolean(input.token),
-        publicKeyChanged: Boolean(input.publicKeyPem),
       },
     });
     return this.getKsefSettings();

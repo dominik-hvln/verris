@@ -15,10 +15,9 @@ export function KsefForm() {
   const [cfg, setCfg] = useState<KsefSettings | null>(null);
   const [overview, setOverview] = useState<KsefOverview | null>(null);
   const [enabled, setEnabled] = useState(false);
-  const [env, setEnv] = useState<"test" | "prod">("test");
+  const [env, setEnv] = useState<"test" | "demo" | "prod">("test");
   const [nip, setNip] = useState("");
   const [token, setToken] = useState("");
-  const [publicKeyPem, setPublicKeyPem] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -48,13 +47,11 @@ export function KsefForm() {
         env,
         nip,
         token: token.trim() || undefined,
-        publicKeyPem: publicKeyPem.trim() || undefined,
       });
       if ("error" in res && res.error) setError(res.error);
       else {
         if ("data" in res && res.data) setCfg(res.data);
         setToken("");
-        setPublicKeyPem("");
         setSavedAt(new Date());
         load();
       }
@@ -72,12 +69,12 @@ export function KsefForm() {
     <section className="rounded-2xl border border-white/10 bg-black/40 p-5 space-y-4">
       <div>
         <h2 className="text-lg font-semibold flex items-center gap-2">
-          <FileText className="h-4 w-4 text-indigo-300" /> KSeF — Krajowy System e-Faktur
+          <FileText className="h-4 w-4 text-indigo-300" /> KSeF 2.0 — Krajowy System e-Faktur
         </h2>
         <p className="text-xs text-muted-foreground mt-1">
-          Token i klucz publiczny MF są szyfrowane kluczem KMS i nigdy nie są zwracane przez API.
-          Zostaw pola puste, aby zachować obecne. Włącz dopiero po pomyślnym smoke na środowisku
-          testowym (ksef-test).
+          Faktury FA(3) przez API KSeF 2.0. Token jest szyfrowany kluczem KMS i nigdy nie jest
+          zwracany przez API — zostaw pole puste, aby zachować obecny. Klucze publiczne MF klient
+          pobiera automatycznie z API. Włącz dopiero po pomyślnym smoke na środowisku testowym.
         </p>
       </div>
 
@@ -97,11 +94,12 @@ export function KsefForm() {
             <span className="text-xs font-medium text-muted-foreground">Środowisko</span>
             <select
               value={env}
-              onChange={(e) => setEnv(e.target.value as "test" | "prod")}
+              onChange={(e) => setEnv(e.target.value as "test" | "demo" | "prod")}
               className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-sm outline-none focus:border-indigo-500/60"
             >
-              <option value="test">Testowe (ksef-test.mf.gov.pl)</option>
-              <option value="prod">Produkcyjne (ksef.mf.gov.pl)</option>
+              <option value="test">Testowe (api-test.ksef.mf.gov.pl)</option>
+              <option value="demo">Przedprodukcyjne DEMO (api-demo.ksef.mf.gov.pl)</option>
+              <option value="prod">Produkcyjne (api.ksef.mf.gov.pl)</option>
             </select>
           </label>
 
@@ -128,18 +126,6 @@ export function KsefForm() {
             />
           </label>
 
-          <label className="block space-y-1 md:col-span-2">
-            <span className="text-xs font-medium text-muted-foreground">
-              Klucz publiczny MF (PEM) {cfg?.publicKeySet && "(ustawiony — zostaw puste, by zachować)"}
-            </span>
-            <textarea
-              value={publicKeyPem}
-              onChange={(e) => setPublicKeyPem(e.target.value)}
-              placeholder={cfg?.publicKeySet ? "•••••••• zapisany" : "-----BEGIN PUBLIC KEY-----\n…"}
-              rows={4}
-              className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-xs font-mono outline-none focus:border-indigo-500/60"
-            />
-          </label>
         </div>
 
         <div className="flex items-center gap-3">

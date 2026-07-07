@@ -1,21 +1,40 @@
-# Lista podmiotów przetwarzających (subprocessors) — DRAFT
+# Lista podmiotów przetwarzających (subprocesorów) Verris
 
-> **Status:** DRAFT do lawyer review. **Wersja kanoniczna w panelu:** sekcja 4 w `privacy.md` (tabela podmiotów przetwarzających). Ten plik = źródło robocze / załącznik do paczki dla prawnika.  
-> **Ostatnia aktualizacja:** 2026-07-04
+**Wersja 1.0.0 · stan na 7 lipca 2026 r.**
 
-| Podmiot | Siedziba / region | Cel przetwarzania | Dane |
-|---------|-------------------|-------------------|------|
-| **Stripe Payments Europe Ltd.** | Irlandia (EOG) | Płatności kartą, Apple/Google Pay, BLIK/P24 przez Stripe | Identyfikatory płatności, ostatnie 4 cyfry karty, status transakcji — **nie** pełny numer karty |
-| **Dostawca VPS (control-plane)** | EOG (do potwierdzenia w umowie z dostawcą) | Hosting aplikacji Verris (API, panele, baza, Redis, MinIO) | Wszystkie dane przetwarzane w systemie Verris na serwerze |
-| **MinIO (self-hosted na control-plane)** | Polska / EOG | Backupy Postgres (szyfrowane age), załączniki ticketów, uploady RODO | Kopie zapasowe DB, pliki użytkowników |
-| **Dostawca off-site backup (S3/B2/R2)** | EOG (do potwierdzenia w umowie) | Kopie zapasowe off-site + WORM (RODO art. 32, ochrona przed ransomware) | Zaszyfrowane (age) dumpy DB — Verris trzyma klucz odszyfrowania osobno |
-| **Postfix (MTA na serwerze panelu, HVLN)** | Polska / host control-plane | Domyślna wysyłka maili transakcyjnych | Adres odbiorcy, treść, status kolejki |
-| **Zewnętrzny relay SMTP** (opcjonalny, admin) | EOG | Wysyłka gdy włączony tryb external w panelu | Jak wyżej — tylko jeśli skonfigurowany |
-| **Google reCAPTCHA** (CAPTCHA_PROVIDER=recaptcha) | USA (Google Ireland Ltd. jako podmiot w EOG) | Ochrona anty-bot rejestracji/logowania (CYBER-2) | Adres IP, zdarzenia interakcji ze stroną logowania/rejestracji. Alternatywy przyjazne EOG: hCaptcha / Cloudflare Turnstile (przełączane configiem). |
-| **Ministerstwo Finansów — KSeF** | Polska | Wystawianie faktur ustrukturyzowanych (obowiązek ustawowy, KSeF 2.0) | Dane faktur (sprzedawca, nabywca, kwoty) |
-| **GlitchTip (self-hosted, CYBER-9)** | Polska / control-plane | Monitoring błędów runtime | Kontekst błędu (ścieżka, typ, userId) — **u nas**, nie zewnętrzny dostawca |
-| **Compute-node (węzły hostingowe)** | EOG | Świadczenie usługi hostingowej (DirectAdmin, pliki Klienta) | Dane hostowane przez Klienta — Verris jako processor w DPA |
+Wersja kanoniczna publikowana klientom: Załącznik 2 do DPA oraz pkt 5.1 Polityki prywatności. Zmiany listy — powiadomienie e-mail do klientów co najmniej 30 dni wcześniej (DPA §7).
 
-**Poza EOG:** jedyny potencjalny transfer to **Google reCAPTCHA** (USA) — wymaga podstawy (SCC / DPF) i wpisu w polityce prywatności + zgody cookie. 🧑‍⚖️ Do decyzji z prawnikiem: jeśli priorytetem jest brak transferu poza EOG, ustawić `CAPTCHA_PROVIDER=hcaptcha` (EU-friendly) lub `turnstile`. Stripe/SMTP/backup — wyłącznie EOG lub z SCC/DPF jeśli lawyer zatwierdzi wyjątek.
+| Podmiot | Siedziba / lokalizacja danych | Cel przetwarzania | Zakres danych | Transfer poza EOG |
+| --- | --- | --- | --- | --- |
+| **Hetzner Online GmbH** | Industriestr. 25, 91710 Gunzenhausen, Niemcy; DC: Niemcy/Finlandia | infrastruktura: control-plane (API, panele, PostgreSQL, Redis, MinIO), węzły hostingowe (DirectAdmin), serwery VPS (Hetzner Cloud), backup off-site (Storage Box / Object Storage) | wszystkie dane przetwarzane w systemie Verris oraz dane hostowane przez klientów; kopie zapasowe szyfrowane (age) przed wysyłką, klucz przechowywany odrębnie | nie |
+| **Stripe Payments Europe, Ltd.** | 1 Grand Canal Street Lower, Dublin, Irlandia | płatności: karty, Apple Pay, Google Pay, BLIK/Przelewy24 | identyfikatory płatności, 4 ostatnie cyfry karty, status transakcji (bez pełnego numeru karty) | możliwy transfer wspierający do Stripe, Inc. (USA) — SCC + Data Privacy Framework |
+| **Amazon Web Services EMEA SARL** | 38 Avenue John F. Kennedy, Luksemburg; region usługi: UE (Frankfurt / Irlandia) | Amazon SES — wysyłka e-mail transakcyjnych i kampanii e-mail marketingu | adres odbiorcy, treść wiadomości, status doręczenia | dane w regionie UE; możliwy dostęp wspierający z USA — SCC + Data Privacy Framework |
+| **Cloudflare, Inc.** | 101 Townsend St, San Francisco, USA (PoP w EOG) | Cloudflare Turnstile — ochrona anty-bot rejestracji i logowania | adres IP, sygnały przeglądarki/interakcji | tak — SCC + Data Privacy Framework |
+| **Hosting Concepts B.V. (Openprovider)** | Willemskade 18, Rotterdam, Holandia | rejestracja, odnawianie i transfer domen | dane abonenta domeny (nazwa, adres, e-mail, telefon) | zależnie od rejestru danej domeny |
+| **Google Ireland Limited** | Gordon House, Barrow Street, Dublin 4, Irlandia | Google Analytics 4 + Google Tag Manager (pomiar serwisu, tylko za zgodą z banera cookies) | identyfikatory cookies, IP, zdarzenia w serwisie | możliwy transfer do Google LLC (USA) — SCC + Data Privacy Framework |
 
-**Powiadomienia:** nowy subprocessor — e-mail do Klientów min. 30 dni wcześniej (Regulamin, DPA §7).
+## Odbiorcy niebędący podmiotami przetwarzającymi (odrębni administratorzy / podstawa ustawowa)
+
+| Podmiot | Rola | Zakres |
+| --- | --- | --- |
+| Rejestry domen (m.in. NASK — `.pl`, EURid — `.eu`) | odrębny administrator | dane abonenta rejestrowanej domeny |
+| Ministerstwo Finansów — Krajowy System e-Faktur (KSeF) | odbiorca ustawowy | dane faktur ustrukturyzowanych (sprzedawca, nabywca, kwoty) |
+| Stripe — przeciwdziałanie oszustwom | odrębny administrator | dane transakcji w zakresie AML/antyfraud |
+| Meta Platforms Ireland Ltd — Meta Pixel (za zgodą marketingową) | współadministrator w zakresie zbierania/przesyłania zdarzeń (art. 26 RODO, Controller Addendum); dalej odrębny administrator | identyfikatory cookies (_fbp/_fbc), IP, dane przeglądarki, zdarzenia |
+| Google Ireland Ltd — Google Ads (za zgodą marketingową) | odrębny administrator (konwersje, remarketing) | identyfikator _gcl_au, zdarzenia konwersji |
+
+## Narzędzia własne (bez udziału podmiotów zewnętrznych)
+
+Monitoring błędów (GlitchTip self-hosted), kopie zapasowe bazy (MinIO self-hosted), MTA pomocniczy — działają na infrastrukturze Verris u dostawcy wskazanego wyżej (Hetzner) i nie stanowią odrębnych subprocesorów.
+
+## Status umów powierzenia (wewnętrzne — nie publikować)
+
+| Subprocesor | Sposób zawarcia DPA | Status |
+| --- | --- | --- |
+| Hetzner Online GmbH | DPA w panelu konta Hetzner (obejmuje Cloud i Storage Box) | do akceptacji przed startem LIVE |
+| Stripe Payments Europe | Stripe Data Processing Agreement (online) | do akceptacji przed startem LIVE |
+| AWS EMEA SARL | AWS Service Terms + DPA (online), region wymuszony EU | do akceptacji przed startem LIVE |
+| Cloudflare, Inc. | Cloudflare DPA (online) | do akceptacji przed startem LIVE |
+| Hosting Concepts B.V. | DPA rejestratora (Openprovider) | do akceptacji przed startem LIVE |
+| Google Ireland Ltd (GA4/GTM) | Google Ads Data Processing Terms (akceptacja w ustawieniach konta GA4) | do akceptacji przed włączeniem GA4 |
+| Meta Platforms Ireland (Pixel) | Controller Addendum + Data Processing Terms (akceptacja w Business Manager) | do akceptacji przed włączeniem Pixela |

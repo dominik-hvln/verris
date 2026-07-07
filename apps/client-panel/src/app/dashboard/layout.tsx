@@ -12,6 +12,7 @@ import { WalletBadge } from "./wallet-badge";
 import { NotificationBell } from "./notification-bell";
 import { ReConsentModal } from "./reconsent-modal";
 import { PlatformConfigLoader } from "@/components/platform-config-loader";
+import { CookiePreferencesButton } from "@/components/cookie-consent";
 import { SpinBorder } from "@/components/spin-border";
 import { VerrisLockup, VerrisMark } from "@/components/logo";
 import {
@@ -373,15 +374,12 @@ export default function DashboardLayout({
           {children}
         </main>
 
-        {/* Compliance footer (Sprint 1, L-09) — minimal disclaimer because
-            we use only essential cookies (auth, CSRF). No banner needed under
-            ePrivacy. */}
+        {/* Compliance footer (L-09) — cookie consent managed by
+            CookieConsentManager (root layout); the button below reopens
+            the preferences modal, as required by Polityka cookies §3. */}
         <footer className="mt-auto border-t border-white/5 bg-black/60 px-3 py-5 pb-safe sm:px-8 sm:py-6">
           <div className="flex flex-col gap-2 text-[11px] text-neutral-500 sm:flex-row sm:items-center sm:justify-between">
-            <p>
-              © {new Date().getFullYear()} Verris — hosting, który liczy realne zużycie.
-              Używamy wyłącznie niezbędnych plików cookies (sesja i bezpieczeństwo).
-            </p>
+            <p>© {new Date().getFullYear()} Verris — hosting, który liczy realne zużycie.</p>
             <nav className="flex flex-wrap gap-x-4 gap-y-1">
               <a href="/legal/terms" className="hover:text-neutral-300">
                 Regulamin
@@ -395,6 +393,7 @@ export default function DashboardLayout({
               <a href="/legal/dpa" className="hover:text-neutral-300">
                 DPA
               </a>
+              <CookiePreferencesButton className="hover:text-neutral-300" />
               <a href="mailto:rodo@verris.pl" className="hover:text-neutral-300">
                 rodo@verris.pl
               </a>

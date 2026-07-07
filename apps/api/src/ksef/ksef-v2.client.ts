@@ -12,7 +12,7 @@ import {
   InvoiceStatusResult,
   InvoicingProvider,
 } from './invoicing-provider.interface';
-import { FA3_SCHEMA_VERSION, FA3_SYSTEM_CODE } from './fa3-xml.builder';
+import { FA3_FORM_VALUE, FA3_SCHEMA_VERSION, FA3_SYSTEM_CODE } from './fa3-xml.builder';
 
 /**
  * KSEF-2.0-2 — własny klient KSeF 2.0 (API v2) implementujący pełny przepływ
@@ -51,6 +51,12 @@ import { FA3_SCHEMA_VERSION, FA3_SYSTEM_CODE } from './fa3-xml.builder';
  *    → 202 {referenceNumber}.
  *  - /sessions/{ref}/invoices/{invoiceRef}: {ksefNumber(string), status:{code},
  *    acquisitionDate}.
+ *
+ * Kontrakt zweryfikowany względem API 2.6.x (changelog do 2.6.1, PRD od
+ * 16.06.2026). Istotne od 2.4.0/2.6.0: retencja statusu auth 7 dni (410 Gone),
+ * opcjonalny nagłówek odpowiedzi `X-System-Warning` (logowany niżej jako
+ * warning — zapowiada przyszłe odrzucenia), zaostrzona walidacja XML od
+ * 16.07.2026 (sanityzacja w fa-xml.types).
  *
  * ⚠️ PRZED LIVE: przejść smoke na api-test/api-demo z realnym tokenem KSeF
  * (ops/scripts/ksef-smoke.ts) oraz zwalidować XML FA(3) walidatorem XSD MF.
@@ -193,6 +199,35 @@ export class KsefV2Client implements InvoicingProvider {
       statusDescription: json?.status?.description ?? null,
       rejected: code != null && code >= 400,
     };
+  }
+
+  /**
+   * Pobiera UPO pojedynczej faktury (XML podpisany XAdES przez MF).
+   * GET /sessions/{ref}/invoices/{invoiceRef}/upo — dostępne po zamknięciu
+   * sesji i przyjęciu faktury; statusy sesji/faktur nie podlegają retencji,
+   * więc UPO można pobrać na żądanie także długo po wysyłce.
+   */
+  async downloadUpo(elementReferenceNumber: string): Promise<string> {
+    const [sessionRef, invoiceRef] = elementReferenceNumber.split('|');
+    if (!sessionRef || !invoiceRef) {
+      throw new KsefV2ApiError(`Nieprawidłowy identyfikator faktury: ${elementReferenceNumber}`);
+    }
+    if (!this.accessToken) {
+      throw new KsefV2ApiError('Brak accessToken — wywołaj openSession() przed downloadUpo().');
+    }
+    const res = await this.http(`/sessions/${sessionRef}/invoices/${invoiceRef}/upo`, {
+      method: 'GET',
+      headers: this.authHeader(),
+    });
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new KsefV2ApiError(
+        `KSeF 2.0 pobranie UPO nie powiodło się (HTTP ${res.status})`,
+        res.status,
+        body,
+      );
+    }
+    return await res.text();
   }
 
   async terminateSession(): Promise<void> {
@@ -363,7 +398,7 @@ export class KsefV2Client implements InvoicingProvider {
         formCode: {
           systemCode: FA3_SYSTEM_CODE,
           schemaVersion: FA3_SCHEMA_VERSION,
-          value: 'FA',
+          value: FA3_FORM_VALUE,
         },
         // Zweryfikowane z open-api.json (KSeF API 2.6.0): publicKeyId jest polem
         // obiektu `encryption`, NIE na najwyższym poziomie żądania.
@@ -432,10 +467,15 @@ export class KsefV2Client implements InvoicingProvider {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.config.timeoutMs ?? 30_000);
     try {
-      return await fetch(`${this.config.baseUrl.replace(/\/$/, '')}${path}`, {
+      const res = await fetch(`${this.config.baseUrl.replace(/\/$/, '')}${path}`, {
         ...init,
         signal: controller.signal,
       });
+      // API 2.6.0: ostrzeżenia techniczne bez wpływu na wynik operacji —
+      // logujemy, bo zapowiadają zachowania, które w przyszłości będą odrzucane.
+      const warning = res.headers.get('X-System-Warning');
+      if (warning) this.logger.warn(`KSeF X-System-Warning (${path}): ${warning}`);
+      return res;
     } catch (err) {
       throw new KsefV2ApiError(
         `KSeF 2.0 niedostępny (${path}): ${err instanceof Error ? err.message : String(err)}`,

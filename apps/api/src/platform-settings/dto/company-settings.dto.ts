@@ -41,20 +41,17 @@ export class UpdateSellerCompanyDto {
   bankAccount?: string;
 }
 
-/** Konfiguracja KSeF — token i klucz publiczny przekazywane tylko przy zmianie. */
+/** Konfiguracja KSeF 2.0 — token przekazywany tylko przy zmianie. */
 export class UpdateKsefSettingsDto {
   @IsBoolean()
   enabled!: boolean;
 
-  @IsIn(['test', 'prod'])
-  env!: 'test' | 'prod';
+  @IsIn(['test', 'demo', 'prod'])
+  env!: 'test' | 'demo' | 'prod';
 
   @IsOptional() @IsString() @MaxLength(20)
   nip?: string;
 
   @IsOptional() @IsString() @MaxLength(200)
   token?: string;
-
-  @IsOptional() @IsString() @MaxLength(8000)
-  publicKeyPem?: string;
 }

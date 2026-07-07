@@ -5,9 +5,8 @@ import { Invoice, KsefStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
-import { buildFaXml, FaXmlValidationError } from './fa-xml.builder';
+import { FaXmlValidationError } from './fa-xml.types';
 import { buildFa3Xml } from './fa3-xml.builder';
-import { KsefClient } from './ksef.client';
 import { KsefV2Client } from './ksef-v2.client';
 import { InvoicingProvider } from './invoicing-provider.interface';
 
@@ -46,10 +45,8 @@ export class KsefService {
     return rt.enabled;
   }
 
-  /** v2 = KSeF 2.0 (/api/v2), v1 = legacy KSeF 1.0 (/api). */
-  private currentApiVersion: 'v1' | 'v2' = 'v2';
-
-  private baseUrlForEnv(env: 'test' | 'demo' | 'prod', apiVersion: 'v1' | 'v2'): string {
+  /** Bazowy adres KSeF 2.0 (/api/v2) dla środowiska; KSEF_BASE_URL nadpisuje. */
+  private baseUrlForEnv(env: 'test' | 'demo' | 'prod'): string {
     const override = this.config.get<string>('KSEF_BASE_URL');
     if (override) return override;
     const host =
@@ -58,10 +55,7 @@ export class KsefService {
         : env === 'demo'
           ? 'https://api-demo.ksef.mf.gov.pl'
           : 'https://api-test.ksef.mf.gov.pl';
-    // KSeF 2.0 API jest pod /api/v2; legacy 1.0 pod /api.
-    if (apiVersion === 'v2') return `${host}/api/v2`;
-    // legacy hostname bez sub-„api." (stary interfejs)
-    return env === 'prod' ? 'https://ksef.mf.gov.pl/api' : 'https://ksef-test.mf.gov.pl/api';
+    return `${host}/api/v2`;
   }
 
   async configStatus() {
@@ -69,34 +63,19 @@ export class KsefService {
     return {
       enabled: rt.enabled,
       env: rt.env,
-      apiVersion: rt.apiVersion,
-      baseUrl: this.baseUrlForEnv(rt.env, rt.apiVersion),
+      baseUrl: this.baseUrlForEnv(rt.env),
       nipSet: Boolean(rt.nip),
       tokenSet: Boolean(rt.token),
-      // v2 pobiera klucze z API — klucz publiczny w configu wymagany tylko dla v1.
-      publicKeySet: rt.apiVersion === 'v2' ? true : Boolean(rt.publicKeyPem),
     };
   }
 
   private async buildClient(): Promise<InvoicingProvider | null> {
     const rt = await this.settings.getKsefRuntimeConfig();
-    this.currentApiVersion = rt.apiVersion;
     if (!rt.nip || !rt.token) return null;
-    const baseUrl = this.baseUrlForEnv(rt.env, rt.apiVersion);
-    if (rt.apiVersion === 'v2') {
-      return new KsefV2Client({
-        baseUrl,
-        nip: rt.nip.replace(/\D/g, ''),
-        token: rt.token,
-      });
-    }
-    // legacy v1 (FA(2)) — wymaga klucza publicznego MF w configu.
-    if (!rt.publicKeyPem) return null;
-    return new KsefClient({
-      baseUrl,
+    return new KsefV2Client({
+      baseUrl: this.baseUrlForEnv(rt.env),
       nip: rt.nip.replace(/\D/g, ''),
       token: rt.token,
-      publicKeyPem: rt.publicKeyPem,
     });
   }
 
@@ -198,11 +177,7 @@ export class KsefService {
   private async submitOne(client: InvoicingProvider, inv: Invoice): Promise<void> {
     let xml: string;
     try {
-      // v2 → FA(3) (obowiązkowy 2026); legacy v1 → FA(2).
-      ({ xml } =
-        this.currentApiVersion === 'v2'
-          ? buildFa3Xml({ invoice: inv, systemInfo: 'Verris Panel' })
-          : buildFaXml({ invoice: inv, systemInfo: 'Verris Panel' }));
+      ({ xml } = buildFa3Xml({ invoice: inv, systemInfo: 'Verris Panel' }));
     } catch (err) {
       if (err instanceof FaXmlValidationError) {
         // Dane faktury niekompletne — REJECTED lokalnie, wymaga poprawy danych.
@@ -313,6 +288,27 @@ export class KsefService {
         updatedAt: r.updatedAt.toISOString(),
       })),
     };
+  }
+
+  /**
+   * Admin: pobierz UPO przyjętej faktury (XML podpisany przez MF).
+   * Statusy sesji/faktur w KSeF 2.0 nie podlegają retencji, więc UPO jest
+   * dostępne na żądanie — nie przechowujemy go lokalnie.
+   */
+  async downloadUpo(invoiceId: string): Promise<{ number: string; upoXml: string }> {
+    const inv = await this.prisma.invoice.findUnique({ where: { id: invoiceId } });
+    if (!inv || inv.ksefStatus !== KsefStatus.ACCEPTED || !inv.ksefElementRef) {
+      throw new Error('UPO dostępne tylko dla faktur przyjętych przez KSeF.');
+    }
+    const client = await this.buildClient();
+    if (!client) throw new Error('KSeF nieskonfigurowany (NIP/token).');
+    await client.openSession();
+    try {
+      const upoXml = await client.downloadUpo(inv.ksefElementRef);
+      return { number: inv.number, upoXml };
+    } finally {
+      await client.terminateSession();
+    }
   }
 
   /** Admin: ponów odrzuconą fakturę po poprawie danych. */

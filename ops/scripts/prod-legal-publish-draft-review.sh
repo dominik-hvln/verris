@@ -62,7 +62,7 @@ const docs = [
   {
     kind: 'TERMS',
     file: 'terms.md',
-    title: 'Regulamin świadczenia usług hostingowych Verris',
+    title: 'Regulamin świadczenia usług Verris',
   },
   {
     kind: 'PRIVACY',

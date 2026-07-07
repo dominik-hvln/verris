@@ -17,10 +17,9 @@ export interface SellerCompany {
 
 export interface KsefSettings {
   enabled: boolean;
-  env: "test" | "prod";
+  env: "test" | "demo" | "prod";
   nip: string;
   tokenSet: boolean;
-  publicKeySet: boolean;
 }
 
 export interface KsefOverview {
@@ -30,7 +29,6 @@ export interface KsefOverview {
     baseUrl: string;
     nipSet: boolean;
     tokenSet: boolean;
-    publicKeySet: boolean;
   };
   counts: Record<string, number>;
   recentRejected: Array<{ id: string; number: string; error: string | null; updatedAt: string }>;
@@ -70,10 +68,9 @@ export async function fetchKsef() {
 
 export async function saveKsef(input: {
   enabled: boolean;
-  env: "test" | "prod";
+  env: "test" | "demo" | "prod";
   nip: string;
   token?: string;
-  publicKeyPem?: string;
 }) {
   try {
     const data = await adminApi<KsefSettings>("/admin/platform-settings/ksef", {

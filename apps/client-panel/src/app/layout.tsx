@@ -2,6 +2,8 @@ import { Toaster } from "sonner";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { hanken, jetbrains, schibsted } from "./fonts";
+import { AnalyticsScripts } from "@/components/analytics-scripts";
+import { CookieConsentManager } from "@/components/cookie-consent";
 
 export const metadata: Metadata = {
   title: "Verris — Panel klienta",
@@ -24,7 +26,9 @@ export default function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-background antialiased text-foreground">
+        <AnalyticsScripts />
         {children}
+        <CookieConsentManager />
         <Toaster theme="dark" position="bottom-right" />
       </body>
     </html>

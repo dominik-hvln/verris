@@ -60,12 +60,11 @@ export const PLATFORM_SETTING_KEYS = {
   COMPANY_EMAIL: 'company.email',
   COMPANY_BANK_ACCOUNT: 'company.bankAccount',
 
-  // KSeF — konfiguracja i sekrety (token/klucz szyfrowane KMS at-rest).
+  // KSeF 2.0 — konfiguracja i sekret (token szyfrowany KMS at-rest).
   KSEF_ENABLED: 'ksef.enabled',
   KSEF_ENV: 'ksef.env',
   KSEF_NIP: 'ksef.nip',
   KSEF_TOKEN_ENC: 'ksef.tokenEnc',
-  KSEF_PUBLIC_KEY_ENC: 'ksef.publicKeyEnc',
 
   // RESELL — program partnerski (afiliacja).
   /** Czy program partnerski jest aktywny (1/0). */
@@ -126,7 +125,6 @@ export const PLATFORM_SETTING_DEFAULTS: Record<PlatformSettingKey, string> = {
   [PLATFORM_SETTING_KEYS.KSEF_ENV]: 'test',
   [PLATFORM_SETTING_KEYS.KSEF_NIP]: '',
   [PLATFORM_SETTING_KEYS.KSEF_TOKEN_ENC]: '',
-  [PLATFORM_SETTING_KEYS.KSEF_PUBLIC_KEY_ENC]: '',
   [PLATFORM_SETTING_KEYS.PARTNER_ENABLED]: '1',
   [PLATFORM_SETTING_KEYS.PARTNER_COMMISSION_PCT]: '15',
   [PLATFORM_SETTING_KEYS.PARTNER_HOLD_DAYS]: '30',

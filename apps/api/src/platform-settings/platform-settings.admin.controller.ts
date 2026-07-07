@@ -156,7 +156,6 @@ export class PlatformSettingsAdminController {
         env: dto.env,
         nip: dto.nip ?? '',
         token: dto.token,
-        publicKeyPem: dto.publicKeyPem,
       },
       actor.userId,
     );

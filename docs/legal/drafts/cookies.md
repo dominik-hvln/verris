@@ -1,79 +1,80 @@
 # Polityka plików cookies Verris
 
-> **DRAFT — wymaga lawyer review.** Spełnia obowiązek z art. 173 ustawy Prawo telekomunikacyjne (PTel) oraz dyrektywy ePrivacy 2002/58/WE.
+**Wersja 1.0.0 · obowiązuje od 7 lipca 2026 r.**
+
+Niniejsza Polityka realizuje obowiązki wynikające z art. 399–402 ustawy z dnia 12 lipca 2024 r. — Prawo komunikacji elektronicznej (PKE) oraz dyrektywy 2002/58/WE (ePrivacy).
 
 ## 1. Czym są cookies
 
-Pliki cookies to małe pliki tekstowe zapisywane przez Twoją przeglądarkę na urządzeniu, gdy odwiedzasz stronę internetową. Pozwalają stronie zapamiętać Twoje preferencje, sesję logowania, ustawienia. Verris używa również podobnych technologii (`localStorage`, `sessionStorage`, identyfikatorów w nagłówkach HTTP), które zbiorczo określamy jako „cookies" w niniejszej Polityce.
+Pliki cookies to niewielkie pliki tekstowe zapisywane przez przeglądarkę na Twoim urządzeniu. Podobnie działają technologie pokrewne (`localStorage`, `sessionStorage`), które na potrzeby tej Polityki obejmujemy wspólną nazwą „cookies". Cookies pozwalają utrzymać sesję logowania, zapamiętać preferencje i chronić panel przed nadużyciami.
 
-## 2. Kategorie cookies, których używamy
+## 2. Kategorie cookies używane przez Verris
 
-### 2.1 Cookies niezbędne (zawsze aktywne)
+### 2.1 Cookies niezbędne (nie wymagają zgody)
 
-Bez tych plików Verris nie zadziała poprawnie. Nie wymagamy zgody, bo opierają się na uzasadnionym interesie umożliwienia świadczenia usługi (art. 173 ust. 3 pkt 2 PTel).
-
-| Nazwa | Cel | Czas życia |
-| --- | --- | --- |
-| `auth_token` | Token sesji JWT (httpOnly, Secure, SameSite=Strict) | 1h od ostatniej aktywności, max 24h |
-| `refresh_token` | Token odświeżania sesji (httpOnly, Secure) | 30 dni |
-| `csrf_token` | Ochrona przed atakami CSRF | sesja przeglądarki |
-| `panel-locale` | Wybrany język panelu (pl/en) | 1 rok |
-| `panel-theme` | Tryb ciemny/jasny | 1 rok |
-| `cookies_consent` | Zapis Twoich preferencji cookies | 1 rok |
-
-### 2.2 Cookies funkcjonalne (opcjonalne)
-
-Pomagają nam pamiętać Twoje preferencje. Aktywują się dopiero po Twojej zgodzie.
+Przechowywanie tych informacji jest konieczne do świadczenia usługi, której wyraźnie żądasz (logowanie, bezpieczeństwo sesji, zapamiętanie Twojej decyzji co do cookies) — zgodnie z art. 399 ust. 3 PKE nie wymaga ono zgody.
 
 | Nazwa | Cel | Czas życia |
 | --- | --- | --- |
-| `dashboard-layout` | Twoje ulubione widgety na pulpicie | 6 miesięcy |
-| `support-draft` | Robocza wersja zgłoszenia w supporcie | 7 dni |
+| `auth_token` | token sesji (httpOnly, Secure, SameSite) | do 24 h |
+| `refresh_token` | odświeżanie sesji (httpOnly, Secure) | 30 dni |
+| `csrf_token` | ochrona przed atakami CSRF | sesja przeglądarki |
+| `panel-locale` | wybrany język panelu | 12 miesięcy |
+| `panel-theme` | tryb ciemny/jasny | 12 miesięcy |
+| `cookies_consent` | zapis Twoich preferencji cookies | 12 miesięcy |
 
-### 2.3 Cookies analityczne
+### 2.2 Cookies funkcjonalne (za zgodą)
 
-Na start LIVE Verris nie używa cookies analitycznych ani narzędzi śledzących typu Google Analytics / Hotjar. Jeśli w przyszłości włączymy analitykę wymagającą zgody, zaktualizujemy niniejszą Politykę i poprosimy Cię o zgodę przed jej aktywacją.
+Zapamiętują udogodnienia, które nie są niezbędne do działania usługi. Aktywują się wyłącznie po wyrażeniu zgody.
 
-### 2.4 Cookies third-party (uzależnione od użytych funkcji)
+| Nazwa | Cel | Czas życia |
+| --- | --- | --- |
+| `dashboard-layout` | układ widgetów na pulpicie | 6 miesięcy |
+| `support-draft` | robocza wersja zgłoszenia wsparcia | 7 dni |
 
-- **Stripe:** kiedy podajesz dane karty w panelu, Stripe ustawia cookies (m.in. `__stripe_mid`, `__stripe_sid`) niezbędne do działania Stripe Elements i ochrony przed fraudami. Te cookies są zarządzane przez Stripe — szczegóły w [Polityce prywatności Stripe](https://stripe.com/privacy).
-- **CDN / ochrona antybotowa:** jeśli zostanie użyta, szczegóły cookies dostawcy zostaną dopisane przed publikacją tej konfiguracji.
+### 2.3 Cookies analityczne (za zgodą)
 
-## 3. Jak zarządzać cookies
+Służą do pomiaru korzystania z serwisu. Uruchamiają się wyłącznie po Twojej zgodzie — do tego czasu wszystkie sygnały pomiarowe pozostają wyłączone (Google Consent Mode v2, stan domyślny „denied").
 
-### 3.1 W panelu Verris
+| Nazwa | Dostawca / cel | Czas życia |
+| --- | --- | --- |
+| `_ga` | Google Analytics 4 — rozróżnianie użytkowników | 24 miesiące |
+| `_ga_<identyfikator>` | Google Analytics 4 — utrzymanie stanu sesji | 24 miesiące |
 
-W stopce każdej strony znajdziesz link „Preferencje cookies", który otwiera modal z włącznikami dla każdej kategorii (poza niezbędnymi). Możesz w każdej chwili zmienić swoje wybory.
+Narzędzia analityczne i tagi zarządzane są przez Google Tag Manager, który sam nie zapisuje własnych cookies śledzących.
 
-### 3.2 W przeglądarce
+### 2.3a Cookies marketingowe (za zgodą)
 
-Możesz całkowicie zablokować lub usunąć cookies w ustawieniach swojej przeglądarki:
+Służą do pomiaru skuteczności reklam i ich dopasowania. Uruchamiają się wyłącznie po Twojej zgodzie; skrypt Meta Pixel jest w ogóle ładowany dopiero po jej wyrażeniu.
 
-- **Chrome:** Ustawienia → Prywatność i bezpieczeństwo → Pliki cookie i inne dane witryn.
-- **Firefox:** Ustawienia → Prywatność i bezpieczeństwo → Pliki cookie i dane stron.
-- **Safari:** Preferencje → Prywatność → Zarządzaj danymi witryn.
-- **Edge:** Ustawienia → Pliki cookie i uprawnienia witryn.
+| Nazwa | Dostawca / cel | Czas życia |
+| --- | --- | --- |
+| `_gcl_au` | Google Ads — pomiar konwersji | 3 miesiące |
+| `_fbp` | Meta Pixel — rozróżnianie przeglądarek na potrzeby reklam Meta | 3 miesiące |
+| `_fbc` | Meta Pixel — atrybucja kliknięć reklam Meta (ustawiane przy wejściu z reklamy) | 3 miesiące |
 
-**Uwaga:** zablokowanie cookies niezbędnych (`auth_token`, `csrf_token`) uniemożliwi zalogowanie się do Verris.
+Szczegóły przetwarzania danych przez Google i Meta oraz zasady transferu danych do USA opisuje Polityka prywatności (pkt 5 i 6).
 
-## 4. Zgoda
+### 2.4 Cookies podmiotów trzecich
 
-Przy pierwszej wizycie wyświetlamy banner cookies z opcjami:
+- **Stripe** — przy podawaniu danych płatniczych komponent Stripe ustawia własne cookies (m.in. `__stripe_mid`, `__stripe_sid`) niezbędne do realizacji płatności i zapobiegania oszustwom. Szczegóły: `https://stripe.com/privacy`.
+- **Cloudflare Turnstile** — mechanizm chroniący formularze rejestracji i logowania przed botami; w ramach weryfikacji Cloudflare może zapisać na urządzeniu informacje niezbędne do potwierdzenia, że nie jesteś botem. Te operacje są niezbędne do bezpiecznego świadczenia usługi, której żądasz (art. 399 ust. 3 PKE). Szczegóły: `https://www.cloudflare.com/privacypolicy/`.
 
-- **„Akceptuj wszystkie"** — aktywujemy wszystkie kategorie cookies.
-- **„Tylko niezbędne"** — aktywujemy wyłącznie kategorię 2.1.
-- **„Personalizuj"** — pozwalamy Ci wybrać każdą kategorię oddzielnie.
+## 3. Zgoda
 
-Twoja decyzja jest zapisywana w cookie `cookies_consent` na 1 rok. Po roku ponownie zapytamy. Możesz zmienić decyzję w każdej chwili w stopce „Preferencje cookies".
+1. Przy pierwszej wizycie wyświetlamy okno z opcjami: **„Akceptuj wszystkie"**, **„Tylko niezbędne"** oraz **„Personalizuj"** (wybór per kategoria). Obie pierwsze opcje są równie łatwo dostępne — odmowa nie wymaga więcej kliknięć niż akceptacja.
+2. Zgoda spełnia wymogi RODO (art. 402 PKE): jest dobrowolna, konkretna, świadoma i jednoznaczna. Możesz ją w każdej chwili wycofać w stopce panelu („Preferencje cookies") — wycofanie jest równie łatwe jak wyrażenie.
+3. Twoją decyzję przechowujemy 12 miesięcy, po czym zapytamy ponownie.
+4. Odmowa zgody na cookies opcjonalne nie ogranicza dostępu do usług Verris.
 
-**Konsekwencje braku zgody:** odmowa zgody na cookies analityczne / marketingowe **nie wpływa** na dostęp do Usług ani ich jakość. Po prostu nie będziemy zbierać statystyk od Ciebie.
+## 4. Zarządzanie cookies w przeglądarce
+
+Cookies możesz usuwać i blokować w ustawieniach przeglądarki (Chrome, Firefox, Safari, Edge — sekcje „Prywatność"/„Pliki cookie"). Zablokowanie cookies niezbędnych (`auth_token`, `csrf_token`) uniemożliwi zalogowanie do panelu.
 
 ## 5. Zmiany Polityki
 
-Aktualizacje niniejszej Polityki publikujemy w Panelu wraz z poinformowaniem Cię e-mailem. Każda zmiana wprowadzająca nową kategorię cookies wymaga ponownej zgody.
+Aktualizacje publikujemy w panelu i komunikujemy e-mailem. Wprowadzenie nowej kategorii cookies wymagającej zgody poprzedzimy ponownym zapytaniem o zgodę.
 
 ---
 
-**Wersja: DRAFT 0.1 (Sprint 0)**
-**Data: maj 2026**
-**Lawyer review status: pending**
+**Wersja 1.0.0 — data publikacji: 7 lipca 2026 r.**

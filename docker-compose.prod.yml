@@ -273,6 +273,8 @@ services:
         ADMIN_PANEL_URL: ${ADMIN_PANEL_URL}
         NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
         NEXT_PUBLIC_STATUS_PAGE_URL: ${PUBLIC_STATUS_URL:-https://status.verris.pl}
+        NEXT_PUBLIC_GTM_ID: ${GTM_ID:-}
+        NEXT_PUBLIC_META_PIXEL_ID: ${META_PIXEL_ID:-}
     restart: always
     logging: *default-logging
     depends_on: [api]

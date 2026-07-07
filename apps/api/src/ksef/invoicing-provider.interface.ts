@@ -1,11 +1,10 @@
 /**
- * KSEF-2.0-1 — warstwa abstrakcji e-faktur (bez vendor lock-in).
+ * Warstwa abstrakcji e-faktur (bez vendor lock-in).
  *
  * KsefService orkiestruje wysyłkę przez ten interfejs, nie znając szczegółów
- * protokołu. Implementacje:
- *   - `KsefV2Client`  — własny klient KSeF 2.0 / FA(3) (docelowy, obowiązkowy 2026).
- *   - `KsefClient`    — legacy KSeF 1.0 / FA(2) (@deprecated, do wygaszenia).
- * W przyszłości można dodać adapter integratora BSP bez zmian w KsefService.
+ * protokołu. Implementacja produkcyjna: `KsefV2Client` (własny klient
+ * KSeF 2.0 / FA(3)). W przyszłości można dodać adapter integratora BSP bez
+ * zmian w KsefService.
  *
  * Model wysyłki (sesja interaktywna): otwórz sesję → wyślij faktury → zamknij
  * sesję → sprawdzaj status/UPO per faktura w kolejnych cyklach.
@@ -39,6 +38,8 @@ export interface InvoicingProvider {
   sendInvoice(invoiceXml: string): Promise<InvoiceSendResult>;
   /** Sprawdza status wcześniej wysłanej faktury (numer KSeF / odrzucenie). */
   invoiceStatus(elementReferenceNumber: string): Promise<InvoiceStatusResult>;
+  /** Pobiera UPO (XML) przyjętej faktury. */
+  downloadUpo(elementReferenceNumber: string): Promise<string>;
   /** Zamyka sesję (dla KSeF 2.0 wyzwala generowanie UPO). Best-effort. */
   terminateSession(): Promise<void>;
 }

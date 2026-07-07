@@ -1,74 +1,43 @@
-import { Invoice } from '@verris/database';
 import {
   BuildFaXmlInput,
   BuiltFaXml,
   FaXmlValidationError,
   InvoiceLineItem,
   PartySnapshot,
+  escapeXml,
+  formatDateOnly,
+  formatMoney,
+  isValidNip,
   normalizeNip,
-} from './fa-xml.builder';
+  partyDisplayName,
+  vatRateLabel,
+} from './fa-xml.types';
 
 /**
- * KSEF-2.0-4 — generator XML e-Faktury w schemacie **FA(3)** (obowiązujący od
- * 1.02.2026 w KSeF 2.0). Buduje dokument wyłącznie z realnych danych `Invoice`.
+ * Generator XML e-Faktury w schemacie **FA(3)** — jedynym obowiązującym w
+ * KSeF 2.0 (od 1.02.2026). Buduje dokument wyłącznie z realnych danych
+ * `Invoice` (snapshoty stron, rozbicie VAT, pozycje).
  *
- * Struktura pól (Naglowek/Podmiot1/Podmiot2/Fa/FaWiersz, P_1, P_2, P_13_1,
- * P_14_1, P_15) jest wspólna z FA(2) dla prostej faktury krajowej PLN, jaką
- * wystawia hosting. Różnice FA(3): kod systemowy „FA (3)", WariantFormularza 3
- * i docelowy namespace CRWDE.
+ * Stałe POTWIERDZONE z oficjalnego XSD MF
+ * (ksef-docs/faktury/schemy/FA/schemat_FA(3)_v1-0E.xsd, CRWDE 25.06.2025):
+ *  - targetNamespace: http://crd.gov.pl/wzor/2025/06/25/13775/
+ *  - KodFormularza: kodSystemowy fixed "FA (3)", wersjaSchemy fixed "1-0E",
+ *    wartość elementu "FA", WariantFormularza 3.
  *
- * ⚠️ TARGET NAMESPACE: MF publikuje dokładny namespace w XSD FA(3)
- * (`schemat_FA(3)_v1-0E.xsd`, CRWDE 25.06.2025). Ustaw go w
- * `KSEF_FA3_TARGET_NAMESPACE` (env) i ZWERYFIKUJ wygenerowany XML walidatorem
- * XSD na środowisku testowym KSeF przed LIVE (ops/scripts/ksef-smoke.ts).
- * Domyślna wartość poniżej jest wartością do potwierdzenia, nie zgadywaniem
- * ostatecznym — dlatego jest nadpisywalna configiem, bez zmian w kodzie.
+ * Zgodność z weryfikacją KSeF 2.0 (stan: lipiec 2026):
+ *  - prolog UTF-8 (2.3.0), brak processing instructions poza prologiem,
+ *    pola tekstowe sanityzowane ze znaków niezalecanych W3C (2.4.0,
+ *    egzekwowane na PRD od 16.07.2026),
+ *  - suma kontrolna NIP Podmiot1/Podmiot2 walidowana lokalnie (2.0.1).
  */
 
-// Wartość DOMYŚLNA do potwierdzenia z opublikowanym XSD FA(3). Operator nadpisuje
-// przez KSEF_FA3_TARGET_NAMESPACE po pobraniu wzoru z CRWDE/ePUAP.
-export const FA3_DEFAULT_NAMESPACE =
+export const FA3_NAMESPACE =
   process.env.KSEF_FA3_TARGET_NAMESPACE ?? 'http://crd.gov.pl/wzor/2025/06/25/13775/';
-
 export const FA3_SYSTEM_CODE = 'FA (3)';
 export const FA3_SCHEMA_VERSION = '1-0E';
+export const FA3_FORM_VALUE = 'FA';
+export const FA3_FORM_VARIANT = 3;
 
-function esc(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-}
-
-function money(value: string | number | { toString(): string }): string {
-  const n = Number(value.toString());
-  if (!Number.isFinite(n)) {
-    throw new FaXmlValidationError(`Nieprawidłowa kwota: ${String(value)}`);
-  }
-  return n.toFixed(2);
-}
-
-function dateOnly(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
-
-function partyDisplayName(p: PartySnapshot): string {
-  return (
-    p.name ||
-    p.companyName ||
-    [p.firstName, p.lastName].filter(Boolean).join(' ') ||
-    'Nabywca'
-  );
-}
-
-function vatRateLabel(rate: number): string {
-  if ([23, 22, 8, 7, 5, 4, 3, 0].includes(rate)) return String(rate);
-  throw new FaXmlValidationError(`Nieobsługiwana stawka VAT: ${rate}`);
-}
-
-/** Buduje XML FA(3). Sygnatura zgodna z buildFaXml (drop-in dla providera v2). */
 export function buildFa3Xml(input: BuildFaXmlInput): BuiltFaXml {
   const inv = input.invoice;
   const seller = (inv.sellerSnapshot ?? {}) as PartySnapshot;
@@ -78,7 +47,12 @@ export function buildFa3Xml(input: BuildFaXmlInput): BuiltFaXml {
   const sellerNip = normalizeNip(seller.nip);
   if (!sellerNip) {
     throw new FaXmlValidationError(
-      'Brak NIP sprzedawcy w sellerSnapshot — uzupełnij dane sprzedawcy (PlatformSetting) przed wysyłką do KSeF.',
+      'Brak NIP sprzedawcy w sellerSnapshot — uzupełnij dane sprzedawcy (Ustawienia → Firma) przed wysyłką do KSeF.',
+    );
+  }
+  if (!isValidNip(sellerNip)) {
+    throw new FaXmlValidationError(
+      `NIP sprzedawcy ${sellerNip} ma błędną sumę kontrolną — KSeF odrzuci fakturę.`,
     );
   }
   if (!inv.issuedAt) {
@@ -94,11 +68,17 @@ export function buildFa3Xml(input: BuildFaXmlInput): BuiltFaXml {
   }
 
   const buyerNip = normalizeNip(buyer.nip);
+  if (buyerNip && !isValidNip(buyerNip)) {
+    throw new FaXmlValidationError(
+      `NIP nabywcy ${buyerNip} ma błędną sumę kontrolną — popraw dane do faktury klienta.`,
+    );
+  }
+
   const rate = Number(inv.vatRate.toString());
   vatRateLabel(rate);
-  const net = money(inv.netAmount);
-  const vat = money(inv.vatAmount);
-  const gross = money(inv.amount);
+  const net = formatMoney(inv.netAmount);
+  const vat = formatMoney(inv.vatAmount);
+  const gross = formatMoney(inv.amount);
 
   if (Math.abs(Number(net) + Number(vat) - Number(gross)) > 0.011) {
     throw new FaXmlValidationError(
@@ -106,8 +86,7 @@ export function buildFa3Xml(input: BuildFaXmlInput): BuiltFaXml {
     );
   }
 
-  const now = new Date();
-  const lines = items.length
+  const lines: InvoiceLineItem[] = items.length
     ? items
     : [
         {
@@ -118,7 +97,7 @@ export function buildFa3Xml(input: BuildFaXmlInput): BuiltFaXml {
           totalNet: net,
           totalVat: vat,
           totalGross: gross,
-        } satisfies InvoiceLineItem,
+        },
       ];
 
   const wiersze = lines
@@ -127,11 +106,11 @@ export function buildFa3Xml(input: BuildFaXmlInput): BuiltFaXml {
       return [
         '    <FaWiersz>',
         `      <NrWierszaFa>${idx + 1}</NrWierszaFa>`,
-        `      <P_7>${esc(String(li.name).slice(0, 256))}</P_7>`,
-        `      <P_8A>szt.</P_8A>`,
+        `      <P_7>${escapeXml(String(li.name).slice(0, 256))}</P_7>`,
+        '      <P_8A>szt.</P_8A>',
         `      <P_8B>${q}</P_8B>`,
-        `      <P_9A>${money(li.unitNet)}</P_9A>`,
-        `      <P_11>${money(li.totalNet)}</P_11>`,
+        `      <P_9A>${formatMoney(li.unitNet)}</P_9A>`,
+        `      <P_11>${formatMoney(li.totalNet)}</P_11>`,
         `      <P_12>${vatRateLabel(Number(li.vatRate))}</P_12>`,
         '    </FaWiersz>',
       ].join('\n');
@@ -139,45 +118,49 @@ export function buildFa3Xml(input: BuildFaXmlInput): BuiltFaXml {
     .join('\n');
 
   const addressLine = (p: PartySnapshot): string =>
-    esc([p.address, [p.postalCode, p.city].filter(Boolean).join(' ')].filter(Boolean).join(', ') || 'brak');
+    escapeXml(
+      [p.address, [p.postalCode, p.city].filter(Boolean).join(' ')]
+        .filter(Boolean)
+        .join(', ') || 'brak',
+    );
 
   const podmiot2Ident = buyerNip
     ? `        <NIP>${buyerNip}</NIP>`
-    : `        <BrakID>1</BrakID>`;
+    : '        <BrakID>1</BrakID>';
 
   const xml = [
     '<?xml version="1.0" encoding="UTF-8"?>',
-    `<Faktura xmlns="${FA3_DEFAULT_NAMESPACE}">`,
+    `<Faktura xmlns="${FA3_NAMESPACE}">`,
     '  <Naglowek>',
-    `    <KodFormularza kodSystemowy="${FA3_SYSTEM_CODE}" wersjaSchemy="${FA3_SCHEMA_VERSION}">FA</KodFormularza>`,
-    '    <WariantFormularza>3</WariantFormularza>',
-    `    <DataWytworzeniaFa>${now.toISOString()}</DataWytworzeniaFa>`,
-    `    <SystemInfo>${esc(input.systemInfo ?? 'Verris Panel')}</SystemInfo>`,
+    `    <KodFormularza kodSystemowy="${FA3_SYSTEM_CODE}" wersjaSchemy="${FA3_SCHEMA_VERSION}">${FA3_FORM_VALUE}</KodFormularza>`,
+    `    <WariantFormularza>${FA3_FORM_VARIANT}</WariantFormularza>`,
+    `    <DataWytworzeniaFa>${new Date().toISOString()}</DataWytworzeniaFa>`,
+    `    <SystemInfo>${escapeXml(input.systemInfo ?? 'Verris Panel')}</SystemInfo>`,
     '  </Naglowek>',
     '  <Podmiot1>',
     '    <DaneIdentyfikacyjne>',
     `      <NIP>${sellerNip}</NIP>`,
-    `      <Nazwa>${esc(partyDisplayName(seller))}</Nazwa>`,
+    `      <Nazwa>${escapeXml(partyDisplayName(seller))}</Nazwa>`,
     '    </DaneIdentyfikacyjne>',
     '    <Adres>',
-    `      <KodKraju>${esc(seller.country || 'PL')}</KodKraju>`,
+    `      <KodKraju>${escapeXml(seller.country || 'PL')}</KodKraju>`,
     `      <AdresL1>${addressLine(seller)}</AdresL1>`,
     '    </Adres>',
     '  </Podmiot1>',
     '  <Podmiot2>',
     '    <DaneIdentyfikacyjne>',
     podmiot2Ident,
-    `      <Nazwa>${esc(partyDisplayName(buyer))}</Nazwa>`,
+    `      <Nazwa>${escapeXml(partyDisplayName(buyer))}</Nazwa>`,
     '    </DaneIdentyfikacyjne>',
     '    <Adres>',
-    `      <KodKraju>${esc(buyer.country || 'PL')}</KodKraju>`,
+    `      <KodKraju>${escapeXml(buyer.country || 'PL')}</KodKraju>`,
     `      <AdresL1>${addressLine(buyer)}</AdresL1>`,
     '    </Adres>',
     '  </Podmiot2>',
     '  <Fa>',
     '    <KodWaluty>PLN</KodWaluty>',
-    `    <P_1>${dateOnly(inv.issuedAt)}</P_1>`,
-    `    <P_2>${esc(inv.number)}</P_2>`,
+    `    <P_1>${formatDateOnly(inv.issuedAt)}</P_1>`,
+    `    <P_2>${escapeXml(inv.number)}</P_2>`,
     `    <P_13_1>${net}</P_13_1>`,
     `    <P_14_1>${vat}</P_14_1>`,
     `    <P_15>${gross}</P_15>`,
