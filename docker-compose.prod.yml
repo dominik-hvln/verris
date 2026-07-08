@@ -398,6 +398,41 @@ services:
       start_period: 15s
 
   # ---------------------------------------------------------------------------
+  # Strona marketingowa verris.pl (Next.js + Payload CMS, apps/www).
+  # Payload trzyma własny schemat `payload` na tej samej bazie (bez kolizji z API).
+  # Healthcheck na /healthz, bo /api/* należy w tej apce do Payload.
+  # ---------------------------------------------------------------------------
+  www:
+    build:
+      context: .
+      dockerfile: Dockerfile.panel
+      args:
+        APP_NAME: www
+        APP_PORT: '3005'
+        NEXT_PUBLIC_GTM_ID: ${GTM_ID:-}
+        NEXT_PUBLIC_META_PIXEL_ID: ${META_PIXEL_ID:-}
+    restart: always
+    logging: *default-logging
+    depends_on: [postgres]
+    environment:
+      NODE_ENV: production
+      PORT: '3005'
+      DATABASE_URI: postgres://${POSTGRES_USER:-verris}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-verris_db}
+      # Wymagany do działania www — bez niego Payload nie wstanie (miękki default,
+      # by nie blokować parsowania całego compose, jak przy GlitchTip).
+      PAYLOAD_SECRET: ${PAYLOAD_SECRET:-}
+      NEXT_PUBLIC_GTM_ID: ${GTM_ID:-}
+      NEXT_PUBLIC_META_PIXEL_ID: ${META_PIXEL_ID:-}
+    expose: ['3005']
+    networks: [verris_public, verris_internal]
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:3005/healthz']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # ---------------------------------------------------------------------------
   # Observability stack (F-12 → F-16): Prometheus + Grafana + exporters.
   # All services are reachable only on the `verris_internal` network; Grafana
   # is exposed publicly via Caddy with `forward_auth` to /auth/grafana-validate.
@@ -543,7 +578,7 @@ services:
     image: caddy:2-alpine
     restart: always
     logging: *default-logging
-    depends_on: [api, client-panel, staff-panel, admin-panel, status-page, grafana]
+    depends_on: [api, client-panel, staff-panel, admin-panel, status-page, www, grafana]
     # Caddyfile uses {$CADDY_*_DOMAIN} — must be in the container env (not only
     # compose --env-file interpolation) or Caddy falls back to *.verris.local.
     environment:
@@ -556,6 +591,8 @@ services:
       CADDY_GLITCHTIP_DOMAIN: ${CADDY_GLITCHTIP_DOMAIN:-glitchtip.verris.local}
       CADDY_MAIL_DOMAIN: ${CADDY_MAIL_DOMAIN:-mail.verris.local}
       CADDY_KB_DOMAIN: ${CADDY_KB_DOMAIN:-pomoc.verris.local}
+      CADDY_WWW_DOMAIN: ${CADDY_WWW_DOMAIN:-verris.local}
+      CADDY_WWW_REDIRECT_DOMAIN: ${CADDY_WWW_REDIRECT_DOMAIN:-www.verris.local}
       # ETAP 8: po uruchomieniu VPN ustaw np. "10.88.0.0/24" — panele staff/admin
       # przestaną odpowiadać spoza tunelu (puste = brak restrykcji).
       CADDY_INTERNAL_ALLOW_CIDR: ${CADDY_INTERNAL_ALLOW_CIDR:-0.0.0.0/0 ::/0}

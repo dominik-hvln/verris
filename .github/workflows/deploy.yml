@@ -88,6 +88,14 @@ jobs:
               APP_NAME=status-page
               APP_PORT=3004
               NEXT_PUBLIC_API_URL=${{ vars.PUBLIC_API_URL || 'https://api.verris.pl' }}
+          # Strona marketingowa verris.pl (Next.js + Payload CMS, apps/www).
+          - image: verris-www
+            dockerfile: Dockerfile.panel
+            build_args: |
+              APP_NAME=www
+              APP_PORT=3005
+              NEXT_PUBLIC_GTM_ID=${{ vars.GTM_ID }}
+              NEXT_PUBLIC_META_PIXEL_ID=${{ vars.META_PIXEL_ID }}
     steps:
       - uses: actions/checkout@v4
 

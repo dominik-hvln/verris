@@ -14,7 +14,7 @@ set -Eeuo pipefail
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 GHCR_OVERRIDE="${GHCR_OVERRIDE:-docker-compose.ghcr.yml}"
 ENV_FILE="${ENV_FILE:-.env.prod}"
-APP_SERVICES="api client-panel staff-panel admin-panel status-page"
+APP_SERVICES="api client-panel staff-panel admin-panel status-page www"
 # API nie publikuje portu 3000 na host (słucha tylko w sieci dockera, Caddy woła
 # je po nazwie), więc health-check MUSI iść WEWNĄTRZ kontenera api, nie z hosta.
 HEALTH_PATH="${HEALTH_PATH:-http://127.0.0.1:3000/healthz}"

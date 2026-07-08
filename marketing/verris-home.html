@@ -13,8 +13,16 @@
 <meta property="og:url" content="https://verris.pl/">
 <meta property="og:locale" content="pl_PL">
 
-<!-- TODO (Dominik): GTM GTM-PJQNXCF5 + cookie banner / Consent Mode v2 (default denied) site-wide.
-     Tagi GA4/Ads/Pixel odpalają się wyłącznie po zgodzie. -->
+<!-- Consent Mode v2 (default denied) — przed GTM -->
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+window.gtag = gtag;
+gtag('consent','default',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',analytics_storage:'denied',functionality_storage:'granted',security_storage:'granted',wait_for_update:500});
+gtag('set','ads_data_redaction',true);gtag('set','url_passthrough',true);
+</script>
+<!-- Google Tag Manager (GA4/Ads/Meta w kontenerze, consent-gated) -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-PJQNXCF5');</script>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -244,9 +252,17 @@ footer{border-top:1px solid var(--line);background:var(--pine);padding:56px 0 30
   .foot-grid{grid-template-columns:1fr}
   section{padding:60px 0}
 }
+
+/* Cookie banner */
+.consent{position:fixed;left:0;right:0;bottom:0;z-index:80;background:rgba(9,20,16,.95);backdrop-filter:blur(12px);border-top:1px solid var(--line2)}
+.consent .inner{max-width:var(--wrap);margin:0 auto;padding:16px 24px;display:flex;gap:20px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.consent p{font-size:13.5px;color:var(--body);max-width:660px}
+.consent .cbtns{display:flex;gap:10px;flex-shrink:0}
+@media(max-width:600px){.consent .inner{flex-direction:column;align-items:stretch}.consent .cbtns{justify-content:flex-end}}
 </style>
 </head>
 <body>
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PJQNXCF5" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 
 <div class="announce">Nowość · <strong>Hosting z autoskalowaniem</strong> — płacisz tyle, ile widzisz. Migracja strony i poczty za <strong>0 zł</strong>.</div>
 
@@ -257,11 +273,13 @@ footer{border-top:1px solid var(--line);background:var(--pine);padding:56px 0 30
       <span class="wm">verris</span>
     </a>
     <nav class="nav-links" aria-label="Główne">
-      <a href="#uslugi">Usługi</a>
-      <a href="#autoskalowanie">Autoskalowanie</a>
-      <a href="#cennik">Cennik</a>
-      <a href="https://verris.pl/przenies-strone">Migracja</a>
-      <a href="#faq">Pomoc</a>
+      <a href="/hosting">Hosting</a>
+      <a href="/vps">VPS</a>
+      <a href="/domeny">Domeny</a>
+      <a href="/funkcje">Funkcje</a>
+      <a href="/cennik">Cennik</a>
+      <a href="/blog">Blog</a>
+      <a href="/pomoc">Pomoc</a>
     </nav>
     <div class="nav-act">
       <a class="login" href="https://panel.verris.pl">Zaloguj</a>
@@ -592,6 +610,74 @@ document.querySelectorAll('[data-event="cta_click"]').forEach(function(el){
   if(!('IntersectionObserver' in window)){document.querySelectorAll('.rv').forEach(function(e){e.classList.add('in')});return;}
   var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}})},{threshold:.12});
   document.querySelectorAll('.rv').forEach(function(e){io.observe(e)});
+})();
+</script>
+
+<style>
+/* Cookie consent (RODO / PKE) — spójny z panelem */
+.cc-bar{position:fixed;inset-inline:0;bottom:0;z-index:100;padding:14px}
+.cc-overlay{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.62);display:flex;align-items:flex-end;justify-content:center;padding:14px}
+@media(min-width:640px){.cc-overlay{align-items:center}}
+.cc-card{width:100%;max-width:680px;margin:0 auto;background:var(--card);border:1px solid var(--line2,rgba(255,255,255,.14));border-radius:18px;padding:22px 24px;box-shadow:0 30px 70px rgba(0,0,0,.55)}
+.cc-card h2{font-family:var(--display);font-weight:800;color:var(--paper);font-size:16px;margin-bottom:8px}
+.cc-text{font-size:13px;color:var(--body);line-height:1.6;margin-bottom:16px}
+.cc-text a{color:var(--mint)}
+.cc-actions{display:flex;gap:10px;flex-wrap:wrap}
+.cc-actions .btn{flex:1;min-width:150px}
+.cc-rows{display:flex;flex-direction:column;gap:10px;margin:16px 0}
+.cc-row{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;border:1px solid var(--hairline,rgba(255,255,255,.08));background:rgba(255,255,255,.02);border-radius:12px;padding:14px}
+.cc-row h3{font-family:var(--display);font-weight:700;font-size:13.5px;margin-bottom:3px;color:var(--paper)}
+.cc-row p{font-size:12px;color:var(--stone);line-height:1.5}
+.cc-sw{position:relative;flex:none;width:44px;height:24px;border-radius:100px;border:1px solid var(--line2,rgba(255,255,255,.14));background:rgba(255,255,255,.08);cursor:pointer;transition:.15s;margin-top:2px}
+.cc-sw[aria-checked="true"]{background:rgba(52,229,160,.8);border-color:rgba(52,229,160,.6)}
+.cc-sw[disabled]{opacity:.55;cursor:not-allowed}
+.cc-sw span{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.15s}
+.cc-sw[aria-checked="true"] span{transform:translateX(20px)}
+.cc-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:6px}
+.cc-close{background:none;border:none;color:var(--stone);font-size:18px;cursor:pointer;line-height:1}
+.cc-trigger{position:fixed;left:16px;bottom:16px;z-index:90;width:42px;height:42px;border-radius:50%;border:1px solid var(--line2,rgba(255,255,255,.14));background:rgba(9,20,16,.9);color:var(--body);display:grid;place-items:center;cursor:pointer;font-size:19px}
+.cc-trigger:hover{color:var(--mint);border-color:var(--mint)}
+.cc-hidden{display:none!important}
+</style>
+<div id="cc-root"></div>
+<button type="button" id="cc-trigger" class="cc-trigger cc-hidden" aria-label="Preferencje cookies" title="Preferencje cookies">🍪</button>
+<script>
+(function(){
+  var COOKIE='cookies_consent', VER=1, DAYS=365;
+  var root=document.getElementById('cc-root'), trigger=document.getElementById('cc-trigger');
+  function read(){try{var raw=document.cookie.split('; ').find(function(c){return c.indexOf(COOKIE+'=')===0;});if(!raw)return null;var pp=JSON.parse(decodeURIComponent(raw.slice(COOKIE.length+1)));return pp&&pp.v===VER?pp:null;}catch(e){return null;}}
+  function write(ch){var c={v:VER,ts:new Date().toISOString(),functional:!!ch.functional,analytics:!!ch.analytics,marketing:!!ch.marketing};var exp=new Date(Date.now()+DAYS*864e5).toUTCString();var sec=location.protocol==='https:'?'; Secure':'';document.cookie=COOKIE+'='+encodeURIComponent(JSON.stringify(c))+'; expires='+exp+'; path=/; SameSite=Lax'+sec;apply(c);return c;}
+  function apply(c){gtag('consent','update',{analytics_storage:c.analytics?'granted':'denied',ad_storage:c.marketing?'granted':'denied',ad_user_data:c.marketing?'granted':'denied',ad_personalization:c.marketing?'granted':'denied',functionality_storage:c.functional?'granted':'denied',personalization_storage:c.functional?'granted':'denied',security_storage:'granted'});window.dataLayer.push({event:'verris_consent_update'});if(window.fbq){fbq('consent',c.marketing?'grant':'revoke');}}
+  var state={functional:false,analytics:false,marketing:false};
+  function banner(){
+    root.innerHTML='<div class="cc-bar"><div class="cc-card"><h2>Pliki cookies</h2>'+
+    '<p class="cc-text">Używamy plików cookie niezbędnych do działania serwisu. Za Twoją zgodą użyjemy też cookies funkcjonalnych, analitycznych i marketingowych. Zgodę zmienisz lub wycofasz w każdej chwili — przycisk „Preferencje cookies" jest stale dostępny w rogu ekranu. Szczegóły: <a href="https://panel.verris.pl/legal">Polityka cookies</a>.</p>'+
+    '<div class="cc-actions"><button class="btn btn-primary" id="cc-all">Akceptuj wszystkie</button><button class="btn btn-ghost" id="cc-nec">Tylko niezbędne</button><button class="btn btn-ghost" id="cc-per">Personalizuj</button></div></div></div>';
+    document.getElementById('cc-all').onclick=function(){save({functional:true,analytics:true,marketing:true});};
+    document.getElementById('cc-nec').onclick=function(){save({functional:false,analytics:false,marketing:false});};
+    document.getElementById('cc-per').onclick=function(){prefs();};
+  }
+  function rowHtml(id,label,desc,checked,disabled){return '<div class="cc-row"><div><h3>'+label+'</h3><p>'+desc+'</p></div><button type="button" role="switch" class="cc-sw" id="'+id+'" aria-checked="'+(checked?'true':'false')+'"'+(disabled?' disabled':'')+'><span></span></button></div>';}
+  function prefs(){
+    var cur=read()||state; state={functional:!!cur.functional,analytics:!!cur.analytics,marketing:!!cur.marketing};
+    var decided=!!read();
+    root.innerHTML='<div class="cc-overlay"><div class="cc-card" role="dialog" aria-modal="true" aria-label="Ustawienia plików cookies"><div class="cc-head"><h2>Preferencje cookies</h2>'+(decided?'<button class="cc-close" id="cc-x" aria-label="Zamknij">✕</button>':'')+'</div><div class="cc-rows">'+
+    rowHtml('cc-r0','Niezbędne','Bezpieczeństwo, działanie serwisu i zapis Twojej decyzji. Zawsze aktywne.',true,true)+
+    rowHtml('cc-r1','Funkcjonalne','Zapamiętują udogodnienia i preferencje interfejsu.',state.functional,false)+
+    rowHtml('cc-r2','Analityczne','Pomiar korzystania z serwisu (Google Analytics przez Google Tag Manager).',state.analytics,false)+
+    rowHtml('cc-r3','Marketingowe','Dopasowanie i pomiar skuteczności reklam (Meta Pixel, tagi Google Ads).',state.marketing,false)+
+    '</div><div class="cc-actions"><button class="btn btn-primary" id="cc-save">Zapisz wybór</button><button class="btn btn-ghost" id="cc-nec2">Tylko niezbędne</button><button class="btn btn-ghost" id="cc-all2">Akceptuj wszystkie</button></div></div></div>';
+    function tog(id,key){var el=document.getElementById(id);el.onclick=function(){state[key]=!state[key];el.setAttribute('aria-checked',state[key]?'true':'false');};}
+    tog('cc-r1','functional');tog('cc-r2','analytics');tog('cc-r3','marketing');
+    document.getElementById('cc-save').onclick=function(){save(state);};
+    document.getElementById('cc-nec2').onclick=function(){save({functional:false,analytics:false,marketing:false});};
+    document.getElementById('cc-all2').onclick=function(){save({functional:true,analytics:true,marketing:true});};
+    var x=document.getElementById('cc-x'); if(x) x.onclick=function(){root.innerHTML='';trigger.classList.remove('cc-hidden');};
+  }
+  function save(ch){write(ch);root.innerHTML='';trigger.classList.remove('cc-hidden');}
+  trigger.onclick=function(){prefs();};
+  var saved=read();
+  if(saved){apply(saved);trigger.classList.remove('cc-hidden');} else {banner();}
 })();
 </script>
 </body>

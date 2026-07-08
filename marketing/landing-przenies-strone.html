@@ -13,9 +13,20 @@
 <meta property="og:url" content="https://verris.pl/przenies-strone">
 <meta property="og:locale" content="pl_PL">
 
-<!-- TODO (Dominik): GTM GTM-PJQNXCF5 + cookie banner / Consent Mode v2 (default denied)
-     dziedziczone z integracji site-wide. Jeśli landing serwowany osobno — wkleić snippet
-     GTM + banner zgód przed startem kampanii. -->
+<!-- Consent Mode v2 (default denied) — musi wykonać się PRZED GTM -->
+<script>
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+window.gtag = gtag;
+gtag('consent','default',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied',analytics_storage:'denied',functionality_storage:'granted',security_storage:'granted',wait_for_update:500});
+gtag('set','ads_data_redaction',true);
+gtag('set','url_passthrough',true);
+</script>
+<!-- Google Tag Manager (GA4 G-HHN0S0R777, Google Ads AW-9579432103, Meta Pixel — konfigurowane w kontenerze GTM, consent-gated) -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-PJQNXCF5');</script>
+<!-- End Google Tag Manager -->
+<!-- TODO (Dominik): baner zgód (cookie banner) wywołuje gtag('consent','update',{...}) po akceptacji.
+     Jeśli LP serwowany w ramach verris.pl — baner i GTM dziedziczą się site-wide (usuń duplikat). -->
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -274,6 +285,9 @@ footer a:hover{color:var(--paper)}
 </style>
 </head>
 <body>
+<!-- Google Tag Manager (noscript) -->
+<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PJQNXCF5" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+<!-- End Google Tag Manager (noscript) -->
 
 <header>
   <div class="wrap nav">
@@ -601,10 +615,22 @@ footer a:hover{color:var(--paper)}
 <script>
 window.dataLayer = window.dataLayer || [];
 
-// CTA -> dataLayer (GTM/GA4 odpala się wyłącznie po zgodzie — Consent Mode v2)
+// CTA -> dataLayer (GTM mapuje na GA4/Ads/Meta; tagi odpalają się wyłącznie po zgodzie — Consent Mode v2)
 document.querySelectorAll('[data-event="cta_click"]').forEach(function(el){
   el.addEventListener('click', function(){
-    window.dataLayer.push({event:'cta_click', cta_location: el.dataset.cta, page:'przenies-strone'});
+    var loc = el.dataset.cta;
+    window.dataLayer.push({event:'cta_click', cta_location: loc, page:'przenies-strone'});
+    var href = el.getAttribute('href') || '';
+    // Intencja zamówienia — klik w CTA prowadzące do panelu:
+    if (href.indexOf('panel.verris.pl') !== -1){
+      window.dataLayer.push({event:'begin_checkout', plan:'hosting-autoscaling', value:39, currency:'PLN'});
+    }
+  });
+});
+// Wysłanie formularza kalkulatora/kontaktu jako lead (jeśli obecne na stronie)
+document.querySelectorAll('form[data-lead]').forEach(function(f){
+  f.addEventListener('submit', function(){
+    window.dataLayer.push({event:'generate_lead', method: f.dataset.lead || 'form', currency:'PLN'});
   });
 });
 

@@ -18,3 +18,5 @@ services:
     image: ${REGISTRY_PREFIX}/verris-admin-panel:${IMAGE_TAG}
   status-page:
     image: ${REGISTRY_PREFIX}/verris-status-page:${IMAGE_TAG}
+  www:
+    image: ${REGISTRY_PREFIX}/verris-www:${IMAGE_TAG}
