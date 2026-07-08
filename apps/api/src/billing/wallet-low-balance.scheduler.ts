@@ -75,13 +75,34 @@ export class WalletLowBalanceScheduler {
   }
 
   async run(): Promise<void> {
-    // Pull every user with a non-anonymized account whose wallet balance is
-    // below the `defaultThresholdPln`. We over-fetch and filter in code
-    // because each user may have a different per-auto-topup threshold.
+    // Pull users whose wallet balance is below `defaultThresholdPln` AND for
+    // whom the balance actually matters. Bez tych warunków mail o niskim
+    // saldzie dostawały świeże konta (saldo 0, zero usług) i konta w trakcie
+    // usuwania — ostrzeżenie ma sens tylko, gdy z portfela COŚ będzie
+    // pobierane (aktywna płatna usługa, VPS albo włączone auto-doładowanie).
     const candidates = await this.prisma.user.findMany({
       where: {
         anonymizedAt: null,
+        deletionRequestedAt: null, // konto w trakcie usuwania — nie zachęcamy do doładowań
+        emailVerifiedAt: { not: null }, // niezweryfikowane = świeże/porzucone konto
         walletBalance: { lt: new Prisma.Decimal(this.defaultThresholdPln) },
+        OR: [
+          {
+            // Płatna (nie-trialowa) usługa, którą trzeba będzie odnowić
+            // lub która nalicza zużycie z portfela.
+            subscriptions: {
+              some: { status: { in: ['ACTIVE', 'PAST_DUE'] }, isTrial: false },
+            },
+          },
+          {
+            // Działający VPS — rozliczany z portfela.
+            vpsInstances: { some: { status: { notIn: ['DELETED', 'DELETING'] } } },
+          },
+          {
+            // Auto-doładowanie włączone — ostrzegamy przed obciążeniem karty.
+            walletAutoTopup: { is: { enabled: true } },
+          },
+        ],
       },
       include: {
         walletAutoTopup: true,
