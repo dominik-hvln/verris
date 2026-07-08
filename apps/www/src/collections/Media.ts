@@ -6,11 +6,7 @@ export const Media: CollectionConfig = {
   admin: { group: 'Treści' },
   upload: {
     staticDir: 'public/media',
-    imageSizes: [
-      { name: 'thumbnail', width: 480 },
-      { name: 'card', width: 900 },
-      { name: 'hero', width: 1600 },
-    ],
+    // Bez imageSizes — auto-skalowanie wymaga sharp (wyłączony, patrz payload.config.ts).
     mimeTypes: ['image/*'],
   },
   fields: [

@@ -3,7 +3,10 @@ import { fileURLToPath } from 'url';
 import { buildConfig } from 'payload';
 import { postgresAdapter } from '@payloadcms/db-postgres';
 import { lexicalEditor } from '@payloadcms/richtext-lexical';
-import sharp from 'sharp';
+// UWAGA: `sharp` celowo NIE jest importowany. W obrazie standalone (Next output
+// tracing) natywne binaria sharp nie trafiają do runtime → Payload rzucał 500.
+// Uploady działają bez sharp; auto-skalowanie miniatur jest wyłączone. Aby je
+// włączyć, trzeba dołożyć binaria sharp do obrazu (osobny krok w Dockerfile).
 
 import { Users } from './src/collections/Users';
 import { Media } from './src/collections/Media';
@@ -51,5 +54,4 @@ export default buildConfig({
     // Izolacja od tabel Prisma na tej samej bazie.
     schemaName: 'payload',
   }),
-  sharp,
 });
