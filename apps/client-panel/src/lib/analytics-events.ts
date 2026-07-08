@@ -32,6 +32,17 @@ function push(payload: Record<string, unknown>): void {
   window.dataLayer.push(payload);
 }
 
+/**
+ * Meta Pixel — standardowe zdarzenia równolegle do GA4.
+ * `window.fbq` istnieje WYŁĄCZNIE po zgodzie marketingowej (lazy-load w
+ * cookie-consent.ts), więc bez zgody wywołanie jest no-opem — zgodność
+ * z Consent Mode bez dodatkowych warunków tutaj.
+ */
+function fbqTrack(event: string, params?: Record<string, unknown>): void {
+  if (typeof window === "undefined" || typeof window.fbq !== "function") return;
+  window.fbq("track", event, params);
+}
+
 function pushEcommerce(
   event: string,
   ecommerce: Record<string, unknown>,
@@ -43,11 +54,13 @@ function pushEcommerce(
 /** Konto utworzone (ekran „sprawdź skrzynkę" po rejestracji). */
 export function trackSignUp(): void {
   push({ event: "sign_up", method: "email" });
+  fbqTrack("CompleteRegistration");
 }
 
 /** Start okresu próbnego — lead, jeszcze nie przychód. */
 export function trackGenerateLead(planName?: string): void {
   push({ event: "generate_lead", lead_type: "trial", plan_name: planName });
+  fbqTrack("Lead", planName ? { content_name: planName } : undefined);
 }
 
 /** Wejście w formularz zamówienia (hosting/VPS/domena). */
@@ -56,6 +69,11 @@ export function trackBeginCheckout(items: EcommerceItem[], value?: number): void
     currency: "PLN",
     ...(value != null && Number.isFinite(value) ? { value } : {}),
     items,
+  });
+  fbqTrack("InitiateCheckout", {
+    content_name: items[0]?.item_name,
+    content_category: items[0]?.item_category,
+    ...(value != null && Number.isFinite(value) ? { value, currency: "PLN" } : {}),
   });
 }
 
@@ -75,6 +93,12 @@ export function trackPurchase(input: {
     value: input.value,
     items: input.items,
   });
+  fbqTrack("Purchase", {
+    value: input.value,
+    currency: "PLN",
+    content_name: input.items[0]?.item_name,
+    content_category: input.items[0]?.item_category,
+  });
 }
 
 /**
@@ -85,6 +109,7 @@ export function trackSearch(searchTerm: string): void {
   const term = searchTerm.trim().toLowerCase();
   if (!term) return;
   push({ event: "search", search_term: term, search_type: "domain" });
+  fbqTrack("Search", { search_string: term });
 }
 
 /**

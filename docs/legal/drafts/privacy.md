@@ -1,6 +1,6 @@
 # Polityka prywatności Verris
 
-**Wersja 1.0.0 · obowiązuje od 7 lipca 2026 r.**
+**Wersja 1.0.1 · obowiązuje od 8 lipca 2026 r.**
 
 Niniejsza Polityka realizuje obowiązki informacyjne z art. 13 i 14 RODO wobec klientów Verris, użytkowników subkont oraz osób odwiedzających panel i strony Verris.
 
@@ -99,6 +99,8 @@ Masz prawo wnieść skargę do Prezesa Urzędu Ochrony Danych Osobowych (ul. Sta
 Nie podejmujemy decyzji opartych wyłącznie na zautomatyzowanym przetwarzaniu, które wywoływałyby wobec Ciebie skutki prawne lub istotnie na Ciebie wpływały (art. 22 RODO). Stosujemy automatyczne mechanizmy bezpieczeństwa (czasowa blokada logowania po serii nieudanych prób, wstrzymanie wysyłki e-mail przy anomaliach wskazujących na spam lub przejęcie konta) — są one tymczasowe, oparte na regułach technicznych, a każdą taką decyzję możesz zakwestionować przez wsparcie (interwencja człowieka).
 
 Za Twoją zgodą na cookies marketingowe narzędzia Google Ads i Meta mogą profilować Twoje zainteresowania na potrzeby doboru reklam (remarketing). Profilowanie to nie wywołuje skutków prawnych i możesz je w każdej chwili wyłączyć, wycofując zgodę w „Preferencjach cookies".
+
+Jeżeli wyrazisz zgodę na cookies marketingowe, w ramach pomiaru skuteczności reklam Meta stosujemy również **zaawansowane dopasowywanie** (advanced matching): dane kontaktowe wpisywane w formularzach serwisu (np. adres e-mail, numer telefonu) mogą być przekazywane do Meta Platforms Ireland Ltd. wyłącznie w postaci **zahashowanej (SHA-256)** — Meta nie otrzymuje ich w postaci jawnej i wykorzystuje je do dopasowania zdarzeń do kont reklamowych oraz pomiaru konwersji. Przekazanie następuje tylko przy aktywnej zgodzie marketingowej; jej wycofanie w „Preferencjach cookies" natychmiast je wyłącza. Podstawą prawną jest Twoja zgoda (art. 6 ust. 1 lit. a RODO).
 
 ## 9. Bezpieczeństwo danych
 

@@ -1,0 +1,38 @@
+{
+  "name": "@verris/www",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --turbopack -p 3005",
+    "build": "next build",
+    "start": "next start -p 3005",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "next lint",
+    "payload": "cross-env PAYLOAD_CONFIG_PATH=payload.config.ts payload",
+    "generate:types": "cross-env PAYLOAD_CONFIG_PATH=payload.config.ts payload generate:types"
+  },
+  "dependencies": {
+    "@payloadcms/db-postgres": "^3.44.0",
+    "@payloadcms/next": "^3.44.0",
+    "@payloadcms/richtext-lexical": "^3.44.0",
+    "@payloadcms/ui": "^3.44.0",
+    "graphql": "^16.9.0",
+    "lucide-react": "^0.365.0",
+    "next": "15.4.4",
+    "payload": "^3.44.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "sharp": "^0.33.5"
+  },
+  "devDependencies": {
+    "@verris/typescript-config": "workspace:*",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "cross-env": "^7.0.3",
+    "eslint": "^9",
+    "eslint-config-next": "15.4.4",
+    "typescript": "^5"
+  }
+}
