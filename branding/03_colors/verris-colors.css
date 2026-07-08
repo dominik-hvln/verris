@@ -1,0 +1,14 @@
+:root{
+  --verris-pine: #0C1A14;   /* Pine — Główny atrament, tła premium */
+  --verris-page: #091410;   /* Page — Tło strony (najgłębsze) */
+  --verris-card: #0E1F17;   /* Card — Karty, panele */
+  --verris-green: #0F7A52;   /* Green — Kolor marki, tła znaku */
+  --verris-mid: #1FA871;   /* Mid — Zieleń pośrednia, akcenty */
+  --verris-mint: #34E5A0;   /* Mint — Akcent główny, CTA, linia ikon */
+  --verris-tip: #5BFFC0;   /* Tip — Najjaśniejszy akcent, highlight */
+  --verris-paper: #F4F4EE;   /* Paper — Tło jasne, tekst na ciemnym */
+  --verris-stone: #9AA39C;   /* Stone — Tekst drugorzędny */
+  --verris-body: #AFBDB6;   /* Body — Tekst akapitowy na ciemnym */
+  --verris-eco: #08130E;   /* Eco — Tło trybu eko (najgłębsza zieleń) */
+  --verris-hairline: rgba(255,255,255,.08);
+}

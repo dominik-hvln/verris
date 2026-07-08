@@ -19,7 +19,7 @@ import {
 } from 'lucide-react';
 import { PanelEmptyState } from '@/components/panel';
 import { formatCredits } from '@/lib/credits';
-import { trackPurchase } from '@/lib/analytics-events';
+import { trackBeginCheckout, trackPurchase } from '@/lib/analytics-events';
 import {
   addSshKeyAction,
   deleteSshKeyAction,
@@ -75,6 +75,19 @@ export function VpsClient({
   const selectedPlan = plans.find((p) => p.id === planId);
   const toggleKey = (id: string) =>
     setSelectedKeys((cur) => (cur.includes(id) ? cur.filter((k) => k !== id) : [...cur, id]));
+
+  // GA4: begin_checkout — otwarcie formularza zamówienia VPS.
+  const openOrdering = () => {
+    setOrdering(true);
+    const plan = selectedPlan ?? plans[0];
+    if (plan) {
+      const price = Number(plan.priceMonthly);
+      trackBeginCheckout(
+        [{ item_name: plan.name, item_category: 'vps', quantity: 1 }],
+        Number.isFinite(price) ? price : undefined,
+      );
+    }
+  };
 
   if (!available) {
     return (
@@ -172,7 +185,7 @@ export function VpsClient({
         {!ordering ? (
           <button
             type="button"
-            onClick={() => setOrdering(true)}
+            onClick={openOrdering}
             className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-black hover:bg-neutral-200"
           >
             <Plus className="h-4 w-4" /> Zamów VPS

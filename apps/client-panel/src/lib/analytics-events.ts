@@ -78,6 +78,16 @@ export function trackPurchase(input: {
 }
 
 /**
+ * Wyszukiwanie domen — najsilniejszy sygnał intencji zakupowej w panelu.
+ * GA4 recommended event `search` z `search_term` (fraza widoczna w raportach).
+ */
+export function trackSearch(searchTerm: string): void {
+  const term = searchTerm.trim().toLowerCase();
+  if (!term) return;
+  push({ event: "search", search_term: term, search_type: "domain" });
+}
+
+/**
  * Powrót ze Stripe Checkout (?status=success na /dashboard/billing).
  * Kwoty nie znamy po stronie klienta, więc NIE wysyłamy `purchase` z wartością
  * (fałszywe zera psułyby ROAS). Event niestandardowy — można go oznaczyć jako

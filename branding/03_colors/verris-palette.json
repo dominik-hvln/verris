@@ -1,0 +1,127 @@
+{
+  "name": "Verris",
+  "colors": [
+    {
+      "name": "Pine",
+      "var": "--verris-pine",
+      "hex": "#0C1A14",
+      "rgb": [
+        12,
+        26,
+        20
+      ],
+      "usage": "Główny atrament, tła premium"
+    },
+    {
+      "name": "Page",
+      "var": "--verris-page",
+      "hex": "#091410",
+      "rgb": [
+        9,
+        20,
+        16
+      ],
+      "usage": "Tło strony (najgłębsze)"
+    },
+    {
+      "name": "Card",
+      "var": "--verris-card",
+      "hex": "#0E1F17",
+      "rgb": [
+        14,
+        31,
+        23
+      ],
+      "usage": "Karty, panele"
+    },
+    {
+      "name": "Green",
+      "var": "--verris-green",
+      "hex": "#0F7A52",
+      "rgb": [
+        15,
+        122,
+        82
+      ],
+      "usage": "Kolor marki, tła znaku"
+    },
+    {
+      "name": "Mid",
+      "var": "--verris-mid",
+      "hex": "#1FA871",
+      "rgb": [
+        31,
+        168,
+        113
+      ],
+      "usage": "Zieleń pośrednia, akcenty"
+    },
+    {
+      "name": "Mint",
+      "var": "--verris-mint",
+      "hex": "#34E5A0",
+      "rgb": [
+        52,
+        229,
+        160
+      ],
+      "usage": "Akcent główny, CTA, linia ikon"
+    },
+    {
+      "name": "Tip",
+      "var": "--verris-tip",
+      "hex": "#5BFFC0",
+      "rgb": [
+        91,
+        255,
+        192
+      ],
+      "usage": "Najjaśniejszy akcent, highlight"
+    },
+    {
+      "name": "Paper",
+      "var": "--verris-paper",
+      "hex": "#F4F4EE",
+      "rgb": [
+        244,
+        244,
+        238
+      ],
+      "usage": "Tło jasne, tekst na ciemnym"
+    },
+    {
+      "name": "Stone",
+      "var": "--verris-stone",
+      "hex": "#9AA39C",
+      "rgb": [
+        154,
+        163,
+        156
+      ],
+      "usage": "Tekst drugorzędny"
+    },
+    {
+      "name": "Body",
+      "var": "--verris-body",
+      "hex": "#AFBDB6",
+      "rgb": [
+        175,
+        189,
+        182
+      ],
+      "usage": "Tekst akapitowy na ciemnym"
+    },
+    {
+      "name": "Eco",
+      "var": "--verris-eco",
+      "hex": "#08130E",
+      "rgb": [
+        8,
+        19,
+        14
+      ],
+      "usage": "Tło trybu eko (najgłębsza zieleń)"
+    }
+  ],
+  "hairline": "rgba(255,255,255,.08)"
+}

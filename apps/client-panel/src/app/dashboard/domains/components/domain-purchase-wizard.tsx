@@ -28,7 +28,7 @@ import {
   transferDomainAction,
   type RegistrarOrderRow,
 } from '../actions';
-import { trackPurchase } from '@/lib/analytics-events';
+import { trackBeginCheckout, trackPurchase, trackSearch } from '@/lib/analytics-events';
 
 const YEAR_OPTIONS = [1, 2, 3, 5, 10] as const;
 
@@ -240,6 +240,7 @@ export function DomainPurchaseWizard({ initialOrders }: { initialOrders: Registr
       try {
         setSelectedDomain(null);
         setHasSearched(true);
+        trackSearch(cleanLabel); // GA4: search — intencja zakupowa (fraza domeny)
         const results = await searchDomainsAction(cleanLabel);
         setSearchResults(results);
         if (results.every((r) => !r.available)) {
@@ -266,6 +267,14 @@ export function DomainPurchaseWizard({ initialOrders }: { initialOrders: Registr
         if (!rows.some((q) => q.priceAmount)) {
           toast.error('Nie udało się pobrać cen dla wybranej domeny');
           return;
+        }
+        // GA4: begin_checkout — wybór dostępnej domeny i wejście w konfigurację.
+        {
+          const firstPrice = Number(rows.find((q) => q.priceAmount)?.priceAmount);
+          trackBeginCheckout(
+            [{ item_name: result.domain, item_category: 'domena', quantity: 1 }],
+            Number.isFinite(firstPrice) ? firstPrice : undefined,
+          );
         }
         setStep('period');
       } catch (err: unknown) {
