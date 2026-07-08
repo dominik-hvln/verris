@@ -22,21 +22,31 @@ const STATIC = [
   '/przenies-strone',
 ];
 
-async function blogPaths(): Promise<string[]> {
+async function blogEntries(): Promise<{ path: string; lastmod?: string }[]> {
   try {
     const payload = await getPayloadClient();
     const res = await payload.find({ collection: 'posts', limit: 500, depth: 0 });
-    return res.docs.map((d: { slug?: string }) => `/blog/${d.slug}`).filter(Boolean);
+    return res.docs
+      .filter((d: { slug?: string }) => d.slug)
+      .map((d: { slug?: string; updatedAt?: string }) => ({ path: `/blog/${d.slug}`, lastmod: d.updatedAt }));
   } catch {
     return [];
   }
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const paths = [...STATIC, ...features.map((f) => `/funkcje/${f.slug}`), ...(await blogPaths())];
-  return paths.map((p) => ({
+  const now = new Date();
+  const staticEntries = [...STATIC, ...features.map((f) => `/funkcje/${f.slug}`)].map((p) => ({
     url: `${BASE}${p}`,
-    changeFrequency: 'weekly',
+    lastModified: now,
+    changeFrequency: 'weekly' as const,
     priority: p === '/' ? 1 : 0.7,
   }));
+  const blog = (await blogEntries()).map((e) => ({
+    url: `${BASE}${e.path}`,
+    lastModified: e.lastmod ? new Date(e.lastmod) : now,
+    changeFrequency: 'monthly' as const,
+    priority: 0.6,
+  }));
+  return [...staticEntries, ...blog];
 }

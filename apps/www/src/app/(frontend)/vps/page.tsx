@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import { Terminal, Cpu, ShieldCheck, MapPin } from 'lucide-react';
-import { SubHero, CTABand } from '../components/ui';
+import { SubHero, CTABand, JsonLd } from '../components/ui';
 import { RevealInit } from '../components/RevealInit';
 import { PANEL } from '@/lib/site';
+import { serviceSchema } from '@/lib/schema';
 
 export const metadata: Metadata = {
   title: 'VPS — serwery z pełnym dostępem root | Verris',
@@ -21,6 +22,14 @@ const F = [
 export default function VpsPage() {
   return (
     <main>
+      <JsonLd
+        data={serviceSchema({
+          name: 'VPS — serwery wirtualne',
+          description:
+            'Niezarządzane serwery VPS z pełnym dostępem root. Przewidywalne zasoby, infrastruktura w UE (Hetzner). SLA 99,5% z rekompensatami.',
+          path: '/vps',
+        })}
+      />
       <SubHero
         eyebrow="Serwery wirtualne"
         title="VPS z pełnym dostępem root"

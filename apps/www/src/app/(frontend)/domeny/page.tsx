@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import { Globe, BellRing, ArrowLeftRight, ShieldCheck } from 'lucide-react';
-import { SubHero, CTABand } from '../components/ui';
+import { SubHero, CTABand, JsonLd } from '../components/ui';
 import { RevealInit } from '../components/RevealInit';
 import { PANEL } from '@/lib/site';
+import { serviceSchema } from '@/lib/schema';
 
 export const metadata: Metadata = {
   title: 'Domeny — rejestracja i transfer bez pułapek | Verris',
@@ -21,6 +22,14 @@ const F = [
 export default function DomenyPage() {
   return (
     <main>
+      <JsonLd
+        data={serviceSchema({
+          name: 'Rejestracja i transfer domen',
+          description:
+            'Rejestracja, transfer i utrzymanie domen bez cichych auto-odnowień. Przypomnienia 30/14/7 dni przed wygaśnięciem.',
+          path: '/domeny',
+        })}
+      />
       <SubHero
         eyebrow="Domeny"
         title="Domeny bez pułapek odnowień"

@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { RichText } from '@payloadcms/richtext-lexical/react';
-import { Breadcrumbs, CTABand } from '../../components/ui';
+import { Breadcrumbs, CTABand, JsonLd } from '../../components/ui';
 import { RevealInit } from '../../components/RevealInit';
 import { getPayloadClient } from '@/lib/payload';
+import { articleSchema } from '@/lib/schema';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,6 +15,8 @@ type Post = {
   publishedAt?: string;
   content?: unknown;
   coverImage?: { url?: string; alt?: string } | null;
+  author?: string;
+  updatedAt?: string;
   seo?: { title?: string; description?: string };
 };
 
@@ -54,6 +57,17 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
 
   return (
     <main>
+      <JsonLd
+        data={articleSchema({
+          title: post.title,
+          slug: post.slug,
+          description: post.seo?.description || post.excerpt,
+          image: post.coverImage?.url,
+          datePublished: post.publishedAt,
+          dateModified: post.updatedAt,
+          author: post.author,
+        })}
+      />
       <section className="subhero">
         <div className="bg-pat" aria-hidden="true" />
         <div className="wrap">

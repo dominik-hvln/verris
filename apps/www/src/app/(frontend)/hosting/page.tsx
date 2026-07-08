@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import { Gauge, Move, ShieldCheck, Database, BarChart3, Wrench } from 'lucide-react';
-import { SubHero, CTABand } from '../components/ui';
+import { SubHero, CTABand, JsonLd } from '../components/ui';
 import { RevealInit } from '../components/RevealInit';
 import { PANEL } from '@/lib/site';
+import { serviceSchema, HOSTING_OFFERS } from '@/lib/schema';
 
 export const metadata: Metadata = {
   title: 'Hosting z autoskalowaniem — 39 zł/mies | Verris',
@@ -23,6 +24,15 @@ const FEATURES = [
 export default function HostingPage() {
   return (
     <main>
+      <JsonLd
+        data={serviceSchema({
+          name: 'Hosting z autoskalowaniem',
+          description:
+            'Hosting współdzielony na DirectAdmin z autoskalowaniem CPU/RAM/dysku. Baza 50 GB NVMe, 8 GB RAM, 2 vCPU; skalowanie do 1000 GB, 64 GB RAM, 24 vCPU. Migracja i SSL za 0 zł.',
+          path: '/hosting',
+          offers: HOSTING_OFFERS,
+        })}
+      />
       <SubHero
         eyebrow="Hosting współdzielony"
         title="Hosting z autoskalowaniem"

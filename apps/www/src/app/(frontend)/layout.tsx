@@ -24,6 +24,17 @@ export const metadata: Metadata = {
     url: 'https://verris.pl/',
     locale: 'pl_PL',
     type: 'website',
+    siteName: 'Verris',
+    images: [
+      { url: '/og-default.png', width: 1200, height: 630, alt: 'Verris — Hosting bez gwiazdek.' },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Verris — hosting bez gwiazdek. Skaluj świadomie.',
+    description:
+      'Polski hosting z autoskalowaniem, VPS i domeny. Płacisz tyle, ile widzisz. Migracja za 0 zł, SLA 99,5% z rekompensatami.',
+    images: ['/og-default.png'],
   },
 };
 

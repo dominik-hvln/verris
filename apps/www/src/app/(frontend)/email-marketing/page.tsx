@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
-import { SubHero, CTABand } from '../components/ui';
+import { SubHero, CTABand, JsonLd } from '../components/ui';
 import { RevealInit } from '../components/RevealInit';
 import { PANEL } from '@/lib/site';
+import { serviceSchema } from '@/lib/schema';
 
 export const metadata: Metadata = {
   title: 'E-mail marketing — wysyłki do własnych list | Verris',
@@ -13,6 +14,14 @@ export const metadata: Metadata = {
 export default function Page() {
   return (
     <main>
+      <JsonLd
+        data={serviceSchema({
+          name: 'E-mail marketing',
+          description:
+            'Wysyłki do własnych list odbiorców z panelu, z naciskiem na dostarczalność. Zgodność z PKE/RODO (double opt-in, link rezygnacji).',
+          path: '/email-marketing',
+        })}
+      />
       <SubHero
         eyebrow="E-mail marketing"
         title="Wysyłki do własnych list — z jednego panelu"

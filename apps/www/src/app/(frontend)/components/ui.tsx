@@ -1,4 +1,9 @@
 import { PANEL } from '@/lib/site';
+import { breadcrumbList } from '@/lib/schema';
+
+export function JsonLd({ data }: { data: object }) {
+  return <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />;
+}
 
 export function Logo() {
   return (
@@ -21,6 +26,7 @@ type Crumb = { label: string; href?: string };
 export function Breadcrumbs({ items }: { items: Crumb[] }) {
   return (
     <nav className="crumbs" aria-label="Ścieżka">
+      <JsonLd data={breadcrumbList(items)} />
       <a href="/">Home</a>
       {items.map((c, i) => (
         <span key={i} style={{ display: 'contents' }}>

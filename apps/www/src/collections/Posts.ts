@@ -21,6 +21,7 @@ export const Posts: CollectionConfig = {
       label: 'Adres (slug)',
       admin: { position: 'sidebar' },
     },
+    // TODO: pole „author" (E-E-A-T) dodać RAZEM z migracją Payload (nowa kolumna).
     { name: 'excerpt', type: 'textarea', label: 'Zajawka', maxLength: 300 },
     { name: 'coverImage', type: 'upload', relationTo: 'media', label: 'Obraz wyróżniający' },
     { name: 'content', type: 'richText', label: 'Treść' },

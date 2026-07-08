@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import { Users, Wallet, LayoutPanelLeft, Tag } from 'lucide-react';
-import { SubHero, CTABand } from '../components/ui';
+import { SubHero, CTABand, JsonLd } from '../components/ui';
 import { RevealInit } from '../components/RevealInit';
 import { PANEL } from '@/lib/site';
+import { serviceSchema } from '@/lib/schema';
 
 export const metadata: Metadata = {
   title: 'Program resellerski — hosting pod własną marką | Verris',
@@ -21,6 +22,14 @@ const F = [
 export default function Page() {
   return (
     <main>
+      <JsonLd
+        data={serviceSchema({
+          name: 'Program resellerski',
+          description:
+            'Odsprzedaż hostingu Verris pod własną marką agencji lub freelancera. Wielu klientów z jednego panelu, przewidywalna marża.',
+          path: '/reseller',
+        })}
+      />
       <SubHero
         eyebrow="Program resellerski"
         title="Hosting pod Twoją marką"

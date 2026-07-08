@@ -15,6 +15,8 @@ import {
 } from 'lucide-react';
 import { Pricing } from './components/Pricing';
 import { RevealInit } from './components/RevealInit';
+import { JsonLd } from './components/ui';
+import { organization, ORG_ID, SITE, HOSTING_OFFERS } from '@/lib/schema';
 
 const SERVICES = [
   {
@@ -103,9 +105,27 @@ const FAQ: [string, string][] = [
   ['Czy cena wzrośnie przy odnowieniu?', 'Nie stosujemy modelu taniego pierwszego roku i drogiego odnowienia — cena z cennika obowiązuje od pierwszego dnia. Odnowienie następuje według cennika z dnia odnowienia, a przed każdym odnowieniem wyślemy przypomnienie e-mail. Odnawianie wyłączysz w panelu w każdej chwili, bez opłat.'],
 ];
 
+const homeJsonLd = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    organization,
+    { '@type': 'WebSite', '@id': `${SITE}/#website`, url: `${SITE}/`, name: 'Verris', inLanguage: 'pl-PL', publisher: { '@id': ORG_ID } },
+    {
+      '@type': 'Product',
+      name: 'Hosting Verris z autoskalowaniem',
+      description:
+        'Hosting współdzielony na DirectAdmin z autoskalowaniem CPU/RAM/dysku i trybem ECO. Baza: 50 GB NVMe, 8 GB RAM, 2 vCPU; skalowanie do 1000 GB, 64 GB RAM, 24 vCPU. Migracja i SSL za 0 zł, SLA 99,5% z rekompensatami.',
+      brand: { '@id': ORG_ID },
+      offers: HOSTING_OFFERS,
+    },
+    { '@type': 'FAQPage', mainEntity: FAQ.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) },
+  ],
+};
+
 export default function HomePage() {
   return (
     <main>
+      <JsonLd data={homeJsonLd} />
       {/* HERO */}
       <section className="hero">
         <div className="bg-pat" aria-hidden="true" />

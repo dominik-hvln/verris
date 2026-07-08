@@ -1,0 +1,28 @@
+# Verris
+
+> Verris to polski hosting z autoskalowaniem, VPS i domeny. Płacisz tyle, ile widzisz —
+> jedna cena od pierwszego dnia, bez pułapek odnowień. Migracja i SSL za 0 zł, SLA 99,5%
+> z rekompensatami, serwery w Unii Europejskiej (zgodność z RODO). Claim: „Hosting bez gwiazdek".
+
+## Oferta
+- Hosting z autoskalowaniem: 39 zł/mies lub 349 zł/rok (brutto). Zasoby bazowe: 50 GB NVMe,
+  8 GB RAM, 2 vCPU; autoskalowanie do 1000 GB, 64 GB RAM, 24 vCPU, rozliczane godzinowo,
+  tryb ECO zwalnia moc po piku.
+- VPS niezarządzany (pełny root), domeny bez auto-odnowień, e-mail marketing, program resellerski.
+
+## Kluczowe strony
+- [Hosting z autoskalowaniem](https://verris.pl/hosting)
+- [Cennik](https://verris.pl/cennik)
+- [Przeniesienie strony — darmowa migracja](https://verris.pl/przenies-strone)
+- [Funkcje](https://verris.pl/funkcje)
+- [Blog](https://verris.pl/blog)
+- [Kontakt](https://verris.pl/kontakt)
+- [Cennik maszynowo](https://verris.pl/pricing.md)
+
+## Fakty
+- Operator: HVLN Dominik Kowalski, Zielona Góra, NIP 9292069367.
+- SLA 99,5% z automatycznymi rekompensatami zapisanymi w regulaminie (kredyty wg skali niedostępności).
+- Płatności: karta, BLIK, Apple Pay, Google Pay, przelew online (Stripe). Faktury gotowe na KSeF.
+- Prywatna analityka odwiedzin bez cookies (działa bez banera zgód).
+- Komplet dokumentów RODO online: polityka prywatności, DPA do akceptacji w panelu, lista podprocesorów.
+- Infrastruktura: Hetzner (Niemcy/Finlandia), dane w EOG.
