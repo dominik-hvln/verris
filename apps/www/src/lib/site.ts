@@ -14,11 +14,13 @@ export const megaServices: { label: string; href: string; desc: string }[] = [
   { label: 'Program resellerski', href: '/reseller', desc: 'Odsprzedaż pod swoją marką' },
 ];
 
+export const KB_URL = 'https://pomoc.verris.pl';
+
 export const headerLinks: { label: string; href: string }[] = [
   { label: 'Funkcje', href: '/funkcje' },
   { label: 'Cennik', href: '/cennik' },
   { label: 'Blog', href: '/blog' },
-  { label: 'Pomoc', href: '/pomoc' },
+  { label: 'Pomoc', href: KB_URL },
 ];
 
 export const footerCols: { heading: string; links: { label: string; href: string }[] }[] = [
@@ -48,7 +50,7 @@ export const footerCols: { heading: string; links: { label: string; href: string
     links: [
       { label: 'O nas', href: '/o-nas' },
       { label: 'Blog', href: '/blog' },
-      { label: 'Pomoc', href: '/pomoc' },
+      { label: 'Pomoc (baza wiedzy)', href: 'https://pomoc.verris.pl' },
       { label: 'Kontakt', href: '/kontakt' },
       { label: 'Status usług', href: 'https://status.verris.pl' },
     ],

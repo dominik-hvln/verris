@@ -18,6 +18,7 @@ type Post = {
   slug: string;
   excerpt?: string;
   publishedAt?: string;
+  coverImage?: { url?: string; alt?: string } | null;
 };
 
 async function getPosts(): Promise<Post[]> {
@@ -27,7 +28,7 @@ async function getPosts(): Promise<Post[]> {
       collection: 'posts',
       sort: '-publishedAt',
       limit: 24,
-      depth: 0,
+      depth: 1,
     });
     return res.docs as unknown as Post[];
   } catch {
@@ -57,7 +58,12 @@ export default async function BlogPage() {
               {posts.map((p) => (
                 <a className="bcard rv" href={`/blog/${p.slug}`} key={p.id}>
                   <div className="thumb">
-                    <div className="bg-pat" aria-hidden="true" />
+                    {p.coverImage?.url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.coverImage.url} alt={p.coverImage.alt || p.title} />
+                    ) : (
+                      <div className="bg-pat" aria-hidden="true" />
+                    )}
                   </div>
                   <div className="body">
                     {p.publishedAt ? (

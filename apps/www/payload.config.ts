@@ -3,6 +3,7 @@ import { fileURLToPath } from 'url';
 import { buildConfig } from 'payload';
 import { postgresAdapter } from '@payloadcms/db-postgres';
 import { lexicalEditor } from '@payloadcms/richtext-lexical';
+import { s3Storage } from '@payloadcms/storage-s3';
 // UWAGA: `sharp` celowo NIE jest importowany. W obrazie standalone (Next output
 // tracing) natywne binaria sharp nie trafiają do runtime → Payload rzucał 500.
 // Uploady działają bez sharp; auto-skalowanie miniatur jest wyłączone. Aby je
@@ -54,4 +55,24 @@ export default buildConfig({
     // Izolacja od tabel Prisma na tej samej bazie.
     schemaName: 'payload',
   }),
+  // Media na MinIO (S3) — trwałe między deployami. Aktywne tylko z konfiguracją S3;
+  // lokalnie bez S3 Payload zapisuje pliki na dysk (staticDir). Pliki serwowane
+  // przez route Payloada (/api/media/file/...), więc bucket zostaje prywatny.
+  plugins: process.env.S3_ACCESS_KEY
+    ? [
+        s3Storage({
+          collections: { media: true },
+          bucket: process.env.S3_BUCKET_WWW_MEDIA || 'verris-www-media',
+          config: {
+            endpoint: process.env.S3_ENDPOINT || 'http://minio:9000',
+            forcePathStyle: true,
+            region: process.env.S3_REGION || 'us-east-1',
+            credentials: {
+              accessKeyId: process.env.S3_ACCESS_KEY || '',
+              secretAccessKey: process.env.S3_SECRET_KEY || '',
+            },
+          },
+        }),
+      ]
+    : [],
 });

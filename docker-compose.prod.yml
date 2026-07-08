@@ -110,8 +110,10 @@ services:
         mc mb -p verris/verris-data-exports;
         mc mb -p verris/verris-dpa-pdfs;
         mc mb -p verris/verris-invoices;
+        mc mb -p verris/verris-www-media;
         mc mb -p verris/$$S3_BUCKET_BACKUPS;
         mc anonymous set none verris/verris-ticket-attachments;
+        mc anonymous set none verris/verris-www-media;
         mc anonymous set none verris/verris-data-exports;
         mc anonymous set none verris/verris-dpa-pdfs;
         mc anonymous set none verris/verris-invoices;
@@ -413,10 +415,15 @@ services:
         NEXT_PUBLIC_META_PIXEL_ID: ${META_PIXEL_ID:-}
     restart: always
     logging: *default-logging
-    depends_on: [postgres]
+    depends_on: [postgres, minio]
     environment:
       NODE_ENV: production
       PORT: '3005'
+      # Media na MinIO (S3) — trwałe między deployami; bucket verris-www-media.
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-}
+      S3_BUCKET_WWW_MEDIA: ${S3_BUCKET_WWW_MEDIA:-verris-www-media}
       # Połączenie do Postgresa przez osobne zmienne (bez enkodowania URL —
       # hasło base64 ze znakami +/=/ działa bez problemu). Payload trzyma tabele
       # w schemacie `payload`.

@@ -17,7 +17,6 @@ const STATIC = [
   '/funkcje',
   '/cennik',
   '/blog',
-  '/pomoc',
   '/o-nas',
   '/kontakt',
   '/przenies-strone',

@@ -16,8 +16,6 @@ import {
 import { Pricing } from './components/Pricing';
 import { RevealInit } from './components/RevealInit';
 
-export const dynamic = 'force-static';
-
 const SERVICES = [
   {
     icon: Server,

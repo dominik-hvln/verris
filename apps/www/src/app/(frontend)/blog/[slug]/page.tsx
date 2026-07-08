@@ -13,6 +13,7 @@ type Post = {
   excerpt?: string;
   publishedAt?: string;
   content?: unknown;
+  coverImage?: { url?: string; alt?: string } | null;
   seo?: { title?: string; description?: string };
 };
 
@@ -74,6 +75,14 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
       <section>
         <div className="wrap">
           <article className="article prose rv">
+            {post.coverImage?.url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                className="article-cover"
+                src={post.coverImage.url}
+                alt={post.coverImage.alt || post.title}
+              />
+            ) : null}
             {post.content ? (
               <RichText data={post.content as never} />
             ) : (

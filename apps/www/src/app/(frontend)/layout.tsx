@@ -7,6 +7,9 @@ import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { ANALYTICS } from '@/lib/analytics';
 
+// ISR: strony odświeżają treść z CMS (globalsy/kolekcje) co 60 s.
+export const revalidate = 60;
+
 export const metadata: Metadata = {
   metadataBase: new URL('https://verris.pl'),
   title: 'Verris — polski hosting z autoskalowaniem. Hosting bez gwiazdek.',
