@@ -37,7 +37,17 @@ export default buildConfig({
     defaultLocale: 'pl',
   },
   db: postgresAdapter({
-    pool: { connectionString: process.env.DATABASE_URI || '' },
+    // Preferuj osobne zmienne PG* (hasło z base64/znakami specjalnymi nie wymaga
+    // enkodowania URL); DATABASE_URI zostaje jako fallback dla lokalnego dev.
+    pool: process.env.PGPASSWORD
+      ? {
+          host: process.env.PGHOST || 'postgres',
+          port: Number(process.env.PGPORT || '5432'),
+          user: process.env.PGUSER,
+          password: process.env.PGPASSWORD,
+          database: process.env.PGDATABASE,
+        }
+      : { connectionString: process.env.DATABASE_URI || '' },
     // Izolacja od tabel Prisma na tej samej bazie.
     schemaName: 'payload',
   }),

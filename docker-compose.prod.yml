@@ -417,7 +417,14 @@ services:
     environment:
       NODE_ENV: production
       PORT: '3005'
-      DATABASE_URI: postgres://${POSTGRES_USER:-verris}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-verris_db}
+      # Połączenie do Postgresa przez osobne zmienne (bez enkodowania URL —
+      # hasło base64 ze znakami +/=/ działa bez problemu). Payload trzyma tabele
+      # w schemacie `payload`.
+      PGHOST: postgres
+      PGPORT: '5432'
+      PGUSER: ${POSTGRES_USER:-verris}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB:-verris_db}
       # Wymagany do działania www — bez niego Payload nie wstanie (miękki default,
       # by nie blokować parsowania całego compose, jak przy GlitchTip).
       PAYLOAD_SECRET: ${PAYLOAD_SECRET:-}
