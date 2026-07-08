@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
+  applyConsent,
   availableCategories,
   OPEN_PREFERENCES_EVENT,
   readConsent,
@@ -50,6 +51,11 @@ export function CookieConsentManager() {
       setFunctional(existing.functional);
       setAnalytics(existing.analytics);
       setMarketing(existing.marketing);
+      // Bootstrap zapisanej zgody przy każdym wejściu: skrypt inline odtwarza
+      // sygnały Consent Mode dla GTM, ale Meta Pixel ładuje się wyłącznie
+      // z applyConsent() — bez tego wywołania Pixel wstawał dopiero po
+      // PONOWNYM kliknięciu zgody, a nie przy kolejnych odsłonach.
+      applyConsent(existing);
     }
     const openPrefs = () => {
       const current = readConsent();
