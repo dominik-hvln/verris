@@ -21,7 +21,35 @@ export const Posts: CollectionConfig = {
       label: 'Adres (slug)',
       admin: { position: 'sidebar' },
     },
-    // TODO: pole „author" (E-E-A-T) dodać RAZEM z migracją Payload (nowa kolumna).
+    {
+      name: 'author',
+      type: 'text',
+      label: 'Autor',
+      admin: { position: 'sidebar', description: 'Podpis autora (E-E-A-T, schema BlogPosting).' },
+    },
+    {
+      name: 'keyword',
+      type: 'text',
+      label: 'Fraza główna',
+      admin: { position: 'sidebar', description: 'Główne słowo kluczowe wpisu (SEO).' },
+    },
+    {
+      name: 'cluster',
+      type: 'text',
+      label: 'Klaster tematyczny',
+      admin: { position: 'sidebar', description: 'np. Migracja, Koszty, WordPress, Domeny.' },
+    },
+    {
+      name: 'type',
+      type: 'select',
+      label: 'Typ wpisu',
+      options: [
+        { label: 'Pillar (filar klastra)', value: 'pillar' },
+        { label: 'Spoke (wpis wspierający)', value: 'spoke' },
+      ],
+      admin: { position: 'sidebar' },
+    },
+    // Status (Draft/Published) zapewnia wersjonowanie Payload (`versions.drafts`) — nie dublujemy pola.
     { name: 'excerpt', type: 'textarea', label: 'Zajawka', maxLength: 300 },
     { name: 'coverImage', type: 'upload', relationTo: 'media', label: 'Obraz wyróżniający' },
     { name: 'content', type: 'richText', label: 'Treść' },

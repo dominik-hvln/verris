@@ -16,6 +16,7 @@ type Post = {
   content?: unknown;
   coverImage?: { url?: string; alt?: string } | null;
   author?: string;
+  cluster?: string;
   updatedAt?: string;
   seo?: { title?: string; description?: string };
 };
@@ -68,21 +69,25 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
           author: post.author,
         })}
       />
-      <section className="subhero">
+      <section className="subhero post-hero">
         <div className="bg-pat" aria-hidden="true" />
         <div className="wrap">
           <div className="subhero-inner">
             <Breadcrumbs items={[{ label: 'Blog', href: '/blog' }, { label: post.title }]} />
             <h1 style={{ marginTop: 18 }}>{post.title}</h1>
-            {post.publishedAt ? (
-              <p className="meta" style={{ marginTop: 12 }}>
-                {new Date(post.publishedAt).toLocaleDateString('pl-PL', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })}
-              </p>
-            ) : null}
+            <div className="post-byline">
+              {post.cluster ? <span className="chip">{post.cluster}</span> : null}
+              {post.author ? <span>{post.author}</span> : null}
+              {post.publishedAt ? (
+                <time dateTime={post.publishedAt}>
+                  {new Date(post.publishedAt).toLocaleDateString('pl-PL', {
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric',
+                  })}
+                </time>
+              ) : null}
+            </div>
           </div>
         </div>
       </section>

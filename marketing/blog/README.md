@@ -30,6 +30,18 @@ przepuść przez `marketing:brand-review`.
 Pokrycie: 6 z 7 pillarów + 8 spoke'ów. Linki wewnętrzne między wpisami już wpięte (np. pillar
 migracji → zmiana-hostingu-a-seo, jak-przeniesc-wordpress).
 
+## Obrazki wyróżniające
+
+Każdy wpis ma cover 1200×630 w `images/<slug>.png` (styl kreacji: pattern w tle, logo,
+kategoria w ramce, tytuł pod nią, stopka `verris.pl`). Generator: `generate_covers.py`
+— czyta frontmatter (`title`, `cluster`, `slug`) i tworzy obrazki dla **wszystkich** wpisów:
+
+```bash
+cd marketing/blog && python3 generate_covers.py
+```
+
+Przy publikacji: wgraj obrazek do kolekcji **Media** (z tekstem alt) i ustaw jako *Obraz wyróżniający*.
+
 ## Kolejne fale (do napisania) — wg `verris-blog-content-plan.md`
 
 Migracja: migracja-poczty, ile-trwa-przeniesienie, zmiana-dns · Koszty: drogie-odnowienie,
