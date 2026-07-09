@@ -4,7 +4,17 @@ import { RichText } from '@payloadcms/richtext-lexical/react';
 import { Breadcrumbs, CTABand, JsonLd } from '../../components/ui';
 import { RevealInit } from '../../components/RevealInit';
 import { getPayloadClient } from '@/lib/payload';
-import { articleSchema } from '@/lib/schema';
+import { articleSchema, faqSchema } from '@/lib/schema';
+
+type FaqItem = { q?: string; a?: string; question?: string; answer?: string };
+
+/** Zamienia pole `faq` (json) na pary [pytanie, odpowiedź] dla schema FAQPage. */
+function faqPairs(raw: unknown): [string, string][] {
+  if (!Array.isArray(raw)) return [];
+  return (raw as FaqItem[])
+    .map((i) => [i.q ?? i.question ?? '', i.a ?? i.answer ?? ''] as [string, string])
+    .filter(([q, a]) => q.trim() !== '' && a.trim() !== '');
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -17,6 +27,7 @@ type Post = {
   coverImage?: { url?: string; alt?: string } | null;
   author?: string;
   cluster?: string;
+  faq?: unknown;
   updatedAt?: string;
   seo?: { title?: string; description?: string };
 };
@@ -55,9 +66,11 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const post = await getPost(slug);
   if (!post) notFound();
+  const faq = faqPairs(post.faq);
 
   return (
     <main>
+      {faq.length > 0 ? <JsonLd data={faqSchema(faq)} /> : null}
       <JsonLd
         data={articleSchema({
           title: post.title,
@@ -86,6 +99,18 @@ export default async function PostPage({ params }: { params: Promise<{ slug: str
                     year: 'numeric',
                   })}
                 </time>
+              ) : null}
+              {post.updatedAt && post.updatedAt.slice(0, 10) !== post.publishedAt?.slice(0, 10) ? (
+                <span>
+                  · akt.{' '}
+                  <time dateTime={post.updatedAt}>
+                    {new Date(post.updatedAt).toLocaleDateString('pl-PL', {
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric',
+                    })}
+                  </time>
+                </span>
               ) : null}
             </div>
           </div>

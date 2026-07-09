@@ -13,7 +13,7 @@ const GROUPS: { title: string; note?: string; items: (string | [string, string])
     title: 'Wydajność',
     items: [
       'Inteligentne autoskalowanie zasobów',
-      ['Maksymalna wydajność ', 'do 24× w piku'],
+      ['Maksymalna moc w piku — ', 'do 24 vCPU'],
       ['Zoptymalizowany pod ', 'WordPress'],
       'Tryb ECO — zwalnia moc po piku',
     ],

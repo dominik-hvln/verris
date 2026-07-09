@@ -8,6 +8,7 @@ keyword: "ile kosztuje hosting"
 cluster: "Koszty"
 type: "pillar"
 status: "draft"
+faq: [{"q": "Dlaczego odnowienie jest droższe niż pierwszy okres?", "a": "To standardowy model marketingowy: niska cena przyciąga, wyższe odnowienie zarabia, bo zmiana hostingu wydaje się kłopotliwa. Verris go nie stosuje."}, {"q": "Czy tańszy hosting znaczy gorszy?", "a": "Niekoniecznie — ale liczy się cena realna (po odnowieniu, z dodatkami) i to, co dostajesz w cenie. Tania cena z drogimi dodatkami bywa droższa od „droższej\" oferty all-in."}]
 ---
 
 # Ile realnie kosztuje hosting w Polsce (2026)

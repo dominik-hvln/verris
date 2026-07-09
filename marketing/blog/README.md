@@ -1,51 +1,56 @@
-# Verris — drafty bloga (fala 1)
+# Verris — drafty bloga (32 wpisy, wszystkie klastry domknięte)
 
-Pełne, gotowe do publikacji wpisy (Markdown z frontmatter). Każdy ma: blok „w skrócie" (pod AI/GEO),
-sekcje H2/H3 pod frazy, FAQ, linkowanie wewnętrzne (hub-and-spoke) i CTA. Compliance: ceny brutto,
-SLA 99,5%, „bez limitu" z notą fair use, brak green/fałszywych claimów.
+Pełne, gotowe do publikacji wpisy (Markdown z frontmatter). Każdy ma: blok „W skrócie" (40–60 słów,
+pod AI Overviews i cytowania), H2/H3 sformułowane jak zapytania użytkownika, tabele/listy tam gdzie
+pomagają, FAQ, linkowanie wewnętrzne (hub-and-spoke) i CTA.
 
-Publikacja: wklej treść do kolekcji **Posts** w panelu (tytuł, slug, zajawka = `excerpt`,
-data publikacji, status „published"; `metaTitle`/`metaDescription` → pola SEO). Przed publikacją
-przepuść przez `marketing:brand-review`.
+Compliance: ceny brutto, SLA 99,5%, „bez limitu" z notą fair use, brak green claims, brak nazw
+konkurentów. Przed publikacją → `marketing:brand-review`.
 
-## Fala 1 — 14 wpisów
+## Zawartość
 
-| # | Wpis (slug) | Klaster | Typ |
-|---|---|---|---|
-| 1 | jak-przeniesc-strone-na-inny-hosting | Migracja | pillar |
-| 2 | ile-kosztuje-hosting | Koszty | pillar |
-| 3 | jak-wybrac-hosting-dla-malej-firmy | Wybór hostingu | pillar |
-| 4 | autoskalowanie-hostingu | Koszty | spoke |
-| 5 | najlepszy-hosting-pod-wordpress | WordPress | pillar |
-| 6 | vps-czy-hosting-wspoldzielony | Wybór hostingu | spoke |
-| 7 | hosting-z-faktura-ksef | Wybór hostingu | spoke |
-| 8 | co-to-jest-sla | Bezpieczeństwo/uptime | spoke |
-| 9 | hosting-woocommerce | E-commerce | pillar |
-| 10 | rodo-a-hosting | Bezpieczeństwo/uptime | pillar |
-| 11 | jak-wybrac-domene | Domeny | pillar |
-| 12 | jak-przeniesc-wordpress-na-nowy-hosting | Migracja | spoke |
-| 13 | zmiana-hostingu-a-seo | Migracja | spoke |
-| 14 | kopie-zapasowe-strony | Bezpieczeństwo/uptime | spoke |
+| Klaster | Pillar | Spoke'y |
+|---|---|---|
+| Migracja | jak-przeniesc-strone-na-inny-hosting | jak-przeniesc-wordpress-na-nowy-hosting, zmiana-hostingu-a-seo, migracja-poczty, zmiana-dns, ile-trwa-przeniesienie-strony |
+| Koszty | ile-kosztuje-hosting | autoskalowanie-hostingu, drogie-odnowienie-hostingu, pakiet-vs-zuzycie, hosting-black-friday |
+| WordPress | najlepszy-hosting-pod-wordpress | przyspieszanie-wordpressa, bezpieczenstwo-wordpressa, wordpress-wersja-php |
+| Domeny | jak-wybrac-domene | transfer-domeny, pl-czy-com, odnowienie-domeny |
+| E-commerce | hosting-woocommerce | sklep-nie-wyrabia-ruchu, ssl-sklep-internetowy |
+| Bezpieczeństwo / uptime | rodo-a-hosting | co-to-jest-sla, kopie-zapasowe-strony, analityka-bez-cookies, serwery-w-ue-rodo |
+| Wybór hostingu | jak-wybrac-hosting-dla-malej-firmy | vps-czy-hosting-wspoldzielony, hosting-z-faktura-ksef, hosting-reseller, slownik-pojec-hostingowych |
 
-Pokrycie: 6 z 7 pillarów + 8 spoke'ów. Linki wewnętrzne między wpisami już wpięte (np. pillar
-migracji → zmiana-hostingu-a-seo, jak-przeniesc-wordpress).
+## Narzędzia
 
-## Obrazki wyróżniające
-
-Każdy wpis ma cover 1200×630 w `images/<slug>.png` (styl kreacji: pattern w tle, logo,
-kategoria w ramce, tytuł pod nią, stopka `verris.pl`). Generator: `generate_covers.py`
-— czyta frontmatter (`title`, `cluster`, `slug`) i tworzy obrazki dla **wszystkich** wpisów:
+**Obrazki wyróżniające** — cover 1200×630 w `images/<slug>.png` (kanoniczny pattern marki z
+`apps/www/public/pattern.svg`, logo, kategoria w ramce, tytuł, stopka):
 
 ```bash
-cd marketing/blog && python3 generate_covers.py
+python3 generate_covers.py     # generuje dla wszystkich wpisów
 ```
 
-Przy publikacji: wgraj obrazek do kolekcji **Media** (z tekstem alt) i ustaw jako *Obraz wyróżniający*.
+**FAQ → schema FAQPage** — wyciąga sekcję `## FAQ` do pola `faq` we frontmatterze (JSON):
 
-## Kolejne fale (do napisania) — wg `verris-blog-content-plan.md`
+```bash
+python3 extract_faq.py         # aktualizuje frontmatter wszystkich wpisów
+```
 
-Migracja: migracja-poczty, ile-trwa-przeniesienie, zmiana-dns · Koszty: drogie-odnowienie,
-pakiet-vs-zuzycie, hosting-black-friday · WordPress: przyspieszanie-wordpressa,
-bezpieczenstwo-wordpressa, wordpress-wersja-php · Domeny: transfer-domeny, pl-czy-com,
-odnowienie-domeny · E-commerce: sklep-nie-wyrabia-ruchu, ssl-sklep · Bezpieczeństwo/RODO:
-analityka-bez-cookies, serwery-w-ue-rodo · Wybór: hosting-reseller, slownik-pojec-hostingowych.
+## Jak opublikować wpis
+
+1. **Media** → wgraj `images/<slug>.png` (uzupełnij tekst alt).
+2. **Posts** → nowy wpis: `title`, `slug`, `excerpt`, treść (wklej body bez frontmatter),
+   *Obraz wyróżniający* = wgrany cover.
+3. Sidebar: `author`, `keyword`, `cluster`, `type`, data publikacji.
+4. Pole **FAQ (schema FAQPage)** → wklej wartość `faq` z frontmatter (gotowy JSON).
+5. Pola SEO: `metaTitle` → *Meta title*, `metaDescription` → *Meta description*.
+6. Status **Published**.
+
+Wpis automatycznie emituje `BlogPosting` + `BreadcrumbList`, a przy wypełnionym `faq` również
+`FAQPage`. Listing `/blog` emituje `Blog` + `ItemList`.
+
+## Uwaga o słowach kluczowych
+
+Wpisy celują w **jedną frazę główną** (`keyword`) plus jej naturalne warianty semantyczne.
+Świadomie **nie upychamy** słów kluczowych: wg badań GEO (Princeton, KDD 2024) keyword stuffing
+obniża widoczność o **−10%**, podczas gdy cytowanie źródeł daje +40%, statystyki +37%,
+a poprawa klarowności +20%. Google traktuje upychanie jako spam. Dlatego optymalizacja idzie przez
+pokrycie tematu, strukturę i dane — nie przez gęstość fraz.

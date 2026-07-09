@@ -8,6 +8,7 @@ keyword: "rodo hosting"
 cluster: "Bezpieczeństwo i uptime"
 type: "pillar"
 status: "draft"
+faq: [{"q": "Czy potrzebuję DPA, jeśli mam tylko formularz kontaktowy?", "a": "Jeśli formularz zbiera dane osobowe (imię, e-mail) — tak, warto mieć DPA z dostawcą hostingu, bo dane trafiają na jego serwer."}, {"q": "Czy serwery w UE są wymagane przez RODO?", "a": "RODO nie zakazuje transferu poza EOG, ale trzymanie danych w EOG znacząco upraszcza zgodność i ogranicza formalności."}]
 ---
 
 # RODO a hosting — o co musi zadbać firma

@@ -8,6 +8,7 @@ keyword: "zmiana hostingu a seo"
 cluster: "Migracja"
 type: "spoke"
 status: "draft"
+faq: [{"q": "Czy Google zauważy zmianę serwera?", "a": "Może wykryć zmianę adresu IP, ale to normalne i samo w sobie nie szkodzi pozycjom."}, {"q": "Jak długo trwają ewentualne wahania?", "a": "Zwykle tyle, ile propagacja DNS — od kilkunastu minut do kilku godzin. Potem sytuacja się stabilizuje."}]
 ---
 
 # Zmiana hostingu a pozycje w Google — czy stracisz ruch?

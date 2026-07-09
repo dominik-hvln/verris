@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
-import { SubHero } from '../components/ui';
+import { SubHero, JsonLd } from '../components/ui';
 import { RevealInit } from '../components/RevealInit';
 import { getPayloadClient } from '@/lib/payload';
+import { SITE, ORG_ID } from '@/lib/schema';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,8 +40,33 @@ async function getPosts(): Promise<Post[]> {
 export default async function BlogPage() {
   const posts = await getPosts();
 
+  const blogJsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Blog',
+        '@id': `${SITE}/blog#blog`,
+        name: 'Blog Verris',
+        description: 'Poradniki o hostingu: migracja, koszty, WordPress, domeny i bezpieczeństwo.',
+        url: `${SITE}/blog`,
+        publisher: { '@id': ORG_ID },
+        inLanguage: 'pl-PL',
+      },
+      {
+        '@type': 'ItemList',
+        itemListElement: posts.map((p, i) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          url: `${SITE}/blog/${p.slug}`,
+          name: p.title,
+        })),
+      },
+    ],
+  };
+
   return (
     <main>
+      <JsonLd data={blogJsonLd} />
       <SubHero
         eyebrow="Blog"
         title="Wiedza o hostingu bez ściemy"

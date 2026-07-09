@@ -8,6 +8,7 @@ keyword: "autoskalowanie hosting"
 cluster: "Koszty"
 type: "spoke"
 status: "draft"
+faq: [{"q": "Czy zapłacę więcej, niż się spodziewam?", "a": "Nie — naliczanie jest godzinowe i tylko za nadwyżkę ponad bazę. Maksymalny koszt przy pełnym wykorzystaniu policzysz z góry w kalkulatorze, a realny jest zwykle znacznie niższy dzięki trybowi ECO."}, {"q": "Czy muszę coś ustawiać?", "a": "Nie. Skalowanie działa automatycznie; w panelu widzisz aktualne zużycie i koszty."}, {"q": "Czym różni się od „nielimitowanego\" hostingu?", "a": "„Nielimitowany\" to hasło marketingowe bez jawnych zasad. Autoskalowanie ma jawną bazę, jawne stawki i jawny limit maksymalny."}]
 ---
 
 # Autoskalowanie hostingu — co to jest i kiedy się opłaca

@@ -8,6 +8,7 @@ keyword: "hosting woocommerce"
 cluster: "E-commerce"
 type: "pillar"
 status: "draft"
+faq: [{"q": "Czy WooCommerce postawię na hostingu współdzielonym?", "a": "Tak — hosting współdzielony z autoskalowaniem obsłuży typowy sklep i piki. VPS bywa potrzebny dopiero przy bardzo dużych, nietypowych wdrożeniach."}, {"q": "Co robić, gdy sklep zwalnia w kampanii?", "a": "Najczęściej to brak mocy w piku. Autoskalowanie rozwiązuje problem automatycznie; bez niego trzeba z góry kupić większy pakiet."}]
 ---
 
 # Hosting pod sklep WooCommerce — wymagania i konfiguracja

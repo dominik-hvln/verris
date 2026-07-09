@@ -8,6 +8,7 @@ keyword: "co to jest sla"
 cluster: "Bezpieczeństwo i uptime"
 type: "spoke"
 status: "draft"
+faq: [{"q": "Czy 99,5% to dużo, czy mało?", "a": "To realny, uczciwy poziom dla hostingu współdzielonego — pod warunkiem, że jest poparty rekompensatą. Liczby w rodzaju „100%\" traktuj z ostrożnością."}, {"q": "Co dostanę, jeśli dostawca nie dotrzyma SLA?", "a": "W Verris — kredyty naliczane według skali niedostępności, zgodnie z regulaminem."}]
 ---
 
 # Czym jest SLA i co realnie znaczy 99,5% dostępności

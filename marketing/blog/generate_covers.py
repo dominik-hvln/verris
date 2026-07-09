@@ -38,14 +38,19 @@ GLYPH = [(26, 30), (40, 30), (50, 52), (60, 30), (74, 30), (50, 78)]
 NOTCH = [(44, 55), (56, 55), (50, 69)]
 
 
-def draw_glyph(d, dx, dy, scale, color, alpha, bg=PINE, flip=False):
+def draw_glyph(d, dx, dy, scale, color, alpha, bg=PINE, flip=False, stroke=None, stroke_width=2):
+    """Glif V z logo: zielone wypełnienie + wcięcie (evenodd) z opcjonalnym mintowym obrysem."""
     def pt(x, y):
         gx = dx + (x - 26) * scale
         gy = dy + ((78 - y) if flip else (y - 30)) * scale
         return (gx, gy)
 
     d.polygon([pt(x, y) for x, y in GLYPH], fill=color + (alpha,))
-    d.polygon([pt(x, y) for x, y in NOTCH], fill=bg + (alpha,))
+    notch = [pt(x, y) for x, y in NOTCH]
+    d.polygon(notch, fill=bg + (alpha,))
+    if stroke:
+        # obrys wewnętrznego trójkąta (w SVG: stroke #34E5A0, stroke-width 1.6)
+        d.line(notch + [notch[0]], fill=stroke + (alpha,), width=stroke_width, joint="curve")
 
 
 # Kanoniczny pattern marki — TEN SAM plik, który serwuje strona i landing.
@@ -160,8 +165,8 @@ def make_cover(title, cluster, slug):
     d = ImageDraw.Draw(img, "RGBA")
 
     PAD = 80
-    # logo: glif + wordmark
-    draw_glyph(d, PAD, PAD - 6, 0.95, GREEN, 255)
+    # logo: glif (z mintowym obrysem wcięcia) + wordmark
+    draw_glyph(d, PAD, PAD - 6, 0.95, GREEN, 255, stroke=STROKE, stroke_width=2)
     f_wm = ImageFont.truetype(FB, 30)
     d.text((PAD + 62, PAD + 2), "verris", font=f_wm, fill=PAPER)
 

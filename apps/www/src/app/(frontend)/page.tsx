@@ -80,7 +80,7 @@ const USP = [
   { icon: ShieldCheck, title: 'SLA 99,5% z rekompensatami', desc: 'Nie „obiecujemy" — gwarantujemy w umowie. Za niedostępność naliczamy kredyty wg regulaminu.' },
   { icon: MapPin, title: 'Infrastruktura w UE', desc: 'Serwery Hetzner (Niemcy/Finlandia). Dane pozostają w EOG — prościej o zgodność z RODO.' },
   { icon: FileText, title: 'Komplet RODO online', desc: 'Polityka prywatności, DPA do akceptacji w panelu i lista podprocesorów — godziny mniej papierologii.' },
-  { icon: BarChart3, title: 'Analityka bez cookies', desc: 'Statystyki odwiedzin bez danych osobowych i bez banera zgód. Konkurencja każe wpinać GA.' },
+  { icon: BarChart3, title: 'Analityka bez cookies', desc: 'Statystyki odwiedzin bez danych osobowych i bez banera zgód — zamiast wpinania zewnętrznych skryptów.' },
   { icon: RefreshCw, title: 'Domeny bez pułapek', desc: 'Brak cichych auto-odnowień z karty. Przypominamy przed wygaśnięciem, a decyzję zostawiamy Tobie.' },
   { icon: Database, title: 'Kopie z samodzielnym odtwarzaniem', desc: 'Backup i przywracanie z poziomu DirectAdmin — bez czekania na support i bez dopłat.' },
 ];
@@ -215,7 +215,7 @@ export default function HomePage() {
             <div className="step rv"><span className="n">03</span><h3>Spadek → tryb ECO</h3><p>Gdy ruch opada, tryb ECO zwalnia nadwyżkę i naliczanie się kończy. Nie płacisz za moc, której strona nie używa.</p></div>
           </div>
           <div className="scale-stats rv">
-            <div className="sstat"><div className="v">2 → 24 vCPU</div><div className="l">wydajność do 24× w piku</div></div>
+            <div className="sstat"><div className="v">2 → 24 vCPU</div><div className="l">moc CPU do 12× bazy</div></div>
             <div className="sstat"><div className="v">8 → 64 GB</div><div className="l">RAM na żądanie</div></div>
             <div className="sstat"><div className="v">50 → 1000 GB</div><div className="l">dysk NVMe</div></div>
           </div>

@@ -8,6 +8,7 @@ keyword: "hosting wordpress"
 cluster: "WordPress"
 type: "pillar"
 status: "draft"
+faq: [{"q": "Czy WordPress potrzebuje specjalnego hostingu?", "a": "Nie musi, ale zyskuje na hostingu zoptymalizowanym pod PHP i skoki ruchu. Zwykły, dobrze skonfigurowany hosting współdzielony w zupełności wystarczy większości stron."}, {"q": "Jak przyspieszyć WordPressa?", "a": "Aktualny PHP, cache, lekki motyw, zoptymalizowane obrazy i szybki serwer. Sam hosting to fundament — reszta to konfiguracja strony."}]
 ---
 
 # Najlepszy hosting pod WordPress — na co zwrócić uwagę

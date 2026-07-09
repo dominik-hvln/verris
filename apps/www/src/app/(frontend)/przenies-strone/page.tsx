@@ -1,9 +1,10 @@
 import type { Metadata } from 'next';
-import { ShieldCheck, Boxes, CreditCard, FileText, Check } from 'lucide-react';
+import { ShieldCheck, Boxes, CreditCard, Database, Check } from 'lucide-react';
 import { Pricing } from '../components/Pricing';
 import { CTABand } from '../components/ui';
 import { RevealInit } from '../components/RevealInit';
 import { MigrationCalculator } from '../components/MigrationCalculator';
+import { MigrationLeadForm } from '../components/MigrationLeadForm';
 import { PANEL } from '@/lib/site';
 
 export const metadata: Metadata = {
@@ -149,7 +150,8 @@ export default function Page() {
             <span><ShieldCheck /> SLA 99,5% z rekompensatami</span>
             <span><Boxes /> Dane w UE · RODO</span>
             <span><CreditCard /> Płatność BLIK i kartą</span>
-            <span><FileText /> Faktury gotowe na KSeF</span>
+            {/* Brand-review: KSeF to standard, nie wyróżnik — zastąpione realnym USP. */}
+            <span><Database /> Kopie z samodzielnym odtwarzaniem</span>
           </div>
         </div>
       </div>
@@ -216,6 +218,13 @@ export default function Page() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* LEAD — wejście do sekwencji e-mail */}
+      <section>
+        <div className="wrap">
+          <MigrationLeadForm />
         </div>
       </section>
 

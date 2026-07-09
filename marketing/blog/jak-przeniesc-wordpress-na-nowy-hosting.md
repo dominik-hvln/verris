@@ -8,6 +8,7 @@ keyword: "jak przenieść wordpress"
 cluster: "Migracja"
 type: "spoke"
 status: "draft"
+faq: [{"q": "Czy stracę wtyczki i ustawienia?", "a": "Nie — przenosisz całą instalację razem z wtyczkami, motywem i bazą, więc konfiguracja zostaje."}, {"q": "Ile trwa migracja WordPressa?", "a": "Typowo od kilku godzin do dnia, wliczając propagację DNS. Duże sklepy z wieloma mediami mogą potrzebować więcej."}]
 ---
 
 # Jak przenieść WordPress na nowy hosting (krok po kroku)

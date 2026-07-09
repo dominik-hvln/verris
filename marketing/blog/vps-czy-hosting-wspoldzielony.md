@@ -8,6 +8,7 @@ keyword: "vps czy hosting współdzielony"
 cluster: "Wybór hostingu"
 type: "spoke"
 status: "draft"
+faq: [{"q": "Czy VPS jest szybszy niż hosting współdzielony?", "a": "Niekoniecznie. Dobrze skonfigurowany hosting z autoskalowaniem obsłuży pik lepiej niż źle zestrojony VPS. Wydajność zależy od konfiguracji, nie tylko od typu usługi."}, {"q": "Czy na hostingu współdzielonym postawię sklep?", "a": "Tak — hosting pod sklep z autoskalowaniem obsłuży WooCommerce i piki sprzedażowe. VPS bywa potrzebny dopiero przy bardzo dużych, nietypowych wdrożeniach."}]
 ---
 
 # VPS czy hosting współdzielony — co wybrać

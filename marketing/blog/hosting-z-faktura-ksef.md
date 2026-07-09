@@ -8,6 +8,7 @@ keyword: "hosting faktura ksef"
 cluster: "Wybór hostingu"
 type: "spoke"
 status: "draft"
+faq: [{"q": "Czy dostanę fakturę automatycznie przy odnowieniu?", "a": "W Verris faktury trafiają do panelu i na e-mail. Przy odnowieniu dokument wystawia się do opłaconej usługi."}, {"q": "Czy mogę ustawić dane firmy na fakturze?", "a": "Tak — dane do faktury ustawiasz w panelu klienta."}]
 ---
 
 # Hosting z fakturą gotową na KSeF — co to znaczy dla firm

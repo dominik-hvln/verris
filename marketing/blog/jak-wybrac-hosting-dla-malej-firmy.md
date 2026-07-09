@@ -8,6 +8,7 @@ keyword: "hosting dla małej firmy"
 cluster: "Wybór hostingu"
 type: "pillar"
 status: "draft"
+faq: [{"q": "Hosting współdzielony czy VPS dla małej firmy?", "a": "Dla typowej strony firmowej wystarczy hosting współdzielony z autoskalowaniem. VPS ma sens, gdy potrzebujesz własnego środowiska i pełnej kontroli — porównanie."}, {"q": "Czy „nielimitowany\" hosting to dobry wybór?", "a": "„Bez limitu\" ma sens tylko z jasną informacją, że realnym ogranicznikiem są zasoby konta i zasady fair use. Uważaj na hasła bez pokrycia."}]
 ---
 
 # Jak wybrać hosting dla małej firmy

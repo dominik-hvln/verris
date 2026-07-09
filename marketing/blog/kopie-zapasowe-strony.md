@@ -8,6 +8,7 @@ keyword: "kopia zapasowa strony"
 cluster: "Bezpieczeństwo i uptime"
 type: "spoke"
 status: "draft"
+faq: [{"q": "Czy hosting robi kopie za mnie?", "a": "W Verris kopie są częścią usługi, a odtworzenie wykonujesz samodzielnie w panelu. Mimo to warto mieć też własną kopię przed dużymi zmianami."}, {"q": "Gdzie trzymać dodatkową kopię?", "a": "Poza serwerem produkcyjnym — np. lokalnie albo w osobnym magazynie. To realizacja zasady 3-2-1."}]
 ---
 
 # Kopie zapasowe strony — jak i jak często robić backup

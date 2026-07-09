@@ -4,6 +4,10 @@ import { getPayloadClient } from '@/lib/payload';
 
 const BASE = 'https://verris.pl';
 
+// Sitemap musi odpytywać bazę w RUNTIME, nie w buildzie (wtedy DB nie ma → brak wpisów bloga).
+// ISR: odświeża się co godzinę, więc nowe wpisy pojawiają się automatycznie.
+export const revalidate = 3600;
+
 const STATIC = [
   '/',
   '/hosting',

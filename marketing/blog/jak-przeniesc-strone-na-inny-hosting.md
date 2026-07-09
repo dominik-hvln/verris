@@ -8,6 +8,7 @@ keyword: "przeniesienie strony na inny hosting"
 cluster: "Migracja"
 type: "pillar"
 status: "draft"
+faq: [{"q": "Czy strona przestanie działać w trakcie przenoszenia?", "a": "Nie powinna. Migracja odbywa się obok działającej strony, a przełączenie następuje dopiero przez zmianę DNS, gdy wszystko jest sprawdzone."}, {"q": "Czy muszę przenosić domenę razem z hostingiem?", "a": "Nie. Domena może zostać u obecnego rejestratora — wystarczy zmienić rekordy DNS. Transfer domeny jest opcjonalny."}, {"q": "Ile trwa migracja?", "a": "Typowa strona firmowa to kwestia godzin do 1–2 dni, wliczając propagację DNS."}]
 ---
 
 # Jak przenieść stronę na inny hosting bez przestoju

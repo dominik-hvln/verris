@@ -40,7 +40,7 @@ export const features: Feature[] = [
         h: 'Zakres skalowania',
         ul: [
           'Baza w cenie: 50 GB NVMe, 8 GB RAM, 2 vCPU (CloudLinux).',
-          'Maksymalnie: 1000 GB dysku, 64 GB RAM, 24 vCPU — wydajność do 24× w piku.',
+          'Maksymalnie: 1000 GB dysku, 64 GB RAM, 24 vCPU — do 12× mocy CPU względem bazy.',
           'Krok skalowania dobierany automatycznie; tryb ECO zwalnia moc po piku.',
           'Rozliczenie godzinowe brutto — płacisz tylko za faktyczny czas nadwyżki.',
         ],

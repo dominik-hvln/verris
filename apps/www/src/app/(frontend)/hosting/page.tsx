@@ -75,7 +75,7 @@ export default function HostingPage() {
             </p>
             <ul>
               <li>Baza w cenie: 50 GB NVMe, 8 GB RAM, 2 vCPU (CloudLinux).</li>
-              <li>Autoskalowanie do 1000 GB dysku, 64 GB RAM i 24 vCPU — wydajność do 24× w piku.</li>
+              <li>Autoskalowanie do 1000 GB dysku, 64 GB RAM i 24 vCPU — do 12× mocy CPU względem bazy.</li>
               <li>Tryb ECO zwalnia nadwyżkę po piku, a naliczanie się kończy.</li>
               <li>Bez limitu stron, skrzynek i transferu — w ramach zasobów konta i zasad fair use.</li>
             </ul>

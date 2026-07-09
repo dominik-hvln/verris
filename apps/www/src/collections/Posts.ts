@@ -50,6 +50,15 @@ export const Posts: CollectionConfig = {
       admin: { position: 'sidebar' },
     },
     // Status (Draft/Published) zapewnia wersjonowanie Payload (`versions.drafts`) — nie dublujemy pola.
+    {
+      name: 'faq',
+      type: 'json',
+      label: 'FAQ (schema FAQPage)',
+      admin: {
+        description:
+          'Pytania i odpowiedzi z końca wpisu — zasilają rich results i cytowania w AI. Format: [{"q":"Pytanie?","a":"Odpowiedź."}]',
+      },
+    },
     { name: 'excerpt', type: 'textarea', label: 'Zajawka', maxLength: 300 },
     { name: 'coverImage', type: 'upload', relationTo: 'media', label: 'Obraz wyróżniający' },
     { name: 'content', type: 'richText', label: 'Treść' },

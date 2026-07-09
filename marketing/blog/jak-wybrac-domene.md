@@ -8,6 +8,7 @@ keyword: "jak wybrać domenę"
 cluster: "Domeny"
 type: "pillar"
 status: "draft"
+faq: [{"q": "Czy muszę kupić domenę tam, gdzie hosting?", "a": "Nie. Domena może zostać u obecnego rejestratora — wystarczy zmienić DNS. Trzymanie jej razem z hostingiem jest jednak wygodniejsze (jeden panel, jedne faktury)."}, {"q": "Co się stanie, jeśli nie odnowię domeny?", "a": "Domena wygasa i po okresie karencji może zostać zwolniona. Dlatego liczą się przypomnienia — w Verris wysyłamy je 30/14/7 dni wcześniej."}]
 ---
 
 # Jak wybrać i zarejestrować domenę dla firmy
