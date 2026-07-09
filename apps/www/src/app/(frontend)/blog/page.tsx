@@ -32,7 +32,10 @@ async function getPosts(): Promise<Post[]> {
       depth: 1,
     });
     return res.docs as unknown as Post[];
-  } catch {
+  } catch (err) {
+    // NIE maskuj po cichu: błąd bazy (np. brakująca kolumna po zmianie schematu)
+    // wyglądałby jak „brak wpisów". Loguj, żeby było widać w `docker compose logs www`.
+    console.error('[blog] Nie udało się pobrać wpisów z Payload:', err);
     return [];
   }
 }

@@ -121,11 +121,32 @@ działają **bez bazy**. Blog pokaże pusty stan, a `/admin` czeka na schemat Pa
 
 ---
 
-## 7. (Opcjonalnie teraz) Inicjalizacja bazy Payload — /admin i blog
+## 7. Migracje Payload — zautomatyzowane w deployu
 
-Panel CMS i blog wymagają schematu `payload` w Postgresie. W modelu „serwer pobiera obrazy"
-standalone-obraz nie zawiera CLI Payloada, więc migrację odpalamy jednorazowo z pełnego obrazu
-Node podpiętego do wewnętrznej sieci Dockera.
+**Od teraz nie robisz nic ręcznie.** `prod-deploy-ghcr.sh` odpala `ops/scripts/prod-migrate-www.sh`
+**przed** startem nowego obrazu `www`, więc schemat zawsze wyprzedza kod (expand → contract).
+Nieudana migracja **przerywa deploy** zanim kod zostanie podmieniony — stary kod i stary schemat
+działają dalej.
+
+Dlaczego tak: obraz `www` jest „standalone" i nie zawiera CLI Payloada, dlatego migracja idzie
+z jednorazowego kontenera `node:22-bookworm-slim` z zamontowanym repo, podpiętego do sieci
+`verris_internal`. Połączenie przez zmienne `PG*` (bez enkodowania hasła w URL).
+
+Ręczne odpalenie (debug / pierwsza inicjalizacja):
+
+```bash
+cd /opt/verris && bash ops/scripts/prod-migrate-www.sh
+```
+
+Jeśli po deployu blog albo `/admin` wyglądają na puste, sprawdź najpierw logi — błąd bazy
+(np. `column ... does not exist`) jest teraz logowany, a nie maskowany jako „brak wpisów":
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.prod logs --tail=60 www | grep -i "error\|column"
+```
+
+<details>
+<summary>Wariant historyczny — ręczna migracja z jednorazowego kontenera</summary>
 
 ```bash
 # Nazwa wewnętrznej sieci (zwykle <katalog>_verris_internal):
@@ -145,7 +166,9 @@ docker run --rm -i --network "$NET" -v "$PWD":/repo -w /repo/apps/www \
     pnpm --filter @verris/www exec payload migrate'
 ```
 
-Potem załóż konto admina, wchodząc na `https://verris.pl/admin` (pierwsze wejście tworzy usera).
+</details>
+
+Konto admina zakładasz przy pierwszym wejściu na `https://verris.pl/admin`.
 
 > Uwaga bezpieczeństwa: `/admin` jest publiczny (login-gated). Jeśli ma być niedostępny z
 > zewnątrz, dodaj w Caddy ograniczenie (VPN/basic-auth) dla ścieżki `/admin` — `robots.txt`

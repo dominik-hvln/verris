@@ -37,6 +37,17 @@ PREV_TAG="$(cat "$LAST_GOOD_FILE" 2>/dev/null || echo '')"
 # 1) Pobierz nowe obrazy (bez ruszania działających kontenerów).
 REGISTRY_PREFIX="$REGISTRY_PREFIX" IMAGE_TAG="$IMAGE_TAG" compose pull ${APP_SERVICES}
 
+# 1.5) Migracje Payload (apps/www) — PRZED startem nowego kodu. Obraz www jest
+#      standalone (bez CLI Payloada), więc migracja idzie z jednorazowego kontenera Node.
+#      Schemat musi wyprzedzać kod: inaczej nowy kod pyta o kolumny, których nie ma,
+#      a blog/panel wyglądają na puste. Nieudana migracja = przerwanie deployu
+#      (stary kod i stary schemat dalej działają — nic nie zostało podmienione).
+echo "[deploy] payload migrate (www)…"
+if ! bash ops/scripts/prod-migrate-www.sh; then
+  echo "[deploy] FAIL: migracje Payload nie przeszły — przerywam przed podmianą kodu."
+  exit 1
+fi
+
 # 2) Rolling restart na gotowych obrazach (bez budowania). Migracje są wstecznie
 #    kompatybilne (wzorzec expand→contract, migracje idempotentne IF NOT EXISTS),
 #    więc nowy kod może chwilę działać przed `migrate deploy`.

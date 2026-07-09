@@ -42,7 +42,8 @@ async function getPost(slug: string): Promise<Post | null> {
       depth: 1,
     });
     return (res.docs[0] as unknown as Post) ?? null;
-  } catch {
+  } catch (err) {
+    console.error(`[blog] Nie udało się pobrać wpisu "${slug}":`, err);
     return null;
   }
 }
