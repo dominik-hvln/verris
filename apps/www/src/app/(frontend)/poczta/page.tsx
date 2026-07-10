@@ -18,7 +18,7 @@ export default function Page() {
         title="Firmowa poczta na własnej domenie"
         lead="Profesjonalny adres @twojafirma.pl zamiast darmowej skrzynki. Konta pocztowe w ramach hostingu, webmail Roundcube i konfiguracja w kilku klikach."
         crumbs={[{ label: 'Hosting', href: '/hosting' }, { label: 'Poczta' }]}
-        primary={{ label: 'Załóż konto', href: PANEL, conv: 'begin_checkout' }}
+        primary={{ label: 'Załóż konto', href: PANEL, conv: 'checkout_intent', plan: 'poczta' }}
         secondary={{ label: 'Zobacz hosting', href: '/hosting' }}
       />
       <section>

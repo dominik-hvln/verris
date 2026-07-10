@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Gauge, Move, ShieldCheck, Database, BarChart3, FileText, Activity } from 'lucide-react';
+import { Gauge, Move, ShieldCheck, Database, RefreshCw, FileText, Activity } from 'lucide-react';
 import { SubHero, CTABand } from '../components/ui';
 import { RevealInit } from '../components/RevealInit';
 import { features } from '@/lib/features';
@@ -7,7 +7,7 @@ import { features } from '@/lib/features';
 export const metadata: Metadata = {
   title: 'Funkcje hostingu Verris — autoskalowanie, migracja, SSL, SLA',
   description:
-    'Wszystkie funkcje hostingu Verris w jednym miejscu: autoskalowanie, darmowa migracja, SSL w cenie, kopie zapasowe, analityka bez cookies, RODO/DPA i SLA 99,5% z rekompensatami.',
+    'Wszystkie funkcje hostingu Verris w jednym miejscu: autoskalowanie, darmowa migracja, SSL w cenie, kopie zapasowe z siatką bezpieczeństwa, domeny bez auto-odnowień, RODO/DPA i SLA 99,5% z rekompensatami.',
   alternates: { canonical: '/funkcje' },
 };
 
@@ -16,7 +16,7 @@ const ICONS: Record<string, typeof Gauge> = {
   migracja: Move,
   ssl: ShieldCheck,
   'kopie-zapasowe': Database,
-  'analityka-bez-cookies': BarChart3,
+  'domeny-bez-auto-odnowien': RefreshCw,
   'rodo-i-dpa': FileText,
   sla: Activity,
 };

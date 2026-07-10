@@ -32,7 +32,7 @@ Na serwerze lądują dane z formularzy, konta klientów, zamówienia, logi. To d
 
 ## Jak Verris to rozwiązuje
 
-Verris udostępnia komplet dokumentów online: politykę prywatności, [DPA do akceptacji w panelu i listę podprocesorów](/funkcje/rodo-i-dpa). Infrastruktura stoi w UE (Hetzner, Niemcy/Finlandia), więc **dane pozostają w EOG**. Dodatkowo hosting oferuje [prywatną analitykę bez cookies](/funkcje/analityka-bez-cookies) — statystyki bez danych osobowych i bez banera zgód, co ogranicza Twoje obowiązki.
+Verris udostępnia komplet dokumentów online: politykę prywatności, [DPA do akceptacji w panelu i listę podprocesorów](/funkcje/rodo-i-dpa). Infrastruktura stoi w UE (Hetzner, Niemcy/Finlandia), więc **dane pozostają w EOG** — odpada temat transferu do państwa trzeciego i standardowych klauzul umownych.
 
 ## Częsty błąd: analityka na doczepkę
 

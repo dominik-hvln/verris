@@ -115,7 +115,7 @@ export function MigrationCalculator() {
           href="https://panel.verris.pl"
           data-event="cta_click"
           data-cta="calculator"
-          data-conv="begin_checkout"
+          data-conv="checkout_intent"
         >
           Przenieś stronę za darmo
         </a>

@@ -9,7 +9,9 @@ Aktualizacja: 2026-07-08. Źródło: https://verris.pl/cennik
 - Autoskalowanie (maksymalnie): 1000 GB dysku, 64 GB RAM, 24 vCPU
 - Stawki autoskalowania (brutto za godzinę): CPU 0,001323 zł za 1% · RAM 0,0882 zł za 1 GB · dysk 0,0008 zł za 1 GB
 - W cenie, bez dopłat: migracja strony i poczty, certyfikat SSL Let's Encrypt, kopie zapasowe
-  z samodzielnym odtwarzaniem, prywatna analityka bez cookies, obsługa starych wersji PHP
+  z samodzielnym odtwarzaniem w ramach limitu Planu (domyślnie z kopią bezpieczeństwa przed
+  przywróceniem), obsługa starych wersji PHP
+- Dodatkowa przestrzeń kopii zapasowych ponad limit Planu jest rozliczana zużyciem (§9 ust. 5 regulaminu)
 - Bez limitu liczby stron, skrzynek e-mail i transferu (w ramach zasobów konta i zasad uczciwego korzystania)
 - Model odnowień: cena z cennika od pierwszego dnia; odnowienie wg cennika z dnia odnowienia; brak „taniego pierwszego roku"
 

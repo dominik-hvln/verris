@@ -52,7 +52,7 @@ export function SubHero({
   title: string;
   lead: string;
   crumbs: Crumb[];
-  primary?: { label: string; href: string; conv?: string };
+  primary?: { label: string; href: string; conv?: string; plan?: string };
   secondary?: { label: string; href: string };
 }) {
   return (
@@ -75,6 +75,7 @@ export function SubHero({
                   data-event="cta_click"
                   data-cta="subhero"
                   data-conv={primary.conv}
+                  data-plan={primary.plan}
                 >
                   {primary.label}
                 </a>
@@ -112,7 +113,7 @@ export function CTABand({
           <h2>{title}</h2>
           <p>{text}</p>
           <div className="hero-cta" style={{ justifyContent: 'center' }}>
-            <a className="btn btn-primary" href={primaryHref} data-event="cta_click" data-cta="ctaband" data-conv="begin_checkout">
+            <a className="btn btn-primary" href={primaryHref} data-event="cta_click" data-cta="ctaband" data-conv="checkout_intent">
               {primaryLabel}
             </a>
             {secondary && (

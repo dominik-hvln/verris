@@ -18,7 +18,7 @@ export default function Page() {
         title="Sklep, który nie pada w piku sprzedaży"
         lead="Black Friday, wysyłka newslettera, wejście do mediów — właśnie wtedy sklep potrzebuje mocy. Autoskalowanie doda ją automatycznie i rozliczy godzinowo, tylko za czas piku."
         crumbs={[{ label: 'Hosting', href: '/hosting' }, { label: 'Sklep' }]}
-        primary={{ label: 'Załóż konto', href: PANEL, conv: 'begin_checkout' }}
+        primary={{ label: 'Załóż konto', href: PANEL, conv: 'checkout_intent', plan: 'hosting' }}
         secondary={{ label: 'Policz koszt', href: '/przenies-strone#kalkulator' }}
       />
       <section>

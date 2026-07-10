@@ -27,7 +27,7 @@ export default function Page() {
         title="Wysyłki do własnych list — z jednego panelu"
         lead="Docieraj do swoich odbiorców e-mailem, z naciskiem na dostarczalność. Narzędzie dajemy my; zgody odbiorców i treść zostają po Twojej stronie."
         crumbs={[{ label: 'E-mail marketing' }]}
-        primary={{ label: 'Zacznij w panelu', href: PANEL, conv: 'begin_checkout' }}
+        primary={{ label: 'Zacznij w panelu', href: PANEL, conv: 'checkout_intent', plan: 'email-marketing' }}
         secondary={{ label: 'Zobacz hosting', href: '/hosting' }}
       />
       <section>

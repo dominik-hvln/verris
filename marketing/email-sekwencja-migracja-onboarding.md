@@ -195,7 +195,7 @@ Wyzwalacz: `purchase` / `stripe_checkout_success`. **Nie doklejamy tu treści ma
 | B1 | natychmiast | „Witaj w Verris — co dalej" | Dostęp do panelu, 2 ścieżki migracji (zespół albo migrator) |
 | B2 | +24 h, jeśli brak zgłoszenia migracji | „Przekaż dostępy, resztą zajmiemy się my" | Odblokowanie migracji, link do formularza |
 | B3 | po zakończeniu kopiowania | „Twoja strona jest na Verris — sprawdź przed przełączeniem" | Test pod adresem tymczasowym, checklista |
-| B4 | +1 dzień po przełączeniu DNS | „Działa. Zrób jeszcze te trzy rzeczy" | SSL, kopie zapasowe, prywatna analityka |
+| B4 | +1 dzień po przełączeniu DNS | „Działa. Zrób jeszcze te trzy rzeczy" | SSL, kopie zapasowe, test przywracania |
 | B5 | +14 dni | „Jak Ci się pracuje na Verris?" | Prośba o opinię (Google) + kanał zgłoszeń |
 
 **B1 (szkic):**

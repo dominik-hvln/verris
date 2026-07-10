@@ -18,7 +18,7 @@ export default function Page() {
         title="WordPress, który wytrzyma pik"
         lead="Hosting zoptymalizowany pod WordPress. Gdy wpis wejdzie na home albo ruszy kampania, autoskalowanie doda mocy — a po piku ją zwolni. Bez pakietu na zapas."
         crumbs={[{ label: 'Hosting', href: '/hosting' }, { label: 'WordPress' }]}
-        primary={{ label: 'Załóż konto', href: PANEL, conv: 'begin_checkout' }}
+        primary={{ label: 'Załóż konto', href: PANEL, conv: 'checkout_intent', plan: 'hosting' }}
         secondary={{ label: 'Przenieś WordPressa', href: '/przenies-strone' }}
       />
       <section>
@@ -30,7 +30,7 @@ export default function Page() {
               <li>Obsługa starych wersji PHP, gdy motyw lub wtyczka jeszcze nie nadążyły.</li>
               <li>Kopie zapasowe z samodzielnym odtwarzaniem w DirectAdmin.</li>
               <li>Certyfikat SSL Let’s Encrypt i migracja w cenie — 0 zł.</li>
-              <li>Prywatna analityka bez cookies — statystyki bez banera zgód.</li>
+              <li>Przywracanie kopii wybiórczo: pliki, baza, poczta — z domyślną kopią bezpieczeństwa przed operacją.</li>
             </ul>
             <h2>Przenieś istniejącą stronę WordPress</h2>
             <p>

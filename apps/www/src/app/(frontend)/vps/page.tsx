@@ -35,7 +35,7 @@ export default function VpsPage() {
         title="VPS z pełnym dostępem root"
         lead="Niezarządzane serwery dla tych, którzy chcą pełnej kontroli. Przewidywalne zasoby, infrastruktura w Unii Europejskiej i uczciwe zasady rozliczeń."
         crumbs={[{ label: 'VPS' }]}
-        primary={{ label: 'Skonfiguruj VPS', href: PANEL, conv: 'begin_checkout' }}
+        primary={{ label: 'Skonfiguruj VPS', href: PANEL, conv: 'checkout_intent', plan: 'vps' }}
         secondary={{ label: 'Porównaj z hostingiem', href: '/hosting' }}
       />
       <section>

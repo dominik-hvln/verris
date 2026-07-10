@@ -41,7 +41,7 @@ export const footerCols: { heading: string; links: { label: string; href: string
       { label: 'Migracja', href: '/przenies-strone' },
       { label: 'Certyfikaty SSL', href: '/funkcje/ssl' },
       { label: 'Kopie zapasowe', href: '/funkcje/kopie-zapasowe' },
-      { label: 'Analityka bez cookies', href: '/funkcje/analityka-bez-cookies' },
+      { label: 'Domeny bez auto-odnowień', href: '/funkcje/domeny-bez-auto-odnowien' },
       { label: 'SLA 99,5%', href: '/funkcje/sla' },
     ],
   },

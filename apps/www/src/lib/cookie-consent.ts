@@ -28,6 +28,26 @@ export interface CookieConsent {
 export const OPEN_PREFERENCES_EVENT = 'verris:cookie-preferences';
 export const CONSENT_CHANGED_EVENT = 'verris:cookie-consent-changed';
 
+/**
+ * Domena nadrzędna dla ciasteczka zgody.
+ *
+ * Bez atrybutu `Domain` ciasteczko jest host-only: zgoda wyrażona na `verris.pl`
+ * NIE jest widoczna na `panel.verris.pl`. Skutek: panel pyta drugi raz, Consent Mode
+ * zostaje `denied`, a zdarzenia dołu lejka (`sign_up`, `purchase`) nigdy nie docierają
+ * do GA4/Ads/Meta. Ustawiamy `Domain=.verris.pl`, żeby zgoda obowiązywała w całej domenie.
+ *
+ * Zwraca '' dla localhost i podglądów (adres IP, *.vercel.app itp.) — tam host-only jest poprawne.
+ */
+export function consentCookieDomain(): string {
+  if (typeof location === 'undefined') return '';
+  const host = location.hostname;
+  const parts = host.split('.');
+  // localhost / adres IP / pojedynczy label — bez atrybutu Domain.
+  if (parts.length < 2 || /^[0-9.]+$/.test(host)) return '';
+  const base = parts.slice(-2).join('.');
+  return host === base || host.endsWith(`.${base}`) ? `.${base}` : '';
+}
+
 declare global {
   interface Window {
     dataLayer?: unknown[];
@@ -65,9 +85,18 @@ export function writeConsent(
   const consent: CookieConsent = { v: CONSENT_VERSION, ts: new Date().toISOString(), ...choice };
   const expires = new Date(Date.now() + CONSENT_TTL_DAYS * 24 * 60 * 60 * 1000).toUTCString();
   const secure = typeof location !== 'undefined' && location.protocol === 'https:' ? '; Secure' : '';
+  const domain = consentCookieDomain();
+
+  // Skasuj starszy wariant host-only. Inaczej po wdrożeniu współistniałyby dwa
+  // ciasteczka o tej samej nazwie (host-only + domenowe), a `document.cookie`
+  // nie ujawnia ich zakresu — odczyt trafiałby na przypadkowe.
+  if (domain) {
+    document.cookie = `${CONSENT_COOKIE}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+  }
+
   document.cookie = `${CONSENT_COOKIE}=${encodeURIComponent(
     JSON.stringify(consent),
-  )}; expires=${expires}; path=/; SameSite=Lax${secure}`;
+  )}; expires=${expires}; path=/${domain ? `; Domain=${domain}` : ''}; SameSite=Lax${secure}`;
   applyConsent(consent);
   window.dispatchEvent(new CustomEvent(CONSENT_CHANGED_EVENT, { detail: consent }));
   return consent;
@@ -91,7 +120,17 @@ export function applyConsent(consent: CookieConsent): void {
     personalization_storage: consent.functional ? 'granted' : 'denied',
     security_storage: 'granted',
   });
-  window.dataLayer?.push({ event: 'verris_consent_update' });
+  // Zmienna `consent_state` — spójna z panelem. Bez niej debugowanie „czemu tag
+  // nie odpalił" sprowadza się do zgadywania.
+  window.dataLayer?.push({
+    event: 'verris_consent_update',
+    consent_state: {
+      analytics: consent.analytics,
+      marketing: consent.marketing,
+      functional: consent.functional,
+    },
+  });
+  if (!consent.marketing) window.dataLayer?.push({ user_data: null });
   syncMetaPixel(consent.marketing);
 }
 

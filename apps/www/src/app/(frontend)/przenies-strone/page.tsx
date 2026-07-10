@@ -49,7 +49,7 @@ const COMPARE: [string, string, string][] = [
   ['Zasoby', 'Sztywne pakiety — płacisz za moc „na zapas" 24 h/dobę', 'Autoskalowanie godzinowe — dodatkowa moc tylko wtedy, gdy jest używana'],
   ['Odnowienia domen', 'Automatyczne obciążenie, czasem bez wyraźnej zgody', 'Wyłącznie po opłaceniu — przypomnienia 30, 14 i 7 dni przed wygaśnięciem'],
   ['Awarie', 'Rekompensata po reklamacji, jeśli w ogóle', 'SLA 99,5% z automatycznymi rekompensatami zapisanymi w regulaminie'],
-  ['Statystyki odwiedzin', 'Zewnętrzna analityka, baner cookies obowiązkowy', 'Prywatna analityka bez cookies w cenie — działa bez banera zgód'],
+  ['Przywrócenie kopii', 'Zgłoszenie do supportu, czasem płatne, bez możliwości cofnięcia', 'Samodzielnie w panelu — wybierasz pliki, bazę lub pocztę, a system domyślnie robi kopię bezpieczeństwa przed operacją'],
   ['Rezygnacja', 'Ukryte kroki, konsultant „zatrzymujący"', 'Wyłączenie odnowienia jednym przełącznikiem w panelu, bez opłat'],
 ];
 
@@ -102,7 +102,7 @@ export default function Page() {
               Migracja jest bezpłatna w ramach zamówienia hostingu — bez gwiazdek i ukrytych warunków.
             </p>
             <div className="cta-row">
-              <a className="btn btn-primary" href={PANEL} data-event="cta_click" data-cta="hero" data-conv="begin_checkout">
+              <a className="btn btn-primary" href={PANEL} data-event="cta_click" data-cta="hero" data-conv="checkout_intent">
                 Przenieś stronę za darmo
               </a>
               <a className="btn btn-ghost" href="#kalkulator" data-event="cta_click" data-cta="hero-calc">

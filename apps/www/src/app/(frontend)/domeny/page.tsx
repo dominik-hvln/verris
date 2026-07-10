@@ -35,7 +35,7 @@ export default function DomenyPage() {
         title="Domeny bez pułapek odnowień"
         lead="Rejestracja i transfer domen z uczciwymi zasadami. Bez cichego pobierania z karty i bez blokad transferu — tak jak powinno być."
         crumbs={[{ label: 'Domeny' }]}
-        primary={{ label: 'Wyszukaj domenę', href: PANEL, conv: 'generate_lead' }}
+        primary={{ label: 'Wyszukaj domenę', href: PANEL }}
         secondary={{ label: 'Zobacz hosting', href: '/hosting' }}
       />
       <section>

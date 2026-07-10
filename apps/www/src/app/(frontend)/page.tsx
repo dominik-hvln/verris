@@ -9,7 +9,7 @@ import {
   ShieldCheck,
   MapPin,
   FileText,
-  BarChart3,
+  Undo2,
   RefreshCw,
   Database,
 } from 'lucide-react';
@@ -80,7 +80,7 @@ const USP = [
   { icon: ShieldCheck, title: 'SLA 99,5% z rekompensatami', desc: 'Nie „obiecujemy" — gwarantujemy w umowie. Za niedostępność naliczamy kredyty wg regulaminu.' },
   { icon: MapPin, title: 'Infrastruktura w UE', desc: 'Serwery Hetzner (Niemcy/Finlandia). Dane pozostają w EOG — prościej o zgodność z RODO.' },
   { icon: FileText, title: 'Komplet RODO online', desc: 'Polityka prywatności, DPA do akceptacji w panelu i lista podprocesorów — godziny mniej papierologii.' },
-  { icon: BarChart3, title: 'Analityka bez cookies', desc: 'Statystyki odwiedzin bez danych osobowych i bez banera zgód — zamiast wpinania zewnętrznych skryptów.' },
+  { icon: Undo2, title: 'Przywracanie z siatką bezpieczeństwa', desc: 'Domyślnie przed odtworzeniem kopii zapisujemy stan obecny, więc nieudane przywrócenie da się cofnąć.' },
   { icon: RefreshCw, title: 'Domeny bez pułapek', desc: 'Brak cichych auto-odnowień z karty. Przypominamy przed wygaśnięciem, a decyzję zostawiamy Tobie.' },
   { icon: Database, title: 'Kopie z samodzielnym odtwarzaniem', desc: 'Backup i przywracanie z poziomu DirectAdmin — bez czekania na support i bez dopłat.' },
 ];
@@ -90,7 +90,7 @@ const COMPARE: [string, string, string][] = [
   ['Model zasobów', 'Sztywny pakiet — płacisz za moc „na zapas"', 'Autoskalowanie — płacisz za realne użycie'],
   ['Migracja strony i poczty', 'Często płatna lub „zrób to sam"', 'Zespół albo migrator w panelu — 0 zł'],
   ['Certyfikat SSL', 'Bywa dopłatą przy odnowieniu', "Let's Encrypt w cenie"],
-  ['Statystyki odwiedzin', 'Wtyczka GA + baner zgód', 'Prywatna analityka bez cookies'],
+  ['Przywrócenie kopii', 'Zgłoszenie do supportu, czasem płatne', 'Samodzielnie w panelu, z kopią bezpieczeństwa'],
   ['Odnowienie domeny', 'Ciche auto-odnowienie z karty', 'Przypomnienia 30/14/7 dni — decydujesz Ty'],
   ['Dostępność (SLA)', 'Zwykle bez rekompensat', 'SLA 99,5% z rekompensatami w regulaminie'],
 ];
@@ -142,16 +142,21 @@ export default function HomePage() {
               polskiego zespołu. Bez taniej przynęty na pierwszy rok i bez szoku przy odnowieniu.
             </p>
             <div className="hero-cta">
-              <a className="btn btn-primary" href="https://panel.verris.pl" data-event="cta_click" data-cta="hero" data-conv="begin_checkout">
+              <a className="btn btn-primary" href="https://panel.verris.pl" data-event="cta_click" data-cta="hero" data-conv="checkout_intent">
                 Załóż konto
               </a>
               <a className="btn btn-ghost" href="https://verris.pl/przenies-strone" data-event="cta_click" data-cta="hero-migracja">
                 Przenieś stronę za darmo
               </a>
             </div>
-            <form className="dsearch" action="https://panel.verris.pl" method="get" role="search" aria-label="Wyszukiwarka domen">
+            {/*
+              Formularz przenosi do panelu, który wykonuje wyszukanie i odpala `search`.
+              Tutaj NIE wysyłamy własnego zdarzenia konwersji — wcześniej wisiał tu
+              `generate_lead`, więc każde kliknięcie „Sprawdź" raportowało się jako lead.
+            */}
+            <form id="domain-search" className="dsearch" action="https://panel.verris.pl" method="get" role="search" aria-label="Wyszukiwarka domen">
               <input type="text" name="domain" placeholder="Znajdź domenę dla swojej strony…" aria-label="Nazwa domeny" />
-              <button className="btn btn-primary" type="submit" data-event="cta_click" data-cta="domain-search" data-conv="generate_lead" data-method="domain_search">
+              <button className="btn btn-primary" type="submit" data-event="cta_click" data-cta="domain-search">
                 Sprawdź
               </button>
             </form>
@@ -170,7 +175,7 @@ export default function HomePage() {
             <span><ShieldCheck /> SLA 99,5% z rekompensatami</span>
             <span><Globe /> Serwery w UE</span>
             <span><ArrowLeftRight /> Migracja 0 zł</span>
-            <span><BarChart3 /> Analityka bez cookies</span>
+            <span><Undo2 /> Cofniesz nieudane przywracanie</span>
             <span><FileText /> Komplet RODO online</span>
           </div>
         </div>
@@ -301,7 +306,7 @@ export default function HomePage() {
           <div className="final-inner rv">
             <h2>Twoja strona zasługuje na hosting bez pułapek.</h2>
             <p>Załóż konto, przekaż dostępy — resztą przeprowadzki zajmiemy się my. Za 0 zł.</p>
-            <a className="btn btn-primary" href="https://panel.verris.pl" data-event="cta_click" data-cta="final" data-conv="begin_checkout">
+            <a className="btn btn-primary" href="https://panel.verris.pl" data-event="cta_click" data-cta="final" data-conv="checkout_intent">
               Zacznij z Verris
             </a>
           </div>

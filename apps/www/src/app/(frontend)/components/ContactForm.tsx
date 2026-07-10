@@ -25,7 +25,7 @@ export function ContactForm() {
   }
 
   return (
-    <form className="form" onSubmit={onSubmit}>
+    <form id="contact" className="form" onSubmit={onSubmit}>
       <div className="field">
         <label htmlFor="name">Imię i nazwisko</label>
         <input id="name" name="name" type="text" required autoComplete="name" />

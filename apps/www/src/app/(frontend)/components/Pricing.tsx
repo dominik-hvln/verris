@@ -33,8 +33,8 @@ const GROUPS: { title: string; note?: string; items: (string | [string, string])
       'Bezpłatna i szybka migracja',
       "Certyfikat SSL Let's Encrypt",
       'Obsługa starych wersji PHP',
-      'Kopie zapasowe z samodzielnym odtwarzaniem',
-      'Prywatna analityka bez cookies',
+      'Kopie zapasowe z samodzielnym odtwarzaniem (w ramach limitu Planu)',
+      'Kopia bezpieczeństwa przed przywróceniem — domyślnie włączona',
       'Kreator stron i menedżer plików',
     ],
   },
@@ -133,7 +133,7 @@ export function Pricing() {
                 href="https://panel.verris.pl"
                 data-event="cta_click"
                 data-cta="pricing"
-                data-conv="begin_checkout"
+                data-conv="checkout_intent"
               >
                 Załóż konto i przenieś stronę
               </a>

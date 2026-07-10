@@ -61,7 +61,10 @@ const FACTS = `
 - „Bez limitu" stron, skrzynek i transferu oznacza brak sztywnego licznika; realnym ogranicznikiem
   są zasoby konta i zasady uczciwego korzystania.
 - Płatności: karta, BLIK, Apple Pay, Google Pay, przelew online (Stripe). Faktury gotowe na KSeF.
-- Prywatna analityka odwiedzin bez cookies (działa bez banera zgód).
+- Kopie zapasowe z samodzielnym przywracaniem (pliki/bazy/poczta osobno); domyślnie przed
+  przywróceniem system wykonuje kopię bezpieczeństwa stanu obecnego, więc operację da się cofnąć.
+  Kopie Verris są pomocnicze i nie zwalniają klienta z utrzymywania własnych kopii danych krytycznych.
+- Domeny bez automatycznych odnowień: odnowienie wyłącznie po opłaceniu, przypomnienia 30/14/7 dni.
 - Komplet dokumentów RODO online: polityka prywatności, DPA do akceptacji w panelu, lista podprocesorów.
 - Infrastruktura: Hetzner (Niemcy/Finlandia), dane w EOG.
 `;

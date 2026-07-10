@@ -35,7 +35,7 @@ export default function Page() {
         title="Hosting pod Twoją marką"
         lead="Prowadzisz agencję webową albo obsługujesz wielu klientów? Odsprzedawaj hosting Verris jako swój — z jednego panelu, z przewidywalną marżą."
         crumbs={[{ label: 'Reseller' }]}
-        primary={{ label: 'Zostań resellerem', href: PANEL, conv: 'generate_lead' }}
+        primary={{ label: 'Zostań resellerem', href: PANEL }}
         secondary={{ label: 'Zobacz hosting', href: '/hosting' }}
       />
       <section>

@@ -42,7 +42,7 @@ export function MigrationLeadForm() {
         </p>
       </div>
 
-      <form className="leadband-form" onSubmit={onSubmit}>
+      <form id="migration-lead" className="leadband-form" onSubmit={onSubmit}>
         <div className="lead-row">
           <input
             type="email"

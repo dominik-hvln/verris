@@ -89,7 +89,7 @@ linki do podstron (Cennik, Jak działa migracja, Regulamin SLA, Kontakt).
 2. **Jak to działa** — 3 kroki (zamów → przekaż dostępy lub uruchom migrator → my/Ty przenosimy, DNS na końcu).
 3. **Dlaczego Verris** — 4 karty z twardych USP: SLA 99,5% z rekompensatami w regulaminie; brak pułapek
    odnowieniowych (wyłączenie odnowienia w panelu, domeny bez auto-odnowień); komplet RODO online + dane w UE;
-   analityka odwiedzin bez cookies w cenie.
+   samodzielne przywracanie kopii z kopią bezpieczeństwa przed operacją.
 4. **Cena** — jedna karta pakietu, obie opcje rozliczenia, brutto, spec zasobów jawna (limity + autoskalowanie).
 5. **FAQ** — czy strona będzie działać w trakcie migracji (uczciwie: krótka propagacja DNS), co z pocztą,
    ile to trwa (bez obietnic konkretnego czasu), co po roku (cennik z dnia odnowienia, przypomnienie e-mail 7 dni).

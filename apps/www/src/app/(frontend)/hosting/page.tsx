@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Gauge, Move, ShieldCheck, Database, BarChart3, Wrench } from 'lucide-react';
+import { Gauge, Move, ShieldCheck, Database, Undo2, Wrench } from 'lucide-react';
 import { SubHero, CTABand, JsonLd } from '../components/ui';
 import { RevealInit } from '../components/RevealInit';
 import { PANEL } from '@/lib/site';
@@ -17,7 +17,7 @@ const FEATURES = [
   { icon: Move, h: 'Migracja 0 zł', p: 'Przeprowadzkę strony i poczty robi zespół albo migrator w panelu — bez przestoju i bez limitu plików.' },
   { icon: ShieldCheck, h: 'SSL i SLA w cenie', p: 'Certyfikat Let’s Encrypt bez dopłat oraz SLA 99,5% z rekompensatami zapisanymi w regulaminie.' },
   { icon: Database, h: 'Kopie zapasowe', p: 'Backup i samodzielne odtwarzanie z poziomu DirectAdmin — bez czekania na support.' },
-  { icon: BarChart3, h: 'Analityka bez cookies', p: 'Statystyki odwiedzin bez danych osobowych i bez banera zgód — działa od razu.' },
+  { icon: Undo2, h: 'Siatka bezpieczeństwa', p: 'Domyślnie przed przywróceniem kopii zapisujemy stan obecny, więc nieudane odtworzenie da się cofnąć.' },
   { icon: Wrench, h: 'DirectAdmin + WordPress', p: 'Wygodny panel, obsługa starych wersji PHP i konfiguracja zoptymalizowana pod WordPress.' },
 ];
 
@@ -38,7 +38,7 @@ export default function HostingPage() {
         title="Hosting z autoskalowaniem"
         lead="Jeden pakiet, który rośnie razem z Twoją stroną. Bazę masz w cenie, a w piku ruchu zasoby rosną automatycznie — i wracają, gdy ruch spada. Płacisz tyle, ile widzisz."
         crumbs={[{ label: 'Hosting' }]}
-        primary={{ label: 'Załóż konto', href: PANEL, conv: 'begin_checkout' }}
+        primary={{ label: 'Załóż konto', href: PANEL, conv: 'checkout_intent', plan: 'hosting' }}
         secondary={{ label: 'Zobacz cennik', href: '/cennik' }}
       />
 

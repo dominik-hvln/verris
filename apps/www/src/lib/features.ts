@@ -139,7 +139,10 @@ export const features: Feature[] = [
         ul: [
           'Kopie tworzone w ramach usługi hostingu.',
           'Samodzielne odtwarzanie w panelu — bez zgłoszenia do supportu.',
-          'Opisujemy mechanizm wprost — bez obietnic „pełnego bezpieczeństwa".',
+          'Wybierasz zakres przywracania: pliki, bazy danych, poczta — osobno lub razem.',
+          'Domyślnie przed przywróceniem system wykonuje kopię bezpieczeństwa stanu obecnego, więc nieudane odtworzenie da się cofnąć. Możesz to wyłączyć, jeśli wiesz, co robisz.',
+          'Przywrócenie wymaga potwierdzenia nazwą domeny — żeby nie zrobić tego przez pomyłkę.',
+          'Kopie Verris mają charakter pomocniczy (§10 ust. 5 regulaminu) i nie zastępują Twoich własnych kopii danych krytycznych.',
         ],
       },
     ],
@@ -150,32 +153,38 @@ export const features: Feature[] = [
     },
   },
   {
-    slug: 'analityka-bez-cookies',
+    slug: 'domeny-bez-auto-odnowien',
     eyebrow: 'Funkcja',
-    title: 'Prywatna analityka bez cookies',
-    lead: 'Statystyki odwiedzin bez danych osobowych i bez banera zgód. Wiesz, co się dzieje na stronie — bez obciążania jej wtyczkami.',
-    metaTitle: 'Analityka bez cookies — statystyki bez banera zgód | Verris',
+    title: 'Domeny bez automatycznych odnowień',
+    lead: 'Domena odnawia się dopiero, gdy ją opłacisz. Żadnego cichego obciążenia karty — zamiast tego przypomnienia 30, 14 i 7 dni przed wygaśnięciem.',
+    metaTitle: 'Domeny bez auto-odnowień — odnawiasz, gdy chcesz | Verris',
     metaDescription:
-      'Prywatna analityka odwiedzin w hostingu Verris: bez cookies i bez danych osobowych, więc działa bez banera zgód. Statystyki strony bez wpinania zewnętrznych skryptów.',
+      'W Verris domena nie odnawia się sama. Odnowienie następuje po opłaceniu, a wcześniej dostajesz przypomnienia 30, 14 i 7 dni przed wygaśnięciem. Bez cichego pobierania środków.',
     sections: [
       {
         p: [
-          'Większość hostingów każe wpinać zewnętrzną analitykę i pokazywać baner zgód. Verris daje prywatną analitykę odwiedzin, która nie zapisuje cookies ani danych osobowych — dzięki temu działa bez zgody i bez spowalniania strony.',
+          'Standardem na rynku jest auto-odnowienie włączone domyślnie: karta zostaje obciążona, zanim zdążysz się zastanowić, czy domena jest Ci jeszcze potrzebna. U nas jest odwrotnie — odnowienie wymaga Twojej decyzji i opłaty.',
         ],
       },
       {
-        h: 'Dlaczego to ważne',
+        h: 'Jak to działa',
         ul: [
-          'Brak cookies i danych osobowych — mniej obowiązków RODO.',
-          'Działa bez banera zgód i bez zewnętrznych skryptów.',
-          'Podstawowe statystyki dostępne od pierwszego dnia.',
+          'Auto-odnowienie jest domyślnie wyłączone dla każdej domeny.',
+          'Przypomnienia e-mail 30, 14 i 7 dni przed datą wygaśnięcia.',
+          'Odnowienie następuje wyłącznie po opłaceniu — świadomie, nie automatycznie.',
+        ],
+      },
+      {
+        h: 'Uczciwie o kompromisie',
+        p: [
+          'To rozwiązanie wymaga od Ciebie uwagi: jeśli zignorujesz przypomnienia i nie opłacisz odnowienia, domena wygaśnie. Uznaliśmy, że kontrola nad własnym portfelem jest warta tej ceny — ale mówimy o tym wprost, zamiast ukrywać to w regulaminie.',
         ],
       },
     ],
     cta: {
-      title: 'Mierz ruch bez kompromisów',
-      text: 'Prywatna analityka jest wbudowana w hosting Verris.',
-      secondary: { label: 'Zobacz hosting', href: '/hosting' },
+      title: 'Zarejestruj domenę na swoich warunkach',
+      text: 'Bez auto-odnowień, z przypomnieniami zanim będzie za późno.',
+      secondary: { label: 'Zobacz domeny', href: '/domeny' },
     },
   },
   {

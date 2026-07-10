@@ -41,7 +41,7 @@ export function Header() {
             href={PANEL}
             data-event="cta_click"
             data-cta="nav"
-            data-conv="begin_checkout"
+            data-conv="checkout_intent"
           >
             Załóż konto
           </a>

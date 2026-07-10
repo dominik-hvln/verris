@@ -32,7 +32,7 @@ export default function Page() {
             <ul>
               <li>Obietnice tylko z pokryciem — SLA 99,5% z rekompensatami wpisanymi w regulamin.</li>
               <li>Ceny brutto, jasno; bez pułapek odnowieniowych i cichych auto-odnowień domen.</li>
-              <li>Prywatność domyślnie — analityka bez cookies, komplet dokumentów RODO online.</li>
+              <li>Prywatność domyślnie — infrastruktura w EOG, komplet dokumentów RODO online.</li>
               <li>Konkret techniczny zamiast marketingowej waty.</li>
             </ul>
             <h2>Infrastruktura</h2>
