@@ -43,7 +43,7 @@ export function ContactForm() {
       </button>
       <p className="form-note">
         Wysyłając formularz, zgadzasz się na kontakt w sprawie zapytania. Dane przetwarzamy zgodnie z{' '}
-        <a href="https://panel.verris.pl/legal">polityką prywatności</a>. Nie wykorzystujemy ich do
+        <a href="https://panel.verris.pl/legal/privacy">polityką prywatności</a>. Nie wykorzystujemy ich do
         marketingu bez osobnej zgody.
       </p>
     </form>

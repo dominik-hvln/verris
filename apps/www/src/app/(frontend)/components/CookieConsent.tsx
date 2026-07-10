@@ -115,7 +115,7 @@ export function CookieConsent() {
           : ' — funkcjonalnych (zapamiętywanie udogodnień)'}
         . Zgodę możesz w każdej chwili zmienić lub wycofać — przycisk „Preferencje cookies" jest
         stale dostępny w rogu ekranu i w stopce. Szczegóły:{' '}
-        <a href="https://panel.verris.pl/legal">Polityka cookies</a>.
+        <a href="https://panel.verris.pl/legal/cookies">Polityka cookies</a>.
       </p>
       <div className="cc-actions">
         <button type="button" className="btn btn-primary" onClick={acceptAll}>

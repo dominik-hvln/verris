@@ -73,7 +73,7 @@ export function MigrationLeadForm() {
           <span>
             Chcę otrzymać plan migracji i kilka wiadomości o hostingu Verris. Zgodę mogę wycofać
             w każdej chwili, klikając link rezygnacji w mailu. Szczegóły w{' '}
-            <a href="https://panel.verris.pl/legal">polityce prywatności</a>.
+            <a href="https://panel.verris.pl/legal/privacy">polityce prywatności</a>.
           </span>
         </label>
 
