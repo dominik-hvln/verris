@@ -147,14 +147,27 @@ function syncMetaPixel(marketingGranted: boolean): void {
     return;
   }
 
-  const fbq: NonNullable<Window['fbq']> = Object.assign(
-    function (this: unknown, ...args: unknown[]) {
-      fbq.queue!.push(args);
-    },
-    { queue: [] as unknown[], loaded: true, version: '2.0' },
-  );
-  window.fbq = fbq;
-  window._fbq = fbq;
+  // Kanoniczny bootstrap Meta Pixela. KLUCZOWE: treść funkcji MUSI delegować do
+  // `callMethod` po załadowaniu fbevents.js — inaczej wszystkie wywołania lądują
+  // tylko w kolejce i nigdy nie są wysyłane (`init` przetwarza się przy flushu,
+  // ale PageView i zdarzenia — nie; Pixel Helper pokazuje „No pixels found").
+  type FbqStub = ((...args: unknown[]) => void) & {
+    callMethod?: (...a: unknown[]) => void;
+    queue: unknown[];
+    push?: unknown;
+    loaded: boolean;
+    version: string;
+  };
+  const n = function (this: unknown, ...args: unknown[]) {
+    if (n.callMethod) n.callMethod.apply(n, args);
+    else n.queue.push(args);
+  } as FbqStub;
+  n.push = n;
+  n.loaded = true;
+  n.version = '2.0';
+  n.queue = [];
+  window.fbq = n as unknown as NonNullable<Window['fbq']>;
+  window._fbq = n;
   const script = document.createElement('script');
   script.async = true;
   script.src = 'https://connect.facebook.net/en_US/fbevents.js';
