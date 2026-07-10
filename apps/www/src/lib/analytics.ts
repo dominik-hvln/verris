@@ -72,6 +72,18 @@ function trackWithEventId(event: string, params: Params = {}): string {
   return eventId;
 }
 
+/**
+ * Zdarzenie standardowe Meta Pixel, wysyłane BEZPOŚREDNIO z kodu (nie z GTM), tak
+ * jak w panelu. `window.fbq` istnieje wyłącznie po zgodzie marketingowej (lazy-load
+ * w cookie-consent.ts), więc bez zgody to no-op — zgodność z Consent Mode za darmo.
+ * `eventID` przekazujemy zawsze, żeby zdeduplikować z CAPI (ta sama wartość co w dataLayer).
+ */
+function fbqTrack(event: string, params: Params, eventId?: string): void {
+  if (typeof window === 'undefined' || typeof window.fbq !== 'function') return;
+  if (eventId) window.fbq('track', event, params, { eventID: eventId });
+  else window.fbq('track', event, params);
+}
+
 // Semantyczne zdarzenia lejka. Mapowanie w GTM:
 //  cta_click       → GA4: cta_click (custom)
 //  checkout_intent → GA4: checkout_intent (custom, NIE key event) — klik w CTA prowadzące do panelu
@@ -101,10 +113,15 @@ export const events = {
 
   /**
    * WYŁĄCZNIE po realnym wysłaniu formularza. Nigdy z klika w link.
-   * Zwraca `event_id` — przekaż go do CAPI, jeśli lead trafia też na serwer.
+   * Wysyła RÓWNOLEGLE: `generate_lead` do dataLayer (→ GTM → GA4/Ads) ORAZ `Lead`
+   * do Meta Pixela z tym samym `event_id`. Bez tej drugiej ścieżki leady z LP/kontaktu
+   * były niewidoczne dla Meta. Zwraca `event_id` (dla CAPI, jeśli lead trafia na serwer).
    */
-  generateLead: (method: string, value: number = LEAD_VALUE_PLN) =>
-    trackWithEventId('generate_lead', { method, value, currency: 'PLN' }),
+  generateLead: (method: string, value: number = LEAD_VALUE_PLN) => {
+    const eventId = trackWithEventId('generate_lead', { method, value, currency: 'PLN' });
+    fbqTrack('Lead', { value, currency: 'PLN', content_name: method }, eventId);
+    return eventId;
+  },
 
   search: (term: string) => track('search', { search_term: term }),
   pageView: (path: string) => track('page_view', { page_path: path }),
