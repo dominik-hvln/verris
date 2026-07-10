@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ComponentType } from "react";
 import { logoutAction } from "./actions";
 import { fetchSidebarUser, type SidebarUser } from "./sidebar-actions";
+import { pushUserData } from "@/lib/analytics-events";
 import { ImpersonationBanner } from "./impersonation-banner";
 import { getImpersonationContext } from "./impersonation-actions";
 import { IncidentBanner } from "./incident-banner";
@@ -192,6 +193,11 @@ export default function DashboardLayout({
           return;
         }
         setUser(u);
+        // Enhanced Conversions / Advanced Matching: ustawiamy zahaszowany e-mail RAZ,
+        // po zalogowaniu, żeby był w dataLayer zanim odpali się jakakolwiek konwersja
+        // (purchase/sign_up/lead). pushUserData samo sprawdza zgodę marketingową i hashuje
+        // SHA-256 — bez zgody jest no-opem, a przy jej wycofaniu applyConsent czyści user_data.
+        if (u?.email) void pushUserData(u.email);
         const root = document.documentElement;
         if (u?.isEcoProgramParticipant) root.classList.add("eco-tint");
         else root.classList.remove("eco-tint");

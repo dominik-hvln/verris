@@ -31,6 +31,22 @@ export interface CookieConsent {
 export const OPEN_PREFERENCES_EVENT = "verris:cookie-preferences";
 export const CONSENT_CHANGED_EVENT = "verris:cookie-consent-changed";
 
+/**
+ * Domena nadrzędna dla ciasteczka zgody — musi być identyczna z apps/www.
+ *
+ * Bez atrybutu `Domain` ciasteczko jest host-only, więc zgoda z `verris.pl` nie
+ * obowiązuje na `panel.verris.pl`. Consent Mode zostaje wtedy `denied` i zdarzenia
+ * `sign_up` / `purchase` nie docierają do GA4/Ads/Meta.
+ */
+export function consentCookieDomain(): string {
+  if (typeof location === "undefined") return "";
+  const host = location.hostname;
+  const parts = host.split(".");
+  if (parts.length < 2 || /^[0-9.]+$/.test(host)) return "";
+  const base = parts.slice(-2).join(".");
+  return host === base || host.endsWith(`.${base}`) ? `.${base}` : "";
+}
+
 declare global {
   interface Window {
     dataLayer?: unknown[];
@@ -68,7 +84,14 @@ export function writeConsent(
   const consent: CookieConsent = { v: CONSENT_VERSION, ts: new Date().toISOString(), ...choice };
   const expires = new Date(Date.now() + CONSENT_TTL_DAYS * 24 * 60 * 60 * 1000).toUTCString();
   const secure = typeof location !== "undefined" && location.protocol === "https:" ? "; Secure" : "";
-  document.cookie = `${CONSENT_COOKIE}=${encodeURIComponent(JSON.stringify(consent))}; expires=${expires}; path=/; SameSite=Lax${secure}`;
+  const domain = consentCookieDomain();
+
+  // Skasuj starszy wariant host-only, żeby nie współistniał z domenowym.
+  if (domain) {
+    document.cookie = `${CONSENT_COOKIE}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/`;
+  }
+
+  document.cookie = `${CONSENT_COOKIE}=${encodeURIComponent(JSON.stringify(consent))}; expires=${expires}; path=/${domain ? `; Domain=${domain}` : ""}; SameSite=Lax${secure}`;
   applyConsent(consent);
   window.dispatchEvent(new CustomEvent(CONSENT_CHANGED_EVENT, { detail: consent }));
   return consent;
@@ -92,7 +115,22 @@ export function applyConsent(consent: CookieConsent): void {
     personalization_storage: consent.functional ? "granted" : "denied",
     security_storage: "granted",
   });
-  window.dataLayer?.push({ event: "verris_consent_update" });
+  // Zmienna `consent_state` w dataLayer — bez niej debugowanie „czemu tag nie odpalił"
+  // sprowadza się do zgadywania.
+  window.dataLayer?.push({
+    event: "verris_consent_update",
+    consent_state: {
+      analytics: consent.analytics,
+      marketing: consent.marketing,
+      functional: consent.functional,
+    },
+  });
+
+  // Wycofanie zgody marketingowej musi usunąć zahaszowany e-mail z dataLayer,
+  // inaczej `user_data` zostaje w pamięci strony aż do przeładowania i tag
+  // konwersji mógłby go jeszcze odczytać.
+  if (!consent.marketing) window.dataLayer?.push({ user_data: null });
+
   syncMetaPixel(consent.marketing);
 }
 

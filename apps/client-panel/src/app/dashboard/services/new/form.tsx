@@ -244,10 +244,12 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
       }
       // GA4: purchase tylko dla płatności z Portfela (kwota znana; Stripe ma
       // własny event na stronie powrotu). transaction_id deduplikuje w GA4.
-      if (paymentSource === 'WALLET' && !res.data?.checkoutRedirectUrl) {
+      // Bez id subskrypcji z serwera nie wysyłamy purchase — fabrykowany
+      // `sub-${Date.now()}` psuł deduplikację w GA4 i w Meta (event_id).
+      if (paymentSource === 'WALLET' && !res.data?.checkoutRedirectUrl && res.data?.subscription?.id) {
         const paid = chargePrice != null ? Number(chargePrice) : NaN;
         trackPurchase({
-          transactionId: res.data?.subscription?.id ?? `sub-${Date.now()}`,
+          transactionId: res.data.subscription.id,
           value: paid,
           items: [
             {

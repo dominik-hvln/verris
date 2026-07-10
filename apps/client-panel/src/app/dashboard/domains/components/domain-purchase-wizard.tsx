@@ -298,11 +298,15 @@ export function DomainPurchaseWizard({ initialOrders }: { initialOrders: Registr
           withdrawalWaiverConsent: waiverConsent,
         });
         // GA4: purchase — domena płacona z Portfela, kwota z wyceny.
+        // transaction_id MUSI być stabilny: `Date.now()` dawał nowy identyfikator przy
+        // każdym ponowieniu, więc GA4 nie deduplikowało zakupu, a `event_id` dla Meta
+        // (purchase-<transactionId>) rozjeżdżał się z tym, co wyśle CAPI.
+        // Domena rejestrowana jest raz, więc jej nazwa jest naturalnym kluczem.
         {
           const paid = Number(selectedQuote.priceAmount);
           if (Number.isFinite(paid)) {
             trackPurchase({
-              transactionId: `domain-${selectedDomain}-${Date.now()}`,
+              transactionId: `domain-${selectedDomain}`,
               value: paid,
               items: [
                 { item_name: selectedDomain, item_category: 'domena', price: paid, quantity: 1 },

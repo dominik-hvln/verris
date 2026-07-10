@@ -116,9 +116,14 @@ export function VpsClient({
       {
         const plan = plans.find((p) => p.id === planId);
         const paid = plan ? Number(plan.priceMonthly) : NaN;
-        if (plan && Number.isFinite(paid)) {
+        const vpsName = res.data?.name;
+        // Bez stabilnego identyfikatora z serwera NIE wysyłamy purchase.
+        // Fallback `Date.now()` fabrykował unikalny transaction_id przy każdym
+        // ponowieniu: GA4 liczyło zakup wielokrotnie, a Meta nie mogła go zdeduplikować
+        // z CAPI. Utrata jednej konwersji jest tańsza niż zafałszowany ROAS.
+        if (plan && Number.isFinite(paid) && vpsName) {
           trackPurchase({
-            transactionId: `vps-${res.data?.name ?? Date.now()}`,
+            transactionId: `vps-${vpsName}`,
             value: paid,
             items: [{ item_name: plan.name, item_category: 'vps', price: paid, quantity: 1 }],
           });

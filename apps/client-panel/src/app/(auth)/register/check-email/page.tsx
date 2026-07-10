@@ -5,16 +5,23 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
 import { Mail } from "lucide-react";
 import { SpinBorder } from "@/components/spin-border";
-import { trackSignUp } from "@/lib/analytics-events";
+import { trackSignUp, pushUserData } from "@/lib/analytics-events";
 
 function CheckEmailContent() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email")?.trim();
 
   // Konwersja sign_up — ta strona renderuje się wyłącznie po udanej rejestracji.
+  // Ta strona jest POZA layoutem dashboardu, więc user_data trzeba ustawić lokalnie,
+  // z e-maila w URL, ZANIM odpali się sign_up (kolejność ma znaczenie: tag konwersji
+  // odczytuje user_data w momencie zdarzenia). pushUserData sam sprawdza zgodę marketingową.
   useEffect(() => {
-    trackSignUp();
-  }, []);
+    const run = async () => {
+      if (email) await pushUserData(email);
+      trackSignUp();
+    };
+    void run();
+  }, [email]);
 
   return (
     <div className="p-8 space-y-5">
