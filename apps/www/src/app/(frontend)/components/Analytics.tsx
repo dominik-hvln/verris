@@ -4,6 +4,7 @@ import Script from 'next/script';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 import { ANALYTICS, events } from '@/lib/analytics';
+import { captureFbclid } from '@/lib/cookie-consent';
 
 // Consent Mode v2 — domyślnie wszystko „denied" (poza niezbędnym).
 // Musi wykonać się PRZED załadowaniem GTM.
@@ -39,6 +40,12 @@ const SCROLL_THRESHOLDS = [25, 50, 75, 90] as const;
 export function Analytics() {
   const pathname = usePathname();
   const firstRender = useRef(true);
+
+  // Przechwyć fbclid z adresu wejścia (ruch z reklam Meta) ZANIM zniknie z URL przy
+  // nawigacji SPA. Cookie `_fbc` powstanie dopiero po zgodzie marketingowej (applyConsent).
+  useEffect(() => {
+    captureFbclid();
+  }, []);
 
   // page_view przy zmianie trasy (SPA).
   useEffect(() => {

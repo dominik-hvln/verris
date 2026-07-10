@@ -132,6 +132,52 @@ export function applyConsent(consent: CookieConsent): void {
   });
   if (!consent.marketing) window.dataLayer?.push({ user_data: null });
   syncMetaPixel(consent.marketing);
+  // Po zgodzie marketingowej dopilnuj cookie `_fbc` (Facebook click ID) dla ruchu
+  // z reklam — podnosi EMQ i dokłada konwersje w CAPI. Cookie marketingowe → tylko po zgodzie.
+  if (consent.marketing) ensureFbc();
+}
+
+// -----------------------------------------------------------------------------
+// fbc (Facebook click ID) — dla ruchu z reklam Meta.
+//
+// Pixel ładuje się u nas dopiero po zgodzie (lazy). Jeśli użytkownik wejdzie z reklamy
+// (`?fbclid=...`), ale zgodę wyrazi po przejściu dalej (SPA), URL może już nie mieć fbclid
+// i Pixel nie ustawi `_fbc`. Dlatego przechwytujemy fbclid wcześnie (w pamięci, BEZ storage),
+// a po zgodzie budujemy `_fbc` = fb.1.<ts>.<fbclid>. To rozwiązuje podpowiedź Meta
+// „serwer nie wysyła fbc" bez żadnego SDK.
+// -----------------------------------------------------------------------------
+
+let capturedFbclid: string | null = null;
+
+/** Wywołaj wcześnie (mount Analytics) — zapamiętuje fbclid z adresu wejścia. */
+export function captureFbclid(): void {
+  if (typeof location === 'undefined') return;
+  const v = new URLSearchParams(location.search).get('fbclid');
+  if (v) capturedFbclid = v;
+}
+
+function readRawCookie(name: string): string | undefined {
+  if (typeof document === 'undefined') return undefined;
+  return document.cookie
+    .split('; ')
+    .find((c) => c.startsWith(`${name}=`))
+    ?.slice(name.length + 1);
+}
+
+function ensureFbc(): void {
+  if (typeof document === 'undefined') return;
+  if (readRawCookie('_fbc')) return; // Pixel/fbevents już ustawił — nie nadpisujemy
+  const fbclid =
+    capturedFbclid ||
+    (typeof location !== 'undefined'
+      ? new URLSearchParams(location.search).get('fbclid')
+      : null);
+  if (!fbclid) return;
+  const domain = consentCookieDomain();
+  const value = `fb.1.${Date.now()}.${fbclid}`;
+  const expires = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toUTCString(); // 90 dni (jak Pixel)
+  const secure = typeof location !== 'undefined' && location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `_fbc=${value}; expires=${expires}; path=/${domain ? `; Domain=${domain}` : ''}; SameSite=Lax${secure}`;
 }
 
 function syncMetaPixel(marketingGranted: boolean): void {
