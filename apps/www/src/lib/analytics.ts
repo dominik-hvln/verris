@@ -120,6 +120,9 @@ export const events = {
   generateLead: (method: string, value: number = LEAD_VALUE_PLN) => {
     const eventId = trackWithEventId('generate_lead', { method, value, currency: 'PLN' });
     fbqTrack('Lead', { value, currency: 'PLN', content_name: method }, eventId);
+    // Conversions API (server-side) z tym samym event_id — dedup + odzysk zdarzeń
+    // blokowanych przez adblocki. WYŁĄCZNIE po zgodzie marketingowej.
+    void relayLeadIfConsented(eventId, method);
     return eventId;
   },
 
@@ -133,3 +136,22 @@ export const events = {
   /** Pierwszy focus w dowolnym polu formularza — jeden raz na formularz. */
   formStart: (formId: string, page: string) => track('form_start', { form_id: formId, page }),
 };
+
+/**
+ * Uruchamia server-side relay Lead do Meta CAPI, jeśli użytkownik ma zgodę marketingową.
+ * Importy dynamiczne, żeby nie ciągnąć server action ani modułu zgód, gdy niepotrzebne.
+ */
+async function relayLeadIfConsented(eventId: string, method: string): Promise<void> {
+  try {
+    const { readConsent } = await import('./cookie-consent');
+    if (!readConsent()?.marketing) return;
+    const { relayLeadToCapi } = await import('./relay-capi');
+    await relayLeadToCapi({
+      eventId,
+      method,
+      eventSourceUrl: typeof window !== 'undefined' ? window.location.href : undefined,
+    });
+  } catch {
+    /* best-effort */
+  }
+}
