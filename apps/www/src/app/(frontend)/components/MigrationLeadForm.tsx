@@ -2,21 +2,44 @@
 
 import { useState } from 'react';
 import { events } from '@/lib/analytics';
+import { submitLead } from '@/lib/submit-lead';
+
+const CONSENT_TEXT =
+  'Chcę otrzymać plan migracji i kilka wiadomości o hostingu Verris. Zgodę mogę wycofać w każdej chwili linkiem rezygnacji w mailu.';
 
 /**
  * Lead „Zaplanuj migrację" — wejście do sekwencji nurture.
  *
  * Compliance (PKE/RODO): zgoda marketingowa jest OSOBNYM, niezaznaczonym checkboxem,
  * a potwierdzenie adresu odbywa się przez double opt-in (mail E0). Bez zgody nie wysyłamy nic.
- * TODO (Dominik): podpiąć wysyłkę + rejestr zgód (data, treść zgody, IP) przez API/SES.
+ * Rejestr zgody (data, treść, IP) zapisuje API na podstawie tego zgłoszenia.
  */
 export function MigrationLeadForm() {
   const [sent, setSent] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [consent, setConsent] = useState(false);
 
-  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!consent) return;
+    if (!consent || busy) return;
+    const email = new FormData(e.currentTarget).get('email')?.toString().trim() ?? '';
+    if (!email) return;
+    setBusy(true);
+    setError(null);
+    const res = await submitLead({
+      kind: 'MIGRATION',
+      email,
+      source: 'migration_plan',
+      marketingConsent: true,
+      consentText: CONSENT_TEXT,
+      page: typeof window !== 'undefined' ? window.location.href : undefined,
+    });
+    setBusy(false);
+    if (!res.ok) {
+      setError('Coś poszło nie tak — spróbuj ponownie albo napisz na kontakt@verris.pl.');
+      return;
+    }
     events.generateLead('migration_plan');
     setSent(true);
   };
@@ -55,13 +78,19 @@ export function MigrationLeadForm() {
           <button
             className="btn btn-primary"
             type="submit"
-            disabled={!consent}
+            disabled={!consent || busy}
             data-event="cta_click"
             data-cta="lead-migracja"
           >
-            Wyślij mi plan
+            {busy ? 'Wysyłam…' : 'Wyślij mi plan'}
           </button>
         </div>
+
+        {error && (
+          <p className="lead-error" role="alert" style={{ color: '#ff9b9b' }}>
+            {error}
+          </p>
+        )}
 
         <label className="lead-consent">
           <input

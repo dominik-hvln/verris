@@ -3395,3 +3395,53 @@ model KbArticle {
   @@index([categoryId, status])
   @@index([status, publishedAt])
 }
+
+// -----------------------------------------------------------------------------
+// Leady z verris.pl (formularze LP „Zaplanuj migrację" i „Kontakt").
+// To leady WŁASNE Verris — osobno od EmmContact (listy klientów).
+// -----------------------------------------------------------------------------
+
+enum SiteLeadKind {
+  MIGRATION // formularz LP /przenies-strone (marketing, double opt-in)
+  CONTACT   // formularz /kontakt (zapytanie, bez opt-in)
+}
+
+enum SiteLeadStatus {
+  PENDING   // MIGRATION: czeka na potwierdzenie double opt-in
+  CONFIRMED // MIGRATION: adres potwierdzony
+  RECEIVED  // CONTACT: przyjęte, nie wymaga potwierdzenia
+  UNSUBSCRIBED
+}
+
+model SiteLead {
+  id             String         @id @default(uuid())
+  kind           SiteLeadKind
+  status         SiteLeadStatus @default(PENDING)
+
+  email          String
+  name           String?
+  message        String?        @db.Text
+  /// Źródło zdarzenia (np. migration_plan, contact_form) — spójne z pomiarem.
+  source         String?
+
+  /// Dowód zgody (RODO art. 7 ust. 1): czy zaznaczono zgodę marketingową,
+  /// treść klauzuli, znacznik czasu, IP i User-Agent z chwili wysłania.
+  marketingConsent Boolean      @default(false)
+  consentText      String?      @db.Text
+  consentAt        DateTime?
+  ip               String?
+  userAgent        String?      @db.Text
+
+  /// Double opt-in (MIGRATION). Token zerowany po potwierdzeniu.
+  confirmToken   String?        @unique
+  confirmedAt    DateTime?
+  /// Token wypisu — stały, do linku rezygnacji.
+  unsubToken     String         @unique @default(uuid())
+
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([kind, status])
+  @@index([email])
+  @@index([createdAt])
+}

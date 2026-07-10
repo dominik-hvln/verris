@@ -24,6 +24,9 @@ export interface AppConfig {
   // Bootstrap script generation
   publicApiUrl: string;
 
+  // Leady z verris.pl
+  leadsNotifyEmail: string;
+
   // Meta Conversions API (server-side pomiar, opcjonalne)
   metaDatasetId: string | null;
   metaCapiToken: string | null;
@@ -108,6 +111,8 @@ export function loadConfig(): AppConfig {
       required: isProd,
       default: isProd ? undefined : 'http://localhost:3000',
     }),
+    // Leady z verris.pl — adres powiadomień o nowych zgłoszeniach.
+    leadsNotifyEmail: process.env.LEADS_NOTIFY_EMAIL || 'kontakt@verris.pl',
     // Meta Conversions API (server-side pomiar). Dataset = ID Pixela.
     metaDatasetId: process.env.META_DATASET_ID || process.env.META_PIXEL_ID || null,
     metaCapiToken: process.env.META_CAPI_TOKEN || null,

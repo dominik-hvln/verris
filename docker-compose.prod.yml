@@ -165,6 +165,8 @@ services:
       META_DATASET_ID: ${META_DATASET_ID:-${META_PIXEL_ID:-}}
       META_CAPI_TOKEN: ${META_CAPI_TOKEN:-}
       META_GRAPH_VERSION: ${META_GRAPH_VERSION:-v21.0}
+      # Leady z verris.pl — adres powiadomień (domyślnie kontakt@verris.pl).
+      LEADS_NOTIFY_EMAIL: ${LEADS_NOTIFY_EMAIL:-kontakt@verris.pl}
       STRIPE_API_VERSION: ${STRIPE_API_VERSION:-2026-04-22.dahlia}
       STRIPE_SUCCESS_URL: ${STRIPE_SUCCESS_URL}
       STRIPE_CANCEL_URL: ${STRIPE_CANCEL_URL}
