@@ -1,12 +1,10 @@
 # Regulamin świadczenia usług Verris
 
-**Wersja 1.1.0 · data wejścia w życie do ustalenia (patrz nota niżej)**
+**Wersja 1.1.0 · obowiązuje od 10 lipca 2026 r.**
 
 > Zmiana wobec 1.0.0: §15 — rekompensata SLA przyznawana automatycznie, bez wniosku (nowe ust. 3–5).
-> Data wejścia w życie zależy od stanu bazy Klientów:
-> — brak aktywnych Klientów → publikujemy z datą bieżącą, obowiązuje od razu (nie ma kogo zawiadamiać);
-> — są aktywni Klienci → tryb §24: zawiadomienie e-mailem, wejście w życie ≥30 dni po nim.
-> Zmiana jest na korzyść Klienta (rekompensata z urzędu zamiast na wniosek). Ustaw datę przed publikacją.
+> Wersja publikowana przed rozpoczęciem świadczenia usług aktywnym Klientom, dlatego obowiązuje
+> od dnia publikacji. Zmiana jest na korzyść Klienta (rekompensata z urzędu zamiast na wniosek).
 
 ---
 
@@ -298,5 +296,5 @@ Data: ……………………
 
 ---
 
-**Wersja 1.1.0 — data publikacji i wejścia w życie: uzupełnij przed publikacją (patrz nota w nagłówku).**
+**Wersja 1.1.0 — data publikacji i wejścia w życie: 10 lipca 2026 r.**
 Archiwum wersji: Panel → Dokumenty prawne → Historia wersji.
