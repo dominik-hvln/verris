@@ -34,6 +34,17 @@ git -c safe.directory="$(pwd)" checkout -q "${IMAGE_TAG}" 2>/dev/null || echo "[
 
 PREV_TAG="$(cat "$LAST_GOOD_FILE" 2>/dev/null || echo '')"
 
+# 0) Zwolnij miejsce PRZED pobraniem nowych obrazów. Deploy zostawia stare tagi/warstwy,
+#    a nieudany deploy nigdy nie sprząta (czyszczenie było tylko po sukcesie) — dysk się
+#    zapychał do „no space left on device" przy `pull`. Obrazy uruchomionych kontenerów
+#    są bezpieczne (prune nie rusza używanych). Best-effort — nie przerywamy deployu.
+if [ "${DEPLOY_PRUNE_BEFORE_PULL:-1}" != "0" ]; then
+  echo "[deploy] prune przed pull (zwalnianie miejsca)…"
+  docker image prune -af >/dev/null 2>&1 || true
+  docker builder prune -af >/dev/null 2>&1 || true
+  df -h / 2>/dev/null | awk 'NR==1||/\/$/{print "[deploy] "$0}' || true
+fi
+
 # 1) Pobierz nowe obrazy (bez ruszania działających kontenerów).
 REGISTRY_PREFIX="$REGISTRY_PREFIX" IMAGE_TAG="$IMAGE_TAG" compose pull ${APP_SERVICES}
 
