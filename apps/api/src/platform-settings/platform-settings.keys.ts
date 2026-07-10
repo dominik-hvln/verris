@@ -34,13 +34,16 @@ export const PLATFORM_SETTING_KEYS = {
   MONITORING_PAID_OFFERED: 'monitoring.paidOffered',
 
   // #11 — kredyty SLA za przestój infrastruktury (domyślnie wyłączone).
+  // Rozliczenie MIESIĘCZNE wg progów §15 regulaminu (5/25/50/100%).
   /** Czy automatycznie przyznawać kredyty SLA (1/0). Domyślnie 0 (admin włącza). */
   SLA_CREDITS_ENABLED: 'sla.creditsEnabled',
-  /** Próg w minutach — przestój krótszy nie generuje kredytu. */
+  /** Próg wykrywalności w minutach — łączny przestój krótszy nie generuje kredytu. */
   SLA_GRACE_MINUTES: 'sla.graceMinutes',
-  /** Mnożnik kredytu (kredytujemy `multiplier ×` czas przestoju jako czas usługi). */
+  /** Limit minut okien konserwacyjnych odliczanych od przestoju (§15 ust. 5: 8 h = 480 min). */
+  SLA_MAINTENANCE_CAP_MINUTES: 'sla.maintenanceCapMinutes',
+  /** @deprecated Nieużywane od rozliczenia miesięcznego. Progi określa §15, nie mnożnik. */
   SLA_MULTIPLIER: 'sla.multiplier',
-  /** Górny limit kredytu jako % miesięcznej ceny usługi na incydent. */
+  /** @deprecated Nieużywane — górny próg to 100% wynikające wprost z tabeli §15. */
   SLA_CAP_PERCENT: 'sla.capPercent',
 
   /** Platform-default authoritative nameservers for provisioned hosting accounts. */
@@ -104,6 +107,7 @@ export const PLATFORM_SETTING_DEFAULTS: Record<PlatformSettingKey, string> = {
   [PLATFORM_SETTING_KEYS.MONITORING_PAID_OFFERED]: '1',
   [PLATFORM_SETTING_KEYS.SLA_CREDITS_ENABLED]: '0',
   [PLATFORM_SETTING_KEYS.SLA_GRACE_MINUTES]: '5',
+  [PLATFORM_SETTING_KEYS.SLA_MAINTENANCE_CAP_MINUTES]: '480',
   [PLATFORM_SETTING_KEYS.SLA_MULTIPLIER]: '10',
   [PLATFORM_SETTING_KEYS.SLA_CAP_PERCENT]: '100',
   [PLATFORM_SETTING_KEYS.STAFF_IDLE_MINUTES]: '30',

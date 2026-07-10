@@ -14,8 +14,10 @@ export function SlaCreditsForm({ initial }: { initial: SlaCreditPolicyForm }) {
       </legend>
       <p className="text-xs text-neutral-400">
         Automatyczne uznanie portfela klienta za przestój infrastruktury, wykryty przez monitoring
-        floty (incydenty status-probe o istotności MAJOR). Kredyt liczony proporcjonalnie do czasu
-        przestoju z mnożnikiem i limitem poniżej. <strong>Zalecane: najpierw przetestuj, potem włącz.</strong>
+        floty (incydenty status-probe o istotności MAJOR). Rekompensata liczona z{' '}
+        <strong>dostępności w miesiącu kalendarzowym</strong> wg progów §15 regulaminu
+        (99,0–99,5% → 5%; 95–99% → 25%; 90–95% → 50%; poniżej 90% → 100%). Jedna wypłata na usługę
+        na miesiąc. <strong>Zalecane: najpierw przetestuj, potem włącz.</strong>
       </p>
 
       <label className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
@@ -23,30 +25,22 @@ export function SlaCreditsForm({ initial }: { initial: SlaCreditPolicyForm }) {
         <input type="checkbox" name="enabled" defaultChecked={initial.enabled} className="h-4 w-4 accent-emerald-500" />
       </label>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <NumberField
           name="graceMinutes"
-          label="Próg (min)"
+          label="Próg wykrywalności (min)"
           defaultValue={initial.graceMinutes}
           min={0}
           max={1440}
-          hint="Krótszy przestój nie generuje kredytu."
+          hint="Łączny przestój krótszy w miesiącu nie generuje kredytu."
         />
         <NumberField
-          name="multiplier"
-          label="Mnożnik"
-          defaultValue={initial.multiplier}
-          min={1}
-          max={1000}
-          hint="Kredytujemy mnożnik × czas przestoju jako czas usługi."
-        />
-        <NumberField
-          name="capPercent"
-          label="Limit (% / mies.)"
-          defaultValue={initial.capPercent}
-          min={1}
-          max={1000}
-          hint="Maks. kredyt jako % ceny miesięcznej na incydent."
+          name="maintenanceCapMinutes"
+          label="Limit konserwacji (min / mies.)"
+          defaultValue={initial.maintenanceCapMinutes}
+          min={0}
+          max={44640}
+          hint="Okna konserwacyjne odliczane od przestoju (§15 ust. 7: 8 h = 480 min)."
         />
       </div>
 

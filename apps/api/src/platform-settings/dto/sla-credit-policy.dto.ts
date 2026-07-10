@@ -1,25 +1,25 @@
 import { IsBoolean, IsInt, Max, Min } from 'class-validator';
 
-/** #11 — polityka kredytów SLA (admin). */
+/**
+ * #11 — polityka kredytów SLA (admin).
+ *
+ * Rekompensata liczona z DOSTĘPNOŚCI W MIESIĄCU wg progów §15 (5/25/50/100%).
+ * Pola `multiplier` i `capPercent` z poprzedniego modelu (proporcja per incydent)
+ * zostały usunięte — progi wynikają wprost z regulaminu, nie z konfiguracji.
+ */
 export class UpdateSlaCreditPolicyDto {
   @IsBoolean()
   enabled!: boolean;
 
-  /** Próg w minutach — krótszy przestój nie generuje kredytu. */
+  /** Próg wykrywalności w minutach — łączny przestój krótszy nie generuje kredytu. */
   @IsInt()
   @Min(0)
   @Max(1440)
   graceMinutes!: number;
 
-  /** Mnożnik kredytu względem czasu przestoju. */
+  /** Limit minut okien konserwacyjnych odliczanych od przestoju (§15 ust. 7: 8 h = 480 min). */
   @IsInt()
-  @Min(1)
-  @Max(1000)
-  multiplier!: number;
-
-  /** Górny limit kredytu jako % miesięcznej ceny usługi na incydent. */
-  @IsInt()
-  @Min(1)
-  @Max(1000)
-  capPercent!: number;
+  @Min(0)
+  @Max(44640)
+  maintenanceCapMinutes!: number;
 }

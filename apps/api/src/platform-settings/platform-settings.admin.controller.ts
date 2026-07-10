@@ -130,8 +130,7 @@ export class PlatformSettingsAdminController {
       {
         enabled: dto.enabled,
         graceMinutes: dto.graceMinutes,
-        multiplier: dto.multiplier,
-        capPercent: dto.capPercent,
+        maintenanceCapMinutes: dto.maintenanceCapMinutes,
       },
       actor.userId,
     );

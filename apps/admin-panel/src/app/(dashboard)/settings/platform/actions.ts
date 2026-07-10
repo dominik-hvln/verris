@@ -100,12 +100,11 @@ export async function updateMonitoringSettingsAction(
   }
 }
 
-// #11 — polityka kredytów SLA
+// #11 — polityka kredytów SLA (progi §15, rozliczenie miesięczne)
 export type SlaCreditPolicyForm = {
   enabled: boolean;
   graceMinutes: number;
-  multiplier: number;
-  capPercent: number;
+  maintenanceCapMinutes: number;
 };
 
 export async function fetchSlaCreditPolicy(): Promise<SlaCreditPolicyForm> {
@@ -119,8 +118,7 @@ export async function updateSlaCreditPolicyAction(
   const payload: SlaCreditPolicyForm = {
     enabled: formData.get('enabled') === 'on',
     graceMinutes: Math.max(0, Number(formData.get('graceMinutes')) || 0),
-    multiplier: Math.max(1, Number(formData.get('multiplier')) || 1),
-    capPercent: Math.max(1, Number(formData.get('capPercent')) || 1),
+    maintenanceCapMinutes: Math.max(0, Number(formData.get('maintenanceCapMinutes')) || 0),
   };
   try {
     await adminApi('/admin/platform-settings/sla-credits', { method: 'PATCH', body: payload });

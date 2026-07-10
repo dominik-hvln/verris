@@ -2274,26 +2274,41 @@ model ProbeIncident {
 // @@unique. Powiązany wpis w WalletTransaction tworzy WalletLedgerService.
 // -----------------------------------------------------------------------------
 model SlaCredit {
-  id             String        @id @default(uuid())
+  id             String         @id @default(uuid())
 
-  incidentId     String
-  incident       ProbeIncident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  /// Historyczne: kredyt przypisany do pojedynczego incydentu. Od rozliczenia
+  /// miesięcznego (§15 regulaminu) rekompensata nie jest wiązana z jednym incydentem —
+  /// pole zostaje nullable dla rekordów sprzed zmiany.
+  incidentId     String?
+  incident       ProbeIncident? @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  /// Pierwszy dzień miesiąca kalendarzowego (UTC), za który przyznano rekompensatę.
+  /// Unikat z subscriptionId gwarantuje JEDNĄ rekompensatę na usługę na miesiąc —
+  /// blokuje też podwójną wypłatę, gdy kredyt przyznano dodatkowo ręcznie na wniosek.
+  periodStart    DateTime?
+
+  /// Dostępność w miesiącu w punktach bazowych (9931 = 99,31%).
+  availabilityBp Int?
+
+  /// Zastosowany próg rekompensaty z §15: 5, 25, 50 albo 100.
+  tierPercent    Int?
 
   subscriptionId String
-  subscription   Subscription  @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  subscription   Subscription   @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
 
   userId         String
-  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   /// Czas przestoju zaliczony do kredytu (sekundy).
   downtimeS      Int
   /// Kwota uznania w walucie portfela (K).
-  amount         Decimal       @db.Decimal(12, 2)
-  currency       String        @default("PLN")
+  amount         Decimal        @db.Decimal(12, 2)
+  currency       String         @default("PLN")
 
-  createdAt      DateTime      @default(now())
+  createdAt      DateTime       @default(now())
 
   @@unique([incidentId, subscriptionId])
+  @@unique([subscriptionId, periodStart])
   @@index([userId])
   @@index([subscriptionId])
 }

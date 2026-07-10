@@ -1,6 +1,12 @@
 # Regulamin świadczenia usług Verris
 
-**Wersja 1.0.0 · obowiązuje od 7 lipca 2026 r.**
+**Wersja 1.1.0 · data wejścia w życie do ustalenia (patrz nota niżej)**
+
+> Zmiana wobec 1.0.0: §15 — rekompensata SLA przyznawana automatycznie, bez wniosku (nowe ust. 3–5).
+> Data wejścia w życie zależy od stanu bazy Klientów:
+> — brak aktywnych Klientów → publikujemy z datą bieżącą, obowiązuje od razu (nie ma kogo zawiadamiać);
+> — są aktywni Klienci → tryb §24: zawiadomienie e-mailem, wejście w życie ≥30 dni po nim.
+> Zmiana jest na korzyść Klienta (rekompensata z urzędu zamiast na wniosek). Ustaw datę przed publikacją.
 
 ---
 
@@ -166,9 +172,11 @@ Korzystanie z Panelu wymaga: dostępu do internetu, aktualnej wersji przeglądar
 | od 90,0% do poniżej 95,0% | 50% |
 | poniżej 90,0% | 100% |
 
-3. Rekompensata jest przyznawana na wniosek złożony w Panelu lub e-mailem w terminie 14 dni od zakończenia miesiąca, którego dotyczy. Verris rozpatruje wniosek w ciągu 7 dni i uznaje Portfel Klienta. Rekompensata SLA ma charakter rabatu (kredyt nieodpłatny — §8 ust. 4).
-4. Rekompensata SLA nie wyłącza dalej idących roszczeń Konsumenta ani Przedsiębiorcy na prawach Konsumenta na zasadach ogólnych. Wobec pozostałych Klientów rekompensata SLA wyczerpuje roszczenia z tytułu niedostępności objętej danym wnioskiem, w granicach §18 ust. 3.
-5. Do czasu niedostępności nie wlicza się: prac konserwacyjnych zapowiedzianych co najmniej 48 godzin wcześniej e-mailem lub na `status.verris.pl` (łącznie nie więcej niż 8 godzin miesięcznie, planowanych w godzinach nocnych), niedostępności wywołanej siłą wyższą, awarii sieci operatorów trzecich poza kontrolą Verris, działań lub zaniechań Klienta (w tym błędów aplikacji Klienta, wyczerpania limitów zasobów Planu), ataków na serwisy Klienta oraz zawieszenia Usługi w trybie §7 lub §17.
+3. Rekompensata jest przyznawana **automatycznie, bez wniosku Klienta**, w terminie 7 dni od zakończenia miesiąca kalendarzowego, którego dotyczy. Verris ustala dostępność Usługi na podstawie niezależnego monitoringu, o którym mowa w ust. 1, uznaje Portfel Klienta kwotą rekompensaty i informuje o tym Klienta e-mailem oraz powiadomieniem w Panelu. Rekompensata SLA ma charakter rabatu (kredyt nieodpłatny — §8 ust. 4).
+4. Jeżeli Klient nie zgadza się z ustaloną przez Verris dostępnością Usługi albo nie otrzymał rekompensaty, może w terminie 30 dni od zakończenia danego miesiąca złożyć wniosek w Panelu lub e-mailem; Verris rozpatruje wniosek w ciągu 7 dni. Za ten sam miesiąc i tę samą Usługę rekompensata przysługuje jednokrotnie.
+5. Dostępność ustala się odrębnie dla każdej Usługi, sumując czas jej niedostępności w danym miesiącu kalendarzowym. Dla Usługi aktywowanej w trakcie miesiąca dostępność liczy się od dnia jej aktywacji.
+6. Rekompensata SLA nie wyłącza dalej idących roszczeń Konsumenta ani Przedsiębiorcy na prawach Konsumenta na zasadach ogólnych. Wobec pozostałych Klientów rekompensata SLA wyczerpuje roszczenia z tytułu niedostępności objętej danym miesiącem, w granicach §18 ust. 3.
+7. Do czasu niedostępności nie wlicza się: prac konserwacyjnych zapowiedzianych co najmniej 48 godzin wcześniej e-mailem lub na `status.verris.pl` (łącznie nie więcej niż 8 godzin miesięcznie, planowanych w godzinach nocnych), niedostępności wywołanej siłą wyższą, awarii sieci operatorów trzecich poza kontrolą Verris, działań lub zaniechań Klienta (w tym błędów aplikacji Klienta, wyczerpania limitów zasobów Planu), ataków na serwisy Klienta oraz zawieszenia Usługi w trybie §7 lub §17.
 
 ---
 
@@ -290,5 +298,5 @@ Data: ……………………
 
 ---
 
-**Wersja 1.0.0 — data publikacji: 7 lipca 2026 r.**
+**Wersja 1.1.0 — data publikacji i wejścia w życie: uzupełnij przed publikacją (patrz nota w nagłówku).**
 Archiwum wersji: Panel → Dokumenty prawne → Historia wersji.

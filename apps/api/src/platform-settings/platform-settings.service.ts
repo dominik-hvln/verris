@@ -335,6 +335,7 @@ export class PlatformSettingsService {
   async getSlaCreditPolicy(): Promise<{
     enabled: boolean;
     graceMinutes: number;
+    maintenanceCapMinutes: number;
     multiplier: number;
     capPercent: number;
   }> {
@@ -342,24 +343,31 @@ export class PlatformSettingsService {
     return {
       enabled: this.readStr(map, PLATFORM_SETTING_KEYS.SLA_CREDITS_ENABLED, '0') === '1',
       graceMinutes: this.readInt(map, PLATFORM_SETTING_KEYS.SLA_GRACE_MINUTES, 5, 0, 1440),
+      // §15 ust. 5 — prace konserwacyjne zapowiedziane ≥48 h, łącznie ≤ 8 h/mies.
+      maintenanceCapMinutes: this.readInt(
+        map,
+        PLATFORM_SETTING_KEYS.SLA_MAINTENANCE_CAP_MINUTES,
+        480,
+        0,
+        44640,
+      ),
+      // Zachowane wyłącznie dla zgodności API/UI admina — scheduler ich nie używa.
       multiplier: this.readInt(map, PLATFORM_SETTING_KEYS.SLA_MULTIPLIER, 10, 1, 1000),
       capPercent: this.readInt(map, PLATFORM_SETTING_KEYS.SLA_CAP_PERCENT, 100, 1, 1000),
     };
   }
 
   async updateSlaCreditPolicy(
-    input: { enabled: boolean; graceMinutes: number; multiplier: number; capPercent: number },
+    input: { enabled: boolean; graceMinutes: number; maintenanceCapMinutes: number },
     actorUserId: string,
-  ): Promise<{ enabled: boolean; graceMinutes: number; multiplier: number; capPercent: number }> {
+  ): ReturnType<PlatformSettingsService['getSlaCreditPolicy']> {
     const grace = Math.min(Math.max(Math.round(input.graceMinutes) || 0, 0), 1440);
-    const mult = Math.min(Math.max(Math.round(input.multiplier) || 1, 1), 1000);
-    const cap = Math.min(Math.max(Math.round(input.capPercent) || 1, 1), 1000);
+    const maint = Math.min(Math.max(Math.round(input.maintenanceCapMinutes) || 0, 0), 44640);
     await this.upsertMany(
       [
         [PLATFORM_SETTING_KEYS.SLA_CREDITS_ENABLED, input.enabled ? '1' : '0'],
         [PLATFORM_SETTING_KEYS.SLA_GRACE_MINUTES, String(grace)],
-        [PLATFORM_SETTING_KEYS.SLA_MULTIPLIER, String(mult)],
-        [PLATFORM_SETTING_KEYS.SLA_CAP_PERCENT, String(cap)],
+        [PLATFORM_SETTING_KEYS.SLA_MAINTENANCE_CAP_MINUTES, String(maint)],
       ],
       actorUserId,
     );
