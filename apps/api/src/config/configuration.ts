@@ -24,6 +24,10 @@ export interface AppConfig {
   // Bootstrap script generation
   publicApiUrl: string;
 
+  // Meta Conversions API (server-side pomiar, opcjonalne)
+  metaDatasetId: string | null;
+  metaCapiToken: string | null;
+
   // Stripe (optional in dev — endpoints return 503 when missing)
   stripeSecretKey: string | null;
   stripeWebhookSecret: string | null;
@@ -104,6 +108,9 @@ export function loadConfig(): AppConfig {
       required: isProd,
       default: isProd ? undefined : 'http://localhost:3000',
     }),
+    // Meta Conversions API (server-side pomiar). Dataset = ID Pixela.
+    metaDatasetId: process.env.META_DATASET_ID || process.env.META_PIXEL_ID || null,
+    metaCapiToken: process.env.META_CAPI_TOKEN || null,
     stripeSecretKey: process.env.STRIPE_SECRET_KEY || null,
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || null,
     stripeApiVersion: readEnv('STRIPE_API_VERSION', { default: '2026-04-22.dahlia' }),

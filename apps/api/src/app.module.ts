@@ -47,6 +47,7 @@ import { ApiTokensModule } from './api-tokens/api-tokens.module';
 import { ResellerModule } from './reseller/reseller.module';
 import { EmailMarketingModule } from './email-marketing/email-marketing.module';
 import { AnalyticsSitesModule } from './analytics-sites/analytics-sites.module';
+import { MetaCapiModule } from './analytics/meta-capi.module';
 import { FontsProxyModule } from './fonts-proxy/fonts-proxy.module';
 import { BrandModule } from './brand/brand.module';
 import { KbModule } from './kb/kb.module';
@@ -107,6 +108,7 @@ import { DeliverabilityModule } from './deliverability/deliverability.module';
     ResellerModule,
     EmailMarketingModule,
     AnalyticsSitesModule,
+    MetaCapiModule,
     FontsProxyModule,
     BrandModule,
     KbModule,

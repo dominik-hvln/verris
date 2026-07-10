@@ -159,7 +159,37 @@ export function trackPurchase(input: {
     },
     eventId,
   );
+
+  // Conversions API (server-side) — z tym samym event_id do deduplikacji.
+  // Odzyskuje zakupy blokowane przez adblocki. WYŁĄCZNIE po zgodzie marketingowej.
+  void relayPurchaseIfConsented(eventId, input.value, input.items[0]?.item_name);
+
   return eventId;
+}
+
+/**
+ * Uruchamia server-side relay do Meta CAPI, jeśli użytkownik ma zgodę marketingową.
+ * Import dynamiczny, żeby nie ciągnąć server action do bundla, gdy nie jest potrzebny.
+ */
+async function relayPurchaseIfConsented(
+  eventId: string,
+  value: number,
+  contentName?: string,
+): Promise<void> {
+  try {
+    const { readConsent } = await import("./cookie-consent");
+    if (!readConsent()?.marketing) return;
+    const { relayPurchaseToCapi } = await import("./meta-capi");
+    await relayPurchaseToCapi({
+      eventId,
+      value,
+      currency: "PLN",
+      contentName,
+      eventSourceUrl: typeof window !== "undefined" ? window.location.href : undefined,
+    });
+  } catch {
+    /* best-effort */
+  }
 }
 
 /**
