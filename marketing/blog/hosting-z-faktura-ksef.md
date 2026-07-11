@@ -46,4 +46,4 @@ Tak — dane do faktury ustawiasz w panelu klienta.
 
 ---
 
-*Prowadzisz firmę? [Zobacz hosting Verris](/hosting) — faktury w panelu, gotowe na KSeF, i cena bez pułapek odnowień.*
+*Prowadzisz firmę? [Zobacz hosting Verris](/hosting) — jedna cena bez pułapek odnowień, a faktury VAT w panelu są gotowe na KSeF.*
