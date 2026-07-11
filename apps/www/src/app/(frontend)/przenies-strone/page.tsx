@@ -148,7 +148,7 @@ export default function Page() {
         <div className="wrap">
           <div className="row">
             <span><ShieldCheck /> Awaria? Rekompensata wraca sama</span>
-            <span><Boxes /> Dane zostają w Europie</span>
+            <span><Boxes /> Bez limitu stron i skrzynek</span>
             <span><CreditCard /> Płatność BLIK i kartą</span>
             {/* Brand-review: KSeF/„polski support" to standard, nie wyróżnik — mówimy korzyścią. */}
             <span><Database /> Cofniesz nieudaną aktualizację</span>

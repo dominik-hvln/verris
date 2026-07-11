@@ -5,7 +5,7 @@ import { RevealInit } from '../components/RevealInit';
 export const metadata: Metadata = {
   title: 'O Verris — polski hosting z uczciwymi zasadami',
   description:
-    'Verris to polski hosting z autoskalowaniem, VPS i domenami. Operator: HVLN Dominik Kowalski, Zielona Góra. Budujemy zaufanie konkretami: automatyczne rekompensaty za awarie, jedna cena bez pułapek, dane w Europie.',
+    'Verris to polski hosting z autoskalowaniem, VPS i domenami. Operator: HVLN Dominik Kowalski, Zielona Góra. Budujemy zaufanie konkretami: automatyczne rekompensaty za awarie, jedna cena bez pułapek, darmowa migracja strony i poczty.',
   alternates: { canonical: '/o-nas' },
 };
 
@@ -15,7 +15,7 @@ export default function Page() {
       <SubHero
         eyebrow="O nas"
         title="Hosting, który gra w otwarte karty"
-        lead="Verris to młoda polska marka hostingowa. Zaufanie budujemy konkretami — awaria oznacza automatyczną rekompensatę, cena jest jedna od pierwszego dnia, a dane zostają w Europie — a nie pustymi obietnicami."
+        lead="Verris to młoda polska marka hostingowa. Zaufanie budujemy konkretami — awaria oznacza automatyczną rekompensatę, cena jest jedna od pierwszego dnia, a migrację robimy za 0 zł — a nie pustymi obietnicami."
         crumbs={[{ label: 'O nas' }]}
       />
       <section>
@@ -32,7 +32,7 @@ export default function Page() {
             <ul>
               <li>Obietnice tylko z pokryciem — SLA 99,5% z rekompensatami wpisanymi w regulamin.</li>
               <li>Ceny brutto, jasno; bez pułapek odnowieniowych i cichych auto-odnowień domen.</li>
-              <li>Prywatność domyślnie — dane zostają w Europie, dokumenty RODO gotowe bez papierologii.</li>
+              <li>Realna pomoc, gdy jej potrzebujesz — odpowiadamy tego samego dnia roboczego, bez formułek.</li>
               <li>Konkret techniczny zamiast marketingowej waty.</li>
             </ul>
             <h2>Infrastruktura</h2>

@@ -30,7 +30,7 @@ export default function Page() {
               <li>Płacisz za realne użycie, nie za najdroższy pakiet „na wszelki wypadek".</li>
               <li>SSL w cenie — koszyk i płatności po HTTPS bez dopłat.</li>
               <li>Kopie zapasowe z odtwarzaniem, gdy aktualizacja wtyczki pójdzie nie tak.</li>
-              <li>Dane Twoje i Twoich klientów zostają w Europie (serwery Hetzner, Niemcy/Finlandia).</li>
+              <li>Obsługa starych wersji PHP — motyw i wtyczki nie muszą nadążać od pierwszego dnia.</li>
             </ul>
             <p>
               Prowadzisz sklep na WordPressie z WooCommerce? Zobacz też{' '}

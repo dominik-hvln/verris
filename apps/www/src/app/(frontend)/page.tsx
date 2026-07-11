@@ -7,7 +7,7 @@ import {
   Move,
   ArrowLeftRight,
   ShieldCheck,
-  MapPin,
+  Gauge,
   FileText,
   Undo2,
   RefreshCw,
@@ -78,8 +78,8 @@ const SERVICES = [
 
 const USP = [
   { icon: ShieldCheck, title: 'SLA 99,5% z rekompensatami', desc: 'Nie „obiecujemy" — gwarantujemy w umowie. Za niedostępność naliczamy kredyty wg regulaminu.' },
-  { icon: MapPin, title: 'Dane zostają w Europie', desc: 'Serwery w Niemczech i Finlandii (Hetzner). Twoje dane nie wędrują poza UE — jeden problem mniej.' },
-  { icon: FileText, title: 'Papierologia RODO z głowy', desc: 'Polityka prywatności, DPA i lista podprocesorów gotowe w panelu — godziny mniej papierkowej roboty.' },
+  { icon: Gauge, title: 'Płacisz za realne użycie', desc: 'Autoskalowanie: moc rośnie w piku i zwalnia w trybie ECO. Nie płacisz za pakiet „na zapas".' },
+  { icon: FileText, title: 'Jedna cena, bez pułapek', desc: 'Cena z cennika od pierwszego dnia. Bez taniej przynęty na rok i bez szoku przy odnowieniu.' },
   { icon: Undo2, title: 'Przywracanie z siatką bezpieczeństwa', desc: 'Domyślnie przed odtworzeniem kopii zapisujemy stan obecny, więc nieudane przywrócenie da się cofnąć.' },
   { icon: RefreshCw, title: 'Domeny bez pułapek', desc: 'Brak cichych auto-odnowień z karty. Przypominamy przed wygaśnięciem, a decyzję zostawiamy Tobie.' },
   { icon: Database, title: 'Kopie z samodzielnym odtwarzaniem', desc: 'Backup i przywracanie z poziomu DirectAdmin — bez czekania na support i bez dopłat.' },
@@ -173,10 +173,10 @@ export default function HomePage() {
         <div className="wrap">
           <div className="row">
             <span><ShieldCheck /> Awaria? Rekompensata wraca sama</span>
-            <span><Globe /> Dane zostają w Europie</span>
+            <span><Gauge /> Płacisz za realne użycie</span>
             <span><ArrowLeftRight /> Przenosimy stronę za 0 zł</span>
             <span><Undo2 /> Cofniesz nieudane przywracanie</span>
-            <span><FileText /> Papierologia RODO z głowy</span>
+            <span><FileText /> Jedna cena, bez pułapek</span>
           </div>
         </div>
       </div>
