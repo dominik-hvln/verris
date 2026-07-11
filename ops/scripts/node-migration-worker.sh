@@ -559,6 +559,23 @@ ensure_deps() {
       apt-get install -y jq curl rsync sshpass lftp mariadb-client imapsync >/dev/null 2>&1 || true
     fi
   fi
+
+  # imapsync: pakiet dystrybucyjny dostarcza zależności Perla, ale sam skrypt bywa
+  # mocno przestarzały. Autor zaleca najnowszą wersję (kompatybilność z Gmailem/
+  # Exchange, poprawki serwerów IMAP). Nadpisujemy binarkę najnowszym oficjalnym
+  # skryptem w /usr/local/bin (wyprzedza /usr/bin w PATH). Best-effort: gdy pobranie
+  # się nie uda, zostaje wersja z pakietu. Pin przez IMAPSYNC_URL (domyślnie: latest).
+  local imapsync_url="${IMAPSYNC_URL:-https://imapsync.lamiral.info/imapsync}"
+  local imapsync_dst="/usr/local/bin/imapsync"
+  if curl -fsSL --retry 2 -o "${imapsync_dst}.tmp" "$imapsync_url" 2>/dev/null \
+     && head -1 "${imapsync_dst}.tmp" | grep -q '^#!'; then
+    chmod +x "${imapsync_dst}.tmp" && mv -f "${imapsync_dst}.tmp" "$imapsync_dst"
+    hash -r 2>/dev/null || true
+    log "imapsync (oficjalny): $(imapsync --version 2>/dev/null | head -1 || echo 'wersja nieznana')"
+  else
+    rm -f "${imapsync_dst}.tmp" 2>/dev/null || true
+    log "imapsync overlay pominięty — używam wersji z pakietu: $(imapsync --version 2>/dev/null | head -1 || echo 'brak')"
+  fi
   # wp-cli — oficjalny phar (podpisywany), potrzebny do WP_FIXUP.
   if ! command -v wp >/dev/null 2>&1; then
     log "installing wp-cli"
