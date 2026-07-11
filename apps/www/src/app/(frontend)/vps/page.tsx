@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 const F = [
   { icon: Terminal, h: 'Pełny root', p: 'Niezarządzany VPS — instalujesz i konfigurujesz, co chcesz. Pełna kontrola nad środowiskiem.' },
   { icon: Cpu, h: 'Przewidywalne zasoby', p: 'Dedykowane vCPU i RAM bez niespodzianek. Zasoby, za które płacisz, są Twoje.' },
-  { icon: MapPin, h: 'Serwery w UE', p: 'Infrastruktura Hetzner (Niemcy/Finlandia). Dane w EOG — prościej o zgodność z RODO.' },
+  { icon: MapPin, h: 'Dane zostają w Europie', p: 'Serwery w Niemczech i Finlandii (Hetzner). Twoje dane nie wędrują poza UE.' },
   { icon: ShieldCheck, h: 'SLA w umowie', p: 'SLA 99,5% z rekompensatami wg regulaminu — dotyczy także usług VPS.' },
 ];
 

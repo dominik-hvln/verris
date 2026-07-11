@@ -7,7 +7,7 @@ import { features } from '@/lib/features';
 export const metadata: Metadata = {
   title: 'Funkcje hostingu Verris — autoskalowanie, migracja, SSL, SLA',
   description:
-    'Wszystkie funkcje hostingu Verris w jednym miejscu: autoskalowanie, darmowa migracja, SSL w cenie, kopie zapasowe z siatką bezpieczeństwa, domeny bez auto-odnowień, RODO/DPA i SLA 99,5% z rekompensatami.',
+    'Wszystkie funkcje hostingu Verris w jednym miejscu: autoskalowanie, darmowa migracja, SSL w cenie, kopie zapasowe z siatką bezpieczeństwa, domeny bez auto-odnowień, dane w Europie i SLA 99,5% z automatycznymi rekompensatami.',
   alternates: { canonical: '/funkcje' },
 };
 

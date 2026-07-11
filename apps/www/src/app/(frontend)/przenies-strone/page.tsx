@@ -147,11 +147,11 @@ export default function Page() {
       <div className="trust">
         <div className="wrap">
           <div className="row">
-            <span><ShieldCheck /> SLA 99,5% z rekompensatami</span>
-            <span><Boxes /> Dane w UE · RODO</span>
+            <span><ShieldCheck /> Awaria? Rekompensata wraca sama</span>
+            <span><Boxes /> Dane zostają w Europie</span>
             <span><CreditCard /> Płatność BLIK i kartą</span>
-            {/* Brand-review: KSeF to standard, nie wyróżnik — zastąpione realnym USP. */}
-            <span><Database /> Kopie z samodzielnym odtwarzaniem</span>
+            {/* Brand-review: KSeF/„polski support" to standard, nie wyróżnik — mówimy korzyścią. */}
+            <span><Database /> Cofniesz nieudaną aktualizację</span>
           </div>
         </div>
       </div>

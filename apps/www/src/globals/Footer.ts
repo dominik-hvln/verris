@@ -33,7 +33,7 @@ export const Footer: GlobalConfig = {
       type: 'text',
       label: 'Linia płatności / SLA',
       defaultValue:
-        'Płatności: karta · BLIK · Apple Pay · Google Pay · Stripe · Faktury gotowe na KSeF · SLA 99,5% z rekompensatami wg regulaminu',
+        'Płatności: karta · BLIK · Apple Pay · Google Pay · Stripe · SLA 99,5% z automatycznymi rekompensatami wg regulaminu',
     },
   ],
 };

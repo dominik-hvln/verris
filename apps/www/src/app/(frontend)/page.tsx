@@ -78,8 +78,8 @@ const SERVICES = [
 
 const USP = [
   { icon: ShieldCheck, title: 'SLA 99,5% z rekompensatami', desc: 'Nie „obiecujemy" — gwarantujemy w umowie. Za niedostępność naliczamy kredyty wg regulaminu.' },
-  { icon: MapPin, title: 'Infrastruktura w UE', desc: 'Serwery Hetzner (Niemcy/Finlandia). Dane pozostają w EOG — prościej o zgodność z RODO.' },
-  { icon: FileText, title: 'Komplet RODO online', desc: 'Polityka prywatności, DPA do akceptacji w panelu i lista podprocesorów — godziny mniej papierologii.' },
+  { icon: MapPin, title: 'Dane zostają w Europie', desc: 'Serwery w Niemczech i Finlandii (Hetzner). Twoje dane nie wędrują poza UE — jeden problem mniej.' },
+  { icon: FileText, title: 'Papierologia RODO z głowy', desc: 'Polityka prywatności, DPA i lista podprocesorów gotowe w panelu — godziny mniej papierkowej roboty.' },
   { icon: Undo2, title: 'Przywracanie z siatką bezpieczeństwa', desc: 'Domyślnie przed odtworzeniem kopii zapisujemy stan obecny, więc nieudane przywrócenie da się cofnąć.' },
   { icon: RefreshCw, title: 'Domeny bez pułapek', desc: 'Brak cichych auto-odnowień z karty. Przypominamy przed wygaśnięciem, a decyzję zostawiamy Tobie.' },
   { icon: Database, title: 'Kopie z samodzielnym odtwarzaniem', desc: 'Backup i przywracanie z poziomu DirectAdmin — bez czekania na support i bez dopłat.' },
@@ -138,8 +138,8 @@ export default function HomePage() {
               Płacisz tyle, ile widzisz.
             </h1>
             <p className="lead">
-              Hosting współdzielony z autoskalowaniem, VPS i domeny — w jednym panelu i pod opieką
-              polskiego zespołu. Bez taniej przynęty na pierwszy rok i bez szoku przy odnowieniu.
+              Hosting współdzielony z autoskalowaniem, VPS i domeny — w jednym panelu, z realną
+              pomocą, gdy jej potrzebujesz. Bez taniej przynęty na pierwszy rok i bez szoku przy odnowieniu.
             </p>
             <div className="hero-cta">
               <a className="btn btn-primary" href="https://panel.verris.pl" data-event="cta_click" data-cta="hero" data-conv="checkout_intent">
@@ -172,11 +172,11 @@ export default function HomePage() {
       <div className="trust">
         <div className="wrap">
           <div className="row">
-            <span><ShieldCheck /> SLA 99,5% z rekompensatami</span>
-            <span><Globe /> Serwery w UE</span>
-            <span><ArrowLeftRight /> Migracja 0 zł</span>
+            <span><ShieldCheck /> Awaria? Rekompensata wraca sama</span>
+            <span><Globe /> Dane zostają w Europie</span>
+            <span><ArrowLeftRight /> Przenosimy stronę za 0 zł</span>
             <span><Undo2 /> Cofniesz nieudane przywracanie</span>
-            <span><FileText /> Komplet RODO online</span>
+            <span><FileText /> Papierologia RODO z głowy</span>
           </div>
         </div>
       </div>
@@ -187,7 +187,7 @@ export default function HomePage() {
           <div className="sec-head rv">
             <p className="kicker">Usługi</p>
             <h2>Wszystko, czego potrzebuje Twoja obecność w sieci</h2>
-            <p>Jeden panel, jedne faktury, jeden polski zespół. Zaczynasz od hostingu, dokładasz resztę, gdy urośniesz.</p>
+            <p>Jeden panel na wszystko — hosting, domeny, pocztę. Zaczynasz od hostingu, dokładasz resztę, gdy urośniesz.</p>
           </div>
           <div className="svc-grid">
             {SERVICES.map((s) => {

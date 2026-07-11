@@ -17,7 +17,7 @@ export default function Page() {
       <SubHero
         eyebrow="Kontakt"
         title="Porozmawiajmy"
-        lead="Masz pytanie o hosting, migrację albo VPS? Napisz — odpowiada polski zespół. Zwykle wracamy z odpowiedzią tego samego dnia roboczego."
+        lead="Masz pytanie o hosting, migrację albo VPS? Napisz — odpowiadamy tego samego dnia roboczego, bez formułek i botów."
         crumbs={[{ label: 'Kontakt' }]}
       />
       <section>
