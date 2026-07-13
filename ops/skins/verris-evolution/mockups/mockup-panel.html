@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verris — panel serwera (makieta kierunku dla skina Evolution)</title>
+<style>
+  :root{
+    --pine:#0c1a14; --page:#091410; --card:#0e1f17; --card-2:#122619;
+    --green:#0f7a52; --mid:#1fa871; --mint:#34e5a0; --tip:#5bffc0;
+    --paper:#f4f4ee; --stone:#9aa39c; --body:#afbdb6;
+    --hairline:rgba(255,255,255,.08); --danger:#e11d48;
+    --font:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:var(--font);background:var(--page);color:var(--paper);min-height:100vh;display:flex;font-size:14px}
+  a{color:var(--mint);text-decoration:none}
+
+  /* ── Sidebar ─────────────────────────────── */
+  .side{width:248px;background:var(--pine);border-right:1px solid var(--hairline);padding:20px 14px;display:flex;flex-direction:column;gap:4px;flex-shrink:0}
+  .logo{display:flex;align-items:center;gap:10px;padding:4px 10px 18px}
+  .logo .w{font-weight:800;font-size:18px;letter-spacing:-.02em}
+  .logo .w small{display:block;font-size:10.5px;font-weight:500;color:var(--stone);letter-spacing:.08em;text-transform:uppercase}
+  .group{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#5f6a63;padding:16px 10px 6px}
+  .item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;color:var(--body);cursor:pointer}
+  .item:hover{background:rgba(255,255,255,.05);color:var(--paper)}
+  .item.on{background:rgba(31,168,113,.16);color:var(--tip);font-weight:600}
+  .item .ic{width:18px;text-align:center;opacity:.9}
+  .item .badge{margin-left:auto;background:var(--green);color:#04120b;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:99px}
+  .adv{color:#5f6a63}
+  .side .cta{margin-top:auto;background:linear-gradient(180deg,var(--card-2),var(--card));border:1px solid var(--hairline);border-radius:var(--radius);padding:14px;font-size:12.5px;color:var(--body);line-height:1.5}
+  .side .cta b{color:var(--paper)}
+  .side .cta a{display:inline-block;margin-top:8px;font-weight:600}
+
+  /* ── Main ────────────────────────────────── */
+  .main{flex:1;display:flex;flex-direction:column;min-width:0}
+  .top{display:flex;align-items:center;gap:14px;padding:14px 26px;border-bottom:1px solid var(--hairline);background:rgba(12,26,20,.6)}
+  .dom{display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--hairline);border-radius:10px;padding:8px 12px;font-weight:600}
+  .dom .chev{color:var(--stone);font-size:11px}
+  .search{flex:1;max-width:420px;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--hairline);border-radius:10px;padding:8px 12px;color:var(--stone)}
+  .top .right{margin-left:auto;display:flex;align-items:center;gap:14px;color:var(--body)}
+  .avatar{width:32px;height:32px;border-radius:99px;background:linear-gradient(135deg,var(--mid),var(--green));display:flex;align-items:center;justify-content:center;font-weight:700;color:#04120b;font-size:13px}
+
+  .content{display:flex;gap:22px;padding:26px;align-items:flex-start}
+  .col{flex:1;min-width:0}
+  h1{font-size:22px;font-weight:800;letter-spacing:-.01em}
+  .sub{color:var(--stone);margin-top:4px;margin-bottom:22px}
+  .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+  .stat{background:linear-gradient(180deg,var(--card-2),var(--card));border:1px solid var(--hairline);border-radius:var(--radius);padding:16px}
+  .stat .k{font-size:12px;color:var(--stone);font-weight:600}
+  .stat .v{font-size:20px;font-weight:800;margin:6px 0 10px}
+  .stat .v small{font-size:12px;color:var(--stone);font-weight:500}
+  .meter{height:6px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden}
+  .meter i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--mid),var(--mint))}
+  .stat .hint{font-size:11.5px;color:var(--stone);margin-top:8px}
+
+  h2{font-size:15px;font-weight:700;margin:4px 0 12px}
+  .quick{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px}
+  .q{background:var(--card);border:1px solid var(--hairline);border-radius:var(--radius);padding:16px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;transition:border-color .15s}
+  .q:hover{border-color:rgba(52,229,160,.4)}
+  .q .qi{width:38px;height:38px;border-radius:10px;background:rgba(31,168,113,.15);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+  .q b{display:block;font-size:13.5px;margin-bottom:3px}
+  .q span{font-size:12px;color:var(--stone);line-height:1.45}
+
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--hairline);border-radius:var(--radius);overflow:hidden}
+  th{font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--stone);text-align:left;padding:12px 16px;border-bottom:1px solid var(--hairline)}
+  td{padding:13px 16px;border-bottom:1px solid rgba(255,255,255,.04);font-size:13.5px}
+  tr:last-child td{border-bottom:0}
+  .ok{color:var(--mint);font-weight:600}
+  .pill{display:inline-block;background:rgba(52,229,160,.14);color:var(--mint);font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:99px}
+
+  /* ── Help rail ───────────────────────────── */
+  .rail{width:270px;flex-shrink:0;display:flex;flex-direction:column;gap:14px}
+  .panel{background:var(--card);border:1px solid var(--hairline);border-radius:var(--radius);padding:16px}
+  .panel h3{font-size:13.5px;font-weight:700;margin-bottom:10px}
+  .panel ul{list-style:none}
+  .panel li{padding:7px 0;border-bottom:1px solid rgba(255,255,255,.05);font-size:12.5px}
+  .panel li:last-child{border-bottom:0}
+  .note{font-size:12px;color:var(--stone);line-height:1.55}
+</style>
+</head>
+<body>
+  <aside class="side">
+    <div class="logo">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#34e5a0" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/>
+      </svg>
+      <div class="w">Verris<small>Panel serwera</small></div>
+    </div>
+    <div class="item on"><span class="ic">▦</span> Pulpit</div>
+    <div class="group">Strona WWW</div>
+    <div class="item"><span class="ic">🌐</span> Domeny</div>
+    <div class="item"><span class="ic">🗂</span> Menedżer plików</div>
+    <div class="item"><span class="ic">◒</span> WordPress <span class="badge">1</span></div>
+    <div class="item"><span class="ic">⚙</span> PHP i wydajność</div>
+    <div class="item"><span class="ic">🔒</span> Certyfikaty SSL</div>
+    <div class="group">Poczta</div>
+    <div class="item"><span class="ic">✉</span> Konta e-mail</div>
+    <div class="item"><span class="ic">↪</span> Przekierowania</div>
+    <div class="item"><span class="ic">▤</span> Webmail</div>
+    <div class="group">Dane</div>
+    <div class="item"><span class="ic">🛢</span> Bazy MySQL</div>
+    <div class="item"><span class="ic">⟲</span> Kopie zapasowe</div>
+    <div class="item"><span class="ic">⇅</span> Konta FTP</div>
+    <div class="group">Więcej</div>
+    <div class="item adv"><span class="ic">›</span> Zaawansowane (DNS, cron, SSH…)</div>
+    <div class="cta">
+      <b>Wszystko w jednym miejscu?</b><br>
+      Faktury, usługi i pomoc znajdziesz w panelu klienta.
+      <a href="https://panel.verris.pl">panel.verris.pl →</a>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="top">
+      <div class="dom">🌐 kpek.pl <span class="chev">▼</span></div>
+      <div class="search">🔍 Szukaj funkcji… <span style="margin-left:auto;font-size:11px;border:1px solid var(--hairline);border-radius:6px;padding:1px 6px">⌘K</span></div>
+      <div class="right">
+        <span>PL</span>
+        <span>🔔</span>
+        <div class="avatar">W</div>
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="col">
+        <h1>Dzień dobry 👋</h1>
+        <p class="sub">Twój serwer działa poprawnie. Ostatnia kopia zapasowa: dziś 03:15.</p>
+
+        <div class="cards">
+          <div class="stat"><div class="k">Miejsce na dysku</div><div class="v">1,2 GB <small>/ 50 GB</small></div><div class="meter"><i style="width:2.4%"></i></div><div class="hint">2,4% wykorzystania</div></div>
+          <div class="stat"><div class="k">Transfer (ten miesiąc)</div><div class="v">0,61 GB <small>/ bez limitu</small></div><div class="meter"><i style="width:6%"></i></div><div class="hint">fair use</div></div>
+          <div class="stat"><div class="k">Skrzynki e-mail</div><div class="v">2 <small>aktywne</small></div><div class="meter"><i style="width:8%"></i></div><div class="hint">limit: 25</div></div>
+          <div class="stat"><div class="k">Bazy danych</div><div class="v">3 <small>MySQL</small></div><div class="meter"><i style="width:60%"></i></div><div class="hint">limit: 5</div></div>
+        </div>
+
+        <h2>Najczęstsze zadania</h2>
+        <div class="quick">
+          <div class="q"><div class="qi">✉</div><div><b>Utwórz konto e-mail</b><span>Nowa skrzynka w Twojej domenie w 30 sekund.</span></div></div>
+          <div class="q"><div class="qi">🗂</div><div><b>Wgraj pliki strony</b><span>Menedżer plików albo dane FTP.</span></div></div>
+          <div class="q"><div class="qi">⟲</div><div><b>Przywróć kopię</b><span>Samodzielne odtwarzanie plików i baz.</span></div></div>
+          <div class="q"><div class="qi">🔒</div><div><b>Włącz SSL</b><span>Darmowy certyfikat Let's Encrypt.</span></div></div>
+          <div class="q"><div class="qi">◒</div><div><b>Zainstaluj WordPressa</b><span>Automatyczna instalacja i aktualizacje.</span></div></div>
+          <div class="q"><div class="qi">⚙</div><div><b>Zmień wersję PHP</b><span>Per domena, także starsze wersje.</span></div></div>
+        </div>
+
+        <h2>Twoje domeny</h2>
+        <table>
+          <tr><th>Domena</th><th>SSL</th><th>PHP</th><th>Status</th></tr>
+          <tr><td><b>kpek.pl</b></td><td class="ok">✓ ważny</td><td>8.3</td><td><span class="pill">działa</span></td></tr>
+          <tr><td>kitefun.pl</td><td class="ok">✓ ważny</td><td>8.3</td><td><span class="pill">działa</span></td></tr>
+        </table>
+      </div>
+
+      <div class="rail">
+        <div class="panel">
+          <h3>Szybka pomoc</h3>
+          <ul>
+            <li><a href="#">Jak dodać konto pocztowe?</a></li>
+            <li><a href="#">Jak wgrać stronę na serwer?</a></li>
+            <li><a href="#">Jak włączyć certyfikat SSL?</a></li>
+            <li><a href="#">Jak przywrócić kopię zapasową?</a></li>
+            <li><a href="#">Jak zmienić wersję PHP?</a></li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3>Napisz do nas</h3>
+          <p class="note">Napisz: <a href="mailto:kontakt@verris.pl">kontakt@verris.pl</a><br>Odpowiadamy zwykle w 2 h w dni robocze.</p>
+        </div>
+        <div class="panel">
+          <h3>Przenosisz stronę?</h3>
+          <p class="note">Migracja od innego dostawcy jest <b style="color:var(--mint)">bezpłatna</b> — zrobimy ją za Ciebie. <a href="https://verris.pl/przenies-strone">Zamów migrację →</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

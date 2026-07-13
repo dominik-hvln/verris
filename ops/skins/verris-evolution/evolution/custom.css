@@ -1,0 +1,128 @@
+/* ============================================================================
+ * Verris — custom CSS dla skina Evolution (DirectAdmin)
+ * ----------------------------------------------------------------------------
+ * GDZIE WKLEIĆ: Admin Tools → Customize Evolution Skin → CSS Customizations
+ * (poziom admina = obowiązuje globalnie; reseller może nadpisać u siebie).
+ *
+ * Paleta = apps/client-panel/src/app/globals.css (Pine + Mint).
+ * Sekcja A używa WYŁĄCZNIE zmiennych udokumentowanych w
+ * https://docs.directadmin.com/directadmin/skins-and-templates/evolution.html
+ * Sekcja B to ostrożne reguły dodatkowe — zweryfikować na węźle testowym
+ * po każdej aktualizacji DA (Evolution nie dokumentuje wewnętrznych klas).
+ *
+ * Assety logo są serwowane z /static/ (instaluje je
+ * ops/scripts/node-da-evolution-brand.sh do data/templates/custom/static).
+ * ========================================================================== */
+
+/* ── SEKCJA A — udokumentowane zmienne Evolution ────────────────────────── */
+
+html {
+  /* Kolory funkcjonalne (przyciski, linki, stany) */
+  --primary: #0f7a52;   /* verris-green — kontrast z białym tekstem ≥ 4.5:1 */
+  --safe:    #1fa871;   /* verris-mid — sukces */
+  --danger:  #e11d48;   /* destructive z panelu klienta */
+  --neutral: #9aa39c;   /* verris-stone */
+
+  /* Logo — pełny znak + wordmark (nagłówek / sidebar) */
+  --img-logo:       url("/static/verris-logo-dark.svg");
+  --img-logo-light: url("/static/verris-logo-dark.svg");   /* na jasnym tle ciemne logo */
+  --img-logo-dark:  url("/static/verris-logo-light.svg");  /* na ciemnym tle jasne logo */
+
+  /* Sam symbol (zwinięty sidebar / mobile) */
+  --img-symbol:       url("/static/verris-symbol-dark.svg");
+  --img-symbol-light: url("/static/verris-symbol-dark.svg");
+  --img-symbol-dark:  url("/static/verris-symbol-light.svg");
+}
+
+/* Tryb ciemny — domyślny kierunek marki Verris (Pine + Mint).
+ * Zalecane ustawienie „Theme Colors" w UI podano w ops/docs/DA_EVOLUTION_BRANDING.md;
+ * tu podbijamy tylko akcenty, żeby mint był czytelny na pine. */
+html.mode\:dark {
+  --primary: #1fa871;   /* na ciemnym tle jaśniejszy akcent */
+  --safe:    #34e5a0;   /* verris-mint */
+  --danger:  #f43f5e;   /* jaśniejszy wariant na dark */
+  --neutral: #afbdb6;   /* verris-body */
+}
+
+/* ── SEKCJA B — ostrożne dopieszczenie (zweryfikować po aktualizacjach DA) ─ */
+
+/* Typografia: spójnie z panelem klienta Verris (bez zewnętrznych CDN-ów —
+ * RODO; jeśli chcemy Inter, hostujemy woff2 w /static/ i odkomentowujemy). */
+/*
+@font-face {
+  font-family: "Inter";
+  src: url("/static/inter-var.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+*/
+html, body {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Focus ring w kolorze marki (dostępność) */
+html.mode\:dark :focus-visible {
+  outline: 2px solid #34e5a0;
+  outline-offset: 2px;
+}
+html.mode\:light :focus-visible,
+html:not(.mode\:dark) :focus-visible {
+  outline: 2px solid #0f7a52;
+  outline-offset: 2px;
+}
+
+/* Scrollbar w trybie ciemnym — subtelny, jak w panelu klienta */
+html.mode\:dark ::-webkit-scrollbar { width: 10px; height: 10px; }
+html.mode\:dark ::-webkit-scrollbar-track { background: #091410; }
+html.mode\:dark ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  border: 2px solid #091410;
+}
+html.mode\:dark ::-webkit-scrollbar-thumb:hover { background: rgba(52, 229, 160, 0.45); }
+
+/* Selekcja tekstu */
+html.mode\:dark ::selection { background: rgba(52, 229, 160, 0.3); }
+
+/* ── SEKCJA C — mobile first-class ──────────────────────────────────────────
+ * Evolution dokumentuje scope'y na <html>: media:small-phone, media:phone,
+ * media:tablet, media:desktop oraz device:mobile / device:desktop.
+ * Standard DA na telefonach bywa ciasny — podbijamy ergonomię dotyku.
+ * Zweryfikować na węźle testowym na realnym telefonie (iOS + Android). */
+
+/* Brak auto-zoomu iOS: pola formularzy min. 16px na telefonach */
+html.media\:phone input,
+html.media\:phone select,
+html.media\:phone textarea,
+html.media\:small-phone input,
+html.media\:small-phone select,
+html.media\:small-phone textarea {
+  font-size: 16px !important;
+  min-height: 44px;
+}
+
+/* Touch targets: przyciski i pozycje menu ≥ 44px (wytyczna WCAG/Apple) */
+html.device\:mobile button,
+html.device\:mobile a[role="button"],
+html.device\:mobile [type="submit"] {
+  min-height: 44px;
+}
+html.device\:mobile nav a,
+html.device\:mobile [role="menuitem"] {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+/* Tabele danych: pozwól przewijać poziomo zamiast łamać layout */
+html.media\:phone table,
+html.media\:small-phone table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Oddech na małych ekranach */
+html.media\:small-phone body { font-size: 15px; }
