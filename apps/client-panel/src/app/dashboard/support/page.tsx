@@ -127,6 +127,14 @@ function StatusBadge({ status }: { status: string }) {
       </span>
     );
   }
+  if (status === "WAITING_CUSTOMER") {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-200 border border-amber-400/30 uppercase tracking-wider">
+        <Clock className="h-3 w-3" />
+        Czekamy na Ciebie
+      </span>
+    );
+  }
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full bg-[#050505] px-3 py-1 text-xs font-bold text-neutral-400 border border-white/5 uppercase tracking-wider">
       <CheckCircle2 className="h-3 w-3" />

@@ -1760,7 +1760,7 @@ model Ticket {
   id              String        @id @default(uuid())
   subject         String
   message         String
-  status          String        @default("OPEN")     // OPEN, IN_PROGRESS, CLOSED
+  status          String        @default("OPEN")     // OPEN, IN_PROGRESS, WAITING_CUSTOMER, CLOSED
   priority        String        @default("NORMAL")   // LOW, NORMAL, HIGH, URGENT
   department      String        @default("TECHNICAL") // BILLING, TECHNICAL, SALES
   // SUP-1 — temat zgłoszenia wybrany przez klienta (grupowanie + podpowiedzi KB).
@@ -1774,6 +1774,7 @@ model Ticket {
 
   replies         TicketReply[]
   attachments     TicketAttachment[]
+  events          TicketEvent[]
 
   firstResponseAt DateTime?
   resolvedAt      DateTime?
@@ -1794,12 +1795,21 @@ model Ticket {
   riskFlag         String?
   riskReason       String?       @db.Text
 
+  // SUP-V2 — obsługa braku odpowiedzi klienta i auto-zamykania (cykl 2 dni / 5 dni).
+  lastReplyAt                DateTime? // ostatnia wiadomość w wątku (klient lub staff)
+  lastReplyIsStaff           Boolean?  // czy ostatnia wiadomość była od staff
+  waitingSince               DateTime? // od kiedy czekamy na odpowiedź klienta (WAITING_CUSTOMER)
+  customerReminderSentAt     DateTime? // kiedy wysłano przypomnienie o braku odpowiedzi
+  slaResponseBreachAlertedAt DateTime? // kiedy zaalarmowano staff o naruszeniu SLA 1. odpowiedzi
+  autoClosedAt               DateTime? // kiedy ticket zamknięto automatycznie
+
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
   @@index([slaResponseDueAt])
   @@index([slaResolveDueAt])
   @@index([riskFlag])
+  @@index([status, waitingSince])
 }
 
 model TicketReply {
@@ -1843,12 +1853,36 @@ model TicketAttachment {
   @@index([replyId])
 }
 
+/// SUP-V2 — historia zdarzeń ticketu (oś czasu + audyt operacyjny + idempotencja
+/// powiadomień schedulera). Append-only.
+model TicketEvent {
+  id        String   @id @default(uuid())
+
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  /// TICKET_CREATED, CUSTOMER_REPLY, STAFF_REPLY, STATUS_CHANGED, ASSIGNMENT_CHANGED,
+  /// CUSTOMER_REMINDER_SENT, AUTO_CLOSED, SLA_RESPONSE_BREACH_ALERTED, ESCALATED.
+  type      String
+  /// Kto wywołał zdarzenie (User.id). null = system/scheduler.
+  actorId   String?
+  /// Dodatkowy kontekst, np. { from: "OPEN", to: "WAITING_CUSTOMER" }.
+  meta      Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([ticketId, createdAt])
+  @@index([ticketId, type])
+}
+
 model CannedResponse {
   id          String   @id @default(uuid())
   title       String
   content     String   @db.Text
   // SUP-2 — temat szablonu (do filtrowania pod temat ticketu).
   topic       String?  // HOSTING, DOMAIN, EMAIL, DNS, BILLING, SSL, OTHER
+  // SUP-V2 — krótki kod szybkiego wstawiania (np. "reset-hasla"), opcjonalny.
+  shortcut    String?
   isActive    Boolean  @default(true)
   createdById String?
 

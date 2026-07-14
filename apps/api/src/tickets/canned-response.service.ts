@@ -6,6 +6,7 @@ export interface CannedResponseInput {
   title: string;
   content: string;
   topic?: string | null;
+  shortcut?: string | null;
   isActive?: boolean;
 }
 
@@ -21,17 +22,29 @@ export class CannedResponseService {
     private readonly audit: AuditService,
   ) {}
 
-  /** Staff view: active templates, topic-matched first (global ones included). */
-  async listForStaff(topic?: string) {
+  /**
+   * Staff view: active templates, topic-matched first (global ones included).
+   * Optional free-text `query` filters by title/content/shortcut (case-insensitive).
+   */
+  async listForStaff(topic?: string, query?: string) {
     const rows = await this.prisma.cannedResponse.findMany({
       where: { isActive: true },
       orderBy: [{ topic: 'asc' }, { title: 'asc' }],
     });
     const t = topic?.toUpperCase();
+    const q = query?.trim().toLowerCase();
     const rank = (r: { topic: string | null }) => (t && r.topic === t ? 0 : r.topic == null ? 1 : 2);
     return rows
+      .filter((r) =>
+        !q
+          ? true
+          : [r.title, r.content, r.shortcut ?? '']
+              .join(' ')
+              .toLowerCase()
+              .includes(q),
+      )
       .sort((a, b) => rank(a) - rank(b))
-      .map((r) => ({ id: r.id, title: r.title, content: r.content, topic: r.topic }));
+      .map((r) => ({ id: r.id, title: r.title, content: r.content, topic: r.topic, shortcut: r.shortcut }));
   }
 
   /** Admin view: all templates. */
@@ -45,6 +58,7 @@ export class CannedResponseService {
         title: input.title.trim(),
         content: input.content,
         topic: input.topic?.toUpperCase() || null,
+        shortcut: input.shortcut?.trim() || null,
         isActive: input.isActive ?? true,
         createdById: actorUserId,
       },
@@ -62,6 +76,7 @@ export class CannedResponseService {
         title: input.title?.trim() ?? undefined,
         content: input.content ?? undefined,
         topic: input.topic === undefined ? undefined : input.topic?.toUpperCase() || null,
+        shortcut: input.shortcut === undefined ? undefined : input.shortcut?.trim() || null,
         isActive: input.isActive ?? undefined,
       },
     });

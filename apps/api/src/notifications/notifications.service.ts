@@ -8,6 +8,7 @@ export type NotificationCategory =
   | 'BILLING'
   | 'SECURITY'
   | 'SLA'
+  | 'SUPPORT'
   | 'SYSTEM';
 
 export type NotificationSeverity = 'info' | 'warning' | 'critical';

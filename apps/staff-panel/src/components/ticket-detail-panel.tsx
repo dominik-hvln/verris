@@ -18,13 +18,31 @@ import {
 } from "@/lib/ticket-actions";
 import { staffTicketAttachmentDownloadHref } from "@/lib/ticket-attachment-links";
 import { StaffImpersonateButton } from "@/app/(dashboard)/crm/impersonate-button";
+import { CannedResponsePicker } from "@/components/canned-response-picker";
 
 interface Props {
   ticket: StaffTicketDetail;
   agents: AgentOption[];
 }
 
-const STATUS_OPTS = ["OPEN", "IN_PROGRESS", "CLOSED"] as const;
+const STATUS_OPTS = ["OPEN", "IN_PROGRESS", "WAITING_CUSTOMER", "CLOSED"] as const;
+const STATUS_LABELS: Record<string, string> = {
+  OPEN: "Otwarte",
+  IN_PROGRESS: "W realizacji",
+  WAITING_CUSTOMER: "Czeka na klienta",
+  CLOSED: "Zamknięte",
+};
+const EVENT_LABELS: Record<string, string> = {
+  TICKET_CREATED: "Utworzono zgłoszenie",
+  CUSTOMER_REPLY: "Odpowiedź klienta",
+  STAFF_REPLY: "Odpowiedź supportu",
+  STATUS_CHANGED: "Zmiana statusu",
+  ASSIGNMENT_CHANGED: "Zmiana przypisania",
+  CUSTOMER_REMINDER_SENT: "Przypomnienie do klienta",
+  AUTO_CLOSED: "Auto-zamknięcie (brak odpowiedzi)",
+  SLA_RESPONSE_BREACH_ALERTED: "Alert: przekroczone SLA",
+  ESCALATED: "Eskalacja",
+};
 const PRI_OPTS = ["LOW", "NORMAL", "HIGH", "URGENT"] as const;
 const DEPT_OPTS = ["BILLING", "TECHNICAL", "SALES"] as const;
 
@@ -160,7 +178,7 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
             >
               {STATUS_OPTS.map((s) => (
                 <option key={s} value={s}>
-                  {s === "OPEN" ? "Otwarte" : s === "IN_PROGRESS" ? "W realizacji" : "Zamknięte"}
+                  {STATUS_LABELS[s] ?? s}
                 </option>
               ))}
             </select>
@@ -222,6 +240,15 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
           <p className="text-xs text-neutral-300">
             Resolve: {ticket.slaResolveDueAt ? new Date(ticket.slaResolveDueAt).toLocaleString("pl-PL") : "—"}
           </p>
+          {ticket.waitingSince ? (
+            <p className="mt-1 text-xs text-amber-300/90">
+              Czeka na klienta od {new Date(ticket.waitingSince).toLocaleString("pl-PL")}
+              {ticket.customerReminderSentAt ? " · przypomnienie wysłane" : ""}
+            </p>
+          ) : null}
+          {ticket.autoClosedAt ? (
+            <p className="mt-1 text-xs text-neutral-400">Zamknięte automatycznie {new Date(ticket.autoClosedAt).toLocaleString("pl-PL")}</p>
+          ) : null}
         </OpsCard>
         <OpsCard title="Runbook">
           <p className="mb-2 text-xs text-neutral-300">{ticket.runbookKey ?? "Brak przypisanego runbooka"}</p>
@@ -325,6 +352,10 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
         ) : null}
       </div>
 
+      {ticket.events && ticket.events.length > 0 ? (
+        <TicketTimeline events={ticket.events} />
+      ) : null}
+
       <div className="rounded-2xl border border-white/10 bg-black/25 p-6">
         <h2 className="mb-3 text-sm font-semibold text-white">Pierwsza wiadomość</h2>
         <pre className="font-sans text-sm whitespace-pre-wrap text-neutral-200">{ticket.message}</pre>
@@ -363,26 +394,18 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
         >
           <div className="flex items-center justify-between gap-3">
             <label className="block text-sm font-medium text-white">Twoja odpowiedź</label>
-            {canned.length > 0 ? (
-              <select
-                defaultValue=""
-                onChange={(e) => {
-                  const c = canned.find((x) => x.id === e.target.value);
-                  if (c) setReplyText((prev) => (prev ? `${prev}\n\n${c.content}` : c.content));
-                  e.currentTarget.value = "";
-                }}
-                className="rounded-lg border border-white/10 bg-black/40 px-2 py-1.5 text-xs text-white outline-none focus:border-cyan-500/40"
-                title="Wstaw szablon odpowiedzi"
-              >
-                <option value="">↪ Wstaw szablon…</option>
-                {canned.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.topic ? `[${c.topic}] ` : ""}
-                    {c.title}
-                  </option>
-                ))}
-              </select>
-            ) : null}
+            <CannedResponsePicker
+              canned={canned}
+              vars={{
+                firstName: ticket.user.firstName,
+                lastName: ticket.user.lastName,
+                email: ticket.user.email,
+                company: ticket.user.companyName ?? null,
+                shortId: ticket.id.slice(0, 8),
+                subject: ticket.subject,
+              }}
+              onInsert={(text) => setReplyText((prev) => (prev ? `${prev}\n\n${text}` : text))}
+            />
           </div>
           <textarea
             name="message"
@@ -412,6 +435,37 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
         </form>
       </div>
     </div>
+  );
+}
+
+function TicketTimeline({
+  events,
+}: {
+  events: NonNullable<StaffTicketDetail["events"]>;
+}) {
+  return (
+    <OpsCard title="Historia zgłoszenia">
+      <ol className="space-y-2">
+        {events.map((e) => {
+          const meta = e.meta ?? {};
+          const from = (meta as { from?: unknown }).from;
+          const to = (meta as { to?: unknown }).to;
+          const suffix =
+            e.type === "STATUS_CHANGED" && (from || to)
+              ? ` (${STATUS_LABELS[String(from)] ?? String(from ?? "—")} → ${STATUS_LABELS[String(to)] ?? String(to ?? "—")})`
+              : "";
+          return (
+            <li key={e.id} className="flex items-start justify-between gap-3 text-xs">
+              <span className="text-neutral-200">
+                {EVENT_LABELS[e.type] ?? e.type}
+                <span className="text-neutral-500">{suffix}</span>
+              </span>
+              <span className="shrink-0 text-neutral-500">{new Date(e.createdAt).toLocaleString("pl-PL")}</span>
+            </li>
+          );
+        })}
+      </ol>
+    </OpsCard>
   );
 }
 

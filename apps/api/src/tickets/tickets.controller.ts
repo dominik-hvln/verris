@@ -52,8 +52,8 @@ export class TicketsController {
   @UseGuards(RolesGuard, StaffPermissionsGuard)
   @Roles('STAFF', 'ADMIN')
   @StaffPerm('TICKETS_VIEW')
-  cannedList(@Query('topic') topic?: string) {
-    return this.canned.listForStaff(topic);
+  cannedList(@Query('topic') topic?: string, @Query('q') q?: string) {
+    return this.canned.listForStaff(topic, q);
   }
 
   @Get('canned/all')
@@ -141,8 +141,12 @@ export class TicketsController {
   @UseGuards(RolesGuard, StaffPermissionsGuard)
   @Roles('STAFF', 'ADMIN')
   @StaffPerm('TICKETS_MANAGE')
-  async adminUpdateTicket(@Param('id') id: string, @Body() dto: AdminUpdateTicketDto) {
-    return this.ticketsService.adminUpdateTicket(id, dto);
+  async adminUpdateTicket(
+    @Param('id') id: string,
+    @CurrentUser() user: { userId: string },
+    @Body() dto: AdminUpdateTicketDto,
+  ) {
+    return this.ticketsService.adminUpdateTicket(id, dto, user.userId);
   }
 
   @Post('admin/:id/escalate')

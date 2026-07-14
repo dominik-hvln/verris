@@ -8,13 +8,17 @@ export interface CannedResponseRow {
   title: string;
   content: string;
   topic: string | null;
+  shortcut?: string | null;
 }
 
-/** SUP-2 — szablony odpowiedzi (posortowane pod temat zgłoszenia). */
-export async function staffFetchCanned(topic?: string): Promise<CannedResponseRow[]> {
+/** SUP-2/SUP-V2 — szablony odpowiedzi (posortowane pod temat; opcjonalne wyszukiwanie). */
+export async function staffFetchCanned(topic?: string, query?: string): Promise<CannedResponseRow[]> {
   try {
-    const q = topic ? `?topic=${encodeURIComponent(topic)}` : "";
-    return await staffApi<CannedResponseRow[]>(`/tickets/canned${q}`);
+    const params = new URLSearchParams();
+    if (topic) params.set("topic", topic);
+    if (query && query.trim()) params.set("q", query.trim());
+    const qs = params.toString();
+    return await staffApi<CannedResponseRow[]>(`/tickets/canned${qs ? `?${qs}` : ""}`);
   } catch {
     return [];
   }

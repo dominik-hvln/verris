@@ -52,13 +52,17 @@ export class CannedResponseDto {
   topic?: string;
 
   @IsOptional()
+  @IsString()
+  shortcut?: string;
+
+  @IsOptional()
   isActive?: boolean;
 }
 
 export class AdminUpdateTicketDto {
   @IsOptional()
   @IsString()
-  @IsIn(['OPEN', 'IN_PROGRESS', 'CLOSED'])
+  @IsIn(['OPEN', 'IN_PROGRESS', 'WAITING_CUSTOMER', 'CLOSED'])
   status?: string;
 
   @IsOptional()
@@ -78,7 +82,7 @@ export class AdminUpdateTicketDto {
 
 export class UpdateTicketStatusDto {
   @IsString()
-  @IsIn(['OPEN', 'IN_PROGRESS', 'CLOSED'], {
+  @IsIn(['OPEN', 'IN_PROGRESS', 'WAITING_CUSTOMER', 'CLOSED'], {
     message: 'Nieprawidłowy status zgłoszenia',
   })
   status: string;
