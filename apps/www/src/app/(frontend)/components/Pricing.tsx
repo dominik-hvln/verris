@@ -81,7 +81,7 @@ export function Pricing() {
               aria-selected={!monthly}
               onClick={() => setMonthly(false)}
             >
-              Rocznie <span className="save">−119 zł</span>
+              Rocznie <span className="save">−141 zł</span>
             </button>
           </div>
 
@@ -117,16 +117,16 @@ export function Pricing() {
 
             <div className="pcard-side">
               <div className="price-big">
-                {monthly ? '39 zł' : '349 zł'}
+                {monthly ? '45 zł' : '399 zł'}
                 <span className="u">{monthly ? ' / mies' : ' / rok'}</span>
               </div>
               <p className="price-sub">
                 {monthly
                   ? 'brutto (z VAT), rozliczenie miesięczne'
-                  : 'brutto (z VAT), równowartość ok. 29 zł/mies'}
+                  : 'brutto (z VAT), równowartość ok. 33 zł/mies'}
               </p>
               <p className="price-alt">
-                {monthly ? 'albo 349 zł/rok — taniej o 119 zł' : 'albo 39 zł/mies bez zobowiązania rocznego'}
+                {monthly ? 'albo 399 zł/rok — taniej o 141 zł' : 'albo 45 zł/mies bez zobowiązania rocznego'}
               </p>
               <a
                 className="btn btn-primary"

@@ -10,12 +10,12 @@ import { PANEL } from '@/lib/site';
 export const metadata: Metadata = {
   title: 'Zmiana hostingu bez stresu — darmowa migracja strony | Verris',
   description:
-    'Przeniesiemy Twoją stronę i pocztę za darmo — albo zrobisz to sam migratorem w panelu. Jedna cena bez promocji-przynęty: 39 zł/mies lub 349 zł/rok brutto. Autoskalowanie zamiast pakietu na zapas, SLA 99,5% z rekompensatami.',
+    'Przeniesiemy Twoją stronę i pocztę za darmo — albo zrobisz to sam migratorem w panelu. Jedna cena bez promocji-przynęty: 45 zł/mies lub 399 zł/rok brutto. Autoskalowanie zamiast pakietu na zapas, SLA 99,5% z rekompensatami.',
   alternates: { canonical: '/przenies-strone' },
   openGraph: {
     title: 'Zmiana hostingu bez stresu — przeniesiemy Twoją stronę za darmo',
     description:
-      'Darmowa migracja strony i poczty. Jedna cena: 39 zł/mies lub 349 zł/rok brutto, bez szoku przy odnowieniu. Autoskalowanie zamiast pakietu na zapas.',
+      'Darmowa migracja strony i poczty. Jedna cena: 45 zł/mies lub 399 zł/rok brutto, bez szoku przy odnowieniu. Autoskalowanie zamiast pakietu na zapas.',
     url: 'https://verris.pl/przenies-strone',
     locale: 'pl_PL',
     type: 'website',
@@ -39,13 +39,13 @@ const FAQ: [string, string][] = [
 ];
 
 const STEPS: [string, string, string][] = [
-  ['01', 'Zamów hosting Verris', 'Załóż konto i wybierz rozliczenie — 39 zł/mies lub 349 zł/rok brutto. Płatność kartą, BLIK-iem, Apple Pay, Google Pay albo przelewem online. Twoja obecna strona dalej działa.'],
+  ['01', 'Zamów hosting Verris', 'Załóż konto i wybierz rozliczenie — 45 zł/mies lub 399 zł/rok brutto. Płatność kartą, BLIK-iem, Apple Pay, Google Pay albo przelewem online. Twoja obecna strona dalej działa.'],
   ['02', 'Wybierz sposób migracji', 'Przekaż dostępy do obecnego hostingu, a my bezpłatnie przeniesiemy pliki, bazy danych i pocztę. Wolisz mieć wszystko pod kontrolą? Uruchom darmowy migrator w panelu.'],
   ['03', 'Przełącz DNS i gotowe', 'Sprawdzasz stronę na nowym serwerze, zmieniasz rekordy DNS — i to wszystko. Stara strona działa do momentu przełączenia, więc odwiedzający nie zobaczą żadnej przerwy.'],
 ];
 
 const COMPARE: [string, string, string][] = [
-  ['Cena', 'Niska w pierwszym okresie, znacznie wyższa przy odnowieniu', 'Jedna cena z cennika od pierwszego dnia — 39 zł/mies lub 349 zł/rok brutto'],
+  ['Cena', 'Niska w pierwszym okresie, znacznie wyższa przy odnowieniu', 'Jedna cena z cennika od pierwszego dnia — 45 zł/mies lub 399 zł/rok brutto'],
   ['Zasoby', 'Sztywne pakiety — płacisz za moc „na zapas" 24 h/dobę', 'Autoskalowanie godzinowe — dodatkowa moc tylko wtedy, gdy jest używana'],
   ['Odnowienia domen', 'Automatyczne obciążenie, czasem bez wyraźnej zgody', 'Wyłącznie po opłaceniu — przypomnienia 30, 14 i 7 dni przed wygaśnięciem'],
   ['Awarie', 'Rekompensata po reklamacji, jeśli w ogóle', 'SLA 99,5% z automatycznymi rekompensatami zapisanymi w regulaminie'],
@@ -63,8 +63,8 @@ const jsonLd = {
         'Hosting współdzielony na DirectAdmin z autoskalowaniem i darmową migracją strony oraz poczty. Baza: 50 GB NVMe, 8 GB RAM, 2 vCPU. SLA 99,5% z rekompensatami.',
       brand: { '@type': 'Organization', name: 'Verris' },
       offers: [
-        { '@type': 'Offer', price: '39.00', priceCurrency: 'PLN', availability: 'https://schema.org/InStock', url: 'https://verris.pl/przenies-strone', description: 'Rozliczenie miesięczne, cena brutto' },
-        { '@type': 'Offer', price: '349.00', priceCurrency: 'PLN', availability: 'https://schema.org/InStock', url: 'https://verris.pl/przenies-strone', description: 'Rozliczenie roczne, cena brutto' },
+        { '@type': 'Offer', price: '45.00', priceCurrency: 'PLN', availability: 'https://schema.org/InStock', url: 'https://verris.pl/przenies-strone', description: 'Rozliczenie miesięczne, cena brutto' },
+        { '@type': 'Offer', price: '399.00', priceCurrency: 'PLN', availability: 'https://schema.org/InStock', url: 'https://verris.pl/przenies-strone', description: 'Rozliczenie roczne, cena brutto' },
       ],
     },
     {
@@ -110,7 +110,7 @@ export default function Page() {
               </a>
             </div>
             <p className="hero-price">
-              Hosting z autoskalowaniem: <strong>39 zł/mies</strong> lub <strong>349 zł/rok</strong> brutto
+              Hosting z autoskalowaniem: <strong>45 zł/mies</strong> lub <strong>399 zł/rok</strong> brutto
             </p>
           </div>
 
@@ -169,7 +169,7 @@ export default function Page() {
               <span className="tag">Pułapka nr 1</span>
               <h3>Promocja-przynęta</h3>
               <p className="pain-desc">Pierwszy rok za grosze, a przy odnowieniu pełna stawka — często kilkukrotnie wyższa. Rachunek przychodzi po roku, kiedy przenosiny wydają się trudniejsze niż dopłata.</p>
-              <p className="fix"><strong>W Verris:</strong> cena z cennika obowiązuje od pierwszego dnia — 39 zł/mies lub 349 zł/rok brutto. Bez skokowej podwyżki „po promocji", bo promocji-przynęty nie ma.</p>
+              <p className="fix"><strong>W Verris:</strong> cena z cennika obowiązuje od pierwszego dnia — 45 zł/mies lub 399 zł/rok brutto. Bez skokowej podwyżki „po promocji", bo promocji-przynęty nie ma.</p>
             </div>
             <div className="pain-card rv">
               <span className="tag">Pułapka nr 2</span>

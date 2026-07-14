@@ -23,7 +23,7 @@ const SERVICES = [
     icon: Server,
     title: 'Hosting z autoskalowaniem',
     desc: 'Strony, sklepy i poczta na DirectAdmin. Zasoby rosną automatycznie w piku i zwalniają w trybie ECO — nie kupujesz pakietu „na zapas".',
-    tag: '39 zł/mies · 349 zł/rok brutto',
+    tag: '45 zł/mies · 399 zł/rok brutto',
     tagClass: 'price',
     cta: 'Zobacz cennik →',
     href: '#cennik',
@@ -98,7 +98,7 @@ const COMPARE: [string, string, string][] = [
 const FAQ: [string, string][] = [
   ['Czym hosting Verris różni się od zwykłego pakietu?', 'Zamiast sztywnego pakietu, który przez większość roku się nudzi, dostajesz bazowe zasoby (50 GB NVMe, 8 GB RAM, 2 vCPU) i autoskalowanie. W piku ruchu moc rośnie automatycznie — do 24 vCPU, 64 GB RAM i 1000 GB — i rozliczana jest godzinowo. Gdy ruch spada, tryb ECO zwalnia zasoby i naliczanie się kończy. Nie kupujesz mocy na zapas.'],
   ['Czy mogę przenieść stronę z innego hostingu?', 'Tak. Przeprowadzkę strony i poczty wykonuje zespół Verris albo migrator w panelu — oba bezpłatne w ramach zamówienia hostingu. Migracja odbywa się obok działającej strony, bez przestoju, a przełączenie następuje przez zmianę DNS. Bez limitu liczby plików i bez dopłat za bazy danych.'],
-  ['Ile kosztuje autoskalowanie?', 'Bazowe zasoby są w cenie pakietu (39 zł/mies lub 349 zł/rok brutto). Nadwyżkę ponad bazę rozliczamy godzinowo — płacisz tylko za czas faktycznego użycia. Orientacyjny koszt policzysz w kalkulatorze autoskalowania.'],
+  ['Ile kosztuje autoskalowanie?', 'Bazowe zasoby są w cenie pakietu (45 zł/mies lub 399 zł/rok brutto). Nadwyżkę ponad bazę rozliczamy godzinowo — płacisz tylko za czas faktycznego użycia. Orientacyjny koszt policzysz w kalkulatorze autoskalowania.'],
   ['Co znaczy „bez limitu" stron, skrzynek i transferu?', 'Nie nakładamy sztywnego licznika na liczbę stron, skrzynek e-mail ani na transfer. Realnym ogranicznikiem są zasoby konta (CPU, RAM, dysk) oraz zasady uczciwego korzystania — dzięki autoskalowaniu te zasoby możesz zwiększać na żądanie.'],
   ['Jak płacę i czy dostanę fakturę?', 'Kartą, BLIK-iem, Apple Pay, Google Pay, przelewem online (Stripe) lub Kredytami Verris. Faktury VAT znajdziesz w panelu i w e-mailu, gotowe na KSeF.'],
   ['Gdzie stoją serwery Verris?', 'W centrach danych w Unii Europejskiej (Hetzner, Niemcy/Finlandia). Dane pozostają w EOG, co upraszcza zgodność z RODO.'],
@@ -161,7 +161,7 @@ export default function HomePage() {
               </button>
             </form>
             <p className="hero-fine">
-              Hosting z autoskalowaniem: <strong>39 zł/mies</strong> lub <strong>349 zł/rok</strong>{' '}
+              Hosting z autoskalowaniem: <strong>45 zł/mies</strong> lub <strong>399 zł/rok</strong>{' '}
               brutto · SSL i migracja gratis
             </p>
           </div>
@@ -215,7 +215,7 @@ export default function HomePage() {
             <p>Koniec z pakietem dobieranym „na zapas". Bazę masz w cenie, a nadwyżkę płacisz godzinowo — sekundę po piku naliczanie się kończy.</p>
           </div>
           <div className="steps">
-            <div className="step rv"><span className="n">01</span><h3>Baza w cenie</h3><p>50 GB NVMe, 8 GB RAM i 2 vCPU działają non-stop w ramach abonamentu 39 zł/mies. Dla większości stron to z zapasem wystarczy.</p></div>
+            <div className="step rv"><span className="n">01</span><h3>Baza w cenie</h3><p>50 GB NVMe, 8 GB RAM i 2 vCPU działają non-stop w ramach abonamentu 45 zł/mies. Dla większości stron to z zapasem wystarczy.</p></div>
             <div className="step rv"><span className="n">02</span><h3>Pik ruchu → scale-up</h3><p>Kampania, Black Friday, wejście na home w mediach? Zasoby rosną automatycznie — do 24 vCPU, 64 GB RAM i 1000 GB — rozliczane co godzinę.</p></div>
             <div className="step rv"><span className="n">03</span><h3>Spadek → tryb ECO</h3><p>Gdy ruch opada, tryb ECO zwalnia nadwyżkę i naliczanie się kończy. Nie płacisz za moc, której strona nie używa.</p></div>
           </div>

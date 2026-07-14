@@ -87,7 +87,7 @@ export function MigrationCalculator() {
       <div className="calc-out" aria-live="polite">
         <div className="calc-line">
           <span>Hosting (abonament)</span>
-          <span className="v">39,00 zł / mies</span>
+          <span className="v">45,00 zł / mies</span>
         </div>
         <div className="calc-line">
           <span>Dodatkowe zasoby — godzinowo</span>

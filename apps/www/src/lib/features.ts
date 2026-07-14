@@ -48,7 +48,7 @@ export const features: Feature[] = [
       {
         h: 'Ile to kosztuje',
         p: [
-          'Bazowe zasoby są w cenie pakietu (39 zł/mies lub 349 zł/rok brutto). Nadwyżka nalicza się godzinowo według stawek z cennika. Orientacyjny koszt policzysz w kalkulatorze autoskalowania na stronie migracji.',
+          'Bazowe zasoby są w cenie pakietu (45 zł/mies lub 399 zł/rok brutto). Nadwyżka nalicza się godzinowo według stawek z cennika. Orientacyjny koszt policzysz w kalkulatorze autoskalowania na stronie migracji.',
         ],
       },
     ],

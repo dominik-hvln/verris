@@ -44,7 +44,7 @@ Zasada jest ta sama, różni się tylko zakres. [Przeniesienie WordPressa](/host
 
 ## Ile to kosztuje
 
-W Verris migracja jest **bezpłatna** w ramach zamówienia hostingu — zarówno pomoc zespołu, jak i migrator w panelu. Nie ma limitu „do X plików" ani dopłat za bazy danych. Sam hosting to 39 zł/mies lub 349 zł/rok brutto. Orientacyjny koszt ewentualnej nadwyżki zasobów policzysz w [kalkulatorze autoskalowania](/przenies-strone#kalkulator).
+W Verris migracja jest **bezpłatna** w ramach zamówienia hostingu — zarówno pomoc zespołu, jak i migrator w panelu. Nie ma limitu „do X plików" ani dopłat za bazy danych. Sam hosting to 45 zł/mies lub 399 zł/rok brutto. Orientacyjny koszt ewentualnej nadwyżki zasobów policzysz w [kalkulatorze autoskalowania](/przenies-strone#kalkulator).
 
 ## FAQ
 

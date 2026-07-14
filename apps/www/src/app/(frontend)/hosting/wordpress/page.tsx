@@ -6,7 +6,7 @@ import { PANEL } from '@/lib/site';
 export const metadata: Metadata = {
   title: 'Hosting WordPress z autoskalowaniem | Verris',
   description:
-    'Hosting WordPress na DirectAdmin, zoptymalizowany pod WP: obsługa starych wersji PHP, kopie z odtwarzaniem, SSL i migracja za 0 zł. Autoskalowanie łapie piki ruchu. 39 zł/mies lub 349 zł/rok brutto.',
+    'Hosting WordPress na DirectAdmin, zoptymalizowany pod WP: obsługa starych wersji PHP, kopie z odtwarzaniem, SSL i migracja za 0 zł. Autoskalowanie łapie piki ruchu. 45 zł/mies lub 399 zł/rok brutto.',
   alternates: { canonical: '/hosting/wordpress' },
 };
 
@@ -44,7 +44,7 @@ export default function Page() {
       </section>
       <CTABand
         title="Postaw WordPressa na hostingu bez gwiazdek"
-        text="39 zł/mies lub 349 zł/rok brutto — migracja i SSL w cenie."
+        text="45 zł/mies lub 399 zł/rok brutto — migracja i SSL w cenie."
         secondary={{ label: 'Zobacz cennik', href: '/cennik' }}
       />
       <RevealInit />

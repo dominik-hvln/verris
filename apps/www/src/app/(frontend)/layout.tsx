@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://verris.pl'),
   title: 'Verris — polski hosting z autoskalowaniem. Hosting bez gwiazdek.',
   description:
-    'Hosting współdzielony z autoskalowaniem, VPS i domeny w jednym panelu. Jedna cena hostingu: 39 zł/mies lub 349 zł/rok brutto — bez pułapek odnowień. Migracja i SSL za 0 zł, SLA 99,5% z automatycznymi rekompensatami, kopie z samodzielnym odtwarzaniem.',
+    'Hosting współdzielony z autoskalowaniem, VPS i domeny w jednym panelu. Jedna cena hostingu: 45 zł/mies lub 399 zł/rok brutto — bez pułapek odnowień. Migracja i SSL za 0 zł, SLA 99,5% z automatycznymi rekompensatami, kopie z samodzielnym odtwarzaniem.',
   alternates: { canonical: '/' },
   robots: { index: true, follow: true },
   openGraph: {

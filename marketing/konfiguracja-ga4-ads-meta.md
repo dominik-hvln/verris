@@ -36,7 +36,7 @@ Uwagi, które oszczędzą Ci pół dnia:
   potwierdzenia nie zdubluje konwersji.
 - `user_data` pojawia się **przed** zdarzeniem konwersji i znika (`user_data: null`) przy wycofaniu
   zgody marketingowej.
-- `value` przy `generate_lead` to **wartość umowna** (349 PLN), nie przychód. Służy wyłącznie
+- `value` przy `generate_lead` to **wartość umowna** (399 PLN), nie przychód. Służy wyłącznie
   kalibracji Smart Biddingu.
 
 ---
@@ -209,7 +209,7 @@ Zapis na przyszłość — każdy z nich cicho fałszował dane, żaden nie rzuc
 | # | Błąd | Skutek | Status |
 |---|---|---|---|
 | 1 | `begin_checkout` odpalany z 13 miejsc na verris.pl przy kliknięciu w link do panelu, m.in. z przycisku w **nagłówku obecnym na każdej podstronie** — a panel odpalał własny | Podwójne zliczanie w GA4; dwa `InitiateCheckout` w Meta z różnymi `event_id`, więc dedup nie miał szans | naprawione → `checkout_intent` |
-| 2 | `generate_lead` na kliknięciu w link (`/domeny`, `/reseller`) i na przycisku wyszukiwarki domen | Konwersja „Lead" liczona przy kliknięciu w nawigację; z `value=349 zł` zafałszowałaby Smart Bidding | naprawione → `cta_click` |
+| 2 | `generate_lead` na kliknięciu w link (`/domeny`, `/reseller`) i na przycisku wyszukiwarki domen | Konwersja „Lead" liczona przy kliknięciu w nawigację; z `value=399 zł` zafałszowałaby Smart Bidding | naprawione → `cta_click` |
 | 3 | `fbq('track','Purchase')` bez `eventID` | Każdy zakup policzony dwukrotnie po włączeniu CAPI | naprawione |
 | 4 | Meta `PageView` odpalany raz, przy bootstrapie Pixela | Przy nawigacji SPA Meta widziała jedną odsłonę na sesję; strony docelowe kampanii nie pojawiały się w statystykach | naprawione |
 | 5 | `transactionId: domain-<x>-${Date.now()}` i `vps-${... ?? Date.now()}` | Nowy identyfikator przy każdym ponowieniu → brak deduplikacji w GA4 i rozjazd `event_id` z CAPI | naprawione (stabilne id; bez id z serwera nie wysyłamy `purchase`) |

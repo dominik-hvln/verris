@@ -88,7 +88,7 @@ oceny = ryzyko kar i bany rich results). Gdy pojawią się prawdziwe opinie (Goo
   cytujące (GPTBot, ChatGPT-User, PerplexityBot, ClaudeBot, Google-Extended, Bingbot); ewentualnie
   blokować tylko czysto treningowe (CCBot) — decyzja Dominika.
 - **Machine-readable pod AI-agentów** (przewaga pioniera na PL):
-  - **`/pricing.md`** — ustrukturyzowany cennik (pakiet 39/349, stawki autoskalowania, limity)
+  - **`/pricing.md`** — ustrukturyzowany cennik (pakiet 39/399, stawki autoskalowania, limity)
     dla agentów zakupowych AI.
   - **`/llms.txt`** — co to Verris, dla kogo, linki do kluczowych stron ([llmstxt.org](https://llmstxt.org)).
 - **Hreflang**: tylko `pl-PL` — OK (rynek PL). `lang="pl"` ustawione.

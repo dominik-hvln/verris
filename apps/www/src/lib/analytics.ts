@@ -20,9 +20,9 @@ export const ANALYTICS = {
  * Potrzebna, bo GA4 wymaga `value` i `currency`, żeby `generate_lead` kwalifikowało się
  * jako key event i zaimportowało do Google Ads jako konwersja. Wartość jest UMOWNA i służy
  * wyłącznie kalibracji Smart Biddingu — nie jest przychodem i nie trafia do księgowości.
- * Gdy poznamy realny współczynnik lead → klient, podmień na `349 × współczynnik`.
+ * Gdy poznamy realny współczynnik lead → klient, podmień na `399 × współczynnik`.
  */
-export const LEAD_VALUE_PLN = 349;
+export const LEAD_VALUE_PLN = 399;
 
 type Params = Record<string, unknown>;
 

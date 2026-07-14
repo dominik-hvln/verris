@@ -13,7 +13,7 @@ Pixel: `2263705751037556` (wpięty przez GTM, consent-gated). Status: **do uruch
 
 | Poziom | Cel | KPI | Wartość docelowa (pierwsze 60 dni) |
 |---|---|---|---|
-| Główny | Rejestracje i zamówienia hostingu | `purchase`, `sign_up` | CPA ≤ 120 zł (LTV roczne 349 zł) |
+| Główny | Rejestracje i zamówienia hostingu | `purchase`, `sign_up` | CPA ≤ 120 zł (LTV roczne 399 zł) |
 | Pośredni | Intencja zakupu | `begin_checkout` | koszt/zdarzenie ≤ 25 zł |
 | Górny lejek | Ruch jakościowy na LP | CTR, koszt/sesję | CTR ≥ 1,0%, ≤ 0,60 zł/klik |
 
@@ -82,13 +82,13 @@ Warianty do testu A/B (po jednym na zestaw, rotacja co 2 tyg.):
 **Primary text (A — ból):**
 1. „Pierwszy rok tani, odnowienie trzy razy droższe? W Verris cena z cennika obowiązuje od pierwszego dnia. Przeprowadzkę strony i poczty bierzemy na siebie — za 0 zł."
 2. „Płacisz za moc, której Twoja strona nie używa. Autoskalowanie nalicza tylko godziny realnego zużycia — a tryb ECO zwalnia zasoby, gdy ruch spada."
-3. „Sprawdź swoją fakturę za hosting. Jeśli po roku wzrosła — nie musiało tak być. 39 zł/mies brutto, jedna cena, bez gwiazdek."
+3. „Sprawdź swoją fakturę za hosting. Jeśli po roku wzrosła — nie musiało tak być. 45 zł/mies brutto, jedna cena, bez gwiazdek."
 
 **Primary text (B — marka):**
 1. „Hosting bez gwiazdek. Jedna cena od pierwszego dnia, migracja i SSL w cenie, SLA 99,5% z rekompensatami zapisanymi w regulaminie."
 2. „Polski hosting z autoskalowaniem. Płacisz tyle, ile widzisz — bez pułapek odnowień i pakietów na zapas."
 
-**Nagłówki (headline, ≤40 zn.):** „Przenieś stronę za 0 zł" · „Hosting bez gwiazdek" · „39 zł/mies, bez pułapek"
+**Nagłówki (headline, ≤40 zn.):** „Przenieś stronę za 0 zł" · „Hosting bez gwiazdek" · „45 zł/mies, bez pułapek"
 
 **Opis (description):** „Migracja i SSL w cenie. SLA 99,5% z rekompensatami."
 

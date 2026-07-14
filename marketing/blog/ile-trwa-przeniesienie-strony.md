@@ -42,7 +42,7 @@ Na rynku spotkasz trzy modele:
 2. **„Zrób to sam"** — dostajesz instrukcję i powodzenia.
 3. **Migracja w cenie** — dostawca przenosi Cię, bo zależy mu, żebyś przyszedł.
 
-W Verris działa model trzeci: [migracja jest bezpłatna](/przenies-strone), bez limitu liczby plików i bez dopłat za bazy danych. Wykonuje ją zespół albo — jeśli wolisz kontrolę — migrator w panelu. Sam hosting to 39 zł/mies lub 349 zł/rok brutto.
+W Verris działa model trzeci: [migracja jest bezpłatna](/przenies-strone), bez limitu liczby plików i bez dopłat za bazy danych. Wykonuje ją zespół albo — jeśli wolisz kontrolę — migrator w panelu. Sam hosting to 45 zł/mies lub 399 zł/rok brutto.
 
 ## Czy warto czekać na „lepszy moment"
 

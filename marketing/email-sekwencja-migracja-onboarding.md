@@ -107,7 +107,7 @@ Wyjście natychmiastowe przy `purchase`.
 >
 > **Cicha dopłata.** Auto-odnowienia domen i dodatków, o których dowiadujesz się z obciążenia karty.
 >
-> W Verris cena z cennika obowiązuje od pierwszego dnia — 39 zł/mies lub 349 zł/rok brutto. Domeny odnawiamy wyłącznie po opłaceniu. Odnowienie wyłączysz jednym przełącznikiem.
+> W Verris cena z cennika obowiązuje od pierwszego dnia — 45 zł/mies lub 399 zł/rok brutto. Domeny odnawiamy wyłącznie po opłaceniu. Odnowienie wyłączysz jednym przełącznikiem.
 >
 > **[Zobacz, czym się różnimy]** → verris.pl/przenies-strone#porownanie
 >

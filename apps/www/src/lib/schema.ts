@@ -66,8 +66,8 @@ export function serviceSchema(args: {
 }
 
 export const HOSTING_OFFERS = [
-  { '@type': 'Offer', price: '39.00', priceCurrency: 'PLN', availability: 'https://schema.org/InStock', description: 'Rozliczenie miesięczne, cena brutto' },
-  { '@type': 'Offer', price: '349.00', priceCurrency: 'PLN', availability: 'https://schema.org/InStock', description: 'Rozliczenie roczne, cena brutto' },
+  { '@type': 'Offer', price: '45.00', priceCurrency: 'PLN', availability: 'https://schema.org/InStock', description: 'Rozliczenie miesięczne, cena brutto' },
+  { '@type': 'Offer', price: '399.00', priceCurrency: 'PLN', availability: 'https://schema.org/InStock', description: 'Rozliczenie roczne, cena brutto' },
 ];
 
 export function faqSchema(qa: [string, string][]) {

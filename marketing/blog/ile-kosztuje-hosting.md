@@ -36,7 +36,7 @@ Klasyczny hosting każe wybrać pakiet z góry. Wybierzesz mały — zabraknie m
 
 ## Ile kosztuje hosting w Verris
 
-Jeden pakiet: **39 zł/mies lub 349 zł/rok brutto** — i ta cena obowiązuje od pierwszego dnia, bez „taniego pierwszego roku". W cenie: [migracja](/przenies-strone) i SSL za 0 zł, kopie z samodzielnym odtwarzaniem, analityka bez cookies, bazowe 50 GB NVMe / 8 GB RAM / 2 vCPU. Nadwyżka ponad bazę — godzinowo, według jawnych stawek z [cennika](/cennik). Bez pułapki odnowieniowej.
+Jeden pakiet: **45 zł/mies lub 399 zł/rok brutto** — i ta cena obowiązuje od pierwszego dnia, bez „taniego pierwszego roku". W cenie: [migracja](/przenies-strone) i SSL za 0 zł, kopie z samodzielnym odtwarzaniem, analityka bez cookies, bazowe 50 GB NVMe / 8 GB RAM / 2 vCPU. Nadwyżka ponad bazę — godzinowo, według jawnych stawek z [cennika](/cennik). Bez pułapki odnowieniowej.
 
 ## Jak nie przepłacać — szybka checklista
 

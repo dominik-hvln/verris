@@ -9,7 +9,7 @@ Status: DO AKCEPTACJI · Właściciel: Dominik · Data: 2026-07-08
 |---|---|
 | Budżet | 750 zł/mies (zakres 500–1 000), ~25 zł/dzień |
 | Produkt | Hosting współdzielony z autoskalowaniem — jeden pakiet |
-| Cena (brutto) | 39 zł/mies lub 349 zł/rok (≈29,08 zł/mies) |
+| Cena (brutto) | 45 zł/mies lub 399 zł/rok (≈33,25 zł/mies) |
 | Oś przekazu | Migracja bez stresu: darmowa pomoc w migracji LUB darmowy migrator w panelu |
 | Landing | Dedykowany: `verris.pl/przenies-strone` (brief niżej) |
 | Konto | Google Ads 957-943-2103 · GA4 G-HHN0S0R777 · GTM-PJQNXCF5 |
@@ -50,8 +50,8 @@ Nagłówki (limit 30 znaków — zweryfikowane):
 
 1. Przeniesiemy Twoją stronę (25)
 2. Darmowa migracja hostingu (25)
-3. Hosting 39 zł/mies brutto (25)
-4. Hosting 349 zł/rok brutto (25)
+3. Hosting 45 zł/mies brutto (25)
+4. Hosting 399 zł/rok brutto (25)
 5. Zmień hosting bez stresu (24)
 6. SLA 99,5% z rekompensatami (26)
 7. Bez pułapek odnowieniowych (26)
@@ -69,7 +69,7 @@ Przypięcia: poz. 1 → nagłówki 1/2/5 (przekaz migracyjny zawsze widoczny).
 Teksty (limit 90 znaków — zweryfikowane):
 
 1. Darmowa pomoc w migracji lub samodzielny migrator w panelu. Przenieś stronę i pocztę. (85)
-2. Jeden pakiet z autoskalowaniem: 39 zł/mies lub 349 zł/rok brutto. Bez ukrytych kosztów. (87)
+2. Jeden pakiet z autoskalowaniem: 45 zł/mies lub 399 zł/rok brutto. Bez ukrytych kosztów. (87)
 3. SLA 99,5% z automatycznymi rekompensatami zapisanymi w regulaminie. Dane w UE (RODO). (85)
 4. Odnowienia bez pułapek cenowych, wyłączysz je w panelu w każdej chwili. Polski support. (77)
 
@@ -82,7 +82,7 @@ linki do podstron (Cennik, Jak działa migracja, Regulamin SLA, Kontakt).
 ## Landing: verris.pl/przenies-strone (brief)
 
 1. **Hero:** „Zmień hosting bez stresu. Przeniesiemy Twoją stronę za darmo." + sub: „Albo zrób to
-   sam — darmowy migrator czeka w panelu. Hosting z autoskalowaniem za 39 zł/mies lub 349 zł/rok brutto."
+   sam — darmowy migrator czeka w panelu. Hosting z autoskalowaniem za 45 zł/mies lub 399 zł/rok brutto."
    CTA: „Zacznij migrację" → checkout/rejestracja (event `begin_checkout`/`sign_up`).
    Jawnie w hero lub tuż pod nim: migracja bezpłatna w ramach zamówienia hostingu (bez gwiazdek —
    pełnym zdaniem; warunek dla nagłówka 15).
@@ -111,13 +111,13 @@ jedyny akcent, Schibsted Grotesk 800 w nagłówku.
 ## KPI (pierwsze 60 dni — realistycznie przy 750 zł/mies)
 
 CPC 3–6 zł → 125–250 kliknięć/mies. Przy konwersji landing→zakup 2–4%: **3–10 zakupów/mies**,
-CPA docelowe ≤150 zł (LTV roczne 349 zł+ uzasadnia; break-even w 1. roku przy CPA ~349 zł).
+CPA docelowe ≤150 zł (LTV roczne 399 zł+ uzasadnia; break-even w 1. roku przy CPA ~399 zł).
 Tygodniowy przegląd wyszukiwanych haseł (pierwsze 2 tyg. co 2–3 dni) — czyszczenie wykluczeń.
 
 ## Zgodność (checklista przed startem)
 
 - [x] Ceny brutto PLN w każdej kreacji
-- [x] Brak promocji → Omnibus nie dotyczy (39/349 to ceny standardowe, nie „obniżka")
+- [x] Brak promocji → Omnibus nie dotyczy (39/399 to ceny standardowe, nie „obniżka")
 - [x] „Za darmo" tylko przy realnie bezpłatnej migracji/migratorze
 - [x] SLA 99,5%, zero „100% uptime"
 - [x] Zero green claims (ECO = nazwa funkcji, bez obietnic środowiskowych)

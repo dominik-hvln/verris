@@ -27,7 +27,7 @@ Nie ma tu ręcznej zmiany pakietu ani przestoju — system reaguje sam.
 
 ## Ile to kosztuje
 
-Bazowe zasoby są w cenie abonamentu (39 zł/mies lub 349 zł/rok brutto). Nadwyżkę rozliczamy godzinowo według jawnych stawek brutto: **0,001323 zł za 1% CPU/h**, **0,0882 zł za 1 GB RAM/h**, **0,0008 zł za 1 GB dysku/h**. Orientacyjny koszt policzysz w [kalkulatorze autoskalowania](/przenies-strone#kalkulator).
+Bazowe zasoby są w cenie abonamentu (45 zł/mies lub 399 zł/rok brutto). Nadwyżkę rozliczamy godzinowo według jawnych stawek brutto: **0,001323 zł za 1% CPU/h**, **0,0882 zł za 1 GB RAM/h**, **0,0008 zł za 1 GB dysku/h**. Orientacyjny koszt policzysz w [kalkulatorze autoskalowania](/przenies-strone#kalkulator).
 
 ## Kiedy autoskalowanie się opłaca
 

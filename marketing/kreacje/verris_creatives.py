@@ -165,7 +165,7 @@ def save(surf, rel):
     surf.write_to_png(path)
     print(rel)
 
-PRICE = "39 zł/mies lub 349 zł/rok brutto"
+PRICE = "45 zł/mies lub 399 zł/rok brutto"
 CLAIM1 = [[("Zmień hosting ", PAPER)], [("bez stresu", MINT), (".", PAPER)]]
 SUB = "Przeniesiemy Twoją stronę za darmo — albo zrobisz to sam migratorem w panelu."
 
@@ -278,7 +278,7 @@ def disp_rect(W, H, name):
     wordmark(ctx, 22, 34, 20)
     headline(ctx, CLAIM1, 20, 106, 33)
     text(ctx, "Darmowa migracja", 22, 168, DISPLAY, 16.5, BODY, False)
-    text(ctx, "39 zł/mies · 349 zł/rok brutto", 22, 194, MONO, 12.5, MINT, False)
+    text(ctx, "45 zł/mies · 399 zł/rok brutto", 22, 194, MONO, 12.5, MINT, False)
     cta(ctx, 22, H-32, "Zacznij migrację", 14)
     save(surf, f"display/verris-display-{name}.png")
 
@@ -289,7 +289,7 @@ def disp_728x90():
     wordmark(ctx, 24, H/2, 26)
     x = 210
     headline(ctx, [[("Zmień hosting ", PAPER), ("bez stresu", MINT), (".", PAPER)]], x, 40, 24)
-    text(ctx, "Darmowa migracja · 39 zł/mies lub 349 zł/rok brutto", x, 68, MONO, 12, BODY, False)
+    text(ctx, "Darmowa migracja · 45 zł/mies lub 399 zł/rok brutto", x, 68, MONO, 12, BODY, False)
     set_font(ctx, DISPLAY, 14, True)
     tw = text_w(ctx, "Zacznij migrację", DISPLAY, 14, True)
     cta(ctx, W - tw - 14*2.6 - 20, H/2, "Zacznij migrację", 14)
@@ -300,7 +300,7 @@ def disp_320x100():
     surf,ctx = canvas(W,H)
     draw_mark(ctx, 16, 20, 26)
     headline(ctx, [[("Zmień hosting", PAPER)], [("bez stresu", MINT), (".", PAPER)]], 56, 38, 21, lh=1.16)
-    text(ctx, "Darmowa migracja · od 29 zł/mies brutto", 56, 86, MONO, 9.5, BODY, False)
+    text(ctx, "Darmowa migracja · od 33 zł/mies brutto", 56, 86, MONO, 9.5, BODY, False)
     set_font(ctx, DISPLAY, 11, True)
     tw = text_w(ctx, "Sprawdź", DISPLAY, 11, True)
     cta(ctx, W - tw - 11*2.6 - 10, 30, "Sprawdź", 11)
@@ -321,7 +321,7 @@ def disp_160x600():
         tw = text_w(ctx, t, DISPLAY, 14, False)
         text(ctx, t, (W-tw)/2, 310 + i*21, DISPLAY, 14, BODY, False)
     set_font(ctx, MONO, 12, False)
-    for i,t in enumerate(["39 zł/mies","349 zł/rok","brutto"]):
+    for i,t in enumerate(["45 zł/mies","399 zł/rok","brutto"]):
         tw = text_w(ctx, t, MONO, 12, False)
         text(ctx, t, (W-tw)/2, 380 + i*19, MONO, 12, MINT, False)
     set_font(ctx, DISPLAY, 13, True)

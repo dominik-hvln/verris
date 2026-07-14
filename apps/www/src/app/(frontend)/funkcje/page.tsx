@@ -48,7 +48,7 @@ export default function Page() {
       </section>
       <CTABand
         title="Hosting bez gwiazdek"
-        text="Jedna cena, autoskalowanie i funkcje w komplecie — 39 zł/mies lub 349 zł/rok brutto."
+        text="Jedna cena, autoskalowanie i funkcje w komplecie — 45 zł/mies lub 399 zł/rok brutto."
         secondary={{ label: 'Zobacz cennik', href: '/cennik' }}
       />
       <RevealInit />

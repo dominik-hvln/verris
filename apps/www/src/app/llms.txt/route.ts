@@ -29,7 +29,7 @@ const HEADER = `# Verris
 > z rekompensatami, serwery w Unii Europejskiej (zgodność z RODO). Claim: „Hosting bez gwiazdek".
 
 ## Oferta
-- Hosting z autoskalowaniem: 39 zł/mies lub 349 zł/rok (brutto). Zasoby bazowe: 50 GB NVMe,
+- Hosting z autoskalowaniem: 45 zł/mies lub 399 zł/rok (brutto). Zasoby bazowe: 50 GB NVMe,
   8 GB RAM, 2 vCPU; autoskalowanie do 1000 GB, 64 GB RAM, 24 vCPU (do 12× mocy CPU względem bazy),
   rozliczane godzinowo; tryb ECO zwalnia moc po piku.
 - VPS niezarządzany (pełny root), domeny bez auto-odnowień, e-mail marketing, program resellerski.
@@ -54,7 +54,7 @@ const FACTS = `
 - Operator: HVLN Dominik Kowalski, Zielona Góra, NIP 9292069367.
 - SLA 99,5% z automatycznymi rekompensatami zapisanymi w regulaminie (kredyty wg skali
   niedostępności). Verris nie deklaruje „100% uptime".
-- Cena hostingu: 39 zł/mies lub 349 zł/rok brutto; obowiązuje od pierwszego dnia (brak modelu
+- Cena hostingu: 45 zł/mies lub 399 zł/rok brutto; obowiązuje od pierwszego dnia (brak modelu
   „tani pierwszy rok, drogie odnowienie").
 - Stawki autoskalowania (brutto/h): CPU 0,001323 zł za 1% · RAM 0,0882 zł za 1 GB · dysk 0,0008 zł za 1 GB.
 - Migracja strony i poczty oraz certyfikat SSL Let's Encrypt: 0 zł, w ramach zamówienia hostingu.

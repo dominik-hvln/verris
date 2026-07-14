@@ -3,8 +3,8 @@
 Aktualizacja: 2026-07-08. Źródło: https://verris.pl/cennik
 
 ## Hosting z autoskalowaniem
-- Cena miesięczna: 39 zł/mies (brutto)
-- Cena roczna: 349 zł/rok (brutto, ≈ 29 zł/mies)
+- Cena miesięczna: 45 zł/mies (brutto)
+- Cena roczna: 399 zł/rok (brutto, ≈ 33 zł/mies)
 - Zasoby bazowe w cenie: 50 GB dysku NVMe, 8 GB RAM, 2 vCPU (CloudLinux)
 - Autoskalowanie (maksymalnie): 1000 GB dysku, 64 GB RAM, 24 vCPU
 - Stawki autoskalowania (brutto za godzinę): CPU 0,001323 zł za 1% · RAM 0,0882 zł za 1 GB · dysk 0,0008 zł za 1 GB

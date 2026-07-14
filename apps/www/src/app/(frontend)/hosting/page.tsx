@@ -6,9 +6,9 @@ import { PANEL } from '@/lib/site';
 import { serviceSchema, HOSTING_OFFERS } from '@/lib/schema';
 
 export const metadata: Metadata = {
-  title: 'Hosting z autoskalowaniem — 39 zł/mies | Verris',
+  title: 'Hosting z autoskalowaniem — 45 zł/mies | Verris',
   description:
-    'Hosting współdzielony z autoskalowaniem na DirectAdmin. Baza 50 GB NVMe, 8 GB RAM, 2 vCPU — skalowanie do 1000 GB, 64 GB RAM, 24 vCPU. Migracja i SSL za 0 zł, bez limitu stron i skrzynek. 39 zł/mies lub 349 zł/rok brutto.',
+    'Hosting współdzielony z autoskalowaniem na DirectAdmin. Baza 50 GB NVMe, 8 GB RAM, 2 vCPU — skalowanie do 1000 GB, 64 GB RAM, 24 vCPU. Migracja i SSL za 0 zł, bez limitu stron i skrzynek. 45 zł/mies lub 399 zł/rok brutto.',
   alternates: { canonical: '/hosting' },
 };
 

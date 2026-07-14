@@ -38,7 +38,7 @@ Dwa pierwsze punkty to kwestia zasad dostawcy. Trzeci to mit — [migracja odbyw
 
 ## Jak to wygląda w Verris
 
-Cena z cennika obowiązuje **od pierwszego dnia**: 39 zł/mies lub 349 zł/rok brutto. Nie ma promocji-przynęty, więc nie ma z czego robić skoku. Odnowienie następuje według cennika z dnia odnowienia, przypomnimy e-mailem, a odnawianie wyłączysz w panelu jednym przełącznikiem — bez opłat i bez konsultanta „zatrzymującego".
+Cena z cennika obowiązuje **od pierwszego dnia**: 45 zł/mies lub 399 zł/rok brutto. Nie ma promocji-przynęty, więc nie ma z czego robić skoku. Odnowienie następuje według cennika z dnia odnowienia, przypomnimy e-mailem, a odnawianie wyłączysz w panelu jednym przełącznikiem — bez opłat i bez konsultanta „zatrzymującego".
 
 ## FAQ
 

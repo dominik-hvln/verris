@@ -72,7 +72,7 @@ Nie łamie zasad (brak nazw konkurentów, brak nieprawdy), ale to mocny sąd war
 
 | Obszar | Status |
 |---|---|
-| **Ceny brutto PLN** | ✓ wszędzie (39 zł/mies, 349 zł/rok), także w `pricing.md` i kreacjach |
+| **Ceny brutto PLN** | ✓ wszędzie (45 zł/mies, 399 zł/rok), także w `pricing.md` i kreacjach |
 | **Omnibus** (najniższa cena z 30 dni) | ✓ n/d — nie prowadzimy promocji; brak cen przekreślonych |
 | **SLA** | ✓ wyłącznie „99,5% z rekompensatami"; nigdzie „100% uptime" (tylko jako to, czego *nie* obiecujemy) |
 | **Green claims** | ✓ brak; „ECO" występuje wyłącznie jako nazwa funkcji zwalniającej zasoby |

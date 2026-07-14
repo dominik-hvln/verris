@@ -60,8 +60,8 @@ Wklej słowa kluczowe (format Google: `[exact]`, `"phrase"`):
 ```
 Przeniesiemy Twoją stronę
 Darmowa migracja hostingu
-Hosting 39 zł/mies brutto
-Hosting 349 zł/rok brutto
+Hosting 45 zł/mies brutto
+Hosting 399 zł/rok brutto
 Zmień hosting bez stresu
 SLA 99,5% z rekompensatami
 Bez pułapek odnowieniowych
@@ -82,7 +82,7 @@ hostingu" / „Zmień hosting bez stresu" (przekaz migracyjny zawsze widoczny).
 
 ```
 Darmowa pomoc w migracji lub samodzielny migrator w panelu. Przenieś stronę i pocztę.
-Jeden pakiet z autoskalowaniem: 39 zł/mies lub 349 zł/rok brutto. Bez ukrytych kosztów.
+Jeden pakiet z autoskalowaniem: 45 zł/mies lub 399 zł/rok brutto. Bez ukrytych kosztów.
 SLA 99,5% z automatycznymi rekompensatami w regulaminie. Dane zostają w Europie.
 Odnowienia bez pułapek, wyłączysz je w panelu. Awaria? Rekompensata wraca sama.
 ```
@@ -133,7 +133,7 @@ rejestracja domeny
 
 | Tekst | URL | Opis 1 | Opis 2 |
 |---|---|---|---|
-| Cennik | /cennik | Jeden pakiet, jasna cena | 39 zł/mies lub 349 zł/rok |
+| Cennik | /cennik | Jeden pakiet, jasna cena | 45 zł/mies lub 399 zł/rok |
 | Jak działa migracja | /przenies-strone | Przenosimy stronę i pocztę | Bez przestoju, za 0 zł |
 | Funkcje hostingu | /hosting | Autoskalowanie i kopie | SSL i migracja w cenie |
 | Kontakt | /kontakt | Bez botów, konkretnie | Odpowiadamy tego dnia |
@@ -175,7 +175,7 @@ E-mail marketing
 ```
 
 - RSA: nagłówki „Verris — polski hosting", „Hosting z autoskalowaniem", „SLA 99,5% z rekompensatami",
-  „Zaloguj się do panelu", „Cennik: 39 zł/mies". Docelowy URL: `https://verris.pl`.
+  „Zaloguj się do panelu", „Cennik: 45 zł/mies". Docelowy URL: `https://verris.pl`.
 - Wyklucz: `praca`, `logo`, `api`, `status` (żeby nie płacić za nawigacyjny ruch istniejących klientów).
 
 Ochrona marki + najtańszy, najlepiej konwertujący ruch.
@@ -194,7 +194,7 @@ grupy reklam i słowa z §1 → RSA z §2 → wykluczenia z §3 → zasoby z §4
 
 ## 7. Checklist przed startem
 
-- [x] Ceny brutto PLN w każdej kreacji · brak Omnibus (39/349 to ceny standardowe)
+- [x] Ceny brutto PLN w każdej kreacji · brak Omnibus (39/399 to ceny standardowe)
 - [x] „Za darmo" tylko przy realnie bezpłatnej migracji/migratorze
 - [x] SLA 99,5%, zero „100% uptime" · zero green claims · brak nazw konkurentów
 - [x] Konwersje w Google Ads: `purchase` (Primary) + `generate_lead` (Secondary) — zaimportowane

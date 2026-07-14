@@ -26,7 +26,7 @@ export const Services: CollectionConfig = {
       ],
     },
     { name: 'summary', type: 'textarea', label: 'Opis', required: true },
-    { name: 'priceLabel', type: 'text', label: 'Etykieta ceny', admin: { description: 'np. „39 zł/mies · 349 zł/rok brutto" albo „Wycena w panelu"' } },
+    { name: 'priceLabel', type: 'text', label: 'Etykieta ceny', admin: { description: 'np. „45 zł/mies · 399 zł/rok brutto" albo „Wycena w panelu"' } },
     { name: 'ctaLabel', type: 'text', label: 'Tekst przycisku', defaultValue: 'Dowiedz się więcej →' },
     { name: 'ctaHref', type: 'text', label: 'Link przycisku', defaultValue: 'https://panel.verris.pl' },
     { name: 'highlighted', type: 'checkbox', label: 'Wyróżniona karta' },

@@ -27,7 +27,7 @@ export interface EcommerceItem {
 }
 
 /** Umowna wartość leada (PLN brutto) — GA4 wymaga `value` + `currency` dla key eventu. */
-export const LEAD_VALUE_PLN = 349;
+export const LEAD_VALUE_PLN = 399;
 
 function push(payload: Record<string, unknown>): void {
   if (typeof window === "undefined") return;

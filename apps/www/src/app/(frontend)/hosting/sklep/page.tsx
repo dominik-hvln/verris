@@ -6,7 +6,7 @@ import { PANEL } from '@/lib/site';
 export const metadata: Metadata = {
   title: 'Hosting pod sklep i WooCommerce | Verris',
   description:
-    'Hosting dla sklepu internetowego z autoskalowaniem — moc rośnie w Black Friday i w szczycie sprzedaży, a po piku zwalnia. SSL, kopie i migracja w cenie. 39 zł/mies lub 349 zł/rok brutto.',
+    'Hosting dla sklepu internetowego z autoskalowaniem — moc rośnie w Black Friday i w szczycie sprzedaży, a po piku zwalnia. SSL, kopie i migracja w cenie. 45 zł/mies lub 399 zł/rok brutto.',
   alternates: { canonical: '/hosting/sklep' },
 };
 

@@ -40,7 +40,7 @@ stronami i kreacjami.
 
 ## KLUCZOWE DECYZJE (nie pytaj ponownie)
 
-- **Cennik**: JEDEN pakiet hostingu z autoskalowaniem — 39 zł brutto/mies lub 349 zł brutto/rok.
+- **Cennik**: JEDEN pakiet hostingu z autoskalowaniem — 45 zł brutto/mies lub 399 zł brutto/rok.
   Ceny z seeda repo (Starter/Pro/Business) NIEAKTUALNE.
 - **Stawki autoskalowania** (brutto, godzinowe): 0,001323 zł/1% CPU · 0,0882 zł/GB RAM ·
   0,0008 zł/GB dysku. Kalkulator = suwaki zasobów + wynik zł/h i maks. zł/mies (bez suwaka godzin).
