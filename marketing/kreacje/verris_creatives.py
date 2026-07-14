@@ -287,8 +287,8 @@ def disp_728x90():
     surf,ctx = canvas(W,H)
     draw_pattern(ctx, W, H, glyph=26, base_alpha=0.05, direction="right", start=0.75)
     wordmark(ctx, 24, H/2, 26)
-    x = 210
-    headline(ctx, [[("Zmień hosting ", PAPER), ("bez stresu", MINT), (".", PAPER)]], x, 40, 24)
+    x = 158
+    headline(ctx, [[("Zmień hosting ", PAPER), ("bez stresu", MINT), (".", PAPER)]], x, 40, 21)
     text(ctx, "Darmowa migracja · 45 zł/mies lub 399 zł/rok brutto", x, 68, MONO, 12, BODY, False)
     set_font(ctx, DISPLAY, 14, True)
     tw = text_w(ctx, "Zacznij migrację", DISPLAY, 14, True)
