@@ -1,0 +1,31 @@
+{
+  "annotations": { "list": [] },
+  "editable": false,
+  "description": "Usługi — subskrypcje wg statusu/planu/interwału, provisioning, konta na węzłach. Źródła: verris_subscriptions_total / verris_provisioning_* (Prometheus) + subscription_safe / account_safe (Postgres).",
+  "panels": [
+    { "type": "piechart", "title": "Subskrypcje wg statusu", "id": 1, "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "targets": [ { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_subscriptions_total", "legendFormat": "{{status}}", "refId": "A" } ] },
+    { "type": "stat", "title": "Provisioning w toku", "id": 2, "gridPos": { "h": 4, "w": 8, "x": 8, "y": 0 },
+      "targets": [ { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_provisioning_pending", "refId": "A" } ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [ { "color": "green" }, { "color": "yellow", "value": 10 } ] } } } },
+    { "type": "stat", "title": "Najstarszy job w kolejce", "id": 3, "gridPos": { "h": 4, "w": 8, "x": 16, "y": 0 },
+      "targets": [ { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_provisioning_queue_oldest_waiting_seconds", "refId": "A" } ],
+      "fieldConfig": { "defaults": { "unit": "s" } } },
+    { "type": "barchart", "title": "Provisioning wg etapu", "id": 4, "gridPos": { "h": 4, "w": 16, "x": 8, "y": 4 },
+      "targets": [ { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_provisioning_stage_total", "legendFormat": "{{stage}}", "refId": "A" } ] },
+    { "type": "table", "title": "Subskrypcje wg planu i statusu", "id": 5, "gridPos": { "h": 9, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "postgres", "uid": "Verris-DB (RO)" },
+      "targets": [ { "format": "table", "rawQuery": true, "rawSql": "SELECT \"planId\" AS plan, status, count(*) AS uslugi FROM subscription_safe GROUP BY 1, 2 ORDER BY 1, 2", "refId": "A" } ] },
+    { "type": "timeseries", "title": "Nowe usługi / dzień (90 dni)", "id": 6, "gridPos": { "h": 9, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "postgres", "uid": "Verris-DB (RO)" },
+      "targets": [ { "format": "time_series", "rawQuery": true, "rawSql": "SELECT date_trunc('day', \"createdAt\") AS time, count(*) AS \"nowe usługi\" FROM subscription_safe WHERE \"createdAt\" > NOW() - INTERVAL '90 days' GROUP BY 1 ORDER BY 1", "refId": "A" } ] },
+    { "type": "barchart", "title": "Aktywne usługi wg interwału", "id": 7, "gridPos": { "h": 8, "w": 8, "x": 0, "y": 17 },
+      "datasource": { "type": "postgres", "uid": "Verris-DB (RO)" },
+      "targets": [ { "format": "table", "rawQuery": true, "rawSql": "SELECT \"interval\" AS interwal, count(*) AS uslugi FROM subscription_safe WHERE status = 'ACTIVE' GROUP BY 1 ORDER BY 2 DESC", "refId": "A" } ] },
+    { "type": "table", "title": "Konta na węzłach", "id": 8, "gridPos": { "h": 8, "w": 16, "x": 8, "y": 17 },
+      "datasource": { "type": "postgres", "uid": "Verris-DB (RO)" },
+      "targets": [ { "format": "table", "rawQuery": true, "rawSql": "SELECT COALESCE(s.name, s.region, a.\"serverId\") AS wezel, count(*) AS konta FROM account_safe a LEFT JOIN server_safe s ON s.id = a.\"serverId\" GROUP BY 1 ORDER BY 2 DESC", "refId": "A" } ] }
+  ],
+  "schemaVersion": 36, "style": "dark", "tags": [ "verris", "uslugi" ], "templating": { "list": [] },
+  "time": { "from": "now-90d", "to": "now" }, "title": "Usługi", "uid": "verris-uslugi", "version": 1
+}

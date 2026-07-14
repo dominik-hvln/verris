@@ -1,0 +1,31 @@
+{
+  "annotations": { "list": [] },
+  "editable": false,
+  "description": "Klienci — rejestracje, role, kraje, salda, konta hostingowe. Źródła: verris_users_total / verris_accounts_total (Prometheus) + user_safe / account_safe (Postgres).",
+  "panels": [
+    { "type": "stat", "title": "Klienci (USER)", "id": 1, "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [ { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_users_total{role=\"USER\"}", "refId": "A" } ] },
+    { "type": "stat", "title": "Subskrypcje aktywne", "id": 2, "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "targets": [ { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_subscriptions_total{status=\"ACTIVE\"}", "refId": "A" } ] },
+    { "type": "stat", "title": "Konta aktywne", "id": 3, "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "targets": [ { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_accounts_total{status=\"ACTIVE\"}", "refId": "A" } ] },
+    { "type": "stat", "title": "Nowi klienci (30 dni)", "id": 4, "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "Verris-DB (RO)" },
+      "targets": [ { "format": "table", "rawQuery": true, "rawSql": "SELECT count(*) AS nowi FROM user_safe WHERE \"createdAt\" > NOW() - INTERVAL '30 days'", "refId": "A" } ] },
+    { "type": "piechart", "title": "Użytkownicy wg roli", "id": 5, "gridPos": { "h": 8, "w": 8, "x": 0, "y": 4 },
+      "targets": [ { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_users_total", "legendFormat": "{{role}}", "refId": "A" } ] },
+    { "type": "timeseries", "title": "Nowi klienci / dzień (90 dni)", "id": 6, "gridPos": { "h": 8, "w": 16, "x": 8, "y": 4 },
+      "datasource": { "type": "postgres", "uid": "Verris-DB (RO)" },
+      "targets": [ { "format": "time_series", "rawQuery": true, "rawSql": "SELECT date_trunc('day', \"createdAt\") AS time, count(*) AS \"nowi klienci\" FROM user_safe WHERE \"createdAt\" > NOW() - INTERVAL '90 days' GROUP BY 1 ORDER BY 1", "refId": "A" } ] },
+    { "type": "barchart", "title": "Konta hostingowe wg statusu", "id": 7, "gridPos": { "h": 8, "w": 8, "x": 0, "y": 12 },
+      "targets": [ { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_accounts_total", "legendFormat": "{{status}}", "refId": "A" } ] },
+    { "type": "table", "title": "Klienci wg kraju", "id": 8, "gridPos": { "h": 8, "w": 8, "x": 8, "y": 12 },
+      "datasource": { "type": "postgres", "uid": "Verris-DB (RO)" },
+      "targets": [ { "format": "table", "rawQuery": true, "rawSql": "SELECT COALESCE(\"country\", '—') AS kraj, count(*) AS klienci FROM user_safe GROUP BY 1 ORDER BY 2 DESC", "refId": "A" } ] },
+    { "type": "table", "title": "Top klienci wg salda portfela", "id": 9, "gridPos": { "h": 8, "w": 8, "x": 16, "y": 12 },
+      "datasource": { "type": "postgres", "uid": "Verris-DB (RO)" },
+      "targets": [ { "format": "table", "rawQuery": true, "rawSql": "SELECT COALESCE(NULLIF(trim(concat(\"firstName\", ' ', \"lastName\")), ''), email) AS klient, \"walletBalance\" AS saldo, \"walletCurrency\" AS waluta FROM user_safe ORDER BY \"walletBalance\" DESC NULLS LAST LIMIT 20", "refId": "A" } ] }
+  ],
+  "schemaVersion": 36, "style": "dark", "tags": [ "verris", "klienci" ], "templating": { "list": [] },
+  "time": { "from": "now-90d", "to": "now" }, "title": "Klienci", "uid": "verris-klienci", "version": 1
+}

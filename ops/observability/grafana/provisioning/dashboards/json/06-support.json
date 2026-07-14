@@ -1,0 +1,157 @@
+{
+  "annotations": { "list": [] },
+  "editable": false,
+  "description": "Support / Helpdesk. Kafelki KPI z Prometheusa (verris_tickets_*, verris_ticket_*_response_*) działają od razu. Panele SQL (najczęstsze tematy, najlepsi pracownicy, oceny CSAT, SLA) wymagają widoków ticket_safe / ticket_reply_safe (migracja grafana_support_monitoring_safe).",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Oczekują na 1. odpowiedź",
+      "id": 1,
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_tickets_awaiting_first_response_total", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green" }, { "color": "yellow", "value": 1 }, { "color": "red", "value": 5 }] } } }
+    },
+    {
+      "type": "stat",
+      "title": "Śr. czas 1. odpowiedzi (30 dni)",
+      "id": 2,
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_ticket_first_response_avg_seconds_30d", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s", "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green" }, { "color": "yellow", "value": 3600 }, { "color": "red", "value": 14400 }] } } }
+    },
+    {
+      "type": "stat",
+      "title": "Śr. czas odpowiedzi staff (30 dni)",
+      "id": 3,
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 0 },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_ticket_staff_response_avg_seconds_30d", "refId": "A" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s", "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green" }, { "color": "yellow", "value": 3600 }, { "color": "red", "value": 14400 }] } } }
+    },
+    {
+      "type": "stat",
+      "title": "Śr. ocena CSAT (30 dni)",
+      "id": 4,
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "postgres", "uid": "Verris-DB (RO)" },
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT ROUND(AVG(\"csatRating\")::numeric, 2) AS csat FROM ticket_safe WHERE \"csatRating\" IS NOT NULL AND \"csatAt\" > NOW() - INTERVAL '30 days'",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "min": 1, "max": 5, "decimals": 2, "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "red" }, { "color": "yellow", "value": 3 }, { "color": "green", "value": 4 }] } } }
+    },
+    {
+      "type": "piechart",
+      "title": "Tickety wg statusu (teraz)",
+      "id": 5,
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 5 },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_tickets_total", "legendFormat": "{{status}}", "refId": "A" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Tickety utworzone / dzień (30 dni)",
+      "id": 6,
+      "gridPos": { "h": 8, "w": 16, "x": 8, "y": 5 },
+      "datasource": { "type": "postgres", "uid": "Verris-DB (RO)" },
+      "targets": [
+        {
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT date_trunc('day', \"createdAt\") AS time, COALESCE(\"topic\", 'OTHER') AS metric, count(*) AS value FROM ticket_safe WHERE \"createdAt\" > NOW() - INTERVAL '30 days' GROUP BY 1, 2 ORDER BY 1",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "barchart",
+      "title": "Najczęstsze tematy zgłoszeń (30 dni)",
+      "id": 7,
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 13 },
+      "datasource": { "type": "postgres", "uid": "Verris-DB (RO)" },
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(\"topic\", 'OTHER') AS temat, count(*) AS zgloszenia FROM ticket_safe WHERE \"createdAt\" > NOW() - INTERVAL '30 days' GROUP BY 1 ORDER BY 2 DESC",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Najlepsi pracownicy — obsłużone + CSAT (30 dni)",
+      "id": 8,
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 13 },
+      "datasource": { "type": "postgres", "uid": "Verris-DB (RO)" },
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(NULLIF(trim(concat(u.\"firstName\", ' ', u.\"lastName\")), ''), u.email) AS pracownik, count(DISTINCT t.id) AS obsluzone, ROUND(AVG(t.\"csatRating\")::numeric, 2) AS avg_csat FROM ticket_safe t JOIN user_safe u ON u.id = t.\"assignedToId\" WHERE t.\"resolvedAt\" > NOW() - INTERVAL '30 days' GROUP BY 1 ORDER BY obsluzone DESC LIMIT 20",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "barchart",
+      "title": "Rozkład ocen CSAT 1–5 (90 dni)",
+      "id": 9,
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 13 },
+      "datasource": { "type": "postgres", "uid": "Verris-DB (RO)" },
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \"csatRating\"::text AS ocena, count(*) AS liczba FROM ticket_safe WHERE \"csatRating\" IS NOT NULL AND \"csatAt\" > NOW() - INTERVAL '90 days' GROUP BY 1 ORDER BY 1",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "SLA — zagrożone / przekroczone (1. odpowiedź)",
+      "id": 10,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 21 },
+      "datasource": { "type": "postgres", "uid": "Verris-DB (RO)" },
+      "targets": [
+        {
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT \"topic\" AS temat, \"priority\" AS priorytet, \"slaResponseDueAt\" AS termin_odpowiedzi, EXTRACT(EPOCH FROM (NOW() - \"slaResponseDueAt\"))::int AS po_terminie_s FROM ticket_safe WHERE \"firstResponseAt\" IS NULL AND \"slaResponseDueAt\" IS NOT NULL AND \"status\" IN ('OPEN', 'IN_PROGRESS') ORDER BY \"slaResponseDueAt\" ASC LIMIT 50",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Śr. czas odpowiedzi staff — trend (30 dni, live)",
+      "id": 11,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 21 },
+      "targets": [
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_ticket_staff_response_avg_seconds_30d", "legendFormat": "śr. odpowiedź staff (30d)", "refId": "A" },
+        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_ticket_first_response_avg_seconds_30d", "legendFormat": "śr. 1. odpowiedź (30d)", "refId": "B" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 36,
+  "style": "dark",
+  "tags": ["verris", "support"],
+  "templating": { "list": [] },
+  "time": { "from": "now-30d", "to": "now" },
+  "title": "Support / Helpdesk",
+  "uid": "verris-support",
+  "version": 1
+}
