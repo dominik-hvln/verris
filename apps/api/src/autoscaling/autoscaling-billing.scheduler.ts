@@ -1,29 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import {
-  AutoscalingDirection,
-  AutoscalingPriceRule,
-  Prisma,
-  SubscriptionStatus,
-  WalletTxType,
-} from '@verris/database';
+import { SubscriptionStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
-import { WalletLedgerService } from '../billing/wallet-ledger.service';
-import { AutoscalingEngineService } from './autoscaling-engine.service';
+import { AutoscalingBillingService } from './autoscaling-billing.service';
 
 /**
- * Charges customers for active autoscaling deltas once per hour.
+ * Settles active autoscaling deltas in 15-minute blocks.
  *
- * Idempotency: each charge uses a deterministic key
- *   `autoscale:<subId>:<yyyymmddhh>` (UTC bucket)
- * so re-running the cron (cold restart, deploy mid-hour, …) never
- * double-bills.
+ * Runs every 5 minutes (the engine bills the first block instantly on scale-up,
+ * so brief spikes are already covered; this cron keeps sustained deltas billing
+ * block-by-block and self-heals any episode the engine couldn't finish). Each
+ * block is charged exactly once via a deterministic idempotency key inside
+ * {@link AutoscalingBillingService.billDueBlocks}, so overlapping runs and
+ * mid-block restarts never double-bill.
  *
- * If the wallet refuses (insufficient funds), we *don't* block — the engine's
- * D-7 guard will pick up the empty wallet on its very next minute tick and
- * scale the customer back to baseline + flip `autoscalingEnabled=false`. Until
- * then they're effectively granted a few minutes of free overage; that's an
- * acceptable trade-off for keeping their site online vs. an angry phone call.
+ * This replaces the previous top-of-the-hour snapshot, which silently billed
+ * nothing for any spike that reverted before HH:00 UTC.
  */
 @Injectable()
 export class AutoscalingBillingScheduler {
@@ -31,113 +23,73 @@ export class AutoscalingBillingScheduler {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly walletLedger: WalletLedgerService,
-    private readonly engine: AutoscalingEngineService,
+    private readonly billing: AutoscalingBillingService,
   ) {}
 
-  @Cron(CronExpression.EVERY_HOUR, { name: 'autoscaling-billing' })
-  async chargeHourly(referenceDate: Date = new Date()) {
+  @Cron(CronExpression.EVERY_5_MINUTES, { name: 'autoscaling-billing' })
+  async chargeDueBlocks(referenceDate: Date = new Date()) {
     const started = Date.now();
     const subs = await this.prisma.subscription.findMany({
       where: {
         status: SubscriptionStatus.ACTIVE,
-        autoscalingEnabled: true,
         account: {
-          OR: [{ scaledCpu: { gt: 0 } }, { scaledRamMb: { gt: 0 } }],
+          OR: [
+            { scaledCpu: { gt: 0 } },
+            { scaledRamMb: { gt: 0 } },
+            { scaledDiskMb: { gt: 0 } },
+            // Defensive: scaled back to baseline but episode wasn't closed.
+            { scaledSince: { not: null } },
+          ],
         },
       },
       include: { account: true },
     });
 
     if (subs.length === 0) {
-      this.logger.debug('Autoscaling billing tick — nothing to charge');
-      return { processed: 0, charged: 0, skipped: 0, failed: 0 };
+      this.logger.debug('Autoscaling block billing — nothing active');
+      return { processed: 0, charged: 0, blocks: 0, depleted: 0 };
     }
 
     const rules = await this.prisma.autoscalingPriceRule.findMany({
       where: { isActive: true },
     });
 
-    const bucket = utcHourBucket(referenceDate);
-
     let charged = 0;
-    let skipped = 0;
-    let failed = 0;
+    let blocks = 0;
+    let depleted = 0;
 
     for (const sub of subs) {
-      if (!sub.account) {
-        skipped += 1;
-        continue;
-      }
-
-      const hourly = this.engine.estimateHourlyCost(
-        rules,
-        sub.account.scaledCpu,
-        sub.account.scaledRamMb,
-      );
-      if (hourly <= 0) {
-        skipped += 1;
-        continue;
-      }
-
-      const amount = roundToCurrency(hourly);
-      const idempotencyKey = `autoscale:${sub.id}:${bucket}`;
-
+      if (!sub.account) continue;
       try {
-        const tx = await this.walletLedger.debit({
-          userId: sub.userId,
-          type: WalletTxType.CHARGE_AUTOSCALING,
-          amount,
-          description: `Autoscaling ${bucket} (cpu+${sub.account.scaledCpu}% ram+${sub.account.scaledRamMb}MB)`,
-          idempotencyKey,
-          subscriptionId: sub.id,
-        });
-
-        await this.prisma.autoscalingEvent.create({
-          data: {
+        const result = await this.billing.billDueBlocks(
+          {
+            id: sub.account.id,
             subscriptionId: sub.id,
-            direction: AutoscalingDirection.UP, // charge on existing UP
-            reason: `hourly_charge ${bucket} tx=${tx.id}`,
-            costSnapshot: new Prisma.Decimal(amount),
+            userId: sub.userId,
+            domain: sub.account.domain,
+            scaledCpu: sub.account.scaledCpu,
+            scaledRamMb: sub.account.scaledRamMb,
+            scaledDiskMb: sub.account.scaledDiskMb,
+            scaledSince: sub.account.scaledSince,
+            scaledBilledUntil: sub.account.scaledBilledUntil,
           },
-        });
-
-        charged += 1;
+          rules,
+          referenceDate,
+        );
+        if (result.blocksCharged > 0) charged += 1;
+        blocks += result.blocksCharged;
+        if (result.walletDepleted) depleted += 1;
       } catch (err) {
-        const e = err as Error & { code?: string };
-        // Wallet may legitimately reject (insufficient funds) — engine will
-        // disable autoscaling on the next minute. Anything else, log loudly.
-        if (e.message.includes('insufficient') || e.message.includes('Insufficient')) {
-          this.logger.warn(
-            `Wallet insufficient for sub=${sub.id} amount=${amount} — engine will disable next tick`,
-          );
-        } else {
-          this.logger.error(
-            `Failed to charge autoscaling for sub=${sub.id} amount=${amount}: ${e.message}`,
-          );
-        }
-        failed += 1;
+        this.logger.error(
+          `Autoscaling block billing failed for sub=${sub.id}: ${(err as Error).message}`,
+        );
       }
     }
 
     this.logger.log(
-      `Autoscaling billing done in ${Date.now() - started}ms ` +
-        `(processed=${subs.length} charged=${charged} skipped=${skipped} failed=${failed})`,
+      `Autoscaling block billing done in ${Date.now() - started}ms ` +
+        `(processed=${subs.length} subsCharged=${charged} blocks=${blocks} walletDepleted=${depleted})`,
     );
-    return { processed: subs.length, charged, skipped, failed };
+    return { processed: subs.length, charged, blocks, depleted };
   }
-}
-
-function utcHourBucket(date: Date): string {
-  const yyyy = date.getUTCFullYear().toString().padStart(4, '0');
-  const mm = (date.getUTCMonth() + 1).toString().padStart(2, '0');
-  const dd = date.getUTCDate().toString().padStart(2, '0');
-  const hh = date.getUTCHours().toString().padStart(2, '0');
-  return `${yyyy}${mm}${dd}${hh}`;
-}
-
-function roundToCurrency(value: number): number {
-  // 4 decimal places — we want sub-grosz precision for hourly sums but the
-  // wallet column itself is `Decimal(12,2)`, so the ledger truncates anyway.
-  return Math.round(value * 10_000) / 10_000;
 }

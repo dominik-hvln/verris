@@ -14,10 +14,15 @@ import { PromoService } from './promo.service';
 import { WalletAutoTopupService } from './wallet-auto-topup.service';
 import { WalletAutoTopupScheduler } from './wallet-auto-topup.scheduler';
 import { WalletLowBalanceScheduler } from './wallet-low-balance.scheduler';
+import { SlaCreditScheduler } from './sla-credit.scheduler';
 import { MailModule } from '../mail/mail.module';
+import { KsefModule } from '../ksef/ksef.module';
+import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
+import { EcoModule } from '../eco/eco.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
-  imports: [forwardRef(() => SubscriptionsModule), MailModule],
+  imports: [forwardRef(() => SubscriptionsModule), MailModule, EcoModule, KsefModule, PlatformSettingsModule, NotificationsModule],
   controllers: [
     BillingController,
     BillingAdminController,
@@ -35,6 +40,7 @@ import { MailModule } from '../mail/mail.module';
     WalletAutoTopupService,
     WalletAutoTopupScheduler,
     WalletLowBalanceScheduler,
+    SlaCreditScheduler,
   ],
   exports: [BillingService, WalletLedgerService, StripeService, InvoicesService, PromoService, WalletAutoTopupService],
 })

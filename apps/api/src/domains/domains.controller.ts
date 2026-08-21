@@ -1,9 +1,20 @@
 import { Controller, Get, Post, Delete, Body, Param, UseGuards, Req } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
 import { DomainsService } from './domains.service';
 import { CreateDomainDto } from './dto/create-domain.dto';
 import { DomainRegistrarService } from './domain-registrar.service';
-import { DomainAvailabilityDto, RegisterDomainDto, TransferDomainDto } from './dto/registrar.dto';
+import { NbpFxService } from './nbp-fx.service';
+import { parseDomainPricingConfig } from './domain-pricing.util';
+import { REGISTRAR_TLD_CATALOG } from './registrar-tld-catalog';
+import {
+  DomainAvailabilityDto,
+  DomainQuoteDto,
+  DomainQuotePeriodsDto,
+  DomainSearchDto,
+  RegisterDomainDto,
+  TransferDomainDto,
+} from './dto/registrar.dto';
 
 @Controller('domains')
 @UseGuards(AuthGuard('jwt'))
@@ -11,6 +22,8 @@ export class DomainsController {
   constructor(
     private readonly domainsService: DomainsService,
     private readonly registrar: DomainRegistrarService,
+    private readonly config: ConfigService,
+    private readonly nbpFx: NbpFxService,
   ) {}
 
   @Post()
@@ -26,6 +39,80 @@ export class DomainsController {
   @Post('registrar/availability')
   async availability(@Body() dto: DomainAvailabilityDto) {
     return this.registrar.availability(dto.name);
+  }
+
+  @Post('registrar/quote')
+  async quote(@Body() dto: DomainQuoteDto) {
+    return this.registrar.quote(dto.name, dto.years ?? 1);
+  }
+
+  @Get('registrar/tlds')
+  registrarTlds() {
+    return REGISTRAR_TLD_CATALOG;
+  }
+
+  @Post('registrar/search')
+  async search(@Body() dto: DomainSearchDto) {
+    return this.registrar.search(dto.label);
+  }
+
+  @Post('registrar/quote-periods')
+  async quotePeriods(@Body() dto: DomainQuotePeriodsDto) {
+    return this.registrar.quotePeriods(dto.name, dto.years);
+  }
+
+  @Get('registrar/status')
+  async registrarStatus() {
+    const provider = (this.config.get<string>('REGISTRAR_PROVIDER') ?? '').toLowerCase() || null;
+    let configured = false;
+    let apiBaseUrl: string | null = null;
+
+    if (provider === 'openprovider') {
+      configured = Boolean(
+        this.config.get<string>('OPENPROVIDER_USERNAME') &&
+          this.config.get<string>('OPENPROVIDER_PASSWORD') &&
+          this.config.get<string>('OPENPROVIDER_OWNER_HANDLE'),
+      );
+      apiBaseUrl = this.config.get<string>('OPENPROVIDER_API_BASE_URL') ?? 'https://api.openprovider.eu';
+    } else if (provider) {
+      configured = Boolean(
+        this.config.get<string>('REGISTRAR_API_BASE_URL') &&
+          this.config.get<string>('REGISTRAR_API_TOKEN'),
+      );
+      apiBaseUrl = this.config.get<string>('REGISTRAR_API_BASE_URL') ?? null;
+    }
+
+    const pricing = parseDomainPricingConfig((key) => this.config.get<string>(key));
+    const fx = await this.nbpFx.getRates();
+    return {
+      provider,
+      configured,
+      apiBaseUrl,
+      environment:
+        apiBaseUrl?.includes('cte.openprovider') || apiBaseUrl?.includes('api.cte.')
+          ? 'sandbox'
+          : provider === 'openprovider'
+            ? 'production'
+            : null,
+      priceMarkup: pricing.markup,
+      walletCurrency: pricing.walletCurrency,
+      fxRates: {
+        USD_PLN: fx.usdPln,
+        EUR_PLN: fx.eurPln,
+        source: fx.source,
+        nbpTableNo: fx.nbpTableNo,
+        nbpEffectiveDate: fx.nbpEffectiveDate,
+        fetchedAt: fx.fetchedAt,
+        envFallbackUsdPln: pricing.usdPln,
+        envFallbackEurPln: pricing.eurPln,
+      },
+    };
+  }
+
+  /** Czy na koncie obowiązuje już oświadczenie domenowe (Regulamin §12 ust. 8). */
+  @Get('registrar/waiver-consent')
+  async waiverConsent(@Req() req) {
+    return this.registrar.hasStandingWaiverConsent(req.user.userId);
   }
 
   @Post('registrar/register')

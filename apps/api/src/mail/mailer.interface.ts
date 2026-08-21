@@ -15,7 +15,17 @@
  * Odwrotny błąd (transactional jako marketing) prowadziłby do nieświadomego
  * suppressowania krytycznych powiadomień, dlatego ten "fail-safe" default.
  */
-export type EmailCategory = 'TRANSACTIONAL' | 'MARKETING';
+export type EmailCategory = 'TRANSACTIONAL' | 'MARKETING' | 'PRODUCT_UPDATE';
+
+/** Nadawca z rejestru MAIL-4 (`ControlPlaneSystemAddress`). */
+export type SystemFromRole =
+  | 'NOREPLY'
+  | 'SUPPORT'
+  | 'SECURITY'
+  | 'RODO'
+  | 'BILLING'
+  | 'DMARC_RUA'
+  | 'PANEL';
 
 export interface MailMessage {
   to: string;
@@ -26,6 +36,11 @@ export interface MailMessage {
   html?: string;
   /** Optional `Reply-To` header (e.g. ticket address). */
   replyTo?: string;
+  /** Envelope/header From — nadpisuje domyślny SMTP_FROM z ustawień panelu. */
+  fromAddress?: string;
+  fromName?: string;
+  /** From z tabeli adresów systemowych (MAIL-4); wygrywa z `fromAddress` gdy oba podane. */
+  fromRole?: SystemFromRole;
   /** Tag/category for analytics (Resend's `tags`, Postmark's `Tag`). */
   tag?: string;
   /**
@@ -52,6 +67,13 @@ export interface MailMessage {
    * `MarketingPreferences.unsubscribeToken`.
    */
   listUnsubscribeUrl?: string;
+  /**
+   * EMM — odbiorca zewnętrzny (subskrybent klienta, NIE użytkownik Verris).
+   * Zgoda jest zarządzana przez nadawcę (double opt-in + status kontaktu po
+   * stronie EMM), więc pomijamy platformowy user-gate (opt-out/anonimizacja).
+   * Wymaga jawnego `listUnsubscribeUrl` (publiczny link wypisu).
+   */
+  externalRecipient?: boolean;
 }
 
 export interface MailerProvider {

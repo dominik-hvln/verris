@@ -285,3 +285,265 @@ export function passwordChangedTemplate(ctx: PasswordChangedContext): MailMessag
     html,
   };
 }
+
+// ---------------------------------------------------------------------------
+// 5. break-glass codes issued (privileged passkey fallback)
+// ---------------------------------------------------------------------------
+
+export interface BreakGlassCodesIssuedContext {
+  to: string;
+  firstName: string | null;
+  issuedAt: Date;
+  count: number;
+  panelUrl: string;
+}
+
+export function breakGlassCodesIssuedTemplate(
+  ctx: BreakGlassCodesIssuedContext,
+): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**!` : 'Cześć!';
+  const { html, text } = renderEmailShell({
+    title: 'Wygenerowano awaryjne kody logowania (break-glass)',
+    preheader: 'Nowy zestaw kodów awaryjnych dla Twojego konta.',
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Dla Twojego konta **wygenerowano ${ctx.count} jednorazowych kodów awaryjnych (break-glass)**. Służą one wyłącznie do logowania, gdy **nie masz przy sobie passkey** — wymagają dodatkowo hasła i kodu 2FA.`,
+      ``,
+      `**Czas wygenerowania:** ${escapeHtml(formatDateTime(ctx.issuedAt))}.`,
+      ``,
+      `## Zasady`,
+      ``,
+      `1. Każdy kod **działa tylko raz**. Stary zestaw został właśnie unieważniony.`,
+      `2. Użycie kodu **powiadamia wszystkich administratorów** i trafia do logu audytu.`,
+      `3. Przechowuj kody **offline** (np. w menedżerze haseł), nigdy w skrzynce e-mail.`,
+      ``,
+      `Jeśli to **nie Ty** wygenerowałeś kody — Twoje konto mogło zostać przejęte. Natychmiast zmień hasło, wyloguj wszystkie sesje i napisz na ${escapeHtml('security@verris.pl')}.`,
+    ].join('\n'),
+    cta: { label: 'Ustawienia bezpieczeństwa', url: `${ctx.panelUrl}/settings/security` },
+    footnote:
+      'Same kody pokazujemy tylko raz, w panelu, w momencie generowania — nie wysyłamy ich mailem.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return {
+    to: ctx.to,
+    tag: 'security.break-glass-issued',
+    subject: '[Verris] Wygenerowano awaryjne kody logowania',
+    text,
+    html,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 6. break-glass used — alert to every admin
+// ---------------------------------------------------------------------------
+
+export interface BreakGlassUsedAlertContext {
+  to: string;
+  firstName: string | null;
+  /** The account that performed the break-glass login. */
+  accountEmail: string;
+  role: string;
+  usedAt: Date;
+  ipAddress: string | null;
+  userAgent: string | null;
+  remaining: number;
+  panelUrl: string;
+}
+
+export function breakGlassUsedAlertTemplate(
+  ctx: BreakGlassUsedAlertContext,
+): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**!` : 'Cześć!';
+  const ipLine = ctx.ipAddress
+    ? `- **IP:** ${escapeHtml(ctx.ipAddress)}`
+    : `- **IP:** _(nieustalone)_`;
+  const uaLine = ctx.userAgent
+    ? `- **Klient:** ${escapeHtml(ctx.userAgent)}`
+    : null;
+  const { html, text } = renderEmailShell({
+    title: 'Użyto awaryjnego logowania break-glass',
+    preheader: `Konto ${ctx.accountEmail} zalogowało się kodem awaryjnym.`,
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `**Uwaga bezpieczeństwa.** Konto uprzywilejowane właśnie zalogowało się **z pominięciem passkey**, używając awaryjnego kodu break-glass (hasło + 2FA + jednorazowy kod).`,
+      ``,
+      `## Szczegóły`,
+      ``,
+      `- **Konto:** ${escapeHtml(ctx.accountEmail)} (${escapeHtml(ctx.role)})`,
+      `- **Czas:** ${escapeHtml(formatDateTime(ctx.usedAt))}`,
+      ipLine,
+      ...(uaLine ? [uaLine] : []),
+      `- **Pozostałe kody:** ${ctx.remaining}`,
+      ``,
+      `Jeśli to **zaplanowana** akcja (np. utrata urządzenia z passkey) — możesz zignorować ten alert. Jeśli **nie** — potraktuj to jako możliwe przejęcie konta: zablokuj konto, wymuś reset hasła i przejrzyj log audytu.`,
+    ].join('\n'),
+    cta: { label: 'Otwórz log audytu', url: `${ctx.panelUrl}/security/audit` },
+    footnote:
+      'Ten alert otrzymuje każdy administrator przy każdym użyciu kodu break-glass — nie da się go wyłączyć.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return {
+    to: ctx.to,
+    tag: 'security.break-glass-used',
+    subject: '[Verris] ⚠️ Użyto awaryjnego logowania (break-glass)',
+    text,
+    html,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 7. passkey added / removed (klucz bezpieczeństwa — ATO persistence vector)
+// ---------------------------------------------------------------------------
+
+export interface PasskeyChangeContext {
+  to: string;
+  firstName: string | null;
+  at: Date;
+  /** Nazwa passkey nadana przez użytkownika (jeśli była). */
+  deviceName: string | null;
+  panelUrl: string;
+}
+
+export function passkeyAddedTemplate(ctx: PasskeyChangeContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**!` : 'Cześć!';
+  const nameLine = ctx.deviceName ? `- **Nazwa:** ${escapeHtml(ctx.deviceName)}` : null;
+  const { html, text } = renderEmailShell({
+    title: 'Dodano nowy passkey do konta',
+    preheader: 'Do Twojego konta dodano klucz passkey.',
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Do Twojego konta Verris **dodano nowy passkey** (klucz logowania bez hasła). Jeśli to Ty — wszystko w porządku.`,
+      ``,
+      `**Czas:** ${escapeHtml(formatDateTime(ctx.at))}.`,
+      ...(nameLine ? ['', nameLine] : []),
+      ``,
+      `## Czy to NIE byłeś Ty?`,
+      ``,
+      `Dodanie passkey przez osobę trzecią pozwoliłoby jej logować się do Twojego konta. Jeśli to nie Ty:`,
+      ``,
+      `1. **Usuń nieznany passkey** (Ustawienia → Bezpieczeństwo → Passkeys).`,
+      `2. **Zmień hasło** i **wyloguj wszystkie sesje**.`,
+      `3. Napisz do nas: ${escapeHtml('support@verris.pl')}.`,
+    ].join('\n'),
+    cta: { label: 'Zarządzaj passkey', url: `${ctx.panelUrl}/settings/security` },
+    footnote:
+      'Ten alert otrzymujesz przy każdym dodaniu passkey — nie da się go wyłączyć (security-critical).',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return {
+    to: ctx.to,
+    tag: 'security.passkey-added',
+    subject: '[Verris] Dodano nowy passkey do konta',
+    text,
+    html,
+  };
+}
+
+export interface EmailChangeVerifyContext {
+  to: string; // NOWY adres
+  firstName: string | null;
+  confirmUrl: string;
+  expiresMinutes: number;
+  panelUrl: string;
+}
+
+export function emailChangeVerifyTemplate(ctx: EmailChangeVerifyContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**!` : 'Cześć!';
+  const { html, text } = renderEmailShell({
+    title: 'Potwierdź nowy adres e-mail',
+    preheader: 'Kliknij, aby potwierdzić zmianę adresu e-mail konta.',
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Otrzymaliśmy prośbę o zmianę adresu e-mail Twojego konta Verris na **ten adres**. Aby dokończyć, potwierdź klikając przycisk poniżej.`,
+      ``,
+      `Link wygasa za **${ctx.expiresMinutes} min**. Jeśli to nie Ty prosiłeś o zmianę — zignoruj tę wiadomość, nic się nie zmieni.`,
+    ].join('\n'),
+    cta: { label: 'Potwierdź nowy e-mail', url: ctx.confirmUrl },
+    footnote: 'Adres konta zmieni się dopiero po kliknięciu tego potwierdzenia.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return { to: ctx.to, tag: 'security.email-change-verify', subject: '[Verris] Potwierdź nowy adres e-mail', text, html };
+}
+
+export interface EmailChangeAlertContext {
+  to: string; // STARY adres
+  firstName: string | null;
+  newEmail: string;
+  at: Date;
+  panelUrl: string;
+}
+
+export function emailChangeAlertTemplate(ctx: EmailChangeAlertContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: 'Zlecono zmianę adresu e-mail konta',
+    preheader: 'Ktoś poprosił o zmianę adresu e-mail Twojego konta.',
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Na Twoim koncie Verris **zlecono zmianę adresu e-mail** na: \`${escapeHtml(ctx.newEmail)}\`.`,
+      ``,
+      `**Czas:** ${escapeHtml(formatDateTime(ctx.at))}.`,
+      ``,
+      `## Czy to NIE byłeś Ty?`,
+      ``,
+      `Jeśli nie zlecałeś tej zmiany, **natychmiast zmień hasło** i skontaktuj się z nami: ${escapeHtml('support@verris.pl')}. Zmiana wejdzie w życie dopiero po potwierdzeniu z nowej skrzynki — możesz jeszcze zareagować.`,
+    ].join('\n'),
+    cta: { label: 'Otwórz ustawienia bezpieczeństwa', url: `${ctx.panelUrl}/settings` },
+    footnote: 'Alert wysyłany na dotychczasowy adres przy każdej próbie zmiany e-mail.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return { to: ctx.to, tag: 'security.email-change-alert', subject: '[Verris] Zlecono zmianę adresu e-mail konta', text, html };
+}
+
+export function passkeyRemovedTemplate(ctx: PasskeyChangeContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**!` : 'Cześć!';
+  const nameLine = ctx.deviceName ? `- **Nazwa:** ${escapeHtml(ctx.deviceName)}` : null;
+  const { html, text } = renderEmailShell({
+    title: 'Usunięto passkey z konta',
+    preheader: 'Z Twojego konta usunięto klucz passkey.',
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Z Twojego konta Verris **usunięto passkey**. Jeśli to Ty — możesz zignorować tego maila.`,
+      ``,
+      `**Czas:** ${escapeHtml(formatDateTime(ctx.at))}.`,
+      ...(nameLine ? ['', nameLine] : []),
+      ``,
+      `## Czy to NIE byłeś Ty?`,
+      ``,
+      `Jeśli nie usuwałeś tego klucza, ktoś mógł uzyskać dostęp do Twojego konta:`,
+      ``,
+      `1. **Zmień hasło** i **wyloguj wszystkie sesje** (Ustawienia → Bezpieczeństwo).`,
+      `2. Sprawdź listę passkey i 2FA.`,
+      `3. Napisz do nas: ${escapeHtml('support@verris.pl')}.`,
+    ].join('\n'),
+    cta: { label: 'Otwórz ustawienia bezpieczeństwa', url: `${ctx.panelUrl}/settings/security` },
+    footnote:
+      'Ten alert otrzymujesz przy każdym usunięciu passkey — nie da się go wyłączyć (security-critical).',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return {
+    to: ctx.to,
+    tag: 'security.passkey-removed',
+    subject: '[Verris] Usunięto passkey z konta',
+    text,
+    html,
+  };
+}

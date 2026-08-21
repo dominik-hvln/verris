@@ -1,4 +1,4 @@
-import { cookies } from 'next/headers';
+import { cookies, headers as incomingHeaders } from 'next/headers';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
 
@@ -25,6 +25,17 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
     if (token) headers.set('Authorization', `Bearer ${token}`);
   }
 
+  // Pre-LIVE: forward the real client IP (set by Caddy on the incoming
+  // request). Without this every panel user reaches the API from the panel
+  // container's IP — breaking per-IP rate limits, lockouts and audit logs.
+  try {
+    const incoming = await incomingHeaders();
+    const xff = incoming.get('x-forwarded-for');
+    if (xff && !headers.has('x-forwarded-for')) headers.set('x-forwarded-for', xff);
+  } catch {
+    /* outside request scope (build/ISR) — skip */
+  }
+
   const response = await fetch(`${API_URL}${path}`, {
     ...rest,
     headers,
@@ -38,8 +49,18 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
     let message: string | null = null;
     if (typeof body === 'object' && body !== null && 'message' in body) {
       const m = (body as { message?: unknown }).message;
-      if (Array.isArray(m)) message = m.filter((x): x is string => typeof x === 'string').join(', ');
-      else if (typeof m === 'string') message = m;
+      if (typeof m === 'object' && m !== null && 'message' in m) {
+        const inner = (m as { message?: unknown }).message;
+        if (Array.isArray(inner)) {
+          message = inner.filter((x): x is string => typeof x === 'string').join(', ');
+        } else if (typeof inner === 'string') {
+          message = inner;
+        }
+      } else if (Array.isArray(m)) {
+        message = m.filter((x): x is string => typeof x === 'string').join(', ');
+      } else if (typeof m === 'string') {
+        message = m;
+      }
     }
     if (message === null && typeof body === 'string' && body.length > 0) {
       message = body;

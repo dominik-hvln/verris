@@ -12,6 +12,9 @@ import { ObjectStorageModule } from './storage/object-storage.module';
 import { AuthModule } from './auth/auth.module';
 import { ServersModule } from './servers/servers.module';
 import { TelemetryModule } from './telemetry/telemetry.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { SearchModule } from './search/search.module';
+import { BusinessMetricsModule } from './metrics/business-metrics.module';
 import { DomainsModule } from './domains/domains.module';
 import { UsersModule } from './users/users.module';
 import { TicketsModule } from './tickets/tickets.module';
@@ -30,7 +33,29 @@ import { MarketingModule } from './marketing/marketing.module';
 import { EmailLogAdminModule } from './email-log/email-log-admin.module';
 import { ProductOpsModule } from './product-ops/product-ops.module';
 import { CustomerPermissionsGuard } from './common/guards/customer-permissions.guard';
+import { RateLimitGuard } from './common/guards/rate-limit.guard';
 import { AiModule } from './ai/ai.module';
+import { PlatformSettingsModule } from './platform-settings/platform-settings.module';
+import { LiveReadinessModule } from './admin-readiness/live-readiness.module';
+import { VpsModule } from './vps/vps.module';
+import { PublicStatsModule } from './public-stats/public-stats.module';
+import { AddonModule } from './addons/addon.module';
+import { FilesModule } from './files/files.module';
+import { StaffRolesModule } from './staff-roles/staff-roles.module';
+import { PartnersModule } from './partners/partners.module';
+import { ApiTokensModule } from './api-tokens/api-tokens.module';
+import { ResellerModule } from './reseller/reseller.module';
+import { EmailMarketingModule } from './email-marketing/email-marketing.module';
+import { AnalyticsSitesModule } from './analytics-sites/analytics-sites.module';
+import { MetaCapiModule } from './analytics/meta-capi.module';
+import { LeadsModule } from './leads/leads.module';
+import { FontsProxyModule } from './fonts-proxy/fonts-proxy.module';
+import { BrandModule } from './brand/brand.module';
+import { KbModule } from './kb/kb.module';
+import { ControlPlaneMailModule } from './control-plane-mail/control-plane-mail.module';
+import { VpnModule } from './vpn/vpn.module';
+import { KsefModule } from './ksef/ksef.module';
+import { DeliverabilityModule } from './deliverability/deliverability.module';
 
 @Module({
   imports: [
@@ -47,6 +72,9 @@ import { AiModule } from './ai/ai.module';
     AuthModule,
     ServersModule,
     TelemetryModule,
+    NotificationsModule,
+    SearchModule,
+    BusinessMetricsModule,
     DomainsModule,
     UsersModule,
     TicketsModule,
@@ -65,8 +93,34 @@ import { AiModule } from './ai/ai.module';
     EmailLogAdminModule,
     ProductOpsModule,
     AiModule,
+    PlatformSettingsModule,
+    ControlPlaneMailModule,
+    VpnModule,
+    KsefModule,
+    DeliverabilityModule,
+    LiveReadinessModule,
+    VpsModule,
+    PublicStatsModule,
+    AddonModule,
+    FilesModule,
+    StaffRolesModule,
+    PartnersModule,
+    ApiTokensModule,
+    ResellerModule,
+    EmailMarketingModule,
+    AnalyticsSitesModule,
+    MetaCapiModule,
+    LeadsModule,
+    FontsProxyModule,
+    BrandModule,
+    KbModule,
   ],
   controllers: [],
-  providers: [{ provide: APP_GUARD, useClass: CustomerPermissionsGuard }],
+  providers: [
+    // Audit F-09: global sliding-window rate limit (per-IP). Registered FIRST
+    // so abusive traffic is rejected before any auth/db work happens.
+    { provide: APP_GUARD, useClass: RateLimitGuard },
+    { provide: APP_GUARD, useClass: CustomerPermissionsGuard },
+  ],
 })
 export class AppModule {}

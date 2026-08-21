@@ -1,0 +1,29 @@
+# CYBER-6 — ciągły nadzór nad podatnościami zależności i obrazów.
+version: 2
+updates:
+  # Zależności JS/TS (monorepo pnpm — katalog główny).
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    groups:
+      # Aktualizacje bezpieczeństwa i patch/minor w jednym PR, by nie zasypać repo.
+      minor-and-patch:
+        update-types: [minor, patch]
+    labels: [dependencies, security]
+
+  # Obrazy bazowe w Dockerfile'ach (api + panele).
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+    labels: [docker, security]
+
+  # Akcje GitHub w workflowach.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    labels: [ci, security]

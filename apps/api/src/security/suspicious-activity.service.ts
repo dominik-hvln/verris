@@ -16,7 +16,12 @@ interface RecordFailureInput {
     | 'bad_password'
     | '2fa_failed'
     | 'session_expired'
-    | 'too_many_attempts';
+    | 'too_many_attempts'
+    | 'break_glass_invalid'
+    | 'break_glass_bad_password'
+    | 'break_glass_no_2fa'
+    | 'break_glass_bad_2fa'
+    | 'break_glass_bad_code';
 }
 
 interface RecordSuccessInput {
@@ -170,6 +175,8 @@ export class SuspiciousActivityService {
         subject: input.body.subject,
         text: input.body.text,
         tag: 'security.alert',
+        category: 'TRANSACTIONAL',
+        fromRole: 'SECURITY',
       });
     }
   }

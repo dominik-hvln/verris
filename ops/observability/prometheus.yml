@@ -5,6 +5,9 @@ global:
     environment: production
     project: verris
 
+rule_files:
+  - /etc/prometheus/alerts.yml
+
 scrape_configs:
   - job_name: prometheus
     static_configs:
@@ -27,7 +30,19 @@ scrape_configs:
     static_configs:
       - targets: ['redis-exporter:9121']
 
-  # Compute fleet — node_exporter is installed by `bootstrap.sh` on every node.
+  - job_name: node
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          service: control-plane-host
+
+  - job_name: cadvisor
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          service: docker
+
+  # Compute fleet — node_exporter on each compute node (bootstrap.sh).
   # Targets are managed via Prometheus file-SD: API writes a JSON file on
   # disk that Prometheus reloads automatically. For now we use a static
   # placeholder; switch to file_sd_configs once the bootstrap exposes 9100.

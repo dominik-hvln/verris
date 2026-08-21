@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import {
   AccountStatus,
+  AutoscalingDirection,
   BillingInterval,
   Prisma,
   Subscription,
@@ -18,12 +19,19 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { WalletLedgerService } from '../billing/wallet-ledger.service';
+import { PromoService } from '../billing/promo.service';
+import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 import { StripeService } from '../billing/stripe/stripe.service';
 import { getInvoiceClientSecret, getSubscriptionPeriod } from '../billing/stripe/stripe.client';
 import { DirectAdminService } from '../servers/directadmin.service';
 import { ProvisioningService, ProvisionResult } from './provisioning.service';
 import { ProvisioningQueueService } from './provisioning-queue.service';
-import { UpdateSubscriptionPreferencesDto, CreateSubscriptionDto } from './dto/subscription.dto';
+import { generateUniqueServiceTag } from './service-tag.util';
+import {
+  UpdateSubscriptionPreferencesDto,
+  CreateSubscriptionDto,
+  PreviewSubscriptionPromoDto,
+} from './dto/subscription.dto';
 import { ConfigService } from '@nestjs/config';
 import { MailerService } from '../mail/mailer.service';
 import {
@@ -31,6 +39,8 @@ import {
   subscriptionCancelledTemplate,
 } from '../mail/templates/billing-lifecycle-notifications';
 import { accountSuspendedPaymentTemplate } from '../mail/templates/hosting-notifications';
+import { orderReceivedTemplate } from '../mail/templates/order-notifications';
+import { EcoPointsService, ECO_POINT_DELTAS } from '../eco/eco-points.service';
 
 export type SuspendReason =
   | 'PAYMENT_FAILED'
@@ -65,8 +75,9 @@ export interface CreatedSubscription {
  *   - Records sale price snapshot
  *   - For WALLET source: debits the wallet immediately and provisions DA inline
  *   - For STRIPE_CARD: creates the row in PENDING_PAYMENT and returns a hint
- *     so the caller can spin up Stripe Checkout (Stripe recurring will land
- *     in EPIC C — for now we accept that this branch is "stub").
+ *     so the caller can spin up Stripe Checkout; on first `invoice.paid` the
+ *     webhook activates + provisions DA, and Stripe drives recurring renewals
+ *     (see `startStripeRecurring` / `activateAfterStripePayment`).
  *   - For MANUAL: marks PROVISIONING and provisions DA inline (used for
  *     comp accounts, bug bounties, free trials).
  */
@@ -84,7 +95,65 @@ export class SubscriptionsService {
     private readonly da: DirectAdminService,
     private readonly mailer: MailerService,
     private readonly config: ConfigService,
+    private readonly promo: PromoService,
+    private readonly ecoPoints: EcoPointsService,
+    private readonly platformSettings: PlatformSettingsService,
   ) {}
+
+  async previewSubscriptionPromo(userId: string, dto: PreviewSubscriptionPromoDto) {
+    const plan = await this.prisma.plan.findUnique({ where: { id: dto.planId } });
+    if (!plan || !plan.isActive || !plan.isPublic) {
+      throw new NotFoundException('Plan not found or unavailable');
+    }
+    const listPriceRaw =
+      dto.interval === BillingInterval.MONTH ? plan.priceMonthly : plan.priceYearly;
+    if (listPriceRaw === null || listPriceRaw === undefined) {
+      throw new BadRequestException('Plan does not have a price for the requested interval');
+    }
+    const listPrice = new Prisma.Decimal(listPriceRaw);
+    const preview = await this.promo.previewServicePercentOff(userId, dto.code, listPrice);
+
+    // BILL-1 — reguła NIE-ŁĄCZENIA: porównaj kod z rabatem startowym z ustawień.
+    const offer = await this.platformSettings.getTrialOffer();
+    const startPercent = offer.cardEnabled
+      ? dto.interval === BillingInterval.MONTH
+        ? offer.monthlyDiscountPct
+        : offer.annualDiscountPct
+      : 0;
+
+    // Kod wygrywa przy remisie (klient wpisał go świadomie).
+    const codeWins = preview.percent >= startPercent;
+    const effectivePercent = Math.max(preview.percent, startPercent);
+    const effectiveDiscounted = codeWins
+      ? preview.discountedAmount
+      : this.applyPct(listPrice, startPercent);
+
+    let comparisonMessage: string | null = null;
+    if (!codeWins && startPercent > 0) {
+      comparisonMessage =
+        `Ten kod daje rabat ${preview.percent}%, a promocja na start ${startPercent}%. ` +
+        `Zostawiamy korzystniejszą promocję startową — kod nie zostanie użyty.`;
+    } else if (codeWins && startPercent > 0 && preview.percent > startPercent) {
+      comparisonMessage =
+        `Ten kod (${preview.percent}%) jest lepszy niż promocja na start (${startPercent}%) — używamy kodu.`;
+    }
+
+    return {
+      code: preview.code,
+      percent: preview.percent,
+      listPrice: preview.listPrice.toFixed(2),
+      discountedAmount: preview.discountedAmount.toFixed(2),
+      savingsAmount: preview.savingsAmount.toFixed(2),
+      appliesToRenewals: preview.appliesToRenewals,
+      description: preview.description,
+      // BILL-1 — transparentność reguły „nie łączymy promocji"
+      startPercent,
+      effectivePercent,
+      effectiveDiscounted: effectiveDiscounted.toFixed(2),
+      codeWins,
+      comparisonMessage,
+    };
+  }
 
   // ---------------------------------------------------------------------------
   // Reads
@@ -126,7 +195,12 @@ export class SubscriptionsService {
     userId: string,
     subscriptionId: string,
     dto: UpdateSubscriptionPreferencesDto,
-  ): Promise<Subscription & { ecoDaSync?: { adjusted: number; notice: string | null } }> {
+  ): Promise<
+    Subscription & {
+      ecoDaSync?: { adjusted: number; notice: string | null };
+      ecoPointsAwarded?: boolean;
+    }
+  > {
     const prev = await this.prisma.subscription.findFirst({
       where: { id: subscriptionId, userId },
       include: { account: { select: { id: true } } },
@@ -134,23 +208,18 @@ export class SubscriptionsService {
     if (!prev) throw new NotFoundException('Subscription not found');
 
     const ecoToggle = dto.ecoModeEnabled;
+    let ecoPointsAwarded = false;
     const updated = await this.prisma.$transaction(async (tx) => {
       const subRow = await tx.subscription.update({
         where: { id: subscriptionId },
         data: { ecoModeEnabled: ecoToggle },
       });
-      if (ecoToggle && !prev.ecoModeEnabled) {
-        await tx.user.update({
-          where: { id: userId },
-          data: { ecoPoints: { increment: 5 } },
-        });
-        await tx.ecoPointsLedgerEntry.create({
-          data: {
-            userId,
-            delta: 5,
-            reason: 'EKO_FIRST_ENABLE',
-            subscriptionId,
-          },
+      if (ecoToggle === true) {
+        ecoPointsAwarded = await this.ecoPoints.awardOnce(tx, {
+          userId,
+          delta: ECO_POINT_DELTAS.EKO_FIRST_ENABLE,
+          reason: 'EKO_FIRST_ENABLE',
+          subscriptionId,
         });
       }
       return subRow;
@@ -167,35 +236,79 @@ export class SubscriptionsService {
       }
     }
 
-    return Object.assign(updated, ecoDaSync !== undefined ? { ecoDaSync } : {});
+    return Object.assign(updated, {
+      ...(ecoDaSync !== undefined ? { ecoDaSync } : {}),
+      ecoPointsAwarded,
+    });
   }
 
   // ---------------------------------------------------------------------------
   // Sale flow
   // ---------------------------------------------------------------------------
 
-  async create(userId: string, dto: CreateSubscriptionDto): Promise<CreatedSubscription> {
+  /**
+   * @param opts.allowManual  Z-02 — dopuszcza `paymentSource: MANUAL`, czyli
+   *   uruchomienie usługi bez obciążenia i bez faktury. Wolno TYLKO ze ścieżki
+   *   operatorskiej. Walidacja DTO odcina to już na wejściu kontrolera klienta;
+   *   ten warunek jest drugą warstwą, na wypadek gdyby serwis zawołał kto inny.
+   */
+  async create(
+    userId: string,
+    dto: CreateSubscriptionDto,
+    opts: { allowManual?: boolean } = {},
+  ): Promise<CreatedSubscription> {
+    if (dto.paymentSource === SubscriptionPaymentSource.MANUAL && !opts.allowManual) {
+      throw new ForbiddenException(
+        'Źródło płatności MANUAL jest zarezerwowane dla operatora.',
+      );
+    }
     const plan = await this.prisma.plan.findUnique({ where: { id: dto.planId } });
     if (!plan || !plan.isActive || !plan.isPublic) {
       throw new NotFoundException('Plan not found or unavailable');
     }
 
-    const priceAmount =
+    // EMM — produkty aplikacyjne (email-marketing) nie tworzą konta DA i nie
+    // potrzebują domeny. Dla pozostałych produktów domena jest wymagana.
+    // Cast przez string — generated Prisma client regeneruje enum w prod
+    // (Dockerfile.api); w sandboxie literal EMAIL_MARKETING jeszcze nie istnieje.
+    const isAppLevel = (plan.productKind as string) === 'EMAIL_MARKETING';
+    if (!isAppLevel && !dto.domain) {
+      throw new BadRequestException('Domena jest wymagana dla tego produktu.');
+    }
+
+    const listPriceRaw =
       dto.interval === BillingInterval.MONTH ? plan.priceMonthly : plan.priceYearly;
 
-    if (priceAmount === null || priceAmount === undefined) {
+    if (listPriceRaw === null || listPriceRaw === undefined) {
       throw new BadRequestException('Plan does not have a price for the requested interval');
     }
 
+    const listPrice = new Prisma.Decimal(listPriceRaw);
+    const pricing = await this.resolveSubscriptionPricing(
+      userId,
+      listPrice,
+      dto.paymentSource,
+      dto.interval,
+      dto.promoCode,
+    );
+
     // Create subscription row up-front in PENDING_PAYMENT so we can attach
     // the wallet entry / provisioning to it (and recover from failures).
+    // SVC-TAG — unikalny handle nadawany od razu przy zakupie (widoczny obok
+    // pakietu); dla hostingu provisioning użyje go jako loginu DA (prefiks baz).
+    const serviceTag = await generateUniqueServiceTag(this.prisma);
     const subscription = await this.prisma.subscription.create({
       data: {
         userId,
         planId: plan.id,
+        serviceTag,
         status: SubscriptionStatus.PENDING_PAYMENT,
         interval: dto.interval,
-        priceAmount,
+        priceAmount: pricing.chargeAmount,
+        listPriceAmount: pricing.listPrice,
+        appliedPromoCodeId: pricing.appliedPromoCodeId,
+        introDiscountPct: pricing.introDiscountPct,
+        introDiscountPeriodsLeft: pricing.introDiscountPeriodsLeft,
         currency: plan.currency,
         paymentSource: dto.paymentSource,
         autoscalingEnabled: dto.autoscalingEnabled ?? false,
@@ -220,14 +333,53 @@ export class SubscriptionsService {
         plan: plan.slug,
         interval: dto.interval,
         source: dto.paymentSource,
+        // Dowód oświadczenia konsumenckiego (art. 15 ust. 3 / 21 ust. 2 upk):
+        // klient zażądał rozpoczęcia świadczenia przed upływem terminu
+        // odstąpienia. Walidacja `Equals(true)` w DTO gwarantuje obecność.
+        immediatePerformanceConsent: dto.immediatePerformanceConsent,
+        consentStatement:
+          'Żądam rozpoczęcia świadczenia usługi przed upływem 14-dniowego terminu odstąpienia i przyjmuję do wiadomości obowiązek zapłaty za świadczenia spełnione do chwili odstąpienia (Regulamin §4 ust. 4, §21).',
       },
     });
 
+    // MAIL-W2 — potwierdzenie zamówienia (fire-and-forget, nie blokuje flow).
+    void this.notifyOrderReceived({
+      userId,
+      planName: plan.name,
+      serviceTag,
+      amount: pricing.chargeAmount,
+      currency: plan.currency,
+      interval: dto.interval,
+      domain: dto.domain ?? null,
+      paymentSource: dto.paymentSource,
+    }).catch((err) =>
+      this.logger.warn(`notifyOrderReceived failed sub=${subscription.id}: ${(err as Error).message}`),
+    );
+
     switch (dto.paymentSource) {
       case SubscriptionPaymentSource.WALLET: {
-        return this.payFromWalletAndProvision(subscription.id, priceAmount, dto, userId);
+        if (isAppLevel) {
+          return this.activateAppLevelSubscription(subscription.id, dto, userId, {
+            charge: pricing.chargeAmount,
+            appliedPromoCodeId: pricing.appliedPromoCodeId,
+          });
+        }
+        return this.payFromWalletAndProvision(
+          subscription.id,
+          pricing.chargeAmount,
+          pricing.listPrice,
+          pricing.appliedPromoCodeId,
+          dto,
+          userId,
+        );
       }
       case SubscriptionPaymentSource.MANUAL: {
+        if (isAppLevel) {
+          return this.activateAppLevelSubscription(subscription.id, dto, userId, {
+            charge: null,
+            appliedPromoCodeId: pricing.appliedPromoCodeId,
+          });
+        }
         return this.provisionWithoutCharge(subscription.id, dto, userId);
       }
       case SubscriptionPaymentSource.STRIPE_CARD: {
@@ -238,11 +390,70 @@ export class SubscriptionsService {
     }
   }
 
+  /** MAIL-W2 — wysyła potwierdzenie zamówienia do klienta (best-effort). */
+  private async notifyOrderReceived(opts: {
+    userId: string;
+    planName: string;
+    serviceTag: string;
+    amount: Prisma.Decimal | null;
+    currency: string;
+    interval: BillingInterval;
+    domain: string | null;
+    paymentSource: SubscriptionPaymentSource;
+  }): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: opts.userId },
+      select: { email: true, firstName: true },
+    });
+    if (!user?.email) return;
+    const panelUrl = this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl';
+    const amountLabel = opts.amount ? `${opts.amount.toFixed(2)} ${opts.currency}` : '—';
+    const paymentLabel =
+      opts.paymentSource === SubscriptionPaymentSource.WALLET
+        ? 'Portfel Verris'
+        : opts.paymentSource === SubscriptionPaymentSource.STRIPE_CARD
+          ? 'Karta płatnicza'
+          : 'Płatność ręczna';
+    const message = orderReceivedTemplate({
+      to: user.email,
+      firstName: user.firstName,
+      planName: opts.planName,
+      serviceTag: opts.serviceTag,
+      amountLabel,
+      interval: opts.interval === BillingInterval.YEAR ? 'YEAR' : 'MONTH',
+      domain: opts.domain,
+      paymentLabel,
+      panelUrl,
+    });
+    await this.mailer.send({
+      ...message,
+      userId: opts.userId,
+      category: 'TRANSACTIONAL',
+      fromRole: 'BILLING',
+    });
+  }
+
   /**
-   * Cancels a subscription. By default we suspend at the current period end —
-   * but for now (no recurring) we cancel immediately and tear down DA.
+   * Cancels a subscription initiated by the customer.
+   *
+   * Two modes:
+   *   - `atPeriodEnd` (default true): the hosting stays active until the end of
+   *     the already-paid period. For Stripe-recurring subs we set Stripe's
+   *     `cancel_at_period_end=true` so no further card charges happen; the
+   *     `customer.subscription.deleted` webhook finalizes the teardown at the
+   *     period boundary. For wallet subs the renewal scheduler stops renewing
+   *     once `cancelAt` is set and expires the sub at the period end.
+   *   - immediate (`atPeriodEnd=false`): we cancel the Stripe subscription now
+   *     and tear down (suspend DA + status CANCELED) right away.
+   *
+   * CRITICAL: we never tear down locally while leaving Stripe charging — if the
+   * Stripe cancel call fails we abort so the customer can retry.
    */
-  async cancel(userId: string, subscriptionId: string) {
+  async cancel(
+    userId: string,
+    subscriptionId: string,
+    opts: { atPeriodEnd?: boolean } = {},
+  ) {
     const subscription = await this.prisma.subscription.findFirst({
       where: { id: subscriptionId, userId },
       include: { account: true },
@@ -252,27 +463,111 @@ export class SubscriptionsService {
       throw new ConflictException('Subscription is already canceled');
     }
 
-    // Try to suspend on the node first — we don't delete the DA account on
-    // customer-initiated cancel so they have time to download backups.
-    if (subscription.account && subscription.account.status === AccountStatus.ACTIVE) {
-      await this.suspendOnDa(subscription.account.serverId, subscription.account.daUsername).catch(
-        (err) => {
-          this.logger.warn(
-            `DA suspend failed during cancel for sub=${subscriptionId}: ${(err as Error).message}`,
-          );
-        },
-      );
+    // Nieopłacone / niedokończone zamówienia — zawsze natychmiastowe anulowanie
+    // (inaczej Stripe ustawia cancel_at_period_end i wiersz wisi jako PENDING_PAYMENT).
+    const isUnpaidDraft =
+      subscription.status === SubscriptionStatus.PENDING_PAYMENT ||
+      (subscription.status === SubscriptionStatus.PROVISIONING &&
+        subscription.provisioningStage === 'failed');
+    const atPeriodEnd = isUnpaidDraft ? false : (opts.atPeriodEnd ?? true);
+
+    const isStripeRecurring =
+      subscription.paymentSource === SubscriptionPaymentSource.STRIPE_CARD &&
+      !!subscription.stripeSubscriptionId;
+    const periodEnd = subscription.currentPeriodEnd;
+    const deferToPeriodEnd =
+      atPeriodEnd &&
+      subscription.status === SubscriptionStatus.ACTIVE &&
+      !!periodEnd &&
+      periodEnd > new Date();
+
+    // 1) Stop future charges in Stripe FIRST (so we never end up in a state
+    //    where DA is torn down but the card keeps being billed). Errors here
+    //    abort the whole cancel — the customer retries rather than risk a
+    //    silent over-charge.
+    if (isStripeRecurring) {
+      try {
+        await this.stripe.cancelSubscription(subscription.stripeSubscriptionId!, {
+          atPeriodEnd: deferToPeriodEnd,
+        });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        this.logger.error(
+          `Stripe cancel failed for sub=${subscriptionId} (atPeriodEnd=${deferToPeriodEnd}): ${msg}`,
+        );
+        throw new ConflictException(
+          'Nie udało się anulować subskrypcji w systemie płatności. Spróbuj ponownie za chwilę lub skontaktuj się z pomocą — Twoja karta nie została obciążona dodatkowo.',
+        );
+      }
     }
 
+    // 2a) Deferred cancel: keep hosting active until period end.
+    if (deferToPeriodEnd) {
+      const updated = await this.prisma.subscription.update({
+        where: { id: subscription.id },
+        data: { cancelAt: periodEnd! },
+      });
+      await this.prisma.subscriptionEvent.create({
+        data: {
+          subscriptionId: subscription.id,
+          type: 'CANCEL_SCHEDULED',
+          details: { actor: userId, source: 'CUSTOMER', effectiveAt: periodEnd!.toISOString() },
+        },
+      });
+      await this.audit.record({
+        action: 'SUBSCRIPTION_CANCEL_SCHEDULED',
+        userId,
+        actorUserId: userId,
+        details: { subscriptionId, effectiveAt: periodEnd!.toISOString() },
+      });
+      return updated;
+    }
+
+    // 2b) Immediate cancel: tear down now.
+    const updated = await this.tearDownCanceledSubscription(subscription, {
+      account: subscription.account,
+      source: 'CUSTOMER',
+      actorUserId: userId,
+    });
+    await this.audit.record({
+      action: 'SUBSCRIPTION_CANCELED',
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, immediate: true },
+    });
+    return updated;
+  }
+
+  /**
+   * Shared teardown used by immediate customer cancel and by the scheduler that
+   * finalizes a deferred (period-end) cancellation. Suspends the DA account
+   * (best-effort — we keep it so the customer can still pull backups) and marks
+   * the subscription CANCELED. Idempotent.
+   */
+  private async tearDownCanceledSubscription(
+    subscription: { id: string },
+    ctx: {
+      account: { id: string; serverId: string; daUsername: string; status: AccountStatus } | null;
+      source: 'CUSTOMER' | 'SCHEDULED';
+      actorUserId?: string;
+    },
+  ) {
+    if (ctx.account && ctx.account.status === AccountStatus.ACTIVE) {
+      await this.suspendOnDa(ctx.account.serverId, ctx.account.daUsername).catch((err) => {
+        this.logger.warn(
+          `DA suspend failed during cancel for sub=${subscription.id}: ${(err as Error).message}`,
+        );
+      });
+    }
     const now = new Date();
-    const updated = await this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx) => {
       const sub = await tx.subscription.update({
         where: { id: subscription.id },
         data: { status: SubscriptionStatus.CANCELED, canceledAt: now, cancelAt: now },
       });
-      if (subscription.account) {
+      if (ctx.account) {
         await tx.account.update({
-          where: { id: subscription.account.id },
+          where: { id: ctx.account.id },
           data: { status: AccountStatus.SUSPENDED },
         });
       }
@@ -280,20 +575,29 @@ export class SubscriptionsService {
         data: {
           subscriptionId: sub.id,
           type: 'CANCELED',
-          details: { actor: userId, source: 'CUSTOMER' },
+          details: { actor: ctx.actorUserId ?? null, source: ctx.source },
         },
       });
       return sub;
     });
+  }
 
-    await this.audit.record({
-      action: 'SUBSCRIPTION_CANCELED',
-      userId,
-      actorUserId: userId,
-      details: { subscriptionId },
+  /**
+   * Finalizes a deferred (period-end) cancellation for a wallet-paid sub. Called
+   * by the renewal scheduler when `cancelAt <= now`. Stripe subs are finalized
+   * by the `customer.subscription.deleted` webhook instead.
+   */
+  async finalizeScheduledCancellation(subscriptionId: string) {
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { id: subscriptionId },
+      include: { account: true },
     });
-
-    return updated;
+    if (!subscription) return null;
+    if (subscription.status === SubscriptionStatus.CANCELED) return subscription;
+    return this.tearDownCanceledSubscription(subscription, {
+      account: subscription.account,
+      source: 'SCHEDULED',
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -427,7 +731,7 @@ export class SubscriptionsService {
       hardDeleteAt,
       panelUrl,
     });
-    await this.mailer.send(message);
+    await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'BILLING' });
   }
 
   /**
@@ -452,6 +756,13 @@ export class SubscriptionsService {
       );
     }
 
+    // Audit F-05: the idempotency key must be deterministic — a retry or a
+    // double-click on "unsuspend + charge" has to map onto the SAME ledger
+    // entry. We anchor it to the period being paid for (currentPeriodEnd of
+    // the suspended subscription), never to wall-clock time.
+    const renewAnchor = subscription.currentPeriodEnd
+      ? subscription.currentPeriodEnd.toISOString()
+      : 'no-period';
     let renewalTxId: string | null = null;
     if (opts.chargeRenewal) {
       const debit = await this.walletLedger.debit({
@@ -459,7 +770,7 @@ export class SubscriptionsService {
         type: WalletTxType.CHARGE_SUBSCRIPTION,
         amount: subscription.priceAmount,
         description: `Manual renewal during unsuspend (${subscription.id})`,
-        idempotencyKey: `sub-${subscription.id}-manual-renew-${Date.now()}`,
+        idempotencyKey: `sub-${subscription.id}-manual-renew-${renewAnchor}`,
         subscriptionId: subscription.id,
       });
       renewalTxId = debit.id;
@@ -485,7 +796,7 @@ export class SubscriptionsService {
               type: WalletTxType.REFUND,
               amount: subscription.priceAmount,
               description: `Refund: failed unsuspend on DA for ${subscription.id}`,
-              idempotencyKey: `sub-${subscription.id}-manual-renew-refund-${Date.now()}`,
+              idempotencyKey: `sub-${subscription.id}-manual-renew-refund-${renewAnchor}`,
               subscriptionId: subscription.id,
             })
             .catch(() => undefined);
@@ -559,6 +870,9 @@ export class SubscriptionsService {
     subscriptionId: string;
     enabled: boolean;
     maxMonthlyCost?: number;
+    scaleCpu?: boolean;
+    scaleRam?: boolean;
+    scaleDisk?: boolean;
   }): Promise<Subscription> {
     const subscription = await this.prisma.subscription.findFirst({
       where: { id: opts.subscriptionId, userId: opts.userId },
@@ -577,6 +891,23 @@ export class SubscriptionsService {
       }
     }
 
+    const enablingFresh = opts.enabled && !subscription.autoscalingEnabled;
+    const scaleCpu = opts.enabled
+      ? (opts.scaleCpu ?? (enablingFresh ? true : subscription.autoscalingScaleCpu))
+      : subscription.autoscalingScaleCpu;
+    const scaleRam = opts.enabled
+      ? (opts.scaleRam ?? (enablingFresh ? true : subscription.autoscalingScaleRam))
+      : subscription.autoscalingScaleRam;
+    const scaleDisk = opts.enabled
+      ? (opts.scaleDisk ?? (enablingFresh ? true : subscription.autoscalingScaleDisk))
+      : subscription.autoscalingScaleDisk;
+
+    if (opts.enabled && !scaleCpu && !scaleRam && !scaleDisk) {
+      throw new BadRequestException(
+        'Przy włączonym autoskalowaniu wybierz co najmniej jeden zasób (CPU, RAM lub dysk).',
+      );
+    }
+
     const updated = await this.prisma.subscription.update({
       where: { id: subscription.id },
       data: {
@@ -586,6 +917,13 @@ export class SubscriptionsService {
             ? new Prisma.Decimal(opts.maxMonthlyCost.toFixed(2))
             : undefined,
         autoscalingDisabledReason: opts.enabled ? null : 'CUSTOMER_REQUEST',
+        ...(opts.enabled
+          ? {
+              autoscalingScaleCpu: scaleCpu,
+              autoscalingScaleRam: scaleRam,
+              autoscalingScaleDisk: scaleDisk,
+            }
+          : {}),
       },
     });
 
@@ -596,8 +934,14 @@ export class SubscriptionsService {
         details: {
           enabled: opts.enabled,
           maxMonthlyCost: opts.maxMonthlyCost ?? null,
+          scaleCpu,
+          scaleRam,
+          scaleDisk,
           previousEnabled: subscription.autoscalingEnabled,
           previousMaxMonthlyCost: subscription.autoscalingMaxCost.toString(),
+          previousScaleCpu: subscription.autoscalingScaleCpu,
+          previousScaleRam: subscription.autoscalingScaleRam,
+          previousScaleDisk: subscription.autoscalingScaleDisk,
         },
       },
     });
@@ -610,6 +954,9 @@ export class SubscriptionsService {
         subscriptionId: subscription.id,
         enabled: opts.enabled,
         maxMonthlyCost: opts.maxMonthlyCost ?? null,
+        scaleCpu,
+        scaleRam,
+        scaleDisk,
       },
     });
 
@@ -628,6 +975,9 @@ export class SubscriptionsService {
         autoscalingEnabled: true,
         autoscalingMaxCost: true,
         autoscalingDisabledReason: true,
+        autoscalingScaleCpu: true,
+        autoscalingScaleRam: true,
+        autoscalingScaleDisk: true,
       },
     });
     if (!subscription) throw new NotFoundException('Subscription not found');
@@ -648,18 +998,102 @@ export class SubscriptionsService {
     // 30-day spend total — handy for the panel header.
     const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const recentCharges = charges.filter((c) => c.createdAt >= since);
+    // Charges are debits stored as negative amounts; report spend as a positive total.
     const last30dSpend = recentCharges.reduce(
-      (acc, c) => acc + Number(c.amount),
+      (acc, c) => acc + Math.abs(Number(c.amount)),
       0,
     );
 
     return {
-      subscription,
-      events,
-      charges,
+      subscription: {
+        id: subscription.id,
+        autoscalingEnabled: subscription.autoscalingEnabled,
+        autoscalingMaxCost: subscription.autoscalingMaxCost.toString(),
+        autoscalingDisabledReason: subscription.autoscalingDisabledReason,
+        autoscalingScaleCpu: subscription.autoscalingScaleCpu,
+        autoscalingScaleRam: subscription.autoscalingScaleRam,
+        autoscalingScaleDisk: subscription.autoscalingScaleDisk,
+      },
+      events: events.map((e) => ({
+        id: e.id,
+        type: autoscalingDirectionToEventType(e.direction),
+        resource: e.resource,
+        fromValue: e.fromValue,
+        toValue: e.toValue,
+        costAccrued: e.costSnapshot?.toString() ?? '0',
+        reason: e.reason,
+        createdAt: e.createdAt.toISOString(),
+      })),
+      charges: charges.map((c) => ({
+        id: c.id,
+        amount: c.amount.toString(),
+        description: c.description,
+        createdAt: c.createdAt.toISOString(),
+      })),
       last30dSpend: last30dSpend.toFixed(2),
       currency: 'PLN',
     };
+  }
+
+  /**
+   * O-1 — terminal expiry of a free trial that wasn't converted. Suspends the
+   * DA account (best-effort) and moves the subscription to EXPIRED. Idempotent.
+   */
+  async expireTrial(subscriptionId: string): Promise<Subscription> {
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { id: subscriptionId },
+      include: { account: true },
+    });
+    if (!subscription) throw new NotFoundException('Subscription not found');
+    if (!subscription.isTrial) {
+      throw new ConflictException('Subscription is not a trial');
+    }
+    if (
+      subscription.status === SubscriptionStatus.EXPIRED ||
+      subscription.status === SubscriptionStatus.CANCELED
+    ) {
+      return subscription;
+    }
+
+    if (subscription.account && subscription.account.status !== AccountStatus.SUSPENDED) {
+      try {
+        await this.suspendOnDa(subscription.account.serverId, subscription.account.daUsername);
+      } catch (err) {
+        this.logger.error(
+          `Trial expiry: DA suspend failed for sub=${subscriptionId}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const next = await tx.subscription.update({
+        where: { id: subscriptionId },
+        data: { status: SubscriptionStatus.EXPIRED },
+      });
+      if (subscription.account) {
+        await tx.account.update({
+          where: { id: subscription.account.id },
+          data: { status: AccountStatus.SUSPENDED },
+        });
+      }
+      await tx.subscriptionEvent.create({
+        data: {
+          subscriptionId,
+          type: 'TRIAL_EXPIRED',
+          details: { trialEndsAt: subscription.trialEndsAt?.toISOString() ?? null },
+        },
+      });
+      return next;
+    });
+
+    await this.audit.record({
+      action: 'TRIAL_EXPIRED',
+      userId: subscription.userId,
+      details: { subscriptionId },
+    });
+    return updated;
   }
 
   private async suspendOnDa(serverId: string, daUsername: string) {
@@ -676,9 +1110,112 @@ export class SubscriptionsService {
   // Helpers
   // ---------------------------------------------------------------------------
 
+  /** BILL-1 — % zniżki od ceny listowej, zaokrąglone do 2 miejsc (HALF_UP). */
+  private applyPct(listPrice: Prisma.Decimal, pct: number): Prisma.Decimal {
+    const p = Math.min(Math.max(pct, 0), 100);
+    return listPrice
+      .mul(new Prisma.Decimal(100 - p))
+      .div(100)
+      .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+  }
+
+  /**
+   * BILL-1 — wycena z regułą NIE-ŁĄCZENIA: porównujemy rabat startowy (z ustawień
+   * oferty, tylko portfel) z ewentualnym kodem rabatowym i stosujemy LEPSZY.
+   * Rabat startowy obejmuje pierwsze N okresów (introDiscountPeriods); na
+   * subskrypcji zapisujemy ile okresów rabatu zostaje po pierwszej opłacie.
+   */
+  private async resolveSubscriptionPricing(
+    userId: string,
+    listPrice: Prisma.Decimal,
+    paymentSource: SubscriptionPaymentSource,
+    interval: BillingInterval,
+    promoCode?: string,
+  ): Promise<{
+    listPrice: Prisma.Decimal;
+    chargeAmount: Prisma.Decimal;
+    appliedPromoCodeId: string | null;
+    introDiscountPct: number;
+    introDiscountPeriodsLeft: number;
+  }> {
+    const isWallet = paymentSource === SubscriptionPaymentSource.WALLET;
+
+    // Rabat startowy z ustawień — tylko portfel (jak istniejący silnik promo).
+    const offer = await this.platformSettings.getTrialOffer();
+    const startPct =
+      isWallet && offer.cardEnabled
+        ? interval === BillingInterval.MONTH
+          ? offer.monthlyDiscountPct
+          : offer.annualDiscountPct
+        : 0;
+
+    // Rabat z wpisanego kodu (tylko portfel).
+    let codePct = 0;
+    let codePreview: Awaited<ReturnType<PromoService['previewServicePercentOff']>> | null = null;
+    if (promoCode?.trim()) {
+      if (!isWallet) {
+        throw new BadRequestException(
+          'Kod rabatowy przy zakupie usługi działa tylko z płatnością z portfela (K).',
+        );
+      }
+      codePreview = await this.promo.previewServicePercentOff(userId, promoCode, listPrice);
+      codePct = codePreview.percent;
+    }
+
+    // NIE ŁĄCZYMY — wygrywa wyższy. Remis → kod (klient go wpisał świadomie).
+    if (codePreview && codePct >= startPct) {
+      return {
+        listPrice,
+        chargeAmount: codePreview.discountedAmount,
+        appliedPromoCodeId: codePreview.promoCodeId,
+        introDiscountPct: 0,
+        introDiscountPeriodsLeft: 0,
+      };
+    }
+    if (startPct > 0) {
+      return {
+        listPrice,
+        chargeAmount: this.applyPct(listPrice, startPct),
+        appliedPromoCodeId: null,
+        introDiscountPct: startPct,
+        // pierwsza opłata zużywa 1 okres rabatu
+        introDiscountPeriodsLeft: Math.max(offer.introDiscountPeriods - 1, 0),
+      };
+    }
+    return {
+      listPrice,
+      chargeAmount: listPrice,
+      appliedPromoCodeId: null,
+      introDiscountPct: 0,
+      introDiscountPeriodsLeft: 0,
+    };
+  }
+
+  private async finalizeServicePromoRedemption(subscriptionId: string, userId: string) {
+    const sub = await this.prisma.subscription.findUnique({
+      where: { id: subscriptionId },
+      select: {
+        appliedPromoCodeId: true,
+        listPriceAmount: true,
+        priceAmount: true,
+      },
+    });
+    if (!sub?.appliedPromoCodeId) return;
+    const listPrice = sub.listPriceAmount ?? sub.priceAmount;
+    await this.promo.recordServicePromoRedemption({
+      userId,
+      promoCodeId: sub.appliedPromoCodeId,
+      subscriptionId,
+      listPrice,
+      chargedAmount: sub.priceAmount,
+    });
+  }
+
   private async payFromWalletAndProvision(
     subscriptionId: string,
     amount: Prisma.Decimal,
+    listPrice: Prisma.Decimal,
+    appliedPromoCodeId: string | null,
     dto: CreateSubscriptionDto,
     userId: string,
   ): Promise<CreatedSubscription> {
@@ -706,7 +1243,7 @@ export class SubscriptionsService {
         await this.provisionQueue.enqueueWalletProvision({
           subscriptionId,
           userId,
-          domain: dto.domain,
+          domain: dto.domain!,
           preferredRegion: dto.preferredRegion ?? null,
           refundAmount: amount,
         });
@@ -714,9 +1251,12 @@ export class SubscriptionsService {
       }
       const provisioning = await this.provisioning.provisionForSubscription(
         subscriptionId,
-        { domain: dto.domain, preferredRegion: dto.preferredRegion ?? null },
+        { domain: dto.domain!, preferredRegion: dto.preferredRegion ?? null },
         userId,
       );
+      if (appliedPromoCodeId) {
+        await this.finalizeServicePromoRedemption(subscriptionId, userId);
+      }
       return { subscription: provisioning.subscription, provisioning };
     } catch (err) {
       // Provisioning failed — refund the wallet so the customer isn't out of
@@ -760,17 +1300,94 @@ export class SubscriptionsService {
       await this.provisionQueue.enqueueManualProvision({
         subscriptionId,
         userId,
-        domain: dto.domain,
+        domain: dto.domain!,
         preferredRegion: dto.preferredRegion ?? null,
       });
       return { subscription, provisioningQueued: true };
     }
     const provisioning = await this.provisioning.provisionForSubscription(
       subscriptionId,
-      { domain: dto.domain, preferredRegion: dto.preferredRegion ?? null },
+      { domain: dto.domain!, preferredRegion: dto.preferredRegion ?? null },
       userId,
     );
     return { subscription: provisioning.subscription, provisioning };
+  }
+
+  /**
+   * EMM — aktywacja produktu aplikacyjnego (email-marketing) bez konta DA.
+   * Brak węzła, brak domeny, brak provisioning queue: opcjonalnie pobieramy z
+   * portfela i od razu ustawiamy ACTIVE. Idempotentny debit (klucz
+   * `sub-<id>-initial`); przy braku środków rollback do PENDING_PAYMENT.
+   */
+  private async activateAppLevelSubscription(
+    subscriptionId: string,
+    dto: CreateSubscriptionDto,
+    userId: string,
+    opts: { charge: Prisma.Decimal | null; appliedPromoCodeId: string | null },
+  ): Promise<CreatedSubscription> {
+    if (opts.charge && opts.charge.greaterThan(0)) {
+      await this.walletLedger.debit({
+        userId,
+        type: WalletTxType.CHARGE_SUBSCRIPTION,
+        amount: opts.charge,
+        description: `Subscription ${subscriptionId} (initial payment)`,
+        idempotencyKey: `sub-${subscriptionId}-initial`,
+        subscriptionId,
+      });
+    }
+
+    try {
+      const now = new Date();
+      const subscription = await this.prisma.subscription.update({
+        where: { id: subscriptionId },
+        data: {
+          status: SubscriptionStatus.ACTIVE,
+          currentPeriodStart: now,
+          currentPeriodEnd: addInterval(now, dto.interval),
+        },
+      });
+
+      await this.prisma.subscriptionEvent.create({
+        data: {
+          subscriptionId,
+          type: 'ACTIVATED',
+          details: { appLevel: true, productKind: 'EMAIL_MARKETING' },
+        },
+      });
+      await this.audit.record({
+        action: 'SUBSCRIPTION_ACTIVATED',
+        userId,
+        actorUserId: userId,
+        details: { subscriptionId, appLevel: true },
+      });
+
+      if (opts.appliedPromoCodeId) {
+        await this.finalizeServicePromoRedemption(subscriptionId, userId);
+      }
+
+      void this.ecoPoints.safeAward(`subscription_first_paid:${subscriptionId}`, async () => {
+        await this.ecoPoints.awardSubscriptionFirstPaid(this.prisma, userId, subscriptionId);
+      });
+
+      return { subscription };
+    } catch (err) {
+      // Aktywacja po debecie zawiodła — zwróć środki i cofnij do PENDING_PAYMENT.
+      if (opts.charge && opts.charge.greaterThan(0)) {
+        await this.walletLedger.credit({
+          userId,
+          type: WalletTxType.REFUND,
+          amount: opts.charge,
+          description: `Auto-refund: activation failed for ${subscriptionId}`,
+          idempotencyKey: `sub-${subscriptionId}-initial-refund`,
+          subscriptionId,
+        });
+      }
+      await this.prisma.subscription.update({
+        where: { id: subscriptionId },
+        data: { status: SubscriptionStatus.PENDING_PAYMENT },
+      });
+      throw err;
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -828,7 +1445,7 @@ export class SubscriptionsService {
         subscriptionId,
         type: 'PROVISIONING_INTENT',
         details: {
-          domain: dto.domain,
+          domain: dto.domain ?? null,
           preferredRegion: dto.preferredRegion ?? null,
         },
       },
@@ -840,7 +1457,7 @@ export class SubscriptionsService {
       metadata: {
         verrisSubscriptionId: subscriptionId,
         verrisUserId: userId,
-        domain: dto.domain,
+        domain: dto.domain ?? '',
         preferredRegion: dto.preferredRegion ?? '',
         planSlug: plan.slug,
         interval: dto.interval,
@@ -888,6 +1505,100 @@ export class SubscriptionsService {
       checkoutRedirectUrl,
       paymentIntentClientSecret,
     };
+  }
+
+  /**
+   * Hosted Invoice URL for a subscription still in PENDING_PAYMENT (Stripe).
+   * Lets the customer finish the first payment from the panel.
+   */
+  async getPaymentRetryUrl(userId: string, subscriptionId: string): Promise<{ url: string }> {
+    const subscription = await this.prisma.subscription.findFirst({
+      where: { id: subscriptionId, userId },
+    });
+    if (!subscription) throw new NotFoundException('Subscription not found');
+    if (subscription.status !== SubscriptionStatus.PENDING_PAYMENT) {
+      throw new BadRequestException(
+        'Link do płatności jest dostępny tylko dla nieopłaconych zamówień.',
+      );
+    }
+    if (
+      subscription.paymentSource !== SubscriptionPaymentSource.STRIPE_CARD ||
+      !subscription.stripeSubscriptionId
+    ) {
+      throw new BadRequestException(
+        'Ta usługa nie oczekuje na płatność kartą — doładuj portfel i zamów ponownie lub anuluj zamówienie.',
+      );
+    }
+
+    const stripeSub = await this.stripe.retrieveSubscription(subscription.stripeSubscriptionId);
+    const latest = stripeSub.latest_invoice;
+    const url =
+      latest && typeof latest !== 'string' ? (latest.hosted_invoice_url ?? null) : null;
+    if (!url) {
+      throw new BadRequestException(
+        'Brak aktywnej faktury Stripe — anuluj zamówienie i utwórz usługę ponownie.',
+      );
+    }
+    return { url };
+  }
+
+  /**
+   * Auto-cleanup: nieopłacone zamówienia bez konta hostingowego starsze niż 48h.
+   */
+  async abandonStalePendingPayments(): Promise<{ canceled: number }> {
+    const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000);
+    const stale = await this.prisma.subscription.findMany({
+      where: {
+        status: SubscriptionStatus.PENDING_PAYMENT,
+        account: null,
+        createdAt: { lt: cutoff },
+      },
+      take: 100,
+    });
+
+    let canceled = 0;
+    for (const sub of stale) {
+      try {
+        await this.cancelSystem(sub.id, 'ABANDONED_UNPAID_TIMEOUT');
+        canceled += 1;
+      } catch (err) {
+        this.logger.warn(
+          `abandonStalePendingPayments failed sub=${sub.id}: ${(err as Error).message}`,
+        );
+      }
+    }
+    if (canceled > 0) {
+      this.logger.log(`Abandoned ${canceled} stale PENDING_PAYMENT subscription(s)`);
+    }
+    return { canceled };
+  }
+
+  /** System cancel (cron) — same teardown as customer immediate cancel. */
+  private async cancelSystem(subscriptionId: string, reason: string) {
+    const subscription = await this.prisma.subscription.findUnique({
+      where: { id: subscriptionId },
+      include: { account: true },
+    });
+    if (!subscription || subscription.status === SubscriptionStatus.CANCELED) return;
+
+    if (
+      subscription.paymentSource === SubscriptionPaymentSource.STRIPE_CARD &&
+      subscription.stripeSubscriptionId
+    ) {
+      await this.stripe.cancelSubscription(subscription.stripeSubscriptionId, {
+        atPeriodEnd: false,
+      });
+    }
+
+    await this.tearDownCanceledSubscription(subscription, {
+      account: subscription.account,
+      source: 'SCHEDULED',
+    });
+    await this.audit.record({
+      action: 'SUBSCRIPTION_CANCELED',
+      userId: subscription.userId,
+      details: { subscriptionId, immediate: true, reason },
+    });
   }
 
   private async ensureStripeCustomer(user: {
@@ -982,6 +1693,7 @@ export class SubscriptionsService {
     metadataSubscriptionId?: string | null;
     periodStart?: Date;
     periodEnd?: Date;
+    stripeInvoiceId?: string;
   }): Promise<Subscription | null> {
     const sub = await this.findByStripeSubscriptionId(
       opts.stripeSubscriptionId,
@@ -995,6 +1707,15 @@ export class SubscriptionsService {
     }
 
     if (sub.status === SubscriptionStatus.ACTIVE) {
+      if (opts.stripeInvoiceId) {
+        void this.ecoPoints.safeAward(`subscription_renewal:${opts.stripeInvoiceId}`, async () => {
+          await this.ecoPoints.awardSubscriptionRenewal(this.prisma, {
+            userId: sub.userId,
+            subscriptionId: sub.id,
+            referenceId: opts.stripeInvoiceId!,
+          });
+        });
+      }
       // Already activated — just extend the period if Stripe gave us a new one.
       if (opts.periodEnd && (!sub.currentPeriodEnd || opts.periodEnd > sub.currentPeriodEnd)) {
         await this.prisma.subscription.update({
@@ -1049,6 +1770,42 @@ export class SubscriptionsService {
 
     if (sub.status === SubscriptionStatus.PENDING_PAYMENT) {
       // First-time activation — provision DA.
+      if (sub.paymentSource === SubscriptionPaymentSource.STRIPE_CARD) {
+        void this.ecoPoints.safeAward(`stripe_card:${sub.id}`, async () => {
+          await this.ecoPoints.awardStripeCardLinked(this.prisma, sub.userId, sub.id);
+        });
+      }
+
+      // EMM — produkt aplikacyjny (email-marketing) nie ma konta DA: po
+      // pierwszej płatności Stripe od razu ACTIVE, bez provisioningu/domeny.
+      const planForActivation = await this.prisma.plan.findUnique({
+        where: { id: sub.planId },
+        select: { productKind: true },
+      });
+      if ((planForActivation?.productKind as string | undefined) === 'EMAIL_MARKETING') {
+        const activated = await this.prisma.subscription.update({
+          where: { id: sub.id },
+          data: {
+            status: SubscriptionStatus.ACTIVE,
+            currentPeriodStart: opts.periodStart ?? new Date(),
+            currentPeriodEnd: opts.periodEnd ?? sub.currentPeriodEnd,
+          },
+        });
+        await this.prisma.subscriptionEvent.create({
+          data: {
+            subscriptionId: sub.id,
+            type: 'ACTIVATED',
+            details: { source: 'STRIPE', appLevel: true, productKind: 'EMAIL_MARKETING' },
+          },
+        });
+        await this.audit.record({
+          action: 'SUBSCRIPTION_ACTIVATED',
+          userId: sub.userId,
+          details: { subscriptionId: sub.id, appLevel: true, stripeSubscriptionId: opts.stripeSubscriptionId },
+        });
+        return activated;
+      }
+
       const intent = await this.prisma.subscriptionEvent.findFirst({
         where: { subscriptionId: sub.id, type: 'PROVISIONING_INTENT' },
         orderBy: { createdAt: 'desc' },
@@ -1303,7 +2060,7 @@ export class SubscriptionsService {
           panelUrl,
         });
 
-    await this.mailer.send(message);
+    await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'BILLING' });
   }
 }
 
@@ -1312,6 +2069,21 @@ function addInterval(from: Date, interval: BillingInterval): Date {
   if (interval === BillingInterval.MONTH) next.setUTCMonth(next.getUTCMonth() + 1);
   else next.setUTCFullYear(next.getUTCFullYear() + 1);
   return next;
+}
+
+function autoscalingDirectionToEventType(direction: AutoscalingDirection): string {
+  switch (direction) {
+    case AutoscalingDirection.UP:
+      return 'SCALE_UP';
+    case AutoscalingDirection.DOWN:
+      return 'SCALE_DOWN';
+    case AutoscalingDirection.ENABLED:
+      return 'AUTOSCALING_ENABLED';
+    case AutoscalingDirection.DISABLED:
+      return 'AUTOSCALING_DISABLED';
+    default:
+      return direction;
+  }
 }
 
 // Suppress unused-warning for ForbiddenException — reserved for ownership errors

@@ -9,6 +9,7 @@ interface InitialConfig {
   daPort: number;
   daUsername: string;
   daUseTls: boolean;
+  daAllowInvalidCert?: boolean;
   daPasswordSet: boolean;
 }
 
@@ -24,6 +25,9 @@ export function DirectAdminConfigForm({
   const [daUsername, setDaUsername] = useState(initial.daUsername);
   const [daPassword, setDaPassword] = useState("");
   const [daUseTls, setDaUseTls] = useState<boolean>(initial.daUseTls);
+  const [daAllowInvalidCert, setDaAllowInvalidCert] = useState<boolean>(
+    initial.daAllowInvalidCert ?? false,
+  );
   const [hasStoredPassword, setHasStoredPassword] = useState<boolean>(initial.daPasswordSet);
 
   const [isSaving, startSaveTransition] = useTransition();
@@ -47,6 +51,7 @@ export function DirectAdminConfigForm({
         daPort,
         daUsername,
         daUseTls,
+        daAllowInvalidCert,
         daPassword: daPassword || undefined,
       });
       if ("error" in result && result.error) {
@@ -153,6 +158,30 @@ export function DirectAdminConfigForm({
           />
           Wymuszaj HTTPS (TLS)
         </label>
+
+        <label className="flex items-start gap-2 text-sm text-muted-foreground md:col-span-2">
+          <input
+            type="checkbox"
+            checked={daAllowInvalidCert}
+            onChange={(e) => setDaAllowInvalidCert(e.target.checked)}
+            className="h-4 w-4 mt-0.5 rounded border-white/20 bg-white/5"
+          />
+          <span>
+            Akceptuj niezweryfikowany certyfikat TLS (self-signed){" "}
+            <span className="text-amber-300">
+              — tylko na czas onboardingu. Docelowo wdroż certyfikat na :2222 (skrypt{" "}
+              <code className="text-amber-200">node-directadmin-tls-http01.sh</code>) i wyłącz tę
+              opcję — połączenie bez weryfikacji jest podatne na MITM.
+            </span>
+          </span>
+        </label>
+        {daAllowInvalidCert && (
+          <div className="md:col-span-2 flex items-center gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+            Weryfikacja certyfikatu DA jest WYŁĄCZONA dla tego węzła — audyt węzła będzie to
+            flagował do czasu wdrożenia poprawnego certyfikatu.
+          </div>
+        )}
 
         <div className="md:col-span-2 flex items-center gap-3 flex-wrap pt-2">
           <button

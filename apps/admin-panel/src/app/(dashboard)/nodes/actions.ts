@@ -8,6 +8,15 @@ import type {
   BootstrapScriptResponseDto,
   UpdateDirectAdminConfigInput,
   DirectAdminTestResultDto,
+  NodeTaskDto,
+  QueueHostingProfileTaskInput,
+  TasksAgentInstallScriptDto,
+  NodeAuditReportDto,
+  NodeRepairResultDto,
+  NodeStackReadinessDto,
+  EnsureNodeStackInput,
+  NodeNameserversDto,
+  UpdateNameserversInput,
 } from "@verris/contracts";
 import { adminApi, AdminApiError } from "@/lib/api";
 
@@ -49,6 +58,73 @@ export async function generateBootstrapScript(id: string) {
     return { data };
   } catch (err) {
     return { error: extractError(err) };
+  }
+}
+
+export interface BootstrapEventDto {
+  phase: string;
+  status: string;
+  message: string | null;
+  createdAt: string;
+}
+export interface BootstrapStatusDto {
+  serverId: string;
+  phase: string | null;
+  error: string | null;
+  startedAt: string | null;
+  updatedAt: string | null;
+  events: BootstrapEventDto[];
+}
+
+export async function fetchBootstrapStatus(id: string) {
+  try {
+    return { data: await adminApi<BootstrapStatusDto>(`/admin/nodes/${id}/bootstrap`) };
+  } catch (err) {
+    return { data: null, error: extractError(err) };
+  }
+}
+
+export async function saveNodeLicenseKeys(
+  id: string,
+  keys: { daLicenseKey?: string; clActivationKey?: string; lsSerial?: string },
+) {
+  try {
+    await adminApi(`/admin/nodes/${id}/bootstrap/license-keys`, { method: "PUT", body: keys });
+    return { ok: true as const };
+  } catch (err) {
+    return { ok: false as const, error: extractError(err) };
+  }
+}
+
+export async function generateBootstrapOneLiner(id: string) {
+  try {
+    const data = await adminApi<{ oneLiner: string; expiresAt: string }>(
+      `/admin/nodes/${id}/bootstrap/one-liner`,
+      { method: "POST" },
+    );
+    return { data };
+  } catch (err) {
+    return { data: null, error: extractError(err) };
+  }
+}
+
+export async function updateNode(id: string) {
+  try {
+    const data = await adminApi<NodeTaskDto>(`/admin/servers/${id}/update`, { method: "POST" });
+    return { data };
+  } catch (err) {
+    return { data: null, error: extractError(err) };
+  }
+}
+
+export async function updateFleet() {
+  try {
+    const data = await adminApi<{ queued: number; skipped: number }>(`/admin/servers/fleet-update`, {
+      method: "POST",
+    });
+    return { data };
+  } catch (err) {
+    return { data: null, error: extractError(err) };
   }
 }
 
@@ -108,6 +184,319 @@ export async function setNodeMaintenance(
     return { data };
   } catch (err) {
     return { error: extractError(err) };
+  }
+}
+
+export async function setNodeCapacityPolicy(
+  id: string,
+  input: {
+    acceptsNewAccounts?: boolean;
+    maxAccounts?: number | null;
+    reservedHeadroomPercent?: number;
+  },
+) {
+  try {
+    const data = await adminApi<ServerSummaryDto>(
+      `/admin/servers/${id}/capacity-policy`,
+      { method: "POST", body: input },
+    );
+    revalidatePath("/nodes");
+    revalidatePath(`/nodes/${id}`);
+    return { data };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
+}
+
+export interface MigrationPlanRow {
+  accountId: string;
+  daUsername: string;
+  domain: string;
+  status: string;
+  planName: string;
+  footprint: { cpu: number; ram: number; disk: number };
+  suggestedTarget: { id: string; name: string } | null;
+}
+
+export interface MigrationPlan {
+  sourceId: string;
+  sourceName: string;
+  acceptsNewAccounts: boolean;
+  accounts: MigrationPlanRow[];
+  totalAccounts: number;
+  unplaceable: number;
+  targetNodeCount: number;
+}
+
+export async function drainNode(id: string, reason?: string) {
+  try {
+    const data = await adminApi<ServerSummaryDto>(`/admin/servers/${id}/drain`, {
+      method: "POST",
+      body: { reason },
+    });
+    revalidatePath("/nodes");
+    revalidatePath(`/nodes/${id}`);
+    return { data };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
+}
+
+export async function fetchMigrationPlan(id: string) {
+  try {
+    return { data: await adminApi<MigrationPlan>(`/admin/servers/${id}/migration-plan`) };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
+}
+
+export async function queueHostingProfile(
+  id: string,
+  input: QueueHostingProfileTaskInput = {},
+) {
+  try {
+    const data = await adminApi<NodeTaskDto>(`/admin/servers/${id}/hosting-profile/run`, {
+      method: "POST",
+      body: input,
+    });
+    revalidatePath(`/nodes/${id}`);
+    return { data };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
+}
+
+export async function fetchHostingProfileTasks(id: string) {
+  try {
+    const data = await adminApi<NodeTaskDto[]>(`/admin/servers/${id}/hosting-profile/tasks`);
+    return { data };
+  } catch (err) {
+    return { error: extractError(err), data: [] as NodeTaskDto[] };
+  }
+}
+
+// VER-UPG — zlecenie upgrade silnika MariaDB węzła (11.4/11.8/12.3) + historia.
+export async function queueDbUpgrade(id: string, version: string) {
+  try {
+    const data = await adminApi<NodeTaskDto>(`/admin/servers/${id}/db-upgrade`, {
+      method: "POST",
+      body: { version },
+    });
+    revalidatePath(`/nodes/${id}`);
+    return { data };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
+}
+
+export async function fetchDbUpgradeTasks(id: string) {
+  try {
+    const data = await adminApi<NodeTaskDto[]>(`/admin/servers/${id}/db-upgrade/tasks`);
+    return { data };
+  } catch (err) {
+    return { error: extractError(err), data: [] as NodeTaskDto[] };
+  }
+}
+
+export async function fetchTasksAgentInstallScript(id: string) {
+  try {
+    const data = await adminApi<TasksAgentInstallScriptDto>(
+      `/admin/servers/${id}/tasks-agent/install-script`,
+    );
+    return { data };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
+}
+
+export async function fetchNodeStackReadiness(id: string) {
+  try {
+    const data = await adminApi<NodeStackReadinessDto>(`/admin/servers/${id}/stack-readiness`);
+    return { data };
+  } catch (err) {
+    return { error: extractError(err), data: null };
+  }
+}
+
+export async function repairNodeStackPackages(id: string) {
+  try {
+    const data = await adminApi<{ synced: string[] }>(
+      `/admin/servers/${id}/stack-readiness/repair-packages`,
+      { method: "POST" },
+    );
+    revalidatePath(`/nodes/${id}`);
+    return { data };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
+}
+
+export async function ensureNodeStack(id: string, input: EnsureNodeStackInput = {}) {
+  try {
+    const data = await adminApi<NodeTaskDto>(`/admin/servers/${id}/stack-readiness/ensure`, {
+      method: "POST",
+      body: { skipBuild: input.skipBuild !== false },
+    });
+    revalidatePath(`/nodes/${id}`);
+    return { data };
+  } catch (err) {
+    return { error: extractError(err) };
+  }
+}
+
+export async function fetchNodeAudit(id: string) {
+  try {
+    const data = await adminApi<NodeAuditReportDto>(`/admin/servers/${id}/audit`);
+    return { data };
+  } catch (err) {
+    return { error: extractError(err), data: null };
+  }
+}
+
+export async function fetchNodeNameservers(id: string) {
+  try {
+    return { data: await adminApi<NodeNameserversDto>(`/admin/servers/${id}/nameservers`) };
+  } catch (err) {
+    return { data: null, error: extractError(err) };
+  }
+}
+
+export async function updateNodeNameservers(id: string, input: UpdateNameserversInput) {
+  try {
+    const data = await adminApi<NodeNameserversDto>(`/admin/servers/${id}/nameservers`, {
+      method: "PATCH",
+      body: input,
+    });
+    revalidatePath(`/nodes/${id}`);
+    return { data };
+  } catch (err) {
+    return { data: null, error: extractError(err) };
+  }
+}
+
+export interface NsProvisionStepDto {
+  step: string;
+  status: "created" | "updated" | "unchanged" | "skipped" | "error";
+  detail?: string;
+}
+
+export interface NsProvisionResultDto {
+  ns1: string;
+  ns2: string;
+  ipv4: string;
+  ipv6: string | null;
+  baseDomain: string;
+  steps: NsProvisionStepDto[];
+  ok: boolean;
+}
+
+export async function fetchNodeDnsStatus() {
+  try {
+    return {
+      data: await adminApi<{ ovhConfigured: boolean }>(`/admin/servers/dns/status`),
+    };
+  } catch (err) {
+    return { data: null, error: extractError(err) };
+  }
+}
+
+export async function provisionNodeNameservers(id: string, ipv6?: string) {
+  try {
+    const data = await adminApi<NsProvisionResultDto>(
+      `/admin/servers/${id}/nameservers/provision`,
+      { method: "POST", body: ipv6 ? { ipv6 } : {} },
+    );
+    revalidatePath(`/nodes/${id}`);
+    return { data };
+  } catch (err) {
+    return { data: null, error: extractError(err) };
+  }
+}
+
+export interface NodeAccountRow {
+  id: string;
+  daUsername: string;
+  domain: string;
+  status: string;
+  cpuLimit: number;
+  ramLimitMb: number;
+  diskLimitMb: number;
+  scaledCpu: number;
+  scaledRamMb: number;
+  scaledDiskMb: number;
+  subscriptionId: string;
+  subscriptionStatus: string | null;
+  planName: string | null;
+  ownerEmail: string | null;
+  latest: null | {
+    bucketStart: string;
+    cpuUsageAvg: number;
+    memUsageAvgMb: number;
+    diskUsageMb: number;
+    ioUsageKbps: number;
+  };
+}
+
+export interface NodeAccountsResponse {
+  serverId: string;
+  count: number;
+  accounts: NodeAccountRow[];
+}
+
+export interface NodeUsageResponse {
+  window: string;
+  server: {
+    id: string;
+    name: string | null;
+    ipAddress: string | null;
+    hostname: string | null;
+    totalCpuCores: number | null;
+    totalMemoryMb: number | null;
+    totalDiskMb: number | null;
+    allocatedCpu: number;
+    allocatedMemory: number;
+    allocatedDisk: number;
+  };
+  accountCount: number;
+  activeAccountCount: number;
+  scaledTotals: { cpu: number; ramMb: number; diskMb: number };
+  series: Array<{
+    bucketStart: string;
+    cpuUsageAvg: number;
+    memUsageAvgMb: number;
+    diskUsageMb: number;
+    ioUsageKbps: number;
+  }>;
+  latest: null | {
+    bucketStart: string;
+    cpuUsageAvg: number;
+    memUsageAvgMb: number;
+    diskUsageMb: number;
+    ioUsageKbps: number;
+  };
+}
+
+export async function fetchNodeAccounts(id: string): Promise<NodeAccountsResponse> {
+  return adminApi<NodeAccountsResponse>(`/admin/servers/${id}/accounts`);
+}
+
+export async function fetchNodeUsage(
+  id: string,
+  window: "24h" | "7d" = "24h",
+): Promise<NodeUsageResponse> {
+  return adminApi<NodeUsageResponse>(`/admin/servers/${id}/usage?window=${window}`);
+}
+
+export async function repairNode(id: string, actionId: string, confirm?: string) {
+  try {
+    const data = await adminApi<NodeRepairResultDto>(
+      `/admin/servers/${id}/repair/${actionId}`,
+      { method: "POST", body: { confirm } },
+    );
+    revalidatePath(`/nodes/${id}`);
+    return { data };
+  } catch (err) {
+    return { error: extractError(err), data: null };
   }
 }
 

@@ -4,8 +4,19 @@ import { ArrowLeft, Server, AlertCircle, Cpu, MemoryStick, HardDrive, Clock, Glo
 import { fetchServer } from "../actions";
 import { ApproveServerButton } from "./approve-button";
 import { BootstrapScriptPanel } from "./bootstrap-script-panel";
+import { NodeBootstrapProgress } from "./node-bootstrap-progress";
 import { DirectAdminConfigForm } from "./directadmin-form";
+import { HostingProfilePanel } from "./hosting-profile-panel";
+import { NodeStackReadinessPanel } from "./node-stack-readiness-panel";
+import { DbUpgradePanel } from "./db-upgrade-panel";
+import { WafPanel } from "./waf-panel";
 import { MaintenanceToggle } from "./maintenance-toggle";
+import { CapacityPolicyPanel } from "./capacity-policy-panel";
+import { DrainPanel } from "./drain-panel";
+import { NodeAuditPanel } from "./node-audit-panel";
+import { NodeInsightsPanel } from "./node-insights-panel";
+import { NameserversForm } from "./nameservers-form";
+import { DaSsoButton } from "./da-sso-button";
 
 export const dynamic = "force-dynamic";
 
@@ -61,7 +72,12 @@ export default async function ServerDetailPage({
           </div>
         </div>
 
-        {isPending && <ApproveServerButton serverId={server.id} />}
+        <div className="flex items-center gap-3">
+          {server.daHost ? (
+            <DaSsoButton serverId={server.id} sshHost={server.hostname ?? server.ipAddress ?? null} />
+          ) : null}
+          {isPending && <ApproveServerButton serverId={server.id} />}
+        </div>
       </header>
 
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -109,6 +125,19 @@ export default async function ServerDetailPage({
         {canBootstrap && <BootstrapScriptPanel serverId={server.id} />}
       </section>
 
+      {canBootstrap && (
+        <section id="bootstrap" className="scroll-mt-24">
+          <h2 className="mb-3 text-lg font-bold text-white">Zaawansowany kreator podpięcia (verris-bootstrap)</h2>
+          <NodeBootstrapProgress serverId={server.id} />
+        </section>
+      )}
+
+      {(server.status === "ACTIVE" || server.status === "MAINTENANCE") && (
+        <div id="zuzycie" className="scroll-mt-24">
+          <NodeInsightsPanel serverId={server.id} />
+        </div>
+      )}
+
       <MaintenanceToggle
         serverId={server.id}
         status={server.status}
@@ -116,16 +145,67 @@ export default async function ServerDetailPage({
         maintenanceStartedAt={server.maintenanceStartedAt}
       />
 
-      <DirectAdminConfigForm
-        serverId={server.id}
-        initial={{
-          daHost: server.daHost ?? "",
-          daPort: server.daPort ?? 2222,
-          daUsername: server.daUsername ?? "",
-          daUseTls: server.daUseTls,
-          daPasswordSet: server.daPasswordSet,
-        }}
-      />
+      {(server.status === "ACTIVE" || server.status === "MAINTENANCE") && (
+        <CapacityPolicyPanel
+          serverId={server.id}
+          acceptsNewAccounts={server.acceptsNewAccounts}
+          maxAccounts={server.maxAccounts}
+          reservedHeadroomPercent={server.reservedHeadroomPercent}
+          accountCount={server._count?.accounts ?? 0}
+        />
+      )}
+
+      {(server.status === "ACTIVE" || server.status === "MAINTENANCE") && (
+        <DrainPanel serverId={server.id} acceptsNewAccounts={server.acceptsNewAccounts} />
+      )}
+
+      <div id="directadmin" className="scroll-mt-24">
+        <DirectAdminConfigForm
+          serverId={server.id}
+          initial={{
+            daHost: server.daHost ?? "",
+            daPort: server.daPort ?? 2222,
+            daUsername: server.daUsername ?? "",
+            daUseTls: server.daUseTls,
+            daAllowInvalidCert: server.daAllowInvalidCert ?? false,
+            daPasswordSet: server.daPasswordSet,
+          }}
+        />
+      </div>
+
+      <div id="nameservers" className="scroll-mt-24">
+        <NameserversForm serverId={server.id} />
+      </div>
+
+      {(server.status === "ACTIVE" || server.status === "MAINTENANCE") && (
+        <NodeStackReadinessPanel serverId={server.id} serverStatus={server.status} />
+      )}
+
+      {(server.status === "ACTIVE" || server.status === "MAINTENANCE") && (
+        <div id="baza-danych" className="scroll-mt-24">
+          <DbUpgradePanel
+            serverId={server.id}
+            dbEngine={server.dbEngine}
+            dbVersion={server.dbVersion}
+            targetDbVersion={server.targetDbVersion}
+            dbUpgradeRequestedAt={server.dbUpgradeRequestedAt}
+          />
+        </div>
+      )}
+
+      <div id="waf" className="scroll-mt-24">
+        <WafPanel serverId={server.id} />
+      </div>
+
+      <div id="hosting-profile" className="scroll-mt-24">
+        <HostingProfilePanel serverId={server.id} serverStatus={server.status} />
+      </div>
+
+      {(server.status === "ACTIVE" || server.status === "MAINTENANCE") && (
+        <div id="audyt" className="scroll-mt-24">
+          <NodeAuditPanel serverId={server.id} serverName={server.name} />
+        </div>
+      )}
     </div>
   );
 }

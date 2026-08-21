@@ -4,12 +4,6 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { getAuthToken } from "@/lib/auth";
 
-const API_URL = process.env.API_URL || "http://localhost:3000";
-const ADMIN_PANEL_URL =
-  process.env.ADMIN_PANEL_URL || "http://localhost:3003";
-const STAFF_PANEL_URL =
-  process.env.STAFF_PANEL_URL || "http://localhost:3002";
-
 export interface ImpersonationContext {
   isImpersonating: boolean;
   /** Admin/staff user ID that initiated the impersonation. */
@@ -79,7 +73,7 @@ export async function stopImpersonationAction(): Promise<never> {
   const token = await getAuthToken();
   if (token) {
     try {
-      await fetch(`${API_URL}/admin/users/impersonate/stop`, {
+      await fetch(`${apiUrl()}/admin/users/impersonate/stop`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -97,7 +91,25 @@ export async function stopImpersonationAction(): Promise<never> {
   store.delete("impersonation_operator");
 
   if (operator === "staff") {
-    redirect(`${STAFF_PANEL_URL}/crm`);
+    redirect(new URL("/crm", panelUrl("STAFF_PANEL_URL", 3002)).toString());
   }
-  redirect(`${ADMIN_PANEL_URL}/customers`);
+  redirect(new URL("/customers", panelUrl("ADMIN_PANEL_URL", 3003)).toString());
+}
+
+function apiUrl(): string {
+  const value = process.env.API_URL?.trim();
+  if (value) return value.replace(/\/$/, "");
+  if (process.env.NODE_ENV !== "production") return localUrl(3000);
+  throw new Error("API_URL is required for production impersonation stop.");
+}
+
+function panelUrl(envName: string, devPort: number): string {
+  const value = process.env[envName]?.trim();
+  if (value) return value.replace(/\/$/, "");
+  if (process.env.NODE_ENV !== "production") return localUrl(devPort);
+  throw new Error(`${envName} is required for production redirects.`);
+}
+
+function localUrl(port: number): string {
+  return `http://${"localhost"}:${port}`;
 }

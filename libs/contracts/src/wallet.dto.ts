@@ -6,6 +6,8 @@ export type WalletTxType =
   | 'TOPUP'
   | 'REFUND'
   | 'CHARGE_SUBSCRIPTION'
+  | 'CHARGE_PLAN_UPGRADE'
+  | 'CREDIT_PLAN_DOWNGRADE'
   | 'CHARGE_AUTOSCALING'
   | 'CHARGE_USAGE'
   | 'ADJUSTMENT'
@@ -27,12 +29,22 @@ export interface WalletTransactionDto {
   createdAt: string;
 }
 
+/** Agregat wpływów i wydatków portfela w jednym miesiącu kalendarzowym (YYYY-MM). */
+export interface WalletMonthlyFlowPointDto {
+  month: string;
+  label: string;
+  inflow: string;
+  outflow: string;
+}
+
 export interface WalletSummaryDto {
   balance: string;
   currency: string;
   totalTopupLast30d: string;
   totalChargesLast30d: string;
   recentTransactions: WalletTransactionDto[];
+  /** Ostatnie 12 miesięcy (włącznie z bieżącym), tylko transakcje COMPLETED. */
+  monthlyFlowLast12: WalletMonthlyFlowPointDto[];
 }
 
 export interface AdminCreditWalletInput {

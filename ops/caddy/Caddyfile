@@ -1,0 +1,263 @@
+{
+    # Replace with your administrator email so Let's Encrypt can email
+    # certificate-related warnings.
+    email admin@verris.pl
+}
+
+# -----------------------------------------------------------------------------
+# Shared security headers (pre-LIVE hardening). HSTS only makes sense on the
+# HTTPS production domains — Caddy serves HTTP only for local *.verris.local.
+# `-Server` strips the server banner.
+# -----------------------------------------------------------------------------
+(security_headers) {
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+        -X-Powered-By
+    }
+}
+
+# CSP + nagłówki paneli w jednym bloku header (osobne dyrektywy się nadpisują).
+(panel_headers) {
+    import security_headers
+    header {
+        # script/connect/frame-src rozszerzone o GTM/GA4/Google Ads/Meta Pixel
+        # (Consent Mode v2 — tagi i tak odpalają się dopiero po zgodzie z banera;
+        # CSP musi jedynie nie blokować ich ładowania). img-src `https:` pokrywa
+        # piksele zliczające (google-analytics collect, facebook /tr).
+        Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self' https://www.facebook.com; img-src 'self' data: blob: https:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' https://js.stripe.com https://*.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://connect.facebook.net; connect-src 'self' https://api.verris.pl https://*.stripe.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.doubleclick.net https://*.googlesyndication.com https://www.googleadservices.com https://www.google.com https://www.facebook.com; frame-src https://js.stripe.com https://hooks.stripe.com https://td.doubleclick.net https://www.googletagmanager.com https://www.facebook.com"
+        X-Frame-Options "DENY"
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    }
+}
+
+# Blok oczywistych skanerów/exploitów (control-plane to Next/Nest — brak PHP/WP/.git).
+# Caddy wykonuje `respond` przed `reverse_proxy`, więc dopasowane ścieżki dostają 403,
+# a reszta normalnie trafia do upstreamu.
+(block_scanners) {
+    @scanners path *.php /.env /.env.* /.git /.git/* /vendor/* /.aws/* /wp-login.php /wp-admin /wp-admin/* /xmlrpc.php /cgi-bin/* /.svn/* /.DS_Store
+    respond @scanners 403
+}
+
+# CYBER-11 — responsible disclosure. RFC 9116 security.txt na /.well-known/.
+# Zaktualizuj `Expires` co ~roku. Kanał: security@verris.pl.
+(security_txt) {
+    @securitytxt path /.well-known/security.txt /security.txt
+    handle @securitytxt {
+        header Content-Type "text/plain; charset=utf-8"
+        respond `Contact: mailto:security@verris.pl
+Expires: 2027-07-04T00:00:00.000Z
+Preferred-Languages: pl, en
+Canonical: https://panel.verris.pl/.well-known/security.txt
+Policy: https://panel.verris.pl/legal/security
+` 200
+    }
+}
+
+# -----------------------------------------------------------------------------
+# Public client panel
+# -----------------------------------------------------------------------------
+{$CADDY_CLIENT_DOMAIN:panel.verris.local} {
+    import panel_headers
+    import block_scanners
+    import security_txt
+    reverse_proxy client-panel:3001 {
+        # STAB-1 — aktywny health-check zdejmuje upstream w trakcie restartu,
+        # a szersze okno prób „przetrzymuje" żądanie aż nowy kontener wstanie.
+        health_uri /api/health
+        health_interval 3s
+        # STAB-2 — 2s bywało zbyt agresywne: chwilowe obciążenie (np. seria
+        # server-action POST w menedżerze plików) potrafiło przekroczyć 2s na
+        # pojedynczym procesie Node, przez co Caddy zdejmował CAŁY upstream i
+        # zwracał 503 na bieżące żądania. Realnie martwy kontener i tak odpada
+        # natychmiast (connection refused), więc dłuższy timeout nie spowalnia
+        # wykrywania restartu (STAB-1), a eliminuje fałszywe 503.
+        health_timeout 5s
+        lb_try_duration 30s
+        lb_try_interval 500ms
+    }
+}
+
+# -----------------------------------------------------------------------------
+# Internal panels (staff/admin) — VPN-only access (ETAP 8).
+#
+# Set CADDY_INTERNAL_ALLOW_CIDR to the WireGuard subnet (e.g. "10.88.0.0/24")
+# in .env.prod AFTER the VPN is up and your own peer works — the default
+# allows everything so a fresh deploy can't lock the operator out.
+# Multiple CIDRs: space-separated ("10.88.0.0/24 203.0.113.7/32").
+# -----------------------------------------------------------------------------
+(vpn_only) {
+    @outside_vpn not remote_ip {$CADDY_INTERNAL_ALLOW_CIDR:0.0.0.0/0 ::/0}
+    respond @outside_vpn "403 — dostęp do tego panelu wyłącznie przez VPN Verris." 403
+}
+
+{$CADDY_STAFF_DOMAIN:staff.verris.local} {
+    import panel_headers
+    import vpn_only
+    import block_scanners
+    reverse_proxy staff-panel:3002 {
+        health_uri /api/health
+        health_interval 3s
+        # STAB-2 — 2s bywało zbyt agresywne: chwilowe obciążenie (np. seria
+        # server-action POST w menedżerze plików) potrafiło przekroczyć 2s na
+        # pojedynczym procesie Node, przez co Caddy zdejmował CAŁY upstream i
+        # zwracał 503 na bieżące żądania. Realnie martwy kontener i tak odpada
+        # natychmiast (connection refused), więc dłuższy timeout nie spowalnia
+        # wykrywania restartu (STAB-1), a eliminuje fałszywe 503.
+        health_timeout 5s
+        lb_try_duration 30s
+        lb_try_interval 500ms
+    }
+}
+
+# -----------------------------------------------------------------------------
+# Admin / Core panel
+# -----------------------------------------------------------------------------
+{$CADDY_ADMIN_DOMAIN:admin.verris.local} {
+    import panel_headers
+    import vpn_only
+    import block_scanners
+    reverse_proxy admin-panel:3003 {
+        health_uri /api/health
+        health_interval 3s
+        # STAB-2 — 2s bywało zbyt agresywne: chwilowe obciążenie (np. seria
+        # server-action POST w menedżerze plików) potrafiło przekroczyć 2s na
+        # pojedynczym procesie Node, przez co Caddy zdejmował CAŁY upstream i
+        # zwracał 503 na bieżące żądania. Realnie martwy kontener i tak odpada
+        # natychmiast (connection refused), więc dłuższy timeout nie spowalnia
+        # wykrywania restartu (STAB-1), a eliminuje fałszywe 503.
+        health_timeout 5s
+        lb_try_duration 30s
+        lb_try_interval 500ms
+    }
+}
+
+# -----------------------------------------------------------------------------
+# Public API (also receives Stripe webhooks at /billing/stripe/webhook)
+# -----------------------------------------------------------------------------
+{$CADDY_API_DOMAIN:api.verris.local} {
+    import security_headers
+    import block_scanners
+    # API zwraca JSON — niczego nie renderuje, więc najostrzejszy CSP.
+    header Content-Security-Policy "default-src 'none'; frame-ancestors 'none'"
+    reverse_proxy api:3000 {
+        # STAB-1 — health-check na /readyz (DB + flaga drain). Przy SIGTERM API
+        # zwraca tu 503 → Caddy przestaje kierować ruch zanim kontener padnie.
+        health_uri /readyz
+        health_interval 3s
+        # STAB-2 — 2s bywało zbyt agresywne: chwilowe obciążenie (np. seria
+        # server-action POST w menedżerze plików) potrafiło przekroczyć 2s na
+        # pojedynczym procesie Node, przez co Caddy zdejmował CAŁY upstream i
+        # zwracał 503 na bieżące żądania. Realnie martwy kontener i tak odpada
+        # natychmiast (connection refused), więc dłuższy timeout nie spowalnia
+        # wykrywania restartu (STAB-1), a eliminuje fałszywe 503.
+        health_timeout 5s
+        lb_try_duration 30s
+        lb_try_interval 500ms
+    }
+}
+
+# -----------------------------------------------------------------------------
+# Public status page (status.verris.pl) — anonymous, fed by GET /status.
+# No auth required, fully cacheable for ~30 s at the edge.
+# -----------------------------------------------------------------------------
+{$CADDY_STATUS_DOMAIN:status.verris.local} {
+    import security_headers
+    import block_scanners
+    reverse_proxy status-page:3004 {
+        health_uri /api/health
+        health_interval 3s
+        # STAB-2 — 2s bywało zbyt agresywne: chwilowe obciążenie (np. seria
+        # server-action POST w menedżerze plików) potrafiło przekroczyć 2s na
+        # pojedynczym procesie Node, przez co Caddy zdejmował CAŁY upstream i
+        # zwracał 503 na bieżące żądania. Realnie martwy kontener i tak odpada
+        # natychmiast (connection refused), więc dłuższy timeout nie spowalnia
+        # wykrywania restartu (STAB-1), a eliminuje fałszywe 503.
+        health_timeout 5s
+        lb_try_duration 30s
+        lb_try_interval 500ms
+    }
+    header Cache-Control "public, max-age=30"
+}
+
+# -----------------------------------------------------------------------------
+# Grafana (F-15) — every request is verified against our API via
+# `forward_auth` BEFORE it reaches Grafana. The API endpoint reads either the
+# `auth_token` cookie (panels) or `Authorization: Bearer` header, returns 401
+# for unauthenticated, 403 for users without `canAccessGrafana=true`, and on
+# success copies `X-WEBAUTH-USER` / `X-WEBAUTH-ROLE` onto the response.
+# Grafana's `auth.proxy` mode picks them up and auto-creates the user.
+# -----------------------------------------------------------------------------
+{$CADDY_GRAFANA_DOMAIN:grafana.verris.local} {
+    import security_headers
+    forward_auth api:3000 {
+        uri /auth/grafana-validate
+        copy_headers X-Webauth-User X-Webauth-Role
+    }
+    reverse_proxy grafana:3000
+}
+
+# -----------------------------------------------------------------------------
+# GlitchTip (CYBER-9) — self-hosted monitoring błędów runtime (Sentry-compatible).
+# Ma własny system logowania (konta admin/staff zakładane w GlitchTip), więc NIE
+# stawiamy tu forward_auth. Dostęp do UI ograniczony do VPN (jak panele staff/admin).
+# Ingest zdarzeń z API idzie wewnętrznie (verris_internal), nie przez Caddy.
+# -----------------------------------------------------------------------------
+{$CADDY_GLITCHTIP_DOMAIN:glitchtip.verris.local} {
+    import security_headers
+    import vpn_only
+    reverse_proxy glitchtip-web:8080
+}
+
+# -----------------------------------------------------------------------------
+# SOGo webmail + CalDAV (host sogod on :20000, Dovecot/Postfix on host)
+# -----------------------------------------------------------------------------
+{$CADDY_MAIL_DOMAIN:mail.verris.local} {
+    import security_headers
+    reverse_proxy ops-sogo-1:80
+}
+
+# -----------------------------------------------------------------------------
+# KB-PUBLIC — publiczna Baza Wiedzy (pomoc.verris.pl). Anonimowo, indeksowalne.
+# Kieruje na API z prefiksem /kb (kontroler KbPublicController: /kb, /kb/a/:slug,
+# /kb/c/:slug, /kb/sitemap.xml, /kb/robots.txt).
+# -----------------------------------------------------------------------------
+{$CADDY_KB_DOMAIN:pomoc.verris.local} {
+    import security_headers
+    import block_scanners
+    rewrite * /kb{uri}
+    reverse_proxy api:3000 {
+        health_uri /readyz
+        health_interval 3s
+        health_timeout 5s
+        lb_try_duration 30s
+        lb_try_interval 500ms
+    }
+    header Cache-Control "public, max-age=300"
+}
+
+# -----------------------------------------------------------------------------
+# WWW — publiczna strona marketingowa verris.pl (Next.js + Payload, apps/www).
+# CSP dopuszcza Google Fonts, GTM, Google Ads i Meta (tagi i tak odpalają się
+# wyłącznie po zgodzie — Consent Mode v2). Panel Payload /admin jest login-gated;
+# rozważ dodatkowe ograniczenie (VPN/rate-limit) jeśli ma być niepubliczny.
+# -----------------------------------------------------------------------------
+{$CADDY_WWW_DOMAIN:verris.local} {
+    import security_headers
+    import block_scanners
+    header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self' https://www.facebook.com; img-src 'self' data: blob: https:; font-src 'self' data: https://fonts.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; script-src 'self' 'unsafe-inline' https://*.googletagmanager.com https://www.googleadservices.com https://googleads.g.doubleclick.net https://connect.facebook.net; connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com https://*.doubleclick.net https://*.googlesyndication.com https://www.googleadservices.com https://www.google.com https://www.facebook.com https://connect.facebook.net; frame-src https://td.doubleclick.net https://www.googletagmanager.com https://www.facebook.com"
+    reverse_proxy www:3005 {
+        health_uri /healthz
+        health_interval 3s
+        health_timeout 5s
+        lb_try_duration 30s
+        lb_try_interval 500ms
+    }
+}
+
+# www.verris.pl → apex (301).
+{$CADDY_WWW_REDIRECT_DOMAIN:www.verris.local} {
+    redir https://{$CADDY_WWW_DOMAIN:verris.local}{uri} permanent
+}

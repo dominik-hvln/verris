@@ -9,6 +9,15 @@ export class HostingSslLetsencryptDto {
   @IsOptional()
   @IsBoolean()
   includeWww?: boolean;
+
+  /**
+   * Wildcard (*.domena). Wymaga, aby strefa DNS domeny była na tym węźle
+   * (walidacja DNS-01). Gdy true, includeWww jest ignorowane (wildcard i tak
+   * pokrywa subdomeny).
+   */
+  @IsOptional()
+  @IsBoolean()
+  wildcard?: boolean;
 }
 
 export class HostingSslPasteDto {

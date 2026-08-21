@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, ExternalLink, Mail } from "lucide-react";
 import { StaffApiError } from "@/lib/staff-api";
 import { staffGetCustomerProfile } from "@/lib/crm-profile-data";
 import { StaffImpersonateButton } from "../impersonate-button";
 import { StaffDnsTlsPanel } from "../dns-tls-panel";
+import { formatPlnAndCredits } from "@/lib/credits";
 
 export const dynamic = "force-dynamic";
 
@@ -46,6 +47,7 @@ export default async function StaffCustomerProfilePage({
   try {
     profile = await staffGetCustomerProfile(userId);
   } catch (e) {
+    if (e instanceof StaffApiError && e.status === 401) redirect("/login");
     if (e instanceof StaffApiError && (e.status === 404 || e.status === 403)) notFound();
     throw e;
   }
@@ -145,8 +147,8 @@ export default async function StaffCustomerProfilePage({
             <dt className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">
               Portfel
             </dt>
-            <dd className="mt-1 text-lg font-semibold text-white">
-              {user.walletBalance} {user.walletCurrency}
+            <dd className="mt-1 text-lg font-semibold text-white tabular-nums">
+              {formatPlnAndCredits(user.walletBalance, user.walletCurrency)}
             </dd>
           </div>
           <div>
@@ -262,6 +264,9 @@ export default async function StaffCustomerProfilePage({
                   <tr key={s.id}>
                     <td className="px-4 py-3">
                       <span className="font-medium">{s.plan.name}</span>
+                      {s.serviceTag ? (
+                        <p className="font-mono text-[11px] text-cyan-300/80">{s.serviceTag}</p>
+                      ) : null}
                       <p className="text-xs text-muted-foreground">{s.interval}</p>
                     </td>
                     <td className="px-4 py-3">
@@ -378,11 +383,11 @@ export default async function StaffCustomerProfilePage({
                   <td className="px-4 py-2 font-mono text-xs">
                     {w.type} <span className="text-neutral-500">({w.status})</span>
                   </td>
-                  <td className="px-4 py-2 font-mono text-xs">
-                    {w.amount} {w.currency}
+                  <td className="px-4 py-2 text-xs tabular-nums">
+                    {formatPlnAndCredits(w.amount, w.currency)}
                   </td>
-                  <td className="px-4 py-2 font-mono text-xs text-neutral-300">
-                    {w.balanceAfter} {w.currency}
+                  <td className="px-4 py-2 text-xs tabular-nums text-neutral-300">
+                    {formatPlnAndCredits(w.balanceAfter, w.currency)}
                   </td>
                   <td className="max-w-xs truncate px-4 py-2 text-xs text-neutral-400">
                     {w.description ?? "—"}
@@ -417,8 +422,8 @@ export default async function StaffCustomerProfilePage({
                   <tr key={inv.id}>
                     <td className="px-4 py-2 font-mono text-xs">{inv.number}</td>
                     <td className="px-4 py-2 text-xs">{inv.status}</td>
-                    <td className="px-4 py-2 font-mono text-xs">
-                      {inv.amount} {inv.currency}
+                    <td className="px-4 py-2 text-xs tabular-nums">
+                      {formatPlnAndCredits(inv.amount, inv.currency)}
                     </td>
                     <td className="whitespace-nowrap px-4 py-2 text-xs text-muted-foreground">
                       {new Date(inv.createdAt).toLocaleDateString("pl-PL")}

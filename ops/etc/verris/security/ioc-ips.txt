@@ -1,0 +1,6 @@
+# Verris — adresy do twardego DROP na wyjściu (OUTPUT).
+# Jedna linia = jeden IPv4. Komentarze zaczynają się od #.
+# Aktualizuj po incydentach / feedach threat intelligence.
+#
+# Hetzner abuse 2026-06-01 — Spamhaus XBL sinkhole (Ranbyus/Tinba C2 pattern)
+216.218.185.162

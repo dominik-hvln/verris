@@ -1,6 +1,10 @@
 'use server';
 
-import { DomainDto } from "@verris/contracts";
+import {
+  DomainDto,
+  type DomainPeriodQuotesDto,
+  type DomainSearchResultDto,
+} from "@verris/contracts";
 import { revalidatePath } from "next/cache";
 import { apiFetch } from "@/lib/api";
 
@@ -60,6 +64,13 @@ export async function runDomainChecklistAction(id: string): Promise<DomainCheckl
   return row;
 }
 
+export async function fetchRegistrarStatus(): Promise<{
+  provider: string | null;
+  configured: boolean;
+}> {
+  return apiFetch('/domains/registrar/status');
+}
+
 export async function checkRegistrarAvailability(name: string) {
   return apiFetch<{
     domain: string;
@@ -72,6 +83,49 @@ export async function checkRegistrarAvailability(name: string) {
     body: JSON.stringify({ name }),
   });
 }
+
+export async function quoteDomainAction(name: string, years: number) {
+  return apiFetch<{
+    domain: string;
+    available: boolean;
+    premium?: boolean;
+    years: number;
+    priceAmount: string | null;
+    currency: string;
+  }>('/domains/registrar/quote', {
+    method: 'POST',
+    body: JSON.stringify({ name, years }),
+  });
+}
+
+export async function searchDomainsAction(label: string) {
+  return apiFetch<DomainSearchResultDto[]>('/domains/registrar/search', {
+    method: 'POST',
+    body: JSON.stringify({ label }),
+  });
+}
+
+export async function quotePeriodsAction(name: string, years: number[] = [1, 2, 3, 5, 10]) {
+  return apiFetch<DomainPeriodQuotesDto>('/domains/registrar/quote-periods', {
+    method: 'POST',
+    body: JSON.stringify({ name, years }),
+  });
+}
+
+export type RegistrarOrderRow = {
+  id: string;
+  domainName: string;
+  type: string;
+  status: string;
+  provider: string | null;
+  years: number;
+  priceAmount: string | null;
+  currency: string;
+  lastError: string | null;
+  createdAt: string;
+  submittedAt: string | null;
+  completedAt: string | null;
+};
 
 export async function fetchRegistrarOrders() {
   return apiFetch<Array<{
@@ -90,6 +144,32 @@ export async function fetchRegistrarOrders() {
   }>>('/domains/registrar/orders');
 }
 
+/** Czy na koncie obowiązuje już oświadczenie domenowe (Regulamin §12 ust. 8). */
+export async function getWaiverConsentAction(): Promise<{ granted: boolean; grantedAt: string | null }> {
+  try {
+    return await apiFetch<{ granted: boolean; grantedAt: string | null }>(
+      '/domains/registrar/waiver-consent',
+    );
+  } catch {
+    return { granted: false, grantedAt: null };
+  }
+}
+
+export async function registerDomainClientAction(input: {
+  name: string;
+  years: number;
+  nameservers: string[];
+  /** Oświadczenie: natychmiastowa rejestracja + utrata prawa odstąpienia (art. 38 pkt 1 upk). */
+  withdrawalWaiverConsent: boolean;
+}) {
+  await apiFetch('/domains/registrar/register', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  revalidatePath('/dashboard/domains');
+  revalidatePath('/dashboard/domains/buy');
+}
+
 export async function registerDomainAction(formData: FormData) {
   const name = String(formData.get('name') ?? '').trim().toLowerCase();
   const years = Number.parseInt(String(formData.get('years') ?? '1'), 10);
@@ -97,12 +177,13 @@ export async function registerDomainAction(formData: FormData) {
     .split(/\s|,/)
     .map((x) => x.trim())
     .filter(Boolean);
+  const withdrawalWaiverConsent = formData.get('withdrawalWaiverConsent') === 'on';
   await apiFetch('/domains/registrar/register', {
     method: 'POST',
-    body: JSON.stringify({ name, years, nameservers }),
+    body: JSON.stringify({ name, years, nameservers, withdrawalWaiverConsent }),
   });
   revalidatePath('/dashboard/domains');
-  revalidatePath('/dashboard/domains/registrar');
+  revalidatePath('/dashboard/domains/buy');
 }
 
 export async function transferDomainAction(formData: FormData) {
@@ -113,10 +194,11 @@ export async function transferDomainAction(formData: FormData) {
     .split(/\s|,/)
     .map((x) => x.trim())
     .filter(Boolean);
+  const withdrawalWaiverConsent = formData.get('withdrawalWaiverConsent') === 'on';
   await apiFetch('/domains/registrar/transfer', {
     method: 'POST',
-    body: JSON.stringify({ name, authCode, years, nameservers }),
+    body: JSON.stringify({ name, authCode, years, nameservers, withdrawalWaiverConsent }),
   });
-  revalidatePath('/dashboard/domains/registrar');
+  revalidatePath('/dashboard/domains/buy');
 }
 

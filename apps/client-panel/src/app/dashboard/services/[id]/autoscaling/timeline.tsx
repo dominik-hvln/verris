@@ -80,10 +80,7 @@ function EventRow({ event }: { event: AutoscalingEventDto }) {
         <div className="min-w-0">
           <div className="text-sm font-semibold">{humaniseEventType(event.type)}</div>
           <div className="text-[11px] opacity-80 truncate">
-            {event.resource ? `${event.resource} ` : ''}
-            {event.fromValue !== null && event.toValue !== null
-              ? `${event.fromValue} → ${event.toValue}`
-              : event.reason ?? '—'}
+            {formatEventDetail(event)}
           </div>
         </div>
       </div>
@@ -102,7 +99,7 @@ function ChargeRow({ charge }: { charge: AutoscalingChargeDto }) {
         <div className="min-w-0">
           <div className="text-sm font-semibold text-white">Naliczenie autoskalowania</div>
           <div className="text-[11px] text-neutral-400 truncate">
-            {charge.description ?? 'Hourly autoscaling charge'}
+            {charge.description ?? 'Naliczenie autoskalowania (blok 15 min)'}
           </div>
         </div>
       </div>
@@ -116,6 +113,27 @@ function ChargeRow({ charge }: { charge: AutoscalingChargeDto }) {
       </div>
     </li>
   );
+}
+
+function formatEventDetail(event: AutoscalingEventDto): string {
+  const prefix = event.resource ? `${event.resource} ` : '';
+  if (event.fromValue !== null && event.toValue !== null) {
+    return (
+      prefix +
+      `${formatScaledValue(event.resource, event.fromValue)} → ${formatScaledValue(event.resource, event.toValue)}`
+    );
+  }
+  return prefix + (event.reason ?? '—');
+}
+
+function formatScaledValue(resource: string | null, value: number): string {
+  if (resource === 'CPU') return `+${value}%`;
+  if (resource === 'RAM' || resource === 'DISK') {
+    const gb = value / 1024;
+    const label = gb % 1 === 0 ? `${gb.toFixed(0)} GB` : `${gb.toFixed(1)} GB`;
+    return `+${label}`;
+  }
+  return String(value);
 }
 
 function humaniseEventType(type: string): string {

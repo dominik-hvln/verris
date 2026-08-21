@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verris — plan do startu</title>
+<style>
+  :root{
+    --surface:#fcfcfb; --panel:#ffffff; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+    --grid:#e6e5e1; --line:#d9d8d3;
+    --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --critical:#d03b3b;
+    --accent:#2a6ba8; --accent-soft:#dbe8f4;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --surface:#1a1a19; --panel:#222220; --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781;
+           --grid:#33322f; --line:#3d3c38; --accent:#6ea8dc; --accent-soft:#26364a; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--surface);color:var(--ink);
+       font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Arial,sans-serif}
+  .wrap{max-width:1400px;margin:0 auto;padding:32px 24px 80px}
+  h1{font-size:26px;margin:0 0 4px;letter-spacing:-.02em}
+  .sub{color:var(--ink2);font-size:14px;margin:0 0 6px}
+  .meta{color:var(--muted);font-size:12.5px;margin:0 0 26px}
+  h2{font-size:15px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);
+     margin:36px 0 14px;font-weight:600}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+  .kpi .n{font-size:32px;font-weight:650;line-height:1.05;letter-spacing:-.02em}
+  .kpi .l{font-size:12.5px;color:var(--ink2);margin-top:6px}
+  .kpi .h{font-size:11.5px;color:var(--muted);margin-top:3px}
+  .kpi.crit{border-color:var(--critical)} .kpi.crit .n{color:var(--critical)}
+  .kpi.ok .n{color:var(--good)}
+
+  .callout{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);
+           border-radius:8px;padding:14px 18px;margin:16px 0 0;font-size:13.5px;color:var(--ink2)}
+  .callout b{color:var(--ink)}
+  .callout.warn{border-left-color:var(--critical)}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px 22px}
+  svg{display:block;width:100%;height:auto;overflow:visible}
+  .ax{stroke:var(--grid);stroke-width:1}
+  .axlab{fill:var(--muted);font-size:11px}
+  .ln{fill:none;stroke:var(--accent);stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+  .area{fill:var(--accent);opacity:.10}
+  .ms{stroke:var(--critical);stroke-width:1.5;stroke-dasharray:4 3}
+  .mslab{fill:var(--critical);font-size:11px;font-weight:600}
+  .dot{fill:var(--accent);stroke:var(--panel);stroke-width:2}
+
+  .sbar{display:grid;grid-template-columns:44px 1fr 62px;align-items:center;gap:12px;
+        padding:6px 0;font-size:13px}
+  .sbar + .sbar{border-top:1px solid var(--grid)}
+  .strack{position:relative;height:18px;background:var(--grid);border-radius:4px}
+  .sfill{position:absolute;left:0;top:0;bottom:0;background:var(--accent);border-radius:4px}
+  .sfill.f0{background:var(--critical)} .sfill.f1{background:var(--serious)}
+  .sfill.f2{background:var(--accent)} .sfill.f3{background:var(--good)}
+  .snum{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums;font-size:12.5px;white-space:nowrap}
+  .sid{color:var(--ink2);font-weight:600;font-variant-numeric:tabular-nums}
+
+  .sprint{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+          margin-bottom:12px;overflow:hidden}
+  .shead{display:flex;flex-wrap:wrap;gap:12px;align-items:baseline;padding:14px 18px;cursor:pointer}
+  .shead:hover{background:var(--accent-soft)}
+  .snum2{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:64px}
+  .stitle{font-weight:600;flex:1;min-width:240px}
+  .sdate{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .sh{font-size:12px;color:var(--ink2);font-variant-numeric:tabular-nums}
+  .sbody{padding:0 18px 16px;display:none}
+  .sprint.open .sbody{display:block}
+  .risk{font-size:12.5px;color:var(--ink2);background:var(--surface);border-left:3px solid var(--warn);
+        padding:9px 13px;border-radius:0 6px 6px 0;margin-top:12px}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{text-align:left;color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.05em;
+     padding:8px 8px;border-bottom:1px solid var(--line);font-weight:600}
+  td{padding:8px;border-top:1px solid var(--grid);vertical-align:top}
+  .idc{color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;font-size:11.5px}
+  .dod{color:var(--ink2);max-width:520px}
+  .tag{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:20px;
+       font-size:11px;font-weight:600;white-space:nowrap;border:1px solid transparent}
+  .d{width:7px;height:7px;border-radius:50%;flex:none}
+  .t-crit{color:var(--critical);border-color:var(--critical)} .t-crit .d{background:var(--critical)}
+  .t-ser{color:#a04a22;border-color:var(--serious)} .t-ser .d{background:var(--serious)}
+  .t-warn{color:#8a6100;border-color:var(--warn)} .t-warn .d{background:var(--warn)}
+  .t-mut{color:var(--muted);border-color:var(--line)} .t-mut .d{background:var(--muted)}
+  @media (prefers-color-scheme: dark){ .t-ser{color:var(--serious)} .t-warn{color:var(--warn)} }
+  .fazahdr{margin:30px 0 12px;padding-left:12px;border-left:3px solid var(--accent)}
+  .fazahdr .t{font-weight:650;font-size:16px}
+  .fazahdr .o{font-size:13px;color:var(--ink2);margin-top:4px;max-width:900px}
+  footer{margin-top:44px;padding-top:20px;border-top:1px solid var(--line);
+         color:var(--muted);font-size:12.5px;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Verris — plan do startu</h1>
+  <p class="sub" id="sub"></p>
+  <p class="meta" id="meta"></p>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="callout warn">
+    <span id="calc"></span>
+  </div>
+  <div class="callout">
+    <b>KSeF stoi na końcu świadomie.</b> Decyzja z 2026-08-21: możliwe, że fakturowanie przejmie program księgowy z gotową integracją, zamiast dokończenia własnego modułu. Rozstrzyga <b>PB-13</b> w sprincie 13, domknięcie to sprinty 17–18. Do tego czasu KSeF pozostaje blokerem — odsunięcie go w czasie nie zmienia tego, że bez niego nie wolno sprzedawać.
+  </div>
+
+  <h2>Narastające godziny i kamienie milowe</h2>
+  <div class="card"><div id="burn"></div></div>
+
+  <h2>Obciążenie sprintów</h2>
+  <div class="card" id="load"></div>
+
+  <h2>Sprinty</h2>
+  <div id="sprints"></div>
+
+  <h2>Po starcie — roadmapa kwartalna</h2>
+  <div class="card" id="epiki"></div>
+
+  <h2>Czego świadomie nie robimy</h2>
+  <div class="card" id="oos"></div>
+
+  <footer>
+    <b>Status zadań mieszka w backlogu XLSX</b>, nie tutaj — ta strona jest widokiem planu, nie narzędziem do odhaczania. Po zmianie statusów w arkuszu wygenerujemy ten widok ponownie.<br>
+    <b>Definicja „zrobione”:</b> spełniona definicja ukończenia, nie „kod napisany”. Nic poniżej poziomu D2 (test przechodzi w CI) nie jest zrobione; pieniądze, dane klienta i dostęp wymagają D3; backupy i DR — wyłącznie D4.<br>
+    <b>Zakaz formuły „warunkowe GO”</b> — ta konstrukcja w czerwcu przepuściła start z otwartymi blokerami.
+  </footer>
+</div>
+
+<script>
+const P = __DATA__;
+const T = P.tasks, S = P.sprints, CAP = P.cap;
+const IDX = {id:0,tytul:1,typ:2,kat:3,prio:4,h:5,sprint:6,faza:7,od:8,do:9,stan:10,dow:11,dep:12,dod:13,ctx:14,st:15};
+
+const totalH = T.reduce((a,t)=>a+t[IDX.h],0);
+const uniq = a => [...new Set(a)];
+const blkIds  = uniq(T.filter(t=>t[IDX.prio]==="BLOKER STARTU").map(t=>t[IDX.id]));
+const bizIds  = uniq(T.filter(t=>t[IDX.prio]==="BLOKER BIZNESOWY").map(t=>t[IDX.id]));
+const ksefIds = ["M-14","M-15","M-16","M-17"];
+const nonKsefMax = Math.max(...T.filter(t=>t[IDX.prio]==="BLOKER STARTU" && !ksefIds.includes(t[IDX.id])).map(t=>t[IDX.sprint]));
+const ksefMax    = Math.max(...T.filter(t=>ksefIds.includes(t[IDX.id])).map(t=>t[IDX.sprint]));
+const nonKsefDate = S.find(s=>s.n===nonKsefMax).do;
+const ksefDate    = S.find(s=>s.n===ksefMax).do;
+const lastDate = S[S.length-1].do;
+const restH = P.rest.reduce((a,r)=>a+r[7],0);
+const NS = S.length;
+document.getElementById('sub').textContent =
+  `${NS} sprintów tygodniowych · 1 osoba, pełny etat, ${CAP} h netto na sprint · podstawa: audyt parytetu z 2026-08-20`;
+document.getElementById('calc').innerHTML =
+  `<b>Liczba, od której trzeba zacząć.</b> Domknięcie <b>wszystkich</b> luk z macierzy audytu to <b>${(totalH+restH).toLocaleString('pl-PL')} h</b> — przy ${CAP} h tygodniowo około <b>${Math.round((totalH+restH)/CAP/4.3)} miesięcy pracy solo, bez jednego przychodu po drodze</b>. Dlatego plan dzieli pracę na ${NS} sprintów do startu i roadmapę po starcie. Pełne pokrycie nie jest celem: punktem odniesienia jest mediana rynku PL, nie suma możliwości cPanela, Pleska i DirectAdmina razem wziętych.`;
+
+document.getElementById('meta').textContent =
+  `Sprint 1: ${S[0].od} · Sprint ${NS}: ${S[NS-1].od}–${lastDate} · po starcie jeszcze ${P.rest.length} pozycji (${restH} h)`;
+
+document.getElementById('kpis').innerHTML = [
+  ['', NS, 'sprintów do startu', `${totalH} h z ${NS*CAP} h pojemności`],
+  ['crit', blkIds.length, 'blokerów z audytu', `plus ${bizIds.length} blokery biznesowe spoza audytu`],
+  ['', uniq(T.map(t=>t[IDX.id])).length, 'zadań', `${uniq(T.filter(t=>t[IDX.typ]==='audyt').map(t=>t[IDX.id])).length} z audytu, ${bizIds.length+T.filter(t=>t[IDX.typ]!=='audyt'&&t[IDX.prio]!=='BLOKER BIZNESOWY').length} spoza`],
+  ['ok', nonKsefDate, 'blokery bez KSeF zamknięte', `koniec sprintu ${nonKsefMax} — produkt przestaje tracić pieniądze i dane`],
+  ['', lastDate, 'decyzja GO', `KSeF domknięty ${ksefDate}, realnie GO w połowie stycznia 2027`],
+].map(k=>`<div class="kpi ${k[0]}"><div class="n" style="${String(k[1]).length>6?'font-size:20px':''}">${k[1]}</div><div class="l">${k[2]}</div><div class="h">${k[3]}</div></div>`).join('');
+
+// ---------- wykres narastający ----------
+(function(){
+  const W=1000,Hh=300,mL=52,mR=20,mT=18,mB=56;
+  const cum=[]; let acc=0;
+  S.forEach(s=>{ acc += T.filter(t=>t[IDX.sprint]===s.n).reduce((a,t)=>a+t[IDX.h],0); cum.push(acc); });
+  const maxY=Math.ceil(acc/100)*100;
+  const x=i=>mL+(W-mL-mR)*(i/(S.length-1));
+  const y=v=>mT+(Hh-mT-mB)*(1-v/maxY);
+  const line=cum.map((v,i)=>`${i?'L':'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const area=`${line} L${x(S.length-1).toFixed(1)},${y(0)} L${x(0).toFixed(1)},${y(0)} Z`;
+  let g='';
+  for(let v=0; v<=maxY; v+=100){
+    g+=`<line class="ax" x1="${mL}" y1="${y(v)}" x2="${W-mR}" y2="${y(v)}"/>`
+      +`<text class="axlab" x="${mL-8}" y="${y(v)+4}" text-anchor="end">${v}</text>`;
+  }
+  S.forEach((s,i)=>{ if(i%2===0||i===S.length-1)
+    g+=`<text class="axlab" x="${x(i)}" y="${Hh-mB+18}" text-anchor="middle">S${s.n}</text>`; });
+  const ms=[[nonKsefMax-1,'blokery bez KSeF',mT+12],[13,'funkcje-widma',mT+12],
+            [ksefMax-1,'KSeF domknięty',mT+12],[NS-1,'decyzja GO',Hh-mB+34]];
+  let m='';
+  ms.forEach(([i,lab,ly])=>{
+    m+=`<line class="ms" x1="${x(i)}" y1="${mT}" x2="${x(i)}" y2="${Hh-mB}"/>`
+      +`<text class="mslab" x="${x(i)-6}" y="${ly}" text-anchor="end">${lab}</text>`;
+  });
+  const last=cum.length-1;
+  document.getElementById('burn').innerHTML =
+   `<svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="Narastające godziny w 18 sprintach">
+      ${g}${m}
+      <path class="area" d="${area}"/><path class="ln" d="${line}"/>
+      <circle class="dot" cx="${x(last)}" cy="${y(cum[last])}" r="5"/>
+      <text class="axlab" x="${x(last)}" y="${y(cum[last])+22}" text-anchor="end"
+            style="fill:var(--ink);font-weight:600;font-size:12px">${acc} h</text>
+      <text class="axlab" x="${mL-8}" y="${mT-4}" text-anchor="end">h</text>
+    </svg>`;
+})();
+
+// ---------- obciążenie ----------
+const FCLS = {0:'f0',1:'f1',2:'f2',3:'f3'};
+const fazaIdx = n => P.fazy.findIndex(f=>n>=f.od&&n<=f.do);
+document.getElementById('load').innerHTML = S.map(s=>{
+  const h = T.filter(t=>t[IDX.sprint]===s.n).reduce((a,t)=>a+t[IDX.h],0);
+  const pct = Math.round(h/CAP*100);
+  return `<div class="sbar"><div class="sid">S${s.n}</div>`
+   +`<div class="strack"><div class="sfill ${FCLS[fazaIdx(s.n)]}" style="width:${Math.min(pct,100)}%"></div></div>`
+   +`<div class="snum"><b style="color:var(--ink)">${h} h</b> · ${pct}%</div></div>`;
+}).join('');
+
+// ---------- sprinty ----------
+const PCLS = p => p.startsWith('BLOKER')?'t-crit' : (p==='WYSOKA'||p==='WYSOKI')?'t-ser'
+              : (p==='ŚREDNIA'||p==='ŚREDNI')?'t-warn':'t-mut';
+let html='';
+P.fazy.forEach(f=>{
+  const fh = T.filter(t=>t[IDX.sprint]>=f.od&&t[IDX.sprint]<=f.do).reduce((a,t)=>a+t[IDX.h],0);
+  html += `<div class="fazahdr"><div class="t">${f.tytul} · ${fh} h</div><div class="o">${f.opis}</div></div>`;
+  S.filter(s=>s.n>=f.od&&s.n<=f.do).forEach(s=>{
+    const it = T.filter(t=>t[IDX.sprint]===s.n);
+    const h = it.reduce((a,t)=>a+t[IDX.h],0);
+    html += `<div class="sprint"><div class="shead">`
+      +`<span class="snum2">Sprint ${s.n}</span><span class="stitle">${s.cel}</span>`
+      +`<span class="sdate">${s.od} – ${s.do}</span><span class="sh">${h} h / ${CAP} h</span></div>`
+      +`<div class="sbody"><table><thead><tr><th>ID</th><th>Zadanie</th><th>h</th><th>Priorytet</th><th>Definicja ukończenia</th><th>Zależy od</th></tr></thead><tbody>`
+      + it.map(t=>`<tr><td class="idc">${t[IDX.id]}</td><td><b>${t[IDX.tytul]}</b></td>`
+        +`<td class="idc">${t[IDX.h]}</td><td><span class="tag ${PCLS(t[IDX.prio])}"><span class="d"></span>${t[IDX.prio]}</span></td>`
+        +`<td class="dod">${t[IDX.dod]}</td><td class="idc" style="white-space:normal;max-width:200px">${t[IDX.dep]}</td></tr>`).join('')
+      +`</tbody></table><div class="risk"><b>Ryzyko sprintu.</b> ${s.ryzyko}</div></div></div>`;
+  });
+});
+document.getElementById('sprints').innerHTML = html;
+document.querySelectorAll('.shead').forEach(h=>h.addEventListener('click',()=>h.parentElement.classList.toggle('open')));
+
+// ---------- epiki ----------
+const eh={}, en={};
+P.rest.forEach(r=>{ eh[r[1]]=(eh[r[1]]||0)+r[7]; en[r[1]]=(en[r[1]]||0)+1; });
+document.getElementById('epiki').innerHTML =
+  `<table><thead><tr><th>ID</th><th>Epik</th><th>Priorytet</th><th>Kwartał</th><th>Pozycji</th><th>h</th><th>Dlaczego teraz, a nie wcześniej</th></tr></thead><tbody>`
+  + P.epiki.slice().sort((a,b)=>a[3].localeCompare(b[3])||a[0].localeCompare(b[0])).map(e=>
+    `<tr><td class="idc">${e[0]}</td><td><b>${e[1]}</b></td>`
+    +`<td><span class="tag ${PCLS(e[2])}"><span class="d"></span>${e[2]}</span></td>`
+    +`<td class="idc">${e[3]}</td><td class="idc">${en[e[0]]||0}</td><td class="idc">${eh[e[0]]||0}</td>`
+    +`<td class="dod">${e[5]}</td></tr>`).join('')
+  + `</tbody></table>`;
+
+// ---------- poza zakresem ----------
+document.getElementById('oos').innerHTML =
+  `<p style="margin:0 0 12px;font-size:13px;color:var(--ink2)">${P.oos.length} pozycji z macierzy ma werdykt POZA ZAKRESEM. To są decyzje, nie przeoczenia — dlatego są wypisane, a nie cicho pominięte. Jeżeli któraś wróci jako żądanie klienta, wraca też decyzja do przeglądu.</p>`
+  + `<table><thead><tr><th>ID</th><th>Funkcja</th><th>Kategoria</th><th>Uzasadnienie</th></tr></thead><tbody>`
+  + P.oos.map(o=>`<tr><td class="idc">${o[0]}</td><td><b>${o[1]}</b></td><td class="idc">${o[2]}</td><td class="dod">${o[3]||'—'}</td></tr>`).join('')
+  + `</tbody></table>`;
+</script>
+</body>
+</html>

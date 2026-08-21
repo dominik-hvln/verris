@@ -480,7 +480,7 @@ export class AccountDeletionService {
       gracePeriodDays: GRACE_PERIOD_DAYS,
       cancelUrl: `${panelUrl}/dashboard/settings?tab=privacy`,
     });
-    await this.mailer.send(message);
+    await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'RODO' });
   }
 
   private async notifyAccountAnonymized(opts: {
@@ -497,7 +497,7 @@ export class AccountDeletionService {
       firstName: opts.firstName,
       purgeDate: opts.purgeDate,
     });
-    await this.mailer.send(message);
+    await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'RODO' });
   }
 
   private resolvePanelUrl(): string {

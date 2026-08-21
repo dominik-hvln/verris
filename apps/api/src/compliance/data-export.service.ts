@@ -599,7 +599,7 @@ export class DataExportService implements OnApplicationBootstrap {
       sizeBytes,
       panelUrl,
     });
-    await this.mailer.send(message);
+    await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'RODO' });
   }
 
   // ---------------------------------------------------------------------------

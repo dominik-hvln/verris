@@ -1,6 +1,8 @@
 'use client';
 
+import type { ReactNode } from 'react';
 import Link from 'next/link';
+import { PageHeaderRow } from '@/components/panel';
 import {
   Globe,
   Database,
@@ -39,6 +41,8 @@ export interface HostingTabsProps {
     | 'ftp'
     | 'cron'
     | 'email'
+    | 'php'
+    | 'apps'
     | 'backups'
     | 'filemanager'
     | 'migrations';
@@ -64,6 +68,8 @@ export function HostingTabs({ currentTab, serviceId, dnsZone }: HostingTabsProps
     { id: 'ssl', label: 'Certyfikaty SSL', icon: ShieldCheck, href: hostingHref('/dashboard/ssl', serviceId) },
     { id: 'ftp', label: 'Konta FTP', icon: FolderKanban, href: hostingHref('/dashboard/ftp', serviceId) },
     { id: 'cron', label: 'Zadania Cron', icon: Terminal, href: hostingHref('/dashboard/cron', serviceId) },
+    { id: 'php', label: 'Wersja PHP', icon: Terminal, href: hostingHref('/dashboard/php', serviceId) },
+    { id: 'apps', label: 'Aplikacje 1-click', icon: FolderOpen, href: hostingHref('/dashboard/apps', serviceId) },
     { id: 'email', label: 'Poczta E-mail', icon: Mail, href: hostingHref('/dashboard/email', serviceId) },
     {
       id: 'backups',
@@ -118,23 +124,22 @@ export function HostingPageWrapper({
   currentTab,
   serviceId,
   dnsZone,
+  actions,
 }: {
   title: string;
   description: string;
-  children: React.ReactNode;
+  children: ReactNode;
   currentTab?: HostingTabsProps['currentTab'];
   serviceId?: string | null;
   dnsZone?: string | null;
+  actions?: ReactNode;
 }) {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">{title}</h1>
-          <p className="text-neutral-400 mt-1 text-sm md:text-base">{description}</p>
-        </div>
-      </div>
-      {currentTab && <HostingTabs currentTab={currentTab} serviceId={serviceId} dnsZone={dnsZone} />}
+      <PageHeaderRow title={title} description={description} actions={actions} />
+      {currentTab ? (
+        <HostingTabs currentTab={currentTab} serviceId={serviceId} dnsZone={dnsZone} />
+      ) : null}
       {children}
     </div>
   );

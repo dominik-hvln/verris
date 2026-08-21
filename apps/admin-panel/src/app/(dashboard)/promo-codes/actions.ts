@@ -5,12 +5,13 @@ import { adminApi, AdminApiError } from "@/lib/api";
 
 export interface CreatePromoInput {
   code: string;
-  kind: "FIXED_CREDIT" | "PERCENT_BONUS";
+  kind: "FIXED_CREDIT" | "PERCENT_BONUS" | "SERVICE_PERCENT_OFF";
   value: string;
   description?: string;
   maxRedemptions?: number | null;
   validFrom?: string | null;
   validTo?: string | null;
+  appliesToRenewals?: boolean;
 }
 
 export interface CreatePromoResult {
@@ -35,8 +36,14 @@ export async function createPromoAction(
   if (input.kind === "PERCENT_BONUS") {
     return {
       ok: false,
-      error: 'Typ PERCENT_BONUS jest jeszcze niewspierany w UI klienta — użyj FIXED_CREDIT (zasilanie kredytów).',
+      error: 'Typ PERCENT_BONUS (doładowanie portfela) twórz ręcznie w API — w panelu użyj FIXED_CREDIT lub SERVICE_PERCENT_OFF.',
     };
+  }
+
+  if (input.kind === "SERVICE_PERCENT_OFF") {
+    if (value < 1 || value > 100) {
+      return { ok: false, error: "Rabat na usługę musi być z zakresu 1–100%." };
+    }
   }
 
   try {
@@ -45,11 +52,12 @@ export async function createPromoAction(
       body: {
         code,
         kind: input.kind,
-        value: value.toFixed(2),
+        value: input.kind === "SERVICE_PERCENT_OFF" ? String(Math.round(value)) : value.toFixed(2),
         description: input.description?.trim() || undefined,
         maxRedemptions: input.maxRedemptions ?? null,
         validFrom: input.validFrom || undefined,
         validTo: input.validTo || undefined,
+        appliesToRenewals: input.kind === "SERVICE_PERCENT_OFF" ? Boolean(input.appliesToRenewals) : false,
       },
     });
   } catch (err) {

@@ -50,6 +50,24 @@ export class TelemetryService {
       data: {
         lastHeartbeatAt: new Date(),
         agentVersion: data.agentVersion ?? undefined,
+        ...(data.node
+          ? {
+              cagefsEnabled: data.node.cagefsEnabled ?? null,
+              cagefsEnabledCount: data.node.cagefsEnabledCount ?? null,
+              cagefsCheckedAt: new Date(),
+              ...(data.node.hardened !== undefined
+                ? { hardenedEnabled: data.node.hardened, hardenedCheckedAt: new Date() }
+                : {}),
+              // DB-1 — silnik+wersja bazy z agenta (3306 zamknięty z control-plane).
+              ...(data.node.dbEngine || data.node.dbVersion
+                ? {
+                    dbEngine: data.node.dbEngine ?? null,
+                    dbVersion: data.node.dbVersion ?? null,
+                    dbCheckedAt: new Date(),
+                  }
+                : {}),
+            }
+          : {}),
       },
     });
 

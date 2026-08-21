@@ -271,6 +271,11 @@ export class MarketingCampaignService {
     return this.prisma.user.count({ where });
   }
 
+  /** Podgląd wielkości listy odbiorców dla segmentu (przed wysyłką). */
+  async estimateRecipients(segment: MarketingSegment): Promise<number> {
+    return this.countSegment(segment);
+  }
+
   private buildSegmentWhere(segment: MarketingSegment): Prisma.UserWhereInput {
     const baseAlive: Prisma.UserWhereInput = {
       anonymizedAt: null,

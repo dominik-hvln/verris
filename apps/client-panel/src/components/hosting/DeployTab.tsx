@@ -1,68 +1,257 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Rocket, ExternalLink, Loader2 } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { AlertCircle, ExternalLink, Loader2, Plus, RefreshCw, Rocket, Trash2 } from 'lucide-react';
 import { Button } from '@verris/ui';
-import { fetchHostingDaLinksAction } from '@/app/dashboard/services/[id]/hosting-mysql-links-actions';
+import type { DeployFrequency, DeployJobDto } from '@verris/contracts';
+import {
+  createDeployJobAction,
+  deleteDeployJobAction,
+  fetchDeployJobsAction,
+} from '@/app/dashboard/services/[id]/deploy-actions';
+import { HostingTabShell, DaExternalLink } from '@/components/hosting/HostingTabShell';
+import { hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
+import { useHostingLinks } from '@/components/hosting/hosting-links-context';
+import { Select } from '@/components/panel';
 
 interface DeployTabProps {
   serviceId: string;
 }
 
-/**
- * Wdrożenia z Git (webhook / CI) nie są zintegrowane z API Verris — użytkownik korzysta z SSH, DA lub zewnętrznego pipeline'u.
- */
+const FREQUENCY_LABEL: Record<DeployFrequency, string> = {
+  every_15m: 'Co 15 minut',
+  hourly: 'Co godzinę',
+  daily: 'Raz dziennie (03:30)',
+};
+
 export default function DeployTab({ serviceId }: DeployTabProps) {
-  const [panelUrl, setPanelUrl] = useState<string | null>(null);
+  const { links } = useHostingLinks();
   const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [rows, setRows] = useState<DeployJobDto[]>([]);
+  const [domains, setDomains] = useState<string[]>([]);
+  const [domain, setDomain] = useState('');
+  const [branch, setBranch] = useState('');
+  const [buildCommand, setBuildCommand] = useState('');
+  const [frequency, setFrequency] = useState<DeployFrequency>('every_15m');
+
+  const load = useCallback(async () => {
+    setError(null);
+    const res = await fetchDeployJobsAction(serviceId);
+    if (!res) {
+      setFetchError('fetch-failed');
+      setRows([]);
+      setLoading(false);
+      return;
+    }
+    setRows(res.rows);
+    setDomains(res.domains);
+    setFetchError(res.fetchError);
+    setDomain((prev) => prev || res.primaryDomain || res.domains[0] || '');
+    setLoading(false);
+  }, [serviceId]);
 
   useEffect(() => {
-    let cancel = false;
-    fetchHostingDaLinksAction(serviceId)
-      .then((l) => {
-        if (!cancel) setPanelUrl(l.panelBaseUrl || null);
-      })
-      .catch(() => {
-        if (!cancel) setPanelUrl(null);
-      })
-      .finally(() => {
-        if (!cancel) setLoading(false);
-      });
-    return () => {
-      cancel = true;
-    };
-  }, [serviceId]);
+    void load();
+  }, [load]);
+
+  const handleCreate = async () => {
+    if (!domain) {
+      setError('Wybierz domenę, dla której skonfigurujemy wdrożenia.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    const result = await createDeployJobAction(serviceId, {
+      domain,
+      branch: branch.trim() || undefined,
+      buildCommand: buildCommand.trim() || undefined,
+      frequency,
+    });
+    if (result.ok) {
+      setBranch('');
+      setBuildCommand('');
+      await load();
+    } else {
+      setError(result.error);
+    }
+    setBusy(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    setBusy(true);
+    setError(null);
+    const result = await deleteDeployJobAction(serviceId, id);
+    if (!result.ok) setError(result.error);
+    await load();
+    setBusy(false);
+  };
 
   if (loading) {
     return (
-      <div className="flex justify-center py-16">
-        <Loader2 className="h-7 w-7 animate-spin text-neutral-500" />
+      <div className="flex items-center justify-center gap-2 py-16 text-sm text-neutral-400">
+        <Loader2 className="h-5 w-5 animate-spin" />
+        Wczytywanie wdrożeń…
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 md:p-8">
-        <h2 className="text-2xl font-bold text-white flex items-center gap-3 mb-3">
-          <Rocket className="w-7 h-7" />
-          Wdrożenia (Git / CI)
-        </h2>
-        <p className="text-neutral-400 text-sm leading-relaxed max-w-2xl mb-6">
-          Automatyczne „push-to-deploy” z webhookiem w tym panelu nie jest jeszcze dostępne. Wdrożenia wykonasz przez
-          SSH i Git na serwerze, skrypt w cronie, zewnętrzny GitHub Actions / GitLab CI albo narzędzia w DirectAdmin.
-        </p>
-        {panelUrl ? (
-          <Button asChild variant="outline" className="border-white/20 text-white gap-2">
-            <a href={panelUrl} target="_blank" rel="noopener noreferrer">
-              Otwórz DirectAdmin
-              <ExternalLink className="h-4 w-4" />
-            </a>
+    <HostingTabShell
+      title="Automatyczne wdrożenia (Git)"
+      description="Verris uruchamia git pull i build w katalogu Twojej domeny według harmonogramu — repozytorium podłączasz raz w menedżerze plików."
+      icon={<Rocket className="h-4 w-4" />}
+      actions={
+        <>
+          {links.fileManagerUrl ? (
+            <DaExternalLink href={links.fileManagerUrl}>
+              Menedżer plików
+              <ExternalLink className="h-3 w-3 opacity-70" />
+            </DaExternalLink>
+          ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={busy}
+            onClick={() => void load()}
+            className="h-8 gap-1.5 border-white/15 bg-white/[0.04] text-white hover:bg-white/10 text-xs"
+          >
+            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            Odśwież
           </Button>
-        ) : (
-          <p className="text-sm text-amber-200">Brak adresu panelu — sprawdź provisioning usługi.</p>
-        )}
+        </>
+      }
+    >
+      {error ? (
+        <div className="mb-3 flex items-start gap-2 rounded-lg border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-xs text-rose-100">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {error}
+        </div>
+      ) : null}
+
+      {fetchError ? (
+        <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {hostingFetchErrorMessage(fetchError)}
+        </div>
+      ) : null}
+
+      <div className="mb-5 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+          Nowe wdrożenie
+        </h3>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <label className="block text-xs text-neutral-400">
+            Domena
+            <Select
+              value={domain}
+              onChange={setDomain}
+              aria-label="Domena"
+              className="mt-1"
+              placeholder="Brak domen na koncie"
+              options={domains.map((d) => ({ value: d, label: d }))}
+            />
+          </label>
+          <label className="block text-xs text-neutral-400">
+            Częstotliwość
+            <Select
+              value={frequency}
+              onChange={(v) => setFrequency(v as DeployFrequency)}
+              aria-label="Częstotliwość"
+              className="mt-1"
+              options={(Object.keys(FREQUENCY_LABEL) as DeployFrequency[]).map((f) => ({
+                value: f,
+                label: FREQUENCY_LABEL[f],
+              }))}
+            />
+          </label>
+          <label className="block text-xs text-neutral-400">
+            Gałąź Git (opcjonalnie)
+            <input
+              value={branch}
+              onChange={(e) => setBranch(e.target.value)}
+              placeholder="main"
+              className="mt-1 w-full rounded-lg border border-white/10 bg-[#050505] px-3 py-2 text-sm text-white"
+            />
+          </label>
+          <label className="block text-xs text-neutral-400">
+            Komenda build (opcjonalnie)
+            <input
+              value={buildCommand}
+              onChange={(e) => setBuildCommand(e.target.value)}
+              placeholder="composer install --no-dev"
+              className="mt-1 w-full rounded-lg border border-white/10 bg-[#050505] px-3 py-2 text-sm text-white font-mono"
+            />
+          </label>
+        </div>
+        <p className="mt-2 text-[11px] text-neutral-500 leading-relaxed">
+          Po podłączeniu repozytorium w katalogu domeny harmonogram wykona{' '}
+          <span className="font-mono text-neutral-300">git pull</span>
+          {branch ? <> gałęzi <span className="font-mono text-neutral-300">{branch}</span></> : null}
+          {buildCommand ? <> oraz <span className="font-mono text-neutral-300">{buildCommand}</span></> : null}. Znaki
+          specjalne powłoki w komendzie build są blokowane ze względów bezpieczeństwa.
+        </p>
+        <Button
+          type="button"
+          size="sm"
+          disabled={busy || !domain}
+          onClick={() => void handleCreate()}
+          className="mt-3 h-9 gap-1.5 text-xs"
+        >
+          {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+          Zapisz wdrożenie
+        </Button>
       </div>
-    </div>
+
+      <div className="rounded-xl border border-white/5 bg-[#050505] overflow-hidden">
+        <table className="w-full text-xs sm:text-sm">
+          <thead className="bg-white/5 border-b border-white/5 text-left">
+            <tr>
+              <th className="py-3 px-3 text-neutral-300 font-semibold">Domena</th>
+              <th className="py-3 px-3 text-neutral-300 font-semibold hidden sm:table-cell">Harmonogram</th>
+              <th className="py-3 px-3 text-right text-neutral-300 font-semibold">Akcje</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 && !fetchError ? (
+              <tr>
+                <td colSpan={3} className="px-3 py-8 text-center text-neutral-500 text-xs">
+                  Brak skonfigurowanych wdrożeń — dodaj pierwsze powyżej.
+                </td>
+              </tr>
+            ) : null}
+            {rows.map((job) => (
+              <tr key={job.id} className="border-b border-white/5 hover:bg-white/[0.02] align-top">
+                <td className="py-3 px-3 text-white">
+                  {job.domain}
+                  {job.branch ? (
+                    <span className="ml-2 rounded bg-white/5 px-1.5 py-0.5 font-mono text-[11px] text-neutral-400">
+                      {job.branch}
+                    </span>
+                  ) : null}
+                </td>
+                <td className="py-3 px-3 text-neutral-400 hidden sm:table-cell">
+                  {FREQUENCY_LABEL[job.frequency]}
+                </td>
+                <td className="py-3 px-3 text-right">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void handleDelete(job.id)}
+                    className="inline-flex items-center gap-1 text-xs text-rose-300 hover:text-rose-200 disabled:opacity-50"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    Usuń
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </HostingTabShell>
   );
 }

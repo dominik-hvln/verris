@@ -17,8 +17,11 @@ import { Role } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard';
+import { StaffPerm } from '../common/decorators/staff-permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { UsersAdminService } from './users.admin.service';
+import { UsersService } from './users.service';
 import { HostingDiagnosticsService } from '../diagnostics/hosting-diagnostics.service';
 import {
   DnsTlsDiagnosticDto,
@@ -62,12 +65,14 @@ interface AuthedUser {
 }
 
 @Controller('admin/users')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, StaffPermissionsGuard)
 @Roles(Role.ADMIN, Role.STAFF)
+@StaffPerm('CUSTOMERS_VIEW')
 export class UsersAdminController {
   constructor(
     private readonly admin: UsersAdminService,
     private readonly diagnostics: HostingDiagnosticsService,
+    private readonly users: UsersService,
   ) {}
 
   @Get()
@@ -92,7 +97,8 @@ export class UsersAdminController {
    * Sprint 4 / R-04 — agregat pod formularz operacyjny (tylko ADMIN, konto USER).
    */
   @Get(':id/operational-detail')
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('CUSTOMERS_VIEW')
   async operationalDetail(@Param('id') id: string) {
     return this.admin.getCustomerOperationalDetail(id);
   }
@@ -134,7 +140,8 @@ export class UsersAdminController {
    * Sprint 4 / R-04 — blokada logowania, powód, notatka wewnętrzna.
    */
   @Patch(':id/operational')
-  @Roles(Role.ADMIN)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('CUSTOMERS_MANAGE')
   async patchOperational(
     @CurrentUser() user: AuthedUser,
     @Param('id') id: string,
@@ -239,6 +246,7 @@ export class UsersAdminController {
   }
 
   @Post(':id/impersonate')
+  @Roles(Role.ADMIN)
   async impersonate(
     @CurrentUser() user: AuthedUser,
     @Param('id') id: string,
@@ -258,6 +266,22 @@ export class UsersAdminController {
       userAgent,
       reason: dto.reason,
     });
+  }
+
+  @Get('referral-enrollments')
+  @StaffPerm('PROMO_MANAGE')
+  listReferralEnrollments(@Query('status') status?: 'PENDING' | 'APPROVED' | 'REJECTED') {
+    return this.users.listReferralEnrollments(status);
+  }
+
+  @Patch('referral-enrollments/:userId')
+  @StaffPerm('PROMO_MANAGE')
+  reviewReferralEnrollment(
+    @Param('userId') userId: string,
+    @Body() body: { status: 'APPROVED' | 'REJECTED'; reviewNote?: string },
+    @CurrentUser() actor: AuthedUser,
+  ) {
+    return this.users.reviewReferralEnrollment(userId, body, actor.userId);
   }
 
   @Post('impersonate/stop')

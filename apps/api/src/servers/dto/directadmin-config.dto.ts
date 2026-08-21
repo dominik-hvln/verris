@@ -26,4 +26,13 @@ export class UpdateDirectAdminConfigDto {
   @IsOptional()
   @IsBoolean()
   daUseTls?: boolean;
+
+  /**
+   * Audit F-04: allow a self-signed / unverified TLS cert on the DA API.
+   * Escape hatch for the onboarding window ONLY — the node audit flags any
+   * node left with this enabled.
+   */
+  @IsOptional()
+  @IsBoolean()
+  daAllowInvalidCert?: boolean;
 }

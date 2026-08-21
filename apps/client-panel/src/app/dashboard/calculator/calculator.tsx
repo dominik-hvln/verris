@@ -8,44 +8,50 @@ import {
   Zap,
   CheckCircle2,
   AlertCircle,
-  Globe,
 } from 'lucide-react';
-import type { AutoscalingResource, PriceRuleDto } from './types';
+import type { PriceRuleDto } from './types';
+import { hourlyRateForResource } from './pricing-math';
+import { CREDIT_SHORT } from '@/lib/credits';
 
 interface Props {
   rules: PriceRuleDto[];
+  initialCpuPercent?: number;
+  initialRamGb?: number;
+  initialDiskGb?: number;
 }
 
-const HOURS_PER_MONTH = 730; // 730 ≈ 365.25 × 24 / 12
+const HOURS_PER_MONTH = 730;
 
-export function AutoscalingCalculator({ rules }: Props) {
-  const [cpuPercent, setCpuPercent] = useState(50);
-  const [ramMb, setRamMb] = useState(512);
-  const [ioKbps, setIoKbps] = useState(0);
-  const [transferGb, setTransferGb] = useState(0);
+export function AutoscalingCalculator({
+  rules,
+  initialCpuPercent = 50,
+  initialRamGb = 0.5,
+  initialDiskGb = 0,
+}: Props) {
+  const [cpuPercent, setCpuPercent] = useState(initialCpuPercent);
+  const [ramGb, setRamGb] = useState(initialRamGb);
+  const [diskGb, setDiskGb] = useState(initialDiskGb);
 
-  const currency = rules[0]?.currency ?? 'PLN';
+  const unit = CREDIT_SHORT;
 
   const breakdown = useMemo(() => {
-    const cpuHourly = pickRate(rules, 'CPU', cpuPercent) * cpuPercent;
-    const ramHourly = pickRate(rules, 'RAM', ramMb) * ramMb;
-    const ioHourly = pickRate(rules, 'IO', ioKbps) * ioKbps;
-    const transferOnce = pickRate(rules, 'TRANSFER', transferGb) * transferGb;
+    const cpuHourly = hourlyRateForResource(rules, 'CPU', cpuPercent);
+    const ramHourly = hourlyRateForResource(rules, 'RAM', ramGb);
+    const diskHourly = hourlyRateForResource(rules, 'DISK', diskGb);
 
-    const hourly = cpuHourly + ramHourly + ioHourly;
+    const hourly = cpuHourly + ramHourly + diskHourly;
     const daily = hourly * 24;
     const monthly = hourly * HOURS_PER_MONTH;
 
     return {
       cpuHourly,
       ramHourly,
-      ioHourly,
-      transferOnce,
+      diskHourly,
       hourly,
       daily,
       monthly,
     };
-  }, [rules, cpuPercent, ramMb, ioKbps, transferGb]);
+  }, [rules, cpuPercent, ramGb, diskGb]);
 
   const noRules = rules.length === 0;
 
@@ -59,55 +65,46 @@ export function AutoscalingCalculator({ rules }: Props) {
               Skonfiguruj scenariusz autoskalowania
             </h2>
             <p className="text-neutral-400 font-medium">
-              Suwaki odpowiadają delcie ponad bazowy plan (np. plan ma 100% CPU,
-              autoscaling dorzuca dodatkowe %). Naliczanie godzinowe — gdy
-              przeskalowanie zniknie, zniknie też koszt.
+              Suwaki to delta ponad plan bazowy. CPU w %, RAM i dysk w GB — naliczanie
+              godzinowe; gdy skalowanie spadnie, koszt też znika.
             </p>
           </div>
 
           <div className="space-y-8">
             <Slider
               icon={<Cpu className="w-5 h-5 text-emerald-400" />}
-              label="Dodatkowy CPU (LVE %)"
+              label="Dodatkowa moc CPU (%)"
               hint="100% ≈ jeden rdzeń logiczny w pełnym burst"
               min={0}
               max={400}
               step={10}
               value={cpuPercent}
               setValue={setCpuPercent}
+              formatValue={(v) => String(v)}
               suffix="%"
             />
             <Slider
               icon={<MemoryStick className="w-5 h-5 text-emerald-400" />}
-              label="Dodatkowy RAM (MB)"
-              hint="Limit pmem CloudLinux LVE"
+              label="Dodatkowy RAM (GB)"
+              hint="Limit pamięci ponad plan — krok 0,5 GB"
               min={0}
-              max={8192}
-              step={64}
-              value={ramMb}
-              setValue={setRamMb}
-              suffix=" MB"
+              max={32}
+              step={0.5}
+              value={ramGb}
+              setValue={setRamGb}
+              formatValue={(v) => v.toLocaleString('pl-PL', { minimumFractionDigits: 0, maximumFractionDigits: 1 })}
+              suffix=" GB"
             />
             <Slider
               icon={<HardDrive className="w-5 h-5 text-emerald-400" />}
-              label="Dodatkowe I/O (kbps)"
-              hint="Throughput dyskowy dla konta"
+              label="Dodatkowa przestrzeń dyskowa (GB)"
+              hint="Powiększenie limitu dysku konta hostingowego — krok 1 GB"
               min={0}
-              max={102_400}
-              step={1024}
-              value={ioKbps}
-              setValue={setIoKbps}
-              suffix=" kbps"
-            />
-            <Slider
-              icon={<Globe className="w-5 h-5 text-emerald-400" />}
-              label="Dodatkowy transfer (GB / miesiąc)"
-              hint="Naliczane jednorazowo za wykorzystany pakiet"
-              min={0}
-              max={1000}
-              step={10}
-              value={transferGb}
-              setValue={setTransferGb}
+              max={500}
+              step={1}
+              value={diskGb}
+              setValue={setDiskGb}
+              formatValue={(v) => String(v)}
               suffix=" GB"
             />
           </div>
@@ -136,50 +133,36 @@ export function AutoscalingCalculator({ rules }: Props) {
             <div className="mb-8">
               <div className="text-4xl font-extrabold text-white">
                 {breakdown.monthly.toFixed(2)}{' '}
-                <span className="text-2xl text-neutral-400">{currency}</span>
+                <span className="text-2xl text-neutral-400">{unit}</span>
               </div>
               <p className="text-neutral-500 text-sm">
-                / miesiąc (przy 100% utrzymaniu skalowania){' '}
+                / miesiąc (przy 100% utrzymaniu skalowania)
               </p>
             </div>
 
             <div className="space-y-3 mb-8 text-sm">
-              <Row
-                label="CPU"
-                value={`${breakdown.cpuHourly.toFixed(4)} ${currency}/h`}
-              />
-              <Row
-                label="RAM"
-                value={`${breakdown.ramHourly.toFixed(4)} ${currency}/h`}
-              />
-              <Row
-                label="I/O"
-                value={`${breakdown.ioHourly.toFixed(4)} ${currency}/h`}
-              />
-              <Row
-                label="Transfer"
-                value={`${breakdown.transferOnce.toFixed(2)} ${currency}`}
-                hint="jednorazowo"
-              />
+              <Row label="CPU" value={`${breakdown.cpuHourly.toFixed(4)} ${unit}/h`} />
+              <Row label="RAM" value={`${breakdown.ramHourly.toFixed(4)} ${unit}/h`} />
+              <Row label="Dysk" value={`${breakdown.diskHourly.toFixed(4)} ${unit}/h`} />
             </div>
 
             <div className="space-y-3 mb-8">
               <Bullet text="Brak długoterminowych umów" />
               <Bullet text="Skaluj w dowolnym momencie" />
-              <Bullet text="Pełna izolacja zasobów (LVE)" />
+              <Bullet text="Pełna izolacja zasobów między kontami" />
             </div>
 
             <div className="mt-auto pt-6 border-t border-white/10 space-y-3">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-neutral-400">Stawka godzinowa</span>
                 <span className="text-white font-medium">
-                  ~{breakdown.hourly.toFixed(4)} {currency}
+                  ~{breakdown.hourly.toFixed(4)} {unit}
                 </span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-neutral-400">Stawka dobowa</span>
                 <span className="text-white font-medium">
-                  ~{breakdown.daily.toFixed(2)} {currency}
+                  ~{breakdown.daily.toFixed(2)} {unit}
                 </span>
               </div>
             </div>
@@ -199,6 +182,7 @@ function Slider({
   step,
   value,
   setValue,
+  formatValue,
   suffix,
 }: {
   icon: React.ReactNode;
@@ -209,6 +193,7 @@ function Slider({
   step: number;
   value: number;
   setValue: (v: number) => void;
+  formatValue: (v: number) => string;
   suffix: string;
 }) {
   return (
@@ -224,7 +209,7 @@ function Slider({
           )}
         </div>
         <span className="text-xl font-bold text-white bg-white/5 px-3 py-1 rounded-xl shadow-inner border border-white/10 whitespace-nowrap">
-          {value.toLocaleString('pl-PL')}
+          {formatValue(value)}
           <span className="text-sm font-medium text-neutral-400">{suffix}</span>
         </span>
       </div>
@@ -241,21 +226,10 @@ function Slider({
   );
 }
 
-function Row({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string;
-  hint?: string;
-}) {
+function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between items-center text-neutral-300">
-      <span className="text-neutral-400">
-        {label}
-        {hint && <span className="block text-[10px] text-neutral-600">{hint}</span>}
-      </span>
+      <span className="text-neutral-400">{label}</span>
       <span className="font-mono text-white text-xs">{value}</span>
     </div>
   );
@@ -267,25 +241,4 @@ function Bullet({ text }: { text: string }) {
       <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> {text}
     </div>
   );
-}
-
-/**
- * Picks the price rate (PLN per unit per hour) for a given resource and amount.
- * Mirrors the API logic in `AutoscalingPricingService.estimateHourlyCost`:
- * walks rules sorted by `thresholdAbove` desc, picks the first one for which
- * the chosen amount is at or above the threshold; falls back to the lowest-
- * threshold rule.
- */
-function pickRate(
-  rules: PriceRuleDto[],
-  resource: AutoscalingResource,
-  amount: number,
-): number {
-  if (amount <= 0) return 0;
-  const candidates = rules
-    .filter((r) => r.resource === resource && r.isActive)
-    .sort((a, b) => b.thresholdAbove - a.thresholdAbove);
-  if (candidates.length === 0) return 0;
-  const match = candidates.find((r) => amount >= r.thresholdAbove) ?? candidates[candidates.length - 1];
-  return Number.parseFloat(match.pricePerUnit);
 }

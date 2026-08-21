@@ -7,6 +7,7 @@ export interface StaffProfile {
   firstName: string | null;
   lastName: string | null;
   role: "ADMIN" | "STAFF" | "USER";
+  canAccessGrafana?: boolean;
 }
 
 export async function getStaffSession(): Promise<StaffProfile | null> {

@@ -1,28 +1,28 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  Globe,
-  RefreshCw,
-  AlertCircle,
-  CheckCircle2,
-  Loader2,
-} from 'lucide-react';
+import { Globe, RefreshCw, AlertCircle, CheckCircle2, Loader2, ExternalLink } from 'lucide-react';
 import { Button } from '@verris/ui';
 import { fetchHostingDomainsAction } from '@/app/dashboard/services/[id]/hosting-domains-action';
+import { HostingTabShell, DaExternalLink } from '@/components/hosting/HostingTabShell';
+import { hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
+import { useHostingLinks } from '@/components/hosting/hosting-links-context';
+import DomainPointingPanel from '@/components/hosting/DomainPointingPanel';
+import SubdomainsManager from '@/components/hosting/SubdomainsManager';
+import AdditionalDomains from '@/components/hosting/AdditionalDomains';
+import { ResponsiveDataView } from '@/components/panel';
 
 interface Props {
   serviceId: string;
 }
 
 export default function DomainsTab({ serviceId }: Props) {
+  const { links } = useHostingLinks();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [domains, setDomains] = useState<{ name: string }[]>([]);
-  const [daUser, setDaUser] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
-
   const [primaryDomain, setPrimaryDomain] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -30,7 +30,6 @@ export default function DomainsTab({ serviceId }: Props) {
     try {
       const res = await fetchHostingDomainsAction(serviceId);
       setDomains(res.domains);
-      setDaUser(res.daUsername);
       setFetchError(res.fetchError);
       setPrimaryDomain(res.primaryDomain);
     } catch (e) {
@@ -46,129 +45,177 @@ export default function DomainsTab({ serviceId }: Props) {
     void load();
   }, [load]);
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    void load();
-  };
-
   if (loading) {
     return (
-      <div className="flex items-center justify-center gap-3 py-24 text-neutral-400">
-        <Loader2 className="h-6 w-6 animate-spin text-cyan-400" />
-        Wczytywanie domen z DirectAdmin…
+      <div className="flex items-center justify-center gap-2 py-16 text-sm text-neutral-400">
+        <Loader2 className="h-5 w-5 animate-spin" />
+        Wczytywanie domen…
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="relative rounded-[32px] p-px overflow-hidden group">
-        <div className="relative rounded-[calc(32px-1px)] bg-[#0a0a0a] p-6 lg:p-8 flex flex-col z-10 transition-colors duration-300 border border-white/10">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4 border-b border-white/5 pb-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-2xl bg-white/5 text-white border border-white/10 shadow-inner">
-                <Globe className="h-6 w-6" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-white tracking-wide">Domeny (DirectAdmin)</h2>
-                <p className="text-sm text-neutral-400 mt-1 max-w-xl">
-                  Lista synchronizowana na żywo z kontem hostingowym (
-                  {daUser ? (
-                    <span className="font-mono text-neutral-200">{daUser}</span>
-                  ) : (
-                    'brak konta'
-                  )}
-                  ). Dodawanie i strefy DNS zarządzasz bezpośrednio w DirectAdmin lub przez nasz support.
-                </p>
-              </div>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              disabled={refreshing}
-              onClick={onRefresh}
-              className="gap-2 border-white/15 bg-white/[0.04] text-white hover:bg-white/10"
-            >
-              {refreshing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4" />
-              )}
-              Odśwież
-            </Button>
-          </div>
-
-          {error ? (
-            <div className="mb-4 flex items-start gap-2 rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
-              <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-              {error}
-            </div>
+    <HostingTabShell
+      title="Domeny na koncie"
+      description="Lista domen przypisanych do usługi."
+      icon={<Globe className="h-4 w-4" />}
+      help={{
+        blurb:
+          'Aby domena działała na hostingu, trzeba ją „skierować" (nameservery lub rekord A). Pokażemy dokładnie co ustawić u rejestratora i sprawdzimy, czy już działa.',
+        kbQuery: 'skierować domenę',
+      }}
+      actions={
+        <>
+          {links.domainsUrl ? (
+            <DaExternalLink href={links.domainsUrl}>
+              Zarządzaj domenami
+              <ExternalLink className="h-3 w-3 opacity-70" />
+            </DaExternalLink>
           ) : null}
-
-          {fetchError ? (
-            <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-              <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-              <span>
-                Odczyt z DirectAdmin nie powiódł się: {fetchError}. Sprawdź połączenie z węzłem lub skontaktuj
-                się z supportem — konto lub hasło mogło ulec zmianie.
-              </span>
-            </div>
+          {links.dnsUrl ? (
+            <DaExternalLink href={links.dnsUrl}>
+              Strefa DNS
+              <ExternalLink className="h-3 w-3 opacity-70" />
+            </DaExternalLink>
           ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={refreshing}
+            onClick={() => {
+              setRefreshing(true);
+              void load();
+            }}
+            className="h-8 gap-1.5 border-white/15 bg-white/[0.04] text-white hover:bg-white/10 text-xs"
+          >
+            {refreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            Odśwież
+          </Button>
+        </>
+      }
+    >
+      {error ? (
+        <div className="mb-3 flex items-start gap-2 rounded-lg border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-xs text-rose-100">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {error}
+        </div>
+      ) : null}
 
-          <div className="rounded-xl border border-white/5 bg-[#050505] overflow-x-auto shadow-inner">
-            <table className="w-full text-sm">
-              <thead className="bg-white/5 border-b border-white/5 text-left">
-                <tr>
-                  <th className="py-4 px-4 text-neutral-300 font-semibold">Domena</th>
-                  <th className="px-4 text-neutral-300 font-semibold">Rola</th>
-                  <th className="px-4 text-neutral-300 font-semibold">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {domains.length === 0 && !fetchError ? (
-                  <tr>
-                    <td colSpan={3} className="px-4 py-10 text-center text-neutral-500">
-                      Brak wpisów domen w DirectAdmin dla tego konta (lub konto jeszcze nie provisionowane).
-                    </td>
-                  </tr>
-                ) : null}
-                {domains.map((d) => {
+      {fetchError ? (
+        <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {hostingFetchErrorMessage(fetchError)}
+        </div>
+      ) : null}
+
+      <DomainPointingPanel serviceId={serviceId} dnsManageUrl={links.dnsUrl} variant="full" />
+
+      <div className="mt-4">
+        <SubdomainsManager serviceId={serviceId} />
+      </div>
+
+      <div className="mt-4 min-w-0">
+        {domains.length === 0 && !fetchError ? (
+          <p className="rounded-xl border border-white/5 bg-[#050505] px-3 py-8 text-center text-xs text-neutral-500">
+            Brak domen — dodaj je w panelu hostingu.
+          </p>
+        ) : (
+          <ResponsiveDataView
+            rows={domains}
+            rowKey={(d) => d.name}
+            tableClassName="rounded-xl border border-white/5 bg-[#050505]"
+            columns={[
+              {
+                key: 'name',
+                header: 'Domena',
+                cell: (d) => {
                   const primary =
                     primaryDomain && d.name.toLowerCase() === primaryDomain.toLowerCase();
                   return (
-                    <tr key={d.name} className="border-b border-white/5 hover:bg-white/5 group/row transition-colors">
-                      <td className="font-bold py-4 px-4 text-white">
-                        <div className="flex items-center gap-3 min-w-0">
-                          <div className="h-8 w-8 rounded-lg bg-white/5 flex items-center justify-center text-white border border-white/10 shrink-0">
-                            <Globe className="h-4 w-4" />
-                          </div>
-                          <span className="truncate">{d.name}</span>
-                        </div>
-                      </td>
-                      <td className="px-4 text-neutral-400">
-                        {primary ? (
-                          <span className="text-xs bg-cyan-500/15 text-cyan-200 px-2 py-0.5 rounded border border-cyan-500/30">
-                            Konto główne
-                          </span>
-                        ) : (
-                          <span className="text-xs text-neutral-500">Dodatkowa / alias</span>
-                        )}
-                      </td>
-                      <td className="px-4">
-                        <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold bg-white/5 text-white border-white/20">
-                          <CheckCircle2 className="w-3 h-3 mr-1" />
-                          Na serwerze DA
-                        </div>
-                      </td>
-                    </tr>
+                    <div className="flex min-w-0 items-center gap-2 font-medium text-white">
+                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                      <span className="truncate" title={d.name}>
+                        {d.name}
+                      </span>
+                      {primary ? (
+                        <span className="shrink-0 rounded border border-cyan-500/30 bg-cyan-500/15 px-2 py-0.5 text-[10px] text-cyan-200">
+                          Główna
+                        </span>
+                      ) : null}
+                    </div>
                   );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                },
+              },
+              {
+                key: 'role',
+                header: 'Rola',
+                cell: (d) => {
+                  const primary =
+                    primaryDomain && d.name.toLowerCase() === primaryDomain.toLowerCase();
+                  return primary ? (
+                    <span className="text-[10px] text-cyan-200">Główna</span>
+                  ) : (
+                    <span className="text-[10px] text-neutral-500">Dodatkowa</span>
+                  );
+                },
+              },
+              {
+                key: 'actions',
+                header: 'Akcje',
+                headerClassName: 'text-right',
+                cellClassName: 'text-right',
+                cell: (d) => {
+                  const primary =
+                    primaryDomain && d.name.toLowerCase() === primaryDomain.toLowerCase();
+                  const dnsLink = links.dnsUrl && primary ? links.dnsUrl : null;
+                  return dnsLink ? (
+                    <a
+                      href={dnsLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-neutral-300 hover:text-white"
+                    >
+                      DNS →
+                    </a>
+                  ) : (
+                    <span className="text-xs text-neutral-600">—</span>
+                  );
+                },
+              },
+            ]}
+            renderMobileCard={(d) => {
+              const primary =
+                primaryDomain && d.name.toLowerCase() === primaryDomain.toLowerCase();
+              const dnsLink = links.dnsUrl && primary ? links.dnsUrl : null;
+              return (
+                <div className="flex items-start justify-between gap-3 rounded-xl border border-white/5 bg-[#050505] p-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex min-w-0 items-start gap-2">
+                      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                      <span className="break-all text-sm font-medium text-white">{d.name}</span>
+                    </div>
+                    <p className="mt-1 text-[11px] text-neutral-500">
+                      {primary ? 'Domena główna' : 'Dodatkowa'}
+                    </p>
+                  </div>
+                  {dnsLink ? (
+                    <a
+                      href={dnsLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 text-xs font-medium text-neutral-300 hover:text-white"
+                    >
+                      DNS →
+                    </a>
+                  ) : null}
+                </div>
+              );
+            }}
+          />
+        )}
       </div>
-    </div>
+      <AdditionalDomains serviceId={serviceId} />
+    </HostingTabShell>
   );
 }

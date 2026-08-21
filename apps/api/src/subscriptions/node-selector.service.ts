@@ -41,8 +41,11 @@ export class NodeSelectorService {
   constructor(private readonly prisma: PrismaService) {}
 
   async pickServerForPlan(plan: Plan, ctx: NodeSelectionContext = {}): Promise<Server> {
+    // Tylko węzły ACTIVE, które NIE są „cordoned" (acceptsNewAccounts=false).
+    // Cordon pozwala wstrzymać przyjmowanie nowych kont na pojedynczym węźle bez
+    // przełączania go w MAINTENANCE (co wstrzymałoby sprzedaż globalnie).
     const candidates = await this.prisma.server.findMany({
-      where: { status: ServerStatus.ACTIVE },
+      where: { status: ServerStatus.ACTIVE, acceptsNewAccounts: true },
     });
 
     if (candidates.length === 0) {
@@ -69,6 +72,16 @@ export class NodeSelectorService {
       );
     }
 
+    // Liczba kont per węzeł — potrzebna do limitu maxAccounts.
+    const accountCounts = await this.prisma.account.groupBy({
+      by: ['serverId'],
+      where: { serverId: { in: candidates.map((c) => c.id) } },
+      _count: { _all: true },
+    });
+    const countByServer = new Map<string, number>(
+      accountCounts.map((row) => [row.serverId, row._count._all]),
+    );
+
     const scored: ServerScore[] = [];
     for (const server of candidates) {
       const totalCpu = (server.totalCpuCores ?? 0) * 100;
@@ -79,13 +92,27 @@ export class NodeSelectorService {
       // overcommit and we skip it for safety.
       if (totalCpu === 0 || totalRam === 0 || totalDisk === 0) continue;
 
+      // Twardy limit liczby kont na węźle (jeśli ustawiony przez admina).
+      if (server.maxAccounts != null) {
+        const current = countByServer.get(server.id) ?? 0;
+        if (current >= server.maxAccounts) continue;
+      }
+
+      // Rezerwa headroom — trzymamy % całkowitej pojemności wolnej pod burst
+      // autoskalowania, więc do umieszczenia nowego konta wymagamy
+      // free ≥ limit_planu + rezerwa.
+      const headroom = Math.min(Math.max(server.reservedHeadroomPercent ?? 0, 0), 90) / 100;
+      const reservedCpu = totalCpu * headroom;
+      const reservedRam = totalRam * headroom;
+      const reservedDisk = totalDisk * headroom;
+
       const freeCpu = totalCpu - server.allocatedCpu;
       const freeRam = totalRam - server.allocatedMemory;
       const freeDisk = totalDisk - server.allocatedDisk;
 
-      if (freeCpu < plan.cpuLimit) continue;
-      if (freeRam < plan.ramLimitMb) continue;
-      if (freeDisk < plan.diskLimitMb) continue;
+      if (freeCpu < plan.cpuLimit + reservedCpu) continue;
+      if (freeRam < plan.ramLimitMb + reservedRam) continue;
+      if (freeDisk < plan.diskLimitMb + reservedDisk) continue;
 
       const cpuLoad = server.allocatedCpu / totalCpu;
       const ramLoad = server.allocatedMemory / totalRam;

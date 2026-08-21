@@ -16,9 +16,10 @@ export class CreatePriceRuleDto {
   @IsEnum(AutoscalingResource)
   resource!: AutoscalingResource;
 
+  @IsOptional()
   @IsString()
   @Length(2, 32)
-  unit!: string; // cpu_pct | ram_mb | io_kbps | transfer_gb
+  unit?: string; // optional — API sets cpu_pct | ram_mb | disk_mb from resource
 
   @IsNumber({ maxDecimalPlaces: 6 })
   @Min(0)

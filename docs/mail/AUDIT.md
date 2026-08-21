@@ -1,5 +1,7 @@
 # Audyt mailingu Verris (Sprint 0 → Sprint 2)
 
+> **Uwaga (2026-05-24):** sekcja „Co NIE działa” poniżej była **nieaktualna** — większość billing/subscription/legal/2FA/login-alert jest już w kodzie. Status bez węzła: [`HOSTING_LAUNCH_TASKS.md`](../HOSTING_LAUNCH_TASKS.md) → MAIL-TX.
+
 > Sprint 0 sekcja 4d z `SPRINT_01_STABILIZACJA.md`. Dokument służy jako wejście dla Sprintu 2 (Maile transakcyjne, `SPRINT_03_MAILE.md`). Spina trzy rzeczy: **(1)** stan obecny mailingu w kodzie, **(2)** docelową listę template'ów z triggerami, **(3)** wybór i konfigurację dostawcy SMTP transakcyjnego.
 
 ## 1. Stan obecny

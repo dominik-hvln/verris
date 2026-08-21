@@ -4,9 +4,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { adminApi, AdminApiError } from "@/lib/api";
 
-const CLIENT_PANEL_URL =
-  process.env.CLIENT_PANEL_URL ?? "http://localhost:3001";
-
 interface ImpersonateResponse {
   access_token: string;
   expiresIn: string;
@@ -42,11 +39,18 @@ export async function impersonateUserAction(
     return { ok: false, error: "Nie udało się zainicjować impersonacji" };
   }
 
-  const url = new URL(`${CLIENT_PANEL_URL}/impersonate`);
+  const url = new URL("/impersonate", panelUrl("CLIENT_PANEL_URL", 3001));
   url.searchParams.set("token", res.access_token);
   url.searchParams.set("returnTo", "/dashboard");
   url.searchParams.set("operator", "admin");
   redirect(url.toString());
+}
+
+function panelUrl(envName: string, devPort: number): string {
+  const value = process.env[envName]?.trim();
+  if (value) return value.replace(/\/$/, "");
+  if (process.env.NODE_ENV !== "production") return `http://${"localhost"}:${devPort}`;
+  throw new Error(`${envName} is required for production redirects.`);
 }
 
 interface AdminCreditWalletInput {
@@ -70,6 +74,31 @@ export interface AdminCreditWalletResult {
  * Klient w panelu zobaczy operację jako "Uznanie od Verris" wraz z reason'em
  * podanym przez admina.
  */
+export async function forceAnonymizeCustomerAction(
+  userId: string,
+  reason: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const trimmed = reason.trim();
+  if (trimmed.length < 5) {
+    return { ok: false, error: "Podaj powód anonimizacji (min. 5 znaków)." };
+  }
+  try {
+    await adminApi(`/admin/compliance/deletion-requests/${userId}/force-anonymize`, {
+      method: "POST",
+      body: { reason: trimmed },
+    });
+    revalidatePath("/customers");
+    revalidatePath(`/customers/${userId}`);
+    revalidatePath("/compliance");
+    return { ok: true };
+  } catch (err) {
+    if (err instanceof AdminApiError) {
+      return { ok: false, error: err.message };
+    }
+    return { ok: false, error: "Nie udało się zanonimizować konta." };
+  }
+}
+
 export async function adminCreditWalletAction(
   input: AdminCreditWalletInput,
 ): Promise<AdminCreditWalletResult> {

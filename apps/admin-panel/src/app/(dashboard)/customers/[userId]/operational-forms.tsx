@@ -2,10 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { AlertTriangle, Loader2, Save, KeyRound, Mail } from "lucide-react";
+import { AlertTriangle, Loader2, Save, KeyRound, Mail, ShieldOff } from "lucide-react";
 import type { AdminCustomerOperationalDetail } from "../data";
 import {
   changeCustomerEmailAction,
+  forceAnonymizeCustomerAction,
   patchCustomerOperationalAction,
   resetCustomerPasswordAction,
 } from "../actions";
@@ -33,6 +34,11 @@ export function CustomerOperationalForms({ detail }: Props) {
   const [resetReason, setResetReason] = useState("");
   const [resetErr, setResetErr] = useState<string | null>(null);
   const [tempPassword, setTempPassword] = useState<string | null>(null);
+
+  const [deleteReason, setDeleteReason] = useState("");
+  const [deleteConfirm, setDeleteConfirm] = useState(false);
+  const [deleteErr, setDeleteErr] = useState<string | null>(null);
+  const [deleteOk, setDeleteOk] = useState(false);
 
   useEffect(() => {
     setLoginBlocked(detail.loginBlocked);
@@ -243,6 +249,68 @@ export function CustomerOperationalForms({ detail }: Props) {
         >
           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />}
           Wygeneruj nowe hasło
+        </button>
+      </section>
+
+      <section className="rounded-2xl border border-rose-500/30 bg-rose-950/20 p-6 space-y-4">
+        <h2 className="text-sm font-bold uppercase tracking-wide text-rose-100 flex items-center gap-2">
+          <ShieldOff className="h-4 w-4" />
+          Usunięcie konta (RODO)
+        </h2>
+        <p className="text-xs text-rose-100/80 leading-relaxed">
+          Natychmiastowa <strong>anonimizacja</strong> danych osobowych (art. 17 RODO). Konto klienta
+          przestaje działać; subskrypcje i hosting są wstrzymywane zgodnie z procedurą compliance.
+          Operacja jest nieodwracalna dla danych identyfikujących.
+        </p>
+        <label className="block">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">
+            Powód (audyt, min. 5 znaków)
+          </span>
+          <textarea
+            value={deleteReason}
+            onChange={(e) => setDeleteReason(e.target.value)}
+            disabled={pending || deleteOk}
+            rows={2}
+            className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-sm text-white"
+          />
+        </label>
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={deleteConfirm}
+            disabled={pending || deleteOk}
+            onChange={(e) => setDeleteConfirm(e.target.checked)}
+            className="rounded border-white/20"
+          />
+          <span className="text-sm text-white">
+            Potwierdzam trwałe usunięcie (anonimizację) konta {detail.email}
+          </span>
+        </label>
+        {deleteErr ? <p className="text-sm text-rose-300">{deleteErr}</p> : null}
+        {deleteOk ? (
+          <p className="text-sm text-emerald-300">
+            Konto zanonimizowane. Odśwież listę klientów — profil nie będzie już dostępny.
+          </p>
+        ) : null}
+        <button
+          type="button"
+          disabled={pending || deleteOk || !deleteConfirm}
+          onClick={() => {
+            setDeleteErr(null);
+            start(async () => {
+              const res = await forceAnonymizeCustomerAction(detail.id, deleteReason);
+              if (!res.ok) {
+                setDeleteErr(res.error ?? "Błąd anonimizacji.");
+                return;
+              }
+              setDeleteOk(true);
+              router.refresh();
+            });
+          }}
+          className="inline-flex items-center gap-2 rounded-lg border border-rose-500/50 bg-rose-600/20 px-4 py-2 text-sm font-semibold text-rose-50 hover:bg-rose-600/35 disabled:opacity-50"
+        >
+          {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldOff className="h-4 w-4" />}
+          Usuń konto (anonimizuj)
         </button>
       </section>
     </div>

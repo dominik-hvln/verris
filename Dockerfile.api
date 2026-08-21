@@ -5,7 +5,8 @@
 #   docker build -f Dockerfile.api -t verris/api .
 # =============================================================================
 
-ARG NODE_VERSION=20
+# Node 22 LTS — Node 20 osiągnął EOL 30.04.2026 (brak łatek bezpieczeństwa).
+ARG NODE_VERSION=22
 
 FROM node:${NODE_VERSION}-bookworm-slim AS base
 ENV PNPM_HOME=/pnpm \
@@ -53,7 +54,7 @@ WORKDIR /app
 
 # OpenSSL is required by Prisma's query engine on Debian slim
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        openssl ca-certificates curl tini && \
+        openssl ca-certificates curl tini dovecot-core mariadb-client && \
     rm -rf /var/lib/apt/lists/*
 
 # Copy only what's needed to run
@@ -81,6 +82,21 @@ ENV DATABASE_URL="postgresql://verris:build@localhost:5432/verris_db?schema=publ
 RUN npx prisma generate --schema=libs/database/prisma/schema.prisma
 
 COPY ops/docker/api-entrypoint.sh /usr/local/bin/api-entrypoint.sh
+COPY ops/scripts/node-hosting-profile.sh ./ops/scripts/node-hosting-profile.sh
+COPY ops/scripts/node-wp-install.sh ./ops/scripts/node-wp-install.sh
+COPY ops/scripts/node-waf-apply.sh ./ops/scripts/node-waf-apply.sh
+COPY ops/scripts/node-staging-sync.sh ./ops/scripts/node-staging-sync.sh
+COPY ops/scripts/install-verris-default-page.sh ./ops/scripts/install-verris-default-page.sh
+COPY ops/scripts/verris-lve.sh ./ops/scripts/verris-lve.sh
+COPY ops/scripts/node-db-upgrade.sh ./ops/scripts/node-db-upgrade.sh
+# Skrypty serwowane agentowi węzła przez /agent/tasks/*/script. Loader
+# (apps/api/src/servers/*.script.ts) czyta je z dysku i RZUCA, gdy pliku nie ma —
+# brak wpisu tutaj to 500 na endpointcie i zadanie, które nigdy się nie wykona.
+# Pilnuje tego test apps/api/src/test/dockerfile-scripts.spec.ts.
+COPY ops/scripts/node-account-restore.sh ./ops/scripts/node-account-restore.sh
+COPY ops/scripts/node-app-install.sh ./ops/scripts/node-app-install.sh
+COPY ops/scripts/node-php-apply.sh ./ops/scripts/node-php-apply.sh
+COPY ops/hosting-default-page ./ops/hosting-default-page
 RUN chmod +x /usr/local/bin/api-entrypoint.sh
 
 EXPOSE 3000

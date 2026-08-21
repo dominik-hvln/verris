@@ -1,6 +1,8 @@
 import {
+  Equals,
   IsBoolean,
   IsEnum,
+  IsIn,
   IsNumber,
   IsOptional,
   IsString,
@@ -12,22 +14,75 @@ import {
 } from 'class-validator';
 import { BillingInterval, SubscriptionPaymentSource } from '@verris/database';
 
+/**
+ * Z-02 — źródła płatności, które wolno wskazać KLIENTOWI przy zakładaniu usługi.
+ *
+ * `MANUAL` jest tu świadomie pominięty. To ścieżka operatorska (konta gratisowe,
+ * bug bounty), która uruchamia usługę BEZ obciążenia i BEZ faktury —
+ * `SubscriptionsService.provisionWithoutCharge`. Wystawiona na endpoincie klienta
+ * pozwalała dowolnemu zarejestrowanemu kontu zamówić nieograniczoną liczbę
+ * aktywnych usług za 0 zł. Ta sama luka była już zamknięta przy zmianie planu
+ * (`plan-change.service.ts:206-213`), ale nie przy zakupie.
+ *
+ * Enum w bazie zostaje bez zmian — istniejące subskrypcje MANUAL są nadal
+ * obsługiwane, a operator może je zakładać po jawnym `allowManual`.
+ */
+export const CLIENT_PAYMENT_SOURCES: readonly SubscriptionPaymentSource[] = [
+  SubscriptionPaymentSource.STRIPE_CARD,
+  SubscriptionPaymentSource.WALLET,
+];
+
+/** Konwersja triala na plan płatny — wymaga oświadczenia konsumenckiego. */
+export class ConvertTrialDto {
+  @IsBoolean()
+  @Equals(true, {
+    message:
+      'Wymagane jest oświadczenie o żądaniu rozpoczęcia świadczenia usługi przed upływem terminu odstąpienia od umowy.',
+  })
+  immediatePerformanceConsent!: boolean;
+}
+
 export class CreateSubscriptionDto {
   @IsUUID()
   planId!: string;
 
+  /**
+   * Oświadczenie konsumenckie: żądanie rozpoczęcia świadczenia przed upływem
+   * 14-dniowego terminu odstąpienia (art. 15 ust. 3 i art. 21 ust. 2 ustawy
+   * o prawach konsumenta; Regulamin §4 ust. 4). Bez `true` zamówienie jest
+   * odrzucane; fakt złożenia oświadczenia trafia do dziennika audytu (dowód).
+   */
+  @IsBoolean()
+  @Equals(true, {
+    message:
+      'Wymagane jest oświadczenie o żądaniu rozpoczęcia świadczenia usługi przed upływem terminu odstąpienia od umowy.',
+  })
+  immediatePerformanceConsent!: boolean;
+
   @IsEnum(BillingInterval)
   interval!: BillingInterval;
 
-  /** Source of payment for this subscription's recurring charges. */
+  /**
+   * Source of payment for this subscription's recurring charges.
+   * Z-02: klient może wskazać wyłącznie `CLIENT_PAYMENT_SOURCES` — `MANUAL`
+   * jest zarezerwowane dla operatora.
+   */
   @IsEnum(SubscriptionPaymentSource)
+  @IsIn(CLIENT_PAYMENT_SOURCES, {
+    message: 'Niedozwolone źródło płatności dla zamówienia klienta.',
+  })
   paymentSource!: SubscriptionPaymentSource;
 
-  /** Primary domain that will be created in DirectAdmin. */
+  /**
+   * Primary domain that will be created in DirectAdmin. Required for hosting /
+   * e-mail products; ignored for app-level products (EMAIL_MARKETING), which
+   * activate without a DA account. Walidacja obecności jest w serwisie wg planu.
+   */
+  @IsOptional()
   @IsString()
   @Length(4, 253)
   @Matches(/^[a-z0-9.-]+\.[a-z]{2,}$/i, { message: 'Niepoprawny format domeny' })
-  domain!: string;
+  domain?: string;
 
   /** Optional region preference (e.g. "PL-WAW"). Used as a tie-breaker. */
   @IsOptional()
@@ -43,6 +98,24 @@ export class CreateSubscriptionDto {
   @IsOptional()
   @IsBoolean()
   ecoModeEnabled?: boolean;
+
+  /** Rabat procentowy na usługę (tylko płatność z portfela). */
+  @IsOptional()
+  @IsString()
+  @Length(3, 40)
+  promoCode?: string;
+}
+
+export class PreviewSubscriptionPromoDto {
+  @IsUUID()
+  planId!: string;
+
+  @IsEnum(BillingInterval)
+  interval!: BillingInterval;
+
+  @IsString()
+  @Length(3, 40)
+  code!: string;
 }
 
 export class SuspendSubscriptionDto {
@@ -67,6 +140,17 @@ export class UnsuspendSubscriptionDto {
   chargeRenewal?: boolean;
 }
 
+export class CancelSubscriptionDto {
+  /**
+   * When true (default), the subscription stays active until the end of the
+   * already-paid period and Stripe is told to cancel at period end (no further
+   * charges). When false, we cancel immediately and tear down the hosting now.
+   */
+  @IsOptional()
+  @IsBoolean()
+  atPeriodEnd?: boolean;
+}
+
 export class UpdateAutoscalingDto {
   @IsBoolean()
   enabled!: boolean;
@@ -78,6 +162,18 @@ export class UpdateAutoscalingDto {
   @Min(0)
   @Max(99_999.99)
   maxMonthlyCost?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  scaleCpu?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  scaleRam?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  scaleDisk?: boolean;
 }
 
 export class UpdateSubscriptionPreferencesDto {

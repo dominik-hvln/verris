@@ -1,0 +1,57 @@
+<!doctype html><html lang="pl"><head><meta charset="utf-8">
+<title>Verris — eksport wordmark/lockup PNG</title>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&family=Hanken+Grotesk:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+ body{font-family:'Hanken Grotesk',system-ui,sans-serif;background:#091410;color:#F4F4EE;margin:0;padding:32px}
+ h1{font-family:'Schibsted Grotesk';font-weight:800}
+ p{color:#AFBDB6;max-width:680px}
+ .card{border-radius:14px;padding:24px;margin:18px 0;border:1px solid rgba(255,255,255,.08)}
+ .prev svg{height:80px;width:auto}
+ .row{display:flex;gap:10px;align-items:center;margin-top:14px}
+ .row b{font-family:'JetBrains Mono',monospace;font-size:13px;margin-right:auto;color:#9AA39C}
+ button{font-family:'JetBrains Mono',monospace;background:#34E5A0;color:#06120C;border:0;border-radius:8px;padding:8px 12px;cursor:pointer;font-weight:700}
+ button:hover{background:#5BFFC0}
+</style></head><body>
+<h1>Verris — eksport wordmark / lockup</h1>
+<p>Te elementy zawierają tekst w foncie <b>Schibsted Grotesk</b> (ładowany z Google Fonts).
+Otwórz tę stronę z dostępem do internetu, poczekaj aż font się załaduje, i kliknij PNG @1x / @2x / @4x —
+pobierze się pixel-perfect PNG. Pozostałe pliki (znak, favicony, pattern, ikony) są już gotowymi PNG/SVG w paczce.</p>
+<div class="card" style="background:#0C1A14">
+<div class="prev"><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 360 110'><style>@import url('https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&family=Hanken+Grotesk:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap');.w{font-family:"Schibsted Grotesk",sans-serif;font-weight:800;font-size:100px;letter-spacing:-4.5px}</style><text x='2' y='82' class='w' fill='#F4F4EE'>verris</text></svg></div>
+<div class="row"><b>wordmark-light</b>
+<button onclick="dl(this,1)">PNG @1x</button>
+<button onclick="dl(this,2)">PNG @2x</button>
+<button onclick="dl(this,4)">PNG @4x</button></div></div><div class="card" style="background:#F4F4EE">
+<div class="prev"><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 360 110'><style>@import url('https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&family=Hanken+Grotesk:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap');.w{font-family:"Schibsted Grotesk",sans-serif;font-weight:800;font-size:100px;letter-spacing:-4.5px}</style><text x='2' y='82' class='w' fill='#0C1A14'>verris</text></svg></div>
+<div class="row"><b>wordmark-dark</b>
+<button onclick="dl(this,1)">PNG @1x</button>
+<button onclick="dl(this,2)">PNG @2x</button>
+<button onclick="dl(this,4)">PNG @4x</button></div></div><div class="card" style="background:#0C1A14">
+<div class="prev"><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 470 110'><style>@import url('https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&family=Hanken+Grotesk:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap');.w{font-family:"Schibsted Grotesk",sans-serif;font-weight:800;font-size:100px;letter-spacing:-4.5px}</style><path d='M26 30 L40 30 L50 52 L60 30 L74 30 L50 78 Z M44 55 L56 55 L50 69 Z' fill='#34E5A0' fill-rule='evenodd'/><text x='120' y='82' class='w' fill='#F4F4EE'>verris</text></svg></div>
+<div class="row"><b>lockup-h-dark</b>
+<button onclick="dl(this,1)">PNG @1x</button>
+<button onclick="dl(this,2)">PNG @2x</button>
+<button onclick="dl(this,4)">PNG @4x</button></div></div><div class="card" style="background:#F4F4EE">
+<div class="prev"><svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 470 110'><style>@import url('https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&family=Hanken+Grotesk:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap');.w{font-family:"Schibsted Grotesk",sans-serif;font-weight:800;font-size:100px;letter-spacing:-4.5px}</style><path d='M26 30 L40 30 L50 52 L60 30 L74 30 L50 78 Z M44 55 L56 55 L50 69 Z' fill='#0F7A52' fill-rule='evenodd'/><text x='120' y='82' class='w' fill='#0C1A14'>verris</text></svg></div>
+<div class="row"><b>lockup-h-light</b>
+<button onclick="dl(this,1)">PNG @1x</button>
+<button onclick="dl(this,2)">PNG @2x</button>
+<button onclick="dl(this,4)">PNG @4x</button></div></div>
+<script>
+function dl(btn,scale){
+ const svg=btn.closest('.card').querySelector('svg');
+ const vb=svg.getAttribute('viewBox').split(' ').map(Number);
+ const w=vb[2]*scale, h=vb[3]*scale;
+ const xml=new XMLSerializer().serializeToString(svg);
+ const img=new Image();
+ img.onload=function(){
+   const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+   const x=cv.getContext('2d');x.drawImage(img,0,0,w,h);
+   cv.toBlob(function(b){
+     const a=document.createElement('a');a.href=URL.createObjectURL(b);
+     a.download=btn.closest('.card').querySelector('b').textContent+'@'+scale+'x.png';a.click();
+   });
+ };
+ img.src='data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(xml)));
+}
+</script></body></html>

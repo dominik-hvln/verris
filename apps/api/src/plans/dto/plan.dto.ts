@@ -1,5 +1,6 @@
 import {
   IsBoolean,
+  IsIn,
   IsInt,
   IsNumber,
   IsOptional,
@@ -69,6 +70,18 @@ export class CreatePlanDto {
   @IsOptional() @IsInt()
   sortOrder?: number;
 
+  /** O-1 — długość darmowego okresu próbnego w dniach (0 = brak). */
+  @IsOptional() @IsInt() @Min(0) @Max(90)
+  trialDays?: number;
+
+  /** P-1b — rodzina produktu: HOSTING (domyślnie) lub EMAIL. */
+  @IsOptional() @IsIn(['HOSTING', 'EMAIL'])
+  productKind?: 'HOSTING' | 'EMAIL';
+
+  /** SUP-5 — gwarantowany czas odpowiedzi wsparcia (godziny, 0 = brak). */
+  @IsOptional() @IsInt() @Min(0) @Max(720)
+  supportSlaHours?: number;
+
   // Stripe recurring price IDs — required only if you intend to sell this plan
   // through Stripe Subscriptions (paymentSource=STRIPE_CARD on /subscriptions).
   // Format: "price_..." copied from the Stripe Dashboard. Leave blank to disable
@@ -82,6 +95,15 @@ export class CreatePlanDto {
     message: 'Stripe Price ID musi zaczynać się od "price_"',
   })
   stripePriceYearlyId?: string;
+
+  @IsOptional() @IsNumber() @Min(1) @Max(10)
+  autoscalingMaxOverscaleCpu?: number;
+
+  @IsOptional() @IsNumber() @Min(1) @Max(10)
+  autoscalingMaxOverscaleRam?: number;
+
+  @IsOptional() @IsNumber() @Min(1) @Max(10)
+  autoscalingMaxOverscaleDisk?: number;
 }
 
 export class ValidateStripePriceDto {
@@ -146,6 +168,18 @@ export class UpdatePlanDto {
   @IsOptional() @IsInt()
   sortOrder?: number;
 
+  /** O-1 — długość darmowego okresu próbnego w dniach (0 = brak). */
+  @IsOptional() @IsInt() @Min(0) @Max(90)
+  trialDays?: number;
+
+  /** P-1b — rodzina produktu. */
+  @IsOptional() @IsIn(['HOSTING', 'EMAIL'])
+  productKind?: 'HOSTING' | 'EMAIL';
+
+  /** SUP-5 — gwarantowany czas odpowiedzi wsparcia (godziny, 0 = brak). */
+  @IsOptional() @IsInt() @Min(0) @Max(720)
+  supportSlaHours?: number;
+
   @IsOptional() @IsString() @Length(3, 80) @Matches(/^price_/, {
     message: 'Stripe Price ID musi zaczynać się od "price_"',
   })
@@ -155,4 +189,13 @@ export class UpdatePlanDto {
     message: 'Stripe Price ID musi zaczynać się od "price_"',
   })
   stripePriceYearlyId?: string;
+
+  @IsOptional() @IsNumber() @Min(1) @Max(10)
+  autoscalingMaxOverscaleCpu?: number;
+
+  @IsOptional() @IsNumber() @Min(1) @Max(10)
+  autoscalingMaxOverscaleRam?: number;
+
+  @IsOptional() @IsNumber() @Min(1) @Max(10)
+  autoscalingMaxOverscaleDisk?: number;
 }

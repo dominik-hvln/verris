@@ -1,26 +1,25 @@
 # =============================================================================
-# Verris — Postgres backup (host crontab)
+# Verris — Postgres backup → MinIO (host crontab)
 # -----------------------------------------------------------------------------
-# Install on the production host with:
+# Install:
+#   sudo install -m 0644 /opt/verris/ops/cron/verris-backup.cron /etc/cron.d/verris-backup
 #
-#   sudo install -m 0644 ops/cron/verris-backup.cron /etc/cron.d/verris-backup
-#
-# The job runs daily at 03:17 UTC (off-peak) and writes timestamped dumps to
-# /var/backups/verris. Retention defaults to 14 days; override via env vars.
-#
-# Adjust the WORKDIR= line below to the absolute path where the repo is
-# checked out on your host (must contain docker-compose.prod.yml).
+# Wymaga .env.prod w WORKDIR (MINIO_ROOT_*, S3_BUCKET_BACKUPS).
+# Opcjonalnie: /etc/default/verris-backup z MIRROR_EXTERNAL_ENABLED=1 (faza 2).
 # =============================================================================
 
 SHELL=/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
-# Where the docker-compose.prod.yml lives on the host:
 WORKDIR=/opt/verris
-
-# Backups + retention (override via /etc/default/verris-backup if you prefer)
-BACKUP_DIR=/var/backups/verris
 RETENTION_DAYS=14
 COMPOSE_PROJECT_NAME=verris
 
-17 3 * * *  root  cd $WORKDIR && BACKUP_DIR=$BACKUP_DIR RETENTION_DAYS=$RETENTION_DAYS COMPOSE_PROJECT_NAME=$COMPOSE_PROJECT_NAME ./ops/backup-postgres.sh >> /var/log/verris-backup.log 2>&1
+17 3 * * *  root  cd $WORKDIR && set -a && [ -f .env.prod ] && . ./.env.prod && set +a && RETENTION_DAYS=$RETENTION_DAYS COMPOSE_PROJECT_NAME=$COMPOSE_PROJECT_NAME ./ops/backup-postgres.sh >> /var/log/verris-backup.log 2>&1
+
+# Mirror na zewnętrzny storage (odłączony domyślnie — ustaw MIRROR_EXTERNAL_ENABLED=1)
+27 3 * * *  root  cd $WORKDIR && set -a && [ -f .env.prod ] && . ./.env.prod && set +a && [ -f /etc/default/verris-backup ] && . /etc/default/verris-backup; ./ops/backup-mirror-external.sh >> /var/log/verris-backup-mirror.log 2>&1
+
+# Restore-drill (test odtwarzalności) — co tydzień, niedziela 04:10. Wymaga
+# BACKUP_AGE_IDENTITY_FILE dostępnego dla roota (lub uruchamiaj ręcznie przed LIVE).
+10 4 * * 0  root  cd $WORKDIR && set -a && [ -f .env.prod ] && . ./.env.prod && set +a && COMPOSE_PROJECT_NAME=$COMPOSE_PROJECT_NAME ./ops/backup-verify.sh >> /var/log/verris-backup-verify.log 2>&1

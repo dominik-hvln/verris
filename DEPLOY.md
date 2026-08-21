@@ -100,11 +100,12 @@ W bazie i API pola planu oraz konta hostingowego to **`entryProcesses`** (CloudL
 
 ### Pierwszy węzeł — kroki w panelu
 
-1. Zaloguj się do panelu admina i otwórz „Węzły & serwery → Dodaj nowy węzeł”.
-2. Wpisz nazwę i wygeneruj skrypt bootstrap.
-3. Na węźle ustaw `LITESPEED_SERIAL_NO` (i opcjonalnie `LSWS_WEBADMIN_ALLOW_IP`), potem uruchom skrypt jako root.
+1. **Admin → Węzły → Wizard nowego węzła** (`/nodes/wizard`) — checklist CL → DA → LS → bootstrap → profil hostingowy.
+2. Alternatywnie: szybka inicjalizacja (`/nodes/init`) tylko z formularzem i skryptem.
+3. Na węźle ustaw `LITESPEED_SERIAL_NO` (i opcjonalnie `LSWS_WEBADMIN_ALLOW_IP`), potem uruchom skrypt jako root w `tmux`.
 4. Skrypt zgłosi się do panelu — w sekcji „Czeka na akceptację” kliknij „Zaakceptuj”.
 5. Skonfiguruj DirectAdmin (host/port/login/login-key) i uruchom test połączenia.
+6. Opcjonalnie: `ops/scripts/node-hosting-profile.sh` — spójny profil Governor / CustomBuild (po DA).
 
 ### Checklist po bootstrapie (operator)
 
@@ -134,14 +135,27 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d api prometh
 
 ### Co jest w stacku
 
-- **Prometheus** (port 9090, internal) — scrapuje API `/metrics`, postgres-exporter, redis-exporter co 15 s, retencja 30 dni.
+- **Prometheus** (port 9090, internal) — scrapuje API `/metrics`, postgres-exporter, redis-exporter, **node-exporter** (host CPU/RAM/dysk), **cAdvisor** (RAM/CPU kontenerów) co 15 s, retencja 30 dni.
 - **Grafana** (port 3000, internal, publicznie pod `grafana.verris.pl`) — `auth.proxy` mode + Caddy `forward_auth` do `/auth/grafana-validate`.
+- **Loki** + **Promtail** — centralne logi kontenerów `verris-*` (retencja 7 dni); dashboard **Logs explorer** w folderze `Verris`.
 - **postgres-exporter** + **redis-exporter** — DB i Redis metryki (CPU, lag, slow queries, connections, hit ratio).
-- **4 dashboardy** prowizjonowane jako kod w `ops/observability/grafana/provisioning/dashboards/json/`:
+- **node-exporter** + **cAdvisor** — metryki hosta i kontenerów Docker.
+- **Dashboardy** prowizjonowane jako kod w `ops/observability/grafana/provisioning/dashboards/json/`:
+  - `00-ops-overview` — host + kontenery + API HTTP + Postgres/Redis + linki operacyjne
   - `01-control-plane-health` — uptime API, RAM, subscriptions per status, ostrzeżenia PAST_DUE/SUSPENDED
   - `02-compute-fleet` — serwery (status, stale heartbeat), tabela z `server_safe`, kolejka provisioningu
   - `03-cloudlinux-lve` — autoscaling events, top 10 LVE-żerców (CPU/RAM avg z `usage_metric_safe`), serie skalowania
   - `04-business` — MRR (z `subscription_safe`), top-upy, autoscaling revenue, plany × statusy, dzienne flow
+  - `05-ops-storage` — backup Postgres w MinIO (wiek, rozmiar), provisioning, webhooki FAILED
+  - `08-logs-explorer` — LogQL po serwisie / wyszukiwaniu tekstowym
+
+Odświeżenie stacku observability na prod:
+
+```bash
+./ops/scripts/prod-obs-stack-up.sh
+```
+
+Link z **admin-panel** i **staff-panel** (sekcja Monitoring): `NEXT_PUBLIC_GRAFANA_URL` → dashboard `verris-ops-storage`. Staff wymaga `canAccessGrafana` (Operatorzy w admin).
 
 ### Bezpieczeństwo metryk i danych
 
@@ -150,6 +164,11 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d api prometh
 `/metrics` jest chronione (jeśli `METRICS_AUTH_TOKEN` ustawione) bearer tokenem; w domyślnej konfiguracji Caddy nie wystawia `/metrics` publicznie (Prometheus dosięga API tylko po `verris_internal` net).
 
 ### SSO Grafany (F-15)
+
+Cookie panelu (`admin_auth_token` / `staff_auth_token`) musi być widoczne na `grafana.verris.pl`:
+
+1. W `.env.prod` ustaw `AUTH_COOKIE_DOMAIN=.verris.pl` (patrz `.env.prod.example`).
+2. Otwieraj Grafanę **linkiem z panelu** (`/grafana/sso`) — hop ustawia cookie na domenie wspólnej i przekierowuje do dashboardu. Bezpośredni URL `grafana.verris.pl` bez wcześniejszego logowania w panelu zwróci 401.
 
 Dostęp do Grafany jest gatekept przez API:
 
@@ -170,7 +189,9 @@ UPDATE "User" SET "canAccessGrafana" = true WHERE email = 'imie.nazwisko@verris.
 
 ### Logi
 
-Każdy serwis używa `json-file` driver z 10 MB × 5 plików (= 50 MB max per kontener; po przekroczeniu rotuje stare). Live tail: `docker compose ... logs -f api`. Aby przejść na Loki/Grafana Cloud — w `docker-compose.prod.yml` zamień driver `json-file` w bloku `x-logging` na `loki` i ustaw `loki-url`. Reszta stacka pozostaje bez zmian.
+Kontenery zapisują logi lokalnie (`json-file`, 10 MB × 5 plików). **Promtail** czyta logi Docker i wysyła je do **Loki** (retencja 7 dni). W Grafanie: folder `Verris` → **Logs explorer** — filtry `service` (compose service) i wyszukiwanie tekstowe.
+
+Live tail bez Grafany: `docker compose ... logs -f api`.
 
 ## Konfiguracja Status Page (probes)
 
@@ -284,6 +305,31 @@ Zasady LIVE:
 
 ## Aktualizacja
 
+### Zalecane: rolling deploy (STAB-1 — bez okna 502/503)
+
+```bash
+cd /opt/verris
+./ops/scripts/prod-deploy-rolling.sh
+```
+
+Skrypt: buduje wszystkie obrazy (stare kontenery dalej obsługują ruch) → migruje
+DB → recreuje usługi **pojedynczo** z bramką health-check (API → panele → status),
+więc nigdy nie padają wszystkie naraz. Współgra z:
+
+- **aktywnym health-check Caddy** (`health_uri` + `lb_try_duration 30s`) — proxy
+  zdejmuje upstream w trakcie restartu i przetrzymuje/retryuje żądanie aż nowy
+  kontener wstanie, zamiast zwracać 502/503;
+- **graceful-drain API** — na SIGTERM `/readyz` zwraca 503 (`SHUTDOWN_DRAIN_MS`,
+  domyślnie 8 s), Caddy przestaje kierować ruch, żądania w locie się kończą,
+  dopiero potem kontener się zamyka (`stop_grace_period: 30s`).
+
+> **Migracje muszą być wstecznie zgodne** (expand→contract): nie usuwaj
+> kolumny/tabeli w tej samej migracji, w której kod przestaje jej używać —
+> najpierw wdroż kod, w osobnym kroku „contract". Zmiany niezgodne → okno
+> maintenance (toggle węzła / pełny `up -d --build`).
+
+### Pełny restart (fallback — krótka przerwa)
+
 ```bash
 cd /opt/verris
 git pull
@@ -291,6 +337,14 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 docker compose -f docker-compose.prod.yml --env-file .env.prod exec api \
   npx prisma migrate deploy --schema=libs/database/prisma/schema.prisma
 ```
+
+### Prawdziwe zero-downtime API (opcjonalnie, następny krok)
+
+Dla pełnej eliminacji nawet chwilowego okna na samym API: uruchom **2 repliki**
+API i recreuj je po jednej (`docker compose up -d --scale api=2 --no-deps api`
+po jednej instancji). Caddy z dynamicznymi upstreamami (DNS) rozłoży ruch na obie
+i zawsze jedna będzie zdrowa. Wymaga drobnej zmiany w Caddyfile (`dynamic a`) —
+opisane w `docs/PLAN_DALSZYCH_PRAC_2026-06.md`.
 
 ## Migracje DB
 
@@ -326,46 +380,57 @@ pnpm --filter @verris/database db:migrate:reset
 # Drop + recreate + apply all migrations + (skip seed; uruchom oddzielnie jeśli trzeba)
 ```
 
-## Backup (automatyczny)
+## Backup (automatyczny) — MinIO
 
-W repo jest gotowy skrypt + szablon crona, który robi codzienny zrzut Postgresa (`pg_dump`), kompresuje go i pilnuje retencji.
+Backup Postgres i pliki użytkowników są w **tym samym MinIO** na control-plane (jak załączniki ticketów). Zewnętrzny serwer to faza 2 (`ops/backup-mirror-external.sh`).
+
+Bucket: `verris-backups` (env `S3_BUCKET_BACKUPS`), ścieżka: `postgres/verris-YYYY-MM-DD-HHMM.sql.gz` oraz `postgres/latest.sql.gz`.
 
 ```bash
-# Manualne uruchomienie (dobre do pierwszego sprawdzenia):
-sudo BACKUP_DIR=/var/backups/verris \
-     RETENTION_DAYS=14 \
-     COMPOSE_PROJECT_NAME=verris \
-     ./ops/backup-postgres.sh
+cd /opt/verris
+set -a && source .env.prod && set +a
+./ops/backup-postgres.sh
 
-# Instalacja crona (uruchamia się codziennie o 03:17 UTC):
+# Lista backupów w MinIO:
+docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm --no-deps \
+  --entrypoint /bin/sh minio-bootstrap -c '
+  mc alias set verris http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"
+  mc ls verris/verris-backups/postgres/
+'
+
+# Cron (03:17 UTC, ładuje .env.prod):
 sudo install -m 0644 ops/cron/verris-backup.cron /etc/cron.d/verris-backup
-
-# Sprawdzenie logów (powinien być wpis "backup complete"):
-tail -n 20 /var/log/verris-backup.log
+tail -n 30 /var/log/verris-backup.log
 ```
 
 Skrypt:
 
-- używa `pg_dump --clean --if-exists --no-owner --no-privileges` → zrzut jest idempotentny i przenośny;
-- weryfikuje, że plik jest poprawnym gzip i ma sensowny rozmiar (≥ 1 KB) zanim go zatwierdzi (atomowe `mv` z pliku `.partial`);
-- usuwa pliki starsze niż `RETENTION_DAYS` (domyślnie 14).
+- `pg_dump` → staging `/tmp/verris-backup-staging` → upload przez `mc` do MinIO;
+- retencja 14 dni — reguła ILM na buckecie + czyszczenie stagingu;
+- bootstrap tworzy bucket `verris-backups` przy `docker compose up`.
 
 ### Restore
 
 ```bash
-# UWAGA: drop wszystkich obiektów w docelowej DB (--clean --if-exists)
-sudo ./ops/restore-postgres.sh /var/backups/verris/verris-2026-04-28-0317.sql.gz --confirm
+# Z MinIO (zalecane na prod):
+./ops/restore-postgres.sh --from-minio latest.sql.gz --confirm
+
+# Z lokalnego pliku (staging / ręczna kopia):
+./ops/restore-postgres.sh /tmp/verris-backup-staging/verris-....sql.gz --confirm
 ```
 
-Wolumin `redis_data` można pomijać — Redis jest cache/queue, można odtworzyć.
+Wolumin `redis_data` można pomijać — Redis jest cache/queue.
 
-### Off-site (zalecane)
+### Mirror na zewnętrzny serwer (faza 2)
 
-Backupy lokalne to za mało dla produkcji. Skopiuj `/var/backups/verris` co dobę do zewnętrznego storage (S3/Backblaze/wewnętrzny NFS), np.:
+Gdy będzie drugi MinIO/S3:
 
-```cron
-27 3 * * *  root  rclone copy /var/backups/verris remote:verris-backups --max-age 30d
+```bash
+# /etc/default/verris-backup — MIRROR_EXTERNAL_ENABLED=1 + OFFSITE_MC_* 
+./ops/backup-mirror-external.sh
 ```
+
+Stary `ops/backup-offsite-sync.sh` przekierowuje do tego skryptu.
 
 ## Rotacja `APP_KMS_KEY`
 
@@ -451,7 +516,7 @@ Lokalny FS nie jest używany — daje to:
 - **Przenośność**: kiedyś można przepiąć `S3_ENDPOINT` na osobny serwer
   storage (np. dedykowany node MinIO, AWS S3, Backblaze B2, Cloudflare R2)
   bez zmiany jednej linii kodu.
-- **Backup w jednym miejscu**: cały MinIO volume → `restic`/off-site.
+- **Backup w jednym miejscu**: Postgres w buckecie `verris-backups`; cały volume MinIO → mirror zewnętrzny (faza 2).
 - **Lifecycle policy**: `verris-data-exports` ma natywne 7-dniowe expiry
   (defense in depth ponad app-level RetentionScheduler).
 
@@ -471,6 +536,7 @@ S3_BUCKET_TICKET_ATTACHMENTS=verris-ticket-attachments
 S3_BUCKET_DATA_EXPORTS=verris-data-exports
 S3_BUCKET_DPA_PDFS=verris-dpa-pdfs
 S3_BUCKET_INVOICES=verris-invoices
+S3_BUCKET_BACKUPS=verris-backups
 
 # MinIO root (tylko do bootstrap-containera; api używa S3_ACCESS_KEY/SECRET)
 MINIO_ROOT_USER=verris-root
@@ -483,7 +549,7 @@ DATA_EXPORT_TEMP_DIR=/tmp/verris-data-exports
 Bootstrap (przy `docker compose up -d`):
 
 1. `minio` startuje, healthcheck na `/minio/health/live`.
-2. `minio-bootstrap` (one-shot) tworzy 4 buckety, ustawia anonymous=none
+2. `minio-bootstrap` (one-shot) tworzy buckety (w tym `verris-backups`), ustawia anonymous=none
    i aplikuje 7-dniową regułę expiry na `verris-data-exports`.
 3. `api` startuje **dopiero po `minio-bootstrap` (condition: completed_successfully)**.
 4. Aplikacja przy starcie wywołuje `ObjectStorageService.onApplicationBootstrap`
@@ -792,3 +858,99 @@ Bezpieczne, minor zmiany są backward-compatible. Wystarczy:
 | `STRIPE_API_VERSION` (env, opcjonalne) | nieustawione (używa default z kodu) |
 | Webhook endpoint API version | musi być **identyczny** z requestami |
 | Stripe Dashboard default API version | musi być **identyczny lub kompatybilny** (bo automated jobs typu auto-renewal generują webhooki na tej wersji) |
+---
+
+## Ograniczenie: pojedyncza replika API (crony + rate limiting)
+
+> **Audit F-14 (2026-06-09).** API uruchamiamy w **dokładnie jednej replice**.
+
+Dwa mechanizmy w API zakładają jeden proces:
+
+1. **Crony `@nestjs/schedule`** (~20 zadań: autoscaling engine co 1 min, block billing co 5 min,
+   renewal co 1 h, retention 04:00, …) **nie mają leader-election** — druga replika
+   oznaczałaby podwójne wykonania (podwójne wywołania DA, wyścigi na portfelu mimo
+   `FOR UPDATE` — idempotency by uratowała pieniądze, ale nie spam e-mail/audyt).
+2. **Rate limiting** (`RateLimitGuard`) trzyma okna w pamięci procesu.
+
+**Skalowanie dozwolone:** wertykalne (CPU/RAM kontenera `api`).
+**Przed skalowaniem horyzontalnym wymagane:** distributed lock (Redis/redlock) dla każdego
+crona + przeniesienie rate-limit store do Redis. Do tego czasu w `docker-compose.prod.yml`
+nie ustawiaj `deploy.replicas > 1` dla `api`.
+
+## Migracje audytu 2026-06-09
+
+Po wdrożeniu tego release uruchom:
+
+```
+docker compose -f docker-compose.prod.yml --env-file .env.prod exec api \
+  npx prisma migrate deploy --schema=libs/database/prisma/schema.prisma
+```
+
+Nowe migracje:
+- `20260609120000_server_da_tls_verification` — `Server.daAllowInvalidCert`
+  (istniejące węzły z DA dostają `true` — zachowanie bez zmian; audyt węzła flaguje
+  do czasu wdrożenia certu na :2222 i wyłączenia opcji),
+- `20260609121000_server_hardening_status` — raport hardeningu z agenta,
+- `20260609122000_stripe_webhook_event_dedupe` — dedupe webhooków Stripe.
+
+**Identity tokeny węzłów (F-03):** lazy-migracja — przy pierwszym żądaniu agenta po
+deployu wpis w DB jest podnoszony do SHA-256 (log `Upgraded legacy plaintext identity
+token`). Węzły NIE wymagają żadnej akcji.
+
+## VPN WireGuard dla paneli wewnętrznych (ETAP 8)
+
+Panele **admin** i **staff** mogą (i powinny) być dostępne wyłącznie przez VPN.
+Zarządzanie dostępami pracowników odbywa się w panelu admina (**/vpn**):
+generowanie konfiguracji per urządzenie (klucz prywatny zwracany jednorazowo,
+nigdy nie zapisywany), cofanie dostępu działa do ~1 min.
+
+Kolejność wdrożenia (WAŻNA — inaczej można odciąć sobie panel):
+
+1. Na control-plane: `bash ops/scripts/vpn-wireguard-setup.sh`
+   (instaluje wireguard-tools, generuje klucze serwera, stawia `wg0` 10.88.0.1/24:51820/udp).
+2. Wypisane wartości wpisz do `.env.prod`:
+   `VPN_WG_SERVER_PUBLIC_KEY`, `VPN_WG_ENDPOINT`, `VPN_SYNC_TOKEN`
+   oraz zalecane `VPN_WG_CLIENT_ALLOWED_IPS=10.88.0.0/24,<public-ip>/32`
+   (publiczny IP control-plane — żeby ruch do paneli szedł tunelem).
+3. `docker compose ... up -d api` (restart API z nowym env).
+4. Timer synchronizacji peerów na hoście:
+   `bash ops/scripts/vpn-sync-peers.sh --install`
+   → uzupełnij `/etc/default/verris-vpn-sync` (URL API od strony hosta + token).
+5. Panel admin → **VPN (dostęp paneli)** → wygeneruj profil dla SIEBIE,
+   zaimportuj do aplikacji WireGuard, połącz się i sprawdź, że panele działają.
+6. Dopiero teraz włącz restrykcję: `CADDY_INTERNAL_ALLOW_CIDR=10.88.0.0/24`
+   w `.env.prod` + `docker compose ... up -d caddy`. Od tej chwili
+   staff./admin. odpowiadają 403 spoza tunelu.
+
+Rollback awaryjny (utrata dostępu): na hoście usuń/zmień
+`CADDY_INTERNAL_ALLOW_CIDR` w `.env.prod` i `docker compose ... up -d caddy`.
+
+Audyt: każde utworzenie/cofnięcie peera trafia do logu audytowego
+(`VPN_PEER_CREATED` / `VPN_PEER_REVOKED`).
+
+## CI/CD — auto-deploy z GitHub (DEPLOY-1)
+
+Model „jak Vercel/Render": push na `main` → GitHub Actions buduje 5 obrazów
+(api + client/staff/admin panel + status-page), wypycha do **GHCR**, a serwer
+control-plane POBIERA gotowe obrazy (nie buduje u siebie), robi rolling restart,
+`prisma migrate deploy` i health-gate `/healthz` z auto-rollbackiem.
+
+Pliki: `.github/workflows/deploy.yml`, `docker-compose.ghcr.yml`,
+`ops/scripts/prod-deploy-ghcr.sh`.
+
+### Wymagane GitHub Secrets (Settings → Secrets and variables → Actions)
+- `DEPLOY_SSH_HOST` — IP/host serwera control-plane
+- `DEPLOY_SSH_USER` — użytkownik SSH (z dostępem do docker)
+- `DEPLOY_SSH_KEY` — prywatny klucz SSH (deploy key)
+- `DEPLOY_SSH_PORT` — opcjonalnie (domyślnie 22)
+- `DEPLOY_PATH` — katalog repo na serwerze, np. `/opt/verris`
+- `GHCR_PULL_TOKEN` — PAT (read:packages) do logowania GHCR na serwerze
+  (push w Actions używa wbudowanego `GITHUB_TOKEN`, osobny sekret niepotrzebny)
+
+### Na serwerze (jednorazowo)
+- w `.env.prod` ustaw `REGISTRY_PREFIX=ghcr.io/<owner>` (małymi literami),
+- repo sklonowane w `DEPLOY_PATH`, `.env.prod` z sekretami produkcyjnymi,
+- Docker + `docker compose` v2.
+
+Pierwszy deploy nie ma jeszcze „ostatniego dobrego tagu" (brak rollbacku) —
+to normalne; kolejne już mają.

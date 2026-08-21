@@ -1,0 +1,12 @@
+[
+  {
+    "name": "Verris",
+    "icon": "/CMD_PLUGINS/verris_links/images/user_icon.svg",
+    "entries": [
+      { "name": "Panel klienta Verris", "icon": "", "href": "https://panel.verris.pl", "newTab": true },
+      { "name": "Webmail",              "icon": "", "href": "https://poczta.verris.pl", "newTab": true },
+      { "name": "Pomoc i poradniki",    "icon": "", "href": "https://verris.pl/pomoc", "newTab": true },
+      { "name": "Bezpłatna migracja",   "icon": "", "href": "https://verris.pl/przenies-strone", "newTab": true }
+    ]
+  }
+]

@@ -23,11 +23,15 @@ import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { MailerService } from '../mail/mailer.service';
 import { adminCreditNotificationTemplate } from '../mail/templates/admin-credit-notification';
 import {
-  subscriptionRenewedTemplate,
   subscriptionPaymentFailedTemplate,
+  subscriptionRenewedTemplate,
+  walletAutoTopupFailedTemplate,
+  walletAutoTopupOkTemplate,
+  walletTopupOkTemplate,
 } from '../mail/templates/billing-lifecycle-notifications';
 import { rowsToCsv } from './csv.util';
 import { PromoService } from './promo.service';
+import { EcoPointsService } from '../eco/eco-points.service';
 
 export interface TransactionsCsvFilters {
   userId?: string;
@@ -51,6 +55,7 @@ export class BillingService {
     private readonly subscriptions: SubscriptionsService,
     private readonly mailer: MailerService,
     private readonly promo: PromoService,
+    private readonly ecoPoints: EcoPointsService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -81,6 +86,7 @@ export class BillingService {
     );
     const totalChargesLast30d = findSum((t) =>
       t === WalletTxType.CHARGE_SUBSCRIPTION ||
+      t === WalletTxType.CHARGE_PLAN_UPGRADE ||
       t === WalletTxType.CHARGE_AUTOSCALING ||
       t === WalletTxType.CHARGE_USAGE,
     );
@@ -91,11 +97,24 @@ export class BillingService {
       take: 25,
     });
 
+    const now = new Date();
+    const since12Months = new Date(now.getFullYear(), now.getMonth() - 11, 1, 0, 0, 0, 0);
+    const flowSource = await this.prisma.walletTransaction.findMany({
+      where: {
+        userId,
+        status: 'COMPLETED',
+        createdAt: { gte: since12Months },
+      },
+      select: { amount: true, type: true, createdAt: true },
+    });
+    const monthlyFlowLast12 = this.buildWalletMonthlyFlowLast12(flowSource, now);
+
     return {
       balance: user.walletBalance.toFixed(2),
       currency: user.walletCurrency,
       totalTopupLast30d: totalTopupLast30d.toFixed(2),
       totalChargesLast30d: totalChargesLast30d.abs().toFixed(2),
+      monthlyFlowLast12,
       recentTransactions: recent.map((tx) => ({
         id: tx.id,
         type: tx.type,
@@ -110,6 +129,57 @@ export class BillingService {
         createdAt: tx.createdAt.toISOString(),
       })),
     };
+  }
+
+  private static readonly WALLET_INFLOW_TYPES = new Set<WalletTxType>([
+    WalletTxType.TOPUP,
+    WalletTxType.REFUND,
+    WalletTxType.PROMO_CREDIT,
+    WalletTxType.ADJUSTMENT,
+  ]);
+
+  private buildWalletMonthlyFlowLast12(
+    transactions: { amount: Prisma.Decimal; type: WalletTxType; createdAt: Date }[],
+    now: Date,
+  ) {
+    const monthKeys: { month: string; label: string }[] = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      const label = d.toLocaleDateString('pl-PL', { month: 'short', year: '2-digit' });
+      monthKeys.push({ month, label });
+    }
+
+    const buckets = new Map(
+      monthKeys.map((m) => [
+        m.month,
+        { label: m.label, inflow: new Prisma.Decimal(0), outflow: new Prisma.Decimal(0) },
+      ]),
+    );
+
+    for (const tx of transactions) {
+      const month = `${tx.createdAt.getFullYear()}-${String(tx.createdAt.getMonth() + 1).padStart(2, '0')}`;
+      const bucket = buckets.get(month);
+      if (!bucket) continue;
+      const numeric = tx.amount;
+      const isInflow =
+        numeric.greaterThan(0) || BillingService.WALLET_INFLOW_TYPES.has(tx.type);
+      if (isInflow) {
+        bucket.inflow = bucket.inflow.plus(numeric.abs());
+      } else {
+        bucket.outflow = bucket.outflow.plus(numeric.abs());
+      }
+    }
+
+    return monthKeys.map((m) => {
+      const b = buckets.get(m.month)!;
+      return {
+        month: m.month,
+        label: b.label,
+        inflow: b.inflow.toFixed(2),
+        outflow: b.outflow.toFixed(2),
+      };
+    });
   }
 
   /** Zapisane karty Stripe w bazie — wybór karty przy auto‑doładowaniu portfela. */
@@ -165,7 +235,8 @@ export class BillingService {
       { header: 'userEmail', value: (r) => r.user.email },
       { header: 'type', value: (r) => r.type },
       { header: 'status', value: (r) => r.status },
-      { header: 'amount', value: (r) => r.amount.toFixed(2) },
+      { header: 'amount_pln', value: (r) => r.amount.toFixed(2) },
+      { header: 'amount_credits', value: (r) => (r.currency === 'PLN' ? r.amount.toFixed(2) : '') },
       { header: 'currency', value: (r) => r.currency },
       { header: 'balanceAfter', value: (r) => r.balanceAfter.toFixed(2) },
       { header: 'description', value: (r) => r.description ?? '' },
@@ -255,7 +326,7 @@ export class BillingService {
       panelUrl,
     });
 
-    await this.mailer.send(message);
+    await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'BILLING' });
   }
 
   // ---------------------------------------------------------------------------
@@ -365,6 +436,21 @@ export class BillingService {
     const event = this.stripe.parseEvent(rawBody);
 
     this.logger.log(`Stripe webhook: ${event.type} (${event.id})`);
+
+    // Audit F-16: replay-safe processing. Money movements are idempotent at
+    // the ledger level, but the stateful handlers (counters, sync, e-mails)
+    // must run at most once per Stripe event id.
+    try {
+      await this.prisma.stripeWebhookEvent.create({
+        data: { eventId: event.id, type: event.type },
+      });
+    } catch (err) {
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        this.logger.log(`Duplicate Stripe webhook delivery ignored: ${event.id}`);
+        return { received: true, duplicate: true };
+      }
+      throw err;
+    }
 
     switch (event.type) {
       case 'checkout.session.completed':
@@ -490,6 +576,26 @@ export class BillingService {
         });
       }
     }
+
+    void this.notifyWalletTopupOk({
+      userId,
+      amountMajor: amountMajor.toFixed(2),
+    }).catch((err) => {
+      this.logger.warn(
+        `handleCheckoutCompleted: topup mail failed user=${userId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    });
+
+    void this.ecoPoints.safeAward(`wallet_topup:${tx.id}`, async () => {
+      const pts = await this.ecoPoints.awardWalletTopup(this.prisma, {
+        userId,
+        amountMajor,
+        walletTxId: tx.id,
+      });
+      if (pts > 0) {
+        this.logger.log(`EKO +${pts} WALLET_TOPUP user=${userId} tx=${tx.id}`);
+      }
+    });
   }
 
   // ---------------------------------------------------------------------------
@@ -607,6 +713,7 @@ export class BillingService {
           periodStart: invoice.status_transitions?.paid_at
             ? new Date(invoice.status_transitions.paid_at * 1000)
             : undefined,
+          stripeInvoiceId: invoice.id,
         });
       }
       if (created || invoice.status === 'paid') {
@@ -724,6 +831,10 @@ export class BillingService {
     const amtMajor = ((pi.amount_received ?? 0) as number) / 100;
     if (amtMajor <= 0 || !pi.id) return;
 
+    // Audit F-16: only bump the statistics when this delivery actually moved
+    // money (a replayed webhook returns the existing ledger entry).
+    const alreadyCredited = await this.ledger.findByIdempotencyKey(`stripe:pi:${pi.id}`);
+
     const tx = await this.ledger.credit({
       userId,
       amount: amtMajor,
@@ -735,21 +846,45 @@ export class BillingService {
       metadata: { channel: 'wallet_auto_topup' },
     });
 
-    await this.prisma.walletAutoTopup.updateMany({
-      where: { userId },
-      data: {
-        totalToppedUpAmount: { increment: amtMajor },
-        totalToppedUpCount: { increment: 1 },
-        lastAttemptOk: true,
-        lastAttemptError: null,
-      },
-    });
+    if (!alreadyCredited) {
+      await this.prisma.walletAutoTopup.updateMany({
+        where: { userId },
+        data: {
+          totalToppedUpAmount: { increment: amtMajor },
+          totalToppedUpCount: { increment: 1 },
+          lastAttemptOk: true,
+          lastAttemptError: null,
+        },
+      });
+    }
 
     await this.audit.record({
       action: 'WALLET_AUTOTOPUP_SUCCEEDED',
       userId,
       details: { walletTxId: tx.id, paymentIntentId: pi.id, amount: amtMajor.toFixed(2) },
     });
+
+    void this.notifyWalletAutoTopupOk({
+      userId,
+      amountMajor: amtMajor.toFixed(2),
+    }).catch((err) => {
+      this.logger.warn(
+        `handlePaymentIntentSucceeded: autotopup mail failed user=${userId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    });
+
+    if (!alreadyCredited) {
+      void this.ecoPoints.safeAward(`wallet_autotopup:${tx.id}`, async () => {
+        const pts = await this.ecoPoints.awardWalletTopup(this.prisma, {
+          userId,
+          amountMajor: amtMajor,
+          walletTxId: tx.id,
+        });
+        if (pts > 0) {
+          this.logger.log(`EKO +${pts} WALLET_TOPUP (auto) user=${userId} tx=${tx.id}`);
+        }
+      });
+    }
   }
 
   private async handlePaymentIntentFailed(event: {
@@ -774,19 +909,118 @@ export class BillingService {
       },
     });
 
+    const userId = meta.verris_user_id;
     await this.audit.record({
       action: 'WALLET_AUTOTOPUP_PAYMENT_FAILED',
-      userId: meta.verris_user_id,
+      userId,
       details: {
         paymentIntentId: pi.id ?? null,
         error: pi.last_payment_error?.message ?? null,
       },
+    });
+
+    void this.notifyWalletAutoTopupFailed({
+      userId,
+      reason: pi.last_payment_error?.message ?? 'payment_failed',
+    }).catch((err) => {
+      this.logger.warn(
+        `handlePaymentIntentFailed: autotopup fail mail user=${userId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
     });
   }
 
   // ---------------------------------------------------------------------------
   // Email notifications (Sprint 2.1)
   // ---------------------------------------------------------------------------
+
+  private panelUrl(): string {
+    return (
+      this.config.get<string>('CLIENT_PANEL_URL') ??
+      this.config.get<string>('clientPanelUrl') ??
+      'https://panel.verris.pl'
+    ).replace(/\/$/, '');
+  }
+
+  private async notifyWalletTopupOk(opts: {
+    userId: string;
+    amountMajor: string;
+  }): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: opts.userId },
+      select: { email: true, firstName: true, walletBalance: true, anonymizedAt: true },
+    });
+    if (!user || user.anonymizedAt) return;
+    const panelUrl = this.panelUrl();
+    const message = walletTopupOkTemplate({
+      to: user.email,
+      firstName: user.firstName,
+      amountPln: opts.amountMajor,
+      newBalancePln: new Prisma.Decimal(user.walletBalance).toFixed(2),
+      panelUrl,
+    });
+    await this.mailer.send({
+      ...message,
+      userId: opts.userId,
+      category: 'TRANSACTIONAL',
+      fromRole: 'BILLING',
+    });
+  }
+
+  private async notifyWalletAutoTopupOk(opts: {
+    userId: string;
+    amountMajor: string;
+  }): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: opts.userId },
+      select: { email: true, firstName: true, walletBalance: true, anonymizedAt: true },
+    });
+    if (!user || user.anonymizedAt) return;
+    const panelUrl = this.panelUrl();
+    const message = walletAutoTopupOkTemplate({
+      to: user.email,
+      firstName: user.firstName,
+      amountPln: opts.amountMajor,
+      newBalancePln: new Prisma.Decimal(user.walletBalance).toFixed(2),
+      panelUrl,
+    });
+    await this.mailer.send({
+      ...message,
+      userId: opts.userId,
+      category: 'TRANSACTIONAL',
+      fromRole: 'BILLING',
+    });
+  }
+
+  private async notifyWalletAutoTopupFailed(opts: {
+    userId: string;
+    reason: string;
+  }): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: opts.userId },
+      select: {
+        email: true,
+        firstName: true,
+        anonymizedAt: true,
+        walletAutoTopup: { select: { topupAmount: true } },
+      },
+    });
+    if (!user || user.anonymizedAt || !user.email) return;
+    const panelUrl = this.panelUrl();
+    const topupAmount = user.walletAutoTopup?.topupAmount?.toFixed(2) ?? '—';
+    const message = walletAutoTopupFailedTemplate({
+      to: user.email,
+      firstName: user.firstName,
+      reason: opts.reason,
+      topupAmountPln: topupAmount,
+      panelUrl,
+    });
+    await this.mailer.send({
+      ...message,
+      userId: opts.userId,
+      category: 'TRANSACTIONAL',
+      fromRole: 'BILLING',
+    });
+  }
 
   private async notifySubscriptionRenewed(opts: {
     userId: string;
@@ -853,7 +1087,7 @@ export class BillingService {
         : null,
       panelUrl,
     });
-    await this.mailer.send(message);
+    await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'BILLING' });
   }
 
   private async notifySubscriptionPaymentFailed(opts: {
@@ -925,6 +1159,6 @@ export class BillingService {
       paymentUpdateUrl,
       panelUrl,
     });
-    await this.mailer.send(message);
+    await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'BILLING' });
   }
 }

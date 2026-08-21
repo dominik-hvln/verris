@@ -18,7 +18,7 @@ export default async function AcceptInvitePage({
           <input type="hidden" name="token" value={token} />
           <input name="firstName" required placeholder="Imię" className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white outline-none focus:border-white/40" />
           <input name="lastName" required placeholder="Nazwisko" className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white outline-none focus:border-white/40" />
-          <input name="password" required minLength={8} type="password" placeholder="Hasło" className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white outline-none focus:border-white/40" />
+          <input name="password" required minLength={8} type="password" autoComplete="new-password" placeholder="Hasło" className="w-full rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white outline-none focus:border-white/40" />
           <button className="w-full rounded-xl bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-neutral-200">
             Aktywuj subkonto
           </button>

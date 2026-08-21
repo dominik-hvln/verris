@@ -2,6 +2,7 @@
 
 import { getAuthToken } from "@/lib/auth";
 import { apiFetch, ApiError } from "@/lib/api";
+import type { SidebarTileHref } from "@verris/contracts";
 
 export interface UserProfile {
   id: string;
@@ -19,7 +20,13 @@ export interface UserProfile {
   walletBalance: string;
   ecoPoints: number;
   isTwoFactorEnabled: boolean;
+  requireStrongAuth?: boolean;
+  hasPasskey?: boolean;
   createdAt: string;
+  sidebarQuickLinks?: string[];
+  isSubaccount?: boolean;
+  customerPermissions?: string[] | null;
+  subaccountLabel?: string | null;
 }
 
 /**
@@ -39,6 +46,22 @@ export async function fetchUserProfile(): Promise<UserProfile | null> {
 /**
  * Aktualizuje dane profilowe i bilingowe użytkownika.
  */
+export async function updateSidebarQuickLinks(links: SidebarTileHref[]) {
+  const token = await getAuthToken();
+  if (!token) return { error: "Brak autoryzacji" };
+
+  try {
+    await apiFetch("/users/me", {
+      method: "PATCH",
+      body: JSON.stringify({ sidebarQuickLinks: links }),
+    });
+    return { success: true as const };
+  } catch (err) {
+    if (err instanceof ApiError) return { error: err.message };
+    return { error: "Błąd połączenia z serwerem" };
+  }
+}
+
 export async function updateUserProfile(data: Partial<UserProfile>) {
   const token = await getAuthToken();
   if (!token) return { error: "Brak autoryzacji" };
@@ -50,6 +73,38 @@ export async function updateUserProfile(data: Partial<UserProfile>) {
     });
     return { success: true, data: updated };
   } catch {
+    return { error: "Błąd połączenia z serwerem" };
+  }
+}
+
+/** SEC-9 — żądanie zmiany adresu e-mail (link weryfikacyjny trafia na nowy adres). */
+export async function requestEmailChange(newEmail: string, password: string) {
+  const token = await getAuthToken();
+  if (!token) return { error: "Brak autoryzacji" };
+  try {
+    await apiFetch("/auth/email-change/request", {
+      method: "POST",
+      body: JSON.stringify({ newEmail, password }),
+    });
+    return { success: true as const };
+  } catch (err) {
+    if (err instanceof ApiError) return { error: err.message };
+    return { error: "Błąd połączenia z serwerem" };
+  }
+}
+
+/** SEC-6 — włącz/wyłącz wymóg silnego logowania (passkey/2FA). */
+export async function setStrongAuthRequirement(enabled: boolean) {
+  const token = await getAuthToken();
+  if (!token) return { error: "Brak autoryzacji" };
+  try {
+    await apiFetch("/users/me/strong-auth", {
+      method: "PATCH",
+      body: JSON.stringify({ enabled }),
+    });
+    return { success: true as const };
+  } catch (err) {
+    if (err instanceof ApiError) return { error: err.message };
     return { error: "Błąd połączenia z serwerem" };
   }
 }

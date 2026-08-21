@@ -1,14 +1,37 @@
-import { Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Role } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { AiService } from './ai.service';
+import { AiChatService } from './ai-chat.service';
+import { AiProviderService } from './ai-provider.service';
+import { KnowledgeBaseService } from './knowledge-base.service';
+import { AiChatRequestDto } from './dto/ai.dto';
 
 @Controller('ai')
 @UseGuards(JwtAuthGuard)
 export class AiController {
-  constructor(private readonly ai: AiService) {}
+  constructor(
+    private readonly ai: AiService,
+    private readonly chat: AiChatService,
+    private readonly provider: AiProviderService,
+    private readonly knowledge: KnowledgeBaseService,
+    private readonly config: ConfigService,
+  ) {}
+
+  /** Client-facing: lista artykułów Bazy Wiedzy widocznych dla klienta. */
+  @Get('kb')
+  listKb() {
+    return this.knowledge.listClientDocs();
+  }
+
+  /** Client-facing: pełna treść artykułu (tylko CLIENT/ALL). */
+  @Get('kb/:id')
+  getKb(@Param('id') id: string) {
+    return this.knowledge.getClientDoc(id);
+  }
 
   @UseGuards(RolesGuard)
   @Roles(Role.STAFF, Role.ADMIN)
@@ -26,8 +49,49 @@ export class AiController {
     );
   }
 
+  /** SUP-1 — KB article suggestions for the client support form (deflection). */
+  @Post('kb-suggest')
+  @HttpCode(200)
+  kbSuggest(@Body() body: { query: string; topic?: string }) {
+    return this.chat.kbSuggest(body?.query ?? '', body?.topic);
+  }
+
+  /** Client-facing hosting assistant (RAG over the CLIENT/ALL knowledge base). */
+  @Post('chat')
+  @HttpCode(200)
+  clientChat(@Body() dto: AiChatRequestDto, @Req() req) {
+    return this.chat.ask({
+      question: dto.question,
+      audience: 'CLIENT',
+      history: dto.history,
+      userId: req.user.userId,
+      actorUserId: req.user.principalUserId ?? req.user.userId,
+      subscriptionId: dto.subscriptionId ?? null,
+    });
+  }
+
+  /** Internal assistant for BOK/ops (RAG over the STAFF/ALL knowledge base). */
+  @UseGuards(RolesGuard)
+  @Roles(Role.STAFF, Role.ADMIN)
+  @Post('staff/chat')
+  @HttpCode(200)
+  staffChat(@Body() dto: AiChatRequestDto, @Req() req) {
+    return this.chat.ask({
+      question: dto.question,
+      audience: 'STAFF',
+      history: dto.history,
+      userId: req.user.userId,
+      actorUserId: req.user.principalUserId ?? req.user.userId,
+    });
+  }
+
   @Get('status')
   status() {
-    return { provider: 'openai-compatible', configuredByEnv: true };
+    const provider = this.config.get<string>('AI_PROVIDER') ?? 'openai-compatible';
+    return {
+      provider,
+      configured: this.provider.isConfigured(),
+      embeddings: this.provider.embeddingsEnabled(),
+    };
   }
 }

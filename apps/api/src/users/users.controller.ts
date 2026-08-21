@@ -1,6 +1,7 @@
 import {
   Controller,
   Get,
+  Post,
   Patch,
   Body,
   UseGuards,
@@ -27,13 +28,56 @@ export class UsersController {
    * Pobiera pełny profil zalogowanego użytkownika.
    */
   @Get('me')
-  async getProfile(@CurrentUser() user: { userId: string }) {
-    return this.usersService.getProfile(user.userId);
+  async getProfile(
+    @CurrentUser() user: { userId: string; principalUserId?: string },
+  ) {
+    return this.usersService.getProfile(user.userId, user.principalUserId);
+  }
+
+  /** SEC-7 — historia logowań zalogowanego użytkownika (self-service). */
+  @Get('me/login-history')
+  loginHistory(@CurrentUser() user: { userId: string }) {
+    return this.usersService.listMyLoginHistory(user.userId);
+  }
+
+  /** SEC-8 — dziennik aktywności konta (self-service, transparentność/RODO). */
+  @Get('me/activity')
+  activity(@CurrentUser() user: { userId: string }) {
+    return this.usersService.listMyActivity(user.userId);
+  }
+
+  /** SEC-6 — włącz/wyłącz wymóg silnego logowania (passkey/2FA) dla konta. */
+  @Patch('me/strong-auth')
+  setStrongAuth(
+    @CurrentUser() user: { userId: string },
+    @Body() body: { enabled: boolean },
+  ) {
+    return this.usersService.setStrongAuthRequirement(user.userId, Boolean(body.enabled));
   }
 
   @Get('me/eco-ledger')
   ecoLedger(@CurrentUser() user: { userId: string }) {
     return this.usersService.listEcoLedger(user.userId);
+  }
+
+  @Get('me/eco-badge-stats')
+  ecoBadgeStats(@CurrentUser() user: { userId: string }) {
+    return this.usersService.getEcoBadgeStats(user.userId);
+  }
+
+  @Get('me/eco-program')
+  ecoProgramOverview(@CurrentUser() user: { userId: string }) {
+    return this.usersService.getEcoProgramOverview(user.userId);
+  }
+
+  @Get('me/referral-program')
+  referralProgramStatus(@CurrentUser() user: { userId: string }) {
+    return this.usersService.getReferralProgramStatus(user.userId);
+  }
+
+  @Post('me/referral-program/apply')
+  applyReferralProgram(@CurrentUser() user: { userId: string }) {
+    return this.usersService.applyReferralProgram(user.userId);
   }
 
   @Patch('me/referral')
@@ -58,10 +102,14 @@ export class UsersController {
    */
   @Patch('me')
   async updateProfile(
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: { userId: string; principalUserId?: string },
     @Body() dto: UpdateProfileDto,
   ) {
-    return this.usersService.updateProfile(user.userId, dto);
+    return this.usersService.updateProfile(
+      user.userId,
+      dto,
+      user.principalUserId,
+    );
   }
 
   /**

@@ -60,6 +60,11 @@ export class PromoService {
         'Kody procentowe stosuje się przy doładowaniu portfela — wpisz kod w koszyku doładowania, a bonus zostanie naliczony po zaksięgowaniu wpłaty.',
       );
     }
+    if (promo.kind === PromoKind.SERVICE_PERCENT_OFF) {
+      throw new BadRequestException(
+        'Ten kod rabatowy stosuje się przy zakupie usługi hostingowej — wpisz go w kreatorze nowej usługi.',
+      );
+    }
 
     const amount = new Prisma.Decimal(promo.value);
     if (amount.lessThanOrEqualTo(0)) {
@@ -129,6 +134,7 @@ export class PromoService {
     maxRedemptions?: number | null;
     validFrom?: Date | null;
     validTo?: Date | null;
+    appliesToRenewals?: boolean;
     actorUserId: string;
   }) {
     const norm = input.code.trim().toUpperCase();
@@ -172,6 +178,180 @@ export class PromoService {
 
   async listPromoCodes() {
     return this.prisma.promoCode.findMany({ orderBy: { createdAt: 'desc' } });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Service purchase — percent off first period (and optional renewals)
+  // ---------------------------------------------------------------------------
+
+  async previewServicePercentOff(
+    userId: string,
+    rawCode: string,
+    listPrice: Prisma.Decimal,
+  ): Promise<{
+    promoCodeId: string;
+    code: string;
+    percent: number;
+    listPrice: Prisma.Decimal;
+    discountedAmount: Prisma.Decimal;
+    savingsAmount: Prisma.Decimal;
+    appliesToRenewals: boolean;
+    description: string | null;
+  }> {
+    const promo = await this.resolveActiveServicePercentPromo(userId, rawCode);
+    const percent = new Prisma.Decimal(promo.value);
+    const discountedAmount = this.applyPercentDiscount(listPrice, percent);
+    const savingsAmount = listPrice.minus(discountedAmount).toDecimalPlaces(2);
+    return {
+      promoCodeId: promo.id,
+      code: promo.code,
+      percent: percent.toNumber(),
+      listPrice,
+      discountedAmount,
+      savingsAmount,
+      appliesToRenewals: promo.appliesToRenewals,
+      description: promo.description,
+    };
+  }
+
+  /**
+   * Idempotent per (promo, user). Call after successful provisioning / first charge.
+   */
+  async recordServicePromoRedemption(input: {
+    userId: string;
+    promoCodeId: string;
+    subscriptionId: string;
+    listPrice: Prisma.Decimal;
+    chargedAmount: Prisma.Decimal;
+  }): Promise<void> {
+    const existing = await this.prisma.promoRedemption.findUnique({
+      where: {
+        promoCodeId_userId: { promoCodeId: input.promoCodeId, userId: input.userId },
+      },
+    });
+    if (existing) return;
+
+    const savings = input.listPrice.minus(input.chargedAmount).toDecimalPlaces(2);
+    await this.prisma.promoRedemption.create({
+      data: {
+        promoCodeId: input.promoCodeId,
+        userId: input.userId,
+        subscriptionId: input.subscriptionId,
+        amountCredited: savings.greaterThan(0) ? savings : new Prisma.Decimal(0),
+        currency: 'PLN',
+      },
+    });
+    await this.prisma.promoCode.update({
+      where: { id: input.promoCodeId },
+      data: { redemptionCount: { increment: 1 } },
+    });
+    await this.audit.record({
+      action: 'PROMO_CODE_REDEEMED',
+      userId: input.userId,
+      details: {
+        promoCodeId: input.promoCodeId,
+        subscriptionId: input.subscriptionId,
+        kind: 'SERVICE_PERCENT_OFF',
+        savingsPln: savings.toFixed(2),
+      },
+    });
+  }
+
+  /** Renewal charge for wallet-managed subscriptions. */
+  async resolveSubscriptionRenewalAmount(sub: {
+    priceAmount: Prisma.Decimal;
+    listPriceAmount: Prisma.Decimal | null;
+    appliedPromoCodeId: string | null;
+  }): Promise<Prisma.Decimal> {
+    const listPrice = sub.listPriceAmount ?? sub.priceAmount;
+    if (!sub.appliedPromoCodeId) {
+      return listPrice;
+    }
+    const promo = await this.prisma.promoCode.findUnique({
+      where: { id: sub.appliedPromoCodeId },
+    });
+    if (
+      !promo?.active ||
+      promo.kind !== PromoKind.SERVICE_PERCENT_OFF ||
+      !promo.appliesToRenewals
+    ) {
+      return listPrice;
+    }
+    const now = new Date();
+    if (promo.validFrom && now < promo.validFrom) return listPrice;
+    if (promo.validTo && now > promo.validTo) return listPrice;
+    return this.applyPercentDiscount(listPrice, new Prisma.Decimal(promo.value));
+  }
+
+  /**
+   * BILL-1/BILL-2 — kwota najbliższego odnowienia z uwzględnieniem rabatu
+   * startowego. Jedno źródło prawdy dla schedulera obciążeń ORAZ dla maili
+   * przypominających, żeby kwota w przypomnieniu zawsze zgadzała się z realnym
+   * obciążeniem.
+   *
+   * Reguła: dopóki zostają okresy rabatu startowego (`introDiscountPeriodsLeft`)
+   * odnowienie idzie po cenie listowej pomniejszonej o `introDiscountPct`
+   * (rabat startowy NIE łączy się z kodami). Po wyzerowaniu — standardowa logika
+   * (cena listowa albo kod z `appliesToRenewals`).
+   */
+  async resolveNextRenewalAmount(sub: {
+    priceAmount: Prisma.Decimal;
+    listPriceAmount: Prisma.Decimal | null;
+    appliedPromoCodeId: string | null;
+    introDiscountPct: number;
+    introDiscountPeriodsLeft: number;
+  }): Promise<Prisma.Decimal> {
+    if (sub.introDiscountPeriodsLeft > 0 && sub.introDiscountPct > 0) {
+      const listPrice = sub.listPriceAmount ?? sub.priceAmount;
+      return this.applyPercentDiscount(
+        listPrice,
+        new Prisma.Decimal(sub.introDiscountPct),
+      );
+    }
+    return this.resolveSubscriptionRenewalAmount(sub);
+  }
+
+  private applyPercentDiscount(
+    listPrice: Prisma.Decimal,
+    percent: Prisma.Decimal,
+  ): Prisma.Decimal {
+    const pct = percent.lessThan(0) ? new Prisma.Decimal(0) : percent;
+    const discount = listPrice.times(pct).dividedBy(100);
+    const charged = listPrice.minus(discount);
+    return charged.lessThanOrEqualTo(0) ? new Prisma.Decimal(0) : charged.toDecimalPlaces(2);
+  }
+
+  private async resolveActiveServicePercentPromo(userId: string, rawCode: string) {
+    const code = rawCode.trim().toUpperCase();
+    if (!code || code.length < 3 || code.length > 40) {
+      throw new BadRequestException('Podaj kod promocyjny (3–40 znaków).');
+    }
+    const promo = await this.prisma.promoCode.findUnique({ where: { code } });
+    if (!promo || !promo.active) {
+      throw new NotFoundException('Nieprawidłowy lub nieaktywny kod promocyjny.');
+    }
+    if (promo.kind !== PromoKind.SERVICE_PERCENT_OFF) {
+      throw new BadRequestException(
+        'Ten kod nie jest rabatem na zakup usługi — sprawdź, czy wpisujesz go we właściwym miejscu (portfel vs. nowa usługa).',
+      );
+    }
+    const now = new Date();
+    if (promo.validFrom && now < promo.validFrom) {
+      throw new BadRequestException('Ten kod nie jest jeszcze aktywny.');
+    }
+    if (promo.validTo && now > promo.validTo) {
+      throw new BadRequestException('Ten kod wygasł.');
+    }
+    if (promo.maxRedemptions != null && promo.redemptionCount >= promo.maxRedemptions) {
+      throw new BadRequestException('Ten kod został w pełni wykorzystany.');
+    }
+    const already = await this.prisma.promoRedemption.findUnique({
+      where: { promoCodeId_userId: { promoCodeId: promo.id, userId } },
+    });
+    if (already) {
+      throw new BadRequestException('Już zrealizowałeś ten kod.');
+    }
+    return promo;
   }
 
   // ---------------------------------------------------------------------------
@@ -341,7 +521,7 @@ export class PromoService {
       walletBalancePln: new Prisma.Decimal(user.walletBalance).toFixed(2),
       panelUrl,
     });
-    await this.mailer.send(message);
+    await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'NOREPLY' });
   }
 
   private async resolveActivePercentPromo(userId: string, rawCode: string) {

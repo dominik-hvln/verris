@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { DirectAdminService } from '../servers/directadmin.service';
 import { AuditService } from '../common/audit/audit.service';
 import { MailerService } from '../mail/mailer.service';
+import { MigrationOrchestratorService } from './migration-orchestrator.service';
 
 function formatBytes(value: bigint): string {
   const bytes = Number(value);
@@ -28,16 +29,16 @@ export class MigrationWorkerScheduler {
     private readonly directAdmin: DirectAdminService,
     private readonly audit: AuditService,
     private readonly mailer: MailerService,
+    private readonly orchestrator: MigrationOrchestratorService,
   ) {}
 
   /**
-   * Sprint 7 / R-MIG-1+R-MIG-5 — pętla nowego flow `MigrationRequest`:
-   * - QUEUED -> uruchamia DA backup, tworzy ticket, status na RUNNING.
-   * - COMPLETED -> wysyła post-check HTTP + powiadomienie e-mail.
-   * - FAILED -> wysyła powiadomienie do klienta + ticket z linkiem do staffa.
-   *
-   * Worker celowo nie wykonuje sam pełnego transferu — to robi staff
-   * przez panel migracji (S-05) na compute-node z agentem (compute-node-arch).
+   * Migrator v2 — pełny automat (bez bramki operatora):
+   * - QUEUED -> DA pre-backup konta docelowego (bezpiecznik przed nadpisaniem)
+   *   i od razu RUNNING `worker-queue`; transfer wykonuje worker na nodzie.
+   * - COMPLETED -> e-mail z podsumowaniem + instrukcją cutoveru DNS.
+   * - ATTENTION -> automat stanął; klient dostaje e-mail, staff „Pilne”.
+   * Ticket powstaje wyłącznie przy eskalacji (escalateToStaff).
    */
   @Cron(CronExpression.EVERY_MINUTE)
   async processMigrationRequests(): Promise<void> {
@@ -60,39 +61,33 @@ export class MigrationWorkerScheduler {
         );
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        await this.prisma.migrationRequest.update({
-          where: { id: req.id },
-          data: {
-            status: MigrationStatus.FAILED,
-            currentStep: 'pre_backup_failed',
-            lastError: msg,
-            completedAt: new Date(),
-          },
-        });
         this.logger.warn(`migration bundle pre-backup failed request=${req.id}: ${msg}`);
+        // Bezpiecznik nie zadziałał — nie nadpisujemy konta automatem.
+        await this.orchestrator.escalateToStaff(
+          req.id,
+          `Pre-backup konta docelowego w DirectAdmin nie powiódł się: ${msg}`,
+        );
         continue;
       }
 
-      let ticketId: string | null = req.ticketId;
-      if (!ticketId) {
-        const ticket = await this.prisma.ticket.create({
-          data: {
-            userId: req.userId,
-            subject: `Migracja pakietowa #${req.id.slice(0, 8)} — ${req.subscription.account?.domain ?? '—'}`,
-            message: this.buildBundleTicketMessage(req),
-            department: 'TECHNICAL',
-            priority: 'HIGH',
-          },
-        });
-        ticketId = ticket.id;
+      try {
+        // Bazy docelowe przez DA API (widoczne w panelu, creds do wp-config).
+        await this.orchestrator.prepareMysqlTargets(req.id);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        this.logger.warn(`migration mysql target provisioning failed request=${req.id}: ${msg}`);
+        await this.orchestrator.escalateToStaff(
+          req.id,
+          `Nie udało się utworzyć baz docelowych w DirectAdmin: ${msg}`,
+        );
+        continue;
       }
 
       await this.prisma.migrationRequest.update({
         where: { id: req.id },
         data: {
           status: MigrationStatus.RUNNING,
-          currentStep: 'awaiting_operator',
-          ticketId,
+          currentStep: 'worker-queue',
           startedAt: new Date(),
         },
       });
@@ -103,7 +98,7 @@ export class MigrationWorkerScheduler {
         details: {
           subscriptionId: req.subscriptionId,
           migrationRequestId: req.id,
-          ticketId,
+          mode: 'auto',
         },
       });
     }
@@ -134,6 +129,8 @@ export class MigrationWorkerScheduler {
             ? this.buildSuccessMail(row, row.subscription.user.firstName)
             : this.buildFailureMail(row, row.subscription.user.firstName),
           tag: ok ? 'migration.completed' : 'migration.failed',
+          category: 'TRANSACTIONAL',
+          fromRole: 'NOREPLY',
         });
       } catch (err) {
         this.logger.warn(
@@ -145,20 +142,87 @@ export class MigrationWorkerScheduler {
         data: { currentStep: 'notified' },
       });
     }
+
+    // Eskalacje (ATTENTION) — klient dostaje uspokajający e-mail; dedupe przez event.
+    const escalated = await this.prisma.migrationRequest.findMany({
+      where: {
+        status: MigrationStatus.ATTENTION,
+        attentionAt: { gte: new Date(Date.now() - 15 * 60 * 1000) },
+      },
+      take: 20,
+      include: {
+        subscription: {
+          include: { account: true, user: { select: { email: true, firstName: true } } },
+        },
+      },
+    });
+    for (const row of escalated) {
+      const alreadyNotified = await this.prisma.subscriptionEvent.findFirst({
+        where: {
+          subscriptionId: row.subscriptionId,
+          type: 'MIGRATION_ATTENTION_NOTIFIED',
+          details: { path: ['migrationRequestId'], equals: row.id },
+        },
+        select: { id: true },
+      });
+      if (alreadyNotified) continue;
+      try {
+        await this.mailer.send({
+          to: row.subscription.user.email,
+          subject: `Migracja ${row.targetDomain ?? row.subscription.account?.domain ?? ''} — przejął ją nasz zespół`,
+          text: this.buildAttentionMail(row, row.subscription.user.firstName),
+          tag: 'migration.attention',
+          category: 'TRANSACTIONAL',
+          fromRole: 'NOREPLY',
+        });
+      } catch (err) {
+        this.logger.warn(`Failed to send migration attention mail request=${row.id}: ${(err as Error).message}`);
+      }
+      await this.prisma.subscriptionEvent.create({
+        data: {
+          subscriptionId: row.subscriptionId,
+          type: 'MIGRATION_ATTENTION_NOTIFIED',
+          details: { migrationRequestId: row.id },
+        },
+      });
+    }
   }
 
-  private buildBundleTicketMessage(req: {
-    id: string;
-    targetDomain: string | null;
-    subscription: { account: { domain: string } | null };
-  }): string {
+  /** Watchdog — joby bez heartbeatu wracają do kolejki albo eskalują zlecenie. */
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  async watchdogStalledJobs(): Promise<void> {
+    const result = await this.orchestrator.requeueOrEscalateStalledJobs();
+    if (result.requeued > 0 || result.escalated > 0) {
+      this.logger.warn(
+        `migration watchdog: requeued=${result.requeued} escalated=${result.escalated}`,
+      );
+    }
+  }
+
+  /** Retencja sekretów — czyści hasła źródła po oknie od zakończenia migracji. */
+  @Cron(CronExpression.EVERY_HOUR)
+  async purgeMigrationSecrets(): Promise<void> {
+    try {
+      await this.orchestrator.purgeExpiredSecrets();
+    } catch (err) {
+      this.logger.warn(`migration secret purge failed: ${(err as Error).message}`);
+    }
+  }
+
+  private buildAttentionMail(
+    req: { id: string; targetDomain: string | null; subscription: { account: { domain: string } | null } },
+    firstName: string | null,
+  ): string {
     return [
-      'Pakietowe zlecenie migracji (R-MIG-1).',
-      `Identyfikator zlecenia: ${req.id}`,
-      `Domena docelowa: ${req.targetDomain ?? req.subscription.account?.domain ?? '—'}`,
-      'Sekrety FTP/MySQL/IMAP są zaszyfrowane — odsłonić tylko przez panel staff (audit).',
+      `${firstName ? `Dzień dobry ${firstName},` : 'Dzień dobry,'}`,
       '',
-      'Krok następny: operator weryfikuje dostępy w panelu migracji i wykonuje transfer plików (SFTP/rsync), bazy MySQL, IMAP.',
+      `automatyczna migracja ${req.targetDomain ?? req.subscription.account?.domain ?? ''} napotkała przeszkodę,`,
+      'więc przejął ją nasz zespół techniczny. Nie musisz nic robić — dokończymy przenosiny',
+      'i poinformujemy Cię o zakończeniu. Twoja obecna strona cały czas działa u starego dostawcy.',
+      '',
+      `Numer zlecenia: ${req.id.slice(0, 8)}`,
+      '',
+      '— Verris Hosting',
     ].join('\n');
   }
 
@@ -179,6 +243,11 @@ export class MigrationWorkerScheduler {
       `Pliki: ${req.filesTransferred} (${formatBytes(req.bytesTransferred)})`,
       `Bazy danych: ${req.databasesMigrated}`,
       `Skrzynki IMAP: ${req.mailboxesMigrated}`,
+      '',
+      'Ostatni krok: przełączenie DNS. Wejdź w panelu klienta w zakładkę Migracje —',
+      'znajdziesz tam gotowe rekordy do ustawienia (albo automatyczne potwierdzenie,',
+      'jeśli domena jest już delegowana na nasze serwery nazw). Przed przełączeniem',
+      'możesz jednym kliknięciem dograć różnice (delta-sync plików i poczty).',
       '',
       'Sprawdź proszę poprawność działania strony i zgłoś nam wszelkie nieprawidłowości w ciągu 7 dni.',
       '',

@@ -5,11 +5,14 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
 import { CryptoModule } from '../common/crypto/crypto.module';
 import { DomainRegistrarService } from './domain-registrar.service';
+import { NbpFxService } from './nbp-fx.service';
 import { RegistrarProviderFactory } from './registrar.provider';
+import { BillingModule } from '../billing/billing.module';
+import { EcoModule } from '../eco/eco.module';
 
 @Module({
-  imports: [PrismaModule, ConfigModule, CryptoModule],
+  imports: [PrismaModule, ConfigModule, CryptoModule, BillingModule, EcoModule],
   controllers: [DomainsController],
-  providers: [DomainsService, DomainRegistrarService, RegistrarProviderFactory],
+  providers: [DomainsService, DomainRegistrarService, RegistrarProviderFactory, NbpFxService],
 })
 export class DomainsModule {}

@@ -2,30 +2,19 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle,
+import {
   Button,
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow,
-  Badge,
   Input,
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator
+  DropdownMenuSeparator,
 } from '@verris/ui';
 import { Globe, MoreVertical, Plus, RefreshCw, AlertCircle, Info, Trash2, CheckCircle2, ShoppingCart } from 'lucide-react';
-import { HostingTabs } from '../components/hosting-tabs';
-import { fetchUserDomains, addDomain, deleteDomain } from './actions';
+import { SpinBorder } from '@/components/spin-border';
+import { PageHeaderRow, PanelModal } from '@/components/panel';
+import { fetchUserDomains, addDomain, deleteDomain, fetchRegistrarStatus } from './actions';
 import { DomainDto } from '@verris/contracts';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
@@ -38,6 +27,7 @@ export default function DomainsPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newDomainName, setNewDomainName] = useState('');
   const [adding, setAdding] = useState(false);
+  const [registrarConfigured, setRegistrarConfigured] = useState(false);
 
   const loadDomains = () => {
     setLoading(true);
@@ -53,6 +43,9 @@ export default function DomainsPage() {
 
   useEffect(() => {
     loadDomains();
+    fetchRegistrarStatus()
+      .then((status) => setRegistrarConfigured(status.configured))
+      .catch(() => setRegistrarConfigured(false));
   }, []);
 
   const handleAddDomain = async (e: React.FormEvent) => {
@@ -62,7 +55,7 @@ export default function DomainsPage() {
     setAdding(true);
     try {
       await addDomain(newDomainName.trim().toLowerCase());
-      toast.success('Domena dodana subskrybcji');
+      toast.success('Domena dodana do konta');
       setIsAddOpen(false);
       setNewDomainName('');
       loadDomains();
@@ -86,78 +79,64 @@ export default function DomainsPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Domeny</h1>
-          <p className="text-muted-foreground mt-1 text-sm md:text-base">Zarządzaj domenami podpiętymi do Twojego hostingu.</p>
-        </div>
-        
-        <div className="flex gap-2">
-          <Button variant="outline" className="gap-2" onClick={() => router.push('/dashboard/domains/registrar')}>
-            <ShoppingCart className="h-4 w-4" /> Rejestrator
-          </Button>
-          <Button className="gap-2" onClick={() => setIsAddOpen(true)}>
-            <Plus className="h-4 w-4" /> Dodaj domenę
-          </Button>
-        </div>
+      <PageHeaderRow
+        title="Domeny"
+        description="Zarządzaj domenami podpiętymi do Twojego hostingu."
+        actions={
+          <>
+            {registrarConfigured ? (
+              <Button
+                variant="outline"
+                className="w-full gap-2 sm:w-auto"
+                onClick={() => router.push('/dashboard/domains/buy')}
+              >
+                <ShoppingCart className="h-4 w-4" /> Kup domenę
+              </Button>
+            ) : null}
+            <Button className="w-full gap-2 sm:w-auto" onClick={() => setIsAddOpen(true)}>
+              <Plus className="h-4 w-4" /> Dodaj domenę
+            </Button>
+          </>
+        }
+      />
 
-        {isAddOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-0">
-            <div 
-              className="fixed inset-0 bg-black/50 backdrop-blur-sm transition-opacity"
-              onClick={() => setIsAddOpen(false)}
-            />
-            <div className="relative z-50 w-full max-w-lg rounded-xl border border-border/50 bg-background p-6 shadow-2xl animate-in zoom-in-95 fade-in-0 duration-200">
-              <div className="flex flex-col gap-2 mb-6">
-                <h2 className="text-xl font-semibold tracking-tight">Dodaj nową domenę</h2>
-                <p className="text-sm text-muted-foreground">
-                  Wprowadź nazwę domeny, którą chcesz podpiąć pod środowisko Verris.
-                </p>
-              </div>
-
-              <form onSubmit={handleAddDomain} className="space-y-4">
-                <div className="space-y-2">
-                  <Input 
-                    placeholder="np. mojadomena.pl" 
-                    value={newDomainName}
-                    onChange={(e) => setNewDomainName(e.target.value)}
-                    disabled={adding}
-                    autoFocus
-                  />
-                </div>
-                <div className="rounded-lg p-4 bg-primary/5 text-primary border border-primary/20">
-                  <div className="flex items-center gap-2 font-medium mb-1">
-                    <Info className="h-4 w-4" />
-                    Instrukcja DNS
-                  </div>
-                  <div className="text-sm">
-                    Po dodaniu domeny, upewnij się że jej rekordy NS wskazują na nasze NameServery:
-                    <ul className="list-disc ml-5 mt-2 font-mono">
-                      <li>ns1.verris.pl</li>
-                      <li>ns2.verris.pl</li>
-                    </ul>
-                    Propagacja zmian DNS może potrwać od 1 do 24 godzin. Status się zmieni po pełnym rozgłoszeniu.
-                  </div>
-                </div>
-                <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 mt-6">
-                  <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)} disabled={adding}>
-                    Anuluj
-                  </Button>
-                  <Button type="submit" disabled={adding || !newDomainName}>
-                    {adding ? <RefreshCw className="h-4 w-4 animate-spin mr-2" /> : null}
-                    Dodaj domenę
-                  </Button>
-                </div>
-              </form>
-            </div>
+      <PanelModal
+        open={isAddOpen}
+        onClose={() => setIsAddOpen(false)}
+        title="Dodaj nową domenę"
+        description="Wprowadź nazwę domeny podpiętej do hostingu Verris."
+      >
+        <form onSubmit={handleAddDomain} className="space-y-4">
+          <Input
+            placeholder="np. mojadomena.pl"
+            value={newDomainName}
+            onChange={(e) => setNewDomainName(e.target.value)}
+            disabled={adding}
+            autoFocus
+          />
+          <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-primary">
+            <p className="mb-1 flex items-center gap-2 font-medium">
+              <Info className="h-4 w-4" /> Instrukcja DNS
+            </p>
+            <p className="text-sm">
+              Ustaw NS: <span className="font-mono">ns1.verris.pl</span>,{' '}
+              <span className="font-mono">ns2.verris.pl</span> (propagacja do 24 h).
+            </p>
           </div>
-        )}
-      </div>
-
-      <HostingTabs currentTab="domains" />
+          <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)} disabled={adding}>
+              Anuluj
+            </Button>
+            <Button type="submit" disabled={adding || !newDomainName}>
+              {adding ? <RefreshCw className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Dodaj domenę
+            </Button>
+          </div>
+        </form>
+      </PanelModal>
 
       <div className="relative rounded-[32px] p-px overflow-hidden group">
-        <div className="absolute -inset-full animate-[spin_1.5s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_70%,#ffffff_100%)] opacity-20 pointer-events-none transition-opacity duration-1500 pointer-events-none" />
+        <SpinBorder variant="white" className="opacity-20 transition-opacity duration-[1500ms]" />
         <div className="relative rounded-[calc(32px-1px)] bg-[#0a0a0a] p-6 lg:p-8 flex flex-col z-10 transition-colors duration-300">
           
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4 border-b border-white/5 pb-6">
@@ -179,8 +158,76 @@ export default function DomainsPage() {
                   <div key={i} className="h-12 w-full bg-white/5 animate-pulse rounded-lg" />
                 ))}
               </div>
+            ) : domains.length === 0 ? (
+              <div className="flex flex-col items-center gap-2 rounded-xl border border-white/5 bg-[#050505] p-8 text-muted-foreground">
+                <AlertCircle className="h-8 w-8 opacity-20" />
+                <p>Brak podpiętych domen.</p>
+              </div>
             ) : (
-              <div className="rounded-xl border border-white/5 bg-[#050505] overflow-x-auto shadow-inner">
+              <>
+              <div className="space-y-3 md:hidden">
+                {domains.map((domain) => (
+                  <article key={domain.id} className="rounded-xl border border-white/10 bg-[#050505] p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <p className="truncate font-bold text-white">{domain.name}</p>
+                          {domain.kind === 'HOSTING' && (
+                            <span className="shrink-0 rounded-full border border-violet-400/30 bg-violet-400/10 px-2 py-0.5 text-[10px] font-semibold text-violet-200">
+                              Hosting
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-2 text-xs text-neutral-500">
+                          {domain.createdAt
+                            ? format(new Date(domain.createdAt), 'dd.MM.yyyy HH:mm', { locale: pl })
+                            : 'Brak danych'}
+                        </p>
+                      </div>
+                      <div
+                        className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${
+                          domain.status === 'ACTIVE'
+                            ? 'border-white/20 text-white'
+                            : domain.status === 'PENDING'
+                              ? 'border-white/10 text-neutral-300'
+                              : 'border-red-500/20 text-red-400'
+                        }`}
+                      >
+                        {domain.status === 'ACTIVE' ? 'Aktywna' : domain.status === 'PENDING' ? 'DNS' : 'Wygasła'}
+                      </div>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          router.push(
+                            domain.kind === 'HOSTING' && domain.serviceId
+                              ? `/dashboard/services/${domain.serviceId}`
+                              : `/dashboard/domains/${domain.id}`,
+                          )
+                        }
+                      >
+                        Zarządzaj
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => loadDomains()}>
+                        Odśwież
+                      </Button>
+                      {domain.kind !== 'HOSTING' && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-red-400"
+                          onClick={() => handleDeleteDomain(domain.id, domain.name)}
+                        >
+                          Usuń
+                        </Button>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+              <div className="hidden md:block rounded-xl border border-white/5 bg-[#050505] overflow-x-auto shadow-inner">
                 <table className="w-full text-sm">
                   <thead className="bg-white/5 border-b border-white/5 text-left">
                     <tr>
@@ -209,6 +256,11 @@ export default function DomainsPage() {
                                 <Globe className="h-4 w-4" />
                               </div>
                               {domain.name}
+                              {domain.kind === 'HOSTING' && (
+                                <span className="rounded-full border border-violet-400/30 bg-violet-400/10 px-2 py-0.5 text-[10px] font-semibold text-violet-200">
+                                  Hosting
+                                </span>
+                              )}
                             </div>
                           </td>
                           <td className="px-4">
@@ -235,9 +287,15 @@ export default function DomainsPage() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end" className="bg-[#121212] border-white/10 text-white">
-                                <DropdownMenuItem 
-                                  className="cursor-pointer font-medium hover:bg-white/10 focus:bg-white/10 focus:text-white" 
-                                  onClick={() => router.push(`/dashboard/domains/${domain.id}`)}
+                                <DropdownMenuItem
+                                  className="cursor-pointer font-medium hover:bg-white/10 focus:bg-white/10 focus:text-white"
+                                  onClick={() =>
+                                    router.push(
+                                      domain.kind === 'HOSTING' && domain.serviceId
+                                        ? `/dashboard/services/${domain.serviceId}`
+                                        : `/dashboard/domains/${domain.id}`,
+                                    )
+                                  }
                                 >
                                   Zarządzaj
                                 </DropdownMenuItem>
@@ -245,13 +303,17 @@ export default function DomainsPage() {
                                 <DropdownMenuItem className="cursor-pointer hover:bg-white/10 focus:bg-white/10 focus:text-white" onClick={() => loadDomains()}>
                                   <RefreshCw className="w-4 h-4 mr-2" /> Odśwież status
                                 </DropdownMenuItem>
-                                <DropdownMenuSeparator className="bg-white/10" />
-                                <DropdownMenuItem 
-                                  className="cursor-pointer text-red-400 hover:bg-red-500/10 focus:bg-red-500/10 focus:text-red-400"
-                                  onClick={() => handleDeleteDomain(domain.id, domain.name)}
-                                >
-                                  <Trash2 className="w-4 h-4 mr-2" /> Usuń domenę
-                                </DropdownMenuItem>
+                                {domain.kind !== 'HOSTING' && (
+                                  <>
+                                    <DropdownMenuSeparator className="bg-white/10" />
+                                    <DropdownMenuItem
+                                      className="cursor-pointer text-red-400 hover:bg-red-500/10 focus:bg-red-500/10 focus:text-red-400"
+                                      onClick={() => handleDeleteDomain(domain.id, domain.name)}
+                                    >
+                                      <Trash2 className="w-4 h-4 mr-2" /> Usuń domenę
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </td>
@@ -261,6 +323,7 @@ export default function DomainsPage() {
                   </tbody>
                 </table>
               </div>
+              </>
             )}
           </div>
         </div>

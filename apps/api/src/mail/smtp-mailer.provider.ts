@@ -7,19 +7,13 @@ import { MailMessage, MailerProvider } from './mailer.interface';
 interface SmtpConfig {
   host: string;
   port: number;
-  /** Empty username + password → AUTH stage is skipped. Required for
-   *  localhost Postfix relay where panel server is the trusted client. */
   username: string;
   password: string;
   fromAddress: string;
   fromName: string;
-  /** TLS mode:
-   *   - `tls` — connect with TLS from start (port 465).
-   *   - `starttls` — upgrade plain connection to TLS (port 587).
-   *   - `none` — plaintext, never upgrade. Use ONLY for `localhost` relays
-   *     where there is no untrusted hop between the panel and the MTA.
-   */
   secure: 'starttls' | 'tls' | 'none';
+  heloName: string;
+  messageIdDomain: string;
 }
 
 /**
@@ -52,7 +46,7 @@ export class SmtpMailerProvider implements MailerProvider {
   constructor(private readonly config: SmtpConfig) {}
 
   async send(message: MailMessage): Promise<{ providerId: string; messageId: string }> {
-    const messageId = `<${crypto.randomUUID()}@${this.config.host}>`;
+    const messageId = `<${crypto.randomUUID()}@${this.config.messageIdDomain}>`;
     const conversation = await this.deliver(message, messageId);
     if (!conversation.ok) {
       throw new Error(`SMTP delivery failed: ${conversation.error ?? 'unknown'}`);
@@ -70,15 +64,19 @@ export class SmtpMailerProvider implements MailerProvider {
       const expect = (codes: number[]) => readReply(socket, codes);
 
       await expect([220]);
-      await send(`EHLO ${this.config.host}`);
+      const helo = this.config.heloName;
+      await send(`EHLO ${helo}`);
       await expect([250]);
 
       if (this.config.secure === 'starttls') {
         await send('STARTTLS');
         await expect([220]);
+        // TLS servername/cert-verification MUST use the real connect host
+        // (np. email-smtp.eu-central-1.amazonaws.com), NIE nazwę HELO
+        // (mail.verris.pl) — inaczej walidacja altnames certyfikatu pada.
         const upgraded = upgrade(socket, this.config.host);
         await waitSecure(upgraded);
-        await writeLine(upgraded, `EHLO ${this.config.host}\r\n`);
+        await writeLine(upgraded, `EHLO ${helo}\r\n`);
         await readReply(upgraded, [250]);
         return await this.runAuthAndDataStage(upgraded, message, messageId);
       }
@@ -112,7 +110,10 @@ export class SmtpMailerProvider implements MailerProvider {
       await readReply(socket, [235]);
     }
 
-    await writeLine(socket, `MAIL FROM:<${this.config.fromAddress}>\r\n`);
+    const fromAddress = message.fromAddress ?? this.config.fromAddress;
+    const fromName = message.fromName ?? this.config.fromName;
+
+    await writeLine(socket, `MAIL FROM:<${fromAddress}>\r\n`);
     await readReply(socket, [250]);
     await writeLine(socket, `RCPT TO:<${message.to}>\r\n`);
     await readReply(socket, [250, 251]);
@@ -121,7 +122,7 @@ export class SmtpMailerProvider implements MailerProvider {
     await readReply(socket, [354]);
 
     const body = renderEmail({
-      from: { address: this.config.fromAddress, name: this.config.fromName },
+      from: { address: fromAddress, name: fromName },
       to: message.to,
       subject: message.subject,
       text: message.text,

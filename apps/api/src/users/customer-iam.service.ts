@@ -17,6 +17,7 @@ import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { MailerService } from '../mail/mailer.service';
+import { iamSubaccountInviteTemplate } from '../mail/templates/iam-invite-notification';
 import {
   AcceptSubaccountInviteDto,
   InviteSubaccountDto,
@@ -68,6 +69,50 @@ export class CustomerIamService {
     return { permissions: Object.values(CustomerPermission), members, invites };
   }
 
+  async listAudit(ownerUserId: string, actorUserId: string, limit = 50) {
+    await this.assertOwner(ownerUserId, actorUserId);
+    const take = Math.min(Math.max(limit, 1), 100);
+    const rows = await this.prisma.auditLog.findMany({
+      where: {
+        userId: ownerUserId,
+        action: { startsWith: 'CUSTOMER_IAM_' },
+      },
+      orderBy: { createdAt: 'desc' },
+      take,
+      select: {
+        id: true,
+        action: true,
+        actorUserId: true,
+        details: true,
+        createdAt: true,
+      },
+    });
+    const actorIds = [...new Set(rows.map((r) => r.actorUserId).filter(Boolean))] as string[];
+    const actors =
+      actorIds.length === 0
+        ? []
+        : await this.prisma.user.findMany({
+            where: { id: { in: actorIds } },
+            select: { id: true, email: true, firstName: true, lastName: true },
+          });
+    const actorById = new Map(actors.map((a) => [a.id, a]));
+    return {
+      entries: rows.map((row) => ({
+        id: row.id,
+        action: row.action,
+        createdAt: row.createdAt.toISOString(),
+        details: row.details,
+        actor: row.actorUserId
+          ? {
+              id: row.actorUserId,
+              email: actorById.get(row.actorUserId)?.email ?? null,
+              name: formatActorName(actorById.get(row.actorUserId)),
+            }
+          : null,
+      })),
+    };
+  }
+
   async invite(ownerUserId: string, actorUserId: string, dto: InviteSubaccountDto) {
     await this.assertOwner(ownerUserId, actorUserId);
     const email = dto.email.trim().toLowerCase();
@@ -76,6 +121,10 @@ export class CustomerIamService {
       throw new ConflictException('Ten adres e-mail ma już konto Verris. Użyj innego adresu subkonta.');
     }
     const token = randomBytes(32).toString('base64url');
+    const owner = await this.prisma.user.findUnique({
+      where: { id: ownerUserId },
+      select: { email: true },
+    });
     const invite = await this.prisma.customerSubaccountInvite.create({
       data: {
         ownerUserId,
@@ -93,13 +142,24 @@ export class CustomerIamService {
       actorUserId,
       details: { inviteId: invite.id, email, permissions: dto.permissions },
     });
-    await this.mailer.send({
+    const panelUrl = (
+      this.config.get<string>('CLIENT_PANEL_URL') ??
+      this.config.get<string>('clientPanelUrl') ??
+      'https://panel.verris.pl'
+    ).replace(/\/$/, '');
+    const message = iamSubaccountInviteTemplate({
       to: email,
-      subject: 'Zaproszenie do konta Verris',
-      html: `<p>Otrzymujesz zaproszenie do konta Verris.</p><p><a href="${this.inviteUrl(token)}">Aktywuj subkonto</a></p><p>Link wygasa po ${INVITE_TTL_DAYS} dniach.</p>`,
-      text: `Otrzymujesz zaproszenie do konta Verris.\n\nAktywuj subkonto: ${this.inviteUrl(token)}\n\nLink wygasa po ${INVITE_TTL_DAYS} dniach.`,
+      ownerEmail: owner?.email ?? 'właściciel konta',
+      inviteUrl: this.inviteUrl(token),
+      expiresDays: INVITE_TTL_DAYS,
+      label: dto.label?.trim() || null,
+      panelUrl,
+    });
+    await this.mailer.send({
+      ...message,
       userId: ownerUserId,
       category: 'TRANSACTIONAL',
+      fromRole: 'PANEL',
     });
     return { id: invite.id, email: invite.email, expiresAt: invite.expiresAt.toISOString() };
   }
@@ -242,4 +302,12 @@ export class CustomerIamService {
 
 function hashToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
+}
+
+function formatActorName(
+  user: { firstName: string | null; lastName: string | null; email: string } | undefined,
+): string | null {
+  if (!user) return null;
+  const full = [user.firstName, user.lastName].filter(Boolean).join(' ').trim();
+  return full || user.email;
 }

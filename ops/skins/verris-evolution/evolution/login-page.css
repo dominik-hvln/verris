@@ -1,0 +1,30 @@
+/* ============================================================================
+ * Verris — CSS dla WBUDOWANEJ strony logowania Evolution (wariant fallback)
+ * ----------------------------------------------------------------------------
+ * Używać TYLKO jeśli nie instalujemy pełnego szablonu
+ * data/templates/custom/login.html (wariant zalecany, patrz README).
+ *
+ * GDZIE WKLEIĆ: Admin Tools → Customize Evolution Skin → Login Page → Custom CSS.
+ * W tym samym miejscu ustawić: logo light/dark (assets/verris-logo-*.svg),
+ * favicon (assets/favicon.svg) i wymusić tryb ciemny („Fixed dark mode"),
+ * żeby login zawsze był w brandzie Pine.
+ *
+ * Evolution nie dokumentuje klas DOM strony logowania — poniżej wyłącznie
+ * bezpieczne reguły na elementach ogólnych. Zweryfikować po aktualizacji DA.
+ * ========================================================================== */
+
+body {
+  background-color: #091410 !important;
+  background-image:
+    radial-gradient(1200px 600px at 15% -10%, rgba(31, 168, 113, 0.16), transparent 60%),
+    radial-gradient(900px 500px at 110% 110%, rgba(52, 229, 160, 0.08), transparent 55%) !important;
+}
+
+button[type="submit"] {
+  background: linear-gradient(135deg, #1fa871, #0f7a52) !important;
+  border: 0 !important;
+  color: #04120b !important;
+  font-weight: 700 !important;
+}
+
+a { color: #34e5a0; }

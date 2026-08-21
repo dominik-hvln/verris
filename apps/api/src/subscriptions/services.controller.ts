@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   NotFoundException,
   Param,
   Post,
@@ -10,13 +11,38 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { HostingSslLetsencryptDto, HostingSslPasteDto } from './dto/hosting-ssl.dto';
-import { CreateMigrationBundleDto, RequestExternalMigrationDto } from './dto/migration.dto';
-import { Prisma } from '@verris/database';
+import {
+  CreateMigrationBundleDto,
+  DiscoverMigrationSourceDto,
+  RequestExternalMigrationDto,
+} from './dto/migration.dto';
+import { RateLimit } from '../common/guards/rate-limit.guard';
+import { MigrationDiscoveryService } from './migration-discovery.service';
+import { MigrationPreflightService } from './migration-preflight.service';
+import { MigrationCutoverService } from './migration-cutover.service';
+import { Prisma, SubscriptionStatus } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
-import { DirectAdminService } from '../servers/directadmin.service';
+import { DirectAdminService, type WebToolsState } from '../servers/directadmin.service';
 import { MigrationOrchestratorService } from './migration-orchestrator.service';
+import { ServiceHealthService } from './service-health.service';
+import { HostingDnsPointingService } from './hosting-dns-pointing.service';
+import { HostingRestoreService } from './hosting-restore.service';
+import { OffsiteRestoreService } from './offsite-restore.service';
+import { HostingRestoreDto } from './dto/hosting-restore.dto';
+import { WordpressService } from './wordpress.service';
+import { InstallWordpressDto } from './dto/wordpress.dto';
+import { WafService } from './waf.service';
+import { SetWafModeDto } from './dto/waf.dto';
+import { SiteMonitorService } from './site-monitor.service';
+import { StagingService } from './staging.service';
+import { BackupScheduleService } from './backup-schedule.service';
+import { SetMonitoringDto } from './dto/site-monitor.dto';
+import { EcoReportService } from '../eco/eco-report.service';
+import { DeliverabilityService } from '../deliverability/deliverability.service';
+import { PhpService } from './php.service';
+import { AppInstallService } from './app-install.service';
 
 /**
  * Customer-facing "services" view — denormalized projection over Subscription
@@ -29,12 +55,197 @@ export class UserServicesController {
     private readonly prisma: PrismaService,
     private readonly directAdmin: DirectAdminService,
     private readonly migrations: MigrationOrchestratorService,
+    private readonly serviceHealth: ServiceHealthService,
+    private readonly dnsPointing: HostingDnsPointingService,
+    private readonly hostingRestore: HostingRestoreService,
+    private readonly offsiteRestore: OffsiteRestoreService,
+    private readonly wordpress: WordpressService,
+    private readonly waf: WafService,
+    private readonly siteMonitor: SiteMonitorService,
+    private readonly staging: StagingService,
+    private readonly ecoReport: EcoReportService,
+    private readonly deliverability: DeliverabilityService,
+    private readonly php: PhpService,
+    private readonly appInstall: AppInstallService,
+    private readonly backupSchedule: BackupScheduleService,
+    private readonly migrationDiscovery: MigrationDiscoveryService,
+    private readonly migrationPreflight: MigrationPreflightService,
+    private readonly migrationCutover: MigrationCutoverService,
   ) {}
 
+  // PERF-1 — bardzo lekki endpoint zwracający tylko typ usługi (productKind).
+  // Hub używa go do natychmiastowego doboru zakładek BEZ ciężkiego /services/:id,
+  // które uruchamia live-probe health (DNS/TLS/poczta) i przez to bywa wolne.
+  @Get(':id/kind')
+  async serviceKind(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id, userId: user.userId },
+      select: {
+        id: true,
+        serviceTag: true,
+        account: { select: { daUsername: true } },
+        plan: { select: { productKind: true } },
+      },
+    });
+    if (!sub) throw new NotFoundException('Usługa nie istnieje.');
+    return {
+      productKind: sub.plan?.productKind ?? 'HOSTING',
+      serviceTag: sub.serviceTag ?? sub.account?.daUsername ?? null,
+    };
+  }
+
+  // P-3 — marketplace 1-click (Nextcloud/PrestaShop).
+  @Get(':id/apps')
+  appsStatus(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.appInstall.statusForSubscription(id, user.userId);
+  }
+
+  @Post(':id/apps/install')
+  @HttpCode(200)
+  appsInstall(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { app: string; adminUser: string; adminEmail: string; adminPassword?: string },
+  ) {
+    return this.appInstall.install(id, user.userId, body);
+  }
+
+  // P-2 — diagnostyka dostarczalności poczty (SPF/DKIM/DMARC + RBL).
+  @Get(':id/deliverability')
+  deliverabilityFor(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.deliverability.forSubscription(id, user.userId);
+  }
+
+  // P-6 — wersja PHP konta.
+  @Get(':id/hosting-php')
+  hostingPhp(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.php.statusForSubscription(id, user.userId);
+  }
+
+  @Post(':id/hosting-php')
+  @HttpCode(200)
+  setHostingPhp(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { version: string },
+  ) {
+    return this.php.setVersionForSubscription(id, user.userId, body.version);
+  }
+
+  // C5 — raport energetyczny z realnych metryk LVE (szacunki, jawna metodologia)
+  @Get(':id/eco-report')
+  ecoReportFor(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.ecoReport.reportForSubscription(id, user.userId);
+  }
+
+  // B3 — monitoring strony (jeden przełącznik, zero konfiguracji)
+  @Get(':id/monitoring')
+  monitoringStatus(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.siteMonitor.statusForSubscription(id, user.userId);
+  }
+
+  @Post(':id/monitoring')
+  setMonitoring(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() dto: SetMonitoringDto,
+  ) {
+    return this.siteMonitor.setEnabled(id, user.userId, dto.enabled);
+  }
+
+  // MON-6 — przełącznik powiadomień e-mail (monitoring działa niezależnie)
+  @Post(':id/monitoring/notify')
+  setMonitoringNotify(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() dto: SetMonitoringDto,
+  ) {
+    return this.siteMonitor.setNotifyEmail(id, user.userId, dto.enabled);
+  }
+
+  // MON-3 — płatny monitoring (szybkie sprawdzanie), rozliczany miesięcznie z portfela
+  @Post(':id/monitoring/paid')
+  setPaidMonitoring(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() dto: SetMonitoringDto,
+  ) {
+    return this.siteMonitor.setPaidMonitoring(id, user.userId, dto.enabled);
+  }
+
+  // B5 — staging 1-click (klon LIVE → staging.<domena>, publikacja z powrotem)
+  @Get(':id/staging-env')
+  stagingStatus(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.staging.statusForSubscription(id, user.userId);
+  }
+
+  @Post(':id/staging-env/create')
+  stagingCreate(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.staging.createOrRefresh(id, user.userId);
+  }
+
+  @Post(':id/staging-env/push')
+  stagingPush(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.staging.pushToLive(id, user.userId);
+  }
+
+  @Delete(':id/staging-env')
+  stagingDelete(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.staging.remove(id, user.userId);
+  }
+
+  // B2 — ModSecurity WAF (klient zarządza trybem dla własnej usługi)
+  @Get(':id/waf')
+  wafStatus(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.waf.statusForSubscription(id, user.userId);
+  }
+
+  @Post(':id/waf/mode')
+  setWafMode(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() dto: SetWafModeDto,
+  ) {
+    return this.waf.setModeForSubscription(id, user.userId, dto.mode);
+  }
+
+  // A4 — WordPress 1-click installer
+  @Get(':id/wordpress/status')
+  wordpressStatus(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.wordpress.statusForSubscription(id, user.userId);
+  }
+
+  @Post(':id/wordpress/install')
+  installWordpress(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() dto: InstallWordpressDto,
+  ) {
+    return this.wordpress.install(id, user.userId, {
+      siteTitle: dto.siteTitle,
+      adminUser: dto.adminUser,
+      adminEmail: dto.adminEmail,
+      locale: dto.locale,
+    });
+  }
+
   @Get()
-  async list(@CurrentUser() user: { userId: string }) {
+  async list(
+    @CurrentUser() user: { userId: string },
+    @Query('includeCanceled') includeCanceled?: string,
+  ) {
+    const showCanceled = includeCanceled === '1' || includeCanceled === 'true';
     const subs = await this.prisma.subscription.findMany({
-      where: { userId: user.userId },
+      where: {
+        userId: user.userId,
+        ...(showCanceled
+          ? {}
+          : {
+              status: {
+                notIn: [SubscriptionStatus.CANCELED, SubscriptionStatus.EXPIRED],
+              },
+            }),
+      },
       orderBy: { createdAt: 'desc' },
       include: {
         plan: true,
@@ -46,6 +257,8 @@ export class UserServicesController {
     return subs.map((s) => ({
       id: s.id,
       status: s.status,
+      serviceTag: s.serviceTag ?? s.account?.daUsername ?? null,
+      paymentSource: s.paymentSource,
       planSlug: s.plan.slug,
       planName: s.plan.name,
       interval: s.interval,
@@ -54,6 +267,9 @@ export class UserServicesController {
       currentPeriodEnd: s.currentPeriodEnd?.toISOString() ?? null,
       ecoModeEnabled: s.ecoModeEnabled,
       autoscalingEnabled: s.autoscalingEnabled,
+      isTrial: s.isTrial,
+      trialEndsAt: s.trialEndsAt?.toISOString() ?? null,
+      productKind: s.plan.productKind,
       provisioning: s.provisioningStage
         ? {
             stage: s.provisioningStage as
@@ -85,6 +301,7 @@ export class UserServicesController {
             diskLimitMb: s.account.diskLimitMb,
             scaledCpu: s.account.scaledCpu,
             scaledRamMb: s.account.scaledRamMb,
+            scaledDiskMb: s.account.scaledDiskMb,
             server: s.account.server
               ? {
                   id: s.account.server.id,
@@ -108,9 +325,49 @@ export class UserServicesController {
     return this.directAdmin.listHostingMysqlForSubscription(id, user.userId);
   }
 
+  @Post(':id/hosting-databases')
+  async createHostingDatabase(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { name: string; user: string; password: string },
+  ) {
+    return this.directAdmin.createHostingMysqlDatabase(id, user.userId, {
+      name: body?.name,
+      user: body?.user,
+      password: body?.password,
+    });
+  }
+
+  @Delete(':id/hosting-databases/:name')
+  async deleteHostingDatabase(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('name') name: string,
+  ) {
+    return this.directAdmin.deleteHostingMysqlDatabase(id, user.userId, name);
+  }
+
   @Get(':id/hosting-da-links')
   async hostingDaLinks(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
     return this.directAdmin.getHostingDaLinksForSubscription(id, user.userId);
+  }
+
+  @Get(':id/connection-info')
+  async connectionInfo(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.getConnectionInfo(id, user.userId);
+  }
+
+  @Get(':id/hosting-domain-pointing')
+  async hostingDomainPointing(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.dnsPointing.verifyForSubscription(id, user.userId);
+  }
+
+  @Post(':id/hosting-domain-pointing/verify')
+  async verifyHostingDomainPointing(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+  ) {
+    return this.dnsPointing.verifyForSubscription(id, user.userId);
   }
 
   @Get(':id/hosting-dns')
@@ -178,6 +435,15 @@ export class UserServicesController {
     return this.directAdmin.createHostingEmailAccount(id, user.userId, body);
   }
 
+  @Post(':id/hosting-email/password')
+  async changeHostingEmailPassword(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { email: string; password: string },
+  ) {
+    return this.directAdmin.changeHostingEmailPassword(id, user.userId, body);
+  }
+
   @Delete(':id/hosting-email/:email')
   async deleteHostingEmail(
     @CurrentUser() user: { userId: string },
@@ -185,6 +451,264 @@ export class UserServicesController {
     @Param('email') email: string,
   ) {
     return this.directAdmin.deleteHostingEmailAccount(id, user.userId, decodeURIComponent(email));
+  }
+
+  @Get(':id/hosting-email-forwarders')
+  async hostingEmailForwarders(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.listHostingEmailForwarders(id, user.userId);
+  }
+
+  @Post(':id/hosting-email-forwarders')
+  async createHostingEmailForwarder(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { name: string; destinations: string },
+  ) {
+    return this.directAdmin.createHostingEmailForward(id, user.userId, body);
+  }
+
+  @Delete(':id/hosting-email-forwarders/:name')
+  async deleteHostingEmailForwarder(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('name') name: string,
+  ) {
+    return this.directAdmin.deleteHostingEmailForward(id, user.userId, decodeURIComponent(name));
+  }
+
+  @Get(':id/hosting-autoresponders')
+  async hostingAutoresponders(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.listHostingAutoresponders(id, user.userId);
+  }
+
+  @Post(':id/hosting-autoresponders')
+  async setHostingAutoresponderEndpoint(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { name: string; text: string; cc?: string },
+  ) {
+    return this.directAdmin.setHostingAutoresponder(id, user.userId, body);
+  }
+
+  @Delete(':id/hosting-autoresponders/:name')
+  async deleteHostingAutoresponderEndpoint(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('name') name: string,
+  ) {
+    return this.directAdmin.deleteHostingAutoresponder(id, user.userId, decodeURIComponent(name));
+  }
+
+  @Get(':id/hosting-webtools')
+  async hostingWebTools(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.getHostingWebTools(id, user.userId);
+  }
+
+  @Post(':id/hosting-webtools')
+  async saveHostingWebTools(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: Partial<import('../servers/directadmin.service').WebToolsState>,
+  ) {
+    return this.directAdmin.saveHostingWebTools(id, user.userId, body);
+  }
+
+  @Post(':id/hosting-dir-protection')
+  async setHostingDirProtection(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { dir: string; realm?: string; user: string; password: string },
+  ) {
+    return this.directAdmin.setHostingDirectoryProtection(id, user.userId, body);
+  }
+
+  @Post(':id/hosting-dir-protection/remove')
+  async removeHostingDirProtection(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { dir: string },
+  ) {
+    return this.directAdmin.removeHostingDirectoryProtection(id, user.userId, body.dir);
+  }
+
+  @Get(':id/hosting-additional-domains')
+  async hostingAdditionalDomains(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.listHostingAdditionalDomains(id, user.userId);
+  }
+
+  @Post(':id/hosting-additional-domains')
+  async createHostingAdditionalDomain(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { domain: string },
+  ) {
+    return this.directAdmin.createHostingAdditionalDomain(id, user.userId, body);
+  }
+
+  @Delete(':id/hosting-additional-domains/:domain')
+  async deleteHostingAdditionalDomain(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('domain') domain: string,
+  ) {
+    return this.directAdmin.deleteHostingAdditionalDomain(id, user.userId, decodeURIComponent(domain));
+  }
+
+  @Get(':id/hosting-domain-pointers')
+  async hostingDomainPointers(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.listHostingDomainPointers(id, user.userId);
+  }
+
+  @Post(':id/hosting-domain-pointers')
+  async createHostingDomainPointer(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { alias: string },
+  ) {
+    return this.directAdmin.createHostingDomainPointer(id, user.userId, body);
+  }
+
+  @Delete(':id/hosting-domain-pointers/:alias')
+  async deleteHostingDomainPointer(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('alias') alias: string,
+  ) {
+    return this.directAdmin.deleteHostingDomainPointer(id, user.userId, decodeURIComponent(alias));
+  }
+
+  @Get(':id/hosting-catchall')
+  async hostingCatchAll(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.getHostingCatchAll(id, user.userId);
+  }
+
+  @Post(':id/hosting-catchall')
+  async setHostingCatchAll(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { mode: 'fail' | 'blackhole' | 'address'; address?: string },
+  ) {
+    return this.directAdmin.setHostingCatchAll(id, user.userId, body);
+  }
+
+  @Get(':id/hosting-spamfilter')
+  async hostingSpamFilter(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.getHostingSpamFilter(id, user.userId);
+  }
+
+  @Post(':id/hosting-spamfilter')
+  async setHostingSpamFilter(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { enabled: boolean; requiredScore?: string; subjectTag?: string },
+  ) {
+    return this.directAdmin.setHostingSpamFilter(id, user.userId, body);
+  }
+
+  @Get(':id/hosting-db-access-hosts')
+  async hostingDbAccessHosts(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Query('db') db: string,
+  ) {
+    return this.directAdmin.listHostingDbAccessHosts(id, user.userId, db);
+  }
+
+  @Post(':id/hosting-db-access-hosts')
+  async addHostingDbAccessHost(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { db: string; host: string },
+  ) {
+    return this.directAdmin.addHostingDbAccessHost(id, user.userId, body);
+  }
+
+  @Post(':id/hosting-db-access-hosts/remove')
+  async removeHostingDbAccessHost(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { db: string; host: string },
+  ) {
+    return this.directAdmin.deleteHostingDbAccessHost(id, user.userId, body);
+  }
+
+  // ───────────────────────── SPRINT-1a — użytkownicy baz MySQL ─────────────────
+  // UI (DbUsers.tsx) i warstwa DirectAdmin powstały w lipcu 2026, ale trasy nigdy
+  // nie zostały dopisane — każde kliknięcie kończyło się 404. Pozycje D-04…D-07.
+
+  @Get(':id/hosting-db-users')
+  async hostingDbUsers(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Query('db') db: string,
+  ) {
+    return this.directAdmin.listHostingDbUsers(id, user.userId, db);
+  }
+
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:db-user-create' })
+  @Post(':id/hosting-db-users')
+  async addHostingDbUser(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { db: string; user: string; password: string },
+  ) {
+    return this.directAdmin.createHostingDbUser(id, user.userId, body);
+  }
+
+  @Post(':id/hosting-db-users/remove')
+  async removeHostingDbUser(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { db: string; user: string },
+  ) {
+    return this.directAdmin.deleteHostingDbUser(id, user.userId, body);
+  }
+
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:db-user-password' })
+  @Post(':id/hosting-db-users/password')
+  async changeHostingDbUserPassword(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { db: string; user: string; password: string },
+  ) {
+    return this.directAdmin.changeHostingDbUserPassword(id, user.userId, body);
+  }
+
+  // ───────────────────────── SPRINT-1c — SSO do phpMyAdmin / webmaila ──────────
+  // Jednorazowy link DirectAdmin ważny 2 minuty. Bez tej trasy panel wpadał
+  // w cichy fallback „Auto-logowanie niedostępne”. Pozycje D-11 i E-14.
+
+  @RateLimit({ limit: 20, windowMs: 15 * 60 * 1000, scope: 'hosting:sso-url' })
+  @Post(':id/hosting-sso-url')
+  async hostingSsoUrl(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { target: 'phpmyadmin' | 'webmail' | 'panel' },
+  ) {
+    return this.directAdmin.createHostingSsoUrl(id, user.userId, body.target);
+  }
+
+  // ───────────────────────── FALA-2b — wersja PHP per domena ───────────────────
+  // Obok per-kontowego selektora CloudLinux. Ustawienie per domena ma pierwszeństwo
+  // dla danego vhosta — panel sygnalizuje to przy selektorze konta. Pozycja B-02.
+
+  @Get(':id/hosting-domain-php')
+  async hostingDomainPhp(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Query('domain') domain: string,
+  ) {
+    return this.directAdmin.getHostingDomainPhp(id, user.userId, domain);
+  }
+
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:domain-php' })
+  @Post(':id/hosting-domain-php')
+  async setHostingDomainPhp(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { domain: string; version: string },
+  ) {
+    return this.directAdmin.setHostingDomainPhp(id, user.userId, body);
   }
 
   @Get(':id/hosting-cron')
@@ -218,6 +742,76 @@ export class UserServicesController {
     return this.directAdmin.deleteHostingCronJob(id, user.userId, cronId);
   }
 
+  @Get(':id/hosting-subdomains')
+  async hostingSubdomains(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.listHostingSubdomains(id, user.userId);
+  }
+
+  @Post(':id/hosting-subdomains')
+  async createHostingSubdomain(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { domain: string; subdomain: string },
+  ) {
+    return this.directAdmin.createHostingSubdomain(id, user.userId, body);
+  }
+
+  @Post(':id/hosting-subdomains/delete')
+  async deleteHostingSubdomain(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { domain: string; subdomain: string },
+  ) {
+    return this.directAdmin.deleteHostingSubdomain(id, user.userId, body);
+  }
+
+  @Get(':id/hosting-staging')
+  async hostingStaging(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.listHostingStaging(id, user.userId);
+  }
+
+  @Post(':id/hosting-staging')
+  async createHostingStaging(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { domain: string; label?: string; withDatabase?: boolean },
+  ) {
+    return this.directAdmin.createHostingStaging(id, user.userId, body);
+  }
+
+  @Delete(':id/hosting-staging')
+  async deleteHostingStaging(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { domain: string; subdomain: string },
+  ) {
+    return this.directAdmin.deleteHostingStaging(id, user.userId, body);
+  }
+
+  @Get(':id/deploy-jobs')
+  async deployJobs(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.listDeployJobs(id, user.userId);
+  }
+
+  @Post(':id/deploy-jobs')
+  async createDeployJob(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body()
+    body: { domain: string; branch?: string; buildCommand?: string; frequency: 'every_15m' | 'hourly' | 'daily' },
+  ) {
+    return this.directAdmin.createDeployJob(id, user.userId, body);
+  }
+
+  @Delete(':id/deploy-jobs/:cronId')
+  async deleteDeployJob(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('cronId') cronId: string,
+  ) {
+    return this.directAdmin.deleteDeployJob(id, user.userId, cronId);
+  }
+
   @Get(':id/hosting-ssl')
   async hostingSsl(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
     return this.directAdmin.listHostingSslCertificates(id, user.userId);
@@ -232,6 +826,7 @@ export class UserServicesController {
     return this.directAdmin.requestLetsEncryptCertificate(id, user.userId, {
       domain: body.domain,
       includeWww: body.includeWww === true,
+      wildcard: body.wildcard === true,
     });
   }
 
@@ -291,6 +886,77 @@ export class UserServicesController {
     };
   }
 
+  /** Enqueues an async restore of a DA backup onto the account (overwrites live data). */
+  @Post(':id/hosting-restore')
+  async runHostingRestore(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() dto: HostingRestoreDto,
+  ) {
+    return this.hostingRestore.enqueue(id, user.userId, {
+      backupId: dto.backupId,
+      scopeFiles: dto.scopeFiles,
+      scopeDatabases: dto.scopeDatabases,
+      scopeEmail: dto.scopeEmail,
+      safetyBackup: dto.safetyBackup,
+      confirmDomain: dto.confirmDomain,
+      isAdmin: false,
+    });
+  }
+
+  @Get(':id/hosting-restore/status')
+  async hostingRestoreStatus(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+  ) {
+    return this.hostingRestore.latestForSubscription(id, user.userId, false);
+  }
+
+  // S-1 — kopie OFF-SITE (poza węzłem). Panel nie ma kluczy do storage'u, więc
+  // listowanie i pobranie archiwum wykonuje węzeł zadaniem OFFSITE_RESTORE.
+  // Po pobraniu archiwum trafia na zwykłą listę kopii DA i odtwarza się
+  // istniejącą ścieżką /hosting-restore (kopia bezpieczeństwa + potwierdzenie).
+  @Get(':id/hosting-offsite')
+  hostingOffsiteStatus(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.offsiteRestore.status(id, user.userId);
+  }
+
+  @Post(':id/hosting-offsite/list')
+  @HttpCode(200)
+  hostingOffsiteList(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { snapshot?: string },
+  ) {
+    return this.offsiteRestore.queueList(id, user.userId, body?.snapshot);
+  }
+
+  @Post(':id/hosting-offsite/fetch')
+  @HttpCode(200)
+  hostingOffsiteFetch(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { archive: string; snapshot?: string },
+  ) {
+    return this.offsiteRestore.queueFetch(id, user.userId, body?.archive, body?.snapshot);
+  }
+
+  @Get(':id/health')
+  async health(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Query('refresh') refresh?: string,
+  ) {
+    return this.serviceHealth.getOrRefreshForSubscription(id, user.userId, {
+      force: refresh === '1' || refresh === 'true',
+    });
+  }
+
+  @Post(':id/health/refresh')
+  async refreshHealth(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.serviceHealth.getOrRefreshForSubscription(id, user.userId, { force: true });
+  }
+
   @Get(':id/usage')
   async usage(
     @CurrentUser() user: { userId: string },
@@ -300,11 +966,15 @@ export class UserServicesController {
     await this.assertSubscriptionForUser(id, user.userId);
     const hours = window === '7d' ? 24 * 7 : 24;
     const since = new Date(Date.now() - hours * 60 * 60 * 1000);
-    const rows = await this.prisma.usageMetric.findMany({
-      where: { subscriptionId: id, bucketStart: { gte: since } },
-      orderBy: { bucketStart: 'asc' },
-      take: window === '7d' ? 500 : 200,
-    });
+    // Newest buckets first — with 1-min telemetry, 24h can exceed 1400 rows; asc+take
+    // used to return the *oldest* slice, so the panel showed stale 0% / 1 MB disk.
+    const rows = (
+      await this.prisma.usageMetric.findMany({
+        where: { subscriptionId: id, bucketStart: { gte: since } },
+        orderBy: { bucketStart: 'desc' },
+        take: window === '7d' ? 500 : 1440,
+      })
+    ).reverse();
     return {
       window,
       rows: rows.map((row) => ({
@@ -324,6 +994,27 @@ export class UserServicesController {
   @Post(':id/hosting-site-backup')
   async hostingSiteBackupNow(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
     return this.directAdmin.createHostingSiteBackupNow(id, user.userId);
+  }
+
+  /** PANEL-11: harmonogram automatycznych backupów konta. */
+  @Get(':id/hosting-backup-schedule')
+  async hostingBackupSchedule(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.backupSchedule.get(id, user.userId);
+  }
+
+  @Post(':id/hosting-backup-schedule')
+  async setHostingBackupSchedule(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { frequency: 'OFF' | 'DAILY' | 'WEEKLY'; hour: number; dayOfWeek: number; enabled: boolean; retainCount?: number },
+  ) {
+    return this.backupSchedule.set(id, user.userId, body);
+  }
+
+  /** PANEL-12: statystyki konta — transfer/dysk/liczniki (DA SHOW_USER_USAGE + CONFIG). */
+  @Get(':id/hosting-stats')
+  async hostingStats(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.directAdmin.getHostingAccountStats(id, user.userId);
   }
 
   /** G‑6: zgłoszenie migracji zewnętrznej (FTP/MySQL/IMAP) przez formularz klienta. */
@@ -358,6 +1049,105 @@ export class UserServicesController {
     return this.migrations.listBundlesForUser(id, user.userId);
   }
 
+  /**
+   * Migrator v2 / O-2+#18 — auto-discovery: logujemy się do panelu starego
+   * hostingu (cPanel/DA/Plesk) i zwracamy domeny, bazy i skrzynki do pre-fillu
+   * kreatora. Sekrety nie są zapisywane.
+   */
+  @Post(':id/migrations/discover')
+  @HttpCode(200)
+  // Endpoint nawiązuje połączenia wychodzące pod adres podany przez klienta —
+  // limit chroni przed użyciem go jako skanera portów / sondy SSRF.
+  @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: 'migration:discover' })
+  async discoverMigrationSource(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: DiscoverMigrationSourceDto,
+  ) {
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id, userId: user.userId },
+      select: { id: true },
+    });
+    if (!sub) throw new NotFoundException('Service not found');
+    return this.migrationDiscovery.discover(body, user.userId, id);
+  }
+
+  /**
+   * Migrator v2 — preflight: realny test logowania do każdego źródła
+   * (FTP/FTPS pełny login, IMAP pełny login, MySQL handshake, SSH baner)
+   * PRZED zakolejkowaniem. Body = ten sam kształt co bundle.
+   */
+  @Post(':id/migrations/preflight')
+  @HttpCode(200)
+  // Preflight łączy się z host:port podanym przez klienta — ten sam wektor
+  // nadużycia co discover, więc również limitowany.
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'migration:preflight' })
+  async preflightMigration(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: CreateMigrationBundleDto,
+  ) {
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id, userId: user.userId },
+      select: { id: true },
+    });
+    if (!sub) throw new NotFoundException('Service not found');
+    return this.migrationPreflight.preflightBundle(body, user.userId, id);
+  }
+
+  /** Migrator v2 — szczegóły zlecenia z krokami i postępem na żywo (polling z panelu). */
+  @Get(':id/migrations/bundles/:migrationId')
+  async getMigrationBundleDetail(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('migrationId') migrationId: string,
+  ) {
+    return this.migrations.getBundleDetailForUser(id, user.userId, migrationId);
+  }
+
+  /** Migrator v2 — anulowanie migracji przez klienta (zatrzymuje worker). */
+  @Post(':id/migrations/bundles/:migrationId/cancel')
+  @HttpCode(200)
+  async cancelMigrationBundle(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('migrationId') migrationId: string,
+  ) {
+    return this.migrations.cancelBundle(id, user.userId, migrationId);
+  }
+
+  /** Migrator v2 — delta-sync plików i poczty przed cutoverem DNS. */
+  @Post(':id/migrations/bundles/:migrationId/delta-sync')
+  @HttpCode(200)
+  async queueMigrationDeltaSync(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('migrationId') migrationId: string,
+  ) {
+    return this.migrations.queueDeltaSync(id, user.userId, migrationId);
+  }
+
+  /** Migrator v2 — plan cutoveru DNS (rekordy do ustawienia / opcja zmiany NS). */
+  @Get(':id/migrations/bundles/:migrationId/cutover')
+  async getMigrationCutoverPlan(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('migrationId') migrationId: string,
+  ) {
+    return this.migrationCutover.plan(id, user.userId, migrationId);
+  }
+
+  /** Migrator v2 — weryfikacja DNS po zmianie u rejestratora; sukces = cutover done. */
+  @Post(':id/migrations/bundles/:migrationId/cutover/verify')
+  @HttpCode(200)
+  async verifyMigrationCutover(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('migrationId') migrationId: string,
+  ) {
+    return this.migrationCutover.verify(id, user.userId, migrationId);
+  }
+
   @Get(':id')
   async get(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
     const sub = await this.prisma.subscription.findFirst({
@@ -371,9 +1161,18 @@ export class UserServicesController {
     });
     if (!sub) throw new NotFoundException('Service not found');
 
+    if (sub.account?.daPasswordEnc) {
+      const syncedDomain = await this.directAdmin.syncPrimaryDomainForSubscription(
+        id,
+        user.userId,
+      );
+      if (syncedDomain) sub.account.domain = syncedDomain;
+    }
+
     return {
       id: sub.id,
       status: sub.status,
+      serviceTag: sub.serviceTag ?? sub.account?.daUsername ?? null,
       plan: {
         id: sub.plan.id,
         slug: sub.plan.slug,
@@ -384,12 +1183,16 @@ export class UserServicesController {
         diskLimitMb: sub.plan.diskLimitMb,
       },
       interval: sub.interval,
+      paymentSource: sub.paymentSource,
       priceAmount: sub.priceAmount.toString(),
       currency: sub.currency,
       currentPeriodStart: sub.currentPeriodStart?.toISOString() ?? null,
       currentPeriodEnd: sub.currentPeriodEnd?.toISOString() ?? null,
       ecoModeEnabled: sub.ecoModeEnabled,
       autoscalingEnabled: sub.autoscalingEnabled,
+      isTrial: sub.isTrial,
+      trialEndsAt: sub.trialEndsAt?.toISOString() ?? null,
+      productKind: sub.plan.productKind,
       autoscalingMaxCost: sub.autoscalingMaxCost.toString(),
       account: sub.account
         ? {
@@ -402,6 +1205,7 @@ export class UserServicesController {
             diskLimitMb: sub.account.diskLimitMb,
             scaledCpu: sub.account.scaledCpu,
             scaledRamMb: sub.account.scaledRamMb,
+            scaledDiskMb: sub.account.scaledDiskMb,
             server: sub.account.server,
           }
         : null,
@@ -421,7 +1225,7 @@ export class UserServicesController {
               : null,
           }
         : null,
-      health: buildHealthSummary(sub),
+      health: await this.serviceHealth.getOrRefreshForSubscription(id, user.userId),
       recommendations: buildServiceRecommendations(sub),
       events: sub.events.map((e) => ({
         id: e.id,
@@ -489,33 +1293,56 @@ function buildHealthSummary(s: {
     tlsOk: boolean | null;
     backupFresh: boolean | null;
     lveOk: boolean | null;
-    phpOk: boolean | null;
+    panelTlsOk: boolean | null;
     mailOk: boolean | null;
     computedAt: Date;
+    details: unknown;
   }[];
 }) {
   const latest = s.healthSnapshots[0];
-  const score =
-    latest?.score ??
-    (s.status === 'ACTIVE' && s.account?.status === 'ACTIVE'
-      ? 85
-      : s.provisioningStage === 'failed'
-        ? 20
-        : s.status === 'PROVISIONING'
-          ? 45
-          : 60);
+  if (!latest) {
+    return {
+      score: null,
+      label: 'pending' as const,
+      checkedAt: null,
+      summary:
+        s.status === 'ACTIVE' && s.account?.status === 'ACTIVE'
+          ? 'Otwórz usługę, aby uruchomić pierwszą diagnostykę.'
+          : 'Health score dostępny po aktywacji usługi.',
+      checks: {
+        dnsOk: null,
+        tlsOk: null,
+        backupFresh: null,
+        lveOk: null,
+        panelTlsOk: null,
+        mailOk: null,
+      },
+    };
+  }
+  const details =
+    latest.details && typeof latest.details === 'object' && !Array.isArray(latest.details)
+      ? (latest.details as {
+          summary?: string;
+          checkDetails?: import('@verris/contracts').ServiceHealthSummaryDto['checkDetails'];
+        })
+      : {};
+  const score = latest.score;
+  const checks = {
+    dnsOk: latest.dnsOk,
+    tlsOk: latest.tlsOk,
+    backupFresh: latest.backupFresh,
+    lveOk: latest.lveOk,
+    panelTlsOk: latest.panelTlsOk,
+    mailOk: latest.mailOk,
+  };
   return {
     score,
-    label: score >= 80 ? 'healthy' : score >= 50 ? 'attention' : 'critical',
-    checkedAt: latest?.computedAt.toISOString() ?? null,
-    checks: {
-      dnsOk: latest?.dnsOk ?? null,
-      tlsOk: latest?.tlsOk ?? null,
-      backupFresh: latest?.backupFresh ?? null,
-      lveOk: latest?.lveOk ?? null,
-      phpOk: latest?.phpOk ?? null,
-      mailOk: latest?.mailOk ?? null,
-    },
+    label:
+      score >= 80 ? ('healthy' as const) : score >= 50 ? ('attention' as const) : ('critical' as const),
+    checkedAt: latest.computedAt.toISOString(),
+    summary: details.summary ?? undefined,
+    checks,
+    checkDetails: details.checkDetails,
   };
 }
 
@@ -523,7 +1350,16 @@ function buildServiceRecommendations(s: {
   status: string;
   autoscalingEnabled: boolean;
   provisioningStage: string | null;
-  account: { domain: string; scaledCpu: number; cpuLimit: number; scaledRamMb: number; ramLimitMb: number } | null;
+  plan?: { productKind?: string | null } | null;
+  account: {
+    domain: string;
+    scaledCpu: number;
+    cpuLimit: number;
+    scaledRamMb: number;
+    ramLimitMb: number;
+    scaledDiskMb: number;
+    diskLimitMb: number;
+  } | null;
   healthSnapshots: { score: number; backupFresh: boolean | null; dnsOk: boolean | null; tlsOk: boolean | null }[];
 }) {
   const latest = s.healthSnapshots[0];
@@ -541,12 +1377,25 @@ function buildServiceRecommendations(s: {
       body: 'Wsparcie widzi szczegóły błędu. Nie wykonuj ponownego zamówienia tej samej domeny.',
     });
   }
-  if (!s.autoscalingEnabled && s.account && (s.account.scaledCpu > s.account.cpuLimit || s.account.scaledRamMb > s.account.ramLimitMb)) {
+  const usedScaling =
+    !!s.account &&
+    (s.account.scaledCpu > 0 || s.account.scaledRamMb > 0 || s.account.scaledDiskMb > 0);
+  if (!s.autoscalingEnabled && usedScaling) {
     out.push({
       type: 'autoscaling',
       severity: 'warning',
       title: 'Włącz autoscaling limitów',
       body: 'Usługa korzystała już z podwyższonych limitów. Autoscaling ograniczy ryzyko błędów 508.',
+    });
+  } else if (s.autoscalingEnabled && usedScaling && s.status === 'ACTIVE') {
+    // #19 — upsell oparty na realnym użyciu: konto regularnie sięga po
+    // dopłacane (godzinowe) zasoby autoskalowania, więc wyższy plan ze stałą
+    // ceną bywa tańszy i stabilniejszy niż ciągłe dopłaty.
+    out.push({
+      type: 'plan',
+      severity: 'info',
+      title: 'Rozważ wyższy plan',
+      body: 'Twoja usługa regularnie korzysta z autoskalowania (dopłaty godzinowe). Wyższy plan ze stałą ceną może być tańszy i bardziej przewidywalny.',
     });
   }
   if (latest?.backupFresh === false) {
@@ -557,13 +1406,23 @@ function buildServiceRecommendations(s: {
       body: 'Uruchom backup przed większymi zmianami WordPress, DNS lub migracją.',
     });
   }
+  const isEmail = s.plan?.productKind === 'EMAIL';
   if (latest && (latest.dnsOk === false || latest.tlsOk === false)) {
-    out.push({
-      type: 'domain',
-      severity: 'critical',
-      title: 'Sprawdź DNS i SSL',
-      body: 'Asystent domeny wskaże brakujące rekordy oraz problemy certyfikatu.',
-    });
+    out.push(
+      isEmail
+        ? {
+            type: 'domain',
+            severity: 'critical',
+            title: 'Skonfiguruj DNS poczty',
+            body: 'Ustaw rekordy MX, SPF i DKIM, aby poczta działała i nie trafiała do spamu — Asystent domeny wskaże brakujące rekordy.',
+          }
+        : {
+            type: 'domain',
+            severity: 'critical',
+            title: 'Sprawdź DNS i SSL',
+            body: 'Asystent domeny wskaże brakujące rekordy oraz problemy certyfikatu.',
+          },
+    );
   }
   if (out.length === 0 && s.status === 'ACTIVE') {
     out.push({

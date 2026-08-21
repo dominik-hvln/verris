@@ -1,7 +1,17 @@
 'use server';
 
-import type { HostingSslMutationOkDto } from '@verris/contracts';
+import type { HostingSslMutationOkDto, HostingSslResponseDto } from '@verris/contracts';
 import { apiFetch, ApiError } from '@/lib/api';
+
+export async function fetchHostingSslAction(
+  serviceId: string,
+): Promise<HostingSslResponseDto | null> {
+  try {
+    return await apiFetch<HostingSslResponseDto>(`/services/${serviceId}/hosting-ssl`);
+  } catch {
+    return null;
+  }
+}
 
 export type HostingSslActionResult =
   | (HostingSslMutationOkDto & { error?: undefined })
@@ -11,11 +21,12 @@ export async function requestLetsEncryptSslAction(
   serviceId: string,
   domain: string,
   includeWww: boolean,
+  wildcard = false,
 ): Promise<HostingSslActionResult> {
   try {
     await apiFetch<HostingSslMutationOkDto>(`/services/${serviceId}/hosting-ssl/letsencrypt`, {
       method: 'POST',
-      body: JSON.stringify({ domain, includeWww }),
+      body: JSON.stringify({ domain, includeWww, wildcard }),
     });
     return { ok: true };
   } catch (err) {

@@ -1,36 +1,102 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Check, Loader2, Wallet, CreditCard, Cpu, MemoryStick, HardDrive } from 'lucide-react';
+import { Check, Loader2, Wallet, CreditCard, Cpu, MemoryStick, HardDrive, Tag } from 'lucide-react';
+import type { PreviewSubscriptionPromoResult } from '@verris/contracts';
+import { previewSubscriptionPromoAction } from './promo-actions';
 import type {
   BillingInterval,
   PlanDto,
   SubscriptionPaymentSource,
 } from '@verris/contracts';
 import { createSubscriptionAction } from './actions';
+import { getWaiverConsentAction, registerDomainClientAction } from '@/app/dashboard/domains/actions';
+import { DomainStep, type DomainSelection } from './domain-step';
+import { CREDIT_SHORT, formatCredits } from '@/lib/credits';
+import { trackBeginCheckout, trackPurchase } from '@/lib/analytics-events';
+
+interface StartOffer {
+  cardEnabled: boolean;
+  monthlyDiscountPct: number;
+  annualDiscountPct: number;
+}
 
 interface Props {
   plans: PlanDto[];
+  /** UX-3 — wstępnie wybrany interwał (ze ścieżki z kartą: rocznie/miesięcznie). */
+  initialInterval?: BillingInterval;
+  /** UX-3 — kod promo auto-stosowany dla ścieżki z kartą (rabat 1. roku). */
+  initialPromo?: string;
+  /** BILL-1 — rabat startowy z ustawień (auto-naliczany z portfela, bez kuponu). */
+  startOffer?: StartOffer;
 }
 
-export function NewSubscriptionForm({ plans }: Props) {
+export function NewSubscriptionForm({ plans, initialInterval, initialPromo, startOffer }: Props) {
   const router = useRouter();
-  const [planId, setPlanId] = useState<string>(plans[0]?.id ?? '');
-  const [interval, setInterval] = useState<BillingInterval>('MONTH');
+  const hasEmailPlans = useMemo(() => plans.some((p) => p.productKind === 'EMAIL'), [plans]);
+  const hasHostingPlans = useMemo(
+    () => plans.some((p) => (p.productKind ?? 'HOSTING') === 'HOSTING'),
+    [plans],
+  );
+  // UX-4 — pokaż wewnętrzny przełącznik typu TYLKO gdy w przekazanych planach są
+  // oba rodzaje. Po redesignie wybór typu robi chooser (OrderFlow), więc tu
+  // zwykle dostajemy jeden rodzaj — domyślny `productKind` musi z niego wynikać.
+  const showKindToggle = hasEmailPlans && hasHostingPlans;
+  const initialKind: 'HOSTING' | 'EMAIL' = (plans[0]?.productKind ?? 'HOSTING') as
+    | 'HOSTING'
+    | 'EMAIL';
+  const [productKind, setProductKind] = useState<'HOSTING' | 'EMAIL'>(initialKind);
+  const visiblePlans = useMemo(
+    () => plans.filter((p) => (p.productKind ?? 'HOSTING') === productKind),
+    [plans, productKind],
+  );
+  const [planId, setPlanId] = useState<string>(
+    plans.find((p) => (p.productKind ?? 'HOSTING') === initialKind)?.id ?? plans[0]?.id ?? '',
+  );
+
+  const switchKind = (kind: 'HOSTING' | 'EMAIL') => {
+    setProductKind(kind);
+    const first = plans.find((p) => (p.productKind ?? 'HOSTING') === kind);
+    if (first) setPlanId(first.id);
+  };
+  const [interval, setInterval] = useState<BillingInterval>(initialInterval ?? 'MONTH');
   const [paymentSource, setPaymentSource] =
     useState<SubscriptionPaymentSource>('WALLET');
-  const [domain, setDomain] = useState<string>('');
+  const [domainSel, setDomainSel] = useState<DomainSelection>({
+    mode: 'own',
+    domain: '',
+    register: null,
+  });
+  const domain = domainSel.domain;
   const [autoscalingEnabled, setAutoscalingEnabled] = useState(false);
   const [ecoModeEnabled, setEcoModeEnabled] = useState(true);
+  // Oświadczenia konsumenckie (upk): natychmiastowe rozpoczęcie świadczenia
+  // (zawsze przy zakupie) + utrata odstąpienia przy rejestracji domeny.
+  const [immediateConsent, setImmediateConsent] = useState(false);
+  const [domainWaiverConsent, setDomainWaiverConsent] = useState(false);
+  // Zgoda domenowa raz na koncie (Regulamin §12 ust. 8).
+  const [standingWaiver, setStandingWaiver] = useState<{ granted: boolean; grantedAt: string | null } | null>(null);
+  useEffect(() => {
+    if (domainSel.mode !== 'register' || standingWaiver !== null) return;
+    void getWaiverConsentAction().then((r) => {
+      setStandingWaiver(r);
+      if (r.granted) setDomainWaiverConsent(true);
+    });
+  }, [domainSel.mode, standingWaiver]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{
     daUsername: string;
     daPassword: string;
     domain: string;
+    productKind: 'HOSTING' | 'EMAIL';
   } | null>(null);
   const [provisionQueuedSubId, setProvisionQueuedSubId] = useState<string | null>(null);
+  const [promoCode, setPromoCode] = useState(initialPromo ?? '');
+  const [promoPreview, setPromoPreview] = useState<PreviewSubscriptionPromoResult | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [promoPending, setPromoPending] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const selectedPlan = useMemo(
@@ -38,16 +104,131 @@ export function NewSubscriptionForm({ plans }: Props) {
     [plans, planId],
   );
 
-  const totalPrice = useMemo(() => {
+  const listPrice = useMemo(() => {
     if (!selectedPlan) return null;
     return interval === 'MONTH' ? selectedPlan.priceMonthly : selectedPlan.priceYearly;
   }, [selectedPlan, interval]);
+
+  // BILL-1 — rabat startowy z ustawień (tylko portfel, tylko gdy włączona ścieżka
+  // z kartą/rabatem). Naliczany automatycznie, bez kodu; odnowienie pełną kwotą.
+  const startPct =
+    paymentSource === 'WALLET' && startOffer?.cardEnabled
+      ? interval === 'YEAR'
+        ? startOffer.annualDiscountPct
+        : startOffer.monthlyDiscountPct
+      : 0;
+  const startDiscounted = useMemo(() => {
+    if (listPrice == null || startPct <= 0) return null;
+    const n = Number(listPrice);
+    if (!Number.isFinite(n)) return null;
+    return (Math.round(n * (100 - startPct)) / 100).toFixed(2);
+  }, [listPrice, startPct]);
+
+  // BILL-1 — kwota do zapłaty wg reguły „nie łączymy promocji": kod (jeśli wygrywa)
+  // → rabat startowy → cena listowa.
+  const chargePrice = promoPreview?.effectiveDiscounted ?? startDiscounted ?? listPrice;
+  const showStrike =
+    chargePrice != null && listPrice != null && Number(chargePrice) !== Number(listPrice);
+
+  // P-7 — zachęta do planu rocznego: oszczędność vs 12× miesięcznie.
+  const { annualSavingsPct, annualSavingsAmount } = useMemo(() => {
+    if (!selectedPlan) return { annualSavingsPct: 0, annualSavingsAmount: 0 };
+    const m = Number(selectedPlan.priceMonthly);
+    const y = Number(selectedPlan.priceYearly);
+    if (!Number.isFinite(m) || !Number.isFinite(y) || m <= 0 || y <= 0) {
+      return { annualSavingsPct: 0, annualSavingsAmount: 0 };
+    }
+    const full = m * 12;
+    if (y >= full) return { annualSavingsPct: 0, annualSavingsAmount: 0 };
+    return {
+      annualSavingsPct: Math.round((1 - y / full) * 100),
+      annualSavingsAmount: Math.round((full - y) * 100) / 100,
+    };
+  }, [selectedPlan]);
+
+  const applyPromo = async () => {
+    if (!selectedPlan || paymentSource !== 'WALLET') return;
+    const code = promoCode.trim();
+    if (code.length < 3) {
+      setPromoError('Wpisz kod (min. 3 znaki).');
+      setPromoPreview(null);
+      return;
+    }
+    setPromoPending(true);
+    setPromoError(null);
+    const res = await previewSubscriptionPromoAction({
+      planId: selectedPlan.id,
+      interval,
+      code,
+    });
+    setPromoPending(false);
+    if (!res.ok) {
+      setPromoPreview(null);
+      setPromoError(res.error);
+      return;
+    }
+    setPromoPreview(res.data);
+  };
+
+  // UX-3 — auto-zastosowanie kodu rabatowego ze ścieżki z kartą (raz, po
+  // załadowaniu planu). Best-effort: gdy kod jest nieprawidłowy, po prostu
+  // pokaże się błąd promo, a klient może go usunąć.
+  const autoPromoTried = useRef(false);
+  useEffect(() => {
+    if (autoPromoTried.current) return;
+    if (!initialPromo || !selectedPlan || paymentSource !== 'WALLET') return;
+    autoPromoTried.current = true;
+    void applyPromo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPromo, selectedPlan, paymentSource]);
+
+  // GA4: begin_checkout — raz, po wejściu w formularz zamówienia.
+  const checkoutTracked = useRef(false);
+  useEffect(() => {
+    if (checkoutTracked.current || !selectedPlan) return;
+    checkoutTracked.current = true;
+    trackBeginCheckout(
+      [
+        {
+          item_name: selectedPlan.name,
+          item_category: productKind === 'EMAIL' ? 'email' : 'hosting',
+          quantity: 1,
+        },
+      ],
+      chargePrice != null ? Number(chargePrice) : undefined,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPlan]);
 
   const onSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!selectedPlan) return;
     setError(null);
     startTransition(async () => {
+      // O-3: when the customer chose to register a new domain, register it
+      // first (wallet charge) so hosting and domain are ordered together. If it
+      // fails we stop before provisioning. A registered domain the customer
+      // keeps even if the subsequent hosting step were to fail.
+      if (domainSel.mode === 'register') {
+        if (!domainSel.register) {
+          setError('Wybierz domenę do rejestracji lub przełącz na własną domenę.');
+          return;
+        }
+        try {
+          await registerDomainClientAction({
+            name: domainSel.register.name,
+            years: domainSel.register.years,
+            nameservers: [],
+            withdrawalWaiverConsent: domainWaiverConsent,
+          });
+        } catch (err) {
+          setError(
+            err instanceof Error ? err.message : 'Rejestracja domeny nie powiodła się.',
+          );
+          return;
+        }
+      }
+
       const res = await createSubscriptionAction({
         planId: selectedPlan.id,
         interval,
@@ -55,15 +236,36 @@ export function NewSubscriptionForm({ plans }: Props) {
         domain: domain.trim().toLowerCase(),
         autoscalingEnabled,
         ecoModeEnabled,
+        immediatePerformanceConsent: immediateConsent,
       });
       if (!res.ok) {
         setError(res.error ?? 'Nie udało się utworzyć usługi');
         return;
       }
+      // GA4: purchase tylko dla płatności z Portfela (kwota znana; Stripe ma
+      // własny event na stronie powrotu). transaction_id deduplikuje w GA4.
+      // Bez id subskrypcji z serwera nie wysyłamy purchase — fabrykowany
+      // `sub-${Date.now()}` psuł deduplikację w GA4 i w Meta (event_id).
+      if (paymentSource === 'WALLET' && !res.data?.checkoutRedirectUrl && res.data?.subscription?.id) {
+        const paid = chargePrice != null ? Number(chargePrice) : NaN;
+        trackPurchase({
+          transactionId: res.data.subscription.id,
+          value: paid,
+          items: [
+            {
+              item_name: selectedPlan.name,
+              item_category: productKind === 'EMAIL' ? 'email' : 'hosting',
+              price: Number.isFinite(paid) ? paid : undefined,
+              quantity: 1,
+            },
+          ],
+        });
+      }
       if (res.data?.provisioning) {
         setSuccess({
           daUsername: res.data.provisioning.daUsername,
           daPassword: res.data.provisioning.daPassword,
+          productKind: (selectedPlan?.productKind ?? 'HOSTING') as 'HOSTING' | 'EMAIL',
           domain: res.data.provisioning.domain,
         });
       } else if (res.data?.provisioningQueued && res.data.subscription?.id) {
@@ -86,14 +288,38 @@ export function NewSubscriptionForm({ plans }: Props) {
 
   return (
     <form onSubmit={onSubmit} className="space-y-8">
+      {showKindToggle ? (
+        <div className="inline-flex rounded-2xl border border-white/10 bg-white/[0.03] p-1">
+          <button
+            type="button"
+            onClick={() => switchKind('HOSTING')}
+            className={`rounded-xl px-5 py-2 text-sm font-semibold transition-colors ${
+              productKind === 'HOSTING' ? 'bg-white text-black' : 'text-neutral-300 hover:text-white'
+            }`}
+          >
+            Hosting
+          </button>
+          <button
+            type="button"
+            onClick={() => switchKind('EMAIL')}
+            className={`rounded-xl px-5 py-2 text-sm font-semibold transition-colors ${
+              productKind === 'EMAIL' ? 'bg-white text-black' : 'text-neutral-300 hover:text-white'
+            }`}
+          >
+            Poczta e-mail
+          </button>
+        </div>
+      ) : null}
+
       <section>
         <h2 className="text-xl font-bold text-white">1. Wybierz plan</h2>
         <p className="text-neutral-400 text-sm mt-1">
-          Wszystkie limity są egzekwowane na poziomie CloudLinux LVE — autoskalowanie dokupuje
-          zasoby godzinowo z portfela.
+          {productKind === 'EMAIL'
+            ? 'Profesjonalna poczta na Twojej domenie — skrzynki, webmail Roundcube, antyspam.'
+            : 'Limity zasobów są egzekwowane na serwerze — autoskalowanie dokupuje dodatkową moc godzinowo z portfela.'}
         </p>
         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-          {plans.map((plan) => {
+          {visiblePlans.map((plan) => {
             const active = plan.id === planId;
             return (
               <button
@@ -129,13 +355,18 @@ export function NewSubscriptionForm({ plans }: Props) {
                 </div>
                 <div className="mt-6 flex items-baseline gap-2">
                   <span className="text-3xl font-bold text-white">
-                    {Number(plan.priceMonthly).toFixed(2)}
+                    {formatCredits(plan.priceMonthly, { withUnit: false })}
                   </span>
-                  <span className="text-neutral-400">{plan.currency} / mies.</span>
+                  <span className="text-neutral-400">{CREDIT_SHORT} / mies.</span>
                 </div>
                 <p className="text-xs text-neutral-500 mt-1">
-                  Rocznie: {Number(plan.priceYearly).toFixed(2)} {plan.currency}
+                  Rocznie: {formatCredits(plan.priceYearly)}
                 </p>
+                {plan.supportSlaHours > 0 ? (
+                  <p className="text-[11px] text-emerald-300/90 mt-2">
+                    Wsparcie: odpowiedź do {plan.supportSlaHours} h
+                  </p>
+                ) : null}
               </button>
             );
           })}
@@ -158,22 +389,15 @@ export function NewSubscriptionForm({ plans }: Props) {
             onChange={setInterval}
           />
         </div>
+        {annualSavingsPct > 0 ? (
+          <p className="mt-3 text-sm text-emerald-300">
+            💡 Płacąc rocznie oszczędzasz <strong>{annualSavingsPct}%</strong>
+            {annualSavingsAmount ? ` (${formatCredits(annualSavingsAmount)} / rok)` : ''} względem płatności miesięcznej.
+          </p>
+        ) : null}
       </section>
 
-      <section>
-        <h2 className="text-xl font-bold text-white">3. Domena główna</h2>
-        <p className="text-neutral-400 text-sm mt-1">
-          Domena pod którą uruchomimy konto na serwerze. Możesz ją podpiąć później — wpisz roboczą.
-        </p>
-        <input
-          type="text"
-          required
-          value={domain}
-          onChange={(e) => setDomain(e.target.value)}
-          placeholder="mojadomena.pl"
-          className="mt-4 w-full max-w-md rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-white placeholder:text-neutral-500 focus:border-white/40 focus:outline-none"
-        />
-      </section>
+      <DomainStep value={domainSel} onChange={setDomainSel} />
 
       <section>
         <h2 className="text-xl font-bold text-white">4. Sposób płatności</h2>
@@ -197,15 +421,80 @@ export function NewSubscriptionForm({ plans }: Props) {
         </div>
       </section>
 
+      {paymentSource === 'WALLET' ? (
+        <section className="max-w-2xl">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <Tag className="h-5 w-5 text-emerald-400" aria-hidden />
+            Kod rabatowy (opcjonalnie)
+          </h2>
+          <p className="text-neutral-400 text-sm mt-1">
+            Rabat procentowy na pierwszą opłatę za usługę. Działa tylko przy płatności z portfela (K).
+          </p>
+          <div className="mt-4 flex flex-col sm:flex-row gap-3">
+            <input
+              type="text"
+              value={promoCode}
+              onChange={(e) => {
+                setPromoCode(e.target.value.toUpperCase());
+                setPromoPreview(null);
+                setPromoError(null);
+              }}
+              placeholder="np. START20"
+              className="flex-1 rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-white font-mono placeholder:text-neutral-500 focus:border-emerald-500/50 focus:outline-none"
+            />
+            <button
+              type="button"
+              disabled={promoPending || !selectedPlan}
+              onClick={() => void applyPromo()}
+              className="rounded-2xl border border-emerald-500/40 bg-emerald-500/10 px-6 py-3 text-sm font-semibold text-emerald-200 hover:bg-emerald-500/20 disabled:opacity-50"
+            >
+              {promoPending ? <Loader2 className="h-4 w-4 animate-spin mx-auto" /> : 'Zastosuj'}
+            </button>
+          </div>
+          {promoError ? <p className="mt-2 text-sm text-rose-300">{promoError}</p> : null}
+          {promoPreview ? (
+            promoPreview.codeWins ? (
+              <div className="mt-3 rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-4 text-sm text-emerald-100">
+                Kod <strong className="font-mono">{promoPreview.code}</strong> — rabat{' '}
+                <strong>{promoPreview.percent}%</strong>
+                {promoPreview.appliesToRenewals
+                  ? ' (również na kolejne odnowienia z portfela).'
+                  : ' (tylko pierwsza opłata).'}
+                <br />
+                Oszczędzasz{' '}
+                <strong>{formatCredits(promoPreview.savingsAmount, { signed: true })}</strong>.
+                {promoPreview.comparisonMessage ? (
+                  <span className="mt-1 block text-xs text-emerald-200/80">
+                    {promoPreview.comparisonMessage}
+                  </span>
+                ) : null}
+              </div>
+            ) : (
+              // BILL-1 — kod gorszy od promocji startowej: nie łączymy, zostawiamy lepszą.
+              <div className="mt-3 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 text-sm text-amber-100">
+                {promoPreview.comparisonMessage ??
+                  `Ten kod daje mniejszy rabat niż promocja na start — naliczamy korzystniejszą promocję (${promoPreview.startPercent}%).`}
+                <br />
+                Naliczona cena uwzględnia rabat startowy{' '}
+                <strong>{promoPreview.startPercent}%</strong>.
+              </div>
+            )
+          ) : null}
+        </section>
+      ) : null}
+
       <section>
         <h2 className="text-xl font-bold text-white">5. Opcje</h2>
         <div className="mt-3 space-y-3 max-w-2xl">
-          <Toggle
-            checked={autoscalingEnabled}
-            onChange={setAutoscalingEnabled}
-            label="Autoskalowanie CloudLinux LVE"
-            description="Aplikacja automatycznie dostanie więcej CPU/RAM, gdy będzie tego potrzebowała. Koszty rozliczane godzinowo z portfela."
-          />
+          {/* Autoskalowanie nie dotyczy poczty — pokazujemy tylko dla hostingu. */}
+          {selectedPlan?.productKind !== 'EMAIL' ? (
+            <Toggle
+              checked={autoscalingEnabled}
+              onChange={setAutoscalingEnabled}
+              label="Autoskalowanie limitów zasobów"
+              description="Aplikacja automatycznie dostanie więcej CPU/RAM, gdy będzie tego potrzebowała. Koszty rozliczane godzinowo z portfela."
+            />
+          ) : null}
           <Toggle
             checked={ecoModeEnabled}
             onChange={setEcoModeEnabled}
@@ -216,17 +505,109 @@ export function NewSubscriptionForm({ plans }: Props) {
       </section>
 
       {error ? (
-        <div className="rounded-2xl border border-rose-400/30 bg-rose-400/5 p-4 text-sm text-rose-200">
+        <div
+          role="alert"
+          className="rounded-2xl border border-rose-400/30 bg-rose-400/5 p-4 text-sm text-rose-200"
+        >
           {error}
         </div>
       ) : null}
+
+      {/* Oświadczenia konsumenckie — model jak u liderów rynku: jeden zbiorczy
+          checkbox akceptacji dokumentów (z wplecionym żądaniem natychmiastowego
+          rozpoczęcia świadczenia — art. 15 ust. 3 / 21 ust. 2 upk), a przy
+          rejestracji domeny dodatkowo odrębne oświadczenie o utracie prawa
+          odstąpienia (art. 38 ust. 1 pkt 1 upk). */}
+      <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
+        <label className="flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            required
+            checked={immediateConsent}
+            onChange={(e) => setImmediateConsent(e.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-white/5 accent-white"
+          />
+          <span className="text-xs leading-relaxed text-neutral-300">
+            Zamawiając, akceptuję:{' '}
+            <a href="/legal/terms" target="_blank" className="underline hover:text-white">
+              Regulamin świadczenia usług Verris
+            </a>{' '}
+            (wraz z SLA i warunkami poszczególnych usług),{' '}
+            <a href="/legal/privacy" target="_blank" className="underline hover:text-white">
+              Politykę prywatności
+            </a>{' '}
+            oraz{' '}
+            <a href="/legal/dpa" target="_blank" className="underline hover:text-white">
+              Umowę powierzenia danych (DPA)
+            </a>
+            , a także <strong className="text-white">żądam rozpoczęcia świadczenia usługi przed
+            upływem 14-dniowego terminu odstąpienia</strong> od umowy (w razie odstąpienia
+            zapłacę za świadczenia spełnione do tej chwili — Regulamin §4 ust. 4 i §21).
+          </span>
+        </label>
+        {domainSel.mode === 'register' ? (
+          standingWaiver?.granted ? (
+            <p className="text-xs leading-relaxed text-neutral-400">
+              Rejestrację domeny obejmuje Twoje wcześniejsze oświadczenie o natychmiastowej
+              rejestracji i utracie prawa odstąpienia
+              {standingWaiver.grantedAt
+                ? ` (złożone ${new Date(standingWaiver.grantedAt).toLocaleDateString('pl-PL')})`
+                : ''}{' '}
+              —{' '}
+              <a href="/legal/terms" target="_blank" className="underline hover:text-white">
+                Regulamin §12 ust. 8
+              </a>
+              .
+            </p>
+          ) : (
+            <label className="flex cursor-pointer items-start gap-3">
+              <input
+                type="checkbox"
+                required
+                checked={domainWaiverConsent}
+                onChange={(e) => setDomainWaiverConsent(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-white/5 accent-white"
+              />
+              <span className="text-xs leading-relaxed text-neutral-300">
+                Żądam natychmiastowego wykonania usługi rejestracji domeny
+                {domainSel.register ? (
+                  <> <strong className="text-white">{domainSel.register.name}</strong></>
+                ) : null}{' '}
+                i przyjmuję do wiadomości, że z chwilą jej zarejestrowania (pełnego wykonania
+                usługi) <strong className="text-white">tracę prawo odstąpienia</strong> od umowy w
+                tym zakresie (art. 38 ust. 1 pkt 1 ustawy o prawach konsumenta,{' '}
+                <a href="/legal/terms" target="_blank" className="underline hover:text-white">
+                  Regulamin §12 ust. 7–8
+                </a>
+                ). Oświadczenie obejmuje również kolejne rejestracje domen na tym koncie.
+              </span>
+            </label>
+          )
+        ) : null}
+      </section>
 
       <div className="flex items-center justify-between rounded-3xl border border-white/10 bg-white/[0.03] p-6">
         <div>
           <p className="text-sm text-neutral-400">Do zapłaty teraz</p>
           <p className="text-3xl font-bold text-white mt-1">
-            {totalPrice ? `${Number(totalPrice).toFixed(2)} ${selectedPlan?.currency ?? ''}` : '—'}
+            {chargePrice ? (
+              <>
+                {showStrike ? (
+                  <span className="block text-lg text-neutral-500 line-through font-normal">
+                    {formatCredits(listPrice)}
+                  </span>
+                ) : null}
+                {formatCredits(chargePrice)}
+              </>
+            ) : (
+              '—'
+            )}
           </p>
+          {!promoPreview && startPct > 0 ? (
+            <p className="mt-1 text-xs font-medium text-emerald-300">
+              Rabat na start −{startPct}% (pierwsza opłata). Odnowienie pełną kwotą.
+            </p>
+          ) : null}
           <p className="text-xs text-neutral-500 mt-1">
             {paymentSource === 'WALLET'
               ? 'Środki zostaną pobrane z portfela.'
@@ -235,11 +616,21 @@ export function NewSubscriptionForm({ plans }: Props) {
         </div>
         <button
           type="submit"
-          disabled={pending || !selectedPlan || !domain.trim()}
+          disabled={
+            pending ||
+            !selectedPlan ||
+            !immediateConsent ||
+            (domainSel.mode === 'register' && !domainWaiverConsent) ||
+            (domainSel.mode === 'own' ? !domain.trim() : !domainSel.register)
+          }
           className="inline-flex items-center gap-2 rounded-2xl bg-white px-8 py-4 text-base font-bold text-black hover:bg-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          {pending ? 'Tworzenie usługi…' : 'Zamów i opłać'}
+          {pending
+            ? 'Tworzenie usługi…'
+            : domainSel.mode === 'register'
+              ? 'Zarejestruj domenę, zamów i opłać'
+              : 'Zamów i opłać'}
         </button>
       </div>
     </form>
@@ -342,8 +733,10 @@ function Toggle({
   return (
     <button
       type="button"
+      role="switch"
+      aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className={`flex w-full items-start justify-between gap-4 rounded-2xl border p-5 text-left transition-all ${
+      className={`flex w-full items-start justify-between gap-4 rounded-2xl border p-5 text-left transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60 ${
         checked
           ? 'border-white/30 bg-white/[0.06]'
           : 'border-white/10 bg-white/[0.03] hover:border-white/20'
@@ -376,10 +769,9 @@ function ProvisioningQueuedBanner({ subscriptionId }: { subscriptionId: string }
         Trwa zakładanie konta
       </h2>
       <p className="text-neutral-300">
-        Zamówienie zostało przyjęte i trafia do kolejki provisioningu na węźle hostingowym (wymaga
-        skonfigurowanego <span className="font-mono">REDIS_URL</span>). Status zmieni się na{' '}
-        <span className="text-white font-semibold">Aktywna</span> gdy DirectAdmin przygotuje
-        konto — możesz odświeżać stronę usługi lub Hosting Manager.
+        Trwa konfiguracja konta hostingowego. Status zmieni się na{' '}
+        <span className="text-white font-semibold">Aktywna</span>, gdy wszystko będzie gotowe — możesz
+        odświeżać stronę usługi.
       </p>
       <Link
         href={`/dashboard/services/${subscriptionId}`}
@@ -395,11 +787,40 @@ function ProvisioningSuccess({
   daUsername,
   daPassword,
   domain,
+  productKind,
 }: {
   daUsername: string;
   daPassword: string;
   domain: string;
+  productKind: 'HOSTING' | 'EMAIL';
 }) {
+  // Poczta nie ma hostingu WWW ani logowania do panelu DA — skrzynkami zarządza
+  // się w panelu (zakładka Poczta) i przez webmail. Nie pokazujemy danych DA.
+  if (productKind === 'EMAIL') {
+    return (
+      <div className="rounded-3xl border border-emerald-400/30 bg-emerald-400/5 p-8 space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold text-white">Usługa poczty uruchomiona</h2>
+          <p className="text-neutral-300 mt-1">
+            Poczta dla domeny <strong>{domain}</strong> jest gotowa. Skrzynki zakładasz i obsługujesz
+            w panelu — bez osobnego logowania do panelu hostingu.
+          </p>
+        </div>
+        <ol className="space-y-2 text-sm text-neutral-300">
+          <li>1. Skonfiguruj DNS poczty (rekordy <strong>MX, SPF, DKIM</strong>) w zakładce „Domeny &amp; DNS".</li>
+          <li>2. Załóż skrzynki e-mail w zakładce „Poczta" i ustaw hasła.</li>
+          <li>3. Zaloguj się do webmaila adresem skrzynki (nie danymi panelu).</li>
+        </ol>
+        <a
+          href="/dashboard/services"
+          className="inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-bold text-black hover:bg-neutral-200"
+        >
+          Przejdź do usługi poczty
+        </a>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-3xl border border-emerald-400/30 bg-emerald-400/5 p-8 space-y-6">
       <div>
@@ -412,7 +833,7 @@ function ProvisioningSuccess({
       </div>
       <dl className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
         <div className="rounded-2xl border border-white/10 bg-black/40 p-4">
-          <dt className="text-xs uppercase tracking-widest text-neutral-500">Login (DA)</dt>
+          <dt className="text-xs uppercase tracking-widest text-neutral-500">Login hostingowy</dt>
           <dd className="mt-2 font-mono text-white text-base">{daUsername}</dd>
         </div>
         <div className="rounded-2xl border border-white/10 bg-black/40 p-4">

@@ -1,6 +1,7 @@
 import {
   ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsInt,
   IsISO8601,
   IsNotEmpty,
@@ -8,6 +9,7 @@ import {
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -53,11 +55,47 @@ export class AccountMetricsDto {
   bucketStart?: string;
 }
 
+/**
+ * Node-level runtime status reported by the agent every cycle (independent of
+ * per-account telemetry, so it flows even when the node has no hosting
+ * accounts yet). Feeds the node audit "CageFS" check.
+ */
+export class NodeStatusDto {
+  /** Whether CloudLinux CageFS is enabled on the node (cagefsctl --cagefs-status). */
+  @IsOptional() @IsBoolean()
+  cagefsEnabled?: boolean;
+
+  /** Number of accounts currently caged (cagefsctl --list-enabled). */
+  @IsOptional() @IsInt() @Min(0)
+  cagefsEnabledCount?: number;
+
+  /**
+   * Audit F-07: whether the node carries the /etc/verris-hardened marker
+   * (written by security-hardening-baseline.sh during LIVE onboarding).
+   */
+  @IsOptional() @IsBoolean()
+  hardened?: boolean;
+
+  /** DB-1 — silnik bazy danych węzła, np. "MariaDB" / "MySQL" (mariadbd --version). */
+  @IsOptional() @IsString() @MaxLength(40)
+  dbEngine?: string;
+
+  /** DB-1 — wersja silnika bazy, np. "10.6.18". */
+  @IsOptional() @IsString() @MaxLength(40)
+  dbVersion?: string;
+}
+
 export class CloudLinuxTelemetryDto {
   // serverId is authoritative from X-Server-Id; kept optional for self-tests.
   @IsOptional()
   @IsString()
   serverId?: string;
+
+  /** Node-level runtime status (CageFS etc.), reported each agent cycle. */
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => NodeStatusDto)
+  node?: NodeStatusDto;
 
   /**
    * Bucket length in seconds. The agent typically pushes 60 s buckets every

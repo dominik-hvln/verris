@@ -15,10 +15,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
         
-    const message =
+    const message = normalizeExceptionMessage(
       exception instanceof HttpException
         ? exception.getResponse()
-        : 'Wewnętrzny błąd serwera';
+        : 'Wewnętrzny błąd serwera',
+    );
 
     if (status >= 500) {
       this.logger.error(`[${request.method}] ${request.url}`, exception instanceof Error ? exception.stack : exception);
@@ -33,4 +34,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
       message,
     });
   }
+}
+
+function normalizeExceptionMessage(response: string | object): string | object {
+  if (typeof response === 'string') return response;
+  if (typeof response !== 'object' || response === null) return 'Wewnętrzny błąd serwera';
+  const m = (response as { message?: unknown }).message;
+  if (typeof m === 'string') return m;
+  if (Array.isArray(m)) {
+    return m.filter((x): x is string => typeof x === 'string').join(', ');
+  }
+  return response;
 }

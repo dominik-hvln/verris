@@ -1,0 +1,6 @@
+[Unit]
+Description=Verris weekly host security audit (read-only)
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c '@REPO_ROOT@/ops/scripts/security-weekly-audit.sh'

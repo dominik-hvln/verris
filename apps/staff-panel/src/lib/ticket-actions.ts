@@ -3,6 +3,27 @@
 import { revalidatePath } from "next/cache";
 import { StaffApiError, staffApi, staffApiMultipart } from "./staff-api";
 
+export interface CannedResponseRow {
+  id: string;
+  title: string;
+  content: string;
+  topic: string | null;
+  shortcut?: string | null;
+}
+
+/** SUP-2/SUP-V2 — szablony odpowiedzi (posortowane pod temat; opcjonalne wyszukiwanie). */
+export async function staffFetchCanned(topic?: string, query?: string): Promise<CannedResponseRow[]> {
+  try {
+    const params = new URLSearchParams();
+    if (topic) params.set("topic", topic);
+    if (query && query.trim()) params.set("q", query.trim());
+    const qs = params.toString();
+    return await staffApi<CannedResponseRow[]>(`/tickets/canned${qs ? `?${qs}` : ""}`);
+  } catch {
+    return [];
+  }
+}
+
 export async function staffPostReply(ticketId: string, message: string): Promise<{ ok: true } | { error: string }> {
   const m = message.trim();
   if (m.length < 2) return { error: "Wiadomość jest za krótka." };
@@ -14,6 +35,7 @@ export async function staffPostReply(ticketId: string, message: string): Promise
     revalidatePath(`/tickets/${ticketId}`);
     revalidatePath("/");
     revalidatePath("/tickets/active");
+    revalidatePath("/tickets/closed");
     return { ok: true };
   } catch (e) {
     return { error: e instanceof StaffApiError ? e.message : "Nie udało się wysłać." };
@@ -51,6 +73,7 @@ export async function staffPostReplyWithFiles(
     revalidatePath(`/tickets/${ticketId}`);
     revalidatePath("/");
     revalidatePath("/tickets/active");
+    revalidatePath("/tickets/closed");
     return { ok: true };
   } catch (e) {
     return { error: e instanceof StaffApiError ? e.message : "Nie udało się wysłać." };
@@ -71,6 +94,7 @@ export async function staffUpdateTicket(
     revalidatePath(`/tickets/${ticketId}`);
     revalidatePath("/");
     revalidatePath("/tickets/active");
+    revalidatePath("/tickets/closed");
     return { ok: true };
   } catch (e) {
     return { error: e instanceof StaffApiError ? e.message : "Nie udało się zapisać." };
@@ -89,6 +113,7 @@ export async function staffEscalateTicket(
     revalidatePath(`/tickets/${ticketId}`);
     revalidatePath("/");
     revalidatePath("/tickets/active");
+    revalidatePath("/tickets/closed");
     return { ok: true };
   } catch (e) {
     return { error: e instanceof StaffApiError ? e.message : "Nie udało się eskalować." };
@@ -136,5 +161,13 @@ export async function staffGenerateAiSuggestion(
     return { ok: true, suggestion };
   } catch (e) {
     return { error: e instanceof StaffApiError ? e.message : "Nie udało się wygenerować sugestii AI." };
+  }
+}
+
+export async function staffGetAiStatus(): Promise<{ provider: string; configured: boolean }> {
+  try {
+    return await staffApi<{ provider: string; configured: boolean }>("/ai/status");
+  } catch {
+    return { provider: "openai-compatible", configured: false };
   }
 }

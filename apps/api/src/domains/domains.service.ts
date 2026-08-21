@@ -34,10 +34,47 @@ export class DomainsService {
   }
 
   async findAllByUser(userId: string) {
-    return this.prisma.domain.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    });
+    // Registered/added domains (the `Domain` table) PLUS the primary domains of
+    // hosting accounts (`Account.domain`), which otherwise wouldn't appear in the
+    // "Domeny" tile because provisioning stores them only on the account.
+    const [registered, accounts] = await Promise.all([
+      this.prisma.domain.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.account.findMany({
+        where: { userId },
+        select: {
+          id: true,
+          domain: true,
+          status: true,
+          createdAt: true,
+          subscriptionId: true,
+        },
+      }),
+    ]);
+
+    const known = new Set(registered.map((d) => d.name.toLowerCase()));
+    const hostingDomains = accounts
+      .filter((a) => a.domain && !known.has(a.domain.toLowerCase()))
+      .map((a) => ({
+        id: `hosting:${a.id}`,
+        name: a.domain,
+        status: a.status === 'ACTIVE' ? DomainStatus.ACTIVE : DomainStatus.PENDING,
+        createdAt: a.createdAt,
+        updatedAt: a.createdAt,
+        // Marks a domain managed via a hosting account (not independently deletable).
+        kind: 'HOSTING' as const,
+        serviceId: a.subscriptionId,
+      }));
+
+    const registeredOut = registered.map((d) => ({
+      ...d,
+      kind: 'REGISTERED' as const,
+      serviceId: null as string | null,
+    }));
+
+    return [...registeredOut, ...hostingDomains];
   }
 
   async findOne(id: string, userId: string) {

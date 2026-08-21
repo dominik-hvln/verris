@@ -1,7 +1,11 @@
-import { ExternalLink, Repeat } from 'lucide-react';
-import { HostingTabs } from '../components/hosting-tabs';
-import { getHostingMigrationTimeline, resolveServiceForHostingPages } from '../hosting-tools-data';
-import { ExternalMigrationForm } from './external-migration-form';
+import { HostingPageWrapper } from '../components/hosting-tabs';
+import {
+  getHostingMigrationBundles,
+  resolveServiceForHostingPages,
+} from '../hosting-tools-data';
+import { MigrationsClient } from './migrations-client';
+import { HostingNoServiceState, PanelCard } from '@/components/panel';
+import type { MigrationBundleSummary } from './types';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,84 +16,71 @@ export default async function MigrationsPage({
 }) {
   const { serviceId } = await searchParams;
   const service = await resolveServiceForHostingPages(serviceId);
-  const timeline = service ? await getHostingMigrationTimeline(service.id) : null;
+  let bundles: MigrationBundleSummary[] = [];
+  if (service) {
+    bundles = await getHostingMigrationBundles(service.id).catch(() => []);
+  }
 
   return (
-    <div className="space-y-8">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Migracje</h1>
-        <p className="text-neutral-400 text-sm md:text-base">
-          Zlecenie migracji ze starego hostingu — formularz zapisuje zaszyfrowany pakiet
-          źródeł, a transfer plików SFTP/rsync jest kolejkowany do compute-node worker.
-        </p>
-      </header>
-
-      <HostingTabs currentTab="migrations" serviceId={service?.id} />
-
+    <HostingPageWrapper
+      title="Migracje"
+      description="Przenieś stronę, bazy i pocztę ze starego hostingu — automatycznie i z postępem na żywo."
+      currentTab="migrations"
+      serviceId={service?.id}
+    >
       {!service ? (
-        <div className="rounded-2xl border border-white/10 bg-black/30 p-6 text-sm text-muted-foreground">
-          {serviceId ? 'Nie znaleziono usługi o podanym identyfikatorze.' : 'Brak aktywnej usługi hostingowej.'}
-        </div>
+        <HostingNoServiceState serviceId={serviceId} />
       ) : (
         <div className="space-y-6">
-          <div className="rounded-2xl border border-amber-400/20 bg-amber-400/5 p-5 text-sm text-amber-100/90 leading-relaxed">
-            <p className="font-semibold mb-1">Jak działa zlecenie migracji</p>
-            <ul className="list-disc list-inside space-y-1 text-amber-100/80 text-xs">
-              <li>
-                Po wysłaniu formularza tworzymy <strong>ticket techniczny</strong> i zapisujemy
-                Twoje dane dostępu w zaszyfrowanym schowku (KMS).
-              </li>
-              <li>
-                Operator widzi kolejkę migracji, a pierwszy krok plikowy wykonuje worker na
-                właściwym węźle. Bazy MySQL i IMAP są obsługiwane w tej samej kolejce.
-              </li>
-              <li>
-                Otrzymasz e-mail z <strong>postępem</strong> i potwierdzeniem zakończenia. Aż do
-                podmiany DNS Twoja stara strona działa bez przerwy.
-              </li>
-              <li>
-                Sekrety są odsłaniane wyłącznie przez audytowany endpoint staff lub
-                autoryzowany node agent.
-              </li>
-            </ul>
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-black/30 p-6 space-y-4">
-            <h2 className="text-white font-semibold">Zlecenie migracji (FTP / MySQL / IMAP)</h2>
-            <p className="text-xs text-neutral-500">
-              Po wysłaniu formularza otrzymasz numer ticketu — to bezpieczny kanał komunikacji
-              z operatorem migracji. Twoje hasło zostanie odczytane wyłącznie w chwili
-              wykonywania transferu i zapisane w audicie.
+          <PanelCard className="text-sm leading-relaxed">
+            <p className="mb-3 font-semibold text-white">Twoje dane są u nas bezpieczne</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <SafetyPoint
+                title="Hasła szyfrujemy i kasujemy"
+                desc="Dane dostępowe trafiają do zaszyfrowanego sejfu (AES-256). Używamy ich wyłącznie podczas transferu, a po zakończeniu migracji automatycznie je usuwamy — nie zostają u nas na stałe."
+              />
+              <SafetyPoint
+                title="Pełna kontrola i wgląd"
+                desc="Każdy dostęp do Twoich danych przez nasz zespół jest zapisywany w dzienniku. Postęp widzisz na żywo, a migrację możesz w każdej chwili anulować jednym kliknięciem."
+              />
+              <SafetyPoint
+                title="Zero przestojów"
+                desc="Twoja obecna strona działa bez przerwy przez cały czas. Przełączenie na nowy hosting (DNS) wykonujesz sam(a) na końcu, dopiero gdy wszystko sprawdzisz."
+              />
+              <SafetyPoint
+                title="Ty decydujesz, my wykonujemy"
+                desc="Przenosimy tylko to, co wskażesz: pliki, wybrane bazy i skrzynki. Nie modyfikujemy niczego u starego dostawcy — jedynie odczytujemy dane do skopiowania."
+              />
+            </div>
+            <p className="mt-3 text-xs text-neutral-500">
+              Szczegóły przetwarzania i powierzenia danych opisują{' '}
+              <a href="/legal/privacy" className="text-cyan-300 hover:underline">Polityka prywatności</a>,{' '}
+              <a href="/legal/dpa" className="text-cyan-300 hover:underline">Umowa powierzenia (DPA)</a> oraz{' '}
+              <a href="/legal/terms" className="text-cyan-300 hover:underline">Regulamin</a>. Pytania w sprawie
+              danych: <a href="mailto:rodo@verris.pl" className="text-cyan-300 hover:underline">rodo@verris.pl</a>.
             </p>
-            <ExternalMigrationForm serviceId={service.id} />
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-black/30 p-6 space-y-4">
-            <h2 className="text-white font-semibold">Oś zdarzeń migracji</h2>
-            {timeline && timeline.length > 0 ? (
-              <div className="space-y-3">
-                {timeline.map((row) => (
-                  <div key={row.id} className="rounded-xl border border-white/10 bg-white/[0.02] p-4 space-y-1">
-                    <p className="text-sm text-white font-medium flex items-center gap-2">
-                      <Repeat className="h-4 w-4 text-cyan-300" />
-                      {row.type}
-                    </p>
-                    <p className="text-xs text-neutral-500">{new Date(row.createdAt).toLocaleString('pl-PL')}</p>
-                    {row.details?.ticketId ? (
-                      <p className="text-xs text-neutral-300 flex items-center gap-2">
-                        Ticket: {String(row.details.ticketId)}
-                        <ExternalLink className="h-3.5 w-3.5 opacity-70" />
-                      </p>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-neutral-500">Brak zgłoszeń migracji dla tej usługi.</p>
-            )}
-          </div>
+          </PanelCard>
+          <MigrationsClient serviceId={service.id} bundles={bundles} />
         </div>
       )}
-    </div>
+    </HostingPageWrapper>
   );
 }
 
+function SafetyPoint({ title, desc }: { title: string; desc: string }) {
+  return (
+    <div className="flex gap-2.5 rounded-xl border border-white/10 bg-white/[0.02] p-3">
+      <span className="mt-0.5 text-cyan-300" aria-hidden>
+        {/* prosta ikona tarczy */}
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          <path d="m9 12 2 2 4-4" />
+        </svg>
+      </span>
+      <div>
+        <p className="text-xs font-semibold text-white">{title}</p>
+        <p className="mt-0.5 text-xs leading-relaxed text-neutral-400">{desc}</p>
+      </div>
+    </div>
+  );
+}

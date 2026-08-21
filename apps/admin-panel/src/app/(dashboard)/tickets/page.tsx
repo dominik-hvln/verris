@@ -16,6 +16,12 @@ type AdminTicket = {
 export default async function AdminTicketsPage() {
   let rows: AdminTicket[] = [];
   let error: string | null = null;
+  const staffPanelUrl = panelUrl("NEXT_PUBLIC_STAFF_PANEL_URL", 3002);
+  // Internal admin fallback so the page never 500s when the BOK URL is unset.
+  const ticketHref = (ticketId: string) =>
+    staffPanelUrl
+      ? new URL(`/tickets/${ticketId}`, staffPanelUrl).toString()
+      : `/tickets/${ticketId}`;
   try {
     rows = await adminApi<AdminTicket[]>("/tickets/admin/all");
   } catch (e) {
@@ -57,12 +63,12 @@ export default async function AdminTicketsPage() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <Link
-                      href={`${process.env.NEXT_PUBLIC_STAFF_PANEL_URL ?? "http://localhost:3002"}/tickets/${ticket.id}`}
-                      target="_blank"
-                      rel="noreferrer"
+                      href={ticketHref(ticket.id)}
+                      target={staffPanelUrl ? "_blank" : undefined}
+                      rel={staffPanelUrl ? "noreferrer" : undefined}
                       className="text-xs text-indigo-400 hover:underline"
                     >
-                      Otwórz w BOK
+                      {staffPanelUrl ? "Otwórz w BOK" : "Szczegóły"}
                     </Link>
                   </td>
                 </tr>
@@ -76,4 +82,13 @@ export default async function AdminTicketsPage() {
       )}
     </div>
   );
+}
+
+function panelUrl(envName: string, devPort: number): string | null {
+  const value = process.env[envName]?.trim();
+  if (value) return value.replace(/\/$/, "");
+  if (process.env.NODE_ENV !== "production") return `http://${"localhost"}:${devPort}`;
+  // In production without the env set we degrade gracefully instead of throwing,
+  // so the tickets page still renders (with an internal link fallback).
+  return null;
 }

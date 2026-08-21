@@ -17,15 +17,13 @@ export class AutoscalingController {
   @Get('estimate')
   estimate(
     @Query('cpuPercent', new ParseFloatPipe({ optional: true })) cpuPercent?: number,
-    @Query('ramMb', new ParseFloatPipe({ optional: true })) ramMb?: number,
-    @Query('ioKbps', new ParseFloatPipe({ optional: true })) ioKbps?: number,
-    @Query('transferGb', new ParseFloatPipe({ optional: true })) transferGb?: number,
+    @Query('ramGb', new ParseFloatPipe({ optional: true })) ramGb?: number,
+    @Query('diskGb', new ParseFloatPipe({ optional: true })) diskGb?: number,
   ) {
     return this.pricing.estimateHourlyCost({
       cpuPercent: cpuPercent && cpuPercent > 0 ? cpuPercent : 0,
-      ramMb: ramMb && ramMb > 0 ? ramMb : 0,
-      ioKbps: ioKbps && ioKbps > 0 ? ioKbps : 0,
-      transferGb: transferGb && transferGb > 0 ? transferGb : 0,
+      ramGb: ramGb && ramGb > 0 ? ramGb : 0,
+      diskGb: diskGb && diskGb > 0 ? diskGb : 0,
     });
   }
 }

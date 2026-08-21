@@ -1,0 +1,43 @@
+# =============================================================================
+# CYBER-4 — brzegowy rate-limit (L7 anty-DDoS) dla Caddy
+# -----------------------------------------------------------------------------
+# Wymaga obrazu Caddy z pluginem `rate_limit` (Dockerfile.caddy). To DRUGA
+# linia obrony (gruba, per-IP na brzegu); precyzyjny limit per-endpoint jest
+# w API (RateLimitGuard, store Redis). Cloudflare przed control-plane pozostaje
+# rekomendacją dla dużego floodu wolumetrycznego.
+#
+# JAK WŁĄCZYĆ:
+# 1) W docker-compose.prod.yml usługa `caddy`:  build: { context: ., dockerfile: Dockerfile.caddy }
+# 2) Wklej definicję `(edge_rate_limit)` na górę ops/Caddyfile (obok innych snippetów).
+# 3) W blokach domen dodaj `import edge_rate_limit` (np. w domenie API i paneli).
+# 4) rebuild + redeploy Caddy.
+# =============================================================================
+
+# Globalny order (plugin wymaga zadeklarowania kolejności dyrektywy):
+{
+    order rate_limit before basic_auth
+}
+
+# Snippet: limit brzegowy per IP. Wartości luźne — łapią flood, nie normalny ruch.
+(edge_rate_limit) {
+    rate_limit {
+        zone edge_per_ip {
+            key    {remote_host}
+            events 120
+            window 10s
+        }
+    }
+}
+
+# Ostrzejszy limit dla endpointów logowania/rejestracji (import w domenie API):
+(edge_rate_limit_auth) {
+    @authpaths path /auth/login /auth/register /auth/password-reset/* /auth/ksef-token
+    rate_limit {
+        zone edge_auth {
+            match  @authpaths
+            key    {remote_host}
+            events 20
+            window 1m
+        }
+    }
+}

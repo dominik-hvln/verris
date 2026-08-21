@@ -1,10 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { Prisma, SubscriptionStatus, WalletTxType } from '@verris/database';
+import { SubscriptionStatus, WalletTxType } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { WalletLedgerService } from '../billing/wallet-ledger.service';
+import { PromoService } from '../billing/promo.service';
 import { SubscriptionsService } from './subscriptions.service';
+import { EcoPointsService } from '../eco/eco-points.service';
 
 const HOURS = 60 * 60 * 1000;
 const DAYS = 24 * HOURS;
@@ -37,6 +39,8 @@ export class RenewalScheduler {
     private readonly walletLedger: WalletLedgerService,
     private readonly subs: SubscriptionsService,
     private readonly audit: AuditService,
+    private readonly promo: PromoService,
+    private readonly ecoPoints: EcoPointsService,
   ) {}
 
   @Cron(CronExpression.EVERY_HOUR, { name: 'subscriptions:renewal-cycle' })
@@ -79,11 +83,34 @@ export class RenewalScheduler {
 
     if (due.length === 0) return;
 
+    // Subs the customer scheduled to cancel at period end: once we reach the
+    // period boundary, finalize the cancellation instead of renewing/charging.
+    // (Stripe-recurring subs are finalized by the subscription.deleted webhook;
+    // here we only handle wallet/legacy rows so we never renew a sub the user
+    // already asked to cancel.)
+    const now2 = new Date();
+    const scheduledCancels = due.filter(
+      (sub) => sub.cancelAt != null && sub.cancelAt <= now2,
+    );
+    for (const sub of scheduledCancels) {
+      if (sub.paymentSource === 'STRIPE_CARD' && sub.stripeSubscriptionId) continue;
+      try {
+        await this.subs.finalizeScheduledCancellation(sub.id);
+        this.logger.log(`Finalized scheduled cancellation for sub=${sub.id}`);
+      } catch (err) {
+        this.logger.error(
+          `Failed to finalize scheduled cancellation for sub=${sub.id}: ${(err as Error).message}`,
+        );
+      }
+    }
+
     // Skip Stripe-managed recurring subs — Stripe handles their renewals via
     // `invoice.paid` webhook (C-7). We only debit the wallet for WALLET and
     // legacy STRIPE_CARD rows that have no Stripe Subscription attached yet
     // (those existed before C-7 landed).
     const eligible = due.filter((sub) => {
+      // Never renew a sub the customer scheduled to cancel.
+      if (sub.cancelAt != null && sub.cancelAt <= now2) return false;
       if (sub.paymentSource === 'STRIPE_CARD' && sub.stripeSubscriptionId) {
         this.logger.debug(
           `Skipping Stripe-managed sub=${sub.id} (stripeSubscriptionId=${sub.stripeSubscriptionId})`,
@@ -128,14 +155,32 @@ export class RenewalScheduler {
       );
       // Treat as already-paid; just extend period if not extended yet.
       await this.extendPeriod(sub.id, periodEnd, sub.interval);
+      void this.ecoPoints.safeAward(`wallet_renewal:${idempotencyKey}`, async () => {
+        await this.ecoPoints.awardSubscriptionRenewal(this.prisma, {
+          userId: sub.userId,
+          subscriptionId: sub.id,
+          referenceId: idempotencyKey,
+        });
+      });
       return;
     }
+
+    // BILL-1/BILL-2 — kwota odnowienia (z rabatem startowym, jeśli zostały okresy)
+    // liczona w jednym miejscu (PromoService), wspólnie z mailem przypominającym.
+    const useIntro = sub.introDiscountPeriodsLeft > 0 && sub.introDiscountPct > 0;
+    const renewalAmount = await this.promo.resolveNextRenewalAmount({
+      priceAmount: sub.priceAmount,
+      listPriceAmount: sub.listPriceAmount,
+      appliedPromoCodeId: sub.appliedPromoCodeId,
+      introDiscountPct: sub.introDiscountPct,
+      introDiscountPeriodsLeft: sub.introDiscountPeriodsLeft,
+    });
 
     try {
       await this.walletLedger.debit({
         userId: sub.userId,
         type: WalletTxType.CHARGE_SUBSCRIPTION,
-        amount: sub.priceAmount,
+        amount: renewalAmount,
         description: `Auto-renewal ${sub.plan.slug} (${sub.interval})`,
         idempotencyKey,
         subscriptionId: sub.id,
@@ -149,6 +194,23 @@ export class RenewalScheduler {
     }
 
     await this.extendPeriod(sub.id, periodEnd, sub.interval);
+
+    // Zużyj jeden okres rabatu startowego po udanej opłacie. Gdy spadnie do 0,
+    // kolejne odnowienia idą pełną ceną listową.
+    if (useIntro) {
+      await this.prisma.subscription.update({
+        where: { id: sub.id },
+        data: { introDiscountPeriodsLeft: { decrement: 1 } },
+      });
+    }
+
+    void this.ecoPoints.safeAward(`wallet_renewal:${idempotencyKey}`, async () => {
+      await this.ecoPoints.awardSubscriptionRenewal(this.prisma, {
+        userId: sub.userId,
+        subscriptionId: sub.id,
+        referenceId: idempotencyKey,
+      });
+    });
   }
 
   private async extendPeriod(
@@ -257,6 +319,3 @@ function addInterval(from: Date, interval: 'MONTH' | 'YEAR'): Date {
   else next.setUTCFullYear(next.getUTCFullYear() + 1);
   return next;
 }
-
-// suppress unused-import warning
-void Prisma;

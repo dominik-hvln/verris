@@ -19,15 +19,19 @@ import type {
   WalletTxType,
 } from '@verris/contracts';
 import { ApiError } from '@/lib/api';
+import { PanelPageHeader } from '@/components/panel';
 import { CREDIT_DISCLAIMER, CREDIT_RATE_INFO, formatCredits } from '@/lib/credits';
 import { getSavedPaymentMethods, getWalletAutoTopup, getWalletSummary } from './data';
 import { TopupCard } from './topup-card';
 import { BillingExtrasForms } from './billing-extras-forms';
+import { BillingWalletRefresh } from './billing-wallet-refresh';
 
 const txLabels: Record<WalletTxType, string> = {
   TOPUP: 'Doładowanie portfela',
   REFUND: 'Zwrot środków',
-  CHARGE_SUBSCRIPTION: 'Opłata subskrypcji',
+  CHARGE_SUBSCRIPTION: 'Opłata za usługę',
+  CHARGE_PLAN_UPGRADE: 'Upgrade planu (proration)',
+  CREDIT_PLAN_DOWNGRADE: 'Downgrade planu (proration)',
   CHARGE_AUTOSCALING: 'Autoskalowanie',
   CHARGE_USAGE: 'Wykorzystanie zasobów',
   ADJUSTMENT: 'Uznanie od Verris',
@@ -66,15 +70,12 @@ export default async function BillingPage({
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div>
-        <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-neutral-400">
-          Portfel i płatności
-        </h1>
-        <p className="text-neutral-400 mt-2 text-lg">
-          Doładuj portfel, śledź zużycie i zarządzaj rozliczeniami. {CREDIT_RATE_INFO}.
-        </p>
-      </div>
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <BillingWalletRefresh status={params.status} />
+      <PanelPageHeader
+        title="Portfel i płatności"
+        description={`Doładuj portfel, śledź zużycie i zarządzaj rozliczeniami. ${CREDIT_RATE_INFO}.`}
+      />
 
       {params.status === 'success' ? (
         <StatusBanner
@@ -175,7 +176,7 @@ export default async function BillingPage({
                 <div>
                   <p className="font-semibold text-white">Faktury</p>
                   <p className="text-sm text-neutral-400 mt-1">
-                    Pełna lista faktur z subskrypcji opłacanych kartą — pobierzesz je z hostowanej
+                    Pełna lista faktur z usług opłacanych kartą — pobierzesz je z hostowanej
                     strony Stripe.
                   </p>
                 </div>
@@ -282,7 +283,7 @@ function EmptyTransactions() {
       <Info className="h-10 w-10 mx-auto text-neutral-500" />
       <h3 className="mt-4 text-xl font-bold text-white">Brak transakcji</h3>
       <p className="mt-2 text-neutral-400">
-        Doładuj portfel, by uruchomić pierwszą subskrypcję lub odnowienia automatyczne.
+        Doładuj portfel, by uruchomić pierwszą usługę lub odnowienia automatyczne.
       </p>
     </div>
   );

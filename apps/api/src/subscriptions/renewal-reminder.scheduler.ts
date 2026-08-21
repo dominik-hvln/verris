@@ -5,6 +5,7 @@ import { Prisma, SubscriptionStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { MailerService } from '../mail/mailer.service';
+import { PromoService } from '../billing/promo.service';
 import {
   subscriptionRenewalReminderTemplate,
   type RenewalReminderWindow,
@@ -49,6 +50,7 @@ export class RenewalReminderScheduler {
     private readonly mailer: MailerService,
     private readonly audit: AuditService,
     private readonly config: ConfigService,
+    private readonly promo: PromoService,
   ) {}
 
   @Cron('15 * * * *', { name: 'subscriptions:renewal-reminders' })
@@ -123,10 +125,29 @@ export class RenewalReminderScheduler {
       const serviceName = sub.account?.domain ? `${planName} (${sub.account.domain})` : planName;
       const planSummary = `${planName}${sub.plan?.slug ? ` (${sub.plan.slug})` : ''}`;
       const currency = (sub.currency ?? 'PLN').toUpperCase() as 'PLN' | 'EUR' | 'USD';
-      const amount =
-        sub.priceAmount instanceof Prisma.Decimal
-          ? sub.priceAmount.toFixed(2)
-          : Number(sub.priceAmount).toFixed(2);
+
+      // BILL-2 — kwota odnowienia liczona tak samo jak realne obciążenie
+      // (z uwzględnieniem rabatu startowego), żeby przypomnienie nie kłamało
+      // po wejściu BILL-1. Wcześniej mail pokazywał `priceAmount` (cena z
+      // rabatem 1. okresu), a portfel obciążany był pełną kwotą.
+      const renewalDecimal = await this.promo.resolveNextRenewalAmount({
+        priceAmount: sub.priceAmount,
+        listPriceAmount: sub.listPriceAmount,
+        appliedPromoCodeId: sub.appliedPromoCodeId,
+        introDiscountPct: sub.introDiscountPct,
+        introDiscountPeriodsLeft: sub.introDiscountPeriodsLeft,
+      });
+      const amount = renewalDecimal.toFixed(2);
+
+      // BILL-2 — niedobór środków w portfelu (tylko płatność z portfela).
+      const payFromWallet = sub.paymentSource === 'WALLET';
+      const shortfallDecimal = payFromWallet
+        ? renewalDecimal.minus(sub.user.walletBalance)
+        : new Prisma.Decimal(0);
+      const shortfallAmount =
+        payFromWallet && shortfallDecimal.greaterThan(0)
+          ? shortfallDecimal.toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP).toFixed(2)
+          : null;
 
       const message = subscriptionRenewalReminderTemplate({
         to: sub.user.email,
@@ -137,13 +158,14 @@ export class RenewalReminderScheduler {
         renewalDate: sub.currentPeriodEnd ?? new Date(),
         window: spec.window,
         walletBalance: sub.user.walletBalance.toFixed(2),
-        payFromWallet: sub.paymentSource === 'WALLET',
+        payFromWallet,
         planSummary,
         panelUrl,
+        shortfallAmount,
       });
 
       try {
-        await this.mailer.send(message);
+        await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'BILLING' });
         await this.audit.record({
           action: spec.auditAction,
           userId: sub.userId,
@@ -153,6 +175,7 @@ export class RenewalReminderScheduler {
             window: spec.window,
             amount,
             currency,
+            shortfallAmount,
           },
         });
         sent += 1;

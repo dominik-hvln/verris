@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Box, Plus, AlertTriangle, CheckCircle2, EyeOff, EyeIcon } from "lucide-react";
+import { Box, Plus, AlertTriangle, CheckCircle2, EyeOff, EyeIcon, Mail } from "lucide-react";
 import { listAdminPlans, type AdminPlanRow } from "./data";
 
 export const dynamic = "force-dynamic";
@@ -156,13 +156,22 @@ export default async function AdminPlansPage() {
             i powiązanie ze Stripe Subscription.
           </p>
         </div>
-        <Link
-          href="/plans/new"
-          className="inline-flex items-center gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/15 px-4 py-2 text-sm font-medium text-indigo-200 hover:bg-indigo-500/25"
-        >
-          <Plus className="h-4 w-4" />
-          Nowy plan
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/plans/new"
+            className="inline-flex items-center gap-2 rounded-lg border border-indigo-500/30 bg-indigo-500/15 px-4 py-2 text-sm font-medium text-indigo-200 hover:bg-indigo-500/25"
+          >
+            <Plus className="h-4 w-4" />
+            Nowy plan hostingu
+          </Link>
+          <Link
+            href="/plans/new-email"
+            className="inline-flex items-center gap-2 rounded-lg border border-sky-500/30 bg-sky-500/15 px-4 py-2 text-sm font-medium text-sky-200 hover:bg-sky-500/25"
+          >
+            <Mail className="h-4 w-4" />
+            Nowy plan poczty
+          </Link>
+        </div>
       </header>
 
       <div className="relative rounded-2xl p-[1px] overflow-hidden">

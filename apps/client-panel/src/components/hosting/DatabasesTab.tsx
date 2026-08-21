@@ -1,37 +1,83 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Database, Loader2, RefreshCw, AlertCircle } from 'lucide-react';
+import { Database, Loader2, RefreshCw, AlertCircle, ExternalLink, Plus, Trash2, KeyRound } from 'lucide-react';
+import { toast } from 'sonner';
 import { Button } from '@verris/ui';
 import {
+  createHostingDatabaseAction,
+  deleteHostingDatabaseAction,
   fetchHostingDatabasesAction,
-  fetchHostingDaLinksAction,
 } from '@/app/dashboard/services/[id]/hosting-mysql-links-actions';
+import { HostingTabShell } from '@/components/hosting/HostingTabShell';
+import DbAccessHosts from '@/components/hosting/DbAccessHosts';
+import DbUsers from '@/components/hosting/DbUsers';
+import { createHostingSsoUrlAction } from '@/app/dashboard/services/[id]/hosting-sso-actions';
+import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
+import { useHostingLinks } from '@/components/hosting/hosting-links-context';
 
 interface Props {
   serviceId: string;
 }
 
+function genPassword(len = 18): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*';
+  const arr = new Uint32Array(len);
+  crypto.getRandomValues(arr);
+  return Array.from(arr, (n) => chars[n % chars.length]).join('');
+}
+
 export default function DatabasesTab({ serviceId }: Props) {
+  const { links } = useHostingLinks();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [databases, setDatabases] = useState<{ name: string }[]>([]);
-  const [daUsername, setDaUsername] = useState<string | null>(null);
-  const [databasesDaUrl, setDatabasesDaUrl] = useState<string | null>(null);
+  const [engine, setEngine] = useState<{ name: string; version: string } | null>(null);
+
+  // create form
+  const [name, setName] = useState('');
+  const [user, setUser] = useState('');
+  const [password, setPassword] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
+  const [pmaOpening, setPmaOpening] = useState(false);
+
+  /**
+   * SPRINT-1c — phpMyAdmin bez przepisywania haseł: jednorazowy URL SSO.
+   * Okno otwieramy PRZED awaitem (polityka popupów), a potem podmieniamy adres;
+   * przy błędzie wracamy do zwykłego linku do panelu hostingu.
+   */
+  const openPhpMyAdmin = async () => {
+    if (pmaOpening) return;
+    setPmaOpening(true);
+    const win = window.open('about:blank', '_blank', 'noopener');
+    const res = await createHostingSsoUrlAction(serviceId, 'phpmyadmin');
+    setPmaOpening(false);
+    if (res.ok) {
+      if (win) win.location.href = res.url;
+      else window.open(res.url, '_blank');
+      return;
+    }
+    if (win) win.close();
+    if (links.databasesUrl) {
+      toast.info('Auto-logowanie niedostępne — otwieram panel baz danych', {
+        description: daErrorMessage(res.error),
+      });
+      window.open(links.databasesUrl, '_blank');
+    } else {
+      toast.error('Nie udało się otworzyć phpMyAdmin', { description: daErrorMessage(res.error) });
+    }
+  };
 
   const load = useCallback(async () => {
     setError(null);
     try {
-      const [dbRes, linksRes] = await Promise.all([
-        fetchHostingDatabasesAction(serviceId),
-        fetchHostingDaLinksAction(serviceId).catch(() => null),
-      ]);
+      const dbRes = await fetchHostingDatabasesAction(serviceId);
       setDatabases(dbRes.databases);
-      setDaUsername(dbRes.daUsername);
+      setEngine(dbRes.engine);
       setFetchError(dbRes.fetchError);
-      setDatabasesDaUrl(linksRes?.databasesUrl ?? null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Nie udało się pobrać listy baz.');
       setDatabases([]);
@@ -45,128 +91,223 @@ export default function DatabasesTab({ serviceId }: Props) {
     void load();
   }, [load]);
 
+  const onCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreating(true);
+    const res = await createHostingDatabaseAction(serviceId, {
+      name: name.trim(),
+      user: user.trim(),
+      password,
+    });
+    setCreating(false);
+    if (!res.ok) {
+      toast.error('Nie udało się utworzyć bazy', { description: daErrorMessage(res.error) });
+      return;
+    }
+    toast.success('Baza utworzona', { description: `${res.database} (użytkownik ${res.username})` });
+    setName('');
+    setUser('');
+    setPassword('');
+    void load();
+  };
+
+  const onDelete = async (full: string) => {
+    if (!window.confirm(`Usunąć bazę „${full}"? Tej operacji nie można cofnąć.`)) return;
+    setDeleting(full);
+    const res = await deleteHostingDatabaseAction(serviceId, full);
+    setDeleting(null);
+    if (!res.ok) {
+      toast.error('Nie udało się usunąć bazy', { description: daErrorMessage(res.error) });
+      return;
+    }
+    toast.success('Baza usunięta');
+    void load();
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center gap-3 py-24 text-neutral-400">
-        <Loader2 className="h-6 w-6 animate-spin text-cyan-400" />
-        Wczytywanie baz MySQL z DirectAdmin…
+      <div className="flex items-center justify-center gap-2 py-16 text-sm text-neutral-400">
+        <Loader2 className="h-5 w-5 animate-spin" />
+        Wczytywanie baz…
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="relative rounded-[32px] p-px overflow-hidden group">
-        <div className="relative rounded-[calc(32px-1px)] bg-[#0a0a0a] p-6 lg:p-8 flex flex-col z-10 transition-colors duration-300 border border-white/10">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4 border-b border-white/5 pb-6">
-            <div className="flex items-center gap-4">
-              <div className="p-3 rounded-2xl bg-white/5 text-white border border-white/10 shadow-inner">
-                <Database className="h-6 w-6" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-white tracking-wide">Twoje bazy MySQL</h2>
-                <p className="text-sm text-neutral-400 mt-1 max-w-xl">
-                  Lista synchronizowana z{' '}
-                  <span className="font-mono text-neutral-200">
-                    CMD_API_DATABASES
-                  </span>{' '}
-                  (
-                  {daUsername ?? '—'}
-                  ). Zarządzanie i phpMyAdmin w panelu DA.
-                </p>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2 justify-end">
-              {databasesDaUrl ? (
-                <Button
-                  asChild
-                  variant="outline"
-                  size="sm"
-                  className="border-white/15 bg-white/[0.04] text-white hover:bg-white/10"
-                >
-                  <a href={databasesDaUrl} target="_blank" rel="noopener noreferrer">
-                    Otwórz bazy w DirectAdmin
-                  </a>
-                </Button>
-              ) : null}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={refreshing}
-                onClick={() => {
-                  setRefreshing(true);
-                  void load();
-                }}
-                className="gap-2 border-white/15 bg-white/[0.04] text-white hover:bg-white/10"
-              >
-                {refreshing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4" />
-                )}
-                Odśwież
-              </Button>
-            </div>
-          </div>
-
-          {error ? (
-            <div className="mb-4 flex items-start gap-2 rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-3 text-sm text-rose-100">
-              <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-              {error}
-            </div>
+    <HostingTabShell
+      title="Bazy MySQL"
+      description="Twórz, przeglądaj i usuwaj bazy danych — bez wychodzenia z panelu."
+      icon={<Database className="h-4 w-4" />}
+      help={{
+        blurb:
+          'Nie musisz znać się na bazach. Wpisz nazwę, a my utworzymy bazę i użytkownika z prefiksem konta. Dane do podłączenia aplikacji pokażemy od razu.',
+        kbQuery: 'baza danych MySQL',
+      }}
+      actions={
+        <>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={pmaOpening}
+            onClick={() => void openPhpMyAdmin()}
+            className="h-8 gap-1.5 border-white/15 bg-white/[0.04] text-white hover:bg-white/10 text-xs"
+            title="Otwiera phpMyAdmin bez logowania (jednorazowy link)"
+          >
+            {pmaOpening ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            phpMyAdmin
+            <ExternalLink className="h-3 w-3 opacity-70" />
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={refreshing}
+            onClick={() => {
+              setRefreshing(true);
+              void load();
+            }}
+            className="h-8 gap-1.5 border-white/15 bg-white/[0.04] text-white hover:bg-white/10 text-xs"
+          >
+            {refreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
+            Odśwież
+          </Button>
+        </>
+      }
+    >
+      {/* Create form */}
+      <form
+        onSubmit={onCreate}
+        className="mb-5 rounded-xl border border-white/10 bg-white/[0.03] p-4"
+      >
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <p className="text-sm font-semibold text-white">Nowa baza danych</p>
+          {engine ? (
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[11px] text-neutral-300"
+              title="Silnik bazy danych na Twoim serwerze"
+            >
+              <Database className="h-3 w-3 text-emerald-400" />
+              Silnik: <span className="font-mono text-white">{engine.name} {engine.version}</span>
+            </span>
           ) : null}
-
-          {fetchError ? (
-            <div className="mb-4 flex items-start gap-2 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-              <AlertCircle className="h-5 w-5 shrink-0 mt-0.5" />
-              <span>Odczyt z DirectAdmin: {fetchError}</span>
-            </div>
-          ) : null}
-
-          <div className="rounded-xl border border-white/5 bg-[#050505] overflow-x-auto shadow-inner">
-            <table className="w-full text-sm">
-              <thead className="bg-white/5 border-b border-white/5 text-left">
-                <tr>
-                  <th className="py-4 px-4 text-neutral-300 font-semibold">Nazwa bazy</th>
-                  <th className="px-4 text-right text-neutral-300 font-semibold">/phpMyAdmin</th>
-                </tr>
-              </thead>
-              <tbody>
-                {databases.length === 0 && !fetchError ? (
-                  <tr>
-                    <td colSpan={2} className="px-4 py-10 text-center text-neutral-500">
-                      Brak utworzonych baz lub konto nie jest jeszcze provisionowane.
-                    </td>
-                  </tr>
-                ) : null}
-                {databases.map((db) => (
-                  <tr
-                    key={db.name}
-                    className="border-b border-white/5 hover:bg-white/5 group/row transition-colors"
-                  >
-                    <td className="font-mono py-4 px-4 text-white">{db.name}</td>
-                    <td className="px-4 text-right">
-                      {databasesDaUrl ? (
-                        <a
-                          href={databasesDaUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center justify-center h-8 px-3 whitespace-nowrap bg-[#121212] hover:bg-white/10 text-neutral-300 hover:text-white font-medium text-xs rounded-lg transition-all border border-white/10"
-                        >
-                          Zarządzaj w DA →
-                        </a>
-                      ) : (
-                        <span className="text-neutral-600 text-xs">—</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         </div>
-      </div>
-    </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <label className="space-y-1">
+            <span className="text-xs text-neutral-400">Nazwa bazy</span>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="np. sklep"
+              maxLength={16}
+              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-white/30"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="text-xs text-neutral-400">Użytkownik</span>
+            <input
+              value={user}
+              onChange={(e) => setUser(e.target.value)}
+              placeholder="np. sklep_usr"
+              maxLength={16}
+              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-white/30"
+            />
+          </label>
+          <label className="space-y-1">
+            <span className="text-xs text-neutral-400">Hasło</span>
+            <div className="flex gap-1.5">
+              <input
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="min. 8 znaków"
+                className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-sm text-white outline-none focus:border-white/30"
+              />
+              <button
+                type="button"
+                title="Wygeneruj hasło"
+                onClick={() => setPassword(genPassword())}
+                className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-2.5 text-neutral-300 hover:bg-white/10"
+              >
+                <KeyRound className="h-4 w-4" />
+              </button>
+            </div>
+          </label>
+        </div>
+        <p className="mt-2 text-xs text-neutral-500">
+          DirectAdmin doda prefiks konta do nazwy bazy i użytkownika (np. <span className="font-mono">user_sklep</span>).
+        </p>
+        <div className="mt-3 flex justify-end">
+          <Button
+            type="submit"
+            size="sm"
+            disabled={creating || !name.trim() || !user.trim() || password.length < 8}
+            className="h-8 gap-1.5 bg-white text-black hover:bg-neutral-200 text-xs"
+          >
+            {creating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+            Utwórz bazę
+          </Button>
+        </div>
+      </form>
+
+      {error ? (
+        <div className="mb-3 flex items-start gap-2 rounded-lg border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-xs text-rose-100">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {error}
+        </div>
+      ) : null}
+
+      {fetchError ? (
+        <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          {hostingFetchErrorMessage(fetchError)}
+        </div>
+      ) : null}
+
+      {databases.length === 0 && !fetchError ? (
+        <p className="rounded-xl border border-white/5 bg-[#050505] px-3 py-8 text-center text-xs text-neutral-500">
+          Brak baz — utwórz pierwszą powyżej.
+        </p>
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-white/5 bg-[#050505]">
+          {databases.map((db) => (
+            <div
+              key={db.name}
+              className="border-b border-white/5 px-4 py-2.5 last:border-0"
+            >
+              <div className="flex items-center justify-between gap-3">
+              <span className="min-w-0 flex-1 break-all font-mono text-sm text-white" title={db.name}>
+                {db.name}
+              </span>
+              <div className="flex shrink-0 items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => void openPhpMyAdmin()}
+                  disabled={pmaOpening}
+                  className="text-xs text-neutral-400 hover:text-white disabled:opacity-50"
+                >
+                  phpMyAdmin →
+                </button>
+                <button
+                  type="button"
+                  title="Usuń bazę"
+                  disabled={deleting === db.name}
+                  onClick={() => void onDelete(db.name)}
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-white/5 text-rose-300 hover:bg-rose-500/10 disabled:opacity-50"
+                >
+                  {deleting === db.name ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
+              </div>
+              <DbUsers serviceId={serviceId} db={db.name} />
+              <DbAccessHosts serviceId={serviceId} db={db.name} />
+            </div>
+          ))}
+        </div>
+      )}
+    </HostingTabShell>
   );
 }

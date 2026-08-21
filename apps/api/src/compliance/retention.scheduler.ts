@@ -40,13 +40,15 @@ export class RetentionScheduler {
   async run(): Promise<void> {
     const now = new Date();
 
-    const [loginPurged, auditAnonymized, exportsExpired] = await Promise.all([
-      this.purgeLoginAttempts(now),
-      this.anonymizeOldAuditLogIps(now),
-      this.dataExport.expireDueExports(),
-    ]);
+    const [loginPurged, auditAnonymized, exportsExpired, webhookEventsPurged] =
+      await Promise.all([
+        this.purgeLoginAttempts(now),
+        this.anonymizeOldAuditLogIps(now),
+        this.dataExport.expireDueExports(),
+        this.purgeStripeWebhookEvents(now),
+      ]);
 
-    if (loginPurged + auditAnonymized + exportsExpired > 0) {
+    if (loginPurged + auditAnonymized + exportsExpired + webhookEventsPurged > 0) {
       await this.audit.record({
         action: RodoActions.RETENTION_PURGE,
         details: {
@@ -54,14 +56,27 @@ export class RetentionScheduler {
           loginAttemptsPurged: loginPurged,
           auditLogIpsAnonymized: auditAnonymized,
           exportsExpired,
+          stripeWebhookEventsPurged: webhookEventsPurged,
         },
       });
       this.logger.log(
-        `Retention sweep: login=${loginPurged} auditIp=${auditAnonymized} exports=${exportsExpired}`,
+        `Retention sweep: login=${loginPurged} auditIp=${auditAnonymized} exports=${exportsExpired} stripeEvents=${webhookEventsPurged}`,
       );
     } else {
       this.logger.debug('Retention sweep: nothing to do');
     }
+  }
+
+  /**
+   * Audit F-16: webhook dedupe rows only need to outlive Stripe's retry
+   * window (72 h) by a wide margin — 90 days keeps the table tiny.
+   */
+  private async purgeStripeWebhookEvents(now: Date): Promise<number> {
+    const cutoff = new Date(now.getTime() - 90 * DAY_MS);
+    const result = await this.prisma.stripeWebhookEvent.deleteMany({
+      where: { createdAt: { lt: cutoff } },
+    });
+    return result.count;
   }
 
   // ---------------------------------------------------------------------------

@@ -13,6 +13,8 @@ import { Role, SubscriptionStatus } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard';
+import { StaffPerm } from '../common/decorators/staff-permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -20,11 +22,19 @@ import {
   SuspendReason,
 } from './subscriptions.service';
 import { MigrationOrchestratorService } from './migration-orchestrator.service';
+import { PlanChangeService } from './plan-change.service';
+import { HostingRestoreService } from './hosting-restore.service';
+import { DiagnosticsService } from './diagnostics.service';
+import { HostingRestoreDto } from './dto/hosting-restore.dto';
 import {
   SuspendSubscriptionDto,
   UnsuspendSubscriptionDto,
 } from './dto/subscription.dto';
 import { RequestInternalMigrationDto } from './dto/migration.dto';
+import {
+  AdminChangePlanDto,
+  AdminPreviewPlanChangeDto,
+} from './dto/admin-plan-change.dto';
 
 const ALLOWED_REASONS: SuspendReason[] = [
   'PAYMENT_FAILED',
@@ -35,14 +45,49 @@ const ALLOWED_REASONS: SuspendReason[] = [
 ];
 
 @Controller('admin/subscriptions')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, StaffPermissionsGuard)
 @Roles(Role.ADMIN)
+@StaffPerm('SUBSCRIPTIONS_MANAGE')
 export class SubscriptionsAdminController {
   constructor(
     private readonly subs: SubscriptionsService,
     private readonly prisma: PrismaService,
     private readonly migrations: MigrationOrchestratorService,
+    private readonly planChange: PlanChangeService,
+    private readonly hostingRestore: HostingRestoreService,
+    private readonly diagnostics: DiagnosticsService,
   ) {}
+
+  /** ADM-2 — Centrum diagnostyki: jedno wywołanie składa pełen obraz usługi. */
+  @Get(':id/diagnostics')
+  @Roles(Role.ADMIN, Role.STAFF)
+  runDiagnostics(@Param('id') id: string) {
+    return this.diagnostics.forSubscription(id);
+  }
+
+  /** Admin-initiated restore (no domain confirmation required; full audit trail). */
+  @Post(':id/hosting-restore')
+  @Roles(Role.ADMIN, Role.STAFF)
+  runHostingRestore(
+    @Param('id') id: string,
+    @Body() dto: HostingRestoreDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    return this.hostingRestore.enqueue(id, actor.userId, {
+      backupId: dto.backupId,
+      scopeFiles: dto.scopeFiles,
+      scopeDatabases: dto.scopeDatabases,
+      scopeEmail: dto.scopeEmail,
+      safetyBackup: dto.safetyBackup,
+      isAdmin: true,
+    });
+  }
+
+  @Get(':id/hosting-restore/status')
+  @Roles(Role.ADMIN, Role.STAFF)
+  hostingRestoreStatus(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
+    return this.hostingRestore.latestForSubscription(id, actor.userId, true);
+  }
 
   @Get()
   @Roles(Role.ADMIN, Role.STAFF)
@@ -81,6 +126,67 @@ export class SubscriptionsAdminController {
         events: { orderBy: { createdAt: 'desc' }, take: 50 },
       },
     });
+  }
+
+  /** Per-service resource usage drill-down for ops (CPU/RAM/disk/IO buckets + effective LVE limits). */
+  @Get(':id/usage')
+  @Roles(Role.ADMIN, Role.STAFF)
+  async usage(@Param('id') id: string, @Query('window') window = '24h') {
+    const hours = window === '7d' ? 24 * 7 : 24;
+    const since = new Date(Date.now() - hours * 60 * 60 * 1000);
+    const [rowsDesc, account] = await Promise.all([
+      this.prisma.usageMetric.findMany({
+        where: { subscriptionId: id, bucketStart: { gte: since } },
+        orderBy: { bucketStart: 'desc' },
+        take: window === '7d' ? 500 : 1440,
+      }),
+      this.prisma.account.findUnique({
+        where: { subscriptionId: id },
+        select: {
+          daUsername: true,
+          domain: true,
+          status: true,
+          serverId: true,
+          cpuLimit: true,
+          ramLimitMb: true,
+          diskLimitMb: true,
+          ioLimitKbps: true,
+          iopsLimit: true,
+          entryProcesses: true,
+          nprocLimit: true,
+          scaledCpu: true,
+          scaledRamMb: true,
+          scaledDiskMb: true,
+        },
+      }),
+    ]);
+    const rows = rowsDesc.reverse();
+    const latest = rows.at(-1) ?? null;
+    return {
+      window,
+      account,
+      latest: latest
+        ? {
+            bucketStart: latest.bucketStart.toISOString(),
+            cpuUsageAvg: latest.cpuUsageAvg,
+            cpuUsageMax: latest.cpuUsageMax,
+            memUsageAvgMb: latest.memUsageAvgMb,
+            memUsageMaxMb: latest.memUsageMaxMb,
+            diskUsageMb: latest.diskUsageMb,
+            ioUsageKbps: latest.ioUsageKbps,
+          }
+        : null,
+      rows: rows.map((row) => ({
+        bucketStart: row.bucketStart.toISOString(),
+        bucketDurationS: row.bucketDurationS,
+        cpuUsageAvg: row.cpuUsageAvg,
+        cpuUsageMax: row.cpuUsageMax,
+        memUsageAvgMb: row.memUsageAvgMb,
+        memUsageMaxMb: row.memUsageMaxMb,
+        diskUsageMb: row.diskUsageMb,
+        ioUsageKbps: row.ioUsageKbps,
+      })),
+    };
   }
 
   @Post(':id/suspend')
@@ -132,5 +238,42 @@ export class SubscriptionsAdminController {
   @Roles(Role.ADMIN, Role.STAFF)
   migrationTimeline(@Param('id') id: string) {
     return this.migrations.listMigrationTimelineForAdmin(id);
+  }
+
+  @Get(':id/plan/eligible-plans')
+  @Roles(Role.ADMIN, Role.STAFF)
+  listEligiblePlans(@Param('id') id: string) {
+    return this.planChange.listEligiblePlansForAdmin(id);
+  }
+
+  @Post(':id/plan/preview')
+  @HttpCode(200)
+  @Roles(Role.ADMIN, Role.STAFF)
+  previewPlanChange(@Param('id') id: string, @Body() dto: AdminPreviewPlanChangeDto) {
+    return this.planChange.previewForAdmin(id, dto.targetPlanId, dto.targetInterval);
+  }
+
+  @Post(':id/plan')
+  @HttpCode(200)
+  @Roles(Role.ADMIN, Role.STAFF)
+  async changePlan(
+    @Param('id') id: string,
+    @Body() dto: AdminChangePlanDto,
+    @CurrentUser() actor: { userId: string },
+  ) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: actor.userId },
+      select: { role: true },
+    });
+    if (!user) throw new BadRequestException('Actor not found');
+    return this.planChange.changeForAdmin(
+      actor.userId,
+      user.role,
+      id,
+      dto.targetPlanId,
+      dto.reason,
+      dto.skipBilling ?? false,
+      dto.targetInterval,
+    );
   }
 }

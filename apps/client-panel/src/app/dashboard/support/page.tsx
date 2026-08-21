@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { SpinBorder } from "@/components/spin-border";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 import {
@@ -15,6 +16,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { fetchTickets, type TicketSummary } from "./actions";
+import { PageHeaderRow } from "@/components/panel";
 
 export default function SupportPage() {
   const [tickets, setTickets] = useState<TicketSummary[]>([]);
@@ -29,24 +31,22 @@ export default function SupportPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-neutral-400">Pomoc techniczna</h1>
-          <p className="text-lg text-neutral-400 mt-2">
-            Zgłoś problem lub skontaktuj się z naszym zespołem wsparcia.
-          </p>
-        </div>
-        <Link
-          href="/dashboard/support/new"
-          className="inline-flex items-center justify-center gap-2 rounded-[16px] bg-white px-6 py-3 text-sm font-bold text-black hover:bg-neutral-200 transition-all border border-transparent"
-        >
-          <Plus className="h-5 w-5" />
-          Nowe Zgłoszenie
-        </Link>
-      </div>
+      <PageHeaderRow
+        title="Pomoc techniczna"
+        description="Zgłoś problem lub skontaktuj się z naszym zespołem wsparcia."
+        actions={
+          <Link
+            href="/dashboard/support/new"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-bold text-black transition-all hover:bg-neutral-200 sm:w-auto"
+          >
+            <Plus className="h-5 w-5" />
+            Nowe zgłoszenie
+          </Link>
+        }
+      />
 
       <div className="relative rounded-[24px] p-px overflow-hidden shadow-2xl group transition-transform duration-300 hover:-translate-y-1">
-        <div className="absolute -inset-full animate-[spin_1.5s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_70%,#ffffff_100%)] opacity-20 pointer-events-none transition-opacity duration-[1500ms] pointer-events-none" />
+        <SpinBorder variant="white" className="opacity-20 transition-opacity duration-[1500ms]" />
         <div className="relative h-full w-full bg-[#0a0a0a] group-hover:bg-[#121212] transition-colors duration-300 rounded-[calc(24px-1px)] overflow-hidden">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24">
@@ -124,6 +124,14 @@ function StatusBadge({ status }: { status: string }) {
       <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white border border-white/20 uppercase tracking-wider">
         <Clock className="h-3 w-3" />
         W toku
+      </span>
+    );
+  }
+  if (status === "WAITING_CUSTOMER") {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-200 border border-amber-400/30 uppercase tracking-wider">
+        <Clock className="h-3 w-3" />
+        Czekamy na Ciebie
       </span>
     );
   }

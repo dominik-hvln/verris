@@ -1,0 +1,40 @@
+# Allowlist dla security-control-plane-egress.sh --strict
+# Po edycji: sudo bash ops/scripts/security-sync-cp-egress-hosts.sh && sudo bash ops/scripts/security-control-plane-egress.sh --strict
+#
+# --- Git / deploy ---
+github.com
+api.github.com
+codeload.github.com
+raw.githubusercontent.com
+# --- Docker registry (deploy) ---
+registry-1.docker.io
+auth.docker.io
+production.cloudflare.docker.com
+index.docker.io
+# --- Stripe ---
+api.stripe.com
+hooks.stripe.com
+files.stripe.com
+m.stripe.com
+# --- Rejestrator / DNS / FX ---
+api.openprovider.eu
+eu.api.ovh.com
+api.nbp.pl
+# --- TLS (certbot timer) ---
+acme-v02.api.letsencrypt.org
+acme-staging-v02.api.letsencrypt.org
+# --- AI (opcjonalnie w .env.prod) ---
+api.openai.com
+# --- Rspamd SURBL updates (host) ---
+sa-update.surbl.org
+# --- Węzły compute ---
+node-pl-01.verris.pl
+# --- Domeny Verris (health / monitoring / TLS) ---
+verris.pl
+panel.verris.pl
+api.verris.pl
+staff.verris.pl
+admin.verris.pl
+status.verris.pl
+grafana.verris.pl
+mail.verris.pl

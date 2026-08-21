@@ -4,9 +4,6 @@ import { redirect } from "next/navigation";
 import { StaffApiError, staffApi } from "@/lib/staff-api";
 import { staffRunDnsTlsDiagnostic, type StaffDnsTlsResult } from "@/lib/crm-profile-data";
 
-const CLIENT_PANEL_URL =
-  process.env.CLIENT_PANEL_URL ?? "http://localhost:3001";
-
 interface ImpersonateResponse {
   access_token: string;
   expiresIn: string;
@@ -31,11 +28,18 @@ export async function staffImpersonateUserAction(
     return { ok: false, error: "Nie udało się zainicjować impersonacji." };
   }
 
-  const url = new URL(`${CLIENT_PANEL_URL}/impersonate`);
+  const url = new URL("/impersonate", panelUrl("CLIENT_PANEL_URL", 3001));
   url.searchParams.set("token", res.access_token);
   url.searchParams.set("returnTo", "/dashboard");
   url.searchParams.set("operator", "staff");
   redirect(url.toString());
+}
+
+function panelUrl(envName: string, devPort: number): string {
+  const value = process.env[envName]?.trim();
+  if (value) return value.replace(/\/$/, "");
+  if (process.env.NODE_ENV !== "production") return `http://${"localhost"}:${devPort}`;
+  throw new Error(`${envName} is required for production redirects.`);
 }
 
 export async function staffRunDnsTlsDiagnosticAction(

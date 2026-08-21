@@ -1,9 +1,19 @@
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { EmailCategory, EmailStatus, Prisma } from '@verris/database';
+import {
+  ControlPlaneSystemAddressRole,
+  EmailCategory,
+  EmailStatus,
+  Prisma,
+} from '@verris/database';
 import { MailMessage, MailerProvider } from './mailer.interface';
 import { LogMailerProvider } from './log-mailer.provider';
-import { SmtpMailerProvider } from './smtp-mailer.provider';
+import {
+  buildSmtpMailerProvider,
+  isLocalSmtpHost,
+  resolveSmtpIdentity,
+} from './mail-smtp.factory';
+import type { MailSmtpSecure } from './mail-settings.keys';
 import { PrismaService } from '../prisma/prisma.service';
 
 export const MAILER_PROVIDER = Symbol('MAILER_PROVIDER');
@@ -75,7 +85,8 @@ export class MailerService {
       };
     }
 
-    const category: EmailCategory = (message.category ?? 'TRANSACTIONAL') as EmailCategory;
+    const category: EmailCategory =
+      (message.category as EmailCategory | undefined) ?? EmailCategory.TRANSACTIONAL;
 
     // ---- 1. Opt-out / anonymization gate ------------------------------------
     const gate = await this.evaluateGate(message, category);
@@ -90,15 +101,17 @@ export class MailerService {
       };
     }
 
+    const withFrom = await this.applyFromOverrides(message);
+
     // ---- 2. List-Unsubscribe injection (MARKETING only) --------------------
-    const enriched = await this.enrichForCategory(message, category);
+    const enriched = await this.enrichForCategory(withFrom, category);
 
     // ---- 3. Pre-write EmailLog (status=QUEUED) -----------------------------
     const log = await this.persistQueued(enriched, category);
 
-    // ---- 4. Provider call --------------------------------------------------
+    // ---- 4. Provider call (z retry na przejściowe błędy) -------------------
     try {
-      const result = await this.provider.send(enriched);
+      const result = await this.sendWithRetry(enriched);
       await this.markSent(log?.id ?? null, result.providerId, result.messageId);
       return {
         providerId: result.providerId,
@@ -122,6 +135,53 @@ export class MailerService {
     }
   }
 
+  /**
+   * Provider.send z ponownymi próbami dla PRZEJŚCIOWYCH błędów (timeout,
+   * ECONNRESET, chwilowe 4xx SMTP typu „try again later"). Trwałe odrzucenia
+   * (5xx: zła autoryzacja 535, odrzucony adres) nie są retry'owane — nie ma
+   * sensu i grozi to duplikatami. Backoff: 1s, 3s (max 3 próby łącznie).
+   */
+  private async sendWithRetry(
+    message: MailMessage,
+  ): Promise<{ providerId: string; messageId: string | null }> {
+    const delays = [1000, 3000];
+    let lastErr: unknown;
+    for (let attempt = 0; attempt <= delays.length; attempt++) {
+      try {
+        return await this.provider.send(message);
+      } catch (err) {
+        lastErr = err;
+        if (attempt === delays.length || !this.isTransientError(err)) throw err;
+        const wait = delays[attempt];
+        this.logger.warn(
+          `Mailer transient error (próba ${attempt + 1}) do ${message.to}: ` +
+            `${err instanceof Error ? err.message : String(err)} — ponawiam za ${wait}ms`,
+        );
+        await new Promise((r) => setTimeout(r, wait));
+      }
+    }
+    throw lastErr;
+  }
+
+  /** Heurystyka: czy błąd SMTP jest przejściowy (wart ponowienia). */
+  private isTransientError(err: unknown): boolean {
+    const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+    // Trwałe — NIE ponawiamy.
+    if (/\b5\d\d\b/.test(msg)) return false; // dowolny kod 5xx
+    if (msg.includes('auth') || msg.includes('535')) return false;
+    // Przejściowe — ponawiamy.
+    return (
+      msg.includes('etimedout') ||
+      msg.includes('econnreset') ||
+      msg.includes('econnrefused') ||
+      msg.includes('timeout') ||
+      msg.includes('socket') ||
+      msg.includes('network') ||
+      /\b4\d\d\b/.test(msg) || // chwilowe 4xx SMTP
+      msg.includes('try again')
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // Gate & enrichment
   // ---------------------------------------------------------------------------
@@ -133,6 +193,13 @@ export class MailerService {
     | { allowed: true }
     | { allowed: false; reason: 'OPTED_OUT' | 'ANONYMIZED' | 'NO_RECIPIENT' }
   > {
+    // EMM — odbiorca zewnętrzny: zgoda zarządzana przez nadawcę (double opt-in
+    // + status kontaktu), więc nie stosujemy platformowego user-gate. Nie
+    // ujawniamy też, czy adres jest użytkownikiem Verris.
+    if (message.externalRecipient) {
+      return { allowed: true };
+    }
+
     // 1. user-level resolution. Preferujemy `userId` z message; jeśli brak —
     //    próbujemy znaleźć po emailu (nie nadgorliwie — tylko jeśli unikalny).
     let user: {
@@ -175,7 +242,14 @@ export class MailerService {
       return { allowed: false, reason: 'ANONYMIZED' };
     }
 
-    // 3. MARKETING — sprawdź preferences. TRANSACTIONAL przechodzi zawsze.
+    // 3. PRODUCT_UPDATE — scale-up / zmiany usługi (opt-out per productUpdatesEmail).
+    if (category === 'PRODUCT_UPDATE') {
+      if (user?.marketingPreferences && !user.marketingPreferences.productUpdatesEmail) {
+        return { allowed: false, reason: 'OPTED_OUT' };
+      }
+    }
+
+    // 4. MARKETING — sprawdź preferences. TRANSACTIONAL przechodzi zawsze.
     if (category === 'MARKETING') {
       // Brak preferences = treat as opt-out (privacy-by-default).
       if (!user || !user.marketingPreferences) {
@@ -191,6 +265,40 @@ export class MailerService {
     }
 
     return { allowed: true };
+  }
+
+  private async applyFromOverrides(message: MailMessage): Promise<MailMessage> {
+    let fromAddress = message.fromAddress;
+    let fromName = message.fromName ?? this.config.fromName;
+    let replyTo = message.replyTo;
+
+    if (message.fromRole) {
+      const role = message.fromRole as ControlPlaneSystemAddressRole;
+      const row = await this.prisma.controlPlaneSystemAddress.findUnique({
+        where: { role },
+      });
+      if (row) {
+        fromAddress = row.email;
+        if (!replyTo && role === 'SUPPORT') {
+          replyTo = row.email;
+        }
+      }
+      if (!message.fromName) {
+        const roleNames: Partial<Record<ControlPlaneSystemAddressRole, string>> = {
+          SUPPORT: 'Verris Support',
+          BILLING: 'Verris Billing',
+          SECURITY: 'Verris Security',
+          RODO: 'Verris — RODO',
+          PANEL: 'Verris',
+          NOREPLY: 'Verris',
+          DMARC_RUA: 'Verris',
+        };
+        if (roleNames[role]) fromName = roleNames[role]!;
+      }
+    }
+
+    if (!fromAddress) return message;
+    return { ...message, fromAddress, fromName, replyTo };
   }
 
   private async enrichForCategory(
@@ -330,56 +438,36 @@ export class MailerService {
 }
 
 export function buildMailerProvider(config: ConfigService): MailerProvider {
-  const host = config.get<string>('SMTP_HOST') || process.env.SMTP_HOST || '';
-  const port = parseInt(config.get<string>('SMTP_PORT') || process.env.SMTP_PORT || '0', 10);
+  const host = config.get<string>('SMTP_HOST') || process.env.SMTP_HOST || 'localhost';
+  const port = parseInt(config.get<string>('SMTP_PORT') || process.env.SMTP_PORT || '25', 10);
   const username = config.get<string>('SMTP_USER') || process.env.SMTP_USER || '';
   const password = config.get<string>('SMTP_PASS') || process.env.SMTP_PASS || '';
   const fromAddress =
-    config.get<string>('SMTP_FROM_ADDRESS') || process.env.SMTP_FROM_ADDRESS || '';
+    config.get<string>('SMTP_FROM_ADDRESS') || process.env.SMTP_FROM_ADDRESS || 'panel@verris.pl';
   const fromName =
     config.get<string>('SMTP_FROM_NAME') || process.env.SMTP_FROM_NAME || 'Verris';
 
-  if (!host || port <= 0 || !fromAddress) {
-    // No host / port / from → cannot construct a working SMTP. Fall back to
-    // log-only provider so dev environments don't crash on startup.
-    return new LogMailerProvider();
-  }
-
-  // Auto-detect "panel-local relay" (Postfix on the same host as the API).
-  // For localhost we default to plain TCP, no AUTH — explicit env vars can
-  // override this if the operator runs Postfix with submission/AUTH on
-  // localhost (rare).
-  const isLocalRelay =
-    host === 'localhost' ||
-    host === '127.0.0.1' ||
-    host === '::1' ||
-    /^localhost\.localdomain$/i.test(host);
-
   const secureRaw = (config.get<string>('SMTP_SECURE') || process.env.SMTP_SECURE || '').toLowerCase();
-  const secure: 'tls' | 'starttls' | 'none' =
+  const local = isLocalSmtpHost(host);
+  const secure: MailSmtpSecure =
     secureRaw === 'tls'
       ? 'tls'
       : secureRaw === 'none'
         ? 'none'
         : secureRaw === 'starttls'
           ? 'starttls'
-          : isLocalRelay
+          : local
             ? 'none'
             : 'starttls';
 
-  // External relay must have credentials; refusing to construct prevents
-  // AUTH-less submission to a public MTA (which would 530 anyway).
-  if (!isLocalRelay && (!username || !password)) {
-    return new LogMailerProvider();
-  }
-
-  return new SmtpMailerProvider({
+  return buildSmtpMailerProvider({
     host,
-    port,
+    port: Number.isFinite(port) && port > 0 ? port : local ? 25 : 587,
     username,
     password,
     fromAddress,
     fromName,
     secure,
+    ...resolveSmtpIdentity(process.env),
   });
 }

@@ -48,6 +48,7 @@ export interface StaffCustomerProfile {
   subscriptions: Array<{
     id: string;
     status: string;
+    serviceTag: string | null;
     interval: string;
     paymentSource: string;
     priceAmount: string;

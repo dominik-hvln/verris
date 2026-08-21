@@ -24,7 +24,7 @@ export default function InitNodePage() {
     startTransition(async () => {
       const result = await initServer({
         name,
-        hostname: hostname || undefined,
+        hostname: hostname.trim(),
         region: region || undefined,
         notes: notes || undefined,
       });
@@ -90,14 +90,21 @@ export default function InitNodePage() {
           </Field>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label="Hostname (opcjonalnie)">
+            <Field label="Hostname (FQDN)" required>
               <input
                 type="text"
+                required
                 value={hostname}
                 onChange={(e) => setHostname(e.target.value)}
-                placeholder="alpha.verris.internal"
+                placeholder="node-pl-02.verris.pl"
+                pattern="^(?=.{1,253}$)([a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}$"
+                title="Poprawny FQDN, np. node-pl-02.verris.pl — nie surowe IP"
                 className="form-input"
               />
+              <span className="text-[11px] text-muted-foreground">
+                Wymagany — certyfikat wildcard <code>*.verris.pl</code> i linki panelu działają po
+                hostname, nie po IP. Dodaj wcześniej rekord A w OVH.
+              </span>
             </Field>
             <Field label="Region (opcjonalnie)">
               <input
@@ -192,10 +199,18 @@ export default function InitNodePage() {
 
           <div className="flex flex-wrap gap-3">
             <Link
-              href={`/nodes/${created.server.id}`}
+              href={`/nodes/wizard?server=${created.server.id}&step=approve-da`}
               className="inline-flex items-center gap-2 rounded-lg bg-indigo-500 hover:bg-indigo-600 px-4 py-2 text-sm font-medium transition-colors"
             >
-              Otwórz szczegóły węzła
+              Kontynuuj wizard (kroki 6–8)
+            </Link>
+            <Link
+              href={`/nodes/${created.server.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 px-4 py-2 text-sm font-medium transition-colors"
+            >
+              Szczegóły węzła (nowa karta)
             </Link>
             <Link
               href="/nodes"

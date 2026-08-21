@@ -2,12 +2,17 @@ import { Injectable, Logger, Optional } from '@nestjs/common';
 import {
   AccountStatus,
   IncidentStatus,
+  Prisma,
+  Role,
   ServerStatus,
   SubscriptionStatus,
   WalletTxType,
 } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
+import { ObjectStorageService } from '../storage/object-storage.service';
 import { ProvisioningQueueService } from '../subscriptions/provisioning-queue.service';
+import { HttpMetricsService } from './http-metrics.service';
+import { RuntimeErrorTracker } from './runtime-error-tracker.service';
 
 /**
  * F-13: produces a Prometheus text-format metrics snapshot. We emit a small,
@@ -32,7 +37,10 @@ export class MetricsService {
 
   constructor(
     private readonly prisma: PrismaService,
+    @Optional() private readonly httpMetrics?: HttpMetricsService,
     @Optional() private readonly provisioningQueue?: ProvisioningQueueService,
+    @Optional() private readonly objectStorage?: ObjectStorageService,
+    @Optional() private readonly runtimeErrors?: RuntimeErrorTracker,
   ) {}
 
   async getPrometheusMetrics(): Promise<string> {
@@ -95,6 +103,134 @@ export class MetricsService {
     );
     lines.push(`verris_servers_stale_heartbeat ${staleHeartbeats}`);
 
+    // --- Users (non-anonymized) ----------------------------------------
+    const usersByRole = await this.prisma.user.groupBy({
+      by: ['role'],
+      where: { anonymizedAt: null },
+      _count: { _all: true },
+    });
+    write(lines, 'verris_users_total', 'Registered users by role (non-anonymized)', 'gauge');
+    for (const role of Object.values(Role)) {
+      const value = usersByRole.find((r) => r.role === role)?._count._all ?? 0;
+      lines.push(`verris_users_total{role="${role}"} ${value}`);
+    }
+
+    // --- Support tickets --------------------------------------------------
+    const ticketsByStatus = await this.prisma.ticket.groupBy({
+      by: ['status'],
+      _count: { _all: true },
+    });
+    write(lines, 'verris_tickets_total', 'Support tickets by status', 'gauge');
+    for (const row of ticketsByStatus) {
+      lines.push(`verris_tickets_total{status="${row.status}"} ${row._count._all}`);
+    }
+
+    const awaitingFirstResponse = await this.prisma.ticket.count({
+      where: {
+        firstResponseAt: null,
+        status: { in: ['OPEN', 'IN_PROGRESS'] },
+      },
+    });
+    write(
+      lines,
+      'verris_tickets_awaiting_first_response_total',
+      'Open tickets without a staff first response yet',
+      'gauge',
+    );
+    lines.push(`verris_tickets_awaiting_first_response_total ${awaitingFirstResponse}`);
+
+    const [
+      staffResponseAvgSeconds,
+      staffResponseAvgSeconds30d,
+      firstResponseAvgSeconds,
+      firstResponseAvgSeconds30d,
+    ] = await Promise.all([
+      this.avgStaffResponseSeconds(),
+      this.avgStaffResponseSeconds(since30d),
+      this.avgFirstResponseSeconds(),
+      this.avgFirstResponseSeconds(since30d),
+    ]);
+    write(
+      lines,
+      'verris_ticket_staff_response_avg_seconds',
+      'Average seconds from client message to staff reply (all time)',
+      'gauge',
+    );
+    lines.push(
+      `verris_ticket_staff_response_avg_seconds ${formatMetricSeconds(staffResponseAvgSeconds)}`,
+    );
+    write(
+      lines,
+      'verris_ticket_staff_response_avg_seconds_30d',
+      'Average seconds from client message to staff reply (staff replies in last 30 days)',
+      'gauge',
+    );
+    lines.push(
+      `verris_ticket_staff_response_avg_seconds_30d ${formatMetricSeconds(staffResponseAvgSeconds30d)}`,
+    );
+    write(
+      lines,
+      'verris_ticket_first_response_avg_seconds',
+      'Average time to first staff response (createdAt → firstResponseAt, all time)',
+      'gauge',
+    );
+    lines.push(
+      `verris_ticket_first_response_avg_seconds ${formatMetricSeconds(firstResponseAvgSeconds)}`,
+    );
+    write(
+      lines,
+      'verris_ticket_first_response_avg_seconds_30d',
+      'Average time to first staff response for tickets created in the last 30 days',
+      'gauge',
+    );
+    lines.push(
+      `verris_ticket_first_response_avg_seconds_30d ${formatMetricSeconds(firstResponseAvgSeconds30d)}`,
+    );
+
+    // --- Control-plane mailboxes -----------------------------------------
+    const mailboxesByStatus = await this.prisma.controlPlaneMailbox.groupBy({
+      by: ['status'],
+      _count: { _all: true },
+    });
+    write(
+      lines,
+      'verris_mailboxes_total',
+      'Team mailboxes (@verris.pl) by status',
+      'gauge',
+    );
+    for (const row of mailboxesByStatus) {
+      lines.push(`verris_mailboxes_total{status="${row.status}"} ${row._count._all}`);
+    }
+
+    const mailboxUsedBytes = await this.prisma.controlPlaneMailbox.aggregate({
+      _sum: { usedBytes: true },
+    });
+    write(
+      lines,
+      'verris_mailboxes_used_bytes_total',
+      'Sum of reported mailbox used bytes on control-plane',
+      'gauge',
+    );
+    lines.push(
+      `verris_mailboxes_used_bytes_total ${Number(mailboxUsedBytes._sum.usedBytes ?? 0n)}`,
+    );
+
+    // --- Email delivery (24h) --------------------------------------------
+    const emailByStatus24h = await this.prisma.emailLog.groupBy({
+      by: ['status'],
+      where: { createdAt: { gte: since24h } },
+      _count: { _all: true },
+    });
+    write(
+      lines,
+      'verris_email_log_24h_total',
+      'Outbound email log entries in the last 24 hours by status',
+      'gauge',
+    );
+    for (const row of emailByStatus24h) {
+      lines.push(`verris_email_log_24h_total{status="${row.status}"} ${row._count._all}`);
+    }
+
     // --- Accounts (provisioned hosting accounts) -------------------------
     const accountsByStatus = await this.prisma.account.groupBy({
       by: ['status'],
@@ -152,6 +288,85 @@ export class MetricsService {
       'gauge',
     );
     lines.push(`verris_autoscale_events_1h_total ${autoscaleEventsLastHour}`);
+
+    const autoscaleEvents30d = await this.prisma.autoscalingEvent.groupBy({
+      by: ['resource', 'direction'],
+      where: {
+        createdAt: { gte: since30d },
+        resource: { not: null },
+      },
+      _count: { _all: true },
+    });
+    write(
+      lines,
+      'verris_autoscaling_scale_events_total',
+      'Autoscaling scale events in the last 30 days by resource and direction',
+      'gauge',
+    );
+    for (const row of autoscaleEvents30d) {
+      const resource = row.resource ?? 'unknown';
+      lines.push(
+        `verris_autoscaling_scale_events_total{resource="${resource}",direction="${row.direction}"} ${row._count._all}`,
+      );
+    }
+
+    const autoscaleCharges30d = await this.prisma.walletTransaction.findMany({
+      where: {
+        type: WalletTxType.CHARGE_AUTOSCALING,
+        status: 'COMPLETED',
+        createdAt: { gte: since30d },
+      },
+      select: { amount: true, metadata: true },
+    });
+    const chargeByResource = { CPU: 0, RAM: 0, DISK: 0, legacy: 0 };
+    for (const tx of autoscaleCharges30d) {
+      const abs = Math.abs(Number(tx.amount.toString()));
+      const meta = tx.metadata as Record<string, unknown> | null;
+      if (meta?.revenueCpuPln != null) {
+        chargeByResource.CPU += Number(meta.revenueCpuPln);
+        chargeByResource.RAM += Number(meta.revenueRamPln ?? 0);
+        chargeByResource.DISK += Number(meta.revenueDiskPln ?? 0);
+      } else {
+        chargeByResource.legacy += abs;
+      }
+    }
+    write(
+      lines,
+      'verris_autoscaling_charges_pln_30d',
+      'Autoscaling wallet charges in the last 30 days by resource (PLN)',
+      'gauge',
+    );
+    for (const resource of ['CPU', 'RAM', 'DISK'] as const) {
+      lines.push(
+        `verris_autoscaling_charges_pln_30d{resource="${resource}"} ${chargeByResource[resource].toFixed(2)}`,
+      );
+    }
+    lines.push(
+      `verris_autoscaling_charges_pln_30d{resource="legacy_unallocated"} ${chargeByResource.legacy.toFixed(2)}`,
+    );
+
+    // --- Plan changes (PC-3.4) -------------------------------------------
+    const planChangeEvents = await this.prisma.subscriptionEvent.findMany({
+      where: { type: 'PLAN_CHANGED', createdAt: { gte: since30d } },
+      select: { details: true },
+    });
+    const planChangeCounts = { upgrade: 0, downgrade: 0, none: 0 };
+    for (const row of planChangeEvents) {
+      const details = row.details as { direction?: string } | null;
+      const dir = details?.direction;
+      if (dir === 'upgrade' || dir === 'downgrade' || dir === 'none') {
+        planChangeCounts[dir] += 1;
+      }
+    }
+    write(
+      lines,
+      'verris_plan_changes_total',
+      'Subscription plan changes in the last 30 days by proration direction',
+      'gauge',
+    );
+    for (const direction of ['upgrade', 'downgrade', 'none'] as const) {
+      lines.push(`verris_plan_changes_total{direction="${direction}"} ${planChangeCounts[direction]}`);
+    }
 
     // --- Probes / incidents ----------------------------------------------
     const probesByEnabled = await this.prisma.serviceProbe.groupBy({
@@ -248,6 +463,65 @@ export class MetricsService {
       }
     }
 
+    // --- Postgres backup w MinIO (latest.sql.gz) ---------------------------
+    if (this.objectStorage) {
+      try {
+        const backup = await this.objectStorage.getPostgresBackupLatestStat();
+        write(
+          lines,
+          'verris_backup_present',
+          '1 if postgres/latest.sql.gz exists in S3_BUCKET_BACKUPS',
+          'gauge',
+        );
+        lines.push(`verris_backup_present ${backup ? 1 : 0}`);
+        write(
+          lines,
+          'verris_backup_latest_age_seconds',
+          'Seconds since last successful MinIO backup object was modified',
+          'gauge',
+        );
+        write(
+          lines,
+          'verris_backup_latest_size_bytes',
+          'Size of postgres/latest.sql.gz in MinIO',
+          'gauge',
+        );
+        write(
+          lines,
+          'verris_backup_latest_timestamp_seconds',
+          'Unix timestamp of postgres/latest.sql.gz Last-Modified',
+          'gauge',
+        );
+        if (backup) {
+          lines.push(`verris_backup_latest_age_seconds ${backup.ageSeconds}`);
+          lines.push(`verris_backup_latest_size_bytes ${backup.sizeBytes}`);
+          lines.push(
+            `verris_backup_latest_timestamp_seconds ${backup.lastModifiedUnix}`,
+          );
+        } else {
+          lines.push('verris_backup_latest_age_seconds 0');
+          lines.push('verris_backup_latest_size_bytes 0');
+          lines.push('verris_backup_latest_timestamp_seconds 0');
+        }
+      } catch (err) {
+        this.logger.warn(
+          `Backup metrics skipped: ${(err as Error).message}`,
+        );
+      }
+    }
+
+    // --- Migration worker jobs (failed backlog) ---------------------------
+    const failedMigrationJobs = await this.prisma.migrationWorkerJob.count({
+      where: { status: 'FAILED' },
+    });
+    write(
+      lines,
+      'verris_migration_worker_jobs_failed',
+      'Migration worker jobs in FAILED status',
+      'gauge',
+    );
+    lines.push(`verris_migration_worker_jobs_failed ${failedMigrationJobs}`);
+
     // --- Status webhook delivery health ----------------------------------
     const webhookDeliveriesByStatus = await this.prisma.statusWebhookDelivery.groupBy({
       by: ['status'],
@@ -301,7 +575,61 @@ export class MetricsService {
     );
     lines.push(`verris_process_uptime_seconds ${Math.round(process.uptime())}`);
 
+    // --- Runtime errors (CYBER-9) ----------------------------------------
+    if (this.runtimeErrors) {
+      lines.push(...this.runtimeErrors.prometheusLines());
+    }
+
+    if (this.httpMetrics) {
+      const httpBody = this.httpMetrics.formatPrometheus();
+      if (httpBody) lines.push(httpBody.trimEnd());
+    }
+
     return lines.join('\n') + '\n';
+  }
+
+  /** Średni czas od wiadomości klienta do odpowiedzi staff (wątek ticketu). */
+  private async avgStaffResponseSeconds(since?: Date): Promise<number | null> {
+    const sinceFilter = since
+      ? Prisma.sql`AND resp.ts >= ${since}`
+      : Prisma.empty;
+    const rows = await this.prisma.$queryRaw<Array<{ avg_seconds: number | null }>>`
+      WITH timeline AS (
+        SELECT t.id AS ticket_id, t."createdAt" AS ts, 'client'::text AS side
+        FROM "Ticket" t
+        UNION ALL
+        SELECT r."ticketId", r."createdAt",
+          CASE WHEN r."isStaff" THEN 'staff' ELSE 'client' END
+        FROM "TicketReply" r
+      ),
+      responses AS (
+        SELECT
+          ticket_id,
+          ts,
+          side,
+          LAG(ts) OVER (PARTITION BY ticket_id ORDER BY ts) AS prev_ts,
+          LAG(side) OVER (PARTITION BY ticket_id ORDER BY ts) AS prev_side
+        FROM timeline
+      )
+      SELECT AVG(EXTRACT(EPOCH FROM (resp.ts - resp.prev_ts)))::float AS avg_seconds
+      FROM responses resp
+      WHERE resp.side = 'staff'
+        AND resp.prev_side = 'client'
+        AND resp.prev_ts IS NOT NULL
+        ${sinceFilter}
+    `;
+    return rows[0]?.avg_seconds ?? null;
+  }
+
+  /** Średni czas do pierwszej odpowiedzi staff (TTFR). */
+  private async avgFirstResponseSeconds(since?: Date): Promise<number | null> {
+    const rows = await this.prisma.$queryRaw<Array<{ avg_seconds: number | null }>>`
+      SELECT AVG(EXTRACT(EPOCH FROM (t."firstResponseAt" - t."createdAt")))::float AS avg_seconds
+      FROM "Ticket" t
+      WHERE t."firstResponseAt" IS NOT NULL
+      ${since ? Prisma.sql`AND t."createdAt" >= ${since}` : Prisma.empty}
+    `;
+    return rows[0]?.avg_seconds ?? null;
   }
 }
 
@@ -313,4 +641,9 @@ function write(
 ): void {
   lines.push(`# HELP ${name} ${help}`);
   lines.push(`# TYPE ${name} ${type}`);
+}
+
+function formatMetricSeconds(value: number | null): string {
+  if (value == null || !Number.isFinite(value)) return '0';
+  return Math.max(0, value).toFixed(3);
 }

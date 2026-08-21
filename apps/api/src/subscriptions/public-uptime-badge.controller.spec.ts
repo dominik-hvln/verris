@@ -40,6 +40,29 @@ describe('PublicUptimeBadgeController', () => {
     await expect(controller.badge('sub_1')).resolves.toContain('Verris degraded');
   });
 
+  it('returns 404 for unknown subscription ids without querying incidents', async () => {
+    prisma.subscription.findUnique.mockResolvedValue(null);
+    const controller = new PublicUptimeBadgeController(prisma as never);
+
+    await expect(controller.badge('missing-sub')).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.probeIncident.count).not.toHaveBeenCalled();
+  });
+
+  it('does not embed subscription id or server id in the SVG payload', async () => {
+    prisma.subscription.findUnique.mockResolvedValue({
+      id: 'sub_secret_uuid',
+      account: { domain: 'hidden.example', serverId: 'srv_secret' },
+    });
+    prisma.probeIncident.count.mockResolvedValue(0);
+    const controller = new PublicUptimeBadgeController(prisma as never);
+
+    const svg = await controller.badge('sub_secret_uuid');
+
+    expect(svg).not.toContain('sub_secret_uuid');
+    expect(svg).not.toContain('srv_secret');
+    expect(svg).not.toContain('hidden.example');
+  });
+
   it('does not expose badges for services without a provisioned account', async () => {
     prisma.subscription.findUnique.mockResolvedValue({ id: 'sub_1', account: null });
     const controller = new PublicUptimeBadgeController(prisma as never);

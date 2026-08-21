@@ -1,27 +1,48 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { Paperclip } from "lucide-react";
 import type { AgentOption, StaffTicketDetail, TicketAttachmentRow } from "@/lib/tickets-data";
 import {
   staffApplyRunbook,
   staffEscalateTicket,
+  staffFetchCanned,
   staffGenerateAiSuggestion,
+  staffGetAiStatus,
   staffPostReplyWithFiles,
   staffSetRiskFlag,
   staffUpdateTicket,
+  type CannedResponseRow,
 } from "@/lib/ticket-actions";
 import { staffTicketAttachmentDownloadHref } from "@/lib/ticket-attachment-links";
 import { StaffImpersonateButton } from "@/app/(dashboard)/crm/impersonate-button";
+import { CannedResponsePicker } from "@/components/canned-response-picker";
 
 interface Props {
   ticket: StaffTicketDetail;
   agents: AgentOption[];
 }
 
-const STATUS_OPTS = ["OPEN", "IN_PROGRESS", "CLOSED"] as const;
+const STATUS_OPTS = ["OPEN", "IN_PROGRESS", "WAITING_CUSTOMER", "CLOSED"] as const;
+const STATUS_LABELS: Record<string, string> = {
+  OPEN: "Otwarte",
+  IN_PROGRESS: "W realizacji",
+  WAITING_CUSTOMER: "Czeka na klienta",
+  CLOSED: "Zamknięte",
+};
+const EVENT_LABELS: Record<string, string> = {
+  TICKET_CREATED: "Utworzono zgłoszenie",
+  CUSTOMER_REPLY: "Odpowiedź klienta",
+  STAFF_REPLY: "Odpowiedź supportu",
+  STATUS_CHANGED: "Zmiana statusu",
+  ASSIGNMENT_CHANGED: "Zmiana przypisania",
+  CUSTOMER_REMINDER_SENT: "Przypomnienie do klienta",
+  AUTO_CLOSED: "Auto-zamknięcie (brak odpowiedzi)",
+  SLA_RESPONSE_BREACH_ALERTED: "Alert: przekroczone SLA",
+  ESCALATED: "Eskalacja",
+};
 const PRI_OPTS = ["LOW", "NORMAL", "HIGH", "URGENT"] as const;
 const DEPT_OPTS = ["BILLING", "TECHNICAL", "SALES"] as const;
 
@@ -63,6 +84,14 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
   const [replyErr, setReplyErr] = useState<string | null>(null);
   const [opsErr, setOpsErr] = useState<string | null>(null);
   const [aiSuggestion, setAiSuggestion] = useState<unknown | null>(null);
+  const [aiConfigured, setAiConfigured] = useState(false);
+  const [replyText, setReplyText] = useState("");
+  const [canned, setCanned] = useState<CannedResponseRow[]>([]);
+
+  // SUP-2 — pobierz szablony posortowane pod temat zgłoszenia.
+  useEffect(() => {
+    void staffFetchCanned(ticket.topic ?? undefined).then(setCanned);
+  }, [ticket.topic]);
   const assignedId = ticket.assignedToId ?? ticket.assignedTo?.id ?? "";
   const runbookChecklist =
     ticket.department === "BILLING"
@@ -83,6 +112,20 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
       ? "Poproś o domenę, timestamp i przykład błędu, jeżeli nie ma ich w pierwszej wiadomości."
       : "Potwierdź status rozliczenia i nie podawaj danych płatniczych w treści ticketu.",
   ].filter((v): v is string => Boolean(v));
+
+  useEffect(() => {
+    let active = true;
+    staffGetAiStatus()
+      .then((status) => {
+        if (active) setAiConfigured(status.configured);
+      })
+      .catch(() => {
+        if (active) setAiConfigured(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   async function patchField(
     patch: Partial<{ status: string; priority: string; department: string; assignedToId: string | null }>,
@@ -135,7 +178,7 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
             >
               {STATUS_OPTS.map((s) => (
                 <option key={s} value={s}>
-                  {s === "OPEN" ? "Otwarte" : s === "IN_PROGRESS" ? "W realizacji" : "Zamknięte"}
+                  {STATUS_LABELS[s] ?? s}
                 </option>
               ))}
             </select>
@@ -197,6 +240,15 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
           <p className="text-xs text-neutral-300">
             Resolve: {ticket.slaResolveDueAt ? new Date(ticket.slaResolveDueAt).toLocaleString("pl-PL") : "—"}
           </p>
+          {ticket.waitingSince ? (
+            <p className="mt-1 text-xs text-amber-300/90">
+              Czeka na klienta od {new Date(ticket.waitingSince).toLocaleString("pl-PL")}
+              {ticket.customerReminderSentAt ? " · przypomnienie wysłane" : ""}
+            </p>
+          ) : null}
+          {ticket.autoClosedAt ? (
+            <p className="mt-1 text-xs text-neutral-400">Zamknięte automatycznie {new Date(ticket.autoClosedAt).toLocaleString("pl-PL")}</p>
+          ) : null}
         </OpsCard>
         <OpsCard title="Runbook">
           <p className="mb-2 text-xs text-neutral-300">{ticket.runbookKey ?? "Brak przypisanego runbooka"}</p>
@@ -272,31 +324,37 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
             ))}
           </ul>
         </OpsCard>
-        <OpsCard title="AI asystent (draft, audytowany)">
-          <p className="mb-3 text-xs text-neutral-400">
-            AI generuje szkic i checklistę dla operatora. Treść nie jest wysyłana do klienta automatycznie.
-          </p>
-          <button
-            disabled={pending}
-            onClick={() =>
-              transition(async () => {
-                setOpsErr(null);
-                const res = await staffGenerateAiSuggestion(ticket.id);
-                if ("error" in res) setOpsErr(res.error);
-                else setAiSuggestion(res.suggestion);
-              })
-            }
-            className="rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-xs text-violet-100"
-          >
-            Wygeneruj sugestię AI
-          </button>
-          {aiSuggestion ? (
-            <pre className="mt-3 max-h-72 overflow-auto rounded-xl border border-white/10 bg-black/40 p-3 text-xs text-neutral-200">
-              {JSON.stringify(aiSuggestion, null, 2)}
-            </pre>
-          ) : null}
-        </OpsCard>
+        {aiConfigured ? (
+          <OpsCard title="AI asystent (draft, audytowany)">
+            <p className="mb-3 text-xs text-neutral-400">
+              AI generuje szkic i checklistę dla operatora. Treść nie jest wysyłana do klienta automatycznie.
+            </p>
+            <button
+              disabled={pending}
+              onClick={() =>
+                transition(async () => {
+                  setOpsErr(null);
+                  const res = await staffGenerateAiSuggestion(ticket.id);
+                  if ("error" in res) setOpsErr(res.error);
+                  else setAiSuggestion(res.suggestion);
+                })
+              }
+              className="rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-xs text-violet-100"
+            >
+              Wygeneruj sugestię AI
+            </button>
+            {aiSuggestion ? (
+              <pre className="mt-3 max-h-72 overflow-auto rounded-xl border border-white/10 bg-black/40 p-3 text-xs text-neutral-200">
+                {JSON.stringify(aiSuggestion, null, 2)}
+              </pre>
+            ) : null}
+          </OpsCard>
+        ) : null}
       </div>
+
+      {ticket.events && ticket.events.length > 0 ? (
+        <TicketTimeline events={ticket.events} />
+      ) : null}
 
       <div className="rounded-2xl border border-white/10 bg-black/25 p-6">
         <h2 className="mb-3 text-sm font-semibold text-white">Pierwsza wiadomość</h2>
@@ -334,10 +392,26 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
           }}
           className="mt-8 space-y-3 border-t border-white/10 pt-6"
         >
-          <label className="block text-sm font-medium text-white">Twoja odpowiedź</label>
+          <div className="flex items-center justify-between gap-3">
+            <label className="block text-sm font-medium text-white">Twoja odpowiedź</label>
+            <CannedResponsePicker
+              canned={canned}
+              vars={{
+                firstName: ticket.user.firstName,
+                lastName: ticket.user.lastName,
+                email: ticket.user.email,
+                company: ticket.user.companyName ?? null,
+                shortId: ticket.id.slice(0, 8),
+                subject: ticket.subject,
+              }}
+              onInsert={(text) => setReplyText((prev) => (prev ? `${prev}\n\n${text}` : text))}
+            />
+          </div>
           <textarea
             name="message"
             rows={6}
+            value={replyText}
+            onChange={(e) => setReplyText(e.target.value)}
             className="w-full rounded-xl border border-white/10 bg-black/40 px-4 py-3 text-sm outline-none focus:border-cyan-500/40"
             placeholder="Napisz odpowiedź — klient dostanie wiadomość e-mailem."
           />
@@ -361,6 +435,37 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
         </form>
       </div>
     </div>
+  );
+}
+
+function TicketTimeline({
+  events,
+}: {
+  events: NonNullable<StaffTicketDetail["events"]>;
+}) {
+  return (
+    <OpsCard title="Historia zgłoszenia">
+      <ol className="space-y-2">
+        {events.map((e) => {
+          const meta = e.meta ?? {};
+          const from = (meta as { from?: unknown }).from;
+          const to = (meta as { to?: unknown }).to;
+          const suffix =
+            e.type === "STATUS_CHANGED" && (from || to)
+              ? ` (${STATUS_LABELS[String(from)] ?? String(from ?? "—")} → ${STATUS_LABELS[String(to)] ?? String(to ?? "—")})`
+              : "";
+          return (
+            <li key={e.id} className="flex items-start justify-between gap-3 text-xs">
+              <span className="text-neutral-200">
+                {EVENT_LABELS[e.type] ?? e.type}
+                <span className="text-neutral-500">{suffix}</span>
+              </span>
+              <span className="shrink-0 text-neutral-500">{new Date(e.createdAt).toLocaleString("pl-PL")}</span>
+            </li>
+          );
+        })}
+      </ol>
+    </OpsCard>
   );
 }
 

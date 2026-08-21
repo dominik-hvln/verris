@@ -1,13 +1,38 @@
+import { Suspense } from 'react';
+import { redirect } from 'next/navigation';
+import { FeatureNotAvailable } from '@/components/feature-not-available';
+import { isClientFeatureEnabled } from '@/lib/client-features';
+import { getAuthToken } from '@/lib/auth';
+import { fetchSessionProfile } from '@/lib/session-profile';
 import { Users, Mail, ShieldCheck, Ban } from 'lucide-react';
 import {
   disableMemberAction,
   getIamOverview,
   inviteSubaccountAction,
   revokeInviteAction,
+  updateMemberAction,
 } from './actions';
+import { IamAuditSection } from './iam-audit-section';
+import { IamNoticeBanner } from './iam-notice-banner';
+import { IamPermissionPicker } from './iam-permission-picker';
 import { PERMISSION_LABELS } from './constants';
 
 export default async function IamPage() {
+  const token = await getAuthToken();
+  const session = token ? await fetchSessionProfile(token) : null;
+  if (session?.isSubaccount) {
+    redirect('/dashboard');
+  }
+
+  if (!isClientFeatureEnabled('iam')) {
+    return (
+      <FeatureNotAvailable
+        title="IAM i subkonta"
+        description="Delegowanie dostępu do konta będzie dostępne po włączeniu modułu IAM w ofercie. Do tego czasu korzystaj z głównego konta właściciela."
+      />
+    );
+  }
+
   const data = await getIamOverview();
   return (
     <div className="mx-auto max-w-5xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -17,6 +42,10 @@ export default async function IamPage() {
           Deleguj dostęp do konta bez udostępniania hasła właściciela. Każda akcja subkonta jest limitowana uprawnieniami i widoczna w audycie.
         </p>
       </div>
+
+      <Suspense fallback={null}>
+        <IamNoticeBanner />
+      </Suspense>
 
       <section className="rounded-[28px] border border-white/10 bg-[#0a0a0a]/80 p-6">
         <div className="mb-5 flex items-center gap-3">
@@ -33,14 +62,7 @@ export default async function IamPage() {
             <input name="email" type="email" required placeholder="operator@firma.pl" className="rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white outline-none focus:border-white/40" />
             <input name="label" placeholder="np. księgowość, devops" className="rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white outline-none focus:border-white/40" />
           </div>
-          <div className="grid gap-3 md:grid-cols-3">
-            {data.permissions.map((permission) => (
-              <label key={permission} className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm text-neutral-300">
-                <input name="permissions" type="checkbox" value={permission} className="h-4 w-4 accent-white" />
-                {PERMISSION_LABELS[permission] ?? permission}
-              </label>
-            ))}
-          </div>
+          <IamPermissionPicker permissions={data.permissions} />
           <button className="rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-neutral-200">
             Wyślij zaproszenie
           </button>
@@ -80,6 +102,29 @@ export default async function IamPage() {
                     <span key={p} className="rounded-full border border-white/10 px-2 py-1 text-[11px] text-neutral-400">{PERMISSION_LABELS[p] ?? p}</span>
                   ))}
                 </div>
+                {!member.subaccountDisabledAt && (
+                  <details className="mt-4 rounded-xl border border-white/10 bg-black/40 p-4">
+                    <summary className="cursor-pointer text-sm font-medium text-neutral-300">
+                      Edytuj uprawnienia
+                    </summary>
+                    <form action={updateMemberAction} className="mt-4 space-y-4">
+                      <input type="hidden" name="id" value={member.id} />
+                      <input
+                        name="label"
+                        defaultValue={member.subaccountLabel ?? ''}
+                        placeholder="Etykieta (np. devops)"
+                        className="w-full rounded-xl border border-white/10 bg-black px-4 py-2.5 text-sm text-white outline-none focus:border-white/40"
+                      />
+                      <IamPermissionPicker
+                        permissions={data.permissions}
+                        defaultSelected={member.customerPermissions}
+                      />
+                      <button className="rounded-xl bg-white px-4 py-2 text-xs font-semibold text-black hover:bg-neutral-200">
+                        Zapisz uprawnienia
+                      </button>
+                    </form>
+                  </details>
+                )}
               </div>
             ))}
           </div>
@@ -117,6 +162,8 @@ export default async function IamPage() {
           </div>
         </div>
       </section>
+
+      <IamAuditSection />
     </div>
   );
 }

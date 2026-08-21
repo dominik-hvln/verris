@@ -1,57 +1,25 @@
 {
   "annotations": { "list": [] },
   "editable": false,
+  "description": "Flota / Węzły — status, heartbeat, konta na węzłach, provisioning. Podgląd zużycia CPU/RAM/dysku per węzeł na żywo dojdzie po domknięciu scrapowania floty (job 'nodes' w prometheus.yml ma dziś targets: []).",
   "panels": [
-    {
-      "type": "stat",
-      "title": "Servers ACTIVE / OFFLINE / MAINTENANCE",
-      "id": 1,
-      "gridPos": { "h": 5, "w": 24, "x": 0, "y": 0 },
-      "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_servers_total", "legendFormat": "{{status}}", "refId": "A" }
-      ]
-    },
-    {
-      "type": "stat",
-      "title": "Stale heartbeat (>5 min)",
-      "id": 2,
-      "gridPos": { "h": 5, "w": 8, "x": 0, "y": 5 },
-      "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_servers_stale_heartbeat", "refId": "A" }
-      ],
-      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [{ "color": "green" }, { "color": "red", "value": 1 }] } } }
-    },
-    {
-      "type": "table",
-      "title": "Servers (DB view: server_safe)",
-      "id": 3,
-      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 10 },
+    { "type": "stat", "title": "Serwery wg statusu", "id": 1, "gridPos": { "h": 5, "w": 16, "x": 0, "y": 0 },
+      "targets": [ { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_servers_total", "legendFormat": "{{status}}", "refId": "A" } ] },
+    { "type": "stat", "title": "Bez heartbeatu (>5 min)", "id": 2, "gridPos": { "h": 5, "w": 8, "x": 16, "y": 0 },
+      "targets": [ { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_servers_stale_heartbeat", "refId": "A" } ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [ { "color": "green" }, { "color": "red", "value": 1 } ] } } } },
+    { "type": "table", "title": "Węzły (server_safe)", "id": 3, "gridPos": { "h": 9, "w": 16, "x": 0, "y": 5 },
       "datasource": { "type": "postgres", "uid": "Verris-DB (RO)" },
-      "targets": [
-        {
-          "format": "table",
-          "rawQuery": true,
-          "rawSql": "SELECT id, name, region, status, \"lastHeartbeatAt\", \"approvedAt\" FROM server_safe ORDER BY \"createdAt\" DESC",
-          "refId": "A"
-        }
-      ]
-    },
-    {
-      "type": "timeseries",
-      "title": "Provisioning queue (PROVISIONING subs)",
-      "id": 4,
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 20 },
-      "targets": [
-        { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_provisioning_pending", "refId": "A" }
-      ]
+      "targets": [ { "format": "table", "rawQuery": true, "rawSql": "SELECT name AS wezel, region, status, \"lastHeartbeatAt\" AS heartbeat, \"approvedAt\" AS zatwierdzony FROM server_safe ORDER BY \"createdAt\" DESC", "refId": "A" } ] },
+    { "type": "table", "title": "Konta na węzłach", "id": 4, "gridPos": { "h": 9, "w": 8, "x": 16, "y": 5 },
+      "datasource": { "type": "postgres", "uid": "Verris-DB (RO)" },
+      "targets": [ { "format": "table", "rawQuery": true, "rawSql": "SELECT COALESCE(s.name, s.region, a.\"serverId\") AS wezel, count(*) AS konta FROM account_safe a LEFT JOIN server_safe s ON s.id = a.\"serverId\" GROUP BY 1 ORDER BY 2 DESC", "refId": "A" } ] },
+    { "type": "timeseries", "title": "Provisioning w toku (subskrypcje PROVISIONING)", "id": 5, "gridPos": { "h": 7, "w": 16, "x": 0, "y": 14 },
+      "targets": [ { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_provisioning_pending", "legendFormat": "oczekujące", "refId": "A" } ] },
+    { "type": "text", "id": 6, "gridPos": { "h": 7, "w": 8, "x": 16, "y": 14 },
+      "options": { "mode": "markdown", "content": "### ⏳ Zużycie per węzeł — na żywo\n\nWykresy CPU / RAM / dysk / load per węzeł pojawią się tutaj po **domknięciu scrapowania floty**:\n\n1. node-exporter :9100 w bootstrapie węzła\n2. API zapisuje targety do file-SD\n3. job `nodes` w `prometheus.yml` (dziś `targets: []`)\n\nWtedy dojdzie też dashboard **Węzeł (drill $node)**." }
     }
   ],
-  "schemaVersion": 36,
-  "style": "dark",
-  "tags": ["verris", "fleet"],
-  "templating": { "list": [] },
-  "time": { "from": "now-24h", "to": "now" },
-  "title": "Compute fleet",
-  "uid": "verris-fleet",
-  "version": 1
+  "schemaVersion": 36, "style": "dark", "tags": [ "verris", "fleet" ], "templating": { "list": [] },
+  "time": { "from": "now-24h", "to": "now" }, "title": "Flota / Węzły", "uid": "verris-fleet", "version": 2
 }

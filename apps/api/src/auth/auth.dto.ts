@@ -7,16 +7,16 @@ import {
   IsString,
   Length,
   MaxLength,
-  MinLength,
 } from 'class-validator';
+import { IsStrongPassword } from './password-policy.validator';
 
 export class RegisterDto {
   @IsEmail()
   email!: string;
 
   @IsString()
-  @MinLength(8)
   @MaxLength(72)
+  @IsStrongPassword()
   password!: string;
 
   @IsOptional()
@@ -34,6 +34,12 @@ export class RegisterDto {
   @IsString()
   @MaxLength(32)
   ref?: string;
+
+  /** RSL — kod resellera; klient zostaje powiązany z resellerem (white-label). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  reseller?: string;
 
   /**
    * RODO Sprint 1 / L-03 — wymagane zgody przy rejestracji.
@@ -54,6 +60,12 @@ export class RegisterDto {
   @IsOptional()
   @IsBoolean()
   acceptMarketing?: boolean;
+
+  /** CYBER-2 — token Cloudflare Turnstile (cf-turnstile-response). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  captchaToken?: string;
 }
 
 export class LoginDto {
@@ -63,6 +75,12 @@ export class LoginDto {
   @IsString()
   @IsNotEmpty()
   password!: string;
+
+  /** CYBER-2 — token Cloudflare Turnstile (cf-turnstile-response). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  captchaToken?: string;
 }
 
 export class VerifyTwoFactorDto {
@@ -90,4 +108,90 @@ export class DisableTwoFactorDto {
   @IsString()
   @Length(6, 32)
   code?: string;
+}
+
+export class PasswordResetRequestDto {
+  @IsEmail()
+  email!: string;
+
+  /** CYBER-2 — token Cloudflare Turnstile (cf-turnstile-response). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  captchaToken?: string;
+}
+
+export class PasswordResetConfirmDto {
+  @IsString()
+  @IsNotEmpty()
+  token!: string;
+
+  @IsString()
+  @MaxLength(72)
+  @IsStrongPassword()
+  newPassword!: string;
+}
+
+export class EmailVerificationConfirmDto {
+  @IsString()
+  @IsNotEmpty()
+  token!: string;
+}
+
+/** SEC-9 — żądanie zmiany adresu e-mail (wymaga potwierdzenia hasłem). */
+export class RequestEmailChangeDto {
+  @IsEmail()
+  newEmail!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  password!: string;
+}
+
+export class ConfirmEmailChangeDto {
+  @IsString()
+  @IsNotEmpty()
+  token!: string;
+}
+
+export class EmailVerificationRequestDto {
+  @IsEmail()
+  email!: string;
+
+  /** CYBER-2 — token Cloudflare Turnstile (cf-turnstile-response). */
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  captchaToken?: string;
+}
+
+/** #30 — break-glass login for privileged accounts (password + TOTP + code). */
+export class BreakGlassLoginDto {
+  @IsEmail()
+  email!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  password!: string;
+
+  /** TOTP or 2FA recovery code. */
+  @IsString()
+  @Length(6, 32)
+  code!: string;
+
+  /** Single-use break-glass code (xxxxx-xxxxx). */
+  @IsString()
+  @Length(8, 32)
+  breakGlassCode!: string;
+}
+
+/** #30 — re-auth before (re)generating break-glass codes. */
+export class RegenerateBreakGlassDto {
+  @IsString()
+  @IsNotEmpty()
+  password!: string;
+
+  @IsString()
+  @Length(6, 32)
+  code!: string;
 }

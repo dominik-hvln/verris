@@ -1,10 +1,24 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { headers as incomingHeaders } from "next/headers";
 import { removeStaffAuthCookie, setStaffAuthCookie } from "@/lib/staff-auth-cookie";
 import type { StaffProfile } from "@/lib/staff-session";
 
 const base = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000";
+
+
+/** Pre-LIVE: forward the real client IP (Caddy XFF) to auth endpoints so
+ * per-IP rate limits and login lockouts apply to the user, not the panel. */
+async function clientIpHeaders(): Promise<Record<string, string>> {
+  try {
+    const incoming = await incomingHeaders();
+    const xff = incoming.get("x-forwarded-for");
+    return xff ? { "x-forwarded-for": xff } : {};
+  } catch {
+    return {};
+  }
+}
 
 interface LoginState {
   error?: string;
@@ -48,7 +62,7 @@ export async function staffSubmitLogin(
   try {
     res = await fetch(`${base}/auth/login`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...(await clientIpHeaders()) },
       body: JSON.stringify({ email, password }),
     });
   } catch {
@@ -86,6 +100,58 @@ export async function staffSubmitLogin(
   redirect("/");
 }
 
+export async function staffSubmitBreakGlass(
+  _prev: VerifyState | undefined,
+  formData: FormData,
+): Promise<VerifyState> {
+  const email = formData.get("email")?.toString().trim();
+  const password = formData.get("password")?.toString();
+  const code = formData.get("code")?.toString().trim();
+  const breakGlassCode = formData.get("breakGlassCode")?.toString().trim();
+
+  if (!email || !password || !code || !breakGlassCode) {
+    return { error: "Wypełnij wszystkie pola logowania awaryjnego." };
+  }
+
+  await removeStaffAuthCookie();
+
+  let res: Response;
+  try {
+    res = await fetch(`${base}/auth/login/break-glass`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...(await clientIpHeaders()) },
+      body: JSON.stringify({ email, password, code, breakGlassCode }),
+    });
+  } catch {
+    return { error: "Błąd połączenia z API." };
+  }
+
+  if (!res.ok) {
+    let message = "Logowanie awaryjne nie powiodło się.";
+    try {
+      const body = (await res.json()) as { message?: string };
+      if (typeof body?.message === "string") message = body.message;
+    } catch {
+      /* ignore */
+    }
+    return { error: message };
+  }
+
+  let data: { access_token?: string };
+  try {
+    data = (await res.json()) as { access_token?: string };
+  } catch {
+    return { error: "Nieprawidłowa odpowiedź serwera." };
+  }
+  if (!data.access_token) return { error: "Brak tokenu sesji." };
+
+  const roleCheck = await ensureStaffRole(data.access_token);
+  if ("error" in roleCheck) return { error: roleCheck.error };
+
+  await setStaffAuthCookie(data.access_token);
+  redirect("/settings");
+}
+
 export async function staffSubmitTwoFactor(
   _prev: VerifyState | undefined,
   formData: FormData,
@@ -103,7 +169,7 @@ export async function staffSubmitTwoFactor(
   try {
     res = await fetch(`${base}/auth/login/2fa`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...(await clientIpHeaders()) },
       body: JSON.stringify({ challengeToken, code }),
     });
   } catch {

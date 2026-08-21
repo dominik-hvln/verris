@@ -1,0 +1,373 @@
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+  PayloadTooLargeException,
+} from '@nestjs/common';
+import type { DaFileEntry } from '@verris/directadmin-sdk';
+import { PrismaService } from '../prisma/prisma.service';
+import { DirectAdminService } from '../servers/directadmin.service';
+import { AuditService } from '../common/audit/audit.service';
+import { HostingResourceActions } from '../common/audit/audit.actions';
+
+/** Max bytes we will read into the in-panel text editor. */
+const MAX_EDIT_BYTES = 1_000_000; // 1 MB
+/** Max upload / write size. */
+const MAX_WRITE_BYTES = 25_000_000; // 25 MB
+/** Max in-panel download size — larger files must go via FTP (memory guard). */
+const MAX_DOWNLOAD_BYTES = 100_000_000; // 100 MB
+
+@Injectable()
+export class FilesService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly da: DirectAdminService,
+    private readonly audit: AuditService,
+  ) {}
+
+  // --- account resolution -----------------------------------------------------
+
+  /** Resolves the hosting account behind a subscription, verifying ownership. */
+  private async requireAccount(subscriptionId: string, userId: string) {
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id: subscriptionId, userId },
+      include: { account: true },
+    });
+    if (!sub) throw new NotFoundException('Usługa nie została znaleziona.');
+    if (!sub.account) {
+      throw new BadRequestException('Usługa nie ma jeszcze konta hostingowego.');
+    }
+    if (sub.account.status !== 'ACTIVE') {
+      throw new BadRequestException('Konto hostingowe nie jest aktywne.');
+    }
+    return sub.account;
+  }
+
+  /** Builds a DA client impersonating the account's DA user. */
+  private async clientFor(account: { serverId: string; daUsername: string }) {
+    const admin = await this.da.getClientForServer(account.serverId);
+    return admin.asUser(account.daUsername);
+  }
+
+  // --- path / name sandboxing -------------------------------------------------
+
+  /**
+   * Normalises a user-supplied path to a safe, account-home-relative path.
+   * Resolves "." / ".." segments and refuses any attempt to escape the home
+   * root. DA already confines the impersonated user, but we never rely on a
+   * single layer for path safety.
+   */
+  private safePath(input: string | undefined): string {
+    const raw = (input ?? '/').trim();
+    if (raw.includes('\0')) throw new BadRequestException('Nieprawidłowa ścieżka.');
+    const segments: string[] = [];
+    for (const part of raw.split('/')) {
+      if (part === '' || part === '.') continue;
+      if (part === '..') {
+        if (segments.length === 0) {
+          throw new ForbiddenException('Ścieżka poza katalogiem domowym jest niedozwolona.');
+        }
+        segments.pop();
+        continue;
+      }
+      segments.push(part);
+    }
+    return '/' + segments.join('/');
+  }
+
+  /** Validates a single file/folder name (no separators, no traversal). */
+  private safeName(name: string | undefined): string {
+    const n = (name ?? '').trim();
+    if (!n || n === '.' || n === '..') throw new BadRequestException('Nieprawidłowa nazwa.');
+    if (/[\/\\\0]/.test(n)) throw new BadRequestException('Nazwa nie może zawierać ukośników.');
+    if (n.length > 255) throw new BadRequestException('Nazwa jest zbyt długa.');
+    return n;
+  }
+
+  // --- operations -------------------------------------------------------------
+
+  async list(
+    subscriptionId: string,
+    userId: string,
+    path: string | undefined,
+  ): Promise<{ path: string; entries: DaFileEntry[] }> {
+    const account = await this.requireAccount(subscriptionId, userId);
+    const safe = this.safePath(path);
+    const client = await this.clientFor(account);
+    const entries = await client.listDir(safe);
+    return { path: safe, entries };
+  }
+
+  /**
+   * Best-effort file size from the parent directory listing — lets us reject
+   * oversized files BEFORE loading them into memory. Returns null if unknown.
+   */
+  private async fileSizeBytes(
+    client: Awaited<ReturnType<FilesService['clientFor']>>,
+    safe: string,
+  ): Promise<number | null> {
+    const idx = safe.lastIndexOf('/');
+    const dir = idx <= 0 ? '/' : safe.slice(0, idx);
+    const name = safe.slice(idx + 1);
+    try {
+      const entries = await client.listDir(dir);
+      const hit = entries.find((e) => e.name === name && e.type === 'file');
+      return hit ? hit.sizeBytes : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async read(
+    subscriptionId: string,
+    userId: string,
+    path: string | undefined,
+  ): Promise<{ path: string; content: string }> {
+    const account = await this.requireAccount(subscriptionId, userId);
+    const safe = this.safePath(path);
+    if (safe === '/') throw new BadRequestException('Wskaż plik do odczytu.');
+    const client = await this.clientFor(account);
+    const size = await this.fileSizeBytes(client, safe);
+    if (size != null && size > MAX_EDIT_BYTES) {
+      throw new PayloadTooLargeException('Plik jest zbyt duży do edycji w panelu.');
+    }
+    const buf = await client.downloadFile(safe);
+    if (buf.length > MAX_EDIT_BYTES) {
+      throw new PayloadTooLargeException('Plik jest zbyt duży do edycji w panelu.');
+    }
+    return { path: safe, content: buf.toString('utf8') };
+  }
+
+  async download(
+    subscriptionId: string,
+    userId: string,
+    path: string | undefined,
+  ): Promise<{ filename: string; data: Buffer }> {
+    const account = await this.requireAccount(subscriptionId, userId);
+    const safe = this.safePath(path);
+    if (safe === '/') throw new BadRequestException('Wskaż plik do pobrania.');
+    const client = await this.clientFor(account);
+    // Guard memory: reject oversized files before loading them into RAM.
+    const size = await this.fileSizeBytes(client, safe);
+    if (size != null && size > MAX_DOWNLOAD_BYTES) {
+      throw new PayloadTooLargeException(
+        'Plik jest zbyt duży do pobrania przez panel (limit 100 MB). Użyj FTP.',
+      );
+    }
+    const data = await client.downloadFile(safe);
+    if (data.length > MAX_DOWNLOAD_BYTES) {
+      throw new PayloadTooLargeException(
+        'Plik jest zbyt duży do pobrania przez panel (limit 100 MB). Użyj FTP.',
+      );
+    }
+    return { filename: safe.split('/').pop() || 'plik', data };
+  }
+
+  async write(
+    subscriptionId: string,
+    userId: string,
+    dir: string | undefined,
+    filename: string,
+    content: string,
+  ): Promise<{ ok: true }> {
+    if (Buffer.byteLength(content ?? '', 'utf8') > MAX_WRITE_BYTES) {
+      throw new PayloadTooLargeException('Zawartość pliku jest zbyt duża.');
+    }
+    const account = await this.requireAccount(subscriptionId, userId);
+    const safeDir = this.safePath(dir);
+    const name = this.safeName(filename);
+    const client = await this.clientFor(account);
+    await client.writeFile(safeDir, name, content ?? '');
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_FILE_WRITTEN,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, accountId: account.id, path: `${safeDir}/${name}` },
+    });
+    return { ok: true };
+  }
+
+  async mkdir(
+    subscriptionId: string,
+    userId: string,
+    dir: string | undefined,
+    name: string,
+  ): Promise<{ ok: true }> {
+    const account = await this.requireAccount(subscriptionId, userId);
+    const safeDir = this.safePath(dir);
+    const safeName = this.safeName(name);
+    const client = await this.clientFor(account);
+    await client.makeDir(safeDir, safeName);
+    return { ok: true };
+  }
+
+  async rename(
+    subscriptionId: string,
+    userId: string,
+    dir: string | undefined,
+    oldName: string,
+    newName: string,
+  ): Promise<{ ok: true }> {
+    const account = await this.requireAccount(subscriptionId, userId);
+    const safeDir = this.safePath(dir);
+    const oldN = this.safeName(oldName);
+    const newN = this.safeName(newName);
+    const client = await this.clientFor(account);
+    await client.renameEntry(safeDir, oldN, newN);
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_FILE_RENAMED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, accountId: account.id, dir: safeDir, from: oldN, to: newN },
+    });
+    return { ok: true };
+  }
+
+  async remove(
+    subscriptionId: string,
+    userId: string,
+    dir: string | undefined,
+    names: string[],
+  ): Promise<{ ok: true; deleted: number }> {
+    if (!Array.isArray(names) || names.length === 0) {
+      throw new BadRequestException('Wskaż co najmniej jeden element do usunięcia.');
+    }
+    const account = await this.requireAccount(subscriptionId, userId);
+    const safeDir = this.safePath(dir);
+    const safeNames = names.map((n) => this.safeName(n));
+    const client = await this.clientFor(account);
+    await client.deleteEntries(safeDir, safeNames);
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_FILE_DELETED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, accountId: account.id, dir: safeDir, names: safeNames },
+    });
+    return { ok: true, deleted: safeNames.length };
+  }
+
+  async upload(
+    subscriptionId: string,
+    userId: string,
+    dir: string | undefined,
+    filename: string,
+    data: Buffer,
+  ): Promise<{ ok: true }> {
+    if (!data || data.length === 0) throw new BadRequestException('Pusty plik.');
+    if (data.length > MAX_WRITE_BYTES) {
+      throw new PayloadTooLargeException('Plik przekracza dozwolony rozmiar (25 MB).');
+    }
+    const account = await this.requireAccount(subscriptionId, userId);
+    const safeDir = this.safePath(dir);
+    const name = this.safeName(filename);
+    const client = await this.clientFor(account);
+    await client.uploadFile(safeDir, name, data);
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_FILE_UPLOADED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, accountId: account.id, path: `${safeDir}/${name}`, bytes: data.length },
+    });
+    return { ok: true };
+  }
+
+  /** Copies or moves entries between directories (DA clipboard flow). */
+  async transfer(
+    subscriptionId: string,
+    userId: string,
+    dir: string | undefined,
+    names: string[],
+    destDir: string | undefined,
+    mode: 'copy' | 'move',
+  ): Promise<{ ok: true; count: number }> {
+    if (!Array.isArray(names) || names.length === 0) {
+      throw new BadRequestException('Wskaż co najmniej jeden element.');
+    }
+    if (names.length > 100) {
+      throw new BadRequestException('Za dużo elementów naraz (limit 100).');
+    }
+    const account = await this.requireAccount(subscriptionId, userId);
+    const safeDir = this.safePath(dir);
+    const safeDest = this.safePath(destDir);
+    if (safeDest === safeDir) {
+      throw new BadRequestException('Katalog docelowy jest taki sam jak źródłowy.');
+    }
+    const safeNames = names.map((n) => this.safeName(n));
+    if (mode === 'move') {
+      // Przenoszenie katalogu do jego wnętrza kończy się pętlą — blokujemy.
+      for (const n of safeNames) {
+        const src = `${safeDir === '/' ? '' : safeDir}/${n}`;
+        if (safeDest === src || safeDest.startsWith(`${src}/`)) {
+          throw new BadRequestException('Nie można przenieść katalogu do jego wnętrza.');
+        }
+      }
+    }
+    const client = await this.clientFor(account);
+    await client.transferEntries(safeDir, safeNames, safeDest, mode);
+    await this.audit.record({
+      action:
+        mode === 'copy'
+          ? HostingResourceActions.HOSTING_FILE_COPIED
+          : HostingResourceActions.HOSTING_FILE_MOVED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, accountId: account.id, from: safeDir, to: safeDest, names: safeNames },
+    });
+    return { ok: true, count: safeNames.length };
+  }
+
+  /** Extracts an archive (zip/tar.gz/tar) into a directory on the account. */
+  async extract(
+    subscriptionId: string,
+    userId: string,
+    path: string | undefined,
+    destDir: string | undefined,
+  ): Promise<{ ok: true }> {
+    const account = await this.requireAccount(subscriptionId, userId);
+    const safe = this.safePath(path);
+    if (safe === '/') throw new BadRequestException('Wskaż archiwum do rozpakowania.');
+    if (!/\.(zip|tar\.gz|tgz|tar\.bz2|tar)$/i.test(safe)) {
+      throw new BadRequestException('Obsługiwane archiwa: .zip, .tar.gz, .tgz, .tar.bz2, .tar.');
+    }
+    const safeDest = this.safePath(destDir ?? safe.slice(0, safe.lastIndexOf('/')) ?? '/');
+    const client = await this.clientFor(account);
+    await client.extractArchive(safe, safeDest);
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_FILE_EXTRACTED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, accountId: account.id, archive: safe, to: safeDest },
+    });
+    return { ok: true };
+  }
+
+  /** Sets permissions (chmod) on entries in a directory. */
+  async chmod(
+    subscriptionId: string,
+    userId: string,
+    dir: string | undefined,
+    names: string[],
+    mode: string,
+  ): Promise<{ ok: true; count: number }> {
+    if (!Array.isArray(names) || names.length === 0) {
+      throw new BadRequestException('Wskaż co najmniej jeden element.');
+    }
+    const chmod = String(mode ?? '').trim();
+    if (!/^[0-7]{3,4}$/.test(chmod)) {
+      throw new BadRequestException('Uprawnienia podaj ósemkowo, np. 644 lub 755.');
+    }
+    const account = await this.requireAccount(subscriptionId, userId);
+    const safeDir = this.safePath(dir);
+    const safeNames = names.map((n) => this.safeName(n));
+    const client = await this.clientFor(account);
+    await client.chmodEntries(safeDir, safeNames, chmod);
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_FILE_CHMOD_SET,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, accountId: account.id, dir: safeDir, names: safeNames, chmod },
+    });
+    return { ok: true, count: safeNames.length };
+  }
+}

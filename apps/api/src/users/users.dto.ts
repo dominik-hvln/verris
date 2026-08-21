@@ -1,4 +1,17 @@
-import { IsString, IsOptional, MinLength, MaxLength, IsIn, IsInt, Min, Max } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  MinLength,
+  MaxLength,
+  IsIn,
+  IsInt,
+  Min,
+  Max,
+  IsArray,
+  ArrayMinSize,
+  ArrayMaxSize,
+} from 'class-validator';
+import { IsStrongPassword } from '../auth/password-policy.validator';
 
 export class UpdateProfileDto {
   @IsOptional()
@@ -36,6 +49,14 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsIn(['pl', 'en'])
   locale?: string;
+
+  /** Dokładnie 4 href z katalogu skrótów panelu klienta. */
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(4)
+  @ArrayMaxSize(4)
+  @IsString({ each: true })
+  sidebarQuickLinks?: string[];
 }
 
 export class ApplyReferralCodeDto {
@@ -50,8 +71,11 @@ export class ChangePasswordDto {
   @MinLength(1, { message: 'Aktualne hasło jest wymagane' })
   currentPassword: string;
 
+  // SEC-5 — ujednolicona polityka haseł (≥10 znaków, 3/4 klasy, blokada
+  // popularnych) — tak samo jak rejestracja i reset hasła.
   @IsString()
-  @MinLength(8, { message: 'Nowe hasło musi mieć minimum 8 znaków' })
+  @MaxLength(72)
+  @IsStrongPassword()
   newPassword: string;
 }
 

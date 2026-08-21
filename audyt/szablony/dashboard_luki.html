@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Verris — parytet funkcji hostingu</title>
+<style>
+  :root{
+    --surface:#fcfcfb; --panel:#ffffff; --ink:#0b0b0b; --ink2:#52514e; --muted:#898781;
+    --grid:#e6e5e1; --line:#d9d8d3;
+    --good:#0ca30c; --warn:#fab219; --serious:#ec835a; --critical:#d03b3b;
+    --accent:#2a6ba8; --accent-soft:#dbe8f4;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{ --surface:#1a1a19; --panel:#222220; --ink:#ffffff; --ink2:#c3c2b7; --muted:#898781;
+           --grid:#33322f; --line:#3d3c38; --accent:#6ea8dc; --accent-soft:#26364a; }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--surface);color:var(--ink);
+       font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Arial,sans-serif;}
+  .wrap{max-width:1500px;margin:0 auto;padding:32px 24px 80px}
+  h1{font-size:26px;margin:0 0 4px;letter-spacing:-.02em}
+  .sub{color:var(--ink2);font-size:14px;margin:0 0 6px}
+  .meta{color:var(--muted);font-size:12.5px;margin:0 0 28px}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:14px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+  .kpi .n{font-size:34px;font-weight:650;line-height:1.05;letter-spacing:-.02em}
+  .kpi .l{font-size:12.5px;color:var(--ink2);margin-top:6px}
+  .kpi .h{font-size:11.5px;color:var(--muted);margin-top:3px}
+  .kpi.crit{border-color:var(--critical)}
+  .kpi.crit .n{color:var(--critical)}
+
+  .callout{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--critical);
+           border-radius:8px;padding:14px 18px;margin:14px 0 30px;font-size:13.5px;color:var(--ink2)}
+  .callout b{color:var(--ink)}
+
+  h2{font-size:15px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);
+     margin:34px 0 14px;font-weight:600}
+
+  .chart{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:20px 22px}
+  .barrow{display:grid;grid-template-columns:230px 1fr 160px;align-items:center;gap:14px;
+          padding:5px 0;font-size:13px}
+  .barrow + .barrow{border-top:1px solid var(--grid)}
+  .barlabel{color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bartrack{position:relative;height:16px;background:var(--grid);border-radius:4px;overflow:hidden}
+  .barfill{position:absolute;left:0;top:0;bottom:0;background:var(--accent);border-radius:4px}
+  .barfill.blk{background:var(--critical)}
+  .barnum{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums;font-size:12.5px;white-space:nowrap}
+  .barnum b{color:var(--ink);font-weight:600}
+
+  .filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:18px 0 12px}
+  select,input[type=search]{background:var(--panel);color:var(--ink);border:1px solid var(--line);
+    border-radius:7px;padding:8px 11px;font-size:13.5px;font-family:inherit}
+  input[type=search]{min-width:250px;flex:1}
+  .count{color:var(--muted);font-size:13px;margin-left:auto;white-space:nowrap}
+  button.reset{background:transparent;border:1px solid var(--line);color:var(--ink2);
+    border-radius:7px;padding:8px 12px;font-size:13px;cursor:pointer;font-family:inherit}
+
+  table{width:100%;border-collapse:collapse;background:var(--panel);
+        border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:13px}
+  thead th{position:sticky;top:0;background:var(--panel);text-align:left;font-weight:600;
+    color:var(--ink2);font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;
+    padding:11px 10px;border-bottom:2px solid var(--line);z-index:2;cursor:pointer;white-space:nowrap}
+  thead th:hover{color:var(--ink)}
+  tbody td{padding:10px;border-top:1px solid var(--grid);vertical-align:top}
+  tbody tr:hover{background:var(--accent-soft)}
+  .fname{font-weight:550}
+  .idc{color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap;font-size:12px}
+  .ev{color:var(--ink2);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11.5px;
+      max-width:340px;word-break:break-word}
+  .note{color:var(--muted);font-size:12px;max-width:330px}
+
+  .tag{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:20px;
+       font-size:11.5px;font-weight:600;white-space:nowrap;border:1px solid transparent}
+  .dot{width:7px;height:7px;border-radius:50%;flex:none}
+  .t-good{color:var(--good);border-color:var(--good)} .t-good .dot{background:var(--good)}
+  .t-acc{color:var(--accent);border-color:var(--accent)} .t-acc .dot{background:var(--accent)}
+  .t-warn{color:#8a6100;border-color:var(--warn)} .t-warn .dot{background:var(--warn)}
+  .t-ser{color:#a04a22;border-color:var(--serious)} .t-ser .dot{background:var(--serious)}
+  .t-crit{color:var(--critical);border-color:var(--critical)} .t-crit .dot{background:var(--critical)}
+  .t-mut{color:var(--muted);border-color:var(--line)} .t-mut .dot{background:var(--muted)}
+  @media (prefers-color-scheme: dark){ .t-warn{color:var(--warn)} .t-ser{color:var(--serious)} }
+  .crit-cell{color:var(--critical);font-weight:650;font-size:11.5px;white-space:nowrap}
+
+  .mkt{display:inline-block;width:26px;text-align:center;font-size:11.5px;font-weight:600;
+       border-radius:4px;padding:2px 0}
+  .m-y{background:rgba(12,163,12,.15);color:var(--good)}
+  .m-p{background:rgba(236,131,90,.18);color:#a04a22}
+  .m-c{background:rgba(250,178,25,.2);color:#8a6100}
+  .m-n{background:var(--grid);color:var(--muted)}
+  @media (prefers-color-scheme: dark){ .m-p{color:var(--serious)} .m-c{color:var(--warn)} }
+  footer{margin-top:44px;padding-top:20px;border-top:1px solid var(--line);
+         color:var(--muted);font-size:12.5px;line-height:1.7}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Verris — parytet funkcji wobec rynku</h1>
+  <p class="sub">Audyt zewnętrzny · 352 pozycje · po passie adwersaryjnym · dowód dwustronny: dokumentacja producenta po stronie konkurencji, plik:linia w repozytorium po stronie Verrisa</p>
+  <p class="meta">Stan na 20 sierpnia 2026 · panele: cPanel · Plesk · DirectAdmin — rynek PL: cyber_Folks · dhosting · home.pl · nazwa.pl · seohost — nowa fala: Hostinger hPanel · SiteGround Site Tools · Cloudways</p>
+
+  <div class="kpis" id="kpis"></div>
+
+  <div class="callout">
+    <b>Jak czytać te liczby.</b> Procent pokrycia jest metryką opisową i nie jest kryterium startu — wysoki parytet przy braku potwierdzonego odtworzenia kopii to zero procent gotowości. Decyzję podejmuje się wyłącznie na podstawie liczby blokerów. Osobno: poziom dowodu <b>D2 (test przechodzi w CI) wynosi 0% dla całego produktu</b>, ponieważ katalog CI nie istnieje w repozytorium — 36 testów obecnych w kodzie nie jest uruchamiane automatycznie przez nic.<br><br>
+    <b>Ten wynik przeszedł pass adwersaryjny.</b> 11 z 66 twierdzeń o przewadze zostało obalonych lub osłabionych, 16 z 27 pierwotnych blokerów zdegradowano po konfrontacji z definicją, a kategoria <b>Z</b> zawiera 7 pozycji, których pierwsze przejście nie zauważyło — w tym wykonanie polecenia jako root na węźle z formularza migracji w panelu klienta.
+  </div>
+
+  <h2>Pokrycie per kategoria</h2>
+  <div class="chart" id="chart"></div>
+
+  <h2>Macierz funkcji</h2>
+  <div class="filters">
+    <select id="fkat"><option value="">Wszystkie kategorie</option></select>
+    <select id="fw"><option value="">Każdy werdykt</option></select>
+    <select id="fst"><option value="">Każdy stan Verris</option></select>
+    <select id="fkr"><option value="">Każda krytyczność</option></select>
+    <input type="search" id="q" placeholder="Szukaj w funkcji, dowodzie, uwagach…">
+    <button class="reset" id="reset">Wyczyść</button>
+    <span class="count" id="count"></span>
+  </div>
+  <table>
+    <thead><tr>
+      <th data-s="id">ID</th><th data-s="f">Funkcja</th>
+      <th data-s="cp">cP</th><th data-s="pl">Ple</th><th data-s="da">DA</th>
+      <th data-s="rp">PL</th><th data-s="nf">NF</th>
+      <th data-s="st">Verris</th><th data-s="dow">Dowód</th>
+      <th data-s="w">Werdykt</th><th data-s="kr">Kryt.</th><th data-s="u">Uwagi</th>
+    </tr></thead>
+    <tbody id="tb"></tbody>
+  </table>
+
+  <footer>
+    <b>Legenda kolumn rynku:</b> cP = cPanel · Ple = Plesk · DA = DirectAdmin · PL = mediana pięciu hostingów polskich · NF = panele nowej fali. Wartości: <span class="mkt m-y">T</span> tak · <span class="mkt m-p">P</span> płatny dodatek · <span class="mkt m-c">C</span> częściowo lub tylko część dostawców · <span class="mkt m-n">–</span> nie / brak danych.<br>
+    <b>Stan Verris:</b> DZIAŁA = pełny łańcuch UI → API → serwis → realny zasób · CZĘŚCIOWE = działa z istotnym ograniczeniem · FLAGA = zależne od zmiennej środowiskowej · ATRAPA = UI bez działającego backendu · ENDPOINT BEZ UI = backend gotowy, żaden panel go nie woła · BRAK = nie ma ani UI, ani backendu.<br>
+    <b>Werdykt liczony wobec kolumny PL</b>, nie wobec sumy możliwości paneli — żaden hosting nie wystawia klientowi pełnej powierzchni cPanela.<br>
+    <b>Ograniczenia:</b> audyt nie obejmuje jakości UX, wydajności, testów penetracyjnych, unit economics ani weryfikacji na środowisku produkcyjnym (poziom dowodu D3). Pozycje oznaczone „b.d.” nie były publicznie potwierdzone u dostawcy.
+  </footer>
+</div>
+
+<script>
+const DB = __DATA__;
+const rows = DB.rows, KATS = DB.kats;
+
+const MK = {"TAK":["m-y","T"],"PŁATNE":["m-p","P"],"CZĘŚĆ":["m-c","C"],"NIE":["m-n","–"],"b.d.":["m-n","?"],"—":["m-n","–"]};
+const WCLS = {"PARYTET":"t-good","PRZEWAGA":"t-acc","CZĘŚCIOWY":"t-warn","LUKA":"t-crit","POZA ZAKRESEM":"t-mut"};
+const SCLS = {"DZIAŁA":"t-good","CZĘŚCIOWE":"t-warn","FLAGA":"t-warn","ATRAPA":"t-ser","ENDPOINT BEZ UI":"t-ser","BRAK":"t-crit","b.d.":"t-mut"};
+
+function tag(txt, cls){ return '<span class="tag '+cls+'"><span class="dot"></span>'+txt+'</span>'; }
+function mk(v){ const m = MK[v] || ["m-n","–"]; return '<span class="mkt '+m[0]+'" title="'+v+'">'+m[1]+'</span>'; }
+
+// ---- KPI ----
+const nBlk = rows.filter(r=>r.kr==="BLOKER STARTU").length;
+const nLuk = rows.filter(r=>r.w==="LUKA").length;
+const nOk  = rows.filter(r=>r.w==="PARYTET"||r.w==="PRZEWAGA").length;
+const nPrz = rows.filter(r=>r.w==="PRZEWAGA").length;
+const nGho = rows.filter(r=>r.st==="ATRAPA"||r.st==="ENDPOINT BEZ UI").length;
+document.getElementById('kpis').innerHTML = [
+  ['crit', nBlk, 'blokerów startu', 'każdy musi być zamknięty przed sprzedażą pierwszego konta'],
+  ['', nOk+' / '+rows.length, 'parytet lub przewaga', Math.round(nOk/rows.length*100)+'% pozycji — metryka opisowa, nie kryterium'],
+  ['', nPrz, 'realnych przewag', 'po obaleniu 11 twierdzeń w passie adwersaryjnym'],
+  ['', nLuk, 'luk wobec rynku', 'rynek to ma, my nie'],
+  ['', nGho, 'funkcji-widm', 'UI bez backendu albo backend bez UI'],
+  ['crit', '0%', 'dowód D2 (test w CI)', 'katalog CI nie istnieje w repozytorium'],
+].map(k=>'<div class="kpi '+k[0]+'"><div class="n">'+k[1]+'</div><div class="l">'+k[2]+'</div><div class="h">'+k[3]+'</div></div>').join('');
+
+// ---- wykres pokrycia ----
+const kOrder = Object.keys(KATS).sort();
+document.getElementById('chart').innerHTML = kOrder.map(k=>{
+  const s = rows.filter(r=>r.kat===k);
+  const ok = s.filter(r=>r.w==="PARYTET"||r.w==="PRZEWAGA").length;
+  const blk = s.filter(r=>r.kr==="BLOKER STARTU").length;
+  const pct = s.length ? Math.round(ok/s.length*100) : 0;
+  return '<div class="barrow"><div class="barlabel" title="'+KATS[k]+'">'+KATS[k]+'</div>'
+    +'<div class="bartrack"><div class="barfill'+(blk?' blk':'')+'" style="width:'+pct+'%"></div></div>'
+    +'<div class="barnum"><b>'+pct+'%</b> · '+ok+'/'+s.length+(blk?' · <span style="color:var(--critical);font-weight:600">'+blk+' blok.</span>':'')+'</div></div>';
+}).join('');
+
+// ---- filtry ----
+function fill(id, vals){ const el=document.getElementById(id);
+  vals.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; el.appendChild(o); }); }
+fill('fkat', kOrder.map(k=>KATS[k]));
+fill('fw', ["PARYTET","PRZEWAGA","CZĘŚCIOWY","LUKA","POZA ZAKRESEM"]);
+fill('fst', ["DZIAŁA","CZĘŚCIOWE","FLAGA","ATRAPA","ENDPOINT BEZ UI","BRAK","b.d."]);
+fill('fkr', ["BLOKER STARTU","WYSOKA","ŚREDNIA","NISKA"]);
+
+let sortKey=null, sortDir=1;
+function render(){
+  const kat=document.getElementById('fkat').value, w=document.getElementById('fw').value,
+        st=document.getElementById('fst').value, kr=document.getElementById('fkr').value,
+        q=document.getElementById('q').value.trim().toLowerCase();
+  let out = rows.filter(r=>{
+    if(kat && KATS[r.kat]!==kat) return false;
+    if(w && r.w!==w) return false;
+    if(st && r.st!==st) return false;
+    if(kr && r.kr!==kr) return false;
+    if(q && !((r.f+' '+r.dow+' '+r.u+' '+r.id).toLowerCase().includes(q))) return false;
+    return true;
+  });
+  if(sortKey) out.sort((a,b)=>String(a[sortKey]).localeCompare(String(b[sortKey]),'pl')*sortDir);
+  document.getElementById('count').textContent = out.length+' z '+rows.length+' pozycji';
+  document.getElementById('tb').innerHTML = out.map(r=>
+    '<tr><td class="idc">'+r.id+'</td>'
+    +'<td class="fname">'+r.f+'</td>'
+    +'<td>'+mk(r.cp)+'</td><td>'+mk(r.pl)+'</td><td>'+mk(r.da)+'</td>'
+    +'<td>'+mk(r.rp)+'</td><td>'+mk(r.nf)+'</td>'
+    +'<td>'+tag(r.st, SCLS[r.st]||'t-mut')+'</td>'
+    +'<td class="ev">'+(r.dow==='—'?'':r.dow)+'</td>'
+    +'<td>'+tag(r.w, WCLS[r.w]||'t-mut')+'</td>'
+    +'<td>'+(r.kr==="BLOKER STARTU"?'<span class="crit-cell">BLOKER</span>':(r.kr==='—'?'':'<span style="color:var(--ink2);font-size:11.5px">'+r.kr+'</span>'))+'</td>'
+    +'<td class="note">'+r.u+'</td></tr>').join('');
+}
+['fkat','fw','fst','fkr'].forEach(id=>document.getElementById(id).addEventListener('change',render));
+document.getElementById('q').addEventListener('input',render);
+document.getElementById('reset').addEventListener('click',()=>{
+  ['fkat','fw','fst','fkr'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('q').value=''; sortKey=null; render();
+});
+document.querySelectorAll('thead th').forEach(th=>th.addEventListener('click',()=>{
+  const k=th.dataset.s; if(!k) return;
+  sortDir = (sortKey===k) ? -sortDir : 1; sortKey=k; render();
+}));
+render();
+</script>
+</body>
+</html>

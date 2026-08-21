@@ -3,21 +3,28 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LifeBuoy,
   MessageSquare,
   Inbox,
   LogOut,
   Users,
+  UserPlus,
   BookOpen,
   Settings,
+  Archive,
 } from "lucide-react";
+import { GrafanaOpsLink, grafanaSsoHref } from "./grafana-ops-link";
+import { CommandPalette } from "./command-palette";
+import { VerrisMark } from "./verris-mark";
+import { StaffNotificationBell } from "./staff-notification-bell";
 import type { StaffProfile } from "@/lib/staff-session";
 import { staffLogout } from "@/lib/staff-auth-actions";
 
 const navItems = [
   { name: "Skrzynka", href: "/", icon: Inbox },
   { name: "Aktywne", href: "/tickets/active", icon: MessageSquare },
+  { name: "Zamknięte", href: "/tickets/closed", icon: Archive },
   { name: "Klienci", href: "/crm", icon: Users },
+  { name: "Program partnerski", href: "/referral-enrollments", icon: UserPlus },
   { name: "Knowledge", href: "/knowledge", icon: BookOpen },
   { name: "Ustawienia", href: "/settings", icon: Settings },
 ];
@@ -35,16 +42,17 @@ export function StaffShell({
   return (
     <div className="relative z-10 flex min-h-screen">
       <aside className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-white/5 bg-black/40 backdrop-blur-3xl shadow-2xl">
-        <div className="flex h-20 items-center border-b border-white/5 px-6">
+        <div className="flex h-20 items-center justify-between border-b border-white/5 px-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br from-cyan-500 to-blue-600 border border-white/10">
-              <LifeBuoy className="h-5 w-5 text-white" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#0c1a14] border border-[#34e5a0]/30 shadow-[0_0_20px_rgba(52,229,160,0.25)]">
+              <VerrisMark className="h-6 w-6 text-[#f4f4ee]" />
             </div>
             <div>
               <span className="text-sm font-bold tracking-tight text-white">Verris </span>
               <span className="text-sm font-bold tracking-tight text-cyan-400">Support</span>
             </div>
           </div>
+          <StaffNotificationBell />
         </div>
 
         <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-6">
@@ -67,6 +75,16 @@ export function StaffShell({
               </Link>
             );
           })}
+          {grafanaSsoHref() && (
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <p className="mb-2 px-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                Monitoring
+              </p>
+              <div className="px-1">
+                <GrafanaOpsLink session={session} />
+              </div>
+            </div>
+          )}
         </nav>
 
         <div className="border-t border-white/5 p-4 bg-black/20 space-y-2">
@@ -93,8 +111,11 @@ export function StaffShell({
       </aside>
 
       <div className="relative flex flex-1 flex-col pl-72">
-        <header className="sticky top-0 z-40 flex h-14 items-center border-b border-white/5 bg-black/30 px-8 backdrop-blur-md">
+        <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b border-white/5 bg-black/30 px-8 backdrop-blur-md">
           <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Panel BOK</p>
+          <div className="ml-auto">
+            <CommandPalette />
+          </div>
         </header>
         <main className="flex-1 p-8">{children}</main>
       </div>

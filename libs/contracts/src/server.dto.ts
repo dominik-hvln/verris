@@ -28,6 +28,11 @@ export interface ServerSummaryDto {
   allocatedMemory: number;
   allocatedDisk: number;
 
+  // OPS-1 — capacity guardrails (placement policy)
+  acceptsNewAccounts: boolean;
+  maxAccounts: number | null;
+  reservedHeadroomPercent: number;
+
   agentVersion: string | null;
   lastHandshakeAt: string | null;
   lastHeartbeatAt: string | null;
@@ -36,7 +41,22 @@ export interface ServerSummaryDto {
   daPort: number | null;
   daUsername: string | null;
   daUseTls: boolean;
+  /** Audit F-04: true = node accepts an unverified (self-signed) DA TLS cert. */
+  daAllowInvalidCert?: boolean;
   daPasswordSet: boolean;
+
+  // DB-1 / VER-UPG — silnik i wersja DB węzła (telemetria agenta) + docelowa
+  // wersja wybrana w panelu przy zleceniu upgrade'u MariaDB.
+  dbEngine?: string | null;
+  dbVersion?: string | null;
+  dbCheckedAt?: string | null;
+  targetDbVersion?: string | null;
+  dbUpgradeRequestedAt?: string | null;
+
+  /** Per-node authoritative nameservers (null = inherit platform default). */
+  ns1: string | null;
+  ns2: string | null;
+  ns3: string | null;
 
   approvedAt: string | null;
   approvedById: string | null;
@@ -53,9 +73,30 @@ export interface ServerSummaryDto {
   _count?: { accounts: number };
 }
 
+export interface NodeNameserversDto {
+  serverId: string;
+  ns1: string | null;
+  ns2: string | null;
+  ns3: string | null;
+  effective: {
+    ns1: string;
+    ns2: string;
+    ns3: string;
+    source: 'node' | 'platform' | 'none';
+  };
+  platformDefault: { ns1: string; ns2: string; ns3: string };
+}
+
+export interface UpdateNameserversInput {
+  ns1?: string;
+  ns2?: string;
+  ns3?: string;
+}
+
 export interface InitServerInput {
   name: string;
-  hostname?: string;
+  /** Required FQDN for bootstrap v2 (TLS wildcard + panel links resolve by hostname). */
+  hostname: string;
   region?: string;
   notes?: string;
 }
@@ -80,10 +121,18 @@ export interface UpdateDirectAdminConfigInput {
   daUsername: string;
   daPassword?: string;
   daUseTls?: boolean;
+  /** Audit F-04: onboarding-only escape hatch for self-signed DA certs. */
+  daAllowInvalidCert?: boolean;
 }
 
 export interface DirectAdminTestResultDto {
   ok: boolean;
   sampleCount?: number;
   error?: string;
+  /** Login-key scope probe — provisioning needs both packages + accounts. */
+  scope?: {
+    packages: boolean;
+    accounts: boolean;
+    packageCount: number | null;
+  };
 }

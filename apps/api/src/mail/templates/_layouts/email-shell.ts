@@ -68,22 +68,39 @@ export interface EmailShellOutput {
 
 // ------------------------------------------------------------------ palette
 
-/** Barwy spójne z panelem Verris, ale stonowane do jasnego tła maila. */
+/**
+ * Barwy spójne z KV panelu Verris (motyw eko/zielony). Źródło prawdy:
+ * globals.css paneli — pine/green/mint/paper. Nagłówek maila = ciemny pine
+ * (jak sidebar panelu), treść na jasnym „paper" dla czytelności.
+ */
 const PALETTE = {
-  text: '#0a0a0a',
-  textSecondary: '#404040',
-  textMuted: '#737373',
-  background: '#f5f5f5',
+  text: '#0c1a14', // verris-pine
+  textSecondary: '#3f4a44',
+  textMuted: '#737d77',
+  background: '#f4f4ee', // verris-paper
   card: '#ffffff',
-  border: '#e5e5e5',
-  borderStrong: '#d4d4d4',
-  accent: '#0284c7', // sky-600
-  accentHover: '#075985', // sky-800
-  accentSurface: '#f0f9ff', // sky-50
-  success: '#047857', // emerald-700
-  warning: '#b45309', // amber-700
-  danger: '#b91c1c', // red-700
+  border: '#e3e3da',
+  borderStrong: '#d3d3c8',
+  accent: '#0f7a52', // verris-green (primary)
+  accentHover: '#0b5d3e',
+  accentSurface: '#eaf7f0', // jasny mint tint
+  // Nagłówek (KV) — ciemny gradientowy pine z mint akcentem.
+  headerBg: '#0c1a14', // verris-pine
+  headerBgAlt: '#0e1f17', // verris-card
+  onDark: '#f4f4ee', // paper na ciemnym
+  onDarkMuted: '#9aa39c', // verris-stone
+  mint: '#34e5a0', // verris-mint (akcent znaku)
+  success: '#0f7a52',
+  warning: '#b45309',
+  danger: '#b91c1c',
 } as const;
+
+/** Publiczny URL znaku Verris (PNG serwowany przez API `/brand/logo.png`). */
+const BRAND_LOGO_URL =
+  (process.env.PUBLIC_API_URL || process.env.API_BASE_URL || 'https://api.verris.pl').replace(
+    /\/$/,
+    '',
+  ) + '/brand/logo.png';
 
 // ------------------------------------------------------------------ helpers
 
@@ -261,18 +278,27 @@ ${preheaderTrick}
   <tr>
     <td align="center" style="padding:32px 16px;">
       <table role="presentation" border="0" cellspacing="0" cellpadding="0" width="600" style="max-width:600px;width:100%;background:${PALETTE.card};border:1px solid ${PALETTE.border};border-radius:14px;overflow:hidden;">
-        <!-- Header / brand -->
+        <!-- Header / brand (KV: ciemny pine + mint akcent) -->
         <tr>
-          <td style="padding:24px 32px 20px;border-bottom:1px solid ${PALETTE.border};">
+          <td bgcolor="${PALETTE.headerBg}" style="padding:22px 32px;background:${PALETTE.headerBg};background-image:linear-gradient(135deg,${PALETTE.headerBg} 0%,${PALETTE.headerBgAlt} 100%);border-bottom:2px solid ${PALETTE.mint};">
             <table role="presentation" border="0" cellspacing="0" cellpadding="0" width="100%">
               <tr>
                 <td>
-                  <a href="${escapeHtml(panelUrl)}" style="text-decoration:none;color:${PALETTE.text};">
-                    <span style="display:inline-block;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:20px;font-weight:800;letter-spacing:-0.02em;color:${PALETTE.text};">Verris</span>
+                  <a href="${escapeHtml(panelUrl)}" style="text-decoration:none;">
+                    <table role="presentation" border="0" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td valign="middle" width="36" style="width:36px;">
+                          <img src="${BRAND_LOGO_URL}" width="36" height="36" alt="Verris" style="display:block;width:36px;height:36px;border:0;outline:none;text-decoration:none;" />
+                        </td>
+                        <td valign="middle" style="padding-left:10px;">
+                          <span style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:22px;font-weight:800;letter-spacing:-0.045em;color:${PALETTE.onDark};">verris</span><span style="color:${PALETTE.mint};font-size:22px;font-weight:800;">.</span>
+                        </td>
+                      </tr>
+                    </table>
                   </a>
                 </td>
                 <td align="right">
-                  <span style="display:inline-block;font-size:11px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;color:${PALETTE.textMuted};">Hosting nowej generacji</span>
+                  <span style="display:inline-block;font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:${PALETTE.onDarkMuted};">Skaluj świadomie</span>
                 </td>
               </tr>
             </table>
@@ -301,7 +327,7 @@ ${preheaderTrick}
             <table role="presentation" border="0" cellspacing="0" cellpadding="0" width="100%">
               <tr>
                 <td>
-                  <p style="margin:0 0 6px;color:${PALETTE.textSecondary};font-size:12px;line-height:1.5;font-weight:600;">Verris — hosting nowej generacji</p>
+                  <p style="margin:0 0 6px;color:${PALETTE.textSecondary};font-size:12px;line-height:1.5;font-weight:600;">Verris — skaluj świadomie</p>
                   <p style="margin:0 0 6px;color:${PALETTE.textMuted};font-size:11px;line-height:1.5;">
                     Kontakt: <a href="mailto:kontakt@verris.pl" style="color:${PALETTE.accent};text-decoration:none;">kontakt@verris.pl</a>
                     &middot; RODO: <a href="mailto:rodo@verris.pl" style="color:${PALETTE.accent};text-decoration:none;">rodo@verris.pl</a>

@@ -1,184 +1,123 @@
 # Polityka prywatności Verris
 
-> **DRAFT — wymaga lawyer review.** Spełnia obowiązek informacyjny z art. 13 i 14 RODO.
+**Wersja 1.0.1 · obowiązuje od 8 lipca 2026 r.**
+
+Niniejsza Polityka realizuje obowiązki informacyjne z art. 13 i 14 RODO wobec klientów Verris, użytkowników subkont oraz osób odwiedzających panel i strony Verris.
 
 ## 1. Administrator danych
 
-Administratorem Twoich danych osobowych jest:
+Administratorem Twoich danych osobowych jest **HVLN Dominik Kowalski** z siedzibą pod adresem Zacisze 2A, 65-775 Zielona Góra, wpisany do Centralnej Ewidencji i Informacji o Działalności Gospodarczej, NIP 9292069367, REGON 521024260.
 
-- **HVLN Dominik Kowalski**
-- z siedzibą pod adresem Zacisze 2A, 65-775 Zielona Góra,
-- wpisany do Centralnej Ewidencji i Informacji o Działalności Gospodarczej,
-- NIP 9292069367, REGON 521024260,
-- e-mail kontaktowy: `kontakt@hvln.pl`,
-- e-mail w sprawach RODO: `iod@hvln.pl`.
-
-Wszystkie pytania dotyczące przetwarzania danych osobowych kierujesz na adres `iod@hvln.pl`, a my odpowiadamy w ciągu 30 dni.
+Kontakt: e-mail `kontakt@verris.pl`, telefon +48 511 589 465. We wszystkich sprawach dotyczących danych osobowych: **`rodo@verris.pl`**. Na żądania dotyczące Twoich praw odpowiadamy bez zbędnej zwłoki, najpóźniej w ciągu miesiąca.
 
 ## 2. Jakie dane przetwarzamy
 
-W trakcie korzystania z Verris zbieramy i przetwarzamy:
+### 2.1 Dane konta
+Adres e-mail, hasło (wyłącznie w postaci hasha bcrypt), imię i nazwisko, opcjonalnie numer telefonu, preferencje językowe, dane uwierzytelniania dwuskładnikowego (sekret TOTP szyfrowany AES-256-GCM, kody zapasowe w postaci hashy, klucze passkey).
 
-### 2.1 Dane konta i Klienta
+### 2.2 Dane rozliczeniowe
+Dane do faktur (nazwa, adres, NIP przy fakturach na działalność), saldo Portfela i historia transakcji, numery i treść faktur, identyfikator klienta u operatora płatności Stripe oraz identyfikatory zapisanych metod płatności — pełny numer karty zna wyłącznie Stripe; my widzimy tylko cztery ostatnie cyfry i typ karty.
 
-- adres e-mail, hasło (przechowywane jako hash bcrypt — nigdy nie widzimy hasła w postaci jawnej),
-- imię i nazwisko,
-- numer telefonu (opcjonalnie),
-- nazwa firmy, NIP, adres siedziby (jeśli faktura B2B),
-- preferowany język i strefa czasowa,
-- dane uwierzytelniania dwuskładnikowego (TOTP secret zaszyfrowany AES-256-GCM, kody backup zahashowane bcrypt).
+### 2.3 Dane techniczne i bezpieczeństwa
+Adres IP, przeglądarka (User-Agent) i znaczniki czasu logowań, dziennik audytu operacji na koncie, alerty bezpieczeństwa, logi doręczeń e-mail, dane sesji (token w cookie httpOnly).
 
-### 2.2 Dane techniczne i operacyjne
+### 2.4 Dane usług
+Nazwa konta DirectAdmin, podłączone domeny i konfiguracja DNS, nazwy baz danych i kont e-mail, zagregowane metryki zużycia zasobów (CPU, RAM, dysk), parametry serwerów VPS, dane abonenta rejestrowanych domen. **Nie analizujemy treści** Twoich stron, plików, wiadomości ani baz danych — w tym zakresie działamy wyłącznie jako podmiot przetwarzający na Twoje polecenie (zob. pkt 3 i DPA).
 
-- adres IP, User-Agent, znacznik czasu logowania (`LoginAttempt`, retencja 90 dni),
-- dane sesji (token JWT przechowywany w cookie httpOnly),
-- logi audytu operacji (`AuditLog`, retencja 12 miesięcy),
-- logi bezpieczeństwa (`SecurityAlert`, retencja 12 miesięcy),
-- logi e-mail (status doręczenia, retencja 12 miesięcy).
+### 2.5 Dane wsparcia i komunikacji
+Treść zgłoszeń (ticketów) z załącznikami, korespondencja e-mail, preferencje powiadomień, zgody marketingowe wraz z historią ich wyrażenia i wycofania (wersja dokumentu, data, IP).
 
-### 2.3 Dane finansowe
+### 2.6 Subkonta (IAM)
+Adres e-mail i imię użytkownika subkonta, nadane role i uprawnienia, logi zaproszeń, akceptacji i operacji. Dane te otrzymujemy od właściciela konta, który zaprasza subkonto (art. 14 RODO — źródłem danych jest właściciel konta).
 
-- saldo Portfela i historia transakcji,
-- numery faktur i ich treść (retencja 5 lat — wymóg polskiego prawa podatkowego),
-- token Stripe Customer (`stripeCustomerId`) i identyfikatory zapisanych metod płatności (sam numer karty jest u Stripe — my widzimy tylko ostatnie 4 cyfry i typ karty),
-- historia subskrypcji.
+## 3. Dwie role Verris
 
-### 2.4 Dane Usługi (DirectAdmin / hosting)
+W zakresie danych opisanych w pkt 2 Verris jest **administratorem**. W zakresie danych, które przechowujesz lub przetwarzasz w ramach swoich usług (pliki i bazy Twoich serwisów, skrzynki Twoich użytkowników, listy odbiorców kampanii e-mail, dane na Twoim VPS), administratorem jesteś **Ty**, a Verris działa jako **podmiot przetwarzający** na podstawie Umowy powierzenia przetwarzania danych (DPA) dostępnej w Panelu.
 
-- nazwa konta DirectAdmin, używane domeny, baza danych, e-mail,
-- dane techniczne serwera (zużycie CPU, RAM, dysku — agregaty, nie zawartość plików).
-- **NIE przetwarzamy** treści Twoich stron, wiadomości e-mail, baz danych — to Twoje dane, my udostępniamy tylko infrastrukturę. W zakresie tej infrastruktury jesteśmy podmiotem przetwarzającym (zob. **DPA**).
+## 4. Cele, podstawy prawne i okresy przetwarzania
 
-### 2.5 Dane wsparcia
-
-- treść zgłoszeń (ticketów), załączniki, e-maile,
-- preferencje powiadomień e-mail.
-
-## 3. Cele i podstawy prawne przetwarzania
-
-Przetwarzamy Twoje dane na podstawach z art. 6 RODO:
-
-| Cel | Podstawa | Czas retencji |
+| Cel | Podstawa (art. 6 RODO) | Okres |
 | --- | --- | --- |
-| Świadczenie Usługi (założenie konta, hosting, billing, support) | art. 6 ust. 1 lit. b — wykonanie Umowy | przez czas trwania Umowy + grace 14 dni |
-| Wystawianie faktur i rozliczenia podatkowe | art. 6 ust. 1 lit. c — obowiązek prawny (ustawa o VAT, ordynacja podatkowa) | 5 lat od końca roku rozliczeniowego |
-| Bezpieczeństwo Usługi (logi, ochrona przed nadużyciami, audyt) | art. 6 ust. 1 lit. f — uzasadniony interes Verris i Klientów | 90 dni dla LoginAttempt, 12 miesięcy dla AuditLog/SecurityAlert |
-| Komunikacja z Klientem (transakcyjne e-maile, alerty bezpieczeństwa) | art. 6 ust. 1 lit. b — wykonanie Umowy | 12 miesięcy dla EmailLog |
-| Marketing własny (newsletter, oferty Verris) | art. 6 ust. 1 lit. a — zgoda (jeśli wyrazisz) | do czasu wycofania zgody |
-| Profilowanie marketingowe | art. 6 ust. 1 lit. a — zgoda (jeśli wyrazisz) | do czasu wycofania zgody |
-| Reklamacje i obsługa roszczeń | art. 6 ust. 1 lit. f + lit. c | 6 lat od końca Umowy (przedawnienie roszczeń, art. 118 KC) |
-| Statystyki i analityka serwisu | art. 6 ust. 1 lit. f — uzasadniony interes (poprawa jakości) | dane zagregowane, niezidentyfikowane |
+| Zawarcie i wykonanie umowy: konto, świadczenie usług, rozliczenia, wsparcie | ust. 1 lit. b | czas trwania umowy; po usunięciu konta 14 dni okresu przywracania, następnie anonimizacja |
+| Wystawianie i przechowywanie faktur, rozliczenia podatkowe (w tym KSeF) | ust. 1 lit. c (ustawa o VAT, Ordynacja podatkowa) | 5 lat od końca roku podatkowego |
+| Bezpieczeństwo usług: logi logowań, audyt, wykrywanie nadużyć, anty-bot | ust. 1 lit. f — uzasadniony interes Verris i klientów | logi logowań 180 dni; adresy IP i User-Agent w dzienniku audytu anonimizowane po 24 miesiącach; zapisy zdarzeń płatniczych (deduplikacja) 90 dni |
+| Komunikacja transakcyjna (potwierdzenia, powiadomienia o usługach i płatnościach) | ust. 1 lit. b | logi doręczeń 12 miesięcy |
+| Rozpatrywanie zgłoszeń DSA (abuse) i decyzji moderacyjnych | ust. 1 lit. c (DSA) oraz lit. f | czas postępowania + okres przedawnienia roszczeń |
+| Marketing własny (newsletter, informacje o nowościach) | ust. 1 lit. a — zgoda | do wycofania zgody |
+| Statystyki korzystania z serwisu (Google Analytics 4, tagi przez Google Tag Manager) | ust. 1 lit. a — zgoda wyrażona w banerze cookies | dane zdarzeń w GA4 do 14 miesięcy; cookies wg Polityki cookies |
+| Pomiar skuteczności i dopasowanie reklam (Google Ads, Meta Pixel), w tym remarketing | ust. 1 lit. a — zgoda wyrażona w banerze cookies | do wycofania zgody; cookies wg Polityki cookies |
+| Obrona i dochodzenie roszczeń, obsługa reklamacji | ust. 1 lit. f | do upływu terminów przedawnienia (co do zasady 6 lat, art. 118 KC) |
+| Wykonywanie obowiązków z RODO (rejestr zgód, obsługa żądań) | ust. 1 lit. c | historia zgód i żądań przez czas konta + okres przedawnienia |
 
-## 4. Komu udostępniamy dane
+Podanie danych oznaczonych w formularzach jako wymagane jest warunkiem zawarcia umowy; podanie pozostałych danych jest dobrowolne.
 
-Twoje dane mogą być przekazywane następującym kategoriom odbiorców:
+## 5. Odbiorcy danych
 
-### 4.1 Podmioty przetwarzające (procesorzy)
+### 5.1 Podmioty przetwarzające na zlecenie Verris (subprocesorzy)
 
-Działają na nasze zlecenie i wyłącznie w celach przez nas wskazanych, na podstawie umów powierzenia (art. 28 RODO):
+| Podmiot | Siedziba / lokalizacja danych | Cel | Transfer poza EOG |
+| --- | --- | --- | --- |
+| **Hetzner Online GmbH** | Niemcy; centra danych Niemcy/Finlandia (EOG) | infrastruktura serwerowa: control-plane (API, panele, baza danych), węzły hostingowe, serwery VPS (Hetzner Cloud), kopie zapasowe off-site (Storage Box / Object Storage, zaszyfrowane przed wysyłką) | nie |
+| **Stripe Payments Europe, Ltd.** | Irlandia (EOG) | obsługa płatności: karty, Apple Pay, Google Pay, BLIK/Przelewy24 | możliwy transfer wspierający do Stripe, Inc. (USA) — standardowe klauzule umowne (SCC) i certyfikacja Data Privacy Framework |
+| **Amazon Web Services EMEA SARL** | Luksemburg; region usługi: UE (Frankfurt/Irlandia) | wysyłka wiadomości e-mail (Amazon SES): powiadomienia transakcyjne i kampanie e-mail marketingu | dane w regionie UE; możliwy dostęp wspierający z USA — SCC i Data Privacy Framework |
+| **Cloudflare, Inc.** | USA; punkty obecności w EOG | ochrona formularzy rejestracji i logowania przed botami (Cloudflare Turnstile) | tak — SCC i Data Privacy Framework |
+| **Hosting Concepts B.V. (Openprovider)** | Holandia (EOG) | rejestracja, odnawianie i transfer domen | zależnie od rejestru domeny (pkt 5.2) |
+| **Google Ireland Limited** | Irlandia (EOG) | pomiar korzystania z serwisu (Google Analytics 4) i zarządzanie tagami (Google Tag Manager) — wyłącznie po Twojej zgodzie | możliwy transfer do Google LLC (USA) — SCC i Data Privacy Framework |
 
-- **Stripe Payments Europe Ltd.** (Irlandia, EU) — operator płatności kartą i przelewem.
-- **Stripe Payments Europe Ltd.** (Irlandia, EU) — operator płatności kartą i przelewem.
-- Dostawca infrastruktury serwerowej — do uzupełnienia przed publikacją po wyborze produkcyjnego dostawcy.
-- Dostawca backup/off-site storage — do uzupełnienia przed publikacją po wyborze produkcyjnego dostawcy.
-- Dostawca SMTP / poczty transakcyjnej — do uzupełnienia przed publikacją po wyborze produkcyjnego dostawcy.
-- Zewnętrzne narzędzia monitoringu uptime — tylko jeśli zostaną użyte poza własnym statusem Verris.
+Ze wszystkimi powyższymi podmiotami wiążą nas umowy powierzenia przetwarzania (art. 28 RODO). Narzędzia monitoringu błędów i kopie zapasowe bazy prowadzimy na własnej infrastrukturze (self-hosted) — nie angażują one dodatkowych podmiotów.
 
-Pełna lista subprocessors zostanie opublikowana i aktualizowana na publicznej stronie Verris przed rozpoczęciem świadczenia usług klientom zewnętrznym. Powiadomimy Cię e-mailem o nowym subprocessorze co najmniej 30 dni przed jego wprowadzeniem.
+### 5.2 Odrębni administratorzy i współadministrowanie (reklama)
+Przy rejestracji domeny dane abonenta (imię i nazwisko lub nazwa, adres, e-mail, telefon) przekazywane są do właściwego **rejestru domen** (np. NASK — domeny `.pl`, EURid — `.eu`), który przetwarza je jako odrębny administrator na podstawie własnych regulaminów. Stripe w zakresie przeciwdziałania oszustwom płatniczym również działa jako odrębny administrator.
 
-### 4.2 Organy państwowe
+Jeżeli wyrazisz zgodę na cookies marketingowe:
 
-Możemy zostać zobowiązani do udostępnienia danych:
+- **Meta Platforms Ireland Limited** (Merrion Road, Dublin 4, Irlandia) — w zakresie zbierania i przesyłania danych zdarzeń przez Meta Pixel (identyfikatory cookies, adres IP, informacje o przeglądarce, odwiedzone podstrony) działamy z Meta jako **współadministratorzy** (art. 26 RODO); zasady tej współodpowiedzialności określa porozumienie „Controller Addendum" Meta. Dalsze przetwarzanie tych danych na potrzeby systemu reklamowego Meta odbywa się w ramach wyłącznej odpowiedzialności Meta jako odrębnego administratora — szczegóły: `https://www.facebook.com/privacy/policy`.
+- **Google Ireland Limited** — w zakresie pomiaru konwersji i remarketingu Google Ads przetwarza dane jako odrębny administrator — szczegóły: `https://policies.google.com/privacy`.
 
-- organom ścigania (Policja, Prokuratura, ABW) — na podstawie postanowienia sądu lub przepisu prawa,
-- Urzędowi Skarbowemu / KSeF — w zakresie faktur,
-- PUODO — w przypadku kontroli zgodności z RODO,
-- sądom — w toku postępowań cywilnych.
+Wobec obu narzędzi obowiązuje stan domyślny „denied" (Google Consent Mode v2): żadne dane reklamowe nie są zbierane ani przesyłane przed Twoją zgodą, a jej wycofanie w „Preferencjach cookies" natychmiast wyłącza dalsze przesyłanie.
 
-### 4.3 Doradcy prawni i księgowi
+### 5.3 Organy publiczne
+Dane możemy udostępnić uprawnionym organom (sądy, prokuratura, Policja, PUODO, organy podatkowe — w tym Krajowy System e-Faktur Ministerstwa Finansów w zakresie faktur ustrukturyzowanych) wyłącznie na podstawie przepisów prawa.
 
-Nasza kancelaria prawna i biuro księgowe mają dostęp do danych w zakresie niezbędnym do świadczenia usług na naszą rzecz, na podstawie umów o zachowaniu poufności.
+### 5.4 Doradcy
+Biuro rachunkowe oraz doradcy prawni Verris — w zakresie niezbędnym, na podstawie umów zapewniających poufność.
 
-## 5. Przekazywanie danych poza EOG
+## 6. Przekazywanie danych poza EOG
 
-Wszyscy nasi subprocessors działają w obrębie Europejskiego Obszaru Gospodarczego (EOG), więc Twoje dane nie są przekazywane poza UE.
+Dane przechowujemy w EOG. W przypadku dostawców należących do grup spółek z USA (Stripe, AWS, Cloudflare, Google, Meta) transfer wspierający poza EOG jest zabezpieczony **standardowymi klauzulami umownymi** (decyzja 2021/914) wraz ze środkami uzupełniającymi oraz — tam, gdzie dostawca jest certyfikowany — decyzją adekwatności dla **EU-U.S. Data Privacy Framework**. Kopię odpowiednich zabezpieczeń możesz uzyskać, pisząc na `rodo@verris.pl`.
 
-W przypadku, gdyby kiedykolwiek miało nastąpić przekazanie danych poza EOG (np. Stripe może w wyjątkowych sytuacjach przetwarzać dane w USA), zostaną zastosowane odpowiednie zabezpieczenia w postaci **Standardowych Klauzul Umownych (SCC)** zatwierdzonych przez Komisję Europejską oraz, jeśli odbiorca jest certyfikowany, **Data Privacy Framework (DPF)**.
+## 7. Twoje prawa
 
-## 6. Twoje prawa
+Przysługują Ci prawa: **dostępu** do danych i uzyskania ich kopii (art. 15 — w Panelu, sekcja Prywatność i RODO, dostępny automatyczny eksport paczki ZIP), **sprostowania** (art. 16 — większość danych zaktualizujesz w Panelu), **usunięcia** (art. 17), **ograniczenia przetwarzania** (art. 18), **przenoszenia danych** (art. 20 — eksport w formacie ustrukturyzowanym JSON), **sprzeciwu** wobec przetwarzania opartego na uzasadnionym interesie, w tym bezwzględnie skutecznego sprzeciwu wobec marketingu (art. 21), oraz **wycofania zgody** w każdym czasie bez wpływu na zgodność z prawem wcześniejszego przetwarzania.
 
-Na podstawie RODO przysługują Ci następujące prawa, z których możesz skorzystać w dowolnym momencie:
+Usunięcie konta uruchamia 14-dniowy okres przywracania (konto zawieszone), po którym dane są anonimizowane; zachowujemy wyłącznie to, czego wymagają przepisy (faktury — 5 lat) oraz zanonimizowane zapisy księgowe. Konta hostingowe powiązane z usuniętym kontem są trwale usuwane z infrastruktury po wygaśnięciu cyklu kopii zapasowych, nie później niż 180 dni od anonimizacji.
 
-### 6.1 Prawo dostępu (art. 15 RODO)
+Masz prawo wnieść skargę do Prezesa Urzędu Ochrony Danych Osobowych (ul. Stawki 2, 00-193 Warszawa, `https://uodo.gov.pl`).
 
-Możesz zażądać kopii swoich danych. W Panelu w sekcji „Prywatność i RODO" przygotowaliśmy automatyczny eksport — generujemy paczkę ZIP w 24h.
+## 8. Zautomatyzowane decyzje i profilowanie
 
-### 6.2 Prawo do sprostowania (art. 16 RODO)
+Nie podejmujemy decyzji opartych wyłącznie na zautomatyzowanym przetwarzaniu, które wywoływałyby wobec Ciebie skutki prawne lub istotnie na Ciebie wpływały (art. 22 RODO). Stosujemy automatyczne mechanizmy bezpieczeństwa (czasowa blokada logowania po serii nieudanych prób, wstrzymanie wysyłki e-mail przy anomaliach wskazujących na spam lub przejęcie konta) — są one tymczasowe, oparte na regułach technicznych, a każdą taką decyzję możesz zakwestionować przez wsparcie (interwencja człowieka).
 
-Większość danych aktualizujesz samodzielnie w Panelu (sekcja „Profil"). Jeśli czegoś nie da się zmienić z poziomu Panelu, napisz na `iod@hvln.pl`.
+Za Twoją zgodą na cookies marketingowe narzędzia Google Ads i Meta mogą profilować Twoje zainteresowania na potrzeby doboru reklam (remarketing). Profilowanie to nie wywołuje skutków prawnych i możesz je w każdej chwili wyłączyć, wycofując zgodę w „Preferencjach cookies".
 
-### 6.3 Prawo do usunięcia („prawo do bycia zapomnianym", art. 17 RODO)
+Jeżeli wyrazisz zgodę na cookies marketingowe, w ramach pomiaru skuteczności reklam Meta stosujemy również **zaawansowane dopasowywanie** (advanced matching): dane kontaktowe wpisywane w formularzach serwisu (np. adres e-mail, numer telefonu) mogą być przekazywane do Meta Platforms Ireland Ltd. wyłącznie w postaci **zahashowanej (SHA-256)** — Meta nie otrzymuje ich w postaci jawnej i wykorzystuje je do dopasowania zdarzeń do kont reklamowych oraz pomiaru konwersji. Przekazanie następuje tylko przy aktywnej zgodzie marketingowej; jej wycofanie w „Preferencjach cookies" natychmiast je wyłącza. Podstawą prawną jest Twoja zgoda (art. 6 ust. 1 lit. a RODO).
 
-Możesz usunąć konto w Panelu w sekcji „Prywatność i RODO" → „Usuń konto". Wniosek przyjmiemy, lecz:
+## 9. Bezpieczeństwo danych
 
-- **Grace period: 14 dni** — do tego czasu konto jest zawieszone i możesz je przywrócić.
-- Po 14 dniach konto zostanie **zanonimizowane** — usuniemy dane osobowe, zachowujemy zanonimizowany ledger transakcji i numerów faktur (5 lat — obowiązek prawny).
-- Cofnięcie zgody na marketing nie wymaga usunięcia konta — wystarczy wyłączyć w „Powiadomieniach".
+Stosujemy m.in.: szyfrowanie transmisji (TLS, HSTS), szyfrowanie danych wrażliwych w spoczynku (AES-256-GCM z rotacją kluczy), hashowanie haseł (bcrypt), uwierzytelnianie dwuskładnikowe i passkeys (wymagane dla personelu Verris), kontrolę dostępu opartą na rolach z zasadą minimalnych uprawnień, rejestrowanie każdego dostępu personelu do danych klienta w dzienniku audytu (dostęp serwisowy do konta jest limitowany czasowo i uzasadniany), izolację kont hostingowych (CloudLinux CageFS/LVE), zaporę aplikacyjną WAF, dostęp do paneli administracyjnych wyłącznie przez VPN, szyfrowane kopie zapasowe przechowywane poza podstawową lokalizacją wraz z testami odtwarzania, całodobowy monitoring oraz procedurę reagowania na incydenty.
 
-### 6.4 Prawo do ograniczenia przetwarzania (art. 18 RODO)
+## 10. Naruszenia ochrony danych
 
-Możesz wystąpić o czasowe wstrzymanie przetwarzania (np. w trakcie sporu). Skontaktuj się z `iod@hvln.pl`.
+Naruszenia oceniamy i dokumentujemy zgodnie z wewnętrzną procedurą. Jeżeli naruszenie może powodować ryzyko naruszenia Twoich praw lub wolności, zgłaszamy je PUODO w ciągu 72 godzin od stwierdzenia; jeżeli ryzyko jest wysokie — zawiadamiamy również Ciebie bez zbędnej zwłoki.
 
-### 6.5 Prawo do przenoszenia danych (art. 20 RODO)
+## 11. Pliki cookies
 
-W ramach automatycznego eksportu (pkt 6.1) otrzymujesz dane w formacie JSON gotowym do importu u innego dostawcy.
+Zasady używania plików cookies i podobnych technologii określa odrębna Polityka cookies: `https://panel.verris.pl/legal/cookies`.
 
-### 6.6 Prawo do sprzeciwu (art. 21 RODO)
+## 12. Zmiany Polityki
 
-Możesz wnieść sprzeciw wobec przetwarzania na podstawie uzasadnionego interesu (lit. f) lub marketingu. Przyjmiemy sprzeciw, chyba że wykażemy ważne, prawnie uzasadnione podstawy do dalszego przetwarzania (np. obrona roszczeń).
-
-### 6.7 Prawo do cofnięcia zgody
-
-Możesz cofnąć każdą wyrażoną zgodę (np. na marketing) w dowolnym momencie w Panelu w „Powiadomieniach". Cofnięcie nie wpływa na zgodność z prawem przetwarzania dokonanego przed cofnięciem.
-
-### 6.8 Prawo do skargi
-
-Możesz wnieść skargę do Prezesa Urzędu Ochrony Danych Osobowych (PUODO):
-
-- adres: ul. Stawki 2, 00-193 Warszawa,
-- e-mail: kancelaria@uodo.gov.pl,
-- web: https://uodo.gov.pl.
-
-## 7. Zautomatyzowane podejmowanie decyzji
-
-Nie podejmujemy wobec Klientów zautomatyzowanych decyzji wywołujących skutki prawne, ani nie stosujemy profilowania w rozumieniu art. 22 RODO.
-
-Wyjątkiem są **automatyczne reguły bezpieczeństwa**: blokowanie konta po wielu nieudanych logowaniach, blokowanie podejrzanej aktywności (np. brute-force). Te decyzje są tymczasowe (15 minut do 24h), zawsze możesz skontaktować się z supportem aby je odwrócić.
-
-## 8. Bezpieczeństwo danych
-
-Stosujemy następujące techniczne i organizacyjne środki ochrony:
-
-- **Szyfrowanie w tranzycie:** wszystkie połączenia TLS 1.3 (HSTS, certyfikaty Let's Encrypt).
-- **Szyfrowanie w spoczynku:** TOTP secrets, klucze API są szyfrowane AES-256-GCM kluczem `APP_KMS_KEY` rotowanym co 6 miesięcy.
-- **Hashing haseł:** bcrypt (cost factor 12).
-- **2FA:** zalecane dla wszystkich kont, wymagane dla kont admin/staff.
-- **Ograniczenie dostępu:** zasada „need-to-know" — Zespół Verris ma dostęp do danych tylko w zakresie niezbędnym do swojej roli (RBAC). Każdy dostęp zarejestrowany w `AuditLog`.
-- **Impersonacja:** gdy operator support zaglądy w Twoje konto, zawsze zostaje to odnotowane w logach z uzasadnieniem i czasem trwania (max 30 minut).
-- **Monitoring i alarmy:** 24/7 monitoring nadużyć (`SecurityAlert`), niezależny zewnętrzny monitor uptime (`status.verris.pl`).
-- **Backupy:** szyfrowane, retencja i off-site zgodnie z aktualną checklistą operacyjną Verris.
-- **Pen-testy:** zewnętrzne audyty bezpieczeństwa planowane cyklicznie po uruchomieniu środowiska produkcyjnego.
-
-## 9. Naruszenie ochrony danych
-
-W przypadku naruszenia ochrony danych prowadzącego do wysokiego ryzyka naruszenia praw lub wolności osób fizycznych, zawiadomimy Cię bez zbędnej zwłoki. W każdym przypadku zawiadomimy PUODO w ciągu 72 godzin (art. 33 RODO).
-
-## 10. Zmiany Polityki
-
-Zastrzegamy prawo do aktualizacji niniejszej Polityki. Każda nowa wersja jest publikowana w Panelu z wymaganiem ponownej akceptacji przy kolejnym logowaniu (re-consent flow). Pełna historia wersji jest dostępna w Panelu w sekcji „Prywatność i RODO".
+O każdej zmianie Polityki informujemy w Panelu i e-mailem; istotne zmiany wymagają ponownego potwierdzenia zapoznania się przy kolejnym logowaniu. Archiwum wersji jest dostępne w Panelu.
 
 ---
 
-**Wersja: DRAFT 0.1 (Sprint 0)**
-**Data: maj 2026**
-**Lawyer review status: pending**
+**Wersja 1.0.0 — data publikacji: 7 lipca 2026 r.**

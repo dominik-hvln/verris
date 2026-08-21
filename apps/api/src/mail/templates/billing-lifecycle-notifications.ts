@@ -20,6 +20,64 @@ import { renderEmailShell, escapeHtml } from './_layouts/email-shell';
  * (or our automation) took on their account. No `MARKETING` opt-in check.
  */
 
+// #11 — kredyt SLA przyznany za przestój infrastruktury.
+export interface SlaCreditContext {
+  to: string;
+  firstName: string | null;
+  serviceName: string;
+  /** Kwota uznania jako string „12.00". */
+  amount: string;
+  currency: 'PLN' | 'EUR' | 'USD';
+  downtimeMinutes: number;
+  incidentDate: Date;
+  newWalletBalance: string;
+  panelUrl: string;
+}
+
+export function slaCreditTemplate(ctx: SlaCreditContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const amount =
+    ctx.currency === 'PLN'
+      ? new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(
+          Number(ctx.amount),
+        )
+      : `${ctx.amount} ${ctx.currency}`;
+  const dur =
+    ctx.downtimeMinutes < 60
+      ? `${Math.max(1, Math.round(ctx.downtimeMinutes))} min`
+      : `${Math.floor(ctx.downtimeMinutes / 60)} h ${Math.round(ctx.downtimeMinutes % 60)} min`;
+  const { html, text } = renderEmailShell({
+    title: `Przyznaliśmy Ci kredyt SLA (${amount})`,
+    preheader: `Rekompensata za przestój usługi ${escapeHtml(ctx.serviceName)}.`,
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Wykryliśmy przestój infrastruktury dotyczący Twojej usługi **${escapeHtml(
+        ctx.serviceName,
+      )}** (${escapeHtml(ctx.incidentDate.toLocaleDateString('pl-PL'))}, ~${dur}). Zgodnie z naszą gwarancją SLA **automatycznie doliczyliśmy rekompensatę do Twojego portfela** — nie musisz o nią wnioskować.`,
+      ``,
+      `- **Kredyt SLA:** ${escapeHtml(amount)}`,
+      `- **Czas przestoju:** ~${dur}`,
+      `- **Nowe saldo portfela:** ${escapeHtml(ctx.newWalletBalance)} K`,
+      ``,
+      `Przepraszamy za niedogodności i dziękujemy za zaufanie. Środki możesz wykorzystać na dowolną usługę lub odnowienie.`,
+    ].join('\n'),
+    cta: { label: 'Zobacz portfel', url: `${ctx.panelUrl}/dashboard/billing` },
+    footnote: 'Kredyt SLA naliczany jest automatycznie na podstawie naszego monitoringu floty.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+
+  return {
+    to: ctx.to,
+    tag: 'billing.sla-credit',
+    subject: `[Verris] Kredyt SLA ${amount} za przestój ${ctx.serviceName}`,
+    text,
+    html,
+  };
+}
+
 const PLN_FORMATTER = new Intl.NumberFormat('pl-PL', {
   style: 'currency',
   currency: 'PLN',
@@ -41,6 +99,134 @@ function formatPLN(amount: string | number): string {
 
 function formatDate(d: Date): string {
   return DAY_FORMATTER.format(d);
+}
+
+// ---------------------------------------------------------------------------
+// wallet-topup-ok (Stripe checkout)
+// ---------------------------------------------------------------------------
+
+export interface WalletTopupOkContext {
+  to: string;
+  firstName: string | null;
+  amountPln: string;
+  newBalancePln: string;
+  panelUrl: string;
+}
+
+export function walletTopupOkTemplate(ctx: WalletTopupOkContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: 'Portfel doładowany',
+    preheader: `${formatPLN(ctx.amountPln)} — nowe saldo ${formatPLN(ctx.newBalancePln)}.`,
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Potwierdzamy **doładowanie portfela** kartą.`,
+      ``,
+      `- **Kwota:** ${escapeHtml(formatPLN(ctx.amountPln))}`,
+      `- **Nowe saldo:** ${escapeHtml(formatPLN(ctx.newBalancePln))}`,
+    ].join('\n'),
+    cta: { label: 'Zobacz portfel', url: `${ctx.panelUrl}/dashboard/billing` },
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+
+  return {
+    to: ctx.to,
+    tag: 'wallet.topup-ok',
+    subject: `[Verris] Doładowano portfel — ${formatPLN(ctx.amountPln)}`,
+    text,
+    html,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// wallet-auto-topup-ok
+// ---------------------------------------------------------------------------
+
+export interface WalletAutoTopupOkContext {
+  to: string;
+  firstName: string | null;
+  amountPln: string;
+  newBalancePln: string;
+  panelUrl: string;
+}
+
+export function walletAutoTopupOkTemplate(ctx: WalletAutoTopupOkContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: 'Auto-doładowanie portfela',
+    preheader: `Dodano ${formatPLN(ctx.amountPln)} — saldo ${formatPLN(ctx.newBalancePln)}.`,
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Zgodnie z Twoją regułą **automatycznie doładowaliśmy portfel**.`,
+      ``,
+      `- **Kwota:** ${escapeHtml(formatPLN(ctx.amountPln))}`,
+      `- **Saldo:** ${escapeHtml(formatPLN(ctx.newBalancePln))}`,
+    ].join('\n'),
+    cta: { label: 'Ustawienia portfela', url: `${ctx.panelUrl}/dashboard/billing` },
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+
+  return {
+    to: ctx.to,
+    tag: 'wallet.auto-topup-ok',
+    subject: `[Verris] Auto-doładowanie — ${formatPLN(ctx.amountPln)}`,
+    text,
+    html,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// 0. wallet-auto-topup-failed
+// ---------------------------------------------------------------------------
+
+export interface WalletAutoTopupFailedContext {
+  to: string;
+  firstName: string | null;
+  reason: string;
+  topupAmountPln: string;
+  panelUrl: string;
+}
+
+export function walletAutoTopupFailedTemplate(ctx: WalletAutoTopupFailedContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+
+  const { html, text } = renderEmailShell({
+    title: 'Automatyczne doładowanie nie powiodło się',
+    preheader: 'Zmień kartę lub doładuj portfel ręcznie.',
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Nie udało się wykonać **automatycznego doładowania** portfela na kwotę **${escapeHtml(
+        ctx.topupAmountPln,
+      )} K**.`,
+      ``,
+      `**Powód:** ${escapeHtml(ctx.reason)}`,
+      ``,
+      `Doładuj portfel ręcznie lub zaktualizuj zapisaną kartę w ustawieniach — inaczej odnowienia usług i autoskalowanie mogą się zatrzymać przy zerowym saldzie.`,
+    ].join('\n'),
+    cta: {
+      label: 'Portfel i karty',
+      url: `${ctx.panelUrl}/dashboard/billing`,
+    },
+    footnote: 'Kolejna próba auto-doładowania nastąpi po upływie okresu cooldown (ok. 1 h).',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+
+  return {
+    to: ctx.to,
+    tag: 'wallet.auto-topup-failed',
+    subject: '[Verris] Automatyczne doładowanie portfela nie powiodło się',
+    text,
+    html,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -138,6 +324,11 @@ export interface SubscriptionRenewalReminderContext {
   /** Pre-formatted "Twój plan" details that vary per service kind. */
   planSummary: string;
   panelUrl: string;
+  /**
+   * BILL-2 — gdy płatność idzie z portfela i saldo nie wystarcza na odnowienie,
+   * to kwota do doładowania (string „12.00"). null/undefined = brak niedoboru.
+   */
+  shortfallAmount?: string | null;
 }
 
 const WINDOW_LABEL: Record<RenewalReminderWindow, string> = {
@@ -153,13 +344,31 @@ export function subscriptionRenewalReminderTemplate(
   const when = WINDOW_LABEL[ctx.window];
   const amount = ctx.currency === 'PLN' ? formatPLN(ctx.amount) : `${ctx.amount} ${ctx.currency}`;
 
-  const sourceLine = ctx.payFromWallet
-    ? `Płatność zostanie pobrana z **portfela Verris** (saldo: **${escapeHtml(
-        ctx.walletBalance,
-      )} K**). Jeśli środków zabraknie — usługa może zostać zawieszona.`
-    : 'Płatność zostanie pobrana **automatycznie ze Stripe** z karty zapisanej w Twoim koncie.';
+  const hasShortfall =
+    ctx.payFromWallet && !!ctx.shortfallAmount && Number.parseFloat(ctx.shortfallAmount) > 0;
+  const shortfall = hasShortfall
+    ? ctx.currency === 'PLN'
+      ? formatPLN(ctx.shortfallAmount as string)
+      : `${ctx.shortfallAmount} ${ctx.currency}`
+    : null;
 
-  const ctaLabel = ctx.payFromWallet ? 'Sprawdź saldo portfela' : 'Zarządzaj subskrypcją';
+  const sourceLine = !ctx.payFromWallet
+    ? 'Płatność zostanie pobrana **automatycznie ze Stripe** z karty zapisanej w Twoim koncie.'
+    : hasShortfall
+      ? `⚠️ **Uwaga — środków w portfelu może zabraknąć.** Saldo to **${escapeHtml(
+          ctx.walletBalance,
+        )} K**, a odnowienie kosztuje **${escapeHtml(amount)}**. Doładuj co najmniej **${escapeHtml(
+          shortfall as string,
+        )}**, aby uniknąć zawieszenia usługi. Jeśli odnowienie się nie powiedzie, usługa zostanie wstrzymana — Twoje dane i pliki zachowujemy.`
+      : `Płatność zostanie pobrana z **portfela Verris** (saldo: **${escapeHtml(
+          ctx.walletBalance,
+        )} K**). Środków wystarczy na to odnowienie.`;
+
+  const ctaLabel = hasShortfall
+    ? 'Doładuj portfel'
+    : ctx.payFromWallet
+      ? 'Sprawdź saldo portfela'
+      : 'Zarządzaj subskrypcją';
   const ctaUrl = ctx.payFromWallet
     ? `${ctx.panelUrl}/dashboard/billing`
     : `${ctx.panelUrl}/dashboard/subscriptions`;
@@ -199,7 +408,9 @@ export function subscriptionRenewalReminderTemplate(
   return {
     to: ctx.to,
     tag: `subscription.renewal-reminder.${tagSuffix}`,
-    subject: `[Verris] Odnowienie ${ctx.serviceName} ${when}`,
+    subject: hasShortfall
+      ? `[Verris] Doładuj portfel — odnowienie ${ctx.serviceName} ${when}`
+      : `[Verris] Odnowienie ${ctx.serviceName} ${when}`,
     text,
     html,
   };
@@ -486,4 +697,130 @@ export function subscriptionCancelledTemplate(ctx: SubscriptionCancelledContext)
     text,
     html,
   };
+}
+
+// ---------------------------------------------------------------------------
+// O-1 — free trial lifecycle
+// ---------------------------------------------------------------------------
+
+export interface TrialStartedContext {
+  to: string;
+  firstName: string | null;
+  planName: string;
+  trialEndsAt: Date;
+  panelUrl: string;
+}
+
+export function trialStartedTemplate(ctx: TrialStartedContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: 'Twój darmowy okres próbny wystartował',
+    preheader: `Hosting ${escapeHtml(ctx.planName)} działa do ${escapeHtml(formatDate(ctx.trialEndsAt))}.`,
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Uruchomiliśmy dla Ciebie **darmowy okres próbny planu ${escapeHtml(ctx.planName)}**. Konto hostingowe jest już zakładane — za chwilę będzie gotowe w panelu.`,
+      ``,
+      `## Co warto wiedzieć`,
+      ``,
+      `- **Okres próbny trwa do:** ${escapeHtml(formatDate(ctx.trialEndsAt))}.`,
+      `- W trakcie próby masz pełnię możliwości planu (pliki, bazy, poczta, WordPress 1-click).`,
+      `- Aby zachować dane po próbie — **doładuj portfel i przekształć usługę na płatną** w panelu. Zrobisz to jednym kliknięciem.`,
+      `- Jeśli nic nie zrobisz, po tej dacie usługa zostanie zawieszona, a dane przechowamy jeszcze 30 dni.`,
+    ].join('\n'),
+    cta: { label: 'Otwórz panel', url: `${ctx.panelUrl}/dashboard` },
+    footnote: 'Okres próbny jest jednorazowy na konto. Bez automatycznych opłat — przekształcenie na płatną usługę zawsze potwierdzasz sam.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return { to: ctx.to, tag: 'trial.started', subject: '[Verris] Darmowy okres próbny aktywny', text, html };
+}
+
+export interface TrialEndingSoonContext {
+  to: string;
+  firstName: string | null;
+  planName: string;
+  trialEndsAt: Date;
+  daysLeft: number;
+  panelUrl: string;
+}
+
+export function trialEndingSoonTemplate(ctx: TrialEndingSoonContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: `Okres próbny kończy się za ${ctx.daysLeft} ${ctx.daysLeft === 1 ? 'dzień' : 'dni'}`,
+    preheader: `Przekształć ${escapeHtml(ctx.planName)} na płatny, aby zachować dane.`,
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Twój **darmowy okres próbny planu ${escapeHtml(ctx.planName)}** kończy się **${escapeHtml(formatDate(ctx.trialEndsAt))}**.`,
+      ``,
+      `Aby usługa działała dalej bez przerwy: **doładuj portfel** i kliknij **„Przekształć na płatną"** przy usłudze. Pobierzemy wtedy opłatę za pierwszy miesiąc, a dalej rozliczamy się z portfela.`,
+      ``,
+      `Jeśli nie przedłużysz — po tej dacie usługa zostanie zawieszona. Dane przechowamy jeszcze 30 dni, więc nadal zdążysz wrócić.`,
+    ].join('\n'),
+    cta: { label: 'Przekształć usługę', url: `${ctx.panelUrl}/dashboard/subscriptions` },
+    footnote: 'Wysyłamy to przypomnienie raz, przed końcem okresu próbnego.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return { to: ctx.to, tag: 'trial.ending-soon', subject: `[Verris] Okres próbny kończy się ${formatDate(ctx.trialEndsAt)}`, text, html };
+}
+
+export interface TrialExpiredContext {
+  to: string;
+  firstName: string | null;
+  planName: string;
+  panelUrl: string;
+}
+
+export function trialExpiredTemplate(ctx: TrialExpiredContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: 'Okres próbny dobiegł końca',
+    preheader: 'Usługa została zawieszona — dane przechowujemy 30 dni.',
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Twój darmowy okres próbny planu **${escapeHtml(ctx.planName)}** się zakończył, więc usługa została **zawieszona**.`,
+      ``,
+      `Nic nie przepadło: **Twoje pliki, bazy i poczta są bezpieczne jeszcze przez 30 dni**. Aby je przywrócić i wznowić usługę — doładuj portfel i przekształć usługę na płatną w panelu.`,
+    ].join('\n'),
+    cta: { label: 'Wznów usługę', url: `${ctx.panelUrl}/dashboard/subscriptions` },
+    footnote: 'Po 30 dniach od zawieszenia dane mogą zostać trwale usunięte.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return { to: ctx.to, tag: 'trial.expired', subject: '[Verris] Okres próbny zakończony — usługa zawieszona', text, html };
+}
+
+export interface TrialConvertedContext {
+  to: string;
+  firstName: string | null;
+  planName: string;
+  panelUrl: string;
+}
+
+export function trialConvertedTemplate(ctx: TrialConvertedContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: 'Dziękujemy — usługa jest już płatna',
+    preheader: `Plan ${escapeHtml(ctx.planName)} działa dalej bez przerwy.`,
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Twój okres próbny planu **${escapeHtml(ctx.planName)}** został pomyślnie **przekształcony na usługę płatną**. Wszystko działa dalej — bez przerwy i bez migracji danych.`,
+      ``,
+      `Kolejne rozliczenia pobieramy z portfela. Saldo i faktury znajdziesz w panelu.`,
+    ].join('\n'),
+    cta: { label: 'Przejdź do rozliczeń', url: `${ctx.panelUrl}/dashboard/billing` },
+    footnote: 'Dziękujemy, że jesteś z Verris.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return { to: ctx.to, tag: 'trial.converted', subject: '[Verris] Okres próbny przekształcony na płatny', text, html };
 }

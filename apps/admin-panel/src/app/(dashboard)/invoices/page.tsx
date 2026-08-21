@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { formatPlnAndCredits } from "@/lib/credits";
 import { Search, FileDown, ExternalLink, FileText, Mail } from "lucide-react";
 import {
   listAdminInvoices,
@@ -246,9 +247,8 @@ function InvoiceRow({ inv }: { inv: AdminInvoiceRow }) {
           <span className="text-muted-foreground">— bez subskrypcji —</span>
         )}
       </td>
-      <td className="px-6 py-4 text-sm tabular-nums">
-        <span className="font-medium text-white">{inv.amount}</span>{" "}
-        <span className="text-muted-foreground text-xs">{inv.currency}</span>
+      <td className="px-6 py-4 text-sm tabular-nums text-white">
+        {formatPlnAndCredits(inv.amount, inv.currency)}
       </td>
       <td className="px-6 py-4">
         <span

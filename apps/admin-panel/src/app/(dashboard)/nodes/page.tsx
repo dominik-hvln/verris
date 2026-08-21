@@ -1,7 +1,9 @@
 import Link from "next/link";
-import { Server, Plus, Cpu, MemoryStick, HardDrive, Clock, AlertCircle } from "lucide-react";
+import { Server, Plus, Cpu, MemoryStick, HardDrive, Clock, AlertCircle, Gauge } from "lucide-react";
 import type { ServerSummaryDto, ServerStatus } from "@verris/contracts";
 import { fetchServers } from "./actions";
+import { FleetUpdateButton } from "./fleet-update-button";
+import { accounts as accountsLabel, days as daysLabel } from "@/lib/pl";
 
 export const dynamic = "force-dynamic";
 
@@ -20,13 +22,29 @@ export default async function AdminNodesPage() {
             DirectAdmin i monitoring obciążenia.
           </p>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
         <Link
-          href="/nodes/init"
+          href="/nodes/wizard"
           className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-medium transition-all shadow-[0_0_15px_rgba(99,102,241,0.4)]"
         >
           <Plus className="h-4 w-4" />
-          Dodaj nowy węzeł
+          Wizard nowego węzła
         </Link>
+        <Link
+          href="/nodes/capacity"
+          className="inline-flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-white border border-white/10 rounded-lg"
+        >
+          <Gauge className="h-4 w-4" />
+          Pojemność floty
+        </Link>
+        <FleetUpdateButton />
+        <Link
+          href="/nodes/init"
+          className="inline-flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-white border border-white/10 rounded-lg"
+        >
+          Szybka inicjalizacja
+        </Link>
+        </div>
       </header>
 
       {error && (
@@ -95,11 +113,11 @@ function EmptyState() {
         zainicjalizuje serwer i zarejestruje go w panelu.
       </p>
       <Link
-        href="/nodes/init"
+        href="/nodes/wizard"
         className="mt-6 inline-flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-medium transition-colors"
       >
         <Plus className="h-4 w-4" />
-        Inicjuj pierwszy węzeł
+        Uruchom wizard węzła
       </Link>
     </div>
   );
@@ -178,7 +196,7 @@ function ServerCard({ server }: { server: ServerSummaryDto }) {
 
         <div className="border-t border-white/10 pt-4 flex justify-between items-center text-xs">
           <span className="text-muted-foreground">
-            {server._count?.accounts ?? 0} kont na serwerze
+            {accountsLabel(server._count?.accounts ?? 0)} na serwerze
           </span>
           <span className="text-indigo-400 group-hover:underline">Szczegóły →</span>
         </div>
@@ -285,5 +303,5 @@ function formatRelative(iso: string | null): string {
   if (ms < 60_000) return "przed chwilą";
   if (ms < 3_600_000) return `${Math.floor(ms / 60_000)} min temu`;
   if (ms < 86_400_000) return `${Math.floor(ms / 3_600_000)} h temu`;
-  return `${Math.floor(ms / 86_400_000)} dni temu`;
+  return `${daysLabel(Math.floor(ms / 86_400_000))} temu`;
 }

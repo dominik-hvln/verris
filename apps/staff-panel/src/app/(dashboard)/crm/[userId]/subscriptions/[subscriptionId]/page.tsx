@@ -1,8 +1,12 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { StaffApiError } from "@/lib/staff-api";
+import { staffApi } from "@/lib/staff-api";
 import { staffGetAdminSubscription } from "@/lib/crm-subscription-data";
+import { PlanChangeTicketTemplate } from "./ticket-template";
+import { StaffPlanChangeForm } from "./staff-plan-change-form";
+import { StaffDiagnosticsPanel } from "./diagnostics-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -24,9 +28,16 @@ export default async function StaffSubscriptionReadonlyPage({
   const { userId, subscriptionId } = await params;
 
   let sub: Awaited<ReturnType<typeof staffGetAdminSubscription>>;
+  let eligiblePlans: { id: string; name: string; slug: string }[] = [];
   try {
     sub = await staffGetAdminSubscription(subscriptionId);
+    if (sub.status === "ACTIVE" && sub.account) {
+      eligiblePlans = await staffApi<{ id: string; name: string; slug: string }[]>(
+        `/admin/subscriptions/${subscriptionId}/plan/eligible-plans`,
+      );
+    }
   } catch (e) {
+    if (e instanceof StaffApiError && e.status === 401) redirect("/login");
     if (e instanceof StaffApiError && (e.status === 404 || e.status === 403)) notFound();
     throw e;
   }
@@ -51,7 +62,14 @@ export default async function StaffSubscriptionReadonlyPage({
       </div>
 
       <header className="rounded-2xl border border-white/10 bg-black/35 p-6">
-        <h1 className="text-2xl font-bold text-white">{sub.plan.name}</h1>
+        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+          {sub.plan.name}
+          {sub.serviceTag ?? sub.account?.daUsername ? (
+            <span className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-sm font-normal text-neutral-300">
+              {sub.serviceTag ?? sub.account?.daUsername}
+            </span>
+          ) : null}
+        </h1>
         <p className="mt-1 font-mono text-xs text-neutral-500">{sub.id}</p>
         <p className="mt-3 text-sm text-muted-foreground">
           Klient:{" "}
@@ -89,6 +107,8 @@ export default async function StaffSubscriptionReadonlyPage({
         </dl>
       </header>
 
+      <StaffDiagnosticsPanel subscriptionId={subscriptionId} />
+
       <section className="rounded-2xl border border-white/10 bg-black/30">
         <h2 className="border-b border-white/10 px-4 py-3 text-sm font-bold uppercase tracking-wide text-white">
           Konto hostingowe
@@ -110,6 +130,24 @@ export default async function StaffSubscriptionReadonlyPage({
           <p className="p-6 text-sm text-muted-foreground">Brak konta hostingowego.</p>
         )}
       </section>
+
+      {sub.status === "ACTIVE" && sub.account && eligiblePlans.length > 0 ? (
+        <section className="rounded-2xl border border-cyan-500/20 bg-cyan-500/5 p-4 space-y-4">
+          <h2 className="text-sm font-bold uppercase tracking-wide text-white">Zmiana planu</h2>
+          <StaffPlanChangeForm
+            subscriptionId={sub.id}
+            userId={userId}
+            currentPlanId={sub.plan.id}
+            currentPlanName={sub.plan.name}
+            plans={eligiblePlans}
+          />
+          <PlanChangeTicketTemplate
+            domain={sub.account.domain}
+            fromPlan={sub.plan.name}
+            toPlan="[nowy plan — uzupełnij po zmianie]"
+          />
+        </section>
+      ) : null}
 
       <section className="rounded-2xl border border-white/10 bg-black/30">
         <h2 className="border-b border-white/10 px-4 py-3 text-sm font-bold uppercase tracking-wide text-white">

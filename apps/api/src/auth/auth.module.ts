@@ -11,6 +11,11 @@ import { ComplianceModule } from '../compliance/compliance.module';
 import { AuditModule } from '../common/audit/audit.module';
 import { MailModule } from '../mail/mail.module';
 import { LoginEventService } from './login-event.service';
+import { WebAuthnService } from './webauthn/webauthn.service';
+import { PasskeyPolicyService } from './passkey-policy.service';
+import { CaptchaService } from './captcha.service';
+import { PwnedPasswordService } from './pwned-password.service';
+import { EcoModule } from '../eco/eco.module';
 
 @Module({
   imports: [
@@ -28,6 +33,7 @@ import { LoginEventService } from './login-event.service';
     ComplianceModule,
     AuditModule,
     MailModule,
+    EcoModule,
   ],
   controllers: [AuthController],
   providers: [
@@ -36,7 +42,19 @@ import { LoginEventService } from './login-event.service';
     TotpService,
     TwoFactorService,
     LoginEventService,
+    WebAuthnService,
+    PasskeyPolicyService,
+    CaptchaService,
+    PwnedPasswordService,
   ],
-  exports: [AuthService, TwoFactorService, LoginEventService],
+  exports: [
+    AuthService,
+    TwoFactorService,
+    LoginEventService,
+    WebAuthnService,
+    PasskeyPolicyService,
+    CaptchaService,
+    PwnedPasswordService,
+  ],
 })
 export class AuthModule {}

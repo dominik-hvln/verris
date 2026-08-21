@@ -1,0 +1,69 @@
+{
+  "annotations": { "list": [] },
+  "editable": false,
+  "graphTooltip": 0,
+  "links": [{ "title": "Ops overview", "url": "/d/verris-ops-overview/ops-overview", "type": "link" }],
+  "panels": [
+    {
+      "type": "text",
+      "title": "Podpowiedzi",
+      "id": 1,
+      "gridPos": { "h": 3, "w": 24, "x": 0, "y": 0 },
+      "options": {
+        "mode": "markdown",
+        "content": "Logi kontenerów Docker (retencja Loki **7 dni**). Filtruj po **service** (compose) lub szukaj frazy. Źródło: Promtail → Loki."
+      }
+    },
+    {
+      "type": "logs",
+      "title": "Logi",
+      "id": 2,
+      "gridPos": { "h": 22, "w": 24, "x": 0, "y": 3 },
+      "datasource": { "type": "loki", "uid": "Loki" },
+      "targets": [{
+        "datasource": { "type": "loki", "uid": "Loki" },
+        "expr": "{service=~\"$service\"} |~ \"(?i)$search\"",
+        "refId": "A"
+      }],
+      "options": {
+        "dedupStrategy": "none",
+        "enableLogDetails": true,
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showLabels": true,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      }
+    }
+  ],
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["verris", "logs"],
+  "templating": {
+    "list": [
+      {
+        "name": "service",
+        "type": "query",
+        "datasource": { "type": "loki", "uid": "Loki" },
+        "query": { "type": "label_values", "label": "service" },
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".+",
+        "multi": true,
+        "current": { "text": "All", "value": "$__all" }
+      },
+      {
+        "name": "search",
+        "type": "textbox",
+        "label": "Szukaj (regex)",
+        "current": { "text": "", "value": "" }
+      }
+    ]
+  },
+  "time": { "from": "now-1h", "to": "now" },
+  "timezone": "browser",
+  "title": "Logs explorer",
+  "uid": "verris-logs",
+  "version": 1
+}

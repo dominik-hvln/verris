@@ -1,0 +1,65 @@
+# CYBER-11 — okresowe skany DAST (OWASP ZAP baseline + Nuclei) na środowisku
+# testowym/produkcyjnym. Cel z sekretu/vars DAST_TARGET_URL (np. https://panel.verris.pl
+# lub staging). Nie blokuje niczego — raportuje. Uruchamiane nocą i on-demand.
+name: Security DAST (ZAP + Nuclei)
+
+on:
+  schedule:
+    - cron: '30 2 * * 1' # poniedziałek 02:30 UTC
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'URL do przeskanowania (nadpisuje DAST_TARGET_URL)'
+        required: false
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  zap-baseline:
+    name: OWASP ZAP baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Resolve target
+        id: t
+        run: echo "url=${{ github.event.inputs.target || vars.DAST_TARGET_URL }}" >> "$GITHUB_OUTPUT"
+
+      - name: Skip if no target
+        if: steps.t.outputs.url == ''
+        run: echo "Brak DAST_TARGET_URL / inputs.target — pomijam skan." && exit 0
+
+      - name: ZAP Baseline Scan
+        if: steps.t.outputs.url != ''
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: ${{ steps.t.outputs.url }}
+          # -I: nie failuj builda na ostrzeżeniach (report-only na start).
+          cmd_options: '-I'
+          allow_issue_writing: true
+
+  nuclei:
+    name: Nuclei scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Resolve target
+        id: t
+        run: echo "url=${{ github.event.inputs.target || vars.DAST_TARGET_URL }}" >> "$GITHUB_OUTPUT"
+
+      - name: Nuclei
+        if: steps.t.outputs.url != ''
+        uses: projectdiscovery/nuclei-action@v3
+        with:
+          target: ${{ steps.t.outputs.url }}
+          # Skupienie na CVE, misconfiguration, exposures, nagłówki bezpieczeństwa.
+          flags: '-severity medium,high,critical -tags cve,misconfig,exposure,headers'
+
+      - name: Upload Nuclei results
+        if: always() && steps.t.outputs.url != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuclei-results
+          path: nuclei.log
+          if-no-files-found: ignore

@@ -126,18 +126,13 @@ async function main() {
     },
     {
       resource: AutoscalingResource.RAM,
-      unit: 'ram_mb',
-      pricePerUnit: 0.000117, // ~0.03 zł / h za 256 MB
+      unit: 'ram_gb',
+      pricePerUnit: 0.119808, // ~0.12 zł / h za 1 GB (ex 0.000117 / MB)
     },
     {
-      resource: AutoscalingResource.IO,
-      unit: 'io_kbps',
-      pricePerUnit: 0.00002,
-    },
-    {
-      resource: AutoscalingResource.TRANSFER,
-      unit: 'transfer_gb',
-      pricePerUnit: 0.01, // 0.01 zł / GB
+      resource: AutoscalingResource.DISK,
+      unit: 'disk_gb',
+      pricePerUnit: 0.05, // przykładowa stawka za 1 GB / h
     },
   ];
 

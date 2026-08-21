@@ -33,6 +33,8 @@ export interface StaffTicketRow {
     email: string;
     companyName: string | null;
   };
+  updatedAt?: string;
+  resolvedAt?: string | null;
   assignedToId?: string | null;
   assignedTo: { id: string; firstName: string | null; lastName: string | null } | null;
   slaResponseDueAt?: string | null;
@@ -40,6 +42,7 @@ export interface StaffTicketRow {
   escalatedAt?: string | null;
   riskFlag?: string | null;
   runbookKey?: string | null;
+  topic?: string | null;
   _count: { replies: number };
 }
 
@@ -53,12 +56,28 @@ export interface TicketAttachmentRow {
   createdAt: string;
 }
 
+export interface TicketEventRow {
+  id: string;
+  type: string;
+  actorId: string | null;
+  meta: Record<string, unknown> | null;
+  createdAt: string;
+}
+
 export interface StaffTicketDetail extends StaffTicketRow {
   message: string;
   firstResponseAt?: string | null;
   resolvedAt?: string | null;
   escalationReason?: string | null;
   riskReason?: string | null;
+  // SUP-V2 — cykl braku odpowiedzi / auto-zamykania.
+  waitingSince?: string | null;
+  customerReminderSentAt?: string | null;
+  autoClosedAt?: string | null;
+  lastReplyAt?: string | null;
+  lastReplyIsStaff?: boolean | null;
+  slaResponseBreachAlertedAt?: string | null;
+  events?: TicketEventRow[];
   attachments?: TicketAttachmentRow[];
   replies: Array<{
     id: string;

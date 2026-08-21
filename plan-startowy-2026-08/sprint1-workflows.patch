@@ -1,0 +1,83 @@
+--- a/.github/workflows/ci.yml
++++ b/.github/workflows/ci.yml
+@@ -1,10 +1,14 @@
+ name: CI
+ 
++# X-01 — CI musi obejmować gałęzie, na których realnie pracujemy.
++# Do 2026-08-21 workflow startował wyłącznie na `main`/`master`, a praca szła na
++# długo żyjących gałęziach funkcyjnych (feature/support-v2 było 301 commitów przed
++# main). Efekt: CI istniało i nie dotknęło ani jednego commita z tej pracy.
+ on:
+   push:
+-    branches: [main, master]
++    branches: ['**']
+   pull_request:
+-    branches: [main, master]
++  workflow_dispatch: {}
+ 
+ concurrency:
+   group: ${{ github.workflow }}-${{ github.ref }}
+@@ -51,7 +55,7 @@
+       - name: Typecheck (all workspaces via Turbo)
+         run: pnpm typecheck
+ 
+-      - name: API unit tests (RBAC metadata + RolesGuard)
++      - name: API unit tests
+         run: pnpm --filter api test
+ 
+   # ---------------------------------------------------------------------------
+--- a/.github/workflows/deploy.yml
++++ b/.github/workflows/deploy.yml
+@@ -19,10 +19,52 @@
+ 
+ jobs:
+   # ---------------------------------------------------------------------------
++  # 0) X-03 — BRAMKA. Do 2026-08-21 `deploy.yml` i `ci.yml` startowały równolegle
++  # i nic ich nie wiązało: push na main budował obrazy i wdrażał je nawet wtedy,
++  # gdy CI się wywracało. `prod-deploy-ghcr.sh` też nie uruchamia testów — i słusznie,
++  # serwer produkcyjny nie jest miejscem na testy. Bramka należy tutaj.
++  #
++  # Świadomie duplikujemy typecheck i testy zamiast czekać na przebieg `ci.yml`:
++  # GitHub Actions nie potrafi uzależnić jednego workflow od drugiego w sposób,
++  # który nie gubi się przy równoległych pushach. Kilka minut dodatkowego czasu
++  # jest tańsze niż jedno wdrożenie zepsutego kodu.
++  # ---------------------------------------------------------------------------
++  test-gate:
++    name: Bramka — typecheck + testy
++    runs-on: ubuntu-latest
++    timeout-minutes: 20
++    steps:
++      - uses: actions/checkout@v4
++
++      - name: Install pnpm
++        uses: pnpm/action-setup@v4
++        with:
++          version: 9.5.0
++
++      - name: Use Node.js 22
++        uses: actions/setup-node@v4
++        with:
++          node-version: 22
++          cache: pnpm
++
++      - name: Install dependencies
++        run: pnpm install --frozen-lockfile
++
++      - name: Generate Prisma client
++        run: pnpm --filter @verris/database db:generate
++
++      - name: Typecheck
++        run: pnpm typecheck
++
++      - name: API unit tests
++        run: pnpm --filter api test
++
++  # ---------------------------------------------------------------------------
+   # 1) Build + push 5 obrazów (api + 4 panele) do GHCR, tag = git SHA + latest.
+   # ---------------------------------------------------------------------------
+   build-push:
+     name: Build & push (${{ matrix.image }})
++    needs: test-gate
+     runs-on: ubuntu-latest
+     timeout-minutes: 40
+     permissions:

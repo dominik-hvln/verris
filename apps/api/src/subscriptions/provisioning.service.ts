@@ -14,15 +14,24 @@ import {
   Subscription,
   SubscriptionStatus,
   User,
+  WafMode,
 } from '@verris/database';
 import { ConfigService } from '@nestjs/config';
+import { EcoPointsService, ECO_POINT_DELTAS } from '../eco/eco-points.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto/crypto.service';
 import { AuditService } from '../common/audit/audit.service';
 import { DirectAdminService } from '../servers/directadmin.service';
+import { ServersService } from '../servers/servers.service';
 import { NodeSelectorService } from './node-selector.service';
 import { MailerService } from '../mail/mailer.service';
 import { accountProvisionedTemplate } from '../mail/templates/hosting-notifications';
+import {
+  DA_DEFAULT_LANGUAGE,
+  buildDaPackageSpecFromPlan,
+  planResourceFields,
+} from '../servers/da-package-spec';
+import { WafService } from './waf.service';
 
 export interface ProvisionResult {
   subscription: Subscription;
@@ -34,6 +43,23 @@ export interface ProvisionResult {
 }
 
 const DA_USERNAME_MAX = 8;
+
+/** Loose-but-safe IPv4 / IPv6 shape check (rejects bootstrap sentinels like `pending-…`). */
+const IP_SHAPE = /^(\d{1,3}(\.\d{1,3}){3}|[0-9a-fA-F:]+:[0-9a-fA-F:.]*)$/;
+
+/**
+ * DirectAdmin `ip=` for CMD_API_ACCOUNT_USER — single-IP nodes need the public
+ * IP, not `shared`. Audit F-12: validate the actual IP shape instead of
+ * string-matching the reservation sentinel (which historically diverged:
+ * `pending:` in initServer vs `pending-` here).
+ */
+function resolveDaAccountIp(server: Pick<Server, 'ipAddress'>): string {
+  const ip = server.ipAddress?.trim();
+  if (ip && ip !== '0.0.0.0' && IP_SHAPE.test(ip)) {
+    return ip;
+  }
+  return 'shared';
+}
 
 /**
  * End-to-end provisioning flow for a paid subscription.
@@ -53,8 +79,11 @@ export class ProvisioningService {
     private readonly audit: AuditService,
     private readonly nodeSelector: NodeSelectorService,
     private readonly da: DirectAdminService,
+    private readonly servers: ServersService,
     private readonly mailer: MailerService,
     private readonly config: ConfigService,
+    private readonly ecoPoints: EcoPointsService,
+    private readonly waf: WafService,
   ) {}
 
   /**
@@ -94,10 +123,55 @@ export class ProvisioningService {
     const server = await this.nodeSelector.pickServerForPlan(subscription.plan, {
       preferredRegion: options.preferredRegion,
     });
-    const daUsername = await this.allocateUniqueDaUsername(subscription.user, subscription.id);
+    // SVC-TAG — login DirectAdmin = handle usługi (realny prefiks baz danych).
+    // Gdy handle istnieje i jest wolny na węźle/w bazie, używamy go; w innym
+    // wypadku awaryjnie alokujemy nowy i zapisujemy z powrotem na subskrypcję,
+    // aby handle pozostał spójny z loginem konta.
+    let daUsername: string;
+    const tag = subscription.serviceTag;
+    if (tag && /^[a-z][a-z0-9]{0,7}$/.test(tag)) {
+      const taken = await this.prisma.account.findUnique({ where: { daUsername: tag } });
+      daUsername = taken ? await this.allocateUniqueDaUsername(subscription.user, subscription.id) : tag;
+    } else {
+      daUsername = await this.allocateUniqueDaUsername(subscription.user, subscription.id);
+    }
+    if (subscription.serviceTag !== daUsername) {
+      // Dosynchronizuj handle z faktycznym loginem DA (np. po awaryjnej alokacji
+      // lub dla starszych subskrypcji bez handle'a).
+      await this.prisma.subscription
+        .update({ where: { id: subscription.id }, data: { serviceTag: daUsername } })
+        .catch(() => undefined);
+    }
 
     const daClient = await this.da.getClientForServer(server.id);
 
+    try {
+      await daClient.ensureUserPackage(
+        buildDaPackageSpecFromPlan(planResourceFields(subscription.plan)),
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.error(
+        `DA ensureUserPackage failed for sub=${subscription.id} pkg=${subscription.plan.slug}: ${msg}`,
+      );
+      await this.audit.record({
+        action: 'PROVISIONING_FAILED',
+        userId: subscription.userId,
+        actorUserId: actorUserId ?? null,
+        details: {
+          subscriptionId,
+          serverId: server.id,
+          stage: 'ensureUserPackage',
+          package: subscription.plan.slug,
+          error: msg,
+        },
+      });
+      throw new ServiceUnavailableException(
+        `DirectAdmin package "${subscription.plan.slug}" is missing on the node and could not be created automatically. Contact support.`,
+      );
+    }
+
+    const ns = await this.servers.resolveNameservers(server);
     let daResult;
     try {
       daResult = await daClient.createAccount({
@@ -106,7 +180,10 @@ export class ProvisioningService {
         domain,
         packageName: subscription.plan.slug,
         notify: 'no',
-        ip: 'shared',
+        ip: resolveDaAccountIp(server),
+        language: DA_DEFAULT_LANGUAGE,
+        ns1: ns.ns1 || undefined,
+        ns2: ns.ns2 || undefined,
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -135,6 +212,7 @@ export class ProvisioningService {
       await daClient.setAccountLimits(daUsername, {
         cpuPercent: subscription.plan.cpuLimit,
         memoryMb: subscription.plan.ramLimitMb,
+        diskQuotaMb: subscription.plan.diskLimitMb,
         ioKbps: subscription.plan.ioLimitKbps,
         iops: subscription.plan.iopsLimit,
         entryProcesses: subscription.plan.entryProcesses,
@@ -145,6 +223,44 @@ export class ProvisioningService {
       this.logger.error(
         `DA setAccountLimits failed for sub=${subscription.id} user=${daUsername}: ${msg}`,
       );
+      // Audit F-11: the DA account was already created above — remove it so
+      // the domain isn't orphaned on the node (a retry would otherwise fail
+      // with "domain already exists" and require manual cleanup).
+      try {
+        await daClient.deleteAccount(daUsername);
+        await this.audit.record({
+          action: 'PROVISIONING_ROLLBACK',
+          userId: subscription.userId,
+          actorUserId: actorUserId ?? null,
+          details: {
+            subscriptionId,
+            serverId: server.id,
+            daUsername,
+            domain,
+            stage: 'setAccountLimits',
+            reason: msg,
+          },
+        });
+      } catch (cleanupErr) {
+        const cleanupMsg =
+          cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr);
+        this.logger.error(
+          `PROVISIONING ROLLBACK FAILED — orphaned DA account ${daUsername} (domain=${domain}) ` +
+            `on server=${server.id}: ${cleanupMsg}. Manual cleanup required.`,
+        );
+        await this.audit.record({
+          action: 'PROVISIONING_ROLLBACK_FAILED',
+          userId: subscription.userId,
+          actorUserId: actorUserId ?? null,
+          details: {
+            subscriptionId,
+            serverId: server.id,
+            daUsername,
+            domain,
+            error: cleanupMsg,
+          },
+        });
+      }
       throw new ServiceUnavailableException(
         'CloudLinux LVE limits could not be applied on this node. Provisioning aborted.',
       );
@@ -215,6 +331,35 @@ export class ProvisioningService {
       },
     });
 
+    // MON-2 — monitoring strony domyślnie włączony dla usług hostingowych
+    // (darmowy, zawsze-on; klient może wyłączyć w panelu). Best-effort: nie
+    // blokuje aktywacji. Przy re-provisioningu nie nadpisujemy decyzji klienta.
+    if (subscription.plan.productKind === 'HOSTING') {
+      try {
+        await this.prisma.siteMonitor.upsert({
+          where: { subscriptionId: subscription.id },
+          create: {
+            subscriptionId: subscription.id,
+            enabled: true,
+            url: `https://${domain}`,
+          },
+          update: {},
+        });
+      } catch (err) {
+        this.logger.warn(
+          `Nie udało się włączyć domyślnego monitoringu dla sub=${subscription.id}: ${(err as Error).message}`,
+        );
+      }
+    }
+
+    void this.ecoPoints.safeAward(`subscription_first_paid:${subscription.id}`, async () => {
+      await this.ecoPoints.awardSubscriptionFirstPaid(
+        this.prisma,
+        subscription.userId,
+        subscription.id,
+      );
+    });
+
     if (subscription.ecoModeEnabled) {
       try {
         const ecoSync = await this.da.applyEcoModeBackupCronPolicy(
@@ -231,13 +376,49 @@ export class ProvisioningService {
         const msg = err instanceof Error ? err.message : String(err);
         this.logger.warn(`Provisioning EKO DA sync failed sub=${subscription.id}: ${msg}`);
       }
+
+      await this.ecoPoints.awardOnce(this.prisma, {
+        userId: subscription.userId,
+        delta: ECO_POINT_DELTAS.EKO_FIRST_ENABLE,
+        reason: 'EKO_FIRST_ENABLE',
+        subscriptionId: subscription.id,
+      });
     }
+
+    // B2 — apply the default WAF mode (DETECTION) explicitly so the managed
+    // .htaccess block exists from day one. Best-effort: the agent retries via
+    // the task queue; a failure never blocks provisioning.
+    void this.waf
+      .setModeForAccount(result.account.id, WafMode.DETECTION, subscription.userId)
+      .catch((err) => {
+        this.logger.warn(
+          `WAF default apply failed for sub=${subscription.id}: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      });
+
+    // A1 — best-effort auto-SSL (Let's Encrypt) right after provisioning. DNS
+    // may not point at the node yet, so failures are expected and harmless:
+    // DA's `letsencrypt=1` flag retries auto-issue, and the panel exposes a
+    // manual "Wystaw SSL" button. Never fails the provisioning flow.
+    void this.da
+      .requestLetsEncryptDirect(server, daUsername, daResult.password, domain)
+      .then(() =>
+        this.logger.log(`Auto-SSL (LE) requested for ${domain} (sub=${subscription.id})`),
+      )
+      .catch((err) => {
+        this.logger.log(
+          `Auto-SSL deferred for ${domain} (sub=${subscription.id}): ${
+            err instanceof Error ? err.message : String(err)
+          } — DA auto-issue / panel button will retry`,
+        );
+      });
 
     void this.notifyAccountProvisioned({
       userId: subscription.userId,
       domain,
       daUsername,
-      daPassword: daResult.password,
       planName: subscription.plan.name,
     }).catch((err) => {
       this.logger.warn(
@@ -259,7 +440,6 @@ export class ProvisioningService {
     userId: string;
     domain: string;
     daUsername: string;
-    daPassword: string;
     planName: string;
   }): Promise<void> {
     const user = await this.prisma.user.findUnique({
@@ -277,10 +457,9 @@ export class ProvisioningService {
       planName: opts.planName,
       domain: opts.domain,
       daUsername: opts.daUsername,
-      daPassword: opts.daPassword,
       panelUrl,
     });
-    await this.mailer.send(message);
+    await this.mailer.send({ ...message, category: 'TRANSACTIONAL', fromRole: 'NOREPLY' });
   }
 
   /**

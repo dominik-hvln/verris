@@ -16,6 +16,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AutoscalingPricingService } from './autoscaling-pricing.service';
 import { CreatePriceRuleDto, UpdatePriceRuleDto } from './dto/price-rule.dto';
+import { SimulatePricingDto } from './dto/simulate-pricing.dto';
 
 @Controller('admin/autoscaling/pricing')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -26,6 +27,17 @@ export class AutoscalingAdminController {
   @Get()
   list() {
     return this.pricing.listAll();
+  }
+
+  @Get('revenue')
+  revenueLast30Days() {
+    return this.pricing.revenueReportLast30Days();
+  }
+
+  @Post('simulate')
+  @HttpCode(200)
+  simulate(@Body() dto: SimulatePricingDto) {
+    return this.pricing.simulateEffectiveRate(dto);
   }
 
   @Get(':id')

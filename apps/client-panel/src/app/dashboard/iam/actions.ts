@@ -31,6 +31,18 @@ export async function getIamOverview(): Promise<IamOverview> {
   return apiFetch<IamOverview>('/users/iam');
 }
 
+export interface IamAuditEntry {
+  id: string;
+  action: string;
+  createdAt: string;
+  details: unknown;
+  actor: { id: string; email: string | null; name: string | null } | null;
+}
+
+export async function getIamAudit(): Promise<{ entries: IamAuditEntry[] }> {
+  return apiFetch<{ entries: IamAuditEntry[] }>('/users/iam/audit');
+}
+
 export type IamActionResult = { ok: true } | { ok: false; error: string };
 
 export async function inviteSubaccountAction(formData: FormData): Promise<void> {
@@ -46,6 +58,7 @@ export async function inviteSubaccountAction(formData: FormData): Promise<void> 
       body: JSON.stringify({ email, label: label || undefined, permissions }),
     });
     revalidatePath('/dashboard/iam');
+    redirect('/dashboard/iam?notice=invite-sent');
   } catch (err) {
     throw new Error(normalizeError(err, 'Nie udało się wysłać zaproszenia.'));
   }
@@ -56,8 +69,31 @@ export async function revokeInviteAction(formData: FormData): Promise<void> {
   try {
     await apiFetch(`/users/iam/invites/${id}`, { method: 'DELETE' });
     revalidatePath('/dashboard/iam');
+    redirect('/dashboard/iam?notice=invite-revoked');
   } catch (err) {
     throw new Error(normalizeError(err, 'Nie udało się odwołać zaproszenia.'));
+  }
+}
+
+export async function updateMemberAction(formData: FormData): Promise<void> {
+  const id = String(formData.get('id') ?? '');
+  const label = String(formData.get('label') ?? '').trim();
+  const permissions = formData.getAll('permissions').map(String);
+  if (!id || permissions.length === 0) {
+    throw new Error('Wybierz co najmniej jedno uprawnienie.');
+  }
+  try {
+    await apiFetch(`/users/iam/members/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        permissions,
+        label: label || undefined,
+      }),
+    });
+    revalidatePath('/dashboard/iam');
+    redirect('/dashboard/iam?notice=permissions-saved');
+  } catch (err) {
+    throw new Error(normalizeError(err, 'Nie udało się zaktualizować uprawnień.'));
   }
 }
 
@@ -66,6 +102,7 @@ export async function disableMemberAction(formData: FormData): Promise<void> {
   try {
     await apiFetch(`/users/iam/members/${id}`, { method: 'DELETE' });
     revalidatePath('/dashboard/iam');
+    redirect('/dashboard/iam?notice=member-disabled');
   } catch (err) {
     throw new Error(normalizeError(err, 'Nie udało się wyłączyć subkonta.'));
   }

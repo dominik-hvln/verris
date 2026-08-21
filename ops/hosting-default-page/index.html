@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>|DOMAIN| — hosting verris</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@800&family=Hanken+Grotesk:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --verris-pine: #0C1A14;
+      --verris-paper: #F4F4EE;
+      --verris-green: #0F7A52;
+      --verris-mid: #1FA871;
+      --verris-mint: #34E5A0;
+      --verris-stone: #9AA39C;
+      --verris-body: #AFBDB6;
+      --line: rgba(12, 26, 20, 0.1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Hanken Grotesk", system-ui, sans-serif;
+      background: var(--verris-paper);
+      color: var(--verris-pine);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      position: relative;
+    }
+    .pattern {
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      opacity: 0.07;
+      background-image: url("assets/verris-pattern-uniform-mono.svg");
+      background-size: 480px 240px;
+      background-repeat: repeat;
+      mask-image: linear-gradient(to bottom, #000 0%, #000 35%, transparent 70%);
+      -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 35%, transparent 70%);
+    }
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 24px 20px 48px;
+    }
+    a { color: var(--verris-green); text-decoration: none; font-weight: 600; }
+    a:hover { color: var(--verris-mid); }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 48px;
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--verris-pine);
+    }
+    .brand img { width: 32px; height: 32px; flex-shrink: 0; display: block; }
+    .brand span {
+      font-family: "Schibsted Grotesk", system-ui, sans-serif;
+      font-weight: 800;
+      font-size: 1.5rem;
+      letter-spacing: -0.045em;
+      text-transform: lowercase;
+    }
+    .nav {
+      display: flex;
+      gap: 20px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--verris-stone);
+    }
+    main {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 40px;
+      align-items: center;
+    }
+    @media (min-width: 900px) {
+      main { grid-template-columns: 1.1fr 0.9fr; gap: 56px; }
+    }
+    h1 {
+      font-family: "Schibsted Grotesk", system-ui, sans-serif;
+      font-size: clamp(1.75rem, 4vw, 2.25rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      margin-bottom: 8px;
+    }
+    .domain {
+      display: block;
+      font-family: "Schibsted Grotesk", system-ui, sans-serif;
+      font-size: clamp(2.25rem, 6vw, 3.25rem);
+      font-weight: 800;
+      color: var(--verris-green);
+      letter-spacing: -0.03em;
+      margin: 8px 0 20px;
+      word-break: break-word;
+    }
+    .lead {
+      font-size: 1rem;
+      line-height: 1.65;
+      color: var(--verris-stone);
+      max-width: 36em;
+    }
+    .lead code {
+      font-size: 0.9em;
+      background: rgba(15, 122, 82, 0.08);
+      color: var(--verris-green);
+      padding: 2px 8px;
+      border-radius: 6px;
+      border: 1px solid rgba(15, 122, 82, 0.2);
+    }
+    .tagline {
+      margin-top: 6px;
+      font-size: 0.8125rem;
+      color: var(--verris-stone);
+    }
+    .cta-block { margin-top: 28px; }
+    .cta-block p {
+      font-weight: 600;
+      font-size: 1rem;
+      margin-bottom: 12px;
+      color: var(--verris-pine);
+    }
+    .btn {
+      display: inline-block;
+      background: var(--verris-green);
+      color: var(--verris-paper);
+      font-weight: 700;
+      font-size: 0.8125rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 14px 22px;
+      border-radius: 8px;
+      transition: background 0.15s;
+    }
+    .btn:hover {
+      background: var(--verris-mid);
+      color: var(--verris-paper);
+    }
+    .meta {
+      margin-top: 24px;
+      font-size: 0.8125rem;
+      color: var(--verris-stone);
+    }
+    .illus-card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 28px;
+      box-shadow: 0 16px 40px rgba(12, 26, 20, 0.06);
+    }
+    .illus-mark {
+      width: 72px;
+      height: 72px;
+      margin-bottom: 20px;
+      display: block;
+    }
+    .illus-card h2 {
+      font-family: "Schibsted Grotesk", system-ui, sans-serif;
+      font-size: 1.25rem;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+    .illus-card p {
+      color: var(--verris-stone);
+      line-height: 1.6;
+      font-size: 0.9375rem;
+    }
+    footer {
+      margin-top: 64px;
+      padding-top: 20px;
+      border-top: 1px solid var(--line);
+      font-size: 0.8125rem;
+      color: var(--verris-stone);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+  <div class="pattern" aria-hidden="true"></div>
+  <div class="wrap">
+    <header>
+      <a class="brand" href="https://verris.pl" rel="noopener">
+        <img src="assets/verris-mark-dark.svg" width="32" height="32" alt="" aria-hidden="true" />
+        <span>verris</span>
+      </a>
+      <nav class="nav" aria-label="Pomoc">
+        <a href="mailto:kontakt@verris.pl">Napisz do nas</a>
+        <a href="https://panel.verris.pl/dashboard/support" rel="noopener">Centrum pomocy</a>
+      </nav>
+    </header>
+
+    <main>
+      <section>
+        <h1>Witamy na stronie</h1>
+        <span class="domain">|DOMAIN|</span>
+        <p class="tagline">Skaluj świadomie.</p>
+        <p class="lead">
+          Domena jest podłączona do hostingu <strong>verris</strong>. Aby opublikować własną witrynę,
+          wgraj pliki do katalogu <code>public_html</code> (FTP, SFTP lub menedżer plików w panelu).
+          Gdy strona będzie gotowa, <strong>usuń ten plik</strong> (<code>index.html</code>) z serwera.
+        </p>
+        <div class="cta-block">
+          <p>Masz pytania?</p>
+          <a class="btn" href="https://panel.verris.pl/dashboard/support" rel="noopener">Centrum pomocy</a>
+        </div>
+        <p class="meta">
+          Konto: |USERNAME| · Utworzono: |DATECREATED| · IP serwera: |IP|
+        </p>
+      </section>
+
+      <section aria-hidden="true">
+        <div class="illus-card">
+          <img class="illus-mark" src="assets/verris-mark-green.svg" width="72" height="72" alt="" aria-hidden="true" />
+          <h2>Hosting, który liczy realne zużycie.</h2>
+          <p>
+            Zarządzaj domeną, pocztą i kopiami zapasowymi w panelu klienta —
+            bez zbędnego żargonu i ukrytych limitów.
+          </p>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>verris · <a href="https://panel.verris.pl" rel="noopener">panel.verris.pl</a></span>
+      <span>Strona startowa — zastąp własną witryną w <code>public_html</code></span>
+    </footer>
+  </div>
+</body>
+</html>

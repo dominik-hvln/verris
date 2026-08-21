@@ -1,14 +1,43 @@
 "use client";
 
-import { useActionState } from "react";
+import { Suspense, useActionState, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { submitRegister } from "./actions";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, Check, X } from "lucide-react";
+import { SpinBorder } from "@/components/spin-border";
+import { VerrisLockup } from "@/components/logo";
+import { Captcha } from "@/components/captcha";
+import { checkPassword, PASSWORD_MIN_LENGTH } from "@/lib/password-policy";
 
 const initialState = { error: "" };
 
 export default function RegisterPage() {
+  return (
+    <Suspense
+      fallback={<RegisterFallback />}
+    >
+      <RegisterContent />
+    </Suspense>
+  );
+}
+
+function RegisterFallback() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-neutral-950">
+      <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
+    </div>
+  );
+}
+
+function RegisterContent() {
+  const searchParams = useSearchParams();
+  const refFromUrl = searchParams.get("ref")?.trim() ?? "";
+
   // @ts-ignore
   const [state, formAction, isPending] = useActionState(submitRegister, initialState);
+  const [password, setPassword] = useState("");
+  const pw = checkPassword(password);
+  const pwBars = ["bg-rose-500", "bg-rose-500", "bg-amber-500", "bg-emerald-500", "bg-emerald-400"];
 
   return (
     <div className="relative flex items-center justify-center min-h-screen bg-neutral-950 overflow-hidden py-12">
@@ -22,21 +51,15 @@ export default function RegisterPage() {
       <div className="relative z-10 w-full max-w-[480px] mx-4 animate-in fade-in slide-in-from-bottom-8 duration-[1500ms]">
         {/* Logo / Brand */}
         <div className="text-center mb-10">
-          <div className="relative inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-neutral-900/80 border border-white/10 mb-6 group overflow-hidden">
-             <div className="absolute inset-0 bg-gradient-to-tr from-sky-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-sky-400">
-              <path d="M12 2L2 7l10 5 10-5-10-5z" />
-              <path d="M2 17l10 5 10-5" />
-              <path d="M2 12l10 5 10-5" />
-            </svg>
+          <div className="mb-6 flex justify-center">
+            <VerrisLockup size="lg" layout="vertical" showTagline className="items-center" />
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight text-white mb-2">Verris</h1>
           <p className="text-base text-neutral-400">Utwórz nowe konto</p>
         </div>
 
         {/* Register Card - Liquid Glass */}
         <div className="relative rounded-[32px] p-px overflow-hidden group/card shadow-[0_0_50px_rgba(0,0,0,0.5)]">
-          <div className="absolute -inset-full animate-[spin_1.5s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_75%,#0ea5e9_100%)] opacity-30 group-hover/card:opacity-60 transition-opacity duration-500 pointer-events-none" />
+          <SpinBorder className="opacity-30 transition-opacity duration-500 group-hover/card:opacity-60" />
           
           <div className="relative rounded-[calc(32px-1px)] bg-neutral-950/80 backdrop-blur-3xl border border-white/5">
             <div className="p-8 pb-6 border-b border-white/5">
@@ -45,6 +68,7 @@ export default function RegisterPage() {
             </div>
 
             <form action={formAction}>
+              {refFromUrl ? <input type="hidden" name="ref" value={refFromUrl} /> : null}
               <div className="p-8 space-y-5">
                 {state?.error && (
                   <div className="flex items-center gap-3 p-4 text-sm font-medium text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-xl mb-2 animate-in fade-in zoom-in-95">
@@ -66,12 +90,42 @@ export default function RegisterPage() {
 
                 <div className="space-y-2">
                   <label htmlFor="email" className="text-sm font-semibold text-neutral-300">Adres E-mail</label>
-                  <input id="email" name="email" type="email" placeholder="jan@kowalski.pl" required className="w-full rounded-xl border border-white/10 bg-neutral-900/50 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500/50 transition-all duration-300" />
+                  <input id="email" name="email" type="email" autoComplete="email" placeholder="jan@kowalski.pl" required className="w-full rounded-xl border border-white/10 bg-neutral-900/50 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500/50 transition-all duration-300" />
                 </div>
 
                 <div className="space-y-2">
                   <label htmlFor="password" className="text-sm font-semibold text-neutral-300">Hasło</label>
-                  <input id="password" name="password" type="password" required minLength={8} placeholder="Minimum 8 znaków" className="w-full rounded-xl border border-white/10 bg-neutral-900/50 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500/50 transition-all duration-300" />
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    autoComplete="new-password"
+                    required
+                    minLength={PASSWORD_MIN_LENGTH}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder={`Minimum ${PASSWORD_MIN_LENGTH} znaków`}
+                    className="w-full rounded-xl border border-white/10 bg-neutral-900/50 px-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500/50 transition-all duration-300"
+                  />
+                  {password.length > 0 ? (
+                    <div className="space-y-1.5 pt-1">
+                      <div className="flex gap-1">
+                        {[0, 1, 2, 3].map((i) => (
+                          <span
+                            key={i}
+                            className={`h-1 flex-1 rounded-full transition-colors ${
+                              i < pw.score ? pwBars[pw.score] : "bg-white/10"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <ul className="space-y-0.5 text-[11px]">
+                        <Req ok={pw.lengthOk}>Co najmniej {PASSWORD_MIN_LENGTH} znaków</Req>
+                        <Req ok={pw.classesOk}>3 z 4: mała i wielka litera, cyfra, symbol</Req>
+                        <Req ok={pw.notCommon}>Nie jest popularnym hasłem</Req>
+                      </ul>
+                    </div>
+                  ) : null}
                 </div>
 
                 {/* RODO Sprint 1 / L-03 — required & optional consents.
@@ -131,8 +185,9 @@ export default function RegisterPage() {
               </div>
 
               <div className="p-8 pt-2">
+                <div className="mb-4"><Captcha action="register" /></div>
                 <button type="submit" disabled={isPending} className="relative w-full group overflow-hidden rounded-xl p-px disabled:opacity-50 disabled:cursor-not-allowed">
-                  <div className="absolute -inset-full animate-[spin_1.5s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_70%,#0ea5e9_100%)] opacity-70" />
+                  <SpinBorder className="opacity-70" />
                   <div className="relative flex items-center justify-center h-12 w-full rounded-[calc(0.75rem-1px)] bg-neutral-950 text-sm font-bold text-white transition-all hover:bg-neutral-900">
                     {isPending ? (
                       <span className="flex items-center gap-2">
@@ -153,5 +208,14 @@ export default function RegisterPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+function Req({ ok, children }: { ok: boolean; children: React.ReactNode }) {
+  return (
+    <li className={`flex items-center gap-1.5 ${ok ? "text-emerald-400" : "text-neutral-500"}`}>
+      {ok ? <Check className="h-3 w-3 shrink-0" /> : <X className="h-3 w-3 shrink-0" />}
+      {children}
+    </li>
   );
 }

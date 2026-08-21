@@ -1,0 +1,106 @@
+import { AutoscalingPriceRule, AutoscalingResource } from '@verris/database';
+
+export const MB_PER_GB = 1024;
+
+/** Catalog / calculator amounts: CPU in %, RAM and DISK in GB. */
+export interface AutoscalingCatalogAmounts {
+  cpuPercent: number;
+  ramGb: number;
+  diskGb: number;
+}
+
+/**
+ * Converts catalog amounts to the unit required by a price rule (supports legacy mb rules).
+ */
+export function toRuleBillingUnits(
+  resource: AutoscalingResource,
+  catalogAmount: number,
+  ruleUnit: string,
+): number {
+  if (catalogAmount <= 0) return 0;
+  if (resource === AutoscalingResource.CPU) return catalogAmount;
+  if (ruleUnit.endsWith('_gb')) return catalogAmount;
+  if (ruleUnit.endsWith('_mb')) return catalogAmount * MB_PER_GB;
+  return catalogAmount;
+}
+
+export interface AutoscalingHourlyBreakdown {
+  cpu: number;
+  ram: number;
+  disk: number;
+  total: number;
+}
+
+export function hourlyCostBreakdownForCatalogAmounts(
+  rules: AutoscalingPriceRule[],
+  amounts: AutoscalingCatalogAmounts,
+): AutoscalingHourlyBreakdown {
+  const accrue = (resource: AutoscalingResource, catalogUnits: number): number => {
+    if (catalogUnits <= 0) return 0;
+    const list = rules
+      .filter((r) => r.resource === resource && r.isActive)
+      .sort((a, b) => b.thresholdAbove - a.thresholdAbove);
+    if (list.length === 0) return 0;
+
+    const rule =
+      list.find((r) => {
+        const thresholdCatalog =
+          r.unit.endsWith('_mb') && resource !== AutoscalingResource.CPU
+            ? r.thresholdAbove / MB_PER_GB
+            : r.thresholdAbove;
+        return catalogUnits >= thresholdCatalog;
+      }) ?? list[list.length - 1];
+
+    const billable = toRuleBillingUnits(resource, catalogUnits, rule.unit);
+    return billable * Number(rule.pricePerUnit);
+  };
+
+  const cpu = accrue(AutoscalingResource.CPU, amounts.cpuPercent);
+  const ram = accrue(AutoscalingResource.RAM, amounts.ramGb);
+  const disk = accrue(AutoscalingResource.DISK, amounts.diskGb);
+  return { cpu, ram, disk, total: cpu + ram + disk };
+}
+
+export function hourlyCostForCatalogAmounts(
+  rules: AutoscalingPriceRule[],
+  amounts: AutoscalingCatalogAmounts,
+): number {
+  return hourlyCostBreakdownForCatalogAmounts(rules, amounts).total;
+}
+
+/**
+ * Active catalog rules cannot share the same threshold for one resource (AS-3.1).
+ */
+export function assertUniqueActiveTierThreshold(
+  existing: { id: string; resource: AutoscalingResource; thresholdAbove: number; isActive: boolean }[],
+  candidate: {
+    resource: AutoscalingResource;
+    thresholdAbove: number;
+    isActive: boolean;
+    excludeRuleId?: string;
+  },
+): void {
+  if (!candidate.isActive) return;
+  const clash = existing.find(
+    (r) =>
+      r.isActive &&
+      r.resource === candidate.resource &&
+      r.thresholdAbove === candidate.thresholdAbove &&
+      r.id !== candidate.excludeRuleId,
+  );
+  if (clash) {
+    throw new Error(
+      `Aktywna reguła dla ${candidate.resource} z progiem ${candidate.thresholdAbove} już istnieje (id=${clash.id}). Zmień próg lub dezaktywuj poprzednią regułę.`,
+    );
+  }
+}
+
+/** Engine billing: scaled RAM is stored in MB on the account. */
+export function scaledRamMbToCatalogGb(scaledRamMb: number): number {
+  return scaledRamMb / MB_PER_GB;
+}
+
+/** Engine billing: scaled disk is stored in MB on the account. */
+export function scaledDiskMbToCatalogGb(scaledDiskMb: number): number {
+  return scaledDiskMb / MB_PER_GB;
+}

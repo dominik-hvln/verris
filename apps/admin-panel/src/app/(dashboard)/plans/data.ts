@@ -24,6 +24,15 @@ export interface AdminPlanRow {
   isPublic: boolean;
   isActive: boolean;
   sortOrder: number;
+  /** O-1 — free trial length in days. 0 = no trial available. */
+  trialDays: number;
+  /** HOSTING vs standalone e-mail product (P-1b). */
+  productKind: 'HOSTING' | 'EMAIL';
+  /** SUP-4 — SLA response window in hours; 0 = no SLA badge. */
+  supportSlaHours: number;
+  autoscalingMaxOverscaleCpu: number;
+  autoscalingMaxOverscaleRam: number;
+  autoscalingMaxOverscaleDisk: number;
   createdAt: string;
   updatedAt: string;
 }

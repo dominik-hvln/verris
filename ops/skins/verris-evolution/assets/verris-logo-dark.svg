@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="150" height="36" viewBox="0 0 150 36" role="img" aria-label="Verris — panel serwera">
+  <g fill="none" stroke="#0f7a52" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" transform="translate(2,6)">
+    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+    <path d="M2 17l10 5 10-5"/>
+    <path d="M2 12l10 5 10-5"/>
+  </g>
+  <text x="34" y="25" font-family="Inter, system-ui, sans-serif" font-size="19" font-weight="800" fill="#0c1a14" letter-spacing="-0.02em">Verris</text>
+</svg>

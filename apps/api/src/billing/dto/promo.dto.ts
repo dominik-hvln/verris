@@ -49,4 +49,9 @@ export class AdminCreatePromoDto {
   @IsOptional()
   @IsString()
   validTo?: string;
+
+  /** Tylko dla `SERVICE_PERCENT_OFF` — rabat na kolejne odnowienia z portfela. */
+  @IsOptional()
+  @IsBoolean()
+  appliesToRenewals?: boolean;
 }

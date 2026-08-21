@@ -64,7 +64,7 @@ export default async function DomainDetailsPage({ params }: { params: Promise<{ 
         {
           href: hostingPath('/dashboard/dns', linked.id, { zone: domain.name }),
           label: 'Strefa DNS',
-          desc: 'Rekordy z DirectAdmin dla tej domeny',
+          desc: 'Rekordy DNS dla tej domeny',
           icon: Network,
         },
         {
@@ -76,13 +76,13 @@ export default async function DomainDetailsPage({ params }: { params: Promise<{ 
         {
           href: hostingPath('/dashboard/file-manager', linked.id),
           label: 'Menedżer plików',
-          desc: 'File Manager w DirectAdmin',
+          desc: 'Pliki na hostingu',
           icon: FolderOpen,
         },
         {
           href: hostingPath('/dashboard/ssl', linked.id),
           label: 'SSL',
-          desc: 'Certyfikaty i panel SSL w DA',
+          desc: 'Certyfikaty SSL',
           icon: ShieldCheck,
         },
         {
@@ -107,7 +107,7 @@ export default async function DomainDetailsPage({ params }: { params: Promise<{ 
           href: hostingPath('/dashboard/backups', linked.id),
           label: 'Kopie zapasowe',
           icon: HardDriveDownload,
-          desc: 'Kopie z konta DA',
+          desc: 'Kopie zapasowe konta',
         },
       ]
     : [];
@@ -138,8 +138,8 @@ export default async function DomainDetailsPage({ params }: { params: Promise<{ 
             </span>
           </div>
           <p className="mt-2 text-sm text-neutral-400">
-            Domena w portfelu Verris. Narzędzia hostingowe działają po powiązaniu z kontem DirectAdmin (ta sama
-            nazwa domeny co przy provisioning).
+            Domena w portfelu Verris. Narzędzia hostingowe działają po powiązaniu z aktywną usługą (ta sama
+            nazwa domeny co przy zakładaniu hostingu).
           </p>
         </div>
         <DomainRecordActions domain={domain} />
@@ -149,8 +149,8 @@ export default async function DomainDetailsPage({ params }: { params: Promise<{ 
         <div className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.06] p-6 text-sm text-neutral-200">
           <p className="font-medium text-amber-100">Brak powiązanej usługi hostingowej</p>
           <p className="mt-2 text-neutral-400">
-            Żadna aktywna subskrypcja nie ma konta DA z tą samą domeną główną. Dodaj domenę w DirectAdmin lub zamów
-            hosting na ten adres — wtedy pojawią się linki do DNS, plików i pozostałych modułów.
+            Żadna aktywna usługa nie ma tej domeny jako głównej. Zamów hosting na ten adres lub dodaj domenę
+            w panelu hostingu — wtedy pojawią się linki do DNS, plików i pozostałych modułów.
           </p>
           <Link href="/dashboard/services/new" className="mt-4 inline-block text-sm text-indigo-400 hover:underline">
             Zamów usługę →
@@ -219,7 +219,7 @@ export default async function DomainDetailsPage({ params }: { params: Promise<{ 
           </div>
 
           <div>
-            <h2 className="mb-4 text-lg font-semibold text-white">Narzędzia (DirectAdmin)</h2>
+            <h2 className="mb-4 text-lg font-semibold text-white">Narzędzia hostingowe</h2>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {toolLinks.map(({ href, label, desc, icon: Icon }) => (
                 <Link

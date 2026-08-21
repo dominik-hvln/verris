@@ -1,0 +1,6 @@
+# Backup .env.prod (poza repo) — codziennie 04:12 UTC, po backupie Postgres.
+# Instalacja: install -m 644 ops/cron/verris-env-backup.cron /etc/cron.d/verris-env-backup
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+
+12 4 * * * root cd /opt/verris && ./ops/scripts/prod-env-backup.sh >> /var/log/verris-env-backup.log 2>&1

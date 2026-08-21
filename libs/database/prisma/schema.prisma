@@ -8,7 +8,7 @@
 
 generator client {
   provider      = "prisma-client-js"
-  // native = dev machines; debian-openssl-3.0.x = node:20-bookworm-slim (prod Docker)
+  // native = dev machines; debian-openssl-3.0.x = node:22-bookworm-slim (prod Docker)
   binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
@@ -42,11 +42,31 @@ enum CustomerPermission {
   SETTINGS_MANAGE
 }
 
+/// RBAC-1 — rola/dział staffa. `permissions` to lista kluczy z katalogu
+/// (StaffPermission, trzymana w kodzie, by dodawanie nowych nie wymagało migracji enum).
+/// `isSystem` = wstępnie zasiane działy (edytowalne, nieusuwalne).
+model StaffRole {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  permissions String[] @default([])
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  members     User[]
+}
+
 model User {
   id                       String    @id @default(uuid())
   email                    String    @unique
   passwordHash             String
   role                     Role      @default(USER)
+
+  // RBAC-1 — dział/rola staffa (granularne uprawnienia panelu admina/staff).
+  // Dotyczy tylko kont STAFF; ADMIN ma pełny dostęp niezależnie od roli.
+  staffRoleId              String?
+  staffRole                StaffRole? @relation(fields: [staffRoleId], references: [id], onDelete: SetNull)
 
   // Profile
   firstName                String?
@@ -58,6 +78,10 @@ model User {
   postalCode               String?
   country                  String?   @default("PL")
   locale                   String    @default("pl")
+
+  // C3 — bumped to invalidate every issued JWT for this user ("wyloguj
+  // wszystkie urządzenia" / forced logout after password change/compromise).
+  tokenVersion             Int       @default(0)
 
   // Wallet (Pay-As-You-Go) — derived from WalletTransaction ledger; kept as
   // a denormalized counter for fast reads, always updated transactionally
@@ -71,8 +95,26 @@ model User {
   referredByUserId       String?
   referredBy             User?     @relation("UserReferrals", fields: [referredByUserId], references: [id], onDelete: SetNull)
   referredUsers          User[]    @relation("UserReferrals")
+  // RESELL — program partnerski (afiliacja).
+  partnerCommissions     PartnerCommission[] @relation("PartnerCommissions")
+  referredCommissions    PartnerCommission[] @relation("ReferredCommissions")
+  partnerPayouts         PartnerPayout[]     @relation("PartnerPayouts")
+  // API-1 — publiczne API klienta (tokeny).
+  apiTokens              ApiToken[]          @relation("UserApiTokens")
+  // EMM — produkt email-marketingu (listy/kampanie należące do klienta).
+  emmLists               EmmList[]           @relation("UserEmmLists")
+  emmCampaigns           EmmCampaign[]       @relation("UserEmmCampaigns")
+  // AN — analityka stron (privacy-first).
+  analyticsSites         AnalyticsSite[]     @relation("UserAnalyticsSites")
+  // RSL — reseller white-label.
+  resellerProfile        ResellerProfile?    @relation("UserResellerProfile")
+  resellerOwnerId        String?
+  resellerOwner          User?               @relation("ResellerClients", fields: [resellerOwnerId], references: [id], onDelete: SetNull)
+  resellerClients        User[]              @relation("ResellerClients")
   /// Nieauthoryzowany token do publicznego badge SVG (`GET /public/eco/badge/:token`).
   ecoBadgeToken          String?   @unique
+  /// Łączna liczba unikalnych wyświetleń badge (po deduplikacji IP/godzina).
+  ecoBadgeImpressions    Int       @default(0)
 
   // 2FA — TOTP (RFC 6238). `twoFactorSecret` and `twoFactorRecoveryCodesEnc`
   // are encrypted at rest with the application KMS key (AES-256-GCM).
@@ -80,6 +122,28 @@ model User {
   isTwoFactorEnabled       Boolean   @default(false)
   twoFactorEnrolledAt      DateTime?
   twoFactorRecoveryCodesEnc String?
+
+  // SEC-6 — opcjonalny (opt-in) wymóg silnego logowania dla konta klienta.
+  // Gdy true: logowanie samym hasłem jest niewystarczające — wymagane 2FA
+  // (jeśli włączone) albo passkey. Włączane tylko gdy konto ma już czynnik.
+  requireStrongAuth        Boolean   @default(false)
+
+  // C2 — WebAuthn / passkeys. Transient challenge for registration/auth ceremony.
+  webauthnChallenge        String?
+  webauthnChallengeExpires DateTime?
+  webauthnCredentials      WebAuthnCredential[]
+  webauthnLoginChallenges  WebAuthnLoginChallenge[]
+  // SEC-10 — aktywne sesje (lista urządzeń + zdalne wylogowanie pojedynczej sesji).
+  sessions                 UserSession[]            @relation("UserSessions")
+  // #11 — kredyty SLA przyznane użytkownikowi
+  slaCredits               SlaCredit[]
+  // Passkey enforcement for ADMIN/STAFF. Once a privileged user has logged in
+  // with a passkey under enforcement we set `passkeyEnforcedAt`; afterwards the
+  // password-only path is rejected (must use passkey or audited break-glass).
+  passkeyEnforcedAt          DateTime?
+  staffBreakGlassCodesEnc    String?
+  staffBreakGlassGeneratedAt DateTime?
+  staffBreakGlassUsedAt      DateTime?
 
   // Stripe
   stripeCustomerId         String?   @unique
@@ -110,6 +174,13 @@ model User {
   /// Timestamp when PII was anonymized. After this, the row stays for
   /// invoicing audit (5y PL legal requirement) but contains no personal data.
   anonymizedAt             DateTime?
+  /// Potwierdzenie adresu e-mail (link z rejestracji). Null = oczekuje na weryfikację.
+  emailVerifiedAt          DateTime?
+  /// SEC-9 — oczekujący nowy adres e-mail (self-service zmiana z weryfikacją).
+  /// Ustawiany przy żądaniu zmiany; po potwierdzeniu linkiem staje się `email`.
+  pendingEmail             String?
+  /// O-1 — timestamp pierwszego uruchomienia darmowego okresu próbnego (jeden trial na konto).
+  trialStartedAt           DateTime?
 
   // ---------------------------------------------------------------------------
   // Sprint 4 / R-04 — operacje admina na koncie klienta (tylko USER)
@@ -120,6 +191,9 @@ model User {
   loginBlockedReason       String?   @db.Text
   /// Notatka wewnętrzna BOK (nie pokazywana klientowi).
   adminInternalNote        String?   @db.Text
+
+  /// 4 skróty w sidebarze panelu klienta (href z katalogu `SIDEBAR_TILE_OPTIONS`).
+  sidebarQuickLinks        String[]  @default([])
 
   // IAM / subaccounts — USER może mieć subkonta działające w kontekście ownera.
   customerOwnerId          String?
@@ -139,17 +213,29 @@ model User {
   paymentMethods           PaymentMethod[]
   invoices                 Invoice[]
   domains                  Domain[]
+  vpsInstances             VpsInstance[]
+  sshKeys                  SshKey[]
+  purchasedAddons          PurchasedAddon[]
+  // P-8 — priority support add-on (flag + expiry). Consumed by ticket SLA.
+  prioritySupport          Boolean   @default(false)
+  prioritySupportUntil     DateTime?
   domainRegistrarOrders    DomainRegistrarOrder[]
   aiInteractions           AiInteractionLog[]
+  aiKnowledgeDocs          AiKnowledgeDoc[]    @relation("AiKnowledgeDocAuthor")
   tickets                  Ticket[]            @relation("ClientTickets")
   assignedTickets          Ticket[]            @relation("AssignedTickets")
   auditLogs                AuditLog[]          @relation("AuditUser")
   approvedServers          Server[]            @relation("ServerApprover")
   bootstrapTokensCreated   BootstrapToken[]    @relation("BootstrapTokenCreator")
+  nodeTasksRequested       NodeTask[]          @relation("NodeTaskRequester")
   promoRedemptions         PromoRedemption[]
   walletAutoTopup          WalletAutoTopup?
   ticketAttachmentsUploaded TicketAttachment[] @relation("TicketAttachmentUploader")
   ecoPointsLedger           EcoPointsLedgerEntry[]
+  ecoBadgeImpressionDedups  EcoBadgeImpressionDedup[]
+  referralProgramEnrollment ReferralProgramEnrollment?
+  referralEnrollmentsReviewed ReferralProgramEnrollment[] @relation("ReferralEnrollmentReviewer")
+  platformSettingsUpdated   PlatformSetting[] @relation("PlatformSettingUpdatedBy")
   featureFlagsCreated       FeatureFlag[]      @relation("FeatureFlagCreator")
   featureFlagOverridesCreated FeatureFlagOverride[] @relation("FeatureFlagOverrideCreator")
   featureFlagOverrides       FeatureFlagOverride[] @relation("FeatureFlagUser")
@@ -172,8 +258,111 @@ model User {
   // Security (Sprint 2.5)
   loginEvents               LoginEvent[]
 
+  // Auth tokens (password reset, future email verify)
+  authTokens                UserAuthToken[]
+
+  // MAIL-4 — skrzynka zespołu @verris.pl (SOGo + IMAP)
+  controlPlaneMailbox       ControlPlaneMailbox?
+
   // Sprint 7 — pakietowe migracje
   migrationRequests         MigrationRequest[]
+
+  // NTF-2 — powiadomienia in-app (dzwonek w panelu klienta)
+  notifications             Notification[]
+}
+
+// NTF-2 — trwałe powiadomienia in-app (dzwonek panelu klienta).
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Kategoria: MONITORING, SSL, BILLING, SECURITY, SLA, SYSTEM.
+  category  String
+  // info | warning | critical
+  severity  String   @default("info")
+  title     String
+  body      String   @db.Text
+  // Opcjonalny link wewnątrz panelu (np. /dashboard/services/<id>).
+  link      String?
+  // Powiązana usługa (kontekst), opcjonalnie.
+  subscriptionId String?
+
+  readAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, readAt])
+  @@index([userId, createdAt])
+}
+
+enum UserAuthTokenPurpose {
+  PASSWORD_RESET
+  EMAIL_VERIFICATION
+  EMAIL_CHANGE
+}
+
+model UserAuthToken {
+  id        String               @id @default(uuid())
+  userId    String
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose   UserAuthTokenPurpose
+  tokenHash String               @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime             @default(now())
+
+  @@index([userId, purpose])
+  @@index([expiresAt])
+}
+
+/// SEC-10 — aktywna sesja użytkownika. `sid` (id) jest osadzony w JWT; strategia
+/// odrzuca token, gdy sesja jest `revokedAt` lub nie istnieje. Pozwala wylogować
+/// pojedyncze urządzenie bez zrywania wszystkich (to robi bump `tokenVersion`).
+model UserSession {
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation("UserSessions", fields: [userId], references: [id], onDelete: Cascade)
+  /// tokenVersion w chwili wydania — gdy user.tokenVersion się zmieni, sesja i tak wygasa.
+  tokenVersion Int       @default(0)
+  ipAddress    String?
+  userAgent    String?
+  deviceLabel  String?
+  loginMethod  String?
+  createdAt    DateTime  @default(now())
+  lastSeenAt   DateTime  @default(now())
+  revokedAt    DateTime?
+
+  @@index([userId])
+}
+
+/// C2 — passkey (WebAuthn) credential. Stores only public material.
+model WebAuthnCredential {
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentialId String    @unique
+  publicKey    String    @db.Text
+  counter      BigInt    @default(0)
+  transports   String?
+  deviceType   String?
+  backedUp     Boolean   @default(false)
+  name         String?
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
+
+  @@index([userId])
+}
+
+/// Krótkotrwały challenge logowania passkey (discoverable — bez wcześniejszego e-mail).
+model WebAuthnLoginChallenge {
+  id        String   @id @default(uuid())
+  challenge String   @unique
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
 }
 
 enum CustomerSubaccountInviteStatus {
@@ -217,9 +406,23 @@ model EcoPointsLedgerEntry {
   delta            Int
   reason           String   @db.VarChar(64)
   subscriptionId   String?
+  /// Idempotencja: walletTxId, stripeInvoiceId, orderId itd.
+  referenceId      String?  @db.VarChar(128)
   createdAt        DateTime @default(now())
 
   @@index([userId, createdAt(sort: Desc)])
+  @@index([userId, reason, referenceId])
+}
+
+/// Dedup wyświetleń badge EKO (max 1 zliczenie na IP użytkownika na godzinę).
+model EcoBadgeImpressionDedup {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bucketKey String   @unique @db.VarChar(128)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 // -----------------------------------------------------------------------------
@@ -240,8 +443,13 @@ model Server {
   name            String?
   hostname        String?
   ipAddress       String       @unique
+  ipv6Address     String?      // public IPv6 of the node (for AAAA glue + zone records)
   region          String?      // e.g. "PL-WAW", "DE-FRA"
   status          ServerStatus @default(INIT)
+
+  // Branded nameserver provisioning status (OVH glue + zone). Set by the
+  // node-DNS automation so we don't re-create glue on every activation.
+  nsProvisionedAt DateTime?
 
   // Capacity (reported via handshake / heartbeat)
   totalCpuCores   Int?
@@ -253,6 +461,18 @@ model Server {
   allocatedMemory Int          @default(0)
   allocatedDisk   Int          @default(0)
 
+  // Capacity guardrails (admin-controlled placement policy) — NodeSelector
+  // honours these so a node can be drained/capped WITHOUT going to MAINTENANCE
+  // (which would pause sales platform-wide). See node-selector.service.ts.
+  //  - acceptsNewAccounts: „cordon" — gdy false, węzeł nadal obsługuje
+  //    istniejące konta (ACTIVE), ale scheduler nie umieszcza na nim nowych.
+  //  - maxAccounts: twardy limit liczby kont na węźle (null = bez limitu).
+  //  - reservedHeadroomPercent: % całkowitej pojemności CPU/RAM/dysku
+  //    trzymany w rezerwie pod burst autoskalowania (0 = pakuj do pełna).
+  acceptsNewAccounts      Boolean  @default(true)
+  maxAccounts             Int?
+  reservedHeadroomPercent Int      @default(0)
+
   // Identity / authentication of the node agent
   identityToken   String?      @unique
   publicKey       String?
@@ -260,12 +480,70 @@ model Server {
   lastHandshakeAt DateTime?
   lastHeartbeatAt DateTime?
 
+  // CloudLinux CageFS runtime status, reported by the verris-lve agent each
+  // cycle (POST /telemetry/lve `node` block). Drives the node audit check.
+  cagefsEnabled      Boolean?
+  cagefsEnabledCount Int?
+  cagefsCheckedAt    DateTime?
+
+  // Audit F-07: security hardening status reported by the verris-lve agent
+  // (presence of /etc/verris-hardened written by security-hardening-baseline.sh).
+  hardenedEnabled    Boolean?
+  hardenedCheckedAt  DateTime?
+
+  // DB-1 — silnik i wersja bazy danych węzła (np. "MariaDB" / "10.6.18"),
+  // raportowane przez agenta verris-lve (mariadbd --version). Pokazywane
+  // klientowi w zakładce Bazy; port 3306 jest zamknięty z control-plane, więc
+  // wersji nie da się odczytać bezpośrednio — bierzemy ją z telemetrii węzła.
+  dbEngine           String?
+  dbVersion          String?
+  dbCheckedAt        DateTime?
+
+  // NODE-6 — wersje stacku raportowane telemetrią agenta (do wykrywania „update
+  // dostępny" i aktualizacji floty). daVersion np. „1.670", clVersion z kernela
+  // LVE, lsVersion np. „6.3.1".
+  daVersion          String?
+  clVersion          String?
+  lsVersion          String?
+  versionsCheckedAt  DateTime?
+
+  // VER-UPG — docelowa wersja silnika DB wybrana przez admina w edycji węzła
+  // (np. "11.4"). Ustawiana przy zleceniu DB_UPGRADE; faktyczna wersja po
+  // upgrade jest raportowana telemetrią agenta do dbVersion. Pokazywana w panelu
+  // jako „upgrade w toku do X".
+  targetDbVersion      String?
+  dbUpgradeRequestedAt DateTime?
+
+  // Incydent Hetzner 2026-06-11: detektor wychodzącego skanu na węźle zgłasza
+  // alarm fan-outu; pokazywane w audycie węzła i alertach admina.
+  lastSecurityAlertAt    DateTime?
+  lastSecurityAlertKind  String?
+  lastSecurityAlertInfo  String?
+
+  // B-1 LIVE: off-node (offsite) backup agent reports last successful run so
+  // the panel can flag stale/missing offsite backups (data-durability SLA).
+  lastOffsiteBackupAt      DateTime?
+  lastOffsiteBackupOk      Boolean   @default(false)
+  lastOffsiteBackupInfo    String?
+
+  // Authoritative nameservers handed to every account provisioned on this node
+  // (DA `CMD_API_ACCOUNT_USER` ns1/ns2). Per-node override; when null the
+  // platform default (PlatformSetting `hosting.ns*`, then env HOSTING_NS*) is
+  // used. Start: point at OVH NS for the single node; later: ns1/ns2/ns3.verris.pl.
+  ns1             String?
+  ns2             String?
+  ns3             String?
+
   // DirectAdmin config (encrypted at rest with the application KMS key)
   daHost          String?
   daPort          Int?
   daUsername      String?
   daPasswordEnc   String?      // AES-256-GCM (iv:tag:ciphertext, base64url)
   daUseTls        Boolean      @default(true)
+  // Audit F-04: TLS certificate verification for the DA API connection is ON
+  // by default. This per-node escape hatch exists ONLY for the onboarding
+  // window before a proper cert lands on :2222 — the node audit flags it.
+  daAllowInvalidCert Boolean   @default(false)
 
   // Acceptance flow
   approvedAt      DateTime?
@@ -283,12 +561,95 @@ model Server {
   createdAt       DateTime     @default(now())
   updatedAt       DateTime     @updatedAt
 
+  // NODE-1 — wznawialny bootstrap (odporny na restarty). Faza jest pchana przez
+  // skrypt oneshot na węźle przy każdym starcie systemu, aż osiągnie DONE.
+  //  PENDING → PREFLIGHT → AGENT → HARDENING → CLOUDLINUX → STACK → REGISTER →
+  //  CANARY → DONE (lub FAILED). CLOUDLINUX kończy się rebootem — po powrocie
+  //  oneshot wznawia od STACK.
+  bootstrapPhase     String?
+  bootstrapState     Json?
+  bootstrapError     String?
+  bootstrapStartedAt DateTime?
+  bootstrapUpdatedAt DateTime?
+
+  // NODE-5 — klucze licencyjne wstrzykiwane do skryptu bootstrapu (szyfrowane
+  // AES-256-GCM jak daPasswordEnc). Podawane przez admina w wizardzie; nie da
+  // się ich wygenerować automatycznie (kupowane u producentów).
+  daLicenseKeyEnc    String?
+  clActivationKeyEnc String?
+  lsSerialEnc        String?
+
   accounts        Account[]
   bootstrapTokens BootstrapToken[]
+  bootstrapEvents NodeBootstrapEvent[]
   probes          ServiceProbe[]
   maintenanceWindows MaintenanceWindow[]
+  nodeTasks       NodeTask[]
 
   @@index([status])
+}
+
+// NODE-1 — historia faz bootstrapu (streaming postępu do panelu, przetrwa
+// restarty węzła). Każdy wpis = jedno zdarzenie fazy raportowane przez skrypt.
+model NodeBootstrapEvent {
+  id        String   @id @default(uuid())
+  serverId  String
+  server    Server   @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  phase     String
+  status    String   // STARTED | OK | FAILED | REBOOT
+  message   String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([serverId, createdAt])
+}
+
+enum NodeTaskKind {
+  HOSTING_PROFILE
+  WP_INSTALL        // A4 — instalator WordPress per konto klienta
+  WAF_APPLY         // B2 — zastosowanie trybu ModSecurity WAF per konto
+  STAGING_SYNC      // B5 — klon LIVE→staging lub publikacja staging→LIVE
+  PHP_APPLY         // P-6 — zmiana wersji PHP konta (CloudLinux PHP Selector)
+  APP_INSTALL       // P-3 — instalator 1-click aplikacji (Nextcloud/PrestaShop)
+  DB_UPGRADE        // VER-UPG — upgrade silnika MariaDB węzła (CustomBuild) do wybranej wersji LTS
+  FLEET_UPDATE      // NODE-6 — aktualizacja stacku węzła do latest-stable (CustomBuild + yum)
+  OFFSITE_RESTORE   // S-1 — listowanie / ściąganie archiwum konta z kopii off-site (rclone)
+}
+
+enum WafMode {
+  OFF
+  DETECTION   // SecRuleEngine DetectionOnly — loguje, nie blokuje
+  ON          // SecRuleEngine On — blokuje
+}
+
+enum NodeTaskStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+model NodeTask {
+  id            String         @id @default(uuid())
+  serverId      String
+  server        Server         @relation(fields: [serverId], references: [id], onDelete: Cascade)
+  kind          NodeTaskKind
+  status        NodeTaskStatus @default(QUEUED)
+  // A4 — per-account tasks (WP_INSTALL) carry the target account; server-wide
+  // tasks (HOSTING_PROFILE) leave it null.
+  accountId     String?
+  payload       Json?
+  outputLog     String?        @db.Text
+  errorMessage  String?        @db.Text
+  requestedById String?
+  requestedBy   User?          @relation("NodeTaskRequester", fields: [requestedById], references: [id], onDelete: SetNull)
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([serverId, status])
+  @@index([createdAt])
 }
 
 model BootstrapToken {
@@ -405,6 +766,16 @@ enum BillingInterval {
   YEAR
 }
 
+// P-1b — what kind of product a Plan represents. HOSTING = classic web hosting,
+// EMAIL = standalone mailbox product (same DA-account machinery, mail-focused).
+enum ProductKind {
+  HOSTING
+  EMAIL
+  // EMM — produkt email-marketingu: klient wysyła newslettery do WŁASNYCH
+  // subskrybentów (listy/kontakty/kampanie). Aplikacyjny, bez konta DA/węzła.
+  EMAIL_MARKETING
+}
+
 model Plan {
   id                   String   @id @default(uuid())
   slug                 String   @unique
@@ -436,6 +807,29 @@ model Plan {
   isPublic             Boolean  @default(true)
   isActive             Boolean  @default(true)
   sortOrder            Int      @default(0)
+
+  // O-1 — free trial length in days. 0 = no trial available for this plan.
+  trialDays            Int      @default(0)
+
+  // P-1b — product family this plan belongs to (hosting vs standalone e-mail).
+  productKind          ProductKind @default(HOSTING)
+
+  // EMM — limity planu email-marketingu (tylko gdy productKind=EMAIL_MARKETING).
+  // null = nielimitowane (nie zalecane przy starcie). Egzekwowane w EmailMarketingService.
+  emmMaxContacts       Int?
+  emmMonthlySends      Int?
+
+  // SUP-5 — guaranteed support first-response time (hours). 0 = no SLA promise.
+  supportSlaHours      Int      @default(0)
+
+  // B6 — SSH/Git shell access for this plan (CageFS-jailed). Off by default;
+  // higher tiers can enable it. Applied to the DA package `ssh` feature.
+  sshAccess            Boolean  @default(false)
+
+  // Max effective limit = base × ratio (e.g. 3 = up to 3× plan CPU/RAM/disk).
+  autoscalingMaxOverscaleCpu   Float @default(3)
+  autoscalingMaxOverscaleRam   Float @default(3)
+  autoscalingMaxOverscaleDisk  Float @default(3)
 
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
@@ -476,7 +870,18 @@ model Subscription {
 
   // Pricing snapshot at sale time (immutable for this subscription instance)
   priceAmount          Decimal                   @db.Decimal(10, 2)
+  /// List price before promo (null = same as priceAmount for legacy rows).
+  listPriceAmount      Decimal?                  @db.Decimal(10, 2)
   currency             String                    @default("PLN")
+
+  appliedPromoCodeId   String?
+  appliedPromo         PromoCode?                @relation("SubscriptionAppliedPromo", fields: [appliedPromoCodeId], references: [id], onDelete: SetNull)
+
+  // BILL-1 — rabat startowy z ustawień oferty (nie z kodu). % zniżki na
+  // pierwsze N okresów; `introDiscountPeriodsLeft` dekrementowany przy każdym
+  // naliczeniu — gdy 0, odnowienia idą pełną kwotą (lub wg kodu, jeśli był).
+  introDiscountPct        Int    @default(0)
+  introDiscountPeriodsLeft Int   @default(0)
 
   // Payment configuration
   paymentSource        SubscriptionPaymentSource @default(STRIPE_CARD)
@@ -488,14 +893,33 @@ model Subscription {
   cancelAt             DateTime?
   canceledAt           DateTime?
   trialEndsAt          DateTime?
+  // O-1 — free trial bookkeeping.
+  isTrial              Boolean                   @default(false)
+  trialConvertedAt     DateTime?
+  trialReminderSentAt  DateTime?
+
+  // SVC-TAG — unikalny, krótki handle usługi (Cyberfolks-style, np. "wnbgswgc").
+  // Widoczny obok pakietu dla klienta i admina/staff, ułatwia odnalezienie usługi.
+  // Dla hostingu jest jednocześnie loginem DirectAdmin (realny prefiks baz danych).
+  serviceTag           String?                   @unique
 
   // Provisioned account (1:1)
   account              Account?                  @relation("SubscriptionAccount")
+
+  // B3 — opt-in site monitor (1:1)
+  siteMonitor          SiteMonitor?
+
+  // #11 — kredyty SLA przyznane tej subskrypcji
+  slaCredits           SlaCredit[]
 
   // Autoscaling (per service)
   autoscalingEnabled   Boolean                   @default(false)
   autoscalingMaxCost   Decimal                   @default(0) @db.Decimal(10, 2)
   autoscalingDisabledReason String?
+  // Per-resource toggles when autoscalingEnabled is true.
+  autoscalingScaleCpu  Boolean                   @default(true)
+  autoscalingScaleRam  Boolean                   @default(true)
+  autoscalingScaleDisk Boolean                   @default(true)
 
   // Eco mode
   ecoModeEnabled       Boolean                   @default(false)
@@ -520,6 +944,15 @@ model Subscription {
   migrationRequests    MigrationRequest[]
   healthSnapshots      ServiceHealthSnapshot[]
   domainChecklists     DomainChecklist[]
+  hostingRestoreJobs   HostingRestoreJob[]
+  backupSchedule       BackupSchedule?
+
+  // EMM — produkt email-marketingu (1:N listy/kampanie pod tą subskrypcją).
+  emmLists             EmmList[]
+  emmCampaigns         EmmCampaign[]
+
+  // AN — analityka stron (privacy-first). 1:N property pod tą subskrypcją.
+  analyticsSites       AnalyticsSite[]
 
   @@index([userId])
   @@index([status])
@@ -551,6 +984,8 @@ enum MigrationStatus {
   DRAFT
   QUEUED
   RUNNING
+  /// Automat zatrzymany (błąd/stall) — zlecenie czeka na staffa („Pilne” na górze kolejki).
+  ATTENTION
   COMPLETED
   FAILED
   CANCELED
@@ -580,6 +1015,20 @@ model MigrationRequest {
   /// `Ticket.id` powiązany ze zleceniem.
   ticketId        String?
 
+  /// Wykryty/wybrany panel źródłowy: cpanel | directadmin | plesk | manual.
+  sourcePanelType String?
+  /// Eskalacja: automat zatrzymany, wymaga dokończenia przez staffa.
+  needsAttention  Boolean         @default(false)
+  attentionReason String?         @db.Text
+  attentionAt     DateTime?
+  /// Cutover DNS: auto (NS u nas, przez DA DNS) | instructions | manual.
+  cutoverMode     String?
+  cutoverAt       DateTime?
+
+  /// Retencja sekretów: po tej chwili `sourceBundleEnc` jest wyczyszczony
+  /// (hasła źródła skasowane po zakończeniu migracji + oknie na delta-sync).
+  secretsPurgedAt DateTime?
+
   /// Audit-friendly liczniki wykonanych transferów.
   bytesTransferred BigInt         @default(0)
   filesTransferred Int            @default(0)
@@ -604,6 +1053,12 @@ enum MigrationWorkerJobKind {
   MYSQL_IMPORT
   IMAP_SYNC
   HTTP_POST_CHECK
+  /// Auto-fix WordPress po imporcie DB: wp-config (DB creds), search-replace URL, ownership.
+  WP_FIXUP
+  /// Ponowny rsync/mirror różnicowy tuż przed cutoverem DNS.
+  FILES_DELTA
+  /// Ponowny imapsync (dosync nowej poczty) tuż przed cutoverem DNS.
+  IMAP_DELTA
 }
 
 enum MigrationWorkerJobStatus {
@@ -630,12 +1085,18 @@ model MigrationWorkerJob {
   lastError          String?                  @db.Text
   log                String?                  @db.Text
 
+  /// Kolejność w ramach zlecenia — lease zwraca najniższą nieukończoną sekwencję.
+  sequence           Int                      @default(0)
+  /// Ostatni sygnał postępu od workera (watchdog eskaluje wiszące joby).
+  lastHeartbeatAt    DateTime?
+
   startedAt          DateTime?
   completedAt        DateTime?
   createdAt          DateTime                 @default(now())
   updatedAt          DateTime                 @updatedAt
 
   @@index([migrationRequestId, status])
+  @@index([migrationRequestId, sequence])
   @@index([status, createdAt])
 }
 
@@ -656,6 +1117,20 @@ model Account {
 
   status          AccountStatus @default(PROVISIONING)
 
+  // B2 — ModSecurity WAF mode for this account (applied via WAF_APPLY task).
+  wafMode         WafMode       @default(DETECTION)
+  wafAppliedAt    DateTime?
+
+  // P-6 — per-account PHP version (CloudLinux PHP Selector), applied by the
+  // node agent via a PHP_APPLY task. Null = node/account default.
+  phpVersion      String?
+  phpAppliedAt    DateTime?
+
+  // B5 — staging (`staging.<domain>`): created/last-cloned timestamps,
+  // confirmed by the STAGING_SYNC node task on completion.
+  stagingCreatedAt DateTime?
+  stagingSyncedAt  DateTime?
+
   // Effective limits (= plan + autoscaling delta)
   cpuLimit        Int           @default(100)
   ramLimitMb      Int           @default(1024)
@@ -668,6 +1143,19 @@ model Account {
   // Autoscaling deltas added on top of plan base
   scaledCpu       Int           @default(0)
   scaledRamMb     Int           @default(0)
+  scaledDiskMb    Int           @default(0)
+
+  // Autoscaling block-billing episode tracking (event-driven, per 15-min block).
+  // `scaledSince` = start of the current scaled episode (set when any scaled*
+  // goes 0 -> >0, cleared back to NULL when it returns to baseline). Every
+  // episode bills at least one full 15-min block; longer episodes bill block
+  // by block (round up). `scaledBilledUntil` = end of the last billed block.
+  scaledSince       DateTime?
+  scaledBilledUntil DateTime?
+
+  // Last time a backup was triggered for this account (manual "backup now" or a
+  // platform-initiated snapshot). Feeds the health-score backup-freshness check.
+  lastBackupAt    DateTime?
 
   userId          String
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -745,6 +1233,8 @@ model DomainRegistrarOrder {
   years           Int                        @default(1)
   priceAmount     Decimal?                   @db.Decimal(10, 2)
   currency        String                     @default("PLN")
+  // Wallet transaction that paid for this order (billing trail).
+  walletTxId      String?
   lastError       String?                    @db.Text
   submittedAt     DateTime?
   completedAt     DateTime?
@@ -766,14 +1256,36 @@ model DomainRegistrarOrder {
 // WALLET LEDGER & PAYMENTS
 // -----------------------------------------------------------------------------
 
+/// P-8 — one-time add-on purchase (work-order or instant flag).
+model PurchasedAddon {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  slug           String
+  name           String
+  amount         Decimal  @db.Decimal(10, 2)
+  currency       String   @default("PLN")
+  subscriptionId String?
+  /// QUEUED (work-order created) | APPLIED (instant flag) | DONE
+  status         String   @default("APPLIED")
+  ticketId       String?
+  createdAt      DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
 enum WalletTxType {
   TOPUP                // User added funds (Stripe / PayU)
   REFUND
   CHARGE_SUBSCRIPTION  // Subscription renewal paid from wallet
+  CHARGE_PLAN_UPGRADE  // Prorated upgrade charge on existing subscription
+  CREDIT_PLAN_DOWNGRADE // Prorated downgrade credit on existing subscription
   CHARGE_AUTOSCALING   // Hourly autoscaling cost
   CHARGE_USAGE         // Other metered usage
+  CHARGE_DOMAIN        // Domain registration / renewal / transfer
   ADJUSTMENT           // Manual adjustment by admin
   PROMO_CREDIT
+  COMMISSION_CREDIT    // RESELL — wypłata prowizji partnerskiej do portfela
 }
 
 enum WalletTxStatus {
@@ -891,11 +1403,33 @@ model Invoice {
   dueAt          DateTime?
   paidAt         DateTime?
 
+  // B-1 — KSeF (Krajowy System e-Faktur). Faktury VERRIS (provider=null)
+  // są wysyłane do KSeF; numer KSeF + UPO potwierdzają wystawienie.
+  ksefStatus     KsefStatus    @default(NOT_APPLICABLE)
+  /// Numer KSeF nadany przez system MF (z UPO).
+  ksefNumber     String?       @unique
+  /// Numer referencyjny elementu w sesji (do odpytywania statusu).
+  ksefElementRef String?
+  ksefSubmittedAt DateTime?
+  ksefAcceptedAt  DateTime?
+  ksefError      String?
+
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
   @@unique([provider, providerRef])
   @@index([userId])
+  @@index([ksefStatus])
+}
+
+/// B-1 — cykl życia faktury w KSeF.
+enum KsefStatus {
+  NOT_APPLICABLE // faktura Stripe-hosted / przed włączeniem KSeF
+  PENDING        // zakwalifikowana do wysyłki
+  SUBMITTED      // wysłana, czekamy na numer KSeF (status z sesji)
+  ACCEPTED       // numer KSeF nadany (UPO)
+  REJECTED       // odrzucona przez KSeF (walidacja) — wymaga interwencji
+  OFFLINE        // wystawiona w trybie offline (awaria KSeF) — do dosłania
 }
 
 /// Atomowa numeracja faktur per (rok, miesiąc). Każda nowa faktura wykonuje
@@ -919,8 +1453,9 @@ model InvoiceCounter {
 enum AutoscalingResource {
   CPU       // additional CPU% per hour
   RAM       // additional MB per hour
-  IO        // additional I/O kbps per hour
-  TRANSFER  // outgoing transfer per GB
+  DISK      // additional disk MB per hour
+  IO        // legacy — no longer offered in catalog
+  TRANSFER  // legacy — no longer offered in catalog
 }
 
 model AutoscalingPriceRule {
@@ -1114,12 +1649,81 @@ model ServiceHealthSnapshot {
   backupFresh    Boolean?
   incidentsOpen  Int          @default(0)
   lveOk          Boolean?
-  phpOk          Boolean?
+  // Panel (DirectAdmin :2222) TLS trust check. DB column kept as `phpOk` for
+  // backward-compat; the field was historically misnamed.
+  panelTlsOk     Boolean?     @map("phpOk")
   mailOk         Boolean?
   details        Json?
   computedAt     DateTime     @default(now())
 
   @@index([subscriptionId, computedAt])
+}
+
+enum HostingRestoreStatus {
+  QUEUED
+  RUNNING
+  SAFETY_BACKUP
+  RESTORING
+  COMPLETED
+  FAILED
+}
+
+/// Async restore of a DirectAdmin backup onto a hosting account. Processed by a
+/// worker that (optionally) takes a pre-restore safety backup first, then runs
+/// the selective restore. Gives the client/admin a live status in the panel.
+model HostingRestoreJob {
+  id                String               @id @default(uuid())
+  subscriptionId    String
+  subscription      Subscription         @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  requestedByUserId String
+  isAdminInitiated  Boolean              @default(false)
+
+  backupId          String
+  backupFileName    String
+  scopeFiles        Boolean              @default(true)
+  scopeDatabases    Boolean              @default(true)
+  scopeEmail        Boolean              @default(true)
+  safetyBackup      Boolean              @default(true)
+
+  status            HostingRestoreStatus @default(QUEUED)
+  error             String?              @db.Text
+  startedAt         DateTime?
+  completedAt       DateTime?
+
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  @@index([status, createdAt])
+  @@index([subscriptionId, createdAt])
+}
+
+enum BackupFrequency {
+  OFF
+  DAILY
+  WEEKLY
+}
+
+/// PANEL-11 — harmonogram automatycznych backupów konta (per subskrypcja).
+/// Scheduler co godzinę wyzwala DA site-backup dla pasujących, włączonych wpisów.
+model BackupSchedule {
+  id             String          @id @default(uuid())
+  subscriptionId String          @unique
+  subscription   Subscription    @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  frequency      BackupFrequency @default(OFF)
+  hour           Int             @default(3) // godzina UTC 0-23
+  dayOfWeek      Int             @default(1) // 0=niedziela .. 6=sobota (dla WEEKLY)
+  enabled        Boolean         @default(false)
+  retainCount    Int             @default(7) // ile najnowszych kopii zostawić (0 = bez czyszczenia)
+
+  lastRunAt      DateTime?
+  lastStatus     String?
+
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([enabled, frequency])
 }
 
 enum DomainChecklistStatus {
@@ -1157,9 +1761,11 @@ model Ticket {
   id              String        @id @default(uuid())
   subject         String
   message         String
-  status          String        @default("OPEN")     // OPEN, IN_PROGRESS, CLOSED
+  status          String        @default("OPEN")     // OPEN, IN_PROGRESS, WAITING_CUSTOMER, CLOSED
   priority        String        @default("NORMAL")   // LOW, NORMAL, HIGH, URGENT
   department      String        @default("TECHNICAL") // BILLING, TECHNICAL, SALES
+  // SUP-1 — temat zgłoszenia wybrany przez klienta (grupowanie + podpowiedzi KB).
+  topic           String?       // HOSTING, DOMAIN, EMAIL, DNS, BILLING, SSL, OTHER
 
   userId          String
   user            User          @relation("ClientTickets", fields: [userId], references: [id], onDelete: Cascade)
@@ -1169,9 +1775,15 @@ model Ticket {
 
   replies         TicketReply[]
   attachments     TicketAttachment[]
+  events          TicketEvent[]
 
   firstResponseAt DateTime?
   resolvedAt      DateTime?
+
+  // SUP-4 — customer satisfaction after the ticket is closed (1-5 + optional note).
+  csatRating      Int?
+  csatComment     String?       @db.Text
+  csatAt          DateTime?
 
   // Sprint 8+ / S-07 + V-10/V-11/V-12 — operacyjne pola BOK.
   slaResponseDueAt DateTime?
@@ -1184,12 +1796,21 @@ model Ticket {
   riskFlag         String?
   riskReason       String?       @db.Text
 
+  // SUP-V2 — obsługa braku odpowiedzi klienta i auto-zamykania (cykl 2 dni / 5 dni).
+  lastReplyAt                DateTime? // ostatnia wiadomość w wątku (klient lub staff)
+  lastReplyIsStaff           Boolean?  // czy ostatnia wiadomość była od staff
+  waitingSince               DateTime? // od kiedy czekamy na odpowiedź klienta (WAITING_CUSTOMER)
+  customerReminderSentAt     DateTime? // kiedy wysłano przypomnienie o braku odpowiedzi
+  slaResponseBreachAlertedAt DateTime? // kiedy zaalarmowano staff o naruszeniu SLA 1. odpowiedzi
+  autoClosedAt               DateTime? // kiedy ticket zamknięto automatycznie
+
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
   @@index([slaResponseDueAt])
   @@index([slaResolveDueAt])
   @@index([riskFlag])
+  @@index([status, waitingSince])
 }
 
 model TicketReply {
@@ -1233,12 +1854,43 @@ model TicketAttachment {
   @@index([replyId])
 }
 
-model CannedResponse {
+/// SUP-V2 — historia zdarzeń ticketu (oś czasu + audyt operacyjny + idempotencja
+/// powiadomień schedulera). Append-only.
+model TicketEvent {
   id        String   @id @default(uuid())
-  title     String
-  content   String
+
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  /// TICKET_CREATED, CUSTOMER_REPLY, STAFF_REPLY, STATUS_CHANGED, ASSIGNMENT_CHANGED,
+  /// CUSTOMER_REMINDER_SENT, AUTO_CLOSED, SLA_RESPONSE_BREACH_ALERTED, ESCALATED.
+  type      String
+  /// Kto wywołał zdarzenie (User.id). null = system/scheduler.
+  actorId   String?
+  /// Dodatkowy kontekst, np. { from: "OPEN", to: "WAITING_CUSTOMER" }.
+  meta      Json?
 
   createdAt DateTime @default(now())
+
+  @@index([ticketId, createdAt])
+  @@index([ticketId, type])
+}
+
+model CannedResponse {
+  id          String   @id @default(uuid())
+  title       String
+  content     String   @db.Text
+  // SUP-2 — temat szablonu (do filtrowania pod temat ticketu).
+  topic       String?  // HOSTING, DOMAIN, EMAIL, DNS, BILLING, SSL, OTHER
+  // SUP-V2 — krótki kod szybkiego wstawiania (np. "reset-hasla"), opcjonalny.
+  shortcut    String?
+  isActive    Boolean  @default(true)
+  createdById String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([topic, isActive])
 }
 
 // -----------------------------------------------------------------------------
@@ -1269,6 +1921,54 @@ model AuditLog {
 enum AiInteractionStatus {
   COMPLETED
   FAILED
+}
+
+enum AiKnowledgeAudience {
+  CLIENT // visible to the client-facing hosting chatbot
+  STAFF // internal-only (BOK/ops)
+  ALL // usable by both client + staff assistants
+}
+
+enum AiKnowledgeStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+/// A document/snippet added to the AI "memory" (knowledge base) used for RAG.
+/// Admins/staff add hosting FAQs, policies, runbooks; the chatbot retrieves
+/// relevant chunks at query time.
+model AiKnowledgeDoc {
+  id          String              @id @default(uuid())
+  title       String
+  sourceType  String              @default("TEXT") // TEXT | MARKDOWN | URL | FILE
+  sourceRef   String? // URL or original filename, if any
+  audience    AiKnowledgeAudience @default(ALL)
+  status      AiKnowledgeStatus   @default(ACTIVE)
+  charCount   Int                 @default(0)
+  createdById String?
+  createdBy   User?               @relation("AiKnowledgeDocAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  chunks      AiKnowledgeChunk[]
+
+  @@index([audience, status])
+  @@index([createdAt])
+}
+
+/// A retrievable chunk of a knowledge doc with its embedding vector (stored as
+/// a float array; cosine similarity computed in-app). Embedding may be empty if
+/// no embedding model is configured — retrieval then falls back to keyword scoring.
+model AiKnowledgeChunk {
+  id        String         @id @default(uuid())
+  docId     String
+  doc       AiKnowledgeDoc @relation(fields: [docId], references: [id], onDelete: Cascade)
+  ordinal   Int
+  content   String         @db.Text
+  embedding Float[]
+  tokens    Int            @default(0)
+  createdAt DateTime       @default(now())
+
+  @@index([docId, ordinal])
 }
 
 model AiInteractionLog {
@@ -1308,6 +2008,7 @@ model AiInteractionLog {
 enum EmailCategory {
   TRANSACTIONAL  // Hosting, billing, security — nie podlegają opt-out.
   MARKETING      // Newsletter, kampanie — wymaga MarketingPreferences.
+  PRODUCT_UPDATE // Zmiany usługi (np. autoskalowanie) — opt-out via productUpdatesEmail.
 }
 
 enum EmailStatus {
@@ -1589,12 +2290,62 @@ model ProbeIncident {
   // Snapshot of how the incident was detected (consecutive failures, sample
   // ids referenced, etc.) for post-mortem.
   detectionMeta  Json?
+  // #11 — znacznik przetworzenia kredytów SLA (raz na incydent, po RESOLVED).
+  slaCreditedAt  DateTime?
 
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
 
+  slaCredits     SlaCredit[]
+
   @@index([probeId, status])
   @@index([status, startedAt])
+  @@index([status, slaCreditedAt])
+}
+
+// -----------------------------------------------------------------------------
+// #11 — Kredyty SLA: automatyczne uznanie portfela za przestój infrastruktury.
+// Jeden rekord = jeden kredyt dla (incydent × subskrypcja). Idempotencja przez
+// @@unique. Powiązany wpis w WalletTransaction tworzy WalletLedgerService.
+// -----------------------------------------------------------------------------
+model SlaCredit {
+  id             String         @id @default(uuid())
+
+  /// Historyczne: kredyt przypisany do pojedynczego incydentu. Od rozliczenia
+  /// miesięcznego (§15 regulaminu) rekompensata nie jest wiązana z jednym incydentem —
+  /// pole zostaje nullable dla rekordów sprzed zmiany.
+  incidentId     String?
+  incident       ProbeIncident? @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  /// Pierwszy dzień miesiąca kalendarzowego (UTC), za który przyznano rekompensatę.
+  /// Unikat z subscriptionId gwarantuje JEDNĄ rekompensatę na usługę na miesiąc —
+  /// blokuje też podwójną wypłatę, gdy kredyt przyznano dodatkowo ręcznie na wniosek.
+  periodStart    DateTime?
+
+  /// Dostępność w miesiącu w punktach bazowych (9931 = 99,31%).
+  availabilityBp Int?
+
+  /// Zastosowany próg rekompensaty z §15: 5, 25, 50 albo 100.
+  tierPercent    Int?
+
+  subscriptionId String
+  subscription   Subscription   @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  userId         String
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Czas przestoju zaliczony do kredytu (sekundy).
+  downtimeS      Int
+  /// Kwota uznania w walucie portfela (K).
+  amount         Decimal        @db.Decimal(12, 2)
+  currency       String         @default("PLN")
+
+  createdAt      DateTime       @default(now())
+
+  @@unique([incidentId, subscriptionId])
+  @@unique([subscriptionId, periodStart])
+  @@index([userId])
+  @@index([subscriptionId])
 }
 
 // -----------------------------------------------------------------------------
@@ -1633,6 +2384,9 @@ enum PromoKind {
   /// Percentage of the next top-up (e.g. +20% on next deposit).
   /// `value` is the percentage as an integer (0..100).
   PERCENT_BONUS
+  /// Percentage off the first service purchase (and optionally renewals).
+  /// `value` is the discount percent (1..100).
+  SERVICE_PERCENT_OFF
 }
 
 /// Marketing / referral codes redeemable by users for wallet credit.
@@ -1663,10 +2417,14 @@ model PromoCode {
   /// without breaking past redemptions.
   active            Boolean          @default(true)
 
+  /// For `SERVICE_PERCENT_OFF`: when true, each wallet renewal uses the same % off list price.
+  appliesToRenewals Boolean          @default(false)
+
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
 
   redemptions       PromoRedemption[]
+  subscriptionsWithPromo Subscription[] @relation("SubscriptionAppliedPromo")
 
   @@index([active, validFrom, validTo])
 }
@@ -1688,9 +2446,12 @@ model PromoRedemption {
   /// Pointer to the wallet transaction that materialized the credit.
   walletTxId      String?     @unique
 
+  subscriptionId  String?
+
   redeemedAt      DateTime    @default(now())
 
   @@unique([promoCodeId, userId])
+  @@index([subscriptionId])
   @@index([userId])
 }
 
@@ -1946,4 +2707,776 @@ model AccountDeletionRequest {
   reason             String?
 
   @@index([scheduledFor, anonymizedAt])
+}
+
+/// Global product configuration (EKO thresholds, session timeouts, badge rules).
+// -----------------------------------------------------------------------------
+// MAIL-4 — poczta zespołu @verris.pl (Postfix + Dovecot + SOGo)
+// -----------------------------------------------------------------------------
+
+enum ControlPlaneMailboxKind {
+  SYSTEM
+  STAFF
+  ALIAS_ONLY
+}
+
+enum ControlPlaneMailboxStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_MIGRATION
+}
+
+enum ControlPlaneSystemAddressRole {
+  NOREPLY
+  SUPPORT
+  SECURITY
+  RODO
+  BILLING
+  DMARC_RUA
+  PANEL
+}
+
+model ControlPlaneMailbox {
+  id           String                    @id @default(uuid())
+  localPart    String
+  domain       String                    @default("verris.pl")
+  email        String                    @unique
+  kind         ControlPlaneMailboxKind
+  status       ControlPlaneMailboxStatus @default(ACTIVE)
+  displayName  String?
+  userId       String?                   @unique
+  user         User?                     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  quotaMb      Int                       @default(1024)
+  usedBytes    BigInt                    @default(0)
+  imapEnabled  Boolean                   @default(true)
+  /// Dovecot {BLF-CRYPT} — null dla SYSTEM / ALIAS_ONLY
+  passwordHash String?
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+  createdById  String?
+
+  aliases      ControlPlaneMailAlias[]   @relation("MailboxAliasTarget")
+  forwards     ControlPlaneMailForward[]
+
+  @@unique([localPart, domain])
+  @@index([status, kind])
+}
+
+model ControlPlaneMailAlias {
+  id         String              @id @default(uuid())
+  aliasEmail String              @unique
+  targetId   String
+  target     ControlPlaneMailbox @relation("MailboxAliasTarget", fields: [targetId], references: [id], onDelete: Cascade)
+  createdAt  DateTime            @default(now())
+}
+
+model ControlPlaneMailForward {
+  id                String              @id @default(uuid())
+  mailboxId         String
+  mailbox           ControlPlaneMailbox @relation(fields: [mailboxId], references: [id], onDelete: Cascade)
+  forwardTo         String
+  confirmedAt       DateTime?
+  confirmationToken String?             @unique
+  keepCopy          Boolean             @default(true)
+  createdAt         DateTime            @default(now())
+
+  @@index([mailboxId])
+}
+
+model ControlPlaneSystemAddress {
+  role      ControlPlaneSystemAddressRole @id
+  email     String                        @unique
+  mailboxId String?
+  updatedAt DateTime                      @updatedAt
+}
+
+model PlatformSetting {
+  key             String   @id
+  value           String   @db.Text
+  updatedAt       DateTime @updatedAt
+  updatedByUserId String?
+  updatedBy       User?    @relation("PlatformSettingUpdatedBy", fields: [updatedByUserId], references: [id], onDelete: SetNull)
+
+  @@map("platform_settings")
+}
+
+enum ReferralProgramEnrollmentStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+/// Partner / referral program — user must apply and be approved before sharing link.
+model ReferralProgramEnrollment {
+  id               String                          @id @default(uuid())
+  userId           String                          @unique
+  user             User                            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status           ReferralProgramEnrollmentStatus @default(PENDING)
+  appliedAt        DateTime                        @default(now())
+  reviewedAt       DateTime?
+  reviewedByUserId String?
+  reviewedBy       User?                           @relation("ReferralEnrollmentReviewer", fields: [reviewedByUserId], references: [id], onDelete: SetNull)
+  reviewNote       String?                         @db.Text
+  termsVersion     String?
+
+  @@index([status, appliedAt])
+}
+
+/// Audit F-16: deduplication of Stripe webhook deliveries. Money movements are
+/// already idempotent at the ledger level — this additionally makes the
+/// stateful handlers (subscription sync, counters, e-mails) replay-safe.
+model StripeWebhookEvent {
+  id        String   @id @default(uuid())
+  /// Stripe event id (`evt_…`) — unique across retries of the same delivery.
+  eventId   String   @unique
+  type      String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
+/// ETAP 8 — WireGuard VPN dla paneli wewnętrznych (admin/staff).
+/// Przechowujemy WYŁĄCZNIE klucz publiczny peera — klucz prywatny jest
+/// generowany w API i zwracany dokładnie raz (config do pobrania).
+/// PSK jest szyfrowany KMS (potrzebny do renderu konfiguracji serwera).
+model VpnPeer {
+  id            String    @id @default(uuid())
+  /// Etykieta operatora, np. "Dominik — laptop".
+  name          String
+  /// Opcjonalne powiązanie z kontem staff/admin (informacyjne).
+  ownerEmail    String?
+  publicKey     String    @unique
+  presharedKeyEnc String?
+  /// Adres w subnecie VPN, np. 10.88.0.7/32 (część przed maską).
+  assignedIp    String    @unique
+  enabled       Boolean   @default(true)
+  revokedAt     DateTime?
+  revokedById   String?
+  createdById   String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([enabled])
+}
+
+/// B3 — monitoring strony klienta (opt-in per usługa). Prosty model: jeden
+/// monitor HTTP per subskrypcja, sprawdzany przez control-plane co minutę.
+enum SiteMonitorStatus {
+  UNKNOWN
+  UP
+  DOWN
+}
+
+model SiteMonitor {
+  id               String            @id @default(uuid())
+  subscriptionId   String            @unique
+  subscription     Subscription      @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  enabled          Boolean           @default(true)
+  /// MON-6 — czy wysyłać klientowi maile o awarii/powrocie/SSL (monitoring działa
+  /// niezależnie). Płatne powiadomienia rozliczeniowe idą zawsze.
+  notifyEmail      Boolean           @default(true)
+  /// Pełny URL sprawdzany przez monitor (https://<domena glowna>).
+  url              String
+  lastStatus       SiteMonitorStatus @default(UNKNOWN)
+  consecutiveFails Int               @default(0)
+  lastCheckedAt    DateTime?
+  lastHttpStatus   Int?
+  /// MON-4 — czas odpowiedzi ostatniego udanego sprawdzenia (ms).
+  lastResponseMs   Int?
+  lastError        String?
+  downSince        DateTime?
+  // MON-5 — wygasanie certyfikatu TLS (odczyt przez handshake, nie z DA).
+  tlsExpiresAt        DateTime?
+  tlsCheckedAt        DateTime?
+  /// Wartość `tlsExpiresAt`, dla której wysłaliśmy już ostrzeżenie (anty-spam;
+  /// po odnowieniu certyfikatu zmienia się i ostrzeżenie może pójść ponownie).
+  tlsExpiryNotifiedFor DateTime?
+  // MON-3 — płatny tier monitoringu (szybsze sprawdzanie), rozliczany
+  // miesięcznie z portfela. Gdy false → darmowy interwał. Przy braku środków
+  // scheduler ustawia paidTier=false (powrót do darmowego — usługa nie znika).
+  paidTier              Boolean   @default(false)
+  paidActivatedAt       DateTime?
+  /// Następna miesięczna opłata za płatny monitoring.
+  paidNextChargeAt      DateTime?
+  /// Klient wyłączył odnawianie — szybki tier do końca opłaconego okresu.
+  paidCancelAtPeriodEnd Boolean   @default(false)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  events           SiteMonitorEvent[]
+
+  @@index([enabled])
+  @@index([paidTier, paidNextChargeAt])
+}
+
+enum SiteMonitorEventType {
+  DOWN
+  RECOVERED
+}
+
+model SiteMonitorEvent {
+  id         String               @id @default(uuid())
+  monitorId  String
+  monitor    SiteMonitor          @relation(fields: [monitorId], references: [id], onDelete: Cascade)
+  type       SiteMonitorEventType
+  message    String?
+  httpStatus Int?
+  /// Dla RECOVERED: czas trwania awarii w sekundach.
+  durationS  Int?
+  createdAt  DateTime             @default(now())
+
+  @@index([monitorId, createdAt])
+}
+
+// ===========================================================================
+// VPS / Cloud (resale via Hetzner Cloud API)
+// ===========================================================================
+
+enum VpsStatus {
+  PROVISIONING // create requested, Hetzner building
+  RUNNING
+  STOPPED
+  REBOOTING
+  ERROR        // provisioning/action failed
+  DELETING
+  DELETED
+}
+
+/// A sellable VPS plan mapped to a concrete Hetzner Cloud server type.
+model VpsPlan {
+  id                String    @id @default(uuid())
+  slug              String    @unique
+  name              String
+  description       String?
+
+  // Hetzner mapping
+  hetznerServerType String    // e.g. "cx22"
+  hetznerImage      String    @default("ubuntu-24.04")
+  location          String    @default("nbg1") // nbg1/fsn1/hel1/ash/hil
+
+  // Display specs
+  vcpu              Int
+  ramGb             Int
+  diskGb            Int
+  trafficTb         Int       @default(20)
+
+  priceMonthly      Decimal   @db.Decimal(10, 2)
+  currency          String    @default("PLN")
+
+  isPublic          Boolean   @default(true)
+  isActive          Boolean   @default(true)
+  sortOrder         Int       @default(0)
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  instances         VpsInstance[]
+
+  @@index([isPublic, isActive])
+}
+
+/// Customer SSH public key, reusable across VPS orders. Uploaded to the
+/// Hetzner project lazily on first use (`hetznerKeyId` cached afterwards).
+model SshKey {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name         String
+  publicKey    String   @db.Text
+  fingerprint  String
+  hetznerKeyId String?
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, fingerprint])
+  @@index([userId])
+}
+
+/// A provisioned VPS owned by a customer, backed by a Hetzner server.
+model VpsInstance {
+  id               String    @id @default(uuid())
+
+  userId           String
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  planId           String
+  plan             VpsPlan   @relation(fields: [planId], references: [id])
+
+  /// Customer-facing hostname/label.
+  name             String
+
+  status           VpsStatus @default(PROVISIONING)
+
+  // Hetzner references
+  hetznerServerId  String?   @unique
+  location         String?
+  ipv4             String?
+  ipv6             String?
+  /// Initial root password (AES-256-GCM at-rest); shown once to the customer.
+  rootPasswordEnc  String?
+
+  // Pricing snapshot + period (monthly prepaid from wallet)
+  priceMonthly     Decimal   @db.Decimal(10, 2)
+  currency         String    @default("PLN")
+  currentPeriodEnd DateTime?
+
+  lastError        String?   @db.Text
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
+
+  @@index([userId, createdAt])
+  @@index([status])
+}
+
+// =====================================================================
+// RESELL — Program partnerski (afiliacja). Partner = zatwierdzony uczestnik
+// (ReferralProgramEnrollment.status = APPROVED). Klient polecony (User.referredByUserId)
+// generuje prowizję % od każdej realnej płatności (CHARGE_SUBSCRIPTION) oraz
+// bonusy „darmowy hosting za N poleceń". Wypłata: do portfela lub na konto.
+// =====================================================================
+
+enum PartnerCommissionKind {
+  RECURRING_PCT    // % od płatności poleconego klienta
+  MILESTONE_BONUS  // bonus za osiągnięcie progu N aktywnych poleceń
+}
+
+enum PartnerCommissionStatus {
+  PENDING    // naliczona, w okresie karencji (ochrona przed zwrotem)
+  AVAILABLE  // dojrzała, gotowa do wypłaty
+  PAID       // wypłacona (do portfela lub przelewem)
+  CANCELED   // anulowana (np. zwrot płatności klienta)
+}
+
+model PartnerCommission {
+  id             String                  @id @default(uuid())
+
+  partnerUserId  String
+  partner        User                    @relation("PartnerCommissions", fields: [partnerUserId], references: [id], onDelete: Cascade)
+
+  referredUserId String?
+  referred       User?                   @relation("ReferredCommissions", fields: [referredUserId], references: [id], onDelete: SetNull)
+
+  kind           PartnerCommissionKind   @default(RECURRING_PCT)
+  /// Klucz idempotencji: "tx:<walletTxId>" dla % lub "ms:<partnerId>:<n>" dla bonusu.
+  dedupeKey      String                  @unique
+
+  /// Kwota płatności klienta, od której liczona jest prowizja (dla RECURRING_PCT).
+  baseAmount     Decimal?                @db.Decimal(12, 2)
+  /// Zastosowany procent prowizji (snapshot z chwili naliczenia).
+  pct            Int?
+  /// Faktyczna kwota prowizji/bonusu w walucie portfela.
+  amount         Decimal                 @db.Decimal(12, 2)
+  currency       String                  @default("PLN")
+
+  status         PartnerCommissionStatus @default(PENDING)
+  /// Kiedy prowizja dojrzewa (PENDING → AVAILABLE).
+  availableAt    DateTime?
+
+  payoutId       String?
+  payout         PartnerPayout?          @relation(fields: [payoutId], references: [id], onDelete: SetNull)
+
+  description    String?
+  createdAt      DateTime                @default(now())
+
+  @@index([partnerUserId, status])
+  @@index([referredUserId])
+}
+
+enum PartnerPayoutMethod {
+  WALLET  // kredyt do portfela partnera (natychmiast)
+  BANK    // wypłata przelewem (wymaga obsługi przez admina)
+}
+
+enum PartnerPayoutStatus {
+  REQUESTED  // zlecona przez partnera (BANK)
+  PAID       // wypłacona
+  REJECTED   // odrzucona przez admina (prowizje wracają do AVAILABLE)
+}
+
+model PartnerPayout {
+  id                String              @id @default(uuid())
+
+  partnerUserId     String
+  partner           User                @relation("PartnerPayouts", fields: [partnerUserId], references: [id], onDelete: Cascade)
+
+  method            PartnerPayoutMethod
+  amount            Decimal             @db.Decimal(12, 2)
+  currency          String              @default("PLN")
+  status            PartnerPayoutStatus @default(REQUESTED)
+
+  /// Snapshot numeru konta dla wypłaty BANK (z profilu nabywcy partnera).
+  bankAccount       String?
+  /// Powiązana transakcja portfela przy method=WALLET (kredyt COMMISSION_CREDIT).
+  walletTxId        String?
+
+  note              String?             @db.Text
+  requestedAt       DateTime            @default(now())
+  processedAt       DateTime?
+  processedByUserId String?
+
+  commissions       PartnerCommission[]
+
+  @@index([partnerUserId, status])
+  @@index([status, requestedAt])
+}
+
+enum ResellerStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+// RSL — Reseller white-label. Profil resellera (włączany przez admina): narzut
+// cenowy (markup %), nazwa marki i unikalny kod zapraszający. Klienci końcowi
+// rejestrujący się z kodem dostają resellerOwnerId = id resellera.
+model ResellerProfile {
+  id         String         @id @default(uuid())
+  userId     String         @unique
+  user       User           @relation("UserResellerProfile", fields: [userId], references: [id], onDelete: Cascade)
+  status     ResellerStatus @default(ACTIVE)
+  brandName  String?
+  markupPct  Int            @default(20)
+  code       String         @unique
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+}
+
+// =====================================================================
+// API-1 — Publiczne API klienta. Token = sekret pokazany raz; w bazie tylko
+// hash (bcrypt) + publiczny prefiks do identyfikacji. Uprawnienia (scopes)
+// minimalne, account-scoped, nigdy ADMIN. Pełny token: "<prefix>.<secret>".
+// =====================================================================
+model ApiToken {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation("UserApiTokens", fields: [userId], references: [id], onDelete: Cascade)
+  /// Etykieta nadana przez klienta, np. „CI deploy", „Terraform".
+  name        String
+  /// Publiczny prefiks (vrs_live_xxxx) — po nim wyszukujemy token; bezpieczny do pokazania.
+  prefix      String    @unique
+  /// bcrypt(secret) — sam sekret nie jest przechowywany.
+  hash        String
+  /// Lista uprawnień, np. ["services:read","billing:read"].
+  scopes      String[]
+  lastUsedAt  DateTime?
+  lastUsedIp  String?
+  expiresAt   DateTime?
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId])
+}
+
+// =====================================================================
+// EMM — Produkt email-marketingu. Klient zarządza WŁASNYMI listami,
+// kontaktami i kampaniami pod aktywną subskrypcją EMAIL_MARKETING.
+// RODO: double opt-in (token potwierdzenia), List-Unsubscribe + publiczny
+// token wypisu, status kontaktu (PENDING/SUBSCRIBED/UNSUBSCRIBED/BOUNCED/
+// COMPLAINED). Limity (kontakty / wysyłki miesięczne) z planu.
+// =====================================================================
+
+enum EmmContactStatus {
+  PENDING      // dodany, czeka na potwierdzenie (double opt-in)
+  SUBSCRIBED   // potwierdzony, można wysyłać
+  UNSUBSCRIBED // wypisał się
+  BOUNCED      // twardy bounce — nie wysyłamy
+  COMPLAINED   // zgłosił spam — nie wysyłamy
+}
+
+enum EmmCampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENDING
+  SENT
+  CANCELED
+  FAILED
+}
+
+enum EmmSendStatus {
+  SENT
+  SUPPRESSED
+  FAILED
+}
+
+model EmmList {
+  id             String   @id @default(uuid())
+
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User     @relation("UserEmmLists", fields: [userId], references: [id], onDelete: Cascade)
+
+  name           String
+  description    String?
+  /// Wymagaj potwierdzenia subskrypcji (double opt-in). Domyślnie tak (RODO-safe).
+  doubleOptIn    Boolean  @default(true)
+  /// Domyślne pola nagłówka „od" widoczne dla odbiorcy (nazwa nadawcy).
+  fromName       String?
+  /// Adres reply-to (np. firmowy). Wysyłka idzie z infrastruktury Verris.
+  replyTo        String?
+
+  contacts       EmmContact[]
+  campaigns      EmmCampaign[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([subscriptionId])
+  @@index([userId])
+}
+
+model EmmContact {
+  id             String   @id @default(uuid())
+
+  listId         String
+  list           EmmList  @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  email          String
+  firstName      String?
+  lastName       String?
+
+  status         EmmContactStatus @default(PENDING)
+
+  /// Token double opt-in (potwierdzenie zapisu). Zerowany po potwierdzeniu.
+  confirmToken   String?  @unique
+  confirmedAt    DateTime?
+  /// Token wypisu (List-Unsubscribe / link w stopce). Stały dla kontaktu.
+  unsubToken     String   @unique
+  unsubscribedAt DateTime?
+
+  /// Skąd trafił kontakt: import, api, form.
+  source         String?
+  /// IP zapisu (dowód zgody — RODO).
+  consentIp      String?
+
+  sends          EmmSend[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Jeden e-mail może wystąpić tylko raz na danej liście.
+  @@unique([listId, email])
+  @@index([listId, status])
+}
+
+model EmmCampaign {
+  id             String   @id @default(uuid())
+
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User     @relation("UserEmmCampaigns", fields: [userId], references: [id], onDelete: Cascade)
+
+  listId         String
+  list           EmmList  @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  name           String
+  subject        String
+  /// Treść w Markdown — renderowana przez wspólny email-shell.
+  bodyMarkdown   String   @db.Text
+  ctaLabel       String?
+  ctaUrl         String?
+
+  status         EmmCampaignStatus @default(DRAFT)
+  scheduledAt    DateTime?
+  startedAt      DateTime?
+  completedAt    DateTime?
+
+  // Statystyki + kursor batcha (idempotentna wysyłka).
+  recipientCount Int      @default(0)
+  cursorOffset   Int      @default(0)
+  sentCount      Int      @default(0)
+  suppressedCount Int     @default(0)
+  failedCount    Int      @default(0)
+
+  sends          EmmSend[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([subscriptionId])
+  @@index([status])
+}
+
+model EmmSend {
+  id             String   @id @default(uuid())
+
+  campaignId     String
+  campaign       EmmCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contactId      String
+  contact        EmmContact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  status         EmmSendStatus
+  reason         String?
+
+  createdAt      DateTime @default(now())
+
+  // Idempotencja wysyłki — jeden rekord na (kampania, kontakt).
+  @@unique([campaignId, contactId])
+  @@index([campaignId])
+}
+
+// =====================================================================
+// AN — Analityka stron (privacy-first, alternatywa Google Analytics).
+// Bez cookies, bez zapisu IP. Odwiedzający identyfikowany jednokierunkowym
+// hashem z DZIENNĄ solą (rotowaną, nieprzechowywaną) — po dobie nie da się
+// go odtworzyć. Zgodne z RODO bez bannera zgód (brak danych osobowych).
+// =====================================================================
+
+model AnalyticsSite {
+  id             String   @id @default(uuid())
+
+  subscriptionId String
+  subscription   Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User     @relation("UserAnalyticsSites", fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Domena śledzona (np. „example.pl"). Informacyjnie + do walidacji origin.
+  domain         String
+  /// Publiczny klucz property wstawiany do snippetu (bezpieczny do ujawnienia).
+  siteKey        String   @unique
+  enabled        Boolean  @default(true)
+
+  events         AnalyticsEvent[]
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([subscriptionId])
+  @@index([userId])
+}
+
+model AnalyticsEvent {
+  id           String   @id @default(uuid())
+
+  siteId       String
+  site         AnalyticsSite @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  /// Ścieżka strony (bez query z PII — obcinamy do pathname).
+  path         String
+  /// Host referrera (bez pełnego URL/query). null = wejście bezpośrednie.
+  refHost      String?
+  /// Kraj (ISO-2) z nagłówka geo proxy, jeśli dostępny. Bez miasta/IP.
+  country      String?
+  /// desktop | mobile | tablet — z klasyfikacji User-Agenta (bez zapisu UA).
+  deviceType   String?
+  /// Jednokierunkowy hash odwiedzającego (dzienna sól, bez IP). Do liczenia unikalnych.
+  visitorHash  String
+
+  ts           DateTime @default(now())
+
+  @@index([siteId, ts])
+  @@index([siteId, path])
+}
+
+// -----------------------------------------------------------------------------
+// KB CMS — Baza Wiedzy (KB-CMS): własny CMS z kategoriami/podkategoriami,
+// edytorem Markdown, statusem draft/published i polami SEO. Publiczny widok
+// (pomoc.verris.pl) indeksuje tylko PUBLISHED.
+// -----------------------------------------------------------------------------
+
+enum KbArticleStatus {
+  DRAFT
+  PUBLISHED
+}
+
+model KbCategory {
+  id          String       @id @default(uuid())
+  slug        String       @unique
+  name        String
+  description String?
+  /// Ikona (nazwa lucide) do publicznego widoku — opcjonalna.
+  icon        String?
+  /// Self-relacja: podkategorie. parentId=null → kategoria najwyższego poziomu.
+  parentId    String?
+  parent      KbCategory?  @relation("KbCategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children    KbCategory[] @relation("KbCategoryTree")
+  order       Int          @default(0)
+  articles    KbArticle[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([parentId])
+}
+
+model KbArticle {
+  id             String          @id @default(uuid())
+  slug           String          @unique
+  categoryId     String
+  category       KbCategory      @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  title          String
+  /// Krótki wstęp/lead (lista + meta description fallback).
+  excerpt        String?
+  /// Treść w Markdown (renderowana po stronie serwera).
+  bodyMarkdown   String          @db.Text
+  status         KbArticleStatus @default(DRAFT)
+  /// Pola SEO — nadpisują domyślne (title/excerpt) w publicznym widoku.
+  seoTitle       String?
+  seoDescription String?
+  /// Snapshot autora (bez relacji do User — unikamy zmian w modelu User).
+  authorUserId   String?
+  authorName     String?
+  /// KB-SEO-1 — FAQ (tablica {q,a}) → FAQPage JSON-LD (rich snippets).
+  faq            Json?
+  /// KB-SEO-2 — ręcznie powiązane artykuły (slugi). Puste = auto po kategorii.
+  relatedSlugs   String[]        @default([])
+  order          Int             @default(0)
+  views          Int             @default(0)
+  publishedAt    DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([categoryId, status])
+  @@index([status, publishedAt])
+}
+
+// -----------------------------------------------------------------------------
+// Leady z verris.pl (formularze LP „Zaplanuj migrację" i „Kontakt").
+// To leady WŁASNE Verris — osobno od EmmContact (listy klientów).
+// -----------------------------------------------------------------------------
+
+enum SiteLeadKind {
+  MIGRATION // formularz LP /przenies-strone (marketing, double opt-in)
+  CONTACT   // formularz /kontakt (zapytanie, bez opt-in)
+}
+
+enum SiteLeadStatus {
+  PENDING   // MIGRATION: czeka na potwierdzenie double opt-in
+  CONFIRMED // MIGRATION: adres potwierdzony
+  RECEIVED  // CONTACT: przyjęte, nie wymaga potwierdzenia
+  UNSUBSCRIBED
+}
+
+model SiteLead {
+  id             String         @id @default(uuid())
+  kind           SiteLeadKind
+  status         SiteLeadStatus @default(PENDING)
+
+  email          String
+  name           String?
+  message        String?        @db.Text
+  /// Źródło zdarzenia (np. migration_plan, contact_form) — spójne z pomiarem.
+  source         String?
+
+  /// Dowód zgody (RODO art. 7 ust. 1): czy zaznaczono zgodę marketingową,
+  /// treść klauzuli, znacznik czasu, IP i User-Agent z chwili wysłania.
+  marketingConsent Boolean      @default(false)
+  consentText      String?      @db.Text
+  consentAt        DateTime?
+  ip               String?
+  userAgent        String?      @db.Text
+
+  /// Double opt-in (MIGRATION). Token zerowany po potwierdzeniu.
+  confirmToken   String?        @unique
+  confirmedAt    DateTime?
+  /// Token wypisu — stały, do linku rezygnacji.
+  unsubToken     String         @unique @default(uuid())
+
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([kind, status])
+  @@index([email])
+  @@index([createdAt])
 }

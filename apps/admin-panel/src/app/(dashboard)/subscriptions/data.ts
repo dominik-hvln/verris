@@ -3,6 +3,8 @@ import { adminApi } from "@/lib/api";
 export interface AdminSubscriptionRow {
   id: string;
   status: string;
+  /** SVC-TAG — unikalny handle usługi (= login DA dla hostingu). */
+  serviceTag: string | null;
   interval: string;
   priceAmount: unknown;
   currency: string;

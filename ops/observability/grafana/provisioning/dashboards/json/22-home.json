@@ -1,0 +1,95 @@
+{
+  "annotations": { "list": [] },
+  "editable": false,
+  "description": "Ekran startowy Verris — wybierz co chcesz sprawdzić i przejdź do widoku. Kafelki u góry pokazują stan na żywo i są klikalne.",
+  "panels": [
+    {
+      "type": "text",
+      "id": 1,
+      "gridPos": { "h": 3, "w": 24, "x": 0, "y": 0 },
+      "options": { "mode": "markdown", "content": "# 🖥️ Verris — centrum monitoringu\nWybierz obszar poniżej albo kliknij kafelek, aby przejść do szczegółów. Stan na żywo odświeża się co 30 s." }
+    },
+    {
+      "type": "stat",
+      "title": "Serwery aktywne",
+      "id": 2,
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 3 },
+      "targets": [ { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_servers_total{status=\"ACTIVE\"}", "refId": "A" } ],
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "green" }, "links": [ { "title": "Flota / Węzły", "url": "/d/verris-fleet" } ] } }
+    },
+    {
+      "type": "stat",
+      "title": "Bez heartbeatu >5 min",
+      "id": 3,
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 3 },
+      "targets": [ { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_servers_stale_heartbeat", "refId": "A" } ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [ { "color": "green" }, { "color": "red", "value": 1 } ] }, "links": [ { "title": "Flota / Węzły", "url": "/d/verris-fleet" } ] } }
+    },
+    {
+      "type": "stat",
+      "title": "Otwarte incydenty",
+      "id": 4,
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 3 },
+      "targets": [ { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "sum(verris_incidents_open)", "refId": "A" } ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [ { "color": "green" }, { "color": "red", "value": 1 } ] }, "links": [ { "title": "Live / NOC", "url": "/d/verris-live" } ] } }
+    },
+    {
+      "type": "stat",
+      "title": "Tickety bez odpowiedzi",
+      "id": 5,
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 3 },
+      "targets": [ { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_tickets_awaiting_first_response_total", "refId": "A" } ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [ { "color": "green" }, { "color": "yellow", "value": 1 }, { "color": "red", "value": 5 } ] }, "links": [ { "title": "Support", "url": "/d/verris-support" } ] } }
+    },
+    {
+      "type": "stat",
+      "title": "Provisioning w toku",
+      "id": 6,
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 3 },
+      "targets": [ { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "verris_provisioning_pending", "refId": "A" } ],
+      "fieldConfig": { "defaults": { "color": { "mode": "thresholds" }, "thresholds": { "steps": [ { "color": "green" }, { "color": "yellow", "value": 10 } ] }, "links": [ { "title": "Usługi", "url": "/d/verris-uslugi" } ] } }
+    },
+    {
+      "type": "stat",
+      "title": "Błędy API 5xx /s (5 min)",
+      "id": 7,
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 3 },
+      "targets": [ { "datasource": { "type": "prometheus", "uid": "Prometheus" }, "expr": "sum(rate(verris_http_requests_total{status_class=\"5xx\"}[5m]))", "refId": "A" } ],
+      "fieldConfig": { "defaults": { "decimals": 3, "color": { "mode": "thresholds" }, "thresholds": { "steps": [ { "color": "green" }, { "color": "red", "value": 0.1 } ] }, "links": [ { "title": "Wydajność API", "url": "/d/verris-api" } ] } }
+    },
+    {
+      "type": "text",
+      "id": 10,
+      "gridPos": { "h": 9, "w": 8, "x": 0, "y": 7 },
+      "options": { "mode": "markdown", "content": "## 👤 Klienci i sprzedaż\n\n- ### [→ Klienci](/d/verris-klienci)\n  rejestracje, salda, kraje, konta\n- ### [→ Usługi](/d/verris-uslugi)\n  subskrypcje, plany, konta na węzłach\n- ### [→ Billing / Przychód](/d/verris-billing)\n  portfel, faktury, zaległości\n- ### [→ Business](/d/verris-business)\n  MRR / churn (istniejący)" }
+    },
+    {
+      "type": "text",
+      "id": 11,
+      "gridPos": { "h": 9, "w": 8, "x": 8, "y": 7 },
+      "options": { "mode": "markdown", "content": "## 🖧 Infrastruktura\n\n- ### [→ Flota / Węzły](/d/verris-fleet)\n  status, heartbeat, obłożenie\n- ### [→ Wydajność API](/d/verris-api)\n  p95, error rate, RPS, pamięć\n- ### [→ Ops overview](/d/verris-ops-overview)\n  przegląd operacyjny\n- ### [→ Storage](/d/verris-ops-storage)\n  dyski / backupy" }
+    },
+    {
+      "type": "text",
+      "id": 12,
+      "gridPos": { "h": 9, "w": 8, "x": 16, "y": 7 },
+      "options": { "mode": "markdown", "content": "## 🛟 Support i podgląd na żywo\n\n- ### [→ Support / Helpdesk](/d/verris-support)\n  czasy odpowiedzi, CSAT, pracownicy\n- ### [→ Live / NOC](/d/verris-live)\n  ekran na żywo (5 s)\n- ### [→ Logi](/d/verris-logs)\n  eksplorator logów (Loki)" }
+    },
+    {
+      "type": "dashlist",
+      "title": "Wszystkie dashboardy Verris",
+      "id": 20,
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 16 },
+      "options": { "maxItems": 40, "showHeadings": false, "showRecentlyViewed": true, "showSearch": true, "showStarred": false, "tags": [ "verris" ] }
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 36,
+  "style": "dark",
+  "tags": [ "verris", "start" ],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "title": "🏠 Verris — Start",
+  "uid": "verris-home",
+  "version": 1
+}

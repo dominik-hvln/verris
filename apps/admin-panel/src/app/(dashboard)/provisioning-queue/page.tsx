@@ -1,5 +1,6 @@
-import { listProvisioningQueue } from "./data";
+import { listProvisioningQueue, listNodeTasks } from "./data";
 import { RetryButton } from "./retry-button";
+import { NodeTasksSection } from "./node-tasks-section";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +34,7 @@ export default async function ProvisioningQueuePage({
   const sp = await searchParams;
   const state = sp.state ?? "";
   const data = await listProvisioningQueue(state || undefined);
+  const nodeTasks = await listNodeTasks().catch(() => []);
 
   return (
     <div className="space-y-6 p-6">
@@ -176,6 +178,17 @@ export default async function ProvisioningQueuePage({
           </section>
         </>
       )}
+
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-lg font-bold tracking-tight">Operacje węzłów</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            #13 — instalacje WP/aplikacji, profil hostingu, WAF, PHP, staging. Nieudane operacje
+            możesz ponowić (agent węzła podejmie je ponownie).
+          </p>
+        </div>
+        <NodeTasksSection rows={nodeTasks} />
+      </section>
     </div>
   );
 }

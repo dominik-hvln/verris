@@ -4,6 +4,7 @@ import { staffApi } from "./staff-api";
 export interface StaffAdminSubscriptionDetail {
   id: string;
   status: string;
+  serviceTag: string | null;
   interval: string;
   paymentSource: string;
   priceAmount: unknown;

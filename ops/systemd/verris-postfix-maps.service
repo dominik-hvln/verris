@@ -1,0 +1,6 @@
+[Unit]
+Description=Rebuild Postfix hash maps after Verris API sync
+
+[Service]
+Type=oneshot
+ExecStart=/opt/verris/ops/scripts/prod-mail-postmap-reload.sh

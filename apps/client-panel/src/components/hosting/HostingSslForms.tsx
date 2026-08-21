@@ -8,6 +8,7 @@ import {
   pasteCustomSslAction,
   requestLetsEncryptSslAction,
 } from '@/app/dashboard/services/[id]/hosting-ssl-actions';
+import { Select } from '@/components/panel';
 
 interface Props {
   serviceId: string;
@@ -20,6 +21,7 @@ export function HostingSslForms({ serviceId }: Props) {
 
   const [domain, setDomain] = useState('');
   const [includeWww, setIncludeWww] = useState(true);
+  const [wildcard, setWildcard] = useState(false);
   const [leBusy, setLeBusy] = useState(false);
   const [leMsg, setLeMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
@@ -63,23 +65,15 @@ export function HostingSslForms({ serviceId }: Props) {
       ) : null}
 
       <label className="block space-y-1.5 max-w-md">
-        <span className="text-xs font-medium text-neutral-400">Domena (konto DirectAdmin)</span>
-        <select
-          className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
+        <span className="text-xs font-medium text-neutral-400">Domena (konto hostingowe)</span>
+        <Select
           value={domain}
-          onChange={(e) => setDomain(e.target.value)}
+          onChange={setDomain}
           disabled={loadingDomains || domains.length === 0}
-        >
-          {domains.length === 0 ? (
-            <option value="">—</option>
-          ) : (
-            domains.map((d) => (
-              <option key={d.name} value={d.name}>
-                {d.name}
-              </option>
-            ))
-          )}
-        </select>
+          aria-label="Domena (konto hostingowe)"
+          placeholder="—"
+          options={domains.map((d) => ({ value: d.name, label: d.name }))}
+        />
       </label>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -89,7 +83,7 @@ export function HostingSslForms({ serviceId }: Props) {
             Let&apos;s Encrypt
           </div>
           <p className="text-xs text-neutral-500 leading-relaxed">
-            Zlecenie wystawienia certyfikatu w DirectAdmin (HTTP-01). Może potrwać do ok. 2 minut — nie zamykaj
+            Zlecenie wystawienia certyfikatu na serwerze. Może potrwać do ok. 2–3 minut — nie zamykaj
             karty w tym czasie.
           </p>
           <label className="flex items-center gap-2 text-sm text-neutral-300 cursor-pointer select-none">
@@ -97,9 +91,24 @@ export function HostingSslForms({ serviceId }: Props) {
               type="checkbox"
               className="rounded border-white/20 bg-black/40"
               checked={includeWww}
+              disabled={wildcard}
               onChange={(e) => setIncludeWww(e.target.checked)}
             />
             Uwzględnij <span className="font-mono text-neutral-200">www</span> (jeśli domena jest na koncie)
+          </label>
+          <label className="flex items-start gap-2 text-sm text-neutral-300 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              className="mt-0.5 rounded border-white/20 bg-black/40"
+              checked={wildcard}
+              onChange={(e) => setWildcard(e.target.checked)}
+            />
+            <span>
+              Wildcard <span className="font-mono text-neutral-200">*.{domain || 'domena'}</span> — pokrywa wszystkie subdomeny.
+              <span className="mt-0.5 block text-[11px] text-amber-200/80">
+                Wymaga, aby DNS domeny był hostowany na tym serwerze (walidacja DNS-01).
+              </span>
+            </span>
           </label>
           {leMsg ? (
             <p
@@ -119,12 +128,17 @@ export function HostingSslForms({ serviceId }: Props) {
             onClick={async () => {
               setLeMsg(null);
               setLeBusy(true);
-              const r = await requestLetsEncryptSslAction(serviceId, domain.trim(), includeWww);
+              const r = await requestLetsEncryptSslAction(serviceId, domain.trim(), includeWww, wildcard);
               setLeBusy(false);
               if (r.ok) {
                 setLeMsg({
                   type: 'ok',
-                  text: 'Zlecono Let’s Encrypt. Odśwież stronę za chwilę lub sprawdź panel DirectAdmin.',
+                  text: wildcard
+                    ? 'Zlecono wystawienie certyfikatu wildcard (w tle). Walidacja DNS-01 wymaga, aby strefa ' +
+                      'DNS domeny była na tym serwerze. Status zaktualizuje się tu po wydaniu (zwykle do kilku minut).'
+                    : 'Zlecono wystawienie certyfikatu (w tle). Aby się powiodło, domena musi już ' +
+                      'wskazywać na nasz serwer (rekord A) — inaczej walidacja Let’s Encrypt nie przejdzie. ' +
+                      'Status zaktualizuje się tu po wydaniu (zwykle do kilku minut).',
                 });
               } else {
                 setLeMsg({ type: 'err', text: r.error });
@@ -143,7 +157,7 @@ export function HostingSslForms({ serviceId }: Props) {
           </div>
           <p className="text-xs text-neutral-500 leading-relaxed">
             Wklej certyfikat serwera, klucz prywatny i opcjonalnie łańcuch CA (PEM). Dane trafiają wyłącznie do
-            DirectAdmin dla wybranej domeny.
+            serwera dla wybranej domeny.
           </p>
           <label className="block space-y-1.5">
             <span className="text-xs font-medium text-neutral-400">Certyfikat (PEM)</span>
@@ -202,7 +216,7 @@ export function HostingSslForms({ serviceId }: Props) {
               });
               setPasteBusy(false);
               if (r.ok) {
-                setPasteMsg({ type: 'ok', text: 'Certyfikat zapisany w DirectAdmin.' });
+                setPasteMsg({ type: 'ok', text: 'Certyfikat zapisany na serwerze.' });
               } else {
                 setPasteMsg({ type: 'err', text: r.error });
               }

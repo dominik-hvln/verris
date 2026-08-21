@@ -8,7 +8,8 @@
 # Build context: monorepo root.
 # =============================================================================
 
-ARG NODE_VERSION=20
+# Node 22 LTS — Node 20 osiągnął EOL 30.04.2026 (brak łatek bezpieczeństwa).
+ARG NODE_VERSION=22
 ARG APP_NAME=client-panel
 ARG APP_PORT=3001
 
@@ -39,8 +40,36 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm-store \
 # -----------------------------------------------------------------------------
 FROM deps AS build
 ARG APP_NAME
+ARG API_URL
+ARG CLIENT_PANEL_URL
+ARG STAFF_PANEL_URL
+ARG ADMIN_PANEL_URL
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_STAFF_PANEL_URL
+ARG NEXT_PUBLIC_STATUS_PAGE_URL
+ARG NEXT_PUBLIC_GRAFANA_URL
+# CYBER-2 — anty-bot (build-time, wstrzykiwane do bundla Next):
+ARG NEXT_PUBLIC_CAPTCHA_PROVIDER
+ARG NEXT_PUBLIC_CAPTCHA_SITE_KEY
+# Analityka/marketing (Consent Mode v2) — puste = wyłączone, baner pokazuje
+# tylko kategorię funkcjonalną. Ustawiane przez repo Variables w deploy.yml.
+ARG NEXT_PUBLIC_GTM_ID
+ARG NEXT_PUBLIC_META_PIXEL_ID
+ENV API_URL=${API_URL} \
+    CLIENT_PANEL_URL=${CLIENT_PANEL_URL} \
+    STAFF_PANEL_URL=${STAFF_PANEL_URL} \
+    ADMIN_PANEL_URL=${ADMIN_PANEL_URL} \
+    NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} \
+    NEXT_PUBLIC_STAFF_PANEL_URL=${NEXT_PUBLIC_STAFF_PANEL_URL} \
+    NEXT_PUBLIC_STATUS_PAGE_URL=${NEXT_PUBLIC_STATUS_PAGE_URL} \
+    NEXT_PUBLIC_GRAFANA_URL=${NEXT_PUBLIC_GRAFANA_URL} \
+    NEXT_PUBLIC_CAPTCHA_PROVIDER=${NEXT_PUBLIC_CAPTCHA_PROVIDER} \
+    NEXT_PUBLIC_CAPTCHA_SITE_KEY=${NEXT_PUBLIC_CAPTCHA_SITE_KEY} \
+    NEXT_PUBLIC_GTM_ID=${NEXT_PUBLIC_GTM_ID} \
+    NEXT_PUBLIC_META_PIXEL_ID=${NEXT_PUBLIC_META_PIXEL_ID}
 COPY libs libs
 COPY apps/${APP_NAME} apps/${APP_NAME}
+RUN mkdir -p apps/${APP_NAME}/public
 RUN pnpm --filter @verris/${APP_NAME} build
 
 # -----------------------------------------------------------------------------
@@ -50,6 +79,7 @@ FROM node:${NODE_VERSION}-bookworm-slim AS runtime
 ARG APP_NAME
 ARG APP_PORT
 ENV NODE_ENV=production \
+    HOSTNAME=0.0.0.0 \
     APP_NAME=${APP_NAME} \
     PORT=${APP_PORT}
 WORKDIR /app
@@ -58,28 +88,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates curl tini && \
     rm -rf /var/lib/apt/lists/*
 
-# Copy the entire .next, public, package.json and node_modules. We're not
-# using "output: standalone" yet because the panels' next.config.ts disables
-# typescript build errors and we want a single Dockerfile that works for all
-# three apps without further changes.
-# Ensure a public/ folder exists so the COPY below does not fail for panels
-# that have no static assets yet.
+# Next.js standalone output (panels with output: 'standalone' in next.config).
 RUN mkdir -p ./apps/${APP_NAME}/public
 
-COPY --from=build /workspace/apps/${APP_NAME}/.next ./apps/${APP_NAME}/.next
-COPY --from=build /workspace/apps/${APP_NAME}/package.json ./apps/${APP_NAME}/package.json
-COPY --from=build /workspace/apps/${APP_NAME}/next.config.ts ./apps/${APP_NAME}/next.config.ts
-COPY --from=build /workspace/libs ./libs
-COPY --from=build /workspace/node_modules ./node_modules
-RUN mkdir -p /app/node_modules/@verris && \
-    ln -sfn /app/libs/contracts /app/node_modules/@verris/contracts && \
-    ln -sfn /app/libs/ui /app/node_modules/@verris/ui
+COPY --from=build /workspace/apps/${APP_NAME}/.next/standalone ./
+COPY --from=build /workspace/apps/${APP_NAME}/.next/static ./apps/${APP_NAME}/.next/static
+COPY --from=build /workspace/apps/${APP_NAME}/public ./apps/${APP_NAME}/public
 
 EXPOSE ${APP_PORT}
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD curl -fsS http://127.0.0.1:${PORT}/api/health || exit 1
 
-WORKDIR /app/apps/${APP_NAME}
+WORKDIR /app
 ENTRYPOINT ["/usr/bin/tini", "--"]
-CMD ["sh", "-c", "node ../../node_modules/next/dist/bin/next start -p ${PORT}"]
+CMD ["sh", "-c", "exec node apps/$APP_NAME/server.js"]

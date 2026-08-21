@@ -97,19 +97,29 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:?S3_ACCESS_KEY is required}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:?S3_SECRET_KEY is required}
+      S3_BUCKET_BACKUPS: ${S3_BUCKET_BACKUPS:-verris-backups}
     entrypoint: >
       /bin/sh -c "
         set -e;
         mc alias set verris http://minio:9000 \"$$MINIO_ROOT_USER\" \"$$MINIO_ROOT_PASSWORD\";
+        mc admin user add verris \"$$S3_ACCESS_KEY\" \"$$S3_SECRET_KEY\" || true;
+        mc admin policy attach verris readwrite --user \"$$S3_ACCESS_KEY\" || true;
         mc mb -p verris/verris-ticket-attachments;
         mc mb -p verris/verris-data-exports;
         mc mb -p verris/verris-dpa-pdfs;
         mc mb -p verris/verris-invoices;
+        mc mb -p verris/verris-www-media;
+        mc mb -p verris/$$S3_BUCKET_BACKUPS;
         mc anonymous set none verris/verris-ticket-attachments;
+        mc anonymous set none verris/verris-www-media;
         mc anonymous set none verris/verris-data-exports;
         mc anonymous set none verris/verris-dpa-pdfs;
         mc anonymous set none verris/verris-invoices;
+        mc anonymous set none verris/$$S3_BUCKET_BACKUPS;
         mc ilm rule add --expire-days 7 verris/verris-data-exports || true;
+        mc ilm rule add --expire-days 14 verris/$$S3_BUCKET_BACKUPS || true;
         echo 'MinIO buckets ready.';
       "
     restart: 'no'
@@ -121,6 +131,9 @@ services:
       dockerfile: Dockerfile.api
     restart: always
     logging: *default-logging
+    # STAB-1 — daj czas na graceful drain (SHUTDOWN_DRAIN_MS + zamknięcie HTTP)
+    # zanim Docker wyśle SIGKILL. Musi być > SHUTDOWN_DRAIN_MS (domyślnie 8s).
+    stop_grace_period: 30s
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -129,10 +142,13 @@ services:
     environment:
       NODE_ENV: production
       PORT: '3000'
+      # STAB-1 — okno drenowania ruchu przy SIGTERM (musi być < stop_grace_period)
+      SHUTDOWN_DRAIN_MS: ${SHUTDOWN_DRAIN_MS:-8000}
       CLIENT_PANEL_URL: ${CLIENT_PANEL_URL}
       STAFF_PANEL_URL: ${STAFF_PANEL_URL}
       ADMIN_PANEL_URL: ${ADMIN_PANEL_URL}
       PUBLIC_API_URL: ${PUBLIC_API_URL}
+      VERRIS_NODE_DEPLOY_SSH_PUBKEY: ${VERRIS_NODE_DEPLOY_SSH_PUBKEY:-}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
       APP_KMS_KEY: ${APP_KMS_KEY:?APP_KMS_KEY is required}
@@ -145,9 +161,35 @@ services:
       POSTGRES_PORT: '5432'
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      # Meta Conversions API (server-side pomiar). Dataset domyślnie = ID Pixela.
+      META_DATASET_ID: ${META_DATASET_ID:-${META_PIXEL_ID:-}}
+      META_CAPI_TOKEN: ${META_CAPI_TOKEN:-}
+      META_GRAPH_VERSION: ${META_GRAPH_VERSION:-v21.0}
+      # Leady z verris.pl — adres powiadomień (domyślnie kontakt@verris.pl).
+      LEADS_NOTIFY_EMAIL: ${LEADS_NOTIFY_EMAIL:-kontakt@verris.pl}
+      STRIPE_API_VERSION: ${STRIPE_API_VERSION:-2026-04-22.dahlia}
       STRIPE_SUCCESS_URL: ${STRIPE_SUCCESS_URL}
       STRIPE_CANCEL_URL: ${STRIPE_CANCEL_URL}
       METRICS_AUTH_TOKEN: ${METRICS_AUTH_TOKEN:-}
+      # Pre-LIVE hardening + VPN (ETAP 7/8)
+      REQUIRE_2FA_FOR_STAFF: ${REQUIRE_2FA_FOR_STAFF:-0}
+      # C2 — Passkeys (WebAuthn). RP_ID = domena rejestrowalna (bez https://).
+      WEBAUTHN_RP_ID: ${WEBAUTHN_RP_ID:-}
+      WEBAUTHN_RP_NAME: ${WEBAUTHN_RP_NAME:-Verris}
+      WEBAUTHN_ORIGINS: ${WEBAUTHN_ORIGINS:-}
+      VPN_WG_SERVER_PUBLIC_KEY: ${VPN_WG_SERVER_PUBLIC_KEY:-}
+      VPN_WG_ENDPOINT: ${VPN_WG_ENDPOINT:-}
+      VPN_WG_SUBNET: ${VPN_WG_SUBNET:-10.88.0.0/24}
+      VPN_WG_CLIENT_ALLOWED_IPS: ${VPN_WG_CLIENT_ALLOWED_IPS:-}
+      VPN_WG_DNS: ${VPN_WG_DNS:-}
+      VPN_SYNC_TOKEN: ${VPN_SYNC_TOKEN:-}
+      # B-1 — KSeF
+      KSEF_ENABLED: ${KSEF_ENABLED:-0}
+      KSEF_ENV: ${KSEF_ENV:-test}
+      KSEF_BASE_URL: ${KSEF_BASE_URL:-}
+      KSEF_NIP: ${KSEF_NIP:-}
+      KSEF_TOKEN: ${KSEF_TOKEN:-}
+      KSEF_PUBLIC_KEY_PEM_B64: ${KSEF_PUBLIC_KEY_PEM_B64:-}
       REDIS_URL: redis://redis:6379
       # Object storage (MinIO/S3) — see compose service `minio` above.
       S3_ENDPOINT: ${S3_ENDPOINT:-http://minio:9000}
@@ -160,7 +202,63 @@ services:
       S3_BUCKET_DATA_EXPORTS: ${S3_BUCKET_DATA_EXPORTS:-verris-data-exports}
       S3_BUCKET_DPA_PDFS: ${S3_BUCKET_DPA_PDFS:-verris-dpa-pdfs}
       S3_BUCKET_INVOICES: ${S3_BUCKET_INVOICES:-verris-invoices}
+      S3_BUCKET_BACKUPS: ${S3_BUCKET_BACKUPS:-verris-backups}
       DATA_EXPORT_TEMP_DIR: /tmp/verris-data-exports
+      SMTP_HOST: ${SMTP_HOST:-host.docker.internal}
+      SMTP_PORT: ${SMTP_PORT:-25}
+      SMTP_SECURE: ${SMTP_SECURE:-none}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS:-panel@verris.pl}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Verris}
+      SMTP_HELO_NAME: ${SMTP_HELO_NAME:-mail.verris.pl}
+      SMTP_MESSAGE_ID_DOMAIN: ${SMTP_MESSAGE_ID_DOMAIN:-verris.pl}
+      # MAIL-4 — skrzynki zespołu @verris.pl (mapy Postfix na hoście; SOGo osobno)
+      CONTROL_PLANE_MAIL_MAPS_DIR: ${CONTROL_PLANE_MAIL_MAPS_DIR:-/etc/postfix/verris}
+      CONTROL_PLANE_MAIL_DATA_ROOT: ${CONTROL_PLANE_MAIL_DATA_ROOT:-/var/mail/vhosts}
+      CONTROL_PLANE_MAIL_HOST: ${CONTROL_PLANE_MAIL_HOST:-mail.verris.pl}
+      SOGO_WEB_URL: ${SOGO_WEB_URL:-https://mail.verris.pl/SOGo}
+      SOGO_MYSQL_HOST: ${SOGO_MYSQL_HOST:-ops-sogo-db-1}
+      SOGO_MYSQL_USER: ${SOGO_MYSQL_USER:-sogo}
+      SOGO_MYSQL_DATABASE: ${SOGO_MYSQL_DATABASE:-sogo}
+      SOGO_MYSQL_PASSWORD: ${SOGO_MYSQL_PASSWORD:-}
+      # OVH DNS automation (node branded NS + glue)
+      OVH_ENDPOINT: ${OVH_ENDPOINT:-ovh-eu}
+      OVH_APP_KEY: ${OVH_APP_KEY:-}
+      OVH_APP_SECRET: ${OVH_APP_SECRET:-}
+      OVH_CONSUMER_KEY: ${OVH_CONSUMER_KEY:-}
+      HOSTING_NS_BASE_DOMAIN: ${HOSTING_NS_BASE_DOMAIN:-verris.pl}
+      # sequential: ns1+ns2, ns3+ns4… | block100: ns100+ns101, ns102+ns103…
+      HOSTING_NS_NUMBERING: ${HOSTING_NS_NUMBERING:-sequential}
+      HOSTING_NS1: ${HOSTING_NS1:-}
+      HOSTING_NS2: ${HOSTING_NS2:-}
+      HOSTING_NS3: ${HOSTING_NS3:-}
+      # AI assistant (chat + RAG embeddings)
+      AI_PROVIDER: ${AI_PROVIDER:-openai-compatible}
+      AI_API_BASE_URL: ${AI_API_BASE_URL:-https://api.openai.com/v1}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-gpt-4o-mini}
+      AI_EMBED_MODEL: ${AI_EMBED_MODEL:-text-embedding-3-small}
+      AI_EMBED_DISABLED: ${AI_EMBED_DISABLED:-false}
+      # Domain registrar (optional — fail-closed when unset)
+      REGISTRAR_PROVIDER: ${REGISTRAR_PROVIDER:-}
+      REGISTRAR_API_BASE_URL: ${REGISTRAR_API_BASE_URL:-}
+      REGISTRAR_API_TOKEN: ${REGISTRAR_API_TOKEN:-}
+      # C4 - OpenProvider (hurtowy rejestrator domen)
+      OPENPROVIDER_API_BASE_URL: ${OPENPROVIDER_API_BASE_URL:-https://api.openprovider.eu}
+      OPENPROVIDER_USERNAME: ${OPENPROVIDER_USERNAME:-}
+      OPENPROVIDER_PASSWORD: ${OPENPROVIDER_PASSWORD:-}
+      OPENPROVIDER_OWNER_HANDLE: ${OPENPROVIDER_OWNER_HANDLE:-}
+      DOMAIN_PRICE_MARKUP: ${DOMAIN_PRICE_MARKUP:-1.25}
+      DOMAIN_VAT_RATE: ${DOMAIN_VAT_RATE:-23}
+      DOMAIN_FX_NBP_ENABLED: ${DOMAIN_FX_NBP_ENABLED:-true}
+      DOMAIN_FX_NBP_MAX_AGE_MS: ${DOMAIN_FX_NBP_MAX_AGE_MS:-14400000}
+      DOMAIN_FX_USD_PLN: ${DOMAIN_FX_USD_PLN:-3.65}
+      DOMAIN_FX_EUR_PLN: ${DOMAIN_FX_EUR_PLN:-4.32}
+    volumes:
+      - ${CONTROL_PLANE_MAIL_MAPS_DIR:-/etc/postfix/verris}:/etc/postfix/verris
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
     expose: ['3000']
     networks: [verris_internal, verris_public]
     healthcheck:
@@ -177,6 +275,14 @@ services:
       args:
         APP_NAME: client-panel
         APP_PORT: '3001'
+        API_URL: http://api:3000
+        CLIENT_PANEL_URL: ${CLIENT_PANEL_URL}
+        STAFF_PANEL_URL: ${STAFF_PANEL_URL}
+        ADMIN_PANEL_URL: ${ADMIN_PANEL_URL}
+        NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
+        NEXT_PUBLIC_STATUS_PAGE_URL: ${PUBLIC_STATUS_URL:-https://status.verris.pl}
+        NEXT_PUBLIC_GTM_ID: ${GTM_ID:-}
+        NEXT_PUBLIC_META_PIXEL_ID: ${META_PIXEL_ID:-}
     restart: always
     logging: *default-logging
     depends_on: [api]
@@ -204,13 +310,24 @@ services:
       args:
         APP_NAME: staff-panel
         APP_PORT: '3002'
+        API_URL: http://api:3000
+        CLIENT_PANEL_URL: ${CLIENT_PANEL_URL}
+        STAFF_PANEL_URL: ${STAFF_PANEL_URL}
+        ADMIN_PANEL_URL: ${ADMIN_PANEL_URL}
+        NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
+        NEXT_PUBLIC_GRAFANA_URL: https://${CADDY_GRAFANA_DOMAIN:-grafana.verris.local}
     restart: always
     logging: *default-logging
     depends_on: [api]
+    mem_limit: 768m
+    memswap_limit: 768m
     environment:
       NODE_ENV: production
+      NODE_OPTIONS: ${STAFF_PANEL_NODE_OPTIONS:---max-old-space-size=384}
       PORT: '3002'
       NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
+      NEXT_PUBLIC_GRAFANA_URL: https://${CADDY_GRAFANA_DOMAIN:-grafana.verris.local}
+      AUTH_COOKIE_DOMAIN: ${AUTH_COOKIE_DOMAIN:-}
       API_URL: http://api:3000
       CLIENT_PANEL_URL: ${CLIENT_PANEL_URL}
       STAFF_PANEL_URL: ${STAFF_PANEL_URL}
@@ -230,13 +347,26 @@ services:
       args:
         APP_NAME: admin-panel
         APP_PORT: '3003'
+        API_URL: http://api:3000
+        CLIENT_PANEL_URL: ${CLIENT_PANEL_URL}
+        STAFF_PANEL_URL: ${STAFF_PANEL_URL}
+        ADMIN_PANEL_URL: ${ADMIN_PANEL_URL}
+        NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
+        NEXT_PUBLIC_STAFF_PANEL_URL: ${STAFF_PANEL_URL}
+        NEXT_PUBLIC_GRAFANA_URL: https://${CADDY_GRAFANA_DOMAIN:-grafana.verris.local}
     restart: always
     logging: *default-logging
     depends_on: [api]
+    mem_limit: 768m
+    memswap_limit: 768m
     environment:
       NODE_ENV: production
+      NODE_OPTIONS: ${ADMIN_PANEL_NODE_OPTIONS:---max-old-space-size=384}
       PORT: '3003'
       NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL}
+      NEXT_PUBLIC_STAFF_PANEL_URL: ${STAFF_PANEL_URL}
+      NEXT_PUBLIC_GRAFANA_URL: https://${CADDY_GRAFANA_DOMAIN:-grafana.verris.local}
+      AUTH_COOKIE_DOMAIN: ${AUTH_COOKIE_DOMAIN:-}
       API_URL: http://api:3000
       CLIENT_PANEL_URL: ${CLIENT_PANEL_URL}
       ADMIN_PANEL_URL: ${ADMIN_PANEL_URL}
@@ -276,6 +406,55 @@ services:
       start_period: 15s
 
   # ---------------------------------------------------------------------------
+  # Strona marketingowa verris.pl (Next.js + Payload CMS, apps/www).
+  # Payload trzyma własny schemat `payload` na tej samej bazie (bez kolizji z API).
+  # Healthcheck na /healthz, bo /api/* należy w tej apce do Payload.
+  # ---------------------------------------------------------------------------
+  www:
+    build:
+      context: .
+      dockerfile: Dockerfile.panel
+      args:
+        APP_NAME: www
+        APP_PORT: '3005'
+        NEXT_PUBLIC_GTM_ID: ${GTM_ID:-}
+        NEXT_PUBLIC_META_PIXEL_ID: ${META_PIXEL_ID:-}
+    restart: always
+    logging: *default-logging
+    depends_on: [postgres, minio]
+    environment:
+      NODE_ENV: production
+      PORT: '3005'
+      # Wewnętrzny adres API (sieć docker) — server action relayuje Lead do Meta CAPI.
+      API_URL: ${WWW_API_URL:-http://api:3000}
+      # Media na MinIO (S3) — trwałe między deployami; bucket verris-www-media.
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-}
+      S3_BUCKET_WWW_MEDIA: ${S3_BUCKET_WWW_MEDIA:-verris-www-media}
+      # Połączenie do Postgresa przez osobne zmienne (bez enkodowania URL —
+      # hasło base64 ze znakami +/=/ działa bez problemu). Payload trzyma tabele
+      # w schemacie `payload`.
+      PGHOST: postgres
+      PGPORT: '5432'
+      PGUSER: ${POSTGRES_USER:-verris}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB:-verris_db}
+      # Wymagany do działania www — bez niego Payload nie wstanie (miękki default,
+      # by nie blokować parsowania całego compose, jak przy GlitchTip).
+      PAYLOAD_SECRET: ${PAYLOAD_SECRET:-}
+      NEXT_PUBLIC_GTM_ID: ${GTM_ID:-}
+      NEXT_PUBLIC_META_PIXEL_ID: ${META_PIXEL_ID:-}
+    expose: ['3005']
+    networks: [verris_public, verris_internal]
+    healthcheck:
+      test: ['CMD', 'curl', '-fsS', 'http://127.0.0.1:3005/healthz']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # ---------------------------------------------------------------------------
   # Observability stack (F-12 → F-16): Prometheus + Grafana + exporters.
   # All services are reachable only on the `verris_internal` network; Grafana
   # is exposed publicly via Caddy with `forward_auth` to /auth/grafana-validate.
@@ -302,35 +481,104 @@ services:
     expose: ['9121']
     networks: [verris_internal]
 
+  node-exporter:
+    image: prom/node-exporter:v1.8.0
+    restart: always
+    logging: *default-logging
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+      - '--collector.textfile.directory=/host/var/lib/verris-node-exporter-textfile'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+      - /var/lib/verris-node-exporter-textfile:/host/var/lib/verris-node-exporter-textfile:ro
+    expose: ['9100']
+    networks: [verris_internal]
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    restart: always
+    logging: *default-logging
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    expose: ['8080']
+    networks: [verris_internal]
+
+  loki:
+    image: grafana/loki:2.9.4
+    restart: always
+    logging: *default-logging
+    command: ['-config.file=/etc/loki/config.yaml']
+    volumes:
+      - ./ops/observability/loki/config.yaml:/etc/loki/config.yaml:ro
+      - loki_data:/loki
+    expose: ['3100']
+    networks: [verris_internal]
+
+  promtail:
+    image: grafana/promtail:2.9.4
+    restart: always
+    logging: *default-logging
+    command: ['-config.file=/etc/promtail/config.yml']
+    volumes:
+      - ./ops/observability/promtail/config.yml:/etc/promtail/config.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on: [loki]
+    networks: [verris_internal]
+
   prometheus:
     image: prom/prometheus:v2.51.2
     restart: always
     logging: *default-logging
+    entrypoint: ['/bin/sh', '-c']
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=30d'
-      - '--web.enable-lifecycle'
+      - >
+        sed "s|\$${METRICS_AUTH_TOKEN}|$${METRICS_AUTH_TOKEN}|g"
+        /etc/prometheus/prometheus.yml > /tmp/prometheus.yml
+        && exec /bin/prometheus
+        --config.file=/tmp/prometheus.yml
+        --storage.tsdb.path=/prometheus
+        --storage.tsdb.retention.time=30d
+        --web.enable-lifecycle
     volumes:
       - ./ops/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./ops/observability/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
       - prometheus_data:/prometheus
     environment:
       METRICS_AUTH_TOKEN: ${METRICS_AUTH_TOKEN:-}
     expose: ['9090']
-    depends_on: [api, postgres-exporter, redis-exporter]
+    depends_on: [api, postgres-exporter, redis-exporter, node-exporter, cadvisor]
     networks: [verris_internal, verris_public]
 
   grafana:
     image: grafana/grafana:10.4.2
     restart: always
     logging: *default-logging
-    depends_on: [prometheus]
+    depends_on: [prometheus, loki]
     environment:
       GF_SERVER_DOMAIN: ${CADDY_GRAFANA_DOMAIN:-grafana.verris.local}
       GF_SECURITY_ADMIN_USER: ${GF_SECURITY_ADMIN_USER:-admin}
       GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:?GF_SECURITY_ADMIN_PASSWORD is required}
       POSTGRES_DB: ${POSTGRES_DB:-verris_db}
       GRAFANA_DB_RO_PASSWORD: ${GRAFANA_DB_RO_PASSWORD:?GRAFANA_DB_RO_PASSWORD is required (ALTER USER grafana_ro PASSWORD ...)}
+      GF_SMTP_ENABLED: 'true'
+      # Grafana smtp.host = hostname:port (one field). Do not reuse SMTP_HOST without :port.
+      GF_SMTP_HOST: ${GRAFANA_SMTP_HOST:-host.docker.internal:25}
+      GF_SMTP_SKIP_VERIFY: 'true'
+      GF_SMTP_FROM_ADDRESS: ${GRAFANA_ALERT_FROM_ADDRESS:-${SMTP_FROM_ADDRESS:-panel@verris.pl}}
+      GF_SMTP_FROM_NAME: ${GRAFANA_ALERT_FROM_NAME:-Verris Alerts}
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
     volumes:
       - ./ops/observability/grafana/grafana.ini:/etc/grafana/grafana.ini:ro
       # Single bind for provisioning (JSON dashboards live under provisioning/dashboards/json).
@@ -352,7 +600,7 @@ services:
     image: caddy:2-alpine
     restart: always
     logging: *default-logging
-    depends_on: [api, client-panel, staff-panel, admin-panel, status-page, grafana]
+    depends_on: [api, client-panel, staff-panel, admin-panel, status-page, www, grafana]
     # Caddyfile uses {$CADDY_*_DOMAIN} — must be in the container env (not only
     # compose --env-file interpolation) or Caddy falls back to *.verris.local.
     environment:
@@ -362,14 +610,99 @@ services:
       CADDY_API_DOMAIN: ${CADDY_API_DOMAIN:-api.verris.local}
       CADDY_STATUS_DOMAIN: ${CADDY_STATUS_DOMAIN:-status.verris.local}
       CADDY_GRAFANA_DOMAIN: ${CADDY_GRAFANA_DOMAIN:-grafana.verris.local}
+      CADDY_GLITCHTIP_DOMAIN: ${CADDY_GLITCHTIP_DOMAIN:-glitchtip.verris.local}
+      CADDY_MAIL_DOMAIN: ${CADDY_MAIL_DOMAIN:-mail.verris.local}
+      CADDY_KB_DOMAIN: ${CADDY_KB_DOMAIN:-pomoc.verris.local}
+      CADDY_WWW_DOMAIN: ${CADDY_WWW_DOMAIN:-verris.local}
+      CADDY_WWW_REDIRECT_DOMAIN: ${CADDY_WWW_REDIRECT_DOMAIN:-www.verris.local}
+      # ETAP 8: po uruchomieniu VPN ustaw np. "10.88.0.0/24" — panele staff/admin
+      # przestaną odpowiadać spoza tunelu (puste = brak restrykcji).
+      CADDY_INTERNAL_ALLOW_CIDR: ${CADDY_INTERNAL_ALLOW_CIDR:-0.0.0.0/0 ::/0}
     ports:
       - '80:80'
       - '443:443'
     volumes:
-      - ./ops/Caddyfile:/etc/caddy/Caddyfile:ro
+      # Montowanie KATALOGOWE (nie per-plik): bind-mount pojedynczego pliku
+      # trzyma się inode'a, więc `git checkout` (podmiana pliku) zostawiał
+      # w kontenerze starą wersję i `caddy reload` czytał nieaktualny config.
+      # Katalog nie ma tego problemu — po zmianie Caddyfile wystarczy reload.
+      - ./ops/caddy:/etc/caddy:ro
       - caddy_data:/data
       - caddy_config:/config
     networks: [verris_public]
+
+  # ---------------------------------------------------------------------------
+  # GlitchTip — self-hosted, Sentry-compatible monitoring błędów runtime
+  # (CYBER-9 / OBS-1). Dane błędów zostają U NAS (RODO). Opcjonalny — startuje
+  # tylko z profilem: `docker compose --profile glitchtip up -d`.
+  # Reużywa istniejącego Postgresa (osobna baza `glitchtip`) i Redisa (DB 1).
+  # Wystawiony przez Caddy na glitchtip.verris.pl za forward-auth (admin/staff).
+  # ---------------------------------------------------------------------------
+  glitchtip-migrate:
+    image: glitchtip/glitchtip:v4.1.4
+    profiles: ['glitchtip']
+    restart: 'no'
+    logging: *default-logging
+    depends_on:
+      postgres: { condition: service_healthy }
+    environment: &glitchtip_env
+      DATABASE_URL: postgres://${POSTGRES_USER:-verris}:${POSTGRES_PASSWORD}@postgres:5432/glitchtip
+      # UWAGA: celowo `:-` (nie `:?`) — compose interpoluje zmienne CAŁEGO pliku
+      # na etapie parsowania, także dla usług wyłączonych profilem, więc twardy
+      # wymóg blokowałby każdy deploy. Przy włączaniu profilu `glitchtip` ustaw
+      # GLITCHTIP_SECRET_KEY w .env.prod (min 50 losowych znaków) — entrypoint
+      # niżej odmówi startu z pustym kluczem.
+      SECRET_KEY: ${GLITCHTIP_SECRET_KEY:-}
+      REDIS_URL: redis://redis:6379/1
+      PORT: '8080'
+      GLITCHTIP_DOMAIN: https://${CADDY_GLITCHTIP_DOMAIN:-glitchtip.verris.local}
+      DEFAULT_FROM_EMAIL: ${GLITCHTIP_FROM_EMAIL:-glitchtip@verris.pl}
+      EMAIL_URL: ${GLITCHTIP_EMAIL_URL:-consolemail://}
+      ENABLE_OPEN_USER_REGISTRATION: 'false'
+      CELERY_WORKER_AUTOSCALE: '1,3'
+    # Tworzy bazę (idempotentnie) i wykonuje migracje Django.
+    entrypoint: ['/bin/sh', '-c']
+    command:
+      - >
+        test -n "$${SECRET_KEY}" || { echo "GLITCHTIP_SECRET_KEY wymagany (min 50 losowych znaków) — ustaw w .env.prod"; exit 1; };
+        PGPASSWORD="$${POSTGRES_PASSWORD}" psql -h postgres -U "$${POSTGRES_USER:-verris}" -tc
+        "SELECT 1 FROM pg_database WHERE datname='glitchtip'" | grep -q 1 ||
+        PGPASSWORD="$${POSTGRES_PASSWORD}" psql -h postgres -U "$${POSTGRES_USER:-verris}" -c
+        "CREATE DATABASE glitchtip OWNER \"$${POSTGRES_USER:-verris}\"";
+        ./manage.py migrate
+    networks: [verris_internal]
+
+  glitchtip-web:
+    image: glitchtip/glitchtip:v4.1.4
+    profiles: ['glitchtip']
+    restart: always
+    logging: *default-logging
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      glitchtip-migrate: { condition: service_completed_successfully }
+    environment: *glitchtip_env
+    expose: ['8080']
+    networks: [verris_internal, verris_public]
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:8080/_health/ || exit 1']
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+
+  glitchtip-worker:
+    image: glitchtip/glitchtip:v4.1.4
+    profiles: ['glitchtip']
+    restart: always
+    logging: *default-logging
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      glitchtip-migrate: { condition: service_completed_successfully }
+    environment: *glitchtip_env
+    command: ['./bin/run-celery-with-beat.sh']
+    networks: [verris_internal]
 
 volumes:
   postgres_data:
@@ -378,6 +711,7 @@ volumes:
   caddy_data:
   caddy_config:
   prometheus_data:
+  loki_data:
   grafana_data:
 
 networks:

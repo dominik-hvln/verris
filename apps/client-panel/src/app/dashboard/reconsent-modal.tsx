@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { AlertTriangle, FileText, Loader2 } from "lucide-react";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import {
   acceptCurrentConsents,
   fetchReConsentStatus,
@@ -39,6 +40,8 @@ export function ReConsentModal() {
   const [accepted, setAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const open = !!docs && docs.length > 0;
+  const trapRef = useFocusTrap<HTMLDivElement>(open); // brak onEscape — modal blokujący
 
   useEffect(() => {
     let cancelled = false;
@@ -77,7 +80,12 @@ export function ReConsentModal() {
       aria-labelledby="reconsent-title"
       className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md p-4"
     >
-      <div className="relative w-full max-w-xl rounded-2xl border border-amber-500/30 bg-neutral-950 p-8 shadow-2xl">
+      {/* Modal blokujący (wymagana akceptacja) — focus trap bez onEscape. */}
+      <div
+        ref={trapRef}
+        tabIndex={-1}
+        className="relative w-full max-w-xl rounded-2xl border border-amber-500/30 bg-neutral-950 p-8 shadow-2xl outline-none"
+      >
         <div className="flex items-start gap-4">
           <div className="rounded-xl bg-amber-500/10 p-3">
             <AlertTriangle className="h-6 w-6 text-amber-400" />
@@ -125,7 +133,10 @@ export function ReConsentModal() {
         </ul>
 
         {error && (
-          <div className="mt-4 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-sm text-rose-300">
+          <div
+            role="alert"
+            className="mt-4 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-sm text-rose-300"
+          >
             {error}
           </div>
         )}

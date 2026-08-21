@@ -19,6 +19,7 @@ export function NewPlanForm() {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [globalError, setGlobalError] = useState<string | null>(null);
+  const [stripeManual, setStripeManual] = useState(false);
   const [monthlyCheck, setMonthlyCheck] = useState<{ status: string; message?: string }>({ status: "idle" });
   const [yearlyCheck, setYearlyCheck] = useState<{ status: string; message?: string }>({ status: "idle" });
 
@@ -38,6 +39,9 @@ export function NewPlanForm() {
     priceYearly: "",
     currency: "PLN",
     sortOrder: "0",
+    trialDays: "0",
+    supportSlaHours: "0",
+    productKind: "HOSTING" as "HOSTING" | "EMAIL",
     stripePriceMonthlyId: "",
     stripePriceYearlyId: "",
     isPublic: true,
@@ -97,11 +101,19 @@ export function NewPlanForm() {
         isPublic: form.isPublic,
         isActive: form.isActive,
         sortOrder: Number.parseInt(form.sortOrder, 10) || 0,
-        stripePriceMonthlyId: form.stripePriceMonthlyId.trim() || undefined,
-        stripePriceYearlyId: form.stripePriceYearlyId.trim() || undefined,
+        trialDays: Number.parseInt(form.trialDays, 10) || 0,
+        supportSlaHours: Number.parseInt(form.supportSlaHours, 10) || 0,
+        productKind: form.productKind,
+        ...(stripeManual
+          ? {
+              stripePriceMonthlyId: form.stripePriceMonthlyId.trim() || undefined,
+              stripePriceYearlyId: form.stripePriceYearlyId.trim() || undefined,
+            }
+          : {}),
       });
       if (res.ok) {
-        router.push("/plans");
+        const id = (res.data as { id?: string } | undefined)?.id;
+        router.push(id ? `/plans/${id}` : "/plans");
         router.refresh();
       } else {
         setGlobalError(res.error);
@@ -154,6 +166,16 @@ export function NewPlanForm() {
       </Card>
 
       <Card title="Ceny">
+        <Field label="Rodzaj produktu">
+          <select
+            value={form.productKind}
+            onChange={(e) => setField("productKind", e.target.value as "HOSTING" | "EMAIL")}
+            className="form-input"
+          >
+            <option value="HOSTING">Hosting (web)</option>
+            <option value="EMAIL">Poczta e-mail</option>
+          </select>
+        </Field>
         <Field label="Waluta">
           <select
             value={form.currency}
@@ -169,21 +191,36 @@ export function NewPlanForm() {
         <NumField label={`Rocznie (${form.currency})`} value={form.priceYearly} onChange={(v) => setField("priceYearly", v)} step="0.01" min={0.01} hint="min. 6× ceny miesięcznej" />
       </Card>
 
-      <Card title="Stripe Subscription Prices (opcjonalnie)">
-        <PriceIdField
-          label="Stripe Price ID — miesięcznie"
-          value={form.stripePriceMonthlyId}
-          onChange={(v) => setField("stripePriceMonthlyId", v)}
-          onValidate={() => validateStripe("month")}
-          feedback={monthlyCheck}
-        />
-        <PriceIdField
-          label="Stripe Price ID — rocznie"
-          value={form.stripePriceYearlyId}
-          onChange={(v) => setField("stripePriceYearlyId", v)}
-          onValidate={() => validateStripe("year")}
-          feedback={yearlyCheck}
-        />
+      <Card title="Stripe (subskrypcje kartą)">
+        <p className="md:col-span-2 text-xs text-muted-foreground -mt-2">
+          Po utworzeniu planu API automatycznie zakłada Product i recurring Prices
+          w Stripe, jeśli skonfigurowany jest klucz testowy/produkcyjny.
+        </p>
+        <div className="md:col-span-2">
+          <ToggleRow
+            checked={stripeManual}
+            onChange={setStripeManual}
+            description="Ręczne Price ID z Dashboard — wyłącza auto-sync przy tworzeniu."
+          />
+        </div>
+        {stripeManual ? (
+          <>
+            <PriceIdField
+              label="Stripe Price ID — miesięcznie"
+              value={form.stripePriceMonthlyId}
+              onChange={(v) => setField("stripePriceMonthlyId", v)}
+              onValidate={() => validateStripe("month")}
+              feedback={monthlyCheck}
+            />
+            <PriceIdField
+              label="Stripe Price ID — rocznie"
+              value={form.stripePriceYearlyId}
+              onChange={(v) => setField("stripePriceYearlyId", v)}
+              onValidate={() => validateStripe("year")}
+              feedback={yearlyCheck}
+            />
+          </>
+        ) : null}
       </Card>
 
       <Card title="Sprzedaż">
@@ -194,6 +231,8 @@ export function NewPlanForm() {
           <ToggleRow checked={form.isPublic} onChange={(v) => setField("isPublic", v)} description="Pokaż w cenniku panelu klienta." />
         </Field>
         <NumField label="Sort order" value={form.sortOrder} onChange={(v) => setField("sortOrder", v)} />
+        <NumField label="Trial (dni, 0=brak)" value={form.trialDays} onChange={(v) => setField("trialDays", v)} />
+        <NumField label="SLA wsparcia (h, 0=brak)" value={form.supportSlaHours} onChange={(v) => setField("supportSlaHours", v)} />
       </Card>
 
       <div className="pt-4 border-t border-white/5 flex justify-end">

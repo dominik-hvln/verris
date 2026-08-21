@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Verris — Kalkulator kosztów</title>
+<style>
+:root{--bg:#050505;--card:#121214;--card2:#1a1a1e;--line:#2a2a30;--mint:#34e5a0;--mid:#1fa871;--tip:#5bffc0;--mut:#a6a6b0;--dim:#70707a;--ink:#04100b}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Arial,sans-serif;-webkit-font-smoothing:antialiased;padding:28px 18px}
+.wrap{max-width:980px;margin:0 auto}
+.head{display:flex;align-items:center;gap:.6em;margin-bottom:6px}
+.logo{width:34px;height:34px;border-radius:9px;background:var(--mint);color:var(--ink);font-weight:900;display:flex;align-items:center;justify-content:center;font-size:20px}
+h1{font-size:clamp(22px,3vw,30px);font-weight:800}
+.sub{color:var(--mut);font-size:14px;margin-bottom:22px}
+.grid{display:grid;grid-template-columns:1.1fr .9fr;gap:18px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:20px}
+.lbl{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--mut);margin-bottom:8px;font-weight:700}
+.plans{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:18px}
+.plan{cursor:pointer;border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--card2);transition:.2s}
+.plan.sel{border-color:var(--mint);box-shadow:0 0 0 1px var(--mint) inset}
+.plan h3{font-size:15px;margin-bottom:4px}
+.plan .p{color:var(--mint);font-weight:800;font-size:18px}
+.plan .r{color:var(--dim);font-size:11px;margin-top:4px;line-height:1.3}
+input[type=range]{width:100%;accent-color:var(--mint)}
+.rangerow{display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px}
+.rangerow b{color:var(--tip)}
+.addons{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+.addon{display:flex;align-items:center;justify-content:space-between;font-size:14px;color:var(--mut)}
+.addon label{display:flex;align-items:center;gap:8px;color:#fff;cursor:pointer}
+.addon input{width:18px;height:18px;accent-color:var(--mint)}
+.big{color:var(--mint);font-size:clamp(34px,5vw,52px);font-weight:900;line-height:1}
+.row{display:flex;justify-content:space-between;font-size:14px;padding:8px 0;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:none}
+.row .v{font-weight:700}
+.cap{margin-top:10px;border:1px solid var(--mid);background:rgba(52,229,160,.06);border-radius:12px;padding:12px;font-size:13px;color:var(--tip)}
+.cmp{margin-top:14px;border-radius:12px;border:1px solid var(--line);background:var(--card2);padding:14px}
+.cmp h4{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--mut);margin-bottom:10px}
+.bars{display:flex;gap:14px;align-items:flex-end;height:120px}
+.bar{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
+.bar .col{width:60%;border-radius:8px 8px 0 0;transition:height .6s ease}
+.bar .v{font-weight:800;font-size:14px;margin-bottom:6px}
+.bar .x{color:var(--mut);font-size:11px;margin-top:6px;text-align:center}
+.save{margin-top:12px;color:var(--mint);font-weight:700;font-size:14px}
+.note{color:var(--dim);font-size:11px;margin-top:16px;line-height:1.5}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head"><span class="logo">V</span><h1>Kalkulator kosztów Verris</h1></div>
+  <p class="sub">Płać za to, co realnie zużywasz — z bezpiecznikiem kosztów. Bez skoku ceny przy odnowieniu.</p>
+
+  <div class="grid">
+    <div class="card">
+      <div class="lbl">1. Plan bazowy</div>
+      <div class="plans" id="plans"></div>
+
+      <div class="lbl">2. Ruch / zmienność (nadwyżki autoskalowania)</div>
+      <div class="rangerow"><span id="loadLabel">Zmienny</span><b id="loadPct">+15%</b></div>
+      <input type="range" id="load" min="0" max="3" step="1" value="1"/>
+
+      <div class="lbl" style="margin-top:18px">3. Dodatki</div>
+      <div class="addons" id="addons"></div>
+
+      <div class="lbl" style="margin-top:18px">4. Bezpiecznik kosztów (maks./mies.)</div>
+      <div class="rangerow"><span>Nie zapłacisz więcej niż</span><b id="capLabel">—</b></div>
+      <input type="range" id="cap" min="0" max="100" step="5" value="60"/>
+    </div>
+
+    <div class="card">
+      <div class="lbl">Szacowany koszt / miesiąc</div>
+      <div class="big"><span id="total">0</span> zł</div>
+      <div style="margin-top:14px">
+        <div class="row"><span>Plan bazowy</span><span class="v" id="rBase">0 zł</span></div>
+        <div class="row"><span>Nadwyżki autoskalowania</span><span class="v" id="rOver">0 zł</span></div>
+        <div class="row"><span>Dodatki</span><span class="v" id="rAdd">0 zł</span></div>
+      </div>
+      <div class="cap" id="capInfo"></div>
+
+      <div class="cmp">
+        <h4>Koszt w 2. roku — Verris vs typowa konkurencja</h4>
+        <div class="bars">
+          <div class="bar"><div class="v" id="vVal" style="color:var(--mint)">0 zł</div><div class="col" id="vBar" style="background:linear-gradient(180deg,var(--tip),var(--mid))"></div><div class="x">Verris<br>(płacisz za zużycie)</div></div>
+          <div class="bar"><div class="v" id="cVal" style="color:#f5a3a3">0 zł</div><div class="col" id="cBar" style="background:linear-gradient(180deg,#7a2e2e,#5a2020)"></div><div class="x">Konkurencja<br>(odnowienie ~2×)</div></div>
+        </div>
+        <div class="save" id="save"></div>
+      </div>
+    </div>
+  </div>
+
+  <p class="note" id="note"></p>
+</div>
+
+<script>
+/* ===== PRZYKŁADOWE STAWKI — podstaw realny cennik Verris ===== */
+const PLANS=[
+  {id:'starter',name:'Starter',base:19,res:'1 vCPU · 1 GB RAM · 10 GB'},
+  {id:'standard',name:'Standard',base:39,res:'2 vCPU · 2 GB RAM · 25 GB'},
+  {id:'pro',name:'Pro',base:79,res:'4 vCPU · 4 GB RAM · 60 GB'},
+];
+const LOADS=[
+  {label:'Spokojny',pct:0},
+  {label:'Zmienny',pct:0.15},
+  {label:'Wysoki',pct:0.40},
+  {label:'Szczyty / wiral',pct:0.90},
+];
+const ADDONS=[
+  {id:'mail',name:'Poczta Pro',price:12},
+  {id:'backup',name:'Backupy premium (dłuższa retencja)',price:9},
+  {id:'mon',name:'Monitoring Pro',price:6},
+];
+const COMPETITOR_RENEWAL_MULT=2.0; /* typowy skok ceny przy odnowieniu */
+/* ============================================================ */
+
+let sel='standard', load=1;
+const addonState={};
+ADDONS.forEach(a=>addonState[a.id]=false);
+
+const $=id=>document.getElementById(id);
+const fmt=n=>Math.round(n).toLocaleString('pl-PL');
+
+function renderPlans(){
+  $('plans').innerHTML=PLANS.map(p=>`<div class="plan ${p.id===sel?'sel':''}" data-id="${p.id}"><h3>${p.name}</h3><div class="p">${p.base} zł</div><div class="r">${p.res}</div></div>`).join('');
+  document.querySelectorAll('.plan').forEach(el=>el.onclick=()=>{sel=el.dataset.id;renderPlans();calc();});
+}
+function renderAddons(){
+  $('addons').innerHTML=ADDONS.map(a=>`<div class="addon"><label><input type="checkbox" data-id="${a.id}" ${addonState[a.id]?'checked':''}/> ${a.name}</label><span>+${a.price} zł</span></div>`).join('');
+  document.querySelectorAll('.addon input').forEach(el=>el.onchange=()=>{addonState[el.dataset.id]=el.checked;calc();});
+}
+function calc(){
+  const plan=PLANS.find(p=>p.id===sel);
+  const l=LOADS[load];
+  $('loadLabel').textContent=l.label; $('loadPct').textContent='+'+Math.round(l.pct*100)+'%';
+  const over=plan.base*l.pct;
+  const add=ADDONS.reduce((s,a)=>s+(addonState[a.id]?a.price:0),0);
+  let total=plan.base+over+add;
+
+  // bezpiecznik kosztów: slider 0..100 zł powyżej bazy+dodatki (cap na nadwyżki)
+  const capExtra=Number($('cap').value);
+  $('capLabel').textContent=fmt(plan.base+add+capExtra)+' zł';
+  const capTotal=plan.base+add+capExtra;
+  const capped=total>capTotal;
+  if(capped) total=capTotal;
+
+  $('rBase').textContent=fmt(plan.base)+' zł';
+  $('rOver').textContent=fmt(capped?Math.max(0,capTotal-plan.base-add):over)+' zł';
+  $('rAdd').textContent=fmt(add)+' zł';
+  $('total').textContent=fmt(total);
+  $('capInfo').textContent=capped
+    ? `Bezpiecznik zadziałał: mimo wyższego ruchu nie zapłacisz więcej niż ${fmt(capTotal)} zł/mies.`
+    : `Masz ustawiony limit ${fmt(capTotal)} zł/mies. — autoskalowanie nigdy go nie przekroczy.`;
+
+  // porównanie 2. rok (12 mies.)
+  const verrisYear=total*12;
+  const compYear=(plan.base*COMPETITOR_RENEWAL_MULT+add)*12; // konkurencja: skok ceny przy odnowieniu
+  const mx=Math.max(verrisYear,compYear)||1;
+  $('vVal').textContent=fmt(verrisYear)+' zł';
+  $('cVal').textContent=fmt(compYear)+' zł';
+  $('vBar').style.height=(verrisYear/mx*100)+'%';
+  $('cBar').style.height=(compYear/mx*100)+'%';
+  const save=compYear-verrisYear;
+  $('save').textContent=save>0?`Oszczędzasz ~${fmt(save)} zł w 2. roku (brak pułapki cenowej).`:'';
+}
+$('load').oninput=e=>{load=Number(e.target.value);calc();};
+$('cap').oninput=calc;
+$('note').textContent='Stawki przykładowe — podstaw realny cennik Verris (stałe PLANS/ADDONS w pliku). Model: koszt = plan bazowy + nadwyżki autoskalowania (godzinowo, z bezpiecznikiem) + dodatki. Porównanie z konkurencją zakłada typowy skok ceny ~2× przy odnowieniu i ma charakter poglądowy.';
+renderPlans();renderAddons();calc();
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+# OPS-3: default ops e-mail (decyzja D-5). Requires GF_SMTP_* on Grafana service.
+apiVersion: 1
+contactPoints:
+  - orgId: 1
+    name: verris-ops-email
+    receivers:
+      - uid: verris-ops-email
+        type: email
+        settings:
+          addresses: dominik@hvln.pl
+          singleEmail: false
+        disableResolveMessage: false

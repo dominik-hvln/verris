@@ -97,6 +97,19 @@ export class UsersAdminService {
       }),
     ]);
 
+    // Last successful login per user on this page (single grouped query — no N+1).
+    const lastLoginByUser = new Map<string, Date>();
+    if (rows.length > 0) {
+      const grouped = await this.prisma.loginEvent.groupBy({
+        by: ['userId'],
+        where: { userId: { in: rows.map((u) => u.id) } },
+        _max: { createdAt: true },
+      });
+      for (const g of grouped) {
+        if (g._max.createdAt) lastLoginByUser.set(g.userId, g._max.createdAt);
+      }
+    }
+
     return {
       total,
       limit,
@@ -111,7 +124,7 @@ export class UsersAdminService {
         createdAt: u.createdAt.toISOString(),
         isTwoFactorEnabled: u.isTwoFactorEnabled,
         subscriptionsCount: u._count.subscriptions,
-        lastLoginAt: null, // Reserved for future telemetry
+        lastLoginAt: lastLoginByUser.get(u.id)?.toISOString() ?? null,
         loginBlocked: u.loginBlocked,
         canAccessGrafana: u.canAccessGrafana,
       })),
@@ -240,7 +253,7 @@ export class UsersAdminService {
       }),
       this.prisma.paymentMethod.findMany({
         where: { userId: targetUserId },
-        orderBy: { isDefault: 'desc', createdAt: 'desc' },
+        orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
         take: 10,
         select: {
           id: true,
@@ -315,6 +328,7 @@ export class UsersAdminService {
       subscriptions: subscriptions.map((s) => ({
         id: s.id,
         status: s.status,
+        serviceTag: s.serviceTag ?? s.account?.daUsername ?? null,
         interval: s.interval,
         paymentSource: s.paymentSource,
         priceAmount: s.priceAmount.toString(),
@@ -639,7 +653,9 @@ export class UsersAdminService {
         ipAddress: ctx.ipAddress ?? null,
         panelUrl,
       });
-      void this.mailer.send(message).catch((err) => {
+      void this.mailer
+        .send({ ...message, category: 'TRANSACTIONAL', fromRole: 'SECURITY' })
+        .catch((err) => {
         this.logger.warn(`password reset notify mail failed: ${(err as Error).message}`);
       });
     }

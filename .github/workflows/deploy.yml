@@ -1,0 +1,212 @@
+name: Deploy (control-plane)
+
+# DEPLOY-1 — model „jak Vercel/Render": push na main → build obrazów w Actions →
+# push do GHCR → serwer control-plane POBIERA gotowe obrazy (nie buduje u siebie),
+# faza release `prisma migrate deploy`, rolling restart, health-gate + rollback.
+
+# X-13 — jedna gałąź wdrożeniowa.
+#
+# Do 2026-08-21 wdrożenie wyzwalały trzy gałęzie: `main`, `master`
+# i `live-release-readiness`. Realne wdrożenia szły z tej ostatniej, `master`
+# w repozytorium nie istniał, a `main` stał od czerwca i nie odpowiadał temu,
+# co działa na serwerze. Trzy wyzwalacze to trzy odpowiedzi na pytanie „co jest
+# na produkcji" — czyli brak odpowiedzi.
+#
+# Zostaje `main`. Ochrona gałęzi (X-02) i bramka testowa poniżej pilnują
+# dokładnie tej jednej gałęzi, a `main` znowu znaczy „stan produktu".
+# `workflow_dispatch` zostaje jako ręczne wyzwolenie na wypadek incydentu.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_TAG: ${{ github.sha }}
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 0) X-03 — BRAMKA. Do 2026-08-21 `deploy.yml` i `ci.yml` startowały równolegle
+  # i nic ich nie wiązało: push na main budował obrazy i wdrażał je nawet wtedy,
+  # gdy CI się wywracało. `prod-deploy-ghcr.sh` też nie uruchamia testów — i słusznie,
+  # serwer produkcyjny nie jest miejscem na testy. Bramka należy tutaj.
+  #
+  # Świadomie duplikujemy typecheck i testy zamiast czekać na przebieg `ci.yml`:
+  # GitHub Actions nie potrafi uzależnić jednego workflow od drugiego w sposób,
+  # który nie gubi się przy równoległych pushach. Kilka minut dodatkowego czasu
+  # jest tańsze niż jedno wdrożenie zepsutego kodu.
+  # ---------------------------------------------------------------------------
+  test-gate:
+    name: Bramka — typecheck + testy
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.5.0
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @verris/database db:generate
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: API unit tests
+        run: pnpm --filter api test
+
+  # ---------------------------------------------------------------------------
+  # 1) Build + push 5 obrazów (api + 4 panele) do GHCR, tag = git SHA + latest.
+  # ---------------------------------------------------------------------------
+  build-push:
+    name: Build & push (${{ matrix.image }})
+    needs: test-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: verris-api
+            dockerfile: Dockerfile.api
+            build_args: ""
+          # UWAGA: w Next.js zmienne NEXT_PUBLIC_* są WPALANE do bundla przeglądarki
+          # na etapie `next build`. Muszą tu być jako build-arg (nie tylko runtime
+          # env), inaczej front (np. passkey) uderza w pusty/localhost adres API.
+          # Odwzorowanie build-argów z docker-compose.prod.yml. Wartości publiczne
+          # (domeny) — z repo Variables, z fallbackiem na produkcję verris.pl.
+          - image: verris-client-panel
+            dockerfile: Dockerfile.panel
+            build_args: |
+              APP_NAME=client-panel
+              APP_PORT=3001
+              API_URL=http://api:3000
+              CLIENT_PANEL_URL=${{ vars.CLIENT_PANEL_URL || 'https://panel.verris.pl' }}
+              STAFF_PANEL_URL=${{ vars.STAFF_PANEL_URL || 'https://staff.verris.pl' }}
+              ADMIN_PANEL_URL=${{ vars.ADMIN_PANEL_URL || 'https://admin.verris.pl' }}
+              NEXT_PUBLIC_API_URL=${{ vars.PUBLIC_API_URL || 'https://api.verris.pl' }}
+              NEXT_PUBLIC_STATUS_PAGE_URL=${{ vars.PUBLIC_STATUS_URL || 'https://status.verris.pl' }}
+              NEXT_PUBLIC_CAPTCHA_PROVIDER=${{ vars.CAPTCHA_PROVIDER || 'turnstile' }}
+              NEXT_PUBLIC_CAPTCHA_SITE_KEY=${{ vars.CAPTCHA_SITE_KEY }}
+              NEXT_PUBLIC_GTM_ID=${{ vars.GTM_ID }}
+              NEXT_PUBLIC_META_PIXEL_ID=${{ vars.META_PIXEL_ID }}
+          - image: verris-staff-panel
+            dockerfile: Dockerfile.panel
+            build_args: |
+              APP_NAME=staff-panel
+              APP_PORT=3002
+              API_URL=http://api:3000
+              CLIENT_PANEL_URL=${{ vars.CLIENT_PANEL_URL || 'https://panel.verris.pl' }}
+              STAFF_PANEL_URL=${{ vars.STAFF_PANEL_URL || 'https://staff.verris.pl' }}
+              ADMIN_PANEL_URL=${{ vars.ADMIN_PANEL_URL || 'https://admin.verris.pl' }}
+              NEXT_PUBLIC_API_URL=${{ vars.PUBLIC_API_URL || 'https://api.verris.pl' }}
+              NEXT_PUBLIC_GRAFANA_URL=${{ vars.PUBLIC_GRAFANA_URL || 'https://grafana.verris.pl' }}
+              NEXT_PUBLIC_CAPTCHA_PROVIDER=${{ vars.CAPTCHA_PROVIDER || 'turnstile' }}
+              NEXT_PUBLIC_CAPTCHA_SITE_KEY=${{ vars.CAPTCHA_SITE_KEY }}
+          - image: verris-admin-panel
+            dockerfile: Dockerfile.panel
+            build_args: |
+              APP_NAME=admin-panel
+              APP_PORT=3003
+              API_URL=http://api:3000
+              CLIENT_PANEL_URL=${{ vars.CLIENT_PANEL_URL || 'https://panel.verris.pl' }}
+              STAFF_PANEL_URL=${{ vars.STAFF_PANEL_URL || 'https://staff.verris.pl' }}
+              ADMIN_PANEL_URL=${{ vars.ADMIN_PANEL_URL || 'https://admin.verris.pl' }}
+              NEXT_PUBLIC_API_URL=${{ vars.PUBLIC_API_URL || 'https://api.verris.pl' }}
+              NEXT_PUBLIC_STAFF_PANEL_URL=${{ vars.STAFF_PANEL_URL || 'https://staff.verris.pl' }}
+              NEXT_PUBLIC_GRAFANA_URL=${{ vars.PUBLIC_GRAFANA_URL || 'https://grafana.verris.pl' }}
+              NEXT_PUBLIC_CAPTCHA_PROVIDER=${{ vars.CAPTCHA_PROVIDER || 'turnstile' }}
+              NEXT_PUBLIC_CAPTCHA_SITE_KEY=${{ vars.CAPTCHA_SITE_KEY }}
+          - image: verris-status-page
+            dockerfile: Dockerfile.panel
+            build_args: |
+              APP_NAME=status-page
+              APP_PORT=3004
+              NEXT_PUBLIC_API_URL=${{ vars.PUBLIC_API_URL || 'https://api.verris.pl' }}
+          # Strona marketingowa verris.pl (Next.js + Payload CMS, apps/www).
+          - image: verris-www
+            dockerfile: Dockerfile.panel
+            build_args: |
+              APP_NAME=www
+              APP_PORT=3005
+              NEXT_PUBLIC_GTM_ID=${{ vars.GTM_ID }}
+              NEXT_PUBLIC_META_PIXEL_ID=${{ vars.META_PIXEL_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set lowercase owner
+        id: owner
+        run: echo "prefix=${REGISTRY}/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          build-args: ${{ matrix.build_args }}
+          tags: |
+            ${{ steps.owner.outputs.prefix }}/${{ matrix.image }}:${{ env.IMAGE_TAG }}
+            ${{ steps.owner.outputs.prefix }}/${{ matrix.image }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ---------------------------------------------------------------------------
+  # 2) Deploy na serwer control-plane (SSH): pull obrazów → migrate deploy →
+  #    rolling up --no-build → health-gate /healthz → rollback przy porażce.
+  # ---------------------------------------------------------------------------
+  deploy:
+    name: Deploy to control-plane
+    needs: build-push
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.DEPLOY_SSH_HOST }}
+          username: ${{ secrets.DEPLOY_SSH_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          port: ${{ secrets.DEPLOY_SSH_PORT || 22 }}
+          command_timeout: 20m
+          envs: IMAGE_TAG
+          script: |
+            set -Eeuo pipefail
+            cd "${{ secrets.DEPLOY_PATH }}"
+            export IMAGE_TAG="${{ github.sha }}"
+            export REGISTRY_PREFIX="ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+            # Zaktualizuj repo do wdrażanego commitu ZANIM uruchomimy skrypt
+            # (skrypt jest częścią tego commitu — inaczej „No such file").
+            git config --global --add safe.directory "$PWD" || true
+            git fetch --depth 1 origin "$IMAGE_TAG" || git fetch origin
+            git checkout -f "$IMAGE_TAG"
+            echo "${{ secrets.GHCR_PULL_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+            REGISTRY_PREFIX="$REGISTRY_PREFIX" IMAGE_TAG="$IMAGE_TAG" \
+              bash ops/scripts/prod-deploy-ghcr.sh

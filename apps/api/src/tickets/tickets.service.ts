@@ -9,7 +9,9 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MailerService } from '../mail/mailer.service';
 import {
   newTicketCreatedTemplate,
+  ticketReplyNotificationTemplate,
   ticketStatusChangedTemplate,
+  ticketStaffAssignedTemplate,
 } from '../mail/templates/ticket-notifications';
 import {
   assertAllowedMime,
@@ -24,6 +26,7 @@ import { ObjectStorageService } from '../storage/object-storage.service';
 import { ObjectBuckets } from '../storage/object-storage.types';
 import { AuditService } from '../common/audit/audit.service';
 import { TicketOpsActions } from '../common/audit/audit.actions';
+import { NotificationsService } from '../notifications/notifications.service';
 import type { Readable } from 'stream';
 
 @Injectable()
@@ -34,7 +37,39 @@ export class TicketsService {
     private readonly config: ConfigService,
     private readonly storage: ObjectStorageService,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
   ) {}
+
+  /** SUP-V2 — zapis zdarzenia na osi czasu ticketu (best-effort, append-only). */
+  private async logEvent(
+    ticketId: string,
+    type: string,
+    actorId?: string | null,
+    meta?: Record<string, string | number | boolean | null>,
+  ): Promise<void> {
+    try {
+      await this.prisma.ticketEvent.create({
+        data: { ticketId, type, actorId: actorId ?? null, meta: meta ?? undefined },
+      });
+    } catch {
+      // oś czasu jest pomocnicza — nie wywracamy operacji biznesowej
+    }
+  }
+
+  /** SUP-V2 — powiadomienie in-app (dzwonek) dla pracownika. */
+  private async notifyStaff(
+    staffUserId: string,
+    n: { title: string; body: string; link?: string | null; severity?: 'info' | 'warning' | 'critical' },
+  ): Promise<void> {
+    await this.notifications.create({
+      userId: staffUserId,
+      category: 'SUPPORT',
+      severity: n.severity ?? 'info',
+      title: n.title,
+      body: n.body,
+      link: n.link ?? null,
+    });
+  }
 
   /**
    * Helper: Znajduje "najluźniejszego" pracownika z rolą STAFF lub ADMIN.
@@ -71,16 +106,34 @@ export class TicketsService {
   async create(userId: string, dto: CreateTicketDto) {
     const assignedToId = await this.getLeastBusyAgentId();
 
+    // P-8 — active priority-support add-on bumps the ticket to at least HIGH.
+    const buyer = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { prioritySupport: true, prioritySupportUntil: true },
+    });
+    const priorityActive =
+      !!buyer?.prioritySupport &&
+      !!buyer.prioritySupportUntil &&
+      buyer.prioritySupportUntil.getTime() > Date.now();
+    const order = ['LOW', 'NORMAL', 'HIGH', 'URGENT'];
+    let priority = dto.priority || 'NORMAL';
+    if (priorityActive && order.indexOf(priority) < order.indexOf('HIGH')) {
+      priority = 'HIGH';
+    }
+
     const row = await this.prisma.ticket.create({
       data: {
         subject: dto.subject,
         message: dto.message,
-        priority: dto.priority || 'NORMAL',
+        priority,
         department: dto.department || 'TECHNICAL',
+        topic: dto.topic || null,
         userId,
         assignedToId,
-        slaResponseDueAt: computeSlaResponseDueAt(dto.priority || 'NORMAL'),
-        slaResolveDueAt: computeSlaResolveDueAt(dto.priority || 'NORMAL'),
+        lastReplyAt: new Date(),
+        lastReplyIsStaff: false,
+        slaResponseDueAt: computeSlaResponseDueAt(priority),
+        slaResolveDueAt: computeSlaResolveDueAt(priority),
       },
       include: {
         user: { select: { email: true } },
@@ -96,20 +149,33 @@ export class TicketsService {
           subject: `[Verris] Nowe zgłoszenie: ${row.subject}`,
           text: `Przypisano Ci nowe zgłoszenie (#${row.id}).\n\n${row.message}\n\n— Panel: ${clientUrl}/dashboard/support`,
           tag: 'ticket.created',
+          category: 'TRANSACTIONAL',
+          fromRole: 'NOREPLY',
         })
         .catch(() => undefined);
     }
 
     void this.mailer
-      .send(
-        newTicketCreatedTemplate({
+      .send({
+        ...newTicketCreatedTemplate({
           ticketId: row.id,
           subject: row.subject,
           customerEmail: row.user.email,
           panelUrl: clientUrl,
         }),
-      )
+        category: 'TRANSACTIONAL',
+        fromRole: 'SUPPORT',
+      })
       .catch(() => undefined);
+
+    await this.logEvent(row.id, 'TICKET_CREATED', userId);
+    if (row.assignedToId) {
+      await this.notifyStaff(row.assignedToId, {
+        title: 'Nowe zgłoszenie',
+        body: `#${row.id.slice(0, 8)} — ${row.subject}`,
+        link: `/tickets/${row.id}`,
+      });
+    }
 
     return {
       id: row.id,
@@ -183,7 +249,39 @@ export class TicketsService {
     if (!ticket) throw new NotFoundException('Zgłoszenie nie zostało znalezione');
     if (ticket.userId !== userId) throw new ForbiddenException('Brak dostępu');
 
-    return ticket;
+    // SUP-5 — surface the customer's guaranteed first-response time (best plan).
+    const supportSlaHours = await this.getUserSupportSla(userId);
+    return { ...ticket, supportSlaHours };
+  }
+
+  /** SUP-5 — highest support SLA (hours) across the user's active subscriptions. */
+  async getUserSupportSla(userId: string): Promise<number> {
+    const subs = await this.prisma.subscription.findMany({
+      where: { userId, status: { in: ['ACTIVE', 'PROVISIONING', 'PAST_DUE'] } },
+      include: { plan: { select: { supportSlaHours: true } } },
+    });
+    return subs.reduce((max, s) => Math.max(max, s.plan.supportSlaHours ?? 0), 0);
+  }
+
+  /** SUP-4 — customer rates support after the ticket is closed (once). */
+  async submitCsat(ticketId: string, userId: string, rating: number, comment?: string) {
+    const ticket = await this.prisma.ticket.findUnique({ where: { id: ticketId } });
+    if (!ticket) throw new NotFoundException('Zgłoszenie nie zostało znalezione');
+    if (ticket.userId !== userId) throw new ForbiddenException('Brak dostępu');
+    if (ticket.status !== 'CLOSED') {
+      throw new BadRequestException('Ocenić można tylko zamknięte zgłoszenie.');
+    }
+    if (ticket.csatRating != null) {
+      throw new BadRequestException('To zgłoszenie zostało już ocenione.');
+    }
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+      throw new BadRequestException('Ocena musi być liczbą 1-5.');
+    }
+    await this.prisma.ticket.update({
+      where: { id: ticketId },
+      data: { csatRating: rating, csatComment: comment?.slice(0, 2000) ?? null, csatAt: new Date() },
+    });
+    return { ok: true as const };
   }
 
   /**
@@ -205,7 +303,15 @@ export class TicketsService {
       }),
       this.prisma.ticket.update({
         where: { id: ticketId },
-        data: { status: 'OPEN', resolvedAt: null }, // Reopen if they reply
+        data: {
+          status: 'OPEN',
+          resolvedAt: null,
+          waitingSince: null,
+          customerReminderSentAt: null,
+          autoClosedAt: null,
+          lastReplyAt: new Date(),
+          lastReplyIsStaff: false,
+        }, // Reopen if they reply
       }),
     ]);
 
@@ -216,15 +322,18 @@ export class TicketsService {
         assignedTo: { select: { email: true } },
       },
     });
+    if (full) {
+      await this.logEvent(ticketId, 'CUSTOMER_REPLY', full.userId);
+      if (full.assignedToId) {
+        await this.notifyStaff(full.assignedToId, {
+          title: 'Nowa wiadomość od klienta',
+          body: `#${ticketId.slice(0, 8)} — ${full.subject}`,
+          link: `/tickets/${ticketId}`,
+        });
+      }
+    }
     if (full?.assignedTo?.email) {
-      void this.mailer
-        .send({
-          to: full.assignedTo.email,
-          subject: `[Verris] Nowa wiadomość od klienta — #${ticketId}`,
-          text: full.subject + '\n\n' + dto.message,
-          tag: 'ticket.reply.client',
-        })
-        .catch(() => undefined);
+      this.notifyClientReplyToStaff(ticketId, full.subject, dto.message, full.assignedTo.email);
     }
 
     return reply;
@@ -267,6 +376,10 @@ export class TicketsService {
         assignedTo: {
           select: { id: true, firstName: true, lastName: true, email: true },
         },
+        events: {
+          orderBy: { createdAt: 'asc' },
+          select: { id: true, type: true, actorId: true, meta: true, createdAt: true },
+        },
         attachments: {
           orderBy: { createdAt: 'asc' },
           select: {
@@ -302,7 +415,7 @@ export class TicketsService {
     return ticket;
   }
 
-  async adminUpdateTicket(ticketId: string, dto: any) {
+  async adminUpdateTicket(ticketId: string, dto: any, actorUserId?: string) {
     const existing = await this.prisma.ticket.findUnique({
       where: { id: ticketId },
       include: { user: { select: { email: true } } },
@@ -313,10 +426,66 @@ export class TicketsService {
     if (dto.status === 'CLOSED') {
       dataToUpdate.resolvedAt = new Date();
     }
+    // SUP-V2 — wejście/wyjście ze stanu „czeka na klienta" steruje cyklem auto-zamykania.
+    if (dto.status && dto.status !== existing.status) {
+      if (dto.status === 'WAITING_CUSTOMER') {
+        dataToUpdate.waitingSince = new Date();
+        dataToUpdate.customerReminderSentAt = null;
+      } else {
+        dataToUpdate.waitingSince = null;
+        dataToUpdate.customerReminderSentAt = null;
+      }
+      if (dto.status !== 'CLOSED') {
+        dataToUpdate.autoClosedAt = null;
+      }
+    }
     const updated = await this.prisma.ticket.update({
       where: { id: ticketId },
       data: dataToUpdate,
     });
+
+    // SUP-V2 — historia zmiany statusu.
+    if (dto.status && dto.status !== existing.status) {
+      await this.logEvent(ticketId, 'STATUS_CHANGED', actorUserId, {
+        from: existing.status,
+        to: dto.status,
+      });
+    }
+    // SUP-V2 — zmiana przypisania: zdarzenie + powiadomienie nowej osoby (in-app + e-mail).
+    if (
+      Object.prototype.hasOwnProperty.call(dto, 'assignedToId') &&
+      (dto.assignedToId ?? null) !== (existing.assignedToId ?? null)
+    ) {
+      await this.logEvent(ticketId, 'ASSIGNMENT_CHANGED', actorUserId, {
+        from: existing.assignedToId ?? null,
+        to: dto.assignedToId ?? null,
+      });
+      if (dto.assignedToId) {
+        await this.notifyStaff(dto.assignedToId, {
+          title: 'Przypisano Ci zgłoszenie',
+          body: `#${ticketId.slice(0, 8)} — ${updated.subject}`,
+          link: `/tickets/${ticketId}`,
+        });
+        const assignee = await this.prisma.user.findUnique({
+          where: { id: dto.assignedToId },
+          select: { email: true },
+        });
+        if (assignee?.email) {
+          void this.mailer
+            .send({
+              ...ticketStaffAssignedTemplate({
+                to: assignee.email,
+                ticketId,
+                subject: updated.subject,
+                staffPanelUrl: this.staffPanelBaseUrl(),
+              }),
+              category: 'TRANSACTIONAL',
+              fromRole: 'NOREPLY',
+            })
+            .catch(() => undefined);
+        }
+      }
+    }
 
     if (
       dto.status &&
@@ -332,15 +501,17 @@ export class TicketsService {
       const newLabel = statusLabel[dto.status] ?? dto.status;
 
       void this.mailer
-        .send(
-          ticketStatusChangedTemplate({
+        .send({
+          ...ticketStatusChangedTemplate({
             ticketId,
             subject: updated.subject,
             customerEmail: existing.user.email,
             panelUrl: clientUrl,
             newStatus: newLabel,
           }),
-        )
+          category: 'TRANSACTIONAL',
+          fromRole: 'SUPPORT',
+        })
         .catch(() => undefined);
     }
 
@@ -367,6 +538,7 @@ export class TicketsService {
       actorUserId,
       details: { ticketId, reason: reason.trim(), priority: 'URGENT' },
     });
+    await this.logEvent(ticketId, 'ESCALATED', actorUserId, { reason: reason.trim() });
     return ticket;
   }
 
@@ -412,7 +584,14 @@ export class TicketsService {
     const ticket = await this.prisma.ticket.findUnique({ where: { id: ticketId } });
     if (!ticket) throw new NotFoundException('Ticket not found');
 
-    const dataToUpdate: any = { status: 'IN_PROGRESS' };
+    const dataToUpdate: any = {
+      status: 'WAITING_CUSTOMER',
+      waitingSince: new Date(),
+      customerReminderSentAt: null,
+      autoClosedAt: null,
+      lastReplyAt: new Date(),
+      lastReplyIsStaff: true,
+    };
     if (!ticket.firstResponseAt) {
       dataToUpdate.firstResponseAt = new Date(); // Złapanie SLA (TTFR)
     }
@@ -436,15 +615,11 @@ export class TicketsService {
       where: { id: ticketId },
       include: { user: { select: { email: true } } },
     });
+    if (full) {
+      await this.logEvent(ticketId, 'STAFF_REPLY', staffId);
+    }
     if (full?.user?.email) {
-      void this.mailer
-        .send({
-          to: full.user.email,
-          subject: `[Verris] Odpowiedź do zgłoszenia: ${full.subject}`,
-          text: dto.message,
-          tag: 'ticket.reply.staff',
-        })
-        .catch(() => undefined);
+      this.notifyStaffReplyToClient(ticketId, full.subject, dto.message, full.user.email);
     }
 
     return reply;
@@ -467,7 +642,7 @@ export class TicketsService {
    */
   async createWithOptionalFiles(
     userId: string,
-    fields: { subject: string; message: string; priority?: string; department?: string },
+    fields: { subject: string; message: string; priority?: string; department?: string; topic?: string },
     files?: Express.Multer.File[] | null,
   ) {
     const dto: CreateTicketDto = {
@@ -475,6 +650,7 @@ export class TicketsService {
       message: fields.message,
       priority: (fields.priority as CreateTicketDto['priority']) ?? 'NORMAL',
       department: (fields.department as CreateTicketDto['department']) ?? 'TECHNICAL',
+      topic: fields.topic as CreateTicketDto['topic'],
     };
 
     const row = await this.create(userId, dto);
@@ -609,7 +785,15 @@ export class TicketsService {
       }),
       this.prisma.ticket.update({
         where: { id: ticketId },
-        data: { status: 'OPEN', resolvedAt: null },
+        data: {
+          status: 'OPEN',
+          resolvedAt: null,
+          waitingSince: null,
+          customerReminderSentAt: null,
+          autoClosedAt: null,
+          lastReplyAt: new Date(),
+          lastReplyIsStaff: false,
+        },
       }),
     ]);
 
@@ -624,15 +808,18 @@ export class TicketsService {
       where: { id: ticketId },
       include: { user: { select: { email: true } }, assignedTo: { select: { email: true } } },
     });
+    if (full) {
+      await this.logEvent(ticketId, 'CUSTOMER_REPLY', full.userId);
+      if (full.assignedToId) {
+        await this.notifyStaff(full.assignedToId, {
+          title: 'Nowa wiadomość od klienta',
+          body: `#${ticketId.slice(0, 8)} — ${full.subject}`,
+          link: `/tickets/${ticketId}`,
+        });
+      }
+    }
     if (full?.assignedTo?.email) {
-      void this.mailer
-        .send({
-          to: full.assignedTo.email,
-          subject: `[Verris] Nowa wiadomość od klienta — #${ticketId}`,
-          text: full.subject + '\n\n' + dto.message,
-          tag: 'ticket.reply.client',
-        })
-        .catch(() => undefined);
+      this.notifyClientReplyToStaff(ticketId, full.subject, dto.message, full.assignedTo.email);
     }
 
     return reply;
@@ -650,7 +837,14 @@ export class TicketsService {
     const ticket = await this.prisma.ticket.findUnique({ where: { id: ticketId } });
     if (!ticket) throw new NotFoundException('Ticket not found');
 
-    const dataToUpdate: Record<string, unknown> = { status: 'IN_PROGRESS' };
+    const dataToUpdate: Record<string, unknown> = {
+      status: 'WAITING_CUSTOMER',
+      waitingSince: new Date(),
+      customerReminderSentAt: null,
+      autoClosedAt: null,
+      lastReplyAt: new Date(),
+      lastReplyIsStaff: true,
+    };
     if (!ticket.firstResponseAt) {
       dataToUpdate['firstResponseAt'] = new Date();
     }
@@ -681,15 +875,11 @@ export class TicketsService {
       where: { id: ticketId },
       include: { user: { select: { email: true } } },
     });
+    if (full) {
+      await this.logEvent(ticketId, 'STAFF_REPLY', staffId);
+    }
     if (full?.user?.email) {
-      void this.mailer
-        .send({
-          to: full.user.email,
-          subject: `[Verris] Odpowiedź do zgłoszenia: ${full.subject}`,
-          text: dto.message,
-          tag: 'ticket.reply.staff',
-        })
-        .catch(() => undefined);
+      this.notifyStaffReplyToClient(ticketId, full.subject, dto.message, full.user.email);
     }
 
     return reply;
@@ -739,6 +929,63 @@ export class TicketsService {
     } catch {
       // Swallow — caller is removing the DB row regardless.
     }
+  }
+
+  private clientPanelBaseUrl(): string {
+    return (this.config.get<string>('clientPanelUrl') ?? 'http://localhost:3001').replace(/\/$/, '');
+  }
+
+  private staffPanelBaseUrl(): string {
+    return (
+      this.config.get<string>('STAFF_PANEL_URL') ??
+      this.config.get<string>('staffPanelUrl') ??
+      this.clientPanelBaseUrl()
+    ).replace(/\/$/, '');
+  }
+
+  private notifyClientReplyToStaff(
+    ticketId: string,
+    subject: string,
+    excerpt: string,
+    staffEmail: string,
+  ): void {
+    void this.mailer
+      .send({
+        ...ticketReplyNotificationTemplate({
+          to: staffEmail,
+          ticketId,
+          subject,
+          excerpt,
+          panelUrl: this.clientPanelBaseUrl(),
+          staffPanelUrl: this.staffPanelBaseUrl(),
+          isFromStaff: false,
+        }),
+        category: 'TRANSACTIONAL',
+        fromRole: 'NOREPLY',
+      })
+      .catch(() => undefined);
+  }
+
+  private notifyStaffReplyToClient(
+    ticketId: string,
+    subject: string,
+    excerpt: string,
+    clientEmail: string,
+  ): void {
+    void this.mailer
+      .send({
+        ...ticketReplyNotificationTemplate({
+          to: clientEmail,
+          ticketId,
+          subject,
+          excerpt,
+          panelUrl: this.clientPanelBaseUrl(),
+          isFromStaff: true,
+        }),
+        category: 'TRANSACTIONAL',
+        fromRole: 'SUPPORT',
+      })
+      .catch(() => undefined);
   }
 }
 

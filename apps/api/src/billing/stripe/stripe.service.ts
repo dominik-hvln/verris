@@ -26,7 +26,7 @@ export class StripeService {
     // dahlia → next-major upgrade window. See `DEPLOY.md` →
     // "Stripe API upgrade" runbook for the full procedure.
     const apiVersion =
-      config.get<string>('STRIPE_API_VERSION') ?? DEFAULT_STRIPE_API_VERSION;
+      config.get<string>('stripeApiVersion') ?? DEFAULT_STRIPE_API_VERSION;
     this.client = secretKey ? new StripeClient(secretKey, apiVersion) : null;
   }
 
@@ -66,6 +66,37 @@ export class StripeService {
    * Sprint 4 / R-05 — bezpieczne odczytanie Stripe Price (zwraca `null` gdy
    * Stripe nie jest skonfigurowany, błąd 404 podnosi do BadRequestException).
    */
+  async createProduct(input: {
+    name: string;
+    description?: string;
+    metadata?: Record<string, string>;
+  }): Promise<{ id: string; name: string }> {
+    return this.wrapStripe(() => this.requireClient().createProduct(input));
+  }
+
+  async updateProduct(
+    productId: string,
+    input: { name?: string; description?: string; metadata?: Record<string, string> },
+  ): Promise<{ id: string }> {
+    return this.wrapStripe(() => this.requireClient().updateProduct(productId, input));
+  }
+
+  async createRecurringPrice(input: {
+    productId: string;
+    unitAmountMinor: number;
+    currency: string;
+    interval: 'month' | 'year';
+    nickname?: string;
+    metadata?: Record<string, string>;
+    idempotencyKey?: string;
+  }): Promise<StripePrice> {
+    return this.wrapStripe(() => this.requireClient().createRecurringPrice(input));
+  }
+
+  async deactivatePrice(priceId: string): Promise<StripePrice> {
+    return this.wrapStripe(() => this.requireClient().deactivatePrice(priceId));
+  }
+
   async retrievePriceOrThrow(priceId: string): Promise<StripePrice> {
     if (!this.client) {
       throw new ServiceUnavailableException(
@@ -117,6 +148,15 @@ export class StripeService {
     return this.requireClient().retrieveSubscription(subscriptionId);
   }
 
+  async updateSubscriptionPrice(input: {
+    subscriptionId: string;
+    subscriptionItemId: string;
+    newPriceId: string;
+    prorationBehavior?: 'create_prorations' | 'none';
+  }): Promise<StripeSubscription> {
+    return this.requireClient().updateSubscriptionPrice(input);
+  }
+
   // ---------------------------------------------------------------------------
   // Invoices
   // ---------------------------------------------------------------------------
@@ -154,6 +194,16 @@ export class StripeService {
     return this.client;
   }
 
+  private async wrapStripe<T>(fn: () => Promise<T>): Promise<T> {
+    try {
+      return await fn();
+    } catch (e) {
+      const msg = (e as Error).message;
+      this.logger.warn(`Stripe API error: ${msg}`);
+      throw new BadRequestException(`Stripe: ${msg}`);
+    }
+  }
+
   /**
    * Verifies a Stripe webhook signature using HMAC-SHA256 against the secret.
    * Mirrors the algorithm Stripe documents for the t=…,v1=… header format.
@@ -169,15 +219,15 @@ export class StripeService {
       throw new UnauthorizedException('Missing Stripe-Signature header');
     }
 
-    const parts = Object.fromEntries(
-      signatureHeader
-        .split(',')
-        .map((kv) => kv.trim().split('='))
-        .filter((p): p is [string, string] => p.length === 2),
-    );
-    const timestamp = parts['t'];
-    const v1 = parts['v1'];
-    if (!timestamp || !v1) {
+    // Audit F-16: during a webhook-secret roll Stripe sends MULTIPLE `v1`
+    // entries — the delivery is valid if ANY of them matches our secret.
+    const entries = signatureHeader
+      .split(',')
+      .map((kv) => kv.trim().split('='))
+      .filter((p): p is [string, string] => p.length === 2);
+    const timestamp = entries.find(([k]) => k === 't')?.[1];
+    const v1Signatures = entries.filter(([k]) => k === 'v1').map(([, v]) => v);
+    if (!timestamp || v1Signatures.length === 0) {
       throw new UnauthorizedException('Invalid Stripe-Signature header');
     }
 
@@ -193,10 +243,13 @@ export class StripeService {
     const expected = createHmac('sha256', this.webhookSecret)
       .update(signedPayload, 'utf8')
       .digest('hex');
-
-    const sig = Buffer.from(v1, 'hex');
     const expectedBuf = Buffer.from(expected, 'hex');
-    if (sig.length !== expectedBuf.length || !timingSafeEqual(sig, expectedBuf)) {
+
+    const anyMatch = v1Signatures.some((v1) => {
+      const sig = Buffer.from(v1, 'hex');
+      return sig.length === expectedBuf.length && timingSafeEqual(sig, expectedBuf);
+    });
+    if (!anyMatch) {
       throw new UnauthorizedException('Stripe signature mismatch');
     }
   }

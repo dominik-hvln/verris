@@ -4,6 +4,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Activity, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@verris/ui';
 import { fetchHostingUsageAction, HostingUsageResponse } from '@/app/dashboard/services/[id]/hosting-usage-actions';
+import { ServiceUptimeBadge } from '@/components/hosting/service-uptime-badge';
+import { HostingBackupRestorePanel } from '@/components/hosting/hosting-backup-restore-panel';
+import ServiceForecastPanel from '@/components/hosting/ServiceForecastPanel';
+import AccountStatsCard from '@/components/hosting/AccountStatsCard';
 
 export default function UsageTab({ serviceId }: { serviceId: string }) {
   const [window, setWindow] = useState<'24h' | '7d'>('24h');
@@ -11,35 +15,53 @@ export default function UsageTab({ serviceId }: { serviceId: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      setUsage(await fetchHostingUsageAction(serviceId, window));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Nie udało się pobrać metryk użycia.');
-    } finally {
-      setLoading(false);
-    }
-  }, [serviceId, window]);
+  const load = useCallback(
+    async (silent = false) => {
+      if (!silent) setLoading(true);
+      setError(null);
+      try {
+        setUsage(await fetchHostingUsageAction(serviceId, window));
+      } catch (e) {
+        if (!silent) setError(e instanceof Error ? e.message : 'Nie udało się pobrać metryk użycia.');
+      } finally {
+        if (!silent) setLoading(false);
+      }
+    },
+    [serviceId, window],
+  );
 
   useEffect(() => {
     void load();
+  }, [load]);
+
+  // Live refresh: the node agent pushes a new 1-minute bucket each minute, so we
+  // silently refetch every 30 s (no spinner) while the tab is open.
+  useEffect(() => {
+    const id = setInterval(() => void load(true), 30_000);
+    return () => clearInterval(id);
   }, [load]);
 
   const latest = usage?.rows.at(-1);
   const chart = useMemo(() => usage?.rows.slice(-48) ?? [], [usage]);
 
   return (
-    <div className="rounded-[32px] border border-white/10 bg-[#0a0a0a] p-6 lg:p-8">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-white/5 pb-6">
-        <div className="flex items-center gap-4">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-3 text-white">
-            <Activity className="h-6 w-6" />
+    <div className="space-y-4 min-w-0">
+    <AccountStatsCard serviceId={serviceId} />
+    <div className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 sm:p-5 min-w-0 overflow-hidden">
+      <div className="mb-4 flex flex-col gap-3 border-b border-white/5 pb-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="rounded-xl border border-white/10 bg-white/5 p-2 text-white">
+            <Activity className="h-4 w-4" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-white">Usage 24h / 7d</h2>
-            <p className="text-sm text-neutral-400">Dane telemetryczne z `UsageMetric` dla CPU, RAM, dysku i I/O.</p>
+            <h2 className="flex items-center gap-2 text-lg font-bold text-white">
+              Usage &amp; backup
+              <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/30 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-medium text-emerald-200">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+                na żywo
+              </span>
+            </h2>
+            <p className="text-xs text-neutral-400">Metryki CPU/RAM/dysk (odświeżane co ~30&nbsp;s) oraz badge uptime.</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -60,6 +82,9 @@ export default function UsageTab({ serviceId }: { serviceId: string }) {
           </Button>
         </div>
       </div>
+
+      <ServiceUptimeBadge serviceId={serviceId} />
+      <HostingBackupRestorePanel serviceId={serviceId} />
 
       {error ? <p className="text-sm text-rose-200">{error}</p> : null}
       {loading && !usage ? (
@@ -86,6 +111,9 @@ export default function UsageTab({ serviceId }: { serviceId: string }) {
           </div>
         </div>
       )}
+
+      <ServiceForecastPanel serviceId={serviceId} />
+    </div>
     </div>
   );
 }

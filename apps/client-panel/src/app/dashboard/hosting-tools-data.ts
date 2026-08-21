@@ -107,3 +107,9 @@ export interface HostingMigrationTimelineRow {
 export async function getHostingMigrationTimeline(serviceId: string) {
   return apiFetch<HostingMigrationTimelineRow[]>(`/services/${serviceId}/migrations`);
 }
+
+import type { MigrationBundleSummary } from './migrations/types';
+
+export async function getHostingMigrationBundles(serviceId: string) {
+  return apiFetch<MigrationBundleSummary[]>(`/services/${serviceId}/migrations/bundles`);
+}

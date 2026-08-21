@@ -1,16 +1,17 @@
-import { AlertCircle, Gauge } from "lucide-react";
-import type { PriceRuleDto } from "./actions";
+import Link from "next/link";
+import { AlertCircle, BarChart3, Gauge } from "lucide-react";
 import { listPriceRules } from "./actions";
 import { PricingTable } from "./pricing-table";
 import { CreateRuleForm } from "./create-rule-form";
 
 export const dynamic = "force-dynamic";
 
-const RESOURCE_LABELS: Record<PriceRuleDto["resource"], string> = {
+const RESOURCE_LABELS: Record<string, string> = {
   CPU: "CPU (% / godz.)",
-  RAM: "RAM (MB / godz.)",
-  IO: "I/O (kbps / godz.)",
-  TRANSFER: "Transfer (GB)",
+  RAM: "RAM (GB / godz.)",
+  DISK: "Dysk (GB / godz.)",
+  IO: "I/O (kbps) — wycofane",
+  TRANSFER: "Transfer (GB) — wycofane",
 };
 
 export default async function AutoscalingPricingPage() {
@@ -26,11 +27,18 @@ export default async function AutoscalingPricingPage() {
             Cennik Autoskalowania
           </h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
-            Stawki nakładane na klienta gdy CloudLinux LVE zwiększa limity konta. Zmiany wchodzą
-            natychmiast — nowe naliczenia użyją zaktualizowanych cen, istniejące pozycje w portfelu
+            Stawki za dodatkowe CPU, RAM i dysk ponad plan bazowy. Zmiany wchodzą natychmiast —
+            nowe naliczenia użyją zaktualizowanych cen; pozycje już zaksięgowane w portfelu
             pozostają bez zmian.
           </p>
         </div>
+        <Link
+          href="/autoscaling/revenue"
+          className="inline-flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-medium text-emerald-200 hover:bg-emerald-500/20"
+        >
+          <BarChart3 className="h-4 w-4" />
+          Raport przychodu 30d
+        </Link>
       </header>
 
       {!result.ok && (

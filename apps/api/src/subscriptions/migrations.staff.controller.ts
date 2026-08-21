@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import {
   IsEnum,
+  IsIn,
   IsOptional,
   IsString,
   MaxLength,
@@ -20,6 +21,8 @@ import { MigrationStatus, Role } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
+import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard';
+import { StaffPerm } from '../common/decorators/staff-permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { MigrationOrchestratorService } from './migration-orchestrator.service';
 
@@ -43,6 +46,16 @@ class StatusUpdateDto {
   note?: string;
 }
 
+class ResolveAttentionDto {
+  @IsIn(['requeue', 'completed', 'failed'])
+  outcome!: 'requeue' | 'completed' | 'failed';
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  note?: string;
+}
+
 interface AuthedUser {
   userId: string;
   role: Role;
@@ -53,8 +66,9 @@ interface AuthedUser {
  * podglądać sekrety (audytowane), zmieniać status i anulować.
  */
 @Controller('staff/migrations')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, StaffPermissionsGuard)
 @Roles(Role.STAFF, Role.ADMIN)
+@StaffPerm('MIGRATIONS_MANAGE')
 export class MigrationsStaffController {
   constructor(private readonly migrations: MigrationOrchestratorService) {}
 
@@ -105,6 +119,43 @@ export class MigrationsStaffController {
       actorUserId: user.userId,
       status: dto.status,
       note: dto.note ?? null,
+    });
+  }
+
+  /** Migrator v2 — szczegóły zlecenia z jobami, logami i payloadami (bez sekretów bundla). */
+  @Get(':id/detail')
+  async detail(@Param('id') id: string) {
+    return this.migrations.getBundleDetailForStaff(id);
+  }
+
+  /** Migrator v2 — rozwiązanie eskalacji: wznowienie automatu / zamknięcie. */
+  @Post(':id/resolve-attention')
+  @HttpCode(200)
+  async resolveAttention(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthedUser,
+    @Body() dto: ResolveAttentionDto,
+  ) {
+    return this.migrations.resolveAttentionForStaff({
+      migrationRequestId: id,
+      actorUserId: user.userId,
+      outcome: dto.outcome,
+      note: dto.note ?? null,
+    });
+  }
+
+  /** Migrator v2 — ponowienie pojedynczego kroku (świeży licznik prób). */
+  @Post(':id/jobs/:jobId/retry')
+  @HttpCode(200)
+  async retryJob(
+    @Param('id') id: string,
+    @Param('jobId') jobId: string,
+    @CurrentUser() user: AuthedUser,
+  ) {
+    return this.migrations.retryWorkerJobForStaff({
+      migrationRequestId: id,
+      jobId,
+      actorUserId: user.userId,
     });
   }
 }

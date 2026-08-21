@@ -7,10 +7,19 @@ import {
   Building2,
   Save,
   Check,
+  X,
   AlertCircle,
   Loader2,
   Lock,
+  LayoutGrid,
+  Wand2,
+  Eye,
+  EyeOff,
+  Bell,
 } from "lucide-react";
+import { checkPassword, generatePassword, PASSWORD_MIN_LENGTH } from "@/lib/password-policy";
+import { SpinBorder } from "@/components/spin-border";
+import { Select as PanelSelect } from "@/components/panel";
 import {
   fetchUserProfile,
   updateUserProfile,
@@ -18,7 +27,15 @@ import {
   type UserProfile,
 } from "./actions";
 import { TwoFactorSection } from "./two-factor-section";
+import { PasskeysSection } from "./passkeys-section";
+import { LoginHistorySection } from "./login-history-section";
+import { StrongAuthSection } from "./strong-auth-section";
+import { ActivityLogSection } from "./activity-log-section";
+import { ActiveSessionsSection } from "./active-sessions-section";
+import { EmailChangeSection } from "./email-change-section";
 import { PrivacyTab } from "./privacy-tab";
+import { NotificationsTab } from "./notifications-tab";
+import { SidebarTilesSection } from "./sidebar-tiles-section";
 
 /* ─────────────────────────── Tabs Definition ─────────────────────── */
 
@@ -26,10 +43,19 @@ const tabs = [
   { id: "profile", label: "Profil", icon: User },
   { id: "security", label: "Bezpieczeństwo", icon: Shield },
   { id: "billing", label: "Dane do faktury", icon: Building2 },
+  { id: "notifications", label: "Powiadomienia", icon: Bell },
   { id: "privacy", label: "Prywatność i dane", icon: Lock },
+  { id: "panel", label: "Wygląd panelu", icon: LayoutGrid },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
+
+const SUBACCOUNT_TAB_IDS: TabId[] = ["profile", "security", "notifications", "privacy"];
+
+function visibleTabsForProfile(profile: UserProfile): (typeof tabs)[number][] {
+  if (!profile.isSubaccount) return [...tabs];
+  return tabs.filter((t) => SUBACCOUNT_TAB_IDS.includes(t.id));
+}
 
 /* ──────────────────── Reusable Form Components ──────────────────── */
 
@@ -55,6 +81,15 @@ function FormField({
   );
 }
 
+function PwReq({ ok, children }: { ok: boolean; children: React.ReactNode }) {
+  return (
+    <li className={`flex items-center gap-1.5 ${ok ? "text-emerald-400" : "text-neutral-500"}`}>
+      {ok ? <Check className="h-3 w-3 shrink-0" /> : <X className="h-3 w-3 shrink-0" />}
+      {children}
+    </li>
+  );
+}
+
 function Input({
   ...props
 }: React.InputHTMLAttributes<HTMLInputElement>) {
@@ -73,35 +108,30 @@ function Input({
   );
 }
 
+// UI-1 — most do wspólnego, customowego (niesystemowego) dropdownu. Zachowujemy
+// dotychczasowe API z eventem (onChange(e).target.value), aby nie ruszać miejsc
+// użycia, ale pod spodem renderujemy ładną listę z panelu.
 function Select({
   options,
-  ...props
+  value,
+  onChange,
+  disabled,
+  className,
+  "aria-label": ariaLabel,
 }: React.SelectHTMLAttributes<HTMLSelectElement> & {
   options: { value: string; label: string }[];
 }) {
   return (
-    <div className="relative">
-        <select
-        {...props}
-        className={`
-            w-full appearance-none rounded-xl border border-white/10 bg-[#0a0a0a]/50 px-4 py-2.5 text-sm text-white
-            focus:outline-none focus:ring-2 focus:ring-white/20 focus:border-white/50
-            transition-all duration-200
-            ${props.className || ""}
-        `}
-        >
-        {options.map((opt) => (
-            <option key={opt.value} value={opt.value} className="bg-[#0a0a0a] text-white">
-            {opt.label}
-            </option>
-        ))}
-        </select>
-        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-neutral-400">
-            <svg className="h-4 w-4 fill-current" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                <path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" />
-            </svg>
-        </div>
-    </div>
+    <PanelSelect
+      value={typeof value === "string" ? value : String(value ?? "")}
+      onChange={(v) =>
+        onChange?.({ target: { value: v } } as unknown as React.ChangeEvent<HTMLSelectElement>)
+      }
+      options={options}
+      disabled={disabled}
+      className={className}
+      aria-label={ariaLabel}
+    />
   );
 }
 
@@ -154,6 +184,14 @@ export default function SettingsPage() {
     });
   }, []);
 
+  useEffect(() => {
+    if (!profile) return;
+    const allowed = visibleTabsForProfile(profile).map((t) => t.id);
+    if (!allowed.includes(activeTab)) {
+      setActiveTab("profile");
+    }
+  }, [profile, activeTab]);
+
   const showToast = (message: string, type: "success" | "error") => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3500);
@@ -180,19 +218,26 @@ export default function SettingsPage() {
     );
   }
 
+  const visibleTabs = visibleTabsForProfile(profile);
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Page Header */}
       <div>
         <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Ustawienia konta</h1>
         <p className="text-neutral-400 text-sm md:text-base">
-          Zarządzaj swoim profilem, bezpieczeństwem i danymi do faktur.
+          {profile.isSubaccount
+            ? "Konto operatora (subkonto). Dane firmy i układ panelu zarządza właściciel konta."
+            : "Zarządzaj swoim profilem, bezpieczeństwem i danymi do faktur."}
         </p>
+        {profile.isSubaccount && profile.subaccountLabel ? (
+          <p className="mt-2 text-xs text-neutral-500">Etykieta: {profile.subaccountLabel}</p>
+        ) : null}
       </div>
 
       {/* Tab Navigation */}
       <div className="flex gap-2 rounded-2xl bg-[#0a0a0a]/50 p-2 border border-white/5 backdrop-blur-xl shrink-0 overflow-x-auto scrollbar-none">
-        {tabs.map((tab) => {
+        {visibleTabs.map((tab) => {
           const Icon = tab;
           const isActive = activeTab === tab.id;
           return (
@@ -217,7 +262,7 @@ export default function SettingsPage() {
 
       {/* Tab Content */}
       <div className="relative rounded-[32px] p-px overflow-hidden group">
-        <div className="absolute -inset-full animate-[spin_1.5s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_70%,#ffffff_100%)] opacity-20 group-hover:opacity-40 transition-opacity duration-500 pointer-events-none" />
+        <SpinBorder variant="white" className="opacity-20 transition-opacity duration-500 group-hover:opacity-40" />
         <div className="relative rounded-[calc(32px-1px)] bg-[#0a0a0a]/80 backdrop-blur-3xl border border-white/5 shadow-[0_0_40px_rgba(0,0,0,0.5)]">
             {activeTab === "profile" && (
             <ProfileTab
@@ -226,7 +271,7 @@ export default function SettingsPage() {
                 showToast={showToast}
             />
             )}
-            {activeTab === "security" && <SecurityTab showToast={showToast} />}
+            {activeTab === "security" && <SecurityTab profile={profile} showToast={showToast} />}
             {activeTab === "billing" && (
             <BillingTab
                 profile={profile}
@@ -234,7 +279,13 @@ export default function SettingsPage() {
                 showToast={showToast}
             />
             )}
+            {activeTab === "notifications" && <NotificationsTab showToast={showToast} />}
             {activeTab === "privacy" && <PrivacyTab showToast={showToast} />}
+            {activeTab === "panel" && (
+              <div className="p-8">
+                <SidebarTilesSection initialLinks={profile.sidebarQuickLinks ?? []} />
+              </div>
+            )}
         </div>
       </div>
 
@@ -304,8 +355,17 @@ function ProfileTab({
         </FormField>
       </div>
 
-      <FormField label="Adres e-mail" description="Aby zmienić adres e-mail przypisany do konta, skontaktuj się z biurem obsługi klienta.">
+      <FormField label="Adres e-mail">
         <Input value={profile.email} disabled className="opacity-50 bg-[#0a0a0a] border-white/5" />
+        {!profile.isSubaccount ? (
+          <div className="pt-2">
+            <EmailChangeSection currentEmail={profile.email} showToast={showToast} />
+          </div>
+        ) : (
+          <p className="text-xs text-neutral-500">
+            Adres e-mail subkonta zmienia właściciel konta.
+          </p>
+        )}
       </FormField>
 
       <FormField
@@ -330,7 +390,7 @@ function ProfileTab({
           disabled={isPending}
           className="relative group overflow-hidden rounded-xl p-px disabled:opacity-50"
         >
-          <div className="absolute -inset-full animate-[spin_1.5s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_70%,#ffffff_100%)] opacity-70" />
+          <SpinBorder variant="white" className="opacity-70" />
           <div className="relative flex items-center justify-center gap-2 rounded-[calc(0.75rem-1px)] bg-[#0a0a0a] px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#121212] min-w-[160px]">
           {isPending ? (
             <Loader2 className="h-4 w-4 animate-spin text-white" />
@@ -348,24 +408,36 @@ function ProfileTab({
 /* ────────────────────── Tab: Bezpieczeństwo ────────────────────── */
 
 function SecurityTab({
+  profile,
   showToast,
 }: {
+  profile: UserProfile;
   showToast: (msg: string, type: "success" | "error") => void;
 }) {
   const [isPending, startTransition] = useTransition();
+  const [showNew, setShowNew] = useState(false);
   const [form, setForm] = useState({
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
   });
 
+  const pw = checkPassword(form.newPassword);
+  const pwBars = ["bg-rose-500", "bg-rose-500", "bg-amber-500", "bg-emerald-500", "bg-emerald-400"];
+
+  const fillGenerated = () => {
+    const g = generatePassword();
+    setForm((f) => ({ ...f, newPassword: g, confirmPassword: g }));
+    setShowNew(true);
+  };
+
   const handleChangePassword = () => {
     if (form.newPassword !== form.confirmPassword) {
       showToast("Hasła nie są identyczne", "error");
       return;
     }
-    if (form.newPassword.length < 8) {
-      showToast("Nowe hasło musi mieć minimum 8 znaków", "error");
+    if (!pw.valid) {
+      showToast(`Hasło nie spełnia wymagań (min. ${PASSWORD_MIN_LENGTH} znaków, 3 klasy, nie popularne).`, "error");
       return;
     }
 
@@ -407,14 +479,54 @@ function SecurityTab({
           />
         </FormField>
         <FormField label="Nowe hasło">
-          <Input
-            type="password"
-            value={form.newPassword}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, newPassword: e.target.value }))
-            }
-            placeholder="Min. 8 znaków"
-          />
+          <div className="flex gap-2">
+            <div className="relative flex-1">
+              <Input
+                type={showNew ? "text" : "password"}
+                value={form.newPassword}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, newPassword: e.target.value }))
+                }
+                placeholder={`Min. ${PASSWORD_MIN_LENGTH} znaków`}
+                className="pr-10"
+              />
+              <button
+                type="button"
+                onClick={() => setShowNew((s) => !s)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-white"
+                title={showNew ? "Ukryj" : "Pokaż"}
+              >
+                {showNew ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={fillGenerated}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-white/10 bg-[#0a0a0a]/50 px-3 text-sm text-neutral-200 hover:bg-white/5"
+              title="Wygeneruj mocne hasło"
+            >
+              <Wand2 className="h-4 w-4" /> Generuj
+            </button>
+          </div>
+          {form.newPassword.length > 0 ? (
+            <div className="space-y-1.5 pt-2">
+              <div className="flex gap-1">
+                {[0, 1, 2, 3].map((i) => (
+                  <span
+                    key={i}
+                    className={`h-1 flex-1 rounded-full transition-colors ${
+                      i < pw.score ? pwBars[pw.score] : "bg-white/10"
+                    }`}
+                  />
+                ))}
+              </div>
+              <ul className="space-y-0.5 text-[11px]">
+                <PwReq ok={pw.lengthOk}>Co najmniej {PASSWORD_MIN_LENGTH} znaków</PwReq>
+                <PwReq ok={pw.classesOk}>3 z 4: mała i wielka litera, cyfra, symbol</PwReq>
+                <PwReq ok={pw.notCommon}>Nie jest popularnym hasłem</PwReq>
+              </ul>
+            </div>
+          ) : null}
         </FormField>
         <FormField label="Powtórz nowe hasło">
           <Input
@@ -429,6 +541,15 @@ function SecurityTab({
       </div>
 
       <TwoFactorSection showToast={showToast} />
+      <PasskeysSection showToast={showToast} />
+      <StrongAuthSection
+        initialEnabled={Boolean(profile.requireStrongAuth)}
+        hasFactor={Boolean(profile.isTwoFactorEnabled) || Boolean(profile.hasPasskey)}
+        showToast={showToast}
+      />
+      <ActiveSessionsSection showToast={showToast} />
+      <LoginHistorySection />
+      <ActivityLogSection />
 
       <div className="flex justify-end pt-8 mt-8 border-t border-white/5">
         <button
@@ -436,7 +557,7 @@ function SecurityTab({
           disabled={isPending}
           className="relative group overflow-hidden rounded-xl p-px disabled:opacity-50"
         >
-          <div className="absolute -inset-full animate-[spin_1.5s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_70%,#ffffff_100%)] opacity-70" />
+          <SpinBorder variant="white" className="opacity-70" />
           <div className="relative flex items-center justify-center gap-2 rounded-[calc(0.75rem-1px)] bg-[#0a0a0a] px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#121212] min-w-[160px]">
           {isPending ? (
             <Loader2 className="h-4 w-4 animate-spin text-white" />
@@ -567,7 +688,7 @@ function BillingTab({
           disabled={isPending}
           className="relative group overflow-hidden rounded-xl p-px disabled:opacity-50"
         >
-          <div className="absolute -inset-full animate-[spin_1.5s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_70%,#ffffff_100%)] opacity-70" />
+          <SpinBorder variant="white" className="opacity-70" />
           <div className="relative flex items-center justify-center gap-2 rounded-[calc(0.75rem-1px)] bg-[#0a0a0a] px-6 py-2.5 text-sm font-semibold text-white transition-all hover:bg-[#121212] min-w-[160px]">
           {isPending ? (
             <Loader2 className="h-4 w-4 animate-spin text-white" />

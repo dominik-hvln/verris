@@ -24,11 +24,28 @@ export interface AppConfig {
   // Bootstrap script generation
   publicApiUrl: string;
 
+  // Leady z verris.pl
+  leadsNotifyEmail: string;
+
+  // Meta Conversions API (server-side pomiar, opcjonalne)
+  metaDatasetId: string | null;
+  metaCapiToken: string | null;
+
   // Stripe (optional in dev — endpoints return 503 when missing)
   stripeSecretKey: string | null;
   stripeWebhookSecret: string | null;
+  stripeApiVersion: string;
   stripeSuccessUrl: string;
   stripeCancelUrl: string;
+
+  // CYBER-2 — pluggable captcha (anty-bot). Optional in dev.
+  captchaProvider: string;
+  captchaSecretKey: string | null;
+  captchaEnabled: boolean | undefined;
+  captchaScoreThreshold: number;
+
+  // CYBER-9 / OBS-1 — Sentry/GlitchTip DSN (monitoring błędów runtime). Optional.
+  sentryDsn: string | null;
 }
 
 function readEnv(name: string, opts?: { default?: string; required?: boolean }): string {
@@ -75,20 +92,54 @@ export function loadConfig(): AppConfig {
   return {
     nodeEnv,
     port: readInt('PORT', 3000),
-    clientPanelUrl: readEnv('CLIENT_PANEL_URL', { default: 'http://localhost:3001' }),
-    staffPanelUrl: readEnv('STAFF_PANEL_URL', { default: 'http://localhost:3002' }),
-    adminPanelUrl: readEnv('ADMIN_PANEL_URL', { default: 'http://localhost:3003' }),
+    clientPanelUrl: readEnv('CLIENT_PANEL_URL', {
+      required: isProd,
+      default: isProd ? undefined : 'http://localhost:3001',
+    }),
+    staffPanelUrl: readEnv('STAFF_PANEL_URL', {
+      required: isProd,
+      default: isProd ? undefined : 'http://localhost:3002',
+    }),
+    adminPanelUrl: readEnv('ADMIN_PANEL_URL', {
+      required: isProd,
+      default: isProd ? undefined : 'http://localhost:3003',
+    }),
     jwtSecret,
     jwtExpiresIn: readEnv('JWT_EXPIRES_IN', { default: '1d' }),
     appKmsKey,
-    publicApiUrl: readEnv('PUBLIC_API_URL', { default: 'http://localhost:3000' }),
+    publicApiUrl: readEnv('PUBLIC_API_URL', {
+      required: isProd,
+      default: isProd ? undefined : 'http://localhost:3000',
+    }),
+    // Leady z verris.pl — adres powiadomień o nowych zgłoszeniach.
+    leadsNotifyEmail: process.env.LEADS_NOTIFY_EMAIL || 'kontakt@verris.pl',
+    // Meta Conversions API (server-side pomiar). Dataset = ID Pixela.
+    metaDatasetId: process.env.META_DATASET_ID || process.env.META_PIXEL_ID || null,
+    metaCapiToken: process.env.META_CAPI_TOKEN || null,
     stripeSecretKey: process.env.STRIPE_SECRET_KEY || null,
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || null,
+    stripeApiVersion: readEnv('STRIPE_API_VERSION', { default: '2026-04-22.dahlia' }),
     stripeSuccessUrl: readEnv('STRIPE_SUCCESS_URL', {
-      default: 'http://localhost:3001/dashboard/billing?status=success',
+      required: isProd,
+      default: isProd ? undefined : 'http://localhost:3001/dashboard/billing?status=success',
     }),
     stripeCancelUrl: readEnv('STRIPE_CANCEL_URL', {
-      default: 'http://localhost:3001/dashboard/billing?status=cancel',
+      required: isProd,
+      default: isProd ? undefined : 'http://localhost:3001/dashboard/billing?status=cancel',
     }),
+    // CYBER-2 — pluggable captcha. Domyślny dostawca: reCAPTCHA v2 (checkbox).
+    captchaProvider: readEnv('CAPTCHA_PROVIDER', { default: 'recaptcha' }),
+    captchaSecretKey: process.env.CAPTCHA_SECRET_KEY || null,
+    captchaEnabled:
+      process.env.CAPTCHA_ENABLED === undefined || process.env.CAPTCHA_ENABLED === ''
+        ? undefined
+        : process.env.CAPTCHA_ENABLED === '1' || process.env.CAPTCHA_ENABLED === 'true',
+    captchaScoreThreshold: (() => {
+      const raw = process.env.CAPTCHA_SCORE_THRESHOLD;
+      if (!raw) return 0.5;
+      const n = Number(raw);
+      return Number.isFinite(n) && n >= 0 && n <= 1 ? n : 0.5;
+    })(),
+    sentryDsn: process.env.SENTRY_DSN || process.env.GLITCHTIP_DSN || null,
   };
 }
