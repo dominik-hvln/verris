@@ -3,6 +3,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { RateLimit } from '../common/guards/rate-limit.guard';
 import { AddonService } from './addon.service';
+import { PurchaseAddonDto } from './dto/purchase-addon.dto';
 
 @Controller('addons')
 @UseGuards(JwtAuthGuard)
@@ -17,10 +18,12 @@ export class AddonController {
   @RateLimit({ limit: 10, windowMs: 60 * 60 * 1000, scope: 'addons:purchase' })
   @Post('purchase')
   @HttpCode(200)
-  purchase(
-    @CurrentUser() user: { userId: string },
-    @Body() body: { slug: string; subscriptionId?: string },
-  ) {
-    return this.addons.purchase(user.userId, body.slug, body.subscriptionId);
+  purchase(@CurrentUser() user: { userId: string }, @Body() body: PurchaseAddonDto) {
+    return this.addons.purchase(
+      user.userId,
+      body.slug,
+      body.subscriptionId,
+      body.idempotencyKey,
+    );
   }
 }

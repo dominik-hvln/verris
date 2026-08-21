@@ -1271,6 +1271,12 @@ model PurchasedAddon {
   ticketId       String?
   createdAt      DateTime @default(now())
 
+  /// Z-06 — klucz idempotencji zakupu. Unikalność wymusza baza, więc dwa
+  /// równoległe żądania z tym samym kluczem nie mogą utworzyć dwóch zakupów
+  /// (jedno dostaje P2002 i zwraca istniejący rekord). Nullable, bo rekordy
+  /// sprzed 2026-08-21 klucza nie mają.
+  idempotencyKey String?  @unique
+
   @@index([userId, createdAt])
 }
 
