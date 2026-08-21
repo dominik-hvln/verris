@@ -186,8 +186,12 @@ jobs:
         continue-on-error: true
 
       # CYBER-6 — podatności w systemie plików (zależności + Dockerfile).
+      # UWAGA na tag: to repozytorium taguje wydania z przedrostkiem `v`
+      # (v0.36.0). Wersja `0.24.0` bez `v` nie istnieje — pierwszy przebieg CI
+      # (run #17) wywalił się na `unable to resolve action ... unable to find
+      # version 0.24.0` po dwóch sekundach, jeszcze przed checkoutem.
       - name: Trivy filesystem scan
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .

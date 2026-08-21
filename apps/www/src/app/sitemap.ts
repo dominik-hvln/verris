@@ -30,9 +30,14 @@ async function blogEntries(): Promise<{ path: string; lastmod?: string }[]> {
   try {
     const payload = await getPayloadClient();
     const res = await payload.find({ collection: 'posts', limit: 500, depth: 0 });
-    return res.docs
-      .filter((d: { slug?: string }) => d.slug)
-      .map((d: { slug?: string; updatedAt?: string }) => ({ path: `/blog/${d.slug}`, lastmod: d.updatedAt }));
+    // Payload typuje `docs` jako (JsonObject & TypeWithID)[]. Adnotacja parametru
+    // callbacku węższym kształtem to błąd typu (TS2769/TS2345) — TypeScript nie
+    // pozwala zawęzić parametru w miejscu wywołania. Zawężamy więc całą tablicę
+    // raz, a callbacki zostają bez adnotacji.
+    const docs = res.docs as Array<{ slug?: string; updatedAt?: string }>;
+    return docs
+      .filter((d) => d.slug)
+      .map((d) => ({ path: `/blog/${d.slug}`, lastmod: d.updatedAt }));
   } catch {
     return [];
   }
