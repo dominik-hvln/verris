@@ -4,9 +4,20 @@ name: Deploy (control-plane)
 # push do GHCR → serwer control-plane POBIERA gotowe obrazy (nie buduje u siebie),
 # faza release `prisma migrate deploy`, rolling restart, health-gate + rollback.
 
+# X-13 — jedna gałąź wdrożeniowa.
+#
+# Do 2026-08-21 wdrożenie wyzwalały trzy gałęzie: `main`, `master`
+# i `live-release-readiness`. Realne wdrożenia szły z tej ostatniej, `master`
+# w repozytorium nie istniał, a `main` stał od czerwca i nie odpowiadał temu,
+# co działa na serwerze. Trzy wyzwalacze to trzy odpowiedzi na pytanie „co jest
+# na produkcji" — czyli brak odpowiedzi.
+#
+# Zostaje `main`. Ochrona gałęzi (X-02) i bramka testowa poniżej pilnują
+# dokładnie tej jednej gałęzi, a `main` znowu znaczy „stan produktu".
+# `workflow_dispatch` zostaje jako ręczne wyzwolenie na wypadek incydentu.
 on:
   push:
-    branches: [main, master, live-release-readiness]
+    branches: [main]
   workflow_dispatch: {}
 
 concurrency:

@@ -115,11 +115,17 @@ Reguła „Require status checks" znaczy: *commit musi już mieć zielone checki
 
 Wniosek praktyczny: **scalamy przez PR albo fast-forward.** Lokalne `git merge` + `git push` na gałąź wdrożeniową przestaje być drogą na skróty. Repository admin nadal może obejść regułę świadomie, gdyby zdarzył się incydent.
 
+## Epilog — jedna gałąź wdrożeniowa (`X-13`)
+
+Rozszerzenie reguły na `live-release-readiness` rozwiązywało objaw, nie przyczynę. Przyczyną było to, że **wdrożenie wyzwalały trzy gałęzie naraz**: `main`, `master` i `live-release-readiness`. Trzy wyzwalacze to trzy odpowiedzi na pytanie „co jest na produkcji", czyli brak odpowiedzi.
+
+Decyzja PM-a z 2026-08-21: zostaje sam `main`. `deploy.yml` wyzwala się wyłącznie z niego, ruleset go chroni, bramka testowa go pilnuje. `master` w repozytorium nie istniał, a `live-release-readiness` przestaje być gałęzią wdrożeniową i zostaje jako zapis historii.
+
+Ruleset **zostaje na obu gałęziach**. Ochrona nieużywanej już gałęzi nic nie kosztuje, a chroni ją przed force-pushem i skasowaniem, dopóki trzyma historię wdrożeń sprzed sierpnia.
+
 ## Czego to nadal nie robi
 
 Skany bezpieczeństwa (`Security scans (gitleaks + audit + trivy)`) **nie są wymagane** do scalenia — powód w tabeli wyżej.
-
-`master` zostaje w wyzwalaczach `deploy.yml` bez odpowiadającej reguły. W repozytorium nie ma dziś takiej gałęzi, więc nie ma czego chronić — ale jeżeli kiedyś powstanie, wdroży się bez bramki. Do rozważenia przy porządkowaniu wyzwalaczy: albo wzorzec obejmujący wszystkie trzy nazwy, albo skreślenie `master` z `deploy.yml`.
 
 ## Ryzyko i wycofanie
 
