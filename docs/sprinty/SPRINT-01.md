@@ -5,8 +5,8 @@
 | **Okres** | 2026-08-21 (jeden dzień roboczy — sprint skrócony, start audytu) |
 | **Faza** | I — fundament dowodowy |
 | **Zaplanowane** | 30 h z 40 h pojemności (`X-01`, `X-02`, `X-03`, `Z-02`, `PB-01`) |
-| **Wykonane** | ~16 h |
-| **Zamknięte** | 2 z 5 zaplanowanych + 8 pozycji nieplanowanych |
+| **Wykonane** | ~17 h |
+| **Zamknięte** | 3 z 5 zaplanowanych + 8 pozycji nieplanowanych |
 
 ---
 
@@ -16,13 +16,12 @@
 |---|---|---|---|---|---|
 | `Z-02` | Blokada zamówienia usługi bez opłaty | 6 | 4 | D2 (D3 po wdrożeniu) | [`docs/zadania/Z-02-…`](../zadania/Z-02-blokada-zamowienia-uslugi-bez-oplaty.md) |
 | `X-01` | CI uruchamiające testy | 6 | 3 | D1 → D2 po pierwszym przebiegu | [`docs/zadania/X-01-…`](../zadania/X-01-ci-uruchamiajace-testy.md) |
+| `X-02` | Status wymagany do merge | 6 | 1 | D4 | [`docs/zadania/X-02-…`](../zadania/X-02-status-wymagany-do-merge.md) |
 | `X-03` | Testy przed wdrożeniem | 6 | 2 | D1, częściowo | [`docs/zadania/X-03-…`](../zadania/X-03-testy-uruchamiane-przed-wdrozeniem.md) |
 | — | Domknięcie prac z 25–26 lipca (7 pozycji macierzy) | 0 | 6 | D2 | [`docs/zadania/S1-WIP-…`](../zadania/S1-WIP-LIPIEC-domkniecie-funkcji.md) |
 | — | Uporządkowanie dokumentacji (31 → 3 pliki w korzeniu) | 0 | ~4 | D0 (dokumenty) | [`docs/README.md`](../README.md) |
 
 ## Co się nie zamknęło i dlaczego
-
-**`X-02` — status wymagany do merge.** Nie da się tego zrobić kodem: to ustawienie w interfejsie GitHuba, a ja nie mam do niego dostępu z tej sesji. Napisana procedura krok po kroku, do wykonania przez PM-a. Dodatkowo ma sensowną kolejność — pole wyboru checku pojawia się dopiero po pierwszym przebiegu CI, więc najpierw push, potem reguła.
 
 **`PB-01` — unit economics węzła.** Nie zaczęte. Zjadło je odkrycie lipcowego WIP-u, którego nie było w planie, a które wywracało siedem pozycji macierzy. Uznałem, że zamknięcie siedmiu funkcji opisanych jako defekty produktu jest ważniejsze niż arkusz kosztów — ale to znaczy, że `PB-01` wchodzi do sprintu 2 i ktoś musi pilnować, żeby nie wypadło znowu. **To jest bloker biznesowy, nie ozdoba.**
 
@@ -44,6 +43,7 @@ Poza tym trzy rzeczy, które nie są pozycjami macierzy, ale zmieniają obraz:
 |---|---|---|---|---|
 | `Z-02` | BRAK | DZIAŁA | LUKA | PARYTET |
 | `X-01` | BRAK *(błędnie)* | CZĘŚCIOWE | LUKA | CZĘŚCIOWY |
+| `X-02` | BRAK | DZIAŁA | LUKA | PARYTET |
 | `X-03` | BRAK | CZĘŚCIOWE | LUKA | CZĘŚCIOWY |
 | `B-02` | ATRAPA | DZIAŁA | LUKA | PARYTET |
 | `D-04` | ATRAPA | DZIAŁA | LUKA | PARYTET |
@@ -55,13 +55,21 @@ Poza tym trzy rzeczy, które nie są pozycjami macierzy, ale zmieniają obraz:
 | `Z-08` | — | BRAK *(nowa)* | — | LUKA |
 
 Liczba blokerów przed: **11** → po: **10**.
-Werdykty: PARYTET 105 → **113**, LUKA 135 → **126** (135 − 10 zamkniętych + 1 nowa `Z-08`), CZĘŚCIOWY 43 → **45**. Pozycji w macierzy: 352 → **353**.
+Werdykty: PARYTET 105 → **114**, LUKA 135 → **125** (135 − 11 zamkniętych + 1 nowa `Z-08`), CZĘŚCIOWY 43 → **45**. Pozycji w macierzy: 352 → **353**.
 
 Poprawione też ceny w danych planu: **45 zł/mies brutto i 399 zł/rok** (commit `7109c78` zmienił je z 39/349, a audyt i plan nadal cytowały stare). `PB-01` liczy się teraz wobec właściwej liczby.
 
 - [x] `audyt/dane/macierz.csv` zaktualizowana
 - [x] `python3 audyt/generate.py --sprawdz` przechodzi bez błędów
 - [x] widoki przebudowane i zacommitowane razem z danymi
+
+## Ochrona gałęzi (X-02)
+
+Ustawiona 2026-08-21 przez interfejs GitHuba: ruleset `main — wymagaj zielonego CI`, aktywny, na gałęzi domyślnej. Wymaga trzech checków z `ci.yml` (`Static checks`, `Build`, `Prisma migrate deploy`), aktualności gałęzi przed scaleniem, blokuje force push i usunięcie gałęzi. Repository admin ma obejście — jednoosobowy zespół potrzebuje wyjścia awaryjnego.
+
+Świadomie **ruleset**, nie klasyczna ochrona gałęzi: klasyczny formularz pozwala wybrać wyłącznie checki, które GitHub widział w ciągu ostatniego tygodnia, a CI nie przebiegło jeszcze ani razu. Ruleset przyjmuje check po nazwie, więc reguła mogła powstać **przed** pierwszym przebiegiem.
+
+Zastrzeżenie do dowodu: reguła jest ustawiona, ale jeszcze nie zadziałała. Pierwszy przebieg pokaże, czy nazwy checków wpisane ręcznie zgadzają się co do znaku z tym, co wystawia `ci.yml`. Jeżeli nie — reguła będzie czekać na check, który nigdy nie przyjdzie. Sprawdzić przy pierwszym PR-ze.
 
 ## Stan produkcji
 
@@ -80,5 +88,7 @@ Poprawione też ceny w danych planu: **45 zł/mies brutto i 399 zł/rok** (commi
 **`PB-01` może wywrócić cennik.** Jeżeli koszt węzła nie domyka się przy 45 zł brutto, zmienia się treść cennika w sprincie 15 i cała komunikacja startowa. Dlatego to zadanie jest z przodu, a nie z tyłu — i dlatego przesunięcie go o sprint jest realnym ryzykiem, nie formalnością.
 
 **Pierwszy przebieg CI może być czerwony z powodów, których u siebie nie zobaczę.** W CI Prisma wygeneruje się naprawdę. Zielony zestaw na atrapie to D1+, nie D2 — i tak jest zapisane w macierzy.
+
+**Ochrona gałęzi żyje poza repozytorium.** Ruleset nie jest w żadnym pliku, nie odtworzy się z kopii kodu i nie przetrwa przeniesienia repo. Jedyny jego zapis to `docs/zadania/X-02-status-wymagany-do-merge.md`. Jeżeli kiedyś dojdzie druga taka reguła, warto rozważyć eksport rulesetów do repozytorium.
 
 **Ręczna ścieżka wdrożenia zostaje otwarta.** `ops/scripts/prod-deploy-ghcr.sh` omija bramkę testową jednym poleceniem. Do rozstrzygnięcia z PM-em w sprincie 2: zamykamy czy zostawiamy świadomie jako wyjście awaryjne.

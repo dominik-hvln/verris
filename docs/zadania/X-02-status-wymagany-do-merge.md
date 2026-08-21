@@ -4,10 +4,10 @@
 |---|---|
 | **Sprint** | 1 (2026-08-21) |
 | **Priorytet** | WYSOKA |
-| **Nakład** | planowany 6 h · rzeczywisty 0,5 h (opis procedury) |
+| **Nakład** | planowany 6 h · rzeczywisty 1 h |
 | **Zależy od** | `X-01` |
-| **Status** | do zrobienia — **wymaga działania PM-a w interfejsie GitHuba** |
-| **Data zamknięcia** | — |
+| **Status** | zrobione |
+| **Data zamknięcia** | 2026-08-21 |
 
 ---
 
@@ -25,9 +25,23 @@ ustawienie po stronie GitHuba (Settings → Branches), nie da się go zapisać w
 
 ## Rozwiązanie
 
-**Tego zadania nie da się zrobić kodem.** Reguły ochrony gałęzi żyją w konfiguracji repozytorium na GitHubie, nie w plikach. Nie ma ich w `.github/`, nie da się ich zacommitować i nie da się ich ustawić z tej sesji — nie mam dostępu do sieci z mostka do Twojego dysku ani uprawnień do API GitHuba.
+**Tego zadania nie da się zrobić kodem.** Reguły ochrony gałęzi żyją w konfiguracji repozytorium na GitHubie, nie w plikach. Nie ma ich w `.github/`, nie da się ich zacommitować i nie da się ich odtworzyć z repozytorium po awarii — o czym niżej, w sekcji o ryzyku.
 
-Poniżej procedura do wyklikania. Zajmuje około dwóch minut.
+**Wykonane 2026-08-21** przez interfejs GitHuba, w przeglądarce PM-a. Zamiast klasycznej ochrony gałęzi użyty został **ruleset**, z jednego konkretnego powodu: klasyczny formularz pozwala wybrać wyłącznie checki, które GitHub widział w ciągu ostatniego tygodnia, a CI w tym repozytorium nie przebiegło jeszcze ani razu. Ruleset pozwala dodać check po nazwie („Any source"), więc regułę dało się ustawić **przed** pierwszym przebiegiem, a nie po nim.
+
+### Co zostało ustawione
+
+| | |
+|---|---|
+| **Nazwa** | `main — wymagaj zielonego CI` |
+| **Status** | Active |
+| **Zakres** | gałąź domyślna (`main`) |
+| **Lista obejścia** | `Repository admin` — „Always allow" |
+| **Wymagane checki** | `Static checks (lint + typecheck)` · `Build (api + panels)` · `Prisma migrate deploy (smoke)` |
+| **Dodatkowo** | wymagana aktualność gałęzi przed scaleniem · blokada force push · zakaz usunięcia gałęzi |
+| **Adres reguły** | `https://github.com/dominik-hvln/verris/settings/rules/21161479` |
+
+Poniżej zostaje procedura ręczna — na wypadek odtwarzania reguły albo zakładania jej na kolejnej gałęzi.
 
 ### Krok po kroku
 
@@ -72,17 +86,22 @@ Nie dotyczy. Weryfikacja: po ustawieniu otwórz PR z gałęzi z celowo zepsutym 
 
 ## Dowód po
 
-Zrzut ekranu reguły albo `gh api repos/dominik-hvln/verris/branches/main/protection` — do wklejenia tutaj po wykonaniu.
+Ruleset `main — wymagaj zielonego CI`, id `21161479`, status Active, zakres: gałąź domyślna.
+Weryfikacja z linii poleceń: `gh api repos/dominik-hvln/verris/rulesets/21161479`.
 
 **Osiągnięty poziom dowodu:**
 - [ ] D1 — nie dotyczy (nie ma kodu)
 - [ ] D2 — nie dotyczy
 - [ ] D3 — nie dotyczy
-- [x] **D4 wymagane** — powtarzalna procedura z właścicielem i datą wykonania. Właściciel: PM. Data: do uzupełnienia.
+- [x] **D4** — powtarzalna procedura z właścicielem i datą. Właściciel: PM. Wykonane 2026-08-21.
 
-**Stan w macierzy po:** `BRAK` do czasu wykonania
+**Stan w macierzy po:** `DZIAŁA`
+
+Jedno zastrzeżenie do tego dowodu: reguła jest ustawiona, ale **jeszcze nie zadziałała**, bo nie było przebiegu CI. Pierwszy push pokaże, czy nazwy checków wpisane ręcznie zgadzają się co do znaku z tym, co wystawia `ci.yml`. Jeżeli się rozjadą, reguła będzie czekać w nieskończoność na check, który nigdy nie przyjdzie — i to jest jedyny realny sposób, w jaki to ustawienie może zaszkodzić. Sprawdzić przy pierwszym PR-ze.
 
 ## Czego to nadal nie robi
+
+Skany bezpieczeństwa (`Security scans (gitleaks + audit + trivy)`) **nie są wymagane** do scalenia — powód w tabeli wyżej.
 
 Chroni tylko `main`. Gałąź `live-release-readiness`, która też wyzwala wdrożenie, zostaje bez reguły — jeżeli to nadal żywa ścieżka wdrożeniowa, potrzebuje własnej reguły albo powinna zniknąć z wyzwalaczy `deploy.yml`. Do decyzji PM-a; jeżeli zostaje, wraca jako osobna pozycja.
 
@@ -90,7 +109,9 @@ Chroni tylko `main`. Gałąź `live-release-readiness`, która też wyzwala wdro
 
 Ryzyko: zablokowanie sobie merge'a w sytuacji awaryjnej. Dlatego **Include administrators** zostaje wyłączone — właściciel repozytorium może obejść regułę świadomie.
 
-Wycofanie: usunięcie reguły w tym samym miejscu.
+Ryzyko drugie, mniej oczywiste: **ta konfiguracja nie jest w repozytorium.** Nie ma jej w żadnym pliku, nie odtworzy się z kopii kodu i nie przetrwa przeniesienia repo bez ręcznego powtórzenia. Dlatego jej treść jest przepisana wyżej w tabeli — ten plik jest jedynym miejscem w repozytorium, z którego da się ją odtworzyć.
+
+Wycofanie: usunięcie rulesetu w tym samym miejscu.
 
 ## Wpływ na inne pozycje
 

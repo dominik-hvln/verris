@@ -325,6 +325,12 @@ w cenniku, nie działała, a użytkownik widział grzeczny komunikat zamiast bł
 zmienił je z 39/349, a audyt i plan nadal cytowały stare wartości. Dotyczy
 `PB-01` (unit economics) — liczy się teraz wobec właściwej liczby.
 
+**Ochrona gałęzi ustawiona (`X-02`).** Ruleset `main — wymagaj zielonego CI`, aktywny, wymaga trzech
+checków z `ci.yml`. Świadomie ruleset, nie klasyczna ochrona gałęzi — klasyczny formularz pozwala
+wybrać wyłącznie checki widziane w ciągu ostatniego tygodnia, a CI nie przebiegło jeszcze ani razu.
+Poziom dowodu D4; reguła jest ustawiona, ale jeszcze nie zadziałała, więc zgodność nazw checków
+weryfikujemy przy pierwszym PR-ze.
+
 **Nowa pozycja:** `Z-08` — przegląd istniejących subskrypcji `MANUAL`. Poprawka `Z-02`
 blokuje nowe nadużycia, ale nie mówi, czy ktoś zdążył skorzystać z luki, zanim została
 zamknięta.
