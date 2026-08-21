@@ -157,7 +157,11 @@ Blokery startu: **10 → 9**.
 
 **Główne ryzyko: fałszywe odrzucenia.** Wzorce mogą nie objąć czegoś, co u realnego dostawcy występuje. Największe podejrzenie to ścieżki z polskimi znakami albo z nawiasami. Świadomie ich nie dopuściłem — polski znak w ścieżce na serwerze FTP to rzadkość, a każde rozszerzenie allowlisty trzeba przemyśleć osobno. **Sygnał do obserwacji po starcie:** zgłoszenia „nie mogę zlecić migracji" z komunikatem o niedozwolonych znakach. Komunikat jest po polsku i mówi wprost, które znaki są dozwolone, więc powinien być rozpoznawalny w zgłoszeniu.
 
-**Ryzyko wdrożeniowe:** węzeł zaktualizowany bez `lib/` przestanie brać zlecenia migracji (fail-closed). To zachowanie zamierzone, ale w praktyce oznacza, że **przy najbliższym wdrożeniu trzeba skopiować cały katalog `ops/scripts/` z podkatalogiem**, nie same pliki `.sh`. `node-onboard-live.sh` to sprawdza i mówi wprost.
+**Ryzyko wdrożeniowe — w praktyce zerowe.** Węzeł zaktualizowany bez `lib/` przestanie brać zlecenia migracji (fail-closed). Decyzja PM-a z 2026-08-21: **węzły będą zakładane od nowa przy uruchamianiu panelu i hostingu**, a nie aktualizowane w miejscu. Znaczy to, że nie ma dziś węzła, którego ta zmiana mogłaby zepsuć, a każdy przyszły przejdzie przez `node-onboard-live.sh`, który obecność biblioteki sprawdza i przerywa z komunikatem.
+
+Instrukcje kopiowania w `node-onboard-live.sh` i `node-live-readiness.sh` zostały zmienione z listy pojedynczych plików na `scp -r ops/scripts` — lista pojedynczych plików zawsze się kiedyś rozjedzie z tym, czego skrypty naprawdę potrzebują, i to jest dokładnie ta klasa błędu, którą znaleźliśmy przy `Dockerfile.api` (pozycja `X-12`).
+
+Potwierdzenie fail-closed na żywym węźle jest w [`docs/ops/CHECKLISTA_D3_PIERWSZY_WEZEL.md`](../ops/CHECKLISTA_D3_PIERWSZY_WEZEL.md), sekcja 3.
 
 Wycofanie: usunięcie `@Matches` i przywrócenie `eval` cofa zmianę w całości. Bez migracji, bez zmian stanu.
 

@@ -12,7 +12,9 @@
 #   5. Weryfikacja końcowa LIVE (Governor, MariaDB, agent, API)
 #
 # Użycie:
-#   scp -r ops/hosting-default-page ops/scripts/{node-live-readiness,node-hosting-profile,node-verris-tasks-install,install-verris-default-page,verris-tasks,verris-task-run}.sh root@WĘZEŁ:/root/verris/
+#   scp -r ops/hosting-default-page ops/scripts root@WĘZEŁ:/root/verris/
+#   (cały katalog ops/scripts, RAZEM z podkatalogiem lib/ — worker migracji
+#    nie ruszy bez lib/migration-input-guard.sh, patrz Z-03)
 #   ssh root@WĘZEŁ 'bash /root/verris/node-live-readiness.sh'
 #
 # Opcje:

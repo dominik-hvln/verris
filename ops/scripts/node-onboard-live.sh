@@ -18,12 +18,12 @@
 #   security-hardening-baseline.sh, security-egress-lockdown.sh
 #
 # Użycie:
-#   scp -r ops/hosting-default-page \
-#     ops/scripts/{node-onboard-live,node-live-readiness,node-hosting-profile,\
-#     install-verris-default-page,node-verris-tasks-install,node-da-sync-plan-packages,\
-#     verris-tasks,verris-task-run,node-migration-worker,\
-#     security-hardening-baseline,security-egress-lockdown}.sh \
-#     root@WĘZEŁ:/root/verris/
+#   scp -r ops/hosting-default-page ops/scripts root@WĘZEŁ:/root/verris/
+#
+#   Kopiujemy CAŁY katalog ops/scripts, nie wybrane pliki. Powód: worker
+#   migracji wymaga lib/migration-input-guard.sh i bez niego startuje
+#   fail-closed (Z-03), a lista pojedynczych plików zawsze się kiedyś rozjedzie
+#   z tym, czego skrypty naprawdę potrzebują.
 #   ssh root@WĘZEŁ 'bash /root/verris/node-onboard-live.sh'
 #
 # Opcje:
