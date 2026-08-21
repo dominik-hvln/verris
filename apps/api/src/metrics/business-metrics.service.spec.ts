@@ -34,7 +34,12 @@ describe('BusinessMetricsService.business', () => {
             totalCpuCores: 10,
             totalMemoryMb: 1000,
             totalDiskMb: 1000,
-            allocatedCpu: 5,
+            // JEDNOSTKA: allocatedCpu jest w „% rdzenia" (LVE SPEED, 100 = 1 rdzeń),
+            // tak samo liczy node-selector.service.ts:109. 10 rdzeni = 1000,
+            // więc 50% floty to 500, nie 5. Poprzednia wartość zakładała rdzenie
+            // i test wychodził 0,5% — wyglądało to na błąd metryki, a było błędem
+            // w danych testowych.
+            allocatedCpu: 500,
             allocatedMemory: 250,
             allocatedDisk: 100,
             _count: { accounts: 3 },

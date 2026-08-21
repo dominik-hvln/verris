@@ -7,6 +7,10 @@ describe('UsersService.getProfile (IAM)', () => {
     user: { findUnique: jest.fn() },
     subscription: { count: jest.fn() },
     referralProgramEnrollment: { findUnique: jest.fn() },
+    // getProfile liczy passkeye (hasPasskey w profilu) — bez tej atrapy test
+    // wywala się na `Cannot read properties of undefined (reading 'count')`,
+    // co wygląda jak błąd produktu, a jest brakiem w mocku.
+    webAuthnCredential: { count: jest.fn() },
   };
 
   const service = new UsersService(
@@ -19,6 +23,7 @@ describe('UsersService.getProfile (IAM)', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    prisma.webAuthnCredential.count.mockResolvedValue(0);
     jest
       .spyOn(
         service as unknown as { ensureReferralAndBadgeTokens: () => Promise<unknown> },
@@ -64,6 +69,7 @@ describe('UsersService.getProfile (IAM)', () => {
     expect(profile.walletBalance).toBeNull();
     expect(profile.referralCode).toBeNull();
     expect(profile.customerPermissions).toEqual([CustomerPermission.TICKETS_READ]);
+    expect(profile.hasPasskey).toBe(false);
   });
 
   it('throws when principal user missing', async () => {
