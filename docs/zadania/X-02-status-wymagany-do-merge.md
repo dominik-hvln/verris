@@ -36,8 +36,18 @@ Poniżej procedura do wyklikania. Zajmuje około dwóch minut.
 3. **Add branch protection rule** (albo **Add classic branch protection rule**, zależnie od tego, co GitHub pokaże)
 4. **Branch name pattern:** `main`
 5. Zaznacz **Require status checks to pass before merging**
-6. Pod spodem pojawi się pole wyszukiwania checków. **Ono zadziała dopiero po pierwszym przebiegu CI** — GitHub podpowiada wyłącznie checki, które już kiedyś wystartowały. Dlatego kolejność jest: najpierw push gałęzi `chore/audyt-i-porzadek`, potem to ustawienie.
-   Wpisz i zaznacz check o nazwie **`build`** (job z `ci.yml`).
+6. Pod spodem pojawi się pole wyszukiwania checków. **Ono zadziała dopiero po pierwszym przebiegu CI** — GitHub podpowiada wyłącznie checki, które wystartowały w ciągu ostatniego tygodnia. Dlatego kolejność jest: najpierw push gałęzi `chore/audyt-i-porzadek`, potem to ustawienie.
+
+   `ci.yml` wystawia **cztery** checki — nazwa checku to pole `name:` joba, nie jego identyfikator:
+
+   | job w pliku | nazwa checku na GitHubie | wymagać? |
+   |---|---|---|
+   | `static-checks` | `Static checks (lint + typecheck)` | **tak** |
+   | `build` | `Build (api + panels)` | **tak** |
+   | `migrations` | `Prisma migrate deploy (smoke)` | **tak** |
+   | `security-scans` | `Security scans (gitleaks + audit + trivy)` | nie |
+
+   Skanów bezpieczeństwa świadomie nie wymagam do merge'a: `pnpm audit` i Trivy potrafią zapalić się na podatności w zależności przechodniej, na którą nie masz wpływu w dniu, w którym akurat chcesz scalić poprawkę. Mają być widoczne i czytane, nie mają blokować. Jeżeli po miesiącu okaże się, że nikt ich nie czyta — wtedy stają się wymagane.
 7. Zaznacz też **Require branches to be up to date before merging** — bez tego można scalić gałąź, która była zielona wobec starego `main`.
 8. **Create** / **Save changes**
 
