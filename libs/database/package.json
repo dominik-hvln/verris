@@ -27,7 +27,7 @@
     "bcrypt": "^6.0.0",
     "prisma": "^6.19.2",
     "ts-node": "^10.9.2",
-    "typescript": "^5.5.4"
+    "typescript": "^7.0.2"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
