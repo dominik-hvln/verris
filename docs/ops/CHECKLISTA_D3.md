@@ -1,14 +1,78 @@
-# Checklista D3 — pierwszy węzeł po uruchomieniu
+# Checklista D3 — zdobycie dowodów na żywym systemie
 
 **Po co to istnieje.** Metoda audytu ma pięć poziomów dowodu, a trzy z nich (D3, D4) da się zdobyć wyłącznie na żywym systemie. Dziś **żadna pozycja macierzy nie ma D3** — nie z zaniedbania, tylko dlatego, że nie ma na czym. Ta checklista zbiera w jednym miejscu wszystko, co trzeba sprawdzić **jednorazowo, przy pierwszym węźle**, żeby zdjąć tę lukę.
 
 Nie jest to lista życzeń. Każda pozycja odpowiada konkretnemu wierszowi macierzy, ma podane polecenie albo kliknięcie, oczekiwany wynik i miejsce, gdzie zapisać rezultat.
 
+## Stan infrastruktury (2026-08-21)
+
+Jeden serwer testowy pełniący rolę **control-plane** (panel + API). **Węzła hostingowego nie ma** — pojawi się, gdy będzie potrzebny.
+
+Dlatego checklista dzieli się na dwie części:
+
+| | Co obejmuje | Kiedy |
+|---|---|---|
+| **Część A** | To, co da się potwierdzić **na samym control-plane** | Po wdrożeniu tej gałęzi na serwer testowy — czyli od zaraz |
+| **Część B** | To, co wymaga żywego węzła z DirectAdminem | Po postawieniu pierwszego węzła |
+
+Podział nie jest kosmetyczny: **Część A zawiera dwa z trzech ustaleń bezpieczeństwa ze sprintów 1–2**. Nie ma powodu, żeby czekały na węzeł.
+
 > **Dlaczego to jest ważne akurat tutaj.** 2026-08-21 okazało się, że trzy rodzaje zadań agenta (`PHP_APPLY`, `APP_INSTALL`, `OFFSITE_RESTORE`) nie mogły się wykonać na produkcji, bo skryptów nie było w obrazie — przy zielonych testach, zielonym buildzie i zielonym typechecku. Pozycja `B-01` miała w macierzy stan `DZIAŁA`. To był najczystszy możliwy przykład tego, czego D1 i D2 nie potrafią udowodnić.
 
 ---
 
-## 0. Zanim zaczniesz
+# CZĘŚĆ A — control-plane, bez węzła
+
+Wymaga tylko wdrożenia tej gałęzi na serwer testowy panelu.
+
+## A1. Skrypty zadań agenta są w obrazie
+
+Endpointów `/agent/tasks/*/script` nie da się zawołać bez zarejestrowanego węzła (uwierzytelniają się tokenem tożsamości). Ale samą przyczynę awarii — brak pliku w obrazie — widać z control-plane:
+
+```bash
+docker exec $(docker ps -qf name=api) ls -la ops/scripts/
+```
+
+**Oczekiwane:** dziesięć plików, w tym `node-php-apply.sh`, `node-app-install.sh` i `node-account-restore.sh`. To potwierdza `X-12` na tyle, na ile da się bez węzła; pełne D3 (odpowiedź `200` z endpointu) zostaje w Części B.
+
+## A2. `Z-02` — zamówienie usługi bez opłaty
+
+| Co zrobić | Oczekiwany wynik |
+|---|---|
+| Z konta klienta `POST /subscriptions` z `paymentSource: "MANUAL"` | `400`, komunikat „Niedozwolone źródło płatności dla zamówienia klienta" |
+| To samo z `WALLET` przy pustym portfelu | Odrzucone z powodu **braku środków**, nie z powodu źródła |
+| Jedenaście zamówień pod rząd w ciągu godziny | Jedenaste odrzucone przez limit tempa (10/h) |
+
+Drugi wiersz jest ważniejszy, niż wygląda: potwierdza, że poprawka nie zablokowała poprawnej ścieżki zakupu.
+
+## A3. `Z-04` — uprawnienia subkonta
+
+Załóż subkonto z **jedynym** uprawnieniem `TICKETS_READ`.
+
+| Co zrobić | Oczekiwany wynik |
+|---|---|
+| `GET /tickets` | `200` — subkonto robi to, do czego ma prawo |
+| `POST /addons/purchase` | `403` |
+| `POST /vps` | `403` |
+| `POST /me/account-deletion` | `403`, komunikat „dostępne wyłącznie dla właściciela konta" |
+| To samo konto po nadaniu `BILLING_MANAGE`: `POST /addons/purchase` | Przechodzi |
+
+Ostatni wiersz sprawdza, że uprawnienia w ogóle coś otwierają — bez niego test dowodzi tylko, że wszystko jest zablokowane.
+
+## A4. `Z-03` — walidacja formularza migracji (część bez węzła)
+
+| Co zrobić | Oczekiwany wynik |
+|---|---|
+| Zleć migrację z nazwą bazy `test;whoami` | Formularz odrzuca, komunikat o niedozwolonych znakach |
+| Zleć migrację ze ścieżką `/home/klient/public_html` | Przechodzi walidację |
+
+Samego przebiegu migracji nie da się sprawdzić bez węzła — to Część B.
+
+---
+
+# CZĘŚĆ B — wymaga węzła
+
+## B0. Zanim zaczniesz
 
 **Kopiuj cały katalog, nie wybrane pliki:**
 
@@ -23,7 +87,7 @@ Onboarding uruchamia po drodze `node-live-readiness.sh`, który pokrywa warstwę
 
 ---
 
-## 1. Skrypty zadań agenta wracają z API
+## B1. Skrypty zadań agenta wracają z API
 
 Trzy endpointy, które do 2026-08-21 zwracały 500 w obrazie produkcyjnym. Sprawdzenie zajmuje pół minuty i zamyka `X-12` na poziomie D3.
 
@@ -46,7 +110,7 @@ done
 
 ---
 
-## 2. Funkcje, które zależały od tych skryptów
+## B2. Funkcje, które zależały od tych skryptów
 
 | ID | Co zrobić | Oczekiwany wynik |
 |---|---|---|
@@ -60,26 +124,20 @@ done
 
 ---
 
-## 3. Pozycje bezpieczeństwa z sprintu 1–2
+## B3. Pozycje bezpieczeństwa wymagające węzła
 
-Wszystkie trzy mają D2, żadna nie ma D3. Każda dotyczy pieniędzy albo dostępu, więc D3 jest **wymagane**, nie opcjonalne.
+`Z-02` i `Z-04` są w Części A — nie potrzebują węzła. Tutaj zostaje reszta `Z-03`.
 
 | ID | Co zrobić | Oczekiwany wynik |
 |---|---|---|
-| `Z-02` | Z konta klienta wyślij `POST /subscriptions` z `paymentSource: "MANUAL"` | `400` z komunikatem „Niedozwolone źródło płatności dla zamówienia klienta" |
-| `Z-02` | To samo z `WALLET` przy pustym portfelu | Odrzucone z powodu braku środków, **nie** z powodu źródła — czyli walidacja nie blokuje poprawnej ścieżki |
-| `Z-03` | Zleć migrację z nazwą bazy `test;whoami` | Formularz odrzuca, komunikat o niedozwolonych znakach |
 | `Z-03` | Zleć **prawdziwą** migrację z poprawnymi danymi | Przechodzi do końca — walidacja nie może blokować normalnej pracy |
 | `Z-03` | Na węźle: `mv /usr/local/sbin/verris-migration-guard.sh /root/ && verris-migration-worker once; echo $?` | `78`, żadne zlecenie nie zostało pobrane. **Przywróć plik po teście.** |
-| `Z-04` | Załóż subkonto z jedynym uprawnieniem `TICKETS_READ` | `GET /tickets` działa |
-| `Z-04` | Tym samym subkontem: `POST /addons/purchase` | `403` |
-| `Z-04` | Tym samym subkontem: `POST /me/account-deletion` | `403` z komunikatem „dostępne wyłącznie dla właściciela konta" |
 
-Test `Z-03` z przeniesieniem guarda jest jedynym, który celowo psuje węzeł. Zajmuje kilkanaście sekund i jest jedynym sposobem, żeby potwierdzić, że fail-closed naprawdę działa, a nie tylko tak wygląda w kodzie.
+Drugi wiersz jest jedynym testem, który celowo psuje węzeł. Zajmuje kilkanaście sekund i jest jedynym sposobem, żeby potwierdzić, że fail-closed naprawdę działa, a nie tylko tak wygląda w kodzie.
 
 ---
 
-## 4. Migracja od konkurencji — pełny przebieg
+## B4. Migracja od konkurencji — pełny przebieg
 
 Jedyna funkcja, która dotyka jednocześnie plików, bazy i poczty na obcym serwerze. Warto ją przejść w całości na koncie testowym u realnego dostawcy (choćby najtańszy pakiet na miesiąc).
 
@@ -91,7 +149,9 @@ Jedyna funkcja, która dotyka jednocześnie plików, bazy i poczty na obcym serw
 
 ---
 
-## 5. Co zapisać i gdzie
+---
+
+## Co zapisać i gdzie (dotyczy obu części)
 
 Dla każdej potwierdzonej pozycji:
 

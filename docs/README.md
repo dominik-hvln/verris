@@ -11,7 +11,7 @@ Uporządkowana 2026-08-21, po audycie parytetu funkcji. Wcześniej w korzeniu re
 | Dlaczego zadanie Y zrobiono właśnie tak? | `docs/zadania/<ID>-*.md` |
 | Co się wydarzyło w sprincie N? | `docs/sprinty/SPRINT-NN.md` |
 | Jak coś wdrożyć albo naprawić na produkcji? | `DEPLOY.md` w korzeniu, dalej `docs/ops/` |
-| Co sprawdzić na pierwszym węźle, żeby zdobyć dowód D3? | `docs/ops/CHECKLISTA_D3_PIERWSZY_WEZEL.md` |
+| Co sprawdzić na żywym systemie, żeby zdobyć dowód D3? | `docs/ops/CHECKLISTA_D3.md` |
 | Dlaczego architektura wygląda tak, a nie inaczej? | `docs/architektura/` |
 | Jak było kiedyś? | `docs/archiwum/` — **nic stamtąd nie jest aktualne** |
 

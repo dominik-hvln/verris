@@ -161,7 +161,7 @@ Blokery startu: **10 → 9**.
 
 Instrukcje kopiowania w `node-onboard-live.sh` i `node-live-readiness.sh` zostały zmienione z listy pojedynczych plików na `scp -r ops/scripts` — lista pojedynczych plików zawsze się kiedyś rozjedzie z tym, czego skrypty naprawdę potrzebują, i to jest dokładnie ta klasa błędu, którą znaleźliśmy przy `Dockerfile.api` (pozycja `X-12`).
 
-Potwierdzenie fail-closed na żywym węźle jest w [`docs/ops/CHECKLISTA_D3_PIERWSZY_WEZEL.md`](../ops/CHECKLISTA_D3_PIERWSZY_WEZEL.md), sekcja 3.
+Potwierdzenie fail-closed na żywym węźle jest w [`docs/ops/CHECKLISTA_D3.md`](../ops/CHECKLISTA_D3.md) — walidacja formularza w części A, pełny przebieg i test fail-closed w części B.
 
 Wycofanie: usunięcie `@Matches` i przywrócenie `eval` cofa zmianę w całości. Bez migracji, bez zmian stanu.
 
