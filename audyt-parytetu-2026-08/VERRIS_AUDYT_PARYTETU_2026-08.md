@@ -119,9 +119,11 @@ Uczciwość działa w obie strony. Szesnaście pozycji z pierwotnej listy bloker
 
 ## 4. Ustalenia strukturalne
 
-### 4.1. CI nie istnieje — dowód D2 wynosi zero dla całego produktu
+### 4.1. Testy nie uruchamiają się nigdzie — dowód D2 wynosi zero dla całego produktu
 
-Katalog `.github` nie istnieje. Nie ma `.gitlab-ci.yml`, `Jenkinsfile`, `.circleci` ani `.husky`. Skrypt wdrożeniowy nie wywołuje `pnpm test` — health-gate po wdrożeniu sprawdza `/health`, nie testy.
+> **SPROSTOWANIE (2026-08-21).** Pierwotny tytuł tej sekcji brzmiał „CI nie istnieje", a pierwsze zdanie mówiło, że katalog `.github` nie istnieje. **To był mój błąd** — katalog wypadł z archiwum źródeł, na którym prowadziłem analizę, i wziąłem to za brak w repozytorium. `.github/workflows/ci.yml` istniał i był sensowny. Wniosek liczbowy (D2 = 0%) pozostaje w mocy, ale z innego powodu: workflow chodził wyłącznie na `main` i `master`, podczas gdy praca toczy się na `feature/support-v2` — gałęzi 301 commitów do przodu. Był poprawny i nie uruchomił się ani razu. Naprawione tego samego dnia, szczegóły w sekcji „Aktualizacje po publikacji". Reszta tej sekcji — o kształcie i pokryciu samych testów — jest niezmieniona i nadal aktualna.
+
+`.github/workflows/ci.yml` istnieje (typecheck, testy API, build, smoke migracji Prisma, gitleaks, `pnpm audit`, Trivy, dependabot), ale przed 2026-08-21 uruchamiał się wyłącznie na `main`/`master`, czyli nigdy. Skrypt wdrożeniowy nie wywołuje `pnpm test` — health-gate po wdrożeniu sprawdza `/health`, nie testy.
 
 W repozytorium jest 36 plików testowych i **nikt ich nie uruchamia automatycznie**. Kilka jest naprawdę dobrych: prorata zmiany planu (7 przypadków, cross-interval), kredyty SLA (15 przypadków wobec progów §15), weryfikacja podpisu webhooka Stripe, budowa XML FA(3) (13 przypadków). Ta praca jest niewidoczna dla procesu.
 
@@ -272,3 +274,59 @@ Odzyskanie funkcji-widm: podpięcie edytora DNS, panelu dostarczalności, użytk
 **Metoda:** [phuryn/pm-skills — intended-vs-implemented](https://github.com/phuryn/pm-skills) · [alirezarezvani/claude-skills — competitive-teardown](https://github.com/alirezarezvani/claude-skills) · [product-on-purpose/pm-skills](https://github.com/product-on-purpose/pm-skills) · [obra/superpowers — verification-before-completion](https://github.com/obra/superpowers)
 
 **Verris:** repozytorium `ekohost`, stan na 2026-08-20.
+
+---
+
+## Aktualizacje po publikacji
+
+Raport jest narracją z 20 sierpnia i nie jest przepisywany. Stan bieżący trzyma
+`audyt/dane/macierz.csv`. Poniżej wyłącznie to, co zmienia wnioski raportu.
+
+### 2026-08-21 — sprint 1
+
+**Zamknięty jeden z sześciu ustaleń krytycznych.** `Z-02` — „dowolne konto może zamówić
+hosting za 0 zł" — jest naprawione dwuwarstwowo i przykryte ośmioma testami
+(commit `fcf58db`, [`docs/zadania/Z-02-…`](../docs/zadania/Z-02-blokada-zamowienia-uslugi-bez-oplaty.md)).
+Blokerów startu: **11 → 10**. Pozostałe pięć ustaleń krytycznych bez zmian.
+
+**Sprostowanie dwóch twierdzeń raportu.**
+
+1. **„CI nie istnieje, D2 = 0% dla całego produktu"** — nieprawda i to mój błąd.
+   `.github/workflows/ci.yml` istniał i był sensowny (typecheck, testy API, build,
+   smoke migracji Prisma, gitleaks, `pnpm audit`, Trivy, dependabot). Katalog `.github`
+   wypadł z archiwum źródeł, na którym prowadziłem analizę, a raport podagenta
+   „nie ma tego w archiwum" odczytałem jako „nie ma tego w repozytorium".
+   **Ustalenie po korekcie jest inne i ciekawsze:** CI chodziło wyłącznie na `main`
+   i `master`, podczas gdy praca toczy się na `feature/support-v2` — gałęzi
+   301 commitów do przodu. Workflow był poprawny i nie uruchomił się ani razu.
+   Wniosek o D2 = 0% pozostaje w mocy; przyczyna jest zupełnie inna, a naprawa
+   to trzy linie w wyzwalaczu, nie nowy plik CI.
+
+2. **„27 testów na czerwono"** — zawyżone przez moje środowisko. Klient Prismy nie
+   generuje się w kontenerze audytu (`binaries.prisma.sh` zwraca 403), więc pracuję
+   na atrapie `@verris/database`. Atrapa miała ubogi `Decimal` i `PrismaClientKnownRequestError`
+   bez pola `code`, co wywracało całe zestawy. Po jej uzupełnieniu czerwone były **trzy**
+   przypadki, wszystkie naprawione (commit `55ab558`): nieaktualne oczekiwanie RBAC,
+   brakujący mock passkeyów i zła jednostka CPU w danych testowych.
+   **Stan faktyczny zastany: 37 zestawów, 194 testy, po naprawie wszystkie zielone.**
+
+**Siedem pozycji przeklasyfikowanych z defektu na niedokończoną pracę.** `B-02`, `D-04`–`D-07`,
+`D-11`, `E-14` miały w macierzy stan `ATRAPA` — interfejs wołał adres, którego nie
+rejestrował żaden kontroler. Przyczyną nie był martwy kod ani porzucona funkcja, tylko
+miesiąc niezacommitowanej pracy z 25–26 lipca. Brakujące siedem tras dopisano, całość
+zacommitowano (`6f2833d`) i przykryto testem obejmującym **całą klasę tego błędu**
+(`apps/api/src/test/ui-routes-coverage.spec.ts`). Wszystkie siedem: `DZIAŁA` / `PARYTET`.
+
+Warto zauważyć, dlaczego tego nikt nie zgłaszał: `D-11` (auto-logowanie do phpMyAdmina)
+miało po stronie frontu cichy fallback „Auto-logowanie niedostępne". Funkcja była
+w cenniku, nie działała, a użytkownik widział grzeczny komunikat zamiast błędu.
+
+**Ceny w danych planu poprawione na 45 zł/mies i 399 zł/rok brutto.** Commit `7109c78`
+zmienił je z 39/349, a audyt i plan nadal cytowały stare wartości. Dotyczy
+`PB-01` (unit economics) — liczy się teraz wobec właściwej liczby.
+
+**Nowa pozycja:** `Z-08` — przegląd istniejących subskrypcji `MANUAL`. Poprawka `Z-02`
+blokuje nowe nadużycia, ale nie mówi, czy ktoś zdążył skorzystać z luki, zanim została
+zamknięta.
+
+Pełne podsumowanie: [`docs/sprinty/SPRINT-01.md`](../docs/sprinty/SPRINT-01.md).

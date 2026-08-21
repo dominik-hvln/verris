@@ -9,9 +9,9 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **2642 h** — przy 30 h tygodniowo około **20 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **2648 h** — przy 30 h tygodniowo około **21 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **19 sprintów do startu** (540 h) oraz roadmapę po starcie (2102 h, 134 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **19 sprintów do startu** (540 h) oraz roadmapę po starcie (2108 h, 135 pozycji) rozpisaną na epiki kwartalne.
 
 - **2026-10-16** — koniec sprintu 8, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-01-01** — koniec sprintu 19, decyzja GO.
@@ -42,22 +42,22 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `X-01` | CI uruchamiające testy | 6 | WYSOKA | katalog .github NIE ISTNIEJE; brak .gitlab-ci, Jenkinsfile, .circleci, .husky |
-| `X-02` | Status wymagany do merge | 6 | WYSOKA | brak CI |
-| `X-03` | Testy uruchamiane przed wdrożeniem | 6 | WYSOKA | prod-deploy-ghcr.sh — zero wywołań pnpm test |
-| `Z-02` | Blokada zamówienia usługi bez opłaty przez klienta | 6 | BLOKER STARTU | subscriptions.controller.ts:29-30 (tylko JwtAuthGuard, zero @Roles) + :97 @Post(); dto/subscription.dto.ts:48 @IsEnum przyjmuje MANUAL; subscriptions. |
-| `PB-01` | Unit economics węzła vs cena 39 zł/mies. | 8 | BLOKER BIZNESOWY | Policzyć pełny koszt węzła: serwer + CloudLinux + LiteSpeed + DirectAdmin + Imunify + backup S3 + amortyzacja wsparcia. Wyliczyć próg rentowności w ko |
+| `X-01` | CI uruchamiające testy | 6 | — | .github/workflows/ci.yml — typecheck, testy API, build, smoke migracji Prisma, gitleaks, pnpm audit, Trivy, dependabot |
+| `X-02` | Status wymagany do merge | 6 | WYSOKA | ustawienie po stronie GitHuba (Settings → Branches → Add rule), nie da się go zapisać w repo |
+| `X-03` | Testy uruchamiane przed wdrożeniem | 6 | WYSOKA | .github/workflows/deploy.yml — job test-gate (typecheck + pnpm --filter api test), build-push ma needs: test-gate |
+| `Z-02` | Blokada zamówienia usługi bez opłaty przez klienta | 6 | — | dto/subscription.dto.ts — @IsIn(CLIENT_PAYMENT_SOURCES); subscriptions.service.ts — ForbiddenException dla MANUAL bez allowManual; test subscriptions. |
+| `PB-01` | Unit economics węzła vs cena 45 zł/mies. brutto (399 zł/rok) | 8 | BLOKER BIZNESOWY | Policzyć pełny koszt węzła: serwer + CloudLinux + LiteSpeed + DirectAdmin + Imunify + backup S3 + amortyzacja wsparcia. Wyliczyć próg rentowności w ko |
 
 **Definicja ukończenia**
 
-- `X-01` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `X-01` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `X-02` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `X-03` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `X-03` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `Z-02` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `PB-01` — Arkusz z kosztem miesięcznym węzła, liczbą kont na węzeł, marżą jednostkową i progiem rentowności. Decyzja: cena zostaje albo się zmienia — zapisana w repo.
+- `PB-01` — 59 zł netto).
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-01.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** PB-01 może wywrócić cenę 39 zł. Dlatego jest w pierwszym sprincie, a nie w ostatnim — wynik zmienia treść cennika w sprincie 15.
+**Ryzyko sprintu.** PB-01 może wywrócić cenę 45 zł. Dlatego jest w pierwszym sprincie, a nie w ostatnim — wynik zmienia treść cennika w sprincie 15.
 
 ## Sprint 2 — Zamknąć luki bezpieczeństwa z passu adwersaryjnego
 
@@ -202,19 +202,19 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `D-04` | Dodatkowy użytkownik bazy — utworzenie | 6 | WYSOKA | hosting-db-users-actions.ts:25 → brak trasy |
-| `D-05` | Użytkownik bazy — usunięcie | 6 | WYSOKA | hosting-db-users-actions.ts:43 → brak trasy |
-| `D-06` | Użytkownik bazy — zmiana hasła | 6 | WYSOKA | hosting-db-users-actions.ts:60 → brak trasy |
-| `D-07` | Użytkownik bazy — lista | 6 | WYSOKA | hosting-db-users-actions.ts:14 → brak trasy |
-| `D-11` | phpMyAdmin — auto-logowanie (SSO) | 6 | WYSOKA | hosting-sso-actions.ts:16 → brak trasy hosting-sso-url |
+| `D-04` | Dodatkowy użytkownik bazy — utworzenie | 6 | — | services.controller.ts — POST /services/:id/hosting-db-users; serwis directadmin.service.ts:1900 |
+| `D-05` | Użytkownik bazy — usunięcie | 6 | — | services.controller.ts — POST /services/:id/hosting-db-users/remove; serwis directadmin.service.ts:1925 |
+| `D-06` | Użytkownik bazy — zmiana hasła | 6 | — | services.controller.ts — POST /services/:id/hosting-db-users/password; serwis directadmin.service.ts:1945 |
+| `D-07` | Użytkownik bazy — lista | 6 | — | services.controller.ts — GET /services/:id/hosting-db-users |
+| `D-11` | phpMyAdmin — auto-logowanie (SSO) | 6 | — | services.controller.ts — POST /services/:id/hosting-sso-url; directadmin.service.ts:1977 |
 
 **Definicja ukończenia**
 
-- `D-04` — Kontroler rejestruje trasę, którą woła panel; kliknięcie kończy się realnym efektem, nie 404. Test pokrywa ścieżkę UI→API→zasób.
-- `D-05` — Kontroler rejestruje trasę, którą woła panel; kliknięcie kończy się realnym efektem, nie 404. Test pokrywa ścieżkę UI→API→zasób.
-- `D-06` — Kontroler rejestruje trasę, którą woła panel; kliknięcie kończy się realnym efektem, nie 404. Test pokrywa ścieżkę UI→API→zasób.
-- `D-07` — Kontroler rejestruje trasę, którą woła panel; kliknięcie kończy się realnym efektem, nie 404. Test pokrywa ścieżkę UI→API→zasób.
-- `D-11` — Kontroler rejestruje trasę, którą woła panel; kliknięcie kończy się realnym efektem, nie 404. Test pokrywa ścieżkę UI→API→zasób.
+- `D-04` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `D-05` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `D-06` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `D-07` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `D-11` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-09.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
 **Ryzyko sprintu.** Pięć pozycji, jeden kontroler. Najlepszy stosunek wartości do pracy w całym planie.
@@ -227,15 +227,15 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 |---|---|---|---|---|
 | `F-01` | Edytor rekordów DNS (A/CNAME/MX/TXT) | 6 | WYSOKA | dns-manager.tsx:79,91 — komponent osierocony; dns/page.tsx:15 przekierowuje gdzie indziej |
 | `F-02` | Rekordy SRV / CAA | 6 | WYSOKA | j.w. |
-| `E-14` | Webmail — auto-logowanie (SSO) | 6 | WYSOKA | MailTab.tsx:68 → brak trasy; fallback :81 |
-| `B-02` | Zmiana wersji PHP per domena | 6 | WYSOKA | php-actions.ts:56 → brak trasy hosting-domain-php |
+| `E-14` | Webmail — auto-logowanie (SSO) | 6 | — | services.controller.ts — POST /services/:id/hosting-sso-url (wspólna trasa z D-11); MailTab.tsx:68 |
+| `B-02` | Zmiana wersji PHP per domena | 6 | — | services.controller.ts — GET/POST /services/:id/hosting-domain-php; directadmin.service.ts:2058 |
 
 **Definicja ukończenia**
 
 - `F-01` — Kontroler rejestruje trasę, którą woła panel; kliknięcie kończy się realnym efektem, nie 404. Test pokrywa ścieżkę UI→API→zasób.
 - `F-02` — Kontroler rejestruje trasę, którą woła panel; kliknięcie kończy się realnym efektem, nie 404. Test pokrywa ścieżkę UI→API→zasób.
-- `E-14` — Kontroler rejestruje trasę, którą woła panel; kliknięcie kończy się realnym efektem, nie 404. Test pokrywa ścieżkę UI→API→zasób.
-- `B-02` — Kontroler rejestruje trasę, którą woła panel; kliknięcie kończy się realnym efektem, nie 404. Test pokrywa ścieżkę UI→API→zasób.
+- `E-14` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `B-02` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-10.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
 **Ryzyko sprintu.** Trasa hosting-sso-url nie istnieje w API — to nowy endpoint, nie podpięcie istniejącego. Nie mylić z SSO admina do węzłów, które działa. Import i eksport bazy świadomie zostaje w epiku E-01 po starcie — phpMyAdmin z działającym SSO załatwia ten scenariusz na start.
@@ -431,14 +431,14 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 # Po starcie — roadmapa kwartalna
 
-134 pozycji, 2102 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
+135 pozycji, 2108 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
 
 | ID | Epik | Priorytet | Kwartał | Pozycji | h | Dlaczego teraz, a nie wcześniej |
 |---|---|---|---|---|---|---|
 | `E-01` | Runtime, pliki i diagnostyka | WYSOKI | Q1 2027 | 31 | 412 | Najczęstsze źródło zgłoszeń w pierwszych miesiącach każdego hostingu. Logi WWW ma pięć z pięciu badanych hostingów PL — bez nich klient nie zdiagnozuje własnej strony i pisze do nas. |
 | `E-02` | Wydajność: cache i skalowanie | WYSOKI | Q1 2027 | 9 | 126 | Trzy z pięciu hostingów PL dają Redis w cenie. Przy pozycjonowaniu na WordPressa to nie dodatek, tylko oczekiwanie. |
 | `E-12` | Backup: granularność i retencja | WYSOKI | Q1 2027 | 7 | 116 | cyber_Folks daje 28 dni, seohost do 60. Nasze 30 dni jest w normie, ale granularność odtwarzania jest poniżej rynku. |
-| `E-14` | Rozliczenia: dokończenie | WYSOKI | Q1 2027 | 8 | 98 | Z-07 z macierzy: klient płacący portfelem doładowuje saldo w karencji i i tak zostaje zawieszony. Pierwszy taki przypadek to stracony klient. |
+| `E-14` | Rozliczenia: dokończenie | WYSOKI | Q1 2027 | 9 | 104 | Z-07 z macierzy: klient płacący portfelem doładowuje saldo w karencji i i tak zostaje zawieszony. Pierwszy taki przypadek to stracony klient. |
 | `E-15` | Wsparcie i ops: kolejka abuse | WYSOKI | Q1 2027 | 7 | 80 | Sprint 12 daje możliwość zatrzymania szkody. Ten epik daje proces, który skaluje się dalej niż jedna osoba. |
 | `E-03` | WordPress Toolkit | WYSOKI | Q2 2027 | 10 | 168 | Cztery z pięciu hostingów PL mają automatyczne aktualizacje WordPressa. Staging już mamy i jest przewagą — reszta toolkitu ją domyka. |
 | `E-04` | Domeny jako produkt | WYSOKI | Q2 2027 | 10 | 110 | Backend jest gotowy i wyłączony brakiem konfiguracji. Domena to najczęstszy pierwszy zakup i naturalny punkt wejścia. |
@@ -465,7 +465,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 - **E-11 DNS: DNSSEC i zarządzanie strefą** (62 h) — DNSSEC, zmiana TTL, Anycast DNS, pełne zarządzanie strefą po podpięciu edytora w sprincie 10.
 - **E-12 Backup: granularność i retencja** (116 h) — Odtworzenie pojedynczego pliku, podgląd zawartości archiwum przed odtworzeniem, pobranie kopii lokalnie, retencja 28+ dni w cenie.
 - **E-13 Automatyzacja: API zapisu i webhooki** (108 h) — Rozszerzenie publicznego API o operacje zapisu, webhooki dla klienta, edycja crona, cron z wyborem wersji PHP, podgląd wyniku wykonania.
-- **E-14 Rozliczenia: dokończenie** (98 h) — Ponowienie płatności portfelem w karencji, waluty obce z przeliczeniem VAT, proforma, dodanie karty niezależnie od zakupu, eksport CSV.
+- **E-14 Rozliczenia: dokończenie** (104 h) — Ponowienie płatności portfelem w karencji, waluty obce z przeliczeniem VAT, proforma, dodanie karty niezależnie od zakupu, eksport CSV.
 - **E-15 Wsparcie i ops: kolejka abuse** (80 h) — Pełna kolejka obsługi nadużyć z encją zgłoszenia, terminami i śladem audytowym, ogłoszenia i okna serwisowe z panelu, feature flagi.
 - **E-16 Rozszerzenia oferty** (64 h) — VPS: konsola, snapshoty, rebuild. Panel mobilny. Kreator stron — dokończyć albo usunąć 1612 zakomentowanych linii.
 

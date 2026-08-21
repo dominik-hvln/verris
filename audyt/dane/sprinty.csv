@@ -1,5 +1,5 @@
 sprint,cel,pozycje_audytu,zadania_pb,ryzyko
-1,Zatrzymać krwawienie i włączyć CI,X-01;X-02;X-03;Z-02,PB-01,"PB-01 może wywrócić cenę 39 zł. Dlatego jest w pierwszym sprincie, a nie w ostatnim — wynik zmienia treść cennika w sprincie 15."
+1,Zatrzymać krwawienie i włączyć CI,X-01;X-02;X-03;Z-02,PB-01,"PB-01 może wywrócić cenę 45 zł. Dlatego jest w pierwszym sprincie, a nie w ostatnim — wynik zmienia treść cennika w sprincie 15."
 2,Zamknąć luki bezpieczeństwa z passu adwersaryjnego,Z-04;Z-03;Z-06,,"Z-03 dotyka skryptów na węźle — zmiana wymaga przetestowania całej ścieżki migracji, nie tylko walidacji DTO."
 3,Odporność płatności i porządek w fakturach,Z-05;M-08;C-18,,"Z-05 wymaga przeniesienia zapisu zdarzenia do tej samej transakcji co handler. Przy okazji sprawdzić, czy inne webhooki nie mają tego samego wzorca."
 4,Faktura dla każdej płatności — część 1,Z-01:30,,"Największa pojedyncza pozycja w planie i zmiana architektoniczna: wszystkie obciążenia portfela muszą przechodzić przez InvoicesService. Jeśli ma się rozjechać, rozjedzie się tutaj."
