@@ -1865,6 +1865,249 @@ export class DirectAdminService {
     return { ok: true as const };
   }
 
+  /* ===================== SPRINT-1a: użytkownicy baz MySQL ===================== */
+
+  /** Resolves the subscription's hosting account and a DA client for it. */
+  private async accountClientForSubscription(subscriptionId: string, userId: string) {
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id: subscriptionId, userId },
+      include: { account: true },
+    });
+    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub.account?.id || !sub.account.daPasswordEnc) {
+      throw new BadRequestException('Konto hostingowe nie jest jeszcze gotowe.');
+    }
+    const client = await this.getClientForHostingAccount(sub.account.id, userId);
+    return { sub, account: sub.account, client };
+  }
+
+  /** Lista użytkowników przypisanych do bazy (pełne, prefiksowane nazwy). */
+  async listHostingDbUsers(subscriptionId: string, userId: string, db: string) {
+    const dbName = String(db || '').trim();
+    if (!dbName) throw new BadRequestException('Brak nazwy bazy.');
+    try {
+      const { client } = await this.accountClientForSubscription(subscriptionId, userId);
+      const users = await client.listDbUsers(dbName);
+      return { users, fetchError: null as string | null };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`listHostingDbUsers sub=${subscriptionId} db=${dbName}: ${msg}`);
+      return { users: [] as string[], fetchError: msg };
+    }
+  }
+
+  /** Dodaje dodatkowego użytkownika do istniejącej bazy. */
+  async createHostingDbUser(
+    subscriptionId: string,
+    userId: string,
+    input: { db: string; user: string; password: string },
+  ): Promise<{ username: string }> {
+    const dbName = String(input.db || '').trim();
+    if (!dbName) throw new BadRequestException('Brak nazwy bazy.');
+    if (!/^[a-zA-Z0-9_]{1,16}$/.test(input.user || '')) {
+      throw new BadRequestException('Nazwa użytkownika: 1–16 znaków (litery, cyfry, _).');
+    }
+    if (!input.password || input.password.length < 8) {
+      throw new BadRequestException('Hasło musi mieć co najmniej 8 znaków.');
+    }
+    const { account, client } = await this.accountClientForSubscription(subscriptionId, userId);
+    const result = await client.createDbUser(dbName, input.user, input.password);
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_DB_USER_CREATED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, accountId: account.id, db: dbName, dbUser: result.username },
+    });
+    return result;
+  }
+
+  /** Usuwa użytkownika bazy (pełna, prefiksowana nazwa). */
+  async deleteHostingDbUser(
+    subscriptionId: string,
+    userId: string,
+    input: { db: string; user: string },
+  ): Promise<{ ok: true }> {
+    const dbName = String(input.db || '').trim();
+    const dbUser = String(input.user || '').trim();
+    if (!dbName || !dbUser) throw new BadRequestException('Brak bazy lub użytkownika.');
+    const { account, client } = await this.accountClientForSubscription(subscriptionId, userId);
+    await client.deleteDbUser(dbName, dbUser);
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_DB_USER_DELETED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, accountId: account.id, db: dbName, dbUser },
+    });
+    return { ok: true as const };
+  }
+
+  /** Zmienia hasło użytkownika bazy (pełna, prefiksowana nazwa). */
+  async changeHostingDbUserPassword(
+    subscriptionId: string,
+    userId: string,
+    input: { db: string; user: string; password: string },
+  ): Promise<{ ok: true }> {
+    const dbName = String(input.db || '').trim();
+    const dbUser = String(input.user || '').trim();
+    if (!dbName || !dbUser) throw new BadRequestException('Brak bazy lub użytkownika.');
+    if (!input.password || input.password.length < 8) {
+      throw new BadRequestException('Hasło musi mieć co najmniej 8 znaków.');
+    }
+    const { account, client } = await this.accountClientForSubscription(subscriptionId, userId);
+    await client.setDbUserPassword(dbName, dbUser, input.password);
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_DB_USER_PASSWORD_CHANGED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, accountId: account.id, db: dbName, dbUser },
+    });
+    return { ok: true as const };
+  }
+
+  /* ===================== SPRINT-1c: auto-logowanie (one-time SSO URL) ===================== */
+
+  /**
+   * Tworzy jednorazowy adres auto-logowania do panelu hostingu (DA) dla konta
+   * subskrypcji. `target` steruje miejscem docelowym po zalogowaniu:
+   *  - `phpmyadmin` → SSO phpMyAdmin (`/CMD_PMA/`, wymaga one_click_pma_login=1 na węźle),
+   *  - `webmail`    → lista skrzynek w Evolution (przycisk 1-klik webmaila),
+   *  - `panel`      → pulpit panelu hostingu.
+   * URL jest ważny 2 minuty i działa jeden raz; tworzenie jest audytowane.
+   */
+  async createHostingSsoUrl(
+    subscriptionId: string,
+    userId: string,
+    target: 'phpmyadmin' | 'webmail' | 'panel',
+  ): Promise<{ url: string }> {
+    const redirects: Record<'phpmyadmin' | 'webmail' | 'panel', string> = {
+      phpmyadmin: '/CMD_PMA/',
+      webmail: '/evo/user/email/accounts',
+      panel: '/',
+    };
+    const redirectUrl = redirects[target];
+    if (!redirectUrl) throw new BadRequestException('Nieznany cel logowania.');
+    const { account, client } = await this.accountClientForSubscription(subscriptionId, userId);
+    const url = await client.createOneTimeLoginUrl({ redirectUrl, expiry: '2m' });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_SSO_URL_CREATED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, accountId: account.id, target },
+    });
+    return { url };
+  }
+
+  /* ===================== FALA-2b: wersja PHP per domena ===================== */
+
+  /** Sprawdza, że `domain` jest jedną z domen konta subskrypcji. */
+  private async assertDomainOwnedBySubscription(
+    subscriptionId: string,
+    userId: string,
+    domain: string,
+  ): Promise<string> {
+    const wanted = String(domain || '').trim().toLowerCase();
+    if (!wanted) throw new BadRequestException('Brak domeny.');
+    const res = await this.listHostingDomainsForSubscription(subscriptionId, userId);
+    const names = res.domains.map((d) => d.name.toLowerCase());
+    if (!names.includes(wanted)) {
+      throw new BadRequestException('Domena nie należy do tej usługi.');
+    }
+    return wanted;
+  }
+
+  /**
+   * Stan wyboru PHP per domena: mapa slotów (platform-setting `php.slotReleases`,
+   * odpowiada phpN_release z options.conf CustomBuild) + best-effort odczyt
+   * bieżącego slotu domeny z DA. Gdy odczyt się nie uda, `currentSlot=null`
+   * („wg ustawienia konta") — sam zapis działa niezależnie.
+   */
+  async getHostingDomainPhp(subscriptionId: string, userId: string, domain: string) {
+    const dom = await this.assertDomainOwnedBySubscription(subscriptionId, userId, domain);
+    const slotReleases = await this.platformSettings.getPhpSlotReleases();
+    let currentSlot: number | null = null;
+    try {
+      const raw = await this.daGetForSubscription(
+        subscriptionId,
+        userId,
+        '/CMD_API_ADDITIONAL_DOMAINS',
+        { action: 'view', domain: dom },
+      );
+      const sel = raw.get('php1_select');
+      if (sel != null && /^\d+$/.test(sel)) currentSlot = Number(sel);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`getHostingDomainPhp view sub=${subscriptionId} ${dom}: ${msg}`);
+    }
+    return {
+      domain: dom,
+      slotReleases,
+      currentSlot,
+      currentVersion:
+        currentSlot != null && currentSlot >= 1 && currentSlot <= slotReleases.length
+          ? slotReleases[currentSlot - 1]
+          : null,
+    };
+  }
+
+  /**
+   * Ustawia wersję PHP dla pojedynczej domeny przez selektor DA
+   * (`CMD_API_DOMAIN action=php_selector`, `php1_select=<slot>`); slot wynika
+   * z mapy `php.slotReleases`. Działa obok per-kontowego CloudLinux Selectora
+   * (PHP_APPLY) — wybór per domena ma pierwszeństwo dla vhostu.
+   */
+  async setHostingDomainPhp(
+    subscriptionId: string,
+    userId: string,
+    input: { domain: string; version: string },
+  ): Promise<{ ok: true; domain: string; version: string; slot: number }> {
+    const dom = await this.assertDomainOwnedBySubscription(subscriptionId, userId, input.domain);
+    const slotReleases = await this.platformSettings.getPhpSlotReleases();
+    const version = String(input.version || '').trim();
+    const slot = slotReleases.indexOf(version) + 1;
+    if (slot === 0) {
+      throw new BadRequestException(
+        `Nieobsługiwana wersja PHP dla domeny. Dostępne: ${slotReleases.join(', ')}.`,
+      );
+    }
+    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_DOMAIN', {
+      action: 'php_selector',
+      save: 'yes',
+      domain: dom,
+      php1_select: String(slot),
+    });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_DOMAIN_PHP_SET,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, domain: dom, version, slot },
+    });
+    return { ok: true as const, domain: dom, version, slot };
+  }
+
+  /* ===================== FALA-2c: SSO admina do panelu DA węzła ===================== */
+
+  /**
+   * Jednorazowy adres logowania ADMINA do DirectAdmin węzła (ważny 2 minuty,
+   * jedno użycie) + podpowiedź SSH. Tylko dla roli ADMIN — wywołanie audytowane.
+   */
+  async createNodeAdminSsoUrl(
+    serverId: string,
+    actorUserId: string,
+  ): Promise<{ url: string; sshHost: string | null; sshCommand: string | null }> {
+    const server = await this.prisma.server.findUnique({ where: { id: serverId } });
+    if (!server) throw new NotFoundException('Server not found');
+    const client = await this.getClientForServer(serverId);
+    const url = await client.createOneTimeLoginUrl({ redirectUrl: '/', expiry: '2m' });
+    const sshHost = server.hostname ?? server.ipAddress ?? null;
+    await this.audit.record({
+      action: 'NODE_ADMIN_SSO_URL_CREATED',
+      userId: actorUserId,
+      actorUserId,
+      details: { serverId, serverName: server.name ?? null },
+    });
+    return { url, sshHost, sshCommand: sshHost ? `ssh root@${sshHost}` : null };
+  }
+
   /* ===================== PANEL-5: aliasy domeny (domain pointers) ===================== */
   async listHostingDomainPointers(subscriptionId: string, userId: string) {
     const domain = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);

@@ -89,6 +89,53 @@ export async function fmDelete(
   });
 }
 
+export async function fmCopy(
+  id: string,
+  dir: string,
+  names: string[],
+  dest: string,
+): Promise<{ ok: true; count: number }> {
+  return apiFetch(`/services/${id}/files/copy`, {
+    method: 'POST',
+    body: JSON.stringify({ dir, names, dest }),
+  });
+}
+
+export async function fmMove(
+  id: string,
+  dir: string,
+  names: string[],
+  dest: string,
+): Promise<{ ok: true; count: number }> {
+  return apiFetch(`/services/${id}/files/move`, {
+    method: 'POST',
+    body: JSON.stringify({ dir, names, dest }),
+  });
+}
+
+export async function fmExtract(
+  id: string,
+  path: string,
+  dest?: string,
+): Promise<{ ok: true }> {
+  return apiFetch(`/services/${id}/files/extract`, {
+    method: 'POST',
+    body: JSON.stringify({ path, dest }),
+  });
+}
+
+export async function fmChmod(
+  id: string,
+  dir: string,
+  names: string[],
+  mode: string,
+): Promise<{ ok: true; count: number }> {
+  return apiFetch(`/services/${id}/files/chmod`, {
+    method: 'POST',
+    body: JSON.stringify({ dir, names, mode }),
+  });
+}
+
 /** Upload — manual multipart forward (apiFetch can't carry FormData cleanly). */
 export async function fmUpload(form: FormData): Promise<{ ok: true } | { error: string }> {
   const id = String(form.get('id') ?? '');

@@ -50,8 +50,19 @@ cmd_list() {
   local user="$1" snap="${2:-}"; [ -n "$user" ] || fail "podaj usera"
   local p; p="$(remote_path "$user" "$snap")"
   log "off-site archiwa dla ${user}${snap:+ (wersja $snap)}: $p"
-  rclone lsf --files-only "$p" 2>/dev/null | grep -iE '\.tar\.(gz|zst)$|\.tar$' || {
-    log "(brak archiwów off-site — sprawdź prefix/usera)"; return 1; }
+  # Wiersze maszynowe (parsowane przez control-plane): nazwa|bajty|data ISO.
+  # Prefiks pozwala odfiltrować je z reszty logu zadania.
+  local found=0 line
+  while IFS= read -r line; do
+    [ -n "$line" ] || continue
+    printf 'VERRIS-OFFSITE-FILE %s\n' "$line"
+    found=1
+  done < <(rclone lsf --files-only --format 'pst' --separator '|' "$p" 2>/dev/null \
+             | grep -iE '^[^|]+\.(tar\.gz|tar\.zst|tar)\|')
+  if [ "$found" = "0" ]; then
+    log "(brak archiwow off-site — sprawdz prefix/usera)"
+    printf 'VERRIS-OFFSITE-EMPTY\n'
+  fi
 }
 
 cmd_fetch() {
@@ -65,7 +76,7 @@ cmd_fetch() {
   rclone copyto "$src" "${dst}${archive}" --retries 3 --low-level-retries 10 || fail "rclone copy nieudany"
   chown "${user}:${user}" "${dst}${archive}" 2>/dev/null || true
   log "pobrano: ${dst}${archive}"
-  printf '%s' "${dst}${archive}"
+  printf 'VERRIS-OFFSITE-FETCHED %s\n' "${dst}${archive}"
 }
 
 cmd_restore() {
@@ -81,9 +92,32 @@ cmd_restore() {
   log "✅ Zlecono restore. DA przetwarza w tle (dataskq). Zweryfikuj w DA → Admin Backup/Transfer."
 }
 
+# Walidacja wejscia (obrona w glab — control-plane waliduje to samo).
+check_args() {
+  local user="$1" archive="${2:-}" snap="${3:-}"
+  [[ "$user" =~ ^[a-zA-Z0-9_-]{1,32}$ ]] || fail "nieprawidlowy user: $user"
+  if [ -n "$archive" ]; then
+    [[ "$archive" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,200}$ ]] || fail "nieprawidlowa nazwa archiwum: $archive"
+    case "$archive" in *..*|*/*) fail "nieprawidlowa nazwa archiwum: $archive" ;; esac
+  fi
+  [ -z "$snap" ] || [[ "$snap" =~ ^[0-9]{8}$ ]] || fail "nieprawidlowa wersja (YYYYMMDD): $snap"
+}
+
+# Tryb agenta: bez argumentow, parametry z ENV (zadanie OFFSITE_RESTORE).
+#   OFR_MODE=list|fetch  OFR_USER=<da user>  OFR_ARCHIVE=<plik>  OFR_SNAPSHOT=<YYYYMMDD>
+if [ $# -eq 0 ] && [ -n "${OFR_MODE:-}" ]; then
+  check_args "${OFR_USER:-}" "${OFR_ARCHIVE:-}" "${OFR_SNAPSHOT:-}"
+  case "$OFR_MODE" in
+    list)  cmd_list  "$OFR_USER" "${OFR_SNAPSHOT:-}" ;;
+    fetch) cmd_fetch "$OFR_USER" "${OFR_ARCHIVE:?OFR_ARCHIVE wymagane}" "${OFR_SNAPSHOT:-}" ;;
+    *)     fail "nieznany OFR_MODE: $OFR_MODE (list|fetch)" ;;
+  esac
+  exit 0
+fi
+
 case "${1:-}" in
-  list)    shift; cmd_list "$@" ;;
-  fetch)   shift; cmd_fetch "$@" ;;
-  restore) shift; cmd_restore "$@" ;;
+  list)    shift; check_args "${1:-}" "" "${2:-}"; cmd_list "$@" ;;
+  fetch)   shift; check_args "${1:-}" "${2:-}" "${3:-}"; cmd_fetch "$@" ;;
+  restore) shift; check_args "${1:-}" "${2:-}" "${3:-}"; cmd_restore "$@" ;;
   *) echo "Użycie: $0 {list <user> [YYYYMMDD] | fetch <user> <archiwum> [YYYYMMDD] | restore <user> <archiwum> [YYYYMMDD]}"; exit 2 ;;
 esac

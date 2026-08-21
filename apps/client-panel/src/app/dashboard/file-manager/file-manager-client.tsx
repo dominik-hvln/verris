@@ -5,24 +5,32 @@ import { toast } from 'sonner';
 import {
   ArrowUp,
   ChevronRight,
+  Copy,
   Download,
   File as FileIcon,
   FilePen,
   FilePlus,
   Folder,
   FolderPlus,
+  FolderInput,
+  Package,
   Pencil,
   Loader2,
   RefreshCw,
+  ShieldCheck,
   Trash2,
   Upload,
   X,
 } from 'lucide-react';
 import {
+  fmChmod,
+  fmCopy,
   fmDelete,
   fmDownload,
+  fmExtract,
   fmList,
   fmMkdir,
+  fmMove,
   fmRead,
   fmRename,
   fmUpload,
@@ -32,6 +40,7 @@ import {
 import { daErrorMessage } from '@/lib/client-hosting-messages';
 
 const EDITABLE = /\.(txt|md|html?|css|js|mjs|cjs|ts|jsx|tsx|json|xml|ya?ml|ini|conf|env|htaccess|php|py|sh|sql|log)$/i;
+const ARCHIVE = /\.(zip|tar\.gz|tgz|tar\.bz2|tar)$/i;
 
 /**
  * STAB-2 — krótki retry transientnych błędów (głównie 503, gdy proxy chwilowo
@@ -87,6 +96,7 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState<{ name: string; content: string } | null>(null);
   const [editorSaving, setEditorSaving] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const fileInput = useRef<HTMLInputElement>(null);
 
   const load = useCallback(
@@ -96,6 +106,7 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
         const res = await withRetry(() => fmList(serviceId, p));
         setPath(res.path);
         setEntries(res.entries);
+        setSelected(new Set());
       } catch (e) {
         toast.error('Nie udało się wczytać katalogu', {
           description: daErrorMessage(e instanceof Error ? e.message : undefined),
@@ -245,6 +256,86 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
     }
   };
 
+  /* --- SPRINT-1b: zaznaczanie wielu + kopiuj/przenieś/rozpakuj/uprawnienia --- */
+
+  const toggleSelect = (name: string) => {
+    setSelected((cur) => {
+      const next = new Set(cur);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
+  const toggleSelectAll = () => {
+    setSelected((cur) => (cur.size === entries.length ? new Set() : new Set(entries.map((e) => e.name))));
+  };
+
+  const runOnSelection = async (
+    label: string,
+    fn: (names: string[]) => Promise<unknown>,
+  ) => {
+    const names = Array.from(selected);
+    if (names.length === 0) return;
+    setBusy(true);
+    try {
+      await fn(names);
+      toast.success(label);
+      await load(path);
+    } catch (e) {
+      toast.error(`Nie udało się: ${label.toLowerCase()}`, {
+        description: daErrorMessage(e instanceof Error ? e.message : undefined),
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const onCopySelected = async () => {
+    const dest = window.prompt('Skopiuj zaznaczone do katalogu (ścieżka od katalogu głównego):', path);
+    if (!dest) return;
+    await runOnSelection('Skopiowano', (names) => fmCopy(serviceId, path, names, dest));
+  };
+
+  const onMoveSelected = async () => {
+    const dest = window.prompt('Przenieś zaznaczone do katalogu (ścieżka od katalogu głównego):', path);
+    if (!dest || dest === path) return;
+    await runOnSelection('Przeniesiono', (names) => fmMove(serviceId, path, names, dest));
+  };
+
+  const onChmodSelected = async () => {
+    const mode = window.prompt('Uprawnienia (ósemkowo, np. 644 dla plików, 755 dla katalogów):', '644');
+    if (!mode) return;
+    if (!/^[0-7]{3,4}$/.test(mode.trim())) {
+      toast.error('Podaj uprawnienia ósemkowo, np. 644 lub 755.');
+      return;
+    }
+    await runOnSelection('Zmieniono uprawnienia', (names) => fmChmod(serviceId, path, names, mode.trim()));
+  };
+
+  const onDeleteSelected = async () => {
+    const names = Array.from(selected);
+    if (names.length === 0) return;
+    if (!window.confirm(`Usunąć ${names.length} zaznaczonych elementów? Tej operacji nie można cofnąć.`)) return;
+    await runOnSelection('Usunięto zaznaczone', (ns) => fmDelete(serviceId, path, ns));
+  };
+
+  const onExtract = async (name: string) => {
+    if (!window.confirm(`Rozpakować „${name}" do bieżącego katalogu? Istniejące pliki o tych samych nazwach zostaną nadpisane.`)) return;
+    setBusy(true);
+    try {
+      const archivePath = `${path === '/' ? '' : path}/${name}`;
+      await fmExtract(serviceId, archivePath, path);
+      toast.success('Rozpakowano archiwum');
+      await load(path);
+    } catch (e) {
+      toast.error('Nie udało się rozpakować', {
+        description: daErrorMessage(e instanceof Error ? e.message : undefined),
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const onUploadChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -315,6 +406,54 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
         {domain ? <span className="ml-auto text-xs text-neutral-500">{domain}</span> : null}
       </div>
 
+      {/* Selection toolbar */}
+      {selected.size > 0 ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-violet-400/20 bg-violet-500/[0.06] px-3 py-2">
+          <span className="text-xs text-neutral-300">
+            Zaznaczono: <span className="font-semibold text-white">{selected.size}</span>
+          </span>
+          <button
+            type="button"
+            onClick={() => void onCopySelected()}
+            disabled={busy}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white hover:bg-white/10 disabled:opacity-40"
+          >
+            <Copy className="h-3.5 w-3.5" /> Kopiuj do…
+          </button>
+          <button
+            type="button"
+            onClick={() => void onMoveSelected()}
+            disabled={busy}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white hover:bg-white/10 disabled:opacity-40"
+          >
+            <FolderInput className="h-3.5 w-3.5" /> Przenieś do…
+          </button>
+          <button
+            type="button"
+            onClick={() => void onChmodSelected()}
+            disabled={busy}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white hover:bg-white/10 disabled:opacity-40"
+          >
+            <ShieldCheck className="h-3.5 w-3.5" /> Uprawnienia…
+          </button>
+          <button
+            type="button"
+            onClick={() => void onDeleteSelected()}
+            disabled={busy}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-rose-400/20 bg-rose-500/10 px-2.5 py-1.5 text-xs text-rose-200 hover:bg-rose-500/20 disabled:opacity-40"
+          >
+            <Trash2 className="h-3.5 w-3.5" /> Usuń
+          </button>
+          <button
+            type="button"
+            onClick={() => setSelected(new Set())}
+            className="ml-auto text-xs text-neutral-400 hover:text-white"
+          >
+            Odznacz wszystko
+          </button>
+        </div>
+      ) : null}
+
       {/* Breadcrumb */}
       <div className="flex flex-wrap items-center gap-1 text-sm text-neutral-400">
         <button onClick={() => void load('/')} className="hover:text-white">
@@ -342,6 +481,15 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-white/10 text-left text-xs text-neutral-500">
+                <th className="w-8 px-3 py-2">
+                  <input
+                    type="checkbox"
+                    aria-label="Zaznacz wszystko"
+                    checked={entries.length > 0 && selected.size === entries.length}
+                    onChange={toggleSelectAll}
+                    className="h-3.5 w-3.5 accent-violet-400"
+                  />
+                </th>
                 <th className="px-4 py-2 font-medium">Nazwa</th>
                 <th className="px-4 py-2 font-medium">Rozmiar</th>
                 <th className="px-4 py-2 font-medium">Zmodyfikowano</th>
@@ -351,6 +499,15 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
             <tbody>
               {entries.map((entry) => (
                 <tr key={entry.name} className="border-b border-white/5 hover:bg-white/[0.02]">
+                  <td className="px-3 py-2">
+                    <input
+                      type="checkbox"
+                      aria-label={`Zaznacz ${entry.name}`}
+                      checked={selected.has(entry.name)}
+                      onChange={() => toggleSelect(entry.name)}
+                      className="h-3.5 w-3.5 accent-violet-400"
+                    />
+                  </td>
                   <td className="px-4 py-2">
                     <button
                       type="button"
@@ -377,6 +534,11 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
                   <td className="px-4 py-2 text-neutral-500">{formatModified(entry.modified)}</td>
                   <td className="px-4 py-2">
                     <div className="flex items-center justify-end gap-1">
+                      {entry.type === 'file' && ARCHIVE.test(entry.name) ? (
+                        <IconBtn title="Rozpakuj tutaj" onClick={() => void onExtract(entry.name)}>
+                          <Package className="h-4 w-4" />
+                        </IconBtn>
+                      ) : null}
                       {entry.type === 'file' && EDITABLE.test(entry.name) ? (
                         <IconBtn title="Edytuj" onClick={() => void onEdit(entry.name)}>
                           <FilePen className="h-4 w-4" />

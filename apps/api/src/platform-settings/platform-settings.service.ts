@@ -475,6 +475,20 @@ export class PlatformSettingsService {
       .filter((v) => /^\d+\.\d+$/.test(v));
   }
 
+  /**
+   * FALA-2b — mapowanie slotów DA (phpN_release z options.conf) na wersje PHP,
+   * używane przez wybór PHP per domena. Pozycja na liście = numer slotu.
+   */
+  async getPhpSlotReleases(): Promise<string[]> {
+    const map = await this.loadMap();
+    const raw = this.readStr(map, PLATFORM_SETTING_KEYS.PHP_SLOT_RELEASES, '8.3,8.2,8.1,8.0');
+    return raw
+      .split(',')
+      .map((v) => v.trim())
+      .filter((v) => /^\d+\.\d+$/.test(v))
+      .slice(0, 4);
+  }
+
   async getHostingNameservers(): Promise<{ ns1: string; ns2: string; ns3: string }> {
     const map = await this.loadMap();
     return {

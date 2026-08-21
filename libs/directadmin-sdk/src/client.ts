@@ -391,6 +391,68 @@ export class DirectAdminClient {
     }
   }
 
+  /** Low-level FM POST (urlencoded) with the standard error check. */
+  private async fmPost(body: URLSearchParams): Promise<void> {
+    const data = await this.client.post('/CMD_FILE_MANAGER', body.toString(), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    });
+    this.assertFileManagerOk(data.data);
+  }
+
+  /**
+   * Copies or moves entries from `dir` into `destDir` using DA's clipboard
+   * semantics (`action=multiple`): add selection to clipboard → paste
+   * (copy/move) at the destination → empty the clipboard. The clipboard is
+   * per-session, so the whole sequence runs on this client instance.
+   */
+  async transferEntries(
+    dir: string,
+    names: string[],
+    destDir: string,
+    mode: 'copy' | 'move',
+  ): Promise<void> {
+    if (names.length === 0) return;
+    const add = new URLSearchParams({ action: 'multiple', add: 'clipboard', path: dir });
+    names.forEach((n, i) => add.append(`select${i}`, n));
+    await this.fmPost(add);
+    try {
+      await this.fmPost(
+        new URLSearchParams({ action: 'multiple', [mode]: 'yes', path: destDir }),
+      );
+    } finally {
+      // Best-effort clipboard cleanup — a stale clipboard would make the next
+      // paste of this session duplicate files.
+      await this.fmPost(
+        new URLSearchParams({ action: 'multiple', empty: 'yes', path: destDir }),
+      ).catch(() => undefined);
+    }
+  }
+
+  /** Extracts an archive (`action=extract`) into `destDir`. */
+  async extractArchive(archivePath: string, destDir: string): Promise<void> {
+    await this.fmPost(
+      new URLSearchParams({
+        action: 'extract',
+        path: archivePath,
+        directory: destDir,
+        page: '2',
+      }),
+    );
+  }
+
+  /** Sets permissions (`action=multiple&button=permission`) on entries in `dir`. */
+  async chmodEntries(dir: string, names: string[], chmod: string): Promise<void> {
+    if (names.length === 0) return;
+    const body = new URLSearchParams({
+      action: 'multiple',
+      button: 'permission',
+      chmod,
+      path: dir,
+    });
+    names.forEach((n, i) => body.append(`select${i}`, n));
+    await this.fmPost(body);
+  }
+
   // ---------------------------------------------------------------------------
   // Accounts
   // ---------------------------------------------------------------------------
@@ -937,6 +999,146 @@ export class DirectAdminClient {
         params.get('text') || params.get('details') || 'Nie udało się usunąć bazy danych',
       );
     }
+  }
+
+  /** Urlencoded POST with the standard DA error check (returns parsed params). */
+  private async daPost(path: string, body: Record<string, string>): Promise<URLSearchParams> {
+    const response = await this.client.post(path, new URLSearchParams(body).toString(), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    });
+    const params = this.daPayloadToParams(response.data);
+    if (params.get('error') === '1') {
+      throw new Error(params.get('text') || params.get('details') || 'DirectAdmin error');
+    }
+    return params;
+  }
+
+  // ---------------------------------------------------------------------------
+  // MySQL — database users (CMD_API_DB_USER, fallback CMD_API_DATABASES)
+  //
+  // NOTE: DA builds differ in the exact command set for db-user management
+  // (newer builds expose CMD_API_DB_USER; older ones only the CMD_API_DATABASES
+  // form actions). Like the file-manager block above: primary + fallback,
+  // verify against the live node.
+  // ---------------------------------------------------------------------------
+
+  /** Lists user names attached to a database (full, prefixed names). */
+  async listDbUsers(fullDbName: string): Promise<string[]> {
+    const attempts: Array<{ path: string; params: Record<string, string> }> = [
+      { path: '/CMD_API_DB_USER', params: { db: fullDbName } },
+      { path: '/CMD_API_DATABASES', params: { action: 'users', db: fullDbName } },
+    ];
+    let lastErr: unknown = null;
+    for (const attempt of attempts) {
+      try {
+        const response = await this.client.get(attempt.path, { params: attempt.params });
+        const params = this.daPayloadToParams(response.data);
+        if (params.get('error') === '1') {
+          lastErr = new Error(params.get('text') || 'DirectAdmin error');
+          continue;
+        }
+        const users = new Set<string>();
+        for (const [key, value] of params.entries()) {
+          if (['error', 'text', 'details'].includes(key)) continue;
+          // DA emits either list0..N=<user> or <full_user>=<short_user>.
+          const candidate = key.startsWith('list') ? value : key;
+          if (candidate && candidate.includes('_')) users.add(candidate);
+        }
+        return Array.from(users).sort();
+      } catch (err) {
+        lastErr = err;
+      }
+    }
+    throw lastErr instanceof Error
+      ? lastErr
+      : new Error('Nie udało się pobrać użytkowników bazy danych');
+  }
+
+  /**
+   * Creates an additional user for an existing database. `user` is the SHORT
+   * part — DA prefixes it with the account username. Returns the full name.
+   */
+  async createDbUser(
+    fullDbName: string,
+    user: string,
+    password: string,
+  ): Promise<{ username: string }> {
+    const body = {
+      db: fullDbName,
+      name: user,
+      user,
+      passwd: password,
+      passwd2: password,
+    };
+    try {
+      await this.daPost('/CMD_API_DB_USER', { action: 'create', ...body });
+    } catch {
+      await this.daPost('/CMD_API_DATABASES', { action: 'adduser', ...body });
+    }
+    return { username: `${this.usernameForDbPrefix()}_${user}` };
+  }
+
+  /** Deletes a database user (full, prefixed name). */
+  async deleteDbUser(fullDbName: string, fullUserName: string): Promise<void> {
+    const body = { db: fullDbName, user: fullUserName, select0: fullUserName };
+    try {
+      await this.daPost('/CMD_API_DB_USER', { action: 'delete', ...body });
+    } catch {
+      await this.daPost('/CMD_API_DATABASES', { action: 'deluser', ...body });
+    }
+  }
+
+  /** Changes a database user's password (full, prefixed name). */
+  async setDbUserPassword(
+    fullDbName: string,
+    fullUserName: string,
+    password: string,
+  ): Promise<void> {
+    const body = {
+      db: fullDbName,
+      user: fullUserName,
+      name: fullUserName,
+      passwd: password,
+      passwd2: password,
+    };
+    try {
+      await this.daPost('/CMD_API_DB_USER', { action: 'modify', ...body });
+    } catch {
+      await this.daPost('/CMD_API_DATABASES', { action: 'moduser', ...body });
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // One-time login URL (CMD_API_LOGIN_KEYS) — SSO into DA / phpMyAdmin / webmail
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Creates a ONE-TIME login URL for the authenticated session's account
+   * (`type=one_time_url`). DA responds with `details=<absolute URL>` pointing
+   * at `CMD_LOGIN_URL?hash=…`; opening it logs the browser straight into the
+   * panel and follows `redirect-url` (e.g. `/CMD_PMA/` for phpMyAdmin SSO).
+   *
+   * DA requires password confirmation (`passwd`) — we pass the credential this
+   * client authenticates with (the account's stored panel password).
+   */
+  async createOneTimeLoginUrl(opts: {
+    redirectUrl?: string;
+    expiry?: string;
+  } = {}): Promise<string> {
+    const params = await this.daPost('/CMD_API_LOGIN_KEYS', {
+      action: 'create',
+      type: 'one_time_url',
+      method: 'GET',
+      'redirect-url': opts.redirectUrl ?? '/',
+      expiry: opts.expiry ?? '2m',
+      login_keys_notify_on_creation: '0',
+      passwd: this.config.loginKey,
+    });
+    const url = params.get('details') || '';
+    if (!/^https?:\/\//i.test(url)) {
+      throw new Error(params.get('text') || 'DirectAdmin nie zwrócił adresu logowania');
+    }
+    return url;
   }
 
   /**

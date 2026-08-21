@@ -61,7 +61,13 @@ export default function WebToolsTab({ serviceId }: { serviceId: string }) {
   const addRedirect = async () => {
     if (!rFrom.trim() || !rTo.trim()) { toast.error('Podaj ścieżkę źródłową i cel.'); return; }
     const from = rFrom.trim().startsWith('/') ? rFrom.trim() : `/${rFrom.trim()}`;
-    const next = { ...state, redirects: [...state.redirects, { from, to: rTo.trim(), type: rType } as Redirect] };
+    const to = rTo.trim();
+    // Cel musi być pełnym adresem (https://…) albo ścieżką na tej samej stronie (/…).
+    if (!/^https?:\/\//i.test(to) && !to.startsWith('/')) {
+      toast.error('Cel musi być pełnym adresem (https://…) lub ścieżką zaczynającą się od /.');
+      return;
+    }
+    const next = { ...state, redirects: [...state.redirects, { from, to, type: rType } as Redirect] };
     if (await persist(next, 'Przekierowanie dodane')) { setRFrom(''); setRTo(''); }
   };
   const delRedirect = async (i: number) => {
@@ -128,7 +134,8 @@ export default function WebToolsTab({ serviceId }: { serviceId: string }) {
       {/* Przekierowania */}
       <section className="mt-6 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-white"><ArrowRightLeft className="h-4 w-4 text-emerald-300" /> Przekierowania URL</h3>
-        <p className="mt-1 text-xs text-neutral-400">Trwałe (301) lub tymczasowe (302) przekierowanie adresu na inny URL.</p>
+        <p className="mt-1 text-xs text-neutral-400">Trwałe (301) lub tymczasowe (302) przekierowanie adresu na inny URL. Przy zmianie adresu strony wybierz <span className="text-neutral-200">301 (trwałe)</span> — wyszukiwarki przeniosą pozycję na nowy adres.</p>
+        <p className="mt-1 text-[11px] text-neutral-500">Przykład: <span className="font-mono text-neutral-300">/oferta</span> → <span className="font-mono text-neutral-300">https://twojadomena.pl/cennik</span>. W polu „z" podaj samą ścieżkę (od <span className="font-mono">/</span>), w polu „na" pełny adres lub ścieżkę.</p>
         <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1.3fr_auto_auto]">
           <input value={rFrom} onChange={(e) => setRFrom(e.target.value)} placeholder="/stara-strona" className={field} />
           <input value={rTo} onChange={(e) => setRTo(e.target.value)} placeholder="https://cel.pl/nowa" className={field} />

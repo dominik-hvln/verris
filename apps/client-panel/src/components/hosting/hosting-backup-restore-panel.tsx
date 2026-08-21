@@ -14,6 +14,7 @@ import { fetchServiceDetailsAction } from '@/app/dashboard/services/[id]/hosting
 import type { HostingRestorePreview } from '@/app/dashboard/hosting-tools-data';
 import type { HostingBackupsResponseDto } from '@verris/contracts';
 import { hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
+import { HostingOffsitePanel } from './hosting-offsite-panel';
 
 const STATUS_LABEL: Record<HostingRestoreJobDto['status'], string> = {
   QUEUED: 'W kolejce',
@@ -188,27 +189,8 @@ export function HostingBackupRestorePanel({ serviceId }: { serviceId: string }) 
         </div>
       ) : null}
 
-      {/* S-1 — status ochrony kopią off-site (utrata węzła ≠ utrata danych) */}
-      {backups?.offsite ? (
-        <div
-          className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-xs ${
-            backups.offsite.protected
-              ? 'border-emerald-400/30 bg-emerald-500/10 text-emerald-100'
-              : 'border-amber-400/30 bg-amber-500/10 text-amber-100'
-          }`}
-        >
-          <span aria-hidden>{backups.offsite.protected ? '🛡️' : '⚠️'}</span>
-          <span>
-            {backups.offsite.protected
-              ? `Twoje konto jest chronione kopią off-site (poza tym serwerem).${
-                  backups.offsite.lastRunAt
-                    ? ' Ostatnia: ' + new Date(backups.offsite.lastRunAt).toLocaleString('pl-PL') + '.'
-                    : ''
-                }`
-              : 'Kopia off-site dla tego konta nie została jeszcze potwierdzona — skontaktuj się z pomocą, jeśli to niezbędne.'}
-          </span>
-        </div>
-      ) : null}
+      {/* S-1 — kopie off-site (utrata węzła ≠ utrata danych): status + samoobsługa */}
+      <HostingOffsitePanel serviceId={serviceId} onFetched={() => void load()} />
 
       {/* Backup picker */}
       {backups && backups.rows.length > 0 ? (

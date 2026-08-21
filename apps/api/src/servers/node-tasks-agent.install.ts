@@ -196,6 +196,18 @@ elif [ "$TASK_KIND" = "STAGING_SYNC" ]; then
   RUN_BIN="/usr/local/bin/verris-staging-sync.sh"
   fetch_task_script "/agent/tasks/staging-sync/script" "$RUN_BIN"
   payload_env "STG" "{'daUser':'DA_USER','domain':'DOMAIN','sub':'SUB','direction':'DIRECTION','dbName':'DB_NAME','dbUser':'DB_USER','dbPass':'DB_PASS'}"
+elif [ "$TASK_KIND" = "PHP_APPLY" ]; then
+  RUN_BIN="/usr/local/bin/verris-php-apply.sh"
+  fetch_task_script "/agent/tasks/php-apply/script" "$RUN_BIN"
+  payload_env "PHP" "{'daUser':'DA_USER','domain':'DOMAIN','version':'VERSION'}"
+elif [ "$TASK_KIND" = "APP_INSTALL" ]; then
+  RUN_BIN="/usr/local/bin/verris-app-install.sh"
+  fetch_task_script "/agent/tasks/app-install/script" "$RUN_BIN"
+  payload_env "APP" "{'app':'APP','daUser':'DA_USER','domain':'DOMAIN','dbName':'DB_NAME','dbUser':'DB_USER','dbPass':'DB_PASS','adminUser':'ADMIN_USER','adminPass':'ADMIN_PASS','adminEmail':'ADMIN_EMAIL'}"
+elif [ "$TASK_KIND" = "OFFSITE_RESTORE" ]; then
+  RUN_BIN="/usr/local/bin/verris-account-restore.sh"
+  fetch_task_script "/agent/tasks/offsite-restore/script" "$RUN_BIN"
+  payload_env "OFR" "{'mode':'MODE','daUser':'USER','archive':'ARCHIVE','snapshot':'SNAPSHOT'}"
 elif [ "$TASK_KIND" = "DB_UPGRADE" ]; then
   RUN_BIN="/usr/local/bin/verris-db-upgrade.sh"
   fetch_task_script "/agent/tasks/db-upgrade/script" "$RUN_BIN"
@@ -378,7 +390,7 @@ dispatch_generic() {
 
 case "$KIND" in
   HOSTING_PROFILE) dispatch_hosting_profile ;;
-  WP_INSTALL|WAF_APPLY|STAGING_SYNC|DB_UPGRADE|FLEET_UPDATE) dispatch_generic ;;
+  WP_INSTALL|WAF_APPLY|STAGING_SYNC|PHP_APPLY|APP_INSTALL|OFFSITE_RESTORE|DB_UPGRADE|FLEET_UPDATE) dispatch_generic ;;
   *)
     report_task_fail "Unknown task kind: $KIND"
     exit 1

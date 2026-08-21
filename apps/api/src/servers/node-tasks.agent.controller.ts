@@ -25,6 +25,7 @@ import { loadStagingSyncScript } from './staging-sync.script';
 import { loadPhpApplyScript } from './php-apply.script';
 import { loadAppInstallScript } from './app-install.script';
 import { loadDbUpgradeScript } from './db-upgrade.script';
+import { loadOffsiteRestoreScript } from './offsite-restore.script';
 import { loadNodeUpdateScript } from './node-update.script';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 
@@ -105,6 +106,13 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   appInstallScript() {
     return loadAppInstallScript();
+  }
+
+  /** S-1 — off-site account restore script (run with OFR_* env). */
+  @Get('offsite-restore/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  offsiteRestoreScript() {
+    return loadOffsiteRestoreScript();
   }
 
   /** VER-UPG — MariaDB engine upgrade script (run with DB_TARGET_VERSION env). */

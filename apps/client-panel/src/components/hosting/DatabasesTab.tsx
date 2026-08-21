@@ -9,8 +9,10 @@ import {
   deleteHostingDatabaseAction,
   fetchHostingDatabasesAction,
 } from '@/app/dashboard/services/[id]/hosting-mysql-links-actions';
-import { HostingTabShell, DaExternalLink } from '@/components/hosting/HostingTabShell';
+import { HostingTabShell } from '@/components/hosting/HostingTabShell';
 import DbAccessHosts from '@/components/hosting/DbAccessHosts';
+import DbUsers from '@/components/hosting/DbUsers';
+import { createHostingSsoUrlAction } from '@/app/dashboard/services/[id]/hosting-sso-actions';
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { useHostingLinks } from '@/components/hosting/hosting-links-context';
 
@@ -40,6 +42,34 @@ export default function DatabasesTab({ serviceId }: Props) {
   const [password, setPassword] = useState('');
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [pmaOpening, setPmaOpening] = useState(false);
+
+  /**
+   * SPRINT-1c — phpMyAdmin bez przepisywania haseł: jednorazowy URL SSO.
+   * Okno otwieramy PRZED awaitem (polityka popupów), a potem podmieniamy adres;
+   * przy błędzie wracamy do zwykłego linku do panelu hostingu.
+   */
+  const openPhpMyAdmin = async () => {
+    if (pmaOpening) return;
+    setPmaOpening(true);
+    const win = window.open('about:blank', '_blank', 'noopener');
+    const res = await createHostingSsoUrlAction(serviceId, 'phpmyadmin');
+    setPmaOpening(false);
+    if (res.ok) {
+      if (win) win.location.href = res.url;
+      else window.open(res.url, '_blank');
+      return;
+    }
+    if (win) win.close();
+    if (links.databasesUrl) {
+      toast.info('Auto-logowanie niedostępne — otwieram panel baz danych', {
+        description: daErrorMessage(res.error),
+      });
+      window.open(links.databasesUrl, '_blank');
+    } else {
+      toast.error('Nie udało się otworzyć phpMyAdmin', { description: daErrorMessage(res.error) });
+    }
+  };
 
   const load = useCallback(async () => {
     setError(null);
@@ -103,8 +133,6 @@ export default function DatabasesTab({ serviceId }: Props) {
     );
   }
 
-  const databasesUrl = links.databasesUrl;
-
   return (
     <HostingTabShell
       title="Bazy MySQL"
@@ -117,12 +145,19 @@ export default function DatabasesTab({ serviceId }: Props) {
       }}
       actions={
         <>
-          {databasesUrl ? (
-            <DaExternalLink href={databasesUrl} variant="outline">
-              phpMyAdmin
-              <ExternalLink className="h-3 w-3 opacity-70" />
-            </DaExternalLink>
-          ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={pmaOpening}
+            onClick={() => void openPhpMyAdmin()}
+            className="h-8 gap-1.5 border-white/15 bg-white/[0.04] text-white hover:bg-white/10 text-xs"
+            title="Otwiera phpMyAdmin bez logowania (jednorazowy link)"
+          >
+            {pmaOpening ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            phpMyAdmin
+            <ExternalLink className="h-3 w-3 opacity-70" />
+          </Button>
           <Button
             type="button"
             variant="outline"
@@ -244,16 +279,14 @@ export default function DatabasesTab({ serviceId }: Props) {
                 {db.name}
               </span>
               <div className="flex shrink-0 items-center gap-3">
-                {databasesUrl ? (
-                  <a
-                    href={databasesUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-neutral-400 hover:text-white"
-                  >
-                    phpMyAdmin →
-                  </a>
-                ) : null}
+                <button
+                  type="button"
+                  onClick={() => void openPhpMyAdmin()}
+                  disabled={pmaOpening}
+                  className="text-xs text-neutral-400 hover:text-white disabled:opacity-50"
+                >
+                  phpMyAdmin →
+                </button>
                 <button
                   type="button"
                   title="Usuń bazę"
@@ -269,6 +302,7 @@ export default function DatabasesTab({ serviceId }: Props) {
                 </button>
               </div>
               </div>
+              <DbUsers serviceId={serviceId} db={db.name} />
               <DbAccessHosts serviceId={serviceId} db={db.name} />
             </div>
           ))}

@@ -26,6 +26,7 @@ import { MigrationWorkerController } from './migration-worker.controller';
 import { ServiceHealthService } from './service-health.service';
 import { HostingDnsPointingService } from './hosting-dns-pointing.service';
 import { HostingRestoreService } from './hosting-restore.service';
+import { OffsiteRestoreService } from './offsite-restore.service';
 import { DiagnosticsService } from './diagnostics.service';
 import { HostingRestoreScheduler } from './hosting-restore.scheduler';
 import { PublicUptimeBadgeController } from './public-uptime-badge.controller';
@@ -66,6 +67,7 @@ import { EcoModule } from '../eco/eco.module';
     HostingDnsPointingService,
     HostingRestoreService,
     HostingRestoreScheduler,
+    OffsiteRestoreService,
     WordpressService,
     WafService,
     SiteMonitorService,

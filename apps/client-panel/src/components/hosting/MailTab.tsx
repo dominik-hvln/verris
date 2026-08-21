@@ -23,8 +23,9 @@ import {
 import { fetchHostingDomainsAction } from '@/app/dashboard/services/[id]/hosting-domains-action';
 import { Select } from '@/components/panel';
 import { fetchConnectionInfoAction } from '@/app/dashboard/services/[id]/hosting-connection-actions';
-import { HostingTabShell, DaExternalLink } from '@/components/hosting/HostingTabShell';
+import { HostingTabShell } from '@/components/hosting/HostingTabShell';
 import MailExtras from '@/components/hosting/MailExtras';
+import { createHostingSsoUrlAction } from '@/app/dashboard/services/[id]/hosting-sso-actions';
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { useHostingLinks } from '@/components/hosting/hosting-links-context';
 
@@ -57,6 +58,34 @@ export default function MailTab({ serviceId }: Props) {
   const [quota, setQuota] = useState('1024');
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [ssoOpening, setSsoOpening] = useState(false);
+
+  /**
+   * SPRINT-1c — panel poczty bez przepisywania haseł: jednorazowy URL SSO.
+   * Okno otwieramy PRZED awaitem (polityka popupów); przy błędzie wracamy do
+   * zwykłego linku do panelu hostingu.
+   */
+  const openWebmailSso = async () => {
+    if (ssoOpening) return;
+    setSsoOpening(true);
+    const win = window.open('about:blank', '_blank', 'noopener');
+    const res = await createHostingSsoUrlAction(serviceId, 'webmail');
+    setSsoOpening(false);
+    if (res.ok) {
+      if (win) win.location.href = res.url;
+      else window.open(res.url, '_blank');
+      return;
+    }
+    if (win) win.close();
+    if (links.emailUrl) {
+      toast.info('Auto-logowanie niedostępne — otwieram panel poczty', {
+        description: daErrorMessage(res.error),
+      });
+      window.open(links.emailUrl, '_blank');
+    } else {
+      toast.error('Nie udało się otworzyć panelu poczty', { description: daErrorMessage(res.error) });
+    }
+  };
   // zmiana hasła per skrzynka
   const [pwEditing, setPwEditing] = useState<string | null>(null);
   const [pwValue, setPwValue] = useState('');
@@ -163,7 +192,6 @@ export default function MailTab({ serviceId }: Props) {
     );
   }
 
-  const emailUrl = links.emailUrl;
   const imapHost = mailHost ?? '—';
 
   return (
@@ -178,12 +206,19 @@ export default function MailTab({ serviceId }: Props) {
       }}
       actions={
         <>
-          {emailUrl ? (
-            <DaExternalLink href={emailUrl} variant="outline">
-              Webmail / panel
-              <ExternalLink className="h-3 w-3 opacity-70" />
-            </DaExternalLink>
-          ) : null}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            disabled={ssoOpening}
+            onClick={() => void openWebmailSso()}
+            className="h-8 gap-1.5 border-white/15 bg-white/[0.04] text-white hover:bg-white/10 text-xs"
+            title="Loguje Cię automatycznie do panelu poczty (jednorazowy link); przy skrzynce klikniesz webmail bez hasła"
+          >
+            {ssoOpening ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            Webmail / panel
+            <ExternalLink className="h-3 w-3 opacity-70" />
+          </Button>
           <Button
             type="button"
             variant="outline"
@@ -326,16 +361,14 @@ export default function MailTab({ serviceId }: Props) {
                   <span className="text-xs text-neutral-500">
                     {box.quotaMb != null ? `${box.quotaMb} MB` : 'bez limitu'}
                   </span>
-                  {emailUrl ? (
-                    <a
-                      href={emailUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-neutral-400 hover:text-white"
-                    >
-                      Webmail →
-                    </a>
-                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => void openWebmailSso()}
+                    disabled={ssoOpening}
+                    className="text-xs text-neutral-400 hover:text-white disabled:opacity-50"
+                  >
+                    Webmail →
+                  </button>
                   <button
                     type="button"
                     title="Zmień hasło"

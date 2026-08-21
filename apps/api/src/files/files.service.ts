@@ -271,4 +271,103 @@ export class FilesService {
     });
     return { ok: true };
   }
+
+  /** Copies or moves entries between directories (DA clipboard flow). */
+  async transfer(
+    subscriptionId: string,
+    userId: string,
+    dir: string | undefined,
+    names: string[],
+    destDir: string | undefined,
+    mode: 'copy' | 'move',
+  ): Promise<{ ok: true; count: number }> {
+    if (!Array.isArray(names) || names.length === 0) {
+      throw new BadRequestException('Wskaż co najmniej jeden element.');
+    }
+    if (names.length > 100) {
+      throw new BadRequestException('Za dużo elementów naraz (limit 100).');
+    }
+    const account = await this.requireAccount(subscriptionId, userId);
+    const safeDir = this.safePath(dir);
+    const safeDest = this.safePath(destDir);
+    if (safeDest === safeDir) {
+      throw new BadRequestException('Katalog docelowy jest taki sam jak źródłowy.');
+    }
+    const safeNames = names.map((n) => this.safeName(n));
+    if (mode === 'move') {
+      // Przenoszenie katalogu do jego wnętrza kończy się pętlą — blokujemy.
+      for (const n of safeNames) {
+        const src = `${safeDir === '/' ? '' : safeDir}/${n}`;
+        if (safeDest === src || safeDest.startsWith(`${src}/`)) {
+          throw new BadRequestException('Nie można przenieść katalogu do jego wnętrza.');
+        }
+      }
+    }
+    const client = await this.clientFor(account);
+    await client.transferEntries(safeDir, safeNames, safeDest, mode);
+    await this.audit.record({
+      action:
+        mode === 'copy'
+          ? HostingResourceActions.HOSTING_FILE_COPIED
+          : HostingResourceActions.HOSTING_FILE_MOVED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, accountId: account.id, from: safeDir, to: safeDest, names: safeNames },
+    });
+    return { ok: true, count: safeNames.length };
+  }
+
+  /** Extracts an archive (zip/tar.gz/tar) into a directory on the account. */
+  async extract(
+    subscriptionId: string,
+    userId: string,
+    path: string | undefined,
+    destDir: string | undefined,
+  ): Promise<{ ok: true }> {
+    const account = await this.requireAccount(subscriptionId, userId);
+    const safe = this.safePath(path);
+    if (safe === '/') throw new BadRequestException('Wskaż archiwum do rozpakowania.');
+    if (!/\.(zip|tar\.gz|tgz|tar\.bz2|tar)$/i.test(safe)) {
+      throw new BadRequestException('Obsługiwane archiwa: .zip, .tar.gz, .tgz, .tar.bz2, .tar.');
+    }
+    const safeDest = this.safePath(destDir ?? safe.slice(0, safe.lastIndexOf('/')) ?? '/');
+    const client = await this.clientFor(account);
+    await client.extractArchive(safe, safeDest);
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_FILE_EXTRACTED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, accountId: account.id, archive: safe, to: safeDest },
+    });
+    return { ok: true };
+  }
+
+  /** Sets permissions (chmod) on entries in a directory. */
+  async chmod(
+    subscriptionId: string,
+    userId: string,
+    dir: string | undefined,
+    names: string[],
+    mode: string,
+  ): Promise<{ ok: true; count: number }> {
+    if (!Array.isArray(names) || names.length === 0) {
+      throw new BadRequestException('Wskaż co najmniej jeden element.');
+    }
+    const chmod = String(mode ?? '').trim();
+    if (!/^[0-7]{3,4}$/.test(chmod)) {
+      throw new BadRequestException('Uprawnienia podaj ósemkowo, np. 644 lub 755.');
+    }
+    const account = await this.requireAccount(subscriptionId, userId);
+    const safeDir = this.safePath(dir);
+    const safeNames = names.map((n) => this.safeName(n));
+    const client = await this.clientFor(account);
+    await client.chmodEntries(safeDir, safeNames, chmod);
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_FILE_CHMOD_SET,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, accountId: account.id, dir: safeDir, names: safeNames, chmod },
+    });
+    return { ok: true, count: safeNames.length };
+  }
 }

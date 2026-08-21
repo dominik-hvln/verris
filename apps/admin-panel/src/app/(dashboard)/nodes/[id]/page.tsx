@@ -16,6 +16,7 @@ import { DrainPanel } from "./drain-panel";
 import { NodeAuditPanel } from "./node-audit-panel";
 import { NodeInsightsPanel } from "./node-insights-panel";
 import { NameserversForm } from "./nameservers-form";
+import { DaSsoButton } from "./da-sso-button";
 
 export const dynamic = "force-dynamic";
 
@@ -71,7 +72,12 @@ export default async function ServerDetailPage({
           </div>
         </div>
 
-        {isPending && <ApproveServerButton serverId={server.id} />}
+        <div className="flex items-center gap-3">
+          {server.daHost ? (
+            <DaSsoButton serverId={server.id} sshHost={server.hostname ?? server.ipAddress ?? null} />
+          ) : null}
+          {isPending && <ApproveServerButton serverId={server.id} />}
+        </div>
       </header>
 
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -26,6 +26,7 @@ import { QueueHostingProfileTaskDto } from './dto/queue-hosting-profile.dto';
 import { IsBoolean, IsOptional, IsString, MaxLength } from 'class-validator';
 import { NodeTasksService } from './node-tasks.service';
 import { NodeAuditService } from './node-audit.service';
+import { DirectAdminService } from './directadmin.service';
 import { NodeStackReadinessService } from './node-stack-readiness.service';
 import { NodeDnsService } from './node-dns.service';
 import { renderNodeTasksAgentInstallScript } from './node-tasks-agent.install';
@@ -73,7 +74,17 @@ export class ServersAdminController {
     private readonly nodeAudit: NodeAuditService,
     private readonly nodeStack: NodeStackReadinessService,
     private readonly nodeDns: NodeDnsService,
+    private readonly directAdmin: DirectAdminService,
   ) {}
+
+  /**
+   * FALA-2c — jednorazowy adres logowania admina do DirectAdmin węzła (SSO).
+   * Ważny 2 minuty, jedno użycie; tworzenie audytowane. Tylko ADMIN.
+   */
+  @Post(':id/sso-url')
+  createNodeSsoUrl(@Param('id') id: string, @CurrentUser() actor: { userId: string }) {
+    return this.directAdmin.createNodeAdminSsoUrl(id, actor.userId);
+  }
 
   @Get()
   @UseGuards(StaffPermissionsGuard)

@@ -124,7 +124,11 @@ Zadanie możesz usunąć przyciskiem kosza. Zbyt częste, ciężkie zadania mog�
   {
     title: 'Kopie zapasowe i przywracanie',
     audience: AiKnowledgeAudience.ALL,
-    content: `Kopię zapasową konta utworzysz w panelu: Usługa → Kopie zapasowe → „Utwórz kopię teraz". Lista dostępnych kopii pojawia się poniżej. Dodatkowo wykonujemy kopie off-node (poza serwerem) dla bezpieczeństwa.
+    content: `Kopię zapasową konta utworzysz w panelu: Usługa → Kopie zapasowe → „Utwórz kopię teraz". Lista dostępnych kopii pojawia się poniżej. Dodatkowo wykonujemy kopie off-site (poza serwerem, na niezależnym magazynie) — dzięki temu awaria samego serwera nie oznacza utraty Twoich danych.
+
+Przywracanie z kopii na serwerze: wybierz kopię z listy, zaznacz zakres (pliki, bazy, poczta), zostaw włączoną kopię zabezpieczającą i potwierdź operację wpisując nazwę swojej domeny.
+
+Przywracanie z kopii off-site (dwa kroki): w sekcji „Kopia poza serwerem (off-site)" kliknij „Pokaż kopie poza serwerem" — serwer odczyta listę archiwów (chwilę to trwa). Następnie przy wybranym archiwum kliknij „Pobierz na serwer". Po pobraniu archiwum pojawi się na zwykłej liście kopii powyżej i przywracasz je standardowym przyciskiem „Przywróć z tej kopii" (również z potwierdzeniem domeny). Jeśli szukasz wersji z konkretnego dnia, rozwiń „Szukam kopii z konkretnego dnia" i podaj datę w formacie RRRRMMDD.
 
 Przy przywracaniu zwróć uwagę, że operacja nadpisuje bieżące dane przywracanymi. W razie wątpliwości skontaktuj się z pomocą techniczną przed przywróceniem produkcyjnej strony.`,
   },
@@ -161,6 +165,26 @@ W razie podejrzenia naruszenia zmień hasło i skontaktuj się z pomocą technic
 3. SSL: status „NONE" zwykle oznacza brak wydanego certu (najczęściej z powodu nieskierowanego DNS). Po poprawnym A ponów wystawienie LE.
 4. Konto: czy konto/domena istnieją w DirectAdmin i konto jest ACTIVE (nie zawieszone/za provisioningu).
 5. PHP/aplikacja: błąd 500 po zmianie PHP → sprawdź wymagania wersji i logi błędów w public_html.`,
+  },
+  {
+    title: 'Dostęp do węzłów floty przez SSH (admin/staff)',
+    audience: AiKnowledgeAudience.STAFF,
+    content: `Jak szybko połączyć się z węzłem hostingowym (dla zespołu — nie udostępniaj tego klientom).
+
+Najprościej — narzędzie z control-plane (CP):
+- Zaloguj się na control-plane, przejdź do katalogu repo (np. /opt/verris).
+- Lista węzłów:            ./ops/scripts/verris-node.sh list
+- Szczegóły + komenda SSH: ./ops/scripts/verris-node.sh info <nazwa|id|ip>
+- Wejście na węzeł:        ./ops/scripts/verris-node.sh ssh <nazwa|id|ip>
+- Jednorazowa komenda:     ./ops/scripts/verris-node.sh exec <nazwa|id|ip> -- <komenda>
+Selektor to fragment nazwy węzła, początek jego ID lub dokładne IP. Inwentarz węzłów skrypt czyta z bazy, a łączy się kluczem deploy CP → węzeł.
+Dla wygody można podpiąć alias: ln -s /opt/verris/ops/scripts/verris-node.sh /usr/local/bin/verris-node (wtedy: verris-node ssh <węzeł>).
+
+Ręcznie (bez skryptu): ssh -i /root/.ssh/verris_node_deploy root@<IP_węzła>. IP i nazwę węzła znajdziesz w panelu admina (Węzły) lub przez „verris-node list".
+
+Panel DirectAdmin węzła jako admin (bez hasła): w panelu admina otwórz węzeł (Węzły → wybrany) i użyj przycisku „DirectAdmin (SSO)" — otworzy panel DA węzła przez jednorazowy link (ważny 2 minuty). Obok jest przycisk „SSH", który kopiuje gotową komendę ssh root@<host>.
+
+Bezpieczeństwo: panele admin/staff są za VPN WireGuard; klucza deploy ani linków SSO nie przekazuj klientom; utworzenie linku SSO i logowanie są zapisywane w dzienniku audytu. Węzły nie są w sieci WireGuard — łączymy się z nich z control-plane, nie bezpośrednio z laptopa przez VPN.`,
   },
   {
     title: 'Migracja strony z innego hostingu do Verris',

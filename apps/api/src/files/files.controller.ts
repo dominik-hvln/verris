@@ -98,6 +98,46 @@ export class FilesController {
     return this.files.remove(id, user.userId, body.dir, body.names);
   }
 
+  @Post('copy')
+  @RateLimit({ limit: 60, windowMs: 60 * 60 * 1000, scope: 'files:copy' })
+  copy(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { dir?: string; names: string[]; dest?: string },
+  ) {
+    return this.files.transfer(id, user.userId, body.dir, body.names, body.dest, 'copy');
+  }
+
+  @Post('move')
+  @RateLimit({ limit: 60, windowMs: 60 * 60 * 1000, scope: 'files:move' })
+  move(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { dir?: string; names: string[]; dest?: string },
+  ) {
+    return this.files.transfer(id, user.userId, body.dir, body.names, body.dest, 'move');
+  }
+
+  @Post('extract')
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'files:extract' })
+  extract(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { path: string; dest?: string },
+  ) {
+    return this.files.extract(id, user.userId, body.path, body.dest);
+  }
+
+  @Post('chmod')
+  @RateLimit({ limit: 60, windowMs: 60 * 60 * 1000, scope: 'files:chmod' })
+  chmod(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { dir?: string; names: string[]; mode: string },
+  ) {
+    return this.files.chmod(id, user.userId, body.dir, body.names, body.mode);
+  }
+
   @Post('upload')
   @RateLimit({ limit: 120, windowMs: 60 * 60 * 1000, scope: 'files:upload' })
   @UseInterceptors(

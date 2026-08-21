@@ -29,6 +29,7 @@ import { MigrationOrchestratorService } from './migration-orchestrator.service';
 import { ServiceHealthService } from './service-health.service';
 import { HostingDnsPointingService } from './hosting-dns-pointing.service';
 import { HostingRestoreService } from './hosting-restore.service';
+import { OffsiteRestoreService } from './offsite-restore.service';
 import { HostingRestoreDto } from './dto/hosting-restore.dto';
 import { WordpressService } from './wordpress.service';
 import { InstallWordpressDto } from './dto/wordpress.dto';
@@ -57,6 +58,7 @@ export class UserServicesController {
     private readonly serviceHealth: ServiceHealthService,
     private readonly dnsPointing: HostingDnsPointingService,
     private readonly hostingRestore: HostingRestoreService,
+    private readonly offsiteRestore: OffsiteRestoreService,
     private readonly wordpress: WordpressService,
     private readonly waf: WafService,
     private readonly siteMonitor: SiteMonitorService,
@@ -630,6 +632,85 @@ export class UserServicesController {
     return this.directAdmin.deleteHostingDbAccessHost(id, user.userId, body);
   }
 
+  // ───────────────────────── SPRINT-1a — użytkownicy baz MySQL ─────────────────
+  // UI (DbUsers.tsx) i warstwa DirectAdmin powstały w lipcu 2026, ale trasy nigdy
+  // nie zostały dopisane — każde kliknięcie kończyło się 404. Pozycje D-04…D-07.
+
+  @Get(':id/hosting-db-users')
+  async hostingDbUsers(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Query('db') db: string,
+  ) {
+    return this.directAdmin.listHostingDbUsers(id, user.userId, db);
+  }
+
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:db-user-create' })
+  @Post(':id/hosting-db-users')
+  async addHostingDbUser(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { db: string; user: string; password: string },
+  ) {
+    return this.directAdmin.createHostingDbUser(id, user.userId, body);
+  }
+
+  @Post(':id/hosting-db-users/remove')
+  async removeHostingDbUser(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { db: string; user: string },
+  ) {
+    return this.directAdmin.deleteHostingDbUser(id, user.userId, body);
+  }
+
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:db-user-password' })
+  @Post(':id/hosting-db-users/password')
+  async changeHostingDbUserPassword(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { db: string; user: string; password: string },
+  ) {
+    return this.directAdmin.changeHostingDbUserPassword(id, user.userId, body);
+  }
+
+  // ───────────────────────── SPRINT-1c — SSO do phpMyAdmin / webmaila ──────────
+  // Jednorazowy link DirectAdmin ważny 2 minuty. Bez tej trasy panel wpadał
+  // w cichy fallback „Auto-logowanie niedostępne”. Pozycje D-11 i E-14.
+
+  @RateLimit({ limit: 20, windowMs: 15 * 60 * 1000, scope: 'hosting:sso-url' })
+  @Post(':id/hosting-sso-url')
+  async hostingSsoUrl(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { target: 'phpmyadmin' | 'webmail' | 'panel' },
+  ) {
+    return this.directAdmin.createHostingSsoUrl(id, user.userId, body.target);
+  }
+
+  // ───────────────────────── FALA-2b — wersja PHP per domena ───────────────────
+  // Obok per-kontowego selektora CloudLinux. Ustawienie per domena ma pierwszeństwo
+  // dla danego vhosta — panel sygnalizuje to przy selektorze konta. Pozycja B-02.
+
+  @Get(':id/hosting-domain-php')
+  async hostingDomainPhp(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Query('domain') domain: string,
+  ) {
+    return this.directAdmin.getHostingDomainPhp(id, user.userId, domain);
+  }
+
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:domain-php' })
+  @Post(':id/hosting-domain-php')
+  async setHostingDomainPhp(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { domain: string; version: string },
+  ) {
+    return this.directAdmin.setHostingDomainPhp(id, user.userId, body);
+  }
+
   @Get(':id/hosting-cron')
   async hostingCron(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
     return this.directAdmin.listHostingCronJobs(id, user.userId);
@@ -829,6 +910,35 @@ export class UserServicesController {
     @Param('id') id: string,
   ) {
     return this.hostingRestore.latestForSubscription(id, user.userId, false);
+  }
+
+  // S-1 — kopie OFF-SITE (poza węzłem). Panel nie ma kluczy do storage'u, więc
+  // listowanie i pobranie archiwum wykonuje węzeł zadaniem OFFSITE_RESTORE.
+  // Po pobraniu archiwum trafia na zwykłą listę kopii DA i odtwarza się
+  // istniejącą ścieżką /hosting-restore (kopia bezpieczeństwa + potwierdzenie).
+  @Get(':id/hosting-offsite')
+  hostingOffsiteStatus(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.offsiteRestore.status(id, user.userId);
+  }
+
+  @Post(':id/hosting-offsite/list')
+  @HttpCode(200)
+  hostingOffsiteList(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { snapshot?: string },
+  ) {
+    return this.offsiteRestore.queueList(id, user.userId, body?.snapshot);
+  }
+
+  @Post(':id/hosting-offsite/fetch')
+  @HttpCode(200)
+  hostingOffsiteFetch(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { archive: string; snapshot?: string },
+  ) {
+    return this.offsiteRestore.queueFetch(id, user.userId, body?.archive, body?.snapshot);
   }
 
   @Get(':id/health')

@@ -612,6 +612,7 @@ enum NodeTaskKind {
   APP_INSTALL       // P-3 — instalator 1-click aplikacji (Nextcloud/PrestaShop)
   DB_UPGRADE        // VER-UPG — upgrade silnika MariaDB węzła (CustomBuild) do wybranej wersji LTS
   FLEET_UPDATE      // NODE-6 — aktualizacja stacku węzła do latest-stable (CustomBuild + yum)
+  OFFSITE_RESTORE   // S-1 — listowanie / ściąganie archiwum konta z kopii off-site (rclone)
 }
 
 enum WafMode {
