@@ -43,7 +43,7 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
 | `X-01` | CI uruchamiające testy | 6 | — | .github/workflows/ci.yml — typecheck, testy API, build, smoke migracji Prisma, gitleaks, pnpm audit, Trivy, dependabot |
-| `X-02` | Status wymagany do merge | 6 | — | ruleset „main — wymagaj zielonego CI" (id 21161479), Active, zakres: gałąź domyślna; wymagane 3 checki z ci.yml |
+| `X-02` | Status wymagany do merge | 6 | — | ruleset „gałęzie wdrożeniowe — wymagaj zielonego CI" (id 21161479), Active, zakres: gałąź domyślna + live-release-readiness; wymagane 3 checki z ci.ym |
 | `X-03` | Testy uruchamiane przed wdrożeniem | 6 | WYSOKA | .github/workflows/deploy.yml — job test-gate (typecheck + pnpm --filter api test), build-push ma needs: test-gate |
 | `Z-02` | Blokada zamówienia usługi bez opłaty przez klienta | 6 | — | dto/subscription.dto.ts — @IsIn(CLIENT_PAYMENT_SOURCES); subscriptions.service.ts — ForbiddenException dla MANUAL bez allowManual; test subscriptions. |
 | `PB-01` | Unit economics węzła vs cena 45 zł/mies. brutto (399 zł/rok) | 8 | BLOKER BIZNESOWY | Policzyć pełny koszt węzła: serwer + CloudLinux + LiteSpeed + DirectAdmin + Imunify + backup S3 + amortyzacja wsparcia. Wyliczyć próg rentowności w ko |

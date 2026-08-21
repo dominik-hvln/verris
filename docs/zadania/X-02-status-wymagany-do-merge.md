@@ -33,9 +33,9 @@ ustawienie po stronie GitHuba (Settings → Branches), nie da się go zapisać w
 
 | | |
 |---|---|
-| **Nazwa** | `main — wymagaj zielonego CI` |
+| **Nazwa** | `gałęzie wdrożeniowe — wymagaj zielonego CI` |
 | **Status** | Active |
-| **Zakres** | gałąź domyślna (`main`) |
+| **Zakres** | gałąź domyślna (`main`) **oraz** `live-release-readiness` |
 | **Lista obejścia** | `Repository admin` — „Always allow" |
 | **Wymagane checki** | `Static checks (lint + typecheck)` · `Build (api + panels)` · `Prisma migrate deploy (smoke)` |
 | **Dodatkowo** | wymagana aktualność gałęzi przed scaleniem · blokada force push · zakaz usunięcia gałęzi |
@@ -99,11 +99,27 @@ Weryfikacja z linii poleceń: `gh api repos/dominik-hvln/verris/rulesets/2116147
 
 Jedno zastrzeżenie do tego dowodu: reguła jest ustawiona, ale **jeszcze nie zadziałała**, bo nie było przebiegu CI. Pierwszy push pokaże, czy nazwy checków wpisane ręcznie zgadzają się co do znaku z tym, co wystawia `ci.yml`. Jeżeli się rozjadą, reguła będzie czekać w nieskończoność na check, który nigdy nie przyjdzie — i to jest jedyny realny sposób, w jaki to ustawienie może zaszkodzić. Sprawdzić przy pierwszym PR-ze.
 
+## Rozszerzenie na gałąź wdrożeniową (2026-08-21, po decyzji PM-a)
+
+Pierwsza wersja reguły chroniła wyłącznie `main`. Tymczasem `deploy.yml` wyzwala wdrożenie z trzech gałęzi, a realne wdrożenia szły z **`live-release-readiness`** (ostatnie 15.07). Ochrona `main` przy takim układzie nie pilnowała niczego, co faktycznie trafia na serwer.
+
+Decyzja PM-a: **objąć regułą obie gałęzie.** Ruleset ma teraz dwa cele (`Default` + wzorzec `live-release-readiness`) i został przemianowany, bo nazwa `main — …` przestała być prawdziwa.
+
+### Co to zmienia w codziennej pracy
+
+Reguła „Require status checks" znaczy: *commit musi już mieć zielone checki z innego ref-a.* W praktyce:
+
+- **Fast-forward** z zielonej gałęzi na `live-release-readiness` — przechodzi, bo commit jest ten sam i ma już zielony przebieg.
+- **Nowy merge commit** utworzony lokalnie i wypchnięty — **zostanie zablokowany**, bo taki commit nie istniał nigdzie wcześniej i nie ma własnego przebiegu. To nie jest awaria, tylko działanie reguły.
+- **Merge przez pull request na GitHubie** — przechodzi, bo checki liczą się dla wyniku scalenia.
+
+Wniosek praktyczny: **scalamy przez PR albo fast-forward.** Lokalne `git merge` + `git push` na gałąź wdrożeniową przestaje być drogą na skróty. Repository admin nadal może obejść regułę świadomie, gdyby zdarzył się incydent.
+
 ## Czego to nadal nie robi
 
 Skany bezpieczeństwa (`Security scans (gitleaks + audit + trivy)`) **nie są wymagane** do scalenia — powód w tabeli wyżej.
 
-Chroni tylko `main`. Gałąź `live-release-readiness`, która też wyzwala wdrożenie, zostaje bez reguły — jeżeli to nadal żywa ścieżka wdrożeniowa, potrzebuje własnej reguły albo powinna zniknąć z wyzwalaczy `deploy.yml`. Do decyzji PM-a; jeżeli zostaje, wraca jako osobna pozycja.
+`master` zostaje w wyzwalaczach `deploy.yml` bez odpowiadającej reguły. W repozytorium nie ma dziś takiej gałęzi, więc nie ma czego chronić — ale jeżeli kiedyś powstanie, wdroży się bez bramki. Do rozważenia przy porządkowaniu wyzwalaczy: albo wzorzec obejmujący wszystkie trzy nazwy, albo skreślenie `master` z `deploy.yml`.
 
 ## Ryzyko i wycofanie
 
