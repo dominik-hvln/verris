@@ -335,4 +335,21 @@ weryfikujemy przy pierwszym PR-ze.
 blokuje nowe nadużycia, ale nie mówi, czy ktoś zdążył skorzystać z luki, zanim została
 zamknięta.
 
+**CI faktycznie przebiegło — i D2 przestało być zerem.** Run #17 (pierwsze uruchomienie tego
+workflow w historii repozytorium) wyszedł czerwony na dwóch rzeczach zastanych: nieistniejący tag
+akcji Trivy (`0.24.0` zamiast `v0.36.0`) i `apps/www`, który nie przechodził typechecku.
+Druga miała konsekwencję gorszą niż sam błąd: **testy API stoją w tym samym jobie, w kroku po
+typechecku**, więc dopóki typecheck padał, `pnpm --filter api test` nie uruchomiło się ani razu.
+Po naprawie (`e122ae4`) **run #18: cztery joby zielone, 37 zestawów, 194 testy, wszystkie przeszły.**
+
+Co to zmienia w tezach raportu:
+- teza z §4.1 „D2 = 0% dla całego produktu" **przestaje być prawdziwa** — `X-01` i `Z-02` mają D2;
+- przechodzą też **Build (api + panels)** i **Prisma migrate deploy (smoke)**, co potwierdza, że
+  migracja `20260718120000_offsite_restore` wchodzi na czystą bazę bez dryfu schematu;
+- liczba 194 zgadza się co do jednego z pomiarem na atrapie Prismy, której musiałem używać —
+  po jej naprawie atrapa nie zawyżała ani nie ukrywała niczego.
+
+**Nowa pozycja:** `X-11` — rozdzielić testy API do własnego jobu. Krok, który dowodzi, nie może stać
+za krokiem, który tylko sprawdza higienę.
+
 Pełne podsumowanie: [`docs/sprinty/SPRINT-01.md`](../docs/sprinty/SPRINT-01.md).

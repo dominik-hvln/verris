@@ -14,8 +14,8 @@
 
 | ID | Zadanie | h plan | h realnie | Poziom dowodu | Dokumentacja |
 |---|---|---|---|---|---|
-| `Z-02` | Blokada zamówienia usługi bez opłaty | 6 | 4 | D2 (D3 po wdrożeniu) | [`docs/zadania/Z-02-…`](../zadania/Z-02-blokada-zamowienia-uslugi-bez-oplaty.md) |
-| `X-01` | CI uruchamiające testy | 6 | 3 | D1 → D2 po pierwszym przebiegu | [`docs/zadania/X-01-…`](../zadania/X-01-ci-uruchamiajace-testy.md) |
+| `Z-02` | Blokada zamówienia usługi bez opłaty | 6 | 4 | **D2** (D3 po wdrożeniu) | [`docs/zadania/Z-02-…`](../zadania/Z-02-blokada-zamowienia-uslugi-bez-oplaty.md) |
+| `X-01` | CI uruchamiające testy | 6 | 4 | **D2** | [`docs/zadania/X-01-…`](../zadania/X-01-ci-uruchamiajace-testy.md) |
 | `X-02` | Status wymagany do merge | 6 | 1 | D4 | [`docs/zadania/X-02-…`](../zadania/X-02-status-wymagany-do-merge.md) |
 | `X-03` | Testy przed wdrożeniem | 6 | 2 | D1, częściowo | [`docs/zadania/X-03-…`](../zadania/X-03-testy-uruchamiane-przed-wdrozeniem.md) |
 | — | Domknięcie prac z 25–26 lipca (7 pozycji macierzy) | 0 | 6 | D2 | [`docs/zadania/S1-WIP-…`](../zadania/S1-WIP-LIPIEC-domkniecie-funkcji.md) |
@@ -30,6 +30,7 @@
 | Nowe ID | Co to | Krytyczność | Sprint |
 |---|---|---|---|
 | `Z-08` | Przegląd istniejących subskrypcji `MANUAL` — czy ktoś zdążył skorzystać z luki `Z-02` przed poprawką | ŚREDNIA | 2 |
+| `X-11` | Testy API w osobnym jobie CI, nie za typecheckiem | ŚREDNIA | 2 |
 
 Poza tym trzy rzeczy, które nie są pozycjami macierzy, ale zmieniają obraz:
 
@@ -42,7 +43,7 @@ Poza tym trzy rzeczy, które nie są pozycjami macierzy, ale zmieniają obraz:
 | ID | Stan przed | Stan po | Werdykt przed | Werdykt po |
 |---|---|---|---|---|
 | `Z-02` | BRAK | DZIAŁA | LUKA | PARYTET |
-| `X-01` | BRAK *(błędnie)* | CZĘŚCIOWE | LUKA | CZĘŚCIOWY |
+| `X-01` | BRAK *(błędnie)* | DZIAŁA | LUKA | PARYTET |
 | `X-02` | BRAK | DZIAŁA | LUKA | PARYTET |
 | `X-03` | BRAK | CZĘŚCIOWE | LUKA | CZĘŚCIOWY |
 | `B-02` | ATRAPA | DZIAŁA | LUKA | PARYTET |
@@ -55,7 +56,7 @@ Poza tym trzy rzeczy, które nie są pozycjami macierzy, ale zmieniają obraz:
 | `Z-08` | — | BRAK *(nowa)* | — | LUKA |
 
 Liczba blokerów przed: **11** → po: **10**.
-Werdykty: PARYTET 105 → **114**, LUKA 135 → **125** (135 − 11 zamkniętych + 1 nowa `Z-08`), CZĘŚCIOWY 43 → **45**. Pozycji w macierzy: 352 → **353**.
+Werdykty: PARYTET 105 → **115**, LUKA 135 → **126**, CZĘŚCIOWY 43 → **44**. Pozycji w macierzy: 352 → **354** (nowe `Z-08` i `X-11`).
 
 Poprawione też ceny w danych planu: **45 zł/mies brutto i 399 zł/rok** (commit `7109c78` zmienił je z 39/349, a audyt i plan nadal cytowały stare). `PB-01` liczy się teraz wobec właściwej liczby.
 
@@ -71,9 +72,25 @@ Ustawiona 2026-08-21 przez interfejs GitHuba: ruleset `main — wymagaj zieloneg
 
 Zastrzeżenie do dowodu: reguła jest ustawiona, ale jeszcze nie zadziałała. Pierwszy przebieg pokaże, czy nazwy checków wpisane ręcznie zgadzają się co do znaku z tym, co wystawia `ci.yml`. Jeżeli nie — reguła będzie czekać na check, który nigdy nie przyjdzie. Sprawdzić przy pierwszym PR-ze.
 
+## Pierwszy przebieg CI — i co pokazał
+
+Gałąź wypchnięta 2026-08-21. **Run #17 był pierwszym uruchomieniem tego workflow w historii repozytorium** i wyszedł czerwony na dwóch rzeczach zastanych:
+
+- `aquasecurity/trivy-action@0.24.0` nie istnieje (to repo taguje z przedrostkiem `v`) — job padał po dwóch sekundach, przed checkoutem;
+- `apps/www` nie przechodził typechecku (`sitemap.ts` — Payload typuje `res.docs` szerzej, niż zakładał kod).
+
+Druga rzecz miała konsekwencję, której nie widać z opisu: **testy API stoją w tym samym jobie, w kroku po typechecku.** Dopóki typecheck padał, `pnpm --filter api test` nie uruchomiło się ani razu — CI działało, a dowodu D2 nadal nie było. Stąd nowa pozycja `X-11`.
+
+Obie naprawione w `e122ae4`. **Run #18: wszystkie cztery joby zielone, 2m 17s. Krok „API unit tests": 37 zestawów, 194 testy, wszystkie przeszły.**
+
+Warto odnotować, co jeszcze potwierdził ten przebieg:
+- **Prisma migrate deploy (smoke)** przechodzi — migracja `20260718120000_offsite_restore` wchodzi na czystą bazę i schemat nie ma dryfu wobec `schema.prisma`;
+- **Build (api + panels)** przechodzi — API kompiluje się z prawdziwie wygenerowanym klientem Prismy, nie tylko z atrapą z mojego środowiska;
+- liczba 194 zgadza się **co do jednego** z tym, co zmierzyłem lokalnie na atrapie. To znaczy, że atrapa nie zawyżała ani nie ukrywała niczego — po jej naprawie.
+
 ## Stan produkcji
 
-**Nic.** Żadna zmiana z tego sprintu nie poszła na produkcję. Gałąź `chore/audyt-i-porzadek` czeka na push i pierwszy przebieg CI. Wdrożenie nie ruszy samo — ta gałąź nie jest na liście wyzwalaczy `deploy.yml`.
+**Nic.** Żadna zmiana z tego sprintu nie poszła na produkcję. Wdrożenie nie ruszy samo — `chore/audyt-i-porzadek` nie jest na liście wyzwalaczy `deploy.yml`.
 
 ## Czego się nauczyliśmy
 
@@ -87,7 +104,7 @@ Zastrzeżenie do dowodu: reguła jest ustawiona, ale jeszcze nie zadziałała. P
 
 **`PB-01` może wywrócić cennik.** Jeżeli koszt węzła nie domyka się przy 45 zł brutto, zmienia się treść cennika w sprincie 15 i cała komunikacja startowa. Dlatego to zadanie jest z przodu, a nie z tyłu — i dlatego przesunięcie go o sprint jest realnym ryzykiem, nie formalnością.
 
-**Pierwszy przebieg CI może być czerwony z powodów, których u siebie nie zobaczę.** W CI Prisma wygeneruje się naprawdę. Zielony zestaw na atrapie to D1+, nie D2 — i tak jest zapisane w macierzy.
+**~~Pierwszy przebieg CI może być czerwony z powodów, których u siebie nie zobaczę.~~** Zmaterializowało się jeszcze w tym samym dniu — dwa razy, i oba razy z powodów, których atrapa nie mogła pokazać (tag akcji, typecheck w panelu, którego nie tykałem). Ryzyko zamknięte przebiegiem #18.
 
 **Ochrona gałęzi żyje poza repozytorium.** Ruleset nie jest w żadnym pliku, nie odtworzy się z kopii kodu i nie przetrwa przeniesienia repo. Jedyny jego zapis to `docs/zadania/X-02-status-wymagany-do-merge.md`. Jeżeli kiedyś dojdzie druga taka reguła, warto rozważyć eksport rulesetów do repozytorium.
 

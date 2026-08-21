@@ -122,7 +122,7 @@ Warstwa serwisowa testowana na atrapach z `Proxy`, które rzucają przy pierwszy
 
 **Osiągnięty poziom dowodu:**
 - [x] D1 — kod istnieje
-- [x] D2 — test przechodzi lokalnie; potwierdzenie w CI przy pierwszym przebiegu
+- [x] **D2 — potwierdzone w CI #18** (2026-08-21, commit `e122ae4`): 37 zestawów, 194 testy zielone, w tym 8 przypadków `subscriptions.create-guard.spec.ts`
 - [ ] D3 — **wymagane, bo pozycja dotyczy pieniędzy.** Do wykonania po wdrożeniu: próba zamówienia z `paymentSource: MANUAL` z konta klienckiego na produkcji, oczekiwana odpowiedź 400/403, wpis z datą i godziną tutaj.
 - [ ] D4 — nie dotyczy
 

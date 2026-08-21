@@ -6,8 +6,8 @@
 | **Priorytet** | WYSOKA |
 | **Nakład** | planowany 6 h · rzeczywisty 3 h |
 | **Zależy od** | — |
-| **Status** | w toku — czeka na pierwszy zielony przebieg |
-| **Data zamknięcia** | — |
+| **Status** | zrobione |
+| **Data zamknięcia** | 2026-08-21 (CI #18) |
 
 ---
 
@@ -81,13 +81,25 @@ CI nie jest funkcją produktu i nie ma własnego testu jednostkowego — dowodem
 
 **Osiągnięty poziom dowodu:**
 - [x] D1 — kod istnieje
-- [ ] D2 — test przechodzi w CI ← **czeka na pierwszy push gałęzi `chore/audyt-i-porzadek`**
+- [x] **D2 — testy przechodzą w CI.** Przebieg **CI #18**, commit `e122ae4`, 2026-08-21, 2m 17s.
+      Cztery joby zielone; krok „API unit tests": **37 zestawów, 194 testy, wszystkie przeszły**.
 - [ ] D3 — nie dotyczy
 - [ ] D4 — nie dotyczy
 
-**Stan w macierzy po:** `CZĘŚCIOWE`
+**Stan w macierzy po:** `DZIAŁA`
 
-Świadomie nie `DZIAŁA`. Zgodnie z zasadą przyjętą w audycie nic poniżej D2 nie jest zrobione, a D2 tutaj oznacza konkretnie: widoczny, zielony przebieg w zakładce Actions. Do tego czasu mamy plik, nie dowód.
+Do momentu przebiegu było tu `CZĘŚCIOWE` — zgodnie z zasadą, że nic poniżej D2 nie jest zrobione, a D2 oznaczało konkretnie: widoczny, zielony przebieg w zakładce Actions. Teraz taki przebieg jest.
+
+### Co odsłonił pierwszy przebieg
+
+Run **#17** (commit `4b3b889`) był czerwony i to jest najlepszy argument za tym zadaniem. Dwie rzeczy, obie zastane, obie niewidoczne przez miesiące:
+
+1. **`aquasecurity/trivy-action@0.24.0` nie istnieje.** To repozytorium taguje z przedrostkiem `v`. Job padał po dwóch sekundach, przed checkoutem.
+2. **`apps/www` nie przechodził typechecku.** `sitemap.ts:34,35` — Payload typuje `res.docs` jako `(JsonObject & TypeWithID)[]`, a kod adnotował parametry callbacków węższym kształtem.
+
+Punkt 2 miał konsekwencję, której nie widać na pierwszy rzut oka: **testy API stoją w tym samym jobie, w kroku PO typechecku.** Dopóki typecheck padał, `pnpm --filter api test` nie uruchomiło się ani razu — więc CI działało, a dowodu D2 nadal nie było. Naprawione w `e122ae4`, potwierdzone w #18.
+
+Warto to zapamiętać przy projektowaniu kolejnych jobów: **krok, który dowodzi, nie powinien stać za krokiem, który tylko sprawdza higienę.** Rozdzielenie testów do własnego jobu jest w backlogu.
 
 ## Czego to nadal nie robi
 
