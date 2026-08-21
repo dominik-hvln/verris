@@ -94,6 +94,14 @@ export class SubscriptionsController {
     return this.subscriptions.previewSubscriptionPromo(user.userId, dto);
   }
 
+  /**
+   * Z-02 — zamówienie usługi przez klienta.
+   *
+   * Rate-limit: zakładanie usługi uruchamia provisioning na węźle i obciąża
+   * portfel, więc nie może być wołane w pętli. 10/h wystarcza nawet klientowi
+   * zamawiającemu kilka usług naraz, a odcina automat.
+   */
+  @RateLimit({ limit: 10, windowMs: 60 * 60 * 1000, scope: 'subscriptions:create' })
   @Post()
   @HttpCode(201)
   create(@CurrentUser() user: { userId: string }, @Body() dto: CreateSubscriptionDto) {

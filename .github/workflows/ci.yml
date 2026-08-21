@@ -1,10 +1,14 @@
 name: CI
 
+# X-01 — CI musi obejmować gałęzie, na których realnie pracujemy.
+# Do 2026-08-21 workflow startował wyłącznie na `main`/`master`, a praca szła na
+# długo żyjących gałęziach funkcyjnych (feature/support-v2 było 301 commitów przed
+# main). Efekt: CI istniało i nie dotknęło ani jednego commita z tej pracy.
 on:
   push:
-    branches: [main, master]
+    branches: ['**']
   pull_request:
-    branches: [main, master]
+  workflow_dispatch: {}
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -51,7 +55,7 @@ jobs:
       - name: Typecheck (all workspaces via Turbo)
         run: pnpm typecheck
 
-      - name: API unit tests (RBAC metadata + RolesGuard)
+      - name: API unit tests
         run: pnpm --filter api test
 
   # ---------------------------------------------------------------------------

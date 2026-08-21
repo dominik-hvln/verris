@@ -2,6 +2,7 @@ import {
   Equals,
   IsBoolean,
   IsEnum,
+  IsIn,
   IsNumber,
   IsOptional,
   IsString,
@@ -12,6 +13,24 @@ import {
   Min,
 } from 'class-validator';
 import { BillingInterval, SubscriptionPaymentSource } from '@verris/database';
+
+/**
+ * Z-02 — źródła płatności, które wolno wskazać KLIENTOWI przy zakładaniu usługi.
+ *
+ * `MANUAL` jest tu świadomie pominięty. To ścieżka operatorska (konta gratisowe,
+ * bug bounty), która uruchamia usługę BEZ obciążenia i BEZ faktury —
+ * `SubscriptionsService.provisionWithoutCharge`. Wystawiona na endpoincie klienta
+ * pozwalała dowolnemu zarejestrowanemu kontu zamówić nieograniczoną liczbę
+ * aktywnych usług za 0 zł. Ta sama luka była już zamknięta przy zmianie planu
+ * (`plan-change.service.ts:206-213`), ale nie przy zakupie.
+ *
+ * Enum w bazie zostaje bez zmian — istniejące subskrypcje MANUAL są nadal
+ * obsługiwane, a operator może je zakładać po jawnym `allowManual`.
+ */
+export const CLIENT_PAYMENT_SOURCES: readonly SubscriptionPaymentSource[] = [
+  SubscriptionPaymentSource.STRIPE_CARD,
+  SubscriptionPaymentSource.WALLET,
+];
 
 /** Konwersja triala na plan płatny — wymaga oświadczenia konsumenckiego. */
 export class ConvertTrialDto {
@@ -43,8 +62,15 @@ export class CreateSubscriptionDto {
   @IsEnum(BillingInterval)
   interval!: BillingInterval;
 
-  /** Source of payment for this subscription's recurring charges. */
+  /**
+   * Source of payment for this subscription's recurring charges.
+   * Z-02: klient może wskazać wyłącznie `CLIENT_PAYMENT_SOURCES` — `MANUAL`
+   * jest zarezerwowane dla operatora.
+   */
   @IsEnum(SubscriptionPaymentSource)
+  @IsIn(CLIENT_PAYMENT_SOURCES, {
+    message: 'Niedozwolone źródło płatności dla zamówienia klienta.',
+  })
   paymentSource!: SubscriptionPaymentSource;
 
   /**

@@ -246,7 +246,22 @@ export class SubscriptionsService {
   // Sale flow
   // ---------------------------------------------------------------------------
 
-  async create(userId: string, dto: CreateSubscriptionDto): Promise<CreatedSubscription> {
+  /**
+   * @param opts.allowManual  Z-02 — dopuszcza `paymentSource: MANUAL`, czyli
+   *   uruchomienie usługi bez obciążenia i bez faktury. Wolno TYLKO ze ścieżki
+   *   operatorskiej. Walidacja DTO odcina to już na wejściu kontrolera klienta;
+   *   ten warunek jest drugą warstwą, na wypadek gdyby serwis zawołał kto inny.
+   */
+  async create(
+    userId: string,
+    dto: CreateSubscriptionDto,
+    opts: { allowManual?: boolean } = {},
+  ): Promise<CreatedSubscription> {
+    if (dto.paymentSource === SubscriptionPaymentSource.MANUAL && !opts.allowManual) {
+      throw new ForbiddenException(
+        'Źródło płatności MANUAL jest zarezerwowane dla operatora.',
+      );
+    }
     const plan = await this.prisma.plan.findUnique({ where: { id: dto.planId } });
     if (!plan || !plan.isActive || !plan.isPublic) {
       throw new NotFoundException('Plan not found or unavailable');
