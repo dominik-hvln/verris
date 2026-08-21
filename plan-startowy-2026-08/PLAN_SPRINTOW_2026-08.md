@@ -9,9 +9,9 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **2654 h** — przy 30 h tygodniowo około **21 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **2670 h** — przy 30 h tygodniowo około **21 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **19 sprintów do startu** (540 h) oraz roadmapę po starcie (2114 h, 136 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **19 sprintów do startu** (540 h) oraz roadmapę po starcie (2130 h, 137 pozycji) rozpisaną na epiki kwartalne.
 
 - **2026-10-16** — koniec sprintu 8, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-01-01** — koniec sprintu 19, decyzja GO.
@@ -66,7 +66,7 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
 | `Z-04` | Guard uprawnień subkont — domyślna odmowa | 6 | BLOKER STARTU | customer-permissions.guard.ts:75 — inferCustomerRoutePermissions kończy się return [] (zezwól) dla trasy niedopasowanej; addons/* i vps nie pasują do  |
-| `Z-03` | Walidacja danych migracji przed użyciem w poleceniu powłoki | 16 | BLOKER STARTU | node-migration-worker.sh:250,253 — eval z interpolacją ${db}; :217 lftp -e z ${spath}; dto/migration.dto.ts:88-89 remotePath tylko @MaxLength, :108-10 |
+| `Z-03` | Walidacja danych migracji przed użyciem w poleceniu powłoki | 16 | — | dto/migration.dto.ts — MIGRACJA_WZORCE + @Matches na 17 polach; ops/scripts/lib/migration-input-guard.sh — vg_require; node-migration-worker.sh — fail |
 | `Z-06` | Klucz idempotencji obciążenia za dodatek | 6 | BLOKER STARTU | addon.service.ts:110 — idempotencyKey zawiera Date.now(), więc mechanizm z wallet-ledger.service.ts:94-105 nigdy nie zadziała; addon.controller.ts:17  |
 
 **Definicja ukończenia**
@@ -431,7 +431,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 # Po starcie — roadmapa kwartalna
 
-136 pozycji, 2114 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
+137 pozycji, 2130 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
 
 | ID | Epik | Priorytet | Kwartał | Pozycji | h | Dlaczego teraz, a nie wcześniej |
 |---|---|---|---|---|---|---|
@@ -444,7 +444,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 | `E-04` | Domeny jako produkt | WYSOKI | Q2 2027 | 10 | 110 | Backend jest gotowy i wyłączony brakiem konfiguracji. Domena to najczęstszy pierwszy zakup i naturalny punkt wejścia. |
 | `E-05` | Katalog aplikacji | ŚREDNI | Q2 2027 | 1 | 16 | Softaculous ma około 400 aplikacji. Nie musimy mieć 400, ale dwie to nie jest katalog. |
 | `E-10` | Poczta: filtry, kalendarz, limity | ŚREDNI | Q2 2027 | 9 | 118 | „Gdzie jest mój mail” to najczęstszy ticket poczty. Podgląd kolejki zdejmuje go z obsługi i oddaje klientowi. |
-| `E-06` | Bezpieczeństwo jako funkcja | ŚREDNI | Q3 2027 | 7 | 154 | Pozycja licencyjna — wchodzi do rachunku z PB-01. Może być produktem dodatkowym, nie musi być w cenie pakietu. |
+| `E-06` | Bezpieczeństwo jako funkcja | ŚREDNI | Q3 2027 | 8 | 170 | Pozycja licencyjna — wchodzi do rachunku z PB-01. Może być produktem dodatkowym, nie musi być w cenie pakietu. |
 | `E-07` | Reseller jako produkt | ŚREDNI | Q3 2027 | 6 | 168 | Dziś to strona sprzedażowa z dwoma GET-ami. Albo staje się produktem, albo znika z nawigacji — trzeciej opcji nie ma. |
 | `E-08` | Dostępność i zgodność w produkcie | ŚREDNI | Q3 2027 | 5 | 118 | Zwolnienie mikroprzedsiębiorcy z EAA wygasa przy 10 pracownikach lub 2 mln EUR. Lepiej mieć to wcześniej niż w tygodniu przekroczenia progu. |
 | `E-11` | DNS: DNSSEC i zarządzanie strefą | ŚREDNI | Q3 2027 | 4 | 62 | Żaden z pięciu hostingów PL nie potwierdza publicznie DNSSEC. To okazja, nie luka. |
@@ -457,7 +457,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 - **E-03 WordPress Toolkit** (168 h) — Automatyczne aktualizacje, aktualizacje wtyczek i motywów, klonowanie między domenami, hardening, skan podatności, tryb konserwacji, masowe zarządzanie.
 - **E-04 Domeny jako produkt** (110 h) — Konfiguracja rejestratora, zakup i transfer z panelu, odnowienia, zmiana danych abonenta, blokada transferu, ukrycie WHOIS.
 - **E-05 Katalog aplikacji** (16 h) — Rozbudowa katalogu z dwóch pozycji do kilkunastu najczęściej instalowanych albo integracja z gotowym instalatorem.
-- **E-06 Bezpieczeństwo jako funkcja** (154 h) — Skaner malware, czyszczenie zainfekowanych plików, rozbudowa WAF, HSTS, anty-DDoS, sprzedaż certyfikatów DV/OV/EV.
+- **E-06 Bezpieczeństwo jako funkcja** (170 h) — Skaner malware, czyszczenie zainfekowanych plików, rozbudowa WAF, HSTS, anty-DDoS, sprzedaż certyfikatów DV/OV/EV.
 - **E-07 Reseller jako produkt** (168 h) — Zakładanie kont przez resellera, marża ustawiana przez niego, white-label, rozliczenia.
 - **E-08 Dostępność i zgodność w produkcie** (118 h) — WCAG 2.1 AA dla ścieżki klienta, RCPD jako moduł zamiast pliku, ISO 27001 jeśli wejdziemy w B2B, deklaracja lokalizacji danych.
 - **E-09 Pokrycie testowe warstw krytycznych** (190 h) — Testy integracyjne API, moduł auth, klient KSeF, ścieżka backup/restore, DirectAdminService, panele frontowe.

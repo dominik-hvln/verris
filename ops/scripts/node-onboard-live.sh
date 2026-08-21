@@ -14,7 +14,8 @@
 #   node-live-readiness.sh, node-hosting-profile.sh, install-verris-default-page.sh,
 #   hosting-default-page/ (katalog), node-verris-tasks-install.sh,
 #   node-da-sync-plan-packages.sh, verris-tasks.sh, verris-task-run.sh,
-#   node-migration-worker.sh, security-hardening-baseline.sh, security-egress-lockdown.sh
+#   node-migration-worker.sh (+ lib/migration-input-guard.sh),
+#   security-hardening-baseline.sh, security-egress-lockdown.sh
 #
 # Użycie:
 #   scp -r ops/hosting-default-page \
@@ -131,10 +132,16 @@ require_bundle_scripts() {
       missing=1
     fi
   done
+  # Z-03 — worker migracji startuje fail-closed bez biblioteki walidacji wejścia.
+  if [ ! -f "$SCRIPT_DIR/lib/migration-input-guard.sh" ]; then
+    log_fail "Brak $SCRIPT_DIR/lib/migration-input-guard.sh (walidacja danych migracji)"
+    missing=1
+  fi
   [ "$missing" -eq 0 ] || {
-    echo "Skopiuj cały bundle: scp ops/scripts/*.sh root@WĘZEŁ:/root/verris/"
+    echo "Skopiuj cały katalog (razem z lib/): scp -r ops/scripts/ root@WĘZEŁ:/root/verris/"
     exit 1
   }
+  chmod +x "$SCRIPT_DIR"/lib/*.sh 2>/dev/null || true
   chmod +x "$SCRIPT_DIR"/*.sh 2>/dev/null || true
   log_ok "Bundle skryptów w $SCRIPT_DIR"
 }

@@ -35,6 +35,38 @@ CONF=/etc/verris.conf
 LOG_TAG="verris-migration-worker"
 HEARTBEAT_INTERVAL=60
 
+# Z-03 — walidacja danych z formularza klienta PRZED użyciem ich w powłoce.
+# Worker działa jako root na węźle, który hostuje konta innych klientów, a cała
+# treść zlecenia (host, login, nazwa bazy, ścieżka) pochodzi z formularza.
+# Biblioteka jest instalowana obok workera przez `--install`; przy uruchomieniu
+# z bundla leży w ./lib/.
+#
+# Zachowanie przy braku pliku jest celowo FAIL-CLOSED: worker kończy pracę
+# i nie bierze żadnego zlecenia. Kontrola bezpieczeństwa, która po cichu znika
+# razem z plikiem, jest gorsza niż jej brak, bo daje fałszywe poczucie osłony.
+VG_LIB="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib/migration-input-guard.sh"
+[ -r "$VG_LIB" ] || VG_LIB=/usr/local/sbin/verris-migration-guard.sh
+if [ -r "$VG_LIB" ]; then
+  # shellcheck source=lib/migration-input-guard.sh
+  . "$VG_LIB"
+else
+  echo "brak migration-input-guard.sh — worker nie uruchomi żadnego zadania bez walidacji wejścia" >&2
+  logger -t "$LOG_TAG" "missing migration-input-guard.sh — refusing to run" 2>/dev/null || true
+  exit 78
+fi
+
+# Sprawdza komplet pól zlecenia wspólnych dla wszystkich rodzajów zadań.
+# Zwraca 2 (błąd nieodwracalny — nie ma sensu ponawiać), bo powtórzenie tego
+# samego zlecenia da ten sam wynik. Wartości NIE trafiają do logu.
+vg_check_source() {
+  local job="$1" logfile="$2" typ pole wartosc
+  for typ in host port username; do
+    wartosc=$(jq -r --arg k "$typ" '.source[$k] // empty' <<<"$job")
+    vg_require "$typ" "$wartosc" "source.${typ}" 2>>"$logfile" || return 2
+  done
+  return 0
+}
+
 # Limit pasma transferu plików — fair-use na współdzielonym węźle, żeby jedna
 # duża migracja nie wysyciła łącza/I/O innym klientom. Suffiksy rsync: K/M/G
 # (na sekundę). "0" lub pusto = bez limitu. Nadpisywalne w /etc/verris.conf
@@ -181,6 +213,13 @@ run_files() {
   spass=$(jq -r '.source.password' <<<"$job")
   spath=$(jq -r '.source.remotePath // "/"' <<<"$job")
   [ -n "$user" ] && [ -n "$domain" ] || { echo "missing target account/domain" >>"$logfile"; return 2; }
+
+  # Z-03: `spath` trafiał do `lftp -e "... mirror '\''${spath}'\'' ..."`. Apostrof
+  # w ścieżce zamykał cytowanie, a lftp wykonuje polecenia powłoki po `!`.
+  vg_check_source "$job" "$logfile" || return 2
+  vg_require protocol "$proto" "source.protocol" 2>>"$logfile" || return 2
+  vg_require path "$spath" "source.remotePath" 2>>"$logfile" || return 2
+  vg_require account "$user" "target.accountUsername" 2>>"$logfile" || return 2
   dst=$(docroot_for "$user" "$domain")
   mkdir -p "$dst"
 
@@ -209,6 +248,12 @@ run_files() {
 
   if [ "$transferred" = false ]; then
     # lftp mirrors recursively over sftp/ftp/ftps and is resilient to flaky links.
+    #
+    # `${spath}` jest wstawiana do łańcucha poleceń lftp w apostrofach. Jest to
+    # bezpieczne wyłącznie dlatego, że vg_require path wyżej odrzuca apostrof,
+    # cudzysłów, backslash, dolar, średnik i nową linię. Gdyby ta walidacja
+    # kiedyś stąd zniknęła, wraca wykonanie polecenia jako root — lftp wykonuje
+    # polecenia powłoki po `!`.
     local ssl_setting=""
     [ "$proto" = "ftps" ] && ssl_setting="set ftp:ssl-force true; set ftp:ssl-protect-data true;"
     LFTP_PASSWORD="$spass" lftp -u "$suser,dummy" \
@@ -244,19 +289,33 @@ EOF
 # Sumuje dokładną liczbę wierszy (COUNT(*)) po tabelach bazy podanym klientem
 # mysql. $1 = prefiks komendy mysql (np. "mysql --protocol=socket" albo
 # "MYSQL_PWD=... mysql -h host -P port -u user"), $2 = nazwa bazy.
+# Z-03: było `eval "$mysql_cmd -N -e \"... table_schema='${db}' ...\""` — nazwa
+# bazy pochodzi od klienta, więc `eval` dawał wykonanie polecenia jako root,
+# a nie tylko wstrzyknięcie SQL. Teraz komenda mysql jest tablicą argumentów,
+# a `db` jest wcześniej zwalidowana przez vg_require.
 mysql_row_total() {
-  local mysql_cmd="$1" db="$2" t total=0 c
-  local tables
-  tables=$(eval "$mysql_cmd -N -e \"SELECT table_name FROM information_schema.tables WHERE table_schema='${db}' AND table_type='BASE TABLE'\"" 2>/dev/null) || return 1
+  local db="$1"; shift
+  local -a mysql_cmd=("$@")
+  local t total=0 c tables
+  vg_is_db "$db" || return 1
+  tables=$("${mysql_cmd[@]}" -N -e \
+    "SELECT table_name FROM information_schema.tables WHERE table_schema='${db}' AND table_type='BASE TABLE'" 2>/dev/null) || return 1
   while IFS= read -r t; do
     [ -n "$t" ] || continue
-    c=$(eval "$mysql_cmd -N -e \"SELECT COUNT(*) FROM \\\`${db}\\\`.\\\`${t}\\\`\"" 2>/dev/null) || c=0
+    # Nazwa tabeli pochodzi z obcej bazy — backtick w nazwie rozerwałby cytowanie
+    # w SQL. Tabele o nietypowej nazwie pomijamy w raporcie spójności zamiast
+    # ryzykować; raport jest wtedy zaniżony, ale nie jest wektorem.
+    vg_is_db "$t" || { echo "pomijam tabelę o niestandardowej nazwie w raporcie spójności" >&2; continue; }
+    c=$("${mysql_cmd[@]}" -N -e "SELECT COUNT(*) FROM \`${db}\`.\`${t}\`" 2>/dev/null) || c=0
     total=$((total + ${c:-0}))
   done <<<"$tables"
   echo "$total"
 }
 
-mysql_target_import_cmd() {
+# Z-03: funkcja zwracała GOTOWĄ KOMENDĘ jako tekst, a wywołanie szło przez
+# `| eval "$import_cmd"`. Teraz przygotowuje bazę i zwraca samą jej nazwę —
+# import wykonuje się zwykłym wywołaniem, bez eval.
+mysql_prepare_target_db() {
   # Zwraca (echo) komendę importu do bazy docelowej. Import ZAWSZE idzie przez
   # lokalny root-socket (pewny, bez problemu localhost vs 127.0.0.1 w grantach
   # DA). Gdy baza docelowa powstała już w DirectAdmin (targetDb z lease), tylko
@@ -267,8 +326,9 @@ mysql_target_import_cmd() {
   local tdb user sdb
   tdb=$(jq -r '.targetDb.database // empty' <<<"$job")
   if [ -n "$tdb" ]; then
+    vg_is_db "$tdb" || { echo "targetDb.database ma niedozwoloną nazwę" >>"$logfile"; return 2; }
     mysql --protocol=socket -e "CREATE DATABASE IF NOT EXISTS \`${tdb}\` CHARACTER SET utf8mb4;" >>"$logfile" 2>&1 || true
-    echo "mysql --protocol=socket $(printf %q "$tdb")"
+    echo "$tdb"
     return 0
   fi
   # Fallback: DA convention <dauser>_<sourcedb> przez root socket + grant konta.
@@ -277,40 +337,35 @@ mysql_target_import_cmd() {
   tdb=$(printf '%s_%s' "$user" "$sdb" | tr -c 'a-zA-Z0-9_' '_' | cut -c1-64)
   mysql --protocol=socket -e "CREATE DATABASE IF NOT EXISTS \`${tdb}\` CHARACTER SET utf8mb4;" >>"$logfile" 2>&1
   mysql --protocol=socket -e "GRANT ALL ON \`${tdb}\`.* TO '${user}'@'localhost';" >>"$logfile" 2>&1 || true
-  echo "mysql --protocol=socket $(printf %q "$tdb")"
+  echo "$tdb"
 }
 
-mysql_target_db_name() {
-  local job="$1"
-  local tdb user sdb
-  tdb=$(jq -r '.targetDb.database // empty' <<<"$job")
-  if [ -n "$tdb" ]; then echo "$tdb"; return 0; fi
-  user=$(jq -r '.target.accountUsername // empty' <<<"$job")
-  sdb=$(jq -r '.source.database' <<<"$job")
-  printf '%s_%s' "$user" "$sdb" | tr -c 'a-zA-Z0-9_' '_' | cut -c1-64
-}
 
 run_mysql() {
   # Ścieżka 1: zdalny mysqldump (gdy źródło wystawia MySQL na świat).
   # Ścieżka 2: mysqldump przez SSH na koncie plikowym źródła (typowe na
   # hostingach współdzielonych, gdzie MySQL słucha tylko na localhost).
   local job="$1" logfile="$2"
-  local shost sport sdb suser spass import_cmd tdb
+  local shost sport sdb suser spass tdb
   shost=$(jq -r '.source.host' <<<"$job")
   sport=$(jq -r '.source.port' <<<"$job")
   sdb=$(jq -r '.source.database' <<<"$job")
   suser=$(jq -r '.source.username' <<<"$job")
   spass=$(jq -r '.source.password' <<<"$job")
 
-  import_cmd=$(mysql_target_import_cmd "$job" "$logfile")
-  tdb=$(mysql_target_db_name "$job")
+  # Z-03: `sdb` szła do `eval`, a stamtąd do polecenia powłoki jako root.
+  vg_check_source "$job" "$logfile" || return 2
+  vg_require db "$sdb" "source.database" 2>>"$logfile" || return 2
+
+  tdb=$(mysql_prepare_target_db "$job" "$logfile") || return 2
+  vg_require db "$tdb" "targetDb.database" 2>>"$logfile" || return 2
 
   local dumped=false remote_reachable=false
   echo "== mysqldump remote ${suser}@${shost}:${sport}/${sdb} -> ${tdb}" >>"$logfile"
   if MYSQL_PWD="$spass" mysqldump --single-transaction --quick --routines --triggers \
       --no-tablespaces --set-gtid-purged=OFF \
       -h "$shost" -P "$sport" -u "$suser" "$sdb" 2>>"$logfile" \
-      | eval "$import_cmd" 2>>"$logfile"; then
+      | mysql --protocol=socket "$tdb" 2>>"$logfile"; then
     dumped=true
     remote_reachable=true
   else
@@ -328,7 +383,7 @@ run_mysql() {
       # shellcheck disable=SC2029
       if sshpass -p "$sshpass_" ssh "${SSH_OPTS[@]}" -p "$sshport" "${sshuser}@${sshhost}" \
           "MYSQL_PWD=$(printf %q "$spass") mysqldump --single-transaction --quick --routines --triggers --no-tablespaces -h 127.0.0.1 -u $(printf %q "$suser") $(printf %q "$sdb")" \
-          2>>"$logfile" | eval "$import_cmd" 2>>"$logfile"; then
+          2>>"$logfile" | mysql --protocol=socket "$tdb" 2>>"$logfile"; then
         dumped=true
       fi
     fi
@@ -345,9 +400,9 @@ run_mysql() {
   local tgt_tables tgt_rows src_rows="null" match="null"
   tgt_tables=$(mysql --protocol=socket -N -e \
     "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema='${tdb}' AND table_type='BASE TABLE';" 2>/dev/null || echo 0)
-  tgt_rows=$(mysql_row_total "mysql --protocol=socket" "$tdb" 2>/dev/null || echo 0)
+  tgt_rows=$(mysql_row_total "$tdb" mysql --protocol=socket 2>/dev/null || echo 0)
   if [ "$remote_reachable" = true ]; then
-    src_rows=$(mysql_row_total "MYSQL_PWD=$(printf %q "$spass") mysql -h $(printf %q "$shost") -P $(printf %q "$sport") -u $(printf %q "$suser")" "$sdb" 2>/dev/null || echo null)
+    src_rows=$(mysql_row_total "$sdb" env "MYSQL_PWD=$spass" mysql -h "$shost" -P "$sport" -u "$suser" 2>/dev/null || echo null)
     [ "$src_rows" != "null" ] && { [ "${src_rows:-0}" -eq "${tgt_rows:-0}" ] 2>/dev/null && match=true || match=false; }
   fi
   jq -nc \
@@ -369,6 +424,13 @@ run_imap() {
   sport=$(jq -r '.source.port' <<<"$job")
   suser=$(jq -r '.source.username' <<<"$job")
   spass=$(jq -r '.source.password' <<<"$job")
+
+  # Z-03: te wartości idą do argumentów imapsync. Argumenty są cytowane, więc
+  # nie ma tu wstrzyknięcia powłoki — walidujemy mimo to, żeby jedno zlecenie
+  # zachowywało się tak samo we wszystkich trzech ścieżkach i żeby dziwne dane
+  # zatrzymały się na wejściu, a nie w połowie transferu.
+  vg_check_source "$job" "$logfile" || return 2
+  vg_require email "$email" "source.email" 2>>"$logfile" || return 2
 
   # Master-user login to the local dovecot (configured during node bootstrap).
   local master_user="${VERRIS_DOVECOT_MASTER_USER:-}" master_pass="${VERRIS_DOVECOT_MASTER_PASS:-}"
@@ -589,6 +651,16 @@ install_timer() {
   require_conf
   ensure_deps
   install -m 0755 "$0" /usr/local/sbin/verris-migration-worker
+  # Biblioteka walidacji musi wylądować obok workera — bez niej worker startuje
+  # fail-closed i nie weźmie żadnego zlecenia (Z-03).
+  local guard_src
+  guard_src="$(cd "$(dirname "$0")" && pwd)/lib/migration-input-guard.sh"
+  if [ -r "$guard_src" ]; then
+    install -m 0755 "$guard_src" /usr/local/sbin/verris-migration-guard.sh
+  else
+    log "BRAK ${guard_src} — worker nie ruszy bez walidacji wejścia; skopiuj cały katalog ops/scripts (z podkatalogiem lib/)"
+    return 78
+  fi
   cat >/etc/systemd/system/verris-migration-worker.service <<'UNIT'
 [Unit]
 Description=Verris competitor-migration worker (lease + execute)
