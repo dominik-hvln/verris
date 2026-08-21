@@ -16,8 +16,8 @@
     "db:seed": "pnpm --filter @verris/database run db:seed"
   },
   "devDependencies": {
-    "prettier": "^3.3.3",
-    "turbo": "^2.1.2",
+    "prettier": "^3.9.6",
+    "turbo": "^2.10.11",
     "typescript": "^5.5.4"
   },
   "packageManager": "pnpm@9.5.0",

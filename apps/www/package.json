@@ -13,18 +13,18 @@
     "generate:types": "cross-env PAYLOAD_CONFIG_PATH=payload.config.ts payload generate:types"
   },
   "dependencies": {
-    "@payloadcms/db-postgres": "^3.44.0",
-    "@payloadcms/next": "^3.44.0",
-    "@payloadcms/richtext-lexical": "^3.44.0",
-    "@payloadcms/storage-s3": "^3.44.0",
-    "@payloadcms/ui": "^3.44.0",
+    "@payloadcms/db-postgres": "^3.88.0",
+    "@payloadcms/next": "^3.88.0",
+    "@payloadcms/richtext-lexical": "^3.88.0",
+    "@payloadcms/storage-s3": "^3.88.0",
+    "@payloadcms/ui": "^3.88.0",
     "graphql": "^16.9.0",
     "lucide-react": "^0.365.0",
     "next": "15.4.4",
-    "payload": "^3.44.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "sharp": "^0.33.5"
+    "payload": "^3.88.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "sharp": "^0.35.3"
   },
   "devDependencies": {
     "@verris/typescript-config": "workspace:*",
