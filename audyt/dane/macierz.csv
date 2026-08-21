@@ -1,0 +1,353 @@
+ID,Kat,Funkcja,cPanel,Plesk,DirectAdmin,Rynek PL,Nowa fala,Verris — stan,Dowód (plik:linia),Werdykt,Krytyczność,Nakład,Uwagi
+A-01,A,Dodanie domeny do konta,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:539,PARYTET,—,—,
+A-02,A,Usunięcie domeny z konta,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:548,PARYTET,—,—,
+A-03,A,Subdomeny — tworzenie,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:671,PARYTET,—,—,
+A-04,A,Subdomeny — usuwanie,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:680,PARYTET,—,—,
+A-05,A,Alias / parkowanie domeny (domain pointer),TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:562,PARYTET,—,—,
+A-06,A,Zmiana document root domeny,TAK,TAK,TAK,CZĘŚĆ,TAK,BRAK,—,LUKA,NISKA,S,DA to potrafi; brak UI
+A-07,A,Przekierowanie domeny (web forwarding),TAK,TAK,TAK,TAK,TAK,DZIAŁA,WebToolsTab.tsx:143,PARYTET,—,—,przez .htaccess
+A-08,A,Rejestracja domeny z panelu,NIE,NIE,NIE,TAK,TAK,FLAGA,domains.controller.ts:118,LUKA,ŚREDNIA,M,"Skorygowane: sekcja jest wpięta w panel (domains/actions.ts:165,181,198), backend kompletny. To brak wpisu w ENV, nie brak funkcji — hosting da się sprzedać na domenie klienta."
+A-09,A,Transfer domeny (kod authinfo),NIE,NIE,NIE,TAK,TAK,FLAGA,domains.controller.ts:123,LUKA,WYSOKA,M,j.w.
+A-10,A,Odnowienie domeny przez klienta,NIE,NIE,NIE,TAK,TAK,ENDPOINT BEZ UI,domains.controller.ts:133,LUKA,ŚREDNIA,S,"Skorygowane: brak wywołania potwierdzony, ale obejście istnieje (panel rejestratora). Nie spełnia żadnego z czterech warunków blokera."
+A-11,A,Wyszukiwarka wolnych domen,NIE,NIE,NIE,TAK,TAK,FLAGA,domains.controller.ts:54,LUKA,WYSOKA,S,
+A-12,A,Cennik rejestracji na 1–10 lat,NIE,NIE,NIE,TAK,TAK,FLAGA,domains.controller.ts:59,LUKA,ŚREDNIA,S,
+A-13,A,Zmiana danych abonenta domeny,NIE,NIE,NIE,TAK,TAK,BRAK,—,LUKA,WYSOKA,M,wymóg operatorski przy własnej rejestracji
+A-14,A,Ukrycie danych WHOIS / domain privacy,NIE,NIE,NIE,b.d.,TAK,BRAK,—,LUKA,NISKA,S,
+A-15,A,Blokada transferu domeny (transfer lock),NIE,NIE,NIE,b.d.,TAK,BRAK,—,LUKA,ŚREDNIA,S,
+A-16,A,Weryfikacja własności domeny,NIE,NIE,NIE,b.d.,b.d.,CZĘŚCIOWE,domains.service.ts:92-153 — runChecklist robi resolve4/resolve6/resolveNs + handshake TLS,CZĘŚCIOWY,WYSOKA,M,"OBALONE w passie adwersaryjnym: to checklist konfiguracji, nie dowód własności. Brak wyzwania TXT i tokenu — dowolny użytkownik może dodać cudzą domenę i doprowadzić ją do statusu ACTIVE."
+A-17,A,Rejestracja konta klienta (self-service),NIE,NIE,NIE,TAK,TAK,DZIAŁA,auth.controller.ts:67,PARYTET,—,—,captcha + weryfikacja e-mail
+A-18,A,Logowanie hasłem,TAK,TAK,TAK,TAK,TAK,DZIAŁA,auth.controller.ts:77,PARYTET,—,—,
+A-19,A,Zamówienie usługi z panelu,NIE,NIE,NIE,TAK,TAK,DZIAŁA,subscriptions.controller.ts:97,PARYTET,—,—,
+A-20,A,Okres próbny / trial,NIE,NIE,NIE,CZĘŚĆ,TAK,DZIAŁA,subscriptions.controller.ts:53,PARYTET,—,—,3 z 5 hostingów PL ma trial lub money-back
+A-21,A,Anulowanie usługi przez klienta,NIE,NIE,NIE,TAK,TAK,DZIAŁA,subscriptions.controller.ts:103,PARYTET,—,—,
+A-22,A,Zmiana planu (upgrade/downgrade) z proratą,NIE,NIE,NIE,CZĘŚĆ,TAK,DZIAŁA,"subscriptions.controller.ts:146,161",PRZEWAGA,—,—,prorata cross-interval MONTH↔YEAR; test D1
+A-23,A,Dane dostępowe usługi (IP/FTP/NS/limity),TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:355,PARYTET,—,—,
+A-24,A,Zakładanie konta klienta przez operatora,TAK,TAK,TAK,TAK,TAK,BRAK,brak @Post w users.admin.controller.ts,LUKA,WYSOKA,M,Skorygowane: konta powstają też przez rejestrację (auth.service.ts:132) — operator może zarejestrować za klienta i wejść przez impersonację (users.admin.controller.ts:248). Pierwsze konto da się sprzedać.
+A-25,A,Ręczne zawieszenie usługi przez operatora,TAK,TAK,TAK,TAK,TAK,ENDPOINT BEZ UI,subscriptions.admin.controller.ts:192,LUKA,WYSOKA,S,"Skorygowane: endpoint działa i jest osiągalny (curl + DirectAdmin), auto-suspend za brak płatności działa. Brakuje UI, nie możliwości zatrzymania szkody."
+A-26,A,Ręczne odwieszenie usługi przez operatora,TAK,TAK,TAK,TAK,TAK,ENDPOINT BEZ UI,subscriptions.admin.controller.ts:210,LUKA,WYSOKA,S,"Skorygowane: jak A-25, endpoint subscriptions.admin.controller.ts:210 działa z chargeRenewal."
+A-27,A,Pakiety / plany zasobów po stronie operatora,TAK,TAK,TAK,TAK,TAK,DZIAŁA,plans.admin.controller.ts:45,PARYTET,—,—,
+A-28,A,Impersonacja klienta przez operatora,TAK,TAK,TAK,b.d.,b.d.,DZIAŁA,users.admin.controller.ts:248,PARYTET,—,—,z banerem u klienta
+B-01,B,Zmiana wersji PHP dla całego konta,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:125,PARYTET,—,—,kolejka PHP_APPLY
+B-02,B,Zmiana wersji PHP per domena,TAK,TAK,TAK,TAK,TAK,ATRAPA,php-actions.ts:56 → brak trasy hosting-domain-php,LUKA,WYSOKA,S,"serwis directadmin.service.ts:2058 gotowy, kontroler nie istnieje"
+B-03,B,Zmiana wersji PHP per katalog,TAK,TAK,TAK,CZĘŚĆ,NIE,BRAK,—,LUKA,NISKA,M,
+B-04,B,Włączanie/wyłączanie rozszerzeń PHP,TAK,TAK,TAK,CZĘŚĆ,TAK,BRAK,—,LUKA,ŚREDNIA,M,
+B-05,B,Edycja dyrektyw php.ini z panelu,TAK,TAK,TAK,TAK,TAK,BRAK,—,LUKA,WYSOKA,M,4 z 5 hostingów PL to ma
+B-06,B,Podgląd aktualnej konfiguracji PHP (phpinfo),TAK,TAK,TAK,CZĘŚĆ,TAK,BRAK,—,LUKA,NISKA,S,
+B-07,B,Wybór handlera PHP (LSAPI/FPM/CGI),TAK,TAK,TAK,NIE,NIE,BRAK,—,POZA ZAKRESEM,NISKA,—,"decyzja operatorska, nie klienta"
+B-08,B,Aplikacje Node.js,TAK,TAK,CZĘŚĆ,NIE,TAK,BRAK,—,LUKA,NISKA,L,żaden z 5 hostingów PL tego nie ma
+B-09,B,Aplikacje Python,TAK,TAK,CZĘŚĆ,CZĘŚĆ,CZĘŚĆ,BRAK,—,LUKA,NISKA,L,
+B-10,B,Aplikacje Ruby,TAK,TAK,NIE,NIE,NIE,BRAK,—,POZA ZAKRESEM,NISKA,—,rynek PL tego nie oczekuje
+B-11,B,Wymuszenie HTTPS,TAK,TAK,TAK,TAK,TAK,DZIAŁA,WebToolsTab.tsx:120,PARYTET,—,—,
+B-12,B,Kanonizacja www / non-www,TAK,TAK,TAK,TAK,TAK,DZIAŁA,WebToolsTab.tsx:124,PARYTET,—,—,
+B-13,B,Przekierowania 301/302 z panelu,TAK,TAK,TAK,TAK,TAK,DZIAŁA,WebToolsTab.tsx:143,PARYTET,—,—,
+B-14,B,Ochrona przed hotlinkingiem,TAK,TAK,CZĘŚĆ,CZĘŚĆ,NIE,DZIAŁA,WebToolsTab.tsx:185,PRZEWAGA,—,—,
+B-15,B,Blokowanie adresów IP,TAK,TAK,TAK,CZĘŚĆ,TAK,DZIAŁA,WebToolsTab.tsx:198,PARYTET,—,—,
+B-16,B,Ochrona katalogu hasłem (.htpasswd),TAK,TAK,TAK,CZĘŚĆ,TAK,DZIAŁA,WebToolsTab.tsx:91,PARYTET,—,—,
+B-17,B,Własne strony błędów,TAK,TAK,TAK,CZĘŚĆ,TAK,BRAK,—,LUKA,NISKA,S,
+B-18,B,Menedżer indeksowania katalogu,TAK,TAK,TAK,b.d.,NIE,BRAK,—,LUKA,NISKA,S,
+B-19,B,Kreator stron WWW,TAK,TAK,CZĘŚĆ,CZĘŚĆ,TAK,ATRAPA,"SiteBuilderTab.tsx (1612 l.) wyłączony w page.tsx:65,296",LUKA,NISKA,M,kod napisany i zakomentowany — decyzja: dokończyć albo usunąć
+C-01,C,Menedżer plików — lista katalogu,TAK,TAK,TAK,TAK,TAK,DZIAŁA,files.controller.ts:27,PARYTET,—,—,
+C-02,C,Podgląd i edycja pliku tekstowego,TAK,TAK,TAK,TAK,TAK,DZIAŁA,"files.controller.ts:36,61",PARYTET,—,—,
+C-03,C,Tworzenie katalogu,TAK,TAK,TAK,TAK,TAK,DZIAŁA,files.controller.ts:71,PARYTET,—,—,
+C-04,C,Tworzenie pliku,TAK,TAK,TAK,TAK,TAK,DZIAŁA,files.controller.ts:61,PARYTET,—,—,
+C-05,C,Zmiana nazwy pliku/katalogu,TAK,TAK,TAK,TAK,TAK,DZIAŁA,files.controller.ts:81,PARYTET,—,—,
+C-06,C,Usuwanie plików (także zaznaczonych),TAK,TAK,TAK,TAK,TAK,DZIAŁA,files.controller.ts:91,PARYTET,—,—,
+C-07,C,Kopiowanie plików,TAK,TAK,TAK,TAK,TAK,DZIAŁA,files.controller.ts:101,PARYTET,—,—,
+C-08,C,Przenoszenie plików,TAK,TAK,TAK,TAK,TAK,DZIAŁA,files.controller.ts:111,PARYTET,—,—,
+C-09,C,Zmiana uprawnień (chmod),TAK,TAK,TAK,TAK,TAK,DZIAŁA,files.controller.ts:131,PARYTET,—,—,
+C-10,C,Rozpakowanie archiwum,TAK,TAK,TAK,TAK,TAK,DZIAŁA,files.controller.ts:121,PARYTET,—,—,
+C-11,C,Spakowanie do archiwum,TAK,TAK,TAK,TAK,TAK,BRAK,files.service.ts:320 — tylko extract,LUKA,ŚREDNIA,S,standard we wszystkich panelach
+C-12,C,Upload pliku,TAK,TAK,TAK,TAK,TAK,DZIAŁA,files.controller.ts:141,PARYTET,—,—,
+C-13,C,Pobranie pliku,TAK,TAK,TAK,TAK,TAK,DZIAŁA,files.controller.ts:45,PARYTET,—,—,
+C-14,C,Wyszukiwanie plików,TAK,TAK,CZĘŚĆ,CZĘŚĆ,TAK,BRAK,—,LUKA,NISKA,S,
+C-15,C,Podgląd zajętości katalogów (disk usage),TAK,TAK,TAK,CZĘŚĆ,TAK,BRAK,—,LUKA,ŚREDNIA,S,częste źródło ticketów „skończyło się miejsce”
+C-16,C,Konto FTP — utworzenie,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:406,PARYTET,—,—,
+C-17,C,Konto FTP — usunięcie,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:415,PARYTET,—,—,
+C-18,C,Konto FTP — zmiana hasła,TAK,TAK,TAK,TAK,TAK,BRAK,—,LUKA,WYSOKA,S,brak jakiejkolwiek ścieżki edycji istniejącego konta
+C-19,C,Konto FTP — limit powierzchni (quota),TAK,TAK,TAK,CZĘŚĆ,NIE,BRAK,—,LUKA,NISKA,S,
+C-20,C,FTP anonimowy,TAK,TAK,TAK,NIE,NIE,BRAK,—,POZA ZAKRESEM,NISKA,—,"funkcja schyłkowa, ryzyko nadużyć"
+C-21,C,Dostęp SSH,TAK,TAK,TAK,TAK,TAK,CZĘŚCIOWE,ServiceConnectionCard.tsx:235 — tylko odczyt flagi,CZĘŚCIOWY,WYSOKA,M,"klient widzi status, nie może włączyć"
+C-22,C,Zarządzanie kluczami SSH konta hostingowego,TAK,TAK,TAK,CZĘŚĆ,TAK,BRAK,—,LUKA,WYSOKA,M,"klucze są tylko dla VPS, nie dla hostingu"
+C-23,C,Terminal SSH w przeglądarce,TAK,NIE,NIE,NIE,CZĘŚĆ,BRAK,—,POZA ZAKRESEM,NISKA,L,żaden hosting PL tego nie daje
+C-24,C,WebDAV / Web Disk,TAK,TAK,NIE,NIE,NIE,BRAK,—,POZA ZAKRESEM,NISKA,—,"Protokół schyłkowy — żaden z pięciu badanych hostingów PL go nie wystawia, a menedżer plików i SFTP pokrywają ten sam scenariusz."
+C-25,C,Klonowanie repozytorium Git z panelu,TAK,TAK,CZĘŚĆ,NIE,TAK,BRAK,DeployTab.tsx:192 przyznaje brak,LUKA,ŚREDNIA,M,„Deploy” to wyłącznie cron z git pull
+C-26,C,Deploy z repozytorium (pull na żądanie),TAK,TAK,CZĘŚĆ,NIE,TAK,CZĘŚCIOWE,services.controller.ts:717; directadmin.service.ts:2450,CZĘŚCIOWY,ŚREDNIA,M,"tylko harmonogram cron; brak „uruchom teraz”, kluczy deploy, webhooka, logów"
+C-27,C,Webhook deploy z GitHuba,CZĘŚĆ,TAK,NIE,NIE,TAK,BRAK,—,LUKA,NISKA,M,
+C-28,C,Composer / narzędzia CLI przez SSH,TAK,TAK,TAK,TAK,TAK,CZĘŚCIOWE,zależne od C-21,CZĘŚCIOWY,ŚREDNIA,—,dziedziczy ograniczenie SSH
+D-01,D,Lista baz MySQL/MariaDB,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:323,PARYTET,—,—,+ realny silnik i wersja z węzła
+D-02,D,Utworzenie bazy z użytkownikiem,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:328,PARYTET,—,—,
+D-03,D,Usunięcie bazy,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:341,PARYTET,—,—,
+D-04,D,Dodatkowy użytkownik bazy — utworzenie,TAK,TAK,TAK,TAK,TAK,ATRAPA,hosting-db-users-actions.ts:25 → brak trasy,LUKA,WYSOKA,S,serwis directadmin.service.ts:1900 gotowy; kontroler nie istnieje → 404
+D-05,D,Użytkownik bazy — usunięcie,TAK,TAK,TAK,TAK,TAK,ATRAPA,hosting-db-users-actions.ts:43 → brak trasy,LUKA,WYSOKA,S,"j.w., directadmin.service.ts:1925"
+D-06,D,Użytkownik bazy — zmiana hasła,TAK,TAK,TAK,TAK,TAK,ATRAPA,hosting-db-users-actions.ts:60 → brak trasy,LUKA,WYSOKA,S,"j.w., directadmin.service.ts:1945"
+D-07,D,Użytkownik bazy — lista,TAK,TAK,TAK,TAK,TAK,ATRAPA,hosting-db-users-actions.ts:14 → brak trasy,LUKA,WYSOKA,S,całe rozwijane pole zwraca błąd
+D-08,D,Nadawanie uprawnień użytkownikowi bazy,TAK,TAK,TAK,CZĘŚĆ,TAK,BRAK,—,LUKA,ŚREDNIA,S,
+D-09,D,Zdalny dostęp do bazy (whitelist hostów),TAK,TAK,TAK,CZĘŚĆ,TAK,DZIAŁA,"services.controller.ts:617,626",PARYTET,—,—,
+D-10,D,phpMyAdmin — dostęp,TAK,TAK,TAK,TAK,TAK,CZĘŚCIOWE,link do DA zamiast SSO,CZĘŚCIOWY,ŚREDNIA,S,"dostępny, ale przez wyjście do DirectAdmina"
+D-11,D,phpMyAdmin — auto-logowanie (SSO),TAK,TAK,TAK,TAK,TAK,ATRAPA,hosting-sso-actions.ts:16 → brak trasy hosting-sso-url,LUKA,WYSOKA,S,cichy fallback „Auto-logowanie niedostępne” (DatabasesTab.tsx:65) — użytkownik nie widzi błędu
+D-12,D,Import / eksport bazy z panelu,TAK,TAK,TAK,TAK,TAK,BRAK,—,LUKA,WYSOKA,M,standard u wszystkich 5 hostingów PL
+D-13,D,Kopia bazy na żądanie,TAK,TAK,TAK,TAK,TAK,CZĘŚCIOWE,w ramach backupu konta,CZĘŚCIOWY,ŚREDNIA,S,brak osobnej akcji „zrzuć bazę”
+D-14,D,PostgreSQL,TAK,TAK,CZĘŚĆ,CZĘŚĆ,CZĘŚĆ,BRAK,—,LUKA,NISKA,L,2 z 5 hostingów PL
+D-15,D,Redis / cache obiektowy dla klienta,CZĘŚĆ,TAK,CZĘŚĆ,TAK,TAK,BRAK,—,LUKA,WYSOKA,M,3 z 5 hostingów PL ma w cenie — realny wyróżnik dla WordPressa
+D-16,D,Memcached,TAK,TAK,CZĘŚĆ,CZĘŚĆ,CZĘŚĆ,BRAK,—,LUKA,NISKA,M,
+D-17,D,Podgląd rozmiaru bazy,TAK,TAK,TAK,TAK,TAK,CZĘŚCIOWE,w statystykach konta,CZĘŚCIOWY,NISKA,S,
+D-18,D,Naprawa / optymalizacja tabel,TAK,TAK,TAK,CZĘŚĆ,NIE,BRAK,—,LUKA,NISKA,S,
+E-01,E,Utworzenie skrzynki e-mail,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:429,PARYTET,—,—,
+E-02,E,Zmiana hasła skrzynki,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:438,PARYTET,—,—,
+E-03,E,Usunięcie skrzynki,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:447,PARYTET,—,—,
+E-04,E,Ustawienie quoty przy tworzeniu skrzynki,TAK,TAK,TAK,TAK,TAK,DZIAŁA,MailTab.tsx:139,PARYTET,—,—,
+E-05,E,Zmiana quoty ISTNIEJĄCEJ skrzynki,TAK,TAK,TAK,TAK,TAK,BRAK,hosting-email-actions.ts:41 zachowuje starą quotę,LUKA,WYSOKA,S,brak jakiejkolwiek ścieżki edycji — klient musi usunąć i odtworzyć skrzynkę
+E-06,E,Podgląd zużycia skrzynki,TAK,TAK,TAK,TAK,TAK,BRAK,—,LUKA,ŚREDNIA,S,
+E-07,E,Alias / forwarder — dodanie,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:461,PARYTET,—,—,
+E-08,E,Alias / forwarder — usunięcie,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:470,PARYTET,—,—,
+E-09,E,Autoresponder,TAK,TAK,TAK,TAK,TAK,DZIAŁA,"services.controller.ts:484,493",PARYTET,—,—,
+E-10,E,Catch-all,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:585,PARYTET,—,—,fail/blackhole/adres
+E-11,E,Filtr antyspamowy (próg + tag),TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:599,PARYTET,—,—,SpamAssassin przez DA
+E-12,E,Reguły filtrowania poczty (Sieve),TAK,TAK,TAK,TAK,TAK,BRAK,—,LUKA,ŚREDNIA,M,wszystkie 5 hostingów PL to ma
+E-13,E,Webmail — dostęp,TAK,TAK,TAK,TAK,TAK,CZĘŚCIOWE,link do DA,CZĘŚCIOWY,ŚREDNIA,S,
+E-14,E,Webmail — auto-logowanie (SSO),TAK,TAK,TAK,TAK,TAK,ATRAPA,MailTab.tsx:68 → brak trasy; fallback :81,LUKA,WYSOKA,S,directadmin.service.ts:1977 gotowe i nieużywane
+E-15,E,Rekordy SPF — kreator,TAK,TAK,TAK,TAK,TAK,ENDPOINT BEZ UI,services.controller.ts:114,LUKA,WYSOKA,S,deliverability-panel.tsx:26 to komponent osierocony — nikt go nie importuje
+E-16,E,Rekordy DKIM — konfiguracja,TAK,TAK,TAK,TAK,TAK,ENDPOINT BEZ UI,services.controller.ts:114,LUKA,WYSOKA,S,j.w.
+E-17,E,Rekord DMARC — konfiguracja,TAK,TAK,TAK,TAK,TAK,ENDPOINT BEZ UI,services.controller.ts:114,LUKA,WYSOKA,S,j.w.
+E-18,E,Sprawdzenie obecności na RBL,TAK,TAK,CZĘŚĆ,CZĘŚĆ,CZĘŚĆ,ENDPOINT BEZ UI,services.controller.ts:114,LUKA,ŚREDNIA,S,"backend w pełni działa, brak wejścia z UI"
+E-19,E,Podgląd kolejki i logów dostarczania,TAK,TAK,TAK,CZĘŚĆ,CZĘŚĆ,BRAK,—,LUKA,ŚREDNIA,M,„gdzie jest mój mail” to najczęstszy ticket poczty
+E-20,E,Limity wysyłki pokazane klientowi,TAK,TAK,TAK,CZĘŚĆ,TAK,BRAK,—,LUKA,ŚREDNIA,S,"cyber_Folks publikuje jawnie: 1000/dobę, 300/15 min"
+E-21,E,Samodzielny import skrzynek przez IMAP,CZĘŚĆ,TAK,CZĘŚĆ,CZĘŚĆ,TAK,CZĘŚCIOWE,"w ramach migracji, nie jako osobne narzędzie",CZĘŚCIOWY,ŚREDNIA,S,
+E-22,E,Listy mailingowe,TAK,TAK,TAK,CZĘŚĆ,NIE,BRAK,—,POZA ZAKRESEM,NISKA,—,zastąpione modułem email-marketing
+E-23,E,Kalendarz i kontakty (CalDAV/CardDAV),TAK,TAK,CZĘŚĆ,CZĘŚĆ,NIE,BRAK,—,LUKA,NISKA,L,dhosting i home.pl mają w produkcie „poczta biznesowa”
+E-24,E,2FA dla webmaila,CZĘŚĆ,TAK,CZĘŚĆ,CZĘŚĆ,TAK,BRAK,—,LUKA,NISKA,M,cyber_Folks ma nawet 2FA dla IMAP/SMTP
+E-25,E,Osobny produkt „poczta biznesowa”,NIE,NIE,NIE,TAK,NIE,DZIAŁA,plans/new-email w admin-panel,PARYTET,—,—,plan e-mail istnieje jako osobny produkt
+F-01,F,Edytor rekordów DNS (A/CNAME/MX/TXT),TAK,TAK,TAK,TAK,TAK,ATRAPA,"dns-manager.tsx:79,91 — komponent osierocony; dns/page.tsx:15 przekierowuje gdzie indziej",LUKA,WYSOKA,S,"Skorygowane: obejściem jest link do DirectAdmina (services.controller.ts:350) z poświadczeniami z „dane dostępowe”. Uwaga — SSO nie działa, trasa hosting-sso-url nie istnieje w API, więc klient trafia do obcego panelu i loguje się ręcznie."
+F-02,F,Rekordy SRV / CAA,TAK,TAK,TAK,TAK,TAK,ATRAPA,j.w.,LUKA,WYSOKA,S,
+F-03,F,Link do strefy DNS w DirectAdmin,—,—,—,CZĘŚĆ,NIE,DZIAŁA,services.controller.ts:350,CZĘŚCIOWY,—,—,obejście braku edytora — pokazuje klientowi obcy panel
+F-04,F,Instrukcja skierowania domeny (NS / rekord A),CZĘŚĆ,CZĘŚĆ,CZĘŚĆ,CZĘŚĆ,TAK,DZIAŁA,DomainPointingPanel.tsx:232,PRZEWAGA,—,—,
+F-05,F,Weryfikacja skierowania domeny na żywo,NIE,CZĘŚĆ,NIE,CZĘŚĆ,TAK,DZIAŁA,services.controller.ts:365,PRZEWAGA,—,—,z auto-pollingiem
+F-06,F,DNSSEC,TAK,TAK,TAK,b.d.,CZĘŚĆ,BRAK,—,LUKA,ŚREDNIA,M,żaden z 5 hostingów PL nie potwierdza publicznie
+F-07,F,Secondary / slave DNS,TAK,TAK,TAK,b.d.,NIE,BRAK,—,POZA ZAKRESEM,NISKA,—,"Wtórny DNS ma sens przy własnej infrastrukturze DNS wielolokalizacyjnej; przy jednym operatorze i delegacji na zewnątrz (F-09) nie wnosi odporności, którą obiecuje."
+F-08,F,Własne nameservery (vanity NS),TAK,TAK,TAK,CZĘŚĆ,CZĘŚĆ,DZIAŁA,"servers.admin.controller.ts:204,209",PARYTET,—,—,"po stronie operatora, per węzeł"
+F-09,F,Delegacja domeny na zewnętrzny DNS,TAK,TAK,TAK,TAK,TAK,DZIAŁA,brak wymuszania własnych NS,PARYTET,—,—,home.pl tego zabrania — nasza przewaga narracyjna
+F-10,F,Szablony stref DNS,TAK,TAK,TAK,NIE,NIE,BRAK,—,POZA ZAKRESEM,NISKA,—,"Szablony stref są narzędziem resellera zarządzającego setkami domen. Do rozważenia razem z epikiem E-07, nie wcześniej."
+F-11,F,Zmiana TTL rekordów,TAK,TAK,TAK,CZĘŚĆ,TAK,ATRAPA,zależne od F-01,LUKA,ŚREDNIA,S,
+F-12,F,Anycast DNS,NIE,NIE,NIE,CZĘŚĆ,CZĘŚĆ,BRAK,—,LUKA,NISKA,L,tylko nazwa.pl na rynku PL
+G-01,G,Certyfikat Let's Encrypt — wystawienie,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:741,PARYTET,—,—,
+G-02,G,Certyfikat z www i bez www,TAK,TAK,TAK,TAK,TAK,DZIAŁA,HostingSslForms.tsx:93,PARYTET,—,—,
+G-03,G,Certyfikat wildcard (DNS-01),TAK,TAK,TAK,CZĘŚĆ,CZĘŚĆ,DZIAŁA,HostingSslForms.tsx:103,PRZEWAGA,—,—,
+G-04,G,Automatyczne odnawianie certyfikatu,TAK,TAK,TAK,TAK,TAK,DZIAŁA,przez DA,PARYTET,—,—,
+G-05,G,Wgranie własnego certyfikatu i klucza,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:754,PARYTET,—,—,
+G-06,G,Lista certyfikatów ze statusem i datą wygaśnięcia,TAK,TAK,TAK,CZĘŚĆ,TAK,DZIAŁA,services.controller.ts:736; directadmin.service.ts:2547,PARYTET,—,—,realny odczyt PEM
+G-07,G,HSTS,TAK,TAK,CZĘŚĆ,CZĘŚĆ,CZĘŚĆ,BRAK,—,LUKA,NISKA,S,
+G-08,G,Sprzedaż certyfikatów DV/OV/EV,NIE,NIE,NIE,TAK,CZĘŚĆ,BRAK,—,LUKA,NISKA,M,wszystkie 5 hostingów PL to sprzedaje
+G-09,G,WAF — włączenie i tryb pracy,CZĘŚĆ,TAK,CZĘŚĆ,CZĘŚĆ,CZĘŚĆ,DZIAŁA,services.controller.ts:203,PRZEWAGA,—,—,OFF/DETECTION/ON per konto; dhosting WAF-u nie ma
+G-10,G,ModSecurity — zarządzanie regułami,TAK,TAK,TAK,NIE,NIE,BRAK,—,POZA ZAKRESEM,NISKA,—,poziom operatora
+G-11,G,Skaner malware dla klienta,PŁATNE,PŁATNE,PŁATNE,CZĘŚĆ,TAK,BRAK,—,LUKA,WYSOKA,L,Imunify to koszt licencyjny — pozycja do unit economics
+G-12,G,Czyszczenie zainfekowanych plików,PŁATNE,PŁATNE,PŁATNE,CZĘŚĆ,CZĘŚĆ,BRAK,—,LUKA,ŚREDNIA,L,
+G-13,G,2FA (TOTP) w panelu klienta,TAK,TAK,TAK,TAK,TAK,DZIAŁA,"auth.controller.ts:206,213",PARYTET,—,—,u nazwa.pl 2FA jest PŁATNE — nasza przewaga narracyjna
+G-14,G,Kody odzyskiwania do 2FA,TAK,TAK,CZĘŚĆ,b.d.,TAK,DZIAŁA,auth.controller.ts:206,PARYTET,—,—,
+G-15,G,Passkeys / WebAuthn,NIE,CZĘŚĆ,NIE,NIE,CZĘŚĆ,DZIAŁA,"auth.controller.ts:260,268,283",PRZEWAGA,—,—,nikt na rynku PL tego nie ma
+G-16,G,Lista aktywnych sesji i zdalne wylogowanie,CZĘŚĆ,TAK,CZĘŚĆ,NIE,CZĘŚĆ,DZIAŁA,"auth.controller.ts:329,338",PRZEWAGA,—,—,
+G-17,G,Historia logowań,TAK,TAK,TAK,CZĘŚĆ,TAK,DZIAŁA,users.controller.ts:38,PARYTET,—,—,bez geolokalizacji
+G-18,G,Dziennik aktywności konta,TAK,TAK,CZĘŚĆ,CZĘŚĆ,CZĘŚĆ,CZĘŚCIOWE,users.controller.ts:44,PARYTET,ŚREDNIA,S,"OSŁABIONE: users.service.ts:664-707 filtruje przez białą listę 14 akcji HOSTING_*. Poza dziennikiem zostają logowania, zmiany 2FA, odtworzenia z kopii, publikacje staging, zmiany planu i billing. Rekord nie ma pola aktora."
+G-19,G,Auto-wylogowanie po bezczynności,CZĘŚĆ,TAK,CZĘŚĆ,b.d.,CZĘŚĆ,CZĘŚCIOWE,session-idle-guard.tsx,CZĘŚCIOWY,ŚREDNIA,S,"OSŁABIONE: wygaszenie to samo usunięcie ciasteczka (dashboard/actions.ts:6-9). UserSession.revokedAt zostaje null, JWT jest ważny do TTL. To timeout UI, nie kontrola bezpieczeństwa."
+G-20,G,Ochrona przed atakiem słownikowym na panel,TAK,TAK,TAK,TAK,TAK,CZĘŚCIOWE,rate-limit.guard.ts — ZERO testów,CZĘŚCIOWY,WYSOKA,S,brak dowodu D2 na krytycznym guardzie
+G-21,G,Anty-DDoS,NIE,NIE,NIE,TAK,CZĘŚĆ,BRAK,—,LUKA,ŚREDNIA,L,wszystkie 5 hostingów PL to deklaruje — brak w ofercie będzie widoczny
+G-22,G,Powiadomienie o podejrzanym logowaniu,CZĘŚĆ,TAK,CZĘŚĆ,b.d.,CZĘŚĆ,BRAK,—,LUKA,NISKA,S,
+G-23,G,Blokada logowania klienta przez operatora,TAK,TAK,TAK,b.d.,b.d.,DZIAŁA,users.admin.controller.ts:142,PARYTET,—,—,"uwaga: blokuje logowanie, NIE wyłącza hostingu"
+G-24,G,Break-glass / dostęp awaryjny operatora,CZĘŚĆ,CZĘŚĆ,CZĘŚĆ,b.d.,b.d.,DZIAŁA,"settings/security/actions.ts:15,23",PRZEWAGA,—,—,
+Z-03,G,Walidacja danych migracji przed użyciem w poleceniu powłoki,—,—,—,—,—,BRAK,"node-migration-worker.sh:250,253 — eval z interpolacją ${db}; :217 lftp -e z ${spath}; dto/migration.dto.ts:88-89 remotePath tylko @MaxLength, :108-109 database tylko @MaxLength, :95-96 protocol bez @IsIn; wartości przekazywane bez zmian (migration-orchestrator.service.ts:643,1277); skrypt działa jako root",LUKA,BLOKER STARTU,M,"Wykonanie dowolnego polecenia jako root na węźle hostingowym, z formularza migracji w panelu klienta. Jeden klient przejmuje węzeł i wszystkie konta pozostałych. Ta sama klasa błędu w node-wp-install.sh:132 i node-app-install.sh:46,64 (tam bez eskalacji uprawnień)."
+H-01,H,Kopia zapasowa na żądanie,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:915,PARYTET,—,—,CMD_API_SITE_BACKUP
+H-02,H,Harmonogram kopii (dzienny/tygodniowy),TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:926,PARYTET,—,—,
+H-03,H,Konfigurowalna retencja kopii,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:926,PARYTET,—,—,
+H-04,H,Retencja co najmniej 28 dni w cenie,—,—,—,CZĘŚĆ,CZĘŚĆ,CZĘŚCIOWE,off-site: 30 dni (node-offsite-backup.sh:101),CZĘŚCIOWY,WYSOKA,M,"cyber_Folks 28 dni, seohost do 60 dni — to jest poprzeczka rynkowa"
+H-05,H,Lista dostępnych kopii,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:768,PARYTET,—,—,
+H-06,H,Samodzielne odtworzenie plików,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:811,PARYTET,—,—,
+H-07,H,Samodzielne odtworzenie bazy danych,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:811,PARYTET,—,—,
+H-08,H,Samodzielne odtworzenie poczty,TAK,TAK,TAK,CZĘŚĆ,TAK,DZIAŁA,services.controller.ts:811,PRZEWAGA,—,—,u home.pl i nazwa.pl odtworzenie poczty jest PŁATNE
+H-09,H,Kopia bezpieczeństwa przed odtworzeniem,CZĘŚĆ,TAK,CZĘŚĆ,b.d.,CZĘŚĆ,CZĘŚCIOWE,hosting-restore.service.ts:167,CZĘŚCIOWY,WYSOKA,S,"OSŁABIONE: hosting-restore.service.ts:167 tylko KOLEJKUJE backup w DA i nie czeka na wynik — destrukcyjne odtworzenie rusza mimo nieudanej kopii. Job dostaje COMPLETED (:182) w chwili przyjęcia zadania, nie po odtworzeniu."
+H-10,H,Odtworzenie pojedynczego pliku,PŁATNE,TAK,CZĘŚĆ,CZĘŚĆ,TAK,BRAK,—,LUKA,WYSOKA,M,JetBackup/Plesk to mają; seohost i dhosting też
+H-11,H,Podgląd zawartości archiwum przed odtworzeniem,PŁATNE,TAK,CZĘŚĆ,CZĘŚĆ,CZĘŚĆ,ATRAPA,"services.controller.ts:788-793 — buduje z BIEŻĄCEGO inwentarza konta, nie z archiwum",LUKA,WYSOKA,M,"nazwa funkcji obiecuje coś, czego nie robi"
+H-12,H,Status zadania odtwarzania,TAK,TAK,CZĘŚĆ,CZĘŚĆ,TAK,DZIAŁA,services.controller.ts:828,PARYTET,—,—,
+H-13,H,Pobranie archiwum kopii lokalnie,TAK,TAK,TAK,TAK,TAK,CZĘŚCIOWE,"services.controller.ts:855 — kopiuje na konto, nie do przeglądarki",CZĘŚCIOWY,ŚREDNIA,S,
+H-14,H,Kopia off-site (poza węzłem),PŁATNE,TAK,CZĘŚĆ,CZĘŚĆ,CZĘŚĆ,DZIAŁA,ops/scripts/node-offsite-backup.sh:93-97 (rclone crypt → S3),PRZEWAGA,—,—,szyfrowane po stronie węzła
+H-15,H,Lista kopii off-site dla klienta,NIE,CZĘŚĆ,NIE,NIE,NIE,DZIAŁA,services.controller.ts:845,PRZEWAGA,—,—,
+H-16,H,ODTWORZENIE KONTA NA INNY WĘZEŁ,PŁATNE,TAK,CZĘŚĆ,b.d.,CZĘŚĆ,BRAK,offsite-restore.service.ts:125 kieruje zadanie na account.serverId; node-account-restore.sh:76 przerywa gdy brak katalogu,LUKA,WYSOKA,L,"Skorygowane: ścieżka odtworzenia na NOWYM węźle istnieje jako procedura ops — ops/docs/OFFSITE_RESTORE_RUNBOOK.md, sekcja „Scenariusz utrata węzła”. Nie jest funkcją produktu (runbook sam to nazywa kolejnym krokiem), ale warunek „bez ścieżki odtworzenia” nie jest spełniony."
+H-17,H,Tryb restore skryptu odtwarzającego osiągalny z produktu,—,—,—,—,—,BRAK,node-account-restore.sh:82-99 ma tryb restore; offsite-restore.service.ts:94 przyjmuje wyłącznie list|fetch,LUKA,WYSOKA,S,"Skorygowane: tryb restore jest martwy z poziomu produktu, ale żywy z CLI (node-account-restore.sh:120-124) i udokumentowany w runbooku."
+H-18,H,Odtworzenie konta przez operatora z panelu,TAK,TAK,TAK,TAK,TAK,ENDPOINT BEZ UI,"subscriptions.admin.controller.ts:69,86 — zero wywołań w admin-panel",LUKA,ŚREDNIA,S,"Skorygowane: klient ma self-restore z kopii lokalnych, operator ma działający endpoint. Brakuje przycisku."
+H-19,H,Automatyczna konfiguracja backupu przy wdrożeniu węzła,TAK,TAK,TAK,—,—,BRAK,node-onboard-live.sh:240-244 tylko log_warn; wizard węzła (wizard-content.ts:21-40) nie ma kroku backupu,LUKA,WYSOKA,M,"Skorygowane: timer instalowany zawsze (node-onboard-live.sh:239-247), brakuje pliku konfiguracyjnego, a stan jest widoczny w live-readiness (:171-180). Realny problem: ostrzeżenie nie blokuje go-live — dodać twardą bramkę."
+H-20,H,Test odtworzeniowy z datą ostatniego wykonania,—,—,—,—,—,BRAK,ops/scripts/restore-drill-isolated.sh istnieje jako procedura ręczna; live-readiness.service.ts:175-177 sprawdza tylko czy backup się WYKONAŁ,LUKA,BLOKER STARTU,M,"POTWIERDZONE jako bloker. Runbook wymaga drilla przed LIVE (OFFSITE_RESTORE_RUNBOOK.md:37-40) i nie ma w repo śladu jego wykonania. Backupy i DR wymagają poziomu D4 — data, wynik, właściciel. Bez tego cała warstwa DR jest niepotwierdzona."
+H-21,H,Monitoring wykonania kopii we flocie,TAK,TAK,CZĘŚĆ,—,—,DZIAŁA,node-backup.agent.controller.ts:44-78,PARYTET,—,—,
+H-22,H,Panel odtwarzania w widocznym miejscu,TAK,TAK,TAK,TAK,TAK,CZĘŚCIOWE,"panel off-site siedzi w zakładce „Usage”, nie „Kopie zapasowe” (page.tsx:74,128,313,319)",CZĘŚCIOWY,WYSOKA,S,klient w kryzysie tego nie znajdzie
+H-23,H,Backup bazy control-plane,—,—,—,—,—,DZIAŁA,"ops/backup-postgres.sh, backup-mirror-external.sh, backup-verify.sh",PARYTET,—,—,"poza panelem, infra"
+I-01,I,Autoinstalator aplikacji,PŁATNE,TAK,PŁATNE,TAK,TAK,CZĘŚCIOWE,"app-install.service.ts:25,32 — katalog ma 2 pozycje",CZĘŚCIOWY,WYSOKA,M,Softaculous/Installatron ma ~400 aplikacji; my mamy Nextcloud i PrestaShop
+I-02,I,Instalacja WordPressa jednym kliknięciem,PŁATNE,TAK,PŁATNE,TAK,TAK,DZIAŁA,services.controller.ts:218,PARYTET,—,—,NodeTask WP_INSTALL + wp-cli
+I-03,I,Status instalacji WordPressa,CZĘŚĆ,TAK,CZĘŚĆ,TAK,TAK,DZIAŁA,services.controller.ts:213,PARYTET,—,—,
+I-04,I,Automatyczne aktualizacje WordPressa,PŁATNE,TAK,PŁATNE,TAK,TAK,BRAK,—,LUKA,WYSOKA,M,4 z 5 hostingów PL to ma
+I-05,I,Aktualizacje wtyczek i motywów z panelu,PŁATNE,TAK,PŁATNE,CZĘŚĆ,TAK,BRAK,—,LUKA,ŚREDNIA,M,
+I-06,I,Smart Updates (test przed aktualizacją),NIE,PŁATNE,NIE,NIE,CZĘŚĆ,BRAK,—,POZA ZAKRESEM,NISKA,L,"wyróżnik Pleska, rynek PL tego nie ma"
+I-07,I,Skanowanie podatności WordPressa,NIE,TAK,NIE,CZĘŚĆ,TAK,BRAK,—,LUKA,ŚREDNIA,L,Plesk używa Patchstack
+I-08,I,Hardening WordPressa (checklist),NIE,TAK,NIE,CZĘŚĆ,CZĘŚĆ,BRAK,—,LUKA,ŚREDNIA,M,
+I-09,I,Staging — utworzenie kopii roboczej,PŁATNE,TAK,PŁATNE,CZĘŚĆ,TAK,DZIAŁA,services.controller.ts:182,PRZEWAGA,—,—,tylko 2 z 5 hostingów PL ma staging
+I-10,I,Staging — odświeżenie z produkcji,PŁATNE,TAK,PŁATNE,CZĘŚĆ,TAK,DZIAŁA,StagingTab.tsx:174,PRZEWAGA,—,—,
+I-11,I,Staging — publikacja na produkcję,PŁATNE,TAK,PŁATNE,CZĘŚĆ,TAK,CZĘŚCIOWE,services.controller.ts:187,CZĘŚCIOWY,WYSOKA,S,"OSŁABIONE: node-staging-sync.sh:141-142 backup plików jest twardą bramką, ale :152-153 backup bazy LIVE jest best-effort — linia 158 robi wp db import na produkcji mimo braku kopii."
+I-12,I,Staging — usunięcie,PŁATNE,TAK,PŁATNE,CZĘŚĆ,TAK,DZIAŁA,services.controller.ts:192,PRZEWAGA,—,—,
+I-13,I,Klonowanie strony między domenami,PŁATNE,TAK,PŁATNE,CZĘŚĆ,TAK,BRAK,—,LUKA,ŚREDNIA,M,
+I-14,I,Masowe zarządzanie wieloma instalacjami WP,NIE,TAK,NIE,NIE,CZĘŚĆ,BRAK,—,LUKA,NISKA,L,realna przewaga dla agencji
+I-15,I,Tryb konserwacji WordPressa,NIE,TAK,NIE,NIE,CZĘŚĆ,BRAK,—,LUKA,NISKA,S,
+I-16,I,WP-CLI,TAK,TAK,TAK,CZĘŚĆ,TAK,CZĘŚCIOWE,używane wewnętrznie przy WP_INSTALL,CZĘŚCIOWY,ŚREDNIA,S,klient nie ma bezpośredniego dostępu (dziedziczy C-21)
+I-17,I,Migracja z innego hostingu — wykrywanie źródła,NIE,TAK,NIE,CZĘŚĆ,CZĘŚĆ,DZIAŁA,services.controller.ts:978,PRZEWAGA,—,—,na rynku PL migrację robi dostawca ręcznie
+I-18,I,Migracja — test poświadczeń (preflight),NIE,TAK,NIE,NIE,NIE,CZĘŚCIOWE,services.controller.ts:1001,CZĘŚCIOWY,ŚREDNIA,S,"OSŁABIONE: migration-preflight.service.ts:93-131 — dla SFTP/SSH, czyli głównego kanału plików, testowany jest wyłącznie baner portu. Literówka w haśle przejdzie preflight."
+I-19,I,Migracja — uruchomienie (pliki + baza + poczta),NIE,TAK,NIE,CZĘŚĆ,CZĘŚĆ,DZIAŁA,"migration-orchestrator.service.ts:636,655",PRZEWAGA,—,—,rsync + mysqldump; test D1 (11 przypadków)
+I-20,I,Migracja — delta-sync przed przełączeniem,NIE,CZĘŚĆ,NIE,NIE,NIE,DZIAŁA,services.controller.ts:1041,PRZEWAGA,—,—,realny wyróżnik: minimalizuje przestój
+I-21,I,Migracja — plan i weryfikacja cutoveru,NIE,NIE,NIE,NIE,NIE,DZIAŁA,"services.controller.ts:1052,1062",PRZEWAGA,—,—,
+I-22,I,Migracja — cockpit operatora,NIE,TAK,NIE,—,—,CZĘŚCIOWE,"migrations.staff.controller.ts:75,90,126",CZĘŚCIOWY,ŚREDNIA,S,"OSŁABIONE: cockpit ma UI tylko w panelu admina; apps/staff-panel nie ma strony migracji, a logowanie do admina odrzuca STAFF. Uprawnienie MIGRATIONS_MANAGE dla roli STAFF jest bezużyteczne."
+J-01,J,LiteSpeed / serwer o wysokiej wydajności,PŁATNE,CZĘŚĆ,PŁATNE,CZĘŚĆ,CZĘŚĆ,b.d.,"decyzja infrastrukturalna, poza kodem panelu",CZĘŚCIOWY,WYSOKA,—,koszt licencji — pozycja do unit economics
+J-02,J,Cache stron (LSCache) sterowany z panelu,PŁATNE,TAK,PŁATNE,CZĘŚĆ,TAK,BRAK,—,LUKA,WYSOKA,M,
+J-03,J,Cache obiektowy (Redis) dla WordPressa,CZĘŚĆ,TAK,CZĘŚĆ,TAK,TAK,BRAK,—,LUKA,WYSOKA,M,patrz D-15
+J-04,J,HTTP/3,TAK,TAK,TAK,TAK,TAK,b.d.,poza kodem panelu,CZĘŚCIOWY,ŚREDNIA,—,4 z 5 hostingów PL już ma
+J-05,J,CDN,CZĘŚĆ,TAK,CZĘŚĆ,PŁATNE,TAK,BRAK,—,LUKA,NISKA,L,na rynku PL płatny dodatek
+J-06,J,Optymalizacja obrazów,NIE,TAK,NIE,NIE,TAK,BRAK,—,LUKA,NISKA,M,
+J-07,J,Dedykowany adres IP,TAK,TAK,TAK,PŁATNE,CZĘŚĆ,CZĘŚCIOWE,addons — jako dodatek typu workorder,CZĘŚCIOWY,ŚREDNIA,S,"addon.service.ts:120 — realizacja przez zgłoszenie do BOK, nie automat"
+J-08,J,Autoskalowanie zasobów,NIE,NIE,NIE,CZĘŚĆ,TAK,DZIAŁA,autoscaling-engine.service.ts:64 (cron 1 min),PRZEWAGA,—,—,tylko dhosting ma coś podobnego na rynku PL
+J-09,J,Limit miesięcznego kosztu autoskalowania,NIE,NIE,NIE,NIE,CZĘŚĆ,DZIAŁA,subscriptions.controller.ts:120; test autoscaling-engine.cap.spec.ts,PRZEWAGA,—,—,"cap egzekwowany w silniku, test D1"
+J-10,J,Kalkulator kosztu skalowania,NIE,NIE,NIE,NIE,CZĘŚĆ,DZIAŁA,autoscaling.controller.ts:12,PRZEWAGA,—,—,
+J-11,J,Historia zdarzeń skalowania,NIE,NIE,NIE,NIE,CZĘŚĆ,DZIAŁA,subscriptions.controller.ts:138,PRZEWAGA,—,—,
+K-01,K,Zużycie CPU / RAM / IO na wykresie,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:881,PARYTET,—,—,"realna telemetria LVE, 24 h / 7 d"
+K-02,K,Zużycie powierzchni i transferu,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:936,PARYTET,—,—,
+K-03,K,Licznik inodów,TAK,TAK,TAK,b.d.,CZĘŚĆ,BRAK,—,LUKA,ŚREDNIA,S,żaden hosting PL nie publikuje — okazja na transparentność
+K-04,K,Logi dostępu WWW (access log),TAK,TAK,TAK,TAK,TAK,BRAK,—,LUKA,WYSOKA,M,wszystkie 5 hostingów PL to ma; seohost reklamuje jako darmowe
+K-05,K,Logi błędów PHP,TAK,TAK,TAK,TAK,TAK,BRAK,—,LUKA,WYSOKA,M,j.w. — bez tego klient nie zdiagnozuje własnej strony
+K-06,K,Surowe logi do pobrania,TAK,TAK,TAK,CZĘŚĆ,CZĘŚĆ,BRAK,—,LUKA,ŚREDNIA,S,
+K-07,K,Statystyki odwiedzin (AWStats/Webalizer),TAK,TAK,TAK,CZĘŚĆ,NIE,BRAK,—,POZA ZAKRESEM,NISKA,—,zastąpione własną analityką (K-12)
+K-08,K,Powiadomienia o przekroczeniu limitów,TAK,TAK,TAK,CZĘŚĆ,TAK,CZĘŚCIOWE,monitoring dostępności działa; brak alertów o limitach zasobów,CZĘŚCIOWY,ŚREDNIA,S,
+K-09,K,Health-check usługi (DNS/TLS/poczta/HTTP),NIE,CZĘŚĆ,NIE,NIE,CZĘŚĆ,DZIAŁA,services.controller.ts:865,PRZEWAGA,—,—,z podpowiedziami „co zrobić”
+K-10,K,Monitoring dostępności strony,NIE,TAK,NIE,CZĘŚĆ,TAK,DZIAŁA,"services.controller.ts:147,157",PRZEWAGA,—,—,z powiadomieniami e-mail
+K-11,K,Powiadomienia o wykrytej niedostępności,NIE,TAK,NIE,CZĘŚĆ,TAK,DZIAŁA,services.controller.ts:157,PRZEWAGA,—,—,
+K-12,K,Analityka odwiedzin bez cookies,NIE,NIE,NIE,NIE,NIE,DZIAŁA,"analytics-sites.controller.ts:30,51; retencja 90 dni (analytics-sites.service.ts:49)",PRZEWAGA,—,—,nikt na rynku PL tego nie ma
+K-13,K,Analityka — snippet do wklejenia,NIE,NIE,NIE,NIE,NIE,DZIAŁA,analytics-public.controller.ts,PRZEWAGA,—,—,
+K-14,K,Wolne zapytania SQL,TAK,TAK,CZĘŚĆ,NIE,CZĘŚĆ,BRAK,—,LUKA,NISKA,M,
+L-01,L,Zadanie cron — dodanie,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:640,PARYTET,—,—,presety harmonogramu
+L-02,L,Zadanie cron — usunięcie,TAK,TAK,TAK,TAK,TAK,DZIAŁA,services.controller.ts:657,PARYTET,—,—,
+L-03,L,Zadanie cron — edycja,TAK,TAK,TAK,TAK,TAK,BRAK,—,LUKA,ŚREDNIA,S,obecnie usuń i dodaj ponownie
+L-04,L,Cron z interwałem 1 minuty,TAK,TAK,TAK,CZĘŚĆ,TAK,b.d.,zależne od konfiguracji DA,CZĘŚCIOWY,NISKA,S,cyber_Folks ma minimum 60 min — okazja
+L-05,L,Cron z wyborem wersji PHP,TAK,TAK,TAK,CZĘŚĆ,CZĘŚĆ,BRAK,—,LUKA,ŚREDNIA,S,seohost to reklamuje
+L-06,L,Podgląd wyniku ostatniego wykonania crona,TAK,TAK,CZĘŚĆ,NIE,CZĘŚĆ,BRAK,—,LUKA,ŚREDNIA,M,
+L-07,L,Publiczne API — odczyt,TAK,TAK,TAK,NIE,TAK,CZĘŚCIOWE,public-api.controller.ts:22-98 — 5 endpointów GET,PRZEWAGA,—,—,żaden hosting PL nie ma publicznego API
+L-08,L,Publiczne API — zapis,TAK,TAK,TAK,NIE,TAK,BRAK,api-scopes.ts:3 — 3 zakresy read-only; przyznane w api-tokens-client.tsx:158,LUKA,ŚREDNIA,L,"strona obiecuje „CI/CD, Terraform, skrypty” przy samych GET-ach"
+L-09,L,Tokeny API z zakresami uprawnień,TAK,TAK,TAK,NIE,TAK,CZĘŚCIOWE,api-tokens.controller.ts:35,CZĘŚCIOWY,NISKA,S,
+L-10,L,Webhooki dla klienta,CZĘŚĆ,TAK,NIE,NIE,CZĘŚĆ,BRAK,—,LUKA,NISKA,M,
+L-11,L,Asystent AI w panelu,NIE,NIE,NIE,CZĘŚĆ,TAK,FLAGA,HostingAssistant.tsx:61; ai-provider.service.ts:21 — AI_API_KEY domyślnie pusty,CZĘŚCIOWY,ŚREDNIA,S,"funkcja wygląda na wbudowaną, a bez klucza milczy"
+L-12,L,Prognoza zużycia zasobów (AI),NIE,NIE,NIE,NIE,CZĘŚĆ,FLAGA,hosting-forecast-actions.ts:7; fallback ServiceForecastPanel.tsx:97,CZĘŚCIOWY,NISKA,S,
+M-01,M,Faktura VAT dostępna w panelu,NIE,NIE,NIE,TAK,TAK,DZIAŁA,"invoices.controller.ts:23,46",PARYTET,—,—,
+M-02,M,Numeracja faktur odporna na wyścigi,NIE,NIE,NIE,TAK,TAK,DZIAŁA,invoices.service.ts:245-267 (ON CONFLICT ... seq+1),PARYTET,WYSOKA,—,"poprawnie zrobione, ale ZERO testów przy raw SQL"
+M-03,M,Numer nadawany dopiero przy opłaceniu,NIE,NIE,NIE,b.d.,b.d.,DZIAŁA,invoices.service.ts:183-189,PRZEWAGA,—,—,nie „pali” sekwencji
+M-04,M,Snapshot danych sprzedawcy i nabywcy (art. 106e),NIE,NIE,NIE,TAK,TAK,DZIAŁA,"invoices.service.ts:292-300,355-374",PARYTET,—,—,
+M-05,M,PDF faktury,NIE,NIE,NIE,TAK,TAK,DZIAŁA,invoice-pdf.service.ts (493 l.),PARYTET,—,—,ZERO testów
+M-06,M,FAKTURA KORYGUJĄCA,NIE,NIE,NIE,TAK,TAK,BRAK,zero wystąpień korekty w apps/api i schema.prisma; fa3-xml.builder.ts:177 zawsze <RodzajFaktury>VAT,LUKA,BLOKER STARTU,L,"pierwszy zwrot, pierwsza rezygnacja w trakcie okresu, pierwsza literówka w NIP — i operator wychodzi poza system"
+M-07,M,DUPLIKAT FAKTURY,NIE,NIE,NIE,TAK,TAK,BRAK,"brak flagi isDuplicate, brak endpointu",LUKA,ŚREDNIA,M,"Skorygowane: brak flagi potwierdzony, ale przy fakturze ustrukturyzowanej i PDF wystawianym na żądanie duplikat nie blokuje sprzedaży."
+M-08,M,Anulowanie faktury (VOID) z panelu,NIE,NIE,NIE,CZĘŚĆ,CZĘŚĆ,BRAK,InvoiceStatus.VOID w schema.prisma:1354 nigdy nie ustawiany,LUKA,WYSOKA,S,
+M-09,M,Stawki VAT inne niż 23%,NIE,NIE,NIE,TAK,TAK,BRAK,invoices.service.ts:17 — DEFAULT_VAT_RATE = 23 na sztywno,LUKA,WYSOKA,M,"Skorygowane: sztywne 23% dotyczy tylko ścieżki finalizacji (invoices.service.ts:17,296) — model i KSeF obsługują stawki (fa-xml.types.ts:152). Blokerem staje się dopiero przy pierwszym kliencie spoza PL."
+M-10,M,Faktury w walucie obcej z przeliczeniem VAT,NIE,NIE,NIE,CZĘŚĆ,TAK,CZĘŚCIOWE,invoice-pdf.service.ts:61 formatuje PLN/EUR/USD; brak kursu i przeliczenia (art. 31a),CZĘŚCIOWY,WYSOKA,M,KSeF odrzuca wszystko poza PLN (fa3-xml.builder.ts:64-66)
+M-11,M,KSeF — wysyłka faktury,NIE,NIE,NIE,CZĘŚĆ,NIE,FLAGA,ksef-v2.client.ts:138-165; FA(3) 1-0E; API v2,PRZEWAGA,—,—,"OSŁABIONE: KSEF_ENABLED default '0', KSEF_ENV default 'test' (platform-settings.keys.ts:136-137). Po włączeniu bez zmiany env faktury idą na środowisko testowe MF."
+M-12,M,KSeF — uwierzytelnianie tokenem,NIE,NIE,NIE,—,—,DZIAŁA,ksef-v2.client.ts:256-379 (challenge → RSA-OAEP → redeem),PARYTET,—,—,ZERO testów na całym kliencie (487 l. kryptografii)
+M-13,M,KSeF — szyfrowanie sesji,NIE,NIE,NIE,—,—,DZIAŁA,ksef-v2.client.ts:427-441 (RSA-OAEP + AES-256-CBC),PARYTET,—,—,
+M-14,M,KSeF — numer i UPO widoczne dla klienta,NIE,NIE,NIE,TAK,NIE,BRAK,zero wystąpień „ksef” w apps/client-panel,LUKA,WYSOKA,S,dhosting pokazuje numer KSeF i QR na fakturze
+M-15,M,KSeF — pobranie UPO przez operatora,NIE,NIE,NIE,—,—,ENDPOINT BEZ UI,ksef.admin.controller.ts:38; zero wystąpień UPO w admin-panel,LUKA,ŚREDNIA,S,"Skorygowane: UPO jest dostępne w portalu MF, więc warunek dokumentu księgowego nie jest naruszony. Brakuje wygody."
+M-16,M,KSeF — tryb offline/awaryjny,NIE,NIE,NIE,CZĘŚĆ,NIE,BRAK,KsefStatus.OFFLINE w schema.prisma:1432 nigdy nie ustawiany,LUKA,BLOKER STARTU,M,"awaria KSeF zostawia fakturę w PENDING, bez kodu QR offline"
+M-17,M,KSeF — walidacja XSD przed wysyłką,NIE,NIE,NIE,—,—,BRAK,fa3-xml.builder.ts składa XML stringowo; komentarz ksef-v2.client.ts:61-62 sam to wskazuje,LUKA,BLOKER STARTU,S,smoke na api-test MF nie został wykonany
+M-18,M,Płatności kartą,NIE,NIE,NIE,TAK,TAK,DZIAŁA,stripe.client.ts:308,PARYTET,—,—,
+M-19,M,Płatności BLIK / Przelewy24,NIE,NIE,NIE,TAK,CZĘŚĆ,DZIAŁA,stripe.client.ts:309 (p24),PARYTET,—,—,"przez Stripe, nie bezpośrednio"
+M-20,M,Płatności cykliczne / automatyczne odnowienia,NIE,NIE,NIE,TAK,TAK,DZIAŁA,"renewal.scheduler.ts:17-29,45 (idempotencja na subscriptionId+period)",PARYTET,WYSOKA,—,"ZERO testów na ścieżce, która sama wyłącza usługę klientowi"
+M-21,M,Portfel / przedpłata,NIE,NIE,NIE,CZĘŚĆ,CZĘŚĆ,DZIAŁA,billing.controller.ts:44; wallet-ledger.service.spec.ts (test D1),PRZEWAGA,—,—,
+M-22,M,Auto-doładowanie portfela,NIE,NIE,NIE,NIE,CZĘŚĆ,DZIAŁA,billing.controller.ts:107,PRZEWAGA,—,—,"ZERO testów (wallet-auto-topup.service.ts, 258 l.)"
+M-23,M,Kody promocyjne,NIE,NIE,NIE,TAK,TAK,DZIAŁA,promo.service.ts (559 l.); billing.controller.ts:91,PARYTET,ŚREDNIA,—,ZERO testów
+M-24,M,Proforma przed odnowieniem,NIE,NIE,NIE,TAK,CZĘŚĆ,CZĘŚCIOWE,"renewal-reminder.scheduler.ts — przypomnienie, nie proforma",CZĘŚCIOWY,ŚREDNIA,S,wszystkie 5 hostingów PL wystawia proformę
+M-25,M,Automatyczne zawieszenie za brak płatności,TAK,TAK,TAK,TAK,TAK,DZIAŁA,renewal.scheduler.ts:250-303 (grace 3 dni); subscriptions.service.ts:597-645,PARYTET,WYSOKA,—,ZERO testów
+M-26,M,Usunięcie zapisanej karty przez klienta,NIE,NIE,NIE,TAK,TAK,BRAK,"billing.controller.ts:38 tylko GET, brak DELETE",LUKA,WYSOKA,S,wymóg konsumencki
+M-27,M,Dodanie karty niezależnie od zakupu,NIE,NIE,NIE,TAK,TAK,BRAK,karta zapisuje się tylko przy okazji Stripe Checkout,LUKA,ŚREDNIA,S,
+M-28,M,Eksport historii transakcji do CSV,NIE,NIE,NIE,CZĘŚĆ,CZĘŚĆ,ENDPOINT BEZ UI,billing.controller.ts:70 — zero odwołań w panelu,LUKA,NISKA,S,
+M-29,M,Ręczne uznanie portfela klienta przez operatora,NIE,NIE,NIE,—,—,DZIAŁA,billing.admin.controller.ts:35,PARYTET,—,—,
+M-30,M,Katalog produktów i cenniki,NIE,NIE,NIE,TAK,TAK,DZIAŁA,"plans.admin.controller.ts:45,51,66",PARYTET,—,—,
+M-31,M,Prorata przy zmianie planu,NIE,NIE,NIE,CZĘŚĆ,TAK,DZIAŁA,"plan-proration.util.ts:47; test D1 (7 przypadków, cross-interval)",PRZEWAGA,—,—,jedna z najlepiej pokrytych rzeczy w repo
+M-32,M,Kolejka provisioningu z retry,TAK,TAK,TAK,—,—,DZIAŁA,"provisioning-queue.admin.controller.ts:31,58",PARYTET,—,—,
+M-33,M,"Dodatki płatne (IP, wsparcie priorytetowe)",TAK,TAK,TAK,TAK,TAK,CZĘŚCIOWE,addon.service.ts:120 — 2 z 3 to workorder do BOK,CZĘŚCIOWY,NISKA,M,
+Z-01,M,Faktura VAT dla płatności portfelem,NIE,NIE,NIE,TAK,TAK,BRAK,"invoices.service.ts:192 osiągalne WYŁĄCZNIE z upsertFromStripe (billing.service.ts:702,787 — zdarzenia invoice.*); doładowanie idzie przez stripe.client.ts:307 mode=payment bez invoice_creation; obciążenia portfela (subscriptions.service.ts:1208, renewal.scheduler.ts:174, autoscaling-billing.service.ts:145, addon.service.ts:105) nie wołają InvoicesService; invoices.admin.controller.ts ma same @Get",LUKA,BLOKER STARTU,L,"Klient płaci realnie i nie dostaje ŻADNEGO dokumentu księgowego. Brak obejścia w systemie — operator nie wystawi faktury ręcznie. Poważniejsze niż brak korekt: te dotyczą dokumentów, których w ogóle się nie wystawia."
+Z-02,M,Blokada zamówienia usługi bez opłaty przez klienta,TAK,TAK,TAK,TAK,TAK,BRAK,"subscriptions.controller.ts:29-30 (tylko JwtAuthGuard, zero @Roles) + :97 @Post(); dto/subscription.dto.ts:48 @IsEnum przyjmuje MANUAL; subscriptions.service.ts:361 → :368 provisionWithoutCharge (:1271) ustawia ACTIVE bez obciążenia; komentarz :81-82 mówi wprost że to ścieżka operatorska",LUKA,BLOKER STARTU,S,"Dowolne konto po rejestracji zamawia nieograniczoną liczbę aktywnych usług za 0 zł, bez faktury i bez śladu płatności. Ta sama luka jest zamknięta przy zmianie planu (plan-change.service.ts:206-213), ale nie przy zakupie. Brak rate-limitu na POST /subscriptions."
+Z-05,M,Odporność webhooka płatności na błąd w trakcie obsługi,NIE,NIE,NIE,TAK,TAK,BRAK,"billing.service.ts:444-453 — wiersz stripeWebhookEvent zapisywany PRZED handlerem (:455), poza transakcją, bez cofnięcia przy wyjątku; ponowienie ze Stripe trafia w :448-451 i zwraca duplicate:true; uznanie portfela (:523) nigdy nie następuje",LUKA,BLOKER STARTU,M,"Klient zapłacił, saldo się nie pojawiło, system uważa zdarzenie za obsłużone i odrzuca ponowienia. Odzysk wyłącznie ręcznie w bazie — brak endpointu do ponownego przetworzenia."
+Z-06,M,Klucz idempotencji obciążenia za dodatek,NIE,NIE,NIE,TAK,TAK,ATRAPA,"addon.service.ts:110 — idempotencyKey zawiera Date.now(), więc mechanizm z wallet-ledger.service.ts:94-105 nigdy nie zadziała; addon.controller.ts:17 dopuszcza 10 wywołań na godzinę",LUKA,BLOKER STARTU,S,"Podwójne kliknięcie, ponowienie przeglądarki albo timeout = do 10 obciążeń za ten sam dodatek w godzinę. Bez ścieżki zwrotu w systemie, bo nie ma ani refundu, ani korekty faktury."
+Z-07,M,Ponowienie płatności portfelem w okresie karencji,NIE,NIE,NIE,TAK,TAK,BRAK,renewal.scheduler.ts:74-78 wybiera wyłącznie status ACTIVE — subskrypcja w PAST_DUE (:236-241) nie jest ponawiana; getPaymentRetryUrl (subscriptions.service.ts:1509-1516) odrzuca wszystko poza STRIPE_CARD,LUKA,WYSOKA,M,"Klient płacący portfelem doładowuje saldo w karencji i i tak zostaje zawieszony po 3 dniach. Obejście operatorskie istnieje (subscriptions.admin.controller.ts:210 z chargeRenewal), ale wymaga ręcznej reakcji."
+N-01,N,System zgłoszeń dla klienta,NIE,NIE,TAK,TAK,TAK,DZIAŁA,"tickets.controller.ts:92,98",PARYTET,—,—,
+N-02,N,Załączniki w zgłoszeniu,NIE,NIE,CZĘŚĆ,TAK,TAK,DZIAŁA,"tickets.controller.ts:98,245",PARYTET,—,—,
+N-03,N,Ocena obsługi (CSAT),NIE,NIE,NIE,CZĘŚĆ,CZĘŚĆ,DZIAŁA,tickets.controller.ts:279,PRZEWAGA,—,—,
+N-04,N,Baza wiedzy po polsku,NIE,NIE,NIE,TAK,TAK,DZIAŁA,kb.public.controller.ts:226,PARYTET,—,—,
+N-05,N,Podpowiedzi artykułów przy zgłoszeniu,NIE,NIE,NIE,NIE,CZĘŚĆ,FLAGA,ai.controller.ts:53 — AI_API_KEY,CZĘŚCIOWY,NISKA,S,
+N-06,N,Publiczna strona statusu usług,NIE,NIE,NIE,CZĘŚĆ,TAK,DZIAŁA,probes-admin.controller.ts:33; apps/status-page,PRZEWAGA,—,—,tylko cyber_Folks i dhosting mają na rynku PL
+N-07,N,Ręczne tworzenie incydentu na status page,NIE,NIE,NIE,CZĘŚĆ,TAK,ENDPOINT BEZ UI,product-ops.admin.controller.ts:371; brak UI tworzenia,LUKA,WYSOKA,S,w kryzysie nie ma jak zakomunikować awarii
+N-08,N,Edycja i zamknięcie incydentu,NIE,NIE,NIE,CZĘŚĆ,TAK,DZIAŁA,"status/actions.ts:158,177",PARYTET,—,—,
+N-09,N,Powiadomienia w panelu (dzwonek),NIE,CZĘŚĆ,NIE,CZĘŚĆ,TAK,DZIAŁA,"notifications.controller.ts:12,20,26",PARYTET,—,—,
+N-10,N,Preferencje powiadomień e-mail,NIE,CZĘŚĆ,NIE,CZĘŚĆ,TAK,CZĘŚCIOWE,notifications-tab.tsx:70 — sekcja „Zawsze włączone” to statyczny tekst bez backendu,CZĘŚCIOWY,ŚREDNIA,S,sterowalne są tylko zgody marketingowe
+N-11,N,Ogłoszenia i okna serwisowe,CZĘŚĆ,TAK,CZĘŚĆ,CZĘŚĆ,CZĘŚĆ,ENDPOINT BEZ UI,"product-ops.admin.controller.ts:281,307,342,427; product-ops/data.ts:78-85 to same GET-y",LUKA,WYSOKA,M,cały panel Product Ops/NOC jest read-only
+N-12,N,Feature flagi z panelu operatora,NIE,CZĘŚĆ,NIE,—,—,ENDPOINT BEZ UI,product-ops.admin.controller.ts:342,LUKA,ŚREDNIA,S,
+N-13,N,KOLEJKA OBSŁUGI NADUŻYĆ (ABUSE),TAK,TAK,CZĘŚĆ,TAK,TAK,BRAK,"brak modułu, encji i trasy; jest tylko outbound-abuse.guard.ts:7-18 bez UI",LUKA,WYSOKA,L,"Skorygowane: powierzchnia abuse częściowo istnieje — outbound-cordon.admin.controller.ts:25,31, uprawnienie ABUSE_MANAGE (staff-permissions.catalog.ts:21), zarezerwowany adres abuse@, throttling na węźle. Brakuje kolejki i procesu, nie możliwości zatrzymania szkody."
+N-14,N,Cordon wysyłki poczty (auto-blokada spamu),CZĘŚĆ,TAK,CZĘŚĆ,—,—,ENDPOINT BEZ UI,"outbound-cordon.admin.controller.ts:20,25,32; zero „cordon” w admin-panel",LUKA,WYSOKA,S,"mechanizm działa, operator nie może go zobaczyć ani zdjąć"
+N-15,N,Migracja z innego hostingu wykonywana przez dostawcę,NIE,NIE,NIE,TAK,CZĘŚĆ,DZIAŁA,cockpit migracji + kreator klienta,PRZEWAGA,—,—,4 z 5 hostingów PL robi ręcznie; u nas to produkt
+N-16,N,SLA z zapisanymi kredytami,NIE,NIE,NIE,CZĘŚĆ,NIE,FLAGA,sla-credit.scheduler.ts:79 — if (!policy.enabled) return; SLA_CREDITS_ENABLED default '0' (platform-settings.keys.ts:116),CZĘŚCIOWY,WYSOKA,S,"OSŁABIONE: funkcja jest domyślnie martwa, a live-readiness nie ma checka SLA — flaga może zostać wyłączona bez żadnego sygnału. Regulamin obiecuje kredyty, kod ich nie nalicza."
+N-17,N,Szablony odpowiedzi obsługi,NIE,NIE,CZĘŚĆ,—,—,DZIAŁA,settings/canned-responses/actions.ts:23,PARYTET,—,—,
+N-18,N,CRM klienta 360 dla obsługi,NIE,NIE,NIE,—,—,DZIAŁA,"crm-profile-data.ts; users.admin.controller.ts:109,120",PRZEWAGA,—,—,
+N-19,N,Sugestia AI odpowiedzi na zgłoszenie,NIE,NIE,NIE,NIE,CZĘŚĆ,DZIAŁA,ai-chat.service.ts (223 l.),PRZEWAGA,—,—,"OSŁABIONE: wynik renderowany jako surowy JSON.stringify w <pre> (ticket-detail-panel.tsx:346-349), bez możliwości wstawienia do odpowiedzi."
+N-20,N,Link ze zgłoszenia do szczegółu (admin),—,—,—,—,—,ATRAPA,tickets/page.tsx:24 → /tickets/${id}; trasa nie istnieje w admin-panel,LUKA,ŚREDNIA,S,
+N-21,N,Wsparcie telefoniczne,NIE,NIE,NIE,TAK,CZĘŚĆ,BRAK,poza produktem,LUKA,ŚREDNIA,—,"home.pl i nazwa.pl mają telefon 24/7 — decyzja operacyjna, nie produktowa"
+O-01,O,Subkonta z uprawnieniami (IAM),TAK,TAK,CZĘŚĆ,CZĘŚĆ,TAK,DZIAŁA,"customer-iam.controller.ts:42,53,63,69",PRZEWAGA,—,—,tylko home.pl ma coś podobnego na rynku PL
+O-02,O,Aktywacja subkonta z zaproszenia,TAK,TAK,CZĘŚĆ,CZĘŚĆ,TAK,DZIAŁA,customer-iam.controller.ts:47,PARYTET,—,—,
+O-03,O,Dziennik audytu działań subkont,CZĘŚĆ,TAK,NIE,NIE,CZĘŚĆ,CZĘŚCIOWE,customer-iam.controller.ts:36,CZĘŚCIOWY,ŚREDNIA,M,"OSŁABIONE: customer-iam.service.ts:72-88 filtruje action startsWith CUSTOMER_IAM_ — istnieje 5 takich akcji. To dziennik zarządzania subkontami, nie ich działań."
+O-04,O,Egzekwowanie uprawnień w nawigacji i API,TAK,TAK,CZĘŚĆ,—,—,DZIAŁA,middleware.ts:39; customer-permissions.guard.ts:9; test D1,PARYTET,—,—,
+O-05,O,Reseller — przegląd klientów,TAK,TAK,TAK,CZĘŚĆ,CZĘŚĆ,CZĘŚCIOWE,"reseller.controller.ts:12,17 — 2 GET-y, zero mutacji",CZĘŚCIOWY,ŚREDNIA,L,
+O-06,O,Reseller — zakładanie kont klientom,TAK,TAK,TAK,CZĘŚĆ,CZĘŚĆ,BRAK,—,LUKA,ŚREDNIA,L,bez tego reseller nie jest produktem
+O-07,O,Reseller — ustawianie własnej marży,TAK,TAK,TAK,CZĘŚĆ,CZĘŚĆ,CZĘŚCIOWE,"reseller.admin.controller.ts:44,50 — tylko operator, nie reseller",CZĘŚCIOWY,NISKA,M,
+O-08,O,Reseller — samodzielne włączenie programu,CZĘŚĆ,CZĘŚĆ,CZĘŚĆ,CZĘŚĆ,CZĘŚĆ,ATRAPA,reseller-client.tsx:49 — jedyna akcja to „Napisz do nas”,LUKA,NISKA,M,strona sprzedażowa bez operacji zapisu
+O-09,O,White-label / własna marka resellera,TAK,TAK,TAK,CZĘŚĆ,CZĘŚĆ,CZĘŚCIOWE,reseller.admin.controller.ts:44 (brand po stronie operatora),CZĘŚCIOWY,NISKA,L,seohost to reklamuje jako wyróżnik
+O-10,O,Role i uprawnienia operatorów,TAK,TAK,TAK,—,—,DZIAŁA,"staff-roles.admin.controller.ts:31,36,41",PARYTET,—,—,
+O-11,O,Zarządzanie operatorami,TAK,TAK,TAK,—,—,DZIAŁA,"staff-roles.admin.controller.ts:51,56,61",PARYTET,—,—,
+O-12,O,Program partnerski / afiliacyjny,NIE,NIE,NIE,CZĘŚĆ,TAK,DZIAŁA,"partners.controller.ts:18,28,34",PARYTET,—,—,wypłata na portfel lub IBAN
+Z-04,O,Guard uprawnień subkont — domyślna odmowa,TAK,TAK,CZĘŚĆ,CZĘŚĆ,TAK,BRAK,customer-permissions.guard.ts:75 — inferCustomerRoutePermissions kończy się return [] (zezwól) dla trasy niedopasowanej; addons/* i vps nie pasują do żadnej gałęzi; addon.service.ts:105 i vps.service.ts:174 zdejmują środki z portfela; jwt.strategy.ts:94 ustawia userId = customerOwnerId,LUKA,BLOKER STARTU,S,"Subkonto zaproszone wyłącznie z uprawnieniem TICKETS_READ może wydawać środki z portfela właściciela i kupować VPS na jego rachunek. Guard musi domyślnie odmawiać, nie zezwalać."
+P-01,P,Eksport danych osobowych (art. 20),NIE,CZĘŚĆ,NIE,CZĘŚĆ,CZĘŚĆ,DZIAŁA,"data-export.service.ts:43-76 (ZIP, 12 sekcji, 13 tabel, TTL 7 dni)",PRZEWAGA,—,—,ZERO testów
+P-02,P,Żądanie usunięcia konta (art. 17),NIE,CZĘŚĆ,NIE,CZĘŚĆ,CZĘŚĆ,DZIAŁA,"account-deletion.service.ts:29,308,383-432",PRZEWAGA,WYSOKA,—,ZERO testów na operacji NIEODWRACALNEJ (twarde kasowanie konta DA)
+P-03,P,Wycofanie żądania usunięcia,NIE,NIE,NIE,b.d.,b.d.,DZIAŁA,account-deletion.controller.ts:62,PRZEWAGA,—,—,karencja 14 dni
+P-04,P,Historia zgód klienta,NIE,CZĘŚĆ,NIE,CZĘŚĆ,CZĘŚĆ,DZIAŁA,consents.controller.ts:70,PARYTET,—,—,
+P-05,P,Ponowna akceptacja przy zmianie regulaminu,NIE,NIE,NIE,CZĘŚĆ,CZĘŚĆ,DZIAŁA,reconsent-modal.tsx:169; consents.controller.ts:76,PRZEWAGA,—,—,
+P-06,P,Umowa powierzenia (DPA) do pobrania,NIE,CZĘŚĆ,NIE,CZĘŚĆ,CZĘŚĆ,DZIAŁA,dpa.controller.ts:23; dpa-pdf.service.ts,PRZEWAGA,—,—,
+P-07,P,Dokumenty prawne z historią wersji,NIE,NIE,NIE,CZĘŚĆ,CZĘŚĆ,DZIAŁA,"legal-documents.controller.ts:36,49",PRZEWAGA,—,—,brakujący dokument → „Dokument w przygotowaniu”
+P-08,P,Retencja i anonimizacja logów,NIE,CZĘŚĆ,NIE,b.d.,b.d.,DZIAŁA,"retention.scheduler.ts:29,30,87,95",PRZEWAGA,—,—,ZERO testów
+P-09,P,Zgody marketingowe (opt-in/out),NIE,NIE,NIE,TAK,TAK,DZIAŁA,consents.controller.ts:99,PARYTET,—,—,
+P-10,P,Baner zgody na cookies,NIE,NIE,NIE,TAK,TAK,DZIAŁA,cookie-consent.tsx,PARYTET,—,—,
+P-11,P,Rejestr czynności przetwarzania (art. 30),NIE,NIE,NIE,b.d.,b.d.,BRAK,"docs/legal/rcpd.md — sekcje A (administrator), B (procesor, art. 30 ust. 2), C (art. 32), D (przeglądy)",LUKA,ŚREDNIA,M,KOREKTA DOWODU: wcześniejszy zapis „brak encji i widoku” był mylący. Art. 30 wymaga formy pisemnej lub elektronicznej — dokument ją spełnia. Do pilnowania zostaje dyscyplina przeglądów i dat.
+P-12,P,Dostępność panelu wg WCAG 2.1 AA (EAA),NIE,CZĘŚĆ,NIE,b.d.,b.d.,BRAK,"docs/legal/EAA_AUDYT_DOSTEPNOSCI_2026-07-07.md — audyt wykonany, skip-link i focus-visible naprawione w commicie z 2026-07-07",LUKA,ŚREDNIA,L,KOREKTA DOWODU: wcześniejszy zapis „brak audytu w repo” był FAŁSZYWY. Audyt istnieje. Dokument powołuje się na zwolnienie mikroprzedsiębiorcy (art. 4 ust. 2 ustawy z 26.04.2024) — warto potwierdzić z prawnikiem i pilnować progów 10 osób / 2 mln EUR.
+P-13,P,Deklaracja lokalizacji danych,NIE,NIE,NIE,TAK,CZĘŚĆ,b.d.,poza kodem,CZĘŚCIOWY,ŚREDNIA,S,wszystkie 5 hostingów PL to eksponuje
+P-14,P,Certyfikacja ISO 27001,NIE,NIE,NIE,CZĘŚĆ,CZĘŚĆ,BRAK,—,LUKA,NISKA,L,home.pl i nazwa.pl mają — element przetargowy w B2B
+P-15,P,Podpisane DPA z subprocesorami,—,—,—,—,—,BRAK,"docs/legal/dpa-subprocessors-tracking.md — wszystkie pozycje w statusie „do podpisania” lub „do akceptacji”, kolumna Data pusta",LUKA,BLOKER STARTU,M,"POTWIERDZONE jako bloker, dowód poprawiony: tracker istnieje (wcześniejszy zapis „brak w repo” był fałszywy), ale ani jedno DPA nie jest podpisane — Stripe, dostawca VPS, dostawca backupu off-site, OpenProvider. Bez tego DPA podpisywane z klientem jest niekompletne."
+Q-01,Q,Program eko / punkty za oszczędność,NIE,NIE,NIE,NIE,NIE,FLAGA,"users.controller.ts:58,91; FEATURE_ECO domyślnie true",PRZEWAGA,—,—,nikt na rynku PL
+Q-02,Q,Raport energetyczny usługi,NIE,NIE,NIE,NIE,NIE,CZĘŚCIOWE,eco-report.service.ts:9 — jawnie deklarowany jako szacunek,PRZEWAGA,—,—,metodologia opisana — uczciwe podejście
+Q-03,Q,Badge eko do osadzenia na stronie klienta,NIE,NIE,NIE,NIE,NIE,DZIAŁA,"eco-public.controller.ts:32,74; test D1",PRZEWAGA,—,—,4 warianty + pixel odsłon
+Q-04,Q,Tryb eko usługi,NIE,NIE,NIE,NIE,NIE,DZIAŁA,subscriptions.controller.ts:73,PRZEWAGA,—,—,wpływa m.in. na politykę backupów
+Q-05,Q,E-mail marketing wbudowany w panel,NIE,NIE,NIE,CZĘŚĆ,NIE,DZIAŁA,"email-marketing.controller.ts:36,81,119,139",PRZEWAGA,—,—,double opt-in + cordon antyspamowy
+Q-06,Q,VPS / cloud w tym samym panelu,NIE,NIE,NIE,TAK,TAK,FLAGA,"vps.controller.ts:53,59,69; HETZNER_API_TOKEN",CZĘŚCIOWY,ŚREDNIA,M,bez tokenu menu prowadzi do pustego stanu
+Q-07,Q,VPS — konsola / VNC,NIE,NIE,NIE,CZĘŚĆ,CZĘŚĆ,BRAK,—,LUKA,NISKA,M,
+Q-08,Q,VPS — snapshoty i rebuild,NIE,NIE,NIE,CZĘŚĆ,TAK,BRAK,—,LUKA,NISKA,M,
+Q-09,Q,Panel responsywny na telefonie,CZĘŚĆ,TAK,CZĘŚĆ,CZĘŚĆ,TAK,b.d.,brak audytu w repo,CZĘŚCIOWY,WYSOKA,M,twardy wymóg zapisany w decyzji brandingowej DA
+Q-10,Q,Natywna aplikacja mobilna,NIE,NIE,NIE,CZĘŚĆ,CZĘŚĆ,BRAK,—,POZA ZAKRESEM,NISKA,—,tylko home.pl (iOS)
+Q-11,Q,Tryb prosty / zaawansowany panelu,NIE,NIE,NIE,NIE,CZĘŚĆ,DZIAŁA,page.tsx:139 — ukrywa 7 zakładek,PRZEWAGA,—,—,
+Q-12,Q,Kreator pierwszych kroków (onboarding),NIE,CZĘŚĆ,NIE,CZĘŚĆ,TAK,DZIAŁA,onboarding-wizard.tsx:52,PARYTET,—,—,tylko nawigacja
+Q-13,Q,Command palette dla operatora,NIE,NIE,NIE,—,—,DZIAŁA,command-palette-actions.ts,PRZEWAGA,—,—,
+Q-14,Q,Kreator uruchomienia węzła,TAK,TAK,TAK,—,—,CZĘŚCIOWE,"node-wizard.tsx:277,288 — realnie tylko init + bootstrap; 7 z 9 kroków to treść runbooka (wizard-content.ts:21-40)",CZĘŚCIOWY,WYSOKA,M,w tym brakuje kroku konfiguracji backupu — patrz H-19
+Q-15,Q,Live-readiness (checklista przed startem),NIE,NIE,NIE,—,—,DZIAŁA,live-readiness.service.ts — 14 checków,PRZEWAGA,—,—,dobre narzędzie; nie sprawdza odtwarzalności kopii
+Q-16,Q,"Metryki biznesowe (MRR, churn)",NIE,NIE,NIE,—,—,DZIAŁA,business-metrics.admin.controller.ts:15; test D1,PARYTET,—,—,
+Q-17,Q,Grafana SSO dla operatora,NIE,CZĘŚĆ,NIE,—,—,DZIAŁA,grafana-auth.controller.ts,PRZEWAGA,—,—,
+Q-18,Q,VPN WireGuard dla dostępu operatorskiego,NIE,NIE,NIE,—,—,DZIAŁA,vpn.admin.controller.ts:29; vpn.service.ts:14-25,PRZEWAGA,—,—,
+X-01,X,CI uruchamiające testy,—,—,—,—,—,BRAK,"katalog .github NIE ISTNIEJE; brak .gitlab-ci, Jenkinsfile, .circleci, .husky",LUKA,WYSOKA,S,"Reklasyfikacja: brak CI nie spełnia żadnego z czterech warunków blokera — nie powoduje utraty danych, nie łamie prawa, nie blokuje dokumentu księgowego. Zostaje pozycją nr 1 do zrobienia, bo bez niej pozostałe naprawy nie mają jak być potwierdzone."
+X-02,X,Status wymagany do merge,—,—,—,—,—,BRAK,brak CI,LUKA,WYSOKA,S,Reklasyfikacja jak X-01.
+X-03,X,Testy uruchamiane przed wdrożeniem,—,—,—,—,—,BRAK,prod-deploy-ghcr.sh — zero wywołań pnpm test,LUKA,WYSOKA,S,Reklasyfikacja jak X-01.
+X-04,X,Testy integracyjne / e2e API,—,—,—,—,—,BRAK,zero @nestjs/testing i supertest nawet w devDependencies (apps/api/package.json:52-73),LUKA,WYSOKA,L,wszystkie 35 testów to jednostkowe z ręcznymi fake'ami
+X-05,X,Testy paneli frontowych,—,—,—,—,—,BRAK,admin-panel i staff-panel: 0 plików; client-panel: 1 plik bez runnera (brak skryptu test w package.json:5-11),LUKA,ŚREDNIA,L,
+X-06,X,Pokrycie testami modułu auth,—,—,—,—,—,BRAK,zero plików .spec w apps/api/src/auth,LUKA,WYSOKA,M,"Reklasyfikacja jak X-01 — z zastrzeżeniem, że po ustaleniach Z-02 i Z-04 to właśnie moduł auth i guardy są miejscem, gdzie brak testów już zamienił się w realne luki."
+X-07,X,Pokrycie testami klienta KSeF,—,—,—,—,—,BRAK,ksef-v2.client.ts (487 l. kryptografii + API skarbowe) — ZERO testów; testowany jest tylko builder XML,LUKA,WYSOKA,M,Reklasyfikacja jak X-01.
+X-08,X,Pokrycie testami ścieżki backup/restore,—,—,—,—,—,BRAK,offsite-restore.service.ts (regex chroniący przed path traversal na wejściu od klienta) — ZERO testów,LUKA,WYSOKA,M,"Reklasyfikacja jak X-01 — ale patrz Z-03: brak testów walidacji wejścia migracji to nie jest kwestia jakości, tylko przyczyna luki wykonania kodu."
+X-09,X,Pokrycie testami DirectAdminService,—,—,—,—,—,BRAK,directadmin.service.ts ma 3057 linii; testowany jest wyłącznie helper mergeAdminSettingsPayload,LUKA,WYSOKA,L,
+X-10,X,"Testy RBAC sprawdzające zachowanie, nie metadane",—,—,—,—,—,ATRAPA,"3 pliki spec czytają Reflect.getMetadata(ROLES_KEY) — weryfikują, że dekorator napisano, nie że guard blokuje",LUKA,WYSOKA,M,pokrycie pozorne w najdroższym możliwym miejscu

@@ -39,3 +39,6 @@ coverage/
 apps/api/get_user.js
 .agent-ssh/
 **/__MACOSX/
+
+# Artefakty mounta FUSE (Cowork / remote-devices) — nigdy nie commitujemy.
+.fuse_hidden*
