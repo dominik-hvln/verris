@@ -89,6 +89,13 @@ COPY ops/scripts/node-staging-sync.sh ./ops/scripts/node-staging-sync.sh
 COPY ops/scripts/install-verris-default-page.sh ./ops/scripts/install-verris-default-page.sh
 COPY ops/scripts/verris-lve.sh ./ops/scripts/verris-lve.sh
 COPY ops/scripts/node-db-upgrade.sh ./ops/scripts/node-db-upgrade.sh
+# Skrypty serwowane agentowi węzła przez /agent/tasks/*/script. Loader
+# (apps/api/src/servers/*.script.ts) czyta je z dysku i RZUCA, gdy pliku nie ma —
+# brak wpisu tutaj to 500 na endpointcie i zadanie, które nigdy się nie wykona.
+# Pilnuje tego test apps/api/src/test/dockerfile-scripts.spec.ts.
+COPY ops/scripts/node-account-restore.sh ./ops/scripts/node-account-restore.sh
+COPY ops/scripts/node-app-install.sh ./ops/scripts/node-app-install.sh
+COPY ops/scripts/node-php-apply.sh ./ops/scripts/node-php-apply.sh
 COPY ops/hosting-default-page ./ops/hosting-default-page
 RUN chmod +x /usr/local/bin/api-entrypoint.sh
 
