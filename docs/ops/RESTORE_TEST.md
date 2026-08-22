@@ -23,11 +23,20 @@ docker compose -f docker-compose.prod.yml --env-file .env.prod run --rm --no-dep
 '
 
 # Drill (nie dotyka verris_db)
-chmod +x ops/scripts/restore-drill-isolated.sh
-./ops/scripts/restore-drill-isolated.sh
+./ops/scripts/restore-drill-isolated.sh --owner "Imię Nazwisko"
 ```
 
-Oczekiwany koniec: `RESTORE DRILL OK` + sensowny `User count`.
+`chmod +x` zniknął stąd przy `X-26`. Był obejściem: skrypt miał w gicie tryb
+644, więc po świeżym `git clone` to polecenie kończyło się „Permission denied".
+Dziś wszystkie skrypty w repozytorium mają bit wykonywalności, a pilnuje tego
+test `apps/api/src/test/skrypty-wykonywalne.spec.ts`.
+
+`--owner` jest OBOWIĄZKOWY od `H-20`: bez właściciela zapis próby nie spełnia
+poziomu dowodu D4 i nie zdejmuje blokady startu sprzedaży.
+
+Oczekiwany koniec: `RESTORE DRILL OK` + liczby wierszy powyżej progów. Skrypt
+przerywa, jeżeli odtworzona baza jest pusta — sam kod wyjścia `psql` tego nie
+wychwytywał.
 
 Opcje:
 
