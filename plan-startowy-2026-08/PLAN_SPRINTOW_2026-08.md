@@ -9,9 +9,9 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **2748 h** — przy 30 h tygodniowo około **21 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **2754 h** — przy 30 h tygodniowo około **21 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **20 sprintów do startu** (568 h) oraz roadmapę po starcie (2180 h, 139 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **20 sprintów do startu** (568 h) oraz roadmapę po starcie (2186 h, 140 pozycji) rozpisaną na epiki kwartalne.
 
 - **2026-10-23** — koniec sprintu 9, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-01-08** — koniec sprintu 20, decyzja GO.
@@ -84,7 +84,7 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `Z-12` | Placement kont nadsubskrybuje zasoby węzła zamiast rezerwować pełne limity planu | 16 | BLOKER STARTU | provisioning.service.ts:299-301 zwiększa allocatedCpu/allocatedMemory/allocatedDisk o pełne limity planu; node-selector.service.ts:109-115 wpuszcza ko |
+| `Z-12` | Placement kont nadsubskrybuje zasoby węzła zamiast rezerwować pełne limity planu | 16 | — | node-capacity.ts — czyZmiesciSie z dwiema bramkami (handlową: sprzedane + limit planu ≤ pojemność × overcommit; fizyczną: realne zużycie ≤ pojemność × |
 | `Z-13` | Pakiet sprzedawany na stronie istnieje jako plan w bazie | 6 | BLOKER STARTU | seed.ts:40-112 zawiera wyłącznie starter/pro/business (19,99/49,99/99,99 zł); apps/www/.../Pricing.tsx:120 sprzedaje 45 zł/399 zł, hosting/page.tsx:77 |
 | `PB-14` | Wybór dostawcy i lokalizacji węzła produkcyjnego #1 | 6 | WYSOKI | PB-01 pokazało, że wybór dostawcy przesądza o rentowności przy cenie 45 zł. Hetzner AX102 ma cenę progową 44,20 zł, OVH Advance-2 w WAW1 — 67,76 zł, b |
 
@@ -433,11 +433,11 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 # Po starcie — roadmapa kwartalna
 
-139 pozycji, 2180 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
+140 pozycji, 2186 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
 
 | ID | Epik | Priorytet | Kwartał | Pozycji | h | Dlaczego teraz, a nie wcześniej |
 |---|---|---|---|---|---|---|
-| `E-01` | Runtime, pliki i diagnostyka | WYSOKI | Q1 2027 | 32 | 412 | Najczęstsze źródło zgłoszeń w pierwszych miesiącach każdego hostingu. Logi WWW ma pięć z pięciu badanych hostingów PL — bez nich klient nie zdiagnozuje własnej strony i pisze do nas. |
+| `E-01` | Runtime, pliki i diagnostyka | WYSOKI | Q1 2027 | 33 | 418 | Najczęstsze źródło zgłoszeń w pierwszych miesiącach każdego hostingu. Logi WWW ma pięć z pięciu badanych hostingów PL — bez nich klient nie zdiagnozuje własnej strony i pisze do nas. |
 | `E-02` | Wydajność: cache i skalowanie | WYSOKI | Q1 2027 | 9 | 126 | Trzy z pięciu hostingów PL dają Redis w cenie. Przy pozycjonowaniu na WordPressa to nie dodatek, tylko oczekiwanie. |
 | `E-12` | Backup: granularność i retencja | WYSOKI | Q1 2027 | 7 | 116 | cyber_Folks daje 28 dni, seohost do 60. Nasze 30 dni jest w normie, ale granularność odtwarzania jest poniżej rynku. |
 | `E-14` | Rozliczenia: dokończenie | WYSOKI | Q1 2027 | 10 | 120 | Z-07 z macierzy: klient płacący portfelem doładowuje saldo w karencji i i tak zostaje zawieszony. Pierwszy taki przypadek to stracony klient. |
@@ -454,7 +454,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 | `E-16` | Rozszerzenia oferty | NISKI | Q4 2027 | 4 | 64 | Decyzja o kreatorze stron jest binarna. Kod, który leży zakomentowany przez rok, jest długiem, nie opcją. |
 | `E-09` | Pokrycie testowe warstw krytycznych | WYSOKI | ciągłe | 7 | 184 | Realizowane równolegle z każdą fazą, nie jako osobny projekt. Zasada: każda naprawiona pozycja dostaje test, który najpierw czerwieni się na starym kodzie. |
 
-- **E-01 Runtime, pliki i diagnostyka** (412 h) — php.ini i rozszerzenia PHP z panelu, logi dostępu i błędów WWW, import/eksport bazy, spakowanie archiwum, SSH i klucze SSH dla hostingu, podgląd zajętości katalogów.
+- **E-01 Runtime, pliki i diagnostyka** (418 h) — php.ini i rozszerzenia PHP z panelu, logi dostępu i błędów WWW, import/eksport bazy, spakowanie archiwum, SSH i klucze SSH dla hostingu, podgląd zajętości katalogów.
 - **E-02 Wydajność: cache i skalowanie** (126 h) — Redis jako cache obiektowy sterowany z panelu, LSCache, weryfikacja HTTP/3, CDN, optymalizacja obrazów.
 - **E-03 WordPress Toolkit** (168 h) — Automatyczne aktualizacje, aktualizacje wtyczek i motywów, klonowanie między domenami, hardening, skan podatności, tryb konserwacji, masowe zarządzanie.
 - **E-04 Domeny jako produkt** (110 h) — Konfiguracja rejestratora, zakup i transfer z panelu, odnowienia, zmiana danych abonenta, blokada transferu, ukrycie WHOIS.

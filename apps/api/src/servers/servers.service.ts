@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
+import { bladWspolczynnika, efektywnyOvercommit } from '../subscriptions/node-capacity';
 import { CryptoService } from '../common/crypto/crypto.service';
 import { AuditService } from '../common/audit/audit.service';
 import { BootstrapTokenService } from './bootstrap-token.service';
@@ -733,7 +734,9 @@ export class ServersService {
    *  - acceptsNewAccounts=false „cordonuje" węzeł (istniejące konta działają,
    *    scheduler nie kładzie nowych) — bez wstrzymywania sprzedaży globalnie.
    *  - maxAccounts: twardy limit liczby kont (null = bez limitu).
-   *  - reservedHeadroomPercent: 0–90, rezerwa pojemności pod burst autoskalowania.
+   *  - reservedHeadroomPercent: 0–90, rezerwa pojemności FIZYCZNEJ pod burst.
+   *  - overcommitCpu/Ram/Disk: Z-12, ile razy węzeł może sprzedać ponad swoją
+   *    pojemność fizyczną. 1 = brak nadsubskrypcji (zachowanie sprzed Z-12).
    */
   async setCapacityPolicy(
     id: string,
@@ -742,6 +745,9 @@ export class ServersService {
       acceptsNewAccounts?: boolean;
       maxAccounts?: number | null;
       reservedHeadroomPercent?: number;
+      overcommitCpu?: number;
+      overcommitRam?: number;
+      overcommitDisk?: number;
     },
   ) {
     const server = await this.prisma.server.findUnique({ where: { id } });
@@ -767,6 +773,17 @@ export class ServersService {
         throw new BadRequestException('reservedHeadroomPercent musi być z zakresu 0–90.');
       }
       data.reservedHeadroomPercent = v;
+    }
+
+    // Z-12 — współczynniki nadsubskrypcji. Walidacja siedzi w node-capacity.ts,
+    // czyli w tym samym module, którego używa NodeSelector — żeby panel nie
+    // mógł zapisać wartości, na którą placement i tak nie pozwoli.
+    for (const nazwa of ['overcommitCpu', 'overcommitRam', 'overcommitDisk'] as const) {
+      const v = input[nazwa];
+      if (v === undefined) continue;
+      const blad = bladWspolczynnika(nazwa, v);
+      if (blad) throw new BadRequestException(blad);
+      data[nazwa] = v;
     }
 
     const updated = await this.prisma.server.update({ where: { id }, data });
@@ -847,6 +864,21 @@ export class ServersService {
         usedRam: c.allocatedMemory,
         usedDisk: c.allocatedDisk,
         headroom: Math.min(Math.max(c.reservedHeadroomPercent ?? 0, 0), 90) / 100,
+        // Z-12: planer drenażu miał DOKŁADNIE ten sam błąd co NodeSelector —
+        // porównywał sumę limitów planów z pojemnością fizyczną. Skutek byłby
+        // gorszy niż w sprzedaży: plan ewakuacji węzła mówiłby „nie ma dokąd
+        // przenieść kont" w chwili, gdy miejsce jest. Overcommit liczymy
+        // zachowawczo (bez telemetrii), bo drenaż to operacja awaryjna i lepiej,
+        // żeby wskazał mniej miejsca, niż żeby przepełnił węzeł docelowy.
+        oc: efektywnyOvercommit(
+          {
+            overcommitCpu: c.overcommitCpu,
+            overcommitRam: c.overcommitRam,
+            overcommitDisk: c.overcommitDisk,
+            reservedHeadroomPercent: c.reservedHeadroomPercent,
+          },
+          false,
+        ),
       }));
 
     const plan = accounts.map((acc) => {
@@ -860,12 +892,14 @@ export class ServersService {
       let best: (typeof targets)[number] | null = null;
       let bestLoad = Number.POSITIVE_INFINITY;
       for (const t of targets) {
-        const freeCpu = t.totalCpu - t.usedCpu - t.totalCpu * t.headroom;
-        const freeRam = t.totalRam - t.usedRam - t.totalRam * t.headroom;
-        const freeDisk = t.totalDisk - t.usedDisk - t.totalDisk * t.headroom;
+        const pojCpu = t.totalCpu * t.oc.cpu;
+        const pojRam = t.totalRam * t.oc.ram;
+        const pojDisk = t.totalDisk * t.oc.disk;
+        const freeCpu = pojCpu - t.usedCpu - t.totalCpu * t.headroom;
+        const freeRam = pojRam - t.usedRam - t.totalRam * t.headroom;
+        const freeDisk = pojDisk - t.usedDisk - t.totalDisk * t.headroom;
         if (freeCpu < need.cpu || freeRam < need.ram || freeDisk < need.disk) continue;
-        const load =
-          (t.usedCpu / t.totalCpu + t.usedRam / t.totalRam + t.usedDisk / t.totalDisk) / 3;
+        const load = (t.usedCpu / pojCpu + t.usedRam / pojRam + t.usedDisk / pojDisk) / 3;
         if (load < bestLoad) {
           bestLoad = load;
           best = t;

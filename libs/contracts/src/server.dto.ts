@@ -33,6 +33,11 @@ export interface ServerSummaryDto {
   maxAccounts: number | null;
   reservedHeadroomPercent: number;
 
+  // Z-12 — współczynniki nadsubskrypcji (1 = brak nadsubskrypcji).
+  overcommitCpu: number;
+  overcommitRam: number;
+  overcommitDisk: number;
+
   agentVersion: string | null;
   lastHandshakeAt: string | null;
   lastHeartbeatAt: string | null;

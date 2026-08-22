@@ -473,6 +473,23 @@ model Server {
   maxAccounts             Int?
   reservedHeadroomPercent Int      @default(0)
 
+  // Z-12 — współczynniki nadsubskrypcji. `allocated*` to suma limitów planów
+  // (ZOBOWIĄZANIE HANDLOWE), a nie zajętość maszyny: w LVE `MemoryMax` i `SPEED`
+  // są sufitami burst, nie rezerwacjami. NodeSelector porównuje `allocated*`
+  // z pojemnością fizyczną PRZEMNOŻONĄ przez te współczynniki, a osobną bramką
+  // pilnuje, żeby REALNE zużycie (UsageMetric) nie przekroczyło pojemności
+  // fizycznej pomniejszonej o headroom.
+  //
+  // Domyślne 1.0 = zachowanie sprzed Z-12, więc migracja niczego nie zmienia
+  // po cichu — admin podnosi współczynnik świadomie, per węzeł.
+  //
+  // Dysk ma niższy limit górny (3× wobec 8× dla CPU i RAM), bo quota dyskowa
+  // jest realnie egzekwowana: klient MOŻE ją wypełnić w całości, a odzyskać
+  // miejsce da się tylko migracją kont. Patrz node-capacity.ts.
+  overcommitCpu           Float    @default(1)
+  overcommitRam           Float    @default(1)
+  overcommitDisk          Float    @default(1)
+
   // Identity / authentication of the node agent
   identityToken   String?      @unique
   publicKey       String?

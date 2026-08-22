@@ -285,6 +285,10 @@ export class ServersAdminController {
       acceptsNewAccounts?: boolean;
       maxAccounts?: number | null;
       reservedHeadroomPercent?: number;
+      // Z-12 — nadsubskrypcja pojemności węzła (1 = wyłączona).
+      overcommitCpu?: number;
+      overcommitRam?: number;
+      overcommitDisk?: number;
     },
     @CurrentUser() user: { userId: string },
   ) {

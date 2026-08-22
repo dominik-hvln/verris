@@ -193,6 +193,9 @@ export async function setNodeCapacityPolicy(
     acceptsNewAccounts?: boolean;
     maxAccounts?: number | null;
     reservedHeadroomPercent?: number;
+    overcommitCpu?: number;
+    overcommitRam?: number;
+    overcommitDisk?: number;
   },
 ) {
   try {

@@ -1,6 +1,14 @@
 import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { Plan, Server, ServerStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  czyZmiesciSie,
+  efektywnyOvercommit,
+  PojemnoscFizyczna,
+  PowodOdmowy,
+  SWIEZOSC_TELEMETRII_MIN,
+  WynikDopasowania,
+} from './node-capacity';
 
 export interface NodeSelectionContext {
   /** Hint towards co-locating with this region if multiple nodes qualify. */
@@ -9,30 +17,26 @@ export interface NodeSelectionContext {
 
 interface ServerScore {
   server: Server;
-  /** Free CPU% available on the node (totalCpuCores * 100 − allocatedCpu). */
-  freeCpu: number;
-  /** Free RAM in MB. */
-  freeRam: number;
-  /** Free disk in MB. */
-  freeDisk: number;
-  /** Composite load score (lower = less loaded). */
-  load: number;
+  dopasowanie: WynikDopasowania;
 }
 
 /**
- * Selects an active compute node that has enough free capacity to host a new
- * account for a given Plan.
+ * Wybiera węzeł ACTIVE, na którym zmieści się nowe konto dla danego planu.
  *
- * Algorithm:
- *   1. Filter nodes to status = ACTIVE.
- *   2. Reject nodes that don't have enough free capacity for the plan's CPU /
- *      RAM / DISK base limits.
- *   3. Score remaining nodes by composite load (CPU + RAM + DISK utilisation,
- *      averaged) and pick the *least loaded* one. Region affinity breaks ties.
+ * Algorytm:
+ *   1. Węzły ACTIVE, nie „cordoned".
+ *   2. Odrzuć te, które nie przejdą bramek pojemności z `node-capacity.ts`:
+ *      handlowej (sprzedane + plan ≤ pojemność × overcommit) oraz fizycznej
+ *      (realne zużycie ≤ pojemność × (1 − headroom)).
+ *   3. Posortuj po obciążeniu — GORSZYM z handlowego i fizycznego — i wybierz
+ *      najluźniejszy. Region rozstrzyga remisy.
  *
- * If no node has free capacity we throw `ServiceUnavailableException` so the
- * caller can show a clear message to the user (and we'll surface the alert in
- * the admin panel).
+ * Z-12 (2026-08-22): do tej pory krok 2 traktował sumę limitów planów jak
+ * zajętość maszyny, więc na węźle ze 128 GB mieściło się 16 kont przy bazie
+ * 8 GB — a próg rentowności przy cenie 45 zł to 58 kont (PB-01). Cała
+ * arytmetyka pojemności wyprowadzona do `node-capacity.ts`, żeby ten serwis
+ * i planer drenażu w `servers.service.ts` nie miały dwóch różnych zdań na
+ * temat tego, co znaczy „węzeł jest pełny".
  */
 @Injectable()
 export class NodeSelectorService {
@@ -72,57 +76,84 @@ export class NodeSelectorService {
       );
     }
 
+    const idKandydatow = candidates.map((c) => c.id);
+
     // Liczba kont per węzeł — potrzebna do limitu maxAccounts.
     const accountCounts = await this.prisma.account.groupBy({
       by: ['serverId'],
-      where: { serverId: { in: candidates.map((c) => c.id) } },
+      where: { serverId: { in: idKandydatow } },
       _count: { _all: true },
     });
     const countByServer = new Map<string, number>(
       accountCounts.map((row) => [row.serverId, row._count._all]),
     );
 
+    const zuzycieWezlow = await this.realneZuzycieWezlow(idKandydatow);
+
     const scored: ServerScore[] = [];
+    const odmowy = new Map<PowodOdmowy, number>();
+
     for (const server of candidates) {
-      const totalCpu = (server.totalCpuCores ?? 0) * 100;
-      const totalRam = server.totalMemoryMb ?? 0;
-      const totalDisk = server.totalDiskMb ?? 0;
+      const fizyczna: PojemnoscFizyczna = {
+        cpu: (server.totalCpuCores ?? 0) * 100,
+        ramMb: server.totalMemoryMb ?? 0,
+        diskMb: server.totalDiskMb ?? 0,
+      };
 
-      // If a node hasn't reported its capacity yet, we cannot reason about
-      // overcommit and we skip it for safety.
-      if (totalCpu === 0 || totalRam === 0 || totalDisk === 0) continue;
+      const liczbaKont = countByServer.get(server.id) ?? 0;
+      // Węzeł bez kont nie ma telemetrii, ale jego realne zużycie nie jest
+      // „nieznane" — jest zerowe. Bez tego rozróżnienia świeży węzeł
+      // z ustawionym overcommitem zachowywałby się jak węzeł z zepsutym
+      // agentem i zapełniał się do 16 kont, zanim nadsubskrypcja by ruszyła.
+      const zuzycie =
+        zuzycieWezlow.get(server.id) ??
+        (liczbaKont === 0 ? { cpu: 0, ramMb: 0, diskMb: 0 } : null);
 
-      // Twardy limit liczby kont na węźle (jeśli ustawiony przez admina).
-      if (server.maxAccounts != null) {
-        const current = countByServer.get(server.id) ?? 0;
-        if (current >= server.maxAccounts) continue;
+      const dopasowanie = czyZmiesciSie({
+        fizyczna,
+        sprzedane: {
+          cpu: server.allocatedCpu,
+          ramMb: server.allocatedMemory,
+          diskMb: server.allocatedDisk,
+        },
+        zuzycie,
+        potrzeba: { cpu: plan.cpuLimit, ramMb: plan.ramLimitMb, diskMb: plan.diskLimitMb },
+        polityka: {
+          overcommitCpu: server.overcommitCpu,
+          overcommitRam: server.overcommitRam,
+          overcommitDisk: server.overcommitDisk,
+          reservedHeadroomPercent: server.reservedHeadroomPercent,
+        },
+        liczbaKont,
+        maxAccounts: server.maxAccounts,
+      });
+
+      if (!dopasowanie.mozna) {
+        if (dopasowanie.powod) {
+          odmowy.set(dopasowanie.powod, (odmowy.get(dopasowanie.powod) ?? 0) + 1);
+        }
+        // Nadsubskrypcja wyłączona przez brak telemetrii to sytuacja
+        // operacyjna, nie zwykłe „węzeł pełny" — musi być widoczna w logu.
+        if (!dopasowanie.telemetriaSwieza && fizyczna.ramMb > 0) {
+          this.logger.warn(
+            `Węzeł ${server.id} bez świeżej telemetrii (>${SWIEZOSC_TELEMETRII_MIN} min) — ` +
+              `nadsubskrypcja zdegradowana do 1,0×, odmowa: ${dopasowanie.powod}.`,
+          );
+        }
+        continue;
       }
 
-      // Rezerwa headroom — trzymamy % całkowitej pojemności wolnej pod burst
-      // autoskalowania, więc do umieszczenia nowego konta wymagamy
-      // free ≥ limit_planu + rezerwa.
-      const headroom = Math.min(Math.max(server.reservedHeadroomPercent ?? 0, 0), 90) / 100;
-      const reservedCpu = totalCpu * headroom;
-      const reservedRam = totalRam * headroom;
-      const reservedDisk = totalDisk * headroom;
-
-      const freeCpu = totalCpu - server.allocatedCpu;
-      const freeRam = totalRam - server.allocatedMemory;
-      const freeDisk = totalDisk - server.allocatedDisk;
-
-      if (freeCpu < plan.cpuLimit + reservedCpu) continue;
-      if (freeRam < plan.ramLimitMb + reservedRam) continue;
-      if (freeDisk < plan.diskLimitMb + reservedDisk) continue;
-
-      const cpuLoad = server.allocatedCpu / totalCpu;
-      const ramLoad = server.allocatedMemory / totalRam;
-      const diskLoad = server.allocatedDisk / totalDisk;
-      const load = (cpuLoad + ramLoad + diskLoad) / 3;
-
-      scored.push({ server, freeCpu, freeRam, freeDisk, load });
+      scored.push({ server, dopasowanie });
     }
 
     if (scored.length === 0) {
+      const opis = Array.from(odmowy.entries())
+        .map(([p, n]) => `${p}=${n}`)
+        .join(', ');
+      this.logger.error(
+        `Brak węzła dla planu ${plan.slug} (cpu=${plan.cpuLimit}, ram=${plan.ramLimitMb}MB, ` +
+          `disk=${plan.diskLimitMb}MB). Powody odmowy: ${opis || 'brak kandydatów'}.`,
+      );
       throw new ServiceUnavailableException(
         'All compute nodes are at capacity. Please try again later or contact support.',
       );
@@ -134,14 +165,76 @@ export class NodeSelectorService {
         const bMatch = b.server.region === ctx.preferredRegion ? 0 : 1;
         if (aMatch !== bMatch) return aMatch - bMatch;
       }
-      return a.load - b.load;
+      return a.dopasowanie.obciazenie - b.dopasowanie.obciazenie;
     });
 
     const winner = scored[0]!;
+    const oc = efektywnyOvercommit(
+      {
+        overcommitCpu: winner.server.overcommitCpu,
+        overcommitRam: winner.server.overcommitRam,
+        overcommitDisk: winner.server.overcommitDisk,
+        reservedHeadroomPercent: winner.server.reservedHeadroomPercent,
+      },
+      winner.dopasowanie.telemetriaSwieza,
+    );
     this.logger.log(
-      `Selected server=${winner.server.id} (load=${(winner.load * 100).toFixed(1)}%, ` +
-        `freeCpu=${winner.freeCpu}%, freeRam=${winner.freeRam}MB)`,
+      `Selected server=${winner.server.id} ` +
+        `(obciążenie=${(winner.dopasowanie.obciazenie * 100).toFixed(1)}%, ` +
+        `overcommit cpu=${oc.cpu}× ram=${oc.ram}× disk=${oc.disk}×, ` +
+        `telemetria=${winner.dopasowanie.telemetriaSwieza ? 'świeża' : 'NIEŚWIEŻA'})`,
     );
     return winner.server;
+  }
+
+  /**
+   * Realne zużycie każdego węzła — suma najnowszych próbek jego kont.
+   *
+   * Bierzemy szczyt (`cpuUsageMax`, `memUsageMaxMb`), nie średnią: headroom ma
+   * chronić przed pikiem, a nie przed stanem spoczynku. Dla dysku szczytu nie
+   * ma i nie jest potrzebny — zajętość dysku nie skacze i nie opada.
+   *
+   * Węzeł bez próbki w oknie świeżości nie trafia do mapy, co w `czyZmiesciSie`
+   * degraduje jego nadsubskrypcję do 1,0×.
+   */
+  private async realneZuzycieWezlow(
+    serverIds: string[],
+  ): Promise<Map<string, PojemnoscFizyczna>> {
+    const wynik = new Map<string, PojemnoscFizyczna>();
+    if (serverIds.length === 0) return wynik;
+
+    const od = new Date(Date.now() - SWIEZOSC_TELEMETRII_MIN * 60_000);
+    const rows = await this.prisma.usageMetric.findMany({
+      where: { serverId: { in: serverIds }, bucketStart: { gte: od } },
+      select: {
+        serverId: true,
+        subscriptionId: true,
+        bucketStart: true,
+        cpuUsageMax: true,
+        memUsageMaxMb: true,
+        diskUsageMb: true,
+      },
+      orderBy: { bucketStart: 'desc' },
+    });
+
+    // Po jednej — najnowszej — próbce na subskrypcję. Bez tego konto z sześcioma
+    // próbkami w oknie liczyłoby się sześć razy i węzeł wyglądałby na zajęty.
+    const najnowsza = new Map<string, (typeof rows)[number]>();
+    for (const r of rows) {
+      if (!r.serverId) continue;
+      const klucz = `${r.serverId}:${r.subscriptionId ?? 'brak'}`;
+      const dotad = najnowsza.get(klucz);
+      if (!dotad || r.bucketStart > dotad.bucketStart) najnowsza.set(klucz, r);
+    }
+
+    for (const r of najnowsza.values()) {
+      const biezace = wynik.get(r.serverId!) ?? { cpu: 0, ramMb: 0, diskMb: 0 };
+      biezace.cpu += r.cpuUsageMax;
+      biezace.ramMb += r.memUsageMaxMb;
+      biezace.diskMb += r.diskUsageMb;
+      wynik.set(r.serverId!, biezace);
+    }
+
+    return wynik;
   }
 }
