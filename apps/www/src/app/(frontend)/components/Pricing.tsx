@@ -4,8 +4,8 @@ import { useState } from 'react';
 
 const RESOURCES = [
   { base: '50 GB', max: '→ 1000 GB', label: 'dysk NVMe' },
-  { base: '8 GB', max: '→ 64 GB', label: 'RAM' },
-  { base: '2 vCPU', max: '→ 24 vCPU', label: 'CloudLinux' },
+  { base: 'do 8 GB', max: '→ 64 GB', label: 'RAM' },
+  { base: 'do 2 vCPU', max: '→ 24 vCPU', label: 'CloudLinux' },
 ];
 
 const GROUPS: { title: string; note?: string; items: (string | [string, string])[] }[] = [
@@ -89,7 +89,7 @@ export function Pricing() {
             <div className="pcard-main">
               <h3>Hosting Verris z autoskalowaniem</h3>
               <p className="sub">
-                Bazowe zasoby non-stop w cenie — nadwyżka rozliczana godzinowo, tylko za realne
+                Dysk 50 GB na stałe, moc do wysokości bazy bez dopłat — nadwyżka rozliczana godzinowo, tylko za realne
                 użycie.
               </p>
 

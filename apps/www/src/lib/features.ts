@@ -26,10 +26,10 @@ export const features: Feature[] = [
     slug: 'autoskalowanie',
     eyebrow: 'Funkcja',
     title: 'Autoskalowanie zasobów',
-    lead: 'Bazę masz w cenie, a nadwyżkę płacisz godzinowo — tylko za czas, w którym strona naprawdę potrzebuje więcej mocy.',
+    lead: 'Baza jest w abonamencie, a nadwyżkę płacisz godzinowo — tylko za czas, w którym strona naprawdę potrzebuje więcej mocy.',
     metaTitle: 'Autoskalowanie hostingu — płać za realne użycie | Verris',
     metaDescription:
-      'Jak działa autoskalowanie w Verris: baza 50 GB/8 GB/2 vCPU, skalowanie do 1000 GB, 64 GB RAM i 24 vCPU, tryb ECO i rozliczenie godzinowe. Płacisz za realne użycie, nie za pakiet na zapas.',
+      'Jak działa autoskalowanie w Verris: baza 50 GB dysku oraz do 8 GB RAM i do 2 vCPU, skalowanie do 1000 GB, 64 GB RAM i 24 vCPU, tryb ECO i rozliczenie godzinowe. Płacisz za realne użycie, nie za pakiet na zapas.',
     sections: [
       {
         p: [
@@ -39,7 +39,7 @@ export const features: Feature[] = [
       {
         h: 'Zakres skalowania',
         ul: [
-          'Baza w cenie: 50 GB NVMe, 8 GB RAM, 2 vCPU (CloudLinux).',
+          'Baza pakietu: 50 GB NVMe oraz do 8 GB RAM i do 2 vCPU (limity CloudLinux/LVE).',
           'Maksymalnie: 1000 GB dysku, 64 GB RAM, 24 vCPU — do 12× mocy CPU względem bazy.',
           'Krok skalowania dobierany automatycznie; tryb ECO zwalnia moc po piku.',
           'Rozliczenie godzinowe brutto — płacisz tylko za faktyczny czas nadwyżki.',
@@ -48,7 +48,7 @@ export const features: Feature[] = [
       {
         h: 'Ile to kosztuje',
         p: [
-          'Bazowe zasoby są w cenie pakietu (45 zł/mies lub 399 zł/rok brutto). Nadwyżka nalicza się godzinowo według stawek z cennika. Orientacyjny koszt policzysz w kalkulatorze autoskalowania na stronie migracji.',
+          'Bazowe zasoby są objęte abonamentem (45 zł/mies lub 399 zł/rok brutto). Nadwyżka nalicza się godzinowo według stawek z cennika. Orientacyjny koszt policzysz w kalkulatorze autoskalowania na stronie migracji.',
         ],
       },
     ],

@@ -42,3 +42,4 @@ apps/api/get_user.js
 
 # Artefakty mounta FUSE (Cowork / remote-devices) — nigdy nie commitujemy.
 .fuse_hidden*
+_to_delete_verris_audit/

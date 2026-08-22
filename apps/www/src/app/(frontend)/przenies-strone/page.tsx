@@ -60,7 +60,7 @@ const jsonLd = {
       '@type': 'Product',
       name: 'Hosting Verris z autoskalowaniem — darmowa migracja',
       description:
-        'Hosting współdzielony na DirectAdmin z autoskalowaniem i darmową migracją strony oraz poczty. Baza: 50 GB NVMe, 8 GB RAM, 2 vCPU. SLA 99,5% z rekompensatami.',
+        'Hosting współdzielony na DirectAdmin z autoskalowaniem i darmową migracją strony oraz poczty. Baza: 50 GB NVMe, do 8 GB RAM, do 2 vCPU. SLA 99,5% z rekompensatami.',
       brand: { '@type': 'Organization', name: 'Verris' },
       offers: [
         { '@type': 'Offer', price: '45.00', priceCurrency: 'PLN', availability: 'https://schema.org/InStock', url: 'https://verris.pl/przenies-strone', description: 'Rozliczenie miesięczne, cena brutto' },
@@ -193,7 +193,7 @@ export default function Page() {
           <div className="sec-head rv">
             <p className="kicker">Kalkulator autoskalowania</p>
             <h2>Nie kupuj mocy na zapas. Policz, ile kosztuje moc na godziny.</h2>
-            <p>Podstawa to cały hosting w cenie pakietu. Gdy strona potrzebuje więcej — np. w piku kampanii reklamowej albo w Black Friday — zasoby rosną automatycznie, a Ty płacisz godzinowo tylko za nadwyżkę.</p>
+            <p>Podstawa to cały hosting w ramach abonamentu. Gdy strona potrzebuje więcej — np. w piku kampanii reklamowej albo w Black Friday — zasoby rosną automatycznie, a Ty płacisz godzinowo tylko za nadwyżkę.</p>
           </div>
           <div className="rv">
             <MigrationCalculator />
