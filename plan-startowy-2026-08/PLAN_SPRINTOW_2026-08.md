@@ -9,9 +9,9 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **2754 h** — przy 30 h tygodniowo około **21 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **2770 h** — przy 30 h tygodniowo około **21 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **20 sprintów do startu** (568 h) oraz roadmapę po starcie (2186 h, 140 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **20 sprintów do startu** (584 h) oraz roadmapę po starcie (2186 h, 140 pozycji) rozpisaną na epiki kwartalne.
 
 - **2026-10-23** — koniec sprintu 9, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-01-08** — koniec sprintu 20, decyzja GO.
@@ -32,7 +32,7 @@ Dlatego praca dzieli się na dwie części: **20 sprintów do startu** (568 h) o
 
 # Faza 0 — Zatrzymać krwawienie
 
-*Sprinty 1–3 · 88 h · 2026-08-24 – 2026-09-11*
+*Sprinty 1–3 · 104 h · 2026-08-24 – 2026-09-11*
 
 Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziurą, przez którą wyciekają pieniądze, albo drogą do przejęcia węzła przez klienta. Nic innego nie ma sensu przed nimi.
 
@@ -80,22 +80,24 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 
 ## Sprint 3 — Pojemność węzła i plan produkcyjny
 
-`2026-09-07 – 2026-09-11` · **28 h** z 30 h pojemności
+`2026-09-07 – 2026-09-11` · **44 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
 | `Z-12` | Placement kont nadsubskrybuje zasoby węzła zamiast rezerwować pełne limity planu | 16 | — | node-capacity.ts — czyZmiesciSie z dwiema bramkami (handlową: sprzedane + limit planu ≤ pojemność × overcommit; fizyczną: realne zużycie ≤ pojemność × |
-| `Z-13` | Pakiet sprzedawany na stronie istnieje jako plan w bazie | 6 | BLOKER STARTU | seed.ts:40-112 zawiera wyłącznie starter/pro/business (19,99/49,99/99,99 zł); apps/www/.../Pricing.tsx:120 sprzedaje 45 zł/399 zł, hosting/page.tsx:77 |
+| `Z-13` | Pakiet sprzedawany na stronie istnieje jako plan w bazie | 6 | — | apps/api/src/plans/plan-produkcyjny.ts — PLAN_PRODUKCYJNY jako źródło prawdy; migracja 20260822120000_plan_produkcyjny (INSERT ... ON CONFLICT DO UPDA |
+| `Z-16` | Autoskalowanie pyta węzeł o pojemność i dowozi sufit obiecany w ofercie | 16 | BLOKER STARTU | autoscaling-engine.service.ts:287 — Math.min(value, 10) przycina krotność niezależnie od planu, więc sufit CPU (12×) i dysku (20×) z oferty jest nieos |
 | `PB-14` | Wybór dostawcy i lokalizacji węzła produkcyjnego #1 | 6 | WYSOKI | PB-01 pokazało, że wybór dostawcy przesądza o rentowności przy cenie 45 zł. Hetzner AX102 ma cenę progową 44,20 zł, OVH Advance-2 w WAW1 — 67,76 zł, b |
 
 **Definicja ukończenia**
 
 - `Z-12` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `Z-13` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `Z-16` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `PB-14` — Decyzja zapisana w repo z datą, przed zamówieniem serwera. Jeśli wybrany dostawca spoza Polski — polityka prywatności i DPA opisują lokalizację przetwarzania przed startem sprzedaży.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-03.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** Sprintu nie było w planie z 2026-08. Dołożony po PB-01, które pokazało, że przy dzisiejszym placemencie na węźle mieści się 16 kont, a próg rentowności przy cenie 45 zł to 58. Dopóki Z-12 jest otwarte, sprzedaż zatrzymuje się na szesnastym koncie niezależnie od popytu — selektor odmówi provisioningu. Z-13 idzie razem, bo bez planu produkcyjnego w bazie nie ma czego umieszczać ani na czym testować nadsubskrypcji. PB-14 zamyka sprint, bo wybór dostawcy przesądza o rentowności bardziej niż cokolwiek innego w tym modelu, a decyzja musi zapaść przed zamówieniem serwera w sprincie 8.
+**Ryzyko sprintu.** Sprintu nie było w planie z 2026-08. Dołożony po PB-01, które pokazało, że przy dzisiejszym placemencie na węźle mieści się 16 kont, a próg rentowności przy cenie 45 zł to 58. Dopóki Z-12 jest otwarte, sprzedaż zatrzymuje się na szesnastym koncie niezależnie od popytu — selektor odmówi provisioningu. Z-13 idzie razem, bo bez planu produkcyjnego w bazie nie ma czego umieszczać ani na czym testować nadsubskrypcji. PB-14 zamyka sprint, bo wybór dostawcy przesądza o rentowności bardziej niż cokolwiek innego w tym modelu, a decyzja musi zapaść przed zamówieniem serwera w sprincie 8. AKTUALIZACJA 2026-08-22: Z-12 i Z-13 zamknięte tego samego dnia, a przy nich wyszło Z-16 — autoskalowanie nie pyta węzła o pojemność i nie dowozi sufitu z oferty. Dołożone do tego samego sprintu, bo to trzecia strona tej samej sprawy: pojemność węzła musi być liczona w jednym miejscu, a nie w trzech niezależnych.
 
 ---
 
