@@ -1,0 +1,635 @@
+# X-28 — reguly alertowe zarzadzane przez Grafane.
+#
+# DLACZEGO TUTAJ, A NIE W PROMETHEUSIE. Do 2026-08-22 te same reguly stały
+# w ops/observability/prometheus/alerts.yml. Prometheus je liczyl i pokazywal
+# u siebie — i na tym sie konczylo: w calym repozytorium nie bylo Alertmanagera,
+# a prometheus.yml nie mial sekcji `alerting:`. Piec regul z `severity: critical`,
+# w tym VerrisPostgresBackupStale, nie mialo DOKAD trafic. Kopia bazy nie
+# wykonala sie ani razu przez miesiac i alarm o tym zapalil sie poprawnie —
+# w interfejsie, ktorego nikt nie otwiera.
+#
+# Grafana miala dokladnie odwrotny problem: punkt kontaktowy (dominik@hvln.pl),
+# polityke powiadomien i dzialajacy SMTP — i ZERO regul. Dwie polowy jednego
+# mechanizmu, kazda bezuzyteczna bez drugiej.
+#
+# JEDEN DOM, NIE DWA. Reguly nie zostaly skopiowane — zostaly PRZENIESIONE,
+# a alerts.yml usuniety razem z `rule_files` w prometheus.yml. Kopiowanie
+# dalo w tym projekcie Z-12, Z-16, M-06, X-24 i H-24: dwa egzemplarze jednej
+# reguly, jeden poprawiony, drugi zapomniany. Prog zmieniony w jednym miejscu
+# i niezmieniony w drugim bylby tu gorszy niz brak alertu, bo wygladalby na
+# dzialajacy.
+#
+# Plik powstal z ops/observability/prometheus/alerts.yml skryptem
+# ops/observability/grafana/migracja-regul-do-grafany.py. Skrypt zostaje
+# w repo jako zapis, jak wynik powstal — nie jako narzedzie do powtarzania.
+apiVersion: 1
+groups:
+- orgId: 1
+  name: verris_control_plane
+  folder: Verris
+  interval: 30s
+  rules:
+  - uid: verris-stale-compute-heartbeat
+    title: VerrisStaleComputeHeartbeat
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: Prometheus
+      model:
+        refId: A
+        expr: verris_servers_stale_heartbeat > 0
+        instant: true
+        range: false
+        editorMode: code
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: A
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 0
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            type: last
+            params: []
+          type: query
+    for: 5m
+    noDataState: OK
+    execErrState: Alerting
+    labels:
+      severity: warning
+    annotations:
+      summary: Aktywne węzły bez heartbeat (>5 min)
+      description: '{{ $value }} serwer(ów) ACTIVE bez heartbeat. Sprawdź agenta na węźle i sieć.'
+    isPaused: false
+  - uid: verris-provisioning-backlog
+    title: VerrisProvisioningBacklog
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: Prometheus
+      model:
+        refId: A
+        expr: verris_provisioning_pending > 10
+        instant: true
+        range: false
+        editorMode: code
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: A
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 0
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            type: last
+            params: []
+          type: query
+    for: 15m
+    noDataState: OK
+    execErrState: Alerting
+    labels:
+      severity: warning
+    annotations:
+      summary: Dużo subskrypcji w PROVISIONING
+      description: '{{ $value }} subskrypcji czeka na provisioning. Panel: admin → Kolejka provisioningu.'
+    isPaused: false
+  - uid: verris-provisioning-queue-failed
+    title: VerrisProvisioningQueueFailed
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: Prometheus
+      model:
+        refId: A
+        expr: verris_provisioning_queue_depth{state="failed"} > 0
+        instant: true
+        range: false
+        editorMode: code
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: A
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 0
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            type: last
+            params: []
+          type: query
+    for: 10m
+    noDataState: OK
+    execErrState: Alerting
+    labels:
+      severity: critical
+    annotations:
+      summary: Joby provisioningu w stanie failed
+      description: '{{ $value }} jobów BullMQ failed. Retry z admin-panel lub sprawdź logi API/worker.'
+    isPaused: false
+  - uid: verris-provisioning-queue-stale
+    title: VerrisProvisioningQueueStale
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: Prometheus
+      model:
+        refId: A
+        expr: verris_provisioning_queue_oldest_waiting_seconds > 1800
+        instant: true
+        range: false
+        editorMode: code
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: A
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 0
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            type: last
+            params: []
+          type: query
+    for: 10m
+    noDataState: OK
+    execErrState: Alerting
+    labels:
+      severity: warning
+    annotations:
+      summary: Najstarszy job provisioningu czeka >30 min
+      description: Kolejka nie opróżnia się — REDIS_URL, worker DA, limity węzła.
+    isPaused: false
+  - uid: verris-open-major-incident
+    title: VerrisOpenMajorIncident
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: Prometheus
+      model:
+        refId: A
+        expr: verris_incidents_open{severity="MAJOR"} > 0
+        instant: true
+        range: false
+        editorMode: code
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: A
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 0
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            type: last
+            params: []
+          type: query
+    for: 2m
+    noDataState: OK
+    execErrState: Alerting
+    labels:
+      severity: critical
+    annotations:
+      summary: Otwarty incydent MAJOR na status page
+      description: Sprawdź admin → Historia incydentów / status.verris.pl.
+    isPaused: false
+  - uid: verris-status-webhook-backlog
+    title: VerrisStatusWebhookBacklog
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: Prometheus
+      model:
+        refId: A
+        expr: verris_status_webhook_oldest_pending_seconds > 600
+        instant: true
+        range: false
+        editorMode: code
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: A
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 0
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            type: last
+            params: []
+          type: query
+    for: 15m
+    noDataState: OK
+    execErrState: Alerting
+    labels:
+      severity: warning
+    annotations:
+      summary: Webhooki statusu w kolejce >10 min
+      description: Dostawcy badge nie dostają aktualizacji — worker webhooków / sieć.
+    isPaused: false
+  - uid: verris-status-webhook-failed
+    title: VerrisStatusWebhookFailed
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: Prometheus
+      model:
+        refId: A
+        expr: verris_status_webhook_deliveries_total{status="FAILED"} > 0
+        instant: true
+        range: false
+        editorMode: code
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: A
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 0
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            type: last
+            params: []
+          type: query
+    for: 30m
+    noDataState: OK
+    execErrState: Alerting
+    labels:
+      severity: warning
+    annotations:
+      summary: Nieudane dostawy webhooków statusu
+      description: Sprawdź endpointy klientów i logi StatusWebhookService.
+    isPaused: false
+  - uid: verris-postgres-backup-stale
+    title: VerrisPostgresBackupStale
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: Prometheus
+      model:
+        refId: A
+        expr: verris_backup_present == 0 or verris_backup_latest_age_seconds > 90000
+        instant: true
+        range: false
+        editorMode: code
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: A
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 0
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            type: last
+            params: []
+          type: query
+    for: 30m
+    noDataState: Alerting
+    execErrState: Alerting
+    labels:
+      severity: critical
+    annotations:
+      summary: Brak świeżego backupu Postgres w MinIO (>25h)
+      description: Sprawdź cron verris-backup i bucket verris-backups/postgres/ w MinIO.
+    isPaused: false
+  - uid: verris-migration-jobs-failed
+    title: VerrisMigrationJobsFailed
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: Prometheus
+      model:
+        refId: A
+        expr: verris_migration_worker_jobs_failed > 0
+        instant: true
+        range: false
+        editorMode: code
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: A
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 0
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            type: last
+            params: []
+          type: query
+    for: 15m
+    noDataState: OK
+    execErrState: Alerting
+    labels:
+      severity: warning
+    annotations:
+      summary: Joby migracji w stanie FAILED
+      description: Panel klienta → migracje; logi workerów migracji.
+    isPaused: false
+  - uid: verris-runtime-errors-spike
+    title: VerrisRuntimeErrorsSpike
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: Prometheus
+      model:
+        refId: A
+        expr: sum(increase(verris_runtime_errors_total[5m])) > 10
+        instant: true
+        range: false
+        editorMode: code
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: A
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 0
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            type: last
+            params: []
+          type: query
+    for: 5m
+    noDataState: OK
+    execErrState: Alerting
+    labels:
+      severity: warning
+    annotations:
+      summary: Skok błędów runtime API (>10 w 5 min)
+      description: Sprawdź panel admin → Błędy runtime lub GlitchTip (glitchtip.verris.pl).
+    isPaused: false
+  - uid: verris-runtime-errors-high
+    title: VerrisRuntimeErrorsHigh
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: Prometheus
+      model:
+        refId: A
+        expr: sum(increase(verris_runtime_errors_total[5m])) > 50
+        instant: true
+        range: false
+        editorMode: code
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: A
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 0
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            type: last
+            params: []
+          type: query
+    for: 2m
+    noDataState: OK
+    execErrState: Alerting
+    labels:
+      severity: critical
+    annotations:
+      summary: Bardzo wysoka liczba błędów runtime API (>50 w 5 min)
+      description: 'Prawdopodobna awaria. GlitchTip: glitchtip.verris.pl, logi API (Loki).'
+    isPaused: false
+- orgId: 1
+  name: verris_host_security
+  folder: Verris
+  interval: 1m
+  rules:
+  - uid: verris-security-watch-findings
+    title: VerrisSecurityWatchFindings
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: Prometheus
+      model:
+        refId: A
+        expr: verris_security_findings > 0
+        instant: true
+        range: false
+        editorMode: code
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: A
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 0
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            type: last
+            params: []
+          type: query
+    for: 2m
+    noDataState: OK
+    execErrState: Alerting
+    labels:
+      severity: critical
+    annotations:
+      summary: Wykryto podejrzaną aktywność na hoście (security watch)
+      description: Sprawdź journalctl -u verris-security-watch.service i /var/log/verris-security/. Możliwy
+        IOC/C2 lub zmiana cron.
+    isPaused: false
+  - uid: verris-security-watch-stale
+    title: VerrisSecurityWatchStale
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: Prometheus
+      model:
+        refId: A
+        expr: absent(verris_security_findings)
+        instant: true
+        range: false
+        editorMode: code
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: A
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 0
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            type: last
+            params: []
+          type: query
+    for: 20m
+    noDataState: OK
+    execErrState: Alerting
+    labels:
+      severity: warning
+    annotations:
+      summary: Brak metryki security watch (timer nie działa?)
+      description: Zainstaluj ops/scripts/security-install-verris-security.sh i sprawdź verris-security-watch.timer.
+    isPaused: false

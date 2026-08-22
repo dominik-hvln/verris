@@ -5,8 +5,21 @@ global:
     environment: production
     project: verris
 
-rule_files:
-  - /etc/prometheus/alerts.yml
+# X-28 — Prometheus nie trzyma tu reguł alertowych i to jest celowe.
+#
+# Trzymał je do 2026-08-22 (`rule_files: /etc/prometheus/alerts.yml`) i nie miał
+# ich jak wysłać: w repozytorium nie było Alertmanagera, a tu nie było sekcji
+# `alerting:`. Trzynaście reguł, pięć krytycznych, zapalało się w interfejsie
+# Prometheusa i na tym się kończyło. Kopia bazy nie wykonała się ani razu przez
+# miesiąc i alarm o tym działał poprawnie — po prostu nie miał adresata.
+#
+# Reguły stoją teraz po stronie Grafany, która ma punkt kontaktowy i SMTP:
+# ops/observability/grafana/provisioning/alerting/rules.yaml.
+#
+# Gdyby kiedyś wrócił Alertmanager, `rule_files` można przywrócić — ale RAZEM
+# z sekcją `alerting:` i usługą w docker-compose.prod.yml, i trzeba wtedy
+# zdecydować, gdzie reguła mieszka. Nie w dwóch miejscach naraz: pilnuje tego
+# apps/api/src/test/routing-alertow.spec.ts.
 
 scrape_configs:
   - job_name: prometheus

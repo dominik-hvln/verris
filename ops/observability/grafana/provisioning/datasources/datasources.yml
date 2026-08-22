@@ -3,6 +3,12 @@ apiVersion: 1
 datasources:
   - name: Prometheus
     type: prometheus
+    # X-28 — UID wpisany wprost, bo odwołują się do niego dwie rzeczy naraz:
+    # dashboardy (JSON-y mają "uid": "Prometheus") i reguły alertowe
+    # (provisioning/alerting/rules.yaml). Bez tego Grafana nadaje UID losowo,
+    # a odwołanie do nieistniejącego źródła nie rzuca błędem — panel po prostu
+    # jest pusty, a reguła nie ma czego policzyć.
+    uid: Prometheus
     access: proxy
     orgId: 1
     url: http://prometheus:9090

@@ -552,7 +552,10 @@ services:
         --web.enable-lifecycle
     volumes:
       - ./ops/observability/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./ops/observability/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+      # X-28 — montowania alerts.yml już nie ma, bo pliku już nie ma: reguły
+      # przeniesione do Grafany (provisioning/alerting/rules.yaml). Zostawienie
+      # tego wiersza byłoby gorsze niż jego brak — Docker przy nieistniejącym
+      # źródle tworzy pusty KATALOG i wszystko wygląda na skonfigurowane.
       - prometheus_data:/prometheus
     environment:
       METRICS_AUTH_TOKEN: ${METRICS_AUTH_TOKEN:-}
