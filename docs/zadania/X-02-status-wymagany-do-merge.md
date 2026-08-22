@@ -37,7 +37,7 @@ ustawienie po stronie GitHuba (Settings → Branches), nie da się go zapisać w
 | **Status** | Active |
 | **Zakres** | gałąź domyślna (`main`) **oraz** `live-release-readiness` |
 | **Lista obejścia** | `Repository admin` — „Always allow" |
-| **Wymagane checki** | `Static checks (lint + typecheck)` · `Build (api + panels)` · `Prisma migrate deploy (smoke)` |
+| **Wymagane checki** | `Static checks (lint + typecheck)` · `Build (api + panels)` · `Prisma migrate deploy (smoke)` · `API unit tests` (dodany 2026-08-21 wraz z `X-11`) |
 | **Dodatkowo** | wymagana aktualność gałęzi przed scaleniem · blokada force push · zakaz usunięcia gałęzi |
 | **Adres reguły** | `https://github.com/dominik-hvln/verris/settings/rules/21161479` |
 
@@ -58,6 +58,7 @@ Poniżej zostaje procedura ręczna — na wypadek odtwarzania reguły albo zakł
    |---|---|---|
    | `static-checks` | `Static checks (lint + typecheck)` | **tak** |
    | `build` | `Build (api + panels)` | **tak** |
+   | `api-tests` | `API unit tests` | **tak** (od 2026-08-21, X-11) |
    | `migrations` | `Prisma migrate deploy (smoke)` | **tak** |
    | `security-scans` | `Security scans (gitleaks + audit + trivy)` | nie |
 

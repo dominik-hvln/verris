@@ -55,6 +55,46 @@ jobs:
       - name: Typecheck (all workspaces via Turbo)
         run: pnpm typecheck
 
+  # ---------------------------------------------------------------------------
+  # X-11 — testy API mają WŁASNY job, nie krok w „Static checks".
+  #
+  # Do 2026-08-21 `pnpm --filter api test` był ostatnim krokiem joba wyżej,
+  # zaraz za typecheckiem. Skutek zobaczyliśmy przy pierwszym przebiegu (#17):
+  # typecheck wywalił się na `apps/www` — panelu, którego ta praca w ogóle nie
+  # dotyczyła — i testy nie uruchomiły się ani razu. CI działało, wszystko
+  # świeciło się na czerwono z powodu literówki w typach, a jedyny krok
+  # dający poziom dowodu D2 nie został wykonany.
+  #
+  # Zasada, którą to utrwala: krok, który DOWODZI, nie może stać za krokiem,
+  # który tylko sprawdza higienę. Osobny job kosztuje jeden dodatkowy
+  # `pnpm install` (~30 s) i jest tego wart.
+  # ---------------------------------------------------------------------------
+  api-tests:
+    name: API unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.5.0
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Klient Prismy jest potrzebny do samego zaimportowania modułów API.
+      - name: Generate Prisma client
+        run: pnpm --filter @verris/database db:generate
+
       - name: API unit tests
         run: pnpm --filter api test
 
