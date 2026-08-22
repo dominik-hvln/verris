@@ -76,6 +76,62 @@ if ! bash ops/scripts/prod-migrate-deploy.sh; then
   exit 1
 fi
 
+# 3.5) NIEZMIENNIKI po migracji — bramka, nie raport.
+#
+#      `prisma migrate deploy` kończy się zerem, gdy pliki SQL się wykonały.
+#      Nie mówi nic o tym, czy baza jest po nich w stanie, w którym kod będzie
+#      się mylił: czy plan sprzedawany na stronie w ogóle istnieje, czy księga
+#      pojemności zgadza się z kontami, czy faktury się sumują. Dotąd te
+#      twierdzenia sprawdzało wyłącznie CI, na świeżej bazie testowej — czyli
+#      dokładnie tam, gdzie nie ma prawdziwych danych.
+#
+#      Rollback jest ten sam co przy nieudanej migracji: wracamy do poprzedniego
+#      obrazu. Schematu to nie cofa (migracje są wstecznie kompatybilne, więc
+#      stary kod na nowym schemacie działa), ale zatrzymuje wypuszczenie kodu,
+#      który by na tej bazie liczył źle.
+#
+#      `po-migracji-katalog.sql` NIE biegnie tutaj świadomie: opisuje dzisiejszą
+#      decyzję handlową („dokładnie jeden publiczny pakiet", ta cena, te limity),
+#      a nie niezmiennik. Cenę wolno zmienić z panelu admina — bramka na 45,00
+#      zamieniłaby pierwszą legalną podwyżkę w rollback każdego kolejnego
+#      wdrożenia, a wtedy ktoś słusznie wyłączyłby całe sprawdzanie.
+#
+#      `:?` przy zmiennych jest celowe. Gdyby POSTGRES_DB było puste, psql
+#      połączyłby się z bazą o nazwie użytkownika — asercje przeszłyby na
+#      PUSTEJ, NIEWŁAŚCIWEJ bazie i zameldowały zieleń. Lepiej, żeby deploy
+#      stanął na braku zmiennej, niż żeby bramka udawała, że coś sprawdziła.
+#
+#      `sh -c`, nie `sh -lc`: powłoka logowania czyta profil, a skrypt profilu
+#      czytający stdin zjadłby nasz SQL i psql dostałby pusty plik — czyli
+#      zieleń bez sprawdzenia czegokolwiek.
+asercja() {
+  compose exec -T postgres sh -c \
+    'psql -U "${POSTGRES_USER:?POSTGRES_USER puste w kontenerze postgres}" \
+          -d "${POSTGRES_DB:?POSTGRES_DB puste w kontenerze postgres}" \
+          -v ON_ERROR_STOP=1 -q' < "$1"
+}
+
+echo "[deploy] asercje po migracji (niezmienniki)…"
+if ! asercja ops/sql/po-migracji-niezmienniki.sql; then
+  echo "[deploy] FAIL: migracja zostawiła bazę naruszającą niezmiennik — patrz komunikat wyżej."
+  if [ -n "$PREV_TAG" ] && [ "$PREV_TAG" != "$IMAGE_TAG" ]; then
+    echo "[deploy] ROLLBACK → ${PREV_TAG} (naruszony niezmiennik bazy)"
+    REGISTRY_PREFIX="$REGISTRY_PREFIX" IMAGE_TAG="$PREV_TAG" compose up -d --no-build ${APP_SERVICES} || true
+  fi
+  exit 1
+fi
+
+# 3.6) HISTORIA — tylko raport, nigdy bramka.
+#      Te zapytania mówią o danych sprzed migracji, których migracja nie
+#      naprawia i nie miała naprawiać: obciążenia bez faktury z czasów, gdy
+#      dokumentów jeszcze nie było, faktury czekające na PDF, brak próby
+#      odtworzenia z kopii. Wycofanie wdrożenia z tego powodu byłoby karą za
+#      przeszłość, nie ochroną przed błędem — dlatego wynik idzie do logu
+#      deployu i nic nie zatrzymuje.
+echo "[deploy] historia po migracji (raport, nie bramka)…"
+asercja ops/sql/po-migracji-historia.sql || \
+  echo "[deploy] WARN: raport historii nie wykonał się do końca — deploy leci dalej (to nie jest bramka)."
+
 # 4) Health-gate — WEWNĄTRZ kontenera api (port 3000 nie jest na hoście).
 #    Próbujemy wget, potem curl, a na końcu node (obraz api zawsze ma node).
 echo "[deploy] health-check (in-container) ${HEALTH_PATH}…"

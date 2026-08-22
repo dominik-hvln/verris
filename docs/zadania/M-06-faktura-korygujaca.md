@@ -143,7 +143,7 @@ Piąte wystąpienie tej rodziny w tym projekcie: „jest" (`X-17`), `archiver.cr
 | jednostkowe | `apps/api/src/ksef/fa3-xml.builder.spec.ts` | +7 |
 | jednostkowe | `apps/api/src/test/sciezki-panelu.spec.ts` | 5 |
 | integracyjne | `apps/api/test/integration/korekta.int-spec.ts` | 13 |
-| asercja SQL | `ops/sql/sprawdz-baze-po-migracji.sql` | blok M-06 |
+| asercja SQL | `ops/sql/po-migracji-niezmienniki.sql` | blok M-06 (od `X-25`; wcześniej `sprawdz-baze-po-migracji.sql`) |
 
 **Czy czerwienią się na starym kodzie?**
 

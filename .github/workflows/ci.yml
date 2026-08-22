@@ -217,13 +217,50 @@ jobs:
           SEED_ADMIN_PASSWORD: ci-not-a-real-password
         run: pnpm db:seed
 
-      - name: Verify migrated data (Z-12, Z-13, Z-16)
+      # Od 2026-08-22 asercje są rozdzielone na trzy pliki, bo mają trzy różne
+      # życia. Do tej pory siedziały w jednym i biegły WYŁĄCZNIE tutaj, na
+      # świeżej bazie testowej — czyli dokładnie tam, gdzie nie ma prawdziwych
+      # danych. Część z nich wywaliłaby produkcyjny deploy bez powodu.
+      #
+      #   niezmienniki — CI ORAZ produkcja, blokują (patrz prod-deploy-ghcr.sh),
+      #   katalog      — TYLKO CI: opisuje dzisiejszą decyzję handlową,
+      #   historia     — CI i produkcja, wyłącznie raportuje.
+      - name: Verify migrated data — niezmienniki (Z-01, Z-05, Z-12, Z-13, Z-16, M-06)
         env:
           PGPASSWORD: verris_password
-        run: |
-          psql -h localhost -U verris -d verris_db \
-               -v ON_ERROR_STOP=1 \
-               -f ops/sql/sprawdz-baze-po-migracji.sql
+          PGHOST: localhost
+          PGUSER: verris
+          PGDATABASE: verris_db
+        run: psql -v ON_ERROR_STOP=1 -f ops/sql/po-migracji-niezmienniki.sql
+
+      - name: Verify migrated data — katalog (tylko CI)
+        env:
+          PGPASSWORD: verris_password
+          PGHOST: localhost
+          PGUSER: verris
+          PGDATABASE: verris_db
+        run: psql -v ON_ERROR_STOP=1 -f ops/sql/po-migracji-katalog.sql
+
+      - name: Report migrated data — historia (raport, nie bramka)
+        env:
+          PGPASSWORD: verris_password
+          PGHOST: localhost
+          PGUSER: verris
+          PGDATABASE: verris_db
+        run: psql -v ON_ERROR_STOP=1 -f ops/sql/po-migracji-historia.sql
+
+      # Asercja, która przechodzi na każdej bazie, nie jest bramką. Odkąd
+      # niezmienniki potrafią wycofać produkcyjne wdrożenie, pytanie „czy one
+      # w ogóle coś zauważają" przestało być teoretyczne — ten krok psuje po
+      # jednym niezmienniku naraz i sprawdza, że plik się na nim zatrzymuje.
+      # Wszystko w transakcjach z ROLLBACK-iem, baza wychodzi nietknięta.
+      - name: Asercje muszą się czerwienić na złych danych
+        env:
+          PGPASSWORD: verris_password
+          PGHOST: localhost
+          PGUSER: verris
+          PGDATABASE: verris_db
+        run: ./ops/scripts/asercje-czerwienia-sie.sh
 
   # ---------------------------------------------------------------------------
   # X-04 — testy integracyjne przeciwko PRAWDZIWEJ bazie.

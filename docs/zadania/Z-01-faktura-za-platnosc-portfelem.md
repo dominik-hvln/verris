@@ -174,7 +174,7 @@ produkcyjnym i **rzuca**, gdy się nie zgadza — lepiej, żeby job stanął i k
 | jednostkowe | `apps/api/src/billing/faktura-za-portfel.spec.ts` | 29 |
 | jednostkowe | `apps/api/src/billing/wallet-ledger.service.spec.ts` | +3 |
 | integracyjne | `apps/api/test/integration/faktura-portfel.int-spec.ts` | 14 |
-| asercja SQL | `ops/sql/sprawdz-baze-po-migracji.sql` | blok Z-01 |
+| asercja SQL | `ops/sql/po-migracji-niezmienniki.sql` | blok Z-01 (od `X-25`; wcześniej `sprawdz-baze-po-migracji.sql`) |
 
 Wśród jednostkowych strażnik na klasę: **każdy typ `CHARGE_*` musi być objęty regułą
 sprzedaży**. Gdyby ktoś dodał nowy typ obciążenia i zapomniał o liście, obciążenie przechodziłoby

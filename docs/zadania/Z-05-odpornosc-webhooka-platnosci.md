@@ -160,7 +160,7 @@ Musiały być integracyjne, bo całość stoi na unikalnym indeksie `eventId` i 
 ● PENDING porzucony przez martwy proces zostaje przejęty
 ```
 
-**Asercja bazodanowa** — `ops/sql/sprawdz-baze-po-migracji.sql` dostał blok Z-05: typ
+**Asercja bazodanowa** — `ops/sql/po-migracji-niezmienniki.sql` (do `X-25`: `sprawdz-baze-po-migracji.sql`) dostał blok Z-05: typ
 wyliczeniowy istnieje, żaden wiersz nie jest `PROCESSED` bez daty przetworzenia, żaden nie wisi
 w `PENDING` bez zapisanej treści. Sprawdzone realnie — wstawienie takiego wiersza zapala
 `RAISE EXCEPTION` z konkretnym komunikatem.
@@ -210,7 +210,7 @@ tej rodziny. Reguła rośnie: **strażnik czytający repozytorium musi dopasowyw
 - `apps/api/src/billing/stripe/stripe-webhook-events.admin.controller.ts` — lista i ponowienie
 - `apps/admin-panel/src/app/(dashboard)/billing/webhooki/` — panel
 - `ops/scripts/uzgodnij-platnosci-stripe.mjs` — uzgodnienie przeszłości
-- `ops/sql/sprawdz-baze-po-migracji.sql` — asercja Z-05
+- `ops/sql/po-migracji-niezmienniki.sql` — asercja Z-05 (od `X-25`)
 - 27 testów jednostkowych + 11 integracyjnych
 
 **Osiągnięty poziom dowodu:**

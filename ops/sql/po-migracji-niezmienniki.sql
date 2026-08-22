@@ -1,122 +1,92 @@
--- Weryfikacja stanu bazy PO `prisma migrate deploy`.
+-- NIEZMIENNIKI po `prisma migrate deploy` — sprawdzane RÓWNIEŻ NA PRODUKCJI.
 --
--- Do tej pory job `migrations` w CI sprawdzał wyłącznie, czy migracje dają się
--- zastosować i czy schemat nie ma dryfu. Nie sprawdzał, czy DANE, które
--- migracje wstawiają, faktycznie tam są i mają właściwe wartości.
+-- Ten plik zawiera wyłącznie twierdzenia, których NIE MOŻE unieważnić żadna
+-- legalna zmiana biznesowa: istnienie kolumn i typów, zgodność sum na
+-- dokumentach, spójność księgi pojemności z kontami, sensowność stanów.
+-- Naruszenie któregokolwiek znaczy, że migracja zostawiła bazę w stanie,
+-- w którym kod będzie się mylił — dlatego kończą się `RAISE EXCEPTION`,
+-- a wdrożenie ma się wtedy wycofać.
 --
--- Różnica jest istotna: Z-13 (plan produkcyjny) i Z-12 (kolumny nadsubskrypcji)
--- to migracje DANYCH i SCHEMATU, których poprawność testy jednostkowe mogą
--- potwierdzić tylko przez czytanie SQL-a jako tekstu. Ten plik czyta bazę.
+-- CZEGO TU NIE MA I DLACZEGO
+-- ──────────────────────────
+-- Twierdzeń o KATALOGU (np. „dokładnie jeden publiczny pakiet hostingowy") —
+-- one opisują dzisiejszą decyzję handlową, nie niezmiennik. Dodanie drugiego
+-- pakietu jest legalną zmianą, a bramka, która by ją zablokowała, kazałaby
+-- komuś wyłączyć całe sprawdzanie. Siedzą w `po-migracji-katalog.sql`
+-- i biegną wyłącznie w CI, na kontrolowanym zestawie danych.
 --
--- Każde zapytanie kończy się `RAISE EXCEPTION`, gdy warunek nie jest spełniony,
--- więc psql z ON_ERROR_STOP=1 wywala job z niezerowym kodem.
+-- Twierdzeń o HISTORII (np. „nie ma starych obciążeń bez faktury") — te mówią
+-- o danych sprzed migracji, których migracja nie naprawia i nie miała naprawiać.
+-- Wycofanie wdrożenia z powodu zaszłości byłoby karą za przeszłość, nie
+-- ochroną przed błędem. Siedzą w `po-migracji-historia.sql` i tylko raportują.
 
 \set ON_ERROR_STOP on
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- Z-13 — pakiet sprzedawany na stronie istnieje i ma właściwe parametry
+-- Z-13 — pakiet, którego slug jest ZAPISANY W KODZIE, istnieje w bazie
 -- ─────────────────────────────────────────────────────────────────────────────
-DO $$
-DECLARE
-  p RECORD;
-BEGIN
-  SELECT * INTO p FROM "Plan" WHERE "slug" = 'verris-hosting';
-
-  IF p IS NULL THEN
-    RAISE EXCEPTION 'Z-13: planu verris-hosting NIE MA w bazie po migracjach';
-  END IF;
-
-  IF p."priceMonthly" <> 45.00 THEN
-    RAISE EXCEPTION 'Z-13: cena miesięczna to %, oczekiwano 45.00 (BRUTTO)', p."priceMonthly";
-  END IF;
-
-  IF p."priceYearly" <> 399.00 THEN
-    RAISE EXCEPTION 'Z-13: cena roczna to %, oczekiwano 399.00 (BRUTTO)', p."priceYearly";
-  END IF;
-
-  IF p."cpuLimit" <> 200 OR p."ramLimitMb" <> 8192 OR p."diskLimitMb" <> 51200 THEN
-    RAISE EXCEPTION 'Z-13: limity bazowe to %/%/%, oczekiwano 200/8192/51200',
-      p."cpuLimit", p."ramLimitMb", p."diskLimitMb";
-  END IF;
-
-  IF p."includedTransferGb" IS NOT NULL THEN
-    RAISE EXCEPTION 'Z-13: transfer ma być bez limitu (NULL), jest %', p."includedTransferGb";
-  END IF;
-
-  IF NOT p."isPublic" OR NOT p."isActive" THEN
-    RAISE EXCEPTION 'Z-13: plan musi być publiczny i aktywny (isPublic=%, isActive=%)',
-      p."isPublic", p."isActive";
-  END IF;
-
-  -- Sufity autoskalowania muszą odpowiadać obietnicy ze strony:
-  -- 2 vCPU → 24 (12×), 8 GB → 64 (8×), 50 GB → 1000 GB (20×).
-  IF p."autoscalingMaxOverscaleCpu" <> 12
-     OR p."autoscalingMaxOverscaleRam" <> 8
-     OR p."autoscalingMaxOverscaleDisk" <> 20 THEN
-    RAISE EXCEPTION 'Z-13/Z-16: krotności autoskalowania to %/%/%, oczekiwano 12/8/20',
-      p."autoscalingMaxOverscaleCpu", p."autoscalingMaxOverscaleRam", p."autoscalingMaxOverscaleDisk";
-  END IF;
-
-  RAISE NOTICE 'Z-13 OK — verris-hosting: 45.00/399.00 brutto, 200/8192/51200, skalowanie 12x/8x/20x';
-END $$;
-
--- ─────────────────────────────────────────────────────────────────────────────
--- Z-13 — dokładnie JEDEN pakiet hostingowy w katalogu publicznym
--- ─────────────────────────────────────────────────────────────────────────────
+--
+-- To jest twierdzenie o zgodności kodu z danymi, nie o cenniku. Slug
+-- 'verris-hosting' stoi na sztywno w apps/api/src/plans/plan-produkcyjny.ts
+-- i z tego rekordu czyta wycena zamówienia, placement konta na węźle,
+-- synchronizacja pakietów DirectAdmina i sufity autoskalowania. Brak wiersza
+-- to dokładnie awaria Z-13: strona sprzedaje coś, czego nie da się kupić.
+--
+-- KONKRETNYCH WARTOŚCI (45,00 / 399,00 / 200 / 8192 / 51200) TU NIE MA
+-- ────────────────────────────────────────────────────────────────────
+-- i to jest zmiana wobec pierwszej wersji tego pliku. Cenę planu wolno
+-- zmienić z panelu admina (plans.service.ts — updatePlan). Gdyby ta asercja
+-- pilnowała 45,00 na produkcji, pierwsza legalna podwyżka wywalałaby KAŻDE
+-- kolejne wdrożenie z rollbackiem — a wtedy ktoś słusznie wyłączyłby całe
+-- sprawdzanie. Wartości pilnuje `po-migracji-katalog.sql` w CI, gdzie zmiana
+-- cennika idzie razem ze zmianą PLAN_PRODUKCYJNY w jednym commicie.
 DO $$
 DECLARE
   ile INT;
-  slugi TEXT;
 BEGIN
-  SELECT COUNT(*), string_agg("slug", ', ' ORDER BY "slug")
-    INTO ile, slugi
-    FROM "Plan"
-   WHERE "isPublic" = true AND "isActive" = true AND "productKind" = 'HOSTING';
+  SELECT COUNT(*) INTO ile FROM "Plan" WHERE "slug" = 'verris-hosting';
 
-  IF ile <> 1 THEN
+  IF ile = 0 THEN
     RAISE EXCEPTION
-      'Z-13: publicznych pakietów hostingowych jest % (%), a oferta mówi „jeden pakiet, jedna cena"',
-      ile, slugi;
+      'Z-13: planu verris-hosting NIE MA w bazie po migracjach — kod czyta ten slug na sztywno';
   END IF;
 
-  RAISE NOTICE 'Z-13 OK — dokładnie jeden publiczny pakiet hostingowy';
+  RAISE NOTICE 'Z-13 OK — plan verris-hosting jest w bazie';
 END $$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- Z-13 — plany prototypowe wycofane ze sprzedaży, ale NIE zdezaktywowane
+-- Z-13 — cennik jest sensowny, niezależnie od tego, ile wynosi
 -- ─────────────────────────────────────────────────────────────────────────────
+--
+-- Ta sama reguła, którą API wymusza przy zapisie (plans.service.ts,
+-- validatePricingConsistency): ceny dodatnie, rok nie tańszy niż 6 miesięcy.
+-- API pilnuje jej przy zapisie z panelu, baza nie pilnuje jej wcale, a migracja
+-- danych zapisuje z pominięciem API — więc to jest dokładnie ta luka, przez
+-- którą migracja może wstawić cennik, na którym kod policzy bzdurę.
 DO $$
 DECLARE
-  wszystkie INT;
-  publiczne INT;
-  nieaktywne INT;
+  bledne INT;
 BEGIN
-  -- Bez tego licznika asercje niżej mogłyby przejść trywialnie na bazie, na
-  -- której planów prototypowych po prostu nie ma — a to wygląda w logu CI
-  -- identycznie jak prawdziwe „wszystko w porządku".
-  SELECT COUNT(*) INTO wszystkie
-    FROM "Plan" WHERE "slug" IN ('starter','pro','business');
-  IF wszystkie = 0 THEN
+  SELECT COUNT(*) INTO bledne
+    FROM "Plan"
+   WHERE "priceMonthly" <= 0
+      OR "priceYearly" <= 0
+      OR "priceYearly" < "priceMonthly" * 6;
+  IF bledne > 0 THEN
     RAISE EXCEPTION
-      'Z-13: nie znaleziono ŻADNEGO planu prototypowego — sprawdzenie byłoby puste. Czy seed się wykonał?';
+      'Z-13: % planów ma cennik niezgodny z regułą API (ceny dodatnie, rok >= 6x miesiąc)', bledne;
   END IF;
 
-  SELECT COUNT(*) INTO publiczne
-    FROM "Plan" WHERE "slug" IN ('starter','pro','business') AND "isPublic" = true;
-  IF publiczne > 0 THEN
-    RAISE EXCEPTION 'Z-13: % planów prototypowych nadal jest publicznych', publiczne;
-  END IF;
-
-  -- Dezaktywacja planu wywróciłaby odnowienie subskrypcji założonej na nim.
-  SELECT COUNT(*) INTO nieaktywne
-    FROM "Plan" WHERE "slug" IN ('starter','pro','business') AND "isActive" = false;
-  IF nieaktywne > 0 THEN
+  SELECT COUNT(*) INTO bledne
+    FROM "Plan"
+   WHERE "cpuLimit" <= 0 OR "ramLimitMb" <= 0 OR "diskLimitMb" <= 0
+      OR ("includedTransferGb" IS NOT NULL AND "includedTransferGb" <= 0);
+  IF bledne > 0 THEN
     RAISE EXCEPTION
-      'Z-13: % planów prototypowych zdezaktywowano — to zabija odnowienia subskrypcji na nich założonych',
-      nieaktywne;
+      'Z-13: % planów ma niedodatni limit bazowy — placement konta liczyłby z tego bzdury', bledne;
   END IF;
 
-  RAISE NOTICE 'Z-13 OK — % planów prototypowych: niepubliczne, ale nadal aktywne', wszystkie;
+  RAISE NOTICE 'Z-13 OK — cenniki i limity bazowe planów są sensowne';
 END $$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -231,7 +201,6 @@ DO $$
 DECLARE
   ma_kolumne  BOOLEAN;
   niespojne   INT;
-  bez_dokumentu INT;
 BEGIN
   SELECT EXISTS (
     SELECT 1 FROM information_schema.columns
@@ -254,21 +223,7 @@ BEGIN
       'Z-01: % faktur ma netto + VAT różne od kwoty brutto', niespojne;
   END IF;
 
-  -- Obciążenie sprzedażowe starsze niż 40 dni bez faktury oznacza, że
-  -- przebieg zbiorczy go przeoczył — po 40 dniach pierwszy dzień następnego
-  -- miesiąca na pewno już minął.
-  SELECT COUNT(*) INTO bez_dokumentu
-    FROM "WalletTransaction"
-   WHERE "invoiceId" IS NULL
-     AND "amount" < 0
-     AND "type"::text LIKE 'CHARGE_%'
-     AND "createdAt" < NOW() - INTERVAL '40 days';
-  IF bez_dokumentu > 0 THEN
-    RAISE EXCEPTION
-      'Z-01: % obciążeń sprzedażowych starszych niż 40 dni nie ma faktury', bez_dokumentu;
-  END IF;
-
-  RAISE NOTICE 'Z-01 OK — struktura na miejscu, faktury się sumują, obciążenia mają dokumenty';
+  RAISE NOTICE 'Z-01 OK — struktura na miejscu, faktury się sumują';
 END $$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -279,7 +234,6 @@ DECLARE
   ma_typ     BOOLEAN;
   osierocone INT;
   bez_serii  INT;
-  niespojne  INT;
 BEGIN
   SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'InvoiceKind') INTO ma_typ;
   IF NOT ma_typ THEN
@@ -308,16 +262,11 @@ BEGIN
     RAISE EXCEPTION 'M-06: % korekt ma numer spoza serii VFK', bez_serii;
   END IF;
 
-  -- Kwota po korekcie odtwarza się z dwóch pól: przed + różnica. Jeżeli
-  -- rozbicie różnicy się nie sumuje, dokument nie mówi niczego pewnego.
-  SELECT COUNT(*) INTO niespojne
-    FROM "Invoice"
-   WHERE "kind" = 'KOREKTA'
-     AND "netAmount" IS NOT NULL AND "vatAmount" IS NOT NULL
-     AND "netAmount" + "vatAmount" <> "amount";
-  IF niespojne > 0 THEN
-    RAISE EXCEPTION 'M-06: % korekt ma różnicę netto + VAT niezgodną z różnicą brutto', niespojne;
-  END IF;
-
-  RAISE NOTICE 'M-06 OK — korekty mają faktury pierwotne, serię VFK i spójne rozbicie';
+  -- Rozbicia różnicy (netto + VAT = brutto) NIE sprawdzamy tutaj drugi raz.
+  -- Korekta jest wierszem w "Invoice", więc obejmuje ją kontrola Z-01 powyżej,
+  -- i to ona zapala się pierwsza. Druga kopia tej samej reguły nigdy by nie
+  -- wystartowała, a przy zmianie zasad ktoś poprawiłby jedną z dwóch —
+  -- dokładnie ten błąd („bliźniacze miejsca") dał Z-12, Z-16 i błędy zmiany
+  -- planu. Jedna reguła, jedno miejsce.
+  RAISE NOTICE 'M-06 OK — korekty mają faktury pierwotne i serię VFK (sumy: patrz Z-01)';
 END $$;
