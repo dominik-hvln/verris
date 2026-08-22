@@ -2958,6 +2958,43 @@ model StripeWebhookEvent {
   @@index([createdAt])
 }
 
+/// H-20 — wynik próby odtworzenia z kopii zapasowej.
+///
+/// Do 2026-08-22 procedura istniała jako skrypt (`ops/scripts/restore-drill-isolated.sh`),
+/// ale jej WYKONANIE nie zostawiało śladu. Runbook wymagał drilla przed startem,
+/// a w repozytorium nie było niczego, co by potwierdzało, że kiedykolwiek się
+/// odbył. Reguła audytu mówi, że backupy i DR wymagają poziomu D4 — data, wynik,
+/// właściciel — więc procedura bez zapisu wykonania nie liczy się wcale.
+enum RestoreDrillResult {
+  OK
+  FAILED
+}
+
+model RestoreDrill {
+  id          String             @id @default(uuid())
+  startedAt   DateTime
+  finishedAt  DateTime
+  /// Ile trwało odtworzenie. To jest liczba, którą trzeba znać PRZED awarią,
+  /// a nie w jej trakcie — od niej zależy realne RTO.
+  durationSec Int
+  result      RestoreDrillResult
+  /// Obiekt z kopii, który odtwarzano (np. `verris-2026-08-22-0300.sql.gz`).
+  objectName  String
+  /// Skąd — bucket i ścieżka.
+  source      String
+  /// Liczby wierszy w tabelach kontrolnych po odtworzeniu. Dowód, że baza nie
+  /// jest pusta: `psql` kończy się zerem także wtedy, gdy nic nie wgrał.
+  rowCounts   Json
+  /// Kto odpowiada za tę próbę. D4 wymaga właściciela, nie tylko daty.
+  owner       String
+  /// Treść błędu przy FAILED albo uwagi operatora.
+  notes       String?            @db.Text
+  createdAt   DateTime           @default(now())
+
+  @@index([finishedAt])
+  @@index([result, finishedAt])
+}
+
 /// ETAP 8 — WireGuard VPN dla paneli wewnętrznych (admin/staff).
 /// Przechowujemy WYŁĄCZNIE klucz publiczny peera — klucz prywatny jest
 /// generowany w API i zwracany dokładnie raz (config do pobrania).

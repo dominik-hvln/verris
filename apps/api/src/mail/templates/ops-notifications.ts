@@ -453,3 +453,75 @@ export function fakturaNiedokonczonaTemplate(ctx: FakturaNiedokonczonaContext): 
     html,
   };
 }
+
+// -----------------------------------------------------------------------------
+// H-20 — próba odtworzenia z kopii wymaga powtórzenia
+// -----------------------------------------------------------------------------
+
+export interface ProbaOdtworzeniaContext {
+  to: string;
+  firstName: string | null;
+  stan: 'brak' | 'nieudana' | 'przeterminowana' | 'wkrotce';
+  komunikat: string;
+  wiekDni: number | null;
+  blokuje: boolean;
+  panelUrl: string;
+}
+
+/**
+ * Alert o stanie próby odtworzenia.
+ *
+ * Ton zależy od tego, czy pozycja zatrzymuje start sprzedaży. Przypomnienie
+ * siedem dni przed terminem ma brzmieć jak przypomnienie; brak jakiejkolwiek
+ * próby ma brzmieć jak to, czym jest — backupy bez potwierdzonego odtworzenia
+ * to założenie, nie zabezpieczenie.
+ */
+export function probaOdtworzeniaTemplate(ctx: ProbaOdtworzeniaContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const tytul = ctx.blokuje
+    ? 'Warstwa DR jest niepotwierdzona'
+    : 'Próba odtworzenia z kopii wymaga powtórzenia';
+
+  const { html, text } = renderEmailShell({
+    title: tytul,
+    preheader: escapeHtml(ctx.komunikat.slice(0, 120)),
+    bodyMarkdown: [
+      greeting,
+      ``,
+      ctx.blokuje
+        ? `**${escapeHtml(tytul)}** — i to jest twarda bramka startu sprzedaży, nie ostrzeżenie.`
+        : `**${escapeHtml(tytul)}.**`,
+      ``,
+      escapeHtml(ctx.komunikat),
+      ``,
+      `## Jak wykonać próbę`,
+      ``,
+      'Na control-plane, jednym poleceniem:',
+      ``,
+      '```',
+      'cd /opt/verris && ./ops/scripts/restore-drill-isolated.sh --owner "Imię Nazwisko"',
+      '```',
+      ``,
+      `Skrypt odtwarza kopię do OSOBNEJ bazy — produkcyjna nie jest dotykana. Sprawdza`,
+      `liczby wierszy w tabelach kontrolnych i zapisuje wynik razem z czasem trwania.`,
+      `Ten czas to Twoje realne RTO; warto go znać przed awarią, a nie w jej trakcie.`,
+      ``,
+      `Wynik — udany albo nie — pojawi się w panelu admina w gotowości do startu.`,
+    ].join('\n'),
+    cta: { label: 'Otwórz gotowość do startu', url: `${ctx.panelUrl}/status` },
+    footnote:
+      'Backupy i DR wymagają poziomu dowodu D4: data, wynik i właściciel. Alert wysyłany raz na dobę do wszystkich administratorów.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return {
+    to: ctx.to,
+    tag: 'ops.proba-odtworzenia',
+    subject: ctx.blokuje
+      ? '[Verris] 🔴 Warstwa DR niepotwierdzona — próba odtworzenia'
+      : '[Verris] 🗄️ Zaplanuj próbę odtworzenia z kopii',
+    text,
+    html,
+  };
+}

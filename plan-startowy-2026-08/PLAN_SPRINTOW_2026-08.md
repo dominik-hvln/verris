@@ -206,12 +206,12 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `H-20` | Test odtworzeniowy z datą ostatniego wykonania | 16 | BLOKER STARTU | ops/scripts/restore-drill-isolated.sh istnieje jako procedura ręczna; live-readiness.service.ts:175-177 sprawdza tylko czy backup się WYKONAŁ |
+| `H-20` | Test odtworzeniowy z datą ostatniego wykonania | 16 | BLOKER STARTU | admin-readiness/proba-odtworzenia.ts — ocenProby/brakujaceWiersze/MINIMALNE_WIERSZE; live-readiness.service.ts — pozycja restore_drill z blocking: tru |
 | `P-15` | Podpisane DPA z subprocesorami (część) | 8 | BLOKER STARTU | docs/legal/dpa-subprocessors-tracking.md — wszystkie pozycje w statusie „do podpisania” lub „do akceptacji”, kolumna Data pusta |
 
 **Definicja ukończenia**
 
-- `H-20` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `H-20` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `P-15` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-09.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
