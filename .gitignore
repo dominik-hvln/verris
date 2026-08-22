@@ -51,3 +51,4 @@ _to_delete/
 # Pythonowy cache generatora audytu
 __pycache__/
 *.pyc
+*.bak
