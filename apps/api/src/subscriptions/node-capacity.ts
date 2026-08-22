@@ -343,6 +343,101 @@ export function krotnoscAutoskalowania(wartoscZPlanu: number): number {
   return Math.min(wartoscZPlanu, MAKS_KROTNOSC_AUTOSKALOWANIA);
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// KSIĘGA POJEMNOŚCI — arytmetyka delt
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// `Server.allocated*` prowadzą CZTERY miejsca:
+//
+//   provisioning.service.ts      konto powstaje        → +limity bazowe planu
+//   autoscaling-engine.service   nadwyżka rośnie/maleje → ±delta nadwyżki
+//   plan-change.service.ts       zmiana planu          → ±różnica efektywnych
+//   account-deletion.service.ts  konto znika           → −limity efektywne
+//
+// Każde liczyło deltę po swojemu. Przy Z-16 wyszło, że plan-change stał się
+// błędny przez samą zmianę znaczenia księgi — nie przez zmianę w nim samym.
+// Wykrycie było kwestią przeczytania kodu, nie testu.
+//
+// Poniższe funkcje są jedyną arytmetyką księgi w projekcie. Dzięki temu piąty
+// rozjazd nie ma gdzie powstać, a niezmiennik „księga = suma limitów
+// efektywnych kont żywych" da się sprawdzić testem symulacyjnym zamiast
+// czekać, aż rozjazd zobaczy operator.
+
+/** Limity, które węzeł faktycznie trzyma dla jednego konta. */
+export interface LimityEfektywne {
+  cpu: number;
+  ramMb: number;
+  diskMb: number;
+}
+
+/** Konto, którego nie ma — stan przed założeniem i po usunięciu. */
+export const KONTO_NIEISTNIEJACE: LimityEfektywne = { cpu: 0, ramMb: 0, diskMb: 0 };
+
+/**
+ * Limity efektywne = baza planu + nadwyżka autoskalowania.
+ *
+ * To jest DOKŁADNIE to, co siedzi w `Account.cpuLimit/ramLimitMb/diskLimitMb`
+ * i co węzeł ma zarezerwowane. Rozróżnienie bazy od nadwyżki ma znaczenie przy
+ * rozliczeniach, ale nie przy pojemności — węzłowi jest wszystko jedno, z
+ * jakiego tytułu gigabajt jest zajęty.
+ */
+export function limityEfektywne(
+  baza: { cpuLimit: number; ramLimitMb: number; diskLimitMb: number },
+  nadwyzka: { scaledCpu: number; scaledRamMb: number; scaledDiskMb: number } = {
+    scaledCpu: 0,
+    scaledRamMb: 0,
+    scaledDiskMb: 0,
+  },
+): LimityEfektywne {
+  return {
+    cpu: baza.cpuLimit + nadwyzka.scaledCpu,
+    ramMb: baza.ramLimitMb + nadwyzka.scaledRamMb,
+    diskMb: baza.diskLimitMb + nadwyzka.scaledDiskMb,
+  };
+}
+
+/**
+ * O ile zmienia się księga węzła, gdy konto przechodzi ze stanu `przed`
+ * do stanu `po`.
+ *
+ * Założenie konta:  deltaKsiegi(KONTO_NIEISTNIEJACE, limity)
+ * Usunięcie konta:  deltaKsiegi(limity, KONTO_NIEISTNIEJACE)
+ * Zmiana planu:     deltaKsiegi(limityStare, limityNowe)
+ * Autoskalowanie:   deltaKsiegi(limityPrzedSkalowaniem, limityPoSkalowaniu)
+ *
+ * Jedna funkcja na wszystkie cztery, bo to jest jedna operacja.
+ */
+export function deltaKsiegi(przed: LimityEfektywne, po: LimityEfektywne): LimityEfektywne {
+  return {
+    cpu: po.cpu - przed.cpu,
+    ramMb: po.ramMb - przed.ramMb,
+    diskMb: po.diskMb - przed.diskMb,
+  };
+}
+
+/** Czy delta w ogóle coś zmienia — pozwala pominąć zapis do bazy. */
+export function deltaJestZerowa(d: LimityEfektywne): boolean {
+  return d.cpu === 0 && d.ramMb === 0 && d.diskMb === 0;
+}
+
+/**
+ * Delta w postaci gotowej do `prisma.server.update({ data })`.
+ *
+ * `increment` z wartością ujemną działa jak zmniejszenie i jest odporne na
+ * równoległy zapis — w przeciwieństwie do odczytu, obliczenia i zapisu wartości.
+ */
+export function ksiegaUpdateData(d: LimityEfektywne): {
+  allocatedCpu?: { increment: number };
+  allocatedMemory?: { increment: number };
+  allocatedDisk?: { increment: number };
+} {
+  return {
+    ...(d.cpu !== 0 ? { allocatedCpu: { increment: d.cpu } } : {}),
+    ...(d.ramMb !== 0 ? { allocatedMemory: { increment: d.ramMb } } : {}),
+    ...(d.diskMb !== 0 ? { allocatedDisk: { increment: d.diskMb } } : {}),
+  };
+}
+
 /** Walidacja wartości wpisywanej przez admina. Zwraca komunikat albo null. */
 export function bladWspolczynnika(
   nazwa: 'overcommitCpu' | 'overcommitRam' | 'overcommitDisk',

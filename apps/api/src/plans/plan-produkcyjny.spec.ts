@@ -235,12 +235,14 @@ describe('Z-13 — pakiet ze strony istnieje w bazie i zgadza się z ofertą', (
     });
 
     it('nadwyżka trafia do księgi węzła, nie tylko do DirectAdmina', () => {
+      // Szczegóły arytmetyki pilnuje ksiega-niezmiennik.spec.ts; tutaj tylko
+      // to, że silnik w ogóle księgę prowadzi.
       const src = readFileSync(
         resolve(KORZEN, 'apps/api/src/autoscaling/autoscaling-engine.service.ts'),
         'utf-8',
       );
-      expect(src).toContain('allocatedMemory: { increment: deltaRam }');
-      expect(src).toContain('allocatedDisk: { increment: deltaDisk }');
+      expect(src).toContain('ksiegaUpdateData(');
+      expect(src).toContain('deltaKsiegi(');
     });
   });
 });

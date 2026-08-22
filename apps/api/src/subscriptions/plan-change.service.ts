@@ -31,6 +31,12 @@ import {
   planPriceForInterval,
   type PlanChangeDirection,
 } from './plan-proration.util';
+import {
+  deltaJestZerowa,
+  deltaKsiegi,
+  ksiegaUpdateData,
+  limityEfektywne,
+} from './node-capacity';
 
 type LoadedSub = Subscription & {
   plan: Plan;
@@ -598,9 +604,12 @@ export class PlanChangeService {
     // Przed Z-16 ten kod był poprawny, bo nadwyżka autoskalowania w ogóle nie
     // trafiała do allocated*. Zmiana znaczenia księgi wymagała poprawienia
     // każdego miejsca, które ją prowadzi — to trzecie i ostatnie.
-    const deltaCpu = target.cpuLimit - (oldPlan.cpuLimit + account.scaledCpu);
-    const deltaRam = target.ramLimitMb - (oldPlan.ramLimitMb + account.scaledRamMb);
-    const deltaDisk = target.diskLimitMb - (oldPlan.diskLimitMb + account.scaledDiskMb);
+    // Konto przechodzi z limitów efektywnych STAREGO planu (baza + nadwyżka,
+    // którą zmiana planu zeruje niżej) na bazę NOWEGO planu.
+    const delta = deltaKsiegi(
+      limityEfektywne(oldPlan, account),
+      limityEfektywne(target),
+    );
 
     return this.prisma.$transaction(async (tx) => {
       await tx.account.update({
@@ -619,14 +628,10 @@ export class PlanChangeService {
         },
       });
 
-      if (deltaCpu !== 0 || deltaRam !== 0 || deltaDisk !== 0) {
+      if (!deltaJestZerowa(delta)) {
         await tx.server.update({
           where: { id: account.serverId },
-          data: {
-            ...(deltaCpu !== 0 ? { allocatedCpu: { increment: deltaCpu } } : {}),
-            ...(deltaRam !== 0 ? { allocatedMemory: { increment: deltaRam } } : {}),
-            ...(deltaDisk !== 0 ? { allocatedDisk: { increment: deltaDisk } } : {}),
-          },
+          data: ksiegaUpdateData(delta),
         });
       }
 

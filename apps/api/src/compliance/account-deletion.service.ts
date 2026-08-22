@@ -18,6 +18,11 @@ import {
   deletionRequestedTemplate,
   accountAnonymizedTemplate,
 } from '../mail/templates/account-deletion-notifications';
+import {
+  deltaKsiegi,
+  KONTO_NIEISTNIEJACE,
+  ksiegaUpdateData,
+} from '../subscriptions/node-capacity';
 
 export interface RequestDeletionInput {
   userId: string;
@@ -464,13 +469,20 @@ export class AccountDeletionService {
         where: { id: accountId },
         data: { status: AccountStatus.DELETED },
       });
+      // Konto znika: księga maleje o jego limity efektywne. Account.cpuLimit
+      // JEST limitem efektywnym — utrzymuje go provisioning i autoskalowanie.
       await tx.server.update({
         where: { id: acc.serverId },
-        data: {
-          allocatedCpu: { decrement: acc.cpuLimit },
-          allocatedMemory: { decrement: acc.ramLimitMb },
-          allocatedDisk: { decrement: acc.diskLimitMb },
-        },
+        data: ksiegaUpdateData(
+          deltaKsiegi(
+            {
+              cpu: acc.cpuLimit,
+              ramMb: acc.ramLimitMb,
+              diskMb: acc.diskLimitMb,
+            },
+            KONTO_NIEISTNIEJACE,
+          ),
+        ),
       });
     });
     await this.audit.record({

@@ -16,7 +16,11 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { DirectAdminService } from '../servers/directadmin.service';
 import {
+  deltaJestZerowa,
+  deltaKsiegi,
   krotnoscAutoskalowania,
+  ksiegaUpdateData,
+  limityEfektywne,
   PojemnoscFizyczna,
   SWIEZOSC_TELEMETRII_MIN,
   wolneDoZadysponowania,
@@ -461,17 +465,19 @@ export class AutoscalingEngineService {
       // limity bazowe. Dwie warstwy nadsubskrybowały ten sam węzeł, nie
       // wiedząc o sobie. Delty idą przez `increment`, nie przez zapis wartości,
       // żeby równoległy provisioning niczego nie zgubił.
-      const deltaCpu = opts.nextScaledCpu - sub.account!.scaledCpu;
-      const deltaRam = opts.nextScaledRamMb - sub.account!.scaledRamMb;
-      const deltaDisk = opts.nextScaledDiskMb - sub.account!.scaledDiskMb;
-      if (deltaCpu !== 0 || deltaRam !== 0 || deltaDisk !== 0) {
+      // Baza planu się nie zmienia — zmienia się wyłącznie nadwyżka.
+      const delta = deltaKsiegi(
+        limityEfektywne(sub.plan, sub.account!),
+        limityEfektywne(sub.plan, {
+          scaledCpu: opts.nextScaledCpu,
+          scaledRamMb: opts.nextScaledRamMb,
+          scaledDiskMb: opts.nextScaledDiskMb,
+        }),
+      );
+      if (!deltaJestZerowa(delta)) {
         await tx.server.update({
           where: { id: sub.account!.serverId },
-          data: {
-            ...(deltaCpu !== 0 ? { allocatedCpu: { increment: deltaCpu } } : {}),
-            ...(deltaRam !== 0 ? { allocatedMemory: { increment: deltaRam } } : {}),
-            ...(deltaDisk !== 0 ? { allocatedDisk: { increment: deltaDisk } } : {}),
-          },
+          data: ksiegaUpdateData(delta),
         });
       }
 

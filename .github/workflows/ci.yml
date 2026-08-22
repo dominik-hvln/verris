@@ -185,6 +185,30 @@ jobs:
           DATABASE_URL: postgresql://verris:verris_password@localhost:5432/verris_db?schema=public
         run: npx prisma migrate status
 
+      # Do 2026-08-22 ten job sprawdzał wyłącznie, czy migracje dają się
+      # zastosować i czy schemat nie ma dryfu. Nie sprawdzał, czy DANE, które
+      # migracje wstawiają, tam są i mają właściwe wartości — a Z-12 i Z-13 to
+      # migracje danych, których poprawność testy jednostkowe potwierdzają
+      # tylko przez czytanie SQL-a jako tekstu. Ten krok czyta bazę.
+      # Seed tworzy plany prototypowe (starter/pro/business). Bez tego kroku
+      # asercja „żaden prototyp nie jest publiczny" przechodziłaby trywialnie,
+      # bo na bazie z samych migracji te plany nie istnieją. Przy okazji CI
+      # weryfikuje, że seed w ogóle wykonuje się na świeżej bazie.
+      - name: Seed reference data
+        working-directory: libs/database
+        env:
+          DATABASE_URL: postgresql://verris:verris_password@localhost:5432/verris_db?schema=public
+          SEED_ADMIN_PASSWORD: ci-not-a-real-password
+        run: pnpm db:seed
+
+      - name: Verify migrated data (Z-12, Z-13, Z-16)
+        env:
+          PGPASSWORD: verris_password
+        run: |
+          psql -h localhost -U verris -d verris_db \
+               -v ON_ERROR_STOP=1 \
+               -f ops/sql/sprawdz-baze-po-migracji.sql
+
   # ---------------------------------------------------------------------------
   # CYBER-5/6 — skany bezpieczeństwa: sekrety w repo, znane CVE w zależnościach,
   # podatności w obrazach kontenerów. Nie blokują buildu (report-only na start),

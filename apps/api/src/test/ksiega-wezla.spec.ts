@@ -2,21 +2,28 @@ import { readFileSync } from 'fs';
 import { resolve } from 'path';
 
 /**
- * Z-16 — księga pojemności węzła (`Server.allocated*`) musi się zgadzać
- * z rzeczywistością w OBIE strony.
+ * Strażnik okablowania księgi pojemności węzła (`Server.allocated*`).
  *
- * Trzy niezależne przecieki rozjeżdżały ją do 2026-08-22:
+ * ────────────────────────────────────────────────────────────────────────────
+ * PODZIAŁ PRACY MIĘDZY TYM PLIKIEM A `ksiega-niezmiennik.spec.ts`
+ * ────────────────────────────────────────────────────────────────────────────
  *
- *   1. autoskalowanie DODAWAŁO nadwyżkę w DirectAdminie, nie zapisując jej
- *      w księdze  → węzeł wyglądał luźniej, niż był
- *   2. usunięcie konta NIE ZWALNIAŁO limitów                → węzeł wyglądał
- *      pełniej, niż był, i z czasem przestawał przyjmować konta mając miejsce
- *   3. `maxAccounts` liczył także konta DELETED             → jak wyżej
+ *   ksiega-niezmiennik.spec.ts  →  czy ARYTMETYKA jest poprawna
+ *   ten plik                    →  czy wszystkie cztery serwisy jej UŻYWAJĄ
  *
- * Testy są statyczne — czytają kod i migracje. Prawdziwe sprawdzenie tych
- * ścieżek wymaga testu integracyjnego z bazą, którego projekt nie ma (X-04);
- * do tego czasu strażnik statyczny jest tym, co odróżnia „naprawione"
- * od „naprawione i nikt tego nie cofnie przy następnej refaktoryzacji".
+ * Rozdział wziął się z lekcji. Pierwsza wersja tego pliku pilnowała konkretnych
+ * linii kodu (`allocatedCpu: { increment: deltaCpu }`) i przy wyniesieniu
+ * arytmetyki do wspólnych funkcji zapaliła się na czerwono — słusznie, bo
+ * pilnowane linie zniknęły, ale bezużytecznie, bo zniknęły na lepsze.
+ *
+ * Teraz pilnuje rzeczy, która ma zostać prawdziwa niezależnie od kształtu kodu:
+ * NIKT nie liczy księgi po swojemu. Cztery serwisy prowadzą `allocated*`
+ * i każde odstępstwo od wspólnych funkcji to piąty rozjazd czekający na
+ * odkrycie — czwarty (plan-change po Z-16) kosztował przeczytanie kodu linijka
+ * po linijce, bo nie było czego uruchomić.
+ *
+ * Czego to nadal nie sprawdza: czy serwis woła funkcje w odpowiednim MOMENCIE
+ * i z odpowiednimi argumentami. To jest rola testu integracyjnego z bazą (X-04).
  */
 
 const KORZEN = resolve(__dirname, '../../../..');
@@ -25,107 +32,120 @@ function zrodlo(rel: string): string {
   return readFileSync(resolve(KORZEN, rel), 'utf-8');
 }
 
-const SILNIK = 'apps/api/src/autoscaling/autoscaling-engine.service.ts';
-const USUWANIE = 'apps/api/src/compliance/account-deletion.service.ts';
+/** Cztery serwisy, które prowadzą księgę pojemności węzła. */
+const PISARZE_KSIEGI = [
+  {
+    nazwa: 'provisioning — konto powstaje',
+    plik: 'apps/api/src/subscriptions/provisioning.service.ts',
+  },
+  {
+    nazwa: 'autoskalowanie — nadwyżka rośnie i maleje',
+    plik: 'apps/api/src/autoscaling/autoscaling-engine.service.ts',
+  },
+  {
+    nazwa: 'zmiana planu — baza się zmienia, nadwyżka znika',
+    plik: 'apps/api/src/subscriptions/plan-change.service.ts',
+  },
+  {
+    nazwa: 'usunięcie konta — wszystko wraca',
+    plik: 'apps/api/src/compliance/account-deletion.service.ts',
+  },
+];
+
 const SELEKTOR = 'apps/api/src/subscriptions/node-selector.service.ts';
 const MIGRACJA =
   'libs/database/prisma/migrations/20260822150000_uzgodnienie_ksiegi_wezla/migration.sql';
 
-describe('Z-16 — księga pojemności węzła nie przecieka', () => {
-  describe('przeciek 1: autoskalowanie dopisuje nadwyżkę do księgi', () => {
-    const src = () => zrodlo(SILNIK);
-
-    it('zwiększa allocated* o deltę, a nie nadpisuje wartością', () => {
-      // increment, nie zapis wartości — inaczej równoległy provisioning
-      // gubiłby swoje zmiany.
-      expect(src()).toContain('allocatedCpu: { increment: deltaCpu }');
-      expect(src()).toContain('allocatedMemory: { increment: deltaRam }');
-      expect(src()).toContain('allocatedDisk: { increment: deltaDisk }');
+describe('księga pojemności węzła — okablowanie', () => {
+  describe('nikt nie liczy księgi po swojemu', () => {
+    it.each(PISARZE_KSIEGI)('$nazwa używa wspólnej arytmetyki', ({ plik }) => {
+      const s = zrodlo(plik);
+      expect(s).toContain('ksiegaUpdateData(');
+      expect(s).toContain('deltaKsiegi(');
     });
 
-    it('robi to w tej samej transakcji, co zapis stanu konta', () => {
-      const s = src();
-      const tx = s.indexOf('this.prisma.$transaction');
-      const serwer = s.indexOf('tx.server.update', tx);
-      const konto = s.indexOf('tx.account.update', tx);
-      expect(tx).toBeGreaterThan(-1);
-      expect(serwer).toBeGreaterThan(tx);
-      expect(konto).toBeGreaterThan(tx);
+    it.each(PISARZE_KSIEGI)('$nazwa nie buduje increment/decrement ręcznie', ({ plik }) => {
+      const s = zrodlo(plik);
+      // Jedyne dozwolone źródło tych kluczy to ksiegaUpdateData w node-capacity.
+      expect(s).not.toMatch(/allocatedCpu:\s*\{\s*(increment|decrement)/);
+      expect(s).not.toMatch(/allocatedMemory:\s*\{\s*(increment|decrement)/);
+      expect(s).not.toMatch(/allocatedDisk:\s*\{\s*(increment|decrement)/);
     });
 
-    it('delta liczy się względem POPRZEDNIEGO stanu konta, nie od zera', () => {
-      const s = src();
-      expect(s).toContain('opts.nextScaledCpu - sub.account!.scaledCpu');
-      expect(s).toContain('opts.nextScaledRamMb - sub.account!.scaledRamMb');
-      expect(s).toContain('opts.nextScaledDiskMb - sub.account!.scaledDiskMb');
+    it('arytmetyka mieszka wyłącznie w node-capacity.ts', () => {
+      const s = zrodlo('apps/api/src/subscriptions/node-capacity.ts');
+      expect(s).toContain('export function deltaKsiegi');
+      expect(s).toContain('export function ksiegaUpdateData');
+      expect(s).toContain('export function limityEfektywne');
+      expect(s).toContain('export const KONTO_NIEISTNIEJACE');
     });
   });
 
-  describe('przeciek 2: usunięcie konta zwalnia pojemność', () => {
-    const src = () => zrodlo(USUWANIE);
-
-    it('zmniejsza allocated* przy oznaczeniu konta jako DELETED', () => {
-      const s = src();
-      expect(s).toContain('allocatedCpu: { decrement: acc.cpuLimit }');
-      expect(s).toContain('allocatedMemory: { decrement: acc.ramLimitMb }');
-      expect(s).toContain('allocatedDisk: { decrement: acc.diskLimitMb }');
-    });
-
-    it('zwalnia limity EFEKTYWNE, nie bazowe limity planu', () => {
-      // Account.cpuLimit = baza planu + nadwyżka autoskalowania. Zwolnienie
-      // samej bazy zostawiłoby nadwyżkę w księdze na zawsze.
-      const s = src();
-      expect(s).toContain('cpuLimit: true');
-      expect(s).toContain('ramLimitMb: true');
-      expect(s).toContain('diskLimitMb: true');
-    });
-
-    it('status i zwolnienie idą w jednej transakcji', () => {
-      const s = src();
+  describe('zapis księgi idzie w tej samej transakcji, co zmiana stanu konta', () => {
+    // Gdyby jedno przeszło bez drugiego, księga rozjechałaby się dokładnie tak,
+    // jak rozjeżdżała się przed Z-16 — tylko szybciej.
+    it.each([
+      {
+        nazwa: 'autoskalowanie',
+        plik: 'apps/api/src/autoscaling/autoscaling-engine.service.ts',
+      },
+      {
+        nazwa: 'zmiana planu',
+        plik: 'apps/api/src/subscriptions/plan-change.service.ts',
+      },
+      {
+        nazwa: 'usunięcie konta',
+        plik: 'apps/api/src/compliance/account-deletion.service.ts',
+      },
+    ])('$nazwa — server.update i account.update w jednym $transaction', ({ plik }) => {
+      const s = zrodlo(plik);
       const tx = s.indexOf('$transaction');
       expect(tx).toBeGreaterThan(-1);
-      const status = s.indexOf('AccountStatus.DELETED', tx);
-      const zwolnienie = s.indexOf('decrement: acc.cpuLimit', tx);
-      expect(status).toBeGreaterThan(tx);
-      expect(zwolnienie).toBeGreaterThan(tx);
+      expect(s.indexOf('ksiegaUpdateData(', tx)).toBeGreaterThan(tx);
+      expect(s.indexOf('.account.update', tx)).toBeGreaterThan(tx);
     });
   });
 
-  describe('przeciek 4: zmiana planu zwalnia także nadwyżkę', () => {
-    // Ten przeciek POWSTAŁBY przez Z-16, gdyby zostawić plan-change bez zmian.
-    // Przed Z-16 nadwyżka nie trafiała do allocated*, więc liczenie delty jako
-    // różnicy baz planów było poprawne. Po zmianie znaczenia księgi każde
-    // miejsce, które ją prowadzi, musiało zostać przejrzane.
-    const src = () => zrodlo('apps/api/src/subscriptions/plan-change.service.ts');
+  describe('usunięcie konta zwalnia limity EFEKTYWNE, nie bazowe', () => {
+    const s = () => zrodlo('apps/api/src/compliance/account-deletion.service.ts');
 
-    it('delta liczy się od limitów efektywnych, nie od baz planów', () => {
-      const s = src();
-      expect(s).toContain('target.cpuLimit - (oldPlan.cpuLimit + account.scaledCpu)');
-      expect(s).toContain('target.ramLimitMb - (oldPlan.ramLimitMb + account.scaledRamMb)');
-      expect(s).toContain('target.diskLimitMb - (oldPlan.diskLimitMb + account.scaledDiskMb)');
-    });
-
-    it('nie została ani jedna delta liczona po staremu', () => {
-      const s = src();
-      expect(s).not.toContain('target.cpuLimit - oldPlan.cpuLimit');
-      expect(s).not.toContain('target.ramLimitMb - oldPlan.ramLimitMb');
-      expect(s).not.toContain('target.diskLimitMb - oldPlan.diskLimitMb');
-    });
-
-    it('zeruje scaled* razem ze zwolnieniem nadwyżki', () => {
-      // Gdyby scaled* zostało, konto miałoby limity nowego planu, a księga
-      // pamiętałaby nadwyżkę starego.
-      const s = src();
-      expect(s).toContain('scaledCpu: 0');
-      expect(s).toContain('scaledRamMb: 0');
-      expect(s).toContain('scaledDiskMb: 0');
+    it('pobiera limity konta, a nie limity planu', () => {
+      // Account.cpuLimit = baza planu + nadwyżka autoskalowania. Zwolnienie
+      // samej bazy zostawiłoby nadwyżkę w księdze na zawsze.
+      const t = s();
+      expect(t).toContain('cpuLimit: true');
+      expect(t).toContain('ramLimitMb: true');
+      expect(t).toContain('diskLimitMb: true');
+      expect(t).toContain('KONTO_NIEISTNIEJACE');
     });
   });
 
-  describe('przeciek 3: maxAccounts nie liczy kont usuniętych', () => {
+  describe('zmiana planu zwalnia także nadwyżkę', () => {
+    const s = () => zrodlo('apps/api/src/subscriptions/plan-change.service.ts');
+
+    it('stan PRZED to limity efektywne starego planu razem z nadwyżką', () => {
+      expect(s()).toContain('limityEfektywne(oldPlan, account)');
+    });
+
+    it('stan PO to sama baza nowego planu — nadwyżka jest zerowana', () => {
+      const t = s();
+      expect(t).toContain('limityEfektywne(target)');
+      expect(t).toContain('scaledCpu: 0');
+      expect(t).toContain('scaledRamMb: 0');
+      expect(t).toContain('scaledDiskMb: 0');
+    });
+
+    it('nie została ani jedna delta liczona od baz planów', () => {
+      const t = s();
+      expect(t).not.toContain('target.cpuLimit - oldPlan.cpuLimit');
+      expect(t).not.toContain('target.ramLimitMb - oldPlan.ramLimitMb');
+      expect(t).not.toContain('target.diskLimitMb - oldPlan.diskLimitMb');
+    });
+  });
+
+  describe('maxAccounts nie liczy kont usuniętych', () => {
     it('groupBy filtruje po statusie', () => {
-      const s = zrodlo(SELEKTOR);
-      expect(s).toContain("status: { not: 'DELETED' }");
+      expect(zrodlo(SELEKTOR)).toContain("status: { not: 'DELETED' }");
     });
   });
 
@@ -146,7 +166,7 @@ describe('Z-16 — księga pojemności węzła nie przecieka', () => {
 
     it('obejmuje też węzły bez kont — LEFT JOIN, nie JOIN', () => {
       // Węzeł, z którego usunięto wszystkie konta, ma allocated* > 0 przez
-      // przeciek nr 2. Zwykły JOIN by go pominął i przeciek by został.
+      // przeciek sprzed Z-16. Zwykły JOIN by go pominął i przeciek by został.
       expect(sql()).toContain('LEFT JOIN "Account"');
       expect(sql()).toContain('COALESCE(agg.cpu, 0)');
     });
