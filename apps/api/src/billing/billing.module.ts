@@ -5,6 +5,8 @@ import { BillingAdminController } from './billing.admin.controller';
 import { WalletLedgerService } from './wallet-ledger.service';
 import { StripeService } from './stripe/stripe.service';
 import { StripeWebhookController } from './stripe/stripe.controller';
+import { StripeWebhookEventsAdminController } from './stripe/stripe-webhook-events.admin.controller';
+import { StripeWebhookPonowieniaScheduler } from './stripe/stripe-webhook-ponowienia.scheduler';
 import { InvoicesService } from './invoices.service';
 import { InvoicesController } from './invoices.controller';
 import { InvoicesAdminController } from './invoices.admin.controller';
@@ -27,6 +29,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     BillingController,
     BillingAdminController,
     StripeWebhookController,
+    StripeWebhookEventsAdminController,
     InvoicesController,
     InvoicesAdminController,
   ],
@@ -41,6 +44,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     WalletAutoTopupScheduler,
     WalletLowBalanceScheduler,
     SlaCreditScheduler,
+    StripeWebhookPonowieniaScheduler,
   ],
   exports: [BillingService, WalletLedgerService, StripeService, InvoicesService, PromoService, WalletAutoTopupService],
 })

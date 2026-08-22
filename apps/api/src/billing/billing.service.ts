@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   forwardRef,
   Inject,
   Injectable,
@@ -32,6 +33,13 @@ import {
 import { rowsToCsv } from './csv.util';
 import { PromoService } from './promo.service';
 import { EcoPointsService } from '../eco/eco-points.service';
+import {
+  Decyzja,
+  decyzja,
+  DNI_PRZECHOWANIA_TRESCI,
+  nastepnaProba,
+  WierszZdarzenia,
+} from './stripe/webhook-ewidencja';
 
 export interface TransactionsCsvFilters {
   userId?: string;
@@ -437,21 +445,201 @@ export class BillingService {
 
     this.logger.log(`Stripe webhook: ${event.type} (${event.id})`);
 
-    // Audit F-16: replay-safe processing. Money movements are idempotent at
-    // the ledger level, but the stateful handlers (counters, sync, e-mails)
-    // must run at most once per Stripe event id.
-    try {
-      await this.prisma.stripeWebhookEvent.create({
-        data: { eventId: event.id, type: event.type },
+    const zajecie = await this.zajmijZdarzenie(event);
+    if (zajecie.rodzaj === 'duplikat') {
+      this.logger.log(`Duplicate Stripe webhook delivery ignored: ${event.id}`);
+      return { received: true, duplicate: true };
+    }
+    if (zajecie.rodzaj === 'wTrakcie') {
+      // Inna dostawa tego samego zdarzenia jest właśnie obsługiwana. NIE wolno
+      // odpowiedzieć 200 — tamta dostawa może paść, a Stripe uznałby zdarzenie
+      // za doręczone. 409 każe mu ponowić później.
+      this.logger.warn(`Stripe webhook ${event.id} już w obsłudze — proszę o ponowienie`);
+      throw new ConflictException({
+        received: false,
+        reason: 'zdarzenie w trakcie obsługi',
+        eventId: event.id,
       });
-    } catch (err) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-        this.logger.log(`Duplicate Stripe webhook delivery ignored: ${event.id}`);
-        return { received: true, duplicate: true };
-      }
-      throw err;
     }
 
+    return this.uruchomHandler(event);
+  }
+
+  /**
+   * Z-05 — zajęcie zdarzenia przed uruchomieniem handlera.
+   *
+   * Do 2026-08-22 stało tu samo `create()`, a jego powodzenie znaczyło
+   * „widziałem". Kod czytał to jako „obsłużyłem", więc handler, który rzucił
+   * wyjątkiem, zostawiał zdarzenie oznaczone jako obsłużone i ponowienie ze
+   * Stripe'a dostawało 200. Klient zapłacił, saldo się nie pojawiło.
+   *
+   * Teraz `create()` zakłada wiersz w stanie PENDING, czyli „zajęte, w trakcie",
+   * a dopiero {@link zakonczZdarzenie} przestawia go na PROCESSED.
+   */
+  private async zajmijZdarzenie(event: {
+    id: string;
+    type: string;
+  }): Promise<Decyzja> {
+    const teraz = new Date();
+    try {
+      await this.prisma.stripeWebhookEvent.create({
+        data: {
+          eventId: event.id,
+          type: event.type,
+          status: 'PENDING',
+          payload: event as unknown as Prisma.InputJsonValue,
+          attempts: 1,
+          claimedAt: teraz,
+        },
+      });
+      return { rodzaj: 'przetwarzaj' };
+    } catch (err) {
+      if (!(err instanceof Prisma.PrismaClientKnownRequestError) || err.code !== 'P2002') {
+        throw err;
+      }
+    }
+
+    const wiersz = await this.prisma.stripeWebhookEvent.findUnique({
+      where: { eventId: event.id },
+      select: { status: true, claimedAt: true, attempts: true },
+    });
+    const d = decyzja(wiersz as WierszZdarzenia | null, teraz);
+    if (d.rodzaj !== 'przejmij') return d;
+
+    // Przejęcie warunkowe: `updateMany` ze statusem w WHERE. Gdyby między
+    // odczytem a zapisem ktoś inny przejął ten sam wiersz, zaktualizuje się
+    // zero wierszy i my ustępujemy. Bez tego dwa procesy mogłyby uruchomić
+    // handler równolegle na tym samym zdarzeniu.
+    const { count } = await this.prisma.stripeWebhookEvent.updateMany({
+      where: {
+        eventId: event.id,
+        status: wiersz?.status,
+        ...(wiersz?.claimedAt ? { claimedAt: wiersz.claimedAt } : {}),
+      },
+      data: {
+        status: 'PENDING',
+        attempts: { increment: 1 },
+        claimedAt: teraz,
+        nextAttemptAt: null,
+        payload: event as unknown as Prisma.InputJsonValue,
+        payloadPurgedAt: null,
+      },
+    });
+    if (count === 0) return { rodzaj: 'wTrakcie' };
+
+    this.logger.warn(
+      `Przejmuję zdarzenie Stripe ${event.id} (${d.powod}), próba ${(wiersz?.attempts ?? 0) + 1}`,
+    );
+    return d;
+  }
+
+  /** Uruchamia handler i zapisuje wynik. Rzuca dalej, żeby Stripe dostał 5xx. */
+  private async uruchomHandler(event: {
+    id: string;
+    type: string;
+    data: { object: Record<string, unknown> };
+  }) {
+    try {
+      await this.rozdzielZdarzenie(event);
+    } catch (err) {
+      await this.oznaczNieudane(event.id, err);
+      throw err;
+    }
+    await this.zakonczZdarzenie(event.id);
+    return { received: true };
+  }
+
+  private async zakonczZdarzenie(eventId: string): Promise<void> {
+    await this.prisma.stripeWebhookEvent.update({
+      where: { eventId },
+      data: {
+        status: 'PROCESSED',
+        processedAt: new Date(),
+        lastError: null,
+        nextAttemptAt: null,
+        claimedAt: null,
+      },
+    });
+  }
+
+  private async oznaczNieudane(eventId: string, err: unknown): Promise<void> {
+    const wiersz = await this.prisma.stripeWebhookEvent.findUnique({
+      where: { eventId },
+      select: { attempts: true },
+    });
+    const proba = wiersz?.attempts ?? 1;
+    const komunikat = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+    this.logger.error(
+      `Handler webhooka Stripe padł dla ${eventId} (próba ${proba}): ${komunikat}`,
+    );
+    // Zapis stanu nie może przesłonić pierwotnego błędu — jeżeli padnie i on,
+    // zostaje wiersz PENDING, który po wygaśnięciu dzierżawy podejmie scheduler.
+    try {
+      await this.prisma.stripeWebhookEvent.update({
+        where: { eventId },
+        data: {
+          status: 'FAILED',
+          lastError: komunikat.slice(0, 4000),
+          nextAttemptAt: nastepnaProba(proba, new Date()),
+          claimedAt: null,
+        },
+      });
+    } catch (zapis) {
+      this.logger.error(
+        `Nie udało się zapisać stanu FAILED dla ${eventId}: ${
+          zapis instanceof Error ? zapis.message : String(zapis)
+        }`,
+      );
+    }
+  }
+
+  /**
+   * Ponowne przetworzenie zdarzenia z zapisanej treści — używane przez
+   * scheduler ponowień i przez ręczne „ponów" w panelu admina.
+   */
+  async przetworzPonownie(eventId: string): Promise<{ eventId: string; status: string }> {
+    const wiersz = await this.prisma.stripeWebhookEvent.findUnique({ where: { eventId } });
+    if (!wiersz) throw new NotFoundException(`Nie ma zdarzenia ${eventId}`);
+    if (wiersz.status === 'PROCESSED') {
+      return { eventId, status: 'PROCESSED' };
+    }
+    if (!wiersz.payload) {
+      throw new BadRequestException(
+        `Zdarzenie ${eventId} nie ma zapisanej treści — nie da się go ponowić. ` +
+          `Treść jest czyszczona po ${DNI_PRZECHOWANIA_TRESCI} dniach od przetworzenia, ` +
+          `a zdarzenia sprzed 2026-08-22 nigdy jej nie miały.`,
+      );
+    }
+
+    const teraz = new Date();
+    const { count } = await this.prisma.stripeWebhookEvent.updateMany({
+      where: { eventId, status: wiersz.status },
+      data: { status: 'PENDING', attempts: { increment: 1 }, claimedAt: teraz, nextAttemptAt: null },
+    });
+    if (count === 0) {
+      throw new ConflictException(`Zdarzenie ${eventId} zostało w międzyczasie przejęte`);
+    }
+
+    const event = wiersz.payload as unknown as {
+      id: string;
+      type: string;
+      data: { object: Record<string, unknown> };
+    };
+    try {
+      await this.rozdzielZdarzenie(event);
+    } catch (err) {
+      await this.oznaczNieudane(eventId, err);
+      throw err;
+    }
+    await this.zakonczZdarzenie(eventId);
+    return { eventId, status: 'PROCESSED' };
+  }
+
+  private async rozdzielZdarzenie(event: {
+    id: string;
+    type: string;
+    data: { object: Record<string, unknown> };
+  }) {
     switch (event.type) {
       case 'checkout.session.completed':
       case 'checkout.session.async_payment_succeeded':
@@ -482,8 +670,6 @@ export class BillingService {
       default:
         this.logger.debug(`Ignoring unhandled Stripe event: ${event.type}`);
     }
-
-    return { received: true };
   }
 
   private async handleCheckoutCompleted(event: { id: string; data: { object: Record<string, unknown> } }) {

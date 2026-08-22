@@ -2848,13 +2848,47 @@ model ReferralProgramEnrollment {
 /// Audit F-16: deduplication of Stripe webhook deliveries. Money movements are
 /// already idempotent at the ledger level — this additionally makes the
 /// stateful handlers (subscription sync, counters, e-mails) replay-safe.
+/// Z-05 — stan obsługi zdarzenia webhooka. Do 2026-08-22 wiersz nie miał stanu,
+/// co znaczyło, że jego istnienie oznaczało „widziałem", a kod czytał je jako
+/// „obsłużyłem". Handler, który rzucił wyjątkiem, zostawiał wiersz na miejscu,
+/// a ponowienie ze Stripe'a dostawało 200 jako duplikat — klient zapłacił,
+/// saldo się nie pojawiło.
+enum StripeWebhookEventStatus {
+  /// Zajęte, handler w trakcie. NIE jest to stan końcowy — patrz dzierżawa.
+  PENDING
+  /// Handler zakończył się sukcesem. Dopiero ten stan odrzuca ponowienia.
+  PROCESSED
+  /// Handler rzucił wyjątkiem. Czeka na ponowienie (`nextAttemptAt`).
+  FAILED
+}
+
 model StripeWebhookEvent {
   id        String   @id @default(uuid())
   /// Stripe event id (`evt_…`) — unique across retries of the same delivery.
   eventId   String   @unique
   type      String
+  status    StripeWebhookEventStatus @default(PENDING)
+  /// Pełna treść zdarzenia — żeby ponowienie działało nawet gdy Stripe leży,
+  /// a to jest dokładnie ta sytuacja, w której webhooki padają. Czyszczona
+  /// przez retencję po 90 dniach od przetworzenia; id, typ i status zostają
+  /// na zawsze, bo idempotencja musi działać wiecznie.
+  payload   Json?
+  /// Ile razy handler był uruchamiany dla tego zdarzenia.
+  attempts  Int      @default(0)
+  lastError String?  @db.Text
+  /// Kiedy wystartowała bieżąca próba. `PENDING` starszy niż dzierżawa
+  /// (5 min) uznajemy za porzucony przez martwy proces i wolno go przejąć.
+  claimedAt     DateTime?
+  nextAttemptAt DateTime?
+  processedAt   DateTime?
+  /// Kiedy ostatnio alarmowaliśmy o tym zdarzeniu (de-duplikacja alertów).
+  alertedAt       DateTime?
+  payloadPurgedAt DateTime?
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
+  @@index([status, nextAttemptAt])
+  @@index([status, claimedAt])
   @@index([createdAt])
 }
 

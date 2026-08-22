@@ -177,3 +177,45 @@ BEGIN
 
   RAISE NOTICE 'Z-16 OK — księga pojemności zgadza się z kontami na wszystkich węzłach';
 END $$;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Z-05 — zdarzenie webhooka ma stan, a stan znaczy to, co znaczy
+-- ─────────────────────────────────────────────────────────────────────────────
+--
+-- Trzy rzeczy, z których każda oznaczałaby powrót do stanu sprzed Z-05:
+--   1. brak typu wyliczeniowego — wiersz znów nie miałby stanu,
+--   2. wiersz PROCESSED bez daty przetworzenia — stan bez pokrycia w faktach,
+--   3. wiersz historyczny zostawiony w PENDING — scheduler ponawiałby go
+--      w nieskończoność, bo nie ma zapisanej treści, i zasypał adminów alertami.
+DO $$
+DECLARE
+  ma_typ    BOOLEAN;
+  bez_daty  INT;
+  historia  INT;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'StripeWebhookEventStatus')
+    INTO ma_typ;
+  IF NOT ma_typ THEN
+    RAISE EXCEPTION
+      'Z-05: brak typu StripeWebhookEventStatus — migracja odporności webhooka nie została zastosowana';
+  END IF;
+
+  SELECT COUNT(*) INTO bez_daty
+    FROM "StripeWebhookEvent"
+   WHERE "status" = 'PROCESSED' AND "processedAt" IS NULL;
+  IF bez_daty > 0 THEN
+    RAISE EXCEPTION
+      'Z-05: % zdarzeń ma status PROCESSED bez daty przetworzenia', bez_daty;
+  END IF;
+
+  SELECT COUNT(*) INTO historia
+    FROM "StripeWebhookEvent"
+   WHERE "status" = 'PENDING' AND "payload" IS NULL;
+  IF historia > 0 THEN
+    RAISE EXCEPTION
+      'Z-05: % zdarzeń wisi w PENDING bez zapisanej treści — nie da się ich ponowić, a scheduler będzie próbował w kółko',
+      historia;
+  END IF;
+
+  RAISE NOTICE 'Z-05 OK — zdarzenia webhooka mają stan, żadne nie wisi bez treści';
+END $$;

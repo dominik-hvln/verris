@@ -30,6 +30,24 @@ def wczytaj():
     def rows(name):
         with open(DANE / name, encoding="utf-8") as f:
             r = list(csv.reader(f))
+        # Kontrola TUTAJ, a nie w sprawdz(), bo loader czyta pola po indeksie —
+        # wiersz o złej liczbie kolumn przesuwa całą resztę i wstawia w plan
+        # cudzą treść, zanim sprawdz() zdąży cokolwiek powiedzieć. Czasem
+        # kończy się to wyjątkiem (gdy przesunięty tekst trafi w int()),
+        # a czasem po cichu — i ten drugi przypadek jest gorszy.
+        # Patrz PB-01 i „36,59 zł netto" bez cudzysłowów.
+        if r:
+            n = len(r[0])
+            zle = [(nr, w) for nr, w in enumerate(r[1:], start=2) if len(w) != n]
+            if zle:
+                opis = "; ".join(
+                    f"{name}:{nr} ma {len(w)} kolumn zamiast {n} (pole 1: {w[0] if w else '?'})"
+                    for nr, w in zle
+                )
+                raise SystemExit(
+                    f"BŁĄD DANYCH — {opis}. "
+                    f"Najczęstsza przyczyna: przecinek w polu bez cudzysłowów."
+                )
         return r[0], r[1:]
 
     head, macierz = rows("macierz.csv")
@@ -43,7 +61,8 @@ def wczytaj():
         "macierz": macierz,
         "wg_id": {r[0]: r for r in macierz},
         "sprinty": {int(s[0]): {"cel": s[1], "audyt": s[2], "pb": s[3], "ryzyko": s[4]} for s in sprinty},
-        "pb": {p[0]: {"tytul": p[1], "h": int(p[2]), "prio": p[3], "opis": p[4], "dod": p[5]} for p in pb},
+        "pb": {p[0]: {"tytul": p[1], "h": int(p[2]), "prio": p[3], "opis": p[4], "dod": p[5],
+                       "zamkniete": (p[6] if len(p) > 6 else "")} for p in pb},
         "epiki": [{"id": e[0], "nazwa": e[1], "prio": e[2], "kw": e[3], "zakres": e[4], "why": e[5]} for e in epiki],
         "fazy": [{"od": int(f_[0]), "do": int(f_[1]), "tytul": f_[2], "opis": f_[3]} for f_ in fazy],
         "cfg": cfg,
@@ -509,6 +528,111 @@ def buduj_plan_md(D):
 
 
 # ───────────────────────────── 5. dashboard planu ─────────────────────────────
+
+# ───────────────────────────── postęp ─────────────────────────────
+#
+# Liczony z macierzy i z zadania_pb.csv, nie z osobnej listy „co zrobione".
+# Osobna lista rozjechałaby się z macierzą przy pierwszym pominiętym wpisie,
+# a zielona linia pokazywałaby wtedy postęp, którego nie ma.
+
+ZROBIONE_WERDYKTY = ("PARYTET", "PRZEWAGA")
+
+
+def _zrobione(D, i, typ):
+    """Czy pozycja jest zamknięta. Słownik audytu, nie moja ocena."""
+    if typ == "audyt":
+        r = D["wg_id"].get(i)
+        return bool(r) and r[10] in ZROBIONE_WERDYKTY
+    return bool(D["pb"].get(i, {}).get("zamkniete"))
+
+
+def _data_zamkniecia(D, i, typ):
+    if typ == "poza audytem":
+        return D["pb"].get(i, {}).get("zamkniete") or None
+    r = D["wg_id"].get(i)
+    if not r:
+        return None
+    m = re.search(r"Zamkni[eę]te (\d{4}-\d{2}-\d{2})", r[13])
+    return m.group(1) if m else None
+
+
+def postep(D, dzis=None):
+    dzis = dzis or datetime.date.today()
+    start = datetime.date.fromisoformat(D["cfg"]["start"])
+    cap = D["cfg"]["sprint_godzin"]
+
+    sprinty = []
+    for n in sorted(D["sprinty"]):
+        poz = pozycje_sprintu(D, n)
+        zrob = [x for x in poz if _zrobione(D, x[0], x[3])]
+        d0, d1 = daty(D, n)
+        sprinty.append({
+            "n": n,
+            "cel": D["sprinty"][n]["cel"],
+            "od": str(d0), "do": str(d1),
+            "pozycje": len(poz),
+            "zrobione": len(zrob),
+            "godziny": sum(x[2] for x in poz),
+            "godzinyZrobione": sum(x[2] for x in zrob),
+            "otwarte": [
+                {"id": x[0], "tytul": x[1], "h": x[2],
+                 "bloker": x[4] == "BLOKER STARTU" or "BLOKER" in str(x[4])}
+                for x in poz if not _zrobione(D, x[0], x[3])
+            ],
+            "domkniete": [
+                {"id": x[0], "tytul": x[1], "h": x[2], "data": _data_zamkniecia(D, x[0], x[3])}
+                for x in zrob
+            ],
+        })
+
+    godz_razem = sum(s["godziny"] for s in sprinty)
+    godz_zrob = sum(s["godzinyZrobione"] for s in sprinty)
+    poz_razem = sum(s["pozycje"] for s in sprinty)
+    poz_zrob = sum(s["zrobione"] for s in sprinty)
+
+    # Ile pełnych tygodni planu upłynęło. Ujemne przed startem planu —
+    # i tak ma być, bo praca ruszyła wcześniej niż harmonogram.
+    dni = (dzis - start).days
+    tyg_uplynelo = dni / 7.0
+    tyg_zrobione = godz_zrob / cap if cap else 0.0
+    zapas_tyg = tyg_zrobione - max(tyg_uplynelo, 0.0)
+
+    # Który sprint jest „bieżący": pierwszy z niedomkniętymi pozycjami.
+    biezacy = next((s["n"] for s in sprinty if s["zrobione"] < s["pozycje"]), None)
+
+    # Prognoza końca: tempo dotychczasowe albo — gdy plan jeszcze nie ruszył —
+    # nominalna pojemność. Nie zgadujemy przyspieszenia, którego nie widać.
+    pozostale_godz = godz_razem - godz_zrob
+    tempo = cap  # h/tydzień
+    tygodni_do_konca = pozostale_godz / tempo if tempo else 0
+    koniec_nominalny = daty(D, max(D["sprinty"]))[1]
+    koniec_prognoza = dzis + datetime.timedelta(weeks=tygodni_do_konca)
+
+    blokery_otwarte = [
+        r[0] for r in D["macierz"]
+        if r[11].strip() == "BLOKER STARTU" and r[10] not in ZROBIONE_WERDYKTY
+    ]
+
+    return {
+        "dzis": str(dzis),
+        "start": str(start),
+        "cap": cap,
+        "sprinty": sprinty,
+        "biezacySprint": biezacy,
+        "godzinyRazem": godz_razem,
+        "godzinyZrobione": godz_zrob,
+        "pozycjeRazem": poz_razem,
+        "pozycjeZrobione": poz_zrob,
+        "procent": round(100.0 * godz_zrob / godz_razem, 1) if godz_razem else 0.0,
+        "tygodnieUplynelo": round(tyg_uplynelo, 2),
+        "tygodnieZrobione": round(tyg_zrobione, 2),
+        "zapasTygodni": round(zapas_tyg, 2),
+        "koniecNominalny": str(koniec_nominalny),
+        "koniecPrognoza": str(koniec_prognoza),
+        "blokeryOtwarte": blokery_otwarte,
+    }
+
+
 def buduj_dashboard_planu(D):
     H = D["cfg"]["godziny_nakladu"]
     EP = {e["id"]: e for e in D["epiki"]}
@@ -525,6 +649,7 @@ def buduj_dashboard_planu(D):
         "oos": [[r[0], r[2], D["cfg"]["kategorie"].get(r[1], r[1]), r[13]]
                 for r in D["macierz"] if r[10] == "POZA ZAKRESEM"],
         "cap": D["cfg"]["sprint_godzin"],
+        "postep": postep(D),
     }
     tpl = (SZAB / "dashboard_plan.html").read_text(encoding="utf-8")
     OUT_P.mkdir(exist_ok=True)

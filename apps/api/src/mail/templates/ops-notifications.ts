@@ -310,3 +310,75 @@ export function mailDeliveryFailureAlertTemplate(ctx: MailDeliveryFailureContext
     html,
   };
 }
+
+// -----------------------------------------------------------------------------
+// Z-05 — zdarzenie webhooka Stripe'a zacięło się na ścieżce pieniędzy
+// -----------------------------------------------------------------------------
+
+export interface WebhookZacietyContext {
+  to: string;
+  firstName: string | null;
+  eventId: string;
+  typ: string;
+  proby: number;
+  pierwszyRaz: Date;
+  ostatniBlad: string | null;
+  panelUrl: string;
+}
+
+/**
+ * Alert o zdarzeniu, którego nie udało się obsłużyć.
+ *
+ * Ton jest celowo konkretny, nie alarmistyczny: podaje identyfikator zdarzenia,
+ * treść błędu i jedno miejsce, w które trzeba kliknąć. Alert, który każe komuś
+ * dopiero szukać, gdzie zajrzeć, kosztuje tyle samo czasu co brak alertu.
+ */
+export function webhookZacietyTemplate(ctx: WebhookZacietyContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: 'Zdarzenie płatności nie zostało obsłużone',
+    preheader: `Stripe ${escapeHtml(ctx.typ)} — ${ctx.proby} nieudane próby.`,
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `**Zdarzenie webhooka Stripe'a nie zostało obsłużone** mimo ${ctx.proby} prób.`,
+      `Jeżeli dotyczy doładowania albo opłaty za subskrypcję, pieniądze mogły` +
+        ` zostać pobrane, a saldo albo aktywacja nie nastąpiły.`,
+      ``,
+      `- **Zdarzenie:** \`${escapeHtml(ctx.eventId)}\``,
+      `- **Typ:** ${escapeHtml(ctx.typ)}`,
+      `- **Pierwsza dostawa:** ${escapeHtml(fmt(ctx.pierwszyRaz))}`,
+      `- **Liczba prób:** ${ctx.proby}`,
+      ``,
+      `**Ostatni błąd:**`,
+      ``,
+      '```',
+      escapeHtml(ctx.ostatniBlad ?? '(brak treści błędu)'),
+      '```',
+      ``,
+      `## Co zrobić`,
+      ``,
+      `1. Otwórz listę zaciętych zdarzeń w panelu admina.`,
+      `2. Przeczytaj błąd — jeśli przyczyna minęła (np. baza była chwilowo niedostępna),`,
+      `   wystarczy „Ponów przetwarzanie".`,
+      `3. Jeśli błąd wraca, sprawdź w Stripe, czy płatność faktycznie doszła,`,
+      `   zanim zaczniesz cokolwiek księgować ręcznie.`,
+      ``,
+      `Ponowienie jest bezpieczne: księgowanie portfela jest idempotentne po kluczu`,
+      `sesji, więc powtórzenie nie doda pieniędzy drugi raz.`,
+    ].join('\n'),
+    cta: { label: 'Otwórz zacięte zdarzenia', url: `${ctx.panelUrl}/billing/webhooki` },
+    footnote:
+      'Alert wysyłany najwyżej raz na 6 godzin dla tego samego zdarzenia. Otrzymują go wszyscy administratorzy.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return {
+    to: ctx.to,
+    tag: 'ops.webhook-zaciety',
+    subject: `[Verris] 💳 Zdarzenie płatności nieobsłużone (${ctx.typ})`,
+    text,
+    html,
+  };
+}
