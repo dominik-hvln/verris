@@ -95,6 +95,13 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter @verris/database db:generate
 
+      # X-17 — @verris/database ma main: dist/index.js. Bez tego kroku jest
+      # nie rozwiąże modułu i 32 z 48 zestawów nie wystartują. Przed X-11
+      # budowały się przy okazji przez `pnpm typecheck` (Turbo, ^build);
+      # wydzielenie testów do własnego joba zabrało im to po cichu.
+      - name: Build workspace libraries
+        run: pnpm --filter @verris/database --filter @verris/contracts --filter @verris/directadmin-sdk run build
+
       - name: API unit tests
         run: pnpm --filter api test
 
@@ -194,6 +201,11 @@ jobs:
       # asercja „żaden prototyp nie jest publiczny" przechodziłaby trywialnie,
       # bo na bazie z samych migracji te plany nie istnieją. Przy okazji CI
       # weryfikuje, że seed w ogóle wykonuje się na świeżej bazie.
+      # Seed importuje @verris/database, więc klient musi istnieć.
+      # Bez tego kroku „Seed reference data" wywalał job od commita d381a64.
+      - name: Generate Prisma client
+        run: pnpm --filter @verris/database db:generate
+
       - name: Seed reference data
         working-directory: libs/database
         env:
