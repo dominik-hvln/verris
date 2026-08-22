@@ -31,7 +31,8 @@ export function loadDefaultHostingPageInstallScript(): string {
 export function buildDefaultHostingPageBundle(): Promise<Buffer> {
   const srcDir = join(resolveOpsRoot(), 'hosting-default-page');
   return new Promise((resolve, reject) => {
-    const archive = archiver.create('tar', { gzip: true });
+    // Patrz data-export.service.ts — archiver 8 usunął `create()`.
+    const archive = new archiver.TarArchive({ gzip: true });
     const chunks: Buffer[] = [];
     archive.on('data', (chunk: Buffer) => chunks.push(chunk));
     archive.on('error', reject);

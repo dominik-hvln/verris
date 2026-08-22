@@ -9,9 +9,9 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **2832 h** — przy 30 h tygodniowo około **22 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **2848 h** — przy 30 h tygodniowo około **22 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **20 sprintów do startu** (584 h) oraz roadmapę po starcie (2248 h, 143 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **20 sprintów do startu** (584 h) oraz roadmapę po starcie (2264 h, 144 pozycji) rozpisaną na epiki kwartalne.
 
 - **2026-10-23** — koniec sprintu 9, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-01-08** — koniec sprintu 20, decyzja GO.
@@ -435,7 +435,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 # Po starcie — roadmapa kwartalna
 
-143 pozycji, 2248 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
+144 pozycji, 2264 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
 
 | ID | Epik | Priorytet | Kwartał | Pozycji | h | Dlaczego teraz, a nie wcześniej |
 |---|---|---|---|---|---|---|
@@ -454,7 +454,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 | `E-11` | DNS: DNSSEC i zarządzanie strefą | ŚREDNI | Q3 2027 | 4 | 62 | Żaden z pięciu hostingów PL nie potwierdza publicznie DNSSEC. To okazja, nie luka. |
 | `E-13` | Automatyzacja: API zapisu i webhooki | ŚREDNI | Q3 2027 | 9 | 108 | Żaden hosting PL nie ma publicznego API — mamy przewagę, która dziś obejmuje pięć GET-ów przy opisie obiecującym CI/CD i Terraform. |
 | `E-16` | Rozszerzenia oferty | NISKI | Q4 2027 | 4 | 64 | Decyzja o kreatorze stron jest binarna. Kod, który leży zakomentowany przez rok, jest długiem, nie opcją. |
-| `E-09` | Pokrycie testowe warstw krytycznych | WYSOKI | ciągłe | 9 | 240 | Realizowane równolegle z każdą fazą, nie jako osobny projekt. Zasada: każda naprawiona pozycja dostaje test, który najpierw czerwieni się na starym kodzie. |
+| `E-09` | Pokrycie testowe warstw krytycznych | WYSOKI | ciągłe | 10 | 256 | Realizowane równolegle z każdą fazą, nie jako osobny projekt. Zasada: każda naprawiona pozycja dostaje test, który najpierw czerwieni się na starym kodzie. |
 
 - **E-01 Runtime, pliki i diagnostyka** (418 h) — php.ini i rozszerzenia PHP z panelu, logi dostępu i błędów WWW, import/eksport bazy, spakowanie archiwum, SSH i klucze SSH dla hostingu, podgląd zajętości katalogów.
 - **E-02 Wydajność: cache i skalowanie** (132 h) — Redis jako cache obiektowy sterowany z panelu, LSCache, weryfikacja HTTP/3, CDN, optymalizacja obrazów.
@@ -464,7 +464,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 - **E-06 Bezpieczeństwo jako funkcja** (170 h) — Skaner malware, czyszczenie zainfekowanych plików, rozbudowa WAF, HSTS, anty-DDoS, sprzedaż certyfikatów DV/OV/EV.
 - **E-07 Reseller jako produkt** (208 h) — Zakładanie kont przez resellera, marża ustawiana przez niego, white-label, rozliczenia.
 - **E-08 Dostępność i zgodność w produkcie** (118 h) — WCAG 2.1 AA dla ścieżki klienta, RCPD jako moduł zamiast pliku, ISO 27001 jeśli wejdziemy w B2B, deklaracja lokalizacji danych.
-- **E-09 Pokrycie testowe warstw krytycznych** (240 h) — Testy integracyjne API, moduł auth, klient KSeF, ścieżka backup/restore, DirectAdminService, panele frontowe.
+- **E-09 Pokrycie testowe warstw krytycznych** (256 h) — Testy integracyjne API, moduł auth, klient KSeF, ścieżka backup/restore, DirectAdminService, panele frontowe.
 - **E-10 Poczta: filtry, kalendarz, limity** (118 h) — Reguły filtrowania Sieve, podgląd kolejki i logów dostarczania, limity wysyłki pokazane klientowi, kalendarz i kontakty, 2FA dla webmaila.
 - **E-11 DNS: DNSSEC i zarządzanie strefą** (62 h) — DNSSEC, zmiana TTL, Anycast DNS, pełne zarządzanie strefą po podpięciu edytora w sprincie 10.
 - **E-12 Backup: granularność i retencja** (116 h) — Odtworzenie pojedynczego pliku, podgląd zawartości archiwum przed odtworzeniem, pobranie kopii lokalnie, retencja 28+ dni w cenie.

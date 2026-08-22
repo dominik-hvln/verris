@@ -416,7 +416,12 @@ export class DataExportService implements OnApplicationBootstrap {
 
     await new Promise<void>((resolve, reject) => {
       const output = createWriteStream(fullPath);
-      const archive = archiver.create('zip', { zlib: { level: 6 } });
+      // archiver 8 usunął fabrykę `create()` na rzecz klas per format.
+      // Do 2026-08-22 stało tu `archiver.create('zip', …)` i wywalało się
+      // w RUNTIME — typecheck tego nie widział, bo @types/archiver było
+      // przypięte do ^7 i opisywało API, którego zainstalowany archiver
+      // już nie miał. Patrz X-21.
+      const archive = new archiver.ZipArchive({ zlib: { level: 6 } });
 
       output.on('close', () => resolve());
       output.on('error', reject);

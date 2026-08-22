@@ -24,7 +24,7 @@
   },
   "packageManager": "pnpm@9.5.0",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.12"
   },
   "pnpm": {
     "overrides": {
@@ -43,7 +43,8 @@
       "follow-redirects": "^1.16.0",
       "dompurify": "^3.4.7",
       "typescript": "^5.9.3",
-      "esbuild": "^0.25.0"
+      "esbuild": "^0.25.0",
+      "body-parser": "^2.3.0"
     }
   }
 }
