@@ -463,14 +463,14 @@ export class MetricsService {
       }
     }
 
-    // --- Postgres backup w MinIO (latest.sql.gz) ---------------------------
+    // --- Postgres backup w MinIO (latest.sql.gz.age) -----------------------
     if (this.objectStorage) {
       try {
         const backup = await this.objectStorage.getPostgresBackupLatestStat();
         write(
           lines,
           'verris_backup_present',
-          '1 if postgres/latest.sql.gz exists in S3_BUCKET_BACKUPS',
+          '1 if the latest postgres backup object exists in S3_BUCKET_BACKUPS',
           'gauge',
         );
         lines.push(`verris_backup_present ${backup ? 1 : 0}`);
@@ -483,13 +483,13 @@ export class MetricsService {
         write(
           lines,
           'verris_backup_latest_size_bytes',
-          'Size of postgres/latest.sql.gz in MinIO',
+          'Size of the latest postgres backup object in MinIO',
           'gauge',
         );
         write(
           lines,
           'verris_backup_latest_timestamp_seconds',
-          'Unix timestamp of postgres/latest.sql.gz Last-Modified',
+          'Unix timestamp of the latest postgres backup object Last-Modified',
           'gauge',
         );
         if (backup) {

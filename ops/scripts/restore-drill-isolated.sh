@@ -36,7 +36,11 @@ COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-verris}"
 ENV_FILE="${ENV_FILE:-${REPO_ROOT}/.env.prod}"
 RESTORE_STAGING="${RESTORE_STAGING:-/tmp/verris-restore-staging}"
-OBJECT_NAME="latest.sql.gz"
+# Nazwa obiektu NIE jest tu wpisana na sztywno — ustala ją
+# backup_crypto_latest_object() po wczytaniu .env.prod (patrz niżej). Do
+# 2026-08-22 stało tu "latest.sql.gz", czyli obiekt, którego produkcja nigdy
+# nie tworzy, bo szyfrowanie dokłada sufiks .age. Drill nie mógł się udać.
+OBJECT_NAME=""
 KEEP_DB=0
 # D4 wymaga WŁAŚCICIELA, nie tylko daty. Domyślnie bierzemy użytkownika
 # systemowego, ale wolno go nadpisać — „root" nie jest osobą odpowiedzialną.
@@ -80,7 +84,10 @@ zapisz_probe() {
   local WYNIK="$1" ROWS="$2" NOTATKI="$3"
   [[ "$ZAPISANO" -eq 1 ]] && return 0
   ZAPISANO=1
-  local FINISHED EPOCH_END TRWALO
+  local FINISHED EPOCH_END TRWALO OBIEKT
+  # Porażka może nastąpić ZANIM ustalimy nazwę obiektu (np. brak .env.prod).
+  # Pusty napis nie przejdzie przez NOT NULL, a ślad ma powstać także wtedy.
+  OBIEKT="${OBJECT_NAME:-(nieustalony)}"
   FINISHED="$(date -u +%Y-%m-%dT%H:%M:%S.000Z)"
   EPOCH_END="$(date +%s)"
   TRWALO=$(( EPOCH_END - STARTED_EPOCH ))
@@ -95,7 +102,7 @@ INSERT INTO "RestoreDrill"
   ("id", "startedAt", "finishedAt", "durationSec", "result", "objectName", "source", "rowCounts", "owner", "notes")
 VALUES
   (gen_random_uuid(), '${STARTED_AT}', '${FINISHED}', ${TRWALO}, '${WYNIK}',
-   \$\$${OBJECT_NAME}\$\$, \$\$${S3_BUCKET_BACKUPS}/postgres\$\$, \$\$${ROWS}\$\$::jsonb,
+   \$\$${OBIEKT}\$\$, \$\$${S3_BUCKET_BACKUPS}/postgres\$\$, \$\$${ROWS}\$\$::jsonb,
    \$\$${DRILL_OWNER}\$\$, NULLIF(\$\$${NOTATKI}\$\$, ''));
 SQL
   log "ślad próby zapisany: wynik=${WYNIK} czas=${TRWALO}s właściciel=${DRILL_OWNER}"
@@ -115,7 +122,12 @@ set +a
 
 # shellcheck source=ops/lib/backup-minio.sh
 source "${REPO_ROOT}/ops/lib/backup-minio.sh"
+# shellcheck source=ops/lib/backup-crypto.sh
+source "${REPO_ROOT}/ops/lib/backup-crypto.sh"
 backup_minio_load_env
+
+# Nazwa obiektu z JEDNEGO miejsca — zależy od tego, czy kopie są szyfrowane.
+OBJECT_NAME="${OBJECT_NAME:-$(backup_crypto_latest_object)}"
 
 mkdir -p "$RESTORE_STAGING"
 DUMP_FILE="${RESTORE_STAGING}/${OBJECT_NAME}"
@@ -129,6 +141,36 @@ backup_minio_mc_run "
 log "download → ${DUMP_FILE}"
 backup_minio_download_file "$OBJECT_NAME" "$DUMP_FILE"
 [[ -f "$DUMP_FILE" ]] || fail "download failed"
+
+# ── Integralność ─────────────────────────────────────────────────────────────
+#
+# Backup wgrywa obok szyfrogramu plik .sha256. Bez tego sprawdzenia drill
+# potwierdzałby, że da się odtworzyć TO, CO POBRAŁ — a nie to, co zapisała
+# kopia. Uszkodzenie w transporcie albo podmiana obiektu przeszłyby niezauważone.
+log "weryfikacja sumy kontrolnej"
+if backup_minio_download_file "${OBJECT_NAME}.sha256" "${DUMP_FILE}.sha256" 2>/dev/null \
+   && [[ -f "${DUMP_FILE}.sha256" ]]; then
+  OCZEKIWANA="$(awk '{print $1}' "${DUMP_FILE}.sha256")"
+  FAKTYCZNA="$(sha256sum "$DUMP_FILE" | awk '{print $1}')"
+  [[ "$OCZEKIWANA" == "$FAKTYCZNA" ]] \
+    || fail "suma kontrolna się nie zgadza (oczekiwano ${OCZEKIWANA}, jest ${FAKTYCZNA})"
+  log "  integralność OK (${FAKTYCZNA})"
+else
+  # Brak sumy to nie jest drobiazg: kopia sprzed poprawki mogła jej nie mieć,
+  # ale od tej pory każda ją ma. Głośno, żeby nie stało się to normą.
+  log "  UWAGA: brak ${OBJECT_NAME}.sha256 — odtwarzam BEZ potwierdzenia integralności"
+fi
+
+# ── Deszyfrowanie ────────────────────────────────────────────────────────────
+#
+# Dumpy są szyfrowane age (dane osobowe, RODO art. 32). Do 2026-08-22 ten skrypt
+# szedł prosto do `gunzip` — czyli zakładał format, którego produkcja nie
+# wytwarza. Klucz prywatny wskazuje BACKUP_AGE_IDENTITY_FILE.
+RESTORE_INPUT="$DUMP_FILE"
+if [[ "$DUMP_FILE" == *.age ]]; then
+  log "deszyfrowanie (age)…"
+  RESTORE_INPUT="$(backup_crypto_decrypt_file "$DUMP_FILE")"
+fi
 
 psql_admin() {
   docker compose \
@@ -158,7 +200,7 @@ CREATE DATABASE "${DRILL_DB}";
 SQL
 
 log "restore dump into ${DRILL_DB} (this may take a few minutes)"
-gunzip -c "$DUMP_FILE" \
+gunzip -c "$RESTORE_INPUT" \
   | docker compose \
       --project-name "$COMPOSE_PROJECT_NAME" \
       --file "$COMPOSE_FILE" \

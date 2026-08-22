@@ -32,7 +32,10 @@ fail() { log "ERROR: $*"; exit 1; }
 
 FROM_MINIO=0
 DUMP_FILE=""
-OBJECT_NAME="latest.sql.gz.age"
+# Nazwa obiektu z JEDNEGO miejsca — ustalana po wczytaniu .env.prod, bo zależy
+# od tego, czy kopie są szyfrowane. Wpisana na sztywno rozjeżdżała się z resztą
+# konsumentów przy każdej zmianie ustawień (patrz ops/lib/backup-crypto.sh).
+OBJECT_NAME=""
 CONFIRM=0
 
 while [[ $# -gt 0 ]]; do
@@ -64,7 +67,10 @@ if [[ "$FROM_MINIO" -eq 1 ]]; then
   cd "$REPO_ROOT"
   # shellcheck source=ops/lib/backup-minio.sh
   source "${SCRIPT_DIR}/lib/backup-minio.sh"
+  # shellcheck source=ops/lib/backup-crypto.sh
+  source "${SCRIPT_DIR}/lib/backup-crypto.sh"
   backup_minio_load_env
+  OBJECT_NAME="${OBJECT_NAME:-$(backup_crypto_latest_object)}"
   mkdir -p "$RESTORE_STAGING"
   DUMP_FILE="${RESTORE_STAGING}/${OBJECT_NAME}"
   log "downloading MinIO ${S3_BUCKET_BACKUPS}/postgres/${OBJECT_NAME} → ${DUMP_FILE}"
