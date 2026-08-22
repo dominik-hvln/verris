@@ -40,6 +40,32 @@ backup_crypto_ensure_age() {
     "binarka 'age' niedostępna i nie udało się jej doinstalować. Zainstaluj: 'apt-get install age' / 'dnf install age' / https://github.com/FiloSottile/age/releases" 41
 }
 
+# ── Nazwa obiektu „latest" w MinIO — JEDNO miejsce dla wszystkich ────────────
+#
+# Do 2026-08-22 nazwa „latest.sql.gz" była wpisana OSOBNO w czterech miejscach:
+# w drillu odtworzeniowym, w prod-health-snapshot.sh, w metryce Prometheusa
+# i w alercie. Backup wysyła „latest.sql.gz.age", bo szyfrowanie jest domyślnie
+# włączone i w produkcji obowiązkowe — więc trzy z tych czterech miejsc patrzyły
+# na obiekt, którego produkcja NIGDY nie tworzy.
+#
+# Skutek był taki, że metryka „kopia istnieje" pokazywała zero przez ponad
+# miesiąc i nikt tego nie zauważył: pokazywała zero od zawsze, więc wyglądało
+# to na normalny stan. Kopii rzeczywiście nie było, ale dowiedzieliśmy się o tym
+# z pierwszego prawdziwego drilla, a nie z monitoringu, który miał o tym mówić.
+#
+# Sufiks zależy od tego, czy szyfrujemy — dlatego to funkcja, nie stała, i stoi
+# obok backup_crypto_enabled, żeby odpowiedź na „czy .age" była wyprowadzana
+# z tego samego miejsca co decyzja o szyfrowaniu.
+BACKUP_LATEST_BASENAME="latest.sql.gz"
+
+backup_crypto_latest_object() {
+  if backup_crypto_enabled; then
+    printf '%s.age' "$BACKUP_LATEST_BASENAME"
+  else
+    printf '%s' "$BACKUP_LATEST_BASENAME"
+  fi
+}
+
 # Zwraca 0 gdy szyfrowanie jest włączone (domyślnie tak).
 backup_crypto_enabled() {
   local flag="${BACKUP_ENCRYPTION_ENABLED:-1}"

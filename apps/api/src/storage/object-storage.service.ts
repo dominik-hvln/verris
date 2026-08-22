@@ -9,6 +9,14 @@ import { Client as MinioClient, type ClientOptions, type ItemBucketMetadata } fr
 import type { Readable } from 'stream';
 import { ObjectBuckets, type ObjectBucket, type ObjectMetadata } from './object-storage.types';
 
+/**
+ * Nazwa obiektu „latest" w buckecie kopii. Sufiks `.age` bierze się z tego,
+ * że dumpy są szyfrowane (RODO art. 32) — wyłączenie szyfrowania zmienia
+ * nazwę i wtedy trzeba zmienić TĘ stałą razem z `ops/lib/backup-crypto.sh`.
+ * Pilnuje tego test `nazwa-obiektu-kopii.spec.ts`.
+ */
+export const OBIEKT_KOPII_LATEST = 'latest.sql.gz.age';
+
 interface BucketBootstrap {
   /** Logical bucket key, e.g. TICKET_ATTACHMENTS. */
   logical: ObjectBucket;
@@ -203,7 +211,23 @@ export class ObjectStorageService implements OnApplicationBootstrap {
   }
 
   /**
-   * Ostatni dump Postgres w MinIO (`postgres/latest.sql.gz`) — metryki Grafana / alerty.
+   * Ostatni dump Postgres w MinIO — metryki Grafana / alerty.
+   *
+   * NAZWA OBIEKTU ZALEŻY OD SZYFROWANIA. Do 2026-08-22 stało tu na sztywno
+   * `postgres/latest.sql.gz`, a backup wysyła `postgres/latest.sql.gz.age`,
+   * bo szyfrowanie jest w produkcji obowiązkowe.
+   *
+   * Precyzyjnie o skutku, bo łatwo tu przesadzić: w sierpniu 2026 metryka
+   * pokazywała zero ZGODNIE Z PRAWDĄ — kopii nie było w ogóle. Zła nazwa nie
+   * ukryła TAMTEJ awarii. Ukryłaby następną: po naprawie kopii metryka nadal
+   * czytałaby nieistniejący obiekt i zostałaby na zerze, alert
+   * VerrisPostgresBackupStale krzyczałby bez końca przy działających kopiach,
+   * a wtedy ktoś by go wyciszył. Alarm, który kłamie, kończy tak samo jak
+   * alarm, którego nie ma.
+   *
+   * Źródłem prawdy dla nazwy jest `ops/lib/backup-crypto.sh`
+   * (`backup_crypto_latest_object`); zgodności pilnuje test
+   * `apps/api/src/test/nazwa-obiektu-kopii.spec.ts`.
    */
   async getPostgresBackupLatestStat(): Promise<{
     ageSeconds: number;
@@ -212,7 +236,7 @@ export class ObjectStorageService implements OnApplicationBootstrap {
   } | null> {
     const bucket =
       this.config.get<string>('S3_BUCKET_BACKUPS') ?? 'verris-backups';
-    const key = 'postgres/latest.sql.gz';
+    const key = `postgres/${OBIEKT_KOPII_LATEST}`;
     try {
       const stat = await this.client.statObject(bucket, key);
       const lastModified = stat.lastModified ?? new Date(0);

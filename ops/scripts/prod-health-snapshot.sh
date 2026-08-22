@@ -45,11 +45,21 @@ for url in \
 done
 
 section "Backup MinIO (ostatni obiekt)"
+# Nazwa obiektu z JEDNEGO miejsca (ops/lib/backup-crypto.sh). Do 2026-08-22
+# stało tu na sztywno "latest.sql.gz" — obiekt, którego produkcja nie tworzy,
+# bo szyfrowanie dokłada sufiks .age. Ten snapshot meldował więc brak kopii
+# także wtedy, gdyby kopie działały, i nikt już go nie czytał.
 if [[ -f "$ENV_FILE" ]]; then
+  set -a; # shellcheck disable=SC1090
+  source "$ENV_FILE"; set +a
+  # shellcheck source=ops/lib/backup-crypto.sh
+  source "${ROOT}/ops/lib/backup-crypto.sh"
+  OBIEKT_KOPII="$(backup_crypto_latest_object)"
   docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" run --rm --no-deps \
-    --entrypoint /bin/sh minio-bootstrap -c '
+    --entrypoint /bin/sh -e "OBIEKT_KOPII=${OBIEKT_KOPII}" minio-bootstrap -c '
     mc alias set verris http://minio:9000 "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" 2>/dev/null
-    mc stat verris/verris-backups/postgres/latest.sql.gz 2>/dev/null || echo "brak latest.sql.gz"
+    mc stat "verris/${S3_BUCKET_BACKUPS:-verris-backups}/postgres/${OBIEKT_KOPII}" 2>/dev/null \
+      || echo "BRAK KOPII: ${OBIEKT_KOPII}"
   ' 2>/dev/null || echo "(mc stat failed — sprawdź MinIO)"
 else
   echo "Brak $ENV_FILE"

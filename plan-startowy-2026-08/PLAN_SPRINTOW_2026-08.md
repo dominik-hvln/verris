@@ -9,9 +9,9 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **2854 h** — przy 30 h tygodniowo około **22 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **2948 h** — przy 30 h tygodniowo około **23 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **20 sprintów do startu** (584 h) oraz roadmapę po starcie (2270 h, 145 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **20 sprintów do startu** (678 h) oraz roadmapę po starcie (2270 h, 145 pozycji) rozpisaną na epiki kwartalne.
 
 - **2026-10-23** — koniec sprintu 9, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-01-08** — koniec sprintu 20, decyzja GO.
@@ -32,13 +32,13 @@ Dlatego praca dzieli się na dwie części: **20 sprintów do startu** (584 h) o
 
 # Faza 0 — Zatrzymać krwawienie
 
-*Sprinty 1–3 · 104 h · 2026-08-24 – 2026-09-11*
+*Sprinty 1–3 · 198 h · 2026-08-24 – 2026-09-11*
 
 Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziurą, przez którą wyciekają pieniądze, albo drogą do przejęcia węzła przez klienta. Nic innego nie ma sensu przed nimi.
 
 ## Sprint 1 — Zatrzymać krwawienie i włączyć CI
 
-`2026-08-24 – 2026-08-28` · **32 h** z 30 h pojemności
+`2026-08-24 – 2026-08-28` · **68 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -46,6 +46,12 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 | `X-02` | Status wymagany do merge | 6 | — | ruleset „gałęzie wdrożeniowe — wymagaj zielonego CI" (id 21161479), Active, zakres: gałąź domyślna + live-release-readiness; wymagane 4 checki z ci.ym |
 | `X-03` | Testy uruchamiane przed wdrożeniem | 6 | WYSOKA | .github/workflows/deploy.yml — job test-gate (typecheck + pnpm --filter api test), build-push ma needs: test-gate |
 | `Z-02` | Blokada zamówienia usługi bez opłaty przez klienta | 6 | — | dto/subscription.dto.ts — @IsIn(CLIENT_PAYMENT_SOURCES); subscriptions.service.ts — ForbiddenException dla MANUAL bez allowManual; test subscriptions. |
+| `X-11` | Testy API w osobnym jobie CI, nie za typecheckiem | 6 | — | .github/workflows/ci.yml — osobny job api-tests o nazwie „API unit tests" |
+| `X-12` | Skrypty węzła serwowane przez API obecne w obrazie produkcyjnym | 6 | — | Dockerfile.api — COPY dla 10 skryptów; apps/api/src/test/dockerfile-scripts.spec.ts; D3: 2026-08-21 21:57 — `docker exec <api> ls -la ops/scripts/` na |
+| `X-13` | Jedna gałąź wdrożeniowa — main | 6 | — | .github/workflows/deploy.yml — on.push.branches: [main] |
+| `X-14` | CI sprawdza DANE po migracji, nie tylko czy migracja się wykonała | 6 | — | .github/workflows/ci.yml — job migrations: kroki „Seed reference data” i „Verify migrated data (Z-12, Z-13, Z-16)”; ops/sql/sprawdz-baze-po-migracji.s |
+| `X-15` | Niezmiennik księgi pojemności sprawdzany liczbowo, nie tekstowo | 6 | — | apps/api/src/subscriptions/ksiega-niezmiennik.spec.ts — 15 testów: losowe ciągi operacji (założenie konta, skalowanie w górę i w dół, zmiana planu, us |
+| `X-17` | Joby CI budują zależności workspace'u zanim uruchomią testy | 6 | — | .github/workflows/ci.yml — krok „Build workspace libraries” w jobie api-tests, „Generate Prisma client” w jobie migrations; turbo.json — zadanie test  |
 | `PB-01` | Unit economics węzła vs cena 45 zł/mies. brutto (399 zł/rok) | 8 | BLOKER BIZNESOWY | Policzyć pełny koszt węzła: serwer + CloudLinux + LiteSpeed + DirectAdmin + Imunify + backup S3 + amortyzacja wsparcia. Wyliczyć próg rentowności w ko |
 
 **Definicja ukończenia**
@@ -54,29 +60,51 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 - `X-02` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-03` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `Z-02` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `X-11` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `X-12` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `X-13` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `X-14` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `X-15` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `X-17` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `PB-01` — Arkusz z kosztem miesięcznym węzła, liczbą kont na węzeł, marżą jednostkową i progiem rentowności. Decyzja: cena zostaje albo się zmienia — zapisana w repo.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-01.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** PB-01 może wywrócić cenę 45 zł. Dlatego jest w pierwszym sprincie, a nie w ostatnim — wynik zmienia treść cennika w sprincie 15.
+**Ryzyko sprintu.** PB-01 może wywrócić cenę 45 zł. Dlatego jest w pierwszym sprincie, a nie w ostatnim — wynik zmienia treść cennika w sprincie 15. Sprint urósł o sześć pozycji odkrytych przy włączaniu CI — nie było ich w planie z 2026-08.
 
 ## Sprint 2 — Zamknąć luki bezpieczeństwa z passu adwersaryjnego
 
-`2026-08-31 – 2026-09-04` · **28 h** z 30 h pojemności
+`2026-08-31 – 2026-09-04` · **86 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
 | `Z-04` | Guard uprawnień subkont — domyślna odmowa | 6 | — | customer-permissions.guard.ts — typ WymogTrasy, REGULY_TRAS, domyślne 'ODMOWA'; customer-permissions-coverage.spec.ts — 55 tras zamkniętych, lista jaw |
 | `Z-03` | Walidacja danych migracji przed użyciem w poleceniu powłoki | 16 | — | dto/migration.dto.ts — MIGRACJA_WZORCE + @Matches na 17 polach; ops/scripts/lib/migration-input-guard.sh — vg_require; node-migration-worker.sh — fail |
 | `Z-06` | Klucz idempotencji obciążenia za dodatek | 6 | — | addon.service.ts — kluczIdempotencji + sprawdzenie duplikatu przed obciążeniem + obsługa P2002; schema.prisma — PurchasedAddon.idempotencyKey @unique; |
+| `X-18` | Zależności podniesione do najnowszych bezpiecznych wersji | 16 | — | package.json — 16 pnpm.overrides na zależności przechodnie; apps/www next 15.4.4 → 16.3.2; wszystkie panele next 16.3.2; NestJS 11.2.1; React 19.2.8;  |
+| `X-21` | Deklaracje typów opisują tę wersję biblioteki, która jest zainstalowana | 6 | — | apps/api/package.json — @types/archiver ^8.0.0 przy archiver ^8.0.0; apps/api/src/test/typy-zgodne-z-runtime.spec.ts — 12 testów; package.json — engin |
+| `X-23` | Bramka podatności zatrzymuje wdrożenie, a nie tylko dopisuje adnotację | 6 | — | ops/ci/audyt-bramka.cjs; ops/ci/podatnosci-dopuszczone.json; .github/workflows/ci.yml — krok „Bramka podatności" bez continue-on-error; apps/api/src/t |
+| `X-24` | Panel admina woła ścieżki, które API naprawdę wystawia | 6 | — | apps/api/src/test/sciezki-panelu.spec.ts — 5 testów; porównuje wywołania adminApi() z panelu z trasami zadeklarowanymi w kontrolerach API |
+| `X-25` | Asercje po migracji biegną także na produkcji, z rollbackiem przy naruszeniu | 6 | — | ops/sql/po-migracji-niezmienniki.sql — CI I PRODUKCJA, 14 RAISE EXCEPTION (Z-01, Z-05, Z-12, Z-13, Z-16, M-06); ops/sql/po-migracji-katalog.sql — tylk |
+| `X-26` | Skrypty powłoki mają bit wykonywalności — także po świeżym git clone | 6 | — | apps/api/src/test/skrypty-wykonywalne.spec.ts (3) — żaden .sh w repozytorium bez bitu wykonywalności; 82 skrypty przestawione na tryb 100755 (16 z nic |
+| `X-27` | Obraz, który trafia na serwer, buduje się przed scaleniem | 6 | — | Dockerfile.api / Dockerfile.panel — ponowna instalacja PO `COPY libs libs`; package.json — pnpm.overrides @prisma/client 6.19.3 (drzewo znów ma jedną  |
+| `H-24` | Nazwa obiektu kopii i drill odtworzeniowy mają po jednym miejscu | 6 | — | ops/lib/backup-crypto.sh — backup_crypto_latest_object(), jedno źródło nazwy obiektu; ops/scripts/restore-drill-isolated.sh — nazwa z biblioteki + wer |
 
 **Definicja ukończenia**
 
 - `Z-04` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `Z-03` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `Z-06` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `X-18` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `X-21` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `X-23` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `X-24` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `X-25` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `X-26` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `X-27` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `H-24` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-02.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** Z-03 dotyka skryptów na węźle — zmiana wymaga przetestowania całej ścieżki migracji, nie tylko walidacji DTO.
+**Ryzyko sprintu.** Z-03 dotyka skryptów na węźle — zmiana wymaga przetestowania całej ścieżki migracji, nie tylko walidacji DTO. Sprint urósł o osiem pozycji odkrytych w trakcie: podatności, strażniki, bramki wdrożeniowe i awaria kopii bazy (H-23/H-24). Przeciążenie jest prawdziwe i celowo widoczne — praca została wykonana, plan jej nie przewidywał.
 
 ## Sprint 3 — Pojemność węzła i plan produkcyjny
 
