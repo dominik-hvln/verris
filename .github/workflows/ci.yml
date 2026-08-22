@@ -210,6 +210,74 @@ jobs:
                -f ops/sql/sprawdz-baze-po-migracji.sql
 
   # ---------------------------------------------------------------------------
+  # X-04 — testy integracyjne przeciwko PRAWDZIWEJ bazie.
+  #
+  # Wszystkie pozostałe testy API podstawiają fałszywą Prismę: dowodzą, że logika
+  # jest poprawna, nie że zapytanie zwraca to, czego się po nim spodziewamy.
+  # Tutaj Postgres jest prawdziwy, a fałszywe zostaje wyłącznie to, co jest
+  # naprawdę na zewnątrz — DirectAdmin, poczta, dziennik audytu.
+  #
+  # Job NIE jest jeszcze wymagany do scalenia (ruleset z X-02). Zostanie do
+  # niego dopisany po pierwszym zielonym przebiegu na main — dokładanie
+  # nieprzetestowanego checka jako wymaganego zablokowałoby merge na ślepo.
+  # ---------------------------------------------------------------------------
+  integration:
+    name: API integration tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: verris
+          POSTGRES_PASSWORD: verris_password
+          POSTGRES_DB: verris_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U verris -d verris_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://verris:verris_password@localhost:5432/verris_test?schema=public
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.5.0
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm db:generate
+
+      - name: Apply migrations
+        working-directory: libs/database
+        run: npx prisma migrate deploy
+
+      # Serwisy importują @verris/database i @verris/directadmin-sdk po ich
+      # `main`, czyli z dist/. Bez tego kroku jest nie rozwiąże modułów.
+      - name: Build workspace libraries
+        run: pnpm --filter @verris/database --filter @verris/contracts --filter @verris/directadmin-sdk run build
+
+      - name: Run integration tests
+        working-directory: apps/api
+        run: npx jest --config jest.integration.cjs
+
+  # ---------------------------------------------------------------------------
   # CYBER-5/6 — skany bezpieczeństwa: sekrety w repo, znane CVE w zależnościach,
   # podatności w obrazach kontenerów. Nie blokują buildu (report-only na start),
   # ale dają widoczność. Podnieś do gate, gdy baza będzie czysta.
