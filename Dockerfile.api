@@ -37,6 +37,30 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm-store \
 FROM deps AS build
 COPY libs libs
 COPY apps/api apps/api
+
+# X-27 — dowiązania pakietów odtwarzamy PO skopiowaniu źródeł.
+#
+# `COPY libs libs` kładzie katalogi pakietów na te, które zostawił etap `deps`,
+# i pakiet traci WŁASNE node_modules. Dopóki każda zależność lądowała
+# w node_modules katalogu głównego (linker `hoisted`), nie było tego widać.
+#
+# Przestało być prawdą przy X-18: apps/www podniosło Payloada, a jego adapter
+# postgresowy ciągnie drizzle-orm, które ma @prisma/client jako peer OPCJONALNY.
+# pnpm dociąga takie peery same z siebie (autoInstallPeers), więc w drzewie
+# stanęły DWIE wersje: 7.9.1 na górze i nasze 6.19.3 w libs/database. Po COPY
+# zostawała tylko ta z góry, a `prisma generate` z CLI 6.19.3 nie umie pracować
+# z klientem 7.x — stąd „Could not resolve @prisma/client", które wywaliło
+# deploy #63.
+#
+# Samą tę wersję domyka `pnpm.overrides` — drzewo ma znów jedną. Ten krok
+# zostaje mimo to, bo naprawia co innego: założenie, że KAŻDA zależność
+# hoistuje się do korzenia. Trzymało się przypadkiem, do pierwszego pakietu
+# występującego w dwóch wersjach. Przy ciepłym magazynie kosztuje kilkanaście
+# sekund.
+RUN --mount=type=cache,id=pnpm,target=/pnpm-store \
+    pnpm config set store-dir /pnpm-store && \
+    pnpm install --frozen-lockfile --prefer-offline --filter api... --filter @verris/database...
+
 RUN pnpm --filter @verris/database run db:generate && \
     pnpm --filter @verris/database build && \
     pnpm --filter @verris/database run build:seed && \

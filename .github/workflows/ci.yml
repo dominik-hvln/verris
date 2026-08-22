@@ -389,3 +389,40 @@ jobs:
           severity: HIGH,CRITICAL
           ignore-unfixed: true
           exit-code: '0'
+
+  # ---------------------------------------------------------------------------
+  # X-27 — obraz API buduje się w CI, a nie dopiero przy wdrożeniu.
+  #
+  # Deploy #63 wywalił się na budowaniu obrazu `verris-api` — już PO scaleniu
+  # do main, bo do tej pory jedynym miejscem, gdzie ten obraz w ogóle powstawał,
+  # był workflow wdrożeniowy. Bramka scalenia sprawdzała lint, typy, testy
+  # i migracje; nie sprawdzała rzeczy, która jako jedyna trafia na serwer.
+  #
+  # Błąd był niewidoczny dla wszystkich pozostałych kroków: `pnpm build`
+  # w repozytorium przechodzi, bo tam node_modules są kompletne. Rozjeżdżało
+  # się wyłącznie w układzie plików wewnątrz obrazu (patrz komentarz
+  # w Dockerfile.api).
+  #
+  # Budujemy BEZ pushowania — chodzi o to, czy build przechodzi, nie o artefakt.
+  # Panele świadomie pominięte: mają własny Dockerfile, budują się ~2,5 minuty
+  # każdy i nie zawierają Prismy. Jeżeli kiedyś wywali się panel, ten job
+  # dostanie drugą pozycję w macierzy, a nie listę wyjątków.
+  # ---------------------------------------------------------------------------
+  obraz-api:
+    name: Obraz API (build bez push)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build obrazu API
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.api
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

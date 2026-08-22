@@ -70,6 +70,20 @@ ENV API_URL=${API_URL} \
 COPY libs libs
 COPY apps/${APP_NAME} apps/${APP_NAME}
 RUN mkdir -p apps/${APP_NAME}/public
+
+# X-27 — dowiązania pakietów odtwarzamy PO skopiowaniu źródeł.
+#
+# `COPY libs libs` kładzie katalogi pakietów na te, które zostawił etap `deps`,
+# i pakiet traci WŁASNE node_modules. Dopóki każda zależność lądowała
+# w node_modules katalogu głównego (linker `hoisted`), nie było tego widać —
+# aż w drzewie stanęły dwie wersje jednego pakietu i ta zagnieżdżona zniknęła.
+# Tu jeszcze nie wybuchło, ale to ten sam plik-bliźniak co Dockerfile.api
+# i ta sama poprawka; naprawiona jedna kopia, a druga zostawiona, to wzorzec,
+# który dał w tym projekcie Z-12, Z-16 i X-24.
+RUN --mount=type=cache,id=pnpm,target=/pnpm-store \
+    pnpm config set store-dir /pnpm-store && \
+    pnpm install --frozen-lockfile --prefer-offline --filter @verris/${APP_NAME}...
+
 RUN pnpm --filter @verris/${APP_NAME} build
 
 # -----------------------------------------------------------------------------
