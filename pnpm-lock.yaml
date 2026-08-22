@@ -22,6 +22,7 @@ overrides:
   typescript: ^5.9.3
   esbuild: ^0.25.0
   body-parser: ^2.3.0
+  '@prisma/client': 6.19.3
 
 importers:
 
@@ -403,7 +404,7 @@ importers:
     dependencies:
       '@payloadcms/db-postgres':
         specifier: ^3.88.0
-        version: 3.88.0(@electric-sql/pglite@0.5.6)(@prisma/client@7.9.1(typescript@5.9.3))(mysql2@3.23.4(@types/node@26.2.0))(payload@3.88.0(graphql@16.14.2)(typescript@5.9.3))(postgres@3.4.9)
+        version: 3.88.0(@electric-sql/pglite@0.5.6)(@prisma/client@6.19.3(typescript@5.9.3))(mysql2@3.23.4(@types/node@26.2.0))(payload@3.88.0(graphql@16.14.2)(typescript@5.9.3))(postgres@3.4.9)
       '@payloadcms/next':
         specifier: ^3.88.0
         version: 3.88.0(@types/react@19.2.18)(graphql@16.14.2)(monaco-editor@0.56.0)(next@16.3.2(@types/node@26.2.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(sass@1.103.1))(payload@3.88.0(graphql@16.14.2)(typescript@5.9.3))(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(typescript@5.9.3)
@@ -468,7 +469,7 @@ importers:
   libs/database:
     dependencies:
       '@prisma/client':
-        specifier: ^6.19.3
+        specifier: 6.19.3
         version: 6.19.3(prisma@6.19.3(typescript@5.9.3))(typescript@5.9.3)
     devDependencies:
       '@types/bcrypt':
@@ -2307,24 +2308,9 @@ packages:
   '@preact/signals-core@1.14.4':
     resolution: {integrity: sha512-HNB6HYeYKhQbJ1aKl+YRjrS4+QWHLKX6qKoUsfS/m0vqzsVaEBiZiaKbG/e+NKk2ch5ALQr/ihWaMHxiCuuWHA==}
 
-  '@prisma/client-runtime-utils@7.9.1':
-    resolution: {integrity: sha512-mVIBGYdO5CFmK0HvjxrtfIyQQcPdb88pSCeVQriVQPVZyDovIWblpHfOgcS8QO187j3QF0ePArH8qPhp0AU2vg==}
-
   '@prisma/client@6.19.3':
     resolution: {integrity: sha512-mKq3jQFhjvko5LTJFHGilsuQs+W+T3Gm451NzuTDGQxwCzwXHYnIu2zGkRoW+Exq3Rob7yp2MfzSrdIiZVhrBg==}
     engines: {node: '>=18.18'}
-    peerDependencies:
-      prisma: '*'
-      typescript: ^5.9.3
-    peerDependenciesMeta:
-      prisma:
-        optional: true
-      typescript:
-        optional: true
-
-  '@prisma/client@7.9.1':
-    resolution: {integrity: sha512-+xgrh2EhJVF79wC0yX5G4PI1Rdcm7Qn/nekNQ+t/O153wtNggruHal+fXHSa0QE+Tp/Cw5wvxeCEhZZ59xGm8Q==}
-    engines: {node: ^20.19 || ^22.12 || >=24.0}
     peerDependencies:
       prisma: '*'
       typescript: ^5.9.3
@@ -4735,7 +4721,7 @@ packages:
       '@op-engineering/op-sqlite': '>=2'
       '@opentelemetry/api': ^1.4.1
       '@planetscale/database': '>=1.13'
-      '@prisma/client': '*'
+      '@prisma/client': 6.19.3
       '@tidbcloud/serverless': '*'
       '@types/better-sqlite3': '*'
       '@types/pg': '*'
@@ -10085,13 +10071,13 @@ snapshots:
       '@parcel/watcher-win32-x64': 2.6.0
     optional: true
 
-  '@payloadcms/db-postgres@3.88.0(@electric-sql/pglite@0.5.6)(@prisma/client@7.9.1(typescript@5.9.3))(mysql2@3.23.4(@types/node@26.2.0))(payload@3.88.0(graphql@16.14.2)(typescript@5.9.3))(postgres@3.4.9)':
+  '@payloadcms/db-postgres@3.88.0(@electric-sql/pglite@0.5.6)(@prisma/client@6.19.3(typescript@5.9.3))(mysql2@3.23.4(@types/node@26.2.0))(payload@3.88.0(graphql@16.14.2)(typescript@5.9.3))(postgres@3.4.9)':
     dependencies:
-      '@payloadcms/drizzle': 3.88.0(@electric-sql/pglite@0.5.6)(@prisma/client@7.9.1(typescript@5.9.3))(@types/pg@8.20.0)(mysql2@3.23.4(@types/node@26.2.0))(payload@3.88.0(graphql@16.14.2)(typescript@5.9.3))(pg@8.20.0)(postgres@3.4.9)
+      '@payloadcms/drizzle': 3.88.0(@electric-sql/pglite@0.5.6)(@prisma/client@6.19.3(typescript@5.9.3))(@types/pg@8.20.0)(mysql2@3.23.4(@types/node@26.2.0))(payload@3.88.0(graphql@16.14.2)(typescript@5.9.3))(pg@8.20.0)(postgres@3.4.9)
       '@types/pg': 8.20.0
       console-table-printer: 2.12.1
       drizzle-kit: 0.31.7
-      drizzle-orm: 0.45.2(@electric-sql/pglite@0.5.6)(@prisma/client@7.9.1(typescript@5.9.3))(@types/pg@8.20.0)(mysql2@3.23.4(@types/node@26.2.0))(pg@8.20.0)(postgres@3.4.9)
+      drizzle-orm: 0.45.2(@electric-sql/pglite@0.5.6)(@prisma/client@6.19.3(typescript@5.9.3))(@types/pg@8.20.0)(mysql2@3.23.4(@types/node@26.2.0))(pg@8.20.0)(postgres@3.4.9)
       payload: 3.88.0(graphql@16.14.2)(typescript@5.9.3)
       pg: 8.20.0
       prompts: 2.4.2
@@ -10128,11 +10114,11 @@ snapshots:
       - sqlite3
       - supports-color
 
-  '@payloadcms/drizzle@3.88.0(@electric-sql/pglite@0.5.6)(@prisma/client@7.9.1(typescript@5.9.3))(@types/pg@8.20.0)(mysql2@3.23.4(@types/node@26.2.0))(payload@3.88.0(graphql@16.14.2)(typescript@5.9.3))(pg@8.20.0)(postgres@3.4.9)':
+  '@payloadcms/drizzle@3.88.0(@electric-sql/pglite@0.5.6)(@prisma/client@6.19.3(typescript@5.9.3))(@types/pg@8.20.0)(mysql2@3.23.4(@types/node@26.2.0))(payload@3.88.0(graphql@16.14.2)(typescript@5.9.3))(pg@8.20.0)(postgres@3.4.9)':
     dependencies:
       console-table-printer: 2.12.1
       dequal: 2.0.3
-      drizzle-orm: 0.45.2(@electric-sql/pglite@0.5.6)(@prisma/client@7.9.1(typescript@5.9.3))(@types/pg@8.20.0)(mysql2@3.23.4(@types/node@26.2.0))(pg@8.20.0)(postgres@3.4.9)
+      drizzle-orm: 0.45.2(@electric-sql/pglite@0.5.6)(@prisma/client@6.19.3(typescript@5.9.3))(@types/pg@8.20.0)(mysql2@3.23.4(@types/node@26.2.0))(pg@8.20.0)(postgres@3.4.9)
       payload: 3.88.0(graphql@16.14.2)(typescript@5.9.3)
       prompts: 2.4.2
       to-snake-case: 1.0.0
@@ -10440,20 +10426,10 @@ snapshots:
 
   '@preact/signals-core@1.14.4': {}
 
-  '@prisma/client-runtime-utils@7.9.1':
-    optional: true
-
   '@prisma/client@6.19.3(prisma@6.19.3(typescript@5.9.3))(typescript@5.9.3)':
     optionalDependencies:
       prisma: 6.19.3(typescript@5.9.3)
       typescript: 5.9.3
-
-  '@prisma/client@7.9.1(typescript@5.9.3)':
-    dependencies:
-      '@prisma/client-runtime-utils': 7.9.1
-    optionalDependencies:
-      typescript: 5.9.3
-    optional: true
 
   '@prisma/config@6.19.3':
     dependencies:
@@ -13011,10 +12987,10 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@0.45.2(@electric-sql/pglite@0.5.6)(@prisma/client@7.9.1(typescript@5.9.3))(@types/pg@8.20.0)(mysql2@3.23.4(@types/node@26.2.0))(pg@8.20.0)(postgres@3.4.9):
+  drizzle-orm@0.45.2(@electric-sql/pglite@0.5.6)(@prisma/client@6.19.3(typescript@5.9.3))(@types/pg@8.20.0)(mysql2@3.23.4(@types/node@26.2.0))(pg@8.20.0)(postgres@3.4.9):
     optionalDependencies:
       '@electric-sql/pglite': 0.5.6
-      '@prisma/client': 7.9.1(typescript@5.9.3)
+      '@prisma/client': 6.19.3(prisma@6.19.3(typescript@5.9.3))(typescript@5.9.3)
       '@types/pg': 8.20.0
       mysql2: 3.23.4(@types/node@26.2.0)
       pg: 8.20.0
@@ -13230,8 +13206,8 @@ snapshots:
       '@next/eslint-plugin-next': 16.3.2(eslint@9.39.5(jiti@2.7.0))
       eslint: 9.39.5(jiti@2.7.0)
       eslint-import-resolver-node: 0.3.10
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0))
-      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0))
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.5(jiti@2.7.0))
+      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@2.7.0))
       eslint-plugin-jsx-a11y: 6.10.2(eslint@9.39.5(jiti@2.7.0))
       eslint-plugin-react: 7.37.5(eslint@9.39.5(jiti@2.7.0))
       eslint-plugin-react-hooks: 7.1.1(eslint@9.39.5(jiti@2.7.0))
@@ -13253,7 +13229,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0)):
+  eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.5(jiti@2.7.0)):
     dependencies:
       '@nolyfill/is-core-module': 1.0.39
       debug: 4.4.3
@@ -13264,7 +13240,7 @@ snapshots:
       tinyglobby: 0.2.17
       unrs-resolver: 1.12.2
     optionalDependencies:
-      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0))
+      eslint-plugin-import: 2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@2.7.0))
     transitivePeerDependencies:
       - supports-color
 
@@ -13274,11 +13250,11 @@ snapshots:
     optionalDependencies:
       eslint: 9.39.5(jiti@2.7.0)
       eslint-import-resolver-node: 0.3.10
-      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0))
+      eslint-import-resolver-typescript: 3.10.1(eslint-plugin-import@2.32.0)(eslint@9.39.5(jiti@2.7.0))
     transitivePeerDependencies:
       - supports-color
 
-  eslint-plugin-import@2.32.0(eslint-import-resolver-typescript@3.10.1(eslint-plugin-import@2.32.0(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0)))(eslint@9.39.5(jiti@2.7.0)):
+  eslint-plugin-import@2.32.0(eslint-import-resolver-typescript@3.10.1)(eslint@9.39.5(jiti@2.7.0)):
     dependencies:
       '@rtsao/scc': 1.1.0
       array-includes: 3.1.9
