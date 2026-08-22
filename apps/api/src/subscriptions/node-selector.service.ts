@@ -79,9 +79,13 @@ export class NodeSelectorService {
     const idKandydatow = candidates.map((c) => c.id);
 
     // Liczba kont per węzeł — potrzebna do limitu maxAccounts.
+    //
+    // Z-16: konta DELETED nie liczą się. Wcześniej liczyły, więc węzeł
+    // z limitem 200 kont przestawał przyjmować nowe po dwustu założeniach,
+    // niezależnie od tego, ile z nich już nie istnieje.
     const accountCounts = await this.prisma.account.groupBy({
       by: ['serverId'],
-      where: { serverId: { in: idKandydatow } },
+      where: { serverId: { in: idKandydatow }, status: { not: 'DELETED' } },
       _count: { _all: true },
     });
     const countByServer = new Map<string, number>(

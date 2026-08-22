@@ -6,6 +6,7 @@ import {
   SLUGI_PLANOW_PROTOTYPOWYCH,
   SUFITY_Z_OFERTY,
 } from './plan-produkcyjny';
+import { krotnoscAutoskalowania } from '../subscriptions/node-capacity';
 
 /**
  * Z-13 — uzgodnienie trzech warstw, które do 2026-08-22 mówiły trzy różne rzeczy:
@@ -176,47 +177,70 @@ describe('Z-13 — pakiet ze strony istnieje w bazie i zgadza się z ofertą', (
     });
   });
 
-  describe('Z-16 — sufit oferty NIE JEST dziś osiągalny (rozbieżność pilnowana)', () => {
+  describe('Z-16 — sufit oferty jest dowożony przez silnik', () => {
     /**
-     * `autoscaling-engine.service.ts` przycina krotność do 10× niezależnie od
-     * tego, co stoi w planie. Oferta obiecuje 12× dla CPU i 20× dla dysku.
+     * Ten blok jest zapisem tego, że mechanizm zadziałał zgodnie z zamysłem.
      *
-     * Ten test nie udaje, że problemu nie ma — utrwala go, żeby zniknął
-     * świadomie. Kiedy Z-16 podniesie próg, test zapali się na czerwono
-     * i zmusi do przejrzenia oferty razem ze zmianą silnika.
+     * Przy Z-13 stał tu test utrwalający ROZBIEŻNOŚĆ: silnik przycinał krotność
+     * do 10×, oferta obiecywała 12× dla CPU i 20× dla dysku, więc realnie
+     * dawaliśmy 20 vCPU i 500 GB zamiast 24 i 1000. Test był napisany tak, żeby
+     * zapalić się na czerwono w chwili zmiany progu — i zmusić do przejrzenia
+     * oferty razem ze zmianą silnika, zamiast pozwolić im rozjechać się po cichu.
+     *
+     * Z-16 zmieniło próg. Test zapalił się. Blok został przepisany świadomie —
+     * i tak właśnie miał zniknąć.
      */
-    const PROG_SILNIKA = 10;
+    it('krotności z oferty przechodzą przez silnik bez przycięcia', () => {
+      for (const krotnosc of [
+        PLAN_PRODUKCYJNY.autoscalingMaxOverscaleCpu,
+        PLAN_PRODUKCYJNY.autoscalingMaxOverscaleRam,
+        PLAN_PRODUKCYJNY.autoscalingMaxOverscaleDisk,
+      ]) {
+        expect(krotnoscAutoskalowania(krotnosc)).toBe(krotnosc);
+      }
+    });
 
-    function odczytajProgSilnika(): number {
+    it('sufity osiągalne w praktyce równają się reklamowanym', () => {
+      const cpuOsiagalne =
+        BAZA_Z_OFERTY.cpuVCpu * krotnoscAutoskalowania(PLAN_PRODUKCYJNY.autoscalingMaxOverscaleCpu);
+      const ramOsiagalny =
+        BAZA_Z_OFERTY.ramGb * krotnoscAutoskalowania(PLAN_PRODUKCYJNY.autoscalingMaxOverscaleRam);
+      const dyskOsiagalny =
+        BAZA_Z_OFERTY.diskGb *
+        krotnoscAutoskalowania(PLAN_PRODUKCYJNY.autoscalingMaxOverscaleDisk);
+
+      expect(cpuOsiagalne).toBe(SUFITY_Z_OFERTY.cpuVCpu);
+      expect(ramOsiagalny).toBe(SUFITY_Z_OFERTY.ramGb);
+      expect(dyskOsiagalny).toBe(SUFITY_Z_OFERTY.diskGb);
+    });
+
+    it('w silniku nie ma już zaszytego sufitu — krotność bierze się z planu', () => {
       const src = readFileSync(
         resolve(KORZEN, 'apps/api/src/autoscaling/autoscaling-engine.service.ts'),
         'utf-8',
       );
-      const m = src.match(/return Math\.min\(value,\s*(\d+)\)/);
-      expect(m).not.toBeNull();
-      return Number(m![1]);
-    }
-
-    it('próg w silniku jest nadal tam, gdzie go zastaliśmy', () => {
-      expect(odczytajProgSilnika()).toBe(PROG_SILNIKA);
+      expect(src).not.toMatch(/Math\.min\(value,\s*\d+\)/);
+      expect(src).toContain('krotnoscAutoskalowania(value)');
     });
 
-    it('RAM mieści się w progu — sufit 64 GB jest osiągalny', () => {
-      expect(PLAN_PRODUKCYJNY.autoscalingMaxOverscaleRam).toBeLessThanOrEqual(PROG_SILNIKA);
+    it('silnik pyta węzeł o pojemność przed skalowaniem w górę', () => {
+      // Bez tego podniesienie sufitu byłoby regresją bezpieczeństwa, a nie
+      // poprawką: konto rosłoby do 20× na maszynie, która o tym nie wie.
+      const src = readFileSync(
+        resolve(KORZEN, 'apps/api/src/autoscaling/autoscaling-engine.service.ts'),
+        'utf-8',
+      );
+      expect(src).toContain('ogranicznikPojemnosciWezla');
+      expect(src).toContain('wolneDoZadysponowania');
     });
 
-    it('CPU i dysk NIE mieszczą się — to jest treść Z-16', () => {
-      expect(PLAN_PRODUKCYJNY.autoscalingMaxOverscaleCpu).toBeGreaterThan(PROG_SILNIKA);
-      expect(PLAN_PRODUKCYJNY.autoscalingMaxOverscaleDisk).toBeGreaterThan(PROG_SILNIKA);
-    });
-
-    it('realnie osiągalny sufit jest niższy od reklamowanego — o ile dokładnie', () => {
-      const cpuOsiagalne = BAZA_Z_OFERTY.cpuVCpu * PROG_SILNIKA;
-      const dyskOsiagalny = BAZA_Z_OFERTY.diskGb * PROG_SILNIKA;
-      expect(cpuOsiagalne).toBe(20); // oferta mówi 24
-      expect(dyskOsiagalny).toBe(500); // oferta mówi 1000
-      expect(cpuOsiagalne).toBeLessThan(SUFITY_Z_OFERTY.cpuVCpu);
-      expect(dyskOsiagalny).toBeLessThan(SUFITY_Z_OFERTY.diskGb);
+    it('nadwyżka trafia do księgi węzła, nie tylko do DirectAdmina', () => {
+      const src = readFileSync(
+        resolve(KORZEN, 'apps/api/src/autoscaling/autoscaling-engine.service.ts'),
+        'utf-8',
+      );
+      expect(src).toContain('allocatedMemory: { increment: deltaRam }');
+      expect(src).toContain('allocatedDisk: { increment: deltaDisk }');
     });
   });
 });

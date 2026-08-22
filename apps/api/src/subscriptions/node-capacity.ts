@@ -5,9 +5,15 @@
  * DWIE KSIĘGI, KTÓRYCH NIE WOLNO MYLIĆ
  * ────────────────────────────────────────────────────────────────────────────
  *
- * 1. SPRZEDANE (`Server.allocatedCpu/Memory/Disk`) — suma limitów planów
- *    wszystkich kont na węźle. Rośnie przy provisioningu o PEŁNY limit planu.
- *    To jest zobowiązanie handlowe, nie zajętość maszyny.
+ * 1. SPRZEDANE (`Server.allocatedCpu/Memory/Disk`) — wszystko, co węzeł komuś
+ *    obiecał. Rośnie przy provisioningu o PEŁNY limit planu oraz — od Z-16 —
+ *    o nadwyżkę przyznaną przez autoskalowanie. To jest zobowiązanie handlowe,
+ *    nie zajętość maszyny.
+ *
+ *    Do Z-16 autoskalowanie podnosiło limity konta w DirectAdminie, nie
+ *    dopisując ich tutaj. Skutek: dwie warstwy nadsubskrybowały ten sam węzeł
+ *    niezależnie od siebie i żadna nie widziała drugiej — placement liczył
+ *    limity bazowe, a nadwyżka istniała poza księgą.
  *
  * 2. REALNE ZUŻYCIE (`UsageMetric` po `serverId`) — ile węzeł faktycznie zjada.
  *    To jest zajętość maszyny.
@@ -253,6 +259,88 @@ export function czyZmiesciSie(args: {
   }
 
   return { mozna: true, obciazenie, telemetriaSwieza };
+}
+
+/**
+ * Z-16 — ile węzeł może JESZCZE zadysponować ponad to, co już obiecał.
+ *
+ * Używane przez autoskalowanie, żeby przyznać kontu nadwyżkę tylko do wysokości,
+ * którą węzeł faktycznie ma. Wcześniej silnik autoskalowania w ogóle nie pytał
+ * o węzeł: podnosił limity w DirectAdminie i tyle.
+ *
+ * Zwraca zera dla zasobu, którego REALNIE zaczyna brakować — dokładanie
+ * gigabajtów na maszynie, która ich nie ma, jest właśnie tą awarią, przed którą
+ * bramka fizyczna chroni przy sprzedaży.
+ *
+ * Wynik jest zawsze nieujemny. Węzeł nadsubskrybowany ponad politykę (bo admin
+ * obniżył współczynnik) zwraca zera, a nie liczby ujemne — autoskalowanie ma
+ * wtedy nie rosnąć, a nie kurczyć konta klienta w tle.
+ */
+export function wolneDoZadysponowania(args: {
+  fizyczna: PojemnoscFizyczna;
+  sprzedane: Sprzedane;
+  zuzycie: ZuzycieRealne;
+  polityka: PolitykaPojemnosci;
+}): PojemnoscFizyczna {
+  const { fizyczna, sprzedane, zuzycie, polityka } = args;
+
+  if (fizyczna.cpu <= 0 || fizyczna.ramMb <= 0 || fizyczna.diskMb <= 0) {
+    return { cpu: 0, ramMb: 0, diskMb: 0 };
+  }
+
+  const telemetriaSwieza = zuzycie !== null;
+  const sprzedazowa = pojemnoscSprzedazowa(fizyczna, polityka, telemetriaSwieza);
+
+  const headroom = przytnij(polityka.reservedHeadroomPercent, 0, 90) / 100;
+  const dostepneFizycznie = {
+    cpu: fizyczna.cpu * (1 - headroom),
+    ramMb: fizyczna.ramMb * (1 - headroom),
+    diskMb: fizyczna.diskMb * (1 - headroom),
+  };
+
+  const dodatnie = (v: number) => (Number.isFinite(v) && v > 0 ? v : 0);
+
+  // Bramka fizyczna: zasób, którego realnie brakuje, jest zamknięty niezależnie
+  // od tego, ile zostało w księdze handlowej.
+  const zablokowany = {
+    cpu: zuzycie ? zuzycie.cpu >= dostepneFizycznie.cpu : false,
+    ramMb: zuzycie ? zuzycie.ramMb >= dostepneFizycznie.ramMb : false,
+    diskMb: zuzycie ? zuzycie.diskMb >= dostepneFizycznie.diskMb : false,
+  };
+
+  return {
+    cpu: zablokowany.cpu ? 0 : dodatnie(sprzedazowa.cpu - sprzedane.cpu),
+    ramMb: zablokowany.ramMb ? 0 : dodatnie(sprzedazowa.ramMb - sprzedane.ramMb),
+    diskMb: zablokowany.diskMb ? 0 : dodatnie(sprzedazowa.diskMb - sprzedane.diskMb),
+  };
+}
+
+/**
+ * Górna granica krotności autoskalowania dopuszczalna w definicji planu.
+ *
+ * Do Z-16 silnik przycinał krotność do 10× na sztywno — bez związku z tym, co
+ * stało w planie. Oferta Verris obiecuje 12× dla CPU i 20× dla dysku, więc
+ * sufit nie był osiągalny, a klient płacący za nadwyżkę godzinowo nie dostawał
+ * tego, za co zapłacił.
+ *
+ * Podniesienie progu było bezpieczne DOPIERO po dołożeniu sprawdzania pojemności
+ * węzła (`wolneDoZadysponowania`). Odwrotna kolejność powiększyłaby promień
+ * rażenia: konto rosłoby do 20× na maszynie, która o tym nie wie.
+ *
+ * Granica istnieje nadal, ale jako zabezpieczenie przed literówką w definicji
+ * planu, a nie jako ukryty sufit produktu.
+ */
+export const MAKS_KROTNOSC_AUTOSKALOWANIA = 32;
+
+/** Domyślna krotność, gdy plan ma wartość bezsensowną. */
+export const DOMYSLNA_KROTNOSC_AUTOSKALOWANIA = 3;
+
+/** Krotność autoskalowania po przycięciu do dozwolonego zakresu. */
+export function krotnoscAutoskalowania(wartoscZPlanu: number): number {
+  if (!Number.isFinite(wartoscZPlanu) || wartoscZPlanu < 1) {
+    return DOMYSLNA_KROTNOSC_AUTOSKALOWANIA;
+  }
+  return Math.min(wartoscZPlanu, MAKS_KROTNOSC_AUTOSKALOWANIA);
 }
 
 /** Walidacja wartości wpisywanej przez admina. Zwraca komunikat albo null. */

@@ -15,6 +15,12 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { DirectAdminService } from '../servers/directadmin.service';
+import {
+  krotnoscAutoskalowania,
+  PojemnoscFizyczna,
+  SWIEZOSC_TELEMETRII_MIN,
+  wolneDoZadysponowania,
+} from '../subscriptions/node-capacity';
 import { MailerService } from '../mail/mailer.service';
 import {
   AutoscalingEndReason,
@@ -180,8 +186,10 @@ export class AutoscalingEngineService {
     if (cpuMove === 0 && ramMove === 0 && diskMove === 0) return 'HOLD';
 
     const isUp = cpuMove > 0 || ramMove > 0 || diskMove > 0;
-    const nextScaledCpu = scaledCpu + cpuMove;
-    const nextScaledRamMb = scaledRamMb + ramMove;
+    // Z-16: cpu i ram też są mutowalne — ogranicznik pojemności węzła może je
+    // przyciąć, tak jak podłoga dyskowa (F-06) przycina dysk.
+    let nextScaledCpu = scaledCpu + cpuMove;
+    let nextScaledRamMb = scaledRamMb + ramMove;
     let nextScaledDiskMb = scaledDiskMb + diskMove;
 
     // Audit F-06: CPU/RAM are ephemeral, disk is NOT. Never shrink the disk
@@ -202,7 +210,68 @@ export class AutoscalingEngineService {
       return 'HOLD';
     }
 
+    // Z-16 — zanim cokolwiek obiecamy klientowi, sprawdź, czy węzeł to ma.
+    //
+    // To NIE jest odmowa w rozumieniu guardScaleUp: brak pojemności węzła nie
+    // jest winą klienta i nie może wyłączać mu autoskalowania ani ściągać konta
+    // do baseline. Przycinamy przyrost do tego, co węzeł faktycznie ma, i tyle.
     if (isUp) {
+      const limit = await this.ogranicznikPojemnosciWezla(sub, {
+        cpu: nextScaledCpu - scaledCpu,
+        ramMb: nextScaledRamMb - scaledRamMb,
+        diskMb: nextScaledDiskMb - scaledDiskMb,
+      });
+
+      const poObcieciu = {
+        cpu: scaledCpu + limit.przyznane.cpu,
+        ramMb: scaledRamMb + limit.przyznane.ramMb,
+        diskMb: scaledDiskMb + limit.przyznane.diskMb,
+      };
+
+      if (limit.obciete) {
+        this.logger.warn(
+          `Autoscaling: węzeł ${limit.serverId} nie ma pełnej nadwyżki dla sub=${sub.id} — ` +
+            `przyznano cpu=${limit.przyznane.cpu}/${nextScaledCpu - scaledCpu}, ` +
+            `ram=${limit.przyznane.ramMb}/${nextScaledRamMb - scaledRamMb}MB, ` +
+            `disk=${limit.przyznane.diskMb}/${nextScaledDiskMb - scaledDiskMb}MB` +
+            (limit.telemetriaSwieza ? '' : ' (telemetria nieświeża — nadsubskrypcja zdegradowana)'),
+        );
+        await this.audit.record({
+          action: 'AUTOSCALING_OGRANICZONE_POJEMNOSCIA_WEZLA',
+          userId: sub.userId,
+          details: {
+            subscriptionId: sub.id,
+            serverId: limit.serverId,
+            chciane: {
+              cpu: nextScaledCpu - scaledCpu,
+              ramMb: nextScaledRamMb - scaledRamMb,
+              diskMb: nextScaledDiskMb - scaledDiskMb,
+            },
+            przyznane: {
+              cpu: limit.przyznane.cpu,
+              ramMb: limit.przyznane.ramMb,
+              diskMb: limit.przyznane.diskMb,
+            },
+            telemetriaSwieza: limit.telemetriaSwieza,
+            note:
+              'Konto nie dostało pełnej nadwyżki, bo węzeł jej nie ma. To sygnał do dołożenia węzła — klient nie jest niczemu winien.',
+          } as Prisma.InputJsonValue,
+        });
+      }
+
+      nextScaledCpu = poObcieciu.cpu;
+      nextScaledRamMb = poObcieciu.ramMb;
+      nextScaledDiskMb = poObcieciu.diskMb;
+
+      // Cała nadwyżka obcięta do zera — nie ma czego stosować ani za co liczyć.
+      if (
+        nextScaledCpu === scaledCpu &&
+        nextScaledRamMb === scaledRamMb &&
+        nextScaledDiskMb === scaledDiskMb
+      ) {
+        return 'HOLD';
+      }
+
       const guard = await this.guardScaleUp(
         sub,
         rules,
@@ -282,9 +351,17 @@ export class AutoscalingEngineService {
     return Math.max(0, required - baseDiskMb);
   }
 
+  /**
+   * Z-16 — krotność bierzemy z planu, a nie z ukrytego sufitu 10× wpisanego
+   * w silnik. Ten sufit sprawiał, że oferta („skalowanie do 24 vCPU i 1000 GB")
+   * była nieosiągalna: realnie dawał 20 vCPU i 500 GB.
+   *
+   * Podniesienie progu jest bezpieczne DOPIERO dlatego, że skalowanie w górę
+   * przechodzi teraz przez `ogranicznikPojemnosciWezla`. Bez tego kroku wyższy
+   * sufit tylko powiększyłby promień rażenia.
+   */
   private resolveMaxOverscaleRatio(value: number): number {
-    if (!Number.isFinite(value) || value < 1) return this.DEFAULT_MAX_OVERSCALE_RATIO;
-    return Math.min(value, 10);
+    return krotnoscAutoskalowania(value);
   }
 
   private decideMove(opts: {
@@ -377,6 +454,27 @@ export class AutoscalingEngineService {
     }
 
     await this.prisma.$transaction(async (tx) => {
+      // Z-16 — nadwyżka wchodzi do księgi węzła.
+      //
+      // Do tej pory autoskalowanie podnosiło limity w DirectAdminie i nie
+      // zapisywało tego nigdzie, więc NodeSelector nadal widział wyłącznie
+      // limity bazowe. Dwie warstwy nadsubskrybowały ten sam węzeł, nie
+      // wiedząc o sobie. Delty idą przez `increment`, nie przez zapis wartości,
+      // żeby równoległy provisioning niczego nie zgubił.
+      const deltaCpu = opts.nextScaledCpu - sub.account!.scaledCpu;
+      const deltaRam = opts.nextScaledRamMb - sub.account!.scaledRamMb;
+      const deltaDisk = opts.nextScaledDiskMb - sub.account!.scaledDiskMb;
+      if (deltaCpu !== 0 || deltaRam !== 0 || deltaDisk !== 0) {
+        await tx.server.update({
+          where: { id: sub.account!.serverId },
+          data: {
+            ...(deltaCpu !== 0 ? { allocatedCpu: { increment: deltaCpu } } : {}),
+            ...(deltaRam !== 0 ? { allocatedMemory: { increment: deltaRam } } : {}),
+            ...(deltaDisk !== 0 ? { allocatedDisk: { increment: deltaDisk } } : {}),
+          },
+        });
+      }
+
       await tx.account.update({
         where: { id: sub.account!.id },
         data: {
@@ -577,6 +675,120 @@ export class AutoscalingEngineService {
           );
         });
     }
+  }
+
+  /**
+   * Z-16 — ile z żądanego przyrostu węzeł jest w stanie realnie dać.
+   *
+   * Zwraca przyrost PRZYCIĘTY do wolnej pojemności węzła. Nigdy nie zwraca
+   * wartości ujemnych: brak miejsca oznacza „nie rośnij", a nie „zabierz
+   * klientowi to, co już ma".
+   *
+   * Węzeł bez zaraportowanej pojemności przepuszcza żądanie bez zmian —
+   * inaczej awaria handshake'u zatrzymałaby autoskalowanie całej floty.
+   * To jest świadomy kompromis: brak danych o węźle jest problemem
+   * operacyjnym, a nie powodem, żeby klient nie dostał mocy, za którą płaci.
+   */
+  private async ogranicznikPojemnosciWezla(
+    sub: Subscription & { account: Account | null },
+    chciany: PojemnoscFizyczna,
+  ): Promise<{
+    serverId: string | null;
+    przyznane: PojemnoscFizyczna;
+    obciete: boolean;
+    telemetriaSwieza: boolean;
+  }> {
+    const bezZmian = {
+      serverId: sub.account?.serverId ?? null,
+      przyznane: chciany,
+      obciete: false,
+      telemetriaSwieza: false,
+    };
+    if (!sub.account) return bezZmian;
+
+    const server = await this.prisma.server.findUnique({
+      where: { id: sub.account.serverId },
+    });
+    if (!server) return bezZmian;
+
+    const fizyczna: PojemnoscFizyczna = {
+      cpu: (server.totalCpuCores ?? 0) * 100,
+      ramMb: server.totalMemoryMb ?? 0,
+      diskMb: server.totalDiskMb ?? 0,
+    };
+    if (fizyczna.cpu <= 0 || fizyczna.ramMb <= 0 || fizyczna.diskMb <= 0) {
+      return bezZmian;
+    }
+
+    const zuzycie = await this.realneZuzycieWezla(server.id);
+
+    const wolne = wolneDoZadysponowania({
+      fizyczna,
+      sprzedane: {
+        cpu: server.allocatedCpu,
+        ramMb: server.allocatedMemory,
+        diskMb: server.allocatedDisk,
+      },
+      zuzycie,
+      polityka: {
+        overcommitCpu: server.overcommitCpu,
+        overcommitRam: server.overcommitRam,
+        overcommitDisk: server.overcommitDisk,
+        reservedHeadroomPercent: server.reservedHeadroomPercent,
+      },
+    });
+
+    const przyznane: PojemnoscFizyczna = {
+      cpu: Math.max(0, Math.min(chciany.cpu, Math.floor(wolne.cpu))),
+      ramMb: Math.max(0, Math.min(chciany.ramMb, Math.floor(wolne.ramMb))),
+      diskMb: Math.max(0, Math.min(chciany.diskMb, Math.floor(wolne.diskMb))),
+    };
+
+    return {
+      serverId: server.id,
+      przyznane,
+      obciete:
+        przyznane.cpu !== chciany.cpu ||
+        przyznane.ramMb !== chciany.ramMb ||
+        przyznane.diskMb !== chciany.diskMb,
+      telemetriaSwieza: zuzycie !== null,
+    };
+  }
+
+  /**
+   * Realne zużycie węzła — po jednej najnowszej próbce na subskrypcję.
+   * `null`, gdy w oknie świeżości nic nie przyszło; wtedy `node-capacity`
+   * degraduje nadsubskrypcję do 1,0×.
+   */
+  private async realneZuzycieWezla(serverId: string): Promise<PojemnoscFizyczna | null> {
+    const od = new Date(Date.now() - SWIEZOSC_TELEMETRII_MIN * 60_000);
+    const rows = await this.prisma.usageMetric.findMany({
+      where: { serverId, bucketStart: { gte: od } },
+      select: {
+        subscriptionId: true,
+        bucketStart: true,
+        cpuUsageMax: true,
+        memUsageMaxMb: true,
+        diskUsageMb: true,
+      },
+      orderBy: { bucketStart: 'desc' },
+    });
+    if (rows.length === 0) return null;
+
+    const najnowsza = new Map<string, (typeof rows)[number]>();
+    for (const r of rows) {
+      const klucz = r.subscriptionId ?? 'brak';
+      const dotad = najnowsza.get(klucz);
+      if (!dotad || r.bucketStart > dotad.bucketStart) najnowsza.set(klucz, r);
+    }
+
+    const suma: PojemnoscFizyczna = { cpu: 0, ramMb: 0, diskMb: 0 };
+    for (const r of najnowsza.values()) {
+      suma.cpu += r.cpuUsageMax;
+      suma.ramMb += r.memUsageMaxMb;
+      suma.diskMb += r.diskUsageMb;
+    }
+    return suma;
   }
 
   private async guardScaleUp(

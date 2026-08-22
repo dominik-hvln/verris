@@ -589,9 +589,18 @@ export class PlanChangeService {
   ) {
     const oldPlan = sub.plan;
     const account = sub.account!;
-    const deltaCpu = target.cpuLimit - oldPlan.cpuLimit;
-    const deltaRam = target.ramLimitMb - oldPlan.ramLimitMb;
-    const deltaDisk = target.diskLimitMb - oldPlan.diskLimitMb;
+    // Z-16 — delta liczy się od limitów EFEKTYWNYCH, nie od baz planów.
+    //
+    // Konto miało zarezerwowane na węźle `bazaStarego + nadwyżka`, a po zmianie
+    // planu ma `bazaNowego + 0` (scaled* jest zerowane niżej). Liczenie delty
+    // jako różnicy samych baz zostawiłoby nadwyżkę w księdze węzła na zawsze.
+    //
+    // Przed Z-16 ten kod był poprawny, bo nadwyżka autoskalowania w ogóle nie
+    // trafiała do allocated*. Zmiana znaczenia księgi wymagała poprawienia
+    // każdego miejsca, które ją prowadzi — to trzecie i ostatnie.
+    const deltaCpu = target.cpuLimit - (oldPlan.cpuLimit + account.scaledCpu);
+    const deltaRam = target.ramLimitMb - (oldPlan.ramLimitMb + account.scaledRamMb);
+    const deltaDisk = target.diskLimitMb - (oldPlan.diskLimitMb + account.scaledDiskMb);
 
     return this.prisma.$transaction(async (tx) => {
       await tx.account.update({

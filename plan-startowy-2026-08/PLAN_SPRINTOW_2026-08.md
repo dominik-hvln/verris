@@ -9,9 +9,9 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **2770 h** — przy 30 h tygodniowo około **21 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **2776 h** — przy 30 h tygodniowo około **22 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **20 sprintów do startu** (584 h) oraz roadmapę po starcie (2186 h, 140 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **20 sprintów do startu** (584 h) oraz roadmapę po starcie (2192 h, 141 pozycji) rozpisaną na epiki kwartalne.
 
 - **2026-10-23** — koniec sprintu 9, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-01-08** — koniec sprintu 20, decyzja GO.
@@ -86,14 +86,14 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 |---|---|---|---|---|
 | `Z-12` | Placement kont nadsubskrybuje zasoby węzła zamiast rezerwować pełne limity planu | 16 | — | node-capacity.ts — czyZmiesciSie z dwiema bramkami (handlową: sprzedane + limit planu ≤ pojemność × overcommit; fizyczną: realne zużycie ≤ pojemność × |
 | `Z-13` | Pakiet sprzedawany na stronie istnieje jako plan w bazie | 6 | — | apps/api/src/plans/plan-produkcyjny.ts — PLAN_PRODUKCYJNY jako źródło prawdy; migracja 20260822120000_plan_produkcyjny (INSERT ... ON CONFLICT DO UPDA |
-| `Z-16` | Autoskalowanie pyta węzeł o pojemność i dowozi sufit obiecany w ofercie | 16 | BLOKER STARTU | autoscaling-engine.service.ts:287 — Math.min(value, 10) przycina krotność niezależnie od planu, więc sufit CPU (12×) i dysku (20×) z oferty jest nieos |
+| `Z-16` | Autoskalowanie pyta węzeł o pojemność i dowozi sufit obiecany w ofercie | 16 | — | node-capacity.ts — wolneDoZadysponowania + krotnoscAutoskalowania (MAKS 32×, koniec zaszytego sufitu 10×); autoscaling-engine.service.ts — ogranicznik |
 | `PB-14` | Wybór dostawcy i lokalizacji węzła produkcyjnego #1 | 6 | WYSOKI | PB-01 pokazało, że wybór dostawcy przesądza o rentowności przy cenie 45 zł. Hetzner AX102 ma cenę progową 44,20 zł, OVH Advance-2 w WAW1 — 67,76 zł, b |
 
 **Definicja ukończenia**
 
 - `Z-12` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `Z-13` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `Z-16` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `Z-16` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `PB-14` — Decyzja zapisana w repo z datą, przed zamówieniem serwera. Jeśli wybrany dostawca spoza Polski — polityka prywatności i DPA opisują lokalizację przetwarzania przed startem sprzedaży.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-03.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
@@ -435,12 +435,12 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 # Po starcie — roadmapa kwartalna
 
-140 pozycji, 2186 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
+141 pozycji, 2192 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
 
 | ID | Epik | Priorytet | Kwartał | Pozycji | h | Dlaczego teraz, a nie wcześniej |
 |---|---|---|---|---|---|---|
 | `E-01` | Runtime, pliki i diagnostyka | WYSOKI | Q1 2027 | 33 | 418 | Najczęstsze źródło zgłoszeń w pierwszych miesiącach każdego hostingu. Logi WWW ma pięć z pięciu badanych hostingów PL — bez nich klient nie zdiagnozuje własnej strony i pisze do nas. |
-| `E-02` | Wydajność: cache i skalowanie | WYSOKI | Q1 2027 | 9 | 126 | Trzy z pięciu hostingów PL dają Redis w cenie. Przy pozycjonowaniu na WordPressa to nie dodatek, tylko oczekiwanie. |
+| `E-02` | Wydajność: cache i skalowanie | WYSOKI | Q1 2027 | 10 | 132 | Trzy z pięciu hostingów PL dają Redis w cenie. Przy pozycjonowaniu na WordPressa to nie dodatek, tylko oczekiwanie. |
 | `E-12` | Backup: granularność i retencja | WYSOKI | Q1 2027 | 7 | 116 | cyber_Folks daje 28 dni, seohost do 60. Nasze 30 dni jest w normie, ale granularność odtwarzania jest poniżej rynku. |
 | `E-14` | Rozliczenia: dokończenie | WYSOKI | Q1 2027 | 10 | 120 | Z-07 z macierzy: klient płacący portfelem doładowuje saldo w karencji i i tak zostaje zawieszony. Pierwszy taki przypadek to stracony klient. |
 | `E-15` | Wsparcie i ops: kolejka abuse | WYSOKI | Q1 2027 | 7 | 80 | Sprint 13 daje możliwość zatrzymania szkody. Ten epik daje proces, który skaluje się dalej niż jedna osoba. |
@@ -457,7 +457,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 | `E-09` | Pokrycie testowe warstw krytycznych | WYSOKI | ciągłe | 7 | 184 | Realizowane równolegle z każdą fazą, nie jako osobny projekt. Zasada: każda naprawiona pozycja dostaje test, który najpierw czerwieni się na starym kodzie. |
 
 - **E-01 Runtime, pliki i diagnostyka** (418 h) — php.ini i rozszerzenia PHP z panelu, logi dostępu i błędów WWW, import/eksport bazy, spakowanie archiwum, SSH i klucze SSH dla hostingu, podgląd zajętości katalogów.
-- **E-02 Wydajność: cache i skalowanie** (126 h) — Redis jako cache obiektowy sterowany z panelu, LSCache, weryfikacja HTTP/3, CDN, optymalizacja obrazów.
+- **E-02 Wydajność: cache i skalowanie** (132 h) — Redis jako cache obiektowy sterowany z panelu, LSCache, weryfikacja HTTP/3, CDN, optymalizacja obrazów.
 - **E-03 WordPress Toolkit** (168 h) — Automatyczne aktualizacje, aktualizacje wtyczek i motywów, klonowanie między domenami, hardening, skan podatności, tryb konserwacji, masowe zarządzanie.
 - **E-04 Domeny jako produkt** (110 h) — Konfiguracja rejestratora, zakup i transfer z panelu, odnowienia, zmiana danych abonenta, blokada transferu, ukrycie WHOIS.
 - **E-05 Katalog aplikacji** (16 h) — Rozbudowa katalogu z dwóch pozycji do kilkunastu najczęściej instalowanych albo integracja z gotowym instalatorem.
