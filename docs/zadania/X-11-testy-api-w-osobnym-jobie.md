@@ -72,7 +72,9 @@ CI nie ma własnego testu jednostkowego — dowodem jest przebieg. Weryfikacja: 
 
 ## Czego to nadal nie robi
 
-**Nowy check trzeba dopisać do rulesetu z `X-02`.** Do tego czasu `API unit tests` jest widoczny, ale nie wymagany do scalenia — czyli PR z czerwonymi testami przejdzie, jeżeli pozostałe trzy checki są zielone. To jest dziura otwarta samą tą zmianą i zamykana ręcznie w interfejsie GitHuba.
+~~**Nowy check trzeba dopisać do rulesetu z `X-02`.**~~ **Zrobione 2026-08-21**, w tej samej sesji. Ruleset wymaga teraz czterech checków: `Static checks (lint + typecheck)`, `Build (api + panels)`, `Prisma migrate deploy (smoke)` i `API unit tests`.
+
+Warto odnotować, dlaczego to było ryzykowne: rozdzielenie jobów **otwierało dziurę** — przez chwilę testy były widoczne, ale niewymagane do scalenia, więc PR z czerwonymi testami przeszedłby, gdyby pozostałe trzy checki były zielone. Zmiana, która poprawia widoczność kosztem egzekwowania, jest gorsza niż stan wyjściowy. Dlatego oba kroki należą do jednego zadania, a nie do dwóch.
 
 **Lint nadal jest `continue-on-error: true`.** Świadome: baza lintowa nie jest czysta, a twardy lint zablokowałby wszystko. Do rozstrzygnięcia osobno — albo posprzątać i zaostrzyć, albo przyznać wprost, że lint jest informacyjny.
 
@@ -85,4 +87,4 @@ Wycofanie: przeniesienie kroku z powrotem do `static-checks` i usunięcie joba.
 ## Wpływ na inne pozycje
 
 - Zamyka `X-11`.
-- Wymaga ręcznego dopisania checku `API unit tests` do rulesetu z `X-02` — bez tego zmiana jest niepełna.
+- Rozszerza ruleset z `X-02` o czwarty wymagany check — zrobione tego samego dnia, bo bez tego zmiana otwierałaby dziurę zamiast ją zamykać.
