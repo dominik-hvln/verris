@@ -69,6 +69,14 @@ export default async function AdminInvoicesPage({ searchParams }: PageProps) {
             Wszystkie faktury Verris (mirror Stripe + własne PDF VFV/...). Filtr
             po kliencie, statusie i zakresie dat. Dostęp: ADMIN i STAFF.
           </p>
+          {/* Z-01 — droga wewnątrz systemu dla przypadków nietypowych. */}
+          <Link
+            href="/invoices/reczna"
+            className="mt-3 inline-flex items-center gap-2 rounded-md border border-indigo-500/40 bg-indigo-500/10 px-3 py-1.5 text-sm text-indigo-200 hover:bg-indigo-500/20"
+          >
+            <FileText className="h-4 w-4" />
+            Wystaw fakturę ręcznie
+          </Link>
         </div>
         {data ? (
           <a
@@ -283,6 +291,16 @@ function InvoiceRow({ inv }: { inv: AdminInvoiceRow }) {
               <ExternalLink className="h-3 w-3" />
               Stripe Hosted
             </a>
+          ) : null}
+          {/* M-06 — droga do korekty wewnątrz systemu. Bez tego linku strona
+              istnieje, ale trafia na nią tylko ten, kto zna adres. */}
+          {inv.status === "PAID" ? (
+            <Link
+              href={`/invoices/${inv.id}/korekta`}
+              className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-200 hover:bg-amber-500/20"
+            >
+              Koryguj
+            </Link>
           ) : null}
         </div>
       </td>

@@ -309,13 +309,14 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
     if (!this.queue) {
       return { counts: {}, process: this.counters, oldestWaitingAgeSeconds: 0 };
     }
+    // bullmq 6 usunęło 'paused' z JobType — wstrzymanie kolejki jest teraz
+    // stanem KOLEJKI, nie zadania, i czyta się je przez isPaused().
     const counts = await this.queue.getJobCounts(
       'active',
       'waiting',
       'delayed',
       'failed',
       'completed',
-      'paused',
     );
     const waiting = await this.queue.getJobs(['waiting', 'delayed'], 0, 0, true);
     const oldest = waiting[0];

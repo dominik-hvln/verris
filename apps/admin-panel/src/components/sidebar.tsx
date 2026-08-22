@@ -69,6 +69,10 @@ const adminNavItems: NavGroup[] = [
       { name: "Tickety", href: "/tickets", icon: Ticket, perm: "TICKETS_VIEW" },
       { name: "Faktury", href: "/invoices", icon: DollarSign, perm: "BILLING_VIEW" },
       { name: "Rozliczenia (CSV)", href: "/billing", icon: DollarSign, perm: "BILLING_VIEW" },
+      // Z-05 — zdarzenia płatności, których handler nie obsłużył. Bez tego
+      // wpisu strona istniałaby, ale trafiłby na nią tylko ten, kto zna adres —
+      // czyli w praktyce nikt o drugiej w nocy.
+      { name: "Webhooki Stripe", href: "/billing/webhooki", icon: DollarSign, perm: "BILLING_MANAGE" },
       { name: "Kody promocyjne", href: "/promo-codes", icon: Tag, perm: "PROMO_MANAGE" },
       { name: "Newsletter / mailing", href: "/marketing", icon: Mail, perm: "PROMO_MANAGE" },
       { name: "Compliance (RODO)", href: "/compliance", icon: Scale, perm: "COMPLIANCE_MANAGE" },

@@ -33,10 +33,71 @@ Sam pobór bez restore (np. do ręcznej inspekcji): `... fetch <user> <archiwum>
 3. Przełącz DNS/rekordy na nowy węzeł.
 4. Potwierdź działanie stron/poczty klientów.
 
-## Test DR (zalecany cyklicznie, przed LIVE obowiązkowy)
-- Wybierz konto testowe, wykonaj `restore` z off-site na węzeł staging.
-- Potwierdź: pliki + baza + poczta odtworzone, strona działa.
-- Udokumentuj datę i wynik (jak restore-drill DB w `backup-verify.sh`).
+## Test DR — procedura obowiązkowa (H-20)
+
+**Właściciel procedury:** Dominik Kowalski (dominik@hvln.pl)
+**Częstotliwość:** co najmniej raz na **30 dni**, obowiązkowo przed startem sprzedaży
+**Poziom dowodu:** D4 — data, wynik i właściciel zapisane w bazie, nie w czyjejś pamięci
+
+### Dlaczego to jest bramka, a nie zalecenie
+
+Do 2026-08-22 ta sekcja brzmiała „zalecany cyklicznie, przed LIVE obowiązkowy" i nie było
+w repozytorium **żadnego śladu**, że drill kiedykolwiek się odbył. Procedura bez zapisu
+wykonania nie liczy się wcale: „mamy skrypt" i „potrafimy odtworzyć bazę" to dwa różne zdania,
+a odróżnia je wyłącznie fakt, że ktoś ten skrypt uruchomił.
+
+Od tej pory brak aktualnej próby **zatrzymuje start sprzedaży** — pozycja `Próba odtworzenia
+z kopii (D4)` w gotowości do startu jest blokująca, nie ostrzegawcza.
+
+### Jak wykonać (baza control-plane)
+
+```bash
+cd /opt/verris
+./ops/scripts/restore-drill-isolated.sh --owner "Imię Nazwisko"
+```
+
+Skrypt:
+
+1. pobiera kopię z MinIO i odtwarza ją do **osobnej** bazy (`verris_restore_drill`) —
+   produkcyjna nie jest dotykana, jest na to twarde sprawdzenie na starcie;
+2. liczy wiersze w tabelach kontrolnych (`User`, `Plan`, `Subscription`, `Invoice`, `Account`)
+   i **przerywa z błędem**, gdy któraś nie ma minimum. `psql` kończy się kodem zero także
+   wtedy, gdy wgrał pusty plik — dlatego liczby, a nie kod wyjścia;
+3. mierzy czas trwania. **To jest realne RTO** i trzeba je znać przed awarią, nie w jej
+   trakcie;
+4. zapisuje wynik do tabeli `RestoreDrill` — **również przy niepowodzeniu**, bo brak wpisu nie
+   może znaczyć jednocześnie „nigdy nie było" i „padło";
+5. usuwa bazę drillową (`--keep-db` ją zostawia do obejrzenia).
+
+### Jak sprawdzić wynik
+
+- panel admina → **Gotowość do startu** → pozycja `Próba odtworzenia z kopii (D4)`,
+- `GET /admin/live-readiness/proby-odtworzenia` — pełna historia z czasami i liczbami wierszy.
+
+### Kiedy przypomni się samo
+
+Codziennie o 08:30 job sprawdza stan. Mail do wszystkich administratorów idzie, gdy:
+
+| Stan | Kiedy | Blokuje start |
+|---|---|---|
+| brak próby | zawsze | **tak** |
+| ostatnia próba nieudana | zawsze | **tak** |
+| ostatnia udana starsza niż 30 dni | zawsze | **tak** |
+| do terminu ≤ 7 dni | przypomnienie | nie |
+| próba aktualna | mail NIE idzie | nie |
+
+Ostatni wiersz jest celowy: alert wysyłany codziennie także wtedy, gdy wszystko jest
+w porządku, po tygodniu przestaje być czytany — a wtedy przestaje działać także ten,
+który coś znaczy.
+
+### Czego ten drill NIE sprawdza
+
+- **Odtworzenia konta hostingowego** (pliki, poczta, bazy klienta) — to osobna ścieżka,
+  opisana wyżej w tym runbooku, i nadal wymaga ręcznego przejścia.
+- **Czasu odtworzenia na maszynie zastępczej** — drill biegnie na tym samym hoście, więc
+  zmierzony czas jest dolnym oszacowaniem RTO, nie jego wartością.
+- **Poprawności danych** ponad to, że tabele nie są puste. Odtworzenie z uszkodzonym,
+  ale niepustym dumpem przejdzie.
 
 ## Roadmapa (self-service z panelu)
 Obecnie restore z off-site jest operacją ops (skrypt). Pełne self-service z panelu

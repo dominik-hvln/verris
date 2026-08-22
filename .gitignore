@@ -42,3 +42,12 @@ apps/api/get_user.js
 
 # Artefakty mounta FUSE (Cowork / remote-devices) — nigdy nie commitujemy.
 .fuse_hidden*
+_to_delete_verris_audit/
+
+# Katalog na pliki do usunięcia — narzędzia agenta nie mogą kasować na tym mouncie
+_to_delete/
+.git-commit-msg.txt
+
+# Pythonowy cache generatora audytu
+__pycache__/
+*.pyc

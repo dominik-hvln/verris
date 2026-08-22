@@ -277,13 +277,25 @@ function ServiceStatusPie({
           innerRadius={62}
           outerRadius={96}
           paddingAngle={4}
-          activeIndex={activeIndex}
           onMouseEnter={(_, index) => setActiveIndex(index)}
+          onMouseLeave={() => setActiveIndex(-1)}
           animationDuration={750}
           animationEasing="ease-out"
         >
-          {data.map((entry) => (
-            <Cell key={entry.status} fill={entry.fill} stroke="transparent" />
+          {/*
+            Recharts 3 usunęło prop `activeIndex` z <Pie>. Podświetlenie
+            aktywnego wycinka realizujemy teraz przez przezroczystość samych
+            <Cell> — efekt dla użytkownika zostaje ten sam, a kod nie zależy
+            od API, którego już nie ma. `activeIndex === -1` (kursor poza
+            wykresem) oznacza „wszystkie w pełni widoczne".
+          */}
+          {data.map((entry, index) => (
+            <Cell
+              key={entry.status}
+              fill={entry.fill}
+              stroke="transparent"
+              fillOpacity={activeIndex === -1 || activeIndex === index ? 1 : 0.45}
+            />
           ))}
         </Pie>
         <Tooltip content={<ChartTooltip />} />

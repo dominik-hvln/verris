@@ -18,14 +18,14 @@
     "db:seed:prod": "node prisma/dist/seed.js"
   },
   "dependencies": {
-    "@prisma/client": "^6.19.2"
+    "@prisma/client": "^6.19.3"
   },
   "devDependencies": {
-    "@verris/typescript-config": "workspace:*",
     "@types/bcrypt": "^6.0.0",
-    "@types/node": "^22.0.0",
+    "@types/node": "^26.2.0",
+    "@verris/typescript-config": "workspace:*",
     "bcrypt": "^6.0.0",
-    "prisma": "^6.19.2",
+    "prisma": "^6.19.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.4"
   },

@@ -48,7 +48,7 @@ export function generatePassword(len = 16): string {
     return Array.from(arr, (x) => set[x % set.length]).join('');
   };
   // Gwarantuj po jednym znaku z każdej klasy, resztę losowo.
-  let chars = pick(lower, 1) + pick(upper, 1) + pick(digits, 1) + pick(symbols, 1) + pick(all, length - 4);
+  const chars = pick(lower, 1) + pick(upper, 1) + pick(digits, 1) + pick(symbols, 1) + pick(all, length - 4);
   // Przetasuj (Fisher–Yates na bazie crypto).
   const arr = chars.split('');
   const rnd = new Uint32Array(arr.length);

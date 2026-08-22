@@ -9,6 +9,9 @@ interface Props {
   acceptsNewAccounts: boolean;
   maxAccounts: number | null;
   reservedHeadroomPercent: number;
+  overcommitCpu: number;
+  overcommitRam: number;
+  overcommitDisk: number;
   accountCount: number;
 }
 
@@ -17,6 +20,9 @@ export function CapacityPolicyPanel({
   acceptsNewAccounts,
   maxAccounts,
   reservedHeadroomPercent,
+  overcommitCpu,
+  overcommitRam,
+  overcommitDisk,
   accountCount,
 }: Props) {
   const [pending, startTransition] = useTransition();
@@ -26,6 +32,9 @@ export function CapacityPolicyPanel({
   const [accepts, setAccepts] = useState(acceptsNewAccounts);
   const [maxAcc, setMaxAcc] = useState<string>(maxAccounts != null ? String(maxAccounts) : "");
   const [headroom, setHeadroom] = useState<string>(String(reservedHeadroomPercent ?? 0));
+  const [ocCpu, setOcCpu] = useState<string>(String(overcommitCpu ?? 1));
+  const [ocRam, setOcRam] = useState<string>(String(overcommitRam ?? 1));
+  const [ocDisk, setOcDisk] = useState<string>(String(overcommitDisk ?? 1));
 
   const save = (override?: { accepts?: boolean }) => {
     setError(null);
@@ -41,11 +50,31 @@ export function CapacityPolicyPanel({
       setError("Rezerwa headroom musi być w zakresie 0–90%.");
       return;
     }
+
+    // Z-12 — nadsubskrypcja. Te same granice co w node-capacity.ts; serwer
+    // waliduje je jeszcze raz, bo panel nie jest ostatnią linią obrony.
+    const ocCpuParsed = Number.parseFloat(ocCpu.replace(",", "."));
+    const ocRamParsed = Number.parseFloat(ocRam.replace(",", "."));
+    const ocDiskParsed = Number.parseFloat(ocDisk.replace(",", "."));
+    for (const [nazwa, wartosc, maks] of [
+      ["CPU", ocCpuParsed, 8],
+      ["RAM", ocRamParsed, 8],
+      ["dysku", ocDiskParsed, 3],
+    ] as const) {
+      if (!Number.isFinite(wartosc) || wartosc < 1 || wartosc > maks) {
+        setError(`Nadsubskrypcja ${nazwa} musi być z zakresu 1–${maks}.`);
+        return;
+      }
+    }
+
     startTransition(async () => {
       const res = await setNodeCapacityPolicy(serverId, {
         acceptsNewAccounts: nextAccepts,
         maxAccounts: maxParsed,
         reservedHeadroomPercent: headParsed,
+        overcommitCpu: ocCpuParsed,
+        overcommitRam: ocRamParsed,
+        overcommitDisk: ocDiskParsed,
       });
       if (res.error) {
         setError(res.error);
@@ -119,6 +148,45 @@ export function CapacityPolicyPanel({
             className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-white/30"
           />
         </label>
+      </div>
+
+      {/* Z-12 — nadsubskrypcja pojemności */}
+      <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3">
+        <div className="text-xs font-medium text-white">Nadsubskrypcja pojemności (Z-12)</div>
+        <p className="text-[11px] text-muted-foreground">
+          Ile razy węzeł może <strong>sprzedać</strong> ponad swoją pojemność fizyczną.
+          W LVE limity RAM i CPU są sufitami burst, nie rezerwacjami, więc 1,0 oznacza,
+          że węzeł rezerwuje pełny limit planu na każde konto — przy bazie 8&nbsp;GB daje to
+          16 kont na maszynie ze 128&nbsp;GB. Osobna bramka i tak nie wpuści konta, gdy
+          <strong> realne</strong> zużycie przekroczy pojemność minus headroom.
+        </p>
+        <p className="text-[11px] text-amber-200/80">
+          Dysk ma niższy limit (maks. 3,0), bo quota dyskowa jest realnie egzekwowana —
+          klient może ją wypełnić w całości, a miejsca nie da się wtedy odzyskać inaczej
+          niż migracją kont.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+          {(
+            [
+              ["CPU", ocCpu, setOcCpu, "1–8"],
+              ["RAM", ocRam, setOcRam, "1–8"],
+              ["Dysk", ocDisk, setOcDisk, "1–3"],
+            ] as const
+          ).map(([etykieta, wartosc, ustaw, zakres]) => (
+            <label key={etykieta} className="space-y-1">
+              <span className="text-xs text-muted-foreground">
+                {etykieta} ({zakres})
+              </span>
+              <input
+                value={wartosc}
+                onChange={(e) => ustaw(e.target.value.replace(/[^\d.,]/g, ""))}
+                placeholder="1"
+                inputMode="decimal"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none focus:border-white/30"
+              />
+            </label>
+          ))}
+        </div>
       </div>
 
       <div className="flex items-center gap-3">

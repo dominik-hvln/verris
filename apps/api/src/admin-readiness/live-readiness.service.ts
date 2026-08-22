@@ -4,6 +4,7 @@ import { ServerStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 import { LegalDocumentsService } from '../compliance/legal-documents.service';
+import { ocenProby, type ProbaOdtworzenia } from './proba-odtworzenia';
 
 export type ReadinessStatus = 'ok' | 'warn' | 'fail';
 
@@ -179,6 +180,33 @@ export class LiveReadinessService {
         ? 'Brak węzłów do oceny.'
         : `${backupNodes}/${activeNodes} węzłów z udanym backupem offsite.`,
       false,
+    );
+
+    // --- H-20 — próba odtworzenia z kopii (BLOKUJĄCA) ---
+    //
+    // Blokująca, nie ostrzegawcza. Ostrzeżenie zamiast bramki to ten sam
+    // mechanizm, który macierz wytknęła przy H-19 i który naprawiałem w X-23
+    // przy jobie bezpieczeństwa: alarm, który nie zatrzymuje, przestaje być
+    // czytany. Backup bez potwierdzonego odtworzenia to założenie, nie
+    // zabezpieczenie — a założenie nie może przepuścić startu sprzedaży.
+    const [ostatniaProba, ostatniaUdanaProba] = await Promise.all([
+      this.prisma.restoreDrill.findFirst({ orderBy: { finishedAt: 'desc' } }),
+      this.prisma.restoreDrill.findFirst({
+        where: { result: 'OK' },
+        orderBy: { finishedAt: 'desc' },
+      }),
+    ]);
+    const ocena = ocenProby(
+      ostatniaProba as ProbaOdtworzenia | null,
+      ostatniaUdanaProba as ProbaOdtworzenia | null,
+      new Date(),
+    );
+    add(
+      'restore_drill',
+      'Próba odtworzenia z kopii (D4)',
+      ocena.stan === 'aktualna' ? 'ok' : ocena.blokuje ? 'fail' : 'warn',
+      ocena.komunikat,
+      true,
     );
 
     const webauthnOk = Boolean(

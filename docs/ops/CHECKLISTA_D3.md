@@ -33,7 +33,11 @@ Endpointów `/agent/tasks/*/script` nie da się zawołać bez zarejestrowanego w
 docker exec $(docker ps -qf name=api) ls -la ops/scripts/
 ```
 
-**Oczekiwane:** dziesięć plików, w tym `node-php-apply.sh`, `node-app-install.sh` i `node-account-restore.sh`. To potwierdza `X-12` na tyle, na ile da się bez węzła; pełne D3 (odpowiedź `200` z endpointu) zostaje w Części B.
+**Oczekiwane:** dziesięć plików, w tym `node-php-apply.sh`, `node-app-install.sh` i `node-account-restore.sh`.
+
+✅ **Wykonane 2026-08-21 21:57**, po wdrożeniu #62. Wszystkie dziesięć obecne. `X-12` ma D3 — pierwsza pozycja w tym audycie z dowodem tego poziomu.
+
+Konsekwencja dla `B-01`: przyczyna wdrożeniowa usunięta, ale sama pozycja zostaje `CZĘŚCIOWE`. Obecność skryptu w obrazie dowodzi, że endpoint przestanie zwracać 500 — nie dowodzi, że zmiana wersji PHP dociera na konto. Na to potrzeba węzła (Część B).
 
 ## A2. `Z-02` — zamówienie usługi bez opłaty
 

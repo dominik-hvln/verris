@@ -310,3 +310,218 @@ export function mailDeliveryFailureAlertTemplate(ctx: MailDeliveryFailureContext
     html,
   };
 }
+
+// -----------------------------------------------------------------------------
+// Z-05 — zdarzenie webhooka Stripe'a zacięło się na ścieżce pieniędzy
+// -----------------------------------------------------------------------------
+
+export interface WebhookZacietyContext {
+  to: string;
+  firstName: string | null;
+  eventId: string;
+  typ: string;
+  proby: number;
+  pierwszyRaz: Date;
+  ostatniBlad: string | null;
+  panelUrl: string;
+}
+
+/**
+ * Alert o zdarzeniu, którego nie udało się obsłużyć.
+ *
+ * Ton jest celowo konkretny, nie alarmistyczny: podaje identyfikator zdarzenia,
+ * treść błędu i jedno miejsce, w które trzeba kliknąć. Alert, który każe komuś
+ * dopiero szukać, gdzie zajrzeć, kosztuje tyle samo czasu co brak alertu.
+ */
+export function webhookZacietyTemplate(ctx: WebhookZacietyContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: 'Zdarzenie płatności nie zostało obsłużone',
+    preheader: `Stripe ${escapeHtml(ctx.typ)} — ${ctx.proby} nieudane próby.`,
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `**Zdarzenie webhooka Stripe'a nie zostało obsłużone** mimo ${ctx.proby} prób.`,
+      `Jeżeli dotyczy doładowania albo opłaty za subskrypcję, pieniądze mogły` +
+        ` zostać pobrane, a saldo albo aktywacja nie nastąpiły.`,
+      ``,
+      `- **Zdarzenie:** \`${escapeHtml(ctx.eventId)}\``,
+      `- **Typ:** ${escapeHtml(ctx.typ)}`,
+      `- **Pierwsza dostawa:** ${escapeHtml(fmt(ctx.pierwszyRaz))}`,
+      `- **Liczba prób:** ${ctx.proby}`,
+      ``,
+      `**Ostatni błąd:**`,
+      ``,
+      '```',
+      escapeHtml(ctx.ostatniBlad ?? '(brak treści błędu)'),
+      '```',
+      ``,
+      `## Co zrobić`,
+      ``,
+      `1. Otwórz listę zaciętych zdarzeń w panelu admina.`,
+      `2. Przeczytaj błąd — jeśli przyczyna minęła (np. baza była chwilowo niedostępna),`,
+      `   wystarczy „Ponów przetwarzanie".`,
+      `3. Jeśli błąd wraca, sprawdź w Stripe, czy płatność faktycznie doszła,`,
+      `   zanim zaczniesz cokolwiek księgować ręcznie.`,
+      ``,
+      `Ponowienie jest bezpieczne: księgowanie portfela jest idempotentne po kluczu`,
+      `sesji, więc powtórzenie nie doda pieniędzy drugi raz.`,
+    ].join('\n'),
+    cta: { label: 'Otwórz zacięte zdarzenia', url: `${ctx.panelUrl}/billing/webhooki` },
+    footnote:
+      'Alert wysyłany najwyżej raz na 6 godzin dla tego samego zdarzenia. Otrzymują go wszyscy administratorzy.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return {
+    to: ctx.to,
+    tag: 'ops.webhook-zaciety',
+    subject: `[Verris] 💳 Zdarzenie płatności nieobsłużone (${ctx.typ})`,
+    text,
+    html,
+  };
+}
+
+// -----------------------------------------------------------------------------
+// Z-01 — faktura powstała, ale nie udało się jej dokończyć
+// -----------------------------------------------------------------------------
+
+export interface FakturaNiedokonczonaContext {
+  to: string;
+  firstName: string | null;
+  numer: string;
+  kwota: string;
+  proby: number;
+  wystawiona: Date;
+  ostatniBlad: string | null;
+  panelUrl: string;
+}
+
+/**
+ * Alert o fakturze bez PDF-u.
+ *
+ * Pieniądze są pobrane poprawnie — brakuje dokumentu. Ton odpowiednio spokojny,
+ * ale termin jest ustawowy, więc podany wprost.
+ */
+export function fakturaNiedokonczonaTemplate(ctx: FakturaNiedokonczonaContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: `Faktura ${ctx.numer} nie ma pliku PDF`,
+    preheader: `${ctx.proby} nieudane próby wygenerowania dokumentu.`,
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `**Faktura \`${escapeHtml(ctx.numer)}\` istnieje w bazie, ale nie udało się wygenerować`,
+      `jej pliku PDF** mimo ${ctx.proby} prób. Klient jej nie dostał i nie pobierze jej z panelu.`,
+      ``,
+      `Pieniądze zostały pobrane poprawnie — brakuje wyłącznie dokumentu.`,
+      ``,
+      `- **Numer:** ${escapeHtml(ctx.numer)}`,
+      `- **Kwota:** ${escapeHtml(ctx.kwota)}`,
+      `- **Wystawiona:** ${escapeHtml(fmt(ctx.wystawiona))}`,
+      `- **Prób:** ${ctx.proby}`,
+      ``,
+      `**Ostatni błąd:**`,
+      ``,
+      '```',
+      escapeHtml(ctx.ostatniBlad ?? '(brak treści błędu)'),
+      '```',
+      ``,
+      `## Co zrobić`,
+      ``,
+      `1. Najczęstsza przyczyna to niedostępny MinIO albo brak danych sprzedawcy`,
+      `   w ustawieniach platformy — sprawdź jedno i drugie.`,
+      `2. Po usunięciu przyczyny job spróbuje ponownie sam; można też wymusić`,
+      `   z listy faktur w panelu.`,
+      ``,
+      `**Termin jest ustawowy:** fakturę trzeba wystawić do 15. dnia miesiąca`,
+      `następującego po miesiącu sprzedaży.`,
+    ].join('\n'),
+    cta: { label: 'Otwórz faktury', url: `${ctx.panelUrl}/invoices` },
+    footnote:
+      'Alert wysyłany najwyżej raz na dobę dla tej samej faktury. Otrzymują go wszyscy administratorzy.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return {
+    to: ctx.to,
+    tag: 'ops.faktura-niedokonczona',
+    subject: `[Verris] 📄 Faktura ${ctx.numer} bez pliku PDF`,
+    text,
+    html,
+  };
+}
+
+// -----------------------------------------------------------------------------
+// H-20 — próba odtworzenia z kopii wymaga powtórzenia
+// -----------------------------------------------------------------------------
+
+export interface ProbaOdtworzeniaContext {
+  to: string;
+  firstName: string | null;
+  stan: 'brak' | 'nieudana' | 'przeterminowana' | 'wkrotce';
+  komunikat: string;
+  wiekDni: number | null;
+  blokuje: boolean;
+  panelUrl: string;
+}
+
+/**
+ * Alert o stanie próby odtworzenia.
+ *
+ * Ton zależy od tego, czy pozycja zatrzymuje start sprzedaży. Przypomnienie
+ * siedem dni przed terminem ma brzmieć jak przypomnienie; brak jakiejkolwiek
+ * próby ma brzmieć jak to, czym jest — backupy bez potwierdzonego odtworzenia
+ * to założenie, nie zabezpieczenie.
+ */
+export function probaOdtworzeniaTemplate(ctx: ProbaOdtworzeniaContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const tytul = ctx.blokuje
+    ? 'Warstwa DR jest niepotwierdzona'
+    : 'Próba odtworzenia z kopii wymaga powtórzenia';
+
+  const { html, text } = renderEmailShell({
+    title: tytul,
+    preheader: escapeHtml(ctx.komunikat.slice(0, 120)),
+    bodyMarkdown: [
+      greeting,
+      ``,
+      ctx.blokuje
+        ? `**${escapeHtml(tytul)}** — i to jest twarda bramka startu sprzedaży, nie ostrzeżenie.`
+        : `**${escapeHtml(tytul)}.**`,
+      ``,
+      escapeHtml(ctx.komunikat),
+      ``,
+      `## Jak wykonać próbę`,
+      ``,
+      'Na control-plane, jednym poleceniem:',
+      ``,
+      '```',
+      'cd /opt/verris && ./ops/scripts/restore-drill-isolated.sh --owner "Imię Nazwisko"',
+      '```',
+      ``,
+      `Skrypt odtwarza kopię do OSOBNEJ bazy — produkcyjna nie jest dotykana. Sprawdza`,
+      `liczby wierszy w tabelach kontrolnych i zapisuje wynik razem z czasem trwania.`,
+      `Ten czas to Twoje realne RTO; warto go znać przed awarią, a nie w jej trakcie.`,
+      ``,
+      `Wynik — udany albo nie — pojawi się w panelu admina w gotowości do startu.`,
+    ].join('\n'),
+    cta: { label: 'Otwórz gotowość do startu', url: `${ctx.panelUrl}/status` },
+    footnote:
+      'Backupy i DR wymagają poziomu dowodu D4: data, wynik i właściciel. Alert wysyłany raz na dobę do wszystkich administratorów.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return {
+    to: ctx.to,
+    tag: 'ops.proba-odtworzenia',
+    subject: ctx.blokuje
+      ? '[Verris] 🔴 Warstwa DR niepotwierdzona — próba odtworzenia'
+      : '[Verris] 🗄️ Zaplanuj próbę odtworzenia z kopii',
+    text,
+    html,
+  };
+}

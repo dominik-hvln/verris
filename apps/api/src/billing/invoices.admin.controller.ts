@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   DefaultValuePipe,
   Get,
@@ -7,6 +8,7 @@ import {
   HttpCode,
   Param,
   ParseIntPipe,
+  Post,
   Query,
   Res,
   UseGuards,
@@ -22,6 +24,9 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { RequestContext } from '../common/decorators/request-context';
 import type { RequestContextDto } from '../common/decorators/request-context';
 import { InvoicesService } from './invoices.service';
+import { FakturaRecznaDto } from './dto/faktura-reczna.dto';
+import { WystawKorekteDto } from './dto/korekta.dto';
+import { KorektyService } from './korekty.service';
 
 const VALID_STATUSES: InvoiceStatus[] = [
   InvoiceStatus.DRAFT,
@@ -59,7 +64,10 @@ function parseDate(raw: string | undefined, label: string): Date | undefined {
 @Roles(Role.ADMIN, Role.STAFF)
 @StaffPerm('BILLING_VIEW')
 export class InvoicesAdminController {
-  constructor(private readonly invoices: InvoicesService) {}
+  constructor(
+    private readonly invoices: InvoicesService,
+    private readonly korekty: KorektyService,
+  ) {}
 
   /**
    * Sprint 4 / R-10 — admin lista faktur z filtrami.
@@ -142,4 +150,103 @@ export class InvoicesAdminController {
     stream.on('error', (err) => res.destroy(err));
     stream.pipe(res);
   }
+
+  // ---------------------------------------------------------------------------
+  // Z-01 — wystawianie ręczne i dokańczanie
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Faktura spoza automatu: ugoda, rekompensata, usługa spoza cennika.
+   *
+   * Ta sama numeracja VFV, ten sam PDF, ta sama ścieżka do KSeF-a co przy
+   * fakturach automatycznych. Bez tego każdy przypadek nietypowy wypycha
+   * operatora poza system, do Worda i własnej numeracji — a numeracja faktur
+   * ma być jedna i ciągła.
+   */
+  @Post('reczna')
+  @HttpCode(201)
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('BILLING_MANAGE')
+  async wystawReczna(
+    @Body() dto: FakturaRecznaDto,
+    @CurrentUser() aktor: { userId: string },
+  ) {
+    return this.invoices.wystawReczna({
+      userId: dto.userId,
+      pozycje: dto.pozycje,
+      waluta: dto.waluta,
+      powod: dto.powod,
+      aktorUserId: aktor.userId,
+    });
+  }
+
+  /**
+   * Wymuszenie dokończenia faktury bez PDF-u.
+   *
+   * Job próbuje sam, z narastającym odstępem, ale po usunięciu przyczyny
+   * (podniesiony MinIO, uzupełnione dane sprzedawcy) nie ma powodu czekać
+   * na kolejną próbę.
+   */
+  @Post(':invoiceId/dokoncz')
+  @HttpCode(200)
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('BILLING_MANAGE')
+  async dokoncz(@Param('invoiceId') invoiceId: string) {
+    return this.invoices.dokonczFakture(invoiceId);
+  }
+
+
+  // ---------------------------------------------------------------------------
+  // M-06 — faktury korygujące
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Wystawia korektę do faktury.
+   *
+   * Korekta zmniejszająca zwraca różnicę do portfela klienta W TEJ SAMEJ
+   * transakcji co dokument. Klient widzi jedno zdarzenie („oddaliście mi
+   * pieniądze"), więc system też zapisuje je jako jedno.
+   */
+  @Post(':invoiceId/korekta')
+  @HttpCode(201)
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('BILLING_MANAGE')
+  async wystawKorekte(
+    @Param('invoiceId') invoiceId: string,
+    @Body() dto: WystawKorekteDto,
+    @CurrentUser() aktor: { userId: string },
+  ) {
+    return this.korekty.wystaw({
+      invoiceId,
+      rodzaj: dto.rodzaj,
+      przyczyna: dto.przyczyna,
+      pozycjePo: dto.pozycjePo,
+      nabywcaPo: dto.nabywcaPo,
+      aktorUserId: aktor.userId,
+    });
+  }
+
+  /** Korekty wystawione do danej faktury. */
+  @Get(':invoiceId/korekty')
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('BILLING_VIEW')
+  async listaKorekt(@Param('invoiceId') invoiceId: string) {
+    const rows = await this.korekty.listaDlaFaktury(invoiceId);
+    return rows.map((k) => ({
+      id: k.id,
+      number: k.number,
+      correctionKind: k.correctionKind,
+      correctionReason: k.correctionReason,
+      roznicaBrutto: k.amount.toFixed(2),
+      bruttoPrzed: k.correctedAmount?.toFixed(2) ?? null,
+      currency: k.currency,
+      issuedAt: k.issuedAt,
+      storageKey: k.storageKey,
+    }));
+  }
+
 }

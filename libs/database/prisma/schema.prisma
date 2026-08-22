@@ -473,6 +473,23 @@ model Server {
   maxAccounts             Int?
   reservedHeadroomPercent Int      @default(0)
 
+  // Z-12 — współczynniki nadsubskrypcji. `allocated*` to suma limitów planów
+  // (ZOBOWIĄZANIE HANDLOWE), a nie zajętość maszyny: w LVE `MemoryMax` i `SPEED`
+  // są sufitami burst, nie rezerwacjami. NodeSelector porównuje `allocated*`
+  // z pojemnością fizyczną PRZEMNOŻONĄ przez te współczynniki, a osobną bramką
+  // pilnuje, żeby REALNE zużycie (UsageMetric) nie przekroczyło pojemności
+  // fizycznej pomniejszonej o headroom.
+  //
+  // Domyślne 1.0 = zachowanie sprzed Z-12, więc migracja niczego nie zmienia
+  // po cichu — admin podnosi współczynnik świadomie, per węzeł.
+  //
+  // Dysk ma niższy limit górny (3× wobec 8× dla CPU i RAM), bo quota dyskowa
+  // jest realnie egzekwowana: klient MOŻE ją wypełnić w całości, a odzyskać
+  // miejsce da się tylko migracją kont. Patrz node-capacity.ts.
+  overcommitCpu           Float    @default(1)
+  overcommitRam           Float    @default(1)
+  overcommitDisk          Float    @default(1)
+
   // Identity / authentication of the node agent
   identityToken   String?      @unique
   publicKey       String?
@@ -1271,6 +1288,12 @@ model PurchasedAddon {
   ticketId       String?
   createdAt      DateTime @default(now())
 
+  /// Z-06 — klucz idempotencji zakupu. Unikalność wymusza baza, więc dwa
+  /// równoległe żądania z tym samym kluczem nie mogą utworzyć dwóch zakupów
+  /// (jedno dostaje P2002 i zwraca istniejący rekord). Nullable, bo rekordy
+  /// sprzed 2026-08-21 klucza nie mają.
+  idempotencyKey String?  @unique
+
   @@index([userId, createdAt])
 }
 
@@ -1322,10 +1345,18 @@ model WalletTransaction {
   description     String?
   metadata        Json?
 
+  /// Z-01 — faktura pokrywająca to obciążenie. NULL na wpisie obciążeniowym
+  /// znaczy „czeka na fakturę zbiorczą" (autoskalowanie, drobne zużycie) albo
+  /// „nie podlega fakturowaniu" (doładowanie, korekta admina).
+  invoiceId       String?
+  invoice         Invoice?        @relation("FakturaZaObciazenia", fields: [invoiceId], references: [id], onDelete: SetNull)
+
   createdAt       DateTime        @default(now())
 
   @@index([userId, createdAt])
   @@index([type])
+  @@index([invoiceId])
+  @@index([type, invoiceId, createdAt])
 }
 
 model PaymentMethod {
@@ -1345,6 +1376,23 @@ model PaymentMethod {
 
   @@unique([provider, providerRef])
   @@index([userId])
+}
+
+/// M-06 — rodzaj dokumentu. Do 2026-08-22 istniał tylko jeden, a builder
+/// KSeF-a wpisywał `<RodzajFaktury>VAT</RodzajFaktury>` na sztywno.
+enum InvoiceKind {
+  /// Zwykła faktura sprzedaży.
+  VAT
+  /// Faktura korygująca.
+  KOREKTA
+}
+
+/// Rodzaj korekty. Dwa, bo mają różną mechanikę i różne skutki dla pieniędzy.
+enum CorrectionKind {
+  /// Zmienia kwoty — zwrot, rezygnacja w trakcie okresu, rabat po fakturze.
+  WARTOSCIOWA
+  /// Poprawia dane nabywcy (literówka w NIP, zmiana adresu). Kwoty bez zmian.
+  FORMALNA
 }
 
 enum InvoiceStatus {
@@ -1414,12 +1462,50 @@ model Invoice {
   ksefAcceptedAt  DateTime?
   ksefError      String?
 
+  /// Z-01 — finalizacja (PDF + MinIO + KSeF + mail) jest ponawiana, a nie
+  /// wykonywana raz i porzucana. Do 2026-08-22 błąd generowania PDF-u kończył
+  /// się wpisem w logu i fakturą bez pliku, o której nikt się nie dowiadywał —
+  /// ta sama klasa błędu co Z-05 w webhooku płatności.
+  finalizeAttempts     Int       @default(0)
+  finalizeLastError    String?   @db.Text
+  finalizeNextAttemptAt DateTime?
+  finalizeAlertedAt    DateTime?
+
+  /// Wpisy księgi portfela pokryte tą fakturą. Dla faktury za pojedyncze
+  /// obciążenie — jeden; dla zbiorczej miesięcznej — wszystkie z okresu.
+  walletEntries  WalletTransaction[] @relation("FakturaZaObciazenia")
+
+  // ── M-06 — korekty ────────────────────────────────────────────────────────
+  kind           InvoiceKind   @default(VAT)
+
+  /// Faktura korygowana. Wypełnione WYŁĄCZNIE dla `kind = KOREKTA`.
+  correctedId    String?
+  corrected      Invoice?      @relation("Korekty", fields: [correctedId], references: [id], onDelete: Restrict)
+  korekty        Invoice[]     @relation("Korekty")
+
+  correctionKind   CorrectionKind?
+  /// Przyczyna korekty — pole OBOWIĄZKOWE na dokumencie (art. 106j ust. 2 pkt 4).
+  correctionReason String?     @db.Text
+
+  /// Stan sprzed korekty: pozycje, kwoty i dane nabywcy. Trzymane na dokumencie
+  /// korygującym, a nie odczytywane z faktury pierwotnej, bo ta może zostać
+  /// skorygowana ponownie — a korekta ma pokazywać stan, do którego się odnosi.
+  correctedLineItems Json?
+  correctedAmount    Decimal?  @db.Decimal(12, 2)
+  correctedNet       Decimal?  @db.Decimal(12, 2)
+  correctedVat       Decimal?  @db.Decimal(12, 2)
+  correctedBuyer     Json?
+
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
   @@unique([provider, providerRef])
   @@index([userId])
   @@index([ksefStatus])
+  @@index([status, storageKey])
+  @@index([status, finalizeNextAttemptAt])
+  @@index([correctedId])
+  @@index([kind, createdAt])
 }
 
 /// B-1 — cykl życia faktury w KSeF.
@@ -1438,12 +1524,15 @@ enum KsefStatus {
 /// brak luk nawet pod dużą współbieżnością. Klucz złożony (year, month).
 model InvoiceCounter {
   id        String   @id @default(uuid())
+  /// M-06 — seria numeracji. `VFV` dla faktur, `VFK` dla korekt. Osobne serie,
+  /// bo numer ma mówić, jakim dokumentem jest, zanim ktokolwiek go otworzy.
+  series    String   @default("VFV")
   year      Int
   month     Int
   seq       Int      @default(0)
   updatedAt DateTime @updatedAt
 
-  @@unique([year, month])
+  @@unique([series, year, month])
 }
 
 // -----------------------------------------------------------------------------
@@ -2825,14 +2914,85 @@ model ReferralProgramEnrollment {
 /// Audit F-16: deduplication of Stripe webhook deliveries. Money movements are
 /// already idempotent at the ledger level — this additionally makes the
 /// stateful handlers (subscription sync, counters, e-mails) replay-safe.
+/// Z-05 — stan obsługi zdarzenia webhooka. Do 2026-08-22 wiersz nie miał stanu,
+/// co znaczyło, że jego istnienie oznaczało „widziałem", a kod czytał je jako
+/// „obsłużyłem". Handler, który rzucił wyjątkiem, zostawiał wiersz na miejscu,
+/// a ponowienie ze Stripe'a dostawało 200 jako duplikat — klient zapłacił,
+/// saldo się nie pojawiło.
+enum StripeWebhookEventStatus {
+  /// Zajęte, handler w trakcie. NIE jest to stan końcowy — patrz dzierżawa.
+  PENDING
+  /// Handler zakończył się sukcesem. Dopiero ten stan odrzuca ponowienia.
+  PROCESSED
+  /// Handler rzucił wyjątkiem. Czeka na ponowienie (`nextAttemptAt`).
+  FAILED
+}
+
 model StripeWebhookEvent {
   id        String   @id @default(uuid())
   /// Stripe event id (`evt_…`) — unique across retries of the same delivery.
   eventId   String   @unique
   type      String
+  status    StripeWebhookEventStatus @default(PENDING)
+  /// Pełna treść zdarzenia — żeby ponowienie działało nawet gdy Stripe leży,
+  /// a to jest dokładnie ta sytuacja, w której webhooki padają. Czyszczona
+  /// przez retencję po 90 dniach od przetworzenia; id, typ i status zostają
+  /// na zawsze, bo idempotencja musi działać wiecznie.
+  payload   Json?
+  /// Ile razy handler był uruchamiany dla tego zdarzenia.
+  attempts  Int      @default(0)
+  lastError String?  @db.Text
+  /// Kiedy wystartowała bieżąca próba. `PENDING` starszy niż dzierżawa
+  /// (5 min) uznajemy za porzucony przez martwy proces i wolno go przejąć.
+  claimedAt     DateTime?
+  nextAttemptAt DateTime?
+  processedAt   DateTime?
+  /// Kiedy ostatnio alarmowaliśmy o tym zdarzeniu (de-duplikacja alertów).
+  alertedAt       DateTime?
+  payloadPurgedAt DateTime?
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
+  @@index([status, nextAttemptAt])
+  @@index([status, claimedAt])
   @@index([createdAt])
+}
+
+/// H-20 — wynik próby odtworzenia z kopii zapasowej.
+///
+/// Do 2026-08-22 procedura istniała jako skrypt (`ops/scripts/restore-drill-isolated.sh`),
+/// ale jej WYKONANIE nie zostawiało śladu. Runbook wymagał drilla przed startem,
+/// a w repozytorium nie było niczego, co by potwierdzało, że kiedykolwiek się
+/// odbył. Reguła audytu mówi, że backupy i DR wymagają poziomu D4 — data, wynik,
+/// właściciel — więc procedura bez zapisu wykonania nie liczy się wcale.
+enum RestoreDrillResult {
+  OK
+  FAILED
+}
+
+model RestoreDrill {
+  id          String             @id @default(uuid())
+  startedAt   DateTime
+  finishedAt  DateTime
+  /// Ile trwało odtworzenie. To jest liczba, którą trzeba znać PRZED awarią,
+  /// a nie w jej trakcie — od niej zależy realne RTO.
+  durationSec Int
+  result      RestoreDrillResult
+  /// Obiekt z kopii, który odtwarzano (np. `verris-2026-08-22-0300.sql.gz`).
+  objectName  String
+  /// Skąd — bucket i ścieżka.
+  source      String
+  /// Liczby wierszy w tabelach kontrolnych po odtworzeniu. Dowód, że baza nie
+  /// jest pusta: `psql` kończy się zerem także wtedy, gdy nic nie wgrał.
+  rowCounts   Json
+  /// Kto odpowiada za tę próbę. D4 wymaga właściciela, nie tylko daty.
+  owner       String
+  /// Treść błędu przy FAILED albo uwagi operatora.
+  notes       String?            @db.Text
+  createdAt   DateTime           @default(now())
+
+  @@index([finishedAt])
+  @@index([result, finishedAt])
 }
 
 /// ETAP 8 — WireGuard VPN dla paneli wewnętrznych (admin/staff).

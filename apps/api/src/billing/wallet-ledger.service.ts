@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, WalletTransaction, WalletTxType, WalletTxStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
+import { trybFaktury, utworzFaktureZaObciazenie } from './faktura-za-portfel';
 
 export interface LedgerEntryInput {
   userId: string;
@@ -107,7 +108,49 @@ export class WalletLedgerService {
     const signedAmount = direction === 'credit' ? amount : amount.negated();
 
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      return await this.prisma.$transaction(async (tx) =>
+        this.zapiszWpis(tx, input, direction, amount, signedAmount),
+      );
+    } catch (err) {
+      // Concurrent duplicate with the same idempotency key: the loser of the
+      // race hits the unique constraint — return the winner's entry instead of
+      // surfacing an error (the money moved exactly once).
+      if (
+        input.idempotencyKey &&
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
+        const existing = await this.findByIdempotencyKey(input.idempotencyKey);
+        if (existing) {
+          this.logger.log(
+            `Idempotent ledger race resolved (key=${input.idempotencyKey}, id=${existing.id})`,
+          );
+          return existing;
+        }
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Zapis wpisu księgi WEWNĄTRZ podanej transakcji.
+   *
+   * Wydzielone z `applyEntry`, bo tej samej operacji potrzebuje wystawianie
+   * korekty (M-06): zwrot różnicy musi trafić do portfela atomowo z dokumentem
+   * korygującym, a nie da się otworzyć transakcji wewnątrz transakcji.
+   *
+   * Dzięki temu miejsce zmieniające saldo nadal jest JEDNO — obie ścieżki
+   * przechodzą przez tę metodę. Druga kopia blokowania wiersza i przeliczania
+   * salda byłaby piątym wystąpieniem wzorca „bliźniaczych miejsc", który
+   * w tym projekcie wyprodukował już cztery błędy.
+   */
+  async zapiszWpis(
+    tx: Prisma.TransactionClient,
+    input: LedgerEntryInput,
+    direction: 'credit' | 'debit',
+    amount: Prisma.Decimal,
+    signedAmount: Prisma.Decimal,
+  ): Promise<WalletTransaction> {
         // Audit F-02: lock the user row for the duration of the transaction.
         // Without `FOR UPDATE`, two concurrent entries (renewal cron +
         // autoscaling block + top-up webhook…) could read the same balance and
@@ -147,26 +190,40 @@ export class WalletLedgerService {
           },
         });
 
-        return created;
-      });
-    } catch (err) {
-      // Concurrent duplicate with the same idempotency key: the loser of the
-      // race hits the unique constraint — return the winner's entry instead of
-      // surfacing an error (the money moved exactly once).
-      if (
-        input.idempotencyKey &&
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === 'P2002'
-      ) {
-        const existing = await this.findByIdempotencyKey(input.idempotencyKey);
-        if (existing) {
-          this.logger.log(
-            `Idempotent ledger race resolved (key=${input.idempotencyKey}, id=${existing.id})`,
-          );
-          return existing;
+        // Z-01 — faktura powstaje TUTAJ, w tej samej transakcji co ruch
+        // pieniądza, a nie w trzynastu miejscach, które wołają księgę.
+        //
+        // Trzynastu, nie czterech: macierz wymieniała cztery wywołania
+        // `debit()`, a jest ich trzynaście. To nie jest zarzut wobec macierzy,
+        // tylko dowód, że lista miejsc, w których rusza się pieniądz,
+        // rozjeżdża się z rzeczywistością szybciej, niż ktokolwiek ją
+        // aktualizuje. Reguła w jednym miejscu nie ma jak się rozjechać.
+        //
+        // Wiersz faktury jest atomowy z obciążeniem. Wszystko, co wymaga
+        // świata zewnętrznego — PDF, MinIO, KSeF, mail — robi później
+        // scheduler finalizacji, z ponawianiem. Lekcja z Z-05: dokument,
+        // którego powstanie zależy od kroku po transakcji, będzie czasem
+        // nie powstawał i nikt się o tym nie dowie.
+        if (direction === 'debit') {
+          const tryb = trybFaktury(input.type, amount);
+          if (tryb === 'natychmiast') {
+            await utworzFaktureZaObciazenie(tx, {
+              userId: user.id,
+              walletTxId: created.id,
+              typ: input.type,
+              brutto: amount,
+              waluta: user.walletCurrency,
+              opis: input.description ?? null,
+              subscriptionId: input.subscriptionId ?? null,
+              teraz: new Date(),
+            });
+          }
+          // `zbiorczo` nie robi nic teraz — wpis zostaje z `invoiceId = null`
+          // i podejmie go miesięczny scheduler faktur zbiorczych. NULL jest
+          // tu znaczący, dlatego indeks (type, invoiceId, createdAt).
         }
-      }
-      throw err;
-    }
+
+        return created;
   }
+
 }

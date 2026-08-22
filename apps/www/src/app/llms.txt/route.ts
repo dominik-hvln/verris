@@ -30,7 +30,7 @@ const HEADER = `# Verris
 
 ## Oferta
 - Hosting z autoskalowaniem: 45 zł/mies lub 399 zł/rok (brutto). Zasoby bazowe: 50 GB NVMe,
-  8 GB RAM, 2 vCPU; autoskalowanie do 1000 GB, 64 GB RAM, 24 vCPU (do 12× mocy CPU względem bazy),
+  do 8 GB RAM, do 2 vCPU; autoskalowanie do 1000 GB, 64 GB RAM, 24 vCPU (do 12× mocy CPU względem bazy),
   rozliczane godzinowo; tryb ECO zwalnia moc po piku.
 - VPS niezarządzany (pełny root), domeny bez auto-odnowień, e-mail marketing, program resellerski.
 

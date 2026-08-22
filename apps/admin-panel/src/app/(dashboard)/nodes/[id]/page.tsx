@@ -151,6 +151,9 @@ export default async function ServerDetailPage({
           acceptsNewAccounts={server.acceptsNewAccounts}
           maxAccounts={server.maxAccounts}
           reservedHeadroomPercent={server.reservedHeadroomPercent}
+          overcommitCpu={server.overcommitCpu}
+          overcommitRam={server.overcommitRam}
+          overcommitDisk={server.overcommitDisk}
           accountCount={server._count?.accounts ?? 0}
         />
       )}

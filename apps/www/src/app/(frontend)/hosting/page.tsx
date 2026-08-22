@@ -8,7 +8,7 @@ import { serviceSchema, HOSTING_OFFERS } from '@/lib/schema';
 export const metadata: Metadata = {
   title: 'Hosting z autoskalowaniem — 45 zł/mies | Verris',
   description:
-    'Hosting współdzielony z autoskalowaniem na DirectAdmin. Baza 50 GB NVMe, 8 GB RAM, 2 vCPU — skalowanie do 1000 GB, 64 GB RAM, 24 vCPU. Migracja i SSL za 0 zł, bez limitu stron i skrzynek. 45 zł/mies lub 399 zł/rok brutto.',
+    'Hosting współdzielony z autoskalowaniem na DirectAdmin. Baza 50 GB NVMe, do 8 GB RAM, do 2 vCPU — skalowanie do 1000 GB, 64 GB RAM, 24 vCPU. Migracja i SSL za 0 zł, bez limitu stron i skrzynek. 45 zł/mies lub 399 zł/rok brutto.',
   alternates: { canonical: '/hosting' },
 };
 
@@ -28,7 +28,7 @@ export default function HostingPage() {
         data={serviceSchema({
           name: 'Hosting z autoskalowaniem',
           description:
-            'Hosting współdzielony na DirectAdmin z autoskalowaniem CPU/RAM/dysku. Baza 50 GB NVMe, 8 GB RAM, 2 vCPU; skalowanie do 1000 GB, 64 GB RAM, 24 vCPU. Migracja i SSL za 0 zł.',
+            'Hosting współdzielony na DirectAdmin z autoskalowaniem CPU/RAM/dysku. Baza 50 GB NVMe, do 8 GB RAM, do 2 vCPU; skalowanie do 1000 GB, 64 GB RAM, 24 vCPU. Migracja i SSL za 0 zł.',
           path: '/hosting',
           offers: HOSTING_OFFERS,
         })}
@@ -36,7 +36,7 @@ export default function HostingPage() {
       <SubHero
         eyebrow="Hosting współdzielony"
         title="Hosting z autoskalowaniem"
-        lead="Jeden pakiet, który rośnie razem z Twoją stroną. Bazę masz w cenie, a w piku ruchu zasoby rosną automatycznie — i wracają, gdy ruch spada. Płacisz tyle, ile widzisz."
+        lead="Jeden pakiet, który rośnie razem z Twoją stroną. Baza jest w abonamencie, a w piku ruchu zasoby rosną ponad nią automatycznie — i wracają, gdy ruch spada. Płacisz tyle, ile widzisz."
         crumbs={[{ label: 'Hosting' }]}
         primary={{ label: 'Załóż konto', href: PANEL, conv: 'checkout_intent', plan: 'hosting' }}
         secondary={{ label: 'Zobacz cennik', href: '/cennik' }}
@@ -74,7 +74,7 @@ export default function HostingPage() {
               godzinowo tylko wtedy, gdy naprawdę jej potrzebujesz.
             </p>
             <ul>
-              <li>Baza w cenie: 50 GB NVMe, 8 GB RAM, 2 vCPU (CloudLinux).</li>
+              <li>Baza pakietu: 50 GB NVMe oraz do 8 GB RAM i do 2 vCPU (limity CloudLinux/LVE).</li>
               <li>Autoskalowanie do 1000 GB dysku, 64 GB RAM i 24 vCPU — do 12× mocy CPU względem bazy.</li>
               <li>Tryb ECO zwalnia nadwyżkę po piku, a naliczanie się kończy.</li>
               <li>Bez limitu stron, skrzynek i transferu — w ramach zasobów konta i zasad fair use.</li>

@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Invoice, InvoiceStatus, Prisma } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
@@ -9,8 +9,22 @@ import { PlatformSettingsService } from '../platform-settings/platform-settings.
 import { ObjectStorageService } from '../storage/object-storage.service';
 import { ObjectBuckets } from '../storage/object-storage.types';
 import { invoiceIssuedTemplate } from '../mail/templates/invoice-notifications';
-import { InvoicePdfService, type SellerSnapshot, type BuyerSnapshot, type InvoiceLineItem } from './invoice-pdf.service';
+import {
+  InvoicePdfService,
+  type BuildInvoiceContext,
+  type SellerSnapshot,
+  type BuyerSnapshot,
+  type InvoiceLineItem,
+} from './invoice-pdf.service';
 import { StripeInvoice } from './stripe/stripe.client';
+import {
+  DOSTAWCA_RECZNY,
+  nadajNumerFaktury,
+  pozycjeReczne,
+  STAWKA_VAT,
+  type PozycjaReczna,
+} from './faktura-za-portfel';
+import { randomUUID } from 'crypto';
 
 const STRIPE_PROVIDER = 'STRIPE';
 /** Stała stawka VAT dla usług hostingowych (PL). */
@@ -242,29 +256,16 @@ export class InvoicesService {
   // ---------------------------------------------------------------------------
 
   /**
-   * Allocates the next sequence number for `VFV/YYYY/MM/{seq}`.
+   * Numer faktury w serii `VFV/RRRR/MM/{0001}`.
    *
-   * Atomic via Postgres `INSERT ... ON CONFLICT DO UPDATE RETURNING seq` so
-   * concurrent invoice creations never collide. Sequence resets monthly.
+   * Logika siedzi w `faktura-za-portfel.ts`, bo używa jej też księga portfela
+   * przy wystawianiu faktury w transakcji obciążenia. Dwie kopie numeratora
+   * oznaczałyby dwie serie rozjeżdżające się przy pierwszym równoległym
+   * wystawieniu, a numeracja faktur ma być ciągła i bez luk
+   * (art. 106e ust. 1 pkt 2 ustawy o VAT).
    */
   private async allocateInvoiceNumber(reference: Date): Promise<string> {
-    const year = reference.getFullYear();
-    const month = reference.getMonth() + 1;
-
-    // Prisma doesn't expose ON CONFLICT RETURNING natively, but we can use a
-    // raw query; alternatively a single transaction with findUnique + upsert
-    // works because `(year, month)` is unique. We pick the simpler raw query.
-    const rows = await this.prisma.$queryRaw<Array<{ seq: number }>>`
-      INSERT INTO "InvoiceCounter" ("id", "year", "month", "seq", "updatedAt")
-      VALUES (gen_random_uuid(), ${year}, ${month}, 1, NOW())
-      ON CONFLICT ("year", "month")
-      DO UPDATE SET "seq" = "InvoiceCounter"."seq" + 1, "updatedAt" = NOW()
-      RETURNING "seq";
-    `;
-    const seq = rows[0]?.seq ?? 1;
-    const monthStr = month.toString().padStart(2, '0');
-    const seqStr = seq.toString().padStart(4, '0');
-    return `VFV/${year}/${monthStr}/${seqStr}`;
+    return nadajNumerFaktury(this.prisma, reference);
   }
 
   /**
@@ -290,12 +291,18 @@ export class InvoicesService {
       number = await this.allocateInvoiceNumber(invoice.issuedAt ?? new Date());
     }
 
-    // 2) Compute VAT split (assuming 23% inclusive on totalGross).
+    // 2) Rozbicie VAT.
+    //
+    // Jeżeli faktura ma je już zapisane — a mają je wszystkie dokumenty
+    // powstałe po Z-01 i wszystkie korekty — bierzemy stamtąd. Przeliczanie na
+    // nowo z kwoty brutto dawałoby ten sam wynik dla faktur zwykłych i FAŁSZYWY
+    // dla korekt, gdzie `amount` jest RÓŻNICĄ ze znakiem, a nie ceną.
     const totalGrossDec = invoice.amount;
-    const vatRate = DEFAULT_VAT_RATE;
-    const factor = new Prisma.Decimal(100).plus(vatRate); // 123 for VAT 23
-    const totalNetDec = totalGrossDec.mul(100).dividedBy(factor).toDecimalPlaces(2);
-    const totalVatDec = totalGrossDec.minus(totalNetDec).toDecimalPlaces(2);
+    const vatRate = Number(invoice.vatRate ?? DEFAULT_VAT_RATE);
+    const factor = new Prisma.Decimal(100).plus(vatRate);
+    const totalNetDec =
+      invoice.netAmount ?? totalGrossDec.mul(100).dividedBy(factor).toDecimalPlaces(2);
+    const totalVatDec = invoice.vatAmount ?? totalGrossDec.minus(totalNetDec).toDecimalPlaces(2);
 
     // 3) Snapshot seller + buyer. Seller data comes from admin settings
     //    (PlatformSetting) with env fallback — edytowalne w panelu admina.
@@ -306,21 +313,51 @@ export class InvoicesService {
     //    semantics — invoices for subscription renewals always have one
     //    primary item (the subscription itself). Future: extract Stripe
     //    `invoice.lines.data[]` for itemized invoices (proration, addons).
-    const lineLabel = await this.buildLineItemLabel(invoice);
-    const lineItems: InvoiceLineItem[] = [
-      {
-        name: lineLabel,
-        quantity: 1,
-        unitNet: totalNetDec.toFixed(2),
-        vatRate,
-        totalNet: totalNetDec.toFixed(2),
-        totalVat: totalVatDec.toFixed(2),
-        totalGross: totalGrossDec.toFixed(2),
-      },
-    ];
+    // Faktury z portfela (Z-01) i wystawione ręcznie mają pozycje zapisane
+    // już w chwili powstania — czasem kilka, jak na fakturze zbiorczej za
+    // autoskalowanie. Nadpisanie ich jedną wyliczoną pozycją zamieniłoby
+    // rozpisany dokument w jeden wiersz „Usługa", i to bez śladu.
+    const zapisane = invoice.lineItems as unknown as InvoiceLineItem[] | null;
+    const lineItems: InvoiceLineItem[] =
+      Array.isArray(zapisane) && zapisane.length > 0
+        ? zapisane
+        : [
+            {
+              name: await this.buildLineItemLabel(invoice),
+              quantity: 1,
+              unitNet: totalNetDec.toFixed(2),
+              vatRate,
+              totalNet: totalNetDec.toFixed(2),
+              totalVat: totalVatDec.toFixed(2),
+              totalGross: totalGrossDec.toFixed(2),
+            },
+          ];
 
-    // 5) Generate PDF.
+    // 5) Kontekst korekty — M-06.
+    let korekta: BuildInvoiceContext['korekta'];
+    if (invoice.kind === 'KOREKTA' && invoice.correctedId) {
+      const pierwotna = await this.prisma.invoice.findUnique({
+        where: { id: invoice.correctedId },
+        select: { number: true, issuedAt: true },
+      });
+      korekta = {
+        numerPierwotnej: pierwotna?.number ?? '(nieznana)',
+        dataPierwotnej: pierwotna?.issuedAt ?? invoice.issuedAt ?? new Date(),
+        przyczyna: invoice.correctionReason ?? '',
+        bruttoPrzed: (invoice.correctedAmount ?? new Prisma.Decimal(0)).toFixed(2),
+        bruttoPo: (invoice.correctedAmount ?? new Prisma.Decimal(0))
+          .plus(invoice.amount)
+          .toFixed(2),
+        roznicaBrutto: invoice.amount.toFixed(2),
+        roznicaNetto: totalNetDec.toFixed(2),
+        roznicaVat: totalVatDec.toFixed(2),
+        pozycjePrzed: (invoice.correctedLineItems as unknown as InvoiceLineItem[]) ?? [],
+      };
+    }
+
+    // 6) Generate PDF.
     const pdfBytes = await this.pdf.render({
+      korekta,
       number,
       issuedAt: invoice.issuedAt ?? new Date(),
       saleDate: invoice.paidAt ?? invoice.issuedAt ?? new Date(),
@@ -399,6 +436,105 @@ export class InvoicesService {
         `sendInvoiceIssuedEmail failed for invoice=${invoice.id}: ${(err as Error).message}`,
       );
     });
+  }
+
+  /**
+   * Z-01 — faktura wystawiana ręcznie przez operatora.
+   *
+   * Macierz opisała lukę tak: „brak obejścia w systemie — operator nie
+   * wystawi faktury ręcznie". Bez tego każdy przypadek nietypowy — ugoda,
+   * rekompensata, usługa spoza cennika — wypycha operatora poza system,
+   * do Worda i własnej numeracji. Numeracja faktur ma być jedna i ciągła,
+   * więc musi istnieć droga wewnątrz.
+   *
+   * ZAKRES: dokument opłacony, potwierdzający rozliczoną transakcję. Faktura
+   * z terminem płatności (wezwanie do zapłaty) to inna funkcja i celowo jej
+   * tu nie ma — dodana po cichu, byłaby fakturą, której nikt nie pilnuje.
+   */
+  async wystawReczna(input: {
+    userId: string;
+    pozycje: PozycjaReczna[];
+    waluta?: string;
+    powod: string;
+    aktorUserId: string;
+  }): Promise<{ id: string; number: string }> {
+    const uzytkownik = await this.prisma.user.findUnique({
+      where: { id: input.userId },
+      select: { id: true },
+    });
+    if (!uzytkownik) throw new NotFoundException(`Nie ma użytkownika ${input.userId}`);
+
+    let policzone;
+    try {
+      policzone = pozycjeReczne(input.pozycje);
+    } catch (err) {
+      // Błąd arytmetyki pozycji to błąd danych wejściowych, nie awaria —
+      // operator ma zobaczyć, co poprawić.
+      throw new BadRequestException(err instanceof Error ? err.message : String(err));
+    }
+
+    const teraz = new Date();
+    const faktura = await this.prisma.$transaction(async (tx) => {
+      const numer = await nadajNumerFaktury(tx, teraz);
+      return tx.invoice.create({
+        data: {
+          userId: input.userId,
+          number: numer,
+          status: InvoiceStatus.PAID,
+          amount: policzone.suma.brutto,
+          netAmount: policzone.suma.netto,
+          vatAmount: policzone.suma.vat,
+          vatRate: new Prisma.Decimal(STAWKA_VAT),
+          currency: input.waluta ?? 'PLN',
+          provider: DOSTAWCA_RECZNY,
+          providerRef: randomUUID(),
+          lineItems: policzone.pozycje as unknown as Prisma.InputJsonValue,
+          issuedAt: teraz,
+          paidAt: teraz,
+        },
+        select: { id: true, number: true },
+      });
+    });
+
+    await this.audit.record({
+      action: 'FAKTURA_RECZNA_WYSTAWIONA',
+      userId: input.userId,
+      actorUserId: input.aktorUserId,
+      details: {
+        invoiceId: faktura.id,
+        numer: faktura.number,
+        brutto: policzone.suma.brutto.toFixed(2),
+        pozycji: policzone.pozycje.length,
+        // Powód trafia do dziennika, nie na fakturę. Faktura wystawiona
+        // ręcznie zawsze jest wyjątkiem, a wyjątek bez uzasadnienia po
+        // miesiącu jest nie do odtworzenia.
+        powod: input.powod,
+      },
+    });
+
+    this.logger.log(
+      `Faktura ręczna ${faktura.number} dla ${input.userId} ` +
+        `(${policzone.suma.brutto.toFixed(2)} ${input.waluta ?? 'PLN'})`,
+    );
+    return faktura;
+  }
+
+  /**
+   * Z-01 — publiczne dokończenie faktury (PDF + MinIO + KSeF + mail).
+   *
+   * Używane przez scheduler finalizacji i przez ręczne „dokończ" w panelu.
+   * Idempotentne: faktura z `storageKey` wychodzi bez zmian.
+   */
+  async dokonczFakture(invoiceId: string): Promise<{ id: string; storageKey: string | null }> {
+    const faktura = await this.prisma.invoice.findUnique({ where: { id: invoiceId } });
+    if (!faktura) throw new NotFoundException(`Nie ma faktury ${invoiceId}`);
+    if (faktura.storageKey) return { id: faktura.id, storageKey: faktura.storageKey };
+    await this.finalizeAsVerrisInvoice(faktura, { verrisUserId: faktura.userId });
+    const po = await this.prisma.invoice.findUnique({
+      where: { id: invoiceId },
+      select: { id: true, storageKey: true },
+    });
+    return po ?? { id: invoiceId, storageKey: null };
   }
 
   private async buildSellerSnapshot(): Promise<SellerSnapshot> {

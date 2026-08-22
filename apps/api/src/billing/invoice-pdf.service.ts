@@ -70,6 +70,29 @@ export interface BuildInvoiceContext {
   totalGross: string;
   /** Procentowa stawka VAT zsumowana — gdy wszystkie pozycje mają tę samą stawkę. */
   vatRate: number;
+
+  /**
+   * M-06 — dane korekty. Obecne WYŁĄCZNIE na dokumencie korygującym.
+   *
+   * Korekta nie jest fakturą z inną kwotą. Musi pokazać, CO korygowała i CZYM
+   * się to skończyło — bez tego nie da się z niej odtworzyć rozliczenia, a to
+   * właśnie do tego służy (art. 106j ust. 2).
+   */
+  korekta?: {
+    numerPierwotnej: string;
+    dataPierwotnej: Date;
+    przyczyna: string;
+    /** Kwota brutto PRZED korektą. */
+    bruttoPrzed: string;
+    /** Kwota brutto PO korekcie. */
+    bruttoPo: string;
+    /** Różnica ze znakiem: ujemna = zwrot dla klienta. */
+    roznicaBrutto: string;
+    roznicaNetto: string;
+    roznicaVat: string;
+    /** Pozycje sprzed korekty — dla porównania. */
+    pozycjePrzed: InvoiceLineItem[];
+  };
 }
 
 /**
@@ -125,7 +148,10 @@ export class InvoicePdfService {
       font: fontBold,
       color: rgb(0.07, 0.13, 0.34), // verris navy-ish
     });
-    page.drawText(`Faktura VAT  nr  ${ctx.number}`, {
+    const tytul = ctx.korekta
+      ? `Faktura korygująca  nr  ${ctx.number}`
+      : `Faktura VAT  nr  ${ctx.number}`;
+    page.drawText(tytul, {
       x: PAGE_W - MARGIN - 250,
       y: cursorY - 8,
       size: 16,
@@ -159,6 +185,24 @@ export class InvoicePdfService {
       size: 9,
       font: fontRegular,
     });
+    if (ctx.korekta) {
+      page.drawText(
+        `Koryguje fakturę ${ctx.korekta.numerPierwotnej} z ${ctx.korekta.dataPierwotnej
+          .toISOString()
+          .slice(0, 10)}`,
+        { x: MARGIN, y: cursorY, size: 9, font: fontBold },
+      );
+      cursorY -= 13;
+      // Przyczyna jest polem OBOWIĄZKOWYM (art. 106j ust. 2 pkt 4), więc stoi
+      // na dokumencie, a nie tylko w dzienniku audytu.
+      page.drawText(`Przyczyna korekty: ${ctx.korekta.przyczyna}`, {
+        x: MARGIN,
+        y: cursorY,
+        size: 9,
+        font: fontRegular,
+      });
+      cursorY -= 15;
+    }
     page.drawText(dateLabel('Termin płatności', ctx.dueAt), {
       x: MARGIN + 360,
       y: cursorY,
@@ -323,18 +367,52 @@ export class InvoicePdfService {
     );
     cursorY -= 24;
 
-    // Do zapłaty / Zapłacono
-    const dueLabel = ctx.isPaid
-      ? `Zapłacono: ${ctx.totalGross} ${ctx.currency}`
-      : `Do zapłaty: ${ctx.totalGross} ${ctx.currency}`;
-    page.drawText(dueLabel, {
-      x: PAGE_W - MARGIN - measureText(dueLabel, fontBold, 13),
-      y: cursorY,
-      size: 13,
-      font: fontBold,
-      color: ctx.isPaid ? rgb(0.05, 0.45, 0.2) : rgb(0.7, 0.1, 0.1),
-    });
-    cursorY -= 22;
+    if (ctx.korekta) {
+      // Na korekcie „Do zapłaty" nie znaczy nic — dokument nie żąda zapłaty,
+      // tylko zmienia rozliczenie. Znaczenie ma RÓŻNICA i jej kierunek.
+      const k = ctx.korekta;
+      const ujemna = k.roznicaBrutto.trim().startsWith('-');
+      const etykieta = ujemna
+        ? `Do zwrotu klientowi: ${k.roznicaBrutto.replace('-', '')} ${ctx.currency}`
+        : `Do dopłaty przez klienta: ${k.roznicaBrutto} ${ctx.currency}`;
+
+      for (const [opis, wartosc] of [
+        ['Wartość przed korektą', `${k.bruttoPrzed} ${ctx.currency}`],
+        ['Wartość po korekcie', `${k.bruttoPo} ${ctx.currency}`],
+        ['Różnica', `${k.roznicaBrutto} ${ctx.currency}`],
+      ] as Array<[string, string]>) {
+        page.drawText(opis, { x: PAGE_W - MARGIN - 260, y: cursorY, size: 9, font: fontRegular });
+        page.drawText(wartosc, {
+          x: PAGE_W - MARGIN - measureText(wartosc, fontRegular, 9),
+          y: cursorY,
+          size: 9,
+          font: fontRegular,
+        });
+        cursorY -= 13;
+      }
+      cursorY -= 4;
+      page.drawText(etykieta, {
+        x: PAGE_W - MARGIN - measureText(etykieta, fontBold, 12),
+        y: cursorY,
+        size: 12,
+        font: fontBold,
+        color: ujemna ? rgb(0.05, 0.45, 0.2) : rgb(0.7, 0.1, 0.1),
+      });
+      cursorY -= 22;
+    } else {
+      // Do zapłaty / Zapłacono
+      const dueLabel = ctx.isPaid
+        ? `Zapłacono: ${ctx.totalGross} ${ctx.currency}`
+        : `Do zapłaty: ${ctx.totalGross} ${ctx.currency}`;
+      page.drawText(dueLabel, {
+        x: PAGE_W - MARGIN - measureText(dueLabel, fontBold, 13),
+        y: cursorY,
+        size: 13,
+        font: fontBold,
+        color: ctx.isPaid ? rgb(0.05, 0.45, 0.2) : rgb(0.7, 0.1, 0.1),
+      });
+      cursorY -= 22;
+    }
 
     page.drawText(`Forma zapłaty: ${ctx.paymentMethodLabel}`, {
       x: MARGIN,

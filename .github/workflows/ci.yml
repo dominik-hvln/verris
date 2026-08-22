@@ -28,15 +28,15 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
         with:
           version: 9.5.0
 
       - name: Use Node.js 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
@@ -47,13 +47,64 @@ jobs:
       - name: Generate Prisma client
         run: pnpm --filter @verris/database db:generate
 
+      # BEZ continue-on-error od 2026-08-22. Wcześniej stało tu „lint jest
+      # miękki, bramką jest typecheck" — a to znaczyło, że NOWY błąd lintera
+      # też by nie zatrzymał wdrożenia. Dziś lint wychodzi z zerem we
+      # wszystkich siedmiu pakietach (0 błędów, 270 ostrzeżeń), więc zdjęcie
+      # miękkości nic nie psuje, a zaczyna cokolwiek chronić. Ostrzeżenia
+      # nadal przechodzą — to dług z X-19, spłacany osobno. Patrz X-23.
       - name: Lint
         run: pnpm lint
-        # Lint is allowed to be soft for now; typecheck below is the gate.
-        continue-on-error: true
 
       - name: Typecheck (all workspaces via Turbo)
         run: pnpm typecheck
+
+  # ---------------------------------------------------------------------------
+  # X-11 — testy API mają WŁASNY job, nie krok w „Static checks".
+  #
+  # Do 2026-08-21 `pnpm --filter api test` był ostatnim krokiem joba wyżej,
+  # zaraz za typecheckiem. Skutek zobaczyliśmy przy pierwszym przebiegu (#17):
+  # typecheck wywalił się na `apps/www` — panelu, którego ta praca w ogóle nie
+  # dotyczyła — i testy nie uruchomiły się ani razu. CI działało, wszystko
+  # świeciło się na czerwono z powodu literówki w typach, a jedyny krok
+  # dający poziom dowodu D2 nie został wykonany.
+  #
+  # Zasada, którą to utrwala: krok, który DOWODZI, nie może stać za krokiem,
+  # który tylko sprawdza higienę. Osobny job kosztuje jeden dodatkowy
+  # `pnpm install` (~30 s) i jest tego wart.
+  # ---------------------------------------------------------------------------
+  api-tests:
+    name: API unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          version: 9.5.0
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Klient Prismy jest potrzebny do samego zaimportowania modułów API.
+      - name: Generate Prisma client
+        run: pnpm --filter @verris/database db:generate
+
+      # X-17 — @verris/database ma main: dist/index.js. Bez tego kroku jest
+      # nie rozwiąże modułu i 32 z 48 zestawów nie wystartują. Przed X-11
+      # budowały się przy okazji przez `pnpm typecheck` (Turbo, ^build);
+      # wydzielenie testów do własnego joba zabrało im to po cichu.
+      - name: Build workspace libraries
+        run: pnpm --filter @verris/database --filter @verris/contracts --filter @verris/directadmin-sdk run build
 
       - name: API unit tests
         run: pnpm --filter api test
@@ -68,15 +119,15 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
         with:
           version: 9.5.0
 
       - name: Use Node.js 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
@@ -117,15 +168,15 @@ jobs:
       DATABASE_URL: postgresql://verris:verris_password@localhost:5432/verris_db?schema=public
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
         with:
           version: 9.5.0
 
       - name: Use Node.js 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
@@ -145,6 +196,140 @@ jobs:
           DATABASE_URL: postgresql://verris:verris_password@localhost:5432/verris_db?schema=public
         run: npx prisma migrate status
 
+      # Do 2026-08-22 ten job sprawdzał wyłącznie, czy migracje dają się
+      # zastosować i czy schemat nie ma dryfu. Nie sprawdzał, czy DANE, które
+      # migracje wstawiają, tam są i mają właściwe wartości — a Z-12 i Z-13 to
+      # migracje danych, których poprawność testy jednostkowe potwierdzają
+      # tylko przez czytanie SQL-a jako tekstu. Ten krok czyta bazę.
+      # Seed tworzy plany prototypowe (starter/pro/business). Bez tego kroku
+      # asercja „żaden prototyp nie jest publiczny" przechodziłaby trywialnie,
+      # bo na bazie z samych migracji te plany nie istnieją. Przy okazji CI
+      # weryfikuje, że seed w ogóle wykonuje się na świeżej bazie.
+      # Seed importuje @verris/database, więc klient musi istnieć.
+      # Bez tego kroku „Seed reference data" wywalał job od commita d381a64.
+      - name: Generate Prisma client
+        run: pnpm --filter @verris/database db:generate
+
+      - name: Seed reference data
+        working-directory: libs/database
+        env:
+          DATABASE_URL: postgresql://verris:verris_password@localhost:5432/verris_db?schema=public
+          SEED_ADMIN_PASSWORD: ci-not-a-real-password
+        run: pnpm db:seed
+
+      # Od 2026-08-22 asercje są rozdzielone na trzy pliki, bo mają trzy różne
+      # życia. Do tej pory siedziały w jednym i biegły WYŁĄCZNIE tutaj, na
+      # świeżej bazie testowej — czyli dokładnie tam, gdzie nie ma prawdziwych
+      # danych. Część z nich wywaliłaby produkcyjny deploy bez powodu.
+      #
+      #   niezmienniki — CI ORAZ produkcja, blokują (patrz prod-deploy-ghcr.sh),
+      #   katalog      — TYLKO CI: opisuje dzisiejszą decyzję handlową,
+      #   historia     — CI i produkcja, wyłącznie raportuje.
+      - name: Verify migrated data — niezmienniki (Z-01, Z-05, Z-12, Z-13, Z-16, M-06)
+        env:
+          PGPASSWORD: verris_password
+          PGHOST: localhost
+          PGUSER: verris
+          PGDATABASE: verris_db
+        run: psql -v ON_ERROR_STOP=1 -f ops/sql/po-migracji-niezmienniki.sql
+
+      - name: Verify migrated data — katalog (tylko CI)
+        env:
+          PGPASSWORD: verris_password
+          PGHOST: localhost
+          PGUSER: verris
+          PGDATABASE: verris_db
+        run: psql -v ON_ERROR_STOP=1 -f ops/sql/po-migracji-katalog.sql
+
+      - name: Report migrated data — historia (raport, nie bramka)
+        env:
+          PGPASSWORD: verris_password
+          PGHOST: localhost
+          PGUSER: verris
+          PGDATABASE: verris_db
+        run: psql -v ON_ERROR_STOP=1 -f ops/sql/po-migracji-historia.sql
+
+      # Asercja, która przechodzi na każdej bazie, nie jest bramką. Odkąd
+      # niezmienniki potrafią wycofać produkcyjne wdrożenie, pytanie „czy one
+      # w ogóle coś zauważają" przestało być teoretyczne — ten krok psuje po
+      # jednym niezmienniku naraz i sprawdza, że plik się na nim zatrzymuje.
+      # Wszystko w transakcjach z ROLLBACK-iem, baza wychodzi nietknięta.
+      - name: Asercje muszą się czerwienić na złych danych
+        env:
+          PGPASSWORD: verris_password
+          PGHOST: localhost
+          PGUSER: verris
+          PGDATABASE: verris_db
+        run: ./ops/scripts/asercje-czerwienia-sie.sh
+
+  # ---------------------------------------------------------------------------
+  # X-04 — testy integracyjne przeciwko PRAWDZIWEJ bazie.
+  #
+  # Wszystkie pozostałe testy API podstawiają fałszywą Prismę: dowodzą, że logika
+  # jest poprawna, nie że zapytanie zwraca to, czego się po nim spodziewamy.
+  # Tutaj Postgres jest prawdziwy, a fałszywe zostaje wyłącznie to, co jest
+  # naprawdę na zewnątrz — DirectAdmin, poczta, dziennik audytu.
+  #
+  # Job NIE jest jeszcze wymagany do scalenia (ruleset z X-02). Zostanie do
+  # niego dopisany po pierwszym zielonym przebiegu na main — dokładanie
+  # nieprzetestowanego checka jako wymaganego zablokowałoby merge na ślepo.
+  # ---------------------------------------------------------------------------
+  integration:
+    name: API integration tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: verris
+          POSTGRES_PASSWORD: verris_password
+          POSTGRES_DB: verris_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U verris -d verris_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      DATABASE_URL: postgresql://verris:verris_password@localhost:5432/verris_test?schema=public
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v5
+        with:
+          version: 9.5.0
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm db:generate
+
+      - name: Apply migrations
+        working-directory: libs/database
+        run: npx prisma migrate deploy
+
+      # Serwisy importują @verris/database i @verris/directadmin-sdk po ich
+      # `main`, czyli z dist/. Bez tego kroku jest nie rozwiąże modułów.
+      - name: Build workspace libraries
+        run: pnpm --filter @verris/database --filter @verris/contracts --filter @verris/directadmin-sdk run build
+
+      - name: Run integration tests
+        working-directory: apps/api
+        run: npx jest --config jest.integration.cjs
+
   # ---------------------------------------------------------------------------
   # CYBER-5/6 — skany bezpieczeństwa: sekrety w repo, znane CVE w zależnościach,
   # podatności w obrazach kontenerów. Nie blokują buildu (report-only na start),
@@ -155,24 +340,24 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       # CYBER-5 — skan sekretów w historii i diffie.
       - name: Gitleaks (secret scan)
-        uses: gitleaks/gitleaks-action@v2
+        uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true
 
       - name: Install pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v5
         with:
           version: 9.5.0
 
       - name: Use Node.js 22
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: pnpm
@@ -181,9 +366,15 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       # CYBER-6 — znane CVE w zależnościach produkcyjnych.
-      - name: pnpm audit (prod)
-        run: pnpm audit --prod --audit-level high
-        continue-on-error: true
+      # BEZ continue-on-error, świadomie. Do 2026-08-22 stało tu
+      # `pnpm audit --prod --audit-level high` z wyłączonym alarmem, bo w
+      # drzewie siedzi jedna wysoka podatność (deepmerge-ts przez Prismę 6,
+      # patrz X-20), której nie da się dziś domknąć. Skutek: NOWA krytyczna
+      # podatność też by nie zatrzymała wdrożenia — job świecił się na zielono
+      # z adnotacją „exit code 1", której nikt nie czyta. Bramka zastąpiona
+      # listą świadomych zgód z terminem ważności. Patrz X-23.
+      - name: Bramka podatności
+        run: node ops/ci/audyt-bramka.cjs
 
       # CYBER-6 — podatności w systemie plików (zależności + Dockerfile).
       # UWAGA na tag: to repozytorium taguje wydania z przedrostkiem `v`

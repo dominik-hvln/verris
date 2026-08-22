@@ -22,18 +22,6 @@ export function PricingTable({ rules, resourceLabels }: Props) {
     (r) => !CATALOG_ORDER.includes(r.resource as AutoscalingCatalogResource),
   );
 
-  if (rules.length === 0) {
-    return (
-      <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-10 text-center">
-        <p className="text-base font-semibold text-white">Brak reguł cennika</p>
-        <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
-          Dodaj pierwszą stawkę po prawej — bez aktywnych reguł silnik autoskalowania nie zaczyna
-          naliczać kosztów za CPU/RAM/dysk.
-        </p>
-      </div>
-    );
-  }
-
   const byResource = useMemo(() => {
     const map = new Map<AutoscalingCatalogResource, PriceRuleDto[]>();
     for (const res of CATALOG_ORDER) map.set(res, []);
@@ -50,6 +38,23 @@ export function PricingTable({ rules, resourceLabels }: Props) {
     }
     return map;
   }, [catalogRules]);
+
+  // Wczesny return MUSI stać po wszystkich hookach. Wcześniej stał przed
+  // useMemo powyżej, więc przy pustej liście reguł hook nie wykonywał się
+  // wcale — a po dodaniu pierwszej stawki React widział inną liczbę hooków
+  // niż w poprzednim renderze i komponent się wywalał.
+  if (rules.length === 0) {
+    return (
+      <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-10 text-center">
+        <p className="text-base font-semibold text-white">Brak reguł cennika</p>
+        <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
+          Dodaj pierwszą stawkę po prawej — bez aktywnych reguł silnik autoskalowania nie zaczyna
+          naliczać kosztów za CPU/RAM/dysk.
+        </p>
+      </div>
+    );
+  }
+
 
   return (
     <div className="space-y-6">

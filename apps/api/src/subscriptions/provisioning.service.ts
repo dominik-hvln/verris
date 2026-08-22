@@ -32,6 +32,12 @@ import {
   planResourceFields,
 } from '../servers/da-package-spec';
 import { WafService } from './waf.service';
+import {
+  deltaKsiegi,
+  KONTO_NIEISTNIEJACE,
+  ksiegaUpdateData,
+  limityEfektywne,
+} from './node-capacity';
 
 export interface ProvisionResult {
   subscription: Subscription;
@@ -296,9 +302,11 @@ export class ProvisioningService {
       await tx.server.update({
         where: { id: server.id },
         data: {
-          allocatedCpu: { increment: subscription.plan.cpuLimit },
-          allocatedMemory: { increment: subscription.plan.ramLimitMb },
-          allocatedDisk: { increment: subscription.plan.diskLimitMb },
+          // Konto powstaje: księga rośnie o jego limity efektywne. Nowe konto
+          // nie ma jeszcze nadwyżki, więc efektywne = baza planu.
+          ...ksiegaUpdateData(
+            deltaKsiegi(KONTO_NIEISTNIEJACE, limityEfektywne(subscription.plan)),
+          ),
         },
       });
 

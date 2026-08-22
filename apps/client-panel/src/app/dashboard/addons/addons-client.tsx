@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Check, Loader2, Plus, Sparkles } from 'lucide-react';
@@ -18,15 +18,32 @@ export function AddonsClient({ overview }: { overview: AddonsOverview }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  /**
+   * Z-06 — klucz idempotencji na dodatek, trzymany między renderami.
+   *
+   * Powstaje raz przy pierwszym kliknięciu i wraca przy każdej kolejnej próbie
+   * tego samego zakupu, więc podwójne kliknięcie albo ponowienie po zerwanej
+   * sieci trafia w ten sam zakup zamiast obciążać portfel drugi raz. Kasujemy go
+   * dopiero po udanym zakupie — od tego momentu kolejne kliknięcie to już
+   * świadoma decyzja o drugim zakupie i ma dostać nowy klucz.
+   *
+   * Klucz musi powstać TUTAJ, po stronie klienta. Gdyby generowała go akcja
+   * serwerowa, każde kliknięcie dawałoby nowy — czyli dokładnie ten błąd, który
+   * naprawiamy, tylko przeniesiony o jedną warstwę.
+   */
+  const klucze = useRef<Record<string, string>>({});
+
   const buy = (slug: string) => {
     setBusy(slug);
+    klucze.current[slug] ??= `${slug}-${crypto.randomUUID()}`;
     startTransition(async () => {
-      const res = await purchaseAddonAction(slug);
+      const res = await purchaseAddonAction(slug, klucze.current[slug]);
       setBusy(null);
       if (!res.ok) {
         toast.error('Nie udało się kupić dodatku', { description: res.error });
         return;
       }
+      delete klucze.current[slug];
       toast.success('Dodatek kupiony', { description: res.note });
       // Odśwież licznik salda w topbarze (layout nasłuchuje tego zdarzenia).
       window.dispatchEvent(new Event('wallet:refresh'));

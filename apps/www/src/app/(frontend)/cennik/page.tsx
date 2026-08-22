@@ -6,7 +6,7 @@ import { RevealInit } from '../components/RevealInit';
 export const metadata: Metadata = {
   title: 'Cennik hostingu — 45 zł/mies lub 399 zł/rok brutto | Verris',
   description:
-    'Jeden pakiet hostingu z autoskalowaniem: 45 zł/mies lub 399 zł/rok brutto. Baza 50 GB NVMe, 8 GB RAM, 2 vCPU — skalowanie do 1000 GB, 64 GB, 24 vCPU. Bez limitu stron i skrzynek, SSL i migracja w cenie.',
+    'Jeden pakiet hostingu z autoskalowaniem: 45 zł/mies lub 399 zł/rok brutto. Baza 50 GB NVMe, do 8 GB RAM, do 2 vCPU — skalowanie do 1000 GB, 64 GB, 24 vCPU. Bez limitu stron i skrzynek, SSL i migracja w cenie.',
   alternates: { canonical: '/cennik' },
 };
 

@@ -159,7 +159,7 @@ function syncMetaPixel(marketingGranted: boolean): void {
     version: string;
   };
   const n = function (this: unknown, ...args: unknown[]) {
-    if (n.callMethod) n.callMethod.apply(n, args);
+    if (n.callMethod) n.callMethod(...args);
     else n.queue.push(args);
   } as FbqStub;
   n.push = n;

@@ -113,8 +113,10 @@ export class ProbeRunnerService {
       });
       socket.setTimeout(timeoutMs);
 
-      socket.on('data', (chunk) => {
-        buffer = Buffer.concat([buffer, chunk]);
+      socket.on('data', (chunk: Buffer | string) => {
+        // @types/node 26 rozszerzyło sygnaturę zdarzenia 'data' o string.
+        // Gniazdo bez setEncoding zawsze daje Buffer, ale typ trzeba zawęzić jawnie.
+        buffer = Buffer.concat([buffer, Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)]);
         const banner = buffer.toString('utf8');
         if (expectedPrefixes.some((p) => banner.includes(p))) {
           finalize({ ok: true, latencyMs: Date.now() - start });

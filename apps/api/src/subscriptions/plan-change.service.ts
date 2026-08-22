@@ -31,6 +31,12 @@ import {
   planPriceForInterval,
   type PlanChangeDirection,
 } from './plan-proration.util';
+import {
+  deltaJestZerowa,
+  deltaKsiegi,
+  ksiegaUpdateData,
+  limityEfektywne,
+} from './node-capacity';
 
 type LoadedSub = Subscription & {
   plan: Plan;
@@ -589,9 +595,21 @@ export class PlanChangeService {
   ) {
     const oldPlan = sub.plan;
     const account = sub.account!;
-    const deltaCpu = target.cpuLimit - oldPlan.cpuLimit;
-    const deltaRam = target.ramLimitMb - oldPlan.ramLimitMb;
-    const deltaDisk = target.diskLimitMb - oldPlan.diskLimitMb;
+    // Z-16 — delta liczy się od limitów EFEKTYWNYCH, nie od baz planów.
+    //
+    // Konto miało zarezerwowane na węźle `bazaStarego + nadwyżka`, a po zmianie
+    // planu ma `bazaNowego + 0` (scaled* jest zerowane niżej). Liczenie delty
+    // jako różnicy samych baz zostawiłoby nadwyżkę w księdze węzła na zawsze.
+    //
+    // Przed Z-16 ten kod był poprawny, bo nadwyżka autoskalowania w ogóle nie
+    // trafiała do allocated*. Zmiana znaczenia księgi wymagała poprawienia
+    // każdego miejsca, które ją prowadzi — to trzecie i ostatnie.
+    // Konto przechodzi z limitów efektywnych STAREGO planu (baza + nadwyżka,
+    // którą zmiana planu zeruje niżej) na bazę NOWEGO planu.
+    const delta = deltaKsiegi(
+      limityEfektywne(oldPlan, account),
+      limityEfektywne(target),
+    );
 
     return this.prisma.$transaction(async (tx) => {
       await tx.account.update({
@@ -610,14 +628,10 @@ export class PlanChangeService {
         },
       });
 
-      if (deltaCpu !== 0 || deltaRam !== 0 || deltaDisk !== 0) {
+      if (!deltaJestZerowa(delta)) {
         await tx.server.update({
           where: { id: account.serverId },
-          data: {
-            ...(deltaCpu !== 0 ? { allocatedCpu: { increment: deltaCpu } } : {}),
-            ...(deltaRam !== 0 ? { allocatedMemory: { increment: deltaRam } } : {}),
-            ...(deltaDisk !== 0 ? { allocatedDisk: { increment: deltaDisk } } : {}),
-          },
+          data: ksiegaUpdateData(delta),
         });
       }
 

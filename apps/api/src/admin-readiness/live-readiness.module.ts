@@ -7,10 +7,17 @@ import { LiveReadinessAdminController } from './live-readiness.admin.controller'
 import { OpsWatchdogScheduler } from './ops-watchdog.scheduler';
 import { RblReputationScheduler } from './rbl-reputation.scheduler';
 import { MailHealthScheduler } from './mail-health.scheduler';
+import { ProbaOdtworzeniaScheduler } from './proba-odtworzenia.scheduler';
 
 @Module({
   imports: [PlatformSettingsModule, ComplianceModule, MailModule],
-  providers: [LiveReadinessService, OpsWatchdogScheduler, RblReputationScheduler, MailHealthScheduler],
+  providers: [
+    LiveReadinessService,
+    OpsWatchdogScheduler,
+    RblReputationScheduler,
+    MailHealthScheduler,
+    ProbaOdtworzeniaScheduler,
+  ],
   controllers: [LiveReadinessAdminController],
 })
 export class LiveReadinessModule {}

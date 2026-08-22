@@ -1,0 +1,19 @@
+{
+  "_opis": [
+    "Świadome zgody na podatności high/critical, które zostają w drzewie mimo bramki.",
+    "Każda zgoda musi mieć powód, pozycję w macierzy audytu i termin ważności.",
+    "Po terminie CI robi się czerwone — przedłużenie jest decyzją, nie brakiem decyzji.",
+    "Zgoda na podatność, której już nie ma, też robi CI czerwone: lista ma być prawdziwa.",
+    "Sprawdzane przez ops/ci/audyt-bramka.mjs w jobie security-scans (patrz X-23)."
+  ],
+  "zgody": [
+    {
+      "advisory": "GHSA-ggr8-5vv4-36mx",
+      "modul": "deepmerge-ts",
+      "cve": "CVE-2026-40345",
+      "powod": "Wchodzi wyłącznie jako zależność przechodnia Prismy 6.19.3. Nie da się jej podnieść bez migracji na Prismę 7, która jest zmianą architektury warstwy danych (url znika z datasource na rzecz prisma.config.ts, PrismaClient wymaga driver adaptera) — nie podnoszę tego dwa sprinty przed startem. Wektor: wyczerpanie stosu przy scalaniu rekurencyjnych grafów obiektów; scalanie dotyczy konfiguracji Prismy, nie danych wejściowych od użytkownika.",
+      "pozycja": "X-20",
+      "wazneDo": "2026-11-15"
+    }
+  ]
+}

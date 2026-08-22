@@ -48,7 +48,16 @@ async function main() {
   console.log(`  user: ${staffUser.email} (role=${staffUser.role})`);
 
   // ---------------------------------------------------------------------------
-  // Sample plans
+  // Plany prototypowe (Z-13)
+  //
+  // To są PRÓBKI z czasów prototypu, nie oferta. Pakiet, który Verris naprawdę
+  // sprzedaje — 45 zł/mies., baza 50 GB / do 8 GB RAM / do 2 vCPU — powstaje
+  // w migracji 20260822120000_plan_produkcyjny, żeby istniał na każdym
+  // środowisku bez uruchamiania seeda. Definicja: apps/api/src/plans/plan-produkcyjny.ts
+  //
+  // isPublic=false: do 2026-08-22 te trzy plany były jedynymi publicznymi
+  // i to je widział klient w katalogu, mimo że strona reklamowała zupełnie
+  // inny pakiet za inną cenę.
   // ---------------------------------------------------------------------------
   const plans = await Promise.all([
     prisma.plan.upsert({
@@ -56,6 +65,7 @@ async function main() {
       update: {},
       create: {
         slug: 'starter',
+        isPublic: false,
         name: 'Starter',
         description: 'Wszystko czego potrzebujesz, aby uruchomić małą stronę firmową lub blog.',
         cpuLimit: 100,
@@ -76,6 +86,7 @@ async function main() {
       update: {},
       create: {
         slug: 'pro',
+        isPublic: false,
         name: 'Pro',
         description: 'Dla rozwijających się projektów z wyższym ruchem i wymaganiami.',
         cpuLimit: 200,
@@ -96,6 +107,7 @@ async function main() {
       update: {},
       create: {
         slug: 'business',
+        isPublic: false,
         name: 'Business',
         description: 'Wydajny pakiet dla sklepów online i aplikacji biznesowych.',
         cpuLimit: 400,

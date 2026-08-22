@@ -96,9 +96,9 @@ const COMPARE: [string, string, string][] = [
 ];
 
 const FAQ: [string, string][] = [
-  ['Czym hosting Verris różni się od zwykłego pakietu?', 'Zamiast sztywnego pakietu, który przez większość roku się nudzi, dostajesz bazowe zasoby (50 GB NVMe, 8 GB RAM, 2 vCPU) i autoskalowanie. W piku ruchu moc rośnie automatycznie — do 24 vCPU, 64 GB RAM i 1000 GB — i rozliczana jest godzinowo. Gdy ruch spada, tryb ECO zwalnia zasoby i naliczanie się kończy. Nie kupujesz mocy na zapas.'],
+  ['Czym hosting Verris różni się od zwykłego pakietu?', 'Zamiast sztywnego pakietu, który przez większość roku się nudzi, dostajesz bazowe zasoby (50 GB NVMe, do 8 GB RAM, do 2 vCPU) i autoskalowanie. W piku ruchu moc rośnie automatycznie — do 24 vCPU, 64 GB RAM i 1000 GB — i rozliczana jest godzinowo. Gdy ruch spada, tryb ECO zwalnia zasoby i naliczanie się kończy. Nie kupujesz mocy na zapas.'],
   ['Czy mogę przenieść stronę z innego hostingu?', 'Tak. Przeprowadzkę strony i poczty wykonuje zespół Verris albo migrator w panelu — oba bezpłatne w ramach zamówienia hostingu. Migracja odbywa się obok działającej strony, bez przestoju, a przełączenie następuje przez zmianę DNS. Bez limitu liczby plików i bez dopłat za bazy danych.'],
-  ['Ile kosztuje autoskalowanie?', 'Bazowe zasoby są w cenie pakietu (45 zł/mies lub 399 zł/rok brutto). Nadwyżkę ponad bazę rozliczamy godzinowo — płacisz tylko za czas faktycznego użycia. Orientacyjny koszt policzysz w kalkulatorze autoskalowania.'],
+  ['Ile kosztuje autoskalowanie?', 'Bazowe zasoby są objęte abonamentem (45 zł/mies lub 399 zł/rok brutto). Nadwyżkę ponad bazę rozliczamy godzinowo — płacisz tylko za czas faktycznego użycia. Orientacyjny koszt policzysz w kalkulatorze autoskalowania.'],
   ['Co znaczy „bez limitu" stron, skrzynek i transferu?', 'Nie nakładamy sztywnego licznika na liczbę stron, skrzynek e-mail ani na transfer. Realnym ogranicznikiem są zasoby konta (CPU, RAM, dysk) oraz zasady uczciwego korzystania — dzięki autoskalowaniu te zasoby możesz zwiększać na żądanie.'],
   ['Jak płacę i czy dostanę fakturę?', 'Kartą, BLIK-iem, Apple Pay, Google Pay, przelewem online (Stripe) lub Kredytami Verris. Faktury VAT znajdziesz w panelu i w e-mailu, gotowe na KSeF.'],
   ['Gdzie stoją serwery Verris?', 'W centrach danych w Unii Europejskiej (Hetzner, Niemcy/Finlandia). Dane pozostają w EOG, co upraszcza zgodność z RODO.'],
@@ -114,7 +114,7 @@ const homeJsonLd = {
       '@type': 'Product',
       name: 'Hosting Verris z autoskalowaniem',
       description:
-        'Hosting współdzielony na DirectAdmin z autoskalowaniem CPU/RAM/dysku i trybem ECO. Baza: 50 GB NVMe, 8 GB RAM, 2 vCPU; skalowanie do 1000 GB, 64 GB RAM, 24 vCPU. Migracja i SSL za 0 zł, SLA 99,5% z rekompensatami.',
+        'Hosting współdzielony na DirectAdmin z autoskalowaniem CPU/RAM/dysku i trybem ECO. Baza: 50 GB NVMe, do 8 GB RAM, do 2 vCPU; skalowanie do 1000 GB, 64 GB RAM, 24 vCPU. Migracja i SSL za 0 zł, SLA 99,5% z rekompensatami.',
       brand: { '@id': ORG_ID },
       offers: HOSTING_OFFERS,
     },
@@ -212,10 +212,10 @@ export default function HomePage() {
           <div className="sec-head rv">
             <p className="kicker">Autoskalowanie</p>
             <h2>Moc rośnie z ruchem. Rachunek — tylko za realne użycie.</h2>
-            <p>Koniec z pakietem dobieranym „na zapas". Bazę masz w cenie, a nadwyżkę płacisz godzinowo — sekundę po piku naliczanie się kończy.</p>
+            <p>Koniec z pakietem dobieranym „na zapas". Baza jest w abonamencie, a nadwyżkę płacisz godzinowo — sekundę po piku naliczanie się kończy.</p>
           </div>
           <div className="steps">
-            <div className="step rv"><span className="n">01</span><h3>Baza w cenie</h3><p>50 GB NVMe, 8 GB RAM i 2 vCPU działają non-stop w ramach abonamentu 45 zł/mies. Dla większości stron to z zapasem wystarczy.</p></div>
+            <div className="step rv"><span className="n">01</span><h3>Baza w abonamencie</h3><p>50 GB NVMe oraz do 8 GB RAM i do 2 vCPU w ramach abonamentu 45 zł/mies. Dla większości stron to z zapasem wystarczy.</p></div>
             <div className="step rv"><span className="n">02</span><h3>Pik ruchu → scale-up</h3><p>Kampania, Black Friday, wejście na home w mediach? Zasoby rosną automatycznie — do 24 vCPU, 64 GB RAM i 1000 GB — rozliczane co godzinę.</p></div>
             <div className="step rv"><span className="n">03</span><h3>Spadek → tryb ECO</h3><p>Gdy ruch opada, tryb ECO zwalnia nadwyżkę i naliczanie się kończy. Nie płacisz za moc, której strona nie używa.</p></div>
           </div>

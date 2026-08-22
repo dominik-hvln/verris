@@ -5,6 +5,8 @@ import { BillingAdminController } from './billing.admin.controller';
 import { WalletLedgerService } from './wallet-ledger.service';
 import { StripeService } from './stripe/stripe.service';
 import { StripeWebhookController } from './stripe/stripe.controller';
+import { StripeWebhookEventsAdminController } from './stripe/stripe-webhook-events.admin.controller';
+import { StripeWebhookPonowieniaScheduler } from './stripe/stripe-webhook-ponowienia.scheduler';
 import { InvoicesService } from './invoices.service';
 import { InvoicesController } from './invoices.controller';
 import { InvoicesAdminController } from './invoices.admin.controller';
@@ -15,6 +17,8 @@ import { WalletAutoTopupService } from './wallet-auto-topup.service';
 import { WalletAutoTopupScheduler } from './wallet-auto-topup.scheduler';
 import { WalletLowBalanceScheduler } from './wallet-low-balance.scheduler';
 import { SlaCreditScheduler } from './sla-credit.scheduler';
+import { FakturyScheduler } from './faktury.scheduler';
+import { KorektyService } from './korekty.service';
 import { MailModule } from '../mail/mail.module';
 import { KsefModule } from '../ksef/ksef.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
@@ -27,6 +31,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     BillingController,
     BillingAdminController,
     StripeWebhookController,
+    StripeWebhookEventsAdminController,
     InvoicesController,
     InvoicesAdminController,
   ],
@@ -41,7 +46,10 @@ import { NotificationsModule } from '../notifications/notifications.module';
     WalletAutoTopupScheduler,
     WalletLowBalanceScheduler,
     SlaCreditScheduler,
+    StripeWebhookPonowieniaScheduler,
+    FakturyScheduler,
+    KorektyService,
   ],
-  exports: [BillingService, WalletLedgerService, StripeService, InvoicesService, PromoService, WalletAutoTopupService],
+  exports: [BillingService, WalletLedgerService, StripeService, InvoicesService, PromoService, WalletAutoTopupService, KorektyService],
 })
 export class BillingModule {}

@@ -18,6 +18,11 @@ import {
   deletionRequestedTemplate,
   accountAnonymizedTemplate,
 } from '../mail/templates/account-deletion-notifications';
+import {
+  deltaKsiegi,
+  KONTO_NIEISTNIEJACE,
+  ksiegaUpdateData,
+} from '../subscriptions/node-capacity';
 
 export interface RequestDeletionInput {
   userId: string;
@@ -409,7 +414,17 @@ export class AccountDeletionService {
   async purgeAccountOnDa(accountId: string): Promise<void> {
     const acc = await this.prisma.account.findUnique({
       where: { id: accountId },
-      select: { id: true, daUsername: true, serverId: true, status: true, userId: true },
+      // Z-16: limity efektywne są potrzebne, żeby zwolnić pojemność węzła.
+      select: {
+        id: true,
+        daUsername: true,
+        serverId: true,
+        status: true,
+        userId: true,
+        cpuLimit: true,
+        ramLimitMb: true,
+        diskLimitMb: true,
+      },
     });
     if (!acc) return;
     if (acc.status === AccountStatus.DELETED) return;
@@ -439,9 +454,36 @@ export class AccountDeletionService {
       return;
     }
 
-    await this.prisma.account.update({
-      where: { id: accountId },
-      data: { status: AccountStatus.DELETED },
+    // Z-16 — usunięcie konta ZWALNIA pojemność węzła.
+    //
+    // Do 2026-08-22 konto szło na DELETED, znikało z DirectAdmina i… zostawało
+    // w księdze węzła na zawsze. Węzeł z czasem przestawał przyjmować nowe
+    // konta, mając mnóstwo miejsca — przeciek, którego nic nie prostowało.
+    //
+    // Zwalniamy limity EFEKTYWNE (Account.cpuLimit = baza planu + nadwyżka
+    // autoskalowania), bo dokładnie tyle było zarezerwowane. Wszystko w jednej
+    // transakcji ze zmianą statusu: gdyby jedno przeszło bez drugiego, księga
+    // rozjechałaby się w drugą stronę.
+    await this.prisma.$transaction(async (tx) => {
+      await tx.account.update({
+        where: { id: accountId },
+        data: { status: AccountStatus.DELETED },
+      });
+      // Konto znika: księga maleje o jego limity efektywne. Account.cpuLimit
+      // JEST limitem efektywnym — utrzymuje go provisioning i autoskalowanie.
+      await tx.server.update({
+        where: { id: acc.serverId },
+        data: ksiegaUpdateData(
+          deltaKsiegi(
+            {
+              cpu: acc.cpuLimit,
+              ramMb: acc.ramLimitMb,
+              diskMb: acc.diskLimitMb,
+            },
+            KONTO_NIEISTNIEJACE,
+          ),
+        ),
+      });
     });
     await this.audit.record({
       action: RodoActions.ACCOUNT_DA_PURGED,

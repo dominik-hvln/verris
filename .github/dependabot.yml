@@ -13,6 +13,34 @@ updates:
       minor-and-patch:
         update-types: [minor, patch]
     labels: [dependencies, security]
+    # ── Świadome wyciszenia ──────────────────────────────────────────────────
+    # NIE są to wyciszenia „na zawsze". Każde ma termin przeglądu i pozycję
+    # w macierzy audytu, która za nie odpowiada. Strażnik
+    # apps/api/src/test/dependabot-wyciszenia.spec.ts czerwieni CI, gdy termin
+    # minie — czyli przedłużenie jest decyzją, nie skutkiem tego, że nikt nie
+    # zajrzał. Ta sama zasada co lista zgód w bramce podatności (X-23).
+    ignore:
+      # Prisma 7 to nie podniesienie wersji, tylko zmiana architektury warstwy
+      # danych: `url` znika z datasource w schemacie na rzecz prisma.config.ts,
+      # a PrismaClient wymaga driver adaptera. Dotyka każdej ścieżki do bazy
+      # naraz — serwisu, seeda, jobów CI, testów integracyjnych i sposobu,
+      # w jaki produkcja dostaje DATABASE_URL. Sprawdzone realnie: `prisma
+      # generate` na 7.9.1 kończy się błędem P1012.
+      # pozycja: X-20
+      # przegląd: 2026-11-15
+      - dependency-name: '@prisma/client'
+        update-types: [version-update:semver-major]
+      # pozycja: X-20
+      # przegląd: 2026-11-15
+      - dependency-name: prisma
+        update-types: [version-update:semver-major]
+      # TypeScript 7: ts-jest ma peer >=4.3 <7, typescript-eslint >=4.8.4
+      # <6.1.0. Podniesienie wyłączyłoby JEDNOCZEŚNIE testy i linter — czyli
+      # obie warstwy, które mają mówić, czy podniesienie się udało.
+      # pozycja: X-18
+      # przegląd: 2026-11-15
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
 
   # Obrazy bazowe w Dockerfile'ach (api + panele).
   - package-ecosystem: docker

@@ -1,6 +1,19 @@
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+/**
+ * Kształt odpowiedzi API zgodnego z OpenAI (chat completions).
+ *
+ * @types/node 26 zmieniło zwrotkę `response.json()` z `any` na `unknown` —
+ * i słusznie, bo to są dane z zewnątrz. Deklarujemy więc oczekiwany kształt
+ * jawnie; wszystkie pola są opcjonalne, bo dostawca może zwrócić cokolwiek,
+ * a kod niżej i tak sprawdza `typeof content !== 'string'`.
+ */
+interface OdpowiedzDostawcyAi {
+  choices?: Array<{ message?: { content?: unknown } }>;
+  error?: unknown;
+}
+
 @Injectable()
 export class AiProviderService {
   constructor(private readonly config: ConfigService) {}
@@ -54,7 +67,7 @@ export class AiProviderService {
         messages: [{ role: 'system', content: input.system }, ...input.messages],
       }),
     });
-    const body = await response.json().catch(() => null);
+    const body = (await response.json().catch(() => null)) as OdpowiedzDostawcyAi | null;
     if (!response.ok) {
       throw new ServiceUnavailableException(
         body && typeof body === 'object' && 'error' in body
@@ -85,7 +98,7 @@ export class AiProviderService {
       },
       body: JSON.stringify({ model: this.embedModel, input: inputs }),
     });
-    const body = await response.json().catch(() => null);
+    const body = (await response.json().catch(() => null)) as OdpowiedzDostawcyAi | null;
     if (!response.ok) {
       throw new ServiceUnavailableException(
         body && typeof body === 'object' && 'error' in body
@@ -119,7 +132,7 @@ export class AiProviderService {
         ],
       }),
     });
-    const body = await response.json().catch(() => null);
+    const body = (await response.json().catch(() => null)) as OdpowiedzDostawcyAi | null;
     if (!response.ok) {
       throw new ServiceUnavailableException(
         body && typeof body === 'object' && 'error' in body

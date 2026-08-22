@@ -52,6 +52,19 @@ export interface BuildFaXmlInput {
     sellerSnapshot: unknown;
     buyerSnapshot: unknown;
     lineItems: unknown;
+    /**
+     * M-06 — rodzaj dokumentu. Do 2026-08-22 builder wpisywał `VAT` na sztywno,
+     * bo korekt w systemie nie było. Korekta wysłana z `RodzajFaktury=VAT`
+     * zostałaby przez KSeF przyjęta jako NOWA sprzedaż, a nie jako zmiana
+     * poprzedniej — czyli podwoiłaby przychód w rejestrze.
+     */
+    kind?: 'VAT' | 'KOREKTA';
+    /** Numer faktury korygowanej (wymagany przy KOREKTA). */
+    correctedNumber?: string | null;
+    /** Data wystawienia faktury korygowanej (wymagana przy KOREKTA). */
+    correctedIssuedAt?: Date | null;
+    /** Przyczyna korekty — pole obowiązkowe (art. 106j ust. 2 pkt 4). */
+    correctionReason?: string | null;
   };
   /** System info do nagłówka (nazwa systemu wystawcy). */
   systemInfo?: string;

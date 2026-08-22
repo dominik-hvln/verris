@@ -89,6 +89,39 @@
   .fazahdr .o{font-size:13px;color:var(--ink2);margin-top:4px;max-width:900px}
   footer{margin-top:44px;padding-top:20px;border-top:1px solid var(--line);
          color:var(--muted);font-size:12.5px;line-height:1.7}
+
+  /* ── postęp ─────────────────────────────────────────────────────────── */
+  .kpi.done{border-color:var(--good)} .kpi.done .n{color:var(--good)}
+  .ptrack{position:relative;height:26px;background:var(--grid);border-radius:6px;overflow:hidden}
+  .pfill{position:absolute;left:0;top:0;bottom:0;background:var(--good);border-radius:6px;
+         transition:width .4s ease}
+  .pnow{position:absolute;top:-6px;bottom:-6px;width:2px;background:var(--ink);opacity:.65}
+  .pnowlab{position:absolute;top:-22px;transform:translateX(-50%);font-size:11px;
+           color:var(--ink2);white-space:nowrap}
+  .plegend{display:flex;flex-wrap:wrap;gap:18px;margin-top:14px;font-size:12.5px;color:var(--ink2)}
+  .plegend b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .psegs{display:flex;gap:3px;margin-top:22px}
+  .pseg{flex:1;min-width:0}
+  .psegbar{height:34px;background:var(--grid);border-radius:4px;position:relative;overflow:hidden}
+  .psegfill{position:absolute;left:0;right:0;bottom:0;background:var(--good);opacity:.9}
+  .pseg.teraz .psegbar{outline:2px solid var(--accent);outline-offset:1px}
+  .pseg.pelny .psegbar{background:var(--good)}
+  .pseglab{font-size:10.5px;color:var(--muted);text-align:center;margin-top:5px;
+           font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden}
+  .pseg.pelny .pseglab{color:var(--good);font-weight:650}
+  .pseg.teraz .pseglab{color:var(--accent);font-weight:650}
+  .potwarte{margin-top:20px;font-size:13px;color:var(--ink2)}
+  .potwarte ul{margin:8px 0 0;padding-left:20px} .potwarte li{margin:3px 0}
+  .potwarte .idc{color:var(--muted)}
+
+  .sfill.zrobione{background:var(--good)}
+  .sprint.zrobiony{border-color:var(--good)}
+  .sprint.zrobiony .shead{border-left:4px solid var(--good)}
+  .znak{color:var(--good);font-weight:700;margin-right:6px}
+  .badge-ok{display:inline-flex;align-items:center;gap:5px;padding:2px 9px;border-radius:20px;
+            font-size:11px;font-weight:650;border:1px solid var(--good);color:var(--good)}
+  tr.zrobiona td{opacity:.62}
+  tr.zrobiona td:first-child::before{content:"✓ ";color:var(--good);font-weight:700;opacity:1}
 </style>
 </head>
 <body>
@@ -98,6 +131,9 @@
   <p class="meta" id="meta"></p>
 
   <div class="kpis" id="kpis"></div>
+
+  <h2>Postęp — gdzie jesteśmy</h2>
+  <div class="card" id="postep"></div>
 
   <div class="callout warn">
     <span id="calc"></span>
@@ -122,7 +158,8 @@
   <div class="card" id="oos"></div>
 
   <footer>
-    <b>Status zadań mieszka w backlogu XLSX</b>, nie tutaj — ta strona jest widokiem planu, nie narzędziem do odhaczania. Po zmianie statusów w arkuszu wygenerujemy ten widok ponownie.<br>
+    <b>Postęp liczony jest z macierzy audytu</b>, nie z osobnej listy „co zrobione”. Pozycja audytu liczy się jako domknięta przy werdykcie PARYTET albo PRZEWAGA, zadanie PB — przy niepustej kolumnie <code>zamkniete</code> w <code>audyt/dane/zadania_pb.csv</code>. Osobna lista rozjechałaby się z macierzą przy pierwszym pominiętym wpisie, a zielona linia pokazywałaby wtedy postęp, którego nie ma.<br>
+    <b>Zapas</b> to różnica między tempem a kalendarzem: godziny domknięte podzielone przez pojemność sprintu, minus tygodnie, które upłynęły od startu planu. Dodatni znaczy „jesteśmy przed harmonogramem”, nie „mamy wolne”.<br>
     <b>Definicja „zrobione”:</b> spełniona definicja ukończenia, nie „kod napisany”. Nic poniżej poziomu D2 (test przechodzi w CI) nie jest zrobione; pieniądze, dane klienta i dostęp wymagają D3; backupy i DR — wyłącznie D4.<br>
     <b>Zakaz formuły „warunkowe GO”</b> — ta konstrukcja w czerwcu przepuściła start z otwartymi blokerami.
   </footer>
@@ -154,12 +191,79 @@ document.getElementById('meta').textContent =
   `Sprint 1: ${S[0].od} · Sprint ${NS}: ${S[NS-1].od}–${lastDate} · po starcie jeszcze ${P.rest.length} pozycji (${restH} h)`;
 
 document.getElementById('kpis').innerHTML = [
+  ['done', `${P.postep.procent}%`, 'planu zrobione',
+   `${P.postep.godzinyZrobione} h z ${P.postep.godzinyRazem} h · ${P.postep.pozycjeZrobione}/${P.postep.pozycjeRazem} pozycji`],
+  [P.postep.zapasTygodni >= 0 ? 'done' : 'crit',
+   `${P.postep.zapasTygodni >= 0 ? '+' : ''}${P.postep.zapasTygodni.toFixed(1)} tyg.`,
+   P.postep.zapasTygodni >= 0 ? 'zapasu względem planu' : 'opóźnienia względem planu',
+   `prognoza końca ${P.postep.koniecPrognoza} wobec ${P.postep.koniecNominalny} w planie`],
   ['', NS, 'sprintów do startu', `${totalH} h z ${NS*CAP} h pojemności`],
   ['crit', blkIds.length, 'blokerów z audytu', `plus ${bizIds.length} blokery biznesowe spoza audytu`],
   ['', uniq(T.map(t=>t[IDX.id])).length, 'zadań', `${uniq(T.filter(t=>t[IDX.typ]==='audyt').map(t=>t[IDX.id])).length} z audytu, ${bizIds.length+T.filter(t=>t[IDX.typ]!=='audyt'&&t[IDX.prio]!=='BLOKER BIZNESOWY').length} spoza`],
   ['ok', nonKsefDate, 'blokery bez KSeF zamknięte', `koniec sprintu ${nonKsefMax} — produkt przestaje tracić pieniądze i dane`],
   ['', lastDate, 'decyzja GO', `KSeF domknięty ${ksefDate}, realnie GO w połowie stycznia 2027`],
 ].map(k=>`<div class="kpi ${k[0]}"><div class="n" style="${String(k[1]).length>6?'font-size:20px':''}">${k[1]}</div><div class="l">${k[2]}</div><div class="h">${k[3]}</div></div>`).join('');
+
+// ---------- postęp ----------
+// Liczby przychodzą z generatora (postep() w generate.py), liczone z macierzy
+// i z zadania_pb.csv. Tutaj tylko rysowanie — żeby definicja „zrobione" była
+// w jednym miejscu, a nie osobno w Pythonie i osobno tutaj.
+const PG = P.postep;
+const ZROBIONE_ID = new Set(PG.sprinty.flatMap(s => s.domkniete.map(d => d.id)));
+const SPRINT_PELNY = new Set(PG.sprinty.filter(s => s.pozycje > 0 && s.zrobione === s.pozycje).map(s => s.n));
+
+(function(){
+  const pctGodz = PG.godzinyRazem ? PG.godzinyZrobione / PG.godzinyRazem : 0;
+  // Znacznik „dziś" na tej samej osi co pasek: pozycja = ile czasu planu
+  // upłynęło względem całości. Ujemna przed startem — wtedy przypinamy do 0
+  // i mówimy o tym wprost, zamiast rysować znacznik poza wykresem.
+  const przedStartem = PG.tygodnieUplynelo < 0;
+  const pozCzasu = Math.max(0, Math.min(1, PG.tygodnieUplynelo / PG.sprinty.length));
+  const zapas = PG.zapasTygodni;
+  const zapasTxt = zapas >= 0
+    ? `+${zapas.toFixed(1)} tyg. zapasu`
+    : `${zapas.toFixed(1)} tyg. opóźnienia`;
+
+  const segs = PG.sprinty.map(s => {
+    const f = s.godziny ? s.godzinyZrobione / s.godziny : 0;
+    const pelny = s.pozycje > 0 && s.zrobione === s.pozycje;
+    const teraz = s.n === PG.biezacySprint;
+    return `<div class="pseg ${pelny ? 'pelny' : ''} ${teraz ? 'teraz' : ''}"
+        title="Sprint ${s.n} — ${s.zrobione}/${s.pozycje} pozycji, ${s.godzinyZrobione}/${s.godziny} h&#10;${s.cel}">
+      <div class="psegbar"><div class="psegfill" style="height:${(f*100).toFixed(0)}%"></div></div>
+      <div class="pseglab">${pelny ? '✓' : ''}S${s.n}</div>
+    </div>`;
+  }).join('');
+
+  const biezacy = PG.sprinty.find(s => s.n === PG.biezacySprint);
+  const otwarte = biezacy
+    ? `<div class="potwarte"><b>Sprint ${biezacy.n} — ${biezacy.cel}.</b>
+         Zostało ${biezacy.otwarte.length} z ${biezacy.pozycje} pozycji
+         (${biezacy.godziny - biezacy.godzinyZrobione} h):
+         <ul>${biezacy.otwarte.map(o =>
+           `<li><span class="idc">${o.id}</span> — ${o.tytul} · ${o.h} h${o.bloker ? ' · <b>bloker</b>' : ''}</li>`
+         ).join('')}</ul></div>`
+    : '';
+
+  document.getElementById('postep').innerHTML = `
+    <div style="position:relative;margin-top:8px">
+      <div class="ptrack"><div class="pfill" style="width:${(pctGodz*100).toFixed(1)}%"></div></div>
+      ${przedStartem ? '' :
+        `<div class="pnow" style="left:${(pozCzasu*100).toFixed(1)}%"></div>
+         <div class="pnowlab" style="left:${(pozCzasu*100).toFixed(1)}%">dziś</div>`}
+    </div>
+    <div class="plegend">
+      <span><b>${PG.godzinyZrobione} h</b> z ${PG.godzinyRazem} h · <b>${PG.procent}%</b></span>
+      <span><b>${PG.pozycjeZrobione}</b> z ${PG.pozycjeRazem} pozycji zamkniętych</span>
+      <span><b>${PG.blokeryOtwarte.length}</b> blokerów otwartych</span>
+      <span style="color:${zapas >= 0 ? 'var(--good)' : 'var(--critical)'}"><b style="color:inherit">${zapasTxt}</b></span>
+      ${przedStartem
+        ? '<span>plan startuje ' + PG.start + ' — cała dotychczasowa praca to zapas</span>'
+        : '<span>tydzień ' + Math.ceil(PG.tygodnieUplynelo) + ' z ' + PG.sprinty.length + '</span>'}
+    </div>
+    <div class="psegs">${segs}</div>
+    ${otwarte}`;
+})();
 
 // ---------- wykres narastający ----------
 (function(){
@@ -204,8 +308,8 @@ document.getElementById('load').innerHTML = S.map(s=>{
   const h = T.filter(t=>t[IDX.sprint]===s.n).reduce((a,t)=>a+t[IDX.h],0);
   const pct = Math.round(h/CAP*100);
   return `<div class="sbar"><div class="sid">S${s.n}</div>`
-   +`<div class="strack"><div class="sfill ${FCLS[fazaIdx(s.n)]}" style="width:${Math.min(pct,100)}%"></div></div>`
-   +`<div class="snum"><b style="color:var(--ink)">${h} h</b> · ${pct}%</div></div>`;
+   +`<div class="strack"><div class="sfill ${SPRINT_PELNY.has(s.n)?'zrobione':FCLS[fazaIdx(s.n)]}" style="width:${Math.min(pct,100)}%"></div></div>`
+   +`<div class="snum">${SPRINT_PELNY.has(s.n)?'<span class="znak">✓</span>':''}<b style="color:${SPRINT_PELNY.has(s.n)?'var(--good)':'var(--ink)'}">${h} h</b> · ${pct}%</div></div>`;
 }).join('');
 
 // ---------- sprinty ----------
@@ -218,12 +322,22 @@ P.fazy.forEach(f=>{
   S.filter(s=>s.n>=f.od&&s.n<=f.do).forEach(s=>{
     const it = T.filter(t=>t[IDX.sprint]===s.n);
     const h = it.reduce((a,t)=>a+t[IDX.h],0);
-    html += `<div class="sprint"><div class="shead">`
-      +`<span class="snum2">Sprint ${s.n}</span><span class="stitle">${s.cel}</span>`
+    const pelny = SPRINT_PELNY.has(s.n);
+    const zrobPoz = it.filter(t=>ZROBIONE_ID.has(t[IDX.id])).length;
+    html += `<div class="sprint ${pelny?'zrobiony':''}"><div class="shead">`
+      +`<span class="snum2">${pelny?'<span class="znak">✓</span>':''}Sprint ${s.n}</span><span class="stitle">${s.cel}</span>`
+      +(pelny
+         ? `<span class="badge-ok">zrealizowany</span>`
+         : (zrobPoz ? `<span class="sh" style="color:var(--good)">${zrobPoz}/${it.length} zrobione</span>` : ''))
       +`<span class="sdate">${s.od} – ${s.do}</span><span class="sh">${h} h / ${CAP} h</span></div>`
       +`<div class="sbody"><table><thead><tr><th>ID</th><th>Zadanie</th><th>h</th><th>Priorytet</th><th>Definicja ukończenia</th><th>Zależy od</th></tr></thead><tbody>`
-      + it.map(t=>`<tr><td class="idc">${t[IDX.id]}</td><td><b>${t[IDX.tytul]}</b></td>`
-        +`<td class="idc">${t[IDX.h]}</td><td><span class="tag ${PCLS(t[IDX.prio])}"><span class="d"></span>${t[IDX.prio]}</span></td>`
+      + it.map(t=>`<tr class="${ZROBIONE_ID.has(t[IDX.id])?'zrobiona':''}"><td class="idc">${t[IDX.id]}</td><td><b>${t[IDX.tytul]}</b></td>`
+        +`<td class="idc">${t[IDX.h]}</td><td>${ZROBIONE_ID.has(t[IDX.id])
+             // Domknięta pozycja ma w macierzy priorytet „—" (jest już bez
+             // znaczenia). Kropka przy myślniku wyglądała jak brak danych,
+             // a to jest informacja: zrobione.
+             ? '<span class="badge-ok">zrobione</span>'
+             : `<span class="tag ${PCLS(t[IDX.prio])}"><span class="d"></span>${t[IDX.prio]}</span>`}</td>`
         +`<td class="dod">${t[IDX.dod]}</td><td class="idc" style="white-space:normal;max-width:200px">${t[IDX.dep]}</td></tr>`).join('')
       +`</tbody></table><div class="risk"><b>Ryzyko sprintu.</b> ${s.ryzyko}</div></div></div>`;
   });

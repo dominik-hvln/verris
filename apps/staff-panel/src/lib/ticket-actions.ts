@@ -46,7 +46,7 @@ export async function staffPostReplyWithFiles(
   ticketId: string,
   formData: FormData,
 ): Promise<{ ok: true } | { error: string }> {
-  let message = formData.get("message")?.toString() ?? "";
+  const message = formData.get("message")?.toString() ?? "";
   const inbound = formData.getAll("files");
   let fileCount = 0;
   for (const entry of inbound) {

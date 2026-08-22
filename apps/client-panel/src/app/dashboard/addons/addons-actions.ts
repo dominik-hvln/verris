@@ -34,13 +34,25 @@ export async function fetchAddons(): Promise<AddonsOverview | null> {
   }
 }
 
+/**
+ * Z-06 — zakup dodatku.
+ *
+ * `idempotencyKey` przychodzi Z KOMPONENTU i musi być stały dla jednej decyzji
+ * zakupu. Świadomie NIE generujemy go tutaj: akcja serwerowa wykonuje się na
+ * nowo przy każdym kliknięciu, więc klucz tworzony w tym miejscu byłby za
+ * każdym razem inny — czyli dokładnie ten błąd, który Z-06 naprawia.
+ *
+ * Gdy klucza brak (starszy klient, wywołanie z innego miejsca), API wylicza
+ * własny z okna czasu — słabszy, ale nadal chroniący przed podwójnym kliknięciem.
+ */
 export async function purchaseAddonAction(
   slug: string,
+  idempotencyKey?: string,
 ): Promise<{ ok: true; note: string } | { ok: false; error: string }> {
   try {
     const r = await apiFetch<{ note: string }>('/addons/purchase', {
       method: 'POST',
-      body: JSON.stringify({ slug }),
+      body: JSON.stringify(idempotencyKey ? { slug, idempotencyKey } : { slug }),
     });
     revalidatePath('/dashboard/addons');
     revalidatePath('/dashboard/billing');
