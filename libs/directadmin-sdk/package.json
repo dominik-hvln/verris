@@ -8,12 +8,13 @@
     "lint": "eslint src/**/*.ts"
   },
   "dependencies": {
-    "axios": "^1.6.0"
+    "axios": "^1.19.0"
   },
   "devDependencies": {
-    "@verris/typescript-config": "workspace:*",
+    "@types/node": "^26.2.0",
     "@verris/eslint-config": "workspace:*",
+    "@verris/typescript-config": "workspace:*",
     "typescript": "^5.0.0",
-    "@types/node": "^20.0.0"
+    "eslint": "^9.39.5"
   }
 }

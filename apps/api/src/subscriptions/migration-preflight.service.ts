@@ -245,7 +245,7 @@ export class MigrationPreflightService {
 
 function assertNoControlChars(...values: string[]): void {
   for (const v of values) {
-    // eslint-disable-next-line no-control-regex
+     
     if (/[\x00-\x1f\x7f]/.test(v)) throw new Error('Dane logowania zawierają znaki sterujące.');
   }
 }
@@ -457,8 +457,9 @@ function mysqlLogin(
 
     socket.on('timeout', () => fail(new Error('timeout')));
     socket.on('error', fail);
-    socket.on('data', (chunk) => {
-      received = Buffer.concat([received, chunk]);
+    socket.on('data', (chunk: Buffer | string) => {
+      // Patrz probe-runner.service.ts — @types/node 26 rozszerzyło sygnaturę.
+      received = Buffer.concat([received, Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)]);
       const packet = readMysqlPacket(received);
       if (!packet) return;
       received = packet.rest;

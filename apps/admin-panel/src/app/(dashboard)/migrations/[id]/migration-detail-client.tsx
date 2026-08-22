@@ -412,7 +412,7 @@ function JobCard({ job, disabled, onRetry }: { job: DetailJob; disabled: boolean
 function IntegrityBadge({ integrity }: { integrity: Record<string, unknown> }) {
   const kind = integrity.kind as string;
   let text = "";
-  let ok: boolean | null = (integrity.match as boolean | null) ?? null;
+  const ok: boolean | null = (integrity.match as boolean | null) ?? null;
   if (kind === "files") {
     const s = integrity.sourceFiles as number | null;
     const t = integrity.targetFiles as number;

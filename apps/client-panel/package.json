@@ -7,29 +7,29 @@
     "build": "next build",
     "start": "next start -p 3001",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "lint": "next lint"
+    "lint": "eslint ."
   },
   "dependencies": {
     "@simplewebauthn/browser": "^13.1.0",
     "@verris/contracts": "workspace:^",
     "@verris/ui": "workspace:*",
-    "date-fns": "^4.1.0",
-    "lucide-react": "^0.365.0",
-    "next": "16.2.7",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
-    "recharts": "2.15.4",
-    "sonner": "^2.0.7",
+    "date-fns": "^4.4.0",
+    "lucide-react": "^1.33.0",
+    "next": "16.3.2",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "recharts": "3.10.1",
+    "sonner": "^2.0.8",
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.1.0",
-    "@types/node": "^22",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.2.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
     "@verris/typescript-config": "workspace:*",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.7",
+    "eslint": "9.39.5",
+    "eslint-config-next": "16.3.2",
     "tailwindcss": "^4.1.0",
     "typescript": "^5"
   }
