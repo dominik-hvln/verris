@@ -23,7 +23,7 @@ export async function wystawFaktureReczna(input: {
   powod: string;
 }): Promise<{ ok: true; numer: string } | { ok: false; error: string }> {
   try {
-    const r = await adminApi<{ id: string; number: string }>("/admin/billing/invoices/reczna", {
+    const r = await adminApi<{ id: string; number: string }>("/admin/invoices/reczna", {
       method: "POST",
       body: input,
     });

@@ -166,7 +166,7 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `M-06` | FAKTURA KORYGUJĄCA (część) | 30 | BLOKER STARTU | zero wystąpień korekty w apps/api i schema.prisma; fa3-xml.builder.ts:177 zawsze <RodzajFaktury>VAT |
+| `M-06` | FAKTURA KORYGUJĄCA (część) | 30 | — | korekta-faktury.ts — bladKorygowalnosci/przeliczKorekte/korektaFormalna/kwotaDoZwrotu; korekty.service.ts — wystawianie ze zwrotem w tej samej transak |
 
 **Definicja ukończenia**
 
@@ -181,7 +181,7 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `M-06` | FAKTURA KORYGUJĄCA (część) | 10 | BLOKER STARTU | zero wystąpień korekty w apps/api i schema.prisma; fa3-xml.builder.ts:177 zawsze <RodzajFaktury>VAT |
+| `M-06` | FAKTURA KORYGUJĄCA (część) | 10 | — | korekta-faktury.ts — bladKorygowalnosci/przeliczKorekte/korektaFormalna/kwotaDoZwrotu; korekty.service.ts — wystawianie ze zwrotem w tej samej transak |
 | `PB-02` | Onboarding produkcyjnego węzła #1 (EX63) | 16 | WYSOKI | Pełny przebieg node-onboard-live.sh na docelowym serwerze, z konfiguracją backupu off-site jako krokiem obowiązkowym. |
 
 **Definicja ukończenia**

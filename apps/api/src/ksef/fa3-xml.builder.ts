@@ -128,6 +128,39 @@ export function buildFa3Xml(input: BuildFaXmlInput): BuiltFaXml {
     ? `        <NIP>${buyerNip}</NIP>`
     : '        <BrakID>1</BrakID>';
 
+  // ── M-06 — rodzaj dokumentu ────────────────────────────────────────────────
+  //
+  // Do 2026-08-22 stało tu `VAT` na sztywno, bo korekt w systemie nie było.
+  // Korekta wysłana jako `VAT` zostałaby przez KSeF przyjęta jako NOWA
+  // sprzedaż, a nie jako zmiana poprzedniej — czyli podwoiłaby przychód
+  // w rejestrze. Milcząco, bo dokument jest formalnie poprawny.
+  const jestKorekta = inv.kind === 'KOREKTA';
+  if (jestKorekta) {
+    if (!inv.correctedNumber) {
+      throw new FaXmlValidationError(
+        'Korekta bez numeru faktury pierwotnej — KSeF nie ma czego skorygować.',
+      );
+    }
+    if (!inv.correctionReason?.trim()) {
+      throw new FaXmlValidationError(
+        'Korekta bez przyczyny — pole obowiązkowe (art. 106j ust. 2 pkt 4 ustawy o VAT).',
+      );
+    }
+  }
+  const rodzajIKorekta = jestKorekta
+    ? [
+        '    <RodzajFaktury>KOR</RodzajFaktury>',
+        `    <PrzyczynaKorekty>${escapeXml(inv.correctionReason!.trim())}</PrzyczynaKorekty>`,
+        '    <TypKorekty>1</TypKorekty>',
+        '    <DaneFaKorygowanej>',
+        `      <DataWystFaKorygowanej>${formatDateOnly(
+          inv.correctedIssuedAt ?? inv.issuedAt,
+        )}</DataWystFaKorygowanej>`,
+        `      <NrFaKorygowanej>${escapeXml(inv.correctedNumber!)}</NrFaKorygowanej>`,
+        '    </DaneFaKorygowanej>',
+      ]
+    : ['    <RodzajFaktury>VAT</RodzajFaktury>'];
+
   const xml = [
     '<?xml version="1.0" encoding="UTF-8"?>',
     `<Faktura xmlns="${FA3_NAMESPACE}">`,
@@ -174,7 +207,7 @@ export function buildFa3Xml(input: BuildFaXmlInput): BuiltFaXml {
     '      <P_23>2</P_23>',
     '      <PMarzy><P_PMarzyN>1</P_PMarzyN></PMarzy>',
     '    </Adnotacje>',
-    '    <RodzajFaktury>VAT</RodzajFaktury>',
+    ...rodzajIKorekta,
     wiersze,
     '  </Fa>',
     '</Faktura>',

@@ -140,7 +140,13 @@ describe('Z-01 — faktura za obciążenie portfela', () => {
     const u = await utworzKlienta('100.00');
     const teraz = new Date();
     const licznik = await prisma().invoiceCounter.findUnique({
-      where: { year_month: { year: teraz.getFullYear(), month: teraz.getMonth() + 1 } },
+      where: {
+        series_year_month: {
+          series: 'VFV',
+          year: teraz.getFullYear(),
+          month: teraz.getMonth() + 1,
+        },
+      },
     });
     const nastepny = (licznik?.seq ?? 0) + 1;
     const kolidujacy =

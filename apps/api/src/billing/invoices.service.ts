@@ -9,7 +9,13 @@ import { PlatformSettingsService } from '../platform-settings/platform-settings.
 import { ObjectStorageService } from '../storage/object-storage.service';
 import { ObjectBuckets } from '../storage/object-storage.types';
 import { invoiceIssuedTemplate } from '../mail/templates/invoice-notifications';
-import { InvoicePdfService, type SellerSnapshot, type BuyerSnapshot, type InvoiceLineItem } from './invoice-pdf.service';
+import {
+  InvoicePdfService,
+  type BuildInvoiceContext,
+  type SellerSnapshot,
+  type BuyerSnapshot,
+  type InvoiceLineItem,
+} from './invoice-pdf.service';
 import { StripeInvoice } from './stripe/stripe.client';
 import {
   DOSTAWCA_RECZNY,
@@ -285,12 +291,18 @@ export class InvoicesService {
       number = await this.allocateInvoiceNumber(invoice.issuedAt ?? new Date());
     }
 
-    // 2) Compute VAT split (assuming 23% inclusive on totalGross).
+    // 2) Rozbicie VAT.
+    //
+    // Jeżeli faktura ma je już zapisane — a mają je wszystkie dokumenty
+    // powstałe po Z-01 i wszystkie korekty — bierzemy stamtąd. Przeliczanie na
+    // nowo z kwoty brutto dawałoby ten sam wynik dla faktur zwykłych i FAŁSZYWY
+    // dla korekt, gdzie `amount` jest RÓŻNICĄ ze znakiem, a nie ceną.
     const totalGrossDec = invoice.amount;
-    const vatRate = DEFAULT_VAT_RATE;
-    const factor = new Prisma.Decimal(100).plus(vatRate); // 123 for VAT 23
-    const totalNetDec = totalGrossDec.mul(100).dividedBy(factor).toDecimalPlaces(2);
-    const totalVatDec = totalGrossDec.minus(totalNetDec).toDecimalPlaces(2);
+    const vatRate = Number(invoice.vatRate ?? DEFAULT_VAT_RATE);
+    const factor = new Prisma.Decimal(100).plus(vatRate);
+    const totalNetDec =
+      invoice.netAmount ?? totalGrossDec.mul(100).dividedBy(factor).toDecimalPlaces(2);
+    const totalVatDec = invoice.vatAmount ?? totalGrossDec.minus(totalNetDec).toDecimalPlaces(2);
 
     // 3) Snapshot seller + buyer. Seller data comes from admin settings
     //    (PlatformSetting) with env fallback — edytowalne w panelu admina.
@@ -321,8 +333,31 @@ export class InvoicesService {
             },
           ];
 
-    // 5) Generate PDF.
+    // 5) Kontekst korekty — M-06.
+    let korekta: BuildInvoiceContext['korekta'];
+    if (invoice.kind === 'KOREKTA' && invoice.correctedId) {
+      const pierwotna = await this.prisma.invoice.findUnique({
+        where: { id: invoice.correctedId },
+        select: { number: true, issuedAt: true },
+      });
+      korekta = {
+        numerPierwotnej: pierwotna?.number ?? '(nieznana)',
+        dataPierwotnej: pierwotna?.issuedAt ?? invoice.issuedAt ?? new Date(),
+        przyczyna: invoice.correctionReason ?? '',
+        bruttoPrzed: (invoice.correctedAmount ?? new Prisma.Decimal(0)).toFixed(2),
+        bruttoPo: (invoice.correctedAmount ?? new Prisma.Decimal(0))
+          .plus(invoice.amount)
+          .toFixed(2),
+        roznicaBrutto: invoice.amount.toFixed(2),
+        roznicaNetto: totalNetDec.toFixed(2),
+        roznicaVat: totalVatDec.toFixed(2),
+        pozycjePrzed: (invoice.correctedLineItems as unknown as InvoiceLineItem[]) ?? [],
+      };
+    }
+
+    // 6) Generate PDF.
     const pdfBytes = await this.pdf.render({
+      korekta,
       number,
       issuedAt: invoice.issuedAt ?? new Date(),
       saleDate: invoice.paidAt ?? invoice.issuedAt ?? new Date(),

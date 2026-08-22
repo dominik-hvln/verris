@@ -235,22 +235,29 @@ export type KlientPrismy = Prisma.TransactionClient | {
  * kopia tej logiki oznaczałaby dwie serie numeracji rozjeżdżające się przy
  * pierwszym równoległym wystawieniu — a numeracja faktur ma być ciągła
  * i bez luk (art. 106e ust. 1 pkt 2 ustawy o VAT).
+ *
+ * M-06 — każda seria ma własny licznik. `VFV` dla faktur, `VFK` dla korekt:
+ * numer ma mówić, jakim dokumentem jest, zanim ktokolwiek go otworzy.
  */
+export const SERIA_FAKTURY = 'VFV';
+export const SERIA_KOREKTY = 'VFK';
+
 export async function nadajNumerFaktury(
   db: KlientPrismy,
   referencja: Date,
+  seria: string = SERIA_FAKTURY,
 ): Promise<string> {
   const rok = referencja.getFullYear();
   const miesiac = referencja.getMonth() + 1;
   const rows = await db.$queryRaw<Array<{ seq: number }>>`
-    INSERT INTO "InvoiceCounter" ("id", "year", "month", "seq", "updatedAt")
-    VALUES (gen_random_uuid(), ${rok}, ${miesiac}, 1, NOW())
-    ON CONFLICT ("year", "month")
+    INSERT INTO "InvoiceCounter" ("id", "series", "year", "month", "seq", "updatedAt")
+    VALUES (gen_random_uuid(), ${seria}, ${rok}, ${miesiac}, 1, NOW())
+    ON CONFLICT ("series", "year", "month")
     DO UPDATE SET "seq" = "InvoiceCounter"."seq" + 1, "updatedAt" = NOW()
     RETURNING "seq";
   `;
   const seq = rows[0]?.seq ?? 1;
-  return `VFV/${rok}/${String(miesiac).padStart(2, '0')}/${String(seq).padStart(4, '0')}`;
+  return `${seria}/${rok}/${String(miesiac).padStart(2, '0')}/${String(seq).padStart(4, '0')}`;
 }
 
 /** Dostawca dla faktur powstających z obciążenia portfela. */

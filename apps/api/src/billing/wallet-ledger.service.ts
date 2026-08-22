@@ -108,7 +108,49 @@ export class WalletLedgerService {
     const signedAmount = direction === 'credit' ? amount : amount.negated();
 
     try {
-      return await this.prisma.$transaction(async (tx) => {
+      return await this.prisma.$transaction(async (tx) =>
+        this.zapiszWpis(tx, input, direction, amount, signedAmount),
+      );
+    } catch (err) {
+      // Concurrent duplicate with the same idempotency key: the loser of the
+      // race hits the unique constraint — return the winner's entry instead of
+      // surfacing an error (the money moved exactly once).
+      if (
+        input.idempotencyKey &&
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
+        const existing = await this.findByIdempotencyKey(input.idempotencyKey);
+        if (existing) {
+          this.logger.log(
+            `Idempotent ledger race resolved (key=${input.idempotencyKey}, id=${existing.id})`,
+          );
+          return existing;
+        }
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Zapis wpisu księgi WEWNĄTRZ podanej transakcji.
+   *
+   * Wydzielone z `applyEntry`, bo tej samej operacji potrzebuje wystawianie
+   * korekty (M-06): zwrot różnicy musi trafić do portfela atomowo z dokumentem
+   * korygującym, a nie da się otworzyć transakcji wewnątrz transakcji.
+   *
+   * Dzięki temu miejsce zmieniające saldo nadal jest JEDNO — obie ścieżki
+   * przechodzą przez tę metodę. Druga kopia blokowania wiersza i przeliczania
+   * salda byłaby piątym wystąpieniem wzorca „bliźniaczych miejsc", który
+   * w tym projekcie wyprodukował już cztery błędy.
+   */
+  async zapiszWpis(
+    tx: Prisma.TransactionClient,
+    input: LedgerEntryInput,
+    direction: 'credit' | 'debit',
+    amount: Prisma.Decimal,
+    signedAmount: Prisma.Decimal,
+  ): Promise<WalletTransaction> {
         // Audit F-02: lock the user row for the duration of the transaction.
         // Without `FOR UPDATE`, two concurrent entries (renewal cron +
         // autoscaling block + top-up webhook…) could read the same balance and
@@ -182,25 +224,6 @@ export class WalletLedgerService {
         }
 
         return created;
-      });
-    } catch (err) {
-      // Concurrent duplicate with the same idempotency key: the loser of the
-      // race hits the unique constraint — return the winner's entry instead of
-      // surfacing an error (the money moved exactly once).
-      if (
-        input.idempotencyKey &&
-        err instanceof Prisma.PrismaClientKnownRequestError &&
-        err.code === 'P2002'
-      ) {
-        const existing = await this.findByIdempotencyKey(input.idempotencyKey);
-        if (existing) {
-          this.logger.log(
-            `Idempotent ledger race resolved (key=${input.idempotencyKey}, id=${existing.id})`,
-          );
-          return existing;
-        }
-      }
-      throw err;
-    }
   }
+
 }

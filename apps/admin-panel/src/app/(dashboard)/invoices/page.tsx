@@ -292,6 +292,16 @@ function InvoiceRow({ inv }: { inv: AdminInvoiceRow }) {
               Stripe Hosted
             </a>
           ) : null}
+          {/* M-06 — droga do korekty wewnątrz systemu. Bez tego linku strona
+              istnieje, ale trafia na nią tylko ten, kto zna adres. */}
+          {inv.status === "PAID" ? (
+            <Link
+              href={`/invoices/${inv.id}/korekta`}
+              className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-amber-200 hover:bg-amber-500/20"
+            >
+              Koryguj
+            </Link>
+          ) : null}
         </div>
       </td>
     </tr>

@@ -18,6 +18,7 @@ import { WalletAutoTopupScheduler } from './wallet-auto-topup.scheduler';
 import { WalletLowBalanceScheduler } from './wallet-low-balance.scheduler';
 import { SlaCreditScheduler } from './sla-credit.scheduler';
 import { FakturyScheduler } from './faktury.scheduler';
+import { KorektyService } from './korekty.service';
 import { MailModule } from '../mail/mail.module';
 import { KsefModule } from '../ksef/ksef.module';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
@@ -47,7 +48,8 @@ import { NotificationsModule } from '../notifications/notifications.module';
     SlaCreditScheduler,
     StripeWebhookPonowieniaScheduler,
     FakturyScheduler,
+    KorektyService,
   ],
-  exports: [BillingService, WalletLedgerService, StripeService, InvoicesService, PromoService, WalletAutoTopupService],
+  exports: [BillingService, WalletLedgerService, StripeService, InvoicesService, PromoService, WalletAutoTopupService, KorektyService],
 })
 export class BillingModule {}

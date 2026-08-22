@@ -270,3 +270,54 @@ BEGIN
 
   RAISE NOTICE 'Z-01 OK — struktura na miejscu, faktury się sumują, obciążenia mają dokumenty';
 END $$;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- M-06 — korekta jest korektą, a nie fakturą z inną kwotą
+-- ─────────────────────────────────────────────────────────────────────────────
+DO $$
+DECLARE
+  ma_typ     BOOLEAN;
+  osierocone INT;
+  bez_serii  INT;
+  niespojne  INT;
+BEGIN
+  SELECT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'InvoiceKind') INTO ma_typ;
+  IF NOT ma_typ THEN
+    RAISE EXCEPTION
+      'M-06: brak typu InvoiceKind — migracja faktury korygującej nie została zastosowana';
+  END IF;
+
+  -- Ograniczenia CHECK pilnują tego przy zapisie, ale asercja sprawdza stan
+  -- FAKTYCZNY — także po ręcznych poprawkach w bazie, których CHECK z czasów
+  -- sprzed migracji by nie objął.
+  SELECT COUNT(*) INTO osierocone
+    FROM "Invoice"
+   WHERE ("kind" = 'KOREKTA' AND ("correctedId" IS NULL OR "correctionReason" IS NULL))
+      OR ("kind" = 'VAT'     AND "correctedId" IS NOT NULL);
+  IF osierocone > 0 THEN
+    RAISE EXCEPTION
+      'M-06: % dokumentów ma niespójny rodzaj — korekta bez faktury pierwotnej albo faktura z korygowaną', osierocone;
+  END IF;
+
+  -- Numer korekty musi być z serii VFK. Korekta w serii faktur znaczy, że numer
+  -- przestał mówić, jakim dokumentem jest — a to był cały powód rozdzielenia.
+  SELECT COUNT(*) INTO bez_serii
+    FROM "Invoice"
+   WHERE "kind" = 'KOREKTA' AND "number" NOT LIKE 'VFK/%';
+  IF bez_serii > 0 THEN
+    RAISE EXCEPTION 'M-06: % korekt ma numer spoza serii VFK', bez_serii;
+  END IF;
+
+  -- Kwota po korekcie odtwarza się z dwóch pól: przed + różnica. Jeżeli
+  -- rozbicie różnicy się nie sumuje, dokument nie mówi niczego pewnego.
+  SELECT COUNT(*) INTO niespojne
+    FROM "Invoice"
+   WHERE "kind" = 'KOREKTA'
+     AND "netAmount" IS NOT NULL AND "vatAmount" IS NOT NULL
+     AND "netAmount" + "vatAmount" <> "amount";
+  IF niespojne > 0 THEN
+    RAISE EXCEPTION 'M-06: % korekt ma różnicę netto + VAT niezgodną z różnicą brutto', niespojne;
+  END IF;
+
+  RAISE NOTICE 'M-06 OK — korekty mają faktury pierwotne, serię VFK i spójne rozbicie';
+END $$;

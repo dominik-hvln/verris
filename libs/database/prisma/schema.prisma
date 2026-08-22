@@ -1378,6 +1378,23 @@ model PaymentMethod {
   @@index([userId])
 }
 
+/// M-06 — rodzaj dokumentu. Do 2026-08-22 istniał tylko jeden, a builder
+/// KSeF-a wpisywał `<RodzajFaktury>VAT</RodzajFaktury>` na sztywno.
+enum InvoiceKind {
+  /// Zwykła faktura sprzedaży.
+  VAT
+  /// Faktura korygująca.
+  KOREKTA
+}
+
+/// Rodzaj korekty. Dwa, bo mają różną mechanikę i różne skutki dla pieniędzy.
+enum CorrectionKind {
+  /// Zmienia kwoty — zwrot, rezygnacja w trakcie okresu, rabat po fakturze.
+  WARTOSCIOWA
+  /// Poprawia dane nabywcy (literówka w NIP, zmiana adresu). Kwoty bez zmian.
+  FORMALNA
+}
+
 enum InvoiceStatus {
   DRAFT
   OPEN
@@ -1458,6 +1475,27 @@ model Invoice {
   /// obciążenie — jeden; dla zbiorczej miesięcznej — wszystkie z okresu.
   walletEntries  WalletTransaction[] @relation("FakturaZaObciazenia")
 
+  // ── M-06 — korekty ────────────────────────────────────────────────────────
+  kind           InvoiceKind   @default(VAT)
+
+  /// Faktura korygowana. Wypełnione WYŁĄCZNIE dla `kind = KOREKTA`.
+  correctedId    String?
+  corrected      Invoice?      @relation("Korekty", fields: [correctedId], references: [id], onDelete: Restrict)
+  korekty        Invoice[]     @relation("Korekty")
+
+  correctionKind   CorrectionKind?
+  /// Przyczyna korekty — pole OBOWIĄZKOWE na dokumencie (art. 106j ust. 2 pkt 4).
+  correctionReason String?     @db.Text
+
+  /// Stan sprzed korekty: pozycje, kwoty i dane nabywcy. Trzymane na dokumencie
+  /// korygującym, a nie odczytywane z faktury pierwotnej, bo ta może zostać
+  /// skorygowana ponownie — a korekta ma pokazywać stan, do którego się odnosi.
+  correctedLineItems Json?
+  correctedAmount    Decimal?  @db.Decimal(12, 2)
+  correctedNet       Decimal?  @db.Decimal(12, 2)
+  correctedVat       Decimal?  @db.Decimal(12, 2)
+  correctedBuyer     Json?
+
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -1466,6 +1504,8 @@ model Invoice {
   @@index([ksefStatus])
   @@index([status, storageKey])
   @@index([status, finalizeNextAttemptAt])
+  @@index([correctedId])
+  @@index([kind, createdAt])
 }
 
 /// B-1 — cykl życia faktury w KSeF.
@@ -1484,12 +1524,15 @@ enum KsefStatus {
 /// brak luk nawet pod dużą współbieżnością. Klucz złożony (year, month).
 model InvoiceCounter {
   id        String   @id @default(uuid())
+  /// M-06 — seria numeracji. `VFV` dla faktur, `VFK` dla korekt. Osobne serie,
+  /// bo numer ma mówić, jakim dokumentem jest, zanim ktokolwiek go otworzy.
+  series    String   @default("VFV")
   year      Int
   month     Int
   seq       Int      @default(0)
   updatedAt DateTime @updatedAt
 
-  @@unique([year, month])
+  @@unique([series, year, month])
 }
 
 // -----------------------------------------------------------------------------

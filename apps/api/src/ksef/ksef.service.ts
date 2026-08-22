@@ -175,9 +175,28 @@ export class KsefService {
   }
 
   private async submitOne(client: InvoicingProvider, inv: Invoice): Promise<void> {
+    // M-06 — korekta musi nieść numer i datę faktury korygowanej. Te dane
+    // siedzą na dokumencie pierwotnym, nie na korekcie, więc trzeba je
+    // doczytać. Bez nich builder odmówi — i słusznie: korekta bez wskazania,
+    // co koryguje, zostałaby przez KSeF przyjęta jako nowa sprzedaż.
+    let korygowana: { number: string; issuedAt: Date | null } | null = null;
+    if (inv.kind === 'KOREKTA' && inv.correctedId) {
+      korygowana = await this.prisma.invoice.findUnique({
+        where: { id: inv.correctedId },
+        select: { number: true, issuedAt: true },
+      });
+    }
+
     let xml: string;
     try {
-      ({ xml } = buildFa3Xml({ invoice: inv, systemInfo: 'Verris Panel' }));
+      ({ xml } = buildFa3Xml({
+        invoice: {
+          ...inv,
+          correctedNumber: korygowana?.number ?? null,
+          correctedIssuedAt: korygowana?.issuedAt ?? null,
+        },
+        systemInfo: 'Verris Panel',
+      }));
     } catch (err) {
       if (err instanceof FaXmlValidationError) {
         // Dane faktury niekompletne — REJECTED lokalnie, wymaga poprawy danych.
