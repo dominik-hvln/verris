@@ -150,6 +150,33 @@ w `X-21`, teraz to. Wzorzec jest już na tyle powtarzalny, że wart zapisania ja
 > **Strażnik czytający treść pliku musi patrzeć na kod, nie na prozę.** Komentarze wypadają
 > przed dopasowaniem — zawsze, domyślnie, nie po pierwszym fałszywym alarmie.
 
+## Trzecie znalezisko: wyciszenia Dependabota bez terminu
+
+Ta sama zasada w trzecim miejscu. `#15` (Prisma 7) i `#16` (TypeScript 7) wracałyby przy każdym
+cotygodniowym przebiegu Dependabota, bo świadomie zostajemy na 6.x i 5.x. Naturalnym ruchem
+jest reguła `ignore` w `.github/dependabot.yml` — i naturalnym skutkiem, że po pół roku nikt
+już nie pamięta, dlaczego tam jest ani czy powód nadal obowiązuje.
+
+Każde wyciszenie ma więc dwa komentarze, obowiązkowo:
+
+```yaml
+# pozycja: X-20          ← kto za to odpowiada
+# przegląd: 2026-11-15   ← do kiedy
+- dependency-name: '@prisma/client'
+  update-types: [version-update:semver-major]
+```
+
+`apps/api/src/test/dependabot-wyciszenia.spec.ts` — 6 testów — czerwieni CI, gdy termin minie,
+gdy brakuje któregoś komentarza, albo gdy wskazana pozycja nie istnieje w macierzy. Parser
+czyta komentarze, bo to w nich siedzi odpowiedzialność, a parser YAML-a ich nie widzi.
+
+Termin `2026-11-15` jest **ten sam** co zgoda na `deepmerge-ts` w liście bramki. Jeden termin
+do pilnowania zamiast trzech — i wszystkie trzy prowadzą do tej samej decyzji: `X-20`, Prisma 7.
+
+`#15` i `#16` zamknie sam Dependabot przy najbliższym przebiegu, jako objęte regułą `ignore`.
+Pozostałych jedenaście PR-ów zamknie się samo po scaleniu `feat/sprint-2` do `main` — Dependabot
+zamyka własne PR-y, kiedy gałąź bazowa dogoni wersję. Żadnego z nich nie zamykam ręcznie.
+
 ## Czego to nadal nie robi
 
 - **Nie obejmuje gitleaks.** Krok skanujący sekrety nadal ma `continue-on-error: true`.
@@ -179,7 +206,9 @@ w `X-21`, teraz to. Wzorzec jest już na tyle powtarzalny, że wart zapisania ja
 - `ops/ci/audyt-bramka.cjs` — bramka
 - `ops/ci/podatnosci-dopuszczone.json` — jedna zgoda, z terminem
 - `.github/workflows/ci.yml` — krok `Bramka podatności` i krok `Lint`, oba bez `continue-on-error`
+- `.github/dependabot.yml` — trzy reguły `ignore`, każda z pozycją i terminem przeglądu
 - `apps/api/src/test/bramka-podatnosci.spec.ts` — 15 testów
+- `apps/api/src/test/dependabot-wyciszenia.spec.ts` — 6 testów
 
 **Osiągnięty poziom dowodu:**
 - [x] D1 · [ ] D2 · [ ] D3 · [ ] D4
