@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   DefaultValuePipe,
   Get,
@@ -7,6 +8,7 @@ import {
   HttpCode,
   Param,
   ParseIntPipe,
+  Post,
   Query,
   Res,
   UseGuards,
@@ -22,6 +24,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { RequestContext } from '../common/decorators/request-context';
 import type { RequestContextDto } from '../common/decorators/request-context';
 import { InvoicesService } from './invoices.service';
+import { FakturaRecznaDto } from './dto/faktura-reczna.dto';
 
 const VALID_STATUSES: InvoiceStatus[] = [
   InvoiceStatus.DRAFT,
@@ -142,4 +145,51 @@ export class InvoicesAdminController {
     stream.on('error', (err) => res.destroy(err));
     stream.pipe(res);
   }
+
+  // ---------------------------------------------------------------------------
+  // Z-01 — wystawianie ręczne i dokańczanie
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Faktura spoza automatu: ugoda, rekompensata, usługa spoza cennika.
+   *
+   * Ta sama numeracja VFV, ten sam PDF, ta sama ścieżka do KSeF-a co przy
+   * fakturach automatycznych. Bez tego każdy przypadek nietypowy wypycha
+   * operatora poza system, do Worda i własnej numeracji — a numeracja faktur
+   * ma być jedna i ciągła.
+   */
+  @Post('reczna')
+  @HttpCode(201)
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('BILLING_MANAGE')
+  async wystawReczna(
+    @Body() dto: FakturaRecznaDto,
+    @CurrentUser() aktor: { userId: string },
+  ) {
+    return this.invoices.wystawReczna({
+      userId: dto.userId,
+      pozycje: dto.pozycje,
+      waluta: dto.waluta,
+      powod: dto.powod,
+      aktorUserId: aktor.userId,
+    });
+  }
+
+  /**
+   * Wymuszenie dokończenia faktury bez PDF-u.
+   *
+   * Job próbuje sam, z narastającym odstępem, ale po usunięciu przyczyny
+   * (podniesiony MinIO, uzupełnione dane sprzedawcy) nie ma powodu czekać
+   * na kolejną próbę.
+   */
+  @Post(':invoiceId/dokoncz')
+  @HttpCode(200)
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('BILLING_MANAGE')
+  async dokoncz(@Param('invoiceId') invoiceId: string) {
+    return this.invoices.dokonczFakture(invoiceId);
+  }
+
 }

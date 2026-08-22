@@ -31,6 +31,9 @@ import { PrismaClient } from '@verris/database';
 /** Tabele czyszczone przed każdym testem. Kolejność bez znaczenia — CASCADE. */
 const TABELE = [
   'StripeWebhookEvent',
+  'Invoice',
+  'InvoiceCounter',
+  'WalletTransaction',
   'UsageMetric',
   'Account',
   'Subscription',

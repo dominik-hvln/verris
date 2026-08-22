@@ -219,3 +219,54 @@ BEGIN
 
   RAISE NOTICE 'Z-05 OK — zdarzenia webhooka mają stan, żadne nie wisi bez treści';
 END $$;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Z-01 — każde obciążenie ma dokument, a każdy dokument się sumuje
+-- ─────────────────────────────────────────────────────────────────────────────
+--
+-- Trzy kontrole. Pierwsza jest strukturalna i NIGDY nie przechodzi pusto —
+-- to ona chroni pozostałe dwie przed byciem wiecznie zielonymi na pustej
+-- bazie (lekcja z X-14).
+DO $$
+DECLARE
+  ma_kolumne  BOOLEAN;
+  niespojne   INT;
+  bez_dokumentu INT;
+BEGIN
+  SELECT EXISTS (
+    SELECT 1 FROM information_schema.columns
+     WHERE table_name = 'WalletTransaction' AND column_name = 'invoiceId'
+  ) INTO ma_kolumne;
+  IF NOT ma_kolumne THEN
+    RAISE EXCEPTION
+      'Z-01: brak kolumny WalletTransaction.invoiceId — migracja faktury za portfel nie została zastosowana';
+  END IF;
+
+  -- Faktura, której netto + VAT nie daje brutto, jest wadliwym dokumentem
+  -- księgowym (art. 106e ustawy o VAT), a nie drobnym rozjazdem wyświetlania.
+  SELECT COUNT(*) INTO niespojne
+    FROM "Invoice"
+   WHERE "netAmount" IS NOT NULL
+     AND "vatAmount" IS NOT NULL
+     AND "netAmount" + "vatAmount" <> "amount";
+  IF niespojne > 0 THEN
+    RAISE EXCEPTION
+      'Z-01: % faktur ma netto + VAT różne od kwoty brutto', niespojne;
+  END IF;
+
+  -- Obciążenie sprzedażowe starsze niż 40 dni bez faktury oznacza, że
+  -- przebieg zbiorczy go przeoczył — po 40 dniach pierwszy dzień następnego
+  -- miesiąca na pewno już minął.
+  SELECT COUNT(*) INTO bez_dokumentu
+    FROM "WalletTransaction"
+   WHERE "invoiceId" IS NULL
+     AND "amount" < 0
+     AND "type"::text LIKE 'CHARGE_%'
+     AND "createdAt" < NOW() - INTERVAL '40 days';
+  IF bez_dokumentu > 0 THEN
+    RAISE EXCEPTION
+      'Z-01: % obciążeń sprzedażowych starszych niż 40 dni nie ma faktury', bez_dokumentu;
+  END IF;
+
+  RAISE NOTICE 'Z-01 OK — struktura na miejscu, faktury się sumują, obciążenia mają dokumenty';
+END $$;

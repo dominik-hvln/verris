@@ -69,6 +69,14 @@ export default async function AdminInvoicesPage({ searchParams }: PageProps) {
             Wszystkie faktury Verris (mirror Stripe + własne PDF VFV/...). Filtr
             po kliencie, statusie i zakresie dat. Dostęp: ADMIN i STAFF.
           </p>
+          {/* Z-01 — droga wewnątrz systemu dla przypadków nietypowych. */}
+          <Link
+            href="/invoices/reczna"
+            className="mt-3 inline-flex items-center gap-2 rounded-md border border-indigo-500/40 bg-indigo-500/10 px-3 py-1.5 text-sm text-indigo-200 hover:bg-indigo-500/20"
+          >
+            <FileText className="h-4 w-4" />
+            Wystaw fakturę ręcznie
+          </Link>
         </div>
         {data ? (
           <a

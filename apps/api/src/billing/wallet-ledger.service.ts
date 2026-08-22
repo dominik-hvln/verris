@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, WalletTransaction, WalletTxType, WalletTxStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
+import { trybFaktury, utworzFaktureZaObciazenie } from './faktura-za-portfel';
 
 export interface LedgerEntryInput {
   userId: string;
@@ -146,6 +147,39 @@ export class WalletLedgerService {
             metadata: input.metadata ?? Prisma.JsonNull,
           },
         });
+
+        // Z-01 — faktura powstaje TUTAJ, w tej samej transakcji co ruch
+        // pieniądza, a nie w trzynastu miejscach, które wołają księgę.
+        //
+        // Trzynastu, nie czterech: macierz wymieniała cztery wywołania
+        // `debit()`, a jest ich trzynaście. To nie jest zarzut wobec macierzy,
+        // tylko dowód, że lista miejsc, w których rusza się pieniądz,
+        // rozjeżdża się z rzeczywistością szybciej, niż ktokolwiek ją
+        // aktualizuje. Reguła w jednym miejscu nie ma jak się rozjechać.
+        //
+        // Wiersz faktury jest atomowy z obciążeniem. Wszystko, co wymaga
+        // świata zewnętrznego — PDF, MinIO, KSeF, mail — robi później
+        // scheduler finalizacji, z ponawianiem. Lekcja z Z-05: dokument,
+        // którego powstanie zależy od kroku po transakcji, będzie czasem
+        // nie powstawał i nikt się o tym nie dowie.
+        if (direction === 'debit') {
+          const tryb = trybFaktury(input.type, amount);
+          if (tryb === 'natychmiast') {
+            await utworzFaktureZaObciazenie(tx, {
+              userId: user.id,
+              walletTxId: created.id,
+              typ: input.type,
+              brutto: amount,
+              waluta: user.walletCurrency,
+              opis: input.description ?? null,
+              subscriptionId: input.subscriptionId ?? null,
+              teraz: new Date(),
+            });
+          }
+          // `zbiorczo` nie robi nic teraz — wpis zostaje z `invoiceId = null`
+          // i podejmie go miesięczny scheduler faktur zbiorczych. NULL jest
+          // tu znaczący, dlatego indeks (type, invoiceId, createdAt).
+        }
 
         return created;
       });

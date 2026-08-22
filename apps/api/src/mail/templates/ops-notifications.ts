@@ -382,3 +382,74 @@ export function webhookZacietyTemplate(ctx: WebhookZacietyContext): MailMessage 
     html,
   };
 }
+
+// -----------------------------------------------------------------------------
+// Z-01 — faktura powstała, ale nie udało się jej dokończyć
+// -----------------------------------------------------------------------------
+
+export interface FakturaNiedokonczonaContext {
+  to: string;
+  firstName: string | null;
+  numer: string;
+  kwota: string;
+  proby: number;
+  wystawiona: Date;
+  ostatniBlad: string | null;
+  panelUrl: string;
+}
+
+/**
+ * Alert o fakturze bez PDF-u.
+ *
+ * Pieniądze są pobrane poprawnie — brakuje dokumentu. Ton odpowiednio spokojny,
+ * ale termin jest ustawowy, więc podany wprost.
+ */
+export function fakturaNiedokonczonaTemplate(ctx: FakturaNiedokonczonaContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: `Faktura ${ctx.numer} nie ma pliku PDF`,
+    preheader: `${ctx.proby} nieudane próby wygenerowania dokumentu.`,
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `**Faktura \`${escapeHtml(ctx.numer)}\` istnieje w bazie, ale nie udało się wygenerować`,
+      `jej pliku PDF** mimo ${ctx.proby} prób. Klient jej nie dostał i nie pobierze jej z panelu.`,
+      ``,
+      `Pieniądze zostały pobrane poprawnie — brakuje wyłącznie dokumentu.`,
+      ``,
+      `- **Numer:** ${escapeHtml(ctx.numer)}`,
+      `- **Kwota:** ${escapeHtml(ctx.kwota)}`,
+      `- **Wystawiona:** ${escapeHtml(fmt(ctx.wystawiona))}`,
+      `- **Prób:** ${ctx.proby}`,
+      ``,
+      `**Ostatni błąd:**`,
+      ``,
+      '```',
+      escapeHtml(ctx.ostatniBlad ?? '(brak treści błędu)'),
+      '```',
+      ``,
+      `## Co zrobić`,
+      ``,
+      `1. Najczęstsza przyczyna to niedostępny MinIO albo brak danych sprzedawcy`,
+      `   w ustawieniach platformy — sprawdź jedno i drugie.`,
+      `2. Po usunięciu przyczyny job spróbuje ponownie sam; można też wymusić`,
+      `   z listy faktur w panelu.`,
+      ``,
+      `**Termin jest ustawowy:** fakturę trzeba wystawić do 15. dnia miesiąca`,
+      `następującego po miesiącu sprzedaży.`,
+    ].join('\n'),
+    cta: { label: 'Otwórz faktury', url: `${ctx.panelUrl}/invoices` },
+    footnote:
+      'Alert wysyłany najwyżej raz na dobę dla tej samej faktury. Otrzymują go wszyscy administratorzy.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return {
+    to: ctx.to,
+    tag: 'ops.faktura-niedokonczona',
+    subject: `[Verris] 📄 Faktura ${ctx.numer} bez pliku PDF`,
+    text,
+    html,
+  };
+}

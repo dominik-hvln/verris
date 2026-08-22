@@ -25,7 +25,14 @@ describe('WalletLedgerService (F-02)', () => {
         },
       ]),
       user: { update: jest.fn().mockResolvedValue({}) },
-      walletTransaction: { create: jest.fn().mockResolvedValue(createdRow) },
+      walletTransaction: {
+        create: jest.fn().mockResolvedValue(createdRow),
+        update: jest.fn().mockResolvedValue({}),
+      },
+      // Z-01 — księga wystawia fakturę w TEJ SAMEJ transakcji, więc atrapa
+      // transakcji musi mieć czym. Brak tego pola nie jest usterką testu,
+      // tylko jego prawdziwym wynikiem: obciążenie dotyka teraz faktur.
+      invoice: { create: jest.fn().mockResolvedValue({ id: 'inv-1', number: 'VFV/2026/08/0001' }) },
     };
     const prisma = {
       walletTransaction: {
@@ -49,9 +56,57 @@ describe('WalletLedgerService (F-02)', () => {
       type: WalletTxType.CHARGE_SUBSCRIPTION,
     });
 
-    expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
+    // PIERWSZE zapytanie surowe w transakcji ma blokować wiersz użytkownika.
+    // Wcześniej stało tu `toHaveBeenCalledTimes(1)` — po Z-01 w tej samej
+    // transakcji leci jeszcze numerator faktury, więc liczba wywołań przestała
+    // opisywać to, o co temu testowi chodzi.
     const sqlParts: string[] = tx.$queryRaw.mock.calls[0][0];
     expect(sqlParts.join('?')).toContain('FOR UPDATE');
+  });
+
+  // ───────────────────────────────────────────────────────────────────────
+  // Z-01 — faktura powstaje w tej samej transakcji co obciążenie
+  // ───────────────────────────────────────────────────────────────────────
+
+  it('obciążenie sprzedażowe wystawia fakturę wewnątrz transakcji', async () => {
+    const { prisma, tx } = buildPrismaMock({ balance: '100.00' });
+    const service = new WalletLedgerService(prisma as never);
+
+    await service.debit({
+      userId: 'user-1',
+      amount: '45.00',
+      type: WalletTxType.CHARGE_SUBSCRIPTION,
+      description: 'Abonament',
+    });
+
+    expect(tx.invoice.create).toHaveBeenCalledTimes(1);
+    const dane = tx.invoice.create.mock.calls[0][0].data;
+    expect(dane.provider).toBe('WALLET');
+    expect(dane.status).toBe('PAID');
+    expect(dane.amount.toFixed(2)).toBe('45.00');
+    expect(dane.netAmount.plus(dane.vatAmount).toFixed(2)).toBe('45.00');
+  });
+
+  it('autoskalowanie nie wystawia faktury przy obciążeniu', async () => {
+    const { prisma, tx } = buildPrismaMock({ balance: '100.00' });
+    const service = new WalletLedgerService(prisma as never);
+
+    await service.debit({
+      userId: 'user-1',
+      amount: '0.12',
+      type: WalletTxType.CHARGE_AUTOSCALING,
+    });
+
+    expect(tx.invoice.create).not.toHaveBeenCalled();
+  });
+
+  it('uznanie portfela nie wystawia faktury', async () => {
+    const { prisma, tx } = buildPrismaMock({ balance: '0.00' });
+    const service = new WalletLedgerService(prisma as never);
+
+    await service.credit({ userId: 'user-1', amount: '200.00', type: WalletTxType.TOPUP });
+
+    expect(tx.invoice.create).not.toHaveBeenCalled();
   });
 
   it('rejects a debit that would push the balance below zero', async () => {

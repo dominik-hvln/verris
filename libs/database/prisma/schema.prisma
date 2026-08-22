@@ -1345,10 +1345,18 @@ model WalletTransaction {
   description     String?
   metadata        Json?
 
+  /// Z-01 — faktura pokrywająca to obciążenie. NULL na wpisie obciążeniowym
+  /// znaczy „czeka na fakturę zbiorczą" (autoskalowanie, drobne zużycie) albo
+  /// „nie podlega fakturowaniu" (doładowanie, korekta admina).
+  invoiceId       String?
+  invoice         Invoice?        @relation("FakturaZaObciazenia", fields: [invoiceId], references: [id], onDelete: SetNull)
+
   createdAt       DateTime        @default(now())
 
   @@index([userId, createdAt])
   @@index([type])
+  @@index([invoiceId])
+  @@index([type, invoiceId, createdAt])
 }
 
 model PaymentMethod {
@@ -1437,12 +1445,27 @@ model Invoice {
   ksefAcceptedAt  DateTime?
   ksefError      String?
 
+  /// Z-01 — finalizacja (PDF + MinIO + KSeF + mail) jest ponawiana, a nie
+  /// wykonywana raz i porzucana. Do 2026-08-22 błąd generowania PDF-u kończył
+  /// się wpisem w logu i fakturą bez pliku, o której nikt się nie dowiadywał —
+  /// ta sama klasa błędu co Z-05 w webhooku płatności.
+  finalizeAttempts     Int       @default(0)
+  finalizeLastError    String?   @db.Text
+  finalizeNextAttemptAt DateTime?
+  finalizeAlertedAt    DateTime?
+
+  /// Wpisy księgi portfela pokryte tą fakturą. Dla faktury za pojedyncze
+  /// obciążenie — jeden; dla zbiorczej miesięcznej — wszystkie z okresu.
+  walletEntries  WalletTransaction[] @relation("FakturaZaObciazenia")
+
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
   @@unique([provider, providerRef])
   @@index([userId])
   @@index([ksefStatus])
+  @@index([status, storageKey])
+  @@index([status, finalizeNextAttemptAt])
 }
 
 /// B-1 — cykl życia faktury w KSeF.
