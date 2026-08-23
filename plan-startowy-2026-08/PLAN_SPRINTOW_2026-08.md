@@ -9,9 +9,9 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **2972 h** — przy 30 h tygodniowo około **23 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **2980 h** — przy 30 h tygodniowo około **23 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **20 sprintów do startu** (702 h) oraz roadmapę po starcie (2270 h, 145 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **20 sprintów do startu** (710 h) oraz roadmapę po starcie (2270 h, 145 pozycji) rozpisaną na epiki kwartalne.
 
 - **2026-10-23** — koniec sprintu 9, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-01-08** — koniec sprintu 20, decyzja GO.
@@ -32,7 +32,7 @@ Dlatego praca dzieli się na dwie części: **20 sprintów do startu** (702 h) o
 
 # Faza 0 — Zatrzymać krwawienie
 
-*Sprinty 1–3 · 238 h · 2026-08-24 – 2026-09-11*
+*Sprinty 1–3 · 244 h · 2026-08-24 – 2026-09-11*
 
 Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziurą, przez którą wyciekają pieniądze, albo drogą do przejęcia węzła przez klienta. Nic innego nie ma sensu przed nimi.
 
@@ -73,7 +73,7 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 
 ## Sprint 2 — Zamknąć luki bezpieczeństwa z passu adwersaryjnego
 
-`2026-08-31 – 2026-09-04` · **126 h** z 30 h pojemności
+`2026-08-31 – 2026-09-04` · **132 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -93,6 +93,7 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 | `H-20` | Test odtworzeniowy z datą ostatniego wykonania | 16 | BLOKER STARTU | DOWÓD D4 — wiersz w bazie PRODUKCYJNEJ, odczytany 2026-08-23: finishedAt=2026-08-22 23:19:45, result=OK, owner=Dominik Kowalski, durationSec=9, object |
 | `X-30` | Reguły alertowe nie tylko są wczytane, ale się liczą | 6 | — | ops/observability/grafana/provisioning/datasources/datasources.yml — deleteDatasources przed deklaracją, uid: Prometheus; ops/scripts/prod-deploy-ghcr |
 | `X-31` | Kanał alertów daje znak życia (dead man's switch) | 6 | — | ops/observability/grafana/provisioning/alerting/rules.yaml — grupa verris_kanal_alertow, reguła VerrisKanalAlertowZyje (vector(1), for: 0s, oba stany  |
+| `Z-18` | Prawdziwa przyczyna błędu provisioningu nie ginie po drodze | 6 | BLOKER STARTU | apps/api/src/subscriptions/provisioning-error.ts — BladEtapuProvisioningu (etap, przyczyna, message z doklejoną przyczyną); provisioning-queue.service |
 
 **Definicja ukończenia**
 
@@ -110,11 +111,12 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 - `X-28` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-29` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `H-20` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `X-30` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `X-30` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-31` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `Z-18` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-02.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** Z-03 dotyka skryptów na węźle — zmiana wymaga przetestowania całej ścieżki migracji, nie tylko walidacji DTO. Sprint urósł o dziesięć pozycji odkrytych w trakcie: podatności, strażniki, bramki wdrożeniowe i awaria kopii bazy (H-23/H-24). Przeciążenie jest prawdziwe i celowo widoczne — praca została wykonana, plan jej nie przewidywał. X-28 doszło jako odpowiedź na pytanie, które zostawiło H-23: dlaczego alarm o braku kopii nie dotarł do nikogo. Odpowiedź — nie miał dokąd; w repo nie było Alertmanagera, a Grafana miała odbiorcę i zero reguł. X-29 wyszło godzinę po X-28 i z tego samego pytania: skoro reguły są w repo, to czy wdrożenie w ogóle je dowozi? Nie dowoziło — wdrożenie restartowało tylko aplikacje, a Prometheus i Grafana czytają konfigurację wyłącznie przy starcie. H-20 wykonane tu, a nie w sprincie 9: awaria kopii z H-23 wymusiła odtworzenie bazy tu i teraz, więc dowód D4 powstał jedenaście sprintów przed terminem. X-30 wyszło przy sprawdzaniu, czy X-29 faktycznie coś zmieniło: reguły były wczytane i żadna się nie liczyła. Trzeci raz tego dnia to samo pytanie — czy to, co wygląda na zrobione, jest zrobione — i trzeci raz odpowiedź brzmiała nie. X-31 domyka dzień: po naprawie X-30 alerty ucichną, a cisza wygląda tak samo jak awaria kanału — więc dokładamy regułę, która pali się zawsze i której brak jest sygnałem. Decyzja właściciela produktu: jeden mail na dobę.
+**Ryzyko sprintu.** Z-03 dotyka skryptów na węźle — zmiana wymaga przetestowania całej ścieżki migracji, nie tylko walidacji DTO. Sprint urósł o dziesięć pozycji odkrytych w trakcie: podatności, strażniki, bramki wdrożeniowe i awaria kopii bazy (H-23/H-24). Przeciążenie jest prawdziwe i celowo widoczne — praca została wykonana, plan jej nie przewidywał. X-28 doszło jako odpowiedź na pytanie, które zostawiło H-23: dlaczego alarm o braku kopii nie dotarł do nikogo. Odpowiedź — nie miał dokąd; w repo nie było Alertmanagera, a Grafana miała odbiorcę i zero reguł. X-29 wyszło godzinę po X-28 i z tego samego pytania: skoro reguły są w repo, to czy wdrożenie w ogóle je dowozi? Nie dowoziło — wdrożenie restartowało tylko aplikacje, a Prometheus i Grafana czytają konfigurację wyłącznie przy starcie. H-20 wykonane tu, a nie w sprincie 9: awaria kopii z H-23 wymusiła odtworzenie bazy tu i teraz, więc dowód D4 powstał jedenaście sprintów przed terminem. X-30 wyszło przy sprawdzaniu, czy X-29 faktycznie coś zmieniło: reguły były wczytane i żadna się nie liczyła. Trzeci raz tego dnia to samo pytanie — czy to, co wygląda na zrobione, jest zrobione — i trzeci raz odpowiedź brzmiała nie. X-31 domyka dzień: po naprawie X-30 alerty ucichną, a cisza wygląda tak samo jak awaria kanału — więc dokładamy regułę, która pali się zawsze i której brak jest sygnałem. Decyzja właściciela produktu: jeden mail na dobę. Z-18 zamyka dzień tym, od czego wszystko się zaczęło: pierwszy alarm zapalony z prawdziwego powodu pokazał wadę, która przy zerwaniu sieci oddaje klientowi pieniądze za usługę, którą za chwilę wykona. Poprawka jest tutaj, dowód D3 dopiero przy węźle #1.
 
 ## Sprint 3 — Pojemność węzła i plan produkcyjny
 
@@ -141,7 +143,7 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 
 # Faza 1 — Rozliczenia i dowód odtworzenia
 
-*Sprinty 4–8 · 140 h · 2026-09-14 – 2026-10-16*
+*Sprinty 4–8 · 142 h · 2026-09-14 – 2026-10-16*
 
 Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podpisane DPA. Koniec tej fazy to kamień milowy: zamknięte wszystkie blokery poza KSeF-em, który świadomie stoi na końcu.
 
@@ -215,20 +217,22 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 
 ## Sprint 8 — Faktury korygujące — domknięcie, węzeł produkcyjny
 
-`2026-10-12 – 2026-10-16` · **26 h** z 30 h pojemności
+`2026-10-12 – 2026-10-16` · **28 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
 | `M-06` | FAKTURA KORYGUJĄCA (część) | 10 | — | korekta-faktury.ts — bladKorygowalnosci/przeliczKorekte/korektaFormalna/kwotaDoZwrotu; korekty.service.ts — wystawianie ze zwrotem w tej samej transak |
+| `Z-18` | Prawdziwa przyczyna błędu provisioningu nie ginie po drodze (część) | 2 | BLOKER STARTU | apps/api/src/subscriptions/provisioning-error.ts — BladEtapuProvisioningu (etap, przyczyna, message z doklejoną przyczyną); provisioning-queue.service |
 | `PB-02` | Onboarding produkcyjnego węzła #1 (EX63) | 16 | WYSOKI | Pełny przebieg node-onboard-live.sh na docelowym serwerze, z konfiguracją backupu off-site jako krokiem obowiązkowym. |
 
 **Definicja ukończenia**
 
 - `M-06` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `Z-18` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `PB-02` — Węzeł przechodzi wszystkie 14 checków live-readiness. /etc/verris-backup.conf istnieje, pierwszy backup off-site wykonany i zaraportowany do control-plane.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-08.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** Węzeł #1 musi stanąć przed sprintem 9, bo drill odtworzeniowy wykonujemy na nim.
+**Ryzyko sprintu.** Węzeł #1 musi stanąć przed sprintem 9, bo drill odtworzeniowy wykonujemy na nim. Dochodzi dowód D3 dla Z-18: na świeżym węźle uruchomić provisioning, przerwać połączenie do DirectAdmina w trakcie i pokazać w audycie ponowienie zamiast zwrotu środków. Dwie godziny, ale bez węzła nie da się tego zrobić wcale.
 
 ---
 

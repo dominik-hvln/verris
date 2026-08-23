@@ -12,6 +12,7 @@ import { WalletLedgerService } from '../billing/wallet-ledger.service';
 import { AuditService } from '../common/audit/audit.service';
 import { ProvisioningActions } from '../common/audit/audit.actions';
 import { ProvisioningService } from './provisioning.service';
+import { BladEtapuProvisioningu } from './provisioning-error';
 import { PromoService } from '../billing/promo.service';
 
 export type ProvisionJobData =
@@ -389,7 +390,11 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      const errCategory = categorizeProvisioningError(msg);
+      // Z-18 — klasyfikujemy OBIEKT, nie napis. `msg` jest komunikatem dla
+      // człowieka; `przyczyna` to oryginalna treść błędu, po której naprawdę
+      // wiadomo, czy warto ponowić.
+      const przyczyna = err instanceof BladEtapuProvisioningu ? err.przyczyna : msg;
+      const errCategory = kategoriaBledu(err);
 
       if (!isLastAttempt && errCategory === 'transient') {
         await this.markStage(d.subscriptionId, ProvisioningStage.RETRYING, {
@@ -404,6 +409,7 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
             jobId: String(job.id),
             attempt: (job.attemptsMade ?? 0) + 1,
             error: msg,
+            przyczyna,
             category: errCategory,
           },
         });
@@ -419,6 +425,7 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
         jobId: String(job.id),
         attempt: (job.attemptsMade ?? 0) + 1,
         error: msg,
+        przyczyna,
         category: errCategory,
       });
 
@@ -566,4 +573,36 @@ export function categorizeProvisioningError(msg: string): 'transient' | 'permane
     return 'transient';
   }
   return 'permanent';
+}
+
+/**
+ * Z-18 — klasyfikacja BŁĘDU, nie jego prozy.
+ *
+ * `categorizeProvisioningError` czyta napis i jest napisana poprawnie: ma
+ * `econnrefused` na liście błędów przejściowych. Problem polegał na tym, czym
+ * ją karmiono. Etapy provisioningu łapały prawdziwy błąd i rzucały dalej stały
+ * komunikat dla człowieka, więc klasyfikator dostawał tekst, w którym słowa
+ * „ECONNREFUSED" nie było — i zwracał `permanent`. Zerwanie sieci uruchamiało
+ * ścieżkę twardej porażki ze zwrotem środków JUŻ PRZY PIERWSZEJ PRÓBIE, mimo
+ * że druga mogła się udać — a wtedy klient miał hosting i zwrot naraz.
+ *
+ * Ta funkcja pyta więc OBIEKT: `BladEtapuProvisioningu` zna swoją `przyczyna`
+ * i to ona idzie do klasyfikacji. Napis zostaje jako ścieżka zapasowa, bo nie
+ * każdy błąd przejdzie przez nasze opakowanie — awaria może wyjść z Prismy,
+ * z sieci, skądkolwiek.
+ *
+ * Zwróć uwagę, dlaczego dopasowanie po prozie było kruche niezależnie od tego
+ * błędu: jeden z komunikatów („CloudLinux LVE limits could not be applied")
+ * trafiał na listę przejściowych DLATEGO, że ktoś dopisał to zdanie do
+ * klasyfikatora. Działało, dopóki nikt nie poprawił stylistyki komunikatu.
+ * To dziesiąte wystąpienie rodziny „strażnik dopasowuje własną prozę".
+ */
+export function kategoriaBledu(err: unknown): 'transient' | 'permanent' {
+  if (err instanceof BladEtapuProvisioningu) {
+    return categorizeProvisioningError(err.przyczyna);
+  }
+  if (err instanceof Error) {
+    return categorizeProvisioningError(err.message);
+  }
+  return categorizeProvisioningError(String(err));
 }

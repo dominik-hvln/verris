@@ -22,6 +22,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto/crypto.service';
 import { AuditService } from '../common/audit/audit.service';
 import { DirectAdminService } from '../servers/directadmin.service';
+import { BladEtapuProvisioningu } from './provisioning-error';
 import { ServersService } from '../servers/servers.service';
 import { NodeSelectorService } from './node-selector.service';
 import { MailerService } from '../mail/mailer.service';
@@ -172,7 +173,14 @@ export class ProvisioningService {
           error: msg,
         },
       });
-      throw new ServiceUnavailableException(
+      // Z-18 — komunikat dla człowieka ZOSTAJE, ale przyczyna jedzie razem z nim.
+      // Do 2026-08-23 leciał tu goły napis o brakującym pakiecie, także wtedy,
+      // gdy węzeł po prostu nie przyjmował połączeń. Klasyfikator retry czytał
+      // ten napis, nie widział „ECONNREFUSED" i uznawał błąd sieci za trwały —
+      // co odpalało zwrot środków przy pierwszej próbie.
+      throw new BladEtapuProvisioningu(
+        'ensureUserPackage',
+        msg,
         `DirectAdmin package "${subscription.plan.slug}" is missing on the node and could not be created automatically. Contact support.`,
       );
     }
@@ -205,7 +213,9 @@ export class ProvisioningService {
           error: msg,
         },
       });
-      throw new ServiceUnavailableException(
+      throw new BladEtapuProvisioningu(
+        'createAccount',
+        msg,
         'Failed to create the hosting account on the selected node. Our team has been notified.',
       );
     }
@@ -267,7 +277,13 @@ export class ProvisioningService {
           },
         });
       }
-      throw new ServiceUnavailableException(
+      // Ten komunikat trafiał na listę błędów przejściowych DLATEGO, że ktoś
+      // dopisał to zdanie do klasyfikatora. Działało, dopóki nikt nie poprawił
+      // stylistyki. Teraz klasyfikacja idzie po `przyczyna`, więc zdanie może
+      // się zmienić bez konsekwencji.
+      throw new BladEtapuProvisioningu(
+        'setAccountLimits',
+        msg,
         'CloudLinux LVE limits could not be applied on this node. Provisioning aborted.',
       );
     }
