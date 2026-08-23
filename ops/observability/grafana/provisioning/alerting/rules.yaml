@@ -633,3 +633,84 @@ groups:
       summary: Brak metryki security watch (timer nie działa?)
       description: Zainstaluj ops/scripts/security-install-verris-security.sh i sprawdź verris-security-watch.timer.
     isPaused: false
+
+# ─────────────────────────────────────────────────────────────────────────────
+# X-31 — kanał alertów daje znak życia (dead man's switch).
+#
+# Ta grupa NIE pochodzi z migracji z Prometheusa; jest dopisana ręcznie.
+#
+# PO CO. Kiedy wszystko działa, alerty milczą. Kiedy Grafana padnie, SMTP się
+# zatka albo poczta zacznie lądować w spamie — alerty też milczą. Z zewnątrz
+# oba stany wyglądają IDENTYCZNIE. To jest dokładnie ta cisza, która przez
+# miesiąc znaczyła „kopia bazy jest w porządku" (H-23).
+#
+# Ta reguła pali się ZAWSZE i jej BRAK jest sygnałem. `vector(1)` zwraca stałą
+# jedynkę, więc warunek jest spełniony przy każdej ewaluacji; gdyby Prometheus
+# przestał odpowiadać, `execErrState: Alerting` zapali ją tym bardziej.
+#
+# Polityka powiadomień ma dla etykiety `kanal: heartbeat` osobną gałąź
+# z `repeat_interval: 24h`, więc to jest JEDEN mail na dobę, a nie co cztery
+# godziny jak reszta.
+#
+# CZEGO NIE DOWODZI. Że pozostałe reguły są poprawne — dowodzi wyłącznie, że
+# droga Grafana → SMTP → skrzynka jest drożna. I ma jeden haczyk, który trzeba
+# nazwać: mail, którego się nie czyta, wraca do punktu wyjścia. Jeśli po
+# tygodniu przestaniesz go zauważać, ta reguła przestaje cokolwiek dawać.
+# ─────────────────────────────────────────────────────────────────────────────
+- orgId: 1
+  name: verris_kanal_alertow
+  folder: Verris
+  interval: 5m
+  rules:
+  - uid: verris-kanal-alertow-zyje
+    title: VerrisKanalAlertowZyje
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: Prometheus
+      model:
+        refId: A
+        expr: vector(1)
+        instant: true
+        range: false
+        editorMode: code
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: A
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 0
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            type: last
+            params: []
+          type: query
+    for: 0s
+    noDataState: Alerting
+    execErrState: Alerting
+    labels:
+      severity: info
+      kanal: heartbeat
+    annotations:
+      summary: Kanał alertów Verris działa — to jest znak życia, nie awaria
+      description: >-
+        Ta wiadomość przychodzi raz na dobę i ma przychodzić zawsze. Jeśli
+        przestanie, to nie znaczy, że jest spokojnie — znaczy, że droga od
+        Grafany do skrzynki gdzieś się urwała i żaden prawdziwy alarm też nie
+        dojdzie. Sprawdź wtedy: kontener grafana, Postfix na panelu
+        (/var/log/mail.log) i filtry na hvln.pl.
+    isPaused: false

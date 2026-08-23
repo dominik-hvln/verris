@@ -218,7 +218,57 @@ if [ "$OK" = "1" ]; then
     compose ps
     exit 1
   fi
-  echo "[deploy] obserwowalność OK — nowa konfiguracja wczytana."
+  echo "[deploy] obserwowalność wstała — sprawdzam, czy reguły LICZĄ SIĘ."
+
+  # 4.6) X-30 — reguła wczytana to nie reguła działająca.
+  #
+  #      Wdrożenie #67 przeszło na zielono, Grafana odpowiadała na /api/health,
+  #      trzynaście reguł było wczytanych — i wszystkie trzynaście waliło się co
+  #      trzydzieści sekund na „data source not found". Reguły odwołują się do
+  #      źródła danych po uid, a Grafana przy provisioningu aktualizuje istniejące
+  #      źródło po NAZWIE i zostawia mu wylosowany wcześniej uid. Dashboardy tego
+  #      nie zauważyły, bo mają starą, nazwową ścieżkę zgodności; reguły alertowe
+  #      takiej nie mają.
+  #
+  #      Poprzednie sprawdzenie („czy wstały") nie mogło tego zobaczyć, a strażnik
+  #      w testach tym bardziej: sprawdzał, że uid użyty w regułach WYSTĘPUJE
+  #      w datasources.yml. Występował. Plik był spójny z plikiem, a system nie
+  #      działał. To ta sama pułapka co przy Z-01 i H-20 — test, który przechodzi,
+  #      i system, który nie działa.
+  #
+  #      Dlatego pytamy DZIAŁAJĄCĄ Grafanę o jej własny licznik nieudanych
+  #      ewaluacji, dwa razy, w odstępie dłuższym niż cykl najkrótszej grupy
+  #      (30 s). Liczy się PRZYROST, nie wartość: pojedyncze niepowodzenie zaraz
+  #      po restarcie, gdy Prometheus jeszcze wstaje, jest normalne — stałe
+  #      czerwienienie nie jest.
+  liczba_metryki() {
+    compose exec -T grafana sh -c "wget -qO- http://127.0.0.1:3000/metrics 2>/dev/null" \
+      | awk -v m="$1" '$0 ~ "^" m "[{ ]" { s += $NF } END { printf "%.0f", s + 0 }'
+  }
+
+  REGUL="$(liczba_metryki grafana_alerting_rule_group_rules)"
+  if [ "${REGUL:-0}" -le 0 ]; then
+    echo "[deploy] FAIL: Grafana nie ma ANI JEDNEJ reguły alertowej po provisioningu."
+    echo "[deploy] Sprawdź ops/observability/grafana/provisioning/alerting/rules.yaml i log:"
+    echo "[deploy]   docker compose logs --tail=200 grafana | grep provisioning"
+    exit 1
+  fi
+  echo "[deploy] Grafana ma ${REGUL} reguł alertowych."
+
+  BLEDY_PRZED="$(liczba_metryki grafana_alerting_rule_evaluation_failures_total)"
+  sleep 75
+  BLEDY_PO="$(liczba_metryki grafana_alerting_rule_evaluation_failures_total)"
+
+  if [ "${BLEDY_PO:-0}" -gt "${BLEDY_PRZED:-0}" ]; then
+    echo "[deploy] FAIL: reguły alertowe NIE LICZĄ SIĘ — przyrost nieudanych ewaluacji:"
+    echo "[deploy]   ${BLEDY_PRZED} → ${BLEDY_PO} w ciągu 75 sekund."
+    echo "[deploy] Najczęstsza przyczyna: „data source not found\" — uid źródła danych"
+    echo "[deploy] w rules.yaml nie zgadza się z uid-em, który Grafana naprawdę nadała."
+    echo "[deploy]   docker compose logs --tail=200 grafana | grep 'rule evaluator'"
+    echo "[deploy] Aplikacja ${IMAGE_TAG} jest wdrożona i zdrowa — problem dotyczy alertów."
+    exit 1
+  fi
+  echo "[deploy] reguły liczą się bez błędów (${BLEDY_PRZED} → ${BLEDY_PO})."
 
   compose ps
   exit 0

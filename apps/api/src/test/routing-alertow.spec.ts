@@ -72,6 +72,19 @@ const ALERTY = [
   'VerrisSecurityWatchStale',
 ] as const;
 
+/**
+ * Reguły dopisane PO migracji, ręcznie.
+ *
+ * Trzymane osobno od `ALERTY` celowo. Tamta lista odpowiada na pytanie „czy
+ * przeniesienie czegoś nie zgubiło" i ma zostać zamrożona. Ta odpowiada na
+ * pytanie „czy ktoś czegoś po cichu nie dołożył" — nowa reguła musi tu trafić
+ * świadomie, a nie prześlizgnąć się przy okazji.
+ */
+const DOPISANE_POZNIEJ = [
+  // X-31 — dead man's switch: pali się zawsze, jego BRAK jest sygnałem.
+  'VerrisKanalAlertowZyje',
+] as const;
+
 /** Te pięć musi mieć `severity: critical` — inaczej wyciszy je grupowanie. */
 const KRYTYCZNE = [
   'VerrisProvisioningQueueFailed',
@@ -95,9 +108,9 @@ describe('X-28 — reguły alertowe mają jeden dom i ten dom powiadamia', () =>
     expect(kod(REGULY)).toContain(`title: ${nazwa}`);
   });
 
-  it('wszystkie trzynaście reguł, ani jednej mniej', () => {
+  it('wszystkie trzynaście reguł, ani jednej mniej — i nic po cichu dołożonego', () => {
     const tytuly = [...kod(REGULY).matchAll(/^\s*title:\s*(\S+)/gm)].map((m) => m[1]);
-    expect(tytuly.sort()).toEqual([...ALERTY].sort());
+    expect(tytuly.sort()).toEqual([...ALERTY, ...DOPISANE_POZNIEJ].sort());
   });
 
   it.each(KRYTYCZNE)('%s zachowała severity: critical', (nazwa) => {
@@ -140,6 +153,52 @@ describe('X-28 — reguły alertowe mają jeden dom i ten dom powiadamia', () =>
     const zdefiniowane = new Set([...zrodla.matchAll(/^\s*uid:\s*(\S+)/gm)].map((m) => m[1]));
     expect(uzyte.size).toBeGreaterThan(0);
     for (const u of uzyte) expect(zdefiniowane.has(u)).toBe(true);
+  });
+});
+
+describe('X-31 — kanał alertów daje znak życia', () => {
+  const reguly = kod(REGULY);
+  const polityki = kod(POLITYKI);
+
+  it('strażnik czyta właściwe pliki', () => {
+    expect(reguly).toContain('title: VerrisKanalAlertowZyje');
+    expect(polityki).toContain('policies:');
+  });
+
+  it('reguła pali się zawsze, także gdy Prometheus milczy', () => {
+    // `vector(1)` zwraca stałą jedynkę przy każdej ewaluacji. Gdyby Prometheus
+    // przestał odpowiadać, `execErrState: Alerting` zapali ją tym bardziej —
+    // a o to właśnie chodzi: milczenie ma znaczyć awarię, nigdy spokój.
+    const od = reguly.indexOf('title: VerrisKanalAlertowZyje');
+    const blok = reguly.slice(od);
+    expect(blok).toContain('expr: vector(1)');
+    expect(blok).toMatch(/execErrState:\s*Alerting/);
+    expect(blok).toMatch(/noDataState:\s*Alerting/);
+    expect(blok).toMatch(/for:\s*0s/);
+  });
+
+  it('ma etykietę, po której polityka ją rozpozna', () => {
+    const od = reguly.indexOf('title: VerrisKanalAlertowZyje');
+    expect(reguly.slice(od)).toContain('kanal: heartbeat');
+  });
+
+  it('idzie OSOBNĄ gałęzią, raz na dobę', () => {
+    // Na domyślnej polityce (repeat_interval: 4h) byłoby sześć maili dziennie.
+    // Alert przychodzący sześć razy dziennie przestaje być czytany — a wtedy
+    // przestaje cokolwiek dawać, bo jego BRAK jest jedyną informacją, jaką niesie.
+    expect(polityki).toContain('routes:');
+    const od = polityki.indexOf('routes:');
+    const galaz = polityki.slice(od);
+    expect(galaz).toContain("'kanal'");
+    expect(galaz).toContain('heartbeat');
+    expect(galaz).toMatch(/repeat_interval:\s*24h/);
+  });
+
+  it('domyślna polityka NIE została przestawiona na dobę', () => {
+    // Gałąź heartbeatu nie może po cichu wyciszyć wszystkiego innego: prawdziwy
+    // alarm ma się przypominać co cztery godziny, a nie raz dziennie.
+    const doGalezi = polityki.slice(0, polityki.indexOf('routes:'));
+    expect(doGalezi).toMatch(/repeat_interval:\s*4h/);
   });
 });
 

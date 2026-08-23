@@ -1,13 +1,29 @@
 apiVersion: 1
 
+# X-30 — źródło danych jest ODTWARZANE, a nie aktualizowane.
+#
+# X-28 dopisało niżej `uid: Prometheus`, bo odwołują się do niego dwie rzeczy
+# naraz: dashboardy (JSON-y mają "uid": "Prometheus") i reguły alertowe.
+# To nie wystarczyło. Grafana przy provisioningu aktualizuje ISTNIEJĄCE źródło
+# po NAZWIE i zostawia mu uid nadany przy pierwszym utworzeniu — czyli losowy.
+#
+# Skutek był taki, że wdrożenie #67 przeszło na zielono, Grafana odpowiadała
+# na /api/health, trzynaście reguł było wczytanych, a wszystkie trzynaście
+# waliło się co trzydzieści sekund na „data source not found". Dashboardy tego
+# nie zauważyły, bo mają starą, nazwową ścieżkę zgodności; reguły alertowe
+# takiej nie mają.
+#
+# `deleteDatasources` wykonuje się PRZED wstawieniem, więc źródło powstaje od
+# nowa z uid-em z tego pliku. Kosztuje to odtworzenie rekordu przy każdym
+# starcie Grafany — rekord jest w całości deklarowany tutaj, więc nie ma czego
+# stracić.
+deleteDatasources:
+  - name: Prometheus
+    orgId: 1
+
 datasources:
   - name: Prometheus
     type: prometheus
-    # X-28 — UID wpisany wprost, bo odwołują się do niego dwie rzeczy naraz:
-    # dashboardy (JSON-y mają "uid": "Prometheus") i reguły alertowe
-    # (provisioning/alerting/rules.yaml). Bez tego Grafana nadaje UID losowo,
-    # a odwołanie do nieistniejącego źródła nie rzuca błędem — panel po prostu
-    # jest pusty, a reguła nie ma czego policzyć.
     uid: Prometheus
     access: proxy
     orgId: 1
