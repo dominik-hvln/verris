@@ -62,9 +62,12 @@ OFFSITE_MC_BUCKET=verris-backups
 
 Cron np. 30 min po backupie DB.
 
-## 4. Alerty Prometheus + Grafana
+## 4. Alerty (Grafana)
 
-Reguły: `ops/observability/prometheus/alerts.yml`. Contact point w Grafana — Slack/email.
+Reguły: `ops/observability/grafana/provisioning/alerting/rules.yaml` — od X-28;
+wcześniej stały w `ops/observability/prometheus/alerts.yml`, skąd nie miały jak
+wyjść, bo nigdzie nie było Alertmanagera. Punkt kontaktowy i polityka leżą obok,
+w tym samym katalogu. Szczegóły: `docs/ops/GRAFANA_ALERTING.md`.
 
 ## 5. `.env.prod` — checklist
 

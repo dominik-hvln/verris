@@ -3,8 +3,24 @@
 > **Start LIVE:** e-mail **dominik@hvln.pl**  
 > **Slack:** przygotowane poniżej, włączyć gdy będzie kanał (decyzja D-5).
 
-Reguły Prometheus: `ops/observability/prometheus/alerts.yml`  
+Reguły alertowe: `ops/observability/grafana/provisioning/alerting/rules.yaml`  
 Dashboardy: folder `Verris` w Grafana.
+
+> **Zmiana z 2026-08-22 (X-28).** Reguły stały wcześniej w
+> `ops/observability/prometheus/alerts.yml`. Prometheus je liczył i pokazywał
+> u siebie — i na tym się kończyło: nigdzie w repozytorium nie było
+> Alertmanagera, a `prometheus.yml` nie miał sekcji `alerting:`. Trzynaście
+> reguł, pięć z `severity: critical`, nie miało DOKĄD trafić. Kopia bazy nie
+> wykonała się ani razu przez miesiąc; `VerrisPostgresBackupStale` zapaliło się
+> poprawnie i nie dotarło do nikogo.
+>
+> Ten dokument był częścią problemu: w §1 kazał „ręcznie odzwierciedlić progi
+> z pliku YAML" i nikt tego nie zrobił. Instrukcja ręcznego przepisania progów
+> jest opisem długu, nie procedurą — dlatego zniknęła.
+>
+> Reguły są teraz provisionowane z repo razem z punktem kontaktowym i polityką.
+> Jeden dom, nie dwa: `alerts.yml` został usunięty, `rule_files` wycięte
+> z `prometheus.yml`. Pilnuje tego `apps/api/src/test/routing-alertow.spec.ts`.
 
 ---
 
@@ -40,10 +56,16 @@ Ręcznie (jeśli provisioning nie załadował się):
    - Group by: `alertname`, `severity`
    - Repeat interval: 4h (dostosuj)
 
-### Reguły do podpięcia (min. zestaw LIVE)
+### Reguły — nie podpina się ich ręcznie
 
-| Alert (z `alerts.yml`) | Priorytet |
-|------------------------|-----------|
+Wszystkie trzynaście reguł ładuje się z repo przy starcie Grafany:
+`ops/observability/grafana/provisioning/alerting/rules.yaml`. Nic nie trzeba
+klikać ani przepisywać. Zmiana progu = zmiana w tym pliku + deploy.
+
+Priorytety operacyjne (do dyżuru, nie do konfiguracji):
+
+| Alert | Priorytet |
+|-------|-----------|
 | `VerrisPostgresBackupStale` | P0 |
 | `VerrisOpenMajorIncident` | P0 |
 | `VerrisStaleComputeHeartbeat` | P0 |
@@ -51,7 +73,17 @@ Ręcznie (jeśli provisioning nie załadował się):
 | `VerrisStatusWebhookFailed` | P1 |
 | `VerrisMigrationJobsFailed` | P1 |
 
-W Grafana: **Alerting → Alert rules → Import** lub ręcznie odzwierciedlić progi z pliku YAML (Unified Alerting).
+**Jedna reguła zachowuje się inaczej od pozostałych.**
+`VerrisPostgresBackupStale` ma `noDataState: Alerting`. Reszta ma `OK`, bo
+prometheusowe wyrażenie z porównaniem zwraca pusty wynik, gdy jest dobrze —
+brak serii znaczy tam „warunek niespełniony". Dla kopii bazy „metryka
+zniknęła" i „kopia jest świeża" wyglądałyby identycznie, a to jest dokładnie
+ten przypadek, który kosztował nas miesiąc bez kopii. `for: 30m` sprawia, że
+zwykły restart API nie zapali alarmu.
+
+**Ręczne dopisywanie reguł w UI Grafany nie ma sensu** — provisioning nadpisuje
+je przy każdym starcie. Reguła dopisana w UI zniknie po pierwszym deployu i
+nikt nie zauważy, kiedy przestała działać.
 
 ---
 
@@ -72,7 +104,12 @@ Do czasu włączenia Slacka wszystkie alerty → tylko e-mail.
 
 ## 3. Po konfiguracji
 
-- [ ] Test alertu (np. ręcznie obniżyć próg backupu na staging lub `amtool` silence test)
+- [ ] **Dowód D3, którego wciąż nie ma:** jeden alert faktycznie zapalony na
+      produkcji i jeden mail w skrzynce, z datą. Provisioning i testy dowodzą,
+      że droga jest ZDEFINIOWANA — nie że list dochodzi. Najtaniej sprawdzić to
+      na `VerrisSecurityWatchStale`: zatrzymać timer na 20 minut i obejrzeć
+      skrzynkę. Dopóki tego nie ma, „alerty działają" jest założeniem.
+- [ ] Test alertu (np. ręcznie obniżyć próg backupu na staging)
 - [ ] Wpis w [`HOSTING_LAUNCH_TASKS.md`](../HOSTING_LAUNCH_TASKS.md): OPS-3 → ✅
 - [ ] `PROD_HEALTH_CHECKLIST.md` §9 — „Email alert channel skonfigurowany” → ✅
 
