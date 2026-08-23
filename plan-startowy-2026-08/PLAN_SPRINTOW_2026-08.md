@@ -1,6 +1,6 @@
 # Plan sprintów do startu — Verris
 
-**Wygenerowany:** 2026-08-22 z `audyt/dane/` · **nie edytuj ręcznie**  
+**Wygenerowany:** 2026-08-23 z `audyt/dane/` · **nie edytuj ręcznie**  
 **Podstawa:** audyt parytetu funkcji z 2026-08-20  
 **Pojemność:** 1 osoba, pełny etat, **30 h netto na sprint** · sprint = 1 tydzień  
 **Sprint 1:** 2026-08-24 · **Sprint 20:** 2027-01-04–2027-01-08
@@ -9,9 +9,9 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **2954 h** — przy 30 h tygodniowo około **23 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **2960 h** — przy 30 h tygodniowo około **23 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **20 sprintów do startu** (684 h) oraz roadmapę po starcie (2270 h, 145 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **20 sprintów do startu** (690 h) oraz roadmapę po starcie (2270 h, 145 pozycji) rozpisaną na epiki kwartalne.
 
 - **2026-10-23** — koniec sprintu 9, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-01-08** — koniec sprintu 20, decyzja GO.
@@ -32,7 +32,7 @@ Dlatego praca dzieli się na dwie części: **20 sprintów do startu** (684 h) o
 
 # Faza 0 — Zatrzymać krwawienie
 
-*Sprinty 1–3 · 204 h · 2026-08-24 – 2026-09-11*
+*Sprinty 1–3 · 226 h · 2026-08-24 – 2026-09-11*
 
 Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziurą, przez którą wyciekają pieniądze, albo drogą do przejęcia węzła przez klienta. Nic innego nie ma sensu przed nimi.
 
@@ -73,7 +73,7 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 
 ## Sprint 2 — Zamknąć luki bezpieczeństwa z passu adwersaryjnego
 
-`2026-08-31 – 2026-09-04` · **92 h** z 30 h pojemności
+`2026-08-31 – 2026-09-04` · **114 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -89,6 +89,8 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 | `X-27` | Obraz, który trafia na serwer, buduje się przed scaleniem | 6 | — | Dockerfile.api / Dockerfile.panel — ponowna instalacja PO `COPY libs libs`; package.json — pnpm.overrides @prisma/client 6.19.3 (drzewo znów ma jedną  |
 | `H-24` | Nazwa obiektu kopii i drill odtworzeniowy mają po jednym miejscu | 6 | — | ops/lib/backup-crypto.sh — backup_crypto_latest_object(), jedno źródło nazwy obiektu; ops/scripts/restore-drill-isolated.sh — nazwa z biblioteki + wer |
 | `X-28` | Reguła alertowa ma odbiorcę, a nie tylko próg | 6 | — | ops/observability/grafana/provisioning/alerting/rules.yaml — 13 reguł, 2 grupy, provisionowane z repo; ops/observability/prometheus.yml — bez rule_fil |
+| `X-29` | Wdrożenie dowozi konfigurację obserwowalności na serwer | 6 | — | ops/scripts/prod-deploy-ghcr.sh — krok 4.5: OBS_SERVICES, promtool check config przed restartem, compose up -d + compose restart, sprawdzenie /api/hea |
+| `H-20` | Test odtworzeniowy z datą ostatniego wykonania | 16 | BLOKER STARTU | DOWÓD D4 — wiersz w bazie PRODUKCYJNEJ, odczytany 2026-08-23: finishedAt=2026-08-22 23:19:45, result=OK, owner=Dominik Kowalski, durationSec=9, object |
 
 **Definicja ukończenia**
 
@@ -104,9 +106,11 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 - `X-27` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `H-24` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-28` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `X-29` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `H-20` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-02.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** Z-03 dotyka skryptów na węźle — zmiana wymaga przetestowania całej ścieżki migracji, nie tylko walidacji DTO. Sprint urósł o dziewięć pozycji odkrytych w trakcie: podatności, strażniki, bramki wdrożeniowe i awaria kopii bazy (H-23/H-24). Przeciążenie jest prawdziwe i celowo widoczne — praca została wykonana, plan jej nie przewidywał. X-28 doszło jako odpowiedź na pytanie, które zostawiło H-23: dlaczego alarm o braku kopii nie dotarł do nikogo. Odpowiedź — nie miał dokąd; w repo nie było Alertmanagera, a Grafana miała odbiorcę i zero reguł.
+**Ryzyko sprintu.** Z-03 dotyka skryptów na węźle — zmiana wymaga przetestowania całej ścieżki migracji, nie tylko walidacji DTO. Sprint urósł o dziesięć pozycji odkrytych w trakcie: podatności, strażniki, bramki wdrożeniowe i awaria kopii bazy (H-23/H-24). Przeciążenie jest prawdziwe i celowo widoczne — praca została wykonana, plan jej nie przewidywał. X-28 doszło jako odpowiedź na pytanie, które zostawiło H-23: dlaczego alarm o braku kopii nie dotarł do nikogo. Odpowiedź — nie miał dokąd; w repo nie było Alertmanagera, a Grafana miała odbiorcę i zero reguł. X-29 wyszło godzinę po X-28 i z tego samego pytania: skoro reguły są w repo, to czy wdrożenie w ogóle je dowozi? Nie dowoziło — wdrożenie restartowało tylko aplikacje, a Prometheus i Grafana czytają konfigurację wyłącznie przy starcie. H-20 wykonane tu, a nie w sprincie 9: awaria kopii z H-23 wymusiła odtworzenie bazy tu i teraz, więc dowód D4 powstał jedenaście sprintów przed terminem.
 
 ## Sprint 3 — Pojemność węzła i plan produkcyjny
 
@@ -226,26 +230,24 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 
 # Faza 2 — Odzyskanie funkcji-widm i luki pierwszego tygodnia
 
-*Sprinty 9–14 · 168 h · 2026-10-19 – 2026-11-27*
+*Sprinty 9–14 · 152 h · 2026-10-19 – 2026-11-27*
 
 Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. Najlepszy stosunek wartości do pracy w całym backlogu.
 
-## Sprint 9 — Dowód odtworzenia kopii i domknięcie DPA
+## Sprint 9 — Domknięcie DPA
 
-`2026-10-19 – 2026-10-23` · **24 h** z 30 h pojemności
+`2026-10-19 – 2026-10-23` · **8 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `H-20` | Test odtworzeniowy z datą ostatniego wykonania | 16 | BLOKER STARTU | admin-readiness/proba-odtworzenia.ts — ocenProby/brakujaceWiersze/MINIMALNE_WIERSZE; live-readiness.service.ts — pozycja restore_drill z blocking: tru |
 | `P-15` | Podpisane DPA z subprocesorami (część) | 8 | BLOKER STARTU | docs/legal/dpa-subprocessors-tracking.md — wszystkie pozycje w statusie „do podpisania” lub „do akceptacji”, kolumna Data pusta |
 
 **Definicja ukończenia**
 
-- `H-20` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `P-15` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-09.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** Kamień milowy: po tym sprincie zamknięte są wszystkie blokery poza KSeF-em, który świadomie stoi na końcu. Drill może wykazać, że odtworzenie nie działa — wtedy sprint się przedłuża i tak ma być.
+**Ryzyko sprintu.** H-20 wypadło z tego sprintu 2026-08-23 — dowód odtworzenia z kopii powstał w sprincie 2, bo awaria kopii (H-23) wymusiła odtworzenie bazy natychmiast. Zostaje P-15, którego tempo zależy od dostawców, nie od nas. Kamień milowy się nie zmienia: po tym sprincie zamknięte są wszystkie blokery poza KSeF-em, który świadomie stoi na końcu.
 
 ## Sprint 10 — Odzyskanie funkcji-widm: bazy danych
 

@@ -1,43 +1,88 @@
-# `H-20` — Próba odtworzenia z kopii: mechanizm gotowy, dowód wymaga jednego uruchomienia
+# `H-20` — Próba odtworzenia z kopii
 
 | | |
 |---|---|
-| **Sprint** | 7 — Dowód odtworzenia |
-| **Priorytet** | BLOKER STARTU (**nadal otwarty**) |
+| **Sprint** | 2 (planowana na 9 — wykonana wcześniej, bo `H-23` wymusiło) |
+| **Priorytet** | BLOKER STARTU — **zdjęty** |
 | **Nakład** | M (~16 h) |
-| **Zależy od** | — |
-| **Status** | mechanizm zamknięty (D2), pozycja czeka na **jedno uruchomienie** na produkcji |
-| **Data** | 2026-08-22 |
+| **Zależy od** | `H-23`, `H-24` |
+| **Status** | **zamknięte** |
+| **Data** | 2026-08-23 |
 
 ---
 
-## Dlaczego ta pozycja NIE jest zamknięta
+## Dowód (D4)
 
-Zrobiłem wszystko poza jedną rzeczą, której nie mogę zrobić za kogoś: **nikt nadal nie odtworzył
-bazy z kopii**.
+Odczytany z bazy **produkcyjnej** 2026-08-23:
 
-Reguła audytu jest jednoznaczna — backupy i DR wymagają poziomu **D4: data, wynik, właściciel**.
-Mechanizm zapisujący datę, wynik i właściciela jest gotowy i przetestowany, ale zapis powstaje
-dopiero wtedy, gdy ktoś uruchomi drill. Do tego czasu tabela jest pusta, a pusta tabela znaczy
-dokładnie to, co znaczyła przed tą zmianą: **nie wiemy, czy potrafimy odtworzyć bazę.**
+```
+     finishedAt      | result |      owner       | durationSec |    objectName
+---------------------+--------+------------------+-------------+-------------------
+ 2026-08-22 23:19:45 | OK     | Dominik Kowalski |           9 | latest.sql.gz.age
+ 2026-08-22 19:57:36 | FAILED | Dominik Kowalski |           1 | latest.sql.gz
+```
 
-Oznaczenie tej pozycji jako `DZIAŁA` byłoby rozumowaniem, które ten projekt zakazał pod nazwą
-„warunkowe GO": mamy narzędzie, więc uznajmy, że mamy wynik.
+Przebieg udanej próby: `stat` obiektu `latest.sql.gz.age` (4,3 MiB, zapisany 2026-08-22 21:24:12),
+suma kontrolna zgodna, deszyfrowanie kluczem operacyjnym, odtworzenie do izolowanej bazy
+`verris_restore_drill`, progi wierszy na pięciu tabelach — `Invoice` 0 (min 0), `Plan` 5 (min 1),
+`Account` 3 (min 0), `User` 10 (min 1), `Subscription` 7 (min 0) — baza drillowa skasowana,
+produkcyjna `verris_db` nietknięta.
 
-**Co się realnie zmieniło:** blokada przestała być notatką w runbooku, a stała się bramką
-w kodzie. Wcześniej można było wystartować sprzedaż bez drilla i nikt by nie zauważył. Teraz
-gotowość do startu zwraca `go: false`, dopóki próby nie ma.
+**Pierwsze w historii projektu odtworzenie bazy z kopii.**
 
-## Jak zamknąć
+### Dziewięć sekund to realne RTO
+
+Dolne oszacowanie, bo drill biegnie na tym samym hoście. To jest liczba, którą trzeba znać
+**przed** awarią, nie w jej trakcie.
+
+### Dwa wiersze, nie jeden — i to jest część dowodu
+
+Pierwsza próba (19:57, `FAILED`, 1 s, `latest.sql.gz`) padła, bo skrypt pytał o obiekt, którego
+produkcja **nigdy** nie tworzy. Naprawione w `H-24`; druga próba przeszła.
+
+Mechanizm **zapisał własną porażkę zamiast ją przemilczeć** — dokładnie po to powstał wymóg, żeby
+ślad powstawał również przy niepowodzeniu, razem z pułapką na przerwanie w połowie. Ocena patrzy
+na **ostatnią** próbę, nie na ostatnią udaną: gdyby patrzyła tylko na udane, ta awaria byłaby
+niewidoczna, a raport pokazywałby zieleń sprzed dwóch tygodni.
+
+### Dowód odczytany z bazy, nie z komunikatu skryptu
+
+Skrypt drukuje `ślad próby zapisany: wynik=OK`. To jest zdanie o zamiarze, nie o wyniku. Cała ta
+pozycja — i cała awaria kopii z `H-23` — wzięły się z ufania takim zdaniom.
+
+### Dowód się starzeje
+
+Termin ważności to **30 dni** (`MAKS_WIEK_PROBY_DNI`), czyli **2026-09-21**. Po tej dacie gotowość
+do startu znów zwraca `go: false`; przypomnienie idzie mailem siedem dni wcześniej. Odtworzenie
+sprzed schematu, którego już nie ma, nie dowodzi niczego o dzisiejszej kopii.
+
+---
+
+## Co się realnie zmieniło w kodzie (2026-08-22)
+
+Blokada przestała być notatką w runbooku, a stała się bramką w kodzie. Wcześniej można było
+wystartować sprzedaż bez drilla i nikt by nie zauważył. Teraz gotowość do startu zwraca
+`go: false`, dopóki aktualnej próby nie ma.
+
+Przez dobę ta pozycja stała otwarta mimo gotowego mechanizmu, bo **narzędzie to nie wynik**.
+Oznaczenie jej jako `DZIAŁA` przed uruchomieniem drilla byłoby rozumowaniem, które ten projekt
+zakazał pod nazwą „warunkowe GO": mamy narzędzie, więc uznajmy, że mamy wynik.
+
+## Jak powtórzyć
 
 Na control-plane, jedno polecenie:
 
 ```bash
-cd /opt/verris && ./ops/scripts/restore-drill-isolated.sh --owner "Dominik Kowalski"
+cd /opt/verris && ./ops/scripts/restore-drill-isolated.sh --owner "Imię Nazwisko"
 ```
 
-Skrypt sam zapisze wynik. Pozycja domknie się, gdy w panelu admina, w gotowości do startu,
-`Próba odtworzenia z kopii (D4)` zaświeci na zielono.
+Odczyt śladu (dowód, nie komunikat skryptu):
+
+```bash
+docker compose -f docker-compose.ghcr.yml exec -T postgres \
+  psql -U verris -d verris_db -c \
+  'SELECT "finishedAt", result, owner, "durationSec", "objectName" FROM "RestoreDrill" ORDER BY "finishedAt" DESC LIMIT 3;'
+```
 
 ---
 
@@ -185,11 +230,15 @@ nie mówi nic o żadnej z nich.
 - `ops/scripts/restore-drill-isolated.sh` — asercje i zapis śladu
 - `ops/docs/OFFSITE_RESTORE_RUNBOOK.md` — procedura z właścicielem i cyklem
 - 20 testów jednostkowych + 8 integracyjnych
+- **wiersz `RestoreDrill` w bazie produkcyjnej** — 2026-08-22 23:19:45, `OK`, Dominik Kowalski,
+  9 s, `latest.sql.gz.age`; odczytany 2026-08-23
 
 **Osiągnięty poziom dowodu:**
-- [x] D1 · [x] D2 · [ ] D3 · [ ] D4
+- [x] D1 · [x] D2 · [x] D3 · [x] D4
 
-**D2 dla mechanizmu, D4 dla pozycji — i D4 jeszcze nie ma.** To jest różnica, o którą chodzi
-w tej pozycji, i dlatego zostaje otwarta.
+**D2 dla mechanizmu, D4 dla pozycji.** Data, wynik i właściciel są zapisane; procedura jest
+powtarzalna, ma właściciela i cykl trzydziestu dni wymuszany bramką, a nie regulaminem.
 
-**Stan w macierzy po:** `CZĘŚCIOWE` / `CZĘŚCIOWY`, nadal `BLOKER STARTU`
+**Ważność dowodu: do 2026-09-21.** Potem pozycja wraca na listę blokerów sama z siebie i tak ma być.
+
+**Stan w macierzy po:** `DZIAŁA` / `PARYTET`, `BLOKER STARTU` zdjęty

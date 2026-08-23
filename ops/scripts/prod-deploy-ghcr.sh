@@ -152,6 +152,74 @@ if [ "$OK" = "1" ]; then
   echo "[deploy] OK — wersja ${IMAGE_TAG} zdrowa."
   echo "$IMAGE_TAG" > "$LAST_GOOD_FILE"
   [ "${DEPLOY_PRUNE_BUILD_CACHE:-1}" != "0" ] && docker image prune -f >/dev/null 2>&1 || true
+
+  # 4.5) X-29 — obserwowalność dostaje nową konfigurację.
+  #
+  #      Do 2026-08-23 wdrożenie robiło `checkout` repozytorium do SHA (więc nowe
+  #      pliki lądowały na dysku) i restartowało wyłącznie APP_SERVICES.
+  #      Prometheusa i Grafany na tej liście nie było, a oba czytają
+  #      konfigurację TYLKO przy starcie kontenera i oba mają ją podmontowaną
+  #      z repozytorium. Efekt: zielone CI, zielony deploy, plik na serwerze —
+  #      i zero zmiany w działającym systemie. Wykryte przy X-28, przy poprawce,
+  #      która PRZENOSI reguły alertowe do Grafany; bez tego kroku nowy
+  #      rules.yaml leżałby na dysku, a Grafana dalej działałaby z niczym.
+  #
+  #      Dwa polecenia, nie jedno. `up -d` odtwarza kontener, gdy zmieniła się
+  #      DEFINICJA usługi (X-28 usunęło montowanie alerts.yml). `restart`
+  #      wymusza ponowne wczytanie, gdy zmieniła się tylko TREŚĆ podmontowanego
+  #      pliku — tego compose nie widzi i sam z siebie nic nie zrobi.
+  #
+  #      Bezwarunkowo, nie „gdy się zmieniło": porównanie z poprzednim SHA
+  #      wymagałoby obu wersji w repozytorium na serwerze, a `fetch` jest tam
+  #      płytki. Nieudane porównanie skończyłoby się cichym „brak zmian → nie
+  #      restartuj", czyli dokładnie tym błędem, który ten krok naprawia.
+  #
+  #      PO zapisaniu ostatniego dobrego tagu i PO bramce zdrowia: wydanie
+  #      aplikacji jest w tym momencie udane i ma takie zostać. Awaria Grafany
+  #      ma dać głośny błąd, a nie wycofać sprawną aplikację.
+  OBS_SERVICES="prometheus grafana"
+
+  # Restart na zepsutej konfiguracji zdejmuje monitoring, a zauważyć to miał
+  # właśnie monitoring. Dlatego najpierw sprawdzenie, potem restart.
+  #
+  # `run --rm --no-deps`, a nie `exec`: sprawdzamy PLIK Z REPOZYTORIUM w świeżym
+  # kontenerze z tą samą definicją usługi. `exec` wymagałby, żeby Prometheus już
+  # działał — a wtedy sprawdzenie padałoby akurat wtedy, gdy monitoring leży,
+  # czyli w jedynym momencie, w którym naprawdę zależy nam na restarcie.
+  echo "[deploy] promtool check config…"
+  if ! compose run --rm --no-deps --entrypoint promtool prometheus \
+         check config /etc/prometheus/prometheus.yml; then
+    echo "[deploy] FAIL: ops/observability/prometheus.yml jest niepoprawny — NIE restartuję monitoringu."
+    echo "[deploy] Aplikacja ${IMAGE_TAG} jest wdrożona i zdrowa; monitoring działa na STAREJ konfiguracji."
+    exit 1
+  fi
+
+  echo "[deploy] restart obserwowalności (${OBS_SERVICES})…"
+  compose up -d --no-build ${OBS_SERVICES}
+  compose restart ${OBS_SERVICES}
+
+  # „Wydałem polecenie restartu" to nie to samo co „wróciły". Grafana ma własny
+  # /api/health; Prometheusa pytamy Z KONTENERA Grafany, bo obraz Prometheusa
+  # nie ma czym wykonać zapytania HTTP, a obie usługi są w tej samej sieci.
+  OBS_OK=0
+  for i in $(seq 1 20); do
+    if compose exec -T grafana sh -c \
+         'wget -qO- http://127.0.0.1:3000/api/health >/dev/null 2>&1 &&
+          wget -qO- http://prometheus:9090/-/healthy >/dev/null 2>&1'; then
+      OBS_OK=1; break
+    fi
+    sleep 3
+  done
+
+  if [ "$OBS_OK" != "1" ]; then
+    echo "[deploy] FAIL: po restarcie Prometheus i/lub Grafana nie odpowiadają."
+    echo "[deploy] Aplikacja ${IMAGE_TAG} jest wdrożona i zdrowa — problem dotyczy WYŁĄCZNIE monitoringu."
+    echo "[deploy] Sprawdź: docker compose logs --tail=100 prometheus grafana"
+    compose ps
+    exit 1
+  fi
+  echo "[deploy] obserwowalność OK — nowa konfiguracja wczytana."
+
   compose ps
   exit 0
 fi
