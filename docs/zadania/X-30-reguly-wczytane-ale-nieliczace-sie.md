@@ -6,7 +6,7 @@
 | **Priorytet** | WYSOKI |
 | **Nakład** | S (~2 h) |
 | **Zależy od** | `X-28`, `X-29` |
-| **Status** | zamknięte w kodzie, **D3 do potwierdzenia na produkcji** |
+| **Status** | **zamknięte** |
 | **Data** | 2026-08-23 |
 
 ---
@@ -119,16 +119,39 @@ mechanizmem, o którego awarii ma meldować.
 `routing-alertow.spec.ts` zostaje bez zmian. Sprawdzanie zgodności plików jest **potrzebne** —
 okazało się tylko **niewystarczające**.
 
-## Czego to nie dowodzi
+## Dowód D3 — z logu produkcyjnej Grafany
 
-Że po najbliższym wdrożeniu reguły faktycznie się liczą. Dowodzi, że wdrożenie **to sprawdzi
-i przerwie, jeśli się nie liczą**. Potwierdzenie jest poziomu **D3** i wygląda tak: deploy
-zielony **i** w logu Grafany nie ma `Failed to build rule evaluator`.
+Wdrożenie **#68** (`2788011`) przeszło przez krok 4.6 i trwało 9m54s — o te 75 sekund dłużej.
+Krok przechodzi tylko wtedy, gdy Grafana ma reguły **i** licznik nieudanych ewaluacji nie urósł.
 
-Że mail dochodzi — nadal osobna sprawa. Przy okazji tej awarii pojawiła się okazja do jej
-zamknięcia: `execErrState: Alerting` sprawił, że błąd ewaluacji zapalił `VerrisRuntimeErrorsHigh`
-i Grafana zalogowała `Sending alerts to local notifier count=1`. Jeśli ten list doszedł, droga
-do skrzynki jest potwierdzona — z niewłaściwego powodu, ale potwierdzona.
+```
+11:01:46 provisioning.datasources  msg="deleted datasource based on configuration" name=Prometheus
+11:01:46 provisioning.datasources  msg="inserting datasource from configuration" name=Prometheus uid=Prometheus
+```
+
+Wszystkie wpisy `Failed to build rule evaluator` mają znacznik **10:58–11:01:39**, czyli sprzed
+restartu. Po 11:01:46 nie ma **ani jednego**.
+
+Wpisy `Detected stale state entry ... reason=Error` o 11:02–11:03 to Grafana sprzątająca stare
+wpisy w stanie „Alerting z powodu błędu" — stąd wiadomości `[RESOLVED]`.
+
+### Potwierdzenie uboczne, mocniejsze od samego logu
+
+`VerrisProvisioningQueueFailed` **nie ucichła** po naprawie: wysyła alarm co minutę od 11:12.
+Reguła ma `for: 10m`, restart był 11:01:46 → pierwsze zapalenie o 11:12 zgadza się co do sekundy.
+
+Warunek `verris_provisioning_queue_depth{state="failed"} > 0` jest więc **prawdziwie spełniony**.
+Alerting zaczął działać i w ciągu dziesięciu minut znalazł na produkcji coś realnego.
+
+**Reguła, która zapala się z właściwego powodu, dowodzi więcej niż cisza.** Sama awaria jobów
+prowizjonowania to osobna pozycja — nie ta.
+
+### Ta awaria zamknęła przy okazji inny otwarty punkt
+
+`execErrState: Alerting` sprawił, że błąd ewaluacji zapalił alarmy — i **dziesięć maili dotarło**
+na `dominik@hvln.pl` z tematami `[FIRING:1] <alertname> <severity> (Verris)`. Droga do skrzynki
+była w audycie niepotwierdzona od początku projektu; potwierdziła się sama, z niewłaściwego
+powodu. Szczegóły przy `X-31` i w `docs/ops/GRAFANA_ALERTING.md` §3.
 
 ## Wpływ na inne pozycje
 
@@ -145,7 +168,6 @@ do skrzynki jest potwierdzona — z niewłaściwego powodu, ale potwierdzona.
 - `apps/api/src/test/reguly-alertowe-licza-sie.spec.ts` — 11 asercji, 7 czerwonych na starym kodzie
 
 **Osiągnięty poziom dowodu:**
-- [x] D1 · [x] D2 · [ ] D3 · [ ] D4
+- [x] D1 · [x] D2 · [x] D3 · [ ] D4
 
-**Stan w macierzy po:** `CZĘŚCIOWE` / `CZĘŚCIOWY` — do czasu zielonego wdrożenia z czystym logiem
-Grafany. Wpisanie `DZIAŁA` teraz byłoby powtórzeniem błędu, który ta pozycja opisuje.
+**Stan w macierzy po:** `DZIAŁA` / `PARYTET`
