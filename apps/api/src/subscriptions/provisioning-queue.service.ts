@@ -299,6 +299,67 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
+   * X-32 — odrzucenie martwego joba.
+   *
+   * Alarm `VerrisProvisioningQueueFailed` mówi „posprzątaj kolejkę", a do
+   * 2026-08-23 nie było czym: panel miał wyłącznie „Retry", a retry przy
+   * nieosiągalnym węźle tylko podbija licznik prób. Zostawało grzebanie
+   * w Redisie ręcznie — czyli zmiana stanu produkcyjnego BEZ ŚLADU.
+   *
+   * TYLKO STAN `failed`. Usunięcie joba aktywnego albo czekającego osierociłoby
+   * provisioning w trakcie: konto na węźle mogłoby powstać, a system przestałby
+   * o nim wiedzieć. Ta jedna linia jest tu najważniejsza.
+   *
+   * NAJPIERW ODCZYT, POTEM USUNIĘCIE. Po `job.remove()` nie ma już czego
+   * zapisać, a wpis w audycie bez `failedReason` byłby wart tyle co nic —
+   * zwłaszcza teraz, gdy po `Z-18` ten błąd niesie prawdziwą przyczynę.
+   *
+   * SUBSKRYPCJI NIE RUSZAMY. Odrzucenie sprząta kolejkę i tyle. Los zamówienia
+   * to osobna decyzja i nie chcę, żeby jeden przycisk robił obie rzeczy.
+   */
+  async odrzucJob(
+    jobId: string,
+    opts: { actorUserId?: string | null; reason: string },
+  ): Promise<{ ok: boolean; powod?: string }> {
+    if (!this.queue) throw new Error('Queue not initialized');
+    const job = await this.queue.getJob(jobId);
+    if (!job) return { ok: false, powod: 'Job nie istnieje.' };
+
+    const stan = await job.getState();
+    if (stan !== 'failed') {
+      return {
+        ok: false,
+        powod:
+          `Odrzucić można tylko joba w stanie "failed" — ten jest w stanie "${stan}". ` +
+          'Usunięcie joba w trakcie osierociłoby provisioning na węźle.',
+      };
+    }
+
+    const slad = {
+      subscriptionId: job.data.subscriptionId,
+      jobId,
+      typ: job.data.type,
+      attemptsMade: job.attemptsMade ?? 0,
+      failedReason: job.failedReason ?? null,
+      reason: opts.reason,
+    };
+
+    await job.remove();
+
+    await this.audit.record({
+      action: ProvisioningActions.PROVISIONING_JOB_DISCARDED_BY_ADMIN,
+      userId: job.data.userId,
+      actorUserId: opts.actorUserId ?? null,
+      details: slad,
+    });
+    this.logger.warn(
+      `Provisioning job ${jobId} odrzucony przez operatora (sub=${slad.subscriptionId}, ` +
+        `prób=${slad.attemptsMade}, powód="${opts.reason}")`,
+    );
+    return { ok: true };
+  }
+
+  /**
    * Sprint 5 — counters dla `MetricsService`. BullMQ trzyma counts w Redis,
    * ale dorzucamy też nasze własne counter-y które dorobimy do /metrics.
    */
