@@ -104,13 +104,70 @@ Do czasu włączenia Slacka wszystkie alerty → tylko e-mail.
 
 ## 3. Po konfiguracji
 
-- [ ] **Dowód D3, którego wciąż nie ma:** jeden alert faktycznie zapalony na
-      produkcji i jeden mail w skrzynce, z datą. Provisioning i testy dowodzą,
-      że droga jest ZDEFINIOWANA — nie że list dochodzi. Najtaniej sprawdzić to
-      na `VerrisSecurityWatchStale`: zatrzymać timer na 20 minut i obejrzeć
-      skrzynkę. Dopóki tego nie ma, „alerty działają" jest założeniem.
-- [ ] Test alertu (np. ręcznie obniżyć próg backupu na staging)
+- [x] **Dowód D3 — droga do skrzynki potwierdzona 2026-08-23.** Dziesięć maili
+      dotarło na `dominik@hvln.pl`, z tematami w formacie
+      `[FIRING:1] <alertname> <severity> (Verris)`.
+
+- [ ] Test alertu na progu (np. ręcznie obniżyć próg backupu na staging) —
+      wciąż nie zrobiony; poniższy dowód powstał inaczej.
 - [ ] Wpis w [`HOSTING_LAUNCH_TASKS.md`](../HOSTING_LAUNCH_TASKS.md): OPS-3 → ✅
 - [ ] `PROD_HEALTH_CHECKLIST.md` §9 — „Email alert channel skonfigurowany” → ✅
+
+### Jak powstał ten dowód (i dlaczego jest mocniejszy, niż planowaliśmy)
+
+Nie z testu. Z awarii `X-30`: reguły miały `execErrState: Alerting`, źródło
+danych się nie rozwiązywało, więc **błąd ewaluacji zapalił alarmy**. Grafana
+zgrupowała je po `alertname` + `severity` i wysłała.
+
+Ten przypadek potwierdził przy okazji trzy rzeczy, których planowany test
+jednego alertu **nie** potwierdziłby:
+
+1. **Droga do skrzynki działa** na całej długości: Grafana → SMTP → Postfix na
+   panelu → mail.hvln.pl → skrzynka.
+2. **Migracja reguł z Prometheusa nie pogubiła nazw ani wag.** Tematy pokazały
+   `critical` przy `VerrisRuntimeErrorsHigh`, `VerrisOpenMajorIncident`,
+   `VerrisSecurityWatchFindings`, `VerrisProvisioningQueueFailed` i `warning`
+   przy pozostałych — dokładnie tak, jak w usuniętym `alerts.yml`.
+3. **Progi `for:` przetrwały migrację.** Zapaliło się dziesięć reguł z trzynastu.
+   Nie zapaliły się dokładnie te trzy z najdłuższym `for:` —
+   `VerrisPostgresBackupStale` (30 m), `VerrisStatusWebhookFailed` (30 m)
+   i `VerrisSecurityWatchStale` (20 m) — bo od restartu nie minęło jeszcze tyle
+   czasu. Trudno o czystszy dowód, że czasy przepisały się poprawnie.
+
+Skrypt przepisujący (`migracja-regul-do-grafany.py`) mógł te wartości po cichu
+przekręcić i żaden test w CI by tego nie zobaczył. Zobaczyła to skrzynka.
+
+### Po naprawie te maile ucichną — i to nie znaczy, że kanał umarł
+
+`X-30` naprawia źródło danych, więc reguły przestaną się mylić i przyjdą
+wiadomości `[RESOLVED]`. Cisza po nich będzie znaczyła „nic się nie pali", a nie
+„alerty przestały działać" — ale **z zewnątrz te dwa stany wyglądają identycznie**.
+To ta sama cisza, która przez miesiąc znaczyła „kopia bazy jest w porządku".
+
+Rozróżnia je alarm typu *dead man's switch* — i od `X-31` taki jest.
+
+## 4. `VerrisKanalAlertowZyje` — znak życia kanału
+
+Reguła `vector(1)`, więc pali się **zawsze**. Osobna gałąź polityki
+(`kanal: heartbeat`) z `repeat_interval: 24h`, więc to **jeden mail na dobę**,
+nie sześć jak na polityce domyślnej.
+
+**Ten mail ma przychodzić.** Jego brak nie znaczy „jest spokojnie" — znaczy, że
+droga od Grafany do skrzynki gdzieś się urwała i **żaden prawdziwy alarm też nie
+dojdzie**. Wtedy sprawdź po kolei: kontener `grafana`, Postfix na panelu
+(`/var/log/mail.log`), filtry i spam na `hvln.pl`.
+
+Temat: `[FIRING:1] VerrisKanalAlertowZyje info (Verris)`.
+
+**Haczyk, który trzeba nazwać.** Mail, którego się nie czyta, wraca do punktu
+wyjścia. Jeśli po tygodniu przestaniesz go zauważać, ta reguła przestaje
+cokolwiek dawać — nie dlatego, że źle działa, tylko dlatego, że przestała być
+czytana. Dlatego jest jeden dziennie, a nie sześć.
+
+**Czego nie obejmuje.** Dowodzi wyłącznie, że droga Grafana → SMTP → skrzynka
+jest drożna. Nie dowodzi, że pozostałe reguły są poprawne, i nie przetrwa awarii
+całego serwera — wtedy milczy razem z resztą. Watchdog **spoza** naszej
+infrastruktury (typu healthchecks.io, pukany cronem) byłby na to odporny; nie ma
+go i to jest świadoma decyzja, nie przeoczenie.
 
 Kontakt eskalacji: dominik@hvln.pl

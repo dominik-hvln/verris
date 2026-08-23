@@ -8,3 +8,24 @@ policies:
     group_wait: 30s
     group_interval: 5m
     repeat_interval: 4h
+
+    # X-31 — znak życia kanału alertów ma własną gałąź.
+    #
+    # Reguła `VerrisKanalAlertowZyje` pali się ZAWSZE (patrz rules.yaml). Na
+    # domyślnej polityce, z `repeat_interval: 4h`, dawałaby sześć maili na dobę
+    # — a alert przychodzący sześć razy dziennie przestaje być czytany po
+    # tygodniu. Wtedy przestaje też cokolwiek dawać, bo jego BRAK jest jedyną
+    # informacją, jaką niesie.
+    #
+    # Stąd osobna gałąź: jeden mail na dobę. `group_wait: 0s`, bo nie ma na co
+    # czekać — nic się z nim nie zgrupuje.
+    #
+    # `continue` zostaje domyślnie fałszem: dopasowanie kończy wędrówkę po
+    # drzewie, więc ten alert NIE idzie dodatkowo przez politykę domyślną.
+    routes:
+      - receiver: verris-ops-email
+        object_matchers:
+          - ['kanal', '=', 'heartbeat']
+        group_wait: 0s
+        group_interval: 24h
+        repeat_interval: 24h
