@@ -113,6 +113,14 @@ export const ProvisioningActions = {
   PROVISIONING_JOB_FAILED: 'PROVISIONING_JOB_FAILED',
   PROVISIONING_JOB_COMPLETED: 'PROVISIONING_JOB_COMPLETED',
   PROVISIONING_JOB_RETRIED_BY_ADMIN: 'PROVISIONING_JOB_RETRIED_BY_ADMIN',
+  /**
+   * X-32 — martwy job usunięty z kolejki ręką operatora.
+   *
+   * Osobna akcja, a nie wariant retry: w raportach odrzucenie i ponowienie
+   * to dwie różne decyzje i nie wolno im się zlewać. Wpis niesie subskrypcję,
+   * joba, liczbę prób, ostatni błąd i POWÓD podany przez człowieka.
+   */
+  PROVISIONING_JOB_DISCARDED_BY_ADMIN: 'PROVISIONING_JOB_DISCARDED_BY_ADMIN',
 } as const;
 
 /**

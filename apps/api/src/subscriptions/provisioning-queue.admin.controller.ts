@@ -76,4 +76,36 @@ export class ProvisioningQueueAdminController {
     if (!res.ok) throw new BadRequestException(`Job ${id} nie istnieje.`);
     return res;
   }
+
+  /**
+   * X-32 — odrzucenie martwego joba.
+   *
+   * Do 2026-08-23 ten kontroler miał wyłącznie listowanie i retry. Alarm
+   * `VerrisProvisioningQueueFailed` mówił „posprzątaj kolejkę", a jedynym
+   * sposobem było grzebanie w Redisie ręcznie — czyli zmiana stanu
+   * produkcyjnego bez śladu w audycie.
+   *
+   * Powód jest wymagany tak samo jak przy retry i z tego samego powodu:
+   * operacja bez powodu to operacja, której za pół roku nikt nie wyjaśni.
+   * Ograniczenie do stanu `failed` siedzi w usłudze, nie tutaj — bo to reguła
+   * o kolejce, nie o HTTP.
+   */
+  @Post(':id/odrzuc')
+  @HttpCode(200)
+  async odrzuc(
+    @Param('id') id: string,
+    @CurrentUser() actor: { userId: string },
+    @Body() body: { reason?: string },
+  ) {
+    if (!this.queue.isAsync()) {
+      throw new BadRequestException('Brak Redisa — odrzucanie niedostępne (sync mode).');
+    }
+    const reason = body.reason?.trim();
+    if (!reason) {
+      throw new BadRequestException('Powód odrzucenia jest wymagany dla audytu.');
+    }
+    const res = await this.queue.odrzucJob(id, { actorUserId: actor.userId, reason });
+    if (!res.ok) throw new BadRequestException(res.powod ?? `Job ${id} nie istnieje.`);
+    return { ok: true };
+  }
 }

@@ -1,5 +1,6 @@
 import { listProvisioningQueue, listNodeTasks } from "./data";
 import { RetryButton } from "./retry-button";
+import { OdrzucButton } from "./odrzuc-button";
 import { NodeTasksSection } from "./node-tasks-section";
 
 export const dynamic = "force-dynamic";
@@ -168,7 +169,16 @@ export default async function ProvisioningQueuePage({
                         )}
                       </td>
                       <td className="px-4 py-3 text-right">
-                        {row.failedReason ? <RetryButton jobId={row.id} /> : null}
+                        {/* X-32 — dwie drogi dla joba, który padł: spróbować
+                            jeszcze raz albo uznać go za martwy. Do dziś była
+                            tylko pierwsza, więc kolejki nie dało się posprzątać
+                            inaczej niż ręcznie w Redisie, bez śladu w audycie. */}
+                        {row.failedReason ? (
+                          <div className="flex flex-col items-end gap-3">
+                            <RetryButton jobId={row.id} />
+                            <OdrzucButton jobId={row.id} />
+                          </div>
+                        ) : null}
                       </td>
                     </tr>
                   );

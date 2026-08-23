@@ -9,9 +9,9 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **2980 h** — przy 30 h tygodniowo około **23 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **2986 h** — przy 30 h tygodniowo około **23 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **20 sprintów do startu** (710 h) oraz roadmapę po starcie (2270 h, 145 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **20 sprintów do startu** (716 h) oraz roadmapę po starcie (2270 h, 145 pozycji) rozpisaną na epiki kwartalne.
 
 - **2026-10-23** — koniec sprintu 9, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-01-08** — koniec sprintu 20, decyzja GO.
@@ -32,7 +32,7 @@ Dlatego praca dzieli się na dwie części: **20 sprintów do startu** (710 h) o
 
 # Faza 0 — Zatrzymać krwawienie
 
-*Sprinty 1–3 · 244 h · 2026-08-24 – 2026-09-11*
+*Sprinty 1–3 · 250 h · 2026-08-24 – 2026-09-11*
 
 Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziurą, przez którą wyciekają pieniądze, albo drogą do przejęcia węzła przez klienta. Nic innego nie ma sensu przed nimi.
 
@@ -73,7 +73,7 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 
 ## Sprint 2 — Zamknąć luki bezpieczeństwa z passu adwersaryjnego
 
-`2026-08-31 – 2026-09-04` · **132 h** z 30 h pojemności
+`2026-08-31 – 2026-09-04` · **138 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -94,6 +94,7 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 | `X-30` | Reguły alertowe nie tylko są wczytane, ale się liczą | 6 | — | ops/observability/grafana/provisioning/datasources/datasources.yml — deleteDatasources przed deklaracją, uid: Prometheus; ops/scripts/prod-deploy-ghcr |
 | `X-31` | Kanał alertów daje znak życia (dead man's switch) | 6 | — | ops/observability/grafana/provisioning/alerting/rules.yaml — grupa verris_kanal_alertow, reguła VerrisKanalAlertowZyje (vector(1), for: 0s, oba stany  |
 | `Z-18` | Prawdziwa przyczyna błędu provisioningu nie ginie po drodze | 6 | BLOKER STARTU | apps/api/src/subscriptions/provisioning-error.ts — BladEtapuProvisioningu (etap, przyczyna, message z doklejoną przyczyną); provisioning-queue.service |
+| `X-32` | Martwy job da się odrzucić z panelu, ze śladem w audycie | 6 | — | apps/api/src/common/audit/audit.actions.ts — PROVISIONING_JOB_DISCARDED_BY_ADMIN; provisioning-queue.service.ts — odrzucJob (getState() === failed, śl |
 
 **Definicja ukończenia**
 
@@ -114,9 +115,10 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 - `X-30` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-31` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `Z-18` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `X-32` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-02.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** Z-03 dotyka skryptów na węźle — zmiana wymaga przetestowania całej ścieżki migracji, nie tylko walidacji DTO. Sprint urósł o dziesięć pozycji odkrytych w trakcie: podatności, strażniki, bramki wdrożeniowe i awaria kopii bazy (H-23/H-24). Przeciążenie jest prawdziwe i celowo widoczne — praca została wykonana, plan jej nie przewidywał. X-28 doszło jako odpowiedź na pytanie, które zostawiło H-23: dlaczego alarm o braku kopii nie dotarł do nikogo. Odpowiedź — nie miał dokąd; w repo nie było Alertmanagera, a Grafana miała odbiorcę i zero reguł. X-29 wyszło godzinę po X-28 i z tego samego pytania: skoro reguły są w repo, to czy wdrożenie w ogóle je dowozi? Nie dowoziło — wdrożenie restartowało tylko aplikacje, a Prometheus i Grafana czytają konfigurację wyłącznie przy starcie. H-20 wykonane tu, a nie w sprincie 9: awaria kopii z H-23 wymusiła odtworzenie bazy tu i teraz, więc dowód D4 powstał jedenaście sprintów przed terminem. X-30 wyszło przy sprawdzaniu, czy X-29 faktycznie coś zmieniło: reguły były wczytane i żadna się nie liczyła. Trzeci raz tego dnia to samo pytanie — czy to, co wygląda na zrobione, jest zrobione — i trzeci raz odpowiedź brzmiała nie. X-31 domyka dzień: po naprawie X-30 alerty ucichną, a cisza wygląda tak samo jak awaria kanału — więc dokładamy regułę, która pali się zawsze i której brak jest sygnałem. Decyzja właściciela produktu: jeden mail na dobę. Z-18 zamyka dzień tym, od czego wszystko się zaczęło: pierwszy alarm zapalony z prawdziwego powodu pokazał wadę, która przy zerwaniu sieci oddaje klientowi pieniądze za usługę, którą za chwilę wykona. Poprawka jest tutaj, dowód D3 dopiero przy węźle #1.
+**Ryzyko sprintu.** Z-03 dotyka skryptów na węźle — zmiana wymaga przetestowania całej ścieżki migracji, nie tylko walidacji DTO. Sprint urósł o dziesięć pozycji odkrytych w trakcie: podatności, strażniki, bramki wdrożeniowe i awaria kopii bazy (H-23/H-24). Przeciążenie jest prawdziwe i celowo widoczne — praca została wykonana, plan jej nie przewidywał. X-28 doszło jako odpowiedź na pytanie, które zostawiło H-23: dlaczego alarm o braku kopii nie dotarł do nikogo. Odpowiedź — nie miał dokąd; w repo nie było Alertmanagera, a Grafana miała odbiorcę i zero reguł. X-29 wyszło godzinę po X-28 i z tego samego pytania: skoro reguły są w repo, to czy wdrożenie w ogóle je dowozi? Nie dowoziło — wdrożenie restartowało tylko aplikacje, a Prometheus i Grafana czytają konfigurację wyłącznie przy starcie. H-20 wykonane tu, a nie w sprincie 9: awaria kopii z H-23 wymusiła odtworzenie bazy tu i teraz, więc dowód D4 powstał jedenaście sprintów przed terminem. X-30 wyszło przy sprawdzaniu, czy X-29 faktycznie coś zmieniło: reguły były wczytane i żadna się nie liczyła. Trzeci raz tego dnia to samo pytanie — czy to, co wygląda na zrobione, jest zrobione — i trzeci raz odpowiedź brzmiała nie. X-31 domyka dzień: po naprawie X-30 alerty ucichną, a cisza wygląda tak samo jak awaria kanału — więc dokładamy regułę, która pali się zawsze i której brak jest sygnałem. Decyzja właściciela produktu: jeden mail na dobę. Z-18 zamyka dzień tym, od czego wszystko się zaczęło: pierwszy alarm zapalony z prawdziwego powodu pokazał wadę, która przy zerwaniu sieci oddaje klientowi pieniądze za usługę, którą za chwilę wykona. Poprawka jest tutaj, dowód D3 dopiero przy węźle #1. X-32 to ostatnie ogniwo dnia i najkrótsza historia: alarm kazał posprzątać kolejkę, a w produkcie nie było czym jej posprzątać. Zostawało grzebanie w Redisie bez śladu w audycie — czyli dokładnie to, przeciwko czemu powstał cały ten dzień.
 
 ## Sprint 3 — Pojemność węzła i plan produkcyjny
 
