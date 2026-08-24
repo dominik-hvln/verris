@@ -83,6 +83,13 @@ const ALERTY = [
 const DOPISANE_POZNIEJ = [
   // X-31 — dead man's switch: pali się zawsze, jego BRAK jest sygnałem.
   'VerrisKanalAlertowZyje',
+  // X-35 — strażnicy ciszy. Po jednym na MIEJSCE, w którym emisja metryk może
+  // zniknąć niezależnie od reszty (bloki `if (this.…)` z własnym `try/catch`
+  // w metrics.service.ts), a NIE po jednym na regułę: trzynaście maili o jednej
+  // awarii eksportera to X-28 od nowa, tylko z drugiej strony.
+  'VerrisEksporterApiNiemy',
+  'VerrisMetrykiBackupuNieobecne',
+  'VerrisMetrykiKolejkiNieobecne',
 ] as const;
 
 /** Te pięć musi mieć `severity: critical` — inaczej wyciszy je grupowanie. */
@@ -129,16 +136,43 @@ describe('X-28 — reguły alertowe mają jeden dom i ten dom powiadamia', () =>
     expect(severity).toBe(tytuly);
   });
 
-  it('kanarek od kopii bazy alarmuje także przy BRAKU danych', () => {
-    // Domyślnie brak serii znaczy „warunek niespełniony", bo prometheusowe
-    // `expr` z porównaniem zwraca pusty wynik, gdy jest dobrze. Dla tej jednej
-    // reguły „metryka zniknęła" i „kopia jest świeża" wyglądałyby identycznie —
-    // a to jest dokładnie ten przypadek, który kosztował nas miesiąc bez kopii.
+  it('ślepota na kopię bazy nie czyta się jak zdrowie', () => {
+    // ZMIENIONE W X-35 — i powód jest ważniejszy niż sama zmiana.
+    //
+    // Poprzednia wersja tej asercji brzmiała `expect(blok).toMatch(
+    // /noDataState:\s*Alerting/)`, a jej komentarz stawiał diagnozę CAŁKOWICIE
+    // POPRAWNĄ: „brak serii znaczy »warunek niespełniony«, bo prometheusowe
+    // expr z porównaniem zwraca pusty wynik, gdy jest dobrze".
+    //
+    // Diagnoza była trafna, lekarstwo nie. `noDataState` nie umie odróżnić
+    // dwóch PRZECIWNYCH powodów pustki — „filtr nikogo nie przepuścił, bo jest
+    // dobrze" i „metryki nie ma wcale" — bo do Grafany docierają jako to samo
+    // NoData. Ustawienie `Alerting` naprawiało drugi przypadek kosztem
+    // pierwszego: reguła paliła się NIEPRZERWANIE przez trzy tygodnie przy
+    // zdrowej kopii sprzed dziesięciu godzin. Ten test PILNOWAŁ tej usterki.
+    //
+    // Właściwe rozwiązanie nie przestawia dźwigni, tylko przestaje jej używać:
+    // wyrażenie jest całkowite (zwraca próbkę zawsze, zdrowie to jawne zero),
+    // a ślepota dostaje własną regułę, własny opis i własny próg czasu.
+    // Pełne omówienie i strażnik ogólny: X-35 oraz
+    // apps/api/src/test/reguly-nie-myla-pustki-ze-zdrowiem.spec.ts.
     const tresc = kod(REGULY);
     const od = tresc.indexOf('title: VerrisPostgresBackupStale');
     const nastepny = tresc.indexOf('title: Verris', od + 1);
     const blok = tresc.slice(od, nastepny === -1 ? undefined : nastepny);
-    expect(blok).toMatch(/noDataState:\s*Alerting/);
+
+    const expr = (blok.match(/expr:\s*([\s\S]*?)\n\s*instant:/) ?? [])[1] ?? '';
+    expect(expr).not.toBe('');
+    // Każde porównanie z modyfikatorem `bool` — inaczej filtruje i zdrowy stan
+    // znika z wyniku. Po usunięciu porównań z `bool` nie może zostać żadne.
+    expect(expr.replace(/(==|!=|>=|<=|>|<)\s*bool\b/g, ' ')).not.toMatch(
+      /(==|!=|>=|<=|>|<)/,
+    );
+    // Domknięcie na wypadek zniknięcia metryki — bez tego `max()` po pustce
+    // znów zwróciłby pustkę.
+    expect(expr).toContain('or vector(');
+    // Nie przez `noDataState`, tylko przez osobną regułę o własnym opisie.
+    expect(tresc).toContain('absent(verris_backup_present)');
     // `for` chroni przed alarmem przy zwykłym restarcie API.
     expect(blok).toMatch(/for:\s*30m/);
   });
