@@ -26,8 +26,28 @@ DRY_RUN=0
 ANTISCAN_HITCOUNT="${ANTISCAN_HITCOUNT:-40}"
 ANTISCAN_WINDOW="${ANTISCAN_WINDOW:-60}"
 # Druga warstwa: wolny skan rozłożony w czasie (np. 1/s przez 10 min).
-ANTISCAN_SLOW_HITCOUNT="${ANTISCAN_SLOW_HITCOUNT:-300}"
+#
+# X-36 — DLACZEGO 250, A NIE 300.
+#
+# Moduł jądra `xt_recent` ma stałą XT_RECENT_MAX_NSTAMPS = 256 i odrzuca każdą
+# regułę z `--hitcount` większym lub równym tej wartości. Maksimum to więc 255.
+# Wpisane tu wcześniej 300 sprawiało, że iptables odrzucał regułę:
+#
+#     RULE_APPEND failed (Invalid argument): rule in chain VERRIS_ANTISCAN
+#
+# Skrypt umierał w tym miejscu pod `set -e`, zostawiając łańcuch ZBUDOWANY DO
+# POŁOWY — z warstwą szybką i bez wolnej. To wyjaśnia „dryf konfiguracji", nad
+# którym siedzieliśmy 2026-08-24: uruchomiony łańcuch nigdy nie zgadzał się ze
+# skryptem, bo skrypt nigdy nie zdołał się wykonać do końca. Nikt się nie
+# dowiedział, bo padał bez własnego komunikatu, po trzech zielonych linijkach.
+#
+# 250 w oknie 900 s to ~17 nowych połączeń na minutę wobec ~20 przy 300 —
+# intencja („wolny skan rozłożony w czasie") zostaje praktycznie nietknięta.
+ANTISCAN_SLOW_HITCOUNT="${ANTISCAN_SLOW_HITCOUNT:-250}"
 ANTISCAN_SLOW_WINDOW="${ANTISCAN_SLOW_WINDOW:-900}"
+# Twardy limit modułu. Klamrujemy JAWNIE i głośno, zamiast pozwolić iptables
+# odrzucić regułę i wywrócić skrypt w połowie łańcucha.
+XT_RECENT_MAX_HITCOUNT=255
 # Adresy, do których control-plane NIE powinien inicjować ruchu WWW (bogony,
 # sieci prywatne, link-local, multicast). Węzły mają publiczne IP, więc to nie
 # blokuje DA:2222. Wyjątek: wewn. sieć Dockera (obsłużona przez ctstate/iface).
@@ -108,6 +128,17 @@ apply_egress_log() {
 }
 
 apply_antiscan() {
+  # Klamrowanie przed pierwszą regułą — lepiej obniżyć próg i powiedzieć o tym,
+  # niż zostawić po sobie pół łańcucha (patrz komentarz przy XT_RECENT_MAX_HITCOUNT).
+  local h
+  for h in ANTISCAN_HITCOUNT ANTISCAN_SLOW_HITCOUNT; do
+    if [ "${!h}" -gt "$XT_RECENT_MAX_HITCOUNT" ]; then
+      log "WARN: ${h}=${!h} przekracza limit modułu xt_recent (${XT_RECENT_MAX_HITCOUNT})."
+      log "WARN: obniżam do ${XT_RECENT_MAX_HITCOUNT}. Bez tego iptables odrzuciłby regułę."
+      printf -v "$h" '%s' "$XT_RECENT_MAX_HITCOUNT"
+    fi
+  done
+
   run "iptables -N '$CHAIN_ANTISCAN' 2>/dev/null || iptables -F '$CHAIN_ANTISCAN'"
   run "iptables -C OUTPUT -j '$CHAIN_ANTISCAN' 2>/dev/null || iptables -I OUTPUT 3 -j '$CHAIN_ANTISCAN'"
   run "iptables -A '$CHAIN_ANTISCAN' -m conntrack --ctstate established,related -j RETURN"
