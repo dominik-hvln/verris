@@ -14,6 +14,15 @@ apps/api/dist-cli/
 .env
 .env.local
 .env.*.local
+# UWAGA: .env.prod NIE pasuje do zadnego z powyzszych wzorcow. Na produkcji
+# lezal jako plik niesledzony, ale NIEIGNOROWANY — razem z trzema kopiami
+# zapasowymi. Jedno `git add -A` w /opt/verris wrzucaloby haslo do Postgresa,
+# JWT_SECRET, APP_KMS_KEY i klucze Stripe do repozytorium na GitHubie.
+.env.prod
+.env.prod.bak*
+
+# Znacznik ostatniego dobrego tagu obrazu — stan hosta, nie zrodlo.
+.last-good-image-tag
 
 # IDE
 .idea/
@@ -43,12 +52,3 @@ apps/api/get_user.js
 # Artefakty mounta FUSE (Cowork / remote-devices) — nigdy nie commitujemy.
 .fuse_hidden*
 _to_delete_verris_audit/
-
-# Katalog na pliki do usunięcia — narzędzia agenta nie mogą kasować na tym mouncie
-_to_delete/
-.git-commit-msg.txt
-
-# Pythonowy cache generatora audytu
-__pycache__/
-*.pyc
-*.bak

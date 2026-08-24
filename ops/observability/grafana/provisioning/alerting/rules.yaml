@@ -351,6 +351,60 @@ groups:
       summary: Nieudane dostawy webhooków statusu
       description: Sprawdź endpointy klientów i logi StatusWebhookService.
     isPaused: false
+  # ───────────────────────────────────────────────────────────────────────────
+  # X-35 — ta reguła paliła się przez cały czas, gdy kopia była w porządku.
+  #
+  # CO BYŁO. Wyrażenie brzmiało:
+  #
+  #     verris_backup_present == 0 or verris_backup_latest_age_seconds > 90000
+  #
+  # W PromQL `== 0` i `> 90000` to NIE są predykaty zwracające prawdę i fałsz.
+  # To są FILTRY. Zdrowy stan (present=1, wiek 10 h) nie przechodzi przez żaden
+  # z nich, więc wynikiem jest PUSTY WEKTOR — nie „zero", tylko brak próbki.
+  # Grafana pustkę nazywa NoData, a ta reguła miała `noDataState: Alerting`.
+  # Zdrowie było więc odczytywane jako awaria, przy każdej ewaluacji, bez końca.
+  #
+  # Sprawdzone na produkcji 2026-08-24:
+  #     query=verris_backup_present == 0 or verris_backup_latest_age_seconds > 90000
+  #     → {"resultType":"vector","result":[]}
+  # przy kopii sprzed 10 h 27 min i progu 25 h. Alarm nie opisywał backupu.
+  #
+  # SKĄD SIĘ TAM WZIĘŁO `noDataState: Alerting`. To jest jedyna reguła w tym
+  # pliku, która je miała — i akurat ta, która wcześniej sparzyła (H-23: kopia
+  # nie wykonała się ani razu przez miesiąc, w ciszy). Ustawienie było
+  # NADKOREKTĄ po tamtym: „niech pustka nigdy więcej nie znaczy spokoju".
+  # Intencja słuszna, dźwignia niewłaściwa — bo `noDataState` nie umie odróżnić
+  # dwóch przeciwnych powodów pustki:
+  #
+  #     pustka, bo WSZYSTKO DZIAŁA        (filtr nikogo nie przepuścił)
+  #     pustka, bo METRYKI NIE MA         (eksporter padł, MinIO nie odpowiada)
+  #
+  # Obie docierają do Grafany jako to samo NoData. Każda wartość tego pola jest
+  # więc błędna w jednym z dwóch przypadków:
+  #     OK       → zdrowie czytane dobrze, martwy eksporter MILCZY (13 reguł)
+  #     Alerting → martwy eksporter czytany dobrze, zdrowie ALARMUJE (ta jedna)
+  # Ten plik miał obie wady naraz, każdą po innej stronie.
+  #
+  # ROZWIĄZANIE — nie przestawiać dźwigni, tylko przestać jej używać.
+  # Wyrażenie jest teraz CAŁKOWITE: zwraca dokładnie jedną próbkę ZAWSZE.
+  # `== bool 0` i `> bool 90000` dają 0/1 zamiast filtrować, `max(…)` ściąga to
+  # do jednej bezetykietowej próbki, a `or vector(0)` domyka przypadek braku
+  # metryki. Zdrowie to teraz jawne 0, a nie brak odpowiedzi.
+  #
+  #     zdrowo ............. 0 + 0 = 0     kopia stara ........ 0 + 1 = 1
+  #     brak obiektu ....... 1 + 0 = 1     metryki nie ma ..... 0 + 0 = 0
+  #
+  # Ostatni wiersz jest celowy: „nie widzę backupu" to INNA awaria niż „backup
+  # jest stary" i wymaga innej reakcji, więc ma własną regułę
+  # (`verris-metryki-backupu-nieobecne`), własny opis i własny próg czasu.
+  # Wpychanie obu w jedną wartość dałoby alarm, który nie mówi, co robić.
+  #
+  # `noDataState: OK` nie jest tu powrotem do wady 13 pozostałych reguł —
+  # przy całkowitym wyrażeniu NoData jest NIEOSIĄGALNE inaczej niż przez
+  # milczenie samego Prometheusa, a to łapie `execErrState` i osobny dead man's
+  # switch `verris-kanal-alertow-zyje` (X-31), który pali się zawsze i którego
+  # BRAK jest sygnałem. Cisza całego kanału ma jednego strażnika, nie czternastu.
+  # ───────────────────────────────────────────────────────────────────────────
   - uid: verris-postgres-backup-stale
     title: VerrisPostgresBackupStale
     condition: C
@@ -362,7 +416,8 @@ groups:
       datasourceUid: Prometheus
       model:
         refId: A
-        expr: verris_backup_present == 0 or verris_backup_latest_age_seconds > 90000
+        expr: (max(verris_backup_present == bool 0) or vector(0)) + (max(verris_backup_latest_age_seconds
+          > bool 90000) or vector(0))
         instant: true
         range: false
         editorMode: code
@@ -389,7 +444,7 @@ groups:
             params: []
           type: query
     for: 30m
-    noDataState: Alerting
+    noDataState: OK
     execErrState: Alerting
     labels:
       severity: critical
@@ -634,6 +689,7 @@ groups:
       description: Zainstaluj ops/scripts/security-install-verris-security.sh i sprawdź verris-security-watch.timer.
     isPaused: false
 
+
 # ─────────────────────────────────────────────────────────────────────────────
 # X-31 — kanał alertów daje znak życia (dead man's switch).
 #
@@ -713,4 +769,197 @@ groups:
         Grafany do skrzynki gdzieś się urwała i żaden prawdziwy alarm też nie
         dojdzie. Sprawdź wtedy: kontener grafana, Postfix na panelu
         (/var/log/mail.log) i filtry na hvln.pl.
+    isPaused: false
+
+# ─────────────────────────────────────────────────────────────────────────────
+# X-35 — reguły od DRUGIEJ pustki: „nie widzę", a nie „jest dobrze".
+#
+# Reguły warunkowe wyżej odpowiadają na pytanie „czy jest źle". Milczą, gdy
+# jest dobrze — i milczały też, gdy metryki znikały, bo filtr bez próbek
+# wygląda identycznie jak filtr, którego nikt nie przekroczył. To jest ta sama
+# cisza, która w H-23 przez miesiąc znaczyła „kopia bazy jest w porządku".
+#
+# Nadkorekta z `noDataState: Alerting` (patrz komentarz przy
+# verris-postgres-backup-stale) próbowała załatwić to jednym przełącznikiem
+# i zamieniła jedną wadę na przeciwną. Właściwe miejsce na tę odpowiedź jest
+# TUTAJ: osobna reguła, osobny opis, osobna reakcja człowieka.
+#
+# ILE ICH MA BYĆ. Nie trzynaście — po jednej na każdą regułę warunkową byłoby
+# trzynaście maili o jednej awarii, czyli X-28 od nowa. Granicą nie jest
+# reguła, tylko MIEJSCE, w którym emisja metryk może zniknąć niezależnie od
+# reszty. W apps/api/src/observability/metrics.service.ts są dokładnie trzy
+# takie miejsca:
+#
+#   • cały eksporter — /metrics API przestaje odpowiadać; zabiera ze sobą
+#     wszystkie jedenaście metryk control-plane naraz;
+#   • blok `if (this.objectStorage)` z własnym try/catch — MinIO nie odpowiada
+#     albo storage nie jest wstrzyknięty, a `catch` tylko loguje warn;
+#     verris_backup_* znikają, reszta pliku emituje się normalnie;
+#   • blok `if (this.provisioningQueue && isAsync())` z własnym try/catch —
+#     to samo dla metryk kolejki BullMQ.
+#
+# Host ma czwarte takie miejsce (textfile node_exportera) i ono ma już swojego
+# strażnika: verris-security-watch-stale w grupie verris_host_security.
+#
+# `unless on() absent(verris_process_uptime_seconds)` w dwóch dolnych regułach
+# znaczy: „zgłoś ślepotę na backup TYLKO wtedy, gdy eksporter poza tym żyje".
+# Gdy padnie całe API, mówi o tym jedna reguła, a nie trzy.
+#
+# CZEGO TO NIE ŁAPIE — i to trzeba nazwać. Metryki liczników (np.
+# verris_runtime_errors_total) mogą nie istnieć zupełnie legalnie, bo jeszcze
+# nic ich nie zwiększyło. Dla nich `absent()` nie odróżnia „zero błędów" od
+# „blok się nie wykonał"; jedyne, co je pilnuje, to obecność całego eksportera.
+# ─────────────────────────────────────────────────────────────────────────────
+- orgId: 1
+  name: verris_cisza_eksporterow
+  folder: Verris
+  interval: 1m
+  rules:
+  - uid: verris-eksporter-api-niemy
+    title: VerrisEksporterApiNiemy
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: Prometheus
+      model:
+        refId: A
+        expr: absent(verris_process_uptime_seconds)
+        instant: true
+        range: false
+        editorMode: code
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: A
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 0
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            type: last
+            params: []
+          type: query
+    for: 5m
+    noDataState: OK
+    execErrState: Alerting
+    labels:
+      severity: critical
+    annotations:
+      summary: Eksporter /metrics API nie odpowiada — jedenaście reguł oślepło naraz
+      description: >-
+        Dopóki ta reguła się pali, cisza pozostałych reguł control-plane NIC nie
+        znaczy. Sprawdź kontener api, target verris-api w Prometheusie
+        (/targets) i logi API.
+    isPaused: false
+  - uid: verris-metryki-backupu-nieobecne
+    title: VerrisMetrykiBackupuNieobecne
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: Prometheus
+      model:
+        refId: A
+        expr: absent(verris_backup_present) unless on() absent(verris_process_uptime_seconds)
+        instant: true
+        range: false
+        editorMode: code
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: A
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 0
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            type: last
+            params: []
+          type: query
+    for: 20m
+    noDataState: OK
+    execErrState: Alerting
+    labels:
+      severity: critical
+    annotations:
+      summary: Eksporter żyje, ale przestał widzieć kopię bazy
+      description: >-
+        To NIE znaczy, że kopii nie ma — znaczy, że nikt jej nie sprawdza,
+        a VerrisPostgresBackupStale od tej chwili milczy z niewiedzy. Dokładnie
+        ta cisza znaczyła w H-23 „jest w porządku" przez miesiąc. Sprawdź MinIO,
+        S3_BUCKET_BACKUPS i warn „Backup metrics skipped" w logach API.
+    isPaused: false
+  - uid: verris-metryki-kolejki-nieobecne
+    title: VerrisMetrykiKolejkiNieobecne
+    condition: C
+    data:
+    - refId: A
+      relativeTimeRange:
+        from: 600
+        to: 0
+      datasourceUid: Prometheus
+      model:
+        refId: A
+        expr: absent(verris_provisioning_queue_oldest_waiting_seconds) unless on() absent(verris_process_uptime_seconds)
+        instant: true
+        range: false
+        editorMode: code
+        intervalMs: 1000
+        maxDataPoints: 43200
+    - refId: C
+      datasourceUid: __expr__
+      model:
+        refId: C
+        type: threshold
+        expression: A
+        conditions:
+        - evaluator:
+            type: gt
+            params:
+            - 0
+          operator:
+            type: and
+          query:
+            params:
+            - A
+          reducer:
+            type: last
+            params: []
+          type: query
+    for: 20m
+    noDataState: OK
+    execErrState: Alerting
+    labels:
+      severity: warning
+    annotations:
+      summary: Eksporter żyje, ale przestał widzieć kolejkę provisioningu
+      description: >-
+        VerrisProvisioningQueueFailed i VerrisProvisioningQueueStale milczą
+        z niewiedzy, nie ze spokoju. Sprawdź Redis/BullMQ i warn „Failed to
+        collect provisioning queue metrics" w logach API.
     isPaused: false
