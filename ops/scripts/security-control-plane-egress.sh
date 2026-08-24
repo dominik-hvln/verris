@@ -10,6 +10,11 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 IOC_FILE="${IOC_FILE:-/etc/verris/security/ioc-ips.txt}"
 ALLOW_HOSTS="${ALLOW_HOSTS:-/etc/verris/security/egress-allow-hostnames.txt}"
+# X-36 — zakresy CIDR obok nazw. Nazwa rozwiazana w jednej chwili nie obejmuje
+# round-robinu: 2026-08-24 do zbioru trafilo 140.82.121.34, a docker pull
+# poszedl na .33 i zginal na i/o timeout. Zbior jest `hash:net`, wiec podsiec
+# wchodzi jako jeden wpis i nie starzeje sie przy rotacji DNS.
+ALLOW_NETS="${ALLOW_NETS:-/etc/verris/security/egress-allow-nets.txt}"
 CHAIN_IOC="VERRIS_IOC_DROP"
 CHAIN_LOG="VERRIS_EGRESS_LOG"
 CHAIN_ANTISCAN="VERRIS_ANTISCAN"
@@ -101,6 +106,9 @@ command -v iptables >/dev/null 2>&1 || die "iptables not found"
 install -d /etc/verris/security
 if [ ! -f "$IOC_FILE" ]; then
   install -m 0644 "$REPO_ROOT/ops/etc/verris/security/ioc-ips.txt" "$IOC_FILE"
+fi
+if [ ! -f "$ALLOW_NETS" ] && [ -f "$REPO_ROOT/ops/etc/verris/security/egress-allow-nets.txt" ]; then
+  install -m 0644 "$REPO_ROOT/ops/etc/verris/security/egress-allow-nets.txt" "$ALLOW_NETS"
 fi
 
 apply_ioc_drop() {
@@ -263,6 +271,22 @@ zbuduj_ipset_allow() {
       log "allow $host"
     fi
   done <"$ALLOW_HOSTS"
+
+  # Zakresy CIDR — patrz komentarz przy ALLOW_NETS oraz sam plik.
+  if [ -f "$ALLOW_NETS" ]; then
+    while IFS= read -r net || [ -n "$net" ]; do
+      net="${net%%#*}"
+      net="$(echo "$net" | tr -d '[:space:]')"
+      [ -z "$net" ] && continue
+      run "ipset add '$tmpset' '$net' -exist"
+      added=$((added + 1))
+      log "allow-net $net"
+    done <"$ALLOW_NETS"
+  else
+    log "WARN: brak $ALLOW_NETS — allowlista oparta wylacznie na nazwach."
+    log "WARN: przy round-robinie (ghcr.io) to nie wystarcza — patrz X-36."
+  fi
+
   [ "$added" -gt 0 ] || die "Allowlist empty — refusing --strict (would block all web egress)"
   # Podmiana atomowa: od tej chwili $setname ma nową zawartość, bez okna pustki.
   run "ipset swap '$tmpset' '$setname'"

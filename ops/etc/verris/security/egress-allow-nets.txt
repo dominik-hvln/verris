@@ -1,0 +1,33 @@
+# Zakresy CIDR dla allowlisty egress control-plane (X-36).
+#
+# DLACZEGO OSOBNY PLIK OBOK egress-allow-hostnames.txt
+# ────────────────────────────────────────────────────
+# Rozwiazywanie nazwy na adres w JEDNEJ chwili jest kruche dla uslug za
+# round-robinem i CDN-em. Zmierzone 2026-08-24:
+#
+#   22:46  getent ahostsv4 ghcr.io  →  do ipsetu trafilo 140.82.121.34
+#   22:57  docker pull            →  poszedl na 140.82.121.33
+#          dial tcp 140.82.121.33:443: i/o timeout   (54 dropy anty-skanu)
+#
+# Dopisanie `.33` do listy nazw niczego nie rozwiazuje — jutro DNS zwroci `.35`.
+# Zbior ipset jest typu `hash:net`, wiec przyjmuje cale podsieci i jeden wpis
+# obejmuje wszystkie adresy uslugi, niezaleznie od rotacji.
+#
+# ZASADA. Wpisujemy tu WYLACZNIE zakresy potwierdzone w rejestrze (RDAP/whois),
+# nigdy „chyba nalezy do". To jest allowlista bezpieczenstwa: kazdy wiersz
+# znaczy „ufamy calej tej podsieci". Zbyt szeroki wpis jest gorszy niz brak
+# wpisu, bo wyglada na przemyslany.
+
+# --- GitHub, Inc. ---
+# Obejmuje github.com, api.github.com, codeload.github.com i ghcr.io.
+# Potwierdzone 2026-08-24 w RDAP ARIN: NetName GITHU, org GitHub, Inc.,
+# CIDR 140.82.112.0/20, rejestracja 2012-10-22.
+140.82.112.0/20
+
+# --- DO ZWERYFIKOWANIA PRZED ODKOMENTOWANIEM ---
+# GitHub uzywa tez innych alokacji, a warstwy obrazow (blob) ida przez
+# pkg-containers.githubusercontent.com, ktory siedzi na CDN-ie z osobna pula.
+# Zanim ktokolwiek to odkomentuje: sprawdz w RDAP, czy zakres nadal nalezy do
+# GitHuba, i zapisz date sprawdzenia obok wiersza. Bez tego zostaje zamkniete.
+# 192.30.252.0/22
+# 143.55.64.0/20
