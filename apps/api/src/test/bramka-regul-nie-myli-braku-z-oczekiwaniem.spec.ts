@@ -50,6 +50,38 @@ const REGULY_YAML = join(
   'rules.yaml',
 );
 
+/**
+ * X-34 — DLACZEGO TA ATRAPA WAŻY PONAD 64 KILOBAJTY.
+ *
+ * Pierwsza wersja tego pliku podstawiała cztery linijki. Test był zielony,
+ * a bramka na produkcji kłamała sześćdziesiąt razy z rzędu (wdrożenie #72).
+ *
+ * Powód: `printf | grep -q` pod `set -o pipefail`. `grep -q` kończy się
+ * natychmiast po dopasowaniu, `printf` dostaje SIGPIPE (141), a `pipefail`
+ * przepisuje ten status na cały potok — więc sprawdzenie zwraca BŁĄD dokładnie
+ * wtedy, gdy metryka JEST. Próg jest ostry i leży na buforze potoku:
+ *
+ *     16 KB → działa      64 KB → kłamie
+ *     32 KB → działa      80 KB → kłamie
+ *     63 KB → działa     128 KB → kłamie
+ *
+ * Atrapa na 200 bajtów NIGDY tego nie dotknie. Test nie mógł tego złapać nie
+ * dlatego, że sprawdzał złą rzecz, tylko dlatego, że jego dane wejściowe
+ * różniły się od produkcyjnych w wymiarze, który akurat decydował o wyniku.
+ *
+ * To ta sama rodzina co „test, który niczego nie dowodzi" (Z-01, H-20, M-06,
+ * X-28), ale w nowym wydaniu: nie fałszywa asercja, tylko FAŁSZYWE ŚRODOWISKO.
+ * Prawdziwe `/metrics` Grafany waży setki kilobajtów — atrapa też musi.
+ *
+ * Drugie kłamstwo środowiska: skrypt wdrożeniowy pracuje z `set -Eeuo pipefail`,
+ * a mój harness ustawiał tylko `set -u`. Bez `pipefail` ta usterka nie istnieje.
+ * Harness ustawia teraz DOKŁADNIE te flagi co produkcja — patrz `uruchomBramke`.
+ */
+const WYPELNIACZ = Array.from(
+  { length: 6000 },
+  (_, i) => `grafana_inna_metryka_${i}{etykieta="wartosc_dosc_dluga_zeby_urosl_bufor"} ${i}`,
+).join('\n');
+
 /** Metryki, jakie Grafana publikuje, gdy scheduler już tyknął. */
 function metrykiZReguami(aktywne: number, wstrzymane = 0): string {
   return [
@@ -57,6 +89,7 @@ function metrykiZReguami(aktywne: number, wstrzymane = 0): string {
     '# TYPE grafana_alerting_rule_group_rules gauge',
     `grafana_alerting_rule_group_rules{org="1",state="active"} ${aktywne}`,
     `grafana_alerting_rule_group_rules{org="1",state="paused"} ${wstrzymane}`,
+    WYPELNIACZ,
   ].join('\n');
 }
 
@@ -65,6 +98,7 @@ const METRYKI_PRZED_TAKTEM = [
   '# HELP go_goroutines Number of goroutines that currently exist.',
   'go_goroutines 142',
   'grafana_alerting_scheduler_behind_seconds 0',
+  WYPELNIACZ,
 ].join('\n');
 
 type Wynik = { kod: number; powod: string; aktywne: string };
@@ -96,7 +130,10 @@ function uruchomBramke(oczekiwane: number, odpowiedzi: string[]): Wynik {
     chmodSync(atrapa, 0o755);
 
     const skrypt = [
-      'set -u',
+      // DOKŁADNIE te flagi co prod-deploy-ghcr.sh. Bez `pipefail` usterka
+      // z X-34 nie istnieje, a harness, który nie odtwarza produkcji, jest
+      // wart tyle, co test, który nie sprawdza nic.
+      'set -Eeuo pipefail',
       `. "${BIBLIOTEKA}"`,
       // Bez tego test czekałby minutę zamiast ułamka sekundy — a mierzymy
       // LOGIKĘ czekania, nie długość snu.
@@ -198,21 +235,50 @@ describe('X-33 — bramka czeka na scheduler, zamiast ścigać się z nim', () =
     expect(Number(wynik)).toBeGreaterThan(0);
   });
 
-  it('okno czekania ma TRZYKROTNY zapas nad tym, co zmierzyliśmy na produkcji', () => {
-    // Wdrożenie #71 — pierwsze z tą bramką — przeszło na „próbie 17", czyli po
-    // 54 sekundach. Zakładałem dziesięć. Zapas wynosił trzy próby.
+  it('X-34: odpowiedź większa niż bufor potoku NIE zamienia się w „brak metryki"', () => {
+    // Wdrożenie #72: sześćdziesiąt odczytów z rzędu zameldowało „metryki nie
+    // ma", podczas gdy log Grafany pokazywał scheduler wystartowany cztery
+    // sekundy po restarcie. `printf | grep -q` pod `pipefail` zwraca 141
+    // (SIGPIPE), bo grep zamyka potok, zanim printf skończy pisać.
     //
-    // Ta asercja pilnuje, żeby nikt (łącznie ze mną za pół roku) nie skrócił
-    // okna z powrotem „bo deploy trwa długo". Deploy NIE trwa dłużej: pętla
-    // kończy się w chwili, w której reguły się zgadzają. Dłuższe okno kosztuje
-    // wyłącznie przy prawdziwej awarii prowizjonowania.
-    const ZMIERZONE_S = 54;
+    // Ta asercja to CAŁY X-34. Atrapa musi ważyć więcej niż 64 KB, inaczej
+    // przechodzi nawet na zepsutym kodzie.
+    const duze = metrykiZReguami(14);
+    expect(duze.length).toBeGreaterThan(64 * 1024);
+    const w = uruchomBramke(14, [duze]);
+    expect(w.kod).toBe(0);
+    expect(w.aktywne).toBe('14');
+  });
+
+  it('X-34: w bibliotece nie ma potoku do grepa — dopasowuje sama powłoka', () => {
+    // Asercja o treści pliku, i wiem, czym to grozi (X-28). Stoi obok asercji
+    // zachowaniowej, nie zamiast niej: tamta łapie usterkę, ta pilnuje, żeby
+    // nie wróciła TĄ SAMĄ DROGĄ, gdy ktoś będzie „porządkował" bibliotekę.
+    const lib = require('fs')
+      .readFileSync(BIBLIOTEKA, 'utf8')
+      .split('\n')
+      .filter((l: string) => !/^\s*#/.test(l))
+      .join('\n');
+    expect(lib).not.toMatch(/\|\s*grep/);
+    expect(lib).not.toMatch(/printf[^\n]*\|/);
+  });
+
+  it('okno czekania ma zapas, którego nie musimy kupować czasem wdrożenia', () => {
+    // UWAGA: te „54 sekundy z wdrożenia #71" nigdy nie były czasem startu
+    // Grafany — były czasem, przez który kłamał odczyt (X-34). Prawdziwy
+    // pomiar, z logu samej Grafany: scheduler startuje ~4 s po restarcie.
+    //
+    // Okno zostaje szerokie z innego powodu: czekanie jest DARMOWE, bo pętla
+    // kończy się w chwili zgodności. Ta asercja pilnuje, żeby nikt (łącznie ze
+    // mną za pół roku) nie ściął go „bo deploy trwa długo" — deploy nie trwa
+    // dłużej ani o sekundę.
+    const MINIMUM_S = 120;
     const okno = Number(
       execFileSync('bash', ['-c', `. "${BIBLIOTEKA}"; okno_bramki_sekundy`], {
         encoding: 'utf8',
       }).trim(),
     );
-    expect(okno).toBeGreaterThanOrEqual(ZMIERZONE_S * 3);
+    expect(okno).toBeGreaterThanOrEqual(MINIMUM_S);
   });
 
   it('log wdrożenia podaje PRAWDZIWE okno, a nie liczbę wpisaną obok', () => {

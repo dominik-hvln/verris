@@ -45,19 +45,68 @@ policz_reguly_w_pliku() {
   awk '/^[[:space:]]*-[[:space:]]+uid:[[:space:]]/ { n++ } END { print n + 0 }' "$1"
 }
 
-# Ze STDIN (treść /metrics) — liczba reguł w podanym stanie.
+# =============================================================================
+# X-34 — DLACZEGO TU NIE MA ANI JEDNEGO POTOKU
+#
+# Pierwsza wersja tego pliku sprawdzała obecność metryki tak:
+#
+#     printf '%s\n' "$metryki" | grep -q '^grafana_alerting_rule_group_rules{'
+#
+# Skrypt wdrożeniowy działa z `set -Eeuo pipefail`. `grep -q` KOŃCZY SIĘ
+# NATYCHMIAST po znalezieniu dopasowania — a `printf` wciąż wypisuje resztę
+# odpowiedzi. Gdy odpowiedź nie mieści się w buforze potoku (64 KB), printf
+# dostaje SIGPIPE i kończy się kodem 141. `pipefail` bierze najwyższy niezerowy
+# status z całego potoku, więc CAŁE SPRAWDZENIE ZWRACA BŁĄD — dokładnie wtedy,
+# gdy metryka JEST.
+#
+# Zmierzone, deterministyczne, próg dokładnie na buforze potoku:
+#
+#     16 KB → ZNALEZIONO      64 KB → BRAK
+#     32 KB → ZNALEZIONO      80 KB → BRAK
+#     63 KB → ZNALEZIONO     128 KB → BRAK
+#
+# `/metrics` Grafany rośnie w miarę rejestrowania kolektorów. Stąd całe
+# zachowanie, którego nie umiałem wyjaśnić:
+#   • wdrożenie #71 — metryka pojawiła się, gdy odpowiedź była jeszcze poniżej
+#     64 KB → odczyt się udał („próba 17"), i uznałem to za powolny scheduler;
+#   • wdrożenie #72 — odpowiedź przekroczyła 64 KB, zanim metryka się pojawiła
+#     → sześćdziesiąt odczytów z rzędu skłamało, że jej nie ma.
+#
+# Log Grafany z #72 rozstrzyga to bez cienia wątpliwości:
+#     09:53:15  ngalert.scheduler  "Starting scheduler" tickInterval=10s
+#     09:53:31  ngalert.sender.router … "Sending alerts to local notifier"
+# Scheduler wystartował CZTERY SEKUNDY po restarcie i reguły liczyły się od
+# kilkunastej. Bramka twierdziła, że nie ma ich przez 193 sekundy.
+#
+# Stara bramka (`liczba_metryki | awk`) nie miała tego błędu, bo AWK CZYTA
+# WEJŚCIE DO KOŃCA — nie zamyka potoku wcześniej, więc SIGPIPE nie powstaje.
+# Ten błąd wprowadziłem ja, razem z `grep -q`.
+#
+# DLATEGO: dopasowanie wzorca robi sama powłoka, na zmiennej. Żadnego procesu,
+# żadnego potoku, żadnego SIGPIPE. Tam gdzie potrzebny jest awk, wejście idzie
+# przez `<<<`, a nie przez `|` — here-string to przekierowanie, nie potok,
+# więc `pipefail` nie ma czego zepsuć.
+# =============================================================================
+
+readonly METRYKA_REGUL='grafana_alerting_rule_group_rules{'
+
+# Liczba reguł w podanym stanie. $1 = stan, $2 = treść /metrics.
 regul_w_stanie() {
   awk -v st="$1" '
     $0 ~ "^grafana_alerting_rule_group_rules\\{" && $0 ~ ("state=\"" st "\"") { s += $NF }
     END { printf "%.0f", s + 0 }
-  '
+  ' <<< "$2"
 }
 
 # Czy metryka w ogóle istnieje w tej odpowiedzi. To rozróżnienie jest sednem
 # całego pliku: brak linii znaczy „scheduler jeszcze nie tyknął", a linia
 # z zerem znaczy „scheduler tyknął i nie znalazł reguł".
 metryka_istnieje() {
-  grep -q '^grafana_alerting_rule_group_rules{' 2>/dev/null
+  case "$1" in
+    "$METRYKA_REGUL"* | *"
+$METRYKA_REGUL"*) return 0 ;;
+    *) return 1 ;;
+  esac
 }
 
 # czekaj_na_reguly <oczekiwana_liczba> <polecenie drukujące /metrics ...>
@@ -70,27 +119,31 @@ metryka_istnieje() {
 # Odstęp i liczba prób są w zmiennych środowiskowych, żeby test mógł przejść
 # tę samą ścieżkę bez czekania minuty.
 #
-# SKĄD 60 PRÓB (180 s), a nie 20 (60 s), jak w pierwszej wersji.
+# SKĄD 60 PRÓB (180 s).
 #
-# Wdrożenie #71 — pierwsze z tą bramką — przeszło, ale w logu stanęło:
+# UWAGA — pierwotne uzasadnienie tej liczby BYŁO NIEPRAWDZIWE i zostawiam ten
+# akapit, żeby nikt go nie odtworzył. Brzmiało: „wdrożenie #71 potrzebowało
+# 54 sekund (próba 17), więc dajmy trzykrotny zapas". Te 54 sekundy nie były
+# czasem startu Grafany — były czasem, przez który KŁAMAŁ MÓJ WŁASNY ODCZYT
+# (patrz X-34 wyżej: SIGPIPE + pipefail).
 #
-#     09:30:43  czekam na scheduler alertów (oczekuję 14 reguł, do 60 s)…
-#     09:31:37  OK: 14/14 reguł aktywnych (próba 17).
+# Prawdziwy pomiar pochodzi z logu SAMEJ GRAFANY (#72):
+#     09:53:12  compose restart grafana
+#     09:53:15  ngalert.scheduler "Starting scheduler" tickInterval=10s
+#     09:53:31  reguły wysyłają pierwsze alerty
+# Scheduler startuje ~4 s po restarcie, metryka pojawia się na pierwszym
+# takcie, czyli kilkanaście sekund po restarcie. Sześćdziesiąt sekund byłoby
+# w zupełności wystarczające.
 #
-# Metryka pojawiła się po 54 sekundach, nie po dziesięciu, jak zakładałem
-# z domyślnego taktu schedulera. Zapas wynosił TRZY PRÓBY. Przy odrobinę
-# wolniejszym starcie — więcej reguł, obciążony serwer — kolejne wdrożenie
-# padłoby dokładnie tak jak #70 i z dokładnie tego samego nie-powodu.
+# Zostawiam 180 s mimo to, ale z INNEGO powodu niż poprzednio: czekanie jest
+# DARMOWE. Pętla kończy się w chwili, w której reguły się zgadzają, więc
+# zdrowe wdrożenie nie trwa ani sekundy dłużej. Płacimy wyłącznie przy
+# prawdziwej awarii prowizjonowania — błąd przyjdzie po trzech minutach
+# zamiast po jednej. Skoro zapas nic nie kosztuje, nie ma powodu go ścinać do
+# wartości dobranej z jednego pomiaru.
 #
-# Trzykrotny zapas, a nie dwukrotny, bo 54 s to JEDNA OBSERWACJA, nie rozkład.
-# Nie wiem, czy to był dobry dzień Grafany, czy zły.
-#
-# Dłuższe okno NIE SPOWALNIA zdrowego wdrożenia ani o sekundę: pętla kończy
-# się w chwili, w której reguły się zgadzają. Płacimy wyłącznie wtedy, gdy
-# prowizjonowanie jest naprawdę zepsute — błąd przyjdzie po trzech minutach
-# zamiast po jednej. To dobry kurs wymiany: fałszywy alarm uczy klikać
-# „re-run", a dwie minuty dłuższego czekania na prawdziwą awarię nie uczą
-# niczego.
+# Czego ta liczba NIE MA robić: maskować usterki odczytu. Gdyby bramka znów
+# zaczęła czekać minutami, odpowiedzią jest diagnoza, a nie 300 s.
 #
 # Okno podaje `okno_bramki_sekundy` i TYLKO ona. Skrypt wdrożeniowy wypisuje
 # tę liczbę do logu — gdyby miał własną, powstałoby bliźniacze miejsce: log
@@ -114,10 +167,10 @@ czekaj_na_reguly() {
     i=$((i + 1))
     metryki="$("$@" 2>/dev/null || true)"
 
-    if printf '%s\n' "$metryki" | metryka_istnieje; then
+    if metryka_istnieje "$metryki"; then
       byla=0
-      aktywne="$(printf '%s\n' "$metryki" | regul_w_stanie active)"
-      wstrzymane="$(printf '%s\n' "$metryki" | regul_w_stanie paused)"
+      aktywne="$(regul_w_stanie active "$metryki")"
+      wstrzymane="$(regul_w_stanie paused "$metryki")"
       BRAMKA_REGUL_AKTYWNE="$aktywne"
 
       if [ "$aktywne" -eq "$oczekiwana" ] && [ "$wstrzymane" -eq 0 ]; then
