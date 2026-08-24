@@ -1,6 +1,10 @@
 # Allowlist dla security-control-plane-egress.sh --strict
 # Po edycji: sudo bash ops/scripts/security-sync-cp-egress-hosts.sh && sudo bash ops/scripts/security-control-plane-egress.sh --strict
 #
+# X-36: ta lista ma teraz DWA zastosowania. Poza trybem --strict zwalnia też
+# swoje cele z licznika anty-skanu. Wpisanie tu hosta znaczy więc „ufamy mu",
+# a nie tylko „wolno z nim rozmawiać" — dopisuj świadomie.
+#
 # --- Git / deploy ---
 github.com
 api.github.com
@@ -11,6 +15,18 @@ registry-1.docker.io
 auth.docker.io
 production.cloudflare.docker.com
 index.docker.io
+# --- GHCR: stąd idą NASZE obrazy (X-36) ---
+# Brak tych dwóch pozycji sprawiał, że pobieranie obrazów wpadało pod licznik
+# anty-skanu. 2026-08-24 o 22:00 UTC przewróciło to wdrożenie #77: 63 dropy
+# do 140.82.121.33/34 w dwie minuty. `pkg-containers` to host WARSTW, nie tylko
+# manifestów — bez niego pull dalej szedłby przez licznik.
+ghcr.io
+pkg-containers.githubusercontent.com
+# --- Aktualizacje systemu (unattended-upgrades) ---
+# Bez nich --strict odciąłby serwer od poprawek bezpieczeństwa.
+archive.ubuntu.com
+security.ubuntu.com
+esm.ubuntu.com
 # --- Stripe ---
 api.stripe.com
 hooks.stripe.com

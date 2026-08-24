@@ -6,7 +6,7 @@
 | **Priorytet** | WYSOKI (alarm krytyczny palący się na zdrowym systemie) |
 | **Nakład** | M (~4 h) |
 | **Zależy od** | `X-28` (to jego plik reguł), `X-31` (dead man's switch) |
-| **Status** | **CZEKA NA WDROŻENIE — D2 uzyskane na produkcji** |
+| **Status** | **ZAMKNIĘTE — D3 uzyskane na produkcji 2026-08-24** |
 | **Data** | 2026-08-24 |
 
 ---
@@ -143,29 +143,70 @@ Cztery na cztery. Wyrażenie jest całkowite na żywych danych, nie na atrapie �
 i to jest istotne po `X-34`, gdzie atrapa różniła się od produkcji akurat
 w wymiarze, który decydował o wyniku.
 
-## Czego brakuje do D3
+## Strażnik
 
-**Strażnika nie ma i nie udaję, że jest.** Ma to być test, który czyta
-`rules.yaml` i czerwieni się na dwóch rzeczach:
+`apps/api/src/test/reguly-nie-myla-pustki-ze-zdrowiem.spec.ts` — **7 asercji**.
 
-- reguła, której wyrażenie jest wyłącznie filtrem (`==`, `>`, `<` bez `bool`),
-  **nie może** mieć `noDataState: Alerting` — to jest dokładnie ta konfiguracja,
-  która paliła się przez trzy tygodnie;
-- każda granica emisji z `metrics.service.ts` musi mieć swojego strażnika
-  ciszy — inaczej dołożenie czwartego `try/catch` po cichu odtworzy `H-23`.
+Sedno siedzi w jednej funkcji: `jestFiltrem()` odpowiada na pytanie, czy
+wyrażenie potrafi zwrócić pustkę przy ZDROWYM systemie. Porównanie bez `bool`
+filtruje; z `bool` zwraca 0/1 i próbka istnieje zawsze. Reguła filtrująca
+z `noDataState: Alerting` to dokładnie konfiguracja, która paliła się trzy
+tygodnie.
 
-Druga asercja jest trudniejsza i ważniejsza, bo pilnuje zgodności dwóch plików,
-a nie treści jednego. Bez niej `X-35` naprawia stan, a nie mechanizm.
+Poza tym: `noDataState: Alerting` zostaje wyłącznie na dead man's switchu
+z `vector(1)`; każdy sentinel istnieje naprawdę w `metrics.service.ts` i ma
+swoją regułę `absent()`; cisza całego eksportera ma osobnego strażnika.
 
-## Przepowiednia na wdrożenie
+**Asercja, na której zależy najbardziej** — `dołożenie nowej granicy emisji
+czerwieni ten test`. Wyciąga z `metrics.service.ts` wszystkie bloki
+`if (this.…)` i porównuje ze zdeklarowaną listą granic. Dziś są cztery: kolejka
+i backup mają sentinele, `runtimeErrors` i `httpMetrics` mają **zapisany powód,
+dlaczego nie mogą go mieć** (to liczniki — brak metryki znaczy „nic jej nie
+zwiększyło", nie ślepotę). Piąty blok warunkowy rozwala tę asercję i wymusza
+decyzję. Bez niej `H-23` wróciłby po cichu przy pierwszym nowym `try/catch`.
 
-- log bramki powie **„oczekuję 17 reguł"**, nie 14;
-- `VerrisPostgresBackupStale` wyjdzie ze stanu Alerting w pierwszej ewaluacji
-  po wczytaniu reguł (`for` opóźnia zapalenie, nie zgaszenie);
-- żadna z trzech nowych reguł nie zapali się.
+**Test sprawdza sam siebie.** Logika sprawdzająca jest wyciągnięta do funkcji
+i puszczana przez dwa wejścia: prawdziwy `rules.yaml` (ma przejść) oraz fixture
+odtwarzający regułę sprzed X-35 (ma zostać odrzucony, z konkretnym powodem).
+Bez tego drugiego wejścia test dowodziłby wyłącznie, że dzisiejszy plik go nie
+wyzwala — nie, że sprawdzenie cokolwiek łapie. To lekcja z `X-28` (plik zgodny
+z plikiem) i `X-34` (atrapa nie sięgająca progu, na którym usterka żyje).
 
-Gdyby backup nadal się palił, diagnoza jest zła i wracam do niej, a nie do
-przestawiania `noDataState`.
+**Czerwieni się na kodzie sprzed X-35: 4 z 7.** Zmierzone: odtworzyłem plik
+sprzed zmiany (14 reguł, stare wyrażenie, `noDataState: Alerting`), puściłem
+ten sam zestaw, przywróciłem plik i sprawdziłem sumę kontrolną.
+
+## Dowód D3 — produkcja, 2026-08-24
+
+Przepowiednia zapisana **przed** uruchomieniem: bramka powie „oczekuję 17
+reguł", numer próby będzie jednocyfrowy, a `VerrisPostgresBackupStale`
+przestanie się palić.
+
+```
+20:19:00Z  backup-stale  Sending alerts        ← ostatni przed restartem
+20:19:44Z  Starting scheduler                  ← restart grafany
+20:20:05Z  backup-stale  Sending alerts        ← 21 s PO: powiadomienie o ROZWIĄZANIU
+      ...  cisza
+20:54Z     grep -c 'backup-stale' w oknie 25 min → 0
+```
+
+Bramka, uruchomiona tą samą biblioteką co skrypt wdrożeniowy:
+**`OK: 17/17 reguł aktywnych (próba 1)`**.
+
+Kontrast jest dosadny: **dziewiętnaście wpisów w dziewiętnaście minut** przed
+restartem, co minutę jak w zegarku — i zero przez trzydzieści pięć minut po,
+czyli przez pełne okno `for: 30m`. Gdyby warunek nadal był spełniony, reguła
+zapaliłaby się ponownie o 20:49:44Z. Nie zapaliła.
+
+Wpis z 20:20:05Z to zgaszenie, nie zapalenie: `for` opóźnia zapalenie, nie
+zgaszenie, więc reguła fizycznie nie mogła wysłać alarmu 21 sekund po
+restarcie. Logger `ngalert.sender.router` wypisuje oba zdarzenia tą samą frazą.
+
+**Czego ten dowód NIE obejmuje.** Nie przeszedł pełnego
+`prod-deploy-ghcr.sh` — ta ścieżka jest w tej chwili niesprawna, bo dla
+bieżącego `main` nie ma obrazów w GHCR (`compose pull` → `not found`).
+Prowizjonowanie jest montowane z dysku, więc restart Grafany wystarczył do
+przeładowania reguł, ale to osobna sprawa i osobna pozycja w backlogu.
 
 ## Wpływ na inne pozycje
 
@@ -182,6 +223,12 @@ przestawiania `noDataState`.
 - `ops/observability/grafana/provisioning/alerting/rules.yaml` — wyrażenie
   całkowite w `verris-postgres-backup-stale`, `noDataState: OK`, nowa grupa
   `verris_cisza_eksporterow` z trzema regułami
+  (sha256 `09d6cb420da7808840fb90391330cf158cbf45483876518ece5d40aab4d1815f`,
+  zweryfikowana na produkcji — pierwszy raz w tym projekcie mamy dowód
+  zgodności repozytorium z hostem, a nie założenie)
+- `apps/api/src/test/reguly-nie-myla-pustki-ze-zdrowiem.spec.ts` — 7 asercji,
+  fixture sprzed X-35 odrzucany, 4/7 czerwone na starym pliku
 
 **Osiągnięty poziom dowodu:**
-- [x] D1 · [x] **D2 — cztery zapytania na produkcji** · [ ] D3 — wdrożenie · [ ] D4
+- [x] D1 · [x] D2 — cztery zapytania na produkcji · [x] **D3 — 35 minut ciszy
+  po restarcie, bramka 17/17** · [ ] D4

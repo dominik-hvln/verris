@@ -59,10 +59,23 @@ vg_is_db() {
 # Ścieżka zdalna na serwerze źródłowym. Bez apostrofów, cudzysłowów, backslashy,
 # dolarów, średników, nowych linii — czyli bez wszystkiego, czym da się wyjść
 # z cytowania w lftp albo w powłoce.
-readonly VG_RE_PATH='^[A-Za-z0-9 ._/-]{1,1024}$'
+# DŁUGOŚĆ SPRAWDZAMY OSOBNO, NIE KWANTYFIKATOREM. Poprzednia wersja miała
+# `{1,1024}`, co na Linuksie (glibc, RE_DUP_MAX 32767) działa, a na macOS
+# (BSD regcomp, RE_DUP_MAX **255**) wywala kompilację wyrażenia. `[[ =~ ]]`
+# zwraca wtedy 2, czyli „nie pasuje" — i guard odrzucał KAŻDĄ ścieżkę, także
+# `/home/klient/public_html`. W CI zielono, na maszynie deweloperskiej czerwono.
+#
+# Bezpieczeństwo na tym nie ucierpiało (odmowa jest stroną bezpieczną), ale
+# kontrola, która na czyimś komputerze mówi „nie" na wszystko, jest tak samo
+# bezużyteczna jak ta, która mówi „tak" — po prostu psuje się w drugą stronę.
+# Zestaw znaków i limit długości to zresztą dwie osobne reguły; sklejone
+# w jeden kwantyfikator dawały jedno miejsce na dwa różne błędy.
+readonly VG_RE_PATH='^[A-Za-z0-9 ._/-]+$'
+readonly VG_MAX_PATH=1024
 vg_is_path() {
   local p="$1"
   [ -z "$p" ] && return 0                       # brak ścieżki = domyślny katalog
+  [ "${#p}" -le "$VG_MAX_PATH" ] || return 1
   [[ "$p" =~ $VG_RE_PATH ]] || return 1
   [[ "$p" == *".."* ]] && return 1              # wyjście w górę drzewa
   return 0

@@ -150,7 +150,15 @@ $METRYKA_REGUL"*) return 0 ;;
 # mówiłby „do 60 s" jeszcze długo po tym, jak bramka czekałaby trzy razy
 # dłużej, i pierwsza osoba czytająca log w trakcie awarii zostałaby okłamana.
 okno_bramki_sekundy() {
-  echo $(( "${BRAMKA_REGUL_PROBY:-60}" * "${BRAMKA_REGUL_ODSTEP:-3}" ))
+  # BEZ CUDZYSŁOWÓW WEWNĄTRZ $(( )). Bash 5 je toleruje, bash 3.2 — ten, który
+  # macOS ma domyślnie do dziś — przewraca się na nich:
+  #     line 153: "60" * "3" : syntax error: operand expected
+  # W kontekście arytmetycznym nie ma dzielenia na słowa, więc te cudzysłowy
+  # niczego nie chroniły. Kosztowały wyłącznie możliwość uruchomienia testów na
+  # maszynie deweloperskiej: w CI (Ubuntu, bash 5) było zielono, lokalnie
+  # czerwono. To ta sama rodzina co X-34 — środowisko różniło się w wymiarze,
+  # który decydował o wyniku — tylko z odwróconymi rolami.
+  echo $(( ${BRAMKA_REGUL_PROBY:-60} * ${BRAMKA_REGUL_ODSTEP:-3} ))
 }
 
 czekaj_na_reguly() {
