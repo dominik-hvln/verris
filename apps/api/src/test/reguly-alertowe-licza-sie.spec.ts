@@ -61,8 +61,28 @@ function kod(sciezka: string): string {
     .join('\n');
 }
 
+/**
+ * Treść skryptu RAZEM z bibliotekami, które on sam wczytuje.
+ *
+ * Dopisane przy `X-33`, gdy logika bramki przeniosła się do
+ * `ops/scripts/lib/bramka-regul-alertowych.sh` — bo tylko w osobnym pliku dało
+ * się ją przejechać testem bez Grafany. Strażnik, który czytałby wyłącznie
+ * `prod-deploy-ghcr.sh`, zacząłby wtedy pilnować mniej niż wcześniej, nie
+ * mówiąc o tym ani słowem. Czytamy to, co NAPRAWDĘ się wykonuje.
+ */
+function kodZBibliotekami(sciezka: string): string {
+  const korzen = join(sciezka, '..', '..', '..');
+  const tresc = kod(sciezka);
+  const biblioteki = [...tresc.matchAll(/^\s*\.\s+(ops\/scripts\/lib\/[\w.-]+\.sh)/gm)].map(
+    (m) => m[1],
+  );
+  expect(biblioteki.length).toBeGreaterThan(0);
+  return [tresc, ...biblioteki.map((b) => kod(join(korzen, b)))].join('\n');
+}
+
 describe('X-30 — wdrożenie pyta Grafanę, czy reguły się liczą', () => {
-  const skrypt = kod(SKRYPT);
+  const wdrozenie = kod(SKRYPT);
+  const skrypt = kodZBibliotekami(SKRYPT);
 
   it('strażnik czyta właściwy plik', () => {
     expect(skrypt).toContain('OBS_SERVICES=');
@@ -75,13 +95,19 @@ describe('X-30 — wdrożenie pyta Grafanę, czy reguły się liczą', () => {
     expect(skrypt).toContain('grafana_alerting_rule_evaluation_failures_total');
   });
 
-  it('odrzuca wdrożenie, w którym Grafana nie ma ANI JEDNEJ reguły', () => {
+  it('odrzuca wdrożenie, w którym Grafana nie ma KOMPLETU reguł', () => {
     // Pusty provisioning wygląda identycznie jak zdrowa Grafana: /api/health
     // odpowiada, kontener stoi, log nie krzyczy.
+    //
+    // Po `X-33` warunek jest MOCNIEJSZY niż „więcej niż zero": dziewięć reguł
+    // z czternastu też jest awarią, a stara wersja puszczała to na zielono.
+    // Liczba odniesienia liczona jest z rules.yaml, nie wpisana w skrypt —
+    // inaczej powstałoby szóste bliźniacze miejsce w tym projekcie.
     expect(skrypt).toContain('grafana_alerting_rule_group_rules');
-    const od = skrypt.indexOf('grafana_alerting_rule_group_rules');
-    const fragment = skrypt.slice(od, od + 600);
-    expect(fragment).toMatch(/-le 0|-lt 1|-eq 0/);
+    expect(wdrozenie).toContain('policz_reguly_w_pliku');
+    const od = wdrozenie.indexOf('czekaj_na_reguly "$OCZEKIWANE"');
+    expect(od).toBeGreaterThan(-1);
+    const fragment = wdrozenie.slice(od, od + 800);
     expect(fragment).toContain('exit 1');
   });
 

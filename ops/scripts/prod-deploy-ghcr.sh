@@ -246,14 +246,47 @@ if [ "$OK" = "1" ]; then
       | awk -v m="$1" '$0 ~ "^" m "[{ ]" { s += $NF } END { printf "%.0f", s + 0 }'
   }
 
-  REGUL="$(liczba_metryki grafana_alerting_rule_group_rules)"
-  if [ "${REGUL:-0}" -le 0 ]; then
-    echo "[deploy] FAIL: Grafana nie ma ANI JEDNEJ reguły alertowej po provisioningu."
-    echo "[deploy] Sprawdź ops/observability/grafana/provisioning/alerting/rules.yaml i log:"
-    echo "[deploy]   docker compose logs --tail=200 grafana | grep provisioning"
+  # 4.6a) X-33 — „nie ma" to nie to samo co „jeszcze nie ma".
+  #
+  #       Wdrożenie #70 padło DOKŁADNIE TUTAJ przy czternastu działających
+  #       regułach. `grafana_alerting_rule_group_rules` to GaugeVec ustawiany
+  #       dopiero w `processTick()` schedulera alertów; do pierwszego taktu
+  #       (domyślnie 10 s) nie ma go w /metrics W OGÓLE — a suma z pustki
+  #       wygląda tak samo jak katastrofa. Poprzednia wersja czytała metrykę
+  #       sekundę po tym, jak /api/health odpowiedziało: mierzyła szybkość
+  #       startu, a meldowała o poprawności prowizjonowania.
+  #
+  #       Teraz czekamy, aż metryka się pojawi, i dopiero wtedy porównujemy.
+  #       Liczba odniesienia liczona jest NA MIEJSCU z rules.yaml — wpisanie
+  #       „14" do skryptu byłoby szóstym bliźniaczym miejscem w tym projekcie.
+  #
+  #       Logika siedzi w osobnym pliku, bo tylko wtedy da się ją przejechać
+  #       testem bez Grafany i bez czekania minuty. Szczegóły: docs/zadania/X-33.
+  # shellcheck source=ops/scripts/lib/bramka-regul-alertowych.sh
+  . ops/scripts/lib/bramka-regul-alertowych.sh
+
+  REGULY_YAML="ops/observability/grafana/provisioning/alerting/rules.yaml"
+  OCZEKIWANE="$(policz_reguly_w_pliku "$REGULY_YAML")"
+  if [ "${OCZEKIWANE:-0}" -le 0 ]; then
+    echo "[deploy] FAIL: nie umiem policzyć reguł w ${REGULY_YAML}."
+    echo "[deploy] Bramka bez liczby odniesienia niczego nie sprawdza — przerywam."
     exit 1
   fi
-  echo "[deploy] Grafana ma ${REGUL} reguł alertowych."
+
+  odczyt_metryk_grafany() {
+    compose exec -T grafana sh -c 'wget -qO- http://127.0.0.1:3000/metrics 2>/dev/null'
+  }
+
+  echo "[deploy] czekam na scheduler alertów (oczekuję ${OCZEKIWANE} reguł, do 60 s)…"
+  if ! czekaj_na_reguly "$OCZEKIWANE" odczyt_metryk_grafany; then
+    echo "[deploy] FAIL: reguły alertowe nie są w stanie, w jakim powinny być."
+    echo "[deploy]   ${BRAMKA_REGUL_POWOD}"
+    echo "[deploy] Sprawdź ${REGULY_YAML} i log:"
+    echo "[deploy]   docker compose -f docker-compose.prod.yml -f docker-compose.ghcr.yml logs --tail=200 grafana | grep -i provision"
+    echo "[deploy] Aplikacja ${IMAGE_TAG} jest wdrożona i zdrowa — problem dotyczy alertów."
+    exit 1
+  fi
+  echo "[deploy] ${BRAMKA_REGUL_POWOD}"
 
   BLEDY_PRZED="$(liczba_metryki grafana_alerting_rule_evaluation_failures_total)"
   sleep 75
