@@ -6,7 +6,7 @@
 | **Priorytet** | WYSOKI (usterka w bramce, którą sam dopisałem dzień wcześniej) |
 | **Nakład** | S (~2 h) |
 | **Zależy od** | `X-33` (to jego kod) |
-| **Status** | zamknięte w kodzie, **D3 przy pierwszym zielonym wdrożeniu** |
+| **Status** | **ZAMKNIĘTE — D3 uzyskane na wdrożeniu #73** |
 | **Data** | 2026-08-24 |
 
 ---
@@ -159,18 +159,39 @@ kod działa albo nie.
 
 **Czerwieni się na kodzie sprzed X-34: 7 z 13.**
 
-## Czego to NIE dowodzi
+## Dowód D3 — wdrożenie #73
 
-Że działa na produkcji. Dowód **D3** powstanie przy pierwszym zielonym
-wdrożeniu z tą biblioteką — i tym razem oczekuję **niskiego numeru próby**
-(kilkanaście sekund, nie pięćdziesiąt cztery). Jeżeli znowu zobaczę
-dwucyfrowy numer, to znaczy, że nadal czegoś nie rozumiem.
+Przed wdrożeniem zapisałem **falsyfikowalną przepowiednię**: jeżeli diagnoza
+jest trafna, numer próby będzie **niski** (kilkanaście sekund), a nie
+pięćdziesiąt cztery; dwucyfrowy numer oznaczałby, że nadal czegoś nie rozumiem.
+
+```
+10:45:36  [deploy] restart obserwowalności (prometheus grafana)…
+10:45:43  [deploy] czekam na scheduler alertów (oczekuję 14 reguł, do 180 s)…
+10:45:53  [deploy] OK: 14/14 reguł aktywnych (próba 4).
+10:47:08  [deploy] reguły liczą się bez błędów (0 → 0).
+```
+
+**Próba 4. Dziesięć sekund.** Zgadza się co do rzędu wielkości z logiem samej
+Grafany (scheduler startuje ~4 s po restarcie, takt 10 s) — czyli z jedynym
+pomiarem w całej tej historii, który nie pochodził z mojego zepsutego odczytu.
+
+Wdrożenie trwało **3 m 08 s**. Dla porównania: #71 — 3 m 58 s (z czego
+54 sekundy to było czekanie na własne kłamstwo), #72 — 4 m 54 s zakończone
+błędem.
+
+Przepowiednia się sprawdziła, więc diagnoza stoi. Gdyby numer wyszedł
+dwucyfrowy, wróciłbym do diagnozy zamiast do pokrętła — i to jest jedyny powód,
+dla którego warto było ją zapisać wcześniej.
+
+**To domyka też `X-33`:** jego bramka po raz pierwszy przeszła dlatego, że
+działa, a nie dlatego, że miała szczęście.
 
 ## Wpływ na inne pozycje
 
 | ID | Wpływ |
 |---|---|
-| `X-33` | **D3 cofnięte** — wdrożenie #71 przeszło przypadkiem, nie dlatego, że bramka działała |
+| `X-33` | D3 cofnięte po #71 (przeszło przypadkiem) i **przywrócone po #73** — tym razem na zrozumianym mechanizmie |
 | `X-30` | jego bramka; nadal ta sama intencja |
 
 ## Dowód po
@@ -181,4 +202,4 @@ dwucyfrowy numer, to znaczy, że nadal czegoś nie rozumiem.
   13 asercji, atrapa > 64 KB, harness z `set -Eeuo pipefail`
 
 **Osiągnięty poziom dowodu:**
-- [x] D1 · [x] D2 · [ ] D3 · [ ] D4
+- [x] D1 · [x] D2 · [x] **D3 — wdrożenie #73, „próba 4"** · [ ] D4
