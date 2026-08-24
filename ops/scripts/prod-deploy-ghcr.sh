@@ -277,7 +277,7 @@ if [ "$OK" = "1" ]; then
     compose exec -T grafana sh -c 'wget -qO- http://127.0.0.1:3000/metrics 2>/dev/null'
   }
 
-  echo "[deploy] czekam na scheduler alertów (oczekuję ${OCZEKIWANE} reguł, do 60 s)…"
+  echo "[deploy] czekam na scheduler alertów (oczekuję ${OCZEKIWANE} reguł, do $(okno_bramki_sekundy) s)…"
   if ! czekaj_na_reguly "$OCZEKIWANE" odczyt_metryk_grafany; then
     echo "[deploy] FAIL: reguły alertowe nie są w stanie, w jakim powinny być."
     echo "[deploy]   ${BRAMKA_REGUL_POWOD}"

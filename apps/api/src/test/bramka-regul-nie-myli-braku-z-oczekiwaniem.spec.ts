@@ -198,6 +198,35 @@ describe('X-33 — bramka czeka na scheduler, zamiast ścigać się z nim', () =
     expect(Number(wynik)).toBeGreaterThan(0);
   });
 
+  it('okno czekania ma TRZYKROTNY zapas nad tym, co zmierzyliśmy na produkcji', () => {
+    // Wdrożenie #71 — pierwsze z tą bramką — przeszło na „próbie 17", czyli po
+    // 54 sekundach. Zakładałem dziesięć. Zapas wynosił trzy próby.
+    //
+    // Ta asercja pilnuje, żeby nikt (łącznie ze mną za pół roku) nie skrócił
+    // okna z powrotem „bo deploy trwa długo". Deploy NIE trwa dłużej: pętla
+    // kończy się w chwili, w której reguły się zgadzają. Dłuższe okno kosztuje
+    // wyłącznie przy prawdziwej awarii prowizjonowania.
+    const ZMIERZONE_S = 54;
+    const okno = Number(
+      execFileSync('bash', ['-c', `. "${BIBLIOTEKA}"; okno_bramki_sekundy`], {
+        encoding: 'utf8',
+      }).trim(),
+    );
+    expect(okno).toBeGreaterThanOrEqual(ZMIERZONE_S * 3);
+  });
+
+  it('log wdrożenia podaje PRAWDZIWE okno, a nie liczbę wpisaną obok', () => {
+    // Gdyby skrypt miał własną liczbę w komunikacie, log mówiłby „do 60 s"
+    // jeszcze długo po zmianie bramki — i okłamałby pierwszą osobę, która
+    // czyta go w trakcie awarii. Klasyczne bliźniacze miejsce.
+    const skrypt = require('fs').readFileSync(
+      join(KORZEN, 'ops', 'scripts', 'prod-deploy-ghcr.sh'),
+      'utf8',
+    );
+    expect(skrypt).toContain('okno_bramki_sekundy');
+    expect(skrypt).not.toMatch(/oczekuj[eę].*regu[łl].*do \d+ s/);
+  });
+
   it('skrypt wdrożeniowy używa tej biblioteki, a nie własnej kopii logiki', () => {
     // Bez tej asercji biblioteka mogłaby być zielona i nieużywana — a bramka
     // na produkcji nadal ścigałaby się ze schedulerem.

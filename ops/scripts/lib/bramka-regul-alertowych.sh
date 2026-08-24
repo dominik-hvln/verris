@@ -69,10 +69,41 @@ metryka_istnieje() {
 #
 # Odstęp i liczba prób są w zmiennych środowiskowych, żeby test mógł przejść
 # tę samą ścieżkę bez czekania minuty.
+#
+# SKĄD 60 PRÓB (180 s), a nie 20 (60 s), jak w pierwszej wersji.
+#
+# Wdrożenie #71 — pierwsze z tą bramką — przeszło, ale w logu stanęło:
+#
+#     09:30:43  czekam na scheduler alertów (oczekuję 14 reguł, do 60 s)…
+#     09:31:37  OK: 14/14 reguł aktywnych (próba 17).
+#
+# Metryka pojawiła się po 54 sekundach, nie po dziesięciu, jak zakładałem
+# z domyślnego taktu schedulera. Zapas wynosił TRZY PRÓBY. Przy odrobinę
+# wolniejszym starcie — więcej reguł, obciążony serwer — kolejne wdrożenie
+# padłoby dokładnie tak jak #70 i z dokładnie tego samego nie-powodu.
+#
+# Trzykrotny zapas, a nie dwukrotny, bo 54 s to JEDNA OBSERWACJA, nie rozkład.
+# Nie wiem, czy to był dobry dzień Grafany, czy zły.
+#
+# Dłuższe okno NIE SPOWALNIA zdrowego wdrożenia ani o sekundę: pętla kończy
+# się w chwili, w której reguły się zgadzają. Płacimy wyłącznie wtedy, gdy
+# prowizjonowanie jest naprawdę zepsute — błąd przyjdzie po trzech minutach
+# zamiast po jednej. To dobry kurs wymiany: fałszywy alarm uczy klikać
+# „re-run", a dwie minuty dłuższego czekania na prawdziwą awarię nie uczą
+# niczego.
+#
+# Okno podaje `okno_bramki_sekundy` i TYLKO ona. Skrypt wdrożeniowy wypisuje
+# tę liczbę do logu — gdyby miał własną, powstałoby bliźniacze miejsce: log
+# mówiłby „do 60 s" jeszcze długo po tym, jak bramka czekałaby trzy razy
+# dłużej, i pierwsza osoba czytająca log w trakcie awarii zostałaby okłamana.
+okno_bramki_sekundy() {
+  echo $(( "${BRAMKA_REGUL_PROBY:-60}" * "${BRAMKA_REGUL_ODSTEP:-3}" ))
+}
+
 czekaj_na_reguly() {
   local oczekiwana="$1"
   shift
-  local proby="${BRAMKA_REGUL_PROBY:-20}"
+  local proby="${BRAMKA_REGUL_PROBY:-60}"
   local odstep="${BRAMKA_REGUL_ODSTEP:-3}"
 
   local metryki='' aktywne=0 wstrzymane=0 byla=1 i=0

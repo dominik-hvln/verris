@@ -6,7 +6,7 @@
 | **Priorytet** | WYSOKI (bramka fałszywie alarmująca to bramka wyłączona) |
 | **Nakład** | S (~2 h) |
 | **Zależy od** | `X-30` (to jego bramka) |
-| **Status** | zamknięte w kodzie, **D3 przy pierwszym zielonym wdrożeniu** |
+| **Status** | **ZAMKNIĘTE — D3 uzyskane na wdrożeniu #71** |
 | **Data** | 2026-08-23 |
 | **Decyzja** | właściciel produktu wybrał „czekaj + porównaj z `rules.yaml`" |
 
@@ -89,9 +89,10 @@ wczytywanym pliku. `prod-deploy-ghcr.sh` ją `source`'uje.
 
 ### Czekamy, zamiast ścigać się
 
-`czekaj_na_reguly` odpytuje Grafanę do 20 razy co 3 s (60 s). Kończy się
-sukcesem, gdy liczba reguł aktywnych zgadza się z oczekiwaną i żadna nie wisi
-w stanie `paused`.
+`czekaj_na_reguly` odpytuje Grafanę do 60 razy co 3 s (**180 s** — pierwotnie
+60 s, patrz niżej: wdrożenie #71 pokazało, że to za mało). Kończy się sukcesem,
+gdy liczba reguł aktywnych zgadza się z oczekiwaną i żadna nie wisi w stanie
+`paused`.
 
 To **nie jest poluzowanie bramki**. Stara wersja przepuszczała dziewięć reguł
 z czternastu (bo 9 > 0) i odrzucała czternaście z czternastu (bo mierzyła za
@@ -126,7 +127,7 @@ systemu, nie odwrotnie.
 ## Strażnik
 
 `apps/api/src/test/bramka-regul-nie-myli-braku-z-oczekiwaniem.spec.ts` —
-9 asercji.
+11 asercji.
 
 **Ten strażnik wygląda inaczej niż poprzednie i to jest jego sedno.** Strażnik
 `X-28` sprawdzał, że uid użyty w `rules.yaml` występuje w `datasources.yml` —
@@ -144,7 +145,8 @@ i naprawdę zerowa (inny komunikat!) · prowizjonowanie częściowe · reguła
 `paused` · komplet za pierwszym razem · liczba odniesienia zgodna z `rules.yaml`
 · skrypt wdrożeniowy faktycznie używa tej biblioteki, a nie własnej kopii.
 
-**Czerwieni się na starym kodzie: 9 z 9.**
+**Czerwieni się na starym kodzie: 9 z 9** (z 9 asercji pierwszej wersji; po
+podniesieniu okna jest ich 11).
 
 Sam ten wynik byłby jednak mało pouczający — na starym stanie repozytorium
 biblioteki nie ma wcale, więc wszystko wysypuje się na braku pliku. Dlatego
@@ -174,18 +176,52 @@ z bibliotekami, które skrypt sam wczytuje** — czyli to, co naprawdę się
 wykonuje — a asercja o pustym provisioningu została **wzmocniona** z „więcej niż
 zero" do „komplet reguł".
 
-## Czego to NIE dowodzi
-
-Że działa na produkcji. Dowód **D3** powstanie przy pierwszym **zielonym**
-wdrożeniu, w którego logu stanie:
+## Dowód D3 — wdrożenie #71, i mocniejszy, niż zakładałem
 
 ```
-[deploy] czekam na scheduler alertów (oczekuję 14 reguł, do 60 s)…
-[deploy] OK: 14/14 reguł aktywnych (próba N).
+09:30:43  [deploy] czekam na scheduler alertów (oczekuję 14 reguł, do 60 s)…
+09:31:37  [deploy] OK: 14/14 reguł aktywnych (próba 17).
+09:32:52  [deploy] reguły liczą się bez błędów (0 → 0).
 ```
 
-Jeżeli `N` będzie większe od 1, będziemy mieli w logu bezpośredni dowód, że
-wyścig był prawdziwy.
+**Próba siedemnasta.** Metryka pojawiła się **54 sekundy** po restarcie, nie
+siedem i nie dziesięć. To nie jest dowód „bramka przeszła" — to dowód, że
+w tym samym miejscu poprzednia wersja padłaby **po raz drugi**, na zdrowym
+systemie.
+
+Wdrożenie trwało 3 m 58 s zamiast ~3 m. Cała różnica to te 54 sekundy
+czekania. Uczciwy koszt.
+
+## Ten sam log wykrył błąd w mojej własnej liczbie
+
+Zakładałem takt schedulera ~10 s i ustawiłem okno na 60 s, czyli 20 prób.
+Zużyliśmy 17. **Zapas wynosił trzy próby — dziewięć sekund.**
+
+Przy odrobinę wolniejszym starcie Grafany kolejne wdrożenie padłoby dokładnie
+tak jak #70 i z dokładnie tego samego nie-powodu. Mechanizm był dobry, liczba
+dobrana na wyczucie, a wyczucie o 80% za optymistyczne.
+
+**Okno podniesione do 180 s** (60 prób co 3 s) — trzykrotny zapas, nie
+dwukrotny, bo 54 s to **jedna obserwacja, nie rozkład**; nie wiem, czy to był
+dobry dzień Grafany, czy zły.
+
+Dłuższe okno **nie spowalnia zdrowego wdrożenia ani o sekundę**: pętla kończy
+się w chwili, w której reguły się zgadzają. Płacimy wyłącznie przy prawdziwej
+awarii prowizjonowania — błąd przyjdzie po trzech minutach zamiast po jednej.
+To dobry kurs wymiany: fałszywy alarm uczy klikać „re-run", a dwie minuty
+dłuższego czekania na prawdziwą awarię nie uczą niczego.
+
+### I od razu bliźniacze miejsce, którego omal nie zrobiłem
+
+Pierwsza wersja poprawki wpisywała `180` do komunikatu w skrypcie
+wdrożeniowym, a `60` prób do biblioteki. Log mówiłby „do 180 s" niezależnie od
+tego, ile bramka naprawdę czeka — i okłamałby pierwszą osobę czytającą go
+w trakcie awarii. Okno podaje teraz `okno_bramki_sekundy` i tylko ona; asercja
+pilnuje, żeby w skrypcie nie pojawiła się druga liczba.
+
+Dwie dodatkowe asercje (razem **11**): okno ma co najmniej trzykrotny zapas nad
+zmierzonymi 54 s, a skrypt nie ma własnej kopii tej liczby. Obie czerwienią się
+na kodzie sprzed #71.
 
 ## Stan produkcji po #70
 
@@ -209,13 +245,14 @@ a czternaście reguł się liczy. Wdrożenie było **udane**; nieudana była bra
   `policz_reguly_w_pliku`, `regul_w_stanie`, `metryka_istnieje`
 - `ops/scripts/prod-deploy-ghcr.sh` — krok 4.6a
 - `apps/api/src/test/bramka-regul-nie-myli-braku-z-oczekiwaniem.spec.ts` —
-  9 asercji, 9 czerwonych na starym stanie repozytorium (7 przy podstawionej
-  starej semantyce)
+  11 asercji, 9 czerwonych na starym stanie repozytorium (7 przy podstawionej
+  starej semantyce), 2 czerwone na kodzie sprzed #71
+- `ops/scripts/lib/bramka-regul-alertowych.sh` — `okno_bramki_sekundy`
+  (jedno źródło okna, żeby log nie kłamał)
 - `apps/api/src/test/reguly-alertowe-licza-sie.spec.ts` — czyta skrypt razem
   z bibliotekami
 
 **Osiągnięty poziom dowodu:**
-- [x] D1 · [x] D2 · [ ] D3 · [ ] D4
+- [x] D1 · [x] D2 · [x] **D3 — wdrożenie #71, „próba 17"** · [ ] D4
 
-**Stan w macierzy po:** `CZĘŚCIOWE` / `CZĘŚCIOWY` — do pierwszego zielonego
-wdrożenia.
+**Stan w macierzy po:** `DZIAŁA` / `PARYTET`.
