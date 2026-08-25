@@ -96,13 +96,28 @@ echo "--- szczyt: najwiecej NOWYCH polaczen w jednej minucie, per kontener ---"
 echo "(ta liczba wyznacza prog anty-skanu w etapie 2; dzisiejsze 40 dobrano"
 echo " dla calego hosta jako JEDNEGO wiadra, nie dla pojedynczego kontenera)"
 printf '%8s  %-16s %-20s %s\n' "POLACZEN" "ADRES" "MINUTA" "KONTENER"
-printf '%s\n' "$WPISY" \
+
+# Znacznik czasu wycinamy jako PIERWSZE 15 ZNAKÓW wiersza — tyle ma domyślny
+# format journalctl („Aug 25 11:46:47"). To założenie o formacie, nie o treści,
+# więc może kiedyś przestać być prawdziwe: inne locale, `--output=short-iso`,
+# inna dystrybucja. Wtedy `sed` nie dopasuje nic i sekcja wyjdzie pusta.
+#
+# Pusta sekcja przy NIEZEROWEJ liczbie wpisów znaczyłaby „brak szczytów",
+# a naprawdę znaczyłaby „nie umiem odczytać dat". Dlatego liczymy wynik
+# i mówimy wprost, gdy się nie udało.
+SZCZYTY="$(printf '%s\n' "$WPISY" \
   | sed -n 's/^\(.\{15\}\).*SRC=\([0-9.]*\).*/\2 \1/p' \
   | sed 's/:[0-9][0-9]$//' \
-  | sort | uniq -c | sort -rn | head -10 \
-  | while read -r ile ip minuta; do
-      printf '%8s  %-16s %-20s %s\n' "$ile" "$ip" "$minuta" "${NAZWA[$ip]:-?}"
-    done
+  | sort | uniq -c | sort -rn | head -10 || true)"
+
+if [ -z "$SZCZYTY" ]; then
+  echo "  (nie udało się odczytać znaczników czasu — sprawdź format:"
+  echo "   journalctl -k -n 1 --no-pager | head -c 40)"
+else
+  printf '%s\n' "$SZCZYTY" | while read -r ile ip minuta; do
+    printf '%8s  %-16s %-20s %s\n' "$ile" "$ip" "$minuta" "${NAZWA[$ip]:-?}"
+  done
+fi
 
 echo
 echo "=== KONIEC RAPORTU ==="
