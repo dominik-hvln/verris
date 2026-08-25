@@ -44,6 +44,28 @@ export async function fetchUserDomainsPortfolio(): Promise<
   }
 }
 
+/**
+ * Jedno zapytanie do API z błędem ZACHOWANYM, nie połkniętym.
+ *
+ * X-39. Wcześniej pięć z siedmiu zapytań snapshotu kończyło się
+ * `.catch(() => null)` albo `.catch(() => [])`. Awaria stawała się wtedy
+ * nieodróżnialna od prawdziwej pustki, a panel pokazywał ją klientowi jako
+ * fakt: saldo `0,00 K`, `Punkty EKO: 0`. To nie jest łagodne zachowanie przy
+ * awarii — to jest fałszywa informacja o cudzych pieniądzach, podana
+ * z taką samą pewnością jak prawdziwa.
+ *
+ * Zwracany kształt jest ten sam, którego od początku używały `/services`
+ * i `/domains` — po prostu przestaje być przywilejem dwóch zapytań.
+ */
+async function sprobuj<T>(zapytanie: () => Promise<T>): Promise<DashboardFetchResult<T>> {
+  try {
+    return { ok: true, data: await zapytanie() };
+  } catch (err) {
+    const { message, status } = describeApiError(err);
+    return { ok: false, error: message, status };
+  }
+}
+
 export type DashboardSnapshot = {
   profile: UserProfile | null;
   services: ServiceSummaryDto[];
@@ -53,41 +75,56 @@ export type DashboardSnapshot = {
   ecoLedger: EcoLedgerRowDto[];
   tickets: TicketSummary[];
   openTickets: number;
-  errors: { services?: string; domains?: string };
+  /**
+   * Po jednym kluczu na KAŻDE zapytanie snapshotu, nie tylko na te dwa,
+   * które kiedyś ktoś uznał za ważne. Brak klucza znaczy „udało się";
+   * obecność znaczy „nie wiemy" — i to jest inna rzecz niż „zero".
+   */
+  errors: {
+    profile?: string;
+    services?: string;
+    domains?: string;
+    ecoProgram?: string;
+    wallet?: string;
+    ecoLedger?: string;
+    tickets?: string;
+  };
 };
 
 export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
+  const [profileRes, servicesRes, domainsRes, ecoProgramRes, walletRes, ecoLedgerRes, ticketsRes] =
+    await Promise.all([
+      sprobuj(() => fetchUserProfile()),
+      fetchUserServicesSummary(),
+      fetchUserDomainsPortfolio(),
+      sprobuj(() => apiFetch<EcoProgramOverview>('/users/me/eco-program')),
+      sprobuj(() => getWalletSummary()),
+      sprobuj(() => apiFetch<EcoLedgerRowDto[]>('/users/me/eco-ledger')),
+      sprobuj(() => fetchTickets()),
+    ]);
+
   const errors: DashboardSnapshot['errors'] = {};
+  if (!profileRes.ok) errors.profile = profileRes.error;
+  if (!servicesRes.ok) errors.services = servicesRes.error;
+  if (!domainsRes.ok) errors.domains = domainsRes.error;
+  if (!ecoProgramRes.ok) errors.ecoProgram = ecoProgramRes.error;
+  if (!walletRes.ok) errors.wallet = walletRes.error;
+  if (!ecoLedgerRes.ok) errors.ecoLedger = ecoLedgerRes.error;
+  if (!ticketsRes.ok) errors.tickets = ticketsRes.error;
 
-  const [profile, servicesRes, domainsRes, ecoProgram, wallet, ecoLedger, tickets] = await Promise.all([
-    fetchUserProfile().catch(() => null),
-    fetchUserServicesSummary(),
-    fetchUserDomainsPortfolio(),
-    apiFetch<EcoProgramOverview>('/users/me/eco-program').catch(() => null),
-    getWalletSummary().catch(() => null),
-    apiFetch<EcoLedgerRowDto[]>('/users/me/eco-ledger').catch(() => [] as EcoLedgerRowDto[]),
-    fetchTickets().catch(() => [] as TicketSummary[]),
-  ]);
-
-  let services: ServiceSummaryDto[] = [];
-  if (servicesRes.ok) services = servicesRes.data;
-  else errors.services = servicesRes.error;
-
-  let domains: DomainDto[] = [];
-  if (domainsRes.ok) domains = domainsRes.data;
-  else errors.domains = domainsRes.error;
-
-  const openTickets = tickets.filter((t) => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length;
+  // Wartości zastępcze zostają — widok musi się wyrenderować. Różnica polega
+  // na tym, że teraz obok każdej stoi informacja, czy jest prawdziwa.
+  const tickets = ticketsRes.ok ? ticketsRes.data : [];
 
   return {
-    profile,
-    services,
-    domains,
-    ecoProgram,
-    wallet,
-    ecoLedger,
+    profile: profileRes.ok ? profileRes.data : null,
+    services: servicesRes.ok ? servicesRes.data : [],
+    domains: domainsRes.ok ? domainsRes.data : [],
+    ecoProgram: ecoProgramRes.ok ? ecoProgramRes.data : null,
+    wallet: walletRes.ok ? walletRes.data : null,
+    ecoLedger: ecoLedgerRes.ok ? ecoLedgerRes.data : [],
     tickets,
-    openTickets,
+    openTickets: tickets.filter((t) => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length,
     errors,
   };
 }

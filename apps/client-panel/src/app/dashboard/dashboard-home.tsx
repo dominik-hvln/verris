@@ -24,7 +24,24 @@ export function DashboardHome({ snapshot }: { snapshot: DashboardSnapshot }) {
   const firstName = snapshot.profile?.firstName || 'Użytkowniku';
   const servicesList = snapshot.services;
   const domainsList = snapshot.domains;
-  const hasErrors = Boolean(snapshot.errors.services || snapshot.errors.domains);
+  // Spis wszystkiego, co nie wróciło. Kolejność jest kolejnością kafelków,
+  // żeby baner czytał się razem z tym, co pod nim. Wcześniej ta lista miała
+  // dwie pozycje na sztywno, a pięć pozostałych awarii nie miało jak się
+  // pokazać — patrz X-39.
+  const awarie = (
+    [
+      ['Profil i saldo', snapshot.errors.profile],
+      ['Usługi', snapshot.errors.services],
+      ['Domeny', snapshot.errors.domains],
+      ['Program EKO', snapshot.errors.ecoProgram],
+      ['Historia portfela', snapshot.errors.wallet],
+      ['Historia punktów EKO', snapshot.errors.ecoLedger],
+      ['Zgłoszenia', snapshot.errors.tickets],
+    ] as ReadonlyArray<readonly [string, string | undefined]>
+  ).filter((pozycja): pozycja is readonly [string, string] => Boolean(pozycja[1]));
+
+  // Punkty EKO mają dwa źródła; „nie wiemy" dopiero gdy zawiodły OBA.
+  const ecoNieznane = Boolean(snapshot.errors.profile && snapshot.errors.ecoProgram);
   const activeServices = servicesList.filter((s) => s.status === 'ACTIVE' && s.account).length;
   const autoscalingCount = servicesList.filter((s) => s.autoscalingEnabled).length;
   const ecoPoints = snapshot.profile?.ecoPoints ?? snapshot.ecoProgram?.ecoPoints ?? 0;
@@ -65,13 +82,16 @@ export function DashboardHome({ snapshot }: { snapshot: DashboardSnapshot }) {
         </div>
       </div>
 
-      {hasErrors ? (
+      {awarie.length > 0 ? (
         <div className="flex items-start gap-3 rounded-2xl border border-rose-400/30 bg-rose-500/5 p-4 text-sm text-rose-200">
           <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-rose-300" aria-hidden />
           <div className="space-y-1">
             <p className="font-semibold text-rose-100">Część danych jest chwilowo niedostępna</p>
-            {snapshot.errors.services ? <p>Usługi: {snapshot.errors.services}</p> : null}
-            {snapshot.errors.domains ? <p>Domeny: {snapshot.errors.domains}</p> : null}
+            {awarie.map(([etykieta, komunikat]) => (
+              <p key={etykieta}>
+                {etykieta}: {komunikat}
+              </p>
+            ))}
           </div>
         </div>
       ) : null}
@@ -79,7 +99,14 @@ export function DashboardHome({ snapshot }: { snapshot: DashboardSnapshot }) {
       <div
         className={`grid gap-4 sm:grid-cols-2 ${clientFeatures.eco ? 'lg:grid-cols-5' : 'lg:grid-cols-4'}`}
       >
-        <StatCard label="Saldo portfela" value={formatCredits(snapshot.profile?.walletBalance ?? 0)} description={CREDIT_RATE_INFO} icon={Wallet} />
+        <StatCard
+          label="Saldo portfela"
+          value={
+            snapshot.errors.profile ? '—' : formatCredits(snapshot.profile?.walletBalance ?? 0)
+          }
+          description={snapshot.errors.profile ? 'Błąd pobierania' : CREDIT_RATE_INFO}
+          icon={Wallet}
+        />
         <StatCard
           label="Usługi aktywne"
           value={snapshot.errors.services ? '—' : String(activeServices)}
@@ -101,11 +128,13 @@ export function DashboardHome({ snapshot }: { snapshot: DashboardSnapshot }) {
         {clientFeatures.eco ? (
           <StatCard
             label="Punkty EKO"
-            value={String(ecoPoints)}
+            value={ecoNieznane ? '—' : String(ecoPoints)}
             description={
-              snapshot.ecoProgram?.isEcoProgramParticipant
-                ? 'Program aktywny'
-                : 'Zbieraj punkty w Programie EKO'
+              ecoNieznane
+                ? 'Błąd pobierania'
+                : snapshot.ecoProgram?.isEcoProgramParticipant
+                  ? 'Program aktywny'
+                  : 'Zbieraj punkty w Programie EKO'
             }
             icon={Leaf}
             accent
@@ -113,8 +142,8 @@ export function DashboardHome({ snapshot }: { snapshot: DashboardSnapshot }) {
         ) : null}
         <StatCard
           label="Otwarte zgłoszenia"
-          value={String(snapshot.openTickets)}
-          description="W Centrum Pomocy"
+          value={snapshot.errors.tickets ? '—' : String(snapshot.openTickets)}
+          description={snapshot.errors.tickets ? 'Błąd pobierania' : 'W Centrum Pomocy'}
           icon={HelpCircle}
         />
       </div>
