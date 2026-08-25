@@ -4,7 +4,10 @@ import { cookies } from 'next/headers';
 import type { ServiceSummaryDto } from '@verris/contracts';
 import { apiFetch } from '@/lib/api';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
+// Ten moduł jest `'use server'` i sam woła `fetch` (upload/download plików),
+// więc potrzebuje adresu WEWNĘTRZNEGO, nie publicznego — powód opisany
+// w apps/client-panel/src/lib/api.ts (X-37).
+const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
 
 export interface FmEntry {
   name: string;

@@ -1,6 +1,33 @@
 import { cookies, headers as incomingHeaders } from 'next/headers';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
+// PRZEGLĄDARKA I SERWER TO DWA RÓŻNE ADRESY TEGO SAMEGO API.
+//
+// `NEXT_PUBLIC_API_URL` jest adresem PUBLICZNYM (https://api.verris.pl) i ma
+// sens wyłącznie w kodzie, który wykonuje przeglądarka klienta. Ten moduł
+// działa po stronie SERWERA (RSC, server actions) — stamtąd do API jest bliżej
+// niż przez internet: sieć Dockera, `http://api:3000`. Compose podaje ten
+// adres kontenerowi w zmiennej `API_URL` (docker-compose.prod.yml).
+//
+// X-37. Do 2026-08-25 stała była tu tylko zmienna publiczna, więc każdy fetch
+// z kontenera `client-panel` szedł na publiczny adres własnego hosta i próbował
+// wrócić do środka (hairpin NAT). Ta pętla się nie domykała: undici czekał
+// swoje domyślne 10 s na połączenie i rzucał `TypeError: fetch failed`.
+// Zmierzone z wnętrza kontenera:
+//
+//     base = https://api.verris.pl
+//       10563ms  /healthz -> UND_ERR_CONNECT_TIMEOUT
+//
+// Objawy dla klienta: logowanie trwało wielokrotność 10 s i często nie
+// dochodziło do skutku, a dashboard pokazywał „Usługi: fetch failed / Domeny:
+// fetch failed"; pozostałe kafelki wracały ciche i puste, bo w
+// `dashboard-data.ts` mają `.catch(() => null)`. Panel admina działał, bo
+// `staff-api.ts` czytał `API_URL` od początku. Nawigacja panelu klienta też
+// się pojawiała, bo `session-profile.ts` również czytał `API_URL` — awarii nie
+// było widać w jednym miejscu, tylko w tych, które ominął ten sam nawyk.
+//
+// KOLEJNOŚĆ MA ZNACZENIE: `API_URL` przed publiczną. Odwrotnie zmienna
+// wewnętrzna nigdy by nie zadziałała, bo publiczna jest zawsze ustawiona.
+const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
 
 export interface ApiOptions extends RequestInit {
   /** Skip the cookie-based JWT (e.g. for public endpoints). */
