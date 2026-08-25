@@ -6,7 +6,7 @@
 | **Priorytet** | WYSOKA |
 | **Nakład** | ~1 h |
 | **Zależy od** | — |
-| **Status** | zamknięte w kodzie, czeka na przebieg CI |
+| **Status** | zamknięte |
 | **Data** | 2026-08-22 |
 
 ---
@@ -107,11 +107,42 @@ osobny test kontrolujący samo rozpoznawanie.
 - `apps/api/src/test/ci-joby.spec.ts` — 6 testów
 
 **Osiągnięty poziom dowodu:**
-- [x] D1 · [ ] D2 · [ ] D3 · [ ] D4
+- [x] D1 · [x] D2 · [ ] D3 · [ ] D4
 
-**D1, nie D2** — i to jest cała lekcja tej pozycji. Testy przechodzą lokalnie, ale pozycja
-dotyczy CI, więc dowodem jest **zielony przebieg CI**, nie zielony pakiet na moim laptopie.
-Poziom podniosę po obejrzeniu przebiegu, nie wcześniej.
+**D1 → D2, 2026-08-25.** Pierwotna notatka brzmiała: „poziom podniosę po obejrzeniu przebiegu,
+nie wcześniej". Stała tak trzy dni — nie dlatego, że o niej zapomniałem, tylko dlatego, że
+`ci.yml` na `main` był w tym czasie czerwony na jobie `Static checks` (`client-panel#lint`,
+brak wtyczki `react-hooks` — patrz `X-42`). Przebieg, o który tu chodziło, po prostu nie
+istniał do dzisiaj. To warto zapisać osobno: **pozycja czekająca na zielony przebieg jest
+zakładniczką każdej innej czerwieni w tym samym workflow.**
+
+### Przebieg CI #120 — `8aec15fa`, 2026-08-25 12:49 UTC
+
+Siedem jobów, wszystkie `success`. Poniżej odczyt z **logu**, nie ze statusu joba:
+
+| Job → krok | Odczyt z logu |
+|---|---|
+| `API unit tests` → `Build workspace libraries` | `Scope: 3 of 13 workspace projects`, `libs/database build: Done`, `libs/directadmin-sdk build: Done` |
+| `API unit tests` → `Testy jednostkowe (wszystkie pakiety)` | `Test Suites: 75 passed, 75 total` / `Tests: 780 passed, 780 total` |
+| `API integration tests` → `Build workspace libraries` | ten sam zestaw bibliotek, `Done` na obu |
+| `API integration tests` → `Run integration tests` | `Test Suites: 6 passed, 6 total` / `Tests: 61 passed, 61 total` |
+| `Prisma migrate deploy (smoke)` → `Generate Prisma client` | `✔ Generated Prisma Client (v6.19.3)` |
+| `Cannot find module '@verris/database'` | zero wystąpień w całym logu przebiegu |
+
+Kluczowa liczba to **75 zestawów, nie 16**. Objawem opisanym wyżej nie był czerwony job —
+był job, który raportował „210 passed" z 48 zestawów, bo 32 nie startowały w ogóle. Zielony
+job z 16 zestawami wyglądałby w `gh run view --json jobs` dokładnie tak samo jak ten. Dlatego
+dowodem jest liczba zestawów w logu, a `conclusion: success` sam z siebie nie dowodzi niczego.
+
+Liczby zgadzają się co do jednego z lokalnym `pnpm test` (75 / 780). To znaczy, że w CI
+uruchomił się **ten sam zbiór**, a nie podzbiór, który akurat nie potrzebował `dist/`.
+
+Przy okazji potwierdziło się `X-40`: w logu jest osobne `Test Suites: 1 passed` /
+`Tests: 4 passed` — to `client-panel`, którego jedyny spec do `X-40` nie miał runnera i nigdy
+się nie uruchamiał. Teraz biegnie w CI.
+
+**Dlaczego nie D3.** Pozycja dotyczy konfiguracji CI. `ci.yml` nie dociera na produkcję, więc
+nie ma tam czego obserwować — D3 dla tej pozycji nie istnieje i zostaje odznaczone na stałe.
 
 **Stan w macierzy po:** `DZIAŁA` / `PARYTET`
 
@@ -136,12 +167,20 @@ wróciła do joba, który już istniał.
 - **Nie wykrywa nowych pakietów workspace'u.** Lista budowanych bibliotek jest wypisana wprost
   w `ci.yml`; dodanie czwartej biblioteki wymaga dopisania jej ręcznie. Strażnik tego nie
   złapie, bo nie wie, których pakietów potrzebują testy.
+- **Nie zauważa pozycji na liście, która nic nie robi.** W logu #120 widać `Scope: 3 of 13`,
+  ale linie `build` są dwie. `@verris/contracts` ma `main: src/index.ts` i **nie ma skryptu
+  `build`** — jest konsumowany ze źródeł, więc `pnpm --filter @verris/contracts run build`
+  cicho nic nie robi. Dziś to nieszkodliwe. Przestanie takie być w dniu, w którym contracts
+  dostanie `dist/`: krok będzie wyglądał na poprawny, bo nazwa pakietu jest na liście od
+  dawna, a `pnpm` nie zgłasza brakującego skryptu jako błędu.
 
 ## Wpływ na inne pozycje
 
 | ID | Wpływ |
 |---|---|
 | `X-11` | koryguje — podział jobów zostawił job czerwony, notatka uzupełniona |
+| `X-42` | odblokowuje wstecz — dopóki `Static checks` był czerwony, ta pozycja nie miała jak dostać D2 |
+| `X-40` | potwierdza — w #120 widać osobny przebieg specu `client-panel` (1 zestaw / 4 testy) |
 | `X-01` | przywraca sens — bramka testowa znów faktycznie uruchamia testy |
-| `X-04` | odblokowuje — job integracyjny może dołączyć do rulesetu po zielonym przebiegu |
+| `X-04` | odblokowuje — job integracyjny przeszedł w #120 (6 zestawów / 61 testów), może dołączyć do rulesetu |
 | `X-02` | przypomina — czerwony job na gałęzi roboczej nie blokuje niczego do momentu scalania |

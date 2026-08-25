@@ -1,6 +1,6 @@
 # `X-40` — Test, którego nikt nigdy nie uruchomił
 
-**Status:** kod gotowy, czeka na `pnpm install` i przebieg bramki.
+**Status:** zamknięte — spec wykonał się w CI, przebieg #120 (2026-08-25).
 **Rodowód:** ograniczenie odnotowane trzy razy z rzędu — w X-37, X-38 i X-39.
 
 ---
@@ -106,6 +106,26 @@ To dobra ilustracja tezy tego zadania: usterka istniała od momentu napisania
 konfiguracji i była widoczna **dopiero po uruchomieniu**. Strażnik czytający
 źródło nie miałby jej jak zobaczyć.
 
+## Dowód z CI — przebieg #120, `8aec15fa`
+
+Do tej pory dowodem był mój lokalny przebieg. Teraz jest przebieg bramki:
+
+```
+API unit tests → Testy jednostkowe (wszystkie pakiety)
+  Test Suites: 1 passed, 1 total      ← client-panel
+  Tests:       4 passed, 4 total
+  Test Suites: 75 passed, 75 total    ← api
+  Tests:       780 passed, 780 total
+```
+
+Dwie osobne linie `Test Suites:` w jednym kroku to cała treść tego zadania:
+`pnpm test` obchodzi teraz więcej niż jeden pakiet. Przed `X-40` była tam
+jedna linia, bo krok brzmiał `pnpm --filter api test`.
+
+Cztery testy to dokładnie `client-nav-access.spec.ts` — plik, który leżał
+w repo miesiącami i do 2026-08-25 nie wykonał się ani razu, ani lokalnie,
+ani w bramce.
+
 ## Czego to NIE naprawia
 
 - **Nie przepisałem żadnego wcześniejszego strażnika na wykonywanie kodu.**
@@ -124,8 +144,10 @@ konfiguracji i była widoczna **dopiero po uruchomieniu**. Strażnik czytający
 
 ## Do backlogu
 
-1. **Przegląd `client-nav-access.spec.ts`** — pierwszy przebieg pokaże, czy
-   opisuje aktualny stan.
+1. **Przegląd `client-nav-access.spec.ts`** — nadal otwarte. Przebieg pokazał,
+   że spec **przechodzi**, a nie że opisuje sensowne zachowanie. Zielony test
+   napisany miesiące temu pod nieznany stan kodu wymaga przeczytania treści;
+   `X-40` dał mu tylko możliwość wykonania się.
 2. **Wykresy przy awarii** (`DashboardCharts`) — pusty wykres nieodróżnialny
    od pustych danych; ta sama rodzina co X-39.
 3. **Egress kontenerów poza hardeningiem X-36** — łańcuchy wiszą w OUTPUT,

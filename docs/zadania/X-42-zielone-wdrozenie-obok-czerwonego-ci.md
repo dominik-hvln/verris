@@ -1,6 +1,7 @@
 # `X-42` — Zielone wdrożenie obok czerwonego CI
 
-**Status:** kod gotowy, czeka na przebieg obu bramek.
+**Status:** defekt 1 (ESLint) potwierdzony w CI #120. Defekt 2 (krok `Lint`
+w `deploy.yml`) czeka na przebieg wdrożenia — dodany krok nigdy jeszcze nie biegł.
 **Rodowód:** próba zebrania D2 dla `X-17` — okazało się, że nie ma czego zbierać,
 bo `ci.yml` jest czerwony.
 
@@ -90,11 +91,30 @@ by **wdrożenie sprawdzało wszystko, co sprawdza CI**. Odwrotnie wolno.
 Komentarze YAML są wycinane przed dopasowaniem — obie zmiany dopisują komentarze
 cytujące polecenia, a to już piąta odsłona tej pułapki w tym repo.
 
+## Dowód z CI — przebieg #120, `8aec15fa`, 2026-08-25
+
+`ci.yml` na `main`: siedem jobów, wszystkie `success`. Job `Static checks
+(lint + typecheck)` — ten, który padał od `X-40` — przeszedł. Komunikat
+`could not find plugin "react-hooks"` nie występuje w logu przebiegu.
+
+To zamyka **defekt 1**. Defekt 2 zamknięty nie jest i celowo tego nie mieszam:
+krok `Lint` dopisany do `deploy.yml` dowiedzie się dopiero wtedy, gdy odpali go
+prawdziwe wdrożenie. Do tego czasu mam kod kroku, nie jego przebieg — czyli
+dokładnie ten rodzaj dowodu, którego brak opisuje to zadanie.
+
+Uboczny skutek, który warto odnotować: przebieg #120 odblokował `X-17`, który
+przez trzy dni stał na D1 nie z powodu własnej wady, tylko dlatego, że czekał
+na zielone `ci.yml`. **Jedna czerwień w workflow blokuje domknięcie każdej
+pozycji, której dowodem jest przebieg tego workflow.**
+
 ## Czego to NIE naprawia
 
-- **Nie sprzątnęliśmy 105 znalezisk react-hooks** w panelu klienta. Zostają
+- **Nie sprzątnęliśmy znalezisk react-hooks** w panelu klienta. Zostają
   ostrzeżeniami, zgodnie z decyzją z nagłówka `eslint.config.mjs`; ich zakres
-  to `X-18`.
+  to `X-18`. Liczba: **132**, nie 105 jak zapisałem w pierwszej wersji tej
+  notatki — 105 pochodziło ze starszego pomiaru sprzed poprawki `files`, która
+  objęła regułami także pliki dotąd pomijane. `X-18` ma większy zakres, niż
+  wskazywał jego opis.
 - **Nie sprawdziliśmy pozostałych paneli** pod kątem tego samego wzorca.
   `status-page` używa tej samej konfiguracji Nexta i przeszedł, ale nie ma tam
   bloku nadpisań — czyli nie ma na czym wywalić. Gdyby ktoś taki blok dopisał,
