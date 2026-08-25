@@ -106,8 +106,15 @@ jobs:
       - name: Build workspace libraries
         run: pnpm --filter @verris/database --filter @verris/contracts --filter @verris/directadmin-sdk run build
 
-      - name: API unit tests
-        run: pnpm --filter api test
+      # X-40 — CAŁY workspace, nie jeden pakiet.
+      #
+      # Ten krok wołał `pnpm --filter api test`, więc testy leżące w innych
+      # pakietach nie wykonywały się nigdzie. `apps/client-panel` miało spec
+      # od miesięcy i nikt go nigdy nie uruchomił. `pnpm test` idzie przez Turbo
+      # (zadanie `test` ma `dependsOn: ["^build"]`), więc obejmuje każdy pakiet,
+      # który skrypt `test` ma dziś i każdy, który go dopiero dostanie.
+      - name: Testy jednostkowe (wszystkie pakiety)
+        run: pnpm test
 
   # ---------------------------------------------------------------------------
   # Build everything that produces a deployable artifact. Runs in parallel

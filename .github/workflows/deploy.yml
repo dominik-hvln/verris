@@ -67,8 +67,15 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      - name: API unit tests
-        run: pnpm --filter api test
+      # X-40 — CAŁY workspace, nie jeden pakiet.
+      #
+      # Ten krok wołał `pnpm --filter api test`, więc testy leżące w innych
+      # pakietach nie wykonywały się nigdzie. `apps/client-panel` miało spec
+      # od miesięcy i nikt go nigdy nie uruchomił. `pnpm test` idzie przez Turbo
+      # (zadanie `test` ma `dependsOn: ["^build"]`), więc obejmuje każdy pakiet,
+      # który skrypt `test` ma dziś i każdy, który go dopiero dostanie.
+      - name: Testy jednostkowe (wszystkie pakiety)
+        run: pnpm test
 
   # ---------------------------------------------------------------------------
   # 1) Build + push 5 obrazów (api + 4 panele) do GHCR, tag = git SHA + latest.

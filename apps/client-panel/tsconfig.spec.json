@@ -1,0 +1,23 @@
+{
+  // X-40. Główny tsconfig panelu ma `**/*.spec.ts` w `exclude`, bo Next nie
+  // buduje testów. Skutek uboczny był taki, że specy nie były sprawdzane ANI
+  // przez kompilator, ANI przez runner — leżały w repo całkowicie niewidzialne.
+  //
+  // Ten plik jest jedynym miejscem, w którym kod testów panelu istnieje dla
+  // TypeScriptu. `ts-jest` typuje je przy każdym uruchomieniu, więc błąd typu
+  // w teście jest teraz czerwony, a nie niezauważony.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    // Next buduje do ESM z `moduleResolution: bundler`; jest potrzebuje CJS.
+    "module": "commonjs",
+    "moduleResolution": "node",
+    // `jsx: preserve` z konfiguracji Next zostawia JSX nieprzetworzony —
+    // ts-jest nie ma go czym wykonać. Testów komponentów jeszcze nie ma,
+    // ale pierwszy nie powinien się wywalić na konfiguracji.
+    "jsx": "react-jsx",
+    "noEmit": false,
+    "types": ["jest", "node"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", ".next"]
+}
