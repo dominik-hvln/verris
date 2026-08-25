@@ -1,4 +1,5 @@
 import { cookies, headers as incomingHeaders } from 'next/headers';
+import { opiszBladSieci, wpisDoLogu } from './blad-sieci';
 
 // PRZEGLĄDARKA I SERWER TO DWA RÓŻNE ADRESY TEGO SAMEGO API.
 //
@@ -29,9 +30,32 @@ import { cookies, headers as incomingHeaders } from 'next/headers';
 // wewnętrzna nigdy by nie zadziałała, bo publiczna jest zawsze ustawiona.
 const API_URL = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000';
 
+// BUDŻET CZASU NA ODPOWIEDŹ API (X-38).
+//
+// Domyślne undici to 300 s na same nagłówki. Przy X-37 zły adres bazowy
+// zamienił się przez to w panel, który mielił minutami zamiast powiedzieć
+// „nie mam danych". Timeout nie naprawia awarii — decyduje o tym, czy awaria
+// jednego endpointu gaśnie na jednym kafelku, czy kładzie całą stronę.
+//
+// 20 s jest dobrane pod NAJWOLNIEJSZY legalny scenariusz: zapytanie, w którym
+// API musi odpytać rejestratora domen (zmierzone 2026-08-25: openprovider
+// odpowiada w ~225 ms, więc 20 s to blisko stukrotny zapas). Transfery
+// binarne NIE idą przez `apiFetch` — file-manager ma własne `fetch` — więc
+// ten limit nie dotyczy uploadu ani pobierania plików.
+//
+// Pojedyncze wywołanie może podnieść limit przez `timeoutMs`; `timeoutMs: 0`
+// wyłącza go całkowicie. Własny `signal` przekazany przez wywołującego ma
+// pierwszeństwo — nie nadpisujemy cudzej decyzji o przerwaniu.
+const DOMYSLNY_BUDZET_MS = (() => {
+  const surowy = Number(process.env.API_FETCH_TIMEOUT_MS);
+  return Number.isFinite(surowy) && surowy >= 0 ? surowy : 20_000;
+})();
+
 export interface ApiOptions extends RequestInit {
   /** Skip the cookie-based JWT (e.g. for public endpoints). */
   unauthenticated?: boolean;
+  /** Budżet czasu na odpowiedź w ms. `0` wyłącza limit. */
+  timeoutMs?: number;
 }
 
 /**
@@ -39,7 +63,7 @@ export interface ApiOptions extends RequestInit {
  * as a Bearer token. Returns parsed JSON, or throws an `ApiError` on 4xx/5xx.
  */
 export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promise<T> {
-  const { unauthenticated, headers: extraHeaders, ...rest } = options;
+  const { unauthenticated, timeoutMs, headers: extraHeaders, ...rest } = options;
 
   const headers = new Headers(extraHeaders);
   if (!headers.has('Content-Type') && rest.body) {
@@ -63,11 +87,48 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
     /* outside request scope (build/ISR) — skip */
   }
 
-  const response = await fetch(`${API_URL}${path}`, {
-    ...rest,
-    headers,
-    cache: 'no-store',
-  });
+  // Własny `signal` wywołującego wygrywa z budżetem domyślnym; inaczej
+  // odbieralibyśmy komuś kontrolę nad przerwaniem, o którą świadomie poprosił.
+  const budzetMs = timeoutMs ?? DOMYSLNY_BUDZET_MS;
+  const wlasnePrzerwanie = rest.signal ?? undefined;
+  const przerwanie =
+    wlasnePrzerwanie ?? (budzetMs > 0 ? AbortSignal.timeout(budzetMs) : undefined);
+
+  const zaczeto = Date.now();
+  let response: Response;
+  try {
+    response = await fetch(`${API_URL}${path}`, {
+      ...rest,
+      headers,
+      cache: 'no-store',
+      signal: przerwanie,
+    });
+  } catch (err) {
+    // Tu ląduje KAŻDA awaria sprzed odpowiedzi HTTP: brak trasy, odmowa
+    // połączenia, zerwane gniazdo, przekroczony czas. `fetch` opakowuje je
+    // wszystkie w jeden `TypeError: fetch failed`, więc bez tego rozpakowania
+    // panel i log mówią dokładnie tyle, ile mówiły przy X-37 — czyli nic.
+    const czasMs = Date.now() - zaczeto;
+    const opis = opiszBladSieci(err, wlasnePrzerwanie ? undefined : budzetMs);
+    console.error(
+      wpisDoLogu({
+        metoda: (rest.method ?? 'GET').toUpperCase(),
+        sciezka: path,
+        czasMs,
+        kod: opis.kod,
+        baza: API_URL,
+      }),
+    );
+    // `status: 0` to umowa dla wywołujących: odpowiedzi nie było w ogóle.
+    // Odróżnienie od 4xx/5xx ma znaczenie — 500 znaczy „API odpowiedziało
+    // i ma problem", 0 znaczy „nie dotarliśmy do API".
+    throw new ApiError(opis.komunikat, 0, {
+      kod: opis.kod,
+      czasMs,
+      sciezka: path,
+      przekroczonyCzas: opis.czyPrzekroczonyCzas,
+    });
+  }
 
   const isJson = response.headers.get('content-type')?.includes('application/json');
   const body = isJson ? await response.json().catch(() => null) : await response.text();

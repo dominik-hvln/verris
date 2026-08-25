@@ -69,6 +69,8 @@ Ten sam wzorzec występuje w repo pięć razy i **cztery razy jest poprawny**:
 | `staff-panel/src/lib/staff-api.ts` | `API_URL ?? NEXT_PUBLIC_API_URL` | ✓ |
 | `client-panel/src/lib/session-profile.ts` | `API_URL ?? NEXT_PUBLIC_API_URL` | ✓ |
 | `client-panel/src/components/brand/trust-stats-action.ts` | `API_URL ?? NEXT_PUBLIC_API_URL` | ✓ |
+| `client-panel/src/app/dashboard/support/actions.ts` | `API_URL` | ✓ |
+| `client-panel/src/app/dashboard/sidebar-actions.ts` | `API_URL` | ✓ |
 | `client-panel/src/lib/api.ts` | `NEXT_PUBLIC_API_URL` | ✗ |
 | `client-panel/.../file-manager/data.ts` | `NEXT_PUBLIC_API_URL` | ✗ |
 
@@ -77,6 +79,14 @@ Stąd cały kształt objawu:
 - **panel admina działał** — `staff-api.ts` czytał zmienną wewnętrzną,
 - **zakładki jednak się pojawiały** — `session-profile.ts` też ją czytał, więc
   nawigacja wracała szybko, tylko czekała na resztę strony,
+- **„Otwarte zgłoszenia: 3" wczytywało się poprawnie** — i to była jedyna
+  obserwacja, której przez pół dnia nie umiałem wyjaśnić. `support/actions.ts`
+  nie korzysta z `apiFetch`, tylko woła `fetch` z własnym `process.env.API_URL`.
+  Ten kafelek nigdy nie przechodził przez zepsutą drogę.
+- **za to „Punkty EKO: 0" i saldo „0,00 K" były kłamstwem** — oba zapytania
+  szły przez `apiFetch`, padały, a `.catch(() => [])` i `.catch(() => null)`
+  zamieniały awarię w zero. Klient patrzył na saldo swojego portfela i widział
+  zero, bo API nie odpowiadało.
 - **tylko dwa kafelki krzyczały** — w `dashboard-data.ts` `/services`
   i `/domains` mają jawną obsługę błędu, a pozostałe pięć zapytań kończy się
   `.catch(() => null)` i **po cichu** zwraca pustkę. Portfel `0,00 K` to nie
