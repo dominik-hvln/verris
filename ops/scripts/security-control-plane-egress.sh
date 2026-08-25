@@ -19,6 +19,9 @@ CHAIN_IOC="VERRIS_IOC_DROP"
 CHAIN_LOG="VERRIS_EGRESS_LOG"
 CHAIN_ANTISCAN="VERRIS_ANTISCAN"
 CHAIN_BOGON="VERRIS_EGRESS_BOGON"
+# X-41 — obserwacja ruchu KONTENERÓW. Osobny łańcuch, bo wisi w innym miejscu
+# niż cała reszta: w DOCKER-USER (FORWARD), nie w OUTPUT.
+CHAIN_FWD_OBS="VERRIS_FWD_OBSERW"
 # Jedna nazwa zbioru dla --strict i dla zwolnienia z licznika anty-skanu (X-36).
 # Wcześniej siedziała jako `local setname` wewnątrz apply_strict_allowlist i nie
 # dało się jej użyć nigdzie indziej.
@@ -26,6 +29,7 @@ ALLOW_SET="${ALLOW_SET:-verris_egress_https}"
 STRICT=0
 ALLOWLIST_ONLY=0
 DRY_RUN=0
+OBSERWUJ_KONTENERY=0
 # Obniżone po incydencie Hetzner 2026-06-11 (wolny skan ~1/s, ~256 hostów).
 # Control-plane gada z ~kilkunastoma API — 40 nowych poł./60s to i tak duży zapas.
 ANTISCAN_HITCOUNT="${ANTISCAN_HITCOUNT:-40}"
@@ -79,6 +83,9 @@ Opcje:
   --allowlist  Buduje/odświeża TYLKO ipset z allow-hostnames. Nic nie blokuje.
   --strict     Ogranicza NOWE połączenia TCP/80 i TCP/443 do ipset z allow-hostnames
   --dry-run    Tylko podgląd
+  --obserwuj-kontenery
+               Wpina do DOCKER-USER łańcuch, który TYLKO LOGUJE ruch wychodzący
+               z kontenerów. Nic nie blokuje. Tryb wyłączny — nie rusza OUTPUT.
 
 Domyślnie włączone (bez --strict): IOC drop, logowanie egress, anty-netscan
 (rate-limit burst nowych TCP/80,443 → DROP; env ANTISCAN_HITCOUNT / ANTISCAN_WINDOW).
@@ -95,6 +102,7 @@ while [ $# -gt 0 ]; do
     --allowlist) ALLOWLIST_ONLY=1; shift ;;
     --strict) STRICT=1; shift ;;
     --dry-run) DRY_RUN=1; shift ;;
+    --obserwuj-kontenery) OBSERWUJ_KONTENERY=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) die "Unknown argument: $1" ;;
   esac
@@ -322,6 +330,74 @@ apply_strict_allowlist() {
   run "iptables -A '$chain' -j RETURN"
 }
 
+# ---------------------------------------------------------------------------
+# X-41 — ETAP 1: obserwacja egressu KONTENERÓW. Zero blokad.
+# ---------------------------------------------------------------------------
+#
+# DLACZEGO TO W OGÓLE JEST POTRZEBNE
+# ──────────────────────────────────
+# Cały hardening z X-36 wisi w łańcuchu OUTPUT, a OUTPUT dotyczy wyłącznie
+# pakietów tworzonych LOKALNIE przez host: dockerd, certbot, rspamd,
+# unattended-upgrades. Ruch z kontenerów przechodzi przez FORWARD, gdzie
+# DOCKER-USER jest pusty, a polityka to ACCEPT.
+#
+# Zmierzone 2026-08-25 przy diagnozie X-37: wypięcie VERRIS_ANTISCAN z OUTPUT
+# nie zmieniło zachowania aplikacji ani o jotę — bo nigdy jej nie dotyczyło.
+# Egress całego produktu jest poza zasięgiem zabezpieczenia, które wygląda,
+# jakby go obejmowało.
+#
+# DLACZEGO NAJPIERW OBSERWACJA, A NIE OD RAZU BLOKADA
+# ───────────────────────────────────────────────────
+# Dwa konkretne miny, obie policzalne dopiero po pomiarze:
+#
+#  1. `VERRIS_EGRESS_BOGON` odrzuca NOWE połączenia do 172.16.0.0/12 na 80/443.
+#     W OUTPUT nieszkodliwe. W DOCKER-USER dotyczyłoby ruchu MIĘDZY
+#     KONTENERAMI — nasze sieci Dockera to 172.18–172.20.
+#
+#  2. Anty-skan ma próg 40 nowych połączeń/60 s. W OUTPUT liczył cały host jako
+#     jedno wiadro (`--rsource`, źródłem zawsze host). W FORWARD liczyłby per
+#     kontener — semantycznie poprawnie, ale nikt nie zmierzył, ile połączeń
+#     API otwiera legalnie w piku. Przeniesienie progu dobranego do innego
+#     wiadra to zgadywanie.
+#
+# Ten łańcuch NIE ZAWIERA ANI JEDNEJ REGUŁY DROP ANI REJECT. Pilnuje tego
+# strażnik `obserwacja-nie-blokuje.spec.ts` — gdyby ktoś kiedyś „przy okazji"
+# dopisał tu blokadę, test zrobi się czerwony.
+apply_forward_observe() {
+  if ! iptables -L DOCKER-USER -n >/dev/null 2>&1; then
+    log "WARN: brak łańcucha DOCKER-USER (Docker nie działa?) — pomijam obserwację"
+    return 0
+  fi
+
+  run "iptables -N '$CHAIN_FWD_OBS' 2>/dev/null || iptables -F '$CHAIN_FWD_OBS'"
+
+  # Odpowiedzi na już nawiązane połączenia — nie są nowym egressem.
+  run "iptables -A '$CHAIN_FWD_OBS' -m conntrack --ctstate RELATED,ESTABLISHED -j RETURN"
+
+  # Ruch WCHODZĄCY do kontenera: kontener→kontener i host→kontener. To nie jest
+  # egress i nie ma prawa trafić do inwentarza. `br-+` obejmuje wszystkie mostki
+  # Dockera niezależnie od skrótu w nazwie.
+  run "iptables -A '$CHAIN_FWD_OBS' -o docker0 -j RETURN"
+  run "iptables -A '$CHAIN_FWD_OBS' -o br-+ -j RETURN"
+
+  # Cele już uznane za zaufane. Bez tego log tonie w ruchu, o którym wiemy.
+  if command -v ipset >/dev/null 2>&1 && ipset list -n 2>/dev/null | grep -qx "$ALLOW_SET"; then
+    run "iptables -A '$CHAIN_FWD_OBS' -m set --match-set '$ALLOW_SET' dst -j RETURN"
+  else
+    log "WARN: brak ipset ${ALLOW_SET} — log obejmie także cele z allowlisty"
+  fi
+
+  # Limiter jest po to, żeby obserwacja nie zapchała dysku, gdy coś oszaleje.
+  # 5/s z zapasem 100 wystarczy do rozpoznania rozkładu, a nie do policzenia
+  # każdego pakietu — i tak interesują nas cele, nie dokładne sumy.
+  run "iptables -A '$CHAIN_FWD_OBS' -p tcp -m multiport --dports 80,443 -m conntrack --ctstate NEW -m limit --limit 5/sec --limit-burst 100 -j LOG --log-prefix 'VERRIS-FWD-KANDYDAT ' --log-level 6"
+
+  run "iptables -A '$CHAIN_FWD_OBS' -j RETURN"
+  run "iptables -C DOCKER-USER -j '$CHAIN_FWD_OBS' 2>/dev/null || iptables -I DOCKER-USER 1 -j '$CHAIN_FWD_OBS'"
+  log "Obserwacja egressu kontenerów włączona (DOCKER-USER, tylko LOG)"
+  log "Odczyt po dobie: sudo bash ops/scripts/security-egress-kandydaci.sh"
+}
+
 persist_rules() {
   if command -v netfilter-persistent >/dev/null 2>&1; then
     run "netfilter-persistent save"
@@ -338,6 +414,16 @@ if [ "$ALLOWLIST_ONLY" -eq 1 ]; then
   zbuduj_ipset_allow
   log "ipset ${ALLOW_SET} gotowy. Nic nie zostało zablokowane."
   log "Następny krok: sudo bash $0   (anty-skan zwolni te cele z licznika)"
+  exit 0
+fi
+
+# X-41: tryb wyłączny. Nie dotyka OUTPUT, nie zmienia niczego poza dopięciem
+# łańcucha logującego. Ma być pierwszym krokiem przed jakimkolwiek
+# egzekwowaniem na ruchu kontenerów.
+if [ "$OBSERWUJ_KONTENERY" -eq 1 ]; then
+  apply_forward_observe
+  persist_rules
+  log "Obserwacja gotowa. NIC nie zostało zablokowane."
   exit 0
 fi
 
