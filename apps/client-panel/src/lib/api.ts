@@ -1,5 +1,5 @@
 import { cookies, headers as incomingHeaders } from 'next/headers';
-import { opiszBladSieci, wpisDoLogu } from './blad-sieci';
+import { opiszBladSieci, wpisDoLogu } from '@verris/contracts';
 
 // PRZEGLĄDARKA I SERWER TO DWA RÓŻNE ADRESY TEGO SAMEGO API.
 //

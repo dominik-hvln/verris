@@ -22,8 +22,22 @@
  * ścieżkę i adres bazowy. Ten moduł produkuje pierwsze; drugie składa
  * `apiFetch`.
  *
- * Moduł jest CELOWO bez zależności — dzięki temu da się go uruchomić
- * w testach paczki `api`, a to jedyna suita, którą naprawdę odpala bramka CI.
+ * DLACZEGO W `libs/contracts`, A NIE W PANELU
+ * ───────────────────────────────────────────
+ * `apps/client-panel` nie ma runnera testów — bramka CI odpala wyłącznie
+ * `pnpm --filter api test` (patrz X-40). Logika, która ma być SPRAWDZANA
+ * wykonaniem, a nie czytaniem źródła, musi więc mieszkać tam, gdzie ta suita
+ * może po nią sięgnąć nazwą pakietu.
+ *
+ * Pierwsza wersja stała w panelu, a test importował ją ścieżką względną
+ * `../../../client-panel/src/lib/blad-sieci`. `ts-jest` to przełknął, bo
+ * kompiluje plik po pliku. `tsc --noEmit` w bramce — nie: plik leżał poza
+ * `rootDir` paczki `api` (TS6059) i wdrożenie stanęło. Import po nazwie
+ * pakietu tego problemu nie ma; `apps/api` importuje tak z `@verris/database`
+ * od zawsze.
+ *
+ * Moduł jest CELOWO bez zależności — ani `next`, ani `undici`, ani nic
+ * z runtime'u panelu. Dzięki temu uruchamia się wszędzie.
  */
 
 export type OpisBleduSieci = {

@@ -118,6 +118,53 @@ Jest też górna granica na budżet domyślny: **musi być mniejszy niż 300 s**
 czyli mniejszy niż domyślne undici — bo to dokładnie to zachowanie, przed
 którym ten strażnik broni.
 
+## Pierwsze wdrożenie padło — i dlaczego bramka miała rację
+
+Pierwsza wersja strażnika importowała moduł ścieżką względną do sąsiedniej
+paczki:
+
+```ts
+import { opiszBladSieci } from '../../../client-panel/src/lib/blad-sieci';
+```
+
+Lokalnie `jest` był zielony. Bramka CI padła na `TS6059` — plik leżał poza
+`rootDir: "src"` paczki `api`.
+
+**`ts-jest` kompiluje plik po pliku i nie zna `rootDir`. `tsc --noEmit` buduje
+jeden program dla całej paczki i sprawdza.** Bramka odpala obie rzeczy, więc
+zielony `jest` nie jest dowodem, że wdrożenie przejdzie. Uruchomiłem u siebie
+typecheck panelu i pominąłem typecheck API — dokładnie ten sam błąd co przy
+X-35, gdzie sprawdziłem, co czyta metryki, ale nie, co asertuje na regułach.
+
+### Naprawa, nie obejście
+
+Moduł przeniesiony do `libs/contracts/src/blad-sieci.ts` i importowany **nazwą
+pakietu** w obu miejscach. Import po nazwie idzie przez `node_modules`
+i `rootDir` go nie dotyczy — `apps/api` importuje tak z `@verris/database` od
+zawsze.
+
+To jest przy okazji jedyna droga do testowania logiki paneli. `apps/client-panel`
+nie ma runnera (X-40), więc **czysta logika, która ma być sprawdzana
+wykonaniem, musi mieszkać w `libs/`** — inaczej zostaje strażnik czytający
+źródło, czyli słabsza forma dowodu.
+
+### Nowy strażnik
+
+`apps/api/src/test/testy-nie-siegaja-poza-swoja-paczke.spec.ts` — skanuje całe
+`apps/api/src` i czerwieni się na każdym imporcie względnym wychodzącym poza
+paczkę, z podpowiedzią „użyj nazwy pakietu i przenieś kod do `libs/`".
+
+### Trzecia odsłona tej samej pułapki
+
+Ten strażnik zapalił się najpierw na **własnej dokumentacji** (komentarz cytuje
+zakazany import), a po dodaniu wycinania komentarzy — na **własnych danych
+testowych** (fixture zawierał zakazaną ścieżkę jako literał). To trzeci raz
+w tym repo: `noDataState` w X-35, `.catch(() => null)` w X-39, teraz to.
+
+Zasada zapisana w kodzie strażnika: **strażnik czytający źródło musi odciąć
+komentarze, a wzorca, którego zabrania, nie wolno zapisać w jego własnym
+źródle** — ścieżki testowe składa się z kawałków.
+
 ## Czego to NIE naprawia
 
 - **`.catch(() => null)` w `dashboard-data.ts` zostaje.** Pięć zapytań nadal
@@ -139,9 +186,10 @@ którym ten strażnik broni.
 
 ## Do backlogu
 
-1. **`X-39`** — `apps/client-panel` nie ma skryptu `test`, a bramka CI odpala
+1. **`X-39`** — ciche `.catch` w `dashboard-data.ts`: pustka nie do odróżnienia
+   od zera.
+2. **`X-40`** — `apps/client-panel` nie ma skryptu `test`, a bramka CI odpala
    tylko `pnpm --filter api test`. Leżący tam `client-nav-access.spec.ts`
    **nie wykonuje się nigdzie**. Test, którego nikt nie uruchamia, jest gorszy
    niż jego brak, bo wygląda na pokrycie.
-2. **Ciche `.catch` w `dashboard-data.ts`** — pustka nie do odróżnienia od zera.
 3. **Limit czasu dla `fetch` poza `apiFetch`.**

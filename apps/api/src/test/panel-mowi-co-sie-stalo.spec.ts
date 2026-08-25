@@ -1,9 +1,6 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import {
-  kodBleduSieci,
-  opiszBladSieci,
-} from '../../../client-panel/src/lib/blad-sieci';
+import { kodBleduSieci, opiszBladSieci } from '@verris/contracts';
 
 /**
  * Panel mówi, CO się stało — a nie „fetch failed".
