@@ -67,6 +67,15 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+      # X-42 — bramka wdrożenia nie może być SŁABSZA od `ci.yml`.
+      #
+      # Do 2026-08-25 ten job robił typecheck i testy, ale nie lint. `ci.yml`
+      # robił wszystkie trzy. Skutek: wdrożenia szły zielone obok czerwonego
+      # `ci.yml` i przez pół dnia nikt tego nie zauważył — patrzyliśmy na jedną
+      # bramkę i braliśmy ją za całość.
+      - name: Lint
+        run: pnpm lint
+
       # X-40 — CAŁY workspace, nie jeden pakiet.
       #
       # Ten krok wołał `pnpm --filter api test`, więc testy leżące w innych

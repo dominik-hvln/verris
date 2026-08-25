@@ -30,5 +30,22 @@ export default [
   { ignores: ['.next/**', 'node_modules/**', 'dist/**', 'out/**', 'next-env.d.ts'] },
   ...coreWebVitals,
   ...nextTypescript,
-  { rules: ODSLONIETE_PRZEZ_NEXT_16 },
+  // ZAKRES PLIKÓW MUSI ODPOWIADAĆ TEMU, CO NADPISUJEMY (X-42).
+  //
+  // `eslint-config-next` rejestruje plugin `react-hooks` tylko dla:
+  //     files: ['**/*.{js,jsx,mjs,ts,tsx,mts,cts}']
+  // Zwróć uwagę: jest `cts`, NIE MA `cjs`.
+  //
+  // Ten blok stał wcześniej bez `files`, więc stosował się do KAŻDEGO pliku
+  // w pakiecie. Działało, dopóki wszystkie pliki konfiguracyjne miały
+  // rozszerzenie `.mjs` i mieściły się we wzorcu Nexta. X-40 dołożyło
+  // `jest.config.cjs` — pierwszy plik poza tym zakresem — i ESLint zaczął
+  // słusznie protestować: „specifies rule react-hooks/... but could not find
+  // plugin react-hooks". Nie znajdował go, bo dla `.cjs` nikt go nie
+  // zarejestrował.
+  //
+  // Nadpisanie reguł cudzej konfiguracji ma sens wyłącznie w jej zasięgu.
+  // Wzorzec jest tu skopiowany z `eslint-config-next` celowo — gdy tam się
+  // zmieni, ten plik trzeba zaktualizować razem z nim.
+  { files: ['**/*.{js,jsx,mjs,ts,tsx,mts,cts}'], rules: ODSLONIETE_PRZEZ_NEXT_16 },
 ];
