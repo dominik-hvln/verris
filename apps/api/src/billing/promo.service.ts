@@ -141,8 +141,8 @@ export class PromoService {
     if (!/^[A-Z0-9_-]{3,40}$/.test(norm)) {
       throw new BadRequestException('Kod: 3–40 znaków [A-Z0-9_-].');
     }
-    let validFrom = input.validFrom ?? null;
-    let validTo = input.validTo ?? null;
+    const validFrom = input.validFrom ?? null;
+    const validTo = input.validTo ?? null;
     if (validFrom && Number.isNaN(validFrom.getTime())) {
       throw new BadRequestException('Niepoprawna data validFrom.');
     }

@@ -398,10 +398,8 @@ async function main() {
         })),
       });
       created++;
-      // eslint-disable-next-line no-console
       console.log(`✓ KB: "${art.title}" (${parts.length} chunk(ów), audience=${art.audience})`);
     }
-    // eslint-disable-next-line no-console
     console.log(`\nGotowe. Utworzono: ${created}, pominięto (już istniały): ${skipped}.`);
   } finally {
     await prisma.$disconnect();
@@ -409,7 +407,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  // eslint-disable-next-line no-console
   console.error('seed-knowledge-base failed:', err);
   process.exit(1);
 });

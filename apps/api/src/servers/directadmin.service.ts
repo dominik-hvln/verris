@@ -586,7 +586,10 @@ export class DirectAdminService {
     timeoutMs = 2500,
   ): Promise<{ name: string; version: string } | null> {
     return new Promise((resolve) => {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      // `require` zamiast importu na górze pliku — moduł ładowany dopiero tutaj,
+      // wyłącznie na potrzeby tej sondy. Stała tu dyrektywa wyciszająca
+      // `no-var-requires`; reguła została przemianowana na `no-require-imports`,
+      // więc dyrektywa przestała cokolwiek wyciszać i `--fix` ją usunął (X-42).
       const net = require('net') as typeof import('net');
       let settled = false;
       const done = (val: { name: string; version: string } | null) => {
@@ -1791,7 +1794,7 @@ export class DirectAdminService {
       await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_SPAMASSASSIN', { action: 'disable', domain });
     } else {
       // GET aktualne tokeny i nadpisz tylko wybrane — DA action=save oczekuje pełnego zestawu pól.
-      let tokens: Record<string, string> = {};
+      const tokens: Record<string, string> = {};
       try {
         const raw = await this.daGetForSubscription(subscriptionId, userId, '/CMD_API_SPAMASSASSIN', { domain });
         for (const [k, v] of raw.entries()) tokens[k] = v;

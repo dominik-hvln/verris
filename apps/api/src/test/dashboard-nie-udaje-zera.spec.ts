@@ -42,7 +42,7 @@ const WIDOK = readFileSync(join(PANEL, 'dashboard-home.tsx'), 'utf8');
 const POLKNIETY_BLAD = /\.catch\(\s*\(\s*\)\s*=>/;
 
 function kluczeBledow(zrodlo: string): string[] {
-  const blok = zrodlo.match(/errors:\s*\{([\s\S]*?)\n  \};/);
+  const blok = zrodlo.match(/errors:\s*\{([\s\S]*?)\n {2}\};/);
   if (!blok) return [];
   return [...blok[1].matchAll(/(\w+)\?:/g)].map((m) => m[1]);
 }

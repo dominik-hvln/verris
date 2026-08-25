@@ -139,7 +139,6 @@ export class KbService {
     const del = kind === 'category' ? this.categories : this.articles;
     let slug = base;
     let i = 2;
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       const found = await del.findUnique({ where: { slug } });
       if (!found || found.id === ignoreId) return slug;

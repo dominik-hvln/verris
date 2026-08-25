@@ -79,7 +79,9 @@ async function bootstrap() {
 }
 
 bootstrap().catch((err) => {
-  // eslint-disable-next-line no-console
+  // `console.error`, nie logger Nesta — bootstrap właśnie padł, więc logger
+  // może nie istnieć. Stała tu dyrektywa wyciszająca `no-console`; reguła nie
+  // jest już włączona, więc `eslint --fix` ją usunął (X-42). Powód zostaje.
   console.error('Fatal startup error:', err);
   process.exit(1);
 });

@@ -223,7 +223,7 @@ export class ProvisioningService {
     // Apply LVE limits matching the plan's base configuration. If this fails we
     // *don't* bring the whole flow down — the account is created, status will
     // be ACTIVE but with the default DA package limits and we surface a warning.
-    let limitsApplied = true;
+    const limitsApplied = true;
     try {
       await daClient.setAccountLimits(daUsername, {
         cpuPercent: subscription.plan.cpuLimit,

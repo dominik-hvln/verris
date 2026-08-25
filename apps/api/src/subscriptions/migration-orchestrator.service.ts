@@ -120,7 +120,7 @@ export class MigrationOrchestratorService {
     const targets: Array<{ database: string; username: string; password: string }> = [];
     const usedNames = new Set<string>();
     for (const source of sources) {
-      let base = source.database.replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 16) || 'db';
+      const base = source.database.replace(/[^a-zA-Z0-9_]/g, '_').slice(0, 16) || 'db';
       // DA i tak prefiksuje nazwą konta — tu pilnujemy tylko unikalności części po prefiksie.
       let name = base;
       let suffix = 2;
