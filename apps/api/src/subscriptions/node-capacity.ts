@@ -112,6 +112,29 @@ export const MIN_OVERCOMMIT = 1;
 /** Po tylu minutach bez metryki uznajemy telemetrię węzła za nieświeżą. */
 export const SWIEZOSC_TELEMETRII_MIN = 30;
 
+/**
+ * OPS-01 — po tylu minutach bez sygnału życia węzeł uznajemy za milczący.
+ *
+ * To NIE jest to samo co `SWIEZOSC_TELEMETRII_MIN`. Nieświeża telemetria mówi
+ * „nie znam realnego zużycia" i degraduje nadsubskrypcję do 1,0×; milczący
+ * węzeł mówi „nie wiem, czy ta maszyna w ogóle żyje" i musi wypaść z wyboru.
+ * Wcześniej pierwsze istniało, drugiego nie było wcale — więc martwy węzeł
+ * z wolną pojemnością nominalną nadal dostawał nowe konta.
+ *
+ * Ta stała jest JEDYNYM źródłem progu: `ops-watchdog.scheduler.ts` liczył
+ * własne 10 minut osobno. Dwa progi opisujące to samo rozjeżdżają się cicho.
+ */
+export const BRAK_SYGNALU_MIN = 10;
+
+/** `null` znaczy „nigdy się nie odezwał", czyli milczy. */
+export function czyWezelMilczy(
+  lastHeartbeatAt: Date | null | undefined,
+  teraz: Date = new Date(),
+): boolean {
+  if (!lastHeartbeatAt) return true;
+  return teraz.getTime() - lastHeartbeatAt.getTime() > BRAK_SYGNALU_MIN * 60_000;
+}
+
 export type PowodOdmowy =
   | 'BRAK_POJEMNOSCI_CPU'
   | 'BRAK_POJEMNOSCI_RAM'

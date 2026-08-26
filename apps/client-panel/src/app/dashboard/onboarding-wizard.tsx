@@ -15,17 +15,39 @@ import {
   X,
 } from 'lucide-react';
 import type { OnboardingSnapshot } from './onboarding-data';
+import {
+  podsumujKroki,
+  podtytulKrokow,
+  zbudujKroki,
+  type StanKroku,
+} from './onboarding-kroki';
 
 const DISMISS_KEY = 'verris_onboarding_dismissed_v1';
 
-interface Step {
-  key: string;
-  title: string;
-  body: string;
-  icon: React.ReactNode;
-  done: boolean;
-  href: string;
-  cta: string;
+// PANEL-01: kroki są danymi (`onboarding-kroki.ts`), tutaj zostaje wyłącznie
+// warstwa wizualna. Ikona jest cechą prezentacji, nie stanu konfiguracji.
+const IKONY: Record<string, React.ReactNode> = {
+  provisioning: <Loader2 className="h-4 w-4 animate-spin text-amber-300" />,
+  site: <Sparkles className="h-4 w-4" />,
+  dns: <Globe className="h-4 w-4" />,
+  ssl: <ShieldCheck className="h-4 w-4" />,
+  mail: <Mail className="h-4 w-4" />,
+};
+
+/**
+ * Trzy stany, trzy różne znaczniki. `nieznane` NIE dostaje pustego kółka —
+ * puste kółko czyta się jak „nie zrobiłeś", a my po prostu nie wiemy.
+ */
+function znacznik(stan: StanKroku) {
+  if (stan === 'zrobione') return <CheckCircle2 className="h-4 w-4 text-emerald-400" />;
+  if (stan === 'niezrobione') return <Circle className="h-4 w-4 text-neutral-500" />;
+  return (
+    <span
+      className="block h-4 w-4 rounded-full border border-dashed border-neutral-600"
+      title="Tego kroku nie sprawdzamy automatycznie"
+      aria-label="Nie sprawdzamy automatycznie"
+    />
+  );
 }
 
 export function OnboardingWizard({ snapshot }: { snapshot: OnboardingSnapshot }) {
@@ -58,60 +80,33 @@ export function OnboardingWizard({ snapshot }: { snapshot: OnboardingSnapshot })
     );
   }
 
-  const sid = snapshot.serviceId;
-  const q = sid ? `?serviceId=${sid}` : '';
-
-  const steps: Step[] = snapshot.provisioning
-    ? [
-        {
-          key: 'provisioning',
-          title: 'Trwa zakładanie konta',
-          body: 'Konfigurujemy Twoje konto na serwerze — to zwykle minuta. Odśwież stronę usługi.',
-          icon: <Loader2 className="h-4 w-4 animate-spin text-amber-300" />,
-          done: false,
-          href: sid ? `/dashboard/services/${sid}` : '/dashboard/services',
-          cta: 'Zobacz status',
-        },
-      ]
-    : snapshot.isEmailProduct
-      ? [
-          step('mail', 'Utwórz skrzynki e-mail', 'Dodaj skrzynki na swojej domenie i zaloguj się do webmaila.', <Mail className="h-4 w-4" />, false, `/dashboard/email${q}`, 'Skrzynki'),
-          step('dns', 'Skieruj rekordy MX/DNS', 'Upewnij się, że domena kieruje pocztę na nasz serwer.', <Globe className="h-4 w-4" />, snapshot.dnsOk === true, `/dashboard/dns${q}`, 'DNS'),
-        ]
-      : [
-          step('site', 'Postaw stronę', 'Przenieś stronę od konkurencji albo zainstaluj WordPress / aplikację 1-click.', <Sparkles className="h-4 w-4" />, false, `/dashboard/apps${q}`, 'Aplikacje 1-click'),
-          step('dns', 'Skieruj domenę', 'Wskaż domenę na nasz serwer (rekordy A/NS).', <Globe className="h-4 w-4" />, snapshot.dnsOk === true, `/dashboard/dns${q}`, 'DNS'),
-          step('ssl', 'Włącz SSL', 'Darmowy certyfikat Let’s Encrypt dla bezpiecznego HTTPS.', <ShieldCheck className="h-4 w-4" />, snapshot.tlsOk === true, `/dashboard/ssl${q}`, 'SSL'),
-          step('mail', 'Skonfiguruj pocztę', 'Utwórz skrzynki e-mail na swojej domenie.', <Mail className="h-4 w-4" />, false, `/dashboard/email${q}`, 'Poczta'),
-        ];
-
-  const doneCount = steps.filter((s) => s.done).length;
+  const kroki = zbudujKroki(snapshot);
+  const podsumowanie = podsumujKroki(kroki);
 
   return (
-    <Banner
-      onDismiss={dismiss}
-      title="Pierwsze kroki"
-      subtitle={`Skonfiguruj usługę w kilka chwil (${doneCount}/${steps.length} gotowe).`}
-    >
+    <Banner onDismiss={dismiss} title="Pierwsze kroki" subtitle={podtytulKrokow(podsumowanie)}>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full">
-        {steps.map((s) => (
+        {kroki.map((k) => (
           <Link
-            key={s.key}
-            href={s.href}
+            key={k.klucz}
+            href={k.href}
             className={`group flex items-center gap-3 rounded-xl border px-3 py-2.5 transition-colors ${
-              s.done ? 'border-emerald-400/25 bg-emerald-400/[0.05]' : 'border-white/10 bg-white/[0.02] hover:border-white/30'
+              k.stan === 'zrobione'
+                ? 'border-emerald-400/25 bg-emerald-400/[0.05]'
+                : 'border-white/10 bg-white/[0.02] hover:border-white/30'
             }`}
           >
-            <span className="shrink-0">
-              {s.done ? <CheckCircle2 className="h-4 w-4 text-emerald-400" /> : <Circle className="h-4 w-4 text-neutral-500" />}
-            </span>
+            <span className="shrink-0">{znacznik(k.stan)}</span>
             <span className="min-w-0 flex-1">
-              <span className="flex items-center gap-1.5 text-sm font-medium text-white">{s.icon}{s.title}</span>
-              <span className="block text-xs text-neutral-400">{s.body}</span>
+              <span className="flex items-center gap-1.5 text-sm font-medium text-white">
+                {IKONY[k.klucz]}
+                {k.tytul}
+              </span>
+              <span className="block text-xs text-neutral-400">{k.opis}</span>
             </span>
-            {!s.done ? (
+            {k.stan !== 'zrobione' ? (
               <span className="shrink-0 inline-flex items-center gap-1 text-xs text-neutral-300 group-hover:text-white">
-                {s.cta} <ArrowRight className="h-3 w-3" />
+                {k.cta} <ArrowRight className="h-3 w-3" />
               </span>
             ) : null}
           </Link>
@@ -119,18 +114,6 @@ export function OnboardingWizard({ snapshot }: { snapshot: OnboardingSnapshot })
       </div>
     </Banner>
   );
-}
-
-function step(
-  key: string,
-  title: string,
-  body: string,
-  icon: React.ReactNode,
-  done: boolean,
-  href: string,
-  cta: string,
-): Step {
-  return { key, title, body, icon, done, href, cta };
 }
 
 function Banner({

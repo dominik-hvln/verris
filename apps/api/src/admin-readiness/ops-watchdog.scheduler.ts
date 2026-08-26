@@ -12,8 +12,11 @@ import {
   nodeCapacityAlertTemplate,
   opsDailyDigestTemplate,
 } from '../mail/templates/ops-notifications';
+import { BRAK_SYGNALU_MIN } from '../subscriptions/node-capacity';
 
-const OFFLINE_AFTER_MS = 10 * 60 * 1000; // no heartbeat for 10 min => offline
+// OPS-01: próg pochodzi z `node-capacity.ts`, żeby watchdog i selektor węzłów
+// nie miały dwóch niezależnych zdań o tym, kiedy węzeł przestaje żyć.
+const OFFLINE_AFTER_MS = BRAK_SYGNALU_MIN * 60 * 1000;
 const ALERT_COOLDOWN_MS = 6 * 60 * 60 * 1000; // re-alert at most every 6h per node
 const STALE_BACKUP_MS = 36 * 60 * 60 * 1000; // offsite backup older than 36h is stale
 // OPS-3 — progi pojemności (alokacja planów / pojemność węzła).

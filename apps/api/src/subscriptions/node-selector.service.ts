@@ -2,6 +2,8 @@ import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common'
 import { Plan, Server, ServerStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import {
+  BRAK_SYGNALU_MIN,
+  czyWezelMilczy,
   czyZmiesciSie,
   efektywnyOvercommit,
   PojemnoscFizyczna,
@@ -48,9 +50,37 @@ export class NodeSelectorService {
     // Tylko węzły ACTIVE, które NIE są „cordoned" (acceptsNewAccounts=false).
     // Cordon pozwala wstrzymać przyjmowanie nowych kont na pojedynczym węźle bez
     // przełączania go w MAINTENANCE (co wstrzymałoby sprzedaż globalnie).
-    const candidates = await this.prisma.server.findMany({
+    const zStatusem = await this.prisma.server.findMany({
       where: { status: ServerStatus.ACTIVE, acceptsNewAccounts: true },
     });
+
+    // OPS-01 — status ACTIVE nie dowodzi, że węzeł żyje.
+    //
+    // Nic w API nigdy nie zapisywało statusu OFFLINE: watchdog liczył węzły
+    // z przeterminowanym sygnałem, metryki raportowały „offline", a wiersz
+    // w bazie zostawał ACTIVE. Selektor wybierał po statusie, więc martwa
+    // maszyna nadal dostawała nowe konta. Nieświeża telemetria tego nie
+    // łapała — ona tylko degraduje nadsubskrypcję do 1,0×, a węzeł z wolną
+    // pojemnością nominalną i tak przechodził bramkę.
+    //
+    // Filtrujemy po sygnale życia, a nie po statusie: to działa niezależnie
+    // od tego, czy ktoś kiedyś dopisze automatyczne przejście do OFFLINE.
+    const teraz = new Date();
+    const milczace = zStatusem.filter((s) => czyWezelMilczy(s.lastHeartbeatAt, teraz));
+    const candidates = zStatusem.filter((s) => !czyWezelMilczy(s.lastHeartbeatAt, teraz));
+
+    if (milczace.length > 0) {
+      this.logger.warn(
+        `Pomijam ${milczace.length} węzeł(ów) ACTIVE bez sygnału życia od ponad ` +
+          `${BRAK_SYGNALU_MIN} min: ${milczace.map((s) => s.id).join(', ')}.`,
+      );
+    }
+
+    if (candidates.length === 0 && milczace.length > 0) {
+      throw new ServiceUnavailableException(
+        'Brak węzłów hostingowych odpowiadających na sygnał życia. Skontaktuj się z BOK.',
+      );
+    }
 
     if (candidates.length === 0) {
       // Sprint 4 / A-08: jeżeli żaden węzeł nie jest ACTIVE, sprawdź czy

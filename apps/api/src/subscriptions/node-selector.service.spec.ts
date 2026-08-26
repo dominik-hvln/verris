@@ -26,6 +26,10 @@ function wezel(over: Record<string, unknown> = {}) {
     region: 'PL-WAW',
     status: 'ACTIVE',
     acceptsNewAccounts: true,
+    // OPS-01: domyślnie węzeł ŻYJE. Wcześniej fixture nie miał tego pola
+    // wcale — czyli wszystkie testy pojemności opisywały maszynę, o której
+    // nie wiadomo było, czy odpowiada.
+    lastHeartbeatAt: new Date(),
     totalCpuCores: 32,
     totalMemoryMb: 128 * 1024,
     totalDiskMb: 1920 * 1024,
@@ -264,5 +268,68 @@ describe('Z-12 — NodeSelectorService korzysta z nadsubskrypcji', () => {
     const minut = (Date.now() - od.getTime()) / 60_000;
     expect(minut).toBeGreaterThan(25);
     expect(minut).toBeLessThan(35);
+  });
+});
+
+
+/**
+ * OPS-01 — węzeł ACTIVE, ale milczący, nie może dostać nowego konta.
+ *
+ * Przyczyna: żadna ścieżka w API nigdy nie zapisywała statusu OFFLINE.
+ * Watchdog liczył węzły z przeterminowanym sygnałem, metryki raportowały
+ * „offline", a wiersz w bazie zostawał ACTIVE — i to po nim wybierał selektor.
+ *
+ * Te testy pilnują, że wybór opiera się na SYGNALE ŻYCIA, a nie na statusie.
+ * Dzięki temu poprawka działa niezależnie od tego, czy kiedyś dopiszemy
+ * automatyczne przejście do OFFLINE.
+ */
+describe('OPS-01 — martwy węzeł wypada z wyboru', () => {
+  const dawno = new Date(Date.now() - 60 * 60_000);
+
+  it('węzeł ACTIVE bez sygnału od godziny nie jest wybierany', async () => {
+    const serwis = new NodeSelectorService(
+      fakePrisma({ servers: [wezel({ lastHeartbeatAt: dawno })] }) as never,
+    );
+    await expect(serwis.pickServerForPlan(PLAN)).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
+  });
+
+  it('węzeł, który nigdy się nie odezwał, nie jest wybierany', async () => {
+    const serwis = new NodeSelectorService(
+      fakePrisma({ servers: [wezel({ lastHeartbeatAt: null })] }) as never,
+    );
+    await expect(serwis.pickServerForPlan(PLAN)).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
+  });
+
+  it('komunikat odróżnia milczące węzły od braku węzłów w ogóle', async () => {
+    const serwis = new NodeSelectorService(
+      fakePrisma({ servers: [wezel({ lastHeartbeatAt: dawno })] }) as never,
+    );
+    await expect(serwis.pickServerForPlan(PLAN)).rejects.toThrow(/sygnał życia/i);
+  });
+
+  it('spośród dwóch węzłów wybiera ten, który odpowiada', async () => {
+    const serwis = new NodeSelectorService(
+      fakePrisma({
+        servers: [
+          wezel({ id: 'martwy', lastHeartbeatAt: dawno }),
+          wezel({ id: 'zywy', lastHeartbeatAt: new Date() }),
+        ],
+      }) as never,
+    );
+    const wybrany = await serwis.pickServerForPlan(PLAN);
+    expect(wybrany.id).toBe('zywy');
+  });
+
+  it('kontrola strażnika — żywy węzeł nadal przechodzi', async () => {
+    // Bez tej asercji poprzednie testy przeszłyby także wtedy, gdyby selektor
+    // po prostu odrzucał wszystko.
+    const serwis = new NodeSelectorService(
+      fakePrisma({ servers: [wezel({ id: 'zywy' })] }) as never,
+    );
+    await expect(serwis.pickServerForPlan(PLAN)).resolves.toMatchObject({ id: 'zywy' });
   });
 });
