@@ -8,9 +8,30 @@ import { PlatformSettingsService } from '../platform-settings/platform-settings.
 import { FaXmlValidationError } from './fa-xml.types';
 import { buildFa3Xml } from './fa3-xml.builder';
 import { KsefV2Client } from './ksef-v2.client';
+import {
+  stanTerminu,
+  terminPrzeslania,
+  type TrybWystawienia,
+} from './ksef-tryby';
 import { InvoicingProvider } from './invoicing-provider.interface';
 
 const BATCH_LIMIT = 25;
+
+/**
+ * KSEF-05 — okno automatycznego dokwalifikowania zaległych faktur.
+ *
+ * Wcześniej `tick()` przestawiał na `PENDING` KAŻDĄ fakturę `NOT_APPLICABLE`,
+ * bez ograniczenia daty i bez potwierdzenia. Pierwszy przebieg po włączeniu
+ * KSeF kolejkował całą historię i zaczynał ją wysyłać partiami po 25 —
+ * a przy `KSEF_ENV` domyślnie `'test'` szła ona na środowisko testowe MF,
+ * z panelem pokazującym „wysłane".
+ *
+ * Automat łapie teraz wyłącznie świeże pominięcia (np. `enqueueInvoice` nie
+ * wykonał się z powodu błędu przy finalizacji). Wszystko starsze wymaga
+ * świadomej decyzji operatora — `zakwalifikujZalegle`, z podglądem liczby
+ * dokumentów PRZED wysyłką.
+ */
+const OKNO_AUTO_KATCHUPU_DNI = 7;
 
 /**
  * B-1 — orkiestracja KSeF.
@@ -20,10 +41,23 @@ const BATCH_LIMIT = 25;
  * wystawcą tych dokumentów; jeśli prawnik zdecyduje inaczej, zmiana = jedna
  * linia w `qualifies()`).
  *
- * Tryb offline (awaria KSeF): wysyłka po prostu zostaje w PENDING i jest
- * ponawiana — faktura PDF i tak trafia do klienta natychmiast, a przepisy
- * przewidują dosłanie po przywróceniu dostępności. REJECTED wymaga
- * interwencji (alert w logu + audyt + widoczne w adminie).
+ * Tryb offline — SKREŚLONA OBIETNICA (KSEF-04). Do 2026-08-26 stało tu, że
+ * „wysyłka zostaje w PENDING i jest ponawiana, a przepisy przewidują dosłanie".
+ * Część o dosłaniu jest prawdziwa. Reszta pomijała wszystko, co przepisy
+ * wymagają WOBEC NABYWCY, i zapewniała o zgodności, której nie było — czyli
+ * zniechęcała do sprawdzenia.
+ *
+ * Stan faktyczny po M-16:
+ *  - niedostępność KSeF jest ZAPISYWANA (`KsefStatus.OFFLINE` + `ksefTryb`),
+ *    a nie tylko logowana; terminy per tryb liczy `ksef-tryby.ts`,
+ *  - klasyfikacja zdarzenia (offline24 / niedostępność / awaria) należy do
+ *    człowieka, bo wynika z ogłoszenia w BIP MF, którego nie czytamy,
+ *  - NADAL BRAK kodów QR na fakturze przekazywanej nabywcy poza KSeF
+ *    (KOD I jest w zasięgu, KOD II wymaga certyfikatu KSeF typu 2 z portalu MF).
+ *    Dopóki ich nie ma, tryb offline nie jest dla nas w pełni dostępny —
+ *    i to musi być widoczne, a nie ciche. Patrz `docs/zadania/M-16-M-17-*`.
+ *
+ * REJECTED wymaga interwencji (alert w logu + audyt + widoczne w adminie).
  */
 @Injectable()
 export class KsefService {
@@ -108,12 +142,15 @@ export class KsefService {
   async tick(): Promise<void> {
     if (!(await this.isEnabled())) return;
 
-    // Catch-up: faktury sprzed włączenia KSeF / z pominiętym enqueue.
+    // Catch-up OGRANICZONY OKNEM (KSEF-05) — łapie pominięte `enqueueInvoice`
+    // z ostatnich dni, nie całą historię. Zaległości starsze niż okno
+    // kolejkuje wyłącznie `zakwalifikujZalegle` wywołane przez operatora.
+    const odKiedyAuto = new Date(Date.now() - OKNO_AUTO_KATCHUPU_DNI * 24 * 60 * 60 * 1000);
     await this.prisma.invoice.updateMany({
       where: {
         ksefStatus: KsefStatus.NOT_APPLICABLE,
         provider: null,
-        issuedAt: { not: null },
+        issuedAt: { not: null, gte: odKiedyAuto },
         netAmount: { not: null },
       },
       data: { ksefStatus: KsefStatus.PENDING },
@@ -126,7 +163,9 @@ export class KsefService {
     }
 
     const pending = await this.prisma.invoice.findMany({
-      where: { ksefStatus: { in: [KsefStatus.PENDING, KsefStatus.SUBMITTED] } },
+      where: {
+        ksefStatus: { in: [KsefStatus.PENDING, KsefStatus.SUBMITTED, KsefStatus.OFFLINE] },
+      },
       orderBy: { issuedAt: 'asc' },
       take: BATCH_LIMIT,
     });
@@ -135,12 +174,11 @@ export class KsefService {
     try {
       await client.openSession();
     } catch (err) {
-      // Awaria KSeF — tryb offline: nic nie zmieniamy, ponowimy za 10 min.
-      this.logger.warn(
-        `KSeF niedostępny — faktury pozostają w kolejce (${pending.length}): ${
-          err instanceof Error ? err.message : String(err)
-        }`,
-      );
+      // M-16 — KSeF nie odpowiada. Do dziś w tym miejscu było tylko ostrzeżenie
+      // w logu, a faktury zostawały w `PENDING` nieodróżnialne od tych, których
+      // cykl po prostu nie zdążył wysłać. Teraz zapisujemy FAKT, który
+      // zaobserwowaliśmy, i termin liczony najostrożniej z możliwych.
+      await this.oznaczNiedostepnosc(pending, err);
       return;
     }
 
@@ -150,7 +188,10 @@ export class KsefService {
     try {
       for (const inv of pending) {
         try {
-          if (inv.ksefStatus === KsefStatus.PENDING) {
+          if (
+            inv.ksefStatus === KsefStatus.PENDING ||
+            inv.ksefStatus === KsefStatus.OFFLINE
+          ) {
             await this.submitOne(client, inv);
             sent += 1;
           } else if (inv.ksefStatus === KsefStatus.SUBMITTED && inv.ksefElementRef) {
@@ -265,6 +306,96 @@ export class KsefService {
       return 'rejected';
     }
     return 'pending';
+  }
+
+  /**
+   * M-16 — zapisuje, że faktury nie poszły z powodu niedostępności KSeF.
+   *
+   * Świadomie WĄSKIE wykrywanie: reagujemy wyłącznie na nieudane otwarcie sesji,
+   * bo to jedyny sygnał jednoznacznie mówiący „KSeF nie odpowiada". Błąd 5xx na
+   * pojedynczej fakturze zostawia ją w `PENDING` — może znaczyć niedostępność,
+   * ale równie dobrze problem z tym jednym dokumentem, a zgadywanie zapisałoby
+   * w rejestrze tryb prawny, którego nikt nie potwierdził.
+   *
+   * Tryb `NIESKLASYFIKOWANY` nie jest kategorią z przepisów. Rozróżnienie
+   * offline24 / niedostępność / awaria wynika z ogłoszenia w BIP MF, którego nie
+   * czytamy — więc do czasu klasyfikacji liczymy termin NAJKRÓTSZY z możliwych.
+   */
+  private async oznaczNiedostepnosc(faktury: Invoice[], err: unknown): Promise<void> {
+    const teraz = new Date();
+    const tryb: TrybWystawienia = 'NIESKLASYFIKOWANY';
+    const powod = err instanceof Error ? err.message : String(err);
+
+    let oznaczone = 0;
+    for (const inv of faktury) {
+      if (inv.ksefStatus === KsefStatus.SUBMITTED) continue; // już w KSeF, czeka na numer
+      const wystawiono = inv.issuedAt ?? inv.createdAt;
+      await this.prisma.invoice.update({
+        where: { id: inv.id },
+        data: {
+          ksefStatus: KsefStatus.OFFLINE,
+          ksefTryb: tryb,
+          // Pierwsza obserwacja zostaje — kolejne cykle jej nie nadpisują,
+          // inaczej przerwa trwająca dobę wyglądałaby na dziesięciominutową.
+          ksefNiedostepnoscOd: inv.ksefNiedostepnoscOd ?? teraz,
+          ksefTerminDo: terminPrzeslania({ tryb, wystawiono }),
+          ksefError: `Niedostępność KSeF: ${powod}`.slice(0, 2000),
+        },
+      });
+      oznaczone += 1;
+    }
+
+    this.logger.warn(
+      `KSeF niedostępny — ${oznaczone} faktur(y) oznaczone jako OFFLINE ` +
+        `(tryb do zaklasyfikowania): ${powod}`,
+    );
+    if (oznaczone > 0) {
+      await this.audit.record({
+        action: 'KSEF_NIEDOSTEPNOSC',
+        details: { liczbaFaktur: oznaczone, powod: powod.slice(0, 500) },
+      });
+    }
+  }
+
+  /**
+   * M-16 — faktury, którym minął ustawowy termin przesłania do KSeF.
+   *
+   * Liczone przez `stanTerminu`, nie przez `ksefTerminDo === null`, bo `null`
+   * znaczy dwie różne rzeczy: brak obowiązku (online, awaria całkowita) albo
+   * termin nieznany (awaria bez znanej daty zakończenia przerwy). Pomylenie
+   * tych dwóch stanów to ta sama wada co w X-35, X-39 i PANEL-01.
+   */
+  async fakturyPoTerminie(teraz: Date = new Date()) {
+    const kandydaci = await this.prisma.invoice.findMany({
+      where: { ksefStatus: { in: [KsefStatus.OFFLINE, KsefStatus.PENDING] } },
+      select: {
+        id: true,
+        number: true,
+        issuedAt: true,
+        createdAt: true,
+        ksefTryb: true,
+        ksefPrzerwaDo: true,
+      },
+    });
+
+    const poTerminie = [];
+    let nieznane = 0;
+    for (const f of kandydaci) {
+      const tryb = (f.ksefTryb ?? 'ONLINE') as TrybWystawienia;
+      const stan = stanTerminu(
+        {
+          tryb,
+          wystawiono: f.issuedAt ?? f.createdAt,
+          przerwaZakonczona: f.ksefPrzerwaDo,
+        },
+        teraz,
+      );
+      if (stan === 'nieznany') nieznane += 1;
+      if (stan === 'po-terminie') {
+        poTerminie.push({ id: f.id, number: f.number, tryb });
+      }
+    }
+    return { poTerminie, nieznane };
   }
 
   private async markRejected(inv: Invoice, reason: string): Promise<void> {

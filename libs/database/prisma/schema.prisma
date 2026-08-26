@@ -1462,6 +1462,20 @@ model Invoice {
   ksefAcceptedAt  DateTime?
   ksefError      String?
 
+  /// M-16 — tryb wystawienia wobec KSeF. `null` = ONLINE.
+  /// Wartości i terminy: `apps/api/src/ksef/ksef-tryby.ts`. Baza pilnuje listy
+  /// przez CHECK, ale źródłem prawdy o znaczeniu jest tamten plik.
+  ksefTryb            String?
+  /// Kiedy pierwszy raz zaobserwowaliśmy, że KSeF nie odpowiada.
+  ksefNiedostepnoscOd DateTime?
+  /// Kiedy przerwa się skończyła — ustawia operator przy klasyfikacji zdarzenia.
+  /// Bez tej daty terminy liczone „od zakończenia przerwy" są NIEZNANE, a nie
+  /// nieistniejące. To rozróżnienie jest sednem M-16.
+  ksefPrzerwaDo       DateTime?
+  /// Termin ustawowy przesłania do KSeF. `null` = brak obowiązku ALBO nieznany —
+  /// czyta się to przez `stanTerminu`, nigdy przez `=== null`.
+  ksefTerminDo        DateTime?
+
   /// Z-01 — finalizacja (PDF + MinIO + KSeF + mail) jest ponawiana, a nie
   /// wykonywana raz i porzucana. Do 2026-08-22 błąd generowania PDF-u kończył
   /// się wpisem w logu i fakturą bez pliku, o której nikt się nie dowiadywał —
@@ -1502,6 +1516,7 @@ model Invoice {
   @@unique([provider, providerRef])
   @@index([userId])
   @@index([ksefStatus])
+  @@index([ksefStatus, ksefTerminDo])
   @@index([status, storageKey])
   @@index([status, finalizeNextAttemptAt])
   @@index([correctedId])
