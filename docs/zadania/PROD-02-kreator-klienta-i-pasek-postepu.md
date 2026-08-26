@@ -6,7 +6,7 @@
 | **Priorytet** | WYSOKA |
 | **Nakład** | M/L — do rozbicia na etapy |
 | **Zależy od** | — |
-| **Status** | **rozpisane, nie zaczęte** |
+| **Status** | **rozpisane, decyzje podjęte 2026-08-26, nie zaczęte** |
 | **Data** | 2026-08-26 |
 
 ---
@@ -84,19 +84,32 @@ użytkownika, albo dodatkowy wiersz wewnątrz karty (linia 315).
 Dziś liczy się z health jednej usługi w komponencie klienckim. Docelowo: **API liczy postęp,
 panel go wyświetla.**
 
-- Nowe pole w odpowiedzi `/users/me` (albo osobny lekki endpoint — do rozstrzygnięcia,
-  patrz pytania) z listą kroków, ich stanem i procentem.
+- **Postęp doklejony do `/users/me`** (decyzja 2026-08-26): sidebar i tak woła ten endpoint przy
+  każdej zmianie ścieżki, więc postęp dojedzie bez dodatkowego zapytania. **Warunek: wynik musi
+  być cache'owany po stronie API**, bo inaczej liczymy go przy każdej nawigacji, także tam,
+  gdzie nikt go nie ogląda.
 - Procent liczony po stronie serwera z realnych sygnałów, nie z zahardkodowanych `false`.
 - Kroki bez możliwości detekcji **nie wchodzą do mianownika**, dopóki detekcji nie mają.
   Lepszy licznik z trzech kroków niż licznik z czterech, który nie dojdzie do stu.
 
 ### B. Kroki — czego klient faktycznie potrzebuje
 
-Dzisiejsze cztery to podzbiór. Do rozpisania na podstawie tego, co panel już umie: usługa,
-domena, DNS, SSL, poczta, aplikacja/strona, płatność i faktura, kopie zapasowe, dostęp dla
-współpracownika (IAM/subkonta), migracja z innego hostingu. Nie wszystkie dotyczą każdego
-klienta — **warianty muszą wynikać z produktu, który kupił**, tak jak dziś rozdziela się
-hosting od poczty.
+**Podział na dwie grupy — decyzja 2026-08-26.**
+
+**Kroki konieczne** (liczą się do procentu): usługa działa, domena podpięta, DNS, SSL,
+skrzynki pocztowe dla produktu pocztowego, płatność i faktura. Klient dochodzi do 100%
+uczciwie i pasek znika.
+
+**Dobre praktyki** (osobna sekcja, **poza procentem**): kopia zapasowa i odtwarzanie
+(`H-22` — *„klient w kryzysie tego nie znajdzie"*), SPF / DKIM / DMARC (`E-15`, `E-16`, `E-17`
+— komponent `deliverability-panel.tsx` **już istnieje i jest osierocony**, nikt go nie
+renderuje), dostęp dla współpracownika (IAM/subkonta), migracja z innego hostingu.
+
+Sekcja dobrych praktyk pokazuje się zawsze, ale nigdy nie blokuje dojścia do stu procent.
+Pasek, do którego nie da się dojść, przestaje cokolwiek znaczyć.
+
+Warianty nadal wynikają z produktu, który klient kupił — tak jak dziś rozdziela się hosting
+od poczty.
 
 ### C. Trwałość i możliwość powrotu
 
@@ -106,9 +119,17 @@ hosting od poczty.
 
 ### D. Pasek w sidebarze
 
-- Nad belką użytkownika, widoczny na każdym widoku.
+- Nad belką użytkownika, widoczny na każdym widoku. **Na telefonie sidebar jest szufladą**,
+  więc pasek musi mieć miejsce także tam albo trafić nad nią — to zadanie i tak dotyka tego
+  layoutu (`Q-09`, WYSOKA).
 - Procent + skrót do kreatora.
+- **Przy wielu usługach pokazuje najniższy postęp i nazwę tej usługi** (decyzja 2026-08-26).
+  Dzisiejszy snapshot bierze `services[0]` i drugą usługę ignoruje — klient może mieć usługę
+  nietkniętą i widzieć komplet.
 - **Znika przy 100%** — pasek, który zawsze świeci na pełnym, przestaje cokolwiek znaczyć.
+- **Wraca dyskretnie po dokupieniu usługi** (decyzja 2026-08-26): nowa usługa obniża postęp
+  i pasek pojawia się z powrotem w sidebarze, ale **baner powitalny na dashboardzie się nie
+  odtwarza**. Klient dostaje sygnał, nie powtórkę z onboardingu.
 - Dla subkont: pokazuje wyłącznie kroki, do których subkonto ma uprawnienia
   (`customerPermissions`), albo nie pokazuje się wcale. Subkonto nie ma jak ukończyć kroku,
   którego nie widzi — a pasek stojący na 40% bez możliwości ruchu to defekt, nie informacja.
@@ -138,13 +159,17 @@ Punkt 1 przed resztą, bo dzisiejszy licznik pokazuje klientowi nieprawdę **ter
 - **Grywalizacji postępu** — punkty, odznaki, nagrody za ukończenie. Poza zakresem.
 - **Zmiany `sidebarQuickLinks`** — kafelki użytkownika zostają jak są.
 
-## Otwarte pytania
+## Decyzje podjęte 2026-08-26
 
-1. **`/users/me` czy osobny endpoint?** `/users/me` jest już wołany przy każdej zmianie ścieżki
-   — postęp dojedzie za darmo, ale odpowiedź urośnie i policzy się także tam, gdzie nikt jej
-   nie ogląda. Osobny endpoint to jedno zapytanie więcej na każdy widok.
-2. **Co dokładnie liczy się do 100%?** Kroki obowiązkowe czy wszystkie dostępne? Klient bez
-   poczty nie powinien utknąć na 80% z powodu kroku, którego nie kupił.
-3. **Wiele usług.** Dzisiejszy snapshot bierze `services[0]`. Postęp ma dotyczyć konta czy
-   wybranej usługi? Przy dwóch usługach — jeden pasek czy przełącznik?
-4. **Czy pasek ma wracać**, gdy klient doda nową usługę po ukończeniu onboardingu?
+| Pytanie | Decyzja |
+|---|---|
+| Co wchodzi do 100%? | **Tylko kroki konieczne.** Backup i deliverability jako osobna sekcja „dobre praktyki", poza procentem |
+| Skąd panel bierze postęp? | **Doklejone do `/users/me`**, z cache'owaniem po stronie API |
+| Wiele usług? | **Najniższy postęp spośród usług, z nazwą tej usługi** |
+| Czy pasek wraca po dokupieniu usługi? | **Tak, ale tylko w sidebarze** — bez banera na dashboardzie |
+
+## Pozostaje otwarte
+
+- **Jak długo cache'ować postęp w API** i co go unieważnia. Zbyt długi cache = klient
+  konfiguruje DNS i przez kwadrans widzi stary procent; zbyt krótki = liczymy przy każdej
+  nawigacji, czyli dokładnie to, czego decyzja o `/users/me` miała uniknąć.

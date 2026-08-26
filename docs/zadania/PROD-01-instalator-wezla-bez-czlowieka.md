@@ -6,7 +6,7 @@
 | **Priorytet** | WYSOKA |
 | **Nakład** | L — do rozbicia na etapy |
 | **Zależy od** | `OPS-01` (status węzła musi przestać kłamać) |
-| **Status** | **rozpisane, nie zaczęte** |
+| **Status** | **rozpisane, decyzje podjęte 2026-08-26, nie zaczęte** |
 | **Data** | 2026-08-26 |
 
 ---
@@ -46,17 +46,30 @@ Wizard realizuje wersję A. Dokument decyzyjny mówi B.
 i usunięciu drugiej.** Automatyka w większości już istnieje — po prostu nie jest tą, którą
 panel pokazuje operatorowi.
 
-## Decyzja do podjęcia (nie moja)
+## Decyzja podjęta 2026-08-26
 
-**Rekomendacja: v2 jest ścieżką docelową, wizard 9-krokowy zostaje z niej przepisany.**
+**v2 jest ścieżką docelową, wizard 9-krokowy zostaje z niej przepisany.**
 
 Uzasadnienie: v2 jest wznawialny (systemd oneshot przeżywa reboot po CloudLinuksie i zerwane
 SSH — dwa najczęstsze miejsca, w których stary wizard się rozpada), raportuje fazy do API
 zamiast polegać na deklaracji operatora, i trzyma licencje w bazie zamiast w historii powłoki.
 
-Cena: sekrety licencyjne trafiają do bazy control-plane. Nagłówek starego wizarda mówi wprost
-*„sekrety licencyjne nie trafiają do panelu"* — v2 tę zasadę już złamał, tylko nikt tego nie
-odnotował jako zmiany polityki. **To wymaga świadomej decyzji, nie milczącego przyjęcia.**
+Cena — i to jest **świadomie przyjęta zmiana polityki, nie skutek uboczny**: sekrety licencyjne
+DA, CloudLinux i LiteSpeed mieszkają zaszyfrowane w bazie control-plane. Nagłówek starego
+wizarda obiecuje coś przeciwnego i **ta obietnica zostaje wykreślona**, bo bez kluczy w bazie
+instalator nie zainstaluje CloudLinuksa ani DirectAdmina bez człowieka przy klawiaturze —
+czyli pełna automatyzacja jest wtedy niemożliwa z definicji.
+
+Z tej decyzji wynika praca, której wcześniej nie było na liście:
+
+| # | Co trzeba dołożyć | Dlaczego |
+|---|---|---|
+| L1 | Klucz szyfrujący **poza bazą** (zmienna środowiskowa / plik o ograniczonych prawach), nigdy w tej samej kopii zapasowej co dane | Zrzut bazy przestaje być wystarczający do przejęcia licencji |
+| L2 | Wpis w audycie przy **każdym odczycie** klucza licencyjnego, nie tylko przy zapisie | Odczyt jest tu operacją wrażliwą — to on trafia do skryptu |
+| L3 | Ścieżka **rotacji** klucza licencyjnego bez ponownej instalacji węzła | Bez niej pierwsza podejrzana sytuacja oznacza przestawianie węzła od zera |
+| L4 | Aktualizacja modelu zagrożeń: control-plane staje się celem o wyższej wartości | Dziś nigdzie nie jest zapisane, że tam leżą licencje |
+
+**Bez L1–L4 decyzja nie jest wdrożona, tylko przyjęta.**
 
 ## Zakres — co instalator ma robić sam
 
@@ -69,13 +82,30 @@ Podział wg tego, czy przeszkoda jest techniczna, czy naprawdę ludzka.
 | 1 | region wpisywany wolnym tekstem, bez walidacji | słownik regionów; brak wpisu = brak wyboru, nie literówka |
 | 2 | rekord A w OVH zakładany ręcznie przed akceptacją | zakładany przez `NodeDnsService`, tak jak glue NS |
 | 3 | `approveServer` sprawdza tylko kształt hostname | sprawdza, czy A wskazuje na IP z handshake'u |
-| 4 | `PENDING_APPROVAL → ACTIVE` wyłącznie kliknięciem | automatycznie, gdy wszystkie sygnały żywe; klik zostaje jako obejście |
-| 5 | 6 z 8 checkboxów odhaczanych „na słowo honoru" | każdy krok ma sygnał albo znika |
+| 4 | `PENDING_APPROVAL → ACTIVE` wyłącznie kliknięciem, bez żadnej weryfikacji | **klik zostaje** (decyzja 2026-08-26), ale przycisk zapala się dopiero, gdy przechodzą wszystkie automatyczne weryfikacje: PTR, porty, DNS, glue, backup, kanarek |
+| 5 | 6 z 8 checkboxów odhaczanych „na słowo honoru" | **checkboxy znikają w całości** — krok ma sygnał albo nie ma go w kreatorze |
 | 6 | pojemność (CPU/RAM/dysk) ustalana raz, w handshake | odświeżana heartbeatem — schemat już to obiecuje w komentarzu i nie dowozi |
 | 7 | wildcard TLS bez `VERRIS_TLS_DEPLOY_WEBHOOK` = wpis w audycie i cisza | zadanie w kolejce agenta, z widocznym stanem |
 | 8 | brak `/etc/verris-backup.conf` → backup offsite nie startuje, tylko WARN | konfiguracja generowana przez instalator; brak = FAIL, nie WARN |
 | 9 | `imapsync`/`sshpass` brakujące → WARN | instalowane (EPEL) albo twardy FAIL z powodem |
 | 10 | `prod-rollout-node-via-jump.sh` ma zaszyty `NODE_HOST=root@62.238.0.223` | parametr wymagany, brak = błąd |
+
+### Dołożone decyzjami z 2026-08-26
+
+**Backup blokuje instalację twardo.** Dziś timer kopii instaluje się zawsze, ale bez
+`/etc/verris-backup.conf` po prostu nie startuje — i jest to wyłącznie `WARN`. Węzeł może
+obsługiwać klientów bez kopii zapasowych i nikt się o tym nie dowie. Od teraz: brak
+konfiguracji backupu to **`FAIL` instalacji**, nie ostrzeżenie. Macierz wskazuje to w dwóch
+miejscach niezależnie (`H-19`, `Q-14`).
+
+**Kanarek przed `ACTIVE`.** Instalator sam zakłada konto testowe, sprawdza, czy dostało limity
+planu, i je kasuje. Dziś ten smoke to ręczny zakup w sandboxie Stripe — pozycja 26 z listy
+28 dotknięć. Kanarek jest jednym z warunków zapalenia przycisku aktywacji.
+
+**Wycofanie NIEUDANEJ instalacji.** Dziś nieudany bootstrap zostawia w bazie węzeł `INIT` bez
+skryptu, bez retry i bez sprzątania. Instalator ma umieć cofnąć własną nieudaną próbę.
+**Wycofanie węzła działającego** (drain, migracja kont, usunięcie) to osobne zadanie —
+`PROD-03`, decyzja 2026-08-26.
 
 ### Zostaje przy człowieku — i to jest lista zamknięta
 
@@ -134,11 +164,18 @@ węzłów, których stan potrafi być nieprawdziwy.
   fazami, ale nie cofa zmian już wprowadzonych; rollback to osobne zadanie.
 - **Migracji istniejących węzłów na nową ścieżkę** — dotyczy tylko nowych.
 
-## Otwarte pytania
+## Decyzje podjęte 2026-08-26
 
-1. **Czy licencje mogą leżeć w bazie control-plane?** v2 już to robi, stary wizard obiecuje,
-   że nie. Jedna z tych dwóch rzeczy musi przestać być prawdą.
-2. **Czy `ACTIVE` ma być automatyczne, czy zostaje decyzją człowieka?** Automat jest szybszy;
-   klik jest miejscem, w którym ktoś patrzy na węzeł ostatni raz przed wpuszczeniem klientów.
-3. **Co z węzłem, który przeszedł instalację, ale oblał weryfikację u dostawcy** (np. brak PTR)
-   — `PENDING_APPROVAL` bezterminowo czy nowy stan?
+| Pytanie | Decyzja | Co z niej wynika |
+|---|---|---|
+| Gdzie mieszkają klucze licencyjne? | **W bazie, szyfrowane** — v2 zostaje, polityka zmieniona świadomie | L1–L4 wyżej |
+| `ACTIVE` automatycznie czy klikiem? | **Klik zostaje**, ale wszystkie warunki weryfikowane automatycznie | checkboxy znikają; przycisk zapala się dopiero po weryfikacji |
+| Brak backupu — jak twardo blokuje? | **Twardy `FAIL` instalacji** | `WARN` w `node-onboard-live.sh` przestaje wystarczać |
+| Wycofanie węzła w zakresie? | **Nie** — osobne zadanie `PROD-03` | tutaj zostaje tylko cofnięcie nieudanej instalacji |
+
+## Pozostaje otwarte
+
+- **Co z węzłem, który przeszedł instalację, ale oblał weryfikację u dostawcy** (np. brak PTR)?
+  `PENDING_APPROVAL` bezterminowo, czy osobny stan? Dziś nie ma stanu „zainstalowany, ale
+  niespełniający warunków", a po decyzji o automatycznej weryfikacji taki węzeł będzie
+  powstawał regularnie.
