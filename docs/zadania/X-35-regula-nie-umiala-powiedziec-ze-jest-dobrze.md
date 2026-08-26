@@ -208,6 +208,28 @@ bieżącego `main` nie ma obrazów w GHCR (`compose pull` → `not found`).
 Prowizjonowanie jest montowane z dysku, więc restart Grafany wystarczył do
 przeładowania reguł, ale to osobna sprawa i osobna pozycja w backlogu.
 
+## Korekta dopisana 2026-08-26 (z `X-43`)
+
+Ta pozycja trafiła na `main` z **czerwoną bramką**, czego wtedy nie zauważyliśmy.
+
+Zmiana `noDataState: Alerting` → `OK` była słuszna i dobrze uzasadniona, ale asercja
+w `routing-alertow.spec.ts:141` nadal wymagała `Alerting`. Zmiana i jej strażnik
+rozjechały się **wewnątrz jednego zadania**:
+
+| commit | co się stało |
+|---|---|
+| `9edc2356` — reguła backupu | `deploy.yml` #75 czerwone na kroku `API unit tests` |
+| `5a725fe2` — poprawka `.gitignore` | `ci.yml` #101 i `deploy.yml` #76 — oba czerwone |
+| `ab7522f8` — strażnicy ciszy | bramka testowa przeszła; naprawione |
+
+Czerwień trwała trzy commity i **nie została wtedy odczytana** — zamknęliśmy pozycję
+na D3 z produkcji, nie patrząc na bramkę. Produkcja potwierdziła, że reguła działa;
+bramka mówiła równocześnie, że strażnik tej reguły twierdzi coś przeciwnego.
+
+Wniosek, który zostaje: **zmieniając zachowanie, przeszukaj strażników tego zachowania
+w tym samym commicie.** Nie „uruchom testy" — to zrobiliśmy i było czerwono — tylko
+przeczytaj wynik, zanim uznasz zadanie za zamknięte.
+
 ## Wpływ na inne pozycje
 
 | ID | Wpływ |
@@ -217,6 +239,7 @@ przeładowania reguł, ale to osobna sprawa i osobna pozycja w backlogu.
 | `X-33` | jego bramka policzyła 17 reguł bez zmiany w skrypcie |
 | `H-23` | miesiąc ciszy o niewykonanej kopii — źródło nadkorekty, którą tu cofamy |
 | `X-36` | osobno: security watch, którego znalezisko maskowało tę sprawę |
+| `X-43` | koryguje — ujawnił, że ta pozycja trafiła na `main` z czerwoną bramką |
 
 ## Dowód po
 

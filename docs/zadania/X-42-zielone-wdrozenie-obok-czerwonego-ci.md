@@ -119,13 +119,18 @@ pozycji, której dowodem jest przebieg tego workflow.**
   `status-page` używa tej samej konfiguracji Nexta i przeszedł, ale nie ma tam
   bloku nadpisań — czyli nie ma na czym wywalić. Gdyby ktoś taki blok dopisał,
   wpadnie w tę samą pułapkę.
-- **Nie wiemy, czy `ci.yml` nie był czerwony także wcześniej z innych powodów.**
-  Widzieliśmy czerwień przy `X-35` i `X-38`; tamtych przebiegów nie otwieraliśmy.
+- ~~**Nie wiemy, czy `ci.yml` nie był czerwony także wcześniej z innych powodów.**~~
+  **Rozstrzygnięte w `X-43`.** Przyczyny były cztery, nie jedna: lint (ta pozycja),
+  TS6059 przy `X-38`, strażnik przeczący własnej zmianie przy `X-35` oraz maj 2026
+  bez odzyskiwalnych logów. `X-43` zawęża też tezę tej pozycji: bramka wdrożenia
+  była słabsza od bramki gałęzi **wyłącznie o lint** — przy czerwonym typechecku
+  i czerwonym teście wdrożenie padało razem z CI.
 - **`pnpm lint` wydłuża bramkę wdrożenia** o ~6 s wg logu CI. To cena, którą
   świadomie płacimy.
 
 ## Do backlogu
 
-1. **Przegląd historycznych czerwonych przebiegów `ci.yml`** — czy `X-35`
-   i `X-38` padały z tego samego powodu, czy z innych.
+1. ~~**Przegląd historycznych czerwonych przebiegów `ci.yml`**~~ — zrobione,
+   patrz `X-43`. Wyszły dwa nowe ograniczenia: anulowany przebieg jest w `gh run
+   list` nieodróżnialny od nieistniejącego, a logi GitHuba wygasają po ~90 dniach.
 2. **`X-18`** — sprzątnięcie znalezisk react-hooks i przywrócenie ich na `error`.
