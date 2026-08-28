@@ -11,7 +11,7 @@
     "axios": "^1.19.0"
   },
   "devDependencies": {
-    "@types/node": "^26.2.0",
+    "@types/node": "^26.3.0",
     "@verris/eslint-config": "workspace:*",
     "@verris/typescript-config": "workspace:*",
     "typescript": "^5.0.0",
