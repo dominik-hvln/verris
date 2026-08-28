@@ -15,6 +15,6 @@
     "@verris/eslint-config": "workspace:*",
     "@verris/typescript-config": "workspace:*",
     "typescript": "^5.0.0",
-    "eslint": "^9.39.5"
+    "eslint": "^10.9.1"
   }
 }
