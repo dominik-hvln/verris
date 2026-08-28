@@ -227,4 +227,54 @@ describe('X-04 — NodeSelectorService przeciwko prawdziwej bazie', () => {
       await expect(selektor.pickServerForPlan(plan)).rejects.toThrow(/serwis infrastruktury/);
     });
   });
+
+  /**
+   * OPS-01 — martwy węzeł przeciwko PRAWDZIWEJ bazie.
+   *
+   * Test jednostkowy dowodzi, że filtr działa na liście obiektów. Nie dowodzi,
+   * że `lastHeartbeatAt` wraca z Postgresa jako `Date` porównywalny z `new
+   * Date()` — a to jest dokładnie ta klasa rzeczy, dla której ten plik istnieje
+   * (patrz nagłówek: `Float` z overcommitu wracający jako Decimal).
+   *
+   * Ten blok powstał, bo moja zmiana z OPS-01 wywróciła siedem testów w tym
+   * pliku: fixture nie ustawiał sygnału życia, więc każdy węzeł był milczący.
+   * Poprawka fixture'u bez testu na samo zachowanie zostawiłaby regułę
+   * niesprawdzoną w jedynym miejscu, gdzie da się ją sprawdzić naprawdę.
+   */
+  describe('OPS-01 — węzeł bez sygnału życia', () => {
+    it('węzeł ACTIVE z przeterminowanym sygnałem nie jest wybierany', async () => {
+      await utworzWezel({ lastHeartbeatAt: new Date(Date.now() - 60 * 60_000) });
+      const plan = await utworzPlan();
+      await expect(selektor.pickServerForPlan(plan)).rejects.toBeInstanceOf(
+        ServiceUnavailableException,
+      );
+    });
+
+    it('węzeł, który nigdy się nie odezwał, nie jest wybierany', async () => {
+      await utworzWezel({ lastHeartbeatAt: null });
+      const plan = await utworzPlan();
+      await expect(selektor.pickServerForPlan(plan)).rejects.toBeInstanceOf(
+        ServiceUnavailableException,
+      );
+    });
+
+    it('spośród dwóch węzłów wybiera ten, który odpowiada', async () => {
+      const martwy = await utworzWezel({ lastHeartbeatAt: new Date(Date.now() - 60 * 60_000) });
+      const zywy = await utworzWezel({ lastHeartbeatAt: new Date() });
+      const plan = await utworzPlan();
+
+      const wybrany = await selektor.pickServerForPlan(plan);
+      expect(wybrany.id).toBe(zywy.id);
+      expect(wybrany.id).not.toBe(martwy.id);
+    });
+
+    it('data z Postgresa jest porównywalna — świeży węzeł przechodzi', async () => {
+      // Kontrola: gdyby `lastHeartbeatAt` wracało w postaci, której nie da się
+      // porównać z `new Date()`, poprzednie trzy testy przechodziłyby
+      // z powodu odrzucania wszystkiego.
+      const zywy = await utworzWezel({ lastHeartbeatAt: new Date() });
+      const plan = await utworzPlan();
+      await expect(selektor.pickServerForPlan(plan)).resolves.toMatchObject({ id: zywy.id });
+    });
+  });
 });

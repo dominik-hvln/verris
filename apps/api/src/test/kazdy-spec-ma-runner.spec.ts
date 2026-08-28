@@ -147,3 +147,56 @@ describe('każdy spec ma runner', () => {
     });
   });
 });
+
+/**
+ * OPS-01 / 2026-08-26 — ŚLEPA PLAMKA TEGO STRAŻNIKA.
+ *
+ * Powyższe testy pilnują plików `*.spec.ts`. Testy integracyjne nazywają się
+ * `*.int-spec.ts`, leżą poza `src/` i mają własną konfigurację — czyli
+ * przechodziły przez ten strażnik bez śladu.
+ *
+ * Kosztowało to czerwony przebieg #127. Zmiana z OPS-01 dodała filtr po sygnale
+ * życia węzła; poprawiłem fixture w spec-u jednostkowym i nie miałem jak
+ * zobaczyć drugiego, bo `pnpm test` go nie uruchamia, a jedynym zapisem, jak go
+ * uruchomić, była linia w `ci.yml`.
+ *
+ * Warunek jest ten sam co dla testów jednostkowych, tylko dla drugiej paczki:
+ * skoro pliki istnieją, musi istnieć NAZWANY sposób ich uruchomienia — i to
+ * bramka ma go wołać, zamiast mieć własną kopię polecenia.
+ */
+describe('paczka testów integracyjnych też ma nazwany runner', () => {
+  const API = join(KORZEN, 'apps', 'api');
+
+  function pliki(katalog: string, wzorzec: RegExp, zebrane: string[] = []): string[] {
+    if (!existsSync(katalog)) return zebrane;
+    for (const wpis of readdirSync(katalog)) {
+      const sciezka = join(katalog, wpis);
+      if (statSync(sciezka).isDirectory()) pliki(sciezka, wzorzec, zebrane);
+      else if (wzorzec.test(wpis)) zebrane.push(sciezka);
+    }
+    return zebrane;
+  }
+
+  it('istnieją testy integracyjne — inaczej ten strażnik nie ma czego pilnować', () => {
+    expect(pliki(join(API, 'test'), /\.int-spec\.ts$/).length).toBeGreaterThan(0);
+  });
+
+  it('pakiet deklaruje skrypt uruchamiający je', () => {
+    const pkg = JSON.parse(readFileSync(join(API, 'package.json'), 'utf8'));
+    expect(Object.keys(pkg.scripts ?? {})).toContain('test:int');
+  });
+
+  it('bramka woła TEN skrypt, a nie własną kopię polecenia', () => {
+    const yaml = bezKomentarzy(readFileSync(join(KORZEN, '.github', 'workflows', 'ci.yml'), 'utf8'));
+    expect(yaml).toMatch(/pnpm\s+(?:run\s+)?test:int/);
+    // Własna kopia polecenia to drugie źródło prawdy o tym, jak uruchomić
+    // testy — i to ono rozjechało się z package.json.
+    expect(yaml).not.toMatch(/jest\s+--config\s+jest\.integration\.cjs/);
+  });
+
+  it('kontrola strażnika — wykrywa brak skryptu', () => {
+    const udawany = { scripts: { test: 'jest' } };
+    expect(Object.keys(udawany.scripts)).not.toContain('test:int');
+  });
+});
+

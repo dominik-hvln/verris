@@ -333,9 +333,13 @@ jobs:
       - name: Build workspace libraries
         run: pnpm --filter @verris/database --filter @verris/contracts --filter @verris/directadmin-sdk run build
 
+      # Woła SKRYPT z package.json, nie własne polecenie. Do 2026-08-26 stało
+      # tu `npx jest --config jest.integration.cjs` i był to jedyny w repo
+      # zapis tego, jak uruchomić testy integracyjne — człowiek musiał czytać
+      # workflow, żeby je odpalić lokalnie. Ta sama rodzina co X-40.
       - name: Run integration tests
         working-directory: apps/api
-        run: npx jest --config jest.integration.cjs
+        run: pnpm test:int
 
   # ---------------------------------------------------------------------------
   # CYBER-5/6 — skany bezpieczeństwa: sekrety w repo, znane CVE w zależnościach,

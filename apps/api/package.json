@@ -16,6 +16,7 @@
     "cli:seed-kb-cms": "pnpm build:cli && node dist-cli/cli/seed-kb-cms.js",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "jest --config jest.config.cjs",
+    "test:int": "jest --config jest.integration.cjs",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix"
   },
   "dependencies": {

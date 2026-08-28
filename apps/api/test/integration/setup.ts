@@ -1,4 +1,5 @@
 import { PrismaClient } from '@verris/database';
+import { sprawdzBazeTestowa } from './baza-testowa';
 
 /**
  * X-04 — wspólna obsługa testów integracyjnych.
@@ -47,12 +48,7 @@ let klient: PrismaClient | null = null;
 
 export function prisma(): PrismaClient {
   if (!klient) {
-    if (!process.env.DATABASE_URL) {
-      throw new Error(
-        'Testy integracyjne wymagają DATABASE_URL wskazującego na BAZĘ TESTOWĄ. ' +
-          'Nigdy nie uruchamiaj ich przeciwko bazie z danymi — zaczynają od TRUNCATE.',
-      );
-    }
+    sprawdzBazeTestowa(process.env.DATABASE_URL);
     klient = new PrismaClient();
   }
   return klient;
@@ -88,6 +84,13 @@ export async function utworzWezel(over: Record<string, unknown> = {}) {
       ipAddress: `10.0.0.${n % 250}`,
       status: 'ACTIVE',
       acceptsNewAccounts: true,
+      // OPS-01: domyślnie węzeł ŻYJE. Do 2026-08-26 tego pola tu nie było
+      // wcale, więc wszystkie testy pojemności opisywały maszynę, o której nie
+      // wiadomo było, czy odpowiada. Po wprowadzeniu filtru po sygnale życia
+      // selektor przestał je wybierać i siedem testów spadło na `Received: 0`.
+      // Fixture bez `lastHeartbeatAt` to nie jest „węzeł domyślny" — to węzeł
+      // milczący, a taki nie ma prawa dostać nowego konta.
+      lastHeartbeatAt: new Date(),
       totalCpuCores: 32,
       totalMemoryMb: 128 * 1024,
       totalDiskMb: 1920 * 1024,

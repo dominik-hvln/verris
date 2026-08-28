@@ -141,7 +141,27 @@ describe('X-17 — joby CI budują to, czego ich kroki potrzebują', () => {
     expect(job).toBeDefined();
     expect(job!.tresc).toContain('postgres');
     expect(job!.tresc).toContain('prisma migrate deploy');
-    expect(job!.tresc).toContain('jest.integration.cjs');
+
+    // Do 2026-08-26 stało tu `toContain('jest.integration.cjs')` — workflow
+    // wołał jest bezpośrednio i był JEDYNYM w repozytorium zapisem tego, jak
+    // uruchomić te testy. Człowiek musiał czytać CI, żeby odpalić je u siebie
+    // (rodzina X-40). Dziś woła nazwany skrypt, więc strażnik sprawdza dwie
+    // rzeczy zamiast jednej: że job woła skrypt ORAZ że ten skrypt istnieje
+    // i celuje we właściwą konfigurację. Sam `toContain('pnpm test:int')`
+    // przechodziłby przy skrypcie skasowanym z package.json.
+    expect(job!.tresc).toContain('pnpm test:int');
+
+    const pkg = JSON.parse(
+      readFileSync(resolve(KORZEN, 'apps/api/package.json'), 'utf-8'),
+    );
+    expect(pkg.scripts['test:int']).toContain('jest.integration.cjs');
+  });
+
+  it('job integracyjny NIE woła jesta z pominięciem skryptu', () => {
+    // Bo wtedy sposób uruchomienia testów znów mieszkałby w dwóch miejscach,
+    // a te dwa miejsca rozjechałyby się przy pierwszej zmianie konfiguracji.
+    const job = joby().find((j) => j.nazwa === 'integration');
+    expect(job!.tresc).not.toMatch(/jest\s+--config\s+jest\.integration\.cjs/);
   });
 
   it('kontrola samego strażnika — rozpoznaje job bez budowania', () => {
