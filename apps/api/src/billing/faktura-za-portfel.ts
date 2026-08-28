@@ -242,13 +242,55 @@ export type KlientPrismy = Prisma.TransactionClient | {
 export const SERIA_FAKTURY = 'VFV';
 export const SERIA_KOREKTY = 'VFK';
 
+/**
+ * M-02 — strefa, w której liczy się okres numeracji.
+ *
+ * Do 2026-08-28 `nadajNumerFaktury` brało rok i miesiąc przez
+ * `referencja.getFullYear()` / `.getMonth()`, czyli w strefie LOKALNEJ PROCESU.
+ * `TZ` nie jest nigdzie w projekcie ustawiane, więc okres numeracji zależał od
+ * tego, gdzie kod akurat działa:
+ *
+ *   Data 2026-08-31T23:59:59Z
+ *     • proces w Europe/Warsaw  → wrzesień  (bo lokalnie jest 01:59 dnia 1.09)
+ *     • proces w UTC            → sierpień
+ *
+ * Ta sama faktura dostawała więc różny numer na maszynie dewelopera i na
+ * produkcji. Objaw nie występuje codziennie — wyłącznie w oknie granicznym
+ * (w Polsce dwie godziny latem, jedna zimą, na przełomie każdego miesiąca) —
+ * czyli dokładnie wtedy, gdy fakturowanie zbiorcze i tak się wykonuje.
+ *
+ * Numeracja jest wymagana jako ciągła w okresie rozliczeniowym
+ * (art. 106e ust. 1 pkt 2 ustawy o VAT), a okres rozliczeniowy podatnika w
+ * Polsce biegnie w czasie polskim — nie w czasie serwera. Liczymy więc jawnie,
+ * zamiast polegać na zmiennej środowiskowej, której nikt nie ustawia.
+ *
+ * `Intl` zamiast arytmetyki na przesunięciu, bo Polska ma czas letni:
+ * stałe +1 albo +2 byłoby poprawne przez pół roku.
+ */
+export const STREFA_NUMERACJI = 'Europe/Warsaw';
+
+/** Rok i miesiąc okresu numeracji, liczone w strefie polskiej. */
+export function okresNumeracji(referencja: Date): { rok: number; miesiac: number } {
+  // 'en-CA' daje ISO-podobne RRRR-MM-DD, więc rozbiór jest jednoznaczny.
+  const [rok, miesiac] = new Intl.DateTimeFormat('en-CA', {
+    timeZone: STREFA_NUMERACJI,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+    .format(referencja)
+    .split('-')
+    .map(Number);
+
+  return { rok, miesiac };
+}
+
 export async function nadajNumerFaktury(
   db: KlientPrismy,
   referencja: Date,
   seria: string = SERIA_FAKTURY,
 ): Promise<string> {
-  const rok = referencja.getFullYear();
-  const miesiac = referencja.getMonth() + 1;
+  const { rok, miesiac } = okresNumeracji(referencja);
   const rows = await db.$queryRaw<Array<{ seq: number }>>`
     INSERT INTO "InvoiceCounter" ("id", "series", "year", "month", "seq", "updatedAt")
     VALUES (gen_random_uuid(), ${seria}, ${rok}, ${miesiac}, 1, NOW())
