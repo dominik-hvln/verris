@@ -41,6 +41,29 @@ updates:
       # przegląd: 2026-11-15
       - dependency-name: typescript
         update-types: [version-update:semver-major]
+      # ESLint 10: `eslint-plugin-react@7.37.5` — wciągany tranzytywnie przez
+      # `eslint-config-next@16.3.2` — wywraca się na dziesiątce fatalnym błędem
+      # startu (kod wyjścia 2, nie 1): `Error while loading rule
+      # 'react/display-name': contextOrFilename.getFilename is not a function`.
+      # Zmieniło się API kontekstu reguły, wtyczka za tym nie nadążyła. Nasz kod
+      # nie ma z tym nic wspólnego i nie da się tego naprawić po naszej stronie.
+      # Uwaga przy przeglądzie: `eslint-config-next` deklaruje peer
+      # `eslint: >=9.0.0`, czyli OBIECUJE zgodność, której jego własne
+      # zależności nie mają. Peer range nie jest tu dowodem — dowodem jest
+      # zielony przebieg lintera na dziesiątce.
+      # pozycja: DEP-03
+      # przegląd: 2026-11-15
+      - dependency-name: eslint
+        update-types: [version-update:semver-major]
+      # `@eslint/js` 10 bez ESLinta 10 to pół migracji. Preset `recommended`
+      # podnosi wtedy `no-useless-assignment` do rangi błędu — w przebiegu CI
+      # PR-a #29 dało to 12 błędów w `api` — a peer `eslint: ^10.0.0` pogłębia
+      # rozjazd z DEP-02: w drzewie stoją dziś OBA majory ESLinta naraz.
+      # Ten pakiet wraca razem z `eslint`, nigdy osobno.
+      # pozycja: DEP-03
+      # przegląd: 2026-11-15
+      - dependency-name: '@eslint/js'
+        update-types: [version-update:semver-major]
 
   # Obrazy bazowe w Dockerfile'ach (api + panele).
   - package-ecosystem: docker
