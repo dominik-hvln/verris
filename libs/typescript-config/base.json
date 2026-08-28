@@ -12,7 +12,8 @@
     "preserveWatchOutput": true,
     "strict": true,
     "skipLibCheck": true,
-    "allowJs": true
+    "allowJs": true,
+    "allowUnreachableCode": false
   },
   "exclude": ["node_modules"]
 }

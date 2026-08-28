@@ -738,7 +738,7 @@ export class InvoicesService {
     filters: AdminInvoiceFilters,
     auditCtx: { actorUserId: string; ipAddress: string | null; userAgent: string | null },
   ): Promise<string> {
-    const { where, rows } = await this.executeAdminQuery({
+    const { rows } = await this.executeAdminQuery({
       ...filters,
       limit: 10000,
       offset: 0,
@@ -762,7 +762,6 @@ export class InvoicesService {
     });
 
     return buildCsv(rows.map((row) => toAdminDto(row)));
-    void where;
   }
 
   private async executeAdminQuery(
