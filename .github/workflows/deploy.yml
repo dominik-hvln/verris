@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Install pnpm
         uses: pnpm/action-setup@v5
@@ -166,7 +166,7 @@ jobs:
               NEXT_PUBLIC_GTM_ID=${{ vars.GTM_ID }}
               NEXT_PUBLIC_META_PIXEL_ID=${{ vars.META_PIXEL_ID }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Set lowercase owner
         id: owner
