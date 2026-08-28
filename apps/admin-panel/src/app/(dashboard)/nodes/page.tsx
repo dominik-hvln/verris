@@ -156,11 +156,14 @@ function ServerCard({ server }: { server: ServerSummaryDto }) {
               </p>
             </div>
           </div>
-          <span
-            className={`shrink-0 text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full border ${accent.badge}`}
-          >
-            {statusLabel(server.status)}
-          </span>
+          <div className="flex shrink-0 flex-col items-end gap-1">
+            <span
+              className={`text-[10px] font-bold uppercase tracking-widest px-2 py-1 rounded-full border ${accent.badge}`}
+            >
+              {statusLabel(server.status)}
+            </span>
+            <ZnacznikSygnalu sygnal={server.sygnal} />
+          </div>
         </div>
 
         {server.status === "MAINTENANCE" && server.maintenanceReason ? (
@@ -231,6 +234,43 @@ function Stat({
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * OPS-01 — obserwowana żywotność OBOK statusu, nigdy zamiast niego.
+ *
+ * Do 2026-08-28 karta pokazywała sam `status`, czyli deklarację administratora.
+ * Węzeł oznaczony ACTIVE, który nie odezwał się od godziny, wyglądał dokładnie
+ * tak samo jak zdrowy — a `ops-watchdog` już wtedy liczył przeterminowane
+ * heartbeaty i wysyłał alerty. Wiedza istniała i nie docierała do ekranu.
+ *
+ * Milczenie krzyczy, odpowiadanie milczy: węzeł działający NIE dostaje
+ * znacznika. Znacznik przy każdym węźle byłby szumem, w którym ten jeden
+ * czerwony przestałby się rzucać w oczy.
+ */
+function ZnacznikSygnalu({ sygnal }: { sygnal?: ServerSummaryDto["sygnal"] }) {
+  // Starsze API nie zna tego pola. Brak danych to nie to samo co „odpowiada" —
+  // w takim wypadku nie twierdzimy niczego (X-39: nie udawać wiedzy).
+  if (!sygnal || sygnal.stan === "odpowiada") return null;
+
+  const nigdy = sygnal.stan === "nigdy-nie-odpowiedzial";
+
+  return (
+    <span
+      title={`Próg: brak sygnału dłużej niż ${sygnal.progMin} min. Węzeł wypada wtedy z wyboru przy zakładaniu kont.`}
+      className={`flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full border ${
+        nigdy
+          ? "border-neutral-500/40 bg-neutral-500/10 text-neutral-300"
+          : "border-red-500/40 bg-red-500/10 text-red-300"
+      }`}
+    >
+      <span
+        aria-hidden
+        className={`h-1.5 w-1.5 rounded-full ${nigdy ? "bg-neutral-400" : "bg-red-400 animate-pulse"}`}
+      />
+      {sygnal.etykieta}
+    </span>
   );
 }
 

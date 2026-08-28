@@ -42,6 +42,27 @@ export interface ServerSummaryDto {
   lastHandshakeAt: string | null;
   lastHeartbeatAt: string | null;
 
+  /**
+   * OPS-01 — obserwowana żywotność węzła, WYLICZANA przy każdym odczycie z
+   * `lastHeartbeatAt`. Świadomie nie jest kolumną i nie zastępuje `status`.
+   *
+   * `status` mówi, czego CHCE administrator (ACTIVE / MAINTENANCE / DISABLED).
+   * `sygnal` mówi, co ROBI maszyna. Panel pokazuje oba naraz — do 2026-08-28
+   * pokazywał sam `status`, więc martwy węzeł wyglądał identycznie jak zdrowy.
+   *
+   * Trzy stany, nie dwa: węzeł, który nigdy się nie odezwał, prawdopodobnie
+   * nigdy nie został poprawnie zainstalowany; węzeł, który zamilkł, działał i
+   * właśnie padł. To różne problemy i różne pierwsze kroki przy diagnozie.
+   */
+  sygnal?: {
+    stan: 'odpowiada' | 'zamilkl' | 'nigdy-nie-odpowiedzial';
+    /** Pełne minuty od ostatniego sygnału; `null` wyłącznie dla „nigdy". */
+    minutBezSygnalu: number | null;
+    /** Próg uznania za milczący — ten sam, którego używa selektor węzłów. */
+    progMin: number;
+    etykieta: string;
+  };
+
   daHost: string | null;
   daPort: number | null;
   daUsername: string | null;

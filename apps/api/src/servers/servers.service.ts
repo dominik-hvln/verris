@@ -7,7 +7,12 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
-import { bladWspolczynnika, efektywnyOvercommit } from '../subscriptions/node-capacity';
+import {
+  bladWspolczynnika,
+  efektywnyOvercommit,
+  etykietaSygnalu,
+  opiszSygnal,
+} from '../subscriptions/node-capacity';
 import { CryptoService } from '../common/crypto/crypto.service';
 import { AuditService } from '../common/audit/audit.service';
 import { BootstrapTokenService } from './bootstrap-token.service';
@@ -971,13 +976,33 @@ export class ServersService {
   }
 
   /** Strips encrypted secrets / internal identity values from API responses. */
-  private toPublicServer<T extends { daPasswordEnc?: string | null; identityToken?: string | null }>(
-    server: T,
-  ) {
+  /**
+   * OPS-01 — do każdego węzła dokładamy OPIS SYGNAŁU ŻYCIA, wyliczany przy
+   * odczycie z `lastHeartbeatAt`.
+   *
+   * Nie jest to kolumna i nie ma być: `status` pozostaje deklaracją intencji
+   * administratora, a żywotność jest faktem obserwowanym. Trzymanie faktu w
+   * kolumnie wymagałoby pilnowania, żeby dwa źródła prawdy się nie rozjechały —
+   * a rozjeżdżają się zawsze i po cichu (patrz NODE-03: pojemność węzła
+   * ustawiana raz w handshake i nigdy nieodświeżana, mimo komentarza w
+   * schemacie obiecującego coś innego).
+   *
+   * Panel dostaje więc `status` ORAZ `sygnal` i pokazuje oba naraz:
+   * „ACTIVE · nie odpowiada od 14 min". Do 2026-08-28 pokazywał samo „ACTIVE".
+   */
+  private toPublicServer<
+    T extends {
+      daPasswordEnc?: string | null;
+      identityToken?: string | null;
+      lastHeartbeatAt?: Date | null;
+    },
+  >(server: T) {
     const { daPasswordEnc: _enc, identityToken: _id, ...rest } = server;
+    const sygnal = opiszSygnal(server.lastHeartbeatAt);
     return {
       ...rest,
       daPasswordSet: Boolean(_enc),
+      sygnal: { ...sygnal, etykieta: etykietaSygnalu(sygnal) },
     };
   }
 }

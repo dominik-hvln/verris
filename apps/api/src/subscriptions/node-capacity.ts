@@ -135,6 +135,70 @@ export function czyWezelMilczy(
   return teraz.getTime() - lastHeartbeatAt.getTime() > BRAK_SYGNALU_MIN * 60_000;
 }
 
+/**
+ * OPS-01, druga połowa — OPIS sygnału życia dla panelu i metryk.
+ *
+ * Decyzja z 2026-08-28: `Server.status` NIE jest zapisywany przez watchdoga.
+ * Powód jest w `node-selector.service.ts`, który pobiera węzły przez
+ * `where: { status: ACTIVE }` — zapis `OFFLINE` sprawiłby, że węzeł po
+ * dwuminutowej przerwie w sieci NIE wróciłby do puli sam. Heartbeat by wrócił,
+ * rekord zostałby poza zapytaniem, a chwilowa przerwa zamieniłaby się w trwałe
+ * wyłączenie do czasu, aż ktoś zauważy.
+ *
+ * Dlatego `status` zostaje DEKLARACJĄ INTENCJI administratora (ACTIVE /
+ * MAINTENANCE / DISABLED), a obserwowana żywotność jest wyliczana z
+ * `lastHeartbeatAt` przy każdym odczycie. Zero migracji, zero stanu do
+ * synchronizowania, zero ryzyka rozjechania się dwóch źródeł prawdy.
+ *
+ * TRZY STANY, NIE DWA. „Nigdy się nie odezwał" to inna sytuacja niż „zamilkł":
+ * pierwszy węzeł prawdopodobnie nigdy nie został poprawnie zainstalowany,
+ * drugi działał i właśnie padł. Zwinięcie ich do jednego `milczy` byłoby tym
+ * samym błędem co PANEL-01 (licznik onboardingu) i X-39 (dashboard pokazujący
+ * zero zamiast „nie wiem") — utratą rozróżnienia, które kosztuje przy diagnozie.
+ */
+export type StanSygnalu = 'odpowiada' | 'zamilkl' | 'nigdy-nie-odpowiedzial';
+
+export interface OpisSygnalu {
+  stan: StanSygnalu;
+  /** Pełne minuty od ostatniego sygnału. `null` wyłącznie dla „nigdy". */
+  minutBezSygnalu: number | null;
+  /** Próg, po którym uznajemy węzeł za milczący — żeby panel nie zgadywał. */
+  progMin: number;
+}
+
+export function opiszSygnal(
+  lastHeartbeatAt: Date | null | undefined,
+  teraz: Date = new Date(),
+): OpisSygnalu {
+  if (!lastHeartbeatAt) {
+    return { stan: 'nigdy-nie-odpowiedzial', minutBezSygnalu: null, progMin: BRAK_SYGNALU_MIN };
+  }
+
+  const ms = teraz.getTime() - lastHeartbeatAt.getTime();
+
+  // Zegar węzła może iść do przodu względem panelu. Ujemna różnica nie znaczy
+  // „odezwał się w przyszłości", tylko „odezwał się przed chwilą" — zaokrąglamy
+  // do zera zamiast pokazywać ujemne minuty.
+  const minut = Math.max(0, Math.floor(ms / 60_000));
+
+  return {
+    stan: czyWezelMilczy(lastHeartbeatAt, teraz) ? 'zamilkl' : 'odpowiada',
+    minutBezSygnalu: minut,
+    progMin: BRAK_SYGNALU_MIN,
+  };
+}
+
+/**
+ * Etykieta dla panelu admina. Świadomie NIE zastępuje statusu, tylko go
+ * uzupełnia — admin ma widzieć „ACTIVE · nie odpowiada od 14 min", czyli
+ * jednocześnie swoją decyzję i fakt, nie jedno zamiast drugiego.
+ */
+export function etykietaSygnalu(opis: OpisSygnalu): string {
+  if (opis.stan === 'nigdy-nie-odpowiedzial') return 'nigdy się nie odezwał';
+  if (opis.stan === 'zamilkl') return `nie odpowiada od ${opis.minutBezSygnalu} min`;
+  return 'odpowiada';
+}
+
 export type PowodOdmowy =
   | 'BRAK_POJEMNOSCI_CPU'
   | 'BRAK_POJEMNOSCI_RAM'
