@@ -157,95 +157,101 @@ zakres `M-16`/`M-17` (28 h) zależy od niej, a obowiązek już biegnie.
 
 ---
 
-## 4. Kalendarz po przeplanowaniu
+### 3.9 Odkryte 2026-09-19 przy przegladzie kolejki Dependabota
 
-Plan przebudowany 2026-09-19. Punkt odniesienia `start` w `konfiguracja.json` przesuniety
-na **2026-08-31**, zeby daty zgadzaly sie DO PRZODU: sprint 4 rusza **2026-09-21**.
-Dla sprintow 1-3 daty sa przez to o tydzien przesuniete wobec rzeczywistosci (praca powstala
-2026-08-21 do 08-28) — te sprinty sa wykonane i czyta sie je jako zapis zakresu, nie terminu.
+Szescioro otwartych PR-ow (nie osiem — dwa eslintowe zamknely sie same po wyciszeniu z `DEP-03`,
+czyli ta reguła zadziałała). Sam przeglad odslonil trzy rzeczy, ktorych nie bylo w macierzy.
 
-| | Plan z 2026-08-21 | Po przeplanowaniu |
-|---|---|---|
-| Sprintow do startu | 20 (728 h) | 20 (**552 h pracy otwartej**) |
-| Wszystkie blokery poza KSeF | 2026-10-16 | **2026-10-09** (po sprincie 6) |
-| Ostatni sprint | — | 2027-01-11 → 01-15 |
-| Decyzja GO | 2027-01-01 | **~2027-01-29** (z dwutygodniowa przerwa swiateczna) |
+**`SEC-07` — trzy podatnosci HIGH w multerze, CVSS 7.5.** Zdalny DoS, bez uwierzytelnienia
+i bez interakcji uzytkownika: jedno zadanie `multipart/form-data` konczy proces API. Sciezka
+uploadu zalacznikow do zgloszen jest wystawiona. Pulapka opisana w par. 5.
 
-552 h zamiast 358 h z pierwszego liczenia — roznica to **wyceniony dzis blok bezpieczenstwa
-i pozycje bez nakladu z par. 3.5**. To nie jest nowa praca; to praca, ktora byla niewidzialna
-dla budzetu godzin.
+**`X-50` — bramka podatnosci nie zatrzymuje niczego.** `X-23` stalo jako `DZIAŁA` z obietnica
+„bramka zatrzymuje wdrozenie". Nie zatrzymuje: zyje wylacznie w `ci.yml`, `deploy.yml` jej nie
+wola, a `Security scans` nie jest checkiem wymaganym w rulesecie — PR #37 ma czerwona bramke
+i badge „Able to merge". Pozycja `X-23` skorygowana na `CZĘŚCIOWE`.
 
-Blokery startu: **4**, nie 5. `H-20` mial martwa flage — zdjeta.
+To ta sama rodzina co `X-42`, o poziom wyzej. Tam bramka wdrozenia byla slabsza od `ci.yml`
+i dolozylismy lint; nikt wtedy nie sprawdzil, czy brakuje jeszcze czegos. Brakowalo bramki
+podatnosci.
 
-| ID | Sprint | Kiedy przestaje blokowac |
-|---|---|---|
-| `P-15` DPA | 4 | Nie zalezy od dostawcow — patrz korekta ponizej |
-| `Z-18` | 6 | Dowod D3 na wezle #1 |
-| `M-16` KSeF offline | 17 | Po `PB-13` ze sprintu 5 |
-| `M-17` KSeF XSD | 18 | Po `M-16` |
+**`X-51` — konfiguracja GitHuba rozjechana z repozytorium.** Zadna z szesciu etykiet
+z `dependabot.yml` nie istnieje w repo, wiec kazdy PR Dependabota niesie komunikat o bledzie
+konfiguracji, a filtr „po etykiecie security" zwraca pustke — co jest gorsze niz brak filtra,
+bo pusty wynik wyglada jak brak problemow. Ruleset celuje tez w `live-release-readiness`,
+galaz zniesiona przez `X-13`.
 
 ---
 
-## 5. Plan sprintow 4-20
+## 4. Kalendarz po przeplanowaniu
 
-**Sprint 4 · 2026-09-21 · Wznowienie: odzyskac srodowisko i zatrzymac gnicie · 32 h**
-`DEV-01` `DEP-01` `ENV-01` `X-03` `P-15`
+Punkt odniesienia `start` w `konfiguracja.json` przesuniety na **2026-08-31**, zeby daty
+zgadzaly sie DO PRZODU: sprint 4 rusza **2026-09-21**. Dla sprintow 1-3 daty sa przez to
+o tydzien przesuniete wobec rzeczywistosci (praca powstala 2026-08-21 do 08-28) — te sprinty
+sa wykonane i czyta sie je jako zapis zakresu, nie terminu.
 
-Kolejnosc nie jest dowolna. `DEV-01` idzie pierwsze, bo po decyzji nr 1 z 28.08 jedyna realna
-bramka przed `main` jest bramka lokalna, a ona nie wstanie bez bazy deweloperskiej.
-**Korekta z 2026-09-19, wazniejsza niz wyglada.** `P-15` bylo w planie pozycja, ktorej tempa
-nie kontrolujemy — 16 h rozbite na sprinty 4 i 10, przez co domkniecie blokerow stalo na listopad.
-Sprawdzone u zrodla: **u zadnego z pieciu dostawcow nie trzeba nikogo prosic.** Stripe i AWS maja
-DPA wlaczone w umowe glowna, Hetzner i Openprovider akceptuje sie kliknieciem w panelu, Cloudflare
-zostaje do potwierdzenia. Praca wlasna to jeden dokument: Zalacznik 1 do DPA Hetznera.
-Naklad 16 h → 6 h, pozycja w calosci tutaj, **ostatni bloker poza KSeF-em zamyka sie miesiac
-wczesniej**. Przy okazji wyszlo, ze lista subprocesorow byla nieaktualna od 2026-07-07 —
-wymieniala nierozstrzygnietego dostawce VPS i reCAPTCHA zamiast Turnstile.
-
-**Sprint 5 · 09-28 · Domkniecie ogonow sprintu 2 i kierunek fakturowania · 30 h**
-`X-31` `X-32` `M-08` `PB-13` `PB-14`
-
-`PB-13` przesuniete tutaj z pierwotnego sprintu 14. Od niej zalezy zakres sprintow 17-18,
-w tym dwa blokery startu.
-
-**Sprint 6 · 10-05 · Wezel produkcyjny #1 · 30 h**
-`PB-02` `NODE-02` `Z-18:2` `J-01`
-
-`NODE-02` przed `PB-02`, nie po: instalator nie sprawdza kodow powrotu i kontynuuje po
-nieudanym preflighcie.
-
-**Sprinty 7-9 · 10-12 → 10-26 · Blok egressu · 94 h**
-
-| Sprint | Zakres | h |
+| | Plan z 2026-08-21 | Po przeplanowaniu |
 |---|---|---|
-| 7 | `SEC-05` `SEC-04` `SEC-01` — najpierw pomiar, ktory nie klamie, potem DROP, ktory obowiazuje | 28 |
-| 8 | `X-41` `SEC-03` — pelne pokrycie ruchu: FORWARD/DOCKER-USER, DNS, SMTP | 32 |
-| 9 | `SEC-06` `SEC-02` `NODE-03` `J-04` — allowlista zbudowana z obserwacji, nie z pamieci | 34 |
+| Sprintow do startu | 20 (728 h) | **21** (**576 h pracy otwartej**) |
+| Wszystkie blokery poza KSeF | 2026-10-16 | **2026-10-09** (po sprincie 6) |
+| Ostatni sprint | — | 2027-01-18 → 01-22 |
+| Decyzja GO | 2027-01-01 | **~2027-02-05** (z dwutygodniowa przerwa swiateczna) |
 
-Nowe sprinty, decyzja wlasciciela 2026-09-19. `SEC-05` jest pierwsze, bo allowlista budowana
-na probce logu jest niepelna z definicji — dopoki log jest probka, reszta bloku opiera sie
-na zgadywaniu.
+576 h zamiast 358 h z pierwszego liczenia. Roznica to **wyceniony blok bezpieczenstwa,
+pozycje bez nakladu z par. 3.5 i 28 h odkryte 2026-09-19 przy przegladzie kolejki Dependabota**
+(`SEC-07`, `X-50`, `X-51` — par. 3.9). Praca nie przybyla; przybylo jej widocznosci.
+Plan urosl o jeden sprint, bo tych 28 h nie dalo sie wcisnac w istniejace bez robienia
+z pojemnosci fikcji.
 
-**Sprint 10 · 11-02 · Obsluga naduzyc i porzadek w zaleznosciach · 26 h** — `DEP-02` `C-18` `B-01` `PB-04`
-`DEP-02` tutaj, bo wyciszenie majorow ESLinta z `DEP-03` ma termin przegladu 2026-11-15,
-a ten sprint zaczyna sie 11-02 — dokladnie wtedy, kiedy ta pozycja ma o sobie przypomniec.
+Blokery startu: **4**. `H-20` mial martwa flage — zdjeta.
 
-**Sprinty 11-13 · 11-09 → 11-23 · Produkt · 90 h** — DNS i SSO, poczta, warstwa operatorska, backup
+| ID | Sprint | Kiedy przestaje blokowac |
+|---|---|---|
+| `P-15` DPA | 4 | Nie zalezy od dostawcow — patrz par. 5 |
+| `Z-18` | 6 | Dowod D3 na wezle #1 |
+| `M-16` KSeF offline | 18 | Po `PB-13` ze sprintu 5 |
+| `M-17` KSeF XSD | 19 | Po `M-16` |
 
-**Sprint 14 · 11-30 · Dokumenty prawne i bus factor · 30 h** — `PB-03` `PB-11` `I-11`
-`PB-03` przesuniete do przodu, bo `N-16` (kredyty SLA) zalezy od opublikowanego regulaminu —
-w pierwotnej kolejnosci ta zaleznosc byla odwrocona.
+---
 
-**Sprinty 15-16 · 12-07 → 12-14 · Cennik, landing, pomiar · 66 h**
+## 5. Plan sprintow 4-21
 
-**Sprinty 17-18 · KSeF · 62 h** — kolizja ze swietami, zakladamy dwa tygodnie przerwy.
-Wniosek o certyfikat KSeF typu 2 z portalu MF skladamy w sprincie 17, bo bez niego
-`KSEF-03` (kody QR) nie ruszy, a to sprawa formalna, nie kod.
+| Sprint | Od | h | Zakres |
+|---|---|---|---|
+| **4** | 09-21 | 30 | **Wznowienie** — `DEV-01` `DEP-01` `ENV-01` `P-15` `X-50` |
+| **5** | 09-28 | 34 | **Multer i kierunek fakturowania** — `SEC-07` `X-03` `PB-13` `PB-14` |
+| **6** | 10-05 | 30 | **Wezel produkcyjny #1** — `PB-02` `NODE-02` `Z-18` `J-01` |
+| **7** | 10-12 | 28 | **Egress: pomiar** — `SEC-05` `SEC-04` `SEC-01` |
+| **8** | 10-19 | 32 | **Egress: pokrycie ruchu** — `X-41` `SEC-03` |
+| **9** | 10-26 | 28 | **Egress: allowlista z obserwacji** — `SEC-06` `SEC-02` `NODE-03` |
+| **10** | 11-02 | 32 | **Naduzycia i zaleznosci** — `X-31` `X-32` `DEP-02` `X-51` `PB-04` |
+| **11** | 11-09 | 24 | **Ogony produktowe** — `M-08` `C-18` `B-01` `J-04` |
+| **12-14** | 11-16 → 11-23 | 90 | DNS i SSO, poczta, warstwa operatorska, backup |
+| **15** | 11-30 | 30 | **Dokumenty prawne i bus factor** — `PB-03` `PB-11` `I-11` |
+| **16-17** | 12-07 → 12-14 | 66 | Cennik, landing, pomiar |
+| **18-19** | 12-28 → 01-04 | 62 | **KSeF** — kolizja ze swietami, dwa tygodnie przerwy zalozone |
+| **20** | 01-11 | 30 | Baza wiedzy, KSeF od strony klienta, kampania |
+| **21** | 01-18 | 24 | **Sciezka pierwszego klienta i decyzja GO** — `PB-05` `PB-12` |
 
-**Sprint 19 · Baza wiedzy, KSeF od strony klienta, kampania · 30 h**
+### Trzy rzeczy, ktorych nie widac z tabeli
 
-**Sprint 20 · 2027-01-11 · Sciezka pierwszego klienta i decyzja GO · 24 h** — `PB-05` `PB-12`
-Jedyny moment w calym planie, w ktorym powstaje dowod poziomu D3.
+**`P-15` nie jest zegarem kalendarzowym.** Bylo w planie pozycja, ktorej tempa nie kontrolujemy —
+16 h rozbite na dwa sprinty, przez co domkniecie blokerow stalo na listopad. Sprawdzone u zrodla:
+u zadnego z pieciu dostawcow nie trzeba nikogo prosic. Stripe i AWS maja DPA wlaczone w umowe
+glowna, Hetzner i Openprovider akceptuje sie kliknieciem w panelu, Cloudflare zostaje do
+potwierdzenia. Praca wlasna to jeden dokument: Zalacznik 1 do DPA Hetznera. **6 h zamiast 16,
+ostatni bloker poza KSeF-em zamyka sie miesiac wczesniej.**
+
+**`SEC-07` latwo zamknac za wczesnie.** Merge PR #37 podnosi multer do 2.3.0 i bedzie wygladal
+na naprawe, ale `@nestjs/platform-express@11.2.1` pinuje `2.2.0` dokladnie — kopia obslugujaca
+multipart zostanie podatna. Do tego jedno z trzech advisory wymaga skonfigurowania
+`limits.fieldArrayIndexLimit`, czyli zmiany w kodzie. Dowodem zamkniecia jest zielona bramka
+podatnosci, nie numer wersji w `package.json`.
+
+**Egress ma kolejnosc wymuszona logika, nie preferencja.** `SEC-05` pierwsze, bo log egressu
+ma ogranicznik czestotliwosci (1796 wpisow w journalu wobec 1,81 mln pakietow na liczniku) —
+kazda allowlista zbudowana na tym odczycie jest niepelna z definicji. Dopoki log jest probka,
+reszta bloku opiera sie na zgadywaniu.
 
 ### Swiadomie poza planem startowym
 
