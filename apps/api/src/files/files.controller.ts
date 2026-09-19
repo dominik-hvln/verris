@@ -11,7 +11,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { memoryStorage } from 'multer';
+import { opcjeUploaduDoPamieci } from '../common/upload/multer-limity';
 import type { Response } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -141,10 +141,8 @@ export class FilesController {
   @Post('upload')
   @RateLimit({ limit: 120, windowMs: 60 * 60 * 1000, scope: 'files:upload' })
   @UseInterceptors(
-    FileInterceptor('file', {
-      storage: memoryStorage(),
-      limits: { fileSize: 25_000_000 },
-    }),
+    // SEC-07 — jw., limity z jednego miejsca.
+    FileInterceptor('file', opcjeUploaduDoPamieci(25_000_000)),
   )
   upload(
     @CurrentUser() user: { userId: string },

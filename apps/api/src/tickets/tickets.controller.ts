@@ -12,7 +12,7 @@ import {
   StreamableFile,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { memoryStorage } from 'multer';
+import { opcjeUploaduDoPamieci } from '../common/upload/multer-limity';
 import { TicketsService } from './tickets.service';
 import {
   TICKET_UPLOAD_MAX_BYTES,
@@ -34,10 +34,12 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard';
 import { StaffPerm } from '../common/decorators/staff-permissions.decorator';
 
-const FILES_MEMORY = FilesInterceptor('files', TICKET_UPLOAD_MAX_FILES_PER_BATCH, {
-  storage: memoryStorage(),
-  limits: { fileSize: TICKET_UPLOAD_MAX_BYTES },
-});
+// SEC-07 — limity multipartu pochodzą z jednego miejsca, razem z fieldArrayIndexLimit.
+const FILES_MEMORY = FilesInterceptor(
+  'files',
+  TICKET_UPLOAD_MAX_FILES_PER_BATCH,
+  opcjeUploaduDoPamieci(TICKET_UPLOAD_MAX_BYTES),
+);
 
 @Controller('tickets')
 @UseGuards(JwtAuthGuard)

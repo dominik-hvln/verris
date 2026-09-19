@@ -86,6 +86,26 @@ jobs:
       - name: Testy jednostkowe (wszystkie pakiety)
         run: pnpm test
 
+      # X-50 — bramka podatności należy TU, nie tylko w `ci.yml`.
+      #
+      # Do 2026-09-19 `ops/ci/audyt-bramka.cjs` był wołany WYŁĄCZNIE w jobie
+      # `security-scans` w `ci.yml`. Tymczasem wdrożenie wyzwala push na `main`,
+      # a nie zielony `ci.yml` — te dwa workflowy startują równolegle i nic ich
+      # nie wiąże. Do tego `Security scans` nie był na liście checków wymaganych
+      # w rulesecie, więc czerwona bramka nie blokowała nawet merge'a: PR #37
+      # miał czerwone `Security scans` i jednocześnie „Able to merge".
+      #
+      # Efekt: trzy podatności HIGH w multerze (SEC-07, zdalny DoS bez
+      # uwierzytelnienia) mogły pojechać na produkcję przez zielone wdrożenie.
+      #
+      # To ta sama rodzina co X-42, tylko o poziom wyżej. Tam bramka wdrożenia
+      # była słabsza od `ci.yml` i dołożyliśmy lint — ale nikt nie zapytał, czy
+      # brakuje jeszcze czegoś. Brakowało właśnie tego. Strażnik
+      # `bramki-nie-rozjezdzaja-sie.spec.ts` rozpoznaje teraz bramkę podatności
+      # jako polecenie bramkowe, więc ten rozjazd nie wróci po cichu.
+      - name: Bramka podatności
+        run: node ops/ci/audyt-bramka.cjs
+
   # ---------------------------------------------------------------------------
   # 1) Build + push 5 obrazów (api + 4 panele) do GHCR, tag = git SHA + latest.
   # ---------------------------------------------------------------------------

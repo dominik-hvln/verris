@@ -163,7 +163,7 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 | `DEP-01` | Osiem otwartych pull requestów Dependabota, żaden niescalony | 6 | WYSOKA | GitHub: 8 otwartych PR-ów, przebiegi CI #147–#150 od `dependabot[bot]`, 2026-08-28 |
 | `ENV-01` | Bramka lokalna biegnie na Node 20, CI na Node 22 | 6 | ŚREDNIA | D3: ostrzeżenie `pnpm` przy każdym `pnpm test` wobec `node-version: 22` w `ci.yml`. Zamknięte częściowo 2026-08-28: `.nvmrc` = 22, strażnik `wersja-no |
 | `P-15` | Podpisane DPA z subprocesorami | 6 | BLOKER STARTU | docs/legal/dpa-subprocessors-tracking.md — tabela statusow po korekcie 2026-09-19. Stripe i AWS: DPA obowiazuje z mocy umowy glownej. Hetzner i Openpr |
-| `X-50` | Bramka podatnosci zatrzymuje cokolwiek — jest wymagana do merge i wolana przez wdrozenie | 6 | WYSOKA | .github/workflows/deploy.yml — brak wywolania ops/ci/audyt-bramka.cjs; ruleset 21161479 — lista wymaganych checkow bez "Security scans"; PR #37 z czer |
+| `X-50` | Bramka podatnosci zatrzymuje cokolwiek — jest wymagana do merge i wolana przez wdrozenie | 6 | WYSOKA | D1 2026-09-19, polowa w repo: .github/workflows/deploy.yml — krok "Bramka podatnosci" (node ops/ci/audyt-bramka.cjs) w jobie test-gate; apps/api/src/t |
 
 **Definicja ukończenia**
 
@@ -171,7 +171,7 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 - `DEP-01` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `ENV-01` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `P-15` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `X-50` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `X-50` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-04.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
 **Ryzyko sprintu.** Pierwszy sprint po 22 dniach przerwy. Kolejnosc nie jest dowolna: DEV-01 idzie pierwsze, bo po decyzji nr 1 z 2026-08-28 JEDYNA realna bramka przed main jest bramka uruchamiana lokalnie, a ona nie wstanie bez bazy deweloperskiej. DEP-01 rosnie samo — kolejka PR-ow Dependabota powiekszyla sie przez przerwe, a job Security scans wykrywa CVE, ktorych poprawki leza niescalone. P-15 W CALOSCI TUTAJ, nie rozbite na dwa sprinty. Korekta 2026-09-19: zalozenie, ze DPA zalezy od tempa dostawcow, bylo nieprawdziwe — trzy z pieciu obowiazuja z mocy umowy glownej, dwa akceptuje sie kliknieciem w panelu. Praca wlasna to wylacznie Zalacznik 1 do DPA Hetznera. Dzieki temu OSTATNI BLOKER POZA KSeF-em zamyka sie w sprincie 4, a nie w sprincie 10. DEP-02 przeniesione do sprintu 10, zeby zmiescic sie w pojemnosci. | DOLOZONE 2026-09-19: X-50. Bramka podatnosci nie jest checkiem wymaganym w rulesecie i nie jest wolana przez deploy.yml, wiec czerwona bramka nie zatrzymuje ani merge, ani wdrozenia. Wchodzi do sprintu 4, bo jest tania (6 h) i jest warunkiem tego, zeby SEC-07 i cokolwiek pozniejszego mialo gdzie sie zatrzymac. X-03 przeniesione do sprintu 5, zeby zmiescic sie w pojemnosci.
@@ -182,14 +182,14 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `SEC-07` | Trzy podatnosci HIGH w multerze — zdalny DoS bez uwierzytelnienia na sciezce uploadu | 16 | WYSOKA | apps/api/package.json:42 — "multer": "^2.2.0"; pnpm-lock.yaml:6673 — multer@2.2.0 jako jedyna kopia w drzewie, ciagniona i bezposrednio, i przez @nest |
+| `SEC-07` | Trzy podatnosci HIGH w multerze — zdalny DoS bez uwierzytelnienia na sciezce uploadu | 16 | WYSOKA | D1 2026-09-19: package.json — pnpm.overrides.multer "^2.3.0"; pnpm-lock.yaml:6670 — multer@2.4.0 jako JEDYNA kopia, platform-express rozwiazany na te  |
 | `X-03` | Testy uruchamiane przed wdrożeniem | 6 | WYSOKA | .github/workflows/deploy.yml — job test-gate (typecheck + pnpm --filter api test), build-push ma needs: test-gate |
 | `PB-13` | Decyzja: własny KSeF czy integracja z programem księgowym | 6 | BLOKER BIZNESOWY | Porównać dwie ścieżki: dokończenie własnego modułu KSeF (tryb offline, walidacja XSD, UPO) kontra przekazanie fakturowania do programu księgowego z go |
 | `PB-14` | Wybór dostawcy i lokalizacji węzła produkcyjnego #1 | 6 | WYSOKI | PB-01 pokazało, że wybór dostawcy przesądza o rentowności przy cenie 45 zł. Hetzner AX102 ma cenę progową 44,20 zł, OVH Advance-2 w WAW1 — 67,76 zł, b |
 
 **Definicja ukończenia**
 
-- `SEC-07` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `SEC-07` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `X-03` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `PB-13` — Decyzja zapisana w repo z uzasadnieniem i datą. Jeśli wybrana integracja — sprint 18 zmienia zakres z dokończenia modułu na wdrożenie eksportu do programu księgowego. Decyzja musi zapaść przed sprintem 18, inaczej blokuje start.
 - `PB-14` — Decyzja zapisana w repo z datą, przed zamówieniem serwera. Jeśli wybrany dostawca spoza Polski — polityka prywatności i DPA opisują lokalizację przetwarzania przed startem sprzedaży.

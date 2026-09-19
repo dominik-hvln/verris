@@ -45,7 +45,8 @@
       "typescript": "^5.9.3",
       "esbuild": "^0.25.0",
       "body-parser": "^2.3.0",
-      "@prisma/client": "6.19.3"
+      "@prisma/client": "6.19.3",
+      "multer": "^2.3.0"
     }
   }
 }
