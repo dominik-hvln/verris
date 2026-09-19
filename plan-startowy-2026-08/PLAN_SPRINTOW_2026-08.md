@@ -9,9 +9,9 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **3166 h** — przy 30 h tygodniowo około **25 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **3178 h** — przy 30 h tygodniowo około **25 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **21 sprintów do startu** (802 h) oraz roadmapę po starcie (2364 h, 145 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **21 sprintów do startu** (814 h) oraz roadmapę po starcie (2364 h, 145 pozycji) rozpisaną na epiki kwartalne.
 
 - **2026-10-09** — koniec sprintu 6, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-01-22** — koniec sprintu 21, decyzja GO.
@@ -149,13 +149,13 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 
 # Faza 1 — Rozliczenia i dowód odtworzenia
 
-*Sprinty 4–8 · 154 h · 2026-09-21 – 2026-10-23*
+*Sprinty 4–8 · 166 h · 2026-09-21 – 2026-10-23*
 
 Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podpisane DPA. Koniec tej fazy to kamień milowy: zamknięte wszystkie blokery poza KSeF-em, który świadomie stoi na końcu.
 
 ## Sprint 4 — Wznowienie: odzyskac srodowisko i zatrzymac gnicie
 
-`2026-09-21 – 2026-09-25` · **30 h** z 30 h pojemności
+`2026-09-21 – 2026-09-25` · **58 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -163,7 +163,10 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 | `DEP-01` | Osiem otwartych pull requestów Dependabota, żaden niescalony | 6 | WYSOKA | GitHub: 8 otwartych PR-ów, przebiegi CI #147–#150 od `dependabot[bot]`, 2026-08-28 |
 | `ENV-01` | Bramka lokalna biegnie na Node 20, CI na Node 22 | 6 | ŚREDNIA | D3: ostrzeżenie `pnpm` przy każdym `pnpm test` wobec `node-version: 22` w `ci.yml`. Zamknięte częściowo 2026-08-28: `.nvmrc` = 22, strażnik `wersja-no |
 | `P-15` | Podpisane DPA z subprocesorami | 6 | BLOKER STARTU | docs/legal/dpa-subprocessors-tracking.md — tabela statusow po korekcie 2026-09-19. Stripe i AWS: DPA obowiazuje z mocy umowy glownej. Hetzner i Openpr |
-| `X-50` | Bramka podatnosci zatrzymuje cokolwiek — jest wymagana do merge i wolana przez wdrozenie | 6 | WYSOKA | D1 2026-09-19, polowa w repo: .github/workflows/deploy.yml — krok "Bramka podatnosci" (node ops/ci/audyt-bramka.cjs) w jobie test-gate; apps/api/src/t |
+| `X-50` | Bramka podatnosci zatrzymuje cokolwiek — jest wymagana do merge i wolana przez wdrozenie | 6 | WYSOKA | D2 2026-09-19: .github/workflows/deploy.yml — krok "Bramka podatnosci" w jobie test-gate; ruleset 21161479 — "Security scans (gitleaks + audit + trivy |
+| `X-51` | Etykiety z dependabot.yml istnieja w repozytorium | 6 | NISKA | D2 2026-09-19: utworzone etykiety dependencies, security, docker, ci — 9 -> 13 etykiet w repozytorium; pokrywaja wszystkie trzy sekcje labels: w .gith |
+| `SEC-07` | Trzy podatnosci HIGH w multerze — zdalny DoS bez uwierzytelnienia na sciezce uploadu | 16 | WYSOKA | D2 2026-09-19: bramka lokalna zielona — 850 testow jednostkowych w 81 pakietach, w tym multer-limity.spec.ts (7 asercji) i bramki-nie-rozjezdzaja-sie. |
+| `SEC-08` | Dwa niezauwierzytelnione RCE w Next.js lezaly w drzewie 22 dni | 6 | WYSOKA | Przed: node ops/ci/audyt-bramka.cjs 2026-09-19 — "Podatnosci blokujace (high/critical): 11", w tym CRITICAL next GHSA-p293-qw3h-jr36 i GHSA-2xp9-vwfh- |
 
 **Definicja ukończenia**
 
@@ -171,25 +174,26 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 - `DEP-01` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `ENV-01` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `P-15` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `X-50` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `X-50` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `X-51` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `SEC-07` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `SEC-08` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-04.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** Pierwszy sprint po 22 dniach przerwy. Kolejnosc nie jest dowolna: DEV-01 idzie pierwsze, bo po decyzji nr 1 z 2026-08-28 JEDYNA realna bramka przed main jest bramka uruchamiana lokalnie, a ona nie wstanie bez bazy deweloperskiej. DEP-01 rosnie samo — kolejka PR-ow Dependabota powiekszyla sie przez przerwe, a job Security scans wykrywa CVE, ktorych poprawki leza niescalone. P-15 W CALOSCI TUTAJ, nie rozbite na dwa sprinty. Korekta 2026-09-19: zalozenie, ze DPA zalezy od tempa dostawcow, bylo nieprawdziwe — trzy z pieciu obowiazuja z mocy umowy glownej, dwa akceptuje sie kliknieciem w panelu. Praca wlasna to wylacznie Zalacznik 1 do DPA Hetznera. Dzieki temu OSTATNI BLOKER POZA KSeF-em zamyka sie w sprincie 4, a nie w sprincie 10. DEP-02 przeniesione do sprintu 10, zeby zmiescic sie w pojemnosci. | DOLOZONE 2026-09-19: X-50. Bramka podatnosci nie jest checkiem wymaganym w rulesecie i nie jest wolana przez deploy.yml, wiec czerwona bramka nie zatrzymuje ani merge, ani wdrozenia. Wchodzi do sprintu 4, bo jest tania (6 h) i jest warunkiem tego, zeby SEC-07 i cokolwiek pozniejszego mialo gdzie sie zatrzymac. X-03 przeniesione do sprintu 5, zeby zmiescic sie w pojemnosci.
+**Ryzyko sprintu.** Pierwszy sprint po 22 dniach przerwy. Kolejnosc nie jest dowolna: DEV-01 idzie pierwsze, bo po decyzji nr 1 z 2026-08-28 JEDYNA realna bramka przed main jest bramka uruchamiana lokalnie, a ona nie wstanie bez bazy deweloperskiej. DEP-01 rosnie samo — kolejka PR-ow Dependabota powiekszyla sie przez przerwe, a job Security scans wykrywa CVE, ktorych poprawki leza niescalone. P-15 W CALOSCI TUTAJ, nie rozbite na dwa sprinty. Korekta 2026-09-19: zalozenie, ze DPA zalezy od tempa dostawcow, bylo nieprawdziwe — trzy z pieciu obowiazuja z mocy umowy glownej, dwa akceptuje sie kliknieciem w panelu. Praca wlasna to wylacznie Zalacznik 1 do DPA Hetznera. Dzieki temu OSTATNI BLOKER POZA KSeF-em zamyka sie w sprincie 4, a nie w sprincie 10. DEP-02 przeniesione do sprintu 10, zeby zmiescic sie w pojemnosci. | DOLOZONE 2026-09-19: X-50. Bramka podatnosci nie jest checkiem wymaganym w rulesecie i nie jest wolana przez deploy.yml, wiec czerwona bramka nie zatrzymuje ani merge, ani wdrozenia. Wchodzi do sprintu 4, bo jest tania (6 h) i jest warunkiem tego, zeby SEC-07 i cokolwiek pozniejszego mialo gdzie sie zatrzymac. X-03 przeniesione do sprintu 5, zeby zmiescic sie w pojemnosci. | DOLOZONE W TRAKCIE 2026-09-19: X-51 (etykiety) i SEC-08 (dwa CRITICAL RCE w Next.js, odkryte przy pierwszym uruchomieniu bramki podatnosci po przerwie). SEC-07 przeniesione tu ze sprintu 5 — zamkniete tego samego dnia.
 
-## Sprint 5 — Multer, kierunek fakturowania i bramka wdrozenia
+## Sprint 5 — Kierunek fakturowania i bramka wdrozenia
 
-`2026-09-28 – 2026-10-02` · **34 h** z 30 h pojemności
+`2026-09-28 – 2026-10-02` · **18 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `SEC-07` | Trzy podatnosci HIGH w multerze — zdalny DoS bez uwierzytelnienia na sciezce uploadu | 16 | WYSOKA | D1 2026-09-19: package.json — pnpm.overrides.multer "^2.3.0"; pnpm-lock.yaml:6670 — multer@2.4.0 jako JEDYNA kopia, platform-express rozwiazany na te  |
 | `X-03` | Testy uruchamiane przed wdrożeniem | 6 | WYSOKA | .github/workflows/deploy.yml — job test-gate (typecheck + pnpm --filter api test), build-push ma needs: test-gate |
 | `PB-13` | Decyzja: własny KSeF czy integracja z programem księgowym | 6 | BLOKER BIZNESOWY | Porównać dwie ścieżki: dokończenie własnego modułu KSeF (tryb offline, walidacja XSD, UPO) kontra przekazanie fakturowania do programu księgowego z go |
 | `PB-14` | Wybór dostawcy i lokalizacji węzła produkcyjnego #1 | 6 | WYSOKI | PB-01 pokazało, że wybór dostawcy przesądza o rentowności przy cenie 45 zł. Hetzner AX102 ma cenę progową 44,20 zł, OVH Advance-2 w WAW1 — 67,76 zł, b |
 
 **Definicja ukończenia**
 
-- `SEC-07` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `X-03` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `PB-13` — Decyzja zapisana w repo z uzasadnieniem i datą. Jeśli wybrana integracja — sprint 18 zmienia zakres z dokończenia modułu na wdrożenie eksportu do programu księgowego. Decyzja musi zapaść przed sprintem 18, inaczej blokuje start.
 - `PB-14` — Decyzja zapisana w repo z datą, przed zamówieniem serwera. Jeśli wybrany dostawca spoza Polski — polityka prywatności i DPA opisują lokalizację przetwarzania przed startem sprzedaży.
@@ -290,7 +294,7 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 | `X-31` | Kanał alertów daje znak życia (dead man's switch) | 6 | — | ops/observability/grafana/provisioning/alerting/rules.yaml — grupa verris_kanal_alertow, reguła VerrisKanalAlertowZyje (vector(1), for: 0s, oba stany  |
 | `X-32` | Martwy job da się odrzucić z panelu, ze śladem w audycie | 6 | — | apps/api/src/common/audit/audit.actions.ts — PROVISIONING_JOB_DISCARDED_BY_ADMIN; provisioning-queue.service.ts — odrzucJob (getState() === failed, śl |
 | `DEP-02` | W drzewie stoją dwa majory ESLinta naraz | 6 | ŚREDNIA | package.json (korzeń) — @eslint/js ^10.0.1 przy braku jakiegokolwiek eslint.config.* w korzeniu; libs/eslint-config/node_modules: eslint 10.9.0 obok @ |
-| `X-51` | Konfiguracja po stronie GitHuba zgadza sie z repozytorium | 6 | NISKA | Ruleset 21161479 — "Applies to 2 targets including live-release-readiness, and main", mimo ze X-13 wycofalo live-release-readiness jako galaz wdrozeni |
+| `X-51` | Etykiety z dependabot.yml istnieja w repozytorium | 6 | NISKA | D2 2026-09-19: utworzone etykiety dependencies, security, docker, ci — 9 -> 13 etykiet w repozytorium; pokrywaja wszystkie trzy sekcje labels: w .gith |
 | `PB-04` | Procedura obsługi nadużyć (abuse) — dokument | 8 | WYSOKI | Adres abuse@ obsługiwany, ścieżka od zgłoszenia do reakcji, czasy reakcji, kto decyduje o zawieszeniu, wzory odpowiedzi do CERT i rejestratorów. |
 
 **Definicja ukończenia**

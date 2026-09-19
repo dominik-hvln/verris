@@ -118,7 +118,9 @@ pnpm install --frozen-lockfile
 pnpm lint
 pnpm typecheck
 pnpm test                    # oczekiwane ~841 jednostkowych
-pnpm test:int                # oczekiwane ~78 integracyjnych, wymaga bazy
+pnpm --filter api test:int   # ~78 integracyjnych, wymaga bazy. UWAGA: skrypt test:int
+                             # istnieje TYLKO w apps/api — "pnpm test:int" w korzeniu
+                             # konczy sie ERR_PNPM_RECURSIVE_EXEC_FIRST_FAIL
 ```
 
 Liczby z 2026-08-28 są punktem odniesienia, nie wymaganiem — rozjazd wobec nich jest
