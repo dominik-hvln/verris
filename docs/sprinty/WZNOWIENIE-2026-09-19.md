@@ -157,74 +157,94 @@ zakres `M-16`/`M-17` (28 h) zależy od niej, a obowiązek już biegnie.
 
 ---
 
-## 4. Kalendarz — co przerwa zrobiła z datami
+## 4. Kalendarz po przeplanowaniu
 
-| | Plan z 2026-08-21 | Stan na 2026-09-19 |
+Plan przebudowany 2026-09-19. Punkt odniesienia `start` w `konfiguracja.json` przesuniety
+na **2026-08-31**, zeby daty zgadzaly sie DO PRZODU: sprint 4 rusza **2026-09-21**.
+Dla sprintow 1-3 daty sa przez to o tydzien przesuniete wobec rzeczywistosci (praca powstala
+2026-08-21 do 08-28) — te sprinty sa wykonane i czyta sie je jako zapis zakresu, nie terminu.
+
+| | Plan z 2026-08-21 | Po przeplanowaniu |
 |---|---|---|
-| Start sprintów | 2026-08-24 | wznowienie **2026-09-21** |
-| Wszystkie blokery poza KSeF | 2026-10-16 | ~2026-11-30 |
-| Decyzja GO | 2027-01-01 | **~2026-12-13 optymistycznie / ~2027-01-19 realnie** |
+| Sprintow do startu | 20 (728 h) | 20 (**552 h pracy otwartej**) |
+| Wszystkie blokery poza KSeF | 2026-10-16 | **2026-11-02** (po sprincie 10, domkniecie DPA) |
+| Ostatni sprint | — | 2027-01-11 → 01-15 |
+| Decyzja GO | 2027-01-01 | **~2027-01-29** (z dwutygodniowa przerwa swiateczna) |
 
-Optymistyczny wariant to 358 h / 30 h = 12 sprintów, przy założeniu, że **nic nowego nie
-wyjdzie**. Historia tego projektu mówi co innego: S1 urósł o 6 pozycji w trakcie, S2 o 10.
-Narzut odkryć rzędu 1,4× daje ~500 h, czyli **17 sprintów → połowa stycznia 2027** — czyli
-mniej więcej pierwotna data, odzyskana dzięki wcześniejszemu zamknięciu `Z-01`, `M-06` i S10.
-Do tego dochodzi nieznany nakład z §3.5.
+552 h zamiast 358 h z pierwszego liczenia — roznica to **wyceniony dzis blok bezpieczenstwa
+i pozycje bez nakladu z par. 3.5**. To nie jest nowa praca; to praca, ktora byla niewidzialna
+dla budzetu godzin.
 
-**Wniosek: przerwa nie wywróciła planu.** Wywróciłaby go dopiero druga taka.
+Blokery startu: **4**, nie 5. `H-20` mial martwa flage — zdjeta.
+
+| ID | Sprint | Kiedy przestaje blokowac |
+|---|---|---|
+| `P-15` DPA | 4 (wyslanie) → 10 (domkniecie) | Zalezy od dostawcow, nie od nas |
+| `Z-18` | 6 | Dowod D3 na wezle #1 |
+| `M-16` KSeF offline | 17 | Po `PB-13` ze sprintu 5 |
+| `M-17` KSeF XSD | 18 | Po `M-16` |
 
 ---
 
-## 5. Plan najbliższych prac
+## 5. Plan sprintow 4-20
 
-### Sprint W1 (2026-09-21 → 09-27) — „Odzyskać stan i zatrzymać gnicie" · 30 h
+**Sprint 4 · 2026-09-21 · Wznowienie: odzyskac srodowisko i zatrzymac gnicie · 32 h**
+`DEV-01` `DEP-01` `ENV-01` `DEP-02` `X-03` `P-15:2`
 
-Cel: repozytorium znowu jest źródłem prawdy, bramka lokalna znowu działa, zegary
-kalendarzowe ruszają.
+Kolejnosc nie jest dowolna. `DEV-01` idzie pierwsze, bo po decyzji nr 1 z 28.08 jedyna realna
+bramka przed `main` jest bramka lokalna, a ona nie wstanie bez bazy deweloperskiej.
+`P-15:2` to **wyslanie** wnioskow DPA w poniedzialek rano — jedyna pozycja w planie, ktorej
+czas trwania nie zalezy od nas.
 
-| # | Zadanie | h | Definicja ukończenia |
-|---|---|---|---|
-| 1 | **Commit zaległości z 28.08** — macierz + widoki w jednym commicie, zgodnie z `AKTUALIZACJA_AUDYTU.md` | 2 | `git status` czysty, `--sprawdz` zielone |
-| 2 | **`DEV-01`** — odzyskanie roli w bazie deweloperskiej (tryb single-user, `pg_authid`, bez kasowania wolumenu) | 6 | `pnpm test:int` przechodzi lokalnie na Node 22 |
-| 3 | **Rozruch po przerwie** — `pnpm install`, pełna bramka lokalna, 841 jednostkowych + 78 integracyjnych, lint, typecheck | 4 | Zielono albo lista rozjazdów w macierzy |
-| 4 | **`P-15` — wysłać wnioski DPA** (Stripe, Hetzner, backup off-site, OpenProvider) | 2 | Cztery wnioski wysłane, data w `docs/legal/dpa-subprocessors-tracking.md` |
-| 5 | **`SPRINT-02.md` i `SPRINT-03.md`** — domknięcie dokumentacyjne z tabelą zmian w macierzy | 4 | Oba pliki z liczbą blokerów przed/po |
-| 6 | **Higiena macierzy** — zdjąć flagę blokera z `H-20`, uzupełnić krytyczność i nakład 32 pozycji z §3.5 | 6 | Liczba blokerów = 4, brak pozycji bez nakładu |
-| 7 | **Przeplanowanie S1–S3** — przenieść wykonane pozycje, wyzerować fałszywe ostrzeżenia przeciążenia | 6 | `--sprawdz` bez ostrzeżeń albo z ostrzeżeniami, które coś znaczą |
+**Sprint 5 · 09-28 · Domkniecie ogonow sprintu 2 i kierunek fakturowania · 30 h**
+`X-31` `X-32` `M-08` `PB-13` `PB-14`
 
-**Zadanie 4 robimy w poniedziałek rano**, nie w piątek — to jedyna pozycja, której czas
-trwania nie zależy od nas.
+`PB-13` przesuniete tutaj z pierwotnego sprintu 14. Od niej zalezy zakres sprintow 17-18,
+w tym dwa blokery startu.
 
-### Sprint W2 (09-28 → 10-04) — „Domknąć ogony i odblokować KSeF" · 30 h
+**Sprint 6 · 10-05 · Wezel produkcyjny #1 · 30 h**
+`PB-02` `NODE-02` `Z-18:2` `J-01`
 
-| # | Zadanie | h |
+`NODE-02` przed `PB-02`, nie po: instalator nie sprawdza kodow powrotu i kontynuuje po
+nieudanym preflighcie.
+
+**Sprinty 7-9 · 10-12 → 10-26 · Blok egressu · 94 h**
+
+| Sprint | Zakres | h |
 |---|---|---|
-| 1 | **`PB-13`** — decyzja: własny KSeF czy integracja z programem księgowym *(przesunięte z S14)* | 6 |
-| 2 | **`X-03`** — domknięcie bramki testowej przed wdrożeniem | 6 |
-| 3 | **`X-31`** — dead man's switch kanału alertów, domknięcie | 6 |
-| 4 | **`X-32`** — odrzucanie martwego joba, domknięcie | 6 |
-| 5 | **`DEP-01`** — przegląd i scalenie PR-ów Dependabota (jednym wsadem, z pełną bramką) | 6 |
+| 7 | `SEC-05` `SEC-04` `SEC-01` — najpierw pomiar, ktory nie klamie, potem DROP, ktory obowiazuje | 28 |
+| 8 | `X-41` `SEC-03` — pelne pokrycie ruchu: FORWARD/DOCKER-USER, DNS, SMTP | 32 |
+| 9 | `SEC-06` `SEC-02` `NODE-03` `J-04` — allowlista zbudowana z obserwacji, nie z pamieci | 34 |
 
-`PB-13` na początku sprintu, bo odblokowuje 28 h w S18 i zamyka najstarsze ryzyko prawne.
+Nowe sprinty, decyzja wlasciciela 2026-09-19. `SEC-05` jest pierwsze, bo allowlista budowana
+na probce logu jest niepelna z definicji — dopoki log jest probka, reszta bloku opiera sie
+na zgadywaniu.
 
-### Sprint W3 (10-05 → 10-11) — „Węzeł produkcyjny #1" · 30 h
+**Sprint 10 · 11-02 · Domkniecie DPA i obsluga naduzyc · 34 h** — `P-15:14` `C-18` `B-01` `PB-04`
+Po tym sprincie zamkniete sa wszystkie blokery poza para KSeF-owa.
 
-| # | Zadanie | h |
-|---|---|---|
-| 1 | **`PB-14`** — wybór dostawcy i lokalizacji węzła (przed zamówieniem) | 6 |
-| 2 | **`PB-02`** — onboarding węzła #1, 14 checków `live-readiness` | 16 |
-| 3 | **`Z-18` dowód D3** — provisioning z przerwanym połączeniem do DirectAdmina, na świeżym węźle | 2 |
-| 4 | **`DEP-02`** — jeden major ESLinta w drzewie + strażnik spójności | 6 |
+**Sprinty 11-13 · 11-09 → 11-23 · Produkt · 90 h** — DNS i SSO, poczta, warstwa operatorska, backup
 
-Po W3 zostają **dwa** blokery startu: `P-15` (czeka na dostawców) i para KSeF-owa
-(zakres znany po `PB-13`).
+**Sprint 14 · 11-30 · Dokumenty prawne i bus factor · 30 h** — `PB-03` `PB-11` `I-11`
+`PB-03` przesuniete do przodu, bo `N-16` (kredyty SLA) zalezy od opublikowanego regulaminu —
+w pierwotnej kolejnosci ta zaleznosc byla odwrocona.
 
-### Dalej — bez zmian w kolejności planu
+**Sprinty 15-16 · 12-07 → 12-14 · Cennik, landing, pomiar · 66 h**
 
-S4 (`M-08`, `C-18`) → S6 (`P-15` domknięcie, `PB-04` abuse) → S11 DNS/SSO → S12 poczta →
-S13 warstwa operatorska → S14 backup/staging → S15 rozliczenia klienta → S16 dokumenty
-prawne i cennik → S17 landing i pomiar → S18 KSeF → S19 baza wiedzy i kampania →
-S20 `PB-05` ścieżka pierwszego klienta i `PB-12` decyzja GO.
+**Sprinty 17-18 · KSeF · 62 h** — kolizja ze swietami, zakladamy dwa tygodnie przerwy.
+Wniosek o certyfikat KSeF typu 2 z portalu MF skladamy w sprincie 17, bo bez niego
+`KSEF-03` (kody QR) nie ruszy, a to sprawa formalna, nie kod.
+
+**Sprint 19 · Baza wiedzy, KSeF od strony klienta, kampania · 30 h**
+
+**Sprint 20 · 2027-01-11 · Sciezka pierwszego klienta i decyzja GO · 24 h** — `PB-05` `PB-12`
+Jedyny moment w calym planie, w ktorym powstaje dowod poziomu D3.
+
+### Swiadomie poza planem startowym
+
+`X-48` (`strictNullChecks` wylaczony w profilu Nest, 40 h) — decyzja wlasciciela 2026-09-19:
+po starcie, z terminem przegladu w repo, wzorem `DEP-03`. `NODE-01` (dwie sciezki dodania
+wezla) — roadmapa po starcie, to porzadek, nie bezpieczenstwo.
 
 ---
 

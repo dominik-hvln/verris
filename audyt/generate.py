@@ -91,6 +91,25 @@ def godziny(D, n):
     return sum(x[2] for x in pozycje_sprintu(D, n))
 
 
+def godziny_otwarte(D, n):
+    """Godziny pracy, ktora ZOSTALA w sprincie — bez pozycji juz zamknietych.
+
+    Powod (2026-09-19): walidator liczyl przeciazenie z calej zawartosci sprintu,
+    wiec sprinty 1-3 — wykonane — wypisywaly ostrzezenie przy kazdym uruchomieniu.
+    Ostrzezenie, ktore zapala sie na zdrowym stanie, uczy je ignorowac; to ta sama
+    usterka co bramka z X-33, tylko w walidatorze. Przeciazenie ma opisywac prace
+    DO ZROBIENIA, bo tylko taka moze sie nie zmiescic w pojemnosci sprintu.
+    """
+    h = 0
+    for i, _tyt, godz, typ, *_ in pozycje_sprintu(D, n):
+        if typ == "audyt":
+            if D["wg_id"][i][8] != "DZIAŁA":
+                h += godz
+        elif not D["pb"].get(i, {}).get("zamkniete"):
+            h += godz
+    return h
+
+
 def daty(D, n):
     a = datetime.date.fromisoformat(D["cfg"]["start"]) + datetime.timedelta(weeks=n - 1)
     return a, a + datetime.timedelta(days=4)
@@ -148,9 +167,9 @@ def sprawdz(D):
 
     cap = D["cfg"]["sprint_godzin"]
     for n in sorted(D["sprinty"]):
-        h = godziny(D, n)
+        h = godziny_otwarte(D, n)
         if h > cap + 2:
-            ostrz.append(f"sprint {n} przeciążony: {h} h przy pojemności {cap} h")
+            ostrz.append(f"sprint {n} przeciążony: {h} h pracy otwartej przy pojemności {cap} h")
 
     for r in D["macierz"]:
         if r[10] == "POZA ZAKRESEM" and not r[13].strip():
