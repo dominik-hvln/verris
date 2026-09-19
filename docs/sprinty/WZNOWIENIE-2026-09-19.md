@@ -167,7 +167,7 @@ Dla sprintow 1-3 daty sa przez to o tydzien przesuniete wobec rzeczywistosci (pr
 | | Plan z 2026-08-21 | Po przeplanowaniu |
 |---|---|---|
 | Sprintow do startu | 20 (728 h) | 20 (**552 h pracy otwartej**) |
-| Wszystkie blokery poza KSeF | 2026-10-16 | **2026-11-02** (po sprincie 10, domkniecie DPA) |
+| Wszystkie blokery poza KSeF | 2026-10-16 | **2026-10-09** (po sprincie 6) |
 | Ostatni sprint | — | 2027-01-11 → 01-15 |
 | Decyzja GO | 2027-01-01 | **~2027-01-29** (z dwutygodniowa przerwa swiateczna) |
 
@@ -179,7 +179,7 @@ Blokery startu: **4**, nie 5. `H-20` mial martwa flage — zdjeta.
 
 | ID | Sprint | Kiedy przestaje blokowac |
 |---|---|---|
-| `P-15` DPA | 4 (wyslanie) → 10 (domkniecie) | Zalezy od dostawcow, nie od nas |
+| `P-15` DPA | 4 | Nie zalezy od dostawcow — patrz korekta ponizej |
 | `Z-18` | 6 | Dowod D3 na wezle #1 |
 | `M-16` KSeF offline | 17 | Po `PB-13` ze sprintu 5 |
 | `M-17` KSeF XSD | 18 | Po `M-16` |
@@ -189,12 +189,18 @@ Blokery startu: **4**, nie 5. `H-20` mial martwa flage — zdjeta.
 ## 5. Plan sprintow 4-20
 
 **Sprint 4 · 2026-09-21 · Wznowienie: odzyskac srodowisko i zatrzymac gnicie · 32 h**
-`DEV-01` `DEP-01` `ENV-01` `DEP-02` `X-03` `P-15:2`
+`DEV-01` `DEP-01` `ENV-01` `X-03` `P-15`
 
 Kolejnosc nie jest dowolna. `DEV-01` idzie pierwsze, bo po decyzji nr 1 z 28.08 jedyna realna
 bramka przed `main` jest bramka lokalna, a ona nie wstanie bez bazy deweloperskiej.
-`P-15:2` to **wyslanie** wnioskow DPA w poniedzialek rano — jedyna pozycja w planie, ktorej
-czas trwania nie zalezy od nas.
+**Korekta z 2026-09-19, wazniejsza niz wyglada.** `P-15` bylo w planie pozycja, ktorej tempa
+nie kontrolujemy — 16 h rozbite na sprinty 4 i 10, przez co domkniecie blokerow stalo na listopad.
+Sprawdzone u zrodla: **u zadnego z pieciu dostawcow nie trzeba nikogo prosic.** Stripe i AWS maja
+DPA wlaczone w umowe glowna, Hetzner i Openprovider akceptuje sie kliknieciem w panelu, Cloudflare
+zostaje do potwierdzenia. Praca wlasna to jeden dokument: Zalacznik 1 do DPA Hetznera.
+Naklad 16 h → 6 h, pozycja w calosci tutaj, **ostatni bloker poza KSeF-em zamyka sie miesiac
+wczesniej**. Przy okazji wyszlo, ze lista subprocesorow byla nieaktualna od 2026-07-07 —
+wymieniala nierozstrzygnietego dostawce VPS i reCAPTCHA zamiast Turnstile.
 
 **Sprint 5 · 09-28 · Domkniecie ogonow sprintu 2 i kierunek fakturowania · 30 h**
 `X-31` `X-32` `M-08` `PB-13` `PB-14`
@@ -220,8 +226,9 @@ Nowe sprinty, decyzja wlasciciela 2026-09-19. `SEC-05` jest pierwsze, bo allowli
 na probce logu jest niepelna z definicji — dopoki log jest probka, reszta bloku opiera sie
 na zgadywaniu.
 
-**Sprint 10 · 11-02 · Domkniecie DPA i obsluga naduzyc · 34 h** — `P-15:14` `C-18` `B-01` `PB-04`
-Po tym sprincie zamkniete sa wszystkie blokery poza para KSeF-owa.
+**Sprint 10 · 11-02 · Obsluga naduzyc i porzadek w zaleznosciach · 26 h** — `DEP-02` `C-18` `B-01` `PB-04`
+`DEP-02` tutaj, bo wyciszenie majorow ESLinta z `DEP-03` ma termin przegladu 2026-11-15,
+a ten sprint zaczyna sie 11-02 — dokladnie wtedy, kiedy ta pozycja ma o sobie przypomniec.
 
 **Sprinty 11-13 · 11-09 → 11-23 · Produkt · 90 h** — DNS i SSO, poczta, warstwa operatorska, backup
 

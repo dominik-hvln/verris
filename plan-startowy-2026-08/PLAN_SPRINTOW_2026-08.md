@@ -9,11 +9,11 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **3148 h** — przy 30 h tygodniowo około **24 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **3138 h** — przy 30 h tygodniowo około **24 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **20 sprintów do startu** (784 h) oraz roadmapę po starcie (2364 h, 145 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **20 sprintów do startu** (774 h) oraz roadmapę po starcie (2364 h, 145 pozycji) rozpisaną na epiki kwartalne.
 
-- **2026-11-06** — koniec sprintu 10, zamknięte wszystkie blokery **poza KSeF-em**.
+- **2026-10-09** — koniec sprintu 6, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-01-15** — koniec sprintu 20, decyzja GO.
 
 ---
@@ -149,34 +149,32 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 
 # Faza 1 — Rozliczenia i dowód odtworzenia
 
-*Sprinty 4–8 · 152 h · 2026-09-21 – 2026-10-23*
+*Sprinty 4–8 · 150 h · 2026-09-21 – 2026-10-23*
 
 Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podpisane DPA. Koniec tej fazy to kamień milowy: zamknięte wszystkie blokery poza KSeF-em, który świadomie stoi na końcu.
 
 ## Sprint 4 — Wznowienie: odzyskac srodowisko i zatrzymac gnicie
 
-`2026-09-21 – 2026-09-25` · **32 h** z 30 h pojemności
+`2026-09-21 – 2026-09-25` · **30 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
 | `DEV-01` | Baza deweloperska jest nieosiągalna, a `docker-compose.yml` opisuje stan, którego nie ma | 6 | WYSOKA | D3 (maszyna deweloperska): `FATAL: role "verris" does not exist` oraz `role "postgres" does not exist` przy połączeniu po gnieździe wewnątrz kontenera |
 | `DEP-01` | Osiem otwartych pull requestów Dependabota, żaden niescalony | 6 | WYSOKA | GitHub: 8 otwartych PR-ów, przebiegi CI #147–#150 od `dependabot[bot]`, 2026-08-28 |
 | `ENV-01` | Bramka lokalna biegnie na Node 20, CI na Node 22 | 6 | ŚREDNIA | D3: ostrzeżenie `pnpm` przy każdym `pnpm test` wobec `node-version: 22` w `ci.yml`. Zamknięte częściowo 2026-08-28: `.nvmrc` = 22, strażnik `wersja-no |
-| `DEP-02` | W drzewie stoją dwa majory ESLinta naraz | 6 | ŚREDNIA | package.json (korzeń) — @eslint/js ^10.0.1 przy braku jakiegokolwiek eslint.config.* w korzeniu; libs/eslint-config/node_modules: eslint 10.9.0 obok @ |
 | `X-03` | Testy uruchamiane przed wdrożeniem | 6 | WYSOKA | .github/workflows/deploy.yml — job test-gate (typecheck + pnpm --filter api test), build-push ma needs: test-gate |
-| `P-15` | Podpisane DPA z subprocesorami (część) | 2 | BLOKER STARTU | docs/legal/dpa-subprocessors-tracking.md — wszystkie pozycje w statusie „do podpisania” lub „do akceptacji”, kolumna Data pusta |
+| `P-15` | Podpisane DPA z subprocesorami | 6 | BLOKER STARTU | docs/legal/dpa-subprocessors-tracking.md — tabela statusow po korekcie 2026-09-19. Stripe i AWS: DPA obowiazuje z mocy umowy glownej. Hetzner i Openpr |
 
 **Definicja ukończenia**
 
 - `DEV-01` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `DEP-01` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `ENV-01` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
-- `DEP-02` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-03` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `P-15` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-04.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** Pierwszy sprint po 22 dniach przerwy. Kolejnosc nie jest dowolna: DEV-01 idzie pierwsze, bo po decyzji nr 1 z 2026-08-28 JEDYNA realna bramka przed main jest bramka uruchamiana lokalnie, a ona nie wstanie bez bazy deweloperskiej. DEP-01 rosnie samo — kolejka PR-ow Dependabota powiekszyla sie przez przerwe, a job Security scans wykrywa CVE, ktorych poprawki leza niescalone. P-15:2 to WYSLANIE wnioskow DPA, nie ich domkniecie: to jedyna pozycja w calym planie, ktorej czas trwania nie zalezy od nas, wiec zegar musi ruszyc w poniedzialek rano, a nie w piatek. Domkniecie P-15 stoi w sprincie 10.
+**Ryzyko sprintu.** Pierwszy sprint po 22 dniach przerwy. Kolejnosc nie jest dowolna: DEV-01 idzie pierwsze, bo po decyzji nr 1 z 2026-08-28 JEDYNA realna bramka przed main jest bramka uruchamiana lokalnie, a ona nie wstanie bez bazy deweloperskiej. DEP-01 rosnie samo — kolejka PR-ow Dependabota powiekszyla sie przez przerwe, a job Security scans wykrywa CVE, ktorych poprawki leza niescalone. P-15 W CALOSCI TUTAJ, nie rozbite na dwa sprinty. Korekta 2026-09-19: zalozenie, ze DPA zalezy od tempa dostawcow, bylo nieprawdziwe — trzy z pieciu obowiazuja z mocy umowy glownej, dwa akceptuje sie kliknieciem w panelu. Praca wlasna to wylacznie Zalacznik 1 do DPA Hetznera. Dzieki temu OSTATNI BLOKER POZA KSeF-em zamyka sie w sprincie 4, a nie w sprincie 10. DEP-02 przeniesione do sprintu 10, zeby zmiescic sie w pojemnosci.
 
 ## Sprint 5 — Domkniecie ogonow sprintu 2 i kierunek fakturowania
 
@@ -262,7 +260,7 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 
 # Faza 2 — Odzyskanie funkcji-widm i luki pierwszego tygodnia
 
-*Sprinty 9–14 · 188 h · 2026-10-26 – 2026-12-04*
+*Sprinty 9–14 · 180 h · 2026-10-26 – 2026-12-04*
 
 Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. Najlepszy stosunek wartości do pracy w całym backlogu.
 
@@ -287,26 +285,26 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 
 **Ryzyko sprintu.** SEC-06 dopiero tutaj, bo wymaga okresu obserwacji na PELNYM logu z SEC-05. Koszt tej pozycji to glownie czas obserwacji, nie kod — dlatego stoi po dwoch sprintach zbierania danych, a nie obok SEC-01. Test ipset na celach z rzeczywistego ruchu pokazal juz dwa trafienia poza allowlista (sogo-repo.alinto.org i nierozpoznany host Hetznera, 120 pakietow), wiec wlaczenie --strict przed tym sprintem odcieloby repozytorium pakietow SOGo. SEC-02: adresy Stripe rotuja, wiec wpis po nazwie starzeje sie miedzy uruchomieniami — potrzebne odswiezanie z opublikowanej listy plus check w live-readiness.
 
-## Sprint 10 — Domkniecie DPA i obsluga naduzyc
+## Sprint 10 — Obsluga naduzyc i porzadek w zaleznosciach
 
-`2026-11-02 – 2026-11-06` · **34 h** z 30 h pojemności
+`2026-11-02 – 2026-11-06` · **26 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `P-15` | Podpisane DPA z subprocesorami (część) | 14 | BLOKER STARTU | docs/legal/dpa-subprocessors-tracking.md — wszystkie pozycje w statusie „do podpisania” lub „do akceptacji”, kolumna Data pusta |
+| `DEP-02` | W drzewie stoją dwa majory ESLinta naraz | 6 | ŚREDNIA | package.json (korzeń) — @eslint/js ^10.0.1 przy braku jakiegokolwiek eslint.config.* w korzeniu; libs/eslint-config/node_modules: eslint 10.9.0 obok @ |
 | `C-18` | Konto FTP — zmiana hasła | 6 | WYSOKA | brak jakiejkolwiek ścieżki edycji istniejącego konta |
 | `B-01` | Zmiana wersji PHP dla całego konta | 6 | WYSOKA | services.controller.ts:125 |
 | `PB-04` | Procedura obsługi nadużyć (abuse) — dokument | 8 | WYSOKI | Adres abuse@ obsługiwany, ścieżka od zgłoszenia do reakcji, czasy reakcji, kto decyduje o zawieszeniu, wzory odpowiedzi do CERT i rejestratorów. |
 
 **Definicja ukończenia**
 
-- `P-15` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `DEP-02` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `C-18` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `B-01` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `PB-04` — Dokument w ops/docs z właścicielem i czasami reakcji. Test: zgłoszenie wysłane na abuse@ trafia do kogoś i ma odpowiedź w deklarowanym czasie.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-10.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** Wnioski DPA poszly w sprincie 4, tutaj sie je domyka. Jesli ktorys dostawca nie odpowiedzial, TO JEST MOMENT ESKALACJI, a nie moment czekania dalej — P-15 jest blokerem startu i jedyna pozycja, ktorej tempa nie kontrolujemy. P-15 zaczyna się tu, bo podpisanie DPA zależy od tempa dostawców, nie od nas. Wysłać wnioski w poniedziałek sprintu.
+**Ryzyko sprintu.** DEP-02 tutaj, a nie w sprincie 4: wyciszenie majorow ESLinta z DEP-03 ma termin przegladu 2026-11-15, a ten sprint zaczyna sie 2026-11-02 — czyli dokladnie wtedy, kiedy ta pozycja ma o sobie przypomniec. Zmiana rusza lockfile, wiec osobny commit z pelna bramka. P-15 WYPADLO Z TEGO SPRINTU do sprintu 4 (patrz korekta 2026-09-19 w docs/legal/dpa-subprocessors-tracking.md). PB-04: adres abuse@ jest punktem kontaktowym DSA i musi istniec przed publikacja dokumentow legal.
 
 ## Sprint 11 — DNS, SSO i dostarczalnosc poczty
 
