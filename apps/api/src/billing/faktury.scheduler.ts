@@ -9,7 +9,7 @@ import { fakturaNiedokonczonaTemplate } from '../mail/templates/ops-notification
 import {
   czyAlarmowacOFakturze,
   DOSTAWCA_PORTFEL,
-  nadajNumerFaktury,
+  nadajNumerDokumentu,
   nastepnaProbaFaktury,
   okresZbiorczy,
   PROG_ALERTU_FAKTURY,
@@ -286,12 +286,13 @@ export class FakturyScheduler {
         return;
       }
 
-      const numer = await nadajNumerFaktury(tx, teraz);
+      const { numer, rodzajPrawny } = await nadajNumerDokumentu(tx, teraz);
       const faktura = await tx.invoice.create({
         data: {
           userId,
           subscriptionId: wpisy.find((w) => w.subscriptionId)?.subscriptionId ?? null,
           number: numer,
+          rodzajPrawny,
           status: 'PAID',
           amount: suma.brutto,
           netAmount: suma.netto,

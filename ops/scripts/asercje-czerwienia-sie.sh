@@ -120,6 +120,16 @@ sprawdz "M-06 korekta z numerem spoza serii VFK" "M-06: 1 korekt ma numer spoza 
    INSERT INTO \"Invoice\" (id,\"userId\",\"number\",\"amount\",\"kind\",\"correctedId\",\"correctionKind\",\"correctionReason\",\"updatedAt\")
    VALUES ('inv-k2','$UZY','VFV/9999/08/2026',-10,'KOREKTA','inv-p','WARTOSCIOWA','pomyłka w cenie',now());"
 
+# FAK-01 — CHECK zdjęty, jak przy M-06: sprawdzamy SAMĄ asercję.
+sprawdz "FAK-01 dokument rozliczeniowy w serii faktur VAT" "FAK-01: 1 dokumentów ma serię niezgodną" \
+  "ALTER TABLE \"Invoice\" DROP CONSTRAINT IF EXISTS \"Invoice_rodzajPrawny_seria_check\";
+   INSERT INTO \"Invoice\" (id,\"userId\",\"number\",\"amount\",\"rodzajPrawny\",\"updatedAt\")
+   VALUES ('inv-r','$UZY','VFV/9997/08/2026',10,'DOKUMENT_ROZLICZENIOWY',now());"
+
+sprawdz "FAK-01 dokument rozliczeniowy w kolejce KSeF" "FAK-01: 1 dokumentów rozliczeniowych ma status KSeF" \
+  "INSERT INTO \"Invoice\" (id,\"userId\",\"number\",\"amount\",\"rodzajPrawny\",\"ksefStatus\",\"updatedAt\")
+   VALUES ('inv-r2','$UZY','VDR/9997/08/0001',10,'DOKUMENT_ROZLICZENIOWY','PENDING',now());"
+
 echo
 if [[ $zle -gt 0 ]]; then
   echo "WYNIK: $zle naruszeń nie zatrzymało pliku asercji (albo zatrzymało z innego powodu)."

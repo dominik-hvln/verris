@@ -1,7 +1,7 @@
 import { Prisma, WalletTxType } from '@verris/database';
 import { WalletLedgerService } from '../../src/billing/wallet-ledger.service';
 import { okresZbiorczy, refZbiorcza } from '../../src/billing/faktura-za-portfel';
-import { prisma, rozlacz, wyczyscBaze } from './setup';
+import { prisma, rozlacz, ustawTrybFakturowania, wyczyscBaze } from './setup';
 
 /**
  * Z-01 — faktura za płatność portfelem, przeciwko prawdziwej bazie.
@@ -41,7 +41,12 @@ async function fakturyKlienta(userId: string) {
 }
 
 describe('Z-01 — faktura za obciążenie portfela', () => {
-  beforeEach(wyczyscBaze);
+  // Te testy opisują fakturę VAT z panelu (seria VFV) — tryb `panel`.
+  // Tryb domyślny, zewnętrzny, ma własny blok na końcu pliku (FAK-01).
+  beforeEach(async () => {
+    await wyczyscBaze();
+    await ustawTrybFakturowania('panel');
+  });
   afterAll(rozlacz);
 
   it('obciążenie za abonament tworzy fakturę VAT w tej samej chwili', async () => {
@@ -425,5 +430,76 @@ describe('Z-01 — faktura zbiorcza za miesiąc', () => {
         : `Obciążenia bez dokumentu księgowego po przebiegu zbiorczym (Z-01):\n` +
           bezFaktury.map((w) => `  ${w.type} ${w.amount.toFixed(2)}`).join('\n'),
     ).toBe('');
+  });
+});
+
+describe('FAK-01 — faktury w programie księgowym (tryb domyślny)', () => {
+  beforeEach(wyczyscBaze);
+  afterAll(rozlacz);
+
+  it('bez ustawienia obciążenie daje dokument rozliczeniowy z serii VDR, nie fakturę VAT', async () => {
+    const u = await utworzKlienta('100.00');
+    await ledger().debit({
+      userId: u.id,
+      type: WalletTxType.CHARGE_SUBSCRIPTION,
+      amount: '45.00',
+    });
+
+    const [f] = await fakturyKlienta(u.id);
+    expect(f.number).toMatch(/^VDR\/\d{4}\/\d{2}\/\d{4}$/);
+    expect(f.rodzajPrawny).toBe('DOKUMENT_ROZLICZENIOWY');
+    expect(f.externalInvoiceNumber).toBeNull();
+    // Pieniądze i dokument dalej atomowo — Z-01 nie może się rozjechać.
+    expect(f.status).toBe('PAID');
+    expect(f.amount.toFixed(2)).toBe('45.00');
+  });
+
+  it('seria VDR nie zjada numerów serii VFV', async () => {
+    const u = await utworzKlienta('100.00');
+    await ledger().debit({ userId: u.id, type: WalletTxType.CHARGE_SUBSCRIPTION, amount: '10.00' });
+    await ustawTrybFakturowania('panel');
+    await ledger().debit({ userId: u.id, type: WalletTxType.CHARGE_SUBSCRIPTION, amount: '10.00' });
+
+    const numery = (await fakturyKlienta(u.id)).map((f) => f.number);
+    expect(numery.some((n) => /^VDR\/\d{4}\/\d{2}\/0001$/.test(n))).toBe(true);
+    expect(numery.some((n) => /^VFV\/\d{4}\/\d{2}\/0001$/.test(n))).toBe(true);
+  });
+
+  it('nieznana wartość trybu działa jak zewnętrzny (fail-safe)', async () => {
+    await prisma().platformSetting.create({ data: { key: 'faktury.tryb', value: 'Panel' } });
+    const u = await utworzKlienta('100.00');
+    await ledger().debit({ userId: u.id, type: WalletTxType.CHARGE_SUBSCRIPTION, amount: '10.00' });
+
+    const [f] = await fakturyKlienta(u.id);
+    expect(f.rodzajPrawny).toBe('DOKUMENT_ROZLICZENIOWY');
+  });
+
+  it('baza odrzuca dokument rozliczeniowy z numerem z serii faktur VAT', async () => {
+    const u = await utworzKlienta('0.00');
+    await expect(
+      prisma().invoice.create({
+        data: {
+          userId: u.id,
+          number: 'VFV/2026/09/0001',
+          rodzajPrawny: 'DOKUMENT_ROZLICZENIOWY',
+          amount: new Prisma.Decimal('10.00'),
+        },
+      }),
+    ).rejects.toThrow(/Invoice_rodzajPrawny_seria_check/);
+  });
+
+  it('baza odrzuca numer faktury zewnętrznej przy fakturze VAT z panelu', async () => {
+    const u = await utworzKlienta('0.00');
+    await expect(
+      prisma().invoice.create({
+        data: {
+          userId: u.id,
+          number: 'VFV/2026/09/0002',
+          amount: new Prisma.Decimal('10.00'),
+          externalInvoiceNumber: 'FV 1/09/2026',
+          externalInvoiceAt: new Date(),
+        },
+      }),
+    ).rejects.toThrow(/Invoice_externalInvoice_check/);
   });
 });

@@ -31,6 +31,9 @@ import { sprawdzBazeTestowa } from './baza-testowa';
 
 /** Tabele czyszczone przed każdym testem. Kolejność bez znaczenia — CASCADE. */
 const TABELE = [
+  // FAK-01 — tryb fakturowania siedzi w ustawieniach; test, który go przełączy,
+  // nie może zostawić go następnemu.
+  'platform_settings',
   'RestoreDrill',
   'StripeWebhookEvent',
   'Invoice',
@@ -59,6 +62,18 @@ export async function wyczyscBaze(): Promise<void> {
   await p.$executeRawUnsafe(
     `TRUNCATE TABLE ${TABELE.map((t) => `"${t}"`).join(', ')} RESTART IDENTITY CASCADE;`,
   );
+}
+
+/**
+ * FAK-01 — tryb fakturowania dla testu. Bez wywołania obowiązuje domyślny
+ * `zewnetrzny` (dokument rozliczeniowy, seria VDR), tak jak na produkcji.
+ */
+export async function ustawTrybFakturowania(tryb: 'panel' | 'zewnetrzny'): Promise<void> {
+  await prisma().platformSetting.upsert({
+    where: { key: 'faktury.tryb' },
+    create: { key: 'faktury.tryb', value: tryb },
+    update: { value: tryb },
+  });
 }
 
 export async function rozlacz(): Promise<void> {

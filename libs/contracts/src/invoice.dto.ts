@@ -4,6 +4,8 @@
  * Hosted Invoice URL) or `pdfUrl`. C-10: own PDF generator is a future task.
  */
 
+export type InvoiceLegalKind = 'FAKTURA_VAT' | 'DOKUMENT_ROZLICZENIOWY';
+
 export type InvoiceStatus = 'DRAFT' | 'OPEN' | 'PAID' | 'VOID' | 'UNCOLLECTIBLE';
 
 export interface InvoiceDto {
@@ -22,6 +24,14 @@ export interface InvoiceDto {
   dueAt: string | null;
   paidAt: string | null;
   createdAt: string;
+  /**
+   * FAK-01 — `FAKTURA_VAT` (fakturę wystawił panel) albo
+   * `DOKUMENT_ROZLICZENIOWY` (fakturę VAT wystawia program księgowy; jej numer
+   * jest w `externalInvoiceNumber`, gdy operator go dopisze).
+   */
+  rodzajPrawny: InvoiceLegalKind;
+  externalInvoiceNumber: string | null;
+  externalInvoiceAt: string | null;
 }
 
 export interface InvoiceListResponse {

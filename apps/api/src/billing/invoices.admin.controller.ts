@@ -27,6 +27,8 @@ import { InvoicesService } from './invoices.service';
 import { FakturaRecznaDto } from './dto/faktura-reczna.dto';
 import { WystawKorekteDto } from './dto/korekta.dto';
 import { KorektyService } from './korekty.service';
+import { FakturaZewnetrznaDto } from './dto/faktura-zewnetrzna.dto';
+import { FakturyZewnetrzneService } from './faktury-zewnetrzne.service';
 
 const VALID_STATUSES: InvoiceStatus[] = [
   InvoiceStatus.DRAFT,
@@ -67,6 +69,7 @@ export class InvoicesAdminController {
   constructor(
     private readonly invoices: InvoicesService,
     private readonly korekty: KorektyService,
+    private readonly zewnetrzne: FakturyZewnetrzneService,
   ) {}
 
   /**
@@ -123,6 +126,20 @@ export class InvoicesAdminController {
       `attachment; filename="verris-faktury-${new Date().toISOString().slice(0, 10)}.csv"`,
     );
     res.send(csv);
+  }
+
+  /**
+   * FAK-01 — dokumenty rozliczeniowe bez faktury z programu księgowego.
+   * Musi stać PRZED `@Get(':id')`, inaczej Nest potraktuje ścieżkę jak id.
+   */
+  @Get('czeka-na-fakture')
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('BILLING_VIEW')
+  czekajaceNaFakture(
+    @Query('limit', new DefaultValuePipe(200), ParseIntPipe) limit: number,
+  ) {
+    return this.zewnetrzne.czekajaceNaFakture(limit);
   }
 
   @Get(':id')
@@ -247,6 +264,20 @@ export class InvoicesAdminController {
       issuedAt: k.issuedAt,
       storageKey: k.storageKey,
     }));
+  }
+
+  /** FAK-01 — dopisanie numeru faktury VAT z programu księgowego. */
+  @Post(':invoiceId/faktura-zewnetrzna')
+  @HttpCode(200)
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('BILLING_MANAGE')
+  async dopiszFaktureZewnetrzna(
+    @Param('invoiceId') invoiceId: string,
+    @Body() dto: FakturaZewnetrznaDto,
+    @CurrentUser() aktor: { userId: string },
+  ) {
+    return this.zewnetrzne.dopiszNumer({ invoiceId, numer: dto.numer, aktorUserId: aktor.userId });
   }
 
 }

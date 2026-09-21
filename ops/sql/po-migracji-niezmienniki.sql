@@ -257,7 +257,8 @@ BEGIN
   -- przestał mówić, jakim dokumentem jest — a to był cały powód rozdzielenia.
   SELECT COUNT(*) INTO bez_serii
     FROM "Invoice"
-   WHERE "kind" = 'KOREKTA' AND "number" NOT LIKE 'VFK/%';
+   WHERE "kind" = 'KOREKTA' AND "number" NOT LIKE 'VFK/%' AND "number" NOT LIKE 'VDK/%';
+  -- FAK-01: korekta dokumentu rozliczeniowego ma własną serię VDK.
   IF bez_serii > 0 THEN
     RAISE EXCEPTION 'M-06: % korekt ma numer spoza serii VFK', bez_serii;
   END IF;
@@ -269,4 +270,41 @@ BEGIN
   -- dokładnie ten błąd („bliźniacze miejsca") dał Z-12, Z-16 i błędy zmiany
   -- planu. Jedna reguła, jedno miejsce.
   RAISE NOTICE 'M-06 OK — korekty mają faktury pierwotne i serię VFK (sumy: patrz Z-01)';
+END $$;
+
+-- ── FAK-01 — dokument rozliczeniowy nie jest fakturą ─────────────────────────
+-- CHECK-i w bazie pilnują zapisu; ta asercja pilnuje stanu faktycznego, jak
+-- przy M-06. Dwie rzeczy, których nie może być nigdy: dokument rozliczeniowy
+-- poza serią VDR/VDK (druga numeracja faktur) i dokument rozliczeniowy
+-- w drodze do KSeF-u (stałby się fakturą obok faktury z programu księgowego).
+DO $$
+DECLARE
+  ma_kolumne BOOLEAN;
+  zla_seria  INT;
+  w_ksef     INT;
+BEGIN
+  SELECT EXISTS (
+    SELECT 1 FROM information_schema.columns
+     WHERE table_name = 'Invoice' AND column_name = 'rodzajPrawny'
+  ) INTO ma_kolumne;
+  IF NOT ma_kolumne THEN
+    RAISE EXCEPTION 'FAK-01: brak kolumny Invoice.rodzajPrawny — migracja nie została zastosowana';
+  END IF;
+
+  SELECT COUNT(*) INTO zla_seria
+    FROM "Invoice"
+   WHERE ("rodzajPrawny" = 'DOKUMENT_ROZLICZENIOWY')
+         <> ("number" LIKE 'VDR/%' OR "number" LIKE 'VDK/%');
+  IF zla_seria > 0 THEN
+    RAISE EXCEPTION 'FAK-01: % dokumentów ma serię niezgodną z rodzajem prawnym', zla_seria;
+  END IF;
+
+  SELECT COUNT(*) INTO w_ksef
+    FROM "Invoice"
+   WHERE "rodzajPrawny" = 'DOKUMENT_ROZLICZENIOWY' AND "ksefStatus" <> 'NOT_APPLICABLE';
+  IF w_ksef > 0 THEN
+    RAISE EXCEPTION 'FAK-01: % dokumentów rozliczeniowych ma status KSeF inny niż NOT_APPLICABLE', w_ksef;
+  END IF;
+
+  RAISE NOTICE 'FAK-01 OK — dokumenty rozliczeniowe w serii VDR/VDK i poza KSeF';
 END $$;

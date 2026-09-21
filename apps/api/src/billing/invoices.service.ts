@@ -19,12 +19,18 @@ import {
 import { StripeInvoice } from './stripe/stripe.client';
 import {
   DOSTAWCA_RECZNY,
-  nadajNumerFaktury,
+  nadajNumerDokumentu,
   pozycjeReczne,
+  SERIE_PANELU,
   STAWKA_VAT,
   type PozycjaReczna,
 } from './faktura-za-portfel';
 import { randomUUID } from 'crypto';
+import {
+  RODZAJ_DOKUMENT_ROZLICZENIOWY,
+  toNumerPanelu,
+  type RodzajPrawny,
+} from './tryb-fakturowania';
 
 const STRIPE_PROVIDER = 'STRIPE';
 /** Stała stawka VAT dla usług hostingowych (PL). */
@@ -53,6 +59,11 @@ export interface InvoiceDto {
   dueAt: string | null;
   paidAt: string | null;
   createdAt: string;
+  /** FAK-01 — 'FAKTURA_VAT' albo 'DOKUMENT_ROZLICZENIOWY'. */
+  rodzajPrawny: RodzajPrawny;
+  /** FAK-01 — numer faktury VAT z programu księgowego, gdy już dopisany. */
+  externalInvoiceNumber: string | null;
+  externalInvoiceAt: string | null;
 }
 
 export interface InvoiceListDto {
@@ -181,7 +192,7 @@ export class InvoicesService {
       if (
         status === InvoiceStatus.PAID &&
         !updated.storageKey &&
-        !updated.number.startsWith('VFV/')
+        !toNumerPanelu(updated.number, SERIE_PANELU)
       ) {
         await this.finalizeAsVerrisInvoice(updated, opts).catch((err) => {
           this.logger.error(
@@ -199,15 +210,19 @@ export class InvoicesService {
     // a real `VFV/YYYY/MM/seq` number on first PAID transition.
     const placeholderNumber = stripeInvoice.number ?? `EH-${stripeInvoice.id}`;
     const isImmediatelyPaid = status === InvoiceStatus.PAID;
-    const number = isImmediatelyPaid
+    // FAK-01: rodzaj prawny razem z numerem. Placeholder dostaje domyślny
+    // rodzaj z bazy, a właściwy — razem z właściwym numerem — przy finalizacji.
+    const nadany = isImmediatelyPaid
       ? await this.allocateInvoiceNumber(issuedAt ?? new Date())
-      : placeholderNumber;
+      : null;
+    const number = nadany?.numer ?? placeholderNumber;
 
     const created = await this.prisma.invoice.create({
       data: {
         userId: opts.verrisUserId,
         subscriptionId: opts.verrisSubscriptionId ?? null,
         number,
+        ...(nadany ? { rodzajPrawny: nadany.rodzajPrawny } : {}),
         status,
         amount: totalGross,
         currency: stripeInvoice.currency.toUpperCase(),
@@ -264,8 +279,10 @@ export class InvoicesService {
    * wystawieniu, a numeracja faktur ma być ciągła i bez luk
    * (art. 106e ust. 1 pkt 2 ustawy o VAT).
    */
-  private async allocateInvoiceNumber(reference: Date): Promise<string> {
-    return nadajNumerFaktury(this.prisma, reference);
+  private async allocateInvoiceNumber(
+    reference: Date,
+  ): Promise<{ numer: string; rodzajPrawny: RodzajPrawny }> {
+    return nadajNumerDokumentu(this.prisma, reference);
   }
 
   /**
@@ -286,9 +303,15 @@ export class InvoicesService {
     if (invoice.storageKey) return; // already finalized
 
     // 1) Assign VFV/... number if not already one.
+    // FAK-01: „już ma numer" znaczy numer z KTÓREJKOLWIEK serii panelu —
+    // VFV/VFK albo VDR/VDK. Samo `VFV/` nadawałoby dokumentowi rozliczeniowemu
+    // drugi numer przy każdej ponownej finalizacji.
     let number = invoice.number;
-    if (!number.startsWith('VFV/')) {
-      number = await this.allocateInvoiceNumber(invoice.issuedAt ?? new Date());
+    let rodzajPrawny: string = invoice.rodzajPrawny;
+    if (!toNumerPanelu(number, SERIE_PANELU)) {
+      const nadany = await this.allocateInvoiceNumber(invoice.issuedAt ?? new Date());
+      number = nadany.numer;
+      rodzajPrawny = nadany.rodzajPrawny;
     }
 
     // 2) Rozbicie VAT.
@@ -359,6 +382,7 @@ export class InvoicesService {
     const pdfBytes = await this.pdf.render({
       korekta,
       number,
+      rodzajPrawny,
       issuedAt: invoice.issuedAt ?? new Date(),
       saleDate: invoice.paidAt ?? invoice.issuedAt ?? new Date(),
       dueAt: invoice.dueAt ?? invoice.paidAt ?? new Date(),
@@ -401,6 +425,7 @@ export class InvoicesService {
       where: { id: invoice.id },
       data: {
         number,
+        rodzajPrawny,
         netAmount: totalNetDec,
         vatAmount: totalVatDec,
         vatRate: new Prisma.Decimal(vatRate),
@@ -475,11 +500,12 @@ export class InvoicesService {
 
     const teraz = new Date();
     const faktura = await this.prisma.$transaction(async (tx) => {
-      const numer = await nadajNumerFaktury(tx, teraz);
+      const { numer, rodzajPrawny } = await nadajNumerDokumentu(tx, teraz);
       return tx.invoice.create({
         data: {
           userId: input.userId,
           number: numer,
+          rodzajPrawny,
           status: InvoiceStatus.PAID,
           amount: policzone.suma.brutto,
           netAmount: policzone.suma.netto,
@@ -626,6 +652,7 @@ export class InvoicesService {
       paidAt: invoice.paidAt,
       panelUrl,
       invoiceUrl: `${panelUrl}/dashboard/billing/invoices/${invoice.id}`,
+      rozliczeniowy: invoice.rodzajPrawny === RODZAJ_DOKUMENT_ROZLICZENIOWY,
     });
     await this.mailer.send({ ...message, fromRole: 'NOREPLY', category: 'TRANSACTIONAL' });
   }
@@ -981,6 +1008,10 @@ function toDto(invoice: Invoice): InvoiceDto {
     dueAt: invoice.dueAt?.toISOString() ?? null,
     paidAt: invoice.paidAt?.toISOString() ?? null,
     createdAt: invoice.createdAt.toISOString(),
+    // CHECK w bazie gwarantuje jedną z dwóch wartości.
+    rodzajPrawny: invoice.rodzajPrawny as RodzajPrawny,
+    externalInvoiceNumber: invoice.externalInvoiceNumber,
+    externalInvoiceAt: invoice.externalInvoiceAt?.toISOString() ?? null,
   };
 }
 

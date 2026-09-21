@@ -40,6 +40,12 @@ export interface InvoiceIssuedContext {
   panelUrl: string;
   /** Link do panelu z fakturą — wymaga zalogowania. */
   invoiceUrl: string;
+  /**
+   * FAK-01 — dokument rozliczeniowy zamiast faktury VAT. Mail nie może
+   * twierdzić „wystawiliśmy fakturę VAT", skoro fakturę wystawia program
+   * księgowy. Brak pola = faktura VAT (zachowanie sprzed FAK-01).
+   */
+  rozliczeniowy?: boolean;
 }
 
 /**
@@ -61,13 +67,16 @@ export function invoiceIssuedTemplate(ctx: InvoiceIssuedContext): MailMessage {
     ? `**Status:** Zapłacono ${escapeHtml(formatDate(ctx.paidAt))}`
     : '**Status:** Faktura w trakcie opłacania.';
 
+  const nazwa = ctx.rozliczeniowy ? 'Dokument rozliczeniowy' : 'Faktura';
   const { html, text } = renderEmailShell({
-    title: `Faktura ${ctx.number} jest gotowa`,
+    title: `${nazwa} ${ctx.number} ${ctx.rozliczeniowy ? 'jest gotowy' : 'jest gotowa'}`,
     preheader: `${formatMoney(ctx.amount, ctx.currency)} — pobierz w panelu klienta.`,
     bodyMarkdown: [
       greeting,
       ``,
-      `Wystawiliśmy fakturę VAT za usługi Verris.`,
+      ctx.rozliczeniowy
+        ? `Rozliczyliśmy płatność za usługi Verris. Ten dokument potwierdza rozliczenie i nie jest fakturą VAT — fakturę VAT wystawimy odrębnie i udostępnimy w panelu klienta.`
+        : `Wystawiliśmy fakturę VAT za usługi Verris.`,
       ``,
       `## Szczegóły`,
       ``,
@@ -79,7 +88,7 @@ export function invoiceIssuedTemplate(ctx: InvoiceIssuedContext): MailMessage {
       `Plik PDF jest dostępny w sekcji **Portfel → Faktury** w panelu klienta. Wszystkie faktury archiwizujemy przez 5 lat — wymóg ustawy o rachunkowości.`,
     ].join('\n'),
     cta: {
-      label: 'Pobierz fakturę',
+      label: ctx.rozliczeniowy ? 'Pobierz dokument' : 'Pobierz fakturę',
       url: ctx.invoiceUrl,
     },
     footnote:
@@ -92,7 +101,7 @@ export function invoiceIssuedTemplate(ctx: InvoiceIssuedContext): MailMessage {
   return {
     to: ctx.to,
     tag: 'invoice.issued',
-    subject: `[Verris] Faktura ${ctx.number} — ${formatMoney(ctx.amount, ctx.currency)}`,
+    subject: `[Verris] ${nazwa} ${ctx.number} — ${formatMoney(ctx.amount, ctx.currency)}`,
     text,
     html,
   };

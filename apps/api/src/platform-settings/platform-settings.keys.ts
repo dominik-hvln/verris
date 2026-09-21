@@ -72,6 +72,11 @@ export const PLATFORM_SETTING_KEYS = {
 
   // KSeF 2.0 — konfiguracja i sekret (token szyfrowany KMS at-rest).
   KSEF_ENABLED: 'ksef.enabled',
+  /**
+   * FAK-01 — kto wystawia faktury VAT: `panel` albo `zewnetrzny` (program
+   * księgowy). Znaczenie i fail-safe: `billing/tryb-fakturowania.ts`.
+   */
+  FAKTURY_TRYB: 'faktury.tryb',
   KSEF_ENV: 'ksef.env',
   KSEF_NIP: 'ksef.nip',
   KSEF_TOKEN_ENC: 'ksef.tokenEnc',
@@ -134,6 +139,7 @@ export const PLATFORM_SETTING_DEFAULTS: Record<PlatformSettingKey, string> = {
   [PLATFORM_SETTING_KEYS.COMPANY_EMAIL]: '',
   [PLATFORM_SETTING_KEYS.COMPANY_BANK_ACCOUNT]: '',
   [PLATFORM_SETTING_KEYS.KSEF_ENABLED]: '0',
+  [PLATFORM_SETTING_KEYS.FAKTURY_TRYB]: 'zewnetrzny',
   [PLATFORM_SETTING_KEYS.KSEF_ENV]: 'test',
   [PLATFORM_SETTING_KEYS.KSEF_NIP]: '',
   [PLATFORM_SETTING_KEYS.KSEF_TOKEN_ENC]: '',

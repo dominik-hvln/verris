@@ -13,6 +13,7 @@ import {
   terminPrzeslania,
   type TrybWystawienia,
 } from './ksef-tryby';
+import { RODZAJ_FAKTURA_VAT, rodzajKwalifikujeDoKsef } from '../billing/tryb-fakturowania';
 import { InvoicingProvider } from './invoicing-provider.interface';
 
 const BATCH_LIMIT = 25;
@@ -117,8 +118,17 @@ export class KsefService {
   // Kwalifikacja nowych faktur (wołane przy finalizacji + przez cron catch-up)
   // ---------------------------------------------------------------------------
 
-  private qualifies(inv: Pick<Invoice, 'provider' | 'issuedAt' | 'netAmount'>): boolean {
-    return inv.provider == null && inv.issuedAt != null && inv.netAmount != null;
+  private qualifies(
+    inv: Pick<Invoice, 'provider' | 'issuedAt' | 'netAmount' | 'rodzajPrawny'>,
+  ): boolean {
+    // FAK-01: dokument rozliczeniowy nigdy nie idzie do KSeF-u — wysłany,
+    // stałby się fakturą obok faktury z programu księgowego.
+    return (
+      inv.provider == null &&
+      inv.issuedAt != null &&
+      inv.netAmount != null &&
+      rodzajKwalifikujeDoKsef(inv.rodzajPrawny)
+    );
   }
 
   /** Oznacza fakturę jako PENDING do wysyłki (idempotentne). */
@@ -152,6 +162,7 @@ export class KsefService {
         provider: null,
         issuedAt: { not: null, gte: odKiedyAuto },
         netAmount: { not: null },
+        rodzajPrawny: RODZAJ_FAKTURA_VAT,
       },
       data: { ksefStatus: KsefStatus.PENDING },
     });
@@ -165,6 +176,7 @@ export class KsefService {
     const pending = await this.prisma.invoice.findMany({
       where: {
         ksefStatus: { in: [KsefStatus.PENDING, KsefStatus.SUBMITTED, KsefStatus.OFFLINE] },
+        rodzajPrawny: RODZAJ_FAKTURA_VAT,
       },
       orderBy: { issuedAt: 'asc' },
       take: BATCH_LIMIT,

@@ -7,6 +7,7 @@ import {
   PLATFORM_SETTING_KEYS,
   type PlatformSettingKey,
 } from './platform-settings.keys';
+import { ksefDozwolony, normalizujTryb } from '../billing/tryb-fakturowania';
 import type { TrialOfferConfig } from './dto/trial-offer.dto';
 
 export interface SellerCompanyDto {
@@ -637,7 +638,10 @@ export class PlatformSettingsService {
     const map = await this.loadMap();
     const K = PLATFORM_SETTING_KEYS;
     return {
-      enabled: this.readStr(map, K.KSEF_ENABLED, process.env.KSEF_ENABLED ?? '0') === '1',
+      enabled: ksefDozwolony(
+        normalizujTryb(map.get(K.FAKTURY_TRYB)),
+        this.readStr(map, K.KSEF_ENABLED, process.env.KSEF_ENABLED ?? '0') === '1',
+      ),
       env: this.normalizeKsefEnv(this.readStr(map, K.KSEF_ENV, process.env.KSEF_ENV ?? 'test')),
       nip: this.readStr(map, K.KSEF_NIP, process.env.KSEF_NIP ?? ''),
       tokenSet: Boolean(map.get(K.KSEF_TOKEN_ENC) || process.env.KSEF_TOKEN),
@@ -660,7 +664,10 @@ export class PlatformSettingsService {
       token = '';
     }
     return {
-      enabled: this.readStr(map, K.KSEF_ENABLED, process.env.KSEF_ENABLED ?? '0') === '1',
+      enabled: ksefDozwolony(
+        normalizujTryb(map.get(K.FAKTURY_TRYB)),
+        this.readStr(map, K.KSEF_ENABLED, process.env.KSEF_ENABLED ?? '0') === '1',
+      ),
       env: this.normalizeKsefEnv(this.readStr(map, K.KSEF_ENV, process.env.KSEF_ENV ?? 'test')),
       nip: this.readStr(map, K.KSEF_NIP, process.env.KSEF_NIP ?? ''),
       token,
@@ -678,6 +685,13 @@ export class PlatformSettingsService {
     actorUserId: string,
   ): Promise<KsefSettingsDto> {
     const nip = (input.nip ?? '').replace(/\D/g, '');
+    // FAK-01: KSeF z panelu przy fakturach wystawianych w programie księgowym
+    // wysłałby do MF dokumenty, które nie są fakturami — albo są dublami.
+    if (input.enabled && normalizujTryb((await this.loadMap()).get(PLATFORM_SETTING_KEYS.FAKTURY_TRYB)) !== 'panel') {
+      throw new BadRequestException(
+        'KSeF: faktury wystawia program księgowy (faktury.tryb = zewnetrzny). Włączenie KSeF-u z panelu wymaga najpierw trybu „panel".',
+      );
+    }
     if (input.enabled && nip.length !== 10) {
       throw new BadRequestException('KSeF: NIP (10 cyfr) jest wymagany przy włączeniu.');
     }

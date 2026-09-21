@@ -59,6 +59,26 @@ function InvoiceDownload({ invoice }: { invoice: InvoiceDto }) {
   return <span className="text-xs text-neutral-500">—</span>;
 }
 
+/**
+ * FAK-01 — dokument rozliczeniowy nie jest fakturą VAT. Klient ma to widzieć
+ * przy numerze, a nie dopiero w PDF-ie — inaczej zaksięguje go jako fakturę.
+ */
+function RodzajDokumentu({ invoice }: { invoice: InvoiceDto }) {
+  if (invoice.rodzajPrawny !== 'DOKUMENT_ROZLICZENIOWY') return null;
+  return (
+    <span className="mt-1 block text-xs text-neutral-400">
+      Dokument rozliczeniowy ·{' '}
+      {invoice.externalInvoiceNumber ? (
+        <span className="text-neutral-200">
+          faktura VAT <span className="font-mono">{invoice.externalInvoiceNumber}</span>
+        </span>
+      ) : (
+        <span className="text-amber-200/80">faktura VAT w przygotowaniu</span>
+      )}
+    </span>
+  );
+}
+
 function StatusBadge({ status }: { status: InvoiceStatus }) {
   const label = statusLabels[status] ?? status;
   const tone = statusTones[status] ?? statusTones.DRAFT;
@@ -84,7 +104,12 @@ export function InvoiceList({ rows }: { rows: InvoiceDto[] }) {
         {
           key: 'number',
           header: 'Numer',
-          cell: (inv) => <span className="break-all font-mono text-neutral-100">{inv.number}</span>,
+          cell: (inv) => (
+            <span>
+              <span className="break-all font-mono text-neutral-100">{inv.number}</span>
+              <RodzajDokumentu invoice={inv} />
+            </span>
+          ),
         },
         {
           key: 'amount',
@@ -116,6 +141,7 @@ export function InvoiceList({ rows }: { rows: InvoiceDto[] }) {
             <div className="min-w-0">
               <p className="text-xs text-neutral-500">{formatDate(inv)}</p>
               <p className="mt-1 break-all font-mono text-sm font-medium text-white">{inv.number}</p>
+              <RodzajDokumentu invoice={inv} />
             </div>
             <StatusBadge status={inv.status} />
           </div>

@@ -3,7 +3,7 @@ import { Invoice, Prisma, WalletTxType } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { WalletLedgerService } from './wallet-ledger.service';
-import { nadajNumerFaktury, SERIA_KOREKTY, STAWKA_VAT } from './faktura-za-portfel';
+import { nadajNumerDokumentu, STAWKA_VAT } from './faktura-za-portfel';
 import {
   bladKorygowalnosci,
   korektaFormalna,
@@ -89,13 +89,16 @@ export class KorektyService {
     const teraz = new Date();
 
     const korekta = await this.prisma.$transaction(async (tx) => {
-      const numer = await nadajNumerFaktury(tx, teraz, SERIA_KOREKTY);
+      const { numer, rodzajPrawny } = await nadajNumerDokumentu(tx, teraz, {
+        rodzajPierwotnej: pierwotna.rodzajPrawny,
+      });
 
       const dok = await tx.invoice.create({
         data: {
           userId: pierwotna.userId,
           subscriptionId: pierwotna.subscriptionId,
           number: numer,
+          rodzajPrawny,
           kind: 'KOREKTA',
           status: 'PAID',
           correctedId: pierwotna.id,

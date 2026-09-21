@@ -1,4 +1,14 @@
 import { Prisma, WalletTxType } from '@verris/database';
+import {
+  odczytajTrybFakturowania,
+  rodzajPrawnyDla,
+  seriaDokumentu,
+  SERIA_DOKUMENTU,
+  SERIA_KOREKTY_DOKUMENTU,
+  RODZAJ_FAKTURA_VAT,
+  type RodzajPrawny,
+  type TrybFakturowania,
+} from './tryb-fakturowania';
 
 /**
  * Z-01 — kiedy obciążenie portfela zamienia się w fakturę.
@@ -302,6 +312,54 @@ export async function nadajNumerFaktury(
   return `${seria}/${rok}/${String(miesiac).padStart(2, '0')}/${String(seq).padStart(4, '0')}`;
 }
 
+/** Wszystkie serie, które nadaje panel — do rozpoznania „numer już nadany". */
+export const SERIE_PANELU: readonly string[] = [
+  SERIA_FAKTURY,
+  SERIA_KOREKTY,
+  SERIA_DOKUMENTU,
+  SERIA_KOREKTY_DOKUMENTU,
+];
+
+/**
+ * FAK-01 — numer dokumentu zależny od trybu fakturowania.
+ *
+ * Wszystkie miejsca, które zakładają dokument (portfel, zbiorcza, ręczna,
+ * Stripe, korekta), idą przez tę funkcję, a nie przez `nadajNumerFaktury`
+ * bezpośrednio. Inaczej przełączenie trybu zadziałałoby w czterech miejscach
+ * z pięciu — patrz komentarz na górze tego pliku o dwóch kopiach reguły.
+ *
+ * `rodzajPrawny` wraca razem z numerem i ma trafić do tego samego `create`:
+ * numer z serii VDR przy rodzaju FAKTURA_VAT (albo odwrotnie) to dokument,
+ * który kłamie o sobie.
+ */
+export async function nadajNumerDokumentu(
+  db: KlientPrismy,
+  referencja: Date,
+  opcje: {
+    /**
+     * Rodzaj dokumentu korygowanego. Korekta idzie za dokumentem pierwotnym,
+     * NIE za bieżącym trybem: fakturę VAT wystawioną z panelu koryguje się
+     * fakturą korygującą z panelu, choćby panel od tamtej pory przeszedł na
+     * tryb zewnętrzny — i odwrotnie, dokument rozliczeniowy nie urodzi
+     * faktury korygującej do faktury, której panel nigdy nie wystawił.
+     */
+    rodzajPierwotnej?: string | null;
+  } = {},
+): Promise<{ numer: string; rodzajPrawny: RodzajPrawny }> {
+  const korekta = opcje.rodzajPierwotnej !== undefined;
+  const tryb: TrybFakturowania = korekta
+    ? opcje.rodzajPierwotnej === RODZAJ_FAKTURA_VAT
+      ? 'panel'
+      : 'zewnetrzny'
+    : await odczytajTrybFakturowania(db);
+  const seria = seriaDokumentu(tryb, korekta, {
+    faktura: SERIA_FAKTURY,
+    korekta: SERIA_KOREKTY,
+  });
+  const numer = await nadajNumerFaktury(db, referencja, seria);
+  return { numer, rodzajPrawny: rodzajPrawnyDla(tryb) };
+}
+
 /** Dostawca dla faktur powstających z obciążenia portfela. */
 export const DOSTAWCA_PORTFEL = 'WALLET';
 /** Dostawca dla faktur wystawianych ręcznie przez operatora. */
@@ -337,7 +395,7 @@ export async function utworzFaktureZaObciazenie(
   d: DaneFakturyZaObciazenie,
 ): Promise<{ id: string; number: string }> {
   const r = rozbicieVat(d.brutto);
-  const numer = await nadajNumerFaktury(db, d.teraz);
+  const { numer, rodzajPrawny } = await nadajNumerDokumentu(db, d.teraz);
   const nazwa = nazwaPozycji(d.typ, d.opis);
   const pozycje: PozycjaFaktury[] = [
     {
@@ -356,6 +414,7 @@ export async function utworzFaktureZaObciazenie(
       userId: d.userId,
       subscriptionId: d.subscriptionId ?? null,
       number: numer,
+      rodzajPrawny,
       status: 'PAID',
       amount: r.brutto,
       netAmount: r.netto,

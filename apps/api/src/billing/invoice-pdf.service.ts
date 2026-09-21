@@ -3,6 +3,14 @@ import { ConfigService } from '@nestjs/config';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { Prisma } from '@verris/database';
 
+import { RODZAJ_DOKUMENT_ROZLICZENIOWY } from './tryb-fakturowania';
+
+/** FAK-01 — adnotacja na dokumencie rozliczeniowym. */
+export const ADNOTACJA_DOKUMENTU_ROZLICZENIOWEGO: readonly string[] = [
+  'Dokument rozliczeniowy nie jest fakturą VAT.',
+  'Faktura VAT za tę sprzedaż zostanie wystawiona odrębnie i udostępniona w panelu klienta.',
+];
+
 /** Snapshot zapisywany w `Invoice.sellerSnapshot`. */
 export interface SellerSnapshot {
   name: string;
@@ -48,6 +56,12 @@ export interface InvoiceLineItem {
 export interface BuildInvoiceContext {
   /** Numer faktury, np. "VFV/2026/05/0042". */
   number: string;
+  /**
+   * FAK-01 — rodzaj prawny dokumentu. `DOKUMENT_ROZLICZENIOWY` zmienia tytuł
+   * i dopisuje adnotację, że fakturę VAT wystawia się odrębnie. Brak pola =
+   * faktura VAT (zgodność wstecz z dokumentami sprzed FAK-01).
+   */
+  rodzajPrawny?: string;
   /** Data wystawienia (PL: data wystawienia ≈ data sprzedaży dla usług abonamentowych). */
   issuedAt: Date;
   /** Data sprzedaży / wykonania usługi (PL VAT: pole obowiązkowe). */
@@ -123,9 +137,12 @@ export class InvoicePdfService {
 
   async render(ctx: BuildInvoiceContext): Promise<Uint8Array> {
     const pdf = await PDFDocument.create();
-    pdf.setTitle(`Faktura ${ctx.number}`);
+    const rozliczeniowy = ctx.rodzajPrawny === RODZAJ_DOKUMENT_ROZLICZENIOWY;
+    pdf.setTitle(rozliczeniowy ? `Dokument rozliczeniowy ${ctx.number}` : `Faktura ${ctx.number}`);
     pdf.setAuthor(ctx.seller.name);
-    pdf.setSubject(`Faktura VAT — ${ctx.number}`);
+    pdf.setSubject(
+      rozliczeniowy ? `Dokument rozliczeniowy — ${ctx.number}` : `Faktura VAT — ${ctx.number}`,
+    );
     pdf.setCreator('Verris');
     pdf.setProducer('Verris Panel');
     pdf.setCreationDate(ctx.issuedAt);
@@ -148,9 +165,13 @@ export class InvoicePdfService {
       font: fontBold,
       color: rgb(0.07, 0.13, 0.34), // verris navy-ish
     });
-    const tytul = ctx.korekta
-      ? `Faktura korygująca  nr  ${ctx.number}`
-      : `Faktura VAT  nr  ${ctx.number}`;
+    const tytul = rozliczeniowy
+      ? ctx.korekta
+        ? `Korekta dokumentu  nr  ${ctx.number}`
+        : `Dokument rozliczeniowy  nr  ${ctx.number}`
+      : ctx.korekta
+        ? `Faktura korygująca  nr  ${ctx.number}`
+        : `Faktura VAT  nr  ${ctx.number}`;
     page.drawText(tytul, {
       x: PAGE_W - MARGIN - 250,
       y: cursorY - 8,
@@ -429,6 +450,16 @@ export class InvoicePdfService {
         font: fontRegular,
       });
       cursorY -= 14;
+    }
+
+    if (rozliczeniowy) {
+      // Bez tej adnotacji dokument z NIP-ami, pozycjami i kwotą VAT wygląda
+      // jak faktura — i klient zaksięgowałby go jako fakturę.
+      cursorY -= 6;
+      for (const linia of ADNOTACJA_DOKUMENTU_ROZLICZENIOWEGO) {
+        page.drawText(linia, { x: MARGIN, y: cursorY, size: 9, font: fontBold });
+        cursorY -= 13;
+      }
     }
 
     // Footer ------------------------------------------------------------------

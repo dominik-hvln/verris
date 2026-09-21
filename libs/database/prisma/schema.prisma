@@ -1441,6 +1441,16 @@ model Invoice {
   /// Stripe (`provider=STRIPE` + `hostedUrl`).
   storageKey     String?
 
+  /// FAK-01 — rodzaj prawny dokumentu: FAKTURA_VAT (panel wystawia fakturę)
+  /// albo DOKUMENT_ROZLICZENIOWY (fakturę wystawia program księgowy). TEXT +
+  /// CHECK w bazie; znaczenie: `apps/api/src/billing/tryb-fakturowania.ts`.
+  rodzajPrawny          String    @default("FAKTURA_VAT")
+  /// Numer faktury VAT z programu księgowego — dopisuje operator. Dokument
+  /// rozliczeniowy bez tego numeru czeka na fakturę.
+  externalInvoiceNumber String?   @unique
+  externalInvoiceAt     DateTime?
+  externalInvoiceById   String?
+
   // External (provider) invoice
   provider       String?       // STRIPE
   providerRef    String?       // in_xxx
