@@ -1,20 +1,20 @@
 # Plan sprintów do startu — Verris
 
-**Wygenerowany:** 2026-09-19 z `audyt/dane/` · **nie edytuj ręcznie**  
+**Wygenerowany:** 2026-09-21 z `audyt/dane/` · **nie edytuj ręcznie**  
 **Podstawa:** audyt parytetu funkcji z 2026-08-20  
 **Pojemność:** 1 osoba, pełny etat, **30 h netto na sprint** · sprint = 1 tydzień  
-**Sprint 1:** 2026-08-31 · **Sprint 21:** 2027-01-18–2027-01-22
+**Sprint 1:** 2026-08-31 · **Sprint 19:** 2027-01-04–2027-01-08
 
 ---
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **3178 h** — przy 30 h tygodniowo około **25 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **3182 h** — przy 30 h tygodniowo około **25 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **21 sprintów do startu** (814 h) oraz roadmapę po starcie (2364 h, 145 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **19 sprintów do startu** (756 h) oraz roadmapę po starcie (2426 h, 152 pozycji) rozpisaną na epiki kwartalne.
 
-- **2026-10-09** — koniec sprintu 6, zamknięte wszystkie blokery **poza KSeF-em**.
-- **2027-01-22** — koniec sprintu 21, decyzja GO.
+- **2026-12-18** — koniec sprintu 16, zamknięte wszystkie blokery **poza KSeF-em**.
+- **2027-01-08** — koniec sprintu 19, decyzja GO.
 
 ---
 
@@ -149,7 +149,7 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 
 # Faza 1 — Rozliczenia i dowód odtworzenia
 
-*Sprinty 4–8 · 166 h · 2026-09-21 – 2026-10-23*
+*Sprinty 4–8 · 176 h · 2026-09-21 – 2026-10-23*
 
 Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podpisane DPA. Koniec tej fazy to kamień milowy: zamknięte wszystkie blokery poza KSeF-em, który świadomie stoi na końcu.
 
@@ -162,44 +162,44 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 | `DEV-01` | Baza deweloperska jest nieosiągalna, a `docker-compose.yml` opisuje stan, którego nie ma | 6 | WYSOKA | D3 (maszyna deweloperska): `FATAL: role "verris" does not exist` oraz `role "postgres" does not exist` przy połączeniu po gnieździe wewnątrz kontenera |
 | `DEP-01` | Osiem otwartych pull requestów Dependabota, żaden niescalony | 6 | WYSOKA | GitHub: 8 otwartych PR-ów, przebiegi CI #147–#150 od `dependabot[bot]`, 2026-08-28 |
 | `ENV-01` | Bramka lokalna biegnie na Node 20, CI na Node 22 | 6 | ŚREDNIA | D3: ostrzeżenie `pnpm` przy każdym `pnpm test` wobec `node-version: 22` w `ci.yml`. Zamknięte częściowo 2026-08-28: `.nvmrc` = 22, strażnik `wersja-no |
-| `P-15` | Podpisane DPA z subprocesorami | 6 | BLOKER STARTU | docs/legal/dpa-subprocessors-tracking.md — tabela statusow po korekcie 2026-09-19. Stripe i AWS: DPA obowiazuje z mocy umowy glownej. Hetzner i Openpr |
 | `X-50` | Bramka podatnosci zatrzymuje cokolwiek — jest wymagana do merge i wolana przez wdrozenie | 6 | WYSOKA | D2 2026-09-19: .github/workflows/deploy.yml — krok "Bramka podatnosci" w jobie test-gate; ruleset 21161479 — "Security scans (gitleaks + audit + trivy |
 | `X-51` | Etykiety z dependabot.yml istnieja w repozytorium | 6 | NISKA | D2 2026-09-19: utworzone etykiety dependencies, security, docker, ci — 9 -> 13 etykiet w repozytorium; pokrywaja wszystkie trzy sekcje labels: w .gith |
 | `SEC-07` | Trzy podatnosci HIGH w multerze — zdalny DoS bez uwierzytelnienia na sciezce uploadu | 16 | WYSOKA | D2 2026-09-19: bramka lokalna zielona — 850 testow jednostkowych w 81 pakietach, w tym multer-limity.spec.ts (7 asercji) i bramki-nie-rozjezdzaja-sie. |
 | `SEC-08` | Dwa niezauwierzytelnione RCE w Next.js lezaly w drzewie 22 dni | 6 | WYSOKA | Przed: node ops/ci/audyt-bramka.cjs 2026-09-19 — "Podatnosci blokujace (high/critical): 11", w tym CRITICAL next GHSA-p293-qw3h-jr36 i GHSA-2xp9-vwfh- |
+| `PB-13` | Decyzja: własny KSeF czy integracja z programem księgowym | 6 | BLOKER BIZNESOWY | Porównać dwie ścieżki: dokończenie własnego modułu KSeF (tryb offline, walidacja XSD, UPO) kontra przekazanie fakturowania do programu księgowego z go |
 
 **Definicja ukończenia**
 
 - `DEV-01` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `DEP-01` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `ENV-01` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
-- `P-15` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-50` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-51` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `SEC-07` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `SEC-08` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `PB-13` — Decyzja zapisana w repo z uzasadnieniem i datą. Jeśli wybrana integracja — sprint 18 zmienia zakres z dokończenia modułu na wdrożenie eksportu do programu księgowego. Decyzja musi zapaść przed sprintem 18, inaczej blokuje start.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-04.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** Pierwszy sprint po 22 dniach przerwy. Kolejnosc nie jest dowolna: DEV-01 idzie pierwsze, bo po decyzji nr 1 z 2026-08-28 JEDYNA realna bramka przed main jest bramka uruchamiana lokalnie, a ona nie wstanie bez bazy deweloperskiej. DEP-01 rosnie samo — kolejka PR-ow Dependabota powiekszyla sie przez przerwe, a job Security scans wykrywa CVE, ktorych poprawki leza niescalone. P-15 W CALOSCI TUTAJ, nie rozbite na dwa sprinty. Korekta 2026-09-19: zalozenie, ze DPA zalezy od tempa dostawcow, bylo nieprawdziwe — trzy z pieciu obowiazuja z mocy umowy glownej, dwa akceptuje sie kliknieciem w panelu. Praca wlasna to wylacznie Zalacznik 1 do DPA Hetznera. Dzieki temu OSTATNI BLOKER POZA KSeF-em zamyka sie w sprincie 4, a nie w sprincie 10. DEP-02 przeniesione do sprintu 10, zeby zmiescic sie w pojemnosci. | DOLOZONE 2026-09-19: X-50. Bramka podatnosci nie jest checkiem wymaganym w rulesecie i nie jest wolana przez deploy.yml, wiec czerwona bramka nie zatrzymuje ani merge, ani wdrozenia. Wchodzi do sprintu 4, bo jest tania (6 h) i jest warunkiem tego, zeby SEC-07 i cokolwiek pozniejszego mialo gdzie sie zatrzymac. X-03 przeniesione do sprintu 5, zeby zmiescic sie w pojemnosci. | DOLOZONE W TRAKCIE 2026-09-19: X-51 (etykiety) i SEC-08 (dwa CRITICAL RCE w Next.js, odkryte przy pierwszym uruchomieniu bramki podatnosci po przerwie). SEC-07 przeniesione tu ze sprintu 5 — zamkniete tego samego dnia.
+**Ryzyko sprintu.** Pierwszy sprint po 22 dniach przerwy. Kolejnosc nie jest dowolna: DEV-01 idzie pierwsze, bo po decyzji nr 1 z 2026-08-28 JEDYNA realna bramka przed main jest bramka uruchamiana lokalnie, a ona nie wstanie bez bazy deweloperskiej. DEP-01 rosnie samo — kolejka PR-ow Dependabota powiekszyla sie przez przerwe, a job Security scans wykrywa CVE, ktorych poprawki leza niescalone. P-15 W CALOSCI TUTAJ, nie rozbite na dwa sprinty. Korekta 2026-09-19: zalozenie, ze DPA zalezy od tempa dostawcow, bylo nieprawdziwe — trzy z pieciu obowiazuja z mocy umowy glownej, dwa akceptuje sie kliknieciem w panelu. Praca wlasna to wylacznie Zalacznik 1 do DPA Hetznera. Dzieki temu OSTATNI BLOKER POZA KSeF-em zamyka sie w sprincie 4, a nie w sprincie 10. DEP-02 przeniesione do sprintu 10, zeby zmiescic sie w pojemnosci. | DOLOZONE 2026-09-19: X-50. Bramka podatnosci nie jest checkiem wymaganym w rulesecie i nie jest wolana przez deploy.yml, wiec czerwona bramka nie zatrzymuje ani merge, ani wdrozenia. Wchodzi do sprintu 4, bo jest tania (6 h) i jest warunkiem tego, zeby SEC-07 i cokolwiek pozniejszego mialo gdzie sie zatrzymac. X-03 przeniesione do sprintu 5, zeby zmiescic sie w pojemnosci. | DOLOZONE W TRAKCIE 2026-09-19: X-51 (etykiety) i SEC-08 (dwa CRITICAL RCE w Next.js, odkryte przy pierwszym uruchomieniu bramki podatnosci po przerwie). SEC-07 przeniesione tu ze sprintu 5 — zamkniete tego samego dnia. | 2026-09-22: P-15 przeniesione do bloku dokumentow na koncu planu (decyzja wlasciciela — przed pierwszym klientem, nie teraz). Stripe, AWS, Openprovider i Cloudflare zalatwione; zostaje Hetzner z Zalacznikiem 1.
 
-## Sprint 5 — Kierunek fakturowania i bramka wdrozenia
+## Sprint 5 — Faktury w programie ksiegowym i bramka wdrozenia
 
-`2026-09-28 – 2026-10-02` · **18 h** z 30 h pojemności
+`2026-09-28 – 2026-10-02` · **28 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
+| `FAK-01` | Panel nie wystawia faktury VAT rownolegle z programem ksiegowym | 16 | BLOKER STARTU | billing/faktura-za-portfel.ts — nadajNumerFaktury nadaje numer z serii panelu przy kazdym obciazeniu portfela; billing/korekty.service.ts — korekty w  |
 | `X-03` | Testy uruchamiane przed wdrożeniem | 6 | WYSOKA | .github/workflows/deploy.yml — job test-gate (typecheck + pnpm --filter api test), build-push ma needs: test-gate |
-| `PB-13` | Decyzja: własny KSeF czy integracja z programem księgowym | 6 | BLOKER BIZNESOWY | Porównać dwie ścieżki: dokończenie własnego modułu KSeF (tryb offline, walidacja XSD, UPO) kontra przekazanie fakturowania do programu księgowego z go |
 | `PB-14` | Wybór dostawcy i lokalizacji węzła produkcyjnego #1 | 6 | WYSOKI | PB-01 pokazało, że wybór dostawcy przesądza o rentowności przy cenie 45 zł. Hetzner AX102 ma cenę progową 44,20 zł, OVH Advance-2 w WAW1 — 67,76 zł, b |
 
 **Definicja ukończenia**
 
+- `FAK-01` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-03` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
-- `PB-13` — Decyzja zapisana w repo z uzasadnieniem i datą. Jeśli wybrana integracja — sprint 18 zmienia zakres z dokończenia modułu na wdrożenie eksportu do programu księgowego. Decyzja musi zapaść przed sprintem 18, inaczej blokuje start.
 - `PB-14` — Decyzja zapisana w repo z datą, przed zamówieniem serwera. Jeśli wybrany dostawca spoza Polski — polityka prywatności i DPA opisują lokalizację przetwarzania przed startem sprzedaży.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-05.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** SEC-07 na poczatku sprintu: trzy podatnosci HIGH w multerze, CVSS 7.5, zdalny DoS bez uwierzytelnienia — jedno zadanie multipart konczy proces API. UWAGA, ZEBY NIE ZAMKNAC TEGO ZA WCZESNIE: merge PR #37 podnosi multer do 2.3.0 i bedzie WYGLADAL na naprawe, ale @nestjs/platform-express@11.2.1 pinuje 2.2.0 dokladnie, wiec kopia obslugujaca multipart zostanie podatna; do tego GHSA-535w wymaga jeszcze konfiguracji limits.fieldArrayIndexLimit, czyli zmiany w kodzie. Dowod zamkniecia to zielona bramka podatnosci po zmianie, nie numer wersji w package.json. X-03 przeniesione tu ze sprintu 4. PB-13 PRZESUNIETE TUTAJ z pierwotnego sprintu 14, decyzja wlasciciela 2026-09-19. Powod: obowiazek KSeF dziala od 2026-04-01, a od tej decyzji zalezy zakres sprintow 17-18 (34 h pozycji, w tym dwa blokery startu). Trzymanie jej na grudzien bylo jedynym sposobem, zeby KSeF stal sie blokerem w ostatnim tygodniu. PB-14 musi zapasc przed zamowieniem serwera w sprincie 6. X-31 i X-32 to ostatnie CZESCIOWE z passu adwersaryjnego — obie zostaly na poziomie D1/D2 i domykaja sie tanio.
+**Ryzyko sprintu.** FAK-01 NA POCZATKU i jako BLOKER STARTU: decyzja z 2026-09-22 (ADR-2026-09-22) — faktury VAT wystawia program ksiegowy. Panel dzis sam numeruje faktury w transakcji obciazenia portfela, wiec bez przelacznika trybu kazda platnosc dostalaby dwie faktury w dwoch seriach. Dopiero po FAK-01 moga zejsc flagi blokera z M-16 i M-17. PB-13 ZAMKNIETE tego samego dnia — kierunek: integracja z programem ksiegowym po API, na start recznie. PB-14 musi zapasc przed zamowieniem serwera w sprincie 6. X-03 — reczna sciezka wdrozenia omija bramke: zamiana cichego obejscia na jawne, z flaga i zapisanym powodem.
 
 ## Sprint 6 — Wezel produkcyjny #1
 
@@ -262,7 +262,7 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 
 # Faza 2 — Odzyskanie funkcji-widm i luki pierwszego tygodnia
 
-*Sprinty 9–14 · 174 h · 2026-10-26 – 2026-12-04*
+*Sprinty 9–14 · 166 h · 2026-10-26 – 2026-12-04*
 
 Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. Najlepszy stosunek wartości do pracy w całym backlogu.
 
@@ -285,236 +285,230 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 
 **Ryzyko sprintu.** SEC-06 dopiero tutaj, bo wymaga okresu obserwacji na PELNYM logu z SEC-05. Koszt tej pozycji to glownie czas obserwacji, nie kod — dlatego stoi po dwoch sprintach zbierania danych, a nie obok SEC-01. Test ipset na celach z rzeczywistego ruchu pokazal juz dwa trafienia poza allowlista (sogo-repo.alinto.org i nierozpoznany host Hetznera, 120 pakietow), wiec wlaczenie --strict przed tym sprintem odcieloby repozytorium pakietow SOGo. SEC-02: adresy Stripe rotuja, wiec wpis po nazwie starzeje sie miedzy uruchomieniami — potrzebne odswiezanie z opublikowanej listy plus check w live-readiness.
 
-## Sprint 10 — Obsluga naduzyc i porzadek w zaleznosciach
+## Sprint 10 — Ogony sprintu 2, zaleznosci i faktury VOID
 
-`2026-11-02 – 2026-11-06` · **32 h** z 30 h pojemności
+`2026-11-02 – 2026-11-06` · **30 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
 | `X-31` | Kanał alertów daje znak życia (dead man's switch) | 6 | — | ops/observability/grafana/provisioning/alerting/rules.yaml — grupa verris_kanal_alertow, reguła VerrisKanalAlertowZyje (vector(1), for: 0s, oba stany  |
 | `X-32` | Martwy job da się odrzucić z panelu, ze śladem w audycie | 6 | — | apps/api/src/common/audit/audit.actions.ts — PROVISIONING_JOB_DISCARDED_BY_ADMIN; provisioning-queue.service.ts — odrzucJob (getState() === failed, śl |
 | `DEP-02` | W drzewie stoją dwa majory ESLinta naraz | 6 | ŚREDNIA | package.json (korzeń) — @eslint/js ^10.0.1 przy braku jakiegokolwiek eslint.config.* w korzeniu; libs/eslint-config/node_modules: eslint 10.9.0 obok @ |
-| `X-51` | Etykiety z dependabot.yml istnieja w repozytorium | 6 | NISKA | D2 2026-09-19: utworzone etykiety dependencies, security, docker, ci — 9 -> 13 etykiet w repozytorium; pokrywaja wszystkie trzy sekcje labels: w .gith |
-| `PB-04` | Procedura obsługi nadużyć (abuse) — dokument | 8 | WYSOKI | Adres abuse@ obsługiwany, ścieżka od zgłoszenia do reakcji, czasy reakcji, kto decyduje o zawieszeniu, wzory odpowiedzi do CERT i rejestratorów. |
+| `M-08` | Anulowanie faktury (VOID) z panelu | 6 | WYSOKA | InvoiceStatus.VOID w schema.prisma:1354 nigdy nie ustawiany |
+| `C-18` | Konto FTP — zmiana hasła | 6 | WYSOKA | brak jakiejkolwiek ścieżki edycji istniejącego konta |
 
 **Definicja ukończenia**
 
 - `X-31` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `X-32` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `DEP-02` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `X-51` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `PB-04` — Dokument w ops/docs z właścicielem i czasami reakcji. Test: zgłoszenie wysłane na abuse@ trafia do kogoś i ma odpowiedź w deklarowanym czasie.
+- `M-08` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `C-18` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-10.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** DEP-02 tutaj, a nie w sprincie 4: wyciszenie majorow ESLinta z DEP-03 ma termin przegladu 2026-11-15, a ten sprint zaczyna sie 2026-11-02 — czyli dokladnie wtedy, kiedy ta pozycja ma o sobie przypomniec. Zmiana rusza lockfile, wiec osobny commit z pelna bramka. P-15 WYPADLO Z TEGO SPRINTU do sprintu 4 (patrz korekta 2026-09-19 w docs/legal/dpa-subprocessors-tracking.md). PB-04: adres abuse@ jest punktem kontaktowym DSA i musi istniec przed publikacja dokumentow legal. | X-31 i X-32 przeniesione tu ze sprintu 5, ktory musial zrobic miejsce dla SEC-07. X-51 (rozjazd konfiguracji GitHuba z repozytorium: nieistniejace etykiety Dependabota, ruleset celujacy w wycofana galaz) idzie razem z DEP-02, bo to ta sama robota w tym samym miejscu.
+**Ryzyko sprintu.** X-31 i X-32 to ostatnie CZESCIOWE z passu adwersaryjnego. DEP-02 tu, bo wyciszenie majorow ESLinta z DEP-03 ma termin przegladu 2026-11-15, a sprint zaczyna sie 2026-11-02. M-08 (anulowanie faktury VOID) — w trybie zewnetrznym z FAK-01 dotyczy dokumentu rozliczeniowego, nie faktury VAT; zakres do potwierdzenia przy realizacji.
 
-## Sprint 11 — Ogony produktowe: faktury, FTP, PHP
+## Sprint 11 — DNS, SSO i PHP
 
 `2026-11-09 – 2026-11-13` · **24 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `M-08` | Anulowanie faktury (VOID) z panelu | 6 | WYSOKA | InvoiceStatus.VOID w schema.prisma:1354 nigdy nie ustawiany |
-| `C-18` | Konto FTP — zmiana hasła | 6 | WYSOKA | brak jakiejkolwiek ścieżki edycji istniejącego konta |
+| `F-01` | Edytor rekordów DNS (A/CNAME/MX/TXT) | 6 | WYSOKA | dns-manager.tsx:79,91 — komponent osierocony; dns/page.tsx:15 przekierowuje gdzie indziej |
+| `F-02` | Rekordy SRV / CAA | 6 | WYSOKA | j.w. |
 | `B-01` | Zmiana wersji PHP dla całego konta | 6 | WYSOKA | services.controller.ts:125 |
 | `J-04` | HTTP/3 | 6 | ŚREDNIA | poza kodem panelu |
 
 **Definicja ukończenia**
 
-- `M-08` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `C-18` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `F-01` — Kontroler rejestruje trasę, którą woła panel; kliknięcie kończy się realnym efektem, nie 404. Test pokrywa ścieżkę UI→API→zasób.
+- `F-02` — Kontroler rejestruje trasę, którą woła panel; kliknięcie kończy się realnym efektem, nie 404. Test pokrywa ścieżkę UI→API→zasób.
 - `B-01` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `J-04` — Stan zweryfikowany na produkcji z timestampem (poziom D3), wynik zapisany w repo.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-11.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** SPRINT DOLOZONY 2026-09-19. Powod zapisany wprost, zeby nie czytalo sie tego jako poslizgu bez przyczyny: przeglad kolejki Dependabota odslonil 28 h pracy, ktorej nie bylo w planie — SEC-07 (16 h, trzy podatnosci HIGH w multerze), X-50 (6 h, bramka podatnosci nie blokuje ani merge, ani wdrozenia) i X-51 (6 h, konfiguracja GitHuba rozjechana z repozytorium). Tej pracy nie dalo sie wcisnac w istniejace sprinty bez robienia z pojemnosci fikcji, wiec plan urosl o tydzien, a nie o przeciazenie. | Zawartosc to pozycje wypchniete z sprintow 5, 10 i 11: M-08 (anulowanie faktury VOID), C-18 (zmiana hasla FTP), B-01 (wersja PHP dla calego konta), J-04 (HTTP/3, weryfikacja na wezle #1 z poziomu b.d.). Zadna nie blokuje niczego innego, dlatego to one ustapily miejsca, a nie prace bezpieczenstwa.
+**Ryzyko sprintu.** F-01/F-02: trasa hosting-sso-url nie istnieje w API — to nowy endpoint, nie podpiecie istniejacego. J-04 (HTTP/3) to weryfikacja na wezle #1.
 
-## Sprint 12 — DNS, SSO i dostarczalnosc poczty
+## Sprint 12 — Poczta: dostarczalnosc i skrzynki
 
 `2026-11-16 – 2026-11-20` · **30 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `F-01` | Edytor rekordów DNS (A/CNAME/MX/TXT) | 6 | WYSOKA | dns-manager.tsx:79,91 — komponent osierocony; dns/page.tsx:15 przekierowuje gdzie indziej |
-| `F-02` | Rekordy SRV / CAA | 6 | WYSOKA | j.w. |
 | `E-15` | Rekordy SPF — kreator | 6 | WYSOKA | services.controller.ts:114 |
 | `E-16` | Rekordy DKIM — konfiguracja | 6 | WYSOKA | services.controller.ts:114 |
 | `E-17` | Rekord DMARC — konfiguracja | 6 | WYSOKA | services.controller.ts:114 |
+| `E-05` | Zmiana quoty ISTNIEJĄCEJ skrzynki | 6 | WYSOKA | hosting-email-actions.ts:41 zachowuje starą quotę |
+| `M-26` | Usunięcie zapisanej karty przez klienta | 6 | WYSOKA | billing.controller.ts:38 tylko GET, brak DELETE |
 
 **Definicja ukończenia**
 
-- `F-01` — Kontroler rejestruje trasę, którą woła panel; kliknięcie kończy się realnym efektem, nie 404. Test pokrywa ścieżkę UI→API→zasób.
-- `F-02` — Kontroler rejestruje trasę, którą woła panel; kliknięcie kończy się realnym efektem, nie 404. Test pokrywa ścieżkę UI→API→zasób.
 - `E-15` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
 - `E-16` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
 - `E-17` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
+- `E-05` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `M-26` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-12.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** Trasa hosting-sso-url nie istnieje w API — to nowy endpoint, nie podpięcie istniejącego. Nie mylić z SSO admina do węzłów, które działa. Import i eksport bazy świadomie zostaje w epiku E-01 po starcie — phpMyAdmin z działającym SSO załatwia ten scenariusz na start. Brak SPF/DKIM w panelu to najczęstsza przyczyna „moja poczta trafia do spamu”. Backend działa — to jest wyłącznie podpięcie osieroconego komponentu.
+**Ryzyko sprintu.** Brak SPF/DKIM w panelu to najczestsza przyczyna "moja poczta trafia do spamu". Backend dziala — to glownie podpiecie osieroconego komponentu.
 
-## Sprint 13 — Poczta: skrzynki i warstwa operatorska, czesc 1
+## Sprint 13 — Warstwa operatorska: zatrzymywanie szkody
 
 `2026-11-23 – 2026-11-27` · **30 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `E-05` | Zmiana quoty ISTNIEJĄCEJ skrzynki | 6 | WYSOKA | hosting-email-actions.ts:41 zachowuje starą quotę |
-| `M-26` | Usunięcie zapisanej karty przez klienta | 6 | WYSOKA | billing.controller.ts:38 tylko GET, brak DELETE |
 | `A-25` | Ręczne zawieszenie usługi przez operatora | 6 | WYSOKA | subscriptions.admin.controller.ts:192 |
 | `A-26` | Ręczne odwieszenie usługi przez operatora | 6 | WYSOKA | subscriptions.admin.controller.ts:210 |
 | `N-07` | Ręczne tworzenie incydentu na status page | 6 | WYSOKA | product-ops.admin.controller.ts:371; brak UI tworzenia |
+| `N-14` | Cordon wysyłki poczty (auto-blokada spamu) | 6 | WYSOKA | outbound-cordon.admin.controller.ts:20,25,32; zero „cordon” w admin-panel |
+| `H-22` | Panel odtwarzania w widocznym miejscu | 6 | WYSOKA | panel off-site siedzi w zakładce „Usage”, nie „Kopie zapasowe” (page.tsx:74,128,313,319) |
 
 **Definicja ukończenia**
 
-- `E-05` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `M-26` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `A-25` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
 - `A-26` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
 - `N-07` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
+- `N-14` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
+- `H-22` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-13.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** Polaczone resztki pierwotnych sprintow 12 i 13. Bez tego pierwszy incydent obsługujesz curlem o drugiej w nocy. Wszystkie cztery pierwsze pozycje to endpointy, które już działają.
+**Ryzyko sprintu.** Bez tego pierwszy incydent obslugujesz curlem o drugiej w nocy. Pierwsze cztery pozycje to endpointy, ktore juz dzialaja.
 
-## Sprint 14 — Warstwa operatorska, czesc 2 i backup
+## Sprint 14 — Backup i staging
 
-`2026-11-30 – 2026-12-04` · **30 h** z 30 h pojemności
+`2026-11-30 – 2026-12-04` · **24 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `N-14` | Cordon wysyłki poczty (auto-blokada spamu) | 6 | WYSOKA | outbound-cordon.admin.controller.ts:20,25,32; zero „cordon” w admin-panel |
-| `H-22` | Panel odtwarzania w widocznym miejscu | 6 | WYSOKA | panel off-site siedzi w zakładce „Usage”, nie „Kopie zapasowe” (page.tsx:74,128,313,319) |
 | `H-09` | Kopia bezpieczeństwa przed odtworzeniem | 6 | WYSOKA | hosting-restore.service.ts:167 |
 | `H-17` | Tryb restore skryptu odtwarzającego osiągalny z produktu | 6 | WYSOKA | node-account-restore.sh:82-99 ma tryb restore; offsite-restore.service.ts:94 przyjmuje wyłącznie list|fetch |
 | `G-20` | Ochrona przed atakiem słownikowym na panel | 6 | WYSOKA | rate-limit.guard.ts — ZERO testów |
+| `I-11` | Staging — publikacja na produkcję | 6 | WYSOKA | services.controller.ts:187 |
 
 **Definicja ukończenia**
 
-- `N-14` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
-- `H-22` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `H-09` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `H-17` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `G-20` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `I-11` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-14.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** H-17 bylo zalezne od H-20 (potwierdzone odtworzenie z kopii) — H-20 zamkniete 2026-08-23 dowodem D4, wiec zaleznosc jest spelniona i pozycja moze wejsc tutaj.
+**Ryzyko sprintu.** H-17 bylo zalezne od H-20 — zamkniete 2026-08-23 dowodem D4, wiec zaleznosc spelniona.
 
 ---
 
 # Faza 3 — Wejście na rynek
 
-*Sprinty 15–19 · 158 h · 2026-12-07 – 2027-01-08*
+*Sprinty 15–19 · 152 h · 2026-12-07 – 2027-01-08*
 
 Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, baza wiedzy, przejście ścieżki pierwszego klienta na produkcji i zapisana decyzja GO.
 
-## Sprint 15 — Dokumenty prawne i bus factor
+## Sprint 15 — Rozliczenia klienta i pomiar
 
-`2026-12-07 – 2026-12-11` · **30 h** z 30 h pojemności
-
-| ID | Zadanie | h | Priorytet | Dowód / kontekst |
-|---|---|---|---|---|
-| `I-11` | Staging — publikacja na produkcję | 6 | WYSOKA | services.controller.ts:187 |
-| `PB-03` | Finalizacja dokumentów prawnych 1.0.0 | 16 | BLOKER BIZNESOWY | Regulamin, polityka prywatności, SLA, DPA, polityka cookies — wyjście z DRAFT-u, wersjonowanie i publikacja w panelu. |
-| `PB-11` | Bus factor: drugi kanał alertów i procedura zastępstwa | 8 | WYSOKI | Alerty na więcej niż jeden adres, przetestowane. Dokument: co robi ktoś inny, gdy Ciebie nie ma przez tydzień. |
-
-**Definicja ukończenia**
-
-- `I-11` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
-- `PB-03` — Wszystkie dokumenty w statusie opublikowanym z numerem wersji i datą. Panel /legal nie pokazuje ani jednego „Dokument w przygotowaniu”.
-- `PB-11` — Alert testowy dociera dwoma kanałami. Dokument zastępstwa zawiera dostęp awaryjny i listę rzeczy, które muszą się dziać codziennie.
-- **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-15.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
-
-**Ryzyko sprintu.** PB-03 PRZESUNIETE DO PRZODU wzgledem pierwotnego planu, bo N-16 (kredyty SLA, sprint 15) zalezy od opublikowanego regulaminu. W pierwotnej kolejnosci ta zaleznosc byla odwrocona. Cennik musi być zgodny z wynikiem PB-01. Jeśli unit economics wyszło źle, ten sprint jest momentem korekty ceny — nie później.
-
-## Sprint 16 — Rozliczenia od strony klienta i cennik
-
-`2026-12-14 – 2026-12-18` · **34 h** z 30 h pojemności
+`2026-12-07 – 2026-12-11` · **28 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `N-16` | SLA z zapisanymi kredytami | 6 | WYSOKA | sla-credit.scheduler.ts:79 — if (!policy.enabled) return; SLA_CREDITS_ENABLED default '0' (platform-settings.keys.ts:116) |
 | `A-11` | Wyszukiwarka wolnych domen | 6 | WYSOKA | domains.controller.ts:54 |
 | `C-11` | Spakowanie do archiwum | 6 | ŚREDNIA | files.service.ts:320 — tylko extract |
-| `PB-07` | Treści i cennik na verris.pl | 16 | WYSOKI | Strona główna, cennik, specyfikacja techniczna pakietu, strona SLA. Narracja: cena stała, bez skoku po roku. |
-
-**Definicja ukończenia**
-
-- `N-16` — Wartość domyślna włączona albo check w live-readiness pilnuje konfiguracji — flaga nie może po cichu wyłączyć funkcji.
-- `A-11` — Wartość domyślna włączona albo check w live-readiness pilnuje konfiguracji — flaga nie może po cichu wyłączyć funkcji.
-- `C-11` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `PB-07` — Cennik zgodny z wynikiem PB-01. Specyfikacja techniczna publiczna, jak u cyber_Folks — to jest element zaufania, którego rynek oczekuje.
-- **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-16.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
-
-**Ryzyko sprintu.** N-16 to włączenie flagi plus check w live-readiness — ale regulamin obiecuje kredyty, więc najpierw przeliczyć je na realnych danych z probe'ów. Cennik musi byc zgodny z wynikiem PB-01 (zamkniete 2026-08-22, cena 45 zl/mies brutto i 399 zl/rok).
-
-## Sprint 17 — Landing migracyjny i pomiar
-
-`2026-12-21 – 2026-12-25` · **32 h** z 30 h pojemności
-
-| ID | Zadanie | h | Priorytet | Dowód / kontekst |
-|---|---|---|---|---|
-| `PB-06` | Landing /przenies-strone | 16 | WYSOKI | Strona docelowa kampanii Google Ads na osi migracji. Treść oparta na realnych przewagach z audytu, nie na obietnicach. |
 | `PB-08` | Pomiar: Consent Mode v2 + GTM + dedup event_id | 16 | ŚREDNI | Wdrożenie ustaleń z audytu pomiaru: www linkuje, panel działa, deduplikacja po event_id, cookie Domain=.verris.pl. |
 
 **Definicja ukończenia**
 
-- `PB-06` — Strona opublikowana, pomiar działa, formularz i CTA prowadzą do rejestracji. Żadne twierdzenie na stronie nie jest oznaczone w macierzy jako LUKA lub ATRAPA.
+- `A-11` — Wartość domyślna włączona albo check w live-readiness pilnuje konfiguracji — flaga nie może po cichu wyłączyć funkcji.
+- `C-11` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `PB-08` — Zdarzenie zakupu dociera raz, nie dwa. Consent Mode nie blokuje pomiaru po zgodzie. Zweryfikowane w GTM Preview i w raporcie.
+- **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-15.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
+
+**Ryzyko sprintu.** Ostatni sprint kodowy przed blokiem dokumentow. PB-08 (Consent Mode v2 + dedup event_id) jest tu, a nie przy landingu, bo to kod w panelu, nie tresc — landing tylko z niego korzysta.
+
+## Sprint 16 — Dokumenty prawne, DPA i naduzycia
+
+`2026-12-14 – 2026-12-18` · **30 h** z 30 h pojemności
+
+| ID | Zadanie | h | Priorytet | Dowód / kontekst |
+|---|---|---|---|---|
+| `P-15` | Podpisane DPA z subprocesorami (część) | 6 | BLOKER STARTU | docs/legal/dpa-subprocessors-tracking.md — tabela statusow po korekcie 2026-09-19. Stripe i AWS: DPA obowiazuje z mocy umowy glownej. Hetzner i Openpr |
+| `PB-03` | Finalizacja dokumentów prawnych 1.0.0 | 16 | BLOKER BIZNESOWY | Regulamin, polityka prywatności, SLA, DPA, polityka cookies — wyjście z DRAFT-u, wersjonowanie i publikacja w panelu. |
+| `PB-04` | Procedura obsługi nadużyć (abuse) — dokument | 8 | WYSOKI | Adres abuse@ obsługiwany, ścieżka od zgłoszenia do reakcji, czasy reakcji, kto decyduje o zawieszeniu, wzory odpowiedzi do CERT i rejestratorów. |
+
+**Definicja ukończenia**
+
+- `P-15` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `PB-03` — Wszystkie dokumenty w statusie opublikowanym z numerem wersji i datą. Panel /legal nie pokazuje ani jednego „Dokument w przygotowaniu”.
+- `PB-04` — Dokument w ops/docs z właścicielem i czasami reakcji. Test: zgłoszenie wysłane na abuse@ trafia do kogoś i ma odpowiedź w deklarowanym czasie.
+- **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-16.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
+
+**Ryzyko sprintu.** BLOK DOKUMENTOW — przesuniety na koniec decyzja wlasciciela 2026-09-22: najpierw kod i infrastruktura, dokumenty na sam koniec, przed pierwszym klientem. Kolejnosc wewnatrz bloku wymuszona zaleznosciami: regulamin (PB-03) przed kredytami SLA (N-16), cennik (PB-07) przed landingiem (PB-06), landing przed kampania (PB-10), wszystko przed sciezka pierwszego klienta (PB-05). P-15 zamyka ostatni bloker poza FAK-01 i Z-18: zostal tylko Hetzner (Zalacznik 1 przygotowany w trackerze). PB-04: adres abuse@ jest punktem kontaktowym DSA i musi istniec przed publikacja regulaminu.
+
+## Sprint 17 — Cennik, SLA i zastepstwo
+
+`2026-12-21 – 2026-12-25` · **30 h** z 30 h pojemności
+
+| ID | Zadanie | h | Priorytet | Dowód / kontekst |
+|---|---|---|---|---|
+| `N-16` | SLA z zapisanymi kredytami | 6 | WYSOKA | sla-credit.scheduler.ts:79 — if (!policy.enabled) return; SLA_CREDITS_ENABLED default '0' (platform-settings.keys.ts:116) |
+| `PB-07` | Treści i cennik na verris.pl | 16 | WYSOKI | Strona główna, cennik, specyfikacja techniczna pakietu, strona SLA. Narracja: cena stała, bez skoku po roku. |
+| `PB-11` | Bus factor: drugi kanał alertów i procedura zastępstwa | 8 | WYSOKI | Alerty na więcej niż jeden adres, przetestowane. Dokument: co robi ktoś inny, gdy Ciebie nie ma przez tydzień. |
+
+**Definicja ukończenia**
+
+- `N-16` — Wartość domyślna włączona albo check w live-readiness pilnuje konfiguracji — flaga nie może po cichu wyłączyć funkcji.
+- `PB-07` — Cennik zgodny z wynikiem PB-01. Specyfikacja techniczna publiczna, jak u cyber_Folks — to jest element zaufania, którego rynek oczekuje.
+- `PB-11` — Alert testowy dociera dwoma kanałami. Dokument zastępstwa zawiera dostęp awaryjny i listę rzeczy, które muszą się dziać codziennie.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-17.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** Landing nie może obiecywać funkcji ze statusem LUKA lub ATRAPA. Każde zdanie sprawdzić wobec macierzy — to jest dokładnie ten błąd, który audyt wykrył w oferta.md.
+**Ryzyko sprintu.** BLOK DOKUMENTOW — przesuniety na koniec decyzja wlasciciela 2026-09-22: najpierw kod i infrastruktura, dokumenty na sam koniec, przed pierwszym klientem. Kolejnosc wewnatrz bloku wymuszona zaleznosciami: regulamin (PB-03) przed kredytami SLA (N-16), cennik (PB-07) przed landingiem (PB-06), landing przed kampania (PB-10), wszystko przed sciezka pierwszego klienta (PB-05). N-16 (kredyty SLA) po PB-03, bo regulamin obiecuje kredyty — najpierw przeliczyc je na realnych danych z probe-ow. Cennik zgodny z PB-01 (45 zl/mies brutto, 399 zl/rok).
 
-## Sprint 18 — KSeF, czesc 1: tryb offline i stan prawny
+## Sprint 18 — Landing i baza wiedzy
 
-`2026-12-28 – 2027-01-01` · **28 h** z 30 h pojemności
+`2026-12-28 – 2027-01-01` · **32 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `M-16` | KSeF — tryb offline/awaryjny | 16 | BLOKER STARTU | KsefStatus.OFFLINE w schema.prisma:1432 nigdy nie ustawiany |
-| `KSEF-02` | `KsefStatus.OFFLINE` istnieje w schemacie i nie jest ustawiany nigdy | 6 | ŚREDNIA | Częściowo 2026-08-26: `KsefStatus.OFFLINE` jest zapisywany przy nieudanym otwarciu sesji, wraz z trybem i terminem (`ksef-tryby.ts`, 16 testów; migrac |
-| `KSEF-01` | Obowiązek KSeF działa od 1 kwietnia 2026 — od pięciu miesięcy | 6 | WYSOKA | harmonogram MF: 1.02.2026 (>200 mln), 1.04.2026 (pozostali), 1.01.2027 (do 10 tys./mies.) |
+| `PB-06` | Landing /przenies-strone | 16 | WYSOKI | Strona docelowa kampanii Google Ads na osi migracji. Treść oparta na realnych przewagach z audytu, nie na obietnicach. |
+| `PB-09` | Baza wiedzy — 20 artykułów startowych | 16 | ŚREDNI | Artykuły pokrywające najczęstsze pytania pierwszego tygodnia: skierowanie domeny, SSL, poczta, FTP, backup, migracja, faktury. |
 
 **Definicja ukończenia**
 
-- `M-16` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `KSEF-02` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
-- `KSEF-01` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `PB-06` — Strona opublikowana, pomiar działa, formularz i CTA prowadzą do rejestracji. Żadne twierdzenie na stronie nie jest oznaczone w macierzy jako LUKA lub ATRAPA.
+- `PB-09` — 20 artykułów opublikowanych i zaindeksowanych do asystenta AI. Każdy opisuje funkcję, która w macierzy ma status DZIAŁA.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-18.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** KOLIZJA KALENDARZOWA: sprinty 18 i 19 wypadaja na tygodnie 28.12 i 04.01. Planowanie 62 h pracy na swieta i Nowy Rok jest fikcja, a KSeF to najgorszy mozliwy kandydat na prace robiona miedzy jednym a drugim — smoke na srodowisku MF wymaga, zeby po drugiej stronie tez ktos byl. Zakladamy DWA TYGODNIE PRZERWY i przesuniecie decyzji GO z 2027-01-22 na okolice 2027-02-05. To jest zalozenie planu, nie oplata za opoznienie. Zakres tego sprintu ustala PB-13 ze sprintu 5. Jesli wybrana zostala integracja z programem ksiegowym, M-16 zamienia sie na wdrozenie eksportu i sprint bedzie krotszy. KSEF-02: KsefStatus.OFFLINE istnieje w schemacie i nie jest ustawiany nigdy — trzeci raz ten sam wzorzec w projekcie, po ServerStatus.OFFLINE (OPS-01) i regule alertowej z X-35. Wartosc w enumie wyglada jak zaimplementowana funkcja, a jest zapisana intencja. Smoke na api-test MF wykonac w PONIEDZIALEK, nie w czwartek: rozbieznosc schematu ujawnia sie dopiero na srodowisku MF.
+**Ryzyko sprintu.** BLOK DOKUMENTOW — przesuniety na koniec decyzja wlasciciela 2026-09-22: najpierw kod i infrastruktura, dokumenty na sam koniec, przed pierwszym klientem. Kolejnosc wewnatrz bloku wymuszona zaleznosciami: regulamin (PB-03) przed kredytami SLA (N-16), cennik (PB-07) przed landingiem (PB-06), landing przed kampania (PB-10), wszystko przed sciezka pierwszego klienta (PB-05). Landing nie moze obiecywac funkcji ze statusem LUKA lub ATRAPA — kazde zdanie sprawdzic wobec macierzy.
 
-## Sprint 19 — KSeF, czesc 2: walidacja, kody QR i wysylka
+## Sprint 19 — Kampania, sciezka pierwszego klienta i decyzja GO
 
-`2027-01-04 – 2027-01-08` · **34 h** z 30 h pojemności
+`2027-01-04 – 2027-01-08` · **32 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `M-17` | KSeF — walidacja XSD przed wysyłką | 6 | BLOKER STARTU | fa3-xml.builder.ts składa XML stringowo; komentarz ksef-v2.client.ts:61-62 sam to wskazuje |
-| `KSEF-03` | Brak kodów QR na fakturze offline | 16 | WYSOKA | zero trafień `qrcode|QRCode|kodQR` w `apps/api/src` i `apps/client-panel/src` |
-| `M-15` | KSeF — pobranie UPO przez operatora | 6 | ŚREDNIA | ksef.admin.controller.ts:38; zero wystąpień UPO w admin-panel |
-| `M-11` | KSeF — wysyłka faktury | 6 | ŚREDNIA | ksef-v2.client.ts:138-165; FA(3) 1-0E; API v2 |
+| `PB-10` | Kampania gads-search-hosting-202607 — uruchomienie | 8 | ŚREDNI | Konfiguracja kampanii wyszukiwarkowej, budżet 500–1000 zł/mies., oś przekazu: migracja bez przestoju. |
+| `PB-05` | Test end-to-end „pierwszy klient” | 16 | BLOKER BIZNESOWY | Przejście całej ścieżki na produkcji jako realny klient: rejestracja, zakup, płatność, provisioning, migracja strony, wystawienie faktury, KSeF, backu |
+| `PB-12` | Runbook startu i decyzja GO | 8 | BLOKER BIZNESOWY | Domknięcie: przegląd wszystkich blokerów z dowodem zamknięcia, decyzja GO/NO-GO zapisana z datą. |
 
 **Definicja ukończenia**
 
-- `M-17` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `KSEF-03` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `M-15` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
-- `M-11` — Wartość domyślna włączona albo check w live-readiness pilnuje konfiguracji — flaga nie może po cichu wyłączyć funkcji.
+- `PB-10` — Kampania utworzona wstrzymana, konwersje podpięte, budżet i stawki ustawione. Start dopiero po PB-05.
+- `PB-05` — Zapisany przebieg z timestampami dla każdego kroku — to jest dowód poziomu D3, jedyny w całym projekcie. Każdy nieudany krok wraca do backlogu jako bloker.
+- `PB-12` — Każdy z 11 blokerów ma wpis: co zrobiono, gdzie jest dowód, kto potwierdził. Bez formuły „warunkowe GO”.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-19.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** KSEF-03 to warunek, bez ktorego tryb offline jest dla nas NIEDOSTEPNY WCALE: faktura przekazana nabywcy poza KSeF musi niesc KOD I (OFFLINE) i KOD II (CERTYFIKAT). KOD I jest w zasiegu, bo builder XML mamy. KOD II wymaga certyfikatu KSeF typu 2 z portalu MF — to sprawa formalna, nie kod, wiec WNIOSEK O CERTYFIKAT SKLADAMY W SPRINCIE 17, nie tutaj. M-11 to domyslna wartosc flagi plus check w live-readiness, zeby flaga nie wylaczyla wysylki po cichu.
+**Ryzyko sprintu.** BLOK DOKUMENTOW — przesuniety na koniec decyzja wlasciciela 2026-09-22: najpierw kod i infrastruktura, dokumenty na sam koniec, przed pierwszym klientem. Kolejnosc wewnatrz bloku wymuszona zaleznosciami: regulamin (PB-03) przed kredytami SLA (N-16), cennik (PB-07) przed landingiem (PB-06), landing przed kampania (PB-10), wszystko przed sciezka pierwszego klienta (PB-05). Kampania powstaje wstrzymana. PB-05 to jedyny moment w planie, w ktorym powstaje dowod D3 calej sciezki — kazdy nieudany krok wraca do backlogu jako bloker i przesuwa start.
 
 ---
 
 # Po starcie — roadmapa kwartalna
 
-145 pozycji, 2364 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
+152 pozycji, 2426 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
 
 | ID | Epik | Priorytet | Kwartał | Pozycji | h | Dlaczego teraz, a nie wcześniej |
 |---|---|---|---|---|---|---|
 | `E-01` | Runtime, pliki i diagnostyka | WYSOKI | Q1 2027 | 32 | 434 | Najczęstsze źródło zgłoszeń w pierwszych miesiącach każdego hostingu. Logi WWW ma pięć z pięciu badanych hostingów PL — bez nich klient nie zdiagnozuje własnej strony i pisze do nas. |
 | `E-02` | Wydajność: cache i skalowanie | WYSOKI | Q1 2027 | 8 | 132 | Trzy z pięciu hostingów PL dają Redis w cenie. Przy pozycjonowaniu na WordPressa to nie dodatek, tylko oczekiwanie. |
 | `E-12` | Backup: granularność i retencja | WYSOKI | Q1 2027 | 7 | 116 | cyber_Folks daje 28 dni, seohost do 60. Nasze 30 dni jest w normie, ale granularność odtwarzania jest poniżej rynku. |
-| `E-14` | Rozliczenia: dokończenie | WYSOKI | Q1 2027 | 11 | 126 | Z-07 z macierzy: klient płacący portfelem doładowuje saldo w karencji i i tak zostaje zawieszony. Pierwszy taki przypadek to stracony klient. |
+| `E-14` | Rozliczenia: dokończenie | WYSOKI | Q1 2027 | 18 | 188 | Z-07 z macierzy: klient płacący portfelem doładowuje saldo w karencji i i tak zostaje zawieszony. Pierwszy taki przypadek to stracony klient. |
 | `E-15` | Wsparcie i ops: kolejka abuse | WYSOKI | Q1 2027 | 7 | 86 | Sprint 13 daje możliwość zatrzymania szkody. Ten epik daje proces, który skaluje się dalej niż jedna osoba. |
 | `E-03` | WordPress Toolkit | WYSOKI | Q2 2027 | 10 | 168 | Cztery z pięciu hostingów PL mają automatyczne aktualizacje WordPressa. Staging już mamy i jest przewagą — reszta toolkitu ją domyka. |
 | `E-04` | Domeny jako produkt | WYSOKI | Q2 2027 | 10 | 110 | Backend jest gotowy i wyłączony brakiem konfiguracji. Domena to najczęstszy pierwszy zakup i naturalny punkt wejścia. |
@@ -541,7 +535,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 - **E-11 DNS: DNSSEC i zarządzanie strefą** (62 h) — DNSSEC, zmiana TTL, Anycast DNS, pełne zarządzanie strefą po podpięciu edytora w sprincie 10.
 - **E-12 Backup: granularność i retencja** (116 h) — Odtworzenie pojedynczego pliku, podgląd zawartości archiwum przed odtworzeniem, pobranie kopii lokalnie, retencja 28+ dni w cenie.
 - **E-13 Automatyzacja: API zapisu i webhooki** (108 h) — Rozszerzenie publicznego API o operacje zapisu, webhooki dla klienta, edycja crona, cron z wyborem wersji PHP, podgląd wyniku wykonania.
-- **E-14 Rozliczenia: dokończenie** (126 h) — Ponowienie płatności portfelem w karencji, waluty obce z przeliczeniem VAT, proforma, dodanie karty niezależnie od zakupu, eksport CSV.
+- **E-14 Rozliczenia: dokończenie** (188 h) — Ponowienie płatności portfelem w karencji, waluty obce z przeliczeniem VAT, proforma, dodanie karty niezależnie od zakupu, eksport CSV.
 - **E-15 Wsparcie i ops: kolejka abuse** (86 h) — Pełna kolejka obsługi nadużyć z encją zgłoszenia, terminami i śladem audytowym, ogłoszenia i okna serwisowe z panelu, feature flagi.
 - **E-16 Rozszerzenia oferty** (80 h) — VPS: konsola, snapshoty, rebuild. Panel mobilny. Kreator stron — dokończyć albo usunąć 1612 zakomentowanych linii.
 

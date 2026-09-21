@@ -83,6 +83,7 @@
     "PB-12": "PB-05 (decyzja GO po przejściu ścieżki na produkcji)",
     "N-16": "PB-03 (kredyty SLA muszą być zgodne z opublikowanym regulaminem)",
     "M-16": "PB-13 (zakres zależy od kierunku fakturowania)",
-    "M-15": "PB-13"
+    "M-15": "PB-13",
+    "FAK-01": "PB-13 (kierunek fakturowania — zamkniete 2026-09-22)"
   }
 }

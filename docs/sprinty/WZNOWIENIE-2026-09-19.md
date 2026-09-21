@@ -315,3 +315,40 @@ i nie jest, jest gorsze niż jego brak, bo zamyka pytanie.
 **dedykowany sprint bezpieczeństwa egressu po W3**, przed jakimkolwiek ruchem w stronę
 sprzedaży. Węzeł #1 z `PB-02` staje w W3 — on jest pierwszą maszyną, na której te pozycje
 przestają być teorią.
+
+---
+
+## 8. Przeplanowanie 2026-09-22 — kod najpierw, dokumenty na koniec, KSeF poza panelem
+
+Dwie decyzje właściciela:
+
+1. **Wszystkie zadania dokumentowe na sam koniec**, przed pierwszym klientem.
+2. **Faktury VAT wystawia program księgowy** — na start ręcznie, potem integracja po API.
+   Zapisane jako `docs/architektura/ADR-2026-09-22-faktury-w-programie-ksiegowym.md`.
+
+Skutki:
+
+| | Przed | Po |
+|---|---|---|
+| Sprintów do startu | 21 | **19** |
+| Praca otwarta | 576 h | **454 h** |
+| Blokery startu | 4 (`P-15`, `Z-18`, `M-16`, `M-17`) | **3** (`FAK-01`, `Z-18`, `P-15`) |
+| Ostatni sprint | 2027-01-18 | **2027-01-04 → 01-08** |
+| Decyzja GO realnie | ~2027-02-05 | **~2027-01-22** (sprinty 17–18 na święta) |
+
+**Dlaczego pojawił się nowy bloker, skoro dwa zeszły.** Panel dziś sam numeruje faktury
+w transakcji obciążenia portfela. Przy ręcznym wystawianiu w programie księgowym każda
+płatność dostałaby dwie faktury w dwóch seriach. `FAK-01` (przełącznik `faktury.tryb`,
+domyślnie `zewnetrzny`) usuwa ten konflikt i jest jednocześnie szwem pod późniejszą
+integrację po API. Flagi `M-16` i `M-17` zeszły **warunkowo** — do czasu wdrożenia `FAK-01`
+panel nadal potrafi wystawić fakturę VAT poza KSeF.
+
+**Co jest „dokumentem", a co nie.** Na koniec poszły dokumenty-produkty: regulamin i legal
+(`PB-03`), DPA (`P-15`), procedura abuse (`PB-04`), cennik i treści (`PB-07`), baza wiedzy
+(`PB-09`), procedura zastępstwa (`PB-11`), runbook GO (`PB-12`) oraz landing i kampania,
+które od nich zależą. **Zostają na bieżąco** podsumowania sprintów i pliki `docs/zadania/`
+— to nie są dokumenty, tylko mechanizm, który audyt wprowadził przeciwko „optymizmowi
+dokumentacyjnemu". Bez nich po trzech sprintach nikt nie wie, co jest zrobione.
+
+**Kolejność kodu:** sprint 5 — `FAK-01` + `X-03` + `PB-14`; sprint 6 — węzeł #1;
+sprinty 7–9 — egress; 10–15 — produkt; 16–19 — dokumenty i start.
