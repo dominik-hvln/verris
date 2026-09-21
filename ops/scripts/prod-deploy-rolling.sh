@@ -20,7 +20,10 @@
 # =============================================================================
 set -Eeuo pipefail
 
-BRANCH="${DEPLOY_BRANCH:-live-release-readiness}"
+# X-13: jedyna gałąź wdrożeniowa to `main`. Do 2026-09-22 domyślna była tu
+# `live-release-readiness`, porzucona w sierpniu — ręczne wywołanie bez
+# DEPLOY_BRANCH budowało na serwerze kod sprzed miesięcy.
+BRANCH="${DEPLOY_BRANCH:-main}"
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 ENV_FILE="${ENV_FILE:-.env.prod}"
 # Kolejność: API najpierw (panele zależą od niego), potem panele, na końcu status.
@@ -32,6 +35,12 @@ HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-120}"   # s — maks. czas oczekiwania na heal
 DC=(docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}")
 
 cd "$(dirname "$0")/../.."
+
+# X-03 — ten skrypt BUDUJE na serwerze z gałęzi, z pominięciem test-gate
+# z deploy.yml. Wolno, ale tylko z nazwanym powodem, zapisanym w dzienniku.
+# shellcheck source=lib/bramka-recznego-wdrozenia.sh
+. ops/scripts/lib/bramka-recznego-wdrozenia.sh
+bramka_recznego_wdrozenia "prod-deploy-rolling.sh" "${BRANCH}"
 echo "[deploy] $(pwd) branch=${BRANCH} (rolling)"
 
 git fetch origin "${BRANCH}"

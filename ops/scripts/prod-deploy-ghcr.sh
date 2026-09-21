@@ -26,6 +26,12 @@ LAST_GOOD_FILE=".last-good-image-tag"
 cd "$(dirname "$0")/../.."
 compose() { docker compose -f "$COMPOSE_FILE" -f "$GHCR_OVERRIDE" --env-file "$ENV_FILE" "$@"; }
 
+# X-03 — poza GitHub Actions (czyli bez test-gate) tylko z nazwanym powodem,
+# zapisanym w dzienniku. PRZED jakąkolwiek zmianą na serwerze, także git checkout.
+# shellcheck source=lib/bramka-recznego-wdrozenia.sh
+. ops/scripts/lib/bramka-recznego-wdrozenia.sh
+bramka_recznego_wdrozenia "prod-deploy-ghcr.sh" "${IMAGE_TAG}"
+
 echo "[deploy] tag=${IMAGE_TAG} prefix=${REGISTRY_PREFIX}"
 
 # Kod (compose/migracje/skrypty) musi być spójny z obrazem — pobierz repo do SHA.

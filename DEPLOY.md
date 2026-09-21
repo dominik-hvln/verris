@@ -309,8 +309,16 @@ Zasady LIVE:
 
 ```bash
 cd /opt/verris
-./ops/scripts/prod-deploy-rolling.sh
+WDROZENIE_RECZNE_POWOD="<dlaczego omijamy deploy.yml — min. 15 znaków>" \
+  ./ops/scripts/prod-deploy-rolling.sh
 ```
+
+> **X-03 (od 2026-09-22):** każdy skrypt wdrożeniowy (`prod-deploy-ghcr.sh`,
+> `prod-deploy-release.sh`, `prod-deploy-rolling.sh`) uruchomiony poza GitHub
+> Actions — czyli z pominięciem `test-gate` — **odmawia** bez
+> `WDROZENIE_RECZNE_POWOD`. Powód trafia do `/var/log/verris/wdrozenia-reczne.log`
+> (albo `.wdrozenia-reczne.log` w katalogu wdrożenia) i do syslogu
+> (`journalctl -t verris-wdrozenie`). Zwykła droga to push na `main`.
 
 Skrypt: buduje wszystkie obrazy (stare kontenery dalej obsługują ruch) → migruje
 DB → recreuje usługi **pojedynczo** z bramką health-check (API → panele → status),

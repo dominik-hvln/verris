@@ -5,12 +5,21 @@
 # =============================================================================
 set -Eeuo pipefail
 
-BRANCH="${DEPLOY_BRANCH:-live-release-readiness}"
+# X-13: jedyna gałąź wdrożeniowa to `main`. Do 2026-09-22 domyślna była tu
+# `live-release-readiness`, porzucona w sierpniu — ręczne wywołanie bez
+# DEPLOY_BRANCH budowało na serwerze kod sprzed miesięcy.
+BRANCH="${DEPLOY_BRANCH:-main}"
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 ENV_FILE="${ENV_FILE:-.env.prod}"
 SERVICES="${DEPLOY_SERVICES:-api client-panel admin-panel staff-panel prometheus grafana}"
 
 cd "$(dirname "$0")/../.."
+
+# X-03 — ten skrypt BUDUJE na serwerze z gałęzi, z pominięciem test-gate
+# z deploy.yml. Wolno, ale tylko z nazwanym powodem, zapisanym w dzienniku.
+# shellcheck source=lib/bramka-recznego-wdrozenia.sh
+. ops/scripts/lib/bramka-recznego-wdrozenia.sh
+bramka_recznego_wdrozenia "prod-deploy-release.sh" "${BRANCH}"
 echo "[deploy] $(pwd) branch=${BRANCH}"
 
 git fetch origin "${BRANCH}"

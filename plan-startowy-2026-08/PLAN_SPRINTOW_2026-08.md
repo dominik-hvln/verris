@@ -44,7 +44,7 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 |---|---|---|---|---|
 | `X-01` | CI uruchamiające testy | 6 | — | .github/workflows/ci.yml — typecheck, testy API, build, smoke migracji Prisma, gitleaks, pnpm audit, Trivy, dependabot |
 | `X-02` | Status wymagany do merge | 6 | — | ruleset „gałęzie wdrożeniowe — wymagaj zielonego CI" (id 21161479), Active, zakres: gałąź domyślna + live-release-readiness; wymagane 4 checki z ci.ym |
-| `X-03` | Testy uruchamiane przed wdrożeniem | 6 | WYSOKA | .github/workflows/deploy.yml — job test-gate (typecheck + pnpm --filter api test), build-push ma needs: test-gate |
+| `X-03` | Testy uruchamiane przed wdrożeniem | 6 | WYSOKA | .github/workflows/deploy.yml — job test-gate (typecheck + pnpm --filter api test), build-push ma needs: test-gate; ops/scripts/lib/bramka-recznego-wdr |
 | `Z-02` | Blokada zamówienia usługi bez opłaty przez klienta | 6 | — | dto/subscription.dto.ts — @IsIn(CLIENT_PAYMENT_SOURCES); subscriptions.service.ts — ForbiddenException dla MANUAL bez allowManual; test subscriptions. |
 | `X-11` | Testy API w osobnym jobie CI, nie za typecheckiem | 6 | — | .github/workflows/ci.yml — osobny job api-tests o nazwie „API unit tests" |
 | `X-12` | Skrypty węzła serwowane przez API obecne w obrazie produkcyjnym | 6 | — | Dockerfile.api — COPY dla 10 skryptów; apps/api/src/test/dockerfile-scripts.spec.ts; D3: 2026-08-21 21:57 — `docker exec <api> ls -la ops/scripts/` na |
@@ -58,7 +58,7 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 
 - `X-01` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-02` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `X-03` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `X-03` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `Z-02` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-11` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-12` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
@@ -189,13 +189,13 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
 | `FAK-01` | Panel nie wystawia faktury VAT rownolegle z programem ksiegowym | 16 | BLOKER STARTU | billing/tryb-fakturowania.ts — przelacznik faktury.tryb (fail-safe: wszystko poza dokladnym 'panel' = zewnetrzny), serie VDR/VDK, straznik KSeF; billi |
-| `X-03` | Testy uruchamiane przed wdrożeniem | 6 | WYSOKA | .github/workflows/deploy.yml — job test-gate (typecheck + pnpm --filter api test), build-push ma needs: test-gate |
+| `X-03` | Testy uruchamiane przed wdrożeniem | 6 | WYSOKA | .github/workflows/deploy.yml — job test-gate (typecheck + pnpm --filter api test), build-push ma needs: test-gate; ops/scripts/lib/bramka-recznego-wdr |
 | `PB-14` | Wybór dostawcy i lokalizacji węzła produkcyjnego #1 | 6 | WYSOKI | PB-01 pokazało, że wybór dostawcy przesądza o rentowności przy cenie 45 zł. Hetzner AX102 ma cenę progową 44,20 zł, OVH Advance-2 w WAW1 — 67,76 zł, b |
 
 **Definicja ukończenia**
 
 - `FAK-01` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
-- `X-03` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `X-03` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `PB-14` — Decyzja zapisana w repo z datą, przed zamówieniem serwera. Jeśli wybrany dostawca spoza Polski — polityka prywatności i DPA opisują lokalizację przetwarzania przed startem sprzedaży.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-05.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
