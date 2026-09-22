@@ -77,7 +77,8 @@
 
 /* === LIGHT (:root aplikacji; w panelu także motyw jasny treści — [data-vtheme]) === */
 :root,
-[data-vtheme="light"] .v2-content {
+[data-vtheme="light"] .v2-content,
+[data-vtheme="light"] [data-radix-popper-content-wrapper] {
   --background: var(--verris-paper);
   --foreground: var(--verris-pine);
   --card: #ffffff;
@@ -130,7 +131,8 @@
 
 
 /* Motyw jasny panelu: tylko kolumna treści — menu boczne zostaje ciemne (jak we wzorcu). */
-[data-vtheme="light"] .v2-content {
+[data-vtheme="light"] .v2-content,
+[data-vtheme="light"] [data-radix-popper-content-wrapper] {
   --verris-body: #34413a;
   --verris-stone: #5f6a63;
   color-scheme: light;
