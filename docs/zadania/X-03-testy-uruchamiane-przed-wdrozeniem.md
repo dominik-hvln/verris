@@ -99,3 +99,32 @@ Wycofanie: usunięcie `needs: test-gate`. Jedna linia.
 
 - Zależy od `X-01` — bez CI chodzącego na gałęziach bramka nie miałaby czego pilnować.
 - Nie zamyka `X-02` (branch protection) — to jest ustawienie po stronie GitHuba.
+
+---
+
+## 2026-09-22 — ścieżka ręczna domknięta
+
+**Co zostało:** automatyczna droga (push → `test-gate` → build → deploy) od 2026-08-21
+nie przepuszczała czerwieni, ale `prod-deploy-ghcr.sh`, `prod-deploy-release.sh`
+i `prod-deploy-rolling.sh` dało się odpalić na serwerze ręcznie — bez testów i bez śladu.
+Dwa ostatnie w dodatku budowały domyślnie z porzuconej gałęzi `live-release-readiness`.
+
+**Co jest teraz:**
+
+- `ops/scripts/lib/bramka-recznego-wdrozenia.sh` — poza GitHub Actions skrypt odmawia
+  (kod 2), dopóki nie dostanie `WDROZENIE_RECZNE_POWOD` (min. 15 znaków). Powód idzie
+  jedną linią (znaki sterujące wycięte — nie da się podrobić drugiego wpisu) do
+  `/var/log/verris/wdrozenia-reczne.log`, awaryjnie do `.wdrozenia-reczne.log`
+  w katalogu wdrożenia, oraz do syslogu (`journalctl -t verris-wdrozenie`).
+- Wszystkie trzy skrypty wołają bramkę przed pierwszym `git`/`docker`.
+- `deploy.yml` eksportuje `VERRIS_WDROZENIE_Z_ACTIONS=1` + `GITHUB_RUN_ID` — tylko ta
+  para przepuszcza bez pytań.
+- release/rolling domyślnie budują z `main` (X-13).
+
+**Czego świadomie nie robimy:** nie blokujemy ręcznej drogi całkiem — to droga awaryjna
+(rollback, leżący GitHub). Ręczne ustawienie flagi Actions jest możliwe, ale jest
+świadomym kłamstwem w poleceniu, nie przeoczeniem.
+
+**Weryfikacja (D2):** `apps/api/src/test/wdrozenie-reczne-jawne.spec.ts` — 9 przypadków
+(zachowanie biblioteki na prawdziwym bashu + kolejność w skryptach i w `deploy.yml`);
+zielone lokalnie i w CI #182.

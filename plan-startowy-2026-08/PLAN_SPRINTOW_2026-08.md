@@ -1,6 +1,6 @@
 # Plan sprintów do startu — Verris
 
-**Wygenerowany:** 2026-09-21 z `audyt/dane/` · **nie edytuj ręcznie**  
+**Wygenerowany:** 2026-09-22 z `audyt/dane/` · **nie edytuj ręcznie**  
 **Podstawa:** audyt parytetu funkcji z 2026-08-20  
 **Pojemność:** 1 osoba, pełny etat, **30 h netto na sprint** · sprint = 1 tydzień  
 **Sprint 1:** 2026-08-31 · **Sprint 19:** 2027-01-04–2027-01-08
@@ -188,13 +188,13 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `FAK-01` | Panel nie wystawia faktury VAT rownolegle z programem ksiegowym | 16 | BLOKER STARTU | billing/tryb-fakturowania.ts — przelacznik faktury.tryb (fail-safe: wszystko poza dokladnym 'panel' = zewnetrzny), serie VDR/VDK, straznik KSeF; billi |
+| `FAK-01` | Panel nie wystawia faktury VAT rownolegle z programem ksiegowym | 16 | — | billing/tryb-fakturowania.ts — przelacznik faktury.tryb (fail-safe: wszystko poza dokladnym 'panel' = zewnetrzny), serie VDR/VDK, straznik KSeF; billi |
 | `X-03` | Testy uruchamiane przed wdrożeniem | 6 | WYSOKA | .github/workflows/deploy.yml — job test-gate (typecheck + pnpm --filter api test), build-push ma needs: test-gate; ops/scripts/lib/bramka-recznego-wdr |
 | `PB-14` | Wybór dostawcy i lokalizacji węzła produkcyjnego #1 | 6 | WYSOKI | PB-01 pokazało, że wybór dostawcy przesądza o rentowności przy cenie 45 zł. Hetzner AX102 ma cenę progową 44,20 zł, OVH Advance-2 w WAW1 — 67,76 zł, b |
 
 **Definicja ukończenia**
 
-- `FAK-01` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `FAK-01` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-03` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `PB-14` — Decyzja zapisana w repo z datą, przed zamówieniem serwera. Jeśli wybrany dostawca spoza Polski — polityka prywatności i DPA opisują lokalizację przetwarzania przed startem sprzedaży.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-05.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
