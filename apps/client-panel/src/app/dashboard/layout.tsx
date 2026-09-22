@@ -15,9 +15,8 @@ import { ReConsentModal } from "./reconsent-modal";
 import { PlatformConfigLoader } from "@/components/platform-config-loader";
 import { CookiePreferencesButton } from "@/components/cookie-consent";
 import { SpinBorder } from "@/components/spin-border";
-import { VerrisLockup, VerrisMark } from "@/components/logo";
+import { VerrisLockup } from "@/components/logo";
 import {
-  VerrisDomenyIcon,
   VerrisEkoIcon,
   VerrisProgramPartnerskiIcon,
   VerrisSupportIcon,
@@ -37,8 +36,12 @@ import {
   Megaphone,
   BarChart3,
   X,
+  Plus,
+  Shield,
+  Bell,
+  ChevronUp,
 } from "lucide-react";
-import { sidebarTilesFromLinks, type SidebarTileDef } from "@/lib/sidebar-tiles";
+import { sidebarTilesFromLinks } from "@/lib/sidebar-tiles";
 import { clientFeatures } from "@/lib/client-features";
 import {
   canAccessDashboardRoute,
@@ -82,74 +85,140 @@ const secondaryItems = [
   },
 ];
 
-function GridLink({ item }: { item: SidebarTileDef }) {
-  const pathname = usePathname();
-  const isActive = pathname === item.href;
-  const Icon = item.icon;
-
-  return (
-    <Link
-      href={item.href}
-      className="relative block rounded-[24px] p-px overflow-hidden group hover:-translate-y-0.5 transition-transform duration-300"
-    >
-      <SpinBorder
-        className={`opacity-0 transition-opacity duration-[1500ms] ${isActive ? "opacity-35" : "group-hover:opacity-25"}`}
-      />
-      
-      <div className={`relative z-10 flex h-24 flex-col items-center justify-center rounded-[calc(24px-1px)] bg-verris-page p-4 transition-colors duration-300 ${isActive ? "bg-verris-card" : "group-hover:bg-verris-pine"}`}>
-        <div className={`mb-2 rounded-xl border border-verris-hairline p-2.5 transition-transform duration-300 ${isActive ? "scale-105 bg-verris-mint/10" : "bg-verris-pine/40 group-hover:scale-105"}`}>
-          <Icon className={`h-5 w-5 transition-colors duration-300 ${isActive ? "text-verris-mint" : "text-verris-stone group-hover:text-verris-paper"}`} />
-        </div>
-        <span className={`text-[12px] font-medium tracking-wide transition-colors duration-300 ${isActive ? "text-verris-paper" : "text-verris-stone group-hover:text-verris-paper"}`}>
-          {item.name}
-        </span>
-      </div>
-    </Link>
-  );
-}
-
-function ListLink({
+/** Wiersz menu bocznego (PB-15): aktywny = miętowa kreska po lewej. */
+function NavRow({
   href,
   icon: Icon,
   children,
-  accent = false,
 }: {
   href: string;
   icon: ComponentType<{ className?: string }>;
   children: React.ReactNode;
-  accent?: boolean;
 }) {
   const pathname = usePathname();
-  const isActive = pathname === href;
-
-  const accentIdle =
-    "border-eko/40 bg-eko-bg/60 text-eko-foreground hover:bg-eko-bg hover:border-eko";
-  const accentActive =
-    "border-l-2 border-l-accent bg-sidebar-accent font-medium text-sidebar-accent-foreground border-eko/30";
-
+  const active = href === "/dashboard" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
   return (
     <Link
       href={href}
-      className={`
-        group flex items-center gap-3 rounded-xl border border-transparent px-4 py-2.5 text-[13px] transition-all duration-300
-        ${
-          isActive
-            ? accent
-              ? accentActive
-              : "border-l-2 border-l-accent bg-sidebar-accent font-medium text-sidebar-accent-foreground"
-            : accent
-              ? accentIdle
-              : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-        }
-      `}
+      aria-current={active ? "page" : undefined}
+      className={`flex items-center gap-2.5 rounded-[5px] px-2 py-[7px] text-sm transition-colors ${
+        active
+          ? "bg-verris-mint/[0.08] text-verris-paper shadow-[inset_2px_0_0_var(--verris-mint)]"
+          : "text-sidebar-foreground hover:bg-white/[0.04] hover:text-verris-paper"
+      }`}
     >
-      <Icon
-        className={`h-4 w-4 shrink-0 transition-colors duration-300 ${
-          isActive ? "text-accent" : accent ? "text-eko-foreground" : "text-muted-foreground group-hover:text-sidebar-accent-foreground"
-        }`}
-      />
+      <Icon className={`h-4 w-4 shrink-0 ${active ? "text-verris-mint" : "opacity-70"}`} />
       {children}
     </Link>
+  );
+}
+
+/** Tryb Prosty/Pełny — ten sam klucz, który czyta widok usługi (GUIDE-4). */
+const SIMPLE_MODE_KEY = "verris-simple-mode";
+
+function UserMenu({ displayName, email, initials }: { displayName: string; email: string; initials: string }) {
+  const [open, setOpen] = useState(false);
+  const [simple, setSimple] = useState(false);
+  useEffect(() => {
+    try {
+      setSimple(localStorage.getItem(SIMPLE_MODE_KEY) === "1");
+    } catch {
+      /* brak localStorage — pełny */
+    }
+  }, []);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => {
+      if (!(e.target as Element).closest?.("[data-user-menu]")) setOpen(false);
+    };
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("click", close);
+    document.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("click", close);
+      document.removeEventListener("keydown", esc);
+    };
+  }, [open]);
+  const setMode = (next: boolean) => {
+    setSimple(next);
+    try {
+      localStorage.setItem(SIMPLE_MODE_KEY, next ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+    window.dispatchEvent(new Event("verris-mode"));
+  };
+  const item = "flex w-full items-center gap-2.5 rounded-md px-2.5 py-[7px] text-left text-[13.5px] text-sidebar-foreground hover:bg-white/5 hover:text-verris-paper";
+  return (
+    <div className="relative" data-user-menu>
+      {open ? (
+        <div role="menu" className="absolute inset-x-0 bottom-[calc(100%+6px)] z-10 rounded-[10px] border border-white/10 bg-[#10241b] p-1.5 shadow-[0_18px_40px_-16px_rgba(0,0,0,0.7)]">
+          <div className="flex items-center justify-between gap-2 px-2.5 pb-0.5 pt-1.5 text-[13px] text-verris-paper">
+            Widok panelu
+            <div className="inline-flex rounded-md border border-white/10 bg-white/[0.04] p-0.5" role="group" aria-label="Widok panelu">
+              {([
+                ["Prosty", true],
+                ["Pełny", false],
+              ] as const).map(([label, v]) => (
+                <button
+                  key={label}
+                  type="button"
+                  aria-pressed={simple === v}
+                  onClick={() => setMode(v)}
+                  className={`rounded px-2.5 py-1 text-[12.5px] ${simple === v ? "bg-verris-mint/15 font-semibold text-verris-paper" : "text-verris-stone"}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="px-2.5 pb-1 text-[11.5px] leading-snug text-verris-stone">
+            {simple ? "Pokazujemy to, co najważniejsze, bez żargonu." : "Pokazujemy wszystkie narzędzia i szczegóły techniczne."}
+          </p>
+          <hr className="my-1 border-white/10" />
+          <Link href="/dashboard/settings" className={item} role="menuitem" onClick={() => setOpen(false)}>
+            <VerrisUstawieniaIcon className="h-4 w-4 opacity-70" /> Ustawienia konta
+          </Link>
+          <Link href="/dashboard/settings?tab=security" className={item} role="menuitem" onClick={() => setOpen(false)}>
+            <Shield className="h-4 w-4 opacity-70" /> Bezpieczeństwo i logowanie
+          </Link>
+          {clientFeatures.iam ? (
+            <Link href="/dashboard/iam" className={item} role="menuitem" onClick={() => setOpen(false)}>
+              <Users className="h-4 w-4 opacity-70" /> Zespół i dostęp
+            </Link>
+          ) : null}
+          <Link href="/dashboard/settings?tab=notifications" className={item} role="menuitem" onClick={() => setOpen(false)}>
+            <Bell className="h-4 w-4 opacity-70" /> Powiadomienia
+          </Link>
+          <CookiePreferencesButton className={item} />
+          <hr className="my-1 border-white/10" />
+          <form action={logoutAction}>
+            <button type="submit" className={`${item} text-rose-300 hover:text-rose-200`} role="menuitem">
+              <LogOut className="h-4 w-4" /> Wyloguj
+            </button>
+          </form>
+        </div>
+      ) : null}
+      <button
+        type="button"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="v2-comet v2-comet-soft flex w-full items-center gap-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] px-2.5 py-2 text-left hover:border-verris-mint/30"
+        style={{ ["--v2-k" as string]: "v2-comet-a", ["--v2-d" as string]: "11s", ["--v2-dl" as string]: "-8s", ["--v2-o" as string]: 0.5 }}
+      >
+        <span className="grid h-8 w-8 flex-none place-items-center rounded-full bg-gradient-to-br from-verris-green to-verris-mint font-display text-xs font-extrabold text-verris-pine">
+          {initials}
+        </span>
+        <span className="min-w-0 flex-1">
+          <b className="block truncate text-[13.5px] font-semibold text-verris-paper">{displayName}</b>
+          <small className="block truncate font-mono text-[11.5px] text-verris-stone">
+            {email ? `${email} · ` : ""}widok {simple ? "prosty" : "pełny"}
+          </small>
+        </span>
+        <ChevronUp className={`h-4 w-4 flex-none text-verris-stone transition-transform ${open ? "" : "rotate-180"}`} />
+      </button>
+    </div>
   );
 }
 
@@ -263,12 +332,14 @@ export default function DashboardLayout({
           if (target.closest("a")) setSidebarOpen(false);
         }}
       >
-        {/* Brand Header */}
-        <div className="relative flex h-[5.5rem] shrink-0 items-center border-b border-sidebar-border px-6">
-          <VerrisLockup size="sm" />
+        {/* Logo */}
+        <div className="flex h-16 shrink-0 items-center px-5">
+          <Link href="/dashboard" aria-label="Pulpit">
+            <VerrisLockup size="sm" />
+          </Link>
           <button
             type="button"
-            className="ml-auto rounded-lg border border-white/10 p-2 text-neutral-300 hover:bg-white/10 lg:hidden"
+            className="ml-auto rounded-md border border-white/10 p-2 text-neutral-300 hover:bg-white/10 lg:hidden"
             onClick={() => setSidebarOpen(false)}
             aria-label="Zamknij menu"
           >
@@ -276,64 +347,36 @@ export default function DashboardLayout({
           </button>
         </div>
 
-        {/* Navigation Content */}
-        <div className="flex-1 overflow-y-auto px-5 py-6 scrollbar-none">
-          {/* Tiled Grid Navigation */}
-          <div className="grid grid-cols-2 gap-3 mb-8">
+        {/* Nawigacja — przewija się, box użytkownika zostaje przypięty na dole */}
+        <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4 [mask-image:linear-gradient(#000_calc(100%-18px),transparent)]">
+          <nav className="flex flex-col gap-px" aria-label="Główne">
             {mainGridItems.map((item) => (
-              <GridLink key={item.href} item={item} />
-            ))}
-          </div>
-
-          {/* Secondary Classic List */}
-          <nav className="space-y-8">
-            {navSecondaryItems.map((group) => (
-              <div key={group.label}>
-                <p className="mb-3 px-4 text-[10px] font-bold uppercase tracking-[0.15em] text-verris-stone">
-                  {group.label}
-                </p>
-                <div className="space-y-1.5">
-                  {group.items.map((item) => (
-                    <ListLink
-                      key={item.href}
-                      href={item.href}
-                      icon={item.icon}
-                      accent={"accent" in item && item.accent === true}
-                    >
-                      {item.name}
-                    </ListLink>
-                  ))}
-                </div>
-              </div>
+              <NavRow key={item.href} href={item.href} icon={item.icon}>
+                {item.name}
+              </NavRow>
             ))}
           </nav>
+
+          {navSecondaryItems.length > 0 ? (
+            <details className="group/more mt-5" open={navSecondaryItems.some((g) => g.items.some((i) => pathname.startsWith(i.href)))}>
+              <summary className="flex cursor-pointer list-none items-center justify-between px-2 pb-1.5 font-mono text-[10.5px] uppercase tracking-[0.08em] text-verris-stone [&::-webkit-details-marker]:hidden">
+                Więcej
+                <Plus className="h-3 w-3 transition-transform group-open/more:rotate-45" />
+              </summary>
+              <nav className="flex flex-col gap-px" aria-label="Więcej">
+                {navSecondaryItems.flatMap((group) => group.items).map((item) => (
+                  <NavRow key={item.href} href={item.href} icon={item.icon}>
+                    {item.name}
+                  </NavRow>
+                ))}
+              </nav>
+            </details>
+          ) : null}
         </div>
 
-        {/* Premium Floating User Card */}
-        <div className="p-5">
-          <div className="relative rounded-[24px] p-px overflow-hidden group">
-            <SpinBorder variant="white" className="opacity-20" />
-            <div className="relative flex items-center gap-3 rounded-[calc(24px-1px)] border border-verris-hairline bg-verris-card p-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-verris-hairline bg-verris-pine text-xs font-bold text-verris-paper">
-                {initials}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="truncate text-sm font-semibold text-verris-paper">{displayName}</p>
-                <p className="mt-0.5 truncate text-[11px] tracking-wide text-verris-stone">
-                  {user?.email || "Pro Member"}
-                </p>
-              </div>
-              <form action={logoutAction}>
-                <button
-                  type="submit"
-                  className="rounded-lg p-2.5 text-verris-stone transition-all duration-200 hover:bg-verris-pine/60 hover:text-verris-paper"
-                  title="Wyloguj się"
-                >
-                  <LogOut className="h-4 w-4" />
-                </button>
-              </form>
-            </div>
-          </div>
+        {/* Box użytkownika — zawsze widoczny */}
+        <div className="shrink-0 border-t border-sidebar-border p-3">
+          <UserMenu displayName={displayName} email={user?.email ?? ""} initials={initials} />
         </div>
       </aside>
 

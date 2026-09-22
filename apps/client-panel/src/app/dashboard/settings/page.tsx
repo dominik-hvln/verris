@@ -170,6 +170,11 @@ function Toast({
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<TabId>("profile");
+  // Wejście prosto w zakładkę z menu użytkownika: /dashboard/settings?tab=security
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get("tab");
+    if (t && tabs.some((tab) => tab.id === t)) setActiveTab(t as TabId);
+  }, []);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{

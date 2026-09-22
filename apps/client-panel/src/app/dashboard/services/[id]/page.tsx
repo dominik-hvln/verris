@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import {
-  Server,
   Globe,
   Database,
   Mail,
@@ -147,17 +146,18 @@ export default function HostingManagerPage() {
       /* brak localStorage — pełny tryb */
     }
   }, []);
-  const toggleSimpleMode = () => {
-    setSimpleMode((v) => {
-      const next = !v;
+  // Przełącznik Prosty/Pełny jest w menu użytkownika (layout) — słuchamy jego zmiany.
+  useEffect(() => {
+    const sync = () => {
       try {
-        localStorage.setItem('verris-simple-mode', next ? '1' : '0');
+        setSimpleMode(localStorage.getItem('verris-simple-mode') === '1');
       } catch {
         /* ignore */
       }
-      return next;
-    });
-  };
+    };
+    window.addEventListener('verris-mode', sync);
+    return () => window.removeEventListener('verris-mode', sync);
+  }, []);
 
   // Przed rozpoznaniem typu pokazujemy tylko bezpieczny podzbiór (pocztowy), który
   // jest zawarty w zestawie hostingu — hosting po prostu „dobierze" zakładki po
@@ -202,47 +202,20 @@ export default function HostingManagerPage() {
   return (
     <HostingLinksProvider serviceId={params.id}>
       <div className="mx-auto w-full max-w-7xl min-w-0 space-y-4 animate-in fade-in duration-500 sm:space-y-5">
-        <div className="flex min-w-0 items-center gap-3">
-          <Link
-            href="/dashboard/services"
-            className="shrink-0 rounded-xl border border-white/5 bg-[#0a0a0a] p-2.5 text-neutral-400 transition-colors hover:bg-[#121212] hover:text-white"
-          >
-            <ArrowLeft className="h-4 w-4" />
+        {/* Ścieżka: Usługi / identyfikator — nagłówek z nazwą planu jest w treści zakładki */}
+        <div className="flex min-w-0 items-center gap-2 text-[13.5px] text-muted-foreground">
+          <Link href="/dashboard/services" className="inline-flex items-center gap-1.5 rounded px-1 py-0.5 hover:bg-raised hover:text-foreground">
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Usługi
           </Link>
-          <div className="min-w-0">
-            <h1 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2 min-w-0">
-              <Server className="h-5 w-5 shrink-0" />
-              <span className="truncate">Twoja usługa</span>
-              {serviceTag ? (
-                <span
-                  className="shrink-0 rounded-md border border-white/10 bg-white/5 px-2 py-0.5 font-mono text-[11px] font-normal text-neutral-300"
-                  title="Identyfikator usługi"
-                >
-                  {serviceTag}
-                </span>
-              ) : null}
-            </h1>
-            <p className="text-xs sm:text-sm text-neutral-400 mt-0.5 truncate">
-              {!kindResolved
-                ? 'Wczytywanie usługi…'
-                : isEmail
-                  ? 'Zarządzanie pocztą e-mail w Twojej domenie.'
-                  : 'Dashboard, statystyki i narzędzia hostingowe.'}
-            </p>
-          </div>
-          {showHostingChrome ? (
-            <button
-              type="button"
-              onClick={toggleSimpleMode}
-              title={
-                simpleMode
-                  ? 'Pokaż wszystkie narzędzia (tryb zaawansowany)'
-                  : 'Ukryj zaawansowane narzędzia (tryb prosty)'
-              }
-              className="ml-auto shrink-0 rounded-lg border border-white/10 bg-[#0a0a0a] px-3 py-1.5 text-xs font-medium text-neutral-300 transition-colors hover:bg-white/5 hover:text-white"
-            >
-              {simpleMode ? 'Tryb: prosty' : 'Tryb: zaawansowany'}
-            </button>
+          <span aria-hidden>/</span>
+          <span className="truncate font-semibold text-foreground">
+            {!kindResolved ? 'Wczytywanie…' : isEmail ? 'Poczta' : 'Hosting'}
+          </span>
+          {serviceTag ? (
+            <span className="shrink-0 rounded border border-line bg-card px-1.5 py-px font-mono text-[11px] text-muted-foreground" data-tip="Identyfikator usługi">
+              {serviceTag}
+            </span>
           ) : null}
         </div>
 
