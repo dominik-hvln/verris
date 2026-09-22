@@ -1,10 +1,43 @@
-# Wizja panelu Verris — research zagranicy, DNS, asystent, design, tickety
+# Verris — jedno miejsce na decyzje i kierunek
 
-**Data:** 2026-09-22 · **Status:** do dyskusji z właścicielem, nic z tego nie jest jeszcze w planie
-sprintów. Uzupełnia `ANALIZA_KONKURENCJI_2026-06.md` (cPanel, Plesk, DA, rynek PL) o liderów
-z USA i Europy. Ceny i funkcje konkurencji — stan na wrzesień 2026, ze stron dostawców.
+**Zasada (2026-09-22):** stan, zadania, plan i dowody są WYŁĄCZNIE w `audyt/dane/*.csv`
+(macierz, sprinty, zadania) — z nich generują się dashboardy i `plan-startowy-2026-08/`.
+Uzasadnienie zmiany → kolumna „Uwagi" w macierzy albo „opis" zadania. Decyzje, kierunek
+produktu i zasady → **ten plik**, jako nowa sekcja. Nie tworzymy nowych `docs/zadania/*.md`,
+ADR-ów ani raportów sprintów. Wszystko, co było wcześniej, jest w `docs/archiwum/` (historia,
+nie źródło prawdy). Poza tym zostają tylko dokumenty operacyjne i prawne: `docs/ops`,
+`docs/legal`, `docs/mail`, `docs/brand`.
 
 ---
+
+## Decyzje
+
+### 2026-09-22 — faktury VAT wystawia program księgowy (PB-13, FAK-01)
+Panel wystawia **dokument rozliczeniowy** (seria VDR/VDK), fakturę VAT operator wystawia w programie
+księgowym i dopisuje jej numer w panelu admina (`/invoices/czeka-na-fakture`). Przełącznik
+`faktury.tryb` = `zewnetrzny` (domyślnie) | `panel`. Własny moduł KSeF zamrożony do integracji
+z programem księgowym po API. Pytanie do księgowej: faktura zaliczkowa przy doładowaniu portfela (M-34).
+
+### 2026-09-22 — węzeł #1: Hetzner AX102 (PB-14)
+259 € netto/mies. (setup ~129 €). Dane klientów w DE/FI (UE) → polityka prywatności i DPA muszą to
+opisać przed startem. **Zakup dopiero w sprincie 18** (żeby serwer nie stał pusty). Na później:
+Beyond (Poznań) / inne serwerownie; EX130-R po migracji 15 stron → węzeł #2.
+
+### 2026-09-22 — kolejność prac
+Najpierw panel na obecnej infrastrukturze (design, poczta, asystent v1, tickety v2, narzędzia
+operatora, backup, rozliczenia), potem zapora control-plane i strict, dokumenty, **węzeł (zakup)**,
+ścieżka pierwszego klienta, GO. Po starcie: asystent wykonujący akcje, tryb agencji, bezpieczne
+aktualizacje WP z testem wizualnym, MCP, checklisty RODO/dostępności.
+
+### 2026-09-22 — DNS
+ClouDNS **Premium L** (14,95 USD/mies., 400 stref) jako zewnętrzny secondary za DirectAdminem,
+NS pod marką Verris — kupujemy razem z węzłem. DDoS Protected nie na start. Openprovider jako
+darmowy trzeci secondary.
+
+---
+
+## Wizja panelu (research 2026-09)
+
 
 ## 1. Co mamy dziś (punkt wyjścia)
 

@@ -486,7 +486,7 @@ def buduj_plan_md(D):
         "**Status wg skali dowodu.** Nic poniżej D2 nie jest „zrobione”. Pieniądze, dane klienta i dostęp → D3. Backupy i DR → D4.",
         "**Zakaz formuły „warunkowe GO”.**",
         "**Nowa praca odkryta w sprincie nie wchodzi do niego** — trafia do backlogu. Wyjątek: bloker znaleziony przy naprawie innego blokera.",
-        "**Każde zadanie ma plik w `docs/zadania/`**, każdy sprint podsumowanie w `docs/sprinty/`. Z tego składa się dokumentacja techniczna.",
+        "**Jedno miejsce.** Stan, zadania i dowody — tylko `audyt/dane/*.csv` (uzasadnienie w kolumnie „Uwagi”). Decyzje i kierunek — `docs/VERRIS.md`. Bez nowych plików w `docs/zadania/` ani raportów sprintów (decyzja 2026-09-22).",
         "**Każdy sprint kończy się aktualizacją `audyt/dane/macierz.csv`** i przebudową widoków. Procedura: `plan-startowy-2026-08/AKTUALIZACJA_AUDYTU.md`.",
     ], 1):
         w(f"{i}. {t}")
@@ -510,8 +510,8 @@ def buduj_plan_md(D):
             w("**Definicja ukończenia**\n")
             for i, t, h, typ, prio, dow, dod, ctx in its:
                 w(f"- `{i}` — {dod}")
-            w("- **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-%02d.md` napisane, "
-              "`audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane." % n)
+            w("- **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), "
+              "widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.")
             w("")
             w(f"**Ryzyko sprintu.** {D['sprinty'][n]['ryzyko']}\n")
         w("---\n")

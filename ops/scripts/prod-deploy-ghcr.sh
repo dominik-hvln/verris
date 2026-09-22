@@ -267,7 +267,7 @@ if [ "$OK" = "1" ]; then
   #       „14" do skryptu byłoby szóstym bliźniaczym miejscem w tym projekcie.
   #
   #       Logika siedzi w osobnym pliku, bo tylko wtedy da się ją przejechać
-  #       testem bez Grafany i bez czekania minuty. Szczegóły: docs/zadania/X-33.
+  #       testem bez Grafany i bez czekania minuty. Szczegóły: docs/archiwum/zadania/X-33.
   # shellcheck source=ops/scripts/lib/bramka-regul-alertowych.sh
   . ops/scripts/lib/bramka-regul-alertowych.sh
 

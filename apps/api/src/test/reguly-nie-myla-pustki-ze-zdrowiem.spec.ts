@@ -42,7 +42,7 @@ import { join } from 'path';
  * CZEGO TEN TEST NIE DOWODZI. Że na produkcji jest dobrze. Asercje są
  * strukturalne, nie wykonują PromQL. Dowód, że nowe wyrażenie faktycznie
  * zwraca jedną próbkę o wartości 0, pochodzi z zapytania do żywego Prometheusa
- * i jest zapisany w docs/zadania/X-35 jako D2. Tutaj pilnujemy wyłącznie tego,
+ * i jest zapisany w docs/archiwum/zadania/X-35 jako D2. Tutaj pilnujemy wyłącznie tego,
  * żeby usterka nie wróciła tą samą drogą.
  */
 

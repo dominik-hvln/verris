@@ -15,7 +15,7 @@ import { join, relative, resolve } from 'path';
  *    pamięci obsługuje kilkadziesiąt kont z limitem 8 GB każde, bo w normalnej
  *    pracy żadne z nich nie zbliża się do sufitu.
  *
- * Model unit economics (PB-01, docs/strategy/PB-01_unit_economics_wezla.xlsx)
+ * Model unit economics (PB-01, docs/archiwum/strategy/PB-01_unit_economics_wezla.xlsx)
  * pokazał, że węzeł domyka się finansowo dopiero przy ok. 51 kontach. To znaczy
  * 51 × 8 GB = 408 GB pamięci „w cenie" na maszynie, która ma 128 GB.
  *
