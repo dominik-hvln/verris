@@ -153,21 +153,30 @@ Kierunek do przygotowania jako osobny projekt (makiety przed kodem):
 
 | Obecnie | Nowe miejsce |
 |---|---|
-| Pasek górny: WalletBadge, NotificationBell, ImpersonationBanner, IncidentBanner, ReConsentModal, wylogowanie, cookies | pasek górny (portfel z saldem, dzwonek, „/”, Prosty/Pełny, motyw); banery nad treścią bez zmian; wylogowanie i cookies w menu klienta. ✅ 2026-09-22: motyw jasny/ciemny treści (`ThemeToggle`, `<html data-vtheme>`, menu boczne zawsze ciemne); okna w portalach (modale, toasty) jeszcze tylko ciemne |
+| Pasek górny: WalletBadge, NotificationBell, ImpersonationBanner, IncidentBanner, ReConsentModal, wylogowanie, cookies | pasek górny (portfel z saldem, dzwonek, „/”, Prosty/Pełny, motyw); banery nad treścią bez zmian; wylogowanie i cookies w menu klienta. ✅ 2026-09-22: motyw jasny/ciemny treści (`ThemeToggle`, `<html data-vtheme>`, menu boczne zawsze ciemne); modale, menu rozwijane i toasty też w motywie; wyszukiwarka „/” na środku ekranu z przyciemnieniem |
 | Pulpit (StatCard, DashboardCharts, ServicesHealthOverview, QuickAction, OnboardingWizard, ProactiveHints) | ✅ 2026-09-22: `dashboard-home.tsx` — powitanie, pasek liczb (usługi, domeny, saldo, zgłoszenia), tabela usług, zdrowie usług (wynik + punkty kontroli), portfel 12 mies., asystent (z rekomendacji), pierwsze kroki, szybkie akcje, EKO, hosting w skrócie. Wykresy „status usług/zgłoszeń” zastąpione paskiem liczb i zdrowiem usług |
-| Usługi: lista, nowa usługa | „Usługi” (lista usług) + kreator zamówienia |
-| Usługa hostingowa — Przegląd (gauges, HealthCheck, FirstSteps, DomainPointing, Forecast, uptime, UnpaidServiceBanner) | widok usługi: pasek liczb z dymkami, tabela stron, asystent; prognoza → dymek przy dysku/CPU; baner zaległości nad nagłówkiem |
+| Usługi: lista, nowa usługa | ✅ „Usługi” — tabela (stan, zdrowie, zasoby, odnowienie, cena), sekcje aktywne/zakończone; kreator zamówienia bez zmian w działaniu |
+| Usługa hostingowa — Przegląd (gauges, HealthCheck, FirstSteps, DomainPointing, Forecast, uptime, UnpaidServiceBanner) | ✅ widok usługi: pasek liczb (dysk, transfer, CPU/RAM, kopie z 14 dni), tabela domen → widok strony, zasoby konta, „Co się działo”, asystent, dane dostępowe (hasło zakryte) |
 | Karta „Dane dostępowe / Adresy serwera i limity” (ServiceConnectionCard, AccountStatsCard) | box „Dane dostępowe” + „Zasoby konta” |
-| Subskrypcja (plan, historia rozliczeń, zmiana planu `/plan`, rezygnacja na koniec okresu / od razu) | box „Płatności za usługę” + sekcja „Subskrypcja i płatności” |
-| Autoskalowanie (włącz/wyłącz, CPU/RAM/dysk, limit miesięczny, bezpiecznik, historia kosztów), tryb EKO i raport energii | box „Autoskalowanie” (przełącznik, bezpiecznik, wydane, prognoza, saldo) + sekcja „Autoskalowanie i EKO” |
+| Subskrypcja (plan, historia rozliczeń, zmiana planu `/plan`, rezygnacja na koniec okresu / od razu) | ✅ box „Płatności za usługę” + sekcja „Subskrypcja i płatności” (pasek liczb z postępem okresu, historia rozliczeń po polsku, rezygnacja); `/plan` z paskiem liczb |
+| Autoskalowanie (włącz/wyłącz, CPU/RAM/dysk, limit miesięczny, bezpiecznik, historia kosztów), tryb EKO i raport energii | ✅ box „Autoskalowanie” + strona „Autoskalowanie i EKO” (limity teraz vs plan, koszt 30 dni z paskiem bezpiecznika, EKO w prawej kolumnie) |
 | Zakładki usługi: Domeny & DNS, SSL, Pliki, Bazy, Poczta (+MailExtras), FTP, Cron, PHP, Aplikacje, Narzędzia WWW (przekierowania, HTTPS/www, hotlink, blokada IP, Basic Auth), Kopie (harmonogram, offsite, przywracanie), WAF, Monitoring, Staging, Deploy (Git), Usage, Subdomeny, Domeny dodatkowe | sekcje usługi w bocznym pasku (poziom konta) + zakładki widoku strony (poziom domeny): DNS, SSL, Pliki, Baza, Poczta, PHP, Przekierowania (= Narzędzia WWW), Logi; Staging/Deploy per strona. ✅ 2026-09-22: widok strony `/dashboard/services/{id}/sites/{domena}` (Przegląd, DNS, SSL, Pliki, Baza, Poczta, PHP, Przekierowania); stare zakładki w palecie wzorca przez `.v2-skin` + `HostingTabShell` jako sekcja. Brak w API: ruch/TTFB/5xx i technologia per domena, logi (historia kopii z 14 dni czytana z nazw plików DirectAdmina) — zakładki „Logi” nie ma, dopóki nie ma danych |
 | Osobne strony `/dashboard/{dns,databases,ssl,ftp,cron,php,apps,backups,email,file-manager}` | te same sekcje w kontekście usługi (stare adresy przekierowują) |
 | Domeny: lista, szczegóły, zakup, dane rejestrującego | „Domeny” w menu globalnym. ✅ 2026-09-22: data końca rejestracji w tabeli i licznik „N wygasa” w menu (z pola `expiresAt` rejestratora) |
-| Płatności: portfel (doładowanie, odświeżanie salda), faktury, dodatki rozliczeniowe | „Płatności” w menu globalnym; skrót z paska górnego |
-| Centrum pomocy (lista, nowe, wątek), Baza wiedzy | „Centrum pomocy” (globalnie); baza wiedzy w „Więcej” i w podpowiedziach |
-| Migracje, Dodatki, VPS/Cloud, Reseller, Kalkulator, Program EKO, Partnerski, IAM, E-mail marketing, Analityka, API, Ustawienia | „Więcej” w bocznym pasku (IAM i ustawienia też w menu klienta) |
+| Płatności: portfel (doładowanie, odświeżanie salda), faktury, dodatki rozliczeniowe | ✅ „Płatności”: pasek liczb, portfel 12 mies., historia transakcji z opisami po ludzku (`lib/wallet-tx-label.ts`), doładowanie i auto-doładowanie w prawej kolumnie |
+| Centrum pomocy (lista, nowe, wątek), Baza wiedzy | ✅ „Centrum pomocy”: pasek liczb, tabela zgłoszeń, wątek ze ścieżką i stanem; baza wiedzy w „Więcej” i w wyszukiwarce |
+| Migracje, Dodatki, VPS/Cloud, Reseller, Kalkulator, Program EKO, Partnerski, IAM, E-mail marketing, Analityka, API, Ustawienia | „Więcej” w bocznym pasku (IAM i ustawienia też w menu klienta). ✅ nagłówki jak reszta panelu; EKO z paskiem liczb; Ustawienia z zakładkami podkreślanymi |
 | HostingAssistant (dymek), SiteBuilder (ukryty) | asystent v1 (PB-17); kreator stron zostaje ukryty |
 | Ekrany bez logowania: logowanie, rejestracja, reset hasła, weryfikacje, zaproszenie, dokumenty prawne | ten sam system wizualny, bez zmian w działaniu |
+
+**Zasady wyglądu przyjęte w PB-16 (obowiązują dla nowych ekranów):**
+- nic się nie chowa: bez wielokropka w treści, bez ukrywania kolumn na telefonie (tabela `v2-stack` rozkłada się na bloki z nazwą kolumny), bez przewijania w bok (długie wartości łamane, liczby i daty `whitespace-nowrap`);
+- stary kod dostaje paletę wzorca przez `.v2-skin` w `globals.css`; nowe ekrany piszemy od razu na tokenach i klockach z `components/panel/v2.tsx`;
+- dymki (`data-tip`) mieszczą się na ekranie (`placeTip`) i są czytane przez czytnik ekranu (`aria-describedby`);
+- kontrast AA w obu motywach (bursztyn jasnego motywu `#955f0f`);
+- martwy węzeł DirectAdmina odpada od razu (bezpiecznik w `libs/directadmin-sdk/src/node-circuit.ts`), panel pokazuje „chwilowo niedostępny” zamiast czekać.
+
+**Otwarte (wymaga serwera/agenta na węźle):** ruch, TTFB i błędy 5xx per domena; rozpoznawanie technologii strony; zakładka „Logi”; przełącznik klienta w trybie agencji.
 
 ### 3.4 System ticketowy (panel staff) — wymagania na później
 
