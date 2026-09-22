@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { AiInteractionStatus, Prisma } from '@verris/database';
+import { buildHints } from '../subscriptions/assistant-hints';
 import { createHash } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
@@ -181,28 +182,75 @@ export class AiChatService {
     return lines.join('\n');
   }
 
-  /** Lightweight, privacy-safe context about the user's service (no secrets). */
+  /**
+   * PB-17 — kontekst konta dla czatu: bez sekretów, e-maili i kwot. Na stronie
+   * usługi — ta usługa z bieżącymi sygnałami (dysk, SSL, domena, kopie); poza
+   * nią — krótka lista usług klienta. Te same reguły co dymki (bez sond na żywo).
+   */
   private async buildServiceContext(
     subscriptionId: string | null,
     userId: string | null,
   ): Promise<string | null> {
-    if (!subscriptionId || !userId) return null;
+    if (!userId) return null;
+    if (!subscriptionId) {
+      const subs = await this.prisma.subscription.findMany({
+        where: { userId, status: { notIn: ['CANCELED', 'EXPIRED'] } },
+        take: 10,
+        orderBy: { createdAt: 'desc' },
+        select: { status: true, plan: { select: { name: true } }, account: { select: { domain: true } } },
+      });
+      if (subs.length === 0) return null;
+      return JSON.stringify({
+        uslugi: subs.map((s) => ({ plan: s.plan?.name ?? null, status: s.status, domena: s.account?.domain ?? null })),
+      });
+    }
     const sub = await this.prisma.subscription.findFirst({
       where: { id: subscriptionId, userId },
       include: {
         plan: { select: { name: true } },
-        account: { select: { domain: true, status: true } },
+        account: {
+          select: {
+            domain: true,
+            status: true,
+            diskLimitMb: true,
+            server: { select: { lastOffsiteBackupAt: true, lastOffsiteBackupOk: true } },
+          },
+        },
+        siteMonitor: { select: { tlsExpiresAt: true, lastStatus: true } },
+        usageMetrics: { orderBy: { bucketStart: 'desc' }, take: 1, select: { diskUsageMb: true } },
         healthSnapshots: { orderBy: { computedAt: 'desc' }, take: 1 },
       },
     });
     if (!sub) return null;
-    const health = sub.healthSnapshots[0];
+    const acc = sub.account;
+    const usage = sub.usageMetrics[0];
+    const domainRow = acc?.domain
+      ? await this.prisma.domain.findFirst({ where: { userId, name: acc.domain }, select: { name: true, expiresAt: true, autoRenew: true } })
+      : null;
+    const hints = acc
+      ? buildHints({
+          now: new Date(),
+          domain: acc.domain,
+          disk: usage ? { usedMb: usage.diskUsageMb, limitMb: acc.diskLimitMb } : null,
+          tlsExpiresAt: sub.siteMonitor?.tlsExpiresAt ?? null,
+          domainExpiry: domainRow?.expiresAt ? { name: domainRow.name, expiresAt: domainRow.expiresAt, autoRenew: domainRow.autoRenew } : null,
+          backup: acc.server ? { lastAt: acc.server.lastOffsiteBackupAt, ok: acc.server.lastOffsiteBackupOk } : null,
+          pointing: null,
+          mail: [],
+          usesPlatformDns: null,
+        })
+      : [];
     return JSON.stringify({
       plan: sub.plan?.name ?? null,
       status: sub.status,
-      domain: sub.account?.domain ?? null,
-      accountStatus: sub.account?.status ?? null,
-      healthScore: health?.score ?? null,
+      domain: acc?.domain ?? null,
+      accountStatus: acc?.status ?? null,
+      healthScore: sub.healthSnapshots[0]?.score ?? null,
+      dysk: usage && acc ? { zajeteMb: Math.round(usage.diskUsageMb), limitMb: acc.diskLimitMb } : null,
+      sslWazneDo: sub.siteMonitor?.tlsExpiresAt?.toISOString().slice(0, 10) ?? null,
+      stronaDziala: sub.siteMonitor?.lastStatus ?? null,
+      domenaWygasa: domainRow?.expiresAt?.toISOString().slice(0, 10) ?? null,
+      ostrzezenia: hints.map((h) => h.title),
     });
   }
 }

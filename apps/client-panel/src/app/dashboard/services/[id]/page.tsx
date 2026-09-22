@@ -28,6 +28,7 @@ import WebToolsTab from '@/components/hosting/WebToolsTab';
 import UsageTab from '@/components/hosting/UsageTab';
 import ServiceOverviewTab from '@/components/hosting/ServiceOverviewTab';
 import ServiceOverviewV2 from '@/components/hosting/ServiceOverviewV2';
+import { AssistantHint } from '@/components/assistant/AssistantHint';
 import ServiceSubscriptionTab from '@/components/hosting/ServiceSubscriptionTab';
 import ServiceConnectionCard from '@/components/hosting/ServiceConnectionCard';
 import { HostingLinksProvider } from '@/components/hosting/hosting-links-context';
@@ -122,6 +123,8 @@ export default function HostingManagerPage() {
         <div className="lg:hidden">
           <MobileTabStrip tabs={visibleTabs} active={activeTab} onChange={setActiveTab} stickyBelowHeader />
         </div>
+
+        {showHostingChrome ? <AssistantHint serviceId={params.id} onNavigate={(t) => isTabId(t) && setActiveTab(t)} /> : null}
 
         <main className="min-w-0 max-w-full">
           {activeTab === 'overview' &&

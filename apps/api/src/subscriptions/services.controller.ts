@@ -28,6 +28,8 @@ import { DirectAdminService, type WebToolsState } from '../servers/directadmin.s
 import { MigrationOrchestratorService } from './migration-orchestrator.service';
 import { ServiceHealthService } from './service-health.service';
 import { HostingDnsPointingService } from './hosting-dns-pointing.service';
+import { AssistantService } from './assistant.service';
+import { CofniecieNaprawyDto, NaprawaAsystentaDto } from './dto/assistant.dto';
 import { HostingRestoreService } from './hosting-restore.service';
 import { OffsiteRestoreService } from './offsite-restore.service';
 import { HostingRestoreDto } from './dto/hosting-restore.dto';
@@ -59,6 +61,7 @@ export class UserServicesController {
     private readonly migrations: MigrationOrchestratorService,
     private readonly serviceHealth: ServiceHealthService,
     private readonly dnsPointing: HostingDnsPointingService,
+    private readonly assistant: AssistantService,
     private readonly hostingRestore: HostingRestoreService,
     private readonly offsiteRestore: OffsiteRestoreService,
     private readonly wordpress: WordpressService,
@@ -113,6 +116,32 @@ export class UserServicesController {
   }
 
   // P-2 — diagnostyka dostarczalności poczty (SPF/DKIM/DMARC + RBL).
+  // PB-17 — dymki asystenta (reguły, bez AI).
+  @Get(':id/assistant-hints')
+  assistantHints(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.assistant.hints(id, user.userId);
+  }
+
+  // PB-17 — naprawa jednym kliknięciem (rekord w strefie DNS, więc trasa pod
+  // hosting-dns: subkonto potrzebuje DNS_MANAGE, nie tylko SERVICES_MANAGE).
+  @Post(':id/hosting-dns/assistant-fix')
+  assistantFix(
+    @CurrentUser() user: { userId: string; principalUserId?: string },
+    @Param('id') id: string,
+    @Body() body: NaprawaAsystentaDto,
+  ) {
+    return this.assistant.applyFix(id, user.userId, user.principalUserId ?? user.userId, body.key);
+  }
+
+  @Post(':id/hosting-dns/assistant-undo')
+  assistantUndo(
+    @CurrentUser() user: { userId: string; principalUserId?: string },
+    @Param('id') id: string,
+    @Body() body: CofniecieNaprawyDto,
+  ) {
+    return this.assistant.undoFix(id, user.userId, user.principalUserId ?? user.userId, body.undoId);
+  }
+
   @Get(':id/deliverability')
   deliverabilityFor(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
     return this.deliverability.forSubscription(id, user.userId);

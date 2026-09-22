@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { Bot, Loader2, MessageCircle, Send, Sparkles, X } from 'lucide-react';
 import type { AiChatMessageDto, AiChatSourceDto } from '@verris/contracts';
 import {
@@ -28,6 +29,8 @@ const GREETING: ChatMessage = {
 };
 
 export default function HostingAssistant() {
+  // PB-17 — na stronie usługi czat dostaje jej kontekst (dysk, SSL, domena, kopie).
+  const subscriptionId = /\/dashboard\/services\/([0-9a-f-]{36})/i.exec(usePathname() ?? '')?.[1] ?? null;
   const [open, setOpen] = useState(false);
   const [available, setAvailable] = useState<boolean | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([GREETING]);
@@ -58,7 +61,7 @@ export default function HostingAssistant() {
     setInput('');
     setLoading(true);
     try {
-      const res = await askHostingAssistantAction({ question, history });
+      const res = await askHostingAssistantAction({ question, history, subscriptionId });
       setMessages((prev) => [
         ...prev,
         { role: 'assistant', content: res.answer, sources: res.sources },

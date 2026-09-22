@@ -13,6 +13,8 @@ const LABELS: Record<string, string> = {
   HOSTING_EMAIL_DELETED: "Usunięto skrzynkę e-mail",
   HOSTING_EMAIL_PASSWORD_CHANGED: "Zmieniono hasło skrzynki e-mail",
   HOSTING_EMAIL_QUOTA_CHANGED: "Zmieniono rozmiar skrzynki e-mail",
+  ASSISTANT_FIX_APPLIED: "Asystent poprawił rekord DNS",
+  ASSISTANT_FIX_UNDONE: "Cofnięto poprawkę asystenta",
   HOSTING_CRON_CREATED: "Dodano zadanie cron",
   HOSTING_CRON_DELETED: "Usunięto zadanie cron",
   HOSTING_FILE_DELETED: "Usunięto plik",
