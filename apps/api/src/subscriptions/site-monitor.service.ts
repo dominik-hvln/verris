@@ -22,6 +22,7 @@ import { WalletLedgerService } from '../billing/wallet-ledger.service';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import * as tls from 'node:tls';
+import { resolvePublicHost } from './migration-net.util';
 import {
   siteDownTemplate,
   siteRecoveredTemplate,
@@ -793,17 +794,42 @@ export class SiteMonitorService {
   }
 }
 
+/**
+ * SEC-09 (druga warstwa) — adres monitora pochodzi z domeny klienta, a DNS tej
+ * domeny ustawia klient. Bez tej kontroli wystarczyło skierować domenę na
+ * 169.254.169.254 albo na adres z sieci Dockera, żeby nasz backend odpytał
+ * metadane serwera lub wewnętrzne usługi i zwrócił w panelu status HTTP.
+ * Zapora (VERRIS_FWD_METADANE) odcina metadane; ta kontrola odcina resztę
+ * sieci prywatnej i działa niezależnie od zapory.
+ */
+async function hostPubliczny(host: string): Promise<boolean> {
+  try {
+    await resolvePublicHost(host);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** HTTP probe: UP = any response with status < 500. */
-async function probeUrl(
+export async function probeUrl(
   url: string,
 ): Promise<{ up: boolean; httpStatus?: number; responseMs?: number; reason: string }> {
+  // ponytail: sprawdzenie DNS przed fetch, a fetch rozwiązuje nazwę ponownie
+  // (okno na DNS-rebinding). Metadane zamyka zapora; pełne przypięcie adresu
+  // wymaga własnego dispatchera undici — dodać, gdy undici wejdzie do zależności api.
+  if (!(await hostPubliczny(new URL(url).hostname))) {
+    return { up: false, reason: 'domena wskazuje na adres prywatny lub zastrzeżony — nie sprawdzamy' };
+  }
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), CHECK_TIMEOUT_MS);
   const startedAt = Date.now();
   try {
     const res = await fetch(url, {
       method: 'GET',
-      redirect: 'follow',
+      // Przekierowanie mogłoby zaprowadzić do sieci prywatnej za kontrolą
+      // powyżej. 3xx i tak znaczy UP (definicja wyżej: status < 500).
+      redirect: 'manual',
       signal: controller.signal,
       headers: { 'User-Agent': 'Verris-Monitor/1.0 (+https://verris.pl)' },
     });
@@ -830,7 +856,12 @@ async function probeUrl(
  * `rejectUnauthorized:false` — chcemy odczytać też certy wygasłe/samopodpisane,
  * by móc o nich ostrzec. Zwraca null przy błędzie/timeout (brak certu do oceny).
  */
-function probeTlsExpiry(domain: string): Promise<Date | null> {
+async function probeTlsExpiry(domain: string): Promise<Date | null> {
+  if (!(await hostPubliczny(domain))) return null;
+  return probeTlsExpiryRaw(domain);
+}
+
+function probeTlsExpiryRaw(domain: string): Promise<Date | null> {
   return new Promise((resolve) => {
     let settled = false;
     const done = (v: Date | null) => {
