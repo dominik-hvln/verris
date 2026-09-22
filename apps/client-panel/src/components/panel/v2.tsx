@@ -7,7 +7,7 @@
  * Dymek: atrybut `data-tip="tytuł\nszczegół"` + jeden <TipLayer/> w layoucie.
  */
 
-import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { cx } from './cx';
 
@@ -122,20 +122,32 @@ export function DualBars({
   bLabel: string;
   format?: (v: number) => string;
 }) {
-  const W = 640, H = 200, L = 44, R = 8, T = 12, B = 26;
+  // Rysujemy w pikselach kontenera (nie skalujemy viewBoxa), żeby tekst osi miał stałe 11 px.
+  const box = useRef<HTMLDivElement | null>(null);
+  const [W, setW] = useState(640);
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([e]) => e && setW(Math.max(280, Math.round(e.contentRect.width))));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const H = 200, L = 40, R = 4, T = 10, B = 24;
   const max = Math.max(1, ...a, ...b);
   const step = niceStep(max);
   const top = Math.ceil(max / step) * step;
   const bw = (W - L - R) / Math.max(1, labels.length);
+  const every = bw < 30 ? 3 : bw < 46 ? 2 : 1; // co który podpis miesiąca, żeby się nie nakładały
   const y = (v: number) => T + (H - T - B) * (1 - v / top);
   const ticks: number[] = [];
   for (let t = 0; t <= top + 1e-9; t += step) ticks.push(t);
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="v2-chart block h-auto w-full" role="img" aria-label={`${aLabel} i ${bLabel}`}>
+    <div ref={box} className="w-full">
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="v2-chart block" role="img" aria-label={`${aLabel} i ${bLabel}`}>
       {ticks.map((t) => (
         <g key={t}>
           <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="var(--line)" />
-          <text x={L - 8} y={y(t) + 4} textAnchor="end" fontSize="10.5" fill="var(--muted-foreground)" className="font-mono">
+          <text x={L - 8} y={y(t) + 4} textAnchor="end" fontSize="11" fill="var(--muted-foreground)" className="font-mono">
             {format(t)}
           </text>
         </g>
@@ -149,13 +161,16 @@ export function DualBars({
           <g key={m + i}>
             <rect tabIndex={0} x={x + 3} y={H - B - ha} width={w} height={ha} rx={1.5} fill="var(--data-soft)" data-tip={tip(format(a[i]!), `${aLabel} · ${m}`)} style={{ ['--v2-i' as string]: i * 2 }} />
             <rect tabIndex={0} x={x + 4 + w} y={H - B - hb} width={w} height={hb} rx={1.5} fill="var(--data)" data-tip={tip(format(b[i]!), `${bLabel} · ${m}`)} style={{ ['--v2-i' as string]: i * 2 + 1 }} />
-            <text x={x + bw / 2} y={H - 8} textAnchor="middle" fontSize="10.5" fill="var(--muted-foreground)" className="font-mono">
-              {m}
-            </text>
+            {i % every === (labels.length - 1) % every ? (
+              <text x={x + bw / 2} y={H - 7} textAnchor="middle" fontSize="11" fill="var(--muted-foreground)" className="font-mono">
+                {m}
+              </text>
+            ) : null}
           </g>
         );
       })}
     </svg>
+    </div>
   );
 }
 
