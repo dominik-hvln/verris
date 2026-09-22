@@ -136,6 +136,10 @@ Kierunek do przygotowania jako osobny projekt (makiety przed kodem):
   technologii — WordPress, PrestaShop, Laravel, statyczna, przekierowanie). Boczny pasek łączy menu
   globalne z kontekstem usługi (drzewo stron + sekcje konfiguracji); rzadkie pozycje w „Więcej”.
   Każda liczba i wykres ma dymek po najechaniu (także z klawiatury).
+- Charakter (uwagi właściciela do pulpitu): powitanie „Cześć, Imię!” na pulpicie; box użytkownika w lewym
+  dolnym rogu (ustawienia, bezpieczeństwo, zespół, powiadomienia, cookies, wyloguj); sekcja „Zdrowie usług”
+  (wynik 0–100 + punkty kontroli z dymkami); zostaje delikatna animowana „kometa” na krawędzi (nierówne tempo,
+  jak `spin-border-glow`) — tylko na jednym elemencie ekranu (dymek asystenta), wyłączana przy reduced-motion.
 - Wzorzec: ekran usługi hostingowej (artefakt prywatny „Verris — ekran usługi”). Po akceptacji
   przenosimy tokeny i komponenty do `apps/client-panel` i przerabiamy kolejne ekrany (PB-16).
 
