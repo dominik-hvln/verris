@@ -139,6 +139,26 @@ Kierunek do przygotowania jako osobny projekt (makiety przed kodem):
 - Wzorzec: ekran usługi hostingowej (artefakt prywatny „Verris — ekran usługi”). Po akceptacji
   przenosimy tokeny i komponenty do `apps/client-panel` i przerabiamy kolejne ekrany (PB-16).
 
+**Mapa: obecny panel klienta → nowy design (zasada: nic nie ginie).** PB-16 odhacza wiersz po wierszu.
+
+| Obecnie | Nowe miejsce |
+|---|---|
+| Pasek górny: WalletBadge, NotificationBell, ImpersonationBanner, IncidentBanner, ReConsentModal, wylogowanie, cookies | pasek górny (portfel z saldem, dzwonek, „/”, Prosty/Pełny, motyw); banery nad treścią bez zmian; wylogowanie i cookies w menu klienta |
+| Pulpit (StatCard, DashboardCharts, ServicesHealthOverview, QuickAction, OnboardingWizard, ProactiveHints) | „Pulpit” — wszystkie usługi: zdrowie, koszty, podpowiedzi asystenta, pierwsze kroki |
+| Usługi: lista, nowa usługa | „Usługi” (lista usług) + kreator zamówienia |
+| Usługa hostingowa — Przegląd (gauges, HealthCheck, FirstSteps, DomainPointing, Forecast, uptime, UnpaidServiceBanner) | widok usługi: pasek liczb z dymkami, tabela stron, asystent; prognoza → dymek przy dysku/CPU; baner zaległości nad nagłówkiem |
+| Karta „Dane dostępowe / Adresy serwera i limity” (ServiceConnectionCard, AccountStatsCard) | box „Dane dostępowe” + „Zasoby konta” |
+| Subskrypcja (plan, historia rozliczeń, zmiana planu `/plan`, rezygnacja na koniec okresu / od razu) | box „Płatności za usługę” + sekcja „Subskrypcja i płatności” |
+| Autoskalowanie (włącz/wyłącz, CPU/RAM/dysk, limit miesięczny, bezpiecznik, historia kosztów), tryb EKO i raport energii | box „Autoskalowanie” (przełącznik, bezpiecznik, wydane, prognoza, saldo) + sekcja „Autoskalowanie i EKO” |
+| Zakładki usługi: Domeny & DNS, SSL, Pliki, Bazy, Poczta (+MailExtras), FTP, Cron, PHP, Aplikacje, Narzędzia WWW (przekierowania, HTTPS/www, hotlink, blokada IP, Basic Auth), Kopie (harmonogram, offsite, przywracanie), WAF, Monitoring, Staging, Deploy (Git), Usage, Subdomeny, Domeny dodatkowe | sekcje usługi w bocznym pasku (poziom konta) + zakładki widoku strony (poziom domeny): DNS, SSL, Pliki, Baza, Poczta, PHP, Przekierowania (= Narzędzia WWW), Logi; Staging/Deploy per strona |
+| Osobne strony `/dashboard/{dns,databases,ssl,ftp,cron,php,apps,backups,email,file-manager}` | te same sekcje w kontekście usługi (stare adresy przekierowują) |
+| Domeny: lista, szczegóły, zakup, dane rejestrującego | „Domeny” w menu globalnym |
+| Płatności: portfel (doładowanie, odświeżanie salda), faktury, dodatki rozliczeniowe | „Płatności” w menu globalnym; skrót z paska górnego |
+| Centrum pomocy (lista, nowe, wątek), Baza wiedzy | „Centrum pomocy” (globalnie); baza wiedzy w „Więcej” i w podpowiedziach |
+| Migracje, Dodatki, VPS/Cloud, Reseller, Kalkulator, Program EKO, Partnerski, IAM, E-mail marketing, Analityka, API, Ustawienia | „Więcej” w bocznym pasku (IAM i ustawienia też w menu klienta) |
+| HostingAssistant (dymek), SiteBuilder (ukryty) | asystent v1 (PB-17); kreator stron zostaje ukryty |
+| Ekrany bez logowania: logowanie, rejestracja, reset hasła, weryfikacje, zaproszenie, dokumenty prawne | ten sam system wizualny, bez zmian w działaniu |
+
 ### 3.4 System ticketowy (panel staff) — wymagania na później
 
 - **Automatyczne odpowiedzi na typowe przypadki:** klasyfikacja zgłoszenia (DNS, SSL, poczta,
