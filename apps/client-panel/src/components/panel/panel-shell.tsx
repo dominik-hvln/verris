@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react';
-import { SpinBorder } from '@/components/spin-border';
 import { cx } from './cx';
 
-/** Spójna karta panelu klienta (emerald / dark). */
+/** Karta panelu wg wzorca: cienka linia, powierzchnia `card`, promień 10 px. `spinBorder` = obwód jak na pulpicie. */
 export function PanelCard({
   children,
   className,
@@ -14,20 +13,12 @@ export function PanelCard({
   accent?: boolean;
   spinBorder?: boolean;
 }) {
-  if (spinBorder) {
-    return (
-      <div className={cx('relative overflow-hidden rounded-[24px] p-px', className)}>
-        <SpinBorder variant="emerald" className="opacity-25" />
-        <div className="relative z-10 rounded-[calc(24px-1px)] bg-[#0a0a0a]">{children}</div>
-      </div>
-    );
-  }
-
   return (
     <div
       className={cx(
-        'rounded-2xl border bg-[#0a0a0a]/80 p-6',
-        accent ? 'border-emerald-500/25 bg-emerald-500/[0.04]' : 'border-white/10',
+        'rounded-[10px] border bg-card p-5',
+        accent ? 'border-primary/30' : 'border-line',
+        spinBorder && 'v2-comet',
         className,
       )}
     >
@@ -39,23 +30,20 @@ export function PanelCard({
 export function PanelPageHeader({
   title,
   description,
-  icon,
   className,
 }: {
   title: string;
   description?: string;
+  /** Zachowane dla zgodności — wzorzec nie pokazuje ikon w nagłówku strony. */
   icon?: ReactNode;
   className?: string;
 }) {
   return (
     <header className={cx('space-y-2', className)}>
-      <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight text-white sm:text-3xl">
-        {icon}
+      <h1 className="m-0 font-display text-[clamp(28px,4vw,40px)] font-extrabold leading-none tracking-[-0.03em] text-foreground">
         {title}
       </h1>
-      {description ? (
-        <p className="max-w-2xl text-sm text-muted-foreground md:text-base">{description}</p>
-      ) : null}
+      {description ? <p className="max-w-[60ch] text-[13.5px] text-muted-foreground">{description}</p> : null}
     </header>
   );
 }

@@ -44,7 +44,8 @@ export function ServiceNav({ serviceId, name, domainsCount }: { serviceId: strin
     if (kind !== 'HOSTING') return;
     let off = false;
     fetchHostingDomainsAction(serviceId)
-      .then((r) => !off && setDomains(r.domains.map((d) => d.name)))
+      // Gdy węzeł nie odpowiada, lista bywa pusta — domena główna i tak jest znana z bazy.
+      .then((r) => !off && setDomains(r.domains.length ? r.domains.map((d) => d.name) : r.primaryDomain ? [r.primaryDomain] : []))
       .catch(() => undefined);
     return () => {
       off = true;

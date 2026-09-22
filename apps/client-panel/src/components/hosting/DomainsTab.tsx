@@ -1,7 +1,8 @@
 'use client';
 
+import Link from 'next/link';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Globe, RefreshCw, AlertCircle, CheckCircle2, Loader2, ExternalLink } from 'lucide-react';
+import { Globe, RefreshCw, AlertCircle, Loader2, ExternalLink } from 'lucide-react';
 import { Button } from '@verris/ui';
 import { fetchHostingDomainsAction } from '@/app/dashboard/services/[id]/hosting-domains-action';
 import { HostingTabShell, DaExternalLink } from '@/components/hosting/HostingTabShell';
@@ -57,8 +58,8 @@ export default function DomainsTab({ serviceId }: Props) {
 
   return (
     <HostingTabShell
-      title="Domeny na koncie"
-      description="Lista domen przypisanych do usługi."
+      title="Domeny i DNS"
+      description="Każda domena ma własny widok strony: DNS, SSL, pliki, poczta i PHP."
       icon={<Globe className="h-4 w-4" />}
       help={{
         blurb:
@@ -131,20 +132,13 @@ export default function DomainsTab({ serviceId }: Props) {
                 key: 'name',
                 header: 'Domena',
                 cell: (d) => {
-                  const primary =
-                    primaryDomain && d.name.toLowerCase() === primaryDomain.toLowerCase();
                   return (
-                    <div className="flex min-w-0 items-center gap-2 font-medium text-white">
-                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                    <Link href={`/dashboard/services/${serviceId}/sites/${encodeURIComponent(d.name)}`} className="flex min-w-0 items-center gap-2 font-semibold text-foreground hover:text-primary">
+                      <span className="v2-breathe h-[7px] w-[7px] shrink-0 rounded-full bg-data" />
                       <span className="truncate" title={d.name}>
                         {d.name}
                       </span>
-                      {primary ? (
-                        <span className="shrink-0 rounded border border-cyan-500/30 bg-cyan-500/15 px-2 py-0.5 text-[10px] text-cyan-200">
-                          Główna
-                        </span>
-                      ) : null}
-                    </div>
+                    </Link>
                   );
                 },
               },
@@ -154,11 +148,7 @@ export default function DomainsTab({ serviceId }: Props) {
                 cell: (d) => {
                   const primary =
                     primaryDomain && d.name.toLowerCase() === primaryDomain.toLowerCase();
-                  return primary ? (
-                    <span className="text-[10px] text-cyan-200">Główna</span>
-                  ) : (
-                    <span className="text-[10px] text-neutral-500">Dodatkowa</span>
-                  );
+                  return <span className="text-[13px] text-muted-foreground">{primary ? 'domena główna' : 'domena dodatkowa'}</span>;
                 },
               },
               {
@@ -166,51 +156,27 @@ export default function DomainsTab({ serviceId }: Props) {
                 header: 'Akcje',
                 headerClassName: 'text-right',
                 cellClassName: 'text-right',
-                cell: (d) => {
-                  const primary =
-                    primaryDomain && d.name.toLowerCase() === primaryDomain.toLowerCase();
-                  const dnsLink = links.dnsUrl && primary ? links.dnsUrl : null;
-                  return dnsLink ? (
-                    <a
-                      href={dnsLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-neutral-300 hover:text-white"
-                    >
-                      DNS →
-                    </a>
-                  ) : (
-                    <span className="text-xs text-neutral-600">—</span>
-                  );
-                },
+                cell: (d) => (
+                  <Link href={`/dashboard/services/${serviceId}/sites/${encodeURIComponent(d.name)}`} className="text-[13px] text-muted-foreground hover:text-primary">
+                    Otwórz stronę →
+                  </Link>
+                ),
               },
             ]}
             renderMobileCard={(d) => {
               const primary =
                 primaryDomain && d.name.toLowerCase() === primaryDomain.toLowerCase();
-              const dnsLink = links.dnsUrl && primary ? links.dnsUrl : null;
               return (
-                <div className="flex items-start justify-between gap-3 rounded-xl border border-white/5 bg-[#050505] p-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex min-w-0 items-start gap-2">
-                      <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400" />
-                      <span className="break-all text-sm font-medium text-white">{d.name}</span>
-                    </div>
-                    <p className="mt-1 text-[11px] text-neutral-500">
-                      {primary ? 'Domena główna' : 'Dodatkowa'}
-                    </p>
-                  </div>
-                  {dnsLink ? (
-                    <a
-                      href={dnsLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="shrink-0 text-xs font-medium text-neutral-300 hover:text-white"
-                    >
-                      DNS →
-                    </a>
-                  ) : null}
-                </div>
+                <Link
+                  href={`/dashboard/services/${serviceId}/sites/${encodeURIComponent(d.name)}`}
+                  className="flex items-center justify-between gap-3 rounded-[10px] border border-line bg-card px-4 py-3"
+                >
+                  <span className="min-w-0">
+                    <b className="block break-all text-sm font-semibold text-foreground">{d.name}</b>
+                    <small className="text-[12.5px] text-muted-foreground">{primary ? 'domena główna' : 'domena dodatkowa'}</small>
+                  </span>
+                  <span className="shrink-0 text-muted-foreground">→</span>
+                </Link>
               );
             }}
           />

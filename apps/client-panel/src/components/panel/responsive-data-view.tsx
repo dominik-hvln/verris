@@ -37,12 +37,12 @@ export function ResponsiveDataView<T>({
           <div key={rowKey(row)}>{renderMobileCard(row)}</div>
         ))}
       </div>
-      <div className={cx('hidden md:block overflow-x-auto', tableClassName)}>
+      <div className={cx('hidden overflow-x-auto rounded-[10px] border border-line bg-card md:block', tableClassName)}>
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-muted-foreground border-b border-white/10">
+            <tr className="text-left">
               {columns.map((col) => (
-                <th key={col.key} className={cx('py-2 pr-4 font-semibold', col.headerClassName)}>
+                <th key={col.key} className={cx('whitespace-nowrap px-3 pb-2.5 pt-3 font-mono text-[11px] font-medium uppercase tracking-[0.07em] text-muted-foreground', col.headerClassName)}>
                   {col.header}
                 </th>
               ))}
@@ -50,9 +50,9 @@ export function ResponsiveDataView<T>({
           </thead>
           <tbody>
             {rows.map((row) => (
-              <tr key={rowKey(row)} className="border-b border-white/5">
+              <tr key={rowKey(row)} className="hover:bg-raised/40">
                 {columns.map((col) => (
-                  <td key={col.key} className={cx('py-2 pr-4', col.cellClassName)}>
+                  <td key={col.key} className={cx('border-t border-line px-3 py-[11px] align-middle text-verris-body', col.cellClassName)}>
                     {col.cell(row)}
                   </td>
                 ))}

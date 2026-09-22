@@ -54,10 +54,11 @@ const BTN_SM = 'px-2.5 py-[5px] text-[13px]';
 const TH = 'px-3 pb-2.5 pt-3 text-left font-mono text-[11px] font-medium uppercase tracking-[0.07em] text-muted-foreground whitespace-nowrap';
 const TD = 'border-t border-line px-3 py-[11px] align-middle text-verris-body';
 
-type Loaded<T> = T | null | 'error';
+/** undefined = wczytywanie; 'error' = wyjątek. Akcje zwracające null przy błędzie dają null = brak danych. */
+type Loaded<T> = T | undefined | 'error';
 
 function useLoad<T>(fn: () => Promise<T>, deps: unknown[]): [Loaded<T>, () => void] {
-  const [v, setV] = useState<Loaded<T>>(null);
+  const [v, setV] = useState<Loaded<T>>(undefined);
   const [n, setN] = useState(0);
   useEffect(() => {
     let off = false;
@@ -71,7 +72,7 @@ function useLoad<T>(fn: () => Promise<T>, deps: unknown[]): [Loaded<T>, () => vo
   }, [...deps, n]);
   return [v, () => setN((x) => x + 1)];
 }
-const ok = <T,>(v: Loaded<T>): T | null => (v === 'error' ? null : v);
+const ok = <T,>(v: Loaded<T>): T | null => (v === 'error' || v === undefined ? null : v);
 
 function fmtDate(iso: string): string {
   return new Date(iso).toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
@@ -236,7 +237,7 @@ export default function SitePage() {
                   <span>
                     {monitor
                       ? monitor.lastCheckedAt
-                        ? `sprawdzono ${fmtDate(monitor.lastCheckedAt)} · dostępność ${monitor.uptime?.pct ?? "—"}%`
+                        ? `sprawdzono ${fmtDate(monitor.lastCheckedAt)}${monitor.uptime ? ` · dostępność ${Number(monitor.uptime.pct).toLocaleString('pl-PL', { maximumFractionDigits: 2 })}%` : ''}`
                         : 'pierwszy pomiar w toku'
                       : ok(mon)
                         ? `monitoring obejmuje ${ok(mon)?.domain}`
@@ -246,7 +247,7 @@ export default function SitePage() {
               />
               <Kpi
                 label="Certyfikat SSL"
-                value={sslRow?.daysLeft != null ? sslRow.daysLeft : ssl === null ? '…' : '—'}
+                value={sslRow?.daysLeft != null ? sslRow.daysLeft : ssl === undefined ? '…' : '—'}
                 unit={sslRow?.daysLeft != null ? 'dni' : undefined}
                 foot={<span>{sslRow ? (sslRow.status === 'NONE' ? 'brak certyfikatu' : sslRow.isLetsEncrypt ? 'Let’s Encrypt · odnawia się sam' : sslRow.issuer) : 'brak danych'}</span>}
               >
@@ -256,12 +257,12 @@ export default function SitePage() {
               </Kpi>
               <Kpi
                 label="Wersja PHP"
-                value={ok(php)?.currentVersion ?? (php === null ? '…' : '—')}
+                value={ok(php)?.currentVersion ?? (php === undefined ? '…' : '—')}
                 foot={<span>{ok(php)?.slotReleases.length ? `dostępne: ${ok(php)?.slotReleases.join(', ')}` : 'ustawienie per domena'}</span>}
               />
               <Kpi
                 label="Poczta w domenie"
-                value={mail === null ? '…' : ok(mail) ? boxes.length : '—'}
+                value={mail === undefined ? '…' : ok(mail) ? boxes.length : '—'}
                 unit={ok(mail) ? (boxes.length === 1 ? 'skrzynka' : 'skrzynek') : undefined}
                 foot={<span>{boxes.length ? boxes.slice(0, 2).map((b) => b.email.split('@')[0]).join(', ') : 'brak skrzynek'}</span>}
               />
@@ -351,11 +352,11 @@ export default function SitePage() {
           <section>
             <SectionHead title={`Rekordy DNS · ${domain}`} desc="Zmiany działają zwykle w kilka minut." />
             {ok(dns)?.fetchError ? <p className="mb-3 text-[13.5px] text-warn">Nie udało się odczytać strefy — spróbuj za chwilę.</p> : null}
-            {dns === null ? <Loading /> : <DnsManager serviceId={serviceId} domain={domain} records={records} onChanged={reloadDns} />}
+            {dns === undefined ? <Loading /> : <DnsManager serviceId={serviceId} domain={domain} records={records} onChanged={reloadDns} />}
           </section>
         ) : null}
 
-        {tab === 'ssl' ? <SslSection serviceId={serviceId} domain={domain} row={sslRow} loading={ssl === null} onChanged={reloadSsl} simple={simple} /> : null}
+        {tab === 'ssl' ? <SslSection serviceId={serviceId} domain={domain} row={sslRow} loading={ssl === undefined} onChanged={reloadSsl} simple={simple} /> : null}
 
         {tab === 'files' ? (
           <section>
@@ -381,7 +382,7 @@ export default function SitePage() {
                 </Link>
               }
             />
-            {mail === null ? (
+            {mail === undefined ? (
               <Loading />
             ) : boxes.length === 0 ? (
               <p className="m-0 rounded-[10px] border border-line bg-card px-4 py-[22px] text-sm text-muted-foreground">W tej domenie nie ma skrzynek.</p>
@@ -410,7 +411,7 @@ export default function SitePage() {
           </section>
         ) : null}
 
-        {tab === 'php' ? <PhpSection serviceId={serviceId} domain={domain} php={ok(php)} loading={php === null} onChanged={reloadPhp} /> : null}
+        {tab === 'php' ? <PhpSection serviceId={serviceId} domain={domain} php={ok(php)} loading={php === undefined} onChanged={reloadPhp} /> : null}
 
         {tab === 'redirects' ? (
           <section>

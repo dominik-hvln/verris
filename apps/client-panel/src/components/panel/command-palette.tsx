@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { Search } from 'lucide-react';
 
@@ -77,9 +78,12 @@ export function CommandPalette({ items }: { items: PaletteItem[] }) {
         <span className="hidden flex-1 truncate sm:inline">Szukaj lub zrób coś…</span>
         <kbd className="hidden rounded border border-b-2 border-line-strong bg-raised px-1.5 font-mono text-[11px] text-foreground sm:inline">/</kbd>
       </button>
-      {open ? (
+      {/* Portal: pasek górny ma backdrop-blur, który zamyka `fixed` w swoim obrysie.
+          Cel = kolumna treści (dziedziczy motyw), awaryjnie body. */}
+      {open ? createPortal(
         <div
-          className="fixed inset-0 z-[90] flex items-start justify-center bg-black/55 px-4 pt-[12vh]"
+          className="fixed inset-0 z-[90] flex items-start justify-center px-4 pt-[14vh] backdrop-blur-[2px]"
+          style={{ background: 'rgba(4, 10, 7, 0.55)' }}
           onMouseDown={(e) => e.target === e.currentTarget && setOpen(false)}
         >
           <div role="dialog" aria-label="Szukaj lub zrób coś" className="w-full max-w-[560px] overflow-hidden rounded-xl border border-line-strong bg-card shadow-[0_30px_80px_-30px_rgba(0,0,0,0.6)]">
@@ -119,7 +123,8 @@ export function CommandPalette({ items }: { items: PaletteItem[] }) {
               ))}
             </ul>
           </div>
-        </div>
+        </div>,
+        document.querySelector('.v2-content') ?? document.body,
       ) : null}
     </>
   );

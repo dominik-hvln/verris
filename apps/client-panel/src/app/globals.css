@@ -610,55 +610,131 @@ select optgroup {
 .v2-skin .text-neutral-500,
 .v2-skin .text-neutral-600 { color: var(--muted-foreground); }
 
-.v2-skin .text-emerald-200,
-.v2-skin .text-emerald-300,
-.v2-skin .text-emerald-400,
-.v2-skin .text-sky-200,
-.v2-skin .text-sky-300,
-.v2-skin .text-violet-200,
-.v2-skin .text-violet-300,
-.v2-skin .text-indigo-300 { color: var(--data-hi); }
-.v2-skin .bg-emerald-400\/10,
-.v2-skin .bg-emerald-500\/10,
-.v2-skin .bg-sky-400\/10,
-.v2-skin .bg-violet-400\/\[0\.06\],
-.v2-skin .bg-violet-500\/10 { background-color: var(--data-soft); }
-.v2-skin .border-emerald-400\/30,
-.v2-skin .border-emerald-500\/30,
-.v2-skin .border-sky-400\/30,
-.v2-skin .border-violet-400\/20,
-.v2-skin .border-amber-400\/30,
-.v2-skin .border-amber-500\/25,
-.v2-skin .border-amber-500\/30,
-.v2-skin .border-rose-400\/30,
-.v2-skin .border-rose-500\/30 { border-color: transparent; }
-
-.v2-skin .text-amber-100,
-.v2-skin .text-amber-200,
-.v2-skin .text-amber-300,
-.v2-skin .text-amber-300\/80 { color: var(--warn); }
-.v2-skin .bg-amber-400\/10,
-.v2-skin .bg-amber-500\/10 { background-color: var(--warn-soft); }
-
-.v2-skin .text-rose-100,
-.v2-skin .text-rose-200,
-.v2-skin .text-rose-300,
-.v2-skin .text-rose-400 { color: var(--crit); }
-.v2-skin .bg-rose-400\/10,
-.v2-skin .bg-rose-500\/10 { background-color: color-mix(in srgb, var(--crit) 12%, transparent); }
+/* Kolory nazwane (emerald, amber, rose, cyan, violet…) → trzy tony wzorca.
+   Selektor „[class*=" bg-x-"]" łapie klasę bazową, a nie wariant (hover:bg-x-…). */
+.v2-skin [class^="text-emerald-"],
+.v2-skin [class*=" text-emerald-"],
+.v2-skin [class^="text-green-"],
+.v2-skin [class*=" text-green-"],
+.v2-skin [class^="text-teal-"],
+.v2-skin [class*=" text-teal-"],
+.v2-skin [class^="text-cyan-"],
+.v2-skin [class*=" text-cyan-"],
+.v2-skin [class^="text-sky-"],
+.v2-skin [class*=" text-sky-"],
+.v2-skin [class^="text-blue-"],
+.v2-skin [class*=" text-blue-"],
+.v2-skin [class^="text-indigo-"],
+.v2-skin [class*=" text-indigo-"],
+.v2-skin [class^="text-violet-"],
+.v2-skin [class*=" text-violet-"],
+.v2-skin [class^="text-purple-"],
+.v2-skin [class*=" text-purple-"],
+.v2-skin [class^="text-fuchsia-"],
+.v2-skin [class*=" text-fuchsia-"] { color: var(--data-hi); }
+.v2-skin [class^="text-amber-"],
+.v2-skin [class*=" text-amber-"],
+.v2-skin [class^="text-yellow-"],
+.v2-skin [class*=" text-yellow-"],
+.v2-skin [class^="text-orange-"],
+.v2-skin [class*=" text-orange-"] { color: var(--warn); }
+.v2-skin [class^="text-rose-"],
+.v2-skin [class*=" text-rose-"],
+.v2-skin [class^="text-red-"],
+.v2-skin [class*=" text-red-"],
+.v2-skin [class^="text-pink-"],
+.v2-skin [class*=" text-pink-"] { color: var(--crit); }
+.v2-skin [class^="bg-emerald-"],
+.v2-skin [class*=" bg-emerald-"],
+.v2-skin [class^="bg-green-"],
+.v2-skin [class*=" bg-green-"],
+.v2-skin [class^="bg-teal-"],
+.v2-skin [class*=" bg-teal-"],
+.v2-skin [class^="bg-cyan-"],
+.v2-skin [class*=" bg-cyan-"],
+.v2-skin [class^="bg-sky-"],
+.v2-skin [class*=" bg-sky-"],
+.v2-skin [class^="bg-blue-"],
+.v2-skin [class*=" bg-blue-"],
+.v2-skin [class^="bg-indigo-"],
+.v2-skin [class*=" bg-indigo-"],
+.v2-skin [class^="bg-violet-"],
+.v2-skin [class*=" bg-violet-"],
+.v2-skin [class^="bg-purple-"],
+.v2-skin [class*=" bg-purple-"],
+.v2-skin [class^="bg-fuchsia-"],
+.v2-skin [class*=" bg-fuchsia-"] { background-color: var(--data-soft); }
+.v2-skin [class^="bg-amber-"],
+.v2-skin [class*=" bg-amber-"],
+.v2-skin [class^="bg-yellow-"],
+.v2-skin [class*=" bg-yellow-"],
+.v2-skin [class^="bg-orange-"],
+.v2-skin [class*=" bg-orange-"] { background-color: var(--warn-soft); }
+.v2-skin [class^="bg-rose-"],
+.v2-skin [class*=" bg-rose-"],
+.v2-skin [class^="bg-red-"],
+.v2-skin [class*=" bg-red-"],
+.v2-skin [class^="bg-pink-"],
+.v2-skin [class*=" bg-pink-"] { background-color: color-mix(in srgb, var(--crit) 12%, transparent); }
+.v2-skin [class^="border-emerald-"],
+.v2-skin [class*=" border-emerald-"],
+.v2-skin [class^="border-green-"],
+.v2-skin [class*=" border-green-"],
+.v2-skin [class^="border-teal-"],
+.v2-skin [class*=" border-teal-"],
+.v2-skin [class^="border-cyan-"],
+.v2-skin [class*=" border-cyan-"],
+.v2-skin [class^="border-sky-"],
+.v2-skin [class*=" border-sky-"],
+.v2-skin [class^="border-blue-"],
+.v2-skin [class*=" border-blue-"],
+.v2-skin [class^="border-indigo-"],
+.v2-skin [class*=" border-indigo-"],
+.v2-skin [class^="border-violet-"],
+.v2-skin [class*=" border-violet-"],
+.v2-skin [class^="border-purple-"],
+.v2-skin [class*=" border-purple-"],
+.v2-skin [class^="border-fuchsia-"],
+.v2-skin [class*=" border-fuchsia-"] { border-color: color-mix(in srgb, var(--data) 28%, transparent); }
+.v2-skin [class^="border-amber-"],
+.v2-skin [class*=" border-amber-"],
+.v2-skin [class^="border-yellow-"],
+.v2-skin [class*=" border-yellow-"],
+.v2-skin [class^="border-orange-"],
+.v2-skin [class*=" border-orange-"] { border-color: color-mix(in srgb, var(--warn) 30%, transparent); }
+.v2-skin [class^="border-rose-"],
+.v2-skin [class*=" border-rose-"],
+.v2-skin [class^="border-red-"],
+.v2-skin [class*=" border-red-"],
+.v2-skin [class^="border-pink-"],
+.v2-skin [class*=" border-pink-"] { border-color: color-mix(in srgb, var(--crit) 30%, transparent); }
+/* kropki statusu (pełne tło, bez przezroczystości) */
+.v2-skin .bg-emerald-400,
+.v2-skin .bg-green-500,
+.v2-skin .bg-cyan-400 { background-color: var(--data); }
+.v2-skin .bg-amber-400 { background-color: var(--warn); }
+.v2-skin .bg-rose-400,
+.v2-skin .bg-red-500 { background-color: var(--crit); }
 
 /* główny przycisk = akcent wzorca */
 .v2-skin .bg-emerald-600,
 .v2-skin .bg-emerald-500,
+.v2-skin .bg-emerald-700,
+.v2-skin .bg-cyan-600,
+.v2-skin .bg-indigo-600,
+.v2-skin .bg-violet-600,
 .v2-skin .bg-white {
-  background-color: var(--accent);
-  color: var(--accent-foreground);
+  background-color: var(--primary);
+  color: var(--primary-foreground);
   font-weight: 600;
 }
 .v2-skin .bg-emerald-600 .text-white,
 .v2-skin .bg-emerald-600.text-white,
+.v2-skin .bg-cyan-600.text-white,
+.v2-skin .bg-indigo-600.text-white,
+.v2-skin .bg-emerald-700.text-white,
 .v2-skin .bg-emerald-500.text-white,
-.v2-skin .bg-white.text-black { color: var(--accent-foreground); }
+.v2-skin .bg-white.text-black { color: var(--primary-foreground); }
 
 /* hovery/focusy (muszą być jawnie — powyższe reguły są poza warstwą) */
 .v2-skin .hover\:bg-white\/5:hover,
@@ -666,7 +742,7 @@ select optgroup {
 .v2-skin .hover\:bg-white\/\[0\.04\]:hover { background-color: var(--raised); }
 .v2-skin .hover\:text-white:hover { color: var(--foreground); }
 .v2-skin .hover\:bg-emerald-500:hover,
-.v2-skin .hover\:bg-neutral-200:hover { background-color: var(--data-hi); color: var(--accent-foreground); }
+.v2-skin .hover\:bg-neutral-200:hover { background-color: var(--data-hi); color: var(--primary-foreground); }
 .v2-skin .hover\:bg-rose-500\/10:hover { background-color: color-mix(in srgb, var(--crit) 12%, transparent); }
 .v2-skin .hover\:text-rose-300:hover { color: var(--crit); }
 .v2-skin .focus\:border-white\/30:focus { border-color: var(--data); }
