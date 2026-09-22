@@ -1,13 +1,7 @@
 import Link from 'next/link';
-import {
-  ArrowLeft,
-  AlertCircle,
-  Calculator,
-  Cpu,
-  Gauge,
-  HardDrive,
-  MemoryStick,
-} from 'lucide-react';
+import { ArrowLeft, AlertCircle, Calculator } from 'lucide-react';
+import { PanelPageHeader } from '@/components/panel';
+import { Kpi, KpiStrip, Meter } from '@/components/panel/v2';
 import { getAutoscalingHistory, getEcoReport, getServiceDetails, getUserEcoPoints } from './data';
 import { AutoscalingForm } from './form';
 import { AutoscalingTimeline } from './timeline';
@@ -53,165 +47,102 @@ export default async function AutoscalingPage({
   const service = serviceResult.data;
   const history = historyResult.ok ? historyResult.data : null;
 
+  const spend = Number.parseFloat(history?.last30dSpend ?? '0');
+  const cap = Number(service.autoscalingMaxCost);
+  const currency = history?.currency ?? service.currency;
+  const capPct = cap > 0 ? Math.min(100, (spend / cap) * 100) : 0;
+  const acc = service.account;
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-300">
-      <div className="flex items-center gap-4">
-        <Link
-          href={`/dashboard/services/${id}`}
-          className="p-3 border border-white/5 rounded-2xl bg-[#0a0a0a] hover:bg-[#121212] transition-colors text-neutral-400 hover:text-white"
-        >
-          <ArrowLeft className="h-5 w-5" />
+    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
+      <div className="flex min-w-0 flex-wrap items-center gap-2 text-[13.5px] text-muted-foreground">
+        <Link href="/dashboard/services" className="inline-flex items-center gap-1.5 rounded px-1 py-0.5 hover:bg-raised hover:text-foreground">
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Usługi
         </Link>
-        <div>
-          <h1 className="text-3xl md:text-4xl font-extrabold text-white flex items-center gap-3">
-            <Gauge className="w-8 h-8 text-emerald-400" />
-            Autoskalowanie
-          </h1>
-          <p className="text-neutral-400 mt-2 text-md">
-            Plan <span className="text-white font-semibold">{service.plan.name}</span>
-            {service.account?.domain && (
-              <>
-                {' '}
-                · domena{' '}
-                <span className="text-white font-mono">{service.account.domain}</span>
-              </>
-            )}
-          </p>
-        </div>
+        <span aria-hidden>/</span>
+        <Link href={`/dashboard/services/${id}`} className="rounded px-1 py-0.5 hover:bg-raised hover:text-foreground">
+          {service.plan.name}
+        </Link>
+        <span aria-hidden>/</span>
+        <b className="font-semibold text-foreground">Autoskalowanie i EKO</b>
       </div>
 
-      <EcoModeCard
-        subscriptionId={service.id}
-        ecoModeEnabled={service.ecoModeEnabled}
-        ecoPoints={ecoPoints}
+      <PanelPageHeader
+        title="Autoskalowanie i EKO"
+        description={`Gdy strona potrzebuje więcej mocy, dokładamy zasoby ponad plan i naliczamy je z portfela — nigdy powyżej bezpiecznika.${acc?.domain ? ` Konto: ${acc.domain}.` : ''}`}
       />
 
-      <EcoReportCard report={ecoReport} />
+      <KpiStrip>
+        {acc ? (
+          <>
+            <Kpi
+              label="CPU teraz"
+              value={acc.cpuLimit}
+              unit="%"
+              foot={<span>plan {service.plan.cpuLimit}%{acc.scaledCpu > 0 ? ` · +${acc.scaledCpu}% z autoskalowania` : ''}</span>}
+            />
+            <Kpi
+              label="RAM teraz"
+              value={formatMbAsGb(acc.ramLimitMb)}
+              foot={<span>plan {formatMbAsGb(service.plan.ramLimitMb)}{acc.scaledRamMb > 0 ? ` · +${formatMbAsGb(acc.scaledRamMb)}` : ''}</span>}
+            />
+            <Kpi
+              label="Dysk teraz"
+              value={formatMbAsGb(acc.diskLimitMb)}
+              foot={<span>plan {formatMbAsGb(service.plan.diskLimitMb)}{acc.scaledDiskMb > 0 ? ` · +${formatMbAsGb(acc.scaledDiskMb)}` : ''}</span>}
+            />
+          </>
+        ) : null}
+        <Kpi
+          label="Koszt · 30 dni"
+          value={spend.toLocaleString('pl-PL', { minimumFractionDigits: 2 })}
+          unit={currency === 'PLN' ? 'zł' : currency}
+          foot={<span>{cap > 0 ? `bezpiecznik ${cap.toLocaleString('pl-PL', { minimumFractionDigits: 2 })} zł / 30 dni` : service.autoscalingEnabled ? 'bez bezpiecznika' : 'autoskalowanie wyłączone'}</span>}
+        >
+          {cap > 0 ? <Meter pct={capPct} tone={capPct >= 90 ? 'warn' : 'data'} tipText={`${Math.round(capPct)}% bezpiecznika\n${spend.toFixed(2)} z ${cap.toFixed(2)} zł`} /> : null}
+        </Kpi>
+      </KpiStrip>
 
-      {service.account ? (
-        <>
-          <CurrentLimitsCard plan={service.plan} account={service.account} />
-          <div className="flex justify-end">
-            <Link
-              href={calculatorPrefillHref(service.account)}
-              className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/30 bg-emerald-400/10 px-4 py-2.5 text-sm font-semibold text-emerald-200 hover:bg-emerald-400/20 transition-colors"
-            >
-              <Calculator className="h-4 w-4" />
-              Szacuj koszt z aktualnej delty
-            </Link>
-          </div>
-        </>
-      ) : null}
-
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.4fr] gap-6">
-        <AutoscalingForm
-          subscriptionId={service.id}
-          enabled={service.autoscalingEnabled}
-          maxMonthlyCost={Number(service.autoscalingMaxCost)}
-          scaleCpu={service.autoscalingScaleCpu ?? true}
-          scaleRam={service.autoscalingScaleRam ?? true}
-          scaleDisk={service.autoscalingScaleDisk ?? true}
-        />
-
-        <SpendCard
-          last30dSpend={history?.last30dSpend ?? '0.00'}
-          currency={history?.currency ?? service.currency}
-          maxCap={Number(service.autoscalingMaxCost)}
-          enabled={service.autoscalingEnabled}
-        />
-      </div>
-
-      {historyResult.ok ? (
-        <AutoscalingTimeline events={history!.events} charges={history!.charges} />
-      ) : (
-        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-100">
-          Nie udało się pobrać historii autoskalowania: {historyResult.error}
+      <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
+        <div className="flex min-w-0 flex-col gap-6">
+          <AutoscalingForm
+            subscriptionId={service.id}
+            enabled={service.autoscalingEnabled}
+            maxMonthlyCost={Number(service.autoscalingMaxCost)}
+            scaleCpu={service.autoscalingScaleCpu ?? true}
+            scaleRam={service.autoscalingScaleRam ?? true}
+            scaleDisk={service.autoscalingScaleDisk ?? true}
+          />
+          {historyResult.ok ? (
+            <AutoscalingTimeline events={history!.events} charges={history!.charges} />
+          ) : (
+            <p className="m-0 rounded-[10px] bg-warn-soft px-4 py-3 text-sm text-warn">
+              Nie udało się pobrać historii autoskalowania: {historyResult.error}
+            </p>
+          )}
         </div>
-      )}
-    </div>
-  );
-}
-
-function CurrentLimitsCard({
-  plan,
-  account,
-}: {
-  plan: {
-    cpuLimit: number;
-    ramLimitMb: number;
-    diskLimitMb: number;
-  };
-  account: {
-    cpuLimit: number;
-    ramLimitMb: number;
-    diskLimitMb: number;
-    scaledCpu: number;
-    scaledRamMb: number;
-    scaledDiskMb: number;
-  };
-}) {
-  const tiles = [
-    {
-      label: 'CPU',
-      icon: Cpu,
-      planValue: `${plan.cpuLimit}%`,
-      current: `${account.cpuLimit}%`,
-      delta:
-        account.scaledCpu > 0 ? `autoskalowanie +${account.scaledCpu}%` : null,
-    },
-    {
-      label: 'RAM',
-      icon: MemoryStick,
-      planValue: formatMbAsGb(plan.ramLimitMb),
-      current: formatMbAsGb(account.ramLimitMb),
-      delta:
-        account.scaledRamMb > 0
-          ? `autoskalowanie +${formatMbAsGb(account.scaledRamMb)}`
-          : null,
-    },
-    {
-      label: 'Dysk',
-      icon: HardDrive,
-      planValue: formatMbAsGb(plan.diskLimitMb),
-      current: formatMbAsGb(account.diskLimitMb),
-      delta:
-        account.scaledDiskMb > 0
-          ? `autoskalowanie +${formatMbAsGb(account.scaledDiskMb)}`
-          : null,
-    },
-  ];
-
-  return (
-    <section className="rounded-2xl border border-white/5 bg-[#0a0a0a] p-6">
-      <h2 className="text-sm font-bold uppercase tracking-widest text-neutral-500">
-        Aktualne limity zasobów
-      </h2>
-      <p className="mt-1 text-sm text-neutral-400">
-        Wartości efektywne na koncie hostingowym (plan + ewentualna delta autoskalowania).
-      </p>
-      <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {tiles.map((tile) => (
-          <div
-            key={tile.label}
-            className="rounded-xl border border-white/5 bg-white/[0.02] p-4"
-          >
-            <div className="flex items-center gap-2 text-neutral-500 text-xs font-bold uppercase tracking-wider">
-              <tile.icon className="h-4 w-4" />
-              {tile.label}
-            </div>
-            <div className="mt-2 text-2xl font-extrabold text-white">{tile.current}</div>
-            <div className="mt-1 text-[11px] text-neutral-500">
-              Plan: {tile.planValue}
-            </div>
-            {tile.delta ? (
-              <div className="mt-2 text-[11px] font-semibold text-emerald-400/90">
-                {tile.delta}
-              </div>
+        <div className="flex min-w-0 flex-col gap-6">
+          <section className="rounded-[10px] border border-line bg-card px-4 py-3.5">
+            <h3 className="m-0 font-display text-[15px] font-bold text-foreground">Bezpiecznik kosztów</h3>
+            <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+              {cap > 0
+                ? `Nie zapłacisz więcej niż ${cap.toFixed(2)} zł w 30 dni. Po osiągnięciu limitu zasoby wracają do planu, a strona działa dalej.`
+                : service.autoscalingEnabled
+                  ? 'Nie ustawiłeś limitu — autoskalowanie nalicza bez górnej granicy. Ustaw „Limit miesięczny” w formularzu.'
+                  : 'Autoskalowanie jest wyłączone — nic nie naliczamy.'}
+            </p>
+            {acc ? (
+              <Link href={calculatorPrefillHref(acc)} className="mt-3 inline-flex items-center gap-2 text-[13px] font-medium text-data-hi hover:underline">
+                <Calculator className="h-4 w-4" /> Policz koszt obecnego dodatku
+              </Link>
             ) : null}
-          </div>
-        ))}
+          </section>
+          <EcoModeCard subscriptionId={service.id} ecoModeEnabled={service.ecoModeEnabled} ecoPoints={ecoPoints} />
+          <EcoReportCard report={ecoReport} />
+        </div>
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -233,82 +164,4 @@ function calculatorPrefillHref(account: {
 function formatMbAsGb(mb: number): string {
   const gb = mb / 1024;
   return gb % 1 === 0 ? `${gb.toFixed(0)} GB` : `${gb.toFixed(1)} GB`;
-}
-
-function SpendCard({
-  last30dSpend,
-  currency,
-  maxCap,
-  enabled,
-}: {
-  last30dSpend: string;
-  currency: string;
-  maxCap: number;
-  enabled: boolean;
-}) {
-  const spend = Number.parseFloat(last30dSpend);
-  const capProgress =
-    maxCap > 0 ? Math.min(100, Math.round((spend / maxCap) * 100)) : 0;
-
-  return (
-    <div className="rounded-2xl border border-white/5 bg-[#0a0a0a] p-6 flex flex-col">
-      <div className="text-xs uppercase tracking-widest text-neutral-500 font-bold">
-        Koszt autoskalowania (30 dni)
-      </div>
-      <div className="mt-3 flex items-baseline gap-2">
-        <span className="text-4xl font-extrabold text-white">{spend.toFixed(2)}</span>
-        <span className="text-neutral-400 font-semibold">{currency}</span>
-      </div>
-
-      {maxCap > 0 ? (
-        <>
-          {/* C1 — bezpiecznik kosztów: twarda gwarancja egzekwowana przez silnik */}
-          <div className="mt-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3">
-            <p className="text-sm font-semibold text-emerald-200">
-              🛡️ Bezpiecznik kosztów: nie zapłacisz więcej niż {maxCap.toFixed(2)} {currency} / 30 dni
-            </p>
-            <p className="mt-1 text-[11px] text-emerald-200/70">
-              Limit jest egzekwowany automatycznie przez silnik autoskalowania — po jego
-              osiągnięciu zasoby wracają do poziomu z planu, a kolejne skalowania są
-              wstrzymane. Strona dalej działa w ramach planu.
-            </p>
-          </div>
-          <div className="mt-4">
-            <div className="flex justify-between text-xs text-neutral-400 mb-1.5">
-              <span>Wykorzystanie bezpiecznika</span>
-              <span className="text-white font-semibold">
-                {spend.toFixed(2)} / {maxCap.toFixed(2)} {currency} ({capProgress}%)
-              </span>
-            </div>
-            <div className="h-2 rounded-full bg-white/5 overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all ${
-                  capProgress >= 90
-                    ? 'bg-rose-500'
-                    : capProgress >= 70
-                      ? 'bg-amber-500'
-                      : 'bg-emerald-500'
-                }`}
-                style={{ width: `${capProgress}%` }}
-              />
-            </div>
-          </div>
-        </>
-      ) : (
-        <div className="mt-5 space-y-2">
-          <p className="text-sm text-neutral-400">
-            {enabled
-              ? 'Nie ustawiłeś bezpiecznika kosztów — autoskalowanie nalicza bez górnego limitu.'
-              : 'Autoskalowanie jest wyłączone — brak naliczeń.'}
-          </p>
-          {enabled && (
-            <p className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-200">
-              💡 Ustaw „Limit miesięczny" w formularzu obok, a zagwarantujemy, że
-              autoskalowanie <strong>nigdy</strong> nie przekroczy tej kwoty.
-            </p>
-          )}
-        </div>
-      )}
-    </div>
-  );
 }
