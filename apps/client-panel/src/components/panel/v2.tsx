@@ -97,7 +97,7 @@ function TipBubble({ state }: { state: TipState }) {
       className="pointer-events-none fixed z-[80] w-max max-w-[min(320px,calc(100vw-16px))] rounded-[5px] bg-foreground px-2.5 py-1.5 font-mono text-xs leading-snug text-background"
       style={pos ? { left: pos.left, top: pos.top } : { left: 0, top: 0, visibility: 'hidden' }}
     >
-      <span className="block font-display text-[13px]">{state.lines[0]}</span>
+      <span className="block font-sans text-[12.5px] font-normal">{state.lines[0]}</span>
       {state.lines.slice(1).join(' · ')}
     </div>
   );

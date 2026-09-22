@@ -24,6 +24,14 @@ export default function RootLayout({
       className="dark"
       suppressHydrationWarning
     >
+      <head>
+        {/* Motyw jasny/ciemny treści panelu — przed malowaniem, bez mignięcia. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "try{if(localStorage.getItem('verris-theme')==='light')document.documentElement.dataset.vtheme='light'}catch(e){}",
+          }}
+        />
+      </head>
       <body className="min-h-screen bg-background antialiased text-foreground">
         {/* WCAG 2.4.1 — skip link: pierwszy element fokusowalny na stronie. */}
         <a

@@ -75,8 +75,9 @@
   --font-jetbrains: "JetBrains Mono";
 }
 
-/* === LIGHT (:root aplikacji) === */
-:root {
+/* === LIGHT (:root aplikacji; w panelu także motyw jasny treści — [data-vtheme]) === */
+:root,
+[data-vtheme="light"] .v2-content {
   --background: var(--verris-paper);
   --foreground: var(--verris-pine);
   --card: #ffffff;
@@ -127,6 +128,17 @@
   --crit: #c2334f;
 }
 
+
+/* Motyw jasny panelu: tylko kolumna treści — menu boczne zostaje ciemne (jak we wzorcu). */
+[data-vtheme="light"] .v2-content {
+  --verris-body: #34413a;
+  --verris-stone: #5f6a63;
+  color-scheme: light;
+}
+[data-vtheme="light"] .v2-content .v2-comet-soft {
+  --v2-c: var(--verris-mid);
+  --v2-c2: var(--verris-green);
+}
 
 /* === DARK (domyślny panel: <html class="dark">) === */
 .dark {
@@ -582,7 +594,8 @@ select optgroup {
 .v2-skin .bg-black\/20,
 .v2-skin .bg-black\/30,
 .v2-skin .bg-black\/40,
-.v2-skin .bg-black\/50 { background-color: var(--background); }
+.v2-skin .bg-black\/50,
+.v2-skin .bg-black\/60 { background-color: var(--background); }
 .v2-skin .bg-white\/5,
 .v2-skin .bg-white\/10 { background-color: var(--raised); }
 .v2-skin .rounded-2xl,

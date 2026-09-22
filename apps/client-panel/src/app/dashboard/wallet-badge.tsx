@@ -72,7 +72,7 @@ export function WalletBadge({
       {impersonating ? <Eye className="h-4 w-4 shrink-0 text-amber-200" aria-hidden /> : null}
       <span className="max-sm:hidden">Portfel</span>
       {isEmpty || isLow ? <span className={`v2-breathe v2-breathe-warn h-1.5 w-1.5 rounded-full ${isEmpty ? "bg-crit" : "bg-warn"}`} /> : null}
-      <b className={`truncate font-display text-[13.5px] font-bold tabular-nums ${amountTone}`}>{formatCredits(balance)}</b>
+      <b className={`truncate text-[13.5px] font-normal tabular-nums ${amountTone}`}>{formatCredits(balance)}</b>
     </Link>
   );
 }

@@ -24,6 +24,7 @@ import {
 import HostingAssistant from "@/components/assistant/HostingAssistant";
 import { TipLayer } from "@/components/panel/v2";
 import { ServiceNav } from "@/components/panel/service-nav";
+import { ThemeToggle } from "@/components/panel/theme-toggle";
 import { CommandPalette, type PaletteItem } from "@/components/panel/command-palette";
 import { fetchRailDataAction, type RailData } from "./rail-actions";
 import {
@@ -447,7 +448,7 @@ export default function DashboardLayout({
       </aside>
 
       {/* Main Content Area */}
-      <div className="relative z-10 flex min-h-screen w-full min-w-0 max-w-full flex-1 flex-col overflow-x-hidden">
+      <div className="v2-content v2-skin relative z-10 flex bg-background text-foreground min-h-screen w-full min-w-0 max-w-full flex-1 flex-col overflow-x-hidden">
         {/* Top Navbar — na mobile fixed (hamburger zawsze dostępny), na desktop sticky */}
         <header className="z-50 flex min-h-14 min-w-0 shrink-0 items-center justify-between gap-3 border-b border-border bg-background/95 px-4 backdrop-blur-xl max-lg:fixed max-lg:inset-x-0 max-lg:top-0 max-lg:h-mobile-header sm:gap-3 sm:px-6 lg:sticky lg:top-0 lg:z-40 lg:h-[61px] lg:bg-background/90 lg:px-7 lg:py-3">
           <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -464,6 +465,7 @@ export default function DashboardLayout({
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            <ThemeToggle />
             {showWallet && (
               <WalletBadge
                 balance={user?.walletBalance ?? null}
@@ -477,7 +479,7 @@ export default function DashboardLayout({
         {/* Page Content */}
         <main
           id="main"
-          className="v2-skin w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-4 max-lg:pt-mobile-header sm:px-6 sm:pb-6 lg:px-10 lg:pb-12 lg:pt-10"
+          className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-4 max-lg:pt-mobile-header sm:px-6 sm:pb-6 lg:px-10 lg:pb-12 lg:pt-10"
         >
           {children}
         </main>
@@ -508,10 +510,11 @@ export default function DashboardLayout({
             </nav>
           </div>
         </footer>
+        {/* Dymki w kolumnie treści — dziedziczą motyw (jasny: ciemny dymek, jak we wzorcu). */}
+        <TipLayer />
       </div>
       </div>
       <HostingAssistant />
-      <TipLayer />
     </div>
   );
 }
