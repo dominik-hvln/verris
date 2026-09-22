@@ -7,7 +7,7 @@
  * Dymek: atrybut `data-tip="tytuł\nszczegół"` + jeden <TipLayer/> w layoucie.
  */
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { cx } from './cx';
 
@@ -46,7 +46,28 @@ export function TipLayer() {
       document.removeEventListener('scroll', hide, true);
     };
   }, []);
-  if (!state || !state.lines[0]) return null;
+  return (
+    <>
+      {/* Gradient „fali w górę" dla słupków wykresów SVG (.v2-chart rect:hover). */}
+      <svg width="0" height="0" className="absolute" aria-hidden>
+        <defs>
+          <linearGradient id="v2-wave" x1="0" y1="1" x2="0" y2="0" spreadMethod="repeat">
+            <stop offset="0" style={{ stopColor: 'var(--data)' }} />
+            <stop offset="0.5" style={{ stopColor: 'var(--data)' }} />
+            <stop offset="0.66" style={{ stopColor: 'var(--data)' }} />
+            <stop offset="0.78" style={{ stopColor: 'var(--data-hi)' }} />
+            <stop offset="0.9" style={{ stopColor: 'var(--data)' }} />
+            <stop offset="1" style={{ stopColor: 'var(--data)' }} />
+            <animateTransform attributeName="gradientTransform" type="translate" from="0 0" to="0 -1" dur="2.2s" repeatCount="indefinite" />
+          </linearGradient>
+        </defs>
+      </svg>
+      {state && state.lines[0] ? <TipBubble state={state} /> : null}
+    </>
+  );
+}
+
+function TipBubble({ state }: { state: { x: number; y: number; lines: string[] } }) {
   return (
     <div
       role="tooltip"
@@ -57,6 +78,93 @@ export function TipLayer() {
       {state.lines.slice(1).join(' · ')}
     </div>
   );
+}
+
+/** Styl komety na krawędzi (klasa `v2-comet`): wariant, czas, przesunięcie fazy, krycie. */
+export function comet(k: 'a' | 'b' | 'c', d: number, dl: number, o = 0.6): CSSProperties {
+  return { ['--v2-k' as string]: `v2-comet-${k}`, ['--v2-d' as string]: `${d}s`, ['--v2-dl' as string]: `${dl}s`, ['--v2-o' as string]: o };
+}
+
+/** Rząd kratek (np. domeny, kopie z 14 dni) — każda z dymkiem, poblask od boku. */
+export function Squares({ items }: { items: { tone: Tone; tip: string }[] }) {
+  return (
+    <div className="v2-sweep -mx-0.5 flex gap-1 px-0.5 py-[3px]">
+      {items.map((it, i) => (
+        <i
+          key={i}
+          tabIndex={0}
+          data-tip={it.tip}
+          className={cx(
+            'h-3.5 flex-1 cursor-default rounded-[2px] opacity-85 outline-none hover:opacity-100 hover:brightness-110 focus:opacity-100',
+            it.tone === 'data' && 'bg-data',
+            it.tone === 'warn' && 'bg-warn',
+            it.tone === 'muted' && 'bg-raised',
+          )}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** Wykres dwóch serii obok siebie (np. doładowania / wydatki), skala od zera, dymki, fala na hover. */
+export function DualBars({
+  labels,
+  a,
+  b,
+  aLabel,
+  bLabel,
+  format = (v: number) => v.toLocaleString('pl-PL'),
+}: {
+  labels: string[];
+  a: number[];
+  b: number[];
+  aLabel: string;
+  bLabel: string;
+  format?: (v: number) => string;
+}) {
+  const W = 640, H = 200, L = 44, R = 8, T = 12, B = 26;
+  const max = Math.max(1, ...a, ...b);
+  const step = niceStep(max);
+  const top = Math.ceil(max / step) * step;
+  const bw = (W - L - R) / Math.max(1, labels.length);
+  const y = (v: number) => T + (H - T - B) * (1 - v / top);
+  const ticks: number[] = [];
+  for (let t = 0; t <= top + 1e-9; t += step) ticks.push(t);
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="v2-chart block h-auto w-full" role="img" aria-label={`${aLabel} i ${bLabel}`}>
+      {ticks.map((t) => (
+        <g key={t}>
+          <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="var(--line)" />
+          <text x={L - 8} y={y(t) + 4} textAnchor="end" fontSize="10.5" fill="var(--muted-foreground)" className="font-mono">
+            {format(t)}
+          </text>
+        </g>
+      ))}
+      {labels.map((m, i) => {
+        const x = L + i * bw;
+        const w = Math.max(1, (bw - 8) / 2);
+        const ha = (H - T - B) * (a[i]! / top);
+        const hb = (H - T - B) * (b[i]! / top);
+        return (
+          <g key={m + i}>
+            <rect tabIndex={0} x={x + 3} y={H - B - ha} width={w} height={ha} rx={1.5} fill="var(--data-soft)" data-tip={tip(format(a[i]!), `${aLabel} · ${m}`)} style={{ ['--v2-i' as string]: i * 2 }} />
+            <rect tabIndex={0} x={x + 4 + w} y={H - B - hb} width={w} height={hb} rx={1.5} fill="var(--data)" data-tip={tip(format(b[i]!), `${bLabel} · ${m}`)} style={{ ['--v2-i' as string]: i * 2 + 1 }} />
+            <text x={x + bw / 2} y={H - 8} textAnchor="middle" fontSize="10.5" fill="var(--muted-foreground)" className="font-mono">
+              {m}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+/** „Ładny" krok osi: 1, 2, 5 × 10^n. Czysta funkcja — testowana. */
+export function niceStep(max: number, ticks = 4): number {
+  const raw = max / ticks;
+  const pow = 10 ** Math.floor(Math.log10(raw || 1));
+  const n = raw / pow;
+  return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * pow;
 }
 
 export function Label({ children, className }: { children: ReactNode; className?: string }) {
@@ -118,7 +226,7 @@ export function MiniBars({
 }) {
   const h = barHeights(values);
   return (
-    <div className="flex h-[30px] items-end gap-[3px]">
+    <div className="v2-bars flex h-[30px] items-end gap-[3px]">
       {values.map((v, i) => {
         const last = i === values.length - 1;
         return (
@@ -126,7 +234,7 @@ export function MiniBars({
             key={i}
             tabIndex={0}
             data-tip={tip(`${format(v)} ${unit}`, labels[i])}
-            style={{ height: `${h[i]}%` }}
+            style={{ height: `${h[i]}%`, ['--v2-i' as string]: i }}
             className={cx(
               'min-h-[2px] flex-1 cursor-default rounded-[1px] outline-none transition-colors hover:bg-data-hi focus:bg-data-hi',
               last ? (lastTone === 'warn' ? 'bg-warn' : 'bg-data') : 'bg-data-soft',
@@ -150,7 +258,7 @@ export function StackBar({
 }) {
   const safeTotal = total > 0 ? total : 1;
   return (
-    <div className="flex gap-[2px] rounded-[2px] bg-raised" style={{ height }}>
+    <div className="v2-sweep flex gap-[2px] rounded-[2px] bg-raised" style={{ height }}>
       {parts
         .filter((p) => p.value > 0)
         .map((p) => (
@@ -159,7 +267,7 @@ export function StackBar({
             tabIndex={0}
             data-tip={tip(p.label, p.detail)}
             style={{ width: `${Math.min(100, (p.value / safeTotal) * 100)}%`, background: p.color }}
-            className="block h-full origin-bottom cursor-default outline-none transition-transform first:rounded-l-[2px] hover:scale-y-150 focus:scale-y-150"
+            className="block h-full cursor-default outline-none transition-[filter] first:rounded-l-[2px] hover:brightness-125 focus:brightness-125"
           />
         ))}
     </div>
@@ -185,7 +293,13 @@ export function StatusPill({ tone, children }: { tone: Tone; children: ReactNode
         tone === 'muted' && 'bg-raised text-muted-foreground',
       )}
     >
-      <span className="h-[7px] w-[7px] flex-none rounded-full bg-current" />
+      <span
+        className={cx(
+          'h-[7px] w-[7px] flex-none rounded-full bg-current',
+          tone === 'data' && 'v2-breathe',
+          tone === 'warn' && 'v2-breathe v2-breathe-warn',
+        )}
+      />
       {children}
     </span>
   );

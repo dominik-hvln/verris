@@ -49,6 +49,7 @@ import {
   StatusPill,
   Switch,
   bucketize,
+  comet,
   fmtMb,
   tip,
   type Tone,
@@ -242,6 +243,7 @@ export default function ServiceOverviewV2({
       </header>
 
       {/* Pasek liczb */}
+      <div className="v2-comet rounded-[10px]" style={comet('a', 13, -2, 0.55)}>
       <KpiStrip>
         <Kpi
           label="Miejsce na dysku"
@@ -281,6 +283,7 @@ export default function ServiceOverviewV2({
           {ram.values.length ? <MiniBars values={ram.values} labels={ram.labels} unit="MB (szczyt)" format={(v) => String(Math.round(v))} /> : null}
         </Kpi>
       </KpiStrip>
+      </div>
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
         {/* Duża kolumna */}
@@ -367,6 +370,7 @@ export default function ServiceOverviewV2({
 
         {/* Wąska kolumna */}
         <div className="flex min-w-0 flex-col gap-6">
+          <div className="v2-comet rounded-[10px]" style={comet('c', 16, -5, 0.5)}>
           <Box
             title="Autoskalowanie"
             action={<Switch checked={asEnabled} onChange={toggleAs} disabled={asBusy || !as} label="Autoskalowanie" />}
@@ -401,6 +405,7 @@ export default function ServiceOverviewV2({
               </Link>
             </div>
           </Box>
+          </div>
 
           {clientFeatures.eco && service.status !== 'CANCELED' && service.status !== 'EXPIRED' ? (
             <EcoModeCard subscriptionId={serviceId} ecoModeEnabled={service.ecoModeEnabled} ecoPoints={ecoPoints} />

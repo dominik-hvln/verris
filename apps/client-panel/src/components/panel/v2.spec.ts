@@ -1,4 +1,4 @@
-import { barHeights, bucketize, fmtMb, lastDaysLabels, tip } from './v2';
+import { barHeights, bucketize, fmtMb, lastDaysLabels, niceStep, tip } from './v2';
 
 describe('PB-15 klocki v2', () => {
   it('barHeights skaluje do maksimum i nie gubi zer', () => {
@@ -27,5 +27,14 @@ describe('PB-15 klocki v2', () => {
     expect(fmtMb(512)).toBe('512 MB');
     expect(fmtMb(12698)).toBe('12,4 GB');
     expect(fmtMb(null)).toBe('—');
+  });
+});
+
+describe('niceStep', () => {
+  it('daje krok 1/2/5 × 10^n', () => {
+    expect(niceStep(150)).toBe(50);
+    expect(niceStep(12)).toBe(5);
+    expect(niceStep(3.6)).toBe(1);
+    expect(niceStep(8000)).toBe(2000);
   });
 });

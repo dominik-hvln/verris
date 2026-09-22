@@ -363,3 +363,159 @@ select optgroup {
     scroll-behavior: auto !important;
   }
 }
+
+/* === PB-15 — ruch i „smaczki" (wzorzec: docs/design/wzorzec-panelu.html) ===
+   Komety na krawędziach (kilka naraz, każda w innym tempie), oddychające kropki,
+   słupki rosnące przy wejściu, fala w górę na słupku pod kursorem, poblask od boku
+   na paskach poziomych. Całość wyłączana przy prefers-reduced-motion. */
+@property --v2-spin {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+.v2-comet {
+  position: relative;
+  isolation: isolate;
+}
+.v2-comet::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  z-index: 2;
+  background: conic-gradient(
+    from var(--v2-spin),
+    transparent 0 62%,
+    color-mix(in srgb, var(--v2-c, var(--data)) 50%, transparent) 80%,
+    var(--v2-c2, var(--data-hi)) 88%,
+    transparent 93%
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+  opacity: var(--v2-o, 0.6);
+  animation: var(--v2-k, v2-comet-a) var(--v2-d, 12s) cubic-bezier(0.55, 0.1, 0.35, 0.95) var(--v2-dl, 0s) infinite;
+}
+.v2-comet-soft {
+  --v2-c: rgba(244, 244, 238, 0.5);
+  --v2-c2: rgba(244, 244, 238, 0.9);
+}
+@keyframes v2-comet-a {
+  0% { --v2-spin: 0deg; opacity: 0; }
+  8% { opacity: var(--v2-o, 0.6); }
+  45% { --v2-spin: 150deg; }
+  60% { --v2-spin: 190deg; }
+  88% { opacity: var(--v2-o, 0.6); }
+  100% { --v2-spin: 360deg; opacity: 0; }
+}
+@keyframes v2-comet-b {
+  0% { --v2-spin: 220deg; opacity: 0; }
+  12% { opacity: var(--v2-o, 0.6); }
+  50% { --v2-spin: 40deg; }
+  70% { --v2-spin: -20deg; opacity: var(--v2-o, 0.6); }
+  100% { --v2-spin: -140deg; opacity: 0; }
+}
+@keyframes v2-comet-c {
+  0% { --v2-spin: 90deg; opacity: 0; }
+  20% { opacity: 0; }
+  30% { opacity: var(--v2-o, 0.6); }
+  65% { --v2-spin: 330deg; }
+  80% { opacity: var(--v2-o, 0.6); }
+  100% { --v2-spin: 450deg; opacity: 0; }
+}
+
+.v2-breathe {
+  --v2-pc: 52, 229, 160;
+  animation: v2-breathe 4.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  animation-delay: calc(var(--v2-i, 0) * -0.9s);
+}
+.v2-breathe-warn {
+  --v2-pc: 242, 184, 75;
+}
+@keyframes v2-breathe {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(var(--v2-pc), 0), 0 0 0 0 rgba(var(--v2-pc), 0); }
+  50% { box-shadow: 0 0 0 3px rgba(var(--v2-pc), 0.14), 0 0 9px 1px rgba(var(--v2-pc), 0.38); }
+}
+
+.v2-bars > i {
+  position: relative;
+  overflow: hidden;
+  transform-origin: bottom;
+  animation: v2-grow 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--v2-i, 0) * 45ms);
+}
+.v2-bars > i::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 160%;
+  background: linear-gradient(0deg, rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0.1) 42%, rgba(255, 255, 255, 0.24) 50%, rgba(255, 255, 255, 0.1) 58%, rgba(255, 255, 255, 0) 70%);
+  transform: translateY(100%);
+  pointer-events: none;
+}
+.v2-bars > i:last-child::after {
+  animation: v2-glint 6s cubic-bezier(0.45, 0, 0.55, 1) 1.2s infinite;
+}
+.v2-bars > i:hover::after,
+.v2-bars > i:focus::after {
+  animation: v2-waveup 2s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@keyframes v2-grow { from { transform: scaleY(0); } }
+@keyframes v2-glint { 0%, 65% { transform: translateY(100%); } 95%, 100% { transform: translateY(-100%); } }
+@keyframes v2-waveup { from { transform: translateY(100%); } to { transform: translateY(-100%); } }
+
+.v2-sweep {
+  position: relative;
+  overflow: hidden;
+}
+.v2-sweep::after {
+  content: "";
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  left: 0;
+  width: 60%;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.07) 30%, rgba(255, 255, 255, 0.2) 50%, rgba(255, 255, 255, 0.07) 70%, rgba(255, 255, 255, 0));
+  transform: translateX(-110%);
+  pointer-events: none;
+  filter: blur(2px);
+}
+.v2-sweep:hover::after,
+.v2-sweep:focus-within::after {
+  animation: v2-sweepx 2.4s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@keyframes v2-sweepx { from { transform: translateX(-110%); } to { transform: translateX(280%); } }
+
+.v2-chart rect[data-tip] {
+  transform-box: fill-box;
+  transform-origin: bottom;
+  animation: v2-grow 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: calc(var(--v2-i, 0) * 22ms);
+  outline: none;
+}
+.v2-chart rect[data-tip]:hover,
+.v2-chart rect[data-tip]:focus {
+  fill: url(#v2-wave);
+}
+
+.v2-hello {
+  background: linear-gradient(90deg, var(--foreground), var(--foreground) 55%, var(--data-hi));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v2-comet::after,
+  .v2-breathe,
+  .v2-bars > i,
+  .v2-bars > i::after,
+  .v2-sweep::after,
+  .v2-chart rect[data-tip] {
+    animation: none !important;
+  }
+}

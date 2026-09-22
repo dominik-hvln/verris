@@ -17,7 +17,7 @@ interface ServiceIssue {
   reasons: string[];
 }
 
-function deriveReasons(s: ServiceSummaryDto): string[] {
+export function deriveReasons(s: ServiceSummaryDto): string[] {
   const reasons: string[] = [];
   // Konto powiązane, ale nieaktywne (zawieszone / w trakcie) — najważniejsze.
   if (s.account && s.account.status !== 'ACTIVE') reasons.push('Konto nieaktywne');

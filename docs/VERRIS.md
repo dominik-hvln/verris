@@ -154,7 +154,7 @@ Kierunek do przygotowania jako osobny projekt (makiety przed kodem):
 | Obecnie | Nowe miejsce |
 |---|---|
 | Pasek górny: WalletBadge, NotificationBell, ImpersonationBanner, IncidentBanner, ReConsentModal, wylogowanie, cookies | pasek górny (portfel z saldem, dzwonek, „/”, Prosty/Pełny, motyw); banery nad treścią bez zmian; wylogowanie i cookies w menu klienta |
-| Pulpit (StatCard, DashboardCharts, ServicesHealthOverview, QuickAction, OnboardingWizard, ProactiveHints) | „Pulpit” — wszystkie usługi: zdrowie, koszty, podpowiedzi asystenta, pierwsze kroki |
+| Pulpit (StatCard, DashboardCharts, ServicesHealthOverview, QuickAction, OnboardingWizard, ProactiveHints) | ✅ 2026-09-22: `dashboard-home.tsx` — powitanie, pasek liczb (usługi, domeny, saldo, zgłoszenia), tabela usług, zdrowie usług (wynik + punkty kontroli), portfel 12 mies., asystent (z rekomendacji), pierwsze kroki, szybkie akcje, EKO, hosting w skrócie. Wykresy „status usług/zgłoszeń” zastąpione paskiem liczb i zdrowiem usług |
 | Usługi: lista, nowa usługa | „Usługi” (lista usług) + kreator zamówienia |
 | Usługa hostingowa — Przegląd (gauges, HealthCheck, FirstSteps, DomainPointing, Forecast, uptime, UnpaidServiceBanner) | widok usługi: pasek liczb z dymkami, tabela stron, asystent; prognoza → dymek przy dysku/CPU; baner zaległości nad nagłówkiem |
 | Karta „Dane dostępowe / Adresy serwera i limity” (ServiceConnectionCard, AccountStatsCard) | box „Dane dostępowe” + „Zasoby konta” |
