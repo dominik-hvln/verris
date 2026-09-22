@@ -59,7 +59,20 @@
   --eko: var(--verris-mid);
   --eko-bg: var(--verris-eco);
   --eko-foreground: var(--verris-tip);
+  /* PB-15 — tokeny nowego wyglądu (docs/design/wzorzec-panelu.html) */
+  --raised: #eceee6;
+  --line: rgba(12, 26, 20, 0.1);
+  --line-strong: rgba(12, 26, 20, 0.18);
+  --data: #1fa871;
+  --data-2: #6cc9a0;
+  --data-3: #b5e3cc;
+  --data-soft: rgba(31, 168, 113, 0.16);
+  --data-hi: #0f7a52;
+  --warn: #b7791f;
+  --warn-soft: rgba(183, 121, 31, 0.14);
+  --crit: #c2334f;
 }
+
 
 /* === DARK (domyślny panel: <html class="dark">) === */
 .dark {
@@ -98,7 +111,19 @@
   --eko: var(--verris-mid);
   --eko-bg: var(--verris-eco);
   --eko-foreground: var(--verris-tip);
+  --raised: #132a1f;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --data: var(--verris-mint);
+  --data-2: var(--verris-mid);
+  --data-3: #1c5a40;
+  --data-soft: rgba(52, 229, 160, 0.14);
+  --data-hi: var(--verris-tip);
+  --warn: #f2b84b;
+  --warn-soft: rgba(242, 184, 75, 0.13);
+  --crit: #fb7185;
 }
+
 
 html.dark.eco-tint {
   --background: var(--verris-eco);
@@ -142,6 +167,17 @@ html.dark.eco-tint {
   --color-eko: var(--eko);
   --color-eko-bg: var(--eko-bg);
   --color-eko-foreground: var(--eko-foreground);
+  --color-raised: var(--raised);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-data: var(--data);
+  --color-data-2: var(--data-2);
+  --color-data-3: var(--data-3);
+  --color-data-soft: var(--data-soft);
+  --color-data-hi: var(--data-hi);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-crit: var(--crit);
   --color-verris-pine: var(--verris-pine);
   --color-verris-page: var(--verris-page);
   --color-verris-card: var(--verris-card);

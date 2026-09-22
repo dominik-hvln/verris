@@ -1,0 +1,694 @@
+<title>Verris — ekran usługi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Schibsted+Grotesk:wght@600;700;800&display=swap">
+<style>
+:root{
+  --page:#f4f4ee; --surface:#ffffff; --raised:#eceee6; --line:rgba(12,26,20,.10); --line-strong:rgba(12,26,20,.18);
+  --text:#0c1a14; --body:#34413a; --muted:#5f6a63;
+  --accent:#0f7a52; --accent-ink:#f4f4ee; --data:#1fa871; --data-2:#6cc9a0; --data-3:#b5e3cc; --data-soft:rgba(31,168,113,.16); --data-hi:#0f7a52;
+  --warn:#b7791f; --warn-soft:rgba(183,121,31,.14); --crit:#c2334f; --crit-soft:rgba(194,51,79,.12);
+  --rail:#0c1a14; --rail-text:#afbdb6; --rail-hi:#f4f4ee; --rail-line:rgba(255,255,255,.08); --rail-dim:#6e7b74;
+  --shadow:0 1px 0 rgba(12,26,20,.04), 0 12px 32px -18px rgba(12,26,20,.28);
+  --f-display:"Schibsted Grotesk","Helvetica Neue",Arial,sans-serif;
+  --f-body:"Hanken Grotesk","Segoe UI",system-ui,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r:6px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --page:#091410; --surface:#0e1f17; --raised:#132a1f; --line:rgba(255,255,255,.08); --line-strong:rgba(255,255,255,.16);
+  --text:#f4f4ee; --body:#c3cec8; --muted:#8f9b94;
+  --accent:#34e5a0; --accent-ink:#0c1a14; --data:#34e5a0; --data-2:#1fa871; --data-3:#1c5a40; --data-soft:rgba(52,229,160,.14); --data-hi:#5bffc0;
+  --warn:#f2b84b; --warn-soft:rgba(242,184,75,.13); --crit:#fb7185; --crit-soft:rgba(251,113,133,.13);
+  --rail:#0a1812; --rail-line:rgba(255,255,255,.06);
+  --shadow:0 0 0 1px rgba(52,229,160,.10), 0 18px 40px -22px rgba(0,0,0,.8);
+}}
+:root[data-theme="dark"]{
+  --page:#091410; --surface:#0e1f17; --raised:#132a1f; --line:rgba(255,255,255,.08); --line-strong:rgba(255,255,255,.16);
+  --text:#f4f4ee; --body:#c3cec8; --muted:#8f9b94;
+  --accent:#34e5a0; --accent-ink:#0c1a14; --data:#34e5a0; --data-2:#1fa871; --data-3:#1c5a40; --data-soft:rgba(52,229,160,.14); --data-hi:#5bffc0;
+  --warn:#f2b84b; --warn-soft:rgba(242,184,75,.13); --crit:#fb7185; --crit-soft:rgba(251,113,133,.13);
+  --rail:#0a1812; --rail-line:rgba(255,255,255,.06);
+  --shadow:0 0 0 1px rgba(52,229,160,.10), 0 18px 40px -22px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{margin:0;background:var(--page);color:var(--body);font:15px/1.5 var(--f-body);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.mono{font-family:var(--f-mono);font-size:12.5px;letter-spacing:-.01em}
+.num{font-variant-numeric:tabular-nums}
+.label{font:500 11px/1 var(--f-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.muted{color:var(--muted)}
+
+/* ---------- boczny pasek ---------- */
+.app{display:grid;grid-template-columns:252px 1fr;min-height:100%}
+.rail{background:var(--rail);color:var(--rail-text);padding:16px 12px 14px;display:flex;flex-direction:column;gap:16px;position:sticky;top:0;height:100vh;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#1c3a2c transparent}
+.brand{display:flex;align-items:center;gap:10px;color:var(--rail-hi);font:800 18px/1 var(--f-display);letter-spacing:-.02em;padding:4px 8px}
+.brand i{width:22px;height:22px;border-radius:6px;background:conic-gradient(from 210deg,#0f7a52,#34e5a0,#0f7a52);display:block}
+.who{border:1px solid var(--rail-line);border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.02);width:100%;text-align:left}
+.who b{display:block;color:var(--rail-hi);font:600 13.5px/1.2 var(--f-body)}
+.who small{font:400 11.5px/1.2 var(--f-mono);color:#7f8c85}
+.who .av{width:28px;height:28px;border-radius:6px;background:#1c3a2c;color:#5bffc0;display:grid;place-items:center;font:700 12px var(--f-display);flex:none}
+.who .chev{margin-left:auto;color:var(--rail-dim)}
+.nav{display:flex;flex-direction:column;gap:1px}
+.nav .label{color:var(--rail-dim);padding:0 8px 6px;display:flex;justify-content:space-between;align-items:center}
+.nav a,.nav button.a{display:flex;gap:10px;align-items:center;padding:6px 8px;border-radius:5px;color:var(--rail-text);text-decoration:none;font-size:14px;border:0;background:none;width:100%;text-align:left}
+.nav a svg,.nav button.a svg{width:16px;height:16px;flex:none;opacity:.7}
+.nav a:hover,.nav button.a:hover{background:rgba(255,255,255,.04);color:var(--rail-hi)}
+.nav .on{color:var(--rail-hi)!important;background:rgba(52,229,160,.08)!important;box-shadow:inset 2px 0 0 #34e5a0}
+.nav em{margin-left:auto;font:400 11.5px var(--f-mono);font-style:normal;color:var(--rail-dim)}
+.nav em.warn{color:#f2b84b}
+.ctx{border:1px solid var(--rail-line);border-radius:10px;padding:8px 6px;background:rgba(52,229,160,.025)}
+.ctx .svc{display:flex;align-items:center;gap:8px;padding:4px 6px 8px;border-bottom:1px solid var(--rail-line);margin-bottom:6px}
+.ctx .svc b{color:var(--rail-hi);font:700 14px var(--f-display)}
+.ctx .svc small{margin-left:auto;font:400 11px var(--f-mono);color:var(--rail-dim)}
+.tree{margin:2px 0 6px 14px;border-left:1px solid var(--rail-line);padding-left:6px}
+.tree .a{font-size:13.5px;padding:5px 8px}
+.tree .st{width:6px;height:6px;border-radius:50%;background:#34e5a0;flex:none}
+.tree .st.w{background:#f2b84b}.tree .st.n{background:#6e7b74}
+.tree .a span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sub-label{font:500 10.5px/1 var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--rail-dim);padding:10px 8px 5px}
+details.more summary{list-style:none;cursor:pointer}
+details.more summary::-webkit-details-marker{display:none}
+details.more summary .label{padding-bottom:6px}
+details.more[open] summary .plus{transform:rotate(45deg)}
+.plus{transition:transform .15s}
+.rail .foot{margin-top:auto;font:400 11px/1.5 var(--f-mono);color:var(--rail-dim);padding:6px 8px 0}
+
+main{min-width:0}
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;align-items:center;gap:12px;padding:12px 28px;background:color-mix(in srgb,var(--page) 88%,transparent);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.crumb{display:flex;align-items:center;gap:6px;font-size:13.5px;color:var(--muted);white-space:nowrap;min-width:0}
+.crumb button{border:0;background:none;padding:2px 4px;border-radius:4px;color:var(--muted)}
+.crumb button:hover{color:var(--text);background:var(--raised)}
+.crumb b{color:var(--text);font-weight:600}
+.crumb select{font:600 13.5px var(--f-body);color:var(--text);background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:3px 6px;max-width:220px}
+.search{margin-left:auto;display:flex;align-items:center;gap:10px;min-width:0;width:min(320px,34vw);padding:7px 10px;border:1px solid var(--line);border-radius:var(--r);background:var(--surface);color:var(--muted);font-size:13.5px;text-align:left}
+.search span{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+kbd{font:500 11px var(--f-mono);border:1px solid var(--line-strong);border-bottom-width:2px;border-radius:4px;padding:1px 6px;color:var(--body);background:var(--raised)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--r);padding:2px;background:var(--surface)}
+.seg button{border:0;background:none;padding:5px 11px;border-radius:4px;font-size:13px;color:var(--muted)}
+.seg button[aria-pressed="true"]{background:var(--raised);color:var(--text);font-weight:600}
+.iconbtn{border:1px solid var(--line);background:var(--surface);border-radius:var(--r);width:34px;height:34px;display:grid;place-items:center;flex:none}
+.menu-btn{display:none}
+
+.wrap{padding:24px 28px 60px;display:flex;flex-direction:column;gap:24px;max-width:1280px}
+
+/* ---------- nagłówek ---------- */
+.head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:18px}
+.head h1{margin:6px 0 8px;font:800 clamp(28px,4vw,40px)/1 var(--f-display);letter-spacing:-.03em;color:var(--text);text-wrap:balance;overflow-wrap:anywhere}
+.meta{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;font-size:13.5px;color:var(--muted)}
+.pill{display:inline-flex;align-items:center;gap:7px;padding:3px 9px 3px 8px;border-radius:999px;font:600 12.5px/1.4 var(--f-body);white-space:nowrap}
+.pill.ok{background:var(--data-soft);color:var(--data-hi)}
+.pill.warn{background:var(--warn-soft);color:var(--warn)}
+.pill.n{background:var(--raised);color:var(--muted)}
+.dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex:none}
+.pill.ok .dot{box-shadow:0 0 0 3px color-mix(in srgb,currentColor 25%,transparent);animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 5px transparent}}
+.stackchip{white-space:nowrap;display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line-strong);border-radius:5px;padding:2px 8px;font:500 12.5px var(--f-mono);color:var(--text);background:var(--surface)}
+.stackchip i{width:14px;height:14px;border-radius:3px;display:grid;place-items:center;font:700 9px var(--f-display);color:#fff;font-style:normal}
+.actions{display:flex;flex-wrap:wrap;gap:8px}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line-strong);background:var(--surface);padding:8px 13px;border-radius:var(--r);font-size:14px;font-weight:500;color:var(--text);text-decoration:none;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.sm{padding:5px 10px;font-size:13px}
+.btn svg{width:15px;height:15px}
+
+/* zakładki strony */
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none;margin-top:-6px}
+.tabs button{border:0;background:none;padding:9px 12px;font-size:14px;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
+.tabs button:hover{color:var(--text)}
+.tabs button[aria-selected="true"]{color:var(--text);font-weight:600;border-bottom-color:var(--accent)}
+
+/* ---------- pasek liczb ---------- */
+.strip{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.kpi{padding:16px 18px 14px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.kpi+.kpi{border-left:1px solid var(--line)}
+.big{font:800 30px/1 var(--f-display);letter-spacing:-.03em;color:var(--text);font-variant-numeric:tabular-nums}
+.big small{font:500 13px var(--f-mono);letter-spacing:0;color:var(--muted);margin-left:4px}
+.sub{font-size:12.5px;color:var(--muted);display:flex;justify-content:space-between;gap:8px;min-height:19px}
+.sub .up{color:var(--data-hi)} .sub .down{color:var(--warn)}
+.stack{display:flex;height:10px;border-radius:2px;background:var(--raised);gap:2px}
+.stack i{display:block;height:100%;cursor:default;transition:filter .12s,transform .12s;transform-origin:bottom}
+.stack i:first-child{border-radius:2px 0 0 2px}
+.stack i:hover,.stack i:focus{filter:brightness(1.2);transform:scaleY(1.5);outline:none}
+.bars{display:flex;align-items:flex-end;gap:3px;height:30px}
+.bars i{flex:1;background:var(--data-soft);border-radius:1px;min-height:2px;cursor:default;transition:background .1s}
+.bars i:last-child{background:var(--data)}
+.bars.warnlast i:last-child{background:var(--warn)}
+.bars i:hover,.bars i:focus{background:var(--data-hi);outline:none}
+.days{display:flex;gap:4px}
+.days i{flex:1;height:14px;border-radius:2px;background:var(--data);opacity:.85;cursor:default}
+.days i:hover,.days i:focus{opacity:1;transform:scaleY(1.25);outline:none}
+.days i.w{background:var(--warn)}
+.days i.today{outline:1.5px solid var(--text);outline-offset:1px}
+
+/* ---------- siatka ---------- */
+.grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(0,1fr);gap:24px;align-items:start}
+.col{display:flex;flex-direction:column;gap:24px;min-width:0}
+section h2{margin:0;font:700 17px/1.2 var(--f-display);letter-spacing:-.01em;color:var(--text)}
+.sechead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px;flex-wrap:wrap}
+.sechead p{margin:4px 0 0;font-size:13.5px;color:var(--muted);max-width:60ch}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px}
+
+/* tabele */
+.tw{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th{font:500 11px/1 var(--f-mono);text-transform:uppercase;letter-spacing:.07em;color:var(--muted);text-align:left;padding:12px 12px 10px;white-space:nowrap}
+td{padding:11px 12px;border-top:1px solid var(--line);color:var(--body);vertical-align:middle}
+td b{color:var(--text);font-weight:600}
+td .num{white-space:nowrap}
+tr.go{cursor:pointer}
+tr.go:hover td{background:color-mix(in srgb,var(--raised) 55%,transparent)}
+td .arrow{color:var(--muted);transition:transform .12s}
+tr.go:hover .arrow{transform:translateX(3px);color:var(--accent)}
+td .s{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:var(--data-hi);white-space:nowrap}
+td .s.w{color:var(--warn)} td .s.n{color:var(--muted)}
+.dom{display:flex;flex-direction:column;gap:2px}
+.dom small{font-size:12.5px;color:var(--muted)}
+.spk{display:flex;align-items:flex-end;gap:2px;height:20px;width:64px}
+.spk i{flex:1;background:var(--data-soft);min-height:2px;border-radius:1px}
+.spk i:last-child{background:var(--data)}
+
+/* wykres */
+.chart{padding:14px 16px 8px;position:relative}
+.chart svg{display:block;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;padding:0 16px 14px;font-size:12.5px;color:var(--muted)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+
+/* oś czasu */
+.feed{padding:4px 0}
+.day{padding:10px 16px 4px}
+.ev{display:grid;grid-template-columns:18px 1fr auto;gap:12px;padding:9px 16px;align-items:start}
+.ev+.ev{border-top:1px dashed var(--line)}
+.ev .mk{width:9px;height:9px;border-radius:50%;margin-top:6px;border:2px solid var(--data);justify-self:center}
+.ev .mk.w{border-color:var(--warn)} .ev .mk.n{border-color:var(--muted)}
+.ev p{margin:0;color:var(--text);font-size:14px}
+.ev small{display:block;color:var(--muted);font-size:12.5px;margin-top:1px}
+.ev time{font:400 12px var(--f-mono);color:var(--muted);padding-top:3px}
+.link{border:0;background:none;padding:0;color:var(--accent);font-weight:600;font-size:12.5px;text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+
+/* asystent */
+.assist{position:relative;padding:16px 16px 14px;border-radius:12px;background:var(--surface);box-shadow:var(--shadow);border:1px solid color-mix(in srgb,var(--accent) 30%,var(--line))}
+.assist::before{content:"";position:absolute;left:22px;top:-7px;width:12px;height:12px;background:var(--surface);border-left:1px solid color-mix(in srgb,var(--accent) 30%,var(--line));border-top:1px solid color-mix(in srgb,var(--accent) 30%,var(--line));transform:rotate(45deg)}
+.assist .who2{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.spark{width:18px;height:18px;border-radius:5px;background:var(--data-soft);display:grid;place-items:center;color:var(--data-hi)}
+.assist p{margin:0 0 12px;color:var(--text);font-size:14.5px}
+.assist p b{font-weight:600}
+.effect{margin:0 0 12px;padding:10px 12px;border-radius:8px;background:var(--raised);font-size:13px;display:flex;gap:6px;flex-direction:column}
+.effect div{display:flex;justify-content:space-between;gap:10px}
+.effect s{color:var(--muted)}
+.assist .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.assist .x{margin-left:auto;border:0;background:none;color:var(--muted);font-size:12.5px}
+
+/* listy */
+.list{list-style:none;margin:0;padding:0}
+.list li{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:11px 16px;align-items:center}
+.list li+li{border-top:1px solid var(--line)}
+.list b{color:var(--text);font-weight:600;font-size:14px}
+.list .m{grid-column:1;font-size:12.5px;color:var(--muted)}
+.list .r{grid-row:1 / span 2;grid-column:2;text-align:right;font-size:13px}
+.meter{display:block;height:5px;border-radius:3px;background:var(--raised);overflow:hidden;margin-top:6px;width:100%}
+.meter i{display:block;height:100%;background:var(--data)}
+.meter i.w{background:var(--warn)}
+.tools{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--line);border-radius:10px;overflow:hidden;border:1px solid var(--line)}
+.tools button{border:0;background:var(--surface);text-align:left;padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.tools button:hover{background:var(--raised)}
+.tools b{color:var(--text);font-size:14px;font-weight:600}
+.tools small{color:var(--muted);font-size:12.5px}
+
+.switch{position:relative;width:42px;height:24px;border-radius:999px;border:1px solid var(--line-strong);background:var(--raised);padding:0;flex:none;transition:background .15s}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--muted);transition:transform .15s,background .15s}
+.switch[aria-checked="true"]{background:var(--data-soft);border-color:var(--data)}
+.switch[aria-checked="true"]::after{transform:translateX(18px);background:var(--data)}
+.boxhead{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px 0}
+.boxhead h3{margin:0;font:700 15px var(--f-display);color:var(--text)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:0 16px;padding:8px 16px 12px;font-size:13.5px}
+.kv dt{color:var(--muted);padding:6px 0}
+.kv dd{margin:0;padding:6px 0;text-align:right;color:var(--text)}
+.kv dt+dd{border:0}
+.kv .sep{grid-column:1/-1;border-top:1px solid var(--line);margin:4px 0}
+.money{font:800 26px/1 var(--f-display);letter-spacing:-.02em;color:var(--text);font-variant-numeric:tabular-nums}
+.money small{font:500 13px var(--f-mono);color:var(--muted);letter-spacing:0;margin-left:3px}
+.boxfoot{display:flex;gap:8px;flex-wrap:wrap;padding:0 16px 14px}
+.access{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:var(--line)}
+.access div{background:var(--surface);padding:11px 16px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.access .v{display:flex;justify-content:space-between;gap:8px;align-items:center;color:var(--text)}
+.access .v span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.copy{border:0;background:none;color:var(--muted);font:500 11px var(--f-mono);padding:0;flex:none}
+.copy:hover{color:var(--accent)}
+.walletchip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);border-radius:var(--r);padding:6px 10px;font-size:13px;color:var(--muted);white-space:nowrap}
+.walletchip b{color:var(--text);font:700 13.5px var(--f-display);font-variant-numeric:tabular-nums}
+.field{display:flex;flex-direction:column;gap:6px;padding:12px 16px;border-top:1px solid var(--line)}
+.field label{font-size:14px;color:var(--text);font-weight:600;display:flex;justify-content:space-between}
+.field small{color:var(--muted);font-size:12.5px}
+.field input[type=range]{width:100%;accent-color:var(--data)}
+.field input[type=number]{width:140px;padding:7px 10px;border:1px solid var(--line-strong);border-radius:var(--r);background:var(--page);color:var(--text);font:500 14px var(--f-mono)}
+@media (max-width:520px){.access{grid-template-columns:1fr}.walletchip span{display:none}}
+.acc{list-style:none;margin:0;padding:0 16px}
+.acc li{padding:9px 0;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:5px}
+.accrow{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.addrs{display:flex;flex-direction:column;gap:2px;min-width:0}
+.addr{border:0;background:none;padding:0;text-align:left;font:500 13.5px/1.45 var(--f-mono);color:var(--text);overflow-wrap:anywhere;letter-spacing:-.01em}
+.addr:hover{color:var(--accent);text-decoration:underline;text-underline-offset:3px}
+.port{flex:none;font:500 12px/1.9 var(--f-mono);color:var(--muted);background:var(--raised);border-radius:4px;padding:0 7px;white-space:nowrap}
+.pro-only{display:none}
+[data-mode="pro"] .pro-only{display:revert}
+[data-mode="pro"] .simple-only{display:none}
+.note{font:400 11.5px/1.5 var(--f-mono);color:var(--muted)}
+.empty{padding:22px 16px;color:var(--muted);font-size:14px}
+
+/* dymek podpowiedzi */
+.tt{position:fixed;z-index:80;pointer-events:none;background:var(--text);color:var(--page);padding:6px 9px;border-radius:5px;font:500 12px/1.35 var(--f-mono);transform:translate(-50%,calc(-100% - 8px));white-space:nowrap;opacity:0;transition:opacity .1s}
+.tt b{font:700 13px var(--f-display);display:block}
+.tt.show{opacity:1}
+
+/* paleta */
+.veil{position:fixed;inset:0;background:rgba(5,12,9,.55);display:flex;align-items:flex-start;justify-content:center;padding:12vh 16px 16px;z-index:50}
+.pal{width:min(560px,100%);background:var(--surface);border:1px solid var(--line-strong);border-radius:12px;box-shadow:0 30px 80px -30px rgba(0,0,0,.6);overflow:hidden}
+.pal input{width:100%;border:0;border-bottom:1px solid var(--line);background:none;padding:15px 16px;font:500 16px var(--f-body);color:var(--text);outline:none}
+.pal ul{list-style:none;margin:0;padding:6px;max-height:340px;overflow:auto}
+.pal li{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 10px;border-radius:6px;font-size:14px;color:var(--text);cursor:pointer}
+.pal li small{color:var(--muted);font:400 12px var(--f-mono)}
+.pal li[aria-selected="true"]{background:var(--raised)}
+.pal .ai{color:var(--data-hi)}
+.toast{position:fixed;left:50%;bottom:calc(22px + env(safe-area-inset-bottom,0px));transform:translate(-50%,20px);opacity:0;pointer-events:none;transition:.2s;background:var(--text);color:var(--page);padding:10px 12px 10px 16px;border-radius:8px;display:flex;gap:16px;align-items:center;font-size:14px;z-index:60;max-width:calc(100% - 32px)}
+.toast.show{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.toast button{border:0;background:none;color:#5bffc0;font-weight:700;padding:2px 4px}
+:root[data-theme="light"] .toast button{color:#5bffc0}
+
+@media (max-width:1080px){.grid{grid-template-columns:1fr}.strip{grid-template-columns:repeat(2,1fr)}.kpi:nth-child(3){border-left:0}.kpi:nth-child(n+3){border-top:1px solid var(--line)}}
+@media (max-width:860px){
+  .app{grid-template-columns:1fr}
+  .rail{position:fixed;inset:0 auto 0 0;width:min(290px,86vw);z-index:40;transform:translateX(-102%);transition:transform .2s;padding-top:calc(16px + env(safe-area-inset-top,0px))}
+  .app.open .rail{transform:none;box-shadow:0 0 0 100vmax rgba(0,0,0,.45)}
+  .menu-btn{display:grid}
+  .top{padding:10px 16px}.wrap{padding:20px 16px 48px}
+  .search{width:auto;flex:1}.search span{display:none}.crumb{display:none}
+}
+@media (max-width:520px){.strip{grid-template-columns:1fr}.kpi+.kpi{border-left:0;border-top:1px solid var(--line)}.tools{grid-template-columns:1fr}.hide-sm{display:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+
+<div class="app" id="app" data-mode="simple">
+  <aside class="rail" id="rail" aria-label="Nawigacja"></aside>
+  <main>
+    <div class="top">
+      <button class="iconbtn menu-btn" type="button" id="menuBtn" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+      <div class="crumb" id="crumb"></div>
+      <button class="search" type="button" id="openPal"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Szukaj lub zrób coś…</span><kbd>/</kbd></button>
+      <div class="seg" role="group" aria-label="Widok">
+        <button type="button" id="mSimple" aria-pressed="true">Prosty</button>
+        <button type="button" id="mPro" aria-pressed="false">Pełny</button>
+      </div>
+      <button class="walletchip" type="button" id="wallet" data-tip="<b>Portfel</b>z niego opłacasz autoskalowanie i dodatki"><span>Portfel</span><b>128,40 zł</b></button>
+      <button class="iconbtn" type="button" id="theme" aria-label="Zmień motyw"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9Z"/></svg></button>
+    </div>
+    <div class="wrap" id="view"></div>
+  </main>
+</div>
+
+<div class="tt" id="tt" role="tooltip"></div>
+<div class="veil" id="veil" hidden>
+  <div class="pal" role="dialog" aria-label="Szukaj lub zrób coś">
+    <input id="q" placeholder="Wpisz, co chcesz zrobić…" autocomplete="off">
+    <ul id="list" role="listbox"></ul>
+  </div>
+</div>
+<div class="toast" id="toast" role="status"><span id="toastMsg"></span><button type="button" id="undo">Cofnij</button></div>
+
+<script>
+(function(){
+/* ================= dane przykładowe ================= */
+var STACK={
+  wp:{n:'WordPress',c:'#21759b',l:'W'}, presta:{n:'PrestaShop',c:'#df0067',l:'P'},
+  laravel:{n:'Laravel',c:'#f05340',l:'L'}, html:{n:'Statyczna HTML',c:'#5f6a63',l:'H'},
+  redirect:{n:'Przekierowanie',c:'#8f9b94',l:'→'}
+};
+var SITES=[
+  {d:'piekarnia-zdroj.pl',t:'domena główna',k:'wp',v:'6.8.2',php:'8.3',st:'ok',vis:18412,disk:5.1,ssl:89,db:1,mail:4,ttfb:184,trend:[2410,2530,2380,2690,2810,2702,2891]},
+  {d:'sklep.piekarnia-zdroj.pl',t:'subdomena',k:'presta',v:'8.1.7',php:'8.1',st:'w',vis:9120,disk:3.2,ssl:89,db:1,mail:0,ttfb:312,trend:[1180,1230,1290,1310,1350,1370,1390]},
+  {d:'zdrojcatering.pl',t:'domena dodatkowa',k:'laravel',v:'11.9',php:'8.3',st:'ok',vis:2310,disk:1.4,ssl:34,db:1,mail:2,ttfb:96,trend:[290,310,350,330,340,360,330]},
+  {d:'menu.zdrojcatering.pl',t:'subdomena',k:'html',v:'',php:'—',st:'ok',vis:880,disk:.1,ssl:34,db:0,mail:0,ttfb:41,trend:[120,118,130,121,126,133,132]},
+  {d:'stara-piekarnia.pl',t:'domena dodatkowa',k:'redirect',v:'→ piekarnia-zdroj.pl',php:'—',st:'n',vis:140,disk:0,ssl:12,db:0,mail:0,ttfb:0,trend:[22,19,24,18,20,17,20]}
+];
+var DAYS30=[];for(var i=0;i<30;i++){var b=1900+Math.round(700*Math.sin(i/4.2)+i*28+((i*37)%11)*40);if(i%7===5||i%7===6)b=Math.round(b*.72);DAYS30.push(b);}
+var INCIDENT=17;
+function dayLabel(offset){var d=new Date(2026,8,22-offset);return d.toLocaleDateString('pl-PL',{weekday:'short',day:'numeric',month:'short'});}
+function fmt(n){return n.toLocaleString('pl-PL');}
+function gb(n){return n.toLocaleString('pl-PL',{maximumFractionDigits:1})+' GB';}
+
+/* ================= stan ================= */
+var S={view:'hosting',section:'overview',site:0,tab:'overview',metric:'v'};
+try{var saved=JSON.parse(localStorage.getItem('vw2')||'null');if(saved)S=Object.assign(S,saved);}catch(e){}
+function save(){try{localStorage.setItem('vw2',JSON.stringify(S))}catch(e){}}
+var app=document.getElementById('app');
+
+/* ================= ikony ================= */
+var I={
+  home:'<path d="M3 11 12 4l9 7v9H3z"/>',svc:'<rect x="3" y="4" width="18" height="7" rx="1"/><rect x="3" y="13" width="18" height="7" rx="1"/>',
+  globe:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/>',card:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/>',
+  help:'<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.7M12 17h.01"/>',mail:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>',
+  db:'<ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
+  folder:'<path d="M3 6h6l2 2h10v11H3z"/>',ftp:'<path d="M12 3v12M7 10l5 5 5-5M4 21h16"/>',dns:'<circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M7.5 7.5 11 16M16.5 7.5 13 16"/>',
+  lock:'<rect x="5" y="11" width="14" height="9" rx="1"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',backup:'<path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',code:'<path d="m8 8-5 4 5 4M16 8l5 4-5 4"/>',shield:'<path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/>',
+  rocket:'<path d="M5 15c-1 1-2 5-2 5s4-1 5-2M9 11a14 14 0 0 1 11-8c0 4-2 8-8 11zM9 11l4 4"/>',grid:'<rect x="4" y="4" width="7" height="7"/><rect x="13" y="4" width="7" height="7"/><rect x="4" y="13" width="7" height="7"/><rect x="13" y="13" width="7" height="7"/>',
+  pulse:'<path d="M3 12h4l3-7 4 14 3-7h4"/>',receipt:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',overview:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',ext:'<path d="M14 4h6v6M20 4l-9 9M19 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/>',chev:'<path d="m9 6 6 6-6 6"/>'
+};
+function ic(n,s){return '<svg viewBox="0 0 24 24" width="'+(s||16)+'" height="'+(s||16)+'" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'+I[n]+'</svg>';}
+function chip(s){var k=STACK[s.k];return '<span class="stackchip"><i style="background:'+k.c+'">'+k.l+'</i>'+k.n+(s.v&&s.k!=='redirect'?' '+s.v:'')+'</span>';}
+function stp(st){return st==='w'?'<span class="s w"><span class="dot"></span>wolniej</span>':st==='n'?'<span class="s n"><span class="dot"></span>przekierowuje</span>':'<span class="s"><span class="dot"></span>działa</span>';}
+
+/* ================= boczny pasek (połączony) ================= */
+var HOSTING_SECTIONS=[
+  ['Strony',[['overview','Przegląd','overview']]],
+  ['Poczta i domeny',[['mail','Poczta','mail'],['dns','Strefy DNS','dns'],['ssl','Certyfikaty SSL','lock']]],
+  ['Pliki i dane',[['files','Menedżer plików','folder'],['db','Bazy danych','db'],['ftp','Konta FTP','ftp'],['backups','Kopie zapasowe','backup']]],
+  ['Narzędzia',[['php','PHP i serwer','code'],['cron','Zadania cron','clock'],['apps','Aplikacje 1-click','grid'],['staging','Staging i deploy','rocket'],['waf','Bezpieczeństwo (WAF)','shield'],['monitoring','Monitoring i limity','pulse']]],
+  ['Rozliczenie',[['subscription','Subskrypcja i płatności','receipt'],['autoscaling','Autoskalowanie i EKO','pulse']]]
+];
+function rail(){
+  var inSvc=S.view==='hosting'||S.view==='site';
+  var h='<div class="brand"><i></i>Verris</div>'+
+  '<button class="who" type="button" data-tip="Tryb agencji: przełącz klienta"><span class="av">PZ</span><span><b>Piekarnia Zdrój</b><small>klient · 3 usługi</small></span><span class="chev">'+ic('chev',14)+'</span></button>'+
+  '<nav class="nav"><a href="#" data-go="home">'+ic('home')+'Pulpit</a><a href="#" data-go="hosting" class="'+(inSvc?'on':'')+'">'+ic('svc')+'Usługi<em>3</em></a><a href="#">'+ic('globe')+'Domeny<em class="warn">1 wygasa</em></a><a href="#">'+ic('card')+'Płatności</a><a href="#">'+ic('help')+'Centrum pomocy<em>1</em></a></nav>';
+  h+='<div class="ctx"><div class="svc">'+ic('svc',15)+'<b>Hosting Biznes</b><small>5 stron</small></div><nav class="nav">';
+  HOSTING_SECTIONS.forEach(function(g,gi){
+    if(gi>0)h+='<div class="sub-label">'+g[0]+'</div>';
+    g[1].forEach(function(it){
+      h+='<button class="a '+(S.view==='hosting'&&S.section===it[0]?'on':'')+'" type="button" data-sec="'+it[0]+'">'+ic(it[2])+it[1]+'</button>';
+      if(it[0]==='overview'){
+        h+='<div class="tree">'+SITES.map(function(s,i){return '<button class="a '+(S.view==='site'&&S.site===i?'on':'')+'" type="button" data-site="'+i+'" title="'+s.d+'"><span class="st '+(s.st==='w'?'w':s.st==='n'?'n':'')+'"></span><span>'+s.d+'</span></button>'}).join('')+
+        '<button class="a" type="button" data-toast="Kreator: dodaj domenę, subdomenę lub nową stronę">'+ic('plus',14)+'<span class="muted">Dodaj stronę</span></button></div>';
+      }
+    });
+  });
+  h+='</nav></div>';
+  h+='<details class="more"><summary><div class="nav"><div class="label">Więcej <span class="plus">'+ic('plus',12)+'</span></div></div></summary><nav class="nav">'+
+    [['Migracje','backup'],['Dodatki','plus'],['VPS / Cloud','svc'],['Reseller (white-label)','grid'],['Kalkulator','overview'],['Program EKO','pulse'],['Program partnerski','card'],['Zespół i dostęp (IAM)','lock'],['E-mail marketing','mail'],['Analityka stron','overview'],['API i integracje','code'],['Baza wiedzy','help'],['Ustawienia','grid']]
+    .map(function(x){return '<a href="#">'+ic(x[1])+x[0]+'</a>'}).join('')+'</nav></details>';
+  h+='<div class="foot">Wzorzec ekranu — dane przykładowe</div>';
+  document.getElementById('rail').innerHTML=h;
+}
+
+/* ================= wspólne klocki ================= */
+function bars(arr,labels,unit,cls){var mx=Math.max.apply(null,arr);return '<div class="bars '+(cls||'')+'">'+arr.map(function(v,i){return '<i tabindex="0" style="height:'+Math.max(8,v/mx*100)+'%" data-tip="<b>'+fmt(v)+' '+unit+'</b>'+labels[i]+'"></i>'}).join('')+'</div>';}
+var last7=[6,5,4,3,2,1,0].map(dayLabel);
+function daysRow(){return '<div class="days">'+Array.from({length:14},function(_,i){var off=13-i,bad=i===9;return '<i tabindex="0" class="'+(bad?'w':'')+(off===0?' today':'')+'" data-tip="<b>'+(bad?'Kopia częściowa':'Kopia udana')+'</b>'+dayLabel(off)+' · 03:1'+(i%6)+(bad?' · poczta pominięta':' · 3,'+(i%3)+' GB')+'"></i>'}).join('')+'</div>';}
+function diskStack(parts,total){return '<div class="stack">'+parts.map(function(p){return '<i tabindex="0" style="width:'+(p[1]/total*100)+'%;background:'+p[2]+'" data-tip="<b>'+p[0]+'</b>'+gb(p[1])+' · '+Math.round(p[1]/total*100)+'% limitu"></i>'}).join('')+'</div>';}
+function chart(data,unit,hl){
+  var W=640,H=220,L=44,R=8,T=12,B=26,mx=Math.max.apply(null,data);
+  var step=mx>5000?2000:mx>500?1000:mx>50?50:mx>10?5:1, top=Math.ceil(mx/step)*step, bw=(W-L-R)/data.length;
+  var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Ruch z 30 dni">';
+  for(var t=0;t<=top;t+=step){var y=T+(H-T-B)*(1-t/top);s+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+y+'" y2="'+y+'" stroke="var(--line)"/><text x="'+(L-8)+'" y="'+(y+4)+'" text-anchor="end" font-family="JetBrains Mono,monospace" font-size="10.5" fill="var(--muted)">'+(t>=1000?(t/1000)+'k':t)+'</text>';}
+  data.forEach(function(v,i){var h=(H-T-B)*v/top,x=L+i*bw+2,y=H-B-h,fill=i===data.length-1?'var(--data)':(i===hl?'var(--warn)':'var(--data-soft)');
+    s+='<rect tabindex="0" x="'+x+'" y="'+y+'" width="'+(bw-4)+'" height="'+h+'" rx="1.5" fill="'+fill+'" data-tip="<b>'+fmt(v)+' '+unit+'</b>'+dayLabel(29-i)+(i===hl?' · 4 min przerwy':'')+'"/>';});
+  [0,7,14,21,29].forEach(function(i){var d=new Date(2026,8,22-29+i);s+='<text x="'+(L+i*bw+bw/2)+'" y="'+(H-8)+'" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="10.5" fill="var(--muted)">'+d.getDate()+'.'+String(d.getMonth()+1).padStart(2,'0')+'</text>';});
+  return s+'</svg>';
+}
+function table(cols,rows,opt){opt=opt||{};return '<div class="panel tw"><table><thead><tr>'+cols.map(function(c){return '<th class="'+(c[1]||'')+'">'+c[0]+'</th>'}).join('')+'</tr></thead><tbody>'+
+  rows.map(function(r){return '<tr class="'+(r.go!=null?'go':'')+'" '+(r.go!=null?'data-site="'+r.go+'" tabindex="0"':'')+'>'+r.c.map(function(c,i){return '<td class="'+(cols[i][1]||'')+'">'+c+'</td>'}).join('')+'</tr>'}).join('')+'</tbody></table></div>';}
+function sec(title,desc,action,body){return '<section><div class="sechead"><div><h2>'+title+'</h2>'+(desc?'<p>'+desc+'</p>':'')+'</div>'+(action||'')+'</div>'+body+'</section>';}
+function btn(t,p,toast){return '<button class="btn sm '+(p?'primary':'')+'" type="button" data-toast="'+(toast||t)+'">'+t+'</button>';}
+function siteSel(){return '<select id="siteSel" aria-label="Wybierz stronę">'+SITES.map(function(s,i){return '<option value="'+i+'" '+(i===S.site?'selected':'')+'>'+s.d+'</option>'}).join('')+'</select>';}
+
+/* ================= widok: usługa hostingowa ================= */
+function viewHosting(){
+  var totDisk=SITES.reduce(function(a,s){return a+s.disk},0);
+  var head='<header class="head"><div><div class="label">Usługa · odnawia się 14 lis 2026 · 45 zł / mies.</div><h1>Hosting Biznes</h1>'+
+   '<div class="meta"><span class="pill ok"><span class="dot"></span>Wszystko działa</span><span>5 stron · 3 domeny · 2 subdomeny</span><span>login <button class="addr" type="button" style="display:inline" data-toast="Skopiowano: piekarnia" data-tip="Kopiuj">piekarnia</button></span><span class="pro-only mono">serwer fsn1-02 · 49.12.x.x · konto piekarnia</span></div></div>'+
+   '<div class="actions"><button class="btn primary" type="button" data-toast="Kreator: dodaj domenę, subdomenę lub nową stronę">'+ic('plus',15)+'Dodaj stronę</button><button class="btn" type="button" data-sec="files">Pliki</button><button class="btn" type="button" data-sec="mail">Poczta</button></div></header>';
+  if(S.section!=='overview') return head+hostingSection();
+  var perSiteDisk=SITES.filter(function(s){return s.disk>0}).map(function(s,i){return [s.d,s.disk,['var(--data)','var(--data-2)','var(--data-3)','var(--muted)'][i%4]]});
+  perSiteDisk.push(['Poczta (wszystkie skrzynki)',1.9,'var(--warn)']);
+  var visitsAll=[0,1,2,3,4,5,6].map(function(d){return SITES.reduce(function(a,s){return a+s.trend[d]},0)});
+  var strip='<div class="strip">'+
+   '<div class="kpi"><div class="label">Miejsce na dysku</div><div class="big">'+(totDisk+1.9).toLocaleString('pl-PL',{maximumFractionDigits:1})+'<small>/ 50 GB</small></div>'+diskStack(perSiteDisk,50)+'<div class="sub"><span>najedź, by zobaczyć podział</span><span class="pro-only">+0,3 GB / 30 d</span></div></div>'+
+   '<div class="kpi"><div class="label">Odwiedziny · wszystkie strony</div><div class="big">'+fmt(visitsAll.reduce(function(a,b){return a+b}))+'</div>'+bars(visitsAll,last7,'odwiedzin')+'<div class="sub"><span class="up">▲ 12% tydzień do tygodnia</span></div></div>'+
+   '<div class="kpi"><div class="label"><span class="simple-only">Wydajność konta</span><span class="pro-only">CPU · % limitu · 7 d</span></div><div class="big"><span class="simple-only">W normie</span><span class="pro-only">38<small>% szczyt 71%</small></span></div>'+bars([22,31,28,35,41,71,38],last7,'% CPU w szczycie','warnlast')+'<div class="sub"><span class="down">sklep. obciąża w godz. 11–13</span></div></div>'+
+   '<div class="kpi"><div class="label">Kopie zapasowe · 14 dni</div><div class="big">Dziś<small>03:12</small></div>'+daysRow()+'<div class="sub"><span>13 z 14 udanych</span><button class="link" type="button" data-sec="backups">Przywróć…</button></div></div></div>';
+  var rows=SITES.map(function(s,i){return {go:i,c:[
+    '<div class="dom"><b>'+s.d+'</b><small>'+s.t+'</small></div>', chip(s), stp(s.st),
+    '<span class="spk" data-tip="<b>'+fmt(s.vis)+' odwiedzin</b>ostatnie 7 dni">'+s.trend.map(function(v){var m=Math.max.apply(null,s.trend);return '<i style="height:'+Math.max(10,v/m*100)+'%"></i>'}).join('')+'</span>',
+    '<span class="num">'+(s.disk?gb(s.disk):'—')+'</span>','<span class="mono">'+s.php+'</span>','<span class="arrow">'+ic('chev')+'</span>']}});
+  var sites=sec('Strony na tym hostingu','Kliknij stronę, żeby zarządzać jej domeną, DNS, SSL, plikami i bazą.',btn('Dodaj stronę',false,'Kreator: dodaj domenę, subdomenę lub nową stronę'),
+    table([['Strona'],['Technologia','hide-sm'],['Stan'],['Ruch 7 d','hide-sm'],['Dysk','hide-sm'],['PHP','pro-only'],['']],rows));
+  var assist='<section aria-label="Podpowiedź asystenta"><div class="sechead"><h2>Asystent</h2><button class="link" type="button" data-pal="dlaczego">Zapytaj o coś</button></div>'+
+   '<div class="assist" id="assist"><div class="who2"><span class="spark">'+ic('pulse',11)+'</span><span class="label">zauważyłem</span></div>'+
+   '<p><b>sklep.piekarnia-zdroj.pl</b> w godzinach 11–13 odpowiada prawie 2× wolniej niż tydzień temu i zużywa 71% mocy konta. Pomoże pamięć podręczna PrestaShop.</p>'+
+   '<div class="effect" id="effect" hidden><div><span>Czas odpowiedzi w szczycie</span><span class="num"><s>312 ms</s> → ok. 120 ms</span></div><div><span>Koszyk i konto klienta</span><span>bez zmian</span></div><div><span>Cofnięcie</span><span>jednym kliknięciem, 7 dni</span></div></div>'+
+   '<div class="row"><button class="btn sm" type="button" id="preview">Co się zmieni?</button><button class="btn sm primary" type="button" data-toast="Pamięć podręczna włączona dla sklep.piekarnia-zdroj.pl">Włącz</button><button class="x" type="button" id="dismiss">Nie teraz</button></div></div></section>';
+  var limits=sec('Zasoby konta','', '', '<div class="panel"><ul class="list">'+
+   [['Domeny i subdomeny','5 z 10',50],['Skrzynki pocztowe','6 z 50',12],['Bazy danych','3 z 20',15],['Konta FTP','2 z 10',20],['Procesy PHP w szczycie','14 z 20',70,true]].map(function(x){return '<li><b>'+x[0]+'</b><span class="r num">'+x[1]+'</span><span class="m"><span class="meter" data-tip="<b>'+x[2]+'% limitu</b>'+x[0]+'"><i class="'+(x[3]?'w':'')+'" style="width:'+x[2]+'%"></i></span></span></li>'}).join('')+'</ul></div>');
+  var feed=sec('Co się działo','','',feedHtml(null));
+  return head+strip+'<div class="grid"><div class="col">'+sites+limits+feed+'</div><div class="col">'+autoscaleShort()+assist+accessBox()+billingBox()+'</div></div>';
+}
+function feedHtml(site){
+  var ev=[
+    ['Dziś'],['','Kopia zapasowa gotowa','Wszystkie strony, 3 bazy i poczta · <span class="pro-only mono">3,1 GB · 6 min 12 s</span><span class="simple-only">możesz z niej wrócić jednym kliknięciem</span>','03:12',null],
+    ['w','WordPress zaktualizowany do 6.8.2','piekarnia-zdroj.pl wygląda tak samo (porównaliśmy zrzuty ekranu). <button class="link" type="button" data-toast="Przywrócono WordPress 6.8.1">Cofnij aktualizację</button>','02:40',0],
+    ['w','Sklep zwolnił w szczycie','sklep.piekarnia-zdroj.pl · 312 ms zamiast 160 ms','11:40',1],
+    ['Wczoraj'],['','Certyfikat SSL odnowiony','zdrojcatering.pl i menu.zdrojcatering.pl · nic nie musisz robić','21:05',2],
+    ['n','Anna dodała skrzynkę zamowienia@zdrojcatering.pl','Zaproszona do zespołu jako „Poczta”','14:22',2],
+    ['w','Logowanie FTP z nowego miejsca','Wrocław, PL · <span class="pro-only mono">ftp_piekarnia · 83.24.x.x</span> <button class="link" type="button" data-toast="Oznaczono jako Ty — nie będziemy o to pytać">To ja</button>','09:48',null]
+  ];
+  var out='',pendingDay=null,count=0;
+  ev.forEach(function(e){if(e.length===1){pendingDay=e[0];return;}
+    if(site!=null&&e[4]!==site&&e[4]!==null)return;
+    if(pendingDay){out+='<div class="day label">'+pendingDay+'</div>';pendingDay=null;}
+    count++;out+='<div class="ev"><span class="mk '+e[0]+'"></span><div><p>'+e[1]+'</p><small>'+e[2]+'</small></div><time>'+e[3]+'</time></div>';});
+  return '<div class="panel feed">'+(count?out:'<div class="empty">Nic się nie działo w ostatnich dniach.</div>')+'</div>';
+}
+function hostingSection(){
+  var t=S.section, A=function(t,p){return btn(t,p!==false,t==='Kopiuj'?'Skopiowano':'Otwieram: '+t)};
+  if(t==='mail') return sec('Poczta','Wszystkie skrzynki na tym hostingu. Każda domena może mieć własne.',A('Utwórz skrzynkę'),
+    table([['Adres'],['Zajętość'],['Przekierowania','hide-sm'],['Ochrona','pro-only'],['']],[
+     ['<b>biuro@piekarnia-zdroj.pl</b>','<span class="num">1,1 / 5 GB</span>','—','<span class="mono">SPF · DKIM · DMARC</span>',btn('Webmail',false,'Otwieram webmail')],
+     ['<b>sklep@piekarnia-zdroj.pl</b>','<span class="num">0,4 / 5 GB</span>','→ biuro@','<span class="mono">SPF · DKIM · DMARC</span>',btn('Webmail',false,'Otwieram webmail')],
+     ['<b>anna@piekarnia-zdroj.pl</b>','<span class="num">0,3 / 2 GB</span>','—','<span class="mono">SPF · DKIM · DMARC</span>',btn('Webmail',false,'Otwieram webmail')],
+     ['<b>faktury@piekarnia-zdroj.pl</b>','<span class="num">0,1 / 2 GB</span>','→ księgowa (zewn.)','<span class="mono">SPF · DKIM · DMARC</span>',btn('Webmail',false,'Otwieram webmail')],
+     ['<b>kontakt@zdrojcatering.pl</b>','<span class="num">0,0 / 2 GB</span>','—','<span class="mono">SPF · DKIM</span>',btn('Webmail',false,'Otwieram webmail')],
+     ['<b>zamowienia@zdrojcatering.pl</b>','<span class="num">0,0 / 2 GB</span>','—','<span class="mono">SPF · DKIM</span>',btn('Webmail',false,'Otwieram webmail')]
+    ].map(function(c){return{c:c}})));
+  if(t==='db') return sec('Bazy danych','Każda baza jest przypisana do strony — widzisz od razu, co jest czego.',A('Utwórz bazę'),
+    table([['Baza'],['Strona'],['Rozmiar'],['Silnik','pro-only'],['']],[
+     {c:['<b class="mono">piekarnia_wp</b>','piekarnia-zdroj.pl','<span class="num">412 MB</span>','<span class="mono">MariaDB 10.11</span>',btn('phpMyAdmin',false,'Otwieram phpMyAdmin')]},
+     {c:['<b class="mono">piekarnia_sklep</b>','sklep.piekarnia-zdroj.pl','<span class="num">980 MB</span>','<span class="mono">MariaDB 10.11</span>',btn('phpMyAdmin',false,'Otwieram phpMyAdmin')]},
+     {c:['<b class="mono">zdroj_catering</b>','zdrojcatering.pl','<span class="num">96 MB</span>','<span class="mono">MariaDB 10.11</span>',btn('phpMyAdmin',false,'Otwieram phpMyAdmin')]}]));
+  if(t==='ftp') return sec('Konta FTP','Dostęp do plików dla Ciebie lub osoby, która robi stronę. Możesz ograniczyć konto do jednego katalogu.',A('Dodaj konto FTP'),
+    table([['Login'],['Katalog'],['Ostatnie logowanie','hide-sm'],['']],[
+     {c:['<b class="mono">ftp_piekarnia</b>','<span class="mono">/</span> <span class="muted">(całe konto)</span>','wczoraj 09:48 · Wrocław',btn('Zmień hasło',false,'Nowe hasło wysłane')]},
+     {c:['<b class="mono">ftp_agencja</b>','<span class="mono">/domains/zdrojcatering.pl</span>','12 wrz · Poznań',btn('Zmień hasło',false,'Nowe hasło wysłane')]}]));
+  if(t==='dns'||t==='ssl') return sec(t==='dns'?'Strefy DNS':'Certyfikaty SSL',t==='dns'?'Rekordy ustawiasz per domena. Wybierz domenę, żeby edytować jej strefę.':'Certyfikaty odnawiają się same. Wybierz stronę, żeby zobaczyć szczegóły.','',
+    table([['Domena'],[t==='dns'?'Serwery nazw':'Certyfikat'],[t==='dns'?'Rekordy':'Ważny','hide-sm'],['']],SITES.map(function(s,i){return{go:i,c:['<b>'+s.d+'</b>',t==='dns'?(s.t==='subdomena'?'<span class="muted">w strefie domeny</span>':'<span class="mono">ns1/ns2.verris.pl</span>'):'Let’s Encrypt',t==='dns'?(s.t==='subdomena'?'—':'<span class="num">'+(8+i*3)+'</span>'):'<span class="num">'+s.ssl+' dni</span>','<span class="arrow">'+ic('chev')+'</span>']}})));
+  if(t==='backups') return sec('Kopie zapasowe','Codziennie o 3:00, trzymamy 14 dni. Możesz przywrócić całość albo tylko jedną stronę, bazę lub skrzynkę.',A('Zrób kopię teraz',false),
+    '<div class="panel" style="padding:14px 16px">'+daysRow()+'<p class="note" style="margin:10px 0 0">Najedź na dzień, żeby zobaczyć szczegóły.</p></div>'+
+    table([['Kopia'],['Zakres','hide-sm'],['Rozmiar'],['']],[0,1,2,3].map(function(d){return{c:['<b>'+dayLabel(d)+'</b> <span class="mono muted">03:1'+d+'</span>','pliki, bazy, poczta','<span class="num">3,'+(d%3)+' GB</span>',btn('Przywróć…',false,'Wybierz, co przywrócić: całość, stronę, bazę lub skrzynkę')]}})));
+  if(t==='subscription') return subscriptionSection();
+  if(t==='autoscaling') return autoscalingSection();
+  var names={files:'Menedżer plików',php:'PHP i serwer',cron:'Zadania cron',apps:'Aplikacje 1-click',staging:'Staging i deploy',waf:'Bezpieczeństwo (WAF)',monitoring:'Monitoring i limity',subscription:'Subskrypcja'};
+  return sec(names[t]||t,'Ta sekcja już działa w panelu — w PB-16 przejdzie na nowy wygląd według tego samego wzorca (tabela + akcja + podpowiedź).','','<div class="panel empty">W wzorcu pokazuję pełne przykłady dla: Poczta, Bazy danych, Konta FTP, Strefy DNS, SSL, Kopie zapasowe.</div>');
+}
+
+
+/* ================= boxy: dostęp, płatności, autoskalowanie ================= */
+var AS={on:true,cap:50,used:12.8,wallet:128.4};
+function cp(v){return '<button class="copy" type="button" data-toast="Skopiowano">kopiuj</button>';}
+function accessBox(){
+  var items=[['Login konta (FTP, SSH, panel)',['piekarnia'],''],['Adres serwera',['49.12.83.117'],''],['Serwer FTP',['ftp.piekarnia-zdroj.pl','49.12.83.117'],'21'],['SSH',['fsn1-02.verris.pl'],'2222'],
+    ['Serwery DNS',['ns1.verris.pl','ns2.verris.pl'],''],['Poczta — odbiór (IMAP)',['mail.piekarnia-zdroj.pl'],'993 SSL'],['Poczta — wysyłka (SMTP)',['mail.piekarnia-zdroj.pl'],'465 SSL'],
+    ['Baza danych',['localhost'],'3306']];
+  return '<section class="panel"><div class="boxhead"><h3>Dane dostępowe</h3><button class="link" type="button" data-toast="Wysłaliśmy dane na biuro@piekarnia-zdroj.pl">Wyślij na e-mail</button></div>'+
+   '<p style="margin:4px 16px 6px;font-size:12.5px;color:var(--muted)">Kliknij adres, żeby go skopiować.</p><ul class="acc">'+items.map(function(x){
+     return '<li><span class="label">'+x[0]+'</span><div class="accrow"><div class="addrs">'+x[1].map(function(a){return '<button class="addr" type="button" data-toast="Skopiowano: '+a+'" data-tip="Kopiuj">'+a+'</button>'}).join('')+'</div>'+
+       (x[2]?'<span class="port" data-tip="Port">'+x[2]+'</span>':'')+'</div></li>'}).join('')+'</ul>'+
+   '<div class="boxfoot" style="padding-top:12px"><button class="btn sm" type="button" data-toast="Otwieram webmail">Webmail</button><button class="btn sm" type="button" data-toast="Otwieram phpMyAdmin">phpMyAdmin</button></div></section>';
+}
+function billingBox(){
+  return '<section class="panel"><div class="boxhead"><h3>Płatności za usługę</h3><span class="pill ok"><span class="dot"></span>opłacona</span></div>'+
+   '<div style="padding:10px 16px 0"><div class="money">45,00 zł<small>/ mies. brutto</small></div></div>'+
+   '<dl class="kv"><dt>Następna płatność</dt><dd><b>14 paź 2026</b> · 45,00 zł</dd><dt>Sposób</dt><dd>z portfela, potem karta ••4417</dd><dt>Poprzednia</dt><dd>14 wrz 2026 · 45,00 zł · <button class="link" type="button" data-toast="Pobieram fakturę FV/2026/09/118">faktura</button></dd><dt>Autoskalowanie w tym okresie</dt><dd class="num">'+AS.used.toLocaleString('pl-PL',{minimumFractionDigits:2})+' zł</dd></dl>'+
+   '<div class="boxfoot"><button class="btn sm" type="button" data-sec="subscription">Historia i faktury</button><button class="btn sm" type="button" data-toast="Porównanie planów — zmiana od razu albo od nowego okresu">Zmień plan</button></div></section>';
+}
+function autoscaleBox(){
+  var pct=Math.round(AS.used/AS.cap*100), low=AS.wallet<AS.cap-AS.used;
+  return '<section class="panel" id="asBox"><div class="boxhead"><h3>Autoskalowanie</h3><button class="switch" type="button" role="switch" aria-checked="'+AS.on+'" aria-label="Autoskalowanie" data-as-toggle></button></div>'+
+   '<p style="margin:6px 16px 0;font-size:13.5px;color:var(--muted)">'+(AS.on?'Przy nagłym ruchu dodajemy moc na 15-minutowe bloki i pobieramy za nie opłatę z portfela.':'Wyłączone — przy skoku ruchu strona może zwolnić, ale nic nie dopłacisz.')+'</p>'+
+   (AS.on?'<dl class="kv"><dt>Bezpiecznik kosztów</dt><dd><b>'+AS.cap+' zł</b> / 30 dni</dd><dd style="grid-column:1/-1;padding-top:0"><span class="meter" data-tip="<b>'+pct+'% bezpiecznika</b>'+AS.used.toLocaleString('pl-PL')+' z '+AS.cap+' zł"><i style="width:'+pct+'%"></i></span></dd>'+
+   '<dt>Wydane w tym okresie</dt><dd class="num">'+AS.used.toLocaleString('pl-PL',{minimumFractionDigits:2})+' zł · 34 bloki</dd><dt>Ostatnio</dt><dd>dziś 11:45 · +1 CPU, +1 GB RAM</dd>'+
+   '<dt>Prognoza do końca okresu</dt><dd class="num">ok. 21 zł</dd><div class="sep"></div><dt>Saldo portfela</dt><dd><b class="num">'+AS.wallet.toLocaleString('pl-PL',{minimumFractionDigits:2})+' zł</b></dd></dl>'+
+   (low?'<p class="note" style="margin:0 16px 10px;color:var(--warn)">Saldo nie pokrywa bezpiecznika — doładuj, żeby skalowanie nie stanęło.</p>':'')
+   :'<div style="height:10px"></div>')+
+   '<div class="boxfoot"><button class="btn sm primary" type="button" data-toast="Doładowanie portfela: BLIK, przelew lub karta">Doładuj portfel</button><button class="btn sm" type="button" data-sec="autoscaling">Ustawienia i historia</button></div></section>';
+}
+function autoscaleShort(){
+  var pct=Math.round(AS.used/AS.cap*100);
+  return '<section class="panel"><div class="boxhead"><h3>Autoskalowanie</h3><button class="switch" type="button" role="switch" aria-checked="'+AS.on+'" aria-label="Autoskalowanie" data-as-toggle></button></div>'+
+   '<p style="margin:6px 16px 0;font-size:13.5px;color:var(--muted)">'+(AS.on?'Przy nagłym ruchu dodajemy moc, opłata z portfela.':'Wyłączone — przy skoku ruchu strona może zwolnić, ale nic nie dopłacisz.')+'</p>'+
+   (AS.on?'<div style="padding:12px 16px 0"><div style="display:flex;justify-content:space-between;font-size:13.5px"><span class="muted">Bezpiecznik · 30 dni</span><span class="num"><b style="color:var(--text)">'+AS.used.toLocaleString('pl-PL',{minimumFractionDigits:2})+' zł</b> z '+AS.cap+' zł</span></div><span class="meter" data-tip="<b>'+pct+'% bezpiecznika</b>powyżej limitu zasoby wracają do planu"><i style="width:'+pct+'%"></i></span></div>':'')+
+   '<div style="padding:12px 16px 14px"><button class="link" type="button" data-sec="autoscaling">Szczegóły, historia i portfel →</button></div></section>';
+}
+function subscriptionSection(){
+  return '<div class="grid"><div class="col">'+billingBox()+
+   sec('Historia rozliczeń','Faktury wystawiamy w programie księgowym — pojawiają się tu po wystawieniu.','',table([['Data'],['Opis'],['Kwota'],['Dokument']],[
+    ['14 wrz 2026','Hosting Biznes · wrz–paź','45,00 zł','<button class="link" type="button" data-toast="Pobieram fakturę">FV/2026/09/118</button>'],
+    ['02 wrz 2026','Autoskalowanie · sierpień','8,40 zł','<button class="link" type="button" data-toast="Pobieram fakturę">FV/2026/09/031</button>'],
+    ['14 sie 2026','Hosting Biznes · sie–wrz','45,00 zł','<button class="link" type="button" data-toast="Pobieram fakturę">FV/2026/08/102</button>'],
+    ['14 lip 2026','Hosting Biznes · lip–sie','45,00 zł','<span class="muted">czeka na fakturę</span>']].map(function(c){return{c:['<span class="num">'+c[0]+'</span>',c[1],'<span class="num">'+c[2]+'</span>',c[3]]}})))+
+   '</div><div class="col">'+sec('Plan','','',
+    '<div class="panel"><ul class="list"><li><b>Hosting Biznes</b><span class="r">45 zł / mies.</span><span class="m">50 GB · 10 domen · 50 skrzynek · kopie 14 dni</span></li><li><b>Okres rozliczeniowy</b><span class="r">miesięczny</span><span class="m">roczny: 399 zł (oszczędzasz 141 zł)</span></li></ul><div class="boxfoot" style="padding-top:12px"><button class="btn sm primary" type="button" data-toast="Porównanie planów">Zmień plan</button><button class="btn sm" type="button" data-toast="Przejście na rozliczenie roczne od 14 paź">Przejdź na roczny</button></div></div>')+
+   sec('Zakończenie usługi','Możesz zrezygnować na koniec okresu (strona działa do 14 paź) albo od razu.','','<div class="panel boxfoot" style="padding-top:14px"><button class="btn sm" type="button" data-toast="Usługa zakończy się 14 paź 2026 — do tego czasu możesz to cofnąć">Na koniec okresu</button><button class="btn sm" type="button" data-toast="Przed zakończeniem pokażemy, co zostanie usunięte, i zaproponujemy kopię">Od razu…</button></div>')+'</div></div>';
+}
+function autoscalingSection(){
+  var costs=[0,0,1.2,0,0,0,3.6,0,0,0.8,0,0,0,2.4,0,0,0,0,1.6,0,0,0,0,0.4,0,0,1.2,0,0,1.6];
+  return '<div class="grid"><div class="col">'+
+   sec('Koszt autoskalowania · 30 dni','Każdy słupek to dzień. Najedź, żeby zobaczyć kwotę.','','<div class="panel"><div class="chart">'+chart(costs,'zł',-1)+'</div></div>')+
+   sec('Historia zdarzeń','','',table([['Kiedy'],['Co się stało'],['Koszt']],[
+    ['dziś 11:45','Zwiększono zasoby: +1 CPU, +1 GB RAM (sklep, ruch 3× ponad normę)','1,60 zł'],['dziś 12:45','Zasoby wróciły do planu','—'],['13 wrz 19:10','Zwiększono zasoby: +1 CPU (newsletter)','1,20 zł'],['1 wrz 00:00','Nowy okres — bezpiecznik wyzerowany','—']].map(function(c){return{c:['<span class="num">'+c[0]+'</span>',c[1],'<span class="num">'+c[2]+'</span>']}})))+
+   '</div><div class="col">'+autoscaleBox()+
+   sec('Ustawienia','Ile maksymalnie możemy dodać ponad plan.','','<div class="panel">'+
+    '<div class="field"><label for="asCpu">Dodatkowe CPU <span class="num" id="asCpuV">do 2 rdzeni</span></label><input id="asCpu" type="range" min="0" max="4" value="2" data-out="asCpuV" data-unit="rdzeni"><small>0,10 zł za rdzeń na 15 min</small></div>'+
+    '<div class="field"><label for="asRam">Dodatkowy RAM <span class="num" id="asRamV">do 2 GB</span></label><input id="asRam" type="range" min="0" max="8" value="2" data-out="asRamV" data-unit="GB"><small>0,05 zł za GB na 15 min</small></div>'+
+    '<div class="field"><label for="asDisk">Dodatkowy dysk <span class="num" id="asDiskV">do 10 GB</span></label><input id="asDisk" type="range" min="0" max="50" step="5" value="10" data-out="asDiskV" data-unit="GB"><small>naliczane dziennie</small></div>'+
+    '<div class="field"><label for="asCap">Bezpiecznik kosztów (zł / 30 dni)</label><input id="asCap" type="number" min="0" step="5" value="50"><small>Po jego osiągnięciu zasoby wracają do planu, a strona działa dalej. Puste = bez limitu.</small></div>'+
+    '<div class="boxfoot" style="padding-top:12px"><button class="btn sm primary" type="button" data-toast="Zapisano ustawienia autoskalowania">Zapisz</button></div></div>')+
+   sec('Tryb EKO','','','<div class="panel"><ul class="list"><li><b>Oszczędzaj energię poza szczytem</b><span class="r"><button class="switch" type="button" role="switch" aria-checked="false" aria-label="Tryb EKO" data-eco></button></span><span class="m">w nocy zmniejszamy zapas mocy · nagradzamy punktami EKO</span></li><li><b>Zużycie energii · 30 dni</b><span class="r num">4,82 kWh</span><span class="m">szacunek z realnych metryk (metodologia w raporcie)</span></li></ul></div>')+
+   '</div></div>';
+}
+
+/* ================= widok: strona / domena ================= */
+var SITE_TABS=[['overview','Przegląd'],['dns','Domena i DNS'],['ssl','SSL'],['files','Pliki'],['db','Baza'],['mail','Poczta'],['php','PHP i serwer'],['redirects','Przekierowania'],['logs','Logi']];
+function viewSite(){
+  var s=SITES[S.site],k=STACK[s.k];
+  var open={wp:'Otwórz WordPress',presta:'Panel PrestaShop',laravel:'Terminal',html:'Pliki strony',redirect:'Zmień cel'}[s.k];
+  var head='<header class="head"><div><div class="label">'+s.t+' · na usłudze Hosting Biznes</div><h1>'+s.d+'</h1>'+
+    '<div class="meta">'+(s.st==='w'?'<span class="pill warn"><span class="dot"></span>Działa, ale wolniej</span>':s.st==='n'?'<span class="pill n"><span class="dot"></span>Przekierowanie</span>':'<span class="pill ok"><span class="dot"></span>Strona działa</span>')+chip(s)+
+    '<span class="muted" data-tip="Rozpoznajemy technologię po plikach strony">wykryto automatycznie</span><span class="pro-only mono">docroot /domains/'+s.d+'/public_html</span></div></div>'+
+    '<div class="actions"><a class="btn" href="#" data-toast="Otwieram '+s.d+' w nowej karcie">'+ic('ext',15)+'Otwórz stronę</a><button class="btn primary" type="button" data-toast="Otwieram: '+open+'">'+open+'</button></div></header>'+
+    '<div class="tabs" role="tablist">'+SITE_TABS.map(function(t){return '<button type="button" role="tab" aria-selected="'+(S.tab===t[0])+'" data-tab="'+t[0]+'">'+t[1]+'</button>'}).join('')+'</div>';
+  return head+siteTab(s);
+}
+function siteTab(s){
+  var i=S.site;
+  if(S.tab==='overview'){
+    var scale=s.vis/18412, data=DAYS30.map(function(v){return Math.max(1,Math.round(v*scale))});
+    var ttfbArr=[.82,.88,.86,.93,.92,1.04,1].map(function(m){return Math.round(s.ttfb*m)});
+    var strip='<div class="strip">'+
+     '<div class="kpi"><div class="label">Odwiedziny · 7 dni</div><div class="big">'+fmt(s.vis)+'</div>'+bars(s.trend,last7,'odwiedzin')+'<div class="sub"><span class="up">▲ 12% tydzień do tygodnia</span></div></div>'+
+     '<div class="kpi"><div class="label"><span class="simple-only">Szybkość strony</span><span class="pro-only">TTFB · mediana</span></div><div class="big"><span class="simple-only">'+(s.st==='w'?'Wolniej':s.k==='redirect'?'—':'Dobra')+'</span><span class="pro-only">'+(s.ttfb||'—')+'<small>ms</small></span></div>'+(s.ttfb?bars(ttfbArr,last7,'ms mediana',s.st==='w'?'warnlast':''):'<div class="bars"></div>')+'<div class="sub">'+(s.st==='w'?'<span class="down">w szczycie wolniej niż tydzień temu</span>':'<span>stabilnie</span>')+'</div></div>'+
+     '<div class="kpi"><div class="label">Błędy strony · 7 dni</div><div class="big">'+(s.st==='w'?'23':'0')+'</div>'+bars(s.st==='w'?[0,1,0,2,4,9,7]:[0,0,0,0,0,0,0].map(function(){return 0.01}),last7,'błędów 5xx',s.st==='w'?'warnlast':'')+'<div class="sub"><span>'+(s.st==='w'?'głównie przy dodawaniu do koszyka':'brak błędów')+'</span></div></div>'+
+     '<div class="kpi"><div class="label">Miejsce na dysku</div><div class="big">'+(s.disk?s.disk.toLocaleString('pl-PL'):'0')+'<small>GB</small></div>'+diskStack(s.disk?[['Pliki strony',s.disk*.7,'var(--data)'],['Baza',s.disk*.2,'var(--data-2)'],['Logi i cache',s.disk*.1,'var(--data-3)']]:[],Math.max(s.disk,.01))+'<div class="sub"><span>'+(s.disk?Math.round(s.disk/50*100)+'% limitu konta':'strona nie zajmuje miejsca')+'</span></div></div></div>';
+    var chartSec=sec('Ruch na stronie','','','<div class="panel"><div class="chart">'+chart(data,'odwiedzin',i===0?INCIDENT:-1)+'</div><div class="legend"><span><i style="background:var(--data-soft)"></i>ostatnie 30 dni</span><span><i style="background:var(--data)"></i>dziś</span>'+(i===0?'<span><i style="background:var(--warn)"></i>incydent</span>':'')+'</div></div>');
+    var toolsMap={
+      wp:[['Aktualizacje','2 wtyczki czekają · z porównaniem wyglądu'],['Wtyczki i motywy','14 aktywnych'],['Tryb konserwacji','„Wracamy za chwilę” dla gości'],['Zaloguj bez hasła','do kokpitu WordPress']],
+      presta:[['Pamięć podręczna','wyłączona — warto włączyć'],['Tryb debug','wyłączony'],['Moduły','31 zainstalowanych'],['Tryb konserwacji','sklep niedostępny dla klientów']],
+      laravel:[['Deploy z Git','main · ostatnio 2 dni temu'],['Zmienne .env','edycja z historią zmian'],['Kolejki i harmonogram','artisan schedule:run co minutę'],['Terminal SSH','w przeglądarce']],
+      html:[['Wgraj pliki','przeciągnij folder lub ZIP'],['Edytor plików','zmiany na żywo'],['Przekierowania','np. stary adres → nowy'],['Hasło na stronę','np. dla wersji roboczej']],
+      redirect:[['Cel przekierowania','piekarnia-zdroj.pl'],['Typ','stałe (301) — dobre dla Google'],['Zamień w stronę','zacznij od pustej lub z kopii']]
+    }[s.k];
+    var tools=sec('Narzędzia dla '+STACK[s.k].n,'Pokazujemy to, co ma sens dla tej technologii.','','<div class="tools">'+toolsMap.map(function(t){return '<button type="button" data-toast="Otwieram: '+t[0]+'"><b>'+t[0]+'</b><small>'+t[1]+'</small></button>'}).join('')+'</div>');
+    var parts=sec('Elementy strony','','','<div class="panel"><ul class="list">'+
+      [['Domena i DNS',s.t==='subdomena'?'w strefie domeny głównej':'serwery nazw Verris',s.d==='piekarnia-zdroj.pl'?'<span class="s w" style="color:var(--warn);font-weight:600">wygasa za 23 dni</span>':'ok','dns'],
+       ['Certyfikat SSL','Let’s Encrypt · odnawia się sam',s.ssl+' dni','ssl'],
+       ['Baza danych',s.db?'1 baza przypisana':'brak','—','db'],
+       ['Poczta',s.mail?s.mail+' skrzynki w tej domenie':'brak skrzynek','—','mail'],
+       ['PHP',s.php==='—'?'nie dotyczy':'wersja '+s.php,'','php']]
+      .map(function(x){return '<li style="cursor:pointer" data-tab="'+x[3]+'" tabindex="0"><b>'+x[0]+'</b><span class="r">'+x[2]+'</span><span class="m">'+x[1]+'</span></li>'}).join('')+'</ul></div>');
+    return strip+'<div class="grid"><div class="col">'+chartSec+sec('Co się działo na tej stronie','','',feedHtml(i))+'</div><div class="col">'+tools+parts+'</div></div>';
+  }
+  if(S.tab==='dns'){
+    var zone=s.t==='subdomena'?s.d.split('.').slice(1).join('.'):s.d, sub=s.t==='subdomena'?s.d.split('.')[0]:'@';
+    return sec('Rekordy DNS · '+zone, s.t==='subdomena'?'Ta subdomena należy do strefy '+zone+'. Pokazujemy jej rekordy na górze.':'Zmiany działają zwykle w kilka minut. Każdą możesz cofnąć.',btn('Dodaj rekord',true,'Nowy rekord — podpowiemy wartości dla Google, Microsoft 365 i innych'),
+      table([['Nazwa'],['Typ'],['Wartość'],['TTL','pro-only'],['']],[
+        [sub,'A','49.12.x.x','3600'],['www'+(sub==='@'?'':'.'+sub),'CNAME',s.d+'.','3600'],['@','MX','10 mail.'+zone+'.','3600'],['@','TXT','v=spf1 include:_spf.verris.pl ~all','3600'],['default._domainkey','TXT','v=DKIM1; k=rsa; p=MIIBIjAN…','3600']
+      ].map(function(r){return{c:['<b class="mono">'+r[0]+'</b>','<span class="stackchip">'+r[1]+'</span>','<span class="mono" style="overflow-wrap:anywhere">'+r[2]+'</span>','<span class="mono">'+r[3]+'</span>',btn('Edytuj',false,'Edycja rekordu '+r[1])]}})));
+  }
+  if(S.tab==='ssl') return sec('Certyfikat SSL','Odnawia się sam 30 dni przed końcem. Nic nie musisz robić.',btn('Wgraj własny',false,'Wgrywanie własnego certyfikatu'),
+    '<div class="panel"><ul class="list"><li><b>Let’s Encrypt</b><span class="r num">'+s.ssl+' dni</span><span class="m">obejmuje '+s.d+' i www.'+s.d+'<span class="meter" data-tip="<b>'+s.ssl+' z 90 dni</b>do odnowienia"><i style="width:'+(s.ssl/90*100)+'%"></i></span></span></li><li><b>Wymuszaj HTTPS</b><span class="r"><span class="pill ok">włączone</span></span><span class="m">każde wejście przez http:// przekierowujemy na https://</span></li><li class="pro-only"><b>HSTS</b><span class="r"><span class="pill n">wyłączone</span></span><span class="m">max-age, includeSubDomains</span></li></ul></div>');
+  if(S.tab==='db') return s.db?sec('Baza tej strony','','',table([['Baza'],['Rozmiar'],['Użytkownik','pro-only'],['']],[{c:['<b class="mono">'+['piekarnia_wp','piekarnia_sklep','zdroj_catering'][Math.min(i,2)]+'</b>','<span class="num">412 MB</span>','<span class="mono">'+['piekarnia_wp','piekarnia_sklep','zdroj_catering'][Math.min(i,2)]+'_u</span>',btn('phpMyAdmin',false,'Otwieram phpMyAdmin')]}])):sec('Baza','','','<div class="panel empty">Ta strona nie używa bazy danych. '+btn('Utwórz bazę',false)+'</div>');
+  if(S.tab==='mail') return s.mail?sec('Poczta w domenie '+s.d,'','',table([['Adres'],['Zajętość'],['']],[['biuro','1,1 / 5 GB'],['sklep','0,4 / 5 GB']].slice(0,s.mail).map(function(m){return{c:['<b>'+m[0]+'@'+s.d+'</b>','<span class="num">'+m[1]+'</span>',btn('Webmail',false,'Otwieram webmail')]}}))):sec('Poczta','','','<div class="panel empty">W tej domenie nie ma skrzynek. '+btn('Utwórz skrzynkę',false)+'</div>');
+  var labels={files:'Pliki strony',php:'PHP i serwer',redirects:'Przekierowania',logs:'Logi'};
+  return sec(labels[S.tab],'Ta zakładka istnieje dziś w panelu — w PB-16 dostanie nowy wygląd według tego wzorca.','','<div class="panel empty">W wzorcu pełne przykłady: Przegląd, Domena i DNS, SSL, Baza, Poczta.</div>');
+}
+
+/* ================= render ================= */
+function crumb(){
+  var c=document.getElementById('crumb');
+  if(S.view==='site')c.innerHTML='<button type="button" data-go="hosting">Usługi</button>/<button type="button" data-go="hosting">Hosting Biznes</button>/'+siteSel();
+  else c.innerHTML='<button type="button">Usługi</button>/<b>Hosting Biznes</b>';
+  var sel=document.getElementById('siteSel');if(sel)sel.onchange=function(){S.site=+sel.value;render();};
+}
+function render(){
+  if(S.view!=='site')S.view='hosting';
+  rail();crumb();
+  document.getElementById('view').innerHTML=(S.view==='site'?viewSite():viewHosting())+'<p class="note">Wzorzec do akceptacji. Wszystkie liczby, domeny i nazwy są przykładowe.</p>';
+  save();bind();
+}
+function bind(){
+  document.querySelectorAll('[data-site]').forEach(function(el){var f=function(){S.view='site';S.site=+el.dataset.site;S.tab=S.section==='dns'?'dns':S.section==='ssl'?'ssl':'overview';app.classList.remove('open');render();scrollTo(0,0)};el.onclick=f;el.onkeydown=function(e){if(e.key==='Enter')f()}});
+  document.querySelectorAll('[data-sec]').forEach(function(el){el.onclick=function(){S.view='hosting';S.section=el.dataset.sec;app.classList.remove('open');render();scrollTo(0,0)}});
+  document.querySelectorAll('[data-go]').forEach(function(el){el.onclick=function(e){e.preventDefault();S.view='hosting';S.section='overview';render()}});
+  document.querySelectorAll('[data-tab]').forEach(function(el){var f=function(){S.tab=el.dataset.tab;render()};el.onclick=f;el.onkeydown=function(e){if(e.key==='Enter')f()}});
+  document.querySelectorAll('[data-toast]').forEach(function(b){b.onclick=function(e){e.preventDefault();e.stopPropagation();var m=b.dataset.toast;say(m,/włączon|Przywrócono|Oznaczono/.test(m))}});
+  document.querySelectorAll('[data-pal]').forEach(function(b){b.onclick=function(){openPal(b.dataset.pal)}});
+  var p=document.getElementById('preview');if(p)p.onclick=function(){var e=document.getElementById('effect');e.hidden=!e.hidden;p.textContent=e.hidden?'Co się zmieni?':'Ukryj';};
+  document.querySelectorAll('[data-as-toggle]').forEach(function(b){b.onclick=function(){AS.on=!AS.on;render();say(AS.on?'Autoskalowanie włączone':'Autoskalowanie wyłączone — przy skoku ruchu strona może zwolnić',true)}});
+  document.querySelectorAll('[data-eco]').forEach(function(b){b.onclick=function(){var on=b.getAttribute('aria-checked')!=='true';b.setAttribute('aria-checked',on);say(on?'Tryb EKO włączony':'Tryb EKO wyłączony',true)}});
+  document.querySelectorAll('input[data-out]').forEach(function(r){r.oninput=function(){document.getElementById(r.dataset.out).textContent=r.value==='0'?'wyłączone':'do '+r.value+' '+r.dataset.unit}});
+  var capI=document.getElementById('asCap');if(capI)capI.onchange=function(){AS.cap=+capI.value||0;};
+  var d=document.getElementById('dismiss');if(d)d.onclick=function(){document.getElementById('assist').hidden=true;say('Przypomnę za tydzień, jeśli nadal będzie wolno',false)};
+}
+
+/* ================= dymek podpowiedzi ================= */
+var tt=document.getElementById('tt');
+function showTip(el){var r=el.getBoundingClientRect();tt.innerHTML=el.getAttribute('data-tip');tt.style.left=Math.min(Math.max(r.left+r.width/2,90),innerWidth-90)+'px';tt.style.top=r.top+'px';tt.classList.add('show');}
+document.addEventListener('mouseover',function(e){var el=e.target.closest&&e.target.closest('[data-tip]');if(el)showTip(el);else tt.classList.remove('show')});
+document.addEventListener('focusin',function(e){var el=e.target.closest&&e.target.closest('[data-tip]');if(el)showTip(el);else tt.classList.remove('show')});
+document.addEventListener('scroll',function(){tt.classList.remove('show')},true);
+
+/* ================= tryb, motyw, menu ================= */
+function setMode(m){app.dataset.mode=m;document.getElementById('mSimple').setAttribute('aria-pressed',m==='simple');document.getElementById('mPro').setAttribute('aria-pressed',m==='pro');try{localStorage.setItem('vmode',m)}catch(e){}}
+document.getElementById('mSimple').onclick=function(){setMode('simple')};
+document.getElementById('mPro').onclick=function(){setMode('pro')};
+try{var sm=localStorage.getItem('vmode');if(sm)setMode(sm)}catch(e){}
+document.getElementById('theme').onclick=function(){var r=document.documentElement,dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;r.dataset.theme=dark?'light':'dark';};
+document.getElementById('wallet').onclick=function(){S.view='hosting';S.section='autoscaling';render();scrollTo(0,0)};
+document.getElementById('menuBtn').onclick=function(){app.classList.toggle('open')};
+document.addEventListener('click',function(e){if(app.classList.contains('open')&&!e.target.closest('#rail')&&!e.target.closest('#menuBtn'))app.classList.remove('open')});
+
+/* ================= toast z cofaniem ================= */
+var tmr,toast=document.getElementById('toast');
+function say(msg,undo){document.getElementById('toastMsg').textContent=msg;document.getElementById('undo').hidden=!undo;toast.classList.add('show');clearTimeout(tmr);tmr=setTimeout(function(){toast.classList.remove('show')},5000);}
+document.getElementById('undo').onclick=function(){toast.classList.remove('show');setTimeout(function(){say('Cofnięto',false)},220);};
+
+/* ================= paleta „/” ================= */
+var cmds=SITES.map(function(s,i){return [s.d,'strona',function(){S.view='site';S.site=i;S.tab='overview';render()}]}).concat([
+ ['Utwórz skrzynkę pocztową','poczta',function(){S.view='hosting';S.section='mail';render()}],
+ ['Dodaj rekord DNS','dns',function(){S.view='hosting';S.section='dns';render()}],
+ ['Utwórz bazę danych','bazy',function(){S.view='hosting';S.section='db';render()}],
+ ['Dodaj konto FTP','ftp',function(){S.view='hosting';S.section='ftp';render()}],
+ ['Przywróć kopię zapasową','kopie',function(){S.view='hosting';S.section='backups';render()}],
+ ['Zmień wersję PHP','php',null],['Dodaj domenę lub subdomenę','strony',null],['Pobierz ostatnią fakturę','płatności',null],['Zaproś osobę do zespołu','dostęp',null],
+ ['Dlaczego sklep zwolnił?','asystent',null]]);
+var veil=document.getElementById('veil'),q=document.getElementById('q'),list=document.getElementById('list'),sel=0,rows=[];
+function norm(s){return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ł/g,'l')}
+function renderPal(){var f=norm(q.value);rows=cmds.filter(function(c){return !f||norm(c[0]+' '+c[1]).indexOf(f)>-1});
+  if(f&&!rows.length)rows=[['Zapytaj asystenta: „'+q.value+'”','asystent',null]];
+  sel=Math.max(0,Math.min(sel,rows.length-1));
+  list.innerHTML=rows.map(function(c,i){return '<li role="option" aria-selected="'+(i===sel)+'" class="'+(c[1]==='asystent'?'ai':'')+'">'+c[0]+'<small>'+c[1]+'</small></li>'}).join('');
+  list.querySelectorAll('li').forEach(function(li,i){li.onclick=function(){run(rows[i])}});}
+function run(c){closePal();if(c[2]){c[2]();scrollTo(0,0)}else say(c[1]==='asystent'?'Asystent sprawdza… (w v1 odpowiedź pojawi się w dymku)':'Otwieram: '+c[0],false);}
+function openPal(pre){veil.hidden=false;q.value=pre||'';sel=0;renderPal();q.focus();}
+function closePal(){veil.hidden=true;}
+document.getElementById('openPal').onclick=function(){openPal()};
+veil.addEventListener('click',function(e){if(e.target===veil)closePal()});
+q.addEventListener('input',function(){sel=0;renderPal()});
+q.addEventListener('keydown',function(e){if(e.key==='ArrowDown'){sel++;renderPal();e.preventDefault()}else if(e.key==='ArrowUp'){sel--;renderPal();e.preventDefault()}else if(e.key==='Enter'&&rows[sel]){run(rows[sel])}else if(e.key==='Escape'){closePal()}});
+document.addEventListener('keydown',function(e){if(e.key==='/'&&veil.hidden&&!/input|textarea|select/i.test(document.activeElement.tagName)){e.preventDefault();openPal()}});
+
+render();
+})();
+</script>

@@ -44,6 +44,7 @@ import SiteBuilderTab from '@/components/hosting/SiteBuilderTab';
 import WebToolsTab from '@/components/hosting/WebToolsTab';
 import UsageTab from '@/components/hosting/UsageTab';
 import ServiceOverviewTab from '@/components/hosting/ServiceOverviewTab';
+import ServiceOverviewV2 from '@/components/hosting/ServiceOverviewV2';
 import ServiceSubscriptionTab from '@/components/hosting/ServiceSubscriptionTab';
 import HostingPanelCard from '@/components/hosting/HostingPanelCard';
 import ServiceConnectionCard from '@/components/hosting/ServiceConnectionCard';
@@ -291,12 +292,18 @@ export default function HostingManagerPage() {
               ) : null}
             </nav>
             {showHostingChrome ? <HostingPanelCard /> : null}
-            <ServiceConnectionCard serviceId={params.id} productKind={showHostingChrome ? 'HOSTING' : 'EMAIL'} />
+            {showHostingChrome && activeTab === 'overview' ? null : (
+              <ServiceConnectionCard serviceId={params.id} productKind={showHostingChrome ? 'HOSTING' : 'EMAIL'} />
+            )}
           </aside>
 
           <main className="min-w-0 max-w-full overflow-x-hidden">
             {activeTab === 'overview' && (
-              <ServiceOverviewTab serviceId={params.id} onNavigate={(t) => setActiveTab(t as TabId)} />
+              showHostingChrome ? (
+                <ServiceOverviewV2 serviceId={params.id} onNavigate={(t) => setActiveTab(t as TabId)} />
+              ) : (
+                <ServiceOverviewTab serviceId={params.id} onNavigate={(t) => setActiveTab(t as TabId)} />
+              )
             )}
             {activeTab === 'subscription' && <ServiceSubscriptionTab serviceId={params.id} />}
             {activeTab === 'domains' && <DomainsTab serviceId={params.id} />}
@@ -321,7 +328,9 @@ export default function HostingManagerPage() {
 
           <div className="min-w-0 space-y-4 lg:hidden">
             {showHostingChrome ? <HostingPanelCard /> : null}
-            <ServiceConnectionCard serviceId={params.id} productKind={showHostingChrome ? 'HOSTING' : 'EMAIL'} />
+            {showHostingChrome && activeTab === 'overview' ? null : (
+              <ServiceConnectionCard serviceId={params.id} productKind={showHostingChrome ? 'HOSTING' : 'EMAIL'} />
+            )}
           </div>
         </div>
       </div>

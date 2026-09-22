@@ -24,6 +24,7 @@ import {
   VerrisUstawieniaIcon,
 } from "@/components/icons";
 import HostingAssistant from "@/components/assistant/HostingAssistant";
+import { TipLayer } from "@/components/panel/v2";
 import {
   Menu,
   Globe,
@@ -412,6 +413,7 @@ export default function DashboardLayout({
       </div>
       </div>
       <HostingAssistant />
+      <TipLayer />
     </div>
   );
 }

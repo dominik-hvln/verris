@@ -497,7 +497,7 @@ export default function ServiceOverviewTab({
 }
 
 /** #19 — karta rekomendacji/upsell z realnych danych usługi. */
-function RecommendationsCard({
+export function RecommendationsCard({
   recommendations,
   serviceId,
   onNavigate,
