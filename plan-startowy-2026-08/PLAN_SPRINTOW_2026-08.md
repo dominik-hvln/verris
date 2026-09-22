@@ -323,16 +323,16 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `H-09` | Kopia bezpieczeństwa przed odtworzeniem | 6 | WYSOKA | hosting-restore.service.ts:167 |
-| `H-17` | Tryb restore skryptu odtwarzającego osiągalny z produktu | 6 | WYSOKA | node-account-restore.sh:82-99 ma tryb restore; offsite-restore.service.ts:94 przyjmuje wyłącznie list|fetch |
-| `G-20` | Ochrona przed atakiem słownikowym na panel | 6 | WYSOKA | rate-limit.guard.ts — ZERO testów |
-| `I-11` | Staging — publikacja na produkcję | 6 | WYSOKA | services.controller.ts:187 |
+| `H-09` | Kopia bezpieczeństwa przed odtworzeniem | 6 | WYSOKA | 2026-09-23 D1: hosting-restore.service.ts takeSafetyBackup — odtwarzanie rusza dopiero, gdy na liście kopii pojawi się NOWE archiwum (do 15 min), inac |
+| `H-17` | Tryb restore skryptu odtwarzającego osiągalny z produktu | 6 | WYSOKA | 2026-09-23: produktowa ścieżka odtwarzania z off-site = „Pobierz na serwer” (fetch, agent) + przywrócenie z listy kopii z kopią bezpieczeństwa (H-09)  |
+| `G-20` | Ochrona przed atakiem słownikowym na panel | 6 | WYSOKA | 2026-09-23 D2: common/guards/rate-limit.guard.spec.ts (6 testów: limit per IP, per e-mail z wielu IP, reset okna, zakresy i @SkipRateLimit, przepełnie |
+| `I-11` | Staging — publikacja na produkcję | 6 | WYSOKA | 2026-09-23 D1: node-staging-sync.sh TO_LIVE — eksport bazy LIVE i niepusty plik kopii są twardą bramką (die) przed db import; retencja po udanej kopii |
 
 **Definicja ukończenia**
 
 - `H-09` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
-- `H-17` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `G-20` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `H-17` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `G-20` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `I-11` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.
 
@@ -348,7 +348,7 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 | `X-32` | Martwy job da się odrzucić z panelu, ze śladem w audycie | 6 | — | apps/api/src/common/audit/audit.actions.ts — PROVISIONING_JOB_DISCARDED_BY_ADMIN; provisioning-queue.service.ts — odrzucJob (getState() === failed, śl |
 | `DEP-02` | W drzewie stoją dwa majory ESLinta naraz | 6 | ŚREDNIA | package.json (korzeń) — @eslint/js ^10.0.1 przy braku jakiegokolwiek eslint.config.* w korzeniu; libs/eslint-config/node_modules: eslint 10.9.0 obok @ |
 | `M-08` | Anulowanie faktury (VOID) z panelu | 6 | WYSOKA | InvoiceStatus.VOID w schema.prisma:1354 nigdy nie ustawiany |
-| `C-18` | Konto FTP — zmiana hasła | 6 | WYSOKA | brak jakiejkolwiek ścieżki edycji istniejącego konta |
+| `C-18` | Konto FTP — zmiana hasła | 6 | WYSOKA | 2026-09-23 D1: POST /services/:id/hosting-ftp/:username/password (ZmienHasloFtpDto) → directadmin.service changeHostingFtpPassword (action=modify, kat |
 
 **Definicja ukończenia**
 
@@ -356,7 +356,7 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 - `X-32` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `DEP-02` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `M-08` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `C-18` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `C-18` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.
 
 **Ryzyko sprintu.** X-31 i X-32 to ostatnie CZESCIOWE z passu adwersaryjnego. DEP-02 tu, bo wyciszenie majorow ESLinta z DEP-03 ma termin przegladu 2026-11-15, a sprint zaczyna sie 2026-11-02. M-08 (anulowanie faktury VOID) — w trybie zewnetrznym z FAK-01 dotyczy dokumentu rozliczeniowego, nie faktury VAT; zakres do potwierdzenia przy realizacji. X-31 i X-32 zamkniete 2026-09-22 (D3) — zostaja tu jako zapis. | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze.
@@ -368,15 +368,15 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
 | `A-11` | Wyszukiwarka wolnych domen | 6 | WYSOKA | domains.controller.ts:54 |
-| `C-11` | Spakowanie do archiwum | 6 | ŚREDNIA | files.service.ts:320 — tylko extract |
-| `NODE-03` | Pojemność węzła nigdy się nie odświeża | 6 | ŚREDNIA | `schema.prisma:454` wobec `telemetry.service.ts:48-72` |
+| `C-11` | Spakowanie do archiwum | 6 | ŚREDNIA | 2026-09-23 D1: POST /services/:id/files/compress → files.service compress (nazwa archiwum walidowana) → SDK compressEntries (schowek DA + action=compr |
+| `NODE-03` | Pojemność węzła nigdy się nie odświeża | 6 | ŚREDNIA | 2026-09-23 D1: verris-lve.sh node_capacity (nproc, MemTotal, df /) w każdym raporcie, lve-agent/1.1; telemetry.dto NodeStatusDto.totalCpuCores/totalMe |
 | `PB-08` | Pomiar: Consent Mode v2 + GTM + dedup event_id | 16 | ŚREDNI | Wdrożenie ustaleń z audytu pomiaru: www linkuje, panel działa, deduplikacja po event_id, cookie Domain=.verris.pl. |
 
 **Definicja ukończenia**
 
 - `A-11` — Wartość domyślna włączona albo check w live-readiness pilnuje konfiguracji — flaga nie może po cichu wyłączyć funkcji.
-- `C-11` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `NODE-03` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `C-11` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `NODE-03` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `PB-08` — Zdarzenie zakupu dociera raz, nie dwa. Consent Mode nie blokuje pomiaru po zgodzie. Zweryfikowane w GTM Preview i w raporcie.
 - **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.
 
