@@ -39,7 +39,10 @@ export function TipLayer() {
     document.addEventListener('mouseover', show);
     document.addEventListener('focusin', show);
     document.addEventListener('scroll', hide, true);
+    // Po kliknięciu treść dymka bywa już nieaktualna (np. przełącznik motywu).
+    document.addEventListener('mousedown', hide);
     return () => {
+      document.removeEventListener('mousedown', hide);
       document.removeEventListener('mouseover', show);
       document.removeEventListener('focusin', show);
       document.removeEventListener('scroll', hide, true);

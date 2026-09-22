@@ -599,7 +599,16 @@ select optgroup {
 .v2-skin .bg-white\/5,
 .v2-skin .bg-white\/10 { background-color: var(--raised); }
 .v2-skin .rounded-2xl,
-.v2-skin .rounded-xl { border-radius: 10px; }
+.v2-skin .rounded-xl,
+.v2-skin .rounded-3xl,
+.v2-skin .rounded-\[calc\(32px-1px\)\],
+.v2-skin .rounded-\[calc\(24px-1px\)\] { border-radius: 10px; }
+.v2-skin .rounded-\[32px\],
+.v2-skin .rounded-\[28px\],
+.v2-skin .rounded-\[24px\] { border-radius: 11px; }
+/* nakładki pod oknami: przyciemnienie, nie tło strony */
+.v2-skin .fixed.inset-0.bg-black\/50,
+.v2-skin .fixed.inset-0.bg-black\/60 { background-color: rgba(4, 10, 7, 0.55); }
 .v2-skin .rounded-lg { border-radius: 7px; }
 
 .v2-skin .text-white,
@@ -746,3 +755,9 @@ select optgroup {
 .v2-skin .hover\:bg-rose-500\/10:hover { background-color: color-mix(in srgb, var(--crit) 12%, transparent); }
 .v2-skin .hover\:text-rose-300:hover { color: var(--crit); }
 .v2-skin .focus\:border-white\/30:focus { border-color: var(--data); }
+
+/* Nagłówki starych stron: krój i rytm wzorca (rozmiar zostaje z klas). */
+.v2-skin h1 { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.03em; }
+.v2-skin h2,
+.v2-skin h3 { font-family: var(--font-display); letter-spacing: -0.01em; }
+.v2-skin th { font-family: var(--font-mono); font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase; font-size: 11px; color: var(--muted-foreground); }
