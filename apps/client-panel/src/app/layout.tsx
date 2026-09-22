@@ -1,4 +1,4 @@
-import { Toaster } from "sonner";
+import { ThemedToaster } from "@/components/themed-toaster";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AnalyticsScripts } from "@/components/analytics-scripts";
@@ -43,7 +43,7 @@ export default function RootLayout({
         <AnalyticsScripts />
         {children}
         <CookieConsentManager />
-        <Toaster theme="dark" position="bottom-right" />
+        <ThemedToaster />
       </body>
     </html>
   );
