@@ -165,6 +165,20 @@ describe('SEC-06 (warunek wstępny) — strict nie odetnie ruchu, którego nikt 
     expect(r.wywolania.some((w) => DROP_STRICT.test(w))).toBe(false);
   });
 
+  it('cel w sieci link-local/prywatnej (odcinany już przez BOGON) nie blokuje strict', () => {
+    // Pierwszy odczyt pomiaru na produkcji, 2026-09-22: 169.254.169.254:80,
+    // metadane chmury. Łańcuch bogonów odrzuca go od zawsze — strict nie ma
+    // tu czego „odcinać", więc nie może to być powód odmowy.
+    const r = uruchom({
+      zmierzone: ['169.254.169.254,tcp:80', '140.82.121.33,tcp:443'],
+      wAllowliscie: ['140.82.121.33'],
+      pomiarOdDni: 8,
+      argumenty: ['--strict'],
+    });
+    expect(r.kod).toBe(0);
+    expect(r.wywolania.some((w) => DROP_STRICT.test(w))).toBe(true);
+  });
+
   it('cele spoza 80/443 (DNS, SMTP) nie blokują strict, który ich nie dotyczy', () => {
     const r = uruchom({
       zmierzone: ['9.9.9.9,udp:53', '1.1.1.1,tcp:25'],

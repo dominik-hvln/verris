@@ -368,8 +368,31 @@ zbuduj_ipset_allow() {
 #
 # Cena: strict przestał być nieszkodliwy. Dlatego warunek wstępny poniżej.
 
+# Czy adres leży w którymś z zakresów BOGON_DESTS. Takie cele odcina już
+# VERRIS_EGRESS_BOGON (niezależnie od strict), więc strict nie może ich
+# „odciąć" — nie są argumentem przeciw włączeniu. Pierwszy odczyt pomiaru
+# z 2026-09-22 dał dokładnie taki cel: 169.254.169.254:80 (metadane chmury).
+ip_na_liczbe() {
+  local IFS=. a b c d
+  read -r a b c d <<<"$1"
+  echo $(( (a << 24) + (b << 16) + (c << 8) + d ))
+}
+
+w_bogonach() {
+  local ip="$1" siec adres maska n baza
+  [[ "$ip" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]] || return 1
+  n="$(ip_na_liczbe "$ip")"
+  for siec in $BOGON_DESTS; do
+    adres="${siec%/*}"; maska="${siec#*/}"
+    baza="$(ip_na_liczbe "$adres")"
+    if [ $(( (n ^ baza) >> (32 - maska) )) -eq 0 ]; then return 0; fi
+  done
+  return 1
+}
+
 # Cele 80/443 zmierzone na hoście, których nie ma w allowliście. Wypisuje po
 # jednym na linię; pusto = allowlista pokrywa wszystko, co host robił.
+# Pomija zakresy bogonów — patrz w_bogonach.
 cele_spoza_allowlisty() {
   local wpis rest proto port ip
   while read -r wpis; do
@@ -380,6 +403,7 @@ cele_spoza_allowlisty() {
     port="${rest#*:}"
     [ "$proto" = "tcp" ] || continue
     case "$port" in 80|443) ;; *) continue ;; esac
+    w_bogonach "$ip" && continue
     ipset test "$ALLOW_SET" "$ip" >/dev/null 2>&1 || echo "$wpis"
   done < <(ipset list "$SEEN_SET" 2>/dev/null | awk '/^Members:/{m=1; next} m && NF {print $1}')
 }
@@ -558,7 +582,9 @@ raport_pomiaru() {
     ipset list "$zbior" 2>/dev/null | awk '/^Members:/{m=1; next} m && NF {p="?"; for(i=2;i<=NF;i++) if($i=="packets") p=$(i+1); print $1, p}' \
       | sort -k2,2nr | while read -r wpis licz; do
           ip="${wpis%%,*}"
-          if ipset test "$ALLOW_SET" "$ip" >/dev/null 2>&1; then w_allow="tak"; else w_allow="NIE"; fi
+          if ipset test "$ALLOW_SET" "$ip" >/dev/null 2>&1; then w_allow="tak"
+          elif w_bogonach "$ip"; then w_allow="bogon"
+          else w_allow="NIE"; fi
           rev="$( { getent hosts "$ip" 2>/dev/null || true; } | awk 'NR==1{print $2}')"
           printf '  %-28s %-9s %-10s %s\n' "$wpis" "$w_allow" "$licz" "${rev:--}"
         done
@@ -571,6 +597,7 @@ raport_pomiaru() {
   else
     echo "Pomiar od: nieznane ($POMIAR_OD_PLIK)"
   fi
+  echo "ALLOW: tak = w allowliście; bogon = sieć prywatna/link-local, już odcinana przez VERRIS_EGRESS_BOGON (nie liczy się do strict)"
   echo "Cele 80/443 hosta spoza allowlisty (to odciąłby strict):"
   local spoza
   spoza="$(cele_spoza_allowlisty)"
