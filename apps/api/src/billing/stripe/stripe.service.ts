@@ -124,6 +124,10 @@ export class StripeService {
     return this.requireClient().attachPaymentMethod(paymentMethodId, customerId);
   }
 
+  async detachPaymentMethod(paymentMethodId: string) {
+    return this.requireClient().detachPaymentMethod(paymentMethodId);
+  }
+
   // ---------------------------------------------------------------------------
   // Subscriptions
   // ---------------------------------------------------------------------------

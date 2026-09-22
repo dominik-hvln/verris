@@ -168,3 +168,13 @@ export async function upsertAutoTopupAction(formData: FormData): Promise<AutoTop
     };
   }
 }
+
+/** M-26 — klient usuwa zapisaną kartę. */
+export async function deletePaymentMethodAction(id: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await apiFetch(`/billing/payment-methods/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof ApiError ? err.message : 'Nie udało się usunąć karty.' };
+  }
+}

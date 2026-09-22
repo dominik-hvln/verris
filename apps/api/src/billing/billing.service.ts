@@ -207,6 +207,46 @@ export class BillingService {
     return rows;
   }
 
+  /**
+   * M-26 — klient usuwa zapisaną kartę. Najpierw odpinamy ją w Stripe (żeby nie
+   * dało się jej już obciążyć), potem sprzątamy wiersz, kartę domyślną i
+   * auto-doładowanie, które na nią wskazywało.
+   */
+  async deleteMyPaymentMethod(userId: string, id: string) {
+    const pm = await this.prisma.paymentMethod.findFirst({ where: { id, userId } });
+    if (!pm) throw new NotFoundException('Nie znaleziono tej karty.');
+    if (pm.provider === 'STRIPE' && pm.providerRef.startsWith('pm_')) {
+      try {
+        await this.stripe.detachPaymentMethod(pm.providerRef);
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        // Już odpięta / nie istnieje w Stripe — cel osiągnięty, sprzątamy u siebie.
+        if (!/not attached|no such paymentmethod|resource_missing/i.test(msg)) {
+          this.logger.warn(`detachPaymentMethod user=${userId} pm=${pm.id}: ${msg}`);
+          throw new BadRequestException('Operator płatności nie potwierdził usunięcia karty — spróbuj ponownie za chwilę.');
+        }
+      }
+    }
+    await this.prisma.$transaction([
+      this.prisma.paymentMethod.delete({ where: { id: pm.id } }),
+      this.prisma.user.updateMany({
+        where: { id: userId, defaultPaymentMethodId: pm.providerRef },
+        data: { defaultPaymentMethodId: null },
+      }),
+      this.prisma.walletAutoTopup.updateMany({
+        where: { userId, paymentMethodId: pm.id },
+        data: { paymentMethodId: null },
+      }),
+    ]);
+    await this.audit.record({
+      action: 'PAYMENT_METHOD_REMOVED',
+      userId,
+      actorUserId: userId,
+      details: { paymentMethodId: pm.id, brand: pm.brand, last4: pm.last4 },
+    });
+    return { ok: true as const };
+  }
+
   // ---------------------------------------------------------------------------
   // CSV export (C-15) — used by both client and admin endpoints. Streams up to
   // `MAX_ROWS` rows in a single response; for larger exports we'd paginate to

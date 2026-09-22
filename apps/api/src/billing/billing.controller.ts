@@ -2,9 +2,12 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Header,
   HttpCode,
+  Param,
+  ParseUUIDPipe,
   Post,
   Query,
   Res,
@@ -39,6 +42,13 @@ export class BillingController {
   @HttpCode(200)
   listPaymentMethods(@CurrentUser() user: { userId: string }) {
     return this.billing.listMyPaymentMethods(user.userId);
+  }
+
+  // M-26 — klient usuwa zapisaną kartę.
+  @Delete('payment-methods/:id')
+  @HttpCode(200)
+  deletePaymentMethod(@CurrentUser() user: { userId: string }, @Param('id', ParseUUIDPipe) id: string) {
+    return this.billing.deleteMyPaymentMethod(user.userId, id);
   }
 
   @Post('checkout-session')

@@ -396,6 +396,15 @@ export class StripeClient {
     );
   }
 
+  /** M-26 — odpina kartę od klienta Stripe (nie da się jej już obciążyć). */
+  async detachPaymentMethod(paymentMethodId: string): Promise<{ id: string; customer: string | null }> {
+    return this.request<{ id: string; customer: string | null }>(
+      'POST',
+      `/payment_methods/${encodeURIComponent(paymentMethodId)}/detach`,
+      new URLSearchParams(),
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // Subscriptions
   // ---------------------------------------------------------------------------

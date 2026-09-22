@@ -3,13 +3,10 @@
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import type { SavedPaymentMethodDto, WalletAutoTopupSettingsDto } from '@verris/contracts';
-import {
-  Landmark,
-  Loader2,
-  RefreshCw,
-} from 'lucide-react';
+import { toast } from 'sonner';
+import { CreditCard, Landmark, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { CREDIT_SHORT, formatCredits, pluralCredits } from '@/lib/credits';
-import { redeemPromoAction, upsertAutoTopupAction } from './actions';
+import { deletePaymentMethodAction, redeemPromoAction, upsertAutoTopupAction } from './actions';
 import { Select } from '@/components/panel';
 
 interface Props {
@@ -21,8 +18,61 @@ export function BillingExtrasForms({ initialAuto, savedCards }: Props) {
   return (
     <div className="flex flex-col gap-6">
       <PromoRedeemBlock />
+      {savedCards.length > 0 ? <SavedCardsBlock cards={savedCards} /> : null}
       <WalletAutotopupBlock initialAuto={initialAuto} savedCards={savedCards} />
     </div>
+  );
+}
+
+const cardLabel = (c: SavedPaymentMethodDto) => `${(c.brand ?? 'Karta').toUpperCase()} •••• ${c.last4 ?? '····'}`;
+
+/** M-26 — zapisane karty z możliwością usunięcia. */
+function SavedCardsBlock({ cards }: { cards: SavedPaymentMethodDto[] }) {
+  const router = useRouter();
+  const [removing, setRemoving] = useState<string | null>(null);
+
+  const remove = async (c: SavedPaymentMethodDto) => {
+    if (!window.confirm(`Usunąć kartę ${cardLabel(c)}? Nie obciążymy jej więcej — ani przy auto-doładowaniu, ani przy odnowieniu.`)) return;
+    setRemoving(c.id);
+    const res = await deletePaymentMethodAction(c.id);
+    setRemoving(null);
+    if (!res.ok) {
+      toast.error('Nie udało się usunąć karty', { description: res.error });
+      return;
+    }
+    toast.success(`Karta ${cardLabel(c)} usunięta`);
+    router.refresh();
+  };
+
+  return (
+    <section className="rounded-[10px] border border-line bg-card px-4 pb-3 pt-3.5">
+      <h3 className="m-0 font-display text-[15px] font-bold text-foreground">Zapisane karty</h3>
+      <ul className="m-0 mt-2 list-none p-0">
+        {cards.map((c) => (
+          <li key={c.id} className="flex items-center justify-between gap-3 border-t border-line py-2.5 first:border-0">
+            <span className="inline-flex items-center gap-2 text-sm text-foreground">
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
+              {cardLabel(c)}
+              {c.expMonth && c.expYear ? (
+                <span className="text-muted-foreground">
+                  · ważna do {String(c.expMonth).padStart(2, '0')}/{String(c.expYear).slice(-2)}
+                </span>
+              ) : null}
+              {c.isDefault ? <span className="text-muted-foreground">· domyślna</span> : null}
+            </span>
+            <button
+              type="button"
+              onClick={() => void remove(c)}
+              disabled={removing === c.id}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-line-strong px-2.5 py-1 text-xs text-foreground hover:bg-raised disabled:opacity-50"
+            >
+              {removing === c.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+              Usuń
+            </button>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
@@ -183,14 +233,14 @@ function WalletAutotopupBlock({
         <label className="block space-y-1.5">
           <span className="text-xs font-medium text-neutral-500 uppercase tracking-wide flex items-center gap-2">
             <Landmark className="h-3.5 w-3.5" />
-            Karta (rekord Stripe w bazie)
+            Karta
           </span>
           {/* hidden input utrzymuje pole `localPaymentMethodId` w FormData */}
           <input type="hidden" name="localPaymentMethodId" value={cardId} />
           <Select
             value={cardId}
             onChange={setCardId}
-            aria-label="Karta (rekord Stripe w bazie)"
+            aria-label="Karta do auto-doładowania"
             options={[
               {
                 value: '',
@@ -207,9 +257,8 @@ function WalletAutotopupBlock({
         </label>
 
         {savedCards.length === 0 ? (
-          <p className="text-xs text-amber-200/90 border border-amber-400/15 bg-amber-400/5 rounded-xl px-3 py-2">
-            Lista kart w bazie jest pusta — wybierz &quot;(Automatycznie)&quot;. Po udanym doładowaniu przez Stripe lub gdy ustawisz
-            domyślną kartę przy kliencie Stripe, kolejne próby użyją zapisanego <code className="text-amber-100">pm_</code>.
+          <p className="text-xs text-muted-foreground">
+            Nie masz zapisanej karty — auto-doładowanie użyje karty z Twojej ostatniej płatności kartą.
           </p>
         ) : null}
 
