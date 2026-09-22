@@ -12,6 +12,7 @@ import {
   Rocket,
   Trash2,
 } from 'lucide-react';
+import { SectionHead } from '@/components/panel/v2';
 import {
   createOrRefreshStaging,
   deleteStagingEnv,
@@ -88,19 +89,10 @@ export default function StagingTab({ serviceId }: StagingTabProps) {
 
   return (
     <div className="space-y-5">
-      <div className="rounded-2xl border border-white/10 bg-black/30 p-6 space-y-2">
-        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-          <Box className="h-5 w-5 text-indigo-300" /> Kopia robocza (staging)
-        </h3>
-        <p className="text-sm text-neutral-400 max-w-2xl">
-          Bezpieczna kopia Twojej strony pod adresem{' '}
-          <strong className="text-neutral-200">{status.stagingDomain}</strong>. Testuj zmiany,
-          aktualizacje i wtyczki bez ryzyka — a gdy wszystko działa,{' '}
-          <strong className="text-neutral-200">opublikuj jednym kliknięciem</strong>. Dla
-          WordPressa kopiujemy też bazę danych i automatycznie podmieniamy adresy. Przed każdą
-          publikacją robimy kopię zapasową produkcji.
-        </p>
-      </div>
+      <SectionHead
+        title="Kopia robocza (staging)"
+        desc={`Bezpieczna kopia strony pod adresem ${status.stagingDomain}. Testuj zmiany bez ryzyka, a gdy wszystko działa — opublikuj jednym kliknięciem. Dla WordPressa kopiujemy też bazę i podmieniamy adresy; przed publikacją robimy kopię produkcji.`}
+      />
 
       {inflight && (
         <div className="flex items-center gap-2 rounded-xl border border-sky-500/30 bg-sky-500/5 px-4 py-3 text-sm text-sky-200">

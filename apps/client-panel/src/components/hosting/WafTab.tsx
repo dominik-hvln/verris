@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Loader2, Shield, ShieldCheck, ShieldOff, AlertCircle, Eye } from 'lucide-react';
+import { Loader2, ShieldCheck, ShieldOff, AlertCircle, Eye } from 'lucide-react';
+import { SectionHead } from '@/components/panel/v2';
 import {
   getWafStatus,
   setWafMode,
@@ -104,16 +105,11 @@ export default function WafTab({ serviceId }: Props) {
 
   return (
     <div className="space-y-5">
-      <div className="rounded-2xl border border-white/10 bg-black/30 p-6 space-y-2">
-        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-          <Shield className="h-5 w-5 text-indigo-300" /> Web Application Firewall (ModSecurity)
-        </h3>
-        <p className="text-sm text-neutral-400">
-          Zapora aplikacyjna z regułami <strong className="text-neutral-200">OWASP Core Rule
-          Set</strong> chroni <strong className="text-neutral-200">{status.domain}</strong> przed
-          najczęstszymi atakami: SQL injection, XSS, próbami przejęcia sesji i skanerami luk.
-          Zmiana trybu działa do ~1 minuty.
-        </p>
+      <div className="space-y-2">
+        <SectionHead
+          title="Zapora aplikacji (WAF)"
+          desc={`Reguły OWASP Core Rule Set chronią ${status.domain} przed najczęstszymi atakami: SQL injection, XSS, przejęciem sesji i skanerami luk. Zmiana trybu działa w ciągu minuty.`}
+        />
         {applying && (
           <p className="inline-flex items-center gap-1.5 text-xs text-sky-300">
             <Loader2 className="h-3 w-3 animate-spin" /> Stosowanie zmian na serwerze…
