@@ -120,6 +120,19 @@ Kierunek do przygotowania jako osobny projekt (makiety przed kodem):
 - **Pusty stan jako instrukcja** — każdy pusty ekran mówi, co zrobić dalej.
 - **Mikrocopy po ludzku** — bez żargonu dla trybu Prosty.
 
+**Kierunek po przeglądzie inspiracji (Dribbble, 2026-09-22) — co bierzemy, czego nie:**
+- Bierzemy: liczby jako bohater („12,4 / 50 GB”, jednostka mniejsza, mono); pasek segmentowy zajętości
+  (pliki / poczta / bazy / kopie) zamiast pierścieni; mikro-słupki 7 dni przy każdej liczbie z wyróżnionym
+  „dziś”; wykres słupkowy z jednym podświetlonym słupkiem i dymkiem; status jako kropka + słowo na końcu
+  wiersza; historia zdarzeń pogrupowana po dniach (Dziś / Wczoraj); przełącznik klienta w bocznym pasku
+  (tryb agencji); tabela usług z paskiem obciążenia w wierszu.
+- Nie bierzemy: ilustracji 3D i maskotek, bannerów „zaproś znajomego”, gradientowych kart-plam,
+  siatki identycznych kafli z cieniem, fioletowo-niebieskich akcentów.
+- Marka zostaje: sosna/mięta (`globals.css`), Schibsted Grotesk (nagłówki i liczby), Hanken Grotesk
+  (tekst), JetBrains Mono (etykiety, dane techniczne). Jasny motyw równorzędny z ciemnym.
+- Wzorzec: ekran usługi hostingowej (artefakt prywatny „Verris — ekran usługi”). Po akceptacji
+  przenosimy tokeny i komponenty do `apps/client-panel` i przerabiamy kolejne ekrany (PB-16).
+
 ### 3.4 System ticketowy (panel staff) — wymagania na później
 
 - **Automatyczne odpowiedzi na typowe przypadki:** klasyfikacja zgłoszenia (DNS, SSL, poczta,
