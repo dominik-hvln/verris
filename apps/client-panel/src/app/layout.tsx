@@ -1,7 +1,6 @@
 import { Toaster } from "sonner";
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import { hanken, jetbrains, schibsted } from "./fonts";
 import { AnalyticsScripts } from "@/components/analytics-scripts";
 import { CookieConsentManager } from "@/components/cookie-consent";
 
@@ -22,7 +21,7 @@ export default function RootLayout({
   return (
     <html
       lang="pl"
-      className={`dark ${schibsted.variable} ${hanken.variable} ${jetbrains.variable}`}
+      className="dark"
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-background antialiased text-foreground">

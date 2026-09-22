@@ -58,5 +58,6 @@ function publicPanelUrl(request: NextRequest, path: string): URL {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  // fonts/ i brand/ to publiczne pliki statyczne — strona logowania też ich potrzebuje.
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|fonts/|brand/).*)"],
 };
