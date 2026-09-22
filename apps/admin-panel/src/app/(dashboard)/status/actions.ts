@@ -87,6 +87,24 @@ export interface UpdateProbeInput {
 export interface UpdateIncidentInput {
   title?: string;
   publicMessage?: string | null;
+  /** N-07 — ręczne zamknięcie incydentu. */
+  status?: "RESOLVED";
+}
+
+/** N-07 — operator ogłasza incydent na status page (zamyka go też ręcznie). */
+export async function composeIncident(input: {
+  probeId: string;
+  severity: ProbeSeverity;
+  title: string;
+  publicMessage?: string;
+}): Promise<ActionResult> {
+  try {
+    await adminApi("/admin/product-ops/incidents", { method: "POST", body: input });
+    revalidatePath("/status/incidents");
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: errorMessage(err) };
+  }
 }
 
 export interface ActionResult<T = unknown> {

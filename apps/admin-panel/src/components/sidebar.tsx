@@ -75,6 +75,8 @@ const adminNavItems: NavGroup[] = [
       { name: "Webhooki Stripe", href: "/billing/webhooki", icon: DollarSign, perm: "BILLING_MANAGE" },
       { name: "Kody promocyjne", href: "/promo-codes", icon: Tag, perm: "PROMO_MANAGE" },
       { name: "Newsletter / mailing", href: "/marketing", icon: Mail, perm: "PROMO_MANAGE" },
+      // N-14 — blokady wysyłki (outbound spam): widok i zdjęcie blokady.
+      { name: "Blokady wysyłki poczty", href: "/deliverability", icon: Mail, perm: "CUSTOMERS_MANAGE" },
       { name: "Compliance (RODO)", href: "/compliance", icon: Scale, perm: "COMPLIANCE_MANAGE" },
       { name: "Cennik autoskalowania", href: "/autoscaling", icon: Gauge, perm: "PLANS_MANAGE" },
       { name: "Logi bezpieczeństwa", href: "/audit", icon: ShieldAlert, perm: "AUDIT_VIEW" },

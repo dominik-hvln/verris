@@ -6,6 +6,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { OutboundAbuseGuard } from './outbound-abuse.guard';
+import { PrismaService } from '../prisma/prisma.service';
 
 class ReleaseCordonDto {
   @IsString()
@@ -20,13 +21,32 @@ class ReleaseCordonDto {
 @Controller('admin/deliverability/cordons')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class OutboundCordonAdminController {
-  constructor(private readonly outbound: OutboundAbuseGuard) {}
+  constructor(
+    private readonly outbound: OutboundAbuseGuard,
+    private readonly prisma: PrismaService,
+  ) {}
 
   @Get()
   @Roles(Role.ADMIN, Role.STAFF)
   async list() {
     const cordons = await this.outbound.listCordoned();
-    return { count: cordons.length, cordons };
+    // N-14 — operator widzi, kogo dotyczy blokada, nie sam identyfikator.
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: cordons.map((c) => c.userId) } },
+      select: { id: true, email: true, firstName: true, lastName: true, companyName: true },
+    });
+    const byId = new Map(users.map((u) => [u.id, u]));
+    return {
+      count: cordons.length,
+      cordons: cordons.map((c) => {
+        const u = byId.get(c.userId);
+        return {
+          ...c,
+          email: u?.email ?? null,
+          name: u ? [u.firstName, u.lastName].filter(Boolean).join(' ') || u.companyName || null : null,
+        };
+      }),
+    };
   }
 
   @Post('release')

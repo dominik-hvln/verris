@@ -14,6 +14,7 @@ import { hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { HostingHelpHint } from '@/components/hosting/HostingTabShell';
 import { SectionHead } from '@/components/panel/v2';
 import BackupScheduleCard from '@/components/hosting/BackupScheduleCard';
+import { HostingOffsitePanel } from '@/components/hosting/hosting-offsite-panel';
 
 const STATUS_LABEL: Record<HostingRestoreJobDto['status'], string> = {
   QUEUED: 'W kolejce',
@@ -39,17 +40,23 @@ export default function BackupsTab({ serviceId }: { serviceId: string }) {
     return j;
   }, [serviceId]);
 
+  const loadRows = useCallback(
+    () =>
+      fetchHostingBackupsAction(serviceId)
+        .then((res) => {
+          setRows(res.rows);
+          setError(res.fetchError);
+        })
+        .catch((e) => setError(e instanceof Error ? e.message : 'Nie udało się wczytać kopii.'))
+        .finally(() => setLoading(false)),
+    [serviceId],
+  );
+
   useEffect(() => {
     setLoading(true);
-    void fetchHostingBackupsAction(serviceId)
-      .then((res) => {
-        setRows(res.rows);
-        setError(res.fetchError);
-      })
-      .catch((e) => setError(e instanceof Error ? e.message : 'Nie udało się wczytać kopii.'))
-      .finally(() => setLoading(false));
+    void loadRows();
     void loadStatus();
-  }, [serviceId, loadStatus]);
+  }, [loadRows, loadStatus]);
 
   // Polling gdy przywracanie jest w toku.
   useEffect(() => {
@@ -133,6 +140,12 @@ export default function BackupsTab({ serviceId }: { serviceId: string }) {
           ))}
         </div>
       )}
+
+      {/* H-22 — kopie poza serwerem tam, gdzie klient ich szuka w kryzysie (wcześniej w „Zużyciu zasobów”). */}
+      <section className="space-y-2">
+        <SectionHead title="Kopie poza serwerem" desc="Gdy serwer ulegnie awarii, dane odtworzymy z kopii w drugim miejscu. Pobrana kopia trafia na listę powyżej." />
+        <HostingOffsitePanel serviceId={serviceId} onFetched={() => void loadRows()} />
+      </section>
     </div>
   );
 }

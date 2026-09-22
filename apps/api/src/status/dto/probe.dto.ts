@@ -1,5 +1,6 @@
 import {
   IsBoolean,
+  IsIn,
   IsEnum,
   IsNumber,
   IsOptional,
@@ -88,4 +89,9 @@ export class UpdateIncidentDto {
   @IsString()
   @Length(1, 2000)
   publicMessage?: string;
+
+  /** N-07 — ręczne zamknięcie (incydent zgłoszony przez operatora nie zamyka się sam). */
+  @IsOptional()
+  @IsIn(['RESOLVED'])
+  status?: 'RESOLVED';
 }

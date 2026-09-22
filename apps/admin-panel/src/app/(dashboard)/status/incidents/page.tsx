@@ -1,5 +1,6 @@
 import { ShieldAlert, AlertCircle, Download } from "lucide-react";
-import { listIncidents } from "../actions";
+import { listIncidents, listProbes, listServersForProbes } from "../actions";
+import { IncidentCompose } from "./incident-compose";
 import { IncidentsTable } from "./incidents-table";
 import { IncidentsCsvExport } from "./csv-export";
 
@@ -16,7 +17,11 @@ export default async function StatusIncidentsPage({ searchParams }: PageProps) {
   const limit = 50;
   const offset = (page - 1) * limit;
 
-  const result = await listIncidents({ status, limit, offset });
+  const [result, probesRes, serversRes] = await Promise.all([
+    listIncidents({ status, limit, offset }),
+    listProbes(),
+    listServersForProbes(),
+  ]);
   const data = result.ok ? result.data ?? { rows: [], total: 0 } : { rows: [], total: 0 };
   const totalPages = Math.max(1, Math.ceil(data.total / limit));
 
@@ -29,9 +34,9 @@ export default async function StatusIncidentsPage({ searchParams }: PageProps) {
             Historia incydentów
           </h1>
           <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
-            Każdy incydent jest tworzony automatycznie przez engine po 2 kolejnych nieudanych
-            probes i zamykany po pierwszym powrocie do sukcesu. Edytuj tytuł i komunikat publiczny
-            (widoczny na <code className="text-xs">status.verris.pl</code>).
+            Incydenty automatyczne powstają po 2 nieudanych próbach i zamykają się po pierwszym
+            sukcesie. Incydent ogłoszony ręcznie zostaje otwarty, dopóki nie klikniesz „Rozwiąż”.
+            Tytuł i komunikat są widoczne na <code className="text-xs">status.verris.pl</code>.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -41,6 +46,8 @@ export default async function StatusIncidentsPage({ searchParams }: PageProps) {
           <IncidentsCsvExport />
         </div>
       </header>
+
+      <IncidentCompose probes={probesRes.ok ? probesRes.data ?? [] : []} servers={serversRes.ok ? serversRes.data ?? [] : []} />
 
       {!result.ok && (
         <div className="flex items-center gap-3 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">

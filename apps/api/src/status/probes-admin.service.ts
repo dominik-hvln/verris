@@ -139,16 +139,21 @@ export class ProbesAdminService {
   ): Promise<ProbeIncident> {
     const incident = await this.prisma.probeIncident.findUnique({ where: { id } });
     if (!incident) throw new NotFoundException('Incident not found');
+    const resolving = dto.status === 'RESOLVED' && incident.status === IncidentStatus.OPEN;
     const updated = await this.prisma.probeIncident.update({
       where: { id },
-      data: { title: dto.title, publicMessage: dto.publicMessage },
+      data: {
+        title: dto.title,
+        publicMessage: dto.publicMessage,
+        ...(resolving ? { status: IncidentStatus.RESOLVED, resolvedAt: new Date() } : {}),
+      },
     });
     await this.audit.record({
-      action: 'PROBE_INCIDENT_EDITED',
+      action: resolving ? 'PROBE_INCIDENT_RESOLVED' : 'PROBE_INCIDENT_EDITED',
       actorUserId,
       details: { incidentId: id, changes: { ...dto } },
     });
-    await this.webhooks.enqueue(StatusWebhookEvent.INCIDENT_UPDATED, {
+    await this.webhooks.enqueue(resolving ? StatusWebhookEvent.INCIDENT_RESOLVED : StatusWebhookEvent.INCIDENT_UPDATED, {
       incidentId: updated.id,
       status: updated.status,
       title: updated.title,

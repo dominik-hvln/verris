@@ -146,6 +146,7 @@ function IncidentRow({ incident }: { incident: IncidentDto }) {
                 {incident.publicMessage}
               </div>
             )}
+            {error && <div className="mt-1 text-[11px] text-rose-300">{error}</div>}
           </div>
         )}
       </td>
@@ -175,6 +176,25 @@ function IncidentRow({ incident }: { incident: IncidentDto }) {
               </button>
             </>
           ) : (
+            <>
+            {incident.status === "OPEN" ? (
+              <button
+                onClick={() => {
+                  if (!window.confirm(`Zamknąć incydent „${incident.title}”? Na status page pojawi się jako rozwiązany.`)) return;
+                  setError(null);
+                  startTransition(async () => {
+                    const res = await updateIncident(incident.id, { status: "RESOLVED" });
+                    if (!res.ok) setError(res.error ?? "Nie udało się zamknąć");
+                    else router.refresh();
+                  });
+                }}
+                disabled={pending}
+                className="inline-flex items-center gap-1 rounded-md border border-emerald-400/40 bg-emerald-500/15 hover:bg-emerald-500/25 px-2.5 py-1 text-[11px] font-bold text-emerald-200 disabled:opacity-50"
+              >
+                <CheckCircle2 className="h-3 w-3" />
+                Rozwiąż
+              </button>
+            ) : null}
             <button
               onClick={() => setEditing(true)}
               className="inline-flex items-center gap-1 rounded-md border border-white/10 bg-white/5 hover:bg-white/10 px-2.5 py-1 text-[11px] font-medium text-white"
@@ -182,6 +202,7 @@ function IncidentRow({ incident }: { incident: IncidentDto }) {
               <Pencil className="h-3 w-3" />
               Edytuj
             </button>
+            </>
           )}
         </div>
       </td>

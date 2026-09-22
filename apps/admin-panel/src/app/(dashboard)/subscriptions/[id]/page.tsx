@@ -5,6 +5,7 @@ import { InternalMigrationForm } from "./internal-migration-form";
 import { PlanChangeForm } from "./plan-change-form";
 import { ServiceUsagePanel } from "./usage-panel";
 import { DiagnosticsPanel } from "./diagnostics-panel";
+import { SuspendForm } from "./suspend-form";
 
 export const dynamic = "force-dynamic";
 
@@ -99,6 +100,13 @@ export default async function AdminSubscriptionDetailPage({ params }: { params: 
           </div>
 
           <DiagnosticsPanel subscriptionId={detail.id} />
+
+          <div className={`rounded-xl border p-4 ${detail.status === "SUSPENDED" ? "border-amber-500/30 bg-amber-500/5" : "border-rose-500/20 bg-rose-500/5"}`}>
+            <h2 className="text-sm font-semibold text-white mb-3">
+              {detail.status === "SUSPENDED" ? "Usługa zawieszona — odwieszenie (A‑26)" : "Zawieszenie usługi (A‑25)"}
+            </h2>
+            <SuspendForm subscriptionId={detail.id} status={detail.status} domain={detail.account?.domain ?? null} />
+          </div>
 
           {detail.account ? <ServiceUsagePanel subscriptionId={detail.id} /> : null}
 

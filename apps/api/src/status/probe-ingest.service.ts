@@ -104,7 +104,9 @@ export class ProbeIngestService {
         where: { probeId: probe.id, status: IncidentStatus.OPEN },
         orderBy: { startedAt: 'desc' },
       });
-      if (open) {
+      // N-07 — incydent ogłoszony ręcznie przez operatora zamyka tylko operator:
+      // udana próba nie znaczy, że awaria, o której informuje, minęła.
+      if (open && !isManualIncident(open.detectionMeta)) {
         const updated = await this.prisma.probeIncident.update({
           where: { id: open.id },
           data: { status: IncidentStatus.RESOLVED, resolvedAt: when },
@@ -211,4 +213,9 @@ function mapSeverity(severity: ProbeSeverity): IncidentSeverity {
 
 function defaultIncidentTitle(kind: ProbeKind, target: string): string {
   return `${kind} probe failing for ${target}`;
+}
+
+/** N-07 — incydent utworzony w panelu admina (composeIncident zapisuje composedBy). */
+export function isManualIncident(detectionMeta: unknown): boolean {
+  return !!detectionMeta && typeof detectionMeta === 'object' && typeof (detectionMeta as { composedBy?: unknown }).composedBy === 'string';
 }
