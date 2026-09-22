@@ -115,7 +115,7 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 - `X-29` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `H-20` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-30` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `X-31` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `X-31` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `Z-18` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `X-32` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `X-33` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
@@ -228,15 +228,15 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `SEC-05` | Log egressu jest próbką, nie zapisem | 6 | WYSOKA | 1 814 000 pakietów (RETURN) wobec 1796 wpisów w journalctl |
-| `SEC-04` | Host rozmawia z kontenerami przez OUTPUT — ruch wewnętrzny liczony jako egress | 6 | WYSOKA | journalctl -k, 48 h: 15 wpisów DPT=443 + 5 wpisów DPT=80 na 172.19.0.3 |
-| `SEC-01` | Tryb `--strict` jest atrapą | 16 | WYSOKA | Panel: łańcuch = 2× RETURN, bez DROP; 1 814 000 pakietów przeszło ostatnim RETURN-em; `cgroup --path: NIEDOSTEPNE` |
+| `SEC-05` | Log egressu jest próbką, nie zapisem | 6 | WYSOKA | ops/scripts/security-control-plane-egress.sh — apply_egress_seen: lancuch VERRIS_EGRESS_SEEN (pierwszy w OUTPUT) dopisuje KAZDE nowe polaczenie TCP/UD |
+| `SEC-04` | Host rozmawia z kontenerami przez OUTPUT — ruch wewnętrzny liczony jako egress | 6 | WYSOKA | security-control-plane-egress.sh — RETURN dla -o lo/docker0/br-+ w VERRIS_EGRESS_STRICT i br-+ w VERRIS_EGRESS_BOGON przed DROP; test apps/api/src/tes |
+| `SEC-01` | Tryb `--strict` jest atrapą | 16 | WYSOKA | security-control-plane-egress.sh — apply_strict_allowlist: DROP bez testu cgroup, kontrola po fakcie (iptables -S; brak reguly = exit 1), warunek wste |
 
 **Definicja ukończenia**
 
-- `SEC-05` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `SEC-04` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `SEC-01` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `SEC-05` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `SEC-04` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `SEC-01` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-07.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
 **Ryzyko sprintu.** NOWY SPRINT, decyzja wlasciciela 2026-09-19 (blok egressu osobnym sprintem zaraz po wezle #1). Kolejnosc jest wymuszona logicznie, nie preferencja. SEC-05 pierwsze: log egressu ma ogranicznik czestotliwosci — 1796 wpisow w journalu wobec 1,81 mln pakietow na liczniku iptables. Kazda allowlista zbudowana na tym odczycie jest niepelna Z DEFINICJI, wiec dopoki log jest probka, reszta bloku opiera sie na zgadywaniu. SEC-04 drugie, bo bez wyjatku dla 172.16.0.0/12 wlaczenie strict zrywa polaczenie host-kontener i nie da sie go przetestowac. SEC-01 trzecie: dopiero wtedy DROP moze realnie obowiazywac. Strażnik na wzor X-34 — atrapa wielkosci produkcyjnej i te same flagi powloki co skrypt wdrozeniowy.
@@ -299,7 +299,7 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 
 **Definicja ukończenia**
 
-- `X-31` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `X-31` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-32` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `DEP-02` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `M-08` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.

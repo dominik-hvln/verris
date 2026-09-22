@@ -93,7 +93,15 @@ sudo ALLOW_HOSTS=/etc/verris/security/egress-allow-hostnames.merged.txt \
   bash ops/scripts/security-control-plane-egress.sh --strict
 ```
 
-`security-install-verris-security.sh --role control-plane` robi to automatycznie, jeśli Postgres działa.
+> **SEC-01/05/06 (od 2026-09-22):** instalator **nie** włącza już strict automatycznie
+> (wcześniej robił to z `|| true`, a sam strict był atrapą — nic nie odrzucał).
+> Strict naprawdę odrzuca i **odmawia (kod 1)**, dopóki:
+> 1. pomiar egressu (ipset `verris_egress_seen`, zakładany przez przebieg domyślny) nie trwa ≥ 7 dni,
+> 2. każdy zmierzony cel TCP/80,443 hosta jest w allowliście.
+>
+> Kolejność: przebieg domyślny → 7 dni → `--pomiar` (raport: co host robi i czego brakuje
+> w allowliście) → uzupełnienie allowlisty → `--strict`. Przy incydencie:
+> `--wymus-strict` (pomija warunek pomiaru, świadomie).
 
 **Ryzyko:** niepełna lista → ucięcie deploy/Stripe; po nowej domenie klienta uruchom `security-sync-cp-egress-hosts.sh` i ponów `--strict`.
 
