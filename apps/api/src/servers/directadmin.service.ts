@@ -1013,6 +1013,11 @@ export class DirectAdminService {
     fetchError: string | null;
   }> {
     const domains = await this.listHostingDomainsForSubscription(subscriptionId, userId);
+    // F-01: domena z zapytania musi należeć do konta tej usługi — inaczej
+    // bezpieczeństwo odczytu strefy zależy wyłącznie od uprawnień po stronie DA.
+    if (domain && !domains.domains.some((d) => d.name.toLowerCase() === domain.trim().toLowerCase())) {
+      throw new BadRequestException('Ta domena nie jest przypisana do konta DirectAdmin tej usługi.');
+    }
     const effectiveDomain = domain ?? domains.primaryDomain ?? domains.domains[0]?.name ?? null;
     if (!effectiveDomain) return { domain: null, records: [], fetchError: null };
     try {
@@ -1049,6 +1054,7 @@ export class DirectAdminService {
     userId: string,
     input: { domain: string; name: string; type: string; value: string; ttl?: number },
   ) {
+    await this.assertDomainOnSubscription(subscriptionId, userId, input.domain);
     await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_DNS_CONTROL', {
       action: 'add',
       domain: input.domain,
@@ -1065,6 +1071,10 @@ export class DirectAdminService {
     userId: string,
     input: { domain: string; name: string; type: string; value: string },
   ) {
+    await this.assertDomainOnSubscription(subscriptionId, userId, input.domain);
+    // ponytail: format usuwania niezweryfikowany na żywym DA (brak węzła do
+    // sprintu 18). Starsze DA usuwają przez action=select + <typ>recs0=name=…&value=…;
+    // sprawdzić przy D3 — edycja robi create-then-delete, więc nieudane usunięcie = duplikat.
     await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_DNS_CONTROL', {
       action: 'delete',
       domain: input.domain,

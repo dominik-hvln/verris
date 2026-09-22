@@ -10,6 +10,7 @@ import { useHostingLinks } from '@/components/hosting/hosting-links-context';
 import DomainPointingPanel from '@/components/hosting/DomainPointingPanel';
 import SubdomainsManager from '@/components/hosting/SubdomainsManager';
 import AdditionalDomains from '@/components/hosting/AdditionalDomains';
+import DnsZoneSection from '@/components/hosting/DnsZoneSection';
 import { ResponsiveDataView } from '@/components/panel';
 
 interface Props {
@@ -216,6 +217,9 @@ export default function DomainsTab({ serviceId }: Props) {
         )}
       </div>
       <AdditionalDomains serviceId={serviceId} />
+      {domains.length > 0 ? (
+        <DnsZoneSection serviceId={serviceId} domains={domains} primaryDomain={primaryDomain} />
+      ) : null}
     </HostingTabShell>
   );
 }

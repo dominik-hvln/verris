@@ -33,10 +33,13 @@ export function DnsManager({
   serviceId,
   domain,
   records,
+  onChanged,
 }: {
   serviceId: string;
   domain: string | null;
   records: HostingDnsRecordDto[];
+  /** Gdy rekordy ładuje komponent kliencki (zakładka usługi), a nie strona serwerowa. */
+  onChanged?: () => void;
 }) {
   const router = useRouter();
   const [adding, setAdding] = useState(false);
@@ -44,7 +47,7 @@ export function DnsManager({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const refresh = () => router.refresh();
+  const refresh = () => (onChanged ? onChanged() : router.refresh());
 
   // PANEL-7 — szybkie presety DNS (zestawy rekordów jednym kliknięciem).
   const dnsPresets = (d: string): { id: string; label: string; desc: string; records: { name: string; type: string; value: string }[] }[] => {

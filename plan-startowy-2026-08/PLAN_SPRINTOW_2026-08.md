@@ -147,7 +147,7 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 
 # Faza 1 — Rozliczenia i dowód odtworzenia
 
-*Sprinty 4–8 · 164 h · 2026-09-21 – 2026-10-23*
+*Sprinty 4–8 · 158 h · 2026-09-21 – 2026-10-23*
 
 Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podpisane DPA. Koniec tej fazy to kamień milowy: zamknięte wszystkie blokery poza KSeF-em, który świadomie stoi na końcu.
 
@@ -201,19 +201,17 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 
 ## Sprint 6 — DNS, SSO i PHP
 
-`2026-10-05 – 2026-10-09` · **18 h** z 30 h pojemności
+`2026-10-05 – 2026-10-09` · **12 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `F-01` | Edytor rekordów DNS (A/CNAME/MX/TXT) | 6 | WYSOKA | dns-manager.tsx:79,91 — komponent osierocony; dns/page.tsx:15 przekierowuje gdzie indziej |
-| `F-02` | Rekordy SRV / CAA | 6 | WYSOKA | j.w. |
-| `B-01` | Zmiana wersji PHP dla całego konta | 6 | WYSOKA | services.controller.ts:125 |
+| `F-01` | Edytor rekordów DNS (A/CNAME/MX/TXT) | 6 | WYSOKA | 2026-09-22 D1: components/hosting/DnsZoneSection.tsx — edytor strefy w zakladce Domeny huba uslugi (wybor domeny, DnsManager z onChanged); dns-manager |
+| `F-02` | Rekordy SRV / CAA | 6 | WYSOKA | 2026-09-22 D1: components/hosting/DnsZoneSection.tsx — edytor strefy w zakladce Domeny huba uslugi (wybor domeny, DnsManager z onChanged); dns-manager |
 
 **Definicja ukończenia**
 
-- `F-01` — Kontroler rejestruje trasę, którą woła panel; kliknięcie kończy się realnym efektem, nie 404. Test pokrywa ścieżkę UI→API→zasób.
-- `F-02` — Kontroler rejestruje trasę, którą woła panel; kliknięcie kończy się realnym efektem, nie 404. Test pokrywa ścieżkę UI→API→zasób.
-- `B-01` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `F-01` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `F-02` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-06.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
 **Ryzyko sprintu.** F-01/F-02: trasa hosting-sso-url nie istnieje w API — to nowy endpoint, nie podpiecie istniejacego. J-04 (HTTP/3) przeniesione do bloku wezla (sprint 18) — to weryfikacja na wezle, nie kod. | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze.
@@ -400,7 +398,7 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 
 # Faza 3 — Wejście na rynek
 
-*Sprinty 15–19 · 130 h · 2026-12-07 – 2027-01-08*
+*Sprinty 15–19 · 136 h · 2026-12-07 – 2027-01-08*
 
 Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, baza wiedzy, przejście ścieżki pierwszego klienta na produkcji i zapisana decyzja GO.
 
@@ -457,7 +455,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 ## Sprint 18 — Wezel produkcyjny #1 (Hetzner AX102)
 
-`2026-12-28 – 2027-01-01` · **36 h** z 30 h pojemności
+`2026-12-28 – 2027-01-01` · **42 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -465,6 +463,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 | `NODE-02` | `main()` nie sprawdza kodów powrotu | 6 | WYSOKA | ops/scripts/lib/przerwij-po-etapie.sh — przerwij_po_etapie zamienia zebrane [FAIL] w exit 1; node-onboard-live.sh main() — bramka po preflight_stack,  |
 | `J-01` | LiteSpeed / serwer o wysokiej wydajności | 6 | WYSOKA | decyzja infrastrukturalna, poza kodem panelu |
 | `J-04` | HTTP/3 | 6 | ŚREDNIA | poza kodem panelu |
+| `B-01` | Zmiana wersji PHP dla całego konta | 6 | WYSOKA | services.controller.ts:125 |
 | `PB-02` | Onboarding produkcyjnego węzła #1 (Hetzner AX102) | 16 | WYSOKI | Pełny przebieg node-onboard-live.sh na docelowym serwerze, z konfiguracją backupu off-site jako krokiem obowiązkowym. |
 
 **Definicja ukończenia**
@@ -473,6 +472,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 - `NODE-02` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `J-01` — Stan zweryfikowany na produkcji z timestampem (poziom D3), wynik zapisany w repo.
 - `J-04` — Stan zweryfikowany na produkcji z timestampem (poziom D3), wynik zapisany w repo.
+- `B-01` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `PB-02` — Węzeł przechodzi wszystkie 14 checków live-readiness. /etc/verris-backup.conf istnieje, pierwszy backup off-site wykonany i zaraportowany do control-plane.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-18.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 

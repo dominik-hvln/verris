@@ -39,6 +39,7 @@ import { SiteMonitorService } from './site-monitor.service';
 import { StagingService } from './staging.service';
 import { BackupScheduleService } from './backup-schedule.service';
 import { SetMonitoringDto } from './dto/site-monitor.dto';
+import { UsunRekordDnsDto, UtworzRekordDnsDto } from './dto/hosting-dns.dto';
 import { EcoReportService } from '../eco/eco-report.service';
 import { DeliverabilityService } from '../deliverability/deliverability.service';
 import { PhpService } from './php.service';
@@ -383,8 +384,7 @@ export class UserServicesController {
   async createHostingDns(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body()
-    body: { domain: string; name: string; type: string; value: string; ttl?: number },
+    @Body() body: UtworzRekordDnsDto,
   ) {
     return this.directAdmin.createHostingDnsRecord(id, user.userId, body);
   }
@@ -393,7 +393,7 @@ export class UserServicesController {
   async deleteHostingDns(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { domain: string; name: string; type: string; value: string },
+    @Body() body: UsunRekordDnsDto,
   ) {
     return this.directAdmin.deleteHostingDnsRecord(id, user.userId, body);
   }
