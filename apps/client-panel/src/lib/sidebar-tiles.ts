@@ -27,8 +27,8 @@ export type SidebarTileDef = {
 };
 
 const TILE_DEFS: Record<SidebarTileHref, Omit<SidebarTileDef, 'href'>> = {
-  '/dashboard': { name: 'Dashboard', icon: VerrisStatystykiIcon },
-  '/dashboard/services': { name: 'Serwery', icon: VerrisSerweryIcon },
+  '/dashboard': { name: 'Pulpit', icon: VerrisStatystykiIcon },
+  '/dashboard/services': { name: 'Usługi', icon: VerrisSerweryIcon },
   '/dashboard/billing': { name: 'Płatności', icon: VerrisPortfelIcon },
   '/dashboard/domains': { name: 'Domeny', icon: VerrisDomenyIcon },
   '/dashboard/eco': { name: 'Program EKO', icon: VerrisEkoIcon },

@@ -106,29 +106,28 @@ export default function ServiceOverviewV2({
   const [refreshing, setRefreshing] = useState(false);
   const [asBusy, setAsBusy] = useState(false);
 
+  // Ładowanie stopniowe: nagłówek po samych danych usługi, reszta dociąga się osobno.
+  // Wolne źródła (DirectAdmin, sonda zdrowia) nie blokują już całego ekranu.
   const load = useCallback(
     async (forceHealth = false) => {
+      const later = <T,>(p: Promise<T>, set: (v: T) => void) => p.then(set).catch(() => undefined);
+      void later(fetchHostingUsageAction(serviceId, '24h'), setUsage);
+      void later(fetchConnectionInfoAction(serviceId), setConn);
+      void later(fetchHostingDomainsAction(serviceId), setDomains);
+      void later(fetchOverviewExtrasAction(serviceId), setExtras);
+      if (clientFeatures.eco) {
+        void later(fetchSidebarUser(), (me) => setEcoPoints(typeof me?.ecoPoints === 'number' ? me.ecoPoints : 0));
+      }
+      const healthP = later(fetchServiceHealthAction(serviceId, forceHealth), setHealth);
       try {
-        const [svc, u, h, c, d, x, me] = await Promise.all([
-          fetchServiceDetailsAction(serviceId),
-          fetchHostingUsageAction(serviceId, '24h').catch(() => null),
-          fetchServiceHealthAction(serviceId, forceHealth).catch(() => null),
-          fetchConnectionInfoAction(serviceId).catch(() => null),
-          fetchHostingDomainsAction(serviceId).catch(() => null),
-          fetchOverviewExtrasAction(serviceId).catch(() => null),
-          clientFeatures.eco ? fetchSidebarUser().catch(() => null) : Promise.resolve(null),
-        ]);
+        const svc = await fetchServiceDetailsAction(serviceId);
         setService(svc);
-        setUsage(u);
-        setHealth(h ?? svc.health);
-        setConn(c);
-        setDomains(d);
-        setExtras(x);
-        setEcoPoints(typeof me?.ecoPoints === 'number' ? me.ecoPoints : 0);
+        setHealth((h) => h ?? svc.health);
       } finally {
         setLoading(false);
-        setRefreshing(false);
       }
+      await healthP;
+      setRefreshing(false);
     },
     [serviceId],
   );
@@ -297,7 +296,11 @@ export default function ServiceOverviewV2({
             <div className="overflow-x-auto rounded-[10px] border border-line bg-card">
               {domainList.length === 0 ? (
                 <p className="px-4 py-5 text-sm text-muted-foreground">
-                  {domains?.fetchError ? 'Nie udało się pobrać listy domen — spróbuj odświeżyć.' : 'Brak domen. Dodaj pierwszą, żeby uruchomić stronę.'}
+                  {domains === null
+                    ? 'Wczytywanie domen…'
+                    : domains.fetchError
+                      ? 'Nie udało się pobrać listy domen — spróbuj odświeżyć.'
+                      : 'Brak domen. Dodaj pierwszą, żeby uruchomić stronę.'}
                 </p>
               ) : (
                 <table className="w-full border-collapse text-sm">
