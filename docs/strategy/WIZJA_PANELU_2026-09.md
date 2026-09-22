@@ -1,0 +1,145 @@
+# Wizja panelu Verris — research zagranicy, DNS, asystent, design, tickety
+
+**Data:** 2026-09-22 · **Status:** do dyskusji z właścicielem, nic z tego nie jest jeszcze w planie
+sprintów. Uzupełnia `ANALIZA_KONKURENCJI_2026-06.md` (cPanel, Plesk, DA, rynek PL) o liderów
+z USA i Europy. Ceny i funkcje konkurencji — stan na wrzesień 2026, ze stron dostawców.
+
+---
+
+## 1. Co mamy dziś (punkt wyjścia)
+
+- **Asystent:** `HostingAssistant` (czat w panelu klienta) — odpowiada z bazy wiedzy (RAG) z kontekstem
+  usługi (`ai-chat.service.ts`, `buildServiceContext`), log interakcji w `AiInteractionLog`.
+  **Nie wykonuje akcji**, nie jest proaktywny.
+- **FirstStepsAssistant** — przewodnik pierwszych kroków w usłudze.
+- **Tickety:** statusy i cykl braku odpowiedzi (SUP-V2), gotowe odpowiedzi (`canned-response.service.ts`,
+  `canned-response-picker` w panelu staff), paleta poleceń w staff/admin.
+- **Design:** Tailwind + własne komponenty `components/panel`, ciemny motyw, ikony lucide.
+
+---
+
+## 2. Czego uczą liderzy z USA/UE
+
+| Wzorzec | Kto robi najlepiej | Dla kogo u nas |
+|---|---|---|
+| Auto-aktualizacje WP z testem wizualnym (zrzuty stron) i automatycznym rollbackiem | Kinsta, Cloudways SafeUpdates, WP Engine | laik, agencja |
+| Test aktualizacji na tymczasowym stagingu przed produkcją | Cloudways | pro, agencja |
+| Agent AI **wykonujący akcje** (DNS, backup, migracja) z kartą potwierdzenia | Hostinger (Kodee/Agent) | laik |
+| Uprawnienia AI w warstwach: odczyt / zmiana odwracalna / destrukcyjna tylko po opt-in („Power Mode") | SiteGround | wszyscy |
+| Proaktywna diagnoza: przyczyna + naprawa jednym kliknięciem za zgodą | Cloudways Copilot SmartFix | laik |
+| Globalne wyszukiwanie pod „/" + centrum zadań w tle | Rocket.net | pro |
+| Przekazanie strony klientowi, panel bez marki hosta, raporty z logo agencji | Hostinger Agency, xCloud, Ploi | agencja |
+| Klonowanie strony jako szablon | Hostinger | agencja |
+| Łańcuch Dev → Staging → Live | Raidboxes | pro |
+| Wizualizacja cache (serwer / edge / CDN), analityka botów czytelna dla laika | Kinsta, Rocket.net | wszyscy |
+| Lighthouse / Core Web Vitals w panelu, APM | WP Engine, Kinsta | pro |
+| Serwer MCP / API z piaskownicą (agent klienta — Cursor, Claude — pracuje na koncie) | Ploi, WP Engine | pro |
+| Status page dla klientów agencji | Ploi | agencja |
+| Samodzielny upgrade/downgrade, tymczasowy upgrade | Raidboxes | laik |
+
+**Znane zarzuty wobec AI w hostingu** (do uniknięcia): kredyty za naprawę problemów hosta
+(Hostinger, Cloudways, IONOS), AI jako mur przed człowiekiem, pełne uprawnienia admina bez
+dziennika zmian.
+
+---
+
+## 3. Propozycje dla Verris
+
+### 3.1 Asystent „Verris Copilot" — dymki + czat + akcje
+
+1. **Dymki kontekstowe (proaktywne)** przy metrykach i ekranach — najwyżej jeden na ekran,
+   „nie pokazuj więcej". Przykłady: „Dysk 92% — wyczyścić cache i stare logi? Zwolni ~3 GB",
+   „Domena nie wskazuje na nas — pokaż, co ustawić u rejestratora", „SPF bez DKIM — poczta może
+   trafiać do spamu. Naprawić?".
+2. **Czat** na pytania otwarte (jest — rozszerzyć o akcje).
+3. **Akcje w trzech klasach:** odczyt (bez pytania) → zmiana odwracalna (karta z podglądem skutków)
+   → destrukcyjna/płatna (jawny opt-in, backup przed, „Cofnij" przez 24 h). Twarde zakazy
+   (usuwanie konta, zmiana planu bez zgody). Każda akcja AI w dzienniku audytu.
+4. **Doradca decyzji:** „Czy potrzebuję wyższego planu?" — na danych zużycia, z prognozą i kosztem;
+   czasem odpowiedź „nie" (buduje zaufanie).
+5. **Tłumacz błędów:** przy każdym 500 / wpisie w logu „wyjaśnij po polsku" i „napraw".
+6. **Zawsze widoczne „porozmawiaj z człowiekiem"** — ticket z automatycznym streszczeniem rozmowy.
+7. **Diagnoza i naprawy problemów po naszej stronie — za darmo.** Bez kredytów za naprawianie hosta.
+
+### 3.2 Funkcje „więcej niż konkurencja"
+
+- **Bezpieczne aktualizacje WP** (test wizualny + rollback) — w cenie, a nie za 2–3 USD/stronę.
+- **„Co się zmieniło od ostatniej wizyty"** — oś zdarzeń prostym językiem.
+- **Porównanie przed/po** przy zmianie PHP, cache, wtyczki (Core Web Vitals + zrzut).
+- **Checklisty PL/UE:** RODO, cookies, dostępność (EAA 2025), KSeF przy WooCommerce — z naprawami.
+- **Dostarczalność poczty** — pełna diagnoza SPF/DKIM/DMARC z gotowymi rekordami (spina się ze sprintem 7).
+- **Tryb agencji:** klienci agencji, przekazanie własności, white-label, miesięczny raport dla
+  klienta końcowego w języku biznesu (uptime, aktualizacje, zablokowane ataki, szybkość).
+- **MCP / API z zakresami** — „Cursor może czytać logi i robić staging, nie może usuwać".
+- **Tryby panelu:** Prosty (laik) / Pełny (pro) / Agencja — ten sam panel, inna gęstość informacji
+  (zaczątek jest: `verris-simple-mode`).
+
+### 3.3 Design — „nie wygląda jak Tailwind ani jak AI"
+
+Kierunek do przygotowania jako osobny projekt (makiety przed kodem):
+- **Własny system wizualny** zamiast domyślnych klas: własna typografia (para krojów z charakterem,
+  nie Inter), własna skala odstępów i promieni, jeden wyrazisty kolor marki zamiast gradientów
+  indygo-fiolet, ikony z jednego, spójnego zestawu (lub własne — są już `dns-mint.svg`).
+- **Mniej kart, więcej struktury:** listy i tabele o zmiennej gęstości, zamiast siatki identycznych
+  kafli z cieniem i zaokrągleniem.
+- **Interakcje, które coś znaczą:** stany ładowania pokazujące postęp realnej operacji, podgląd
+  skutku przed kliknięciem, cofanie zamiast „Czy na pewno?", skróty klawiszowe i „/" do wyszukiwania.
+- **Pusty stan jako instrukcja** — każdy pusty ekran mówi, co zrobić dalej.
+- **Mikrocopy po ludzku** — bez żargonu dla trybu Prosty.
+
+### 3.4 System ticketowy (panel staff) — wymagania na później
+
+- **Automatyczne odpowiedzi na typowe przypadki:** klasyfikacja zgłoszenia (DNS, SSL, poczta,
+  płatność, migracja, awaria) → propozycja odpowiedzi z bazy wiedzy + **dane z konta klienta**
+  (np. „domena wskazuje na IP X, powinna na Y"). Wysłanie automatyczne tylko w klasach bezpiecznych;
+  reszta jako szkic do akceptacji.
+- **Szablony wiadomości** z polami podstawianymi (imię, domena, usługa, termin) — rozbudowa
+  istniejących canned responses o zmienne i kategorie.
+- **Szybki podgląd klienta w bocznym panelu ticketu:** usługi, stan konta, saldo portfela, ostatnie
+  faktury/dokumenty, ostatnie zdarzenia (awarie, provisioning, logowania), historia zgłoszeń,
+  health score — bez przechodzenia między ekranami.
+- **Akcje z ticketu:** restart usługi, ponowienie provisioningu, wysłanie linku do resetu, przedłużenie
+  terminu — z audytem.
+- **SLA na tickecie:** licznik do odpowiedzi, eskalacja, raport czasu reakcji.
+
+---
+
+## 4. Co warto wykupić / podpiąć
+
+| Pozycja | Rekomendacja | Koszt orientacyjny | Kiedy |
+|---|---|---|---|
+| **ClouDNS Premium L** (anycast, 400 stref, API, secondary z AXFR) | **Tak** — jako zewnętrzny secondary za DirectAdminem, NS pod marką Verris | 14,95 USD/mies. (164,45 USD/rok) | przy węźle #1 (sprint 18) |
+| ClouDNS DDoS Protected | **Nie na start** — 2,7× drożej, brak podanej przepustowości filtracji; najsłabszym ogniwem przy ataku są i tak węzły | 39,95 USD/mies. (L) | po pierwszym poważnym ataku / >1000 stref |
+| Openprovider DNS | darmowy **trzeci secondary** (bez NS pod marką — wyłączone u nich) | 0 | przy węźle #1 |
+| Openprovider Premium DNS (Sectigo) | nie — per strefa, drożej niż ClouDNS przy naszej skali | 6,49 USD/strefa/rok | — |
+| Cloudflare Business z NS kontowymi | alternatywa przy >1000 stref lub atakach | ~200 USD/mies. | później |
+| Patchstack (baza podatności WP, wirtualne łatki) | warto rozważyć do „bezpiecznych aktualizacji" i skanera | do wyceny | po starcie |
+| Storage Box BX21 (Hetzner) | już w planie — kopie off-site | ~11 €/mies. | sprint 18 |
+
+**Architektura DNS:** DirectAdmin zostaje *hidden primary*, ClouDNS pobiera strefy przez AXFR/NOTIFY
+(ograniczenie po IP/TSIG), panel zakłada/usuwa strefę w ClouDNS przez API przy dodaniu/usunięciu
+domeny. Przed zakupem zapytać ClouDNS: czy NS pod marką na współdzielonych IP są w Premium L w cenie,
+czy strefy secondary liczą się do limitu 400, od ilu stref jest Enterprise.
+
+---
+
+## 5. Pytania do właściciela (do przedyskutowania)
+
+1. Kolejność: najpierw **system designu i makiety** (bez zmiany funkcji), czy od razu **Copilot z akcjami**?
+2. Czy tryb **Agencja** (klienci agencji, white-label, raporty) jest priorytetem na start, czy po starcie?
+3. Budżet AI: modele i koszt zapytań — asystent darmowy w pakiecie (rekomendacja), limity miesięczne?
+4. Tickety: czy auto-wysyłka bez człowieka w klasach bezpiecznych jest akceptowalna?
+
+## Źródła
+
+Hostinger (hostinger.com/blog/ai-agent-kodee, /support/hostinger-agents-features-and-overview),
+SiteGround (siteground.com/kb/ai-agent-for-wordpress), Kinsta (kinsta.com/docs/…/automatic-updates,
+kinsta.com/changelog), WP Engine (wpengine.com/blog/wp-engine-2025-in-review), Cloudways
+(cloudways.com/en/cloudways-ai-copilot.php, /safeupdates.php), Rocket.net
+(rocket.net/blog/introducing-new-rocket-net-control-panel), Raidboxes (raidboxes.io/en/blog/raidboxes/recap-2025),
+Spaceship (spaceship.com/blog/alf-updates), Ploi (ploi.io), xCloud (xcloud.host/xcloud-february-2026-release-notes),
+WordPress MCP Adapter (developer.wordpress.org/news/2026/02/…), ClouDNS (cloudns.net/premium,
+/ddos-protected-plans, /data-centers, /wiki/article/42, /wiki/article/39), Openprovider
+(openprovider.com/products/security/premium-dns, support.openprovider.eu …vanity-nameservers),
+Cloudflare (developers.cloudflare.com/dns/nameservers/custom-nameservers), Bunny (bunny.net/pricing/dns),
+Hetzner DNS (docs.hetzner.com/networking/dns/…), Route 53 (aws.amazon.com/route53/pricing).
