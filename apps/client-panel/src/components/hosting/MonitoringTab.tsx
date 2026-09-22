@@ -1,15 +1,9 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  Activity,
-  AlertCircle,
-  ArrowDownCircle,
-  CheckCircle2,
-  HeartPulse,
-  Loader2,
-} from 'lucide-react';
-import { Zap, Loader2 as Loader, ShieldCheck } from 'lucide-react';
+import { AlertCircle, ArrowDownCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { Zap, Loader2 as Loader } from 'lucide-react';
+import { Kpi, KpiStrip, Meter, SectionHead, Switch } from '@/components/panel/v2';
 import {
   getMonitoringStatus,
   setMonitoringEnabled,
@@ -75,86 +69,60 @@ export default function MonitoringTab({ serviceId }: Props) {
 
   return (
     <div className="space-y-5">
-      {/* Przełącznik — jedyna decyzja klienta */}
-      <div className="rounded-2xl border border-white/10 bg-black/30 p-6">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="space-y-1 min-w-0">
-            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-              <HeartPulse className="h-5 w-5 text-indigo-300" /> Monitoring strony
-            </h3>
-            <p className="text-sm text-neutral-400 max-w-xl">
-              Sprawdzamy <strong className="text-neutral-200">{status.domain}</strong> co minutę.
-              Gdy strona przestanie odpowiadać, <strong className="text-neutral-200">wyślemy
-              Ci e-mail</strong> — i drugi, gdy wróci do działania. Bez konfiguracji.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onToggle}
-            disabled={saving}
-            role="switch"
-            aria-checked={status.enabled}
-            className={`relative inline-flex h-7 w-13 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
-              status.enabled ? 'bg-emerald-500' : 'bg-white/15'
-            }`}
-            style={{ width: 52 }}
-          >
-            <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                status.enabled ? 'translate-x-7' : 'translate-x-1'
-              }`}
-            />
-          </button>
-        </div>
-        {error && <p className="mt-3 text-sm text-rose-300">{error}</p>}
-      </div>
+      <SectionHead
+        title="Monitoring strony"
+        desc={`Sprawdzamy ${status.domain} co minutę. Gdy strona przestanie odpowiadać, wyślemy e-mail — i drugi, gdy wróci.`}
+        action={<Switch checked={status.enabled} onChange={onToggle} disabled={saving} label="Monitoring strony" />}
+      />
+      {error ? <p className="text-sm text-crit">{error}</p> : null}
 
-      {/* Status na żywo */}
-      {status.enabled && (
-        <div
-          className={`rounded-2xl border p-6 ${
-            status.lastStatus === 'UP'
-              ? 'border-emerald-500/30 bg-emerald-500/5'
-              : status.lastStatus === 'DOWN'
-                ? 'border-rose-500/30 bg-rose-500/5'
-                : 'border-white/10 bg-black/20'
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            {status.lastStatus === 'UP' && <CheckCircle2 className="h-8 w-8 text-emerald-400" />}
-            {status.lastStatus === 'DOWN' && <ArrowDownCircle className="h-8 w-8 text-rose-400" />}
-            {status.lastStatus === 'UNKNOWN' && <Activity className="h-8 w-8 text-neutral-400" />}
-            <div>
-              <p className="text-lg font-semibold text-white">
-                {status.lastStatus === 'UP' && 'Strona działa'}
-                {status.lastStatus === 'DOWN' && 'Strona nie odpowiada'}
-                {status.lastStatus === 'UNKNOWN' && 'Czekam na pierwsze sprawdzenie…'}
-              </p>
-              <p className="text-xs text-neutral-400">
+      {status.enabled ? (
+        <KpiStrip>
+          <Kpi
+            label="Stan strony"
+            value={status.lastStatus === 'UP' ? 'Działa' : status.lastStatus === 'DOWN' ? 'Nie działa' : 'Czekamy'}
+            foot={
+              <span>
                 {status.lastStatus === 'DOWN' && status.downSince
-                  ? `Od ${new Date(status.downSince).toLocaleString('pl-PL')} · ${status.lastError ?? ''}`
+                  ? `od ${new Date(status.downSince).toLocaleString('pl-PL')}`
                   : status.lastCheckedAt
-                    ? `Ostatnie sprawdzenie: ${new Date(status.lastCheckedAt).toLocaleTimeString('pl-PL')}${
-                        status.lastHttpStatus ? ` (HTTP ${status.lastHttpStatus})` : ''
-                      }${status.lastResponseMs != null ? ` · odpowiedź ${status.lastResponseMs} ms` : ''}`
-                    : 'Pierwszy wynik pojawi się w ciągu minuty.'}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+                    ? `sprawdzono ${new Date(status.lastCheckedAt).toLocaleTimeString('pl-PL')}${status.lastHttpStatus ? ` · HTTP ${status.lastHttpStatus}` : ''}`
+                    : 'pierwszy wynik w ciągu minuty'}
+              </span>
+            }
+          />
+          <Kpi
+            label="Czas odpowiedzi"
+            value={status.lastResponseMs ?? '—'}
+            unit={status.lastResponseMs != null ? 'ms' : undefined}
+            foot={<span>z ostatniego sprawdzenia</span>}
+          />
+          <Kpi
+            label="Dostępność"
+            value={status.uptime ? Number(status.uptime.pct).toLocaleString('pl-PL', { maximumFractionDigits: 2 }) : '—'}
+            unit={status.uptime ? '%' : undefined}
+            foot={
+              <span>
+                {status.uptime
+                  ? `${status.uptime.measuredFullWindow ? `ostatnie ${status.uptime.windowDays} dni` : `od ${new Date(status.uptime.sinceIso).toLocaleDateString('pl-PL')}`} · ${status.uptime.incidents} przerw`
+                  : 'liczymy od pierwszego pomiaru'}
+              </span>
+            }
+          >
+            {status.uptime ? <Meter pct={Number(status.uptime.pct)} tone={Number(status.uptime.pct) >= 99.5 ? 'data' : 'warn'} /> : null}
+          </Kpi>
+          <Kpi
+            label="Certyfikat SSL"
+            value={status.tlsExpiresAt ? Math.max(0, Math.ceil((new Date(status.tlsExpiresAt).getTime() - Date.now()) / 86_400_000)) : '—'}
+            unit={status.tlsExpiresAt ? 'dni' : undefined}
+            foot={<span>{status.tlsExpiresAt ? `do ${new Date(status.tlsExpiresAt).toLocaleDateString('pl-PL')}` : 'brak danych o certyfikacie'}</span>}
+          />
+        </KpiStrip>
+      ) : null}
 
       {/* MON-6 — powiadomienia e-mail (monitoring działa niezależnie) */}
       {status.enabled && (
         <NotifyToggle serviceId={serviceId} notifyEmail={status.notifyEmail} onChange={setStatus} />
-      )}
-
-      {/* MON-5 — wygasanie certyfikatu SSL */}
-      {status.enabled && status.tlsExpiresAt && <SslLine tlsExpiresAt={status.tlsExpiresAt} />}
-
-      {/* B3+ — dostępność z 30 dni (realne dane z monitoringu) */}
-      {status.enabled && status.uptime && (
-        <UptimeCard uptime={status.uptime} />
       )}
 
       {/* MON-3 — płatny tier: szybsze sprawdzanie */}
@@ -330,108 +298,7 @@ function NotifyToggle({
             : 'Maile wyłączone — monitoring działa, ale nie powiadamiamy mailem.'}
         </p>
       </div>
-      <button
-        type="button"
-        onClick={() => void toggle()}
-        disabled={busy}
-        role="switch"
-        aria-checked={notifyEmail}
-        className={`relative inline-flex h-7 shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
-          notifyEmail ? 'bg-emerald-500' : 'bg-white/15'
-        }`}
-        style={{ width: 52 }}
-      >
-        <span
-          className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-            notifyEmail ? 'translate-x-7' : 'translate-x-1'
-          }`}
-        />
-      </button>
-    </div>
-  );
-}
-
-/** MON-5 — linia statusu certyfikatu SSL z dni do wygaśnięcia. */
-function SslLine({ tlsExpiresAt }: { tlsExpiresAt: string }) {
-  const exp = new Date(tlsExpiresAt);
-  const daysLeft = Math.floor((exp.getTime() - Date.now()) / (24 * 60 * 60 * 1000));
-  const expired = daysLeft <= 0;
-  const soon = daysLeft <= 14;
-  const tone = expired
-    ? 'border-rose-500/30 bg-rose-500/5 text-rose-200'
-    : soon
-      ? 'border-amber-400/30 bg-amber-400/5 text-amber-200'
-      : 'border-white/10 bg-black/20 text-neutral-300';
-  const label = expired
-    ? 'Certyfikat SSL wygasł'
-    : daysLeft === 1
-      ? 'Certyfikat SSL wygaśnie jutro'
-      : `Certyfikat SSL ważny jeszcze ${daysLeft} dni`;
-  return (
-    <div className={`flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm ${tone}`}>
-      <ShieldCheck className="h-4 w-4 shrink-0" />
-      <span>
-        {label} <span className="text-neutral-500">· do {exp.toLocaleDateString('pl-PL')}</span>
-      </span>
-    </div>
-  );
-}
-
-function formatDowntime(seconds: number): string {
-  if (seconds <= 0) return '0 min';
-  const d = Math.floor(seconds / 86400);
-  const h = Math.floor((seconds % 86400) / 3600);
-  const m = Math.max(1, Math.round((seconds % 3600) / 60));
-  if (d > 0) return `${d} d ${h} h`;
-  if (h > 0) return `${h} h ${m} min`;
-  return `${m} min`;
-}
-
-/** B3+ — karta dostępności (uptime) z realnych zdarzeń monitoringu. */
-function UptimeCard({
-  uptime,
-}: {
-  uptime: NonNullable<MonitoringStatus['uptime']>;
-}) {
-  const pct = Number.parseFloat(uptime.pct);
-  // Próg „bardzo dobrze" — informacyjny, nie obietnica SLA dla strony klienta.
-  const good = pct >= 99.9;
-  const ok = pct >= 99 && pct < 99.9;
-  const tone = good
-    ? { ring: 'border-emerald-500/30 bg-emerald-500/5', text: 'text-emerald-300' }
-    : ok
-      ? { ring: 'border-amber-400/30 bg-amber-400/5', text: 'text-amber-300' }
-      : { ring: 'border-rose-500/30 bg-rose-500/5', text: 'text-rose-300' };
-
-  return (
-    <div className={`rounded-2xl border p-6 ${tone.ring}`}>
-      <div className="flex items-end justify-between gap-4 flex-wrap">
-        <div>
-          <p className="text-xs uppercase tracking-wider text-neutral-400">
-            Dostępność{' '}
-            {uptime.measuredFullWindow
-              ? `(ostatnie ${uptime.windowDays} dni)`
-              : 'od początku monitorowania'}
-          </p>
-          <p className={`mt-1 text-4xl font-bold ${tone.text}`}>{uptime.pct}%</p>
-        </div>
-        <div className="text-right text-xs text-neutral-400 space-y-0.5">
-          <p>
-            Niedostępność:{' '}
-            <span className="text-neutral-200">{formatDowntime(uptime.downtimeSeconds)}</span>
-          </p>
-          <p>
-            Awarie w okresie:{' '}
-            <span className="text-neutral-200">{uptime.incidents}</span>
-          </p>
-        </div>
-      </div>
-      {!uptime.measuredFullWindow && (
-        <p className="mt-3 text-[11px] text-neutral-500">
-          Monitorujemy od {new Date(uptime.sinceIso).toLocaleDateString('pl-PL')}. Pełne 30 dni
-          pokażemy, gdy uzbiera się więcej danych.
-        </p>
-      )}
+      <Switch checked={notifyEmail} onChange={() => void toggle()} disabled={busy} label="Powiadomienia e-mail o awarii" />
     </div>
   );
 }

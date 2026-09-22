@@ -24,6 +24,7 @@ import { fetchHostingDomainsAction } from '@/app/dashboard/services/[id]/hosting
 import { Select } from '@/components/panel';
 import { fetchConnectionInfoAction } from '@/app/dashboard/services/[id]/hosting-connection-actions';
 import { HostingTabShell } from '@/components/hosting/HostingTabShell';
+import { AccessList, Kpi, KpiStrip, Meter } from '@/components/panel/v2';
 import MailExtras from '@/components/hosting/MailExtras';
 import { createHostingSsoUrlAction } from '@/app/dashboard/services/[id]/hosting-sso-actions';
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
@@ -250,32 +251,33 @@ export default function MailTab({ serviceId }: Props) {
         </div>
       ) : null}
 
-      <div className="mb-4 rounded-xl border border-white/10 bg-white/[0.03] p-4 space-y-3">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
-          Ustawienia klienta pocztowego
-        </h3>
-        <dl className="grid gap-2 text-xs sm:grid-cols-2">
-          <div>
-            <dt className="text-neutral-500">Serwer przychodzący (IMAP)</dt>
-            <dd className="mt-0.5 break-all font-mono text-neutral-200">{imapHost}</dd>
-            <dd className="text-neutral-500 mt-0.5">Port 993 · SSL/TLS</dd>
-          </div>
-          <div>
-            <dt className="text-neutral-500">Serwer wychodzący (SMTP)</dt>
-            <dd className="mt-0.5 break-all font-mono text-neutral-200">{imapHost}</dd>
-            <dd className="text-neutral-500 mt-0.5">Port 587 · STARTTLS (lub 465 SSL)</dd>
-          </div>
-        </dl>
-        <p className="text-[11px] text-neutral-500 leading-relaxed">
-          Login to pełny adres skrzynki (np. kontakt@twojadomena.pl). Hasło ustawiasz przy tworzeniu skrzynki w
-          panelu hostingu. Webmail, jeśli jest włączony na węźle, otwierasz z zaawansowanego panelu hostingu.
+      <KpiStrip>
+        <Kpi
+          label="Skrzynki"
+          value={loading ? '…' : rows.length}
+          unit={emailQuota ? `z ${emailQuota.limit}` : undefined}
+          foot={<span>{emailQuota ? 'limit z planu' : 'na koncie'}</span>}
+        >
+          {emailQuota && Number(emailQuota.limit) > 0 ? <Meter pct={(rows.length / Number(emailQuota.limit)) * 100} /> : null}
+        </Kpi>
+        <Kpi label="Domeny z pocztą" value={loading ? '…' : new Set(rows.map((r) => r.email.split('@')[1])).size} foot={<span>adresy w tych domenach</span>} />
+        <Kpi label="Serwer poczty" value={<span className="font-mono text-[15px] font-semibold tracking-normal">{imapHost}</span>} foot={<span>IMAP 993 · SMTP 587</span>} />
+        <Kpi label="Szyfrowanie" value="SSL/TLS" foot={<span>STARTTLS na 587, SSL na 465</span>} />
+      </KpiStrip>
+
+      <div className="mb-4 mt-4 rounded-[10px] border border-line bg-card">
+        <div className="flex items-center justify-between gap-3 px-4 pt-3.5">
+          <h3 className="m-0 font-display text-[15px] font-bold text-foreground">Ustawienia klienta pocztowego</h3>
+        </div>
+        <AccessList
+          items={[
+            { label: 'Serwer przychodzący (IMAP)', values: [imapHost], port: '993' },
+            { label: 'Serwer wychodzący (SMTP)', values: [imapHost], port: '587' },
+          ]}
+        />
+        <p className="m-0 px-4 pb-3.5 pt-2 font-mono text-[11.5px] leading-relaxed text-muted-foreground">
+          Login to pełny adres skrzynki (np. kontakt@twojadomena.pl). Hasło ustawiasz przy tworzeniu skrzynki. Webmail otwierasz przyciskiem wyżej.
         </p>
-        {emailQuota ? (
-          <p className="text-[11px] text-neutral-400">
-            Skrzynki na koncie: <span className="text-white font-medium">{emailQuota.used}</span>
-            <span className="text-neutral-500"> / {emailQuota.limit}</span>
-          </p>
-        ) : null}
       </div>
 
       {/* Create mailbox */}
