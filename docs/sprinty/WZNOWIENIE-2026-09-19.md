@@ -352,3 +352,18 @@ dokumentacyjnemu". Bez nich po trzech sprintach nikt nie wie, co jest zrobione.
 
 **Kolejność kodu:** sprint 5 — `FAK-01` + `X-03` + `PB-14`; sprint 6 — węzeł #1;
 sprinty 7–9 — egress; 10–15 — produkt; 16–19 — dokumenty i start.
+
+## 9. Przeplanowanie 2026-09-22 (2) — serwer na koniec
+
+Decyzja właściciela: wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero
+w sprincie 18, żeby serwer nie stał pusty. Kolejność od sprintu 6:
+
+| Sprint | Zakres |
+|---|---|
+| 6–11 | panel: DNS/SSO/PHP, poczta, warstwa operatorska, backup/staging, ogony, rozliczenia (+NODE-03) |
+| 12–13 | zapora control-plane: egzekwowanie w FORWARD + UDP/53/SMTP, potem strict po tygodniach pomiaru |
+| 14–17 | dokumenty, cennik, landing, kampania (wstrzymana) |
+| 18 | **zakup i onboarding węzła #1** (Z-18, NODE-02, J-01, J-04 — dowody D3) |
+| 19 | ścieżka pierwszego klienta (wymaga węzła) i decyzja GO |
+
+Z-18 zdjęte z listy sprintu 2 (tam zrobiony kod), żeby generator przypisał je do sprintu 18.

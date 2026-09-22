@@ -9,11 +9,11 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **3182 h** — przy 30 h tygodniowo około **25 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **3176 h** — przy 30 h tygodniowo około **25 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **19 sprintów do startu** (756 h) oraz roadmapę po starcie (2426 h, 152 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **19 sprintów do startu** (750 h) oraz roadmapę po starcie (2426 h, 152 pozycji) rozpisaną na epiki kwartalne.
 
-- **2026-12-18** — koniec sprintu 16, zamknięte wszystkie blokery **poza KSeF-em**.
+- **2027-01-01** — koniec sprintu 18, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-01-08** — koniec sprintu 19, decyzja GO.
 
 ---
@@ -32,7 +32,7 @@ Dlatego praca dzieli się na dwie części: **19 sprintów do startu** (756 h) o
 
 # Faza 0 — Zatrzymać krwawienie
 
-*Sprinty 1–3 · 262 h · 2026-08-31 – 2026-09-18*
+*Sprinty 1–3 · 256 h · 2026-08-31 – 2026-09-18*
 
 Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziurą, przez którą wyciekają pieniądze, albo drogą do przejęcia węzła przez klienta. Nic innego nie ma sensu przed nimi.
 
@@ -73,7 +73,7 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 
 ## Sprint 2 — Zamknąć luki bezpieczeństwa z passu adwersaryjnego
 
-`2026-09-07 – 2026-09-11` · **150 h** z 30 h pojemności
+`2026-09-07 – 2026-09-11` · **144 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -93,7 +93,6 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 | `H-20` | Test odtworzeniowy z datą ostatniego wykonania | 16 | — | DOWÓD D4 — wiersz w bazie PRODUKCYJNEJ, odczytany 2026-08-23: finishedAt=2026-08-22 23:19:45, result=OK, owner=Dominik Kowalski, durationSec=9, object |
 | `X-30` | Reguły alertowe nie tylko są wczytane, ale się liczą | 6 | — | ops/observability/grafana/provisioning/datasources/datasources.yml — deleteDatasources przed deklaracją, uid: Prometheus; ops/scripts/prod-deploy-ghcr |
 | `X-31` | Kanał alertów daje znak życia (dead man's switch) | 6 | — | ops/observability/grafana/provisioning/alerting/rules.yaml — grupa verris_kanal_alertow, reguła VerrisKanalAlertowZyje (vector(1), for: 0s, oba stany  |
-| `Z-18` | Prawdziwa przyczyna błędu provisioningu nie ginie po drodze | 6 | BLOKER STARTU | apps/api/src/subscriptions/provisioning-error.ts — BladEtapuProvisioningu (etap, przyczyna, message z doklejoną przyczyną); provisioning-queue.service |
 | `X-32` | Martwy job da się odrzucić z panelu, ze śladem w audycie | 6 | — | apps/api/src/common/audit/audit.actions.ts — PROVISIONING_JOB_DISCARDED_BY_ADMIN; provisioning-queue.service.ts — odrzucJob (getState() === failed, śl |
 | `X-33` | Bramka alertów odróżnia „nie ma" od „jeszcze nie ma" | 6 | — | ops/scripts/lib/bramka-regul-alertowych.sh — czekaj_na_reguly (do 20 prób co 3 s, warunek: aktywne == oczekiwane i paused == 0), policz_reguly_w_pliku |
 | `X-34` | Bramka alertów czyta metryki bez potoku (SIGPIPE + pipefail) | 6 | — | ops/scripts/lib/bramka-regul-alertowych.sh — metryka_istnieje bez potoku (dopasowanie wzorcem w powłoce), regul_w_stanie przez <<< zamiast |; apps/api |
@@ -116,13 +115,12 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 - `H-20` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-30` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-31` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `Z-18` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `X-32` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-33` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-34` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-02.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** Z-03 dotyka skryptów na węźle — zmiana wymaga przetestowania całej ścieżki migracji, nie tylko walidacji DTO. Sprint urósł o dziesięć pozycji odkrytych w trakcie: podatności, strażniki, bramki wdrożeniowe i awaria kopii bazy (H-23/H-24). Przeciążenie jest prawdziwe i celowo widoczne — praca została wykonana, plan jej nie przewidywał. X-28 doszło jako odpowiedź na pytanie, które zostawiło H-23: dlaczego alarm o braku kopii nie dotarł do nikogo. Odpowiedź — nie miał dokąd; w repo nie było Alertmanagera, a Grafana miała odbiorcę i zero reguł. X-29 wyszło godzinę po X-28 i z tego samego pytania: skoro reguły są w repo, to czy wdrożenie w ogóle je dowozi? Nie dowoziło — wdrożenie restartowało tylko aplikacje, a Prometheus i Grafana czytają konfigurację wyłącznie przy starcie. H-20 wykonane tu, a nie w sprincie 9: awaria kopii z H-23 wymusiła odtworzenie bazy tu i teraz, więc dowód D4 powstał jedenaście sprintów przed terminem. X-30 wyszło przy sprawdzaniu, czy X-29 faktycznie coś zmieniło: reguły były wczytane i żadna się nie liczyła. Trzeci raz tego dnia to samo pytanie — czy to, co wygląda na zrobione, jest zrobione — i trzeci raz odpowiedź brzmiała nie. X-31 domyka dzień: po naprawie X-30 alerty ucichną, a cisza wygląda tak samo jak awaria kanału — więc dokładamy regułę, która pali się zawsze i której brak jest sygnałem. Decyzja właściciela produktu: jeden mail na dobę. Z-18 zamyka dzień tym, od czego wszystko się zaczęło: pierwszy alarm zapalony z prawdziwego powodu pokazał wadę, która przy zerwaniu sieci oddaje klientowi pieniądze za usługę, którą za chwilę wykona. Poprawka jest tutaj, dowód D3 dopiero przy węźle #1. X-32 to ostatnie ogniwo dnia i najkrótsza historia: alarm kazał posprzątać kolejkę, a w produkcie nie było czym jej posprzątać. Zostawało grzebanie w Redisie bez śladu w audycie — czyli dokładnie to, przeciwko czemu powstał cały ten dzień. X-33 dopisało się samo, bo wdrożenie #70 padło na bramce z X-30 przy czternastu działających regułach. Metryka reguł pojawia się dopiero na pierwszym takcie schedulera alertów, a bramka czytała ją sekundę po tym, jak /api/health odpowiedziało — mierzyła szybkość startu i meldowała o poprawności prowizjonowania. Bramka, która potrafi zapalić się na zdrowym systemie, uczy klikać „re-run" i przestaje chronić cokolwiek, więc ten sprint domyka się dopiero tutaj. X-34 dopisało się, bo bramka z X-33 miała własną usterkę: printf | grep -q przy pipefail zwraca błąd DOKŁADNIE WTEDY, GDY METRYKA JEST, o ile odpowiedź przekracza bufor potoku. Bramka nie kłamała o Grafanie — kłamała o własnym odczycie, a strażnik tego nie złapał, bo jego atrapa ważyła 200 bajtów zamiast setek kilobajtów i pracował pod innymi flagami powłoki niż produkcja.
+**Ryzyko sprintu.** Z-03 dotyka skryptów na węźle — zmiana wymaga przetestowania całej ścieżki migracji, nie tylko walidacji DTO. Sprint urósł o dziesięć pozycji odkrytych w trakcie: podatności, strażniki, bramki wdrożeniowe i awaria kopii bazy (H-23/H-24). Przeciążenie jest prawdziwe i celowo widoczne — praca została wykonana, plan jej nie przewidywał. X-28 doszło jako odpowiedź na pytanie, które zostawiło H-23: dlaczego alarm o braku kopii nie dotarł do nikogo. Odpowiedź — nie miał dokąd; w repo nie było Alertmanagera, a Grafana miała odbiorcę i zero reguł. X-29 wyszło godzinę po X-28 i z tego samego pytania: skoro reguły są w repo, to czy wdrożenie w ogóle je dowozi? Nie dowoziło — wdrożenie restartowało tylko aplikacje, a Prometheus i Grafana czytają konfigurację wyłącznie przy starcie. H-20 wykonane tu, a nie w sprincie 9: awaria kopii z H-23 wymusiła odtworzenie bazy tu i teraz, więc dowód D4 powstał jedenaście sprintów przed terminem. X-30 wyszło przy sprawdzaniu, czy X-29 faktycznie coś zmieniło: reguły były wczytane i żadna się nie liczyła. Trzeci raz tego dnia to samo pytanie — czy to, co wygląda na zrobione, jest zrobione — i trzeci raz odpowiedź brzmiała nie. X-31 domyka dzień: po naprawie X-30 alerty ucichną, a cisza wygląda tak samo jak awaria kanału — więc dokładamy regułę, która pali się zawsze i której brak jest sygnałem. Decyzja właściciela produktu: jeden mail na dobę. Z-18 zamyka dzień tym, od czego wszystko się zaczęło: pierwszy alarm zapalony z prawdziwego powodu pokazał wadę, która przy zerwaniu sieci oddaje klientowi pieniądze za usługę, którą za chwilę wykona. Poprawka jest tutaj, dowód D3 dopiero przy węźle #1. X-32 to ostatnie ogniwo dnia i najkrótsza historia: alarm kazał posprzątać kolejkę, a w produkcie nie było czym jej posprzątać. Zostawało grzebanie w Redisie bez śladu w audycie — czyli dokładnie to, przeciwko czemu powstał cały ten dzień. X-33 dopisało się samo, bo wdrożenie #70 padło na bramce z X-30 przy czternastu działających regułach. Metryka reguł pojawia się dopiero na pierwszym takcie schedulera alertów, a bramka czytała ją sekundę po tym, jak /api/health odpowiedziało — mierzyła szybkość startu i meldowała o poprawności prowizjonowania. Bramka, która potrafi zapalić się na zdrowym systemie, uczy klikać „re-run" i przestaje chronić cokolwiek, więc ten sprint domyka się dopiero tutaj. X-34 dopisało się, bo bramka z X-33 miała własną usterkę: printf | grep -q przy pipefail zwraca błąd DOKŁADNIE WTEDY, GDY METRYKA JEST, o ile odpowiedź przekracza bufor potoku. Bramka nie kłamała o Grafanie — kłamała o własnym odczycie, a strażnik tego nie złapał, bo jego atrapa ważyła 200 bajtów zamiast setek kilobajtów i pracował pod innymi flagami powłoki niż produkcja. | 2026-09-22: Z-18 zdjete z listy tego sprintu (kod zrobiony tutaj, D2) — pozycja otwarta czeka na dowod D3 w sprincie 18, a generator przypisuje pozycje do pierwszego sprintu, w ktorym wystepuje.
 
 ## Sprint 3 — Pojemność węzła i plan produkcyjny
 
@@ -149,7 +147,7 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 
 # Faza 1 — Rozliczenia i dowód odtworzenia
 
-*Sprinty 4–8 · 176 h · 2026-09-21 – 2026-10-23*
+*Sprinty 4–8 · 164 h · 2026-09-21 – 2026-10-23*
 
 Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podpisane DPA. Koniec tej fazy to kamień milowy: zamknięte wszystkie blokery poza KSeF-em, który świadomie stoi na końcu.
 
@@ -201,91 +199,101 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 
 **Ryzyko sprintu.** FAK-01 NA POCZATKU i jako BLOKER STARTU: decyzja z 2026-09-22 (ADR-2026-09-22) — faktury VAT wystawia program ksiegowy. Panel dzis sam numeruje faktury w transakcji obciazenia portfela, wiec bez przelacznika trybu kazda platnosc dostalaby dwie faktury w dwoch seriach. Dopiero po FAK-01 moga zejsc flagi blokera z M-16 i M-17. PB-13 ZAMKNIETE tego samego dnia — kierunek: integracja z programem ksiegowym po API, na start recznie. PB-14 musi zapasc przed zamowieniem serwera w sprincie 6. X-03 — reczna sciezka wdrozenia omija bramke: zamiana cichego obejscia na jawne, z flaga i zapisanym powodem.
 
-## Sprint 6 — Wezel produkcyjny #1
+## Sprint 6 — DNS, SSO i PHP
 
-`2026-10-05 – 2026-10-09` · **30 h** z 30 h pojemności
+`2026-10-05 – 2026-10-09` · **18 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `Z-18` | Prawdziwa przyczyna błędu provisioningu nie ginie po drodze (część) | 2 | BLOKER STARTU | apps/api/src/subscriptions/provisioning-error.ts — BladEtapuProvisioningu (etap, przyczyna, message z doklejoną przyczyną); provisioning-queue.service |
-| `NODE-02` | `main()` nie sprawdza kodów powrotu | 6 | WYSOKA | ops/scripts/lib/przerwij-po-etapie.sh — przerwij_po_etapie zamienia zebrane [FAIL] w exit 1; node-onboard-live.sh main() — bramka po preflight_stack,  |
-| `J-01` | LiteSpeed / serwer o wysokiej wydajności | 6 | WYSOKA | decyzja infrastrukturalna, poza kodem panelu |
-| `PB-02` | Onboarding produkcyjnego węzła #1 (Hetzner AX102) | 16 | WYSOKI | Pełny przebieg node-onboard-live.sh na docelowym serwerze, z konfiguracją backupu off-site jako krokiem obowiązkowym. |
+| `F-01` | Edytor rekordów DNS (A/CNAME/MX/TXT) | 6 | WYSOKA | dns-manager.tsx:79,91 — komponent osierocony; dns/page.tsx:15 przekierowuje gdzie indziej |
+| `F-02` | Rekordy SRV / CAA | 6 | WYSOKA | j.w. |
+| `B-01` | Zmiana wersji PHP dla całego konta | 6 | WYSOKA | services.controller.ts:125 |
 
 **Definicja ukończenia**
 
-- `Z-18` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
-- `NODE-02` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
-- `J-01` — Stan zweryfikowany na produkcji z timestampem (poziom D3), wynik zapisany w repo.
-- `PB-02` — Węzeł przechodzi wszystkie 14 checków live-readiness. /etc/verris-backup.conf istnieje, pierwszy backup off-site wykonany i zaraportowany do control-plane.
+- `F-01` — Kontroler rejestruje trasę, którą woła panel; kliknięcie kończy się realnym efektem, nie 404. Test pokrywa ścieżkę UI→API→zasób.
+- `F-02` — Kontroler rejestruje trasę, którą woła panel; kliknięcie kończy się realnym efektem, nie 404. Test pokrywa ścieżkę UI→API→zasób.
+- `B-01` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-06.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** NODE-02 idzie PRZED PB-02, nie po: main() w node-onboard-live.sh i node-live-readiness.sh nie sprawdza kodow powrotu, wiec instalacja kontynuuje po nieudanym preflighcie. Uruchamianie pierwszego produkcyjnego wezla instalatorem, ktory nie zatrzymuje sie na bledzie, to ta sama rodzina co SEC-01: kontrola wykrywa problem i nie zatrzymuje procesu. Z-18 dostaje tu dowod D3 (provisioning z przerwanym polaczeniem do DirectAdmina) i przestaje byc blokerem. J-01 ma stan b.d. — definicja ukonczenia dla b.d. to weryfikacja na produkcji z timestampem, a nie implementacja; wezel #1 jest pierwszym miejscem, gdzie da sie to zrobic.
+**Ryzyko sprintu.** F-01/F-02: trasa hosting-sso-url nie istnieje w API — to nowy endpoint, nie podpiecie istniejacego. J-04 (HTTP/3) przeniesione do bloku wezla (sprint 18) — to weryfikacja na wezle, nie kod. | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze.
 
-## Sprint 7 — Egress: najpierw pomiar, ktory nie klamie
+## Sprint 7 — Poczta: dostarczalnosc i skrzynki
 
-`2026-10-12 – 2026-10-16` · **28 h** z 30 h pojemności
+`2026-10-12 – 2026-10-16` · **30 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `SEC-05` | Log egressu jest próbką, nie zapisem | 6 | WYSOKA | ops/scripts/security-control-plane-egress.sh — apply_egress_seen: lancuch VERRIS_EGRESS_SEEN (pierwszy w OUTPUT) dopisuje KAZDE nowe polaczenie TCP/UD |
-| `SEC-04` | Host rozmawia z kontenerami przez OUTPUT — ruch wewnętrzny liczony jako egress | 6 | WYSOKA | security-control-plane-egress.sh — RETURN dla -o lo/docker0/br-+ w VERRIS_EGRESS_STRICT i br-+ w VERRIS_EGRESS_BOGON przed DROP; test apps/api/src/tes |
-| `SEC-01` | Tryb `--strict` jest atrapą | 16 | WYSOKA | security-control-plane-egress.sh — apply_strict_allowlist: DROP bez testu cgroup, kontrola po fakcie (iptables -S; brak reguly = exit 1), warunek wste |
+| `E-15` | Rekordy SPF — kreator | 6 | WYSOKA | services.controller.ts:114 |
+| `E-16` | Rekordy DKIM — konfiguracja | 6 | WYSOKA | services.controller.ts:114 |
+| `E-17` | Rekord DMARC — konfiguracja | 6 | WYSOKA | services.controller.ts:114 |
+| `E-05` | Zmiana quoty ISTNIEJĄCEJ skrzynki | 6 | WYSOKA | hosting-email-actions.ts:41 zachowuje starą quotę |
+| `M-26` | Usunięcie zapisanej karty przez klienta | 6 | WYSOKA | billing.controller.ts:38 tylko GET, brak DELETE |
 
 **Definicja ukończenia**
 
-- `SEC-05` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `SEC-04` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
-- `SEC-01` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `E-15` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
+- `E-16` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
+- `E-17` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
+- `E-05` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `M-26` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-07.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** NOWY SPRINT, decyzja wlasciciela 2026-09-19 (blok egressu osobnym sprintem zaraz po wezle #1). Kolejnosc jest wymuszona logicznie, nie preferencja. SEC-05 pierwsze: log egressu ma ogranicznik czestotliwosci — 1796 wpisow w journalu wobec 1,81 mln pakietow na liczniku iptables. Kazda allowlista zbudowana na tym odczycie jest niepelna Z DEFINICJI, wiec dopoki log jest probka, reszta bloku opiera sie na zgadywaniu. SEC-04 drugie, bo bez wyjatku dla 172.16.0.0/12 wlaczenie strict zrywa polaczenie host-kontener i nie da sie go przetestowac. SEC-01 trzecie: dopiero wtedy DROP moze realnie obowiazywac. Strażnik na wzor X-34 — atrapa wielkosci produkcyjnej i te same flagi powloki co skrypt wdrozeniowy.
+**Ryzyko sprintu.** Brak SPF/DKIM w panelu to najczestsza przyczyna "moja poczta trafia do spamu". Backend dziala — to glownie podpiecie osieroconego komponentu. | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze.
 
-## Sprint 8 — Egress: pelne pokrycie ruchu
+## Sprint 8 — Warstwa operatorska: zatrzymywanie szkody
 
-`2026-10-19 – 2026-10-23` · **32 h** z 30 h pojemności
+`2026-10-19 – 2026-10-23` · **30 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `X-41` | Hardening egressu wisi w łańcuchu OUTPUT, a ruch kontenerów idzie przez FORWARD | 16 | WYSOKA | obserwacja wpięta w DOCKER-USER, 1674 pakiety zliczone, 0 DROP/REJECT |
-| `SEC-03` | Ruch poza TCP/80 i TCP/443 — DNS (UDP/53), SMTP — nie jest objęty ani obserwacją z X-41, ani trybem strict | 16 | WYSOKA | zakres reguł w `security-control-plane-egress.sh` |
+| `A-25` | Ręczne zawieszenie usługi przez operatora | 6 | WYSOKA | subscriptions.admin.controller.ts:192 |
+| `A-26` | Ręczne odwieszenie usługi przez operatora | 6 | WYSOKA | subscriptions.admin.controller.ts:210 |
+| `N-07` | Ręczne tworzenie incydentu na status page | 6 | WYSOKA | product-ops.admin.controller.ts:371; brak UI tworzenia |
+| `N-14` | Cordon wysyłki poczty (auto-blokada spamu) | 6 | WYSOKA | outbound-cordon.admin.controller.ts:20,25,32; zero „cordon” w admin-panel |
+| `H-22` | Panel odtwarzania w widocznym miejscu | 6 | WYSOKA | panel off-site siedzi w zakładce „Usage”, nie „Kopie zapasowe” (page.tsx:74,128,313,319) |
 
 **Definicja ukończenia**
 
-- `X-41` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
-- `SEC-03` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `A-25` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
+- `A-26` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
+- `N-07` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
+- `N-14` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
+- `H-22` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-08.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** X-41 zamyka to, co dzis jest tylko obserwacja: hardening wisi w lancuchu OUTPUT, a ruch kontenerow idzie przez FORWARD/DOCKER-USER, czyli egress CALEGO PRODUKTU byl poza zasiegiem zabezpieczenia, ktore wygladalo, jakby go obejmowalo. Obserwacja stoi (1674 pakiety, 0 DROP), zostaje egzekwowanie. SEC-03 dokłada ruch spoza TCP/80 i TCP/443 — DNS po UDP/53 i SMTP nie sa objete ani obserwacja, ani trybem strict, wiec bez tego "strict" opisuje dwa porty, nie host.
+**Ryzyko sprintu.** Bez tego pierwszy incydent obslugujesz curlem o drugiej w nocy. Pierwsze cztery pozycje to endpointy, ktore juz dzialaja. | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze.
 
 ---
 
 # Faza 2 — Odzyskanie funkcji-widm i luki pierwszego tygodnia
 
-*Sprinty 9–14 · 166 h · 2026-10-26 – 2026-12-04*
+*Sprinty 9–14 · 200 h · 2026-10-26 – 2026-12-04*
 
 Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. Najlepszy stosunek wartości do pracy w całym backlogu.
 
-## Sprint 9 — Allowlista z obserwacji i porzadek w wezle
+## Sprint 9 — Backup i staging
 
-`2026-10-26 – 2026-10-30` · **28 h** z 30 h pojemności
+`2026-10-26 – 2026-10-30` · **24 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `SEC-06` | Allowlista pokrywa to, o czym ktoś pomyślał, nie to, co host robi | 16 | WYSOKA | ipset test verris_egress_https na 4 celach z logu egressu |
-| `SEC-02` | Stripe jest w allowliście wyłącznie po nazwie, a ipset powstaje z rozwiązania nazw | 6 | ŚREDNIA | `egress-allow-hostnames.txt`; ipset `verris_egress_https` = 65 wpisów |
-| `NODE-03` | Pojemność węzła nigdy się nie odświeża | 6 | ŚREDNIA | `schema.prisma:454` wobec `telemetry.service.ts:48-72` |
+| `H-09` | Kopia bezpieczeństwa przed odtworzeniem | 6 | WYSOKA | hosting-restore.service.ts:167 |
+| `H-17` | Tryb restore skryptu odtwarzającego osiągalny z produktu | 6 | WYSOKA | node-account-restore.sh:82-99 ma tryb restore; offsite-restore.service.ts:94 przyjmuje wyłącznie list|fetch |
+| `G-20` | Ochrona przed atakiem słownikowym na panel | 6 | WYSOKA | rate-limit.guard.ts — ZERO testów |
+| `I-11` | Staging — publikacja na produkcję | 6 | WYSOKA | services.controller.ts:187 |
 
 **Definicja ukończenia**
 
-- `SEC-06` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `SEC-02` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `NODE-03` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `H-09` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `H-17` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `G-20` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `I-11` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-09.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** SEC-06 dopiero tutaj, bo wymaga okresu obserwacji na PELNYM logu z SEC-05. Koszt tej pozycji to glownie czas obserwacji, nie kod — dlatego stoi po dwoch sprintach zbierania danych, a nie obok SEC-01. Test ipset na celach z rzeczywistego ruchu pokazal juz dwa trafienia poza allowlista (sogo-repo.alinto.org i nierozpoznany host Hetznera, 120 pakietow), wiec wlaczenie --strict przed tym sprintem odcieloby repozytorium pakietow SOGo. SEC-02: adresy Stripe rotuja, wiec wpis po nazwie starzeje sie miedzy uruchomieniami — potrzebne odswiezanie z opublikowanej listy plus check w live-readiness.
+**Ryzyko sprintu.** H-17 bylo zalezne od H-20 — zamkniete 2026-08-23 dowodem D4, wiec zaleznosc spelniona. | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze. Pozycje, ktore okaza sie wymagac wezla do dowodu D3, dostaja kod tutaj, a dowod w sprincie 18.
 
-## Sprint 10 — Ogony sprintu 2, zaleznosci i faktury VOID
+## Sprint 10 — Ogony, zaleznosci i dokumenty VOID
 
 `2026-11-02 – 2026-11-06` · **30 h** z 30 h pojemności
 
@@ -306,126 +314,72 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 - `C-18` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-10.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** X-31 i X-32 to ostatnie CZESCIOWE z passu adwersaryjnego. DEP-02 tu, bo wyciszenie majorow ESLinta z DEP-03 ma termin przegladu 2026-11-15, a sprint zaczyna sie 2026-11-02. M-08 (anulowanie faktury VOID) — w trybie zewnetrznym z FAK-01 dotyczy dokumentu rozliczeniowego, nie faktury VAT; zakres do potwierdzenia przy realizacji.
+**Ryzyko sprintu.** X-31 i X-32 to ostatnie CZESCIOWE z passu adwersaryjnego. DEP-02 tu, bo wyciszenie majorow ESLinta z DEP-03 ma termin przegladu 2026-11-15, a sprint zaczyna sie 2026-11-02. M-08 (anulowanie faktury VOID) — w trybie zewnetrznym z FAK-01 dotyczy dokumentu rozliczeniowego, nie faktury VAT; zakres do potwierdzenia przy realizacji. X-31 i X-32 zamkniete 2026-09-22 (D3) — zostaja tu jako zapis. | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze.
 
-## Sprint 11 — DNS, SSO i PHP
+## Sprint 11 — Rozliczenia klienta i pomiar
 
-`2026-11-09 – 2026-11-13` · **24 h** z 30 h pojemności
-
-| ID | Zadanie | h | Priorytet | Dowód / kontekst |
-|---|---|---|---|---|
-| `F-01` | Edytor rekordów DNS (A/CNAME/MX/TXT) | 6 | WYSOKA | dns-manager.tsx:79,91 — komponent osierocony; dns/page.tsx:15 przekierowuje gdzie indziej |
-| `F-02` | Rekordy SRV / CAA | 6 | WYSOKA | j.w. |
-| `B-01` | Zmiana wersji PHP dla całego konta | 6 | WYSOKA | services.controller.ts:125 |
-| `J-04` | HTTP/3 | 6 | ŚREDNIA | poza kodem panelu |
-
-**Definicja ukończenia**
-
-- `F-01` — Kontroler rejestruje trasę, którą woła panel; kliknięcie kończy się realnym efektem, nie 404. Test pokrywa ścieżkę UI→API→zasób.
-- `F-02` — Kontroler rejestruje trasę, którą woła panel; kliknięcie kończy się realnym efektem, nie 404. Test pokrywa ścieżkę UI→API→zasób.
-- `B-01` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
-- `J-04` — Stan zweryfikowany na produkcji z timestampem (poziom D3), wynik zapisany w repo.
-- **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-11.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
-
-**Ryzyko sprintu.** F-01/F-02: trasa hosting-sso-url nie istnieje w API — to nowy endpoint, nie podpiecie istniejacego. J-04 (HTTP/3) to weryfikacja na wezle #1.
-
-## Sprint 12 — Poczta: dostarczalnosc i skrzynki
-
-`2026-11-16 – 2026-11-20` · **30 h** z 30 h pojemności
-
-| ID | Zadanie | h | Priorytet | Dowód / kontekst |
-|---|---|---|---|---|
-| `E-15` | Rekordy SPF — kreator | 6 | WYSOKA | services.controller.ts:114 |
-| `E-16` | Rekordy DKIM — konfiguracja | 6 | WYSOKA | services.controller.ts:114 |
-| `E-17` | Rekord DMARC — konfiguracja | 6 | WYSOKA | services.controller.ts:114 |
-| `E-05` | Zmiana quoty ISTNIEJĄCEJ skrzynki | 6 | WYSOKA | hosting-email-actions.ts:41 zachowuje starą quotę |
-| `M-26` | Usunięcie zapisanej karty przez klienta | 6 | WYSOKA | billing.controller.ts:38 tylko GET, brak DELETE |
-
-**Definicja ukończenia**
-
-- `E-15` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
-- `E-16` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
-- `E-17` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
-- `E-05` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `M-26` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-12.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
-
-**Ryzyko sprintu.** Brak SPF/DKIM w panelu to najczestsza przyczyna "moja poczta trafia do spamu". Backend dziala — to glownie podpiecie osieroconego komponentu.
-
-## Sprint 13 — Warstwa operatorska: zatrzymywanie szkody
-
-`2026-11-23 – 2026-11-27` · **30 h** z 30 h pojemności
-
-| ID | Zadanie | h | Priorytet | Dowód / kontekst |
-|---|---|---|---|---|
-| `A-25` | Ręczne zawieszenie usługi przez operatora | 6 | WYSOKA | subscriptions.admin.controller.ts:192 |
-| `A-26` | Ręczne odwieszenie usługi przez operatora | 6 | WYSOKA | subscriptions.admin.controller.ts:210 |
-| `N-07` | Ręczne tworzenie incydentu na status page | 6 | WYSOKA | product-ops.admin.controller.ts:371; brak UI tworzenia |
-| `N-14` | Cordon wysyłki poczty (auto-blokada spamu) | 6 | WYSOKA | outbound-cordon.admin.controller.ts:20,25,32; zero „cordon” w admin-panel |
-| `H-22` | Panel odtwarzania w widocznym miejscu | 6 | WYSOKA | panel off-site siedzi w zakładce „Usage”, nie „Kopie zapasowe” (page.tsx:74,128,313,319) |
-
-**Definicja ukończenia**
-
-- `A-25` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
-- `A-26` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
-- `N-07` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
-- `N-14` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
-- `H-22` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
-- **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-13.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
-
-**Ryzyko sprintu.** Bez tego pierwszy incydent obslugujesz curlem o drugiej w nocy. Pierwsze cztery pozycje to endpointy, ktore juz dzialaja.
-
-## Sprint 14 — Backup i staging
-
-`2026-11-30 – 2026-12-04` · **24 h** z 30 h pojemności
-
-| ID | Zadanie | h | Priorytet | Dowód / kontekst |
-|---|---|---|---|---|
-| `H-09` | Kopia bezpieczeństwa przed odtworzeniem | 6 | WYSOKA | hosting-restore.service.ts:167 |
-| `H-17` | Tryb restore skryptu odtwarzającego osiągalny z produktu | 6 | WYSOKA | node-account-restore.sh:82-99 ma tryb restore; offsite-restore.service.ts:94 przyjmuje wyłącznie list|fetch |
-| `G-20` | Ochrona przed atakiem słownikowym na panel | 6 | WYSOKA | rate-limit.guard.ts — ZERO testów |
-| `I-11` | Staging — publikacja na produkcję | 6 | WYSOKA | services.controller.ts:187 |
-
-**Definicja ukończenia**
-
-- `H-09` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
-- `H-17` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `G-20` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
-- `I-11` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
-- **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-14.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
-
-**Ryzyko sprintu.** H-17 bylo zalezne od H-20 — zamkniete 2026-08-23 dowodem D4, wiec zaleznosc spelniona.
-
----
-
-# Faza 3 — Wejście na rynek
-
-*Sprinty 15–19 · 152 h · 2026-12-07 – 2027-01-08*
-
-Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, baza wiedzy, przejście ścieżki pierwszego klienta na produkcji i zapisana decyzja GO.
-
-## Sprint 15 — Rozliczenia klienta i pomiar
-
-`2026-12-07 – 2026-12-11` · **28 h** z 30 h pojemności
+`2026-11-09 – 2026-11-13` · **34 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
 | `A-11` | Wyszukiwarka wolnych domen | 6 | WYSOKA | domains.controller.ts:54 |
 | `C-11` | Spakowanie do archiwum | 6 | ŚREDNIA | files.service.ts:320 — tylko extract |
+| `NODE-03` | Pojemność węzła nigdy się nie odświeża | 6 | ŚREDNIA | `schema.prisma:454` wobec `telemetry.service.ts:48-72` |
 | `PB-08` | Pomiar: Consent Mode v2 + GTM + dedup event_id | 16 | ŚREDNI | Wdrożenie ustaleń z audytu pomiaru: www linkuje, panel działa, deduplikacja po event_id, cookie Domain=.verris.pl. |
 
 **Definicja ukończenia**
 
 - `A-11` — Wartość domyślna włączona albo check w live-readiness pilnuje konfiguracji — flaga nie może po cichu wyłączyć funkcji.
 - `C-11` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `NODE-03` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `PB-08` — Zdarzenie zakupu dociera raz, nie dwa. Consent Mode nie blokuje pomiaru po zgodzie. Zweryfikowane w GTM Preview i w raporcie.
-- **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-15.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
+- **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-11.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** Ostatni sprint kodowy przed blokiem dokumentow. PB-08 (Consent Mode v2 + dedup event_id) jest tu, a nie przy landingu, bo to kod w panelu, nie tresc — landing tylko z niego korzysta.
+**Ryzyko sprintu.** Ostatni sprint kodowy przed blokiem dokumentow. PB-08 (Consent Mode v2 + dedup event_id) jest tu, a nie przy landingu, bo to kod w panelu, nie tresc — landing tylko z niego korzysta. | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze. NODE-03 (pojemnosc wezla z telemetrii) dolozone tutaj z sprintu 13 dla pojemnosci — kod bez wezla, dowod przy wezle.
 
-## Sprint 16 — Dokumenty prawne, DPA i naduzycia
+## Sprint 12 — Egress: pelne pokrycie ruchu (control-plane)
 
-`2026-12-14 – 2026-12-18` · **30 h** z 30 h pojemności
+`2026-11-16 – 2026-11-20` · **32 h** z 30 h pojemności
+
+| ID | Zadanie | h | Priorytet | Dowód / kontekst |
+|---|---|---|---|---|
+| `X-41` | Hardening egressu wisi w łańcuchu OUTPUT, a ruch kontenerów idzie przez FORWARD | 16 | WYSOKA | obserwacja wpięta w DOCKER-USER, 1674 pakiety zliczone, 0 DROP/REJECT |
+| `SEC-03` | Ruch poza TCP/80 i TCP/443 — DNS (UDP/53), SMTP — nie jest objęty ani obserwacją z X-41, ani trybem strict | 16 | WYSOKA | zakres reguł w `security-control-plane-egress.sh` |
+
+**Definicja ukończenia**
+
+- `X-41` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `SEC-03` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-12.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
+
+**Ryzyko sprintu.** X-41 zamyka to, co dzis jest tylko obserwacja: hardening wisi w lancuchu OUTPUT, a ruch kontenerow idzie przez FORWARD/DOCKER-USER, czyli egress CALEGO PRODUKTU byl poza zasiegiem zabezpieczenia, ktore wygladalo, jakby go obejmowalo. Obserwacja stoi (1674 pakiety, 0 DROP), zostaje egzekwowanie. SEC-03 dokłada ruch spoza TCP/80 i TCP/443 — DNS po UDP/53 i SMTP nie sa objete ani obserwacja, ani trybem strict, wiec bez tego "strict" opisuje dwa porty, nie host. | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze. Pomiar z SEC-05 dziala od 2026-09-22, wiec egzekwowanie w FORWARD i UDP/53/SMTP ma juz na czym sie oprzec. Po panelu (sprinty 6-11), bezposrednio przed wlaczeniem strict — oba to ta sama robota na zaporze control-plane, a pomiar dostaje przez ten czas kilka tygodni danych.
+
+## Sprint 13 — Strict egress na control-plane
+
+`2026-11-23 – 2026-11-27` · **50 h** z 30 h pojemności
+
+| ID | Zadanie | h | Priorytet | Dowód / kontekst |
+|---|---|---|---|---|
+| `SEC-05` | Log egressu jest próbką, nie zapisem | 6 | WYSOKA | ops/scripts/security-control-plane-egress.sh — apply_egress_seen: lancuch VERRIS_EGRESS_SEEN (pierwszy w OUTPUT) dopisuje KAZDE nowe polaczenie TCP/UD |
+| `SEC-04` | Host rozmawia z kontenerami przez OUTPUT — ruch wewnętrzny liczony jako egress | 6 | WYSOKA | security-control-plane-egress.sh — RETURN dla -o lo/docker0/br-+ w VERRIS_EGRESS_STRICT i br-+ w VERRIS_EGRESS_BOGON przed DROP; test apps/api/src/tes |
+| `SEC-01` | Tryb `--strict` jest atrapą | 16 | WYSOKA | security-control-plane-egress.sh — apply_strict_allowlist: DROP bez testu cgroup, kontrola po fakcie (iptables -S; brak reguly = exit 1), warunek wste |
+| `SEC-06` | Allowlista pokrywa to, o czym ktoś pomyślał, nie to, co host robi | 16 | WYSOKA | ipset test verris_egress_https na 4 celach z logu egressu |
+| `SEC-02` | Stripe jest w allowliście wyłącznie po nazwie, a ipset powstaje z rozwiązania nazw | 6 | ŚREDNIA | `egress-allow-hostnames.txt`; ipset `verris_egress_https` = 65 wpisów |
+
+**Definicja ukończenia**
+
+- `SEC-05` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `SEC-04` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `SEC-01` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `SEC-06` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `SEC-02` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-13.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
+
+**Ryzyko sprintu.** Kod SEC-05/04/01 gotowy 2026-09-22 (pomiar na produkcji od 09:23 UTC). Tutaj: allowlista z kilku tygodni pelnego pomiaru (SEC-06), odswiezanie adresow Stripe (SEC-02), wlaczenie --strict (warunek wstepny w skrypcie sam odmowi, jesli pomiar widzi cele spoza listy). | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze.
+
+## Sprint 14 — Dokumenty prawne, DPA i naduzycia
+
+`2026-11-30 – 2026-12-04` · **30 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -438,13 +392,21 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 - `P-15` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `PB-03` — Wszystkie dokumenty w statusie opublikowanym z numerem wersji i datą. Panel /legal nie pokazuje ani jednego „Dokument w przygotowaniu”.
 - `PB-04` — Dokument w ops/docs z właścicielem i czasami reakcji. Test: zgłoszenie wysłane na abuse@ trafia do kogoś i ma odpowiedź w deklarowanym czasie.
-- **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-16.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
+- **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-14.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** BLOK DOKUMENTOW — przesuniety na koniec decyzja wlasciciela 2026-09-22: najpierw kod i infrastruktura, dokumenty na sam koniec, przed pierwszym klientem. Kolejnosc wewnatrz bloku wymuszona zaleznosciami: regulamin (PB-03) przed kredytami SLA (N-16), cennik (PB-07) przed landingiem (PB-06), landing przed kampania (PB-10), wszystko przed sciezka pierwszego klienta (PB-05). P-15 zamyka ostatni bloker poza FAK-01 i Z-18: zostal tylko Hetzner (Zalacznik 1 przygotowany w trackerze). PB-04: adres abuse@ jest punktem kontaktowym DSA i musi istniec przed publikacja regulaminu.
+**Ryzyko sprintu.** BLOK DOKUMENTOW — przesuniety na koniec decyzja wlasciciela 2026-09-22: najpierw kod i infrastruktura, dokumenty na sam koniec, przed pierwszym klientem. Kolejnosc wewnatrz bloku wymuszona zaleznosciami: regulamin (PB-03) przed kredytami SLA (N-16), cennik (PB-07) przed landingiem (PB-06), landing przed kampania (PB-10), wszystko przed sciezka pierwszego klienta (PB-05). P-15 zamyka ostatni bloker poza FAK-01 i Z-18: zostal tylko Hetzner (Zalacznik 1 przygotowany w trackerze). PB-04: adres abuse@ jest punktem kontaktowym DSA i musi istniec przed publikacja regulaminu. Polityka prywatnosci opisuje lokalizacje przetwarzania DE/FI (ADR-2026-09-22-wezel-1-hetzner).
 
-## Sprint 17 — Cennik, SLA i zastepstwo
+---
 
-`2026-12-21 – 2026-12-25` · **30 h** z 30 h pojemności
+# Faza 3 — Wejście na rynek
+
+*Sprinty 15–19 · 130 h · 2026-12-07 – 2027-01-08*
+
+Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, baza wiedzy, przejście ścieżki pierwszego klienta na produkcji i zapisana decyzja GO.
+
+## Sprint 15 — Cennik, SLA i zastepstwo
+
+`2026-12-07 – 2026-12-11` · **30 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -457,13 +419,13 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 - `N-16` — Wartość domyślna włączona albo check w live-readiness pilnuje konfiguracji — flaga nie może po cichu wyłączyć funkcji.
 - `PB-07` — Cennik zgodny z wynikiem PB-01. Specyfikacja techniczna publiczna, jak u cyber_Folks — to jest element zaufania, którego rynek oczekuje.
 - `PB-11` — Alert testowy dociera dwoma kanałami. Dokument zastępstwa zawiera dostęp awaryjny i listę rzeczy, które muszą się dziać codziennie.
-- **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-17.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
+- **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-15.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
 **Ryzyko sprintu.** BLOK DOKUMENTOW — przesuniety na koniec decyzja wlasciciela 2026-09-22: najpierw kod i infrastruktura, dokumenty na sam koniec, przed pierwszym klientem. Kolejnosc wewnatrz bloku wymuszona zaleznosciami: regulamin (PB-03) przed kredytami SLA (N-16), cennik (PB-07) przed landingiem (PB-06), landing przed kampania (PB-10), wszystko przed sciezka pierwszego klienta (PB-05). N-16 (kredyty SLA) po PB-03, bo regulamin obiecuje kredyty — najpierw przeliczyc je na realnych danych z probe-ow. Cennik zgodny z PB-01 (45 zl/mies brutto, 399 zl/rok).
 
-## Sprint 18 — Landing i baza wiedzy
+## Sprint 16 — Landing i baza wiedzy
 
-`2026-12-28 – 2027-01-01` · **32 h** z 30 h pojemności
+`2026-12-14 – 2026-12-18` · **32 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -474,28 +436,64 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 - `PB-06` — Strona opublikowana, pomiar działa, formularz i CTA prowadzą do rejestracji. Żadne twierdzenie na stronie nie jest oznaczone w macierzy jako LUKA lub ATRAPA.
 - `PB-09` — 20 artykułów opublikowanych i zaindeksowanych do asystenta AI. Każdy opisuje funkcję, która w macierzy ma status DZIAŁA.
-- **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-18.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
+- **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-16.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
 **Ryzyko sprintu.** BLOK DOKUMENTOW — przesuniety na koniec decyzja wlasciciela 2026-09-22: najpierw kod i infrastruktura, dokumenty na sam koniec, przed pierwszym klientem. Kolejnosc wewnatrz bloku wymuszona zaleznosciami: regulamin (PB-03) przed kredytami SLA (N-16), cennik (PB-07) przed landingiem (PB-06), landing przed kampania (PB-10), wszystko przed sciezka pierwszego klienta (PB-05). Landing nie moze obiecywac funkcji ze statusem LUKA lub ATRAPA — kazde zdanie sprawdzic wobec macierzy.
 
-## Sprint 19 — Kampania, sciezka pierwszego klienta i decyzja GO
+## Sprint 17 — Kampania (wstrzymana)
 
-`2027-01-04 – 2027-01-08` · **32 h** z 30 h pojemności
+`2026-12-21 – 2026-12-25` · **8 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
 | `PB-10` | Kampania gads-search-hosting-202607 — uruchomienie | 8 | ŚREDNI | Konfiguracja kampanii wyszukiwarkowej, budżet 500–1000 zł/mies., oś przekazu: migracja bez przestoju. |
+
+**Definicja ukończenia**
+
+- `PB-10` — Kampania utworzona wstrzymana, konwersje podpięte, budżet i stawki ustawione. Start dopiero po PB-05.
+- **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-17.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
+
+**Ryzyko sprintu.** Kampania powstaje wstrzymana — wlaczenie dopiero po decyzji GO. | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze.
+
+## Sprint 18 — Wezel produkcyjny #1 (Hetzner AX102)
+
+`2026-12-28 – 2027-01-01` · **36 h** z 30 h pojemności
+
+| ID | Zadanie | h | Priorytet | Dowód / kontekst |
+|---|---|---|---|---|
+| `Z-18` | Prawdziwa przyczyna błędu provisioningu nie ginie po drodze (część) | 2 | BLOKER STARTU | apps/api/src/subscriptions/provisioning-error.ts — BladEtapuProvisioningu (etap, przyczyna, message z doklejoną przyczyną); provisioning-queue.service |
+| `NODE-02` | `main()` nie sprawdza kodów powrotu | 6 | WYSOKA | ops/scripts/lib/przerwij-po-etapie.sh — przerwij_po_etapie zamienia zebrane [FAIL] w exit 1; node-onboard-live.sh main() — bramka po preflight_stack,  |
+| `J-01` | LiteSpeed / serwer o wysokiej wydajności | 6 | WYSOKA | decyzja infrastrukturalna, poza kodem panelu |
+| `J-04` | HTTP/3 | 6 | ŚREDNIA | poza kodem panelu |
+| `PB-02` | Onboarding produkcyjnego węzła #1 (Hetzner AX102) | 16 | WYSOKI | Pełny przebieg node-onboard-live.sh na docelowym serwerze, z konfiguracją backupu off-site jako krokiem obowiązkowym. |
+
+**Definicja ukończenia**
+
+- `Z-18` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `NODE-02` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `J-01` — Stan zweryfikowany na produkcji z timestampem (poziom D3), wynik zapisany w repo.
+- `J-04` — Stan zweryfikowany na produkcji z timestampem (poziom D3), wynik zapisany w repo.
+- `PB-02` — Węzeł przechodzi wszystkie 14 checków live-readiness. /etc/verris-backup.conf istnieje, pierwszy backup off-site wykonany i zaraportowany do control-plane.
+- **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-18.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
+
+**Ryzyko sprintu.** ZAKUP SERWERA TUTAJ, nie wczesniej (decyzja wlasciciela 2026-09-22: bez kosztow za pusty serwer). Zamowienie na poczatku sprintu: AX102 w centrum danych Panelu, licencje DirectAdmin/CloudLinux/Imunify, Storage Box BX21 w innej lokalizacji. NODE-02 ma kod i D2 (instalator zatrzymuje sie na bledzie) — tu dowod D3 przy pierwszym onboardingu. Z-18 dostaje D3 (provisioning z przerwanym polaczeniem do DA) i przestaje byc blokerem. J-01 i J-04 — weryfikacja na wezle z timestampem.
+
+## Sprint 19 — Sciezka pierwszego klienta i decyzja GO
+
+`2027-01-04 – 2027-01-08` · **24 h** z 30 h pojemności
+
+| ID | Zadanie | h | Priorytet | Dowód / kontekst |
+|---|---|---|---|---|
 | `PB-05` | Test end-to-end „pierwszy klient” | 16 | BLOKER BIZNESOWY | Przejście całej ścieżki na produkcji jako realny klient: rejestracja, zakup, płatność, provisioning, migracja strony, wystawienie faktury, KSeF, backu |
 | `PB-12` | Runbook startu i decyzja GO | 8 | BLOKER BIZNESOWY | Domknięcie: przegląd wszystkich blokerów z dowodem zamknięcia, decyzja GO/NO-GO zapisana z datą. |
 
 **Definicja ukończenia**
 
-- `PB-10` — Kampania utworzona wstrzymana, konwersje podpięte, budżet i stawki ustawione. Start dopiero po PB-05.
 - `PB-05` — Zapisany przebieg z timestampami dla każdego kroku — to jest dowód poziomu D3, jedyny w całym projekcie. Każdy nieudany krok wraca do backlogu jako bloker.
 - `PB-12` — Każdy z 11 blokerów ma wpis: co zrobiono, gdzie jest dowód, kto potwierdził. Bez formuły „warunkowe GO”.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-19.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.
 
-**Ryzyko sprintu.** BLOK DOKUMENTOW — przesuniety na koniec decyzja wlasciciela 2026-09-22: najpierw kod i infrastruktura, dokumenty na sam koniec, przed pierwszym klientem. Kolejnosc wewnatrz bloku wymuszona zaleznosciami: regulamin (PB-03) przed kredytami SLA (N-16), cennik (PB-07) przed landingiem (PB-06), landing przed kampania (PB-10), wszystko przed sciezka pierwszego klienta (PB-05). Kampania powstaje wstrzymana. PB-05 to jedyny moment w planie, w ktorym powstaje dowod D3 calej sciezki — kazdy nieudany krok wraca do backlogu jako bloker i przesuwa start.
+**Ryzyko sprintu.** BLOK DOKUMENTOW — przesuniety na koniec decyzja wlasciciela 2026-09-22: najpierw kod i infrastruktura, dokumenty na sam koniec, przed pierwszym klientem. Kolejnosc wewnatrz bloku wymuszona zaleznosciami: regulamin (PB-03) przed kredytami SLA (N-16), cennik (PB-07) przed landingiem (PB-06), landing przed kampania (PB-10), wszystko przed sciezka pierwszego klienta (PB-05). Kampania powstaje wstrzymana. PB-05 to jedyny moment w planie, w ktorym powstaje dowod D3 calej sciezki — kazdy nieudany krok wraca do backlogu jako bloker i przesuwa start. PB-05 wymaga wezla, dlatego stoi zaraz po sprincie 18.
 
 ---
 
