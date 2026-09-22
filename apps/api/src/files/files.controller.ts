@@ -118,6 +118,16 @@ export class FilesController {
     return this.files.transfer(id, user.userId, body.dir, body.names, body.dest, 'move');
   }
 
+  @Post('compress')
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'files:compress' })
+  compress(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: { dir?: string; names: string[]; name: string },
+  ) {
+    return this.files.compress(id, user.userId, body.dir, body.names, body.name);
+  }
+
   @Post('extract')
   @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'files:extract' })
   extract(

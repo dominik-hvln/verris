@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Button } from '@verris/ui';
 import type { HostingFtpAccountDto } from '@verris/contracts';
 import {
+  changeHostingFtpPasswordAction,
   createHostingFtpAction,
   deleteHostingFtpAction,
   fetchHostingFtpAction,
@@ -30,6 +31,20 @@ export default function FtpTab({ serviceId }: { serviceId: string }) {
   const [directory, setDirectory] = useState('');
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  // C-18 — zmiana hasła istniejącego konta
+  const [pwFor, setPwFor] = useState<string | null>(null);
+  const [pwValue, setPwValue] = useState('');
+  const [pwSaving, setPwSaving] = useState(false);
+
+  const onChangePassword = async (u: string) => {
+    setPwSaving(true);
+    const res = await changeHostingFtpPasswordAction(serviceId, u, pwValue);
+    setPwSaving(false);
+    if (!res.ok) return toast.error('Nie udało się zmienić hasła', { description: daErrorMessage(res.error) });
+    toast.success('Hasło FTP zmienione', { description: `${u} — zaktualizuj je w programie FTP.` });
+    setPwFor(null);
+    setPwValue('');
+  };
 
   const load = () => {
     setLoading(true);
@@ -153,14 +168,24 @@ export default function FtpTab({ serviceId }: { serviceId: string }) {
       ) : (
         <div className="overflow-hidden rounded-xl border border-white/5 bg-[#050505]">
           {rows.map((r) => (
-            <div
-              key={r.id}
-              className="flex items-center justify-between gap-3 border-b border-white/5 px-4 py-2.5 last:border-0"
-            >
+            <div key={r.id} className="border-b border-white/5 last:border-0">
+            <div className="flex items-center justify-between gap-3 px-4 py-2.5">
               <div className="min-w-0">
-                <p className="truncate font-mono text-sm text-white">{r.username}</p>
-                <p className="truncate font-mono text-xs text-neutral-500">{r.path}</p>
+                <p className="break-all font-mono text-sm text-white">{r.username}</p>
+                <p className="break-all font-mono text-xs text-neutral-500">{r.path}</p>
               </div>
+              <div className="flex shrink-0 items-center gap-1.5">
+              <button
+                type="button"
+                title="Zmień hasło"
+                onClick={() => {
+                  setPwFor((cur) => (cur === r.username ? null : r.username));
+                  setPwValue('');
+                }}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-white/5 text-neutral-300 hover:bg-white/10"
+              >
+                <KeyRound className="h-4 w-4" />
+              </button>
               <button
                 type="button"
                 title="Usuń konto FTP"
@@ -174,6 +199,40 @@ export default function FtpTab({ serviceId }: { serviceId: string }) {
                   <Trash2 className="h-4 w-4" />
                 )}
               </button>
+              </div>
+            </div>
+            {pwFor === r.username ? (
+              <div className="flex flex-wrap items-end gap-2 px-4 pb-3">
+                <label className="min-w-[14rem] flex-1 space-y-1">
+                  <span className="text-[11px] text-neutral-400">Nowe hasło (min. 8 znaków)</span>
+                  <div className="flex gap-1.5">
+                    <input
+                      value={pwValue}
+                      onChange={(e) => setPwValue(e.target.value)}
+                      className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-sm text-white outline-none focus:border-white/30"
+                    />
+                    <button
+                      type="button"
+                      title="Wygeneruj hasło"
+                      onClick={() => setPwValue(genPassword())}
+                      className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-2.5 text-neutral-300 hover:bg-white/10"
+                    >
+                      <KeyRound className="h-4 w-4" />
+                    </button>
+                  </div>
+                </label>
+                <Button
+                  type="button"
+                  size="sm"
+                  disabled={pwSaving || pwValue.length < 8}
+                  onClick={() => void onChangePassword(r.username)}
+                  className="h-9 gap-1.5 bg-white text-black hover:bg-neutral-200 text-xs"
+                >
+                  {pwSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                  Zapisz hasło
+                </Button>
+              </div>
+            ) : null}
             </div>
           ))}
         </div>

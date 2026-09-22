@@ -317,6 +317,36 @@ export class FilesService {
     return { ok: true, count: safeNames.length };
   }
 
+  /** C-11 — pakuje zaznaczone elementy katalogu do archiwum .tar.gz w tym katalogu. */
+  async compress(
+    subscriptionId: string,
+    userId: string,
+    dir: string | undefined,
+    names: string[],
+    archiveName: string,
+  ): Promise<{ ok: true; archive: string }> {
+    if (!Array.isArray(names) || names.length === 0) {
+      throw new BadRequestException('Wskaż co najmniej jeden element.');
+    }
+    const base = String(archiveName ?? '').trim().replace(/\.(tar\.gz|tgz|zip|tar)$/i, '');
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,100}$/.test(base)) {
+      throw new BadRequestException('Nazwa archiwum: litery, cyfry, kropka, myślnik lub podkreślnik.');
+    }
+    const account = await this.requireAccount(subscriptionId, userId);
+    const safeDir = this.safePath(dir);
+    const safeNames = names.map((n) => this.safeName(n));
+    const client = await this.clientFor(account);
+    await client.compressEntries(safeDir, safeNames, base);
+    const archive = `${safeDir === '/' ? '' : safeDir}/${base}.tar.gz`;
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_FILE_COMPRESSED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, accountId: account.id, dir: safeDir, names: safeNames, archive },
+    });
+    return { ok: true, archive };
+  }
+
   /** Extracts an archive (zip/tar.gz/tar) into a directory on the account. */
   async extract(
     subscriptionId: string,

@@ -83,6 +83,16 @@ export class NodeStatusDto {
   /** DB-1 — wersja silnika bazy, np. "10.6.18". */
   @IsOptional() @IsString() @MaxLength(40)
   dbVersion?: string;
+
+  /** NODE-03 — pojemność węzła z każdego raportu (nproc, MemTotal, df /). */
+  @IsOptional() @IsInt() @Min(1) @Max(4096)
+  totalCpuCores?: number;
+
+  @IsOptional() @IsInt() @Min(1) @Max(64 * 1024 * 1024)
+  totalMemoryMb?: number;
+
+  @IsOptional() @IsInt() @Min(1) @Max(1024 * 1024 * 1024)
+  totalDiskMb?: number;
 }
 
 export class CloudLinuxTelemetryDto {

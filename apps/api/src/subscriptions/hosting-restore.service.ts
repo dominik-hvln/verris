@@ -11,6 +11,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { DirectAdminService } from '../servers/directadmin.service';
 
+/** H-09 — jak długo czekamy na kopię bezpieczeństwa, zanim odmówimy nadpisania danych. */
+const SAFETY_BACKUP_TIMEOUT_MS = 15 * 60_000;
+const SAFETY_BACKUP_POLL_MS = 20_000;
+
 const ACTIVE_STATUSES: HostingRestoreStatus[] = [
   HostingRestoreStatus.QUEUED,
   HostingRestoreStatus.RUNNING,
@@ -32,6 +36,8 @@ export interface EnqueueRestoreInput {
 @Injectable()
 export class HostingRestoreService {
   private readonly logger = new Logger(HostingRestoreService.name);
+  /** Podmieniane w testach. */
+  sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
   constructor(
     private readonly prisma: PrismaService,
@@ -166,7 +172,7 @@ export class HostingRestoreService {
     try {
       if (job.safetyBackup) {
         await this.setStatus(job.id, HostingRestoreStatus.SAFETY_BACKUP);
-        await this.directAdmin.createHostingSiteBackupNow(job.subscriptionId, account.userId);
+        await this.takeSafetyBackup(job.subscriptionId, account.userId);
       }
 
       await this.setStatus(job.id, HostingRestoreStatus.RESTORING);
@@ -196,6 +202,29 @@ export class HostingRestoreService {
       await this.fail(job.id, job.subscriptionId, (err as Error).message, account.userId, job.requestedByUserId);
     }
     return true;
+  }
+
+  /**
+   * H-09 — DirectAdmin tylko KOLEJKUJE kopię. Wcześniej odtwarzanie ruszało
+   * zaraz potem, nawet gdy kopia się nie udała — czyli nadpisywało dane bez
+   * siatki. Teraz czekamy, aż na liście pojawi się NOWE archiwum; bez niego
+   * odtworzenie się nie zaczyna.
+   * ponytail: czekanie blokuje worker (jedno odtwarzanie naraz i tak jest
+   * zasadą); przy kolejce odtworzeń — stan SAFETY_BACKUP rozpisany na ticki crona.
+   */
+  private async takeSafetyBackup(subscriptionId: string, userId: string): Promise<void> {
+    const before = await this.directAdmin.listHostingBackups(subscriptionId, userId);
+    if (before.fetchError) {
+      throw new Error(`Nie da się odczytać listy kopii (${before.fetchError}) — przywracanie wstrzymane, dane nie zostały zmienione.`);
+    }
+    const known = new Set(before.rows.map((r) => r.fileName));
+    await this.directAdmin.createHostingSiteBackupNow(subscriptionId, userId);
+    for (let waited = 0; waited < SAFETY_BACKUP_TIMEOUT_MS; waited += SAFETY_BACKUP_POLL_MS) {
+      await this.sleep(SAFETY_BACKUP_POLL_MS);
+      const now = await this.directAdmin.listHostingBackups(subscriptionId, userId);
+      if (!now.fetchError && now.rows.some((r) => !known.has(r.fileName))) return;
+    }
+    throw new Error('Kopia bezpieczeństwa nie powstała w ciągu 15 minut — przywracanie wstrzymane, dane nie zostały zmienione.');
   }
 
   private async setStatus(id: string, status: HostingRestoreStatus): Promise<void> {

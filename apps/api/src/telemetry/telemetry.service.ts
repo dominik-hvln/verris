@@ -58,6 +58,11 @@ export class TelemetryService {
               ...(data.node.hardened !== undefined
                 ? { hardenedEnabled: data.node.hardened, hardenedCheckedAt: new Date() }
                 : {}),
+              // NODE-03 — pojemność odświeżana z telemetrii; wcześniej tylko handshake,
+              // więc rozbudowa węzła nigdy nie docierała do selektora węzłów.
+              ...(data.node.totalCpuCores ? { totalCpuCores: data.node.totalCpuCores } : {}),
+              ...(data.node.totalMemoryMb ? { totalMemoryMb: data.node.totalMemoryMb } : {}),
+              ...(data.node.totalDiskMb ? { totalDiskMb: data.node.totalDiskMb } : {}),
               // DB-1 — silnik+wersja bazy z agenta (3306 zamknięty z control-plane).
               ...(data.node.dbEngine || data.node.dbVersion
                 ? {

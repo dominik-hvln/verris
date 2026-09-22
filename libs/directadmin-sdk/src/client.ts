@@ -456,6 +456,23 @@ export class DirectAdminClient {
     }
   }
 
+  /**
+   * C-11 — pakuje wskazane elementy `dir` do `<dir>/<archiveName>.tar.gz`
+   * (schowek DA → `action=compress`), potem czyści schowek.
+   * ponytail: format `action=compress` wg dokumentacji DA — potwierdzić na żywym węźle (PB-21).
+   */
+  async compressEntries(dir: string, names: string[], archiveName: string): Promise<void> {
+    if (names.length === 0) return;
+    const add = new URLSearchParams({ action: 'multiple', add: 'clipboard', path: dir });
+    names.forEach((n, i) => add.append(`select${i}`, n));
+    await this.fmPost(add);
+    try {
+      await this.fmPost(new URLSearchParams({ action: 'compress', path: dir, file: archiveName }));
+    } finally {
+      await this.fmPost(new URLSearchParams({ action: 'multiple', empty: 'yes', path: dir })).catch(() => undefined);
+    }
+  }
+
   /** Extracts an archive (`action=extract`) into `destDir`. */
   async extractArchive(archivePath: string, destDir: string): Promise<void> {
     await this.fmPost(

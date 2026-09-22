@@ -148,9 +148,14 @@ TO_LIVE)
   if is_wordpress "$STG" && [ -n "$WP_PHP" ]; then
     log "Publikuję bazę staging → LIVE…"
     DUMP="${VERRIS_DIR}/live-dump.sql"
-    # Backup bazy LIVE obok plików (do ręcznego przywrócenia w razie potrzeby).
-    wp_in "$LIVE" "db export '${BACKUP_DIR}/db-${STG_DOMAIN}-${TS}.sql' --add-drop-table" \
-      || log "UWAGA: backup bazy LIVE nie powiódł się (kontynuuję — pliki mają backup)."
+    # I-11 — backup bazy LIVE jest twardą bramką, tak jak backup plików:
+    # `db import` niżej nadpisuje produkcyjną bazę, więc bez kopii nie ruszamy.
+    DB_BACKUP="${BACKUP_DIR}/db-${STG_DOMAIN}-${TS}.sql"
+    wp_in "$LIVE" "db export '${DB_BACKUP}' --add-drop-table" \
+      || die "Backup bazy LIVE nie powiódł się — publikacja przerwana, produkcja bez zmian."
+    as_user "test -s '${DB_BACKUP}'" \
+      || die "Backup bazy LIVE jest pusty — publikacja przerwana, produkcja bez zmian."
+    # Retencja dopiero po udanej kopii, żeby pusty plik nie wypchnął dobrych.
     as_user "ls -1t '${BACKUP_DIR}'/db-${STG_DOMAIN}-*.sql 2>/dev/null | tail -n +4 | xargs -r rm -f"
 
     wp_in "$STG" "db export '$DUMP' --add-drop-table"

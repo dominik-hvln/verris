@@ -116,6 +116,14 @@ export async function fmMove(
   });
 }
 
+/** C-11 — spakuj zaznaczone do <nazwa>.tar.gz w bieżącym katalogu. */
+export async function fmCompress(id: string, dir: string, names: string[], name: string): Promise<{ ok: true; archive: string }> {
+  return apiFetch(`/services/${id}/files/compress`, {
+    method: 'POST',
+    body: JSON.stringify({ dir, names, name }),
+  });
+}
+
 export async function fmExtract(
   id: string,
   path: string,

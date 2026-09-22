@@ -1146,6 +1146,33 @@ export class DirectAdminService {
     return { ok: true as const };
   }
 
+  /** C-18 — nowe hasło konta FTP; katalog zostaje taki, jaki był. */
+  async changeHostingFtpPassword(subscriptionId: string, userId: string, username: string, password: string) {
+    const domain = await this.accountDomainForSubscription(subscriptionId, userId);
+    const list = await this.listHostingFtpAccounts(subscriptionId, userId);
+    const login = username.split('@')[0];
+    const row = list.rows.find((r) => r.username === username || r.username.split('@')[0] === login);
+    if (!row) throw new NotFoundException('Nie ma takiego konta FTP na tej usłudze.');
+    // ponytail: format action=modify (type=custom + custom_val zachowuje katalog)
+    // wg dokumentacji DA — potwierdzić na żywym węźle przy D3 (PB-21).
+    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_FTP', {
+      action: 'modify',
+      domain,
+      user: login,
+      passwd: password,
+      passwd2: password,
+      type: 'custom',
+      custom_val: row.path,
+    });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_FTP_PASSWORD_CHANGED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, username: login, domain },
+    });
+    return { ok: true as const };
+  }
+
   async deleteHostingFtpAccount(subscriptionId: string, userId: string, username: string) {
     const domain = await this.accountDomainForSubscription(subscriptionId, userId);
     await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_FTP', {

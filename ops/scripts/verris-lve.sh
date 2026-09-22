@@ -75,7 +75,7 @@ SID   = os.environ["VERRIS_SERVER_ID"]
 TOK   = os.environ["VERRIS_IDENTITY_TOKEN"]
 STATE = os.environ.get("STATE", "/var/run/verris-lve.state.json")
 LOG   = os.environ.get("LOG", "/var/log/verris-lve.log")
-AGENT_VERSION = "lve-agent/1.0"
+AGENT_VERSION = "lve-agent/1.1"
 HDR = {"X-Server-Id": SID, "X-Server-Token": TOK}
 
 def log(msg):
@@ -326,12 +326,31 @@ def db_engine_version():
             return engine, ver.group(1)
     return None, None
 
+def node_capacity():
+    # NODE-03 — pojemność węzła przy każdym raporcie, nie tylko w handshake:
+    # rozbudowa serwera (RAM, dysk, rdzenie) dociera do selektora węzłów.
+    # Te same źródła co handshake: nproc, `free -m` (MemTotal), `df -mP /`.
+    cap = {}
+    try:
+        cap["totalCpuCores"] = os.cpu_count() or 0
+        with open("/proc/meminfo") as fh:
+            for line in fh:
+                if line.startswith("MemTotal:"):
+                    cap["totalMemoryMb"] = int(line.split()[1]) // 1024
+                    break
+        import shutil
+        cap["totalDiskMb"] = shutil.disk_usage("/").total // (1024 * 1024)
+    except Exception:
+        pass
+    return {k: v for k, v in cap.items() if isinstance(v, int) and v > 0}
+
 def node_block():
     engine, version = db_engine_version()
     block = {
         "cagefsEnabled": os.environ.get("CAGEFS_ENABLED") == "1",
         "cagefsEnabledCount": to_int(os.environ.get("CAGEFS_COUNT")),
         "hardened": os.environ.get("HARDENED") == "1",
+        **node_capacity(),
     }
     if engine:
         block["dbEngine"] = engine

@@ -21,7 +21,7 @@ const STATUS_LABEL: Record<HostingRestoreJobDto['status'], string> = {
   RUNNING: 'W trakcie',
   SAFETY_BACKUP: 'Kopia bezpieczeństwa',
   RESTORING: 'Przywracanie',
-  COMPLETED: 'Zakończono',
+  COMPLETED: 'Odtwarzanie zlecone',
   FAILED: 'Błąd',
 };
 
@@ -171,7 +171,7 @@ function RestoreStatusBanner({ job }: { job: HostingRestoreJobDto }) {
         Przywracanie: <strong>{STATUS_LABEL[job.status]}</strong>
         {job.active ? ' — nie zamykaj usługi do zakończenia.' : ''}
         {failed && job.error ? ` — ${job.error}` : ''}
-        {done ? ' — dane przywrócone z kopii.' : ''}
+        {done ? ` — serwer odtwarza dane w tle, zwykle trwa to kilka minut.${job.safetyBackup ? ' Kopia sprzed odtworzenia jest na liście.' : ''}` : ''}
       </span>
     </div>
   );

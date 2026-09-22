@@ -15,6 +15,7 @@ import {
   FolderInput,
   Package,
   Pencil,
+  Archive,
   Loader2,
   RefreshCw,
   ShieldCheck,
@@ -27,6 +28,7 @@ import {
   fmCopy,
   fmDelete,
   fmDownload,
+  fmCompress,
   fmExtract,
   fmList,
   fmMkdir,
@@ -303,6 +305,13 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
     await runOnSelection('Przeniesiono', (names) => fmMove(serviceId, path, names, dest));
   };
 
+  const onCompressSelected = async () => {
+    const suggested = selected.size === 1 ? Array.from(selected)[0].replace(/\.[^.]+$/, '') : `archiwum-${new Date().toISOString().slice(0, 10)}`;
+    const name = window.prompt('Nazwa archiwum (powstanie plik .tar.gz w tym katalogu):', suggested);
+    if (!name?.trim()) return;
+    await runOnSelection('Spakowano do archiwum', (names) => fmCompress(serviceId, path, names, name.trim()));
+  };
+
   const onChmodSelected = async () => {
     const mode = window.prompt('Uprawnienia (ósemkowo, np. 644 dla plików, 755 dla katalogów):', '644');
     if (!mode) return;
@@ -428,6 +437,14 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
             className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white hover:bg-white/10 disabled:opacity-40"
           >
             <FolderInput className="h-3.5 w-3.5" /> Przenieś do…
+          </button>
+          <button
+            type="button"
+            onClick={() => void onCompressSelected()}
+            disabled={busy}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white hover:bg-white/10 disabled:opacity-40"
+          >
+            <Archive className="h-3.5 w-3.5" /> Spakuj…
           </button>
           <button
             type="button"

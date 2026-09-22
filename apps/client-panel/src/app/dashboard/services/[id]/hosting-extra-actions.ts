@@ -63,6 +63,19 @@ export async function deleteHostingFtpAction(
   }
 }
 
+/** C-18 — zmiana hasła konta FTP. */
+export async function changeHostingFtpPasswordAction(serviceId: string, username: string, password: string): Promise<MutResult> {
+  try {
+    await apiFetch(`/services/${serviceId}/hosting-ftp/${encodeURIComponent(username)}/password`, {
+      method: 'POST',
+      body: JSON.stringify({ password }),
+    });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: mutErr(e) };
+  }
+}
+
 // --- Cron ---
 export async function createHostingCronAction(
   serviceId: string,

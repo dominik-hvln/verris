@@ -39,7 +39,7 @@ export const SkipRateLimit = () => SetMetadata(RATE_LIMIT_SKIP_KEY, true);
 
 const DEFAULT_LIMIT = 300;
 const DEFAULT_WINDOW_MS = 60_000;
-const MAX_BUCKETS = 50_000;
+export const MAX_BUCKETS = 50_000;
 
 interface Bucket {
   count: number;
@@ -144,8 +144,16 @@ export class RateLimitGuard implements CanActivate, OnModuleDestroy {
     const bucket = this.buckets.get(key);
     if (!bucket || bucket.resetAt <= now) {
       if (this.buckets.size >= MAX_BUCKETS) {
-        this.buckets.clear();
-        this.logger.warn('Rate-limit bucket map overflow — cleared (possible abuse)');
+        // G-20 — wcześniej mapa była czyszczona w całości: wystarczyło 50 tys.
+        // żądań z losowymi e-mailami, żeby wyzerować licznik prób logowania do
+        // atakowanego konta (fail-open). Teraz usuwamy tylko wygasłe, a gdy
+        // dalej brak miejsca — odmawiamy NOWYM kluczom (fail-closed).
+        this.lastSweep = 0;
+        this.sweep(now);
+        if (this.buckets.size >= MAX_BUCKETS) {
+          this.logger.warn('Rate-limit bucket map full — rejecting new keys (possible abuse)');
+          this.tooMany(Math.ceil(options.windowMs / 1000));
+        }
       }
       this.buckets.set(key, { count: 1, resetAt: now + options.windowMs });
       return;

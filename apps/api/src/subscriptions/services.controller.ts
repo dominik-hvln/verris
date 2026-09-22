@@ -42,6 +42,7 @@ import { StagingService } from './staging.service';
 import { BackupScheduleService } from './backup-schedule.service';
 import { SetMonitoringDto } from './dto/site-monitor.dto';
 import { UsunRekordDnsDto, UtworzRekordDnsDto } from './dto/hosting-dns.dto';
+import { UtworzKontoFtpDto, ZmienHasloFtpDto } from './dto/hosting-ftp.dto';
 import { UtworzSkrzynkeDto, ZmienHasloSkrzynkiDto, ZmienRozmiarSkrzynkiDto } from './dto/hosting-email.dto';
 import { EcoReportService } from '../eco/eco-report.service';
 import { DeliverabilityService } from '../deliverability/deliverability.service';
@@ -437,9 +438,20 @@ export class UserServicesController {
   async createHostingFtp(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { username: string; password: string; directory?: string },
+    @Body() body: UtworzKontoFtpDto,
   ) {
     return this.directAdmin.createHostingFtpAccount(id, user.userId, body);
+  }
+
+  // C-18 — zmiana hasła konta FTP bez usuwania i zakładania od nowa.
+  @Post(':id/hosting-ftp/:username/password')
+  async changeHostingFtpPassword(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('username') username: string,
+    @Body() body: ZmienHasloFtpDto,
+  ) {
+    return this.directAdmin.changeHostingFtpPassword(id, user.userId, decodeURIComponent(username), body.password);
   }
 
   @Delete(':id/hosting-ftp/:username')
