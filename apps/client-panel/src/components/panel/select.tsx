@@ -165,7 +165,7 @@ export function Select({
           open ? 'border-emerald-400/60 ring-2 ring-emerald-400/20' : 'border-white/10',
         )}
       >
-        <span className={cx('truncate', selected ? 'text-white' : 'text-neutral-500')}>
+        <span className={cx('min-w-0 break-words', selected ? 'text-white' : 'text-neutral-500')}>
           {selected ? selected.label : placeholder}
         </span>
         <ChevronDown
@@ -182,7 +182,7 @@ export function Select({
           tabIndex={-1}
           className={cx(
             'absolute z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-lg border border-white/10',
-            'bg-[#0e1512] p-1 shadow-2xl shadow-black/60 ring-1 ring-black/40',
+            'bg-card p-1 shadow-2xl shadow-black/40',
             'animate-in fade-in-0 zoom-in-95 duration-100',
           )}
         >
@@ -208,7 +208,7 @@ export function Select({
                       : 'text-neutral-200',
                 )}
               >
-                <span className="truncate">{o.label}</span>
+                <span className="min-w-0 break-words">{o.label}</span>
                 {isSel ? <Check className="h-3.5 w-3.5 shrink-0 text-emerald-400" /> : null}
               </li>
             );
