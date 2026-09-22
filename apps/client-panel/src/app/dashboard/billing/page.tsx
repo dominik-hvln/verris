@@ -1,15 +1,4 @@
-import {
-  ArrowDownLeft,
-  ArrowUpRight,
-  CheckCircle2,
-  ChevronRight,
-  FileText,
-  Info,
-  PlusCircle,
-  ShieldAlert,
-  XCircle,
-  History,
-} from 'lucide-react';
+import { CheckCircle2, ChevronRight, ShieldAlert, XCircle } from 'lucide-react';
 import Link from 'next/link';
 import type {
   SavedPaymentMethodDto,
@@ -20,7 +9,9 @@ import type {
 } from '@verris/contracts';
 import { ApiError } from '@/lib/api';
 import { PanelPageHeader } from '@/components/panel';
-import { CREDIT_DISCLAIMER, CREDIT_RATE_INFO, formatCredits } from '@/lib/credits';
+import { CREDIT_DISCLAIMER, CREDIT_RATE_INFO, CREDIT_SHORT, formatCredits } from '@/lib/credits';
+import { DualBars, Kpi, KpiStrip, SectionHead } from '@/components/panel/v2';
+import { mapWalletMonthlyFlow } from '../dashboard-chart-utils';
 import { getSavedPaymentMethods, getWalletAutoTopup, getWalletSummary } from './data';
 import { TopupCard } from './topup-card';
 import { BillingExtrasForms } from './billing-extras-forms';
@@ -69,11 +60,13 @@ export default async function BillingPage({
           : 'Nieznany błąd';
   }
 
+  const flow = mapWalletMonthlyFlow(summary?.monthlyFlowLast12 ?? []);
+
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
       <BillingWalletRefresh status={params.status} />
       <PanelPageHeader
-        title="Portfel i płatności"
+        title="Płatności"
         description={`Doładuj portfel, śledź zużycie i zarządzaj rozliczeniami. ${CREDIT_RATE_INFO}.`}
       />
 
@@ -102,190 +95,139 @@ export default async function BillingPage({
         />
       ) : summary ? (
         <>
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-            <TopupCard balance={summary.balance} />
-            <SummaryStat
-              label="Doładowania (30 dni)"
-              value={formatCredits(summary.totalTopupLast30d)}
-              tone="positive"
-              icon={<ArrowDownLeft className="h-5 w-5" />}
+          <KpiStrip>
+            <Kpi label="Saldo portfela" value={formatCredits(summary.balance, { withUnit: false })} unit={CREDIT_SHORT} foot={<span>1 zł = 1 kredyt</span>} />
+            <Kpi label="Doładowania · 30 dni" value={formatCredits(summary.totalTopupLast30d, { withUnit: false })} unit={CREDIT_SHORT} foot={<span>wpłaty i bonusy</span>} />
+            <Kpi label="Wydatki · 30 dni" value={formatCredits(summary.totalChargesLast30d, { withUnit: false })} unit={CREDIT_SHORT} foot={<span>usługi, autoskalowanie, zużycie</span>} />
+            <Kpi
+              label="Auto-doładowanie"
+              value={billingExtras ? (billingExtras.initialAuto.enabled ? 'Włączone' : 'Wyłączone') : '—'}
+              foot={
+                <span>
+                  {billingExtras?.initialAuto.enabled
+                    ? `poniżej ${billingExtras.initialAuto.thresholdPln} zł dopłacimy ${billingExtras.initialAuto.topupAmountPln} zł`
+                    : 'ustawisz je w prawej kolumnie'}
+                </span>
+              }
             />
-            <SummaryStat
-              label="Wydatki (30 dni)"
-              value={formatCredits(summary.totalChargesLast30d)}
-              tone="negative"
-              icon={<ArrowUpRight className="h-5 w-5" />}
-            />
-          </div>
+          </KpiStrip>
 
-          {billingExtras ? (
-            <BillingExtrasForms
-              key={[
-                billingExtras.initialAuto.thresholdPln,
-                billingExtras.initialAuto.topupAmountPln,
-                String(billingExtras.initialAuto.enabled),
-                billingExtras.initialAuto.paymentMethodId ?? '',
-                billingExtras.initialAuto.lastAttemptAt ?? '',
-                billingExtras.savedCards.map((c) => c.id).join(','),
-              ].join('|')}
-              initialAuto={billingExtras.initialAuto}
-              savedCards={billingExtras.savedCards}
-            />
-          ) : null}
+          <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
+            <div className="flex min-w-0 flex-col gap-6">
+              <section>
+                <SectionHead title="Portfel · 12 miesięcy" desc="Doładowania i wydatki miesiąc po miesiącu." />
+                <div className="rounded-[10px] border border-line bg-card px-4 pb-3 pt-4">
+                  {flow.some((p) => p.inflow > 0 || p.outflow > 0) ? (
+                    <>
+                      <DualBars labels={flow.map((p) => p.label)} a={flow.map((p) => p.inflow)} b={flow.map((p) => p.outflow)} aLabel="doładowania" bLabel="wydatki" />
+                      <div className="flex gap-4 pt-1 text-[12.5px] text-muted-foreground">
+                        <span><i className="mr-1.5 inline-block h-2 w-2 rounded-[2px] bg-data-soft" />doładowania</span>
+                        <span><i className="mr-1.5 inline-block h-2 w-2 rounded-[2px] bg-data" />wydatki</span>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="m-0 py-4 text-sm text-muted-foreground">Na razie brak ruchu w portfelu.</p>
+                  )}
+                </div>
+              </section>
 
-          <section className="space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold text-white inline-flex items-center gap-2">
-                <History className="h-5 w-5 text-neutral-400" />
-                Historia transakcji
-              </h2>
-              <span className="text-sm text-neutral-500">
-                Ostatnie {summary.recentTransactions.length} ruchów na portfelu
-              </span>
+              <section>
+                <SectionHead title="Historia transakcji" desc={`Ostatnie ${summary.recentTransactions.length} ruchów na portfelu.`} />
+                {summary.recentTransactions.length === 0 ? (
+                  <p className="m-0 rounded-[10px] border border-line bg-card px-4 py-[22px] text-sm text-muted-foreground">
+                    Brak transakcji — doładuj portfel, by uruchomić pierwszą usługę lub odnowienia automatyczne.
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto rounded-[10px] border border-line bg-card">
+                    <table className="w-full border-collapse text-sm">
+                      <thead>
+                        <tr>
+                          <th className={TH}>Operacja</th>
+                          <th className={`${TH} max-md:hidden`}>Kiedy</th>
+                          <th className={`${TH} text-right`}>Kwota</th>
+                          <th className={`${TH} text-right max-sm:hidden`}>Saldo po</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {summary.recentTransactions.map((tx) => (
+                          <TransactionRow key={tx.id} tx={tx} />
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </section>
             </div>
 
-            {summary.recentTransactions.length === 0 ? (
-              <EmptyTransactions />
-            ) : (
-              <div className="grid gap-3">
-                {summary.recentTransactions.map((tx) => (
-                  <TransactionRow key={tx.id} tx={tx} />
-                ))}
-              </div>
-            )}
-          </section>
+            <div className="flex min-w-0 flex-col gap-6">
+              <TopupCard balance={summary.balance} />
+              {billingExtras ? (
+                <BillingExtrasForms
+                  key={[
+                    billingExtras.initialAuto.thresholdPln,
+                    billingExtras.initialAuto.topupAmountPln,
+                    String(billingExtras.initialAuto.enabled),
+                    billingExtras.initialAuto.paymentMethodId ?? '',
+                    billingExtras.initialAuto.lastAttemptAt ?? '',
+                    billingExtras.savedCards.map((c) => c.id).join(','),
+                  ].join('|')}
+                  initialAuto={billingExtras.initialAuto}
+                  savedCards={billingExtras.savedCards}
+                />
+              ) : null}
+              <section className="rounded-[10px] border border-line bg-card">
+                <ul className="m-0 list-none p-0">
+                  <li>
+                    <Link href="/dashboard/billing/invoices" className="group flex items-center justify-between gap-3 px-4 py-3 hover:bg-raised/50">
+                      <span>
+                        <b className="block text-sm font-semibold text-foreground">Faktury</b>
+                        <small className="text-[12.5px] text-muted-foreground">faktury z usług opłacanych kartą (Stripe)</small>
+                      </span>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                    </Link>
+                  </li>
+                  <li className="border-t border-line">
+                    <Link href="/dashboard/services/new" className="group flex items-center justify-between gap-3 px-4 py-3 hover:bg-raised/50">
+                      <span>
+                        <b className="block text-sm font-semibold text-foreground">Nowa usługa</b>
+                        <small className="text-[12.5px] text-muted-foreground">kup kolejny pakiet</small>
+                      </span>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+                    </Link>
+                  </li>
+                </ul>
+              </section>
+            </div>
+          </div>
 
-          <section>
-            <Link
-              href="/dashboard/services/new"
-              className="flex items-center justify-center gap-3 w-full border-2 border-dashed border-white/10 hover:border-white/30 bg-neutral-900/20 hover:bg-neutral-900/40 text-neutral-300 hover:text-white py-6 rounded-[32px] font-bold transition-all"
-            >
-              <PlusCircle className="w-6 h-6" /> Kup kolejny pakiet
-            </Link>
-          </section>
-
-          <section>
-            <Link
-              href="/dashboard/billing/invoices"
-              className="group flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-6 hover:border-white/30 hover:bg-white/[0.06] transition-all"
-            >
-              <div className="flex items-start gap-3">
-                <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.04] text-neutral-200">
-                  <FileText className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="font-semibold text-white">Faktury</p>
-                  <p className="text-sm text-neutral-400 mt-1">
-                    Pełna lista faktur z usług opłacanych kartą — pobierzesz je z hostowanej
-                    strony Stripe.
-                  </p>
-                </div>
-              </div>
-              <ChevronRight className="h-5 w-5 text-neutral-500 group-hover:text-white transition-colors" />
-            </Link>
-          </section>
-
-          <p className="text-xs text-neutral-500 text-center">
-            {CREDIT_DISCLAIMER}
-          </p>
+          <p className="font-mono text-[11.5px] leading-relaxed text-muted-foreground">{CREDIT_DISCLAIMER}</p>
         </>
       ) : null}
     </div>
   );
 }
 
-function SummaryStat({
-  label,
-  value,
-  tone,
-  icon,
-}: {
-  label: string;
-  value: string;
-  tone: 'positive' | 'negative';
-  icon: React.ReactNode;
-}) {
-  const ring =
-    tone === 'positive'
-      ? 'border-emerald-400/30 bg-emerald-400/5 text-emerald-100'
-      : 'border-rose-400/30 bg-rose-400/5 text-rose-100';
-  return (
-    <div className="rounded-[32px] border border-white/5 bg-neutral-900/40 p-8 flex flex-col justify-between">
-      <div className="flex items-center gap-3">
-        <div className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl border ${ring}`}>
-          {icon}
-        </div>
-        <span className="text-sm font-semibold text-neutral-400 tracking-wider uppercase">
-          {label}
-        </span>
-      </div>
-      <div className="mt-8 text-4xl font-black text-white tracking-tight">{value}</div>
-    </div>
-  );
-}
+const TH = 'whitespace-nowrap px-3 pb-2.5 pt-3 text-left font-mono text-[11px] font-medium uppercase tracking-[0.07em] text-muted-foreground';
+const TD = 'border-t border-line px-3 py-[11px] align-middle';
 
 function TransactionRow({ tx }: { tx: WalletTransactionDto }) {
-  const numeric = Number.parseFloat(tx.amount);
-  const isCredit = numeric > 0;
+  const isCredit = Number.parseFloat(tx.amount) > 0;
+  const when = new Date(tx.createdAt).toLocaleString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   return (
-    <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/5 bg-neutral-900/40 p-5 hover:border-white/15 transition-colors">
-      <div className="flex items-center gap-4 min-w-0">
-        <div
-          className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border ${
-            isCredit
-              ? 'border-emerald-400/30 bg-emerald-400/5 text-emerald-200'
-              : 'border-rose-400/30 bg-rose-400/5 text-rose-200'
-          }`}
-        >
-          {isCredit ? (
-            <ArrowDownLeft className="h-5 w-5" />
-          ) : (
-            <ArrowUpRight className="h-5 w-5" />
-          )}
-        </div>
-        <div className="min-w-0">
-          <div className="font-semibold text-white truncate">
-            {txLabels[tx.type] ?? tx.type}
-          </div>
-          <div className="text-xs text-neutral-500 truncate">
-            {tx.description ??
-              (tx.paymentProvider ? `Płatność ${tx.paymentProvider}` : 'Bez opisu')}
-          </div>
-        </div>
-      </div>
-      <div className="text-right shrink-0">
-        <div
-          className={`text-lg font-bold tabular-nums ${
-            isCredit ? 'text-emerald-200' : 'text-white'
-          }`}
-        >
-          {formatCredits(tx.amount, { signed: true })}
-        </div>
-        <div className="text-xs text-neutral-500">
-          {new Date(tx.createdAt).toLocaleString('pl-PL', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-          })}
-          {' • saldo '}
-          {formatCredits(tx.balanceAfter)}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function EmptyTransactions() {
-  return (
-    <div className="rounded-3xl border border-white/10 bg-white/[0.02] p-10 text-center">
-      <Info className="h-10 w-10 mx-auto text-neutral-500" />
-      <h3 className="mt-4 text-xl font-bold text-white">Brak transakcji</h3>
-      <p className="mt-2 text-neutral-400">
-        Doładuj portfel, by uruchomić pierwszą usługę lub odnowienia automatyczne.
-      </p>
-    </div>
+    <tr>
+      <td className={TD}>
+        <b className="block font-semibold text-foreground">{txLabels[tx.type] ?? tx.type}</b>
+        <span className="block text-[12.5px] text-muted-foreground">
+          {tx.description ?? (tx.paymentProvider ? `Płatność ${tx.paymentProvider}` : 'Bez opisu')}
+          <span className="md:hidden"> · {when}</span>
+        </span>
+      </td>
+      <td className={`${TD} whitespace-nowrap font-mono text-xs text-muted-foreground max-md:hidden`}>{when}</td>
+      <td className={`${TD} whitespace-nowrap text-right tabular-nums ${isCredit ? 'text-data-hi' : 'text-foreground'}`}>
+        {formatCredits(tx.amount, { signed: true })}
+      </td>
+      <td className={`${TD} whitespace-nowrap text-right tabular-nums text-muted-foreground max-sm:hidden`}>{formatCredits(tx.balanceAfter)}</td>
+    </tr>
   );
 }
 
@@ -301,12 +243,12 @@ function StatusBanner({
   description: string;
 }) {
   const palette = {
-    success: 'border-emerald-400/30 bg-emerald-400/5 text-emerald-200',
-    warning: 'border-amber-400/30 bg-amber-400/5 text-amber-200',
-    error: 'border-rose-400/30 bg-rose-400/5 text-rose-200',
+    success: 'bg-data-soft text-data-hi',
+    warning: 'bg-warn-soft text-warn',
+    error: 'bg-[color-mix(in_srgb,var(--crit)_12%,transparent)] text-crit',
   }[tone];
   return (
-    <div className={`rounded-2xl border p-5 flex items-start gap-3 ${palette}`}>
+    <div className={`flex items-start gap-3 rounded-[10px] px-4 py-3 ${palette}`}>
       <div className="mt-0.5">{icon}</div>
       <div>
         <div className="font-semibold">{title}</div>

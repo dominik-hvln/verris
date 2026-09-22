@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
-import { Wallet, Loader2, BadgePercent, X, CheckCircle2 } from 'lucide-react';
+import { Loader2, BadgePercent, X, CheckCircle2 } from 'lucide-react';
 import { CREDIT_SHORT, formatCredits, pluralCredits } from '@/lib/credits';
 import type { PreviewTopupPromoResponse } from '@verris/contracts';
 import { previewTopupPromoAction, startTopupAction } from './actions';
@@ -79,22 +79,14 @@ export function TopupCard({ balance }: Props) {
   };
 
   return (
-    <div className="relative overflow-hidden rounded-[32px] p-px shadow-2xl">
-      <div className="relative h-full w-full bg-neutral-950/90 backdrop-blur-3xl rounded-[calc(32px-1px)] p-8">
-        <div className="flex items-center gap-3 mb-4">
-          <Wallet className="w-5 h-5 text-neutral-300" />
-          <h3 className="text-sm font-semibold text-neutral-400 tracking-wider uppercase">
-            Saldo portfela
-          </h3>
+    <section className="rounded-[10px] border border-line bg-card">
+      <div className="px-4 pb-4 pt-3.5">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h3 className="m-0 font-display text-[15px] font-bold text-foreground">Doładuj portfel</h3>
+          <span className="font-mono text-xs text-muted-foreground" data-tip={`Saldo teraz\n${formatCredits(balance)}`}>
+            saldo {formatCredits(balance)}
+          </span>
         </div>
-        <div className="text-5xl font-black text-white tracking-tight mb-2 tabular-nums">
-          {formatCredits(balance, { withUnit: false })}{' '}
-          <span className="text-2xl text-neutral-400">{CREDIT_SHORT}</span>
-        </div>
-        <p className="text-sm text-neutral-500 mb-8">
-          Saldo zostanie pomniejszone o opłaty cykliczne za usługi i autoskalowanie. 1 zł = 1 kredyt.
-        </p>
-
         <form onSubmit={onSubmit} className="space-y-4">
           <div className="grid grid-cols-5 gap-2">
             {TOPUP_PRESETS.map((preset) => {
@@ -104,10 +96,11 @@ export function TopupCard({ balance }: Props) {
                   type="button"
                   key={preset}
                   onClick={() => setAmount(String(preset))}
-                  className={`rounded-2xl border px-3 py-2 text-sm font-bold transition-all ${
+                  aria-pressed={active}
+                  className={`rounded-[7px] border px-2 py-2 text-sm tabular-nums transition-colors ${
                     active
-                      ? 'border-white bg-white text-black'
-                      : 'border-white/10 bg-white/[0.03] text-neutral-200 hover:border-white/30'
+                      ? 'border-primary bg-data-soft font-semibold text-foreground'
+                      : 'border-line-strong bg-card text-verris-body hover:border-primary'
                   }`}
                 >
                   {preset}
@@ -126,7 +119,7 @@ export function TopupCard({ balance }: Props) {
                 required
                 value={amount}
                 onChange={(event) => setAmount(event.target.value)}
-                className="w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 pr-16 text-white placeholder:text-neutral-500 focus:border-white/40 focus:outline-none"
+                className="w-full rounded-[7px] border border-line-strong bg-background px-3 py-2.5 pr-14 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
               />
               <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm text-neutral-500">
                 PLN
@@ -135,7 +128,7 @@ export function TopupCard({ balance }: Props) {
             <button
               type="submit"
               disabled={pending}
-              className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-bold text-black hover:bg-neutral-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              className="inline-flex items-center justify-center gap-2 rounded-[7px] border border-primary bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground hover:bg-data-hi disabled:cursor-not-allowed disabled:opacity-50"
             >
               {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {pending ? 'Przekierowanie…' : 'Doładuj'}
@@ -168,14 +161,14 @@ export function TopupCard({ balance }: Props) {
               {error}
             </div>
           ) : null}
-          <p className="text-xs text-neutral-500">
+          <p className="font-mono text-[11.5px] leading-relaxed text-muted-foreground">
             Płatność realizowana przez Stripe (karta + BLIK + Przelewy24) w PLN. Środki trafią do
             portfela natychmiast po zaksięgowaniu. Bonus z kodu procentowego dolicza się po
             zaksięgowaniu wpłaty.
           </p>
         </form>
       </div>
-    </div>
+    </section>
   );
 }
 

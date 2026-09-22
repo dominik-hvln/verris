@@ -4,12 +4,9 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 import type { SavedPaymentMethodDto, WalletAutoTopupSettingsDto } from '@verris/contracts';
 import {
-  Cpu,
-  Gift,
   Landmark,
   Loader2,
   RefreshCw,
-  Sparkles,
 } from 'lucide-react';
 import { CREDIT_SHORT, formatCredits, pluralCredits } from '@/lib/credits';
 import { redeemPromoAction, upsertAutoTopupAction } from './actions';
@@ -22,7 +19,7 @@ interface Props {
 
 export function BillingExtrasForms({ initialAuto, savedCards }: Props) {
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
+    <div className="flex flex-col gap-6">
       <PromoRedeemBlock />
       <WalletAutotopupBlock initialAuto={initialAuto} savedCards={savedCards} />
     </div>
@@ -56,16 +53,11 @@ function PromoRedeemBlock() {
   };
 
   return (
-    <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-      <div className="flex items-start gap-3 mb-6">
-        <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-purple-400/25 bg-purple-400/10 text-purple-200">
-          <Gift className="h-5 w-5" />
-        </div>
+    <section className="rounded-[10px] border border-line bg-card px-4 pb-4 pt-3.5">
+      <div className="mb-3">
         <div>
-          <h2 className="text-lg font-semibold text-white inline-flex items-center gap-2">
-            Kod promocyjny <Sparkles className="h-4 w-4 text-amber-200/90" aria-hidden />
-          </h2>
-          <p className="text-sm text-neutral-400 mt-1">
+          <h3 className="m-0 font-display text-[15px] font-bold text-foreground">Kod promocyjny</h3>
+          <p className="mt-1 text-[12.5px] text-muted-foreground">
             Wpisz kod od supportu lub z kampanii — kredyty trafią od razu na Twój portfel.
           </p>
         </div>
@@ -134,16 +126,11 @@ function WalletAutotopupBlock({
   };
 
   return (
-    <section className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-      <div className="flex items-start gap-3 mb-6">
-        <div className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-sky-400/25 bg-sky-400/10 text-sky-100">
-          <Cpu className="h-5 w-5" />
-        </div>
+    <section className="rounded-[10px] border border-line bg-card px-4 pb-4 pt-3.5">
+      <div className="mb-3">
         <div className="min-w-0">
-          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-            Auto-doładowanie portfela
-          </h2>
-          <p className="text-sm text-neutral-400 mt-1">
+          <h3 className="m-0 font-display text-[15px] font-bold text-foreground">Auto-doładowanie</h3>
+          <p className="mt-1 text-[12.5px] text-muted-foreground">
             Gdy saldo spadnie poniżej progu, system pobierze zapisany sposób płatności (Stripe, off-session).
           </p>
         </div>
