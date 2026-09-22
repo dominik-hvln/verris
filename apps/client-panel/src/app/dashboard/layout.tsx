@@ -131,7 +131,7 @@ function setPanelMode(simple: boolean) {
   window.dispatchEvent(new Event("verris-mode"));
 }
 
-function UserMenu({ displayName, email, initials }: { displayName: string; email: string; initials: string }) {
+function UserMenu({ displayName, email, initials, loading = false }: { displayName: string; email: string; initials: string; loading?: boolean }) {
   const [open, setOpen] = useState(false);
   const [simple, setSimple] = useState(false);
   useEffect(() => {
@@ -229,14 +229,20 @@ function UserMenu({ displayName, email, initials }: { displayName: string; email
         style={{ ["--v2-k" as string]: "v2-comet-a", ["--v2-d" as string]: "11s", ["--v2-dl" as string]: "-8s", ["--v2-o" as string]: 0.5 }}
       >
         <span className="grid h-8 w-8 flex-none place-items-center rounded-full bg-gradient-to-br from-verris-green to-verris-mint font-display text-xs font-extrabold text-verris-pine">
-          {initials}
+          {loading ? null : initials}
         </span>
-        <span className="min-w-0 flex-1">
-          <b className="block truncate text-[13.5px] font-semibold text-verris-paper">{displayName}</b>
-          <small className="block truncate font-mono text-[11.5px] text-verris-stone">
-            {email ? `${email} · ` : ""}widok {simple ? "prosty" : "pełny"}
-          </small>
-        </span>
+        {loading ? (
+          <span className="min-w-0 flex-1 space-y-1.5" aria-label="Wczytywanie konta">
+            <span className="block h-3 w-28 animate-pulse rounded bg-white/10" />
+            <span className="block h-2.5 w-36 animate-pulse rounded bg-white/[0.06]" />
+          </span>
+        ) : (
+          <span className="min-w-0 flex-1">
+            <b className="block break-words text-[13.5px] font-semibold leading-tight text-verris-paper">{displayName}</b>
+            {email ? <small className="block break-all font-mono text-[11.5px] text-verris-stone">{email}</small> : null}
+            <small className="block font-mono text-[11.5px] text-verris-stone">widok {simple ? "prosty" : "pełny"}</small>
+          </span>
+        )}
         <ChevronUp className={`h-4 w-4 flex-none text-verris-stone transition-transform ${open ? "" : "rotate-180"}`} />
       </button>
     </div>
@@ -443,7 +449,7 @@ export default function DashboardLayout({
 
         {/* Box użytkownika — zawsze widoczny */}
         <div className="shrink-0 border-t border-sidebar-border p-3">
-          <UserMenu displayName={displayName} email={user?.email ?? ""} initials={initials} />
+          <UserMenu displayName={displayName} email={user?.email ?? ""} initials={initials} loading={userLoading && user === null} />
         </div>
       </aside>
 
