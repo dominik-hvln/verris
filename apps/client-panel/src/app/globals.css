@@ -760,4 +760,7 @@ select optgroup {
 .v2-skin h1 { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.03em; }
 .v2-skin h2,
 .v2-skin h3 { font-family: var(--font-display); letter-spacing: -0.01em; }
+/* Tabele mają mieścić się w kolumnie: długie wartości łamiemy zamiast przewijać w bok. */
+.v2-skin td,
+.v2-skin th { overflow-wrap: anywhere; }
 .v2-skin th { font-family: var(--font-mono); font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase; font-size: 11px; color: var(--muted-foreground); }
