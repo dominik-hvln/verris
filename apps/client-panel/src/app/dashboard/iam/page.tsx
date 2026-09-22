@@ -16,6 +16,7 @@ import { IamAuditSection } from './iam-audit-section';
 import { IamNoticeBanner } from './iam-notice-banner';
 import { IamPermissionPicker } from './iam-permission-picker';
 import { PERMISSION_LABELS } from './constants';
+import { PanelPageHeader } from '@/components/panel';
 
 export default async function IamPage() {
   const token = await getAuthToken();
@@ -35,13 +36,11 @@ export default async function IamPage() {
 
   const data = await getIamOverview();
   return (
-    <div className="mx-auto max-w-5xl space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight text-white">IAM i subkonta</h1>
-        <p className="mt-2 text-sm text-neutral-400">
-          Deleguj dostęp do konta bez udostępniania hasła właściciela. Każda akcja subkonta jest limitowana uprawnieniami i widoczna w audycie.
-        </p>
-      </div>
+    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
+      <PanelPageHeader
+        title="IAM i subkonta"
+        description="Deleguj dostęp bez udostępniania hasła właściciela. Każda akcja subkonta jest limitowana uprawnieniami i widoczna w audycie."
+      />
 
       <Suspense fallback={null}>
         <IamNoticeBanner />

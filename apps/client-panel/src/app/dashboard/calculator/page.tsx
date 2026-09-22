@@ -1,5 +1,6 @@
 import { listAutoscalingPricing } from './data';
 import { AutoscalingCalculator } from './calculator';
+import { PanelPageHeader } from '@/components/panel';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,29 +29,19 @@ export default async function CalculatorPage({
   const initialDiskGb = parsePositiveFloat(sp.diskGb, 0);
 
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center p-6 pt-12">
-      <div className="w-full max-w-5xl text-center mb-10">
-        <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-white to-neutral-400 mb-4 tracking-tight">
-          Kalkulator kosztów Verris
-        </h1>
-        <p className="text-lg text-neutral-400 max-w-2xl mx-auto">
-          Sprawdź ile zapłacisz, gdy autoskalowanie tymczasowo doda Ci zasoby ponad
-          limit planu. Stawki są takie same jak w Twoim portfelu — pobieramy je z
-          aktualnego cennika, więc zobaczysz dokładnie to, co naliczy silnik.
-        </p>
-      </div>
+    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
+      <PanelPageHeader
+        title="Kalkulator kosztów"
+        description="Sprawdź, ile zapłacisz, gdy autoskalowanie doda Ci zasoby ponad limit planu. Stawki są te same, co w portfelu — pobrane z aktualnego cennika."
+      />
 
       {!result.ok && (
-        <div className="w-full max-w-3xl mb-8 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
-          Nie udało się pobrać cennika: {result.error}. Wartości poniżej będą
-          szacunkowe.
-        </div>
+        <p className="m-0 rounded-[10px] bg-warn-soft px-4 py-3 text-sm text-warn">
+          Nie udało się pobrać cennika: {result.error}. Wartości poniżej będą szacunkowe.
+        </p>
       )}
 
-      <div className="w-full relative">
-        <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[300px] w-full max-w-3xl mx-auto rounded-full bg-emerald-500/5 blur-[100px] pointer-events-none" />
-        <AutoscalingCalculator rules={rules} />
-      </div>
+      <AutoscalingCalculator rules={rules} />
     </div>
   );
 }
