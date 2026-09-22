@@ -2,23 +2,26 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { SpinBorder } from "@/components/spin-border";
+import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
-import {
-  HelpCircle,
-  Plus,
-  MessageSquare,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  Loader2,
-  ChevronRight,
-} from "lucide-react";
+import { Plus } from "lucide-react";
 import { fetchTickets, type TicketSummary } from "./actions";
 import { PageHeaderRow } from "@/components/panel";
+import { Kpi, KpiStrip, SectionHead } from "@/components/panel/v2";
+
+const TH = "whitespace-nowrap px-3 pb-2.5 pt-3 text-left font-mono text-[11px] font-medium uppercase tracking-[0.07em] text-muted-foreground";
+const TD = "border-t border-line px-3 py-[11px] align-middle";
+
+/** Stan zgłoszenia: kropka + słowo (jak we wzorcu). Czekamy na klienta = ostrzeżenie. */
+const STATUS: Record<string, { label: string; tone: "data" | "warn" | "muted" }> = {
+  OPEN: { label: "przyjęte", tone: "data" },
+  IN_PROGRESS: { label: "w toku", tone: "data" },
+  WAITING_CUSTOMER: { label: "czekamy na Ciebie", tone: "warn" },
+};
 
 export default function SupportPage() {
+  const router = useRouter();
   const [tickets, setTickets] = useState<TicketSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -29,116 +32,109 @@ export default function SupportPage() {
     });
   }, []);
 
+  const count = (pred: (t: TicketSummary) => boolean) => (loading ? "…" : tickets.filter(pred).length);
+  const open = (t: TicketSummary) => t.status in STATUS;
+
   return (
-    <div className="space-y-6">
+    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
       <PageHeaderRow
-        title="Pomoc techniczna"
-        description="Zgłoś problem lub skontaktuj się z naszym zespołem wsparcia."
+        title="Centrum pomocy"
+        description="Zgłoś problem lub napisz do zespołu wsparcia — odpowiadamy po polsku."
         actions={
           <Link
             href="/dashboard/support/new"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-bold text-black transition-all hover:bg-neutral-200 sm:w-auto"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-[7px] border border-primary bg-primary px-[13px] py-2 text-sm font-semibold text-primary-foreground hover:bg-data-hi sm:w-auto"
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="h-4 w-4" />
             Nowe zgłoszenie
           </Link>
         }
       />
 
-      <div className="relative rounded-[24px] p-px overflow-hidden shadow-2xl group transition-transform duration-300 hover:-translate-y-1">
-        <SpinBorder variant="white" className="opacity-20 transition-opacity duration-[1500ms]" />
-        <div className="relative h-full w-full bg-[#0a0a0a] group-hover:bg-[#121212] transition-colors duration-300 rounded-[calc(24px-1px)] overflow-hidden">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center py-24">
-            <Loader2 className="h-10 w-10 animate-spin text-white mb-4" />
-            <p className="text-neutral-400 font-medium">Wczytywanie zgłoszeń...</p>
-          </div>
-        ) : tickets.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-center px-4">
-            <div className="flex h-20 w-20 items-center justify-center rounded-[20px] bg-white/5 border border-white/10 shadow-inner mb-6">
-               <HelpCircle className="h-10 w-10 text-white" />
-            </div>
-            <h3 className="text-xl font-bold text-white mb-2">Brak aktywnych zgłoszeń</h3>
-            <p className="text-neutral-400 max-w-md">
-              Nie masz jeszcze żadnych otwartych ticketów wsparcia. Jeśli potrzebujesz pomocy, utwórz nowe zgłoszenie do naszego zespołu.
-            </p>
-            <Link
-              href="/dashboard/support/new"
-              className="mt-8 inline-flex items-center justify-center rounded-[16px] bg-white/5 border border-white/10 px-6 py-3 font-semibold text-white hover:bg-white/10 transition-colors"
-            >
-              Skontaktuj się z nami
+      <KpiStrip>
+        <Kpi label="Otwarte" value={count(open)} foot={<span>przyjęte i w toku</span>} />
+        <Kpi label="Czekamy na Ciebie" value={count((t) => t.status === "WAITING_CUSTOMER")} foot={<span>odpowiedz, by ruszyć dalej</span>} />
+        <Kpi label="Rozwiązane" value={count((t) => !open(t))} foot={<span>zamknięte zgłoszenia</span>} />
+        <Kpi
+          label="Ostatnia aktywność"
+          value={loading || tickets.length === 0 ? "—" : format(new Date(Math.max(...tickets.map((t) => +new Date(t.updatedAt)))), "d MMM", { locale: pl })}
+          foot={<span>najnowsza zmiana w zgłoszeniach</span>}
+        />
+      </KpiStrip>
+
+      <section>
+        <SectionHead
+          title="Twoje zgłoszenia"
+          action={
+            <Link href="/dashboard/knowledge" className="text-[13px] text-data-hi hover:underline">
+              Baza wiedzy
             </Link>
-          </div>
+          }
+        />
+        {loading ? (
+          <p className="m-0 rounded-[10px] border border-line bg-card px-4 py-[22px] text-sm text-muted-foreground">Wczytywanie zgłoszeń…</p>
+        ) : tickets.length === 0 ? (
+          <p className="m-0 rounded-[10px] border border-line bg-card px-4 py-[22px] text-sm text-muted-foreground">
+            Nie masz zgłoszeń.{" "}
+            <Link href="/dashboard/support/new" className="text-data-hi hover:underline">
+              Napisz do nas
+            </Link>
+            , jeśli czegoś potrzebujesz.
+          </p>
         ) : (
-          <div className="divide-y divide-white/5">
-            {tickets.map((ticket) => (
-              <Link
-                key={ticket.id}
-                href={`/dashboard/support/${ticket.id}`}
-                className="group flex flex-col sm:flex-row sm:items-center p-6 hover:bg-neutral-900/50 transition-all gap-5"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-4 mb-2">
-                    <StatusBadge status={ticket.status} />
-                    <span className="text-base font-bold text-neutral-300 truncate group-hover:text-white transition-colors">
-                      {ticket.subject}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-5 text-sm text-neutral-400">
-                    <span className="flex items-center gap-1.5">
-                      <Clock className="h-4 w-4 text-neutral-500" />
-                      {format(new Date(ticket.updatedAt), "d MMM yyyy, HH:mm", { locale: pl })}
-                    </span>
-                    <span className="flex items-center gap-1.5">
-                      <MessageSquare className="h-4 w-4 text-neutral-500" />
-                      {ticket._count.replies} odpowiedzi
-                    </span>
-                  </div>
-                </div>
-                <div className="hidden sm:flex shrink-0">
-                  <div className="p-3 rounded-[12px] bg-white/5 text-neutral-400 group-hover:text-white group-hover:bg-white/10 group-hover:scale-110 border border-transparent group-hover:border-white/10 transition-all">
-                    <ChevronRight className="h-5 w-5" />
-                  </div>
-                </div>
-              </Link>
-            ))}
+          <div className="overflow-x-auto rounded-[10px] border border-line bg-card">
+            <table className="w-full border-collapse text-sm">
+              <thead>
+                <tr>
+                  <th className={TH}>Zgłoszenie</th>
+                  <th className={TH}>Stan</th>
+                  <th className={`${TH} max-md:hidden`}>Ostatnia zmiana</th>
+                  <th className={`${TH} text-right max-sm:hidden`}>Odpowiedzi</th>
+                </tr>
+              </thead>
+              <tbody>
+                {tickets.map((t) => {
+                  const st = STATUS[t.status] ?? { label: "rozwiązane", tone: "muted" as const };
+                  return (
+                    <tr
+                      key={t.id}
+                      tabIndex={0}
+                      className="cursor-pointer hover:bg-raised/40"
+                      onClick={() => router.push(`/dashboard/support/${t.id}`)}
+                      onKeyDown={(e) => e.key === "Enter" && router.push(`/dashboard/support/${t.id}`)}
+                    >
+                      <td className={TD}>
+                        <b className="block font-semibold text-foreground">{t.subject}</b>
+                        <span className="text-[12.5px] text-muted-foreground md:hidden">
+                          {format(new Date(t.updatedAt), "d MMM yyyy, HH:mm", { locale: pl })}
+                        </span>
+                      </td>
+                      <td className={TD}>
+                        <span
+                          className={`inline-flex items-center gap-[7px] whitespace-nowrap text-[12.5px] font-semibold ${
+                            st.tone === "data" ? "text-data-hi" : st.tone === "warn" ? "text-warn" : "text-muted-foreground"
+                          }`}
+                        >
+                          <span
+                            className={`h-[7px] w-[7px] rounded-full bg-current ${
+                              st.tone === "data" ? "v2-breathe" : st.tone === "warn" ? "v2-breathe v2-breathe-warn" : ""
+                            }`}
+                          />
+                          {st.label}
+                        </span>
+                      </td>
+                      <td className={`${TD} whitespace-nowrap font-mono text-xs text-muted-foreground max-md:hidden`}>
+                        {format(new Date(t.updatedAt), "d MMM yyyy, HH:mm", { locale: pl })}
+                      </td>
+                      <td className={`${TD} text-right tabular-nums text-muted-foreground max-sm:hidden`}>{t._count.replies}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
-        </div>
-      </div>
+      </section>
     </div>
-  );
-}
-
-function StatusBadge({ status }: { status: string }) {
-  if (status === "OPEN") {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-neutral-800 px-3 py-1 text-xs font-bold text-white border border-white/10 uppercase tracking-wider">
-        <AlertCircle className="h-3 w-3" />
-        Oczekujące
-      </span>
-    );
-  }
-  if (status === "IN_PROGRESS") {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-bold text-white border border-white/20 uppercase tracking-wider">
-        <Clock className="h-3 w-3" />
-        W toku
-      </span>
-    );
-  }
-  if (status === "WAITING_CUSTOMER") {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-xs font-bold text-amber-200 border border-amber-400/30 uppercase tracking-wider">
-        <Clock className="h-3 w-3" />
-        Czekamy na Ciebie
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-[#050505] px-3 py-1 text-xs font-bold text-neutral-400 border border-white/5 uppercase tracking-wider">
-      <CheckCircle2 className="h-3 w-3" />
-      Rozwiązane
-    </span>
   );
 }

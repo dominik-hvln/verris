@@ -82,7 +82,6 @@ const secondaryItems = [
       { name: "Analityka stron", href: "/dashboard/analytics", icon: BarChart3 },
       { name: "API i integracje", href: "/dashboard/api-tokens", icon: KeyRound },
       { name: "Baza wiedzy", href: "/dashboard/knowledge", icon: BookOpen },
-      { name: "Centrum Pomocy", href: "/dashboard/support", icon: VerrisSupportIcon },
       { name: "Ustawienia", href: "/dashboard/settings", icon: VerrisUstawieniaIcon },
     ],
   },

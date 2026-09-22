@@ -32,7 +32,7 @@ const TILE_DEFS: Record<SidebarTileHref, Omit<SidebarTileDef, 'href'>> = {
   '/dashboard/billing': { name: 'Płatności', icon: VerrisPortfelIcon },
   '/dashboard/domains': { name: 'Domeny', icon: VerrisDomenyIcon },
   '/dashboard/eco': { name: 'Program EKO', icon: VerrisEkoIcon },
-  '/dashboard/support': { name: 'Centrum Pomocy', icon: VerrisSupportIcon },
+  '/dashboard/support': { name: 'Centrum pomocy', icon: VerrisSupportIcon },
   '/dashboard/settings': { name: 'Ustawienia', icon: VerrisUstawieniaIcon },
   '/dashboard/calculator': { name: 'Kalkulator', icon: Calculator },
 };
