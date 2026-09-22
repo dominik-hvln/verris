@@ -130,6 +130,12 @@ Kierunek do przygotowania jako osobny projekt (makiety przed kodem):
   siatki identycznych kafli z cieniem, fioletowo-niebieskich akcentów.
 - Marka zostaje: sosna/mięta (`globals.css`), Schibsted Grotesk (nagłówki i liczby), Hanken Grotesk
   (tekst), JetBrains Mono (etykiety, dane techniczne). Jasny motyw równorzędny z ciemnym.
+- Struktura (uwagi właściciela do v1): dwa widoki — **usługa hostingowa** (zasoby konta, lista stron
+  z technologią i ruchem, poczta/bazy/FTP/kopie całego konta) i **strona/domena** (zakładki: przegląd,
+  domena i DNS, SSL, pliki, baza, poczta, PHP, przekierowania, logi; narzędzia zależne od wykrytej
+  technologii — WordPress, PrestaShop, Laravel, statyczna, przekierowanie). Boczny pasek łączy menu
+  globalne z kontekstem usługi (drzewo stron + sekcje konfiguracji); rzadkie pozycje w „Więcej”.
+  Każda liczba i wykres ma dymek po najechaniu (także z klawiatury).
 - Wzorzec: ekran usługi hostingowej (artefakt prywatny „Verris — ekran usługi”). Po akceptacji
   przenosimy tokeny i komponenty do `apps/client-panel` i przerabiamy kolejne ekrany (PB-16).
 
