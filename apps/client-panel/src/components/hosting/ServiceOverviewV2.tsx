@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { EVENT_WARN, serviceEventLabel } from '@/lib/service-events';
 import { ChevronRight, Loader2, Plus, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import type {
@@ -533,26 +534,6 @@ export default function ServiceOverviewV2({
   );
 }
 
-const EVENT_LABEL: Record<string, string> = {
-  CREATED: 'Usługa zamówiona',
-  PROVISIONING_INTENT: 'Zaczęliśmy zakładać konto',
-  ACCOUNT_PROVISIONED: 'Konto hostingowe gotowe',
-  ACTIVATED: 'Usługa aktywna',
-  RENEWED: 'Usługa odnowiona',
-  PLAN_CHANGED: 'Zmieniono plan',
-  PAYMENT_FAILED: 'Płatność nie przeszła',
-  PAYMENT_RECOVERED: 'Płatność uregulowana',
-  SUSPENDED: 'Usługa zawieszona',
-  UNSUSPENDED: 'Usługa odwieszona',
-  CANCEL_SCHEDULED: 'Zaplanowano rezygnację',
-  CANCELED: 'Usługa anulowana',
-  TRIAL_STARTED: 'Start okresu próbnego',
-  TRIAL_CONVERTED: 'Okres próbny zamieniony na płatny',
-  TRIAL_EXPIRED: 'Koniec okresu próbnego',
-  PROVISIONING_FAILED: 'Zakładanie konta wymaga uwagi',
-};
-const EVENT_WARN = new Set(['PAYMENT_FAILED', 'SUSPENDED', 'PROVISIONING_FAILED', 'TRIAL_EXPIRED', 'CANCEL_SCHEDULED']);
-
 /** Historia zdarzeń usługi pogrupowana po dniach (Dziś / Wczoraj / data). */
 function EventsFeed({ events }: { events: ServiceDetailsDto['events'] }) {
   const list = [...(events ?? [])].sort((x, y) => y.createdAt.localeCompare(x.createdAt)).slice(0, 12);
@@ -573,7 +554,7 @@ function EventsFeed({ events }: { events: ServiceDetailsDto['events'] }) {
     <div className="rounded-[10px] border border-line bg-card py-1">
       {rows.map(({ e, day, head }) => {
         const warn = EVENT_WARN.has(e.type);
-        const label = EVENT_LABEL[e.type] ?? e.type.replace(/_/g, ' ').toLowerCase().replace(/^./, (c) => c.toUpperCase());
+        const label = serviceEventLabel(e.type);
         return (
           <div key={e.id}>
             {head ? <Label className="px-4 pb-1 pt-2.5">{day}</Label> : null}

@@ -3,11 +3,15 @@
 import { useCallback, useEffect, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Calendar, ExternalLink, Loader2, Receipt, Trash2, Wallet } from 'lucide-react';
+import { Loader2, Trash2, Wallet } from 'lucide-react';
 import { Button } from '@verris/ui';
 import type { ServiceDetailsDto, SubscriptionStatus } from '@verris/contracts';
 import { fetchServiceDetailsAction } from '@/app/dashboard/services/[id]/hosting-service-actions';
-import { HostingTabShell } from '@/components/hosting/HostingTabShell';
+import { Kpi, KpiStrip, Meter, SectionHead, StatusPill } from '@/components/panel/v2';
+import { EVENT_WARN, serviceEventLabel } from '@/lib/service-events';
+
+const BTN =
+  'inline-flex items-center gap-2 whitespace-nowrap rounded-[7px] border border-line-strong bg-card px-[13px] py-2 text-sm font-medium text-foreground hover:border-primary';
 import { UnpaidServiceBanner } from '@/components/hosting/UnpaidServiceBanner';
 import { PanelModal } from '@/components/panel';
 import { cancelSubscriptionAction } from '@/app/dashboard/services/subscription-payment-actions';
@@ -102,95 +106,99 @@ export default function ServiceSubscriptionTab({ serviceId }: { serviceId: strin
     service.status === 'SUSPENDED' ||
     service.status === 'PENDING_PAYMENT';
   const billingEvents = service.events.filter((e) => BILLING_EVENT_TYPES.has(e.type)).slice(0, 8);
+  // Brak flagi w DTO — rezygnację na koniec okresu widać po zdarzeniu CANCEL_SCHEDULED.
+  const cancelScheduled = service.status === 'ACTIVE' && service.events.some((e) => e.type === 'CANCEL_SCHEDULED');
+  const periodPct =
+    service.currentPeriodStart && service.currentPeriodEnd
+      ? Math.max(
+          0,
+          Math.min(
+            100,
+            ((Date.now() - new Date(service.currentPeriodStart).getTime()) /
+              (new Date(service.currentPeriodEnd).getTime() - new Date(service.currentPeriodStart).getTime())) *
+              100,
+          ),
+        )
+      : null;
 
   return (
-    <div className="space-y-4 min-w-0">
+    <div className="min-w-0 space-y-6">
       <UnpaidServiceBanner
         serviceId={serviceId}
         status={service.status}
         paymentSource={service.paymentSource}
       />
 
-      <HostingTabShell
+      <SectionHead
         title="Subskrypcja i płatności"
-        description="Status rozliczenia, okres bieżący i zarządzanie anulowaniem."
-        icon={<Receipt className="h-4 w-4" />}
-      >
-        <div className="grid gap-3 sm:grid-cols-2">
-          <InfoRow label="Status" value={STATUS_LABELS[service.status] ?? service.status} />
-          <InfoRow
-            label="Płatność"
-            value={PAYMENT_LABELS[service.paymentSource] ?? service.paymentSource}
-          />
-          <InfoRow label="Plan" value={service.plan.name} />
-          <InfoRow
-            label="Cena"
-            value={`${Number(service.priceAmount).toFixed(2)} ${service.currency} / ${
-              service.interval === 'MONTH' ? 'mies.' : 'rok'
-            }`}
-          />
-          <InfoRow label="Okres od" value={formatDate(service.currentPeriodStart)} />
-          <InfoRow label="Okres do" value={formatDate(service.currentPeriodEnd)} />
-        </div>
-
-        <div className="mt-6 flex flex-wrap gap-2">
-          <Link
-            href="/dashboard/billing"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-neutral-200 hover:bg-white/10"
-          >
-            <Wallet className="h-3.5 w-3.5" />
-            Portfel i faktury
-          </Link>
-          <Link
-            href={`/dashboard/services/${serviceId}/plan`}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-neutral-200 hover:bg-white/10"
-          >
-            Zmiana planu
-            <ExternalLink className="h-3 w-3 opacity-60" />
-          </Link>
-        </div>
-
-        {canCancel && service.status !== 'PENDING_PAYMENT' && service.status !== 'PAST_DUE' ? (
-          <div className="mt-6 border-t border-white/10 pt-4">
-            <p className="text-sm font-medium text-white">Zakończenie usługi</p>
-            <p className="mt-1 text-xs text-neutral-500">
-              Domyślnie hosting działa do końca opłaconego okresu. Możesz też zakończyć od razu.
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                setCancelImmediate(false);
-                setCancelOpen(true);
-              }}
-              className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-200 hover:bg-rose-500/20"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-              Zrezygnuj z usługi
-            </button>
+        desc="Stan rozliczenia, bieżący okres i rezygnacja."
+        action={
+          <div className="flex flex-wrap gap-2">
+            <Link href="/dashboard/billing" className={BTN}>
+              <Wallet className="h-[15px] w-[15px]" /> Portfel i faktury
+            </Link>
+            <Link href={`/dashboard/services/${serviceId}/plan`} className={BTN}>
+              Zmiana planu
+            </Link>
           </div>
-        ) : null}
-      </HostingTabShell>
+        }
+      />
+
+      <KpiStrip>
+        <Kpi
+          label="Stan"
+          value={<StatusPill tone={service.status === 'ACTIVE' ? 'data' : service.status === 'CANCELED' || service.status === 'EXPIRED' ? 'muted' : 'warn'}>{STATUS_LABELS[service.status] ?? service.status}</StatusPill>}
+          foot={<span>płatność: {PAYMENT_LABELS[service.paymentSource] ?? service.paymentSource}</span>}
+        />
+        <Kpi label="Plan" value={<span className="text-[24px]">{service.plan.name}</span>} foot={<span>{service.interval === 'MONTH' ? 'rozliczenie miesięczne' : 'rozliczenie roczne'}</span>} />
+        <Kpi
+          label="Cena"
+          value={Number(service.priceAmount).toLocaleString('pl-PL', { minimumFractionDigits: 2 })}
+          unit={`${service.currency === 'PLN' ? 'zł' : service.currency} / ${service.interval === 'MONTH' ? 'mies.' : 'rok'}`}
+          foot={<span>brutto</span>}
+        />
+        <Kpi
+          label={cancelScheduled ? 'Działa do' : 'Następne odnowienie'}
+          value={<span className="text-[24px]">{formatDate(service.currentPeriodEnd)}</span>}
+          foot={<span>okres od {formatDate(service.currentPeriodStart)}</span>}
+        >
+          {periodPct != null ? <Meter pct={periodPct} tone={periodPct > 90 ? 'warn' : 'data'} tipText={`${Math.round(periodPct)}% okresu minęło`} /> : null}
+        </Kpi>
+      </KpiStrip>
 
       {billingEvents.length > 0 ? (
-        <HostingTabShell
-          title="Historia rozliczeń"
-          description="Ostatnie zdarzenia powiązane z płatnością i subskrypcją."
-          icon={<Calendar className="h-4 w-4" />}
-        >
-          <ul className="space-y-2">
+        <section>
+          <SectionHead title="Historia rozliczeń" />
+          <ul className="m-0 list-none rounded-[10px] border border-line bg-card p-0">
             {billingEvents.map((ev) => (
-              <li
-                key={ev.id}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-white/5 bg-white/[0.02] px-3 py-2 text-xs"
-              >
-                <span className="font-medium text-neutral-200">{ev.type}</span>
-                <span className="text-neutral-500">
-                  {new Date(ev.createdAt).toLocaleString('pl-PL')}
-                </span>
+              <li key={ev.id} className="grid grid-cols-[auto_1fr_auto] items-center gap-3 border-t border-line px-4 py-[11px] first:border-t-0">
+                <span className={`h-[7px] w-[7px] rounded-full ${EVENT_WARN.has(ev.type) ? 'bg-warn' : 'bg-data'}`} />
+                <span className="text-sm text-foreground">{serviceEventLabel(ev.type)}</span>
+                <time className="whitespace-nowrap font-mono text-xs text-muted-foreground">{new Date(ev.createdAt).toLocaleString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</time>
               </li>
             ))}
           </ul>
-        </HostingTabShell>
+        </section>
+      ) : null}
+
+      {canCancel && service.status !== 'PENDING_PAYMENT' && service.status !== 'PAST_DUE' ? (
+        <section className="rounded-[10px] border border-line bg-card px-4 py-3.5">
+          <h3 className="m-0 font-display text-[15px] font-bold text-foreground">Zakończenie usługi</h3>
+          <p className="mt-1 text-[13px] text-muted-foreground">
+            Domyślnie usługa działa do końca opłaconego okresu i nie odnawia się. Możesz też zakończyć od razu.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setCancelImmediate(false);
+              setCancelOpen(true);
+            }}
+            className="mt-3 inline-flex items-center gap-1.5 rounded-[7px] border border-line-strong bg-card px-3 py-2 text-[13px] font-medium text-crit hover:border-crit"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            Zrezygnuj z usługi
+          </button>
+        </section>
       ) : null}
 
       {error ? <p className="text-sm text-rose-300">{error}</p> : null}
@@ -253,15 +261,6 @@ export default function ServiceSubscriptionTab({ serviceId }: { serviceId: strin
           </Button>
         </div>
       </PanelModal>
-    </div>
-  );
-}
-
-function InfoRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-white/5 bg-white/[0.02] px-4 py-3">
-      <p className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">{label}</p>
-      <p className="mt-1 text-sm font-medium text-white">{value}</p>
     </div>
   );
 }
