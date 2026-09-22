@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import * as https from 'https';
 import { randomBytes } from 'crypto';
+import { nodeDownFor, recordNodeFailure, recordNodeSuccess } from './node-circuit';
 
 export interface DirectAdminConfig {
   host: string;
@@ -228,6 +229,33 @@ export class DirectAdminClient {
         rejectUnauthorized: config.rejectUnauthorized ?? true,
       }),
     });
+
+    // Bezpiecznik węzła (node-circuit.ts): martwy węzeł = szybka odmowa zamiast
+    // czekania na timeout przy każdym zapytaniu. Klucz = adres węzła, więc
+    // klienci `asUser()` dzielą ten sam stan.
+    const circuitKey = baseURL;
+    this.client.interceptors.request.use((req) => {
+      const left = nodeDownFor(circuitKey);
+      if (left > 0) {
+        // „ETIMEDOUT" w treści: klasyfikatory błędów (provisioning) uznają to za błąd przejściowy.
+        const err = new Error(
+          `connect ETIMEDOUT ${config.host} — węzeł nie odpowiadał przed chwilą, kolejna próba za ${Math.ceil(left / 1000)} s`,
+        ) as Error & { code?: string };
+        err.code = 'ETIMEDOUT_CIRCUIT';
+        throw err;
+      }
+      return req;
+    });
+    this.client.interceptors.response.use(
+      (res) => {
+        recordNodeSuccess(circuitKey);
+        return res;
+      },
+      (err: unknown) => {
+        recordNodeFailure(circuitKey, err);
+        return Promise.reject(err);
+      },
+    );
   }
 
   // ---------------------------------------------------------------------------
