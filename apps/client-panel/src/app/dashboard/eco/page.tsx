@@ -1,16 +1,16 @@
-import Link from 'next/link';
-import { Eye, Gift, History, Leaf, Trees } from 'lucide-react';
+import { Eye, Gift, History, Trees } from 'lucide-react';
 import { FeatureNotAvailable } from '@/components/feature-not-available';
 import { isClientFeatureEnabled } from '@/lib/client-features';
 import { getEcoDashboardData } from './eco-data';
 import { EcoRedeemForm } from './eco-redeem-form';
-import { EcoTreeProgress } from './eco-tree-progress';
 import { EcoProgramStatus } from './eco-program-status';
 
 export const dynamic = 'force-dynamic';
 
 import { EcoPointsGuide } from './eco-points-guide';
 import { ECO_LEDGER_REASON_LABEL } from '@/lib/eco-point-rules';
+import { PanelPageHeader } from '@/components/panel';
+import { Kpi, KpiStrip, Meter } from '@/components/panel/v2';
 
 function badgeEmbedHtml(
   badgeSrc: string,
@@ -102,19 +102,25 @@ export default async function EcoProgramPage() {
     : [];
 
   return (
-    <div className="mx-auto w-full max-w-6xl space-y-10 px-1 pb-12 sm:px-2">
-      <header className="mx-auto max-w-2xl text-center">
-        <div className="mb-4 inline-flex items-center justify-center rounded-2xl border border-emerald-500/25 bg-emerald-500/10 p-3">
-          <Leaf className="h-8 w-8 text-emerald-400" aria-hidden />
-        </div>
-        <h1 className="text-3xl font-bold tracking-tight text-white md:text-4xl">Program EKO</h1>
-        <p className="mt-3 text-sm leading-relaxed text-neutral-400 md:text-base">
-          Zbieraj punkty za ekologiczne działania na hostingu — wspieramy sadzenie drzew i pokazujemy Twój postęp w
-          prosty sposób.
-        </p>
-      </header>
+    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 pb-12">
+      <PanelPageHeader
+        title="Program EKO"
+        description="Zbieraj punkty za ekologiczne działania na hostingu — wspieramy sadzenie drzew i pokazujemy Twój postęp."
+      />
 
-      <EcoTreeProgress points={profile.ecoPoints} pointsPerTree={platform.ecoPointsPerTree} />
+      <KpiStrip>
+        <Kpi label="Twoje punkty" value={profile.ecoPoints} unit="pkt" foot={<span>do wymiany na saldo</span>} />
+        <Kpi
+          label="Do kolejnego drzewa"
+          value={Math.max(0, platform.ecoPointsPerTree - (profile.ecoPoints % platform.ecoPointsPerTree))}
+          unit="pkt"
+          foot={<span>drzewo co {platform.ecoPointsPerTree} pkt</span>}
+        >
+          <Meter pct={((profile.ecoPoints % platform.ecoPointsPerTree) / platform.ecoPointsPerTree) * 100} />
+        </Kpi>
+        <Kpi label="Drzewa łącznie" value={Math.floor(profile.ecoPoints / platform.ecoPointsPerTree)} foot={<span>posadzone z Twoich punktów</span>} />
+        <Kpi label="Przelicznik" value={platform.ecoPointsPer10Credits} unit="pkt = 10 K" foot={<span>wymiana na portfel</span>} />
+      </KpiStrip>
 
       <EcoPointsGuide platform={platform} />
 
