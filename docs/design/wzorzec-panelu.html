@@ -90,6 +90,11 @@ details.more[open] summary .plus{transform:rotate(45deg)}
 .menu svg{width:15px;height:15px;opacity:.7}
 .menu hr{border:0;border-top:1px solid rgba(255,255,255,.08);margin:5px 2px}
 .menu .out{color:#fb7185}
+.menu-mode{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 9px 2px;font-size:13px;color:var(--rail-hi)}
+.menu-mode .seg{background:rgba(255,255,255,.04);border-color:rgba(255,255,255,.1)}
+.menu-mode .seg button{color:#8f9b94;padding:4px 10px}
+.menu-mode .seg button[aria-pressed="true"]{background:rgba(52,229,160,.14);color:#f4f4ee}
+.menu .menu-hint{margin:2px 9px 4px;font-size:11.5px;line-height:1.4;color:#7f8c85}
 /* smaczek: kometa na krawędzi dymka asystenta — nierówne tempo, jak w obecnym panelu */
 @property --spin{syntax:'<angle>';initial-value:0deg;inherits:false}
 .comet{position:relative;isolation:isolate}
@@ -349,10 +354,6 @@ td .s.w{color:var(--warn)} td .s.n{color:var(--muted)}
       <button class="iconbtn menu-btn" type="button" id="menuBtn" aria-label="Menu"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
       <div class="crumb" id="crumb"></div>
       <button class="search" type="button" id="openPal"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span>Szukaj lub zrób coś…</span><kbd>/</kbd></button>
-      <div class="seg" role="group" aria-label="Widok">
-        <button type="button" id="mSimple" aria-pressed="true">Prosty</button>
-        <button type="button" id="mPro" aria-pressed="false">Pełny</button>
-      </div>
       <button class="walletchip" type="button" id="wallet" data-tip="<b>Portfel</b>z niego opłacasz autoskalowanie i dodatki"><span>Portfel</span><b>128,40 zł</b></button>
       <button class="iconbtn" type="button" id="theme" aria-label="Zmień motyw"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9Z"/></svg></button>
     </div>
@@ -446,10 +447,13 @@ function rail(){
   h+='<details class="more"><summary><div class="nav"><div class="label">Więcej <span class="plus">'+ic('plus',12)+'</span></div></div></summary><nav class="nav">'+
     [['Migracje','backup'],['Dodatki','plus'],['VPS / Cloud','svc'],['Reseller (white-label)','grid'],['Kalkulator','overview'],['Program EKO','pulse'],['Program partnerski','card'],['Zespół i dostęp (IAM)','lock'],['E-mail marketing','mail'],['Analityka stron','overview'],['API i integracje','code'],['Baza wiedzy','help'],['Ustawienia','grid']]
     .map(function(x){return '<a href="#">'+ic(x[1])+x[0]+'</a>'}).join('')+'</nav></details>';
+  var pro=app.dataset.mode==='pro';
   h+='</div><div class="me"><div class="menu" id="meMenu" hidden>'+
+    '<div class="menu-mode"><span>Widok panelu</span><div class="seg" role="group" aria-label="Widok panelu"><button type="button" data-mode-set="simple" aria-pressed="'+!pro+'">Prosty</button><button type="button" data-mode-set="pro" aria-pressed="'+pro+'">Pełny</button></div></div>'+
+    '<p class="menu-hint">'+(pro?'Pokazujemy wszystkie szczegóły techniczne.':'Pokazujemy to, co najważniejsze, bez żargonu.')+'</p><hr>'+
     '<a href="#">'+ic('grid')+'Ustawienia konta</a><a href="#">'+ic('lock')+'Bezpieczeństwo i logowanie</a><a href="#">'+ic('svc')+'Zespół i dostęp</a><a href="#">'+ic('mail')+'Powiadomienia</a><button type="button" data-toast="Preferencje cookies">'+ic('shield')+'Preferencje cookies</button><hr>'+
     '<button type="button" class="out" data-toast="Wylogowano — do zobaczenia!">'+ic('ext')+'Wyloguj</button></div>'+
-    '<button type="button" id="meBtn" aria-haspopup="menu" aria-expanded="false"><span class="av">DK</span><span style="min-width:0"><b>Dominik Kowalski</b><small>dominik@example.pl</small></span><span class="chev" style="margin-left:auto;color:var(--rail-dim)">'+ic('chev',14)+'</span></button></div>'+
+    '<button type="button" id="meBtn" aria-haspopup="menu" aria-expanded="false"><span class="av">DK</span><span style="min-width:0"><b>Dominik Kowalski</b><small>dominik@example.pl · widok '+(pro?'pełny':'prosty')+'</small></span><span class="chev" style="margin-left:auto;color:var(--rail-dim)">'+ic('chev',14)+'</span></button></div>'+
     '<div class="foot">Wzorzec ekranu — dane przykładowe</div>';
   document.getElementById('rail').innerHTML=h;
 }
@@ -796,9 +800,9 @@ document.addEventListener('mouseover',waveOn);document.addEventListener('mouseou
 document.addEventListener('focusin',waveOn);document.addEventListener('focusout',waveOff);
 
 /* ================= tryb, motyw, menu ================= */
-function setMode(m){app.dataset.mode=m;document.getElementById('mSimple').setAttribute('aria-pressed',m==='simple');document.getElementById('mPro').setAttribute('aria-pressed',m==='pro');try{localStorage.setItem('vmode',m)}catch(e){}}
-document.getElementById('mSimple').onclick=function(){setMode('simple')};
-document.getElementById('mPro').onclick=function(){setMode('pro')};
+function setMode(m,announce){app.dataset.mode=m;try{localStorage.setItem('vmode',m)}catch(e){}
+  if(announce){render();var mm=document.getElementById('meMenu');if(mm&&announce==='menu')mm.hidden=false;say(m==='pro'?'Widok pełny — wszystkie szczegóły techniczne':'Widok prosty — tylko to, co najważniejsze',false);}}
+document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-mode-set]');if(b){e.stopPropagation();setMode(b.dataset.modeSet,'menu');}},true);
 try{var sm=localStorage.getItem('vmode');if(sm)setMode(sm)}catch(e){}
 document.getElementById('theme').onclick=function(){var r=document.documentElement,dark=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme: dark)').matches;r.dataset.theme=dark?'light':'dark';};
 document.getElementById('wallet').onclick=function(){S.view='hosting';S.section='autoscaling';render();scrollTo(0,0)};
@@ -819,6 +823,7 @@ var cmds=SITES.map(function(s,i){return [s.d,'strona',function(){S.view='site';S
  ['Dodaj konto FTP','ftp',function(){S.view='hosting';S.section='ftp';render()}],
  ['Przywróć kopię zapasową','kopie',function(){S.view='hosting';S.section='backups';render()}],
  ['Zmień wersję PHP','php',null],['Dodaj domenę lub subdomenę','strony',null],['Pobierz ostatnią fakturę','płatności',null],['Zaproś osobę do zespołu','dostęp',null],
+ ['Widok prosty','widok',function(){setMode('simple',1)}],['Widok pełny (szczegóły techniczne)','widok',function(){setMode('pro',1)}],
  ['Dlaczego sklep zwolnił?','asystent',null]]);
 var veil=document.getElementById('veil'),q=document.getElementById('q'),list=document.getElementById('list'),sel=0,rows=[];
 function norm(s){return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/ł/g,'l')}
