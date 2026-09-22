@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
-import { ChevronLeft, Clock, AlertCircle, CheckCircle2, Sparkles } from "lucide-react";
+import { ChevronLeft, Clock, CheckCircle2, Sparkles } from "lucide-react";
+import { StatusPill } from "@/components/panel/v2";
 import { fetchTicketDetail } from "../actions";
 import ClientTicketChat from "./client-ticket-chat";
 import { TicketCsat } from "./ticket-csat";
@@ -18,33 +19,28 @@ export default async function ClientTicketPage(props: { params: Promise<{ id: st
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <Link
-          href="/dashboard/support"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-border/50 bg-background text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
-        >
-          <ChevronLeft className="h-5 w-5" />
+    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
+      <div className="flex min-w-0 flex-wrap items-center gap-2 text-[13.5px] text-muted-foreground">
+        <Link href="/dashboard/support" className="inline-flex items-center gap-1.5 rounded px-1 py-0.5 hover:bg-raised hover:text-foreground">
+          <ChevronLeft className="h-3.5 w-3.5" />
+          Centrum pomocy
         </Link>
-        <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-semibold tracking-tight truncate">
-            {ticket.subject}
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Zgłoszenie #{ticket.id.slice(-8).toUpperCase()} utworzone {format(new Date(ticket.createdAt), "d MMMM yyyy, HH:mm", { locale: pl })}
-          </p>
-        </div>
-        <div className="hidden sm:flex items-center gap-2">
-          <PriorityBadge priority={ticket.priority} />
-          <StatusBadge status={ticket.status} />
-        </div>
+        <span aria-hidden>/</span>
+        <b className="font-mono font-semibold text-foreground">#{ticket.id.slice(-8).toUpperCase()}</b>
       </div>
 
-      <div className="sm:hidden -mt-2 flex items-center gap-2">
-        <PriorityBadge priority={ticket.priority} />
-        <StatusBadge status={ticket.status} />
-      </div>
+      <header>
+        <div className="font-mono text-[11px] font-medium uppercase leading-none tracking-[0.08em] text-muted-foreground">
+          zgłoszenie · {format(new Date(ticket.createdAt), "d MMMM yyyy, HH:mm", { locale: pl })}
+        </div>
+        <h1 className="mb-2 mt-1.5 break-words font-display text-[clamp(24px,3.4vw,34px)] font-extrabold leading-tight tracking-[-0.03em] text-foreground">
+          {ticket.subject}
+        </h1>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <StatusBadge status={ticket.status} />
+          <PriorityBadge priority={ticket.priority} />
+        </div>
+      </header>
 
       <SlaBadge
         slaHours={ticket.supportSlaHours ?? 0}
@@ -54,7 +50,7 @@ export default async function ClientTicketPage(props: { params: Promise<{ id: st
       />
 
       {/* Czat kontener */}
-      <div className="rounded-xl border border-border/50 bg-card overflow-hidden flex flex-col h-[600px] max-h-[70vh]">
+      <div className="flex h-[640px] max-h-[75vh] flex-col overflow-hidden rounded-[10px] border border-line bg-card">
         <ClientTicketChat ticket={ticket} />
       </div>
 
@@ -126,34 +122,8 @@ function PriorityBadge({ priority }: { priority?: string }) {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  if (status === "OPEN") {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1 text-sm font-medium text-white border border-white/20">
-        <AlertCircle className="h-4 w-4" />
-        Zgłoszenie otwarte
-      </span>
-    );
-  }
-  if (status === "IN_PROGRESS") {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-neutral-800 px-3 py-1 text-sm font-medium text-neutral-300 border border-white/10">
-        <Clock className="h-4 w-4" />
-        Rozpatrywane
-      </span>
-    );
-  }
-  if (status === "WAITING_CUSTOMER") {
-    return (
-      <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/10 px-3 py-1 text-sm font-medium text-amber-200 border border-amber-400/30">
-        <Clock className="h-4 w-4" />
-        Czekamy na Twoją odpowiedź
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1 text-sm font-medium text-muted-foreground border border-border">
-      <CheckCircle2 className="h-4 w-4" />
-      Zamknięte
-    </span>
-  );
+  if (status === "OPEN") return <StatusPill tone="data">Przyjęte — czeka na odpowiedź</StatusPill>;
+  if (status === "IN_PROGRESS") return <StatusPill tone="data">Rozpatrujemy</StatusPill>;
+  if (status === "WAITING_CUSTOMER") return <StatusPill tone="warn">Czekamy na Twoją odpowiedź</StatusPill>;
+  return <StatusPill tone="muted">Zamknięte</StatusPill>;
 }
