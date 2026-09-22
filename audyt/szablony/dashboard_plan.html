@@ -139,7 +139,7 @@
     <span id="calc"></span>
   </div>
   <div class="callout">
-    <b>KSeF stoi na końcu świadomie.</b> Decyzja z 2026-08-21: możliwe, że fakturowanie przejmie program księgowy z gotową integracją, zamiast dokończenia własnego modułu. Rozstrzyga <b>PB-13</b> w sprincie 13, domknięcie to sprinty 17–18. Do tego czasu KSeF pozostaje blokerem — odsunięcie go w czasie nie zmienia tego, że bez niego nie wolno sprzedawać.
+    <b>Faktury VAT wystawia program księgowy, dokumenty prawne są na końcu.</b> Decyzja z 2026-09-22 (PB-13, ADR): na start faktury VAT wystawiane są ręcznie w programie księgowym, panel wystawia dokument rozliczeniowy (FAK-01 — zrobione). Własny moduł KSeF jest zamrożony do czasu wyboru biura i integracji po API. Zadania dokumentowe (DPA, regulaminy, umowy) stoją w ostatnich sprintach — najpierw kod.
   </div>
 
   <h2>Narastające godziny i kamienie milowe</h2>
@@ -174,12 +174,22 @@ const totalH = T.reduce((a,t)=>a+t[IDX.h],0);
 const uniq = a => [...new Set(a)];
 const blkIds  = uniq(T.filter(t=>t[IDX.prio]==="BLOKER STARTU").map(t=>t[IDX.id]));
 const bizIds  = uniq(T.filter(t=>t[IDX.prio]==="BLOKER BIZNESOWY").map(t=>t[IDX.id]));
-const ksefIds = ["M-14","M-15","M-16","M-17"];
-const nonKsefMax = Math.max(...T.filter(t=>t[IDX.prio]==="BLOKER STARTU" && !ksefIds.includes(t[IDX.id])).map(t=>t[IDX.sprint]));
-const ksefMax    = Math.max(...T.filter(t=>ksefIds.includes(t[IDX.id])).map(t=>t[IDX.sprint]));
-const nonKsefDate = S.find(s=>s.n===nonKsefMax).do;
-const ksefDate    = S.find(s=>s.n===ksefMax).do;
+// Kamienie milowe liczone z danych, z bezpiecznikiem na pusty zbiór.
+// Do 2026-09-22 stała tu na sztywno lista KSeF (M-14..M-17); po zdjęciu KSeF-u
+// z planu Math.max() z pustej listy dawało -Infinity, S.find() — undefined,
+// a cała strona przestawała się rysować. Brak kamienia to stan, nie wyjątek.
 const lastDate = S[S.length-1].do;
+const koniecSprintu = ids => {
+  const n = T.filter(t=>ids.includes(t[IDX.id])).map(t=>t[IDX.sprint]).filter(Number.isFinite);
+  if (!n.length) return null;
+  const max = Math.max(...n);
+  const s = S.find(x=>x.n===max);
+  return s ? {n:max, data:s.do} : null;
+};
+const blkKod = blkIds.filter(id=>!id.startsWith('P-'));   // blokery w kodzie
+const blkDok = blkIds.filter(id=>id.startsWith('P-'));    // blokery dokumentowe
+const kamKod = koniecSprintu(blkKod);
+const kamDok = koniecSprintu(blkDok);
 const restH = P.rest.reduce((a,r)=>a+r[7],0);
 const NS = S.length;
 document.getElementById('sub').textContent =
@@ -200,8 +210,10 @@ document.getElementById('kpis').innerHTML = [
   ['', NS, 'sprintów do startu', `${totalH} h z ${NS*CAP} h pojemności`],
   ['crit', blkIds.length, 'blokerów z audytu', `plus ${bizIds.length} blokery biznesowe spoza audytu`],
   ['', uniq(T.map(t=>t[IDX.id])).length, 'zadań', `${uniq(T.filter(t=>t[IDX.typ]==='audyt').map(t=>t[IDX.id])).length} z audytu, ${bizIds.length+T.filter(t=>t[IDX.typ]!=='audyt'&&t[IDX.prio]!=='BLOKER BIZNESOWY').length} spoza`],
-  ['ok', nonKsefDate, 'blokery bez KSeF zamknięte', `koniec sprintu ${nonKsefMax} — produkt przestaje tracić pieniądze i dane`],
-  ['', lastDate, 'decyzja GO', `KSeF domknięty ${ksefDate}, realnie GO w połowie stycznia 2027`],
+  ['ok', kamKod ? kamKod.data : '✓', 'blokery w kodzie zamknięte',
+   kamKod ? `koniec sprintu ${kamKod.n} — ${blkKod.join(', ')}` : 'żaden bloker w kodzie nie jest otwarty'],
+  ['', lastDate, 'decyzja GO',
+   kamDok ? `dokumenty (${blkDok.join(', ')}) domknięte ${kamDok.data}` : 'bez otwartych blokerów dokumentowych'],
 ].map(k=>`<div class="kpi ${k[0]}"><div class="n" style="${String(k[1]).length>6?'font-size:20px':''}">${k[1]}</div><div class="l">${k[2]}</div><div class="h">${k[3]}</div></div>`).join('');
 
 // ---------- postęp ----------
@@ -282,8 +294,9 @@ const SPRINT_PELNY = new Set(PG.sprinty.filter(s => s.pozycje > 0 && s.zrobione 
   }
   S.forEach((s,i)=>{ if(i%2===0||i===S.length-1)
     g+=`<text class="axlab" x="${x(i)}" y="${Hh-mB+18}" text-anchor="middle">S${s.n}</text>`; });
-  const ms=[[nonKsefMax-1,'blokery bez KSeF',mT+12],[13,'funkcje-widma',mT+12],
-            [ksefMax-1,'KSeF domknięty',mT+12],[NS-1,'decyzja GO',Hh-mB+34]];
+  const ms=[kamKod && [kamKod.n-1,'blokery w kodzie',mT+12],
+            kamDok && [kamDok.n-1,'dokumenty',mT+12],
+            [NS-1,'decyzja GO',Hh-mB+34]].filter(Boolean);
   let m='';
   ms.forEach(([i,lab,ly])=>{
     m+=`<line class="ms" x1="${x(i)}" y1="${mT}" x2="${x(i)}" y2="${Hh-mB}"/>`
@@ -291,7 +304,7 @@ const SPRINT_PELNY = new Set(PG.sprinty.filter(s => s.pozycje > 0 && s.zrobione 
   });
   const last=cum.length-1;
   document.getElementById('burn').innerHTML =
-   `<svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="Narastające godziny w 18 sprintach">
+   `<svg viewBox="0 0 ${W} ${Hh}" role="img" aria-label="Narastające godziny w ${S.length} sprintach">
       ${g}${m}
       <path class="area" d="${area}"/><path class="ln" d="${line}"/>
       <circle class="dot" cx="${x(last)}" cy="${y(cum[last])}" r="5"/>
