@@ -2,9 +2,10 @@
 
 import { useActionState, useCallback, useEffect, useState, useTransition } from 'react';
 import Link from 'next/link';
-import { AlertCircle, ArrowRightLeft, Check, Loader2, Wallet } from 'lucide-react';
+import { AlertCircle, Check, Loader2, Wallet } from 'lucide-react';
 import type { PlanChangePreviewDto } from '@verris/contracts';
 import { CREDIT_DISCLAIMER, formatCredits } from '@/lib/credits';
+import { Kpi, KpiStrip } from '@/components/panel/v2';
 import {
   changePlanAction,
   previewPlanChangeAction,
@@ -151,17 +152,12 @@ export function PlanChangeForm({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-2xl border border-white/5 bg-[#0a0a0a] p-6">
-        <h2 className="text-lg font-bold text-white flex items-center gap-2">
-          <ArrowRightLeft className="h-5 w-5 text-sky-400" />
-          Aktualny plan
-        </h2>
-        <p className="mt-2 text-white font-semibold">{currentPlanName}</p>
-        <p className="text-xs text-neutral-500 mt-1">
-          Okres rozliczeniowy: {interval === 'MONTH' ? 'miesięczny' : 'roczny'} · płatność:{' '}
-          {paymentSource === 'WALLET' ? 'portfel' : 'karta (Stripe)'}
-        </p>
-      </div>
+      <KpiStrip>
+        <Kpi label="Plan teraz" value={<span className="text-[24px]">{currentPlanName}</span>} foot={<span>aktualny</span>} />
+        <Kpi label="Okres" value={<span className="text-[24px]">{interval === 'MONTH' ? 'Miesięczny' : 'Roczny'}</span>} foot={<span>rozliczenie</span>} />
+        <Kpi label="Płatność" value={<span className="text-[24px]">{paymentSource === 'WALLET' ? 'Portfel' : 'Karta'}</span>} foot={<span>{paymentSource === 'WALLET' ? 'z salda Verris' : 'Stripe'}</span>} />
+        <Kpi label="Plany do wyboru" value={targetPlans.length} foot={<span>poniżej</span>} />
+      </KpiStrip>
 
       <form action={formAction} className="rounded-2xl border border-white/5 bg-[#0a0a0a] p-6 space-y-6">
         <input type="hidden" name="targetPlanId" value={effectivePlanId} />

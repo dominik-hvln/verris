@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { AlertCircle, ArrowLeft, ArrowRightLeft } from 'lucide-react';
+import { AlertCircle, ArrowLeft } from 'lucide-react';
+import { PanelPageHeader } from '@/components/panel';
 import type { PlanChangePreviewDto, ServiceDetailsDto } from '@verris/contracts';
 import { ApiError } from '@/lib/api';
 import { getServiceDetails, listPublicPlans } from '../../data';
@@ -54,39 +55,38 @@ export default async function PlanChangePage({
   }
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in duration-300">
-      <div className="flex items-center gap-4">
-        <Link
-          href="/dashboard/services"
-          className="p-3 border border-white/5 rounded-2xl bg-[#0a0a0a] hover:bg-[#121212] transition-colors text-neutral-400 hover:text-white"
-        >
-          <ArrowLeft className="h-5 w-5" />
+    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
+      <div className="flex min-w-0 flex-wrap items-center gap-2 text-[13.5px] text-muted-foreground">
+        <Link href="/dashboard/services" className="inline-flex items-center gap-1.5 rounded px-1 py-0.5 hover:bg-raised hover:text-foreground">
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Usługi
         </Link>
-        <div>
-          <h1 className="text-3xl md:text-4xl font-extrabold text-white flex items-center gap-3">
-            <ArrowRightLeft className="w-8 h-8 text-sky-400" />
-            Zmiana planu
-          </h1>
-          {service && (
-            <p className="text-neutral-400 mt-2 text-md">
-              {service.account?.domain ? (
-                <>
-                  Domena{' '}
-                  <span className="text-white font-mono">{service.account.domain}</span>
-                </>
-              ) : (
-                <span className="font-mono text-neutral-500">{service.id}</span>
-              )}
-            </p>
-          )}
-        </div>
+        {service ? (
+          <>
+            <span aria-hidden>/</span>
+            <Link href={`/dashboard/services/${id}`} className="rounded px-1 py-0.5 hover:bg-raised hover:text-foreground">
+              {service.plan.name}
+            </Link>
+          </>
+        ) : null}
+        <span aria-hidden>/</span>
+        <b className="font-semibold text-foreground">Zmiana planu</b>
       </div>
 
+      <PanelPageHeader
+        title="Zmiana planu"
+        description={
+          service
+            ? `Teraz: ${service.plan.name}${service.account?.domain ? ` · ${service.account.domain}` : ''}. Różnicę w cenie przeliczamy proporcjonalnie do końca okresu.`
+            : undefined
+        }
+      />
+
       {loadError || !service ? (
-        <div className="rounded-2xl border border-rose-500/30 bg-rose-500/10 p-6 text-rose-100 flex items-center gap-3">
-          <AlertCircle className="h-5 w-5" />
-          <p>{loadError ?? 'Usługa niedostępna.'}</p>
-        </div>
+        <p className="m-0 flex items-center gap-2 rounded-[10px] bg-[color-mix(in_srgb,var(--crit)_12%,transparent)] px-4 py-3 text-sm text-crit">
+          <AlertCircle className="h-4 w-4" />
+          {loadError ?? 'Usługa niedostępna.'}
+        </p>
       ) : (
         <PlanChangeForm
           subscriptionId={service.id}
