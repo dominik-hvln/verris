@@ -113,6 +113,12 @@ export function OnboardingWizard({ snapshot }: { snapshot: OnboardingSnapshot })
           </li>
         ))}
       </ul>
+      {p.nieznane > 0 ? (
+        <p className="m-0 flex items-center gap-2 border-t border-line px-4 py-2.5 font-mono text-[11px] text-muted-foreground">
+          <span className="block h-3 w-3 flex-none rounded-full border border-dashed border-line-strong" />
+          {p.nieznane === 1 ? 'tego kroku nie sprawdzamy automatycznie, licznik go pomija' : `${p.nieznane} kroków nie sprawdzamy automatycznie, licznik je pomija`}
+        </p>
+      ) : null}
     </Box>
   );
 }
