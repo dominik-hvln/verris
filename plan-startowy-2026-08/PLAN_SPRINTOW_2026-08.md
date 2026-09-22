@@ -239,19 +239,19 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `E-15` | Rekordy SPF — kreator | 6 | WYSOKA | services.controller.ts:114 |
-| `E-16` | Rekordy DKIM — konfiguracja | 6 | WYSOKA | services.controller.ts:114 |
-| `E-17` | Rekord DMARC — konfiguracja | 6 | WYSOKA | services.controller.ts:114 |
-| `E-05` | Zmiana quoty ISTNIEJĄCEJ skrzynki | 6 | WYSOKA | hosting-email-actions.ts:41 zachowuje starą quotę |
-| `M-26` | Usunięcie zapisanej karty przez klienta | 6 | WYSOKA | billing.controller.ts:38 tylko GET, brak DELETE |
+| `E-15` | Rekordy SPF — kreator | 6 | WYSOKA | 2026-09-23 D1: deliverability/mail-auth.ts (buildMailAuthChecks) + deliverability.service.ts (strefa DA + delegacja NS); UI app/dashboard/email/delive |
+| `E-16` | Rekordy DKIM — konfiguracja | 6 | WYSOKA | 2026-09-23 D1: mail-auth.ts dkimCheck — selektory w publicznym DNS, a gdy brak: klucz <sel>._domainkey ze strefy DA do skopiowania u zewnętrznego DNS; |
+| `E-17` | Rekord DMARC — konfiguracja | 6 | WYSOKA | 2026-09-23 D1: mail-auth.ts dmarcCheck (brak / p=none / kilka rekordów) + lib/dmarc.ts tuneDmarc (polityka + adres raportów) w deliverability-panel.ts |
+| `E-05` | Zmiana quoty ISTNIEJĄCEJ skrzynki | 6 | WYSOKA | 2026-09-23 D1: POST /services/:id/hosting-email/quota (ZmienRozmiarSkrzynkiDto 10–102400 MB) → directadmin.service changeHostingEmailQuota (CMD_API_PO |
+| `M-26` | Usunięcie zapisanej karty przez klienta | 6 | WYSOKA | 2026-09-23 D1: DELETE /billing/payment-methods/:id (ParseUUIDPipe) → billing.service deleteMyPaymentMethod: Stripe detach, usunięcie wiersza, zerowani |
 
 **Definicja ukończenia**
 
-- `E-15` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
-- `E-16` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
-- `E-17` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
-- `E-05` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `M-26` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `E-15` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `E-16` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `E-17` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `E-05` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `M-26` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.
 
 **Ryzyko sprintu.** Brak SPF/DKIM w panelu to najczestsza przyczyna "moja poczta trafia do spamu". Backend dziala — to glownie podpiecie osieroconego komponentu. | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze. | PRZEPLANOWANIE 2026-09-22 (3): decyzja wlasciciela — przed startem design (PB-15/16), asystent v1 (PB-17) i tickety v2 (PB-18); plan wydluza sie o 3 sprinty.
