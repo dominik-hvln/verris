@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { Button } from '@verris/ui';
 import {
   changeHostingEmailPasswordAction,
+  changeHostingEmailQuotaAction,
   createHostingEmailAction,
   deleteHostingEmailAction,
   fetchHostingEmailAction,
@@ -26,6 +27,7 @@ import { fetchConnectionInfoAction } from '@/app/dashboard/services/[id]/hosting
 import { HostingTabShell } from '@/components/hosting/HostingTabShell';
 import { AccessList, Kpi, KpiStrip, Meter } from '@/components/panel/v2';
 import MailExtras from '@/components/hosting/MailExtras';
+import { DeliverabilityPanel } from '@/app/dashboard/email/deliverability-panel';
 import { createHostingSsoUrlAction } from '@/app/dashboard/services/[id]/hosting-sso-actions';
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { useHostingLinks } from '@/components/hosting/hosting-links-context';
@@ -91,6 +93,28 @@ export default function MailTab({ serviceId }: Props) {
   const [pwEditing, setPwEditing] = useState<string | null>(null);
   const [pwValue, setPwValue] = useState('');
   const [pwSaving, setPwSaving] = useState(false);
+  // E-05 — zmiana rozmiaru skrzynki
+  const [quotaEditing, setQuotaEditing] = useState<string | null>(null);
+  const [quotaValue, setQuotaValue] = useState('');
+  const [quotaSaving, setQuotaSaving] = useState(false);
+
+  const onChangeQuota = async (email: string) => {
+    const mb = Number.parseInt(quotaValue, 10);
+    if (!Number.isFinite(mb) || mb < 10) {
+      toast.error('Rozmiar skrzynki to co najmniej 10 MB.');
+      return;
+    }
+    setQuotaSaving(true);
+    const res = await changeHostingEmailQuotaAction({ subscriptionId: serviceId, email, quotaMb: mb });
+    setQuotaSaving(false);
+    if (!res.ok) {
+      toast.error('Nie udało się zmienić rozmiaru', { description: daErrorMessage(res.error) });
+      return;
+    }
+    toast.success(`Nowy rozmiar skrzynki: ${mb} MB`, { description: email });
+    setQuotaEditing(null);
+    void load();
+  };
 
   const load = useCallback(async () => {
     setError(null);
@@ -360,9 +384,18 @@ export default function MailTab({ serviceId }: Props) {
                   {box.email}
                 </span>
                 <div className="flex shrink-0 items-center gap-3">
-                  <span className="text-xs text-neutral-500">
+                  <button
+                    type="button"
+                    data-tip="Zmień rozmiar skrzynki"
+                    onClick={() => {
+                      setQuotaEditing((cur) => (cur === box.email ? null : box.email));
+                      setQuotaValue(box.quotaMb != null ? String(box.quotaMb) : '1024');
+                      setPwEditing(null);
+                    }}
+                    className="whitespace-nowrap text-xs text-neutral-400 underline decoration-dotted underline-offset-2 hover:text-white"
+                  >
                     {box.quotaMb != null ? `${box.quotaMb} MB` : 'bez limitu'}
-                  </span>
+                  </button>
                   <button
                     type="button"
                     onClick={() => void openWebmailSso()}
@@ -377,6 +410,7 @@ export default function MailTab({ serviceId }: Props) {
                     onClick={() => {
                       setPwEditing((cur) => (cur === box.email ? null : box.email));
                       setPwValue('');
+                      setQuotaEditing(null);
                     }}
                     className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-white/5 text-neutral-300 hover:bg-white/10"
                   >
@@ -397,6 +431,30 @@ export default function MailTab({ serviceId }: Props) {
                   </button>
                 </div>
               </div>
+              {quotaEditing === box.email ? (
+                <div className="flex flex-wrap items-end gap-2 px-4 pb-3">
+                  <label className="space-y-1">
+                    <span className="text-[11px] text-neutral-400">Nowy rozmiar (MB)</span>
+                    <input
+                      value={quotaValue}
+                      inputMode="numeric"
+                      onChange={(e) => setQuotaValue(e.target.value.replace(/\D/g, ''))}
+                      className="w-32 rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-white/30"
+                    />
+                  </label>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={quotaSaving || !quotaValue}
+                    onClick={() => void onChangeQuota(box.email)}
+                    className="h-9 gap-1.5 bg-white text-black hover:bg-neutral-200 text-xs"
+                  >
+                    {quotaSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+                    Zapisz rozmiar
+                  </Button>
+                  <span className="basis-full text-[11px] text-neutral-500">Poczta w skrzynce zostaje. Zmniejszenie poniżej zajętego miejsca zablokuje odbiór nowych wiadomości.</span>
+                </div>
+              ) : null}
               {pwEditing === box.email ? (
                 <div className="flex items-end gap-2 px-4 pb-3">
                   <label className="flex-1 space-y-1">
@@ -436,6 +494,8 @@ export default function MailTab({ serviceId }: Props) {
       )}
 
       <MailExtras serviceId={serviceId} />
+
+      <DeliverabilityPanel serviceId={serviceId} />
 
       <p className="mt-3 flex items-start gap-2 text-[11px] text-neutral-500">
         <Server className="h-3.5 w-3.5 shrink-0 mt-0.5" />

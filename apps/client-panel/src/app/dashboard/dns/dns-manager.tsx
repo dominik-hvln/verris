@@ -18,7 +18,7 @@ const PLACEHOLDER: Record<RecType, string> = {
   AAAA: '2001:db8::1',
   CNAME: 'cel.przyklad.pl.',
   MX: 'mail.przyklad.pl.',
-  TXT: 'v=spf1 include:_spf.verris.pl ~all',
+  TXT: 'v=spf1 a mx ~all',
   SRV: 'weight port target (np. 1 443 sip.przyklad.pl.)',
   NS: 'ns1.przyklad.pl.',
   CAA: '0 issue "letsencrypt.org"',
@@ -65,7 +65,7 @@ export function DnsManager({
         { name: 'autodiscover', type: 'CNAME', value: 'autodiscover.outlook.com.' },
       ] },
       { id: 'spf', label: 'SPF (poczta Verris)', desc: 'Rekord TXT SPF', records: [
-        { name: '@', type: 'TXT', value: 'v=spf1 include:_spf.verris.pl ~all' },
+        { name: '@', type: 'TXT', value: 'v=spf1 a mx ~all' },
       ] },
       { id: 'dmarc', label: 'DMARC (ochrona poczty)', desc: 'Rekord _dmarc TXT', records: [
         { name: '_dmarc', type: 'TXT', value: `v=DMARC1; p=quarantine; rua=mailto:dmarc@${d}` },
@@ -89,6 +89,7 @@ export function DnsManager({
 
   const onDelete = (r: HostingDnsRecordDto) => {
     if (!domain) return;
+    if (!window.confirm(`Usunąć rekord ${r.type} ${r.name} (${r.value})? Tej zmiany nie da się cofnąć.`)) return;
     setError(null);
     startTransition(async () => {
       const res = await deleteDnsRecordAction({

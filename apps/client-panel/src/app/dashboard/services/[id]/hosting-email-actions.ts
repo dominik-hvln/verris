@@ -56,6 +56,23 @@ export async function changeHostingEmailPasswordAction(input: {
   }
 }
 
+/** E-05 — zmiana rozmiaru istniejącej skrzynki (hasło bez zmian). */
+export async function changeHostingEmailQuotaAction(input: {
+  subscriptionId: string;
+  email: string;
+  quotaMb: number;
+}): Promise<EmailActionResult> {
+  try {
+    await apiFetch(`/services/${input.subscriptionId}/hosting-email/quota`, {
+      method: 'POST',
+      body: JSON.stringify({ email: input.email, quotaMb: input.quotaMb }),
+    });
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: errMsg(err) };
+  }
+}
+
 /** P-1 — delete a mailbox. */
 export async function deleteHostingEmailAction(
   subscriptionId: string,

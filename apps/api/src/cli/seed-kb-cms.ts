@@ -208,7 +208,7 @@ Rekordy **TXT** przechowują m.in. SPF, DKIM i DMARC — kluczowe dla dostarczal
 \`\`\`text
 Typ:    TXT
 Nazwa:  @
-Wartość: v=spf1 include:_spf.verris.pl ~all
+Wartość: v=spf1 a mx ~all
 \`\`\`
 
 ## Propagacja
@@ -500,7 +500,7 @@ SPF, DKIM i DMARC potwierdzają, że wiadomości z Twojej domeny są autentyczne
 Rekord TXT wskazujący serwery uprawnione do wysyłki w imieniu domeny:
 
 \`\`\`text
-Typ: TXT   Nazwa: @   Wartość: v=spf1 include:_spf.verris.pl ~all
+Typ: TXT   Nazwa: @   Wartość: v=spf1 a mx ~all
 \`\`\`
 
 ## DKIM

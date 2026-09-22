@@ -40,6 +40,7 @@ import { StagingService } from './staging.service';
 import { BackupScheduleService } from './backup-schedule.service';
 import { SetMonitoringDto } from './dto/site-monitor.dto';
 import { UsunRekordDnsDto, UtworzRekordDnsDto } from './dto/hosting-dns.dto';
+import { UtworzSkrzynkeDto, ZmienHasloSkrzynkiDto, ZmienRozmiarSkrzynkiDto } from './dto/hosting-email.dto';
 import { EcoReportService } from '../eco/eco-report.service';
 import { DeliverabilityService } from '../deliverability/deliverability.service';
 import { PhpService } from './php.service';
@@ -430,7 +431,7 @@ export class UserServicesController {
   async createHostingEmail(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { email: string; password: string; quotaMb?: number },
+    @Body() body: UtworzSkrzynkeDto,
   ) {
     return this.directAdmin.createHostingEmailAccount(id, user.userId, body);
   }
@@ -439,9 +440,19 @@ export class UserServicesController {
   async changeHostingEmailPassword(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { email: string; password: string },
+    @Body() body: ZmienHasloSkrzynkiDto,
   ) {
     return this.directAdmin.changeHostingEmailPassword(id, user.userId, body);
+  }
+
+  // E-05 — zmiana rozmiaru istniejącej skrzynki (bez usuwania i odtwarzania).
+  @Post(':id/hosting-email/quota')
+  async changeHostingEmailQuota(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: ZmienRozmiarSkrzynkiDto,
+  ) {
+    return this.directAdmin.changeHostingEmailQuota(id, user.userId, body);
   }
 
   @Delete(':id/hosting-email/:email')

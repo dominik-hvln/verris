@@ -1285,6 +1285,31 @@ export class DirectAdminService {
     return { ok: true as const };
   }
 
+  /** E-05 — nowy rozmiar skrzynki; hasło zostaje (puste passwd w action=modify). */
+  async changeHostingEmailQuota(
+    subscriptionId: string,
+    userId: string,
+    input: { email: string; quotaMb: number },
+  ) {
+    const [user, domain] = input.email.split('@');
+    if (!user || !domain) throw new BadRequestException('Email must be in user@domain format');
+    // ponytail: pominięcie passwd przy modify zachowuje hasło wg dokumentacji DA —
+    // potwierdzić na żywym węźle przy D3 (sprint 18).
+    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_POP', {
+      action: 'modify',
+      user,
+      domain,
+      quota: String(input.quotaMb),
+    });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_EMAIL_QUOTA_CHANGED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, email: input.email, quotaMb: input.quotaMb },
+    });
+    return { ok: true as const };
+  }
+
   /* ===================== Poczta: forwardery (aliasy) ===================== */
   async listHostingEmailForwarders(subscriptionId: string, userId: string) {
     const domain = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
