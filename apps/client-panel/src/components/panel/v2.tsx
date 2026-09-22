@@ -111,6 +111,33 @@ export function comet(k: 'a' | 'b' | 'c', d: number, dl: number, o = 0.6): CSSPr
   return { ['--v2-k' as string]: `v2-comet-${k}`, ['--v2-d' as string]: `${d}s`, ['--v2-dl' as string]: `${dl}s`, ['--v2-o' as string]: o };
 }
 
+
+const MONTHS: Record<string, number> = { sty: 0, jan: 0, feb: 1, lut: 1, mar: 2, apr: 3, kwi: 3, may: 4, maj: 4, jun: 5, cze: 5, jul: 6, lip: 6, aug: 7, sie: 7, sep: 8, wrz: 8, oct: 9, paz: 9, nov: 10, lis: 10, dec: 11, gru: 11 };
+
+/** Data kopii z nazwy pliku DirectAdmina (te same kształty, co w API). Czysta funkcja — testowana. */
+export function parseBackupDate(fileName: string): number | null {
+  const lower = (fileName ?? '').toLowerCase();
+  const iso = lower.match(/(20\d{2})[-_.]?(\d{2})[-_.]?(\d{2})/);
+  if (iso) return Date.UTC(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]));
+  const named = lower.match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[-_.]?(\d{1,2})[-_.]?(20\d{2})/);
+  if (named && MONTHS[named[1]!] != null) return Date.UTC(Number(named[3]), MONTHS[named[1]!]!, Number(named[2]));
+  const epoch = lower.match(/\b(1\d{9})\b/);
+  if (epoch) return Number(epoch[1]) * 1000;
+  return null;
+}
+
+/** Ostatnie `n` dni: czy tego dnia jest kopia. Zwraca od najstarszego do dziś. */
+export function backupDays(fileNames: string[], n = 14, today = new Date()): boolean[] {
+  const have = new Set(
+    fileNames
+      .map(parseBackupDate)
+      .filter((t): t is number => t != null)
+      .map((t) => new Date(t).toISOString().slice(0, 10)),
+  );
+  const base = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate());
+  return Array.from({ length: n }, (_, i) => have.has(new Date(base - (n - 1 - i) * 86_400_000).toISOString().slice(0, 10)));
+}
+
 /** Rząd kratek (np. domeny, kopie z 14 dni) — każda z dymkiem, poblask od boku. */
 export function Squares({ items }: { items: { tone: Tone; tip: string }[] }) {
   return (

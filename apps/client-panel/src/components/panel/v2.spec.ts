@@ -1,4 +1,4 @@
-import { barHeights, bucketize, fmtMb, lastDaysLabels, niceStep, placeTip, tip } from './v2';
+import { backupDays, barHeights, bucketize, fmtMb, lastDaysLabels, niceStep, parseBackupDate, placeTip, tip } from './v2';
 
 describe('PB-15 klocki v2', () => {
   it('barHeights skaluje do maksimum i nie gubi zer', () => {
@@ -52,5 +52,20 @@ describe('placeTip', () => {
   });
   it('przy lewej krawędzi nie wychodzi poza ekran', () => {
     expect(placeTip({ x: 5, y: 300, bottom: 320 }, { w: 300, h: 40 }, view).left).toBe(8);
+  });
+});
+
+describe('backupDays', () => {
+  const today = new Date('2026-09-22T10:00:00Z');
+  it('zaznacza dni, w których jest kopia', () => {
+    const days = backupDays(['backup-2026-09-22-user.tar.zst', 'backup-Sep-20-2026.tar.gz'], 4, today);
+    expect(days).toEqual([false, true, false, true]);
+  });
+  it('bez kopii — same puste dni', () => {
+    expect(backupDays([], 3, today)).toEqual([false, false, false]);
+  });
+  it('czyta datę z nazwy pliku', () => {
+    expect(parseBackupDate('user.admin.2026-01-05.tar.gz')).toBe(Date.UTC(2026, 0, 5));
+    expect(parseBackupDate('brak-daty.tar.gz')).toBeNull();
   });
 });

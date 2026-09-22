@@ -52,9 +52,11 @@ import {
   StackBar,
   StatusPill,
   Switch,
+  backupDays,
   bucketize,
   comet,
   fmtMb,
+  lastDaysLabels,
   tip,
   type Tone,
 } from '@/components/panel/v2';
@@ -310,13 +312,10 @@ export default function ServiceOverviewV2({
           }
         >
           <Squares
-            items={[
-              { tone: health?.checks.backupFresh === false ? 'warn' : 'data', tip: tip('Kopie na koncie', health?.checks.backupFresh === false ? 'ostatnia kopia jest nieświeża' : 'świeże') },
-              {
-                tone: backups?.offsite ? (backups.offsite.protected ? 'data' : 'warn') : 'muted',
-                tip: tip('Kopia poza serwerem', backups?.offsite?.lastRunAt ? `ostatnio ${date(backups.offsite.lastRunAt)}` : 'brak danych'),
-              },
-            ]}
+            items={backupDays(backups?.rows.map((r) => r.fileName) ?? []).map((ok, i, arr) => ({
+              tone: ok ? ('data' as const) : ('muted' as const),
+              tip: tip(ok ? 'Kopia zapasowa' : 'Brak kopii', lastDaysLabels(arr.length)[i] ?? ''),
+            }))}
           />
         </Kpi>
       </KpiStrip>
