@@ -93,7 +93,7 @@ function uruchom(s: Scena) {
     },
   });
   const log = existsSync(wywolania) ? readFileSync(wywolania, 'utf8') : '';
-  return { kod: r.status, wyjscie: r.stdout + r.stderr, wywolania: log.split('\n').filter(Boolean) };
+  return { kod: r.status, wyjscie: r.stdout + r.stderr, wywolania: log.split('\n').filter(Boolean), sec };
 }
 
 /** Jak `uruchom`, ale `iptables -L` odpowiada sukcesem — łańcuch DOCKER-USER istnieje. */
@@ -255,6 +255,21 @@ describe('SEC-09 — kontenery nie sięgają do metadanych chmury', () => {
       r.wywolania.some((w) => /^iptables -A VERRIS_FWD_METADANE -d 169\.254\.0\.0\/16 -j REJECT/.test(w)),
     ).toBe(true);
     expect(r.wywolania.some((w) => /^iptables -I DOCKER-USER 1 -j VERRIS_FWD_METADANE$/.test(w))).toBe(true);
+  });
+});
+
+describe('X-41 — pomiar kontenerów ma własną datę początku', () => {
+  it('--obserwuj-kontenery zakłada zbiór pomiaru kontenerów i zapisuje, od kiedy mierzy', () => {
+    process.env.EGRESS_ATRAPA_DOCKER = '1';
+    try {
+      const r = uruchom({ zmierzone: null, wAllowliscie: [], pomiarOdDni: null, argumenty: ['--obserwuj-kontenery'] });
+      expect(r.kod).toBe(0);
+      expect(r.wywolania.some((w) => /^ipset create verris_egress_seen_fwd hash:ip,port/.test(w))).toBe(true);
+      expect(readFileSync(join(r.sec, 'egress-pomiar-kontenery-od'), 'utf8').trim()).toMatch(/^\d{10}$/);
+      expect(r.wywolania.some((w) => /-j (DROP|REJECT)/.test(w))).toBe(false);
+    } finally {
+      delete process.env.EGRESS_ATRAPA_DOCKER;
+    }
   });
 });
 

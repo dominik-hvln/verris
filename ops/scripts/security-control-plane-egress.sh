@@ -55,6 +55,8 @@ CHAIN_SEEN="VERRIS_EGRESS_SEEN"
 # Od kiedy trwa pomiar — bez tej daty „w zbiorze nie ma celu X" może znaczyć
 # „pomiar trwa od pięciu minut".
 POMIAR_OD_PLIK="${POMIAR_OD_PLIK:-$SECURITY_DIR/egress-pomiar-od}"
+# X-41 — osobna data dla kontenerów: ich pomiar rusza dopiero z --obserwuj-kontenery.
+POMIAR_FWD_OD_PLIK="${POMIAR_FWD_OD_PLIK:-$SECURITY_DIR/egress-pomiar-kontenery-od}"
 POMIAR_MIN_DNI="${POMIAR_MIN_DNI:-7}"
 WYMUS_STRICT=0
 POMIAR_RAPORT=0
@@ -515,6 +517,9 @@ apply_forward_observe() {
   # który ma być nieszkodliwy.
   if command -v ipset >/dev/null 2>&1; then
     zbuduj_zbior_pomiaru "$SEEN_SET_FWD"
+    if [ ! -f "$POMIAR_FWD_OD_PLIK" ]; then
+      run "date +%s > '$POMIAR_FWD_OD_PLIK'"
+    fi
     run "iptables -A '$CHAIN_FWD_OBS' -m conntrack --ctstate NEW -p tcp -j SET --add-set '$SEEN_SET_FWD' dst,dst --exist"
     run "iptables -A '$CHAIN_FWD_OBS' -m conntrack --ctstate NEW -p udp -j SET --add-set '$SEEN_SET_FWD' dst,dst --exist"
   else
@@ -591,13 +596,16 @@ raport_pomiaru() {
         done
     echo
   done
-  local od
-  od="$(cat "$POMIAR_OD_PLIK" 2>/dev/null || true)"
-  if [[ "$od" =~ ^[0-9]+$ ]]; then
-    echo "Pomiar od: $(date -u -d "@$od" +%F 2>/dev/null || echo "$od") ($(( ($(date +%s) - od) / 86400 )) d)"
-  else
-    echo "Pomiar od: nieznane ($POMIAR_OD_PLIK)"
-  fi
+  local od plik etykieta
+  for plik in "$POMIAR_OD_PLIK" "$POMIAR_FWD_OD_PLIK"; do
+    if [ "$plik" = "$POMIAR_OD_PLIK" ]; then etykieta="Pomiar hosta od"; else etykieta="Pomiar kontenerów od"; fi
+    od="$(cat "$plik" 2>/dev/null || true)"
+    if [[ "$od" =~ ^[0-9]+$ ]]; then
+      echo "${etykieta}: $(date -u -d "@$od" +%F 2>/dev/null || echo "$od") ($(( ($(date +%s) - od) / 86400 )) d)"
+    else
+      echo "${etykieta}: nieznane ($plik)"
+    fi
+  done
   echo "ALLOW: tak = w allowliście; bogon = sieć prywatna/link-local, już odcinana przez VERRIS_EGRESS_BOGON (nie liczy się do strict)"
   echo "Cele 80/443 hosta spoza allowlisty (to odciąłby strict):"
   local spoza
