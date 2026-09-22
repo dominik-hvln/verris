@@ -800,11 +800,11 @@ select optgroup {
     color: var(--muted-foreground);
   }
 }
-/* Skróty z wielokropkiem chowają treść — w tabelach i listach pokazujemy całość. */
-.v2-skin td .truncate,
-.v2-skin li .truncate,
-.v2-skin td.truncate {
+/* Skróty z wielokropkiem chowają treść — w całej treści panelu pokazujemy całość
+   (długie adresy i identyfikatory łamiemy). Wyjątek: `.v2-one-line` (np. chip portfela). */
+.v2-skin .truncate:not(.v2-one-line) {
   overflow: visible;
   white-space: normal;
   text-overflow: clip;
+  overflow-wrap: anywhere;
 }
