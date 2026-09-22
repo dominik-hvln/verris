@@ -7,7 +7,7 @@
  * Dymek: atrybut `data-tip="tytuł\nszczegół"` + jeden <TipLayer/> w layoucie.
  */
 
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { cx } from './cx';
 
@@ -27,14 +27,13 @@ export function tip(title: string, detail?: string): string {
 
 /** Jeden dymek na całą aplikację — nasłuchuje `[data-tip]` (mysz i fokus). */
 export function TipLayer() {
-  const [state, setState] = useState<{ x: number; y: number; lines: string[] } | null>(null);
+  const [state, setState] = useState<TipState | null>(null);
   useEffect(() => {
     const show = (e: Event) => {
       const el = (e.target as Element | null)?.closest?.('[data-tip]');
       if (!el) return setState(null);
       const r = el.getBoundingClientRect();
-      const x = Math.min(Math.max(r.left + r.width / 2, 90), window.innerWidth - 90);
-      setState({ x, y: r.top, lines: (el.getAttribute('data-tip') ?? '').split('\n') });
+      setState({ x: r.left + r.width / 2, y: r.top, bottom: r.bottom, lines: (el.getAttribute('data-tip') ?? '').split('\n') });
     };
     const hide = () => setState(null);
     document.addEventListener('mouseover', show);
@@ -67,14 +66,38 @@ export function TipLayer() {
   );
 }
 
-function TipBubble({ state }: { state: { x: number; y: number; lines: string[] } }) {
+type TipState = { x: number; y: number; bottom: number; lines: string[] };
+
+/** Pozycja dymka w granicach ekranu: nad elementem, a gdy brak miejsca — pod nim. Czysta funkcja — testowana. */
+export function placeTip(
+  anchor: { x: number; y: number; bottom: number },
+  size: { w: number; h: number },
+  view: { w: number; h: number },
+  gap = 8,
+  margin = 8,
+): { left: number; top: number } {
+  const left = Math.min(Math.max(anchor.x - size.w / 2, margin), Math.max(margin, view.w - size.w - margin));
+  const above = anchor.y - gap - size.h;
+  const top = above >= margin ? above : Math.min(anchor.bottom + gap, view.h - size.h - margin);
+  return { left, top };
+}
+
+function TipBubble({ state }: { state: TipState }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ left: number; top: number } | null>(null);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    setPos(placeTip(state, { w: el.offsetWidth, h: el.offsetHeight }, { w: window.innerWidth, h: window.innerHeight }));
+  }, [state]);
   return (
     <div
+      ref={ref}
       role="tooltip"
-      className="pointer-events-none fixed z-[80] -translate-x-1/2 -translate-y-[calc(100%+8px)] whitespace-nowrap rounded-[5px] bg-foreground px-2.5 py-1.5 font-mono text-xs leading-snug text-background"
-      style={{ left: state.x, top: state.y }}
+      className="pointer-events-none fixed z-[80] w-max max-w-[min(320px,calc(100vw-16px))] rounded-[5px] bg-foreground px-2.5 py-1.5 font-mono text-xs leading-snug text-background"
+      style={pos ? { left: pos.left, top: pos.top } : { left: 0, top: 0, visibility: 'hidden' }}
     >
-      <b className="block font-display text-[13px]">{state.lines[0]}</b>
+      <span className="block font-display text-[13px]">{state.lines[0]}</span>
       {state.lines.slice(1).join(' · ')}
     </div>
   );

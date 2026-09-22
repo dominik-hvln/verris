@@ -1,4 +1,4 @@
-import { barHeights, bucketize, fmtMb, lastDaysLabels, niceStep, tip } from './v2';
+import { barHeights, bucketize, fmtMb, lastDaysLabels, niceStep, placeTip, tip } from './v2';
 
 describe('PB-15 klocki v2', () => {
   it('barHeights skaluje do maksimum i nie gubi zer', () => {
@@ -36,5 +36,21 @@ describe('niceStep', () => {
     expect(niceStep(12)).toBe(5);
     expect(niceStep(3.6)).toBe(1);
     expect(niceStep(8000)).toBe(2000);
+  });
+});
+
+describe('placeTip', () => {
+  const view = { w: 1000, h: 800 };
+  it('nad elementem, wyśrodkowany', () => {
+    expect(placeTip({ x: 500, y: 300, bottom: 320 }, { w: 100, h: 40 }, view)).toEqual({ left: 450, top: 252 });
+  });
+  it('przy górnej krawędzi (np. portfel w pasku) — pod elementem', () => {
+    expect(placeTip({ x: 500, y: 10, bottom: 40 }, { w: 100, h: 40 }, view).top).toBe(48);
+  });
+  it('przy prawej krawędzi nie wychodzi poza ekran', () => {
+    expect(placeTip({ x: 990, y: 300, bottom: 320 }, { w: 300, h: 40 }, view).left).toBe(692);
+  });
+  it('przy lewej krawędzi nie wychodzi poza ekran', () => {
+    expect(placeTip({ x: 5, y: 300, bottom: 320 }, { w: 300, h: 40 }, view).left).toBe(8);
   });
 });

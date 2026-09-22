@@ -8,7 +8,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { ArrowRightLeft, Gauge, Plus, Server } from 'lucide-react';
 import { fetchServiceKindAction } from '@/app/dashboard/services/[id]/hosting-service-actions';
 import { fetchHostingDomainsAction } from '@/app/dashboard/services/[id]/hosting-domains-action';
@@ -24,7 +24,11 @@ export function ServiceNav({ serviceId, name, domainsCount }: { serviceId: strin
   const [kind, setKind] = useState<string | null>(kindHint);
   const [domains, setDomains] = useState<string[]>([]);
   const [simple, setSimple] = useState(false);
-  const tab = isTabId(sp.get('tab')) ? sp.get('tab') : 'overview';
+  const pathname = usePathname();
+  const base = `/dashboard/services/${serviceId}`;
+  const siteOpen = pathname.startsWith(`${base}/sites/`) ? decodeURIComponent(pathname.slice(base.length + 7)) : null;
+  // Na podstronach (strona/domena, plan, autoskalowanie) żadna zakładka nie jest aktywna.
+  const tab = pathname !== base ? null : isTabId(sp.get('tab')) ? sp.get('tab') : 'overview';
 
   useEffect(() => {
     let off = false;
@@ -93,7 +97,7 @@ export function ServiceNav({ serviceId, name, domainsCount }: { serviceId: strin
                   {t.id === 'overview' && !email ? (
                     <div className="mb-1.5 ml-3.5 mt-0.5 border-l border-white/[0.06] pl-1.5">
                       {domains.map((d, i) => (
-                        <Link key={d} href={href('domains')} scroll={false} title={d} className={`${ROW} ${ROW_OFF} py-[5px] text-[13.5px]`}>
+                        <Link key={d} href={`${base}/sites/${encodeURIComponent(d)}`} title={d} aria-current={siteOpen === d ? 'page' : undefined} className={`${ROW} ${siteOpen === d ? ROW_ON : ROW_OFF} py-[5px] text-[13.5px]`}>
                           <span className="v2-breathe h-1.5 w-1.5 flex-none rounded-full bg-verris-mint" style={{ ['--v2-i' as string]: i }} />
                           <span className="truncate">{d}</span>
                         </Link>

@@ -9,6 +9,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { ChevronRight, Loader2, Plus, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import type {
@@ -98,6 +99,7 @@ export default function ServiceOverviewV2({
   onNavigate: (tab: string) => void;
 }) {
   const { links } = useHostingLinks();
+  const router = useRouter();
   const [service, setService] = useState<ServiceDetailsDto | null>(null);
   const [health, setHealth] = useState<ServiceHealthSummaryDto | null>(null);
   const [usage, setUsage] = useState<HostingUsageResponse | null>(null);
@@ -353,8 +355,8 @@ export default function ServiceOverviewV2({
                         key={d.name}
                         tabIndex={0}
                         className="group cursor-pointer hover:bg-raised/50"
-                        onClick={() => onNavigate('domains')}
-                        onKeyDown={(e) => e.key === 'Enter' && onNavigate('domains')}
+                        onClick={() => router.push(`/dashboard/services/${serviceId}/sites/${encodeURIComponent(d.name)}`)}
+                        onKeyDown={(e) => e.key === 'Enter' && router.push(`/dashboard/services/${serviceId}/sites/${encodeURIComponent(d.name)}`)}
                       >
                         <td className="border-t border-line px-3 py-3 font-semibold text-foreground">{d.name}</td>
                         <td className="border-t border-line px-3 py-3 text-muted-foreground">{d.name === primary ? 'domena główna' : 'domena dodatkowa'}</td>

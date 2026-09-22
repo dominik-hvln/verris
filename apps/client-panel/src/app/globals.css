@@ -432,6 +432,9 @@ select optgroup {
   isolation: isolate;
 }
 .v2-comet::after {
+  /* Ten sam ruch co SpinBorder (dawny przycisk „Wsparcie 24/7"): stały, liniowy
+     obrót poświaty z długim ogonem, bez wygaszania. Każdy element ma własne
+     tempo i fazę (comet()), więc kilka obwodów „jedzie" naraz, nie w rytm. */
   content: "";
   position: absolute;
   inset: 0;
@@ -441,43 +444,28 @@ select optgroup {
   z-index: 2;
   background: conic-gradient(
     from var(--v2-spin),
-    transparent 0 62%,
-    color-mix(in srgb, var(--v2-c, var(--data)) 50%, transparent) 80%,
-    var(--v2-c2, var(--data-hi)) 88%,
-    transparent 93%
+    color-mix(in srgb, var(--v2-c, var(--verris-mid)) 25%, transparent) 0%,
+    color-mix(in srgb, var(--v2-c, var(--verris-mint)) 60%, transparent) 40%,
+    var(--v2-c2, var(--verris-tip)) 72%,
+    transparent 88%
   );
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
   mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
-  opacity: var(--v2-o, 0.6);
-  animation: var(--v2-k, v2-comet-a) var(--v2-d, 12s) cubic-bezier(0.55, 0.1, 0.35, 0.95) var(--v2-dl, 0s) infinite;
+  opacity: var(--v2-o, 0.4);
+  transition: opacity 0.5s;
+  animation: v2-spin-rot var(--v2-d, 10s) linear var(--v2-dl, 0s) infinite;
+}
+.v2-comet:hover::after {
+  opacity: 1;
 }
 .v2-comet-soft {
-  --v2-c: rgba(244, 244, 238, 0.5);
-  --v2-c2: rgba(244, 244, 238, 0.9);
+  --v2-c: rgba(244, 244, 238, 0.6);
+  --v2-c2: var(--verris-paper);
 }
-@keyframes v2-comet-a {
-  0% { --v2-spin: 0deg; opacity: 0; }
-  8% { opacity: var(--v2-o, 0.6); }
-  45% { --v2-spin: 150deg; }
-  60% { --v2-spin: 190deg; }
-  88% { opacity: var(--v2-o, 0.6); }
-  100% { --v2-spin: 360deg; opacity: 0; }
-}
-@keyframes v2-comet-b {
-  0% { --v2-spin: 220deg; opacity: 0; }
-  12% { opacity: var(--v2-o, 0.6); }
-  50% { --v2-spin: 40deg; }
-  70% { --v2-spin: -20deg; opacity: var(--v2-o, 0.6); }
-  100% { --v2-spin: -140deg; opacity: 0; }
-}
-@keyframes v2-comet-c {
-  0% { --v2-spin: 90deg; opacity: 0; }
-  20% { opacity: 0; }
-  30% { opacity: var(--v2-o, 0.6); }
-  65% { --v2-spin: 330deg; }
-  80% { opacity: var(--v2-o, 0.6); }
-  100% { --v2-spin: 450deg; opacity: 0; }
+@keyframes v2-spin-rot {
+  from { --v2-spin: 90deg; }
+  to { --v2-spin: 450deg; }
 }
 
 .v2-breathe {
@@ -573,3 +561,99 @@ select optgroup {
     animation: none !important;
   }
 }
+
+/*
+ * PB-16 — skórka dla ekranów sprzed wzorca. Stare zakładki mają zaszyte
+ * klasy (border-white/10, bg-[#0a0a0a], emerald/amber/rose…). Zamiast
+ * przepisywać ~40 plików, w <main> mapujemy je na tokeny wzorca.
+ * Bez warstwy (unlayered) — wygrywa z utilities, dlatego hovery są niżej jawnie.
+ * ponytail: mapa klas, nie refaktor — nowe ekrany piszemy od razu na tokenach.
+ */
+.v2-skin .border-white\/5,
+.v2-skin .border-white\/10,
+.v2-skin .border-white\/\[0\.06\],
+.v2-skin .border-white\/\[0\.08\] { border-color: var(--line); }
+.v2-skin .border-white\/15,
+.v2-skin .border-white\/20 { border-color: var(--line-strong); }
+.v2-skin .bg-\[\#0a0a0a\],
+.v2-skin .bg-\[\#050505\],
+.v2-skin .bg-neutral-900,
+.v2-skin .bg-neutral-950 { background-color: var(--card); }
+.v2-skin .bg-black\/20,
+.v2-skin .bg-black\/30,
+.v2-skin .bg-black\/40,
+.v2-skin .bg-black\/50 { background-color: var(--background); }
+.v2-skin .bg-white\/5,
+.v2-skin .bg-white\/10 { background-color: var(--raised); }
+.v2-skin .rounded-2xl,
+.v2-skin .rounded-xl { border-radius: 10px; }
+.v2-skin .rounded-lg { border-radius: 7px; }
+
+.v2-skin .text-white,
+.v2-skin .text-neutral-100 { color: var(--foreground); }
+.v2-skin .text-neutral-200,
+.v2-skin .text-neutral-300 { color: var(--verris-body); }
+.v2-skin .text-neutral-400,
+.v2-skin .text-neutral-500,
+.v2-skin .text-neutral-600 { color: var(--muted-foreground); }
+
+.v2-skin .text-emerald-200,
+.v2-skin .text-emerald-300,
+.v2-skin .text-emerald-400,
+.v2-skin .text-sky-200,
+.v2-skin .text-sky-300,
+.v2-skin .text-violet-200,
+.v2-skin .text-violet-300,
+.v2-skin .text-indigo-300 { color: var(--data-hi); }
+.v2-skin .bg-emerald-400\/10,
+.v2-skin .bg-emerald-500\/10,
+.v2-skin .bg-sky-400\/10,
+.v2-skin .bg-violet-400\/\[0\.06\],
+.v2-skin .bg-violet-500\/10 { background-color: var(--data-soft); }
+.v2-skin .border-emerald-400\/30,
+.v2-skin .border-emerald-500\/30,
+.v2-skin .border-sky-400\/30,
+.v2-skin .border-violet-400\/20,
+.v2-skin .border-amber-400\/30,
+.v2-skin .border-amber-500\/25,
+.v2-skin .border-amber-500\/30,
+.v2-skin .border-rose-400\/30,
+.v2-skin .border-rose-500\/30 { border-color: transparent; }
+
+.v2-skin .text-amber-100,
+.v2-skin .text-amber-200,
+.v2-skin .text-amber-300,
+.v2-skin .text-amber-300\/80 { color: var(--warn); }
+.v2-skin .bg-amber-400\/10,
+.v2-skin .bg-amber-500\/10 { background-color: var(--warn-soft); }
+
+.v2-skin .text-rose-100,
+.v2-skin .text-rose-200,
+.v2-skin .text-rose-300,
+.v2-skin .text-rose-400 { color: var(--crit); }
+.v2-skin .bg-rose-400\/10,
+.v2-skin .bg-rose-500\/10 { background-color: color-mix(in srgb, var(--crit) 12%, transparent); }
+
+/* główny przycisk = akcent wzorca */
+.v2-skin .bg-emerald-600,
+.v2-skin .bg-emerald-500,
+.v2-skin .bg-white {
+  background-color: var(--accent);
+  color: var(--accent-foreground);
+  font-weight: 600;
+}
+.v2-skin .bg-emerald-600 .text-white,
+.v2-skin .bg-emerald-600.text-white,
+.v2-skin .bg-emerald-500.text-white,
+.v2-skin .bg-white.text-black { color: var(--accent-foreground); }
+
+/* hovery/focusy (muszą być jawnie — powyższe reguły są poza warstwą) */
+.v2-skin .hover\:bg-white\/5:hover,
+.v2-skin .hover\:bg-white\/10:hover,
+.v2-skin .hover\:bg-white\/\[0\.04\]:hover { background-color: var(--raised); }
+.v2-skin .hover\:text-white:hover { color: var(--foreground); }
+.v2-skin .hover\:bg-emerald-500:hover,
+.v2-skin .hover\:bg-neutral-200:hover { background-color: var(--data-hi); color: var(--accent-foreground); }
+.v2-skin .hover\:bg-rose-500\/10:hover { background-color: color-mix(in srgb, var(--crit) 12%, transparent); }
+.v2-skin .hover\:text-rose-300:hover { color: var(--crit); }
+.v2-skin .focus\:border-white\/30:focus { border-color: var(--data); }

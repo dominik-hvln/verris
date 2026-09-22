@@ -65,7 +65,7 @@ export function WalletBadge({
   return (
     <Link
       href="/dashboard/billing"
-      title={tooltip}
+      aria-label={`Portfel: ${tooltip}`}
       data-tip={tooltip}
       className={`inline-flex max-w-[46vw] items-center gap-2 whitespace-nowrap rounded-md border px-2.5 py-1.5 text-[13px] text-muted-foreground transition-colors ${tone}`}
     >
