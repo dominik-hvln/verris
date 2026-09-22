@@ -300,19 +300,19 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `A-25` | Ręczne zawieszenie usługi przez operatora | 6 | WYSOKA | subscriptions.admin.controller.ts:192 |
-| `A-26` | Ręczne odwieszenie usługi przez operatora | 6 | WYSOKA | subscriptions.admin.controller.ts:210 |
-| `N-07` | Ręczne tworzenie incydentu na status page | 6 | WYSOKA | product-ops.admin.controller.ts:371; brak UI tworzenia |
-| `N-14` | Cordon wysyłki poczty (auto-blokada spamu) | 6 | WYSOKA | outbound-cordon.admin.controller.ts:20,25,32; zero „cordon” w admin-panel |
-| `H-22` | Panel odtwarzania w widocznym miejscu | 6 | WYSOKA | panel off-site siedzi w zakładce „Usage”, nie „Kopie zapasowe” (page.tsx:74,128,313,319) |
+| `A-25` | Ręczne zawieszenie usługi przez operatora | 6 | WYSOKA | 2026-09-23 D1: admin-panel subscriptions/[id]/suspend-form.tsx + suspend-actions.ts → POST /admin/subscriptions/:id/suspend (powód, notatka, potwierdz |
+| `A-26` | Ręczne odwieszenie usługi przez operatora | 6 | WYSOKA | 2026-09-23 D1: ten sam formularz — odwieszenie z opcją obciążenia za odnowienie (chargeRenewal) |
+| `N-07` | Ręczne tworzenie incydentu na status page | 6 | WYSOKA | 2026-09-23 D2: admin-panel status/incidents/incident-compose.tsx → POST /admin/product-ops/incidents; przycisk „Rozwiąż” (PATCH incidents/:id status=R |
+| `N-14` | Cordon wysyłki poczty (auto-blokada spamu) | 6 | WYSOKA | 2026-09-23: admin-panel /deliverability (Blokady wysyłki poczty, link w menu) → GET/POST /admin/deliverability/cordons; lista z e-mailem i nazwą klien |
+| `H-22` | Panel odtwarzania w widocznym miejscu | 6 | WYSOKA | 2026-09-23: client-panel BackupsTab.tsx — sekcja „Kopie poza serwerem” (HostingOffsitePanel) w zakładce Kopie zapasowe; zdublowany panel przywracania  |
 
 **Definicja ukończenia**
 
-- `A-25` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
-- `A-26` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
-- `N-07` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
-- `N-14` — Panel wywołuje istniejący endpoint; akcja zostawia wpis w logu audytu. Test potwierdza, że guard nadal blokuje nieuprawnionych.
-- `H-22` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `A-25` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `A-26` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `N-07` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `N-14` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `H-22` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.
 
 **Ryzyko sprintu.** Bez tego pierwszy incydent obslugujesz curlem o drugiej w nocy. Pierwsze cztery pozycje to endpointy, ktore juz dzialaja. | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze.
