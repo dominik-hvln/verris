@@ -65,7 +65,7 @@ function uruchom(s: Scena) {
       `echo "iptables $*" >> "${wywolania}"`,
       'case "$1" in',
       '  -C) exit 1 ;;',
-      '  -L) exit 1 ;;',
+      `  -L) ${process.env.EGRESS_ATRAPA_DOCKER === '1' ? 'exit 0' : 'exit 1'} ;;`,
       `  -S) grep -- "^iptables -A $2 " "${wywolania}" | sed 's/^iptables //'; exit 0 ;;`,
       'esac',
       'exit 0',
@@ -94,6 +94,16 @@ function uruchom(s: Scena) {
   });
   const log = existsSync(wywolania) ? readFileSync(wywolania, 'utf8') : '';
   return { kod: r.status, wyjscie: r.stdout + r.stderr, wywolania: log.split('\n').filter(Boolean) };
+}
+
+/** Jak `uruchom`, ale `iptables -L` odpowiada sukcesem — łańcuch DOCKER-USER istnieje. */
+function uruchomZDockerem() {
+  process.env.EGRESS_ATRAPA_DOCKER = '1';
+  try {
+    return uruchom({ zmierzone: null, wAllowliscie: [], pomiarOdDni: null, argumenty: [] });
+  } finally {
+    delete process.env.EGRESS_ATRAPA_DOCKER;
+  }
 }
 
 const DROP_STRICT = /-A VERRIS_EGRESS_STRICT .*-j DROP .*verris-strict-egress-host/;
@@ -232,6 +242,19 @@ describe('SEC-05 — pomiar jest zapisem, nie próbką', () => {
 
   it('łańcuch pomiaru jest wpięty w OUTPUT', () => {
     expect(r.wywolania.some((w) => /^iptables -I OUTPUT 1 -j VERRIS_EGRESS_SEEN$/.test(w))).toBe(true);
+  });
+});
+
+describe('SEC-09 — kontenery nie sięgają do metadanych chmury', () => {
+  it('przebieg domyślny odrzuca ruch kontenerów do 169.254.0.0/16 i wpina to w DOCKER-USER', () => {
+    // Atrapa odpowiada na `-L` kodem 1 („brak łańcucha"), więc tu podmieniamy
+    // tylko tę odpowiedź: DOCKER-USER istnieje, jak na produkcji.
+    const r = uruchomZDockerem();
+    expect(r.kod).toBe(0);
+    expect(
+      r.wywolania.some((w) => /^iptables -A VERRIS_FWD_METADANE -d 169\.254\.0\.0\/16 -j REJECT/.test(w)),
+    ).toBe(true);
+    expect(r.wywolania.some((w) => /^iptables -I DOCKER-USER 1 -j VERRIS_FWD_METADANE$/.test(w))).toBe(true);
   });
 });
 

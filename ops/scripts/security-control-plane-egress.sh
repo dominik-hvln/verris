@@ -26,6 +26,7 @@ CHAIN_BOGON="VERRIS_EGRESS_BOGON"
 # X-41 — obserwacja ruchu KONTENERÓW. Osobny łańcuch, bo wisi w innym miejscu
 # niż cała reszta: w DOCKER-USER (FORWARD), nie w OUTPUT.
 CHAIN_FWD_OBS="VERRIS_FWD_OBSERW"
+CHAIN_FWD_META="VERRIS_FWD_METADANE"
 # Jedna nazwa zbioru dla --strict i dla zwolnienia z licznika anty-skanu (X-36).
 # Wcześniej siedziała jako `local setname` wewnątrz apply_strict_allowlist i nie
 # dało się jej użyć nigdzie indziej.
@@ -605,6 +606,33 @@ raport_pomiaru() {
   echo "=== KONIEC RAPORTU ==="
 }
 
+# ---------------------------------------------------------------------------
+# SEC-09 — kontenery nie sięgają do usługi metadanych chmury.
+# ---------------------------------------------------------------------------
+#
+# Sprawdzone 2026-09-22 z kontenera verris-api-1:
+#   fetch("http://169.254.169.254/hetzner/v1/metadata/hostname") → "Panel"
+# Host był od tego odcięty (VERRIS_EGRESS_BOGON w OUTPUT), kontenery nie —
+# ich ruch idzie przez FORWARD. Każda funkcja, która pobiera adres podany
+# przez klienta (webhooki, sondy statusu, migrator), mogła więc zostać
+# użyta do odczytu metadanych serwera: user-data, klucze SSH, sieć (SSRF).
+#
+# Osobny łańcuch, bo VERRIS_FWD_OBSERW ma z założenia nie blokować niczego
+# (strażnik obserwacja-nie-blokuje.spec.ts). REJECT zamiast DROP: aplikacja
+# dostaje od razu odmowę zamiast wisieć do limitu czasu.
+# Cały 169.254.0.0/16 (link-local) — kontener nie ma tam nic do załatwienia.
+apply_fwd_metadane() {
+  if ! iptables -L DOCKER-USER -n >/dev/null 2>&1; then
+    log "WARN: brak łańcucha DOCKER-USER (Docker nie działa?) — pomijam blokadę metadanych"
+    return 0
+  fi
+  run "iptables -N '$CHAIN_FWD_META' 2>/dev/null || iptables -F '$CHAIN_FWD_META'"
+  run "iptables -A '$CHAIN_FWD_META' -d 169.254.0.0/16 -j REJECT -m comment --comment 'verris-metadane'"
+  run "iptables -A '$CHAIN_FWD_META' -j RETURN"
+  run "iptables -C DOCKER-USER -j '$CHAIN_FWD_META' 2>/dev/null || iptables -I DOCKER-USER 1 -j '$CHAIN_FWD_META'"
+  log "Kontenery → 169.254.0.0/16 (metadane chmury): REJECT (SEC-09)"
+}
+
 persist_rules() {
   if command -v netfilter-persistent >/dev/null 2>&1; then
     run "netfilter-persistent save"
@@ -645,6 +673,7 @@ apply_bogon_drop
 apply_egress_log
 apply_antiscan
 apply_egress_seen
+apply_fwd_metadane
 if [ "$STRICT" -eq 1 ]; then
   apply_strict_allowlist
 fi
