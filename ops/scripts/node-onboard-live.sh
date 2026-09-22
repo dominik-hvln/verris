@@ -137,6 +137,11 @@ require_bundle_scripts() {
     log_fail "Brak $SCRIPT_DIR/lib/migration-input-guard.sh (walidacja danych migracji)"
     missing=1
   fi
+  # NODE-02 — bez tej biblioteki bramki etapów nie mają czym zatrzymać instalacji.
+  if [ ! -f "$SCRIPT_DIR/lib/przerwij-po-etapie.sh" ]; then
+    log_fail "Brak $SCRIPT_DIR/lib/przerwij-po-etapie.sh (bramki etapów onboardu)"
+    missing=1
+  fi
   [ "$missing" -eq 0 ] || {
     echo "Skopiuj cały katalog (razem z lib/): scp -r ops/scripts/ root@WĘZEŁ:/root/verris/"
     exit 1
@@ -289,7 +294,11 @@ ensure_da_ip() {
       | /usr/local/directadmin/directadmin c 2>/dev/null; then
       log_ok "directadmin c add IP $PUBLIC_IP"
     else
-      log_warn "Nie udało się automatycznie dodać IP — dodaj ręcznie w DA Admin → IP Management"
+      # NODE-02: [FAIL], nie [WARN]. Węzeł bez zarejestrowanego IP odrzuca
+      # każde zakładanie konta („A valid IP was not provided" — od tego
+      # komunikatu zaczęło się Z-18). Ostrzeżenie przepuszczało taki węzeł
+      # dalej, aż do „[OK] Węzeł gotowy" w checkliście.
+      log_fail "Nie udało się automatycznie dodać IP — dodaj ręcznie w DA Admin → IP Management i uruchom onboard ponownie"
       log_info "  echo -e 'action=add\\nvalue=$PUBLIC_IP\\netmask=255.255.255.255' | directadmin c"
     fi
   fi
@@ -392,10 +401,17 @@ main() {
 
   require_root
   require_bundle_scripts
+  # shellcheck source=lib/przerwij-po-etapie.sh
+  . "$SCRIPT_DIR/lib/przerwij-po-etapie.sh"
+
+  # NODE-02 — etapy-bramki zatrzymują instalację przy pierwszym [FAIL].
   preflight_stack
+  przerwij_po_etapie "preflight stosu"
   run_security_hardening
+  przerwij_po_etapie "hardening"
   require_verris_conf
   ensure_da_ip
+  przerwij_po_etapie "DirectAdmin — IP i pakiety"
   run_live_readiness
   print_admin_checklist
 }

@@ -105,7 +105,7 @@ Ustalenia z passu adwersaryjnego plus CI. Każda z tych pozycji jest albo dziur�
 - `Z-06` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-18` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-21` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `X-23` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `X-23` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-24` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-25` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-26` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
@@ -172,7 +172,7 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 
 - `DEV-01` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `DEP-01` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `ENV-01` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `ENV-01` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-50` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-51` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `SEC-07` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
@@ -208,14 +208,14 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
 | `Z-18` | Prawdziwa przyczyna błędu provisioningu nie ginie po drodze (część) | 2 | BLOKER STARTU | apps/api/src/subscriptions/provisioning-error.ts — BladEtapuProvisioningu (etap, przyczyna, message z doklejoną przyczyną); provisioning-queue.service |
-| `NODE-02` | `main()` nie sprawdza kodów powrotu | 6 | WYSOKA | odczyt obu skryptów — `log_fail` ustawia `FAIL=1`, brak sprawdzenia returnów w `main` |
+| `NODE-02` | `main()` nie sprawdza kodów powrotu | 6 | WYSOKA | ops/scripts/lib/przerwij-po-etapie.sh — przerwij_po_etapie zamienia zebrane [FAIL] w exit 1; node-onboard-live.sh main() — bramka po preflight_stack,  |
 | `J-01` | LiteSpeed / serwer o wysokiej wydajności | 6 | WYSOKA | decyzja infrastrukturalna, poza kodem panelu |
 | `PB-02` | Onboarding produkcyjnego węzła #1 (EX63) | 16 | WYSOKI | Pełny przebieg node-onboard-live.sh na docelowym serwerze, z konfiguracją backupu off-site jako krokiem obowiązkowym. |
 
 **Definicja ukończenia**
 
 - `Z-18` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
-- `NODE-02` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `NODE-02` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `J-01` — Stan zweryfikowany na produkcji z timestampem (poziom D3), wynik zapisany w repo.
 - `PB-02` — Węzeł przechodzi wszystkie 14 checków live-readiness. /etc/verris-backup.conf istnieje, pierwszy backup off-site wykonany i zaraportowany do control-plane.
 - **Cały sprint** — `docs/zadania/` uzupełnione dla każdej pozycji, `docs/sprinty/SPRINT-06.md` napisane, `audyt/dane/macierz.csv` zaktualizowana, widoki przebudowane.

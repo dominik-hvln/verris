@@ -73,6 +73,11 @@ require_scripts() {
       missing=1
     fi
   done
+  # NODE-02 — bez tej biblioteki bramka po preflighcie nie ma czym zatrzymać.
+  if [ ! -f "$SCRIPT_DIR/lib/przerwij-po-etapie.sh" ]; then
+    log_fail "Brak $SCRIPT_DIR/lib/przerwij-po-etapie.sh — skopiuj cały katalog razem z lib/"
+    missing=1
+  fi
   [ "$missing" -eq 0 ] || exit 1
   chmod +x "$SCRIPT_DIR"/*.sh 2>/dev/null || true
   log_ok "Skrypty w $SCRIPT_DIR"
@@ -321,7 +326,13 @@ main() {
   require_root
   require_verris_conf
   require_scripts
+  # shellcheck source=lib/przerwij-po-etapie.sh
+  . "$SCRIPT_DIR/lib/przerwij-po-etapie.sh"
+
   preflight_stack
+  # NODE-02 — brak python3/curl zgłaszał [FAIL] i instalacja agenta ruszała
+  # mimo to. Preflight jest bramką; weryfikacja na końcu zbiera wszystko naraz.
+  przerwij_po_etapie "preflight"
   install_task_agent
   run_hosting_profile
   install_default_hosting_page
