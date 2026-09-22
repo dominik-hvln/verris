@@ -1,29 +1,14 @@
 'use client';
 
+/**
+ * Strona usługi. PB-15: sekcje usługi są w menu bocznym (components/panel/service-nav.tsx),
+ * zakładka siedzi w adresie (?tab=), więc tu zostaje ścieżka + treść zakładki.
+ */
+
 import React, { useEffect, useState } from 'react';
-import {
-  Globe,
-  Database,
-  Mail,
-  Shield,
-  Box,
-  ArrowLeft,
-  Rocket,
-  FolderOpen,
-  Activity,
-  LayoutDashboard,
-  Gauge,
-  ArrowRightLeft,
-  Receipt,
-  Terminal,
-  Clock,
-  FolderKanban,
-  Archive,
-  Wand2,
-  Wrench,
-} from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import DomainsTab from '@/components/hosting/DomainsTab';
 import DatabasesTab from '@/components/hosting/DatabasesTab';
@@ -39,7 +24,6 @@ import PhpTab from '@/components/hosting/PhpTab';
 import FtpTab from '@/components/hosting/FtpTab';
 import CronTab from '@/components/hosting/CronTab';
 import BackupsTab from '@/components/hosting/BackupsTab';
-import SiteBuilderTab from '@/components/hosting/SiteBuilderTab';
 import WebToolsTab from '@/components/hosting/WebToolsTab';
 import UsageTab from '@/components/hosting/UsageTab';
 import ServiceOverviewTab from '@/components/hosting/ServiceOverviewTab';
@@ -50,71 +34,24 @@ import ServiceConnectionCard from '@/components/hosting/ServiceConnectionCard';
 import { HostingLinksProvider } from '@/components/hosting/hosting-links-context';
 import { MobileTabStrip } from '@/components/panel';
 import { fetchServiceKindAction } from '@/app/dashboard/services/[id]/hosting-service-actions';
-import { fetchHostingDomainsAction } from '@/app/dashboard/services/[id]/hosting-domains-action';
-
-const TABS = [
-  { id: 'overview', label: 'Przegląd', icon: LayoutDashboard },
-  { id: 'subscription', label: 'Subskrypcja', icon: Receipt },
-  { id: 'domains', label: 'Domeny & DNS', icon: Globe },
-  { id: 'databases', label: 'Bazy MySQL', icon: Database },
-  { id: 'mail', label: 'Poczta', icon: Mail },
-  { id: 'files', label: 'Pliki', icon: FolderOpen },
-  { id: 'php', label: 'Wersja PHP', icon: Terminal },
-  { id: 'ssl', label: 'SSL', icon: Shield },
-  { id: 'apps', label: 'Aplikacje', icon: Globe },
-  // Kreator stron tymczasowo ukryty (komponent i kod pozostają — wystarczy przywrócić ten wpis).
-  // { id: 'builder', label: 'Kreator stron', icon: Wand2 },
-  { id: 'webtools', label: 'Narzędzia WWW', icon: Wrench },
-  { id: 'ftp', label: 'Konta FTP', icon: FolderKanban },
-  { id: 'cron', label: 'Cron', icon: Clock },
-  { id: 'backups', label: 'Kopie zapasowe', icon: Archive },
-  { id: 'waf', label: 'WAF', icon: Shield },
-  { id: 'monitoring', label: 'Monitoring', icon: Activity },
-  { id: 'staging', label: 'Staging', icon: Box },
-  { id: 'deploy', label: 'Deploy', icon: Rocket },
-  { id: 'usage', label: 'Usage', icon: Activity },
-] as const;
-
-type TabId = (typeof TABS)[number]['id'];
-
-/** PB-15 — grupy sekcji w bocznym pasku usługi (wzorzec: docs/design/wzorzec-panelu.html). */
-const NAV_GROUPS: { label: string; ids: TabId[] }[] = [
-  { label: 'Usługa', ids: ['overview', 'subscription'] },
-  { label: 'Domeny i poczta', ids: ['domains', 'mail', 'ssl'] },
-  { label: 'Pliki i dane', ids: ['files', 'databases', 'ftp', 'backups'] },
-  { label: 'Narzędzia', ids: ['php', 'webtools', 'apps', 'cron', 'staging', 'deploy', 'waf', 'monitoring', 'usage'] },
-];
+import { SIMPLE_MODE_KEY, TABS, isTabId, visibleTabIds, type TabId } from './tabs';
 
 export default function HostingManagerPage() {
   const params = useParams() as { id: string };
   const searchParams = useSearchParams();
-  // Pozwala wejść prosto w konkretną zakładkę (np. ze starych tras / linków):
-  // /dashboard/services/<id>?tab=files
-  const initialTab = ((): TabId => {
-    const t = searchParams.get('tab');
-    return t && TABS.some((tab) => tab.id === t) ? (t as TabId) : 'overview';
-  })();
-  const [activeTab, setActiveTab] = useState<TabId>(initialTab);
+  const router = useRouter();
+  const pathname = usePathname();
 
-  // P-1b — usługa POCZTY nie ma hostingu WWW: pokazujemy tylko zakładki istotne
-  // dla poczty. PERF-1 — typ usługi bierzemy najpierw z parametru URL (?kind=…),
-  // który lista usług dokleja do linku „Zarządzaj" — dzięki temu właściwy zestaw
-  // zakładek jest gotowy NATYCHMIAST, bez ciężkiego /services/:id (live health).
+  // PERF-1 — typ z ?kind= (lista usług dokleja go do linku) = właściwy zestaw zakładek od razu.
   const kindHint = ((): 'HOSTING' | 'EMAIL' | null => {
     const k = searchParams.get('kind');
     return k === 'EMAIL' || k === 'HOSTING' ? k : null;
   })();
   const [productKind, setProductKind] = useState<'HOSTING' | 'EMAIL'>(kindHint ?? 'HOSTING');
-  // Mając hint z URL traktujemy typ jako rozpoznany od razu (zero migania).
-  // Bez hinta (deep-link) dobieramy typ lekkim endpointem :id/kind i do tego
-  // czasu pokazujemy neutralny szkielet nawigacji zamiast błędnego zestawu.
   const [kindResolved, setKindResolved] = useState(kindHint != null);
-  // SVC-TAG — handle usługi do nagłówka (zawsze dociągamy lekko w tle).
   const [serviceTag, setServiceTag] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
-    // Zawsze dociągamy lekki endpoint dla handle'a (i dla typu, gdy brak hinta);
-    // przy obecnym hincie zakładki są już gotowe, więc to nie blokuje widoku.
     fetchServiceKindAction(params.id)
       .then((svc) => {
         if (cancelled) return;
@@ -131,78 +68,39 @@ export default function HostingManagerPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 
-  const EMAIL_TAB_IDS: TabId[] = ['overview', 'subscription', 'domains', 'mail', 'backups'];
-  // GUIDE-4 — zakładki „zaawansowane" ukrywane w trybie prostym (dla osób, które
-  // chcą tylko podstaw). Nie dotyczy poczty (ma własny, krótki zestaw).
-  const ADVANCED_TAB_IDS: TabId[] = ['php', 'ftp', 'cron', 'waf', 'staging', 'deploy', 'usage'];
-  const isEmail = productKind === 'EMAIL';
-
-  // GUIDE-4 — tryb prosty/zaawansowany, zapamiętany lokalnie per przeglądarka.
+  // GUIDE-4 — tryb prosty chowa narzędzia dla zaawansowanych. Przełącznik: menu użytkownika.
   const [simpleMode, setSimpleMode] = useState(false);
-  useEffect(() => {
-    try {
-      setSimpleMode(localStorage.getItem('verris-simple-mode') === '1');
-    } catch {
-      /* brak localStorage — pełny tryb */
-    }
-  }, []);
-  // Przełącznik Prosty/Pełny jest w menu użytkownika (layout) — słuchamy jego zmiany.
   useEffect(() => {
     const sync = () => {
       try {
-        setSimpleMode(localStorage.getItem('verris-simple-mode') === '1');
+        setSimpleMode(localStorage.getItem(SIMPLE_MODE_KEY) === '1');
       } catch {
-        /* ignore */
+        /* pełny */
       }
     };
+    sync();
     window.addEventListener('verris-mode', sync);
     return () => window.removeEventListener('verris-mode', sync);
   }, []);
 
-  // Przed rozpoznaniem typu pokazujemy tylko bezpieczny podzbiór (pocztowy), który
-  // jest zawarty w zestawie hostingu — hosting po prostu „dobierze" zakładki po
-  // załadowaniu, a poczta nigdy nie pokaże narzędzi hostingu.
-  const visibleTabs = (
-    isEmail || !kindResolved ? TABS.filter((t) => EMAIL_TAB_IDS.includes(t.id)) : TABS
-  ).filter((t) => !(simpleMode && !isEmail && ADVANCED_TAB_IDS.includes(t.id)));
-  // Elementy „hostingowe" (autoskalowanie, karta Panel hostingu) pokazujemy
-  // dopiero, gdy wiemy, że to NIE poczta — w przeciwnym razie migają dla poczty.
+  const isEmail = productKind === 'EMAIL';
   const showHostingChrome = kindResolved && !isEmail;
+  const visibleIds = visibleTabIds({ email: isEmail, kindResolved, simple: simpleMode });
+  const visibleTabs = TABS.filter((t) => visibleIds.includes(t.id));
 
-  // Drzewo domen pod „Przegląd" — lekki odczyt listy domen konta.
-  const [domainNames, setDomainNames] = useState<string[]>([]);
-  useEffect(() => {
-    if (!showHostingChrome) return;
-    let cancelled = false;
-    fetchHostingDomainsAction(params.id)
-      .then((r) => !cancelled && setDomainNames(r.domains.map((d) => d.name)))
-      .catch(() => undefined);
-    return () => {
-      cancelled = true;
-    };
-  }, [showHostingChrome, params.id]);
-
-  // Gdy poczta, a aktywna zakładka jest hostingowa (np. deep-link ?tab=ssl) —
-  // wróć na Przegląd, żeby nie pokazać narzędzi hostingu.
-  useEffect(() => {
-    if (isEmail && !EMAIL_TAB_IDS.includes(activeTab)) {
-      setActiveTab('overview');
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEmail, activeTab]);
-
-  // GUIDE-4 — gdy tryb prosty ukryje aktywną zakładkę, wróć na Przegląd.
-  useEffect(() => {
-    if (simpleMode && !isEmail && ADVANCED_TAB_IDS.includes(activeTab)) {
-      setActiveTab('overview');
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [simpleMode, isEmail, activeTab]);
+  // Zakładka z adresu; niedostępna w tym typie/trybie → Przegląd.
+  const requested = searchParams.get('tab');
+  const activeTab: TabId = isTabId(requested) && visibleIds.includes(requested) ? requested : 'overview';
+  const setActiveTab = (t: TabId) => {
+    const q = new URLSearchParams(searchParams.toString());
+    q.set('tab', t);
+    if (kindResolved) q.set('kind', productKind);
+    router.replace(`${pathname}?${q.toString()}`, { scroll: false });
+  };
 
   return (
     <HostingLinksProvider serviceId={params.id}>
-      <div className="mx-auto w-full max-w-7xl min-w-0 space-y-4 animate-in fade-in duration-500 sm:space-y-5">
-        {/* Ścieżka: Usługi / identyfikator — nagłówek z nazwą planu jest w treści zakładki */}
+      <div className="mx-auto flex w-full min-w-0 max-w-[1280px] flex-col gap-5">
         <div className="flex min-w-0 items-center gap-2 text-[13.5px] text-muted-foreground">
           <Link href="/dashboard/services" className="inline-flex items-center gap-1.5 rounded px-1 py-0.5 hover:bg-raised hover:text-foreground">
             <ArrowLeft className="h-3.5 w-3.5" />
@@ -211,6 +109,7 @@ export default function HostingManagerPage() {
           <span aria-hidden>/</span>
           <span className="truncate font-semibold text-foreground">
             {!kindResolved ? 'Wczytywanie…' : isEmail ? 'Poczta' : 'Hosting'}
+            {activeTab !== 'overview' ? <span className="font-normal text-muted-foreground"> / {TABS.find((t) => t.id === activeTab)?.label}</span> : null}
           </span>
           {serviceTag ? (
             <span className="shrink-0 rounded border border-line bg-card px-1.5 py-px font-mono text-[11px] text-muted-foreground" data-tip="Identyfikator usługi">
@@ -219,148 +118,45 @@ export default function HostingManagerPage() {
           ) : null}
         </div>
 
-        <MobileTabStrip
-          tabs={visibleTabs}
-          active={activeTab}
-          onChange={setActiveTab}
-          stickyBelowHeader
-        />
-
-        <div className="flex flex-wrap gap-2 lg:hidden">
-          <Link
-            href={`/dashboard/services/${params.id}/plan`}
-            className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-neutral-300 hover:text-white"
-          >
-            <ArrowRightLeft className="h-3.5 w-3.5 shrink-0 opacity-70" />
-            Zmiana planu
-          </Link>
-          {showHostingChrome ? (
-            <Link
-              href={`/dashboard/services/${params.id}/autoscaling`}
-              className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-neutral-300 hover:text-white"
-            >
-              <Gauge className="h-3.5 w-3.5 shrink-0 opacity-70" />
-              Autoskalowanie
-            </Link>
-          ) : null}
+        {/* Na telefonie menu boczne jest szufladą — sekcje usługi także jako pasek zakładek. */}
+        <div className="lg:hidden">
+          <MobileTabStrip tabs={visibleTabs} active={activeTab} onChange={setActiveTab} stickyBelowHeader />
         </div>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[300px_minmax(0,1fr)] lg:gap-5">
-          <aside className="hidden min-w-0 space-y-4 lg:sticky lg:top-6 lg:block lg:self-start">
-            <nav className="rounded-[10px] border border-line bg-card px-1.5 py-2" aria-label="Sekcje usługi">
-              {NAV_GROUPS.map((group, gi) => {
-                const items = group.ids
-                  .map((id) => visibleTabs.find((t) => t.id === id))
-                  .filter((t): t is (typeof TABS)[number] => !!t);
-                if (items.length === 0) return null;
-                return (
-                  <div key={group.label}>
-                    {gi > 0 ? (
-                      <div className="px-2 pb-1 pt-3 font-mono text-[10.5px] uppercase leading-none tracking-[0.08em] text-muted-foreground">
-                        {group.label}
-                      </div>
-                    ) : null}
-                    {items.map((tab) => {
-                      const active = activeTab === tab.id;
-                      return (
-                        <React.Fragment key={tab.id}>
-                          <button
-                            type="button"
-                            onClick={() => setActiveTab(tab.id)}
-                            aria-current={active ? 'page' : undefined}
-                            className={`flex w-full items-center gap-2.5 rounded-[5px] px-2 py-1.5 text-left text-sm transition-colors ${
-                              active
-                                ? 'bg-data-soft font-medium text-foreground shadow-[inset_2px_0_0_var(--data)]'
-                                : 'text-muted-foreground hover:bg-raised hover:text-foreground'
-                            }`}
-                          >
-                            <tab.icon className="h-4 w-4 shrink-0 opacity-70" />
-                            <span>{tab.label}</span>
-                          </button>
-                          {tab.id === 'overview' && domainNames.length > 0 ? (
-                            <div className="mb-1 ml-3.5 mt-0.5 border-l border-line pl-1.5">
-                              {domainNames.map((d) => (
-                                <button
-                                  key={d}
-                                  type="button"
-                                  title={d}
-                                  onClick={() => setActiveTab('domains')}
-                                  className="flex w-full items-center gap-2 rounded-[5px] px-2 py-1 text-left text-[13px] text-muted-foreground hover:bg-raised hover:text-foreground"
-                                >
-                                  <span className="h-1.5 w-1.5 flex-none rounded-full bg-data" />
-                                  <span className="truncate">{d}</span>
-                                </button>
-                              ))}
-                            </div>
-                          ) : null}
-                        </React.Fragment>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-              <div className="px-2 pb-1 pt-3 font-mono text-[10.5px] uppercase leading-none tracking-[0.08em] text-muted-foreground">
-                Rozliczenie
-              </div>
-              <Link
-                href={`/dashboard/services/${params.id}/plan`}
-                className="flex w-full items-center gap-2.5 rounded-[5px] px-2 py-1.5 text-sm text-muted-foreground hover:bg-raised hover:text-foreground"
-              >
-                <ArrowRightLeft className="h-4 w-4 shrink-0 opacity-70" />
-                <span>Zmiana planu</span>
-              </Link>
-              {showHostingChrome ? (
-                <Link
-                  href={`/dashboard/services/${params.id}/autoscaling`}
-                  className="flex w-full items-center gap-2.5 rounded-[5px] px-2 py-1.5 text-sm text-muted-foreground hover:bg-raised hover:text-foreground"
-                >
-                  <Gauge className="h-4 w-4 shrink-0 opacity-70" />
-                  <span>Autoskalowanie i EKO</span>
-                </Link>
-              ) : null}
-            </nav>
-            {showHostingChrome ? <HostingPanelCard /> : null}
-            {showHostingChrome && activeTab === 'overview' ? null : (
-              <ServiceConnectionCard serviceId={params.id} productKind={showHostingChrome ? 'HOSTING' : 'EMAIL'} />
-            )}
-          </aside>
+        <main className="min-w-0 max-w-full">
+          {activeTab === 'overview' &&
+            (showHostingChrome ? (
+              <ServiceOverviewV2 serviceId={params.id} onNavigate={(t) => setActiveTab(t as TabId)} />
+            ) : (
+              <ServiceOverviewTab serviceId={params.id} onNavigate={(t) => setActiveTab(t as TabId)} />
+            ))}
+          {activeTab === 'subscription' && <ServiceSubscriptionTab serviceId={params.id} />}
+          {activeTab === 'domains' && <DomainsTab serviceId={params.id} />}
+          {activeTab === 'databases' && <DatabasesTab serviceId={params.id} />}
+          {activeTab === 'mail' && <MailTab serviceId={params.id} />}
+          {activeTab === 'ssl' && <SSLTab serviceId={params.id} />}
+          {activeTab === 'apps' && <AppsTab serviceId={params.id} />}
+          {activeTab === 'webtools' && <WebToolsTab serviceId={params.id} />}
+          {activeTab === 'php' && <PhpTab serviceId={params.id} />}
+          {activeTab === 'ftp' && <FtpTab serviceId={params.id} />}
+          {activeTab === 'cron' && <CronTab serviceId={params.id} />}
+          {activeTab === 'backups' && <BackupsTab serviceId={params.id} />}
+          {activeTab === 'waf' && <WafTab serviceId={params.id} />}
+          {activeTab === 'monitoring' && <MonitoringTab serviceId={params.id} />}
+          {activeTab === 'staging' && <StagingTab serviceId={params.id} />}
+          {activeTab === 'deploy' && <DeployTab serviceId={params.id} />}
+          {activeTab === 'files' && <FileManagerClient serviceId={params.id} />}
+          {activeTab === 'usage' && <UsageTab serviceId={params.id} />}
+        </main>
 
-          <main className="min-w-0 max-w-full overflow-x-hidden">
-            {activeTab === 'overview' && (
-              showHostingChrome ? (
-                <ServiceOverviewV2 serviceId={params.id} onNavigate={(t) => setActiveTab(t as TabId)} />
-              ) : (
-                <ServiceOverviewTab serviceId={params.id} onNavigate={(t) => setActiveTab(t as TabId)} />
-              )
-            )}
-            {activeTab === 'subscription' && <ServiceSubscriptionTab serviceId={params.id} />}
-            {activeTab === 'domains' && <DomainsTab serviceId={params.id} />}
-            {activeTab === 'databases' && <DatabasesTab serviceId={params.id} />}
-            {activeTab === 'mail' && <MailTab serviceId={params.id} />}
-            {activeTab === 'ssl' && <SSLTab serviceId={params.id} />}
-            {activeTab === 'apps' && <AppsTab serviceId={params.id} />}
-            {/* Kreator stron tymczasowo ukryty — przywróć wpis w tablicy zakładek powyżej, aby włączyć. */}
-            {/* {activeTab === 'builder' && <SiteBuilderTab serviceId={params.id} />} */}
-            {activeTab === 'webtools' && <WebToolsTab serviceId={params.id} />}
-            {activeTab === 'php' && <PhpTab serviceId={params.id} />}
-            {activeTab === 'ftp' && <FtpTab serviceId={params.id} />}
-            {activeTab === 'cron' && <CronTab serviceId={params.id} />}
-            {activeTab === 'backups' && <BackupsTab serviceId={params.id} />}
-            {activeTab === 'waf' && <WafTab serviceId={params.id} />}
-            {activeTab === 'monitoring' && <MonitoringTab serviceId={params.id} />}
-            {activeTab === 'staging' && <StagingTab serviceId={params.id} />}
-            {activeTab === 'deploy' && <DeployTab serviceId={params.id} />}
-            {activeTab === 'files' && <FileManagerClient serviceId={params.id} />}
-            {activeTab === 'usage' && <UsageTab serviceId={params.id} />}
-          </main>
-
-          <div className="min-w-0 space-y-4 lg:hidden">
+        {/* Poczta (stary przegląd) i zakładki inne niż Przegląd: dane dostępowe pod treścią.
+            Przegląd hostingu ma je w prawej kolumnie. */}
+        {kindResolved && !(showHostingChrome && activeTab === 'overview') ? (
+          <div className="grid gap-4 md:grid-cols-2">
             {showHostingChrome ? <HostingPanelCard /> : null}
-            {showHostingChrome && activeTab === 'overview' ? null : (
-              <ServiceConnectionCard serviceId={params.id} productKind={showHostingChrome ? 'HOSTING' : 'EMAIL'} />
-            )}
+            <ServiceConnectionCard serviceId={params.id} productKind={showHostingChrome ? 'HOSTING' : 'EMAIL'} />
           </div>
-        </div>
+        ) : null}
       </div>
     </HostingLinksProvider>
   );

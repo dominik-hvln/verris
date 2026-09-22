@@ -16,6 +16,7 @@ import type {
   ServiceDetailsDto,
   ServiceHealthSummaryDto,
   HostingDomainsResponseDto,
+  HostingBackupsResponseDto,
 } from '@verris/contracts';
 import { fetchServiceDetailsAction } from '@/app/dashboard/services/[id]/hosting-service-actions';
 import { fetchHostingUsageAction, type HostingUsageResponse } from '@/app/dashboard/services/[id]/hosting-usage-actions';
@@ -33,7 +34,8 @@ import { useHostingLinks } from '@/components/hosting/hosting-links-context';
 import { FirstStepsAssistant } from '@/components/hosting/FirstStepsAssistant';
 import { HealthCheckDetails } from '@/components/hosting/HealthCheckDetails';
 import DomainPointingPanel from '@/components/hosting/DomainPointingPanel';
-import { RecommendationsCard } from '@/components/hosting/ServiceOverviewTab';
+import HostingPanelCard from '@/components/hosting/HostingPanelCard';
+import { fetchHostingBackupsAction } from '@/app/dashboard/services/[id]/hosting-backup-actions';
 import { clientFeatures } from '@/lib/client-features';
 import {
   AccessList,
@@ -45,6 +47,7 @@ import {
   Meter,
   MiniBars,
   SectionHead,
+  Squares,
   StackBar,
   StatusPill,
   Switch,
@@ -101,6 +104,7 @@ export default function ServiceOverviewV2({
   const [conn, setConn] = useState<ServiceConnectionInfoDto | null>(null);
   const [domains, setDomains] = useState<HostingDomainsResponseDto | null>(null);
   const [extras, setExtras] = useState<OverviewExtras | null>(null);
+  const [backups, setBackups] = useState<HostingBackupsResponseDto | null>(null);
   const [ecoPoints, setEcoPoints] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -115,6 +119,7 @@ export default function ServiceOverviewV2({
       void later(fetchConnectionInfoAction(serviceId), setConn);
       void later(fetchHostingDomainsAction(serviceId), setDomains);
       void later(fetchOverviewExtrasAction(serviceId), setExtras);
+      void later(fetchHostingBackupsAction(serviceId), setBackups);
       if (clientFeatures.eco) {
         void later(fetchSidebarUser(), (me) => setEcoPoints(typeof me?.ecoPoints === 'number' ? me.ecoPoints : 0));
       }
@@ -264,28 +269,59 @@ export default function ServiceOverviewV2({
           {bw?.limit ? <Meter pct={((bw.used ?? 0) / bw.limit) * 100} tipText={tip(fmtMb(bw.used), `z ${fmtMb(bw.limit)} w tym miesiącu`)} /> : <div className="h-[11px]" />}
         </Kpi>
         <Kpi
-          label="Procesor · szczyt 24 h"
+          label="Wydajność konta · 24 h"
           value={cpuPeak != null ? Math.round((cpuPeak / cpuLimit) * 100) : '—'}
           unit={cpuPeak != null ? '% limitu' : undefined}
-          foot={cpuHot ? <span className="text-warn">blisko limitu — rozważ autoskalowanie</span> : <span>{cpu.values.length ? 'w normie' : 'brak pomiarów z 24 h'}</span>}
+          foot={
+            cpuHot ? (
+              <span className="text-warn">blisko limitu — rozważ autoskalowanie</span>
+            ) : (
+              <span data-tip={ram.values.length ? tip(`RAM szczyt ${fmtMb(Math.max(...ram.values))}`, `limit ${fmtMb(ramLimit)}`) : undefined}>
+                {cpu.values.length ? `w normie${ram.values.length ? ` · RAM ${fmtMb(Math.max(...ram.values))}` : ''}` : 'brak pomiarów z 24 h'}
+              </span>
+            )
+          }
         >
           {cpu.values.length ? (
             <MiniBars values={cpu.values} labels={cpu.labels} unit="% CPU (szczyt)" lastTone={cpuHot ? 'warn' : 'data'} format={(v) => String(Math.round(v))} />
           ) : null}
         </Kpi>
         <Kpi
-          label="Pamięć RAM · szczyt 24 h"
-          value={ram.values.length ? fmtMb(Math.max(...ram.values)).split(' ')[0] : '—'}
-          unit={ram.values.length ? `${fmtMb(Math.max(...ram.values)).split(' ')[1]} / ${fmtMb(ramLimit)}` : undefined}
-          foot={<span>{ram.values.length ? 'najedź, by zobaczyć godziny' : 'brak pomiarów z 24 h'}</span>}
+          label="Kopie zapasowe"
+          value={backups ? String(backups.rows.length) : '—'}
+          unit={backups ? (backups.rows.length === 1 ? 'kopia' : 'kopii') : undefined}
+          foot={
+            <>
+              <span>
+                {backups?.offsite
+                  ? backups.offsite.protected
+                    ? `poza serwerem: ${date(backups.offsite.lastRunAt, false)}`
+                    : 'kopia poza serwerem: brak świeżej'
+                  : health?.checks.backupFresh === false
+                    ? 'brak świeżej kopii'
+                    : 'kopie na koncie'}
+              </span>
+              <button type="button" className={LINK} onClick={() => onNavigate('backups')}>
+                Przywróć…
+              </button>
+            </>
+          }
         >
-          {ram.values.length ? <MiniBars values={ram.values} labels={ram.labels} unit="MB (szczyt)" format={(v) => String(Math.round(v))} /> : null}
+          <Squares
+            items={[
+              { tone: health?.checks.backupFresh === false ? 'warn' : 'data', tip: tip('Kopie na koncie', health?.checks.backupFresh === false ? 'ostatnia kopia jest nieświeża' : 'świeże') },
+              {
+                tone: backups?.offsite ? (backups.offsite.protected ? 'data' : 'warn') : 'muted',
+                tip: tip('Kopia poza serwerem', backups?.offsite?.lastRunAt ? `ostatnio ${date(backups.offsite.lastRunAt)}` : 'brak danych'),
+              },
+            ]}
+          />
         </Kpi>
       </KpiStrip>
       </div>
 
       <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
-        {/* Duża kolumna */}
+        {/* Duża kolumna (wzorzec): strony, zasoby konta, co się działo; potem prowadzenie i diagnostyka */}
         <div className="flex min-w-0 flex-col gap-6">
           <section>
             <SectionHead
@@ -332,22 +368,6 @@ export default function ServiceOverviewV2({
               )}
             </div>
           </section>
-
-          {!needsBilling && service.status === 'ACTIVE' ? (
-            <FirstStepsAssistant health={health} productKind={service.productKind} onNavigate={onNavigate} />
-          ) : null}
-
-          <RecommendationsCard recommendations={service.recommendations} serviceId={serviceId} onNavigate={onNavigate} />
-
-          {health ? (
-            <section>
-              <SectionHead title="Diagnostyka" desc={health.summary} />
-              <HealthCheckDetails health={health} serviceId={serviceId} domain={account?.domain ?? null} onNavigate={onNavigate} />
-            </section>
-          ) : null}
-
-          <DomainPointingPanel serviceId={serviceId} dnsManageUrl={links.dnsUrl} variant="compact" onGoToDomains={() => onNavigate('domains')} />
-
           <section>
             <SectionHead title="Zasoby konta" />
             <ul className="m-0 list-none rounded-[10px] border border-line bg-card p-0">
@@ -369,9 +389,27 @@ export default function ServiceOverviewV2({
               ))}
             </ul>
           </section>
+
+          <section>
+            <SectionHead title="Co się działo" desc="Zmiany w usłudze — nasze i Twoje." />
+            <EventsFeed events={service.events} />
+          </section>
+
+          {!needsBilling && service.status === 'ACTIVE' ? (
+            <FirstStepsAssistant health={health} productKind={service.productKind} onNavigate={onNavigate} />
+          ) : null}
+
+          {health ? (
+            <section>
+              <SectionHead title="Diagnostyka" desc={health.summary} />
+              <HealthCheckDetails health={health} serviceId={serviceId} domain={account?.domain ?? null} onNavigate={onNavigate} />
+            </section>
+          ) : null}
+
+          <DomainPointingPanel serviceId={serviceId} dnsManageUrl={links.dnsUrl} variant="compact" onGoToDomains={() => onNavigate('domains')} />
         </div>
 
-        {/* Wąska kolumna */}
+        {/* Wąska kolumna (wzorzec): autoskalowanie, asystent, dane dostępowe, płatności */}
         <div className="flex min-w-0 flex-col gap-6">
           <div className="v2-comet rounded-[10px]" style={comet('c', 16, -5, 0.5)}>
           <Box
@@ -410,9 +448,7 @@ export default function ServiceOverviewV2({
           </Box>
           </div>
 
-          {clientFeatures.eco && service.status !== 'CANCELED' && service.status !== 'EXPIRED' ? (
-            <EcoModeCard subscriptionId={serviceId} ecoModeEnabled={service.ecoModeEnabled} ecoPoints={ecoPoints} />
-          ) : null}
+          <AssistantBubble recommendations={service.recommendations} serviceId={serviceId} onNavigate={onNavigate} />
 
           <Box
             title="Dane dostępowe"
@@ -484,8 +520,129 @@ export default function ServiceOverviewV2({
               ) : null}
             </dl>
           </Box>
+
+          <HostingPanelCard />
+
+          {clientFeatures.eco && service.status !== 'CANCELED' && service.status !== 'EXPIRED' ? (
+            <EcoModeCard subscriptionId={serviceId} ecoModeEnabled={service.ecoModeEnabled} ecoPoints={ecoPoints} />
+          ) : null}
         </div>
       </div>
     </div>
+  );
+}
+
+const EVENT_LABEL: Record<string, string> = {
+  CREATED: 'Usługa zamówiona',
+  PROVISIONING_INTENT: 'Zaczęliśmy zakładać konto',
+  ACCOUNT_PROVISIONED: 'Konto hostingowe gotowe',
+  ACTIVATED: 'Usługa aktywna',
+  RENEWED: 'Usługa odnowiona',
+  PLAN_CHANGED: 'Zmieniono plan',
+  PAYMENT_FAILED: 'Płatność nie przeszła',
+  PAYMENT_RECOVERED: 'Płatność uregulowana',
+  SUSPENDED: 'Usługa zawieszona',
+  UNSUSPENDED: 'Usługa odwieszona',
+  CANCEL_SCHEDULED: 'Zaplanowano rezygnację',
+  CANCELED: 'Usługa anulowana',
+  TRIAL_STARTED: 'Start okresu próbnego',
+  TRIAL_CONVERTED: 'Okres próbny zamieniony na płatny',
+  TRIAL_EXPIRED: 'Koniec okresu próbnego',
+  PROVISIONING_FAILED: 'Zakładanie konta wymaga uwagi',
+};
+const EVENT_WARN = new Set(['PAYMENT_FAILED', 'SUSPENDED', 'PROVISIONING_FAILED', 'TRIAL_EXPIRED', 'CANCEL_SCHEDULED']);
+
+/** Historia zdarzeń usługi pogrupowana po dniach (Dziś / Wczoraj / data). */
+function EventsFeed({ events }: { events: ServiceDetailsDto['events'] }) {
+  const list = [...(events ?? [])].sort((x, y) => y.createdAt.localeCompare(x.createdAt)).slice(0, 12);
+  if (list.length === 0) {
+    return <div className="rounded-[10px] border border-line bg-card px-4 py-5 text-sm text-muted-foreground">Na razie nic się nie działo.</div>;
+  }
+  const now = new Date();
+  const today = now.toDateString();
+  const y = new Date(now);
+  y.setDate(now.getDate() - 1);
+  const yesterday = y.toDateString();
+  const dayOf = (iso: string) => {
+    const d = new Date(iso).toDateString();
+    return d === today ? 'Dziś' : d === yesterday ? 'Wczoraj' : new Date(iso).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long' });
+  };
+  const rows = list.map((e, i) => ({ e, day: dayOf(e.createdAt), head: i === 0 || dayOf(list[i - 1]!.createdAt) !== dayOf(e.createdAt) }));
+  return (
+    <div className="rounded-[10px] border border-line bg-card py-1">
+      {rows.map(({ e, day, head }) => {
+        const warn = EVENT_WARN.has(e.type);
+        const label = EVENT_LABEL[e.type] ?? e.type.replace(/_/g, ' ').toLowerCase().replace(/^./, (c) => c.toUpperCase());
+        return (
+          <div key={e.id}>
+            {head ? <Label className="px-4 pb-1 pt-2.5">{day}</Label> : null}
+            <div className="grid grid-cols-[18px_1fr_auto] items-start gap-3 px-4 py-2">
+              <span className={`mt-1.5 h-[9px] w-[9px] justify-self-center rounded-full border-2 ${warn ? 'border-warn' : 'border-data'}`} />
+              <p className="m-0 text-sm text-foreground">{label}</p>
+              <time className="pt-0.5 font-mono text-xs text-muted-foreground" suppressHydrationWarning>
+                {new Date(e.createdAt).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}
+              </time>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Dymek asystenta (wzorzec) — rekomendacje usługi zamiast osobnej karty. */
+function AssistantBubble({
+  recommendations,
+  serviceId,
+  onNavigate,
+}: {
+  recommendations: ServiceDetailsDto['recommendations'];
+  serviceId: string;
+  onNavigate: (tab: string) => void;
+}) {
+  const items = recommendations.filter((r) => !(r.severity === 'info' && r.title.startsWith('Usługa działa')));
+  const first = items[0];
+  const act = (type: string) => {
+    if (type === 'plan') return { label: 'Zobacz plany', href: `/dashboard/services/${serviceId}/plan` };
+    if (type === 'autoscaling') return { label: 'Ustaw autoskalowanie', href: `/dashboard/services/${serviceId}/autoscaling` };
+    if (type === 'backup') return { label: 'Przejdź do kopii', tab: 'backups' };
+    return { label: 'Sprawdź domenę i DNS', tab: 'domains' };
+  };
+  return (
+    <section aria-label="Asystent">
+      <SectionHead title="Asystent" />
+      <div className="v2-comet relative rounded-xl border border-primary/30 bg-card p-4 shadow-[0_0_0_1px_rgba(52,229,160,0.08),0_18px_40px_-22px_rgba(0,0,0,0.8)]" style={comet('b', 10, -6, 0.8)}>
+        <Label className="mb-2">{first ? 'zauważyłem' : 'na dziś'}</Label>
+        {first ? (
+          <>
+            <p className="mb-3 text-[14.5px] text-foreground">
+              <b className="font-semibold">{first.title}</b>
+              <br />
+              <span className="text-[13.5px] text-muted-foreground">{first.body}</span>
+            </p>
+            {(() => {
+              const a = act(first.type);
+              return a.href ? (
+                <Link href={a.href} className={BTN_SM.replace('bg-card', 'bg-primary text-primary-foreground border-primary font-semibold')}>{a.label}</Link>
+              ) : (
+                <button type="button" onClick={() => onNavigate(a.tab!)} className={BTN_SM.replace('bg-card', 'bg-primary text-primary-foreground border-primary font-semibold')}>{a.label}</button>
+              );
+            })()}
+            {items.length > 1 ? (
+              <ul className="mt-3 list-none space-y-1 p-0 text-[12.5px] text-muted-foreground">
+                {items.slice(1, 4).map((r, i) => (
+                  <li key={i} className="flex items-center gap-2">
+                    <span className={`h-1.5 w-1.5 rounded-full ${r.severity === 'critical' ? 'bg-crit' : r.severity === 'warning' ? 'bg-warn' : 'bg-data'}`} />
+                    {r.title}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </>
+        ) : (
+          <p className="text-[14.5px] text-foreground">Wszystko pod kontrolą. Pilnujemy DNS, SSL, kopii i obciążenia — damy znać, gdy coś będzie wymagać uwagi.</p>
+        )}
+      </div>
+    </section>
   );
 }

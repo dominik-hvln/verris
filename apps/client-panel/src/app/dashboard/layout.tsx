@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, type ComponentType } from "react";
+import { Suspense, useEffect, useState, type ComponentType } from "react";
 import { logoutAction } from "./actions";
 import { fetchSidebarUser, type SidebarUser } from "./sidebar-actions";
 import { pushUserData } from "@/lib/analytics-events";
@@ -14,7 +14,6 @@ import { NotificationBell } from "./notification-bell";
 import { ReConsentModal } from "./reconsent-modal";
 import { PlatformConfigLoader } from "@/components/platform-config-loader";
 import { CookiePreferencesButton } from "@/components/cookie-consent";
-import { SpinBorder } from "@/components/spin-border";
 import { VerrisLockup } from "@/components/logo";
 import {
   VerrisEkoIcon,
@@ -24,6 +23,9 @@ import {
 } from "@/components/icons";
 import HostingAssistant from "@/components/assistant/HostingAssistant";
 import { TipLayer } from "@/components/panel/v2";
+import { ServiceNav } from "@/components/panel/service-nav";
+import { CommandPalette, type PaletteItem } from "@/components/panel/command-palette";
+import { fetchRailDataAction, type RailData } from "./rail-actions";
 import {
   Menu,
   Globe,
@@ -90,10 +92,12 @@ function NavRow({
   href,
   icon: Icon,
   children,
+  count,
 }: {
   href: string;
   icon: ComponentType<{ className?: string }>;
   children: React.ReactNode;
+  count?: string | null;
 }) {
   const pathname = usePathname();
   const active = href === "/dashboard" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
@@ -109,12 +113,23 @@ function NavRow({
     >
       <Icon className={`h-4 w-4 shrink-0 ${active ? "text-verris-mint" : "opacity-70"}`} />
       {children}
+      {count ? <em className="ml-auto font-mono text-[11.5px] not-italic text-verris-stone">{count}</em> : null}
     </Link>
   );
 }
 
 /** Tryb Prosty/Pełny — ten sam klucz, który czyta widok usługi (GUIDE-4). */
 const SIMPLE_MODE_KEY = "verris-simple-mode";
+
+/** Ustawia widok Prosty/Pełny i powiadamia widoki (menu użytkownika, sekcja usługi, strona usługi). */
+function setPanelMode(simple: boolean) {
+  try {
+    localStorage.setItem(SIMPLE_MODE_KEY, simple ? "1" : "0");
+  } catch {
+    /* ignore */
+  }
+  window.dispatchEvent(new Event("verris-mode"));
+}
 
 function UserMenu({ displayName, email, initials }: { displayName: string; email: string; initials: string }) {
   const [open, setOpen] = useState(false);
@@ -139,14 +154,20 @@ function UserMenu({ displayName, email, initials }: { displayName: string; email
       document.removeEventListener("keydown", esc);
     };
   }, [open]);
+  useEffect(() => {
+    const sync = () => {
+      try {
+        setSimple(localStorage.getItem(SIMPLE_MODE_KEY) === "1");
+      } catch {
+        /* ignore */
+      }
+    };
+    window.addEventListener("verris-mode", sync);
+    return () => window.removeEventListener("verris-mode", sync);
+  }, []);
   const setMode = (next: boolean) => {
     setSimple(next);
-    try {
-      localStorage.setItem(SIMPLE_MODE_KEY, next ? "1" : "0");
-    } catch {
-      /* ignore */
-    }
-    window.dispatchEvent(new Event("verris-mode"));
+    setPanelMode(next);
   };
   const item = "flex w-full items-center gap-2.5 rounded-md px-2.5 py-[7px] text-left text-[13.5px] text-sidebar-foreground hover:bg-white/5 hover:text-verris-paper";
   return (
@@ -294,6 +315,39 @@ export default function DashboardLayout({
     setSidebarOpen(false);
   }, [pathname]);
 
+  // Liczniki w menu i lista usług do wyszukiwarki — błąd = brak licznika (nie zero).
+  const [rail, setRail] = useState<RailData | null>(null);
+  useEffect(() => {
+    void fetchRailDataAction().then(setRail).catch(() => undefined);
+  }, []);
+  const railCount = (href: string): string | null => {
+    if (!rail) return null;
+    if (href === "/dashboard/services") return rail.services ? String(rail.services.length) : null;
+    if (href === "/dashboard/domains") return rail.domains != null ? String(rail.domains) : null;
+    if (href === "/dashboard/support") return rail.openTickets ? `${rail.openTickets} otwarte` : null;
+    return null;
+  };
+  const serviceId = /^\/dashboard\/services\/([0-9a-f-]{36})(?:\/|$)/.exec(pathname)?.[1] ?? null;
+  const paletteItems: PaletteItem[] = [
+    ...mainGridItems.map((i) => ({ label: i.name, hint: "strona", href: i.href })),
+    ...navSecondaryItems.flatMap((g) => g.items).map((i) => ({ label: i.name, hint: "strona", href: i.href })),
+    ...(rail?.services ?? []).map((sv) => ({
+      label: sv.domain ? `${sv.name} · ${sv.domain}` : sv.name,
+      hint: "usługa",
+      href: `/dashboard/services/${sv.id}?kind=${sv.kind}`,
+    })),
+    { label: "Zamów nową usługę", hint: "akcja", href: "/dashboard/services/new" },
+    { label: "Kup domenę", hint: "akcja", href: "/dashboard/domains/buy" },
+    { label: "Doładuj portfel", hint: "płatności", href: "/dashboard/billing" },
+    { label: "Faktury", hint: "płatności", href: "/dashboard/billing/invoices" },
+    { label: "Nowe zgłoszenie do pomocy", hint: "pomoc", href: "/dashboard/support/new" },
+    { label: "Przenieś stronę od innego hostingu", hint: "migracja", href: "/dashboard/migrations" },
+    { label: "Ustawienia konta", hint: "konto", href: "/dashboard/settings" },
+    { label: "Bezpieczeństwo i logowanie", hint: "konto", href: "/dashboard/settings?tab=security" },
+    { label: "Widok prosty", hint: "widok", run: () => setPanelMode(true) },
+    { label: "Widok pełny (szczegóły techniczne)", hint: "widok", run: () => setPanelMode(false) },
+  ];
+
   const displayName =
     user?.firstName && user?.lastName
       ? `${user.firstName} ${user.lastName}`
@@ -351,11 +405,23 @@ export default function DashboardLayout({
         <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-4 [mask-image:linear-gradient(#000_calc(100%-18px),transparent)]">
           <nav className="flex flex-col gap-px" aria-label="Główne">
             {mainGridItems.map((item) => (
-              <NavRow key={item.href} href={item.href} icon={item.icon}>
+              <NavRow key={item.href} href={item.href} icon={item.icon} count={railCount(item.href)}>
                 {item.name}
               </NavRow>
             ))}
+            {showSupportLink && !mainGridHrefs.has("/dashboard/support") ? (
+              <NavRow href="/dashboard/support" icon={VerrisSupportIcon} count={railCount("/dashboard/support")}>
+                Centrum pomocy
+              </NavRow>
+            ) : null}
+            <NotificationBell variant="row" />
           </nav>
+
+          {serviceId ? (
+            <Suspense fallback={null}>
+              <ServiceNav serviceId={serviceId} name={rail?.services?.find((x) => x.id === serviceId)?.name} />
+            </Suspense>
+          ) : null}
 
           {navSecondaryItems.length > 0 ? (
             <details className="group/more mt-5" open={navSecondaryItems.some((g) => g.items.some((i) => pathname.startsWith(i.href)))}>
@@ -383,38 +449,27 @@ export default function DashboardLayout({
       {/* Main Content Area */}
       <div className="relative z-10 flex min-h-screen w-full min-w-0 max-w-full flex-1 flex-col overflow-x-hidden">
         {/* Top Navbar — na mobile fixed (hamburger zawsze dostępny), na desktop sticky */}
-        <header className="z-50 flex min-h-14 min-w-0 shrink-0 items-center justify-between gap-3 border-b border-border bg-background/95 px-4 backdrop-blur-xl max-lg:fixed max-lg:inset-x-0 max-lg:top-0 max-lg:h-mobile-header sm:min-h-[5rem] sm:gap-4 sm:px-6 lg:sticky lg:top-0 lg:z-40 lg:h-dashboard-topbar lg:bg-background/90 lg:px-10 lg:py-5">
+        <header className="z-50 flex min-h-14 min-w-0 shrink-0 items-center justify-between gap-3 border-b border-border bg-background/95 px-4 backdrop-blur-xl max-lg:fixed max-lg:inset-x-0 max-lg:top-0 max-lg:h-mobile-header sm:gap-3 sm:px-6 lg:sticky lg:top-0 lg:z-40 lg:h-[61px] lg:bg-background/90 lg:px-7 lg:py-3">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             <button
               type="button"
-              className="inline-flex rounded-lg border border-white/10 p-2 text-neutral-300 hover:bg-white/10 lg:hidden"
+              className="inline-flex rounded-md border border-line p-2 text-muted-foreground hover:bg-raised lg:hidden"
               onClick={() => setSidebarOpen(true)}
               aria-label="Otwórz menu"
             >
               <Menu className="h-4 w-4" />
             </button>
+            <div className="ml-auto flex min-w-0 items-center">
+              <CommandPalette items={paletteItems} />
+            </div>
           </div>
-          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-            <NotificationBell />
+          <div className="flex shrink-0 items-center gap-2">
             {showWallet && (
               <WalletBadge
                 balance={user?.walletBalance ?? null}
                 loading={userLoading && user === null}
                 impersonating={impersonating}
               />
-            )}
-            {showSupportLink && (
-              <a
-                href="/dashboard/support"
-                title="Wsparcie 24/7"
-                className="group relative inline-flex overflow-hidden rounded-[24px] p-px"
-              >
-                <SpinBorder variant="white" className="opacity-40 transition-opacity duration-500 group-hover:opacity-100" />
-                <div className="relative flex items-center gap-2 rounded-[calc(24px-1px)] bg-[#0a0a0a] px-2.5 py-2 text-xs font-medium text-neutral-300 transition-colors hover:text-white sm:px-5">
-                  <VerrisSupportIcon className="h-4 w-4 shrink-0" />
-                  <span className="hidden sm:inline">Wsparcie 24/7</span>
-                </div>
-              </a>
             )}
           </div>
         </header>

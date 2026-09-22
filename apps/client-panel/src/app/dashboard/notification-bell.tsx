@@ -28,7 +28,7 @@ function timeAgo(iso: string): string {
 }
 
 /** NTF-2 — dzwonek powiadomień w nagłówku panelu klienta. */
-export function NotificationBell() {
+export function NotificationBell({ variant = 'icon' }: { variant?: 'icon' | 'row' } = {}) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [unread, setUnread] = useState(0);
@@ -84,22 +84,47 @@ export function NotificationBell() {
 
   return (
     <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        onClick={onToggle}
-        aria-label="Powiadomienia"
-        className="relative inline-flex items-center justify-center rounded-xl border border-white/10 bg-[#0a0a0a] p-2.5 text-neutral-300 transition-colors hover:bg-white/10 hover:text-white"
-      >
-        <Bell className="h-4 w-4" />
-        {unread > 0 ? (
-          <span className="absolute -right-1 -top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
-            {unread > 9 ? '9+' : unread}
-          </span>
-        ) : null}
-      </button>
+      {variant === 'row' ? (
+        // PB-15 — wiersz w menu bocznym (jak pozostałe pozycje), licznik nieprzeczytanych po prawej.
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={open}
+          className={`flex w-full items-center gap-2.5 rounded-[5px] px-2 py-[7px] text-left text-sm transition-colors ${
+            open ? 'bg-white/[0.04] text-verris-paper' : 'text-sidebar-foreground hover:bg-white/[0.04] hover:text-verris-paper'
+          }`}
+        >
+          <Bell className="h-4 w-4 shrink-0 opacity-70" />
+          Powiadomienia
+          {unread > 0 ? (
+            <em className="ml-auto inline-flex items-center gap-1.5 font-mono text-[11.5px] not-italic text-warn">
+              <span className="v2-breathe v2-breathe-warn h-1.5 w-1.5 rounded-full bg-warn" />
+              {unread > 9 ? '9+' : unread}
+            </em>
+          ) : null}
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label="Powiadomienia"
+          className="relative inline-flex h-[34px] w-[34px] items-center justify-center rounded-md border border-line bg-card text-muted-foreground transition-colors hover:border-line-strong hover:text-foreground"
+        >
+          <Bell className="h-4 w-4" />
+          {unread > 0 ? (
+            <span className="absolute -right-1 -top-1 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-warn px-1 text-[10px] font-bold text-verris-pine">
+              {unread > 9 ? '9+' : unread}
+            </span>
+          ) : null}
+        </button>
+      )}
 
       {open ? (
-        <div className="absolute right-0 z-50 mt-2 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-white/10 bg-[#0a0a0a] shadow-2xl shadow-black/60">
+        <div
+          className={`absolute z-50 w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-[10px] border border-white/10 bg-[#10241b] shadow-[0_18px_40px_-16px_rgba(0,0,0,0.7)] ${
+            variant === 'row' ? 'left-0 top-full mt-1 lg:left-full lg:top-0 lg:ml-3 lg:mt-0' : 'right-0 mt-2'
+          }`}
+        >
           <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
             <p className="text-sm font-bold text-white">Powiadomienia</p>
             {unread > 0 ? (

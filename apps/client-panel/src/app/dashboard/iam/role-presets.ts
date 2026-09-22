@@ -15,7 +15,7 @@ export const IAM_ROLE_PRESETS = [
   {
     id: 'devops',
     label: 'DevOps',
-    description: 'Serwery, DNS, poczta, pliki',
+    description: 'Usługi, DNS, poczta, pliki',
     permissions: [
       'SERVICES_READ',
       'SERVICES_MANAGE',

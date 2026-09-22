@@ -1,313 +1,219 @@
-import {
-  Server,
-  Settings2,
-  ShieldAlert,
-  HardDrive,
-  Globe,
-  Plus,
-  Gauge,
-  ArrowRightLeft,
-} from 'lucide-react';
 import Link from 'next/link';
-import { PageHeaderRow } from '@/components/panel';
-import type {
-  ProvisioningProgressDto,
-  ServiceSummaryDto,
-  SubscriptionStatus,
-} from '@verris/contracts';
+import { ArrowRightLeft, ChevronRight, Gauge, Plus, ShieldAlert } from 'lucide-react';
+import type { ServiceSummaryDto, SubscriptionStatus } from '@verris/contracts';
 import { ApiError } from '@/lib/api';
 import { UnpaidServiceBanner } from '@/components/hosting/UnpaidServiceBanner';
+import { Label, SectionHead, StatusPill } from '@/components/panel/v2';
 import { ConvertTrialButton } from './convert-trial-button';
 import { listServices } from './data';
 
-const statusLabels: Record<SubscriptionStatus, string> = {
-  PENDING_PAYMENT: 'Oczekuje płatności',
-  PROVISIONING: 'Tworzenie konta',
-  ACTIVE: 'Aktywna',
-  PAST_DUE: 'Zaległa płatność',
-  SUSPENDED: 'Zawieszona',
-  CANCELED: 'Anulowana',
-  EXPIRED: 'Wygasła',
+/** PB-15 — wszystkie usługi w nowym wyglądzie (wzorzec: docs/design/wzorzec-panelu.html). */
+
+const STATUS: Record<SubscriptionStatus, string> = {
+  PENDING_PAYMENT: 'oczekuje płatności',
+  PROVISIONING: 'zakładamy konto',
+  ACTIVE: 'działa',
+  PAST_DUE: 'zaległa płatność',
+  SUSPENDED: 'zawieszona',
+  CANCELED: 'anulowana',
+  EXPIRED: 'wygasła',
 };
 
-const statusBadgeClass: Record<SubscriptionStatus, string> = {
-  ACTIVE: 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200',
-  PROVISIONING: 'border-sky-400/40 bg-sky-400/10 text-sky-200',
-  PENDING_PAYMENT: 'border-amber-400/40 bg-amber-400/10 text-amber-200',
-  PAST_DUE: 'border-rose-400/40 bg-rose-400/10 text-rose-200',
-  SUSPENDED: 'border-rose-400/40 bg-rose-400/10 text-rose-200',
-  CANCELED: 'border-white/20 bg-white/5 text-neutral-300',
-  EXPIRED: 'border-white/20 bg-white/5 text-neutral-300',
+const KIND: Record<ServiceSummaryDto['productKind'], string> = {
+  HOSTING: 'Hosting',
+  EMAIL: 'Poczta',
+  EMAIL_MARKETING: 'E-mail marketing',
 };
+
+const PROVISIONING: Record<NonNullable<ServiceSummaryDto['provisioning']>['stage'], string> = {
+  queued: 'w kolejce',
+  running: 'zakładamy konto',
+  retrying: 'powtarzamy próbę',
+  failed: 'błąd konfiguracji — napisz do pomocy',
+  completed: 'gotowe',
+};
+
+const TH = 'px-3 pb-2.5 pt-3 text-left font-mono text-[11px] font-medium uppercase tracking-[0.07em] text-muted-foreground';
+const TD = 'border-t border-line px-3 py-3 align-middle';
+const ICON_BTN = 'inline-flex h-8 w-8 items-center justify-center rounded-md border border-line bg-card text-muted-foreground hover:border-primary hover:text-foreground';
+
+function tone(s: ServiceSummaryDto): 'data' | 'warn' | 'muted' {
+  if (s.status === 'CANCELED' || s.status === 'EXPIRED' || s.status === 'PROVISIONING') return 'muted';
+  if (s.status !== 'ACTIVE') return 'warn';
+  return s.health?.label === 'attention' || s.health?.label === 'critical' ? 'warn' : 'data';
+}
+
+function href(s: ServiceSummaryDto) {
+  return `/dashboard/services/${s.id}?kind=${s.productKind ?? 'HOSTING'}`;
+}
 
 export default async function ServicesPage() {
   let services: ServiceSummaryDto[] = [];
   let loadError: string | null = null;
-
   try {
     services = await listServices();
   } catch (err) {
     loadError =
-      err instanceof ApiError
-        ? `Nie udało się pobrać Twoich usług (${err.status}).`
-        : err instanceof Error
-          ? err.message
-          : 'Nieznany błąd';
+      err instanceof ApiError ? `Nie udało się pobrać Twoich usług (${err.status}).` : err instanceof Error ? err.message : 'Nieznany błąd';
   }
+  const active = services.filter((s) => s.status !== 'CANCELED' && s.status !== 'EXPIRED');
+  const ended = services.filter((s) => s.status === 'CANCELED' || s.status === 'EXPIRED');
+  const attention = active.filter((s) => tone(s) === 'warn').length;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      <PageHeaderRow
-        title="Twoje usługi"
-        description="Zarządzaj pakietami hostingowymi i serwerami."
-        actions={
-          <Link
-            href="/dashboard/services/new"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-black transition-all hover:bg-neutral-200 sm:w-auto"
-          >
-            <Plus className="h-4 w-4" />
-            Zamów nową usługę
-          </Link>
-        }
-      />
+    <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6 pb-10">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <Label>Usługi · {active.length} aktywnych</Label>
+          <h1 className="mb-2 mt-1.5 font-display text-[clamp(28px,4vw,40px)] font-extrabold leading-none tracking-[-0.03em] text-foreground">Twoje usługi</h1>
+          <div className="flex flex-wrap items-center gap-2 text-[13.5px] text-muted-foreground">
+            {active.length > 0 ? (
+              <>
+                {active.length - attention > 0 ? <StatusPill tone="data">{active.length - attention} działa</StatusPill> : null}
+                {attention > 0 ? <StatusPill tone="warn">{attention} wymaga uwagi</StatusPill> : null}
+              </>
+            ) : null}
+            <span>hosting, poczta i e-mail marketing w jednym miejscu</span>
+          </div>
+        </div>
+        <Link href="/dashboard/services/new" className="inline-flex items-center gap-2 rounded-md border border-primary bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground">
+          <Plus className="h-4 w-4" /> Zamów nową usługę
+        </Link>
+      </header>
 
       {loadError ? (
-        <div className="rounded-2xl border border-rose-400/30 bg-rose-400/5 p-6 text-rose-200 flex items-start gap-3">
-          <ShieldAlert className="h-5 w-5 mt-0.5" />
+        <div className="flex items-start gap-3 rounded-[10px] border border-crit/30 bg-crit/5 p-4 text-sm">
+          <ShieldAlert className="mt-0.5 h-5 w-5 text-crit" />
           <div>
-            <p className="font-semibold">Wystąpił problem</p>
-            <p className="text-sm text-rose-200/80 mt-1">{loadError}</p>
+            <p className="font-semibold text-foreground">Wystąpił problem</p>
+            <p className="mt-1 text-muted-foreground">{loadError}</p>
           </div>
         </div>
       ) : services.length === 0 ? (
-        <EmptyState />
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {services.map((service) => (
-            <ServiceCard key={service.id} service={service} />
-          ))}
+        <div className="relative overflow-hidden rounded-[10px] border border-line bg-card px-6 py-12 text-center">
+          <div aria-hidden className="verris-pattern-bg pointer-events-none absolute inset-0 opacity-[0.06]" />
+          <h2 className="relative font-display text-2xl font-bold text-foreground">Nie masz jeszcze żadnej usługi</h2>
+          <p className="relative mx-auto mt-2 max-w-md text-muted-foreground">Wybierz plan dopasowany do Twojej strony — konto założymy w kilka sekund.</p>
+          <Link href="/dashboard/services/new" className="relative mt-6 inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground">
+            <Plus className="h-4 w-4" /> Wybierz plan
+          </Link>
         </div>
+      ) : (
+        <>
+          <section>
+            <SectionHead title="Aktywne" desc="Kliknij usługę, żeby zarządzać domenami, pocztą, plikami i kopiami." />
+            <ServicesTable services={active} />
+          </section>
+          {ended.length > 0 ? (
+            <section>
+              <SectionHead title="Zakończone" />
+              <ServicesTable services={ended} />
+            </section>
+          ) : null}
+        </>
       )}
     </div>
   );
 }
 
-function ServiceCard({ service }: { service: ServiceSummaryDto }) {
-  const account = service.account;
+function ServicesTable({ services }: { services: ServiceSummaryDto[] }) {
   return (
-    <div className="group relative overflow-hidden rounded-2xl border border-white/10 bg-[#0a0a0a] hover:bg-[#0d0d0d] transition-colors duration-200">
-      <div className="p-5 flex flex-col h-full">
-        <div className="flex items-start justify-between gap-3 mb-4">
-          <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-white">
-            <Server className="h-6 w-6" />
-          </div>
-          <span
-            className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-              statusBadgeClass[service.status]
-            }`}
-          >
-            {statusLabels[service.status]}
-          </span>
-        </div>
-
-        <UnpaidServiceBanner
-          serviceId={service.id}
-          status={service.status}
-          paymentSource={service.paymentSource}
-        />
-
-        {service.isTrial && service.status !== 'EXPIRED' ? (
-          <div className="mb-3 rounded-xl border border-emerald-400/25 bg-emerald-400/[0.06] px-3 py-2">
-            <p className="text-[11px] font-semibold text-emerald-200">
-              Okres próbny
-              {service.trialEndsAt
-                ? ` — do ${new Date(service.trialEndsAt).toLocaleDateString('pl-PL')}`
-                : ''}
-            </p>
-            <ConvertTrialButton serviceId={service.id} />
-          </div>
-        ) : null}
-
-        {service.provisioning && service.status !== 'ACTIVE' && (
-          <ProvisioningBadge progress={service.provisioning} />
-        )}
-
-        <div className="mb-4 min-w-0">
-          <div className="flex items-center gap-2">
-            <h3 className="text-lg font-bold text-white leading-tight truncate">{service.planName}</h3>
-            {service.productKind === 'EMAIL' ? (
-              <span className="shrink-0 rounded-full border border-sky-400/30 bg-sky-400/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-sky-200">
-                Poczta
-              </span>
-            ) : null}
-          </div>
-          {service.serviceTag ? (
-            <p className="mt-1 font-mono text-[11px] text-neutral-500" title="Identyfikator usługi">
-              ID: <span className="text-neutral-300">{service.serviceTag}</span>
-            </p>
-          ) : null}
-          <div className="mt-2 space-y-1 text-xs text-neutral-400">
-            <span className="flex items-center gap-2 min-w-0">
-              <Globe className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
-              <span className="truncate">{account?.domain ?? '—'}</span>
-            </span>
-            {account?.server?.name ? (
-              <span className="flex items-center gap-2 min-w-0">
-                <HardDrive className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
-                <span className="truncate">{account.server.name}</span>
-              </span>
-            ) : null}
-          </div>
-        </div>
-
-        {service.recommendations[0] && service.recommendations[0].severity !== 'info' ? (
-          <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-[11px] text-amber-100/90">
-            <span className="font-semibold">{service.recommendations[0].title}</span>
-            {' — '}
-            {service.recommendations[0].body}
-          </div>
-        ) : service.health.score != null ? (
-          <div className="mb-4 flex items-center gap-2 text-xs">
-            <span
-              className={`inline-flex h-2 w-2 rounded-full ${
-                service.health.label === 'healthy'
-                  ? 'bg-emerald-400'
-                  : service.health.label === 'attention'
-                    ? 'bg-amber-400'
-                    : 'bg-rose-400'
-              }`}
-            />
-            <span className="text-neutral-400">
-              Health{' '}
-              <span className="text-white font-semibold">{service.health.score}/100</span>
-            </span>
-          </div>
-        ) : null}
-
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          <ResourceTile label="CPU" value={`${account?.cpuLimit ?? 0}%`} />
-          <ResourceTile
-            label="RAM"
-            value={account ? `${(account.ramLimitMb / 1024).toFixed(1)} GB` : '—'}
-          />
-          <ResourceTile
-            label="Dysk"
-            value={account ? `${(account.diskLimitMb / 1024).toFixed(0)} GB` : '—'}
-          />
-        </div>
-
-        <div className="mt-auto flex flex-col gap-3 pt-4 border-t border-white/5 sm:flex-row sm:items-center sm:justify-between">
-          <span className="text-xs text-neutral-500">
-            <span className="text-white font-medium">
-              {Number(service.priceAmount).toFixed(2)} {service.currency}
-            </span>
-            {service.interval === 'MONTH' ? ' / mies.' : ' / rok'}
-          </span>
-          <div className="flex flex-wrap items-center gap-2">
-            {service.status === 'ACTIVE' && account ? (
-              <Link href={`/dashboard/services/${service.id}/plan`}>
-                <button
-                  type="button"
-                  className="inline-flex items-center justify-center rounded-lg p-2 text-sm border border-sky-400/30 bg-sky-400/10 text-sky-200 hover:bg-sky-400/20"
-                  title="Zmiana planu"
-                >
-                  <ArrowRightLeft className="h-4 w-4" />
-                </button>
-              </Link>
-            ) : null}
-            {service.productKind !== 'EMAIL' ? (
-              <Link href={`/dashboard/services/${service.id}/autoscaling`}>
-                <button
-                  type="button"
-                  className={`inline-flex items-center justify-center rounded-lg p-2 text-sm border transition-colors ${
-                    service.autoscalingEnabled
-                      ? 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200 hover:bg-emerald-400/20'
-                      : 'border-white/10 bg-white/5 text-neutral-300 hover:bg-white/10'
-                  }`}
-                  title="Autoskalowanie"
-                >
-                  <Gauge className="h-4 w-4" />
-                </button>
-              </Link>
-            ) : null}
-            {/* Przekazujemy typ usługi w URL — hub od razu pokaże właściwy zestaw
-                zakładek bez „migania" (zanim dojedzie wolniejszy detal z health). */}
-            <Link href={`/dashboard/services/${service.id}?kind=${service.productKind ?? 'HOSTING'}`}>
-              <button className="inline-flex items-center gap-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-white px-3 py-2 text-xs font-semibold transition-colors">
-                <Settings2 className="h-3.5 w-3.5" />
-                Zarządzaj
-              </button>
-            </Link>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function ProvisioningBadge({ progress }: { progress: ProvisioningProgressDto }) {
-  const stageLabels: Record<ProvisioningProgressDto['stage'], string> = {
-    queued: 'W kolejce',
-    running: 'Tworzenie konta',
-    retrying: 'Powtarzamy próbę',
-    failed: 'Błąd konfiguracji',
-    completed: 'Gotowe',
-  };
-  const stageStyles: Record<ProvisioningProgressDto['stage'], string> = {
-    queued: 'border-sky-400/30 bg-sky-400/5 text-sky-200',
-    running: 'border-indigo-400/40 bg-indigo-400/10 text-indigo-200 animate-pulse',
-    retrying: 'border-amber-400/40 bg-amber-400/10 text-amber-200',
-    failed: 'border-rose-400/40 bg-rose-400/10 text-rose-200',
-    completed: 'border-emerald-400/40 bg-emerald-400/10 text-emerald-200',
-  };
-  return (
-    <div
-      className={`mb-6 rounded-2xl border px-4 py-3 text-xs ${stageStyles[progress.stage]}`}
-    >
-      <div className="font-semibold uppercase tracking-widest">
-        <span>{stageLabels[progress.stage]}</span>
-      </div>
-      {progress.stage === 'failed' ? (
-        <p className="mt-2 text-[11px] leading-snug opacity-90">
-          Wystąpił problem podczas konfiguracji. Skontaktuj się z pomocą techniczną — zajmiemy się tym
-          priorytetowo.
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-function ResourceTile({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-2 text-center">
-      <div className="text-[9px] font-bold text-neutral-500 uppercase tracking-wider">{label}</div>
-      <div className="mt-0.5 text-sm font-semibold text-white truncate">{value}</div>
-    </div>
-  );
-}
-
-function EmptyState() {
-  return (
-    <div className="relative overflow-hidden rounded-[32px] border border-border bg-card/30 p-12 text-center">
-      <div
-        aria-hidden
-        className="verris-pattern-bg pointer-events-none absolute inset-0 opacity-[0.06]"
-      />
-      <Server className="relative z-10 mx-auto h-12 w-12 text-muted-foreground" />
-      <h3 className="relative z-10 mt-6 font-display text-2xl font-bold text-foreground">
-        Nie masz jeszcze żadnej usługi
-      </h3>
-      <p className="relative z-10 mx-auto mt-2 max-w-md text-muted-foreground">
-        Wybierz plan dopasowany do potrzeb Twojej strony — utworzymy konto na serwerze w ciągu kilku
-        sekund.
-      </p>
-      <Link
-        href="/dashboard/services/new"
-        className="relative z-10 mt-8 inline-flex items-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground transition-colors hover:bg-verris-tip"
-      >
-        <Plus className="h-4 w-4" />
-        Wybierz plan
-      </Link>
+    <div className="overflow-x-auto rounded-[10px] border border-line bg-card">
+      <table className="w-full border-collapse text-sm">
+        <thead>
+          <tr>
+            <th className={TH}>Usługa</th>
+            <th className={TH}>Stan</th>
+            <th className={`${TH} max-md:hidden`}>Zdrowie</th>
+            <th className={`${TH} max-lg:hidden`}>Zasoby</th>
+            <th className={`${TH} max-sm:hidden`}>Odnowienie</th>
+            <th className={`${TH} max-sm:hidden`}>Cena</th>
+            <th className={TH} />
+          </tr>
+        </thead>
+        <tbody>
+          {services.map((s, i) => {
+            const t = tone(s);
+            const a = s.account;
+            const rec = s.recommendations?.find((r) => r.severity !== 'info');
+            return (
+              <tr key={s.id} className="group hover:bg-raised/50">
+                <td className={TD}>
+                  <Link href={href(s)} className="flex flex-col">
+                    <b className="whitespace-nowrap font-semibold text-foreground">{s.planName}</b>
+                    <small className="whitespace-nowrap text-[12.5px] text-muted-foreground">
+                      {KIND[s.productKind]}
+                      {a?.domain ? ` · ${a.domain}` : ''}
+                      {s.serviceTag ? <span className="font-mono"> · {s.serviceTag}</span> : null}
+                    </small>
+                  </Link>
+                  {s.isTrial && s.status !== 'EXPIRED' ? (
+                    <div className="mt-2 text-[12px] text-data-hi">
+                      Okres próbny{s.trialEndsAt ? ` do ${new Date(s.trialEndsAt).toLocaleDateString('pl-PL')}` : ''}
+                      <ConvertTrialButton serviceId={s.id} />
+                    </div>
+                  ) : null}
+                  <UnpaidServiceBanner serviceId={s.id} status={s.status} paymentSource={s.paymentSource} />
+                </td>
+                <td className={TD}>
+                  <span
+                    className={`inline-flex items-center gap-[7px] whitespace-nowrap text-[12.5px] font-semibold ${t === 'data' ? 'text-data-hi' : t === 'warn' ? 'text-warn' : 'text-muted-foreground'}`}
+                    data-tip={rec ? `${rec.title}\n${rec.body}` : undefined}
+                  >
+                    <span className={`h-[7px] w-[7px] rounded-full bg-current ${t === 'data' ? 'v2-breathe' : t === 'warn' ? 'v2-breathe v2-breathe-warn' : ''}`} style={{ ['--v2-i' as string]: i }} />
+                    {s.provisioning && s.status !== 'ACTIVE' ? PROVISIONING[s.provisioning.stage] : rec && s.status === 'ACTIVE' ? rec.title : STATUS[s.status]}
+                  </span>
+                </td>
+                <td className={`${TD} max-md:hidden`}>
+                  {s.health?.score != null ? (
+                    <span
+                      className={`font-display text-lg font-extrabold tabular-nums ${s.health.score >= 90 ? 'text-data-hi' : s.health.score >= 70 ? 'text-warn' : 'text-crit'}`}
+                      data-tip={s.health.summary ?? undefined}
+                    >
+                      {s.health.score}
+                      <small className="ml-0.5 font-mono text-[11px] font-medium text-muted-foreground">/100</small>
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </td>
+                <td className={`${TD} max-lg:hidden whitespace-nowrap font-mono text-[12.5px] text-muted-foreground`}>
+                  {a ? `${a.cpuLimit}% CPU · ${(a.ramLimitMb / 1024).toLocaleString('pl-PL', { maximumFractionDigits: 1 })} GB RAM · ${Math.round(a.diskLimitMb / 1024)} GB` : '—'}
+                </td>
+                <td className={`${TD} max-sm:hidden whitespace-nowrap tabular-nums`}>
+                  {s.currentPeriodEnd ? new Date(s.currentPeriodEnd).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                </td>
+                <td className={`${TD} max-sm:hidden whitespace-nowrap tabular-nums`}>
+                  {Number(s.priceAmount).toLocaleString('pl-PL', { minimumFractionDigits: 2 })} {s.currency === 'PLN' ? 'zł' : s.currency}
+                  {s.interval === 'MONTH' ? ' / mies.' : ' / rok'}
+                </td>
+                <td className={`${TD} w-[1%]`}>
+                  <div className="flex items-center justify-end gap-1.5">
+                    {s.status === 'ACTIVE' && a ? (
+                      <Link href={`/dashboard/services/${s.id}/plan`} className={ICON_BTN} data-tip="Zmiana planu" aria-label="Zmiana planu">
+                        <ArrowRightLeft className="h-4 w-4" />
+                      </Link>
+                    ) : null}
+                    {s.productKind !== 'EMAIL' ? (
+                      <Link
+                        href={`/dashboard/services/${s.id}/autoscaling`}
+                        className={`${ICON_BTN} ${s.autoscalingEnabled ? 'border-data/50 text-data-hi' : ''}`}
+                        data-tip={s.autoscalingEnabled ? 'Autoskalowanie: włączone' : 'Autoskalowanie: wyłączone'}
+                        aria-label="Autoskalowanie"
+                      >
+                        <Gauge className="h-4 w-4" />
+                      </Link>
+                    ) : null}
+                    <Link href={href(s)} aria-label={`Otwórz ${s.planName}`} className="px-1 text-muted-foreground group-hover:text-primary">
+                      <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                    </Link>
+                  </div>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 }

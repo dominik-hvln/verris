@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Eye, Wallet } from "lucide-react";
+import { Eye } from "lucide-react";
 import { CREDIT_SHORT, formatCredits } from "@/lib/credits";
 
 interface Props {
@@ -32,7 +32,7 @@ export function WalletBadge({
   if (loading) {
     return (
       <div
-        className="inline-flex h-10 min-w-[7rem] animate-pulse items-center gap-2 rounded-full border border-white/10 bg-white/[0.06] px-4"
+        className="inline-flex h-[34px] min-w-[7rem] animate-pulse items-center gap-2 rounded-md border border-line bg-card px-3"
         aria-hidden
       >
         <span className="h-4 w-4 rounded-full bg-white/10" />
@@ -46,23 +46,11 @@ export function WalletBadge({
   const isEmpty = hasBalance && numeric <= 0;
   const isLow = hasBalance && numeric > 0 && numeric < lowThreshold;
 
+  // PB-15 — chip jak we wzorcu: „Portfel" + saldo; stan niski/zerowy kropką i kolorem liczby.
   const tone = impersonating
-    ? "border-amber-400/50 bg-amber-500/15 text-amber-50 hover:bg-amber-500/20 ring-1 ring-amber-400/30"
-    : isEmpty
-      ? "border-rose-400/40 bg-rose-400/10 text-rose-100 hover:bg-rose-400/15"
-      : isLow
-        ? "border-amber-400/40 bg-amber-400/10 text-amber-100 hover:bg-amber-400/15"
-        : hasBalance
-          ? "border-accent/30 bg-accent/[0.06] text-verris-paper hover:bg-accent/10"
-          : "border-border bg-card/30 text-muted-foreground hover:bg-card/50";
-
-  const iconTone = isEmpty
-    ? "text-rose-300"
-    : isLow
-      ? "text-amber-300"
-      : hasBalance
-        ? "text-accent"
-        : "text-muted-foreground";
+    ? "border-amber-400/50 bg-amber-500/15 ring-1 ring-amber-400/30"
+    : "border-line bg-card hover:border-line-strong";
+  const amountTone = isEmpty ? "text-crit" : isLow ? "text-warn" : hasBalance ? "text-foreground" : "text-muted-foreground";
 
   const tooltip = impersonating
     ? "Saldo konta klienta (sesja impersonacji — uważaj przy operacjach finansowych)."
@@ -78,16 +66,13 @@ export function WalletBadge({
     <Link
       href="/dashboard/billing"
       title={tooltip}
-      className={`inline-flex max-w-[42vw] items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs font-semibold transition-colors sm:max-w-none sm:gap-2.5 sm:px-4 sm:py-2 sm:text-sm ${tone}`}
+      data-tip={tooltip}
+      className={`inline-flex max-w-[46vw] items-center gap-2 whitespace-nowrap rounded-md border px-2.5 py-1.5 text-[13px] text-muted-foreground transition-colors ${tone}`}
     >
-      {impersonating ? (
-        <Eye className="h-4 w-4 shrink-0 text-amber-200" aria-hidden />
-      ) : (
-        <Wallet className={`h-4 w-4 shrink-0 ${iconTone}`} aria-hidden />
-      )}
-      <span className="truncate tabular-nums tracking-tight">
-        {formatCredits(balance)}
-      </span>
+      {impersonating ? <Eye className="h-4 w-4 shrink-0 text-amber-200" aria-hidden /> : null}
+      <span className="max-sm:hidden">Portfel</span>
+      {isEmpty || isLow ? <span className={`v2-breathe v2-breathe-warn h-1.5 w-1.5 rounded-full ${isEmpty ? "bg-crit" : "bg-warn"}`} /> : null}
+      <b className={`truncate font-display text-[13.5px] font-bold tabular-nums ${amountTone}`}>{formatCredits(balance)}</b>
     </Link>
   );
 }

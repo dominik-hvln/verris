@@ -291,7 +291,7 @@ html.dark.eco-tint {
 
 .verris-pattern-bg {
   background-image: url("/brand/verris-pattern.svg");
-  background-size: 320px auto;
+  background-size: 112px auto; /* kafel 168×240 = 2×2 znaki → znak ok. 56 px, jak we wzorcu */
   background-repeat: repeat;
   mix-blend-mode: normal;
   -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 30%, transparent 60%);
