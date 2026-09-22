@@ -83,13 +83,13 @@ export default function SupportPage() {
           </p>
         ) : (
           <div className="overflow-x-auto rounded-[10px] border border-line bg-card">
-            <table className="w-full border-collapse text-sm">
+            <table className="v2-stack w-full border-collapse text-sm">
               <thead>
                 <tr>
                   <th className={TH}>Zgłoszenie</th>
                   <th className={TH}>Stan</th>
-                  <th className={`${TH} max-md:hidden`}>Ostatnia zmiana</th>
-                  <th className={`${TH} text-right max-sm:hidden`}>Odpowiedzi</th>
+                  <th className={TH}>Ostatnia zmiana</th>
+                  <th className={`${TH} text-right`}>Odpowiedzi</th>
                 </tr>
               </thead>
               <tbody>
@@ -103,13 +103,10 @@ export default function SupportPage() {
                       onClick={() => router.push(`/dashboard/support/${t.id}`)}
                       onKeyDown={(e) => e.key === "Enter" && router.push(`/dashboard/support/${t.id}`)}
                     >
-                      <td className={TD}>
+                      <td className={TD} data-label="Zgłoszenie">
                         <b className="block font-semibold text-foreground">{t.subject}</b>
-                        <span className="text-[12.5px] text-muted-foreground md:hidden">
-                          {format(new Date(t.updatedAt), "d MMM yyyy, HH:mm", { locale: pl })}
-                        </span>
                       </td>
-                      <td className={TD}>
+                      <td className={TD} data-label="Stan">
                         <span
                           className={`inline-flex items-center gap-[7px] whitespace-nowrap text-[12.5px] font-semibold ${
                             st.tone === "data" ? "text-data-hi" : st.tone === "warn" ? "text-warn" : "text-muted-foreground"
@@ -123,10 +120,10 @@ export default function SupportPage() {
                           {st.label}
                         </span>
                       </td>
-                      <td className={`${TD} whitespace-nowrap font-mono text-xs text-muted-foreground max-md:hidden`}>
+                      <td className={`${TD} font-mono text-xs text-muted-foreground`} data-label="Ostatnia zmiana">
                         {format(new Date(t.updatedAt), "d MMM yyyy, HH:mm", { locale: pl })}
                       </td>
-                      <td className={`${TD} text-right tabular-nums text-muted-foreground max-sm:hidden`}>{t._count.replies}</td>
+                      <td className={`${TD} text-right tabular-nums text-muted-foreground`} data-label="Odpowiedzi">{t._count.replies}</td>
                     </tr>
                   );
                 })}

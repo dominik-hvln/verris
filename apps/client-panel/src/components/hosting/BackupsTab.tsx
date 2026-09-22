@@ -12,6 +12,7 @@ import {
 import { BackupNowButton } from '@/app/dashboard/backups/backup-now-button';
 import { hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { HostingHelpHint } from '@/components/hosting/HostingTabShell';
+import { SectionHead } from '@/components/panel/v2';
 import BackupScheduleCard from '@/components/hosting/BackupScheduleCard';
 
 const STATUS_LABEL: Record<HostingRestoreJobDto['status'], string> = {
@@ -69,6 +70,7 @@ export default function BackupsTab({ serviceId }: { serviceId: string }) {
 
   return (
     <div className="space-y-4">
+      <SectionHead title="Kopie zapasowe" desc="Harmonogram, kopie na koncie i przywracanie jednym kliknięciem." />
       <HostingHelpHint
         help={{
           blurb:

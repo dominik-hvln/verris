@@ -254,13 +254,13 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
                   <Link href="/dashboard/services/new" className={BTN_PRIMARY}>Zamów pierwszą usługę</Link>
                 </div>
               ) : (
-                <table className="w-full border-collapse text-sm">
+                <table className="v2-stack w-full border-collapse text-sm">
                   <thead>
                     <tr>
                       <th className={TH}>Usługa</th>
                       <th className={TH}>Stan</th>
-                      <th className={`${TH} max-sm:hidden`}>Odnowienie</th>
-                      <th className={`${TH} max-sm:hidden`}>Cena</th>
+                      <th className={TH}>Odnowienie</th>
+                      <th className={TH}>Cena</th>
                       <th />
                     </tr>
                   </thead>
@@ -269,7 +269,7 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
                       const t = tones[i]!;
                       return (
                         <tr key={s.id} className="group hover:bg-raised/50">
-                          <td className={TD}>
+                          <td className={TD} data-label="Usługa">
                             <Link href={serviceHref(s)} className="flex flex-col">
                               <b className="whitespace-nowrap font-semibold text-foreground">{s.planName}</b>
                               <small className="whitespace-nowrap text-[12.5px] text-muted-foreground">
@@ -278,7 +278,7 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
                               </small>
                             </Link>
                           </td>
-                          <td className={TD}>
+                          <td className={TD} data-label="Stan">
                             <span className={`inline-flex items-center gap-[7px] text-[12.5px] font-semibold ${t.tone === 'data' ? 'text-data-hi' : t.tone === 'warn' ? 'text-warn' : 'text-muted-foreground'}`}>
                               <span
                                 className={`h-[7px] w-[7px] rounded-full bg-current ${t.tone === 'data' ? 'v2-breathe' : t.tone === 'warn' ? 'v2-breathe v2-breathe-warn' : ''}`}
@@ -287,8 +287,8 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
                               {t.text}
                             </span>
                           </td>
-                          <td className={`${TD} tabular-nums max-sm:hidden`}>{date(s.currentPeriodEnd)}</td>
-                          <td className={`${TD} whitespace-nowrap tabular-nums max-sm:hidden`}>
+                          <td className={`${TD} tabular-nums`} data-label="Odnowienie">{date(s.currentPeriodEnd)}</td>
+                          <td className={`${TD} whitespace-nowrap tabular-nums`} data-label="Cena">
                             {Number(s.priceAmount).toLocaleString('pl-PL', { minimumFractionDigits: 2 })} {s.currency === 'PLN' ? 'zł' : s.currency}
                             {s.interval === 'MONTH' ? ' / mies.' : ' / rok'}
                           </td>

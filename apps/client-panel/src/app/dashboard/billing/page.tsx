@@ -139,13 +139,13 @@ export default async function BillingPage({
                   </p>
                 ) : (
                   <div className="overflow-x-auto rounded-[10px] border border-line bg-card">
-                    <table className="w-full border-collapse text-sm">
+                    <table className="v2-stack w-full border-collapse text-sm">
                       <thead>
                         <tr>
                           <th className={TH}>Operacja</th>
-                          <th className={`${TH} max-md:hidden`}>Kiedy</th>
+                          <th className={TH}>Kiedy</th>
                           <th className={`${TH} text-right`}>Kwota</th>
-                          <th className={`${TH} text-right max-sm:hidden`}>Saldo po</th>
+                          <th className={`${TH} text-right`}>Saldo po</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -215,18 +215,17 @@ function TransactionRow({ tx }: { tx: WalletTransactionDto }) {
   const when = new Date(tx.createdAt).toLocaleString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   return (
     <tr>
-      <td className={TD}>
+      <td className={TD} data-label="Operacja">
         <b className="block font-semibold text-foreground">{txLabels[tx.type] ?? tx.type}</b>
         <span className="block text-[12.5px] text-muted-foreground">
           {tx.description ?? (tx.paymentProvider ? `Płatność ${tx.paymentProvider}` : 'Bez opisu')}
-          <span className="md:hidden"> · {when}</span>
         </span>
       </td>
-      <td className={`${TD} whitespace-nowrap font-mono text-xs text-muted-foreground max-md:hidden`}>{when}</td>
-      <td className={`${TD} whitespace-nowrap text-right tabular-nums ${isCredit ? 'text-data-hi' : 'text-foreground'}`}>
+      <td className={`${TD} font-mono text-xs text-muted-foreground`} data-label="Kiedy">{when}</td>
+      <td className={`${TD} text-right tabular-nums ${isCredit ? 'text-data-hi' : 'text-foreground'}`} data-label="Kwota">
         {formatCredits(tx.amount, { signed: true })}
       </td>
-      <td className={`${TD} whitespace-nowrap text-right tabular-nums text-muted-foreground max-sm:hidden`}>{formatCredits(tx.balanceAfter)}</td>
+      <td className={`${TD} text-right tabular-nums text-muted-foreground`} data-label="Saldo po">{formatCredits(tx.balanceAfter)}</td>
     </tr>
   );
 }

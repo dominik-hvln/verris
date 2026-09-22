@@ -341,7 +341,7 @@ export default function ServiceOverviewV2({
                       : 'Brak domen. Dodaj pierwszą, żeby uruchomić stronę.'}
                 </p>
               ) : (
-                <table className="w-full border-collapse text-sm">
+                <table className="v2-stack w-full border-collapse text-sm">
                   <thead>
                     <tr>
                       <th className="px-3 pb-2.5 pt-3 text-left font-mono text-[11px] font-medium uppercase tracking-[0.07em] text-muted-foreground">Domena</th>
@@ -358,8 +358,8 @@ export default function ServiceOverviewV2({
                         onClick={() => router.push(`/dashboard/services/${serviceId}/sites/${encodeURIComponent(d.name)}`)}
                         onKeyDown={(e) => e.key === 'Enter' && router.push(`/dashboard/services/${serviceId}/sites/${encodeURIComponent(d.name)}`)}
                       >
-                        <td className="border-t border-line px-3 py-3 font-semibold text-foreground">{d.name}</td>
-                        <td className="border-t border-line px-3 py-3 text-muted-foreground">{d.name === primary ? 'domena główna' : 'domena dodatkowa'}</td>
+                        <td className="border-t border-line px-3 py-3 font-semibold text-foreground" data-label="Domena">{d.name}</td>
+                        <td className="border-t border-line px-3 py-3 text-muted-foreground" data-label="Rola">{d.name === primary ? 'domena główna' : 'domena dodatkowa'}</td>
                         <td className="w-8 border-t border-line px-3 py-3 text-muted-foreground">
                           <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
                         </td>

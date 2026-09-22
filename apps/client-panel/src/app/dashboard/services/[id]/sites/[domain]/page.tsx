@@ -388,7 +388,7 @@ export default function SitePage() {
               <p className="m-0 rounded-[10px] border border-line bg-card px-4 py-[22px] text-sm text-muted-foreground">W tej domenie nie ma skrzynek.</p>
             ) : (
               <div className="overflow-x-auto rounded-[10px] border border-line bg-card">
-                <table className="w-full border-collapse text-sm">
+                <table className="v2-stack w-full border-collapse text-sm">
                   <thead>
                     <tr>
                       <th className={TH}>Adres</th>
@@ -398,10 +398,10 @@ export default function SitePage() {
                   <tbody>
                     {boxes.map((b) => (
                       <tr key={b.id}>
-                        <td className={TD}>
+                        <td className={TD} data-label="Adres">
                           <b className="font-semibold text-foreground">{b.email}</b>
                         </td>
-                        <td className={`${TD} whitespace-nowrap`}>{b.quotaMb ? `${(b.quotaMb / 1024).toLocaleString('pl-PL', { maximumFractionDigits: 1 })} GB` : 'bez limitu'}</td>
+                        <td className={TD} data-label="Limit">{b.quotaMb ? `${(b.quotaMb / 1024).toLocaleString('pl-PL', { maximumFractionDigits: 1 })} GB` : 'bez limitu'}</td>
                       </tr>
                     ))}
                   </tbody>

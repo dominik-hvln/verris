@@ -119,15 +119,15 @@ export default async function ServicesPage() {
 function ServicesTable({ services }: { services: ServiceSummaryDto[] }) {
   return (
     <div className="overflow-x-auto rounded-[10px] border border-line bg-card">
-      <table className="w-full border-collapse text-sm">
+      <table className="v2-stack w-full border-collapse text-sm">
         <thead>
           <tr>
             <th className={TH}>Usługa</th>
             <th className={TH}>Stan</th>
-            <th className={`${TH} max-md:hidden`}>Zdrowie</th>
-            <th className={`${TH} max-lg:hidden`}>Zasoby</th>
-            <th className={`${TH} max-sm:hidden`}>Odnowienie</th>
-            <th className={`${TH} max-sm:hidden`}>Cena</th>
+            <th className={TH}>Zdrowie</th>
+            <th className={TH}>Zasoby</th>
+            <th className={TH}>Odnowienie</th>
+            <th className={TH}>Cena</th>
             <th className={TH} />
           </tr>
         </thead>
@@ -138,7 +138,7 @@ function ServicesTable({ services }: { services: ServiceSummaryDto[] }) {
             const rec = s.recommendations?.find((r) => r.severity !== 'info');
             return (
               <tr key={s.id} className="group hover:bg-raised/50">
-                <td className={TD}>
+                <td className={TD} data-label="Usługa">
                   <Link href={href(s)} className="flex flex-col">
                     <b className="whitespace-nowrap font-semibold text-foreground">{s.planName}</b>
                     <small className="whitespace-nowrap text-[12.5px] text-muted-foreground">
@@ -155,7 +155,7 @@ function ServicesTable({ services }: { services: ServiceSummaryDto[] }) {
                   ) : null}
                   <UnpaidServiceBanner serviceId={s.id} status={s.status} paymentSource={s.paymentSource} />
                 </td>
-                <td className={TD}>
+                <td className={TD} data-label="Stan">
                   <span
                     className={`inline-flex items-center gap-[7px] whitespace-nowrap text-[12.5px] font-semibold ${t === 'data' ? 'text-data-hi' : t === 'warn' ? 'text-warn' : 'text-muted-foreground'}`}
                     data-tip={rec ? `${rec.title}\n${rec.body}` : undefined}
@@ -164,7 +164,7 @@ function ServicesTable({ services }: { services: ServiceSummaryDto[] }) {
                     {s.provisioning && s.status !== 'ACTIVE' ? PROVISIONING[s.provisioning.stage] : rec && s.status === 'ACTIVE' ? rec.title : STATUS[s.status]}
                   </span>
                 </td>
-                <td className={`${TD} max-md:hidden`}>
+                <td className={TD} data-label="Zdrowie">
                   {s.health?.score != null ? (
                     <span
                       className={`font-display text-lg font-extrabold tabular-nums ${s.health.score >= 90 ? 'text-data-hi' : s.health.score >= 70 ? 'text-warn' : 'text-crit'}`}
@@ -177,13 +177,13 @@ function ServicesTable({ services }: { services: ServiceSummaryDto[] }) {
                     <span className="text-muted-foreground">—</span>
                   )}
                 </td>
-                <td className={`${TD} max-lg:hidden whitespace-nowrap font-mono text-[12.5px] text-muted-foreground`}>
+                <td className={`${TD} font-mono text-[12.5px] text-muted-foreground`} data-label="Zasoby">
                   {a ? `${a.cpuLimit}% CPU · ${(a.ramLimitMb / 1024).toLocaleString('pl-PL', { maximumFractionDigits: 1 })} GB RAM · ${Math.round(a.diskLimitMb / 1024)} GB` : '—'}
                 </td>
-                <td className={`${TD} max-sm:hidden whitespace-nowrap tabular-nums`}>
+                <td className={`${TD} whitespace-nowrap tabular-nums`} data-label="Odnowienie">
                   {s.currentPeriodEnd ? new Date(s.currentPeriodEnd).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
                 </td>
-                <td className={`${TD} max-sm:hidden whitespace-nowrap tabular-nums`}>
+                <td className={`${TD} whitespace-nowrap tabular-nums`} data-label="Cena">
                   {Number(s.priceAmount).toLocaleString('pl-PL', { minimumFractionDigits: 2 })} {s.currency === 'PLN' ? 'zł' : s.currency}
                   {s.interval === 'MONTH' ? ' / mies.' : ' / rok'}
                 </td>

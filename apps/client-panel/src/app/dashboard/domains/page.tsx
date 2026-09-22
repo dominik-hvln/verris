@@ -157,12 +157,12 @@ export default function DomainsPage() {
           <p className="m-0 rounded-[10px] border border-line bg-card px-4 py-[22px] text-sm text-muted-foreground">Brak podpiętych domen.</p>
         ) : (
           <div className="overflow-x-auto rounded-[10px] border border-line bg-card">
-            <table className="w-full border-collapse text-sm">
+            <table className="v2-stack w-full border-collapse text-sm">
               <thead>
                 <tr>
                   <th className={TH}>Domena</th>
                   <th className={TH}>Stan</th>
-                  <th className={`${TH} max-md:hidden`}>Dodana</th>
+                  <th className={TH}>Dodana</th>
                   <th className={TH} />
                 </tr>
               </thead>
@@ -174,11 +174,11 @@ export default function DomainsPage() {
                       : `/dashboard/domains/${domain.id}`;
                   return (
                     <tr key={domain.id} className="group cursor-pointer hover:bg-raised/40" onClick={() => router.push(href)}>
-                      <td className={TD}>
+                      <td className={TD} data-label="Domena">
                         <b className="block font-semibold text-foreground">{domain.name}</b>
                         <span className="text-[12.5px] text-muted-foreground">{domain.kind === 'HOSTING' ? 'na hostingu' : 'zarejestrowana'}</span>
                       </td>
-                      <td className={TD}>
+                      <td className={TD} data-label="Stan">
                         <span
                           className={`inline-flex items-center gap-[7px] whitespace-nowrap text-[12.5px] font-semibold ${
                             domain.status === 'ACTIVE' ? 'text-data-hi' : 'text-warn'
@@ -188,7 +188,7 @@ export default function DomainsPage() {
                           {domain.status === 'ACTIVE' ? 'działa' : domain.status === 'PENDING' ? 'czeka na DNS' : 'wygasła'}
                         </span>
                       </td>
-                      <td className={`${TD} whitespace-nowrap font-mono text-xs text-muted-foreground max-md:hidden`}>
+                      <td className={`${TD} font-mono text-xs text-muted-foreground`} data-label="Dodana">
                         {domain.createdAt ? format(new Date(domain.createdAt), 'd MMM yyyy', { locale: pl }) : '—'}
                       </td>
                       <td className={`${TD} w-10 text-right`} onClick={(e) => e.stopPropagation()}>

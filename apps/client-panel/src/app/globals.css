@@ -764,3 +764,47 @@ select optgroup {
 .v2-skin td,
 .v2-skin th { overflow-wrap: anywhere; }
 .v2-skin th { font-family: var(--font-mono); font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase; font-size: 11px; color: var(--muted-foreground); }
+
+/* Nic się nie chowa: zamiast ukrywać kolumny albo przewijać w bok, na wąskim
+   ekranie tabela rozkłada się na bloki z nazwą kolumny przy każdej wartości. */
+@media (max-width: 767px) {
+  .v2-skin table.v2-stack,
+  .v2-skin table.v2-stack tbody,
+  .v2-skin table.v2-stack tr,
+  .v2-skin table.v2-stack td {
+    display: block;
+    width: 100%;
+  }
+  .v2-skin table.v2-stack thead {
+    display: none;
+  }
+  .v2-skin table.v2-stack tr {
+    border-top: 1px solid var(--line);
+    padding: 6px 0 10px;
+  }
+  .v2-skin table.v2-stack tbody tr:first-child {
+    border-top: 0;
+  }
+  .v2-skin table.v2-stack td {
+    border: 0;
+    padding: 3px 16px;
+    text-align: left;
+  }
+  .v2-skin table.v2-stack td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+  }
+}
+/* Skróty z wielokropkiem chowają treść — w tabelach i listach pokazujemy całość. */
+.v2-skin td .truncate,
+.v2-skin li .truncate,
+.v2-skin td.truncate {
+  overflow: visible;
+  white-space: normal;
+  text-overflow: clip;
+}
