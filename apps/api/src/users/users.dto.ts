@@ -57,6 +57,16 @@ export class UpdateProfileDto {
   @ArrayMaxSize(4)
   @IsString({ each: true })
   sidebarQuickLinks?: string[];
+
+  /** PB-16 — widok panelu (Prosty/Pełny) zapamiętany per użytkownik. */
+  @IsOptional()
+  @IsIn(['simple', 'full'])
+  panelViewMode?: 'simple' | 'full';
+
+  /** PB-16 — motyw treści panelu per użytkownik. */
+  @IsOptional()
+  @IsIn(['dark', 'light'])
+  panelTheme?: 'dark' | 'light';
 }
 
 export class ApplyReferralCodeDto {

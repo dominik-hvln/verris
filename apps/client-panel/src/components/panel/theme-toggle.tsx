@@ -2,26 +2,37 @@
 
 import { useEffect, useState } from 'react';
 import { Moon, Sun } from 'lucide-react';
+import { savePanelPreferences } from '@/app/dashboard/sidebar-actions';
 
-const KEY = 'verris-theme';
+export const THEME_KEY = 'verris-theme';
 
-/** Przełącznik motywu treści panelu (menu boczne zostaje ciemne). Stan: <html data-vtheme>, zapis w localStorage. */
+/** Ustawia motyw treści panelu (stan: <html data-vtheme>, kopia w localStorage). */
+export function applyTheme(light: boolean) {
+  if (light) document.documentElement.dataset.vtheme = 'light';
+  else delete document.documentElement.dataset.vtheme;
+  try {
+    localStorage.setItem(THEME_KEY, light ? 'light' : 'dark');
+  } catch {
+    /* tylko na tę wizytę */
+  }
+}
+
+/** Przełącznik motywu treści panelu (menu boczne zostaje ciemne). Wybór zapisujemy też na koncie (PB-16). */
 export function ThemeToggle() {
   const [light, setLight] = useState(false);
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- odczyt stanu ustawionego skryptem przed hydratacją
-    setLight(document.documentElement.dataset.vtheme === 'light');
+    // Motyw może zmienić też zapis z konta po wczytaniu profilu — śledzimy atrybut, nie tylko klik.
+    const el = document.documentElement;
+    const sync = () => setLight(el.dataset.vtheme === 'light');
+    sync();
+    const obs = new MutationObserver(sync);
+    obs.observe(el, { attributes: true, attributeFilter: ['data-vtheme'] });
+    return () => obs.disconnect();
   }, []);
   const toggle = () => {
     const next = !light;
-    setLight(next);
-    if (next) document.documentElement.dataset.vtheme = 'light';
-    else delete document.documentElement.dataset.vtheme;
-    try {
-      localStorage.setItem(KEY, next ? 'light' : 'dark');
-    } catch {
-      /* tylko na tę wizytę */
-    }
+    applyTheme(next);
+    void savePanelPreferences({ panelTheme: next ? 'light' : 'dark' });
   };
   return (
     <button

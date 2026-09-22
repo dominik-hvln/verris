@@ -78,4 +78,45 @@ describe('UsersService.getProfile (IAM)', () => {
       NotFoundException,
     );
   });
+
+  it('PB-16: zapisuje widok i motyw panelu — także subkontu (preferencje są osobiste)', async () => {
+    const update = jest.fn().mockResolvedValue({
+      id: 'sub-1',
+      email: 'ops@firma.pl',
+      firstName: 'Ops',
+      lastName: 'User',
+      companyName: null,
+      nip: null,
+      address: null,
+      city: null,
+      postalCode: null,
+      country: null,
+      locale: 'pl',
+      sidebarQuickLinks: [],
+      panelViewMode: 'simple',
+      panelTheme: 'light',
+    });
+    (prisma.user as unknown as { update: jest.Mock }).update = update;
+    prisma.user.findUnique.mockResolvedValue({
+      id: 'sub-1',
+      customerOwnerId: 'owner-1',
+      companyName: null,
+      nip: null,
+      address: null,
+      city: null,
+      postalCode: null,
+      country: null,
+    });
+
+    const res = await service.updateProfile('owner-1', { panelViewMode: 'simple', panelTheme: 'light' }, 'sub-1');
+
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'sub-1' },
+        data: { panelViewMode: 'simple', panelTheme: 'light' },
+      }),
+    );
+    expect(res.panelViewMode).toBe('simple');
+    expect(res.panelTheme).toBe('light');
+  });
 });

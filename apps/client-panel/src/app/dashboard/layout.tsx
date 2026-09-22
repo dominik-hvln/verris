@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Suspense, useEffect, useState, type ComponentType } from "react";
 import { logoutAction } from "./actions";
-import { fetchSidebarUser, type SidebarUser } from "./sidebar-actions";
+import { fetchSidebarUser, savePanelPreferences, type SidebarUser } from "./sidebar-actions";
 import { pushUserData } from "@/lib/analytics-events";
 import { ImpersonationBanner } from "./impersonation-banner";
 import { getImpersonationContext } from "./impersonation-actions";
@@ -24,7 +24,7 @@ import {
 import HostingAssistant from "@/components/assistant/HostingAssistant";
 import { TipLayer } from "@/components/panel/v2";
 import { ServiceNav } from "@/components/panel/service-nav";
-import { ThemeToggle } from "@/components/panel/theme-toggle";
+import { THEME_KEY, ThemeToggle, applyTheme } from "@/components/panel/theme-toggle";
 import { CommandPalette, type PaletteItem } from "@/components/panel/command-palette";
 import { fetchRailDataAction, type RailData } from "./rail-actions";
 import {
@@ -122,13 +122,41 @@ function NavRow({
 const SIMPLE_MODE_KEY = "verris-simple-mode";
 
 /** Ustawia widok Prosty/Pełny i powiadamia widoki (menu użytkownika, sekcja usługi, strona usługi). */
-function setPanelMode(simple: boolean) {
+function applyPanelMode(simple: boolean) {
   try {
     localStorage.setItem(SIMPLE_MODE_KEY, simple ? "1" : "0");
   } catch {
     /* ignore */
   }
   window.dispatchEvent(new Event("verris-mode"));
+}
+
+/** Wybór klienta: lokalnie od razu, na koncie w tle (PB-16 — widok per użytkownik, nie per przeglądarka). */
+function setPanelMode(simple: boolean) {
+  applyPanelMode(simple);
+  void savePanelPreferences({ panelViewMode: simple ? "simple" : "full" });
+}
+
+/** Po wczytaniu profilu: wybór z konta wygrywa; gdy konto go nie ma, odsyłamy wybór z przeglądarki. */
+function syncPanelPreferences(u: SidebarUser) {
+  let local: { simple: string | null; theme: string | null } = { simple: null, theme: null };
+  try {
+    local = { simple: localStorage.getItem(SIMPLE_MODE_KEY), theme: localStorage.getItem(THEME_KEY) };
+  } catch {
+    /* brak localStorage */
+  }
+  const toSave: { panelViewMode?: "simple" | "full"; panelTheme?: "dark" | "light" } = {};
+  if (u.panelViewMode) {
+    if ((local.simple === "1") !== (u.panelViewMode === "simple")) applyPanelMode(u.panelViewMode === "simple");
+  } else if (local.simple === "1" || local.simple === "0") {
+    toSave.panelViewMode = local.simple === "1" ? "simple" : "full";
+  }
+  if (u.panelTheme) {
+    applyTheme(u.panelTheme === "light");
+  } else if (local.theme === "light" || local.theme === "dark") {
+    toSave.panelTheme = local.theme;
+  }
+  if (toSave.panelViewMode || toSave.panelTheme) void savePanelPreferences(toSave);
 }
 
 function UserMenu({ displayName, email, initials, loading = false }: { displayName: string; email: string; initials: string; loading?: boolean }) {
@@ -290,6 +318,7 @@ export default function DashboardLayout({
           return;
         }
         setUser(u);
+        syncPanelPreferences(u);
         // Enhanced Conversions / Advanced Matching: ustawiamy zahaszowany e-mail RAZ,
         // po zalogowaniu, żeby był w dataLayer zanim odpali się jakakolwiek konwersja
         // (purchase/sign_up/lead). pushUserData samo sprawdza zgodę marketingową i hashuje

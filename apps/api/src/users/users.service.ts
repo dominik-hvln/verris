@@ -116,6 +116,8 @@ export class UsersService {
         country: true,
         locale: true,
         sidebarQuickLinks: true,
+        panelViewMode: true,
+        panelTheme: true,
         walletBalance: true,
         ecoPoints: true,
         isTwoFactorEnabled: true,
@@ -537,6 +539,9 @@ export class UsersService {
         ...(!isSubaccount && dto.country !== undefined && { country: dto.country }),
         ...(dto.locale !== undefined && { locale: dto.locale }),
         ...(!isSubaccount && sidebarQuickLinks !== undefined && { sidebarQuickLinks }),
+        // Preferencje wyglądu są osobiste — subkonto też je ma (każdy widzi panel po swojemu).
+        ...(dto.panelViewMode !== undefined && { panelViewMode: dto.panelViewMode }),
+        ...(dto.panelTheme !== undefined && { panelTheme: dto.panelTheme }),
       },
       select: {
         id: true,
@@ -551,6 +556,8 @@ export class UsersService {
         country: true,
         locale: true,
         sidebarQuickLinks: true,
+        panelViewMode: true,
+        panelTheme: true,
       },
     });
 

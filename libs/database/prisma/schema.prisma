@@ -194,6 +194,10 @@ model User {
 
   /// 4 skróty w sidebarze panelu klienta (href z katalogu `SIDEBAR_TILE_OPTIONS`).
   sidebarQuickLinks        String[]  @default([])
+  /// PB-16 — widok panelu klienta zapamiętany per użytkownik: 'simple' | 'full'; null = jeszcze nie wybrał.
+  panelViewMode            String?
+  /// PB-16 — motyw treści panelu klienta per użytkownik: 'dark' | 'light'; null = jeszcze nie wybrał.
+  panelTheme               String?
 
   // IAM / subaccounts — USER może mieć subkonta działające w kontekście ownera.
   customerOwnerId          String?
