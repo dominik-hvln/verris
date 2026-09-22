@@ -226,10 +226,10 @@ export default function SettingsPage() {
   const visibleTabs = visibleTabsForProfile(profile);
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="mx-auto max-w-4xl space-y-6">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-white mb-2">Ustawienia konta</h1>
+        <h1 className="mb-2 font-display text-[clamp(28px,4vw,40px)] font-extrabold leading-none tracking-[-0.03em] text-foreground">Ustawienia konta</h1>
         <p className="text-neutral-400 text-sm md:text-base">
           {profile.isSubaccount
             ? "Konto operatora (subkonto). Dane firmy i układ panelu zarządza właściciel konta."
@@ -241,24 +241,20 @@ export default function SettingsPage() {
       </div>
 
       {/* Tab Navigation */}
-      <div className="flex gap-2 rounded-2xl bg-[#0a0a0a]/50 p-2 border border-white/5 backdrop-blur-xl shrink-0 overflow-x-auto scrollbar-none">
+      <div role="tablist" className="flex shrink-0 gap-0.5 overflow-x-auto border-b border-line [scrollbar-width:none]">
         {visibleTabs.map((tab) => {
-          const Icon = tab;
           const isActive = activeTab === tab.id;
           return (
             <button
               key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
               onClick={() => setActiveTab(tab.id)}
-              className={`
-                flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all duration-300 shrink-0
-                ${
-                  isActive
-                    ? "bg-white/10 border border-white/20 text-white shadow-[0_0_15px_rgba(255,255,255,0.1)]"
-                    : "text-neutral-400 hover:text-white hover:bg-white/5 border border-transparent"
-                }
-              `}
+              className={`-mb-px flex shrink-0 items-center gap-2 whitespace-nowrap border-0 border-b-2 bg-transparent px-3 py-[9px] text-sm ${
+                isActive ? "border-primary font-semibold text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
             >
-              <tab.icon className="h-4 w-4" />
               <span>{tab.label}</span>
             </button>
           );
@@ -266,9 +262,8 @@ export default function SettingsPage() {
       </div>
 
       {/* Tab Content */}
-      <div className="relative rounded-[32px] p-px overflow-hidden group">
-        <SpinBorder variant="white" className="opacity-20 transition-opacity duration-500 group-hover:opacity-40" />
-        <div className="relative rounded-[calc(32px-1px)] bg-[#0a0a0a]/80 backdrop-blur-3xl border border-white/5 shadow-[0_0_40px_rgba(0,0,0,0.5)]">
+      <div>
+        <div className="rounded-[10px] border border-line bg-card">
             {activeTab === "profile" && (
             <ProfileTab
                 profile={profile}
