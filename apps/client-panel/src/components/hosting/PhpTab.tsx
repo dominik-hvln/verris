@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { fetchPhpStatus } from '@/app/dashboard/php/php-actions';
 import { PhpClient } from '@/app/dashboard/php/php-client';
+import { SectionHead } from '@/components/panel/v2';
 
 type Status = Awaited<ReturnType<typeof fetchPhpStatus>>;
 
@@ -28,5 +29,10 @@ export default function PhpTab({ serviceId }: { serviceId: string }) {
   if (!status) {
     return <p className="py-8 text-center text-sm text-neutral-400">Nie udało się wczytać ustawień PHP.</p>;
   }
-  return <PhpClient serviceId={serviceId} status={status} />;
+  return (
+    <div className="space-y-4">
+      <SectionHead title="PHP i serwer" desc="Wersja PHP konta i ustawienia serwera. Wersję dla pojedynczej domeny zmienisz w widoku strony." />
+      <PhpClient serviceId={serviceId} status={status} />
+    </div>
+  );
 }

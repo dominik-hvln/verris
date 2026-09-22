@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react';
 import WordpressTab from '@/components/hosting/WordpressTab';
 import { AppsClient } from '@/app/dashboard/apps/apps-client';
 import { fetchAppsStatus, type AppsStatus } from '@/app/dashboard/apps/apps-actions';
+import { SectionHead } from '@/components/panel/v2';
 
 /**
  * Zjednoczona zakładka „Aplikacje": WordPress 1-click (góra) + marketplace
@@ -24,12 +25,11 @@ export default function AppsTab({ serviceId }: { serviceId: string }) {
 
   return (
     <div className="space-y-8">
+      <SectionHead title="Aplikacje 1-click" desc="Instalacja WordPressa i innych aplikacji na wybranej domenie — bez wgrywania plików." />
       <WordpressTab serviceId={serviceId} />
 
       <div>
-        <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-neutral-500">
-          Pozostałe aplikacje
-        </h3>
+        <h3 className="mb-3 font-display text-[15px] font-bold text-foreground">Pozostałe aplikacje</h3>
         {loading ? (
           <div className="flex items-center justify-center gap-2 py-8 text-sm text-neutral-400">
             <Loader2 className="h-4 w-4 animate-spin" /> Wczytywanie…
