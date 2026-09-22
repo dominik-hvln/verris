@@ -32,6 +32,8 @@ export function TipLayer() {
     const show = (e: Event) => {
       const el = (e.target as Element | null)?.closest?.('[data-tip]');
       if (!el) return setState(null);
+      // Czytnik ekranu: dymek jest opisem elementu (aria-describedby → #v2-tip).
+      if (!el.hasAttribute('aria-describedby')) el.setAttribute('aria-describedby', 'v2-tip');
       const r = el.getBoundingClientRect();
       setState({ x: r.left + r.width / 2, y: r.top, bottom: r.bottom, lines: (el.getAttribute('data-tip') ?? '').split('\n') });
     };
@@ -96,6 +98,7 @@ function TipBubble({ state }: { state: TipState }) {
   return (
     <div
       ref={ref}
+      id="v2-tip"
       role="tooltip"
       className="pointer-events-none fixed z-[80] w-max max-w-[min(320px,calc(100vw-16px))] rounded-[5px] bg-foreground px-2.5 py-1.5 font-mono text-xs leading-snug text-background"
       style={pos ? { left: pos.left, top: pos.top } : { left: 0, top: 0, visibility: 'hidden' }}
@@ -146,6 +149,8 @@ export function Squares({ items }: { items: { tone: Tone; tip: string }[] }) {
         <i
           key={i}
           tabIndex={0}
+          role="img"
+          aria-label={it.tip.replace(/\n/g, ', ')}
           data-tip={it.tip}
           className={cx(
             'h-3.5 flex-1 cursor-default rounded-[2px] opacity-85 outline-none hover:opacity-100 hover:brightness-110 focus:opacity-100',
@@ -301,6 +306,8 @@ export function MiniBars({
           <i
             key={i}
             tabIndex={0}
+            role="img"
+            aria-label={`${format(v)} ${unit}, ${labels[i] ?? ''}`}
             data-tip={tip(`${format(v)} ${unit}`, labels[i])}
             style={{ height: `${h[i]}%`, ['--v2-i' as string]: i }}
             className={cx(
@@ -333,6 +340,8 @@ export function StackBar({
           <i
             key={p.label}
             tabIndex={0}
+            role="img"
+            aria-label={p.detail ? `${p.label}, ${p.detail}` : p.label}
             data-tip={tip(p.label, p.detail)}
             style={{ width: `${Math.min(100, (p.value / safeTotal) * 100)}%`, background: p.color }}
             className="block h-full cursor-default outline-none transition-[filter] first:rounded-l-[2px] hover:brightness-125 focus:brightness-125"

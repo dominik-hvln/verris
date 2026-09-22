@@ -124,8 +124,8 @@
   --data-3: #b5e3cc;
   --data-soft: rgba(31, 168, 113, 0.16);
   --data-hi: #0f7a52;
-  --warn: #b7791f;
-  --warn-soft: rgba(183, 121, 31, 0.14);
+  --warn: #955f0f; /* AA: 5,3:1 na bieli (było 3,6:1) */
+  --warn-soft: rgba(149, 95, 15, 0.13);
   --crit: #c2334f;
 }
 
