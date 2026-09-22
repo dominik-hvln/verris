@@ -178,7 +178,14 @@ export default function DomainsPage() {
                       ? `/dashboard/services/${domain.serviceId}/sites/${encodeURIComponent(domain.name)}`
                       : `/dashboard/domains/${domain.id}`;
                   return (
-                    <tr key={domain.id} className="group cursor-pointer hover:bg-raised/40" onClick={() => router.push(href)}>
+                    <tr
+                      key={domain.id}
+                      tabIndex={0}
+                      aria-label={`Otwórz ${domain.name}`}
+                      className="group cursor-pointer hover:bg-raised/40"
+                      onClick={() => router.push(href)}
+                      onKeyDown={(e) => e.key === 'Enter' && router.push(href)}
+                    >
                       <td className={TD} data-label="Domena">
                         <b className="block font-semibold text-foreground">{domain.name}</b>
                         <span className="text-[12.5px] text-muted-foreground">{domain.kind === 'HOSTING' ? 'na hostingu' : 'zarejestrowana'}</span>
@@ -203,7 +210,7 @@ export default function DomainsPage() {
                           <span className="text-muted-foreground">{domain.kind === 'HOSTING' ? 'przy usłudze' : '—'}</span>
                         )}
                       </td>
-                      <td className={`${TD} w-10 text-right`} onClick={(e) => e.stopPropagation()}>
+                      <td className={`${TD} w-10 text-right`} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button type="button" aria-label={`Akcje: ${domain.name}`} className="rounded-md p-1.5 text-muted-foreground hover:bg-raised hover:text-foreground">
