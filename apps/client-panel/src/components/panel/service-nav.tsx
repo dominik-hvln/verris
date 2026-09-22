@@ -73,7 +73,7 @@ export function ServiceNav({ serviceId, name, domainsCount }: { serviceId: strin
     <div className="mt-4 rounded-[10px] border border-white/[0.06] bg-verris-mint/[0.025] px-1.5 py-2">
       <div className="mb-1.5 flex items-center gap-2 border-b border-white/[0.06] px-1.5 pb-2">
         <Server className="h-[15px] w-[15px] text-verris-stone" />
-        <b className="min-w-0 truncate font-display text-sm font-bold text-verris-paper">{name ?? (email ? 'Poczta' : 'Hosting')}</b>
+        <b className="min-w-0 break-words font-display text-sm font-bold text-verris-paper">{name ?? (email ? 'Poczta' : 'Hosting')}</b>
         {!email && (domainsCount ?? domains.length) > 0 ? (
           <small className="ml-auto shrink-0 font-mono text-[11px] text-verris-stone">
             {domainsCount ?? domains.length} {(domainsCount ?? domains.length) === 1 ? 'domena' : 'domen'}
@@ -100,7 +100,7 @@ export function ServiceNav({ serviceId, name, domainsCount }: { serviceId: strin
                       {domains.map((d, i) => (
                         <Link key={d} href={`${base}/sites/${encodeURIComponent(d)}`} title={d} aria-current={siteOpen === d ? 'page' : undefined} className={`${ROW} ${siteOpen === d ? ROW_ON : ROW_OFF} py-[5px] text-[13.5px]`}>
                           <span className="v2-breathe h-1.5 w-1.5 flex-none rounded-full bg-verris-mint" style={{ ['--v2-i' as string]: i }} />
-                          <span className="truncate">{d}</span>
+                          <span className="min-w-0 break-all">{d}</span>
                         </Link>
                       ))}
                       <Link href={href('domains')} scroll={false} className={`${ROW} ${ROW_OFF} py-[5px] text-[13.5px]`}>
