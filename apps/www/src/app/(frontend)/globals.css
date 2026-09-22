@@ -37,7 +37,7 @@ header{position:sticky;top:0;z-index:60;background:rgba(9,20,16,.85);backdrop-fi
 .nav{display:flex;align-items:center;gap:36px;height:70px}
 .logo{display:flex;align-items:center;gap:11px}
 .logo svg{width:32px;height:32px}
-.logo .wm{font-family:var(--display);font-weight:800;font-size:23px;letter-spacing:-.045em;text-transform:lowercase;color:var(--paper)}
+.logo .wm{height:18.6px;width:auto;color:var(--paper)}
 .nav-links{display:flex;gap:26px;align-items:center;margin-right:auto}
 .nav-links a{font-size:14.5px;color:var(--body);font-weight:500}
 .nav-links a:hover{color:var(--mint)}

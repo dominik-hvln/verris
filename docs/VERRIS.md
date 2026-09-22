@@ -139,7 +139,11 @@ Kierunek do przygotowania jako osobny projekt (makiety przed kodem):
 - Charakter (uwagi właściciela do pulpitu): powitanie „Cześć, Imię!” na pulpicie; box użytkownika w lewym
   dolnym rogu (ustawienia, bezpieczeństwo, zespół, powiadomienia, cookies, wyloguj); sekcja „Zdrowie usług”
   (wynik 0–100 + punkty kontroli z dymkami); zostaje delikatna animowana „kometa” na krawędzi (nierówne tempo,
-  jak `spin-border-glow`) — tylko na jednym elemencie ekranu (dymek asystenta), wyłączana przy reduced-motion.
+  jak `spin-border-glow`) — kilka naraz na różnych elementach (pasek liczb, asystent, blok usługi, box
+  użytkownika), każda w innym tempie i fazie, więc pojawiają się w różnych miejscach; do tego oddychające kropki
+  stanu, słupki rosnące przy wejściu i błysk na słupku „dziś”. Wszystko wyłączane przy reduced-motion.
+- Logo zawsze z krzywych: `branding/01_logo/verris-lockup-krzywe-{jasne,ciemne}.svg`, `verris-wordmark-krzywe.svg`;
+  w kodzie `VerrisWordmark` (`components/logo.tsx`) i logo na www — bez zależności od fontu.
 - Wzorzec: ekran usługi hostingowej (artefakt prywatny „Verris — ekran usługi”). Po akceptacji
   przenosimy tokeny i komponenty do `apps/client-panel` i przerabiamy kolejne ekrany (PB-16).
 
