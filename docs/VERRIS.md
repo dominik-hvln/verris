@@ -142,6 +142,8 @@ Kierunek do przygotowania jako osobny projekt (makiety przed kodem):
   jak `spin-border-glow`) — kilka naraz na różnych elementach (pasek liczb, asystent, blok usługi, box
   użytkownika), każda w innym tempie i fazie, więc pojawiają się w różnych miejscach; do tego oddychające kropki
   stanu, słupki rosnące przy wejściu i błysk na słupku „dziś”. Wszystko wyłączane przy reduced-motion.
+- Przełącznik Prosty/Pełny nie siedzi w górnym pasku (za ciasno na telefonie): jest w menu boxa użytkownika
+  (z opisem, co zmienia), bieżący widok widać pod e-mailem, a w „/” są polecenia „Widok prosty / pełny”.
 - Logo zawsze z krzywych: `branding/01_logo/verris-lockup-krzywe-{jasne,ciemne}.svg`, `verris-wordmark-krzywe.svg`;
   w kodzie `VerrisWordmark` (`components/logo.tsx`) i logo na www — bez zależności od fontu.
 - Wzorzec: ekran usługi hostingowej (artefakt prywatny „Verris — ekran usługi”). Po akceptacji
