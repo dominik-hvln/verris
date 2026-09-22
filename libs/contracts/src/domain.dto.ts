@@ -8,5 +8,9 @@ export interface DomainDto {
   kind?: 'REGISTERED' | 'HOSTING';
   /** Dla domen hostingu — id usługi, do której prowadzi „Zarządzaj". */
   serviceId?: string | null;
+  /** Koniec rejestracji (tylko domeny zarejestrowane przez rejestratora). */
+  expiresAt?: string | null;
+  /** Czy domena odnawia się sama. */
+  autoRenew?: boolean;
 }
 

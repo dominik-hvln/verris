@@ -13,6 +13,7 @@ import {
 } from '@verris/ui';
 import { MoreVertical, Plus, RefreshCw, Info, Trash2, ShoppingCart } from 'lucide-react';
 import { Kpi, KpiStrip, SectionHead } from '@/components/panel/v2';
+import { isExpiringSoon } from '@/lib/domain-expiry';
 import { PageHeaderRow, PanelModal } from '@/components/panel';
 import { fetchUserDomains, addDomain, deleteDomain, fetchRegistrarStatus } from './actions';
 import { DomainDto } from '@verris/contracts';
@@ -146,7 +147,11 @@ export default function DomainsPage() {
           value={loading ? '…' : domains.filter((d) => d.status === 'PENDING').length}
           foot={<span>propagacja do 24 h</span>}
         />
-        <Kpi label="Wygasłe" value={loading ? '…' : domains.filter((d) => d.status === 'EXPIRED').length} foot={<span>do odnowienia</span>} />
+        <Kpi
+          label="Do odnowienia"
+          value={loading ? '…' : domains.filter((d) => isExpiringSoon(d.expiresAt) || d.status === 'EXPIRED').length}
+          foot={<span>koniec rejestracji w 30 dni</span>}
+        />
       </KpiStrip>
 
       <section>
@@ -162,7 +167,7 @@ export default function DomainsPage() {
                 <tr>
                   <th className={TH}>Domena</th>
                   <th className={TH}>Stan</th>
-                  <th className={TH}>Dodana</th>
+                  <th className={TH}>Wygasa</th>
                   <th className={TH} />
                 </tr>
               </thead>
@@ -188,8 +193,15 @@ export default function DomainsPage() {
                           {domain.status === 'ACTIVE' ? 'działa' : domain.status === 'PENDING' ? 'czeka na DNS' : 'wygasła'}
                         </span>
                       </td>
-                      <td className={`${TD} font-mono text-xs text-muted-foreground`} data-label="Dodana">
-                        {domain.createdAt ? format(new Date(domain.createdAt), 'd MMM yyyy', { locale: pl }) : '—'}
+                      <td className={`${TD} font-mono text-xs`} data-label="Wygasa">
+                        {domain.expiresAt ? (
+                          <span className={isExpiringSoon(domain.expiresAt) ? 'font-semibold text-warn' : 'text-muted-foreground'}>
+                            {format(new Date(domain.expiresAt), 'd MMM yyyy', { locale: pl })}
+                            {domain.autoRenew ? <span className="ml-1.5 text-muted-foreground">odnawia się sama</span> : null}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">{domain.kind === 'HOSTING' ? 'przy usłudze' : '—'}</span>
+                        )}
                       </td>
                       <td className={`${TD} w-10 text-right`} onClick={(e) => e.stopPropagation()}>
                         <DropdownMenu>

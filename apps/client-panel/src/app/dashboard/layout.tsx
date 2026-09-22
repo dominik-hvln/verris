@@ -323,7 +323,8 @@ export default function DashboardLayout({
   const railCount = (href: string): string | null => {
     if (!rail) return null;
     if (href === "/dashboard/services") return rail.services ? String(rail.services.length) : null;
-    if (href === "/dashboard/domains") return rail.domains != null ? String(rail.domains) : null;
+    if (href === "/dashboard/domains")
+      return rail.domainsExpiring ? `${rail.domainsExpiring} wygasa` : rail.domains != null ? String(rail.domains) : null;
     if (href === "/dashboard/support") return rail.openTickets ? `${rail.openTickets} otwarte` : null;
     return null;
   };
