@@ -193,7 +193,7 @@ export default function DomainsPage() {
                           {domain.status === 'ACTIVE' ? 'działa' : domain.status === 'PENDING' ? 'czeka na DNS' : 'wygasła'}
                         </span>
                       </td>
-                      <td className={`${TD} font-mono text-xs`} data-label="Wygasa">
+                      <td className={`${TD} whitespace-nowrap font-mono text-xs`} data-label="Wygasa">
                         {domain.expiresAt ? (
                           <span className={isExpiringSoon(domain.expiresAt) ? 'font-semibold text-warn' : 'text-muted-foreground'}>
                             {format(new Date(domain.expiresAt), 'd MMM yyyy', { locale: pl })}

@@ -401,7 +401,7 @@ export default function SitePage() {
                         <td className={TD} data-label="Adres">
                           <b className="font-semibold text-foreground">{b.email}</b>
                         </td>
-                        <td className={TD} data-label="Limit">{b.quotaMb ? `${(b.quotaMb / 1024).toLocaleString('pl-PL', { maximumFractionDigits: 1 })} GB` : 'bez limitu'}</td>
+                        <td className={`${TD} whitespace-nowrap`} data-label="Limit">{b.quotaMb ? `${(b.quotaMb / 1024).toLocaleString('pl-PL', { maximumFractionDigits: 1 })} GB` : 'bez limitu'}</td>
                       </tr>
                     ))}
                   </tbody>

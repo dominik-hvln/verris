@@ -11,6 +11,7 @@ import { ApiError } from '@/lib/api';
 import { PanelPageHeader } from '@/components/panel';
 import { CREDIT_DISCLAIMER, CREDIT_RATE_INFO, CREDIT_SHORT, formatCredits } from '@/lib/credits';
 import { DualBars, Kpi, KpiStrip, SectionHead } from '@/components/panel/v2';
+import { walletTxDescription } from '@/lib/wallet-tx-label';
 import { mapWalletMonthlyFlow } from '../dashboard-chart-utils';
 import { getSavedPaymentMethods, getWalletAutoTopup, getWalletSummary } from './data';
 import { TopupCard } from './topup-card';
@@ -212,20 +213,31 @@ const TD = 'border-t border-line px-3 py-[11px] align-middle';
 
 function TransactionRow({ tx }: { tx: WalletTransactionDto }) {
   const isCredit = Number.parseFloat(tx.amount) > 0;
-  const when = new Date(tx.createdAt).toLocaleString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  const when = new Date(tx.createdAt);
+  const desc = walletTxDescription(tx.description, tx.paymentProvider);
   return (
     <tr>
       <td className={TD} data-label="Operacja">
         <b className="block font-semibold text-foreground">{txLabels[tx.type] ?? tx.type}</b>
-        <span className="block text-[12.5px] text-muted-foreground">
-          {tx.description ?? (tx.paymentProvider ? `Płatność ${tx.paymentProvider}` : 'Bez opisu')}
-        </span>
+        {desc ? (
+          <span className="block text-[12.5px] text-muted-foreground" data-tip={tx.description ? `Zapis w systemie\n${tx.description}` : undefined}>
+            {desc}
+          </span>
+        ) : null}
       </td>
-      <td className={`${TD} font-mono text-xs text-muted-foreground`} data-label="Kiedy">{when}</td>
-      <td className={`${TD} text-right tabular-nums ${isCredit ? 'text-data-hi' : 'text-foreground'}`} data-label="Kwota">
+      <td className={`${TD} whitespace-nowrap font-mono text-xs text-muted-foreground`} data-label="Kiedy">
+        {when.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short', year: 'numeric' })}
+        <span className="block">{when.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })}</span>
+      </td>
+      <td
+        className={`${TD} whitespace-nowrap text-right font-display text-[15px] font-semibold tabular-nums ${isCredit ? 'text-data-hi' : 'text-foreground'}`}
+        data-label="Kwota"
+      >
         {formatCredits(tx.amount, { signed: true })}
       </td>
-      <td className={`${TD} text-right tabular-nums text-muted-foreground`} data-label="Saldo po">{formatCredits(tx.balanceAfter)}</td>
+      <td className={`${TD} whitespace-nowrap text-right tabular-nums text-muted-foreground`} data-label="Saldo po">
+        {formatCredits(tx.balanceAfter)}
+      </td>
     </tr>
   );
 }

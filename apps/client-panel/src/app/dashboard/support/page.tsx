@@ -120,7 +120,7 @@ export default function SupportPage() {
                           {st.label}
                         </span>
                       </td>
-                      <td className={`${TD} font-mono text-xs text-muted-foreground`} data-label="Ostatnia zmiana">
+                      <td className={`${TD} whitespace-nowrap font-mono text-xs text-muted-foreground`} data-label="Ostatnia zmiana">
                         {format(new Date(t.updatedAt), "d MMM yyyy, HH:mm", { locale: pl })}
                       </td>
                       <td className={`${TD} text-right tabular-nums text-muted-foreground`} data-label="Odpowiedzi">{t._count.replies}</td>

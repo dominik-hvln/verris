@@ -177,7 +177,7 @@ function ServicesTable({ services }: { services: ServiceSummaryDto[] }) {
                     <span className="text-muted-foreground">—</span>
                   )}
                 </td>
-                <td className={`${TD} font-mono text-[12.5px] text-muted-foreground`} data-label="Zasoby">
+                <td className={`${TD} font-mono text-[12.5px] text-muted-foreground [&>*]:whitespace-nowrap`} data-label="Zasoby">
                   {a ? `${a.cpuLimit}% CPU · ${(a.ramLimitMb / 1024).toLocaleString('pl-PL', { maximumFractionDigits: 1 })} GB RAM · ${Math.round(a.diskLimitMb / 1024)} GB` : '—'}
                 </td>
                 <td className={`${TD} whitespace-nowrap tabular-nums`} data-label="Odnowienie">
