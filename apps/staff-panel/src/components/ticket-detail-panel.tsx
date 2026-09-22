@@ -4,7 +4,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { Paperclip } from "lucide-react";
-import type { AgentOption, StaffTicketDetail, TicketAttachmentRow } from "@/lib/tickets-data";
+import type { AgentOption, StaffTicketDetail, TicketAttachmentRow, TicketContext } from "@/lib/tickets-data";
+import { SlaCountdown, TicketClientAside } from "@/components/ticket-client-aside";
 import {
   staffApplyRunbook,
   staffEscalateTicket,
@@ -23,6 +24,7 @@ import { CannedResponsePicker } from "@/components/canned-response-picker";
 interface Props {
   ticket: StaffTicketDetail;
   agents: AgentOption[];
+  context: TicketContext | null;
 }
 
 const STATUS_OPTS = ["OPEN", "IN_PROGRESS", "WAITING_CUSTOMER", "CLOSED"] as const;
@@ -78,7 +80,7 @@ function openingAttachments(ticket: StaffTicketDetail): TicketAttachmentRow[] {
   return (ticket.attachments ?? []).filter((a) => a.replyId == null);
 }
 
-export function TicketDetailPanel({ ticket, agents }: Props) {
+export function TicketDetailPanel({ ticket, agents, context }: Props) {
   const router = useRouter();
   const [pending, transition] = useTransition();
   const [replyErr, setReplyErr] = useState<string | null>(null);
@@ -90,8 +92,8 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
 
   // SUP-2 — pobierz szablony posortowane pod temat zgłoszenia.
   useEffect(() => {
-    void staffFetchCanned(ticket.topic ?? undefined).then(setCanned);
-  }, [ticket.topic]);
+    void staffFetchCanned(ticket.topic ?? undefined, undefined, ticket.id).then(setCanned);
+  }, [ticket.topic, ticket.id]);
   const assignedId = ticket.assignedToId ?? ticket.assignedTo?.id ?? "";
   const runbookChecklist =
     ticket.department === "BILLING"
@@ -105,13 +107,6 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
           "Uruchom DNS/TLS diagnostic, jeżeli zgłoszenie dotyczy domeny.",
           "Zweryfikuj ostatnie metryki usage i provisioning/migration timeline.",
         ];
-  const replySuggestions = [
-    ticket.riskFlag ? `Zacznij od potwierdzenia ryzyka: ${ticket.riskFlag}.` : null,
-    ticket.escalatedAt ? "Wspomnij, że zgłoszenie jest już eskalowane do senior/operator node." : null,
-    ticket.department === "TECHNICAL"
-      ? "Poproś o domenę, timestamp i przykład błędu, jeżeli nie ma ich w pierwszej wiadomości."
-      : "Potwierdź status rozliczenia i nie podawaj danych płatniczych w treści ticketu.",
-  ].filter((v): v is string => Boolean(v));
 
   useEffect(() => {
     let active = true;
@@ -232,14 +227,12 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
         </div>
       </div>
 
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="min-w-0 space-y-8">
       <div className="grid gap-4 md:grid-cols-3">
         <OpsCard title="SLA">
-          <p className="text-xs text-neutral-300">
-            First response: {ticket.slaResponseDueAt ? new Date(ticket.slaResponseDueAt).toLocaleString("pl-PL") : "—"}
-          </p>
-          <p className="text-xs text-neutral-300">
-            Resolve: {ticket.slaResolveDueAt ? new Date(ticket.slaResolveDueAt).toLocaleString("pl-PL") : "—"}
-          </p>
+          <SlaCountdown label="Pierwsza odpowiedź" due={ticket.slaResponseDueAt ?? null} done={Boolean(ticket.firstResponseAt)} />
+          <SlaCountdown label="Rozwiązanie" due={ticket.slaResolveDueAt ?? null} done={ticket.status === "CLOSED"} />
           {ticket.waitingSince ? (
             <p className="mt-1 text-xs text-amber-300/90">
               Czeka na klienta od {new Date(ticket.waitingSince).toLocaleString("pl-PL")}
@@ -315,15 +308,23 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
             ))}
           </ul>
         </OpsCard>
-        <OpsCard title="Sugestie odpowiedzi bez AI">
-          <ul className="space-y-2 text-xs text-neutral-300">
-            {replySuggestions.map((item) => (
-              <li key={item} className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2">
-                {item}
-              </li>
-            ))}
-          </ul>
-        </OpsCard>
+        {context ? (
+          <OpsCard title={`Szkic odpowiedzi · ${context.categoryLabel}`}>
+            <p className="mb-2 text-xs text-neutral-400">
+              Kategoria rozpoznana z treści zgłoszenia, szkic z danych konta i bazy wiedzy. Nic nie wychodzi do klienta, dopóki nie klikniesz „Wyślij odpowiedź”.
+            </p>
+            <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded-xl border border-white/10 bg-black/40 p-3 font-sans text-xs text-neutral-200">
+              {context.draft}
+            </pre>
+            <button
+              type="button"
+              onClick={() => setReplyText((prev) => (prev ? `${prev}\n\n${context.draft}` : context.draft))}
+              className="mt-3 rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 text-xs text-cyan-100"
+            >
+              Wstaw do odpowiedzi
+            </button>
+          </OpsCard>
+        ) : null}
         {aiConfigured ? (
           <OpsCard title="AI asystent (draft, audytowany)">
             <p className="mb-3 text-xs text-neutral-400">
@@ -396,14 +397,6 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
             <label className="block text-sm font-medium text-white">Twoja odpowiedź</label>
             <CannedResponsePicker
               canned={canned}
-              vars={{
-                firstName: ticket.user.firstName,
-                lastName: ticket.user.lastName,
-                email: ticket.user.email,
-                company: ticket.user.companyName ?? null,
-                shortId: ticket.id.slice(0, 8),
-                subject: ticket.subject,
-              }}
               onInsert={(text) => setReplyText((prev) => (prev ? `${prev}\n\n${text}` : text))}
             />
           </div>
@@ -433,6 +426,11 @@ export function TicketDetailPanel({ ticket, agents }: Props) {
             Wyślij odpowiedź
           </button>
         </form>
+      </div>
+      </div>
+      <div className="xl:sticky xl:top-4 xl:self-start">
+        <TicketClientAside context={context} userId={ticket.user.id} />
+      </div>
       </div>
     </div>
   );

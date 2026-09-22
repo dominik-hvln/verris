@@ -4,38 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { BookText, Copy, Check, CornerDownLeft, Search, X } from "lucide-react";
 import type { CannedResponseRow } from "@/lib/ticket-actions";
 
-export interface TemplateVars {
-  firstName?: string | null;
-  lastName?: string | null;
-  email?: string | null;
-  company?: string | null;
-  shortId: string;
-  subject?: string | null;
-}
-
-/** Podstawia zmienne {{imie}}, {{nazwisko}}, {{email}}, {{firma}}, {{nr}}, {{temat}}. */
-export function applyTemplateVars(text: string, v: TemplateVars): string {
-  const map: Record<string, string> = {
-    imie: v.firstName ?? "",
-    nazwisko: v.lastName ?? "",
-    email: v.email ?? "",
-    firma: v.company ?? "",
-    nr: v.shortId,
-    temat: v.subject ?? "",
-  };
-  return text.replace(/\{\{\s*([a-ząćęłńóśźż]+)\s*\}\}/gi, (m, key: string) => {
-    const k = key.toLowerCase();
-    return k in map ? map[k] : m;
-  });
-}
-
+/** Zmienne ({{imie}}, {{domena}}, {{usluga}}, {{termin}}…) podstawia API — szablony przychodzą gotowe (PB-18). */
 export function CannedResponsePicker({
   canned,
-  vars,
   onInsert,
 }: {
   canned: CannedResponseRow[];
-  vars: TemplateVars;
   onInsert: (text: string) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -52,7 +26,7 @@ export function CannedResponsePicker({
   }, [canned, query]);
 
   const selected = filtered.find((c) => c.id === selectedId) ?? filtered[0] ?? null;
-  const preview = selected ? applyTemplateVars(selected.content, vars) : "";
+  const preview = selected?.content ?? "";
 
   useEffect(() => {
     if (!open) {

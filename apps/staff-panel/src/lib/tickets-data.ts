@@ -15,6 +15,37 @@ export async function staffGetTicket(id: string) {
   return staffApi<StaffTicketDetail>(`/tickets/admin/${id}`);
 }
 
+/** PB-18 — podgląd klienta, klasyfikacja i szkic odpowiedzi. */
+export interface TicketContext {
+  client: { name: string | null; email: string; company: string | null; walletBalance: string | null; since: string };
+  healthScore: number | null;
+  services: {
+    id: string;
+    plan: string | null;
+    status: string;
+    domain: string | null;
+    healthScore: number | null;
+    siteStatus: string | null;
+    sslExpiresAt: string | null;
+    currentPeriodEnd: string | null;
+  }[];
+  invoices: { id: string; number: string; status: string; amount: string; currency: string; createdAt: string }[];
+  events: { type: string; createdAt: string; domain: string | null }[];
+  tickets: { id: string; subject: string; status: string; createdAt: string }[];
+  category: string;
+  categoryLabel: string;
+  draft: string;
+  kb: { title: string; url: string }[];
+}
+
+export async function staffGetTicketContext(id: string): Promise<TicketContext | null> {
+  try {
+    return await staffApi<TicketContext>(`/tickets/admin/${id}/context`);
+  } catch {
+    return null;
+  }
+}
+
 export async function staffGetCannedResponses() {
   return staffApi<CannedResponse[]>("/tickets/admin/canned-responses");
 }

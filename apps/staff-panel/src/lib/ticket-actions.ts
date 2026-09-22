@@ -12,9 +12,10 @@ export interface CannedResponseRow {
 }
 
 /** SUP-2/SUP-V2 — szablony odpowiedzi (posortowane pod temat; opcjonalne wyszukiwanie). */
-export async function staffFetchCanned(topic?: string, query?: string): Promise<CannedResponseRow[]> {
+export async function staffFetchCanned(topic?: string, query?: string, ticketId?: string): Promise<CannedResponseRow[]> {
   try {
     const params = new URLSearchParams();
+    if (ticketId) params.set("ticketId", ticketId);
     if (topic) params.set("topic", topic);
     if (query && query.trim()) params.set("q", query.trim());
     const qs = params.toString();

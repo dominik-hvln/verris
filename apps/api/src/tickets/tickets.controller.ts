@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseUUIDPipe,
   Patch,
   Post,
   Query,
@@ -26,6 +27,8 @@ import {
   CannedResponseDto,
 } from './tickets.dto';
 import { CannedResponseService } from './canned-response.service';
+import { TicketContextService } from './ticket-context.service';
+import { renderTemplate } from './ticket-context';
 import { Delete, HttpCode } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -47,6 +50,7 @@ export class TicketsController {
   constructor(
     private readonly ticketsService: TicketsService,
     private readonly canned: CannedResponseService,
+    private readonly context: TicketContextService,
   ) {}
 
   // SUP-2 — szablony odpowiedzi (staff: lista; admin: CRUD).
@@ -54,8 +58,12 @@ export class TicketsController {
   @UseGuards(RolesGuard, StaffPermissionsGuard)
   @Roles('STAFF', 'ADMIN')
   @StaffPerm('TICKETS_VIEW')
-  cannedList(@Query('topic') topic?: string, @Query('q') q?: string) {
-    return this.canned.listForStaff(topic, q);
+  async cannedList(@Query('topic') topic?: string, @Query('q') q?: string, @Query('ticketId') ticketId?: string) {
+    const rows = await this.canned.listForStaff(topic, q);
+    // PB-18 — z ticketId szablony przychodzą z podstawionymi zmiennymi tego zgłoszenia.
+    if (!ticketId || !/^[0-9a-f-]{36}$/i.test(ticketId)) return rows;
+    const vars = await this.context.varsFor(ticketId);
+    return rows.map((r) => ({ ...r, content: renderTemplate(r.content, vars) }));
   }
 
   @Get('canned/all')
@@ -129,6 +137,15 @@ export class TicketsController {
   @StaffPerm('TICKETS_VIEW')
   async getCannedResponses() {
     return this.ticketsService.getCannedResponses();
+  }
+
+  // PB-18 — podgląd klienta, klasyfikacja i szkic odpowiedzi (tylko odczyt).
+  @Get('admin/:id/context')
+  @UseGuards(RolesGuard, StaffPermissionsGuard)
+  @Roles('STAFF', 'ADMIN')
+  @StaffPerm('TICKETS_VIEW')
+  adminTicketContext(@Param('id', ParseUUIDPipe) id: string) {
+    return this.context.contextFor(id);
   }
 
   @Get('admin/:id')

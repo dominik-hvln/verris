@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { StaffApiError } from "@/lib/staff-api";
-import { staffGetTicket, staffListSupportAgents } from "@/lib/tickets-data";
+import { staffGetTicket, staffGetTicketContext, staffListSupportAgents } from "@/lib/tickets-data";
 import type { StaffTicketDetail } from "@/lib/tickets-data";
 import { TicketDetailPanel } from "@/components/ticket-detail-panel";
 
@@ -15,7 +15,7 @@ export default async function StaffTicketDetailPage({ params }: { params: Promis
     if (err instanceof StaffApiError && err.status === 404) notFound();
     throw err;
   }
-  const agents = await staffListSupportAgents();
+  const [agents, context] = await Promise.all([staffListSupportAgents(), staffGetTicketContext(id)]);
 
   return (
     <div className="space-y-6">
@@ -26,7 +26,7 @@ export default async function StaffTicketDetailPage({ params }: { params: Promis
         <ArrowLeft className="h-3.5 w-3.5" />
         Powrót do skrzynki
       </Link>
-      <TicketDetailPanel ticket={ticket as StaffTicketDetail} agents={agents} />
+      <TicketDetailPanel ticket={ticket as StaffTicketDetail} agents={agents} context={context} />
     </div>
   );
 }
