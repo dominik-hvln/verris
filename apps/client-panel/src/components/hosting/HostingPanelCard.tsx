@@ -24,12 +24,26 @@ function CopyButton({ value, label }: { value: string; label: string }) {
   );
 }
 
-function CredentialRow({ label, value, mono = true }: { label: string; value: string; mono?: boolean }) {
+function CredentialRow({ label, value, mono = true, secret = false }: { label: string; value: string; mono?: boolean; secret?: boolean }) {
+  // Hasło nie leży jawnie na ekranie (zrzuty, udostępniony ekran) — pokazujemy na żądanie, kopiowanie działa zawsze.
+  const [shown, setShown] = useState(!secret);
   return (
     <div className="space-y-1">
       <p className="font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-muted-foreground">{label}</p>
       <div className="flex items-start gap-2 min-w-0">
-        <p className={`text-[13px] leading-snug text-foreground break-all min-w-0 flex-1 ${mono ? 'font-mono' : ''}`}>{value}</p>
+        <p className={`text-[13px] leading-snug text-foreground break-all min-w-0 flex-1 ${mono ? 'font-mono' : ''}`}>
+          {shown ? value : '•'.repeat(Math.min(12, Math.max(8, value.length)))}
+        </p>
+        {secret ? (
+          <button
+            type="button"
+            onClick={() => setShown((v) => !v)}
+            className="shrink-0 rounded-md px-2 py-1 text-[12px] font-medium text-data-hi hover:bg-raised"
+            aria-pressed={shown}
+          >
+            {shown ? 'Ukryj' : 'Pokaż'}
+          </button>
+        ) : null}
         <CopyButton value={value} label={label} />
       </div>
     </div>
@@ -69,7 +83,7 @@ export default function HostingPanelCard() {
         <div className="space-y-3 rounded-md border border-line bg-raised/60 p-3">
           <CredentialRow label="Adres" value={links.panelBaseUrl} />
           <CredentialRow label="Login" value={links.daUsername} />
-          <CredentialRow label="Hasło" value={links.daPassword} />
+          <CredentialRow label="Hasło" value={links.daPassword} secret />
         </div>
       ) : (
         <p className="text-[12.5px] text-warn">

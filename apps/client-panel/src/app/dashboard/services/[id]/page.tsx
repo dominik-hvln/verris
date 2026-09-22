@@ -29,10 +29,10 @@ import UsageTab from '@/components/hosting/UsageTab';
 import ServiceOverviewTab from '@/components/hosting/ServiceOverviewTab';
 import ServiceOverviewV2 from '@/components/hosting/ServiceOverviewV2';
 import ServiceSubscriptionTab from '@/components/hosting/ServiceSubscriptionTab';
-import HostingPanelCard from '@/components/hosting/HostingPanelCard';
 import ServiceConnectionCard from '@/components/hosting/ServiceConnectionCard';
 import { HostingLinksProvider } from '@/components/hosting/hosting-links-context';
 import { MobileTabStrip } from '@/components/panel';
+import { SectionHead } from '@/components/panel/v2';
 import { fetchServiceKindAction } from '@/app/dashboard/services/[id]/hosting-service-actions';
 import { SIMPLE_MODE_KEY, TABS, isTabId, visibleTabIds, type TabId } from './tabs';
 
@@ -145,17 +145,19 @@ export default function HostingManagerPage() {
           {activeTab === 'monitoring' && <MonitoringTab serviceId={params.id} />}
           {activeTab === 'staging' && <StagingTab serviceId={params.id} />}
           {activeTab === 'deploy' && <DeployTab serviceId={params.id} />}
-          {activeTab === 'files' && <FileManagerClient serviceId={params.id} />}
+          {activeTab === 'files' && (
+            <section className="space-y-3">
+              <SectionHead title="Menedżer plików" desc="Pliki wszystkich stron na koncie. Plik jednej domeny otworzysz też z widoku strony." />
+              <FileManagerClient serviceId={params.id} />
+            </section>
+          )}
           {activeTab === 'usage' && <UsageTab serviceId={params.id} />}
         </main>
 
-        {/* Poczta (stary przegląd) i zakładki inne niż Przegląd: dane dostępowe pod treścią.
-            Przegląd hostingu ma je w prawej kolumnie. */}
-        {kindResolved && !(showHostingChrome && activeTab === 'overview') ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            {showHostingChrome ? <HostingPanelCard /> : null}
-            <ServiceConnectionCard serviceId={params.id} productKind={showHostingChrome ? 'HOSTING' : 'EMAIL'} />
-          </div>
+        {/* Dane dostępowe: przegląd hostingu ma je w prawej kolumnie (jak we wzorcu),
+            przegląd poczty — pod treścią. Pozostałe zakładki ich nie powtarzają. */}
+        {kindResolved && !showHostingChrome && activeTab === 'overview' ? (
+          <ServiceConnectionCard serviceId={params.id} productKind="EMAIL" />
         ) : null}
       </div>
     </HostingLinksProvider>

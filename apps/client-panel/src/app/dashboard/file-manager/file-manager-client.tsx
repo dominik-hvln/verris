@@ -98,19 +98,20 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
   const [editorSaving, setEditorSaving] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const fileInput = useRef<HTMLInputElement>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const load = useCallback(
     async (p: string) => {
       setLoading(true);
+      setLoadError(null);
       try {
         const res = await withRetry(() => fmList(serviceId, p));
         setPath(res.path);
         setEntries(res.entries);
         setSelected(new Set());
       } catch (e) {
-        toast.error('Nie udało się wczytać katalogu', {
-          description: daErrorMessage(e instanceof Error ? e.message : undefined),
-        });
+        // Błąd pokazujemy w miejscu listy — „Pusty katalog" przy awarii wprowadzał w błąd.
+        setLoadError(daErrorMessage(e instanceof Error ? e.message : undefined));
       } finally {
         setLoading(false);
       }
@@ -474,6 +475,18 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
         {loading ? (
           <div className="flex items-center justify-center gap-2 py-12 text-sm text-neutral-400">
             <Loader2 className="h-4 w-4 animate-spin" /> Wczytywanie…
+          </div>
+        ) : loadError ? (
+          <div className="px-4 py-10 text-center">
+            <p className="m-0 text-sm font-semibold text-warn">Nie udało się wczytać katalogu</p>
+            <p className="mx-auto mt-1 max-w-md text-[13px] text-muted-foreground">{loadError}</p>
+            <button
+              type="button"
+              onClick={() => void load(path)}
+              className="mt-3 inline-flex items-center gap-2 rounded-[7px] border border-line-strong bg-card px-3 py-1.5 text-[13px] font-medium text-foreground hover:border-primary"
+            >
+              Spróbuj ponownie
+            </button>
           </div>
         ) : entries.length === 0 ? (
           <p className="py-12 text-center text-sm text-neutral-500">Pusty katalog.</p>
