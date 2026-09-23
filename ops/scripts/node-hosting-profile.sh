@@ -1041,6 +1041,16 @@ configure_hosting_capabilities() {
   # A5 — DKIM auto-generowany przy tworzeniu domeny + podpisywanie poczty wychodzącej.
   da_set_conf dkim 1
   da_set_conf dns_ttl 3600
+  # E-20 — dobowy limit wysyłki per konto (exim DirectAdmina czyta /etc/virtual/limit).
+  # Ta sama liczba stoi w panelu klienta (libs/contracts: HOSTING_MAIL_DAILY_SEND_LIMIT);
+  # zgodność pilnuje apps/api/src/test/limit-wysylki.spec.ts. Bez nadpisywania z env —
+  # inna wartość na węźle niż w panelu to limit ukryty przed klientem.
+  MAIL_DAILY_SEND_LIMIT=1000
+  if [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ] && [ -d /etc/virtual ]; then
+    printf '%s\n' "$MAIL_DAILY_SEND_LIMIT" > /etc/virtual/limit \
+      && log_ok "Limit wysyłki: ${MAIL_DAILY_SEND_LIMIT}/dobę na konto (/etc/virtual/limit)" \
+      || log_warn "Nie udało się zapisać /etc/virtual/limit"
+  fi
   # Po zmianach DA — odśwież (bez przerwy w usługach).
   if [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ] && [ -x /usr/local/directadmin/directadmin ]; then
     systemctl restart directadmin 2>/dev/null || service directadmin restart 2>/dev/null || true

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@verris/ui';
+import { HOSTING_MAIL_DAILY_SEND_LIMIT } from '@verris/contracts';
 import {
   changeHostingEmailPasswordAction,
   changeHostingEmailQuotaAction,
@@ -286,7 +287,12 @@ export default function MailTab({ serviceId }: Props) {
         </Kpi>
         <Kpi label="Domeny z pocztą" value={loading ? '…' : new Set(rows.map((r) => r.email.split('@')[1])).size} foot={<span>adresy w tych domenach</span>} />
         <Kpi label="Serwer poczty" value={<span className="font-mono text-[15px] font-semibold tracking-normal">{imapHost}</span>} foot={<span>IMAP 993 · SMTP 587</span>} />
-        <Kpi label="Szyfrowanie" value="SSL/TLS" foot={<span>STARTTLS na 587, SSL na 465</span>} />
+        <Kpi
+          label="Limit wysyłki"
+          value={HOSTING_MAIL_DAILY_SEND_LIMIT}
+          unit="/ dobę"
+          foot={<span>wiadomości z całego konta, licznik zeruje się raz na dobę</span>}
+        />
       </KpiStrip>
 
       <div className="mb-4 mt-4 rounded-[10px] border border-line bg-card">
@@ -300,7 +306,7 @@ export default function MailTab({ serviceId }: Props) {
           ]}
         />
         <p className="m-0 px-4 pb-3.5 pt-2 font-mono text-[11.5px] leading-relaxed text-muted-foreground">
-          Login to pełny adres skrzynki (np. kontakt@twojadomena.pl). Hasło ustawiasz przy tworzeniu skrzynki. Webmail otwierasz przyciskiem wyżej.
+          Szyfrowanie SSL/TLS: STARTTLS na porcie 587, SSL na 465. Login to pełny adres skrzynki (np. kontakt@twojadomena.pl). Hasło ustawiasz przy tworzeniu skrzynki. Webmail otwierasz przyciskiem wyżej.
         </p>
       </div>
 
