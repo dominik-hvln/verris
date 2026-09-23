@@ -550,3 +550,59 @@ export function bladWspolczynnika(
   }
   return null;
 }
+
+
+/**
+ * Realne zużycie węzłów z próbek telemetrii: po jednej NAJNOWSZEJ próbce na
+ * subskrypcję (inaczej konto z sześcioma próbkami w oknie liczy się sześć razy),
+ * szczyt CPU/RAM, zajętość dysku. Wspólne dla placementu (Z-12) i watchdoga (Z-15).
+ */
+export function zuzycieZProbek(
+  rows: ReadonlyArray<{ serverId: string | null; subscriptionId: string | null; bucketStart: Date; cpuUsageMax: number; memUsageMaxMb: number; diskUsageMb: number }>,
+): Map<string, PojemnoscFizyczna> {
+  const najnowsza = new Map<string, (typeof rows)[number]>();
+  for (const r of rows) {
+    if (!r.serverId) continue;
+    const klucz = `${r.serverId}:${r.subscriptionId ?? 'brak'}`;
+    const dotad = najnowsza.get(klucz);
+    if (!dotad || r.bucketStart > dotad.bucketStart) najnowsza.set(klucz, r);
+  }
+  const wynik = new Map<string, PojemnoscFizyczna>();
+  for (const r of najnowsza.values()) {
+    const b = wynik.get(r.serverId!) ?? { cpu: 0, ramMb: 0, diskMb: 0 };
+    b.cpu += r.cpuUsageMax;
+    b.ramMb += r.memUsageMaxMb;
+    b.diskMb += r.diskUsageMb;
+    wynik.set(r.serverId!, b);
+  }
+  return wynik;
+}
+
+/**
+ * Z-15 — obłożenie węzła w procentach, w DWÓCH księgach naraz:
+ *  - sprzedaż: sprzedane / pojemność sprzedażowa (fizyczna × overcommit),
+ *  - fizyczne: realne zużycie / pojemność fizyczna po headroomie.
+ * Watchdog porównywał sprzedane z samą pojemnością fizyczną, więc przy overcommicie
+ * (do 8× CPU/RAM) alarmował stale, a o realnym zapełnieniu nie mówił nic.
+ */
+export function oblozenieWezla(args: {
+  fizyczna: PojemnoscFizyczna;
+  sprzedane: Sprzedane;
+  zuzycie: ZuzycieRealne;
+  polityka: PolitykaPojemnosci;
+}): { sprzedaz: { cpu: number; ram: number; disk: number }; fizyczne: { cpu: number; ram: number; disk: number } | null } {
+  const { fizyczna, sprzedane, zuzycie, polityka } = args;
+  const sprz = pojemnoscSprzedazowa(fizyczna, polityka, zuzycie !== null);
+  const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : 0);
+  const headroom = przytnij(polityka.reservedHeadroomPercent, 0, 90) / 100;
+  return {
+    sprzedaz: { cpu: pct(sprzedane.cpu, sprz.cpu), ram: pct(sprzedane.ramMb, sprz.ramMb), disk: pct(sprzedane.diskMb, sprz.diskMb) },
+    fizyczne: zuzycie
+      ? {
+          cpu: pct(zuzycie.cpu, fizyczna.cpu * (1 - headroom)),
+          ram: pct(zuzycie.ramMb, fizyczna.ramMb * (1 - headroom)),
+          disk: pct(zuzycie.diskMb, fizyczna.diskMb * (1 - headroom)),
+        }
+      : null,
+  };
+}

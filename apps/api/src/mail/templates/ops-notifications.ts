@@ -88,6 +88,8 @@ export interface NodeCapacityContext {
   cpuPct: number;
   ramPct: number;
   diskPct: number;
+  /** Z-15 — realne zużycie względem pojemności fizycznej po headroomie; null = brak świeżej telemetrii. */
+  physical?: { cpu: number; ram: number; disk: number } | null;
   accounts: number;
   maxAccounts: number | null;
   /** Czy watchdog automatycznie ustawił cordon. */
@@ -103,10 +105,13 @@ export function nodeCapacityAlertTemplate(ctx: NodeCapacityContext): MailMessage
     bodyMarkdown: [
       greeting,
       ``,
-      `**Węzeł \`${escapeHtml(ctx.nodeName)}\` zbliża się do limitu pojemności** (alokacja planów, bez burstu autoskalowania).`,
+      `**Węzeł \`${escapeHtml(ctx.nodeName)}\` zbliża się do limitu pojemności.**`,
       ``,
       `- **Węzeł:** ${escapeHtml(ctx.nodeName)} (\`${escapeHtml(ctx.nodeId)}\`)`,
-      `- **CPU:** ${ctx.cpuPct}% · **RAM:** ${ctx.ramPct}% · **Dysk:** ${ctx.diskPct}%`,
+      `- **Sprzedane** (względem pojemności z nadsubskrypcją): CPU ${ctx.cpuPct}% · RAM ${ctx.ramPct}% · Dysk ${ctx.diskPct}%`,
+      ctx.physical
+        ? `- **Realne zużycie** (względem pojemności fizycznej po rezerwie; przy 100% węzeł przestaje przyjmować konta): CPU ${ctx.physical.cpu}% · RAM ${ctx.physical.ram}% · Dysk ${ctx.physical.disk}%`
+        : `- **Realne zużycie:** brak świeżej telemetrii z węzła`,
       `- **Konta:** ${ctx.accounts}${ctx.maxAccounts != null ? ` / ${ctx.maxAccounts}` : ''}`,
       ...(ctx.autoCordoned
         ? ['', `> ⚠️ Watchdog **automatycznie ustawił cordon** na tym węźle — nie przyjmuje nowych kont, istniejące działają.`]

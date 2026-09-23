@@ -12,7 +12,7 @@ import {
   nodeCapacityAlertTemplate,
   opsDailyDigestTemplate,
 } from '../mail/templates/ops-notifications';
-import { BRAK_SYGNALU_MIN } from '../subscriptions/node-capacity';
+import { BRAK_SYGNALU_MIN, oblozenieWezla, SWIEZOSC_TELEMETRII_MIN, zuzycieZProbek } from '../subscriptions/node-capacity';
 
 // OPS-01: próg pochodzi z `node-capacity.ts`, żeby watchdog i selektor węzłów
 // nie miały dwóch niezależnych zdań o tym, kiedy węzeł przestaje żyć.
@@ -20,7 +20,9 @@ const OFFLINE_AFTER_MS = BRAK_SYGNALU_MIN * 60 * 1000;
 const ALERT_COOLDOWN_MS = 6 * 60 * 60 * 1000; // re-alert at most every 6h per node
 const STALE_BACKUP_MS = 36 * 60 * 60 * 1000; // offsite backup older than 36h is stale
 // OPS-3 — progi pojemności (alokacja planów / pojemność węzła).
-const CAPACITY_WARN_PCT = 85; // alert do adminów
+const CAPACITY_WARN_PCT = 85; // alert do adminów (sprzedaż względem pojemności sprzedażowej)
+/** Z-15 — ostrzeżenie o REALNYM zapełnieniu, zanim bramka fizyczna zacznie odmawiać sprzedaży (100%). */
+const PHYSICAL_WARN_PCT = 80;
 const CAPACITY_AUTO_CORDON_PCT = 95; // auto-cordon (gdy OPS_AUTO_CORDON=1)
 const CAPACITY_ALERT_COOLDOWN_MS = 12 * 60 * 60 * 1000; // re-alert max co 12h/węzeł
 
@@ -153,8 +155,20 @@ export class OpsWatchdogScheduler {
           allocatedDisk: true,
           acceptsNewAccounts: true,
           maxAccounts: true,
+          overcommitCpu: true,
+          overcommitRam: true,
+          overcommitDisk: true,
+          reservedHeadroomPercent: true,
         },
       });
+      const probki = await this.prisma.usageMetric.findMany({
+        where: {
+          serverId: { in: servers.map((s) => s.id) },
+          bucketStart: { gte: new Date(Date.now() - SWIEZOSC_TELEMETRII_MIN * 60_000) },
+        },
+        select: { serverId: true, subscriptionId: true, bucketStart: true, cpuUsageMax: true, memUsageMaxMb: true, diskUsageMb: true },
+      });
+      const zuzycieWezlow = zuzycieZProbek(probki);
 
       const accountCounts = await this.prisma.account.groupBy({
         by: ['serverId'],
@@ -184,11 +198,24 @@ export class OpsWatchdogScheduler {
         const totalDisk = s.totalDiskMb ?? 0;
         if (totalCpu === 0 || totalRam === 0 || totalDisk === 0) continue;
 
-        const cpuPct = Math.round((s.allocatedCpu / totalCpu) * 100);
-        const ramPct = Math.round((s.allocatedMemory / totalRam) * 100);
-        const diskPct = Math.round((s.allocatedDisk / totalDisk) * 100);
-        const top = Math.max(cpuPct, ramPct, diskPct);
-        if (top < CAPACITY_WARN_PCT) continue;
+        const liczbaKont = countByServer.get(s.id) ?? 0;
+        const ob = oblozenieWezla({
+          fizyczna: { cpu: totalCpu, ramMb: totalRam, diskMb: totalDisk },
+          sprzedane: { cpu: s.allocatedCpu, ramMb: s.allocatedMemory, diskMb: s.allocatedDisk },
+          // węzeł bez kont ma zerowe realne zużycie, nie „nieznane” (jak w placemencie)
+          zuzycie: zuzycieWezlow.get(s.id) ?? (liczbaKont === 0 ? { cpu: 0, ramMb: 0, diskMb: 0 } : null),
+          polityka: {
+            overcommitCpu: s.overcommitCpu,
+            overcommitRam: s.overcommitRam,
+            overcommitDisk: s.overcommitDisk,
+            reservedHeadroomPercent: s.reservedHeadroomPercent,
+          },
+        });
+        const { cpu: cpuPct, ram: ramPct, disk: diskPct } = ob.sprzedaz;
+        const topSprzedaz = Math.max(cpuPct, ramPct, diskPct);
+        const topFizyczne = ob.fizyczne ? Math.max(ob.fizyczne.cpu, ob.fizyczne.ram, ob.fizyczne.disk) : 0;
+        const top = Math.max(topSprzedaz, topFizyczne);
+        if (topSprzedaz < CAPACITY_WARN_PCT && topFizyczne < PHYSICAL_WARN_PCT) continue;
 
         // Auto-cordon (opcjonalny) — tylko gdy bardzo wysoko i jeszcze przyjmuje.
         let autoCordoned = false;
@@ -213,7 +240,7 @@ export class OpsWatchdogScheduler {
         const name = s.name ?? s.hostname ?? s.id;
         await this.audit.record({
           action: 'NODE_CAPACITY_ALERT',
-          details: { serverId: s.id, name, top, cpuPct, ramPct, diskPct, autoCordoned },
+          details: { serverId: s.id, name, top, cpuPct, ramPct, diskPct, physical: ob.fizyczne, autoCordoned },
         });
         await this.fanOut(admins, (a) =>
           nodeCapacityAlertTemplate({
@@ -225,7 +252,8 @@ export class OpsWatchdogScheduler {
             cpuPct,
             ramPct,
             diskPct,
-            accounts: countByServer.get(s.id) ?? 0,
+            physical: ob.fizyczne,
+            accounts: liczbaKont,
             maxAccounts: s.maxAccounts,
             autoCordoned,
             panelUrl: this.panelUrl(),

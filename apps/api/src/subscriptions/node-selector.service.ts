@@ -10,6 +10,7 @@ import {
   PowodOdmowy,
   SWIEZOSC_TELEMETRII_MIN,
   WynikDopasowania,
+  zuzycieZProbek,
 } from './node-capacity';
 
 export interface NodeSelectionContext {
@@ -234,8 +235,7 @@ export class NodeSelectorService {
   private async realneZuzycieWezlow(
     serverIds: string[],
   ): Promise<Map<string, PojemnoscFizyczna>> {
-    const wynik = new Map<string, PojemnoscFizyczna>();
-    if (serverIds.length === 0) return wynik;
+    if (serverIds.length === 0) return new Map();
 
     const od = new Date(Date.now() - SWIEZOSC_TELEMETRII_MIN * 60_000);
     const rows = await this.prisma.usageMetric.findMany({
@@ -251,24 +251,6 @@ export class NodeSelectorService {
       orderBy: { bucketStart: 'desc' },
     });
 
-    // Po jednej — najnowszej — próbce na subskrypcję. Bez tego konto z sześcioma
-    // próbkami w oknie liczyłoby się sześć razy i węzeł wyglądałby na zajęty.
-    const najnowsza = new Map<string, (typeof rows)[number]>();
-    for (const r of rows) {
-      if (!r.serverId) continue;
-      const klucz = `${r.serverId}:${r.subscriptionId ?? 'brak'}`;
-      const dotad = najnowsza.get(klucz);
-      if (!dotad || r.bucketStart > dotad.bucketStart) najnowsza.set(klucz, r);
-    }
-
-    for (const r of najnowsza.values()) {
-      const biezace = wynik.get(r.serverId!) ?? { cpu: 0, ramMb: 0, diskMb: 0 };
-      biezace.cpu += r.cpuUsageMax;
-      biezace.ramMb += r.memUsageMaxMb;
-      biezace.diskMb += r.diskUsageMb;
-      wynik.set(r.serverId!, biezace);
-    }
-
-    return wynik;
+    return zuzycieZProbek(rows);
   }
 }
