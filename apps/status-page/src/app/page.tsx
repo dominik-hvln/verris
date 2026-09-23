@@ -6,6 +6,7 @@ import {
   type PublicStatusDto,
   type ServerStatusDto,
   type ServiceState,
+  type PublicMaintenanceDto,
 } from '@/lib/api';
 
 export const revalidate = 30;
@@ -51,6 +52,10 @@ export default async function StatusPage() {
 
             {payload.activeIncidents.length > 0 ? (
               <IncidentsBlock title="Aktywne incydenty" incidents={payload.activeIncidents} />
+            ) : null}
+
+            {payload.maintenance && payload.maintenance.length > 0 ? (
+              <MaintenanceBlock windows={payload.maintenance} />
             ) : null}
 
             <section className="mt-10 space-y-4">
@@ -263,6 +268,34 @@ function IncidentsBlock({
             </article>
           );
         })}
+      </div>
+    </section>
+  );
+}
+
+function MaintenanceBlock({ windows }: { windows: PublicMaintenanceDto[] }) {
+  const fmt = (iso: string) =>
+    new Date(iso).toLocaleString('pl-PL', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+  return (
+    <section className="mt-10 space-y-4">
+      <h2 className="text-lg font-bold">Prace serwisowe</h2>
+      <div className="space-y-3">
+        {windows.map((w) => (
+          <article key={w.id} className="rounded-2xl border border-sky-400/30 bg-sky-400/5 p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="font-semibold">{w.title}</p>
+                <p className="text-xs text-neutral-400 mt-1">
+                  {w.serverName ?? 'Cała platforma'} • {fmt(w.scheduledStart)} – {fmt(w.scheduledEnd)}
+                </p>
+                {w.publicMessage ? <p className="text-sm text-neutral-200 mt-2">{w.publicMessage}</p> : null}
+              </div>
+              <span className="rounded-full border border-sky-400/30 px-2 py-0.5 text-xs font-semibold text-sky-200">
+                {w.status === 'IN_PROGRESS' ? 'W toku' : 'Zaplanowane'}
+              </span>
+            </div>
+          </article>
+        ))}
       </div>
     </section>
   );

@@ -195,7 +195,7 @@ const NS = S.length;
 document.getElementById('sub').textContent =
   `${NS} sprintów tygodniowych · 1 osoba, pełny etat, ${CAP} h netto na sprint · podstawa: audyt parytetu z 2026-08-20`;
 document.getElementById('calc').innerHTML =
-  `<b>Liczba, od której trzeba zacząć.</b> Domknięcie <b>wszystkich</b> luk z macierzy audytu to <b>${(totalH+restH).toLocaleString('pl-PL')} h</b> — przy ${CAP} h tygodniowo około <b>${Math.round((totalH+restH)/CAP/4.3)} miesięcy pracy solo, bez jednego przychodu po drodze</b>. Dlatego plan dzieli pracę na ${NS} sprintów do startu i roadmapę po starcie. Pełne pokrycie nie jest celem: punktem odniesienia jest mediana rynku PL, nie suma możliwości cPanela, Pleska i DirectAdmina razem wziętych.`;
+  `<b>Liczba, od której trzeba zacząć.</b> Domknięcie <b>wszystkich</b> luk z macierzy audytu to <b>${(totalH+restH).toLocaleString('pl-PL')} h</b> — przy ${CAP} h tygodniowo około <b>${Math.round((totalH+restH)/CAP/4.3)} miesięcy pracy solo, bez jednego przychodu po drodze</b>. Dlatego plan dzieli pracę na dwie części: <b>${NS} sprintów do startu — ${totalH.toLocaleString('pl-PL')} h</b> (to jest liczba w kafelku niżej) oraz <b>roadmapę po starcie — ${restH.toLocaleString('pl-PL')} h</b> w ${P.rest.length} pozycjach, rozpisaną na epiki kwartalne. Pełne pokrycie nie jest celem: punktem odniesienia jest mediana rynku PL, nie suma możliwości cPanela, Pleska i DirectAdmina razem wziętych.`;
 
 document.getElementById('meta').textContent =
   `Sprint 1: ${S[0].od} · Sprint ${NS}: ${S[NS-1].od}–${lastDate} · po starcie jeszcze ${P.rest.length} pozycji (${restH} h)`;

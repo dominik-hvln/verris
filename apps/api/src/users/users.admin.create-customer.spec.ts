@@ -6,7 +6,7 @@ import { hashAuthToken } from '../auth/auth-token.util';
 function zbuduj(opts: { istnieje?: boolean; mailPada?: boolean } = {}) {
   const tx = {
     user: { create: jest.fn(async ({ data }: { data: Record<string, unknown> }) => ({ id: 'u1', ...data })) },
-    userAuthToken: { create: jest.fn(async () => ({})) },
+    userAuthToken: { create: jest.fn(async (_a: { data: { purpose: string; tokenHash: string; expiresAt: Date } }) => ({})) },
   };
   const prisma = {
     user: { findFirst: jest.fn(async () => (opts.istnieje ? { id: 'x' } : null)) },
@@ -15,7 +15,7 @@ function zbuduj(opts: { istnieje?: boolean; mailPada?: boolean } = {}) {
   const audit = { record: jest.fn(async () => undefined) };
   const config = { get: jest.fn(() => 'https://panel.test') };
   const mailer = {
-    send: jest.fn(async () => {
+    send: jest.fn(async (_m: { text: string; to: string }) => {
       if (opts.mailPada) throw new Error('smtp');
     }),
   };
@@ -42,11 +42,11 @@ describe('UsersAdminService.createCustomerByOperator (A-24)', () => {
     const { svc, tx, mailer } = zbuduj();
     const przed = Date.now();
     await svc.createCustomerByOperator('op1', dto, {});
-    const tok = tx.userAuthToken.create.mock.calls[0][0].data;
+    const tok = tx.userAuthToken.create.mock.calls[0]![0].data;
     expect(tok.purpose).toBe('PASSWORD_RESET');
     const ttl = tok.expiresAt.getTime() - przed;
     expect(ttl).toBeGreaterThan((OPERATOR_ACCOUNT_LINK_TTL_HOURS * 3600 - 60) * 1000);
-    const msg = mailer.send.mock.calls[0][0] as { text: string; to: string };
+    const msg = mailer.send.mock.calls[0]![0];
     const raw = decodeURIComponent(/token=([^\s)"&]+)/.exec(msg.text)![1]);
     expect(hashAuthToken(raw)).toBe(tok.tokenHash);
     expect(msg.to).toBe('jan@firma.pl');

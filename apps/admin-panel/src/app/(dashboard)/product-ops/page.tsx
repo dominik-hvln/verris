@@ -1,4 +1,5 @@
 import { getProductOpsDashboard } from "./data";
+import { Announcements, Maintenance } from "./notices";
 
 export const dynamic = "force-dynamic";
 
@@ -50,28 +51,24 @@ export default async function ProductOpsPage() {
         </div>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-3">
+      <section className="grid gap-4">
         <Panel title="Feature flags">
           {data.flags.slice(0, 8).map((flag) => (
             <Row key={flag.id} title={flag.key} meta={`${flag.enabledDefault ? "ON" : "OFF"} · ${flag.rolloutPercent}%`} />
           ))}
           {data.flags.length === 0 && <Empty />}
         </Panel>
-        <Panel title="Changelog / komunikaty">
-          {data.announcements.slice(0, 8).map((item) => (
-            <Row key={item.id} title={item.title} meta={`${item.kind} · ${item.status}`} />
-          ))}
-          {data.announcements.length === 0 && <Empty />}
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-2">
+        <Panel title="Ogłoszenia dla klientów">
+          <Announcements rows={data.announcements} />
         </Panel>
-        <Panel title="Maintenance calendar">
-          {data.maintenance.slice(0, 8).map((item) => (
-            <Row
-              key={item.id}
-              title={item.title}
-              meta={`${item.status} · ${new Date(item.scheduledStart).toLocaleString("pl-PL")}`}
-            />
-          ))}
-          {data.maintenance.length === 0 && <Empty />}
+        <Panel title="Prace serwisowe">
+          <Maintenance
+            rows={data.maintenance}
+            servers={data.capacity.map((c) => ({ id: c.id, name: c.name }))}
+          />
         </Panel>
       </section>
 

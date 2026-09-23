@@ -55,6 +55,18 @@ export interface PublicStatusDto {
   servers: ServerStatusDto[];
   activeIncidents: PublicIncidentDto[];
   recentIncidents: PublicIncidentDto[];
+  /** N-11 — zaplanowane i trwające prace (starsze API może go nie zwracać). */
+  maintenance?: PublicMaintenanceDto[];
+}
+
+export interface PublicMaintenanceDto {
+  id: string;
+  title: string;
+  publicMessage: string | null;
+  status: string;
+  scheduledStart: string;
+  scheduledEnd: string;
+  serverName: string | null;
 }
 
 const API_URL =

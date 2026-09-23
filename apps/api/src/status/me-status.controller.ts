@@ -2,7 +2,20 @@ import { Controller, Get, HttpCode, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
-import { StatusService } from './status.service';
+import {
+  StatusService,
+  maintenanceVisibleWhere,
+  toPublicMaintenanceDto,
+  type PublicMaintenanceDto,
+} from './status.service';
+
+/** N-11 — ogłoszenia widać w panelu przez 30 dni od publikacji (albo do expiresAt / archiwizacji). */
+export const ANNOUNCEMENT_VISIBLE_DAYS = 30;
+
+interface UserNoticesDto {
+  announcements: Array<{ id: string; kind: string; title: string; bodyMarkdown: string; publishedAt: string }>;
+  maintenance: PublicMaintenanceDto[];
+}
 
 interface UserIncidentDto {
   serverId: string;
@@ -60,5 +73,46 @@ export class MeStatusController {
         title: i.title,
         startedAt: i.startedAt,
       }));
+  }
+
+  /** N-11 — ogłoszenia dla klientów i prace serwisowe dotyczące serwerów tego użytkownika. */
+  @Get('notices')
+  @HttpCode(200)
+  async noticesForCurrentUser(@CurrentUser() user: { userId: string }): Promise<UserNoticesDto> {
+    const now = new Date();
+    const accounts = await this.prisma.account.findMany({
+      where: { userId: user.userId },
+      select: { serverId: true },
+    });
+    const serverIds = Array.from(new Set(accounts.map((a) => a.serverId)));
+    const [announcements, maintenance] = await Promise.all([
+      this.prisma.productAnnouncement.findMany({
+        where: {
+          status: 'PUBLISHED',
+          publishedAt: { lte: now, gte: new Date(now.getTime() - ANNOUNCEMENT_VISIBLE_DAYS * 86400000) },
+          OR: [{ audienceRole: null }, { audienceRole: 'USER' }],
+          AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }],
+        },
+        orderBy: { publishedAt: 'desc' },
+        take: 5,
+        select: { id: true, kind: true, title: true, bodyMarkdown: true, publishedAt: true },
+      }),
+      this.prisma.maintenanceWindow.findMany({
+        where: maintenanceVisibleWhere(now, serverIds),
+        orderBy: { scheduledStart: 'asc' },
+        take: 10,
+        include: { server: { select: { name: true } } },
+      }),
+    ]);
+    return {
+      announcements: announcements.map((a) => ({
+        id: a.id,
+        kind: String(a.kind),
+        title: a.title,
+        bodyMarkdown: a.bodyMarkdown,
+        publishedAt: (a.publishedAt ?? now).toISOString(),
+      })),
+      maintenance: maintenance.map(toPublicMaintenanceDto),
+    };
   }
 }

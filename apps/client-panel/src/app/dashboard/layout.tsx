@@ -9,6 +9,7 @@ import { pushUserData } from "@/lib/analytics-events";
 import { ImpersonationBanner } from "./impersonation-banner";
 import { getImpersonationContext } from "./impersonation-actions";
 import { IncidentBanner } from "./incident-banner";
+import { NoticesBanner } from "./notices-banner";
 import { WalletBadge } from "./wallet-badge";
 import { NotificationBell } from "./notification-bell";
 import { ReConsentModal } from "./reconsent-modal";
@@ -398,6 +399,7 @@ export default function DashboardLayout({
     <div className="w-full max-w-[100vw] bg-background font-sans text-sidebar-foreground">
       <ImpersonationBanner />
       <IncidentBanner />
+      <NoticesBanner />
       <ReConsentModal />
       <PlatformConfigLoader />
       <div className="relative flex min-h-screen w-full max-w-full flex-col lg:flex-row lg:items-start">

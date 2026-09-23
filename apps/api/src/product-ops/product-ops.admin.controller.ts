@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, HttpCode, NotFoundException, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpCode, NotFoundException, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import {
   MaintenanceWindowStatus,
   ProductAnnouncementKind,
@@ -86,6 +86,18 @@ class CreateMaintenanceWindowDto {
 
   @IsDateString()
   scheduledEnd!: string;
+}
+
+/** N-11 — ogłoszenie: publikacja (widoczne w panelu klienta) albo archiwizacja (znika). */
+class UpdateAnnouncementStatusDto {
+  @IsEnum({ PUBLISHED: 'PUBLISHED', ARCHIVED: 'ARCHIVED' })
+  status!: 'PUBLISHED' | 'ARCHIVED';
+}
+
+/** N-11 — okno serwisowe: start, koniec albo odwołanie. */
+class UpdateMaintenanceStatusDto {
+  @IsEnum({ IN_PROGRESS: 'IN_PROGRESS', COMPLETED: 'COMPLETED', CANCELED: 'CANCELED' })
+  status!: 'IN_PROGRESS' | 'COMPLETED' | 'CANCELED';
 }
 
 class CreateStatusWebhookEndpointDto {
@@ -330,6 +342,29 @@ export class ProductOpsAdminController {
     return announcement;
   }
 
+  @Patch('announcements/:id')
+  async updateAnnouncementStatus(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() dto: UpdateAnnouncementStatusDto,
+  ) {
+    const prev = await this.prisma.productAnnouncement.findUnique({ where: { id } });
+    if (!prev) throw new NotFoundException('Ogłoszenie nie istnieje.');
+    const publish = dto.status === 'PUBLISHED';
+    const announcement = await this.prisma.productAnnouncement.update({
+      where: { id },
+      data: publish
+        ? { status: ProductAnnouncementStatus.PUBLISHED, publishedAt: prev.publishedAt ?? new Date() }
+        : { status: ProductAnnouncementStatus.ARCHIVED },
+    });
+    await this.audit.record({
+      action: publish ? ProductOpsActions.PRODUCT_ANNOUNCEMENT_PUBLISHED : ProductOpsActions.PRODUCT_ANNOUNCEMENT_ARCHIVED,
+      actorUserId: user.userId,
+      details: { announcementId: id, from: prev.status, to: announcement.status },
+    });
+    return announcement;
+  }
+
   @Get('maintenance-windows')
   listMaintenanceWindows() {
     return this.prisma.maintenanceWindow.findMany({
@@ -342,6 +377,9 @@ export class ProductOpsAdminController {
   @Post('maintenance-windows')
   @HttpCode(201)
   async createMaintenanceWindow(@CurrentUser() user: { userId: string }, @Body() dto: CreateMaintenanceWindowDto) {
+    if (new Date(dto.scheduledEnd) <= new Date(dto.scheduledStart)) {
+      throw new BadRequestException('Koniec okna musi być po jego początku.');
+    }
     const window = await this.prisma.maintenanceWindow.create({
       data: {
         serverId: dto.serverId || null,
@@ -365,6 +403,48 @@ export class ProductOpsAdminController {
       scheduledStart: window.scheduledStart.toISOString(),
       scheduledEnd: window.scheduledEnd.toISOString(),
     });
+    this.status.invalidate();
+    return window;
+  }
+
+  @Patch('maintenance-windows/:id')
+  async updateMaintenanceStatus(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() dto: UpdateMaintenanceStatusDto,
+  ) {
+    const prev = await this.prisma.maintenanceWindow.findUnique({ where: { id } });
+    if (!prev) throw new NotFoundException('Okno serwisowe nie istnieje.');
+    const dozwolone: Record<string, string[]> = {
+      SCHEDULED: ['IN_PROGRESS', 'CANCELED'],
+      IN_PROGRESS: ['COMPLETED'],
+    };
+    if (!(dozwolone[prev.status] ?? []).includes(dto.status)) {
+      throw new BadRequestException(`Nie można zmienić okna ze stanu ${prev.status} na ${dto.status}.`);
+    }
+    const now = new Date();
+    const window = await this.prisma.maintenanceWindow.update({
+      where: { id },
+      data: {
+        status: dto.status as MaintenanceWindowStatus,
+        ...(dto.status === 'IN_PROGRESS' ? { startedAt: now } : {}),
+        ...(dto.status === 'COMPLETED' ? { completedAt: now } : {}),
+      },
+    });
+    await this.audit.record({
+      action: AdminNodeActions.MAINTENANCE_WINDOW_UPDATED,
+      actorUserId: user.userId,
+      details: { maintenanceWindowId: id, from: prev.status, to: window.status },
+    });
+    await this.webhooks.enqueue(StatusWebhookEvent.MAINTENANCE_UPDATED, {
+      maintenanceWindowId: window.id,
+      serverId: window.serverId,
+      title: window.title,
+      status: window.status,
+      scheduledStart: window.scheduledStart.toISOString(),
+      scheduledEnd: window.scheduledEnd.toISOString(),
+    });
+    this.status.invalidate();
     return window;
   }
 

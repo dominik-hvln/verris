@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import {
+  MaintenanceWindowStatus,
   IncidentStatus,
   ProbeIncident,
   ProbeKind,
@@ -56,6 +57,44 @@ export interface PublicStatusDto {
   servers: ServerStatusDto[];
   activeIncidents: PublicIncidentDto[];
   recentIncidents: PublicIncidentDto[];
+  /** N-11 — zaplanowane i trwające prace (najbliższe 14 dni), globalne lub na publicznych serwerach. */
+  maintenance: PublicMaintenanceDto[];
+}
+
+export interface PublicMaintenanceDto {
+  id: string;
+  title: string;
+  publicMessage: string | null;
+  status: string;
+  scheduledStart: string;
+  scheduledEnd: string;
+  serverName: string | null;
+}
+
+/** N-11 — okna widoczne klientom: od 14 dni przed startem do końca, bez odwołanych i zakończonych. */
+export const MAINTENANCE_LOOKAHEAD_DAYS = 14;
+export function maintenanceVisibleWhere(now: Date, serverIds?: string[]) {
+  return {
+    status: { in: ['SCHEDULED', 'IN_PROGRESS'] as MaintenanceWindowStatus[] },
+    scheduledEnd: { gt: now },
+    scheduledStart: { lte: new Date(now.getTime() + MAINTENANCE_LOOKAHEAD_DAYS * 86400000) },
+    ...(serverIds ? { OR: [{ serverId: null }, { serverId: { in: serverIds } }] } : {}),
+  };
+}
+
+export function toPublicMaintenanceDto(w: {
+  id: string; title: string; publicMessage: string | null; status: string;
+  scheduledStart: Date; scheduledEnd: Date; server?: { name: string | null } | null;
+}): PublicMaintenanceDto {
+  return {
+    id: w.id,
+    title: w.title,
+    publicMessage: w.publicMessage,
+    status: w.status,
+    scheduledStart: w.scheduledStart.toISOString(),
+    scheduledEnd: w.scheduledEnd.toISOString(),
+    serverName: w.server?.name ?? null,
+  };
 }
 
 interface IncidentForUser {
@@ -238,6 +277,12 @@ export class StatusService {
     });
 
     const overall = aggregateState(serverDtos.flatMap((s) => s.probes));
+    const maintenance = await this.prisma.maintenanceWindow.findMany({
+      where: maintenanceVisibleWhere(new Date(), servers.map((s) => s.id)),
+      orderBy: { scheduledStart: 'asc' },
+      take: 20,
+      include: { server: { select: { name: true } } },
+    });
 
     return {
       generatedAt: new Date().toISOString(),
@@ -245,6 +290,7 @@ export class StatusService {
       servers: serverDtos,
       activeIncidents: openIncidents.map(toPublicIncidentDto),
       recentIncidents: recentIncidents.map(toPublicIncidentDto),
+      maintenance: maintenance.map(toPublicMaintenanceDto),
     };
   }
 }
