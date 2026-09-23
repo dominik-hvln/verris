@@ -9,9 +9,9 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **2963 h** — przy 30 h tygodniowo około **23 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **3003 h** — przy 30 h tygodniowo około **23 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **22 sprintów do startu** (959 h) oraz roadmapę po starcie (2004 h, 110 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **22 sprintów do startu** (959 h) oraz roadmapę po starcie (2044 h, 111 pozycji) rozpisaną na epiki kwartalne.
 
 - **2027-01-22** — koniec sprintu 21, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-01-29** — koniec sprintu 22, decyzja GO.
@@ -503,7 +503,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 # Po starcie — roadmapa kwartalna
 
-110 pozycji, 2004 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
+111 pozycji, 2044 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
 
 | ID | Epik | Priorytet | Kwartał | Pozycji | h | Dlaczego teraz, a nie wcześniej |
 |---|---|---|---|---|---|---|
@@ -511,7 +511,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 | `E-02` | Wydajność: cache i skalowanie | WYSOKI | Q1 2027 | 7 | 126 | Trzy z pięciu hostingów PL dają Redis w cenie. Przy pozycjonowaniu na WordPressa to nie dodatek, tylko oczekiwanie. |
 | `E-12` | Backup: granularność i retencja | WYSOKI | Q1 2027 | 5 | 94 | cyber_Folks daje 28 dni, seohost do 60. Nasze 30 dni jest w normie, ale granularność odtwarzania jest poniżej rynku. |
 | `E-14` | Rozliczenia: dokończenie | WYSOKI | Q1 2027 | 2 | 22 | Z-07 z macierzy: klient płacący portfelem doładowuje saldo w karencji i i tak zostaje zawieszony. Pierwszy taki przypadek to stracony klient. |
-| `E-15` | Wsparcie i ops: kolejka abuse | WYSOKI | Q1 2027 | 4 | 58 | Sprint 13 daje możliwość zatrzymania szkody. Ten epik daje proces, który skaluje się dalej niż jedna osoba. |
+| `E-15` | Wsparcie i ops: kolejka abuse | WYSOKI | Q1 2027 | 5 | 98 | Sprint 13 daje możliwość zatrzymania szkody. Ten epik daje proces, który skaluje się dalej niż jedna osoba. |
 | `E-03` | WordPress Toolkit | WYSOKI | Q2 2027 | 8 | 156 | Cztery z pięciu hostingów PL mają automatyczne aktualizacje WordPressa. Staging już mamy i jest przewagą — reszta toolkitu ją domyka. |
 | `E-04` | Domeny jako produkt | WYSOKI | Q2 2027 | 8 | 78 | Backend jest gotowy i wyłączony brakiem konfiguracji. Domena to najczęstszy pierwszy zakup i naturalny punkt wejścia. |
 | `E-05` | Katalog aplikacji | ŚREDNI | Q2 2027 | 1 | 16 | Softaculous ma około 400 aplikacji. Nie musimy mieć 400, ale dwie to nie jest katalog. |
@@ -521,8 +521,8 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 | `E-08` | Dostępność i zgodność w produkcie | ŚREDNI | Q3 2027 | 4 | 112 | Zwolnienie mikroprzedsiębiorcy z EAA wygasa przy 10 pracownikach lub 2 mln EUR. Lepiej mieć to wcześniej niż w tygodniu przekroczenia progu. |
 | `E-11` | DNS: DNSSEC i zarządzanie strefą | ŚREDNI | Q3 2027 | 4 | 62 | Żaden z pięciu hostingów PL nie potwierdza publicznie DNSSEC. To okazja, nie luka. |
 | `E-13` | Automatyzacja: API zapisu i webhooki | ŚREDNI | Q3 2027 | 8 | 102 | Żaden hosting PL nie ma publicznego API — mamy przewagę, która dziś obejmuje pięć GET-ów przy opisie obiecującym CI/CD i Terraform. |
-| `E-16` | Rozszerzenia oferty | NISKI | Q4 2027 | 5 | 80 | Decyzja o kreatorze stron jest binarna. Kod, który leży zakomentowany przez rok, jest długiem, nie opcją. |
-| `E-09` | Pokrycie testowe warstw krytycznych | WYSOKI | ciągłe | 7 | 232 | Realizowane równolegle z każdą fazą, nie jako osobny projekt. Zasada: każda naprawiona pozycja dostaje test, który najpierw czerwieni się na starym kodzie. |
+| `E-16` | Rozszerzenia oferty | NISKI | Q4 2027 | 6 | 96 | Decyzja o kreatorze stron jest binarna. Kod, który leży zakomentowany przez rok, jest długiem, nie opcją. |
+| `E-09` | Pokrycie testowe warstw krytycznych | WYSOKI | ciągłe | 6 | 216 | Realizowane równolegle z każdą fazą, nie jako osobny projekt. Zasada: każda naprawiona pozycja dostaje test, który najpierw czerwieni się na starym kodzie. |
 
 - **E-01 Runtime, pliki i diagnostyka** (416 h) — php.ini i rozszerzenia PHP z panelu, logi dostępu i błędów WWW, import/eksport bazy, spakowanie archiwum, SSH i klucze SSH dla hostingu, podgląd zajętości katalogów.
 - **E-02 Wydajność: cache i skalowanie** (126 h) — Redis jako cache obiektowy sterowany z panelu, LSCache, weryfikacja HTTP/3, CDN, optymalizacja obrazów.
@@ -532,14 +532,14 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 - **E-06 Bezpieczeństwo jako funkcja** (142 h) — Skaner malware, czyszczenie zainfekowanych plików, rozbudowa WAF, HSTS, anty-DDoS, sprzedaż certyfikatów DV/OV/EV.
 - **E-07 Reseller jako produkt** (208 h) — Zakładanie kont przez resellera, marża ustawiana przez niego, white-label, rozliczenia.
 - **E-08 Dostępność i zgodność w produkcie** (112 h) — WCAG 2.1 AA dla ścieżki klienta, RCPD jako moduł zamiast pliku, ISO 27001 jeśli wejdziemy w B2B, deklaracja lokalizacji danych.
-- **E-09 Pokrycie testowe warstw krytycznych** (232 h) — Testy integracyjne API, moduł auth, klient KSeF, ścieżka backup/restore, DirectAdminService, panele frontowe.
+- **E-09 Pokrycie testowe warstw krytycznych** (216 h) — Testy integracyjne API, moduł auth, klient KSeF, ścieżka backup/restore, DirectAdminService, panele frontowe.
 - **E-10 Poczta: filtry, kalendarz, limity** (100 h) — Reguły filtrowania Sieve, podgląd kolejki i logów dostarczania, limity wysyłki pokazane klientowi, kalendarz i kontakty, 2FA dla webmaila.
 - **E-11 DNS: DNSSEC i zarządzanie strefą** (62 h) — DNSSEC, zmiana TTL, Anycast DNS, pełne zarządzanie strefą po podpięciu edytora w sprincie 10.
 - **E-12 Backup: granularność i retencja** (94 h) — Odtworzenie pojedynczego pliku, podgląd zawartości archiwum przed odtworzeniem, pobranie kopii lokalnie, retencja 28+ dni w cenie.
 - **E-13 Automatyzacja: API zapisu i webhooki** (102 h) — Rozszerzenie publicznego API o operacje zapisu, webhooki dla klienta, edycja crona, cron z wyborem wersji PHP, podgląd wyniku wykonania.
 - **E-14 Rozliczenia: dokończenie** (22 h) — Ponowienie płatności portfelem w karencji, waluty obce z przeliczeniem VAT, proforma, dodanie karty niezależnie od zakupu, eksport CSV.
-- **E-15 Wsparcie i ops: kolejka abuse** (58 h) — Pełna kolejka obsługi nadużyć z encją zgłoszenia, terminami i śladem audytowym, ogłoszenia i okna serwisowe z panelu, feature flagi.
-- **E-16 Rozszerzenia oferty** (80 h) — VPS: konsola, snapshoty, rebuild. Panel mobilny. Kreator stron — dokończyć albo usunąć 1612 zakomentowanych linii.
+- **E-15 Wsparcie i ops: kolejka abuse** (98 h) — Pełna kolejka obsługi nadużyć z encją zgłoszenia, terminami i śladem audytowym, ogłoszenia i okna serwisowe z panelu, feature flagi.
+- **E-16 Rozszerzenia oferty** (96 h) — VPS: konsola, snapshoty, rebuild. Panel mobilny. Kreator stron — dokończyć albo usunąć 1612 zakomentowanych linii.
 
 ---
 
