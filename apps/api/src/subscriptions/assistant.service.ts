@@ -9,6 +9,14 @@ import { buildHints, type AssistantHint } from './assistant-hints';
 export const ASSISTANT_FIX_APPLIED = 'ASSISTANT_FIX_APPLIED';
 export const ASSISTANT_FIX_UNDONE = 'ASSISTANT_FIX_UNDONE';
 const UNDO_WINDOW_MS = 7 * 86_400_000;
+/**
+ * Dymki mają być podpowiedzią, nie hamulcem: sondy na żywo (DNS domeny, strefa
+ * w DA) dostają limit czasu, a gdy nie zdążą, po prostu pomijamy ich reguły.
+ * Bez tego martwy węzeł (15 s na próbę) zatrzymywał ładowanie strony usługi.
+ */
+const PROBE_BUDGET_MS = 3_000;
+const within = <T>(p: Promise<T>, ms = PROBE_BUDGET_MS): Promise<T | null> =>
+  Promise.race([p.catch(() => null), new Promise<null>((r) => setTimeout(() => r(null), ms))]);
 
 type Rec = { name: string; type: string; value: string };
 const isRec = (v: unknown): v is Rec =>
@@ -54,8 +62,8 @@ export class AssistantService {
       account.domain
         ? this.prisma.domain.findFirst({ where: { userId, name: account.domain }, select: { name: true, expiresAt: true, autoRenew: true } })
         : null,
-      this.pointing.verifyForSubscription(subscriptionId, userId).catch(() => null),
-      this.deliverability.forSubscription(subscriptionId, userId).catch(() => null),
+      within(this.pointing.verifyForSubscription(subscriptionId, userId)),
+      within(this.deliverability.forSubscription(subscriptionId, userId)),
     ]);
     const usage = sub.usageMetrics[0];
 

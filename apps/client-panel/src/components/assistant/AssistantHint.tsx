@@ -6,10 +6,15 @@ import { toast } from 'sonner';
 import { AlertTriangle, Loader2, Sparkles, Undo2, X } from 'lucide-react';
 import {
   applyAssistantFix,
-  fetchAssistantHints,
   undoAssistantFix,
   type AssistantHint as Hint,
 } from '@/app/dashboard/services/[id]/assistant-actions';
+
+/** Przez route handler — nie blokuje kolejki akcji serwera (patrz route.ts). */
+const fetchAssistantHints = (serviceId: string): Promise<Hint[] | null> =>
+  fetch(`/api/services/${serviceId}/assistant-hints`, { cache: 'no-store' })
+    .then((r) => (r.ok ? (r.json() as Promise<Hint[]>) : null))
+    .catch(() => null);
 
 const dismissKey = (serviceId: string, key: string) => `verris-hint:${serviceId}:${key}`;
 const isDismissed = (serviceId: string, key: string) => {

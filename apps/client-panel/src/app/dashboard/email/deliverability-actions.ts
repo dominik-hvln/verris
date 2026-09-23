@@ -1,6 +1,4 @@
-'use server';
-
-import { apiFetch } from '@/lib/api';
+/** Typy raportu dostarczalności (dane idą przez /api/services/[id]/deliverability). */
 
 export type CheckStatus = 'ok' | 'warn' | 'fail';
 
@@ -29,12 +27,4 @@ export interface DeliverabilityReport {
   blacklists: Array<{ zone: string; listed: boolean }>;
   /** Domena używa serwerów DNS Verris; null = nie wiadomo. */
   usesPlatformDns: boolean | null;
-}
-
-export async function fetchDeliverability(serviceId: string): Promise<DeliverabilityReport | null> {
-  try {
-    return await apiFetch<DeliverabilityReport>(`/services/${serviceId}/deliverability`);
-  } catch {
-    return null;
-  }
 }

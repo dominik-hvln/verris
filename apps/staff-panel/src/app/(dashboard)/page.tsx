@@ -130,7 +130,7 @@ export default async function StaffInboxPage({
           ))}
         </div>
         {rows.length === 0 ? (
-          <div className="px-8 py-20 text-center text-muted-foreground">Brak oczekujących zgłoszeń — gratulacje!</div>
+          <div className="px-8 py-20 text-center text-muted-foreground">{error ? 'Nie udało się wczytać zgłoszeń — zobacz komunikat powyżej.' : 'Brak oczekujących zgłoszeń — gratulacje!'}</div>
         ) : null}
       </div>
     </div>

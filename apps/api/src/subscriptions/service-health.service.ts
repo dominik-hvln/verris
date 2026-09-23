@@ -59,6 +59,14 @@ export class ServiceHealthService {
     const stale =
       !latest || Date.now() - latest.computedAt.getTime() > SNAPSHOT_MAX_AGE_MS;
 
+    // Stary wynik oddajemy od razu, a nowy liczymy w tle. Pomiar na produkcji
+    // (2026-09-23): liczenie sond (DNS, TLS strony i panelu, poczta — po 8 s)
+    // trzymało stronę usługi kilkanaście sekund przy każdym wejściu po 30 min.
+    // Czekamy tylko, gdy nie ma żadnego wyniku albo gdy klient kliknął „Odśwież”.
+    if (stale && latest && !opts?.force) {
+      this.refreshInBackground(subscriptionId);
+      return this.fromSnapshot(latest);
+    }
     if (opts?.force || stale) {
       try {
         return await this.computeAndPersist(subscriptionId);
@@ -71,6 +79,17 @@ export class ServiceHealthService {
 
     if (latest) return this.fromSnapshot(latest);
     return this.pendingSummary('Diagnostyka jeszcze nie została uruchomiona.');
+  }
+
+  private readonly refreshing = new Set<string>();
+
+  /** Jedno liczenie naraz na usługę; błąd tylko do logu (stary wynik zostaje). */
+  private refreshInBackground(subscriptionId: string): void {
+    if (this.refreshing.has(subscriptionId)) return;
+    this.refreshing.add(subscriptionId);
+    void this.computeAndPersist(subscriptionId)
+      .catch((err) => this.logger.warn(`Health refresh failed sub=${subscriptionId}: ${(err as Error).message}`))
+      .finally(() => this.refreshing.delete(subscriptionId));
   }
 
   async computeAndPersist(subscriptionId: string): Promise<ComputedHealthSummary> {

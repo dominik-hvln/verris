@@ -96,7 +96,7 @@ export default async function ClosedTicketsPage({
           ))}
         </ul>
         {rows.length === 0 ? (
-          <div className="py-14 text-center text-muted-foreground text-sm">Brak zamkniętych zgłoszeń.</div>
+          <div className="py-14 text-center text-muted-foreground text-sm">{error ? 'Nie udało się wczytać zgłoszeń — zobacz komunikat powyżej.' : 'Brak zamkniętych zgłoszeń.'}</div>
         ) : null}
       </div>
     </div>

@@ -79,7 +79,7 @@ export default async function ActiveTicketsPage({
           ))}
         </ul>
         {rows.length === 0 ? (
-          <div className="py-14 text-center text-muted-foreground text-sm">Nic w tym koszyku.</div>
+          <div className="py-14 text-center text-muted-foreground text-sm">{error ? 'Nie udało się wczytać zgłoszeń — zobacz komunikat powyżej.' : 'Nic w tym koszyku.'}</div>
         ) : null}
       </div>
     </div>

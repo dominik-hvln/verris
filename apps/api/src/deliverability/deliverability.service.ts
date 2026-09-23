@@ -3,6 +3,7 @@ import { promises as dns } from 'dns';
 import { PrismaService } from '../prisma/prisma.service';
 import { DirectAdminService } from '../servers/directadmin.service';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
+import { rblListed } from './rbl';
 import { buildMailAuthChecks, type CheckStatus, type MailAuthSuggestion, type ZoneRecord } from './mail-auth';
 
 export type { CheckStatus };
@@ -111,7 +112,7 @@ export class DeliverabilityService {
           let listed = false;
           try {
             const res: string[] = await withTimeout(dns.resolve4(`${reversed}.${zone}`), 3500);
-            listed = res.length > 0;
+            listed = rblListed(res);
           } catch {
             listed = false; // NXDOMAIN = not listed
           }

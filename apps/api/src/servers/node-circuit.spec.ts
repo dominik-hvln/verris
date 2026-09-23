@@ -1,4 +1,4 @@
-import { NODE_DOWN_MS, nodeDownFor, nodeErrorKind, recordNodeFailure, recordNodeSuccess, resetNodeCircuits } from '@verris/directadmin-sdk';
+import { NODE_DOWN_MS, TIMEOUT_WINDOW_MS, nodeDownFor, nodeErrorKind, recordNodeFailure, recordNodeSuccess, resetNodeCircuits } from '@verris/directadmin-sdk';
 
 describe('bezpiecznik węzła DirectAdmin', () => {
   const key = 'https://node-test:2222';
@@ -24,7 +24,13 @@ describe('bezpiecznik węzła DirectAdmin', () => {
 
   it('timeouty daleko od siebie nie sumują się', () => {
     recordNodeFailure(key, { code: 'ETIMEDOUT' }, 0);
-    expect(recordNodeFailure(key, { code: 'ETIMEDOUT' }, NODE_DOWN_MS + 1)).toBe(false);
+    expect(recordNodeFailure(key, { code: 'ETIMEDOUT' }, TIMEOUT_WINDOW_MS + 1)).toBe(false);
+  });
+
+  it('drugi timeout minutę później (zapytania panelu idą po kolei) też otwiera', () => {
+    recordNodeFailure(key, { code: 'ETIMEDOUT' }, 0);
+    expect(recordNodeFailure(key, { code: 'ETIMEDOUT' }, 60_000)).toBe(true);
+    expect(nodeDownFor(key, 60_000 + 90_000)).toBeGreaterThan(0);
   });
 
   it('udane zapytanie zamyka bezpiecznik', () => {

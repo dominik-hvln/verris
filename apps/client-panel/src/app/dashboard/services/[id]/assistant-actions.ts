@@ -16,15 +16,6 @@ export interface AssistantHint {
 type Result<T> = ({ ok: true } & T) | { ok: false; error: string };
 const msg = (e: unknown) => (e instanceof ApiError ? e.message : 'Nie udało się — spróbuj ponownie.');
 
-/** PB-17 — dymki asystenta; null = nie udało się pobrać (panel nic wtedy nie pokazuje). */
-export async function fetchAssistantHints(serviceId: string): Promise<AssistantHint[] | null> {
-  try {
-    return await apiFetch<AssistantHint[]>(`/services/${serviceId}/assistant-hints`);
-  } catch {
-    return null;
-  }
-}
-
 export async function applyAssistantFix(serviceId: string, key: string): Promise<Result<{ undoId: string }>> {
   try {
     const r = await apiFetch<{ undoId: string }>(`/services/${serviceId}/hosting-dns/assistant-fix`, {

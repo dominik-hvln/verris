@@ -7,6 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MailerService } from '../mail/mailer.service';
 import { AuditService } from '../common/audit/audit.service';
 import { nodeRblAlertTemplate, nodeRblClearedTemplate } from '../mail/templates/ops-notifications';
+import { rblListed } from '../deliverability/rbl';
 
 // Widely-used DNS blocklists (parytet z DeliverabilityService).
 const RBL_ZONES = ['zen.spamhaus.org', 'bl.spamcop.net', 'b.barracudacentral.org', 'dnsbl.sorbs.net'];
@@ -63,7 +64,7 @@ export class RblReputationScheduler {
       RBL_ZONES.map(async (zone) => {
         try {
           const res: string[] = await withTimeout(dns.resolve4(`${reversed}.${zone}`), DNS_TIMEOUT_MS);
-          return res.length > 0 ? zone : null;
+          return rblListed(res) ? zone : null;
         } catch {
           return null; // NXDOMAIN / timeout = traktujemy jako brak wpisu
         }

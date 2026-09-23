@@ -8,7 +8,13 @@ import { Select } from '@/components/panel';
 import { CopyValue, Label, SectionHead, StatusPill } from '@/components/panel/v2';
 import { createDnsRecordAction, editDnsRecordAction } from '@/app/dashboard/dns/dns-actions';
 import { DMARC_POLICIES, dmarcPolicyOf, dmarcRuaOf, isEmail, tuneDmarc, type DmarcPolicy } from '@/lib/dmarc';
-import { fetchDeliverability, type DeliverabilityCheck, type DeliverabilityReport } from './deliverability-actions';
+import type { DeliverabilityCheck, DeliverabilityReport } from './deliverability-actions';
+
+/** Przez route handler — sondy DNS nie blokują kolejki akcji serwera. */
+const fetchDeliverability = (serviceId: string): Promise<DeliverabilityReport | null> =>
+  fetch(`/api/services/${serviceId}/deliverability`, { cache: 'no-store' })
+    .then((r) => (r.ok ? (r.json() as Promise<DeliverabilityReport>) : null))
+    .catch(() => null);
 
 const ICON = {
   ok: <CheckCircle2 className="h-4 w-4 text-data-hi" aria-label="w porządku" />,

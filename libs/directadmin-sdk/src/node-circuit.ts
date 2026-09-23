@@ -14,7 +14,13 @@
  * ponytail: stan w pamięci procesu (per instancja API); przy wielu replikach
  * każda uczy się sama — wystarczy, bo okno jest krótkie.
  */
-export const NODE_DOWN_MS = 30_000;
+// Zmierzone 2026-09-23 na produkcji (martwy węzeł, strona usługi): przy 30 s
+// otwarcia bezpiecznik zamykał się, zanim panel skończył kolejkę zapytań, i
+// każde kolejne znów czekało 15 s. Dwie minuty przykrywają całe ładowanie
+// strony; drugi timeout liczy się w oknie 5 min, bo zapytania panelu idą po
+// kolei, często dalej niż 30 s od siebie.
+export const NODE_DOWN_MS = 120_000;
+export const TIMEOUT_WINDOW_MS = 5 * 60_000;
 
 const CONNECT_CODES = new Set(['ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN', 'EHOSTUNREACH', 'ENETUNREACH']);
 const TIMEOUT_CODES = new Set(['ETIMEDOUT', 'ECONNABORTED']);
@@ -40,7 +46,7 @@ export function recordNodeFailure(key: string, err: unknown, now = Date.now()): 
   if (kind === 'timeout') {
     const prev = lastTimeout.get(key);
     lastTimeout.set(key, now);
-    if (prev == null || now - prev > NODE_DOWN_MS) return false;
+    if (prev == null || now - prev > TIMEOUT_WINDOW_MS) return false;
   }
   downUntil.set(key, now + NODE_DOWN_MS);
   return true;
