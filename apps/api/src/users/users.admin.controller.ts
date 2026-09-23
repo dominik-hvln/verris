@@ -29,6 +29,7 @@ import {
   AdminChangeCustomerEmailDto,
   AdminResetCustomerPasswordDto,
   AdminSetGrafanaAccessDto,
+  AdminCreateCustomerDto,
 } from './users.admin.dto';
 
 class ImpersonateDto {
@@ -181,6 +182,21 @@ export class UsersAdminController {
   /**
    * Sprint 4 / R-04 — reset hasła (hasło jednorazowo w odpowiedzi); czyści 2FA.
    */
+  /** A-24 — operator zakłada konto klienta; klient ustawia hasło z linku w mailu. */
+  @Post()
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('CUSTOMERS_MANAGE')
+  async createCustomer(
+    @CurrentUser() user: AuthedUser,
+    @Body() dto: AdminCreateCustomerDto,
+    @Req() req: Request,
+  ) {
+    return this.admin.createCustomerByOperator(user.actorUserId ?? user.userId, dto, {
+      ipAddress: extractIp(req),
+      userAgent: req.headers['user-agent']?.toString() ?? null,
+    });
+  }
+
   @Post(':id/reset-password')
   @HttpCode(200)
   @Roles(Role.ADMIN)

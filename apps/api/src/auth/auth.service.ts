@@ -468,6 +468,11 @@ export class AuthService {
         // reset was triggered by a compromise, old tokens stop working now.
         data: { passwordHash, tokenVersion: { increment: 1 } },
       }),
+      // A-24 — link z maila potwierdza skrzynkę (konto od operatora nie ma weryfikacji).
+      this.prisma.user.updateMany({
+        where: { id: row.userId, emailVerifiedAt: null },
+        data: { emailVerifiedAt: new Date() },
+      }),
       this.prisma.userAuthToken.update({
         where: { id: row.id },
         data: { usedAt: new Date() },

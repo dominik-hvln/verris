@@ -18,6 +18,11 @@ import { StatusService } from '../status/status.service';
 import { StripeService } from '../billing/stripe/stripe.service';
 import { MailerService } from '../mail/mailer.service';
 import { passwordChangedTemplate } from '../mail/templates/security-notifications';
+import { accountCreatedByOperatorTemplate } from '../mail/templates/auth-notifications';
+import { generateAuthToken, hashAuthToken } from '../auth/auth-token.util';
+
+/** A-24 — link „ustaw hasło” z konta od operatora (dłuższy niż reset, klient może odebrać mail później). */
+export const OPERATOR_ACCOUNT_LINK_TTL_HOURS = 72;
 
 export interface AdminUserListOptions {
   search?: string;
@@ -661,6 +666,80 @@ export class UsersAdminService {
     }
 
     return { temporaryPassword };
+  }
+
+  /**
+   * A-24 — operator zakłada konto klienta. Hasła nie znamy i nie ustawiamy:
+   * klient dostaje link „ustaw hasło” (token PASSWORD_RESET, 72 h), a zgody na
+   * regulamin składa sam przy pierwszym logowaniu (brak zgód = ekran akceptacji).
+   */
+  async createCustomerByOperator(
+    actorUserId: string,
+    dto: { email: string; firstName: string; lastName: string; reason?: string | undefined },
+    ctx: { ipAddress?: string | null; userAgent?: string | null },
+  ) {
+    const email = dto.email.trim().toLowerCase();
+    const exists = await this.prisma.user.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } },
+      select: { id: true },
+    });
+    if (exists) throw new ConflictException('Konto z tym adresem e-mail już istnieje.');
+
+    // Hasło nieużywalne: losowe, nikt go nie zna — logowanie możliwe dopiero po ustawieniu.
+    const passwordHash = await bcrypt.hash(randomBytes(32).toString('base64url'), 10);
+    const rawToken = generateAuthToken();
+    const expiresAt = new Date(Date.now() + OPERATOR_ACCOUNT_LINK_TTL_HOURS * 3600 * 1000);
+
+    const user = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        data: {
+          email,
+          passwordHash,
+          firstName: dto.firstName.trim(),
+          lastName: dto.lastName.trim(),
+          role: Role.USER,
+          walletBalance: 0,
+          referralCode: `EKO-${randomBytes(4).toString('hex').toUpperCase()}`,
+          ecoBadgeToken: randomBytes(18).toString('base64url'),
+        },
+      });
+      await tx.userAuthToken.create({
+        data: {
+          userId: created.id,
+          purpose: 'PASSWORD_RESET',
+          tokenHash: hashAuthToken(rawToken),
+          expiresAt,
+        },
+      });
+      return created;
+    });
+
+    await this.audit.record({
+      action: AdminCustomerActions.CUSTOMER_CREATED_BY_OPERATOR,
+      userId: user.id,
+      actorUserId,
+      ipAddress: ctx.ipAddress ?? undefined,
+      userAgent: ctx.userAgent ?? undefined,
+      details: { reason: dto.reason ?? null },
+    });
+
+    const panelUrl = this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl';
+    const message = accountCreatedByOperatorTemplate({
+      to: email,
+      firstName: user.firstName,
+      setPasswordUrl: `${panelUrl}/reset-password?token=${encodeURIComponent(rawToken)}`,
+      expiresHours: OPERATOR_ACCOUNT_LINK_TTL_HOURS,
+      panelUrl,
+    });
+    let mailSent = true;
+    try {
+      await this.mailer.send({ ...message, userId: user.id, category: 'TRANSACTIONAL', fromRole: 'NOREPLY' });
+    } catch (err) {
+      mailSent = false;
+      this.logger.warn(`operator account mail failed: ${(err as Error).message}`);
+    }
+
+    return { id: user.id, email, mailSent };
   }
 
   private async requireEndUserForAdminOps(userId: string) {

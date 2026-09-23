@@ -3,6 +3,7 @@ import { Mail, ShieldCheck, Search, UserCog } from "lucide-react";
 import { listAdminUsers } from "./data";
 import { ImpersonateButton } from "./impersonate-button";
 import { CreditWalletButton } from "./credit-wallet-button";
+import { CreateCustomerButton } from "./create-customer-button";
 
 export const dynamic = "force-dynamic";
 
@@ -34,11 +35,14 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
             Pełny dostęp do profili i środowisk klientów (C-Level).
           </p>
         </div>
-        {data && (
-          <div className="text-xs text-muted-foreground">
-            {data.total.toLocaleString("pl-PL")} użytkowników
-          </div>
-        )}
+        <div className="flex items-center gap-4">
+          {data && (
+            <div className="text-xs text-muted-foreground">
+              {data.total.toLocaleString("pl-PL")} użytkowników
+            </div>
+          )}
+          <CreateCustomerButton />
+        </div>
       </header>
 
       <div className="relative rounded-2xl p-[1px] overflow-hidden">

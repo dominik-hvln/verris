@@ -211,3 +211,28 @@ export async function resetCustomerPasswordAction(
     return { ok: false, error: "Nie udało się zresetować hasła." };
   }
 }
+
+/** A-24 — operator zakłada konto klienta; klient dostaje mail „ustaw hasło”. */
+export async function createCustomerAction(input: {
+  email: string;
+  firstName: string;
+  lastName: string;
+  reason?: string;
+}): Promise<{ ok: true; id: string; mailSent: boolean } | ActionResultErr> {
+  try {
+    const res = await adminApi<{ id: string; mailSent: boolean }>(`/admin/users`, {
+      method: "POST",
+      body: {
+        email: input.email.trim(),
+        firstName: input.firstName.trim(),
+        lastName: input.lastName.trim(),
+        reason: input.reason?.trim() || undefined,
+      },
+    });
+    revalidatePath("/customers");
+    return { ok: true, id: res.id, mailSent: res.mailSent };
+  } catch (err) {
+    if (err instanceof AdminApiError) return { ok: false, error: err.message };
+    return { ok: false, error: "Nie udało się założyć konta." };
+  }
+}

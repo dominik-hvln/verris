@@ -73,4 +73,10 @@ describe('UsersAdminController (metadane RBAC)', () => {
       expect(rolePod(klucz)).toEqual([Role.ADMIN]);
     });
   });
+  it('A-24 zakładanie konta klienta: ADMIN + STAFF z CUSTOMERS_MANAGE', () => {
+    expect((rolePod('createCustomer') as Role[]).slice().sort()).toEqual(
+      [Role.ADMIN, Role.STAFF].sort(),
+    );
+    expect(uprawnieniaPod('createCustomer')).toEqual(['CUSTOMERS_MANAGE']);
+  });
 });

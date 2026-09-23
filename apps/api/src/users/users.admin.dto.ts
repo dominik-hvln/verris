@@ -64,3 +64,23 @@ export class AdminResetCustomerPasswordDto {
   @MaxLength(500)
   reason?: string;
 }
+
+/** A-24 — `POST /admin/users`: operator zakłada konto klienta (np. z telefonu). */
+export class AdminCreateCustomerDto {
+  @IsEmail()
+  @MaxLength(254)
+  email!: string;
+
+  @IsString()
+  @MaxLength(100)
+  firstName!: string;
+
+  @IsString()
+  @MaxLength(100)
+  lastName!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  reason?: string;
+}

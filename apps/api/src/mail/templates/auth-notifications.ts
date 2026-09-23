@@ -76,6 +76,44 @@ export function passwordResetRequestTemplate(ctx: PasswordResetRequestContext): 
   };
 }
 
+export interface AccountCreatedByOperatorContext {
+  to: string;
+  firstName: string | null;
+  setPasswordUrl: string;
+  expiresHours: number;
+  panelUrl: string;
+}
+
+/** A-24 — konto założone przez operatora; klient sam ustawia hasło. */
+export function accountCreatedByOperatorTemplate(ctx: AccountCreatedByOperatorContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: 'Twoje konto w Verris',
+    preheader: 'Ustaw hasło, żeby zalogować się do panelu.',
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `na Twoją prośbę założyliśmy konto w **Verris** na ten adres e-mail. Ustaw hasło przyciskiem poniżej — przy pierwszym logowaniu poprosimy o akceptację regulaminu.`,
+      ``,
+      `Link jest ważny **${ctx.expiresHours} godziny**. Później poproś o nowy w formularzu „Nie pamiętasz hasła?”.`,
+      ``,
+      `Jeśli nie prosiłeś o konto — zignoruj ten mail. Bez ustawienia hasła nikt się na nie nie zaloguje.`,
+    ].join('\n'),
+    cta: { label: 'Ustaw hasło', url: ctx.setPasswordUrl },
+    footnote: 'Nigdy nie prosimy o hasło mailem ani telefonicznie.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return {
+    to: ctx.to,
+    tag: 'auth.account-created-by-operator',
+    subject: 'Konto w Verris — ustaw hasło',
+    text,
+    html,
+  };
+}
+
 export interface EmailVerifyContext {
   to: string;
   firstName: string | null;
