@@ -3,7 +3,15 @@ import {
   MigrationWorkerJobKind,
   MigrationWorkerJobStatus,
 } from '@verris/database';
+import { BadRequestException } from '@nestjs/common';
 import { MigrationOrchestratorService } from './migration-orchestrator.service';
+import { resolvePublicHost } from './migration-net.util';
+
+// Z-09 — hosty źródłowe są rozwiązywane w DNS; w testach atrapa (domyślnie „publiczny”).
+jest.mock('./migration-net.util', () => ({
+  ...jest.requireActual('./migration-net.util'),
+  resolvePublicHost: jest.fn(async () => '203.0.113.10'),
+}));
 
 describe('MigrationOrchestratorService', () => {
   const prisma = {
@@ -174,6 +182,24 @@ describe('MigrationOrchestratorService', () => {
       }),
     ).rejects.toThrow('trwa już migracja');
     expect(prisma.migrationRequest.create).not.toHaveBeenCalled();
+  });
+
+  it('Z-09: odrzuca zlecenie, gdy którykolwiek host źródła wskazuje na sieć prywatną', async () => {
+    prisma.subscription.findFirst.mockResolvedValue({ id: 'sub_1', userId: 'user_1', account: { domain: 'target.example' } });
+    (resolvePublicHost as jest.Mock).mockImplementation(async (h: string) => {
+      if (h === '127.0.0.1') throw new BadRequestException('Host wskazuje na sieć prywatną — odrzucono.');
+      return '203.0.113.10';
+    });
+    await expect(
+      service().createBundle('sub_1', 'user_1', {
+        consentAccepted: true,
+        ftp: { protocol: 'sftp', host: 'old.example', port: 22, username: 'u', password: 'p' },
+        mysql: [{ host: '127.0.0.1', port: 3306, username: 'root', password: 'x', database: 'mysql' }],
+      }),
+    ).rejects.toThrow('sieć prywatną');
+    expect(resolvePublicHost).toHaveBeenCalledWith('old.example');
+    expect(prisma.migrationRequest.create).not.toHaveBeenCalled();
+    (resolvePublicHost as jest.Mock).mockImplementation(async () => '203.0.113.10');
   });
 
   it('rejects a migration without RODO consent', async () => {

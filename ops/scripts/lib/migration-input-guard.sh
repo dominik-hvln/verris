@@ -103,6 +103,44 @@ vg_is_account() {
   [[ "$1" =~ $VG_RE_ACCOUNT ]]
 }
 
+# Z-09 — host źródła musi być PUBLICZNY. Znaki hosta sprawdza vg_is_host, ale to
+# nie mówi, DOKĄD worker (root na węźle) się połączy: 127.0.0.1 to MySQL/IMAP
+# samego węzła, 10.x/172.16.x/192.168.x to sieć wewnętrzna, 169.254.169.254 to
+# metadane chmury. API odrzuca takie hosty przy zakładaniu zlecenia; to jest
+# druga warstwa, tuż przed połączeniem.
+# ponytail: rozwiązujemy raz, a rsync/mysqldump/imapsync rozwiązują ponownie
+# (okno na DNS-rebinding); przypięcie IP do każdego narzędzia, gdy będzie potrzebne.
+vg_ip_prywatny() {
+  local ip a b c d x
+  ip=$(printf %s "$1" | tr "[:upper:]" "[:lower:]")
+  if [[ "$ip" == *:* ]]; then
+    [[ "$ip" == ::ffff:* ]] && { vg_ip_prywatny "${ip#::ffff:}"; return $?; }
+    [[ "$ip" == "::" || "$ip" == "::1" || "$ip" == fe[89ab]* || "$ip" == fc* || "$ip" == fd* || "$ip" == ff* ]] && return 0
+    return 1
+  fi
+  IFS=. read -r a b c d <<<"$ip"
+  for x in "$a" "$b" "$c" "$d"; do [[ "$x" =~ ^[0-9]{1,3}$ ]] || return 0; done
+  (( a == 0 || a == 10 || a == 127 || a >= 224 )) && return 0
+  (( a == 100 && b >= 64 && b <= 127 )) && return 0
+  (( a == 169 && b == 254 )) && return 0
+  (( a == 172 && b >= 16 && b <= 31 )) && return 0
+  (( a == 192 && b == 168 )) && return 0
+  return 1
+}
+
+vg_is_public_host() {
+  local host="$1" adresy ip
+  vg_is_host "$host" || return 1
+  if [[ "$host" =~ ^[0-9.]+$ || "$host" == *:* ]]; then
+    vg_ip_prywatny "$host" && return 1
+    return 0
+  fi
+  adresy=$(getent ahosts "$host" 2>/dev/null | awk '{print $1}' | sort -u)
+  [ -n "$adresy" ] || return 1                  # nierozwiązywalny = odmowa
+  for ip in $adresy; do vg_ip_prywatny "$ip" && return 1; done
+  return 0
+}
+
 # vg_require <typ> <wartość> [<etykieta do logu>]
 # Zwraca 0 gdy wartość przechodzi walidację; w przeciwnym razie wypisuje na
 # stderr komunikat BEZ samej wartości (mogłaby zawierać sekret albo ładunek,
@@ -111,6 +149,7 @@ vg_require() {
   local typ="$1" wartosc="$2" etykieta="${3:-$1}"
   case "$typ" in
     host)     vg_is_host     "$wartosc" && return 0 ;;
+    publichost) vg_is_public_host "$wartosc" && return 0 ;;
     username) vg_is_username "$wartosc" && return 0 ;;
     db)       vg_is_db       "$wartosc" && return 0 ;;
     path)     vg_is_path     "$wartosc" && return 0 ;;
@@ -120,7 +159,11 @@ vg_require() {
     account)  vg_is_account  "$wartosc" && return 0 ;;
     *) echo "vg_require: nieznany typ walidacji '${typ}'" >&2; return 1 ;;
   esac
-  echo "odrzucone pole migracji '${etykieta}': wartość zawiera znaki niedozwolone dla typu '${typ}' (długość ${#wartosc})" >&2
+  if [ "$typ" = publichost ]; then
+    echo "odrzucone pole migracji '${etykieta}': host nie rozwiązuje się albo wskazuje na sieć prywatną/lokalną" >&2
+  else
+    echo "odrzucone pole migracji '${etykieta}': wartość zawiera znaki niedozwolone dla typu '${typ}' (długość ${#wartosc})" >&2
+  fi
   return 1
 }
 
@@ -130,6 +173,6 @@ if [ "${BASH_SOURCE[0]}" = "${0}" ]; then
     vg_require "$2" "${3-}" >/dev/null 2>&1
     exit $?
   fi
-  echo "użycie: $(basename "$0") check <host|username|db|path|port|protocol|email|account> <wartość>" >&2
+  echo "użycie: $(basename "$0") check <host|publichost|username|db|path|port|protocol|email|account> <wartość>" >&2
   exit 64
 fi

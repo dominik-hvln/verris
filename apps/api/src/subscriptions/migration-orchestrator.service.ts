@@ -18,6 +18,7 @@ import {
   RequestInternalMigrationDto,
 } from './dto/migration.dto';
 import { MigrationActions } from '../common/audit/audit.actions';
+import { resolvePublicHost } from './migration-net.util';
 
 type MigrationViewRow = {
   id: string;
@@ -156,6 +157,7 @@ export class MigrationOrchestratorService {
 
   async requestExternalMigration(subscriptionId: string, userId: string, dto: RequestExternalMigrationDto) {
     const sub = await this.assertSubscriptionForUser(subscriptionId, userId);
+    await assertSourceHostsPublic([dto.sourceHost]);
     const sourceSecretEnc = this.crypto.encrypt(
       JSON.stringify({
         host: dto.sourceHost,
@@ -264,6 +266,11 @@ export class MigrationOrchestratorService {
         'Aby uruchomić migrację, potwierdź upoważnienie do przeniesienia danych (zgoda RODO).',
       );
     }
+
+    // Z-09 — worker łączy się z tymi hostami jako root z węzła: 127.0.0.1 to MySQL/IMAP
+    // samego węzła, 10.x/192.168.x sieć wewnętrzna. Tylko hosty publiczne (druga
+    // warstwa: vg_is_public_host w migration-input-guard.sh na węźle).
+    await assertSourceHostsPublic([dto.ftp?.host, ...(dto.mysql ?? []).map((m) => m.host), ...(dto.imap ?? []).map((m) => m.host)]);
 
     // Limit współbieżnych migracji na usługę — nie pozwalamy zakolejkować
     // kolejnej, dopóki poprzednia jest w toku/oczekuje (ochrona przed
@@ -1632,6 +1639,12 @@ export class MigrationOrchestratorService {
       d.sourceSecretEnc = '[encrypted]';
     }
     return d;
+  }
+}
+
+async function assertSourceHostsPublic(hosts: Array<string | undefined | null>): Promise<void> {
+  for (const host of new Set(hosts.filter((h): h is string => !!h && !!h.trim()))) {
+    await resolvePublicHost(host.trim());
   }
 }
 

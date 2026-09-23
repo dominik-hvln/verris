@@ -224,6 +224,30 @@ describe('Z-03 — druga warstwa: guard po stronie węzła', () => {
   });
 });
 
+describe('Z-09 — guard węzła odrzuca hosty prywatne i lokalne', () => {
+  const przepuszcza = (v: string) => {
+    try {
+      execFileSync('bash', [GUARD, 'check', 'publichost', v], { stdio: 'pipe' });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  it.each(['127.0.0.1', '10.0.0.5', '172.20.0.1', '192.168.1.1', '169.254.169.254', '100.64.1.1', '0.0.0.0', '::1', '::ffff:127.0.0.1', 'fd00::1', 'FE80::1', '1.2.3'])(
+    'odrzuca %s',
+    (v) => expect(przepuszcza(v)).toBe(false),
+  );
+
+  it.each(['8.8.8.8', '185.12.64.1', '2001:4860:4860::8888'])('przepuszcza publiczny %s', (v) => expect(przepuszcza(v)).toBe(true));
+
+  it('worker sprawdza publiczność hosta źródła i hosta SSH przed połączeniem', () => {
+    const zrodlo = readFileSync(WORKER, 'utf8');
+    expect(zrodlo).toContain("vg_require publichost \"$(jq -r '.source.host // empty' <<<\"$job\")\" source.host");
+    expect(zrodlo).toContain('vg_require publichost "$sshhost" sshFallback.host');
+  });
+});
+
 describe('Z-03 — worker migracji', () => {
   const zrodlo = readFileSync(WORKER, 'utf8');
 

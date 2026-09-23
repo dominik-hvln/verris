@@ -64,6 +64,7 @@ vg_check_source() {
     wartosc=$(jq -r --arg k "$typ" '.source[$k] // empty' <<<"$job")
     vg_require "$typ" "$wartosc" "source.${typ}" 2>>"$logfile" || return 2
   done
+  vg_require publichost "$(jq -r '.source.host // empty' <<<"$job")" source.host 2>>"$logfile" || return 2
   return 0
 }
 
@@ -378,6 +379,9 @@ run_mysql() {
     sshport=$(jq -r '.sshFallback.port // empty' <<<"$job")
     sshuser=$(jq -r '.sshFallback.username // empty' <<<"$job")
     sshpass_=$(jq -r '.sshFallback.password // empty' <<<"$job")
+    if [ -n "$sshhost" ] && ! vg_require publichost "$sshhost" sshFallback.host 2>>"$logfile"; then
+      sshhost=""
+    fi
     if [ -n "$sshhost" ] && command -v sshpass >/dev/null 2>&1; then
       echo "== mysqldump via SSH ${sshuser}@${sshhost}:${sshport}" >>"$logfile"
       # shellcheck disable=SC2029
