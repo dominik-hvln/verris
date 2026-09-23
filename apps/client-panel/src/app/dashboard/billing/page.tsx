@@ -133,7 +133,18 @@ export default async function BillingPage({
               </section>
 
               <section>
-                <SectionHead title="Historia transakcji" desc={`Ostatnie ${summary.recentTransactions.length} ruchów na portfelu.`} />
+                <SectionHead
+                  title="Historia transakcji"
+                  desc={`Ostatnie ${summary.recentTransactions.length} ruchów na portfelu.`}
+                  action={
+                    <a
+                      href="/api/billing/transactions.csv"
+                      className="rounded-lg border border-line bg-card px-3 py-1.5 text-[13px] font-medium text-foreground hover:bg-raised"
+                    >
+                      Pobierz całą historię (CSV)
+                    </a>
+                  }
+                />
                 {summary.recentTransactions.length === 0 ? (
                   <p className="m-0 rounded-[10px] border border-line bg-card px-4 py-[22px] text-sm text-muted-foreground">
                     Brak transakcji — doładuj portfel, by uruchomić pierwszą usługę lub odnowienia automatyczne.

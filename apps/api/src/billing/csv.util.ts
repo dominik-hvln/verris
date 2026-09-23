@@ -8,6 +8,9 @@
  *   - Uses `\r\n` line terminators (max compatibility, including Excel).
  *   - Always renders the header row first.
  *
+ *   - Neutralises spreadsheet formulas: a text cell starting with = + - @ tab or CR
+ *     gets a leading apostrophe (OWASP CSV injection), numbers like -45.00 stay numbers.
+ *
  * The result is `\uFEFF`-prefixed (UTF-8 BOM) so that Excel opens it with
  * UTF-8 encoding by default — without this, Polish characters render as
  * mojibake on Windows.
@@ -36,7 +39,11 @@ export function rowsToCsv<T>(rows: readonly T[], columns: ReadonlyArray<CsvColum
   return '\uFEFF' + lines.join('\r\n') + '\r\n';
 }
 
-function quoteField(value: string): string {
+const FORMULA = /^[=+\-@\t\r]/;
+const NUMBER = /^-?\d+(\.\d+)?$/;
+
+function quoteField(raw: string): string {
+  const value = FORMULA.test(raw) && !NUMBER.test(raw) ? `'${raw}` : raw;
   if (!NEEDS_QUOTING.test(value)) return value;
   return `"${value.replace(/"/g, '""')}"`;
 }
