@@ -56,6 +56,8 @@ export async function adminBreakGlassLogin(input: {
 }
 
 export async function adminLogout() {
+  // G-19 — unieważnij sesję w API (best-effort), potem usuń ciasteczko.
+  await adminApi("/auth/logout", { method: "POST" }).catch(() => undefined);
   await removeAdminAuthCookie();
   redirect("/login");
 }

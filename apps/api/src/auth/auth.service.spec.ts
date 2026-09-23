@@ -130,3 +130,31 @@ describe('AuthService.register — X-06', () => {
     await expect(svc.register({ email: 'jan@firma.pl', password: HASLO } as never)).rejects.toBeInstanceOf(ConflictException);
   });
 });
+
+describe('AuthService.logoutCurrentSession — G-19', () => {
+  function zbudujWyl(count: number) {
+    const prisma = { userSession: { updateMany: jest.fn(async () => ({ count })) } };
+    const audit = { record: jest.fn(async () => undefined) };
+    const n = {} as never;
+    const svc = new AuthService(prisma as never, n, n, n, n, n, audit as never, n, n, n, n, n, n);
+    return { svc, prisma, audit };
+  }
+
+  it('unieważnia wyłącznie bieżącą, własną, aktywną sesję i zapisuje audyt', async () => {
+    const { svc, prisma, audit } = zbudujWyl(1);
+    await expect(svc.logoutCurrentSession('u1', 'sess-1')).resolves.toEqual({ ok: true });
+    expect(prisma.userSession.updateMany).toHaveBeenCalledWith({
+      where: { id: 'sess-1', userId: 'u1', revokedAt: null },
+      data: { revokedAt: expect.any(Date) },
+    });
+    expect(audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'SESSION_LOGOUT' }));
+  });
+
+  it('token bez sesji (np. impersonacja) — nic nie rusza; sesja już zamknięta — bez audytu', async () => {
+    const a = zbudujWyl(0);
+    await a.svc.logoutCurrentSession('u1', undefined);
+    expect(a.prisma.userSession.updateMany).not.toHaveBeenCalled();
+    await a.svc.logoutCurrentSession('u1', 'sess-1');
+    expect(a.audit.record).not.toHaveBeenCalled();
+  });
+});

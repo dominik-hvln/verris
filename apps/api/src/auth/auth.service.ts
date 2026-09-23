@@ -1103,6 +1103,19 @@ export class AuthService {
   }
 
   /** SEC-10 — wyloguj pojedynczą sesję (zdalne wylogowanie urządzenia). */
+  /** G-19 — unieważnia sesję bieżącego tokenu (tokeny bez `sid`, np. impersonacja, wygasają same). */
+  async logoutCurrentSession(userId: string, sid: string | undefined): Promise<{ ok: true }> {
+    if (!sid) return { ok: true };
+    const { count } = await this.prisma.userSession.updateMany({
+      where: { id: sid, userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    if (count > 0) {
+      await this.audit.record({ action: 'SESSION_LOGOUT', userId, actorUserId: userId, details: { sessionId: sid } });
+    }
+    return { ok: true };
+  }
+
   async revokeSession(userId: string, sessionId: string): Promise<{ ok: true }> {
     const row = await this.prisma.userSession.findFirst({
       where: { id: sessionId, userId },

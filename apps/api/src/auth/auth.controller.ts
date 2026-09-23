@@ -316,6 +316,17 @@ export class AuthController {
     return this.webauthn.deleteCredential(user.principalUserId ?? user.userId, id);
   }
 
+  /**
+   * G-19 — wylogowanie (ręczne i po bezczynności) unieważnia bieżącą sesję po stronie
+   * serwera. Wcześniej panel kasował tylko ciasteczko, a JWT działał do końca TTL.
+   */
+  @UseGuards(JwtAuthGuard)
+  @Post('logout')
+  @HttpCode(HttpStatus.OK)
+  async logout(@CurrentUser() user: { userId: string; principalUserId?: string; sid?: string }) {
+    return this.authService.logoutCurrentSession(user.principalUserId ?? user.userId, user.sid);
+  }
+
   /** C3 — wyloguj wszystkie urządzenia (unieważnij wszystkie tokeny). */
   @UseGuards(JwtAuthGuard)
   @Post('logout-all')
