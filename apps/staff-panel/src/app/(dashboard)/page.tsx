@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { AlertCircle, Clock, ChevronRight, MessageSquare } from "lucide-react";
 import { staffGetTickets, type StaffTicketRow } from "@/lib/tickets-data";
 import { StaffApiError } from "@/lib/staff-api";
+import { TICKET_DEPARTMENT_PL, TICKET_STATUS_PL, etykieta } from "@verris/contracts";
 
 export const dynamic = "force-dynamic";
 
@@ -72,7 +73,7 @@ export default async function StaffInboxPage({
         </div>
         <div className="flex gap-4">
           <Stat label="Aktywnych" value={rows.length} tone="cyan" />
-          <Stat label="Status OPEN" value={openCount} tone="amber" />
+          <Stat label="Otwarte" value={openCount} tone="amber" />
         </div>
       </header>
 
@@ -100,7 +101,7 @@ export default async function StaffInboxPage({
                   <p className="truncate text-xs text-muted-foreground">
                     {[ticket.user.firstName, ticket.user.lastName].filter(Boolean).join(" ") ||
                       ticket.user.email}{" "}
-                    · {ticket.department}
+                    · {etykieta(TICKET_DEPARTMENT_PL, ticket.department)}
                   </p>
                 </div>
               </Link>
@@ -141,18 +142,14 @@ function Badge({ status }: { status: string }) {
   const palette: Record<string, string> = {
     OPEN: "border-cyan-500/30 bg-cyan-500/10 text-cyan-200",
     IN_PROGRESS: "border-amber-500/25 bg-amber-500/10 text-amber-100",
+    WAITING_CUSTOMER: "border-violet-500/25 bg-violet-500/10 text-violet-100",
     CLOSED: "border-white/10 bg-white/5 text-neutral-400",
-  };
-  const label: Record<string, string> = {
-    OPEN: "Otwarte",
-    IN_PROGRESS: "W realizacji",
-    CLOSED: "Zamknięte",
   };
   return (
     <span
       className={`inline-block rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${palette[status] ?? "border-white/10 bg-white/5 text-white"}`}
     >
-      {label[status] ?? status}
+      {etykieta(TICKET_STATUS_PL, status)}
     </span>
   );
 }

@@ -5,8 +5,8 @@ import type {
   WalletAutoTopupSettingsDto,
   WalletSummaryDto,
   WalletTransactionDto,
-  WalletTxType,
 } from '@verris/contracts';
+import { WALLET_TX_TYPE_PL, etykieta } from '@verris/contracts';
 import { ApiError } from '@/lib/api';
 import { PanelPageHeader } from '@/components/panel';
 import { CREDIT_DISCLAIMER, CREDIT_RATE_INFO, CREDIT_SHORT, formatCredits } from '@/lib/credits';
@@ -18,17 +18,6 @@ import { TopupCard } from './topup-card';
 import { BillingExtrasForms } from './billing-extras-forms';
 import { BillingWalletRefresh } from './billing-wallet-refresh';
 
-const txLabels: Record<WalletTxType, string> = {
-  TOPUP: 'Doładowanie portfela',
-  REFUND: 'Zwrot środków',
-  CHARGE_SUBSCRIPTION: 'Opłata za usługę',
-  CHARGE_PLAN_UPGRADE: 'Upgrade planu (proration)',
-  CREDIT_PLAN_DOWNGRADE: 'Downgrade planu (proration)',
-  CHARGE_AUTOSCALING: 'Autoskalowanie',
-  CHARGE_USAGE: 'Wykorzystanie zasobów',
-  ADJUSTMENT: 'Uznanie od Verris',
-  PROMO_CREDIT: 'Kod promocyjny',
-};
 
 export default async function BillingPage({
   searchParams,
@@ -236,7 +225,7 @@ function TransactionRow({ tx }: { tx: WalletTransactionDto }) {
   return (
     <tr>
       <td className={TD} data-label="Operacja">
-        <b className="block font-semibold text-foreground">{txLabels[tx.type] ?? tx.type}</b>
+        <b className="block font-semibold text-foreground">{etykieta(WALLET_TX_TYPE_PL, tx.type)}</b>
         {desc ? (
           <span className="block text-[12.5px] text-muted-foreground" data-tip={tx.description ? `Zapis w systemie\n${tx.description}` : undefined}>
             {desc}

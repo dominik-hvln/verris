@@ -8,17 +8,10 @@ import { PlanChangeTicketTemplate } from "./ticket-template";
 import { StaffPlanChangeForm } from "./staff-plan-change-form";
 import { StaffDiagnosticsPanel } from "./diagnostics-panel";
 
+import { SUBSCRIPTION_STATUS_PL as SUB_STATUS_PL } from "@verris/contracts";
+
 export const dynamic = "force-dynamic";
 
-const SUB_STATUS_PL: Record<string, string> = {
-  PENDING_PAYMENT: "Oczekuje płatności",
-  PROVISIONING: "Provisioning",
-  ACTIVE: "Aktywna",
-  SUSPENDED: "Zawieszona",
-  CANCELED: "Anulowana",
-  EXPIRED: "Wygasła",
-  PAST_DUE: "Zaległa",
-};
 
 export default async function StaffSubscriptionReadonlyPage({
   params,

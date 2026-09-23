@@ -46,6 +46,18 @@ const STATUS_STYLE: Record<string, string> = {
   CANCELED: "border-white/15 bg-white/5 text-muted-foreground",
 };
 
+/** Statusy po polsku — obsługa nie ma czytać enumów z bazy. */
+const STATUS_PL: Record<string, string> = {
+  ATTENTION: "Pilne",
+  QUEUED: "W kolejce",
+  RUNNING: "W toku",
+  FAILED: "Nieudane",
+  COMPLETED: "Ukończone",
+  DRAFT: "Szkic",
+  CANCELED: "Anulowane",
+};
+const statusPl = (s: string) => STATUS_PL[s] ?? s;
+
 const FILTERS = ["", "ATTENTION", "QUEUED", "RUNNING", "FAILED", "COMPLETED"] as const;
 
 export default async function MigrationsCockpitPage({
@@ -100,7 +112,7 @@ export default async function MigrationsCockpitPage({
                 : "border-white/10 bg-black/30 text-muted-foreground hover:border-white/20"
             }`}
           >
-            {f === "ATTENTION" ? "Pilne" : f || "Wszystkie"}
+            {f ? statusPl(f) : "Wszystkie"}
           </Link>
         ))}
       </div>
@@ -111,7 +123,7 @@ export default async function MigrationsCockpitPage({
         </p>
       ) : rows.length === 0 ? (
         <p className="rounded-xl border border-white/10 bg-black/30 p-8 text-center text-sm text-muted-foreground">
-          Brak migracji{status ? ` w statusie ${status}` : ""}.
+          Brak migracji{status ? ` w statusie „${statusPl(status)}”` : ""}.
         </p>
       ) : (
         <div className="space-y-3">
@@ -128,7 +140,7 @@ export default async function MigrationsCockpitPage({
                     <span
                       className={`rounded-full border px-2 py-0.5 text-[11px] ${STATUS_STYLE[r.status] ?? STATUS_STYLE.DRAFT}`}
                     >
-                      {r.status === "ATTENTION" ? "PILNE" : r.status}
+                      {statusPl(r.status)}
                     </span>
                     <p className="truncate text-white">{r.targetDomain ?? "—"}</p>
                     {r.sourcePanelType && r.sourcePanelType !== "manual" ? (

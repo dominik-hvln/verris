@@ -10,8 +10,10 @@ export type WalletTxType =
   | 'CREDIT_PLAN_DOWNGRADE'
   | 'CHARGE_AUTOSCALING'
   | 'CHARGE_USAGE'
+  | 'CHARGE_DOMAIN'
   | 'ADJUSTMENT'
-  | 'PROMO_CREDIT';
+  | 'PROMO_CREDIT'
+  | 'COMMISSION_CREDIT';
 
 export type WalletTxStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
 

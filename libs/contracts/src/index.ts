@@ -16,3 +16,4 @@ export * from './ai.dto';
 export * from './blad-sieci';
 export * from './mail-limits';
 export * from './lokalizacja';
+export * from './etykiety';

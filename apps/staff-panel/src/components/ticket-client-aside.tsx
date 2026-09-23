@@ -3,18 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import type { TicketContext } from "@/lib/tickets-data";
+import { INVOICE_STATUS_PL, SERVICE_EVENT_PL, SUBSCRIPTION_STATUS_PL, TICKET_STATUS_PL, etykieta } from "@verris/contracts";
 
-const SUB_STATUS: Record<string, string> = {
-  ACTIVE: "aktywna",
-  PAST_DUE: "zaległa płatność",
-  SUSPENDED: "zawieszona",
-  PROVISIONING: "zakładanie",
-  PENDING_PAYMENT: "czeka na płatność",
-  CANCELED: "anulowana",
-  EXPIRED: "wygasła",
-};
-const INV_STATUS: Record<string, string> = { DRAFT: "szkic", OPEN: "do zapłaty", PAID: "opłacona", VOID: "anulowana", UNCOLLECTIBLE: "nieściągalna" };
-const TICKET_STATUS: Record<string, string> = { OPEN: "otwarte", IN_PROGRESS: "w realizacji", WAITING_CUSTOMER: "czeka na klienta", CLOSED: "zamknięte" };
+// Wewnątrz zdania („Starter · anulowana”) — stąd małe litery.
+const maleLitery = (m: Record<string, string>) => Object.fromEntries(Object.entries(m).map(([k, v]) => [k, v.toLowerCase()]));
+const SUB_STATUS = maleLitery(SUBSCRIPTION_STATUS_PL);
+const INV_STATUS = maleLitery(INVOICE_STATUS_PL);
+const TICKET_STATUS = maleLitery(TICKET_STATUS_PL);
 
 const day = (s: string | null) => (s ? new Date(s).toLocaleDateString("pl-PL") : "—");
 const tone = (score: number | null) =>
@@ -124,7 +119,7 @@ export function TicketClientAside({ context, userId }: { context: TicketContext 
             {c.events.map((e, i) => (
               <li key={i} className="flex flex-wrap justify-between gap-x-2">
                 <span className="text-neutral-200">
-                  {e.type}
+                  {etykieta(SERVICE_EVENT_PL, e.type)}
                   {e.domain ? <span className="text-neutral-500"> · {e.domain}</span> : null}
                 </span>
                 <span className="text-neutral-500">{day(e.createdAt)}</span>

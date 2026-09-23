@@ -6,24 +6,28 @@ import { staffGetCustomerProfile } from "@/lib/crm-profile-data";
 import { StaffImpersonateButton } from "../impersonate-button";
 import { StaffDnsTlsPanel } from "../dns-tls-panel";
 import { formatPlnAndCredits } from "@/lib/credits";
+import {
+  BILLING_INTERVAL_PL,
+  DOMAIN_STATUS_PL,
+  INVOICE_STATUS_PL,
+  SUBSCRIPTION_STATUS_PL as SUB_STATUS_PL,
+  TICKET_STATUS_PL,
+  WALLET_TX_STATUS_PL,
+  WALLET_TX_TYPE_PL,
+  etykieta,
+} from "@verris/contracts";
 
 export const dynamic = "force-dynamic";
 
-const SUB_STATUS_PL: Record<string, string> = {
-  PENDING_PAYMENT: "Oczekuje płatności",
-  PROVISIONING: "Provisioning",
-  ACTIVE: "Aktywna",
-  SUSPENDED: "Zawieszona",
-  CANCELED: "Anulowana",
-  EXPIRED: "Wygasła",
-  PAST_DUE: "Zaległa",
-};
+const RODZAJ_PL: Record<string, string> = { ticket: "Zgłoszenie", invoice: "Faktura", wallet: "Portfel", audit: "Audyt" };
 
-const TICKET_STATUS_PL: Record<string, string> = {
-  OPEN: "Otwarte",
-  IN_PROGRESS: "W realizacji",
-  CLOSED: "Zamknięte",
-};
+/** Wpis osi czasu po polsku. Akcja audytu zostaje kodem (mono) — to identyfikator do szukania w dzienniku. */
+function wpisOsi(item: { kind: string; title: string; code: string; meta: string }) {
+  if (item.kind === "wallet") return { tytul: `Portfel: ${etykieta(WALLET_TX_TYPE_PL, item.code)}`, opis: item.meta, kod: false };
+  if (item.kind === "invoice") return { tytul: item.title, opis: [etykieta(INVOICE_STATUS_PL, item.code), item.meta].join(" · "), kod: false };
+  if (item.kind === "ticket") return { tytul: item.title, opis: etykieta(TICKET_STATUS_PL, item.code), kod: false };
+  return { tytul: item.title, opis: item.meta, kod: item.kind === "audit" };
+}
 
 function formatAuditSnippet(details: unknown): string {
   if (details === null || details === undefined) return "—";
@@ -224,19 +228,22 @@ export default async function StaffCustomerProfilePage({
           Timeline klienta
         </h2>
         <ul className="divide-y divide-white/5">
-          {customerTimeline.map((item) => (
-            <li key={item.id} className="px-4 py-3 text-sm">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="font-medium text-white">{item.title}</p>
-                <span className="text-xs text-muted-foreground">
-                  {new Date(item.createdAt).toLocaleString("pl-PL")}
-                </span>
-              </div>
-              <p className="mt-1 text-xs uppercase tracking-wide text-neutral-500">
-                {item.kind} · {item.meta}
-              </p>
-            </li>
-          ))}
+          {customerTimeline.map((item) => {
+            const w = wpisOsi(item);
+            return (
+              <li key={item.id} className="px-4 py-3 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className={w.kod ? "font-mono text-xs text-white" : "font-medium text-white"}>{w.tytul}</p>
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(item.createdAt).toLocaleString("pl-PL")}
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-neutral-500">
+                  {[RODZAJ_PL[item.kind] ?? item.kind, w.opis].filter(Boolean).join(" · ")}
+                </p>
+              </li>
+            );
+          })}
         </ul>
       </section>
 
@@ -267,7 +274,7 @@ export default async function StaffCustomerProfilePage({
                       {s.serviceTag ? (
                         <p className="font-mono text-[11px] text-cyan-300/80">{s.serviceTag}</p>
                       ) : null}
-                      <p className="text-xs text-muted-foreground">{s.interval}</p>
+                      <p className="text-xs text-muted-foreground">{etykieta(BILLING_INTERVAL_PL, s.interval)}</p>
                     </td>
                     <td className="px-4 py-3">
                       <span className="rounded border border-white/10 bg-white/5 px-2 py-0.5 text-xs">
@@ -349,7 +356,7 @@ export default async function StaffCustomerProfilePage({
             {domains.map((d) => (
               <li key={d.id} className="px-4 py-2.5 text-sm">
                 <span className="font-mono text-cyan-100/90">{d.name}</span>
-                <span className="ml-2 text-xs text-muted-foreground">{d.status}</span>
+                <span className="ml-2 text-xs text-muted-foreground">{etykieta(DOMAIN_STATUS_PL, d.status)}</span>
               </li>
             ))}
           </ul>
@@ -380,8 +387,8 @@ export default async function StaffCustomerProfilePage({
                   <td className="whitespace-nowrap px-4 py-2 text-xs text-muted-foreground">
                     {new Date(w.createdAt).toLocaleString("pl-PL")}
                   </td>
-                  <td className="px-4 py-2 font-mono text-xs">
-                    {w.type} <span className="text-neutral-500">({w.status})</span>
+                  <td className="px-4 py-2 text-xs">
+                    {etykieta(WALLET_TX_TYPE_PL, w.type)} <span className="text-neutral-500">({etykieta(WALLET_TX_STATUS_PL, w.status)})</span>
                   </td>
                   <td className="px-4 py-2 text-xs tabular-nums">
                     {formatPlnAndCredits(w.amount, w.currency)}
@@ -421,7 +428,7 @@ export default async function StaffCustomerProfilePage({
                 {recentInvoices.map((inv) => (
                   <tr key={inv.id}>
                     <td className="px-4 py-2 font-mono text-xs">{inv.number}</td>
-                    <td className="px-4 py-2 text-xs">{inv.status}</td>
+                    <td className="px-4 py-2 text-xs">{etykieta(INVOICE_STATUS_PL, inv.status)}</td>
                     <td className="px-4 py-2 text-xs tabular-nums">
                       {formatPlnAndCredits(inv.amount, inv.currency)}
                     </td>

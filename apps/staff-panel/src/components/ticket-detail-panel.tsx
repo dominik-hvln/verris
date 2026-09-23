@@ -20,6 +20,7 @@ import {
 import { staffTicketAttachmentDownloadHref } from "@/lib/ticket-attachment-links";
 import { StaffImpersonateButton } from "@/app/(dashboard)/crm/impersonate-button";
 import { CannedResponsePicker } from "@/components/canned-response-picker";
+import { TICKET_DEPARTMENT_PL, TICKET_PRIORITY_PL, TICKET_STATUS_PL, etykieta } from "@verris/contracts";
 
 interface Props {
   ticket: StaffTicketDetail;
@@ -28,12 +29,7 @@ interface Props {
 }
 
 const STATUS_OPTS = ["OPEN", "IN_PROGRESS", "WAITING_CUSTOMER", "CLOSED"] as const;
-const STATUS_LABELS: Record<string, string> = {
-  OPEN: "Otwarte",
-  IN_PROGRESS: "W realizacji",
-  WAITING_CUSTOMER: "Czeka na klienta",
-  CLOSED: "Zamknięte",
-};
+const STATUS_LABELS = TICKET_STATUS_PL;
 const EVENT_LABELS: Record<string, string> = {
   TICKET_CREATED: "Utworzono zgłoszenie",
   CUSTOMER_REPLY: "Odpowiedź klienta",
@@ -187,7 +183,7 @@ export function TicketDetailPanel({ ticket, agents, context }: Props) {
             >
               {PRI_OPTS.map((p) => (
                 <option key={p} value={p}>
-                  {p}
+                  {etykieta(TICKET_PRIORITY_PL, p)}
                 </option>
               ))}
             </select>
@@ -201,7 +197,7 @@ export function TicketDetailPanel({ ticket, agents, context }: Props) {
             >
               {DEPT_OPTS.map((d) => (
                 <option key={d} value={d}>
-                  {d}
+                  {etykieta(TICKET_DEPARTMENT_PL, d)}
                 </option>
               ))}
             </select>

@@ -133,6 +133,8 @@ export interface StaffCustomerProfile {
     id: string;
     kind: string;
     title: string;
+    /** Surowa wartość: status zgłoszenia/faktury, typ operacji portfela albo akcja audytu. */
+    code: string;
     meta: string;
     createdAt: string;
   }>;
