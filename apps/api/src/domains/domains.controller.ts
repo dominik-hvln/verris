@@ -137,7 +137,7 @@ export class DomainsController {
 
   @Get(':id')
   async findOne(@Req() req, @Param('id') id: string) {
-    return this.domainsService.findOne(id, req.user.userId);
+    return this.domainsService.findOneForOwner(id, req.user.userId);
   }
 
   @Post(':id/verify')

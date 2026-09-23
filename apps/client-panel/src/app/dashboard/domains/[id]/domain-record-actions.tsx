@@ -16,7 +16,7 @@ export function DomainRecordActions({ domain }: { domain: DomainDto }) {
     setBusy('verify');
     try {
       await verifyDomainAction(domain.id);
-      toast.success('Zweryfikowano domenę (rekordy DNS).');
+      toast.success('Domena potwierdzona rekordem TXT.');
       router.refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Weryfikacja nie powiodła się');
@@ -64,7 +64,7 @@ export function DomainRecordActions({ domain }: { domain: DomainDto }) {
           onClick={() => void onVerify()}
         >
           <RefreshCw className={`mr-1.5 h-4 w-4 ${busy === 'verify' ? 'animate-spin' : ''}`} />
-          Sprawdź DNS
+          Sprawdź rekord TXT
         </Button>
       ) : null}
       <Button

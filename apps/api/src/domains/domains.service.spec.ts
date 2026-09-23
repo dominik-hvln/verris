@@ -23,7 +23,7 @@ describe('DomainsService', () => {
       findMany: jest.fn(),
     },
   };
-  const config = {};
+  const config = { get: () => 'test-secret' };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -55,25 +55,10 @@ describe('DomainsService', () => {
     });
   });
 
-  it('keeps the domain pending when checklist returns warning', async () => {
-    prisma.domain.findFirst.mockResolvedValue({ id: 'dom_1', userId: 'user_1', name: 'example.test' });
-    const instance = service();
-    jest.spyOn(instance, 'runChecklist').mockResolvedValue({
-      id: 'chk_1',
-      domainId: 'dom_1',
-      subscriptionId: null,
-      hostname: 'example.test',
-      status: DomainChecklistStatus.WARNING,
-      requiredRecords: {},
-      observedRecords: {},
-      issues: ['TLS not ready'],
-      checkedAt: new Date(),
-      createdAt: new Date(),
-    } as never);
-
-    const domain = await instance.verifyDomain('dom_1', 'user_1');
-
-    expect(domain).toEqual({ id: 'dom_1', userId: 'user_1', name: 'example.test' });
+  it('A-16: poprawny A/TLS nie wystarcza — bez rekordu TXT domena zostaje PENDING', async () => {
+    prisma.domain.findFirst.mockResolvedValue({ id: 'dom_1', userId: 'user_1', name: 'example.test', status: DomainStatus.PENDING });
+    jest.spyOn(dns.promises, 'resolveTxt').mockResolvedValue([['cos-innego']]);
+    await expect(service().verifyDomain('dom_1', 'user_1')).rejects.toThrow('_verris-challenge.example.test');
     expect(prisma.domain.update).not.toHaveBeenCalled();
   });
 
@@ -112,31 +97,43 @@ describe('DomainsService', () => {
     expect(result.issues).toContain('certificate has expired');
   });
 
-  it('activates the domain only when checklist is OK', async () => {
-    prisma.domain.findFirst.mockResolvedValue({ id: 'dom_1', userId: 'user_1', name: 'example.test' });
+  it('A-16: aktywuje domenę po znalezieniu naszego rekordu TXT (także dzielonego na kawałki)', async () => {
+    const dom = { id: 'dom_1', userId: 'user_1', name: 'example.test', status: DomainStatus.PENDING };
+    prisma.domain.findFirst.mockResolvedValue(dom);
     prisma.domain.update.mockResolvedValue({ id: 'dom_1', status: DomainStatus.ACTIVE });
     const instance = service();
-    jest.spyOn(instance, 'runChecklist').mockResolvedValue({
-      id: 'chk_1',
-      domainId: 'dom_1',
-      subscriptionId: null,
-      hostname: 'example.test',
-      status: DomainChecklistStatus.OK,
-      requiredRecords: {},
-      observedRecords: {},
-      issues: [],
-      checkedAt: new Date(),
-      createdAt: new Date(),
-    } as never);
+    const { recordName, recordValue } = instance.verificationRecord(dom);
+    expect(recordName).toBe('_verris-challenge.example.test');
+    const spy = jest.spyOn(dns.promises, 'resolveTxt').mockResolvedValue([[recordValue.slice(0, 10), recordValue.slice(10)]]);
+    await expect(instance.verifyDomain('dom_1', 'user_1')).resolves.toEqual({ id: 'dom_1', status: DomainStatus.ACTIVE });
+    expect(spy).toHaveBeenCalledWith('_verris-challenge.example.test');
+    expect(prisma.domain.update).toHaveBeenCalledWith({ where: { id: 'dom_1' }, data: { status: DomainStatus.ACTIVE } });
+  });
 
-    await expect(instance.verifyDomain('dom_1', 'user_1')).resolves.toEqual({
-      id: 'dom_1',
-      status: DomainStatus.ACTIVE,
+  it('A-16: wartość TXT jest inna dla innego właściciela tej samej nazwy', () => {
+    const i = service();
+    expect(i.verificationRecord({ id: 'd', name: 'x.pl', userId: 'u1' }).recordValue).not.toBe(
+      i.verificationRecord({ id: 'd', name: 'x.pl', userId: 'u2' }).recordValue,
+    );
+  });
+
+  it('A-16: cudza niezweryfikowana rezerwacja starsza niż 7 dni nie blokuje nazwy', async () => {
+    prisma.domain.findUnique.mockResolvedValue({
+      id: 'old', userId: 'squatter', name: 'x.pl', status: DomainStatus.PENDING, registrarProvider: null,
+      createdAt: new Date(Date.now() - 8 * 86400000),
     });
-    expect(prisma.domain.update).toHaveBeenCalledWith({
-      where: { id: 'dom_1' },
-      data: { status: DomainStatus.ACTIVE },
+    prisma.domain.create.mockResolvedValue({ id: 'new' });
+    await expect(service().create('owner', { name: 'x.pl' } as never)).resolves.toEqual({ id: 'new' });
+    expect(prisma.domain.delete).toHaveBeenCalledWith({ where: { id: 'old' } });
+  });
+
+  it('A-16: świeża albo zweryfikowana cudza domena nadal daje konflikt', async () => {
+    prisma.domain.findUnique.mockResolvedValue({
+      id: 'old', userId: 'other', name: 'x.pl', status: DomainStatus.ACTIVE, registrarProvider: null,
+      createdAt: new Date(Date.now() - 30 * 86400000),
     });
+    await expect(service().create('owner', { name: 'x.pl' } as never)).rejects.toThrow('już zarejestrowana');
+    expect(prisma.domain.delete).not.toHaveBeenCalled();
   });
 });
 

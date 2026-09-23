@@ -1,3 +1,4 @@
+import { CopyValue } from '@/components/panel/v2';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api';
 import type { DomainDto, ServiceSummaryDto } from '@verris/contracts';
@@ -144,6 +145,28 @@ export default async function DomainDetailsPage({ params }: { params: Promise<{ 
         </div>
         <DomainRecordActions domain={domain} />
       </div>
+
+      {domain.verification ? (
+        <div className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.06] p-6 text-sm text-neutral-200">
+          <p className="font-medium text-amber-100">Potwierdź, że domena należy do Ciebie</p>
+          <p className="mt-2 text-neutral-400">
+            Dodaj u operatora DNS domeny rekord TXT poniżej, a potem kliknij „Sprawdź rekord TXT”. Zmiana
+            w DNS zwykle widać po kilku minutach. Kliknij wartość, żeby ją skopiować.
+          </p>
+          <dl className="mt-4 grid gap-3 sm:grid-cols-[auto_1fr]">
+            <dt className="text-neutral-500">Typ</dt>
+            <dd className="font-mono">TXT</dd>
+            <dt className="text-neutral-500">Nazwa (host)</dt>
+            <dd><CopyValue value={domain.verification.recordName} /></dd>
+            <dt className="text-neutral-500">Wartość</dt>
+            <dd><CopyValue value={domain.verification.recordValue} /></dd>
+          </dl>
+          <p className="mt-3 text-xs text-neutral-500">
+            Niektórzy operatorzy DNS dopisują nazwę domeny sami — wtedy w polu nazwy wpisz tylko
+            „_verris-challenge”. Niepotwierdzona domena po 7 dniach przestaje blokować tę nazwę dla innych.
+          </p>
+        </div>
+      ) : null}
 
       {!linked ? (
         <div className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.06] p-6 text-sm text-neutral-200">

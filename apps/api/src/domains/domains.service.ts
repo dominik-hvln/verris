@@ -1,10 +1,16 @@
-import { Injectable, Logger, ConflictException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, ConflictException, NotFoundException } from '@nestjs/common';
 import * as dns from 'dns';
+import { createHmac, timingSafeEqual } from 'crypto';
 import * as tls from 'tls';
 import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { DomainChecklistStatus, DomainStatus } from '@verris/database';
 import { CreateDomainDto } from './dto/create-domain.dto';
+
+/** A-16 — rekord wyzwania: TXT pod `_verris-challenge.<domena>`. */
+export const VERIFY_RECORD_PREFIX = '_verris-challenge';
+/** Niezweryfikowana domena blokuje nazwę dla innych najwyżej tyle dni (anty-squatting). */
+export const UNVERIFIED_CLAIM_DAYS = 7;
 
 @Injectable()
 export class DomainsService {
@@ -21,7 +27,15 @@ export class DomainsService {
     });
 
     if (existing) {
-      throw new ConflictException('Domena jest już zarejestrowana w systemie');
+      // A-16 — cudza, niezweryfikowana i przeterminowana rezerwacja nie blokuje prawdziwego właściciela.
+      const staleClaim =
+        existing.userId !== userId &&
+        existing.status === DomainStatus.PENDING &&
+        !existing.registrarProvider &&
+        existing.createdAt.getTime() < Date.now() - UNVERIFIED_CLAIM_DAYS * 86400000;
+      if (!staleClaim) throw new ConflictException('Domena jest już zarejestrowana w systemie');
+      await this.prisma.domain.delete({ where: { id: existing.id } });
+      this.logger.log(`released stale unverified claim for ${existing.name}`);
     }
 
     return this.prisma.domain.create({
@@ -89,17 +103,48 @@ export class DomainsService {
     return domain;
   }
 
+  /**
+   * A-16 — wartość TXT liczona z id domeny i właściciela (HMAC), więc nie trzeba jej
+   * przechowywać. ponytail: rotacja JWT_SECRET zmienia wartość dla niezweryfikowanych domen
+   * (klient wklei nową); osobny sekret, jeśli rotacje staną się częste.
+   */
+  verificationRecord(domain: { id: string; name: string; userId: string }) {
+    const secret = this.configService.get<string>('jwtSecret') ?? process.env.JWT_SECRET ?? '';
+    const mac = createHmac('sha256', secret).update(`domain-verify:${domain.id}:${domain.userId}`).digest('hex').slice(0, 40);
+    return { recordName: `${VERIFY_RECORD_PREFIX}.${domain.name}`, recordValue: `verris-verify=${mac}` };
+  }
+
+  /** Szczegóły domeny dla właściciela: niezweryfikowana dostaje instrukcję rekordu TXT. */
+  async findOneForOwner(id: string, userId: string) {
+    const domain = await this.findOne(id, userId);
+    return {
+      ...domain,
+      verification: domain.status === DomainStatus.PENDING ? this.verificationRecord(domain) : null,
+    };
+  }
+
+  /**
+   * A-16 — domena staje się ACTIVE dopiero, gdy właściciel opublikuje nasz rekord TXT.
+   * Wcześniej wystarczał poprawny A/NS/TLS, czyli dowolna cudza, działająca domena.
+   */
   async verifyDomain(id: string, userId: string) {
     const domain = await this.findOne(id, userId);
+    if (domain.status === DomainStatus.ACTIVE) return domain;
 
-    const check = await this.runChecklist(id, userId);
-    if (check.status === DomainChecklistStatus.OK) {
-      return this.prisma.domain.update({
-        where: { id: domain.id },
-        data: { status: DomainStatus.ACTIVE },
-      });
+    const { recordName, recordValue } = this.verificationRecord(domain);
+    const txt = await resolveList(() => dns.promises.resolveTxt(recordName));
+    const found = txt.map((chunks) => chunks.join('').trim()).some((v) => sameString(v, recordValue));
+    if (!found) {
+      throw new BadRequestException(
+        `Nie widzimy jeszcze rekordu TXT ${recordName} o wartości ${recordValue}. ` +
+          'Dodaj go u operatora DNS domeny; propagacja trwa zwykle kilka minut, czasem do kilku godzin.',
+      );
     }
-    return domain;
+    this.logger.log(`domain ${domain.name} verified by TXT for user ${userId}`);
+    return this.prisma.domain.update({
+      where: { id: domain.id },
+      data: { status: DomainStatus.ACTIVE },
+    });
   }
 
   async runChecklist(id: string, userId: string) {
@@ -168,6 +213,11 @@ export class DomainsService {
       where: { id: domain.id },
     });
   }
+}
+
+function sameString(a: string, b: string): boolean {
+  const x = Buffer.from(a), y = Buffer.from(b);
+  return x.length === y.length && timingSafeEqual(x, y);
 }
 
 async function resolveList<T>(fn: () => Promise<T[]>): Promise<T[]> {

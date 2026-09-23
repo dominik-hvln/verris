@@ -12,5 +12,7 @@ export interface DomainDto {
   expiresAt?: string | null;
   /** Czy domena odnawia się sama. */
   autoRenew?: boolean;
+  /** A-16 — rekord TXT potwierdzający własność (tylko domeny jeszcze niezweryfikowane). */
+  verification?: { recordName: string; recordValue: string } | null;
 }
 
