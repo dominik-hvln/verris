@@ -51,6 +51,19 @@ export async function retrySubscriptionPaymentAction(
   }
 }
 
+/** Z-07 — zaległe odnowienie opłacone od razu z portfela. */
+export async function payPastDueFromWalletAction(subscriptionId: string): Promise<ActionResult> {
+  try {
+    await apiFetch(`/subscriptions/${subscriptionId}/pay-from-wallet`, { method: 'POST' });
+    revalidatePath('/dashboard/services');
+    revalidatePath(`/dashboard/services/${subscriptionId}`);
+    revalidatePath('/dashboard');
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : 'Nie udało się opłacić z portfela' };
+  }
+}
+
 export async function abandonUnpaidSubscriptionAction(
   subscriptionId: string,
 ): Promise<ActionResult> {

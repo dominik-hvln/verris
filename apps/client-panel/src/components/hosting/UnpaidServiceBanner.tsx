@@ -9,6 +9,7 @@ import type { SubscriptionStatus } from '@verris/contracts';
 import { PanelModal } from '@/components/panel';
 import {
   abandonUnpaidSubscriptionAction,
+  payPastDueFromWalletAction,
   retrySubscriptionPaymentAction,
 } from '@/app/dashboard/services/subscription-payment-actions';
 
@@ -50,6 +51,18 @@ export function UnpaidServiceBanner({
     });
   };
 
+  const onPayFromWallet = () => {
+    setError(null);
+    startTransition(async () => {
+      const res = await payPastDueFromWalletAction(serviceId);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      router.refresh();
+    });
+  };
+
   const confirmAbandon = () => {
     setError(null);
     startTransition(async () => {
@@ -73,7 +86,9 @@ export function UnpaidServiceBanner({
         <p className="mt-1 text-xs text-amber-100/80">
           {isPending
             ? 'Dokończ płatność lub anuluj zamówienie. Nieopłacone zamówienia bez konta hostingowego są usuwane automatycznie po 48 godzinach.'
-            : 'Doładuj portfel lub opłać fakturę w rozliczeniach. Po dłuższym braku płatności usługa zostanie zawieszona.'}
+            : isStripe
+              ? 'Opłać zaległą fakturę w rozliczeniach. Po 3 dniach od nieudanej płatności usługa zostanie zawieszona.'
+              : 'Doładuj portfel — pobierzemy opłatę automatycznie w ciągu godziny albo od razu przyciskiem „Opłać z portfela”. Po 3 dniach od nieudanej płatności usługa zostanie zawieszona.'}
         </p>
         {error ? <p className="mt-2 text-xs text-rose-300">{error}</p> : null}
         <div className="mt-3 flex flex-wrap gap-2">
@@ -96,6 +111,17 @@ export function UnpaidServiceBanner({
               <Wallet className="h-3.5 w-3.5" />
               Portfel / płatność
             </Link>
+          ) : null}
+          {status === 'PAST_DUE' && !isStripe ? (
+            <button
+              type="button"
+              disabled={pending}
+              onClick={onPayFromWallet}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-xs font-bold text-black hover:bg-neutral-200 disabled:opacity-50"
+            >
+              {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wallet className="h-3.5 w-3.5" />}
+              Opłać z portfela
+            </button>
           ) : null}
           {status === 'PAST_DUE' ? (
             <Link

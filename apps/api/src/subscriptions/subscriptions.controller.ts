@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { RenewalScheduler } from './renewal.scheduler';
 import { SubscriptionsService } from './subscriptions.service';
 import { PlanChangeService } from './plan-change.service';
 import { TrialService } from './trial.service';
@@ -33,6 +34,7 @@ export class SubscriptionsController {
     private readonly subscriptions: SubscriptionsService,
     private readonly planChange: PlanChangeService,
     private readonly trial: TrialService,
+    private readonly renewal: RenewalScheduler,
   ) {}
 
   @Get()
@@ -123,6 +125,13 @@ export class SubscriptionsController {
   @HttpCode(200)
   paymentRetry(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
     return this.subscriptions.getPaymentRetryUrl(user.userId, id);
+  }
+
+  /** Z-07 — zaległe odnowienie opłacane od razu z portfela (PAST_DUE, płatność portfelem). */
+  @Post(':id/pay-from-wallet')
+  @HttpCode(200)
+  payFromWallet(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.renewal.retryPastDueNow(user.userId, id);
   }
 
   @Patch(':id/autoscaling')

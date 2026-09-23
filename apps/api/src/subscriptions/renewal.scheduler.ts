@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { SubscriptionStatus, WalletTxType } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
@@ -72,9 +72,11 @@ export class RenewalScheduler {
     const now = new Date();
     const upTo = new Date(now.getTime() + this.renewalWindowMs);
 
+    // Z-07 — PAST_DUE też: klient płacący portfelem, który doładuje saldo w karencji,
+    // zostaje obciążony przy najbliższym przebiegu zamiast zawieszenia po 3 dniach.
     const due = await this.prisma.subscription.findMany({
       where: {
-        status: SubscriptionStatus.ACTIVE,
+        status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.PAST_DUE] },
         currentPeriodEnd: { lte: upTo },
       },
       include: { plan: { select: { slug: true } } },
@@ -142,9 +144,33 @@ export class RenewalScheduler {
     }
   }
 
+  /**
+   * Z-07 — „Opłać teraz z portfela” w panelu klienta: od razu próbuje zaległego
+   * odnowienia zamiast czekać na godzinny przebieg.
+   */
+  async retryPastDueNow(userId: string, subscriptionId: string): Promise<{ status: string }> {
+    const sub = await this.prisma.subscription.findFirst({
+      where: { id: subscriptionId, userId },
+      include: { plan: { select: { slug: true } } },
+    });
+    if (!sub) throw new NotFoundException('Usługa nie istnieje.');
+    if (sub.status !== SubscriptionStatus.PAST_DUE) {
+      throw new BadRequestException('Usługa nie ma zaległej płatności.');
+    }
+    if (sub.paymentSource === 'STRIPE_CARD' && sub.stripeSubscriptionId) {
+      throw new BadRequestException('Ta usługa jest opłacana kartą — zaległą fakturę opłacisz w Rozliczeniach.');
+    }
+    const ok = await this.attemptRenewal(sub);
+    if (!ok) {
+      throw new BadRequestException('Za mało środków w portfelu — doładuj portfel i spróbuj ponownie.');
+    }
+    return { status: SubscriptionStatus.ACTIVE };
+  }
+
+  /** @returns true, gdy okres opłacono (także wcześniej — idempotencja). */
   private async attemptRenewal(
     sub: Awaited<ReturnType<typeof this.findRenewable>>[number],
-  ): Promise<void> {
+  ): Promise<boolean> {
     const periodEnd = sub.currentPeriodEnd ?? new Date();
     const idempotencyKey = `sub-${sub.id}-renew-${periodEnd.toISOString().slice(0, 10)}`;
 
@@ -162,7 +188,7 @@ export class RenewalScheduler {
           referenceId: idempotencyKey,
         });
       });
-      return;
+      return true;
     }
 
     // BILL-1/BILL-2 — kwota odnowienia (z rabatem startowym, jeśli zostały okresy)
@@ -189,8 +215,12 @@ export class RenewalScheduler {
       // Insufficient balance / user not found / etc.
       const msg = err instanceof Error ? err.message : String(err);
       this.logger.warn(`Renewal debit failed for sub=${sub.id}: ${msg}`);
-      await this.markPastDue(sub.id, sub.userId, msg);
-      return;
+      // Ponowienie w karencji nie zapisuje nowego PAYMENT_FAILED — to zdarzenie
+      // wyznacza początek karencji, a nowe co godzinę nie pozwoliłoby jej wygasnąć.
+      if (sub.status !== SubscriptionStatus.PAST_DUE) {
+        await this.markPastDue(sub.id, sub.userId, msg);
+      }
+      return false;
     }
 
     await this.extendPeriod(sub.id, periodEnd, sub.interval);
@@ -211,6 +241,7 @@ export class RenewalScheduler {
         referenceId: idempotencyKey,
       });
     });
+    return true;
   }
 
   private async extendPeriod(
