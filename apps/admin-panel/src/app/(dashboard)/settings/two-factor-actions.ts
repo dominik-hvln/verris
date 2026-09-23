@@ -23,10 +23,10 @@ export async function getTwoFactorStatus(): Promise<TwoFactorStatus | null> {
 }
 
 export async function enrollTwoFactorAction(): Promise<
-  { ok: true; secret: string; otpauthUri: string } | ActionError
+  { ok: true; secret: string; otpauthUri: string; qrDataUrl: string } | ActionError
 > {
   try {
-    const res = await adminApi<{ secret: string; otpauthUri: string }>("/auth/2fa/enroll", {
+    const res = await adminApi<{ secret: string; otpauthUri: string; qrDataUrl: string }>("/auth/2fa/enroll", {
       method: "POST",
     });
     return { ok: true, ...res };

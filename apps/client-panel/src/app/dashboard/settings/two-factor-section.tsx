@@ -20,7 +20,7 @@ export function TwoFactorSection({ showToast }: Props) {
   const [status, setStatus] = useState<TwoFactorStatus | null>(null);
   const [stage, setStage] = useState<Stage>('idle');
   const [secret, setSecret] = useState<string | null>(null);
-  const [otpauthUri, setOtpauthUri] = useState<string | null>(null);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [code, setCode] = useState('');
   const [recoveryCodes, setRecoveryCodes] = useState<string[] | null>(null);
   const [disablePassword, setDisablePassword] = useState('');
@@ -52,7 +52,7 @@ export function TwoFactorSection({ showToast }: Props) {
         return;
       }
       setSecret(res.secret);
-      setOtpauthUri(res.otpauthUri);
+      setQrDataUrl(res.qrDataUrl);
       setStage('confirming');
     });
   };
@@ -71,7 +71,7 @@ export function TwoFactorSection({ showToast }: Props) {
       setRecoveryCodes(res.recoveryCodes);
       setStage('enabled');
       setSecret(null);
-      setOtpauthUri(null);
+      setQrDataUrl(null);
       setCode('');
       showToast('2FA włączone. Zapisz kody zapasowe!', 'success');
       await reload();
@@ -225,7 +225,7 @@ export function TwoFactorSection({ showToast }: Props) {
     );
   }
 
-  if (stage === 'confirming' && otpauthUri && secret) {
+  if (stage === 'confirming' && qrDataUrl && secret) {
     return (
       <SectionShell>
         <div className="flex items-start gap-4 mb-6">
@@ -244,11 +244,10 @@ export function TwoFactorSection({ showToast }: Props) {
 
         <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-6 items-center">
           <div className="rounded-2xl border border-white/10 bg-white p-3 self-start">
+            {/* eslint-disable-next-line @next/next/no-img-element -- kod QR jako SVG data URL z API; next/image nic tu nie optymalizuje */}
             <img
               alt="QR code do TOTP"
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(
-                otpauthUri,
-              )}`}
+              src={qrDataUrl}
               width={180}
               height={180}
             />
@@ -297,7 +296,7 @@ export function TwoFactorSection({ showToast }: Props) {
                 onClick={() => {
                   setStage('idle');
                   setSecret(null);
-                  setOtpauthUri(null);
+                  setQrDataUrl(null);
                   setCode('');
                 }}
                 disabled={pending}

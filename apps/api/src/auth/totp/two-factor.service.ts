@@ -7,6 +7,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { renderSVG } from 'uqr';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CryptoService } from '../../common/crypto/crypto.service';
@@ -56,13 +57,14 @@ export class TwoFactorService {
       data: { twoFactorSecret: this.crypto.encrypt(secret) },
     });
 
+    const otpauthUri = this.totp.buildUri({ secret, label: user.email, issuer: ISSUER });
     return {
       secret,
-      otpauthUri: this.totp.buildUri({
-        secret,
-        label: user.email,
-        issuer: ISSUER,
-      }),
+      otpauthUri,
+      // Kod QR rysujemy u siebie. Wcześniej panele wstawiały otpauthUri — czyli
+      // SEKRET TOTP — w adres zewnętrznego generatora (api.qrserver.com), więc sekret
+      // drugiego składnika wychodził do obcego serwisu i jego logów.
+      qrDataUrl: `data:image/svg+xml;base64,${Buffer.from(renderSVG(otpauthUri, { border: 1 })).toString('base64')}`,
     };
   }
 

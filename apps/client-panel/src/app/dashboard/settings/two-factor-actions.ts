@@ -13,6 +13,8 @@ export interface EnrollResult {
   ok: true;
   secret: string;
   otpauthUri: string;
+  /** QR rysowany przez API (SVG data URL) — sekret nie wychodzi do obcych serwisów. */
+  qrDataUrl: string;
 }
 
 export interface ConfirmResult {
@@ -35,7 +37,7 @@ export async function getTwoFactorStatus(): Promise<TwoFactorStatus | null> {
 
 export async function enrollTwoFactorAction(): Promise<EnrollResult | ActionError> {
   try {
-    const res = await apiFetch<{ secret: string; otpauthUri: string }>(
+    const res = await apiFetch<{ secret: string; otpauthUri: string; qrDataUrl: string }>(
       '/auth/2fa/enroll',
       { method: 'POST' },
     );
