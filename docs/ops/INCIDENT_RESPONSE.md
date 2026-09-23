@@ -7,7 +7,7 @@
 | Rola | Kanał |
 |------|--------|
 | Incydenty bezpieczeństwa / RODO | `security@verris.pl`, `rodo@verris.pl` |
-| Operator on-call (wewn.) | właściciel — alerty Grafany: e-mail + Telegram (PB-11); telefon +48 511 589 465 |
+| Operator on-call (wewn.) | właściciel — alerty Grafany: e-mail (Telegram usunięty decyzją właściciela 2026-09-23, PB-11); telefon +48 511 589 465 |
 | PUODO | https://uodo.gov.pl/ |
 
 Publiczny kontakt dla klientów: `kontakt@verris.pl` (patrz polityka prywatności). Nadużycia: `abuse@verris.pl` — procedura w `ops/docs/ABUSE.md`.
