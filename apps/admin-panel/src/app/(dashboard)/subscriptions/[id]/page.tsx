@@ -6,6 +6,7 @@ import { PlanChangeForm } from "./plan-change-form";
 import { ServiceUsagePanel } from "./usage-panel";
 import { DiagnosticsPanel } from "./diagnostics-panel";
 import { SuspendForm } from "./suspend-form";
+import { RestorePanel } from "./restore-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -109,6 +110,13 @@ export default async function AdminSubscriptionDetailPage({ params }: { params: 
           </div>
 
           {detail.account ? <ServiceUsagePanel subscriptionId={detail.id} /> : null}
+
+          {detail.account ? (
+            <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-4">
+              <h2 className="text-sm font-semibold text-white mb-3">Odtworzenie konta z kopii (H‑18)</h2>
+              <RestorePanel subscriptionId={detail.id} domain={detail.account.domain} />
+            </div>
+          ) : null}
 
           {detail.status === "ACTIVE" && detail.account ? (
             <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 p-4">

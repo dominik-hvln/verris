@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  NotFoundException,
   Body,
   Controller,
   Get,
@@ -23,6 +24,7 @@ import {
 } from './subscriptions.service';
 import { MigrationOrchestratorService } from './migration-orchestrator.service';
 import { PlanChangeService } from './plan-change.service';
+import { DirectAdminService } from '../servers/directadmin.service';
 import { HostingRestoreService } from './hosting-restore.service';
 import { DiagnosticsService } from './diagnostics.service';
 import { HostingRestoreDto } from './dto/hosting-restore.dto';
@@ -56,7 +58,17 @@ export class SubscriptionsAdminController {
     private readonly planChange: PlanChangeService,
     private readonly hostingRestore: HostingRestoreService,
     private readonly diagnostics: DiagnosticsService,
+    private readonly directAdmin: DirectAdminService,
   ) {}
+
+  /** H-18 — lista kopii konta dla operatora (wybór kopii do odtworzenia). */
+  @Get(':id/hosting-backups')
+  @Roles(Role.ADMIN, Role.STAFF)
+  async hostingBackups(@Param('id') id: string) {
+    const sub = await this.prisma.subscription.findUnique({ where: { id }, select: { userId: true } });
+    if (!sub) throw new NotFoundException('Usługa nie istnieje.');
+    return this.directAdmin.listHostingBackups(id, sub.userId);
+  }
 
   /** ADM-2 — Centrum diagnostyki: jedno wywołanie składa pełen obraz usługi. */
   @Get(':id/diagnostics')
