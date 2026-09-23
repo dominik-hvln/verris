@@ -707,9 +707,71 @@ export class BillingService {
       case 'payment_intent.payment_failed':
         await this.handlePaymentIntentFailed(event);
         break;
+      case 'payment_method.attached':
+        await this.handlePaymentMethodAttached(event);
+        break;
+      case 'payment_method.detached':
+        await this.handlePaymentMethodDetached(event);
+        break;
       default:
         this.logger.debug(`Ignoring unhandled Stripe event: ${event.type}`);
     }
+  }
+
+  /**
+   * M-26 — karta zapisana w Stripe (checkout subskrypcji, auto-doładowanie) trafia
+   * do PaymentMethod. Wcześniej nic tej tabeli nie zapisywało, więc lista kart w panelu
+   * była zawsze pusta, a usuwanie karty nie miało czego usunąć.
+   */
+  private async handlePaymentMethodAttached(event: { data: { object: Record<string, unknown> } }) {
+    const pm = event.data.object as {
+      id?: string;
+      type?: string;
+      customer?: string | null;
+      card?: { brand?: string; last4?: string; exp_month?: number; exp_year?: number };
+    };
+    if (!pm.id || pm.type !== 'card' || !pm.customer) return;
+    const user = await this.prisma.user.findFirst({
+      where: { stripeCustomerId: pm.customer },
+      select: { id: true },
+    });
+    if (!user) {
+      this.logger.warn(`payment_method.attached ${pm.id}: brak użytkownika dla ${pm.customer}`);
+      return;
+    }
+    const data = {
+      brand: pm.card?.brand ?? null,
+      last4: pm.card?.last4 ?? null,
+      expMonth: pm.card?.exp_month ?? null,
+      expYear: pm.card?.exp_year ?? null,
+    };
+    const hasDefault = await this.prisma.paymentMethod.count({ where: { userId: user.id, isDefault: true } });
+    await this.prisma.paymentMethod.upsert({
+      where: { provider_providerRef: { provider: 'STRIPE', providerRef: pm.id } },
+      create: { userId: user.id, provider: 'STRIPE', providerRef: pm.id, isDefault: hasDefault === 0, ...data },
+      update: data,
+    });
+  }
+
+  /** M-26 — karta odpięta w Stripe (także z dashboardu) znika z panelu i z auto-doładowania. */
+  private async handlePaymentMethodDetached(event: { data: { object: Record<string, unknown> } }) {
+    const pmId = (event.data.object as { id?: string }).id;
+    if (!pmId) return;
+    const row = await this.prisma.paymentMethod.findUnique({
+      where: { provider_providerRef: { provider: 'STRIPE', providerRef: pmId } },
+    });
+    if (!row) return;
+    await this.prisma.$transaction([
+      this.prisma.paymentMethod.delete({ where: { id: row.id } }),
+      this.prisma.user.updateMany({
+        where: { id: row.userId, defaultPaymentMethodId: pmId },
+        data: { defaultPaymentMethodId: null },
+      }),
+      this.prisma.walletAutoTopup.updateMany({
+        where: { userId: row.userId, paymentMethodId: row.id },
+        data: { paymentMethodId: null },
+      }),
+    ]);
   }
 
   private async handleCheckoutCompleted(event: { id: string; data: { object: Record<string, unknown> } }) {

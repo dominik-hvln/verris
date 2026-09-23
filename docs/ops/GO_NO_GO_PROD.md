@@ -60,6 +60,7 @@ Jeśli którykolwiek punkt krytyczny nie jest spełniony, decyzja = **NO-GO**.
   - `invoice.`*
   - `customer.subscription.*`
   - `payment_intent.succeeded` / `payment_intent.payment_failed` (auto-topup)
+  - `payment_method.attached` / `payment_method.detached` (zapisane karty — M-26)
 
 ## 7) Observability / backup / operacje
 

@@ -67,7 +67,7 @@ Wartości muszą być wygenerowane raz i przechowywane bezpiecznie (np. wbudowan
 | `STRIPE_WEBHOOK_SECRET` | sekret z Stripe (po skonfigurowaniu webhooka na `/billing/stripe/webhook`) |
 
 
-> W Stripe Dashboard przypisz do tego endpointu m.in. `**checkout.session.completed**`, zdarzenia `**invoice.***`, `**customer.subscription.***` oraz — dla auto-doładowania portfela (**C-9**) — `**payment_intent.succeeded`** i `**payment_intent.payment_failed**`.
+> W Stripe Dashboard przypisz do tego endpointu m.in. `**checkout.session.completed**`, zdarzenia `**invoice.***`, `**customer.subscription.***` oraz — dla auto-doładowania portfela (**C-9**) — `**payment_intent.succeeded`** i `**payment_intent.payment_failed**`, a dla listy zapisanych kart (**M-26**) `**payment_method.attached**` i `**payment_method.detached**`.
 
 > **Uwaga**: rotacja `APP_KMS_KEY` wymaga ponownego zaszyfrowania wszystkich sekretów (DA passwords, 2FA secrets, recovery codes). Procedura krok-po-kroku znajduje się w sekcji [Rotacja `APP_KMS_KEY](#rotacja-app_kms_key)` poniżej.
 
