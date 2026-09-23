@@ -30,7 +30,6 @@ import { HostingRestoreService } from './hosting-restore.service';
 import { OffsiteRestoreService } from './offsite-restore.service';
 import { DiagnosticsService } from './diagnostics.service';
 import { HostingRestoreScheduler } from './hosting-restore.scheduler';
-import { PublicUptimeBadgeController } from './public-uptime-badge.controller';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 import { WordpressService } from './wordpress.service';
 import { WafService } from './waf.service';
@@ -91,7 +90,6 @@ import { EcoModule } from '../eco/eco.module';
     MigrationsAdminController,
     MigrationsStaffController,
     MigrationWorkerController,
-    PublicUptimeBadgeController,
     WafAdminController,
   ],
   exports: [

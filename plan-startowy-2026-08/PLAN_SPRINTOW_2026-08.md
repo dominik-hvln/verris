@@ -1,6 +1,6 @@
 # Plan sprintów do startu — Verris
 
-**Wygenerowany:** 2026-09-22 z `audyt/dane/` · **nie edytuj ręcznie**  
+**Wygenerowany:** 2026-09-23 z `audyt/dane/` · **nie edytuj ręcznie**  
 **Podstawa:** audyt parytetu funkcji z 2026-08-20  
 **Pojemność:** 1 osoba, pełny etat, **30 h netto na sprint** · sprint = 1 tydzień  
 **Sprint 1:** 2026-08-31 · **Sprint 22:** 2027-01-25–2027-01-29
@@ -9,9 +9,9 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **3346 h** — przy 30 h tygodniowo około **26 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **3366 h** — przy 30 h tygodniowo około **26 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **22 sprintów do startu** (920 h) oraz roadmapę po starcie (2426 h, 152 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **22 sprintów do startu** (940 h) oraz roadmapę po starcie (2426 h, 152 pozycji) rozpisaną na epiki kwartalne.
 
 - **2027-01-22** — koniec sprintu 21, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-01-29** — koniec sprintu 22, decyzja GO.
@@ -386,23 +386,25 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 
 # Faza 3 — Wejście na rynek
 
-*Sprinty 15–19 · 220 h · 2026-12-07 – 2027-01-08*
+*Sprinty 15–19 · 240 h · 2026-12-07 – 2027-01-08*
 
 Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, baza wiedzy, przejście ścieżki pierwszego klienta na produkcji i zapisana decyzja GO.
 
 ## Sprint 15 — Egress: pelne pokrycie ruchu (control-plane)
 
-`2026-12-07 – 2026-12-11` · **32 h** z 30 h pojemności
+`2026-12-07 – 2026-12-11` · **52 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
 | `X-41` | Hardening egressu wisi w łańcuchu OUTPUT, a ruch kontenerów idzie przez FORWARD | 16 | WYSOKA | obserwacja wpięta w DOCKER-USER, 1674 pakiety zliczone, 0 DROP/REJECT |
 | `SEC-03` | Ruch poza TCP/80 i TCP/443 — DNS (UDP/53), SMTP — nie jest objęty ani obserwacją z X-41, ani trybem strict | 16 | WYSOKA | zakres reguł w `security-control-plane-egress.sh` |
+| `PB-22` | Badge na stronę v2 — interaktywne i użyteczne dla klienta | 20 | ŚREDNI | Zgłoszenie właściciela 2026-09-23: stare badge wyglądały źle i nic nie robiły (uptime pokazywał stan węzła, embed EKO blokowany przez X-Frame-Options/ |
 
 **Definicja ukończenia**
 
 - `X-41` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `SEC-03` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `PB-22` — Badge widoczne na prod na domenie klienta; pieczęć znika przy niespełnionych warunkach; kliknięcia polecenia liczone; testy D2 zielone.
 - **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.
 
 **Ryzyko sprintu.** X-41 zamyka to, co dzis jest tylko obserwacja: hardening wisi w lancuchu OUTPUT, a ruch kontenerow idzie przez FORWARD/DOCKER-USER, czyli egress CALEGO PRODUKTU byl poza zasiegiem zabezpieczenia, ktore wygladalo, jakby go obejmowalo. Obserwacja stoi (1674 pakiety, 0 DROP), zostaje egzekwowanie. SEC-03 dokłada ruch spoza TCP/80 i TCP/443 — DNS po UDP/53 i SMTP nie sa objete ani obserwacja, ani trybem strict, wiec bez tego "strict" opisuje dwa porty, nie host. | PRZEPLANOWANIE 2026-09-22 (decyzja wlasciciela): wszystko, co wymaga nowego serwera, na koniec — zakup AX102 dopiero w sprincie 18, zeby serwer nie stal pusty i nie generowal kosztow. Najpierw panel, funkcje i poprawki na istniejacej infrastrukturze. Pomiar z SEC-05 dziala od 2026-09-22, wiec egzekwowanie w FORWARD i UDP/53/SMTP ma juz na czym sie oprzec. Po panelu (sprinty 6-11), bezposrednio przed wlaczeniem strict — oba to ta sama robota na zaporze control-plane, a pomiar dostaje przez ten czas kilka tygodni danych.

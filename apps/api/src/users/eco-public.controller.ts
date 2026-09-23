@@ -14,6 +14,7 @@ import {
   EcoBadgeService,
 } from './eco-badge.service';
 import { extractRequestContext } from '../common/decorators/request-context';
+import { ecoTier } from '../badges/badge-logic';
 
 type EcoBadgeVariant = 'classic' | 'compact' | 'mini' | 'statement';
 type EcoBadgeTheme = 'dark' | 'light';
@@ -106,12 +107,6 @@ function normalizeTheme(value?: string): EcoBadgeTheme {
   return value === 'light' ? 'light' : 'dark';
 }
 
-function ecoTier(points: number): string {
-  if (points >= 100) return 'Las';
-  if (points >= 30) return 'Gaj';
-  if (points >= 10) return 'Sadzonka';
-  return 'Pączek';
-}
 
 const LEAF_MARK = `<path d="M12 20c6-8 10-11 16-14-3 8-7 13-16 14Z" fill="currentColor" opacity="0.9"/>`;
 

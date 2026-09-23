@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { BadgesModule } from './badges/badges.module';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { APP_GUARD } from '@nestjs/core';
@@ -98,6 +99,7 @@ import { DeliverabilityModule } from './deliverability/deliverability.module';
     VpnModule,
     KsefModule,
     DeliverabilityModule,
+    BadgesModule,
     LiveReadinessModule,
     VpsModule,
     PublicStatsModule,

@@ -29,6 +29,18 @@ operatora, backup, rozliczenia), potem zapora control-plane i strict, dokumenty,
 ścieżka pierwszego klienta, GO. Po starcie: asystent wykonujący akcje, tryb agencji, bezpieczne
 aktualizacje WP z testem wizualnym, MCP, checklisty RODO/dostępności.
 
+### 2026-09-23 — dostęp SSH do produkcji
+Root na panelu ma dokładnie dwa klucze: operatora (Termius) i CI (`verris-ci-deploy`, tylko w sekretach
+GitHuba). Klucz Cursora i stary `panel-app-key` wycofane. Panel → węzły: osobna para
+`/root/.ssh/verris_node_deploy` generowana **na panelu** (prywatna nigdy go nie opuszcza), pubkey w
+`VERRIS_NODE_DEPLOY_SSH_PUBKEY`. Operator wchodzi na węzeł przez panel (`verris-node ssh`).
+
+### 2026-09-23 — badge na stronę klienta (PB-22)
+Badge mają pracować dla klienta, nie tylko reklamować Verris: pieczęć zaufania, dostępność na żywo,
+polecenie z prowizją, EKO. Twierdzenia na badge'ach tylko takie, które kod sprawdza na bieżąco;
+gdy warunek przestaje być spełniony, badge znika (nie pokazuje złej wiadomości). Bez ciasteczek
+i zasobów z zewnątrz; osadzanie przez iframe z sandboxem + mały loader.
+
 ### 2026-09-22 — DNS
 ClouDNS **Premium L** (14,95 USD/mies., 400 stref) jako zewnętrzny secondary za DirectAdminem,
 NS pod marką Verris — kupujemy razem z węzłem. DDoS Protected nie na start. Openprovider jako

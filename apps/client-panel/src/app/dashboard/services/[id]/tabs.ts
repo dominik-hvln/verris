@@ -1,6 +1,7 @@
 import {
   Activity,
   Archive,
+  BadgeCheck,
   Box,
   Clock,
   Database,
@@ -34,6 +35,7 @@ export const TABS = [
   { id: 'backups', label: 'Kopie zapasowe', icon: Archive },
   { id: 'waf', label: 'Bezpieczeństwo (WAF)', icon: Shield },
   { id: 'monitoring', label: 'Monitoring', icon: Activity },
+  { id: 'badges', label: 'Badge na stronę', icon: BadgeCheck },
   { id: 'staging', label: 'Staging', icon: Box },
   { id: 'deploy', label: 'Deploy (Git)', icon: Rocket },
   { id: 'usage', label: 'Zużycie zasobów', icon: Activity },
@@ -46,7 +48,7 @@ export const NAV_GROUPS: { label: string; ids: TabId[] }[] = [
   { label: 'Usługa', ids: ['overview'] },
   { label: 'Poczta i domeny', ids: ['mail', 'domains', 'ssl'] },
   { label: 'Pliki i dane', ids: ['files', 'databases', 'ftp', 'backups'] },
-  { label: 'Narzędzia', ids: ['php', 'webtools', 'apps', 'cron', 'staging', 'deploy', 'waf', 'monitoring', 'usage'] },
+  { label: 'Narzędzia', ids: ['php', 'webtools', 'apps', 'cron', 'staging', 'deploy', 'waf', 'monitoring', 'badges', 'usage'] },
   { label: 'Rozliczenie', ids: ['subscription'] },
 ];
 

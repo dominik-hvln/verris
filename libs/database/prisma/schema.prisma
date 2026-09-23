@@ -115,6 +115,8 @@ model User {
   ecoBadgeToken          String?   @unique
   /// Łączna liczba unikalnych wyświetleń badge (po deduplikacji IP/godzina).
   ecoBadgeImpressions    Int       @default(0)
+  /// Badge „działa na verris” — kliknięcia w link polecający (statystyka dla klienta).
+  badgeReferralClicks    Int       @default(0)
 
   // 2FA — TOTP (RFC 6238). `twoFactorSecret` and `twoFactorRecoveryCodesEnc`
   // are encrypted at rest with the application KMS key (AES-256-GCM).

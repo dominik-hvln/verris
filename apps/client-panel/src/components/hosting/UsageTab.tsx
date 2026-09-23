@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Kpi, KpiStrip, MiniBars, SectionHead, fmtMb } from '@/components/panel/v2';
 import { fetchHostingUsageAction, HostingUsageResponse } from '@/app/dashboard/services/[id]/hosting-usage-actions';
-import { ServiceUptimeBadge } from '@/components/hosting/service-uptime-badge';
 import ServiceForecastPanel from '@/components/hosting/ServiceForecastPanel';
 import AccountStatsCard from '@/components/hosting/AccountStatsCard';
 
@@ -93,7 +92,6 @@ export default function UsageTab({ serviceId }: { serviceId: string }) {
       </section>
 
       <AccountStatsCard serviceId={serviceId} />
-      <ServiceUptimeBadge serviceId={serviceId} />
       <ServiceForecastPanel serviceId={serviceId} />
     </div>
   );

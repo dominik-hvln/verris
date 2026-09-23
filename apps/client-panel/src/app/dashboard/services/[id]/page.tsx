@@ -26,6 +26,7 @@ import CronTab from '@/components/hosting/CronTab';
 import BackupsTab from '@/components/hosting/BackupsTab';
 import WebToolsTab from '@/components/hosting/WebToolsTab';
 import UsageTab from '@/components/hosting/UsageTab';
+import BadgesTab from '@/components/hosting/BadgesTab';
 import ServiceOverviewTab from '@/components/hosting/ServiceOverviewTab';
 import ServiceOverviewV2 from '@/components/hosting/ServiceOverviewV2';
 import { AssistantHint } from '@/components/assistant/AssistantHint';
@@ -146,6 +147,7 @@ export default function HostingManagerPage() {
           {activeTab === 'backups' && <BackupsTab serviceId={params.id} />}
           {activeTab === 'waf' && <WafTab serviceId={params.id} />}
           {activeTab === 'monitoring' && <MonitoringTab serviceId={params.id} />}
+          {activeTab === 'badges' && <BadgesTab serviceId={params.id} />}
           {activeTab === 'staging' && <StagingTab serviceId={params.id} />}
           {activeTab === 'deploy' && <DeployTab serviceId={params.id} />}
           {activeTab === 'files' && (

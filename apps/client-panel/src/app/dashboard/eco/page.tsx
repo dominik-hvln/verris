@@ -12,12 +12,8 @@ import { ECO_LEDGER_REASON_LABEL } from '@/lib/eco-point-rules';
 import { PanelPageHeader } from '@/components/panel';
 import { Kpi, KpiStrip, Meter } from '@/components/panel/v2';
 
-function badgeEmbedHtml(
-  badgeSrc: string,
-  opts: { src: string; width: number; height: number; alt: string },
-): string {
-  const pixel = `${badgeSrc}/impression.gif`;
-  return `<a href="https://verris.pl" target="_blank" rel="noopener" style="position:relative;display:inline-block"><img src="${opts.src}" width="${opts.width}" height="${opts.height}" alt="${opts.alt}" /><img src="${pixel}" width="1" height="1" alt="" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none" /></a>`;
+function badgeEmbedHtml(src: string, height: number, alt: string): string {
+  return `<a href="https://verris.pl" target="_blank" rel="noopener"><img src="${src}" height="${height}" alt="${alt}"></a>`;
 }
 
 export default async function EcoProgramPage() {
@@ -33,71 +29,21 @@ export default async function EcoProgramPage() {
   const { profile, ledger, platform, badgeStats, program } = await getEcoDashboardData();
   const apiBase = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000').replace(/\/$/, '');
   const badgeSrc = profile.ecoBadgeToken
-    ? `${apiBase}/public/eco/badge/${encodeURIComponent(profile.ecoBadgeToken)}`
+    ? `${apiBase}/public/badges/eko/${encodeURIComponent(profile.ecoBadgeToken)}.svg`
     : '';
+  const variant = (name: string, description: string, query: string, height: number, alt: string) => ({
+    name,
+    description,
+    src: `${badgeSrc}?${query}`,
+    height,
+    html: badgeEmbedHtml(`${badgeSrc}?${query}`, height, alt),
+  });
   const badgeVariants = badgeSrc
     ? [
-        {
-          name: 'Klasyczny',
-          description: 'Najlepszy do stopki albo sekcji „Partnerzy”.',
-          src: `${badgeSrc}?variant=classic&theme=dark`,
-          width: 292,
-          height: 76,
-          html: badgeEmbedHtml(badgeSrc, {
-            src: `${badgeSrc}?variant=classic&theme=dark`,
-            width: 292,
-            height: 76,
-            alt: 'Verris EKO hosting',
-          }),
-        },
-        {
-          name: 'Mini',
-          description: 'Mały badge do paska bocznego lub obok logotypów.',
-          src: `${badgeSrc}?variant=mini&theme=dark`,
-          width: 168,
-          height: 32,
-          html: badgeEmbedHtml(badgeSrc, {
-            src: `${badgeSrc}?variant=mini&theme=dark`,
-            width: 168,
-            height: 32,
-            alt: 'EKO hosting Verris',
-          }),
-        },
-        {
-          name: 'Kompaktowy',
-          description: 'Krótki komunikat: „Korzystamy z eko hostingu”.',
-          src: `${badgeSrc}?variant=compact&theme=light`,
-          width: 240,
-          height: 48,
-          html: badgeEmbedHtml(badgeSrc, {
-            src: `${badgeSrc}?variant=compact&theme=light`,
-            width: 240,
-            height: 48,
-            alt: 'Korzystamy z eko hostingu Verris',
-          }),
-        },
-        {
-          name: 'Statement',
-          description: 'Większy wariant marketingowy na landing page.',
-          src: `${badgeSrc}?variant=statement&theme=dark`,
-          width: 336,
-          height: 88,
-          html: badgeEmbedHtml(badgeSrc, {
-            src: `${badgeSrc}?variant=statement&theme=dark`,
-            width: 336,
-            height: 88,
-            alt: 'Nasza strona korzysta z eko hostingu Verris',
-          }),
-        },
-        {
-          name: 'Interaktywny iframe',
-          description: 'Karta z efektem hover, dobra do sekcji „O technologii”.',
-          src: `${badgeSrc}/embed?theme=dark`,
-          width: 360,
-          height: 132,
-          html: `<iframe src="${badgeSrc}/embed?theme=dark" title="Nasza strona korzysta z eko hostingu Verris" width="360" height="132" loading="lazy" style="border:0;max-width:100%;"></iframe>`,
-          iframe: true,
-        },
+        variant('EKO · ciemny', 'Do ciemnej stopki. Poziom rośnie razem z Twoimi punktami.', 'motyw=ciemny&wariant=eko', 44, 'EKO hosting Verris'),
+        variant('EKO · jasny', 'Do jasnej stopki albo sekcji „Partnerzy”.', 'motyw=jasny&wariant=eko', 44, 'EKO hosting Verris'),
+        variant('Znak', 'Mały znak obok logotypów.', 'motyw=ciemny&wariant=znak', 28, 'Hosting Verris'),
+        variant('Tekst', 'Dyskretne „hostowane na verris” w stopce.', 'motyw=jasny&wariant=hostowane', 20, 'Hostowane na Verris'),
       ]
     : [];
 
@@ -184,10 +130,9 @@ export default async function EcoProgramPage() {
             Badge na stronę
           </div>
           <p className="text-sm text-neutral-400">
-            Osadź badge pokazujący, że Twoja strona korzysta z eko hostingu. Wybierz mały SVG do stopki, większy
-            wariant marketingowy albo interaktywną kartę przez{' '}
-            <span className="font-mono text-neutral-300">&lt;iframe&gt;</span>. Każde unikalne wyświetlenie na
-            zewnętrznej stronie przybliża Cię do kolejnego punktu EKO.
+            Statyczny obrazek z linkiem — działa w każdym kreatorze i w mailach. Każde unikalne wyświetlenie na
+            zewnętrznej stronie przybliża Cię do kolejnego punktu EKO. Interaktywne badge (pieczęć zaufania,
+            dostępność na żywo, polecenie z prowizją) znajdziesz w usłudze hostingu, w zakładce „Badge na stronę”.
           </p>
         </div>
 
@@ -203,26 +148,8 @@ export default async function EcoProgramPage() {
                   <p className="mt-1 text-xs text-neutral-500">{variant.description}</p>
                 </div>
                 <div className="flex min-h-[120px] flex-1 items-center justify-center rounded-xl border border-white/10 bg-black/50 p-4">
-                  {variant.iframe ? (
-                    <iframe
-                      src={variant.src}
-                      title={variant.name}
-                      width={variant.width}
-                      height={variant.height}
-                      loading="lazy"
-                      className="max-w-full"
-                      style={{ border: 0 }}
-                    />
-                  ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={variant.src}
-                      alt={variant.name}
-                      width={variant.width}
-                      height={variant.height}
-                      className="max-w-full"
-                    />
-                  )}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={variant.src} alt={variant.name} height={variant.height} className="max-w-full" />
                 </div>
                 <label className="mt-4 block space-y-1 text-xs text-neutral-500">
                   HTML

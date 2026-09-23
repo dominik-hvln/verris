@@ -230,15 +230,13 @@ Delivery scheduler działa co minutę, bierze najstarsze pending deliveries, tim
 
 Alerty produkcyjne: `oldest_pending_seconds > 300` albo `deliveries_total{status="FAILED"} > 0`.
 
-### Public uptime badge
+### Badge na stronę klienta
 
-Kliencki badge SVG jest dostępny pod:
-
-```text
-GET /public/services/:subscriptionId/uptime-badge.svg
-```
-
-Endpoint nie wymaga auth, ale nie pokazuje domeny klienta, planu ani danych konta. Zwraca tylko stan `operational/degraded` wyliczony z publicznych probes na węźle usługi. `subscriptionId` jest UUID; nie traktować badge'a jako źródła danych prywatnych.
+Publiczne, bez auth, pod `/public/badges/*` (loader `v1.js`, ramki `ramka/{pieczec|dostepnosc|polecenie}/:id`,
+`weryfikacja/:subscriptionId`, `eko/:token.svg`, przekierowanie polecenia `r/:code`). Ramki same ustawiają
+CSP z nonce i `frame-ancestors *` oraz CORP `cross-origin`; Caddy na api dokłada swój CSP tylko wtedy,
+gdy API go nie ustawiło (`header ?Content-Security-Policy`). Pieczęć i dostępność pokazują się wyłącznie
+na domenie usługi (nagłówek Referer) i znikają, gdy warunki przestają być spełnione.
 
 ## Provisioning Queue — dead-letter i recovery
 
