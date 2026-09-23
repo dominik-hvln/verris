@@ -26,6 +26,8 @@ export interface SidebarUser {
   /** PB-16 — preferencje wyglądu per użytkownik; null = jeszcze nie wybrał. */
   panelViewMode: 'simple' | 'full' | null;
   panelTheme: 'dark' | 'light' | null;
+  /** PROD-02 — baner „Pierwsze kroki” schowany na koncie. */
+  onboardingHidden: boolean;
 }
 
 /**
@@ -63,6 +65,7 @@ export async function fetchSidebarUser(): Promise<SidebarUser | null> {
       isSubaccount: Boolean(data.isSubaccount),
       panelViewMode: data.panelViewMode === 'simple' || data.panelViewMode === 'full' ? data.panelViewMode : null,
       panelTheme: data.panelTheme === 'dark' || data.panelTheme === 'light' ? data.panelTheme : null,
+      onboardingHidden: data.onboardingHidden === true,
       customerPermissions: Array.isArray(data.customerPermissions)
         ? data.customerPermissions.map(String)
         : null,
@@ -73,7 +76,7 @@ export async function fetchSidebarUser(): Promise<SidebarUser | null> {
 }
 
 /** PB-16 — zapis widoku/motywu panelu na koncie (żeby działał na każdym urządzeniu). Błąd nie przerywa pracy. */
-export async function savePanelPreferences(prefs: { panelViewMode?: 'simple' | 'full'; panelTheme?: 'dark' | 'light' }): Promise<boolean> {
+export async function savePanelPreferences(prefs: { panelViewMode?: 'simple' | 'full'; panelTheme?: 'dark' | 'light'; onboardingHidden?: boolean }): Promise<boolean> {
   const token = await getAuthToken();
   if (!token) return false;
   try {

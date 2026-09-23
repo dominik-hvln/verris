@@ -200,6 +200,8 @@ model User {
   panelViewMode            String?
   /// PB-16 — motyw treści panelu klienta per użytkownik: 'dark' | 'light'; null = jeszcze nie wybrał.
   panelTheme               String?
+  /// PROD-02 — baner „Pierwsze kroki” schowany przez klienta. Schowany, nie usunięty: pasek postępu w sidebarze go przywraca.
+  onboardingHidden         Boolean   @default(false)
 
   // IAM / subaccounts — USER może mieć subkonta działające w kontekście ownera.
   customerOwnerId          String?

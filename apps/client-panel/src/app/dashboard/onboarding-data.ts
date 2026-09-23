@@ -1,4 +1,5 @@
 import { listServices } from './services/data';
+import { BEZ_USLUGI, najnizszyPostep, uslugiOnboardingu } from './onboarding-kroki';
 
 export interface OnboardingSnapshot {
   hasService: boolean;
@@ -11,35 +12,10 @@ export interface OnboardingSnapshot {
 }
 
 /**
- * O-4 — lightweight state for the first-run onboarding wizard. Reuses the
- * existing services list (no extra API surface).
+ * O-4 — stan banera „Pierwsze kroki". PROD-02: baner pokazuje usługę z
+ * najniższym postępem (ta sama reguła co pasek w sidebarze), nie `services[0]`.
  */
 export async function getOnboardingSnapshot(): Promise<OnboardingSnapshot> {
-  let services: Awaited<ReturnType<typeof listServices>> = [];
-  try {
-    services = await listServices();
-  } catch {
-    services = [];
-  }
-  const s = services[0];
-  if (!s) {
-    return {
-      hasService: false,
-      serviceId: null,
-      domain: null,
-      isEmailProduct: false,
-      provisioning: false,
-      dnsOk: null,
-      tlsOk: null,
-    };
-  }
-  return {
-    hasService: true,
-    serviceId: s.id,
-    domain: s.account?.domain ?? null,
-    isEmailProduct: s.productKind === 'EMAIL',
-    provisioning: s.status !== 'ACTIVE',
-    dnsOk: s.health?.checks?.dnsOk ?? null,
-    tlsOk: s.health?.checks?.tlsOk ?? null,
-  };
+  const uslugi = uslugiOnboardingu(await listServices().catch(() => []));
+  return najnizszyPostep(uslugi)?.usluga.onboarding ?? uslugi[0]?.onboarding ?? BEZ_USLUGI;
 }

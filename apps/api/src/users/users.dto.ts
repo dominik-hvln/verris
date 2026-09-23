@@ -1,4 +1,4 @@
-import { ArrayMaxSize, ArrayMinSize, IsArray, IsIn, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsIn, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, MinLength, IsBoolean } from 'class-validator';
 import { IsStrongPassword } from '../auth/password-policy.validator';
 
 export class UpdateProfileDto {
@@ -59,6 +59,11 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsIn(['dark', 'light'])
   panelTheme?: 'dark' | 'light';
+
+  /** PROD-02 — baner „Pierwsze kroki” schowany (true) albo przywrócony (false). */
+  @IsOptional()
+  @IsBoolean()
+  onboardingHidden?: boolean;
 }
 
 export class ApplyReferralCodeDto {

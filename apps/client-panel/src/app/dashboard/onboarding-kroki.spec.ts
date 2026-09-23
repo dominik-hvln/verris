@@ -1,4 +1,5 @@
-import { podsumujKroki, podtytulKrokow, zbudujKroki } from './onboarding-kroki';
+import { najnizszyPostep, podsumujKroki, podtytulKrokow, uslugiOnboardingu, zbudujKroki } from './onboarding-kroki';
+import type { ServiceSummaryDto } from '@verris/contracts';
 
 /**
  * PANEL-01 — strażnik licznika onboardingu.
@@ -97,5 +98,43 @@ describe('PANEL-01 — licznik onboardingu', () => {
     );
     const p = podsumujKroki(zepsute);
     expect(p.zrobione).not.toBe(p.sprawdzane);
+  });
+});
+
+describe('PROD-02 — pasek postępu w sidebarze', () => {
+  const usluga = (id: string, dnsOk: boolean | null, tlsOk: boolean | null) => ({
+    id,
+    nazwa: `${id}.pl`,
+    onboarding: { ...HOSTING, serviceId: id, dnsOk, tlsOk },
+  });
+
+  it('bierze usługę z NAJNIŻSZYM postępem, nie pierwszą z listy', () => {
+    const p = najnizszyPostep([usluga('gotowa', true, true), usluga('nowa', false, false)]);
+    expect(p?.usluga.id).toBe('nowa');
+    expect(p?.procent).toBe(0);
+  });
+
+  it('komplet = 100, żeby pasek mógł zniknąć', () => {
+    expect(najnizszyPostep([usluga('a', true, true)])?.procent).toBe(100);
+  });
+
+  it('usługa bez sprawdzalnych kroków (zakładanie) nie ciągnie paska w dół', () => {
+    const zakladana = { ...usluga('z', null, null), onboarding: { ...HOSTING, provisioning: true } };
+    expect(najnizszyPostep([zakladana, usluga('a', true, false)])?.usluga.id).toBe('a');
+    expect(najnizszyPostep([zakladana])).toBeNull();
+  });
+
+  it('subkonto: kroki bez uprawnienia wypadają z licznika', () => {
+    // Bez dostępu do SSL zostaje sam DNS — zrobiony, więc 100%, a nie 50% bez możliwości ruchu.
+    const p = najnizszyPostep([usluga('a', true, false)], (href) => href !== '/dashboard/ssl');
+    expect(p?.procent).toBe(100);
+  });
+
+  it('anulowane i wygasłe usługi nie mają czego konfigurować', () => {
+    const s = (id: string, status: string) =>
+      ({ id, status, planName: 'Plan', productKind: 'HOSTING', account: { domain: `${id}.pl` }, health: { checks: { dnsOk: false, tlsOk: false } } }) as unknown as ServiceSummaryDto;
+    const u = uslugiOnboardingu([s('a', 'ACTIVE'), s('b', 'CANCELED'), s('c', 'EXPIRED')]);
+    expect(u.map((x) => x.id)).toEqual(['a']);
+    expect(u[0].onboarding.dnsOk).toBe(false);
   });
 });

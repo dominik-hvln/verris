@@ -28,6 +28,7 @@ import { ServiceNav } from "@/components/panel/service-nav";
 import { THEME_KEY, ThemeToggle, applyTheme } from "@/components/panel/theme-toggle";
 import { CommandPalette, type PaletteItem } from "@/components/panel/command-palette";
 import { fetchRailDataAction, type RailData } from "./rail-actions";
+import { najnizszyPostep } from "./onboarding-kroki";
 import {
   Menu,
   Globe,
@@ -160,6 +161,30 @@ function syncPanelPreferences(u: SidebarUser) {
     toSave.panelTheme = local.theme;
   }
   if (toSave.panelViewMode || toSave.panelTheme) void savePanelPreferences(toSave);
+}
+
+/**
+ * PROD-02 — postęp konfiguracji nad belką użytkownika, na każdym widoku.
+ * Najniższy spośród usług, z nazwą tej usługi; znika przy 100%. Kliknięcie
+ * przywraca schowany baner „Pierwsze kroki" i prowadzi do niego.
+ */
+function SetupProgress({ nazwa, procent, onOpen }: { nazwa: string; procent: number; onOpen: () => void }) {
+  return (
+    <Link
+      href="/dashboard"
+      onClick={onOpen}
+      className="mb-2 block rounded-[6px] px-2 py-1.5 hover:bg-white/[0.04]"
+      data-tip={`Konfiguracja usługi ${nazwa}: ${procent}%\nKliknij, aby zobaczyć pierwsze kroki`}
+    >
+      <span className="flex items-baseline justify-between gap-2 text-[12.5px] text-sidebar-foreground">
+        <span className="min-w-0 truncate">Konfiguracja · {nazwa}</span>
+        <span className="font-mono text-[11.5px] text-verris-mint">{procent}%</span>
+      </span>
+      <span className="mt-1.5 block h-[4px] overflow-hidden rounded-[2px] bg-white/[0.08]" role="progressbar" aria-valuenow={procent} aria-valuemin={0} aria-valuemax={100} aria-label={`Konfiguracja ${nazwa}`}>
+        <i className="block h-full bg-verris-mint" style={{ width: `${procent}%` }} />
+      </span>
+    </Link>
+  );
 }
 
 function UserMenu({ displayName, email, initials, loading = false }: { displayName: string; email: string; initials: string; loading?: boolean }) {
@@ -367,8 +392,19 @@ function DashboardLayoutInner({
   // Liczniki w menu i lista usług do wyszukiwarki — błąd = brak licznika (nie zero).
   const [rail, setRail] = useState<RailData | null>(null);
   useEffect(() => {
-    void fetchRailDataAction().then(setRail).catch(() => undefined);
+    const loadRail = () => void fetchRailDataAction().then(setRail).catch(() => undefined);
+    loadRail();
+    window.addEventListener("wallet:refresh", loadRail);
+    return () => window.removeEventListener("wallet:refresh", loadRail);
   }, []);
+  const postep = rail?.onboarding && navCtx ? najnizszyPostep(rail.onboarding, (href) => canAccess(href)) : null;
+  const pokazPostep = postep !== null && postep.procent < 100;
+  const otworzPierwszeKroki = () => {
+    if (user?.onboardingHidden) {
+      setUser({ ...user, onboardingHidden: false });
+      void savePanelPreferences({ onboardingHidden: false }).then(() => router.refresh());
+    }
+  };
   const railCount = (href: string): string | null => {
     if (!rail) return null;
     if (href === "/dashboard/services") return rail.services ? String(rail.services.length) : null;
@@ -493,6 +529,9 @@ function DashboardLayoutInner({
 
         {/* Box użytkownika — zawsze widoczny */}
         <div className="shrink-0 border-t border-sidebar-border p-3">
+          {pokazPostep ? (
+            <SetupProgress nazwa={postep.usluga.nazwa} procent={postep.procent} onOpen={otworzPierwszeKroki} />
+          ) : null}
           <UserMenu displayName={displayName} email={user?.email ?? ""} initials={initials} loading={userLoading && user === null} />
         </div>
       </aside>

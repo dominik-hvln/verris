@@ -1,3 +1,4 @@
+import type { ServiceSummaryDto } from '@verris/contracts';
 import type { OnboardingSnapshot } from './onboarding-data';
 
 /**
@@ -140,4 +141,72 @@ export function podsumujKroki(kroki: KrokOnboardingu[]): PodsumowanieKrokow {
 export function podtytulKrokow(p: PodsumowanieKrokow): string {
   if (p.sprawdzane === 0) return 'Skonfiguruj usługę w kilka chwil.';
   return `Skonfiguruj usługę w kilka chwil (sprawdzone automatycznie: ${p.zrobione}/${p.sprawdzane}).`;
+}
+
+/** Procent z kroków, które umiemy sprawdzić; `null` = nie ma czego liczyć. */
+export function procentKrokow(p: PodsumowanieKrokow): number | null {
+  return p.sprawdzane > 0 ? Math.round((p.zrobione / p.sprawdzane) * 100) : null;
+}
+
+export const BEZ_USLUGI: OnboardingSnapshot = {
+  hasService: false,
+  serviceId: null,
+  domain: null,
+  isEmailProduct: false,
+  provisioning: false,
+  dnsOk: null,
+  tlsOk: null,
+};
+
+export interface UslugaOnboardingu {
+  id: string;
+  nazwa: string;
+  onboarding: OnboardingSnapshot;
+}
+
+/** PROD-02 — każda żywa usługa, nie tylko `services[0]`. Anulowane i wygasłe nie mają czego konfigurować. */
+export function uslugiOnboardingu(services: ServiceSummaryDto[]): UslugaOnboardingu[] {
+  return services
+    .filter((s) => s.status !== 'CANCELED' && s.status !== 'EXPIRED')
+    .map((s) => ({
+      id: s.id,
+      nazwa: s.account?.domain || s.planName,
+      onboarding: {
+        hasService: true,
+        serviceId: s.id,
+        domain: s.account?.domain ?? null,
+        isEmailProduct: s.productKind === 'EMAIL',
+        provisioning: s.status !== 'ACTIVE',
+        dnsOk: s.health?.checks?.dnsOk ?? null,
+        tlsOk: s.health?.checks?.tlsOk ?? null,
+      },
+    }));
+}
+
+export interface PostepUslugi {
+  usluga: UslugaOnboardingu;
+  procent: number;
+}
+
+/**
+ * PROD-02 — najniższy postęp spośród usług (decyzja 2026-08-26): klient z jedną
+ * usługą skonfigurowaną i drugą nietkniętą ma widzieć tę nietkniętą, a nie komplet.
+ *
+ * `dozwolony` odsiewa kroki, do których subkonto nie ma uprawnień — pasek stojący
+ * na 40% bez możliwości ruchu to defekt, nie informacja. Usługa bez żadnego
+ * sprawdzalnego kroku (np. w trakcie zakładania) nie wchodzi do porównania.
+ * `null` = nie ma czego pokazać.
+ */
+export function najnizszyPostep(
+  uslugi: UslugaOnboardingu[],
+  dozwolony: (href: string) => boolean = () => true,
+): PostepUslugi | null {
+  let najnizszy: PostepUslugi | null = null;
+  for (const usluga of uslugi) {
+    const kroki = zbudujKroki(usluga.onboarding).filter((k) => dozwolony(k.href.split('?')[0]));
+    const procent = procentKrokow(podsumujKroki(kroki));
+    if (procent === null) continue;
+    if (!najnizszy || procent < najnizszy.procent) najnizszy = { usluga, procent };
+  }
+  return najnizszy;
 }

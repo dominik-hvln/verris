@@ -108,12 +108,14 @@ describe('UsersService.getProfile (IAM)', () => {
       country: null,
     });
 
-    const res = await service.updateProfile('owner-1', { panelViewMode: 'simple', panelTheme: 'light' }, 'sub-1');
+    // PROD-02: „schowany baner” też jest osobisty — subkonto chowa go u siebie.
+    const res = await service.updateProfile('owner-1', { panelViewMode: 'simple', panelTheme: 'light', onboardingHidden: true }, 'sub-1');
 
     expect(update).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: 'sub-1' },
-        data: { panelViewMode: 'simple', panelTheme: 'light' },
+        data: { panelViewMode: 'simple', panelTheme: 'light', onboardingHidden: true },
+        select: expect.objectContaining({ onboardingHidden: true }),
       }),
     );
     expect(res.panelViewMode).toBe('simple');

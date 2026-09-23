@@ -6,7 +6,7 @@
 | **Priorytet** | WYSOKA |
 | **Nakład** | M/L — do rozbicia na etapy |
 | **Zależy od** | — |
-| **Status** | **rozpisane, decyzje podjęte 2026-08-26, nie zaczęte** |
+| **Status** | **A–D zrobione 2026-09-24 (pasek w sidebarze, stan na koncie, dobre praktyki); zostaje E — wspólny Stepper** |
 | **Data** | 2026-08-26 |
 
 ---

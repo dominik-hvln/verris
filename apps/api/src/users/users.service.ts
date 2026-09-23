@@ -118,6 +118,7 @@ export class UsersService {
         sidebarQuickLinks: true,
         panelViewMode: true,
         panelTheme: true,
+        onboardingHidden: true,
         walletBalance: true,
         ecoPoints: true,
         isTwoFactorEnabled: true,
@@ -542,6 +543,7 @@ export class UsersService {
         // Preferencje wyglądu są osobiste — subkonto też je ma (każdy widzi panel po swojemu).
         ...(dto.panelViewMode !== undefined && { panelViewMode: dto.panelViewMode }),
         ...(dto.panelTheme !== undefined && { panelTheme: dto.panelTheme }),
+        ...(dto.onboardingHidden !== undefined && { onboardingHidden: dto.onboardingHidden }),
       },
       select: {
         id: true,
@@ -558,6 +560,7 @@ export class UsersService {
         sidebarQuickLinks: true,
         panelViewMode: true,
         panelTheme: true,
+        onboardingHidden: true,
       },
     });
 
