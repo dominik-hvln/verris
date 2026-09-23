@@ -26,14 +26,20 @@ export function ServiceUsagePanel({ subscriptionId }: { subscriptionId: string }
   const [data, setData] = useState<AdminServiceUsage | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      setData(await fetchSubscriptionUsageAction(subscriptionId, "24h"));
-      setError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Nie udało się pobrać metryk.");
-    }
-  }, [subscriptionId]);
+  // `.then` zamiast `await`: lint React Compilera nie śledzi `await` w useCallback
+  // i brałby setState po odpowiedzi za synchroniczny setState w efekcie.
+  const load = useCallback(
+    () =>
+      fetchSubscriptionUsageAction(subscriptionId, "24h")
+        .then((d) => {
+          setData(d);
+          setError(null);
+        })
+        .catch((e) => {
+          setError(e instanceof Error ? e.message : "Nie udało się pobrać metryk.");
+        }),
+    [subscriptionId],
+  );
 
   useEffect(() => {
     void load();

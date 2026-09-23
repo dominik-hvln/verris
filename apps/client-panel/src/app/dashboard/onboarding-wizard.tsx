@@ -61,9 +61,12 @@ function znacznik(stan: StanKroku) {
 export function OnboardingWizard({ snapshot, hidden }: { snapshot: OnboardingSnapshot; hidden: boolean }) {
   const [dismissed, setDismissed] = useState(hidden);
 
-  useEffect(() => {
+  // Nowa wartość z konta nadpisuje lokalny stan — w renderze, nie efektem.
+  const [prevHidden, setPrevHidden] = useState(hidden);
+  if (hidden !== prevHidden) {
+    setPrevHidden(hidden);
     setDismissed(hidden);
-  }, [hidden]);
+  }
 
   useEffect(() => {
     try {
@@ -73,6 +76,7 @@ export function OnboardingWizard({ snapshot, hidden }: { snapshot: OnboardingSna
       return;
     }
     if (!hidden) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- jednorazowa migracja starego klucza z localStorage (niedostępnego w SSR) na konto
       setDismissed(true);
       void savePanelPreferences({ onboardingHidden: true });
     }

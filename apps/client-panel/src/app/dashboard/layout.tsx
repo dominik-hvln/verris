@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Suspense, useEffect, useState, type ComponentType } from "react";
+import { Suspense, useEffect, useState, useSyncExternalStore, type ComponentType } from "react";
 import { logoutAction } from "./actions";
 import { fetchSidebarUser, savePanelPreferences, type SidebarUser } from "./sidebar-actions";
 import { pushUserData } from "@/lib/analytics-events";
@@ -135,6 +135,20 @@ function applyPanelMode(simple: boolean) {
   window.dispatchEvent(new Event("verris-mode"));
 }
 
+/** Widok Prosty/Pełny jako zewnętrzny magazyn: localStorage + zdarzenie „verris-mode”. */
+function subscribePanelMode(onChange: () => void) {
+  window.addEventListener("verris-mode", onChange);
+  return () => window.removeEventListener("verris-mode", onChange);
+}
+
+function readSimpleMode(): boolean {
+  try {
+    return localStorage.getItem(SIMPLE_MODE_KEY) === "1";
+  } catch {
+    return false; // brak localStorage — pełny
+  }
+}
+
 /** Wybór klienta: lokalnie od razu, na koncie w tle (PB-16 — widok per użytkownik, nie per przeglądarka). */
 function setPanelMode(simple: boolean) {
   applyPanelMode(simple);
@@ -190,14 +204,8 @@ function SetupProgress({ nazwa, procent, onOpen }: { nazwa: string; procent: num
 function UserMenu({ displayName, email, initials, loading = false }: { displayName: string; email: string; initials: string; loading?: boolean }) {
   const iam = useModul("modul.iam");
   const [open, setOpen] = useState(false);
-  const [simple, setSimple] = useState(false);
-  useEffect(() => {
-    try {
-      setSimple(localStorage.getItem(SIMPLE_MODE_KEY) === "1");
-    } catch {
-      /* brak localStorage — pełny */
-    }
-  }, []);
+  // Serwer i hydratacja: widok pełny; potem wartość z przeglądarki i każda zmiana z „verris-mode”.
+  const simple = useSyncExternalStore(subscribePanelMode, readSimpleMode, () => false);
   useEffect(() => {
     if (!open) return;
     const close = (e: MouseEvent) => {
@@ -211,19 +219,8 @@ function UserMenu({ displayName, email, initials, loading = false }: { displayNa
       document.removeEventListener("keydown", esc);
     };
   }, [open]);
-  useEffect(() => {
-    const sync = () => {
-      try {
-        setSimple(localStorage.getItem(SIMPLE_MODE_KEY) === "1");
-      } catch {
-        /* ignore */
-      }
-    };
-    window.addEventListener("verris-mode", sync);
-    return () => window.removeEventListener("verris-mode", sync);
-  }, []);
+  // setPanelMode zapisuje localStorage i emituje „verris-mode”, więc `simple` odświeży się sam.
   const setMode = (next: boolean) => {
-    setSimple(next);
     setPanelMode(next);
   };
   const item = "flex w-full items-center gap-2.5 rounded-md px-2.5 py-[7px] text-left text-[13.5px] text-sidebar-foreground hover:bg-white/5 hover:text-verris-paper";
@@ -385,9 +382,12 @@ function DashboardLayoutInner({
     }
   }, [navCtx, pathname, router]);
 
-  useEffect(() => {
+  // Zmiana trasy zamyka szufladę menu — w renderze, nie efektem (wzorzec z dokumentacji Reacta).
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
     setSidebarOpen(false);
-  }, [pathname]);
+  }
 
   // Liczniki w menu i lista usług do wyszukiwarki — błąd = brak licznika (nie zero).
   const [rail, setRail] = useState<RailData | null>(null);
@@ -580,18 +580,18 @@ function DashboardLayoutInner({
           <div className="flex flex-col gap-2 text-[11px] text-neutral-500 sm:flex-row sm:items-center sm:justify-between">
             <p>© {new Date().getFullYear()} Verris — hosting, który liczy realne zużycie.</p>
             <nav className="flex flex-wrap gap-x-4 gap-y-1">
-              <a href="/legal/terms" className="hover:text-neutral-300">
+              <Link href="/legal/terms" className="hover:text-neutral-300">
                 Regulamin
-              </a>
-              <a href="/legal/privacy" className="hover:text-neutral-300">
+              </Link>
+              <Link href="/legal/privacy" className="hover:text-neutral-300">
                 Polityka prywatności
-              </a>
-              <a href="/legal/cookies" className="hover:text-neutral-300">
+              </Link>
+              <Link href="/legal/cookies" className="hover:text-neutral-300">
                 Cookies
-              </a>
-              <a href="/legal/dpa" className="hover:text-neutral-300">
+              </Link>
+              <Link href="/legal/dpa" className="hover:text-neutral-300">
                 DPA
-              </a>
+              </Link>
               <CookiePreferencesButton className="hover:text-neutral-300" />
               <a href="mailto:rodo@verris.pl" className="hover:text-neutral-300">
                 rodo@verris.pl

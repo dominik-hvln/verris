@@ -94,7 +94,7 @@ export function CapacityPolicyPanel({
 
       <p className="text-xs text-muted-foreground">
         Steruje doborem węzła przez scheduler — niezależnie od trybu maintenance.
-        „Cordon" wstrzymuje tylko nowe konta na TYM węźle (istniejące działają),
+        „Cordon” wstrzymuje tylko nowe konta na TYM węźle (istniejące działają),
         bez wstrzymywania sprzedaży na całej platformie.
       </p>
 

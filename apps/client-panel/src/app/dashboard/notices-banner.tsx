@@ -24,10 +24,12 @@ const fmt = (iso: string) =>
  */
 export function NoticesBanner() {
   const [data, setData] = useState<UserNotices | null>(null);
-  const [dismissed, setDismissed] = useState<string[]>([]);
+  // Leniwy odczyt localStorage jest bezpieczny dla hydratacji: dopóki komunikaty
+  // nie przyjdą z API, baner renderuje `null` na serwerze i na kliencie
+  // (na serwerze brak `window` kończy się w catch pustą listą).
+  const [dismissed, setDismissed] = useState<string[]>(loadDismissed);
 
   useEffect(() => {
-    setDismissed(loadDismissed());
     void fetchMyNotices().then(setData);
   }, []);
 

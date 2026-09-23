@@ -10,7 +10,6 @@ import {
   VerrisUstawieniaIcon,
 } from '@/components/icons';
 import {
-  DEFAULT_SIDEBAR_QUICK_LINKS,
   resolveSidebarQuickLinks,
   type SidebarTileHref,
 } from '@verris/contracts';

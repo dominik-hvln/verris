@@ -2,7 +2,11 @@
 
 import { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { browserSupportsWebAuthnAutofill, startAuthentication } from '@simplewebauthn/browser';
+import {
+  browserSupportsWebAuthnAutofill,
+  startAuthentication,
+  type PublicKeyCredentialRequestOptionsJSON,
+} from '@simplewebauthn/browser';
 import { fetchPasskeyLoginOptions, verifyPasskeyLoginClient } from '@/lib/passkey-client';
 import { setPasskeyAuthCookie } from './passkey-actions';
 import { isAppleWebKit } from './passkey-env';
@@ -30,9 +34,8 @@ export function PasskeyConditionalAutofill() {
 
         const options = await fetchPasskeyLoginOptions();
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const asseResp = await startAuthentication({
-          optionsJSON: options as any,
+          optionsJSON: options as PublicKeyCredentialRequestOptionsJSON,
           useBrowserAutofill: true,
         });
         const { access_token } = await verifyPasskeyLoginClient(asseResp);

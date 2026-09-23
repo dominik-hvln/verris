@@ -26,17 +26,18 @@ export default function NewTicketPage() {
   const [kb, setKb] = useState<KbSuggestion[]>([]);
 
   // SUP-1 — pobierz podpowiedzi KB gdy temat+tytuł dają sensowne zapytanie.
+  const queryTooShort = subject.trim().length < 3 && !topic;
+  // Za krótkie zapytanie od razu gasi podpowiedzi — w renderze, nie efektem.
+  if (queryTooShort && kb.length > 0) setKb([]);
+
   useEffect(() => {
     const q = subject.trim();
-    if (q.length < 3 && !topic) {
-      setKb([]);
-      return;
-    }
+    if (queryTooShort) return;
     const handle = setTimeout(() => {
       void fetchKbSuggestions(q || topic, topic || undefined).then(setKb);
     }, 450);
     return () => clearTimeout(handle);
-  }, [subject, topic]);
+  }, [subject, topic, queryTooShort]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();

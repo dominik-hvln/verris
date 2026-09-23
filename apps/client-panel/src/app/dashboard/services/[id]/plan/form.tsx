@@ -46,9 +46,14 @@ export function PlanChangeForm({
   targetPlans,
   initialPreview = null,
 }: Props) {
-  const [selectedId, setSelectedId] = useState<string>(targetPlans[0]?.id ?? currentPlanId);
+  const initialSelectedId = targetPlans[0]?.id ?? currentPlanId;
+  const [selectedId, setSelectedId] = useState<string>(initialSelectedId);
   const [targetInterval, setTargetInterval] = useState<'MONTH' | 'YEAR'>(interval);
-  const [preview, setPreview] = useState<PlanChangePreviewDto | null>(initialPreview);
+  // Bieżący plan w bieżącym okresie nie ma podglądu zmiany — od razu w stanie
+  // początkowym, zamiast czyszczenia efektem po montażu.
+  const [preview, setPreview] = useState<PlanChangePreviewDto | null>(
+    initialSelectedId && initialSelectedId === currentPlanId ? null : initialPreview,
+  );
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [pendingPreview, startPreview] = useTransition();
   const [state, formAction, pendingChange] = useActionState<PlanChangeActionState, FormData>(
@@ -56,18 +61,8 @@ export function PlanChangeForm({
     {},
   );
 
-  const loadPreview = useCallback(
+  const fetchPreview = useCallback(
     (planId: string, billingInterval: 'MONTH' | 'YEAR') => {
-      if (!planId) {
-        setPreview(null);
-        setPreviewError(null);
-        return;
-      }
-      if (planId === currentPlanId && billingInterval === interval) {
-        setPreview(null);
-        setPreviewError(null);
-        return;
-      }
       startPreview(async () => {
         const res = await previewPlanChangeAction(
           subscriptionId,
@@ -83,7 +78,24 @@ export function PlanChangeForm({
         }
       });
     },
-    [subscriptionId, currentPlanId, interval],
+    [subscriptionId],
+  );
+
+  const loadPreview = useCallback(
+    (planId: string, billingInterval: 'MONTH' | 'YEAR') => {
+      if (!planId) {
+        setPreview(null);
+        setPreviewError(null);
+        return;
+      }
+      if (planId === currentPlanId && billingInterval === interval) {
+        setPreview(null);
+        setPreviewError(null);
+        return;
+      }
+      fetchPreview(planId, billingInterval);
+    },
+    [currentPlanId, interval, fetchPreview],
   );
 
   const onSelect = (planId: string) => {
@@ -97,7 +109,7 @@ export function PlanChangeForm({
   };
 
   useEffect(() => {
-    if (selectedId) loadPreview(selectedId, targetInterval);
+    if (selectedId && selectedId !== currentPlanId) fetchPreview(selectedId, targetInterval);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- initial load only
   }, []);
 

@@ -179,7 +179,6 @@ function DomainPhpSection({ serviceId }: { serviceId: string }) {
 
   useEffect(() => {
     if (!domain) return;
-    setStatus(null);
     void fetchDomainPhp(serviceId, domain).then((res) => {
       setStatus(res);
       if (res) setVersion(res.currentVersion ?? res.slotReleases[0] ?? '');
@@ -214,7 +213,11 @@ function DomainPhpSection({ serviceId }: { serviceId: string }) {
           <span className="text-xs text-neutral-400">Domena</span>
           <Select
             value={domain}
-            onChange={setDomain}
+            onChange={(d: string) => {
+              // Status poprzedniej domeny znika od razu, do czasu odpowiedzi dla nowej.
+              if (d !== domain) setStatus(null);
+              setDomain(d);
+            }}
             aria-label="Domena"
             options={domains.map((d) => ({ value: d, label: d }))}
           />

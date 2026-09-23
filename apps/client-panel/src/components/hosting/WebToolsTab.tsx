@@ -35,17 +35,22 @@ export default function WebToolsTab({ serviceId }: { serviceId: string }) {
   const [pPass, setPPass] = useState('');
   const [pBusy, setPBusy] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
-      const res = await fetchWebToolsAction(serviceId);
-      setState({ ...EMPTY, ...res.state, hotlink: { ...EMPTY.hotlink, ...res.state.hotlink } });
-      setFetchError(res.fetchError);
-    } catch (e) {
-      setFetchError(e instanceof Error ? e.message : 'Nie udało się pobrać ustawień.');
-    } finally {
-      setLoading(false);
-    }
-  }, [serviceId]);
+  // `.then` zamiast `await` — lint React Compilera nie widzi `await` w useCallback i zgłasza fałszywy setState w efekcie.
+  const load = useCallback(
+    () =>
+      fetchWebToolsAction(serviceId)
+        .then((res) => {
+          setState({ ...EMPTY, ...res.state, hotlink: { ...EMPTY.hotlink, ...res.state.hotlink } });
+          setFetchError(res.fetchError);
+        })
+        .catch((e) => {
+          setFetchError(e instanceof Error ? e.message : 'Nie udało się pobrać ustawień.');
+        })
+        .finally(() => {
+          setLoading(false);
+        }),
+    [serviceId],
+  );
   useEffect(() => { void load(); }, [load]);
 
   const persist = async (next: WebToolsState, okMsg: string) => {
@@ -135,7 +140,7 @@ export default function WebToolsTab({ serviceId }: { serviceId: string }) {
       <section className="mt-6 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-white"><ArrowRightLeft className="h-4 w-4 text-emerald-300" /> Przekierowania URL</h3>
         <p className="mt-1 text-xs text-neutral-400">Trwałe (301) lub tymczasowe (302) przekierowanie adresu na inny URL. Przy zmianie adresu strony wybierz <span className="text-neutral-200">301 (trwałe)</span> — wyszukiwarki przeniosą pozycję na nowy adres.</p>
-        <p className="mt-1 text-[11px] text-neutral-500">Przykład: <span className="font-mono text-neutral-300">/oferta</span> → <span className="font-mono text-neutral-300">https://twojadomena.pl/cennik</span>. W polu „z" podaj samą ścieżkę (od <span className="font-mono">/</span>), w polu „na" pełny adres lub ścieżkę.</p>
+        <p className="mt-1 text-[11px] text-neutral-500">Przykład: <span className="font-mono text-neutral-300">/oferta</span> → <span className="font-mono text-neutral-300">https://twojadomena.pl/cennik</span>. W polu „z” podaj samą ścieżkę (od <span className="font-mono">/</span>), w polu „na” pełny adres lub ścieżkę.</p>
         <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1.3fr_auto_auto]">
           <input value={rFrom} onChange={(e) => setRFrom(e.target.value)} placeholder="/stara-strona" className={field} />
           <input value={rTo} onChange={(e) => setRTo(e.target.value)} placeholder="https://cel.pl/nowa" className={field} />

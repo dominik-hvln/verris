@@ -37,11 +37,15 @@ export default function StagingTab({ serviceId }: StagingTabProps) {
   const [error, setError] = useState<string | null>(null);
   const [confirmPush, setConfirmPush] = useState(false);
 
-  const refresh = useCallback(async () => {
-    const s = await getStagingEnv(serviceId);
-    setStatus(s);
-    setLoading(false);
-  }, [serviceId]);
+  // `.then` zamiast `await` — lint React Compilera nie widzi `await` w useCallback i zgłasza fałszywy setState w efekcie.
+  const refresh = useCallback(
+    () =>
+      getStagingEnv(serviceId).then((s) => {
+        setStatus(s);
+        setLoading(false);
+      }),
+    [serviceId],
+  );
 
   useEffect(() => {
     void refresh();

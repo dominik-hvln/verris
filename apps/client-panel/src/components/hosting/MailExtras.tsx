@@ -167,7 +167,7 @@ export default function MailExtras({ serviceId }: { serviceId: string }) {
           <MailCheck className="h-4 w-4 text-emerald-300" /> Autorespondery (wiadomości automatyczne)
         </h3>
         <p className="mt-1 text-xs text-neutral-400">
-          Automatyczna odpowiedź wysyłana z wybranej skrzynki — np. komunikat urlopowy „Wrócę 15 lipca".
+          Automatyczna odpowiedź wysyłana z wybranej skrzynki — np. komunikat urlopowy „Wrócę 15 lipca”.
         </p>
         <form onSubmit={saveAr} className="mt-3 space-y-2">
           <input value={arName} onChange={(e) => setArName(e.target.value)} placeholder="skrzynka (lewa część przed @, np. kontakt)" className={fieldCls} />
@@ -209,7 +209,7 @@ export default function MailExtras({ serviceId }: { serviceId: string }) {
           )}
           <Button onClick={saveCatchAll} disabled={caBusy} className="h-9 gap-1.5 bg-emerald-600 text-white hover:bg-emerald-500 text-xs">{caBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} Zapisz</Button>
         </div>
-        <p className="mt-2 text-[11px] text-neutral-500">„Odrzucaj" ogranicza spam (nadawca dostaje błąd). „Przyjmij i wyrzuć" cicho kasuje — bez powiadomienia nadawcy.</p>
+        <p className="mt-2 text-[11px] text-neutral-500">„Odrzucaj” ogranicza spam (nadawca dostaje błąd). „Przyjmij i wyrzuć” cicho kasuje — bez powiadomienia nadawcy.</p>
       </section>
 
       {/* Filtr antyspam */}
@@ -228,7 +228,7 @@ export default function MailExtras({ serviceId }: { serviceId: string }) {
           </label>
           <Button onClick={() => saveSpam(true)} disabled={spamBusy} className="h-9 gap-1.5 bg-white/10 text-white hover:bg-white/20 text-xs">{spamBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} Zapisz ustawienia</Button>
         </div>
-        <p className="mt-2 text-[11px] text-neutral-500">Typowy próg to 5. Wiadomości powyżej progu dostają tag w temacie (np. „***SPAM***").</p>
+        <p className="mt-2 text-[11px] text-neutral-500">Typowy próg to 5. Wiadomości powyżej progu dostają tag w temacie (np. „***SPAM***”).</p>
       </section>
     </div>
   );

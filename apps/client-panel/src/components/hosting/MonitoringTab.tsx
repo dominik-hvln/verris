@@ -23,11 +23,19 @@ export default function MonitoringTab({ serviceId }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
-    const s = await getMonitoringStatus(serviceId);
-    setStatus(s);
-    setLoading(false);
-  }, [serviceId]);
+  // Chwila ostatniego odczytu — z niej liczymy dni do końca certyfikatu (Date.now() w renderze byłby nieczysty).
+  const [checkedAt, setCheckedAt] = useState(0);
+
+  // `.then` zamiast `await` — lint React Compilera nie widzi `await` w useCallback i zgłasza fałszywy setState w efekcie.
+  const refresh = useCallback(
+    () =>
+      getMonitoringStatus(serviceId).then((s) => {
+        setStatus(s);
+        setCheckedAt(Date.now());
+        setLoading(false);
+      }),
+    [serviceId],
+  );
 
   useEffect(() => {
     void refresh();
@@ -113,7 +121,7 @@ export default function MonitoringTab({ serviceId }: Props) {
           </Kpi>
           <Kpi
             label="Certyfikat SSL"
-            value={status.tlsExpiresAt ? Math.max(0, Math.ceil((new Date(status.tlsExpiresAt).getTime() - Date.now()) / 86_400_000)) : '—'}
+            value={status.tlsExpiresAt ? Math.max(0, Math.ceil((new Date(status.tlsExpiresAt).getTime() - checkedAt) / 86_400_000)) : '—'}
             unit={status.tlsExpiresAt ? 'dni' : undefined}
             foot={<span>{status.tlsExpiresAt ? `do ${new Date(status.tlsExpiresAt).toLocaleDateString('pl-PL')}` : 'brak danych o certyfikacie'}</span>}
           />

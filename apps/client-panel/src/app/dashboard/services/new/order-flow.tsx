@@ -169,10 +169,8 @@ function StartChooser({ offer, trialPlansExist }: { offer: TrialOffer; trialPlan
   // istnieje plan z trialem ORAZ konto jest jeszcze uprawnione (1 trial/konto).
   const [trialEligible, setTrialEligible] = useState<boolean | null>(null);
   useEffect(() => {
-    if (!offer.freeEnabled || !trialPlansExist) {
-      setTrialEligible(false);
-      return;
-    }
+    // Bez oferty trialu `showFree` i tak jest fałszem — nie ma czego ustawiać.
+    if (!offer.freeEnabled || !trialPlansExist) return;
     void getTrialEligibilityAction()
       .then((r) => setTrialEligible(r.eligible))
       .catch(() => setTrialEligible(false));

@@ -60,7 +60,6 @@ function CreateCampaignForm() {
 
   useEffect(() => {
     let active = true;
-    setEstimate(null);
     estimateSegment(segment)
       .then((r) => active && setEstimate(r.count))
       .catch(() => active && setEstimate(null));
@@ -158,7 +157,11 @@ function CreateCampaignForm() {
       <Field label="Lista odbiorców (segment)">
         <select
           value={segment}
-          onChange={(e) => setSegment(e.target.value as MarketingSegment)}
+          onChange={(e) => {
+            setSegment(e.target.value as MarketingSegment);
+            // Stary szacunek nie dotyczy nowego segmentu — gasimy go do czasu odpowiedzi.
+            setEstimate(null);
+          }}
           className="input"
         >
           {SEGMENTS.map((s) => (

@@ -27,7 +27,7 @@ export default function Page() {
             <h2>Dlaczego sklep na Verris</h2>
             <ul>
               <li>Autoskalowanie do 24 vCPU i 64 GB RAM — pik sprzedaży nie kończy się błędem 503.</li>
-              <li>Płacisz za realne użycie, nie za najdroższy pakiet „na wszelki wypadek".</li>
+              <li>Płacisz za realne użycie, nie za najdroższy pakiet „na wszelki wypadek”.</li>
               <li>SSL w cenie — koszyk i płatności po HTTPS bez dopłat.</li>
               <li>Kopie zapasowe z odtwarzaniem, gdy aktualizacja wtyczki pójdzie nie tak.</li>
               <li>Obsługa starych wersji PHP — motyw i wtyczki nie muszą nadążać od pierwszego dnia.</li>

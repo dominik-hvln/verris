@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { startAuthentication } from "@simplewebauthn/browser";
 import { fetchPasskeyLoginOptions, verifyPasskeyLoginClient } from "@/lib/passkey-client";
 import { getAdminPasskeyAvailability, setAdminPasskeyAuthCookie } from "./passkey-actions";
+
+// Wsparcie WebAuthn nie zmienia się w trakcie życia strony — nie ma czego subskrybować.
+const subscribeNoop = () => () => {};
 
 /** Logowanie passkey do panelu admina (discoverable credentials). */
 export function AdminPasskeyLoginButton() {
@@ -12,18 +15,20 @@ export function AdminPasskeyLoginButton() {
   const [error, setError] = useState<string | null>(null);
   const [available, setAvailable] = useState<boolean | null>(null);
   const [isPending, setIsPending] = useState(false);
-  // Render dopiero po montażu — inaczej hydration mismatch (React #418).
-  const [mounted, setMounted] = useState(false);
   const prefetchedOptions = useRef<unknown | null>(null);
-  const supported =
-    typeof window !== "undefined" && typeof window.PublicKeyCredential !== "undefined";
+  // Serwer i hydratacja widzą `false`, klient po hydratacji — faktyczne wsparcie;
+  // bez tego hydration mismatch (React #418).
+  const supported = useSyncExternalStore(
+    subscribeNoop,
+    () => typeof window.PublicKeyCredential !== "undefined",
+    () => false,
+  );
 
   useEffect(() => {
-    setMounted(true);
     void getAdminPasskeyAvailability().then(setAvailable);
   }, []);
 
-  if (!mounted || !supported || available === false) return null;
+  if (!supported || available === false) return null;
 
   const onPointerDown = () => {
     void fetchPasskeyLoginOptions()

@@ -212,7 +212,7 @@ export default function HomePage() {
           <div className="sec-head rv">
             <p className="kicker">Autoskalowanie</p>
             <h2>Moc rośnie z ruchem. Rachunek — tylko za realne użycie.</h2>
-            <p>Koniec z pakietem dobieranym „na zapas". Baza jest w abonamencie, a nadwyżkę płacisz godzinowo — sekundę po piku naliczanie się kończy.</p>
+            <p>Koniec z pakietem dobieranym „na zapas”. Baza jest w abonamencie, a nadwyżkę płacisz godzinowo — sekundę po piku naliczanie się kończy.</p>
           </div>
           <div className="steps">
             <div className="step rv"><span className="n">01</span><h3>Baza w abonamencie</h3><p>50 GB NVMe oraz do 8 GB RAM i do 2 vCPU w ramach abonamentu 45 zł/mies. Dla większości stron to z zapasem wystarczy.</p></div>

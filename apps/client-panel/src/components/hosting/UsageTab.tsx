@@ -12,31 +12,34 @@ export default function UsageTab({ serviceId }: { serviceId: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(
-    async (silent = false) => {
-      if (!silent) setLoading(true);
-      setError(null);
-      try {
-        setUsage(await fetchHostingUsageAction(serviceId, window));
-      } catch (e) {
-        if (!silent) setError(e instanceof Error ? e.message : 'Nie udało się pobrać metryk użycia.');
-      } finally {
-        if (!silent) setLoading(false);
-      }
-    },
+  // Samo pobranie. Spinner i czyszczenie błędu przy montażu daje stan początkowy,
+  // a przy zmianie okna — onClick przełącznika; efekt niczego nie ustawia synchronicznie.
+  const fetchUsage = useCallback(
+    (silent: boolean) =>
+      fetchHostingUsageAction(serviceId, window)
+        .then(setUsage)
+        .catch((e) => {
+          if (!silent) setError(e instanceof Error ? e.message : 'Nie udało się pobrać metryk użycia.');
+        })
+        .finally(() => {
+          if (!silent) setLoading(false);
+        }),
     [serviceId, window],
   );
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    void fetchUsage(false);
+  }, [fetchUsage]);
 
   // Live refresh: the node agent pushes a new 1-minute bucket each minute, so we
   // silently refetch every 30 s (no spinner) while the tab is open.
   useEffect(() => {
-    const id = setInterval(() => void load(true), 30_000);
+    const id = setInterval(() => {
+      setError(null);
+      void fetchUsage(true);
+    }, 30_000);
     return () => clearInterval(id);
-  }, [load]);
+  }, [fetchUsage]);
 
   const latest = usage?.rows.at(-1);
   const chart = useMemo(() => usage?.rows.slice(-48) ?? [], [usage]);
@@ -54,7 +57,13 @@ export default function UsageTab({ serviceId }: { serviceId: string }) {
                 type="button"
                 role="tab"
                 aria-selected={window === value}
-                onClick={() => setWindow(value)}
+                onClick={() => {
+                  if (value !== window) {
+                    setLoading(true);
+                    setError(null);
+                  }
+                  setWindow(value);
+                }}
                 className={`rounded-[5px] px-2.5 py-1 text-[13px] ${window === value ? 'bg-raised font-semibold text-foreground' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 {value}

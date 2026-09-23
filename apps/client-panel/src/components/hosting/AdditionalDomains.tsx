@@ -29,21 +29,26 @@ export default function AdditionalDomains({ serviceId }: { serviceId: string }) 
   const [aBusy, setABusy] = useState(false);
   const [aDel, setADel] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      const [res, ptr] = await Promise.all([
+  // `.then` zamiast `await` — lint React Compilera nie widzi `await` w useCallback i zgłasza fałszywy setState w efekcie.
+  const load = useCallback(
+    () =>
+      Promise.all([
         fetchAdditionalDomainsAction(serviceId),
         fetchDomainPointersAction(serviceId).catch(() => ({ rows: [], primary: null, fetchError: null })),
-      ]);
-      setRows(res.rows);
-      setFetchError(res.fetchError);
-      setAliases(ptr.rows);
-    } catch (e) {
-      setFetchError(e instanceof Error ? e.message : 'Nie udało się pobrać domen.');
-    } finally {
-      setLoading(false);
-    }
-  }, [serviceId]);
+      ])
+        .then(([res, ptr]) => {
+          setRows(res.rows);
+          setFetchError(res.fetchError);
+          setAliases(ptr.rows);
+        })
+        .catch((e) => {
+          setFetchError(e instanceof Error ? e.message : 'Nie udało się pobrać domen.');
+        })
+        .finally(() => {
+          setLoading(false);
+        }),
+    [serviceId],
+  );
   useEffect(() => { void load(); }, [load]);
 
   const addAlias = async (e: React.FormEvent) => {

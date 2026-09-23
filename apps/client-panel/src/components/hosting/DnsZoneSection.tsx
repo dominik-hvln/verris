@@ -25,26 +25,36 @@ export default function DnsZoneSection({
   const [domain, setDomain] = useState<string | null>(primaryDomain ?? domains[0]?.name ?? null);
   const [records, setRecords] = useState<HostingDnsRecordDto[]>([]);
   const [fetchError, setFetchError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  // Strefa wybranej domeny ładuje się od razu po montażu.
+  const [loading, setLoading] = useState(domain !== null);
+
+  // Samo pobranie; spinner włączają montaż (stan początkowy), zmiana domeny i `load`.
+  const fetchZone = useCallback(
+    (d: string) =>
+      fetchHostingDnsAction(serviceId, d)
+        .then((res) => {
+          setRecords(res.records);
+          setFetchError(res.fetchError);
+        })
+        .catch((e) => {
+          setRecords([]);
+          setFetchError(e instanceof Error ? e.message : 'Nie udało się pobrać strefy DNS.');
+        })
+        .finally(() => {
+          setLoading(false);
+        }),
+    [serviceId],
+  );
 
   const load = useCallback(async () => {
     if (!domain) return;
     setLoading(true);
-    try {
-      const res = await fetchHostingDnsAction(serviceId, domain);
-      setRecords(res.records);
-      setFetchError(res.fetchError);
-    } catch (e) {
-      setRecords([]);
-      setFetchError(e instanceof Error ? e.message : 'Nie udało się pobrać strefy DNS.');
-    } finally {
-      setLoading(false);
-    }
-  }, [serviceId, domain]);
+    await fetchZone(domain);
+  }, [domain, fetchZone]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (domain) void fetchZone(domain);
+  }, [domain, fetchZone]);
 
   if (!domain) return null;
 
@@ -56,7 +66,10 @@ export default function DnsZoneSection({
           <Select
             aria-label="Domena strefy DNS"
             value={domain}
-            onChange={setDomain}
+            onChange={(d: string) => {
+              if (d !== domain) setLoading(true);
+              setDomain(d);
+            }}
             options={domains.map((d) => ({ value: d.name, label: d.name }))}
             className="h-8 text-xs"
           />

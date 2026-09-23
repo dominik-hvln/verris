@@ -156,7 +156,7 @@ export function VpnManager({ initial }: { initial: VpnOverviewDto }) {
           <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 overflow-hidden">
             <div className="flex items-center justify-between flex-wrap gap-2 border-b border-emerald-500/20 px-4 py-2.5">
               <span className="text-sm text-emerald-200 font-medium">
-                Konfiguracja „{oneTimeConfig.name}" — widoczna TYLKO TERAZ (klucz prywatny nie jest
+                Konfiguracja „{oneTimeConfig.name}” — widoczna TYLKO TERAZ (klucz prywatny nie jest
                 zapisywany)
               </span>
               <span className="flex gap-2">
@@ -181,7 +181,7 @@ export function VpnManager({ initial }: { initial: VpnOverviewDto }) {
               <code>{oneTimeConfig.config}</code>
             </pre>
             <p className="px-4 pb-3 text-[11px] text-muted-foreground">
-              Import: aplikacja WireGuard → „Add tunnel from file". Przekaż pracownikowi bezpiecznym
+              Import: aplikacja WireGuard → „Add tunnel from file”. Przekaż pracownikowi bezpiecznym
               kanałem (nie e-mailem). Peer będzie aktywny na serwerze do ~1 min.
             </p>
           </div>

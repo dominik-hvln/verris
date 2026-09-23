@@ -50,11 +50,15 @@ export default function WafTab({ serviceId }: Props) {
   const [saving, setSaving] = useState<WafMode | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
-    const s = await getWafStatus(serviceId);
-    setStatus(s);
-    setLoading(false);
-  }, [serviceId]);
+  // `.then` zamiast `await` — lint React Compilera nie widzi `await` w useCallback i zgłasza fałszywy setState w efekcie.
+  const refresh = useCallback(
+    () =>
+      getWafStatus(serviceId).then((s) => {
+        setStatus(s);
+        setLoading(false);
+      }),
+    [serviceId],
+  );
 
   useEffect(() => {
     void refresh();

@@ -17,7 +17,7 @@ export default function AppsTab({ serviceId }: { serviceId: string }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
+    // `loading` startuje jako true; serviceId pochodzi z trasy, więc jego zmiana to nowy montaż.
     void fetchAppsStatus(serviceId)
       .then(setStatus)
       .finally(() => setLoading(false));

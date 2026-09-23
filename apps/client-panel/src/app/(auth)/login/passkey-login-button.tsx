@@ -1,10 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
-import { startAuthentication } from '@simplewebauthn/browser';
+import { startAuthentication, type PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/browser';
 import { fetchPasskeyLoginOptions, verifyPasskeyLoginClient } from '@/lib/passkey-client';
 import { getPasskeyAvailability, setPasskeyAuthCookie } from './passkey-actions';
+
+// Wsparcie WebAuthn nie zmienia się w trakcie życia strony — nie ma czego subskrybować.
+const subscribeNoop = () => () => {};
 
 /**
  * Logowanie passkey (discoverable credentials) — bez wpisywania e-mail.
@@ -15,12 +18,14 @@ export function PasskeyLoginButton() {
   const [error, setError] = useState<string | null>(null);
   const [available, setAvailable] = useState<boolean | null>(null);
   const [isPending, setIsPending] = useState(false);
-  // Render dopiero po montażu — inaczej serwer (brak window) i klient renderują
-  // różny HTML → hydration mismatch (React #418).
-  const [mounted, setMounted] = useState(false);
   const prefetchedOptions = useRef<unknown | null>(null);
-  const supported =
-    typeof window !== 'undefined' && typeof window.PublicKeyCredential !== 'undefined';
+  // Serwer (brak window) i hydratacja widzą `false`, klient po hydratacji — faktyczne
+  // wsparcie; bez tego różny HTML → hydration mismatch (React #418).
+  const supported = useSyncExternalStore(
+    subscribeNoop,
+    () => typeof window.PublicKeyCredential !== 'undefined',
+    () => false,
+  );
 
   // Safari wymaga synchronicznego startAuthentication() w geście — dlatego
   // prefetchujemy opcje (discoverable, świeży challenge) zawczasu: na montażu
@@ -36,17 +41,17 @@ export function PasskeyLoginButton() {
   }, []);
 
   useEffect(() => {
-    setMounted(true);
     // Prefetch NATYCHMIAST (równolegle do sprawdzania dostępności) — by w chwili
     // kliknięcia opcje były gotowe i startAuthentication ruszyło synchronicznie
-    // w geście (krytyczne dla Safari).
-    if (supported) prefetch();
+    // w geście (krytyczne dla Safari). Wsparcie czytamy wprost z `window`, żeby
+    // efekt nie odpalał drugi raz po przełączeniu `supported` po hydratacji.
+    if (typeof window.PublicKeyCredential !== 'undefined') prefetch();
     void getPasskeyAvailability().then((ok) => {
       setAvailable(ok);
     });
-  }, [prefetch, supported]);
+  }, [prefetch]);
 
-  if (!mounted || !supported || available === false) return null;
+  if (!supported || available === false) return null;
 
   const onClick = async () => {
     setError(null);
@@ -55,8 +60,9 @@ export function PasskeyLoginButton() {
       const options = prefetchedOptions.current ?? (await fetchPasskeyLoginOptions());
       prefetchedOptions.current = null;
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const asseResp = await startAuthentication({ optionsJSON: options as any });
+      const asseResp = await startAuthentication({
+        optionsJSON: options as PublicKeyCredentialRequestOptionsJSON,
+      });
       const { access_token } = await verifyPasskeyLoginClient(asseResp);
       await setPasskeyAuthCookie(access_token);
       router.push('/dashboard');

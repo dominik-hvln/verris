@@ -24,9 +24,10 @@ export default async function CalculatorPage({
   const result = await listAutoscalingPricing();
   const rules = result.ok ? result.rules : [];
   const sp = await searchParams;
-  const initialCpu = parsePositiveInt(sp.cpu, 50);
-  const initialRamGb = parsePositiveFloat(sp.ramGb, 0.5);
-  const initialDiskGb = parsePositiveFloat(sp.diskGb, 0);
+  // Górne granice = zakresy suwaków kalkulatora; parametr z adresu nie może ich przekroczyć.
+  const initialCpu = Math.min(parsePositiveInt(sp.cpu, 50), 400);
+  const initialRamGb = Math.min(parsePositiveFloat(sp.ramGb, 0.5), 32);
+  const initialDiskGb = Math.min(parsePositiveFloat(sp.diskGb, 0), 500);
 
   return (
     <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
@@ -41,7 +42,13 @@ export default async function CalculatorPage({
         </p>
       )}
 
-      <AutoscalingCalculator rules={rules} />
+      {/* Link z autoskalowania (`?cpu=…&ramGb=…&diskGb=…`) otwiera kalkulator na wartościach klienta. */}
+      <AutoscalingCalculator
+        rules={rules}
+        initialCpuPercent={initialCpu}
+        initialRamGb={initialRamGb}
+        initialDiskGb={initialDiskGb}
+      />
     </div>
   );
 }

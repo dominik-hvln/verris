@@ -7,7 +7,6 @@ import {
   Clock,
   Download,
   FileDown,
-  History,
   Loader2,
   ShieldAlert,
   Trash2,
@@ -119,7 +118,7 @@ export function PrivacyTab({
         <h2 className="text-xl font-bold text-white mb-2">Prywatność i dane</h2>
         <p className="text-neutral-400">
           Przejrzyj swoje zgody, pobierz kopię danych lub złóż wniosek o usunięcie konta zgodnie z
-          RODO. Preferencje e-mail znajdziesz w zakładce „Powiadomienia".
+          RODO. Preferencje e-mail znajdziesz w zakładce „Powiadomienia”.
         </p>
       </header>
 

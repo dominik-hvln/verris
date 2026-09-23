@@ -55,17 +55,22 @@ export function NodeStackReadinessPanel({
   const [repairMsg, setRepairMsg] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const load = useCallback(async () => {
-    const result = await fetchNodeStackReadiness(serverId);
-    if ("error" in result && result.error) {
-      setError(result.error);
-      return;
-    }
-    if (result.data) {
-      setReport(result.data);
-      setError(null);
-    }
-  }, [serverId]);
+  // `.then` zamiast `await`: lint React Compilera nie śledzi `await` w useCallback
+  // i brałby setState po odpowiedzi za synchroniczny setState w efekcie.
+  const load = useCallback(
+    () =>
+      fetchNodeStackReadiness(serverId).then((result) => {
+        if ("error" in result && result.error) {
+          setError(result.error);
+          return;
+        }
+        if (result.data) {
+          setReport(result.data);
+          setError(null);
+        }
+      }),
+    [serverId],
+  );
 
   useEffect(() => {
     void load();

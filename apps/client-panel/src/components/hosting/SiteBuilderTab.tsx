@@ -14,7 +14,6 @@ import {
   AlertTriangle,
   Monitor,
   Smartphone,
-  LayoutTemplate,
   GripVertical,
   Image as ImageIcon,
   Folder,
@@ -1176,7 +1175,7 @@ export default function SiteBuilderTab({ serviceId }: { serviceId: string }) {
                   <button onClick={() => deletePage(activePage.id)} className="inline-flex items-center gap-1 text-xs text-rose-300"><Trash2 className="h-3 w-3" /> Usuń tę stronę</button>
                 )}
               </div>
-              <p className="text-[10px] text-neutral-500">Strona „index" to strona główna. Nawigacja w menu linkuje automatycznie do wszystkich stron. Świetne do bloga: zduplikuj stronę „Wpis" dla każdego artykułu.</p>
+              <p className="text-[10px] text-neutral-500">Strona „index” to strona główna. Nawigacja w menu linkuje automatycznie do wszystkich stron. Świetne do bloga: zduplikuj stronę „Wpis” dla każdego artykułu.</p>
             </div>
           </details>
 
@@ -1211,7 +1210,7 @@ export default function SiteBuilderTab({ serviceId }: { serviceId: string }) {
           <div className="space-y-1.5 border-t border-white/10 pt-3">
             <label className="block text-xs text-neutral-500">Katalog publikacji</label>
             <input value={publishDir} onChange={(e) => setPublishDir(e.target.value)} className="w-full rounded-lg border border-white/10 bg-black/40 px-2 py-1.5 text-sm text-white" />
-            <p className="text-[11px] text-neutral-500">„Publikuj" zapisze wszystkie strony (index.html + podstrony) w <code>{PUBLISH_DEFAULT}</code>.</p>
+            <p className="text-[11px] text-neutral-500">„Publikuj” zapisze wszystkie strony (index.html + podstrony) w <code>{PUBLISH_DEFAULT}</code>.</p>
           </div>
         </div>
       </div>
@@ -1303,7 +1302,7 @@ function SectionEditor({ section, serviceId, onChange }: { section: Section; ser
     case 'table':
       return <div className="space-y-2">{F('title', 'Tytuł')}<StrList label="Nagłówki kolumn" items={(d.headers as string[]) ?? []} onChange={(headers) => onChange({ headers })} /><ObjList label="Wiersze (komórki w osobnych liniach)" items={(d.rows as Rec[]) ?? []} fields={[['cells', 'Komórki — jedna w wierszu', true]]} factory={() => ({ cells: 'Kol 1\nKol 2\nKol 3' })} onChange={(rows) => onChange({ rows })} /><p className="text-[11px] text-neutral-500">W każdym wierszu wpisz komórki jedna pod drugą — kolejność = kolumny.</p></div>;
     case 'blog':
-      return <div className="space-y-2">{F('title', 'Tytuł')}{F('subtitle', 'Podtytuł')}<ObjList label="Wpisy" serviceId={serviceId} items={(d.items as Rec[]) ?? []} fields={[['image', 'Miniatura', false, true], ['title', 'Tytuł'], ['excerpt', 'Zajawka', true], ['date', 'Data'], ['href', 'Link do wpisu (np. wpis.html)']]} factory={() => ({ image: 'https://picsum.photos/seed/n/600/360', title: 'Nowy wpis', excerpt: '', date: '', href: '#' })} onChange={(items) => onChange({ items })} /><p className="text-[11px] text-neutral-500">Wskazówka: dodaj osobną stronę z sekcją „Wpis bloga" i podlinkuj ją tutaj.</p></div>;
+      return <div className="space-y-2">{F('title', 'Tytuł')}{F('subtitle', 'Podtytuł')}<ObjList label="Wpisy" serviceId={serviceId} items={(d.items as Rec[]) ?? []} fields={[['image', 'Miniatura', false, true], ['title', 'Tytuł'], ['excerpt', 'Zajawka', true], ['date', 'Data'], ['href', 'Link do wpisu (np. wpis.html)']]} factory={() => ({ image: 'https://picsum.photos/seed/n/600/360', title: 'Nowy wpis', excerpt: '', date: '', href: '#' })} onChange={(items) => onChange({ items })} /><p className="text-[11px] text-neutral-500">Wskazówka: dodaj osobną stronę z sekcją „Wpis bloga” i podlinkuj ją tutaj.</p></div>;
     case 'article':
       return <div className="space-y-2">{F('title', 'Tytuł artykułu')}{F('author', 'Autor')}{F('date', 'Data')}{Img('cover', 'Obraz główny (URL lub z plików)')}{F('body', 'Treść (pusty wiersz = akapit)', true)}</div>;
     case 'download':
@@ -1323,13 +1322,13 @@ function SectionEditor({ section, serviceId, onChange }: { section: Section; ser
     case 'bento':
       return <div className="space-y-2">{F('title', 'Tytuł')}{F('subtitle', 'Podtytuł')}<ObjList label="Kafle (pierwszy jest duży)" items={(d.items as Rec[]) ?? []} fields={[['icon', 'Ikona (emoji)'], ['title', 'Tytuł'], ['desc', 'Opis', true]]} factory={() => ({ icon: '◆', title: 'Nowy kafel', desc: 'Opis…' })} onChange={(items) => onChange({ items })} /><p className="text-[11px] text-neutral-500">Pierwszy kafel wyświetla się jako duży (bento). Najlepiej 5 kafli.</p></div>;
     case 'marqueeText':
-      return <div className="space-y-2">{F('text', 'Słowa (oddziel przecinkami)')}<p className="text-[11px] text-neutral-500">Wielki, przewijający się napis. Np. „Projektujemy, Budujemy, Wdrażamy".</p></div>;
+      return <div className="space-y-2">{F('text', 'Słowa (oddziel przecinkami)')}<p className="text-[11px] text-neutral-500">Wielki, przewijający się napis. Np. „Projektujemy, Budujemy, Wdrażamy”.</p></div>;
     case 'pricingToggle':
       return <div className="space-y-2">{F('title', 'Tytuł')}{F('subtitle', 'Podtytuł')}<ObjList label="Plany" items={(d.plans as Rec[]) ?? []} fields={[['name', 'Nazwa'], ['monthly', 'Cena miesięczna'], ['annual', 'Cena roczna (za mies.)'], ['period', 'Okres (np. /mies.)'], ['features', 'Cechy (po jednej w wierszu)', true], ['ctaText', 'Przycisk']]} bools={[['featured', 'Polecany']]} factory={() => ({ name: 'Plan', monthly: '49', annual: '39', period: '/mies.', features: 'Cecha 1\nCecha 2', ctaText: 'Wybieram', featured: false })} onChange={(plans) => onChange({ plans })} /><p className="text-[11px] text-neutral-500">Przełącznik mies./rok działa automatycznie na opublikowanej stronie.</p></div>;
     case 'testimonialWall':
       return <div className="space-y-2">{F('title', 'Tytuł')}{F('subtitle', 'Podtytuł')}<ObjList label="Opinie" items={(d.items as Rec[]) ?? []} fields={[['quote', 'Cytat', true], ['author', 'Autor'], ['role', 'Rola / firma']]} factory={() => ({ quote: 'Świetna usługa!', author: 'Klient', role: '' })} onChange={(items) => onChange({ items })} /><p className="text-[11px] text-neutral-500">Awatary tworzymy automatycznie z inicjałów autora.</p></div>;
     case 'heroSplit':
-      return <div className="space-y-2">{F('eyebrow', 'Etykieta')}{F('title', 'Tytuł')}{F('subtitle', 'Podtytuł', true)}{F('ctaText', 'Przycisk główny')}{F('ctaHref', 'Link przycisku')}{F('ctaSecondary', 'Przycisk drugi (opcjonalnie)')}<ObjList label="Wskaźniki w mockupie (3)" items={(d.kpis as Rec[]) ?? []} fields={[['value', 'Wartość'], ['label', 'Opis']]} factory={() => ({ value: '100%', label: 'Opis' })} onChange={(kpis) => onChange({ kpis })} /><p className="text-[11px] text-neutral-500">Po prawej generujemy podgląd „okna aplikacji" (czysty CSS — bez obrazów).</p></div>;
+      return <div className="space-y-2">{F('eyebrow', 'Etykieta')}{F('title', 'Tytuł')}{F('subtitle', 'Podtytuł', true)}{F('ctaText', 'Przycisk główny')}{F('ctaHref', 'Link przycisku')}{F('ctaSecondary', 'Przycisk drugi (opcjonalnie)')}<ObjList label="Wskaźniki w mockupie (3)" items={(d.kpis as Rec[]) ?? []} fields={[['value', 'Wartość'], ['label', 'Opis']]} factory={() => ({ value: '100%', label: 'Opis' })} onChange={(kpis) => onChange({ kpis })} /><p className="text-[11px] text-neutral-500">Po prawej generujemy podgląd „okna aplikacji” (czysty CSS — bez obrazów).</p></div>;
     case 'showcase':
       return <div className="space-y-2">{F('title', 'Tytuł')}{F('subtitle', 'Podtytuł')}{F('caption', 'Podpis pod oknem')}<ObjList label="Wskaźniki w mockupie (3)" items={(d.kpis as Rec[]) ?? []} fields={[['value', 'Wartość'], ['label', 'Opis']]} factory={() => ({ value: '100%', label: 'Opis' })} onChange={(kpis) => onChange({ kpis })} /></div>;
     case 'heroEditorial':
@@ -1407,8 +1406,8 @@ function MediaPicker({ serviceId, onPick, onClose }: { serviceId: string; onPick
   const [uploading, setUploading] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
+  // Spinner i czyszczenie błędu ustawiają zdarzenia zmieniające `dir`/`reloadKey` (goTo, upload); efekt tylko pobiera.
   useEffect(() => {
-    setLoading(true); setErr(null);
     fmList(serviceId, dir).then((r) => setEntries(r.entries)).catch((e) => setErr(e instanceof Error ? e.message : 'Nie udało się wczytać plików.')).finally(() => setLoading(false));
   }, [serviceId, dir, reloadKey]);
   async function handleUpload(files: FileList | null) {
@@ -1423,6 +1422,7 @@ function MediaPicker({ serviceId, onPick, onClose }: { serviceId: string; onPick
         const r = await fmUpload(fd);
         if ('error' in r) { setErr(r.error); } else { lastName = file.name; }
       }
+      setLoading(true); setErr(null);
       setReloadKey((k) => k + 1);
       if (lastName) { onPick(webPath(lastName)); onClose(); }
     } catch (e) {
@@ -1430,7 +1430,12 @@ function MediaPicker({ serviceId, onPick, onClose }: { serviceId: string; onPick
     } finally { setUploading(false); }
   }
   const webPath = (name: string) => { const rel = dir.replace(/^public_html\/?/, ''); return '/' + (rel ? rel + '/' : '') + name; };
-  const up = () => setDir((d) => { const p = d.split('/').filter(Boolean); if (p.length <= 1) return 'public_html'; p.pop(); return p.join('/') || 'public_html'; });
+  const goTo = (next: string) => {
+    if (next === dir) return;
+    setLoading(true); setErr(null);
+    setDir(next);
+  };
+  const up = () => { const p = dir.split('/').filter(Boolean); if (p.length <= 1) return goTo('public_html'); p.pop(); goTo(p.join('/') || 'public_html'); };
   const dirs = entries.filter((e) => e.type === 'dir');
   const imgs = entries.filter((e) => e.type === 'file' && IMG_RE.test(e.name));
   return (
@@ -1454,12 +1459,12 @@ function MediaPicker({ serviceId, onPick, onClose }: { serviceId: string; onPick
           <p role="alert" className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm text-rose-200">{err}</p>
         ) : (
           <div className="max-h-[50vh] space-y-1 overflow-auto">
-            {dirs.map((e) => (<button key={e.name} onClick={() => setDir(`${dir}/${e.name}`)} className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-white hover:bg-white/5"><Folder className="h-4 w-4 text-amber-300" /> {e.name}</button>))}
+            {dirs.map((e) => (<button key={e.name} onClick={() => goTo(`${dir}/${e.name}`)} className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-white hover:bg-white/5"><Folder className="h-4 w-4 text-amber-300" /> {e.name}</button>))}
             {imgs.map((e) => (<button key={e.name} onClick={() => { onPick(webPath(e.name)); onClose(); }} className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-neutral-200 hover:bg-emerald-500/10"><ImageIcon className="h-4 w-4 text-emerald-300" /> {e.name}</button>))}
-            {dirs.length === 0 && imgs.length === 0 && (<p className="py-6 text-center text-sm text-neutral-500">Brak obrazów w tym folderze. Użyj „Wgraj obraz", aby dodać własne.</p>)}
+            {dirs.length === 0 && imgs.length === 0 && (<p className="py-6 text-center text-sm text-neutral-500">Brak obrazów w tym folderze. Użyj „Wgraj obraz”, aby dodać własne.</p>)}
           </div>
         )}
-        <p className="mt-3 text-[11px] text-neutral-500">Obrazy wgrywasz wprost tutaj („Wgraj obraz") do bieżącego folderu w <code>public_html</code> — od razu pojawią się na opublikowanej stronie.</p>
+        <p className="mt-3 text-[11px] text-neutral-500">Obrazy wgrywasz wprost tutaj („Wgraj obraz”) do bieżącego folderu w <code>public_html</code> — od razu pojawią się na opublikowanej stronie.</p>
       </div>
     </div>
   );

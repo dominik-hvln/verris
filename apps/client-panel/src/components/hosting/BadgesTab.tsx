@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Kpi, KpiStrip, SectionHead, StatusPill } from '@/components/panel/v2';
@@ -46,8 +46,13 @@ function embedCode(api: string, kind: Kind, id: string, motyw: Motyw, extra = ''
 function FramePreview({ src }: { src: string }) {
   const ref = useRef<HTMLIFrameElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0, cw: 0, ch: 0, fluid: false });
-  useEffect(() => {
+  // Nowe źródło zeruje rozmiar do czasu wiadomości z ramki — w renderze, nie efektem.
+  const [prevSrc, setPrevSrc] = useState(src);
+  if (src !== prevSrc) {
+    setPrevSrc(src);
     setSize({ w: 0, h: 0, cw: 0, ch: 0, fluid: false });
+  }
+  useEffect(() => {
     const on = (e: MessageEvent) => {
       if (e.source !== ref.current?.contentWindow || e.data?.v !== 'verris-badge') return;
       const n = (x: unknown) => (typeof x === 'number' && x >= 0 && x < 4000 ? x : 0);
@@ -98,17 +103,19 @@ export default function BadgesTab({ serviceId }: { serviceId: string }) {
   const [wariant, setWariant] = useState<'pelny' | 'mini'>('pelny');
   const [eko, setEko] = useState<'eko' | 'znak' | 'hostowane'>('eko');
 
-  const load = useCallback(async () => {
-    try {
-      const r = await fetch(`/api/services/${serviceId}/badges`, { cache: 'no-store' });
-      const j = await r.json();
-      if (!r.ok) throw new Error(j?.message ?? 'Nie udało się wczytać badge.');
-      setData(j as BadgesData);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Nie udało się wczytać badge.');
-    }
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const r = await fetch(`/api/services/${serviceId}/badges`, { cache: 'no-store' });
+        const j = await r.json();
+        if (!r.ok) throw new Error(j?.message ?? 'Nie udało się wczytać badge.');
+        setData(j as BadgesData);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Nie udało się wczytać badge.');
+      }
+    };
+    void load();
   }, [serviceId]);
-  useEffect(() => void load(), [load]);
 
   if (error) return <p className="text-sm text-muted-foreground">{error}</p>;
   if (!data) {

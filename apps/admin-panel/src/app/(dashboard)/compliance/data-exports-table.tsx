@@ -24,7 +24,7 @@ const STATUS_TONE: Record<AdminDataExportRow["status"], string> = {
 export function DataExportsTable({ rows }: { rows: AdminDataExportRow[] }) {
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
-  const [_, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   const onRetry = (id: string) => {
     setPendingId(id);

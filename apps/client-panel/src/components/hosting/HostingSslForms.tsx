@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { KeyRound, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@verris/ui';
 import { fetchHostingDomainsAction } from '@/app/dashboard/services/[id]/hosting-domains-action';
@@ -31,30 +31,27 @@ export function HostingSslForms({ serviceId }: Props) {
   const [pasteBusy, setPasteBusy] = useState(false);
   const [pasteMsg, setPasteMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
 
-  const loadDomains = useCallback(async () => {
-    setLoadingDomains(true);
-    setDomainError(null);
-    try {
-      const res = await fetchHostingDomainsAction(serviceId);
-      setDomains(res.domains);
-      if (res.fetchError) setDomainError(res.fetchError);
-    } catch (e) {
-      setDomainError(e instanceof Error ? e.message : 'Nie udało się pobrać domen.');
-      setDomains([]);
-    } finally {
-      setLoadingDomains(false);
-    }
+  // Przy montażu `loadingDomains` jest już true, a `domainError` pusty — efekt tylko pobiera.
+  // serviceId pochodzi z trasy, więc jego zmiana to nowy montaż.
+  useEffect(() => {
+    void fetchHostingDomainsAction(serviceId)
+      .then((res) => {
+        setDomains(res.domains);
+        if (res.fetchError) setDomainError(res.fetchError);
+      })
+      .catch((e) => {
+        setDomainError(e instanceof Error ? e.message : 'Nie udało się pobrać domen.');
+        setDomains([]);
+      })
+      .finally(() => {
+        setLoadingDomains(false);
+      });
   }, [serviceId]);
 
-  useEffect(() => {
-    void loadDomains();
-  }, [loadDomains]);
-
-  useEffect(() => {
-    if (!domain && domains.length > 0) {
-      setDomain(domains[0].name);
-    }
-  }, [domains, domain]);
+  // Domyślnie pierwsza domena z listy — w renderze, nie efektem.
+  if (!domain && domains.length > 0) {
+    setDomain(domains[0].name);
+  }
 
   return (
     <div className="space-y-6">

@@ -27,25 +27,34 @@ export default function DomainsTab({ serviceId }: Props) {
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [primaryDomain, setPrimaryDomain] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
+  // Samo pobranie — przy montażu `error` jest już pusty, więc efekt nie musi go zerować.
+  const fetchDomains = useCallback(
+    () =>
+      fetchHostingDomainsAction(serviceId)
+        .then((res) => {
+          setDomains(res.domains);
+          setFetchError(res.fetchError);
+          setPrimaryDomain(res.primaryDomain);
+        })
+        .catch((e) => {
+          setError(e instanceof Error ? e.message : 'Nie udało się pobrać domen.');
+          setDomains([]);
+        })
+        .finally(() => {
+          setLoading(false);
+          setRefreshing(false);
+        }),
+    [serviceId],
+  );
+
+  const load = useCallback(() => {
     setError(null);
-    try {
-      const res = await fetchHostingDomainsAction(serviceId);
-      setDomains(res.domains);
-      setFetchError(res.fetchError);
-      setPrimaryDomain(res.primaryDomain);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Nie udało się pobrać domen.');
-      setDomains([]);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [serviceId]);
+    return fetchDomains();
+  }, [fetchDomains]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    void fetchDomains();
+  }, [fetchDomains]);
 
   if (loading) {
     return (

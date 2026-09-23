@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { Gauge, Move, ShieldCheck, Database, Undo2, Wrench } from 'lucide-react';
 import { SubHero, CTABand, JsonLd } from '../components/ui';
 import { RevealInit } from '../components/RevealInit';
@@ -68,7 +69,7 @@ export default function HostingPage() {
           <div className="prose rv">
             <h2>Jak działa autoskalowanie hostingu</h2>
             <p>
-              Klasyczny hosting zmusza Cię do wyboru pakietu „na zapas" — przez większość roku
+              Klasyczny hosting zmusza Cię do wyboru pakietu „na zapas” — przez większość roku
               płacisz za moc, której strona nie używa, a i tak brakuje jej w szczycie kampanii.
               Verris odwraca ten model: dostajesz konkretną bazę zasobów, a nadwyżka nalicza się
               godzinowo tylko wtedy, gdy naprawdę jej potrzebujesz.
@@ -82,7 +83,7 @@ export default function HostingPage() {
             <p>
               Orientacyjny koszt nadwyżki policzysz w{' '}
               <a href="/przenies-strone#kalkulator">kalkulatorze autoskalowania</a>, a szczegóły
-              znajdziesz na stronie <a href="/funkcje/autoskalowanie">funkcji autoskalowania</a>.
+              znajdziesz na stronie <Link href="/funkcje/autoskalowanie">funkcji autoskalowania</Link>.
             </p>
             <h3>Dla kogo</h3>
             <p>

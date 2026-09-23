@@ -185,7 +185,7 @@ export default async function AdminPlansPage() {
             </span>
             <span className="flex items-center gap-2 text-xs text-muted-foreground">
               <EyeIcon className="h-3.5 w-3.5" /> klienci widzą tylko plany w
-              statusie „W SPRZEDAŻY"
+              statusie „W SPRZEDAŻY”
             </span>
           </div>
 
@@ -193,7 +193,7 @@ export default async function AdminPlansPage() {
             <div className="p-10 text-center text-sm text-rose-300">{error}</div>
           ) : !plans || plans.length === 0 ? (
             <div className="p-10 text-center text-sm text-muted-foreground">
-              Brak planów. Kliknij „Nowy plan" aby dodać pierwszy.
+              Brak planów. Kliknij „Nowy plan” aby dodać pierwszy.
             </div>
           ) : (
             <div className="overflow-x-auto">

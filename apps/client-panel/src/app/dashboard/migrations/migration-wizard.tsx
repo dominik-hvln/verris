@@ -24,6 +24,10 @@ interface BoxRow extends MigrationImapInput {
   key: string;
 }
 
+// `key` istnieje tylko dla list Reacta w formularzu — do API idzie reszta pól.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- celowo odrzucany element destrukturyzacji z rest
+const bezKlucza = <T extends { key: unknown }>({ key, ...rest }: T) => rest;
+
 const PROVIDER_PRESETS: Array<{
   id: string;
   label: string;
@@ -104,8 +108,8 @@ export function MigrationWizard({ serviceId, onQueued }: Props) {
               remotePath: ftpPath.trim() || '/',
             }
           : undefined,
-      mysql: dbs.map(({ key: _key, ...rest }) => rest),
-      imap: boxes.map(({ key: _key, ...rest }) => rest),
+      mysql: dbs.map(bezKlucza),
+      imap: boxes.map(bezKlucza),
     };
   }
 
@@ -657,7 +661,7 @@ function StepPreflight({
             ))}
           </ul>
           <p className="mt-2 text-neutral-500">
-            „Zablokowany zdalny MySQL" to normalne na hostingach współdzielonych — przy transferze
+            „Zablokowany zdalny MySQL” to normalne na hostingach współdzielonych — przy transferze
             pobierzemy bazę przez SSH. Możesz spokojnie przejść dalej.
           </p>
         </div>

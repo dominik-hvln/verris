@@ -143,27 +143,35 @@ export default function ServiceConnectionCard({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(
-    async (silent = false) => {
-      if (!silent) setLoading(true);
-      try {
-        const data = await fetchConnectionInfoAction(serviceId);
-        setInfo(data);
-        setError(null);
-      } catch (e) {
-        // Surface the failure (unless we already have data from a prior load,
-        // in which case keep showing it and don't replace with an error card).
-        setError(e instanceof Error ? e.message : 'Nie udało się pobrać danych dostępowych.');
-      } finally {
-        if (!silent) setLoading(false);
-      }
-    },
+  // Samo pobranie (błędy łapie w środku) — bez przełączania spinnera.
+  const fetchInfo = useCallback(
+    () =>
+      fetchConnectionInfoAction(serviceId)
+        .then((data) => {
+          setInfo(data);
+          setError(null);
+        })
+        .catch((e) => {
+          // Surface the failure (unless we already have data from a prior load,
+          // in which case keep showing it and don't replace with an error card).
+          setError(e instanceof Error ? e.message : 'Nie udało się pobrać danych dostępowych.');
+        }),
     [serviceId],
   );
 
+  const load = useCallback(
+    async (silent = false) => {
+      if (!silent) setLoading(true);
+      await fetchInfo();
+      if (!silent) setLoading(false);
+    },
+    [fetchInfo],
+  );
+
+  // Montaż: `loading` jest już true, więc tylko pobieramy i gasimy spinner.
   useEffect(() => {
-    void load();
-  }, [load]);
+    void fetchInfo().then(() => setLoading(false));
+  }, [fetchInfo]);
 
   useEffect(() => {
     const id = setInterval(() => void load(true), 60_000);

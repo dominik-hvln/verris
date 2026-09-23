@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
   applyConsent,
@@ -44,6 +45,7 @@ export function CookieConsentManager() {
   useEffect(() => {
     const existing = readConsent();
     if (!existing) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- decyzja żyje w ciasteczku, którego SSR nie zna; odczyt po hydratacji, potem stan edytowany lokalnie
       setDecided(false);
       setBannerOpen(true);
     } else {
@@ -138,10 +140,10 @@ export function CookieConsentManager() {
                 ? " — funkcjonalnych, analitycznych i marketingowych"
                 : " — funkcjonalnych (zapamiętywanie udogodnień)"}
               . Zgodę możesz w każdej chwili zmienić lub wycofać — przycisk „Preferencje
-              cookies" jest stale dostępny w rogu ekranu i w stopce. Szczegóły:{" "}
-              <a href="/legal/cookies" className="underline hover:text-neutral-200">
+              cookies” jest stale dostępny w rogu ekranu i w stopce. Szczegóły:{" "}
+              <Link href="/legal/cookies" className="underline hover:text-neutral-200">
                 Polityka cookies
-              </a>
+              </Link>
               .
             </p>
             <div className="mt-4 flex flex-col gap-2 sm:flex-row">

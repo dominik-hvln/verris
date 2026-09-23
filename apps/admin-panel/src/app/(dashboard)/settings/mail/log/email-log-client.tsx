@@ -42,36 +42,42 @@ export function EmailLogClient() {
   const [items, setItems] = useState<EmailLogItem[]>([]);
   const [stats, setStats] = useState<EmailLogPage['stats'] | null>(null);
   const [cursor, setCursor] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  // Pierwsza strona ładuje się od razu po montażu, więc startujemy w stanie ładowania.
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(
-    async (reset: boolean) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const page = await fetchEmailLog({
-          status: status || undefined,
-          q: q || undefined,
-          cursor: reset ? undefined : cursor ?? undefined,
-        });
-        setStats(page.stats);
-        setCursor(page.nextCursor);
-        setItems((prev) => (reset ? page.items : [...prev, ...page.items]));
-      } catch (e) {
-        setError(e instanceof Error ? e.message : 'Nie udało się pobrać dziennika.');
-      } finally {
-        setLoading(false);
-      }
-    },
-    [status, q, cursor],
+  const fetchPage = useCallback(
+    (reset: boolean, forStatus: string) =>
+      fetchEmailLog({
+        status: forStatus || undefined,
+        q: q || undefined,
+        cursor: reset ? undefined : cursor ?? undefined,
+      })
+        .then((page) => {
+          setStats(page.stats);
+          setCursor(page.nextCursor);
+          setItems((prev) => (reset ? page.items : [...prev, ...page.items]));
+        })
+        .catch((e) => {
+          setError(e instanceof Error ? e.message : 'Nie udało się pobrać dziennika.');
+        })
+        .finally(() => {
+          setLoading(false);
+        }),
+    [q, cursor],
   );
 
-  // Reload from scratch when filter/query changes.
+  const load = (reset: boolean, forStatus = status) => {
+    setLoading(true);
+    setError(null);
+    return fetchPage(reset, forStatus);
+  };
+
+  // Tylko pierwsza strona przy montażu; zmiana filtra przeładowuje w swoim onClick.
   useEffect(() => {
-    void load(true);
+    void fetchPage(true, status);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [status]);
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -91,7 +97,11 @@ export function EmailLogClient() {
           <button
             key={f.value || 'all'}
             type="button"
-            onClick={() => setStatus(f.value)}
+            onClick={() => {
+              if (f.value === status) return;
+              setStatus(f.value);
+              void load(true, f.value);
+            }}
             className={`rounded-lg border px-3 py-1.5 text-xs font-semibold transition ${
               status === f.value
                 ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-200'

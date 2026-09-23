@@ -50,14 +50,25 @@ export function HostingProfilePanel({
   const [agentScript, setAgentScript] = useState<string | null>(null);
   const [agentCopied, setAgentCopied] = useState(false);
 
-  const loadTasks = useCallback(async () => {
-    const result = await fetchHostingProfileTasks(serverId);
-    if ("error" in result && result.error) {
-      setError(result.error);
-      return;
-    }
-    if (result.data) setTasks(result.data);
-  }, [serverId]);
+  // Chwila ostatniego odczytu zadań — z niej liczymy „zawieszenie” (Date.now() w renderze byłby nieczysty).
+  const [checkedAt, setCheckedAt] = useState(0);
+
+  // `.then` zamiast `await`: lint React Compilera nie śledzi `await` w useCallback
+  // i brałby setState po odpowiedzi za synchroniczny setState w efekcie.
+  const loadTasks = useCallback(
+    () =>
+      fetchHostingProfileTasks(serverId).then((result) => {
+        if ("error" in result && result.error) {
+          setError(result.error);
+          return;
+        }
+        if (result.data) {
+          setTasks(result.data);
+          setCheckedAt(Date.now());
+        }
+      }),
+    [serverId],
+  );
 
   useEffect(() => {
     void loadTasks();
@@ -74,12 +85,12 @@ export function HostingProfilePanel({
   const canRun = serverStatus === "ACTIVE";
   const queuedStuckMs =
     latest?.status === "QUEUED"
-      ? Date.now() - new Date(latest.createdAt).getTime()
+      ? checkedAt - new Date(latest.createdAt).getTime()
       : 0;
   const queuedStuck = queuedStuckMs > 90_000;
   const runningStuckMs =
     latest?.status === "RUNNING" && latest.startedAt
-      ? Date.now() - new Date(latest.startedAt).getTime()
+      ? checkedAt - new Date(latest.startedAt).getTime()
       : 0;
   const runningStuck = runningStuckMs > 10 * 60_000;
 

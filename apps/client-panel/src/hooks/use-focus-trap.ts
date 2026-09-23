@@ -21,7 +21,11 @@ export function useFocusTrap<T extends HTMLElement>(
 ) {
   const containerRef = useRef<T | null>(null);
   const onEscapeRef = useRef(opts?.onEscape);
-  onEscapeRef.current = opts?.onEscape;
+  // Ref odświeżany po każdym renderze (nie w jego trakcie) — handler Escape czyta najświeższy callback.
+  const onEscape = opts?.onEscape;
+  useEffect(() => {
+    onEscapeRef.current = onEscape;
+  });
 
   useEffect(() => {
     if (!active) return;

@@ -169,12 +169,14 @@ function Toast({
 /* ──────────────────────────── Main Page ──────────────────────────── */
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<TabId>("profile");
-  // Wejście prosto w zakładkę z menu użytkownika: /dashboard/settings?tab=security
-  useEffect(() => {
+  // Wejście prosto w zakładkę z menu użytkownika: /dashboard/settings?tab=security.
+  // Leniwy odczyt URL-a jest bezpieczny dla hydratacji: do wczytania profilu
+  // strona renderuje tylko loader, więc zakładka nie trafia do HTML-a z serwera.
+  const [activeTab, setActiveTab] = useState<TabId>(() => {
+    if (typeof window === "undefined") return "profile";
     const t = new URLSearchParams(window.location.search).get("tab");
-    if (t && tabs.some((tab) => tab.id === t)) setActiveTab(t as TabId);
-  }, []);
+    return t && tabs.some((tab) => tab.id === t) ? (t as TabId) : "profile";
+  });
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{
@@ -189,13 +191,14 @@ export default function SettingsPage() {
     });
   }, []);
 
-  useEffect(() => {
-    if (!profile) return;
-    const allowed = visibleTabsForProfile(profile).map((t) => t.id);
-    if (!allowed.includes(activeTab)) {
-      setActiveTab("profile");
-    }
-  }, [profile, activeTab]);
+  // Zakładka niedostępna dla tego profilu wraca na „Profil” — w renderze, nie efektem.
+  if (
+    profile &&
+    activeTab !== "profile" &&
+    !visibleTabsForProfile(profile).some((t) => t.id === activeTab)
+  ) {
+    setActiveTab("profile");
+  }
 
   const showToast = (message: string, type: "success" | "error") => {
     setToast({ message, type });

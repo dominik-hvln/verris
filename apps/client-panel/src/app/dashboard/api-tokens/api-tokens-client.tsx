@@ -25,17 +25,24 @@ export function ApiTokensClient() {
   const [pending, startTransition] = useTransition();
   const [created, setCreated] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  // Chwila pobrania listy — wobec niej sprawdzamy wygaśnięcie (Date.now() w renderze byłby nieczysty).
+  const [now, setNow] = useState(0);
 
   const reload = () => {
     Promise.all([fetchTokens(), fetchScopes()])
-      .then(([t, s]) => { setTokens(t); setScopes(s); })
+      .then(([t, s]) => { setTokens(t); setScopes(s); setNow(Date.now()); })
       .catch(() => setErr('Nie udało się pobrać danych.'))
       .finally(() => setLoading(false));
   };
   useEffect(reload, []);
 
   const toggle = (v: string) =>
-    setPicked((p) => { const n = new Set(p); n.has(v) ? n.delete(v) : n.add(v); return n; });
+    setPicked((p) => {
+      const n = new Set(p);
+      if (n.has(v)) n.delete(v);
+      else n.add(v);
+      return n;
+    });
 
   const submit = () => {
     setErr(null); setCreated(null); setCopied(false);
@@ -123,7 +130,7 @@ export function ApiTokensClient() {
         ) : (
           <div className="space-y-2">
             {tokens.map((t) => {
-              const expired = t.expiresAt && new Date(t.expiresAt).getTime() < Date.now();
+              const expired = t.expiresAt && new Date(t.expiresAt).getTime() < now;
               const revoked = !!t.revokedAt;
               return (
                 <div key={t.id} className="flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-black/20 p-3">

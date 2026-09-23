@@ -49,6 +49,7 @@ try {
 
   return (
     <>
+      {/* eslint-disable-next-line @next/next/no-before-interactive-script-outside-document -- renderowane w root layoucie App Routera (app/layout.tsx), gdzie beforeInteractive jest wspierane; reguła zna tylko pages/_document */}
       <Script id="verris-consent-default" strategy="beforeInteractive">
         {consentDefault}
       </Script>

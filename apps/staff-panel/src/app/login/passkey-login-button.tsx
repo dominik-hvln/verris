@@ -1,10 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { startAuthentication } from "@simplewebauthn/browser";
 import { fetchPasskeyLoginOptions, verifyPasskeyLoginClient } from "@/lib/passkey-client";
 import { setStaffPasskeyAuthCookie } from "./passkey-actions";
+
+// Wsparcie WebAuthn nie zmienia się w trakcie życia strony — nie ma czego subskrybować.
+const subscribeNoop = () => () => {};
 
 /** Logowanie passkey do panelu staff (discoverable credentials). */
 export function StaffPasskeyLoginButton() {
@@ -12,9 +15,13 @@ export function StaffPasskeyLoginButton() {
   const [error, setError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
   const prefetchedOptions = useRef<unknown | null>(null);
-  // Render dopiero po montażu — inaczej hydration mismatch (React #418).
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  // Serwer i hydratacja widzą `false`, klient po hydratacji — faktyczne wsparcie;
+  // bez tego hydration mismatch (React #418).
+  const supported = useSyncExternalStore(
+    subscribeNoop,
+    () => typeof window.PublicKeyCredential !== "undefined",
+    () => false,
+  );
 
   // Safari wymaga, by startAuthentication() ruszyło SYNCHRONICZNIE w geście
   // użytkownika. Dlatego prefetchujemy opcje (świeży challenge) zawczasu:
@@ -36,9 +43,7 @@ export function StaffPasskeyLoginButton() {
     }
   }, [prefetch]);
 
-  const supported =
-    typeof window !== "undefined" && typeof window.PublicKeyCredential !== "undefined";
-  if (!mounted || !supported) return null;
+  if (!supported) return null;
 
   const onClick = async () => {
     setError(null);

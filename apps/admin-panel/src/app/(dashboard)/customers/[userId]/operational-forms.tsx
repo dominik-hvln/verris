@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { AlertTriangle, Loader2, Save, KeyRound, Mail, ShieldOff } from "lucide-react";
 import type { AdminCustomerOperationalDetail } from "../data";
 import {
@@ -40,11 +40,20 @@ export function CustomerOperationalForms({ detail }: Props) {
   const [deleteErr, setDeleteErr] = useState<string | null>(null);
   const [deleteOk, setDeleteOk] = useState(false);
 
-  useEffect(() => {
+  // Świeże dane z serwera (np. po router.refresh) nadpisują pola formularza.
+  // Porównanie z poprzednim `detail` w renderze zamiast efektu — wzorzec z dokumentacji Reacta.
+  const [syncedDetail, setSyncedDetail] = useState(detail);
+  if (
+    syncedDetail.id !== detail.id ||
+    syncedDetail.loginBlocked !== detail.loginBlocked ||
+    syncedDetail.loginBlockedReason !== detail.loginBlockedReason ||
+    syncedDetail.adminInternalNote !== detail.adminInternalNote
+  ) {
+    setSyncedDetail(detail);
     setLoginBlocked(detail.loginBlocked);
     setBlockReason(detail.loginBlockedReason ?? "");
     setInternalNote(detail.adminInternalNote ?? "");
-  }, [detail.id, detail.loginBlocked, detail.loginBlockedReason, detail.adminInternalNote]);
+  }
 
   const saveOperational = () => {
     setOpErr(null);

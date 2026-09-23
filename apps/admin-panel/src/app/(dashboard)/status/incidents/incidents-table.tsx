@@ -53,11 +53,13 @@ function IncidentRow({ incident }: { incident: IncidentDto }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  // Czas „teraz” ustalony przy montażu — Date.now() w renderze byłby nieczysty.
+  const [now] = useState(() => Date.now());
   const startedAt = new Date(incident.startedAt);
   const resolvedAt = incident.resolvedAt ? new Date(incident.resolvedAt) : null;
   const duration = resolvedAt
     ? Math.round((resolvedAt.getTime() - startedAt.getTime()) / 60000)
-    : Math.round((Date.now() - startedAt.getTime()) / 60000);
+    : Math.round((now - startedAt.getTime()) / 60000);
 
   const save = () => {
     setError(null);

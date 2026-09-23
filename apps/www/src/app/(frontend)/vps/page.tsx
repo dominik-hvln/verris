@@ -58,7 +58,7 @@ export default function VpsPage() {
           <div className="prose rv">
             <h2>VPS czy hosting współdzielony?</h2>
             <p>
-              Jeśli prowadzisz stronę, bloga albo sklep i chcesz, żeby „po prostu działało" —
+              Jeśli prowadzisz stronę, bloga albo sklep i chcesz, żeby „po prostu działało” —
               wybierz <a href="/hosting">hosting z autoskalowaniem</a>. VPS ma sens, gdy potrzebujesz
               własnego środowiska, niestandardowego stacku albo pełnej kontroli nad serwerem i nie
               przeszkadza Ci samodzielna administracja.

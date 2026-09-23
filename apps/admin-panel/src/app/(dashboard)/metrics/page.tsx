@@ -129,7 +129,7 @@ export default async function BusinessMetricsPage() {
               </div>
               <p className="mt-3 text-[10px] text-muted-foreground">
                 To alokacja (suma limitów planów) — realne planowanie miejsca i „ile kont jeszcze
-                wejdzie" jest w widoku Pojemność floty.
+                wejdzie” jest w widoku Pojemność floty.
               </p>
             </div>
           </div>

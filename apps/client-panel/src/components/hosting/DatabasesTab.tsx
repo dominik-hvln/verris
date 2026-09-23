@@ -71,25 +71,34 @@ export default function DatabasesTab({ serviceId }: Props) {
     }
   };
 
-  const load = useCallback(async () => {
+  // Samo pobranie — przy montażu `error` jest już pusty, więc efekt nie musi go zerować.
+  const fetchDatabases = useCallback(
+    () =>
+      fetchHostingDatabasesAction(serviceId)
+        .then((dbRes) => {
+          setDatabases(dbRes.databases);
+          setEngine(dbRes.engine);
+          setFetchError(dbRes.fetchError);
+        })
+        .catch((e) => {
+          setError(e instanceof Error ? e.message : 'Nie udało się pobrać listy baz.');
+          setDatabases([]);
+        })
+        .finally(() => {
+          setLoading(false);
+          setRefreshing(false);
+        }),
+    [serviceId],
+  );
+
+  const load = useCallback(() => {
     setError(null);
-    try {
-      const dbRes = await fetchHostingDatabasesAction(serviceId);
-      setDatabases(dbRes.databases);
-      setEngine(dbRes.engine);
-      setFetchError(dbRes.fetchError);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Nie udało się pobrać listy baz.');
-      setDatabases([]);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [serviceId]);
+    return fetchDatabases();
+  }, [fetchDatabases]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    void fetchDatabases();
+  }, [fetchDatabases]);
 
   const onCreate = async (e: React.FormEvent) => {
     e.preventDefault();

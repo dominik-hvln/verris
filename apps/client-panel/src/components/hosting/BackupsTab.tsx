@@ -34,11 +34,17 @@ export default function BackupsTab({ serviceId }: { serviceId: string }) {
   const [openId, setOpenId] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const loadStatus = useCallback(async () => {
-    const j = await fetchHostingRestoreStatusAction(serviceId).catch(() => null);
-    setJob(j);
-    return j;
-  }, [serviceId]);
+  // `.then` zamiast `await` — lint React Compilera nie widzi `await` w useCallback i zgłasza fałszywy setState w efekcie.
+  const loadStatus = useCallback(
+    () =>
+      fetchHostingRestoreStatusAction(serviceId)
+        .catch(() => null)
+        .then((j) => {
+          setJob(j);
+          return j;
+        }),
+    [serviceId],
+  );
 
   const loadRows = useCallback(
     () =>
@@ -53,7 +59,7 @@ export default function BackupsTab({ serviceId }: { serviceId: string }) {
   );
 
   useEffect(() => {
-    setLoading(true);
+    // `loading` startuje jako true; serviceId pochodzi z trasy, więc jego zmiana to nowy montaż.
     void loadRows();
     void loadStatus();
   }, [loadRows, loadStatus]);

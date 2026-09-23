@@ -28,14 +28,6 @@ export function CannedResponsePicker({
   const selected = filtered.find((c) => c.id === selectedId) ?? filtered[0] ?? null;
   const preview = selected?.content ?? "";
 
-  useEffect(() => {
-    if (!open) {
-      setQuery("");
-      setCopied(false);
-      setSelectedId(null);
-    }
-  }, [open]);
-
   // Zamknięcie na Escape.
   useEffect(() => {
     if (!open) return;
@@ -66,7 +58,13 @@ export function CannedResponsePicker({
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
+        onClick={() => {
+          // Każde otwarcie zaczyna od czystego stanu (wcześniej zerowane efektem po zamknięciu).
+          setQuery("");
+          setCopied(false);
+          setSelectedId(null);
+          setOpen(true);
+        }}
         className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/40 px-3 py-1.5 text-xs font-medium text-white hover:border-cyan-500/40 hover:bg-white/5"
         title="Baza odpowiedzi (szablony)"
       >

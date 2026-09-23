@@ -170,7 +170,7 @@ export function CreditWalletButton({ userId, email, currentBalance }: Props) {
                   className="w-full rounded-lg bg-black/60 border border-white/10 px-3 py-2 text-white text-sm focus:border-emerald-400 focus:outline-none placeholder:text-neutral-600 resize-none"
                 />
                 <p className="mt-1.5 text-[10px] text-neutral-500">
-                  Jeśli zostawisz puste, klient zobaczy „Uznanie od Zespołu Verris".
+                  Jeśli zostawisz puste, klient zobaczy „Uznanie od Zespołu Verris”.
                 </p>
               </label>
 

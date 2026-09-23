@@ -34,6 +34,7 @@ export function CookieConsent() {
   useEffect(() => {
     const existing = readConsent();
     if (!existing) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- decyzja żyje w ciasteczku, którego SSR nie zna; odczyt po hydratacji, potem stan edytowany lokalnie
       setDecided(false);
       setBannerOpen(true);
     } else {
@@ -113,7 +114,7 @@ export function CookieConsent() {
         {cats.analytics || cats.marketing
           ? ' — funkcjonalnych, analitycznych i marketingowych'
           : ' — funkcjonalnych (zapamiętywanie udogodnień)'}
-        . Zgodę możesz w każdej chwili zmienić lub wycofać — przycisk „Preferencje cookies" jest
+        . Zgodę możesz w każdej chwili zmienić lub wycofać — przycisk „Preferencje cookies” jest
         stale dostępny w rogu ekranu i w stopce. Szczegóły:{' '}
         <a href="https://panel.verris.pl/legal/cookies">Polityka cookies</a>.
       </p>

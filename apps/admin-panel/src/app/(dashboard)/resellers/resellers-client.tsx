@@ -43,7 +43,7 @@ function EnableForm() {
       <button onClick={submit} disabled={pending} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50">
         {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Włącz / zapisz
       </button>
-      <p className="text-[11px] text-muted-foreground">ID klienta znajdziesz w sekcji „Klienci". Ponowne wywołanie z tym samym ID aktualizuje narzut/markę.</p>
+      <p className="text-[11px] text-muted-foreground">ID klienta znajdziesz w sekcji „Klienci”. Ponowne wywołanie z tym samym ID aktualizuje narzut/markę.</p>
       <style jsx>{`:global(.inp){width:100%;border-radius:.6rem;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.3);padding:.5rem .7rem;font-size:.875rem;color:#fff;outline:none}`}</style>
     </section>
   );

@@ -36,22 +36,25 @@ const ORDER = ["PENDING", "PREFLIGHT", "CLOUDLINUX", "DA", "STACK", "AGENT", "CA
 export function NodeBootstrapProgress({ serverId }: { serverId: string }) {
   const [status, setStatus] = useState<BootstrapStatusDto | null>(null);
   const [checkedAt, setCheckedAt] = useState<Date | null>(null);
-  const [loading, setLoading] = useState(false);
+  // Pierwszy odczyt rusza od razu na montażu, więc startujemy w stanie ładowania.
+  const [loading, setLoading] = useState(true);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const poll = async () => {
-    setLoading(true);
-    const { data } = await fetchBootstrapStatus(serverId);
-    setLoading(false);
-    if (data) {
-      setStatus(data);
-      setCheckedAt(new Date());
-    }
-  };
+  const poll = () =>
+    fetchBootstrapStatus(serverId).then(({ data }) => {
+      setLoading(false);
+      if (data) {
+        setStatus(data);
+        setCheckedAt(new Date());
+      }
+    });
 
   useEffect(() => {
     void poll();
-    timer.current = setInterval(() => void poll(), 5000);
+    timer.current = setInterval(() => {
+      setLoading(true);
+      void poll();
+    }, 5000);
     return () => {
       if (timer.current) clearInterval(timer.current);
     };

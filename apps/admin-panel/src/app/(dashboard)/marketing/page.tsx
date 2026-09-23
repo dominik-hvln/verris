@@ -22,7 +22,7 @@ export default async function MarketingPage() {
         </h1>
         <p className="mt-2 text-sm text-muted-foreground max-w-3xl">
           Twórz i wysyłaj mailingi do klientów. Lista odbiorców buduje się automatycznie z osób, które
-          wyraziły zgodę marketingową — segment „Zgoda na newsletter" obejmuje wszystkich z aktywnym
+          wyraziły zgodę marketingową — segment „Zgoda na newsletter” obejmuje wszystkich z aktywnym
           opt-inem (z rejestracji lub ustawień konta). Każdy mail ma automatyczny nagłówek
           List-Unsubscribe i respektuje wypisy (RODO).
         </p>

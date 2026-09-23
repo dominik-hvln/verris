@@ -123,7 +123,7 @@ export default function ServiceOverviewV2({
   // Ładowanie stopniowe: nagłówek po samych danych usługi, reszta dociąga się osobno.
   // Wolne źródła (DirectAdmin, sonda zdrowia) nie blokują już całego ekranu.
   const load = useCallback(
-    async (forceHealth = false) => {
+    (forceHealth = false) => {
       const later = <T,>(p: Promise<T>, set: (v: T) => void) => p.then(set).catch(() => undefined);
       void later(fetchHostingUsageAction(serviceId, '24h'), setUsage);
       void later(fetchConnectionInfoAction(serviceId), setConn);
@@ -134,15 +134,16 @@ export default function ServiceOverviewV2({
         void later(fetchSidebarUser(), (me) => setEcoPoints(typeof me?.ecoPoints === 'number' ? me.ecoPoints : 0));
       }
       const healthP = later(fetchServiceHealthAction(serviceId, forceHealth), setHealth);
-      try {
-        const svc = await fetchServiceDetailsAction(serviceId);
-        setService(svc);
-        setHealth((h) => h ?? svc.health);
-      } finally {
-        setLoading(false);
-      }
-      await healthP;
-      setRefreshing(false);
+      // Łańcuch `.then` zamiast `await` — lint React Compilera nie widzi `await` w useCallback
+      // i zgłasza fałszywy setState w efekcie. Kolejność jak wcześniej: usługa → spinner → zdrowie.
+      return fetchServiceDetailsAction(serviceId)
+        .then((svc) => {
+          setService(svc);
+          setHealth((h) => h ?? svc.health);
+        })
+        .finally(() => setLoading(false))
+        .then(() => healthP)
+        .then(() => setRefreshing(false));
     },
     [serviceId],
   );
@@ -487,9 +488,9 @@ export default function ServiceOverviewV2({
             <p className="mx-4 mb-3 mt-2 text-[12.5px] text-muted-foreground">
               Dane usługi i kopie zapasowe: {opisLokalizacji(account?.server?.region).opis}. Kopie poza serwerem są
               szyfrowane i również przechowywane w EOG.{' '}
-              <a href="/legal/privacy" className="underline underline-offset-2 hover:text-foreground">
+              <Link href="/legal/privacy" className="underline underline-offset-2 hover:text-foreground">
                 Podmioty przetwarzające dane
-              </a>
+              </Link>
             </p>
           </Box>
 

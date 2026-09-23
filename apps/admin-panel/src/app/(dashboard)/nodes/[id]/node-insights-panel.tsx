@@ -52,19 +52,21 @@ export function NodeInsightsPanel({ serverId }: { serverId: string }) {
   const [accounts, setAccounts] = useState<NodeAccountsResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      const [u, a] = await Promise.all([
-        fetchNodeUsage(serverId, "24h"),
-        fetchNodeAccounts(serverId),
-      ]);
-      setUsage(u);
-      setAccounts(a);
-      setError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Nie udało się pobrać danych węzła.");
-    }
-  }, [serverId]);
+  // `.then` zamiast `await`: lint React Compilera nie śledzi `await` w useCallback
+  // i brałby setState po odpowiedzi za synchroniczny setState w efekcie.
+  const load = useCallback(
+    () =>
+      Promise.all([fetchNodeUsage(serverId, "24h"), fetchNodeAccounts(serverId)])
+        .then(([u, a]) => {
+          setUsage(u);
+          setAccounts(a);
+          setError(null);
+        })
+        .catch((e) => {
+          setError(e instanceof Error ? e.message : "Nie udało się pobrać danych węzła.");
+        }),
+    [serverId],
+  );
 
   useEffect(() => {
     void load();

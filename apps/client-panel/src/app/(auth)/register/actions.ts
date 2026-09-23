@@ -5,7 +5,7 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { setAuthCookie } from "@/lib/auth";
 import { captchaTokenFromForm } from "@/lib/captcha";
 
-export async function submitRegister(prevState: any, formData: FormData) {
+export async function submitRegister(prevState: { error: string }, formData: FormData) {
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
   const firstName = formData.get("firstName") as string;

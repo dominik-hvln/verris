@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { SubHero, CTABand } from '../components/ui';
 import { RevealInit } from '../components/RevealInit';
 
@@ -24,7 +25,7 @@ export default function Page() {
             <h2>Po co powstał Verris</h2>
             <p>
               Rynek hostingu przyzwyczaił firmy do tanich pierwszych okresów i drogich odnowień, do
-              pakietów dobieranych „na zapas" i do gwiazdek w cenniku. Chcieliśmy zrobić to inaczej:
+              pakietów dobieranych „na zapas” i do gwiazdek w cenniku. Chcieliśmy zrobić to inaczej:
               jedna cena od pierwszego dnia, zasoby, które rosną z ruchem, i zero ukrytych dopłat za
               SSL czy migrację.
             </p>
@@ -39,7 +40,7 @@ export default function Page() {
             <p>
               Usługi opieramy na infrastrukturze w Unii Europejskiej (Hetzner, Niemcy/Finlandia), więc
               dane pozostają w EOG. Więcej o gwarancjach przeczytasz na stronie{' '}
-              <a href="/funkcje/sla">SLA</a> i <a href="/funkcje/rodo-i-dpa">RODO/DPA</a>.
+              <Link href="/funkcje/sla">SLA</Link> i <Link href="/funkcje/rodo-i-dpa">RODO/DPA</Link>.
             </p>
             <h2>Operator</h2>
             <p>

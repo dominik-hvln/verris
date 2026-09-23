@@ -46,18 +46,24 @@ export default function FtpTab({ serviceId }: { serviceId: string }) {
     setPwValue('');
   };
 
-  const load = () => {
-    setLoading(true);
-    void fetchHostingFtpAction(serviceId)
+  // Samo pobranie — efekt montażu startuje z `loading` już ustawionym na `true`.
+  const fetchRows = () =>
+    fetchHostingFtpAction(serviceId)
       .then((res) => {
         setRows(res.rows);
         setError(res.fetchError);
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Nie udało się wczytać kont FTP.'))
       .finally(() => setLoading(false));
+
+  const load = () => {
+    setLoading(true);
+    void fetchRows();
   };
 
-  useEffect(load, [serviceId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    void fetchRows();
+  }, [serviceId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onCreate = async (e: React.FormEvent) => {
     e.preventDefault();

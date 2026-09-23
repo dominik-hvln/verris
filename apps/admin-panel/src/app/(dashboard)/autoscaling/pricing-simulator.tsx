@@ -21,13 +21,14 @@ export function PricingSimulator({
 }) {
   const [result, setResult] = useState<string | null>(null);
 
+  const price = Number.parseFloat(pricePerUnit.replace(',', '.'));
+  const threshold = Number.parseInt(thresholdAbove, 10);
+  const invalid = Number.isNaN(price) || Number.isNaN(threshold);
+  // Niepoprawne dane od razu gaszą wynik — w renderze, a nie efektem, bez dodatkowego przebiegu.
+  if (invalid && result !== null) setResult(null);
+
   useEffect(() => {
-    const price = Number.parseFloat(pricePerUnit.replace(',', '.'));
-    const threshold = Number.parseInt(thresholdAbove, 10);
-    if (Number.isNaN(price) || Number.isNaN(threshold)) {
-      setResult(null);
-      return;
-    }
+    if (invalid) return;
 
     const sample = SAMPLE[resource];
     const timer = setTimeout(() => {
@@ -52,7 +53,7 @@ export function PricingSimulator({
       });
     }, 400);
     return () => clearTimeout(timer);
-  }, [resource, pricePerUnit, thresholdAbove]);
+  }, [resource, price, threshold, invalid]);
 
   if (!result) return null;
   return (

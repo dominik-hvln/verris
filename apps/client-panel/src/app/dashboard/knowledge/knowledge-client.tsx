@@ -50,11 +50,19 @@ export function KnowledgeClient({
   const [query, setQuery] = useState(initialQuery);
   const [openId, setOpenId] = useState<string | null>(initialArticleId);
   const [article, setArticle] = useState<KbArticle | null>(null);
-  const [loading, setLoading] = useState(false);
+  // Artykuł z URL-a ładuje się od razu po montażu.
+  const [loading, setLoading] = useState(Boolean(initialArticleId));
+
+  // Stan „ładowanie / brak artykułu” ustawiamy przy samej zmianie, efekt tylko pobiera.
+  const openArticle = (id: string | null) => {
+    if (id === openId) return;
+    setOpenId(id);
+    if (id) setLoading(true);
+    else setArticle(null);
+  };
 
   useEffect(() => {
-    if (!openId) { setArticle(null); return; }
-    setLoading(true);
+    if (!openId) return;
     void fetchKbArticle(openId).then(setArticle).finally(() => setLoading(false));
   }, [openId]);
 
@@ -65,7 +73,7 @@ export function KnowledgeClient({
   if (openId) {
     return (
       <div className="space-y-4">
-        <button type="button" onClick={() => setOpenId(null)} className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-white">
+        <button type="button" onClick={() => openArticle(null)} className="inline-flex items-center gap-1.5 text-sm text-neutral-400 hover:text-white">
           <ArrowLeft className="h-4 w-4" /> Wróć do listy
         </button>
         {loading ? (
@@ -105,7 +113,7 @@ export function KnowledgeClient({
                     <button
                       key={r.slug}
                       type="button"
-                      onClick={() => setOpenId(r.slug)}
+                      onClick={() => openArticle(r.slug)}
                       className="rounded-lg border border-white/10 bg-white/[0.02] p-3 text-left hover:bg-white/[0.05]"
                     >
                       <span className="block text-sm font-medium text-white">{r.title}</span>
@@ -155,7 +163,7 @@ export function KnowledgeClient({
             <button
               key={a.id}
               type="button"
-              onClick={() => setOpenId(a.id)}
+              onClick={() => openArticle(a.id)}
               className="flex items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4 text-left hover:bg-white/[0.05]"
             >
               <BookOpen className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />

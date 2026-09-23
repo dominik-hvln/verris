@@ -37,25 +37,33 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
   const [buildCommand, setBuildCommand] = useState('');
   const [frequency, setFrequency] = useState<DeployFrequency>('every_15m');
 
-  const load = useCallback(async () => {
+  // Samo pobranie — przy montażu `error` jest już pusty, więc efekt nie musi go zerować.
+  const fetchJobs = useCallback(
+    () =>
+      fetchDeployJobsAction(serviceId).then((res) => {
+        if (!res) {
+          setFetchError('fetch-failed');
+          setRows([]);
+          setLoading(false);
+          return;
+        }
+        setRows(res.rows);
+        setDomains(res.domains);
+        setFetchError(res.fetchError);
+        setDomain((prev) => prev || res.primaryDomain || res.domains[0] || '');
+        setLoading(false);
+      }),
+    [serviceId],
+  );
+
+  const load = useCallback(() => {
     setError(null);
-    const res = await fetchDeployJobsAction(serviceId);
-    if (!res) {
-      setFetchError('fetch-failed');
-      setRows([]);
-      setLoading(false);
-      return;
-    }
-    setRows(res.rows);
-    setDomains(res.domains);
-    setFetchError(res.fetchError);
-    setDomain((prev) => prev || res.primaryDomain || res.domains[0] || '');
-    setLoading(false);
-  }, [serviceId]);
+    return fetchJobs();
+  }, [fetchJobs]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    void fetchJobs();
+  }, [fetchJobs]);
 
   const handleCreate = async () => {
     if (!domain) {

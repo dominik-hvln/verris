@@ -24,11 +24,16 @@ export function StaffNotificationBell() {
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement | null>(null);
 
-  const refresh = useCallback(async () => {
-    const res = await staffListNotifications();
-    setItems(res.items);
-    setUnread(res.unread);
-  }, []);
+  // Stan ustawiany w `.then`, nie po `await` — lint React Compilera nie śledzi
+  // `await` w useCallback i brałby to za synchroniczny setState w efekcie.
+  const refresh = useCallback(
+    () =>
+      staffListNotifications().then((res) => {
+        setItems(res.items);
+        setUnread(res.unread);
+      }),
+    [],
+  );
 
   useEffect(() => {
     void refresh();

@@ -23,10 +23,8 @@ export function TrialCallout({ plans }: { plans: PlanDto[] }) {
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    if (trialPlans.length === 0) {
-      setEligible(false);
-      return;
-    }
+    // Bez planów z trialem komponent i tak renderuje `null` — nie ma czego ustawiać.
+    if (trialPlans.length === 0) return;
     void getTrialEligibilityAction().then((r) => setEligible(r.eligible));
   }, [trialPlans.length]);
 

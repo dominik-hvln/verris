@@ -25,26 +25,30 @@ export function CommandPalette() {
   const inputRef = useRef<HTMLInputElement>(null);
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Zerowanie w miejscu zamknięcia, nie efektem po zmianie `open`.
+  const close = useCallback(() => {
+    setOpen(false);
+    setQ("");
+    setResults([]);
+    setActive(0);
+  }, []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setOpen((v) => !v);
+        if (open) close();
+        else setOpen(true);
       } else if (e.key === "Escape") {
-        setOpen(false);
+        close();
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [open, close]);
 
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 30);
-    else {
-      setQ("");
-      setResults([]);
-      setActive(0);
-    }
   }, [open]);
 
   const doSearch = useCallback((value: string) => {
@@ -65,10 +69,10 @@ export function CommandPalette() {
 
   const go = useCallback(
     (r: StaffSearchResult) => {
-      setOpen(false);
+      close();
       router.push(staffHref(r));
     },
-    [router],
+    [router, close],
   );
 
   const onKeyDown = (e: React.KeyboardEvent) => {
@@ -99,7 +103,7 @@ export function CommandPalette() {
       {open ? (
         <div
           className="fixed inset-0 z-[100] flex items-start justify-center bg-black/60 px-4 pt-[12vh] backdrop-blur-sm"
-          onMouseDown={() => setOpen(false)}
+          onMouseDown={close}
         >
           <div
             className="w-full max-w-xl overflow-hidden rounded-2xl border border-white/10 bg-[#0b0b0f] shadow-2xl"

@@ -102,28 +102,37 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
   const fileInput = useRef<HTMLInputElement>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const load = useCallback(
-    async (p: string) => {
-      setLoading(true);
-      setLoadError(null);
-      try {
-        const res = await withRetry(() => fmList(serviceId, p));
-        setPath(res.path);
-        setEntries(res.entries);
-        setSelected(new Set());
-      } catch (e) {
-        // Błąd pokazujemy w miejscu listy — „Pusty katalog" przy awarii wprowadzał w błąd.
-        setLoadError(daErrorMessage(e instanceof Error ? e.message : undefined));
-      } finally {
-        setLoading(false);
-      }
-    },
+  // Samo pobranie katalogu — efekt montażu startuje z `loading` już ustawionym na `true`.
+  const fetchDir = useCallback(
+    (p: string) =>
+      withRetry(() => fmList(serviceId, p))
+        .then((res) => {
+          setPath(res.path);
+          setEntries(res.entries);
+          setSelected(new Set());
+        })
+        .catch((e) => {
+          // Błąd pokazujemy w miejscu listy — „Pusty katalog" przy awarii wprowadzał w błąd.
+          setLoadError(daErrorMessage(e instanceof Error ? e.message : undefined));
+        })
+        .finally(() => {
+          setLoading(false);
+        }),
     [serviceId],
   );
 
+  const load = useCallback(
+    (p: string) => {
+      setLoading(true);
+      setLoadError(null);
+      return fetchDir(p);
+    },
+    [fetchDir],
+  );
+
   useEffect(() => {
-    void load('/');
-  }, [load]);
+    void fetchDir('/');
+  }, [fetchDir]);
 
   const segments = path.split('/').filter(Boolean);
   const goUp = () => {

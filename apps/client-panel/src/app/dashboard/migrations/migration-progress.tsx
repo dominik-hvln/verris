@@ -46,14 +46,19 @@ export function MigrationProgress({ serviceId, initial }: Props) {
   const [busy, setBusy] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
-    const res = await getMigrationBundleDetailAction({ serviceId, migrationId: initial.id });
-    if ('ok' in res) {
-      const d = res.detail as MigrationBundleDetail;
-      setDetail(d);
-      setSummary(d);
-    }
-  }, [serviceId, initial.id]);
+  // `.then` zamiast `await`: lint React Compilera nie śledzi `await` w useCallback
+  // i brałby setState po odpowiedzi za synchroniczny setState w efekcie.
+  const refresh = useCallback(
+    () =>
+      getMigrationBundleDetailAction({ serviceId, migrationId: initial.id }).then((res) => {
+        if ('ok' in res) {
+          const d = res.detail as MigrationBundleDetail;
+          setDetail(d);
+          setSummary(d);
+        }
+      }),
+    [serviceId, initial.id],
+  );
 
   useEffect(() => {
     void refresh();
@@ -61,13 +66,15 @@ export function MigrationProgress({ serviceId, initial }: Props) {
     if (!active) return;
     const t = setInterval(refresh, 5000);
     return () => clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refresh, summary.status]);
 
-  const loadCutover = useCallback(async () => {
-    const res = await getMigrationCutoverPlanAction({ serviceId, migrationId: initial.id });
-    if ('ok' in res) setCutover(res.plan as CutoverPlan);
-  }, [serviceId, initial.id]);
+  const loadCutover = useCallback(
+    () =>
+      getMigrationCutoverPlanAction({ serviceId, migrationId: initial.id }).then((res) => {
+        if ('ok' in res) setCutover(res.plan as CutoverPlan);
+      }),
+    [serviceId, initial.id],
+  );
 
   useEffect(() => {
     if (summary.status === 'COMPLETED') void loadCutover();

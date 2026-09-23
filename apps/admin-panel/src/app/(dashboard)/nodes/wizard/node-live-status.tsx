@@ -42,7 +42,10 @@ export function NodeLiveStatus({
   const [loading, setLoading] = useState(false);
   const [checkedAt, setCheckedAt] = useState<Date | null>(null);
   const onSignalsRef = useRef(onSignals);
-  onSignalsRef.current = onSignals;
+  // Ref aktualizowany po renderze (nie w jego trakcie) — polling czyta najświeższy callback.
+  useEffect(() => {
+    onSignalsRef.current = onSignals;
+  }, [onSignals]);
 
   useEffect(() => {
     let cancelled = false;

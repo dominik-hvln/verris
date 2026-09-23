@@ -219,7 +219,7 @@ function OptionalSection({
         })}
       </div>
       <p className="text-[11px] text-neutral-500">
-        Rezygnacja z newslettera i ofert partnerskich działa też przez link „wypisz się" w stopce
+        Rezygnacja z newslettera i ofert partnerskich działa też przez link „wypisz się” w stopce
         każdej takiej wiadomości.
       </p>
     </section>

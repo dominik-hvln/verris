@@ -58,14 +58,20 @@ export default function ServiceSubscriptionTab({ serviceId }: { serviceId: strin
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelImmediate, setCancelImmediate] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
-      const svc = await fetchServiceDetailsAction(serviceId);
-      setService(svc);
-    } finally {
-      setLoading(false);
-    }
-  }, [serviceId]);
+  // Chwila odczytu usługi — z niej liczymy postęp okresu (Date.now() w renderze byłby nieczysty).
+  const [checkedAt, setCheckedAt] = useState(0);
+
+  // `.then` zamiast `await` — lint React Compilera nie widzi `await` w useCallback i zgłasza fałszywy setState w efekcie.
+  const load = useCallback(
+    () =>
+      fetchServiceDetailsAction(serviceId)
+        .then((svc) => {
+          setService(svc);
+          setCheckedAt(Date.now());
+        })
+        .finally(() => setLoading(false)),
+    [serviceId],
+  );
 
   useEffect(() => {
     void load();
@@ -114,7 +120,7 @@ export default function ServiceSubscriptionTab({ serviceId }: { serviceId: strin
           0,
           Math.min(
             100,
-            ((Date.now() - new Date(service.currentPeriodStart).getTime()) /
+            ((checkedAt - new Date(service.currentPeriodStart).getTime()) /
               (new Date(service.currentPeriodEnd).getTime() - new Date(service.currentPeriodStart).getTime())) *
               100,
           ),

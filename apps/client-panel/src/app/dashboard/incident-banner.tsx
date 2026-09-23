@@ -34,19 +34,16 @@ function saveDismissed(ids: Set<string>): void {
 
 export function IncidentBanner() {
   const [incidents, setIncidents] = useState<UserIncident[] | null>(null);
-  const [dismissed, setDismissed] = useState<Set<string>>(() => new Set());
+  // Leniwy odczyt localStorage jest bezpieczny dla hydratacji: dopóki incydenty
+  // nie przyjdą z API, baner renderuje `null` na serwerze i na kliencie.
+  const [dismissed, setDismissed] = useState<Set<string>>(loadDismissed);
   const [expanded, setExpanded] = useState(true);
 
-  useEffect(() => {
-    setDismissed(loadDismissed());
-  }, []);
-
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(() => {
     if (typeof document !== "undefined" && document.visibilityState === "hidden") {
       return;
     }
-    const fresh = await fetchMyIncidents();
-    setIncidents(fresh);
+    void fetchMyIncidents().then(setIncidents);
   }, []);
 
   useEffect(() => {

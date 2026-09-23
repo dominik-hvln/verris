@@ -56,10 +56,15 @@ export function DbUpgradePanel({
   const current = majorMinor(dbVersion);
   const active = tasks.find((t) => t.status === "QUEUED" || t.status === "RUNNING");
 
-  const refresh = useCallback(async () => {
-    const res = await fetchDbUpgradeTasks(serverId);
-    if (res.data) setTasks(res.data);
-  }, [serverId]);
+  // `.then` zamiast `await`: lint React Compilera nie śledzi `await` w useCallback
+  // i brałby setState po odpowiedzi za synchroniczny setState w efekcie.
+  const refresh = useCallback(
+    () =>
+      fetchDbUpgradeTasks(serverId).then((res) => {
+        if (res.data) setTasks(res.data);
+      }),
+    [serverId],
+  );
 
   useEffect(() => {
     void refresh();

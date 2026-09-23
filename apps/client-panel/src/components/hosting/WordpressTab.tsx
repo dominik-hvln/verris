@@ -31,11 +31,15 @@ export default function WordpressTab({ serviceId }: Props) {
   const [result, setResult] = useState<WordpressInstallResult | null>(null);
   const [copied, setCopied] = useState(false);
 
-  const refresh = useCallback(async () => {
-    const s = await getWordpressStatus(serviceId);
-    setStatus(s);
-    setLoading(false);
-  }, [serviceId]);
+  // `.then` zamiast `await` — lint React Compilera nie widzi `await` w useCallback i zgłasza fałszywy setState w efekcie.
+  const refresh = useCallback(
+    () =>
+      getWordpressStatus(serviceId).then((s) => {
+        setStatus(s);
+        setLoading(false);
+      }),
+    [serviceId],
+  );
 
   useEffect(() => {
     void refresh();

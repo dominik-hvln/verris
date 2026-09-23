@@ -71,7 +71,7 @@ const jsonLd = {
       '@type': 'HowTo',
       name: 'Jak przenieść stronę na inny hosting bez przestoju',
       description: 'Przeniesienie strony do Verris w trzech krokach, bez przerwy w działaniu.',
-      step: STEPS.map(([n, name, text], i) => ({ '@type': 'HowToStep', position: i + 1, name, text })),
+      step: STEPS.map(([, name, text], i) => ({ '@type': 'HowToStep', position: i + 1, name, text })),
     },
     {
       '@type': 'FAQPage',
@@ -169,18 +169,18 @@ export default function Page() {
               <span className="tag">Pułapka nr 1</span>
               <h3>Promocja-przynęta</h3>
               <p className="pain-desc">Pierwszy rok za grosze, a przy odnowieniu pełna stawka — często kilkukrotnie wyższa. Rachunek przychodzi po roku, kiedy przenosiny wydają się trudniejsze niż dopłata.</p>
-              <p className="fix"><strong>W Verris:</strong> cena z cennika obowiązuje od pierwszego dnia — 45 zł/mies lub 399 zł/rok brutto. Bez skokowej podwyżki „po promocji", bo promocji-przynęty nie ma.</p>
+              <p className="fix"><strong>W Verris:</strong> cena z cennika obowiązuje od pierwszego dnia — 45 zł/mies lub 399 zł/rok brutto. Bez skokowej podwyżki „po promocji”, bo promocji-przynęty nie ma.</p>
             </div>
             <div className="pain-card rv">
               <span className="tag">Pułapka nr 2</span>
               <h3>Pakiet na zapas</h3>
-              <p className="pain-desc">Kupujesz większy pakiet „na wszelki wypadek" — i przez większość roku płacisz za moc, której strona nie używa. Nadpłacony zapas nie wraca.</p>
+              <p className="pain-desc">Kupujesz większy pakiet „na wszelki wypadek” — i przez większość roku płacisz za moc, której strona nie używa. Nadpłacony zapas nie wraca.</p>
               <p className="fix"><strong>W Verris:</strong> jedna baza + autoskalowanie rozliczane godzinowo. Dodatkowe zasoby tylko wtedy, gdy strona ich naprawdę potrzebuje — a tryb ECO zwalnia je, gdy ruch spada.</p>
             </div>
             <div className="pain-card rv">
               <span className="tag">Pułapka nr 3</span>
               <h3>Cicha dopłata</h3>
-              <p className="pain-desc">Automatyczne odnowienia domen i dodatków, o których dowiadujesz się z obciążenia karty. Rezygnacja? Przez konsultanta, który „ma dla Ciebie lepszą ofertę".</p>
+              <p className="pain-desc">Automatyczne odnowienia domen i dodatków, o których dowiadujesz się z obciążenia karty. Rezygnacja? Przez konsultanta, który „ma dla Ciebie lepszą ofertę”.</p>
               <p className="fix"><strong>W Verris:</strong> domeny odnawiamy wyłącznie po opłaceniu (przypomnienia 30/14/7 dni), a odnowienie subskrypcji wyłączysz jednym przełącznikiem w panelu.</p>
             </div>
           </div>
@@ -207,7 +207,7 @@ export default function Page() {
           <div className="sec-head rv">
             <p className="kicker">Jak to działa</p>
             <h2>Jak przenieść stronę na inny hosting — w 3 krokach, bez przestoju</h2>
-            <p>Przeniesienie strony nie wymaga wiedzy technicznej ani przerwy w działaniu. Migracja odbywa się „obok" działającej strony, a Ty przełączasz się dopiero wtedy, gdy wszystko jest sprawdzone.</p>
+            <p>Przeniesienie strony nie wymaga wiedzy technicznej ani przerwy w działaniu. Migracja odbywa się „obok” działającej strony, a Ty przełączasz się dopiero wtedy, gdy wszystko jest sprawdzone.</p>
           </div>
           <div className="steps">
             {STEPS.map(([n, h, p]) => (

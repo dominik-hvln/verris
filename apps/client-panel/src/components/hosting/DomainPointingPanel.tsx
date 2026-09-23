@@ -93,15 +93,6 @@ export default function DomainPointingPanel({
   const [wizardOpen, setWizardOpen] = useState(variant === 'full');
   const [autoPoll, setAutoPoll] = useState(false);
 
-  const load = useCallback(async () => {
-    try {
-      setData(await fetchDomainPointingAction(serviceId));
-    } catch {
-      setData(null);
-    } finally {
-      setLoading(false);
-    }
-  }, [serviceId]);
 
   const verify = useCallback(async () => {
     setVerifying(true);
@@ -113,8 +104,10 @@ export default function DomainPointingPanel({
   }, [serviceId]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    void fetchDomainPointingAction(serviceId)
+      .then(setData, () => setData(null))
+      .finally(() => setLoading(false));
+  }, [serviceId]);
 
   useEffect(() => {
     if (!autoPoll || data?.status === 'ok') return;

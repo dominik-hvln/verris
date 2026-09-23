@@ -102,12 +102,13 @@ export function writeConsent(
   return consent;
 }
 
-function gtag(...args: unknown[]) {
+// Sygnatura z parametrem rest jest tylko dla wywołujących — ciało czyta `arguments`.
+const gtag: (...args: unknown[]) => void = function () {
   window.dataLayer = window.dataLayer || [];
   // GTM oczekuje obiektu `arguments`, nie tablicy — trzymamy kanoniczną formę.
   // eslint-disable-next-line prefer-rest-params
   window.dataLayer.push(arguments);
-}
+};
 
 /** Przekazuje decyzję użytkownika do Consent Mode v2 i steruje Meta Pixel. */
 export function applyConsent(consent: CookieConsent): void {

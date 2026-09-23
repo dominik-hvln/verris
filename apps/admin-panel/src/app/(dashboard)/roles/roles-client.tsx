@@ -282,7 +282,7 @@ export function RolesClient({
             </div>
           </div>
         )}
-        <p className="mt-2 text-[11px] text-neutral-500">Ostatnie działania wykonane przez operatorów (pełny audyt z filtrami i eksportem CSV jest w „Logi bezpieczeństwa").</p>
+        <p className="mt-2 text-[11px] text-neutral-500">Ostatnie działania wykonane przez operatorów (pełny audyt z filtrami i eksportem CSV jest w „Logi bezpieczeństwa”).</p>
       </section>
     </div>
   );

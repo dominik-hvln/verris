@@ -33,8 +33,8 @@ export default function DomainsPage() {
   const [adding, setAdding] = useState(false);
   const [registrarConfigured, setRegistrarConfigured] = useState(false);
 
-  const loadDomains = () => {
-    setLoading(true);
+  // Samo pobranie — efekt montażu startuje z `loading` już ustawionym na `true`.
+  const fetchDomains = () =>
     fetchUserDomains().then((data) => {
       setDomains(data || []);
       setLoading(false);
@@ -43,10 +43,14 @@ export default function DomainsPage() {
       toast.error('Błąd podczas ładowania domen');
       setLoading(false);
     });
+
+  const loadDomains = () => {
+    setLoading(true);
+    void fetchDomains();
   };
 
   useEffect(() => {
-    loadDomains();
+    void fetchDomains();
     fetchRegistrarStatus()
       .then((status) => setRegistrarConfigured(status.configured))
       .catch(() => setRegistrarConfigured(false));
@@ -63,8 +67,8 @@ export default function DomainsPage() {
       setIsAddOpen(false);
       setNewDomainName('');
       loadDomains();
-    } catch (err: any) {
-      toast.error(err.message || 'Nie udało się dodać domeny');
+    } catch (err: unknown) {
+      toast.error((err instanceof Error && err.message) || 'Nie udało się dodać domeny');
     } finally {
       setAdding(false);
     }
@@ -76,8 +80,8 @@ export default function DomainsPage() {
       await deleteDomain(id);
       toast.success(`Domena ${name} usunięta pomyślnie`);
       loadDomains();
-    } catch (err: any) {
-      toast.error(err.message || 'Błąd przy usuwaniu domeny');
+    } catch (err: unknown) {
+      toast.error((err instanceof Error && err.message) || 'Błąd przy usuwaniu domeny');
     }
   };
 

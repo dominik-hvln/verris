@@ -40,28 +40,35 @@ export function AnalyticsClient({
   const [sites, setSites] = useState<AnalyticsSite[]>([]);
   const [activeSite, setActiveSite] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
-  const [loading, setLoading] = useState(false);
+  // Lista stron pierwszej usługi ładuje się od razu po montażu.
+  const [loading, setLoading] = useState(Boolean(services[0]?.id));
 
   const flash = (kind: 'ok' | 'err', text: string) => {
     setNotice({ kind, text });
     setTimeout(() => setNotice(null), 4000);
   };
 
+  // Samo pobranie, bez włączania spinnera — z efektu montażu, gdzie `loading` jest już `true`.
+  const fetchAndSet = (sub: string) =>
+    fetchSites(sub).then((r) => {
+      if (r.ok) {
+        setSites(r.data);
+        setActiveSite((prev) => prev ?? r.data[0]?.id ?? null);
+      } else flash('err', r.error);
+      setLoading(false);
+    });
+
   const load = async (sub: string) => {
     if (!sub) return;
     setLoading(true);
-    const r = await fetchSites(sub);
-    if (r.ok) {
-      setSites(r.data);
-      setActiveSite((prev) => prev ?? r.data[0]?.id ?? null);
-    } else flash('err', r.error);
-    setLoading(false);
+    await fetchAndSet(sub);
   };
 
+  // Pierwsze ładowanie; zmiana usługi przeładowuje w onChange selecta.
   useEffect(() => {
-    if (subId) void load(subId);
+    if (subId) void fetchAndSet(subId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subId]);
+  }, []);
 
   if (services.length === 0) {
     return (
@@ -85,6 +92,7 @@ export function AnalyticsClient({
             onChange={(e) => {
               setActiveSite(null);
               setSubId(e.target.value);
+              void load(e.target.value);
             }}
             className="an-inp max-w-md"
           >
@@ -160,9 +168,14 @@ function AddSiteForm({
   onAdded: () => Promise<void>;
   flash: (k: 'ok' | 'err', t: string) => void;
 }) {
-  const [domain, setDomain] = useState('');
+  const [domain, setDomain] = useState(suggestedDomain ?? '');
   const [pending, start] = useTransition();
-  useEffect(() => setDomain(suggestedDomain ?? ''), [suggestedDomain]);
+  // Nowa podpowiedź (zmiana usługi) nadpisuje pole — w renderze, nie efektem.
+  const [prevSuggested, setPrevSuggested] = useState(suggestedDomain);
+  if (suggestedDomain !== prevSuggested) {
+    setPrevSuggested(suggestedDomain);
+    setDomain(suggestedDomain ?? '');
+  }
 
   const submit = () => {
     if (!domain.trim()) return;
@@ -208,20 +221,25 @@ function SiteCard({
 }) {
   const [stats, setStats] = useState<AnalyticsStats | null>(null);
   const [days, setDays] = useState(30);
-  const [loading, setLoading] = useState(false);
+  // Statystyki ładują się przy otwarciu karty — także gdy jest otwarta od montażu.
+  const [loading, setLoading] = useState(open);
   const [copied, setCopied] = useState(false);
   const [pending, start] = useTransition();
 
   const snippet = `<script defer src="${API_URL}/analytics/a.js" data-site="${site.siteKey}"></script>`;
 
-  const loadStats = async (d: number) => {
-    setLoading(true);
-    const r = await fetchStats(subId, site.id, d);
-    if (r.ok) setStats(r.data);
-    setLoading(false);
-  };
+  // Spinner włączamy w renderze przy otwarciu karty i w onClick zakresu dni, a efekt tylko pobiera.
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) setLoading(true);
+  }
   useEffect(() => {
-    if (open) void loadStats(days);
+    if (!open) return;
+    void fetchStats(subId, site.id, days).then((r) => {
+      if (r.ok) setStats(r.data);
+      setLoading(false);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, days]);
 
@@ -277,7 +295,11 @@ function SiteCard({
 
           <div className="flex gap-1 rounded-xl border border-white/10 bg-white/[0.02] p-1 w-fit">
             {RANGES.map((r) => (
-              <button key={r.days} onClick={() => setDays(r.days)} className={`rounded-lg px-3 py-1 text-xs font-medium transition ${days === r.days ? 'bg-cyan-600 text-white' : 'text-neutral-400 hover:text-white'}`}>
+              <button key={r.days} onClick={() => {
+                if (r.days === days) return;
+                setDays(r.days);
+                setLoading(true);
+              }} className={`rounded-lg px-3 py-1 text-xs font-medium transition ${days === r.days ? 'bg-cyan-600 text-white' : 'text-neutral-400 hover:text-white'}`}>
                 {r.label}
               </button>
             ))}

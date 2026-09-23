@@ -117,6 +117,7 @@ export default async function ProvisioningQueuePage({
                   const duration =
                     row.processedOn && row.finishedOn ? row.finishedOn - row.processedOn : null;
                   const wallclock =
+                    // eslint-disable-next-line react-hooks/purity -- komponent serwerowy (force-dynamic) renderuje się raz na żądanie; czas żądania jest tu zamierzony
                     row.processedOn && !row.finishedOn ? Date.now() - row.processedOn : null;
                   return (
                     <tr key={row.id} className="border-b border-white/5">

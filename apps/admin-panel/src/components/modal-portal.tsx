@@ -1,18 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 
 /**
  * Renders children on `document.body` so `position: fixed` modals are not
  * clipped by ancestor `overflow-hidden` containers (e.g. customer tables).
  */
-export function ModalPortal({ children }: { children: React.ReactNode }) {
-  const [mounted, setMounted] = useState(false);
+// `document` nie zmienia się w trakcie życia strony — nie ma czego subskrybować.
+const subscribeNoop = () => () => {};
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+export function ModalPortal({ children }: { children: React.ReactNode }) {
+  // Serwer i hydratacja: `false` (brak `document`), potem klient: `true`.
+  const mounted = useSyncExternalStore(
+    subscribeNoop,
+    () => true,
+    () => false,
+  );
 
   if (!mounted) return null;
   return createPortal(children, document.body);

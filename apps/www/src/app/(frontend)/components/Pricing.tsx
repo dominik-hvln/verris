@@ -62,7 +62,7 @@ export function Pricing() {
           <h2>Jeden pakiet. Jedna cena. Zero zgadywania, który wybrać.</h2>
           <p>
             Wszystko, czego potrzebuje strona firmowa, blog albo sklep — w jednej cenie. Bez dopłat
-            za SSL, migrację czy „szybszy dysk".
+            za SSL, migrację czy „szybszy dysk”.
           </p>
         </div>
         <div className="price-wrap">
@@ -145,7 +145,7 @@ export function Pricing() {
           </div>
 
           <p className="finebox">
-            „Bez limitu" oznacza brak sztywnego licznika — realnym ogranicznikiem są zasoby konta
+            „Bez limitu” oznacza brak sztywnego licznika — realnym ogranicznikiem są zasoby konta
             (CPU/RAM/dysk) i zasady uczciwego korzystania. Autoskalowanie ponad bazę rozliczane jest
             godzinowo według stawek z cennika. VPS i domeny mają osobną wycenę — sprawdzisz ją w
             panelu.

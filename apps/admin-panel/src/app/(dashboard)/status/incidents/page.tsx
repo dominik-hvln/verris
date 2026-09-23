@@ -1,4 +1,4 @@
-import { ShieldAlert, AlertCircle, Download } from "lucide-react";
+import { ShieldAlert, AlertCircle } from "lucide-react";
 import { listIncidents, listProbes, listServersForProbes } from "../actions";
 import { IncidentCompose } from "./incident-compose";
 import { IncidentsTable } from "./incidents-table";

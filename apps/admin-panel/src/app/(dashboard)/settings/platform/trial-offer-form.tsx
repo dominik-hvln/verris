@@ -14,7 +14,7 @@ export function TrialOfferSettingsForm({ initial }: { initial: TrialOfferForm })
       </legend>
       <p className="text-xs text-neutral-400">
         Steruje tym, co widzi klient na ekranie zamawiania hostingu. Rabaty wpinają się przez
-        istniejące <strong>kody rabatowe</strong> — utwórz kod w „Kody promocyjne" i wpisz go poniżej.
+        istniejące <strong>kody rabatowe</strong> — utwórz kod w „Kody promocyjne” i wpisz go poniżej.
       </p>
 
       <label className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">

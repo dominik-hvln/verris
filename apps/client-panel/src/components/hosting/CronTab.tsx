@@ -35,18 +35,24 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  const load = () => {
-    setLoading(true);
-    void fetchHostingCronAction(serviceId)
+  // Samo pobranie — efekt montażu startuje z `loading` już ustawionym na `true`.
+  const fetchRows = () =>
+    fetchHostingCronAction(serviceId)
       .then((res) => {
         setRows(res.rows);
         setError(res.fetchError);
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Nie udało się wczytać zadań cron.'))
       .finally(() => setLoading(false));
+
+  const load = () => {
+    setLoading(true);
+    void fetchRows();
   };
 
-  useEffect(load, [serviceId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    void fetchRows();
+  }, [serviceId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onCreate = async (e: React.FormEvent) => {
     e.preventDefault();

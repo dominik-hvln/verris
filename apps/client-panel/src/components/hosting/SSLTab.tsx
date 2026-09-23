@@ -37,33 +37,42 @@ export default function SSLTab({ serviceId }: Props) {
   const [sslUrl, setSslUrl] = useState<string | null>(null);
   const [panelBase, setPanelBase] = useState<string>('');
 
-  const load = useCallback(async () => {
-    setError(null);
-    try {
-      const [domRes, links, sslRes] = await Promise.all([
+  // Samo pobranie — przy montażu `error` jest już pusty, więc efekt nie musi go zerować.
+  const fetchSsl = useCallback(
+    () =>
+      Promise.all([
         fetchHostingDomainsAction(serviceId),
         fetchHostingDaLinksAction(serviceId),
         fetchHostingSslAction(serviceId),
-      ]);
-      setDomains(domRes.domains);
-      setDomainFetchError(domRes.fetchError);
-      setSslUrl(links.sslUrl || null);
-      setPanelBase(links.panelBaseUrl || '');
-      const map: Record<string, HostingSslRowDto> = {};
-      for (const r of sslRes?.rows ?? []) map[r.domain] = r;
-      setSslRows(map);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Nie udało się wczytać danych SSL.');
-      setDomains([]);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, [serviceId]);
+      ])
+        .then(([domRes, links, sslRes]) => {
+          setDomains(domRes.domains);
+          setDomainFetchError(domRes.fetchError);
+          setSslUrl(links.sslUrl || null);
+          setPanelBase(links.panelBaseUrl || '');
+          const map: Record<string, HostingSslRowDto> = {};
+          for (const r of sslRes?.rows ?? []) map[r.domain] = r;
+          setSslRows(map);
+        })
+        .catch((e) => {
+          setError(e instanceof Error ? e.message : 'Nie udało się wczytać danych SSL.');
+          setDomains([]);
+        })
+        .finally(() => {
+          setLoading(false);
+          setRefreshing(false);
+        }),
+    [serviceId],
+  );
+
+  const load = useCallback(() => {
+    setError(null);
+    return fetchSsl();
+  }, [fetchSsl]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    void fetchSsl();
+  }, [fetchSsl]);
 
   if (loading) {
     return (

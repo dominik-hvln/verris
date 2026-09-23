@@ -41,16 +41,22 @@ export function HostingOffsitePanel({
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const wasBusyRef = useRef(false);
 
-  const load = useCallback(async () => {
-    try {
-      setState(await fetchOffsiteStatusAction(serviceId));
-      setError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Nie udało się sprawdzić kopii off-site.');
-    } finally {
-      setLoading(false);
-    }
-  }, [serviceId]);
+  // `.then` zamiast `await` — lint React Compilera nie widzi `await` w useCallback i zgłasza fałszywy setState w efekcie.
+  const load = useCallback(
+    () =>
+      fetchOffsiteStatusAction(serviceId)
+        .then((s) => {
+          setState(s);
+          setError(null);
+        })
+        .catch((e) => {
+          setError(e instanceof Error ? e.message : 'Nie udało się sprawdzić kopii off-site.');
+        })
+        .finally(() => {
+          setLoading(false);
+        }),
+    [serviceId],
+  );
 
   useEffect(() => {
     void load();
@@ -254,7 +260,7 @@ export function HostingOffsitePanel({
           <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <span>
             Archiwum <span className="font-mono">{state.fetchedArchive}</span> jest już na serwerze.
-            Wybierz je z listy kopii powyżej i kliknij „Przywróć z tej kopii" — poprosimy jeszcze o
+            Wybierz je z listy kopii powyżej i kliknij „Przywróć z tej kopii” — poprosimy jeszcze o
             potwierdzenie domeny.
           </span>
         </p>

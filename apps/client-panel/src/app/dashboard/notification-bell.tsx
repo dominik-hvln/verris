@@ -32,26 +32,35 @@ export function NotificationBell({ variant = 'icon' }: { variant?: 'icon' | 'row
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [unread, setUnread] = useState(0);
-  const [loading, setLoading] = useState(false);
+  // Pierwszy odczyt rusza od razu na montażu, więc startujemy w stanie ładowania.
+  const [loading, setLoading] = useState(true);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  const load = useCallback(async () => {
+  // Samo pobranie, bez włączania spinnera — dla efektu montażu.
+  const fetchNow = useCallback(
+    () =>
+      fetchNotificationsAction()
+        .then((res) => {
+          setItems(res.items);
+          setUnread(res.unread);
+        })
+        .finally(() => {
+          setLoading(false);
+        }),
+    [],
+  );
+
+  const load = useCallback(() => {
     setLoading(true);
-    try {
-      const res = await fetchNotificationsAction();
-      setItems(res.items);
-      setUnread(res.unread);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    return fetchNow();
+  }, [fetchNow]);
 
   // Pierwszy odczyt + odświeżanie licznika co 60 s.
   useEffect(() => {
-    void load();
+    void fetchNow();
     const id = setInterval(() => void load(), 60_000);
     return () => clearInterval(id);
-  }, [load]);
+  }, [fetchNow, load]);
 
   // Klik poza zamyka panel.
   useEffect(() => {

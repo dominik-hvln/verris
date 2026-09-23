@@ -47,6 +47,16 @@ export function TopupCard({ balance }: Props) {
     return () => clearTimeout(t);
   }, [amount, currency]);
 
+  const runPreview = async (rawAmount: string, code: string) => {
+    setPromoState({ status: 'pending' });
+    const res = await previewTopupPromoAction(rawAmount, code);
+    if (res.ok) {
+      setPromoState({ status: 'applied', preview: res.preview });
+    } else {
+      setPromoState({ status: 'error', error: res.error });
+    }
+  };
+
   // Re-validate the promo whenever the amount changes (debounced).
   useEffect(() => {
     if (promoState.status !== 'applied' || !promoState.preview) return;
@@ -59,16 +69,6 @@ export function TopupCard({ balance }: Props) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [amount]);
-
-  const runPreview = async (rawAmount: string, code: string) => {
-    setPromoState({ status: 'pending' });
-    const res = await previewTopupPromoAction(rawAmount, code);
-    if (res.ok) {
-      setPromoState({ status: 'applied', preview: res.preview });
-    } else {
-      setPromoState({ status: 'error', error: res.error });
-    }
-  };
 
   const onApplyPromo = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -167,7 +167,7 @@ export function TopupCard({ balance }: Props) {
               {promoState.status === 'applied' && promoState.preview ? (
                 <>
                   {' '}+ <strong>{bonus.toFixed(2)} {CREDIT_SHORT}</strong> bonusu z
-                  kodu „{promoState.preview.code}" ({promoState.preview.percent}%) — łącznie{' '}
+                  kodu „{promoState.preview.code}” ({promoState.preview.percent}%) — łącznie{' '}
                   <strong>{(kredyt + bonus).toFixed(2)} {CREDIT_SHORT}</strong>.
                 </>
               ) : null}

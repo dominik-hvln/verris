@@ -33,7 +33,6 @@ function RegisterContent() {
   const searchParams = useSearchParams();
   const refFromUrl = searchParams.get("ref")?.trim() ?? "";
 
-  // @ts-ignore
   const [state, formAction, isPending] = useActionState(submitRegister, initialState);
   const [password, setPassword] = useState("");
   const pw = checkPassword(password);

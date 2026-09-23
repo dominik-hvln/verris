@@ -23,7 +23,7 @@ export default async function PromoCodesPage() {
         <p className="mt-2 text-sm text-muted-foreground max-w-3xl">
           Utwórz kod, który po wpisaniu w panelu klienta zasili portfel ustaloną liczbą kredytów Verris (1 zł = 1 K).
           Każdy kod może mieć limit realizacji i datę ważności. Klient widzi w historii transakcji opisaną pozycję
-          „Kod promocyjny: NAZWA".
+          „Kod promocyjny: NAZWA”.
         </p>
       </header>
 
@@ -150,6 +150,7 @@ function KindBadge({ kind }: { kind: PromoCodeRow["kind"] }) {
 }
 
 function StatusBadge({ row }: { row: PromoCodeRow }) {
+  // eslint-disable-next-line react-hooks/purity -- komponent serwerowy (force-dynamic) renderuje się raz na żądanie; czas żądania jest tu zamierzony
   const now = Date.now();
   const expired = row.validTo && new Date(row.validTo).getTime() < now;
   const exhausted =

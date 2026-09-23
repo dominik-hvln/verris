@@ -88,7 +88,7 @@ function PayoutQueue({ payouts }: { payouts: AdminPayout[] }) {
   return (
     <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
       <h2 className="mb-1 text-lg font-bold text-white flex items-center gap-2"><Banknote className="h-5 w-5 text-emerald-400" /> Wypłaty na konto — do realizacji</h2>
-      <p className="mb-4 text-sm text-muted-foreground">Po wykonaniu przelewu kliknij „Oznacz wypłacone". „Odrzuć" zwraca prowizje do puli partnera.</p>
+      <p className="mb-4 text-sm text-muted-foreground">Po wykonaniu przelewu kliknij „Oznacz wypłacone”. „Odrzuć” zwraca prowizje do puli partnera.</p>
 
       {error ? <p className="mb-3 flex items-center gap-2 text-sm text-rose-200"><AlertCircle className="h-4 w-4" /> {error}</p> : null}
 

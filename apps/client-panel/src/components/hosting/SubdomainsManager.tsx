@@ -25,9 +25,9 @@ export default function SubdomainsManager({ serviceId }: { serviceId: string }) 
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
 
-  const load = () => {
-    setLoading(true);
-    void fetchHostingSubdomainsAction(serviceId)
+  // Samo pobranie — efekt montażu startuje z `loading` już ustawionym na `true`.
+  const fetchRows = () =>
+    fetchHostingSubdomainsAction(serviceId)
       .then((res) => {
         setRows(res.rows);
         setDomains(res.domains);
@@ -36,9 +36,15 @@ export default function SubdomainsManager({ serviceId }: { serviceId: string }) 
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Nie udało się wczytać poddomen.'))
       .finally(() => setLoading(false));
+
+  const load = () => {
+    setLoading(true);
+    void fetchRows();
   };
 
-  useEffect(load, [serviceId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    void fetchRows();
+  }, [serviceId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onCreate = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Loader2, Copy, Check, Users2, Wallet, TrendingUp, Link2, Lock } from 'lucide-react';
 import {
@@ -46,7 +47,7 @@ export function ResellerClient() {
           Program white-label pozwala odsprzedawać hosting pod własną marką z własnym narzutem.
           Aby zostać resellerem, skontaktuj się z nami — włączymy program na Twoim koncie i ustalimy warunki.
         </p>
-        <a href="/dashboard/support" className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500">Napisz do nas</a>
+        <Link href="/dashboard/support" className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500">Napisz do nas</Link>
       </section>
     );
   }

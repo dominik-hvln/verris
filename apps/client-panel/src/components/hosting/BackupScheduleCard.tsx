@@ -24,14 +24,19 @@ export default function BackupScheduleCard({ serviceId }: { serviceId: string })
   const [lastRunAt, setLastRunAt] = useState<string | null>(null);
   const [lastStatus, setLastStatus] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      const s = await fetchBackupScheduleAction(serviceId);
-      setFrequency(s.frequency); setHour(s.hour); setDayOfWeek(s.dayOfWeek);
-      setRetainCount(s.retainCount ?? 7);
-      setLastRunAt(s.lastRunAt); setLastStatus(s.lastStatus);
-    } catch { /* domyślne */ } finally { setLoading(false); }
-  }, [serviceId]);
+  // `.then` zamiast `await` — lint React Compilera nie widzi `await` w useCallback i zgłasza fałszywy setState w efekcie.
+  const load = useCallback(
+    () =>
+      fetchBackupScheduleAction(serviceId)
+        .then((s) => {
+          setFrequency(s.frequency); setHour(s.hour); setDayOfWeek(s.dayOfWeek);
+          setRetainCount(s.retainCount ?? 7);
+          setLastRunAt(s.lastRunAt); setLastStatus(s.lastStatus);
+        })
+        .catch(() => { /* domyślne */ })
+        .finally(() => setLoading(false)),
+    [serviceId],
+  );
   useEffect(() => { void load(); }, [load]);
 
   const save = async () => {

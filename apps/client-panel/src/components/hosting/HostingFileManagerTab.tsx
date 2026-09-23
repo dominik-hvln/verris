@@ -4,7 +4,7 @@ import { ExternalLink, FolderOpen } from 'lucide-react';
 import { HostingTabShell, DaExternalLink } from '@/components/hosting/HostingTabShell';
 import { useHostingLinks, HostingLinksLoading } from '@/components/hosting/hosting-links-context';
 
-export default function HostingFileManagerTab({ serviceId: _serviceId }: { serviceId: string }) {
+export default function HostingFileManagerTab() {
   const { links, loading } = useHostingLinks();
 
   if (loading) {

@@ -47,7 +47,7 @@ export function EmailMarketingClient({
   initialCampaigns: EmmCampaign[];
 }) {
   const [tab, setTab] = useState<Tab>('lists');
-  const [overview, setOverview] = useState(initialOverview);
+  const [overview] = useState(initialOverview);
   const [lists, setLists] = useState(initialLists);
   const [campaigns, setCampaigns] = useState(initialCampaigns);
   const [notice, setNotice] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
@@ -446,7 +446,7 @@ function CampaignsTab({
       <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
         <h2 className="mb-3 text-sm font-semibold text-white">Nowa kampania</h2>
         {lists.length === 0 ? (
-          <p className="text-sm text-amber-200">Najpierw utwórz listę z kontaktami w zakładce „Listy i kontakty".</p>
+          <p className="text-sm text-amber-200">Najpierw utwórz listę z kontaktami w zakładce „Listy i kontakty”.</p>
         ) : (
           <div className="space-y-3">
             <div className="grid gap-3 sm:grid-cols-2">
@@ -477,7 +477,7 @@ function CampaignsTab({
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-white">{c.name}</p>
-                  <p className="mt-0.5 truncate text-xs text-neutral-400">„{c.subject}" → {c.listName ?? 'lista'}</p>
+                  <p className="mt-0.5 truncate text-xs text-neutral-400">„{c.subject}” → {c.listName ?? 'lista'}</p>
                 </div>
                 <CampaignStatus status={c.status} />
               </div>

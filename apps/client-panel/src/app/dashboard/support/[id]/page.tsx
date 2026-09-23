@@ -83,6 +83,7 @@ function SlaBadge({
   }
   if (status === "CLOSED") return null;
   const due = dueAt ? new Date(dueAt) : null;
+  // eslint-disable-next-line react-hooks/purity -- komponent serwerowy renderuje się raz na żądanie; czas żądania jest tu zamierzony
   const overdue = due ? due.getTime() < Date.now() : false;
   return (
     <div

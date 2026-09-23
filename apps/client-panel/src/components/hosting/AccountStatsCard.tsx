@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Activity, Database, Globe, HardDrive, Loader2, Mail, Network } from 'lucide-react';
 import { fetchHostingStatsAction, type HostingStats } from '@/app/dashboard/services/[id]/hosting-stats-actions';
 
@@ -29,10 +29,11 @@ export default function AccountStatsCard({ serviceId }: { serviceId: string }) {
   const [data, setData] = useState<HostingStats | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const load = useCallback(async () => {
-    try { setData(await fetchHostingStatsAction(serviceId)); } catch { setData(null); } finally { setLoading(false); }
+  useEffect(() => {
+    void fetchHostingStatsAction(serviceId)
+      .then(setData, () => setData(null))
+      .finally(() => setLoading(false));
   }, [serviceId]);
-  useEffect(() => { void load(); }, [load]);
 
   if (loading) {
     return <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.02] p-4 text-sm text-neutral-400"><Loader2 className="h-4 w-4 animate-spin" /> Wczytywanie statystyk…</div>;

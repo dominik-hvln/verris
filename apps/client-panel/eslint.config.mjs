@@ -12,15 +12,17 @@
 //
 // Sprzątanie jest zapisane w macierzy jako X-18. Przy jego zamykaniu te wpisy
 // wracają na 'error' — lista poniżej jest jego zakresem, nie trwałym ustępstwem.
+//
+// X-19 (2026-09-24): dług spłacony, reguły jako błędy.
 const ODSLONIETE_PRZEZ_NEXT_16 = {
-  'react-hooks/set-state-in-effect': 'warn',
-  'react-hooks/purity': 'warn',
-  'react-hooks/immutability': 'warn',
-  'react-hooks/refs': 'warn',
-  'react/no-unescaped-entities': 'warn',
-  '@next/next/no-html-link-for-pages': 'warn',
-  '@typescript-eslint/no-explicit-any': 'warn',
-  '@typescript-eslint/ban-ts-comment': 'warn',
+  'react-hooks/set-state-in-effect': 'error',
+  'react-hooks/purity': 'error',
+  'react-hooks/immutability': 'error',
+  'react-hooks/refs': 'error',
+  'react/no-unescaped-entities': 'error',
+  '@next/next/no-html-link-for-pages': 'error',
+  '@typescript-eslint/no-explicit-any': 'error',
+  '@typescript-eslint/ban-ts-comment': 'error',
 };
 
 import coreWebVitals from 'eslint-config-next/core-web-vitals';

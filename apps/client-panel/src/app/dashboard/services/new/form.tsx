@@ -185,6 +185,7 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
     if (autoPromoTried.current) return;
     if (!initialPromo || !selectedPlan || paymentSource !== 'WALLET') return;
     autoPromoTried.current = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- jednorazowa reakcja na gotowość formularza (plan + portfel), a nie na zdarzenie użytkownika; spinner kodu ma się pokazać
     void applyPromo();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialPromo, selectedPlan, paymentSource]);
@@ -826,16 +827,16 @@ function ProvisioningSuccess({
           </p>
         </div>
         <ol className="space-y-2 text-sm text-neutral-300">
-          <li>1. Skonfiguruj DNS poczty (rekordy <strong>MX, SPF, DKIM</strong>) w zakładce „Domeny &amp; DNS".</li>
-          <li>2. Załóż skrzynki e-mail w zakładce „Poczta" i ustaw hasła.</li>
+          <li>1. Skonfiguruj DNS poczty (rekordy <strong>MX, SPF, DKIM</strong>) w zakładce „Domeny &amp; DNS”.</li>
+          <li>2. Załóż skrzynki e-mail w zakładce „Poczta” i ustaw hasła.</li>
           <li>3. Zaloguj się do webmaila adresem skrzynki (nie danymi panelu).</li>
         </ol>
-        <a
+        <Link
           href="/dashboard/services"
           className="inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-bold text-black hover:bg-neutral-200"
         >
           Przejdź do usługi poczty
-        </a>
+        </Link>
       </div>
     );
   }
@@ -860,12 +861,12 @@ function ProvisioningSuccess({
           <dd className="mt-2 font-mono text-white text-base break-all">{daPassword}</dd>
         </div>
       </dl>
-      <a
+      <Link
         href="/dashboard/services"
         className="inline-flex items-center gap-2 rounded-2xl bg-white px-6 py-3 text-sm font-bold text-black hover:bg-neutral-200"
       >
         Wróć do listy usług
-      </a>
+      </Link>
     </div>
   );
 }

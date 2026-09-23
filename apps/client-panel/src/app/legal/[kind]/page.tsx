@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import { renderLegalMarkdown } from "@/lib/markdown";
@@ -80,12 +81,12 @@ export default async function LegalPage({ params, searchParams }: PageProps) {
           <div className="absolute -top-32 left-1/2 h-[500px] w-[800px] -translate-x-1/2 rounded-full bg-sky-500/5 blur-[120px]" />
         </div>
         <header className="relative z-10 mx-auto max-w-3xl px-4 pt-16 pb-8">
-          <a
+          <Link
             href="/"
             className="text-xs uppercase tracking-widest text-neutral-500 hover:text-neutral-300"
           >
             ← Verris
-          </a>
+          </Link>
           <h1 className="mt-4 text-4xl font-extrabold tracking-tight text-white">
             {KIND_LABELS[kind]}
           </h1>
@@ -151,9 +152,9 @@ export default async function LegalPage({ params, searchParams }: PageProps) {
           <div className="mx-auto flex max-w-3xl flex-col gap-2 px-4 py-8 text-xs text-neutral-500 sm:flex-row sm:justify-between">
             <p>
               Verris używa wyłącznie niezbędnych plików cookies. Szczegóły:{" "}
-              <a href="/legal/cookies" className="text-sky-400 hover:text-sky-300 underline">
+              <Link href="/legal/cookies" className="text-sky-400 hover:text-sky-300 underline">
                 Polityka cookies
-              </a>
+              </Link>
               .
             </p>
             <p>

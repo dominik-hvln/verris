@@ -52,6 +52,7 @@ export function ActiveSessionsSection({
       } else {
         showToast(s.current ? "Wylogowano bieżącą sesję." : "Urządzenie wylogowane.", "success");
         if (s.current) {
+          // eslint-disable-next-line @next/next/no-location-assign-relative-destination -- celowo pełne przeładowanie: po wylogowaniu bieżącej sesji nie może zostać cache routera ani stan klienta
           window.location.href = "/login?reason=session-ended";
           return;
         }

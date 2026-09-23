@@ -82,13 +82,14 @@ export function KbManager() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok?: string; err?: string }>({});
 
-  async function reloadCats() {
-    setCats(await fetchCategories());
+  // `.then` zamiast `await`: lint React Compilera nie śledzi `await` i brałby
+  // setState po odpowiedzi za synchroniczny setState w efekcie.
+  function reloadCats() {
+    return fetchCategories().then(setCats);
   }
   useEffect(() => { void reloadCats(); }, []);
   useEffect(() => {
     if (selCat) void fetchArticles(selCat).then(setArticles);
-    else setArticles([]);
   }, [selCat]);
 
   const tops = useMemo(() => cats.filter((c) => !c.parentId), [cats]);
@@ -111,7 +112,11 @@ export function KbManager() {
     if (!window.confirm(`Usunąć kategorię „${c.name}"? (musi być pusta)`)) return;
     const r = await deleteCategory(c.id);
     if (!r.ok) setMsg({ err: r.error });
-    else { if (selCat === c.id) setSelCat(null); void reloadCats(); }
+    else {
+      // Lista artykułów znika razem z zaznaczeniem usuniętej kategorii.
+      if (selCat === c.id) { setSelCat(null); setArticles([]); }
+      void reloadCats();
+    }
   }
 
   // ---- article actions
@@ -262,7 +267,7 @@ function CtaPanel() {
           <input type="checkbox" checked={cta.enabled} onChange={(e) => upd('enabled', e.target.checked)} /> Baner włączony
         </label>
         <label className="flex items-center gap-2 text-sm text-white sm:col-span-2">
-          <input type="checkbox" checked={cta.pattern !== false} onChange={(e) => upd('pattern', e.target.checked)} /> Wzorzec brandingowy w tle (siatka „V")
+          <input type="checkbox" checked={cta.pattern !== false} onChange={(e) => upd('pattern', e.target.checked)} /> Wzorzec brandingowy w tle (siatka „V”)
         </label>
         <label className="space-y-1 sm:col-span-2"><span className="text-xs text-white/70">Nagłówek</span>
           <input className={inputCls} value={cta.headline} onChange={(e) => upd('headline', e.target.value)} /></label>
