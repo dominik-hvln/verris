@@ -261,6 +261,18 @@ export class AutoscalingEngineService {
               'Konto nie dostało pełnej nadwyżki, bo węzeł jej nie ma. To sygnał do dołożenia węzła — klient nie jest niczemu winien.',
           } as Prisma.InputJsonValue,
         });
+        // Z-17 — klient płaci za autoskalowanie i musi widzieć, że w szczycie dostał mniej.
+        // Format powodu czyta oś zdarzeń w panelu: przyznane/chciane per zasób.
+        await this.prisma.autoscalingEvent.create({
+          data: {
+            subscriptionId: sub.id,
+            direction: AutoscalingDirection.UP,
+            reason:
+              `node_capacity_limited|cpu:${limit.przyznane.cpu}/${nextScaledCpu - scaledCpu}` +
+              `|ram:${limit.przyznane.ramMb}/${nextScaledRamMb - scaledRamMb}` +
+              `|disk:${limit.przyznane.diskMb}/${nextScaledDiskMb - scaledDiskMb}`,
+          },
+        });
       }
 
       nextScaledCpu = poObcieciu.cpu;

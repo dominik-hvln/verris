@@ -61,7 +61,36 @@ export function AutoscalingTimeline({ events, charges }: Props) {
   );
 }
 
+/** Z-17 — `node_capacity_limited|cpu:10/40|ram:512/2048|disk:0/0` (przyznane/chciane). */
+function ograniczenieWezla(reason: string | null): string | null {
+  if (!reason?.startsWith('node_capacity_limited')) return null;
+  const czesci = reason.split('|').slice(1).map((p) => {
+    const [zasob, wart] = p.split(':');
+    const [dostal, chcial] = (wart ?? '').split('/').map(Number);
+    if (!chcial) return null;
+    const fmt = (v: number) => (zasob === 'cpu' ? `${v}%` : `${(v / 1024).toFixed(1)} GB`);
+    return `${zasob.toUpperCase()} ${fmt(dostal)} z ${fmt(chcial)}`;
+  });
+  return czesci.filter(Boolean).join(' · ') || 'mniej niż potrzeba';
+}
+
 function EventRow({ event }: { event: AutoscalingEventDto }) {
+  const ograniczone = ograniczenieWezla(event.reason);
+  if (ograniczone) {
+    return (
+      <li className="flex items-center justify-between gap-4 rounded-xl border border-amber-400/30 bg-amber-400/10 px-4 py-3 text-amber-100">
+        <div className="min-w-0">
+          <div className="text-sm font-semibold">Serwer dał mniej zasobów, niż potrzebowała strona</div>
+          <div className="text-[11px] opacity-90">
+            Przyznano: {ograniczone}. To brak miejsca po naszej stronie, nie za mały pakiet — płacisz tylko za to, co
+            faktycznie przyznaliśmy.
+          </div>
+        </div>
+        <div className="text-right text-[11px] opacity-80 shrink-0">{new Date(event.createdAt).toLocaleString('pl-PL')}</div>
+      </li>
+    );
+  }
+
   const isUp = event.type === 'SCALE_UP' || event.type === 'AUTOSCALING_ENABLED';
   const isDown = event.type === 'SCALE_DOWN' || event.type === 'AUTOSCALING_DISABLED';
   const Icon = isUp ? ArrowUpFromLine : isDown ? ArrowDownToLine : History;
