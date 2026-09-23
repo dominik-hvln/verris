@@ -1391,7 +1391,7 @@ export class BillingService {
       newPeriodEnd,
       invoiceNumber: ourInvoice?.number ?? null,
       invoiceUrl: ourInvoice?.id
-        ? `${panelUrl}/dashboard/billing/invoices/${ourInvoice.id}`
+        ? `${panelUrl}/dashboard/billing/invoices`
         : null,
       panelUrl,
     });

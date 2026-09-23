@@ -14,11 +14,29 @@ import type { Response } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { InvoicesService } from './invoices.service';
+import { ProformaService } from './proforma.service';
 
 @Controller('billing/invoices')
 @UseGuards(JwtAuthGuard)
 export class InvoicesController {
-  constructor(private readonly invoices: InvoicesService) {}
+  constructor(
+    private readonly invoices: InvoicesService,
+    private readonly proforma: ProformaService,
+  ) {}
+
+  /** M-24 — proforma na najbliższe odnowienie usługi (PDF na żądanie, niczego nie zapisuje). */
+  @Get('proforma/:subscriptionId')
+  @Header('Cache-Control', 'no-store')
+  async proformaPdf(
+    @CurrentUser() user: { userId: string },
+    @Param('subscriptionId') subscriptionId: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    const { pdf, filename } = await this.proforma.render(user.userId, subscriptionId);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.end(Buffer.from(pdf));
+  }
 
   @Get()
   @HttpCode(200)

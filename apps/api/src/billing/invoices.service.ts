@@ -563,7 +563,7 @@ export class InvoicesService {
     return po ?? { id: invoiceId, storageKey: null };
   }
 
-  private async buildSellerSnapshot(): Promise<SellerSnapshot> {
+  async buildSellerSnapshot(): Promise<SellerSnapshot> {
     const c = await this.platformSettings.getSellerCompany();
     return {
       name: c.name || (this.config.get<string>('VERRIS_COMPANY_NAME') ?? 'Verris Sp. z o.o.'),
@@ -579,7 +579,7 @@ export class InvoicesService {
     };
   }
 
-  private async buildBuyerSnapshot(userId: string): Promise<BuyerSnapshot> {
+  async buildBuyerSnapshot(userId: string): Promise<BuyerSnapshot> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -651,7 +651,7 @@ export class InvoicesService {
       issuedAt: invoice.issuedAt ?? new Date(),
       paidAt: invoice.paidAt,
       panelUrl,
-      invoiceUrl: `${panelUrl}/dashboard/billing/invoices/${invoice.id}`,
+      invoiceUrl: `${panelUrl}/dashboard/billing/invoices`,
       rozliczeniowy: invoice.rodzajPrawny === RODZAJ_DOKUMENT_ROZLICZENIOWY,
     });
     await this.mailer.send({ ...message, fromRole: 'NOREPLY', category: 'TRANSACTIONAL' });

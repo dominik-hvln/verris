@@ -71,7 +71,7 @@ export function promoCodeRedeemedTemplate(ctx: PromoCodeRedeemedContext): MailMe
     bodyMarkdown: lines.join('\n'),
     cta: {
       label: 'Zobacz portfel',
-      url: `${ctx.panelUrl}/dashboard/wallet`,
+      url: `${ctx.panelUrl}/dashboard/billing`,
     },
     footnote:
       'Transakcję promocyjną widzisz w historii portfela jako wpis typu „PROMO_CREDIT". Nie podlega ona zwrotowi.',

@@ -58,7 +58,7 @@ export function accountProvisionedTemplate(ctx: AccountProvisionedContext): Mail
     ].join('\n'),
     cta: {
       label: 'Otwórz panel klienta',
-      url: `${ctx.panelUrl}/dashboard/subscriptions`,
+      url: `${ctx.panelUrl}/dashboard/services`,
     },
     footnote:
       'Ze względów bezpieczeństwa nie wysyłamy haseł e-mailem (audit F-15). Dane logowania znajdziesz w panelu klienta — sekcja Magic Login przy Twojej usłudze.',

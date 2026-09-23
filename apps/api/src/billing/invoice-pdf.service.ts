@@ -1,14 +1,21 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { PDFDocument, rgb } from 'pdf-lib';
+import { osadzCzcionki } from '../common/pdf/czcionki';
 import { Prisma } from '@verris/database';
 
-import { RODZAJ_DOKUMENT_ROZLICZENIOWY } from './tryb-fakturowania';
+import { RODZAJ_DOKUMENT_ROZLICZENIOWY, RODZAJ_PROFORMA } from './tryb-fakturowania';
 
 /** FAK-01 — adnotacja na dokumencie rozliczeniowym. */
 export const ADNOTACJA_DOKUMENTU_ROZLICZENIOWEGO: readonly string[] = [
   'Dokument rozliczeniowy nie jest fakturą VAT.',
   'Faktura VAT za tę sprzedaż zostanie wystawiona odrębnie i udostępniona w panelu klienta.',
+];
+
+/** M-24 — adnotacja na proformie. */
+export const ADNOTACJA_PROFORMY: readonly string[] = [
+  'Faktura proforma nie jest fakturą VAT i nie stanowi podstawy do odliczenia podatku.',
+  'Po opłaceniu odnowienia dokument sprzedaży udostępnimy w panelu klienta.',
 ];
 
 /** Snapshot zapisywany w `Invoice.sellerSnapshot`. */
@@ -138,17 +145,23 @@ export class InvoicePdfService {
   async render(ctx: BuildInvoiceContext): Promise<Uint8Array> {
     const pdf = await PDFDocument.create();
     const rozliczeniowy = ctx.rodzajPrawny === RODZAJ_DOKUMENT_ROZLICZENIOWY;
-    pdf.setTitle(rozliczeniowy ? `Dokument rozliczeniowy ${ctx.number}` : `Faktura ${ctx.number}`);
+    const proforma = ctx.rodzajPrawny === RODZAJ_PROFORMA;
+    pdf.setTitle(
+      proforma ? `Proforma ${ctx.number}` : rozliczeniowy ? `Dokument rozliczeniowy ${ctx.number}` : `Faktura ${ctx.number}`,
+    );
     pdf.setAuthor(ctx.seller.name);
     pdf.setSubject(
-      rozliczeniowy ? `Dokument rozliczeniowy — ${ctx.number}` : `Faktura VAT — ${ctx.number}`,
+      proforma
+        ? `Faktura proforma — ${ctx.number}`
+        : rozliczeniowy
+          ? `Dokument rozliczeniowy — ${ctx.number}`
+          : `Faktura VAT — ${ctx.number}`,
     );
     pdf.setCreator('Verris');
     pdf.setProducer('Verris Panel');
     pdf.setCreationDate(ctx.issuedAt);
 
-    const fontRegular = await pdf.embedFont(StandardFonts.Helvetica);
-    const fontBold = await pdf.embedFont(StandardFonts.HelveticaBold);
+    const { regular: fontRegular, bold: fontBold } = await osadzCzcionki(pdf);
 
     const PAGE_W = 595.28;
     const PAGE_H = 841.89;
@@ -165,17 +178,24 @@ export class InvoicePdfService {
       font: fontBold,
       color: rgb(0.07, 0.13, 0.34), // verris navy-ish
     });
-    const tytul = rozliczeniowy
+    const tytul = proforma
+      ? `Faktura proforma  nr  ${ctx.number}`
+      : rozliczeniowy
       ? ctx.korekta
         ? `Korekta dokumentu  nr  ${ctx.number}`
         : `Dokument rozliczeniowy  nr  ${ctx.number}`
       : ctx.korekta
         ? `Faktura korygująca  nr  ${ctx.number}`
         : `Faktura VAT  nr  ${ctx.number}`;
+    // Tytuł wyrównany do prawej i zmniejszany, gdy nie mieści się obok nazwy sprzedawcy
+    // (stałe x ucinało „Dokument rozliczeniowy nr VDR/…” za krawędzią strony).
+    const miejsceNaTytul = PAGE_W - 2 * MARGIN - measureText(ctx.seller.name, fontBold, 14) - 24;
+    let rozmiarTytulu = 16;
+    while (rozmiarTytulu > 9 && measureText(tytul, fontBold, rozmiarTytulu) > miejsceNaTytul) rozmiarTytulu -= 0.5;
     page.drawText(tytul, {
-      x: PAGE_W - MARGIN - 250,
+      x: PAGE_W - MARGIN - measureText(tytul, fontBold, rozmiarTytulu),
       y: cursorY - 8,
-      size: 16,
+      size: rozmiarTytulu,
       font: fontBold,
       color: rgb(0, 0, 0),
     });
@@ -245,7 +265,7 @@ export class InvoicePdfService {
       font: fontBold,
       color: rgb(0.4, 0.4, 0.4),
     });
-    drawSellerOrBuyer(page, ctx.seller, MARGIN + 8, boxTop - 26, fontRegular, fontBold);
+    drawSellerOrBuyer(page, ctx.seller, MARGIN + 8, boxTop - 26, fontRegular, fontBold, halfW - 16);
 
     drawBox(page, MARGIN + halfW + 20, boxTop, halfW, boxHeight);
     page.drawText('Nabywca', {
@@ -262,6 +282,7 @@ export class InvoicePdfService {
       boxTop - 26,
       fontRegular,
       fontBold,
+      halfW - 16,
     );
     cursorY -= boxHeight + 18;
 
@@ -281,7 +302,7 @@ export class InvoicePdfService {
     });
     const cols: Array<{ label: string; w: number; align?: 'left' | 'right' }> = [
       { label: 'Lp.', w: 28, align: 'right' },
-      { label: 'Nazwa towaru / usługi', w: 200 },
+      { label: 'Nazwa towaru / usługi', w: 155 },
       { label: 'Il.', w: 30, align: 'right' },
       { label: 'C. netto', w: 60, align: 'right' },
       { label: 'VAT %', w: 40, align: 'right' },
@@ -308,8 +329,11 @@ export class InvoicePdfService {
     // Rows
     let lineNo = 1;
     for (const item of ctx.lineItems) {
+      // Nazwa zawijana w kolumnie — wcześniej długa nazwa wchodziła na kolumny z kwotami.
+      const linieNazwy = zawin(item.name, fontRegular, 9, cols[1].w - 6);
+      const wysokosc = Math.max(rowH, linieNazwy.length * 11 + 7);
       // New page if needed.
-      if (cursorY - rowH < MARGIN + 200) {
+      if (cursorY - wysokosc < MARGIN + 200) {
         page = pdf.addPage([PAGE_W, PAGE_H]);
         cursorY = PAGE_H - MARGIN;
       }
@@ -317,9 +341,9 @@ export class InvoicePdfService {
       if (lineNo % 2 === 0) {
         page.drawRectangle({
           x: tableX,
-          y: cursorY - rowH,
+          y: cursorY - wysokosc,
           width: tableW,
-          height: rowH,
+          height: wysokosc,
           color: rgb(0.98, 0.98, 0.98),
         });
       }
@@ -337,6 +361,13 @@ export class InvoicePdfService {
       let xCol = tableX + 6;
       cells.forEach((value, i) => {
         const col = cols[i];
+        if (i === 1) {
+          linieNazwy.forEach((linia, n) =>
+            page.drawText(linia, { x: xCol + 2, y: cursorY - 12 - n * 11, size: 9, font: fontRegular, color: rgb(0, 0, 0) }),
+          );
+          xCol += col.w;
+          return;
+        }
         const align = col.align === 'right' ? 'right' : 'left';
         const fontUsed = fontRegular;
         const text = align === 'right'
@@ -351,7 +382,7 @@ export class InvoicePdfService {
         });
         xCol += col.w;
       });
-      cursorY -= rowH;
+      cursorY -= wysokosc;
       lineNo += 1;
     }
 
@@ -452,6 +483,14 @@ export class InvoicePdfService {
       cursorY -= 14;
     }
 
+    if (proforma) {
+      cursorY -= 6;
+      for (const linia of ADNOTACJA_PROFORMY) {
+        page.drawText(linia, { x: MARGIN, y: cursorY, size: 9, font: fontBold });
+        cursorY -= 13;
+      }
+    }
+
     if (rozliczeniowy) {
       // Bez tej adnotacji dokument z NIP-ami, pozycjami i kwotą VAT wygląda
       // jak faktura — i klient zaksięgowałby go jako fakturę.
@@ -485,9 +524,9 @@ export class InvoicePdfService {
       font: fontRegular,
       color: rgb(0.45, 0.45, 0.45),
     });
-    page.drawText('Faktura wygenerowana elektronicznie. Nie wymaga podpisu.', {
-      x: PAGE_W - MARGIN - 220,
-      y: footY + 8,
+    page.drawText('Dokument wygenerowany elektronicznie. Nie wymaga podpisu.', {
+      x: MARGIN,
+      y: footY - 3,
       size: 7.5,
       font: fontRegular,
       color: rgb(0.45, 0.45, 0.45),
@@ -526,17 +565,23 @@ function drawSellerOrBuyer(
   yTop: number,
   fontRegular: Awaited<ReturnType<PDFDocument['embedFont']>>,
   fontBold: Awaited<ReturnType<PDFDocument['embedFont']>>,
+  maxW = 230,
 ): void {
   let y = yTop;
-  page.drawText(data.name, { x, y, size: 10, font: fontBold });
-  y -= 12;
+  // Nazwa i adres zawijane w ramce (box ma stałą wysokość 110 pt → maks. 2 linie nazwy).
+  for (const linia of zawin(data.name, fontBold, 10, maxW).slice(0, 2)) {
+    page.drawText(linia, { x, y, size: 10, font: fontBold });
+    y -= 12;
+  }
   if ('nip' in data && data.nip) {
     page.drawText(`NIP: ${data.nip}`, { x, y, size: 9, font: fontRegular });
     y -= 11;
   }
   if (data.address) {
-    page.drawText(data.address, { x, y, size: 9, font: fontRegular });
-    y -= 11;
+    for (const linia of zawin(data.address, fontRegular, 9, maxW).slice(0, 2)) {
+      page.drawText(linia, { x, y, size: 9, font: fontRegular });
+      y -= 11;
+    }
   }
   if (data.postalCode || data.city) {
     page.drawText(`${data.postalCode ?? ''} ${data.city ?? ''}`.trim(), {
@@ -578,6 +623,37 @@ function measureText(
   size: number,
 ): number {
   return font.widthOfTextAtSize(text, size);
+}
+
+/** Dzieli tekst na linie mieszczące się w `maxW` (po słowach; zbyt długie słowo — po znakach). */
+export function zawin(
+  text: string,
+  font: Awaited<ReturnType<PDFDocument['embedFont']>>,
+  size: number,
+  maxW: number,
+): string[] {
+  const linie: string[] = [];
+  let biezaca = '';
+  for (const slowo of text.split(/\s+/).filter(Boolean)) {
+    const proba = biezaca ? `${biezaca} ${slowo}` : slowo;
+    if (measureText(proba, font, size) <= maxW) {
+      biezaca = proba;
+      continue;
+    }
+    if (biezaca) linie.push(biezaca);
+    biezaca = '';
+    let kawalek = '';
+    for (const znak of slowo) {
+      if (kawalek && measureText(kawalek + znak, font, size) > maxW) {
+        linie.push(kawalek);
+        kawalek = '';
+      }
+      kawalek += znak;
+    }
+    biezaca = kawalek;
+  }
+  if (biezaca) linie.push(biezaca);
+  return linie.length ? linie : [''];
 }
 
 function rightAlign(

@@ -61,7 +61,7 @@ export function ticketReplyNotificationTemplate(ctx: TicketReplyContext): MailMe
   const shortId = ctx.ticketId.slice(0, 8);
   const ticketUrl = ctx.isFromStaff
     ? `${ctx.panelUrl}/dashboard/support/${ctx.ticketId}`
-    : `${ctx.staffPanelUrl ?? ctx.panelUrl}/dashboard/tickets/${ctx.ticketId}`;
+    : `${ctx.staffPanelUrl ?? ctx.panelUrl}/tickets/${ctx.ticketId}`;
   const safeSubject = escapeHtml(ctx.subject);
   const excerpt = escapeHtml(ctx.excerpt.slice(0, 500));
   const title = ctx.isFromStaff ? 'Nowa odpowiedź od supportu' : 'Nowa wiadomość od klienta';

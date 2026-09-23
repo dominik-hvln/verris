@@ -140,6 +140,15 @@ export default function ServiceSubscriptionTab({ serviceId }: { serviceId: strin
             <Link href={`/dashboard/services/${serviceId}/plan`} className={BTN}>
               Zmiana planu
             </Link>
+            {(service.status === 'ACTIVE' || service.status === 'PAST_DUE') && !cancelScheduled ? (
+              <a
+                href={`/api/services/${serviceId}/proforma`}
+                className={BTN}
+                title="PDF z kwotą najbliższego odnowienia — np. do akceptacji w księgowości przed płatnością"
+              >
+                Proforma na odnowienie
+              </a>
+            ) : null}
           </div>
         }
       />

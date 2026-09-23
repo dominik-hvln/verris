@@ -11,6 +11,7 @@ import { StripeWebhookPonowieniaScheduler } from './stripe/stripe-webhook-ponowi
 import { InvoicesService } from './invoices.service';
 import { InvoicesController } from './invoices.controller';
 import { InvoicesAdminController } from './invoices.admin.controller';
+import { ProformaService } from './proforma.service';
 import { InvoicePdfService } from './invoice-pdf.service';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { PromoService } from './promo.service';
@@ -46,6 +47,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     AnulowanieService,
     InvoicesService,
     InvoicePdfService,
+    ProformaService,
     PromoService,
     WalletAutoTopupService,
     WalletAutoTopupScheduler,

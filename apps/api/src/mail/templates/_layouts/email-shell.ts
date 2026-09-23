@@ -253,7 +253,7 @@ export function renderEmailShell(input: EmailShellInput): EmailShellOutput {
     category === 'MARKETING' || category === 'PRODUCT_UPDATE'
       ? `<p style="margin:8px 0 0;color:${PALETTE.textMuted};font-size:12px;line-height:1.5;">
            Otrzymujesz tego maila, ponieważ wyraziłeś zgodę na komunikację marketingową.
-           <a href="${escapeHtml(panelUrl)}/dashboard/settings#powiadomienia" style="color:${PALETTE.accent};text-decoration:underline;">Wypisz się jednym kliknięciem</a>.
+           <a href="${escapeHtml(panelUrl)}/dashboard/settings?tab=notifications" style="color:${PALETTE.accent};text-decoration:underline;">Wypisz się jednym kliknięciem</a>.
          </p>`
       : '';
 
@@ -335,7 +335,7 @@ ${preheaderTrick}
                   <p style="margin:0;color:${PALETTE.textMuted};font-size:11px;line-height:1.5;">
                     <a href="${escapeHtml(panelUrl)}/legal/privacy" style="color:${PALETTE.textMuted};text-decoration:underline;">Polityka prywatności</a>
                     &middot; <a href="${escapeHtml(panelUrl)}/legal/terms" style="color:${PALETTE.textMuted};text-decoration:underline;">Regulamin</a>
-                    &middot; <a href="${escapeHtml(panelUrl)}/dashboard/settings#powiadomienia" style="color:${PALETTE.textMuted};text-decoration:underline;">Preferencje powiadomień</a>
+                    &middot; <a href="${escapeHtml(panelUrl)}/dashboard/settings?tab=notifications" style="color:${PALETTE.textMuted};text-decoration:underline;">Preferencje powiadomień</a>
                   </p>
                   ${unsubscribeBlock}
                   <p style="margin:12px 0 0;color:${PALETTE.textMuted};font-size:11px;line-height:1.5;">Wysłano na: ${escapeHtml(recipientEmail)}</p>
@@ -366,7 +366,7 @@ ${preheaderTrick}
     '',
     `Kontakt: kontakt@verris.pl · RODO: rodo@verris.pl`,
     `Polityka prywatności: ${panelUrl}/legal/privacy`,
-    `Preferencje powiadomień: ${panelUrl}/dashboard/settings#powiadomienia`,
+    `Preferencje powiadomień: ${panelUrl}/dashboard/settings?tab=notifications`,
     `Wysłano na: ${recipientEmail}`,
   ]
     .filter((line) => line !== null)

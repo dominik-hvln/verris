@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { PDFDocument, rgb } from 'pdf-lib';
+import { osadzCzcionki } from '../common/pdf/czcionki';
 import { PrismaService } from '../prisma/prisma.service';
 import { LegalDocumentsService } from './legal-documents.service';
 import { AuditService } from '../common/audit/audit.service';
@@ -188,9 +189,7 @@ export class DpaPdfService {
     doc.setCreator('Verris Panel');
     doc.setCreationDate(new Date());
 
-    const fontBody = await doc.embedFont(StandardFonts.Helvetica);
-    const fontBold = await doc.embedFont(StandardFonts.HelveticaBold);
-    const fontMono = await doc.embedFont(StandardFonts.Courier);
+    const { regular: fontBody, bold: fontBold, mono: fontMono } = await osadzCzcionki(doc);
 
     const ctx: PageContext = {
       doc,

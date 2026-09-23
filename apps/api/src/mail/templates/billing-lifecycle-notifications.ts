@@ -371,7 +371,7 @@ export function subscriptionRenewalReminderTemplate(
       : 'Zarządzaj subskrypcją';
   const ctaUrl = ctx.payFromWallet
     ? `${ctx.panelUrl}/dashboard/billing`
-    : `${ctx.panelUrl}/dashboard/subscriptions`;
+    : `${ctx.panelUrl}/dashboard/services`;
 
   const { html, text } = renderEmailShell({
     title: `Subskrypcja "${ctx.serviceName}" zostanie odnowiona ${when}`,
@@ -441,7 +441,7 @@ export function subscriptionRenewedTemplate(ctx: SubscriptionRenewedContext): Ma
 
   const invoiceLine = ctx.invoiceNumber
     ? `**Numer faktury:** ${escapeHtml(ctx.invoiceNumber)}${
-        ctx.invoiceUrl ? ` — [pobierz PDF](${ctx.invoiceUrl})` : ''
+        ctx.invoiceUrl ? ` — [faktury w panelu](${ctx.invoiceUrl})` : ''
       }`
     : 'Faktura zostanie wystawiona w ciągu kolejnych 24 godzin — otrzymasz osobny e-mail.';
 
@@ -464,8 +464,8 @@ export function subscriptionRenewedTemplate(ctx: SubscriptionRenewedContext): Ma
       `Wszystko jest gotowe — Twoja usługa działa nieprzerwanie.`,
     ].join('\n'),
     cta: ctx.invoiceUrl
-      ? { label: 'Pobierz fakturę', url: ctx.invoiceUrl }
-      : { label: 'Zarządzaj subskrypcjami', url: `${ctx.panelUrl}/dashboard/subscriptions` },
+      ? { label: 'Faktury w panelu', url: ctx.invoiceUrl }
+      : { label: 'Zarządzaj subskrypcjami', url: `${ctx.panelUrl}/dashboard/services` },
     footnote:
       'Wszystkie faktury (5 lat archiwum — wymóg PL) znajdziesz w sekcji "Portfel → Faktury" w panelu klienta.',
     recipientEmail: ctx.to,
@@ -681,7 +681,7 @@ export function subscriptionCancelledTemplate(ctx: SubscriptionCancelledContext)
     ].join('\n'),
     cta: {
       label: 'Wróć do panelu',
-      url: `${ctx.panelUrl}/dashboard/subscriptions`,
+      url: `${ctx.panelUrl}/dashboard/services`,
     },
     footnote:
       'Eksport danych (RODO art. 20) możesz wykonać w każdej chwili w "Ustawienia → Prywatność i dane".',
@@ -760,7 +760,7 @@ export function trialEndingSoonTemplate(ctx: TrialEndingSoonContext): MailMessag
       ``,
       `Jeśli nie przedłużysz — po tej dacie usługa zostanie zawieszona. Dane przechowamy jeszcze 30 dni, więc nadal zdążysz wrócić.`,
     ].join('\n'),
-    cta: { label: 'Przekształć usługę', url: `${ctx.panelUrl}/dashboard/subscriptions` },
+    cta: { label: 'Przekształć usługę', url: `${ctx.panelUrl}/dashboard/services` },
     footnote: 'Wysyłamy to przypomnienie raz, przed końcem okresu próbnego.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
@@ -788,7 +788,7 @@ export function trialExpiredTemplate(ctx: TrialExpiredContext): MailMessage {
       ``,
       `Nic nie przepadło: **Twoje pliki, bazy i poczta są bezpieczne jeszcze przez 30 dni**. Aby je przywrócić i wznowić usługę — doładuj portfel i przekształć usługę na płatną w panelu.`,
     ].join('\n'),
-    cta: { label: 'Wznów usługę', url: `${ctx.panelUrl}/dashboard/subscriptions` },
+    cta: { label: 'Wznów usługę', url: `${ctx.panelUrl}/dashboard/services` },
     footnote: 'Po 30 dniach od zawieszenia dane mogą zostać trwale usunięte.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,

@@ -36,6 +36,8 @@ export const TRYB_DOMYSLNY: TrybFakturowania = 'zewnetrzny';
 
 export const RODZAJ_FAKTURA_VAT = 'FAKTURA_VAT';
 export const RODZAJ_DOKUMENT_ROZLICZENIOWY = 'DOKUMENT_ROZLICZENIOWY';
+/** M-24 — proforma przed odnowieniem: tylko PDF na żądanie, nie zapisywana, bez serii VAT. */
+export const RODZAJ_PROFORMA = 'PROFORMA';
 export type RodzajPrawny = typeof RODZAJ_FAKTURA_VAT | typeof RODZAJ_DOKUMENT_ROZLICZENIOWY;
 
 /** Seria dokumentu rozliczeniowego i jego korekty — rozłączne z VFV/VFK. */

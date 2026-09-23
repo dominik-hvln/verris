@@ -151,7 +151,7 @@ export function twoFactorEnabledTemplate(ctx: TwoFactorEnabledContext): MailMess
     ].join('\n'),
     cta: {
       label: 'Zarządzaj 2FA w panelu',
-      url: `${ctx.panelUrl}/settings/security/two-factor`,
+      url: `${ctx.panelUrl}/dashboard/settings?tab=security`,
     },
     footnote:
       'Kody odzyskiwania działają jak hasła — traktuj je z odpowiednią ostrożnością.',
@@ -206,7 +206,7 @@ export function twoFactorDisabledTemplate(ctx: TwoFactorDisabledContext): MailMe
     ].join('\n'),
     cta: {
       label: 'Włącz 2FA ponownie',
-      url: `${ctx.panelUrl}/settings/security/two-factor`,
+      url: `${ctx.panelUrl}/dashboard/settings?tab=security`,
     },
     footnote:
       'Bez 2FA jedyną przeszkodą dla atakującego jest siła Twojego hasła. Zalecamy menedżer haseł.',
@@ -381,7 +381,7 @@ export function breakGlassUsedAlertTemplate(
       ``,
       `Jeśli to **zaplanowana** akcja (np. utrata urządzenia z passkey) — możesz zignorować ten alert. Jeśli **nie** — potraktuj to jako możliwe przejęcie konta: zablokuj konto, wymuś reset hasła i przejrzyj log audytu.`,
     ].join('\n'),
-    cta: { label: 'Otwórz log audytu', url: `${ctx.panelUrl}/security/audit` },
+    cta: { label: 'Otwórz log audytu', url: `${ctx.panelUrl}/audit` },
     footnote:
       'Ten alert otrzymuje każdy administrator przy każdym użyciu kodu break-glass — nie da się go wyłączyć.',
     recipientEmail: ctx.to,
