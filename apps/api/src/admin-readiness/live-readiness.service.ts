@@ -100,6 +100,17 @@ export class LiveReadinessService {
         : 'Brak SMTP_HOST — maile weryfikacyjne/resetu nie wyjdą (blokuje onboarding).',
     );
 
+    // --- N-16: regulamin §15 ust. 3 obiecuje rekompensaty automatyczne ---
+    const sla = await this.settings.getSlaCreditPolicy();
+    add(
+      'sla_credits',
+      'Rekompensaty SLA (automatyczne)',
+      sla.enabled ? 'ok' : 'fail',
+      sla.enabled
+        ? 'Włączone — naliczane po zamknięciu miesiąca według progów z §15.'
+        : 'Wyłączone, a regulamin §15 ust. 3 obiecuje rekompensatę bez wniosku. Sprawdź podgląd (Ustawienia platformy → Podgląd kredytów SLA) i włącz.',
+    );
+
     // --- seller data for invoices (blocking for legal invoicing) ---
     const company = await this.settings.getSellerCompany();
     const companyOk = Boolean(company.name && company.nip && company.address && company.city);

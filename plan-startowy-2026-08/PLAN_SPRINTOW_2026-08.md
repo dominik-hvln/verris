@@ -459,7 +459,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `N-16` | SLA z zapisanymi kredytami | 6 | WYSOKA | sla-credit.scheduler.ts:79 — if (!policy.enabled) return; SLA_CREDITS_ENABLED default '0' (platform-settings.keys.ts:116) |
+| `N-16` | SLA z zapisanymi kredytami | 6 | WYSOKA | sla-credit.scheduler.ts — wylicz() (progi §15, miesiąc kalendarzowy, okna konserwacyjne, 1 wypłata/usługę/miesiąc) + run() za flagą; GET /admin/sla/po |
 | `A-11` | Wyszukiwarka wolnych domen | 6 | WYSOKA | domains.controller.ts:54 |
 | `PB-07` | Treści i cennik na verris.pl | 16 | WYSOKI | Strona główna, cennik, specyfikacja techniczna pakietu, strona SLA. Narracja: cena stała, bez skoku po roku. |
 | `PB-11` | Bus factor: drugi kanał alertów i procedura zastępstwa | 8 | WYSOKI | Alerty na więcej niż jeden adres, przetestowane. Dokument: co robi ktoś inny, gdy Ciebie nie ma przez tydzień. |

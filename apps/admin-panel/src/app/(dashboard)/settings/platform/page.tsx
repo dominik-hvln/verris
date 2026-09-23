@@ -5,7 +5,9 @@ import {
   fetchTrialOffer,
   fetchMonitoringSettings,
   fetchSlaCreditPolicy,
+  fetchSlaPodglad,
 } from './actions';
+import { SlaPreview } from './sla-preview';
 import { PlatformSettingsForm } from './platform-settings-form';
 import { TrialOfferSettingsForm } from './trial-offer-form';
 import { MonitoringSettingsForm } from './monitoring-settings-form';
@@ -14,11 +16,12 @@ import { SlaCreditsForm } from './sla-credits-form';
 export const dynamic = 'force-dynamic';
 
 export default async function PlatformSettingsPage() {
-  const [settings, trialOffer, monitoring, slaCredits] = await Promise.all([
+  const [settings, trialOffer, monitoring, slaCredits, slaPodglad] = await Promise.all([
     fetchPlatformSettings(),
     fetchTrialOffer(),
     fetchMonitoringSettings(),
     fetchSlaCreditPolicy(),
+    fetchSlaPodglad(),
   ]);
 
   return (
@@ -40,6 +43,7 @@ export default async function PlatformSettingsPage() {
       <TrialOfferSettingsForm initial={trialOffer} />
       <MonitoringSettingsForm initial={monitoring} />
       <SlaCreditsForm initial={slaCredits} />
+      <SlaPreview data={slaPodglad} />
     </div>
   );
 }

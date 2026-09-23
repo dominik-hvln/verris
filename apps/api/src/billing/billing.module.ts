@@ -18,6 +18,7 @@ import { WalletAutoTopupService } from './wallet-auto-topup.service';
 import { WalletAutoTopupScheduler } from './wallet-auto-topup.scheduler';
 import { WalletLowBalanceScheduler } from './wallet-low-balance.scheduler';
 import { SlaCreditScheduler } from './sla-credit.scheduler';
+import { SlaAdminController } from './sla.admin.controller';
 import { FakturyScheduler } from './faktury.scheduler';
 import { KorektyService } from './korekty.service';
 import { FakturyZewnetrzneService } from './faktury-zewnetrzne.service';
@@ -30,6 +31,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
 @Module({
   imports: [forwardRef(() => SubscriptionsModule), MailModule, EcoModule, KsefModule, PlatformSettingsModule, NotificationsModule],
   controllers: [
+    SlaAdminController,
     BillingController,
     BillingAdminController,
     StripeWebhookController,

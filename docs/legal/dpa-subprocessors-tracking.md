@@ -71,6 +71,10 @@ Status razem z datą. Bez dowodu pozycja zostaje otwarta — stan `DZIAŁA` bez 
 4. **Lista subprocesorów Hetznera** (`hetzner.com/AV/subunternehmer.pdf`) to nasi *dalsi*
    subprocesorzy — przy zmianie po ich stronie obowiązuje nas punkt 1 wobec naszych klientów.
 
+## Stan 2026-09-23
+
+Właściciel potwierdził akceptację umów powierzenia (Hetzner, Openprovider, Firmino, Cloudflare) i uruchomienie skrzynek kontakt@/rodo@/abuse@/security@verris.pl. **Przed startem:** dopisać w tabeli numer umowy lub zrzut z każdego panelu i datę — bez dowodu P-15 zostaje otwarte.
+
 ## Do zrobienia przed pierwszym płatnym klientem
 
 - [ ] Hetzner — wypełnić Załącznik 1 i zaakceptować DPA w panelu konta

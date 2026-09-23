@@ -107,6 +107,31 @@ export type SlaCreditPolicyForm = {
   maintenanceCapMinutes: number;
 };
 
+export interface SlaPodglad {
+  okres: string;
+  suma: string;
+  pozycje: {
+    subscriptionId: string;
+    domain: string | null;
+    planName: string | null;
+    dostepnosc: string;
+    progProcent: number;
+    przestojMin: number;
+    konserwacjaMin: number;
+    kwota: string;
+    waluta: string;
+  }[];
+}
+
+/** N-16 — co zostałoby przyznane za poprzedni miesiąc (bez zapisu). */
+export async function fetchSlaPodglad(): Promise<SlaPodglad | null> {
+  try {
+    return await adminApi<SlaPodglad>('/admin/sla/podglad');
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchSlaCreditPolicy(): Promise<SlaCreditPolicyForm> {
   return adminApi<SlaCreditPolicyForm>('/admin/platform-settings/sla-credits');
 }

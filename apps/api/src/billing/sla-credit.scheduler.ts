@@ -73,15 +73,15 @@ export class SlaCreditScheduler {
     }
   }
 
-  /** @param now wstrzykiwane w testach; domyślnie bieżąca chwila. */
-  async run(now: Date = new Date()): Promise<void> {
+  /**
+   * N-16 — co zostałoby przyznane za POPRZEDNI miesiąc, bez żadnego zapisu.
+   * Ten sam rachunek co `run()`; służy podglądowi w panelu admina, żeby przed
+   * włączeniem `sla.creditsEnabled` zobaczyć kwoty na prawdziwych danych sond.
+   */
+  async wylicz(now: Date = new Date()): Promise<{ okres: string; pozycje: PozycjaSla[] }> {
     const policy = await this.platformSettings.getSlaCreditPolicy();
-    if (!policy.enabled) return;
-
     const { periodStart, periodEnd } = previousMonthUtc(now);
-    const panelUrl = (
-      this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl'
-    ).replace(/\/$/, '');
+    const okres = periodStart.toISOString().slice(0, 7);
 
     const subs = await this.prisma.subscription.findMany({
       where: {
@@ -96,14 +96,14 @@ export class SlaCreditScheduler {
         user: { select: { email: true, firstName: true, anonymizedAt: true } },
       },
     });
-    if (subs.length === 0) return;
+    if (subs.length === 0) return { okres, pozycje: [] };
 
     // Przestoje i okna konserwacyjne pobieramy raz per serwer, nie per subskrypcja.
     const serverIds = [...new Set(subs.map((s) => s.account?.serverId).filter(Boolean))] as string[];
     const downtimeByServer = await this.downtimeIntervals(serverIds, periodStart, periodEnd);
     const maintenanceByServer = await this.maintenanceIntervals(serverIds, periodStart, periodEnd);
 
-    let credited = 0;
+    const pozycje: PozycjaSla[] = [];
     for (const sub of subs) {
       const serverId = sub.account?.serverId;
       if (!serverId || !sub.user || sub.user.anonymizedAt) continue;
@@ -114,21 +114,13 @@ export class SlaCreditScheduler {
       if (exposureMin <= 0) continue;
 
       const outages = clipIntervals(downtimeByServer.get(serverId) ?? [], serviceStart, periodEnd);
-      const maintenance = clipIntervals(
-        maintenanceByServer.get(serverId) ?? [],
-        serviceStart,
-        periodEnd,
-      );
+      const maintenance = clipIntervals(maintenanceByServer.get(serverId) ?? [], serviceStart, periodEnd);
 
-      // §15 ust. 5 — odejmujemy część przestoju pokrytą zapowiedzianą konserwacją,
+      // §15 ust. 7 — odejmujemy część przestoju pokrytą zapowiedzianą konserwacją,
       // ale nie więcej niż limit miesięczny.
       const rawDowntimeMin = totalMinutes(outages);
-      const excusedMin = Math.min(
-        totalMinutes(intersectIntervals(outages, maintenance)),
-        policy.maintenanceCapMinutes,
-      );
+      const excusedMin = Math.min(totalMinutes(intersectIntervals(outages, maintenance)), policy.maintenanceCapMinutes);
       const downtimeMin = Math.max(0, rawDowntimeMin - excusedMin);
-
       if (downtimeMin <= policy.graceMinutes) continue;
 
       const availabilityBp = Math.round(((exposureMin - downtimeMin) / exposureMin) * 10000);
@@ -136,19 +128,39 @@ export class SlaCreditScheduler {
       if (tier === 0) continue; // SLA dotrzymane — rekompensata nie przysługuje.
 
       const monthlyEq =
-        sub.interval === 'YEAR'
-          ? new Prisma.Decimal(sub.priceAmount).div(12)
-          : new Prisma.Decimal(sub.priceAmount);
-
-      const amount = monthlyEq
-        .mul(new Prisma.Decimal(tier))
-        .div(100)
-        .toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
+        sub.interval === 'YEAR' ? new Prisma.Decimal(sub.priceAmount).div(12) : new Prisma.Decimal(sub.priceAmount);
+      const amount = monthlyEq.mul(new Prisma.Decimal(tier)).div(100).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);
       if (amount.lessThanOrEqualTo(0)) continue;
 
-      const periodKey = periodStart.toISOString().slice(0, 7); // YYYY-MM
-      const downtimeS = Math.round(downtimeMin * 60);
+      pozycje.push({
+        subscriptionId: sub.id,
+        userId: sub.userId,
+        email: sub.user.email,
+        firstName: sub.user.firstName,
+        domain: sub.account?.domain ?? null,
+        planName: sub.plan?.name ?? null,
+        currency: sub.currency ?? 'PLN',
+        periodStart,
+        availabilityBp,
+        tierPercent: tier,
+        downtimeMin,
+        excusedMin,
+        amount,
+      });
+    }
+    return { okres, pozycje };
+  }
 
+  /** @param now wstrzykiwane w testach; domyślnie bieżąca chwila. */
+  async run(now: Date = new Date()): Promise<void> {
+    const policy = await this.platformSettings.getSlaCreditPolicy();
+    if (!policy.enabled) return;
+    const panelUrl = (this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl').replace(/\/$/, '');
+    const { okres: periodKey, pozycje } = await this.wylicz(now);
+
+    let credited = 0;
+    for (const p of pozycje) {
+      const downtimeS = Math.round(p.downtimeMin * 60);
       try {
         // Rekord SLA najpierw: unikat (subscriptionId, periodStart) jest jedynym
         // strażnikiem przed podwójną wypłatą (także wobec kredytu przyznanego ręcznie).
@@ -156,70 +168,66 @@ export class SlaCreditScheduler {
         // uznanie bez pokrycia w ewidencji.
         await this.prisma.slaCredit.create({
           data: {
-            subscriptionId: sub.id,
-            userId: sub.userId,
-            periodStart,
-            availabilityBp,
-            tierPercent: tier,
+            subscriptionId: p.subscriptionId,
+            userId: p.userId,
+            periodStart: p.periodStart,
+            availabilityBp: p.availabilityBp,
+            tierPercent: p.tierPercent,
             downtimeS,
-            amount,
-            currency: sub.currency ?? 'PLN',
+            amount: p.amount,
+            currency: p.currency,
           },
         });
 
         const tx = await this.walletLedger.credit({
-          userId: sub.userId,
+          userId: p.userId,
           type: WalletTxType.ADJUSTMENT,
-          amount,
-          description: `Rekompensata SLA za ${periodKey} (${sub.account?.domain ?? sub.plan?.name ?? 'usługa'})`,
-          idempotencyKey: `sla-${sub.id}-${periodKey}`,
-          subscriptionId: sub.id,
+          amount: p.amount,
+          description: `Rekompensata SLA za ${periodKey} (${p.domain ?? p.planName ?? 'usługa'})`,
+          idempotencyKey: `sla-${p.subscriptionId}-${periodKey}`,
+          subscriptionId: p.subscriptionId,
         });
 
         await this.audit.record({
           action: 'SLA_CREDIT_GRANTED',
-          userId: sub.userId,
+          userId: p.userId,
           details: {
-            subscriptionId: sub.id,
+            subscriptionId: p.subscriptionId,
             period: periodKey,
-            availabilityPct: (availabilityBp / 100).toFixed(2),
-            tierPercent: tier,
-            amount: amount.toFixed(2),
+            availabilityPct: (p.availabilityBp / 100).toFixed(2),
+            tierPercent: p.tierPercent,
+            amount: p.amount.toFixed(2),
             downtimeS,
-            excusedMaintenanceMin: excusedMin,
+            excusedMaintenanceMin: p.excusedMin,
           },
         });
 
         await this.notifications.create({
-          userId: sub.userId,
+          userId: p.userId,
           category: 'SLA',
           severity: 'info',
           title: 'Przyznano rekompensatę SLA',
-          body: `Za dostępność ${(availabilityBp / 100).toFixed(2)}% w miesiącu ${periodKey} doliczyliśmy ${amount.toFixed(2)} ${(sub.currency ?? 'PLN').toUpperCase()} do Twojego portfela.`,
+          body: `Za dostępność ${(p.availabilityBp / 100).toFixed(2)}% w miesiącu ${periodKey} doliczyliśmy ${p.amount.toFixed(2)} ${p.currency.toUpperCase()} do Twojego portfela.`,
           link: '/dashboard/billing',
-          subscriptionId: sub.id,
+          subscriptionId: p.subscriptionId,
         });
 
-        const serviceName = sub.account?.domain
-          ? `${sub.plan?.name ?? 'Hosting'} (${sub.account.domain})`
-          : (sub.plan?.name ?? 'Hosting Verris');
+        const serviceName = p.domain ? `${p.planName ?? 'Hosting'} (${p.domain})` : (p.planName ?? 'Hosting Verris');
         const message = slaCreditTemplate({
-          to: sub.user.email,
-          firstName: sub.user.firstName,
+          to: p.email,
+          firstName: p.firstName,
           serviceName,
-          amount: amount.toFixed(2),
-          currency: (sub.currency ?? 'PLN').toUpperCase() as 'PLN' | 'EUR' | 'USD',
-          downtimeMinutes: Math.round(downtimeMin),
-          incidentDate: periodStart,
+          amount: p.amount.toFixed(2),
+          currency: p.currency.toUpperCase() as 'PLN' | 'EUR' | 'USD',
+          downtimeMinutes: Math.round(p.downtimeMin),
+          incidentDate: p.periodStart,
           newWalletBalance: new Prisma.Decimal(tx.balanceAfter).toFixed(2),
           panelUrl,
         });
         void this.mailer
-          .send({ ...message, userId: sub.userId, category: 'TRANSACTIONAL', fromRole: 'BILLING' })
+          .send({ ...message, userId: p.userId, category: 'TRANSACTIONAL', fromRole: 'BILLING' })
           .catch((err) => {
-            this.logger.warn(
-              `sla-credit mail failed sub=${sub.id}: ${err instanceof Error ? err.message : String(err)}`,
-            );
+            this.logger.warn(`sla-credit mail failed sub=${p.subscriptionId}: ${err instanceof Error ? err.message : String(err)}`);
           });
         credited += 1;
       } catch (err) {
@@ -227,18 +235,12 @@ export class SlaCreditScheduler {
         // albo kredyt ręczny na wniosek). To normalny przypadek, nie błąd.
         if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') continue;
         this.logger.error(
-          `SLA credit failed sub=${sub.id} period=${periodKey}: ${
-            err instanceof Error ? err.message : String(err)
-          }`,
+          `SLA credit failed sub=${p.subscriptionId} period=${periodKey}: ${err instanceof Error ? err.message : String(err)}`,
         );
       }
     }
 
-    if (credited > 0) {
-      this.logger.log(
-        `SLA credits: przyznano ${credited} rekompensat za ${periodStart.toISOString().slice(0, 7)}.`,
-      );
-    }
+    if (credited > 0) this.logger.log(`SLA credits: przyznano ${credited} rekompensat za ${periodKey}.`);
   }
 
   /** Przedziały niedostępności per serwer — wyłącznie incydenty MAJOR, rozwiązane. */
@@ -304,6 +306,23 @@ export class SlaCreditScheduler {
 // -----------------------------------------------------------------------------
 // Arytmetyka przedziałów czasu. Wydzielona i czysta — łatwa do przetestowania.
 // -----------------------------------------------------------------------------
+
+/** Jedna rekompensata do przyznania (wynik `wylicz`). */
+export interface PozycjaSla {
+  subscriptionId: string;
+  userId: string;
+  email: string;
+  firstName: string | null;
+  domain: string | null;
+  planName: string | null;
+  currency: string;
+  periodStart: Date;
+  availabilityBp: number;
+  tierPercent: number;
+  downtimeMin: number;
+  excusedMin: number;
+  amount: Prisma.Decimal;
+}
 
 export interface Interval {
   start: Date;
