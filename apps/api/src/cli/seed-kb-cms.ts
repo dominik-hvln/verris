@@ -1061,7 +1061,7 @@ async function main() {
     created++;
   }
 
-  console.log(`KB seed: kategorie=${idBySlug.size}, artykuły nowe=${created}, uzupełnione(FAQ/powiązania)=${updated}`);
+  console.log(`KB seed: kategorie=${idBySlug.size}, artykuły nowe=${created}, odświeżone (autor „Zespół Verris”)=${updated}`);
 }
 
 main()
