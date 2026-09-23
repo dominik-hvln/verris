@@ -18,6 +18,9 @@ import {
   type InvoiceLineItem,
 } from './invoice-pdf.service';
 import { StripeInvoice } from './stripe/stripe.client';
+import { etykietaStawki, rozbicieWgStawki, type VatDokumentu } from './vat';
+import { VatNabywcyService } from './vat-nabywcy.service';
+import { DOSTAWCA_DOLADOWANIE } from './doladowanie';
 import {
   DOSTAWCA_RECZNY,
   nadajNumerDokumentu,
@@ -97,6 +100,7 @@ export class InvoicesService {
     private readonly pdf: InvoicePdfService,
     private readonly ksef: KsefService,
     private readonly platformSettings: PlatformSettingsService,
+    private readonly vatNabywcy: VatNabywcyService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -322,17 +326,36 @@ export class InvoicesService {
     // powstałe po Z-01 i wszystkie korekty — bierzemy stamtąd. Przeliczanie na
     // nowo z kwoty brutto dawałoby ten sam wynik dla faktur zwykłych i FAŁSZYWY
     // dla korekt, gdzie `amount` jest RÓŻNICĄ ze znakiem, a nie ceną.
+    //
+    // M-09: podstawa stawki zapisana przy powstaniu dokumentu (VIES, kurs NBP)
+    // zostaje w snapshocie — dane klienta mogły się od tego czasu zmienić.
+    // Faktura za płatność kartą (Stripe) nie ma jej zapisanej — ustalamy teraz,
+    // w chwili opłacenia, zamiast przyjmować 23% dla każdego.
+    let vatZapisany = (invoice.buyerSnapshot as { vat?: VatDokumentu } | null)?.vat ?? null;
+    let wyliczone: { netto: Prisma.Decimal; vat: Prisma.Decimal } | null = null;
+    if (!vatZapisany && invoice.provider === STRIPE_PROVIDER && invoice.kind !== 'KOREKTA' && !invoice.netAmount) {
+      const { traktowanie: t, vies } = await this.vatNabywcy.ustal(opts.verrisUserId);
+      const r = rozbicieWgStawki(invoice.amount, t.stawka);
+      wyliczone = r;
+      vatZapisany = {
+        kod: t.kod, stawka: t.stawka, kraj: t.kraj, adnotacja: t.adnotacja, b2cUe: t.b2cUe,
+        nettoPln: r.netto.toFixed(2), vatPln: r.vat.toFixed(2), kurs: null, vies,
+      };
+    }
     const totalGrossDec = invoice.amount;
-    const vatRate = Number(invoice.vatRate ?? DEFAULT_VAT_RATE);
+    const vatRate = vatZapisany ? vatZapisany.stawka ?? 0 : Number(invoice.vatRate ?? DEFAULT_VAT_RATE);
     const factor = new Prisma.Decimal(100).plus(vatRate);
     const totalNetDec =
-      invoice.netAmount ?? totalGrossDec.mul(100).dividedBy(factor).toDecimalPlaces(2);
-    const totalVatDec = invoice.vatAmount ?? totalGrossDec.minus(totalNetDec).toDecimalPlaces(2);
+      wyliczone?.netto ?? invoice.netAmount ?? totalGrossDec.mul(100).dividedBy(factor).toDecimalPlaces(2);
+    const totalVatDec = wyliczone?.vat ?? invoice.vatAmount ?? totalGrossDec.minus(totalNetDec).toDecimalPlaces(2);
 
     // 3) Snapshot seller + buyer. Seller data comes from admin settings
     //    (PlatformSetting) with env fallback — edytowalne w panelu admina.
     const seller = await this.buildSellerSnapshot();
-    const buyer = await this.buildBuyerSnapshot(opts.verrisUserId);
+    const buyer = {
+      ...(await this.buildBuyerSnapshot(opts.verrisUserId)),
+      ...(vatZapisany ? { vat: vatZapisany } : {}),
+    };
 
     // 4) Build line items. Today we mirror Stripe's "single line per invoice"
     //    semantics — invoices for subscription renewals always have one
@@ -355,6 +378,9 @@ export class InvoicesService {
               totalNet: totalNetDec.toFixed(2),
               totalVat: totalVatDec.toFixed(2),
               totalGross: totalGrossDec.toFixed(2),
+              ...(vatZapisany && (vatZapisany.stawka === null || !Number.isInteger(vatZapisany.stawka))
+                ? { vatLabel: etykietaStawki(vatZapisany.stawka) }
+                : {}),
             },
           ];
 
@@ -398,6 +424,14 @@ export class InvoicesService {
       totalVat: totalVatDec.toFixed(2),
       totalGross: totalGrossDec.toFixed(2),
       vatRate,
+      vat: vatZapisany
+        ? {
+            etykieta: etykietaStawki(vatZapisany.stawka),
+            adnotacja: vatZapisany.adnotacja,
+            kurs: vatZapisany.kurs,
+            vatPln: vatZapisany.kurs ? vatZapisany.vatPln : null,
+          }
+        : undefined,
     });
 
     // 6) Upload to MinIO `verris-invoices`. Path layout:
@@ -631,7 +665,7 @@ export class InvoicesService {
   }
 
   private paymentMethodLabel(invoice: Invoice): string {
-    if (invoice.provider === 'STRIPE') return 'Karta płatnicza (Stripe)';
+    if (invoice.provider === 'STRIPE' || invoice.provider === DOSTAWCA_DOLADOWANIE) return 'Karta płatnicza (Stripe)';
     return 'Portfel Verris';
   }
 

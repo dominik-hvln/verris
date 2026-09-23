@@ -5,7 +5,8 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { MailerService } from '../mail/mailer.service';
 import { InvoicesService } from './invoices.service';
-import { fakturaNiedokonczonaTemplate } from '../mail/templates/ops-notifications';
+import { fakturaNiedokonczonaTemplate, progOssTemplate } from '../mail/templates/ops-notifications';
+import { ALARM_OSS_PROCENT, odczytajOss, PROG_OSS_PLN, sprzedazB2cUe } from './vat';
 import {
   czyAlarmowacOFakturze,
   DOSTAWCA_PORTFEL,
@@ -17,6 +18,7 @@ import {
   refZbiorcza,
   STAWKA_VAT,
   TYPY_SPRZEDAZY,
+  ZNACZNIK_M34,
 } from './faktura-za-portfel';
 
 /**
@@ -98,6 +100,46 @@ export class FakturyScheduler {
         );
       }
     }
+  }
+
+  /**
+   * M-09 — próg sprzedaży usług elektronicznych konsumentom z UE (42 000 zł).
+   * Raz dziennie; mail do adminów raz na poziom (80% / 100%) i rok — deduplikacja przez audyt.
+   */
+  @Cron('30 6 * * *', { name: 'vat-prog-oss' })
+  async alarmOss(teraz = new Date()): Promise<void> {
+    if (await odczytajOss(this.prisma)) return;
+    const s = await sprzedazB2cUe(this.prisma, teraz);
+    const suma = Math.max(s.biezacy, s.poprzedni);
+    const procent = Math.floor((suma / PROG_OSS_PLN) * 100);
+    if (procent < ALARM_OSS_PROCENT) return;
+    const poziom = procent >= 100 ? 100 : ALARM_OSS_PROCENT;
+    const klucz = `${teraz.getUTCFullYear()}:${poziom}`;
+    const juz = await this.prisma.auditLog.findFirst({
+      where: { action: 'VAT_PROG_OSS_ALERT', details: { path: ['klucz'], equals: klucz } },
+      select: { id: true },
+    });
+    if (juz) return;
+    const admini = await this.prisma.user.findMany({
+      where: { role: Role.ADMIN, anonymizedAt: null },
+      select: { email: true, firstName: true },
+    });
+    for (const a of admini) {
+      await this.mailer
+        .send(
+          progOssTemplate({
+            to: a.email,
+            firstName: a.firstName,
+            sprzedazPln: suma.toFixed(2),
+            procent,
+            przekroczony: poziom === 100,
+            panelUrl: process.env.ADMIN_PANEL_URL ?? 'https://admin.verris.pl',
+          }),
+        )
+        .catch((err) => this.logger.error(`Alert OSS nie wysłany: ${err instanceof Error ? err.message : String(err)}`));
+    }
+    await this.audit.record({ action: 'VAT_PROG_OSS_ALERT', details: { klucz, sumaPln: suma.toFixed(2), procent } });
+    this.logger.error(`VAT OSS: sprzedaż konsumentom z UE ${suma.toFixed(2)} zł (${procent}% progu)`);
   }
 
   @Cron(CronExpression.EVERY_30_MINUTES, { name: 'faktury-alert' })
@@ -192,7 +234,7 @@ export class FakturyScheduler {
     const teraz = new Date();
     const okres = okresZbiorczy(teraz);
 
-    const doFakturowania = await this.prisma.walletTransaction.findMany({
+    const kandydaci = await this.prisma.walletTransaction.findMany({
       where: {
         invoiceId: null,
         type: { in: [...TYPY_SPRZEDAZY] },
@@ -208,8 +250,13 @@ export class FakturyScheduler {
         currency: true,
         description: true,
         subscriptionId: true,
+        metadata: true,
       },
     });
+    // M-34: obciążenia z modelu `przy_doladowaniu` mają dokument z wpłaty — nie fakturujemy ich drugi raz.
+    const doFakturowania = kandydaci.filter(
+      (w) => !(w.metadata && typeof w.metadata === 'object' && ZNACZNIK_M34 in (w.metadata as object)),
+    );
     if (doFakturowania.length === 0) {
       this.logger.log(`Faktury zbiorcze ${okres.etykieta}: nie ma czego fakturować`);
       return;

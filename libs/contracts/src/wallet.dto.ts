@@ -64,6 +64,8 @@ export interface CreateCheckoutSessionInput {
    * credited AFTER Stripe pays out and the topup itself is registered.
    */
   promoCode?: string | null;
+  /** M-10 — waluta wpłaty (PLN, EUR, USD); portfel liczy w K po kursie NBP. */
+  currency?: WalutaWplaty;
 }
 
 export interface CreateCheckoutSessionResponse {
@@ -124,4 +126,23 @@ export interface PromoRedeemSuccessDto {
   amountPln: string;
   walletTxId: string;
   code: string;
+}
+
+/** M-10 — waluty, w których klient może doładować portfel. */
+export type WalutaWplaty = 'PLN' | 'EUR' | 'USD';
+
+/** M-09/M-10 — podgląd doładowania: stawka VAT nabywcy i ile K wyjdzie. */
+export interface TopupQuoteDto {
+  vatKod: 'PL' | 'UE_B2C' | 'OO' | 'OSS' | 'POZA_UE';
+  /** Stawka w %, null = „np”. */
+  stawka: number | null;
+  adnotacja: string | null;
+  /** Klient płaci cenę netto — 1 zł = 1,23 K. */
+  cenaNetto: boolean;
+  viesWazny: boolean | null;
+  kurs: number | null;
+  /** null, gdy kurs NBP chwilowo niedostępny. */
+  kredytK: string | null;
+  /** Przy walucie obcej: ostateczny kurs z dnia poprzedzającego płatność. */
+  szacunek: boolean;
 }

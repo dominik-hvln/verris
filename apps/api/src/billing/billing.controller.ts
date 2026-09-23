@@ -18,7 +18,8 @@ import { WalletTxType } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { BillingService } from './billing.service';
-import { CreateTopupCheckoutDto, PreviewTopupPromoDto } from './dto/checkout.dto';
+import { CreateTopupCheckoutDto, TopupQuoteDto, PreviewTopupPromoDto } from './dto/checkout.dto';
+import { DoladowanieService } from './doladowanie.service';
 import { RedeemPromoDto, UpsertWalletAutoTopupDto } from './dto/promo.dto';
 import { PromoService } from './promo.service';
 import { WalletAutoTopupService } from './wallet-auto-topup.service';
@@ -30,6 +31,7 @@ export class BillingController {
     private readonly billing: BillingService,
     private readonly promo: PromoService,
     private readonly autoTopup: WalletAutoTopupService,
+    private readonly doladowanie: DoladowanieService,
   ) {}
 
   @Get('wallet')
@@ -68,7 +70,14 @@ export class BillingController {
       userId: user.userId,
       amount: dto.amount,
       promoCode: dto.promoCode ?? null,
+      currency: dto.currency ?? null,
     });
+  }
+
+  @Post('checkout-session/quote')
+  @HttpCode(200)
+  quoteTopup(@CurrentUser() user: { userId: string }, @Body() dto: TopupQuoteDto) {
+    return this.doladowanie.podglad(user.userId, dto.amount, dto.currency);
   }
 
   @Post('checkout-session/preview-promo')

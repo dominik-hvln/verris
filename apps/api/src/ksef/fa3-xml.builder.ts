@@ -74,6 +74,14 @@ export function buildFa3Xml(input: BuildFaXmlInput): BuiltFaXml {
     );
   }
 
+  // M-09: dokument „np” (odwrotne obciążenie, klient spoza UE) ma w bazie vatRate 0,
+  // a w KSeF „0” znaczy stawkę 0% — inny dokument. Builder nie zna kodów „np I/II”,
+  // więc odmawia zamiast wysłać błędną stawkę.
+  if ((buyer as { vat?: { stawka?: number | null } }).vat?.stawka === null) {
+    throw new FaXmlValidationError(
+      'Dokument „np” (odwrotne obciążenie / poza UE) — KSeF z panelu go nie obsługuje, wystaw w programie księgowym.',
+    );
+  }
   const rate = Number(inv.vatRate.toString());
   vatRateLabel(rate);
   const net = formatMoney(inv.netAmount);

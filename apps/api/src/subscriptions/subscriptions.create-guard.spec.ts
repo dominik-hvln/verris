@@ -79,7 +79,7 @@ describe('Z-02 — MANUAL niedostępne ze ścieżki klienta', () => {
     const zbudujSerwis = () =>
       new SubscriptionsService(
         wybuchowa, wybuchowa, wybuchowa, wybuchowa, wybuchowa, wybuchowa,
-        wybuchowa, wybuchowa, wybuchowa, wybuchowa, wybuchowa, wybuchowa,
+        wybuchowa, wybuchowa, wybuchowa, wybuchowa, wybuchowa, wybuchowa, wybuchowa,
       );
 
     it('odrzuca MANUAL bez jawnego allowManual', async () => {

@@ -1,10 +1,11 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { SubscriptionStatus } from '@verris/database';
+import { Prisma, SubscriptionStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { PromoService } from './promo.service';
 import { InvoicePdfService } from './invoice-pdf.service';
 import { InvoicesService } from './invoices.service';
-import { rozbicieVat, STAWKA_VAT } from './faktura-za-portfel';
+import { etykietaStawki, rozbicieWgStawki, STAWKA_PL } from './vat';
+import { VatNabywcyService } from './vat-nabywcy.service';
 import { RODZAJ_PROFORMA } from './tryb-fakturowania';
 
 /**
@@ -33,6 +34,7 @@ export class ProformaService {
     private readonly promo: PromoService,
     private readonly pdf: InvoicePdfService,
     private readonly invoices: InvoicesService,
+    private readonly vatNabywcy: VatNabywcyService,
   ) {}
 
   async render(userId: string, subscriptionId: string): Promise<{ pdf: Uint8Array; filename: string }> {
@@ -56,7 +58,12 @@ export class ProformaService {
       introDiscountPct: sub.introDiscountPct,
       introDiscountPeriodsLeft: sub.introDiscountPeriodsLeft,
     });
-    const { netto, vat } = rozbicieVat(brutto);
+    // M-09: stawka nabywcy; klient rozliczany netto płaci K / 1,23 (tyle musi doładować).
+    const { traktowanie: t } = await this.vatNabywcy.ustal(userId);
+    const doZaplaty = t.cenaNetto
+      ? brutto.mul(100).dividedBy(100 + STAWKA_PL).toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP)
+      : brutto;
+    const { netto, vat } = rozbicieWgStawki(doZaplaty, t.stawka);
     const od = sub.currentPeriodEnd;
     const doKonca = koniecOkresu(od, sub.interval);
     const dzien = (d: Date) => d.toISOString().slice(0, 10);
@@ -85,16 +92,18 @@ export class ProformaService {
           name: nazwa,
           quantity: 1,
           unitNet: kwota(netto),
-          vatRate: STAWKA_VAT,
+          vatRate: t.stawka ?? 0,
           totalNet: kwota(netto),
           totalVat: kwota(vat),
-          totalGross: kwota(brutto),
+          totalGross: kwota(doZaplaty),
+          ...(t.stawka === null || !Number.isInteger(t.stawka) ? { vatLabel: etykietaStawki(t.stawka) } : {}),
         },
       ],
       totalNet: kwota(netto),
       totalVat: kwota(vat),
-      totalGross: kwota(brutto),
-      vatRate: STAWKA_VAT,
+      totalGross: kwota(doZaplaty),
+      vatRate: t.stawka ?? 0,
+      vat: { etykieta: etykietaStawki(t.stawka), adnotacja: t.adnotacja, kurs: null, vatPln: null },
     });
     return { pdf, filename: `proforma-${numer.replace(/\//g, '-')}.pdf` };
   }

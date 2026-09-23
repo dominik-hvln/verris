@@ -5,7 +5,7 @@ import { InvoicePdfService } from './invoice-pdf.service';
 import { RODZAJ_PROFORMA } from './tryb-fakturowania';
 
 /** M-24 — proforma na odnowienie: ta sama kwota co obciążenie, bez serii VAT, tylko właściciel. */
-function zbuduj(nadpisz: Record<string, unknown> = {}) {
+function zbuduj(nadpisz: Record<string, unknown> = {}, traktowanie: Record<string, unknown> = { kod: 'PL', stawka: 23, cenaNetto: false, adnotacja: null }) {
   const sub = {
     id: 'abcdef12-0000-0000-0000-000000000000',
     userId: 'u1',
@@ -40,7 +40,8 @@ function zbuduj(nadpisz: Record<string, unknown> = {}) {
     })),
     buildBuyerSnapshot: jest.fn(async () => ({ name: 'Klient', email: 'u1@x.pl' })),
   };
-  const s = new ProformaService(prisma as never, promo as never, pdf, invoices as never);
+  const vat = { ustal: jest.fn(async () => ({ traktowanie, vies: null })) };
+  const s = new ProformaService(prisma as never, promo as never, pdf, invoices as never, vat as never);
   return { s, sub, promo, render };
 }
 
@@ -58,6 +59,16 @@ describe('ProformaService', () => {
     expect(ctx.number).not.toMatch(/^V/);
     expect(ctx.lineItems[0].name).toContain('klient.pl');
     expect(filename).toBe('proforma-PRO-20261001-ABCDEF12.pdf');
+  });
+
+  it('klient rozliczany netto (odwrotne obciążenie): kwota K/1,23, „np”, adnotacja', async () => {
+    const { s, sub, render } = zbuduj({}, { kod: 'OO', stawka: null, cenaNetto: true, adnotacja: 'odwrotne obciążenie' });
+    await s.render('u1', sub.id);
+    const ctx = render.mock.calls[0][0];
+    expect(ctx.totalGross).toBe('30.00');
+    expect(ctx.totalVat).toBe('0.00');
+    expect(ctx.lineItems[0].vatLabel).toBe('np');
+    expect(ctx.vat?.adnotacja).toBe('odwrotne obciążenie');
   });
 
   it('cudza usługa → 404', async () => {

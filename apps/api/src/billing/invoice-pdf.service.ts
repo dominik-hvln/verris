@@ -58,6 +58,8 @@ export interface InvoiceLineItem {
   totalVat: string;
   /** Suma brutto za pozycję = `totalNet + totalVat`. */
   totalGross: string;
+  /** M-09 — etykieta stawki, gdy nie jest liczbą procent (np. „np”). */
+  vatLabel?: string;
 }
 
 export interface BuildInvoiceContext {
@@ -91,6 +93,17 @@ export interface BuildInvoiceContext {
   totalGross: string;
   /** Procentowa stawka VAT zsumowana — gdy wszystkie pozycje mają tę samą stawkę. */
   vatRate: number;
+
+  /**
+   * M-09/M-10 — podatkowe szczegóły dokumentu: etykieta stawki („np”, „25,5%”),
+   * adnotacja („odwrotne obciążenie”), kurs NBP i VAT w PLN przy walucie obcej.
+   */
+  vat?: {
+    etykieta: string;
+    adnotacja: string | null;
+    kurs: { kurs: number; tabela: string; data: string } | null;
+    vatPln: string | null;
+  };
 
   /**
    * M-06 — dane korekty. Obecne WYŁĄCZNIE na dokumencie korygującym.
@@ -353,7 +366,7 @@ export class InvoicePdfService {
         item.name,
         item.quantity.toString(),
         item.unitNet,
-        `${item.vatRate}%`,
+        item.vatLabel ?? `${item.vatRate}%`,
         item.totalNet,
         item.totalVat,
         item.totalGross,
@@ -403,7 +416,7 @@ export class InvoicePdfService {
       page,
       summaryX,
       cursorY,
-      `VAT ${ctx.vatRate}%`,
+      `VAT ${ctx.vat?.etykieta ?? `${ctx.vatRate}%`}`,
       `${ctx.totalVat} ${ctx.currency}`,
       fontRegular,
     );
@@ -481,6 +494,22 @@ export class InvoicePdfService {
         font: fontRegular,
       });
       cursorY -= 14;
+    }
+
+    if (ctx.vat?.kurs) {
+      const k = ctx.vat.kurs;
+      page.drawText(
+        `Kurs średni NBP ${ctx.currency}: ${k.kurs.toFixed(4)} PLN (tabela ${k.tabela} z ${k.data})` +
+          (ctx.vat.vatPln !== null ? `; kwota VAT w PLN: ${ctx.vat.vatPln} zł` : ''),
+        { x: MARGIN, y: cursorY, size: 9, font: fontRegular },
+      );
+      cursorY -= 14;
+    }
+    if (ctx.vat?.adnotacja) {
+      for (const linia of zawin(ctx.vat.adnotacja, fontBold, 9, PAGE_W - 2 * MARGIN)) {
+        page.drawText(linia, { x: MARGIN, y: cursorY, size: 9, font: fontBold });
+        cursorY -= 13;
+      }
     }
 
     if (proforma) {
@@ -574,7 +603,9 @@ function drawSellerOrBuyer(
     y -= 12;
   }
   if ('nip' in data && data.nip) {
-    page.drawText(`NIP: ${data.nip}`, { x, y, size: 9, font: fontRegular });
+    // M-09: nabywca z zagranicy ma numer VAT swojego kraju, nie polski NIP.
+    const etykieta = data.country && data.country !== 'PL' ? 'VAT' : 'NIP';
+    page.drawText(`${etykieta}: ${data.nip}`, { x, y, size: 9, font: fontRegular });
     y -= 11;
   }
   if (data.address) {

@@ -7,7 +7,9 @@ import type {
   PreviewTopupPromoInput,
   PreviewTopupPromoResponse,
   PromoRedeemSuccessDto,
+  TopupQuoteDto,
   WalletAutoTopupSettingsDto,
+  WalutaWplaty,
 } from '@verris/contracts';
 import { ApiError, apiFetch } from '@/lib/api';
 
@@ -34,7 +36,7 @@ export async function startTopupAction(formData: FormData): Promise<TopupResult>
   if (Number.isNaN(parsed) || parsed < MIN_TOPUP || parsed > MAX_TOPUP) {
     return {
       ok: false,
-      error: `Podaj kwotę z zakresu ${MIN_TOPUP}–${MAX_TOPUP} PLN.`,
+      error: `Podaj kwotę z zakresu ${MIN_TOPUP}–${MAX_TOPUP}.`,
     };
   }
 
@@ -42,9 +44,14 @@ export async function startTopupAction(formData: FormData): Promise<TopupResult>
   const promoCode =
     typeof promoRaw === 'string' && promoRaw.trim().length > 0 ? promoRaw.trim() : null;
 
+  const walutaRaw = formData.get('currency');
+  const currency: WalutaWplaty =
+    walutaRaw === 'EUR' || walutaRaw === 'USD' ? walutaRaw : 'PLN';
+
   const input: CreateCheckoutSessionInput = {
     amount: parsed.toFixed(2),
     promoCode,
+    currency,
   };
   let response: CreateCheckoutSessionResponse;
   try {
@@ -65,6 +72,23 @@ export async function startTopupAction(formData: FormData): Promise<TopupResult>
   }
 
   redirect(response.url);
+}
+
+/** M-09/M-10 — stawka VAT i ile K wyjdzie z wpłaty (przed przejściem do płatności). */
+export async function quoteTopupAction(
+  amount: string,
+  currency: WalutaWplaty,
+): Promise<TopupQuoteDto | null> {
+  const parsed = Number.parseFloat(amount);
+  if (Number.isNaN(parsed) || parsed < MIN_TOPUP || parsed > MAX_TOPUP) return null;
+  try {
+    return await apiFetch<TopupQuoteDto>('/billing/checkout-session/quote', {
+      method: 'POST',
+      body: JSON.stringify({ amount: Number(parsed.toFixed(2)), currency }),
+    });
+  } catch {
+    return null;
+  }
 }
 
 export type PreviewPromoResult =

@@ -19,6 +19,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { WalletLedgerService } from '../billing/wallet-ledger.service';
+import { VatNabywcyService } from '../billing/vat-nabywcy.service';
 import { PromoService } from '../billing/promo.service';
 import { PlatformSettingsService } from '../platform-settings/platform-settings.service';
 import { StripeService } from '../billing/stripe/stripe.service';
@@ -98,6 +99,7 @@ export class SubscriptionsService {
     private readonly promo: PromoService,
     private readonly ecoPoints: EcoPointsService,
     private readonly platformSettings: PlatformSettingsService,
+    private readonly vatNabywcy: VatNabywcyService,
   ) {}
 
   async previewSubscriptionPromo(userId: string, dto: PreviewSubscriptionPromoDto) {
@@ -265,6 +267,17 @@ export class SubscriptionsService {
     const plan = await this.prisma.plan.findUnique({ where: { id: dto.planId } });
     if (!plan || !plan.isActive || !plan.isPublic) {
       throw new NotFoundException('Plan not found or unavailable');
+    }
+    // M-09: klient rozliczany bez polskiego VAT płaci cenę netto — przez portfel
+    // (1 zł = 1,23 K). Karta obciążyłaby go ceną brutto z cennika.
+    if (dto.paymentSource === SubscriptionPaymentSource.STRIPE_CARD) {
+      const { traktowanie } = await this.vatNabywcy.ustal(userId);
+      if (traktowanie.cenaNetto) {
+        throw new BadRequestException(
+          'Twoje konto jest rozliczane bez polskiego VAT (cena netto). Wybierz płatność z portfela — ' +
+            'doładowanie daje 1,23 K za każdą złotówkę, więc usługa kosztuje Cię cenę netto.',
+        );
+      }
     }
 
     // EMM — produkty aplikacyjne (email-marketing) nie tworzą konta DA i nie

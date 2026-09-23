@@ -86,6 +86,9 @@ export const TYPY_ZAWSZE_ZBIORCZE: ReadonlySet<WalletTxType> = new Set<WalletTxT
   WalletTxType.CHARGE_AUTOSCALING,
 ]);
 
+/** M-34 — klucz w `WalletTransaction.metadata`: obciążenie pokryte dokumentem z doładowania. */
+export const ZNACZNIK_M34 = 'm34';
+
 export type TrybFaktury = 'natychmiast' | 'zbiorczo' | 'brak';
 
 /**
@@ -159,6 +162,8 @@ export interface PozycjaFaktury {
   totalNet: string;
   totalVat: string;
   totalGross: string;
+  /** M-09 — etykieta stawki nie-procentowej („np”, „25,5%”). */
+  vatLabel?: string;
 }
 
 /**

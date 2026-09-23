@@ -36,6 +36,8 @@ m.stripe.com
 api.openprovider.eu
 eu.api.ovh.com
 api.nbp.pl
+# M-09 — VIES (walidacja numerów VAT-UE przy doładowaniu)
+ec.europa.eu
 # --- TLS (certbot timer) ---
 acme-v02.api.letsencrypt.org
 acme-staging-v02.api.letsencrypt.org

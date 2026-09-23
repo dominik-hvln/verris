@@ -1,4 +1,4 @@
-import { IsNumber, IsOptional, IsPositive, IsString, Length, Matches, Max } from 'class-validator';
+import { IsIn, IsNumber, IsOptional, IsPositive, IsString, Length, Matches, Max } from 'class-validator';
 
 export class CreateTopupCheckoutDto {
   @IsNumber({ maxDecimalPlaces: 2 })
@@ -18,6 +18,22 @@ export class CreateTopupCheckoutDto {
     message: 'Kod promocyjny może zawierać tylko litery, cyfry, _ i -.',
   })
   promoCode?: string;
+
+  /** M-10 — waluta wpłaty (portfel liczy w K, przeliczenie po kursie NBP). */
+  @IsOptional()
+  @IsIn(['PLN', 'EUR', 'USD'])
+  currency?: 'PLN' | 'EUR' | 'USD';
+}
+
+/** M-09/M-10 — podgląd: stawka VAT nabywcy i ile K wyjdzie z wpłaty. */
+export class TopupQuoteDto {
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @IsPositive()
+  @Max(10000)
+  amount!: number;
+
+  @IsIn(['PLN', 'EUR', 'USD'])
+  currency!: 'PLN' | 'EUR' | 'USD';
 }
 
 export class PreviewTopupPromoDto {

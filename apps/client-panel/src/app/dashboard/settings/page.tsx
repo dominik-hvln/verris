@@ -624,7 +624,10 @@ function BillingTab({
             placeholder="Firma Sp. z o.o."
           />
         </FormField>
-        <FormField label="NIP">
+        <FormField
+          label="NIP / numer VAT-UE"
+          description="Firma z UE: numer VAT-UE z prefiksem kraju (np. DE123456789). Sprawdzamy go w VIES przy doładowaniu — ważny oznacza dokument bez polskiego VAT (odwrotne obciążenie) i cenę netto."
+        >
           <Input
             value={form.nip}
             onChange={(e) =>
@@ -664,19 +667,46 @@ function BillingTab({
             placeholder="00-001"
           />
         </FormField>
-        <FormField label="Kraj">
+        <FormField label="Kraj" description="Od kraju zależy stawka VAT na dokumentach.">
           <Select
             value={form.country}
             onChange={(e) =>
               setForm((f) => ({ ...f, country: e.target.value }))
             }
             options={[
-              { value: "PL", label: "🇵🇱  Polska" },
-              { value: "DE", label: "🇩🇪  Niemcy" },
-              { value: "GB", label: "🇬🇧  Wielka Brytania" },
-              { value: "US", label: "🇺🇸  Stany Zjednoczone" },
-              { value: "NL", label: "🇳🇱  Holandia" },
-              { value: "FR", label: "🇫🇷  Francja" },
+              { value: "PL", label: "Polska" },
+              { value: "AT", label: "Austria" },
+              { value: "BE", label: "Belgia" },
+              { value: "BG", label: "Bułgaria" },
+              { value: "HR", label: "Chorwacja" },
+              { value: "CY", label: "Cypr" },
+              { value: "CZ", label: "Czechy" },
+              { value: "DK", label: "Dania" },
+              { value: "EE", label: "Estonia" },
+              { value: "FI", label: "Finlandia" },
+              { value: "FR", label: "Francja" },
+              { value: "GR", label: "Grecja" },
+              { value: "ES", label: "Hiszpania" },
+              { value: "NL", label: "Holandia" },
+              { value: "IE", label: "Irlandia" },
+              { value: "LT", label: "Litwa" },
+              { value: "LU", label: "Luksemburg" },
+              { value: "LV", label: "Łotwa" },
+              { value: "MT", label: "Malta" },
+              { value: "DE", label: "Niemcy" },
+              { value: "PT", label: "Portugalia" },
+              { value: "RO", label: "Rumunia" },
+              { value: "SK", label: "Słowacja" },
+              { value: "SI", label: "Słowenia" },
+              { value: "SE", label: "Szwecja" },
+              { value: "HU", label: "Węgry" },
+              { value: "IT", label: "Włochy" },
+              { value: "GB", label: "Wielka Brytania (spoza UE)" },
+              { value: "CH", label: "Szwajcaria (spoza UE)" },
+              { value: "NO", label: "Norwegia (spoza UE)" },
+              { value: "UA", label: "Ukraina (spoza UE)" },
+              { value: "US", label: "Stany Zjednoczone (spoza UE)" },
+              { value: "CA", label: "Kanada (spoza UE)" },
             ]}
           />
         </FormField>

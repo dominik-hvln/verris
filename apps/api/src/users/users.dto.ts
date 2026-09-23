@@ -1,16 +1,4 @@
-import {
-  IsString,
-  IsOptional,
-  MinLength,
-  MaxLength,
-  IsIn,
-  IsInt,
-  Min,
-  Max,
-  IsArray,
-  ArrayMinSize,
-  ArrayMaxSize,
-} from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsIn, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, MinLength } from 'class-validator';
 import { IsStrongPassword } from '../auth/password-policy.validator';
 
 export class UpdateProfileDto {
@@ -26,8 +14,11 @@ export class UpdateProfileDto {
   @IsString()
   companyName?: string;
 
+  // M-09 — NIP albo numer VAT-UE (z prefiksem kraju); sprawdzany w VIES przy doładowaniu.
   @IsOptional()
   @IsString()
+  @MaxLength(20)
+  @Matches(/^[A-Za-z0-9 .-]*$/, { message: 'NIP / numer VAT-UE: tylko litery, cyfry, spacje, kropki i myślniki.' })
   nip?: string;
 
   @IsOptional()
@@ -42,8 +33,9 @@ export class UpdateProfileDto {
   @IsString()
   postalCode?: string;
 
+  // M-09 — kod kraju ISO (PL, DE…): od niego zależy stawka VAT na dokumentach.
   @IsOptional()
-  @IsString()
+  @Matches(/^[A-Z]{2}$/, { message: 'Kraj: dwuliterowy kod ISO (np. PL, DE).' })
   country?: string;
 
   @IsOptional()

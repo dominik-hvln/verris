@@ -98,3 +98,24 @@ export async function odczytajTrybFakturowania(db: KlientPrismy): Promise<TrybFa
   `;
   return normalizujTryb(wiersze[0]?.value);
 }
+
+/**
+ * M-34 — KIEDY powstaje dokument za pieniądze z portfela (decyzja 2026-09-23):
+ *   · `przy_doladowaniu` — przy realnej wpłacie (doładowanie); wydawanie K dokumentów nie tworzy,
+ *   · `przy_obciazeniu`  — dotychczasowy model Z-01: dokument przy każdym obciążeniu.
+ * Nieznana wartość = domyślny model z decyzji.
+ */
+export const KLUCZ_MODELU_FAKTUROWANIA = 'faktury.model';
+export type ModelFakturowania = 'przy_doladowaniu' | 'przy_obciazeniu';
+export const MODEL_DOMYSLNY: ModelFakturowania = 'przy_doladowaniu';
+
+export function normalizujModel(v: string | null | undefined): ModelFakturowania {
+  return v === 'przy_obciazeniu' ? 'przy_obciazeniu' : MODEL_DOMYSLNY;
+}
+
+export async function odczytajModelFakturowania(db: KlientPrismy): Promise<ModelFakturowania> {
+  const w = await db.$queryRaw<Array<{ value: string }>>`
+    SELECT "value" FROM "platform_settings" WHERE "key" = ${KLUCZ_MODELU_FAKTUROWANIA} LIMIT 1
+  `;
+  return normalizujModel(w[0]?.value);
+}

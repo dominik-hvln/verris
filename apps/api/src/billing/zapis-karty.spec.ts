@@ -13,7 +13,7 @@ function zbuduj(opts: { user?: { id: string } | null; maDomyslna?: number; wiers
     walletAutoTopup: { updateMany: jest.fn(() => 'w') },
     $transaction: jest.fn(async (ops: unknown[]) => ops),
   };
-  const svc = new BillingService(prisma as never, {} as never, {} as never, {} as never, {} as never, {} as never, {} as never, {} as never, {} as never, {} as never);
+  const svc = new BillingService(prisma as never, {} as never, {} as never, {} as never, {} as never, {} as never, {} as never, {} as never, {} as never, {} as never, {} as never);
   const wywolaj = (type: string, object: Record<string, unknown>) =>
     (svc as unknown as { rozdzielZdarzenie(e: unknown): Promise<void> }).rozdzielZdarzenie({ id: 'evt', type, data: { object } });
   return { prisma, wywolaj };
@@ -61,7 +61,7 @@ describe('M-27 dodanie karty bez zakupu', () => {
     const audit = { record: jest.fn(async () => undefined) };
     const config = { get: jest.fn(() => 'https://panel.test/') };
     const n = {} as never;
-    const svc = new BillingService(prisma as never, n, stripe as never, audit as never, config as never, n, subs as never, n, n, n);
+    const svc = new BillingService(prisma as never, n, stripe as never, audit as never, config as never, n, subs as never, n, n, n, n);
     await expect(svc.startAddCard('u1')).resolves.toEqual({ url: 'https://checkout.stripe.test/cs_1' });
     expect(subs.ensureStripeCustomer).toHaveBeenCalledWith(expect.objectContaining({ id: 'u1' }));
     expect(stripe.createSetupSession).toHaveBeenCalledWith({

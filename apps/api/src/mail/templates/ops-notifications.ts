@@ -530,3 +530,38 @@ export function probaOdtworzeniaTemplate(ctx: ProbaOdtworzeniaContext): MailMess
     html,
   };
 }
+
+export interface ProgOssContext {
+  to: string;
+  firstName: string | null;
+  sprzedazPln: string;
+  procent: number;
+  przekroczony: boolean;
+  panelUrl: string;
+}
+
+/** M-09 — sprzedaż usług elektronicznych konsumentom z UE zbliża się do progu 42 000 zł / go przekroczyła. */
+export function progOssTemplate(ctx: ProgOssContext): MailMessage {
+  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const { html, text } = renderEmailShell({
+    title: ctx.przekroczony ? 'Próg OSS przekroczony' : `Próg OSS: ${ctx.procent}%`,
+    preheader: `Sprzedaż konsumentom z UE: ${ctx.sprzedazPln} zł z 42 000 zł.`,
+    bodyMarkdown: [
+      greeting,
+      ``,
+      `Sprzedaż usług Verris konsumentom z innych krajów UE (rok bieżący albo poprzedni) wynosi **${escapeHtml(ctx.sprzedazPln)} zł** — **${ctx.procent}%** progu 42 000 zł (art. 28k ustawy o VAT).`,
+      ``,
+      ctx.przekroczony
+        ? `Od przekroczenia progu takie usługi opodatkowuje się w kraju klienta. Panel nadal wystawia dokumenty z 23%, bo OSS nie jest włączony — **zarejestruj się w VAT OSS i włącz ustawienie \`vat.ossWlaczone\`**, a panel zacznie stosować stawki krajów klientów.`
+        : `Po przekroczeniu progu trzeba będzie stosować stawki krajów klientów przez VAT OSS. Warto złożyć zgłoszenie z wyprzedzeniem.`,
+      ``,
+      `Skonsultuj termin rejestracji z księgową.`,
+    ].join('\n'),
+    cta: { label: 'Otwórz panel admina', url: ctx.panelUrl },
+    footnote: 'Alert wysyłany raz na próg (80% i 100%) w danym roku.',
+    recipientEmail: ctx.to,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return { to: ctx.to, tag: 'ops.prog-oss', subject: `[Verris] ${ctx.przekroczony ? 'Próg OSS przekroczony' : `Próg OSS: ${ctx.procent}%`}`, text, html };
+}

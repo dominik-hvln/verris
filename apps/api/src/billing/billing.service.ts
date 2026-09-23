@@ -12,6 +12,7 @@ import { Prisma, WalletTxType } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { WalletLedgerService } from './wallet-ledger.service';
+import { DoladowanieService, type WalutaWplaty } from './doladowanie.service';
 import { StripeService } from './stripe/stripe.service';
 import {
   getInvoiceSubscriptionId,
@@ -64,6 +65,7 @@ export class BillingService {
     private readonly mailer: MailerService,
     private readonly promo: PromoService,
     private readonly ecoPoints: EcoPointsService,
+    private readonly doladowanie: DoladowanieService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -405,6 +407,8 @@ export class BillingService {
     userId: string;
     amount: number | string;
     promoCode?: string | null;
+    /** M-10 — waluta wpłaty; portfel i tak liczy w K (kurs NBP przy księgowaniu). */
+    currency?: WalutaWplaty | null;
   }) {
     const amount = new Prisma.Decimal(opts.amount);
     if (amount.lessThanOrEqualTo(0) || amount.greaterThan(10000)) {
@@ -435,6 +439,9 @@ export class BillingService {
     }
 
     const minor = Math.round(amount.toNumber() * 100);
+    const waluta: WalutaWplaty = opts.currency ?? 'PLN';
+    // M-09 — stawka ustalana TERAZ (VIES, próg OSS) i zapisywana w metadanych płatności.
+    const { traktowanie, vies } = await this.doladowanie.ustalTraktowanie(user.id);
 
     const description = promoMetadata
       ? `Doładowanie portfela Verris (${amount.toFixed(2)} ${user.walletCurrency}) + ${promoMetadata.promoPercent}% bonus „${promoMetadata.promoCode}"`
@@ -442,7 +449,7 @@ export class BillingService {
 
     const session = await this.stripe.createCheckoutSession({
       amountMinor: minor,
-      currency: user.walletCurrency,
+      currency: waluta,
       customerEmail: user.email,
       successUrl: this.config.get<string>('stripeSuccessUrl')!,
       cancelUrl: this.config.get<string>('stripeCancelUrl')!,
@@ -451,6 +458,7 @@ export class BillingService {
         userId: user.id,
         kind: 'wallet_topup',
         ...(promoMetadata ?? {}),
+        ...DoladowanieService.doMetadanych(traktowanie, vies),
       },
       description,
     });
@@ -828,14 +836,16 @@ export class BillingService {
     }
 
     const idempotencyKey = `stripe:checkout:${session.id}`;
-    const tx = await this.ledger.credit({
+    // M-09/M-10/M-34 — K po kursie NBP i stawce nabywcy, dokument przy wpłacie.
+    const { wpis: tx, kredytK } = await this.doladowanie.zaksieguj({
       userId,
-      amount: amountMajor,
-      type: WalletTxType.TOPUP,
-      description: `Doładowanie Stripe (${session.id})`,
+      kwotaMinor: session.amount_total ?? 0,
+      waluta: session.currency ?? 'pln',
+      meta: session.metadata,
       idempotencyKey,
-      paymentProvider: 'STRIPE',
-      paymentRef: session.payment_intent ?? session.id,
+      paymentRef: session.payment_intent ?? session.id ?? '',
+      opis: `Doładowanie Stripe (${session.id})`,
+      zaplaconoAt: new Date(),
     });
 
     await this.audit.record({
@@ -845,6 +855,8 @@ export class BillingService {
         walletTxId: tx.id,
         sessionId: session.id,
         amount: amountMajor.toFixed(2),
+        currency: (session.currency ?? 'pln').toUpperCase(),
+        creditedK: kredytK.toFixed(2),
         idempotent: idempotencyKey === tx.idempotencyKey,
       },
     });
@@ -854,7 +866,10 @@ export class BillingService {
     // before redirecting the user to Stripe — so the user can't tamper
     // with the percentage by editing client-side state.
     const promoCodeId = session.metadata?.promoCodeId;
-    const bonusAmountStr = session.metadata?.bonusAmount;
+    // Bonus liczony od K, które faktycznie weszły (waluta obca, cena netto) — nie od kwoty w walucie.
+    const procent = Number(session.metadata?.promoPercent);
+    const bonusAmountStr =
+      procent > 0 ? kredytK.times(procent).dividedBy(100).toDecimalPlaces(2).toFixed(2) : session.metadata?.bonusAmount;
     if (promoCodeId && bonusAmountStr) {
       try {
         await this.promo.applyPercentBonusForTopup({
@@ -887,7 +902,7 @@ export class BillingService {
 
     void this.notifyWalletTopupOk({
       userId,
-      amountMajor: amountMajor.toFixed(2),
+      amountMajor: kredytK.toFixed(2),
     }).catch((err) => {
       this.logger.warn(
         `handleCheckoutCompleted: topup mail failed user=${userId}: ${err instanceof Error ? err.message : String(err)}`,
@@ -897,7 +912,7 @@ export class BillingService {
     void this.ecoPoints.safeAward(`wallet_topup:${tx.id}`, async () => {
       const pts = await this.ecoPoints.awardWalletTopup(this.prisma, {
         userId,
-        amountMajor,
+        amountMajor: kredytK.toNumber(),
         walletTxId: tx.id,
       });
       if (pts > 0) {
@@ -1129,6 +1144,7 @@ export class BillingService {
       id?: string;
       metadata?: Record<string, string | undefined>;
       amount_received?: number;
+      currency?: string;
     };
     const meta = pi.metadata ?? {};
     if (meta.verris_kind !== 'wallet_auto_topup' || !meta.verris_user_id) {
@@ -1143,14 +1159,15 @@ export class BillingService {
     // money (a replayed webhook returns the existing ledger entry).
     const alreadyCredited = await this.ledger.findByIdempotencyKey(`stripe:pi:${pi.id}`);
 
-    const tx = await this.ledger.credit({
+    const { wpis: tx } = await this.doladowanie.zaksieguj({
       userId,
-      amount: amtMajor,
-      type: WalletTxType.TOPUP,
-      description: `Auto-doładowanie portfela (PaymentIntent ${pi.id})`,
+      kwotaMinor: pi.amount_received ?? 0,
+      waluta: pi.currency ?? 'pln',
+      meta: pi.metadata,
       idempotencyKey: `stripe:pi:${pi.id}`,
-      paymentProvider: 'STRIPE',
       paymentRef: pi.id,
+      opis: `Auto-doładowanie portfela (PaymentIntent ${pi.id})`,
+      zaplaconoAt: new Date(),
       metadata: { channel: 'wallet_auto_topup' },
     });
 

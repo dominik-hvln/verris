@@ -7,7 +7,8 @@ import {
 } from '@nestjs/common';
 import { Prisma, WalletTransaction, WalletTxType, WalletTxStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
-import { trybFaktury, utworzFaktureZaObciazenie } from './faktura-za-portfel';
+import { trybFaktury, utworzFaktureZaObciazenie, TYPY_SPRZEDAZY, ZNACZNIK_M34 } from './faktura-za-portfel';
+import { odczytajModelFakturowania } from './tryb-fakturowania';
 
 export interface LedgerEntryInput {
   userId: string;
@@ -173,6 +174,14 @@ export class WalletLedgerService {
           data: { walletBalance: newBalance },
         });
 
+        // M-34: model fakturowania czytany w transakcji — obciążenie w modelu
+        // `przy_doladowaniu` dostaje znacznik, żeby faktura zbiorcza go nie podjęła.
+        const model = direction === 'debit' ? await odczytajModelFakturowania(tx) : null;
+        const bezDokumentu = model === 'przy_doladowaniu' && TYPY_SPRZEDAZY.has(input.type);
+        const metadata: Prisma.InputJsonValue | typeof Prisma.JsonNull = bezDokumentu
+          ? { ...((input.metadata as Record<string, unknown> | undefined) ?? {}), [ZNACZNIK_M34]: 'przy_doladowaniu' } as Prisma.InputJsonValue
+          : input.metadata ?? Prisma.JsonNull;
+
         const created = await tx.walletTransaction.create({
           data: {
             userId: user.id,
@@ -186,7 +195,7 @@ export class WalletLedgerService {
             paymentRef: input.paymentRef ?? null,
             subscriptionId: input.subscriptionId ?? null,
             description: input.description ?? null,
-            metadata: input.metadata ?? Prisma.JsonNull,
+            metadata,
           },
         });
 
@@ -204,7 +213,9 @@ export class WalletLedgerService {
         // scheduler finalizacji, z ponawianiem. Lekcja z Z-05: dokument,
         // którego powstanie zależy od kroku po transakcji, będzie czasem
         // nie powstawał i nikt się o tym nie dowie.
-        if (direction === 'debit') {
+        // M-34: w modelu `przy_doladowaniu` dokument powstał już przy wpłacie
+        // (DoladowanieService) — wydanie K nie jest drugą sprzedażą.
+        if (direction === 'debit' && model === 'przy_obciazeniu') {
           const tryb = trybFaktury(input.type, amount);
           if (tryb === 'natychmiast') {
             await utworzFaktureZaObciazenie(tx, {

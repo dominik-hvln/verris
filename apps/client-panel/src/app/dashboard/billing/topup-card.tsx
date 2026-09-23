@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { Loader2, BadgePercent, X, CheckCircle2 } from 'lucide-react';
 import { CREDIT_SHORT, formatCredits, pluralCredits } from '@/lib/credits';
-import type { PreviewTopupPromoResponse } from '@verris/contracts';
-import { previewTopupPromoAction, startTopupAction } from './actions';
+import type { PreviewTopupPromoResponse, TopupQuoteDto, WalutaWplaty } from '@verris/contracts';
+import { previewTopupPromoAction, quoteTopupAction, startTopupAction } from './actions';
 import { TOPUP_PRESETS } from './constants';
 
 interface Props {
@@ -19,6 +19,8 @@ interface PromoState {
 
 export function TopupCard({ balance }: Props) {
   const [amount, setAmount] = useState<string>('50');
+  const [currency, setCurrency] = useState<WalutaWplaty>('PLN');
+  const [quote, setQuote] = useState<TopupQuoteDto | null>(null);
   const [promoCode, setPromoCode] = useState<string>('');
   const [promoState, setPromoState] = useState<PromoState>({ status: 'idle' });
   const [error, setError] = useState<string | null>(null);
@@ -29,6 +31,21 @@ export function TopupCard({ balance }: Props) {
     const parsed = Number.parseFloat(amount);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
   }, [amount]);
+  // Ile K: z podglądu serwera (stawka, kurs); bez niego — tylko dla PLN, 1:1.
+  const kredyt =
+    quote?.kredytK != null ? Number(quote.kredytK) : currency === 'PLN' ? previewCredits : null;
+  const bonus =
+    kredyt !== null && promoState.status === 'applied' && promoState.preview
+      ? Math.round(kredyt * promoState.preview.percent) / 100
+      : 0;
+
+  // M-09/M-10 — stawka VAT i ile K wyjdzie: pytamy serwer (VIES, kurs NBP), z opóźnieniem.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      void quoteTopupAction(amount, currency).then(setQuote);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [amount, currency]);
 
   // Re-validate the promo whenever the amount changes (debounced).
   useEffect(() => {
@@ -121,10 +138,18 @@ export function TopupCard({ balance }: Props) {
                 onChange={(event) => setAmount(event.target.value)}
                 className="w-full rounded-[7px] border border-line-strong bg-background px-3 py-2.5 pr-14 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
               />
-              <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm text-neutral-500">
-                PLN
-              </span>
             </div>
+            <select
+              name="currency"
+              value={currency}
+              onChange={(event) => setCurrency(event.target.value as WalutaWplaty)}
+              aria-label="Waluta wpłaty"
+              className="rounded-[7px] border border-line-strong bg-background px-2 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none"
+            >
+              <option value="PLN">PLN</option>
+              <option value="EUR">EUR</option>
+              <option value="USD">USD</option>
+            </select>
             <button
               type="submit"
               disabled={pending}
@@ -134,19 +159,21 @@ export function TopupCard({ balance }: Props) {
               {pending ? 'Przekierowanie…' : 'Doładuj'}
             </button>
           </div>
-          {previewCredits !== null ? (
+          {kredyt !== null ? (
             <p className="text-xs text-emerald-200/90">
-              Otrzymasz {formatCredits(previewCredits, { signed: true })} ({previewCredits.toFixed(2)}{' '}
-              {pluralCredits(previewCredits)}) na portfel.
+              Otrzymasz {quote?.szacunek ? 'ok. ' : ''}
+              {formatCredits(kredyt, { signed: true })} ({kredyt.toFixed(2)}{' '}
+              {pluralCredits(kredyt)}) na portfel.
               {promoState.status === 'applied' && promoState.preview ? (
                 <>
-                  {' '}+ <strong>{promoState.preview.bonusAmount} {CREDIT_SHORT}</strong> bonusu z
+                  {' '}+ <strong>{bonus.toFixed(2)} {CREDIT_SHORT}</strong> bonusu z
                   kodu „{promoState.preview.code}" ({promoState.preview.percent}%) — łącznie{' '}
-                  <strong>{promoState.preview.totalCredited} {CREDIT_SHORT}</strong>.
+                  <strong>{(kredyt + bonus).toFixed(2)} {CREDIT_SHORT}</strong>.
                 </>
               ) : null}
             </p>
           ) : null}
+          {quote ? <VatInfo quote={quote} currency={currency} /> : null}
 
           <PromoSubform
             promoCode={promoCode}
@@ -162,9 +189,10 @@ export function TopupCard({ balance }: Props) {
             </div>
           ) : null}
           <p className="font-mono text-[11.5px] leading-relaxed text-muted-foreground">
-            Płatność realizowana przez Stripe (karta + BLIK + Przelewy24) w PLN. Środki trafią do
-            portfela natychmiast po zaksięgowaniu. Bonus z kodu procentowego dolicza się po
-            zaksięgowaniu wpłaty.
+            Płatność przez Stripe: w PLN karta, BLIK i Przelewy24, w EUR i USD karta. Portfel liczy
+            w {CREDIT_SHORT} — wpłatę w walucie przeliczamy po kursie średnim NBP z dnia roboczego
+            poprzedzającego płatność. Dokument za wpłatę znajdziesz w zakładce Faktury. Bonus z
+            kodu procentowego dolicza się po zaksięgowaniu wpłaty.
           </p>
         </form>
       </div>
@@ -235,5 +263,37 @@ function PromoSubform({
         <p className="absolute mt-12 text-xs text-rose-300">{promoState.error}</p>
       ) : null}
     </form>
+  );
+}
+
+/** M-09 — co będzie na dokumencie za wpłatę; klient widzi to PRZED płatnością. */
+function VatInfo({ quote, currency }: { quote: TopupQuoteDto; currency: WalutaWplaty }) {
+  const linie: string[] = [];
+  if (quote.vatKod === 'OO') {
+    linie.push('Dokument bez polskiego VAT (odwrotne obciążenie) — numer VAT-UE potwierdzony w VIES.');
+  } else if (quote.vatKod === 'POZA_UE') {
+    linie.push('Klient spoza UE: dokument bez polskiego VAT.');
+  } else if (quote.vatKod === 'OSS') {
+    linie.push(`Dokument z VAT ${String(quote.stawka).replace('.', ',')}% kraju nabywcy (procedura OSS).`);
+  } else {
+    linie.push('Dokument z VAT 23%.');
+    if (quote.viesWazny === false) {
+      linie.push('Numer VAT-UE z profilu nie przeszedł weryfikacji VIES — sprawdź go w Ustawieniach → Dane do faktury.');
+    }
+  }
+  if (quote.cenaNetto) linie.push(`Płacisz cenę netto: za każde 1 zł wpłaty dostajesz 1,23 ${CREDIT_SHORT}.`);
+  if (currency !== 'PLN') {
+    linie.push(
+      quote.kurs
+        ? `Kurs NBP dziś: ${quote.kurs.toFixed(4)} PLN za 1 ${currency}; ostateczny z dnia poprzedzającego płatność.`
+        : 'Kurs NBP chwilowo niedostępny — kwotę w K zobaczysz po zaksięgowaniu.',
+    );
+  }
+  return (
+    <ul className="m-0 list-none space-y-1 p-0 text-xs text-muted-foreground">
+      {linie.map((l) => (
+        <li key={l}>{l}</li>
+      ))}
+    </ul>
   );
 }

@@ -12,6 +12,9 @@ import { InvoicesService } from './invoices.service';
 import { InvoicesController } from './invoices.controller';
 import { InvoicesAdminController } from './invoices.admin.controller';
 import { ProformaService } from './proforma.service';
+import { DoladowanieService } from './doladowanie.service';
+import { ViesService } from './vies.service';
+import { VatNabywcyService } from './vat-nabywcy.service';
 import { InvoicePdfService } from './invoice-pdf.service';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { PromoService } from './promo.service';
@@ -48,6 +51,9 @@ import { NotificationsModule } from '../notifications/notifications.module';
     InvoicesService,
     InvoicePdfService,
     ProformaService,
+    DoladowanieService,
+    ViesService,
+    VatNabywcyService,
     PromoService,
     WalletAutoTopupService,
     WalletAutoTopupScheduler,
@@ -58,6 +64,6 @@ import { NotificationsModule } from '../notifications/notifications.module';
     KorektyService,
     FakturyZewnetrzneService,
   ],
-  exports: [BillingService, WalletLedgerService, StripeService, InvoicesService, PromoService, WalletAutoTopupService, KorektyService],
+  exports: [BillingService, VatNabywcyService, WalletLedgerService, StripeService, InvoicesService, PromoService, WalletAutoTopupService, KorektyService],
 })
 export class BillingModule {}

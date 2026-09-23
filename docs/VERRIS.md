@@ -61,6 +61,14 @@ polecenie z prowizją, EKO. Twierdzenia na badge'ach tylko takie, które kod spr
 gdy warunek przestaje być spełniony, badge znika (nie pokazuje złej wiadomości). Bez ciasteczek
 i zasobów z zewnątrz; osadzanie przez iframe z sandboxem + mały loader.
 
+### 2026-09-23 — VAT, waluty i doładowania (M-09, M-10, M-34)
+
+- **Stawki (M-09).** Polska: 23%. Firma z UE z numerem VAT-UE ważnym w VIES: „np”, adnotacja „odwrotne obciążenie” (nie 0% — 0% dotyczy towarów). Konsument z UE: 23%, dopóki sprzedaż usług elektronicznych konsumentom z innych krajów UE jest poniżej 42 000 zł w roku bieżącym i poprzednim (art. 28k); po przekroczeniu — stawka kraju klienta przez OSS, po rejestracji (przełącznik w panelu admina, alarm przy 80% progu). Spoza UE: „np”, miejsce świadczenia poza krajem. Wynik VIES zapisywany przy dokumencie (dowód na dzień transakcji).
+- **Cena dla klientów bez polskiego VAT** (odwrotne obciążenie, spoza UE): **netto** — przy doładowaniu 1 zł = 1,23 K.
+- **Waluty (M-10).** Płatność kartą w EUR albo USD, portfel dalej w K. Przeliczenie po kursie średnim NBP (tabela A) z ostatniego dnia roboczego przed dniem wpłaty; dokument w walucie wpłaty z kwotą VAT w PLN (art. 31a, art. 106e ust. 11).
+- **Prepaid (M-34).** Dokument przy **doładowaniu** (realna wpłata), przy wydawaniu K dokumentów już nie ma. Bonusy (promocje, rekompensaty SLA, prowizje) nie są wpłatą — bez dokumentu. Saldo sprzed przełączenia: raport `ops/sql/m34-saldo-bez-dokumentu.sql`, decyzja operatora.
+- **Do potwierdzenia z księgową przed startem sprzedaży:** kwalifikacja K jako bonu jednego przeznaczenia (VAT przy doładowaniu) — dla klientów z odwrotnym obciążeniem i spoza UE obowiązek podatkowy powstaje zwykle przy wykonaniu usługi, a nie przy wpłacie; brzmienie adnotacji dla klientów spoza UE.
+
 ### 2026-09-23 — co z roadmapy wchodzi przed start
 
 - Właściciel przejrzał roadmapę po starcie (tablica „Verris po starcie”, wybory zapisane przy każdej pozycji) i oznaczył ok. 117 pozycji jako „przed startem”. 15 z nich zamknięto tego samego dnia; zostało 99 (≈1566 h).

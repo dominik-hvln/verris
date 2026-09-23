@@ -43,7 +43,7 @@ describe('M-07 duplikat', () => {
     };
     const audit = { record: jest.fn(async () => undefined) };
     const storage = { getObjectStream: jest.fn(async () => Readable.from([o.subarray(0, 100), o.subarray(100)])) };
-    const s = new InvoicesService(prisma as never, audit as never, {} as never, {} as never, storage as never, {} as never, {} as never, {} as never);
+    const s = new InvoicesService(prisma as never, audit as never, {} as never, {} as never, storage as never, {} as never, {} as never, {} as never, {} as never);
     const { pdf, filename } = await s.renderDuplicate('u1', 'i1');
     expect(filename).toBe('VDR-2026-09-0001-duplikat.pdf');
     expect((await PDFDocument.load(pdf)).getPageCount()).toBe(1);

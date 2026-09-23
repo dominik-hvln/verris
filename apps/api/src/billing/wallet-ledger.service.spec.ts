@@ -14,16 +14,23 @@ describe('WalletLedgerService (F-02)', () => {
     balance: string;
     existingByKey?: unknown | null;
     txError?: Error;
+    /** M-34 — model fakturowania z platform_settings; brak = domyślny (przy_doladowaniu). */
+    model?: string;
   }) {
     const createdRow = { id: 'tx-new', idempotencyKey: 'key-1' };
     const tx = {
-      $queryRaw: jest.fn().mockResolvedValue([
-        {
-          id: 'user-1',
-          walletBalance: new Prisma.Decimal(opts.balance),
-          walletCurrency: 'PLN',
-        },
-      ]),
+      $queryRaw: jest.fn(async (strings: TemplateStringsArray, ...vals: unknown[]) => {
+        if (strings.join('?').includes('platform_settings')) {
+          return vals[0] === 'faktury.model' && opts.model ? [{ value: opts.model }] : [];
+        }
+        return [
+          {
+            id: 'user-1',
+            walletBalance: new Prisma.Decimal(opts.balance),
+            walletCurrency: 'PLN',
+          },
+        ];
+      }),
       user: { update: jest.fn().mockResolvedValue({}) },
       walletTransaction: {
         create: jest.fn().mockResolvedValue(createdRow),
@@ -60,7 +67,7 @@ describe('WalletLedgerService (F-02)', () => {
     // Wcześniej stało tu `toHaveBeenCalledTimes(1)` — po Z-01 w tej samej
     // transakcji leci jeszcze numerator faktury, więc liczba wywołań przestała
     // opisywać to, o co temu testowi chodzi.
-    const sqlParts: string[] = tx.$queryRaw.mock.calls[0][0];
+    const sqlParts = [...tx.$queryRaw.mock.calls[0][0]] as string[];
     expect(sqlParts.join('?')).toContain('FOR UPDATE');
   });
 
@@ -68,8 +75,8 @@ describe('WalletLedgerService (F-02)', () => {
   // Z-01 — faktura powstaje w tej samej transakcji co obciążenie
   // ───────────────────────────────────────────────────────────────────────
 
-  it('obciążenie sprzedażowe wystawia fakturę wewnątrz transakcji', async () => {
-    const { prisma, tx } = buildPrismaMock({ balance: '100.00' });
+  it('obciążenie sprzedażowe wystawia fakturę wewnątrz transakcji (model przy_obciazeniu)', async () => {
+    const { prisma, tx } = buildPrismaMock({ balance: '100.00', model: 'przy_obciazeniu' });
     const service = new WalletLedgerService(prisma as never);
 
     await service.debit({
