@@ -1,12 +1,14 @@
 /**
  * KB-CONTENT — seed startowej Bazy Wiedzy (CMS): kategorie + artykuły SEO z FAQ.
  * Idempotentny: kategorie upsertowane po slug. Artykuły: tworzone gdy slug nie
- * istnieje; dla istniejących AKTUALIZUJEMY tylko pola dodatkowe (faq, relatedSlugs),
- * nie nadpisując ręcznych edycji treści/tytułu w CMS. Publikowane od razu,
+ * istnieje; istniejące odświeżamy w całości (treść, SEO, FAQ), ale TYLKO gdy autorem
+ * jest nadal „Zespół Verris” — ręczne edycje w CMS zostają. Publikowane od razu,
  * żeby pomoc.verris.pl miała treść. Treści są edytowalne w panelu admina.
  *
- * USAGE (prod, w kontenerze api):
- *   node apps/api/dist-cli/cli/seed-kb-cms.js
+ * USAGE (prod, w kontenerze api — przez entrypoint, bo to on składa DATABASE_URL z POSTGRES_*;
+ * samo `exec … node …` dostaje pusty DATABASE_URL):
+ *   docker compose -f docker-compose.prod.yml --env-file .env.prod exec -T api \
+ *     /usr/local/bin/api-entrypoint.sh node apps/api/dist-cli/cli/seed-kb-cms.js
  * lub lokalnie:  pnpm --filter api cli:seed-kb-cms
  */
 
