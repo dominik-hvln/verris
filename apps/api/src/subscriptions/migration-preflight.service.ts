@@ -6,6 +6,7 @@ import { AuditService } from '../common/audit/audit.service';
 import { MigrationActions } from '../common/audit/audit.actions';
 import { resolvePublicHost } from './migration-net.util';
 import type { CreateMigrationBundleDto } from './dto/migration.dto';
+import { Client as SshClient } from 'ssh2';
 
 /**
  * Preflight migratora — weryfikacja dostępów PRZED zakolejkowaniem zlecenia.
@@ -14,8 +15,7 @@ import type { CreateMigrationBundleDto } from './dto/migration.dto';
  * zamiast dowiadywać się o literówce w haśle po godzinie z maila o błędzie.
  * Bez zewnętrznych zależności (npm registry-free): FTP/FTPS i IMAP to pełny
  * test logowania, MySQL to handshake z auth `mysql_native_password` /
- * `caching_sha2` fast-path, SFTP/SSH to test banera (pełna weryfikacja hasła
- * następuje na compute-node przy transferze — API nie implementuje SSH).
+ * `caching_sha2` fast-path, SFTP/SSH to logowanie biblioteką ssh2 (I-18).
  *
  * Statusy:
  *  - ok           — zalogowano poprawnie
@@ -60,7 +60,7 @@ export class MigrationPreflightService {
       const protocol = ftp.protocol ?? 'sftp';
       checks.push(
         protocol === 'sftp'
-          ? this.checkSsh(ftp.host, ftp.port)
+          ? this.checkSsh(ftp.host, ftp.port, ftp.username, ftp.password)
           : this.checkFtp(ftp.host, ftp.port, ftp.username, ftp.password, protocol === 'ftps'),
       );
     }
@@ -88,41 +88,29 @@ export class MigrationPreflightService {
     return { ok, checks: results, checkedAt: new Date().toISOString() };
   }
 
-  // --- SSH/SFTP: test banera ---------------------------------------------------
+  // --- SSH/SFTP: pełne logowanie (I-18) --------------------------------------------
+  //
+  // Do 2026-09-23 był tu wyłącznie test banera: literówka w haśle przechodziła preflight,
+  // a klient dowiadywał się o niej z maila o błędzie transferu po godzinie. Teraz
+  // logujemy się naprawdę (hasło i keyboard-interactive) i od razu się rozłączamy —
+  // bez otwierania kanału, bez poleceń. Klucz hosta akceptujemy: to test poświadczeń,
+  // nie kanał do przesyłu danych (ten idzie z węzła, z własną weryfikacją).
 
-  private async checkSsh(host: string, port: number): Promise<PreflightCheckResult> {
+  private async checkSsh(host: string, port: number, username: string, password: string): Promise<PreflightCheckResult> {
     const target = `sftp://${host}:${port}`;
     const started = Date.now();
     try {
       const ip = await resolvePublicHost(host);
-      const banner = await new Promise<string>((resolve, reject) => {
-        const socket = net.connect({ host: ip, port, timeout: TIMEOUT_MS });
-        let buf = '';
-        socket.on('timeout', () => socket.destroy(new Error('timeout')));
-        socket.on('error', reject);
-        socket.on('data', (chunk) => {
-          buf += chunk.toString('utf8');
-          if (buf.includes('\n') || buf.length > 255) {
-            socket.destroy();
-            resolve(buf.trim());
-          }
-        });
-        socket.on('close', () => resolve(buf.trim()));
-      });
-      if (banner.startsWith('SSH-')) {
-        return {
-          kind: 'sftp',
-          target,
-          status: 'reachable',
-          message: `Serwer SSH odpowiada (${banner.split('\r')[0].slice(0, 64)}). Hasło zweryfikujemy przy transferze.`,
-          latencyMs: Date.now() - started,
-        };
-      }
+      assertNoControlChars(username, password);
+      const status = await sshLogin(ip, port, username, password);
       return {
         kind: 'sftp',
         target,
-        status: 'unreachable',
-        message: 'Port odpowiada, ale nie wygląda na serwer SSH/SFTP.',
+        status,
+        message:
+          status === 'ok'
+            ? 'Zalogowano do SSH/SFTP poprawnie.'
+            : 'Serwer SSH odrzucił login lub hasło.',
         latencyMs: Date.now() - started,
       };
     } catch (err) {
@@ -620,4 +608,30 @@ function buildMysqlHandshakeResponse(
   packet.writeUInt8(sequence, 3);
   payload.copy(packet, 4);
   return packet;
+}
+
+/** I-18 — logowanie SSH hasłem (także keyboard-interactive); `auth_failed` tylko przy odrzuceniu poświadczeń. */
+export function sshLogin(
+  ip: string,
+  port: number,
+  username: string,
+  password: string,
+  Klient: new () => SshClient = SshClient,
+): Promise<'ok' | 'auth_failed'> {
+  return new Promise((resolve, reject) => {
+    const c = new Klient();
+    let koniec = false;
+    const zakoncz = (fn: () => void) => {
+      if (koniec) return;
+      koniec = true;
+      try { c.end(); } catch { /* już zamknięte */ }
+      fn();
+    };
+    c.on('ready', () => zakoncz(() => resolve('ok')));
+    c.on('keyboard-interactive', (_n, _i, _l, prompts, finish) => finish(prompts.map(() => password)));
+    c.on('error', (err) =>
+      zakoncz(() => (err.level === 'client-authentication' ? resolve('auth_failed') : reject(err))),
+    );
+    c.connect({ host: ip, port, username, password, readyTimeout: TIMEOUT_MS, tryKeyboard: true, hostVerifier: () => true });
+  });
 }
