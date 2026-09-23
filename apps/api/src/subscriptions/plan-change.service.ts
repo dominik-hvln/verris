@@ -221,10 +221,18 @@ export class PlanChangeService {
     const proration = this.prorationFor(sub, target, effectiveInterval);
     const intervalChange = effectiveInterval !== sub.interval;
     const newPrice = planPriceForInterval(target, effectiveInterval);
+    // Z-11 — klucz ma identyfikować TĘ zmianę, nie parę (usługa, plan docelowy).
+    // Do 2026-09-23 klucz nie zawierał planu źródłowego ani stanu subskrypcji:
+    // upgrade A→B, downgrade B→A (zwrot), ponowny upgrade A→B w tym samym okresie
+    // trafiał w ten sam klucz — księga zwracała stary wpis i drugi upgrade był
+    // darmowy (przy zachowanym zwrocie). U admina brakowało też okresu.
+    // `updatedAt` zmienia się przy każdej udanej zmianie planu, a dwa równoległe
+    // kliknięcia widzą ten sam stan — więc podwójne kliknięcie dalej daje jeden wpis.
+    const stan = `${sub.planId}>${target.id}-${effectiveInterval}-${sub.currentPeriodStart?.toISOString() ?? 'no-period'}-${sub.updatedAt.getTime()}`;
     const idempotencyKey =
       ctx.initiatedBy === 'admin'
-        ? `plan-change-admin-${sub.id}-${target.id}-${effectiveInterval}-${ctx.actorUserId}`
-        : `plan-change-${sub.id}-${target.id}-${effectiveInterval}-${sub.currentPeriodStart?.toISOString() ?? 'no-period'}`;
+        ? `plan-change-admin-${sub.id}-${stan}`
+        : `plan-change-${sub.id}-${stan}`;
 
     if (
       !ctx.skipBilling &&

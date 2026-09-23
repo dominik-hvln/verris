@@ -14,6 +14,7 @@ describe('PlanChangeService (admin)', () => {
     paymentSource: SubscriptionPaymentSource.WALLET,
     currentPeriodStart: new Date('2027-01-01'),
     currentPeriodEnd: new Date('2027-12-31'),
+    updatedAt: new Date('2027-01-05T10:00:00Z'),
     stripeSubscriptionId: null,
     autoscalingEnabled: false,
     plan: {
@@ -143,6 +144,19 @@ describe('PlanChangeService (admin)', () => {
     const { service, walletLedger } = createService({ wallet: { debit, credit: jest.fn() } });
     await service.changeForAdmin('admin-1', Role.ADMIN, 'sub-1', 'plan-b', 'Upgrade na prośbę', false);
     expect(walletLedger.debit).toHaveBeenCalled();
+  });
+
+  it('Z-11: klucz zawiera plan źródłowy i stan subskrypcji — ponowna zmiana po zmianie stanu to nowy wpis', async () => {
+    const debit = jest.fn().mockResolvedValue({ id: 'tx-1' });
+    const { service, prisma } = createService({ wallet: { debit, credit: jest.fn() } });
+    await service.changeForAdmin('admin-1', Role.ADMIN, 'sub-1', 'plan-b', 'Upgrade', false);
+    await service.changeForAdmin('admin-1', Role.ADMIN, 'sub-1', 'plan-b', 'Upgrade', false);
+    prisma.subscription.findUnique.mockResolvedValue({ ...baseSub, updatedAt: new Date('2027-02-01T10:00:00Z') });
+    await service.changeForAdmin('admin-1', Role.ADMIN, 'sub-1', 'plan-b', 'Upgrade', false);
+    const klucze = debit.mock.calls.map((c) => (c[0] as { idempotencyKey: string }).idempotencyKey);
+    expect(klucze[0]).toBe(klucze[1]);
+    expect(klucze[2]).not.toBe(klucze[0]);
+    expect(klucze[0]).toContain('plan-a>plan-b');
   });
 
   it('rejects downgrade when disk usage exceeds target limit', async () => {
