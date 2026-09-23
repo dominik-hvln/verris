@@ -107,26 +107,35 @@ export class DeliverabilityService {
     // --- RBL / blacklists on the sending IP ---
     if (sendingIp && /^\d+\.\d+\.\d+\.\d+$/.test(sendingIp)) {
       const reversed = sendingIp.split('.').reverse().join('.');
+      const unknown: string[] = [];
       await Promise.all(
         RBL_ZONES.map(async (zone) => {
           let listed = false;
           try {
             const res: string[] = await withTimeout(dns.resolve4(`${reversed}.${zone}`), 3500);
             listed = rblListed(res);
-          } catch {
-            listed = false; // NXDOMAIN = not listed
+            // 127.255.255.x = lista odmówiła odpowiedzi (np. zapytanie przez publiczny resolver).
+            if (!listed && res.some((ip) => ip.startsWith('127.255.255.'))) unknown.push(zone);
+          } catch (err) {
+            // NXDOMAIN/ENODATA = brak wpisu. Timeout lub błąd serwera = NIE WIEMY — E-18:
+            // nie pokazujemy tego klientowi jako „czysto”.
+            const code = (err as { code?: string }).code;
+            if (code !== 'ENOTFOUND' && code !== 'ENODATA') unknown.push(zone);
           }
           blacklists.push({ zone, listed });
         }),
       );
-      const anyListed = blacklists.some((b) => b.listed);
+      const listedZones = blacklists.filter((b) => b.listed).map((b) => b.zone);
+      const checked = RBL_ZONES.filter((z) => !unknown.includes(z));
       checks.push({
         key: 'rbl',
         label: 'Blacklisty (RBL)',
-        status: anyListed ? 'fail' : 'ok',
-        detail: anyListed
-          ? `IP serwera (${sendingIp}) jest na: ${blacklists.filter((b) => b.listed).map((b) => b.zone).join(', ')}.`
-          : `IP serwera (${sendingIp}) nie figuruje na sprawdzanych blacklistach.`,
+        status: listedZones.length ? 'fail' : unknown.length ? 'warn' : 'ok',
+        detail: listedZones.length
+          ? `IP serwera (${sendingIp}) jest na: ${listedZones.join(', ')}.`
+          : unknown.length
+            ? `IP serwera (${sendingIp}) nie figuruje na: ${checked.join(', ') || '—'}. Nie udało się sprawdzić: ${unknown.join(', ')} — spróbuj ponownie za chwilę.`
+            : `IP serwera (${sendingIp}) nie figuruje na żadnej ze sprawdzanych list: ${RBL_ZONES.join(', ')}.`,
       });
     }
 
