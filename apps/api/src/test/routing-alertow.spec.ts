@@ -265,7 +265,10 @@ describe('PB-11 — drugi kanał alertów niezależny od poczty', () => {
     const tresc = kod(KONTAKTY);
     expect(tresc).toMatch(/type:\s*email/);
     expect(tresc).toMatch(/type:\s*telegram/);
-    expect(tresc).toMatch(/bottoken:\s*\$GF_ALERT_TELEGRAM_BOT_TOKEN/);
+    // W cudzysłowie — goła wartość po podstawieniu zmiennej staje się liczbą i Grafana nie wstaje
+    // (2026-09-23, strażnik: grafana-podstawienia-w-cudzyslowie.spec.ts).
+    expect(tresc).toMatch(/bottoken:\s*"\$GF_ALERT_TELEGRAM_BOT_TOKEN"/);
+    expect(tresc).toMatch(/chatid:\s*"\$GF_ALERT_TELEGRAM_CHAT_ID"/);
   });
 
   it('compose przekazuje Grafanie token i chat id (bez tego kanał milczy)', () => {
