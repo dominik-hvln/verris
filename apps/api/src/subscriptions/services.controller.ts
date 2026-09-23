@@ -906,43 +906,6 @@ export class UserServicesController {
     return this.directAdmin.listHostingBackups(id, user.userId);
   }
 
-  @Get(':id/hosting-backups/restore-preview')
-  async hostingRestorePreview(
-    @CurrentUser() user: { userId: string },
-    @Param('id') id: string,
-    @Query('backupId') backupId?: string,
-  ) {
-    const backups = await this.directAdmin.listHostingBackups(id, user.userId);
-    const [domains, databases, mailboxes] = await Promise.all([
-      this.directAdmin.listHostingDomainsForSubscription(id, user.userId),
-      this.directAdmin.listHostingMysqlForSubscription(id, user.userId),
-      this.directAdmin.listHostingEmailAccounts(id, user.userId),
-    ]);
-    const backup = backupId
-      ? backups.rows.find((row) => row.id === backupId || row.fileName === backupId)
-      : backups.rows[0];
-    const restoreScope = backup
-      ? [
-          { area: 'files', source: 'DirectAdmin site backup archive', count: null },
-          { area: 'domains', source: 'DirectAdmin current account inventory', count: domains.domains.length },
-          { area: 'databases', source: 'DirectAdmin current account inventory', count: databases.databases.length },
-          { area: 'mailboxes', source: 'DirectAdmin current account inventory', count: mailboxes.rows.length },
-        ]
-      : [];
-    return {
-      backup: backup ?? null,
-      canPreview: Boolean(backup),
-      restoreScope,
-      warnings: [
-        'Restore preview nie wykonuje zmian na koncie i bazuje na realnej liście backupów DirectAdmin.',
-        'Dokładna zawartość archiwum jest potwierdzana przez worker restore przed rozpoczęciem operacji.',
-      ],
-      fetchError: sanitizeClientFetchError(
-        backups.fetchError ?? domains.fetchError ?? databases.fetchError ?? mailboxes.fetchError,
-      ),
-    };
-  }
-
   /** Enqueues an async restore of a DA backup onto the account (overwrites live data). */
   @Post(':id/hosting-restore')
   async runHostingRestore(
@@ -1326,18 +1289,6 @@ function humanizeProvisioningError(raw: string): string {
     return 'Tymczasowy problem konfiguracyjny węzła. Wsparcie zostało powiadomione.';
   }
   return 'Konfiguracja konta została wstrzymana. Wsparcie zostało powiadomione.';
-}
-
-function sanitizeClientFetchError(raw: string | null): string | null {
-  if (!raw) return null;
-  const lower = raw.toLowerCase();
-  if (lower.includes('timeout') || lower.includes('etimedout')) {
-    return 'Panel hostingowy nie odpowiedział w limicie czasu. Spróbuj ponownie za chwilę.';
-  }
-  if (lower.includes('unauthorized') || lower.includes('credentials')) {
-    return 'Panel hostingowy wymaga ponownej weryfikacji konfiguracji przez wsparcie.';
-  }
-  return 'Nie udało się pobrać pełnych danych z panelu hostingowego.';
 }
 
 function buildHealthSummary(s: {
