@@ -29,6 +29,8 @@ import { WystawKorekteDto } from './dto/korekta.dto';
 import { KorektyService } from './korekty.service';
 import { FakturaZewnetrznaDto } from './dto/faktura-zewnetrzna.dto';
 import { FakturyZewnetrzneService } from './faktury-zewnetrzne.service';
+import { AnulowanieService } from './anulowanie.service';
+import { AnulujDokumentDto } from './dto/anuluj.dto';
 
 const VALID_STATUSES: InvoiceStatus[] = [
   InvoiceStatus.DRAFT,
@@ -70,6 +72,7 @@ export class InvoicesAdminController {
     private readonly invoices: InvoicesService,
     private readonly korekty: KorektyService,
     private readonly zewnetrzne: FakturyZewnetrzneService,
+    private readonly anulowanie: AnulowanieService,
   ) {}
 
   /**
@@ -205,6 +208,20 @@ export class InvoicesAdminController {
    * (podniesiony MinIO, uzupełnione dane sprzedawcy) nie ma powodu czekać
    * na kolejną próbę.
    */
+  /** M-08 — anulowanie nieopłaconego dokumentu (opłacony: korekta). */
+  @Post(':invoiceId/anuluj')
+  @HttpCode(200)
+  @UseGuards(StaffPermissionsGuard)
+  @Roles(Role.ADMIN, Role.STAFF)
+  @StaffPerm('BILLING_MANAGE')
+  async anuluj(
+    @Param('invoiceId') invoiceId: string,
+    @Body() dto: AnulujDokumentDto,
+    @CurrentUser() aktor: { userId: string },
+  ) {
+    return this.anulowanie.anuluj({ invoiceId, powod: dto.powod, aktorUserId: aktor.userId });
+  }
+
   @Post(':invoiceId/dokoncz')
   @HttpCode(200)
   @UseGuards(StaffPermissionsGuard)

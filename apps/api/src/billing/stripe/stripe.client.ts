@@ -396,6 +396,15 @@ export class StripeClient {
     );
   }
 
+  /** M-08 — unieważnia otwartą fakturę Stripe (nie da się jej już opłacić). */
+  async voidInvoice(invoiceId: string): Promise<{ id: string; status: string }> {
+    return this.request<{ id: string; status: string }>(
+      'POST',
+      `/invoices/${encodeURIComponent(invoiceId)}/void`,
+      new URLSearchParams(),
+    );
+  }
+
   /** M-26 — odpina kartę od klienta Stripe (nie da się jej już obciążyć). */
   async detachPaymentMethod(paymentMethodId: string): Promise<{ id: string; customer: string | null }> {
     return this.request<{ id: string; customer: string | null }>(

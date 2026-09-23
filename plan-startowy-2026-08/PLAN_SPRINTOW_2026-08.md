@@ -9,9 +9,9 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **3376 h** — przy 30 h tygodniowo około **26 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **3382 h** — przy 30 h tygodniowo około **26 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **22 sprintów do startu** (950 h) oraz roadmapę po starcie (2426 h, 152 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **22 sprintów do startu** (956 h) oraz roadmapę po starcie (2426 h, 152 pozycji) rozpisaną na epiki kwartalne.
 
 - **2027-01-22** — koniec sprintu 21, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-01-29** — koniec sprintu 22, decyzja GO.
@@ -331,7 +331,7 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 **Definicja ukończenia**
 
 - `H-09` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
-- `H-17` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `H-17` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `G-20` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `I-11` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.
@@ -347,7 +347,7 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 | `X-31` | Kanał alertów daje znak życia (dead man's switch) | 6 | — | ops/observability/grafana/provisioning/alerting/rules.yaml — grupa verris_kanal_alertow, reguła VerrisKanalAlertowZyje (vector(1), for: 0s, oba stany  |
 | `X-32` | Martwy job da się odrzucić z panelu, ze śladem w audycie | 6 | — | apps/api/src/common/audit/audit.actions.ts — PROVISIONING_JOB_DISCARDED_BY_ADMIN; provisioning-queue.service.ts — odrzucJob (getState() === failed, śl |
 | `DEP-02` | W drzewie stoją dwa majory ESLinta naraz | 6 | ŚREDNIA | package.json (korzeń) — @eslint/js ^10.0.1 przy braku jakiegokolwiek eslint.config.* w korzeniu; libs/eslint-config/node_modules: eslint 10.9.0 obok @ |
-| `M-08` | Anulowanie faktury (VOID) z panelu | 6 | WYSOKA | InvoiceStatus.VOID w schema.prisma:1354 nigdy nie ustawiany |
+| `M-08` | Anulowanie faktury (VOID) z panelu | 6 | WYSOKA | billing/anulowanie.service.ts (POST /admin/invoices/:id/anuluj, BILLING_MANAGE); admin: invoices/void-button.tsx; test D2 anulowanie.service.spec.ts |
 | `C-18` | Konto FTP — zmiana hasła | 6 | WYSOKA | 2026-09-23 D1: POST /services/:id/hosting-ftp/:username/password (ZmienHasloFtpDto) → directadmin.service changeHostingFtpPassword (action=modify, kat |
 
 **Definicja ukończenia**
@@ -386,7 +386,7 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 
 # Faza 3 — Wejście na rynek
 
-*Sprinty 15–19 · 250 h · 2026-12-07 – 2027-01-08*
+*Sprinty 15–19 · 256 h · 2026-12-07 – 2027-01-08*
 
 Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, baza wiedzy, przejście ścieżki pierwszego klienta na produkcji i zapisana decyzja GO.
 
@@ -455,11 +455,12 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 ## Sprint 18 — Cennik, SLA i zastepstwo
 
-`2026-12-28 – 2027-01-01` · **52 h** z 30 h pojemności
+`2026-12-28 – 2027-01-01` · **58 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
 | `N-16` | SLA z zapisanymi kredytami | 6 | WYSOKA | sla-credit.scheduler.ts:79 — if (!policy.enabled) return; SLA_CREDITS_ENABLED default '0' (platform-settings.keys.ts:116) |
+| `A-11` | Wyszukiwarka wolnych domen | 6 | WYSOKA | domains.controller.ts:54 |
 | `PB-07` | Treści i cennik na verris.pl | 16 | WYSOKI | Strona główna, cennik, specyfikacja techniczna pakietu, strona SLA. Narracja: cena stała, bez skoku po roku. |
 | `PB-11` | Bus factor: drugi kanał alertów i procedura zastępstwa | 8 | WYSOKI | Alerty na więcej niż jeden adres, przetestowane. Dokument: co robi ktoś inny, gdy Ciebie nie ma przez tydzień. |
 | `PB-20` | Tryb agencji: przełącznik klienta w menu bocznym | 16 | ŚREDNI | Element makiety („Piekarnia Zdrój · klient · 3 usługi” nad menu): konto agencji/resellera przełącza się między swoimi klientami bez wylogowania. Wymag |
@@ -468,6 +469,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 **Definicja ukończenia**
 
 - `N-16` — Wartość domyślna włączona albo check w live-readiness pilnuje konfiguracji — flaga nie może po cichu wyłączyć funkcji.
+- `A-11` — Wartość domyślna włączona albo check w live-readiness pilnuje konfiguracji — flaga nie może po cichu wyłączyć funkcji.
 - `PB-07` — Cennik zgodny z wynikiem PB-01. Specyfikacja techniczna publiczna, jak u cyber_Folks — to jest element zaufania, którego rynek oczekuje.
 - `PB-11` — Alert testowy dociera dwoma kanałami. Dokument zastępstwa zawiera dostęp awaryjny i listę rzeczy, które muszą się dziać codziennie.
 - `PB-20` — Decyzja o modelu zapisana w docs/VERRIS.md; przełącznik widoczny tylko dla kont z klientami; przełączenie zmienia kontekst usług, domen i płatności; guard uprawnień obejmuje nowe trasy (Z-04); testy w CI.

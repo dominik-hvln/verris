@@ -4,6 +4,7 @@ import { BillingController } from './billing.controller';
 import { BillingAdminController } from './billing.admin.controller';
 import { WalletLedgerService } from './wallet-ledger.service';
 import { StripeService } from './stripe/stripe.service';
+import { AnulowanieService } from './anulowanie.service';
 import { StripeWebhookController } from './stripe/stripe.controller';
 import { StripeWebhookEventsAdminController } from './stripe/stripe-webhook-events.admin.controller';
 import { StripeWebhookPonowieniaScheduler } from './stripe/stripe-webhook-ponowienia.scheduler';
@@ -40,6 +41,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     BillingService,
     WalletLedgerService,
     StripeService,
+    AnulowanieService,
     InvoicesService,
     InvoicePdfService,
     PromoService,

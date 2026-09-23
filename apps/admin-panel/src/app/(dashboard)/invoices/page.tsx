@@ -6,6 +6,7 @@ import {
   type AdminInvoiceRow,
   type AdminInvoiceStatus,
 } from "./data";
+import { VoidButton } from "./void-button";
 
 export const dynamic = "force-dynamic";
 
@@ -302,6 +303,7 @@ function InvoiceRow({ inv }: { inv: AdminInvoiceRow }) {
           ) : null}
           {/* M-06 — droga do korekty wewnątrz systemu. Bez tego linku strona
               istnieje, ale trafia na nią tylko ten, kto zna adres. */}
+          {inv.status === "DRAFT" || inv.status === "OPEN" ? <VoidButton invoiceId={inv.id} number={inv.number} /> : null}
           {inv.status === "PAID" ? (
             <Link
               href={`/invoices/${inv.id}/korekta`}
