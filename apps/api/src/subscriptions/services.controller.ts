@@ -7,6 +7,7 @@ import {
   NotFoundException,
   Param,
   Post,
+  Put,
   Query,
   UseGuards,
 } from '@nestjs/common';
@@ -42,6 +43,7 @@ import { StagingService } from './staging.service';
 import { BackupScheduleService } from './backup-schedule.service';
 import { SetMonitoringDto } from './dto/site-monitor.dto';
 import { UsunRekordDnsDto, UtworzRekordDnsDto } from './dto/hosting-dns.dto';
+import { ZadanieCronDto } from './dto/hosting-cron.dto';
 import { UtworzKontoFtpDto, ZmienHasloFtpDto } from './dto/hosting-ftp.dto';
 import { UtworzSkrzynkeDto, ZmienHasloSkrzynkiDto, ZmienRozmiarSkrzynkiDto } from './dto/hosting-email.dto';
 import { EcoReportService } from '../eco/eco-report.service';
@@ -772,17 +774,20 @@ export class UserServicesController {
   async createHostingCron(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body()
-    body: {
-      minute: string;
-      hour: string;
-      dayOfMonth: string;
-      month: string;
-      dayOfWeek: string;
-      command: string;
-    },
+    @Body() body: ZadanieCronDto,
   ) {
     return this.directAdmin.createHostingCronJob(id, user.userId, body);
+  }
+
+  /** L-03 — edycja zadania cron (DA nie ma modyfikacji: nowe, potem usunięcie starego). */
+  @Put(':id/hosting-cron/:cronId')
+  async updateHostingCron(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Param('cronId') cronId: string,
+    @Body() body: ZadanieCronDto,
+  ) {
+    return this.directAdmin.updateHostingCronJob(id, user.userId, cronId, body);
   }
 
   @Delete(':id/hosting-cron/:cronId')

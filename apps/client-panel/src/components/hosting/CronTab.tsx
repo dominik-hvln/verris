@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Clock, Loader2, Plus, Trash2 } from 'lucide-react';
+import { Clock, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@verris/ui';
 import type { HostingCronJobDto } from '@verris/contracts';
@@ -9,6 +9,7 @@ import {
   createHostingCronAction,
   deleteHostingCronAction,
   fetchHostingCronAction,
+  updateHostingCronAction,
 } from '@/app/dashboard/services/[id]/hosting-extra-actions';
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { HostingHelpHint } from '@/components/hosting/HostingTabShell';
@@ -32,6 +33,7 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
   const [command, setCommand] = useState('');
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const load = () => {
     setLoading(true);
@@ -49,12 +51,33 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
   const onCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreating(true);
-    const res = await createHostingCronAction(serviceId, { ...sched, command: command.trim() });
+    const input = { ...sched, command: command.trim() };
+    const res = editingId
+      ? await updateHostingCronAction(serviceId, editingId, input)
+      : await createHostingCronAction(serviceId, input);
     setCreating(false);
-    if (!res.ok) return toast.error('Nie udało się dodać zadania', { description: daErrorMessage(res.error) });
-    toast.success('Zadanie cron dodane');
+    if (!res.ok) {
+      return toast.error(editingId ? 'Nie udało się zapisać zmian' : 'Nie udało się dodać zadania', {
+        description: daErrorMessage(res.error),
+      });
+    }
+    toast.success(editingId ? 'Zadanie cron zapisane' : 'Zadanie cron dodane');
     setCommand('');
+    setEditingId(null);
     load();
+  };
+
+  const onEdit = (row: HostingCronJobDto) => {
+    const [minute = '*', hour = '*', dayOfMonth = '*', month = '*', dayOfWeek = '*'] = row.schedule.split(/\s+/);
+    setSched({ minute, hour, dayOfMonth, month, dayOfWeek });
+    setCommand(row.command);
+    setEditingId(row.id);
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setCommand('');
+    setSched({ ...EVERY, minute: '0', hour: '3' });
   };
 
   const onDelete = async (id: string) => {
@@ -88,7 +111,7 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
         }}
       />
       <form onSubmit={onCreate} className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-        <p className="mb-3 text-sm font-semibold text-white">Nowe zadanie cron</p>
+        <p className="mb-3 text-sm font-semibold text-white">{editingId ? 'Edycja zadania cron' : 'Nowe zadanie cron'}</p>
         <div className="mb-3 flex flex-wrap gap-1.5">
           {PRESETS.map((p) => (
             <button
@@ -117,7 +140,12 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
             className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-sm text-white outline-none focus:border-white/30"
           />
         </label>
-        <div className="mt-3 flex justify-end">
+        <div className="mt-3 flex justify-end gap-2">
+          {editingId ? (
+            <Button type="button" size="sm" variant="outline" onClick={cancelEdit} className="h-8 text-xs">
+              Anuluj edycję
+            </Button>
+          ) : null}
           <Button
             type="submit"
             size="sm"
@@ -125,7 +153,7 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
             className="h-8 gap-1.5 bg-white text-black hover:bg-neutral-200 text-xs"
           >
             {creating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
-            Dodaj zadanie
+            {editingId ? 'Zapisz zmiany' : 'Dodaj zadanie'}
           </Button>
         </div>
       </form>
@@ -152,8 +180,18 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
             >
               <div className="min-w-0">
                 <p className="font-mono text-xs text-neutral-400">{row.schedule}</p>
-                <p className="mt-1 truncate font-mono text-sm text-white">{row.command}</p>
+                <p className="mt-1 break-all font-mono text-sm text-white">{row.command}</p>
               </div>
+              <div className="flex shrink-0 gap-1.5">
+              <button
+                type="button"
+                title="Edytuj zadanie"
+                aria-label="Edytuj zadanie"
+                onClick={() => onEdit(row)}
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-white/5 text-neutral-200 hover:bg-white/10"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
               <button
                 type="button"
                 title="Usuń zadanie"
@@ -167,6 +205,7 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
                   <Trash2 className="h-4 w-4" />
                 )}
               </button>
+              </div>
             </div>
           ))}
         </div>

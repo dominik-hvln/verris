@@ -1597,13 +1597,24 @@ export class DirectAdminService {
     const ipRe = /^(\d{1,3}\.){3}\d{1,3}(\/\d{1,2})?$|^[0-9a-f:]+(\/\d{1,3})?$/i;
     const blockedIps = (input.blockedIps ?? []).map((x) => String(x).trim()).filter(Boolean).slice(0, 500);
     for (const ip of blockedIps) if (!ipRe.test(ip)) throw new BadRequestException(`Nieprawidłowy adres IP: ${ip}`);
+    // X-09 — host z listy dozwolonych trafia do .htaccess: bez walidacji znak nowej linii
+    // dopisywał dowolną dyrektywę (np. php_value auto_prepend_file).
+    const hotlinkAllow = (input.hotlink?.allow ?? [])
+      .map((x) => String(x).trim().replace(/^https?:\/\//i, '').replace(/\/.*$/s, ''))
+      .filter(Boolean)
+      .slice(0, 50);
+    for (const h of hotlinkAllow) {
+      if (!/^(?=.{1,253}$)([a-z0-9-]{1,63}\.)+[a-z0-9-]{2,63}$/i.test(h)) {
+        throw new BadRequestException(`Nieprawidłowa domena na liście dozwolonych: ${h}`);
+      }
+    }
     const current = await this.getHostingWebTools(subscriptionId, userId);
     const state: WebToolsState = {
       redirects,
       hotlink: {
         enabled: Boolean(input.hotlink?.enabled),
         extensions: String(input.hotlink?.extensions ?? 'jpg,jpeg,png,gif,webp,svg').slice(0, 200),
-        allow: (input.hotlink?.allow ?? []).map((x) => String(x).trim()).filter(Boolean).slice(0, 50),
+        allow: hotlinkAllow,
       },
       blockedIps,
       protectedDirs: current.state.protectedDirs ?? [],
@@ -1644,7 +1655,7 @@ export class DirectAdminService {
     const hash = bcrypt.hashSync(input.password, 10).replace(/^\$2[ab]\$/, '$2y$');
     const client = await this.getClientForHostingAccount(sub.account.id, userId);
     await client.writeFile(dir, '.htpasswd', `${username}:${hash}\n`);
-    const authBlock = ['AuthType Basic', `AuthName "${realm}"`, `AuthUserFile ${absHtpasswd}`, 'Require valid-user'].join('\n');
+    const authBlock = ['AuthType Basic', `AuthName "${realm}"`, `AuthUserFile "${absHtpasswd}"`, 'Require valid-user'].join('\n');
     const existing = await this.readAccountTextFile(client, `${dir}/.htaccess`);
     const merged = this.spliceManagedBlock(existing, authBlock);
     await client.writeFile(dir, '.htaccess', merged);
@@ -2272,6 +2283,23 @@ export class DirectAdminService {
       actorUserId: userId,
       details: { subscriptionId, command: input.command },
     });
+    return { ok: true as const };
+  }
+
+  /**
+   * L-03 — DA nie ma modyfikacji wpisu crona: dodajemy nowy, dopiero potem usuwamy stary.
+   * ponytail: nieudane usunięcie zostawia duplikat (widoczny na liście), nigdy utratę zadania;
+   * atomowa podmiana, jeśli DA dostanie action=modify.
+   */
+  async updateHostingCronJob(
+    subscriptionId: string,
+    userId: string,
+    id: string,
+    input: { minute: string; hour: string; dayOfMonth: string; month: string; dayOfWeek: string; command: string },
+  ) {
+    if (!/^\d{1,6}$/.test(id)) throw new BadRequestException('Nieprawidłowy identyfikator zadania.');
+    await this.createHostingCronJob(subscriptionId, userId, input);
+    await this.deleteHostingCronJob(subscriptionId, userId, id);
     return { ok: true as const };
   }
 

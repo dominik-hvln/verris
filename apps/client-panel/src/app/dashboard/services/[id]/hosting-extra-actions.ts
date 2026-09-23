@@ -99,6 +99,23 @@ export async function createHostingCronAction(
   }
 }
 
+/** L-03 — edycja zadania cron. */
+export async function updateHostingCronAction(
+  serviceId: string,
+  cronId: string,
+  input: { minute: string; hour: string; dayOfMonth: string; month: string; dayOfWeek: string; command: string },
+): Promise<MutResult> {
+  try {
+    await apiFetch(`/services/${serviceId}/hosting-cron/${encodeURIComponent(cronId)}`, {
+      method: 'PUT',
+      body: JSON.stringify(input),
+    });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: mutErr(e) };
+  }
+}
+
 export async function deleteHostingCronAction(
   serviceId: string,
   cronId: string,
