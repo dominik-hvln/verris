@@ -442,7 +442,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 |---|---|---|---|---|
 | `P-15` | Podpisane DPA z subprocesorami (część) | 6 | BLOKER STARTU | docs/legal/dpa-subprocessors-tracking.md — tabela statusow po korekcie 2026-09-19. Stripe i AWS: DPA obowiazuje z mocy umowy glownej. Hetzner i Openpr |
 | `PB-03` | Finalizacja dokumentów prawnych 1.0.0 | 16 | BLOKER BIZNESOWY | Regulamin, polityka prywatności, SLA, DPA, polityka cookies — wyjście z DRAFT-u, wersjonowanie i publikacja w panelu. | 2026-09-23: decyzje właściciel |
-| `PB-04` | Procedura obsługi nadużyć (abuse) — dokument | 8 | WYSOKI | Adres abuse@ obsługiwany, ścieżka od zgłoszenia do reakcji, czasy reakcji, kto decyduje o zawieszeniu, wzory odpowiedzi do CERT i rejestratorów. |
+| `PB-04` | Procedura obsługi nadużyć (abuse) — dokument | 8 | WYSOKI | Adres abuse@ obsługiwany, ścieżka od zgłoszenia do reakcji, czasy reakcji, kto decyduje o zawieszeniu, wzory odpowiedzi do CERT i rejestratorów. | 202 |
 
 **Definicja ukończenia**
 
