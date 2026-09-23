@@ -29,6 +29,21 @@ operatora, backup, rozliczenia), potem zapora control-plane i strict, dokumenty,
 ścieżka pierwszego klienta, GO. Po starcie: asystent wykonujący akcje, tryb agencji, bezpieczne
 aktualizacje WP z testem wizualnym, MCP, checklisty RODO/dostępności.
 
+### 2026-09-23 — dokumenty prawne i KSC (sprint 17)
+- **Publikacja bez zewnętrznego przeglądu prawnika** — decyzja właściciela; dokumenty aktualizuję do
+  stanu faktycznego. Publikujemy raz, tuż przed pierwszym klientem (każda publikacja = ponowna zgoda
+  wszystkich użytkowników), po domknięciu D3 węzła (kopie kont, ClouDNS).
+- **Kontakt:** kontakt@, rodo@, abuse@, security@verris.pl + telefon firmowy. Skrzynki muszą istnieć
+  i być czytane przed publikacją.
+- **Faktury VAT:** program w chmurze Firmino (Streamsoft) — podwykonawca w polityce prywatności;
+  po starcie bezpośrednia integracja z KSeF.
+- **AI (OpenAI) wyłączone na start** — włączenie dopiero po DPA z OpenAI i wpisie do dokumentów.
+- **SLA:** rekompensata automatyczna bez wniosku (regulamin 1.1.0 już to mówi) — kod pod progi w N-16.
+- **KSC/NIS2:** wg FAQ KSC rejestracja domen i DNS = podmiot kluczowy niezależnie od wielkości.
+  Decyzja właściciela: wpis do wykazu w ciągu 6 miesięcy od uruchomienia sprzedaży domen / DNS dla
+  klientów (nie przed 3.10.2026). Ryzyko przyjęte świadomie: jeśli organ uzna, że przesłanki są
+  spełnione wcześniej, termin 3.10.2026 minie. Pilnuje PB-24.
+
 ### 2026-09-23 — nawigacja: nic nie wymaga szukania (PB-23)
 Każdy widok w panelu klienta, admina i staff ma wejście z menu albo z zakładki logicznego rodzica.
 Nowa strona bez wejścia w nawigacji = niedokończona. Wyjątki (szczegóły rekordu, kroki kreatora)

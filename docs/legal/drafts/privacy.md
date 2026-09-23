@@ -1,6 +1,8 @@
 # Polityka prywatności Verris
 
-**Wersja 1.0.1 · obowiązuje od 8 lipca 2026 r.**
+**Wersja 1.0.2 · obowiązuje od dnia publikacji**
+
+> Zmiana wobec 1.0.1: pkt 5.1 — dostawca programu księgowego (Streamsoft Firmino), w którym wystawiamy faktury VAT.
 
 Niniejsza Polityka realizuje obowiązki informacyjne z art. 13 i 14 RODO wobec klientów Verris, użytkowników subkont oraz osób odwiedzających panel i strony Verris.
 
@@ -63,6 +65,7 @@ Podanie danych oznaczonych w formularzach jako wymagane jest warunkiem zawarcia 
 | **Cloudflare, Inc.** | USA; punkty obecności w EOG | ochrona formularzy rejestracji i logowania przed botami (Cloudflare Turnstile) | tak — SCC i Data Privacy Framework |
 | **Hosting Concepts B.V. (Openprovider)** | Holandia (EOG) | rejestracja, odnawianie i transfer domen | zależnie od rejestru domeny (pkt 5.2) |
 | **Google Ireland Limited** | Irlandia (EOG) | pomiar korzystania z serwisu (Google Analytics 4) i zarządzanie tagami (Google Tag Manager) — wyłącznie po Twojej zgodzie | możliwy transfer do Google LLC (USA) — SCC i Data Privacy Framework |
+| **Streamsoft spółka z ograniczoną odpowiedzialnością sp. k.** | Polska (Zielona Góra) | program księgowy Firmino: wystawianie i przechowywanie faktur VAT, przekazywanie faktur do KSeF | nie |
 
 Ze wszystkimi powyższymi podmiotami wiążą nas umowy powierzenia przetwarzania (art. 28 RODO). Narzędzia monitoringu błędów i kopie zapasowe bazy prowadzimy na własnej infrastrukturze (self-hosted) — nie angażują one dodatkowych podmiotów.
 

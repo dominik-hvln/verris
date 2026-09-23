@@ -31,6 +31,7 @@ w planie startowym** — `P-15` blokował domknięcie blokerów aż do sprintu 1
 | **Amazon Web Services (SES)** | Wysyłka poczty transakcyjnej, region UE | **Nie wymaga podpisu** — AWS GDPR DPA jest częścią AWS Service Terms, SCC stosują się automatycznie | ☑ obowiązuje z mocy umowy | Region UE; SCC automatyczne, gdyby doszło do transferu |
 | **Openprovider** | Rejestracja i transfer domen — dane abonenta | Akceptacja w panelu; po zawarciu dokument leży w `cp.openprovider.eu` → Contracts | ☐ do akceptacji | — |
 | **Cloudflare (Turnstile)** | Anty-bot, adresy IP | DPA odwołuje się do Self-Serve Subscription Agreement, ale **nie opisuje wprost mechanizmu akceptacji dla self-serve** — do potwierdzenia w dashboardzie, a jeśli go tam nie ma, zapytać supportu i zapisać odpowiedź | ☐ do potwierdzenia | USA → SCC |
+| **Streamsoft (Firmino)** | Program księgowy — faktury VAT klientów (Verris jako administrator, nie dotyczy DPA z klientami) | Akceptacja w programie: Ustawienia → RODO → Umowa powierzenia (potwierdzenie umocowania + akceptacja). Przy akceptacji sprawdzić w treści lokalizację serwerów i ewentualne transfery poza EOG — polityka prywatności pisze dziś „nie” | ☐ do akceptacji | do potwierdzenia |
 | Ministerstwo Finansów — KSeF | Faktury | Podstawa ustawowa, nie DPA | n/d | — |
 | GlitchTip (self-hosted) | Monitoring błędów | Dane u nas, nie ma powierzenia | n/d | — |
 | OVH | Rejestrator domeny `verris.pl` | **Nie jest subprocesorem** — to nasza własna domena, nie dane klientów | n/d | — |
@@ -75,6 +76,9 @@ Status razem z datą. Bez dowodu pozycja zostaje otwarta — stan `DZIAŁA` bez 
 - [ ] Hetzner — wypełnić Załącznik 1 i zaakceptować DPA w panelu konta
 - [ ] Openprovider — zaakceptować DPA w control panelu, zapisać numer z sekcji Contracts
 - [ ] Cloudflare — potwierdzić mechanizm dla self-serve, zapisać odpowiedź supportu jeśli trzeba
+- [ ] Streamsoft Firmino — zaakceptować umowę powierzenia w programie (Ustawienia → RODO → Umowa powierzenia), potwierdzić lokalizację danych
+- [ ] ClouDNS — przy zakupie razem z węzłem (sprint 18): dopisać do listy i polityki (30 dni powiadomienia, jeśli już są klienci)
+- AI (OpenAI): wyłączone na start decyzją właściciela 2026-09-23 (AI_API_KEY pusty). Włączenie = najpierw DPA z OpenAI i wpis do dokumentów, potem klucz.
 - [ ] Stripe, AWS — odnotować podstawę (umowa główna), bez akcji
 - [ ] Zaktualizować `privacy.md` — tabela podmiotów musi zgadzać się z tą listą, w tym z usunięciem OVH
 - [ ] Zaktualizować `subprocessors.md` tą samą listą

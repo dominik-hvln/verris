@@ -1,7 +1,8 @@
 # Regulamin świadczenia usług Verris
 
-**Wersja 1.1.0 · obowiązuje od 10 lipca 2026 r.**
+**Wersja 1.2.0 · obowiązuje od dnia publikacji**
 
+> Zmiany wobec 1.1.0: §9 ust. 4 — faktury VAT wystawiane w programie księgowym (w KSeF, gdy wymagają tego przepisy); do czasu wystawienia faktury Panel udostępnia dokument rozliczeniowy.
 > Zmiana wobec 1.0.0: §15 — rekompensata SLA przyznawana automatycznie, bez wniosku (nowe ust. 3–5).
 > Wersja publikowana przed rozpoczęciem świadczenia usług aktywnym Klientom, dlatego obowiązuje
 > od dnia publikacji. Zmiana jest na korzyść Klienta (rekompensata z urzędu zamiast na wniosek).
@@ -97,7 +98,7 @@ Korzystanie z Panelu wymaga: dostępu do internetu, aktualnej wersji przeglądar
 1. Ceny Usług określa Cennik prezentowany przed zakupem. Cena potwierdzona przy zakupie nie ulega zmianie w trakcie opłaconego okresu rozliczeniowego.
 2. Zmiana Cennika następuje z przyczyn i w trybie opisanym w §24 (odpowiednio); nowa cena wiąże Klienta od pierwszego odnowienia następującego co najmniej 30 dni po zawiadomieniu e-mailem. Klient, który nie akceptuje nowej ceny, może wyłączyć odnowienie lub wypowiedzieć Umowę bez dodatkowych kosztów.
 3. W przypadku ogłaszania promocji obejmujących obniżkę ceny Verris uwidacznia obok ceny promocyjnej najniższą cenę danej Usługi obowiązującą w okresie 30 dni przed obniżką.
-4. Faktury wystawiane są w PLN. Faktury dla podmiotów prowadzących działalność gospodarczą wystawiane są jako faktury ustrukturyzowane w Krajowym Systemie e-Faktur (KSeF), zgodnie z obowiązującymi przepisami; Klient otrzymuje również wizualizację faktury w Panelu i e-mailem. Faktury dla Konsumentów udostępniane są w Panelu i e-mailem.
+4. Faktury wystawiane są w PLN, zgodnie z ustawą o VAT, w programie księgowym Verris; faktury dla podmiotów prowadzących działalność gospodarczą — jako faktury ustrukturyzowane w Krajowym Systemie e-Faktur (KSeF), gdy wymagają tego przepisy. Po każdej płatności Panel udostępnia niezwłocznie dokument rozliczeniowy potwierdzający płatność; faktura VAT jest udostępniana w Panelu i wysyłana e-mailem po jej wystawieniu. Dokument rozliczeniowy nie jest fakturą VAT.
 5. Usługi dodatkowe rozliczane zużyciem (autoskalowanie zasobów, dodatkowy transfer, dodatkowa przestrzeń kopii zapasowych) są naliczane wyłącznie po ich włączeniu przez Klienta. Klient ustawia w Panelu miesięczny limit kwotowy takich obciążeń; po osiągnięciu limitu Verris wstrzymuje dalsze naliczanie i powiadamia Klienta. Stawki określa Cennik.
 
 ---

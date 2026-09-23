@@ -12,6 +12,7 @@ Wersja kanoniczna publikowana klientom: Załącznik 2 do DPA oraz pkt 5.1 Polity
 | **Cloudflare, Inc.** | 101 Townsend St, San Francisco, USA (PoP w EOG) | Cloudflare Turnstile — ochrona anty-bot rejestracji i logowania | adres IP, sygnały przeglądarki/interakcji | tak — SCC + Data Privacy Framework |
 | **Hosting Concepts B.V. (Openprovider)** | Willemskade 18, Rotterdam, Holandia | rejestracja, odnawianie i transfer domen | dane abonenta domeny (nazwa, adres, e-mail, telefon) | zależnie od rejestru danej domeny |
 | **Google Ireland Limited** | Gordon House, Barrow Street, Dublin 4, Irlandia | Google Analytics 4 + Google Tag Manager (pomiar serwisu, tylko za zgodą z banera cookies) | identyfikatory cookies, IP, zdarzenia w serwisie | możliwy transfer do Google LLC (USA) — SCC + Data Privacy Framework |
+| **Streamsoft spółka z ograniczoną odpowiedzialnością sp. k.** | al. Wojska Polskiego 11, 65-077 Zielona Góra | program księgowy Firmino — faktury VAT klientów Verris (Verris jako administrator; nie dotyczy danych powierzonych przez klientów w DPA) | dane nabywcy faktury (nazwa, adres, NIP, e-mail), pozycje i kwoty | nie (do potwierdzenia w treści umowy powierzenia przy akceptacji) |
 
 ## Odbiorcy niebędący podmiotami przetwarzającymi (odrębni administratorzy / podstawa ustawowa)
 
