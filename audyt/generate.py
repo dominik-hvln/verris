@@ -318,11 +318,11 @@ def buduj_dashboard_luk(D):
     idx = {n: i for i, n in enumerate(
         ["id", "kat", "f", "cp", "pl", "da", "rp", "nf", "st", "dow", "w", "kr", "nk", "u"])}
     rows = [{k: r[i] for k, i in idx.items()} for r in D["macierz"]]
-    dane = json.dumps({"rows": rows, "kats": D["cfg"]["kategorie"]}, ensure_ascii=False)
+    dane = json.dumps({"rows": rows, "kats": D["cfg"]["kategorie"], "zmiany": ostatnie_zmiany(D)}, ensure_ascii=False)
     tpl = (SZAB / "dashboard_luki.html").read_text(encoding="utf-8")
     OUT_A.mkdir(exist_ok=True)
     (OUT_A / "VERRIS_LUKI_DASHBOARD.html").write_text(
-        tpl.replace("__DATA__", dane).replace("__STAN__", __import__("datetime").date.today().strftime("%d.%m.%Y")),
+        tpl.replace("__DATA__", dane).replace("__STAN__", datetime.datetime.now(__import__("zoneinfo").ZoneInfo("Europe/Warsaw")).strftime("%d.%m.%Y, %H:%M")),
         encoding="utf-8")
 
 
@@ -657,6 +657,29 @@ def postep(D, dzis=None):
     }
 
 
+def ostatnie_zmiany(D, dni=7):
+    """Co się zmieniło w ostatnich dniach — z historii gita, nie z osobnej listy.
+    Bez tego tablica pokazywała tylko stan: zamknięta pozycja po prostu znikała z „otwartych”
+    i właściciel nie widział, że coś się ruszyło (uwaga PM 2026-09-23)."""
+    import subprocess, zoneinfo
+    try:
+        log = subprocess.run(["git", "-C", str(REPO), "log", f"--since={dni} days ago", "--format=%h|%cI|%s"],
+                             capture_output=True, text=True, timeout=20).stdout
+    except Exception:
+        return []
+    tz, out = zoneinfo.ZoneInfo("Europe/Warsaw"), []
+    for linia in log.splitlines():
+        h, kiedy, temat = linia.split("|", 2)
+        glowa, _, opis = temat.partition(" — ")
+        ids = [i for i in re.findall(r"\b([A-Z]{1,4}-\d{1,3})\b", glowa)]
+        if not ids or not opis or temat.startswith("plan:"):  # „plan:” = samo odświeżenie tablic, dubluje commity z kodem
+            continue
+        t = datetime.datetime.fromisoformat(kiedy).astimezone(tz)
+        stan = [[i, D["wg_id"][i][2], D["wg_id"][i][10]] if i in D["wg_id"] else [i, "", ""] for i in ids]
+        out.append([t.strftime("%d.%m %H:%M"), h, stan, opis])
+    return out
+
+
 def wybrane_przed_startem(D, R):
     """Pozycje roadmapy, które właściciel wybrał „przed startem” (decyzja 2026-09-23:
     data startu bez zmian, kolejność: WYSOKA → rynek PL ma → reszta; mniejsze najpierw)."""
@@ -670,6 +693,8 @@ def wybrane_przed_startem(D, R):
     return {
         "otwarte": [[r[0], r[2], r[11], r[6], H.get(r[12], 0), EP[epik_dla(D, r)]["nazwa"], r[8]] for r in otwarte],
         "wybrane": len(wybrane),
+        "zamknieteLista": [[i, D["wg_id"][i][2], D["wg_id"][i][10]] for i in sorted(wybrane)
+                           if i in D["wg_id"] and D["wg_id"][i][10] not in ("LUKA", "CZĘŚCIOWY")],
         "zamkniete": sum(1 for i in wybrane if i in D["wg_id"] and D["wg_id"][i][0] not in {r[0] for r in otwarte}
                          and D["wg_id"][i][10] not in ("LUKA", "CZĘŚCIOWY")),
     }
@@ -693,6 +718,8 @@ def buduj_dashboard_planu(D):
         "cap": D["cfg"]["sprint_godzin"],
         "postep": postep(D),
         "wybory": wybrane_przed_startem(D, R),
+        "zmiany": ostatnie_zmiany(D),
+        "wygenerowano": datetime.datetime.now(__import__("zoneinfo").ZoneInfo("Europe/Warsaw")).strftime("%d.%m.%Y %H:%M"),
     }
     tpl = (SZAB / "dashboard_plan.html").read_text(encoding="utf-8")
     OUT_P.mkdir(exist_ok=True)
