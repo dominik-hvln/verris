@@ -76,14 +76,14 @@ export class ApplyReferralCodeDto {
 export class ChangePasswordDto {
   @IsString()
   @MinLength(1, { message: 'Aktualne hasło jest wymagane' })
-  currentPassword: string;
+  currentPassword!: string;
 
   // SEC-5 — ujednolicona polityka haseł (≥10 znaków, 3/4 klasy, blokada
   // popularnych) — tak samo jak rejestracja i reset hasła.
   @IsString()
   @MaxLength(72)
   @IsStrongPassword()
-  newPassword: string;
+  newPassword!: string;
 }
 
 export class RedeemEcoPointsDto {

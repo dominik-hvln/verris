@@ -3,11 +3,11 @@ import { IsString, MinLength, IsOptional, IsIn, IsInt, Min, Max } from 'class-va
 export class CreateTicketDto {
   @IsString()
   @MinLength(3, { message: 'Temat musi mieć minimum 3 znaki' })
-  subject: string;
+  subject!: string;
 
   @IsString()
   @MinLength(10, { message: 'Wiadomość musi mieć minimum 10 znaków' })
-  message: string;
+  message!: string;
 
   @IsOptional()
   @IsString()
@@ -29,7 +29,7 @@ export class CreateTicketDto {
 export class KbSuggestDto {
   @IsString()
   @MinLength(2)
-  query: string;
+  query!: string;
 
   @IsOptional()
   @IsString()
@@ -40,11 +40,11 @@ export class KbSuggestDto {
 export class CannedResponseDto {
   @IsString()
   @MinLength(2)
-  title: string;
+  title!: string;
 
   @IsString()
   @MinLength(2)
-  content: string;
+  content!: string;
 
   @IsOptional()
   @IsString()
@@ -85,20 +85,20 @@ export class UpdateTicketStatusDto {
   @IsIn(['OPEN', 'IN_PROGRESS', 'WAITING_CUSTOMER', 'CLOSED'], {
     message: 'Nieprawidłowy status zgłoszenia',
   })
-  status: string;
+  status!: string;
 }
 
 export class AddTicketReplyDto {
   @IsString()
   @MinLength(2, { message: 'Odpowiedź musi mieć minimum 2 znaki' })
-  message: string;
+  message!: string;
 }
 
 export class SubmitCsatDto {
   @IsInt()
   @Min(1)
   @Max(5)
-  rating: number;
+  rating!: number;
 
   @IsOptional()
   @IsString()

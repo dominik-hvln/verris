@@ -12,7 +12,7 @@ export class DynamicMailerProvider implements MailerProvider {
 
   constructor(private readonly mailSettings: MailSettingsService) {}
 
-  async send(message: MailMessage): Promise<{ providerId: string; messageId: string }> {
+  async send(message: MailMessage): Promise<{ providerId: string; messageId: string | null }> {
     const provider = await this.mailSettings.resolveProvider();
     const result = await provider.send(message);
     return { providerId: provider.id, messageId: result.messageId };

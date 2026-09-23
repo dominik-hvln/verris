@@ -235,7 +235,7 @@ export class CustomerPermissionsGuard implements CanActivate {
     // Właściciel konta — subkontowa kontrola go nie dotyczy.
     if (!user?.customerOwnerId) return true;
 
-    const jawne = this.reflector.getAllAndOverride<CustomerPermission[]>(
+    const jawne = this.reflector.getAllAndOverride<CustomerPermission[] | undefined>(
       CUSTOMER_PERMISSIONS_KEY,
       [ctx.getHandler(), ctx.getClass()],
     );

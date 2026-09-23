@@ -68,7 +68,8 @@ export class StripeWebhookPonowieniaScheduler {
 
     const doPodjecia = await this.prisma.stripeWebhookEvent.findMany({
       where: {
-        payload: { not: null },
+        // Json: SQL-owy NULL to `Prisma.DbNull` — gołe `null` w filtrze Json Prisma odrzuca.
+        payload: { not: Prisma.DbNull },
         OR: [
           { status: 'FAILED', nextAttemptAt: { lte: nieudaneDo } },
           { status: 'PENDING', claimedAt: { lt: porzuconePrzed } },
@@ -203,7 +204,8 @@ export class StripeWebhookPonowieniaScheduler {
       where: {
         status: 'PROCESSED',
         processedAt: { lt: granica },
-        payload: { not: null },
+        // Json: SQL-owy NULL to `Prisma.DbNull` — gołe `null` w filtrze Json Prisma odrzuca.
+        payload: { not: Prisma.DbNull },
       },
       // `Prisma.DbNull` zapisuje SQL-owy NULL. `undefined` znaczyłoby
       // „nie zmieniaj" — czyli job przechodziłby na zielono i nie kasował

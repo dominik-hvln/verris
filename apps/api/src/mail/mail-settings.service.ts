@@ -59,6 +59,10 @@ export class MailSettingsService {
       if (!input.smtpHost?.trim()) {
         throw new BadRequestException('Podaj host SMTP dla trybu zewnętrznego.');
       }
+      // Bez tego zapisywał się port „undefined” — relay przestawał działać po zapisie formularza.
+      if (!input.smtpPort || !input.smtpSecure) {
+        throw new BadRequestException('Podaj port i szyfrowanie SMTP dla trybu zewnętrznego.');
+      }
       const local = isLocalSmtpHost(input.smtpHost.trim());
       if (!local && !input.smtpUser?.trim()) {
         throw new BadRequestException('Zewnętrzny relay wymaga użytkownika SMTP.');
@@ -80,9 +84,9 @@ export class MailSettingsService {
 
     if (input.transport === 'external') {
       entries.push(
-        [MAIL_SETTING_KEYS.SMTP_HOST, input.smtpHost.trim()],
+        [MAIL_SETTING_KEYS.SMTP_HOST, (input.smtpHost ?? '').trim()],
         [MAIL_SETTING_KEYS.SMTP_PORT, String(input.smtpPort)],
-        [MAIL_SETTING_KEYS.SMTP_SECURE, input.smtpSecure],
+        [MAIL_SETTING_KEYS.SMTP_SECURE, input.smtpSecure ?? 'none'],
         [MAIL_SETTING_KEYS.SMTP_USER, (input.smtpUser ?? '').trim()],
       );
     } else {

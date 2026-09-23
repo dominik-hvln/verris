@@ -71,4 +71,14 @@ describe('MailSettingsService', () => {
     expect(resolved.username).toBe('user');
     expect(resolved.password).toBe('secret');
   });
+
+  it('X-48: relay zewnętrzny bez portu nie zapisuje portu „undefined”', async () => {
+    await expect(
+      svc().updateAdminSettings(
+        { transport: 'external', smtpHost: 'smtp.example.com', smtpUser: 'u', smtpPassword: 'p', fromAddress: 'noreply@verris.pl', fromName: 'Verris' } as never,
+        'admin-1',
+      ),
+    ).rejects.toThrow('Podaj port i szyfrowanie SMTP');
+    expect(prisma.platformSetting.upsert).not.toHaveBeenCalled();
+  });
 });

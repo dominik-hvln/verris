@@ -87,7 +87,9 @@ export class SlaCreditScheduler {
       where: {
         status: SubscriptionStatus.ACTIVE,
         plan: { productKind: 'HOSTING' },
-        account: { serverId: { not: null } },
+        // `Account.serverId` jest wymagane, więc „ma konto” = „stoi na serwerze”. Dawne
+        // `serverId: { not: null }` na polu NOT NULL Prisma odrzuca przy walidacji zapytania.
+        account: { isNot: null },
         createdAt: { lt: periodEnd },
       },
       include: {

@@ -408,7 +408,7 @@ export class PromoService {
     bonusAmount: Prisma.Decimal | string | number;
     relatedWalletTxId: string;
     sessionId: string;
-  }): Promise<{ walletTxId: string }> {
+  }): Promise<{ walletTxId: string | null }> {
     const promo = await this.prisma.promoCode.findUnique({ where: { id: input.promoCodeId } });
     if (!promo || !promo.active || promo.kind !== PromoKind.PERCENT_BONUS) {
       // Best-effort warn but don't blow up — the topup itself succeeded and

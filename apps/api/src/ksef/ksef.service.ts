@@ -390,7 +390,7 @@ export class KsefService {
       },
     });
 
-    const poTerminie = [];
+    const poTerminie: Array<{ id: string; number: string; tryb: TrybWystawienia }> = [];
     let nieznane = 0;
     for (const f of kandydaci) {
       const tryb = (f.ksefTryb ?? 'ONLINE') as TrybWystawienia;
