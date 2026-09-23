@@ -462,7 +462,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 | `N-16` | SLA z zapisanymi kredytami | 6 | WYSOKA | sla-credit.scheduler.ts — wylicz() (progi §15, miesiąc kalendarzowy, okna konserwacyjne, 1 wypłata/usługę/miesiąc) + run() za flagą; GET /admin/sla/po |
 | `A-11` | Wyszukiwarka wolnych domen | 6 | WYSOKA | domains.controller.ts:54 |
 | `PB-07` | Treści i cennik na verris.pl | 16 | WYSOKI | Strona główna, cennik, specyfikacja techniczna pakietu, strona SLA. Narracja: cena stała, bez skoku po roku. |
-| `PB-11` | Bus factor: drugi kanał alertów i procedura zastępstwa | 8 | WYSOKI | Alerty na więcej niż jeden adres, przetestowane. Dokument: co robi ktoś inny, gdy Ciebie nie ma przez tydzień. |
+| `PB-11` | Bus factor: drugi kanał alertów i procedura zastępstwa | 8 | WYSOKI | Alerty na więcej niż jeden adres, przetestowane. Dokument: co robi ktoś inny, gdy Ciebie nie ma przez tydzień. | 2026-09-23: Telegram jako drugi kanał |
 | `PB-20` | Tryb agencji: przełącznik klienta w menu bocznym | 16 | ŚREDNI | Element makiety („Piekarnia Zdrój · klient · 3 usługi” nad menu): konto agencji/resellera przełącza się między swoimi klientami bez wylogowania. Wymag |
 | `PB-21` | DNS platformy i poczty na serwerze testowym | 6 | WYSOKI | Odłożone decyzją właściciela 2026-09-23 do chwili, gdy jest serwer testowy. (1) Decyzja: wspólny rekord _spf.verris.pl (include platformy, łatwa zmian |
 | `PB-24` | KSC/NIS2: wpis do wykazu podmiotów kluczowych | 3 | WYSOKI | Wg FAQ KSC (cyber.gov.pl) podmiot świadczący usługi rejestracji nazw domen i dostawca usług DNS = podmiot kluczowy niezależnie od wielkości. Decyzja w |

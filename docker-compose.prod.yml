@@ -580,6 +580,9 @@ services:
       GF_SMTP_SKIP_VERIFY: 'true'
       GF_SMTP_FROM_ADDRESS: ${GRAFANA_ALERT_FROM_ADDRESS:-${SMTP_FROM_ADDRESS:-panel@verris.pl}}
       GF_SMTP_FROM_NAME: ${GRAFANA_ALERT_FROM_NAME:-Verris Alerts}
+      # PB-11 — drugi kanał alertów (Telegram). Puste = kanał milczy, mail działa dalej.
+      GF_ALERT_TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-nieustawiony}
+      GF_ALERT_TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-0}
     extra_hosts:
       - 'host.docker.internal:host-gateway'
     volumes:

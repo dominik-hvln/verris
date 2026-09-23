@@ -260,6 +260,21 @@ describe('X-28 — droga od reguły do człowieka kończy się adresem', () => {
   });
 });
 
+describe('PB-11 — drugi kanał alertów niezależny od poczty', () => {
+  it('punkt kontaktowy ma i e-mail, i Telegram', () => {
+    const tresc = kod(KONTAKTY);
+    expect(tresc).toMatch(/type:\s*email/);
+    expect(tresc).toMatch(/type:\s*telegram/);
+    expect(tresc).toMatch(/bottoken:\s*\$GF_ALERT_TELEGRAM_BOT_TOKEN/);
+  });
+
+  it('compose przekazuje Grafanie token i chat id (bez tego kanał milczy)', () => {
+    const compose = kod(join(KORZEN, 'docker-compose.prod.yml'));
+    expect(compose).toMatch(/GF_ALERT_TELEGRAM_BOT_TOKEN:\s*\$\{TELEGRAM_BOT_TOKEN/);
+    expect(compose).toMatch(/GF_ALERT_TELEGRAM_CHAT_ID:\s*\$\{TELEGRAM_CHAT_ID/);
+  });
+});
+
 describe('X-28 — nie ma drugiego domu dla tych samych reguł', () => {
   const prometheus = kod(join(OBS, 'prometheus.yml'));
 
