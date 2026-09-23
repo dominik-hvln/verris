@@ -7,22 +7,10 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHash, randomBytes } from 'crypto';
+import type { AnalyticsSite } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 
-// Delegate'y Prisma — klient regenerowany w buildzie prod (Dockerfile.api).
-type Row = Record<string, unknown>;
-interface Delegate {
-  findUnique(a: Row): Promise<any>;
-  findFirst(a: Row): Promise<any>;
-  findMany(a: Row): Promise<any[]>;
-  create(a: Row): Promise<any>;
-  update(a: Row): Promise<any>;
-  delete(a: Row): Promise<any>;
-  count(a: Row): Promise<number>;
-  groupBy(a: Row): Promise<any[]>;
-  deleteMany(a: Row): Promise<{ count: number }>;
-}
 
 export interface AnalyticsSiteView {
   id: string;
@@ -55,11 +43,11 @@ export class AnalyticsSitesService {
     private readonly config: ConfigService,
   ) {}
 
-  private get sites(): Delegate {
-    return (this.prisma as unknown as { analyticsSite: Delegate }).analyticsSite;
+  private get sites() {
+    return this.prisma.analyticsSite;
   }
-  private get events(): Delegate {
-    return (this.prisma as unknown as { analyticsEvent: Delegate }).analyticsEvent;
+  private get events() {
+    return this.prisma.analyticsEvent;
   }
 
   // -------------------------------------------------------------------------
@@ -122,7 +110,7 @@ export class AnalyticsSitesService {
     return { ok: true };
   }
 
-  private async ownedSite(userId: string, subscriptionId: string, siteId: string): Promise<any> {
+  private async ownedSite(userId: string, subscriptionId: string, siteId: string): Promise<AnalyticsSite> {
     const site = await this.sites.findUnique({ where: { id: siteId } });
     if (!site || site.subscriptionId !== subscriptionId || site.userId !== userId) {
       throw new NotFoundException('Property nie istnieje.');
@@ -188,11 +176,11 @@ export class AnalyticsSitesService {
     };
   }
 
-  private top(map: Map<string, number>, key: string): any[] {
+  private top<K extends string>(map: Map<string, number>, key: K): Array<Record<K, string> & { count: number }> {
     return [...map.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10)
-      .map(([k, count]) => ({ [key]: k, count }));
+      .map(([k, count]) => ({ [key]: k, count }) as Record<K, string> & { count: number });
   }
 
   // -------------------------------------------------------------------------
@@ -326,7 +314,7 @@ setInterval(function(){if(location.pathname!==last){last=location.pathname;send(
     );
   }
 
-  private view(r: any): AnalyticsSiteView {
+  private view(r: AnalyticsSite): AnalyticsSiteView {
     return {
       id: r.id,
       domain: r.domain,

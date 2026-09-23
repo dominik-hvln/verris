@@ -1,4 +1,4 @@
-import { ExecutionContext, ForbiddenException } from '@nestjs/common';
+import { ExecutionContext, ForbiddenException, type Type } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { GUARDS_METADATA, METHOD_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
@@ -20,7 +20,7 @@ import { STAFF_PERMISSIONS_KEY } from '../common/decorators/staff-permissions.de
 jest.mock('archiver', () => ({}));
 
 type Uzytkownik = { userId: string; role: 'USER' | 'STAFF' | 'ADMIN' };
-type Trasa = { kontroler: string; klasa: Function; metoda: string; handler: Function; sciezka: string };
+type Trasa = { kontroler: string; klasa: Type<unknown>; metoda: string; handler: (...args: unknown[]) => unknown; sciezka: string };
 
 const SRC = resolve(__dirname, '..');
 
@@ -47,7 +47,7 @@ function trasyAdmina(): Trasa[] {
         const handler = (klasa.prototype as Record<string, unknown>)[metoda];
         if (metoda === 'constructor' || typeof handler !== 'function') continue;
         if (Reflect.getMetadata(METHOD_METADATA, handler) === undefined) continue;
-        out.push({ kontroler: nazwa, klasa, metoda, handler, sciezka });
+        out.push({ kontroler: nazwa, klasa: klasa as Type<unknown>, metoda, handler: handler as (...args: unknown[]) => unknown, sciezka });
       }
     }
   }

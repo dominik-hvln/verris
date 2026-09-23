@@ -38,7 +38,6 @@ export class PostfixMapSyncService {
   async generateMaps(): Promise<GeneratedMailMaps> {
     const domain =
       this.config.get<string>('CONTROL_PLANE_MAIL_DOMAIN') ?? CONTROL_PLANE_MAIL_DOMAIN;
-    const root = this.mailDataRoot();
 
     const mailboxes = await this.prisma.controlPlaneMailbox.findMany({
       where: {
@@ -54,7 +53,6 @@ export class PostfixMapSyncService {
     const dovecotLines: string[] = [];
 
     for (const mb of mailboxes) {
-      const maildir = path.join(root, domain, mb.localPart);
       mailboxLines.push(`${mb.email}\t${domain}/${mb.localPart}/`);
 
       if (mb.imapEnabled && mb.passwordHash && mb.kind === ControlPlaneMailboxKind.STAFF) {

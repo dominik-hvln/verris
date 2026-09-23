@@ -21,7 +21,8 @@ import {
   TICKET_UPLOAD_MAX_BYTES,
   TICKET_UPLOAD_MAX_FILES_PER_BATCH,
 } from './ticket-attachment.utils';
-import { CreateTicketDto, AddTicketReplyDto } from './tickets.dto';
+import { CreateTicketDto, AddTicketReplyDto, AdminUpdateTicketDto } from './tickets.dto';
+import type { Prisma } from '@verris/database';
 import { ObjectStorageService } from '../storage/object-storage.service';
 import { ObjectBuckets } from '../storage/object-storage.types';
 import { AuditService } from '../common/audit/audit.service';
@@ -363,7 +364,7 @@ export class TicketsService {
     });
   }
 
-  async adminFindOne(ticketId: string): Promise<any> {
+  async adminFindOne(ticketId: string) {
     const ticket = await this.prisma.ticket.findUnique({
       where: { id: ticketId },
       include: {
@@ -415,14 +416,14 @@ export class TicketsService {
     return ticket;
   }
 
-  async adminUpdateTicket(ticketId: string, dto: any, actorUserId?: string) {
+  async adminUpdateTicket(ticketId: string, dto: AdminUpdateTicketDto, actorUserId?: string) {
     const existing = await this.prisma.ticket.findUnique({
       where: { id: ticketId },
       include: { user: { select: { email: true } } },
     });
     if (!existing) throw new NotFoundException('Ticket not found');
 
-    const dataToUpdate: any = { ...dto };
+    const dataToUpdate: Prisma.TicketUncheckedUpdateInput = { ...dto };
     if (dto.status === 'CLOSED') {
       dataToUpdate.resolvedAt = new Date();
     }
@@ -584,7 +585,7 @@ export class TicketsService {
     const ticket = await this.prisma.ticket.findUnique({ where: { id: ticketId } });
     if (!ticket) throw new NotFoundException('Ticket not found');
 
-    const dataToUpdate: any = {
+    const dataToUpdate: Prisma.TicketUncheckedUpdateInput = {
       status: 'WAITING_CUSTOMER',
       waitingSince: new Date(),
       customerReminderSentAt: null,

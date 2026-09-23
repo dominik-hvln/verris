@@ -12,11 +12,11 @@ export class UpsertWalletAutoTopupDto {
   enabled!: boolean;
 
   @IsString()
-  @Matches(/^\d+([\.,]\d{1,2})?$/)
+  @Matches(/^\d+([.,]\d{1,2})?$/)
   thresholdPln!: string;
 
   @IsString()
-  @Matches(/^\d+([\.,]\d{1,2})?$/)
+  @Matches(/^\d+([.,]\d{1,2})?$/)
   topupAmountPln!: string;
 
   @IsOptional()

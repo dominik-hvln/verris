@@ -1,5 +1,5 @@
 import { execFileSync } from 'child_process';
-import { mkdtempSync, writeFileSync, chmodSync, rmSync } from 'fs';
+import { mkdtempSync, writeFileSync, chmodSync, rmSync, readFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 
@@ -226,8 +226,7 @@ describe('X-33 — bramka czeka na scheduler, zamiast ścigać się z nim', () =
       { encoding: 'utf8' },
     ).trim();
 
-    const zPliku = require('fs')
-      .readFileSync(REGULY_YAML, 'utf8')
+    const zPliku = readFileSync(REGULY_YAML, 'utf8')
       .split('\n')
       .filter((l: string) => /^\s*-\s+uid:\s/.test(l)).length;
 
@@ -254,8 +253,7 @@ describe('X-33 — bramka czeka na scheduler, zamiast ścigać się z nim', () =
     // Asercja o treści pliku, i wiem, czym to grozi (X-28). Stoi obok asercji
     // zachowaniowej, nie zamiast niej: tamta łapie usterkę, ta pilnuje, żeby
     // nie wróciła TĄ SAMĄ DROGĄ, gdy ktoś będzie „porządkował" bibliotekę.
-    const lib = require('fs')
-      .readFileSync(BIBLIOTEKA, 'utf8')
+    const lib = readFileSync(BIBLIOTEKA, 'utf8')
       .split('\n')
       .filter((l: string) => !/^\s*#/.test(l))
       .join('\n');
@@ -285,7 +283,7 @@ describe('X-33 — bramka czeka na scheduler, zamiast ścigać się z nim', () =
     // Gdyby skrypt miał własną liczbę w komunikacie, log mówiłby „do 60 s"
     // jeszcze długo po zmianie bramki — i okłamałby pierwszą osobę, która
     // czyta go w trakcie awarii. Klasyczne bliźniacze miejsce.
-    const skrypt = require('fs').readFileSync(
+    const skrypt = readFileSync(
       join(KORZEN, 'ops', 'scripts', 'prod-deploy-ghcr.sh'),
       'utf8',
     );
@@ -296,7 +294,7 @@ describe('X-33 — bramka czeka na scheduler, zamiast ścigać się z nim', () =
   it('skrypt wdrożeniowy używa tej biblioteki, a nie własnej kopii logiki', () => {
     // Bez tej asercji biblioteka mogłaby być zielona i nieużywana — a bramka
     // na produkcji nadal ścigałaby się ze schedulerem.
-    const skrypt = require('fs').readFileSync(
+    const skrypt = readFileSync(
       join(KORZEN, 'ops', 'scripts', 'prod-deploy-ghcr.sh'),
       'utf8',
     );

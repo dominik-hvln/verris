@@ -5,11 +5,6 @@ const DURATION_BUCKETS = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 1
 
 type StatusClass = '1xx' | '2xx' | '3xx' | '4xx' | '5xx' | 'other';
 
-interface RouteKey {
-  method: string;
-  route: string;
-}
-
 interface RouteStats {
   countByStatus: Map<StatusClass, number>;
   durationSumSec: number;

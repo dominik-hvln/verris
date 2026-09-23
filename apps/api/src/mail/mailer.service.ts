@@ -7,7 +7,6 @@ import {
   Prisma,
 } from '@verris/database';
 import { MailMessage, MailerProvider } from './mailer.interface';
-import { LogMailerProvider } from './log-mailer.provider';
 import {
   buildSmtpMailerProvider,
   isLocalSmtpHost,

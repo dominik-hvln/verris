@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomBytes } from 'crypto';
+import type { EmmCampaign, EmmContact, EmmList, Prisma } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { MailerService } from '../mail/mailer.service';
@@ -27,17 +28,6 @@ import type {
 // (Dockerfile.api). W sandboxie nowe modele EMM jeszcze nie istnieją w typach.
 // ---------------------------------------------------------------------------
 
-type Row = Record<string, unknown>;
-interface Delegate {
-  findUnique(a: Row): Promise<any>;
-  findFirst(a: Row): Promise<any>;
-  findMany(a: Row): Promise<any[]>;
-  create(a: Row): Promise<any>;
-  update(a: Row): Promise<any>;
-  updateMany(a: Row): Promise<{ count: number }>;
-  delete(a: Row): Promise<any>;
-  count(a: Row): Promise<number>;
-}
 
 export interface EmmListView {
   id: string;
@@ -101,17 +91,17 @@ export class EmailMarketingService {
     private readonly outbound: OutboundAbuseGuard,
   ) {}
 
-  private get lists(): Delegate {
-    return (this.prisma as unknown as { emmList: Delegate }).emmList;
+  private get lists() {
+    return this.prisma.emmList;
   }
-  private get contacts(): Delegate {
-    return (this.prisma as unknown as { emmContact: Delegate }).emmContact;
+  private get contacts() {
+    return this.prisma.emmContact;
   }
-  private get campaigns(): Delegate {
-    return (this.prisma as unknown as { emmCampaign: Delegate }).emmCampaign;
+  private get campaigns() {
+    return this.prisma.emmCampaign;
   }
-  private get sends(): Delegate {
-    return (this.prisma as unknown as { emmSend: Delegate }).emmSend;
+  private get sends() {
+    return this.prisma.emmSend;
   }
 
   // -------------------------------------------------------------------------
@@ -149,7 +139,7 @@ export class EmailMarketingService {
     };
   }
 
-  private async ownedList(userId: string, subscriptionId: string, listId: string): Promise<any> {
+  private async ownedList(userId: string, subscriptionId: string, listId: string): Promise<EmmList> {
     const list = await this.lists.findUnique({ where: { id: listId } });
     if (!list || list.subscriptionId !== subscriptionId || list.userId !== userId) {
       throw new NotFoundException('Lista nie istnieje.');
@@ -230,7 +220,7 @@ export class EmailMarketingService {
   async updateList(userId: string, subscriptionId: string, listId: string, dto: UpdateEmmListDto): Promise<EmmListView> {
     await this.resolveWorkspace(userId, subscriptionId);
     await this.ownedList(userId, subscriptionId, listId);
-    const data: Row = {};
+    const data: Prisma.EmmListUpdateInput = {};
     if (dto.name !== undefined) data.name = dto.name.trim().slice(0, 120);
     if (dto.description !== undefined) data.description = dto.description?.trim().slice(0, 500) || null;
     if (dto.doubleOptIn !== undefined) data.doubleOptIn = dto.doubleOptIn;
@@ -276,7 +266,7 @@ export class EmailMarketingService {
     return { subscribed, pending, unsubscribed };
   }
 
-  private listView(r: any, c: { subscribed: number; pending: number; unsubscribed: number }): EmmListView {
+  private listView(r: EmmList, c: { subscribed: number; pending: number; unsubscribed: number }): EmmListView {
     return {
       id: r.id,
       name: r.name,
@@ -438,7 +428,7 @@ export class EmailMarketingService {
     }
   }
 
-  private contactView(r: any): EmmContactView {
+  private contactView(r: EmmContact): EmmContactView {
     return {
       id: r.id,
       email: r.email,
@@ -502,7 +492,7 @@ export class EmailMarketingService {
     await this.resolveWorkspace(userId, subscriptionId);
     const c = await this.ownedCampaign(subscriptionId, campaignId);
     if (c.status !== 'DRAFT') throw new ConflictException('Edytować można tylko kampanię w stanie roboczym (DRAFT).');
-    const data: Row = {};
+    const data: Prisma.EmmCampaignUpdateInput = {};
     if (dto.name !== undefined) data.name = dto.name.trim().slice(0, 120);
     if (dto.subject !== undefined) data.subject = dto.subject.trim().slice(0, 200);
     if (dto.bodyMarkdown !== undefined) data.bodyMarkdown = dto.bodyMarkdown;
@@ -563,13 +553,13 @@ export class EmailMarketingService {
     return this.campaignView(row);
   }
 
-  private async ownedCampaign(subscriptionId: string, campaignId: string): Promise<any> {
+  private async ownedCampaign(subscriptionId: string, campaignId: string): Promise<EmmCampaign> {
     const c = await this.campaigns.findUnique({ where: { id: campaignId } });
     if (!c || c.subscriptionId !== subscriptionId) throw new NotFoundException('Kampania nie istnieje.');
     return c;
   }
 
-  private campaignView(r: any): EmmCampaignView {
+  private campaignView(r: EmmCampaign & { list?: { name: string } | null }): EmmCampaignView {
     return {
       id: r.id,
       name: r.name,
@@ -697,7 +687,7 @@ export class EmailMarketingService {
     return { done: false, processed: recipients.length };
   }
 
-  private async deliver(campaign: any, list: any, contact: any): Promise<{ delivered: boolean; suppressedReason?: string }> {
+  private async deliver(campaign: EmmCampaign, list: EmmList, contact: EmmContact): Promise<{ delivered: boolean; suppressedReason?: string }> {
     const unsubUrl = this.unsubscribeUrl(contact.unsubToken);
     const greeting = contact.firstName ? `Cześć ${contact.firstName},\n\n` : '';
     const { html, text } = renderEmailShell({
@@ -781,7 +771,7 @@ export class EmailMarketingService {
     return `${this.apiBaseUrl()}/emm/confirm?token=${encodeURIComponent(token)}`;
   }
 
-  private async sendConfirmationEmail(list: any, contact: any): Promise<void> {
+  private async sendConfirmationEmail(list: EmmList, contact: EmmContact): Promise<void> {
     if (!contact.confirmToken) return;
     const { html, text } = renderEmailShell({
       title: 'Potwierdź zapis na listę',

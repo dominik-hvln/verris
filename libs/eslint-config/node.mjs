@@ -31,30 +31,26 @@ export default [
       },
     },
     rules: {
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
-      '@typescript-eslint/no-empty-object-type': 'warn',
+      // X-19 (2026-09-24): wszystkie reguły jako błędy. Dług z włączenia lintowania
+      // (69 ostrzeżeń w API) spłacony — `any` zastąpione typami modeli Prismy,
+      // `Function` konkretnymi sygnaturami, zbędne `\` w regexach usunięte ze
+      // sprawdzeniem równoważności. Ostrzeżenie, którego nikt nie czyta, niczego
+      // nie pilnuje — dlatego nie wracamy do 'warn'.
+      '@typescript-eslint/no-explicit-any': 'error',
+      // `_` na początku = świadomie nieużywane; rodzeństwo `...rest` służy do
+      // wycinania pól (np. hash hasła) z obiektu, więc też nie jest „nieużywane”.
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', ignoreRestSiblings: true }],
+      '@typescript-eslint/no-empty-object-type': 'error',
+      '@typescript-eslint/no-unsafe-function-type': 'error',
+      '@typescript-eslint/no-require-imports': 'error',
+      'no-useless-escape': 'error',
       'no-empty': ['error', { allowEmptyCatch: true }],
-
-      // Reguły odsłonięte przez samo WŁĄCZENIE lintowania w pakietach, które
-      // nigdy go nie miały. Zostają widoczne jako ostrzeżenia, żeby nie
-      // blokowały podniesienia zależności, i wracają na 'error' przy X-18.
-      //
-      // no-control-regex jest tu wyjątkiem trwałym: znaki sterujące w regexach
-      // walidacyjnych (migration-input-guard, sanityzacja nazw kont) są
-      // zamierzone — to one wykrywają wstrzyknięcia.
-      '@typescript-eslint/no-unsafe-function-type': 'warn',
-      '@typescript-eslint/no-require-imports': 'warn',
+      // Znaki sterujące w regexach walidacyjnych (migration-input-guard, sanityzacja
+      // nazw kont) są zamierzone — to one wykrywają wstrzyknięcia. Wyjątek trwały.
       'no-control-regex': 'off',
-      'no-irregular-whitespace': 'warn',
-
-      // no-useless-escape zostaje ostrzeżeniem świadomie. Cztery wystąpienia
-      // siedzą w regexach WALIDUJĄCYCH WEJŚCIE (kody promocyjne, ścieżki
-      // plików, nazwy załączników). Zbędny backslash jest tam niegroźny,
-      // ale zmiana regexa walidacyjnego przy okazji podnoszenia zależności to
-      // dokładnie ten rodzaj zmiany, który Z-03 kazał robić z testem na każdy
-      // przypadek, a nie hurtem przez --fix.
-      'no-useless-escape': 'warn',
+      // Spacje zerowej szerokości w komentarzach łamią `*/` w ścieżkach typu
+      // `/agent/tasks/*/script` wewnątrz JSDoc; w regexach testów to celowe znaki.
+      'no-irregular-whitespace': ['error', { skipComments: true, skipRegExps: true }],
     },
   },
 ];

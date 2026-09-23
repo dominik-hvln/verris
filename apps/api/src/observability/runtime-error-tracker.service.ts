@@ -91,7 +91,7 @@ export class RuntimeErrorTracker {
 
     if (this.dsn) {
       // best-effort, nie blokujemy odpowiedzi HTTP
-      void this.forward(entry, err).catch((e) =>
+      void this.forward(entry).catch((e) =>
         this.logger.warn(`GlitchTip forward failed: ${(e as Error).message}`),
       );
     }
@@ -130,7 +130,7 @@ export class RuntimeErrorTracker {
 
   // --- GlitchTip/Sentry envelope (bez SDK) -----------------------------------
 
-  private async forward(entry: CapturedError, err: Error): Promise<void> {
+  private async forward(entry: CapturedError): Promise<void> {
     if (!this.dsn) return;
     const eventId = entry.id.replace(/-/g, '');
     const ingestUrl =

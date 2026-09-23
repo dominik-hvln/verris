@@ -1,15 +1,11 @@
 import { Injectable, Logger, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import type { Prisma } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto/crypto.service';
 import { NodeDnsService } from './node-dns.service';
 import { renderBootstrapScript } from './servers.service';
 
-type Row = Record<string, unknown>;
-interface EventDelegate {
-  create(a: Row): Promise<{ id: string }>;
-  findMany(a: Row): Promise<any[]>;
-}
 
 export interface NodeBootstrapEventView {
   phase: string;
@@ -57,14 +53,7 @@ export class NodeBootstrapService {
     clActivationKey: string | null;
     lsSerial: string | null;
   }> {
-    const s = await (this.prisma as unknown as {
-      server: {
-        findUnique(a: Row): Promise<
-          | { daLicenseKeyEnc: string | null; clActivationKeyEnc: string | null; lsSerialEnc: string | null }
-          | null
-        >;
-      };
-    }).server.findUnique({
+    const s = await this.prisma.server.findUnique({
       where: { id: serverId },
       select: { daLicenseKeyEnc: true, clActivationKeyEnc: true, lsSerialEnc: true },
     });
@@ -88,14 +77,14 @@ export class NodeBootstrapService {
     serverId: string,
     keys: { daLicenseKey?: string | null; clActivationKey?: string | null; lsSerial?: string | null },
   ): Promise<{ ok: true }> {
-    const data: Row = {};
+    const data: Prisma.ServerUpdateInput = {};
     if (keys.daLicenseKey !== undefined)
       data.daLicenseKeyEnc = keys.daLicenseKey ? this.crypto.encrypt(keys.daLicenseKey.trim()) : null;
     if (keys.clActivationKey !== undefined)
       data.clActivationKeyEnc = keys.clActivationKey ? this.crypto.encrypt(keys.clActivationKey.trim()) : null;
     if (keys.lsSerial !== undefined)
       data.lsSerialEnc = keys.lsSerial ? this.crypto.encrypt(keys.lsSerial.trim()) : null;
-    await (this.prisma as unknown as { server: { update(a: Row): Promise<unknown> } }).server.update({
+    await this.prisma.server.update({
       where: { id: serverId },
       data,
     });
@@ -118,8 +107,8 @@ export class NodeBootstrapService {
     });
   }
 
-  private get events(): EventDelegate {
-    return (this.prisma as unknown as { nodeBootstrapEvent: EventDelegate }).nodeBootstrapEvent;
+  private get events() {
+    return this.prisma.nodeBootstrapEvent;
   }
 
   /**
@@ -158,7 +147,7 @@ export class NodeBootstrapService {
     });
 
     const now = new Date();
-    const data: Row = { bootstrapPhase: phase, bootstrapUpdatedAt: now };
+    const data: Prisma.ServerUpdateInput = { bootstrapPhase: phase, bootstrapUpdatedAt: now };
     if (status === 'FAILED') data.bootstrapError = message;
     if (status === 'OK' || status === 'STARTED') data.bootstrapError = null;
     // Ustaw startedAt tylko raz (przy pierwszym raporcie).
@@ -168,9 +157,7 @@ export class NodeBootstrapService {
     });
     if (!srv) throw new NotFoundException('Węzeł nie istnieje.');
 
-    await (this.prisma as unknown as {
-      server: { update(a: Row): Promise<unknown> };
-    }).server.update({
+    await this.prisma.server.update({
       where: { id: input.serverId },
       data: {
         ...data,
@@ -201,27 +188,12 @@ export class NodeBootstrapService {
   }
 
   private async ensureStartedAt(serverId: string): Promise<Date | null> {
-    const s = await (this.prisma as unknown as {
-      server: { findUnique(a: Row): Promise<{ bootstrapStartedAt: Date | null } | null> };
-    }).server.findUnique({ where: { id: serverId }, select: { bootstrapStartedAt: true } });
+    const s = await this.prisma.server.findUnique({ where: { id: serverId }, select: { bootstrapStartedAt: true } });
     return s?.bootstrapStartedAt ?? null;
   }
 
   async getStatus(serverId: string): Promise<NodeBootstrapStatus> {
-    const s = await (this.prisma as unknown as {
-      server: {
-        findUnique(a: Row): Promise<
-          | {
-              id: string;
-              bootstrapPhase: string | null;
-              bootstrapError: string | null;
-              bootstrapStartedAt: Date | null;
-              bootstrapUpdatedAt: Date | null;
-            }
-          | null
-        >;
-      };
-    }).server.findUnique({
+    const s = await this.prisma.server.findUnique({
       where: { id: serverId },
       select: {
         id: true,

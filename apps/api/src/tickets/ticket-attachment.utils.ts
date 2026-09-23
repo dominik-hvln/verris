@@ -33,7 +33,7 @@ export function assertAllowedMime(mime: string): void {
 /** Usuń ścieżki katalogowe i znaki nietypowe. */
 export function sanitizeOriginalFilename(name: string): string {
   const base = (name ?? 'attachment').replace(/\\/g, '/').split('/').pop() ?? 'attachment';
-  return base.replace(/[^\w.\-+()\[\] ]+/g, '_').slice(0, 180);
+  return base.replace(/[^\w.\-+()[\] ]+/g, '_').slice(0, 180);
 }
 
 /**

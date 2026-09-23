@@ -8,8 +8,6 @@ import {
 } from '@nestjs/common';
 import {
   AccountStatus,
-  Plan,
-  Prisma,
   Server,
   Subscription,
   SubscriptionStatus,

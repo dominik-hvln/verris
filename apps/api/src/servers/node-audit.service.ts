@@ -99,7 +99,10 @@ export class NodeAuditService {
     serverId: string,
     actionId: string,
     actorUserId: string,
-    input: { confirm?: string } = {},
+    // ponytail: `confirm` nie jest dziś sprawdzane, bo żadna naprawa nie ma ryzyka `danger`
+    // (są tylko safe/caution, a caution potwierdza się w UI). Pierwsza naprawa `danger`
+    // musi dodać tu sprawdzenie `confirm === server.name` — po stronie serwera, nie tylko w UI.
+    _input: { confirm?: string } = {},
   ): Promise<NodeRepairResultDto> {
     const server = await this.prisma.server.findUnique({ where: { id: serverId } });
     if (!server) throw new NotFoundException('Server not found');

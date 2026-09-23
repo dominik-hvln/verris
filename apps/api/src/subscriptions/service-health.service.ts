@@ -237,15 +237,6 @@ export class ServiceHealthService {
     }
 
     const score = possible > 0 ? Math.round((earned / possible) * 100) : null;
-    const label =
-      score == null
-        ? 'pending'
-        : score >= 80
-          ? 'healthy'
-          : score >= 50
-            ? 'attention'
-            : 'critical';
-
     const summary = this.buildSummaryText(score, checks, account.domain, isEmail);
 
     const probeMeta: HealthProbeMeta = {

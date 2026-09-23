@@ -80,7 +80,7 @@ export class FilesService {
   private safeName(name: string | undefined): string {
     const n = (name ?? '').trim();
     if (!n || n === '.' || n === '..') throw new BadRequestException('Nieprawidłowa nazwa.');
-    if (/[\/\\\0]/.test(n)) throw new BadRequestException('Nazwa nie może zawierać ukośników.');
+    if (/[/\\\0]/.test(n)) throw new BadRequestException('Nazwa nie może zawierać ukośników.');
     if (n.length > 255) throw new BadRequestException('Nazwa jest zbyt długa.');
     return n;
   }

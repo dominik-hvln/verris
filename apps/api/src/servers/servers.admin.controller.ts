@@ -392,8 +392,9 @@ export class ServersAdminController {
   }
 
   /**
-   * Runs a single repair action for a detected non-compliance. `danger`
-   * repairs require `confirm` equal to the server name (enforced in the service).
+   * Runs a single repair action for a detected non-compliance. Dziś istnieją tylko
+   * naprawy safe/caution; `confirm` jest przekazywane dla przyszłych napraw `danger`
+   * (patrz komentarz w NodeAuditService.runRepair).
    */
   @Post(':id/repair/:actionId')
   repair(

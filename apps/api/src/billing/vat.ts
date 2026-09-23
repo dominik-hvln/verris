@@ -146,7 +146,7 @@ export function kredytZaWplate(kwotaPln: Prisma.Decimal, t: Pick<TraktowanieVat,
  */
 export function numerVatUe(kraj: string, nip: string | null | undefined): { kodVies: string; numer: string } | null {
   const kodVies = kraj === 'GR' ? 'EL' : kraj;
-  let n = (nip ?? '').toUpperCase().replace(/[\s.\-]/g, '');
+  let n = (nip ?? '').toUpperCase().replace(/[\s.-]/g, '');
   if (n.startsWith(kodVies)) n = n.slice(2);
   return /^[0-9A-Z+*]{2,12}$/.test(n) ? { kodVies, numer: n } : null;
 }

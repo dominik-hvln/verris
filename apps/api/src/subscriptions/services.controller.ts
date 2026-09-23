@@ -25,7 +25,7 @@ import { Prisma, SubscriptionStatus } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
-import { DirectAdminService, type WebToolsState } from '../servers/directadmin.service';
+import { DirectAdminService } from '../servers/directadmin.service';
 import { MigrationOrchestratorService } from './migration-orchestrator.service';
 import { ServiceHealthService } from './service-health.service';
 import { HostingDnsPointingService } from './hosting-dns-pointing.service';

@@ -19,7 +19,17 @@ import type {
 } from '@verris/contracts';
 import { randomBytes, X509Certificate } from 'crypto';
 import * as bcrypt from 'bcrypt';
+import * as net from 'net';
 import { Prisma } from '@verris/database';
+
+/**
+ * Surowy klient HTTP z wnętrza `DirectAdminClient` (axios, pole prywatne) — tylko
+ * metody, których ten serwis używa. Zamiast `Function`, które przepuszczało wszystko.
+ */
+type SurowyKlientDa = {
+  get(path: string, config?: Record<string, unknown>): Promise<{ data: unknown }>;
+  post(path: string, body?: unknown, config?: Record<string, unknown>): Promise<{ data: unknown }>;
+};
 import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto/crypto.service';
 import { AuditService } from '../common/audit/audit.service';
@@ -122,7 +132,7 @@ export class DirectAdminService {
     let adminSettings: 'updated' | 'unchanged' | 'error' = 'updated';
     let adminSettingsDetail: string | null = null;
     try {
-      const axiosClient = (client as unknown as { client?: { get: Function } }).client;
+      const axiosClient = (client as unknown as { client?: SurowyKlientDa }).client;
       let currentNs1 = '';
       let currentNs2 = '';
       if (axiosClient) {
@@ -412,7 +422,7 @@ export class DirectAdminService {
   }
 
   private async readDaUserConfigDomain(client: DirectAdminClient): Promise<string | null> {
-    const axiosClient = (client as unknown as { client?: { get: Function } }).client;
+    const axiosClient = (client as unknown as { client?: SurowyKlientDa }).client;
     if (!axiosClient) return null;
     try {
       const res = await axiosClient.get('/CMD_API_SHOW_USER_CONFIG', { timeout: 15_000 });
@@ -586,11 +596,6 @@ export class DirectAdminService {
     timeoutMs = 2500,
   ): Promise<{ name: string; version: string } | null> {
     return new Promise((resolve) => {
-      // `require` zamiast importu na górze pliku — moduł ładowany dopiero tutaj,
-      // wyłącznie na potrzeby tej sondy. Stała tu dyrektywa wyciszająca
-      // `no-var-requires`; reguła została przemianowana na `no-require-imports`,
-      // więc dyrektywa przestała cokolwiek wyciszać i `--fix` ją usunął (X-42).
-      const net = require('net') as typeof import('net');
       let settled = false;
       const done = (val: { name: string; version: string } | null) => {
         if (settled) return;
@@ -814,7 +819,7 @@ export class DirectAdminService {
       );
     }
     const client = await this.getClientForHostingAccount(sub.account.id, userId);
-    const axiosClient = (client as unknown as { client?: { post: Function } }).client;
+    const axiosClient = (client as unknown as { client?: SurowyKlientDa }).client;
     if (!axiosClient) throw new BadRequestException('DirectAdmin client is not available');
     const body = new URLSearchParams({ ...form, api: 'yes' }).toString();
     const response = await axiosClient.post(path, body, {
@@ -877,7 +882,7 @@ export class DirectAdminService {
 
     try {
       const client = await this.getClientForHostingAccount(account.id, userId);
-      const axiosClient = (client as unknown as { client?: { get: Function } }).client;
+      const axiosClient = (client as unknown as { client?: SurowyKlientDa }).client;
       if (!axiosClient) throw new BadRequestException('DirectAdmin client is not available');
       const [usageRes, configRes] = await Promise.all([
         axiosClient.get('/CMD_API_SHOW_USER_USAGE', { timeout: 15_000 }),
@@ -2587,7 +2592,7 @@ export class DirectAdminService {
     if (!sub) throw new NotFoundException('Service not found');
     if (!sub.account?.id) throw new BadRequestException('Subscription has no hosting account yet');
     const client = await this.getClientForHostingAccount(sub.account.id, userId);
-    const axiosClient = (client as unknown as { client?: { get: Function } }).client;
+    const axiosClient = (client as unknown as { client?: SurowyKlientDa }).client;
     if (!axiosClient) throw new BadRequestException('DirectAdmin client is not available');
     const res = await axiosClient.get(path, {
       params: { ...params, api: 'yes', json: 'yes' },
@@ -2617,10 +2622,10 @@ export class DirectAdminService {
       return { rows: [], fetchError: 'Konto hostingowe nie jest jeszcze gotowe.' };
     }
 
-    let axiosClient: { get: Function } | undefined;
+    let axiosClient: SurowyKlientDa | undefined;
     try {
       const client = await this.getClientForHostingAccount(sub.account.id, userId);
-      axiosClient = (client as unknown as { client?: { get: Function } }).client;
+      axiosClient = (client as unknown as { client?: SurowyKlientDa }).client;
     } catch (err) {
       return { rows: [], fetchError: err instanceof Error ? err.message : String(err) };
     }
@@ -2638,7 +2643,7 @@ export class DirectAdminService {
   }
 
   private async inspectDomainSsl(
-    axiosClient: { get: Function },
+    axiosClient: Pick<SurowyKlientDa, 'get'>,
     domain: string,
   ): Promise<HostingSslRowDto> {
     const none: HostingSslRowDto = {
