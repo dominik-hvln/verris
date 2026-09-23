@@ -1,5 +1,6 @@
 import { getProductOpsDashboard } from "./data";
 import { Announcements, Maintenance } from "./notices";
+import { FeatureFlags } from "./flags";
 
 export const dynamic = "force-dynamic";
 
@@ -53,10 +54,7 @@ export default async function ProductOpsPage() {
 
       <section className="grid gap-4">
         <Panel title="Feature flags">
-          {data.flags.slice(0, 8).map((flag) => (
-            <Row key={flag.id} title={flag.key} meta={`${flag.enabledDefault ? "ON" : "OFF"} · ${flag.rolloutPercent}%`} />
-          ))}
-          {data.flags.length === 0 && <Empty />}
+          <FeatureFlags rows={data.flags} />
         </Panel>
       </section>
 

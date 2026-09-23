@@ -10,7 +10,7 @@ import type { ReactNode } from 'react';
 import { AlertTriangle, ArrowRight, ChevronRight, Plus } from 'lucide-react';
 import type { ServiceSummaryDto } from '@verris/contracts';
 import { CREDIT_RATE_INFO, formatCredits } from '@/lib/credits';
-import { clientFeatures } from '@/lib/client-features';
+import { useModul } from '@/lib/feature-flags';
 import {
   Box,
   DualBars,
@@ -79,6 +79,8 @@ function checks(s: ServiceSummaryDto): { label: string; ok: boolean }[] {
 }
 
 export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot; aside?: ReactNode }) {
+  // N-12: moduł EKO może wyłączyć operator flagą (brak flagi = jak dotąd).
+  const ekoWidoczny = useModul('modul.eco');
   const firstName = snapshot.profile?.firstName || '';
   const services = snapshot.services.filter((s) => s.status !== 'CANCELED' && s.status !== 'EXPIRED');
   const domains = snapshot.domains;
@@ -419,7 +421,7 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
             </div>
           </Box>
 
-          {clientFeatures.eco ? (
+          {ekoWidoczny ? (
             <div className="v2-comet rounded-[10px]" style={comet('c', 15, -10, 0.45)}>
             <Box
               title="Program EKO"

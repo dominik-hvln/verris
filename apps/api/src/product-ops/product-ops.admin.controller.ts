@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, HttpCode, NotFoundException, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpCode, NotFoundException, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import {
   MaintenanceWindowStatus,
   ProductAnnouncementKind,
@@ -44,6 +44,19 @@ class CreateFeatureFlagDto {
   @Min(0)
   @Max(100)
   rolloutPercent!: number;
+}
+
+class UpdateFeatureFlagDto {
+  @IsOptional()
+  @IsBoolean()
+  enabledDefault?: boolean;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  rolloutPercent?: number;
 }
 
 class CreateAnnouncementDto {
@@ -305,6 +318,28 @@ export class ProductOpsAdminController {
     });
     await this.audit.record({
       action: ProductOpsActions.FEATURE_FLAG_CREATED,
+      actorUserId: user.userId,
+      details: { key: flag.key, enabled: flag.enabledDefault, rolloutPercent: flag.rolloutPercent },
+    });
+    return flag;
+  }
+
+  /** N-12 — włączenie/wyłączenie flagi i procent rolloutu (flagi sterują modułami panelu klienta). */
+  @Patch('feature-flags/:id')
+  async updateFeatureFlag(
+    @CurrentUser() user: { userId: string },
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateFeatureFlagDto,
+  ) {
+    const flag = await this.prisma.featureFlag.update({
+      where: { id },
+      data: {
+        ...(dto.enabledDefault !== undefined ? { enabledDefault: dto.enabledDefault } : {}),
+        ...(dto.rolloutPercent !== undefined ? { rolloutPercent: dto.rolloutPercent } : {}),
+      },
+    });
+    await this.audit.record({
+      action: 'FEATURE_FLAG_UPDATED',
       actorUserId: user.userId,
       details: { key: flag.key, enabled: flag.enabledDefault, rolloutPercent: flag.rolloutPercent },
     });

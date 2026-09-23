@@ -1,12 +1,14 @@
 import { FeatureNotAvailable } from '@/components/feature-not-available';
-import { isClientFeatureEnabled } from '@/lib/client-features';
+import { czyModul } from '@/lib/feature-flags-core';
+import { pobierzFlagiAction } from '@/lib/feature-flags-action';
 import { ReferralProgramClient } from './referral-program-client';
 import { PanelPageHeader } from '@/components/panel';
 
 export const dynamic = 'force-dynamic';
 
-export default function ReferralProgramPage() {
-  if (!isClientFeatureEnabled('referral')) {
+export default async function ReferralProgramPage() {
+  // N-12: przełącznik build-time + flaga operatora.
+  if (!czyModul(await pobierzFlagiAction(), 'modul.referral')) {
     return (
       <FeatureNotAvailable
         title="Program partnerski"

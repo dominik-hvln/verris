@@ -1,7 +1,8 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
 import { FeatureNotAvailable } from '@/components/feature-not-available';
-import { isClientFeatureEnabled } from '@/lib/client-features';
+import { czyModul } from '@/lib/feature-flags-core';
+import { pobierzFlagiAction } from '@/lib/feature-flags-action';
 import { getAuthToken } from '@/lib/auth';
 import { fetchSessionProfile } from '@/lib/session-profile';
 import { Users, Mail, ShieldCheck, Ban } from 'lucide-react';
@@ -25,7 +26,8 @@ export default async function IamPage() {
     redirect('/dashboard');
   }
 
-  if (!isClientFeatureEnabled('iam')) {
+  // N-12: przełącznik build-time + flaga operatora.
+  if (!czyModul(await pobierzFlagiAction(), 'modul.iam')) {
     return (
       <FeatureNotAvailable
         title="IAM i subkonta"

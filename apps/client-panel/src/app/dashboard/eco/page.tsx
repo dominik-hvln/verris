@@ -1,6 +1,7 @@
 import { Eye, Gift, History, Trees } from 'lucide-react';
 import { FeatureNotAvailable } from '@/components/feature-not-available';
-import { isClientFeatureEnabled } from '@/lib/client-features';
+import { czyModul } from '@/lib/feature-flags-core';
+import { pobierzFlagiAction } from '@/lib/feature-flags-action';
 import { getEcoDashboardData } from './eco-data';
 import { EcoRedeemForm } from './eco-redeem-form';
 import { EcoProgramStatus } from './eco-program-status';
@@ -17,7 +18,8 @@ function badgeEmbedHtml(src: string, height: number, alt: string): string {
 }
 
 export default async function EcoProgramPage() {
-  if (!isClientFeatureEnabled('eco')) {
+  // N-12: przełącznik build-time + flaga operatora.
+  if (!czyModul(await pobierzFlagiAction(), 'modul.eco')) {
     return (
       <FeatureNotAvailable
         title="Program EKO"

@@ -34,3 +34,16 @@ export function resolveSidebarQuickLinks(links: string[] | null | undefined): Si
   }
   return [...DEFAULT_SIDEBAR_QUICK_LINKS];
 }
+
+/**
+ * N-12 — flagi funkcji sterujące modułami panelu klienta. Brak flagi w bazie =
+ * moduł działa jak dotąd (zgodnie z przełącznikiem NEXT_PUBLIC_FEATURE_*); flaga
+ * założona przez operatora (Admin → Operacje produktowe) włącza/wyłącza moduł bez
+ * przebudowy, globalnie, per plan, per klient albo procentowo.
+ */
+export const FLAGI_MODULOW = {
+  'modul.eco': 'Punkty EKO',
+  'modul.referral': 'Program partnerski',
+  'modul.iam': 'Subkonta (IAM)',
+} as const;
+export type FlagaModulu = keyof typeof FLAGI_MODULOW;

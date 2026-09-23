@@ -47,6 +47,8 @@ import {
 } from "lucide-react";
 import { sidebarTilesFromLinks } from "@/lib/sidebar-tiles";
 import { clientFeatures } from "@/lib/client-features";
+import { FeatureFlagsProvider, useFlagi, useModul } from "@/lib/feature-flags";
+import { trasaWidoczna } from "@/lib/feature-flags-core";
 import {
   canAccessDashboardRoute,
   canShowWalletBalance,
@@ -161,6 +163,7 @@ function syncPanelPreferences(u: SidebarUser) {
 }
 
 function UserMenu({ displayName, email, initials, loading = false }: { displayName: string; email: string; initials: string; loading?: boolean }) {
+  const iam = useModul("modul.iam");
   const [open, setOpen] = useState(false);
   const [simple, setSimple] = useState(false);
   useEffect(() => {
@@ -232,7 +235,7 @@ function UserMenu({ displayName, email, initials, loading = false }: { displayNa
           <Link href="/dashboard/settings?tab=security" className={item} role="menuitem" onClick={() => setOpen(false)}>
             <Shield className="h-4 w-4 opacity-70" /> Bezpieczeństwo i logowanie
           </Link>
-          {clientFeatures.iam ? (
+          {iam ? (
             <Link href="/dashboard/iam" className={item} role="menuitem" onClick={() => setOpen(false)}>
               <Users className="h-4 w-4 opacity-70" /> Zespół i dostęp
             </Link>
@@ -278,21 +281,31 @@ function UserMenu({ displayName, email, initials, loading = false }: { displayNa
   );
 }
 
-export default function DashboardLayout({
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <FeatureFlagsProvider>
+      <DashboardLayoutInner>{children}</DashboardLayoutInner>
+    </FeatureFlagsProvider>
+  );
+}
+
+function DashboardLayoutInner({
   children,
 }: {
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const flagi = useFlagi();
   const router = useRouter();
   const [user, setUser] = useState<SidebarUser | null>(null);
   const [userLoading, setUserLoading] = useState(true);
   const [impersonating, setImpersonating] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const navCtx = clientNavContextFromSidebar(user);
+  // N-12: moduł wyłączony flagą operatora znika z menu, kafelków i palety.
   const canAccess = (href: string) =>
-    navCtx ? canAccessDashboardRoute(href, navCtx) : false;
-  const mainGridItems = sidebarTilesFromLinks(user?.sidebarQuickLinks, navCtx);
+    navCtx ? canAccessDashboardRoute(href, navCtx) && trasaWidoczna(flagi, href) : false;
+  const mainGridItems = sidebarTilesFromLinks(user?.sidebarQuickLinks, navCtx).filter((i) => trasaWidoczna(flagi, i.href));
   const mainGridHrefs = new Set<string>(mainGridItems.map((i) => i.href));
   const navSecondaryItems = secondaryItems
     .map((group) => ({

@@ -58,3 +58,15 @@ export async function setMaintenanceStatusAction(
 ): Promise<Wynik> {
   return wyslij(`/admin/product-ops/maintenance-windows/${id}`, "PATCH", { status });
 }
+
+/** N-12 — flaga modułu panelu klienta (klucz z FLAGI_MODULOW). */
+export async function createFeatureFlagAction(key: string, name: string): Promise<Wynik> {
+  return wyslij("/admin/product-ops/feature-flags", "POST", { key, name, enabledDefault: true, rolloutPercent: 100 });
+}
+
+export async function updateFeatureFlagAction(
+  id: string,
+  input: { enabledDefault?: boolean; rolloutPercent?: number },
+): Promise<Wynik> {
+  return wyslij(`/admin/product-ops/feature-flags/${id}`, "PATCH", input);
+}

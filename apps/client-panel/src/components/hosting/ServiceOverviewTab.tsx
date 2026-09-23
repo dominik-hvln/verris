@@ -35,6 +35,7 @@ import { HealthCheckDetails } from '@/components/hosting/HealthCheckDetails';
 import { FirstStepsAssistant } from '@/components/hosting/FirstStepsAssistant';
 import { EcoModeCard } from '@/app/dashboard/services/[id]/autoscaling/eco-mode-card';
 import { clientFeatures } from '@/lib/client-features';
+import { useModul } from '@/lib/feature-flags';
 import { fetchSidebarUser } from '@/app/dashboard/sidebar-actions';
 
 const statusLabels: Record<string, string> = {
@@ -76,6 +77,8 @@ export default function ServiceOverviewTab({
   serviceId: string;
   onNavigate: (tab: string) => void;
 }) {
+  // N-12: moduł EKO może wyłączyć operator flagą (brak flagi = jak dotąd).
+  const eco = useModul('modul.eco');
   const { links } = useHostingLinks();
   const [service, setService] = useState<ServiceDetailsDto | null>(null);
   const [health, setHealth] = useState<ServiceHealthSummaryDto | null>(null);
@@ -186,7 +189,7 @@ export default function ServiceOverviewTab({
   const isEmail = service.productKind === 'EMAIL';
 
   const showEcoMode =
-    clientFeatures.eco &&
+    eco &&
     service.status !== 'CANCELED' &&
     service.status !== 'EXPIRED';
 
@@ -374,7 +377,7 @@ export default function ServiceOverviewTab({
                 <dd className="text-white font-mono text-[11px]">{account.daUsername}</dd>
               </>
             ) : null}
-            {clientFeatures.eco ? (
+            {eco ? (
               <>
                 <dt className="text-neutral-500">Tryb EKO</dt>
                 <dd className={service.ecoModeEnabled ? 'text-emerald-400 font-medium' : 'text-neutral-400'}>

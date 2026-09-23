@@ -41,6 +41,7 @@ import DomainPointingPanel from '@/components/hosting/DomainPointingPanel';
 import HostingPanelCard from '@/components/hosting/HostingPanelCard';
 import { fetchHostingBackupsAction } from '@/app/dashboard/services/[id]/hosting-backup-actions';
 import { clientFeatures } from '@/lib/client-features';
+import { useModul } from '@/lib/feature-flags';
 import {
   AccessList,
   Box,
@@ -103,6 +104,8 @@ export default function ServiceOverviewV2({
   serviceId: string;
   onNavigate: (tab: string) => void;
 }) {
+  // N-12: moduł EKO może wyłączyć operator flagą (brak flagi = jak dotąd).
+  const eco = useModul('modul.eco');
   const { links } = useHostingLinks();
   const router = useRouter();
   const [service, setService] = useState<ServiceDetailsDto | null>(null);
@@ -535,7 +538,7 @@ export default function ServiceOverviewV2({
 
           <HostingPanelCard />
 
-          {clientFeatures.eco && service.status !== 'CANCELED' && service.status !== 'EXPIRED' ? (
+          {eco && service.status !== 'CANCELED' && service.status !== 'EXPIRED' ? (
             <EcoModeCard subscriptionId={serviceId} ecoModeEnabled={service.ecoModeEnabled} ecoPoints={ecoPoints} />
           ) : null}
         </div>

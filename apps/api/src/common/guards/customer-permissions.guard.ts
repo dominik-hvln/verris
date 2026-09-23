@@ -77,9 +77,9 @@ export const REGULY_TRAS: Regula[] = [
     po_co: 'Własne powiadomienia i oznaczanie ich jako przeczytane.',
   },
   {
-    pasuje: zaczyna('/me/consent', '/me/marketing-preferences', '/me/status'),
+    pasuje: zaczyna('/me/consent', '/me/marketing-preferences', '/me/status', '/me/feature-flags'),
     odczyt: BEZ_WYMOGU, zapis: BEZ_WYMOGU,
-    po_co: 'Zgody i preferencje marketingowe dotyczą osoby zalogowanej.',
+    po_co: 'Zgody, preferencje marketingowe i flagi modułów (N-12) dotyczą osoby zalogowanej.',
   },
 
   // --- odmowa twarda: rzeczy właściciela konta ------------------------------
