@@ -1,4 +1,5 @@
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { KODY_REGIONOW } from '../regiony';
+import { IsEnum, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 import { ServerStatus } from '@verris/database';
 
 export class UpdateServerDto {
@@ -12,9 +13,9 @@ export class UpdateServerDto {
   @MaxLength(120)
   hostname?: string;
 
+  // P-13 — region trafia do deklaracji lokalizacji danych w panelu klienta; tylko kody z listy.
   @IsOptional()
-  @IsString()
-  @MaxLength(40)
+  @IsIn([...KODY_REGIONOW, ''])
   region?: string;
 
   @IsOptional()

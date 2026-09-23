@@ -1,5 +1,6 @@
 "use client";
 
+import { REGIONY_DANYCH } from "@verris/contracts";
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { ArrowLeft, Server, Loader2, Copy, Check, Terminal, AlertCircle } from "lucide-react";
@@ -106,14 +107,13 @@ export default function InitNodePage() {
                 hostname, nie po IP. Dodaj wcześniej rekord A w OVH.
               </span>
             </Field>
-            <Field label="Region (opcjonalnie)">
-              <input
-                type="text"
-                value={region}
-                onChange={(e) => setRegion(e.target.value)}
-                placeholder="PL-WAW"
-                className="form-input"
-              />
+            <Field label="Lokalizacja (centrum danych)">
+              <select value={region} onChange={(e) => setRegion(e.target.value)} className="form-input">
+                <option value="">— nie wybrano (klient zobaczy ogólne „EOG”) —</option>
+                {Object.entries(REGIONY_DANYCH).map(([kod, opis]) => (
+                  <option key={kod} value={kod}>{kod} — {opis}</option>
+                ))}
+              </select>
             </Field>
           </div>
 

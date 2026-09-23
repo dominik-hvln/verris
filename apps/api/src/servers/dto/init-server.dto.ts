@@ -1,4 +1,5 @@
-import { IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { KODY_REGIONOW } from '../regiony';
+import { IsIn, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
 export class InitServerDto {
   @IsString()
@@ -19,9 +20,9 @@ export class InitServerDto {
   })
   hostname!: string;
 
+  // P-13 — region trafia do deklaracji lokalizacji danych w panelu klienta; tylko kody z listy.
   @IsOptional()
-  @IsString()
-  @MaxLength(40)
+  @IsIn([...KODY_REGIONOW, ''])
   region?: string;
 
   @IsOptional()

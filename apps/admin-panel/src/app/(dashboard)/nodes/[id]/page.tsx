@@ -16,6 +16,7 @@ import { DrainPanel } from "./drain-panel";
 import { NodeAuditPanel } from "./node-audit-panel";
 import { NodeInsightsPanel } from "./node-insights-panel";
 import { NameserversForm } from "./nameservers-form";
+import { RegionForm } from "./region-form";
 import { DaSsoButton } from "./da-sso-button";
 
 export const dynamic = "force-dynamic";
@@ -179,6 +180,8 @@ export default async function ServerDetailPage({
       <div id="nameservers" className="scroll-mt-24">
         <NameserversForm serverId={server.id} />
       </div>
+
+      <RegionForm serverId={server.id} region={server.region ?? null} />
 
       {(server.status === "ACTIVE" || server.status === "MAINTENANCE") && (
         <NodeStackReadinessPanel serverId={server.id} serverStatus={server.status} />

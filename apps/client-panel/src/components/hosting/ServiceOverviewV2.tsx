@@ -1,5 +1,7 @@
 'use client';
 
+import { opisLokalizacji } from '@verris/contracts';
+
 /**
  * PB-15 — ekran-wzorzec: widok usługi hostingowej w nowym wyglądzie
  * (docs/design/wzorzec-panelu.html). Tylko realne dane z API; czego API
@@ -478,6 +480,14 @@ export default function ServiceOverviewV2({
                 { label: 'Baza danych', values: ['localhost'], port: '3306' },
               ]}
             />
+            {/* P-13 — gdzie fizycznie leżą dane usługi (region węzła albo ogólne EOG, gdy nieustalony). */}
+            <p className="mx-4 mb-3 mt-2 text-[12.5px] text-muted-foreground">
+              Dane usługi i kopie zapasowe: {opisLokalizacji(account?.server?.region).opis}. Kopie poza serwerem są
+              szyfrowane i również przechowywane w EOG.{' '}
+              <a href="/legal/privacy" className="underline underline-offset-2 hover:text-foreground">
+                Podmioty przetwarzające dane
+              </a>
+            </p>
           </Box>
 
           <Box

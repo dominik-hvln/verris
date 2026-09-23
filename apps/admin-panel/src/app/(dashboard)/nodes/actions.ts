@@ -508,3 +508,14 @@ function extractError(err: unknown): string {
   if (err instanceof Error) return err.message;
   return "Nieznany błąd serwera";
 }
+
+/** P-13 — lokalizacja węzła (kod z REGIONY_DANYCH); klient widzi ją jako deklarację lokalizacji danych. */
+export async function setNodeRegion(id: string, region: string) {
+  try {
+    await adminApi(`/admin/servers/${id}`, { method: "PATCH", body: JSON.stringify({ region }) });
+    revalidatePath(`/nodes/${id}`);
+    return { ok: true as const };
+  } catch (err) {
+    return { ok: false as const, error: extractError(err) };
+  }
+}

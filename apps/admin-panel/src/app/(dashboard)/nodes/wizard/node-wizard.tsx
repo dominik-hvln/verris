@@ -1,5 +1,6 @@
 "use client";
 
+import { REGIONY_DANYCH } from "@verris/contracts";
 import { useState, useTransition, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -185,7 +186,7 @@ export function NodeWizard() {
 
   const [name, setName] = useState("");
   const [hostname, setHostname] = useState("");
-  const [region, setRegion] = useState("PL");
+  const [region, setRegion] = useState("");
   const [notes, setNotes] = useState("");
 
   const [isPending, startTransition] = useTransition();
@@ -559,13 +560,17 @@ export function NodeWizard() {
                     />
                   </label>
                   <label className="block space-y-1 text-sm">
-                    <span className="text-muted-foreground">Region</span>
-                    <input
+                    <span className="text-muted-foreground">Lokalizacja (centrum danych)</span>
+                    <select
                       value={region}
                       onChange={(e) => setRegion(e.target.value)}
-                      placeholder="PL-WAW"
                       className="wizard-input"
-                    />
+                    >
+                      <option value="">— nie wybrano (klient zobaczy ogólne „EOG”) —</option>
+                      {Object.entries(REGIONY_DANYCH).map(([kod, opis]) => (
+                        <option key={kod} value={kod}>{kod} — {opis}</option>
+                      ))}
+                    </select>
                   </label>
                 </div>
                 <label className="block space-y-1 text-sm">
