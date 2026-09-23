@@ -17,11 +17,10 @@ export default async function AdminTicketsPage() {
   let rows: AdminTicket[] = [];
   let error: string | null = null;
   const staffPanelUrl = panelUrl("NEXT_PUBLIC_STAFF_PANEL_URL", 3002);
-  // Internal admin fallback so the page never 500s when the BOK URL is unset.
+  // N-20 — szczegół zgłoszenia żyje w panelu BOK. Dawny fallback `/tickets/:id` prowadził
+  // do nieistniejącej trasy admina (404); bez zmiennej środowiskowej idziemy na adres produkcyjny.
   const ticketHref = (ticketId: string) =>
-    staffPanelUrl
-      ? new URL(`/tickets/${ticketId}`, staffPanelUrl).toString()
-      : `/tickets/${ticketId}`;
+    new URL(`/tickets/${ticketId}`, staffPanelUrl ?? "https://staff.verris.pl").toString();
   try {
     rows = await adminApi<AdminTicket[]>("/tickets/admin/all");
   } catch (e) {
