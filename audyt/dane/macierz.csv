@@ -218,7 +218,7 @@ K-04,K,Logi dostępu WWW (access log),TAK,TAK,TAK,TAK,TAK,BRAK,—,LUKA,WYSOKA,M
 K-05,K,Logi błędów PHP,TAK,TAK,TAK,TAK,TAK,BRAK,—,LUKA,WYSOKA,M,j.w. — bez tego klient nie zdiagnozuje własnej strony
 K-06,K,Surowe logi do pobrania,TAK,TAK,TAK,CZĘŚĆ,CZĘŚĆ,BRAK,—,LUKA,ŚREDNIA,S,
 K-07,K,Statystyki odwiedzin (AWStats/Webalizer),TAK,TAK,TAK,CZĘŚĆ,NIE,BRAK,—,POZA ZAKRESEM,NISKA,—,zastąpione własną analityką (K-12)
-K-08,K,Powiadomienia o przekroczeniu limitów,TAK,TAK,TAK,CZĘŚĆ,TAK,CZĘŚCIOWE,monitoring dostępności działa; brak alertów o limitach zasobów,CZĘŚCIOWY,ŚREDNIA,S,
+K-08,K,Powiadomienia o przekroczeniu limitów,TAK,TAK,TAK,CZĘŚĆ,TAK,DZIAŁA,"subscriptions/quota-alert.scheduler.ts (dysk/transfer z DA + CPU/RAM z UsageMetric), mail accountQuotaAlertTemplate; test quota-alert.scheduler.spec.ts",PARYTET,ŚREDNIA,S,"2026-09-23: alert istniał tylko dla dysku i transferu (PANEL-14) i sprawdzał pierwsze 500 kont bez kolejności — reszta nigdy. Teraz: wszystkie konta porcjami; CPU/RAM, gdy ≥10% próbek LVE z doby stoi na ≥90% efektywnego limitu (plan + autoskalowanie); mail z radami i linkiem do zakładki „Zużycie zasobów”; maks. 1 na 3 dni. D3: wymaga telemetrii LVE z węzła."
 K-09,K,Health-check usługi (DNS/TLS/poczta/HTTP),NIE,CZĘŚĆ,NIE,NIE,CZĘŚĆ,DZIAŁA,services.controller.ts:865,PRZEWAGA,—,—,z podpowiedziami „co zrobić”
 K-10,K,Monitoring dostępności strony,NIE,TAK,NIE,CZĘŚĆ,TAK,DZIAŁA,"services.controller.ts:147,157",PRZEWAGA,—,—,z powiadomieniami e-mail
 K-11,K,Powiadomienia o wykrytej niedostępności,NIE,TAK,NIE,CZĘŚĆ,TAK,DZIAŁA,services.controller.ts:157,PRZEWAGA,—,—,

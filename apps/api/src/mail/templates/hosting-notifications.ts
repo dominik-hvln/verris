@@ -225,7 +225,12 @@ export interface AccountQuotaAlertContext {
   domain: string;
   diskPct: number | null;
   bandwidthPct: number | null;
+  /** K-08: odsetek próbek z ostatniej doby, w których CPU / RAM był przy limicie. */
+  cpuHotPct?: number | null;
+  ramHotPct?: number | null;
   panelUrl: string;
+  /** Link przycisku (zakładka „Zużycie zasobów” usługi); bez niego — panel. */
+  ctaUrl?: string;
 }
 
 export function accountQuotaAlertTemplate(ctx: AccountQuotaAlertContext): MailMessage {
@@ -233,12 +238,21 @@ export function accountQuotaAlertTemplate(ctx: AccountQuotaAlertContext): MailMe
   const lines: string[] = [greeting, '', `Twoje konto **${escapeHtml(ctx.domain)}** zbliża się do limitów:`, ''];
   if (ctx.diskPct != null) lines.push(`- **Dysk:** wykorzystane ${ctx.diskPct}%`);
   if (ctx.bandwidthPct != null) lines.push(`- **Transfer (bież. okres):** wykorzystany ${ctx.bandwidthPct}%`);
-  lines.push('', '## Co możesz zrobić', '', '1. Usuń zbędne pliki/backupy lub wyczyść logi.', '2. Rozważ wyższy plan, jeśli potrzebujesz więcej zasobów.', '3. Szczegóły i wykresy znajdziesz w panelu (zakładka „Usage").');
+  if (ctx.cpuHotPct != null) lines.push(`- **Procesor:** przy limicie przez ${ctx.cpuHotPct}% ostatniej doby — strona może wtedy zwalniać`);
+  if (ctx.ramHotPct != null) lines.push(`- **Pamięć RAM:** przy limicie przez ${ctx.ramHotPct}% ostatniej doby — procesy mogą być przerywane`);
+  lines.push('', '## Co możesz zrobić', '');
+  const rady: string[] = [];
+  if (ctx.diskPct != null || ctx.bandwidthPct != null) rady.push('Usuń zbędne pliki i stare kopie lub wyczyść logi.');
+  if (ctx.cpuHotPct != null || ctx.ramHotPct != null)
+    rady.push('Włącz cache strony (np. LSCache dla WordPressa) i sprawdź wtyczki oraz zadania cron, które obciążają konto.');
+  rady.push('Rozważ wyższy plan albo autoskalowanie, jeśli potrzebujesz więcej zasobów.');
+  rady.push('Szczegóły i wykresy znajdziesz w panelu (zakładka „Zużycie zasobów”).');
+  rady.forEach((r, i) => lines.push(`${i + 1}. ${r}`));
   const { html, text } = renderEmailShell({
     title: `Konto ${ctx.domain} zbliża się do limitu`,
     preheader: 'Wykorzystanie zasobów konta jest wysokie.',
     bodyMarkdown: lines.join('\n'),
-    cta: { label: 'Sprawdź wykorzystanie', url: ctx.panelUrl },
+    cta: { label: 'Sprawdź wykorzystanie', url: ctx.ctaUrl ?? ctx.panelUrl },
     footnote: 'Alert wysyłany maksymalnie raz na kilka dni, gdy wykorzystanie jest wysokie.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
