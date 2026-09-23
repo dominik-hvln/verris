@@ -25,9 +25,12 @@ import {
   quotePeriodsAction,
   registerDomainClientAction,
   searchDomainsAction,
-  transferDomainAction,
+  transferDomainClientAction,
+  abonentZProfiluAction,
+  type Abonent,
   type RegistrarOrderRow,
 } from '../actions';
+import { RegistrantFields, PUSTY_ABONENT, brakiAbonenta } from './registrant-fields';
 import { trackBeginCheckout, trackPurchase, trackSearch } from '@/lib/analytics-events';
 
 const YEAR_OPTIONS = [1, 2, 3, 5, 10] as const;
@@ -169,7 +172,13 @@ export function DomainPurchaseWizard({ initialOrders }: { initialOrders: Registr
       if (r.granted) setWaiverConsent(true);
     });
   }, []);
+  // A-13 — abonent (właściciel) domeny: klient. Podpowiedź z profilu, telefon wpisuje sam.
+  const [abonent, setAbonent] = useState<Abonent>(PUSTY_ABONENT);
+  useEffect(() => {
+    void abonentZProfiluAction().then((p) => setAbonent((a) => ({ ...a, ...p })));
+  }, []);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [tr, setTr] = useState({ name: '', authCode: '', years: 1, nameservers: DEFAULT_NS.join(', ') });
   const [isPending, startTransition] = useTransition();
 
   const cleanLabel = useMemo(() => sanitizeLabel(label), [label]);
@@ -296,6 +305,7 @@ export function DomainPurchaseWizard({ initialOrders }: { initialOrders: Registr
           years,
           nameservers: [ns1, ns2].map((n) => n.trim().toLowerCase()).filter(Boolean),
           withdrawalWaiverConsent: waiverConsent,
+          registrant: abonent,
         });
         // GA4: purchase — domena płacona z Portfela, kwota z wyceny.
         // transaction_id MUSI być stabilny: `Date.now()` dawał nowy identyfikator przy
@@ -568,11 +578,22 @@ export function DomainPurchaseWizard({ initialOrders }: { initialOrders: Registr
                 <label className="block text-xs text-neutral-500">Nameserver 2</label>
                 <Input value={ns2} onChange={(e) => setNs2(e.target.value)} className="font-mono" />
               </div>
+              <div className="space-y-3">
+                <h2 className="text-lg font-semibold text-white">Abonent domeny</h2>
+                <RegistrantFields value={abonent} onChange={setAbonent} />
+              </div>
               <div className="flex justify-between gap-3">
                 <Button variant="outline" onClick={() => setStep('period')}>
                   Wstecz
                 </Button>
-                <Button className="gap-2" onClick={() => setStep('summary')}>
+                <Button
+                  className="gap-2"
+                  onClick={() => {
+                    const braki = brakiAbonenta(abonent);
+                    if (braki.length) return toast.error('Uzupełnij dane abonenta', { description: braki.join(', ') });
+                    setStep('summary');
+                  }}
+                >
                   Dalej <ArrowRight className="h-4 w-4" />
                 </Button>
               </div>
@@ -590,6 +611,13 @@ export function DomainPurchaseWizard({ initialOrders }: { initialOrders: Registr
                   <span className="text-neutral-400">Okres</span>
                   <span className="text-white">
                     {years} {years === 1 ? 'rok' : 'lat'}
+                  </span>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span className="text-neutral-400">Abonent</span>
+                  <span className="text-right text-white">
+                    {abonent.companyName ? `${abonent.companyName}, ` : ''}
+                    {abonent.firstName} {abonent.lastName}
                   </span>
                 </div>
                 <div className="flex justify-between gap-4">
@@ -722,21 +750,51 @@ export function DomainPurchaseWizard({ initialOrders }: { initialOrders: Registr
           <span className="text-xs text-neutral-500">{transferOpen ? 'Zwiń' : 'Rozwiń'}</span>
         </button>
         {transferOpen ? (
-          <form action={transferDomainAction} className="mt-6 grid gap-4 lg:grid-cols-2">
-            <Input name="name" required placeholder="twojadomena.pl" />
-            <Input name="authCode" required placeholder="Kod AuthInfo / EPP" />
-            <Input name="years" type="number" min={1} max={10} defaultValue={1} />
-            <Input
-              name="nameservers"
-              placeholder="ns1.verris.pl, ns2.verris.pl"
-              defaultValue={DEFAULT_NS.join(', ')}
-            />
-            <div className="lg:col-span-2">
-              <Button type="submit" variant="outline">
-                Zleć transfer
-              </Button>
+          <div className="mt-6 space-y-4">
+            <div className="grid gap-4 lg:grid-cols-2">
+              <Input value={tr.name} onChange={(e) => setTr({ ...tr, name: e.target.value })} placeholder="twojadomena.pl" />
+              <Input value={tr.authCode} onChange={(e) => setTr({ ...tr, authCode: e.target.value })} placeholder="Kod AuthInfo / EPP" />
+              <Input type="number" min={1} max={10} value={tr.years} onChange={(e) => setTr({ ...tr, years: Number(e.target.value) || 1 })} />
+              <Input value={tr.nameservers} onChange={(e) => setTr({ ...tr, nameservers: e.target.value })} placeholder="ns1.verris.pl, ns2.verris.pl" />
             </div>
-          </form>
+            <h3 className="text-sm font-semibold text-white">Abonent domeny po transferze</h3>
+            <RegistrantFields value={abonent} onChange={setAbonent} />
+            {/* Bez tego pola transfer zawsze kończył się błędem 400: API wymaga oświadczenia (art. 38 pkt 1 upk). */}
+            {standingConsent?.granted ? null : (
+              <label className="flex cursor-pointer items-start gap-3 text-xs text-neutral-300">
+                <input type="checkbox" checked={waiverConsent} onChange={(e) => setWaiverConsent(e.target.checked)} className="mt-0.5 h-4 w-4 accent-white" />
+                Żądam natychmiastowego rozpoczęcia transferu i przyjmuję do wiadomości, że z chwilą jego wykonania tracę prawo odstąpienia od umowy.
+              </label>
+            )}
+            <Button
+              variant="outline"
+              disabled={isPending}
+              onClick={() => {
+                const braki = [...(tr.name.trim() ? [] : ['domena']), ...(tr.authCode.trim() ? [] : ['kod AuthInfo']), ...brakiAbonenta(abonent)];
+                if (braki.length) return toast.error('Uzupełnij dane', { description: braki.join(', ') });
+                if (!waiverConsent) return toast.error('Zaznacz oświadczenie o natychmiastowym transferze.');
+                startTransition(async () => {
+                  const r = await transferDomainClientAction({
+                    name: tr.name.trim().toLowerCase(),
+                    authCode: tr.authCode.trim(),
+                    years: tr.years,
+                    nameservers: tr.nameservers.split(/\s|,/).map((x) => x.trim()).filter(Boolean),
+                    withdrawalWaiverConsent: waiverConsent,
+                    registrant: abonent,
+                  });
+                  if (!r.ok) {
+                    toast.error('Transfer nie został zlecony', { description: r.error });
+                    return;
+                  }
+                  toast.success('Transfer zlecony', { description: 'Status zobaczysz w historii zleceń.' });
+                  setTr({ name: '', authCode: '', years: 1, nameservers: DEFAULT_NS.join(', ') });
+                  router.refresh();
+                });
+              }}
+            >
+              Zleć transfer
+            </Button>
+          </div>
         ) : null}
       </section>
 

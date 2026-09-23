@@ -104,6 +104,11 @@ export const REGULY_TRAS: Regula[] = [
     po_co: 'Zarządzanie subkontami należy do właściciela; inaczej subkonto zaprasza kolejne i usuwa pozostałe.',
   },
   {
+    pasuje: (sciezka) => /^\/domains\/[^/]+\/registrar\/(authcode|registrant)(\/|$)/.test(sciezka),
+    odczyt: 'ODMOWA', zapis: 'ODMOWA',
+    po_co: 'Kod transferu i dane abonenta to przeniesienie albo przejęcie domeny — należą do właściciela (A-09, A-13).',
+  },
+  {
     pasuje: zaczyna('/users/password'),
     odczyt: 'ODMOWA', zapis: 'ODMOWA',
     po_co: 'Zmiana hasła idzie po koncie nadrzędnym sesji — dla subkonta to hasło właściciela.',

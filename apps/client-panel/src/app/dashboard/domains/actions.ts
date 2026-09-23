@@ -155,10 +155,99 @@ export async function getWaiverConsentAction(): Promise<{ granted: boolean; gran
   }
 }
 
+/** A-13 — dane abonenta domeny (właściciela). Kształt jak RegistrantDto w API. */
+export interface Abonent {
+  firstName: string;
+  lastName: string;
+  companyName?: string | null;
+  vat?: string | null;
+  street: string;
+  houseNumber: string;
+  zipcode: string;
+  city: string;
+  country: string;
+  phoneCountryCode: string;
+  phone: string;
+  email: string;
+}
+
+/** Podpowiedź danych abonenta z profilu konta (telefonu profil nie ma — klient wpisuje). */
+export async function abonentZProfiluAction(): Promise<Partial<Abonent>> {
+  try {
+    const me = await apiFetch<{
+      email?: string; firstName?: string | null; lastName?: string | null; companyName?: string | null;
+      nip?: string | null; address?: string | null; city?: string | null; postalCode?: string | null; country?: string | null;
+    }>('/users/me');
+    // „ul. Długa 5/7” → ulica „ul. Długa”, numer „5/7” (ostatni człon z cyfrą); klient i tak widzi i poprawia.
+    const adres = (me.address ?? '').trim();
+    const m = /^(.*\S)\s+(\d[\w/ -]*)$/.exec(adres);
+    return {
+      firstName: me.firstName ?? '', lastName: me.lastName ?? '', companyName: me.companyName ?? '',
+      vat: me.nip ?? '', street: m ? m[1] : adres, houseNumber: m ? m[2] : '', zipcode: me.postalCode ?? '',
+      city: me.city ?? '', country: (me.country ?? 'PL').toUpperCase(), phoneCountryCode: '+48', phone: '', email: me.email ?? '',
+    };
+  } catch {
+    return { country: 'PL', phoneCountryCode: '+48' };
+  }
+}
+
+type Wynik<T = object> = ({ ok: true } & T) | { ok: false; error: string };
+const blad = (e: unknown, d: string) => ({ ok: false as const, error: e instanceof Error ? e.message : d });
+
+export async function transferDomainClientAction(input: {
+  name: string; authCode: string; years: number; nameservers: string[];
+  withdrawalWaiverConsent: boolean; registrant: Abonent;
+}): Promise<Wynik> {
+  try {
+    await apiFetch('/domains/registrar/transfer', { method: 'POST', body: JSON.stringify(input) });
+    revalidatePath('/dashboard/domains/buy');
+    return { ok: true };
+  } catch (e) {
+    return blad(e, 'Nie udało się zlecić transferu.');
+  }
+}
+
+export async function abonentDomenyAction(id: string): Promise<Wynik<{ abonent: Abonent }>> {
+  try {
+    return { ok: true, abonent: await apiFetch<Abonent>(`/domains/${id}/registrar/registrant`) };
+  } catch (e) {
+    return blad(e, 'Nie udało się pobrać danych abonenta.');
+  }
+}
+
+export async function zapiszAbonentaAction(id: string, abonent: Abonent): Promise<Wynik<{ abonent: Abonent }>> {
+  try {
+    const a = await apiFetch<Abonent>(`/domains/${id}/registrar/registrant`, { method: 'PUT', body: JSON.stringify(abonent) });
+    return { ok: true, abonent: a };
+  } catch (e) {
+    return blad(e, 'Nie udało się zapisać danych abonenta.');
+  }
+}
+
+export async function blokadaTransferuAction(id: string, locked: boolean): Promise<Wynik> {
+  try {
+    await apiFetch(`/domains/${id}/registrar/lock`, { method: 'POST', body: JSON.stringify({ locked }) });
+    revalidatePath(`/dashboard/domains/${id}`);
+    return { ok: true };
+  } catch (e) {
+    return blad(e, 'Nie udało się zmienić blokady transferu.');
+  }
+}
+
+export async function kodTransferuAction(id: string): Promise<Wynik<{ authCode: string }>> {
+  try {
+    const r = await apiFetch<{ authCode: string }>(`/domains/${id}/registrar/authcode`, { method: 'POST' });
+    return { ok: true, authCode: r.authCode };
+  } catch (e) {
+    return blad(e, 'Nie udało się pobrać kodu transferu.');
+  }
+}
+
 export async function registerDomainClientAction(input: {
   name: string;
   years: number;
   nameservers: string[];
+  registrant: Abonent;
   /** Oświadczenie: natychmiastowa rejestracja + utrata prawa odstąpienia (art. 38 pkt 1 upk). */
   withdrawalWaiverConsent: boolean;
 }) {
@@ -169,39 +258,6 @@ export async function registerDomainClientAction(input: {
   revalidatePath('/dashboard/domains');
   revalidatePath('/dashboard/domains/buy');
 }
-
-export async function registerDomainAction(formData: FormData) {
-  const name = String(formData.get('name') ?? '').trim().toLowerCase();
-  const years = Number.parseInt(String(formData.get('years') ?? '1'), 10);
-  const nameservers = String(formData.get('nameservers') ?? '')
-    .split(/\s|,/)
-    .map((x) => x.trim())
-    .filter(Boolean);
-  const withdrawalWaiverConsent = formData.get('withdrawalWaiverConsent') === 'on';
-  await apiFetch('/domains/registrar/register', {
-    method: 'POST',
-    body: JSON.stringify({ name, years, nameservers, withdrawalWaiverConsent }),
-  });
-  revalidatePath('/dashboard/domains');
-  revalidatePath('/dashboard/domains/buy');
-}
-
-export async function transferDomainAction(formData: FormData) {
-  const name = String(formData.get('name') ?? '').trim().toLowerCase();
-  const authCode = String(formData.get('authCode') ?? '').trim();
-  const years = Number.parseInt(String(formData.get('years') ?? '1'), 10);
-  const nameservers = String(formData.get('nameservers') ?? '')
-    .split(/\s|,/)
-    .map((x) => x.trim())
-    .filter(Boolean);
-  const withdrawalWaiverConsent = formData.get('withdrawalWaiverConsent') === 'on';
-  await apiFetch('/domains/registrar/transfer', {
-    method: 'POST',
-    body: JSON.stringify({ name, authCode, years, nameservers, withdrawalWaiverConsent }),
-  });
-  revalidatePath('/dashboard/domains/buy');
-}
-
 
 /** A-10 — odnowienie domeny u rejestratora (cena → potwierdzenie → obciążenie portfela). */
 export async function renewQuoteAction(

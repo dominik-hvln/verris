@@ -1,4 +1,5 @@
-import { BadRequestException, Controller, Get, Post, Delete, Body, Param, UseGuards, Req } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Req } from '@nestjs/common';
+import { RateLimit } from '../common/guards/rate-limit.guard';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
 import { DomainsService } from './domains.service';
@@ -13,7 +14,9 @@ import {
   DomainQuotePeriodsDto,
   DomainSearchDto,
   RegisterDomainDto,
+  RegistrantDto,
   TransferDomainDto,
+  TransferLockDto,
 } from './dto/registrar.dto';
 
 @Controller('domains')
@@ -138,6 +141,31 @@ export class DomainsController {
   @Post(':id/registrar/renew')
   async renew(@Req() req, @Param('id') id: string, @Body() body: { years?: number }) {
     return this.registrar.renew(req.user.userId, req.user.principalUserId ?? req.user.userId, id, lataOdnowienia(body?.years));
+  }
+
+  /** A-13 — dane abonenta (właściciela) domeny. Tylko właściciel konta — reguła w customer-permissions. */
+  @Get(':id/registrar/registrant')
+  async registrant(@Req() req, @Param('id') id: string) {
+    return this.registrar.registrant(req.user.userId, id);
+  }
+
+  @Put(':id/registrar/registrant')
+  @RateLimit({ limit: 10, windowMs: 60 * 60 * 1000, scope: 'domains:registrant' })
+  async updateRegistrant(@Req() req, @Param('id') id: string, @Body() dto: RegistrantDto) {
+    return this.registrar.updateRegistrant(req.user.userId, req.user.principalUserId ?? req.user.userId, id, dto);
+  }
+
+  /** A-15 — blokada transferu. */
+  @Post(':id/registrar/lock')
+  async transferLock(@Req() req, @Param('id') id: string, @Body() dto: TransferLockDto) {
+    return this.registrar.setTransferLock(req.user.userId, req.user.principalUserId ?? req.user.userId, id, dto.locked);
+  }
+
+  /** A-09 — kod transferu (authinfo) do przeniesienia domeny do innego rejestratora. */
+  @Post(':id/registrar/authcode')
+  @RateLimit({ limit: 5, windowMs: 60 * 60 * 1000, scope: 'domains:authcode' })
+  async authCode(@Req() req, @Param('id') id: string) {
+    return this.registrar.authCode(req.user.userId, req.user.principalUserId ?? req.user.userId, id);
   }
 
   @Get(':id')

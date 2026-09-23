@@ -12,7 +12,8 @@ import type {
   SubscriptionPaymentSource,
 } from '@verris/contracts';
 import { createSubscriptionAction } from './actions';
-import { getWaiverConsentAction, registerDomainClientAction } from '@/app/dashboard/domains/actions';
+import { abonentZProfiluAction, getWaiverConsentAction, registerDomainClientAction, type Abonent } from '@/app/dashboard/domains/actions';
+import { RegistrantFields, PUSTY_ABONENT, brakiAbonenta } from '@/app/dashboard/domains/components/registrant-fields';
 import { DomainStep, type DomainSelection } from './domain-step';
 import { CREDIT_SHORT, formatCredits } from '@/lib/credits';
 import { trackBeginCheckout, trackPurchase } from '@/lib/analytics-events';
@@ -85,6 +86,12 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
       if (r.granted) setDomainWaiverConsent(true);
     });
   }, [domainSel.mode, standingWaiver]);
+  // A-13 — abonentem rejestrowanej domeny jest klient (podpowiedź z profilu).
+  const [abonent, setAbonent] = useState<Abonent | null>(null);
+  useEffect(() => {
+    if (domainSel.mode !== 'register' || abonent !== null) return;
+    void abonentZProfiluAction().then((p) => setAbonent({ ...PUSTY_ABONENT, ...p }));
+  }, [domainSel.mode, abonent]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<{
     daUsername: string;
@@ -214,12 +221,18 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
           setError('Wybierz domenę do rejestracji lub przełącz na własną domenę.');
           return;
         }
+        const braki = abonent ? brakiAbonenta(abonent) : ['dane abonenta'];
+        if (braki.length || !abonent) {
+          setError(`Uzupełnij dane abonenta domeny: ${braki.join(', ')}.`);
+          return;
+        }
         try {
           await registerDomainClientAction({
             name: domainSel.register.name,
             years: domainSel.register.years,
             nameservers: [],
             withdrawalWaiverConsent: domainWaiverConsent,
+            registrant: abonent,
           });
         } catch (err) {
           setError(
@@ -398,6 +411,12 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
       </section>
 
       <DomainStep value={domainSel} onChange={setDomainSel} />
+      {domainSel.mode === 'register' && abonent ? (
+        <section className="max-w-2xl space-y-3">
+          <h3 className="text-base font-semibold text-white">Abonent domeny</h3>
+          <RegistrantFields value={abonent} onChange={setAbonent} />
+        </section>
+      ) : null}
 
       <section>
         <h2 className="text-xl font-bold text-white">4. Sposób płatności</h2>

@@ -263,9 +263,12 @@ uruchomić sprzedaż/odnowienia domen w panelu, wykonaj poniższe kroki.
    osobnego tokena; my cache'ujemy bearer ~50 min.
 3. Zanotuj **username** (login konta) i **password**.
 
-### 0.2 Owner handle (kontakt registranta) — WYMAGANY
-Domeny rejestrujemy white-label pod **jednym kontaktem reselera**, żeby klient
-nigdy nie stykał się z OpenProviderem.
+### 0.2 Handle operatora (admin/tech/billing) — WYMAGANY
+**ZMIANA 2026-09-23 (A-13, decyzja właściciela):** abonentem (owner) domeny jest KLIENT — panel
+zakłada mu własny uchwyt z danych podanych przy zamówieniu (zgodnie z Regulaminem §12 ust. 4).
+Handle poniżej służy tylko jako kontakt admin/tech/billing; klient nadal nie styka się z OpenProviderem.
+Wcześniej wszystkie domeny szły na ten jeden handle jako abonenta, czyli formalnie należały do operatora.
+API: prefiks `/v1` (OpenProvider wycofuje `/v1beta`, wyłączenie 2027-06-30).
 1. **Control Panel → Customers → Create customer** (lub zakładka „Contacts”).
    Uzupełnij dane firmy/osoby reselera (Twojej firmy), zweryfikuj e-mail.
 2. Po utworzeniu skopiuj **handle** kontaktu — format `XX000000-XX`

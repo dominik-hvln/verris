@@ -27,6 +27,7 @@ import {
 } from './domain-pricing.util';
 import { NbpFxService } from './nbp-fx.service';
 import {
+  Registrant,
   RegistrarOperation,
   RegistrarOrderResult,
   RegistrarProviderFactory,
@@ -194,7 +195,7 @@ export class DomainRegistrarService {
   async register(
     userId: string,
     actorUserId: string,
-    input: { name: string; years?: number; nameservers?: string[] },
+    input: { name: string; years?: number; nameservers?: string[]; registrant: Registrant },
   ) {
     const domain = normalizeDomain(input.name);
     const provider = this.providerFactory.get();
@@ -202,6 +203,8 @@ export class DomainRegistrarService {
     if (!availability.available) {
       throw new BadRequestException('Domena nie jest dostępna do rejestracji.');
     }
+    // A-13: abonent = klient. Uchwyt przed obciążeniem portfela — błąd danych nie kosztuje klienta nic.
+    const ownerHandle = await provider.createRegistrant(input.registrant);
     const years = input.years ?? 1;
     const nameservers = sanitizeNameservers(input.nameservers);
 
@@ -230,7 +233,7 @@ export class DomainRegistrarService {
     // 3. Call the registrar; refund + fail the order on provider error.
     let result: RegistrarOrderResult;
     try {
-      result = await provider.register({ domain, years, nameservers });
+      result = await provider.register({ domain, years, nameservers, ownerHandle });
     } catch (err) {
       await this.refundAndFail(userId, order, tx.id, err, price);
       throw err;
@@ -308,10 +311,11 @@ export class DomainRegistrarService {
   async transfer(
     userId: string,
     actorUserId: string,
-    input: { name: string; authCode: string; years?: number; nameservers?: string[] },
+    input: { name: string; authCode: string; years?: number; nameservers?: string[]; registrant: Registrant },
   ) {
     const domain = normalizeDomain(input.name);
     const provider = this.providerFactory.get();
+    const ownerHandle = await provider.createRegistrant(input.registrant);
     const years = input.years ?? 1;
     const nameservers = sanitizeNameservers(input.nameservers);
 
@@ -335,7 +339,7 @@ export class DomainRegistrarService {
 
     let result: RegistrarOrderResult;
     try {
-      result = await provider.transfer({ domain, years, nameservers, authCode: input.authCode });
+      result = await provider.transfer({ domain, years, nameservers, authCode: input.authCode, ownerHandle });
     } catch (err) {
       await this.refundAndFail(userId, order, tx.id, err, price);
       throw err;
@@ -413,6 +417,84 @@ export class DomainRegistrarService {
   }
 
   /** A-10 — cena odnowienia przed potwierdzeniem (klient widzi kwotę, zanim portfel zostanie obciążony). */
+  /** A-13/A-15/A-09 — operacje na domenie u rejestratora; tylko domeny kupione przez nas. */
+  private async domenaURejestratora(userId: string, domainId: string) {
+    const domain = await this.prisma.domain.findFirst({ where: { id: domainId, userId } });
+    if (!domain) throw new NotFoundException('Domena nie została znaleziona.');
+    if (!domain.registrarExternalId) {
+      throw new BadRequestException(
+        'Ta domena nie jest zarejestrowana przez Verris — abonentem, blokadą i kodem transferu zarządzasz u jej obecnego rejestratora.',
+      );
+    }
+    return { domain, externalId: domain.registrarExternalId, provider: this.providerFactory.get() };
+  }
+
+  /** Uchwyt abonenta tej domeny; odmowa, gdy domena stoi na uchwycie operatora (rejestracje sprzed A-13). */
+  private async uchwytAbonenta(provider: ReturnType<RegistrarProviderFactory['get']>, externalId: string) {
+    const info = await provider.domainInfo(externalId);
+    if (!info.ownerHandle) throw new BadRequestException('Rejestrator nie zwrócił abonenta domeny.');
+    if (provider.operatorHandle && info.ownerHandle === provider.operatorHandle) {
+      // Edycja tego uchwytu zmieniłaby dane abonenta WSZYSTKICH takich domen naraz.
+      throw new BadRequestException(
+        'Ta domena jest zarejestrowana na dane operatora. Przepisanie jej na Ciebie robimy ręcznie — napisz zgłoszenie.',
+      );
+    }
+    return info.ownerHandle;
+  }
+
+  async registrant(userId: string, domainId: string) {
+    const { externalId, provider } = await this.domenaURejestratora(userId, domainId);
+    return provider.getRegistrant(await this.uchwytAbonenta(provider, externalId));
+  }
+
+  async updateRegistrant(userId: string, actorUserId: string, domainId: string, next: Registrant) {
+    const { domain, externalId, provider } = await this.domenaURejestratora(userId, domainId);
+    const handle = await this.uchwytAbonenta(provider, externalId);
+    const obecny = await provider.getRegistrant(handle);
+    const norm = (v?: string | null) => (v ?? '').trim().toLowerCase();
+    if (norm(obecny.firstName) !== norm(next.firstName) || norm(obecny.lastName) !== norm(next.lastName)
+      || norm(obecny.companyName) !== norm(next.companyName)) {
+      // Rejestrator nie zmienia imienia, nazwiska ani firmy abonenta — to cesja domeny, nie poprawka danych.
+      throw new BadRequestException(
+        'Zmiana właściciela domeny (imię, nazwisko, firma) to cesja — wymaga zgłoszenia. Adres, telefon, e-mail i NIP zmienisz tutaj.',
+      );
+    }
+    await provider.updateRegistrant(handle, next);
+    await this.audit.record({
+      action: 'DOMAIN_REGISTRANT_UPDATED',
+      userId,
+      actorUserId,
+      details: { domain: domain.name },
+    });
+    return provider.getRegistrant(handle);
+  }
+
+  async setTransferLock(userId: string, actorUserId: string, domainId: string, locked: boolean) {
+    const { domain, externalId, provider } = await this.domenaURejestratora(userId, domainId);
+    await provider.setTransferLock(externalId, locked);
+    await this.prisma.domain.update({ where: { id: domain.id }, data: { transferLock: locked, lastRegistrarSyncAt: new Date() } });
+    await this.audit.record({
+      action: locked ? 'DOMAIN_TRANSFER_LOCKED' : 'DOMAIN_TRANSFER_UNLOCKED',
+      userId,
+      actorUserId,
+      details: { domain: domain.name },
+    });
+    return { transferLock: locked };
+  }
+
+  async authCode(userId: string, actorUserId: string, domainId: string) {
+    const { domain, externalId, provider } = await this.domenaURejestratora(userId, domainId);
+    const code = await provider.authCode(externalId);
+    // Samego kodu nie zapisujemy — w audycie tylko fakt wyświetlenia.
+    await this.audit.record({
+      action: 'DOMAIN_AUTHCODE_REVEALED',
+      userId,
+      actorUserId,
+      details: { domain: domain.name },
+    });
+    return { authCode: code, transferLock: domain.transferLock };
+  }
+
   async renewQuote(userId: string, domainId: string, years = 1) {
     const domain = await this.prisma.domain.findFirst({ where: { id: domainId, userId } });
     if (!domain) throw new NotFoundException('Domena nie została znaleziona.');

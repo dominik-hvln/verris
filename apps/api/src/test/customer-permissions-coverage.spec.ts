@@ -88,7 +88,14 @@ const ODMOWA_OCZEKIWANA: ReadonlyArray<string> = [
   'POST /servers/handshake',
   'POST /users/iam/invites',
   'POST /users/iam/invites/accept',
+  // A-09/A-13: kod transferu i dane abonenta domeny — przeniesienie albo przejęcie domeny.
+  'GET /domains/:id/registrar/registrant',
+  'PUT /domains/:id/registrar/registrant',
+  'POST /domains/:id/registrar/authcode',
 ];
+
+/** Trasy domen świadomie zamknięte (właściciel) — wyjątek od „nic w hostingu/domenach nie zamknięte”. */
+const DOMENY_WLASCICIELA = /^\/domains\/:id\/registrar\/(authcode|registrant)$/;
 
 function plikiTs(katalog: string): string[] {
   let out: string[] = [];
@@ -150,7 +157,7 @@ describe('Z-04 — pokrycie tras klasyfikacją uprawnień subkont', () => {
 
   it('żadna trasa hostingu ani rozliczeń nie została przy okazji zamknięta', () => {
     const wrazliwe = trasy.filter((t) =>
-      /\/(services|subscriptions|billing|domains|tickets)(\/|$)/.test(t.sciezka),
+      /\/(services|subscriptions|billing|domains|tickets)(\/|$)/.test(t.sciezka) && !DOMENY_WLASCICIELA.test(t.sciezka),
     );
     expect(wrazliwe.length).toBeGreaterThan(50);
     const zamkniete = wrazliwe

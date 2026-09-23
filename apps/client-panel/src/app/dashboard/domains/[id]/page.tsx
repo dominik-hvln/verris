@@ -1,5 +1,6 @@
 import { CopyValue } from '@/components/panel/v2';
 import { DomainRenewBox } from './domain-renew-box';
+import { DomainRegistrarBox } from './domain-registrar-box';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api';
 import type { DomainDto, ServiceSummaryDto } from '@verris/contracts';
@@ -148,6 +149,10 @@ export default async function DomainDetailsPage({ params }: { params: Promise<{ 
       </div>
 
       {domain.expiresAt ? <DomainRenewBox domainId={domain.id} expiresAt={domain.expiresAt} /> : null}
+
+      {domain.registrarExternalId ? (
+        <DomainRegistrarBox domainId={domain.id} transferLock={domain.transferLock ?? true} />
+      ) : null}
 
       {domain.verification ? (
         <div className="rounded-2xl border border-amber-500/25 bg-amber-500/[0.06] p-6 text-sm text-neutral-200">
