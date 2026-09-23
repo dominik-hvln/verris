@@ -56,11 +56,11 @@ export CERTBOT_EMAIL='admin@verris.pl'
 bash /root/node-wildcard-tls-ovh.sh
 ```
 
-Albo z Maca (skrypt z repo):
+Albo z panelu (węzły nie przyjmują SSH z internetu):
 
 ```bash
-scp -i ~/.ssh/verris_cursor_deploy ops/scripts/node-wildcard-tls-ovh.sh root@62.238.0.223:/root/
-ssh -i ~/.ssh/verris_cursor_deploy root@62.238.0.223 \
+scp -i /root/.ssh/verris_node_deploy /opt/verris/ops/scripts/node-wildcard-tls-ovh.sh root@<IP_węzła>:/root/
+ssh -i /root/.ssh/verris_node_deploy root@<IP_węzła> \
   'OVH_APP_KEY=... OVH_APP_SECRET=... OVH_CONSUMER_KEY=... CERTBOT_EMAIL=admin@verris.pl bash /root/node-wildcard-tls-ovh.sh'
 ```
 

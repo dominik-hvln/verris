@@ -43,9 +43,9 @@ chmod 700 /root/.ssh
 
 if [ ! -f /root/.ssh/verris_node_deploy ]; then
   log "WARN: brak /root/.ssh/verris_node_deploy"
-  log "  Skopiuj klucz deploy (ten sam pubkey co na węzłach):"
-  log "  scp -i ~/.ssh/verris_cursor_deploy ~/.ssh/verris_cursor_deploy root@CP:/root/.ssh/verris_node_deploy"
-  log "  chmod 600 /root/.ssh/verris_node_deploy"
+  log "  Wygeneruj klucz NA PANELU (prywatny nigdy go nie opuszcza):"
+  log "  ssh-keygen -t ed25519 -N '' -C verris-cp-node@Panel -f /root/.ssh/verris_node_deploy"
+  log "  i wpisz /root/.ssh/verris_node_deploy.pub do VERRIS_NODE_DEPLOY_SSH_PUBKEY w .env.prod"
   die "Dodaj klucz SSH przed kontynuacją"
 fi
 chmod 600 /root/.ssh/verris_node_deploy

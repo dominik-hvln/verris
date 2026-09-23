@@ -16,7 +16,7 @@ Control-plane (204.168.174.138)
 | Skrypt główny | `ops/scripts/verris-node-wildcard-tls.sh` |
 | Bootstrap (jednorazowo) | `ops/scripts/verris-node-wildcard-tls-bootstrap.sh` |
 | OVH credentials | `/root/.secrets/ovh-dns.ini` (chmod 600, **nie w repo**) |
-| SSH → węzły | `/root/.ssh/verris_node_deploy` (ten sam pubkey co `verris_cursor_deploy`) |
+| SSH → węzły | `/root/.ssh/verris_node_deploy` (para wygenerowana na panelu, prywatna nie opuszcza serwera) |
 | Log | `/var/log/verris-node-tls.log` |
 | Cron | `/etc/cron.d/verris-node-wildcard-tls` (pon 04:00) |
 
@@ -27,10 +27,9 @@ Wymaga `VERRIS_NODE_DEPLOY_SSH_PUBKEY` w `.env.prod` (pubkey do SSH root@węzły
 Bootstrap węzła **automatycznie** dodaje ten klucz do `/root/.ssh/authorized_keys`. Agent `verris-tasks` utrzymuje go przy każdym pollu.
 
 ```bash
-# 1) Klucz prywatny na control-plane (jednorazowo, jeśli brak)
-scp -i ~/.ssh/verris_cursor_deploy ~/.ssh/verris_cursor_deploy \
-  root@204.168.174.138:/root/.ssh/verris_node_deploy
-ssh root@204.168.174.138 'chmod 600 /root/.ssh/verris_node_deploy'
+# 1) Klucz na control-plane (jednorazowo, jeśli brak) — generowany NA PANELU
+ssh root@204.168.174.138 "ssh-keygen -t ed25519 -N '' -C verris-cp-node@Panel -f /root/.ssh/verris_node_deploy && cat /root/.ssh/verris_node_deploy.pub"
+#    → wpisz wypisany pubkey do VERRIS_NODE_DEPLOY_SSH_PUBKEY w /opt/verris/.env.prod
 
 # 2) OVH API (DNS-01) — plik ini lub env (patrz OVH_WILDCARD_TLS_SETUP.md)
 
