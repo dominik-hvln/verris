@@ -15,6 +15,8 @@ registry-1.docker.io
 auth.docker.io
 production.cloudflare.docker.com
 index.docker.io
+# Zapas dla obrazu Node w migracji www (prod-migrate-www.sh), gdy Docker Hub nie odpowiada.
+mirror.gcr.io
 # --- GHCR: stąd idą NASZE obrazy (X-36) ---
 # Brak tych dwóch pozycji sprawiał, że pobieranie obrazów wpadało pod licznik
 # anty-skanu. 2026-08-24 o 22:00 UTC przewróciło to wdrożenie #77: 63 dropy

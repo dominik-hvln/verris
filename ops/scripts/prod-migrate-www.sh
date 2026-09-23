@@ -36,6 +36,19 @@ PL_SECRET="$(val PAYLOAD_SECRET)"
 
 echo "[migrate-www] sieć=$NET db=$PG_DB user=$PG_USER"
 
+# Obraz Node z Docker Huba jest jedyną rzeczą w deployu spoza ghcr.io, a prune przed pull
+# usuwa go przy każdym wdrożeniu. 2026-09-23: auth.docker.io odpowiadał „TLS handshake
+# timeout” i deploy stanął, choć wszystkie obrazy aplikacji były już pobrane. Zapas: mirror
+# Google (mirror.gcr.io) serwuje te same oficjalne obrazy; po pobraniu tagujemy pod
+# oryginalną nazwą, więc reszta skryptu się nie zmienia.
+if ! docker image inspect "$NODE_IMAGE" >/dev/null 2>&1; then
+  if ! docker pull -q "$NODE_IMAGE"; then
+    echo "[migrate-www] WARN: Docker Hub nie odpowiada — próbuję mirror.gcr.io/library/$NODE_IMAGE"
+    docker pull -q "mirror.gcr.io/library/$NODE_IMAGE"
+    docker tag "mirror.gcr.io/library/$NODE_IMAGE" "$NODE_IMAGE"
+  fi
+fi
+
 docker run --rm \
   --network "$NET" \
   -v "$PWD":/repo -w /repo/apps/www \
