@@ -43,9 +43,9 @@ datasources:
     url: postgres:5432
     user: grafana_ro
     secureJsonData:
-      password: ${GRAFANA_DB_RO_PASSWORD}
+      password: "${GRAFANA_DB_RO_PASSWORD}"
     jsonData:
-      database: ${POSTGRES_DB}
+      database: "${POSTGRES_DB}"
       sslmode: disable
       maxOpenConns: 10
       maxIdleConns: 5

@@ -19,7 +19,9 @@ contactPoints:
       - uid: verris-ops-telegram
         type: telegram
         settings:
-          bottoken: $GF_ALERT_TELEGRAM_BOT_TOKEN
-          chatid: $GF_ALERT_TELEGRAM_CHAT_ID
+          # W cudzysłowie: Grafana podstawia zmienne w surowym tekście PRZED parsowaniem YAML,
+          # więc chat id bez cudzysłowu (0 albo -100…) staje się liczbą i Grafana nie wstaje.
+          bottoken: "$GF_ALERT_TELEGRAM_BOT_TOKEN"
+          chatid: "$GF_ALERT_TELEGRAM_CHAT_ID"
           disable_notification: false
         disableResolveMessage: false
