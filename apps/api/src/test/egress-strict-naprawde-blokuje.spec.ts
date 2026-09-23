@@ -29,6 +29,8 @@ interface Scena {
   /** Ile dni temu zaczął się pomiar; `null` = brak pliku z datą. */
   pomiarOdDni: number | null;
   argumenty: string[];
+  /** SEC-03: pusty plik resolwerów DNS. */
+  pustyDns?: boolean;
 }
 
 function uruchom(s: Scena) {
@@ -46,6 +48,8 @@ function uruchom(s: Scena) {
   writeFileSync(join(sec, 'ioc-ips.txt'), '');
   writeFileSync(join(sec, 'egress-allow-hostnames.txt'), '');
   writeFileSync(join(sec, 'egress-allow-nets.txt'), '140.82.112.0/20\n');
+  writeFileSync(join(sec, 'egress-allow-dns.txt'), s.pustyDns ? '# pusto\n' : '185.12.64.1\n185.12.64.2\n');
+  writeFileSync(join(sec, 'egress-allow-smtp.txt'), '178.63.123.4\n');
   if (s.pomiarOdDni !== null) {
     writeFileSync(
       join(sec, 'egress-pomiar-od'),
@@ -111,8 +115,8 @@ const DROP_STRICT = /-A VERRIS_EGRESS_STRICT .*-j DROP .*verris-strict-egress-ho
 describe('SEC-01 — strict naprawdę odrzuca', () => {
   it('po tygodniu pomiaru z pełnym pokryciem zakłada regułę DROP i kończy się zerem', () => {
     const r = uruchom({
-      zmierzone: ['140.82.121.33,tcp:443', '8.8.8.8,udp:53'],
-      wAllowliscie: ['140.82.121.33'],
+      zmierzone: ['140.82.121.33,tcp:443', '185.12.64.1,udp:53'],
+      wAllowliscie: ['140.82.121.33', '185.12.64.1'],
       pomiarOdDni: 8,
       argumenty: ['--strict'],
     });
@@ -189,14 +193,47 @@ describe('SEC-06 (warunek wstępny) — strict nie odetnie ruchu, którego nikt 
     expect(r.wywolania.some((w) => DROP_STRICT.test(w))).toBe(true);
   });
 
-  it('cele spoza 80/443 (DNS, SMTP) nie blokują strict, który ich nie dotyczy', () => {
+  it('cele spoza strict (np. rspamd fuzzy na UDP 11335) nie blokują włączenia', () => {
     const r = uruchom({
-      zmierzone: ['9.9.9.9,udp:53', '1.1.1.1,tcp:25'],
+      zmierzone: ['80.241.57.6,udp:11335'],
       wAllowliscie: [],
       pomiarOdDni: 8,
       argumenty: ['--strict'],
     });
     expect(r.kod).toBe(0);
+  });
+});
+
+describe('SEC-03 — strict obejmuje DNS i SMTP', () => {
+  it('DNS i SMTP do celów z list: strict zakłada DROP dla 53 (udp+tcp) i 25/465/587', () => {
+    const r = uruchom({
+      zmierzone: ['185.12.64.1,udp:53', '178.63.123.4,tcp:25'],
+      wAllowliscie: ['185.12.64.1', '178.63.123.4'],
+      pomiarOdDni: 8,
+      argumenty: ['--strict'],
+    });
+    expect(r.kod).toBe(0);
+    for (const p of ['udp', 'tcp']) {
+      expect(r.wywolania.some((w) => new RegExp(`-A VERRIS_EGRESS_STRICT -p ${p} --dport 53 .*verris_egress_dns.*-j DROP`).test(w))).toBe(true);
+    }
+    expect(r.wywolania.some((w) => /-A VERRIS_EGRESS_STRICT -p tcp -m multiport --dports 25,465,587 .*verris_egress_smtp.*-j DROP/.test(w))).toBe(true);
+    expect(r.wywolania).toContain('ipset add verris_egress_dns_new 185.12.64.2 -exist');
+  });
+
+  it.each([
+    ['9.9.9.9,udp:53', 'obcy resolwer (np. tunel DNS)'],
+    ['1.2.3.4,tcp:587', 'obcy serwer SMTP'],
+  ])('odmawia strict, gdy host łączył się z %s — %s', (cel) => {
+    const r = uruchom({ zmierzone: [cel], wAllowliscie: [], pomiarOdDni: 8, argumenty: ['--strict'] });
+    expect(r.kod).toBe(1);
+    expect(r.wyjscie).toContain(cel);
+    expect(r.wywolania.some((w) => DROP_STRICT.test(w))).toBe(false);
+  });
+
+  it('pusta lista DNS = odmowa, a nie strict bez resolwera', () => {
+    const r = uruchom({ zmierzone: [], wAllowliscie: [], pomiarOdDni: 8, argumenty: ['--strict'], pustyDns: true });
+    expect(r.kod).toBe(1);
+    expect(r.wyjscie).toContain('Lista DNS');
   });
 });
 

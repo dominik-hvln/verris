@@ -31,6 +31,14 @@ CHAIN_FWD_META="VERRIS_FWD_METADANE"
 # Wcześniej siedziała jako `local setname` wewnątrz apply_strict_allowlist i nie
 # dało się jej użyć nigdzie indziej.
 ALLOW_SET="${ALLOW_SET:-verris_egress_https}"
+# SEC-03 — strict obejmuje też DNS (53) i pocztę (25/465/587). Host rozmawia
+# z dwoma resolwerami Hetznera i jednym przekaźnikiem SMTP (pomiar 2026-09-23),
+# więc wszystko inne na tych portach to albo błąd konfiguracji, albo wyciek
+# (tunel DNS, spam z przejętego procesu). Pliki: adresy/CIDR albo nazwy.
+ALLOW_DNS_SET="${ALLOW_DNS_SET:-verris_egress_dns}"
+ALLOW_SMTP_SET="${ALLOW_SMTP_SET:-verris_egress_smtp}"
+ALLOW_DNS="${ALLOW_DNS:-$SECURITY_DIR/egress-allow-dns.txt}"
+ALLOW_SMTP="${ALLOW_SMTP:-$SECURITY_DIR/egress-allow-smtp.txt}"
 
 # SEC-05 — ZAPIS, NIE PRÓBKA.
 #
@@ -114,8 +122,9 @@ security-control-plane-egress.sh
   Instaluje reguły iptables na hoście (bez flush Docker NAT).
 
 Opcje:
-  --allowlist  Buduje/odświeża TYLKO ipset z allow-hostnames. Nic nie blokuje.
-  --strict     Ogranicza NOWE połączenia TCP/80 i TCP/443 do ipset z allow-hostnames.
+  --allowlist  Buduje/odświeża TYLKO zbiory allowlist (WWW, DNS, SMTP). Nic nie blokuje.
+  --strict     Ogranicza NOWE połączenia TCP/80 i TCP/443 do ipset z allow-hostnames,
+               DNS (53) do egress-allow-dns.txt, SMTP (25/465/587) do egress-allow-smtp.txt.
                SEC-01: naprawdę odrzuca. Odmawia (kod 1), jeśli pomiar (--pomiar)
                trwa krócej niż POMIAR_MIN_DNI dni albo widział cele 80/443
                spoza allowlisty — wtedy strict odciąłby coś, co host robi.
@@ -158,9 +167,11 @@ install -d "$SECURITY_DIR"
 if [ ! -f "$IOC_FILE" ]; then
   install -m 0644 "$REPO_ROOT/ops/etc/verris/security/ioc-ips.txt" "$IOC_FILE"
 fi
-if [ ! -f "$ALLOW_NETS" ] && [ -f "$REPO_ROOT/ops/etc/verris/security/egress-allow-nets.txt" ]; then
-  install -m 0644 "$REPO_ROOT/ops/etc/verris/security/egress-allow-nets.txt" "$ALLOW_NETS"
-fi
+for _plik in "$ALLOW_NETS" "$ALLOW_DNS" "$ALLOW_SMTP"; do
+  if [ ! -f "$_plik" ] && [ -f "$REPO_ROOT/ops/etc/verris/security/$(basename "$_plik")" ]; then
+    install -m 0644 "$REPO_ROOT/ops/etc/verris/security/$(basename "$_plik")" "$_plik"
+  fi
+done
 
 apply_ioc_drop() {
   run "iptables -N '$CHAIN_IOC' 2>/dev/null || iptables -F '$CHAIN_IOC'"
@@ -347,6 +358,46 @@ zbuduj_ipset_allow() {
   run "ipset swap '$tmpset' '$setname'"
   run "ipset destroy '$tmpset'"
   log "ipset $setname: $added adresów (podmiana atomowa)"
+  zbuduj_zbior_z_pliku "$ALLOW_DNS_SET" "$ALLOW_DNS" "DNS"
+  zbuduj_zbior_z_pliku "$ALLOW_SMTP_SET" "$ALLOW_SMTP" "SMTP"
+}
+
+# SEC-03 — zbiór z pliku: wiersz to adres, CIDR albo nazwa (rozwiązywana teraz).
+# Pusty = odmowa: strict z pustą listą DNS odciąłby serwerowi rozwiązywanie
+# nazw, a z pustą SMTP — całą pocztę systemową.
+zbuduj_zbior_z_pliku() {
+  local setname="$1" plik="$2" opis="$3" tmpset="${1}_new" wpis ip added=0
+  [ -f "$plik" ] || die "Brak $plik — lista $opis jest wymagana (SEC-03)"
+  run "ipset create '$setname' hash:net family inet -exist"
+  run "ipset create '$tmpset' hash:net family inet -exist"
+  run "ipset flush '$tmpset'"
+  while IFS= read -r wpis || [ -n "$wpis" ]; do
+    wpis="${wpis%%#*}"
+    wpis="$(echo "$wpis" | tr -d '[:space:]')"
+    [ -z "$wpis" ] && continue
+    if [[ "$wpis" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(/[0-9]+)?$ ]]; then
+      run "ipset add '$tmpset' '$wpis' -exist"; added=$((added + 1))
+      continue
+    fi
+    while read -r ip; do
+      [ -z "$ip" ] && continue
+      run "ipset add '$tmpset' '$ip' -exist"; added=$((added + 1))
+    done < <(getent ahostsv4 "$wpis" 2>/dev/null | awk '{print $1}' | sort -u)
+  done <"$plik"
+  [ "$added" -gt 0 ] || die "Lista $opis ($plik) jest pusta albo nic się nie rozwiązało — strict odciąłby cały ruch $opis"
+  run "ipset swap '$tmpset' '$setname'"
+  run "ipset destroy '$tmpset'"
+  log "ipset $setname ($opis): $added adresów"
+}
+
+# Który zbiór allowlisty obejmuje dany cel pomiaru (protokół, port).
+# Pusto = cel, którego strict nie dotyczy.
+zbior_dla_celu() {
+  case "$1:$2" in
+    tcp:80|tcp:443) echo "$ALLOW_SET" ;;
+    tcp:53|udp:53) echo "$ALLOW_DNS_SET" ;;
+    tcp:25|tcp:465|tcp:587) echo "$ALLOW_SMTP_SET" ;;
+  esac
 }
 
 # ---------------------------------------------------------------------------
@@ -393,21 +444,21 @@ w_bogonach() {
   return 1
 }
 
-# Cele 80/443 zmierzone na hoście, których nie ma w allowliście. Wypisuje po
-# jednym na linię; pusto = allowlista pokrywa wszystko, co host robił.
-# Pomija zakresy bogonów — patrz w_bogonach.
+# Cele zmierzone na hoście (80/443, DNS, SMTP), których nie ma w odpowiedniej
+# allowliście. Wypisuje po jednym na linię; pusto = allowlisty pokrywają
+# wszystko, co host robił. Pomija zakresy bogonów — patrz w_bogonach.
 cele_spoza_allowlisty() {
-  local wpis rest proto port ip
+  local wpis rest proto port ip zbior
   while read -r wpis; do
     [ -z "$wpis" ] && continue
     ip="${wpis%%,*}"
     rest="${wpis#*,}"
     proto="${rest%%:*}"
     port="${rest#*:}"
-    [ "$proto" = "tcp" ] || continue
-    case "$port" in 80|443) ;; *) continue ;; esac
+    zbior="$(zbior_dla_celu "$proto" "$port")"
+    [ -n "$zbior" ] || continue
     w_bogonach "$ip" && continue
-    ipset test "$ALLOW_SET" "$ip" >/dev/null 2>&1 || echo "$wpis"
+    ipset test "$zbior" "$ip" >/dev/null 2>&1 || echo "$wpis"
   done < <(ipset list "$SEEN_SET" 2>/dev/null | awk '/^Members:/{m=1; next} m && NF {print $1}')
 }
 
@@ -430,11 +481,11 @@ sprawdz_pomiar_przed_strict() {
   local spoza
   spoza="$(cele_spoza_allowlisty)"
   if [ -n "$spoza" ]; then
-    log "Cele 80/443 zmierzone na hoście, których NIE MA w allowliście:"
+    log "Cele (80/443, DNS, SMTP) zmierzone na hoście, których NIE MA w allowliście:"
     printf '%s\n' "$spoza" | while read -r w; do log "  $w"; done
     die "Strict odciąłby powyższe. Dopisz je do allowlisty (albo wyjaśnij, czemu mają zostać odcięte) i uruchom ponownie. (SEC-06)"
   fi
-  log "Pomiar: ${dni} d, wszystkie cele 80/443 hosta są w allowliście — strict niczego znanego nie odetnie."
+  log "Pomiar: ${dni} d, wszystkie cele 80/443, DNS i SMTP hosta są w allowlistach — strict niczego znanego nie odetnie."
 }
 
 apply_strict_allowlist() {
@@ -451,14 +502,25 @@ apply_strict_allowlist() {
   run "iptables -A '$chain' -o br-+ -j RETURN"
   run "iptables -A '$chain' -p tcp -m multiport --dports 80,443 -m set ! --match-set '$setname' dst -m conntrack --ctstate NEW -m limit --limit 30/min --limit-burst 30 -j LOG --log-prefix 'VERRIS-STRICT-DROP ' --log-level 4"
   run "iptables -A '$chain' -p tcp -m multiport --dports 80,443 -m set ! --match-set '$setname' dst -m conntrack --ctstate NEW -j DROP -m comment --comment 'verris-strict-egress-host'"
+  # SEC-03 — DNS tylko do resolwerów z listy, poczta tylko przez przekaźnik.
+  local proto
+  for proto in udp tcp; do
+    run "iptables -A '$chain' -p $proto --dport 53 -m set ! --match-set '$ALLOW_DNS_SET' dst -m conntrack --ctstate NEW -m limit --limit 30/min --limit-burst 30 -j LOG --log-prefix 'VERRIS-STRICT-DNS ' --log-level 4"
+    run "iptables -A '$chain' -p $proto --dport 53 -m set ! --match-set '$ALLOW_DNS_SET' dst -m conntrack --ctstate NEW -j DROP -m comment --comment 'verris-strict-egress-dns'"
+  done
+  run "iptables -A '$chain' -p tcp -m multiport --dports 25,465,587 -m set ! --match-set '$ALLOW_SMTP_SET' dst -m conntrack --ctstate NEW -m limit --limit 30/min --limit-burst 30 -j LOG --log-prefix 'VERRIS-STRICT-SMTP ' --log-level 4"
+  run "iptables -A '$chain' -p tcp -m multiport --dports 25,465,587 -m set ! --match-set '$ALLOW_SMTP_SET' dst -m conntrack --ctstate NEW -j DROP -m comment --comment 'verris-strict-egress-smtp'"
   run "iptables -A '$chain' -j RETURN"
 
   # Kontrola po fakcie: łańcuch, który „powinien" odrzucać, a nie odrzuca, to
   # dokładnie stan sprzed tej poprawki. Tym razem mówimy o tym kodem wyjścia.
-  if [ "$DRY_RUN" -eq 0 ] && ! iptables -S "$chain" 2>/dev/null | grep -- 'verris-strict-egress-host' >/dev/null; then
-    die "Łańcuch $chain nie zawiera reguły DROP po założeniu — strict NIE działa."
-  fi
-  log "STRICT egress hosta: NOWE TCP/80,443 poza ipset $setname → DROP (kontenery: FORWARD, nie dotyczy)"
+  local regula
+  for regula in verris-strict-egress-host verris-strict-egress-dns verris-strict-egress-smtp; do
+    if [ "$DRY_RUN" -eq 0 ] && ! iptables -S "$chain" 2>/dev/null | grep -- "$regula" >/dev/null; then
+      die "Łańcuch $chain nie zawiera reguły $regula po założeniu — strict NIE działa."
+    fi
+  done
+  log "STRICT egress hosta: NOWE TCP/80,443 poza $setname, DNS poza $ALLOW_DNS_SET, SMTP poza $ALLOW_SMTP_SET → DROP (kontenery: FORWARD, nie dotyczy)"
 }
 
 # ---------------------------------------------------------------------------
@@ -578,7 +640,7 @@ apply_egress_seen() {
 }
 
 raport_pomiaru() {
-  local zbior tytul wpis ip w_allow rev licz
+  local zbior tytul wpis ip w_allow rev licz rest zb
   for zbior in "$SEEN_SET" "$SEEN_SET_FWD"; do
     if [ "$zbior" = "$SEEN_SET" ]; then tytul="HOST (OUTPUT)"; else tytul="KONTENERY (FORWARD)"; fi
     echo "=== ${tytul}: ${zbior} ==="
@@ -591,7 +653,10 @@ raport_pomiaru() {
     ipset list "$zbior" 2>/dev/null | awk '/^Members:/{m=1; next} m && NF {p="?"; for(i=2;i<=NF;i++) if($i=="packets") p=$(i+1); print $1, p}' \
       | sort -k2,2nr | while read -r wpis licz; do
           ip="${wpis%%,*}"
-          if ipset test "$ALLOW_SET" "$ip" >/dev/null 2>&1; then w_allow="tak"
+          rest="${wpis#*,}"
+          zb="$(zbior_dla_celu "${rest%%:*}" "${rest#*:}")"
+          if [ -z "$zb" ]; then w_allow="-"
+          elif ipset test "$zb" "$ip" >/dev/null 2>&1; then w_allow="tak"
           elif w_bogonach "$ip"; then w_allow="bogon"
           else w_allow="NIE"; fi
           rev="$( { getent hosts "$ip" 2>/dev/null || true; } | awk 'NR==1{print $2}')"
@@ -609,8 +674,8 @@ raport_pomiaru() {
       echo "${etykieta}: nieznane ($plik)"
     fi
   done
-  echo "ALLOW: tak = w allowliście; bogon = sieć prywatna/link-local, już odcinana przez VERRIS_EGRESS_BOGON (nie liczy się do strict)"
-  echo "Cele 80/443 hosta spoza allowlisty (to odciąłby strict):"
+  echo "ALLOW: tak = w allowliście; bogon = sieć prywatna/link-local, już odcinana przez VERRIS_EGRESS_BOGON; - = port, którego strict nie dotyczy"
+  echo "Cele 80/443, DNS i SMTP hosta spoza allowlist (to odciąłby strict):"
   local spoza
   spoza="$(cele_spoza_allowlisty)"
   if [ -n "$spoza" ]; then printf '  %s\n' $spoza; else echo "  brak"; fi

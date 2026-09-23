@@ -1,0 +1,6 @@
+# SEC-03 — resolwery DNS, z którymi host control-plane może rozmawiać przy --strict.
+# Pomiar 2026-09-23 (--pomiar): host pyta wyłącznie resolwery Hetznera.
+# Lokalny stub systemd-resolved (127.0.0.53) idzie przez lo — nie dotyczy.
+# Zmiana resolwera = najpierw wpis tutaj, potem zmiana w systemie.
+185.12.64.1
+185.12.64.2
