@@ -29,6 +29,11 @@ operatora, backup, rozliczenia), potem zapora control-plane i strict, dokumenty,
 ścieżka pierwszego klienta, GO. Po starcie: asystent wykonujący akcje, tryb agencji, bezpieczne
 aktualizacje WP z testem wizualnym, MCP, checklisty RODO/dostępności.
 
+### 2026-09-23 — nawigacja: nic nie wymaga szukania (PB-23)
+Każdy widok w panelu klienta, admina i staff ma wejście z menu albo z zakładki logicznego rodzica.
+Nowa strona bez wejścia w nawigacji = niedokończona. Wyjątki (szczegóły rekordu, kroki kreatora)
+tylko na jawnej liście przy strażniku w CI.
+
 ### 2026-09-23 — dostęp SSH do produkcji
 Root na panelu ma dokładnie dwa klucze: operatora (Termius) i CI (`verris-ci-deploy`, tylko w sekretach
 GitHuba). Klucz Cursora i stary `panel-app-key` wycofane. Panel → węzły: osobna para
