@@ -23,7 +23,7 @@ const KEYWORDS: Record<Exclude<TicketCategory, 'INNE'>, string[]> = {
   SSL: ['ssl', 'certyfikat', 'https', 'klodk', 'niezabezpieczon', 'lets encrypt', "let's encrypt", 'nie jest bezpieczna'],
   POCZTA: ['poczt', 'e-mail', 'email', 'mail', 'skrzynk', 'spam', 'smtp', 'imap', 'outlook', 'thunderbird', 'dkim', 'spf', 'dmarc', 'wiadomosc nie dochodzi'],
   DNS: ['dns', 'rekord', 'domen', 'nameserver', 'serwery nazw', 'propagac', 'cname', 'wskazuje', 'rejestrator'],
-  AWARIA: ['nie dziala', 'awaria', 'blad 500', ' 500', '502', '503', '504', 'lezy', 'nie otwiera', 'nie laduje', 'timeout', 'biala strona', 'error'],
+  AWARIA: ['nie dziala', 'awaria', 'blad 500', ' 500', '502', '503', '504', ' lezy', 'nie otwiera', 'nie laduje', 'timeout', 'biala strona', 'error'],
 };
 // Przy remisie wygrywa kategoria konkretna; „awaria” jest ostatnia, bo
 // „poczta nie działa” to problem z pocztą, nie ogólna awaria.

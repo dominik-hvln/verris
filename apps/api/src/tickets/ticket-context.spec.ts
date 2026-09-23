@@ -23,6 +23,7 @@ describe('PB-18 klasyfikacja zgłoszeń', () => {
     ['Przeniesienie strony', 'Chcę przenieść sklep z innego hostingu', 'MIGRACJA'],
     ['Strona leży', 'Od rana błąd 500, nic się nie otwiera', 'AWARIA'],
     ['Pytanie', 'Czy macie ofertę dla fundacji?', 'INNE'],
+    ['Konto', 'Co należy zrobić, żeby dodać drugiego użytkownika?', 'INNE'],
   ])('%s → %s', (subject, message, expected) => {
     expect(classifyTicket({ subject, message })).toBe(expected);
   });

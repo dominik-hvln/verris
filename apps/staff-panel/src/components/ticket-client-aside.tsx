@@ -68,7 +68,7 @@ export function TicketClientAside({ context, userId }: { context: TicketContext 
         {c.client.company ? <p className="text-xs text-neutral-400">{c.client.company}</p> : null}
         <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
           <dt className="text-neutral-500">Saldo</dt>
-          <dd className="text-neutral-200">{c.client.walletBalance != null ? `${c.client.walletBalance} kr.` : "—"}</dd>
+          <dd className="text-neutral-200">{c.client.walletBalance != null ? `${c.client.walletBalance} zł` : "—"}</dd>
           <dt className="text-neutral-500">Health score</dt>
           <dd className={`font-semibold ${tone(c.healthScore)}`}>{c.healthScore ?? "—"}</dd>
           <dt className="text-neutral-500">Klient od</dt>
