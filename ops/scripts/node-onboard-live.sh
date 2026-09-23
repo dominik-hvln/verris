@@ -92,6 +92,17 @@ log_warn() { echo "[WARN] $*" >&2; }
 log_info() { echo "[INFO] $*"; }
 log_step() { echo ""; echo "========== $* =========="; }
 
+# H-19 — konfiguracja kopii poza węzłem: plik z RCLONE_REMOTE i ten remote w rclone.
+backup_offsite_skonfigurowany() {
+  [ -r /etc/verris-backup.conf ] || return 1
+  local remote
+  # shellcheck disable=SC1091
+  remote="$(. /etc/verris-backup.conf 2>/dev/null; printf '%s' "${RCLONE_REMOTE:-}")"
+  [ -n "$remote" ] || return 1
+  command -v rclone >/dev/null 2>&1 || return 1
+  rclone listremotes 2>/dev/null | grep -qx "${remote%%:*}:"
+}
+
 require_root() {
   [ "$(id -u)" = "0" ] || { log_fail "Uruchom jako root"; exit 1; }
 }
@@ -125,7 +136,7 @@ require_bundle_scripts() {
   local missing=0
   for f in node-live-readiness.sh node-hosting-profile.sh node-verris-tasks-install.sh \
            node-da-sync-plan-packages.sh verris-tasks.sh verris-task-run.sh \
-           node-migration-worker.sh \
+           node-migration-worker.sh node-offsite-backup.sh node-account-restore.sh \
            security-hardening-baseline.sh security-egress-lockdown.sh; do
     if [ ! -f "$SCRIPT_DIR/$f" ]; then
       log_fail "Brak $SCRIPT_DIR/$f"
@@ -248,15 +259,19 @@ run_security_hardening() {
     fi
   fi
 
-  # B-1 LIVE: backupy off-node (offsite). Timer instalujemy zawsze; pierwszy
-  # przebieg wymaga /etc/verris-backup.conf + rclone.conf (sekrety na węźle).
-  if [ -f "$SCRIPT_DIR/node-offsite-backup.sh" ]; then
-    if bash "$SCRIPT_DIR/node-offsite-backup.sh" --install; then
-      log_ok "node-offsite-backup.sh zainstalowany (timer 03:30)"
-      [ -r /etc/verris-backup.conf ] || log_warn "Utwórz /etc/verris-backup.conf + rclone.conf, inaczej backup offsite nie wystartuje"
-    else
-      log_warn "node-offsite-backup.sh — instalacja nieudana"
-    fi
+  # B-1 LIVE: backupy off-node (offsite).
+  #
+  # H-19 (2026-09-23): brak konfiguracji backupu był tylko ostrzeżeniem, a skrypt
+  # w ogóle nie był w bundle z kreatora — węzeł wchodził w LIVE bez kopii poza
+  # serwerem i nikt tego nie widział. Teraz to [FAIL]: etap „hardening” zatrzymuje
+  # instalację (przerwij_po_etapie), dopóki kopie nie mają dokąd iść.
+  if bash "$SCRIPT_DIR/node-offsite-backup.sh" --install; then
+    log_ok "node-offsite-backup.sh zainstalowany (timer 03:30)"
+  else
+    log_fail "node-offsite-backup.sh — instalacja nieudana"
+  fi
+  if ! backup_offsite_skonfigurowany; then
+    log_fail "Backup offsite nieskonfigurowany — utwórz /etc/verris-backup.conf (RCLONE_REMOTE, BACKUP_PREFIX) i remote w rclone.conf, potem uruchom onboard ponownie. Instrukcja: kreator węzła → krok „Backup offsite”."
   fi
 }
 

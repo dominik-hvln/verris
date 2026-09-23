@@ -186,11 +186,12 @@ export class LiveReadinessService {
     add(
       'offsite_backup',
       'Backupy off-node',
-      activeNodes === 0 ? 'warn' : backupNodes >= activeNodes ? 'ok' : 'warn',
+      activeNodes === 0 ? 'warn' : backupNodes >= activeNodes ? 'ok' : 'fail',
       activeNodes === 0
         ? 'Brak węzłów do oceny.'
         : `${backupNodes}/${activeNodes} węzłów z udanym backupem offsite.`,
-      false,
+      // H-19: węzeł z klientami bez kopii poza serwerem blokuje start (było: tylko ostrzeżenie).
+      activeNodes > 0,
     );
 
     // --- H-20 — próba odtworzenia z kopii (BLOKUJĄCA) ---

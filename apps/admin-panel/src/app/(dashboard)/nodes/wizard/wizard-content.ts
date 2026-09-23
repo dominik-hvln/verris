@@ -7,6 +7,7 @@ export type WizardStepId =
   | "litespeed"
   | "bootstrap"
   | "approve-da"
+  | "backup-offsite"
   | "onboard-live"
   | "hosting-profile"
   | "finish";
@@ -47,6 +48,11 @@ export const WIZARD_STEPS: WizardStep[] = [
     id: "approve-da",
     title: "Akceptacja i DA API",
     subtitle: "Panel admin → login key",
+  },
+  {
+    id: "backup-offsite",
+    title: "Backup offsite",
+    subtitle: "rclone + /etc/verris-backup.conf — bez tego onboard nie przejdzie",
   },
   {
     id: "onboard-live",
@@ -221,12 +227,23 @@ export const BOOTSTRAP_DOES_NOT = [
  * hardening + egress lockdown + rejestracja publicznego IP w DA + pakiety
  * planów + LIVE readiness. Audit F-07: ten krok był poza wizardem.
  */
-export const ONBOARD_LIVE_SCP = `# 5a) Z repo (control-plane / stacja robocza) — skopiuj bundle na węzeł:
-scp -r ops/hosting-default-page \\
-  ops/scripts/{node-onboard-live,node-live-readiness,node-hosting-profile,\\
-install-verris-default-page,node-verris-tasks-install,node-da-sync-plan-packages,\\
-verris-tasks,verris-task-run,security-hardening-baseline,security-egress-lockdown}.sh \\
-  root@WĘZEŁ:/root/verris/`;
+export const ONBOARD_LIVE_SCP = `# 5a) Z repo (control-plane / stacja robocza) — skopiuj CAŁY katalog skryptów (razem z lib/):
+scp -r ops/hosting-default-page ops/scripts/ root@WĘZEŁ:/root/verris/
+# Pojedyncze pliki to za mało: onboard wymaga m.in. lib/, workera migracji i backupu offsite.`;
+
+/** H-19 — konfiguracja kopii poza węzłem; bez niej onboard kończy się [FAIL]. */
+export const BACKUP_OFFSITE_CONF = `# 4b) Na węźle (root) — PRZED onboardem LIVE. Bez tego node-onboard-live.sh zatrzyma się na [FAIL].
+dnf -y install rclone
+rclone config      # remote „verris-remote” (Hetzner Storage Box / S3) + „verris-crypt” (crypt na nim)
+cat > /etc/verris-backup.conf <<'CONF'
+RCLONE_REMOTE="verris-crypt:"
+BACKUP_PREFIX="nodes/$(hostname -s)"
+RETENTION_DAYS=30
+DA_BACKUP=1
+CONF
+chmod 600 /etc/verris-backup.conf /root/.config/rclone/rclone.conf
+rclone lsd verris-crypt: && echo "OK: remote działa"
+# Hasła crypt zapisz w sejfie poza węzłem — bez nich kopii nie odczytasz po utracie serwera.`;
 
 export const ONBOARD_LIVE_RUN = `# 5b) Na węźle (root) — login key z DA → Account Manager → Login Keys:
 export DA_USER=admin
@@ -247,6 +264,7 @@ export const ONBOARD_LIVE_DOES = [
   "Egress lockdown: deny-by-default (nftables) z dziurami na API/repo",
   "Rejestruje publiczne IP węzła w DA — bez tego provisioning kończy się błędem „A valid IP was not provided”",
   "Tworzy pakiety DA starter/pro/business zgodne z planami panelu",
+  "Instaluje backup offsite (timer 03:30) i ZATRZYMUJE się, gdy brak /etc/verris-backup.conf albo remote rclone",
   "LIVE readiness: agent zadań + Governor/MariaDB 10.6 + profil hostingowy + weryfikacja",
 ];
 

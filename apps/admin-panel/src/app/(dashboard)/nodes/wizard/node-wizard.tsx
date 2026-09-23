@@ -26,6 +26,7 @@ import {
   BOOTSTRAP_DOES_NOT,
   DOD_ACTIVE_CHECKLIST,
   HOSTING_PROFILE_HINT,
+  BACKUP_OFFSITE_CONF,
   INSTALL_CLOUDLINUX_AL10,
   INSTALL_CLOUDLINUX_AL9,
   INSTALL_DIRECTADMIN,
@@ -700,6 +701,26 @@ export function NodeWizard() {
               Węzeł zaakceptowany i test DA API OK
             </label>
             {serverId && <NodeConfigActions serverId={serverId} />}
+          </div>
+        )}
+
+        {step.id === "backup-offsite" && (
+          <div className="space-y-4">
+            <p className="text-sm text-zinc-300">
+              Kopie kont idą co noc poza węzeł (szyfrowane rclone crypt, retencja 30 dni). Klienci widzą w
+              panelu, że kopie są przechowywane poza serwerem — bez tej konfiguracji to byłaby nieprawda,
+              dlatego onboard LIVE zatrzymuje się, dopóki jej nie ma.
+            </p>
+            <CopyBlock label="4b) Konfiguracja backupu offsite (root na węźle)" text={BACKUP_OFFSITE_CONF} />
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={!!checked.backupOffsite}
+                onChange={() => toggleCheck("backupOffsite")}
+                className="rounded border-white/20"
+              />
+              rclone lsd verris-crypt: działa, hasła crypt są w sejfie
+            </label>
           </div>
         )}
 
