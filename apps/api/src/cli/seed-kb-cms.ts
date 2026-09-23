@@ -76,7 +76,7 @@ Po rejestracji wyślemy wiadomość z linkiem aktywacyjnym. Kliknij go, aby potw
 Zaloguj się adresem e-mail i hasłem. Zalecamy od razu włączyć dwuskładnikowe logowanie lub passkey (patrz: Bezpieczeństwo konta).
 
 ## Co dalej
-Po zalogowaniu wybierz usługę (hosting, poczta lub VPS) i przejdź przez kreator „Pierwsze kroki", który przeprowadzi Cię przez konfigurację.`,
+Po zalogowaniu zamów pakiet hostingu i przejdź przez kreator „Pierwsze kroki", który przeprowadzi Cię przez konfigurację.`,
     { t: 'Jak założyć konto hostingowe w Verris — rejestracja krok po kroku', d: 'Instrukcja rejestracji konta w Verris: adres e-mail, weryfikacja i pierwsze logowanie. Zacznij korzystać z hostingu w kilka minut.',
       faq: [
         { q: 'Czy założenie konta jest płatne?', a: 'Nie. Rejestracja konta jest bezpłatna — płacisz dopiero za wybraną usługę. Możesz też skorzystać z okresu próbnego.' },
@@ -85,14 +85,14 @@ Po zalogowaniu wybierz usługę (hosting, poczta lub VPS) i przejdź przez kreat
 
   A('pierwsze-kroki', 'pierwsze-kroki-po-rejestracji', 'Pierwsze kroki po rejestracji',
     'Co zrobić zaraz po założeniu konta, aby szybko uruchomić stronę.',
-    `## Wybierz usługę
-Na pulpicie wybierz produkt: **Hosting**, **Poczta** lub **VPS**. Każdy ma dedykowany hub z narzędziami.
+    `## Zamów hosting
+Na pulpicie zamów pakiet hostingu. Każda usługa ma własny hub z narzędziami: pliki, bazy, poczta, DNS i SSL.
 
 ## Podłącz domenę
-Jeśli masz domenę, podepnij ją do hostingu. Jeśli nie — możesz ją zarejestrować w panelu (patrz: Domeny i DNS).
+Jeśli masz domenę, podepnij ją do hostingu. Jeśli nie — zarejestruj ją (patrz: Domeny i DNS).
 
 ## Wgraj stronę
-Skorzystaj z menedżera plików w panelu lub połącz się przez FTP/SFTP. Możesz też zainstalować WordPress jednym kliknięciem.
+Skorzystaj z menedżera plików w panelu lub połącz się przez FTP (najlepiej szyfrowane FTPS). Możesz też zainstalować WordPress jednym kliknięciem.
 
 ## Włącz SSL
 Certyfikat Let's Encrypt wystawiamy za darmo. Po podpięciu domeny włącz SSL i wymuś HTTPS.
@@ -111,7 +111,7 @@ Ustaw 2FA lub passkey i sprawdź, czy masz włączone kopie zapasowe.`,
 Menu boczne zawiera globalne sekcje: usługi, rozliczenia, wsparcie i ustawienia konta. Po wejściu w usługę zobaczysz jej hub z narzędziami (pliki, bazy, poczta, DNS, SSL).
 
 ## Najważniejsze sekcje
-- **Usługi** — lista Twoich hostingów, poczty i VPS ze stanem zdrowia.
+- **Usługi** — lista Twoich usług hostingowych ze stanem zdrowia.
 - **Rozliczenia** — portfel, faktury, odnowienia.
 - **Wsparcie** — zgłoszenia (tickety) i baza wiedzy.
 - **Ustawienia** — dane, bezpieczeństwo, powiadomienia.
@@ -240,58 +240,52 @@ Dla subdomeny również wystawimy darmowy certyfikat SSL. Jeśli masz ich wiele,
 
   // ---------------- Hosting i pliki
   A('hosting-pliki', 'jak-wgrac-strone', 'Jak wgrać stronę na serwer (menedżer plików i FTP)',
-    'Dwie metody publikacji: wbudowany menedżer plików i klient FTP/SFTP.',
+    'Dwie metody publikacji: wbudowany menedżer plików i klient FTP/FTPS.',
     `## Menedżer plików w panelu
 Najprościej wgrać stronę bez dodatkowych programów: w hubie usługi otwórz **Menedżer plików**, wejdź do katalogu **public_html** i prześlij pliki (możesz wgrać archiwum ZIP i rozpakować).
 
-## FTP / SFTP
-Do większych projektów użyj klienta (np. FileZilla). Utwórz konto FTP w panelu i połącz się, podając host, login, hasło i port. Zalecamy SFTP dla bezpieczeństwa.
+## FTP / FTPS
+Do większych projektów użyj klienta (np. FileZilla). Utwórz konto FTP w panelu i połącz się, podając host, login i hasło (port 21). W kliencie wybierz szyfrowanie **FTP przez TLS (FTPS)** — wtedy login i hasło nie idą jawnie.
 
 ## Gdzie umieścić pliki
 Zawartość strony głównej trafia do **public_html**. Dla subdomen i domen dodatkowych używane są osobne katalogi.
 
 ## Uprawnienia
-Standardowe uprawnienia to 644 dla plików i 755 dla katalogów. Nie ustawiaj 777. Możesz je ustawić hurtowo przez SSH:
-
-\`\`\`bash
-# Pliki: 644, katalogi: 755 (uruchom w katalogu strony)
-find . -type f -exec chmod 644 {} \\;
-find . -type d -exec chmod 755 {} \\;
-\`\`\``,
-    { t: 'Jak wgrać stronę na serwer — menedżer plików i FTP', d: 'Publikacja strony na hostingu Verris: wbudowany menedżer plików oraz FTP/SFTP. Gdzie umieścić pliki i jakie uprawnienia ustawić.',
+Standardowe uprawnienia to 644 dla plików i 755 dla katalogów. Nie ustawiaj 777. Zmienisz je w menedżerze plików (opcja **Uprawnienia**) albo w kliencie FTP.`,
+    { t: 'Jak wgrać stronę na serwer — menedżer plików i FTP', d: 'Publikacja strony na hostingu Verris: wbudowany menedżer plików oraz FTP/FTPS. Gdzie umieścić pliki i jakie uprawnienia ustawić.',
       faq: [
         { q: 'Gdzie mam wgrać pliki strony?', a: 'Do katalogu public_html domeny głównej. Subdomeny i domeny dodatkowe mają własne, osobne katalogi.' },
         { q: 'Czy mogę wgrać całą stronę jako archiwum ZIP?', a: 'Tak. Prześlij plik ZIP przez menedżer plików i rozpakuj go na miejscu — to szybsze niż wysyłanie setek pojedynczych plików przez FTP.' },
       ], related: ['konta-ftp', 'wersja-php', 'uprawnienia-plikow-chmod'] }),
 
   A('hosting-pliki', 'konta-ftp', 'Jak utworzyć konto FTP',
-    'Dodaj konto FTP/SFTP z ograniczonym dostępem do katalogu.',
+    'Dodaj konto FTP z ograniczonym dostępem do katalogu.',
     `## Tworzenie konta
 W hubie usługi otwórz sekcję **FTP** i wybierz **Dodaj konto**. Podaj login, hasło i katalog domowy (możesz ograniczyć dostęp do jednego folderu).
 
 ## Dane do połączenia
 - **Host:** adres serwera lub domena
-- **Port:** 21 (FTP) lub 22 (SFTP)
+- **Port:** 21, szyfrowanie: FTP przez TLS (FTPS)
 - **Login / hasło:** ustawione przy tworzeniu
 
 ## Bezpieczeństwo
-Używaj SFTP zamiast zwykłego FTP. Twórz osobne konta dla współpracowników i usuwaj je, gdy nie są już potrzebne.`,
-    { d: 'Jak utworzyć konto FTP/SFTP w Verris: login, hasło, katalog domowy i dane do połączenia. Bezpieczny dostęp do plików.',
+Wybieraj w kliencie szyfrowane FTPS zamiast zwykłego FTP. Twórz osobne konta dla współpracowników i usuwaj je, gdy nie są już potrzebne.`,
+    { d: 'Jak utworzyć konto FTP w Verris: login, hasło, katalog domowy i dane do połączenia. Bezpieczny dostęp do plików przez FTPS.',
       faq: [
-        { q: 'FTP czy SFTP — co jest bezpieczniejsze?', a: 'SFTP. Szyfruje całe połączenie (port 22), podczas gdy zwykły FTP przesyła login i hasło jawnie. Zawsze wybieraj SFTP, jeśli klient go obsługuje.' },
+        { q: 'Zwykły FTP czy FTPS — co wybrać?', a: 'FTPS (FTP przez TLS). Szyfruje połączenie, podczas gdy zwykły FTP przesyła login i hasło jawnie. W FileZilli wybierz „Wymagaj FTP przez TLS”.' },
         { q: 'Czy mogę ograniczyć konto FTP do jednego folderu?', a: 'Tak. Przy tworzeniu konta ustaw katalog domowy na wybrany folder — użytkownik nie wyjdzie poza niego. To wygodne dla współpracowników.' },
       ], related: ['jak-wgrac-strone', 'uprawnienia-plikow-chmod'] }),
 
   A('hosting-pliki', 'wersja-php', 'Jak zmienić wersję PHP',
-    'Wybierz wersję PHP dopasowaną do aplikacji (CloudLinux PHP Selector).',
+    'Wybierz wersję PHP dopasowaną do aplikacji — osobno dla każdej domeny.',
     `## Po co zmieniać wersję PHP
 Różne aplikacje wymagają różnych wersji PHP. Nowsze wersje są szybsze i bezpieczniejsze, ale starsze skrypty mogą wymagać konkretnej wersji.
 
 ## Zmiana w panelu
-W hubie usługi wybierz **Wersja PHP** i ustaw żądaną wersję dla konta. Zmiana działa od razu.
+W hubie usługi wybierz **Wersja PHP** i ustaw żądaną wersję dla domeny. Zmiana działa od razu.
 
-## Rozszerzenia i limity
-Możesz włączać rozszerzenia PHP oraz dostosować podstawowe parametry (limit pamięci, czas wykonania) w granicach planu. Przykład ustawień w pliku \`.user.ini\`:
+## Limity
+Podstawowe parametry (limit pamięci, czas wykonania, rozmiar uploadu) dostosujesz w pliku \`.user.ini\` w granicach planu:
 
 \`\`\`ini
 memory_limit = 256M
@@ -302,7 +296,7 @@ max_execution_time = 120
 
 ## Zalecenie
 Dla WordPress i nowych projektów wybierz najnowszą stabilną wersję obsługiwaną przez aplikację.`,
-    { d: 'Jak zmienić wersję PHP na hostingu Verris (CloudLinux PHP Selector): wybór wersji, rozszerzenia i limity.',
+    { d: 'Jak zmienić wersję PHP na hostingu Verris: wybór wersji dla domeny i limity w pliku .user.ini.',
       faq: [
         { q: 'Którą wersję PHP wybrać dla WordPress?', a: 'Najnowszą stabilną wersję obsługiwaną przez Twoje wtyczki i motyw (zwykle PHP 8.2 lub 8.3). Nowsze wersje są szybsze i bezpieczniejsze.' },
         { q: 'Zmiana wersji PHP zepsuła stronę — co zrobić?', a: 'Wróć do poprzedniej wersji w panelu (zmiana jest natychmiastowa) i zaktualizuj wtyczki/motyw do wersji zgodnej z nowszym PHP, zanim spróbujesz ponownie.' },
@@ -348,13 +342,8 @@ Uprawnienia określają, kto może czytać, zapisywać i wykonywać plik. Zapis 
 - **Katalogi:** 755 (wejście do katalogu wymaga bitu wykonania)
 - **Pliki z hasłami** (np. wp-config.php): 600 lub 640
 
-## Hurtowe ustawienie
-\`\`\`bash
-# W katalogu strony:
-find . -type f -exec chmod 644 {} \\;
-find . -type d -exec chmod 755 {} \\;
-chmod 600 wp-config.php
-\`\`\`
+## Jak zmienić
+W menedżerze plików zaznacz plik lub katalog i wybierz **Uprawnienia**, albo użyj opcji uprawnień w kliencie FTP (np. FileZilla: prawy przycisk → Uprawnienia pliku, z możliwością zastosowania do podkatalogów).
 
 ## Błąd 403 / 500
 Zbyt luźne uprawnienia (np. 777) lub zapisywalny plik konfiguracyjny bywają blokowane przez serwer. Ustaw 644/755 i sprawdź, czy właścicielem plików jest Twój użytkownik. **Nigdy nie ustawiaj 777.**`,
@@ -395,7 +384,7 @@ Zmiany w \`.user.ini\` mogą zacząć działać z opóźnieniem kilku minut (cac
     { t: 'Limity PHP — upload, pamięć i czas wykonania (.user.ini)', d: 'Jak zwiększyć upload_max_filesize, memory_limit i max_execution_time na hostingu przez plik .user.ini oraz w wp-config.php.',
       faq: [
         { q: 'Zmiana w .user.ini nie działa — dlaczego?', a: 'Plik .user.ini jest buforowany. Odczekaj kilka minut albo sprawdź w phpinfo, czy wartość się zaktualizowała. Upewnij się też, że plik jest w katalogu public_html.' },
-        { q: 'Jak sprawdzić aktualne limity PHP?', a: 'Utwórz plik z zawartością <?php phpinfo(); ?> i otwórz go w przeglądarce (potem usuń), albo sprawdź wartości w panelu w sekcji Wersja PHP.' },
+        { q: 'Jak sprawdzić aktualne limity PHP?', a: 'Utwórz plik z zawartością <?php phpinfo(); ?>, otwórz go w przeglądarce i od razu usuń — pokazuje on konfigurację serwera każdemu, kto zna adres.' },
       ], related: ['wersja-php', 'optymalizacja-wordpress'] }),
 
   // ---------------- Bazy danych
@@ -423,7 +412,7 @@ Nadawaj użytkownikowi dostęp tylko do jego bazy i używaj silnych haseł. Regu
     { t: 'Jak utworzyć bazę danych MySQL na hostingu', d: 'Tworzenie bazy MySQL i użytkownika w Verris, dane do połączenia dla WordPress i innych aplikacji oraz zarządzanie przez phpMyAdmin.',
       faq: [
         { q: 'Jaki host bazy danych wpisać w konfiguracji?', a: 'Zwykle „localhost", bo baza działa na tym samym serwerze co strona. Do połączeń z zewnątrz użyj zdalnego dostępu MySQL i adresu serwera.' },
-        { q: 'Jak wykonać kopię bazy danych?', a: 'Najprościej wyeksportować ją przez phpMyAdmin (zakładka Eksport) do pliku .sql, lub przez SSH poleceniem mysqldump. Kopie baz obejmuje też backup 1-klik.' },
+        { q: 'Jak wykonać kopię bazy danych?', a: 'Najprościej wyeksportować ją przez phpMyAdmin (zakładka Eksport) do pliku .sql. Bazy obejmuje też kopia zapasowa jednym kliknięciem.' },
       ], related: ['zdalny-dostep-mysql', 'backup-1-klik'] }),
 
   A('bazy-danych', 'zdalny-dostep-mysql', 'Zdalny dostęp do bazy MySQL',
@@ -533,27 +522,24 @@ Automatyczna odpowiedź (np. na urlopie) wysyłana do nadawców w zadanym okresi
 Opcjonalnie możesz włączyć catch-all — przechwytywanie poczty na nieistniejące adresy w domenie. Uważaj, bo zwiększa ilość spamu.`,
     { d: 'Forwardery (przekierowania) i autorespondery w poczcie Verris oraz opcja catch-all. Jak je skonfigurować.',
       faq: [
-        { q: 'Czy forwarder zostawia kopię wiadomości na skrzynce?', a: 'Zależy od konfiguracji — możesz przekierowywać z zachowaniem kopii lub bez. Jeśli chcesz mieć archiwum, włącz zachowanie kopii w ustawieniach forwardera.' },
+        { q: 'Jak zachować kopię przekierowanej wiadomości?', a: 'Dodaj jako odbiorcę forwardera także własną skrzynkę — wiadomość trafi wtedy i do niej, i pod adres docelowy.' },
         { q: 'Czy warto włączać catch-all?', a: 'Tylko jeśli naprawdę potrzebujesz łapać pocztę na dowolny adres w domenie. Catch-all zauważalnie zwiększa ilość spamu — zwykle lepiej utworzyć konkretne aliasy.' },
       ], related: ['zakladanie-skrzynki', 'filtr-antyspam'] }),
 
   A('poczta', 'filtr-antyspam', 'Filtr antyspamowy',
     'Ogranicz spam bez utraty ważnych wiadomości.',
     `## Jak działa
-Filtr ocenia wiadomości i oznacza lub przenosi podejrzane do folderu spam. Czułość możesz dostroić per domena.
+Filtr ocenia każdą wiadomość punktami i oznacza te, które przekroczą próg, dopisując znacznik do tematu. Program pocztowy lub webmail może takie wiadomości przenosić do folderu spam.
 
 ## Ustawienia
-W panelu włącz filtr i ustaw próg. Zbyt agresywny może przenosić poprawne maile — zaczynaj od ustawień domyślnych.
-
-## Białe i czarne listy
-Dodaj zaufanych nadawców do białej listy, a uporczywych spamerów do czarnej.
+W panelu włącz filtr i ustaw próg. Zbyt niski próg oznacza także poprawne maile — zaczynaj od ustawień domyślnych.
 
 ## Uzupełnienie
 Antyspam działa najlepiej razem z poprawnymi SPF/DKIM/DMARC.`,
-    { d: 'Filtr antyspamowy w Verris: włączanie, czułość, białe i czarne listy. Mniej spamu bez utraty ważnych wiadomości.',
+    { d: 'Filtr antyspamowy w Verris: włączanie, próg i oznaczanie wiadomości. Mniej spamu bez utraty ważnych wiadomości.',
       faq: [
-        { q: 'Ważne maile trafiają do spamu — co zrobić?', a: 'Zmniejsz czułość filtra i dodaj zaufanych nadawców do białej listy. Sprawdź też, czy nadawca ma poprawny SPF/DKIM — braki po jego stronie zwiększają punktację spamu.' },
-        { q: 'Czy filtr usuwa spam automatycznie?', a: 'Domyślnie oznacza i przenosi wiadomości do folderu spam, a nie kasuje. Dzięki temu możesz odzyskać błędnie zakwalifikowaną pocztę.' },
+        { q: 'Ważne maile są oznaczane jako spam — co zrobić?', a: 'Podnieś próg filtra. Sprawdź też, czy nadawca ma poprawny SPF/DKIM — braki po jego stronie zwiększają punktację spamu.' },
+        { q: 'Czy filtr usuwa spam automatycznie?', a: 'Nie. Filtr oznacza podejrzane wiadomości, ale ich nie kasuje, więc błędnie zakwalifikowana poczta nie przepada.' },
       ], related: ['spf-dkim-dmarc', 'forwardery-autorespondery'] }),
 
   // ---------------- SSL
@@ -572,7 +558,7 @@ Domena musi wskazywać na serwer (rekord A / serwery nazw), aby walidacja się p
 Po wystawieniu certyfikatu wymuś HTTPS, aby cały ruch był szyfrowany.`,
     { t: 'Darmowy certyfikat SSL (Let’s Encrypt) — jak włączyć HTTPS', d: 'Jak włączyć darmowy certyfikat SSL Let’s Encrypt w Verris i uruchomić HTTPS na stronie. Automatyczne odnawianie.',
       faq: [
-        { q: 'Czy certyfikat SSL jest płatny?', a: 'Nie. Dla domen podpiętych do hostingu wystawiamy darmowy certyfikat Let’s Encrypt, który odnawia się automatycznie. Certyfikaty premium (np. wildcard) to osobna opcja.' },
+        { q: 'Czy certyfikat SSL jest płatny?', a: 'Nie. Dla domen podpiętych do hostingu wystawiamy darmowy certyfikat Let’s Encrypt, który odnawia się automatycznie — także wildcard. Możesz też wgrać własny, kupiony certyfikat.' },
         { q: 'Certyfikat się nie wystawia — dlaczego?', a: 'Najczęściej domena nie wskazuje jeszcze na serwer. Sprawdź rekord A / serwery nazw i poczekaj na propagację, a następnie wygeneruj certyfikat ponownie.' },
       ], related: ['wymus-https', 'wildcard-ssl', 'jak-podpiac-domene'] }),
 
@@ -804,17 +790,17 @@ Gdy saldo jest niskie, wyślemy przypomnienie, aby usługi nie zostały zawieszo
     `## Dane do faktury
 W ustawieniach uzupełnij nazwę, NIP i adres. Będą użyte na fakturach za usługi.
 
-## Pobieranie faktur
-Faktury znajdziesz w sekcji rozliczeń — do pobrania w PDF. Wystawiamy je automatycznie po opłaceniu.
+## Dokument rozliczeniowy i faktura
+Zaraz po płatności w sekcji rozliczeń pojawia się **dokument rozliczeniowy** potwierdzający płatność — to nie jest faktura VAT. Fakturę VAT wystawiamy w programie księgowym; gdy jest gotowa, udostępniamy ją w panelu i wysyłamy e-mailem.
 
 ## KSeF
-Jeśli korzystasz z Krajowego Systemu e-Faktur, poinformujemy o statusie zgodnie z obowiązującymi przepisami.
+Faktury dla firm trafiają do Krajowego Systemu e-Faktur, gdy wymagają tego przepisy.
 
 ## Zmiana danych
 Dane firmowe możesz zaktualizować w każdej chwili — kolejne faktury uwzględnią zmiany.`,
-    { d: 'Faktury w Verris: uzupełnienie danych firmy (NIP, adres), automatyczne wystawianie i pobieranie PDF z panelu.',
+    { d: 'Faktury w Verris: dane firmy (NIP, adres), dokument rozliczeniowy po płatności i faktura VAT w panelu oraz e-mailem.',
       faq: [
-        { q: 'Gdzie pobiorę fakturę?', a: 'W sekcji rozliczeń — każdą opłaconą usługę fakturujemy automatycznie, a plik PDF jest gotowy do pobrania.' },
+        { q: 'Gdzie pobiorę fakturę?', a: 'W sekcji rozliczeń. Po płatności od razu zobaczysz dokument rozliczeniowy, a fakturę VAT — gdy zostanie wystawiona; wyślemy ją też e-mailem.' },
         { q: 'Zmieniły się dane mojej firmy — czy poprawię starą fakturę?', a: 'Zaktualizuj dane w ustawieniach; zostaną użyte na kolejnych fakturach. W sprawie korekty już wystawionego dokumentu napisz do wsparcia.' },
       ], related: ['portfel-i-platnosci'] }),
 
