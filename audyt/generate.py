@@ -318,7 +318,7 @@ def buduj_dashboard_luk(D):
     idx = {n: i for i, n in enumerate(
         ["id", "kat", "f", "cp", "pl", "da", "rp", "nf", "st", "dow", "w", "kr", "nk", "u"])}
     rows = [{k: r[i] for k, i in idx.items()} for r in D["macierz"]]
-    dane = json.dumps({"rows": rows, "kats": D["cfg"]["kategorie"], "zmiany": ostatnie_zmiany(D)}, ensure_ascii=False)
+    dane = json.dumps({"rows": rows, "kats": D["cfg"]["kategorie"], "zmiany": ostatnie_zmiany(D), "przed": macierz_sprzed()}, ensure_ascii=False)
     tpl = (SZAB / "dashboard_luki.html").read_text(encoding="utf-8")
     OUT_A.mkdir(exist_ok=True)
     (OUT_A / "VERRIS_LUKI_DASHBOARD.html").write_text(
@@ -614,6 +614,22 @@ def postep(D, dzis=None):
     poz_razem = sum(s["pozycje"] for s in sprinty)
     poz_zrob = sum(s["zrobione"] for s in sprinty)
 
+    # Pozycje wybrane przez właściciela „przed startem” (2026-09-23) są częścią planu do startu,
+    # choć nie stoją w sprintach. Bez tego ich zamykanie nie ruszało ani procentu, ani kafelków
+    # (uwaga PM 2026-09-23) — a to dziś większość pracy.
+    H = D["cfg"]["godziny_nakladu"]
+    w_sprintach = {x[0] for n in D["sprinty"] for x in pozycje_sprintu(D, n)}
+    wyb = [D["wg_id"][i] for i, d in D["wybory"].items()
+           if d == "przed" and i in D["wg_id"] and i not in w_sprintach]
+    wyb_zrob = [r for r in wyb if r[10] in ZROBIONE_WERDYKTY]
+    wybory = {"pozycje": len(wyb), "zrobione": len(wyb_zrob),
+              "godziny": sum(H.get(r[12], 0) for r in wyb),
+              "godzinyZrobione": sum(H.get(r[12], 0) for r in wyb_zrob)}
+    godz_razem += wybory["godziny"]
+    godz_zrob += wybory["godzinyZrobione"]
+    poz_razem += wybory["pozycje"]
+    poz_zrob += wybory["zrobione"]
+
     # Ile pełnych tygodni planu upłynęło. Ujemne przed startem planu —
     # i tak ma być, bo praca ruszyła wcześniej niż harmonogram.
     dni = (dzis - start).days
@@ -627,7 +643,9 @@ def postep(D, dzis=None):
     # Prognoza końca: tempo dotychczasowe albo — gdy plan jeszcze nie ruszył —
     # nominalna pojemność. Nie zgadujemy przyspieszenia, którego nie widać.
     pozostale_godz = godz_razem - godz_zrob
-    tempo = cap  # h/tydzień
+    # Tempo dotychczasowe (od startu planu), nie mniejsze niż nominalna pojemność. Samo `cap` dawało
+    # sprzeczność na jednej tablicy: „+25 tyg. zapasu” obok prognozy końca o rok po terminie.
+    tempo = max(cap, godz_zrob / tyg_uplynelo) if tyg_uplynelo >= 1 else cap  # h/tydzień
     tygodni_do_konca = pozostale_godz / tempo if tempo else 0
     koniec_nominalny = daty(D, max(D["sprinty"]))[1]
     koniec_prognoza = dzis + datetime.timedelta(weeks=tygodni_do_konca)
@@ -654,7 +672,27 @@ def postep(D, dzis=None):
         "koniecNominalny": str(koniec_nominalny),
         "koniecPrognoza": str(koniec_prognoza),
         "blokeryOtwarte": blokery_otwarte,
+        "wybory": wybory,
     }
+
+
+def macierz_sprzed(dni=7):
+    """Liczniki macierzy sprzed `dni` dni (z gita) — żeby kafelki pokazywały ruch, nie tylko stan."""
+    import subprocess, io
+    try:
+        h = subprocess.run(["git", "-C", str(REPO), "log", f"--before={dni} days ago", "-1", "--format=%h",
+                            "--", "audyt/dane/macierz.csv"], capture_output=True, text=True, timeout=20).stdout.strip()
+        if not h:
+            return None
+        txt = subprocess.run(["git", "-C", str(REPO), "show", f"{h}:audyt/dane/macierz.csv"],
+                             capture_output=True, text=True, timeout=20).stdout
+    except Exception:
+        return None
+    rows = list(csv.reader(io.StringIO(txt)))[1:]
+    return {"ok": sum(1 for r in rows if len(r) > 10 and r[10] in ("PARYTET", "PRZEWAGA")),
+            "dziala": sum(1 for r in rows if len(r) > 8 and r[8] == "DZIAŁA"),
+            "luk": sum(1 for r in rows if len(r) > 10 and r[10] == "LUKA"),
+            "wszystkie": len(rows), "dni": dni}
 
 
 def ostatnie_zmiany(D, dni=7):

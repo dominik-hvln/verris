@@ -160,13 +160,20 @@ const nOk  = rows.filter(r=>r.w==="PARYTET"||r.w==="PRZEWAGA").length;
 const nPrz = rows.filter(r=>r.w==="PRZEWAGA").length;
 const nGho = rows.filter(r=>r.st==="ATRAPA"||r.st==="ENDPOINT BEZ UI").length;
 document.getElementById('npoz').textContent = rows.length;
+const PB = DB.przed;
+const ruch = (teraz, bylo, lepiejWiecej=true) => {
+  if (!PB || bylo == null) return '';
+  const d = teraz - bylo; if (!d) return ' · bez zmian w ' + PB.dni + ' dni';
+  const dobrze = lepiejWiecej ? d > 0 : d < 0;
+  return ' · <span style="color:' + (dobrze ? 'var(--good)' : 'var(--critical)') + ';font-weight:600">' + (d > 0 ? '+' : '') + d + ' w ' + PB.dni + ' dni</span>';
+};
 document.getElementById('kpis').innerHTML = [
   ['crit', nBlk, 'blokerów startu', 'każdy musi być zamknięty przed sprzedażą pierwszego konta'],
-  ['', nOk+' / '+rows.length, 'parytet lub przewaga', Math.round(nOk/rows.length*100)+'% pozycji — metryka opisowa, nie kryterium'],
+  ['', nOk+' / '+rows.length, 'parytet lub przewaga', Math.round(nOk/rows.length*100)+'% pozycji'+ruch(nOk, PB&&PB.ok)],
   ['', nPrz, 'realnych przewag', 'po obaleniu 11 twierdzeń w passie adwersaryjnym'],
-  ['', nLuk, 'luk wobec rynku', 'rynek to ma, my nie'],
+  ['', nLuk, 'luk wobec rynku', 'rynek to ma, my nie'+ruch(nLuk, PB&&PB.luk, false)],
   ['', nGho, 'funkcji-widm', 'UI bez backendu albo backend bez UI'],
-  ['', rows.filter(r=>r.st==="DZIAŁA").length, 'funkcji działa', 'stan DZIAŁA: pełny łańcuch UI → API → zasób'],
+  ['', rows.filter(r=>r.st==="DZIAŁA").length, 'funkcji działa', 'pełny łańcuch UI → API → zasób'+ruch(rows.filter(r=>r.st==="DZIAŁA").length, PB&&PB.dziala)],
 ].map(k=>'<div class="kpi '+k[0]+'"><div class="n">'+k[1]+'</div><div class="l">'+k[2]+'</div><div class="h">'+k[3]+'</div></div>').join('');
 
 // ---- wykres pokrycia ----

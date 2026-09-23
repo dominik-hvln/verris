@@ -208,7 +208,8 @@ document.getElementById('meta').textContent =
 
 document.getElementById('kpis').innerHTML = [
   ['done', `${P.postep.procent}%`, 'planu zrobione',
-   `${P.postep.godzinyZrobione} h z ${P.postep.godzinyRazem} h · ${P.postep.pozycjeZrobione}/${P.postep.pozycjeRazem} pozycji`],
+   `${P.postep.godzinyZrobione} h z ${P.postep.godzinyRazem} h · ${P.postep.pozycjeZrobione}/${P.postep.pozycjeRazem} pozycji`
+   + (P.postep.wybory ? ` · w tym wybrane przed startem: ${P.postep.wybory.zrobione}/${P.postep.wybory.pozycje}` : '')],
   [P.postep.zapasTygodni >= 0 ? 'done' : 'crit',
    `${P.postep.zapasTygodni >= 0 ? '+' : ''}${P.postep.zapasTygodni.toFixed(1)} tyg.`,
    P.postep.zapasTygodni >= 0 ? 'zapasu względem planu' : 'opóźnienia względem planu',
