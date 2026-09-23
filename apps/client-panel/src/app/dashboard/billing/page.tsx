@@ -200,7 +200,7 @@ export default async function BillingPage({
                     <Link href="/dashboard/billing/invoices" className="group flex items-center justify-between gap-3 px-4 py-3 hover:bg-raised/50">
                       <span>
                         <b className="block text-sm font-semibold text-foreground">Faktury</b>
-                        <small className="text-[12.5px] text-muted-foreground">faktury z usług opłacanych kartą (Stripe)</small>
+                        <small className="text-[12.5px] text-muted-foreground">dokumenty za wpłaty i opłaty — PDF i duplikat</small>
                       </span>
                       <ChevronRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
                     </Link>

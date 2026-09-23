@@ -1,5 +1,21 @@
-import * as fontkit from '@pdf-lib/fontkit';
+import * as fontkitModul from '@pdf-lib/fontkit';
 import type { PDFDocument, PDFFont } from 'pdf-lib';
+
+type Fontkit = Parameters<PDFDocument['registerFontkit']>[0];
+
+/**
+ * Ten sam import ma dwa kształty. Jest (CommonJS) bierze z paczki pole `main` (UMD) i dostaje
+ * obiekt z `create`. Webpack w obrazie produkcyjnym bierze pole `module` (ESM, tylko
+ * `export default fontkit`) i `import * as` daje przestrzeń nazw `{ default }` bez `create`.
+ * 2026-09-23: testy zielone, a na produkcji KAŻDY PDF (faktury, proformy, DPA) kończył się 500.
+ */
+export function fontkitZModulu(modul: unknown): Fontkit {
+  const m = modul as { create?: unknown; default?: { create?: unknown } };
+  if (typeof m?.create === 'function') return m as Fontkit;
+  if (typeof m?.default?.create === 'function') return m.default as Fontkit;
+  throw new Error('@pdf-lib/fontkit: brak funkcji create — nieznany kształt modułu');
+}
+const fontkit = fontkitZModulu(fontkitModul);
 import { DEJAVU_SANS, DEJAVU_SANS_BOLD, DEJAVU_SANS_MONO } from './czcionki.generated';
 
 /**

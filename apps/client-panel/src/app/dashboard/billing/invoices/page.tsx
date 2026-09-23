@@ -46,7 +46,7 @@ export default async function InvoicesPage({
 
       <PageHeaderRow
         title="Faktury"
-        description="Faktury z opłat kartą za usługi cykliczne — pobierzesz je ze strony Stripe."
+        description="Dokumenty za doładowania portfela i opłaty kartą — PDF i duplikat pobierzesz z listy."
       />
 
       {loadError ? (

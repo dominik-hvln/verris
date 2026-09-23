@@ -1,3 +1,4 @@
+import { fontkitZModulu } from './czcionki';
 import { InvoicePdfService } from '../../billing/invoice-pdf.service';
 import { DpaPdfService } from '../../compliance/dpa-pdf.service';
 
@@ -42,5 +43,21 @@ describe('PDF z polskimi znakami', () => {
       acceptanceId: 'abc',
     });
     expect(Buffer.from(pdf).subarray(0, 5).toString()).toBe('%PDF-');
+  });
+});
+
+describe('fontkitZModulu — kształt modułu jak w jest i jak w paczce webpacka', () => {
+  const fk = { create: () => null };
+
+  it('CommonJS/UMD (jest): obiekt z create', () => {
+    expect(fontkitZModulu(fk)).toBe(fk);
+  });
+
+  it('ESM z polem `module` (webpack w obrazie): przestrzeń nazw { default }', () => {
+    expect(fontkitZModulu({ default: fk })).toBe(fk);
+  });
+
+  it('nieznany kształt: jasny błąd zamiast cichego „create is not a function” w środku pdf-lib', () => {
+    expect(() => fontkitZModulu({})).toThrow(/brak funkcji create/);
   });
 });
