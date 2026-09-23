@@ -370,7 +370,7 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 | `A-11` | Wyszukiwarka wolnych domen | 6 | WYSOKA | domains.controller.ts:54 |
 | `C-11` | Spakowanie do archiwum | 6 | ŚREDNIA | 2026-09-23 D1: POST /services/:id/files/compress → files.service compress (nazwa archiwum walidowana) → SDK compressEntries (schowek DA + action=compr |
 | `NODE-03` | Pojemność węzła nigdy się nie odświeża | 6 | ŚREDNIA | 2026-09-23 D1: verris-lve.sh node_capacity (nproc, MemTotal, df /) w każdym raporcie, lve-agent/1.1; telemetry.dto NodeStatusDto.totalCpuCores/totalMe |
-| `PB-08` | Pomiar: Consent Mode v2 + GTM + dedup event_id | 16 | ŚREDNI | Wdrożenie ustaleń z audytu pomiaru: www linkuje, panel działa, deduplikacja po event_id, cookie Domain=.verris.pl. |
+| `PB-08` | Pomiar: Consent Mode v2 + GTM + dedup event_id | 16 | ŚREDNI | Wdrożenie ustaleń z audytu pomiaru: www linkuje, panel działa, deduplikacja po event_id, cookie Domain=.verris.pl. | PRZEGLĄD GTM 2026-09-23 (tylko od |
 
 **Definicja ukończenia**
 
