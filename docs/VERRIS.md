@@ -61,6 +61,13 @@ polecenie z prowizją, EKO. Twierdzenia na badge'ach tylko takie, które kod spr
 gdy warunek przestaje być spełniony, badge znika (nie pokazuje złej wiadomości). Bez ciasteczek
 i zasobów z zewnątrz; osadzanie przez iframe z sandboxem + mały loader.
 
+### 2026-09-23 — co z roadmapy wchodzi przed start
+
+- Właściciel przejrzał roadmapę po starcie (tablica „Verris po starcie”, wybory zapisane przy każdej pozycji) i oznaczył ok. 117 pozycji jako „przed startem”. 15 z nich zamknięto tego samego dnia; zostało 99 (≈1566 h).
+- **Data startu bez zmian** (koniec stycznia 2027). Wybrane pozycje robimy w kolejności: krytyczność WYSOKA → to, co rynek PL już ma → reszta; w obrębie grupy najpierw to, co nie wymaga węzła. Co nie zmieści się do startu, przechodzi za start bez zmiany daty.
+- M-07 (duplikat faktury), M-09 (stawki VAT ≠ 23%), M-10 (waluta obca) — **przed startem, w panelu**, mimo że fakturę VAT wystawia Firmino: dotyczy dokumentów, które pokazuje panel.
+- Źródło prawdy o wyborach: tablica „Verris po starcie” (kolumna „Przed startem / Po starcie”).
+
 ### 2026-09-22 — DNS
 ClouDNS **Premium L** (14,95 USD/mies., 400 stref) jako zewnętrzny secondary za DirectAdminem,
 NS pod marką Verris — kupujemy razem z węzłem. DDoS Protected nie na start. Openprovider jako
