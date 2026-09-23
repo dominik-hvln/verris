@@ -1,4 +1,3 @@
-/* eslint-disable */
 // WYGENEROWANE — nie edytować ręcznie. Czcionki DejaVu (licencja: Bitstream Vera / public domain,
 // https://dejavu-fonts.github.io/License.html) przycięte pyftsubset do: Basic Latin, Latin-1,
 // Latin Extended-A (polskie znaki), interpunkcja ogólna, €, ™, strzałki, ✓ ✔ ✗.
