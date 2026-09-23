@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Body, Param, UseGuards, Req } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Post, Delete, Body, Param, UseGuards, Req } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
 import { DomainsService } from './domains.service';
@@ -130,9 +130,14 @@ export class DomainsController {
     return this.registrar.orders(req.user.userId);
   }
 
+  @Post(':id/registrar/renew-quote')
+  async renewQuote(@Req() req, @Param('id') id: string, @Body() body: { years?: number }) {
+    return this.registrar.renewQuote(req.user.userId, id, lataOdnowienia(body?.years));
+  }
+
   @Post(':id/registrar/renew')
   async renew(@Req() req, @Param('id') id: string, @Body() body: { years?: number }) {
-    return this.registrar.renew(req.user.userId, req.user.principalUserId ?? req.user.userId, id, body.years ?? 1);
+    return this.registrar.renew(req.user.userId, req.user.principalUserId ?? req.user.userId, id, lataOdnowienia(body?.years));
   }
 
   @Get(':id')
@@ -161,4 +166,11 @@ export class DomainsController {
   }
 }
 
-
+/** A-10 — liczba lat odnowienia z body bez DTO: całkowita 1–10, inaczej 400 (wcześniej przechodziło cokolwiek). */
+function lataOdnowienia(v: unknown): number {
+  if (v === undefined || v === null) return 1;
+  if (typeof v !== 'number' || !Number.isInteger(v) || v < 1 || v > 10) {
+    throw new BadRequestException('Okres odnowienia: od 1 do 10 lat.');
+  }
+  return v;
+}

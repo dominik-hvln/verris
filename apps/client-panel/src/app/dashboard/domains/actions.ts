@@ -202,3 +202,30 @@ export async function transferDomainAction(formData: FormData) {
   revalidatePath('/dashboard/domains/buy');
 }
 
+
+/** A-10 — odnowienie domeny u rejestratora (cena → potwierdzenie → obciążenie portfela). */
+export async function renewQuoteAction(
+  id: string,
+  years: number,
+): Promise<{ ok: true; priceAmount: string; currency: string } | { ok: false; error: string }> {
+  try {
+    const q = await apiFetch<{ priceAmount: string; currency: string }>(`/domains/${id}/registrar/renew-quote`, {
+      method: 'POST',
+      body: JSON.stringify({ years }),
+    });
+    return { ok: true, priceAmount: q.priceAmount, currency: q.currency };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Nie udało się pobrać ceny odnowienia.' };
+  }
+}
+
+export async function renewDomainAction(id: string, years: number): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await apiFetch(`/domains/${id}/registrar/renew`, { method: 'POST', body: JSON.stringify({ years }) });
+    revalidatePath(`/dashboard/domains/${id}`);
+    revalidatePath('/dashboard/domains');
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Odnowienie nie powiodło się.' };
+  }
+}

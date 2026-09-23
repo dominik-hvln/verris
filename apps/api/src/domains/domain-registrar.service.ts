@@ -412,6 +412,14 @@ export class DomainRegistrarService {
     });
   }
 
+  /** A-10 — cena odnowienia przed potwierdzeniem (klient widzi kwotę, zanim portfel zostanie obciążony). */
+  async renewQuote(userId: string, domainId: string, years = 1) {
+    const domain = await this.prisma.domain.findFirst({ where: { id: domainId, userId } });
+    if (!domain) throw new NotFoundException('Domena nie została znaleziona.');
+    const price = await this.resolvePrice(this.providerFactory.get(), domain.name, years, 'renew');
+    return { domain: domain.name, years, priceAmount: price.amount, currency: price.currency, expiresAt: domain.expiresAt };
+  }
+
   async renew(userId: string, actorUserId: string, domainId: string, years = 1) {
     const domain = await this.prisma.domain.findFirst({ where: { id: domainId, userId } });
     if (!domain) throw new NotFoundException('Domena nie została znaleziona.');
