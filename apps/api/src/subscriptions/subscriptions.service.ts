@@ -1601,7 +1601,8 @@ export class SubscriptionsService {
     });
   }
 
-  private async ensureStripeCustomer(user: {
+  /** Także M-27 (dodanie karty bez zakupu) — dlatego publiczne. */
+  async ensureStripeCustomer(user: {
     id: string;
     email: string;
     firstName: string | null;

@@ -42,6 +42,10 @@ export class StripeService {
     return this.requireClient().createCheckoutSession(input);
   }
 
+  async createSetupSession(input: Parameters<StripeClient['createSetupSession']>[0]) {
+    return this.requireClient().createSetupSession(input);
+  }
+
   // ---------------------------------------------------------------------------
   // Customers (lazy-create per User on first card subscription)
   // ---------------------------------------------------------------------------

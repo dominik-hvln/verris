@@ -6,7 +6,7 @@ import type { SavedPaymentMethodDto, WalletAutoTopupSettingsDto } from '@verris/
 import { toast } from 'sonner';
 import { CreditCard, Landmark, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { CREDIT_SHORT, formatCredits, pluralCredits } from '@/lib/credits';
-import { deletePaymentMethodAction, redeemPromoAction, upsertAutoTopupAction } from './actions';
+import { deletePaymentMethodAction, redeemPromoAction, startAddCardAction, upsertAutoTopupAction } from './actions';
 import { Select } from '@/components/panel';
 
 interface Props {
@@ -18,7 +18,7 @@ export function BillingExtrasForms({ initialAuto, savedCards }: Props) {
   return (
     <div className="flex flex-col gap-6">
       <PromoRedeemBlock />
-      {savedCards.length > 0 ? <SavedCardsBlock cards={savedCards} /> : null}
+      <SavedCardsBlock cards={savedCards} />
       <WalletAutotopupBlock initialAuto={initialAuto} savedCards={savedCards} />
     </div>
   );
@@ -44,9 +44,37 @@ function SavedCardsBlock({ cards }: { cards: SavedPaymentMethodDto[] }) {
     router.refresh();
   };
 
+  const [adding, setAdding] = useState(false);
+  const add = async () => {
+    setAdding(true);
+    const res = await startAddCardAction();
+    if (!res.ok) {
+      setAdding(false);
+      toast.error('Nie udało się otworzyć formularza karty', { description: res.error });
+      return;
+    }
+    window.location.href = res.url;
+  };
+
   return (
     <section className="rounded-[10px] border border-line bg-card px-4 pb-3 pt-3.5">
-      <h3 className="m-0 font-display text-[15px] font-bold text-foreground">Zapisane karty</h3>
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="m-0 font-display text-[15px] font-bold text-foreground">Zapisane karty</h3>
+        <button
+          type="button"
+          onClick={() => void add()}
+          disabled={adding}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-line-strong px-2.5 py-1 text-xs text-foreground hover:bg-raised disabled:opacity-50"
+        >
+          {adding ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CreditCard className="h-3.5 w-3.5" />}
+          Dodaj kartę
+        </button>
+      </div>
+      {cards.length === 0 ? (
+        <p className="m-0 mt-2 text-sm text-muted-foreground">
+          Brak zapisanych kart. Dodaj kartę, żeby włączyć auto-doładowanie portfela — nic nie pobieramy przy dodaniu.
+        </p>
+      ) : null}
       <ul className="m-0 mt-2 list-none p-0">
         {cards.map((c) => (
           <li key={c.id} className="flex items-center justify-between gap-3 border-t border-line py-2.5 first:border-0">

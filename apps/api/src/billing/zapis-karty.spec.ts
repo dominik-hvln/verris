@@ -52,3 +52,23 @@ describe('M-26 zapis kart z webhooków', () => {
     expect(prisma.walletAutoTopup.updateMany).toHaveBeenCalledWith({ where: { userId: 'u1', paymentMethodId: 'row1' }, data: { paymentMethodId: null } });
   });
 });
+
+describe('M-27 dodanie karty bez zakupu', () => {
+  it('tworzy klienta Stripe w razie potrzeby i zwraca link do Checkout w trybie setup', async () => {
+    const prisma = { user: { findUnique: jest.fn(async () => ({ id: 'u1', email: 'a@b.pl', firstName: null, lastName: null, companyName: null, stripeCustomerId: null })) } };
+    const stripe = { createSetupSession: jest.fn(async () => ({ id: 'cs_1', url: 'https://checkout.stripe.test/cs_1' })) };
+    const subs = { ensureStripeCustomer: jest.fn(async () => 'cus_9') };
+    const audit = { record: jest.fn(async () => undefined) };
+    const config = { get: jest.fn(() => 'https://panel.test/') };
+    const n = {} as never;
+    const svc = new BillingService(prisma as never, n, stripe as never, audit as never, config as never, n, subs as never, n, n, n);
+    await expect(svc.startAddCard('u1')).resolves.toEqual({ url: 'https://checkout.stripe.test/cs_1' });
+    expect(subs.ensureStripeCustomer).toHaveBeenCalledWith(expect.objectContaining({ id: 'u1' }));
+    expect(stripe.createSetupSession).toHaveBeenCalledWith({
+      customerId: 'cus_9',
+      successUrl: 'https://panel.test/dashboard/billing?karta=dodana',
+      cancelUrl: 'https://panel.test/dashboard/billing',
+      metadata: { userId: 'u1', kind: 'add_card' },
+    });
+  });
+});

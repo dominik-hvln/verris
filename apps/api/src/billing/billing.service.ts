@@ -190,6 +190,26 @@ export class BillingService {
     });
   }
 
+  /** M-27 — link do Stripe Checkout (tryb setup), w którym klient zapisuje kartę bez zakupu. */
+  async startAddCard(userId: string): Promise<{ url: string }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, firstName: true, lastName: true, companyName: true, stripeCustomerId: true },
+    });
+    if (!user) throw new NotFoundException('Użytkownik nie istnieje.');
+    const customerId = await this.subscriptions.ensureStripeCustomer(user);
+    const panel = (this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl').replace(/\/$/, '');
+    const session = await this.stripe.createSetupSession({
+      customerId,
+      successUrl: `${panel}/dashboard/billing?karta=dodana`,
+      cancelUrl: `${panel}/dashboard/billing`,
+      metadata: { userId, kind: 'add_card' },
+    });
+    await this.audit.record({ action: 'PAYMENT_METHOD_ADD_STARTED', userId, actorUserId: userId, details: { sessionId: session.id } });
+    if (!session.url) throw new BadRequestException('Operator płatności nie zwrócił adresu formularza — spróbuj ponownie.');
+    return { url: session.url };
+  }
+
   /** Zapisane karty Stripe w bazie — wybór karty przy auto‑doładowaniu portfela. */
   async listMyPaymentMethods(userId: string) {
     const rows = await this.prisma.paymentMethod.findMany({

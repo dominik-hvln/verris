@@ -178,3 +178,13 @@ export async function deletePaymentMethodAction(id: string): Promise<{ ok: true 
     return { ok: false, error: err instanceof ApiError ? err.message : 'Nie udało się usunąć karty.' };
   }
 }
+
+/** M-27 — przejście do formularza Stripe, w którym klient zapisuje kartę bez zakupu. */
+export async function startAddCardAction(): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+  try {
+    const { url } = await apiFetch<{ url: string }>('/billing/payment-methods/setup-session', { method: 'POST' });
+    return { ok: true, url };
+  } catch (err) {
+    return { ok: false, error: err instanceof ApiError ? err.message : 'Nie udało się otworzyć formularza karty.' };
+  }
+}

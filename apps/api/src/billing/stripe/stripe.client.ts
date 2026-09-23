@@ -329,6 +329,28 @@ export class StripeClient {
     return this.request<StripeCheckoutSession>('POST', '/checkout/sessions', body);
   }
 
+  /**
+   * M-27 — Checkout w trybie `setup`: klient zapisuje kartę bez płatności. Karta trafia
+   * do klienta Stripe z `usage=off_session` (auto-doładowanie), a webhook
+   * payment_method.attached zapisuje ją w panelu (M-26).
+   */
+  async createSetupSession(input: {
+    customerId: string;
+    successUrl: string;
+    cancelUrl: string;
+    metadata?: Record<string, string>;
+  }): Promise<StripeCheckoutSession> {
+    const body = new URLSearchParams();
+    body.set('mode', 'setup');
+    body.set('payment_method_types[0]', 'card');
+    body.set('customer', input.customerId);
+    body.set('success_url', input.successUrl);
+    body.set('cancel_url', input.cancelUrl);
+    body.set('setup_intent_data[metadata][kind]', 'add_card');
+    for (const [key, value] of Object.entries(input.metadata ?? {})) body.set(`metadata[${key}]`, value);
+    return this.request<StripeCheckoutSession>('POST', '/checkout/sessions', body);
+  }
+
   async retrieveCheckoutSession(id: string): Promise<StripeCheckoutSession> {
     return this.request<StripeCheckoutSession>('GET', `/checkout/sessions/${encodeURIComponent(id)}`);
   }

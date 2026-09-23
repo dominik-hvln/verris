@@ -44,6 +44,13 @@ export class BillingController {
     return this.billing.listMyPaymentMethods(user.userId);
   }
 
+  // M-27 — dodanie karty bez zakupu (Stripe Checkout w trybie setup).
+  @Post('payment-methods/setup-session')
+  @HttpCode(200)
+  startAddCard(@CurrentUser() user: { userId: string }) {
+    return this.billing.startAddCard(user.userId);
+  }
+
   // M-26 — klient usuwa zapisaną kartę.
   @Delete('payment-methods/:id')
   @HttpCode(200)

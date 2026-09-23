@@ -33,7 +33,7 @@ const txLabels: Record<WalletTxType, string> = {
 export default async function BillingPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; karta?: string }>;
 }) {
   const params = await searchParams;
   let summary: WalletSummaryDto | null = null;
@@ -77,6 +77,13 @@ export default async function BillingPage({
           icon={<CheckCircle2 className="h-5 w-5" />}
           title="Płatność zakończona pomyślnie"
           description="Środki pojawią się w portfelu w ciągu kilku sekund (po potwierdzeniu webhooka)."
+        />
+      ) : params.karta === 'dodana' ? (
+        <StatusBanner
+          tone="success"
+          icon={<CheckCircle2 className="h-5 w-5" />}
+          title="Karta zapisana"
+          description="Pojawi się na liście zapisanych kart w ciągu kilku sekund (po potwierdzeniu od operatora płatności). Odśwież stronę, jeśli jej nie widzisz."
         />
       ) : params.status === 'cancel' ? (
         <StatusBanner
