@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { staffApi as adminApi } from "@/lib/staff-api";
+import { staffApi as adminApi, StaffApiError } from "@/lib/staff-api";
 import { MigrationRowActions } from "./migration-row-actions";
 
 export const dynamic = "force-dynamic";
@@ -63,8 +63,11 @@ export default async function MigrationsCockpitPage({
     );
     rows = res.rows;
     attentionCount = res.attentionCount;
-  } catch {
-    error = "Nie udało się pobrać listy migracji.";
+  } catch (e) {
+    // 403 to brak uprawnienia, nie awaria — mówimy wprost, co zrobić.
+    error = e instanceof StaffApiError && e.status === 403
+      ? "Twoje konto nie ma uprawnienia „Migracje” (MIGRATIONS_MANAGE). Nada je administrator: panel admina → Role i uprawnienia."
+      : "Nie udało się pobrać listy migracji.";
   }
 
   return (

@@ -57,7 +57,7 @@ Propagacja zmian DNS trwa zwykle od kilku minut do 24 godzin. Status możesz spr
 
 Ustawienia w programie pocztowym (Outlook, Thunderbird, telefon):
 - Serwer poczty przychodzącej (IMAP): host node Twojej usługi (widoczny w zakładce Poczta), port 993, szyfrowanie SSL/TLS.
-- Serwer poczty wychodzącej (SMTP): ten sam host, port 587 ze STARTTLS (lub 465 z SSL).
+- Serwer poczty wychodzącej (SMTP): ten sam host, port 465 z SSL (lub 587 ze STARTTLS, gdy sieć blokuje 465).
 - Login: pełny adres skrzynki (np. kontakt@twojadomena.pl).
 - Hasło: ustawione przy tworzeniu skrzynki.
 
@@ -298,7 +298,7 @@ Aby poczta działała, skonfiguruj w DNS domeny rekordy:
 - SPF i DKIM — dla poprawnej dostarczalności (mniej spamu),
 - opcjonalnie DMARC — polityka uwierzytelniania.
 
-Skrzynki zakładasz w zakładce Poczta. Konfigurację programu pocztowego (IMAP 993, SMTP 587) znajdziesz w osobnym artykule. Jeśli potrzebujesz też strony WWW, wybierz plan hostingowy zamiast samej poczty.`,
+Skrzynki zakładasz w zakładce Poczta. Konfigurację programu pocztowego (IMAP 993, SMTP 465) znajdziesz w osobnym artykule. Jeśli potrzebujesz też strony WWW, wybierz plan hostingowy zamiast samej poczty.`,
   },
   {
     title: 'Faktury i dane do faktury (KSeF)',

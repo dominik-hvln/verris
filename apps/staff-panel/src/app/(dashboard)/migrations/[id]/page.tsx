@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { staffApi as adminApi } from "@/lib/staff-api";
+import { staffApi as adminApi, StaffApiError } from "@/lib/staff-api";
 import { MigrationDetailClient, type MigrationDetail } from "./migration-detail-client";
 
 export const dynamic = "force-dynamic";
@@ -14,8 +14,11 @@ export default async function MigrationDetailPage({
   let error: string | null = null;
   try {
     detail = await adminApi<MigrationDetail>(`/staff/migrations/${id}/detail`);
-  } catch {
-    error = "Nie udało się pobrać szczegółów migracji.";
+  } catch (e) {
+    // 403 to brak uprawnienia, nie awaria — mówimy wprost, co zrobić.
+    error = e instanceof StaffApiError && e.status === 403
+      ? "Twoje konto nie ma uprawnienia „Migracje” (MIGRATIONS_MANAGE). Nada je administrator: panel admina → Role i uprawnienia."
+      : "Nie udało się pobrać szczegółów migracji.";
   }
 
   return (

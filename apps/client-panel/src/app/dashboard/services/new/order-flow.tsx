@@ -9,6 +9,7 @@ import type { BillingInterval, PlanDto } from '@verris/contracts';
 import { NewSubscriptionForm } from './form';
 import { TrialCallout } from './trial-callout';
 import type { TrialOffer } from '../data';
+import { clientFeatures } from '@/lib/client-features';
 
 /**
  * UX-4 — wybór TYPU usługi w osobnych kaflach (Hosting / Poczta / VPS), zamiast
@@ -16,6 +17,7 @@ import type { TrialOffer } from '../data';
  * pokazujemy warianty (plany) tego typu + (dla hostingu) atrakcyjny start trial.
  */
 export function OrderFlow({ plans, offer }: { plans: PlanDto[]; offer: TrialOffer }) {
+  const vps = clientFeatures.vps; // VPS ukryty do wejścia do sprzedaży (2026-09-23)
   const params = useSearchParams();
   const router = useRouter();
   const type = params.get('type');
@@ -78,7 +80,7 @@ export function OrderFlow({ plans, offer }: { plans: PlanDto[]; offer: TrialOffe
   }
 
   // --- Krok 2b: VPS — spójny krok z powrotem (zamiast wyskoku do innej sekcji) ---
-  if (type === 'vps') {
+  if (type === 'vps' && vps) {
     return (
       <div className="space-y-6">
         <button
@@ -125,7 +127,7 @@ export function OrderFlow({ plans, offer }: { plans: PlanDto[]; offer: TrialOffe
   return (
     <div className="space-y-5">
       <p className="text-sm text-neutral-400">Co chcesz uruchomić? Wybierz rodzaj usługi.</p>
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className={`grid gap-4 ${vps ? 'md:grid-cols-3' : 'md:grid-cols-2'}`}>
         <ProductCard
           icon={<Server className="h-6 w-6" />}
           title="Hosting WWW"
@@ -145,14 +147,16 @@ export function OrderFlow({ plans, offer }: { plans: PlanDto[]; offer: TrialOffe
           count={emailPlans.length}
           accent="sky"
         />
-        <ProductCard
-          icon={<Cpu className="h-6 w-6" />}
-          title="VPS / Cloud"
-          desc="Własny serwer z dostępem root. Rozliczenie miesięczne."
-          bullets={['Pełny root + SSH', 'Skalowalne zasoby', 'Snapshoty']}
-          href="/dashboard/services/new?type=vps"
-          accent="violet"
-        />
+        {vps ? (
+          <ProductCard
+            icon={<Cpu className="h-6 w-6" />}
+            title="VPS / Cloud"
+            desc="Własny serwer z dostępem root. Rozliczenie miesięczne."
+            bullets={['Pełny root + SSH', 'Skalowalne zasoby', 'Snapshoty']}
+            href="/dashboard/services/new?type=vps"
+            accent="violet"
+          />
+        ) : null}
       </div>
     </div>
   );

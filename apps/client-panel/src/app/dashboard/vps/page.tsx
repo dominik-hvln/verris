@@ -2,10 +2,20 @@ import { Server } from 'lucide-react';
 import { PanelCard, PanelPageHeader } from '@/components/panel';
 import { fetchSshKeys, fetchVpsAvailability, fetchVpsInstances, fetchVpsPlans } from './vps-actions';
 import { VpsClient } from './vps-client';
+import { FeatureNotAvailable } from '@/components/feature-not-available';
+import { clientFeatures } from '@/lib/client-features';
 
 export const dynamic = 'force-dynamic';
 
 export default async function VpsPage() {
+  if (!clientFeatures.vps) {
+    return (
+      <FeatureNotAvailable
+        title="VPS / Cloud"
+        description="Serwery VPS nie są jeszcze w ofercie. Hosting, poczta i portfel działają bez zmian."
+      />
+    );
+  }
   const [available, plans, instances, sshKeys] = await Promise.all([
     fetchVpsAvailability(),
     fetchVpsPlans(),

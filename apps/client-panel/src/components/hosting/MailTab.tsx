@@ -286,7 +286,7 @@ export default function MailTab({ serviceId }: Props) {
           {emailQuota && Number(emailQuota.limit) > 0 ? <Meter pct={(rows.length / Number(emailQuota.limit)) * 100} /> : null}
         </Kpi>
         <Kpi label="Domeny z pocztą" value={loading ? '…' : new Set(rows.map((r) => r.email.split('@')[1])).size} foot={<span>adresy w tych domenach</span>} />
-        <Kpi label="Serwer poczty" value={<span className="font-mono text-[15px] font-semibold tracking-normal">{imapHost}</span>} foot={<span>IMAP 993 · SMTP 587</span>} />
+        <Kpi label="Serwer poczty" value={<span className="font-mono text-[15px] font-semibold tracking-normal">{imapHost}</span>} foot={<span>IMAP 993 · SMTP 465</span>} />
         <Kpi
           label="Limit wysyłki"
           value={HOSTING_MAIL_DAILY_SEND_LIMIT}
@@ -302,11 +302,11 @@ export default function MailTab({ serviceId }: Props) {
         <AccessList
           items={[
             { label: 'Serwer przychodzący (IMAP)', values: [imapHost], port: '993' },
-            { label: 'Serwer wychodzący (SMTP)', values: [imapHost], port: '587' },
+            { label: 'Serwer wychodzący (SMTP)', values: [imapHost], port: '465' },
           ]}
         />
         <p className="m-0 px-4 pb-3.5 pt-2 font-mono text-[11.5px] leading-relaxed text-muted-foreground">
-          Szyfrowanie SSL/TLS: STARTTLS na porcie 587, SSL na 465. Login to pełny adres skrzynki (np. kontakt@twojadomena.pl). Hasło ustawiasz przy tworzeniu skrzynki. Webmail otwierasz przyciskiem wyżej.
+          Szyfrowanie SSL/TLS: SMTP na porcie 465 (SSL). Jeśli Twoja sieć blokuje 465, użyj 587 ze STARTTLS. Login to pełny adres skrzynki (np. kontakt@twojadomena.pl). Hasło ustawiasz przy tworzeniu skrzynki. Webmail otwierasz przyciskiem wyżej.
         </p>
       </div>
 

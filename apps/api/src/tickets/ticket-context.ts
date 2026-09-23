@@ -144,7 +144,7 @@ export function buildDraft(category: TicketCategory, c: TicketDraftContext): str
     case 'POCZTA':
       lines.push(
         `W panelu, w zakładce Poczta, sekcja „Dostarczalność poczty” pokazuje stan rekordów SPF, DKIM i DMARC${dom ? ` dla ${dom}` : ''} i pozwala je poprawić jednym kliknięciem.`,
-        'Do programu pocztowego: serwer IMAP (port 993, SSL) i SMTP (port 587, STARTTLS), login to pełny adres skrzynki.',
+        'Do programu pocztowego: serwer IMAP (port 993, SSL) i SMTP (port 465, SSL; gdy sieć blokuje 465 — 587 ze STARTTLS), login to pełny adres skrzynki.',
       );
       break;
     case 'PLATNOSC':

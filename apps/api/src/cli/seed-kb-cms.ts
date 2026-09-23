@@ -468,7 +468,7 @@ Z poczty korzystasz przez webmail w przeglądarce lub program pocztowy (patrz: k
 
 ## Poczta wychodząca (SMTP)
 - **Serwer:** mail.twojadomena.pl
-- **Port:** 465 (SSL) lub 587 (STARTTLS)
+- **Port:** 465 (SSL); gdy sieć blokuje 465 — 587 (STARTTLS)
 - **Uwierzytelnianie:** włączone, login = adres e-mail
 
 ## IMAP czy POP3
@@ -479,7 +479,7 @@ Sprawdź, czy używasz szyfrowania (SSL/TLS) i poprawnego portu oraz czy hasło 
     { d: 'Konfiguracja poczty w programie pocztowym: ustawienia IMAP i SMTP dla Verris (serwery, porty, szyfrowanie).',
       faq: [
         { q: 'IMAP czy POP3 — co wybrać?', a: 'IMAP. Synchronizuje pocztę między wszystkimi urządzeniami (telefon, komputer, webmail). POP3 pobiera wiadomości tylko na jedno urządzenie i zwykle je usuwa z serwera.' },
-        { q: 'Który port SMTP wybrać — 465 czy 587?', a: 'Oba działają. 465 używa SSL od razu, 587 używa STARTTLS. Jeśli jeden jest blokowany przez sieć, wypróbuj drugi. Zawsze włącz uwierzytelnianie.' },
+        { q: 'Który port SMTP wybrać — 465 czy 587?', a: 'Zalecamy 465 — szyfrowanie od pierwszego bajtu (SSL). 587 ze STARTTLS też działa; użyj go, gdy sieć blokuje 465. Zawsze włącz uwierzytelnianie.' },
       ], related: ['zakladanie-skrzynki', 'spf-dkim-dmarc'] }),
 
   A('poczta', 'spf-dkim-dmarc', 'SPF, DKIM i DMARC — dostarczalność poczty',
