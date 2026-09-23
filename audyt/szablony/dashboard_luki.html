@@ -97,13 +97,13 @@
 <body>
 <div class="wrap">
   <h1>Verris — parytet funkcji wobec rynku</h1>
-  <p class="sub">Audyt zewnętrzny · 352 pozycje · po passie adwersaryjnym · dowód dwustronny: dokumentacja producenta po stronie konkurencji, plik:linia w repozytorium po stronie Verrisa</p>
-  <p class="meta">Stan na 20 sierpnia 2026 · panele: cPanel · Plesk · DirectAdmin — rynek PL: cyber_Folks · dhosting · home.pl · nazwa.pl · seohost — nowa fala: Hostinger hPanel · SiteGround Site Tools · Cloudways</p>
+  <p class="sub">Audyt zewnętrzny · <span id="npoz"></span> pozycji · po passie adwersaryjnym · dowód dwustronny: dokumentacja producenta po stronie konkurencji, plik:linia w repozytorium po stronie Verrisa</p>
+  <p class="meta">Stan na __STAN__ (generowane z macierzy) · panele: cPanel · Plesk · DirectAdmin — rynek PL: cyber_Folks · dhosting · home.pl · nazwa.pl · seohost — nowa fala: Hostinger hPanel · SiteGround Site Tools · Cloudways</p>
 
   <div class="kpis" id="kpis"></div>
 
   <div class="callout">
-    <b>Jak czytać te liczby.</b> Procent pokrycia jest metryką opisową i nie jest kryterium startu — wysoki parytet przy braku potwierdzonego odtworzenia kopii to zero procent gotowości. Decyzję podejmuje się wyłącznie na podstawie liczby blokerów. Osobno: poziom dowodu <b>D2 (test przechodzi w CI) wynosi 0% dla całego produktu</b>, ponieważ katalog CI nie istnieje w repozytorium — 36 testów obecnych w kodzie nie jest uruchamiane automatycznie przez nic.<br><br>
+    <b>Jak czytać te liczby.</b> Procent pokrycia jest metryką opisową i nie jest kryterium startu — wysoki parytet przy braku potwierdzonego odtworzenia kopii to zero procent gotowości. Decyzję podejmuje się wyłącznie na podstawie liczby blokerów. Poziom dowodu (D1 kod · D2 test w CI · D3 na produkcji · D4 odtworzenie) jest przy każdej pozycji w kolumnach Dowód i Uwagi.<br><br>
     <b>Ten wynik przeszedł pass adwersaryjny.</b> 11 z 66 twierdzeń o przewadze zostało obalonych lub osłabionych, 16 z 27 pierwotnych blokerów zdegradowano po konfrontacji z definicją, a kategoria <b>Z</b> zawiera 7 pozycji, których pierwsze przejście nie zauważyło — w tym wykonanie polecenia jako root na węźle z formularza migracji w panelu klienta.
   </div>
 
@@ -156,13 +156,14 @@ const nLuk = rows.filter(r=>r.w==="LUKA").length;
 const nOk  = rows.filter(r=>r.w==="PARYTET"||r.w==="PRZEWAGA").length;
 const nPrz = rows.filter(r=>r.w==="PRZEWAGA").length;
 const nGho = rows.filter(r=>r.st==="ATRAPA"||r.st==="ENDPOINT BEZ UI").length;
+document.getElementById('npoz').textContent = rows.length;
 document.getElementById('kpis').innerHTML = [
   ['crit', nBlk, 'blokerów startu', 'każdy musi być zamknięty przed sprzedażą pierwszego konta'],
   ['', nOk+' / '+rows.length, 'parytet lub przewaga', Math.round(nOk/rows.length*100)+'% pozycji — metryka opisowa, nie kryterium'],
   ['', nPrz, 'realnych przewag', 'po obaleniu 11 twierdzeń w passie adwersaryjnym'],
   ['', nLuk, 'luk wobec rynku', 'rynek to ma, my nie'],
   ['', nGho, 'funkcji-widm', 'UI bez backendu albo backend bez UI'],
-  ['crit', '0%', 'dowód D2 (test w CI)', 'katalog CI nie istnieje w repozytorium'],
+  ['', rows.filter(r=>r.st==="DZIAŁA").length, 'funkcji działa', 'stan DZIAŁA: pełny łańcuch UI → API → zasób'],
 ].map(k=>'<div class="kpi '+k[0]+'"><div class="n">'+k[1]+'</div><div class="l">'+k[2]+'</div><div class="h">'+k[3]+'</div></div>').join('');
 
 // ---- wykres pokrycia ----

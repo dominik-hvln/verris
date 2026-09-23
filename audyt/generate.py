@@ -318,7 +318,9 @@ def buduj_dashboard_luk(D):
     dane = json.dumps({"rows": rows, "kats": D["cfg"]["kategorie"]}, ensure_ascii=False)
     tpl = (SZAB / "dashboard_luki.html").read_text(encoding="utf-8")
     OUT_A.mkdir(exist_ok=True)
-    (OUT_A / "VERRIS_LUKI_DASHBOARD.html").write_text(tpl.replace("__DATA__", dane), encoding="utf-8")
+    (OUT_A / "VERRIS_LUKI_DASHBOARD.html").write_text(
+        tpl.replace("__DATA__", dane).replace("__STAN__", __import__("datetime").date.today().strftime("%d.%m.%Y")),
+        encoding="utf-8")
 
 
 # ───────────────────────────── 3. backlog XLSX ─────────────────────────────
