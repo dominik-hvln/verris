@@ -294,7 +294,7 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
                             {Number(s.priceAmount).toLocaleString('pl-PL', { minimumFractionDigits: 2 })} {s.currency === 'PLN' ? 'zł' : s.currency}
                             {s.interval === 'MONTH' ? ' / mies.' : ' / rok'}
                           </td>
-                          <td className={`${TD} w-8`}>
+                          <td data-label="" className={`${TD} w-8`}>
                             <Link href={serviceHref(s)} aria-label={`Otwórz ${s.planName}`} className="text-muted-foreground group-hover:text-primary">
                               <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                             </Link>

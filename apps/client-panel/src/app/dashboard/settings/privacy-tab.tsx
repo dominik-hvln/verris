@@ -154,7 +154,7 @@ function ConsentsSection({ consents }: { consents: UserConsentRow[] }) {
         {consents.length === 0 ? (
           <p className="p-6 text-sm text-neutral-500">Brak zarejestrowanych zgód.</p>
         ) : (
-          <table className="w-full text-sm">
+          <table className="v2-stack w-full text-sm">
             <thead className="bg-white/5 text-neutral-400 text-xs uppercase tracking-wider">
               <tr>
                 <th className="text-left font-semibold px-4 py-3">Dokument</th>
@@ -166,12 +166,12 @@ function ConsentsSection({ consents }: { consents: UserConsentRow[] }) {
             <tbody className="divide-y divide-white/5">
               {consents.map((row) => (
                 <tr key={row.id}>
-                  <td className="px-4 py-3 text-neutral-200">{KIND_LABELS[row.documentKind]}</td>
-                  <td className="px-4 py-3 font-mono text-xs text-neutral-300">
+                  <td data-label="Dokument" className="px-4 py-3 text-neutral-200">{KIND_LABELS[row.documentKind]}</td>
+                  <td data-label="Wersja" className="px-4 py-3 font-mono text-xs text-neutral-300">
                     {row.documentVersion}
                   </td>
-                  <td className="px-4 py-3 text-neutral-400">{SOURCE_LABELS[row.source]}</td>
-                  <td className="px-4 py-3 text-neutral-400">{formatDate(row.grantedAt)}</td>
+                  <td data-label="Źródło" className="px-4 py-3 text-neutral-400">{SOURCE_LABELS[row.source]}</td>
+                  <td data-label="Data" className="px-4 py-3 text-neutral-400">{formatDate(row.grantedAt)}</td>
                 </tr>
               ))}
             </tbody>
@@ -243,7 +243,7 @@ function DataExportSection({
 
       {exports.length > 0 && (
         <div className="rounded-xl border border-white/10 bg-[#0a0a0a]/40 overflow-hidden">
-          <table className="w-full text-sm">
+          <table className="v2-stack w-full text-sm">
             <thead className="bg-white/5 text-neutral-400 text-xs uppercase tracking-wider">
               <tr>
                 <th className="text-left font-semibold px-4 py-3">Status</th>
@@ -256,7 +256,7 @@ function DataExportSection({
             <tbody className="divide-y divide-white/5">
               {exports.map((e) => (
                 <tr key={e.id}>
-                  <td className={`px-4 py-3 ${STATUS_TONE[e.status]}`}>
+                  <td data-label="Status" className={`px-4 py-3 ${STATUS_TONE[e.status]}`}>
                     <span className="inline-flex items-center gap-2">
                       {e.status === "GENERATING" && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                       {STATUS_LABELS[e.status]}
@@ -265,10 +265,10 @@ function DataExportSection({
                       <p className="text-xs text-rose-400/80 mt-1">{e.errorMessage}</p>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-neutral-300">{formatDate(e.requestedAt)}</td>
-                  <td className="px-4 py-3 text-neutral-300">{formatBytes(e.sizeBytes)}</td>
-                  <td className="px-4 py-3 text-neutral-300">{formatDate(e.expiresAt)}</td>
-                  <td className="px-4 py-3 text-right">
+                  <td data-label="Zażądany" className="px-4 py-3 text-neutral-300">{formatDate(e.requestedAt)}</td>
+                  <td data-label="Rozmiar" className="px-4 py-3 text-neutral-300">{formatBytes(e.sizeBytes)}</td>
+                  <td data-label="Wygasa" className="px-4 py-3 text-neutral-300">{formatDate(e.expiresAt)}</td>
+                  <td data-label="Akcja" className="px-4 py-3 text-right">
                     {e.status === "READY" && e.downloadUrl && (
                       <a
                         href={(process.env.NEXT_PUBLIC_API_URL ?? "") + e.downloadUrl}

@@ -289,7 +289,7 @@ function CutoverPanel({
         <div className="text-xs">
           <p className="font-medium text-white">…albo ustaw rekordy DNS u obecnego dostawcy:</p>
           <div className="mt-1 overflow-x-auto">
-            <table className="w-full text-left">
+            <table className="v2-stack w-full text-left">
               <thead className="text-neutral-500">
                 <tr>
                   <th className="py-1 pr-3">Typ</th>
@@ -301,10 +301,10 @@ function CutoverPanel({
               <tbody className="font-mono text-neutral-200">
                 {plan.records.map((r, i) => (
                   <tr key={i} className="border-t border-white/5">
-                    <td className="py-1 pr-3">{r.type}</td>
-                    <td className="py-1 pr-3">{r.name}</td>
-                    <td className="py-1 pr-3">{r.value}</td>
-                    <td className="py-1">{r.priority ?? '—'}</td>
+                    <td data-label="Typ" className="py-1 pr-3">{r.type}</td>
+                    <td data-label="Nazwa" className="py-1 pr-3">{r.name}</td>
+                    <td data-label="Wartość" className="py-1 pr-3">{r.value}</td>
+                    <td data-label="Priorytet" className="py-1">{r.priority ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>

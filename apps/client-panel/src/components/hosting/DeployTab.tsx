@@ -207,11 +207,11 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
       </div>
 
       <div className="rounded-xl border border-white/5 bg-[#050505] overflow-hidden">
-        <table className="w-full text-xs sm:text-sm">
+        <table className="v2-stack w-full text-xs sm:text-sm">
           <thead className="bg-white/5 border-b border-white/5 text-left">
             <tr>
               <th className="py-3 px-3 text-neutral-300 font-semibold">Domena</th>
-              <th className="py-3 px-3 text-neutral-300 font-semibold hidden sm:table-cell">Harmonogram</th>
+              <th className="py-3 px-3 text-neutral-300 font-semibold">Harmonogram</th>
               <th className="py-3 px-3 text-right text-neutral-300 font-semibold">Akcje</th>
             </tr>
           </thead>
@@ -225,7 +225,7 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
             ) : null}
             {rows.map((job) => (
               <tr key={job.id} className="border-b border-white/5 hover:bg-white/[0.02] align-top">
-                <td className="py-3 px-3 text-white">
+                <td data-label="Domena" className="py-3 px-3 text-white">
                   {job.domain}
                   {job.branch ? (
                     <span className="ml-2 rounded bg-white/5 px-1.5 py-0.5 font-mono text-[11px] text-neutral-400">
@@ -233,10 +233,10 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
                     </span>
                   ) : null}
                 </td>
-                <td className="py-3 px-3 text-neutral-400 hidden sm:table-cell">
+                <td data-label="Harmonogram" className="py-3 px-3 text-neutral-400">
                   {FREQUENCY_LABEL[job.frequency]}
                 </td>
-                <td className="py-3 px-3 text-right">
+                <td data-label="Akcje" className="py-3 px-3 text-right">
                   <button
                     type="button"
                     disabled={busy}

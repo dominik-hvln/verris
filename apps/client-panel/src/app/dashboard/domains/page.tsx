@@ -210,7 +210,7 @@ export default function DomainsPage() {
                           <span className="text-muted-foreground">{domain.kind === 'HOSTING' ? 'przy usłudze' : '—'}</span>
                         )}
                       </td>
-                      <td className={`${TD} w-10 text-right`} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                      <td data-label="Akcje" className={`${TD} w-10 text-right`} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <button type="button" aria-label={`Akcje: ${domain.name}`} className="rounded-md p-1.5 text-muted-foreground hover:bg-raised hover:text-foreground">

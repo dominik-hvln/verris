@@ -508,7 +508,7 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
         ) : entries.length === 0 ? (
           <p className="py-12 text-center text-sm text-neutral-500">Pusty katalog.</p>
         ) : (
-          <table className="w-full text-sm">
+          <table className="v2-stack w-full text-sm">
             <thead>
               <tr className="border-b border-white/10 text-left text-xs text-neutral-500">
                 <th className="w-8 px-3 py-2">
@@ -529,7 +529,7 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
             <tbody>
               {entries.map((entry) => (
                 <tr key={entry.name} className="border-b border-white/5 hover:bg-white/[0.02]">
-                  <td className="px-3 py-2">
+                  <td data-label="Zaznacz" className="px-3 py-2">
                     <input
                       type="checkbox"
                       aria-label={`Zaznacz ${entry.name}`}
@@ -538,7 +538,7 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
                       className="h-3.5 w-3.5 accent-violet-400"
                     />
                   </td>
-                  <td className="px-4 py-2">
+                  <td data-label="Nazwa" className="px-4 py-2">
                     <button
                       type="button"
                       onClick={() =>
@@ -558,11 +558,11 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
                       {entry.name}
                     </button>
                   </td>
-                  <td className="px-4 py-2 text-neutral-400">
+                  <td data-label="Rozmiar" className="px-4 py-2 text-neutral-400">
                     {entry.type === 'dir' ? '—' : formatSize(entry.sizeBytes)}
                   </td>
-                  <td className="px-4 py-2 text-neutral-500">{formatModified(entry.modified)}</td>
-                  <td className="px-4 py-2">
+                  <td data-label="Zmodyfikowano" className="px-4 py-2 text-neutral-500">{formatModified(entry.modified)}</td>
+                  <td data-label="Akcje" className="px-4 py-2">
                     <div className="flex items-center justify-end gap-1">
                       {entry.type === 'file' && ARCHIVE.test(entry.name) ? (
                         <IconBtn title="Rozpakuj tutaj" onClick={() => void onExtract(entry.name)}>

@@ -187,7 +187,7 @@ function ServicesTable({ services }: { services: ServiceSummaryDto[] }) {
                   {Number(s.priceAmount).toLocaleString('pl-PL', { minimumFractionDigits: 2 })} {s.currency === 'PLN' ? 'zł' : s.currency}
                   {s.interval === 'MONTH' ? ' / mies.' : ' / rok'}
                 </td>
-                <td className={`${TD} w-[1%]`}>
+                <td data-label="Akcje" className={`${TD} w-[1%]`}>
                   <div className="flex items-center justify-end gap-1.5">
                     {s.status === 'ACTIVE' && a ? (
                       <Link href={`/dashboard/services/${s.id}/plan`} className={ICON_BTN} data-tip="Zmiana planu" aria-label="Zmiana planu">
