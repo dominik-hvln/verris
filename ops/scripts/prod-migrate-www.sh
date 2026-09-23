@@ -49,7 +49,11 @@ if ! docker image inspect "$NODE_IMAGE" >/dev/null 2>&1; then
   fi
 fi
 
+# --entrypoint bash: obraz API ma własny entrypoint (składa DATABASE_URL i startuje API).
+# NODE_ENV= : obraz API ustawia production, a wtedy pnpm pomija devDependencies (CLI Payloada).
 docker run --rm \
+  --entrypoint bash \
+  -e NODE_ENV= \
   --network "$NET" \
   -v "$PWD":/repo -w /repo/apps/www \
   -e PGHOST=postgres \
@@ -58,7 +62,7 @@ docker run --rm \
   -e PGPASSWORD="$PG_PASS" \
   -e PGDATABASE="$PG_DB" \
   -e PAYLOAD_SECRET="$PL_SECRET" \
-  "$NODE_IMAGE" bash -lc '
+  "$NODE_IMAGE" -lc '
     set -e
     corepack enable
     pnpm install --filter @verris/www... --frozen-lockfile

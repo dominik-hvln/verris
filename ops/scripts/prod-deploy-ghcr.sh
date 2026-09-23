@@ -60,7 +60,11 @@ REGISTRY_PREFIX="$REGISTRY_PREFIX" IMAGE_TAG="$IMAGE_TAG" compose pull ${APP_SER
 #      a blog/panel wyglądają na puste. Nieudana migracja = przerwanie deployu
 #      (stary kod i stary schemat dalej działają — nic nie zostało podmienione).
 echo "[deploy] payload migrate (www)…"
-if ! bash ops/scripts/prod-migrate-www.sh; then
+# Obraz do migracji = świeżo pobrany obraz API z ghcr.io (Node 22 + bash + corepack), a NIE
+# node:22 z Docker Huba. 2026-09-23: trzy deploye z rzędu padły na „TLS handshake timeout”
+# do auth.docker.io / mirror.gcr.io, choć wszystkie obrazy aplikacji były już pobrane.
+# Po tej zmianie deploy nie pobiera niczego spoza ghcr.io (strażnik: deploy-tylko-ghcr.spec.ts).
+if ! MIGRATE_NODE_IMAGE="${REGISTRY_PREFIX}/verris-api:${IMAGE_TAG}" bash ops/scripts/prod-migrate-www.sh; then
   echo "[deploy] FAIL: migracje Payload nie przeszły — przerywam przed podmianą kodu."
   exit 1
 fi
