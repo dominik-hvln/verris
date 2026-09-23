@@ -57,7 +57,8 @@ export function emptyFrame(nonce: string): string {
   return frameDoc({ title: 'Verris', nonce, css: '#r{width:0;height:0}', body: '<div id="r"></div>' });
 }
 
-const PILL_CSS = (p: ReturnType<typeof palette>) => `#r{display:inline-flex;flex-direction:column;align-items:flex-start;gap:10px;padding:2px}
+const PILL_CSS = (p: ReturnType<typeof palette>) => `#r{display:inline-flex;flex-direction:column;align-items:flex-start;gap:10px;padding:2px;width:max-content}
+#pill{white-space:nowrap}
 #pill{display:inline-flex;align-items:center;gap:10px;height:44px;padding:0 14px 0 8px;border-radius:12px;border:1px solid ${p.line};background:${p.bg};color:${p.ink}}
 .t{display:flex;flex-direction:column;align-items:flex-start;line-height:1.15}.t b{font-size:13px;font-weight:600}.t span{font-size:11px;color:${p.muted}}
 #card{width:340px;border-radius:16px;padding:18px;background:${p.bg};color:${p.ink};border:1px solid ${p.line};box-shadow:0 18px 40px rgba(12,26,20,.28)}
@@ -131,7 +132,7 @@ export function renderUptimeFrame(d: UptimeData, motyw: Motyw, wariant: 'pelny' 
   const n = d.days.length;
   if (wariant === 'mini') {
     const mini = d.days.slice(-14).map((x) => `<i style="background:${dayColor(x.pct, p.ok)}"></i>`).join('');
-    const css = `#r{display:inline-flex;padding:2px}.m{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px;border-radius:18px;background:${p.bg};color:${p.ink};border:1px solid ${p.line}}
+    const css = `#r{display:inline-flex;padding:2px;width:max-content;white-space:nowrap}.m{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 14px;border-radius:18px;background:${p.bg};color:${p.ink};border:1px solid ${p.line}}
 .dot{width:8px;height:8px;border-radius:4px;background:${d.up ? p.ok : '#F2705E'}}.m span{font-size:12px}.m .s{color:${p.muted}}.mb{display:flex;gap:1px;margin-left:4px}.mb i{width:3px;height:14px;border-radius:1px}`;
     const body = `<div id="r"><div class="m" role="img" aria-label="Dostępność ${esc(d.domain)}: ${pl(d.pct)}% w ostatnich ${n} dniach"><span class="dot"></span><span class="mono">${pl(d.pct)}%</span><span class="s">dostępności · ${n} dni</span><span class="mb">${mini}</span></div></div>`;
     return frameDoc({ title: 'Dostępność strony', nonce, css, body });
