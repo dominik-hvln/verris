@@ -520,8 +520,11 @@ function buildWorkerLifecycleMocks(
     subscriptionEvent: { create: jest.fn().mockResolvedValue({}) },
     ticket: { create: jest.fn().mockResolvedValue({ id: 'ticket_1' }) },
     user: { findMany: jest.fn().mockResolvedValue([]) },
-    $transaction: jest.fn(async (fn: (tx: unknown) => Promise<unknown>) => fn(prisma)),
+    $transaction: jest.fn(),
   };
+  // Transakcja wykonuje callback na tym samym mocku — przypięte po utworzeniu obiektu,
+  // żeby typ `prisma` nie zależał sam od siebie (noImplicitAny).
+  prisma.$transaction.mockImplementation(async (fn: (tx: unknown) => Promise<unknown>) => fn(prisma));
   const crypto = {
     encrypt: jest.fn((value: string) => `enc:${value}`),
     decrypt: jest.fn((value: string) => value.replace('enc:', '')),

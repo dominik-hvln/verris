@@ -185,16 +185,18 @@ export class ProbesAdminService {
     }
 
     const prisma = this.prisma;
+    const strona = (cursor: string | null) =>
+      prisma.probeIncident.findMany({
+        where,
+        take: 200,
+        orderBy: { startedAt: 'asc' },
+        ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
+        include: { probe: { include: { server: { select: { id: true, name: true } } } } },
+      });
     async function* iterate() {
       let cursor: string | null = null;
       while (true) {
-        const batch = await prisma.probeIncident.findMany({
-          where,
-          take: 200,
-          orderBy: { startedAt: 'asc' },
-          ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
-          include: { probe: { include: { server: { select: { id: true, name: true } } } } },
-        });
+        const batch = await strona(cursor);
         if (batch.length === 0) return;
         for (const row of batch) yield row;
         if (batch.length < 200) return;

@@ -8,9 +8,9 @@ import {
   Patch,
   Post,
   Query,
-  Req,
   UseGuards,
 } from '@nestjs/common';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { AiKnowledgeAudience, AiKnowledgeStatus, Role } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -19,6 +19,9 @@ import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard'
 import { StaffPerm } from '../common/decorators/staff-permissions.decorator';
 import { KnowledgeBaseService } from './knowledge-base.service';
 import { CreateKnowledgeDocDto, UpdateKnowledgeDocDto } from './dto/ai.dto';
+
+/** Tożsamość z JWT: `principalUserId` = człowiek za subkontem albo impersonacją. */
+type Uzytkownik = { userId: string; principalUserId?: string };
 
 /** Admin/Staff management of the AI knowledge base ("train the AI"). */
 @Controller('admin/ai/knowledge')
@@ -46,18 +49,18 @@ export class AiKnowledgeAdminController {
 
   @Post()
   @HttpCode(201)
-  create(@Body() dto: CreateKnowledgeDocDto, @Req() req) {
-    return this.kb.createDoc(dto, req.user.principalUserId ?? req.user.userId);
+  create(@Body() dto: CreateKnowledgeDocDto, @CurrentUser() user: Uzytkownik) {
+    return this.kb.createDoc(dto, user.principalUserId ?? user.userId);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateKnowledgeDocDto, @Req() req) {
-    return this.kb.updateDoc(id, dto, req.user.principalUserId ?? req.user.userId);
+  update(@Param('id') id: string, @Body() dto: UpdateKnowledgeDocDto, @CurrentUser() user: Uzytkownik) {
+    return this.kb.updateDoc(id, dto, user.principalUserId ?? user.userId);
   }
 
   @Delete(':id')
   @HttpCode(200)
-  remove(@Param('id') id: string, @Req() req) {
-    return this.kb.deleteDoc(id, req.user.principalUserId ?? req.user.userId);
+  remove(@Param('id') id: string, @CurrentUser() user: Uzytkownik) {
+    return this.kb.deleteDoc(id, user.principalUserId ?? user.userId);
   }
 }

@@ -1,4 +1,5 @@
-import { Body, Controller, Get, HttpCode, Param, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post, UseGuards } from '@nestjs/common';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ConfigService } from '@nestjs/config';
 import { Role } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -9,6 +10,9 @@ import { AiChatService } from './ai-chat.service';
 import { AiProviderService } from './ai-provider.service';
 import { KnowledgeBaseService } from './knowledge-base.service';
 import { AiChatRequestDto } from './dto/ai.dto';
+
+/** Tożsamość z JWT: `principalUserId` = człowiek za subkontem albo impersonacją. */
+type Uzytkownik = { userId: string; principalUserId?: string };
 
 @Controller('ai')
 @UseGuards(JwtAuthGuard)
@@ -36,16 +40,16 @@ export class AiController {
   @UseGuards(RolesGuard)
   @Roles(Role.STAFF, Role.ADMIN)
   @Post('tickets/:id/suggestion')
-  supportSuggestion(@Param('id') ticketId: string, @Req() req) {
-    return this.ai.supportSuggestion(ticketId, req.user.principalUserId ?? req.user.userId);
+  supportSuggestion(@Param('id') ticketId: string, @CurrentUser() user: Uzytkownik) {
+    return this.ai.supportSuggestion(ticketId, user.principalUserId ?? user.userId);
   }
 
   @Post('services/:id/forecast')
-  serviceForecast(@Param('id') subscriptionId: string, @Req() req) {
+  serviceForecast(@Param('id') subscriptionId: string, @CurrentUser() user: Uzytkownik) {
     return this.ai.serviceForecast(
       subscriptionId,
-      req.user.userId,
-      req.user.principalUserId ?? req.user.userId,
+      user.userId,
+      user.principalUserId ?? user.userId,
     );
   }
 
@@ -59,13 +63,13 @@ export class AiController {
   /** Client-facing hosting assistant (RAG over the CLIENT/ALL knowledge base). */
   @Post('chat')
   @HttpCode(200)
-  clientChat(@Body() dto: AiChatRequestDto, @Req() req) {
+  clientChat(@Body() dto: AiChatRequestDto, @CurrentUser() user: Uzytkownik) {
     return this.chat.ask({
       question: dto.question,
       audience: 'CLIENT',
       history: dto.history,
-      userId: req.user.userId,
-      actorUserId: req.user.principalUserId ?? req.user.userId,
+      userId: user.userId,
+      actorUserId: user.principalUserId ?? user.userId,
       subscriptionId: dto.subscriptionId ?? null,
     });
   }
@@ -75,13 +79,13 @@ export class AiController {
   @Roles(Role.STAFF, Role.ADMIN)
   @Post('staff/chat')
   @HttpCode(200)
-  staffChat(@Body() dto: AiChatRequestDto, @Req() req) {
+  staffChat(@Body() dto: AiChatRequestDto, @CurrentUser() user: Uzytkownik) {
     return this.chat.ask({
       question: dto.question,
       audience: 'STAFF',
       history: dto.history,
-      userId: req.user.userId,
-      actorUserId: req.user.principalUserId ?? req.user.userId,
+      userId: user.userId,
+      actorUserId: user.principalUserId ?? user.userId,
     });
   }
 

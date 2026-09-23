@@ -1,4 +1,5 @@
-import { BadRequestException, Controller, Get, Post, Put, Delete, Body, Param, UseGuards, Req } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { RateLimit } from '../common/guards/rate-limit.guard';
 import { ConfigService } from '@nestjs/config';
 import { AuthGuard } from '@nestjs/passport';
@@ -19,6 +20,9 @@ import {
   TransferLockDto,
 } from './dto/registrar.dto';
 
+/** Tożsamość z JWT: `principalUserId` = człowiek za subkontem albo impersonacją. */
+type Uzytkownik = { userId: string; principalUserId?: string };
+
 @Controller('domains')
 @UseGuards(AuthGuard('jwt'))
 export class DomainsController {
@@ -30,13 +34,13 @@ export class DomainsController {
   ) {}
 
   @Post()
-  async create(@Req() req, @Body() createDomainDto: CreateDomainDto) {
-    return this.domainsService.create(req.user.userId, createDomainDto);
+  async create(@CurrentUser() user: Uzytkownik, @Body() createDomainDto: CreateDomainDto) {
+    return this.domainsService.create(user.userId, createDomainDto);
   }
 
   @Get()
-  async findAll(@Req() req) {
-    return this.domainsService.findAllByUser(req.user.userId);
+  async findAll(@CurrentUser() user: Uzytkownik) {
+    return this.domainsService.findAllByUser(user.userId);
   }
 
   @Post('registrar/availability')
@@ -114,83 +118,83 @@ export class DomainsController {
 
   /** Czy na koncie obowiązuje już oświadczenie domenowe (Regulamin §12 ust. 8). */
   @Get('registrar/waiver-consent')
-  async waiverConsent(@Req() req) {
-    return this.registrar.hasStandingWaiverConsent(req.user.userId);
+  async waiverConsent(@CurrentUser() user: Uzytkownik) {
+    return this.registrar.hasStandingWaiverConsent(user.userId);
   }
 
   @Post('registrar/register')
-  async register(@Req() req, @Body() dto: RegisterDomainDto) {
-    return this.registrar.register(req.user.userId, req.user.principalUserId ?? req.user.userId, dto);
+  async register(@CurrentUser() user: Uzytkownik, @Body() dto: RegisterDomainDto) {
+    return this.registrar.register(user.userId, user.principalUserId ?? user.userId, dto);
   }
 
   @Post('registrar/transfer')
-  async transfer(@Req() req, @Body() dto: TransferDomainDto) {
-    return this.registrar.transfer(req.user.userId, req.user.principalUserId ?? req.user.userId, dto);
+  async transfer(@CurrentUser() user: Uzytkownik, @Body() dto: TransferDomainDto) {
+    return this.registrar.transfer(user.userId, user.principalUserId ?? user.userId, dto);
   }
 
   @Get('registrar/orders')
-  async orders(@Req() req) {
-    return this.registrar.orders(req.user.userId);
+  async orders(@CurrentUser() user: Uzytkownik) {
+    return this.registrar.orders(user.userId);
   }
 
   @Post(':id/registrar/renew-quote')
-  async renewQuote(@Req() req, @Param('id') id: string, @Body() body: { years?: number }) {
-    return this.registrar.renewQuote(req.user.userId, id, lataOdnowienia(body?.years));
+  async renewQuote(@CurrentUser() user: Uzytkownik, @Param('id') id: string, @Body() body: { years?: number }) {
+    return this.registrar.renewQuote(user.userId, id, lataOdnowienia(body?.years));
   }
 
   @Post(':id/registrar/renew')
-  async renew(@Req() req, @Param('id') id: string, @Body() body: { years?: number }) {
-    return this.registrar.renew(req.user.userId, req.user.principalUserId ?? req.user.userId, id, lataOdnowienia(body?.years));
+  async renew(@CurrentUser() user: Uzytkownik, @Param('id') id: string, @Body() body: { years?: number }) {
+    return this.registrar.renew(user.userId, user.principalUserId ?? user.userId, id, lataOdnowienia(body?.years));
   }
 
   /** A-13 — dane abonenta (właściciela) domeny. Tylko właściciel konta — reguła w customer-permissions. */
   @Get(':id/registrar/registrant')
-  async registrant(@Req() req, @Param('id') id: string) {
-    return this.registrar.registrant(req.user.userId, id);
+  async registrant(@CurrentUser() user: Uzytkownik, @Param('id') id: string) {
+    return this.registrar.registrant(user.userId, id);
   }
 
   @Put(':id/registrar/registrant')
   @RateLimit({ limit: 10, windowMs: 60 * 60 * 1000, scope: 'domains:registrant' })
-  async updateRegistrant(@Req() req, @Param('id') id: string, @Body() dto: RegistrantDto) {
-    return this.registrar.updateRegistrant(req.user.userId, req.user.principalUserId ?? req.user.userId, id, dto);
+  async updateRegistrant(@CurrentUser() user: Uzytkownik, @Param('id') id: string, @Body() dto: RegistrantDto) {
+    return this.registrar.updateRegistrant(user.userId, user.principalUserId ?? user.userId, id, dto);
   }
 
   /** A-15 — blokada transferu. */
   @Post(':id/registrar/lock')
-  async transferLock(@Req() req, @Param('id') id: string, @Body() dto: TransferLockDto) {
-    return this.registrar.setTransferLock(req.user.userId, req.user.principalUserId ?? req.user.userId, id, dto.locked);
+  async transferLock(@CurrentUser() user: Uzytkownik, @Param('id') id: string, @Body() dto: TransferLockDto) {
+    return this.registrar.setTransferLock(user.userId, user.principalUserId ?? user.userId, id, dto.locked);
   }
 
   /** A-09 — kod transferu (authinfo) do przeniesienia domeny do innego rejestratora. */
   @Post(':id/registrar/authcode')
   @RateLimit({ limit: 5, windowMs: 60 * 60 * 1000, scope: 'domains:authcode' })
-  async authCode(@Req() req, @Param('id') id: string) {
-    return this.registrar.authCode(req.user.userId, req.user.principalUserId ?? req.user.userId, id);
+  async authCode(@CurrentUser() user: Uzytkownik, @Param('id') id: string) {
+    return this.registrar.authCode(user.userId, user.principalUserId ?? user.userId, id);
   }
 
   @Get(':id')
-  async findOne(@Req() req, @Param('id') id: string) {
-    return this.domainsService.findOneForOwner(id, req.user.userId);
+  async findOne(@CurrentUser() user: Uzytkownik, @Param('id') id: string) {
+    return this.domainsService.findOneForOwner(id, user.userId);
   }
 
   @Post(':id/verify')
-  async verify(@Req() req, @Param('id') id: string) {
-    return this.domainsService.verifyDomain(id, req.user.userId);
+  async verify(@CurrentUser() user: Uzytkownik, @Param('id') id: string) {
+    return this.domainsService.verifyDomain(id, user.userId);
   }
 
   @Post(':id/checklist')
-  async runChecklist(@Req() req, @Param('id') id: string) {
-    return this.domainsService.runChecklist(id, req.user.userId);
+  async runChecklist(@CurrentUser() user: Uzytkownik, @Param('id') id: string) {
+    return this.domainsService.runChecklist(id, user.userId);
   }
 
   @Get(':id/checklist')
-  async listChecklists(@Req() req, @Param('id') id: string) {
-    return this.domainsService.listChecklists(id, req.user.userId);
+  async listChecklists(@CurrentUser() user: Uzytkownik, @Param('id') id: string) {
+    return this.domainsService.listChecklists(id, user.userId);
   }
 
   @Delete(':id')
-  async remove(@Req() req, @Param('id') id: string) {
-    return this.domainsService.remove(id, req.user.userId);
+  async remove(@CurrentUser() user: Uzytkownik, @Param('id') id: string) {
+    return this.domainsService.remove(id, user.userId);
   }
 }
 

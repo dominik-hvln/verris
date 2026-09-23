@@ -10,13 +10,14 @@ import { resolve } from 'path';
  * (`not: null` na polu NOT NULL i na polu Json). Ten strażnik pilnuje, żeby nikt
  * nie wyłączył tego z powrotem jedną linijką.
  *
- * `noImplicitAny` jest wciąż wyłączone świadomie — osobny etap X-48 (ok. 220 miejsc).
+ * Etap 2 (2026-09-24): także `noImplicitAny` — 27 miejsc (licznik 221 był zawyżony przez
+ * nierozwiązany w środowisku pomiaru moduł SDK, który zamieniał się w kaskadę `any`).
  */
 const PROFIL = resolve(__dirname, '..', '..', '..', '..', 'libs', 'typescript-config', 'nestjs.json');
 
-it('profil Nest nie wyłącza składników trybu ścisłego (poza noImplicitAny, etap 2)', () => {
+it('profil Nest nie wyłącza żadnego składnika trybu ścisłego', () => {
   const opcje = JSON.parse(readFileSync(PROFIL, 'utf8')).compilerOptions as Record<string, unknown>;
-  for (const klucz of ['strictNullChecks', 'strictBindCallApply', 'strictFunctionTypes', 'strictPropertyInitialization', 'forceConsistentCasingInFileNames', 'strict']) {
+  for (const klucz of ['noImplicitAny', 'strictNullChecks', 'strictBindCallApply', 'strictFunctionTypes', 'strictPropertyInitialization', 'forceConsistentCasingInFileNames', 'strict']) {
     expect({ klucz, wartosc: opcje[klucz] }).not.toEqual({ klucz, wartosc: false });
   }
 });
