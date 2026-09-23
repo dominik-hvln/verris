@@ -520,7 +520,7 @@ apply_forward_observe() {
     if [ ! -f "$POMIAR_FWD_OD_PLIK" ]; then
       run "date +%s > '$POMIAR_FWD_OD_PLIK'"
     fi
-    run "iptables -A '$CHAIN_FWD_OBS' -m conntrack --ctstate NEW -p tcp -j SET --add-set '$SEEN_SET_FWD' dst,dst --exist"
+    run "iptables -A '$CHAIN_FWD_OBS' -m conntrack --ctstate NEW -p tcp --syn -j SET --add-set '$SEEN_SET_FWD' dst,dst --exist"
     run "iptables -A '$CHAIN_FWD_OBS' -m conntrack --ctstate NEW -p udp -j SET --add-set '$SEEN_SET_FWD' dst,dst --exist"
   else
     log "WARN: brak ipset — obserwacja kontenerów tylko z logu (próbka, SEC-05)"
@@ -562,7 +562,10 @@ apply_egress_seen() {
   run "iptables -A '$CHAIN_SEEN' -o docker0 -j RETURN"
   run "iptables -A '$CHAIN_SEEN' -o br-+ -j RETURN"
   # Bez `-m limit` — to jest cały sens tej pozycji.
-  run "iptables -A '$CHAIN_SEEN' -p tcp -j SET --add-set '$SEEN_SET' dst,dst --exist"
+  # `--syn`: tylko połączenia, które host sam otwiera. Spóźniona odpowiedź
+  # sshd do skanera (conntrack już zapomniał sesję) też ma stan NEW, ale nie
+  # SYN — bez tego skanery SSH wyglądały w raporcie jak ruch wychodzący.
+  run "iptables -A '$CHAIN_SEEN' -p tcp --syn -j SET --add-set '$SEEN_SET' dst,dst --exist"
   run "iptables -A '$CHAIN_SEEN' -p udp -j SET --add-set '$SEEN_SET' dst,dst --exist"
   # Dopasowanie bez celu — tylko po to, żeby liczniki wpisów rosły.
   run "iptables -A '$CHAIN_SEEN' -p tcp -m set --match-set '$SEEN_SET' dst,dst"

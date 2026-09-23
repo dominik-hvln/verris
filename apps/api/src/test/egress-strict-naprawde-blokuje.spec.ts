@@ -240,6 +240,12 @@ describe('SEC-05 — pomiar jest zapisem, nie próbką', () => {
     for (const w of zapis) expect(w).not.toMatch(/-m limit/);
   });
 
+  it('TCP liczy tylko SYN — spóźnione odpowiedzi do skanerów SSH to nie ruch wychodzący', () => {
+    const tcp = r.wywolania.filter((w) => /-p tcp .*-j SET --add-set verris_egress_seen(_fwd)? /.test(w));
+    expect(tcp.length).toBeGreaterThan(0);
+    for (const w of tcp) expect(w).toMatch(/-p tcp --syn /);
+  });
+
   it('łańcuch pomiaru jest wpięty w OUTPUT', () => {
     expect(r.wywolania.some((w) => /^iptables -I OUTPUT 1 -j VERRIS_EGRESS_SEEN$/.test(w))).toBe(true);
   });
