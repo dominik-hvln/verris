@@ -17,6 +17,8 @@ export interface InvoiceDto {
   currency: string;
   hostedUrl: string | null;
   pdfUrl: string | null;
+  /** PDF wygenerowany przez panel jest w magazynie — do pobrania przez GET billing/invoices/:id/pdf. */
+  hasPdf: boolean;
   provider: string | null;
   providerRef: string | null;
   subscriptionId: string | null;

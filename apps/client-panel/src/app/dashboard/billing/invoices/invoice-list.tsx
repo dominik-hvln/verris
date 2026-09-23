@@ -29,7 +29,29 @@ function formatDate(invoice: InvoiceDto) {
   });
 }
 
+const PRZYCISK =
+  'inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-3 py-1.5 text-xs font-semibold text-neutral-100 hover:border-white/30 hover:bg-white/[0.1]';
+
 function InvoiceDownload({ invoice }: { invoice: InvoiceDto }) {
+  // Dokument wygenerowany przez panel ma pierwszeństwo — wcześniej lista pokazywała
+  // tylko linki Stripe, więc dokumenty z portfela nie miały żadnego przycisku.
+  if (invoice.hasPdf) {
+    return (
+      <span className="inline-flex flex-wrap gap-2">
+        <a href={`/api/billing/invoices/${invoice.id}/pdf`} className={PRZYCISK}>
+          <Download className="h-3.5 w-3.5" />
+          PDF
+        </a>
+        <a
+          href={`/api/billing/invoices/${invoice.id}/pdf?duplikat=1`}
+          className={PRZYCISK}
+          title="Kopia z nadrukiem „DUPLIKAT z dnia …” — gdy potrzebujesz duplikatu zamiast oryginału"
+        >
+          Duplikat
+        </a>
+      </span>
+    );
+  }
   if (invoice.hostedUrl) {
     return (
       <a

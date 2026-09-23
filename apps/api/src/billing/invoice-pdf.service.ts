@@ -625,6 +625,23 @@ function measureText(
   return font.widthOfTextAtSize(text, size);
 }
 
+/**
+ * M-07 — nadruk „DUPLIKAT z dnia …” w prawym górnym rogu każdej strony zapisanego PDF-a.
+ * Treść dokumentu zostaje bez zmian.
+ */
+export async function nadrukDuplikatu(oryginal: Uint8Array, dnia: Date): Promise<Uint8Array> {
+  const pdf = await PDFDocument.load(oryginal);
+  const { bold } = await osadzCzcionki(pdf);
+  const tekst = `DUPLIKAT z dnia ${formatDatePl(dnia)}`;
+  const size = 10;
+  const w = measureText(tekst, bold, size);
+  for (const page of pdf.getPages()) {
+    const { width, height } = page.getSize();
+    page.drawText(tekst, { x: width - 40 - w, y: height - 22, size, font: bold, color: rgb(0.75, 0.1, 0.1) });
+  }
+  return pdf.save();
+}
+
 /** Dzieli tekst na linie mieszczące się w `maxW` (po słowach; zbyt długie słowo — po znakach). */
 export function zawin(
   text: string,

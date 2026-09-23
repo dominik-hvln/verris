@@ -11,6 +11,7 @@ import { ObjectBuckets } from '../storage/object-storage.types';
 import { invoiceIssuedTemplate } from '../mail/templates/invoice-notifications';
 import {
   InvoicePdfService,
+  nadrukDuplikatu,
   type BuildInvoiceContext,
   type SellerSnapshot,
   type BuyerSnapshot,
@@ -52,6 +53,7 @@ export interface InvoiceDto {
   currency: string;
   hostedUrl: string | null;
   pdfUrl: string | null;
+  hasPdf: boolean;
   provider: string | null;
   providerRef: string | null;
   subscriptionId: string | null;
@@ -661,6 +663,19 @@ export class InvoicesService {
   // PDF download (controller calls this)
   // ---------------------------------------------------------------------------
 
+  /**
+   * M-07 — duplikat: zapisany PDF z nadrukiem „DUPLIKAT z dnia …” na każdej stronie.
+   * Treść dokumentu się nie zmienia (art. 106l — duplikat ma treść oryginału).
+   */
+  async renderDuplicate(userId: string, invoiceId: string): Promise<{ pdf: Uint8Array; filename: string }> {
+    const { stream, filename } = await this.openPdfStream(userId, invoiceId);
+    const chunks: Buffer[] = [];
+    for await (const c of stream as AsyncIterable<Buffer | string>) chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c));
+    const pdf = await nadrukDuplikatu(Buffer.concat(chunks), new Date());
+    await this.audit.record({ action: 'INVOICE_DUPLICATE_ISSUED', userId, details: { invoiceId } });
+    return { pdf, filename: filename.replace(/\.pdf$/, '-duplikat.pdf') };
+  }
+
   async openPdfStream(
     userId: string,
     invoiceId: string,
@@ -1001,6 +1016,7 @@ function toDto(invoice: Invoice): InvoiceDto {
     currency: invoice.currency,
     hostedUrl: invoice.hostedUrl,
     pdfUrl: invoice.pdfUrl,
+    hasPdf: !!invoice.storageKey,
     provider: invoice.provider,
     providerRef: invoice.providerRef,
     subscriptionId: invoice.subscriptionId,

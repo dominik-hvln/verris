@@ -67,7 +67,15 @@ export class InvoicesController {
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
     @Res() res: Response,
+    @Query('duplikat') duplikat?: string,
   ): Promise<void> {
+    if (duplikat === '1') {
+      const d = await this.invoices.renderDuplicate(user.userId, id);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${d.filename}"`);
+      res.end(Buffer.from(d.pdf));
+      return;
+    }
     const { stream, filename } = await this.invoices.openPdfStream(user.userId, id);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
