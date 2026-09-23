@@ -151,6 +151,9 @@
   <h2>Sprinty</h2>
   <div id="sprints"></div>
 
+  <h2>Wybrane z roadmapy przed startem</h2>
+  <div class="card" id="wybory"></div>
+
   <h2>Po starcie — roadmapa kwartalna</h2>
   <div class="card" id="epiki"></div>
 
@@ -369,6 +372,17 @@ document.getElementById('epiki').innerHTML =
     +`<td class="idc">${e[3]}</td><td class="idc">${en[e[0]]||0}</td><td class="idc">${eh[e[0]]||0}</td>`
     +`<td class="dod">${e[5]}</td></tr>`).join('')
   + `</tbody></table>`;
+
+// ---------- wybory przed startem (2026-09-23) ----------
+(function(){
+  const W = P.wybory || {otwarte: [], wybrane: 0, zamkniete: 0};
+  const h = W.otwarte.reduce((a,r)=>a+r[4],0);
+  document.getElementById('wybory').innerHTML =
+    `<p style="margin:0 0 12px;font-size:13px;color:var(--ink2)">Właściciel wybrał ${W.wybrane} pozycji z roadmapy do zrobienia przed startem; ${W.zamkniete} jest już zamkniętych, zostaje <b>${W.otwarte.length} (${h.toLocaleString('pl-PL')} h)</b>. Data startu się nie zmienia — pozycje idą w tej kolejności (krytyczność WYSOKA → rynek PL to ma → reszta), a co nie zdąży, przechodzi za start.</p>`
+    + `<table><thead><tr><th>#</th><th>ID</th><th>Funkcja</th><th>Krytyczność</th><th>Rynek PL</th><th>Stan</th><th>Epik</th><th>h</th></tr></thead><tbody>`
+    + W.otwarte.map((r,i)=>`<tr><td class="idc">${i+1}</td><td class="idc">${r[0]}</td><td><b>${r[1]}</b></td><td class="idc">${r[2]}</td><td class="idc">${r[3]}</td><td class="idc">${r[6]}</td><td class="dod">${r[5]}</td><td class="idc">${r[4]}</td></tr>`).join('')
+    + `</tbody></table>`;
+})();
 
 // ---------- poza zakresem ----------
 document.getElementById('oos').innerHTML =

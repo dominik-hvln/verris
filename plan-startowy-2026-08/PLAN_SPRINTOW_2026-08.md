@@ -9,9 +9,9 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **3067 h** — przy 30 h tygodniowo około **24 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **3115 h** — przy 30 h tygodniowo około **24 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **22 sprintów do startu** (959 h) oraz roadmapę po starcie (2108 h, 124 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **22 sprintów do startu** (959 h) oraz roadmapę po starcie (2156 h, 127 pozycji) rozpisaną na epiki kwartalne.
 
 - **2027-01-22** — koniec sprintu 21, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-01-29** — koniec sprintu 22, decyzja GO.
@@ -503,14 +503,14 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 # Po starcie — roadmapa kwartalna
 
-124 pozycji, 2108 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
+127 pozycji, 2156 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
 
 | ID | Epik | Priorytet | Kwartał | Pozycji | h | Dlaczego teraz, a nie wcześniej |
 |---|---|---|---|---|---|---|
 | `E-01` | Runtime, pliki i diagnostyka | WYSOKI | Q1 2027 | 31 | 428 | Najczęstsze źródło zgłoszeń w pierwszych miesiącach każdego hostingu. Logi WWW ma pięć z pięciu badanych hostingów PL — bez nich klient nie zdiagnozuje własnej strony i pisze do nas. |
 | `E-02` | Wydajność: cache i skalowanie | WYSOKI | Q1 2027 | 7 | 126 | Trzy z pięciu hostingów PL dają Redis w cenie. Przy pozycjonowaniu na WordPressa to nie dodatek, tylko oczekiwanie. |
 | `E-12` | Backup: granularność i retencja | WYSOKI | Q1 2027 | 6 | 110 | cyber_Folks daje 28 dni, seohost do 60. Nasze 30 dni jest w normie, ale granularność odtwarzania jest poniżej rynku. |
-| `E-14` | Rozliczenia: dokończenie | WYSOKI | Q1 2027 | 6 | 56 | Z-07 z macierzy: klient płacący portfelem doładowuje saldo w karencji i i tak zostaje zawieszony. Pierwszy taki przypadek to stracony klient. |
+| `E-14` | Rozliczenia: dokończenie | WYSOKI | Q1 2027 | 9 | 104 | Z-07 z macierzy: klient płacący portfelem doładowuje saldo w karencji i i tak zostaje zawieszony. Pierwszy taki przypadek to stracony klient. |
 | `E-15` | Wsparcie i ops: kolejka abuse | WYSOKI | Q1 2027 | 5 | 64 | Sprint 13 daje możliwość zatrzymania szkody. Ten epik daje proces, który skaluje się dalej niż jedna osoba. |
 | `E-03` | WordPress Toolkit | WYSOKI | Q2 2027 | 10 | 168 | Cztery z pięciu hostingów PL mają automatyczne aktualizacje WordPressa. Staging już mamy i jest przewagą — reszta toolkitu ją domyka. |
 | `E-04` | Domeny jako produkt | WYSOKI | Q2 2027 | 8 | 78 | Backend jest gotowy i wyłączony brakiem konfiguracji. Domena to najczęstszy pierwszy zakup i naturalny punkt wejścia. |
@@ -537,7 +537,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 - **E-11 DNS: DNSSEC i zarządzanie strefą** (62 h) — DNSSEC, zmiana TTL, Anycast DNS, pełne zarządzanie strefą po podpięciu edytora w sprincie 10.
 - **E-12 Backup: granularność i retencja** (110 h) — Odtworzenie pojedynczego pliku, podgląd zawartości archiwum przed odtworzeniem, pobranie kopii lokalnie, retencja 28+ dni w cenie.
 - **E-13 Automatyzacja: API zapisu i webhooki** (102 h) — Rozszerzenie publicznego API o operacje zapisu, webhooki dla klienta, edycja crona, cron z wyborem wersji PHP, podgląd wyniku wykonania.
-- **E-14 Rozliczenia: dokończenie** (56 h) — Ponowienie płatności portfelem w karencji, waluty obce z przeliczeniem VAT, proforma, dodanie karty niezależnie od zakupu, eksport CSV.
+- **E-14 Rozliczenia: dokończenie** (104 h) — Ponowienie płatności portfelem w karencji, waluty obce z przeliczeniem VAT, proforma, dodanie karty niezależnie od zakupu, eksport CSV.
 - **E-15 Wsparcie i ops: kolejka abuse** (64 h) — Pełna kolejka obsługi nadużyć z encją zgłoszenia, terminami i śladem audytowym, ogłoszenia i okna serwisowe z panelu, feature flagi.
 - **E-16 Rozszerzenia oferty** (80 h) — VPS: konsola, snapshoty, rebuild. Panel mobilny. Kreator stron — dokończyć albo usunąć 1612 zakomentowanych linii.
 
@@ -545,7 +545,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 # Czego świadomie nie robimy
 
-23 pozycji ma werdykt POZA ZAKRESEM. To decyzje, nie przeoczenia — dlatego są wypisane. Jeżeli któraś wróci jako żądanie klienta, wraca też decyzja do przeglądu.
+20 pozycji ma werdykt POZA ZAKRESEM. To decyzje, nie przeoczenia — dlatego są wypisane. Jeżeli któraś wróci jako żądanie klienta, wraca też decyzja do przeglądu.
 
 | ID | Funkcja | Uzasadnienie |
 |---|---|---|
@@ -560,9 +560,6 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 | `G-10` | ModSecurity — zarządzanie regułami | poziom operatora |
 | `I-06` | Smart Updates (test przed aktualizacją) | wyróżnik Pleska, rynek PL tego nie ma |
 | `K-07` | Statystyki odwiedzin (AWStats/Webalizer) | zastąpione własną analityką (K-12) |
-| `M-07` | DUPLIKAT FAKTURY | Skorygowane: brak flagi potwierdzony, ale przy fakturze ustrukturyzowanej i PDF wystawianym na żądanie duplikat nie blokuje sprzedaży. | 2026-09-23 DECYZJA WŁAŚCICIELA (2026-09-23, jak KSeF): faktury VAT wystawia program księgowy Firmino (Streamsoft) — duplikaty, stawki VAT i waluty obsługuje on. Wraca do zakresu razem z własną integracją KSeF po starcie. |
-| `M-09` | Stawki VAT inne niż 23% | Skorygowane: sztywne 23% dotyczy tylko ścieżki finalizacji (invoices.service.ts:17,296) — model i KSeF obsługują stawki (fa-xml.types.ts:152). Blokerem staje się dopiero przy pierwszym kliencie spoza PL. | 2026-09-23 DECYZJA WŁAŚCICIELA (2026-09-23, jak KSeF): faktury VAT wystawia program księgowy Firmino (Streamsoft) — duplikaty, stawki VAT i waluty obsługuje on. Wraca do zakresu razem z własną integracją KSeF po starcie. |
-| `M-10` | Faktury w walucie obcej z przeliczeniem VAT | KSeF odrzuca wszystko poza PLN (fa3-xml.builder.ts:64-66) | 2026-09-23 DECYZJA WŁAŚCICIELA (2026-09-23, jak KSeF): faktury VAT wystawia program księgowy Firmino (Streamsoft) — duplikaty, stawki VAT i waluty obsługuje on. Wraca do zakresu razem z własną integracją KSeF po starcie. |
 | `M-14` | KSeF — numer i UPO widoczne dla klienta | dhosting pokazuje numer KSeF i QR na fakturze | 2026-09-22: poza planem startowym — ADR-2026-09-22, wlasny modul KSeF zamrozony (nie skasowany), KSeF realizuje program ksiegowy. Wraca w epiku integracji po API. | 2026-09-23 PO STARCIE: decyzja właściciela (PB-13 2026-09-22, potwierdzona 2026-09-23) — faktury VAT wystawia program księgowy Firmino (Streamsoft), który sam obsługuje KSeF; własny moduł KSeF zamrożony, bezpośrednia integracja z KSeF po starcie. Pozycja wraca przy tej integracji. |
 | `M-15` | KSeF — pobranie UPO przez operatora | Skorygowane: UPO jest dostępne w portalu MF, więc warunek dokumentu księgowego nie jest naruszony. Brakuje wygody. | 2026-09-22: poza planem startowym — ADR-2026-09-22, wlasny modul KSeF zamrozony (nie skasowany), KSeF realizuje program ksiegowy. Wraca w epiku integracji po API. | 2026-09-23 PO STARCIE: decyzja właściciela (PB-13 2026-09-22, potwierdzona 2026-09-23) — faktury VAT wystawia program księgowy Firmino (Streamsoft), który sam obsługuje KSeF; własny moduł KSeF zamrożony, bezpośrednia integracja z KSeF po starcie. Pozycja wraca przy tej integracji. |
 | `M-16` | KSeF — tryb offline/awaryjny | awaria KSeF zostawia fakturę w PENDING, bez kodu QR offline | 2026-09-22 FLAGA BLOKERA ZDJETA WARUNKOWO — ADR-2026-09-22 (faktury w programie ksiegowym). Wlasny modul KSeF zamrozony, obowiazek KSeF realizuje program ksiegowy. Warunek: FAK-01 na produkcji — do tego czasu panel potrafi wystawic fakture VAT poza KSeF. Pozycja schodzi z planu startowego do epiku integracji z programem ksiegowym. | 2026-09-23 PO STARCIE: decyzja właściciela (PB-13 2026-09-22, potwierdzona 2026-09-23) — faktury VAT wystawia program księgowy Firmino (Streamsoft), który sam obsługuje KSeF; własny moduł KSeF zamrożony, bezpośrednia integracja z KSeF po starcie. Pozycja wraca przy tej integracji. |

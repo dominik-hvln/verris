@@ -56,7 +56,10 @@ def wczytaj():
     _, epiki = rows("epiki.csv")
     _, fazy = rows("fazy.csv")
     cfg = json.load(open(DANE / "konfiguracja.json", encoding="utf-8"))
+    # 2026-09-23 — wybory właściciela z tablicy „Verris po starcie” (przed/po starcie).
+    wybory = {w[0]: w[1] for w in rows("wybory.csv")[1]} if (DANE / "wybory.csv").exists() else {}
     return {
+        "wybory": wybory,
         "head": head,
         "macierz": macierz,
         "wg_id": {r[0]: r for r in macierz},
@@ -654,6 +657,24 @@ def postep(D, dzis=None):
     }
 
 
+def wybrane_przed_startem(D, R):
+    """Pozycje roadmapy, które właściciel wybrał „przed startem” (decyzja 2026-09-23:
+    data startu bez zmian, kolejność: WYSOKA → rynek PL ma → reszta; mniejsze najpierw)."""
+    H = D["cfg"]["godziny_nakladu"]
+    EP = {e["id"]: e for e in D["epiki"]}
+    kr = {"WYSOKA": 0, "ŚREDNIA": 1, "NISKA": 2}
+    rynek = lambda r: r[6] in ("TAK", "PŁATNE")
+    otwarte = [r for r in R if D["wybory"].get(r[0]) == "przed"]
+    otwarte.sort(key=lambda r: (kr.get(r[11], 3), 0 if rynek(r) else 1, H.get(r[12], 0), r[0]))
+    wybrane = [i for i, d in D["wybory"].items() if d == "przed"]
+    return {
+        "otwarte": [[r[0], r[2], r[11], r[6], H.get(r[12], 0), EP[epik_dla(D, r)]["nazwa"], r[8]] for r in otwarte],
+        "wybrane": len(wybrane),
+        "zamkniete": sum(1 for i in wybrane if i in D["wg_id"] and D["wg_id"][i][0] not in {r[0] for r in otwarte}
+                         and D["wg_id"][i][10] not in ("LUKA", "CZĘŚCIOWY")),
+    }
+
+
 def buduj_dashboard_planu(D):
     H = D["cfg"]["godziny_nakladu"]
     EP = {e["id"]: e for e in D["epiki"]}
@@ -671,6 +692,7 @@ def buduj_dashboard_planu(D):
                 for r in D["macierz"] if r[10] == "POZA ZAKRESEM"],
         "cap": D["cfg"]["sprint_godzin"],
         "postep": postep(D),
+        "wybory": wybrane_przed_startem(D, R),
     }
     tpl = (SZAB / "dashboard_plan.html").read_text(encoding="utf-8")
     OUT_P.mkdir(exist_ok=True)
