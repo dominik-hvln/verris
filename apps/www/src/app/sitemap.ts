@@ -23,6 +23,7 @@ const STATIC = [
   '/blog',
   '/o-nas',
   '/kontakt',
+  '/zglos-naduzycie',
   '/przenies-strone',
 ];
 

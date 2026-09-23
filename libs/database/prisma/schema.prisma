@@ -3671,3 +3671,54 @@ model SiteLead {
   @@index([email])
   @@index([createdAt])
 }
+
+// N-13 — zgłoszenia nadużyć (DSA art. 16: mechanizm zgłaszania nielegalnych treści u dostawcy
+// hostingu; art. 17: uzasadnienie dla klienta, gdy ograniczamy usługę). Bez relacji do
+// Subscription/User — powiązanie po domenie jest przybliżeniem i nie może blokować usunięcia konta.
+enum AbuseReportStatus {
+  NEW          // przyjęte, potwierdzenie wysłane do zgłaszającego
+  IN_REVIEW    // ktoś z obsługi się tym zajmuje
+  ACTION_TAKEN // ograniczyliśmy / usunęliśmy — uzasadnienie do klienta
+  REJECTED     // bez podstaw — decyzja z uzasadnieniem do zgłaszającego
+}
+
+enum AbuseCategory {
+  SPAM
+  PHISHING
+  MALWARE
+  ILLEGAL_CONTENT
+  COPYRIGHT
+  PERSONAL_DATA
+  OTHER
+}
+
+model AbuseReport {
+  id              String            @id @default(uuid())
+  status          AbuseReportStatus @default(NEW)
+  category        AbuseCategory
+  /// Dokładne miejsce treści (DSA art. 16 ust. 2 lit. b) — URL.
+  url             String
+  /// Host z URL (bez www.) — po nim dopasowujemy konto.
+  host            String
+  description     String            @db.Text
+  reporterName    String?
+  reporterEmail   String
+  /// Oświadczenie o dobrej wierze (DSA art. 16 ust. 2 lit. d).
+  goodFaith       Boolean           @default(false)
+  ip              String?
+  userAgent       String?           @db.Text
+  /// Dopasowanie po domenie (przybliżone — obsługa weryfikuje).
+  subscriptionId  String?
+  userId          String?
+  assignedToId    String?
+  decision        String?           @db.Text
+  decidedAt       DateTime?
+  decidedById     String?
+  customerNotifiedAt DateTime?
+  reporterNotifiedAt DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([status, createdAt])
+  @@index([host])
+}

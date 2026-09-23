@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MessageSquare, Inbox, LogOut, Users, UserPlus, BookOpen, Settings, Archive, ArrowRightLeft } from "lucide-react";
+import { MessageSquare, Inbox, LogOut, Users, UserPlus, BookOpen, Settings, Archive, ArrowRightLeft, ShieldAlert } from "lucide-react";
 import { GrafanaOpsLink, grafanaSsoHref } from "./grafana-ops-link";
 import { CommandPalette } from "./command-palette";
 import { VerrisMark } from "./verris-mark";
@@ -16,6 +16,7 @@ const navItems = [
   { name: "Zamknięte", href: "/tickets/closed", icon: Archive },
   { name: "Klienci", href: "/crm", icon: Users },
   { name: "Migracje", href: "/migrations", icon: ArrowRightLeft },
+  { name: "Nadużycia", href: "/abuse", icon: ShieldAlert },
   { name: "Program partnerski", href: "/referral-enrollments", icon: UserPlus },
   { name: "Knowledge", href: "/knowledge", icon: BookOpen },
   { name: "Ustawienia", href: "/settings", icon: Settings },

@@ -50,6 +50,7 @@ import { EmailMarketingModule } from './email-marketing/email-marketing.module';
 import { AnalyticsSitesModule } from './analytics-sites/analytics-sites.module';
 import { MetaCapiModule } from './analytics/meta-capi.module';
 import { LeadsModule } from './leads/leads.module';
+import { AbuseModule } from './abuse/abuse.module';
 import { FontsProxyModule } from './fonts-proxy/fonts-proxy.module';
 import { BrandModule } from './brand/brand.module';
 import { KbModule } from './kb/kb.module';
@@ -113,6 +114,7 @@ import { DeliverabilityModule } from './deliverability/deliverability.module';
     AnalyticsSitesModule,
     MetaCapiModule,
     LeadsModule,
+    AbuseModule,
     FontsProxyModule,
     BrandModule,
     KbModule,

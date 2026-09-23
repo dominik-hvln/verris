@@ -49,7 +49,7 @@ export async function Footer() {
           ))}
         </div>
         <div className="foot-bot">
-          <span>{legal}</span>
+          <span>{legal} · <a href="/zglos-naduzycie">Zgłoś nadużycie</a></span>
           <span className="pay">
             {pay} · <CookiePreferencesButton />
           </span>
