@@ -1,3 +1,4 @@
+import { Prisma } from '@verris/database';
 import { BillingService } from '../../src/billing/billing.service';
 import { prisma, rozlacz, wyczyscBaze } from './setup';
 
@@ -25,7 +26,6 @@ import { prisma, rozlacz, wyczyscBaze } from './setup';
 const EVENT_ID = 'evt_test_z05_0001';
 
 /** Minimalna atrapa zależności, których ścieżka webhooka w ogóle nie dotyka. */
-const nic = () => undefined as never;
 const pusty = new Proxy({}, { get: () => async () => undefined }) as never;
 
 interface Ksiegowanie {
@@ -66,6 +66,14 @@ function zbudujSerwis(opcje: { padnij: () => boolean }) {
     { send: async () => undefined } as never,
     pusty,
     { safeAward: async () => undefined, awardWalletTopup: async () => 0 } as never,
+    // M-34: webhook księguje przez DoladowanieService — atrapa przekazuje do sterowalnego
+    // `ledger.credit`, więc awaria „w połowie” dalej dzieje się w tym samym miejscu.
+    {
+      zaksieguj: async (i: { userId: string; kwotaMinor: number; idempotencyKey: string }) => {
+        const wpis = await ledger.credit({ userId: i.userId, amount: i.kwotaMinor / 100, idempotencyKey: i.idempotencyKey });
+        return { wpis, kredytK: new Prisma.Decimal(i.kwotaMinor).dividedBy(100), nowy: true };
+      },
+    } as never,
   );
   return { serwis, ksiegowania };
 }
