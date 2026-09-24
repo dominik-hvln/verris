@@ -37,6 +37,7 @@ import { MalwareScanService } from './malware-scan.service';
 import { RedisAccessService } from './redis-access.service';
 import { MailLogService } from './mail-log.service';
 import { GitDeployService } from './git-deploy.service';
+import { SiteCloneService } from './site-clone.service';
 import { PublicApiWriteController } from './public-api-write.controller';
 import { GitWebhookController } from './git-webhook.controller';
 import { ApiTokensModule } from '../api-tokens/api-tokens.module';
@@ -91,6 +92,7 @@ import { EcoModule } from '../eco/eco.module';
     RedisAccessService,
     MailLogService,
     GitDeployService,
+    SiteCloneService,
     WpAutoUpdateScheduler,
     WordpressService,
     WafService,

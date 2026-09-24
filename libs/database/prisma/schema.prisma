@@ -647,6 +647,7 @@ enum NodeTaskKind {
   REDIS_ACCESS      // D-15/J-03 — Redis konta (instancja na konto, gniazdo w katalogu konta)
   MAIL_LOG          // E-19 — dziennik dostarczania poczty konta (log exima, tylko domeny konta)
   GIT_DEPLOY        // C-25/C-26 — klucz wdrożeniowy, klonowanie repozytorium, pobranie zmian teraz
+  SITE_CLONE        // I-13 — kopia strony (pliki + WordPress z nową bazą) na inną domenę konta
 }
 
 enum WafMode {

@@ -42,6 +42,7 @@ import { MalwareScanService } from './malware-scan.service';
 import { RedisAccessService } from './redis-access.service';
 import { MailLogService } from './mail-log.service';
 import { GitDeployService } from './git-deploy.service';
+import { SiteCloneService } from './site-clone.service';
 import { HostingRestoreDto } from './dto/hosting-restore.dto';
 import { WordpressService } from './wordpress.service';
 import { InstallWordpressDto } from './dto/wordpress.dto';
@@ -94,6 +95,7 @@ import {
   ZabezpieczeniaWordpressaDto,
   DziennikPocztyDto,
   RepozytoriumGitDto,
+  KlonStronyDto,
   OdtworzenieZArchiwumDto,
   ImportBazyDto,
   WersjaPhpDto,
@@ -125,6 +127,7 @@ export class UserServicesController {
     private readonly redisAccess: RedisAccessService,
     private readonly mailLog: MailLogService,
     private readonly gitDeploy: GitDeployService,
+    private readonly siteClone: SiteCloneService,
     private readonly wordpress: WordpressService,
     private readonly waf: WafService,
     private readonly siteMonitor: SiteMonitorService,
@@ -1193,6 +1196,18 @@ export class UserServicesController {
   async hostingGitOp(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Param('tryb') tryb: string, @Body() body: RepozytoriumGitDto) {
     if (tryb !== 'key' && tryb !== 'clone' && tryb !== 'pull') throw new NotFoundException();
     return this.gitDeploy.zlec(id, user.userId, tryb, body);
+  }
+
+  // I-13 — kopia strony na inną domenę konta (zadanie węzła).
+  @Get(':id/hosting-site-clone')
+  async hostingSiteClone(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.siteClone.status(id, user.userId);
+  }
+
+  @RateLimit({ limit: 6, windowMs: 60 * 60 * 1000, scope: 'hosting:site-clone' })
+  @Post(':id/hosting-site-clone')
+  async hostingSiteCloneRun(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: KlonStronyDto) {
+    return this.siteClone.klonuj(id, user.userId, body);
   }
 
   @Get(':id/hosting-offsite')

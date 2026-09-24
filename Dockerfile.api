@@ -129,6 +129,7 @@ COPY ops/scripts/node-malware-scan.sh ./ops/scripts/node-malware-scan.sh
 COPY ops/scripts/node-redis.sh ./ops/scripts/node-redis.sh
 COPY ops/scripts/node-mail-log.sh ./ops/scripts/node-mail-log.sh
 COPY ops/scripts/node-git-deploy.sh ./ops/scripts/node-git-deploy.sh
+COPY ops/scripts/node-site-clone.sh ./ops/scripts/node-site-clone.sh
 COPY ops/hosting-default-page ./ops/hosting-default-page
 RUN chmod +x /usr/local/bin/api-entrypoint.sh
 

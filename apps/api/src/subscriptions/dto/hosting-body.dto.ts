@@ -118,6 +118,12 @@ export class RepozytoriumGitDto {
   @IsOptional() @Linia(100) branch?: string;
 }
 
+/** I-13 — kopia strony na inną domenę konta. */
+export class KlonStronyDto {
+  @Linia(253) source!: string;
+  @Linia(253) target!: string;
+}
+
 /** E-19 — dziennik dostarczania poczty, opcjonalnie zawężony do adresu. */
 export class DziennikPocztyDto {
   @IsOptional() @IsEmail() @MaxLength(254) address?: string;

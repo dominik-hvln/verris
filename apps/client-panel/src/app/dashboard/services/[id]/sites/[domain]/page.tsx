@@ -27,6 +27,7 @@ import DatabasesTab from '@/components/hosting/DatabasesTab';
 import WebToolsTab from '@/components/hosting/WebToolsTab';
 import { PhpIniForm } from '@/components/hosting/PhpIniForm';
 import { WpUpdatesPanel } from '@/components/hosting/WpUpdatesPanel';
+import { SiteClonePanel } from '@/components/hosting/SiteClonePanel';
 import { HostingLinksProvider } from '@/components/hosting/hosting-links-context';
 import { fetchHostingDnsAction, fetchHostingDomainsAction } from '../../hosting-domains-action';
 import { fetchHostingSslAction, requestLetsEncryptSslAction } from '../../hosting-ssl-actions';
@@ -365,6 +366,7 @@ export default function SitePage() {
           <section>
             <SectionHead title="Pliki strony" desc={`Katalog /domains/${domain}/public_html.`} />
             <FileManagerClient serviceId={serviceId} domain={domain} />
+            <SiteClonePanel serviceId={serviceId} domain={domain} domains={domainList} />
           </section>
         ) : null}
 
