@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { Loader2, UserCog, AlertCircle } from "lucide-react";
 import { ModalPortal } from "@/components/modal-portal";
 import { impersonateUserAction } from "./actions";
@@ -8,14 +8,15 @@ import { impersonateUserAction } from "./actions";
 interface Props {
   userId: string;
   email: string;
-  role: "USER" | "STAFF" | "ADMIN";
+  accountRole: "USER" | "STAFF" | "ADMIN";
 }
 
-export function ImpersonateButton({ userId, email, role }: Props) {
+export function ImpersonateButton({ userId, email, accountRole }: Props) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const titleId = useId();
 
   const start = () => {
     setError(null);
@@ -43,28 +44,30 @@ export function ImpersonateButton({ userId, email, role }: Props) {
       </button>
 
       {open && (
-        <ModalPortal>
+        <ModalPortal onClose={() => setOpen(false)}>
           <div
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur p-4"
             role="presentation"
-            onClick={() => setOpen(false)}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setOpen(false);
+            }}
           >
             <div
               className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 shadow-2xl"
               role="dialog"
               aria-modal="true"
-              onClick={(e) => e.stopPropagation()}
+              aria-labelledby={titleId}
             >
             <div className="flex items-start gap-3 mb-4">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-200">
                 <UserCog className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-white">
+                <h3 id={titleId} className="text-base font-bold text-white">
                   Wcielenie się w konto
                 </h3>
                 <p className="text-xs text-muted-foreground mt-0.5 break-all">
-                  {email} · rola {role}
+                  {email} · rola {accountRole}
                 </p>
               </div>
             </div>

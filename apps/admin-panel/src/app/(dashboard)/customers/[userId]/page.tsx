@@ -55,7 +55,7 @@ export default async function AdminCustomerOperationalPage({
               email={detail.email}
               currentBalance={detail.walletBalance}
             />
-            <ImpersonateButton userId={detail.id} email={detail.email} role="USER" />
+            <ImpersonateButton userId={detail.id} email={detail.email} accountRole="USER" />
           </div>
         </div>
         <dl className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-sm border-t border-white/10 pt-4">

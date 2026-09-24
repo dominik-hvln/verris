@@ -106,12 +106,13 @@ export default async function AdminInvoicesPage({ searchParams }: PageProps) {
             className="p-6 border-b border-white/10 grid grid-cols-1 md:grid-cols-6 gap-3 items-end"
           >
             <div className="md:col-span-2">
-              <label className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">
+              <label htmlFor="invoices-search" className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">
                 Klient / numer / providerRef
               </label>
               <div className="relative flex items-center px-3 py-2 border border-white/10 rounded-lg bg-white/5">
                 <Search className="h-4 w-4 text-muted-foreground mr-2" />
                 <input
+                  id="invoices-search"
                   type="text"
                   name="search"
                   defaultValue={search ?? ""}
@@ -121,8 +122,9 @@ export default async function AdminInvoicesPage({ searchParams }: PageProps) {
               </div>
             </div>
             <div>
-              <label className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">Status</label>
+              <label htmlFor="invoices-status" className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">Status</label>
               <select
+                id="invoices-status"
                 name="status"
                 defaultValue={statuses?.[0] ?? ""}
                 className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
@@ -136,8 +138,9 @@ export default async function AdminInvoicesPage({ searchParams }: PageProps) {
               </select>
             </div>
             <div>
-              <label className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">Od</label>
+              <label htmlFor="invoices-from" className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">Od</label>
               <input
+                id="invoices-from"
                 type="date"
                 name="from"
                 defaultValue={from?.slice(0, 10) ?? ""}
@@ -145,8 +148,9 @@ export default async function AdminInvoicesPage({ searchParams }: PageProps) {
               />
             </div>
             <div>
-              <label className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">Do</label>
+              <label htmlFor="invoices-to" className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">Do</label>
               <input
+                id="invoices-to"
                 type="date"
                 name="to"
                 defaultValue={to?.slice(0, 10) ?? ""}

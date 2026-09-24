@@ -161,7 +161,7 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
                           <ImpersonateButton
                             userId={user.id}
                             email={user.email}
-                            role={user.role}
+                            accountRole={user.role}
                           />
                         </div>
                       </td>

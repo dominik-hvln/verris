@@ -70,18 +70,19 @@ export function CreditWalletButton({ userId, email, currentBalance }: Props) {
       </button>
 
       {open && (
-        <ModalPortal>
+        <ModalPortal onClose={close}>
           <div
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur p-4"
             role="presentation"
-            onClick={close}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) close();
+            }}
           >
             <div
               className="w-full max-w-md rounded-2xl border border-white/10 bg-[#0a0a0a] p-6 shadow-2xl"
               role="dialog"
               aria-modal="true"
               aria-labelledby="credit-wallet-title"
-              onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-start gap-3 mb-4">
                 <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-400/10 border border-emerald-400/30 text-emerald-200">

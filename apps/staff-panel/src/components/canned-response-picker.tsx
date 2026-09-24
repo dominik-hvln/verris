@@ -74,12 +74,18 @@ export function CannedResponsePicker({
 
       {open ? (
         <div
+          role="presentation"
           className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4"
           onMouseDown={(e) => {
             if (e.target === e.currentTarget) setOpen(false);
           }}
         >
-          <div className="flex h-[80vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0b0f14] shadow-2xl">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Baza odpowiedzi"
+            className="flex h-[80vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0b0f14] shadow-2xl"
+          >
             <div className="flex items-center justify-between border-b border-white/10 px-5 py-3">
               <h3 className="text-sm font-semibold text-white">Baza odpowiedzi</h3>
               <button
@@ -96,8 +102,10 @@ export function CannedResponsePicker({
               <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/40 px-3 py-2">
                 <Search className="h-4 w-4 text-neutral-500" />
                 <input
+                  // eslint-disable-next-line jsx-a11y/no-autofocus -- fokus w oknie otwartym przez użytkownika
                   autoFocus
                   value={query}
+                  aria-label="Szukaj szablonu"
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Szukaj po tytule, treści lub skrócie…"
                   className="w-full bg-transparent text-sm text-white outline-none placeholder:text-neutral-500"

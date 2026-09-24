@@ -52,12 +52,13 @@ export default async function OperatorsPage({ searchParams }: PageProps) {
             className="p-6 border-b border-white/10 flex flex-wrap gap-3 items-end"
           >
             <div className="flex-1 min-w-[260px]">
-              <label className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">
+              <label htmlFor="operators-search" className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">
                 Szukaj
               </label>
               <div className="relative flex items-center px-3 py-2 border border-white/10 rounded-lg bg-white/5">
                 <Search className="h-4 w-4 text-muted-foreground mr-2" />
                 <input
+                  id="operators-search"
                   type="text"
                   name="search"
                   defaultValue={search ?? ""}
@@ -67,10 +68,11 @@ export default async function OperatorsPage({ searchParams }: PageProps) {
               </div>
             </div>
             <div>
-              <label className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">
+              <label htmlFor="operators-role" className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">
                 Rola
               </label>
               <select
+                id="operators-role"
                 name="role"
                 defaultValue={role ?? ""}
                 className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"

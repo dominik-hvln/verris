@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useId, useState } from 'react';
 import { Loader2, Save, Send } from 'lucide-react';
 import {
   testMailSettingsAction,
@@ -11,6 +11,7 @@ import {
 export function MailSettingsForm({ initial }: { initial: MailSettingsForm }) {
   const [state, action, pending] = useActionState(updateMailSettingsAction, {});
   const [transport, setTransport] = useState<'local' | 'external'>(initial.transport);
+  const radioId = useId();
   const [testState, setTestState] = useState<{
     ok?: boolean;
     error?: string;
@@ -66,11 +67,13 @@ export function MailSettingsForm({ initial }: { initial: MailSettingsForm }) {
               value="local"
               checked={transport === 'local'}
               onChange={() => setTransport('local')}
+              aria-labelledby={`${radioId}-local`}
+              aria-describedby={`${radioId}-local-desc`}
               className="mt-1"
             />
             <span>
-              <span className="block text-sm font-medium text-white">Lokalny serwer (Postfix)</span>
-              <span className="text-xs text-muted-foreground">
+              <span id={`${radioId}-local`} className="block text-sm font-medium text-white">Lokalny serwer (Postfix)</span>
+              <span id={`${radioId}-local-desc`} className="text-xs text-muted-foreground">
                 API przekazuje wiadomości na localhost:25 — zalecane na start LIVE.
               </span>
             </span>
@@ -83,11 +86,13 @@ export function MailSettingsForm({ initial }: { initial: MailSettingsForm }) {
               value="external"
               checked={transport === 'external'}
               onChange={() => setTransport('external')}
+              aria-labelledby={`${radioId}-external`}
+              aria-describedby={`${radioId}-external-desc`}
               className="mt-1"
             />
             <span>
-              <span className="block text-sm font-medium text-white">Zewnętrzny relay SMTP</span>
-              <span className="text-xs text-muted-foreground">
+              <span id={`${radioId}-external`} className="block text-sm font-medium text-white">Zewnętrzny relay SMTP</span>
+              <span id={`${radioId}-external-desc`} className="text-xs text-muted-foreground">
                 Osobny serwer pocztowy — opcjonalnie, gdy będzie osobny MTA.
               </span>
             </span>

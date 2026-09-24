@@ -51,11 +51,13 @@ export function CreateCustomerButton() {
       </button>
 
       {open && (
-        <ModalPortal>
+        <ModalPortal onClose={close}>
           <div
             className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur p-4"
             role="presentation"
-            onClick={close}
+            onClick={(e) => {
+              if (e.target === e.currentTarget) close();
+            }}
           >
             <form
               onSubmit={submit}
@@ -63,7 +65,6 @@ export function CreateCustomerButton() {
               role="dialog"
               aria-modal="true"
               aria-labelledby="create-customer-title"
-              onClick={(e) => e.stopPropagation()}
             >
               <div>
                 <h3 id="create-customer-title" className="text-base font-bold text-white">

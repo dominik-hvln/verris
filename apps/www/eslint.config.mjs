@@ -27,10 +27,15 @@ const ODSLONIETE_PRZEZ_NEXT_16 = {
 
 import coreWebVitals from 'eslint-config-next/core-web-vitals';
 import nextTypescript from 'eslint-config-next/typescript';
+import jsxA11y from 'eslint-plugin-jsx-a11y';
 
 export default [
   { ignores: ['.next/**', 'node_modules/**', 'dist/**', 'out/**', 'next-env.d.ts'] },
   ...coreWebVitals,
   ...nextTypescript,
   { rules: ODSLONIETE_PRZEZ_NEXT_16 },
+  // P-12 (2026-09-24): pełny zestaw zalecany jsx-a11y jako błędy (WCAG 2.1 AA — etykiety pól,
+  // obsługa klawiatury, role). eslint-config-next włącza tylko kilka reguł tej wtyczki; ten sam
+  // zakres plików co w eslint-config-next, bo tylko tam wtyczka jest zarejestrowana (X-42).
+  { files: ['**/*.{js,jsx,mjs,ts,tsx,mts,cts}'], rules: jsxA11y.flatConfigs.recommended.rules },
 ];

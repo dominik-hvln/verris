@@ -102,12 +102,17 @@ export function CommandPalette() {
 
       {open ? (
         <div
+          role="presentation"
           className="fixed inset-0 z-[100] flex items-start justify-center bg-black/60 px-4 pt-[12vh] backdrop-blur-sm"
-          onMouseDown={close}
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) close();
+          }}
         >
           <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Wyszukiwarka"
             className="w-full max-w-xl overflow-hidden rounded-2xl border border-white/10 bg-[#0b0b0f] shadow-2xl"
-            onMouseDown={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-3 border-b border-white/10 px-4">
               <Search className="h-4 w-4 text-muted-foreground" />
@@ -119,6 +124,7 @@ export function CommandPalette() {
                   doSearch(e.target.value);
                 }}
                 onKeyDown={onKeyDown}
+                aria-label="Szukaj"
                 placeholder="Szukaj klienta, usługi (ID), domeny, NIP, faktury…"
                 className="flex-1 bg-transparent py-4 text-sm text-white outline-none placeholder:text-neutral-600"
               />

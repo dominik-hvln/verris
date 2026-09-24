@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useId, useState, useTransition } from "react";
 import Link from "next/link";
 import { Paperclip } from "lucide-react";
 import type { AgentOption, StaffTicketDetail, TicketAttachmentRow, TicketContext } from "@/lib/tickets-data";
@@ -85,6 +85,8 @@ export function TicketDetailPanel({ ticket, agents, context }: Props) {
   const [aiConfigured, setAiConfigured] = useState(false);
   const [replyText, setReplyText] = useState("");
   const [canned, setCanned] = useState<CannedResponseRow[]>([]);
+  const replyId = useId();
+  const filesId = useId();
 
   // SUP-2 — pobierz szablony posortowane pod temat zgłoszenia.
   useEffect(() => {
@@ -390,13 +392,14 @@ export function TicketDetailPanel({ ticket, agents, context }: Props) {
           className="mt-8 space-y-3 border-t border-white/10 pt-6"
         >
           <div className="flex items-center justify-between gap-3">
-            <label className="block text-sm font-medium text-white">Twoja odpowiedź</label>
+            <label htmlFor={replyId} className="block text-sm font-medium text-white">Twoja odpowiedź</label>
             <CannedResponsePicker
               canned={canned}
               onInsert={(text) => setReplyText((prev) => (prev ? `${prev}\n\n${text}` : text))}
             />
           </div>
           <textarea
+            id={replyId}
             name="message"
             rows={6}
             value={replyText}
@@ -405,8 +408,9 @@ export function TicketDetailPanel({ ticket, agents, context }: Props) {
             placeholder="Napisz odpowiedź — klient dostanie wiadomość e-mailem."
           />
           <div>
-            <label className="mb-2 block text-xs text-muted-foreground">Załączniki (opcjonalnie, max 5 × 8 MB)</label>
+            <label htmlFor={filesId} className="mb-2 block text-xs text-muted-foreground">Załączniki (opcjonalnie, max 5 × 8 MB)</label>
             <input
+              id={filesId}
               name="files"
               type="file"
               multiple
