@@ -243,7 +243,7 @@ export function TwoFactorSection({ showToast }: Props) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-6 items-center">
-          <div className="rounded-2xl border border-white/10 bg-white p-3 self-start">
+          <div className="rounded-2xl border border-line bg-[#ffffff] p-3 self-start">
             {/* eslint-disable-next-line @next/next/no-img-element -- kod QR jako SVG data URL z API; next/image nic tu nie optymalizuje */}
             <img
               alt="QR code do TOTP"

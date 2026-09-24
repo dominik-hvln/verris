@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { ShieldCheck, Loader2, Lock } from "lucide-react";
+import { Switch } from "@/components/panel/v2";
 import { setStrongAuthRequirement } from "./actions";
 
 interface Props {
@@ -59,25 +60,15 @@ export function StrongAuthSection({ initialEnabled, hasFactor, showToast }: Prop
             {enabled ? "Włączone — logowanie wymaga 2FA/passkey" : "Wyłączone"}
           </span>
         </div>
-        <button
-          type="button"
-          onClick={toggle}
-          disabled={pending || (!enabled && !hasFactor)}
-          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors disabled:opacity-40 ${
-            enabled ? "bg-emerald-500" : "bg-white/15"
-          }`}
-          aria-pressed={enabled}
-        >
-          {pending ? (
-            <Loader2 className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 animate-spin text-white" />
-          ) : (
-            <span
-              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
-                enabled ? "translate-x-5" : "translate-x-0.5"
-              }`}
-            />
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          {pending ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" aria-hidden /> : null}
+          <Switch
+            checked={enabled}
+            onChange={toggle}
+            label="Wymóg silnego logowania"
+            disabled={pending || (!enabled && !hasFactor)}
+          />
+        </div>
       </div>
     </div>
   );

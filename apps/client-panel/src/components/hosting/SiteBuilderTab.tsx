@@ -1159,7 +1159,7 @@ export default function SiteBuilderTab({ serviceId }: { serviceId: string }) {
 
         {/* Podgląd */}
         <div className="rounded-xl border border-white/10 bg-white/[0.02] p-2">
-          <div className="mx-auto overflow-hidden rounded-lg bg-white shadow-lg transition-all" style={{ width: device === 'mobile' ? 390 : '100%', maxWidth: '100%' }}>
+          <div className="mx-auto overflow-hidden rounded-lg bg-[#ffffff] shadow-lg transition-all" style={{ width: device === 'mobile' ? 390 : '100%', maxWidth: '100%' }}>
             <iframe title="Podgląd strony" srcDoc={html} className="h-[760px] w-full border-0" />
           </div>
         </div>
@@ -1572,7 +1572,7 @@ function TemplateGallery({ thumbs, onPick, onContinue, fsToggle }: { thumbs: Rec
               </div>
             </div>
             <div className="flex-1 overflow-auto bg-neutral-900 p-3">
-              <div className="mx-auto overflow-hidden rounded-lg bg-white shadow-xl transition-all" style={{ width: device === 'mobile' ? 390 : '100%', maxWidth: '100%' }}>
+              <div className="mx-auto overflow-hidden rounded-lg bg-[#ffffff] shadow-xl transition-all" style={{ width: device === 'mobile' ? 390 : '100%', maxWidth: '100%' }}>
                 <iframe title="Podgląd szablonu" srcDoc={thumbs[previewKey]} className="h-[70vh] w-full border-0" />
               </div>
             </div>

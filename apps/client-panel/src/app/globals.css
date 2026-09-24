@@ -736,6 +736,75 @@ html.dark.eco-tint {
 .v2-skin .hover\:text-rose-300:hover { color: var(--crit); }
 .v2-skin .focus\:border-white\/30:focus { border-color: var(--data); }
 
+/* Reszta starej palety (bez tego pola i przyciski zostawały czarne/białe w jasnym motywie). */
+.v2-skin .bg-black,
+.v2-skin .bg-\[\#121212\],
+.v2-skin .bg-\[\#0d0d0d\],
+.v2-skin .bg-\[\#0e0e12\],
+.v2-skin .bg-\[\#1a1a1a\],
+.v2-skin .bg-\[\#10241b\],
+.v2-skin .bg-neutral-800,
+.v2-skin .bg-\[\#0a0a0a\]\/40,
+.v2-skin .bg-\[\#0a0a0a\]\/50,
+.v2-skin .bg-\[\#0a0a0a\]\/80,
+.v2-skin .bg-\[\#1a1a1a\]\/50,
+.v2-skin .bg-neutral-900\/40,
+.v2-skin .bg-neutral-900\/50,
+.v2-skin .bg-neutral-950\/80 { background-color: var(--card); }
+.v2-skin .bg-black\/5,
+.v2-skin .bg-black\/10,
+.v2-skin .bg-white\/15,
+.v2-skin .bg-white\/20,
+.v2-skin .bg-white\/\[0\.01\],
+.v2-skin .bg-white\/\[0\.02\],
+.v2-skin .bg-white\/\[0\.03\],
+.v2-skin .bg-white\/\[0\.04\],
+.v2-skin .bg-white\/\[0\.05\],
+.v2-skin .bg-white\/\[0\.06\],
+.v2-skin .bg-white\/\[0\.08\] { background-color: var(--raised); }
+.v2-skin .fixed.inset-0.bg-black\/70,
+.v2-skin .fixed.inset-0.bg-black\/80 { background-color: rgba(4, 10, 7, 0.55); }
+.v2-skin .bg-neutral-400,
+.v2-skin .bg-neutral-500,
+.v2-skin .bg-neutral-600 { background-color: var(--muted-foreground); }
+.v2-skin .bg-neutral-400\/5,
+.v2-skin .bg-neutral-500\/5 { background-color: var(--raised); }
+.v2-skin .border-white { border-color: var(--data); }
+.v2-skin .border-white\/\[0\.04\] { border-color: var(--line); }
+.v2-skin .border-white\/25,
+.v2-skin .border-white\/30,
+.v2-skin .border-white\/40,
+.v2-skin .border-neutral-400\/30,
+.v2-skin .border-neutral-500\/30 { border-color: var(--line-strong); }
+.v2-skin .divide-white\/5 > :not(:last-child),
+.v2-skin .divide-white\/10 > :not(:last-child) { border-color: var(--line); }
+.v2-skin .text-black { color: var(--primary-foreground); }
+.v2-skin .fill-white { fill: var(--foreground); }
+.v2-skin .hover\:bg-white\/20:hover,
+.v2-skin .hover\:bg-black\/20:hover,
+.v2-skin .hover\:bg-\[\#121212\]:hover,
+.v2-skin .hover\:bg-neutral-900\/70:hover,
+.v2-skin .hover\:bg-white\/\[0\.02\]:hover,
+.v2-skin .hover\:bg-white\/\[0\.03\]:hover,
+.v2-skin .hover\:bg-white\/\[0\.05\]:hover,
+.v2-skin .hover\:bg-white\/\[0\.06\]:hover,
+.v2-skin .hover\:bg-white\/\[0\.08\]:hover,
+.v2-skin .hover\:bg-white\/\[0\.1\]:hover { background-color: var(--raised); }
+.v2-skin .hover\:text-neutral-200:hover,
+.v2-skin .hover\:text-neutral-300:hover { color: var(--verris-body); }
+.v2-skin .placeholder\:text-neutral-500::placeholder,
+.v2-skin .placeholder\:text-neutral-600::placeholder { color: var(--muted-foreground); }
+.v2-skin .hover\:border-white\/15:hover,
+.v2-skin .hover\:border-white\/20:hover,
+.v2-skin .hover\:border-white\/25:hover,
+.v2-skin .hover\:border-white\/30:hover { border-color: var(--line-strong); }
+.v2-skin .focus\:border-white\/35:focus,
+.v2-skin .focus\:border-white\/40:focus,
+.v2-skin .focus\:border-white\/50:focus { border-color: var(--data); }
+.v2-skin .focus\:ring-white\/20:focus,
+.v2-skin .focus\:ring-white\/30:focus,
+.v2-skin .focus-visible\:ring-white\/60:focus-visible { --tw-ring-color: color-mix(in srgb, var(--data) 45%, transparent); }
+
 /* Nagłówki starych stron: krój i rytm wzorca (rozmiar zostaje z klas). */
 .v2-skin h1 { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.03em; }
 .v2-skin h2,
