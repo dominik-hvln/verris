@@ -36,6 +36,7 @@ import { loadRedisScript } from './redis.script';
 import { loadMailLogScript } from './mail-log.script';
 import { loadGitDeployScript } from './git-deploy.script';
 import { loadSiteCloneScript } from './site-clone.script';
+import { loadHtaccessScript } from './htaccess.script';
 import { loadNodeUpdateScript } from './node-update.script';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 
@@ -193,6 +194,13 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   siteCloneScript() {
     return loadSiteCloneScript();
+  }
+
+  /** B-17/B-18/G-07 — blok ustawień Verris w .htaccess strony (run with HT_* env). */
+  @Get('htaccess/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  htaccessScript() {
+    return loadHtaccessScript();
   }
 
   /** VER-UPG — MariaDB engine upgrade script (run with DB_TARGET_VERSION env). */

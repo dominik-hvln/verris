@@ -154,10 +154,10 @@ export const REGULY_TRAS: Regula[] = [
     pasuje: zawiera(
       'file-manager', 'hosting-files', 'hosting-file-restore', 'hosting-git', 'hosting-malware',
       'hosting-wp-updates', 'hosting-db-transfer', 'hosting-db-export', 'hosting-db-import', 'hosting-cron-output',
-      'hosting-ssh', 'hosting-site-clone',
+      'hosting-ssh', 'hosting-site-clone', 'hosting-htaccess',
     ),
     odczyt: [FILES_MANAGE], zapis: [FILES_MANAGE],
-    po_co: 'Treść strony: menedżer plików i wszystko, co ją czyta albo nadpisuje (odtwarzanie z kopii, Git, aktualizacje WordPressa, eksport/import baz, wyniki crona, skaner, SSH i klucze SSH).',
+    po_co: 'Treść strony: menedżer plików i wszystko, co ją czyta albo nadpisuje (odtwarzanie z kopii, Git, aktualizacje WordPressa, eksport/import baz, wyniki crona, skaner, SSH i klucze SSH, .htaccess strony).',
   },
   {
     pasuje: zaczyna('/vps'),

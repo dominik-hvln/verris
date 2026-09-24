@@ -648,6 +648,7 @@ enum NodeTaskKind {
   MAIL_LOG          // E-19 — dziennik dostarczania poczty konta (log exima, tylko domeny konta)
   GIT_DEPLOY        // C-25/C-26 — klucz wdrożeniowy, klonowanie repozytorium, pobranie zmian teraz
   SITE_CLONE        // I-13 — kopia strony (pliki + WordPress z nową bazą) na inną domenę konta
+  HTACCESS          // B-17/B-18/G-07 — blok ustawień Verris w .htaccess strony (strony błędów, listowanie, HSTS)
 }
 
 enum WafMode {

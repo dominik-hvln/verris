@@ -186,6 +186,10 @@ elif [ "$TASK_KIND" = "SITE_CLONE" ]; then
   RUN_BIN="/usr/local/bin/verris-site-clone.sh"
   fetch_task_script "/agent/tasks/site-clone/script" "$RUN_BIN"
   payload_env "SC" "{'daUser':'DA_USER','source':'SOURCE','target':'TARGET','dbName':'DB_NAME','dbUser':'DB_USER','dbPass':'DB_PASS'}"
+elif [ "$TASK_KIND" = "HTACCESS" ]; then
+  RUN_BIN="/usr/local/bin/verris-htaccess.sh"
+  fetch_task_script "/agent/tasks/htaccess/script" "$RUN_BIN"
+  payload_env "HT" "{'mode':'MODE','daUser':'DA_USER','domain':'DOMAIN','indexes':'INDEXES','hsts':'HSTS','e403':'E403','e404':'E404','e500':'E500'}"
 elif [ "$TASK_KIND" = "HOSTING_PROFILE" ]; then
   flags="-y"
   [ "$SKIP_BUILD" = "1" ] && flags="$flags --skip-build"

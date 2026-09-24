@@ -43,6 +43,7 @@ import { RedisAccessService } from './redis-access.service';
 import { MailLogService } from './mail-log.service';
 import { GitDeployService } from './git-deploy.service';
 import { SiteCloneService } from './site-clone.service';
+import { HtaccessService } from './htaccess.service';
 import { HostingRestoreDto } from './dto/hosting-restore.dto';
 import { WordpressService } from './wordpress.service';
 import { InstallWordpressDto } from './dto/wordpress.dto';
@@ -96,6 +97,8 @@ import {
   DziennikPocztyDto,
   RepozytoriumGitDto,
   KlonStronyDto,
+  DomenaStronyDto,
+  UstawieniaHtaccessDto,
   OdtworzenieZArchiwumDto,
   ImportBazyDto,
   WersjaPhpDto,
@@ -128,6 +131,7 @@ export class UserServicesController {
     private readonly mailLog: MailLogService,
     private readonly gitDeploy: GitDeployService,
     private readonly siteClone: SiteCloneService,
+    private readonly htaccess: HtaccessService,
     private readonly wordpress: WordpressService,
     private readonly waf: WafService,
     private readonly siteMonitor: SiteMonitorService,
@@ -1208,6 +1212,24 @@ export class UserServicesController {
   @Post(':id/hosting-site-clone')
   async hostingSiteCloneRun(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: KlonStronyDto) {
     return this.siteClone.klonuj(id, user.userId, body);
+  }
+
+  // B-17/B-18/G-07 — strony błędów, listowanie katalogów i HSTS w .htaccess strony (zadanie węzła).
+  @Get(':id/hosting-htaccess')
+  async hostingHtaccess(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Query('domain') domain: string) {
+    return this.htaccess.status(id, user.userId, domain ?? '');
+  }
+
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:htaccess' })
+  @Post(':id/hosting-htaccess/read')
+  async hostingHtaccessRead(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: DomenaStronyDto) {
+    return this.htaccess.odczytaj(id, user.userId, body.domain);
+  }
+
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:htaccess' })
+  @Post(':id/hosting-htaccess')
+  async hostingHtaccessWrite(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: UstawieniaHtaccessDto) {
+    return this.htaccess.zapisz(id, user.userId, body);
   }
 
   @Get(':id/hosting-offsite')

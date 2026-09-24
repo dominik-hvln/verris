@@ -124,6 +124,21 @@ export class KlonStronyDto {
   @Linia(253) target!: string;
 }
 
+/** B-17/B-18/G-07 — domena strony (odczyt .htaccess). */
+export class DomenaStronyDto {
+  @Linia(253) domain!: string;
+}
+
+/** B-17/B-18/G-07 — blok ustawień Verris w .htaccess; ścieżki stron błędów sprawdza jeszcze serwis. */
+export class UstawieniaHtaccessDto {
+  @Linia(253) domain!: string;
+  @IsIn(['on', 'off', 'default']) indexes!: 'on' | 'off' | 'default';
+  @IsBoolean() hsts!: boolean;
+  @IsString() @MaxLength(201) e403!: string;
+  @IsString() @MaxLength(201) e404!: string;
+  @IsString() @MaxLength(201) e500!: string;
+}
+
 /** E-19 — dziennik dostarczania poczty, opcjonalnie zawężony do adresu. */
 export class DziennikPocztyDto {
   @IsOptional() @IsEmail() @MaxLength(254) address?: string;
