@@ -141,7 +141,7 @@ export const REGULY_TRAS: Regula[] = [
     po_co: 'Rekordy DNS. Odczyt też wymaga uprawnienia — układ strefy bywa wrażliwy.',
   },
   {
-    pasuje: zawiera('hosting-email', 'hosting-autoresponders', 'hosting-catchall', 'hosting-spamfilter'),
+    pasuje: zawiera('hosting-email', 'hosting-autoresponders', 'hosting-catchall', 'hosting-spamfilter', 'hosting-mail-log'),
     odczyt: [EMAIL_MANAGE], zapis: [EMAIL_MANAGE],
     po_co: 'Skrzynki i reguły pocztowe.',
   },
@@ -151,9 +151,13 @@ export const REGULY_TRAS: Regula[] = [
     po_co: 'Kampanie wychodzą z domeny właściciela i obciążają jego reputację nadawcy.',
   },
   {
-    pasuje: zawiera('file-manager', 'hosting-files'),
+    pasuje: zawiera(
+      'file-manager', 'hosting-files', 'hosting-file-restore', 'hosting-git', 'hosting-malware',
+      'hosting-wp-updates', 'hosting-db-transfer', 'hosting-db-export', 'hosting-db-import', 'hosting-cron-output',
+      'hosting-ssh',
+    ),
     odczyt: [FILES_MANAGE], zapis: [FILES_MANAGE],
-    po_co: 'Menedżer plików — dostęp do treści strony.',
+    po_co: 'Treść strony: menedżer plików i wszystko, co ją czyta albo nadpisuje (odtwarzanie z kopii, Git, aktualizacje WordPressa, eksport/import baz, wyniki crona, skaner, SSH i klucze SSH).',
   },
   {
     pasuje: zaczyna('/vps'),

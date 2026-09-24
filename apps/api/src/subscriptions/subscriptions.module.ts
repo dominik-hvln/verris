@@ -37,6 +37,8 @@ import { MalwareScanService } from './malware-scan.service';
 import { RedisAccessService } from './redis-access.service';
 import { MailLogService } from './mail-log.service';
 import { GitDeployService } from './git-deploy.service';
+import { PublicApiWriteController } from './public-api-write.controller';
+import { ApiTokensModule } from '../api-tokens/api-tokens.module';
 import { WpAutoUpdateScheduler } from './wp-auto-update.scheduler';
 import { DiagnosticsService } from './diagnostics.service';
 import { HostingRestoreScheduler } from './hosting-restore.scheduler';
@@ -57,7 +59,7 @@ import { QuotaAlertScheduler } from './quota-alert.scheduler';
 import { EcoModule } from '../eco/eco.module';
 
 @Module({
-  imports: [ServersModule, PlatformSettingsModule, EcoModule, forwardRef(() => BillingModule), MailModule, NotificationsModule],
+  imports: [ServersModule, PlatformSettingsModule, EcoModule, forwardRef(() => BillingModule), MailModule, NotificationsModule, ApiTokensModule],
   providers: [
     SubscriptionsService,
     PlanChangeService,
@@ -106,6 +108,7 @@ import { EcoModule } from '../eco/eco.module';
     SubscriptionsController,
     SubscriptionsAdminController,
     UserServicesController,
+    PublicApiWriteController,
     ProvisioningQueueAdminController,
     MigrationsAdminController,
     MigrationsStaffController,

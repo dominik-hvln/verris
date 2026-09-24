@@ -27,7 +27,7 @@ import {
 const JEDNA_LINIA = /^[^\x00-\x1f\x7f]*$/;
 const KOMUNIKAT_LINII = 'Pole nie może zawierać znaków nowej linii ani innych znaków sterujących.';
 
-function Linia(max: number): PropertyDecorator {
+export function Linia(max: number): PropertyDecorator {
   return (target, key) => {
     IsString()(target, key);
     MaxLength(max)(target, key);

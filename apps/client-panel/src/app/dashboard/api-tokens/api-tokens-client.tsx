@@ -170,7 +170,12 @@ export function ApiTokensClient() {
         <p className="mt-2 text-sm text-neutral-400">Wszystkie żądania kieruj na <code className="text-neutral-300">{BASE_HINT}</code> z nagłówkiem autoryzacji. Przykład:</p>
         <pre className="mt-2 whitespace-pre-wrap break-all rounded-lg bg-black/50 border border-white/10 p-3 text-xs text-emerald-300"><code>{`curl -H "Authorization: Bearer vrs_live_…" \\
   https://api.verris.pl/api/v1/services`}</code></pre>
-        <p className="mt-2 text-[11px] text-neutral-500">Dostępne na start (read-only): <code>GET /api/v1/me</code>, <code>/services</code>, <code>/services/:id</code>, <code>/billing/wallet</code>, <code>/invoices</code>. Operacje zapisu i webhooki dodamy wkrótce.</p>
+        <p className="mt-2 text-[11px] text-neutral-500">
+          Odczyt: <code>GET /api/v1/me</code>, <code>/services</code>, <code>/services/:id</code>, <code>/billing/wallet</code>, <code>/invoices</code>,{' '}
+          <code>/services/:id/dns?domain=</code> (dns:read), <code>/services/:id/deploy?domain=</code> (deploy:write).
+          Zapis: <code>POST /services/:id/dns</code> i <code>/services/:id/dns/delete</code> z polami domain, name, type, value (dns:write);{' '}
+          <code>POST /services/:id/deploy</code> z polem domain (i opcjonalnie dir) — pobiera zmiany z repozytorium Git (deploy:write). Webhooki — wkrótce.
+        </p>
       </section>
     </div>
   );

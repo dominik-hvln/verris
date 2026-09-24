@@ -11,7 +11,8 @@ function auth(req: Request): ApiAuth {
 }
 
 /**
- * Publiczne API klienta v1 (tokeny vrs_live). Read-only w MVP, account-scoped.
+ * Publiczne API klienta v1 (tokeny vrs_live), account-scoped. Odczyt tutaj; zapis (DNS, wdrożenie
+ * z Gita) w PublicApiWriteController — potrzebuje serwisów hostingu (L-08).
  * Uwierzytelnianie: nagłówek Authorization: Bearer <token>.
  */
 @Controller('api/v1')
