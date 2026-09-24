@@ -12,6 +12,7 @@ import Link from 'next/link';
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, ExternalLink, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { Select } from '@/components/panel/select';
 import type {
   HostingDnsRecordDto,
   HostingDomainsResponseDto,
@@ -163,18 +164,15 @@ export default function SitePage() {
           </Link>
           <span aria-hidden>/</span>
           {domainList.length > 1 ? (
-            <select
+            <Select
               aria-label="Wybierz stronę"
               value={domain}
-              onChange={(e) => router.push(`/dashboard/services/${serviceId}/sites/${encodeURIComponent(e.target.value)}`)}
-              className="rounded-md border border-line-strong bg-card px-2 py-1 font-semibold text-foreground"
-            >
-              {domainList.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => {
+                if (v !== domain) router.push(`/dashboard/services/${serviceId}/sites/${encodeURIComponent(v)}`);
+              }}
+              className="w-auto min-w-[12rem] max-w-full font-semibold"
+              options={domainList.map((d) => ({ value: d, label: d }))}
+            />
           ) : (
             <b className="font-semibold text-foreground">{domain}</b>
           )}

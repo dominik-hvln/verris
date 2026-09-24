@@ -10,6 +10,7 @@ import {
   type ApiTokenView,
   type ScopeOption,
 } from './actions';
+import { Select } from '@/components/panel/select';
 
 const BASE_HINT = '/api/v1';
 
@@ -111,12 +112,18 @@ export function ApiTokensClient() {
         <div className="flex flex-wrap items-end gap-3">
           <div>
             <label htmlFor={`${fieldId}-expiry`} className="mb-1 block text-xs text-neutral-500">Wygaśnięcie</label>
-            <select id={`${fieldId}-expiry`} value={expiry} onChange={(e) => setExpiry(e.target.value)} className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white">
-              <option value="0" className="bg-neutral-900">Bez wygaśnięcia</option>
-              <option value="30" className="bg-neutral-900">30 dni</option>
-              <option value="90" className="bg-neutral-900">90 dni</option>
-              <option value="365" className="bg-neutral-900">1 rok</option>
-            </select>
+            <Select
+              id={`${fieldId}-expiry`}
+              value={expiry}
+              onChange={setExpiry}
+              className="w-44"
+              options={[
+                { value: '0', label: 'Bez wygaśnięcia' },
+                { value: '30', label: '30 dni' },
+                { value: '90', label: '90 dni' },
+                { value: '365', label: '1 rok' },
+              ]}
+            />
           </div>
           <button onClick={submit} disabled={pending || name.trim().length < 2 || picked.size === 0} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-40">
             {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <KeyRound className="h-4 w-4" />} Utwórz token

@@ -23,6 +23,7 @@ import {
   deleteSite,
   fetchStats,
 } from './actions';
+import { Select } from '@/components/panel/select';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://api.verris.pl';
 const RANGES = [
@@ -88,23 +89,18 @@ export function AnalyticsClient({
       {services.length > 1 && (
         <div>
           <label htmlFor={serviceSelectId} className="mb-1 block text-xs font-medium text-neutral-400">Usługa</label>
-          <select
+          <Select
             id={serviceSelectId}
             value={subId}
-            onChange={(e) => {
+            onChange={(v) => {
+              if (v === subId) return; // jak natywny select: brak zmiany przy wyborze tej samej wartości
               setActiveSite(null);
-              setSubId(e.target.value);
-              void load(e.target.value);
+              setSubId(v);
+              void load(v);
             }}
-            className="an-inp max-w-md"
-          >
-            {services.map((s) => (
-              <option key={s.id} value={s.id} className="bg-neutral-900">
-                {s.name}
-                {s.domain ? ` — ${s.domain}` : ''}
-              </option>
-            ))}
-          </select>
+            className="w-full max-w-md"
+            options={services.map((s) => ({ value: s.id, label: `${s.name}${s.domain ? ` — ${s.domain}` : ''}` }))}
+          />
         </div>
       )}
 

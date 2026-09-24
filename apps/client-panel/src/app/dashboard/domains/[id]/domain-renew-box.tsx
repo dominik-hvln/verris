@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { Select } from '@/components/panel/select';
 import { renewDomainAction, renewQuoteAction } from '../actions';
 
 /** A-10 — odnowienie domeny z panelu: wybór okresu, cena, potwierdzenie (obciąża portfel). */
@@ -39,23 +40,20 @@ export function DomainRenewBox({ domainId, expiresAt }: { domainId: string; expi
         przedłuża ją o wybrany okres, a opłata schodzi z portfela.
       </p>
       <div className="mt-4 flex flex-wrap items-center gap-2">
-        <label className="flex items-center gap-2 text-neutral-300">
-          Okres
-          <select
+        <div className="flex items-center gap-2 text-neutral-300">
+          <label htmlFor="renew-years">Okres</label>
+          <Select
             id="renew-years"
-            value={years}
-            onChange={(e) => {
-              setYears(Number(e.target.value));
+            value={String(years)}
+            onChange={(v) => {
+              setYears(Number(v));
               setQuote(null);
             }}
             disabled={busy}
-            className="rounded-lg border border-white/10 bg-black/40 px-2 py-1.5 text-white"
-          >
-            {[1, 2, 3, 5].map((y) => (
-              <option key={y} value={y}>{y} {y === 1 ? 'rok' : y < 5 ? 'lata' : 'lat'}</option>
-            ))}
-          </select>
-        </label>
+            className="w-28"
+            options={[1, 2, 3, 5].map((y) => ({ value: String(y), label: `${y} ${y === 1 ? 'rok' : y < 5 ? 'lata' : 'lat'}` }))}
+          />
+        </div>
         {!quote ? (
           <button type="button" onClick={check} disabled={busy} className="rounded-lg border border-white/15 px-3 py-1.5 text-white hover:bg-white/10 disabled:opacity-50">
             Sprawdź cenę

@@ -15,6 +15,7 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import Link from 'next/link';
+import { Select } from '@/components/panel/select';
 import {
   type EmmOverview,
   type EmmList,
@@ -451,13 +452,13 @@ function CampaignsTab({
           <div className="space-y-3">
             <div className="grid gap-3 sm:grid-cols-2">
               <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Nazwa kampanii (wewnętrzna)" className="emm-inp" />
-              <select value={listId} onChange={(e) => setListId(e.target.value)} className="emm-inp">
-                {lists.map((l) => (
-                  <option key={l.id} value={l.id} className="bg-neutral-900">
-                    {l.name} ({l.subscribed} odb.)
-                  </option>
-                ))}
-              </select>
+              <Select
+                aria-label="Lista odbiorców"
+                value={listId}
+                onChange={setListId}
+                className="w-full"
+                options={lists.map((l) => ({ value: l.id, label: `${l.name} (${l.subscribed} odb.)` }))}
+              />
             </div>
             <input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Temat wiadomości" className="emm-inp" />
             <textarea value={body} onChange={(e) => setBody(e.target.value)} rows={6} placeholder={'Treść (Markdown: # nagłówek, **pogrubienie**, [link](url)).'} className="emm-inp font-mono text-xs" />

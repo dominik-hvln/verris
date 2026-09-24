@@ -19,6 +19,7 @@ import {
   type AutoresponderRow,
 } from '@/app/dashboard/services/[id]/hosting-email-actions';
 import { daErrorMessage } from '@/lib/client-hosting-messages';
+import { Select } from '@/components/panel/select';
 
 const fieldCls =
   'w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-neutral-500';
@@ -199,11 +200,17 @@ export default function MailExtras({ serviceId }: { serviceId: string }) {
         <h3 className="flex items-center gap-2 text-sm font-semibold text-white"><Inbox className="h-4 w-4 text-emerald-300" /> Catch-all (poczta na nieistniejące adresy)</h3>
         <p className="mt-1 text-xs text-neutral-400">Co zrobić z e-mailami wysłanymi na adres, który nie istnieje w Twojej domenie.</p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <select value={caMode} onChange={(e) => setCaMode(e.target.value as 'fail' | 'blackhole' | 'address')} className={fieldCls + ' max-w-[230px]'}>
-            <option value="fail">Odrzucaj (zalecane)</option>
-            <option value="blackhole">Przyjmij i wyrzuć po cichu</option>
-            <option value="address">Przekaż na adres…</option>
-          </select>
+          <Select
+            aria-label="Tryb catch-all"
+            value={caMode}
+            onChange={(v) => setCaMode(v as 'fail' | 'blackhole' | 'address')}
+            className="w-full max-w-[230px]"
+            options={[
+              { value: 'fail', label: 'Odrzucaj (zalecane)' },
+              { value: 'blackhole', label: 'Przyjmij i wyrzuć po cichu' },
+              { value: 'address', label: 'Przekaż na adres…' },
+            ]}
+          />
           {caMode === 'address' && (
             <input value={caAddr} onChange={(e) => setCaAddr(e.target.value)} placeholder="adres docelowy" className={fieldCls + ' flex-1 min-w-[200px]'} />
           )}

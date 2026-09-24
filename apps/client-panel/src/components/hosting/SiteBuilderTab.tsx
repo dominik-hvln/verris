@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { fmWrite, fmRead, fmList, fmUpload, type FmEntry } from '@/app/dashboard/file-manager/data';
 import { useFocusTrap } from '@/hooks/use-focus-trap';
+import { Select } from '@/components/panel/select';
 
 /* ============================ MODEL ============================ */
 type SectionType =
@@ -1196,11 +1197,11 @@ export default function SiteBuilderTab({ serviceId }: { serviceId: string }) {
               </div>
               <Row label="Kolor główny"><input type="color" value={model.theme.primary} onChange={(e) => setTheme({ primary: e.target.value })} className="h-7 w-12 rounded border border-white/10 bg-transparent" /></Row>
               <Row label="Akcent"><input type="color" value={model.theme.accent} onChange={(e) => setTheme({ accent: e.target.value })} className="h-7 w-12 rounded border border-white/10 bg-transparent" /></Row>
-              <Row label="Tło"><Sel value={model.theme.bg} onChange={(v) => setTheme({ bg: v as Theme['bg'] })} opts={[['light', 'Jasne'], ['dark', 'Ciemne']]} /></Row>
-              <Row label="Styl"><Sel value={model.theme.style ?? 'modern'} onChange={(v) => setTheme({ style: v as ThemeStyle })} opts={[['modern', 'Nowoczesny'], ['minimal', 'Minimalistyczny'], ['bold', 'Odważny'], ['editorial', 'Magazynowy'], ['soft', 'Przyjazny']]} /></Row>
-              <Row label="Font"><Sel value={model.theme.font} onChange={(v) => setTheme({ font: v as Theme['font'] })} opts={[['sans', 'Bezszeryfowy'], ['serif', 'Szeryfowy'], ['rounded', 'Zaokrąglony'], ['condensed', 'Wąski'], ['mono', 'Monospace']]} /></Row>
-              <Row label="Zaokrąglenia"><Sel value={model.theme.radius} onChange={(v) => setTheme({ radius: v as Theme['radius'] })} opts={[['sm', 'Małe'], ['md', 'Średnie'], ['xl', 'Duże']]} /></Row>
-              <Row label="Szerokość"><Sel value={model.theme.width} onChange={(v) => setTheme({ width: v as Theme['width'] })} opts={[['normal', 'Normalna'], ['wide', 'Szeroka']]} /></Row>
+              <SelRow label="Tło" value={model.theme.bg} onChange={(v) => setTheme({ bg: v as Theme['bg'] })} opts={[['light', 'Jasne'], ['dark', 'Ciemne']]} />
+              <SelRow label="Styl" value={model.theme.style ?? 'modern'} onChange={(v) => setTheme({ style: v as ThemeStyle })} opts={[['modern', 'Nowoczesny'], ['minimal', 'Minimalistyczny'], ['bold', 'Odważny'], ['editorial', 'Magazynowy'], ['soft', 'Przyjazny']]} />
+              <SelRow label="Font" value={model.theme.font} onChange={(v) => setTheme({ font: v as Theme['font'] })} opts={[['sans', 'Bezszeryfowy'], ['serif', 'Szeryfowy'], ['rounded', 'Zaokrąglony'], ['condensed', 'Wąski'], ['mono', 'Monospace']]} />
+              <SelRow label="Zaokrąglenia" value={model.theme.radius} onChange={(v) => setTheme({ radius: v as Theme['radius'] })} opts={[['sm', 'Małe'], ['md', 'Średnie'], ['xl', 'Duże']]} />
+              <SelRow label="Szerokość" value={model.theme.width} onChange={(v) => setTheme({ width: v as Theme['width'] })} opts={[['normal', 'Normalna'], ['wide', 'Szeroka']]} />
             </div>
           </details>
 
@@ -1224,8 +1225,14 @@ export default function SiteBuilderTab({ serviceId }: { serviceId: string }) {
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return <label className="flex items-center justify-between text-sm text-neutral-300">{label}{children}</label>;
 }
-function Sel({ value, onChange, opts }: { value: string; onChange: (v: string) => void; opts: [string, string][] }) {
-  return <select value={value} onChange={(e) => onChange(e.target.value)} className="rounded-lg border border-white/10 bg-black/40 px-2 py-1 text-sm text-white">{opts.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>;
+/** Wiersz z etykietą + Select (nie w <label>: klik w opcję listy wewnątrz <label> ponownie aktywowałby przycisk). */
+function SelRow({ label, value, onChange, opts }: { label: string; value: string; onChange: (v: string) => void; opts: [string, string][] }) {
+  return (
+    <div className="flex items-center justify-between gap-2 text-sm text-neutral-300">
+      {label}
+      <Select aria-label={label} value={value} onChange={onChange} className="w-44" options={opts.map(([v, l]) => ({ value: v, label: l }))} />
+    </div>
+  );
 }
 function Field({ label, value, onChange, area }: { label: string; value: string; onChange: (v: string) => void; area?: boolean }) {
   return (
@@ -1252,7 +1259,7 @@ function SectionEditor({ section, serviceId, onChange }: { section: Section; ser
     case 'navbar':
       return <div className="space-y-2">{F('brand', 'Nazwa / logo')}{F('ctaText', 'Tekst przycisku')}{Bool('sticky', 'Przyklejona nawigacja')}<p className="text-[11px] text-neutral-500">Przy wielu stronach menu linkuje automatycznie do podstron.</p></div>;
     case 'hero':
-      return <div className="space-y-2">{F('eyebrow', 'Etykieta')}{F('title', 'Tytuł')}{F('subtitle', 'Podtytuł', true)}{F('ctaText', 'Przycisk główny')}{F('ctaHref', 'Link przycisku')}{F('ctaSecondary', 'Przycisk drugi (opcjonalnie)')}{Img('bgImage', 'Tło (URL lub z plików)')}<Row label="Wyrównanie"><Sel value={String(d.align ?? 'left')} onChange={(v) => onChange({ align: v })} opts={[['left', 'Do lewej'], ['center', 'Wyśrodkowane']]} /></Row></div>;
+      return <div className="space-y-2">{F('eyebrow', 'Etykieta')}{F('title', 'Tytuł')}{F('subtitle', 'Podtytuł', true)}{F('ctaText', 'Przycisk główny')}{F('ctaHref', 'Link przycisku')}{F('ctaSecondary', 'Przycisk drugi (opcjonalnie)')}{Img('bgImage', 'Tło (URL lub z plików)')}<SelRow label="Wyrównanie" value={String(d.align ?? 'left')} onChange={(v) => onChange({ align: v })} opts={[['left', 'Do lewej'], ['center', 'Wyśrodkowane']]} /></div>;
     case 'stats':
       return <ObjList label="Liczby" items={(d.items as Rec[]) ?? []} fields={[['value', 'Wartość'], ['label', 'Opis']]} factory={() => ({ value: '100+', label: 'Opis' })} onChange={(items) => onChange({ items })} />;
     case 'features':
@@ -1274,7 +1281,7 @@ function SectionEditor({ section, serviceId, onChange }: { section: Section; ser
     case 'video':
       return <div className="space-y-2">{F('title', 'Tytuł')}{F('subtitle', 'Podtytuł')}{F('url', 'Link do filmu (YouTube / Vimeo / .mp4)')}<p className="text-[11px] text-neutral-500">Wklej zwykły link, np. youtube.com/watch?v=… — sami zamienimy go na osadzony odtwarzacz.</p></div>;
     case 'map':
-      return <div className="space-y-2">{F('title', 'Tytuł')}{F('query', 'Adres lub nazwa miejsca')}<Row label="Powiększenie"><Sel value={String(d.zoom ?? '15')} onChange={(v) => onChange({ zoom: v })} opts={[['11', 'Miasto'], ['13', 'Dzielnica'], ['15', 'Ulica'], ['17', 'Budynek']]} /></Row><Field label="Wysokość mapy (px)" value={String(d.height ?? '420')} onChange={(v) => onChange({ height: v.replace(/[^0-9]/g, '') })} /><p className="text-[11px] text-neutral-500">Mapa Google bez klucza API — wpisz adres tak, jak w wyszukiwarce Map.</p></div>;
+      return <div className="space-y-2">{F('title', 'Tytuł')}{F('query', 'Adres lub nazwa miejsca')}<SelRow label="Powiększenie" value={String(d.zoom ?? '15')} onChange={(v) => onChange({ zoom: v })} opts={[['11', 'Miasto'], ['13', 'Dzielnica'], ['15', 'Ulica'], ['17', 'Budynek']]} /><Field label="Wysokość mapy (px)" value={String(d.height ?? '420')} onChange={(v) => onChange({ height: v.replace(/[^0-9]/g, '') })} /><p className="text-[11px] text-neutral-500">Mapa Google bez klucza API — wpisz adres tak, jak w wyszukiwarce Map.</p></div>;
     case 'banner':
       return <div className="space-y-2">{F('text', 'Tekst paska')}{F('linkText', 'Tekst linku (opcjonalnie)')}{F('linkHref', 'Adres linku')}<p className="text-[11px] text-neutral-500">Najlepiej umieść ten blok na samej górze strony (przeciągnij na początek).</p></div>;
     case 'steps':
@@ -1294,7 +1301,7 @@ function SectionEditor({ section, serviceId, onChange }: { section: Section; ser
     case 'embed':
       return <div className="space-y-2">{F('title', 'Tytuł (opcjonalnie)')}{F('html', 'Kod HTML', true)}<p className="text-[11px] text-amber-300/80">Zaawansowane: wklejony kod trafia 1:1 na stronę. Używaj tylko zaufanych źródeł (np. widget rezerwacji, iframe mapy, formularz zewnętrzny).</p></div>;
     case 'imagetext':
-      return <div className="space-y-2">{F('title', 'Tytuł')}{F('body', 'Treść', true)}{Img('image', 'Obraz (URL lub z plików)')}<Row label="Strona obrazu"><Sel value={String(d.imageSide ?? 'right')} onChange={(v) => onChange({ imageSide: v })} opts={[['right', 'Po prawej'], ['left', 'Po lewej']]} /></Row>{F('ctaText', 'Przycisk (opcjonalnie)')}{F('ctaHref', 'Link przycisku')}</div>;
+      return <div className="space-y-2">{F('title', 'Tytuł')}{F('body', 'Treść', true)}{Img('image', 'Obraz (URL lub z plików)')}<SelRow label="Strona obrazu" value={String(d.imageSide ?? 'right')} onChange={(v) => onChange({ imageSide: v })} opts={[['right', 'Po prawej'], ['left', 'Po lewej']]} />{F('ctaText', 'Przycisk (opcjonalnie)')}{F('ctaHref', 'Link przycisku')}</div>;
     case 'quote':
       return <div className="space-y-2">{F('text', 'Cytat', true)}{F('author', 'Autor')}{F('role', 'Rola / firma')}</div>;
     case 'timeline':
@@ -1310,7 +1317,7 @@ function SectionEditor({ section, serviceId, onChange }: { section: Section; ser
     case 'download':
       return <div className="space-y-2">{F('title', 'Tytuł')}{F('subtitle', 'Podtytuł')}<ObjList label="Pliki" items={(d.items as Rec[]) ?? []} fields={[['name', 'Nazwa'], ['desc', 'Opis', true], ['href', 'Adres pliku'], ['meta', 'Info (np. PDF · 1,2 MB)']]} factory={() => ({ name: 'Nowy plik', desc: '', href: '#', meta: '' })} onChange={(items) => onChange({ items })} /><p className="text-[11px] text-neutral-500">Wgraj pliki w Menedżerze plików, a tu wpisz ich adres (np. /pliki/cennik.pdf).</p></div>;
     case 'divider':
-      return <div className="space-y-2"><Row label="Typ"><Sel value={String(d.style ?? 'line')} onChange={(v) => onChange({ style: v })} opts={[['line', 'Linia'], ['space', 'Pusty odstęp']]} /></Row>{String(d.style) !== 'line' && <Field label="Wysokość odstępu (px)" value={String(d.height ?? '60')} onChange={(v) => onChange({ height: v.replace(/[^0-9]/g, '') })} />}</div>;
+      return <div className="space-y-2"><SelRow label="Typ" value={String(d.style ?? 'line')} onChange={(v) => onChange({ style: v })} opts={[['line', 'Linia'], ['space', 'Pusty odstęp']]} />{String(d.style) !== 'line' && <Field label="Wysokość odstępu (px)" value={String(d.height ?? '60')} onChange={(v) => onChange({ height: v.replace(/[^0-9]/g, '') })} />}</div>;
     case 'cookies':
       return <div className="space-y-2">{F('text', 'Treść komunikatu', true)}{F('acceptText', 'Przycisk akceptacji')}{F('moreText', 'Tekst linku (np. Polityka prywatności)')}{F('moreHref', 'Adres linku')}<p className="text-[11px] text-neutral-500">Baner pojawia się raz — po akceptacji zapamiętujemy wybór w przeglądarce gościa.</p></div>;
     case 'cta':

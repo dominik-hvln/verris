@@ -6,6 +6,7 @@ import { CREDIT_SHORT, formatCredits, pluralCredits } from '@/lib/credits';
 import type { PreviewTopupPromoResponse, TopupQuoteDto, WalutaWplaty } from '@verris/contracts';
 import { previewTopupPromoAction, quoteTopupAction, startTopupAction } from './actions';
 import { TOPUP_PRESETS } from './constants';
+import { Select } from '@/components/panel/select';
 
 interface Props {
   balance: string;
@@ -139,17 +140,18 @@ export function TopupCard({ balance }: Props) {
                 className="w-full rounded-[7px] border border-line-strong bg-background px-3 py-2.5 pr-14 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none"
               />
             </div>
-            <select
-              name="currency"
+            <input type="hidden" name="currency" value={currency} />
+            <Select
               value={currency}
-              onChange={(event) => setCurrency(event.target.value as WalutaWplaty)}
+              onChange={(v) => setCurrency(v as WalutaWplaty)}
               aria-label="Waluta wpłaty"
-              className="rounded-[7px] border border-line-strong bg-background px-2 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none"
-            >
-              <option value="PLN">PLN</option>
-              <option value="EUR">EUR</option>
-              <option value="USD">USD</option>
-            </select>
+              className="w-24 [&>button]:h-full"
+              options={[
+                { value: 'PLN', label: 'PLN' },
+                { value: 'EUR', label: 'EUR' },
+                { value: 'USD', label: 'USD' },
+              ]}
+            />
             <button
               type="submit"
               disabled={pending}

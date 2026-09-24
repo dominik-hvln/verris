@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useId, useState } from 'react';
 import { ArrowRightLeft, ImageOff, Loader2, Lock, Plus, ShieldBan, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@verris/ui';
@@ -14,11 +14,13 @@ import {
   type Redirect,
 } from '@/app/dashboard/services/[id]/hosting-webtools-actions';
 import { daErrorMessage } from '@/lib/client-hosting-messages';
+import { Select } from '@/components/panel/select';
 
 const field = 'rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-neutral-500';
 const EMPTY: WebToolsState = { redirects: [], hotlink: { enabled: false, extensions: 'jpg,jpeg,png,gif,webp,svg', allow: [] }, blockedIps: [], protectedDirs: [], forceHttps: false, wwwMode: 'none' };
 
 export default function WebToolsTab({ serviceId }: { serviceId: string }) {
+  const wwwModeId = useId();
   const [state, setState] = useState<WebToolsState>(EMPTY);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -125,13 +127,23 @@ export default function WebToolsTab({ serviceId }: { serviceId: string }) {
             <input type="checkbox" checked={Boolean(state.forceHttps)} onChange={(e) => persist({ ...state, forceHttps: e.target.checked }, e.target.checked ? 'Wymuszanie HTTPS włączone' : 'Wymuszanie HTTPS wyłączone')} disabled={saving} className="h-4 w-4 accent-emerald-500" />
             Wymuś HTTPS (przekierowanie http → https)
           </label>
-          <label className="flex items-center gap-2 text-xs text-neutral-400">Wersja domeny
-            <select value={state.wwwMode ?? 'none'} onChange={(e) => persist({ ...state, wwwMode: e.target.value as 'none' | 'www' | 'nonwww' }, 'Zapisano kanonizację domeny')} disabled={saving} className={field}>
-              <option value="none">Bez zmian</option>
-              <option value="nonwww">Bez www (example.pl)</option>
-              <option value="www">Z www (www.example.pl)</option>
-            </select>
-          </label>
+          <div className="flex items-center gap-2 text-xs text-neutral-400">
+            <label htmlFor={wwwModeId}>Wersja domeny</label>
+            <Select
+              id={wwwModeId}
+              value={state.wwwMode ?? 'none'}
+              onChange={(v) => {
+                if (v !== (state.wwwMode ?? 'none')) persist({ ...state, wwwMode: v as 'none' | 'www' | 'nonwww' }, 'Zapisano kanonizację domeny');
+              }}
+              disabled={saving}
+              className="w-56"
+              options={[
+                { value: 'none', label: 'Bez zmian' },
+                { value: 'nonwww', label: 'Bez www (example.pl)' },
+                { value: 'www', label: 'Z www (www.example.pl)' },
+              ]}
+            />
+          </div>
         </div>
         <p className="mt-2 text-[11px] text-neutral-500">Uwaga: wymuszaj HTTPS dopiero, gdy masz aktywny certyfikat SSL (zakładka SSL), aby uniknąć pętli/ostrzeżeń.</p>
       </section>
@@ -144,7 +156,7 @@ export default function WebToolsTab({ serviceId }: { serviceId: string }) {
         <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_1.3fr_auto_auto]">
           <input value={rFrom} onChange={(e) => setRFrom(e.target.value)} placeholder="/stara-strona" className={field} />
           <input value={rTo} onChange={(e) => setRTo(e.target.value)} placeholder="https://cel.pl/nowa" className={field} />
-          <select value={rType} onChange={(e) => setRType(e.target.value as '301' | '302')} className={field}><option value="301">301 (trwałe)</option><option value="302">302 (tymczasowe)</option></select>
+          <Select aria-label="Typ przekierowania" value={rType} onChange={(v) => setRType(v as '301' | '302')} className="sm:w-44" options={[{ value: '301', label: '301 (trwałe)' }, { value: '302', label: '302 (tymczasowe)' }]} />
           <Button onClick={addRedirect} disabled={saving} className="h-9 gap-1.5 bg-emerald-600 text-white hover:bg-emerald-500 text-xs"><Plus className="h-3.5 w-3.5" /> Dodaj</Button>
         </div>
         {state.redirects.length > 0 && (
