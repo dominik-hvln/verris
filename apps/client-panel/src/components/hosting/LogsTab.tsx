@@ -6,6 +6,7 @@ import type { HostingDomainsResponseDto, HostingLogDto } from '@verris/contracts
 import { fetchHostingDomainsAction } from '@/app/dashboard/services/[id]/hosting-domains-action';
 import { fetchHostingLogAction } from '@/app/dashboard/services/[id]/hosting-logs-action';
 import { HostingTabShell } from '@/components/hosting/HostingTabShell';
+import { Select } from '@/components/panel/select';
 import { HOSTING_FETCH_UNAVAILABLE, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 
 const komunikat = (e: unknown) => hostingFetchErrorMessage(e instanceof Error ? e.message : String(e)) ?? HOSTING_FETCH_UNAVAILABLE;
@@ -105,30 +106,22 @@ export default function LogsTab({ serviceId }: { serviceId: string }) {
         {domeny && domeny.domains.length > 1 ? (
           <div className="flex flex-col gap-1">
             <label htmlFor={idDomena} className="text-[12.5px] text-muted-foreground">Domena</label>
-            <select
+            <Select
               id={idDomena}
               value={domena}
-              onChange={(e) => zmien(() => setDomena(e.target.value))}
-              className="rounded-[7px] border border-line bg-card px-2 py-1.5 text-sm text-foreground"
-            >
-              {domeny.domains.map((d) => (
-                <option key={d.name} value={d.name}>{d.name}</option>
-              ))}
-            </select>
+              onChange={(v) => zmien(() => setDomena(v))}
+              options={domeny.domains.map((d) => ({ value: d.name, label: d.name }))}
+            />
           </div>
         ) : null}
         <div className="flex flex-col gap-1">
           <label htmlFor={idIle} className="text-[12.5px] text-muted-foreground">Ostatnie wpisy</label>
-          <select
+          <Select
             id={idIle}
-            value={ile}
-            onChange={(e) => zmien(() => setIle(Number(e.target.value)))}
-            className="rounded-[7px] border border-line bg-card px-2 py-1.5 text-sm text-foreground"
-          >
-            {ILE.map((n) => (
-              <option key={n} value={n}>{n}</option>
-            ))}
-          </select>
+            value={String(ile)}
+            onChange={(v) => zmien(() => setIle(Number(v)))}
+            options={ILE.map((n) => ({ value: String(n), label: String(n) }))}
+          />
         </div>
       </div>
 
