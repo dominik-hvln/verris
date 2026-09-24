@@ -9,9 +9,9 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **2947 h** — przy 30 h tygodniowo około **23 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **2941 h** — przy 30 h tygodniowo około **23 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **22 sprintów do startu** (959 h) oraz roadmapę po starcie (1988 h, 109 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **22 sprintów do startu** (959 h) oraz roadmapę po starcie (1982 h, 108 pozycji) rozpisaną na epiki kwartalne.
 
 - **2027-01-22** — koniec sprintu 21, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-01-29** — koniec sprintu 22, decyzja GO.
@@ -169,7 +169,7 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 **Definicja ukończenia**
 
 - `DEV-01` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `DEP-01` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
+- `DEP-01` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `ENV-01` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-50` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-51` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
@@ -503,7 +503,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 # Po starcie — roadmapa kwartalna
 
-109 pozycji, 1988 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
+108 pozycji, 1982 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
 
 | ID | Epik | Priorytet | Kwartał | Pozycji | h | Dlaczego teraz, a nie wcześniej |
 |---|---|---|---|---|---|---|
@@ -511,7 +511,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 | `E-02` | Wydajność: cache i skalowanie | WYSOKI | Q1 2027 | 7 | 126 | Trzy z pięciu hostingów PL dają Redis w cenie. Przy pozycjonowaniu na WordPressa to nie dodatek, tylko oczekiwanie. |
 | `E-12` | Backup: granularność i retencja | WYSOKI | Q1 2027 | 5 | 94 | cyber_Folks daje 28 dni, seohost do 60. Nasze 30 dni jest w normie, ale granularność odtwarzania jest poniżej rynku. |
 | `E-14` | Rozliczenia: dokończenie | WYSOKI | Q1 2027 | 1 | 16 | Z-07 z macierzy: klient płacący portfelem doładowuje saldo w karencji i i tak zostaje zawieszony. Pierwszy taki przypadek to stracony klient. |
-| `E-15` | Wsparcie i ops: kolejka abuse | WYSOKI | Q1 2027 | 6 | 104 | Sprint 13 daje możliwość zatrzymania szkody. Ten epik daje proces, który skaluje się dalej niż jedna osoba. |
+| `E-15` | Wsparcie i ops: kolejka abuse | WYSOKI | Q1 2027 | 5 | 98 | Sprint 13 daje możliwość zatrzymania szkody. Ten epik daje proces, który skaluje się dalej niż jedna osoba. |
 | `E-03` | WordPress Toolkit | WYSOKI | Q2 2027 | 8 | 156 | Cztery z pięciu hostingów PL mają automatyczne aktualizacje WordPressa. Staging już mamy i jest przewagą — reszta toolkitu ją domyka. |
 | `E-04` | Domeny jako produkt | WYSOKI | Q2 2027 | 8 | 78 | Backend jest gotowy i wyłączony brakiem konfiguracji. Domena to najczęstszy pierwszy zakup i naturalny punkt wejścia. |
 | `E-05` | Katalog aplikacji | ŚREDNI | Q2 2027 | 1 | 16 | Softaculous ma około 400 aplikacji. Nie musimy mieć 400, ale dwie to nie jest katalog. |
@@ -538,7 +538,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 - **E-12 Backup: granularność i retencja** (94 h) — Odtworzenie pojedynczego pliku, podgląd zawartości archiwum przed odtworzeniem, pobranie kopii lokalnie, retencja 28+ dni w cenie.
 - **E-13 Automatyzacja: API zapisu i webhooki** (102 h) — Rozszerzenie publicznego API o operacje zapisu, webhooki dla klienta, edycja crona, cron z wyborem wersji PHP, podgląd wyniku wykonania.
 - **E-14 Rozliczenia: dokończenie** (16 h) — Ponowienie płatności portfelem w karencji, waluty obce z przeliczeniem VAT, proforma, dodanie karty niezależnie od zakupu, eksport CSV.
-- **E-15 Wsparcie i ops: kolejka abuse** (104 h) — Pełna kolejka obsługi nadużyć z encją zgłoszenia, terminami i śladem audytowym, ogłoszenia i okna serwisowe z panelu, feature flagi.
+- **E-15 Wsparcie i ops: kolejka abuse** (98 h) — Pełna kolejka obsługi nadużyć z encją zgłoszenia, terminami i śladem audytowym, ogłoszenia i okna serwisowe z panelu, feature flagi.
 - **E-16 Rozszerzenia oferty** (96 h) — VPS: konsola, snapshoty, rebuild. Panel mobilny. Kreator stron — dokończyć albo usunąć 1612 zakomentowanych linii.
 
 ---
