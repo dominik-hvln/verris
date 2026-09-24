@@ -100,9 +100,9 @@ function ResellerList({ rows }: { rows: ResellerRow[] }) {
               {r.status === "ACTIVE" ? (
                 <button onClick={() => setStatus(r.userId, "SUSPENDED")} disabled={busy === r.userId} className="rounded-lg border border-amber-500/30 px-3 py-1.5 text-xs font-semibold text-amber-200 hover:bg-amber-500/10 disabled:opacity-50">Zawieś</button>
               ) : (
-                <button onClick={() => setStatus(r.userId, "ACTIVE")} disabled={busy === r.userId} className="rounded-lg border border-emerald-500/30 px-3 py-1.5 text-xs font-semibold text-emerald-200 hover:bg-emerald-500/10 disabled:opacity-50">Aktywuj</button>
+                <button onClick={() => setStatus(r.userId, "ACTIVE")} disabled={busy === r.userId} className="rounded-lg border border-emerald-500/30 px-3 py-1.5 text-xs font-semibold text-emerald-200 hover:bg-emerald-500/10 disabled:opacity-50">{r.status === "PENDING" ? "Zatwierdź wniosek" : "Aktywuj"}</button>
               )}
-              <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${r.status === "ACTIVE" ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/30" : r.status === "SUSPENDED" ? "bg-amber-500/10 text-amber-300 border-amber-500/30" : "bg-neutral-500/10 text-neutral-300 border-neutral-500/30"}`}>{r.status}</span>
+              <span className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${r.status === "ACTIVE" ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/30" : r.status === "SUSPENDED" ? "bg-amber-500/10 text-amber-300 border-amber-500/30" : "bg-neutral-500/10 text-neutral-300 border-neutral-500/30"}`}>{r.status === "PENDING" ? "WNIOSEK" : r.status === "ACTIVE" ? "AKTYWNY" : r.status === "SUSPENDED" ? "ZAWIESZONY" : r.status}</span>
             </div>
           ))}
         </div>
