@@ -157,7 +157,7 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `DEV-01` | Baza deweloperska jest nieosiągalna, a `docker-compose.yml` opisuje stan, którego nie ma | 6 | WYSOKA | D3 (maszyna deweloperska): `FATAL: role "verris" does not exist` oraz `role "postgres" does not exist` przy połączeniu po gnieździe wewnątrz kontenera |
+| `DEV-01` | Baza deweloperska jest nieosiągalna, a `docker-compose.yml` opisuje stan, którego nie ma | 6 | WYSOKA | docker-compose.yml — wolumen postgres_data_v2 + healthcheck logujący się jako verris (psql select 1); LOCAL_DEV.md — sekcja o starym wolumenie |
 | `DEP-01` | Osiem otwartych pull requestów Dependabota, żaden niescalony | 6 | WYSOKA | 2026-09-24: #39 (22 × minor/patch, lockfile wprost z PR), #30–#33 (akcje GitHuba) wciągnięte na main lokalnie; #28 (graphql 17) wyciszony w .github/de |
 | `ENV-01` | Bramka lokalna biegnie na Node 20, CI na Node 22 | 6 | ŚREDNIA | D3: ostrzeżenie `pnpm` przy każdym `pnpm test` wobec `node-version: 22` w `ci.yml`. Zamknięte częściowo 2026-08-28: `.nvmrc` = 22, strażnik `wersja-no |
 | `X-50` | Bramka podatnosci zatrzymuje cokolwiek — jest wymagana do merge i wolana przez wdrozenie | 6 | WYSOKA | D2 2026-09-19: .github/workflows/deploy.yml — krok "Bramka podatnosci" w jobie test-gate; ruleset 21161479 — "Security scans (gitleaks + audit + trivy |
