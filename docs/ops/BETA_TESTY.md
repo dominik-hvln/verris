@@ -70,8 +70,13 @@ Wtedy runbook startu i decyzja GO (PB-12) — bez „warunkowego GO”.
 
 ## Przygotowanie po naszej stronie (checklista)
 
-- [ ] Kody: skrypt/akcja w panelu admina generująca N kodów `BETA-xxxx` (150 K, 1 użycie, 14 dni).
-- [ ] Kategoria zgłoszeń „Beta” w panelu klienta i filtr w panelu obsługi.
-- [ ] Mail zaproszenia (szablon przez `renderEmailShell`) z kodem, listą scenariuszy i linkiem do zgłoszeń.
-- [ ] Krótka ankieta na koniec (3–5 pytań) — w panelu albo mailem.
-- [ ] Widok w panelu admina: testerzy (kod użyty, usługa aktywna, zgłoszenia).
+- [x] Kody i zaproszenia: panel admina → **Testy (beta)** → „Zaproś testera” (e-mail, imię) tworzy imienny
+      kod `BETA-XXXXXX` (150 K, 1 użycie, 14 dni) i od razu wysyła mail (`beta.invite`, szablon
+      `renderEmailShell`) z kodem, krokami startu, listą rzeczy do sprawdzenia i linkiem do rejestracji.
+      Gdy mail nie wyjdzie, kod i tak powstaje (lista pokazuje „mail niewysłany”). Kod można wyłączyć.
+- [x] Temat zgłoszeń „Testy (beta)” — widoczny w panelu klienta tylko dla testera (kto zrealizował kod
+      z zaproszenia, `GET /me/beta`); w panelu obsługi znacznik **Beta** na liście zgłoszeń.
+- [x] Widok testerów w panelu admina: stan kodu (czeka / użyty / wygasł / wyłączony), konto, aktywne usługi,
+      zgłoszenia z tematem Beta (w tym otwarte), odsetek testerów z aktywną usługą.
+- [ ] Krótka ankieta na koniec (3–5 pytań) — mailem od właściciela; formularz w panelu dopiero, jeśli
+      testerów będzie więcej niż kilkunastu.

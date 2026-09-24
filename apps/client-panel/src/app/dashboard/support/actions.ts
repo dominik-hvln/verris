@@ -277,3 +277,12 @@ export async function addTicketReplyWithFiles(ticketId: string, formData: FormDa
     return { error: "Błąd połączenia z serwerem" };
   }
 }
+
+/** PB-26 — tester (zrealizował kod z zaproszenia do testów) widzi temat „Testy (beta)”. */
+export async function fetchBetaStatus(): Promise<boolean> {
+  try {
+    return (await apiFetch<{ tester: boolean }>("/me/beta")).tester;
+  } catch {
+    return false;
+  }
+}

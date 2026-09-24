@@ -97,7 +97,7 @@ export default async function StaffInboxPage({
                 </div>
                 <div className="min-w-0">
                   <p className="text-xs font-mono text-muted-foreground">#{ticket.id.slice(0, 8)}</p>
-                  <h3 className="truncate text-sm font-semibold text-white">{ticket.subject}</h3>
+                  <h3 className="truncate text-sm font-semibold text-white">{ticket.subject} {ticket.topic === "BETA" ? <span className="ml-1 rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 align-middle text-[10px] font-bold uppercase tracking-wide text-amber-200">Beta</span> : null}</h3>
                   <p className="truncate text-xs text-muted-foreground">
                     {[ticket.user.firstName, ticket.user.lastName].filter(Boolean).join(" ") ||
                       ticket.user.email}{" "}

@@ -62,7 +62,7 @@ export default async function ActiveTicketsPage({
                 href={`/tickets/${t.id}`}
                 className="min-w-0 flex-1 px-6 py-4 hover:bg-white/[0.04] text-sm transition-colors text-white"
               >
-                <span className="font-medium truncate block">#{t.id.slice(0, 8)} — {t.subject}</span>
+                <span className="font-medium truncate block">#{t.id.slice(0, 8)} — {t.subject} {t.topic === "BETA" ? <span className="ml-1 rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 align-middle text-[10px] font-bold uppercase tracking-wide text-amber-200">Beta</span> : null}</span>
                 <span className="text-muted-foreground text-xs block mt-1">
                   {[t.user.firstName, t.user.lastName].filter(Boolean).join(" ") || t.user.email}
                 </span>

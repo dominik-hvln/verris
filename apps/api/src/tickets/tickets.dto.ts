@@ -24,7 +24,7 @@ export class CreateTicketDto {
 
   @IsOptional()
   @IsString()
-  @IsIn(['HOSTING', 'DOMAIN', 'EMAIL', 'DNS', 'BILLING', 'SSL', 'OTHER'])
+  @IsIn(['HOSTING', 'DOMAIN', 'EMAIL', 'DNS', 'BILLING', 'SSL', 'OTHER', 'BETA'])
   topic?: string;
 }
 
@@ -53,7 +53,7 @@ export class CannedResponseDto {
 
   @IsOptional()
   @IsString()
-  @IsIn(['HOSTING', 'DOMAIN', 'EMAIL', 'DNS', 'BILLING', 'SSL', 'OTHER'])
+  @IsIn(['HOSTING', 'DOMAIN', 'EMAIL', 'DNS', 'BILLING', 'SSL', 'OTHER', 'BETA'])
   topic?: string;
 
   @IsOptional()

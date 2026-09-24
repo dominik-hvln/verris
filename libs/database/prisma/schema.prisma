@@ -2570,9 +2570,25 @@ model PromoCode {
   updatedAt         DateTime         @updatedAt
 
   redemptions       PromoRedemption[]
+  betaInvite        BetaInvite?
   subscriptionsWithPromo Subscription[] @relation("SubscriptionAppliedPromo")
 
   @@index([active, validFrom, validTo])
+}
+
+/// PB-26 — zaproszenie do testów przed startem: imienny, jednorazowy kod FIXED_CREDIT.
+/// Tester = użytkownik, który zrealizował kod z zaproszeniem (PromoRedemption).
+model BetaInvite {
+  id          String    @id @default(uuid())
+  email       String
+  name        String?
+  promoCodeId String    @unique
+  promoCode   PromoCode @relation(fields: [promoCodeId], references: [id], onDelete: Cascade)
+  invitedById String?
+  sentAt      DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([email])
 }
 
 model PromoRedemption {

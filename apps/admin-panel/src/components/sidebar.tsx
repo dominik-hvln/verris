@@ -74,6 +74,8 @@ const adminNavItems: NavGroup[] = [
       // czyli w praktyce nikt o drugiej w nocy.
       { name: "Webhooki Stripe", href: "/billing/webhooki", icon: DollarSign, perm: "BILLING_MANAGE" },
       { name: "Kody promocyjne", href: "/promo-codes", icon: Tag, perm: "PROMO_MANAGE" },
+      // PB-26 — zaproszenia do testów przed startem i postęp testerów.
+      { name: "Testy (beta)", href: "/beta", icon: UserPlus, perm: "PROMO_MANAGE" },
       { name: "Newsletter / mailing", href: "/marketing", icon: Mail, perm: "PROMO_MANAGE" },
       // N-14 — blokady wysyłki (outbound spam): widok i zdjęcie blokady.
       { name: "Blokady wysyłki poczty", href: "/deliverability", icon: Mail, perm: "CUSTOMERS_MANAGE" },

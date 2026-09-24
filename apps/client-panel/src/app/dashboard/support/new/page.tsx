@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, BookOpen, Loader2, Send } from "lucide-react";
-import { createTicketWithFiles, fetchKbSuggestions, type KbSuggestion } from "../actions";
+import { createTicketWithFiles, fetchBetaStatus, fetchKbSuggestions, type KbSuggestion } from "../actions";
 import { Select } from "@/components/panel";
 import { PoleZalacznikow } from "@/components/panel/pole-zalacznikow";
 import { toast } from "sonner";
@@ -18,6 +18,7 @@ const TOPICS = [
   { value: "BILLING", label: "Płatności / faktury" },
   { value: "OTHER", label: "Inne" },
 ];
+const TEMAT_BETA = { value: "BETA", label: "Testy (beta) — uwagi i błędy" };
 
 export default function NewTicketPage() {
   const router = useRouter();
@@ -25,6 +26,10 @@ export default function NewTicketPage() {
   const [topic, setTopic] = useState("");
   const [subject, setSubject] = useState("");
   const [kb, setKb] = useState<KbSuggestion[]>([]);
+  const [tester, setTester] = useState(false);
+  useEffect(() => {
+    void fetchBetaStatus().then(setTester);
+  }, []);
 
   // SUP-1 — pobierz podpowiedzi KB gdy temat+tytuł dają sensowne zapytanie.
   const queryTooShort = subject.trim().length < 3 && !topic;
@@ -102,7 +107,7 @@ export default function NewTicketPage() {
               onChange={setTopic}
               aria-label="Czego dotyczy zgłoszenie?"
               placeholder="— wybierz temat —"
-              options={TOPICS.map((t) => ({ value: t.value, label: t.label }))}
+              options={(tester ? [TEMAT_BETA, ...TOPICS] : TOPICS).map((t) => ({ value: t.value, label: t.label }))}
             />
           </div>
 
