@@ -101,6 +101,7 @@ model User {
   partnerPayouts         PartnerPayout[]     @relation("PartnerPayouts")
   // API-1 — publiczne API klienta (tokeny).
   apiTokens              ApiToken[]          @relation("UserApiTokens")
+  clientWebhooks         ClientWebhookEndpoint[] @relation("UserClientWebhooks")
   // EMM — produkt email-marketingu (listy/kampanie należące do klienta).
   emmLists               EmmList[]           @relation("UserEmmLists")
   emmCampaigns           EmmCampaign[]       @relation("UserEmmCampaigns")
@@ -3429,6 +3430,44 @@ model ApiToken {
   createdAt   DateTime  @default(now())
 
   @@index([userId])
+}
+
+// =====================================================================
+// L-10 — webhooki klienta: zdarzenia konta (np. zakończone zadanie na
+// stronie) wysyłane POST-em na adres klienta, podpis HMAC sekretem
+// pokazanym raz (w bazie zaszyfrowany). Dostarczanie z ponowieniami
+// (ten sam status co webhooki strony statusu).
+// =====================================================================
+model ClientWebhookEndpoint {
+  id         String                  @id @default(uuid())
+  userId     String
+  user       User                    @relation("UserClientWebhooks", fields: [userId], references: [id], onDelete: Cascade)
+  url        String
+  secretEnc  String
+  events     String[]
+  isActive   Boolean                 @default(true)
+  createdAt  DateTime                @default(now())
+  deliveries ClientWebhookDelivery[]
+
+  @@index([userId])
+}
+
+model ClientWebhookDelivery {
+  id             String                      @id @default(uuid())
+  endpointId     String
+  endpoint       ClientWebhookEndpoint       @relation(fields: [endpointId], references: [id], onDelete: Cascade)
+  event          String
+  payload        Json
+  status         StatusWebhookDeliveryStatus @default(PENDING)
+  attempts       Int                         @default(0)
+  responseStatus Int?
+  lastError      String?                     @db.Text
+  nextAttemptAt  DateTime?
+  deliveredAt    DateTime?
+  createdAt      DateTime                    @default(now())
+
+  @@index([status, nextAttemptAt])
+  @@index([endpointId, createdAt])
 }
 
 // =====================================================================

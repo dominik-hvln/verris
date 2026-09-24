@@ -1,4 +1,5 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
+import { ClientWebhooksService } from '../client-webhooks/client-webhooks.service';
 import { AccountStatus, NodeTaskKind, NodeTaskStatus, ServerStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
@@ -50,6 +51,7 @@ export class NodeTasksService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly directAdmin: DirectAdminService,
+    @Optional() private readonly webhooks?: ClientWebhooksService,
   ) {}
 
   async queueHostingProfile(
@@ -458,6 +460,7 @@ export class NodeTasksService {
       action: 'NODE_TASK_COMPLETED',
       details: { serverId: opts.serverId, taskId: task.id, kind: task.kind },
     });
+    await this.webhooks?.poZadaniu(task, true);
 
     if (task.kind === NodeTaskKind.HOSTING_PROFILE) {
       await this.directAdmin.syncPlanPackagesForServer(opts.serverId).catch((err) => {
@@ -596,6 +599,7 @@ export class NodeTasksService {
         error: opts.error.slice(0, 500),
       },
     });
+    await this.webhooks?.poZadaniu(task, false);
 
     return this.toPublicTask(updated);
   }

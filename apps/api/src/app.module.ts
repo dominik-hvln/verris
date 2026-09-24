@@ -45,6 +45,7 @@ import { FilesModule } from './files/files.module';
 import { StaffRolesModule } from './staff-roles/staff-roles.module';
 import { PartnersModule } from './partners/partners.module';
 import { ApiTokensModule } from './api-tokens/api-tokens.module';
+import { ClientWebhooksModule } from './client-webhooks/client-webhooks.module';
 import { ResellerModule } from './reseller/reseller.module';
 import { EmailMarketingModule } from './email-marketing/email-marketing.module';
 import { AnalyticsSitesModule } from './analytics-sites/analytics-sites.module';
@@ -110,6 +111,7 @@ import { DeliverabilityModule } from './deliverability/deliverability.module';
     StaffRolesModule,
     PartnersModule,
     ApiTokensModule,
+    ClientWebhooksModule,
     ResellerModule,
     EmailMarketingModule,
     AnalyticsSitesModule,

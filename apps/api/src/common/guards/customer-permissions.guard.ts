@@ -195,9 +195,9 @@ export const REGULY_TRAS: Regula[] = [
     po_co: 'Zgłoszenia do wsparcia.',
   },
   {
-    pasuje: zawiera('users/me/api-tokens'),
+    pasuje: zawiera('users/me/api-tokens', 'users/me/webhooks'),
     odczyt: [SETTINGS_MANAGE], zapis: [SETTINGS_MANAGE],
-    po_co: 'Tokeny API działają w imieniu konta nadrzędnego — także ich lista.',
+    po_co: 'Tokeny API i webhooki działają w imieniu konta nadrzędnego — także ich lista.',
   },
   {
     pasuje: (s) => s.includes('users/me') || s.includes('settings'),
