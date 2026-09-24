@@ -1,5 +1,5 @@
 import type { MailMessage } from '../mailer.interface';
-import { renderEmailShell, escapeHtml } from './_layouts/email-shell';
+import { renderEmailShell, escapeMarkdown } from './_layouts/email-shell';
 import { AutoscalingResource } from '@verris/database';
 
 const RESOURCE_LABELS: Record<AutoscalingResource, string> = {
@@ -51,10 +51,10 @@ export interface AutoscalingStartedContext {
 }
 
 export function autoscalingStartedTemplate(ctx: AutoscalingStartedContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**!` : 'Cześć!';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**!` : 'Cześć!';
   const deltaLines = ctx.deltas.map((d) => {
     const label = RESOURCE_LABELS[d.resource] ?? d.resource;
-    return `- **${escapeHtml(label)}:** ${escapeHtml(formatDelta(d.resource, d.toValue))} ponad plan bazowy`;
+    return `- **${escapeMarkdown(label)}:** ${escapeMarkdown(formatDelta(d.resource, d.toValue))} ponad plan bazowy`;
   });
 
   const costLine =
@@ -67,11 +67,11 @@ export function autoscalingStartedTemplate(ctx: AutoscalingStartedContext): Mail
 
   const { html, text } = renderEmailShell({
     title: 'Autoskalowanie uruchomione',
-    preheader: `${escapeHtml(ctx.domain)} — podniesiono limity w odpowiedzi na ruch.`,
+    preheader: `${escapeMarkdown(ctx.domain)} — podniesiono limity w odpowiedzi na ruch.`,
     bodyMarkdown: [
       greeting,
       ``,
-      `Dla usługi **${escapeHtml(ctx.domain)}** silnik **uruchomił autoskalowanie** i podniósł limity w odpowiedzi na utrzymującą się presję zasobów. Twoja strona działa dalej bez przerwy.`,
+      `Dla usługi **${escapeMarkdown(ctx.domain)}** silnik **uruchomił autoskalowanie** i podniósł limity w odpowiedzi na utrzymującą się presję zasobów. Twoja strona działa dalej bez przerwy.`,
       ``,
       ...deltaLines,
       costLine,
@@ -135,19 +135,19 @@ const END_REASON_COPY: Record<AutoscalingEndReason, { title: string; line: strin
 };
 
 export function autoscalingEndedTemplate(ctx: AutoscalingEndedContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**!` : 'Cześć!';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**!` : 'Cześć!';
   const copy = END_REASON_COPY[ctx.reason] ?? END_REASON_COPY.AUTO_DISABLED;
 
   const { html, text } = renderEmailShell({
     title: copy.title,
-    preheader: `${escapeHtml(ctx.domain)} — podsumowanie autoskalowania.`,
+    preheader: `${escapeMarkdown(ctx.domain)} — podsumowanie autoskalowania.`,
     bodyMarkdown: [
       greeting,
       ``,
-      `Dla usługi **${escapeHtml(ctx.domain)}** ${copy.line}`,
+      `Dla usługi **${escapeMarkdown(ctx.domain)}** ${copy.line}`,
       ``,
       `**Podsumowanie skoku:**`,
-      `- **Czas trwania:** ${escapeHtml(formatDuration(ctx.durationMinutes))}`,
+      `- **Czas trwania:** ${escapeMarkdown(formatDuration(ctx.durationMinutes))}`,
       `- **Koszt łącznie:** ${ctx.totalCostPln.toFixed(2)} PLN`,
       ``,
       `Pełną historię (co, kiedy i za ile zostało podniesione) znajdziesz w panelu → Autoskalowanie.`,

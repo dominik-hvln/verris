@@ -1,5 +1,5 @@
 import type { MailMessage } from '../mailer.interface';
-import { renderEmailShell, escapeHtml } from './_layouts/email-shell';
+import { renderEmailShell, escapeMarkdown } from './_layouts/email-shell';
 
 export interface AdminCreditContext {
   customerEmail: string;
@@ -17,9 +17,9 @@ export interface AdminCreditContext {
  * historii transakcji w panelu — daje to transparentność operacyjną.
  */
 export function adminCreditNotificationTemplate(ctx: AdminCreditContext): MailMessage {
-  const greeting = ctx.customerFirstName ? `Cześć **${escapeHtml(ctx.customerFirstName)}**!` : 'Cześć!';
+  const greeting = ctx.customerFirstName ? `Cześć **${escapeMarkdown(ctx.customerFirstName)}**!` : 'Cześć!';
   const reasonLine = ctx.reason
-    ? `**Powód:** ${escapeHtml(ctx.reason)}`
+    ? `**Powód:** ${escapeMarkdown(ctx.reason)}`
     : '**Powód:** Uznanie od Zespołu Verris.';
 
   const { html, text } = renderEmailShell({
@@ -28,13 +28,13 @@ export function adminCreditNotificationTemplate(ctx: AdminCreditContext): MailMe
     bodyMarkdown: [
       greeting,
       ``,
-      `Właśnie zasililiśmy Twój portfel kwotą **${escapeHtml(ctx.amount)} K** (kredyty Verris, 1 zł = 1 K).`,
+      `Właśnie zasililiśmy Twój portfel kwotą **${escapeMarkdown(ctx.amount)} K** (kredyty Verris, 1 zł = 1 K).`,
       ``,
       reasonLine,
       ``,
       `## Aktualne saldo`,
       ``,
-      `${escapeHtml(ctx.newBalance)} K`,
+      `${escapeMarkdown(ctx.newBalance)} K`,
       ``,
       `Środki są dostępne natychmiast — możesz wykorzystać je na opłacenie subskrypcji, autoskalowanie lub inne usługi w panelu.`,
     ].join('\n'),

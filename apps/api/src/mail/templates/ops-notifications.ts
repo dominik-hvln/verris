@@ -1,5 +1,5 @@
 import type { MailMessage } from '../mailer.interface';
-import { renderEmailShell, escapeHtml } from './_layouts/email-shell';
+import { renderEmailShell, escapeMarkdown } from './_layouts/email-shell';
 
 /**
  * Ops / fleet notifications for ADMINs — proactive protection for a LIVE
@@ -27,17 +27,17 @@ export interface NodeOfflineContext {
 }
 
 export function nodeOfflineAlertTemplate(ctx: NodeOfflineContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: `Węzeł ${ctx.nodeName} nie odpowiada`,
     preheader: 'Brak heartbeatu z węzła — możliwa awaria/utrata łączności.',
     bodyMarkdown: [
       greeting,
       ``,
-      `**Węzeł \`${escapeHtml(ctx.nodeName)}\` przestał wysyłać heartbeat** do control-plane. Konta na tym węźle mogą być niedostępne.`,
+      `**Węzeł \`${escapeMarkdown(ctx.nodeName)}\` przestał wysyłać heartbeat** do control-plane. Konta na tym węźle mogą być niedostępne.`,
       ``,
-      `- **Węzeł:** ${escapeHtml(ctx.nodeName)} (\`${escapeHtml(ctx.nodeId)}\`)`,
-      `- **Ostatnio widziany:** ${ctx.lastSeenAt ? escapeHtml(fmt(ctx.lastSeenAt)) : '—'}`,
+      `- **Węzeł:** ${escapeMarkdown(ctx.nodeName)} (\`${escapeMarkdown(ctx.nodeId)}\`)`,
+      `- **Ostatnio widziany:** ${ctx.lastSeenAt ? escapeMarkdown(fmt(ctx.lastSeenAt)) : '—'}`,
       ``,
       `## Co zrobić`,
       ``,
@@ -55,17 +55,17 @@ export function nodeOfflineAlertTemplate(ctx: NodeOfflineContext): MailMessage {
 }
 
 export function nodeRecoveredTemplate(ctx: NodeOfflineContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: `Węzeł ${ctx.nodeName} znów online`,
     preheader: 'Heartbeat wrócił — węzeł odpowiada.',
     bodyMarkdown: [
       greeting,
       ``,
-      `Dobre wieści: **węzeł \`${escapeHtml(ctx.nodeName)}\` znów wysyła heartbeat** i jest online.`,
+      `Dobre wieści: **węzeł \`${escapeMarkdown(ctx.nodeName)}\` znów wysyła heartbeat** i jest online.`,
       ``,
-      `- **Węzeł:** ${escapeHtml(ctx.nodeName)} (\`${escapeHtml(ctx.nodeId)}\`)`,
-      `- **Czas:** ${escapeHtml(fmt(new Date()))}`,
+      `- **Węzeł:** ${escapeMarkdown(ctx.nodeName)} (\`${escapeMarkdown(ctx.nodeId)}\`)`,
+      `- **Czas:** ${escapeMarkdown(fmt(new Date()))}`,
       ``,
       `Zweryfikuj, czy konta działają poprawnie i czy backupy są aktualne.`,
     ].join('\n'),
@@ -98,16 +98,16 @@ export interface NodeCapacityContext {
 }
 
 export function nodeCapacityAlertTemplate(ctx: NodeCapacityContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: `Węzeł ${ctx.nodeName} blisko zapełnienia`,
     preheader: `Obłożenie ${ctx.topUtilizationPct}% — rozważ dodanie węzła.`,
     bodyMarkdown: [
       greeting,
       ``,
-      `**Węzeł \`${escapeHtml(ctx.nodeName)}\` zbliża się do limitu pojemności.**`,
+      `**Węzeł \`${escapeMarkdown(ctx.nodeName)}\` zbliża się do limitu pojemności.**`,
       ``,
-      `- **Węzeł:** ${escapeHtml(ctx.nodeName)} (\`${escapeHtml(ctx.nodeId)}\`)`,
+      `- **Węzeł:** ${escapeMarkdown(ctx.nodeName)} (\`${escapeMarkdown(ctx.nodeId)}\`)`,
       `- **Sprzedane** (względem pojemności z nadsubskrypcją): CPU ${ctx.cpuPct}% · RAM ${ctx.ramPct}% · Dysk ${ctx.diskPct}%`,
       ctx.physical
         ? `- **Realne zużycie** (względem pojemności fizycznej po rezerwie; przy 100% węzeł przestaje przyjmować konta): CPU ${ctx.physical.cpu}% · RAM ${ctx.physical.ram}% · Dysk ${ctx.physical.disk}%`
@@ -156,15 +156,15 @@ export interface OpsDigestContext {
 }
 
 export function opsDailyDigestTemplate(ctx: OpsDigestContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const verdict = ctx.go
     ? '🟢 **GO** — brak blokerów startu.'
     : '🔴 **NO-GO** — są blokery do usunięcia.';
   const failLines = ctx.readinessFails.length
-    ? ctx.readinessFails.map((f) => `- ❌ ${escapeHtml(f)}`)
+    ? ctx.readinessFails.map((f) => `- ❌ ${escapeMarkdown(f)}`)
     : ['- _(brak)_'];
   const warnLines = ctx.readinessWarns.length
-    ? ctx.readinessWarns.map((w) => `- ⚠️ ${escapeHtml(w)}`)
+    ? ctx.readinessWarns.map((w) => `- ⚠️ ${escapeMarkdown(w)}`)
     : ['- _(brak)_'];
 
   const { html, text } = renderEmailShell({
@@ -216,18 +216,18 @@ export interface NodeRblContext {
 }
 
 export function nodeRblAlertTemplate(ctx: NodeRblContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
-  const zonesList = ctx.zones.map((z) => `- \`${escapeHtml(z)}\``).join('\n');
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
+  const zonesList = ctx.zones.map((z) => `- \`${escapeMarkdown(z)}\``).join('\n');
   const { html, text } = renderEmailShell({
     title: `IP węzła ${ctx.nodeName} trafiło na blacklistę`,
     preheader: 'Reputacja IP zagrożona — może to wpłynąć na dostarczalność poczty.',
     bodyMarkdown: [
       greeting,
       ``,
-      `**IP \`${escapeHtml(ctx.ip)}\` (węzeł ${escapeHtml(ctx.nodeName)}) figuruje na blacklistach DNS (RBL).** Poczta wychodząca z kont na tym węźle może być odrzucana lub trafiać do spamu.`,
+      `**IP \`${escapeMarkdown(ctx.ip)}\` (węzeł ${escapeMarkdown(ctx.nodeName)}) figuruje na blacklistach DNS (RBL).** Poczta wychodząca z kont na tym węźle może być odrzucana lub trafiać do spamu.`,
       ``,
-      `- **Węzeł:** ${escapeHtml(ctx.nodeName)} (\`${escapeHtml(ctx.nodeId)}\`)`,
-      `- **IP:** ${escapeHtml(ctx.ip)}`,
+      `- **Węzeł:** ${escapeMarkdown(ctx.nodeName)} (\`${escapeMarkdown(ctx.nodeId)}\`)`,
+      `- **IP:** ${escapeMarkdown(ctx.ip)}`,
       `- **Wykryto na:**`,
       zonesList,
       ``,
@@ -247,17 +247,17 @@ export function nodeRblAlertTemplate(ctx: NodeRblContext): MailMessage {
 }
 
 export function nodeRblClearedTemplate(ctx: NodeRblContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: `IP węzła ${ctx.nodeName} czyste`,
     preheader: 'IP zniknęło z blacklist — reputacja przywrócona.',
     bodyMarkdown: [
       greeting,
       ``,
-      `Dobre wieści: **IP \`${escapeHtml(ctx.ip)}\` (węzeł ${escapeHtml(ctx.nodeName)}) nie figuruje już na sprawdzanych blacklistach.**`,
+      `Dobre wieści: **IP \`${escapeMarkdown(ctx.ip)}\` (węzeł ${escapeMarkdown(ctx.nodeName)}) nie figuruje już na sprawdzanych blacklistach.**`,
       ``,
-      `- **Węzeł:** ${escapeHtml(ctx.nodeName)} (\`${escapeHtml(ctx.nodeId)}\`)`,
-      `- **Czas:** ${escapeHtml(fmt(new Date()))}`,
+      `- **Węzeł:** ${escapeMarkdown(ctx.nodeName)} (\`${escapeMarkdown(ctx.nodeId)}\`)`,
+      `- **Czas:** ${escapeMarkdown(fmt(new Date()))}`,
       ``,
       `Monitoruj dostarczalność przez kolejne dni, aby upewnić się, że reputacja jest stabilna.`,
     ].join('\n'),
@@ -284,7 +284,7 @@ export interface MailDeliveryFailureContext {
 }
 
 export function mailDeliveryFailureAlertTemplate(ctx: MailDeliveryFailureContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: `Rośnie odsetek nieudanych maili (${ctx.ratePct}%)`,
     preheader: 'Wysyłka poczty systemowej zawodzi — sprawdź konfigurację SMTP.',
@@ -293,7 +293,7 @@ export function mailDeliveryFailureAlertTemplate(ctx: MailDeliveryFailureContext
       ``,
       `**W ostatnich ${ctx.windowMinutes} min ${ctx.failed} z ${ctx.total} maili zakończyło się statusem FAILED (${ctx.ratePct}%).** Powiadomienia (reset hasła, faktury, alerty) mogą nie docierać do klientów.`,
       ``,
-      ctx.topError ? `- **Najczęstszy błąd:** \`${escapeHtml(ctx.topError)}\`` : `- Szczegóły błędów w dzienniku EmailLog.`,
+      ctx.topError ? `- **Najczęstszy błąd:** \`${escapeMarkdown(ctx.topError)}\`` : `- Szczegóły błędów w dzienniku EmailLog.`,
       ``,
       `## Co sprawdzić`,
       ``,
@@ -339,10 +339,10 @@ export interface WebhookZacietyContext {
  * dopiero szukać, gdzie zajrzeć, kosztuje tyle samo czasu co brak alertu.
  */
 export function webhookZacietyTemplate(ctx: WebhookZacietyContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: 'Zdarzenie płatności nie zostało obsłużone',
-    preheader: `Stripe ${escapeHtml(ctx.typ)} — ${ctx.proby} nieudane próby.`,
+    preheader: `Stripe ${escapeMarkdown(ctx.typ)} — ${ctx.proby} nieudane próby.`,
     bodyMarkdown: [
       greeting,
       ``,
@@ -350,15 +350,15 @@ export function webhookZacietyTemplate(ctx: WebhookZacietyContext): MailMessage 
       `Jeżeli dotyczy doładowania albo opłaty za subskrypcję, pieniądze mogły` +
         ` zostać pobrane, a saldo albo aktywacja nie nastąpiły.`,
       ``,
-      `- **Zdarzenie:** \`${escapeHtml(ctx.eventId)}\``,
-      `- **Typ:** ${escapeHtml(ctx.typ)}`,
-      `- **Pierwsza dostawa:** ${escapeHtml(fmt(ctx.pierwszyRaz))}`,
+      `- **Zdarzenie:** \`${escapeMarkdown(ctx.eventId)}\``,
+      `- **Typ:** ${escapeMarkdown(ctx.typ)}`,
+      `- **Pierwsza dostawa:** ${escapeMarkdown(fmt(ctx.pierwszyRaz))}`,
       `- **Liczba prób:** ${ctx.proby}`,
       ``,
       `**Ostatni błąd:**`,
       ``,
       '```',
-      escapeHtml(ctx.ostatniBlad ?? '(brak treści błędu)'),
+      escapeMarkdown(ctx.ostatniBlad ?? '(brak treści błędu)'),
       '```',
       ``,
       `## Co zrobić`,
@@ -410,27 +410,27 @@ export interface FakturaNiedokonczonaContext {
  * ale termin jest ustawowy, więc podany wprost.
  */
 export function fakturaNiedokonczonaTemplate(ctx: FakturaNiedokonczonaContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: `Faktura ${ctx.numer} nie ma pliku PDF`,
     preheader: `${ctx.proby} nieudane próby wygenerowania dokumentu.`,
     bodyMarkdown: [
       greeting,
       ``,
-      `**Faktura \`${escapeHtml(ctx.numer)}\` istnieje w bazie, ale nie udało się wygenerować`,
+      `**Faktura \`${escapeMarkdown(ctx.numer)}\` istnieje w bazie, ale nie udało się wygenerować`,
       `jej pliku PDF** mimo ${ctx.proby} prób. Klient jej nie dostał i nie pobierze jej z panelu.`,
       ``,
       `Pieniądze zostały pobrane poprawnie — brakuje wyłącznie dokumentu.`,
       ``,
-      `- **Numer:** ${escapeHtml(ctx.numer)}`,
-      `- **Kwota:** ${escapeHtml(ctx.kwota)}`,
-      `- **Wystawiona:** ${escapeHtml(fmt(ctx.wystawiona))}`,
+      `- **Numer:** ${escapeMarkdown(ctx.numer)}`,
+      `- **Kwota:** ${escapeMarkdown(ctx.kwota)}`,
+      `- **Wystawiona:** ${escapeMarkdown(fmt(ctx.wystawiona))}`,
       `- **Prób:** ${ctx.proby}`,
       ``,
       `**Ostatni błąd:**`,
       ``,
       '```',
-      escapeHtml(ctx.ostatniBlad ?? '(brak treści błędu)'),
+      escapeMarkdown(ctx.ostatniBlad ?? '(brak treści błędu)'),
       '```',
       ``,
       `## Co zrobić`,
@@ -482,22 +482,22 @@ export interface ProbaOdtworzeniaContext {
  * to założenie, nie zabezpieczenie.
  */
 export function probaOdtworzeniaTemplate(ctx: ProbaOdtworzeniaContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const tytul = ctx.blokuje
     ? 'Warstwa DR jest niepotwierdzona'
     : 'Próba odtworzenia z kopii wymaga powtórzenia';
 
   const { html, text } = renderEmailShell({
     title: tytul,
-    preheader: escapeHtml(ctx.komunikat.slice(0, 120)),
+    preheader: escapeMarkdown(ctx.komunikat.slice(0, 120)),
     bodyMarkdown: [
       greeting,
       ``,
       ctx.blokuje
-        ? `**${escapeHtml(tytul)}** — i to jest twarda bramka startu sprzedaży, nie ostrzeżenie.`
-        : `**${escapeHtml(tytul)}.**`,
+        ? `**${escapeMarkdown(tytul)}** — i to jest twarda bramka startu sprzedaży, nie ostrzeżenie.`
+        : `**${escapeMarkdown(tytul)}.**`,
       ``,
-      escapeHtml(ctx.komunikat),
+      escapeMarkdown(ctx.komunikat),
       ``,
       `## Jak wykonać próbę`,
       ``,
@@ -542,14 +542,14 @@ export interface ProgOssContext {
 
 /** M-09 — sprzedaż usług elektronicznych konsumentom z UE zbliża się do progu 42 000 zł / go przekroczyła. */
 export function progOssTemplate(ctx: ProgOssContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: ctx.przekroczony ? 'Próg OSS przekroczony' : `Próg OSS: ${ctx.procent}%`,
     preheader: `Sprzedaż konsumentom z UE: ${ctx.sprzedazPln} zł z 42 000 zł.`,
     bodyMarkdown: [
       greeting,
       ``,
-      `Sprzedaż usług Verris konsumentom z innych krajów UE (rok bieżący albo poprzedni) wynosi **${escapeHtml(ctx.sprzedazPln)} zł** — **${ctx.procent}%** progu 42 000 zł (art. 28k ustawy o VAT).`,
+      `Sprzedaż usług Verris konsumentom z innych krajów UE (rok bieżący albo poprzedni) wynosi **${escapeMarkdown(ctx.sprzedazPln)} zł** — **${ctx.procent}%** progu 42 000 zł (art. 28k ustawy o VAT).`,
       ``,
       ctx.przekroczony
         ? `Od przekroczenia progu takie usługi opodatkowuje się w kraju klienta. Panel nadal wystawia dokumenty z 23%, bo OSS nie jest włączony — **zarejestruj się w VAT OSS i włącz ustawienie \`vat.ossWlaczone\`**, a panel zacznie stosować stawki krajów klientów.`

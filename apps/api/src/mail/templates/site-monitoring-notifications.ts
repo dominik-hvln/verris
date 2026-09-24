@@ -1,5 +1,5 @@
 import type { MailMessage } from '../mailer.interface';
-import { renderEmailShell, escapeHtml } from './_layouts/email-shell';
+import { renderEmailShell, escapeMarkdown } from './_layouts/email-shell';
 
 // ---------------------------------------------------------------------------
 // B3 — site monitoring alerts (down / recovered). One mail per transition,
@@ -19,17 +19,17 @@ export interface SiteDownContext {
 }
 
 export function siteDownTemplate(ctx: SiteDownContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**!` : 'Cześć!';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**!` : 'Cześć!';
   const { html, text } = renderEmailShell({
-    title: `Twoja strona ${escapeHtml(ctx.domain)} nie odpowiada`,
-    preheader: `Monitoring Verris: ${escapeHtml(ctx.domain)} — ${escapeHtml(ctx.reason)}.`,
+    title: `Twoja strona ${escapeMarkdown(ctx.domain)} nie odpowiada`,
+    preheader: `Monitoring Verris: ${escapeMarkdown(ctx.domain)} — ${escapeMarkdown(ctx.reason)}.`,
     bodyMarkdown: [
       greeting,
       ``,
-      `Nasz monitoring wykrył, że **${escapeHtml(ctx.domain)}** przestała odpowiadać.`,
+      `Nasz monitoring wykrył, że **${escapeMarkdown(ctx.domain)}** przestała odpowiadać.`,
       ``,
-      `- **Adres:** ${escapeHtml(ctx.url)}`,
-      `- **Problem:** ${escapeHtml(ctx.reason)}`,
+      `- **Adres:** ${escapeMarkdown(ctx.url)}`,
+      `- **Problem:** ${escapeMarkdown(ctx.reason)}`,
       `- **Wykryto:** ${ctx.checkedAt.toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' })}`,
       ``,
       `Sprawdzamy stronę co minutę — **napiszemy ponownie, gdy wróci do działania.**`,
@@ -69,18 +69,18 @@ export interface SiteRecoveredContext {
 }
 
 export function siteRecoveredTemplate(ctx: SiteRecoveredContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**!` : 'Cześć!';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**!` : 'Cześć!';
   const duration =
     ctx.downtimeMinutes < 60
       ? `${Math.max(1, Math.round(ctx.downtimeMinutes))} min`
       : `${Math.floor(ctx.downtimeMinutes / 60)} h ${Math.round(ctx.downtimeMinutes % 60)} min`;
   const { html, text } = renderEmailShell({
-    title: `${escapeHtml(ctx.domain)} znowu działa`,
+    title: `${escapeMarkdown(ctx.domain)} znowu działa`,
     preheader: `Strona wróciła po ${duration} przerwy.`,
     bodyMarkdown: [
       greeting,
       ``,
-      `Dobra wiadomość — **${escapeHtml(ctx.domain)}** znowu odpowiada.`,
+      `Dobra wiadomość — **${escapeMarkdown(ctx.domain)}** znowu odpowiada.`,
       ``,
       `- **Czas niedostępności:** ~${duration}`,
       `- **Przywrócono:** ${ctx.recoveredAt.toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' })}`,
@@ -120,16 +120,16 @@ export interface MonitoringPaidLapsedContext {
 }
 
 export function monitoringPaidLapsedTemplate(ctx: MonitoringPaidLapsedContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**!` : 'Cześć!';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**!` : 'Cześć!';
   const paidEvery =
     ctx.paidIntervalMinutes === 1 ? 'co minutę' : `co ${ctx.paidIntervalMinutes} min`;
   const { html, text } = renderEmailShell({
-    title: `Szybki monitoring ${escapeHtml(ctx.domain)} został wstrzymany`,
+    title: `Szybki monitoring ${escapeMarkdown(ctx.domain)} został wstrzymany`,
     preheader: `Brak środków w portfelu — wróciliśmy do monitoringu co ${ctx.freeIntervalMinutes} min.`,
     bodyMarkdown: [
       greeting,
       ``,
-      `Nie mogliśmy pobrać miesięcznej opłaty za **szybki monitoring** strony **${escapeHtml(
+      `Nie mogliśmy pobrać miesięcznej opłaty za **szybki monitoring** strony **${escapeMarkdown(
         ctx.domain,
       )}** — w portfelu zabrakło środków.`,
       ``,
@@ -169,7 +169,7 @@ export interface SslExpiringContext {
 }
 
 export function sslExpiringTemplate(ctx: SslExpiringContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**!` : 'Cześć!';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**!` : 'Cześć!';
   const expired = ctx.daysLeft <= 0;
   const whenLabel = expired
     ? 'wygasł'
@@ -178,19 +178,19 @@ export function sslExpiringTemplate(ctx: SslExpiringContext): MailMessage {
       : `wygaśnie za ${ctx.daysLeft} dni`;
   const { html, text } = renderEmailShell({
     title: expired
-      ? `Certyfikat SSL dla ${escapeHtml(ctx.domain)} wygasł`
-      : `Certyfikat SSL dla ${escapeHtml(ctx.domain)} ${whenLabel}`,
-    preheader: `SSL ${escapeHtml(ctx.domain)} — ważny do ${escapeHtml(
+      ? `Certyfikat SSL dla ${escapeMarkdown(ctx.domain)} wygasł`
+      : `Certyfikat SSL dla ${escapeMarkdown(ctx.domain)} ${whenLabel}`,
+    preheader: `SSL ${escapeMarkdown(ctx.domain)} — ważny do ${escapeMarkdown(
       ctx.expiresAt.toLocaleDateString('pl-PL'),
     )}.`,
     bodyMarkdown: [
       greeting,
       ``,
       expired
-        ? `Certyfikat SSL strony **${escapeHtml(ctx.domain)}** **wygasł** (${escapeHtml(
+        ? `Certyfikat SSL strony **${escapeMarkdown(ctx.domain)}** **wygasł** (${escapeMarkdown(
             ctx.expiresAt.toLocaleString('pl-PL', { timeZone: 'Europe/Warsaw' }),
           )}). Przeglądarki będą teraz pokazywać ostrzeżenie o niebezpiecznej stronie.`
-        : `Certyfikat SSL strony **${escapeHtml(ctx.domain)}** **${whenLabel}** (ważny do ${escapeHtml(
+        : `Certyfikat SSL strony **${escapeMarkdown(ctx.domain)}** **${whenLabel}** (ważny do ${escapeMarkdown(
             ctx.expiresAt.toLocaleDateString('pl-PL'),
           )}).`,
       ``,

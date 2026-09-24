@@ -146,10 +146,12 @@ export class TicketsService {
     if (row.assignedTo?.email) {
       void this.mailer
         .send({
-          to: row.assignedTo.email,
-          subject: `[Verris] Nowe zgłoszenie: ${row.subject}`,
-          text: `Przypisano Ci nowe zgłoszenie (#${row.id}).\n\n${row.message}\n\n— Panel: ${clientUrl}/dashboard/support`,
-          tag: 'ticket.created',
+          ...ticketStaffAssignedTemplate({
+            to: row.assignedTo.email,
+            ticketId: row.id,
+            subject: row.subject,
+            staffPanelUrl: this.staffPanelBaseUrl(),
+          }),
           category: 'TRANSACTIONAL',
           fromRole: 'NOREPLY',
         })

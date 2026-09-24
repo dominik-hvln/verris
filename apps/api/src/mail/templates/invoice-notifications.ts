@@ -1,5 +1,5 @@
 import type { MailMessage } from '../mailer.interface';
-import { renderEmailShell, escapeHtml } from './_layouts/email-shell';
+import { renderEmailShell, escapeMarkdown } from './_layouts/email-shell';
 
 const PLN_FORMATTER = new Intl.NumberFormat('pl-PL', {
   style: 'currency',
@@ -62,9 +62,9 @@ export interface InvoiceIssuedContext {
  *     Invoice URL.
  */
 export function invoiceIssuedTemplate(ctx: InvoiceIssuedContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const paidLine = ctx.paidAt
-    ? `**Status:** Zapłacono ${escapeHtml(formatDate(ctx.paidAt))}`
+    ? `**Status:** Zapłacono ${escapeMarkdown(formatDate(ctx.paidAt))}`
     : '**Status:** Faktura w trakcie opłacania.';
 
   const nazwa = ctx.rozliczeniowy ? 'Dokument rozliczeniowy' : 'Faktura';
@@ -80,9 +80,9 @@ export function invoiceIssuedTemplate(ctx: InvoiceIssuedContext): MailMessage {
       ``,
       `## Szczegóły`,
       ``,
-      `- **Numer:** ${escapeHtml(ctx.number)}`,
-      `- **Kwota brutto:** ${escapeHtml(formatMoney(ctx.amount, ctx.currency))}`,
-      `- **Data wystawienia:** ${escapeHtml(formatDate(ctx.issuedAt))}`,
+      `- **Numer:** ${escapeMarkdown(ctx.number)}`,
+      `- **Kwota brutto:** ${escapeMarkdown(formatMoney(ctx.amount, ctx.currency))}`,
+      `- **Data wystawienia:** ${escapeMarkdown(formatDate(ctx.issuedAt))}`,
       paidLine,
       ``,
       `Plik PDF jest dostępny w sekcji **Portfel → Faktury** w panelu klienta. Wszystkie faktury archiwizujemy przez 5 lat — wymóg ustawy o rachunkowości.`,

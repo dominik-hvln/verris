@@ -31,6 +31,10 @@ export class LeadsService {
     );
   }
 
+  private panelUrl(): string {
+    return (this.config.get<string>('clientPanelUrl') || 'https://panel.verris.pl').replace(/\/$/, '');
+  }
+
   private confirmUrl(token: string): string {
     const base = (
       this.config.get<string>('publicApiUrl') ||
@@ -90,6 +94,7 @@ export class LeadsService {
           source: dto.source,
           ip: meta.ip,
           page: dto.page,
+          panelUrl: this.panelUrl(),
         }),
         category: 'TRANSACTIONAL',
         fromRole: 'SUPPORT',
@@ -100,7 +105,7 @@ export class LeadsService {
       // Double opt-in — bez potwierdzenia lead nie wchodzi do sekwencji.
       void this.mailer
         .send({
-          ...leadOptInTemplate({ to: email, confirmUrl: this.confirmUrl(confirmToken) }),
+          ...leadOptInTemplate({ to: email, confirmUrl: this.confirmUrl(confirmToken), panelUrl: this.panelUrl() }),
           category: 'TRANSACTIONAL',
           fromRole: 'SUPPORT',
           userId: undefined,
@@ -112,7 +117,7 @@ export class LeadsService {
     // CONTACT — potwierdzenie dla nadawcy.
     void this.mailer
       .send({
-        ...leadContactAckTemplate({ to: email, name: dto.name }),
+        ...leadContactAckTemplate({ to: email, name: dto.name, panelUrl: this.panelUrl() }),
         category: 'TRANSACTIONAL',
         fromRole: 'SUPPORT',
       })

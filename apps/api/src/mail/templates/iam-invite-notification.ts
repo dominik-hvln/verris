@@ -1,5 +1,5 @@
 import type { MailMessage } from '../mailer.interface';
-import { renderEmailShell, escapeHtml } from './_layouts/email-shell';
+import { renderEmailShell, escapeMarkdown } from './_layouts/email-shell';
 
 export interface IamInviteContext {
   to: string;
@@ -12,7 +12,7 @@ export interface IamInviteContext {
 
 export function iamSubaccountInviteTemplate(ctx: IamInviteContext): MailMessage {
   const roleLine = ctx.label
-    ? `Etykieta dostępu: **${escapeHtml(ctx.label)}**`
+    ? `Etykieta dostępu: **${escapeMarkdown(ctx.label)}**`
     : 'Otrzymujesz dostęp do konta właściciela zgodnie z nadanymi uprawnieniami.';
   const { html, text } = renderEmailShell({
     title: 'Zaproszenie do konta Verris',
@@ -20,7 +20,7 @@ export function iamSubaccountInviteTemplate(ctx: IamInviteContext): MailMessage 
     bodyMarkdown: [
       'Cześć!',
       ``,
-      `**${escapeHtml(ctx.ownerEmail)}** zaprasza Cię do współpracy w panelu Verris jako subkonto.`,
+      `**${escapeMarkdown(ctx.ownerEmail)}** zaprasza Cię do współpracy w panelu Verris jako subkonto.`,
       ``,
       roleLine,
       ``,

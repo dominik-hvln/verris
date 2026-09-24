@@ -1,5 +1,5 @@
 import type { MailMessage } from '../mailer.interface';
-import { renderEmailShell, escapeHtml } from './_layouts/email-shell';
+import { renderEmailShell, escapeMarkdown } from './_layouts/email-shell';
 
 const DATE_FORMATTER = new Intl.DateTimeFormat('pl-PL', {
   day: 'numeric',
@@ -30,11 +30,11 @@ export interface AccountProvisionedContext {
 }
 
 export function accountProvisionedTemplate(ctx: AccountProvisionedContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**!` : 'Cześć!';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**!` : 'Cześć!';
 
   const { html, text } = renderEmailShell({
     title: 'Twoje konto hostingowe jest gotowe!',
-    preheader: `Plan ${escapeHtml(ctx.planName)} — strona ${escapeHtml(ctx.domain)} aktywna.`,
+    preheader: `Plan ${escapeMarkdown(ctx.planName)} — strona ${escapeMarkdown(ctx.domain)} aktywna.`,
     bodyMarkdown: [
       greeting,
       ``,
@@ -42,9 +42,9 @@ export function accountProvisionedTemplate(ctx: AccountProvisionedContext): Mail
       ``,
       `## Szczegóły konta`,
       ``,
-      `- **Plan:** ${escapeHtml(ctx.planName)}`,
-      `- **Domena główna:** ${escapeHtml(ctx.domain)}`,
-      `- **Login do DirectAdmin:** \`${escapeHtml(ctx.daUsername)}\``,
+      `- **Plan:** ${escapeMarkdown(ctx.planName)}`,
+      `- **Domena główna:** ${escapeMarkdown(ctx.domain)}`,
+      `- **Login do DirectAdmin:** \`${escapeMarkdown(ctx.daUsername)}\``,
       `- **Hasło:** dostępne w panelu klienta — usługa → **Magic Login** (nie wysyłamy haseł e-mailem)`,
       ``,
       `**Pierwsze kroki:**`,
@@ -95,15 +95,15 @@ export interface AccountSuspendedPaymentContext {
 export function accountSuspendedPaymentTemplate(
   ctx: AccountSuspendedPaymentContext,
 ): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
 
   const { html, text } = renderEmailShell({
     title: `Konto ${ctx.domain} zostało zawieszone`,
-    preheader: `Brak płatności — masz czas do ${escapeHtml(formatDate(ctx.hardDeleteAt))}.`,
+    preheader: `Brak płatności — masz czas do ${escapeMarkdown(formatDate(ctx.hardDeleteAt))}.`,
     bodyMarkdown: [
       greeting,
       ``,
-      `Z przykrością informujemy, że Twoje **konto hostingowe ${escapeHtml(
+      `Z przykrością informujemy, że Twoje **konto hostingowe ${escapeMarkdown(
         ctx.domain,
       )}** zostało zawieszone z powodu nieuregulowanej płatności.`,
       ``,
@@ -112,7 +112,7 @@ export function accountSuspendedPaymentTemplate(
       `- **Strona internetowa nie działa** — odwiedzający widzą stronę zastępczą,`,
       `- **e-maile na tej domenie nie są dostarczane** (wszystkie wysłane do Ciebie odbijają się),`,
       `- **dane są jednak zachowane** (pliki, bazy, e-maile) — w naszych backupach i na serwerze,`,
-      `- masz czas do **${escapeHtml(
+      `- masz czas do **${escapeMarkdown(
         formatDate(ctx.hardDeleteAt),
       )}** (30 dni) na uregulowanie płatności i wznowienie usługi,`,
       `- po tym terminie konto zostanie **trwale usunięte** wraz ze wszystkimi danymi.`,
@@ -169,7 +169,7 @@ const DOMAIN_WINDOW_LABEL: Record<DomainExpiryWindow, string> = {
 export function domainExpiryReminderTemplate(
   ctx: DomainExpiryReminderContext,
 ): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const when = DOMAIN_WINDOW_LABEL[ctx.window];
 
   const urgencyLine =
@@ -181,17 +181,17 @@ export function domainExpiryReminderTemplate(
 
   const { html, text } = renderEmailShell({
     title: `Domena ${ctx.domain} wygasa ${when}`,
-    preheader: `${escapeHtml(ctx.domain)} — odnów do ${escapeHtml(formatDate(ctx.expiresAt))}.`,
+    preheader: `${escapeMarkdown(ctx.domain)} — odnów do ${escapeMarkdown(formatDate(ctx.expiresAt))}.`,
     bodyMarkdown: [
       greeting,
       ``,
-      `Twoja domena **${escapeHtml(ctx.domain)}** wygasa **${when}** (${escapeHtml(formatDate(ctx.expiresAt))}).`,
+      `Twoja domena **${escapeMarkdown(ctx.domain)}** wygasa **${when}** (${escapeMarkdown(formatDate(ctx.expiresAt))}).`,
       ``,
       urgencyLine,
       ``,
       `## Odnowienie`,
       ``,
-      `- **Cena:** ${escapeHtml(ctx.renewalPrice)}`,
+      `- **Cena:** ${escapeMarkdown(ctx.renewalPrice)}`,
       `- **Bez przerwy w działaniu** — odnowienie przed datą wygaśnięcia gwarantuje, że strona i e-maile cały czas działają,`,
       `- **Po wygaśnięciu** rozpoczyna się okres karencji (zwykle 30-45 dni dla domen .pl/.eu, krócej dla niektórych innych) — domena nadal jest Twoja, ale strona nie działa,`,
       `- **Po karencji** domena trafia do puli wolnych — kto pierwszy, ten lepszy.`,
@@ -234,8 +234,8 @@ export interface AccountQuotaAlertContext {
 }
 
 export function accountQuotaAlertTemplate(ctx: AccountQuotaAlertContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
-  const lines: string[] = [greeting, '', `Twoje konto **${escapeHtml(ctx.domain)}** zbliża się do limitów:`, ''];
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
+  const lines: string[] = [greeting, '', `Twoje konto **${escapeMarkdown(ctx.domain)}** zbliża się do limitów:`, ''];
   if (ctx.diskPct != null) lines.push(`- **Dysk:** wykorzystane ${ctx.diskPct}%`);
   if (ctx.bandwidthPct != null) lines.push(`- **Transfer (bież. okres):** wykorzystany ${ctx.bandwidthPct}%`);
   if (ctx.cpuHotPct != null) lines.push(`- **Procesor:** przy limicie przez ${ctx.cpuHotPct}% ostatniej doby — strona może wtedy zwalniać`);

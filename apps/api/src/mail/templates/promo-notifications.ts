@@ -1,5 +1,5 @@
 import type { MailMessage } from '../mailer.interface';
-import { renderEmailShell, escapeHtml } from './_layouts/email-shell';
+import { renderEmailShell, escapeMarkdown } from './_layouts/email-shell';
 
 /**
  * Mail wysyłany po pomyślnym zrealizowaniu kodu promocyjnego — informuje
@@ -28,7 +28,7 @@ export interface PromoCodeRedeemedContext {
 
 export function promoCodeRedeemedTemplate(ctx: PromoCodeRedeemedContext): MailMessage {
   const greeting = ctx.firstName
-    ? `Cześć **${escapeHtml(ctx.firstName)}**!`
+    ? `Cześć **${escapeMarkdown(ctx.firstName)}**!`
     : 'Cześć!';
 
   const headlineKindLabel =
@@ -36,10 +36,10 @@ export function promoCodeRedeemedTemplate(ctx: PromoCodeRedeemedContext): MailMe
 
   const intro =
     ctx.kind === 'PERCENT_BONUS'
-      ? `Twoje doładowanie portfela zostało **powiększone o bonus z kodu** \`${escapeHtml(
+      ? `Twoje doładowanie portfela zostało **powiększone o bonus z kodu** \`${escapeMarkdown(
           ctx.code,
         )}\`. Środki są już dostępne w portfelu Verris i możesz ich od razu używać do opłacania subskrypcji.`
-      : `Kod promocyjny \`${escapeHtml(
+      : `Kod promocyjny \`${escapeMarkdown(
           ctx.code,
         )}\` został pomyślnie zrealizowany — środki trafiły do **Twojego portfela Verris** i są od ręki gotowe do wykorzystania.`;
 
@@ -50,15 +50,15 @@ export function promoCodeRedeemedTemplate(ctx: PromoCodeRedeemedContext): MailMe
     ``,
     `## Szczegóły transakcji`,
     ``,
-    `- **Kod:** \`${escapeHtml(ctx.code)}\``,
+    `- **Kod:** \`${escapeMarkdown(ctx.code)}\``,
     `- **Rodzaj:** ${headlineKindLabel}`,
-    `- **Kwota zaksięgowana:** ${escapeHtml(ctx.amountPln)} zł`,
+    `- **Kwota zaksięgowana:** ${escapeMarkdown(ctx.amountPln)} zł`,
   ];
   if (ctx.description) {
-    lines.push(`- **Opis akcji:** ${escapeHtml(ctx.description)}`);
+    lines.push(`- **Opis akcji:** ${escapeMarkdown(ctx.description)}`);
   }
   if (ctx.walletBalancePln) {
-    lines.push(`- **Aktualny stan portfela:** ${escapeHtml(ctx.walletBalancePln)} zł`);
+    lines.push(`- **Aktualny stan portfela:** ${escapeMarkdown(ctx.walletBalancePln)} zł`);
   }
   lines.push(
     ``,

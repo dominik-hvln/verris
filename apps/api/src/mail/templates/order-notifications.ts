@@ -1,5 +1,5 @@
 import type { MailMessage } from '../mailer.interface';
-import { renderEmailShell, escapeHtml } from './_layouts/email-shell';
+import { renderEmailShell, escapeMarkdown } from './_layouts/email-shell';
 
 /**
  * MAIL-W2 — potwierdzenie zamówienia („dziękujemy za zamówienie"), wysyłane
@@ -24,7 +24,7 @@ export interface OrderReceivedContext {
 }
 
 export function orderReceivedTemplate(ctx: OrderReceivedContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const period = ctx.interval === 'YEAR' ? 'rocznie' : 'miesięcznie';
   const lines = [
     greeting,
@@ -33,11 +33,11 @@ export function orderReceivedTemplate(ctx: OrderReceivedContext): MailMessage {
     ``,
     `## Podsumowanie`,
     ``,
-    `- **Usługa:** ${escapeHtml(ctx.planName)}`,
-    ctx.domain ? `- **Domena:** ${escapeHtml(ctx.domain)}` : null,
-    `- **Identyfikator usługi:** \`${escapeHtml(ctx.serviceTag)}\``,
-    `- **Kwota:** ${escapeHtml(ctx.amountLabel)} (${period})`,
-    `- **Płatność:** ${escapeHtml(ctx.paymentLabel)}`,
+    `- **Usługa:** ${escapeMarkdown(ctx.planName)}`,
+    ctx.domain ? `- **Domena:** ${escapeMarkdown(ctx.domain)}` : null,
+    `- **Identyfikator usługi:** \`${escapeMarkdown(ctx.serviceTag)}\``,
+    `- **Kwota:** ${escapeMarkdown(ctx.amountLabel)} (${period})`,
+    `- **Płatność:** ${escapeMarkdown(ctx.paymentLabel)}`,
     ``,
     `Gdy usługa będzie gotowa, wyślemy osobną wiadomość z danymi dostępowymi. Fakturę znajdziesz w panelu w zakładce Rozliczenia.`,
     ``,

@@ -1,5 +1,5 @@
 import type { MailMessage } from '../mailer.interface';
-import { renderEmailShell, escapeHtml } from './_layouts/email-shell';
+import { renderEmailShell, escapeMarkdown } from './_layouts/email-shell';
 
 export interface DpaAcceptedContext {
   to: string;
@@ -15,7 +15,7 @@ export interface DpaAcceptedContext {
  * `GET /me/dpa.pdf`).
  */
 export function dpaAcceptedTemplate(ctx: DpaAcceptedContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
 
   const { html, text } = renderEmailShell({
     title: 'Akceptacja Umowy Powierzenia Danych (DPA)',
@@ -23,13 +23,13 @@ export function dpaAcceptedTemplate(ctx: DpaAcceptedContext): MailMessage {
     bodyMarkdown: [
       greeting,
       ``,
-      `Dziękujemy za zaakceptowanie aktualnej wersji **Umowy Powierzenia Przetwarzania Danych Osobowych (DPA)** w wersji **${escapeHtml(ctx.dpaVersion)}**.`,
+      `Dziękujemy za zaakceptowanie aktualnej wersji **Umowy Powierzenia Przetwarzania Danych Osobowych (DPA)** w wersji **${escapeMarkdown(ctx.dpaVersion)}**.`,
       ``,
       `## Co teraz?`,
       ``,
       `- Możesz pobrać spersonalizowany PDF DPA, zawierający dane Twojej firmy (nazwę, NIP, adres, e-mail kontaktowy) oraz datę akceptacji.`,
       `- Identyfikator akceptacji widoczny w stopce każdej strony PDF jest jednoznacznym dowodem zawarcia umowy w naszym systemie.`,
-      `- Aktualną wersję DPA znajdziesz zawsze pod adresem [${escapeHtml(ctx.panelUrl)}/legal/dpa](${ctx.panelUrl}/legal/dpa).`,
+      `- Aktualną wersję DPA znajdziesz zawsze pod adresem [${escapeMarkdown(ctx.panelUrl)}/legal/dpa](${ctx.panelUrl}/legal/dpa).`,
       ``,
       `## Co znajdziesz w PDF`,
       ``,

@@ -1,5 +1,5 @@
 import type { MailMessage } from '../mailer.interface';
-import { renderEmailShell, escapeHtml } from './_layouts/email-shell';
+import { renderEmailShell, escapeMarkdown } from './_layouts/email-shell';
 
 const DAY_FORMATTER = new Intl.DateTimeFormat('pl-PL', {
   day: 'numeric',
@@ -33,7 +33,7 @@ export interface DataExportReadyContext {
 }
 
 export function dataExportReadyTemplate(ctx: DataExportReadyContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const expiresStr = formatDateTimePl(ctx.expiresAt);
   const sizeStr = formatBytes(ctx.sizeBytes);
 
@@ -48,8 +48,8 @@ export function dataExportReadyTemplate(ctx: DataExportReadyContext): MailMessag
       `## Szczegóły eksportu`,
       ``,
       `- **Format:** ZIP (deflate), wewnątrz pliki JSON oraz folder \`attachments/\` z załącznikami z ticketów.`,
-      `- **Rozmiar:** ${escapeHtml(sizeStr)}`,
-      `- **Link wygasa:** ${escapeHtml(expiresStr)}`,
+      `- **Rozmiar:** ${escapeMarkdown(sizeStr)}`,
+      `- **Link wygasa:** ${escapeMarkdown(expiresStr)}`,
       ``,
       `Po wygaśnięciu linku możesz wygenerować nowy eksport w sekcji **Ustawienia → Prywatność i dane**.`,
       ``,

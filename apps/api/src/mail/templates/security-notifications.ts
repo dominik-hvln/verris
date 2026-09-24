@@ -1,5 +1,5 @@
 import type { MailMessage } from '../mailer.interface';
-import { renderEmailShell, escapeHtml } from './_layouts/email-shell';
+import { renderEmailShell, escapeMarkdown } from './_layouts/email-shell';
 
 /**
  * Security email templates — Sprint 2.5.
@@ -52,15 +52,15 @@ export interface NewDeviceLoginContext {
 }
 
 export function newDeviceLoginTemplate(ctx: NewDeviceLoginContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**!` : 'Cześć!';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**!` : 'Cześć!';
   const deviceLine = ctx.deviceLabel
-    ? `- **Urządzenie:** ${escapeHtml(ctx.deviceLabel)}`
+    ? `- **Urządzenie:** ${escapeMarkdown(ctx.deviceLabel)}`
     : `- **Urządzenie:** _(nieustalone)_`;
   const locationLine =
     ctx.ipAddress && ctx.countryCode
-      ? `- **Lokalizacja:** ${escapeHtml(ctx.ipAddress)} (${escapeHtml(ctx.countryCode)})`
+      ? `- **Lokalizacja:** ${escapeMarkdown(ctx.ipAddress)} (${escapeMarkdown(ctx.countryCode)})`
       : ctx.ipAddress
-      ? `- **IP:** ${escapeHtml(ctx.ipAddress)}`
+      ? `- **IP:** ${escapeMarkdown(ctx.ipAddress)}`
       : `- **IP:** _(nieustalone)_`;
 
   const { html, text } = renderEmailShell({
@@ -73,7 +73,7 @@ export function newDeviceLoginTemplate(ctx: NewDeviceLoginContext): MailMessage 
       ``,
       `## Szczegóły logowania`,
       ``,
-      `- **Czas:** ${escapeHtml(formatDateTime(ctx.loginAt))}`,
+      `- **Czas:** ${escapeMarkdown(formatDateTime(ctx.loginAt))}`,
       deviceLine,
       locationLine,
       ``,
@@ -82,7 +82,7 @@ export function newDeviceLoginTemplate(ctx: NewDeviceLoginContext): MailMessage 
       `1. **Natychmiast zmień hasło** w panelu (Ustawienia → Bezpieczeństwo).`,
       `2. **Wyloguj wszystkie aktywne sesje** — w panelu jest taki przycisk.`,
       `3. **Włącz dwuskładnikowe uwierzytelnianie (2FA)**, jeśli jeszcze go nie masz.`,
-      `4. Sprawdź **historię logowania** i zgłoś podejrzaną aktywność na ${escapeHtml(
+      `4. Sprawdź **historię logowania** i zgłoś podejrzaną aktywność na ${escapeMarkdown(
         'support@verris.pl',
       )}.`,
     ].join('\n'),
@@ -120,9 +120,9 @@ export interface TwoFactorEnabledContext {
 }
 
 export function twoFactorEnabledTemplate(ctx: TwoFactorEnabledContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**!` : 'Cześć!';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**!` : 'Cześć!';
   const codesBlock = ctx.recoveryCodes
-    .map((code) => `- \`${escapeHtml(code)}\``)
+    .map((code) => `- \`${escapeMarkdown(code)}\``)
     .join('\n');
 
   const { html, text } = renderEmailShell({
@@ -133,7 +133,7 @@ export function twoFactorEnabledTemplate(ctx: TwoFactorEnabledContext): MailMess
       ``,
       `**2FA zostało aktywowane** dla Twojego konta Verris. Od teraz przy każdym logowaniu poprosimy Cię o **6-cyfrowy kod z aplikacji uwierzytelniającej** (Google Authenticator, Authy, 1Password itp.).`,
       ``,
-      `**Czas aktywacji:** ${escapeHtml(formatDateTime(ctx.enrolledAt))}.`,
+      `**Czas aktywacji:** ${escapeMarkdown(formatDateTime(ctx.enrolledAt))}.`,
       ``,
       `## Kody odzyskiwania (zapisz je teraz!)`,
       ``,
@@ -181,7 +181,7 @@ export interface TwoFactorDisabledContext {
 }
 
 export function twoFactorDisabledTemplate(ctx: TwoFactorDisabledContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**!` : 'Cześć!';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**!` : 'Cześć!';
 
   const { html, text } = renderEmailShell({
     title: 'Dwuskładnikowe uwierzytelnianie zostało WYŁĄCZONE',
@@ -191,7 +191,7 @@ export function twoFactorDisabledTemplate(ctx: TwoFactorDisabledContext): MailMe
       ``,
       `**Dwuskładnikowe uwierzytelnianie (2FA) zostało wyłączone** dla Twojego konta Verris. To znaczy, że od teraz przy logowaniu nie będziemy już prosić o kod z aplikacji uwierzytelniającej — Twoje konto **chroni tylko hasło**.`,
       ``,
-      `**Czas wyłączenia:** ${escapeHtml(formatDateTime(ctx.disabledAt))}.`,
+      `**Czas wyłączenia:** ${escapeMarkdown(formatDateTime(ctx.disabledAt))}.`,
       ``,
       `## Czy to byłeś Ty?`,
       ``,
@@ -200,7 +200,7 @@ export function twoFactorDisabledTemplate(ctx: TwoFactorDisabledContext): MailMe
       `1. **Zmień hasło** (Ustawienia → Bezpieczeństwo → Zmień hasło).`,
       `2. **Włącz 2FA ponownie** — to jedyny skuteczny sposób ochrony przed przejęciem konta.`,
       `3. **Wyloguj wszystkie aktywne sesje** w panelu.`,
-      `4. Skontaktuj się z nami: ${escapeHtml('support@verris.pl')}.`,
+      `4. Skontaktuj się z nami: ${escapeMarkdown('support@verris.pl')}.`,
       ``,
       `Jeśli to Ty wyłączyłeś 2FA świadomie — **rekomendujemy ponowne włączenie**. To jedna z najsilniejszych metod ochrony przed kradzieżą konta, a kosztuje 30 sekund konfiguracji.`,
     ].join('\n'),
@@ -239,11 +239,11 @@ export interface PasswordChangedContext {
 }
 
 export function passwordChangedTemplate(ctx: PasswordChangedContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**!` : 'Cześć!';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**!` : 'Cześć!';
   const deviceLine = ctx.deviceLabel
-    ? `- **Urządzenie:** ${escapeHtml(ctx.deviceLabel)}`
+    ? `- **Urządzenie:** ${escapeMarkdown(ctx.deviceLabel)}`
     : null;
-  const ipLine = ctx.ipAddress ? `- **IP:** ${escapeHtml(ctx.ipAddress)}` : null;
+  const ipLine = ctx.ipAddress ? `- **IP:** ${escapeMarkdown(ctx.ipAddress)}` : null;
   const detailLines = [deviceLine, ipLine].filter((l): l is string => l !== null);
 
   const { html, text } = renderEmailShell({
@@ -254,7 +254,7 @@ export function passwordChangedTemplate(ctx: PasswordChangedContext): MailMessag
       ``,
       `**Hasło do Twojego konta Verris zostało zmienione**. Wysyłamy ten mail jako standardowe potwierdzenie — Twoje konto pozostaje bezpieczne, jeśli to **Ty** wykonałeś tę akcję.`,
       ``,
-      `**Czas zmiany:** ${escapeHtml(formatDateTime(ctx.changedAt))}.`,
+      `**Czas zmiany:** ${escapeMarkdown(formatDateTime(ctx.changedAt))}.`,
       ...(detailLines.length > 0 ? ['', ...detailLines] : []),
       ``,
       `## Czy to NIE byłeś Ty?`,
@@ -264,7 +264,7 @@ export function passwordChangedTemplate(ctx: PasswordChangedContext): MailMessag
       `1. Skorzystaj z linku „Nie pamiętam hasła" na stronie logowania, żeby **odzyskać kontrolę** nad kontem.`,
       `2. Po zalogowaniu **wyloguj wszystkie sesje** (Ustawienia → Bezpieczeństwo).`,
       `3. **Włącz 2FA**, jeśli jeszcze go nie masz.`,
-      `4. Napisz do nas: ${escapeHtml('support@verris.pl')} — pomożemy zabezpieczyć konto i sprawdzić, czy nie doszło do nieuprawnionych zmian.`,
+      `4. Napisz do nas: ${escapeMarkdown('support@verris.pl')} — pomożemy zabezpieczyć konto i sprawdzić, czy nie doszło do nieuprawnionych zmian.`,
     ].join('\n'),
     cta: {
       label: 'Otwórz ustawienia bezpieczeństwa',
@@ -301,7 +301,7 @@ export interface BreakGlassCodesIssuedContext {
 export function breakGlassCodesIssuedTemplate(
   ctx: BreakGlassCodesIssuedContext,
 ): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**!` : 'Cześć!';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**!` : 'Cześć!';
   const { html, text } = renderEmailShell({
     title: 'Wygenerowano awaryjne kody logowania (break-glass)',
     preheader: 'Nowy zestaw kodów awaryjnych dla Twojego konta.',
@@ -310,7 +310,7 @@ export function breakGlassCodesIssuedTemplate(
       ``,
       `Dla Twojego konta **wygenerowano ${ctx.count} jednorazowych kodów awaryjnych (break-glass)**. Służą one wyłącznie do logowania, gdy **nie masz przy sobie passkey** — wymagają dodatkowo hasła i kodu 2FA.`,
       ``,
-      `**Czas wygenerowania:** ${escapeHtml(formatDateTime(ctx.issuedAt))}.`,
+      `**Czas wygenerowania:** ${escapeMarkdown(formatDateTime(ctx.issuedAt))}.`,
       ``,
       `## Zasady`,
       ``,
@@ -318,7 +318,7 @@ export function breakGlassCodesIssuedTemplate(
       `2. Użycie kodu **powiadamia wszystkich administratorów** i trafia do logu audytu.`,
       `3. Przechowuj kody **offline** (np. w menedżerze haseł), nigdy w skrzynce e-mail.`,
       ``,
-      `Jeśli to **nie Ty** wygenerowałeś kody — Twoje konto mogło zostać przejęte. Natychmiast zmień hasło, wyloguj wszystkie sesje i napisz na ${escapeHtml('security@verris.pl')}.`,
+      `Jeśli to **nie Ty** wygenerowałeś kody — Twoje konto mogło zostać przejęte. Natychmiast zmień hasło, wyloguj wszystkie sesje i napisz na ${escapeMarkdown('security@verris.pl')}.`,
     ].join('\n'),
     cta: { label: 'Ustawienia bezpieczeństwa', url: `${ctx.panelUrl}/settings/security` },
     footnote:
@@ -356,12 +356,12 @@ export interface BreakGlassUsedAlertContext {
 export function breakGlassUsedAlertTemplate(
   ctx: BreakGlassUsedAlertContext,
 ): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**!` : 'Cześć!';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**!` : 'Cześć!';
   const ipLine = ctx.ipAddress
-    ? `- **IP:** ${escapeHtml(ctx.ipAddress)}`
+    ? `- **IP:** ${escapeMarkdown(ctx.ipAddress)}`
     : `- **IP:** _(nieustalone)_`;
   const uaLine = ctx.userAgent
-    ? `- **Klient:** ${escapeHtml(ctx.userAgent)}`
+    ? `- **Klient:** ${escapeMarkdown(ctx.userAgent)}`
     : null;
   const { html, text } = renderEmailShell({
     title: 'Użyto awaryjnego logowania break-glass',
@@ -373,8 +373,8 @@ export function breakGlassUsedAlertTemplate(
       ``,
       `## Szczegóły`,
       ``,
-      `- **Konto:** ${escapeHtml(ctx.accountEmail)} (${escapeHtml(ctx.role)})`,
-      `- **Czas:** ${escapeHtml(formatDateTime(ctx.usedAt))}`,
+      `- **Konto:** ${escapeMarkdown(ctx.accountEmail)} (${escapeMarkdown(ctx.role)})`,
+      `- **Czas:** ${escapeMarkdown(formatDateTime(ctx.usedAt))}`,
       ipLine,
       ...(uaLine ? [uaLine] : []),
       `- **Pozostałe kody:** ${ctx.remaining}`,
@@ -411,8 +411,8 @@ export interface PasskeyChangeContext {
 }
 
 export function passkeyAddedTemplate(ctx: PasskeyChangeContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**!` : 'Cześć!';
-  const nameLine = ctx.deviceName ? `- **Nazwa:** ${escapeHtml(ctx.deviceName)}` : null;
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**!` : 'Cześć!';
+  const nameLine = ctx.deviceName ? `- **Nazwa:** ${escapeMarkdown(ctx.deviceName)}` : null;
   const { html, text } = renderEmailShell({
     title: 'Dodano nowy passkey do konta',
     preheader: 'Do Twojego konta dodano klucz passkey.',
@@ -421,7 +421,7 @@ export function passkeyAddedTemplate(ctx: PasskeyChangeContext): MailMessage {
       ``,
       `Do Twojego konta Verris **dodano nowy passkey** (klucz logowania bez hasła). Jeśli to Ty — wszystko w porządku.`,
       ``,
-      `**Czas:** ${escapeHtml(formatDateTime(ctx.at))}.`,
+      `**Czas:** ${escapeMarkdown(formatDateTime(ctx.at))}.`,
       ...(nameLine ? ['', nameLine] : []),
       ``,
       `## Czy to NIE byłeś Ty?`,
@@ -430,7 +430,7 @@ export function passkeyAddedTemplate(ctx: PasskeyChangeContext): MailMessage {
       ``,
       `1. **Usuń nieznany passkey** (Ustawienia → Bezpieczeństwo → Passkeys).`,
       `2. **Zmień hasło** i **wyloguj wszystkie sesje**.`,
-      `3. Napisz do nas: ${escapeHtml('support@verris.pl')}.`,
+      `3. Napisz do nas: ${escapeMarkdown('support@verris.pl')}.`,
     ].join('\n'),
     cta: { label: 'Zarządzaj passkey', url: `${ctx.panelUrl}/settings/security` },
     footnote:
@@ -457,7 +457,7 @@ export interface EmailChangeVerifyContext {
 }
 
 export function emailChangeVerifyTemplate(ctx: EmailChangeVerifyContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**!` : 'Cześć!';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**!` : 'Cześć!';
   const { html, text } = renderEmailShell({
     title: 'Potwierdź nowy adres e-mail',
     preheader: 'Kliknij, aby potwierdzić zmianę adresu e-mail konta.',
@@ -486,20 +486,20 @@ export interface EmailChangeAlertContext {
 }
 
 export function emailChangeAlertTemplate(ctx: EmailChangeAlertContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: 'Zlecono zmianę adresu e-mail konta',
     preheader: 'Ktoś poprosił o zmianę adresu e-mail Twojego konta.',
     bodyMarkdown: [
       greeting,
       ``,
-      `Na Twoim koncie Verris **zlecono zmianę adresu e-mail** na: \`${escapeHtml(ctx.newEmail)}\`.`,
+      `Na Twoim koncie Verris **zlecono zmianę adresu e-mail** na: \`${escapeMarkdown(ctx.newEmail)}\`.`,
       ``,
-      `**Czas:** ${escapeHtml(formatDateTime(ctx.at))}.`,
+      `**Czas:** ${escapeMarkdown(formatDateTime(ctx.at))}.`,
       ``,
       `## Czy to NIE byłeś Ty?`,
       ``,
-      `Jeśli nie zlecałeś tej zmiany, **natychmiast zmień hasło** i skontaktuj się z nami: ${escapeHtml('support@verris.pl')}. Zmiana wejdzie w życie dopiero po potwierdzeniu z nowej skrzynki — możesz jeszcze zareagować.`,
+      `Jeśli nie zlecałeś tej zmiany, **natychmiast zmień hasło** i skontaktuj się z nami: ${escapeMarkdown('support@verris.pl')}. Zmiana wejdzie w życie dopiero po potwierdzeniu z nowej skrzynki — możesz jeszcze zareagować.`,
     ].join('\n'),
     cta: { label: 'Otwórz ustawienia bezpieczeństwa', url: `${ctx.panelUrl}/settings` },
     footnote: 'Alert wysyłany na dotychczasowy adres przy każdej próbie zmiany e-mail.',
@@ -511,8 +511,8 @@ export function emailChangeAlertTemplate(ctx: EmailChangeAlertContext): MailMess
 }
 
 export function passkeyRemovedTemplate(ctx: PasskeyChangeContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**!` : 'Cześć!';
-  const nameLine = ctx.deviceName ? `- **Nazwa:** ${escapeHtml(ctx.deviceName)}` : null;
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**!` : 'Cześć!';
+  const nameLine = ctx.deviceName ? `- **Nazwa:** ${escapeMarkdown(ctx.deviceName)}` : null;
   const { html, text } = renderEmailShell({
     title: 'Usunięto passkey z konta',
     preheader: 'Z Twojego konta usunięto klucz passkey.',
@@ -521,7 +521,7 @@ export function passkeyRemovedTemplate(ctx: PasskeyChangeContext): MailMessage {
       ``,
       `Z Twojego konta Verris **usunięto passkey**. Jeśli to Ty — możesz zignorować tego maila.`,
       ``,
-      `**Czas:** ${escapeHtml(formatDateTime(ctx.at))}.`,
+      `**Czas:** ${escapeMarkdown(formatDateTime(ctx.at))}.`,
       ...(nameLine ? ['', nameLine] : []),
       ``,
       `## Czy to NIE byłeś Ty?`,
@@ -530,7 +530,7 @@ export function passkeyRemovedTemplate(ctx: PasskeyChangeContext): MailMessage {
       ``,
       `1. **Zmień hasło** i **wyloguj wszystkie sesje** (Ustawienia → Bezpieczeństwo).`,
       `2. Sprawdź listę passkey i 2FA.`,
-      `3. Napisz do nas: ${escapeHtml('support@verris.pl')}.`,
+      `3. Napisz do nas: ${escapeMarkdown('support@verris.pl')}.`,
     ].join('\n'),
     cta: { label: 'Otwórz ustawienia bezpieczeństwa', url: `${ctx.panelUrl}/settings/security` },
     footnote:

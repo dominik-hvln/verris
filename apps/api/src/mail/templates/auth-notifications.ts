@@ -1,5 +1,5 @@
 import type { MailMessage } from '../mailer.interface';
-import { renderEmailShell, escapeHtml } from './_layouts/email-shell';
+import { renderEmailShell, escapeMarkdown } from './_layouts/email-shell';
 
 export interface WelcomeContext {
   to: string;
@@ -8,7 +8,7 @@ export interface WelcomeContext {
 }
 
 export function welcomeTemplate(ctx: WelcomeContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: 'Witaj w Verris',
     preheader: 'Twoje konto jest gotowe — zaloguj się do panelu.',
@@ -47,7 +47,7 @@ export interface PasswordResetRequestContext {
 }
 
 export function passwordResetRequestTemplate(ctx: PasswordResetRequestContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: 'Reset hasła',
     preheader: 'Link do ustawienia nowego hasła (ważny krótko).',
@@ -86,7 +86,7 @@ export interface AccountCreatedByOperatorContext {
 
 /** A-24 — konto założone przez operatora; klient sam ustawia hasło. */
 export function accountCreatedByOperatorTemplate(ctx: AccountCreatedByOperatorContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: 'Twoje konto w Verris',
     preheader: 'Ustaw hasło, żeby zalogować się do panelu.',
@@ -123,7 +123,7 @@ export interface EmailVerifyContext {
 }
 
 export function emailVerifyTemplate(ctx: EmailVerifyContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: 'Potwierdź adres e-mail',
     preheader: 'Aktywuj konto Verris — jeden klik.',
@@ -158,7 +158,7 @@ export interface EmailVerifiedOkContext {
 }
 
 export function emailVerifiedOkTemplate(ctx: EmailVerifiedOkContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: 'E-mail potwierdzony',
     preheader: 'Konto aktywne — możesz się zalogować.',

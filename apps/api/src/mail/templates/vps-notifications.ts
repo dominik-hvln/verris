@@ -1,5 +1,5 @@
 import type { MailMessage } from '../mailer.interface';
-import { renderEmailShell, escapeHtml } from './_layouts/email-shell';
+import { renderEmailShell, escapeMarkdown } from './_layouts/email-shell';
 
 export interface VpsReadyContext {
   to: string;
@@ -10,16 +10,16 @@ export interface VpsReadyContext {
 }
 
 export function vpsReadyTemplate(ctx: VpsReadyContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: 'Twój VPS jest gotowy',
-    preheader: `${escapeHtml(ctx.name)} działa${ctx.ipv4 ? ` — ${escapeHtml(ctx.ipv4)}` : ''}.`,
+    preheader: `${escapeMarkdown(ctx.name)} działa${ctx.ipv4 ? ` — ${escapeMarkdown(ctx.ipv4)}` : ''}.`,
     bodyMarkdown: [
       greeting,
       ``,
-      `Twój serwer **${escapeHtml(ctx.name)}** został uruchomiony i jest gotowy do pracy.`,
+      `Twój serwer **${escapeMarkdown(ctx.name)}** został uruchomiony i jest gotowy do pracy.`,
       ``,
-      ctx.ipv4 ? `- **Adres IPv4:** ${escapeHtml(ctx.ipv4)}` : '',
+      ctx.ipv4 ? `- **Adres IPv4:** ${escapeMarkdown(ctx.ipv4)}` : '',
       `- **Dostęp:** SSH jako \`root\` (hasło początkowe pokazaliśmy raz w panelu — zmień je po pierwszym logowaniu).`,
       ``,
       `Zarządzaj serwerem (start/stop/restart) w panelu.`,
@@ -41,14 +41,14 @@ export interface VpsLifecycleContext {
 }
 
 export function vpsSuspendedTemplate(ctx: VpsLifecycleContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: 'VPS zawieszony — brak środków',
     preheader: 'Doładuj portfel, aby wznowić serwer.',
     bodyMarkdown: [
       greeting,
       ``,
-      `Nie udało się pobrać opłaty za kolejny okres dla VPS **${escapeHtml(ctx.name)}**, więc serwer został **wyłączony**.`,
+      `Nie udało się pobrać opłaty za kolejny okres dla VPS **${escapeMarkdown(ctx.name)}**, więc serwer został **wyłączony**.`,
       ``,
       `Doładuj portfel — przy kolejnej próbie rozliczenia serwer zostanie automatycznie wznowiony. Jeśli zaległość przekroczy **7 dni**, serwer i jego dane mogą zostać **trwale usunięte**.`,
     ].join('\n'),
@@ -62,14 +62,14 @@ export function vpsSuspendedTemplate(ctx: VpsLifecycleContext): MailMessage {
 }
 
 export function vpsTerminatedTemplate(ctx: VpsLifecycleContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: 'VPS usunięty (zaległość płatnicza)',
     preheader: 'Serwer został usunięty po okresie karencji.',
     bodyMarkdown: [
       greeting,
       ``,
-      `Z powodu nieuregulowanej opłaty przez ponad 7 dni serwer VPS **${escapeHtml(ctx.name)}** został **trwale usunięty**, a zasoby zwolnione.`,
+      `Z powodu nieuregulowanej opłaty przez ponad 7 dni serwer VPS **${escapeMarkdown(ctx.name)}** został **trwale usunięty**, a zasoby zwolnione.`,
       ``,
       `Jeśli chcesz wrócić — zamów nowy VPS w panelu w dowolnej chwili.`,
     ].join('\n'),

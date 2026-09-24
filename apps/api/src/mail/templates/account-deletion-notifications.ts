@@ -1,5 +1,5 @@
 import type { MailMessage } from '../mailer.interface';
-import { renderEmailShell, escapeHtml } from './_layouts/email-shell';
+import { renderEmailShell, escapeMarkdown } from './_layouts/email-shell';
 
 const DATE_FORMATTER = new Intl.DateTimeFormat('pl-PL', {
   day: 'numeric',
@@ -36,7 +36,7 @@ export interface DeletionRequestedContext {
 }
 
 export function deletionRequestedTemplate(ctx: DeletionRequestedContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const scheduledStr = formatDateTimePl(ctx.scheduledFor);
   const dayStr = formatDayPl(ctx.scheduledFor);
 
@@ -51,7 +51,7 @@ export function deletionRequestedTemplate(ctx: DeletionRequestedContext): MailMe
       `## Co się stanie i kiedy`,
       ``,
       `- **${ctx.gracePeriodDays} dni** karencji — w tym czasie możesz cofnąć wniosek bez konsekwencji.`,
-      `- W dniu **${escapeHtml(scheduledStr)}** zanonimizujemy Twoje konto: usuniemy dane osobowe (imię, adres, NIP, hasła), dezaktywujemy subskrypcje i zawiesimy konta hostingowe.`,
+      `- W dniu **${escapeMarkdown(scheduledStr)}** zanonimizujemy Twoje konto: usuniemy dane osobowe (imię, adres, NIP, hasła), dezaktywujemy subskrypcje i zawiesimy konta hostingowe.`,
       `- Po **30 dniach od anonimizacji** trwale usuniemy konta hostingowe (usługi, e-maile, bazy danych) z naszych serwerów.`,
       `- Faktury, transakcje portfela i dane księgowe zostaną zachowane przez 5 lat (wymóg polskiej ustawy o rachunkowości), ale bez powiązania z Twoją tożsamością.`,
       ``,
@@ -90,7 +90,7 @@ export interface AccountAnonymizedContext {
 }
 
 export function accountAnonymizedTemplate(ctx: AccountAnonymizedContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const purgeStr = formatDayPl(ctx.purgeDate);
 
   const { html, text } = renderEmailShell({
@@ -108,7 +108,7 @@ export function accountAnonymizedTemplate(ctx: AccountAnonymizedContext): MailMe
       ``,
       `## Co jeszcze się dzieje`,
       ``,
-      `- Konta hostingowe na naszych serwerach zostały **zawieszone**. Trwale usuniemy je **${escapeHtml(purgeStr)}** (30 dni karencji na ewentualne odzyskanie danych przez nasz support, jeśli zgłosisz to przed tą datą).`,
+      `- Konta hostingowe na naszych serwerach zostały **zawieszone**. Trwale usuniemy je **${escapeMarkdown(purgeStr)}** (30 dni karencji na ewentualne odzyskanie danych przez nasz support, jeśli zgłosisz to przed tą datą).`,
       `- Faktury i historia transakcji są nadal przechowywane (wymóg art. 74 ustawy o rachunkowości), ale bez powiązania z Twoją tożsamością.`,
       `- Nie możesz już zalogować się do panelu — adres e-mail został zastąpiony przez wartość techniczną.`,
       ``,

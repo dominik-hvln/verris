@@ -12,6 +12,10 @@
   - **`SmtpMailerProvider`** (`apps/api/src/mail/smtp-mailer.provider.ts`) — własny minimalny klient SMTP (nie `nodemailer`). Obsługuje trzy tryby `SMTP_SECURE`: `tls` (port 465, encrypted od początku), `starttls` (port 587, upgrade), `none` (plain — TYLKO localhost). AUTH LOGIN włączane warunkowo na podstawie `SMTP_USER`/`SMTP_PASS`. Auto-detect: gdy `SMTP_HOST` to `localhost`/`127.0.0.1` → defaultem `secure=none`, brak AUTH (panel-local Postfix relay).
   - **`LogMailerProvider`** — fallback gdy brak konfiguracji. Wpisuje treść do logów; nic nie wychodzi.
 - `email-shell.ts` (`apps/api/src/mail/templates/_layouts/email-shell.ts`) — uniwersalny shell HTML+text z brandingiem Verris, compliance footer, opcjonalnym CTA, przygotowany pod `List-Unsubscribe`.
+  - **Dane od użytkownika** (imię, temat, adres URL, uzasadnienie) wstawiamy przez `escapeMarkdown` — HTML escapuje sam parser, więc `escapeHtml` w `bodyMarkdown` dawał `&quot;` w treści, a surowe dane mogły dokleić link do brandowanego maila (2026-09-24).
+  - **`recipientHasAccount: false`** dla odbiorców bez konta (zgłaszający nadużycie, lead, skrzynki wewnętrzne) — stopka nie pokazuje wtedy „Preferencje powiadomień”.
+  - **`unsubscribeUrl`** — link wypisu dla list mailingowych klienta (E-mail marketing); bez niego wypis prowadzi do preferencji w panelu.
+  - Od 2026-09-24 przez shell idą też maile nadużyć (`abuse.templates.ts`), leadów (`leads.templates.ts`), migracji (`migration-worker.scheduler.ts`) i przypisanie zgłoszenia przy tworzeniu (`ticketStaffAssignedTemplate`). Czystym tekstem zostały tylko alerty do `SECURITY_ALERT_EMAIL` (`suspicious-activity.service.ts`, `outbound-abuse.guard.ts`).
 - Aktywne template'y branded (HTML+plaintext przez `email-shell`):
   - `ticket-notifications.ts` → `newTicketCreatedTemplate`, `ticketStatusChangedTemplate`,
   - `admin-credit-notification.ts` → `adminCreditNotificationTemplate`.

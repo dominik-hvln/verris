@@ -16,10 +16,11 @@
  * stylesheet'ów konsekwentnie. Layout tabela-based również z tego powodu.
  *
  * Świadomie nie używamy `marked`/`markdown-it` — templates są kontrolowane
- * przez nas (nie userzy), więc minimalistyczny parser wystarcza i nie ma
- * ryzyka XSS-a. Gdy w Sprincie 3 dojdą template'y z dynamic data od user'a
- * (np. zacytowana wiadomość ticket), trzeba dodać escape na poziomie
- * `data` przekazanego do template (już robimy w `escapeHtml`).
+ * przez nas (nie userzy), więc minimalistyczny parser wystarcza. HTML escapuje
+ * sam parser; dane od użytkownika (imię, temat zgłoszenia, adres URL) wstawiamy
+ * przez `escapeMarkdown`, żeby nie dało się nimi dokleić linku ani pogrubienia.
+ * `escapeHtml` na danych w `bodyMarkdown` to błąd — parser escapuje drugi raz
+ * i klient widzi `&quot;` zamiast cudzysłowu.
  */
 
 export interface EmailShellInput {
@@ -57,6 +58,16 @@ export interface EmailShellInput {
    * (handled w `TransactionalMailerService`). Default: `TRANSACTIONAL`.
    */
   category?: 'TRANSACTIONAL' | 'SECURITY' | 'MARKETING' | 'PRODUCT_UPDATE';
+  /**
+   * `false` dla odbiorców bez konta w panelu (zgłaszający nadużycie, lead) —
+   * link „Preferencje powiadomień" prowadziłby ich do logowania. Default: `true`.
+   */
+  recipientHasAccount?: boolean;
+  /**
+   * Link wypisu dla `MARKETING`/`PRODUCT_UPDATE`, gdy odbiorca nie ma konta (lista mailingowa klienta) —
+   * domyślnie kierujemy do preferencji w panelu.
+   */
+  unsubscribeUrl?: string;
 }
 
 export interface EmailShellOutput {
@@ -114,9 +125,24 @@ export function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
+/** Znaki składni, które `escapeMarkdown` poprzedza `\`. Parser zamienia `\x` na zaślepkę z obszaru
+ * prywatnego Unicode, a na końcu z powrotem na sam znak — dzięki temu nie łapią go reguły linku czy bold. */
+const ZNAKI_SKLADNI = '\\`*[]()#-';
+const ESCAPE_SKLADNI = /\\([\\`*[\]()#-])/g;
+const zaslep = (s: string) => s.replace(ESCAPE_SKLADNI, (_, c: string) => String.fromCharCode(0xe000 + ZNAKI_SKLADNI.indexOf(c)));
+const odslon = (s: string) => s.replace(/[\ue000-\ue008]/g, (c) => ZNAKI_SKLADNI[c.charCodeAt(0) - 0xe000]);
+
+/**
+ * Dane od użytkownika do `bodyMarkdown`/`title`/`preheader`/`footnote`: neutralizuje składnię
+ * (link, bold, kod, nagłówek i lista na początku linii). HTML escapuje potem parser — raz.
+ */
+export function escapeMarkdown(value: string): string {
+  return value.replace(/[\\`*[\]()]/g, '\\$&').replace(/^(\s*)([#-])/gm, '$1\\$2');
+}
+
 /** Bardzo prosty parser inline-markdown na potrzeby naszych templates. */
 function renderInline(input: string): string {
-  let out = escapeHtml(input);
+  let out = escapeHtml(zaslep(input));
   // Linki [label](url) — wymuszamy https:, blokujemy javascript:, mailto: ok.
   out = out.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_, label: string, rawUrl: string) => {
     const url = rawUrl.trim();
@@ -129,7 +155,7 @@ function renderInline(input: string): string {
   out = out.replace(/\*([^*]+)\*/g, '<em>$1</em>');
   // `code`
   out = out.replace(/`([^`]+)`/g, `<code style="background:${PALETTE.accentSurface};color:${PALETTE.text};padding:1px 6px;border-radius:4px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:0.9em;">$1</code>`);
-  return out;
+  return odslon(out);
 }
 
 /** Render block-level markdown — minimalny zestaw potrzebny dla maili. */
@@ -176,7 +202,7 @@ function renderBlocks(markdown: string): string {
       i++;
     }
     out.push(
-      `<p style="margin:0 0 16px;color:${PALETTE.textSecondary};font-size:15px;line-height:1.6;">${renderInline(buf.join('\n').replace(/\n/g, '<br/>'))}</p>`,
+      `<p style="margin:0 0 16px;color:${PALETTE.textSecondary};font-size:15px;line-height:1.6;">${buf.map(renderInline).join('<br/>')}</p>`,
     );
   }
   return out.join('\n');
@@ -184,7 +210,7 @@ function renderBlocks(markdown: string): string {
 
 /** Zamiana minimalnego markdown na czysty plaintext (bez tagów). */
 function toPlaintext(markdown: string, ctx: { cta?: { label: string; url: string }; footnote?: string }): string {
-  let txt = markdown
+  let txt = zaslep(markdown)
     .replace(/\r\n/g, '\n')
     .replace(/^## (.+)$/gm, '### $1')
     .replace(/^# (.+)$/gm, '## $1')
@@ -192,6 +218,7 @@ function toPlaintext(markdown: string, ctx: { cta?: { label: string; url: string
     .replace(/\*([^*]+)\*/g, '$1')
     .replace(/`([^`]+)`/g, '$1')
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1 ($2)');
+  txt = odslon(txt);
   if (ctx.cta) {
     txt += `\n\n${ctx.cta.label}: ${ctx.cta.url}`;
   }
@@ -221,15 +248,18 @@ function toPlaintext(markdown: string, ctx: { cta?: { label: string; url: string
  */
 export function renderEmailShell(input: EmailShellInput): EmailShellOutput {
   const {
-    title,
-    preheader,
     bodyMarkdown,
     cta,
-    footnote,
     recipientEmail,
     panelUrl,
     category = 'TRANSACTIONAL',
+    recipientHasAccount = true,
+    unsubscribeUrl = `${panelUrl}/dashboard/settings?tab=notifications`,
   } = input;
+
+  const title = odslon(zaslep(input.title));
+  const preheader = input.preheader === undefined ? undefined : odslon(zaslep(input.preheader));
+  const footnote = input.footnote === undefined ? undefined : odslon(zaslep(input.footnote));
 
   const safeTitle = escapeHtml(title);
   const safePreheader = preheader ? escapeHtml(preheader) : '';
@@ -253,7 +283,7 @@ export function renderEmailShell(input: EmailShellInput): EmailShellOutput {
     category === 'MARKETING' || category === 'PRODUCT_UPDATE'
       ? `<p style="margin:8px 0 0;color:${PALETTE.textMuted};font-size:12px;line-height:1.5;">
            Otrzymujesz tego maila, ponieważ wyraziłeś zgodę na komunikację marketingową.
-           <a href="${escapeHtml(panelUrl)}/dashboard/settings?tab=notifications" style="color:${PALETTE.accent};text-decoration:underline;">Wypisz się jednym kliknięciem</a>.
+           <a href="${escapeHtml(unsubscribeUrl)}" style="color:${PALETTE.accent};text-decoration:underline;">Wypisz się jednym kliknięciem</a>.
          </p>`
       : '';
 
@@ -335,7 +365,7 @@ ${preheaderTrick}
                   <p style="margin:0;color:${PALETTE.textMuted};font-size:11px;line-height:1.5;">
                     <a href="${escapeHtml(panelUrl)}/legal/privacy" style="color:${PALETTE.textMuted};text-decoration:underline;">Polityka prywatności</a>
                     &middot; <a href="${escapeHtml(panelUrl)}/legal/terms" style="color:${PALETTE.textMuted};text-decoration:underline;">Regulamin</a>
-                    &middot; <a href="${escapeHtml(panelUrl)}/dashboard/settings?tab=notifications" style="color:${PALETTE.textMuted};text-decoration:underline;">Preferencje powiadomień</a>
+                    ${recipientHasAccount ? `&middot; <a href="${escapeHtml(panelUrl)}/dashboard/settings?tab=notifications" style="color:${PALETTE.textMuted};text-decoration:underline;">Preferencje powiadomień</a>` : ''}
                   </p>
                   ${unsubscribeBlock}
                   <p style="margin:12px 0 0;color:${PALETTE.textMuted};font-size:11px;line-height:1.5;">Wysłano na: ${escapeHtml(recipientEmail)}</p>
@@ -366,7 +396,8 @@ ${preheaderTrick}
     '',
     `Kontakt: kontakt@verris.pl · RODO: rodo@verris.pl`,
     `Polityka prywatności: ${panelUrl}/legal/privacy`,
-    `Preferencje powiadomień: ${panelUrl}/dashboard/settings?tab=notifications`,
+    recipientHasAccount ? `Preferencje powiadomień: ${panelUrl}/dashboard/settings?tab=notifications` : null,
+    category === 'MARKETING' || category === 'PRODUCT_UPDATE' ? `Wypisz się: ${unsubscribeUrl}` : null,
     `Wysłano na: ${recipientEmail}`,
   ]
     .filter((line) => line !== null)

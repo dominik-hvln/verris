@@ -1,5 +1,5 @@
 import type { MailMessage } from '../mailer.interface';
-import { renderEmailShell, escapeHtml } from './_layouts/email-shell';
+import { renderEmailShell, escapeMarkdown } from './_layouts/email-shell';
 
 export interface PlanChangedContext {
   to: string;
@@ -17,24 +17,24 @@ export interface PlanChangedContext {
 }
 
 export function planChangedTemplate(ctx: PlanChangedContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**!` : 'Cześć!';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**!` : 'Cześć!';
   const amountLine =
     ctx.direction === 'upgrade' && Number(ctx.amountDue) > 0
-      ? `**Dopłata proporcjonalna:** ${escapeHtml(ctx.amountDue)} ${escapeHtml(ctx.currency)} (z portfela lub karty — zgodnie z metodą płatności usługi).`
+      ? `**Dopłata proporcjonalna:** ${escapeMarkdown(ctx.amountDue)} ${escapeMarkdown(ctx.currency)} (z portfela lub karty — zgodnie z metodą płatności usługi).`
       : ctx.direction === 'downgrade' && Number(ctx.amountCredit) > 0
-        ? `**Uznanie na portfel:** ${escapeHtml(ctx.amountCredit)} ${escapeHtml(ctx.currency)} za niewykorzystany okres.`
+        ? `**Uznanie na portfel:** ${escapeMarkdown(ctx.amountCredit)} ${escapeMarkdown(ctx.currency)} za niewykorzystany okres.`
         : 'Bez dodatkowej opłaty za pozostały okres.';
 
   const { html, text } = renderEmailShell({
     title: 'Plan hostingowy został zmieniony',
-    preheader: `${escapeHtml(ctx.domain)} — ${escapeHtml(ctx.fromPlanName)} → ${escapeHtml(ctx.toPlanName)}.`,
+    preheader: `${escapeMarkdown(ctx.domain)} — ${escapeMarkdown(ctx.fromPlanName)} → ${escapeMarkdown(ctx.toPlanName)}.`,
     bodyMarkdown: [
       greeting,
       ``,
-      `Dla usługi **${escapeHtml(ctx.domain)}** zmieniliśmy plan hostingowy:`,
+      `Dla usługi **${escapeMarkdown(ctx.domain)}** zmieniliśmy plan hostingowy:`,
       ``,
-      `- **Było:** ${escapeHtml(ctx.fromPlanName)}`,
-      `- **Jest:** ${escapeHtml(ctx.toPlanName)}`,
+      `- **Było:** ${escapeMarkdown(ctx.fromPlanName)}`,
+      `- **Jest:** ${escapeMarkdown(ctx.toPlanName)}`,
       `- ${amountLine}`,
       ``,
       `Limity LVE i dysku zostały ustawione według nowego planu. Delty autoskalowania (jeśli były) zostały zresetowane — możesz je ponownie skonfigurować w panelu.`,

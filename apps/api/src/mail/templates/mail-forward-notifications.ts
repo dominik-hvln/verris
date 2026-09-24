@@ -1,5 +1,5 @@
 import type { MailMessage } from '../mailer.interface';
-import { renderEmailShell, escapeHtml } from './_layouts/email-shell';
+import { renderEmailShell, escapeMarkdown } from './_layouts/email-shell';
 
 export interface MailForwardConfirmContext {
   to: string;
@@ -16,7 +16,7 @@ export function mailForwardConfirmTemplate(ctx: MailForwardConfirmContext): Mail
     bodyMarkdown: [
       `Administrator Verris skonfigurował **przekierowanie** wiadomości ze skrzynki:`,
       ``,
-      `**${escapeHtml(ctx.mailboxEmail)}** → **${escapeHtml(ctx.to)}**`,
+      `**${escapeMarkdown(ctx.mailboxEmail)}** → **${escapeMarkdown(ctx.to)}**`,
       ``,
       `Jeśli **zgadzasz się** otrzymywać kopie maili na ten adres — kliknij przycisk poniżej.`,
       `Jeśli **nie** prosiłeś o to — zignoruj ten mail; przekierowanie nie zostanie włączone.`,

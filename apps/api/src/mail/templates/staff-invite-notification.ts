@@ -1,5 +1,5 @@
 import type { MailMessage } from '../mailer.interface';
-import { renderEmailShell, escapeHtml } from './_layouts/email-shell';
+import { renderEmailShell, escapeMarkdown } from './_layouts/email-shell';
 
 export interface StaffInviteContext {
   to: string;
@@ -11,17 +11,17 @@ export interface StaffInviteContext {
 
 /** RBAC — zaproszenie nowego operatora (STAFF) z hasłem tymczasowym. */
 export function staffInviteTemplate(ctx: StaffInviteContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: 'Dostęp do panelu Verris (zespół)',
     preheader: 'Twoje konto operatora zostało utworzone.',
     bodyMarkdown: [
       greeting,
       ``,
-      `Utworzono dla Ciebie konto operatora w panelu Verris${ctx.roleName ? ` w dziale **${escapeHtml(ctx.roleName)}**` : ''}.`,
+      `Utworzono dla Ciebie konto operatora w panelu Verris${ctx.roleName ? ` w dziale **${escapeMarkdown(ctx.roleName)}**` : ''}.`,
       ``,
-      `- **Login (e-mail):** ${escapeHtml(ctx.to)}`,
-      `- **Hasło tymczasowe:** \`${escapeHtml(ctx.temporaryPassword)}\``,
+      `- **Login (e-mail):** ${escapeMarkdown(ctx.to)}`,
+      `- **Hasło tymczasowe:** \`${escapeMarkdown(ctx.temporaryPassword)}\``,
       ``,
       `## Pierwsze logowanie`,
       ``,

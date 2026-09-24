@@ -47,6 +47,15 @@ export class AbuseService {
     return process.env.ABUSE_NOTIFY_EMAIL || 'kontakt@verris.pl';
   }
 
+  /** Adresy paneli do linków w mailach — w produkcji wymagane przez `configuration.ts`. */
+  private panele() {
+    const bezUkosnika = (u: string) => u.replace(/\/$/, '');
+    return {
+      panelUrl: bezUkosnika(process.env.CLIENT_PANEL_URL || 'https://panel.verris.pl'),
+      staffPanelUrl: bezUkosnika(process.env.STAFF_PANEL_URL || 'https://staff.verris.pl'),
+    };
+  }
+
   private wyslij(msg: Parameters<MailerService['send']>[0]) {
     void this.mailer.send(msg).catch((e) => this.logger.warn(`abuse mail: ${e?.message ?? e}`));
   }
@@ -89,10 +98,10 @@ export class AbuseService {
       ipAddress: meta.ip ?? null,
     }).catch(() => undefined);
 
-    this.wyslij({ ...potwierdzenieZgloszenia({ to: r.reporterEmail, id: r.id, url: r.url, kategoria: r.category }), category: 'TRANSACTIONAL', fromRole: 'SUPPORT' });
+    this.wyslij({ ...potwierdzenieZgloszenia({ to: r.reporterEmail, id: r.id, url: r.url, kategoria: r.category, ...this.panele() }), category: 'TRANSACTIONAL', fromRole: 'SUPPORT' });
     this.wyslij({
       ...noweZgloszenieDlaObslugi({
-        to: this.adresObslugi(), id: r.id, url: r.url, kategoria: r.category,
+        to: this.adresObslugi(), id: r.id, url: r.url, kategoria: r.category, ...this.panele(),
         dopasowanie: konto ? `usługa ${konto.subscriptionId} (${konto.domain})` : domena ? `domena ${domena.name} w portfelu klienta` : 'nie nasza domena albo nie znaleziono',
       }),
       category: 'TRANSACTIONAL', fromRole: 'SUPPORT',
@@ -130,12 +139,12 @@ export class AbuseService {
     if (dto.status === 'ACTION_TAKEN' && dto.notifyCustomer && r.userId) {
       const klient = await this.prisma.user.findUnique({ where: { id: r.userId }, select: { email: true } });
       if (klient?.email) {
-        this.wyslij({ ...uzasadnienieDlaKlienta({ to: klient.email, url: r.url, kategoria: r.category, uzasadnienie }), category: 'TRANSACTIONAL', fromRole: 'SUPPORT', userId: r.userId });
+        this.wyslij({ ...uzasadnienieDlaKlienta({ to: klient.email, url: r.url, kategoria: r.category, uzasadnienie, ...this.panele() }), category: 'TRANSACTIONAL', fromRole: 'SUPPORT', userId: r.userId });
         klientPowiadomiony = true;
       }
     }
     if (koncowa) {
-      this.wyslij({ ...decyzjaDlaZglaszajacego({ to: r.reporterEmail, id: r.id, url: r.url, przyjete: dto.status === 'ACTION_TAKEN', uzasadnienie }), category: 'TRANSACTIONAL', fromRole: 'SUPPORT' });
+      this.wyslij({ ...decyzjaDlaZglaszajacego({ to: r.reporterEmail, id: r.id, url: r.url, przyjete: dto.status === 'ACTION_TAKEN', uzasadnienie, ...this.panele() }), category: 'TRANSACTIONAL', fromRole: 'SUPPORT' });
     }
 
     const po = await this.prisma.abuseReport.update({

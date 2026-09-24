@@ -1,5 +1,5 @@
 import type { MailMessage } from '../mailer.interface';
-import { renderEmailShell, escapeHtml } from './_layouts/email-shell';
+import { renderEmailShell, escapeMarkdown } from './_layouts/email-shell';
 
 /**
  * Billing lifecycle email templates (Sprint 2.1).
@@ -35,7 +35,7 @@ export interface SlaCreditContext {
 }
 
 export function slaCreditTemplate(ctx: SlaCreditContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const amount =
     ctx.currency === 'PLN'
       ? new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(
@@ -48,17 +48,17 @@ export function slaCreditTemplate(ctx: SlaCreditContext): MailMessage {
       : `${Math.floor(ctx.downtimeMinutes / 60)} h ${Math.round(ctx.downtimeMinutes % 60)} min`;
   const { html, text } = renderEmailShell({
     title: `Przyznaliśmy Ci kredyt SLA (${amount})`,
-    preheader: `Rekompensata za przestój usługi ${escapeHtml(ctx.serviceName)}.`,
+    preheader: `Rekompensata za przestój usługi ${escapeMarkdown(ctx.serviceName)}.`,
     bodyMarkdown: [
       greeting,
       ``,
-      `Wykryliśmy przestój infrastruktury dotyczący Twojej usługi **${escapeHtml(
+      `Wykryliśmy przestój infrastruktury dotyczący Twojej usługi **${escapeMarkdown(
         ctx.serviceName,
-      )}** (${escapeHtml(ctx.incidentDate.toLocaleDateString('pl-PL'))}, ~${dur}). Zgodnie z naszą gwarancją SLA **automatycznie doliczyliśmy rekompensatę do Twojego portfela** — nie musisz o nią wnioskować.`,
+      )}** (${escapeMarkdown(ctx.incidentDate.toLocaleDateString('pl-PL'))}, ~${dur}). Zgodnie z naszą gwarancją SLA **automatycznie doliczyliśmy rekompensatę do Twojego portfela** — nie musisz o nią wnioskować.`,
       ``,
-      `- **Kredyt SLA:** ${escapeHtml(amount)}`,
+      `- **Kredyt SLA:** ${escapeMarkdown(amount)}`,
       `- **Czas przestoju:** ~${dur}`,
-      `- **Nowe saldo portfela:** ${escapeHtml(ctx.newWalletBalance)} K`,
+      `- **Nowe saldo portfela:** ${escapeMarkdown(ctx.newWalletBalance)} K`,
       ``,
       `Przepraszamy za niedogodności i dziękujemy za zaufanie. Środki możesz wykorzystać na dowolną usługę lub odnowienie.`,
     ].join('\n'),
@@ -114,7 +114,7 @@ export interface WalletTopupOkContext {
 }
 
 export function walletTopupOkTemplate(ctx: WalletTopupOkContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: 'Portfel doładowany',
     preheader: `${formatPLN(ctx.amountPln)} — nowe saldo ${formatPLN(ctx.newBalancePln)}.`,
@@ -123,8 +123,8 @@ export function walletTopupOkTemplate(ctx: WalletTopupOkContext): MailMessage {
       ``,
       `Potwierdzamy **doładowanie portfela** kartą.`,
       ``,
-      `- **Kwota:** ${escapeHtml(formatPLN(ctx.amountPln))}`,
-      `- **Nowe saldo:** ${escapeHtml(formatPLN(ctx.newBalancePln))}`,
+      `- **Kwota:** ${escapeMarkdown(formatPLN(ctx.amountPln))}`,
+      `- **Nowe saldo:** ${escapeMarkdown(formatPLN(ctx.newBalancePln))}`,
     ].join('\n'),
     cta: { label: 'Zobacz portfel', url: `${ctx.panelUrl}/dashboard/billing` },
     recipientEmail: ctx.to,
@@ -154,7 +154,7 @@ export interface WalletAutoTopupOkContext {
 }
 
 export function walletAutoTopupOkTemplate(ctx: WalletAutoTopupOkContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: 'Auto-doładowanie portfela',
     preheader: `Dodano ${formatPLN(ctx.amountPln)} — saldo ${formatPLN(ctx.newBalancePln)}.`,
@@ -163,8 +163,8 @@ export function walletAutoTopupOkTemplate(ctx: WalletAutoTopupOkContext): MailMe
       ``,
       `Zgodnie z Twoją regułą **automatycznie doładowaliśmy portfel**.`,
       ``,
-      `- **Kwota:** ${escapeHtml(formatPLN(ctx.amountPln))}`,
-      `- **Saldo:** ${escapeHtml(formatPLN(ctx.newBalancePln))}`,
+      `- **Kwota:** ${escapeMarkdown(formatPLN(ctx.amountPln))}`,
+      `- **Saldo:** ${escapeMarkdown(formatPLN(ctx.newBalancePln))}`,
     ].join('\n'),
     cta: { label: 'Ustawienia portfela', url: `${ctx.panelUrl}/dashboard/billing` },
     recipientEmail: ctx.to,
@@ -194,7 +194,7 @@ export interface WalletAutoTopupFailedContext {
 }
 
 export function walletAutoTopupFailedTemplate(ctx: WalletAutoTopupFailedContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
 
   const { html, text } = renderEmailShell({
     title: 'Automatyczne doładowanie nie powiodło się',
@@ -202,11 +202,11 @@ export function walletAutoTopupFailedTemplate(ctx: WalletAutoTopupFailedContext)
     bodyMarkdown: [
       greeting,
       ``,
-      `Nie udało się wykonać **automatycznego doładowania** portfela na kwotę **${escapeHtml(
+      `Nie udało się wykonać **automatycznego doładowania** portfela na kwotę **${escapeMarkdown(
         ctx.topupAmountPln,
       )} K**.`,
       ``,
-      `**Powód:** ${escapeHtml(ctx.reason)}`,
+      `**Powód:** ${escapeMarkdown(ctx.reason)}`,
       ``,
       `Doładuj portfel ręcznie lub zaktualizuj zapisaną kartę w ustawieniach — inaczej odnowienia usług i autoskalowanie mogą się zatrzymać przy zerowym saldzie.`,
     ].join('\n'),
@@ -248,7 +248,7 @@ export interface WalletLowBalanceContext {
 }
 
 export function walletLowBalanceTemplate(ctx: WalletLowBalanceContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
 
   const daysLine =
     ctx.daysUntilEmpty !== null && ctx.daysUntilEmpty > 0
@@ -257,7 +257,7 @@ export function walletLowBalanceTemplate(ctx: WalletLowBalanceContext): MailMess
 
   const autoTopupLine = ctx.hasAutoTopup
     ? ctx.nextAutoTopupAt
-      ? `Masz włączone **automatyczne doładowanie** — kolejna próba: **${escapeHtml(
+      ? `Masz włączone **automatyczne doładowanie** — kolejna próba: **${escapeMarkdown(
           formatDate(ctx.nextAutoTopupAt),
         )}**.`
       : 'Masz włączone **automatyczne doładowanie** — uruchomi się, gdy saldo spadnie poniżej progu.'
@@ -269,13 +269,13 @@ export function walletLowBalanceTemplate(ctx: WalletLowBalanceContext): MailMess
     bodyMarkdown: [
       greeting,
       ``,
-      `Saldo Twojego portfela Verris spadło poniżej ustawionego progu **${escapeHtml(
+      `Saldo Twojego portfela Verris spadło poniżej ustawionego progu **${escapeMarkdown(
         ctx.thresholdBalance,
       )} K**.`,
       ``,
       `## Aktualnie na portfelu`,
       ``,
-      `**${escapeHtml(ctx.currentBalance)} K**  *(1 K = 1 zł)*`,
+      `**${escapeMarkdown(ctx.currentBalance)} K**  *(1 K = 1 zł)*`,
       ``,
       daysLine,
       ``,
@@ -340,7 +340,7 @@ const WINDOW_LABEL: Record<RenewalReminderWindow, string> = {
 export function subscriptionRenewalReminderTemplate(
   ctx: SubscriptionRenewalReminderContext,
 ): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const when = WINDOW_LABEL[ctx.window];
   const amount = ctx.currency === 'PLN' ? formatPLN(ctx.amount) : `${ctx.amount} ${ctx.currency}`;
 
@@ -355,12 +355,12 @@ export function subscriptionRenewalReminderTemplate(
   const sourceLine = !ctx.payFromWallet
     ? 'Płatność zostanie pobrana **automatycznie ze Stripe** z karty zapisanej w Twoim koncie.'
     : hasShortfall
-      ? `⚠️ **Uwaga — środków w portfelu może zabraknąć.** Saldo to **${escapeHtml(
+      ? `⚠️ **Uwaga — środków w portfelu może zabraknąć.** Saldo to **${escapeMarkdown(
           ctx.walletBalance,
-        )} K**, a odnowienie kosztuje **${escapeHtml(amount)}**. Doładuj co najmniej **${escapeHtml(
+        )} K**, a odnowienie kosztuje **${escapeMarkdown(amount)}**. Doładuj co najmniej **${escapeMarkdown(
           shortfall as string,
         )}**, aby uniknąć zawieszenia usługi. Jeśli odnowienie się nie powiedzie, usługa zostanie wstrzymana — Twoje dane i pliki zachowujemy.`
-      : `Płatność zostanie pobrana z **portfela Verris** (saldo: **${escapeHtml(
+      : `Płatność zostanie pobrana z **portfela Verris** (saldo: **${escapeMarkdown(
           ctx.walletBalance,
         )} K**). Środków wystarczy na to odnowienie.`;
 
@@ -375,17 +375,17 @@ export function subscriptionRenewalReminderTemplate(
 
   const { html, text } = renderEmailShell({
     title: `Subskrypcja "${ctx.serviceName}" zostanie odnowiona ${when}`,
-    preheader: `${escapeHtml(ctx.serviceName)} — odnowienie ${escapeHtml(formatDate(ctx.renewalDate))} (${escapeHtml(amount)})`,
+    preheader: `${escapeMarkdown(ctx.serviceName)} — odnowienie ${escapeMarkdown(formatDate(ctx.renewalDate))} (${escapeMarkdown(amount)})`,
     bodyMarkdown: [
       greeting,
       ``,
-      `Przypominamy, że Twoja subskrypcja **${escapeHtml(ctx.serviceName)}** zostanie automatycznie odnowiona **${when}** (${escapeHtml(formatDate(ctx.renewalDate))}).`,
+      `Przypominamy, że Twoja subskrypcja **${escapeMarkdown(ctx.serviceName)}** zostanie automatycznie odnowiona **${when}** (${escapeMarkdown(formatDate(ctx.renewalDate))}).`,
       ``,
       `## Szczegóły odnowienia`,
       ``,
-      `- **Plan:** ${escapeHtml(ctx.planSummary)}`,
-      `- **Kwota:** ${escapeHtml(amount)}`,
-      `- **Data:** ${escapeHtml(formatDate(ctx.renewalDate))}`,
+      `- **Plan:** ${escapeMarkdown(ctx.planSummary)}`,
+      `- **Kwota:** ${escapeMarkdown(amount)}`,
+      `- **Data:** ${escapeMarkdown(formatDate(ctx.renewalDate))}`,
       ``,
       sourceLine,
       ``,
@@ -436,28 +436,28 @@ export interface SubscriptionRenewedContext {
 }
 
 export function subscriptionRenewedTemplate(ctx: SubscriptionRenewedContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const amount = ctx.currency === 'PLN' ? formatPLN(ctx.amount) : `${ctx.amount} ${ctx.currency}`;
 
   const invoiceLine = ctx.invoiceNumber
-    ? `**Numer faktury:** ${escapeHtml(ctx.invoiceNumber)}${
+    ? `**Numer faktury:** ${escapeMarkdown(ctx.invoiceNumber)}${
         ctx.invoiceUrl ? ` — [faktury w panelu](${ctx.invoiceUrl})` : ''
       }`
     : 'Faktura zostanie wystawiona w ciągu kolejnych 24 godzin — otrzymasz osobny e-mail.';
 
   const { html, text } = renderEmailShell({
     title: `Subskrypcja "${ctx.serviceName}" została odnowiona`,
-    preheader: `Płatność ${escapeHtml(amount)} potwierdzona — usługa działa do ${escapeHtml(formatDate(ctx.newPeriodEnd))}.`,
+    preheader: `Płatność ${escapeMarkdown(amount)} potwierdzona — usługa działa do ${escapeMarkdown(formatDate(ctx.newPeriodEnd))}.`,
     bodyMarkdown: [
       greeting,
       ``,
-      `Dziękujemy! Twoja subskrypcja **${escapeHtml(ctx.serviceName)}** została pomyślnie odnowiona.`,
+      `Dziękujemy! Twoja subskrypcja **${escapeMarkdown(ctx.serviceName)}** została pomyślnie odnowiona.`,
       ``,
       `## Podsumowanie`,
       ``,
-      `- **Kwota:** ${escapeHtml(amount)}`,
-      `- **Data płatności:** ${escapeHtml(formatDate(ctx.paidAt))}`,
-      `- **Nowy okres rozliczeniowy do:** ${escapeHtml(formatDate(ctx.newPeriodEnd))}`,
+      `- **Kwota:** ${escapeMarkdown(amount)}`,
+      `- **Data płatności:** ${escapeMarkdown(formatDate(ctx.paidAt))}`,
+      `- **Nowy okres rozliczeniowy do:** ${escapeMarkdown(formatDate(ctx.newPeriodEnd))}`,
       ``,
       invoiceLine,
       ``,
@@ -506,29 +506,29 @@ export interface SubscriptionPaymentFailedContext {
 export function subscriptionPaymentFailedTemplate(
   ctx: SubscriptionPaymentFailedContext,
 ): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const amount = ctx.currency === 'PLN' ? formatPLN(ctx.amount) : `${ctx.amount} ${ctx.currency}`;
   const reasonLine = ctx.errorReason
-    ? `**Powód odrzucenia:** ${escapeHtml(ctx.errorReason)}`
+    ? `**Powód odrzucenia:** ${escapeMarkdown(ctx.errorReason)}`
     : '**Powód:** Płatność została odrzucona przez bank lub operatora karty.';
 
   const retryLine = ctx.nextRetryAt
-    ? `Spróbujemy ponownie automatycznie **${escapeHtml(formatDate(ctx.nextRetryAt))}**.`
+    ? `Spróbujemy ponownie automatycznie **${escapeMarkdown(formatDate(ctx.nextRetryAt))}**.`
     : 'Wykorzystaliśmy wszystkie próby automatycznego pobrania.';
 
   const suspendLine = ctx.suspendAt
-    ? `Jeśli płatność nie zostanie uregulowana do **${escapeHtml(formatDate(ctx.suspendAt))}**, usługa **zostanie zawieszona**.`
+    ? `Jeśli płatność nie zostanie uregulowana do **${escapeMarkdown(formatDate(ctx.suspendAt))}**, usługa **zostanie zawieszona**.`
     : 'Usługa może zostać zawieszona w ciągu najbliższych dni — zaktualizuj sposób płatności jak najszybciej.';
 
   const { html, text } = renderEmailShell({
     title: `Płatność za "${ctx.serviceName}" nie powiodła się`,
-    preheader: `Kwota ${escapeHtml(amount)} nie została pobrana — ${
+    preheader: `Kwota ${escapeMarkdown(amount)} nie została pobrana — ${
       ctx.nextRetryAt ? 'spróbujemy ponownie' : 'wymaga akcji'
     }.`,
     bodyMarkdown: [
       greeting,
       ``,
-      `Niestety, nie udało nam się pobrać płatności **${escapeHtml(amount)}** za subskrypcję **${escapeHtml(
+      `Niestety, nie udało nam się pobrać płatności **${escapeMarkdown(amount)}** za subskrypcję **${escapeMarkdown(
         ctx.serviceName,
       )}**.`,
       ``,
@@ -581,23 +581,23 @@ export interface SubscriptionSuspendedContext {
 }
 
 export function subscriptionSuspendedTemplate(ctx: SubscriptionSuspendedContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
 
   const { html, text } = renderEmailShell({
     title: `Subskrypcja "${ctx.serviceName}" została zawieszona`,
-    preheader: `Brak płatności — masz czas do ${escapeHtml(formatDate(ctx.dataDeletedAt))} na wznowienie.`,
+    preheader: `Brak płatności — masz czas do ${escapeMarkdown(formatDate(ctx.dataDeletedAt))} na wznowienie.`,
     bodyMarkdown: [
       greeting,
       ``,
-      `Z przykrością informujemy, że Twoja subskrypcja **${escapeHtml(
+      `Z przykrością informujemy, że Twoja subskrypcja **${escapeMarkdown(
         ctx.serviceName,
-      )}** została **zawieszona** dnia ${escapeHtml(formatDate(ctx.suspendedAt))} z powodu nieuregulowanej płatności.`,
+      )}** została **zawieszona** dnia ${escapeMarkdown(formatDate(ctx.suspendedAt))} z powodu nieuregulowanej płatności.`,
       ``,
       `## Co to oznacza`,
       ``,
       `- Usługa **przestała działać** (strony WWW niedostępne),`,
       `- Twoje **dane są zachowane** — w tym pliki, e-maile, bazy danych,`,
-      `- Masz czas do **${escapeHtml(formatDate(ctx.dataDeletedAt))}** (30 dni od zawieszenia) na wznowienie subskrypcji bez utraty danych,`,
+      `- Masz czas do **${escapeMarkdown(formatDate(ctx.dataDeletedAt))}** (30 dni od zawieszenia) na wznowienie subskrypcji bez utraty danych,`,
       `- Po tym terminie konto zostanie **trwale usunięte** zgodnie z naszą polityką retencji.`,
       ``,
       `## Jak wznowić`,
@@ -649,19 +649,19 @@ export interface SubscriptionCancelledContext {
 }
 
 export function subscriptionCancelledTemplate(ctx: SubscriptionCancelledContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const opening = ctx.userInitiated
-    ? `Potwierdzamy anulowanie subskrypcji **${escapeHtml(ctx.serviceName)}** zgodnie z Twoim zgłoszeniem.`
-    : `Subskrypcja **${escapeHtml(ctx.serviceName)}** została zakończona automatycznie — najczęściej z powodu nieuregulowanej płatności po terminie zawieszenia.`;
+    ? `Potwierdzamy anulowanie subskrypcji **${escapeMarkdown(ctx.serviceName)}** zgodnie z Twoim zgłoszeniem.`
+    : `Subskrypcja **${escapeMarkdown(ctx.serviceName)}** została zakończona automatycznie — najczęściej z powodu nieuregulowanej płatności po terminie zawieszenia.`;
 
   const stillWorksLine =
     ctx.effectiveUntil.getTime() > ctx.cancelledAt.getTime()
-      ? `Usługa **działa nadal do ${escapeHtml(formatDate(ctx.effectiveUntil))}** (do końca opłaconego okresu) — pełnia funkcjonalności bez zmian.`
+      ? `Usługa **działa nadal do ${escapeMarkdown(formatDate(ctx.effectiveUntil))}** (do końca opłaconego okresu) — pełnia funkcjonalności bez zmian.`
       : 'Usługa została zakończona z dniem dzisiejszym.';
 
   const { html, text } = renderEmailShell({
     title: `Subskrypcja "${ctx.serviceName}" — anulacja potwierdzona`,
-    preheader: `Działa do ${escapeHtml(formatDate(ctx.effectiveUntil))}, dane do ${escapeHtml(formatDate(ctx.dataDeletedAt))}.`,
+    preheader: `Działa do ${escapeMarkdown(formatDate(ctx.effectiveUntil))}, dane do ${escapeMarkdown(formatDate(ctx.dataDeletedAt))}.`,
     bodyMarkdown: [
       greeting,
       ``,
@@ -671,7 +671,7 @@ export function subscriptionCancelledTemplate(ctx: SubscriptionCancelledContext)
       ``,
       `## Twoje dane`,
       ``,
-      `- Pliki, e-maile, bazy są **zachowane do ${escapeHtml(formatDate(ctx.dataDeletedAt))}** (30 dni od końca subskrypcji),`,
+      `- Pliki, e-maile, bazy są **zachowane do ${escapeMarkdown(formatDate(ctx.dataDeletedAt))}** (30 dni od końca subskrypcji),`,
       `- W tym czasie możesz **wznowić** subskrypcję bez utraty czegokolwiek,`,
       `- Po tym terminie dane są **usuwane trwale** (RODO art. 17).`,
       ``,
@@ -712,18 +712,18 @@ export interface TrialStartedContext {
 }
 
 export function trialStartedTemplate(ctx: TrialStartedContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: 'Twój darmowy okres próbny wystartował',
-    preheader: `Hosting ${escapeHtml(ctx.planName)} działa do ${escapeHtml(formatDate(ctx.trialEndsAt))}.`,
+    preheader: `Hosting ${escapeMarkdown(ctx.planName)} działa do ${escapeMarkdown(formatDate(ctx.trialEndsAt))}.`,
     bodyMarkdown: [
       greeting,
       ``,
-      `Uruchomiliśmy dla Ciebie **darmowy okres próbny planu ${escapeHtml(ctx.planName)}**. Konto hostingowe jest już zakładane — za chwilę będzie gotowe w panelu.`,
+      `Uruchomiliśmy dla Ciebie **darmowy okres próbny planu ${escapeMarkdown(ctx.planName)}**. Konto hostingowe jest już zakładane — za chwilę będzie gotowe w panelu.`,
       ``,
       `## Co warto wiedzieć`,
       ``,
-      `- **Okres próbny trwa do:** ${escapeHtml(formatDate(ctx.trialEndsAt))}.`,
+      `- **Okres próbny trwa do:** ${escapeMarkdown(formatDate(ctx.trialEndsAt))}.`,
       `- W trakcie próby masz pełnię możliwości planu (pliki, bazy, poczta, WordPress 1-click).`,
       `- Aby zachować dane po próbie — **doładuj portfel i przekształć usługę na płatną** w panelu. Zrobisz to jednym kliknięciem.`,
       `- Jeśli nic nie zrobisz, po tej dacie usługa zostanie zawieszona, a dane przechowamy jeszcze 30 dni.`,
@@ -747,14 +747,14 @@ export interface TrialEndingSoonContext {
 }
 
 export function trialEndingSoonTemplate(ctx: TrialEndingSoonContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: `Okres próbny kończy się za ${ctx.daysLeft} ${ctx.daysLeft === 1 ? 'dzień' : 'dni'}`,
-    preheader: `Przekształć ${escapeHtml(ctx.planName)} na płatny, aby zachować dane.`,
+    preheader: `Przekształć ${escapeMarkdown(ctx.planName)} na płatny, aby zachować dane.`,
     bodyMarkdown: [
       greeting,
       ``,
-      `Twój **darmowy okres próbny planu ${escapeHtml(ctx.planName)}** kończy się **${escapeHtml(formatDate(ctx.trialEndsAt))}**.`,
+      `Twój **darmowy okres próbny planu ${escapeMarkdown(ctx.planName)}** kończy się **${escapeMarkdown(formatDate(ctx.trialEndsAt))}**.`,
       ``,
       `Aby usługa działała dalej bez przerwy: **doładuj portfel** i kliknij **„Przekształć na płatną"** przy usłudze. Pobierzemy wtedy opłatę za pierwszy miesiąc, a dalej rozliczamy się z portfela.`,
       ``,
@@ -777,14 +777,14 @@ export interface TrialExpiredContext {
 }
 
 export function trialExpiredTemplate(ctx: TrialExpiredContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: 'Okres próbny dobiegł końca',
     preheader: 'Usługa została zawieszona — dane przechowujemy 30 dni.',
     bodyMarkdown: [
       greeting,
       ``,
-      `Twój darmowy okres próbny planu **${escapeHtml(ctx.planName)}** się zakończył, więc usługa została **zawieszona**.`,
+      `Twój darmowy okres próbny planu **${escapeMarkdown(ctx.planName)}** się zakończył, więc usługa została **zawieszona**.`,
       ``,
       `Nic nie przepadło: **Twoje pliki, bazy i poczta są bezpieczne jeszcze przez 30 dni**. Aby je przywrócić i wznowić usługę — doładuj portfel i przekształć usługę na płatną w panelu.`,
     ].join('\n'),
@@ -805,14 +805,14 @@ export interface TrialConvertedContext {
 }
 
 export function trialConvertedTemplate(ctx: TrialConvertedContext): MailMessage {
-  const greeting = ctx.firstName ? `Cześć **${escapeHtml(ctx.firstName)}**,` : 'Cześć,';
+  const greeting = ctx.firstName ? `Cześć **${escapeMarkdown(ctx.firstName)}**,` : 'Cześć,';
   const { html, text } = renderEmailShell({
     title: 'Dziękujemy — usługa jest już płatna',
-    preheader: `Plan ${escapeHtml(ctx.planName)} działa dalej bez przerwy.`,
+    preheader: `Plan ${escapeMarkdown(ctx.planName)} działa dalej bez przerwy.`,
     bodyMarkdown: [
       greeting,
       ``,
-      `Twój okres próbny planu **${escapeHtml(ctx.planName)}** został pomyślnie **przekształcony na usługę płatną**. Wszystko działa dalej — bez przerwy i bez migracji danych.`,
+      `Twój okres próbny planu **${escapeMarkdown(ctx.planName)}** został pomyślnie **przekształcony na usługę płatną**. Wszystko działa dalej — bez przerwy i bez migracji danych.`,
       ``,
       `Kolejne rozliczenia pobieramy z portfela. Saldo i faktury znajdziesz w panelu.`,
     ].join('\n'),

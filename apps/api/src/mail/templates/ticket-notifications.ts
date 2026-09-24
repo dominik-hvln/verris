@@ -1,5 +1,5 @@
 import type { MailMessage } from '../mailer.interface';
-import { escapeHtml, renderEmailShell } from './_layouts/email-shell';
+import { escapeMarkdown, renderEmailShell } from './_layouts/email-shell';
 
 export interface TicketContext {
   ticketId: string;
@@ -11,7 +11,7 @@ export interface TicketContext {
 export function newTicketCreatedTemplate(ctx: TicketContext): MailMessage {
   const shortId = ctx.ticketId.slice(0, 8);
   const ticketUrl = `${ctx.panelUrl}/dashboard/support/${ctx.ticketId}`;
-  const safeSubject = escapeHtml(ctx.subject);
+  const safeSubject = escapeMarkdown(ctx.subject);
 
   const { html, text } = renderEmailShell({
     title: 'Otrzymaliśmy Twoje zgłoszenie',
@@ -62,8 +62,8 @@ export function ticketReplyNotificationTemplate(ctx: TicketReplyContext): MailMe
   const ticketUrl = ctx.isFromStaff
     ? `${ctx.panelUrl}/dashboard/support/${ctx.ticketId}`
     : `${ctx.staffPanelUrl ?? ctx.panelUrl}/tickets/${ctx.ticketId}`;
-  const safeSubject = escapeHtml(ctx.subject);
-  const excerpt = escapeHtml(ctx.excerpt.slice(0, 500));
+  const safeSubject = escapeMarkdown(ctx.subject);
+  const excerpt = escapeMarkdown(ctx.excerpt.slice(0, 500));
   const title = ctx.isFromStaff ? 'Nowa odpowiedź od supportu' : 'Nowa wiadomość od klienta';
   const preheader = ctx.isFromStaff
     ? `Support odpowiedział w sprawie #${shortId}.`
@@ -101,8 +101,8 @@ export function ticketStatusChangedTemplate(
 ): MailMessage {
   const shortId = ctx.ticketId.slice(0, 8);
   const ticketUrl = `${ctx.panelUrl}/dashboard/support/${ctx.ticketId}`;
-  const safeStatus = escapeHtml(ctx.newStatus);
-  const safeSubject = escapeHtml(ctx.subject);
+  const safeStatus = escapeMarkdown(ctx.newStatus);
+  const safeSubject = escapeMarkdown(ctx.subject);
 
   const { html, text } = renderEmailShell({
     title: 'Status Twojego zgłoszenia się zmienił',
@@ -148,7 +148,7 @@ export interface TicketStaffContext {
 export function ticketStaffAssignedTemplate(ctx: TicketStaffContext): MailMessage {
   const shortId = ctx.ticketId.slice(0, 8);
   const ticketUrl = `${ctx.staffPanelUrl}/tickets/${ctx.ticketId}`;
-  const safeSubject = escapeHtml(ctx.subject);
+  const safeSubject = escapeMarkdown(ctx.subject);
 
   const { html, text } = renderEmailShell({
     title: 'Przypisano Ci zgłoszenie',
@@ -181,7 +181,7 @@ export function ticketSlaBreachStaffTemplate(
 ): MailMessage {
   const shortId = ctx.ticketId.slice(0, 8);
   const ticketUrl = `${ctx.staffPanelUrl}/tickets/${ctx.ticketId}`;
-  const safeSubject = escapeHtml(ctx.subject);
+  const safeSubject = escapeMarkdown(ctx.subject);
   const due = ctx.dueAt.toLocaleString('pl-PL');
 
   const { html, text } = renderEmailShell({
@@ -215,7 +215,7 @@ export function ticketCustomerReminderTemplate(
 ): MailMessage {
   const shortId = ctx.ticketId.slice(0, 8);
   const ticketUrl = `${ctx.panelUrl}/dashboard/support/${ctx.ticketId}`;
-  const safeSubject = escapeHtml(ctx.subject);
+  const safeSubject = escapeMarkdown(ctx.subject);
 
   const { html, text } = renderEmailShell({
     title: 'Czekamy na Twoją odpowiedź',
@@ -246,7 +246,7 @@ export function ticketCustomerReminderTemplate(
 export function ticketAutoClosedTemplate(ctx: TicketContext): MailMessage {
   const shortId = ctx.ticketId.slice(0, 8);
   const ticketUrl = `${ctx.panelUrl}/dashboard/support/${ctx.ticketId}`;
-  const safeSubject = escapeHtml(ctx.subject);
+  const safeSubject = escapeMarkdown(ctx.subject);
 
   const { html, text } = renderEmailShell({
     title: 'Zgłoszenie zamknięte',

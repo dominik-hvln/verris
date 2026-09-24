@@ -13,7 +13,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { MailerService } from '../mail/mailer.service';
 import { OutboundAbuseGuard } from '../deliverability/outbound-abuse.guard';
-import { renderEmailShell } from '../mail/templates/_layouts/email-shell';
+import { escapeMarkdown, renderEmailShell } from '../mail/templates/_layouts/email-shell';
 import type {
   AddEmmContactDto,
   CreateEmmCampaignDto,
@@ -689,7 +689,7 @@ export class EmailMarketingService {
 
   private async deliver(campaign: EmmCampaign, list: EmmList, contact: EmmContact): Promise<{ delivered: boolean; suppressedReason?: string }> {
     const unsubUrl = this.unsubscribeUrl(contact.unsubToken);
-    const greeting = contact.firstName ? `Cześć ${contact.firstName},\n\n` : '';
+    const greeting = contact.firstName ? `Cześć ${escapeMarkdown(contact.firstName)},\n\n` : '';
     const { html, text } = renderEmailShell({
       title: campaign.subject,
       bodyMarkdown: greeting + campaign.bodyMarkdown,
@@ -698,6 +698,8 @@ export class EmailMarketingService {
       recipientEmail: contact.email,
       panelUrl: this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl',
       category: 'MARKETING',
+      recipientHasAccount: false,
+      unsubscribeUrl: unsubUrl,
     });
 
     const result = await this.mailer.send({
@@ -783,6 +785,7 @@ export class EmailMarketingService {
       recipientEmail: contact.email,
       panelUrl: this.config.get<string>('CLIENT_PANEL_URL') ?? 'https://panel.verris.pl',
       category: 'TRANSACTIONAL',
+      recipientHasAccount: false,
     });
     await this.mailer.send({
       to: contact.email,

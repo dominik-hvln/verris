@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { DirectAdminService } from '../servers/directadmin.service';
 import { AuditService } from '../common/audit/audit.service';
 import { MailerService } from '../mail/mailer.service';
+import { escapeMarkdown, renderEmailShell } from '../mail/templates/_layouts/email-shell';
 import { MigrationOrchestratorService } from './migration-orchestrator.service';
 
 function formatBytes(value: bigint): string {
@@ -125,9 +126,9 @@ export class MigrationWorkerScheduler {
           subject: ok
             ? `Migracja zakończona sukcesem — ${row.subscription.account?.domain ?? row.targetDomain ?? '—'}`
             : `Migracja zakończona błędem — wymaga uwagi`,
-          text: ok
-            ? this.buildSuccessMail(row, row.subscription.user.firstName)
-            : this.buildFailureMail(row, row.subscription.user.firstName),
+          ...(ok
+            ? this.buildSuccessMail(row.subscription.user.email, row, row.subscription.user.firstName)
+            : this.buildFailureMail(row.subscription.user.email, row, row.subscription.user.firstName)),
           tag: ok ? 'migration.completed' : 'migration.failed',
           category: 'TRANSACTIONAL',
           fromRole: 'NOREPLY',
@@ -170,7 +171,7 @@ export class MigrationWorkerScheduler {
         await this.mailer.send({
           to: row.subscription.user.email,
           subject: `Migracja ${row.targetDomain ?? row.subscription.account?.domain ?? ''} — przejął ją nasz zespół`,
-          text: this.buildAttentionMail(row, row.subscription.user.firstName),
+          ...this.buildAttentionMail(row.subscription.user.email, row, row.subscription.user.firstName),
           tag: 'migration.attention',
           category: 'TRANSACTIONAL',
           fromRole: 'NOREPLY',
@@ -209,24 +210,40 @@ export class MigrationWorkerScheduler {
     }
   }
 
-  private buildAttentionMail(
-    req: { id: string; targetDomain: string | null; subscription: { account: { domain: string } | null } },
+  /** Maile migracji idą przez wspólny szablon (M-03) — do `mailer.send` rozwijamy `{ text, html }`. */
+  private mailMigracji(
+    to: string,
     firstName: string | null,
-  ): string {
-    return [
-      `${firstName ? `Dzień dobry ${firstName},` : 'Dzień dobry,'}`,
-      '',
-      `automatyczna migracja ${req.targetDomain ?? req.subscription.account?.domain ?? ''} napotkała przeszkodę,`,
-      'więc przejął ją nasz zespół techniczny. Nie musisz nic robić — dokończymy przenosiny',
-      'i poinformujemy Cię o zakończeniu. Twoja obecna strona cały czas działa u starego dostawcy.',
-      '',
-      `Numer zlecenia: ${req.id.slice(0, 8)}`,
-      '',
-      '— Verris Hosting',
-    ].join('\n');
+    tresc: { title: string; preheader: string; akapity: string[]; cta?: { label: string; url: string } },
+  ) {
+    const panelUrl = (process.env.CLIENT_PANEL_URL || 'https://panel.verris.pl').replace(/\/$/, '');
+    return renderEmailShell({
+      title: tresc.title,
+      preheader: tresc.preheader,
+      bodyMarkdown: [firstName ? `Dzień dobry **${escapeMarkdown(firstName)}**,` : 'Dzień dobry,', ...tresc.akapity].join('\n\n'),
+      cta: tresc.cta ?? { label: 'Otwórz Migracje', url: `${panelUrl}/dashboard/migrations` },
+      recipientEmail: to,
+      panelUrl,
+    });
   }
 
-  private buildSuccessMail(req: {
+  private buildAttentionMail(
+    to: string,
+    req: { id: string; targetDomain: string | null; subscription: { account: { domain: string } | null } },
+    firstName: string | null,
+  ) {
+    const domena = escapeMarkdown(req.targetDomain ?? req.subscription.account?.domain ?? '');
+    return this.mailMigracji(to, firstName, {
+      title: 'Migrację przejął nasz zespół',
+      preheader: 'Nie musisz nic robić — dokończymy przenosiny i damy znać.',
+      akapity: [
+        `Automatyczna migracja **${domena}** napotkała przeszkodę, więc przejął ją nasz zespół techniczny. Nie musisz nic robić — dokończymy przenosiny i poinformujemy Cię o zakończeniu. Twoja obecna strona cały czas działa u starego dostawcy.`,
+        `Numer zlecenia: **${req.id.slice(0, 8)}**`,
+      ],
+    });
+  }
+
+  private buildSuccessMail(to: string, req: {
     id: string;
     bytesTransferred: bigint;
     filesTransferred: number;
@@ -234,42 +251,39 @@ export class MigrationWorkerScheduler {
     mailboxesMigrated: number;
     targetDomain: string | null;
     subscription: { account: { domain: string } | null };
-  }, firstName: string | null): string {
-    return [
-      `${firstName ? `Dzień dobry ${firstName},` : 'Dzień dobry,'}`,
-      '',
-      `migracja Twojej strony ${req.targetDomain ?? req.subscription.account?.domain ?? ''} została zakończona pomyślnie.`,
-      '',
-      `Pliki: ${req.filesTransferred} (${formatBytes(req.bytesTransferred)})`,
-      `Bazy danych: ${req.databasesMigrated}`,
-      `Skrzynki IMAP: ${req.mailboxesMigrated}`,
-      '',
-      'Ostatni krok: przełączenie DNS. Wejdź w panelu klienta w zakładkę Migracje —',
-      'znajdziesz tam gotowe rekordy do ustawienia (albo automatyczne potwierdzenie,',
-      'jeśli domena jest już delegowana na nasze serwery nazw). Przed przełączeniem',
-      'możesz jednym kliknięciem dograć różnice (delta-sync plików i poczty).',
-      '',
-      'Sprawdź proszę poprawność działania strony i zgłoś nam wszelkie nieprawidłowości w ciągu 7 dni.',
-      '',
-      '— Verris Hosting',
-    ].join('\n');
+  }, firstName: string | null) {
+    const domena = escapeMarkdown(req.targetDomain ?? req.subscription.account?.domain ?? '');
+    return this.mailMigracji(to, firstName, {
+      title: 'Migracja zakończona',
+      preheader: 'Został ostatni krok: przełączenie DNS.',
+      akapity: [
+        `Migracja Twojej strony **${domena}** została zakończona pomyślnie.`,
+        [
+          `- **Pliki:** ${req.filesTransferred} (${formatBytes(req.bytesTransferred)})`,
+          `- **Bazy danych:** ${req.databasesMigrated}`,
+          `- **Skrzynki IMAP:** ${req.mailboxesMigrated}`,
+        ].join('\n'),
+        '## Ostatni krok: przełączenie DNS',
+        'W zakładce Migracje znajdziesz gotowe rekordy do ustawienia (albo automatyczne potwierdzenie, jeśli domena jest już delegowana na nasze serwery nazw). Przed przełączeniem możesz jednym kliknięciem dograć różnice (delta-sync plików i poczty).',
+        'Sprawdź proszę poprawność działania strony i zgłoś nam wszelkie nieprawidłowości w ciągu 7 dni.',
+      ],
+    });
   }
 
   private buildFailureMail(
+    to: string,
     req: { id: string; lastError: string | null; targetDomain: string | null },
     firstName: string | null,
-  ): string {
-    return [
-      `${firstName ? `Dzień dobry ${firstName},` : 'Dzień dobry,'}`,
-      '',
-      `niestety nasza migracja ${req.targetDomain ?? ''} została zatrzymana z powodu błędu po stronie źródła:`,
-      '',
-      req.lastError ?? 'Operator wsparcia opisze szczegóły w tickecie.',
-      '',
-      'Wsparcie odezwie się do Ciebie w tickecie najpóźniej w ciągu kilku godzin. Twoja stara strona nadal działa bez przerwy.',
-      '',
-      '— Verris Hosting',
-    ].join('\n');
+  ) {
+    return this.mailMigracji(to, firstName, {
+      title: 'Migracja zatrzymana',
+      preheader: 'Twoja stara strona działa bez przerwy — wsparcie odezwie się w zgłoszeniu.',
+      akapity: [
+        `Niestety migracja **${escapeMarkdown(req.targetDomain ?? '')}** została zatrzymana z powodu błędu po stronie źródła:`,
+        req.lastError ? escapeMarkdown(req.lastError) : 'Operator wsparcia opisze szczegóły w zgłoszeniu.',
+        'Wsparcie odezwie się do Ciebie w zgłoszeniu najpóźniej w ciągu kilku godzin. Twoja stara strona nadal działa bez przerwy.',
+      ],
+    });
   }
 
   @Cron(CronExpression.EVERY_MINUTE)
