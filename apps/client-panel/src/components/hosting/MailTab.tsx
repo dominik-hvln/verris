@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import {
   AlertCircle,
   ExternalLink,
@@ -249,6 +250,13 @@ export default function MailTab({ serviceId }: Props) {
       }}
       actions={
         <>
+          <Link
+            href={`/dashboard/migrations?serviceId=${encodeURIComponent(serviceId)}&poczta=1`}
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-white/15 bg-white/[0.04] px-3 text-xs text-white hover:bg-white/10"
+            title="Skopiujemy wiadomości ze skrzynki u poprzedniego dostawcy (IMAP) do skrzynki na tym koncie"
+          >
+            Przenieś pocztę z innego serwera
+          </Link>
           <Button
             type="button"
             variant="outline"

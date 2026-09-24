@@ -13,9 +13,9 @@ export const dynamic = 'force-dynamic';
 export default async function MigrationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ serviceId?: string }>;
+  searchParams: Promise<{ serviceId?: string; poczta?: string }>;
 }) {
-  const { serviceId } = await searchParams;
+  const { serviceId, poczta } = await searchParams;
   const service = await resolveServiceForHostingPages(serviceId);
   let bundles: MigrationBundleSummary[] = [];
   if (service) {
@@ -59,7 +59,7 @@ export default async function MigrationsPage({
               danych: <a href="mailto:rodo@verris.pl" className="text-cyan-300 hover:underline">rodo@verris.pl</a>.
             </p>
           </PanelCard>
-          <MigrationsClient serviceId={service.id} bundles={bundles} />
+          <MigrationsClient serviceId={service.id} bundles={bundles} tylkoPoczta={poczta === '1'} />
         </div>
       )}
     </HostingPageWrapper>

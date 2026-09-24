@@ -30,7 +30,10 @@ describe('MigrationOrchestratorService', () => {
   };
   const audit = { record: jest.fn() };
   const notifications = { create: jest.fn().mockResolvedValue(undefined) };
-  const directAdmin = { createHostingMysqlDatabase: jest.fn() };
+  const directAdmin = {
+    createHostingMysqlDatabase: jest.fn(),
+    assertDomainOwnedBySubscription: jest.fn(async (_s: string, _u: string, d: string) => d),
+  };
 
   beforeEach(() => jest.clearAllMocks());
 
@@ -200,6 +203,30 @@ describe('MigrationOrchestratorService', () => {
     expect(resolvePublicHost).toHaveBeenCalledWith('old.example');
     expect(prisma.migrationRequest.create).not.toHaveBeenCalled();
     (resolvePublicHost as jest.Mock).mockImplementation(async () => '203.0.113.10');
+  });
+
+  it('E-21: skrzynka docelowa IMAP musi należeć do domen usługi (inaczej cudza skrzynka na węźle)', async () => {
+    prisma.subscription.findFirst.mockResolvedValue({ id: 'sub_1', userId: 'user_1', account: { domain: 'target.example' } });
+    directAdmin.assertDomainOwnedBySubscription.mockImplementationOnce(async () => {
+      throw new BadRequestException('Domena nie należy do tej usługi.');
+    });
+    await expect(
+      service().createBundle('sub_1', 'user_1', {
+        consentAccepted: true,
+        imap: [{ host: 'imap.example', port: 993, username: 'x', email: 'prezes@cudza-firma.pl', password: 'p' }],
+      }),
+    ).rejects.toThrow('prezes@cudza-firma.pl nie należy');
+    expect(directAdmin.assertDomainOwnedBySubscription).toHaveBeenCalledWith('sub_1', 'user_1', 'cudza-firma.pl');
+    expect(prisma.migrationRequest.create).not.toHaveBeenCalled();
+
+    // Bez adresu (login bez @) nie wiadomo, dokąd pisać — odmowa zamiast zgadywania.
+    await expect(
+      service().createBundle('sub_1', 'user_1', {
+        consentAccepted: true,
+        imap: [{ host: 'imap.example', port: 993, username: 'login123', password: 'p' }],
+      }),
+    ).rejects.toThrow('adres skrzynki docelowej');
+    expect(prisma.migrationRequest.create).not.toHaveBeenCalled();
   });
 
   it('rejects a migration without RODO consent', async () => {

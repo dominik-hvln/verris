@@ -9,22 +9,25 @@ import type { MigrationBundleSummary } from './types';
 interface Props {
   serviceId: string;
   bundles: MigrationBundleSummary[];
+  tylkoPoczta?: boolean;
 }
 
-export function MigrationsClient({ serviceId, bundles }: Props) {
+export function MigrationsClient({ serviceId, bundles, tylkoPoczta = false }: Props) {
   const router = useRouter();
 
   return (
     <div className="space-y-6">
       <PanelCard className="space-y-4">
         <div>
-          <h2 className="font-semibold text-white">Przenieś stronę do nas (od A do Z)</h2>
+          <h2 className="font-semibold text-white">
+            {tylkoPoczta ? 'Przenieś pocztę z innego serwera (IMAP)' : 'Przenieś stronę do nas (od A do Z)'}
+          </h2>
           <p className="text-xs text-neutral-500">
             Pliki, bazy danych i pocztę przeniesiemy automatycznie. Hasła odczytujemy wyłącznie
             podczas transferu i zapisujemy zaszyfrowane w audycie.
           </p>
         </div>
-        <MigrationWizard serviceId={serviceId} onQueued={() => router.refresh()} />
+        <MigrationWizard serviceId={serviceId} tylkoPoczta={tylkoPoczta} onQueued={() => router.refresh()} />
       </PanelCard>
 
       {bundles.length > 0 ? (

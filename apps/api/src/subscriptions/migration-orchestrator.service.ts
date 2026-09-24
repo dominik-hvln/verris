@@ -272,6 +272,23 @@ export class MigrationOrchestratorService {
     // warstwa: vg_is_public_host w migration-input-guard.sh na węźle).
     await assertSourceHostsPublic([dto.ftp?.host, ...(dto.mysql ?? []).map((m) => m.host), ...(dto.imap ?? []).map((m) => m.host)]);
 
+    // E-21 — imapsync pisze do skrzynki na węźle przez master-login dovecota, więc adres
+    // docelowy MUSI należeć do tej usługi. Bez tego klient mógłby dopisać wiadomości do
+    // skrzynki innego klienta na tym samym węźle (worker bierze email, a w braku — login).
+    for (const box of dto.imap ?? []) {
+      const cel = String(box.email || box.username || '').trim().toLowerCase();
+      const domena = cel.includes('@') ? cel.slice(cel.lastIndexOf('@') + 1) : '';
+      if (!domena) {
+        throw new BadRequestException('Podaj adres skrzynki docelowej (np. biuro@twojadomena.pl) dla każdej przenoszonej skrzynki.');
+      }
+      await this.directAdmin.assertDomainOwnedBySubscription(subscriptionId, userId, domena).catch((e: unknown) => {
+        if (e instanceof BadRequestException && /nie należy/.test(e.message)) {
+          throw new BadRequestException(`Skrzynka ${cel} nie należy do domen tej usługi — pocztę przenosimy tylko do skrzynek na tym koncie.`);
+        }
+        throw e;
+      });
+    }
+
     // Limit współbieżnych migracji na usługę — nie pozwalamy zakolejkować
     // kolejnej, dopóki poprzednia jest w toku/oczekuje (ochrona przed
     // zalaniem węzła backupami DA i transferami z jednego konta).

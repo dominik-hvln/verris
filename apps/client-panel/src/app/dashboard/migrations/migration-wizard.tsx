@@ -15,6 +15,8 @@ import type { DiscoveryResult, PreflightSummary } from './types';
 interface Props {
   serviceId: string;
   onQueued?: () => void;
+  /** E-21 — wejście z zakładki Poczta: od razu krok „Co przenosimy”, bez plików, jedna pusta skrzynka. */
+  tylkoPoczta?: boolean;
 }
 
 interface DbRow extends MigrationMysqlInput {
@@ -53,9 +55,9 @@ const STEPS = ['Skąd migrujesz', 'Co przenosimy', 'Test dostępów', 'Start'] a
 let rowSeq = 0;
 const nextKey = () => `row_${Date.now()}_${rowSeq++}`;
 
-export function MigrationWizard({ serviceId, onQueued }: Props) {
-  const [step, setStep] = useState(0); // 0..3
-  const [method, setMethod] = useState<'auto' | 'manual' | null>(null);
+export function MigrationWizard({ serviceId, onQueued, tylkoPoczta = false }: Props) {
+  const [step, setStep] = useState(tylkoPoczta ? 1 : 0); // 0..3
+  const [method, setMethod] = useState<'auto' | 'manual' | null>(tylkoPoczta ? 'manual' : null);
   const [presetId, setPresetId] = useState('directadmin');
   const preset = PROVIDER_PRESETS.find((p) => p.id === presetId) ?? PROVIDER_PRESETS[1];
 
@@ -64,7 +66,7 @@ export function MigrationWizard({ serviceId, onQueued }: Props) {
   const [notes, setNotes] = useState('');
   const [consent, setConsent] = useState(false);
 
-  const [includeFiles, setIncludeFiles] = useState(true);
+  const [includeFiles, setIncludeFiles] = useState(!tylkoPoczta);
   const [ftpProtocol, setFtpProtocol] = useState<'ftp' | 'ftps' | 'sftp'>('sftp');
   const [ftpHost, setFtpHost] = useState('');
   const [ftpPort, setFtpPort] = useState(22);
@@ -73,7 +75,9 @@ export function MigrationWizard({ serviceId, onQueued }: Props) {
   const [ftpPath, setFtpPath] = useState('/');
 
   const [dbs, setDbs] = useState<DbRow[]>([]);
-  const [boxes, setBoxes] = useState<BoxRow[]>([]);
+  const [boxes, setBoxes] = useState<BoxRow[]>(() =>
+    tylkoPoczta ? [{ key: nextKey(), host: '', port: 993, username: '', password: '', email: '' }] : [],
+  );
 
   const [panelHost, setPanelHost] = useState('');
   const [panelUser, setPanelUser] = useState('');
@@ -226,6 +230,14 @@ export function MigrationWizard({ serviceId, onQueued }: Props) {
           }}
           msg={msg}
         />
+      ) : null}
+
+      {step === 1 && tylkoPoczta ? (
+        <p className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-3 text-xs leading-relaxed text-cyan-100">
+          Przenosisz tylko pocztę. Wpisz adres skrzynki oraz serwer IMAP, login i hasło u poprzedniego dostawcy —
+          wiadomości i foldery skopiujemy do skrzynki o tym samym adresie na tym koncie (musi już istnieć: załóż ją
+          w zakładce Poczta). Stara skrzynka zostaje bez zmian; różnice dograsz później funkcją delta-sync.
+        </p>
       ) : null}
 
       {step === 1 ? (
