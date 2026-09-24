@@ -645,6 +645,7 @@ enum NodeTaskKind {
   DISK_USAGE        // C-15/K-03 — zajętość i liczba plików w katalogach konta (du jako klient)
   MALWARE_SCAN      // G-11 — skan ImunifyAV katalogu konta i lista zainfekowanych plików
   REDIS_ACCESS      // D-15/J-03 — Redis konta (instancja na konto, gniazdo w katalogu konta)
+  MAIL_LOG          // E-19 — dziennik dostarczania poczty konta (log exima, tylko domeny konta)
 }
 
 enum WafMode {

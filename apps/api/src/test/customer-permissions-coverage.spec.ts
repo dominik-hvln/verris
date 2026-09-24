@@ -50,6 +50,7 @@ const ODMOWA_OCZEKIWANA: ReadonlyArray<string> = [
   'GET /agent/tasks/disk-usage/script',
   'GET /agent/tasks/malware-scan/script',
   'GET /agent/tasks/redis/script',
+  'GET /agent/tasks/mail-log/script',
   'GET /agent/tasks/deploy-ssh-pubkey',
   'GET /agent/tasks/hosting-profile/default-page/bundle',
   'GET /agent/tasks/hosting-profile/default-page/script',

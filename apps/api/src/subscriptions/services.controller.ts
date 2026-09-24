@@ -40,6 +40,7 @@ import { WpUpdateService } from './wp-update.service';
 import { DiskUsageService } from './disk-usage.service';
 import { MalwareScanService } from './malware-scan.service';
 import { RedisAccessService } from './redis-access.service';
+import { MailLogService } from './mail-log.service';
 import { HostingRestoreDto } from './dto/hosting-restore.dto';
 import { WordpressService } from './wordpress.service';
 import { InstallWordpressDto } from './dto/wordpress.dto';
@@ -90,6 +91,7 @@ import {
   AutomatWordpressaDto,
   CacheWordpressaDto,
   ZabezpieczeniaWordpressaDto,
+  DziennikPocztyDto,
   OdtworzenieZArchiwumDto,
   ImportBazyDto,
   WersjaPhpDto,
@@ -119,6 +121,7 @@ export class UserServicesController {
     private readonly diskUsage: DiskUsageService,
     private readonly malwareScan: MalwareScanService,
     private readonly redisAccess: RedisAccessService,
+    private readonly mailLog: MailLogService,
     private readonly wordpress: WordpressService,
     private readonly waf: WafService,
     private readonly siteMonitor: SiteMonitorService,
@@ -1146,6 +1149,18 @@ export class UserServicesController {
   @Post(':id/hosting-redis')
   async setHostingRedis(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: DostepSshDto) {
     return this.redisAccess.przelacz(id, user.userId, body.enabled);
+  }
+
+  // E-19 — dziennik dostarczania poczty (zadanie węzła).
+  @Get(':id/hosting-mail-log')
+  async hostingMailLog(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.mailLog.status(id, user.userId);
+  }
+
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:mail-log' })
+  @Post(':id/hosting-mail-log')
+  async loadHostingMailLog(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: DziennikPocztyDto) {
+    return this.mailLog.zlec(id, user.userId, body.address);
   }
 
   @Get(':id/hosting-offsite')

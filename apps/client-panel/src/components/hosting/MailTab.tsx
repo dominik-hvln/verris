@@ -28,6 +28,7 @@ import { fetchConnectionInfoAction } from '@/app/dashboard/services/[id]/hosting
 import { HostingTabShell } from '@/components/hosting/HostingTabShell';
 import { AccessList, Kpi, KpiStrip, Meter } from '@/components/panel/v2';
 import MailExtras from '@/components/hosting/MailExtras';
+import { MailLogPanel } from '@/components/hosting/MailLogPanel';
 import { DeliverabilityPanel } from '@/app/dashboard/email/deliverability-panel';
 import { createHostingSsoUrlAction } from '@/app/dashboard/services/[id]/hosting-sso-actions';
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
@@ -503,6 +504,8 @@ export default function MailTab({ serviceId }: Props) {
       <MailExtras serviceId={serviceId} />
 
       <DeliverabilityPanel serviceId={serviceId} />
+
+      <MailLogPanel serviceId={serviceId} />
 
       <p className="mt-3 flex items-start gap-2 text-[11px] text-neutral-500">
         <Server className="h-3.5 w-3.5 shrink-0 mt-0.5" />

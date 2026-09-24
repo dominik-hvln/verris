@@ -33,6 +33,7 @@ import { loadWpUpdateScript } from './wp-update.script';
 import { loadDiskUsageScript } from './disk-usage.script';
 import { loadMalwareScanScript } from './malware-scan.script';
 import { loadRedisScript } from './redis.script';
+import { loadMailLogScript } from './mail-log.script';
 import { loadNodeUpdateScript } from './node-update.script';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 
@@ -169,6 +170,13 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   redisScript() {
     return loadRedisScript();
+  }
+
+  /** E-19 — dziennik dostarczania poczty konta (run with ML_* env). */
+  @Get('mail-log/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  mailLogScript() {
+    return loadMailLogScript();
   }
 
   /** VER-UPG — MariaDB engine upgrade script (run with DB_TARGET_VERSION env). */

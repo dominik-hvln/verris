@@ -110,6 +110,11 @@ export class CacheWordpressaDto {
   @IsIn(['on', 'off', 'purge', 'redis-on', 'redis-off']) action!: string;
 }
 
+/** E-19 — dziennik dostarczania poczty, opcjonalnie zawężony do adresu. */
+export class DziennikPocztyDto {
+  @IsOptional() @IsEmail() @MaxLength(254) address?: string;
+}
+
 /** I-08 — poprawki zabezpieczeń WordPressa (wp-config.php). */
 export class ZabezpieczeniaWordpressaDto {
   @Linia(253) domain!: string;
