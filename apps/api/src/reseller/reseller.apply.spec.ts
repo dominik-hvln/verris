@@ -12,12 +12,13 @@ function stanowisko(role = 'USER', profil: unknown = null) {
     count: jest.fn(),
   };
   const prisma = {
-    user: { findUnique: jest.fn(async () => ({ role })), findMany: jest.fn(async () => []) },
+    user: { findUnique: jest.fn(async () => ({ role })), findMany: jest.fn(async (a: { where?: { role?: string } }) => (a.where?.role === 'ADMIN' ? [{ email: 'admin@x.pl' }] : [])) },
     resellerProfile: repo,
     subscription: { findMany: jest.fn(async () => []) },
   };
   const audit = { record: jest.fn(async () => undefined) };
-  return { svc: new ResellerService(prisma as never, audit as never, { send: jest.fn(async () => undefined) } as never), repo, audit };
+  const send = jest.fn(async () => undefined);
+  return { svc: new ResellerService(prisma as never, audit as never, { send } as never), repo, audit, send };
 }
 
 describe('ResellerService — zatwierdzenie wniosku (O-08)', () => {
@@ -44,6 +45,7 @@ describe('ResellerService.apply (O-08)', () => {
     expect(s.repo.create).toHaveBeenCalledWith({ data: expect.objectContaining({ userId: 'u1', status: 'PENDING', brandName: 'Studio', markupPct: 20 }) });
     expect(r.status).toBe('PENDING');
     expect(s.audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'RESELLER_APPLIED' }));
+    expect(s.send).toHaveBeenCalledWith(expect.objectContaining({ to: 'admin@x.pl', tag: 'reseller.apply' }));
   });
 
   it('istniejący profil nie jest nadpisywany; konto obsługi → 400', async () => {

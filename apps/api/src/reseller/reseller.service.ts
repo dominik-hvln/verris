@@ -134,12 +134,16 @@ export class ResellerService {
     const brandName = (input.brandName ?? '').trim().slice(0, 80) || null;
     await this.repo.create({ data: { userId, brandName, markupPct: 20, status: 'PENDING', code: `rsl_${randomBytes(5).toString('hex')}` } });
     await this.audit.record({ action: 'RESELLER_APPLIED', userId, details: { brandName } });
-    // Operator dowiaduje się o wniosku (skrzynka z RESELLER_APPLY_EMAIL, domyślnie ta od alertów bezpieczeństwa).
-    const inbox = process.env.RESELLER_APPLY_EMAIL || process.env.SECURITY_ALERT_EMAIL;
-    if (inbox) {
+    // Operator dowiaduje się o wniosku: skrzynka z RESELLER_APPLY_EMAIL, a bez niej — wszyscy
+    // administratorzy (jak alerty operacyjne). Test na produkcji 2026-09-24: SECURITY_ALERT_EMAIL
+    // nie jest ustawiony, więc wniosek nie trafiał do nikogo.
+    const odbiorcy = process.env.RESELLER_APPLY_EMAIL
+      ? [process.env.RESELLER_APPLY_EMAIL]
+      : (await this.prisma.user.findMany({ where: { role: 'ADMIN', anonymizedAt: null }, select: { email: true } })).map((a) => a.email);
+    for (const to of odbiorcy) {
       await this.mailer
         .send({
-          to: inbox,
+          to,
           subject: '[Verris] Nowy wniosek o program resellerski',
           text: `Konto (userId): ${userId}\nMarka: ${brandName ?? '(bez nazwy)'}\n\nZatwierdź albo odrzuć w panelu admina → Resellerzy.`,
           category: 'TRANSACTIONAL',
