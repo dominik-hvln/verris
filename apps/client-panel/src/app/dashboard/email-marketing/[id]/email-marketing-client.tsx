@@ -357,7 +357,7 @@ function ListCard({
               {contacts.map((c) => (
                 <div key={c.id} className="flex items-center justify-between gap-2 border-b border-white/5 px-3 py-2 text-sm last:border-0">
                   <div className="min-w-0">
-                    <p className="truncate text-white">{c.email}</p>
+                    <p className="break-words text-white">{c.email}</p>
                     <p className="text-[11px] text-neutral-500">
                       {[c.firstName, c.lastName].filter(Boolean).join(' ') || '—'} · <ContactStatus status={c.status} />
                     </p>
@@ -478,7 +478,7 @@ function CampaignsTab({
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-sm font-semibold text-white">{c.name}</p>
-                  <p className="mt-0.5 truncate text-xs text-neutral-400">„{c.subject}” → {c.listName ?? 'lista'}</p>
+                  <p className="mt-0.5 break-words text-xs text-neutral-400">„{c.subject}” → {c.listName ?? 'lista'}</p>
                 </div>
                 <CampaignStatus status={c.status} />
               </div>

@@ -104,7 +104,7 @@ export function PasskeysSection({
           {passkeys.map((pk) => (
             <li key={pk.id} className="flex items-center justify-between gap-3 px-4 py-3">
               <div className="min-w-0">
-                <p className="text-sm text-white truncate">
+                <p className="text-sm text-white break-words">
                   {pk.name || 'Passkey'}{' '}
                   <span className="text-xs text-muted-foreground">
                     ({pk.deviceType === 'multiDevice' ? 'synchronizowany' : 'urządzenie'})

@@ -202,7 +202,7 @@ export function HostingOffsitePanel({
                 className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-black/30 px-3 py-2"
               >
                 <div className="min-w-0">
-                  <p className="truncate font-mono text-xs text-neutral-100">{archive.name}</p>
+                  <p className="break-words font-mono text-xs text-neutral-100">{archive.name}</p>
                   <p className="text-[11px] text-neutral-500">
                     {archive.modifiedAt
                       ? new Date(archive.modifiedAt).toLocaleString('pl-PL')

@@ -108,7 +108,7 @@ function EventRow({ event }: { event: AutoscalingEventDto }) {
         <Icon className="h-4 w-4 shrink-0" />
         <div className="min-w-0">
           <div className="text-sm font-semibold">{humaniseEventType(event.type)}</div>
-          <div className="text-[11px] opacity-80 truncate">
+          <div className="text-[11px] opacity-80 break-words">
             {formatEventDetail(event)}
           </div>
         </div>
@@ -127,7 +127,7 @@ function ChargeRow({ charge }: { charge: AutoscalingChargeDto }) {
         <Coins className="h-4 w-4 shrink-0 text-rose-300" />
         <div className="min-w-0">
           <div className="text-sm font-semibold text-white">Naliczenie autoskalowania</div>
-          <div className="text-[11px] text-neutral-400 truncate">
+          <div className="text-[11px] text-neutral-400 break-words">
             {charge.description ?? 'Naliczenie autoskalowania (blok 15 min)'}
           </div>
         </div>

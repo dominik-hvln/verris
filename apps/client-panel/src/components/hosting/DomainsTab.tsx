@@ -144,7 +144,7 @@ export default function DomainsTab({ serviceId }: Props) {
                   return (
                     <Link href={`/dashboard/services/${serviceId}/sites/${encodeURIComponent(d.name)}`} className="flex min-w-0 items-center gap-2 font-semibold text-foreground hover:text-primary">
                       <span className="v2-breathe h-[7px] w-[7px] shrink-0 rounded-full bg-data" />
-                      <span className="truncate" title={d.name}>
+                      <span className="break-words" title={d.name}>
                         {d.name}
                       </span>
                     </Link>

@@ -80,7 +80,7 @@ export function IncidentBanner() {
         <div className="flex items-center justify-between gap-4 text-sm font-semibold">
           <div className="flex items-center gap-2 min-w-0">
             <AlertTriangle className="h-4 w-4 shrink-0" />
-            <span className="truncate">
+            <span className="break-words">
               {hasMajor
                 ? "Wykryliśmy poważne zakłócenie usługi na Twoich serwerach"
                 : "Wykryliśmy pogorszenie jakości usługi na Twoich serwerach"}
@@ -134,7 +134,7 @@ export function IncidentBanner() {
                   <span className="font-mono opacity-80">
                     {incident.probeKind} → {incident.probeTarget}
                   </span>
-                  <div className="mt-0.5 opacity-90 truncate">{incident.title}</div>
+                  <div className="mt-0.5 opacity-90 break-words">{incident.title}</div>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className="opacity-70">

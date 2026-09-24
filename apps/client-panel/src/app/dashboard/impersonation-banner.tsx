@@ -59,7 +59,7 @@ export function ImpersonationBanner() {
         <div className="flex items-center gap-3 min-w-0 flex-1">
           <ShieldAlert className="h-4 w-4 shrink-0" />
           <div className="min-w-0">
-            <div className="truncate">
+            <div className="break-words">
               Sesja impersonowana przez wsparcie Verris
               {ctx.actorUserId ? ` · operator ${ctx.actorUserId.slice(0, 8)}…` : ""}
               {ctx.reason ? ` · powód: „${ctx.reason}"` : ""}

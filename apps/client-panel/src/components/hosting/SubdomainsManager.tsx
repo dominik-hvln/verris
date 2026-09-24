@@ -144,7 +144,7 @@ export default function SubdomainsManager({ serviceId }: { serviceId: string }) 
                 href={r.url}
                 target="_blank"
                 rel="noreferrer"
-                className="truncate font-mono text-sm text-white hover:text-violet-300"
+                className="break-words font-mono text-sm text-white hover:text-violet-300"
               >
                 {r.subdomain}.{r.domain}
               </a>

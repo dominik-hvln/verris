@@ -90,7 +90,7 @@ export function ActiveSessionsSection({
             >
               <div className="min-w-0">
                 <p className="flex items-center gap-2 text-sm text-white">
-                  <span className="truncate">{s.deviceLabel ?? "Nieznane urządzenie"}</span>
+                  <span className="break-words">{s.deviceLabel ?? "Nieznane urządzenie"}</span>
                   {s.current ? (
                     <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-300">
                       to urządzenie

@@ -93,11 +93,11 @@ function TldResultCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate font-mono text-sm text-white">
+          <p className="break-words font-mono text-sm text-white">
             <span className="text-neutral-400">{label}</span>
             <span className="font-semibold">{result.label}</span>
           </p>
-          <p className="mt-0.5 truncate text-[11px] text-neutral-500">{fqdn}</p>
+          <p className="mt-0.5 break-words text-[11px] text-neutral-500">{fqdn}</p>
         </div>
         {result.available ? (
           <span className="shrink-0 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium text-emerald-300">

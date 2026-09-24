@@ -351,7 +351,7 @@ function StepIndicator({ step }: { step: number }) {
           >
             {i < step ? '✓' : i + 1}
           </span>
-          <span className={`hidden truncate sm:inline ${i === step ? 'text-white' : 'text-neutral-500'}`}>{label}</span>
+          <span className={`hidden break-words sm:inline ${i === step ? 'text-white' : 'text-neutral-500'}`}>{label}</span>
           {i < STEPS.length - 1 ? <span className="mx-1 h-px flex-1 bg-white/10" /> : null}
         </li>
       ))}

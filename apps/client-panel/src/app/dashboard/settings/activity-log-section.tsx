@@ -79,9 +79,9 @@ export function ActivityLogSection() {
               className="flex items-center justify-between gap-3 border-b border-white/5 px-4 py-2.5 last:border-0"
             >
               <div className="min-w-0">
-                <p className="truncate text-sm text-white">{LABELS[r.action] ?? r.action}</p>
+                <p className="break-words text-sm text-white">{LABELS[r.action] ?? r.action}</p>
                 {r.context ? (
-                  <p className="truncate text-[11px] text-neutral-500">{r.context}</p>
+                  <p className="break-words text-[11px] text-neutral-500">{r.context}</p>
                 ) : null}
               </div>
               <span className="shrink-0 text-xs text-neutral-400">{fmt(r.at)}</span>

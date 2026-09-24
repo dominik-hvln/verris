@@ -1145,7 +1145,7 @@ export default function SiteBuilderTab({ serviceId }: { serviceId: string }) {
               className={`flex items-center gap-1 rounded-lg border px-2 py-1.5 text-sm transition ${selected === s.id ? 'border-emerald-500/40 bg-emerald-500/10' : 'border-white/10 bg-white/[0.02]'} ${dragId === s.id ? 'opacity-40' : ''} ${overId === s.id && dragId && dragId !== s.id ? 'border-emerald-400 ring-1 ring-emerald-400/40' : ''}`}
             >
               <span className="cursor-grab text-neutral-600 hover:text-neutral-300 active:cursor-grabbing" aria-label="Przeciągnij"><GripVertical className="h-3.5 w-3.5" /></span>
-              <button onClick={() => setSelected(s.id)} className="flex-1 truncate text-left text-white">{SECTION_LABEL[s.type]}</button>
+              <button onClick={() => setSelected(s.id)} className="flex-1 break-words text-left text-white">{SECTION_LABEL[s.type]}</button>
               <button onClick={() => move(s.id, -1)} className="text-neutral-500 hover:text-white" aria-label="W górę"><ChevronUp className="h-3.5 w-3.5" /></button>
               <button onClick={() => move(s.id, 1)} className="text-neutral-500 hover:text-white" aria-label="W dół"><ChevronDown className="h-3.5 w-3.5" /></button>
               <button onClick={() => duplicate(s.id)} className="text-neutral-500 hover:text-emerald-300" aria-label="Duplikuj"><Copy className="h-3.5 w-3.5" /></button>
@@ -1457,7 +1457,7 @@ function MediaPicker({ serviceId, onPick, onClose }: { serviceId: string; onPick
         </div>
         <div className="mb-2 flex items-center gap-2 text-xs text-neutral-400">
           <button onClick={up} className="rounded border border-white/10 px-2 py-1 hover:text-white">↑ wyżej</button>
-          <span className="flex-1 truncate font-mono">/{dir}</span>
+          <span className="flex-1 break-words font-mono">/{dir}</span>
           <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={(e) => { handleUpload(e.target.files); e.target.value = ''; }} />
           <button onClick={() => fileRef.current?.click()} disabled={uploading} className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1 font-semibold text-white hover:bg-emerald-500 disabled:opacity-40">
             {uploading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />} Wgraj obraz
@@ -1545,7 +1545,7 @@ function TemplateGallery({ thumbs, onPick, onContinue, fsToggle }: { thumbs: Rec
             <div className="space-y-2 p-3">
               <div>
                 <p className="text-sm font-semibold text-white">{t.name}</p>
-                <p className="mt-0.5 line-clamp-2 text-[11px] text-neutral-500">{descs[t.key]}</p>
+                <p className="mt-0.5 text-[11px] text-neutral-500">{descs[t.key]}</p>
               </div>
               <div className="flex items-center gap-2">
                 <button onClick={() => onPick(t.key)} className="flex-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500">Użyj szablonu</button>

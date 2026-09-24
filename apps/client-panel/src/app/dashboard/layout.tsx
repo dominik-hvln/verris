@@ -191,7 +191,7 @@ function SetupProgress({ nazwa, procent, onOpen }: { nazwa: string; procent: num
       data-tip={`Konfiguracja usługi ${nazwa}: ${procent}%\nKliknij, aby zobaczyć pierwsze kroki`}
     >
       <span className="flex items-baseline justify-between gap-2 text-[12.5px] text-sidebar-foreground">
-        <span className="min-w-0 truncate">Konfiguracja · {nazwa}</span>
+        <span className="min-w-0 break-words">Konfiguracja · {nazwa}</span>
         <span className="font-mono text-[11.5px] text-verris-mint">{procent}%</span>
       </span>
       <span className="mt-1.5 block h-[4px] overflow-hidden rounded-[2px] bg-white/[0.08]" role="progressbar" aria-valuenow={procent} aria-valuemin={0} aria-valuemax={100} aria-label={`Konfiguracja ${nazwa}`}>

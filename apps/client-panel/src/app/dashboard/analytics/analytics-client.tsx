@@ -122,7 +122,7 @@ export function AnalyticsClient({
         suggestedDomain={services.find((s) => s.id === subId)?.domain ?? ''}
         onAdded={async () => {
           await load(subId);
-          flash('ok', 'Property dodane. Wklej snippet na stronę.');
+          flash('ok', 'Strona dodana. Wklej kod śledzący na stronę.');
         }}
         flash={flash}
       />
@@ -131,7 +131,7 @@ export function AnalyticsClient({
         <p className="text-sm text-neutral-400">Ładowanie…</p>
       ) : sites.length === 0 ? (
         <p className="rounded-xl border border-white/10 bg-black/20 p-6 text-center text-sm text-neutral-400">
-          Brak property. Dodaj domenę powyżej, aby zacząć zbierać statystyki.
+          Nie śledzisz jeszcze żadnej strony. Dodaj domenę powyżej, aby zacząć zbierać statystyki.
         </p>
       ) : (
         <div className="space-y-3">
@@ -185,7 +185,7 @@ function AddSiteForm({
   return (
     <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
       <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
-        <Plus className="h-4 w-4 text-cyan-300" /> Nowe property
+        <Plus className="h-4 w-4 text-cyan-300" /> Nowa strona do śledzenia
       </h2>
       <div className="flex flex-wrap gap-2">
         <input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="example.pl" className="an-inp2 flex-1 min-w-[220px]" />
@@ -194,8 +194,8 @@ function AddSiteForm({
         </button>
       </div>
       <style jsx>{`
-        :global(.an-inp2){border-radius:.6rem;border:1px solid rgba(255,255,255,.1);background:rgba(0,0,0,.3);padding:.5rem .7rem;font-size:.875rem;color:#fff;outline:none}
-        :global(.an-btn){display:inline-flex;align-items:center;gap:.5rem;border-radius:.7rem;background:#0891b2;padding:.5rem .9rem;font-size:.85rem;font-weight:600;color:#fff}
+        :global(.an-inp2){border-radius:.6rem;border:1px solid var(--line-strong);background:var(--background);padding:.5rem .7rem;font-size:.875rem;color:var(--foreground);outline:none}
+        :global(.an-btn){display:inline-flex;align-items:center;gap:.5rem;border-radius:.7rem;background:var(--primary);padding:.5rem .9rem;font-size:.85rem;font-weight:600;color:var(--primary-foreground)}
         :global(.an-btn:disabled){opacity:.5}
       `}</style>
     </section>
@@ -259,7 +259,7 @@ function SiteCard({
   const remove = () => {
     start(async () => {
       const r = await deleteSite(subId, site.id);
-      if (r.ok) { flash('ok', 'Property usunięte.'); await onChanged(); } else flash('err', r.error);
+      if (r.ok) { flash('ok', 'Strona usunięta ze śledzenia.'); await onChanged(); } else flash('err', r.error);
     });
   };
 
@@ -282,9 +282,9 @@ function SiteCard({
       {open && (
         <div className="space-y-5 border-t border-white/10 p-4">
           <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-            <p className="mb-2 text-xs font-medium text-neutral-300">Snippet — wklej tuż przed &lt;/head&gt; na swojej stronie:</p>
+            <p className="mb-2 text-xs font-medium text-neutral-300">Kod śledzący — wklej tuż przed &lt;/head&gt; na swojej stronie:</p>
             <div className="flex items-center gap-2">
-              <code className="flex-1 overflow-x-auto whitespace-nowrap rounded-lg bg-black/50 px-3 py-2 text-[11px] text-cyan-200">{snippet}</code>
+              <code className="min-w-0 flex-1 break-all rounded-lg bg-black/50 px-3 py-2 text-[11px] text-cyan-200">{snippet}</code>
               <button onClick={copy} className="shrink-0 rounded-lg border border-white/10 px-2.5 py-2 text-neutral-300 hover:bg-white/5">
                 {copied ? <Check className="h-4 w-4 text-emerald-300" /> : <Copy className="h-4 w-4" />}
               </button>
@@ -375,7 +375,7 @@ function RankList({ title, rows, empty }: { title: string; rows: Array<{ label: 
             <div key={i} className="relative overflow-hidden rounded-md">
               <div className="absolute inset-y-0 left-0 rounded-md bg-cyan-500/15" style={{ width: `${(r.count / max) * 100}%` }} />
               <div className="relative flex items-center justify-between px-2 py-1 text-xs">
-                <span className="truncate text-neutral-200">{r.label || '—'}</span>
+                <span className="break-words text-neutral-200">{r.label || '—'}</span>
                 <span className="ml-2 shrink-0 font-medium text-neutral-400">{r.count}</span>
               </div>
             </div>

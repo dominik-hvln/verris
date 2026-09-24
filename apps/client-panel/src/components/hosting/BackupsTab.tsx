@@ -120,7 +120,7 @@ export default function BackupsTab({ serviceId }: { serviceId: string }) {
             >
               <div className="flex items-center gap-2">
                 <Database className="h-4 w-4 shrink-0 text-neutral-400" />
-                <span className="min-w-0 flex-1 truncate font-mono text-[13px]">{row.fileName}</span>
+                <span className="min-w-0 flex-1 break-words font-mono text-[13px]">{row.fileName}</span>
                 <button
                   type="button"
                   disabled={Boolean(job?.active)}

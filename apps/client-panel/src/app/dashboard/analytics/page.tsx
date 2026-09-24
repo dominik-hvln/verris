@@ -26,7 +26,7 @@ export default async function AnalyticsPage() {
       <PageHeaderRow
         icon={<BarChart3 className="h-6 w-6 text-cyan-300" />}
         title="Analityka stron"
-        description="Prywatna analityka odwiedzin bez cookies i bez danych osobowych — zgodna z RODO, bez bannera zgód. Wklej jeden lekki snippet i śledź ruch."
+        description="Prywatna analityka odwiedzin bez cookies i bez danych osobowych — zgodna z RODO, bez banera zgód. Wklej jeden lekki kod śledzący i obserwuj ruch."
       />
       {error ? (
         <div role="alert" className="rounded-2xl border border-rose-400/30 bg-rose-400/10 px-4 py-3 text-sm text-rose-200">{error}</div>

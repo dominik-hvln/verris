@@ -241,7 +241,7 @@ function PartnerEarnings() {
           <div className="space-y-1.5 text-sm">
             {commissions.slice(0, 20).map((c) => (
               <div key={c.id} className="flex items-center justify-between gap-2 border-b border-white/5 py-1.5 last:border-0">
-                <span className="truncate text-neutral-300">{new Date(c.createdAt).toLocaleDateString('pl-PL')} · {c.kind === 'MILESTONE_BONUS' ? 'Bonus' : `Prowizja ${c.pct ?? ''}%`}</span>
+                <span className="break-words text-neutral-300">{new Date(c.createdAt).toLocaleDateString('pl-PL')} · {c.kind === 'MILESTONE_BONUS' ? 'Bonus' : `Prowizja ${c.pct ?? ''}%`}</span>
                 <span className="font-mono tabular-nums text-emerald-300">+{pln(Number(c.amount))}</span>
                 <CommissionBadge status={c.status} />
               </div>

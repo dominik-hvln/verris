@@ -110,7 +110,7 @@ export default function HostingManagerPage() {
             Usługi
           </Link>
           <span aria-hidden>/</span>
-          <span className="truncate font-semibold text-foreground">
+          <span className="break-words font-semibold text-foreground">
             {!kindResolved ? 'Wczytywanie…' : isEmail ? 'Poczta' : 'Hosting'}
             {activeTab !== 'overview' ? <span className="font-normal text-muted-foreground"> / {TABS.find((t) => t.id === activeTab)?.label}</span> : null}
           </span>

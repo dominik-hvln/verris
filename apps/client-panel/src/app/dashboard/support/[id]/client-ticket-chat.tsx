@@ -43,7 +43,7 @@ function AttachmentChips({
           rel="noreferrer"
         >
           <Paperclip className="h-3 w-3 shrink-0 opacity-90" />
-          <span className="max-w-[14rem] truncate">{a.originalName}</span>
+          <span className="max-w-[14rem] break-words">{a.originalName}</span>
           <span className="opacity-70">({formatBytes(a.sizeBytes)})</span>
         </a>
       ))}

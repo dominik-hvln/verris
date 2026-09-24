@@ -168,7 +168,7 @@ export function ApiTokensClient() {
       <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-5">
         <h3 className="text-sm font-semibold text-white">Jak używać</h3>
         <p className="mt-2 text-sm text-neutral-400">Wszystkie żądania kieruj na <code className="text-neutral-300">{BASE_HINT}</code> z nagłówkiem autoryzacji. Przykład:</p>
-        <pre className="mt-2 overflow-x-auto rounded-lg bg-black/50 border border-white/10 p-3 text-xs text-emerald-300"><code>{`curl -H "Authorization: Bearer vrs_live_…" \\
+        <pre className="mt-2 whitespace-pre-wrap break-all rounded-lg bg-black/50 border border-white/10 p-3 text-xs text-emerald-300"><code>{`curl -H "Authorization: Bearer vrs_live_…" \\
   https://api.verris.pl/api/v1/services`}</code></pre>
         <p className="mt-2 text-[11px] text-neutral-500">Dostępne na start (read-only): <code>GET /api/v1/me</code>, <code>/services</code>, <code>/services/:id</code>, <code>/billing/wallet</code>, <code>/invoices</code>. Operacje zapisu i webhooki dodamy wkrótce.</p>
       </section>

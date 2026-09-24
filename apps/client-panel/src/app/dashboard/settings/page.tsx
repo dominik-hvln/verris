@@ -244,7 +244,7 @@ export default function SettingsPage() {
       </div>
 
       {/* Tab Navigation */}
-      <div role="tablist" className="flex shrink-0 gap-0.5 overflow-x-auto border-b border-line [scrollbar-width:none]">
+      <div role="tablist" className="flex shrink-0 flex-wrap gap-0.5 border-b border-line">
         {visibleTabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (

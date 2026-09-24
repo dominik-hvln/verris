@@ -207,7 +207,7 @@ export default function SitePage() {
           </div>
         </header>
 
-        <div role="tablist" className="-mt-1.5 flex gap-0.5 overflow-x-auto border-b border-line [scrollbar-width:none]">
+        <div role="tablist" className="-mt-1.5 flex flex-wrap gap-0.5 border-b border-line">
           {SITE_TABS.map(([id, label]) => (
             <button
               key={id}

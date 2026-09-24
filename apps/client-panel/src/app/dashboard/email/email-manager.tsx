@@ -161,7 +161,7 @@ export function EmailManager({
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <Mail className="h-4 w-4 text-white shrink-0" aria-hidden />
-                  <p className="font-medium text-white truncate">{box.email}</p>
+                  <p className="font-medium text-white break-words">{box.email}</p>
                 </div>
                 <p className="mt-1 text-xs text-muted-foreground">
                   Limit: {box.quotaMb != null ? `${box.quotaMb} MB` : 'brak limitu'}

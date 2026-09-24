@@ -76,7 +76,7 @@ export function CommandPalette({ items }: { items: PaletteItem[] }) {
         aria-label="Szukaj lub zrób coś"
       >
         <Search className="h-[15px] w-[15px] shrink-0" />
-        <span className="hidden flex-1 truncate sm:inline">Szukaj lub zrób coś…</span>
+        <span className="hidden flex-1 break-words sm:inline">Szukaj lub zrób coś…</span>
         <kbd className="hidden rounded border border-b-2 border-line-strong bg-raised px-1.5 font-mono text-[11px] text-foreground sm:inline">/</kbd>
       </button>
       {/* Portal: pasek górny ma backdrop-blur, który zamyka `fixed` w swoim obrysie.
@@ -127,7 +127,7 @@ export function CommandPalette({ items }: { items: PaletteItem[] }) {
                   onClick={() => run(it)}
                   className={`flex cursor-pointer items-center justify-between gap-2.5 rounded-md px-2.5 py-2 text-sm text-foreground ${i === sel ? 'bg-raised' : ''}`}
                 >
-                  <span className="truncate">{it.label}</span>
+                  <span className="break-words">{it.label}</span>
                   <small className="shrink-0 font-mono text-xs text-muted-foreground">{it.hint}</small>
                 </li>
               ))}

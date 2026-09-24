@@ -115,12 +115,12 @@ export function ServicesHealthOverview({ services }: { services: ServiceSummaryD
                     <span
                       className={`h-2 w-2 shrink-0 rounded-full ${label === 'critical' ? 'bg-rose-400' : 'bg-amber-400'}`}
                     />
-                    <span className="truncate">{s.planName}</span>
+                    <span className="break-words">{s.planName}</span>
                     {s.serviceTag ? (
                       <span className="shrink-0 font-mono text-[10px] text-neutral-500">{s.serviceTag}</span>
                     ) : null}
                   </p>
-                  <p className="mt-0.5 truncate text-xs text-neutral-400">
+                  <p className="mt-0.5 break-words text-xs text-neutral-400">
                     {s.account?.domain ? `${s.account.domain} — ` : ''}
                     {reasons.slice(0, 3).join(', ')}
                   </p>

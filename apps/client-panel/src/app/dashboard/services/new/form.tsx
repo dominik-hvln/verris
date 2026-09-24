@@ -354,7 +354,7 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
                 </div>
                 <h3 className="mt-2 text-2xl font-bold text-white">{plan.name}</h3>
                 {plan.description ? (
-                  <p className="mt-1 text-sm text-neutral-400 line-clamp-2">{plan.description}</p>
+                  <p className="mt-1 text-sm text-neutral-400">{plan.description}</p>
                 ) : null}
                 <div className="mt-6 space-y-2 text-sm text-neutral-300">
                   <Spec icon={<Cpu className="h-4 w-4 text-neutral-400" />} label={`${plan.cpuLimit}% CPU`} />

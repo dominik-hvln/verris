@@ -222,7 +222,7 @@ export function DnsManager({
                   {r.type}
                 </span>
                 <div className="min-w-0">
-                  <p className="font-mono text-sm text-white truncate">{r.name}</p>
+                  <p className="font-mono text-sm text-white break-words">{r.name}</p>
                   <p className="font-mono text-xs text-neutral-400 break-all">
                     {r.value}
                     {r.ttl ? <span className="text-neutral-600"> · TTL {r.ttl}</span> : null}
@@ -320,7 +320,7 @@ function RecordForm({
               placeholder="np. www, mail, @"
               className="flex-1 bg-transparent px-3 py-2 text-sm text-white outline-none"
             />
-            <span className="px-2 text-xs text-neutral-500 truncate max-w-[45%]">.{domain}</span>
+            <span className="px-2 text-xs text-neutral-500 break-words max-w-[45%]">.{domain}</span>
           </div>
         </label>
       </div>

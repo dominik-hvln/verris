@@ -56,3 +56,22 @@ it('żaden plik panelu nie pokazuje systemowego wyboru plików', () => {
   przejdz(join(__dirname, '..'));
   expect(trafienia).toEqual([]);
 });
+
+/**
+ * Zasada PB-16 „nic się nie chowa”: bez wielokropka w treści (truncate, line-clamp) i bez list
+ * przewijanych w bok z ukrytym paskiem — to, czego klient nie widzi, dla niego nie istnieje.
+ */
+it('żaden plik panelu nie ucina treści ani nie chowa jej za ukrytym przewijaniem', () => {
+  const trafienia: string[] = [];
+  const przejdz = (dir: string) => {
+    for (const n of readdirSync(dir)) {
+      const p = join(dir, n);
+      if (statSync(p).isDirectory()) przejdz(p);
+      else if (n.endsWith('.tsx') && /(?<![\w-])(?:truncate|line-clamp-\d|scrollbar-none|no-scrollbar)(?![\w-])|\[scrollbar-width:none\]/.test(readFileSync(p, 'utf8'))) {
+        trafienia.push(p.split('/src/')[1]!);
+      }
+    }
+  };
+  przejdz(join(__dirname, '..'));
+  expect(trafienia).toEqual([]);
+});

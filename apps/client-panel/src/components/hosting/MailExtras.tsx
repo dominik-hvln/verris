@@ -152,7 +152,7 @@ export default function MailExtras({ serviceId }: { serviceId: string }) {
                 <div className="min-w-0">
                   <span className="font-medium text-white">{r.email}</span>
                   <span className="text-neutral-500"> → </span>
-                  <span className="truncate text-neutral-300">{r.destinations.join(', ')}</span>
+                  <span className="break-words text-neutral-300">{r.destinations.join(', ')}</span>
                 </div>
                 <button onClick={() => delForward(r.name)} disabled={fwDel === r.name} className="shrink-0 text-neutral-500 hover:text-rose-300" title="Usuń alias">
                   {fwDel === r.name ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}

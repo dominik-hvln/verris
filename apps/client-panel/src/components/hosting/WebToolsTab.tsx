@@ -164,7 +164,7 @@ export default function WebToolsTab({ serviceId }: { serviceId: string }) {
           <div className="mt-3 space-y-1.5">
             {state.redirects.map((r, i) => (
               <div key={i} className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm">
-                <div className="min-w-0 truncate"><span className="font-mono text-white">{r.from}</span><span className="text-neutral-500"> → </span><span className="truncate text-neutral-300">{r.to}</span> <span className="text-[10px] text-neutral-500">[{r.type}]</span></div>
+                <div className="min-w-0 break-words"><span className="font-mono text-white">{r.from}</span><span className="text-neutral-500"> → </span><span className="break-words text-neutral-300">{r.to}</span> <span className="text-[10px] text-neutral-500">[{r.type}]</span></div>
                 <button onClick={() => delRedirect(i)} className="shrink-0 text-neutral-500 hover:text-rose-300"><Trash2 className="h-4 w-4" /></button>
               </div>
             ))}

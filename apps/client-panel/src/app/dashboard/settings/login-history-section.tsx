@@ -66,7 +66,7 @@ export function LoginHistorySection() {
               <div className="min-w-0 space-y-0.5">
                 <div className="flex items-center gap-2 text-sm text-white">
                   <Monitor className="h-3.5 w-3.5 shrink-0 text-neutral-500" />
-                  <span className="truncate">{r.device ?? "Nieznane urządzenie"}</span>
+                  <span className="break-words">{r.device ?? "Nieznane urządzenie"}</span>
                   {r.isNewDevice ? (
                     <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-300">
                       <ShieldAlert className="h-3 w-3" /> nowe urządzenie

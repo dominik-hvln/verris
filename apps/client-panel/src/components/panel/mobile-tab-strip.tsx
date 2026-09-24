@@ -2,6 +2,7 @@
 
 import type { LucideIcon } from 'lucide-react';
 import { cx } from './cx';
+import { Select } from './select';
 
 export type MobileTabItem<T extends string> = {
   id: T;
@@ -9,7 +10,11 @@ export type MobileTabItem<T extends string> = {
   icon?: LucideIcon;
 };
 
-/** Poziomy pasek zakładek na telefonie — bez wychodzenia poza viewport. */
+/**
+ * Wybór sekcji usługi na telefonie. Dawniej poziomy pasek z ukrytym przewijaniem i uciętymi etykietami —
+ * przy ~20 sekcjach większość była poza ekranem („nic nie może się ukrywać przed klientem”).
+ * Teraz jedna lista (własny Select): bieżąca sekcja widoczna, wszystkie pozostałe pełnymi nazwami.
+ */
 export function MobileTabStrip<T extends string>({
   tabs,
   active,
@@ -29,38 +34,17 @@ export function MobileTabStrip<T extends string>({
       className={cx(
         'lg:hidden w-full min-w-0',
         stickyBelowHeader &&
-          'sticky top-mobile-header z-30 -mx-3 border-b border-white/5 bg-black/95 px-3 py-2 backdrop-blur-xl sm:-mx-6 sm:px-6',
+          'sticky top-mobile-header z-30 -mx-3 border-b border-line bg-background/95 px-3 py-2 backdrop-blur-xl sm:-mx-6 sm:px-6',
         className,
       )}
     >
-      <div
-        className="flex w-full max-w-full gap-2 overflow-x-auto overscroll-x-contain pb-1 scrollbar-none snap-x snap-mandatory touch-pan-x"
-        role="tablist"
-        aria-label="Zakładki"
-      >
-        {tabs.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = active === tab.id;
-          return (
-            <button
-              key={tab.id}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              onClick={() => onChange(tab.id)}
-              className={cx(
-                'snap-start shrink-0 inline-flex max-w-[85vw] items-center gap-1.5 rounded-full border px-3 py-2 text-xs font-medium transition-colors',
-                isActive
-                  ? 'border-white bg-white text-black'
-                  : 'border-white/10 bg-white/5 text-neutral-400 hover:text-white',
-              )}
-            >
-              {Icon ? <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden /> : null}
-              <span className="truncate">{tab.label}</span>
-            </button>
-          );
-        })}
-      </div>
+      <Select
+        aria-label="Sekcja usługi"
+        value={active}
+        onChange={(v) => onChange(v as T)}
+        options={tabs.map((t) => ({ value: t.id, label: t.label }))}
+        className="w-full"
+      />
     </div>
   );
 }

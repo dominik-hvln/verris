@@ -139,7 +139,7 @@ export function DomainStep({
                       }`}
                     >
                       <div className="min-w-0">
-                        <p className="font-mono text-white truncate">{row.domain}</p>
+                        <p className="font-mono text-white break-words">{row.domain}</p>
                         <p className="text-xs text-neutral-400">
                           {row.available
                             ? price
