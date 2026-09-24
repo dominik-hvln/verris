@@ -9,6 +9,7 @@ import {
   fetchResellerClients,
   applyReseller,
   createResellerClient,
+  setResellerMarkup,
   type ResellerOverview,
   type ResellerClient as Client,
 } from './actions';
@@ -40,6 +41,22 @@ export function ResellerClient() {
     );
     setNowy({ email: '', firstName: '', lastName: '' });
     fetchResellerClients().then(setClients);
+  };
+
+  const [narzut, setNarzut] = useState<string | null>(null);
+  const zapiszNarzut = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const v = Number.parseInt(narzut ?? '', 10);
+    if (!Number.isInteger(v) || v < 0 || v > 300) {
+      toast.error('Narzut: liczba całkowita od 0 do 300%.');
+      return;
+    }
+    const r = await setResellerMarkup(v);
+    if (r.ok) {
+      setOv(r.data);
+      setNarzut(null);
+      toast.success(`Narzut ustawiony: ${r.data.markupPct}%. Nowe ceny detaliczne liczą się od razu.`);
+    } else toast.error(r.error);
   };
 
   const zloz = async () => {
@@ -127,6 +144,27 @@ export function ResellerClient() {
         </div>
         {ov.brandName ? <p className="text-xs text-neutral-500">Marka: <span className="text-neutral-300">{ov.brandName}</span></p> : null}
       </section>
+
+      {ov.status === 'ACTIVE' ? (
+        <form onSubmit={(e) => void zapiszNarzut(e)} className="flex flex-wrap items-end gap-2 rounded-2xl border border-white/10 bg-black/30 p-5">
+          <label className="text-sm font-medium text-white">
+            Twój narzut do ceny hurtowej (%)
+            <input
+              type="number"
+              min={0}
+              max={300}
+              step={1}
+              value={narzut ?? String(ov.markupPct)}
+              onChange={(e) => setNarzut(e.target.value)}
+              className="mt-1 block w-32 rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
+            />
+          </label>
+          <button type="submit" disabled={narzut === null || narzut === String(ov.markupPct)} className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50">
+            Zapisz narzut
+          </button>
+          <p className="w-full text-xs text-neutral-500">Cena dla Twoich klientów = cena hurtowa × (1 + narzut). Zmiana działa od razu w przeglądzie poniżej.</p>
+        </form>
+      ) : null}
 
       {ov.status === 'ACTIVE' ? (
         <section className="rounded-2xl border border-white/10 bg-black/30 p-5 space-y-3">

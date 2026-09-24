@@ -91,3 +91,17 @@ describe('ResellerService.createClient (O-06)', () => {
     await expect(st({ istnieje: true }).svc.createClient('r1', dto)).rejects.toMatchObject({ status: 409 });
   });
 });
+
+describe('ResellerService.setMarkup (O-07)', () => {
+  it('aktywny reseller zmienia narzut w granicach 0–300; nieaktywny → 403', async () => {
+    const profil = { id: 'p', userId: 'r1', status: 'ACTIVE', brandName: null, markupPct: 20, code: 'rsl_a', createdAt: new Date(), updatedAt: new Date() };
+    const repo = { findUnique: jest.fn(async () => profil), update: jest.fn(async () => profil) };
+    const prisma = { resellerProfile: repo, user: { findMany: jest.fn(async () => []) }, subscription: { findMany: jest.fn(async () => []) } };
+    const svc = new ResellerService(prisma as never, { record: jest.fn(async () => undefined) } as never, { send: jest.fn() } as never);
+    await svc.setMarkup('r1', 35);
+    expect(repo.update).toHaveBeenCalledWith({ where: { userId: 'r1' }, data: { markupPct: 35 } });
+    await expect(svc.setMarkup('r1', 301)).rejects.toMatchObject({ status: 400 });
+    repo.findUnique.mockResolvedValueOnce({ ...profil, status: 'SUSPENDED' });
+    await expect(svc.setMarkup('r1', 30)).rejects.toMatchObject({ status: 403 });
+  });
+});

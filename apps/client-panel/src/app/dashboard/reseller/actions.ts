@@ -59,3 +59,12 @@ export async function createResellerClient(input: { email: string; firstName: st
     return { ok: false, error: e instanceof ApiError || e instanceof Error ? e.message : 'Błąd' };
   }
 }
+
+/** O-07 — własny narzut resellera (0–300%). */
+export async function setResellerMarkup(markupPct: number): Promise<{ ok: true; data: ResellerOverview } | { ok: false; error: string }> {
+  try {
+    return { ok: true, data: await apiFetch<ResellerOverview>('/reseller/me/markup', { method: 'POST', body: JSON.stringify({ markupPct }) }) };
+  } catch (e) {
+    return { ok: false, error: e instanceof ApiError || e instanceof Error ? e.message : 'Błąd' };
+  }
+}

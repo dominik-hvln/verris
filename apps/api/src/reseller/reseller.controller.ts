@@ -1,5 +1,5 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
-import { IsEmail, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsEmail, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ResellerService } from './reseller.service';
@@ -13,6 +13,10 @@ class NowyKlientDto {
   @IsEmail() @MaxLength(254) email!: string;
   @IsString() @MinLength(1) @MaxLength(80) firstName!: string;
   @IsString() @MinLength(1) @MaxLength(80) lastName!: string;
+}
+
+class NarzutDto {
+  @IsInt() @Min(0) @Max(300) markupPct!: number;
 }
 
 /** RSL — panel resellera (self-service, JWT). */
@@ -37,6 +41,12 @@ export class ResellerController {
   @Post('me/clients')
   createClient(@CurrentUser() user: { userId: string }, @Body() body: NowyKlientDto) {
     return this.reseller.createClient(user.userId, body);
+  }
+
+  /** O-07 — własny narzut resellera. */
+  @Post('me/markup')
+  setMarkup(@CurrentUser() user: { userId: string }, @Body() body: NarzutDto) {
+    return this.reseller.setMarkup(user.userId, body.markupPct);
   }
 
   @Get('me/clients')

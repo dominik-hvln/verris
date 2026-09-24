@@ -215,6 +215,17 @@ export class ResellerService {
     return { id: user.id, email, mailWyslany, pozostaloDzis: LIMIT_KONT_DZIENNIE - dzis - 1 };
   }
 
+  /** O-07 — reseller sam ustawia swój narzut (te same granice co w panelu admina: 0–300%). */
+  async setMarkup(userId: string, markupPct: number) {
+    const p = await this.getProfile(userId);
+    if (!p || p.status !== 'ACTIVE') throw new ForbiddenException('Program resellerski nie jest aktywny na tym koncie.');
+    const v = Math.round(markupPct);
+    if (!Number.isFinite(v) || v < 0 || v > 300) throw new BadRequestException('Narzut: liczba całkowita od 0 do 300%.');
+    await this.repo.update({ where: { userId }, data: { markupPct: v } });
+    await this.audit.record({ action: 'RESELLER_MARKUP_CHANGED', userId, details: { from: p.markupPct, to: v } });
+    return this.getOverview(userId);
+  }
+
   async listClients(userId: string): Promise<ResellerClientView[]> {
     const p = await this.getProfile(userId);
     if (!p) throw new ForbiddenException('Konto nie jest resellerem.');
