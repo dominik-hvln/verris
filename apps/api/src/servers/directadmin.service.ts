@@ -658,7 +658,9 @@ export class DirectAdminService {
     if (!input.password || input.password.length < 8) {
       throw new BadRequestException('Hasło bazy musi mieć co najmniej 8 znaków.');
     }
+    this.assertAccountMutable(sub.account);
     const client = await this.getClientForHostingAccount(sub.account.id, userId);
+    // SDK rzuca przy `error=1` w treści (wcześniej 200 + błąd DA = „sukces”).
     const result = await client.createMysqlDatabase({
       name: input.name,
       user: input.user,
@@ -687,6 +689,7 @@ export class DirectAdminService {
     if (!sub.account?.id || !sub.account.daPasswordEnc) {
       throw new BadRequestException('Konto hostingowe nie jest jeszcze gotowe.');
     }
+    this.assertAccountMutable(sub.account);
     const client = await this.getClientForHostingAccount(sub.account.id, userId);
     await client.deleteMysqlDatabase(fullName);
     await this.audit.record({
@@ -797,6 +800,19 @@ export class DirectAdminService {
     }
   }
 
+  /**
+   * SEC-2: blokuj mutacje na koncie zawieszonym/usuniętym (PROVISIONING dozwolony,
+   * bo provisioning wykonuje operacje przed przejściem w ACTIVE). Odczyty celowo nie
+   * są blokowane. Wołane też z mutacji idących przez SDK, nie tylko z daFormForSubscription.
+   */
+  private assertAccountMutable(account: { status: string }): void {
+    if (account.status === 'SUSPENDED' || account.status === 'DELETED') {
+      throw new BadRequestException(
+        'Konto hostingowe jest zawieszone — operacja niedostępna. Skontaktuj się z pomocą.',
+      );
+    }
+  }
+
   private async daFormForSubscription(
     subscriptionId: string,
     userId: string,
@@ -810,14 +826,7 @@ export class DirectAdminService {
     });
     if (!sub) throw new NotFoundException('Service not found');
     if (!sub.account?.id) throw new BadRequestException('Subscription has no hosting account yet');
-    // SEC-2: blokuj mutacje na koncie zawieszonym/usuniętym (PROVISIONING dozwolony,
-    // bo provisioning wykonuje operacje przed przejściem w ACTIVE). Odczyty
-    // (daGetForSubscription) celowo nie są tu blokowane.
-    if (sub.account.status === 'SUSPENDED' || sub.account.status === 'DELETED') {
-      throw new BadRequestException(
-        'Konto hostingowe jest zawieszone — operacja niedostępna. Skontaktuj się z pomocą.',
-      );
-    }
+    this.assertAccountMutable(sub.account);
     const client = await this.getClientForHostingAccount(sub.account.id, userId);
     const axiosClient = (client as unknown as { client?: SurowyKlientDa }).client;
     if (!axiosClient) throw new BadRequestException('DirectAdmin client is not available');
@@ -1587,6 +1596,7 @@ export class DirectAdminService {
   async saveHostingWebTools(subscriptionId: string, userId: string, input: Partial<WebToolsState>): Promise<{ ok: true }> {
     const sub = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, include: { account: true } });
     if (!sub?.account?.id) throw new BadRequestException('Brak konta hostingowego.');
+    this.assertAccountMutable(sub.account);
     const domain = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
     if (!domain) throw new BadRequestException('Brak domeny dla konta hostingowego.');
     // walidacja
@@ -1647,6 +1657,7 @@ export class DirectAdminService {
   ): Promise<{ ok: true }> {
     const sub = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, include: { account: true } });
     if (!sub?.account?.id || !sub.account.daUsername) throw new BadRequestException('Brak konta hostingowego.');
+    this.assertAccountMutable(sub.account);
     const domain = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);
     if (!domain) throw new BadRequestException('Brak domeny dla konta hostingowego.');
     const rel = String(input.dir || '').replace(/^\/+|\/+$/g, '').replace(/\\/g, '/');
@@ -1678,6 +1689,7 @@ export class DirectAdminService {
   async removeHostingDirectoryProtection(subscriptionId: string, userId: string, dirRaw: string): Promise<{ ok: true }> {
     const sub = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, include: { account: true } });
     if (!sub?.account?.id) throw new BadRequestException('Brak konta hostingowego.');
+    this.assertAccountMutable(sub.account);
     const rel = String(dirRaw || '').replace(/^\/+|\/+$/g, '').replace(/\\/g, '/');
     if (rel.includes('..') || /[^a-zA-Z0-9 _./-]/.test(rel)) throw new BadRequestException('Nieprawidłowa ścieżka katalogu.');
     const dir = rel ? `${this.WT_STATE_DIR}/${rel}` : this.WT_STATE_DIR;
@@ -1716,6 +1728,7 @@ export class DirectAdminService {
     if (!sub?.account?.id) throw new BadRequestException('Brak konta hostingowego.');
     const domain = String(input.domain || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
     if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain)) throw new BadRequestException('Nieprawidłowa nazwa domeny.');
+    this.assertAccountMutable(sub.account);
     const client = await this.getClientForHostingAccount(sub.account.id, userId);
     await client.createDomain(domain);
     await this.audit.record({
@@ -1992,6 +2005,7 @@ export class DirectAdminService {
       throw new BadRequestException('Hasło musi mieć co najmniej 8 znaków.');
     }
     const { account, client } = await this.accountClientForSubscription(subscriptionId, userId);
+    this.assertAccountMutable(account);
     const result = await client.createDbUser(dbName, input.user, input.password);
     await this.audit.record({
       action: HostingResourceActions.HOSTING_DB_USER_CREATED,
@@ -2012,6 +2026,7 @@ export class DirectAdminService {
     const dbUser = String(input.user || '').trim();
     if (!dbName || !dbUser) throw new BadRequestException('Brak bazy lub użytkownika.');
     const { account, client } = await this.accountClientForSubscription(subscriptionId, userId);
+    this.assertAccountMutable(account);
     await client.deleteDbUser(dbName, dbUser);
     await this.audit.record({
       action: HostingResourceActions.HOSTING_DB_USER_DELETED,
@@ -2035,6 +2050,7 @@ export class DirectAdminService {
       throw new BadRequestException('Hasło musi mieć co najmniej 8 znaków.');
     }
     const { account, client } = await this.accountClientForSubscription(subscriptionId, userId);
+    this.assertAccountMutable(account);
     await client.setDbUserPassword(dbName, dbUser, input.password);
     await this.audit.record({
       action: HostingResourceActions.HOSTING_DB_USER_PASSWORD_CHANGED,
@@ -2068,6 +2084,7 @@ export class DirectAdminService {
     const redirectUrl = redirects[target];
     if (!redirectUrl) throw new BadRequestException('Nieznany cel logowania.');
     const { account, client } = await this.accountClientForSubscription(subscriptionId, userId);
+    this.assertAccountMutable(account);
     const url = await client.createOneTimeLoginUrl({ redirectUrl, expiry: '2m' });
     await this.audit.record({
       action: HostingResourceActions.HOSTING_SSO_URL_CREATED,
@@ -2419,6 +2436,7 @@ export class DirectAdminService {
     const domain = input.domain.trim();
     const subdomain = input.subdomain.trim();
     if (!domain || !subdomain) throw new BadRequestException('Domena i poddomena są wymagane.');
+    if (!SUBDOMAIN_DO_USUNIECIA.test(subdomain)) throw new BadRequestException('Nieprawidłowa nazwa poddomeny.');
     await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_SUBDOMAINS', {
       action: 'delete',
       domain,
@@ -2496,6 +2514,7 @@ export class DirectAdminService {
     const domain = input.domain.trim();
     const subdomain = input.subdomain.trim();
     if (!domain || !subdomain) throw new BadRequestException('Domena i poddomena są wymagane.');
+    if (!SUBDOMAIN_DO_USUNIECIA.test(subdomain)) throw new BadRequestException('Nieprawidłowa nazwa poddomeny.');
     await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_SUBDOMAINS', {
       action: 'delete',
       domain,
@@ -2794,7 +2813,7 @@ export class DirectAdminService {
       const minute = parts[0] === '*' ? '0' : parts[0];
       const hour = parts[1] === '*' ? '2' : parts[1];
       try {
-        await this.deleteHostingCronJob(subscriptionId, userId, row.id);
+        // Najpierw nowe, potem stare (jak L-03): odrzucone create nie może zostawić konta bez crona kopii.
         await this.createHostingCronJob(subscriptionId, userId, {
           minute,
           hour,
@@ -2803,6 +2822,7 @@ export class DirectAdminService {
           dayOfWeek: ecoEnabled ? '0' : '*',
           command: row.command,
         });
+        await this.deleteHostingCronJob(subscriptionId, userId, row.id);
         adjusted += 1;
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
@@ -3025,6 +3045,9 @@ export class DirectAdminService {
     return { synced };
   }
 }
+
+/** Poddomena kasowana z contents=yes (usuwa też pliki): bez „/”, „..” i znaków sterujących. */
+const SUBDOMAIN_DO_USUNIECIA = /^(?!.*\.\.)[a-z0-9_][a-z0-9._-]{0,62}$/i;
 
 function emptyMetric(): { used: number | null; limit: number | null } {
   return { used: null, limit: null };

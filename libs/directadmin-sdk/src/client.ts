@@ -931,7 +931,7 @@ export class DirectAdminClient {
    */
   async requestLetsEncrypt(domain: string, opts: { includeWww?: boolean } = {}): Promise<void> {
     const names = opts.includeWww === false ? domain : `${domain},www.${domain}`;
-    await this.client.post(
+    const response = await this.client.post(
       '/CMD_API_SSL',
       new URLSearchParams({
         domain,
@@ -947,6 +947,7 @@ export class DirectAdminClient {
       }).toString(),
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
     );
+    this.rzucJesliBladDa(response.data, 'DirectAdmin odrzucił zamówienie certyfikatu Let’s Encrypt.');
   }
 
   async getDomains(): Promise<string[]> {
@@ -982,7 +983,7 @@ export class DirectAdminClient {
     password: string;
   }): Promise<{ database: string; username: string }> {
     const accountUser = this.usernameForDbPrefix();
-    await this.client.post(
+    const response = await this.client.post(
       '/CMD_API_DATABASES',
       new URLSearchParams({
         action: 'create',
@@ -993,6 +994,7 @@ export class DirectAdminClient {
       }).toString(),
       { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } },
     );
+    this.rzucJesliBladDa(response.data, 'DirectAdmin odrzucił utworzenie bazy danych.');
     return {
       database: `${accountUser}_${input.name}`,
       username: `${accountUser}_${input.user}`,
@@ -1306,6 +1308,24 @@ export class DirectAdminClient {
       return params;
     }
     return new URLSearchParams();
+  }
+
+  /**
+   * DA potrafi odpowiedzieć HTTP 200 z `error=1` w treści. Metoda, która treści nie
+   * czyta, zgłasza wtedy sukces — tak baza „powstawała” przy instalacji WordPressa,
+   * aplikacji 1-click i stagingu, choć DA jej nie założył.
+   */
+  private rzucJesliBladDa(data: unknown, domyslny: string): void {
+    if (!this.popPayloadIndicatesError(data)) return;
+    let tekst: unknown;
+    if (data && typeof data === 'object' && !Array.isArray(data)) {
+      const r = data as Record<string, unknown>;
+      tekst = r.text ?? r.details ?? r.result;
+    } else if (typeof data === 'string') {
+      const p = new URLSearchParams(data);
+      tekst = p.get('text') || p.get('details');
+    }
+    throw new Error(tekst != null && String(tekst).trim() ? String(tekst).trim() : domyslny);
   }
 
   private popPayloadIndicatesError(data: unknown): boolean {
