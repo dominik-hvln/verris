@@ -158,7 +158,7 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
 | `DEV-01` | Baza deweloperska jest nieosiągalna, a `docker-compose.yml` opisuje stan, którego nie ma | 6 | WYSOKA | D3 (maszyna deweloperska): `FATAL: role "verris" does not exist` oraz `role "postgres" does not exist` przy połączeniu po gnieździe wewnątrz kontenera |
-| `DEP-01` | Osiem otwartych pull requestów Dependabota, żaden niescalony | 6 | WYSOKA | GitHub: 8 otwartych PR-ów, przebiegi CI #147–#150 od `dependabot[bot]`, 2026-08-28 |
+| `DEP-01` | Osiem otwartych pull requestów Dependabota, żaden niescalony | 6 | WYSOKA | 2026-09-24: #39 (22 × minor/patch, lockfile wprost z PR), #30–#33 (akcje GitHuba) wciągnięte na main lokalnie; #28 (graphql 17) wyciszony w .github/de |
 | `ENV-01` | Bramka lokalna biegnie na Node 20, CI na Node 22 | 6 | ŚREDNIA | D3: ostrzeżenie `pnpm` przy każdym `pnpm test` wobec `node-version: 22` w `ci.yml`. Zamknięte częściowo 2026-08-28: `.nvmrc` = 22, strażnik `wersja-no |
 | `X-50` | Bramka podatnosci zatrzymuje cokolwiek — jest wymagana do merge i wolana przez wdrozenie | 6 | WYSOKA | D2 2026-09-19: .github/workflows/deploy.yml — krok "Bramka podatnosci" w jobie test-gate; ruleset 21161479 — "Security scans (gitleaks + audit + trivy |
 | `X-51` | Etykiety z dependabot.yml istnieja w repozytorium | 6 | NISKA | D2 2026-09-19: utworzone etykiety dependencies, security, docker, ci — 9 -> 13 etykiet w repozytorium; pokrywaja wszystkie trzy sekcje labels: w .gith |
@@ -169,7 +169,7 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 **Definicja ukończenia**
 
 - `DEV-01` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
-- `DEP-01` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
+- `DEP-01` — Ograniczenie opisane w uwagach macierzy zniknęło; test potwierdza zachowanie także w scenariuszu awaryjnym.
 - `ENV-01` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-50` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
 - `X-51` — Funkcja dostępna z panelu klienta bez wychodzenia do DirectAdmina; test uruchamiany w CI.
