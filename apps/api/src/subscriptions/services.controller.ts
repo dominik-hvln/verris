@@ -36,6 +36,7 @@ import { OffsiteRestoreService } from './offsite-restore.service';
 import { DbTransferService } from './db-transfer.service';
 import { FileRestoreService } from './file-restore.service';
 import { SshAccessService } from './ssh-access.service';
+import { WpUpdateService } from './wp-update.service';
 import { HostingRestoreDto } from './dto/hosting-restore.dto';
 import { WordpressService } from './wordpress.service';
 import { InstallWordpressDto } from './dto/wordpress.dto';
@@ -81,6 +82,9 @@ import {
   ListaArchiwumDto,
   DostepSshDto,
   KluczeSshDto,
+  WordpressDomenyDto,
+  AktualizacjaWordpressaDto,
+  AutomatWordpressaDto,
   OdtworzenieZArchiwumDto,
   ImportBazyDto,
   WersjaPhpDto,
@@ -106,6 +110,7 @@ export class UserServicesController {
     private readonly dbTransfer: DbTransferService,
     private readonly fileRestore: FileRestoreService,
     private readonly sshAccess: SshAccessService,
+    private readonly wpUpdate: WpUpdateService,
     private readonly wordpress: WordpressService,
     private readonly waf: WafService,
     private readonly siteMonitor: SiteMonitorService,
@@ -1056,6 +1061,29 @@ export class UserServicesController {
   @Post(':id/hosting-ssh/keys')
   async setHostingSshKeys(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: KluczeSshDto) {
     return this.sshAccess.ustawKlucze(id, user.userId, body.keys);
+  }
+
+  // I-04/I-05 — aktualizacje WordPressa domeny (zadanie węzła, kopia + wycofanie).
+  @Get(':id/hosting-wp-updates')
+  async hostingWpUpdates(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Query('domain') domain: string) {
+    return this.wpUpdate.status(id, user.userId, domain);
+  }
+
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:wp-update' })
+  @Post(':id/hosting-wp-updates/check')
+  async checkHostingWpUpdates(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: WordpressDomenyDto) {
+    return this.wpUpdate.sprawdz(id, user.userId, body.domain);
+  }
+
+  @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: 'hosting:wp-update' })
+  @Post(':id/hosting-wp-updates/run')
+  async runHostingWpUpdates(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: AktualizacjaWordpressaDto) {
+    return this.wpUpdate.aktualizuj(id, user.userId, body);
+  }
+
+  @Post(':id/hosting-wp-updates/auto')
+  async setHostingWpAutoUpdates(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: AutomatWordpressaDto) {
+    return this.wpUpdate.ustawAutomat(id, user.userId, body);
   }
 
   @Get(':id/hosting-offsite')

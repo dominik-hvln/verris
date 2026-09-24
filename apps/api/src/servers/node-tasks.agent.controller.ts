@@ -29,6 +29,7 @@ import { loadOffsiteRestoreScript } from './offsite-restore.script';
 import { loadDbTransferScript } from './db-transfer.script';
 import { loadFileRestoreScript } from './file-restore.script';
 import { loadSshAccessScript } from './ssh-access.script';
+import { loadWpUpdateScript } from './wp-update.script';
 import { loadNodeUpdateScript } from './node-update.script';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 
@@ -137,6 +138,13 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   sshAccessScript() {
     return loadSshAccessScript();
+  }
+
+  /** I-04/I-05 — aktualizacje WordPressa domeny (run with WPU_* env). */
+  @Get('wp-update/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  wpUpdateScript() {
+    return loadWpUpdateScript();
   }
 
   /** VER-UPG — MariaDB engine upgrade script (run with DB_TARGET_VERSION env). */

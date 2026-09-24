@@ -641,6 +641,7 @@ enum NodeTaskKind {
   DB_TRANSFER       // D-12 — eksport / import bazy klienta (~/verris-bazy)
   FILE_RESTORE      // H-10/H-11 — podgląd archiwum kopii i odtworzenie pliku (~/verris-odtworzone)
   SSH_ACCESS        // C-21/C-22 — SSH w klatce CageFS i klucze SSH konta
+  WP_UPDATE         // I-04/I-05 — sprawdzenie i aktualizacja WordPressa domeny (kopia + wycofanie)
 }
 
 enum WafMode {
@@ -1185,6 +1186,8 @@ model Account {
   // platform-initiated snapshot). Feeds the health-score backup-freshness check.
   lastBackupAt    DateTime?
 
+  wpAutoUpdates   WpAutoUpdate[]
+
   userId          String
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -1199,6 +1202,24 @@ model Account {
 
   @@index([serverId])
   @@index([userId])
+}
+
+/// I-04 — automatyczne aktualizacje WordPressa w katalogu głównym domeny konta.
+/// Planista (WpAutoUpdateScheduler) raz na dobę zleca zadanie WP_UPDATE według tych ustawień.
+model WpAutoUpdate {
+  id        String   @id @default(uuid())
+  accountId String
+  account   Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  domain    String
+  /// none | minor | all — zakres aktualizacji rdzenia
+  core      String   @default("minor")
+  plugins   Boolean  @default(false)
+  themes    Boolean  @default(false)
+  lastRunAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([accountId, domain])
 }
 
 // -----------------------------------------------------------------------------

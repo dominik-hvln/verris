@@ -31,6 +31,8 @@ import { OffsiteRestoreService } from './offsite-restore.service';
 import { DbTransferService } from './db-transfer.service';
 import { FileRestoreService } from './file-restore.service';
 import { SshAccessService } from './ssh-access.service';
+import { WpUpdateService } from './wp-update.service';
+import { WpAutoUpdateScheduler } from './wp-auto-update.scheduler';
 import { DiagnosticsService } from './diagnostics.service';
 import { HostingRestoreScheduler } from './hosting-restore.scheduler';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
@@ -75,6 +77,8 @@ import { EcoModule } from '../eco/eco.module';
     DbTransferService,
     FileRestoreService,
     SshAccessService,
+    WpUpdateService,
+    WpAutoUpdateScheduler,
     WordpressService,
     WafService,
     SiteMonitorService,

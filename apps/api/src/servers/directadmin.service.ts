@@ -2148,7 +2148,7 @@ export class DirectAdminService {
   /* ===================== FALA-2b: wersja PHP per domena ===================== */
 
   /** Sprawdza, że `domain` jest jedną z domen konta subskrypcji. */
-  private async assertDomainOwnedBySubscription(
+  async assertDomainOwnedBySubscription(
     subscriptionId: string,
     userId: string,
     domain: string,

@@ -227,6 +227,10 @@ elif [ "$TASK_KIND" = "SSH_ACCESS" ]; then
   RUN_BIN="/usr/local/bin/verris-ssh-access.sh"
   fetch_task_script "/agent/tasks/ssh-access/script" "$RUN_BIN"
   payload_env "SSH" "{'mode':'MODE','daUser':'DA_USER','keysB64':'KEYS_B64'}"
+elif [ "$TASK_KIND" = "WP_UPDATE" ]; then
+  RUN_BIN="/usr/local/bin/verris-wp-update.sh"
+  fetch_task_script "/agent/tasks/wp-update/script" "$RUN_BIN"
+  payload_env "WPU" "{'mode':'MODE','daUser':'DA_USER','domain':'DOMAIN','core':'CORE','plugins':'PLUGINS','themes':'THEMES'}"
 elif [ "$TASK_KIND" = "HOSTING_PROFILE" ]; then
   flags="-y"
   [ "$SKIP_BUILD" = "1" ] && flags="$flags --skip-build"
@@ -407,7 +411,7 @@ dispatch_generic() {
 
 case "$KIND" in
   HOSTING_PROFILE) dispatch_hosting_profile ;;
-  WP_INSTALL|WAF_APPLY|STAGING_SYNC|PHP_APPLY|APP_INSTALL|OFFSITE_RESTORE|DB_UPGRADE|FLEET_UPDATE|DB_TRANSFER|FILE_RESTORE|SSH_ACCESS) dispatch_generic ;;
+  WP_INSTALL|WAF_APPLY|STAGING_SYNC|PHP_APPLY|APP_INSTALL|OFFSITE_RESTORE|DB_UPGRADE|FLEET_UPDATE|DB_TRANSFER|FILE_RESTORE|SSH_ACCESS|WP_UPDATE) dispatch_generic ;;
   *)
     report_task_fail "Unknown task kind: $KIND"
     exit 1

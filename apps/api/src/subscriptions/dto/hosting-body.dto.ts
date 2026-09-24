@@ -3,6 +3,7 @@ import {
   ArrayMaxSize,
   IsArray,
   IsBoolean,
+  IsDefined,
   IsEmail,
   IsIn,
   IsInt,
@@ -85,6 +86,30 @@ export class DostepSshDto {
 export class KluczeSshDto {
   @IsArray() @ArrayMaxSize(20) @IsString({ each: true }) @MaxLength(4096, { each: true })
   keys!: string[];
+}
+
+/** I-05 — sprawdzenie WordPressa domeny. */
+export class WordpressDomenyDto {
+  @Linia(253) domain!: string;
+}
+
+/**
+ * I-05 — aktualizacja z panelu. `plugins`/`themes`: „*” = wszystkie z dostępną aktualizacją
+ * albo lista slugów (format sprawdza WpUpdateService).
+ */
+export class AktualizacjaWordpressaDto {
+  @Linia(253) domain!: string;
+  @IsIn(['none', 'minor', 'all']) core!: string;
+  @IsDefined() plugins!: '*' | string[];
+  @IsDefined() themes!: '*' | string[];
+}
+
+/** I-04 — automatyczne aktualizacje WordPressa domeny. */
+export class AutomatWordpressaDto {
+  @Linia(253) domain!: string;
+  @IsIn(['none', 'minor', 'all']) core!: string;
+  @IsBoolean() plugins!: boolean;
+  @IsBoolean() themes!: boolean;
 }
 
 /** B-05 — dyrektywy PHP w `.user.ini` domeny. Listę dozwolonych i zakresy sprawdza `php-ini.ts`. */

@@ -158,6 +158,10 @@ elif [ "$TASK_KIND" = "SSH_ACCESS" ]; then
   RUN_BIN="/usr/local/bin/verris-ssh-access.sh"
   fetch_task_script "/agent/tasks/ssh-access/script" "$RUN_BIN"
   payload_env "SSH" "{'mode':'MODE','daUser':'DA_USER','keysB64':'KEYS_B64'}"
+elif [ "$TASK_KIND" = "WP_UPDATE" ]; then
+  RUN_BIN="/usr/local/bin/verris-wp-update.sh"
+  fetch_task_script "/agent/tasks/wp-update/script" "$RUN_BIN"
+  payload_env "WPU" "{'mode':'MODE','daUser':'DA_USER','domain':'DOMAIN','core':'CORE','plugins':'PLUGINS','themes':'THEMES'}"
 elif [ "$TASK_KIND" = "HOSTING_PROFILE" ]; then
   flags="-y"
   [ "$SKIP_BUILD" = "1" ] && flags="$flags --skip-build"

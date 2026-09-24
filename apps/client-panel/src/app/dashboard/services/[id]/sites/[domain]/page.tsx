@@ -26,6 +26,7 @@ import { FileManagerClient } from '@/app/dashboard/file-manager/file-manager-cli
 import DatabasesTab from '@/components/hosting/DatabasesTab';
 import WebToolsTab from '@/components/hosting/WebToolsTab';
 import { PhpIniForm } from '@/components/hosting/PhpIniForm';
+import { WpUpdatesPanel } from '@/components/hosting/WpUpdatesPanel';
 import { HostingLinksProvider } from '@/components/hosting/hosting-links-context';
 import { fetchHostingDnsAction, fetchHostingDomainsAction } from '../../hosting-domains-action';
 import { fetchHostingSslAction, requestLetsEncryptSslAction } from '../../hosting-ssl-actions';
@@ -43,6 +44,7 @@ const SITE_TABS = [
   ['db', 'Baza'],
   ['mail', 'Poczta'],
   ['php', 'PHP i serwer'],
+  ['wordpress', 'WordPress'],
   ['redirects', 'Przekierowania'],
 ] as const;
 type SiteTab = (typeof SITE_TABS)[number][0];
@@ -331,6 +333,8 @@ export default function SitePage() {
                         ['Przekierowania', 'np. stary adres → nowy', () => setTab('redirects')],
                         ['Wersja PHP', ok(php)?.currentVersion ? `teraz ${ok(php)?.currentVersion}` : 'dla tej domeny', () => setTab('php')],
                         ['Rekordy DNS', 'z gotowymi zestawami', () => setTab('dns')],
+                        ['WordPress', 'aktualizacje i automat', () => setTab('wordpress')],
+                        ['Poczta', 'skrzynki w tej domenie', () => setTab('mail')],
                         ['Aplikacje 1-click', 'np. WordPress', () => router.push(`/dashboard/services/${serviceId}?tab=apps`)],
                         ['Kopie zapasowe', 'przywróć pliki lub bazę', () => router.push(`/dashboard/services/${serviceId}?tab=backups`)],
                       ] as [string, string, () => void][]
@@ -411,6 +415,8 @@ export default function SitePage() {
         ) : null}
 
         {tab === 'php' ? <PhpSection serviceId={serviceId} domain={domain} php={ok(php)} loading={php === undefined} onChanged={reloadPhp} /> : null}
+
+        {tab === 'wordpress' ? <WpUpdatesPanel serviceId={serviceId} domain={domain} /> : null}
 
         {tab === 'redirects' ? (
           <section>
