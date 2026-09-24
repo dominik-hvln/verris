@@ -212,6 +212,9 @@ export interface AccountResourceLimits {
 export class DirectAdminApiError extends Error {
   constructor(message: string, readonly daText: string) {
     super(message);
+    // SDK kompiluje się do ES5 — bez tego `instanceof DirectAdminApiError` zwraca false
+    // (dziedziczenie po Error w ES5 gubi prototyp) i filtr API oddałby 500 zamiast 400.
+    Object.setPrototypeOf(this, new.target.prototype);
     this.name = 'DirectAdminApiError';
   }
 }
