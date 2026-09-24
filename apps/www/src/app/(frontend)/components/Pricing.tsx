@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { VPS_W_SPRZEDAZY } from '@/lib/oferta';
 
 const RESOURCES = [
   { base: '50 GB', max: '→ 1000 GB', label: 'dysk NVMe' },
@@ -35,7 +36,7 @@ const GROUPS: { title: string; note?: string; items: (string | [string, string])
       'Obsługa starych wersji PHP',
       'Kopie zapasowe z samodzielnym odtwarzaniem (w ramach limitu Planu)',
       'Kopia bezpieczeństwa przed przywróceniem — domyślnie włączona',
-      'Kreator stron i menedżer plików',
+      'Menedżer plików w panelu',
     ],
   },
 ];
@@ -147,7 +148,7 @@ export function Pricing() {
           <p className="finebox">
             „Bez limitu” oznacza brak sztywnego licznika — realnym ogranicznikiem są zasoby konta
             (CPU/RAM/dysk) i zasady uczciwego korzystania. Autoskalowanie ponad bazę rozliczane jest
-            godzinowo według stawek z cennika. VPS i domeny mają osobną wycenę — sprawdzisz ją w
+            godzinowo według stawek z cennika. {VPS_W_SPRZEDAZY ? 'VPS i domeny mają' : 'Domeny mają'} osobną wycenę — sprawdzisz ją w
             panelu.
           </p>
         </div>

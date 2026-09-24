@@ -2,11 +2,12 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { SubHero, CTABand } from '../components/ui';
 import { RevealInit } from '../components/RevealInit';
+import { VPS_W_SPRZEDAZY } from '@/lib/oferta';
 
 export const metadata: Metadata = {
   title: 'O Verris — polski hosting z uczciwymi zasadami',
   description:
-    'Verris to polski hosting z autoskalowaniem, VPS i domenami. Operator: HVLN Dominik Kowalski, Zielona Góra. Budujemy zaufanie konkretami: automatyczne rekompensaty za awarie, jedna cena bez pułapek, darmowa migracja strony i poczty.',
+    `Verris to polski hosting z autoskalowaniem${VPS_W_SPRZEDAZY ? ', VPS i domenami' : ' i domenami'}. Operator: HVLN Dominik Kowalski, Zielona Góra. Budujemy zaufanie konkretami: automatyczne rekompensaty za awarie, jedna cena bez pułapek, darmowa migracja strony i poczty.`,
   alternates: { canonical: '/o-nas' },
 };
 

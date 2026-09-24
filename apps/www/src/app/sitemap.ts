@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { features } from '@/lib/features';
 import { getPayloadClient } from '@/lib/payload';
+import { VPS_W_SPRZEDAZY } from '@/lib/oferta';
 
 const BASE = 'https://verris.pl';
 
@@ -14,7 +15,7 @@ const STATIC = [
   '/hosting/wordpress',
   '/hosting/sklep',
   '/poczta',
-  '/vps',
+  ...(VPS_W_SPRZEDAZY ? ['/vps'] : []),
   '/domeny',
   '/email-marketing',
   '/reseller',

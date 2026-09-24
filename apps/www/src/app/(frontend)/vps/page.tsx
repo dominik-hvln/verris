@@ -4,6 +4,8 @@ import { SubHero, CTABand, JsonLd } from '../components/ui';
 import { RevealInit } from '../components/RevealInit';
 import { PANEL } from '@/lib/site';
 import { serviceSchema } from '@/lib/schema';
+import { notFound } from 'next/navigation';
+import { VPS_W_SPRZEDAZY } from '@/lib/oferta';
 
 export const metadata: Metadata = {
   title: 'VPS — serwery z pełnym dostępem root | Verris',
@@ -19,6 +21,8 @@ const F = [
 ];
 
 export default function VpsPage() {
+  // Do wejścia VPS do sprzedaży strona nie istnieje (decyzja 2026-09-24) — w panelu nie da się go kupić.
+  if (!VPS_W_SPRZEDAZY) notFound();
   return (
     <main>
       <JsonLd

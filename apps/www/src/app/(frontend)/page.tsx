@@ -17,8 +17,20 @@ import { Pricing } from './components/Pricing';
 import { RevealInit } from './components/RevealInit';
 import { JsonLd } from './components/ui';
 import { organization, ORG_ID, SITE, HOSTING_OFFERS } from '@/lib/schema';
+import { VPS_W_SPRZEDAZY } from '@/lib/oferta';
 
-const SERVICES = [
+// VPS wraca na stronę razem z flagą sprzedaży (decyzja 2026-09-24).
+const VPS_KARTA = {
+    icon: Terminal,
+    title: 'VPS',
+    desc: 'Serwery niezarządzane z pełnym dostępem root. Przewidywalne zasoby i pełna kontrola — dla deweloperów i startupów.',
+    tag: 'Konfiguracja i wycena w panelu',
+    tagClass: 'note',
+    cta: 'Sprawdź VPS →',
+    href: 'https://panel.verris.pl',
+  };
+
+const SERVICES_BAZA = [
   {
     icon: Server,
     title: 'Hosting z autoskalowaniem',
@@ -28,15 +40,6 @@ const SERVICES = [
     cta: 'Zobacz cennik →',
     href: '#cennik',
     feature: true,
-  },
-  {
-    icon: Terminal,
-    title: 'VPS',
-    desc: 'Serwery niezarządzane z pełnym dostępem root. Przewidywalne zasoby i pełna kontrola — dla deweloperów i startupów.',
-    tag: 'Konfiguracja i wycena w panelu',
-    tagClass: 'note',
-    cta: 'Sprawdź VPS →',
-    href: 'https://panel.verris.pl',
   },
   {
     icon: Globe,
@@ -75,6 +78,8 @@ const SERVICES = [
     href: 'https://verris.pl/przenies-strone',
   },
 ];
+
+const SERVICES: typeof SERVICES_BAZA = VPS_W_SPRZEDAZY ? [SERVICES_BAZA[0], VPS_KARTA, ...SERVICES_BAZA.slice(1)] : SERVICES_BAZA;
 
 const USP = [
   { icon: ShieldCheck, title: 'SLA 99,5% z rekompensatami', desc: 'Nie „obiecujemy" — gwarantujemy w umowie. Za niedostępność naliczamy kredyty wg regulaminu.' },
@@ -138,7 +143,7 @@ export default function HomePage() {
               Płacisz tyle, ile widzisz.
             </h1>
             <p className="lead">
-              Hosting współdzielony z autoskalowaniem, VPS i domeny — w jednym panelu, z realną
+              Hosting współdzielony z autoskalowaniem{VPS_W_SPRZEDAZY ? ', VPS' : ''} i domeny — w jednym panelu, z realną
               pomocą, gdy jej potrzebujesz. Bez taniej przynęty na pierwszy rok i bez szoku przy odnowieniu.
             </p>
             <div className="hero-cta">

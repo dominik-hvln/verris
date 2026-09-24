@@ -1,4 +1,5 @@
 import { features } from '@/lib/features';
+import { OFERTA_KROTKO, VPS_W_SPRZEDAZY } from '@/lib/oferta';
 import { getPayloadClient } from '@/lib/payload';
 
 /**
@@ -24,7 +25,7 @@ async function getPosts(): Promise<Post[]> {
 
 const HEADER = `# Verris
 
-> Verris to polski hosting z autoskalowaniem, VPS i domeny. Płacisz tyle, ile widzisz —
+> Verris to polski ${OFERTA_KROTKO}. Płacisz tyle, ile widzisz —
 > jedna cena od pierwszego dnia, bez pułapek odnowień. Migracja i SSL za 0 zł, SLA 99,5%
 > z rekompensatami, serwery w Unii Europejskiej (zgodność z RODO). Claim: „Hosting bez gwiazdek".
 
@@ -32,14 +33,14 @@ const HEADER = `# Verris
 - Hosting z autoskalowaniem: 45 zł/mies lub 399 zł/rok (brutto). Zasoby bazowe: 50 GB NVMe,
   do 8 GB RAM, do 2 vCPU; autoskalowanie do 1000 GB, 64 GB RAM, 24 vCPU (do 12× mocy CPU względem bazy),
   rozliczane godzinowo; tryb ECO zwalnia moc po piku.
-- VPS niezarządzany (pełny root), domeny bez auto-odnowień, e-mail marketing, program resellerski.
+- ${VPS_W_SPRZEDAZY ? 'VPS niezarządzany (pełny root), d' : 'D'}omeny bez auto-odnowień, e-mail marketing, program resellerski.
 
 ## Kluczowe strony
 - [Hosting z autoskalowaniem](${BASE}/hosting)
 - [Cennik](${BASE}/cennik)
 - [Przeniesienie strony — darmowa migracja](${BASE}/przenies-strone)
 - [Funkcje](${BASE}/funkcje)
-- [VPS](${BASE}/vps) · [Domeny](${BASE}/domeny) · [Reseller](${BASE}/reseller)
+- ${VPS_W_SPRZEDAZY ? `[VPS](${BASE}/vps) · ` : ''}[Domeny](${BASE}/domeny) · [Reseller](${BASE}/reseller)
 - [Blog](${BASE}/blog)
 - [Kontakt](${BASE}/kontakt)
 

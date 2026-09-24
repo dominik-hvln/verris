@@ -6,6 +6,7 @@ import { CookieConsent } from './components/CookieConsent';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { ANALYTICS } from '@/lib/analytics';
+import { VPS_W_SPRZEDAZY, OFERTA_KROTKO } from '@/lib/oferta';
 
 // ISR: strony odświeżają treść z CMS (globalsy/kolekcje) co 60 s.
 export const revalidate = 60;
@@ -14,13 +15,13 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://verris.pl'),
   title: 'Verris — polski hosting z autoskalowaniem. Hosting bez gwiazdek.',
   description:
-    'Hosting współdzielony z autoskalowaniem, VPS i domeny w jednym panelu. Jedna cena hostingu: 45 zł/mies lub 399 zł/rok brutto — bez pułapek odnowień. Migracja i SSL za 0 zł, SLA 99,5% z automatycznymi rekompensatami, kopie z samodzielnym odtwarzaniem.',
+    `Hosting współdzielony ${VPS_W_SPRZEDAZY ? 'z autoskalowaniem, VPS i domeny' : 'z autoskalowaniem i domeny'} w jednym panelu. Jedna cena hostingu: 45 zł/mies lub 399 zł/rok brutto — bez pułapek odnowień. Migracja i SSL za 0 zł, SLA 99,5% z automatycznymi rekompensatami, kopie z samodzielnym odtwarzaniem.`,
   alternates: { canonical: '/' },
   robots: { index: true, follow: true },
   openGraph: {
     title: 'Verris — hosting bez gwiazdek. Skaluj świadomie.',
     description:
-      'Polski hosting z autoskalowaniem, VPS i domeny. Płacisz tyle, ile widzisz. Migracja za 0 zł, SLA 99,5% z rekompensatami.',
+      `Polski ${OFERTA_KROTKO}. Płacisz tyle, ile widzisz. Migracja za 0 zł, SLA 99,5% z rekompensatami.`,
     url: 'https://verris.pl/',
     locale: 'pl_PL',
     type: 'website',
@@ -33,7 +34,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Verris — hosting bez gwiazdek. Skaluj świadomie.',
     description:
-      'Polski hosting z autoskalowaniem, VPS i domeny. Płacisz tyle, ile widzisz. Migracja za 0 zł, SLA 99,5% z rekompensatami.',
+      `Polski ${OFERTA_KROTKO}. Płacisz tyle, ile widzisz. Migracja za 0 zł, SLA 99,5% z rekompensatami.`,
     images: ['/og-default.png'],
   },
 };
@@ -56,6 +57,7 @@ export default function FrontendLayout({ children }: { children: ReactNode }) {
           <noscript>
             <iframe
               src={`https://www.googletagmanager.com/ns.html?id=${ANALYTICS.gtmId}`}
+              title="Google Tag Manager"
               height="0"
               width="0"
               style={{ display: 'none', visibility: 'hidden' }}

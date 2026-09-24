@@ -1,4 +1,5 @@
 // Wspólne helpery structured data (JSON-LD).
+import { OFERTA_KROTKO } from './oferta';
 
 export const SITE = 'https://verris.pl';
 
@@ -11,7 +12,7 @@ export const organization = {
   url: `${SITE}/`,
   logo: `${SITE}/logo.png`,
   image: `${SITE}/og-default.png`,
-  description: 'Polski hosting z autoskalowaniem, VPS i domeny. Operator: HVLN Dominik Kowalski.',
+  description: `Polski ${OFERTA_KROTKO}. Operator: HVLN Dominik Kowalski.`,
   slogan: 'Skaluj świadomie.',
   areaServed: 'PL',
   vatID: 'PL9292069367',

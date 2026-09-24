@@ -1,3 +1,4 @@
+import { VPS_W_SPRZEDAZY } from './oferta';
 // Jedno źródło nawigacji i stopki (używane przez Header, Footer, sitemap).
 
 export const PANEL = 'https://panel.verris.pl';
@@ -7,7 +8,7 @@ export const megaServices: { label: string; href: string; desc: string }[] = [
   { label: 'Hosting z autoskalowaniem', href: '/hosting', desc: 'Płacisz za realne użycie' },
   { label: 'Hosting WordPress', href: '/hosting/wordpress', desc: 'Zoptymalizowany pod WP' },
   { label: 'Hosting pod sklep', href: '/hosting/sklep', desc: 'WooCommerce, piki sprzedaży' },
-  { label: 'VPS', href: '/vps', desc: 'Niezarządzany, pełny root' },
+  ...(VPS_W_SPRZEDAZY ? [{ label: 'VPS', href: '/vps', desc: 'Niezarządzany, pełny root' }] : []),
   { label: 'Domeny', href: '/domeny', desc: 'Rejestracja i transfer' },
   { label: 'E-mail marketing', href: '/email-marketing', desc: 'Wysyłki z panelu' },
   { label: 'Poczta', href: '/poczta', desc: 'Skrzynki w hostingu' },
@@ -28,7 +29,7 @@ export const footerCols: { heading: string; links: { label: string; href: string
     heading: 'Usługi',
     links: [
       { label: 'Hosting z autoskalowaniem', href: '/hosting' },
-      { label: 'VPS', href: '/vps' },
+      ...(VPS_W_SPRZEDAZY ? [{ label: 'VPS', href: '/vps' }] : []),
       { label: 'Domeny', href: '/domeny' },
       { label: 'E-mail marketing', href: '/email-marketing' },
       { label: 'Program resellerski', href: '/reseller' },
