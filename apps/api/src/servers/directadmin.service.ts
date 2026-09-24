@@ -2614,7 +2614,12 @@ export class DirectAdminService {
     if (!domain) throw new BadRequestException('Domena jest wymagana.');
     await this.assertDomainOnSubscription(subscriptionId, userId, domain);
 
-    const branch = (input.branch?.trim() || '').replace(/[^A-Za-z0-9._/-]/g, '');
+    // Gałąź odrzucamy zamiast „czyścić”: `main; rm` po czyszczeniu dawało `mainrm` — cron ciągnąłby
+    // nieistniejącą gałąź bez słowa. Myślnik na początku to opcja gita, `..` nie jest poprawną nazwą.
+    const branch = input.branch?.trim() || '';
+    if (branch && (!/^[A-Za-z0-9._/-]{1,255}$/.test(branch) || branch.startsWith('-') || branch.includes('..'))) {
+      throw new BadRequestException('Nazwa gałęzi: litery, cyfry oraz . _ / - (bez „..” i bez myślnika na początku).');
+    }
     const build = (input.buildCommand?.trim() || '').replace(/[\r\n]+/g, ' ');
     if (build && /[;&|`$<>]/.test(build)) {
       throw new BadRequestException('Komenda build zawiera niedozwolone znaki specjalne.');

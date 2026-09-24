@@ -204,6 +204,22 @@ export interface AccountResourceLimits {
  * The API uses `Authorization: Basic` with a *login key* (not the admin
  * password); generate one in DA → "Login Keys" with the minimal scope needed.
  */
+/**
+ * DirectAdmin odrzucił operację (error=1 w treści odpowiedzi). `daText` to powód podany przez DA,
+ * bez prefiksu — API pokazuje go człowiekowi zamiast „Wewnętrzny błąd serwera”.
+ * `message` zostaje w dotychczasowym kształcie, bo czytają go klasyfikatory błędów provisioningu.
+ */
+export class DirectAdminApiError extends Error {
+  constructor(message: string, readonly daText: string) {
+    super(message);
+    this.name = 'DirectAdminApiError';
+  }
+}
+
+function bladDa(tekst: string, prefiks = ''): DirectAdminApiError {
+  return new DirectAdminApiError(`${prefiks}${tekst}`.trim(), tekst.trim());
+}
+
 export class DirectAdminClient {
   private client: AxiosInstance;
   private readonly usernameValue: string;
@@ -297,7 +313,7 @@ export class DirectAdminClient {
     const params = new URLSearchParams(response.data);
     // DA error payloads surface as error=1&text=...&details=...
     if (params.get('error') === '1') {
-      throw new Error(params.get('text') || 'DirectAdmin file manager error');
+      throw bladDa(params.get('text') || 'DirectAdmin file manager error');
     }
     const entries: DaFileEntry[] = [];
     for (const [key, value] of params.entries()) {
@@ -413,9 +429,7 @@ export class DirectAdminClient {
   private assertFileManagerOk(data: unknown): void {
     const params = this.daPayloadToParams(data);
     if (params.get('error') === '1') {
-      throw new Error(
-        params.get('text') || params.get('details') || 'DirectAdmin file manager operation failed',
-      );
+      throw bladDa(params.get('text') || params.get('details') || 'DirectAdmin file manager operation failed');
     }
   }
 
@@ -819,9 +833,7 @@ export class DirectAdminClient {
       if ('error' in o) {
         const err = o.error;
         if (String(err) !== '0' && String(err) !== 'false') {
-          throw new Error(
-            `DirectAdmin API Error: ${String(o.text ?? o.details ?? o.message ?? err)}`,
-          );
+          throw bladDa(String(o.text ?? o.details ?? o.message ?? err), 'DirectAdmin API Error: ');
         }
       }
     }
@@ -1042,9 +1054,7 @@ export class DirectAdminClient {
     );
     const params = this.daPayloadToParams(response.data);
     if (params.get('error') === '1') {
-      throw new Error(
-        params.get('text') || params.get('details') || 'Nie udało się usunąć bazy danych',
-      );
+      throw bladDa(params.get('text') || params.get('details') || 'Nie udało się usunąć bazy danych');
     }
   }
 
@@ -1055,7 +1065,7 @@ export class DirectAdminClient {
     });
     const params = this.daPayloadToParams(response.data);
     if (params.get('error') === '1') {
-      throw new Error(params.get('text') || params.get('details') || 'DirectAdmin error');
+      throw bladDa(params.get('text') || params.get('details') || 'DirectAdmin error');
     }
     return params;
   }
@@ -1183,7 +1193,7 @@ export class DirectAdminClient {
     });
     const url = params.get('details') || '';
     if (!/^https?:\/\//i.test(url)) {
-      throw new Error(params.get('text') || 'DirectAdmin nie zwrócił adresu logowania');
+      throw bladDa(params.get('text') || 'DirectAdmin nie zwrócił adresu logowania');
     }
     return url;
   }
@@ -1289,7 +1299,7 @@ export class DirectAdminClient {
       const err = record.error;
       if (err != null && String(err) !== '0' && String(err) !== 'false') {
         const errText = String(record.text ?? record.details ?? record.message ?? 'Unknown DA error');
-        throw new Error(`DirectAdmin API Error: ${errText}`.trim());
+        throw bladDa(errText, 'DirectAdmin API Error: ');
       }
       const params = new URLSearchParams();
       for (const [key, value] of Object.entries(record)) {
@@ -1325,7 +1335,7 @@ export class DirectAdminClient {
       const p = new URLSearchParams(data);
       tekst = p.get('text') || p.get('details');
     }
-    throw new Error(tekst != null && String(tekst).trim() ? String(tekst).trim() : domyslny);
+    throw bladDa(tekst != null && String(tekst).trim() ? String(tekst).trim() : domyslny);
   }
 
   private popPayloadIndicatesError(data: unknown): boolean {
@@ -1575,7 +1585,7 @@ export class DirectAdminClient {
     if (error && error !== '0') {
       const details = params.get('details');
       const text = params.get('text');
-      throw new Error(`DirectAdmin API Error: ${text ?? ''} — ${details ?? ''}`.trim());
+      throw bladDa([text, details].filter(Boolean).join(' — ') || 'DirectAdmin odrzucił operację', 'DirectAdmin API Error: ');
     }
     return {
       success: true as const,
@@ -1595,9 +1605,7 @@ export class DirectAdminClient {
       if ('error' in o) {
         const err = o.error;
         if (String(err) !== '0' && String(err) !== 'false') {
-          throw new Error(
-            `DirectAdmin API Error: ${String(o.text ?? o.details ?? o.message ?? err)}`,
-          );
+          throw bladDa(String(o.text ?? o.details ?? o.message ?? err), 'DirectAdmin API Error: ');
         }
       }
     }

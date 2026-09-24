@@ -1,5 +1,6 @@
 import { ExceptionFilter, Catch, ArgumentsHost, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { DirectAdminApiError } from '@verris/directadmin-sdk';
 
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
@@ -10,15 +11,22 @@ export class AllExceptionsFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request = ctx.getRequest<Request>();
 
+    // DA odmówił (np. „domena już istnieje”, brak miejsca) — to odpowiedź dla człowieka, nie awaria API.
+    // Bez tego serwisy wołające SDK wprost (createDomain, bazy, pliki) zwracały 500 i klient nie wiedział dlaczego.
+    const odmowaDa = exception instanceof DirectAdminApiError;
     const status =
       exception instanceof HttpException
         ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
-        
+        : odmowaDa
+          ? HttpStatus.BAD_REQUEST
+          : HttpStatus.INTERNAL_SERVER_ERROR;
+
     const message = normalizeExceptionMessage(
       exception instanceof HttpException
         ? exception.getResponse()
-        : 'Wewnętrzny błąd serwera',
+        : odmowaDa
+          ? exception.daText
+          : 'Wewnętrzny błąd serwera',
     );
 
     if (status >= 500) {
