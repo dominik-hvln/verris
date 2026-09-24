@@ -138,3 +138,27 @@ describe('WpUpdateService — zabezpieczenia (I-08)', () => {
     expect(zabezpieczeniaZLogu(`VERRIS_WP_ZABEZPIECZENIA=${z}`)?.konserwacja).toBe(true);
   });
 });
+
+describe('WpUpdateService — wiele stron naraz (I-14)', () => {
+  it('przegląd z ostatnich sprawdzeń każdej domeny; „sprawdź wszystkie” pomija domeny z zadaniem w toku', async () => {
+    const z = Buffer.from(JSON.stringify({ edytorPlikow: true, debug: false, uzytkownikAdmin: true, uprawnieniaConfig: '644', sumyRdzenia: 'ok' })).toString('base64');
+    const sprawdzenie = { id: 't', status: 'COMPLETED', outputLog: `VERRIS_WP_PRZED=${b64(PRZED)}\nVERRIS_WP_ZABEZPIECZENIA=${z}\n`, createdAt: new Date(), completedAt: new Date(), payload: { mode: 'check', domain: 'a.pl' } };
+    const s = stanowisko();
+    (s.da as unknown as { listHostingDomainsForSubscription: jest.Mock }).listHostingDomainsForSubscription = jest.fn(async () => ({ domains: [{ name: 'A.pl' }, { name: 'b.pl' }], fetchError: null }));
+    s.prisma.nodeTask.findMany.mockImplementation((async (a: { where: { payload?: { equals: string }; status?: unknown } }) => {
+      if (a.where.status) return [{ payload: { domain: 'b.pl' } }];
+      return a.where.payload?.equals === 'a.pl' ? [sprawdzenie] : [];
+    }) as never);
+    const r = await s.svc.sprawdzWszystkie('s1', 'u1');
+    expect(s.prisma.nodeTask.create).toHaveBeenCalledTimes(1);
+    expect(payload(s).payload).toMatchObject({ mode: 'check', domain: 'a.pl' });
+    expect(r.strony[0]).toMatchObject({ domena: 'a.pl', wersja: PRZED.version, wtyczki: 1, motywy: 0, doPoprawy: 2 });
+    expect(r.strony[1]).toMatchObject({ domena: 'b.pl', wersja: null });
+  });
+
+  it('serwer nie odpowiada → komunikat o niedostępności, nie pusta lista', async () => {
+    const s = stanowisko();
+    (s.da as unknown as { listHostingDomainsForSubscription: jest.Mock }).listHostingDomainsForSubscription = jest.fn(async () => ({ domains: [], fetchError: 'x' }));
+    await expect(s.svc.przeglad('s1', 'u1')).rejects.toThrow('chwilowo niedostępny');
+  });
+});

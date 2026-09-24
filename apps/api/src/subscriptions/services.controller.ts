@@ -1115,6 +1115,18 @@ export class UserServicesController {
   }
 
   // I-04/I-05 — aktualizacje WordPressa domeny (zadanie węzła, kopia + wycofanie).
+  // I-14 — wszystkie strony WordPress konta na jednym ekranie + sprawdzenie wszystkich naraz.
+  @Get(':id/hosting-wp-overview')
+  async hostingWpOverview(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.wpUpdate.przeglad(id, user.userId);
+  }
+
+  @RateLimit({ limit: 10, windowMs: 60 * 60 * 1000, scope: 'hosting:wp-check-all' })
+  @Post(':id/hosting-wp-overview/check')
+  async hostingWpCheckAll(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.wpUpdate.sprawdzWszystkie(id, user.userId);
+  }
+
   @Get(':id/hosting-wp-updates')
   async hostingWpUpdates(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Query('domain') domain: string) {
     return this.wpUpdate.status(id, user.userId, domain);

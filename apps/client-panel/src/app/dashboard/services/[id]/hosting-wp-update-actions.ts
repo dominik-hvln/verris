@@ -89,3 +89,36 @@ export async function setWpAutoUpdates(
 ): Promise<Wynik> {
   return wynik(apiFetch<WpStatus>(url(serviceId, '/auto'), { method: 'POST', body: JSON.stringify(input) }));
 }
+
+/** I-14 — wszystkie strony WordPress konta. */
+export interface WpPrzeglad {
+  strony: {
+    domena: string;
+    wToku: boolean;
+    brakWordpressa: boolean;
+    sprawdzono: string | null;
+    wersja: string | null;
+    rdzen: string | null;
+    wtyczki: number | null;
+    motywy: number | null;
+    automat: boolean;
+    doPoprawy: number | null;
+    konserwacja: boolean;
+  }[];
+}
+
+export async function fetchWpOverview(serviceId: string): Promise<{ ok: true; data: WpPrzeglad } | { ok: false; error: string }> {
+  try {
+    return { ok: true, data: await apiFetch<WpPrzeglad>(`/services/${serviceId}/hosting-wp-overview`) };
+  } catch (e) {
+    return { ok: false, error: e instanceof ApiError || e instanceof Error ? e.message : 'Błąd' };
+  }
+}
+
+export async function checkAllWp(serviceId: string): Promise<{ ok: true; data: WpPrzeglad } | { ok: false; error: string }> {
+  try {
+    return { ok: true, data: await apiFetch<WpPrzeglad>(`/services/${serviceId}/hosting-wp-overview/check`, { method: 'POST' }) };
+  } catch (e) {
+    return { ok: false, error: e instanceof ApiError || e instanceof Error ? e.message : 'Błąd' };
+  }
+}

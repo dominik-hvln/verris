@@ -267,6 +267,72 @@ export class WpUpdateService {
     };
   }
 
+  /**
+   * I-14 — wszystkie strony WordPress konta na jednym ekranie (stan z ostatnich sprawdzeń, bez
+   * odpytywania węzła): wersja, oczekujące aktualizacje, automat, punkty zabezpieczeń do poprawy.
+   */
+  async przeglad(subscriptionId: string, userId: string) {
+    const { account, domeny } = await this.domenyKonta(subscriptionId, userId);
+    const strony = [];
+    for (const d of domeny) {
+      const o = await this.opis(account.id, d);
+      const z = o.zabezpieczenia;
+      strony.push({
+        domena: d,
+        wToku: o.wToku,
+        brakWordpressa: o.brakWordpressa,
+        sprawdzono: o.sprawdzono,
+        wersja: o.stan?.version ?? null,
+        rdzen: o.stan?.core[0]?.version ?? null,
+        wtyczki: o.stan ? o.stan.plugins.filter((x) => x.update === 'available').length : null,
+        motywy: o.stan ? o.stan.themes.filter((x) => x.update === 'available').length : null,
+        automat: !!o.automat && (o.automat.core !== 'none' || o.automat.plugins || o.automat.themes),
+        doPoprawy: z ? [z.edytorPlikow, z.debug, z.uzytkownikAdmin, z.sumyRdzenia !== 'ok', /[2367]$/.test(z.uprawnieniaConfig)].filter(Boolean).length : null,
+        konserwacja: z?.konserwacja ?? false,
+      });
+    }
+    return { strony };
+  }
+
+  /**
+   * I-14 — „Sprawdź wszystkie”: sprawdzenie (tylko odczyt) każdej domeny konta naraz. Blokada
+   * „jedna operacja WordPress na konto” dotyczy zmian; odczyt w kolejce nie ma czego nadpisać.
+   */
+  async sprawdzWszystkie(subscriptionId: string, userId: string) {
+    const { account, domeny } = await this.domenyKonta(subscriptionId, userId);
+    if (account.status !== 'ACTIVE') throw new BadRequestException('Konto hostingowe nie jest aktywne.');
+    const wToku = await this.prisma.nodeTask.findMany({
+      where: { accountId: account.id, kind: NodeTaskKind.WP_UPDATE, status: { in: [NodeTaskStatus.QUEUED, NodeTaskStatus.RUNNING] } },
+      select: { payload: true },
+    });
+    const zajete = new Set(wToku.map((z) => (z.payload as { domain?: string } | null)?.domain));
+    for (const d of domeny) {
+      if (zajete.has(d)) continue;
+      await this.prisma.nodeTask.create({
+        data: {
+          serverId: account.serverId,
+          accountId: account.id,
+          kind: NodeTaskKind.WP_UPDATE,
+          status: NodeTaskStatus.QUEUED,
+          requestedById: userId,
+          payload: { mode: 'check', domain: d, core: 'none', plugins: '', themes: '', auto: false, daUser: account.daUsername },
+        },
+      });
+    }
+    return this.przeglad(subscriptionId, userId);
+  }
+
+  private async domenyKonta(subscriptionId: string, userId: string) {
+    const sub = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, include: { account: true } });
+    if (!sub) throw new NotFoundException('Service not found');
+    if (!sub.account) throw new BadRequestException('Usługa nie ma jeszcze konta hostingowego.');
+    const lista = await this.directAdmin.listHostingDomainsForSubscription(subscriptionId, userId);
+    if (!lista.domains.length && lista.fetchError) {
+      throw new BadRequestException('Serwer hostingowy jest chwilowo niedostępny — nie możemy pobrać listy stron. Spróbuj ponownie za chwilę.');
+    }
+    return { account: sub.account, domeny: lista.domains.map((d) => d.name.toLowerCase()).slice(0, 100) };
+  }
+
   private async wymagajDomeny(subscriptionId: string, userId: string, domain: string) {
     const sub = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, include: { account: true } });
     if (!sub) throw new NotFoundException('Service not found');

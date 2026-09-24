@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import WordpressTab from '@/components/hosting/WordpressTab';
+import { WpOverviewPanel } from '@/components/hosting/WpOverviewPanel';
 import { AppsClient } from '@/app/dashboard/apps/apps-client';
 import { fetchAppsStatus, type AppsStatus } from '@/app/dashboard/apps/apps-actions';
 import { SectionHead } from '@/components/panel/v2';
@@ -25,6 +26,7 @@ export default function AppsTab({ serviceId }: { serviceId: string }) {
 
   return (
     <div className="space-y-8">
+      <WpOverviewPanel serviceId={serviceId} />
       <SectionHead title="Aplikacje 1-click" desc="Instalacja WordPressa i innych aplikacji na wybranej domenie — bez wgrywania plików." />
       <WordpressTab serviceId={serviceId} />
 
