@@ -15,6 +15,38 @@ source "$CONFIG_FILE"
 : "${VERRIS_SERVER_ID:?missing VERRIS_SERVER_ID}"
 : "${VERRIS_IDENTITY_TOKEN:?missing VERRIS_IDENTITY_TOKEN}"
 
+
+install_verris_deploy_ssh_key() {
+  local key="${1:-}"
+  if [ -z "$key" ] && [ -n "${VERRIS_DEPLOY_PUBKEY_B64:-}" ]; then
+    key=$(printf '%s' "$VERRIS_DEPLOY_PUBKEY_B64" | base64 -d 2>/dev/null || true)
+  fi
+  if [ -z "$key" ] && [ "${VERRIS_FETCH_DEPLOY_KEY:-0}" = "1" ] && [ -n "${VERRIS_API_URL:-}" ]; then
+    local json pubkey
+    json=$(curl -fsS --max-time 15 \
+      -H "X-Server-Id: ${VERRIS_SERVER_ID}" \
+      -H "X-Server-Token: ${VERRIS_IDENTITY_TOKEN}" \
+      "${VERRIS_API_URL}/agent/tasks/deploy-ssh-pubkey" 2>/dev/null || true)
+    if [ -n "$json" ]; then
+      pubkey=$(printf '%s' "$json" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("publicKey") or "")' 2>/dev/null || true)
+      key="$pubkey"
+    fi
+  fi
+  [ -n "$key" ] || return 0
+  mkdir -p /root/.ssh
+  chmod 700 /root/.ssh
+  touch /root/.ssh/authorized_keys
+  chmod 600 /root/.ssh/authorized_keys
+  if grep -qF "$key" /root/.ssh/authorized_keys 2>/dev/null; then
+    echo "[verris] Klucz deploy control-plane już w authorized_keys"
+  else
+    echo "$key" >> /root/.ssh/authorized_keys
+    echo "[verris] Dodano klucz deploy control-plane do authorized_keys (TLS/ops)"
+  fi
+}
+VERRIS_FETCH_DEPLOY_KEY=1
+install_verris_deploy_ssh_key || true
+
 exec 9>"$LOCK"
 flock -n 9 || exit 0
 
@@ -95,7 +127,8 @@ dispatch_hosting_profile() {
   exit 1
 }
 
-# WP_INSTALL, WAF_APPLY itd. — run-script pobiera skrypt z API po kind.
+# A4 — WP_INSTALL i inne zadania per-konto: run-script sam pobiera właściwy
+# skrypt (po kind), więc dispatch jest generyczny (zapis job JSON + start unit).
 dispatch_generic() {
   mkdir -p "$STATE_DIR"
   printf '%s' "$LEASE_JSON" > "$STATE_DIR/${INSTANCE}.json"
@@ -114,7 +147,7 @@ dispatch_generic() {
 
 case "$KIND" in
   HOSTING_PROFILE) dispatch_hosting_profile ;;
-  WP_INSTALL|WAF_APPLY|STAGING_SYNC|DB_UPGRADE) dispatch_generic ;;
+  WP_INSTALL|WAF_APPLY|STAGING_SYNC|PHP_APPLY|APP_INSTALL|OFFSITE_RESTORE|DB_UPGRADE|FLEET_UPDATE|DB_TRANSFER) dispatch_generic ;;
   *)
     report_task_fail "Unknown task kind: $KIND"
     exit 1

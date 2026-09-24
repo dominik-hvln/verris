@@ -33,6 +33,7 @@ import { AssistantService } from './assistant.service';
 import { CofniecieNaprawyDto, NaprawaAsystentaDto } from './dto/assistant.dto';
 import { HostingRestoreService } from './hosting-restore.service';
 import { OffsiteRestoreService } from './offsite-restore.service';
+import { DbTransferService } from './db-transfer.service';
 import { HostingRestoreDto } from './dto/hosting-restore.dto';
 import { WordpressService } from './wordpress.service';
 import { InstallWordpressDto } from './dto/wordpress.dto';
@@ -74,6 +75,8 @@ import {
   UzytkownikBazyZHaslemDto,
   WersjaPhpDomenyDto,
   UstawieniaPhpDomenyDto,
+  EksportBazyDto,
+  ImportBazyDto,
   WersjaPhpDto,
   ZadanieDeployDto,
 } from './dto/hosting-body.dto';
@@ -94,6 +97,7 @@ export class UserServicesController {
     private readonly assistant: AssistantService,
     private readonly hostingRestore: HostingRestoreService,
     private readonly offsiteRestore: OffsiteRestoreService,
+    private readonly dbTransfer: DbTransferService,
     private readonly wordpress: WordpressService,
     private readonly waf: WafService,
     private readonly siteMonitor: SiteMonitorService,
@@ -992,6 +996,24 @@ export class UserServicesController {
   // listowanie i pobranie archiwum wykonuje węzeł zadaniem OFFSITE_RESTORE.
   // Po pobraniu archiwum trafia na zwykłą listę kopii DA i odtwarza się
   // istniejącą ścieżką /hosting-restore (kopia bezpieczeństwa + potwierdzenie).
+  // D-12 — eksport/import bazy przez agenta węzła (katalog ~/verris-bazy).
+  @Get(':id/hosting-db-transfer')
+  async hostingDbTransfer(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.dbTransfer.status(id, user.userId);
+  }
+
+  @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: 'hosting:db-transfer' })
+  @Post(':id/hosting-db-export')
+  async hostingDbExport(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: EksportBazyDto) {
+    return this.dbTransfer.zlecEksport(id, user.userId, body.db);
+  }
+
+  @RateLimit({ limit: 10, windowMs: 60 * 60 * 1000, scope: 'hosting:db-transfer' })
+  @Post(':id/hosting-db-import')
+  async hostingDbImport(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: ImportBazyDto) {
+    return this.dbTransfer.zlecImport(id, user.userId, body.db, body.file);
+  }
+
   @Get(':id/hosting-offsite')
   hostingOffsiteStatus(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
     return this.offsiteRestore.status(id, user.userId);

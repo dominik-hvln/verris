@@ -5,7 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { DirectAdminClient, mergeAdminSettingsPayload } from '@verris/directadmin-sdk';
+import { DirectAdminApiError, DirectAdminClient, mergeAdminSettingsPayload } from '@verris/directadmin-sdk';
 import type {
   DeployFrequency,
   DeployJobDto,
@@ -2230,6 +2230,31 @@ export class DirectAdminService {
       details: { subscriptionId, domain: dom, version, slot },
     });
     return { ok: true as const, domain: dom, version, slot };
+  }
+
+  /* ===================== D-12: pliki eksportu/importu baz ===================== */
+
+  /**
+   * Pliki .sql/.sql.gz w katalogu baz konta (wyniki eksportu, pliki do importu). Brak katalogu
+   * to normalny stan przed pierwszym eksportem — DA odpowiada wtedy błędem, który zamieniamy na pustą listę.
+   */
+  async listHostingDbTransferFiles(subscriptionId: string, userId: string, katalog: string) {
+    const sub = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, include: { account: true } });
+    if (!sub?.account?.id) return { pliki: [], bladPlikow: 'Brak konta hostingowego.' };
+    try {
+      const client = await this.getClientForHostingAccount(sub.account.id, userId);
+      const wpisy = await client.listDir(`/${katalog}`);
+      const pliki = wpisy
+        .filter((w) => w.type === 'file' && /\.sql(\.gz)?$/.test(w.name))
+        .map((w) => ({ nazwa: w.name, sciezka: `/${katalog}/${w.name}`, rozmiar: w.sizeBytes, zmieniony: w.modified }))
+        .sort((a, b) => (b.zmieniony ?? '').localeCompare(a.zmieniony ?? ''));
+      return { pliki, bladPlikow: null as string | null };
+    } catch (err) {
+      if (err instanceof DirectAdminApiError) return { pliki: [], bladPlikow: null as string | null };
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`listHostingDbTransferFiles sub=${subscriptionId}: ${msg}`);
+      return { pliki: [], bladPlikow: 'Nie udało się odczytać listy plików. Spróbuj ponownie za chwilę.' };
+    }
   }
 
   /* ===================== B-05: ustawienia PHP per domena (.user.ini) ===================== */

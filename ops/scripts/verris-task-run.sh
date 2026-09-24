@@ -27,7 +27,7 @@ source "$CONFIG_FILE"
 [ -f "$JOB_JSON" ] || { log "Missing job file $JOB_JSON"; exit 1; }
 
 TASK_ID=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["id"])' "$JOB_JSON")
-TASK_KIND=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("kind") or "HOSTING_PROFILE")' "$JOB_JSON")
+TASK_KIND=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("kind") or "")' "$JOB_JSON")
 SKIP_BUILD=$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print("1" if d.get("payload",{}).get("skipBuild", True) else "0")' "$JOB_JSON")
 DRY_RUN=$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print("1" if d.get("payload",{}).get("dryRun") else "0")' "$JOB_JSON")
 
@@ -85,9 +85,13 @@ trap on_exit EXIT
 
 log "Starting task $TASK_ID (kind=$TASK_KIND instance=$INSTANCE) → $TASK_LOG"
 
+# Build the command for this task kind. HOSTING_PROFILE runs the cached profile
+# binary; per-account tasks (WP_INSTALL, WAF_APPLY) fetch their script from the
+# API and export the payload as <PREFIX>_* env vars.
 RUN_BIN=""
 declare -a RUN_ENV=()
 
+# fetch_task_script <url-path> <dest-bin>
 fetch_task_script() {
   if ! curl -fsS --max-time 30 "${auth_headers[@]}" "$VERRIS_API_URL${1}" -o "${2}" 2>>"$AGENT_LOG"; then
     report_fail "Nie udało się pobrać skryptu ${1} z API."
@@ -96,6 +100,7 @@ fetch_task_script() {
   chmod 755 "${2}"
 }
 
+# payload_env <prefix> <mapping-python-dict>
 payload_env() {
   local prefix="${1}" mapping="${2}"
   while IFS='=' read -r k v; do
@@ -130,16 +135,32 @@ elif [ "$TASK_KIND" = "APP_INSTALL" ]; then
   RUN_BIN="/usr/local/bin/verris-app-install.sh"
   fetch_task_script "/agent/tasks/app-install/script" "$RUN_BIN"
   payload_env "APP" "{'app':'APP','daUser':'DA_USER','domain':'DOMAIN','dbName':'DB_NAME','dbUser':'DB_USER','dbPass':'DB_PASS','adminUser':'ADMIN_USER','adminPass':'ADMIN_PASS','adminEmail':'ADMIN_EMAIL'}"
+elif [ "$TASK_KIND" = "OFFSITE_RESTORE" ]; then
+  RUN_BIN="/usr/local/bin/verris-account-restore.sh"
+  fetch_task_script "/agent/tasks/offsite-restore/script" "$RUN_BIN"
+  payload_env "OFR" "{'mode':'MODE','daUser':'USER','archive':'ARCHIVE','snapshot':'SNAPSHOT'}"
 elif [ "$TASK_KIND" = "DB_UPGRADE" ]; then
   RUN_BIN="/usr/local/bin/verris-db-upgrade.sh"
   fetch_task_script "/agent/tasks/db-upgrade/script" "$RUN_BIN"
   payload_env "DB" "{'version':'TARGET_VERSION'}"
-else
+elif [ "$TASK_KIND" = "FLEET_UPDATE" ]; then
+  RUN_BIN="/usr/local/bin/verris-node-update.sh"
+  fetch_task_script "/agent/tasks/node-update/script" "$RUN_BIN"
+elif [ "$TASK_KIND" = "DB_TRANSFER" ]; then
+  RUN_BIN="/usr/local/bin/verris-db-transfer.sh"
+  fetch_task_script "/agent/tasks/db-transfer/script" "$RUN_BIN"
+  payload_env "DBT" "{'mode':'MODE','daUser':'DA_USER','db':'DB','file':'FILE'}"
+elif [ "$TASK_KIND" = "HOSTING_PROFILE" ]; then
   flags="-y"
   [ "$SKIP_BUILD" = "1" ] && flags="$flags --skip-build"
   [ "$DRY_RUN" = "1" ] && flags="$flags --dry-run"
   RUN_BIN="$PROFILE_BIN"
   [ -x "$RUN_BIN" ] || { report_fail "Brak $RUN_BIN"; exit 1; }
+else
+  # Nieznany rodzaj NIE może spaść do profilu hostingu (przekonfigurowanie całego węzła) —
+  # agent starszy niż API po prostu odmawia i mówi, co zaktualizować.
+  report_fail "Nieznany rodzaj zadania: $TASK_KIND — agent węzła jest starszy niż API (zaktualizuj verris-task-run.sh)."
+  exit 1
 fi
 
 {

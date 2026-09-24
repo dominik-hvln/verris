@@ -183,6 +183,8 @@ export const HostingResourceActions = {
   // Wersja PHP ustawiana per domena, obok selektora per konto (FALA-2b).
   HOSTING_DOMAIN_PHP_SET: 'HOSTING_DOMAIN_PHP_SET',
   HOSTING_PHP_INI_SET: 'HOSTING_PHP_INI_SET',
+  HOSTING_DB_EXPORT_QUEUED: 'HOSTING_DB_EXPORT_QUEUED',
+  HOSTING_DB_IMPORT_QUEUED: 'HOSTING_DB_IMPORT_QUEUED',
 } as const;
 
 export const MigrationActions = {

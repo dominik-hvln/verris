@@ -96,7 +96,7 @@ source "$CONFIG_FILE"
 [ -f "$JOB_JSON" ] || { log "Missing job file $JOB_JSON"; exit 1; }
 
 TASK_ID=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["id"])' "$JOB_JSON")
-TASK_KIND=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("kind") or "HOSTING_PROFILE")' "$JOB_JSON")
+TASK_KIND=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("kind") or "")' "$JOB_JSON")
 SKIP_BUILD=$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print("1" if d.get("payload",{}).get("skipBuild", True) else "0")' "$JOB_JSON")
 DRY_RUN=$(python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print("1" if d.get("payload",{}).get("dryRun") else "0")' "$JOB_JSON")
 
@@ -215,12 +215,21 @@ elif [ "$TASK_KIND" = "DB_UPGRADE" ]; then
 elif [ "$TASK_KIND" = "FLEET_UPDATE" ]; then
   RUN_BIN="/usr/local/bin/verris-node-update.sh"
   fetch_task_script "/agent/tasks/node-update/script" "$RUN_BIN"
-else
+elif [ "$TASK_KIND" = "DB_TRANSFER" ]; then
+  RUN_BIN="/usr/local/bin/verris-db-transfer.sh"
+  fetch_task_script "/agent/tasks/db-transfer/script" "$RUN_BIN"
+  payload_env "DBT" "{'mode':'MODE','daUser':'DA_USER','db':'DB','file':'FILE'}"
+elif [ "$TASK_KIND" = "HOSTING_PROFILE" ]; then
   flags="-y"
   [ "$SKIP_BUILD" = "1" ] && flags="$flags --skip-build"
   [ "$DRY_RUN" = "1" ] && flags="$flags --dry-run"
   RUN_BIN="$PROFILE_BIN"
   [ -x "$RUN_BIN" ] || { report_fail "Brak $RUN_BIN"; exit 1; }
+else
+  # Nieznany rodzaj NIE może spaść do profilu hostingu (przekonfigurowanie całego węzła) —
+  # agent starszy niż API po prostu odmawia i mówi, co zaktualizować.
+  report_fail "Nieznany rodzaj zadania: $TASK_KIND — agent węzła jest starszy niż API (zaktualizuj verris-task-run.sh)."
+  exit 1
 fi
 
 {
@@ -390,7 +399,7 @@ dispatch_generic() {
 
 case "$KIND" in
   HOSTING_PROFILE) dispatch_hosting_profile ;;
-  WP_INSTALL|WAF_APPLY|STAGING_SYNC|PHP_APPLY|APP_INSTALL|OFFSITE_RESTORE|DB_UPGRADE|FLEET_UPDATE) dispatch_generic ;;
+  WP_INSTALL|WAF_APPLY|STAGING_SYNC|PHP_APPLY|APP_INSTALL|OFFSITE_RESTORE|DB_UPGRADE|FLEET_UPDATE|DB_TRANSFER) dispatch_generic ;;
   *)
     report_task_fail "Unknown task kind: $KIND"
     exit 1

@@ -42,6 +42,7 @@ const ODMOWA_OCZEKIWANA: ReadonlyArray<string> = [
   'GET /agent/nodes/bootstrap/script',
   'GET /agent/probes/list',
   'GET /agent/tasks/app-install/script',
+  'GET /agent/tasks/db-transfer/script',
   'GET /agent/tasks/db-upgrade/script',
   'GET /agent/tasks/deploy-ssh-pubkey',
   'GET /agent/tasks/hosting-profile/default-page/bundle',

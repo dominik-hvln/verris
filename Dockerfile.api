@@ -120,6 +120,7 @@ COPY ops/scripts/node-db-upgrade.sh ./ops/scripts/node-db-upgrade.sh
 COPY ops/scripts/node-account-restore.sh ./ops/scripts/node-account-restore.sh
 COPY ops/scripts/node-app-install.sh ./ops/scripts/node-app-install.sh
 COPY ops/scripts/node-php-apply.sh ./ops/scripts/node-php-apply.sh
+COPY ops/scripts/node-db-transfer.sh ./ops/scripts/node-db-transfer.sh
 COPY ops/hosting-default-page ./ops/hosting-default-page
 RUN chmod +x /usr/local/bin/api-entrypoint.sh
 

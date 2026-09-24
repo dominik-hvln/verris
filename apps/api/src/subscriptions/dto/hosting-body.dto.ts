@@ -56,6 +56,15 @@ export class WersjaPhpDomenyDto extends WersjaPhpDto {
   @Linia(253) domain!: string;
 }
 
+/** D-12 — eksport bazy (pełna nazwa login_nazwa; przynależność sprawdza serwis). */
+export class EksportBazyDto {
+  @Linia(64) db!: string;
+}
+
+export class ImportBazyDto extends EksportBazyDto {
+  @Linia(128) file!: string;
+}
+
 /** B-05 — dyrektywy PHP w `.user.ini` domeny. Listę dozwolonych i zakresy sprawdza `php-ini.ts`. */
 export class UstawieniaPhpDomenyDto {
   @Linia(253) domain!: string;

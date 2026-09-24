@@ -26,6 +26,7 @@ import { loadPhpApplyScript } from './php-apply.script';
 import { loadAppInstallScript } from './app-install.script';
 import { loadDbUpgradeScript } from './db-upgrade.script';
 import { loadOffsiteRestoreScript } from './offsite-restore.script';
+import { loadDbTransferScript } from './db-transfer.script';
 import { loadNodeUpdateScript } from './node-update.script';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 
@@ -113,6 +114,13 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   offsiteRestoreScript() {
     return loadOffsiteRestoreScript();
+  }
+
+  /** D-12 — eksport/import bazy klienta (run with DBT_* env). */
+  @Get('db-transfer/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  dbTransferScript() {
+    return loadDbTransferScript();
   }
 
   /** VER-UPG — MariaDB engine upgrade script (run with DB_TARGET_VERSION env). */
