@@ -48,3 +48,14 @@ export async function applyReseller(brandName: string): Promise<{ ok: true; data
     return { ok: false, error: e instanceof ApiError || e instanceof Error ? e.message : 'Błąd' };
   }
 }
+
+/** O-06 — reseller zakłada konto klientowi (mail z linkiem „ustaw hasło”, limit dzienny). */
+export async function createResellerClient(input: { email: string; firstName: string; lastName: string }): Promise<
+  { ok: true; data: { id: string; email: string; mailWyslany: boolean; pozostaloDzis: number } } | { ok: false; error: string }
+> {
+  try {
+    return { ok: true, data: await apiFetch('/reseller/me/clients', { method: 'POST', body: JSON.stringify(input) }) };
+  } catch (e) {
+    return { ok: false, error: e instanceof ApiError || e instanceof Error ? e.message : 'Błąd' };
+  }
+}

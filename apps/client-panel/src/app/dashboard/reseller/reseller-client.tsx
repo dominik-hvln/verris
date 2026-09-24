@@ -8,6 +8,7 @@ import {
   fetchResellerOverview,
   fetchResellerClients,
   applyReseller,
+  createResellerClient,
   type ResellerOverview,
   type ResellerClient as Client,
 } from './actions';
@@ -21,6 +22,25 @@ export function ResellerClient() {
   const [copied, setCopied] = useState(false);
   const [marka, setMarka] = useState('');
   const [wysylam, setWysylam] = useState(false);
+
+  const [nowy, setNowy] = useState({ email: '', firstName: '', lastName: '' });
+  const [zakladam, setZakladam] = useState(false);
+  const zaloz = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setZakladam(true);
+    const r = await createResellerClient(nowy);
+    setZakladam(false);
+    if (!r.ok) {
+      toast.error(r.error);
+      return;
+    }
+    toast.success(
+      r.data.mailWyslany ? `Konto założone — ${r.data.email} dostał link do ustawienia hasła.` : 'Konto założone, ale mail nie wyszedł — napisz do nas.',
+      { description: `Dziś możesz założyć jeszcze ${r.data.pozostaloDzis}.` },
+    );
+    setNowy({ email: '', firstName: '', lastName: '' });
+    fetchResellerClients().then(setClients);
+  };
 
   const zloz = async () => {
     setWysylam(true);
@@ -107,6 +127,23 @@ export function ResellerClient() {
         </div>
         {ov.brandName ? <p className="text-xs text-neutral-500">Marka: <span className="text-neutral-300">{ov.brandName}</span></p> : null}
       </section>
+
+      {ov.status === 'ACTIVE' ? (
+        <section className="rounded-2xl border border-white/10 bg-black/30 p-5 space-y-3">
+          <h3 className="text-sm font-semibold text-white">Załóż konto klientowi</h3>
+          <p className="text-sm text-neutral-400">
+            Klient dostanie od Verris e-mail z informacją, że konto założyła {ov.brandName ? <b className="text-neutral-200">{ov.brandName}</b> : 'Twoja firma'}, i link do ustawienia hasła (ważny 72 h). Do 10 nowych kont na dobę.
+          </p>
+          <form onSubmit={(e) => void zaloz(e)} className="grid gap-2 sm:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)_auto]">
+            <input type="email" required value={nowy.email} onChange={(e) => setNowy({ ...nowy, email: e.target.value })} placeholder="e-mail klienta" aria-label="E-mail klienta" maxLength={254} className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-neutral-500" />
+            <input required value={nowy.firstName} onChange={(e) => setNowy({ ...nowy, firstName: e.target.value })} placeholder="imię" aria-label="Imię" maxLength={80} className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-neutral-500" />
+            <input required value={nowy.lastName} onChange={(e) => setNowy({ ...nowy, lastName: e.target.value })} placeholder="nazwisko" aria-label="Nazwisko" maxLength={80} className="rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-neutral-500" />
+            <button type="submit" disabled={zakladam} className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50">
+              {zakladam ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Załóż konto
+            </button>
+          </form>
+        </section>
+      ) : null}
 
       <section className="rounded-2xl border border-white/10 bg-black/30 p-5">
         <h3 className="mb-3 text-sm font-semibold text-white">Twoi klienci</h3>

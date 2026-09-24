@@ -1,4 +1,6 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
+import { generateAuthToken, hashAuthToken } from '../auth/auth-token.util';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
@@ -44,6 +46,10 @@ export interface ResellerClientView {
   createdAt: string;
   services: { id: string; plan: string | null; status: string; wholesale: number; retail: number; currency: string }[];
 }
+
+/** O-06 — ile kont reseller może założyć klientom w ciągu doby (decyzja właściciela 2026-09-24). */
+export const LIMIT_KONT_DZIENNIE = 10;
+const WAZNOSC_LINKU_H = 72;
 
 @Injectable()
 export class ResellerService {
@@ -142,6 +148,71 @@ export class ResellerService {
         .catch(() => undefined);
     }
     return this.getOverview(userId);
+  }
+
+  /**
+   * O-06 — reseller zakłada konto klientowi: konto od razu przypisane do resellera, bez hasła
+   * (klient ustawia je z linku, 72 h). Tylko aktywny program, limit dzienny, mail mówi wprost,
+   * kto założył konto (Verris + nazwa resellera) i co zrobić, gdy to pomyłka.
+   */
+  async createClient(resellerId: string, dto: { email: string; firstName: string; lastName: string }) {
+    const p = await this.getProfile(resellerId);
+    if (!p || p.status !== 'ACTIVE') throw new ForbiddenException('Program resellerski nie jest aktywny na tym koncie.');
+    const od = new Date(Date.now() - 24 * 3600 * 1000);
+    const dzis = await this.prisma.auditLog.count({ where: { action: 'RESELLER_CLIENT_CREATED', actorUserId: resellerId, createdAt: { gte: od } } });
+    if (dzis >= LIMIT_KONT_DZIENNIE) {
+      throw new HttpException(`Limit ${LIMIT_KONT_DZIENNIE} nowych kont na dobę — napisz do nas, jeśli potrzebujesz więcej.`, HttpStatus.TOO_MANY_REQUESTS);
+    }
+    const email = dto.email.trim().toLowerCase();
+    const istnieje = await this.prisma.user.findFirst({ where: { email: { equals: email, mode: 'insensitive' } }, select: { id: true } });
+    if (istnieje) throw new ConflictException('Konto z tym adresem e-mail już istnieje — klient może zarejestrować się z Twojego linku zaproszenia tylko nowym adresem.');
+
+    const rawToken = generateAuthToken();
+    const user = await this.prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        data: {
+          email,
+          passwordHash: await bcrypt.hash(randomBytes(32).toString('base64url'), 10),
+          firstName: dto.firstName.trim(),
+          lastName: dto.lastName.trim(),
+          role: 'USER',
+          walletBalance: 0,
+          referralCode: `EKO-${randomBytes(4).toString('hex').toUpperCase()}`,
+          ecoBadgeToken: randomBytes(18).toString('base64url'),
+          resellerOwnerId: resellerId,
+        },
+      });
+      await tx.userAuthToken.create({
+        data: { userId: created.id, purpose: 'PASSWORD_RESET', tokenHash: hashAuthToken(rawToken), expiresAt: new Date(Date.now() + WAZNOSC_LINKU_H * 3600 * 1000) },
+      });
+      return created;
+    });
+    await this.audit.record({ action: 'RESELLER_CLIENT_CREATED', userId: user.id, actorUserId: resellerId, details: { email } });
+
+    const panelUrl = this.clientUrl();
+    const marka = p.brandName || 'Twój partner';
+    const { html, text } = renderEmailShell({
+      title: 'Konto w Verris czeka na Ciebie',
+      preheader: `${marka} założył(a) Ci konto hostingowe w Verris.`,
+      bodyMarkdown: [
+        `Cześć${dto.firstName.trim() ? ` **${md(dto.firstName.trim())}**` : ''},`,
+        '',
+        `**${md(marka)}** założył(a) Ci konto w Verris — hostingu, z którego korzysta przy Twojej stronie. Żeby się zalogować, ustaw hasło (link ważny ${WAZNOSC_LINKU_H} godziny).`,
+        '',
+        `Jeśli nie znasz ${md(marka)} albo nie spodziewałeś(-aś) się tego konta — nic nie rób: bez hasła konto jest nieaktywne. Jeśli ktoś podszywa się pod Ciebie albo dostajesz takie maile wielokrotnie, zgłoś to: ${(process.env.WWW_URL ?? 'https://verris.pl').replace(/\/$/, '')}/zglos-naduzycie`,
+      ].join('\n'),
+      cta: { label: 'Ustaw hasło', url: `${panelUrl}/reset-password?token=${encodeURIComponent(rawToken)}` },
+      recipientEmail: email,
+      panelUrl,
+      recipientHasAccount: true,
+    });
+    let mailWyslany = true;
+    try {
+      await this.mailer.send({ to: email, userId: user.id, subject: `${marka} założył(a) Ci konto w Verris`, text, html, tag: 'reseller.client-created', category: 'TRANSACTIONAL', fromRole: 'NOREPLY' });
+    } catch {
+      mailWyslany = false;
+    }
+    return { id: user.id, email, mailWyslany, pozostaloDzis: LIMIT_KONT_DZIENNIE - dzis - 1 };
   }
 
   async listClients(userId: string): Promise<ResellerClientView[]> {

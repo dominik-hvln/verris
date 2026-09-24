@@ -99,6 +99,7 @@ const ODMOWA_OCZEKIWANA: ReadonlyArray<string> = [
   'POST /partners/me/payouts/bank',
   'POST /partners/me/payouts/wallet',
   'POST /reseller/me/apply',
+  'POST /reseller/me/clients',
   'POST /servers/handshake',
   'POST /users/iam/invites',
   'POST /users/iam/invites/accept',

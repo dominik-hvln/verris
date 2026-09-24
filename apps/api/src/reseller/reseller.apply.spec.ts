@@ -54,3 +54,40 @@ describe('ResellerService.apply (O-08)', () => {
     await expect(stanowisko('ADMIN').svc.apply('u1', {})).rejects.toThrow(BadRequestException);
   });
 });
+
+describe('ResellerService.createClient (O-06)', () => {
+  function st(o: { status?: string; dzis?: number; istnieje?: boolean } = {}) {
+    const profil = { id: 'p', userId: 'r1', status: o.status ?? 'ACTIVE', brandName: 'Studio X', markupPct: 20, code: 'rsl_a', createdAt: new Date(), updatedAt: new Date() };
+    const tx = {
+      user: { create: jest.fn(async (a: { data: Record<string, unknown> }) => ({ id: 'k1', ...a.data })) },
+      userAuthToken: { create: jest.fn(async () => ({})) },
+    };
+    const prisma = {
+      resellerProfile: { findUnique: jest.fn(async () => profil) },
+      auditLog: { count: jest.fn(async () => o.dzis ?? 0) },
+      user: { findFirst: jest.fn(async () => (o.istnieje ? { id: 'x' } : null)) },
+      $transaction: jest.fn(async (f: (t: typeof tx) => unknown) => f(tx)),
+    };
+    const send = jest.fn(async () => undefined);
+    const audit = { record: jest.fn(async () => undefined) };
+    return { svc: new ResellerService(prisma as never, audit as never, { send } as never), tx, send, audit };
+  }
+  const dto = { email: ' Klient@Firma.pl ', firstName: 'Anna', lastName: 'Nowak' };
+
+  it('konto przypisane do resellera, mail z marką i linkiem ustawienia hasła', async () => {
+    const s = st();
+    const r = await s.svc.createClient('r1', dto);
+    expect(s.tx.user.create).toHaveBeenCalledWith({ data: expect.objectContaining({ email: 'klient@firma.pl', role: 'USER', resellerOwnerId: 'r1' }) });
+    const mail = (s.send.mock.calls[0] as unknown as [{ subject: string; text: string }])[0];
+    expect(mail.subject).toContain('Studio X');
+    expect(mail.text).toContain('reset-password?token=');
+    expect(s.audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'RESELLER_CLIENT_CREATED', actorUserId: 'r1' }));
+    expect(r.pozostaloDzis).toBe(9);
+  });
+
+  it('program nieaktywny → 403; limit dobowy → 429; zajęty adres → 409', async () => {
+    await expect(st({ status: 'PENDING' }).svc.createClient('r1', dto)).rejects.toMatchObject({ status: 403 });
+    await expect(st({ dzis: 10 }).svc.createClient('r1', dto)).rejects.toMatchObject({ status: 429 });
+    await expect(st({ istnieje: true }).svc.createClient('r1', dto)).rejects.toMatchObject({ status: 409 });
+  });
+});

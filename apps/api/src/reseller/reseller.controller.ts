@@ -1,11 +1,18 @@
 import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
-import { IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsEmail, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ResellerService } from './reseller.service';
+import { RateLimit } from '../common/guards/rate-limit.guard';
 
 class WniosekResellerDto {
   @IsOptional() @IsString() @MaxLength(80) brandName?: string;
+}
+
+class NowyKlientDto {
+  @IsEmail() @MaxLength(254) email!: string;
+  @IsString() @MinLength(1) @MaxLength(80) firstName!: string;
+  @IsString() @MinLength(1) @MaxLength(80) lastName!: string;
 }
 
 /** RSL — panel resellera (self-service, JWT). */
@@ -23,6 +30,13 @@ export class ResellerController {
   @Post('me/apply')
   apply(@CurrentUser() user: { userId: string }, @Body() body: WniosekResellerDto) {
     return this.reseller.apply(user.userId, body);
+  }
+
+  /** O-06 — reseller zakłada konto swojemu klientowi (limit dzienny, mail z linkiem „ustaw hasło”). */
+  @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: 'reseller:create-client' })
+  @Post('me/clients')
+  createClient(@CurrentUser() user: { userId: string }, @Body() body: NowyKlientDto) {
+    return this.reseller.createClient(user.userId, body);
   }
 
   @Get('me/clients')
