@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import {
   BadRequestException,
   ConflictException,
@@ -334,6 +335,28 @@ export class AccountDeletionService {
         },
       });
 
+      // 3b) Subkonta istnieją tylko w kontekście tego konta: wyłączamy je, unieważniamy
+      //     sesje i anonimizujemy dane. Bez tego subkonto dalej działałoby jako właściciel
+      //     (JWT daje userId = customerOwnerId) na zanonimizowanym koncie.
+      const subkonta = await tx.user.findMany({ where: { customerOwnerId: userId }, select: { id: true } });
+      for (const sk of subkonta) {
+        await tx.user.update({
+          where: { id: sk.id },
+          data: {
+            email: `deleted-${sk.id}@verris.local`,
+            firstName: null,
+            lastName: null,
+            passwordHash: '',
+            twoFactorSecret: null,
+            isTwoFactorEnabled: false,
+            twoFactorRecoveryCodesEnc: null,
+            subaccountDisabledAt: now,
+            anonymizedAt: now,
+            tokenVersion: { increment: 1 },
+          },
+        });
+      }
+
       // 4) Wipe payment methods (raw card brand/last4 alone is PII when tied
       //    to identity).
       await tx.paymentMethod.deleteMany({ where: { userId } });
@@ -366,7 +389,8 @@ export class AccountDeletionService {
       userId,
       actorUserId,
       details: {
-        previousEmail: originalEmail,
+        // Bez jawnego adresu (art. 17): skrót pozwala potwierdzić „czy konto X usunięto”, nie odtwarza adresu.
+        previousEmailSha256: createHash('sha256').update(originalEmail.trim().toLowerCase()).digest('hex'),
         canceledSubs: subs.length,
         suspendedDaAccounts: liveAccounts.length,
       },

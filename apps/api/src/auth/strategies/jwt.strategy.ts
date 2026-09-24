@@ -46,6 +46,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         customerOwnerId: true,
         customerPermissions: true,
         subaccountDisabledAt: true,
+        customerOwner: { select: { anonymizedAt: true, loginBlocked: true } },
       },
     });
     if (!user) {
@@ -70,6 +71,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     }
     if (user.customerOwnerId && user.subaccountDisabledAt) {
       throw new UnauthorizedException('Subaccount is disabled');
+    }
+    // Subkonto działa jako właściciel — gdy właściciela zanonimizowano albo zablokowano, subkonto też traci dostęp.
+    if (user.customerOwnerId && (user.customerOwner?.anonymizedAt || user.customerOwner?.loginBlocked)) {
+      throw new UnauthorizedException('Owner account is not available');
     }
 
     // SEC-10 — sesyjna rewokacja pojedynczego urządzenia. Backward-compatible:
