@@ -7,6 +7,8 @@ import {
   IncidentStatus,
   Role,
   StatusWebhookEvent,
+  SubscriptionStatus,
+  type Prisma,
 } from '@verris/database';
 import { ArrayMaxSize, ArrayNotEmpty, IsArray, IsBoolean, IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUrl, Max, MaxLength, Min } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -147,6 +149,12 @@ class ComposeIncidentDto {
   publicMessage?: string;
 }
 
+/** Nieudane zakładanie, które wciąż wymaga działania (usługa nie jest anulowana ani wygasła). */
+export const PROVISIONING_DO_NAPRAWY = {
+  provisioningStage: 'failed',
+  status: { notIn: [SubscriptionStatus.CANCELED, SubscriptionStatus.EXPIRED] },
+} satisfies Prisma.SubscriptionWhereInput;
+
 @Controller('admin/product-ops')
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(Role.ADMIN)
@@ -163,7 +171,10 @@ export class ProductOpsAdminController {
   async preflight() {
     const [failedProvisioning, failedMigrations, openIncidents, activeServers, activeFlags, scheduledMaintenance] =
       await Promise.all([
-        this.prisma.subscription.count({ where: { provisioningStage: 'failed' } }),
+        // PROD-03: blokuje tylko NIEROZWIĄZANE — usługa anulowana/wygasła po nieudanym zakładaniu
+        // (zwrot już wypłacony) to historia, nie coś, co trzeba naprawić przed startem. Wcześniej
+        // cztery testowe zamówienia z maja–lipca blokowały start na zawsze.
+        this.prisma.subscription.count({ where: PROVISIONING_DO_NAPRAWY }),
         this.prisma.migrationRequest.count({ where: { status: 'FAILED' } }),
         this.prisma.probeIncident.count({ where: { status: 'OPEN' } }),
         this.prisma.server.count({ where: { status: 'ACTIVE' } }),
