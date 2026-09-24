@@ -11,3 +11,4 @@ export { MobileTabStrip, type MobileTabItem } from './mobile-tab-strip';
 export { Skeleton, SkeletonText, SkeletonList } from './skeleton';
 export { Select, type SelectOption } from './select';
 export { potwierdz, zapytaj, type OpcjePotwierdzenia, type OpcjePytania } from './potwierdz';
+export { PoleZalacznikow } from './pole-zalacznikow';

@@ -39,3 +39,20 @@ it('żaden plik panelu nie woła systemowych okien confirm / prompt / alert', ()
   przejdz(join(__dirname, '..'));
   expect(trafienia).toEqual([]);
 });
+
+/** Widoczne `<input type="file">` pokazuje systemowe „Choose files / No file chosen” (po angielsku). */
+it('żaden plik panelu nie pokazuje systemowego wyboru plików', () => {
+  const trafienia: string[] = [];
+  const przejdz = (dir: string) => {
+    for (const n of readdirSync(dir)) {
+      const p = join(dir, n);
+      if (statSync(p).isDirectory()) przejdz(p);
+      else if (n.endsWith('.tsx')) {
+        const pola = readFileSync(p, 'utf8').match(/<input\b[^>]*?type=["']file["'][^>]*>/gs) ?? [];
+        if (pola.some((t) => !/\bhidden\b|sr-only/.test(t))) trafienia.push(p.split('/src/')[1]!);
+      }
+    }
+  };
+  przejdz(join(__dirname, '..'));
+  expect(trafienia).toEqual([]);
+});

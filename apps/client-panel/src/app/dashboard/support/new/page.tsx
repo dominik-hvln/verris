@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, BookOpen, Loader2, Send } from "lucide-react";
 import { createTicketWithFiles, fetchKbSuggestions, type KbSuggestion } from "../actions";
 import { Select } from "@/components/panel";
+import { PoleZalacznikow } from "@/components/panel/pole-zalacznikow";
 import { toast } from "sonner";
 
 const TOPICS = [
@@ -165,13 +166,7 @@ export default function NewTicketPage() {
             <label htmlFor="files" className="text-sm font-medium">
               Załączniki <span className="text-muted-foreground font-normal">(opcjonalnie, do 5 plików × 8 MB)</span>
             </label>
-            <input
-              id="files"
-              name="files"
-              type="file"
-              multiple
-              className="flex w-full cursor-pointer rounded-md border border-input bg-background px-3 py-2 text-sm file:mr-3 file:rounded file:border-0 file:bg-muted file:px-3 file:py-1 file:text-sm"
-            />
+            <PoleZalacznikow id="files" name="files" />
           </div>
 
           <div className="pt-2 flex items-center justify-end gap-3">

@@ -22,6 +22,7 @@ import { staffTicketAttachmentDownloadHref } from "@/lib/ticket-attachment-links
 import { StaffImpersonateButton } from "@/app/(dashboard)/crm/impersonate-button";
 import { CannedResponsePicker } from "@/components/canned-response-picker";
 import { TICKET_DEPARTMENT_PL, TICKET_PRIORITY_PL, TICKET_STATUS_PL, etykieta } from "@verris/contracts";
+import { PoleZalacznikow } from "./pole-zalacznikow";
 
 interface Props {
   ticket: StaffTicketDetail;
@@ -399,13 +400,7 @@ export function TicketDetailPanel({ ticket, agents, context }: Props) {
           />
           <div>
             <label htmlFor={filesId} className="mb-2 block text-xs text-muted-foreground">Załączniki (opcjonalnie, max 5 × 8 MB)</label>
-            <input
-              id={filesId}
-              name="files"
-              type="file"
-              multiple
-              className="w-full rounded-lg border border-white/10 bg-black/35 px-3 py-2 text-xs file:mr-3 file:rounded-md file:border file:border-white/15 file:bg-white/10 file:px-2 file:py-1"
-            />
+            <PoleZalacznikow id={filesId} name="files" />
           </div>
           {replyErr ? <p className="text-sm text-rose-300">{replyErr}</p> : null}
           <button
