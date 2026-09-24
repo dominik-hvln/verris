@@ -30,7 +30,9 @@ const config = [
   { ignores: ['.next/**', 'node_modules/**', 'dist/**', 'out/**', 'next-env.d.ts'] },
   ...coreWebVitals,
   ...nextTypescript,
-  { rules: ODSLONIETE_PRZEZ_NEXT_16 },
+  // X-42: reguły react-hooks tylko w zasięgu, w którym eslint-config-next rejestruje wtyczkę
+  // (bez .cjs — inaczej jest.config.cjs wywraca lintera: „could not find plugin react-hooks”).
+  { files: ['**/*.{js,jsx,mjs,ts,tsx,mts,cts}'], rules: ODSLONIETE_PRZEZ_NEXT_16 },
 ];
 
 export default config;

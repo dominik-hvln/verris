@@ -33,7 +33,9 @@ const config = [
   { ignores: ['.next/**', 'node_modules/**', 'dist/**', 'out/**', 'next-env.d.ts'] },
   ...coreWebVitals,
   ...nextTypescript,
-  { rules: ODSLONIETE_PRZEZ_NEXT_16 },
+  // X-42: reguły react-hooks tylko w zasięgu, w którym eslint-config-next rejestruje wtyczkę
+  // (bez .cjs — inaczej jest.config.cjs wywraca lintera: „could not find plugin react-hooks”).
+  { files: ['**/*.{js,jsx,mjs,ts,tsx,mts,cts}'], rules: ODSLONIETE_PRZEZ_NEXT_16 },
   // P-12 (2026-09-24): pełny zestaw zalecany jsx-a11y jako błędy (WCAG 2.1 AA — etykiety pól,
   // obsługa klawiatury, role). eslint-config-next włącza tylko kilka reguł tej wtyczki; ten sam
   // zakres plików co w eslint-config-next, bo tylko tam wtyczka jest zarejestrowana (X-42).
