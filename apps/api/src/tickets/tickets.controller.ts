@@ -25,6 +25,10 @@ import {
   AdminUpdateTicketDto,
   SubmitCsatDto,
   CannedResponseDto,
+  EskalacjaZgloszeniaDto,
+  RunbookZgloszeniaDto,
+  RyzykoZgloszeniaDto,
+  ZmianaSzablonuDto,
 } from './tickets.dto';
 import { CannedResponseService } from './canned-response.service';
 import { TicketContextService } from './ticket-context.service';
@@ -86,7 +90,7 @@ export class TicketsController {
   cannedUpdate(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() dto: Partial<CannedResponseDto>,
+    @Body() dto: ZmianaSzablonuDto,
   ) {
     return this.canned.update(id, dto, user.userId);
   }
@@ -109,18 +113,11 @@ export class TicketsController {
   @UseInterceptors(FILES_MEMORY)
   async createWithAttachments(
     @CurrentUser() user: { userId: string },
-    @Body('subject') subject: string,
-    @Body('message') message: string,
-    @Body('priority') priority?: string,
-    @Body('department') department?: string,
-    @Body('topic') topic?: string,
+    // Pola multipart przechodzą przez ten sam DTO co JSON — wcześniej `@Body('pole')` omijało walidację.
+    @Body() dto: CreateTicketDto,
     @UploadedFiles() files?: Express.Multer.File[],
   ) {
-    return this.ticketsService.createWithOptionalFiles(
-      user.userId,
-      { subject, message, priority, department, topic },
-      files,
-    );
+    return this.ticketsService.createWithOptionalFiles(user.userId, dto, files);
   }
 
   @Get('admin/all')
@@ -175,7 +172,7 @@ export class TicketsController {
   async adminEscalateTicket(
     @Param('id') id: string,
     @CurrentUser() user: { userId: string },
-    @Body() body: { reason: string },
+    @Body() body: EskalacjaZgloszeniaDto,
   ) {
     return this.ticketsService.adminEscalateTicket(id, user.userId, body.reason ?? '');
   }
@@ -187,7 +184,7 @@ export class TicketsController {
   async adminApplyRunbook(
     @Param('id') id: string,
     @CurrentUser() user: { userId: string },
-    @Body() body: { runbookKey: string },
+    @Body() body: RunbookZgloszeniaDto,
   ) {
     return this.ticketsService.adminApplyRunbook(id, user.userId, body.runbookKey ?? '');
   }
@@ -199,7 +196,7 @@ export class TicketsController {
   async adminSetRiskFlag(
     @Param('id') id: string,
     @CurrentUser() user: { userId: string },
-    @Body() body: { riskFlag?: string | null; riskReason?: string | null },
+    @Body() body: RyzykoZgloszeniaDto,
   ) {
     return this.ticketsService.adminSetRiskFlag(
       id,
@@ -229,7 +226,7 @@ export class TicketsController {
   async adminAddReplyWithFiles(
     @Param('id') id: string,
     @CurrentUser() user: { userId: string; role: string },
-    @Body('message') message: string,
+    @Body() { message }: AddTicketReplyDto,
     @UploadedFiles() files?: Express.Multer.File[],
   ) {
     return this.ticketsService.staffReplyWithFiles(id, user.userId, message, files);
@@ -255,7 +252,7 @@ export class TicketsController {
   async clientReplyWithFiles(
     @Param('ticketId') ticketId: string,
     @CurrentUser() user: { userId: string },
-    @Body('message') message: string,
+    @Body() { message }: AddTicketReplyDto,
     @UploadedFiles() files?: Express.Multer.File[],
   ) {
     return this.ticketsService.clientReplyWithFiles(ticketId, user.userId, message, files);

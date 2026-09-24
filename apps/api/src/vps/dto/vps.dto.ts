@@ -11,6 +11,7 @@ import {
   Max,
   Min,
 } from 'class-validator';
+import { Czesciowy } from '../../common/validation/czesciowy';
 
 export class OrderVpsDto {
   @IsString()
@@ -101,3 +102,5 @@ export class CreateVpsPlanDto {
   @IsOptional() @IsInt()
   sortOrder?: number;
 }
+
+export class UpdateVpsPlanDto extends Czesciowy(CreateVpsPlanDto) {}

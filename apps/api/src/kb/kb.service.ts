@@ -443,7 +443,13 @@ export class KbService {
     const row = await prisma.platformSetting.findUnique({ where: { key: KB_CTA_KEY } });
     if (!row?.value) return DEFAULT_CTA;
     try {
-      return { ...DEFAULT_CTA, ...(JSON.parse(row.value) as Partial<KbCtaConfig>) };
+      const zapisane = JSON.parse(row.value) as Partial<KbCtaConfig>;
+      // Tylko znane pola: panel odsyła odczytaną konfigurację w całości, a DTO odrzuca obce klucze.
+      const wynik = { ...DEFAULT_CTA };
+      for (const k of Object.keys(DEFAULT_CTA) as Array<keyof KbCtaConfig>) {
+        if (zapisane[k] !== undefined) Object.assign(wynik, { [k]: zapisane[k] });
+      }
+      return wynik;
     } catch {
       return DEFAULT_CTA;
     }

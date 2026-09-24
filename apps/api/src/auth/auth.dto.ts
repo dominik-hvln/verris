@@ -3,11 +3,13 @@ import {
   IsBoolean,
   IsEmail,
   IsNotEmpty,
+  IsObject,
   IsOptional,
   IsString,
   Length,
   MaxLength,
 } from 'class-validator';
+import type { AuthenticationResponseJSON, RegistrationResponseJSON } from '@simplewebauthn/server';
 import { IsStrongPassword } from './password-policy.validator';
 
 export class RegisterDto {
@@ -194,4 +196,30 @@ export class RegenerateBreakGlassDto {
   @IsString()
   @Length(6, 32)
   code!: string;
+}
+
+/**
+ * Passkey (WebAuthn). Odpowiedź przeglądarki sprawdza kryptograficznie @simplewebauthn —
+ * tu tylko pilnujemy, że to obiekt (a nie napis/tablica) i że pola obok mają sensowny kształt.
+ */
+export class WebauthnRejestracjaDto {
+  @IsObject()
+  response!: RegistrationResponseJSON;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  deviceName?: string;
+}
+
+export class WebauthnOpcjeLogowaniaDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(254)
+  email?: string;
+}
+
+export class WebauthnLogowanieDto {
+  @IsObject()
+  response!: AuthenticationResponseJSON;
 }

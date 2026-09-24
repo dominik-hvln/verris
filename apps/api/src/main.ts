@@ -17,6 +17,10 @@ async function bootstrap() {
   });
   const config = app.get(ConfigService);
 
+  // Domyślny limit JSON w Nest to 100 kB, a edytor plików zapisuje do 1 MB tekstu (FilesService.MAX_EDIT_BYTES);
+  // po zakodowaniu w JSON bywa to więcej, stąd zapas. rawBody (podpis webhooka Stripe) zostaje zachowany.
+  app.useBodyParser('json', { limit: '3mb' });
+
   // Audit F-10: exactly one trusted proxy (Caddy) sits in front of the API in
   // prod — with this set, `req.ip` is the real client IP (taken from the XFF
   // entry appended by Caddy, not the spoofable left-most value).

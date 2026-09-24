@@ -1,4 +1,4 @@
-import { IsBoolean, IsEmail, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { IsBoolean, IsEmail, IsIn, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 
 /** Body for `POST /admin/users/:id/diagnostics/dns-tls` (Sprint 3 / R-02). */
 export class DnsTlsDiagnosticDto {
@@ -83,4 +83,15 @@ export class AdminCreateCustomerDto {
   @IsString()
   @MaxLength(500)
   reason?: string;
+}
+
+/** Decyzja w sprawie zgłoszenia do programu poleceń. */
+export class OcenaZgloszeniaPolecenDto {
+  @IsIn(['APPROVED', 'REJECTED'])
+  status!: 'APPROVED' | 'REJECTED';
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  reviewNote?: string;
 }

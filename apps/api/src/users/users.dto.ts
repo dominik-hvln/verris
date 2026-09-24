@@ -92,3 +92,9 @@ export class RedeemEcoPointsDto {
   @Max(5_000)
   points!: number;
 }
+
+/** SEC-6 — wymóg silnego logowania (passkey/2FA) dla konta. */
+export class SilneLogowanieDto {
+  @IsBoolean()
+  enabled!: boolean;
+}

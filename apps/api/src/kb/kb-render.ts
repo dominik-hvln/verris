@@ -46,6 +46,12 @@ export function escapeHtml(v: string): string {
     .replace(/'/g, '&#39;');
 }
 
+/** Link z konfiguracji baneru: tylko https, cokolwiek innego (np. `javascript:`) → '#'. */
+export function tylkoHttps(u: string): string {
+  const t = (u ?? '').trim();
+  return /^https:\/\//i.test(t) ? t : '#';
+}
+
 function inline(s: string): string {
   let out = escapeHtml(s);
   // obrazy ![alt](url)
@@ -163,8 +169,8 @@ export function renderCtaBanner(cta?: CtaBanner): string {
       <p style="margin:0 0 14px;color:${BRAND.stone};font-size:15px;line-height:1.6;">${escapeHtml(cta.subtext)}</p>
       ${bullets ? `<ul style="list-style:none;padding:0;margin:0 0 18px;">${bullets}</ul>` : ''}
       <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
-        <a href="${escapeHtml(cta.buttonUrl)}" style="display:inline-block;background:${BRAND.mint};color:${BRAND.pine};font-weight:700;text-decoration:none;padding:11px 22px;border-radius:10px;font-size:15px;">${escapeHtml(cta.buttonLabel)}</a>
-        ${cta.statusUrl ? `<a href="${escapeHtml(cta.statusUrl)}" style="color:${BRAND.mint};text-decoration:none;font-size:14px;">${escapeHtml(cta.statusLabel || 'Status usług')} →</a>` : ''}
+        <a href="${escapeHtml(tylkoHttps(cta.buttonUrl))}" style="display:inline-block;background:${BRAND.mint};color:${BRAND.pine};font-weight:700;text-decoration:none;padding:11px 22px;border-radius:10px;font-size:15px;">${escapeHtml(cta.buttonLabel)}</a>
+        ${cta.statusUrl ? `<a href="${escapeHtml(tylkoHttps(cta.statusUrl))}" style="color:${BRAND.mint};text-decoration:none;font-size:14px;">${escapeHtml(cta.statusLabel || 'Status usług')} →</a>` : ''}
       </div>
     </div>
   </aside>`;

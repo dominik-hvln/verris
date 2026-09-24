@@ -17,6 +17,7 @@ import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard'
 import { StaffPerm } from '../common/decorators/staff-permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { ProvisioningQueueService } from './provisioning-queue.service';
+import { PowodDecyzjiDto } from './dto/provisioning-queue.dto';
 
 const ALLOWED_STATES = ['active', 'waiting', 'delayed', 'failed', 'completed'] as const;
 type AllowedState = (typeof ALLOWED_STATES)[number];
@@ -60,7 +61,7 @@ export class ProvisioningQueueAdminController {
   async retry(
     @Param('id') id: string,
     @CurrentUser() actor: { userId: string },
-    @Body() body: { reason?: string },
+    @Body() body: PowodDecyzjiDto,
   ) {
     if (!this.queue.isAsync()) {
       throw new BadRequestException('Brak Redisa — retry niedostępne (sync mode).');
@@ -95,7 +96,7 @@ export class ProvisioningQueueAdminController {
   async odrzuc(
     @Param('id') id: string,
     @CurrentUser() actor: { userId: string },
-    @Body() body: { reason?: string },
+    @Body() body: PowodDecyzjiDto,
   ) {
     if (!this.queue.isAsync()) {
       throw new BadRequestException('Brak Redisa — odrzucanie niedostępne (sync mode).');

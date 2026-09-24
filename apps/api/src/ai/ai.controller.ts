@@ -10,6 +10,7 @@ import { AiChatService } from './ai-chat.service';
 import { AiProviderService } from './ai-provider.service';
 import { KnowledgeBaseService } from './knowledge-base.service';
 import { AiChatRequestDto } from './dto/ai.dto';
+import { KbSuggestDto } from '../tickets/tickets.dto';
 
 /** Tożsamość z JWT: `principalUserId` = człowiek za subkontem albo impersonacją. */
 type Uzytkownik = { userId: string; principalUserId?: string };
@@ -56,8 +57,8 @@ export class AiController {
   /** SUP-1 — KB article suggestions for the client support form (deflection). */
   @Post('kb-suggest')
   @HttpCode(200)
-  kbSuggest(@Body() body: { query: string; topic?: string }) {
-    return this.chat.kbSuggest(body?.query ?? '', body?.topic);
+  kbSuggest(@Body() body: KbSuggestDto) {
+    return this.chat.kbSuggest(body.query, body.topic);
   }
 
   /** Client-facing hosting assistant (RAG over the CLIENT/ALL knowledge base). */

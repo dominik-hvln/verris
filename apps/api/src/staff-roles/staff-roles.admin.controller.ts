@@ -7,6 +7,7 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { StaffPerm } from '../common/decorators/staff-permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { StaffRolesService } from './staff-roles.service';
+import { AktywnoscOperatoraDto, NowyOperatorDto, PrzypisanieRoliDto, RolaObslugiDto, ZmianaRoliObslugiDto } from './staff-roles.dto';
 
 type Authed = { userId: string; principalUserId?: string; role: string };
 
@@ -29,12 +30,12 @@ export class StaffRolesAdminController {
   }
 
   @Post()
-  create(@Body() body: { name: string; description?: string; permissions: string[] }) {
+  create(@Body() body: RolaObslugiDto) {
     return this.svc.createRole(body);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() body: { name?: string; description?: string; permissions?: string[] }) {
+  update(@Param('id') id: string, @Body() body: ZmianaRoliObslugiDto) {
     return this.svc.updateRole(id, body);
   }
 
@@ -49,17 +50,17 @@ export class StaffRolesAdminController {
   }
 
   @Post('operators')
-  createOperator(@Body() body: { email: string; firstName?: string; lastName?: string; roleId?: string | null }) {
+  createOperator(@Body() body: NowyOperatorDto) {
     return this.svc.createOperator(body);
   }
 
   @Post('operators/:userId/assign')
-  assign(@Param('userId') userId: string, @Body() body: { roleId: string | null }) {
+  assign(@Param('userId') userId: string, @Body() body: PrzypisanieRoliDto) {
     return this.svc.assignRole(userId, body.roleId ?? null);
   }
 
   @Post('operators/:userId/active')
-  setActive(@Param('userId') userId: string, @Body() body: { active: boolean }) {
+  setActive(@Param('userId') userId: string, @Body() body: AktywnoscOperatoraDto) {
     return this.svc.setOperatorActive(userId, Boolean(body.active));
   }
 

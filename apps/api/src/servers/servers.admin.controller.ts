@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { ServersService } from './servers.service';
+import { PolitykaPojemnosciDto, WygaszenieWezlaDto } from './dto/capacity-policy.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -280,16 +281,7 @@ export class ServersAdminController {
   @StaffPerm('NODES_MANAGE')
   setCapacityPolicy(
     @Param('id') id: string,
-    @Body()
-    dto: {
-      acceptsNewAccounts?: boolean;
-      maxAccounts?: number | null;
-      reservedHeadroomPercent?: number;
-      // Z-12 — nadsubskrypcja pojemności węzła (1 = wyłączona).
-      overcommitCpu?: number;
-      overcommitRam?: number;
-      overcommitDisk?: number;
-    },
+    @Body() dto: PolitykaPojemnosciDto,
     @CurrentUser() user: { userId: string },
   ) {
     return this.servers.setCapacityPolicy(id, user.userId, dto);
@@ -302,7 +294,7 @@ export class ServersAdminController {
   @StaffPerm('NODES_MANAGE')
   drainNode(
     @Param('id') id: string,
-    @Body() dto: { reason?: string },
+    @Body() dto: WygaszenieWezlaDto,
     @CurrentUser() user: { userId: string },
   ) {
     return this.servers.drainNode(id, user.userId, dto?.reason);

@@ -17,6 +17,17 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { RateLimit } from '../common/guards/rate-limit.guard';
 import { FilesService } from './files.service';
+import {
+  NowyKatalogDto,
+  PrzeniesPlikiDto,
+  RozpakujDto,
+  SpakujDto,
+  UprawnieniaDto,
+  UsunPlikiDto,
+  WgrajPlikDto,
+  ZapiszPlikDto,
+  ZmienNazweDto,
+} from './files.dto';
 
 /** P-4 — in-panel file manager, scoped to a single hosting subscription. */
 @Controller('services/:id/files')
@@ -63,7 +74,7 @@ export class FilesController {
   write(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { dir?: string; filename: string; content: string },
+    @Body() body: ZapiszPlikDto,
   ) {
     return this.files.write(id, user.userId, body.dir, body.filename, body.content);
   }
@@ -73,7 +84,7 @@ export class FilesController {
   mkdir(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { dir?: string; name: string },
+    @Body() body: NowyKatalogDto,
   ) {
     return this.files.mkdir(id, user.userId, body.dir, body.name);
   }
@@ -83,7 +94,7 @@ export class FilesController {
   rename(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { dir?: string; oldName: string; newName: string },
+    @Body() body: ZmienNazweDto,
   ) {
     return this.files.rename(id, user.userId, body.dir, body.oldName, body.newName);
   }
@@ -93,7 +104,7 @@ export class FilesController {
   remove(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { dir?: string; names: string[] },
+    @Body() body: UsunPlikiDto,
   ) {
     return this.files.remove(id, user.userId, body.dir, body.names);
   }
@@ -103,7 +114,7 @@ export class FilesController {
   copy(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { dir?: string; names: string[]; dest?: string },
+    @Body() body: PrzeniesPlikiDto,
   ) {
     return this.files.transfer(id, user.userId, body.dir, body.names, body.dest, 'copy');
   }
@@ -113,7 +124,7 @@ export class FilesController {
   move(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { dir?: string; names: string[]; dest?: string },
+    @Body() body: PrzeniesPlikiDto,
   ) {
     return this.files.transfer(id, user.userId, body.dir, body.names, body.dest, 'move');
   }
@@ -123,7 +134,7 @@ export class FilesController {
   compress(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { dir?: string; names: string[]; name: string },
+    @Body() body: SpakujDto,
   ) {
     return this.files.compress(id, user.userId, body.dir, body.names, body.name);
   }
@@ -133,7 +144,7 @@ export class FilesController {
   extract(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { path: string; dest?: string },
+    @Body() body: RozpakujDto,
   ) {
     return this.files.extract(id, user.userId, body.path, body.dest);
   }
@@ -143,7 +154,7 @@ export class FilesController {
   chmod(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { dir?: string; names: string[]; mode: string },
+    @Body() body: UprawnieniaDto,
   ) {
     return this.files.chmod(id, user.userId, body.dir, body.names, body.mode);
   }
@@ -157,7 +168,7 @@ export class FilesController {
   upload(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { dir?: string },
+    @Body() body: WgrajPlikDto,
     @UploadedFile() file: Express.Multer.File,
   ) {
     return this.files.upload(id, user.userId, body.dir, file?.originalname, file?.buffer);

@@ -51,6 +51,31 @@ import { DeliverabilityService } from '../deliverability/deliverability.service'
 import { PhpService } from './php.service';
 import { AppInstallService } from './app-install.service';
 import { LogiHostinguQueryDto } from './dto/hosting-logs.dto';
+import {
+  AliasDomenyDto,
+  ArchiwumOffsiteDto,
+  AutoresponderDto,
+  CatchAllDto,
+  DomenaDto,
+  DostepZdalnyBazyDto,
+  FiltrSpamuDto,
+  HarmonogramKopiiDto,
+  InstalacjaAplikacjiDto,
+  KatalogDto,
+  LogowanieSsoDto,
+  MigawkaOffsiteDto,
+  NarzedziaWwwDto,
+  NowaBazaDanychDto,
+  NowyStagingDto,
+  OchronaKataloguDto,
+  PrzekierowaniePocztyDto,
+  SubdomenaDto,
+  UzytkownikBazyDto,
+  UzytkownikBazyZHaslemDto,
+  WersjaPhpDomenyDto,
+  WersjaPhpDto,
+  ZadanieDeployDto,
+} from './dto/hosting-body.dto';
 
 /**
  * Customer-facing "services" view — denormalized projection over Subscription
@@ -114,7 +139,7 @@ export class UserServicesController {
   appsInstall(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { app: string; adminUser: string; adminEmail: string; adminPassword?: string },
+    @Body() body: InstalacjaAplikacjiDto,
   ) {
     return this.appInstall.install(id, user.userId, body);
   }
@@ -162,7 +187,7 @@ export class UserServicesController {
   setHostingPhp(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { version: string },
+    @Body() body: WersjaPhpDto,
   ) {
     return this.php.setVersionForSubscription(id, user.userId, body.version);
   }
@@ -364,7 +389,7 @@ export class UserServicesController {
   async createHostingDatabase(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { name: string; user: string; password: string },
+    @Body() body: NowaBazaDanychDto,
   ) {
     return this.directAdmin.createHostingMysqlDatabase(id, user.userId, {
       name: body?.name,
@@ -527,7 +552,7 @@ export class UserServicesController {
   async createHostingEmailForwarder(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { name: string; destinations: string },
+    @Body() body: PrzekierowaniePocztyDto,
   ) {
     return this.directAdmin.createHostingEmailForward(id, user.userId, body);
   }
@@ -550,7 +575,7 @@ export class UserServicesController {
   async setHostingAutoresponderEndpoint(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { name: string; text: string; cc?: string },
+    @Body() body: AutoresponderDto,
   ) {
     return this.directAdmin.setHostingAutoresponder(id, user.userId, body);
   }
@@ -573,7 +598,7 @@ export class UserServicesController {
   async saveHostingWebTools(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: Partial<import('../servers/directadmin.service').WebToolsState>,
+    @Body() body: NarzedziaWwwDto,
   ) {
     return this.directAdmin.saveHostingWebTools(id, user.userId, body);
   }
@@ -582,7 +607,7 @@ export class UserServicesController {
   async setHostingDirProtection(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { dir: string; realm?: string; user: string; password: string },
+    @Body() body: OchronaKataloguDto,
   ) {
     return this.directAdmin.setHostingDirectoryProtection(id, user.userId, body);
   }
@@ -591,7 +616,7 @@ export class UserServicesController {
   async removeHostingDirProtection(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { dir: string },
+    @Body() body: KatalogDto,
   ) {
     return this.directAdmin.removeHostingDirectoryProtection(id, user.userId, body.dir);
   }
@@ -605,7 +630,7 @@ export class UserServicesController {
   async createHostingAdditionalDomain(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { domain: string },
+    @Body() body: DomenaDto,
   ) {
     return this.directAdmin.createHostingAdditionalDomain(id, user.userId, body);
   }
@@ -628,7 +653,7 @@ export class UserServicesController {
   async createHostingDomainPointer(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { alias: string },
+    @Body() body: AliasDomenyDto,
   ) {
     return this.directAdmin.createHostingDomainPointer(id, user.userId, body);
   }
@@ -651,7 +676,7 @@ export class UserServicesController {
   async setHostingCatchAll(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { mode: 'fail' | 'blackhole' | 'address'; address?: string },
+    @Body() body: CatchAllDto,
   ) {
     return this.directAdmin.setHostingCatchAll(id, user.userId, body);
   }
@@ -665,7 +690,7 @@ export class UserServicesController {
   async setHostingSpamFilter(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { enabled: boolean; requiredScore?: string; subjectTag?: string },
+    @Body() body: FiltrSpamuDto,
   ) {
     return this.directAdmin.setHostingSpamFilter(id, user.userId, body);
   }
@@ -683,7 +708,7 @@ export class UserServicesController {
   async addHostingDbAccessHost(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { db: string; host: string },
+    @Body() body: DostepZdalnyBazyDto,
   ) {
     return this.directAdmin.addHostingDbAccessHost(id, user.userId, body);
   }
@@ -692,7 +717,7 @@ export class UserServicesController {
   async removeHostingDbAccessHost(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { db: string; host: string },
+    @Body() body: DostepZdalnyBazyDto,
   ) {
     return this.directAdmin.deleteHostingDbAccessHost(id, user.userId, body);
   }
@@ -715,7 +740,7 @@ export class UserServicesController {
   async addHostingDbUser(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { db: string; user: string; password: string },
+    @Body() body: UzytkownikBazyZHaslemDto,
   ) {
     return this.directAdmin.createHostingDbUser(id, user.userId, body);
   }
@@ -724,7 +749,7 @@ export class UserServicesController {
   async removeHostingDbUser(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { db: string; user: string },
+    @Body() body: UzytkownikBazyDto,
   ) {
     return this.directAdmin.deleteHostingDbUser(id, user.userId, body);
   }
@@ -734,7 +759,7 @@ export class UserServicesController {
   async changeHostingDbUserPassword(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { db: string; user: string; password: string },
+    @Body() body: UzytkownikBazyZHaslemDto,
   ) {
     return this.directAdmin.changeHostingDbUserPassword(id, user.userId, body);
   }
@@ -748,7 +773,7 @@ export class UserServicesController {
   async hostingSsoUrl(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { target: 'phpmyadmin' | 'webmail' | 'panel' },
+    @Body() body: LogowanieSsoDto,
   ) {
     return this.directAdmin.createHostingSsoUrl(id, user.userId, body.target);
   }
@@ -771,7 +796,7 @@ export class UserServicesController {
   async setHostingDomainPhp(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { domain: string; version: string },
+    @Body() body: WersjaPhpDomenyDto,
   ) {
     return this.directAdmin.setHostingDomainPhp(id, user.userId, body);
   }
@@ -819,7 +844,7 @@ export class UserServicesController {
   async createHostingSubdomain(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { domain: string; subdomain: string },
+    @Body() body: SubdomenaDto,
   ) {
     return this.directAdmin.createHostingSubdomain(id, user.userId, body);
   }
@@ -828,7 +853,7 @@ export class UserServicesController {
   async deleteHostingSubdomain(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { domain: string; subdomain: string },
+    @Body() body: SubdomenaDto,
   ) {
     return this.directAdmin.deleteHostingSubdomain(id, user.userId, body);
   }
@@ -842,7 +867,7 @@ export class UserServicesController {
   async createHostingStaging(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { domain: string; label?: string; withDatabase?: boolean },
+    @Body() body: NowyStagingDto,
   ) {
     return this.directAdmin.createHostingStaging(id, user.userId, body);
   }
@@ -851,7 +876,7 @@ export class UserServicesController {
   async deleteHostingStaging(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { domain: string; subdomain: string },
+    @Body() body: SubdomenaDto,
   ) {
     return this.directAdmin.deleteHostingStaging(id, user.userId, body);
   }
@@ -865,8 +890,7 @@ export class UserServicesController {
   async createDeployJob(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body()
-    body: { domain: string; branch?: string; buildCommand?: string; frequency: 'every_15m' | 'hourly' | 'daily' },
+    @Body() body: ZadanieDeployDto,
   ) {
     return this.directAdmin.createDeployJob(id, user.userId, body);
   }
@@ -957,7 +981,7 @@ export class UserServicesController {
   hostingOffsiteList(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { snapshot?: string },
+    @Body() body: MigawkaOffsiteDto,
   ) {
     return this.offsiteRestore.queueList(id, user.userId, body?.snapshot);
   }
@@ -967,7 +991,7 @@ export class UserServicesController {
   hostingOffsiteFetch(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { archive: string; snapshot?: string },
+    @Body() body: ArchiwumOffsiteDto,
   ) {
     return this.offsiteRestore.queueFetch(id, user.userId, body?.archive, body?.snapshot);
   }
@@ -1037,7 +1061,7 @@ export class UserServicesController {
   async setHostingBackupSchedule(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
-    @Body() body: { frequency: 'OFF' | 'DAILY' | 'WEEKLY'; hour: number; dayOfWeek: number; enabled: boolean; retainCount?: number },
+    @Body() body: HarmonogramKopiiDto,
   ) {
     return this.backupSchedule.set(id, user.userId, body);
   }

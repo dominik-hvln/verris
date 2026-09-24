@@ -139,3 +139,12 @@ export class TransferDomainDto extends RegisterDomainDto {
   @MaxLength(256)
   authCode!: string;
 }
+
+/** Odnowienie domeny u rejestratora — brak = 1 rok. */
+export class OkresOdnowieniaDto {
+  @IsOptional()
+  @IsInt({ message: 'Okres odnowienia: od 1 do 10 lat.' })
+  @Min(1, { message: 'Okres odnowienia: od 1 do 10 lat.' })
+  @Max(10, { message: 'Okres odnowienia: od 1 do 10 lat.' })
+  years?: number;
+}

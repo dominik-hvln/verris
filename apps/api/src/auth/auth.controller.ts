@@ -25,6 +25,9 @@ import {
   RegenerateBreakGlassDto,
   RegisterDto,
   VerifyTwoFactorDto,
+  WebauthnLogowanieDto,
+  WebauthnOpcjeLogowaniaDto,
+  WebauthnRejestracjaDto,
 } from './auth.dto';
 import { PasskeyPolicyService } from './passkey-policy.service';
 import { CaptchaService } from './captcha.service';
@@ -36,10 +39,6 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Role } from '@verris/database';
 import { TwoFactorService } from './totp/two-factor.service';
 import { WebAuthnService } from './webauthn/webauthn.service';
-import type {
-  RegistrationResponseJSON,
-  AuthenticationResponseJSON,
-} from '@simplewebauthn/server';
 
 @Controller('auth')
 export class AuthController {
@@ -269,7 +268,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   webauthnRegisterVerify(
     @CurrentUser() user: { principalUserId?: string; userId: string },
-    @Body() dto: { response: RegistrationResponseJSON; deviceName?: string },
+    @Body() dto: WebauthnRejestracjaDto,
   ) {
     return this.webauthn.verifyRegistration(
       user.principalUserId ?? user.userId,
@@ -282,7 +281,7 @@ export class AuthController {
   @RateLimit({ limit: 20, windowMs: 60 * 1000, scope: 'auth:webauthn-login' })
   @Post('webauthn/login/options')
   @HttpCode(HttpStatus.OK)
-  webauthnLoginOptions(@Body() dto: { email?: string }) {
+  webauthnLoginOptions(@Body() dto: WebauthnOpcjeLogowaniaDto) {
     return this.webauthn.authenticationOptions(dto.email);
   }
 
@@ -291,7 +290,7 @@ export class AuthController {
   @Post('webauthn/login/verify')
   @HttpCode(HttpStatus.OK)
   async webauthnLoginVerify(
-    @Body() dto: { response: AuthenticationResponseJSON },
+    @Body() dto: WebauthnLogowanieDto,
     @Req() req: Request,
   ) {
     const { userId } = await this.webauthn.verifyAuthentication(dto.response);

@@ -18,22 +18,25 @@ import { StaffPermissionsGuard } from '../common/guards/staff-permissions.guard'
 import { StaffPerm } from '../common/decorators/staff-permissions.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { MarketingCampaignService } from './marketing-campaign.service';
+import { IsEnum, IsISO8601, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 
-interface CreateCampaignDto {
-  name: string;
-  description?: string | null;
-  subject: string;
-  bodyMarkdown: string;
-  ctaLabel?: string | null;
+class CreateCampaignDto {
+  @IsString() @MinLength(3) @MaxLength(120) name!: string;
+  @IsOptional() @IsString() @MaxLength(500) description?: string | null;
+  @IsString() @MinLength(3) @MaxLength(200) subject!: string;
+  @IsString() @MinLength(10) @MaxLength(100_000) bodyMarkdown!: string;
+  @IsOptional() @IsString() @MaxLength(60) ctaLabel?: string | null;
+  /** Link w mailu do wszystkich klientów z segmentu — tylko http(s). */
+  @IsOptional() @Matches(/^https?:\/\/[^\s"'<>]+$/i, { message: 'Link CTA musi zaczynać się od http(s)://' }) @MaxLength(2000)
   ctaUrl?: string | null;
-  segment: MarketingSegment;
+  @IsEnum(MarketingSegment) segment!: MarketingSegment;
   /** ISO datetime — `null`/brak = DRAFT (do zatwierdzenia). */
-  scheduledAt?: string | null;
+  @IsOptional() @IsISO8601() scheduledAt?: string | null;
 }
 
-interface ScheduleCampaignDto {
+class ScheduleCampaignDto {
   /** Jeżeli brak — natychmiast (now). */
-  scheduledAt?: string | null;
+  @IsOptional() @IsISO8601() scheduledAt?: string | null;
 }
 
 @Controller('admin/marketing/campaigns')

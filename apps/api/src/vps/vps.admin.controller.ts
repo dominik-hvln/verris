@@ -5,7 +5,7 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { VpsService } from './vps.service';
-import { CreateVpsPlanDto } from './dto/vps.dto';
+import { CreateVpsPlanDto, UpdateVpsPlanDto } from './dto/vps.dto';
 
 @Controller('admin/vps')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -39,7 +39,7 @@ export class VpsAdminController {
   @HttpCode(200)
   updatePlan(
     @Param('id') id: string,
-    @Body() dto: Partial<CreateVpsPlanDto>,
+    @Body() dto: UpdateVpsPlanDto,
     @CurrentUser() user: { userId: string },
   ) {
     return this.vps.updatePlan(id, dto, user.userId);

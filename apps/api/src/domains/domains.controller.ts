@@ -1,4 +1,4 @@
-import { BadRequestException, Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { RateLimit } from '../common/guards/rate-limit.guard';
 import { ConfigService } from '@nestjs/config';
@@ -18,6 +18,7 @@ import {
   RegistrantDto,
   TransferDomainDto,
   TransferLockDto,
+  OkresOdnowieniaDto,
 } from './dto/registrar.dto';
 
 /** Tożsamość z JWT: `principalUserId` = człowiek za subkontem albo impersonacją. */
@@ -138,13 +139,13 @@ export class DomainsController {
   }
 
   @Post(':id/registrar/renew-quote')
-  async renewQuote(@CurrentUser() user: Uzytkownik, @Param('id') id: string, @Body() body: { years?: number }) {
-    return this.registrar.renewQuote(user.userId, id, lataOdnowienia(body?.years));
+  async renewQuote(@CurrentUser() user: Uzytkownik, @Param('id') id: string, @Body() body: OkresOdnowieniaDto) {
+    return this.registrar.renewQuote(user.userId, id, body.years ?? 1);
   }
 
   @Post(':id/registrar/renew')
-  async renew(@CurrentUser() user: Uzytkownik, @Param('id') id: string, @Body() body: { years?: number }) {
-    return this.registrar.renew(user.userId, user.principalUserId ?? user.userId, id, lataOdnowienia(body?.years));
+  async renew(@CurrentUser() user: Uzytkownik, @Param('id') id: string, @Body() body: OkresOdnowieniaDto) {
+    return this.registrar.renew(user.userId, user.principalUserId ?? user.userId, id, body.years ?? 1);
   }
 
   /** A-13 — dane abonenta (właściciela) domeny. Tylko właściciel konta — reguła w customer-permissions. */
@@ -199,10 +200,3 @@ export class DomainsController {
 }
 
 /** A-10 — liczba lat odnowienia z body bez DTO: całkowita 1–10, inaczej 400 (wcześniej przechodziło cokolwiek). */
-function lataOdnowienia(v: unknown): number {
-  if (v === undefined || v === null) return 1;
-  if (typeof v !== 'number' || !Number.isInteger(v) || v < 1 || v > 10) {
-    throw new BadRequestException('Okres odnowienia: od 1 do 10 lat.');
-  }
-  return v;
-}

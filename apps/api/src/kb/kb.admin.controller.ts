@@ -15,7 +15,8 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
-import { KbService, type KbCtaConfig, type UpsertArticleInput, type UpsertCategoryInput } from './kb.service';
+import { KbService } from './kb.service';
+import { ArtykulKbDto, BanerKbDto, KategoriaKbDto, ZmianaArtykuluKbDto, ZmianaKategoriiKbDto } from './kb.dto';
 
 /**
  * KB-CMS — autoring Bazy Wiedzy. Dostęp: ADMIN + STAFF (treść pomocy, nieinwazyjne
@@ -46,12 +47,12 @@ export class KbAdminController {
   }
 
   @Post('categories')
-  createCategory(@Body() body: UpsertCategoryInput) {
+  createCategory(@Body() body: KategoriaKbDto) {
     return this.kb.createCategory(body);
   }
 
   @Patch('categories/:id')
-  updateCategory(@Param('id') id: string, @Body() body: Partial<UpsertCategoryInput>) {
+  updateCategory(@Param('id') id: string, @Body() body: ZmianaKategoriiKbDto) {
     return this.kb.updateCategory(id, body);
   }
 
@@ -76,12 +77,12 @@ export class KbAdminController {
   }
 
   @Post('articles')
-  async createArticle(@Body() body: UpsertArticleInput, @CurrentUser() actor: { userId: string }) {
+  async createArticle(@Body() body: ArtykulKbDto, @CurrentUser() actor: { userId: string }) {
     return this.kb.createArticle(body, await this.authorOf(actor.userId));
   }
 
   @Patch('articles/:id')
-  updateArticle(@Param('id') id: string, @Body() body: Partial<UpsertArticleInput>) {
+  updateArticle(@Param('id') id: string, @Body() body: ZmianaArtykuluKbDto) {
     return this.kb.updateArticle(id, body);
   }
 
@@ -97,7 +98,7 @@ export class KbAdminController {
   }
 
   @Patch('cta')
-  setCta(@Body() body: Partial<KbCtaConfig>, @CurrentUser() actor: { userId: string }) {
+  setCta(@Body() body: BanerKbDto, @CurrentUser() actor: { userId: string }) {
     return this.kb.setCtaConfig(body, actor.userId);
   }
 }

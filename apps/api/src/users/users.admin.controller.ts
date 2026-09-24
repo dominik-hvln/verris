@@ -30,6 +30,7 @@ import {
   AdminResetCustomerPasswordDto,
   AdminSetGrafanaAccessDto,
   AdminCreateCustomerDto,
+  OcenaZgloszeniaPolecenDto,
 } from './users.admin.dto';
 
 class ImpersonateDto {
@@ -294,7 +295,7 @@ export class UsersAdminController {
   @StaffPerm('PROMO_MANAGE')
   reviewReferralEnrollment(
     @Param('userId') userId: string,
-    @Body() body: { status: 'APPROVED' | 'REJECTED'; reviewNote?: string },
+    @Body() body: OcenaZgloszeniaPolecenDto,
     @CurrentUser() actor: AuthedUser,
   ) {
     return this.users.reviewReferralEnrollment(userId, body, actor.userId);

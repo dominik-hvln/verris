@@ -1,12 +1,15 @@
-import { IsString, MinLength, IsOptional, IsIn, IsInt, Min, Max } from 'class-validator';
+import { IsBoolean, IsString, MinLength, MaxLength, IsOptional, IsIn, IsInt, Min, Max } from 'class-validator';
+import { Czesciowy } from '../common/validation/czesciowy';
 
 export class CreateTicketDto {
   @IsString()
   @MinLength(3, { message: 'Temat musi mieć minimum 3 znaki' })
+  @MaxLength(200, { message: 'Temat może mieć najwyżej 200 znaków' })
   subject!: string;
 
   @IsString()
   @MinLength(10, { message: 'Wiadomość musi mieć minimum 10 znaków' })
+  @MaxLength(50_000, { message: 'Wiadomość jest za długa — dołącz dłuższe logi jako plik' })
   message!: string;
 
   @IsOptional()
@@ -27,12 +30,14 @@ export class CreateTicketDto {
 
 /** SUP-1 — szybkie podpowiedzi z bazy wiedzy w formularzu zgłoszenia. */
 export class KbSuggestDto {
+  /** Krótsze zapytanie niż 2 znaki serwis zbywa pustą listą — bez błędu dla pisanego na żywo tematu. */
   @IsString()
-  @MinLength(2)
+  @MaxLength(2000)
   query!: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(32)
   topic?: string;
 }
 
@@ -56,8 +61,11 @@ export class CannedResponseDto {
   shortcut?: string;
 
   @IsOptional()
+  @IsBoolean()
   isActive?: boolean;
 }
+
+export class ZmianaSzablonuDto extends Czesciowy(CannedResponseDto) {}
 
 export class AdminUpdateTicketDto {
   @IsOptional()
@@ -91,7 +99,33 @@ export class UpdateTicketStatusDto {
 export class AddTicketReplyDto {
   @IsString()
   @MinLength(2, { message: 'Odpowiedź musi mieć minimum 2 znaki' })
+  @MaxLength(50_000, { message: 'Odpowiedź jest za długa — dołącz dłuższe logi jako plik' })
   message!: string;
+}
+
+/** Eskalacja zgłoszenia (panel obsługi) — powód min. 10 znaków sprawdza serwis. */
+export class EskalacjaZgloszeniaDto {
+  @IsString()
+  @MaxLength(2000)
+  reason!: string;
+}
+
+export class RunbookZgloszeniaDto {
+  @IsString()
+  @MaxLength(64)
+  runbookKey!: string;
+}
+
+export class RyzykoZgloszeniaDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  riskFlag?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  riskReason?: string | null;
 }
 
 export class SubmitCsatDto {

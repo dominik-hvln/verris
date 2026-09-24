@@ -14,6 +14,7 @@ import {
   ChangePasswordDto,
   ApplyReferralCodeDto,
   RedeemEcoPointsDto,
+  SilneLogowanieDto,
 } from './users.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -50,9 +51,9 @@ export class UsersController {
   @Patch('me/strong-auth')
   setStrongAuth(
     @CurrentUser() user: { userId: string },
-    @Body() body: { enabled: boolean },
+    @Body() body: SilneLogowanieDto,
   ) {
-    return this.usersService.setStrongAuthRequirement(user.userId, Boolean(body.enabled));
+    return this.usersService.setStrongAuthRequirement(user.userId, body.enabled);
   }
 
   @Get('me/eco-ledger')
