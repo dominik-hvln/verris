@@ -113,6 +113,21 @@ export class ResellerService {
     };
   }
 
+  /**
+   * O-08 — klient sam składa wniosek o program: profil PENDING (link z kodem nie wiąże klientów,
+   * dopóki operator nie włączy programu — auth.service sprawdza status ACTIVE).
+   */
+  async apply(userId: string, input: { brandName?: string }) {
+    const u = await this.prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+    if (!u || u.role !== 'USER') throw new BadRequestException('Resellerem może być wyłącznie konto klienta.');
+    const existing = await this.getProfile(userId);
+    if (existing) return this.getOverview(userId);
+    const brandName = (input.brandName ?? '').trim().slice(0, 80) || null;
+    await this.repo.create({ data: { userId, brandName, markupPct: 20, status: 'PENDING', code: `rsl_${randomBytes(5).toString('hex')}` } });
+    await this.audit.record({ action: 'RESELLER_APPLIED', userId, details: { brandName } });
+    return this.getOverview(userId);
+  }
+
   async listClients(userId: string): Promise<ResellerClientView[]> {
     const p = await this.getProfile(userId);
     if (!p) throw new ForbiddenException('Konto nie jest resellerem.');

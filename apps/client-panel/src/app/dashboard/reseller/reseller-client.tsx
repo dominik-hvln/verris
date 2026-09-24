@@ -2,10 +2,12 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
 import { Loader2, Copy, Check, Users2, Wallet, TrendingUp, Link2, Lock } from 'lucide-react';
 import {
   fetchResellerOverview,
   fetchResellerClients,
+  applyReseller,
   type ResellerOverview,
   type ResellerClient as Client,
 } from './actions';
@@ -17,6 +19,18 @@ export function ResellerClient() {
   const [clients, setClients] = useState<Client[]>([]);
   const [state, setState] = useState<'loading' | 'reseller' | 'not'>('loading');
   const [copied, setCopied] = useState(false);
+  const [marka, setMarka] = useState('');
+  const [wysylam, setWysylam] = useState(false);
+
+  const zloz = async () => {
+    setWysylam(true);
+    const r = await applyReseller(marka);
+    setWysylam(false);
+    if (r.ok) {
+      setOv(r.data);
+      setState('reseller');
+    } else toast.error(r.error);
+  };
 
   useEffect(() => {
     fetchResellerOverview().then((r) => {
@@ -45,17 +59,32 @@ export function ResellerClient() {
         <h2 className="text-lg font-semibold text-white">Konto resellera nie jest aktywne</h2>
         <p className="mx-auto max-w-md text-sm text-neutral-400">
           Program white-label pozwala odsprzedawać hosting pod własną marką z własnym narzutem.
-          Aby zostać resellerem, skontaktuj się z nami — włączymy program na Twoim koncie i ustalimy warunki.
+          Złóż wniosek — sprawdzimy konto i włączymy program, zwykle w ciągu jednego dnia roboczego. Startowy narzut to 20%.
         </p>
-        <Link href="/dashboard/support" className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500">Napisz do nas</Link>
+        <label className="mx-auto block max-w-sm text-left text-sm font-medium text-white">
+          Nazwa Twojej marki (opcjonalnie)
+          <input value={marka} onChange={(e) => setMarka(e.target.value)} maxLength={80} placeholder="np. Studio WWW Kowalski" className="mt-1 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-neutral-500" />
+        </label>
+        <div className="flex flex-wrap justify-center gap-2">
+          <button type="button" onClick={() => void zloz()} disabled={wysylam} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50">
+            {wysylam ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Złóż wniosek
+          </button>
+          <Link href="/dashboard/support" className="inline-flex items-center gap-2 rounded-xl border border-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/5">Mam pytania</Link>
+        </div>
       </section>
     );
   }
 
   const suspended = ov.status === 'SUSPENDED';
+  const pending = ov.status === 'PENDING';
 
   return (
     <div className="space-y-6">
+      {pending ? (
+        <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-200">
+          Wniosek przyjęty — sprawdzamy konto. Link zaproszenia zacznie przypisywać klientów dopiero po włączeniu programu — status zmieni się tutaj.
+        </p>
+      ) : null}
       {suspended ? (
         <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm text-amber-200">
           Twoje konto resellera jest tymczasowo zawieszone. Skontaktuj się z nami w razie pytań.

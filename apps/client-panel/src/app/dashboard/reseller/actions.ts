@@ -39,3 +39,12 @@ export async function fetchResellerClients(): Promise<ResellerClient[]> {
     return [];
   }
 }
+
+/** O-08 — wniosek o program resellerski. */
+export async function applyReseller(brandName: string): Promise<{ ok: true; data: ResellerOverview } | { ok: false; error: string }> {
+  try {
+    return { ok: true, data: await apiFetch<ResellerOverview>('/reseller/me/apply', { method: 'POST', body: JSON.stringify({ brandName }) }) };
+  } catch (e) {
+    return { ok: false, error: e instanceof ApiError || e instanceof Error ? e.message : 'Błąd' };
+  }
+}

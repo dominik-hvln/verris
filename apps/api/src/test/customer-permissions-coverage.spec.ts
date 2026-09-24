@@ -98,6 +98,7 @@ const ODMOWA_OCZEKIWANA: ReadonlyArray<string> = [
   'POST /node/migration-worker/:jobId/progress',
   'POST /partners/me/payouts/bank',
   'POST /partners/me/payouts/wallet',
+  'POST /reseller/me/apply',
   'POST /servers/handshake',
   'POST /users/iam/invites',
   'POST /users/iam/invites/accept',
