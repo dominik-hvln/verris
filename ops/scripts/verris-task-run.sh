@@ -194,6 +194,10 @@ elif [ "$TASK_KIND" = "PHP_INFO" ]; then
   RUN_BIN="/usr/local/bin/verris-php-info.sh"
   fetch_task_script "/agent/tasks/php-info/script" "$RUN_BIN"
   payload_env "PI" "{'daUser':'DA_USER','domain':'DOMAIN'}"
+elif [ "$TASK_KIND" = "FILE_SEARCH" ]; then
+  RUN_BIN="/usr/local/bin/verris-file-search.sh"
+  fetch_task_script "/agent/tasks/file-search/script" "$RUN_BIN"
+  payload_env "FS" "{'daUser':'DA_USER','domain':'DOMAIN','name':'NAME','text':'TEXT'}"
 elif [ "$TASK_KIND" = "HOSTING_PROFILE" ]; then
   flags="-y"
   [ "$SKIP_BUILD" = "1" ] && flags="$flags --skip-build"

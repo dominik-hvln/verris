@@ -648,6 +648,7 @@ enum NodeTaskKind {
   MAIL_LOG          // E-19 — dziennik dostarczania poczty konta (log exima, tylko domeny konta)
   GIT_DEPLOY        // C-25/C-26 — klucz wdrożeniowy, klonowanie repozytorium, pobranie zmian teraz
   SITE_CLONE        // I-13 — kopia strony (pliki + WordPress z nową bazą) na inną domenę konta
+  FILE_SEARCH       // C-14 — wyszukiwanie plików (nazwa / treść) w katalogu strony, jako klient
   PHP_INFO          // B-06 — konfiguracja PHP strony widziana przez serwer WWW (wersja, php.ini, rozszerzenia)
   HTACCESS          // B-17/B-18/G-07 — blok ustawień Verris w .htaccess strony (strony błędów, listowanie, HSTS)
 }

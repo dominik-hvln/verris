@@ -45,6 +45,7 @@ import { GitDeployService } from './git-deploy.service';
 import { SiteCloneService } from './site-clone.service';
 import { HtaccessService } from './htaccess.service';
 import { PhpInfoService } from './php-info.service';
+import { FileSearchService } from './file-search.service';
 import { HostingRestoreDto } from './dto/hosting-restore.dto';
 import { WordpressService } from './wordpress.service';
 import { InstallWordpressDto } from './dto/wordpress.dto';
@@ -102,6 +103,7 @@ import {
   UstawieniaHtaccessDto,
   KonserwacjaBazyDto,
   UprawnieniaBazyDto,
+  SzukajPlikowDto,
   OdtworzenieZArchiwumDto,
   ImportBazyDto,
   WersjaPhpDto,
@@ -136,6 +138,7 @@ export class UserServicesController {
     private readonly siteClone: SiteCloneService,
     private readonly htaccess: HtaccessService,
     private readonly phpInfo: PhpInfoService,
+    private readonly fileSearch: FileSearchService,
     private readonly wordpress: WordpressService,
     private readonly waf: WafService,
     private readonly siteMonitor: SiteMonitorService,
@@ -1228,6 +1231,18 @@ export class UserServicesController {
   @Post(':id/hosting-site-clone')
   async hostingSiteCloneRun(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: KlonStronyDto) {
     return this.siteClone.klonuj(id, user.userId, body);
+  }
+
+  // C-14 — wyszukiwanie plików w katalogu strony (zadanie węzła).
+  @Get(':id/hosting-file-search')
+  async hostingFileSearch(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Query('domain') domain: string) {
+    return this.fileSearch.status(id, user.userId, domain ?? '');
+  }
+
+  @RateLimit({ limit: 60, windowMs: 60 * 60 * 1000, scope: 'hosting:file-search' })
+  @Post(':id/hosting-file-search')
+  async hostingFileSearchRun(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: SzukajPlikowDto) {
+    return this.fileSearch.szukaj(id, user.userId, body);
   }
 
   // B-06 — konfiguracja PHP strony widziana przez serwer WWW (zadanie węzła).

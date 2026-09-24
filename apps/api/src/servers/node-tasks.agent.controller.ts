@@ -38,6 +38,7 @@ import { loadGitDeployScript } from './git-deploy.script';
 import { loadSiteCloneScript } from './site-clone.script';
 import { loadHtaccessScript } from './htaccess.script';
 import { loadPhpInfoScript } from './php-info.script';
+import { loadFileSearchScript } from './file-search.script';
 import { loadNodeUpdateScript } from './node-update.script';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 
@@ -209,6 +210,13 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   phpInfoScript() {
     return loadPhpInfoScript();
+  }
+
+  /** C-14 — wyszukiwanie plików w katalogu strony (run with FS_* env). */
+  @Get('file-search/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  fileSearchScript() {
+    return loadFileSearchScript();
   }
 
   /** VER-UPG — MariaDB engine upgrade script (run with DB_TARGET_VERSION env). */

@@ -129,6 +129,13 @@ export class KlonStronyDto {
   @Linia(253) target!: string;
 }
 
+/** C-14 — wyszukiwanie plików; szczegółowe reguły w FileSearchService.sprawdzZapytanie. */
+export class SzukajPlikowDto {
+  @Linia(253) domain!: string;
+  @IsString() @MaxLength(100) name!: string;
+  @IsString() @MaxLength(200) text!: string;
+}
+
 /** B-17/B-18/G-07 — domena strony (odczyt .htaccess). */
 export class DomenaStronyDto {
   @Linia(253) domain!: string;
