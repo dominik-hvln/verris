@@ -10,6 +10,8 @@ export interface UpdatePreferencesInput {
   productUpdatesEmail?: boolean;
   partnerOffersEmail?: boolean;
   loginAlertsEmail?: boolean;
+  autoscalingEmail?: boolean;
+  quotaAlertsEmail?: boolean;
 }
 
 /**

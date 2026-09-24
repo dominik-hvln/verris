@@ -2746,6 +2746,11 @@ model MarketingPreferences {
   /// Login alerts on new IP / device. Default `true` because security-positive,
   /// but user can disable in settings.
   loginAlertsEmail     Boolean  @default(true)
+  /// N-10 — powiadomienia operacyjne, które klient może wyłączyć (domyślnie włączone):
+  /// start i koniec autoskalowania (zatrzymanie przez limit kosztu / pusty portfel idzie zawsze)
+  /// oraz alerty o zbliżaniu się do limitów konta.
+  autoscalingEmail     Boolean  @default(true)
+  quotaAlertsEmail     Boolean  @default(true)
 
   /// Token used in `List-Unsubscribe` mail header for one-click opt-out
   /// (RFC 8058). Random hex 32B, rotated on every preference reset.

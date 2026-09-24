@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition, useId } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   BellRing,
   CreditCard,
@@ -11,7 +11,10 @@ import {
   Megaphone,
   Sparkles,
   Handshake,
+  TrendingUp,
+  HardDrive,
 } from "lucide-react";
+import { Switch } from "@/components/panel/v2";
 import {
   fetchMarketingPreferences,
   updateMarketingPreferences,
@@ -19,9 +22,9 @@ import {
 } from "./privacy-actions";
 
 /**
- * #12 — Centrum powiadomień. Jedno miejsce na wszystkie kanały e-mail:
- * krytyczne (zawsze włączone, wynikają z umowy/bezpieczeństwa) + opcjonalne
- * (sterowane przez klienta). Backend: istniejące `/me/marketing-preferences`.
+ * #12 / N-10 — Centrum powiadomień. Krytyczne (bezpieczeństwo, płatności, zatrzymanie autoskalowania
+ * przez limit kosztu albo pusty portfel) są zawsze włączone; operacyjne i marketingowe steruje klient.
+ * Backend: `/me/marketing-preferences`, bramka w MailerService (POWIADOMIENIA_OPCJONALNE).
  */
 export function NotificationsTab({
   showToast,
@@ -40,58 +43,51 @@ export function NotificationsTab({
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-32 gap-3">
-        <Loader2 className="h-8 w-8 animate-spin text-white" />
-        <p className="text-neutral-400">Ładowanie centrum powiadomień...</p>
+      <div className="flex flex-col items-center justify-center gap-3 py-32">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <p className="text-muted-foreground">Ładowanie centrum powiadomień...</p>
       </div>
     );
   }
 
   return (
-    <div className="p-8 space-y-10">
+    <div className="space-y-10 p-6 md:p-8">
       <header>
-        <h2 className="text-xl font-bold text-white mb-2 flex items-center gap-2">
-          <BellRing className="h-5 w-5 text-sky-300" />
+        <h2 className="mb-2 flex items-center gap-2 font-display text-xl font-bold text-foreground">
+          <BellRing className="h-5 w-5 text-data" />
           Centrum powiadomień
         </h2>
-        <p className="text-neutral-400">
-          Decyduj, jakie wiadomości od nas chcesz otrzymywać. Powiadomienia krytyczne (bezpieczeństwo
-          i rozliczenia) są zawsze włączone, bo wynikają z umowy i ochrony Twojego konta.
+        <p className="text-sm text-muted-foreground">
+          Decyduj, jakie wiadomości od nas chcesz otrzymywać. Powiadomienia o bezpieczeństwie i rozliczeniach są
+          zawsze włączone, bo wynikają z umowy i ochrony Twojego konta.
         </p>
       </header>
 
-      {/* Krytyczne — zawsze włączone */}
       <section className="space-y-3">
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
-          Zawsze włączone
-        </h3>
-        <div className="rounded-xl border border-white/10 bg-[#0a0a0a]/40 divide-y divide-white/5">
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Zawsze włączone</h3>
+        <div className="divide-y divide-line rounded-[10px] border border-line bg-raised/40">
           <AlwaysOnRow
             icon={ShieldCheck}
-            iconClass="text-emerald-300"
             title="Bezpieczeństwo konta"
-            description="Logowania z nowego urządzenia, zmiana hasła, passkey/2FA, zmiana e-maila, wylogowania sesji."
+            description="Zmiana hasła, passkey i 2FA oraz zmiana adresu e-mail."
           />
           <AlwaysOnRow
             icon={CreditCard}
-            iconClass="text-amber-300"
             title="Płatności i faktury"
-            description="Odnowienia, niskie saldo portfela, faktury, nieudane płatności i zawieszenia usług."
+            description="Odnowienia, niskie saldo portfela, faktury, nieudane płatności, zawieszenia usług, zmiana planu oraz zatrzymanie autoskalowania przez limit kosztu albo pusty portfel."
           />
           <AlwaysOnRow
             icon={Activity}
-            iconClass="text-sky-300"
-            title="Alerty usług (monitoring)"
-            description="Awarie strony, powroty i wygasanie certyfikatu SSL. Możesz nimi sterować osobno dla każdej usługi w zakładce Monitoring."
+            title="Alerty monitoringu strony"
+            description="Awarie strony, powroty i wygasanie certyfikatu SSL. Sterujesz nimi osobno dla każdej usługi w zakładce Monitoring."
           />
         </div>
       </section>
 
-      {/* Opcjonalne — sterowane przez klienta */}
       {prefs ? (
         <OptionalSection prefs={prefs} onChange={setPrefs} showToast={showToast} />
       ) : (
-        <p className="text-sm text-neutral-500">Nie udało się pobrać preferencji powiadomień.</p>
+        <p className="text-sm text-muted-foreground">Nie udało się pobrać preferencji powiadomień.</p>
       )}
     </div>
   );
@@ -99,65 +95,82 @@ export function NotificationsTab({
 
 function AlwaysOnRow({
   icon: Icon,
-  iconClass,
   title,
   description,
 }: {
   icon: React.ComponentType<{ className?: string }>;
-  iconClass: string;
   title: string;
   description: string;
 }) {
   return (
-    <div className="flex items-start justify-between gap-6 p-4">
-      <div className="flex items-start gap-3 flex-1">
-        <Icon className={`h-5 w-5 mt-0.5 shrink-0 ${iconClass}`} />
+    <div className="flex items-start justify-between gap-4 p-4">
+      <div className="flex flex-1 items-start gap-3">
+        <Icon className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
         <div>
-          <p className="text-sm font-medium text-white">{title}</p>
-          <p className="text-xs text-neutral-500 mt-0.5">{description}</p>
+          <p className="text-sm font-medium text-foreground">{title}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
         </div>
       </div>
-      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.03] px-3 py-1 text-[11px] font-medium text-neutral-400">
+      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line px-3 py-1 text-[11px] font-medium text-muted-foreground">
         <Lock className="h-3 w-3" /> Zawsze
       </span>
     </div>
   );
 }
 
-const OPTIONAL_TOGGLES: Array<{
-  key: keyof MarketingPreferences;
+type Przelacznik = {
+  key: "loginAlertsEmail" | "autoscalingEmail" | "quotaAlertsEmail" | "productUpdatesEmail" | "marketingEmail" | "partnerOffersEmail";
   icon: React.ComponentType<{ className?: string }>;
-  iconClass: string;
   label: string;
   description: string;
-}> = [
+};
+
+const GRUPY: Array<{ tytul: string; pozycje: Przelacznik[] }> = [
   {
-    key: "loginAlertsEmail",
-    icon: ShieldCheck,
-    iconClass: "text-emerald-300",
-    label: "Dodatkowe alerty logowania",
-    description: "Powiadomienia o nowym logowaniu z nieznanego urządzenia (ponad podstawowe alerty bezpieczeństwa).",
+    tytul: "Twoje usługi",
+    pozycje: [
+      {
+        key: "autoscalingEmail",
+        icon: TrendingUp,
+        label: "Autoskalowanie",
+        description: "Start skoku zasobów i podsumowanie z kosztem po jego zakończeniu. Zatrzymanie przez limit kosztu albo pusty portfel wyślemy zawsze.",
+      },
+      {
+        key: "quotaAlertsEmail",
+        icon: HardDrive,
+        label: "Zbliżanie się do limitów",
+        description: "Ostrzeżenie, gdy konto zbliża się do limitu dysku lub zasobów planu.",
+      },
+      {
+        key: "loginAlertsEmail",
+        icon: ShieldCheck,
+        label: "Logowanie z nowego urządzenia",
+        description: "Wiadomość, gdy ktoś zaloguje się na Twoje konto z urządzenia, którego wcześniej nie używano.",
+      },
+    ],
   },
   {
-    key: "productUpdatesEmail",
-    icon: Sparkles,
-    iconClass: "text-violet-300",
-    label: "Nowości i aktualizacje funkcji",
-    description: "Informacje o nowych możliwościach panelu i usprawnieniach.",
-  },
-  {
-    key: "marketingEmail",
-    icon: Megaphone,
-    iconClass: "text-sky-300",
-    label: "Newsletter Verris",
-    description: "Comiesięczne podsumowanie, porady i okazje. Możesz zrezygnować w każdej chwili.",
-  },
-  {
-    key: "partnerOffersEmail",
-    icon: Handshake,
-    iconClass: "text-amber-300",
-    label: "Oferty partnerskie",
-    description: "Promocje od starannie wybranych partnerów (rzadko).",
+    tytul: "Od Verris",
+    pozycje: [
+      {
+        key: "productUpdatesEmail",
+        icon: Sparkles,
+        label: "Nowości i aktualizacje funkcji",
+        description: "Informacje o nowych możliwościach panelu i usprawnieniach.",
+      },
+      {
+        key: "marketingEmail",
+        icon: Megaphone,
+        label: "Newsletter Verris",
+        description: "Comiesięczne podsumowanie, porady i okazje. Możesz zrezygnować w każdej chwili.",
+      },
+      {
+        key: "partnerOffersEmail",
+        icon: Handshake,
+        label: "Oferty partnerskie",
+        description: "Promocje od starannie wybranych partnerów (rzadko).",
+      },
+    ],
   },
 ];
 
@@ -170,12 +183,11 @@ function OptionalSection({
   onChange: (p: MarketingPreferences) => void;
   showToast: (msg: string, type: "success" | "error") => void;
 }) {
-  const toggleId = useId();
   const [pending, startTransition] = useTransition();
 
-  const updateField = (key: keyof MarketingPreferences, value: boolean) => {
+  const updateField = (key: Przelacznik["key"], value: boolean) => {
     // Optymistycznie — natychmiastowy feedback, rollback przy błędzie.
-    const prev = prefs[key] as boolean;
+    const prev = prefs[key];
     onChange({ ...prefs, [key]: value });
     startTransition(async () => {
       const result = await updateMarketingPreferences({ [key]: value });
@@ -189,42 +201,29 @@ function OptionalSection({
   };
 
   return (
-    <section className="space-y-3">
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-500">
-        Opcjonalne — Ty decydujesz
-      </h3>
-      <div className="rounded-xl border border-white/10 bg-[#0a0a0a]/40 divide-y divide-white/5">
-        {OPTIONAL_TOGGLES.map(({ key, icon: Icon, iconClass, label, description }) => {
-          const value = prefs[key] as boolean;
-          return (
-            <div key={key} className="flex items-center justify-between gap-6 p-4">
-              <div className="flex items-start gap-3 flex-1">
-                <Icon className={`h-5 w-5 mt-0.5 shrink-0 ${iconClass}`} />
-                <div>
-                  <p id={`${toggleId}-${key}`} className="text-sm font-medium text-white">{label}</p>
-                  <p id={`${toggleId}-${key}-desc`} className="text-xs text-neutral-500 mt-0.5">{description}</p>
+    <>
+      {GRUPY.map((g) => (
+        <section key={g.tytul} className="space-y-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{g.tytul}</h3>
+          <div className="divide-y divide-line rounded-[10px] border border-line bg-raised/40">
+            {g.pozycje.map(({ key, icon: Icon, label, description }) => (
+              <div key={key} className="flex items-center justify-between gap-4 p-4">
+                <div className="flex flex-1 items-start gap-3">
+                  <Icon className="mt-0.5 h-5 w-5 shrink-0 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{label}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+                  </div>
                 </div>
+                <Switch checked={prefs[key]} onChange={(v) => updateField(key, v)} label={label} disabled={pending} />
               </div>
-              <label className="relative inline-flex cursor-pointer items-center shrink-0">
-                <input
-                  type="checkbox"
-                  checked={value}
-                  aria-labelledby={`${toggleId}-${key}`}
-                  aria-describedby={`${toggleId}-${key}-desc`}
-                  disabled={pending}
-                  onChange={(e) => updateField(key, e.target.checked)}
-                  className="peer sr-only"
-                />
-                <div className="h-6 w-11 rounded-full bg-neutral-700 peer-checked:bg-sky-500 peer-disabled:opacity-50 transition-colors after:absolute after:left-0.5 after:top-0.5 after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-transform peer-checked:after:translate-x-5" />
-              </label>
-            </div>
-          );
-        })}
-      </div>
-      <p className="text-[11px] text-neutral-500">
-        Rezygnacja z newslettera i ofert partnerskich działa też przez link „wypisz się” w stopce
-        każdej takiej wiadomości.
+            ))}
+          </div>
+        </section>
+      ))}
+      <p className="text-[11px] text-muted-foreground">
+        Z newslettera i ofert partnerskich wypiszesz się też linkiem „wypisz się” w stopce każdej takiej wiadomości.
       </p>
-    </section>
+    </>
   );
 }

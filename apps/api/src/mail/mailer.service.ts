@@ -37,6 +37,13 @@ export interface MailerSendResult {
   suppressedReason?: 'OPTED_OUT' | 'ANONYMIZED' | 'NO_RECIPIENT';
 }
 
+/** N-10 — tag maila → przełącznik w preferencjach klienta (domyślnie włączone). */
+export const POWIADOMIENIA_OPCJONALNE: Record<string, 'autoscalingEmail' | 'quotaAlertsEmail'> = {
+  'autoscaling.started': 'autoscalingEmail',
+  'autoscaling.ended': 'autoscalingEmail',
+  'hosting.quota-alert': 'quotaAlertsEmail',
+};
+
 /**
  * Sprint 2.6: thin facade z 3 odpowiedzialnościami:
  *
@@ -53,7 +60,8 @@ export interface MailerSendResult {
  *     `GET /unsubscribe?token=...`. Wymóg deliverability dla Gmail/Outlook.
  *
  * Dla TRANSACTIONAL maili pomija opt-out (legal basis: contract performance),
- * ale nadal zapisuje do EmailLog.
+ * ale nadal zapisuje do EmailLog — poza kilkoma powiadomieniami operacyjnymi,
+ * które klient może wyłączyć (POWIADOMIENIA_OPCJONALNE, N-10).
  */
 @Injectable()
 export class MailerService {
@@ -207,6 +215,8 @@ export class MailerService {
       marketingPreferences: {
         marketingEmail: boolean;
         productUpdatesEmail: boolean;
+        autoscalingEmail: boolean;
+        quotaAlertsEmail: boolean;
       } | null;
     } | null = null;
 
@@ -217,7 +227,7 @@ export class MailerService {
           id: true,
           anonymizedAt: true,
           marketingPreferences: {
-            select: { marketingEmail: true, productUpdatesEmail: true },
+            select: { marketingEmail: true, productUpdatesEmail: true, autoscalingEmail: true, quotaAlertsEmail: true },
           },
         },
       });
@@ -230,7 +240,7 @@ export class MailerService {
           id: true,
           anonymizedAt: true,
           marketingPreferences: {
-            select: { marketingEmail: true, productUpdatesEmail: true },
+            select: { marketingEmail: true, productUpdatesEmail: true, autoscalingEmail: true, quotaAlertsEmail: true },
           },
         },
       });
@@ -246,6 +256,14 @@ export class MailerService {
       if (user?.marketingPreferences && !user.marketingPreferences.productUpdatesEmail) {
         return { allowed: false, reason: 'OPTED_OUT' };
       }
+    }
+
+    // 3a. N-10 — powiadomienia operacyjne, które klient wyłączył w Ustawieniach → Powiadomienia.
+    //     Po tagu z szablonu: bezpieczeństwo, płatności, faktury i zatrzymanie autoskalowania
+    //     przez limit/pusty portfel (tag autoscaling.stopped) nie mają przełącznika.
+    const przelacznik = message.tag ? POWIADOMIENIA_OPCJONALNE[message.tag] : undefined;
+    if (przelacznik && user?.marketingPreferences && !user.marketingPreferences[przelacznik]) {
+      return { allowed: false, reason: 'OPTED_OUT' };
     }
 
     // 4. MARKETING — sprawdź preferences. TRANSACTIONAL przechodzi zawsze.

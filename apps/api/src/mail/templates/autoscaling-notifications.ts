@@ -80,10 +80,10 @@ export function autoscalingStartedTemplate(ctx: AutoscalingStartedContext): Mail
     ].join('\n'),
     cta: { label: 'Zobacz autoskalowanie', url: ctx.autoscalingUrl },
     footnote:
-      'To powiadomienie produktowe — nie wymaga akcji, jeśli oczekujesz wzrostu ruchu. Limit kosztu i zasoby do skalowania ustawisz w panelu.',
+      'Nie wymaga akcji, jeśli oczekujesz wzrostu ruchu. Limit kosztu i zasoby do skalowania ustawisz w panelu, a te powiadomienia wyłączysz w Ustawieniach → Powiadomienia.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
-    category: 'PRODUCT_UPDATE',
+    category: 'TRANSACTIONAL',
   });
 
   return {
@@ -93,7 +93,7 @@ export function autoscalingStartedTemplate(ctx: AutoscalingStartedContext): Mail
     subject: `[Verris] Autoskalowanie uruchomione — ${ctx.domain}`,
     text,
     html,
-    category: 'PRODUCT_UPDATE',
+    category: 'TRANSACTIONAL',
   };
 }
 
@@ -153,19 +153,24 @@ export function autoscalingEndedTemplate(ctx: AutoscalingEndedContext): MailMess
       `Pełną historię (co, kiedy i za ile zostało podniesione) znajdziesz w panelu → Autoskalowanie.`,
     ].join('\n'),
     cta: { label: 'Historia i koszty', url: ctx.autoscalingUrl },
-    footnote: 'To powiadomienie produktowe — podsumowanie zakończonego skoku zasobów.',
+    footnote:
+      ctx.reason === 'CAP_REACHED' || ctx.reason === 'WALLET_EMPTY'
+        ? 'Podsumowanie zakończonego skoku zasobów.'
+        : 'Podsumowanie zakończonego skoku zasobów. Te powiadomienia wyłączysz w Ustawieniach → Powiadomienia.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
-    category: 'PRODUCT_UPDATE',
+    category: 'TRANSACTIONAL',
   });
 
   return {
     to: ctx.to,
     userId: ctx.userId,
-    tag: 'autoscaling.ended',
+    // Zatrzymanie przez limit kosztu albo pusty portfel to informacja o pieniądzach — idzie zawsze,
+    // także gdy klient wyłączył powiadomienia o autoskalowaniu (N-10).
+    tag: ctx.reason === 'CAP_REACHED' || ctx.reason === 'WALLET_EMPTY' ? 'autoscaling.stopped' : 'autoscaling.ended',
     subject: `[Verris] Autoskalowanie zakończone — ${ctx.domain}`,
     text,
     html,
-    category: 'PRODUCT_UPDATE',
+    category: 'TRANSACTIONAL',
   };
 }

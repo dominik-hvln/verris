@@ -12,6 +12,8 @@ export interface MarketingPreferences {
   productUpdatesEmail: boolean;
   partnerOffersEmail: boolean;
   loginAlertsEmail: boolean;
+  autoscalingEmail: boolean;
+  quotaAlertsEmail: boolean;
   unsubscribeToken?: string;
   updatedAt: string;
   createdAt: string;

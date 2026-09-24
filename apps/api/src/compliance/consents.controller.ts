@@ -34,6 +34,14 @@ class UpdateMarketingPrefsDto {
   @IsOptional()
   @IsBoolean()
   loginAlertsEmail?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  autoscalingEmail?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  quotaAlertsEmail?: boolean;
 }
 
 /**

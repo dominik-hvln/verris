@@ -43,18 +43,19 @@ export function planChangedTemplate(ctx: PlanChangedContext): MailMessage {
       label: 'Otwórz usługę',
       url: ctx.serviceUrl,
     },
-    footnote: 'To powiadomienie produktowe o zmianie planu na istniejącej subskrypcji.',
+    footnote: 'Potwierdzenie zmiany planu na istniejącej usłudze.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
-    category: 'PRODUCT_UPDATE',
+    category: 'TRANSACTIONAL',
   });
 
   return {
     to: ctx.to,
+    tag: 'subscription.plan-changed',
     subject: `Plan zmieniony: ${ctx.domain}`,
     html,
     text,
-    category: 'PRODUCT_UPDATE',
+    category: 'TRANSACTIONAL',
     userId: ctx.userId,
   };
 }
