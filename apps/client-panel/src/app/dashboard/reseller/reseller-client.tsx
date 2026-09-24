@@ -148,12 +148,10 @@ export function ResellerClient() {
       {ov.status === 'ACTIVE' ? (
         <form onSubmit={(e) => void zapiszNarzut(e)} className="flex flex-wrap items-end gap-2 rounded-2xl border border-white/10 bg-black/30 p-5">
           <label className="text-sm font-medium text-white">
-            Twój narzut do ceny hurtowej (%)
+            Twój narzut do ceny hurtowej (%, 0–300)
+            {/* Bez min/max: zakres sprawdza zapiszNarzut i mówi o nim w panelu, a nie systemowym dymkiem przeglądarki. */}
             <input
-              type="number"
-              min={0}
-              max={300}
-              step={1}
+              inputMode="numeric"
               value={narzut ?? String(ov.markupPct)}
               onChange={(e) => setNarzut(e.target.value)}
               className="mt-1 block w-32 rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
