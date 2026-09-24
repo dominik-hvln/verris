@@ -174,7 +174,7 @@ export function ApiTokensClient() {
           Odczyt: <code>GET /api/v1/me</code>, <code>/services</code>, <code>/services/:id</code>, <code>/billing/wallet</code>, <code>/invoices</code>,{' '}
           <code>/services/:id/dns?domain=</code> (dns:read), <code>/services/:id/deploy?domain=</code> (deploy:write).
           Zapis: <code>POST /services/:id/dns</code> i <code>/services/:id/dns/delete</code> z polami domain, name, type, value (dns:write);{' '}
-          <code>POST /services/:id/deploy</code> z polem domain (i opcjonalnie dir) — pobiera zmiany z repozytorium Git (deploy:write). Webhooki — wkrótce.
+          <code>POST /services/:id/deploy</code> z polem domain (i opcjonalnie dir) — pobiera zmiany z repozytorium Git (deploy:write). Webhooki (zdarzenia wysyłane na Twój adres) ustawisz niżej.
         </p>
       </section>
     </div>
