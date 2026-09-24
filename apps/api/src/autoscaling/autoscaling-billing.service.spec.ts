@@ -1,3 +1,4 @@
+import { ConflictException } from '@nestjs/common';
 import { Prisma } from '@verris/database';
 import {
   AutoscalingBillingService,
@@ -83,7 +84,7 @@ describe('AutoscalingBillingService.billDueBlocks', () => {
 
   it('does NOT advance the cursor when the wallet is depleted (block retried after top-up)', async () => {
     const { service, prisma } = buildService({
-      debitError: new Error('Insufficient wallet balance for this charge'),
+      debitError: new ConflictException('Insufficient wallet balance for this charge'),
     });
     const now = new Date('2026-06-09T12:00:00Z');
     const since = new Date(now.getTime() - BLOCK_MS);

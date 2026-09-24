@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { ConflictException, Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
 import { Prisma, VpsStatus, WalletTxType } from '@verris/database';
@@ -49,6 +49,7 @@ export class VpsRenewalScheduler {
 
     for (const v of due) {
       const overdueMs = now - (v.currentPeriodEnd?.getTime() ?? now);
+      let brakSrodkow = false;
       try {
         await this.wallet.debit({
           userId: v.userId,
@@ -57,56 +58,72 @@ export class VpsRenewalScheduler {
           description: `VPS ${v.name} — odnowienie miesięczne`,
           idempotencyKey: `vps-${v.id}-renew-${v.currentPeriodEnd?.toISOString() ?? now}`,
         });
-        // Paid → extend period; auto-resume if it was suspended.
-        if (v.status === VpsStatus.STOPPED && v.hetznerServerId) {
-          await this.hetzner.powerOn(v.hetznerServerId).catch(() => undefined);
+      } catch (err) {
+        // Tylko brak środków (ConflictException) uruchamia karencję. Wcześniej `catch {}` łapał
+        // wszystko — także błąd bazy — i po karencji KASOWAŁ serwer klienta (deleteServer)
+        // mimo pieniędzy w portfelu. Inny błąd: log i ponowienie przy następnym przebiegu.
+        if (!(err instanceof ConflictException)) {
+          this.logger.error(`VPS ${v.id}: odnowienie nie powiodło się (nie brak środków): ${(err as Error).message}`);
+          continue;
         }
-        await this.prisma.vpsInstance.update({
-          where: { id: v.id },
-          data: {
-            currentPeriodEnd: new Date((v.currentPeriodEnd?.getTime() ?? now) + PERIOD_MS),
-            status: VpsStatus.RUNNING,
-          },
-        });
-        await this.audit.record({ action: 'VPS_RENEWED', userId: v.userId, details: { instanceId: v.id } });
-      } catch {
-        // Insufficient funds (or transient). Apply grace policy.
-        if (overdueMs > GRACE_DAYS * 24 * 60 * 60 * 1000) {
-          if (v.hetznerServerId) {
-            await this.hetzner.deleteServer(v.hetznerServerId).catch(() => undefined);
+        brakSrodkow = true;
+      }
+      try {
+        if (!brakSrodkow) {
+          // Paid → extend period; auto-resume if it was suspended.
+          if (v.status === VpsStatus.STOPPED && v.hetznerServerId) {
+            await this.hetzner.powerOn(v.hetznerServerId).catch(() => undefined);
           }
           await this.prisma.vpsInstance.update({
             where: { id: v.id },
-            data: { status: VpsStatus.DELETED, deletedAt: new Date() },
+            data: {
+              currentPeriodEnd: new Date((v.currentPeriodEnd?.getTime() ?? now) + PERIOD_MS),
+              status: VpsStatus.RUNNING,
+            },
           });
-          await this.audit.record({
-            action: 'VPS_TERMINATED_NONPAYMENT',
-            userId: v.userId,
-            details: { instanceId: v.id },
-          });
-          await this.mailer
-            .send({
-              ...vpsTerminatedTemplate({ to: v.user.email, firstName: v.user.firstName, name: v.name, panelUrl: this.panelUrl() }),
+          await this.audit.record({ action: 'VPS_RENEWED', userId: v.userId, details: { instanceId: v.id } });
+        } else {
+          // Brak środków — polityka karencji.
+          if (overdueMs > GRACE_DAYS * 24 * 60 * 60 * 1000) {
+            if (v.hetznerServerId) {
+              await this.hetzner.deleteServer(v.hetznerServerId).catch(() => undefined);
+            }
+            await this.prisma.vpsInstance.update({
+              where: { id: v.id },
+              data: { status: VpsStatus.DELETED, deletedAt: new Date() },
+            });
+            await this.audit.record({
+              action: 'VPS_TERMINATED_NONPAYMENT',
               userId: v.userId,
-              category: 'TRANSACTIONAL',
-            })
-            .catch(() => undefined);
-        } else if (v.status === VpsStatus.RUNNING) {
-          if (v.hetznerServerId) await this.hetzner.powerOff(v.hetznerServerId).catch(() => undefined);
-          await this.prisma.vpsInstance.update({ where: { id: v.id }, data: { status: VpsStatus.STOPPED } });
-          await this.audit.record({
-            action: 'VPS_SUSPENDED_NONPAYMENT',
-            userId: v.userId,
-            details: { instanceId: v.id },
-          });
-          await this.mailer
-            .send({
-              ...vpsSuspendedTemplate({ to: v.user.email, firstName: v.user.firstName, name: v.name, panelUrl: this.panelUrl() }),
+              details: { instanceId: v.id },
+            });
+            await this.mailer
+              .send({
+                ...vpsTerminatedTemplate({ to: v.user.email, firstName: v.user.firstName, name: v.name, panelUrl: this.panelUrl() }),
+                userId: v.userId,
+                category: 'TRANSACTIONAL',
+              })
+              .catch(() => undefined);
+          } else if (v.status === VpsStatus.RUNNING) {
+            if (v.hetznerServerId) await this.hetzner.powerOff(v.hetznerServerId).catch(() => undefined);
+            await this.prisma.vpsInstance.update({ where: { id: v.id }, data: { status: VpsStatus.STOPPED } });
+            await this.audit.record({
+              action: 'VPS_SUSPENDED_NONPAYMENT',
               userId: v.userId,
-              category: 'TRANSACTIONAL',
-            })
-            .catch(() => undefined);
+              details: { instanceId: v.id },
+            });
+            await this.mailer
+              .send({
+                ...vpsSuspendedTemplate({ to: v.user.email, firstName: v.user.firstName, name: v.name, panelUrl: this.panelUrl() }),
+                userId: v.userId,
+                category: 'TRANSACTIONAL',
+              })
+              .catch(() => undefined);
+          }
         }
+      } catch (err) {
+        // Jeden VPS nie zatrzymuje odnowień pozostałych.
+        this.logger.error(`VPS ${v.id}: przetwarzanie odnowienia przerwane: ${(err as Error).message}`);
       }
     }
     if (due.length) this.logger.log(`VPS renewals processed: ${due.length}`);

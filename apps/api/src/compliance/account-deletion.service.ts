@@ -12,6 +12,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { RodoActions } from '../common/audit/audit.actions';
 import { DirectAdminService } from '../servers/directadmin.service';
+import { DirectAdminApiError } from '@verris/directadmin-sdk';
 import { MailerService } from '../mail/mailer.service';
 import { ConfigService } from '@nestjs/config';
 import {
@@ -435,8 +436,12 @@ export class AccountDeletionService {
       await client.deleteAccount(acc.daUsername);
     } catch (err) {
       const msg = (err as Error).message;
-      // "user not found" is acceptable — proceed with DB-side mark.
-      const benign = /not\s*found|does\s*not\s*exist|brak/i.test(msg);
+      // „Użytkownika już nie ma” to jedyny błąd, po którym wolno oznaczyć konto jako usunięte — i tylko
+      // gdy powiedział to SAM DirectAdmin. Wcześniej dopasowanie po prozie łapało też „Server not found”
+      // (węzeł usunięty z bazy), „404 Not Found” z proxy i każde polskie „brak …” — konto szło na DELETED,
+      // pojemność węzła była zwalniana, a dane anonimizowanego klienta zostawały na węźle (RODO).
+      // ponytail: dokładny tekst DA dla nieistniejącego użytkownika do potwierdzenia przy D3 (PB-21).
+      const benign = err instanceof DirectAdminApiError && /does\s*not\s*exist|not\s*found|no\s*such\s*user/i.test(err.daText);
       if (!benign) {
         this.logger.error(
           `DA delete failed for accountId=${accountId} (daUsername=${acc.daUsername}): ${msg}`,

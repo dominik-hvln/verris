@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { SubscriptionStatus, WalletTxType } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
@@ -212,8 +212,12 @@ export class RenewalScheduler {
         subscriptionId: sub.id,
       });
     } catch (err) {
-      // Insufficient balance / user not found / etc.
-      const msg = err instanceof Error ? err.message : String(err);
+      // Tylko brak środków (ConflictException z WalletLedgerService) otwiera karencję. Wcześniej KAŻDY
+      // błąd — zerwane połączenie z bazą, timeout blokady — dawał PAST_DUE, mail „płatność nieudana”
+      // i start 3-dniowego licznika do zawieszenia, choć klient miał pieniądze. Inny błąd leci dalej:
+      // przebieg zaloguje go i spróbuje za godzinę, a „Opłać teraz” nie powie „za mało środków”.
+      if (!(err instanceof ConflictException)) throw err;
+      const msg = err.message;
       this.logger.warn(`Renewal debit failed for sub=${sub.id}: ${msg}`);
       // Ponowienie w karencji nie zapisuje nowego PAYMENT_FAILED — to zdarzenie
       // wyznacza początek karencji, a nowe co godzinę nie pozwoliłoby jej wygasnąć.

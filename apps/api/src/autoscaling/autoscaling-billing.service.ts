@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { ConflictException, Injectable, Logger } from '@nestjs/common';
 import {
   AutoscalingDirection,
   AutoscalingPriceRule,
@@ -182,7 +182,8 @@ export class AutoscalingBillingService {
           blocksCharged += 1;
         } catch (err) {
           const e = err as Error;
-          if (e.message.toLowerCase().includes('insufficient')) {
+          // Brak środków = ConflictException z WalletLedgerService (typ, nie treść komunikatu).
+          if (err instanceof ConflictException) {
             // Wallet is empty — stop here and DON'T advance past this block, so
             // we retry it after a top-up. The engine's guard will scale the
             // customer back to baseline + disable autoscaling on its next tick.

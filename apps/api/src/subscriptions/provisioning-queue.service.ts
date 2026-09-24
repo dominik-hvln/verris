@@ -1,11 +1,12 @@
 import {
+  HttpException,
   Injectable,
   Logger,
   OnModuleDestroy,
   OnModuleInit,
 } from '@nestjs/common';
 import { Prisma, SubscriptionStatus, WalletTxType } from '@verris/database';
-import { Job, Queue, QueueEvents, Worker } from 'bullmq';
+import { Job, Queue, QueueEvents, UnrecoverableError, Worker } from 'bullmq';
 import IORedis from 'ioredis';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletLedgerService } from '../billing/wallet-ledger.service';
@@ -528,7 +529,11 @@ export class ProvisioningQueueService implements OnModuleInit, OnModuleDestroy {
           },
         });
       }
-      throw err;
+      // Twarda porażka jest KOŃCEM: środki zwrócone, subskrypcja PENDING_PAYMENT. Zwykły `throw err`
+      // oddawał job BullMQ do ponowienia (attempts: 3) — próba 2 przechodziła (provisionForSubscription
+      // przyjmuje PENDING_PAYMENT), konto powstawało, subskrypcja szła na ACTIVE, a zwrot zostawał.
+      // Klient miał hosting i pieniądze naraz. UnrecoverableError zatrzymuje ponowienia.
+      throw new UnrecoverableError(msg);
     }
   }
 
@@ -661,6 +666,13 @@ export function categorizeProvisioningError(msg: string): 'transient' | 'permane
 export function kategoriaBledu(err: unknown): 'transient' | 'permanent' {
   if (err instanceof BladEtapuProvisioningu) {
     return categorizeProvisioningError(err.przyczyna);
+  }
+  // Status HTTP mówi więcej niż proza: wybór węzła rzuca 503 z polskim komunikatem („brak sygnału
+  // życia”, „trwa serwis infrastruktury”), którego lista słów nie zna — chwilowa czkawka jedynego
+  // węzła kończyła się zwrotem środków przy pierwszej próbie. 408/429/5xx (poza 500/501) = ponów.
+  if (err instanceof HttpException) {
+    const status = err.getStatus();
+    if (status === 408 || status === 429 || status >= 502) return 'transient';
   }
   if (err instanceof Error) {
     return categorizeProvisioningError(err.message);

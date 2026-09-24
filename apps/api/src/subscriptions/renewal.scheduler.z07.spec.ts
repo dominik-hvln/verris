@@ -1,8 +1,8 @@
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { RenewalScheduler } from './renewal.scheduler';
 
 /** Z-07 — karencja przy płatności portfelem: doładowanie ratuje usługę przed zawieszeniem. */
-function zbuduj(opts: { saldoOk: boolean; subs: Array<Record<string, unknown>> }) {
+function zbuduj(opts: { saldoOk: boolean; subs: Array<Record<string, unknown>>; bladBazy?: boolean }) {
   const prisma = {
     subscription: {
       findMany: jest.fn(async () => opts.subs),
@@ -14,7 +14,8 @@ function zbuduj(opts: { saldoOk: boolean; subs: Array<Record<string, unknown>> }
   const walletLedger = {
     findByIdempotencyKey: jest.fn(async () => null),
     debit: jest.fn(async () => {
-      if (!opts.saldoOk) throw new Error('Insufficient balance');
+      if (opts.bladBazy) throw new Error("Can't reach database server");
+      if (!opts.saldoOk) throw new ConflictException('Insufficient wallet balance for this charge');
     }),
   };
   const audit = { record: jest.fn(async () => undefined) };
@@ -68,5 +69,12 @@ describe('RenewalScheduler — Z-07', () => {
       zbuduj({ saldoOk: true, subs: [{ ...pastDue, paymentSource: 'STRIPE_CARD', stripeSubscriptionId: 'sub_x' }] }).s.retryPastDueNow('u1', 's1'),
     ).rejects.toBeInstanceOf(BadRequestException);
     await expect(zbuduj({ saldoOk: true, subs: [pastDue] }).s.retryPastDueNow('u1', 's1')).resolves.toEqual({ status: 'ACTIVE' });
+  });
+
+  it('błąd bazy przy obciążeniu to NIE brak środków: bez PAST_DUE i bez startu karencji', async () => {
+    const { s, prisma } = zbuduj({ saldoOk: true, bladBazy: true, subs: [{ ...pastDue, status: 'ACTIVE' }] });
+    await (s as unknown as { runRenewalWindow(): Promise<void> }).runRenewalWindow();
+    expect(prisma.subscriptionEvent.create).not.toHaveBeenCalled();
+    expect(prisma.subscription.update).not.toHaveBeenCalledWith(expect.objectContaining({ data: { status: 'PAST_DUE' } }));
   });
 });
