@@ -169,20 +169,30 @@ export class MigrationImapSourceDto {
   @Matches(MIGRACJA_WZORCE.host, { message: KOMUNIKAT.host })
   host!: string;
 
-  @Type(() => Number) @IsInt() @Min(1) @Max(65535)
-  port!: number;
+  /** Domyślnie 993 (IMAPS) — klient zwykle zna tylko host. */
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(65535)
+  port?: number;
 
-  @IsString() @MinLength(1) @MaxLength(254)
+  /** Login u starego dostawcy — gdy brak, jest nim adres skrzynki (tak działa prawie każdy hosting). */
+  @IsOptional() @IsString() @MinLength(1) @MaxLength(254)
   @Matches(MIGRACJA_WZORCE.usernameImap, { message: KOMUNIKAT.username })
-  username!: string;
+  username?: string;
 
   @IsString() @MinLength(1) @MaxLength(2048)
   password!: string;
 
-  /** Docelowy adres skrzynki u nas. Gdy brak — przyjmujemy `username`. */
+  /** Adres skrzynki: ten sam u starego dostawcy i u nas (docelowa musi należeć do usługi). */
   @IsOptional() @IsString() @MinLength(3) @MaxLength(254)
   @Matches(MIGRACJA_WZORCE.email, { message: KOMUNIKAT.email })
   email?: string;
+}
+
+/** Skrzynka po uzupełnieniu domyślnych: port 993, login = adres. */
+export type SkrzynkaImap = { host: string; port: number; username: string; password: string; email?: string };
+
+export function uzupelnijSkrzynke(b: MigrationImapSourceDto): SkrzynkaImap {
+  const email = b.email?.trim().toLowerCase() || undefined;
+  return { host: b.host.trim(), port: b.port ?? 993, username: b.username?.trim() || email || '', password: b.password, email };
 }
 
 export class CreateMigrationBundleDto {

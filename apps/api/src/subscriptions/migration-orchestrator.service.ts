@@ -16,7 +16,9 @@ import {
   CreateMigrationBundleDto,
   RequestExternalMigrationDto,
   RequestInternalMigrationDto,
+  uzupelnijSkrzynke,
 } from './dto/migration.dto';
+import { MigrationPreflightService } from './migration-preflight.service';
 import { MigrationActions } from '../common/audit/audit.actions';
 import { resolvePublicHost } from './migration-net.util';
 
@@ -94,6 +96,7 @@ export class MigrationOrchestratorService {
     private readonly audit: AuditService,
     private readonly notifications: NotificationsService,
     private readonly directAdmin: DirectAdminService,
+    private readonly preflight: MigrationPreflightService,
   ) {}
 
   /**
@@ -250,8 +253,11 @@ export class MigrationOrchestratorService {
   async createBundle(
     subscriptionId: string,
     userId: string,
-    dto: CreateMigrationBundleDto,
+    wejscie: CreateMigrationBundleDto,
   ): Promise<MigrationRequestSummary> {
+    // E-21 — skrzynka = adres + host + hasło (port domyślnie 993, login = adres); do bundla
+    // i workera idą już uzupełnione wartości.
+    const dto: CreateMigrationBundleDto = wejscie.imap ? { ...wejscie, imap: wejscie.imap.map(uzupelnijSkrzynke) } : wejscie;
     const sub = await this.assertSubscriptionForUser(subscriptionId, userId);
     if (!dto.ftp && (!dto.mysql || dto.mysql.length === 0) && (!dto.imap || dto.imap.length === 0)) {
       throw new BadRequestException(
@@ -287,6 +293,16 @@ export class MigrationOrchestratorService {
         }
         throw e;
       });
+    }
+    // E-21 — bramka: skrzynkę kolejkujemy dopiero po udanym logowaniu do starego serwera
+    // (ten sam test co „Test dostępów”). Złe hasło wychodzi od razu, a nie po godzinie w kolejce.
+    const nieudane = (await Promise.all((dto.imap ?? []).map((b) => this.preflight.sprawdzSkrzynke(b)))).filter(
+      (r) => r.status !== 'ok',
+    );
+    if (nieudane.length) {
+      throw new BadRequestException(
+        `Nie udało się zalogować do skrzynki u poprzedniego dostawcy: ${nieudane.map((r) => `${r.target} — ${r.message}`).join('; ')}`,
+      );
     }
 
     // Limit współbieżnych migracji na usługę — nie pozwalamy zakolejkować

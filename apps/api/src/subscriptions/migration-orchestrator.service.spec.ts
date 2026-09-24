@@ -34,6 +34,9 @@ describe('MigrationOrchestratorService', () => {
     createHostingMysqlDatabase: jest.fn(),
     assertDomainOwnedBySubscription: jest.fn(async (_s: string, _u: string, d: string) => d),
   };
+  const preflight = {
+    sprawdzSkrzynke: jest.fn(async () => ({ kind: 'imap', target: 'imap://x', status: 'ok', message: 'ok', latencyMs: 1 })),
+  };
 
   beforeEach(() => jest.clearAllMocks());
 
@@ -44,6 +47,7 @@ describe('MigrationOrchestratorService', () => {
       audit as never,
       notifications as never,
       directAdmin as never,
+      preflight as never,
     );
   }
 
@@ -229,6 +233,36 @@ describe('MigrationOrchestratorService', () => {
     expect(prisma.migrationRequest.create).not.toHaveBeenCalled();
   });
 
+  it('E-21: skrzynka = adres + host + hasło — port 993 i login = adres; do kolejki dopiero po udanym logowaniu', async () => {
+    prisma.subscription.findFirst.mockResolvedValue({ id: 'sub_1', userId: 'user_1', account: { domain: 'target.example' } });
+    preflight.sprawdzSkrzynke.mockResolvedValueOnce({
+      kind: 'imap', target: 'imap://imap.stary.pl:993 (biuro@target.example)', status: 'auth_failed',
+      message: 'Serwer IMAP odrzucił login lub hasło skrzynki.', latencyMs: 5,
+    });
+    await expect(
+      service().createBundle('sub_1', 'user_1', {
+        consentAccepted: true,
+        imap: [{ host: 'imap.stary.pl', email: 'Biuro@Target.example', password: 'zle' }],
+      }),
+    ).rejects.toThrow('odrzucił login lub hasło');
+    expect(preflight.sprawdzSkrzynke).toHaveBeenCalledWith(
+      expect.objectContaining({ host: 'imap.stary.pl', port: 993, username: 'biuro@target.example', email: 'biuro@target.example' }),
+    );
+    expect(prisma.migrationRequest.create).not.toHaveBeenCalled();
+
+    prisma.migrationRequest.create.mockImplementationOnce(async () => {
+      throw new Error('stop-po-walidacji');
+    });
+    await expect(
+      service().createBundle('sub_1', 'user_1', {
+        consentAccepted: true,
+        imap: [{ host: 'imap.stary.pl', email: 'biuro@target.example', password: 'dobre' }],
+      }),
+    ).rejects.toThrow('stop-po-walidacji');
+    const bundle = JSON.parse(String(prisma.migrationRequest.create.mock.calls[0][0].data.sourceBundleEnc).replace('enc:', ''));
+    expect(bundle.imap[0]).toMatchObject({ port: 993, username: 'biuro@target.example', email: 'biuro@target.example' });
+  });
+
   it('rejects a migration without RODO consent', async () => {
     prisma.subscription.findFirst.mockResolvedValue({
       id: 'sub_1',
@@ -297,6 +331,7 @@ describe('MigrationOrchestratorService', () => {
       audit as never,
       notifications as never,
       directAdmin as never,
+      preflight as never,
     ).leaseFileWorkerJobForNode('srv_1');
 
     expect(leased).toMatchObject({
@@ -341,6 +376,7 @@ describe('MigrationOrchestratorService', () => {
       audit as never,
       notifications as never,
       directAdmin as never,
+      preflight as never,
     ).leaseFileWorkerJobForNode('srv_1');
 
     expect(leased).toBeNull();
@@ -559,12 +595,14 @@ function buildWorkerLifecycleMocks(
   const audit = { record: jest.fn().mockResolvedValue(undefined) };
   const notifications = { create: jest.fn().mockResolvedValue(undefined) };
   const directAdmin = { createHostingMysqlDatabase: jest.fn() };
+  const preflight = { sprawdzSkrzynke: jest.fn() };
   const service = new MigrationOrchestratorService(
     prisma as never,
     crypto as never,
     audit as never,
     notifications as never,
     directAdmin as never,
+    preflight as never,
   );
   return { service, prisma };
 }

@@ -5,7 +5,7 @@ import * as crypto from 'node:crypto';
 import { AuditService } from '../common/audit/audit.service';
 import { MigrationActions } from '../common/audit/audit.actions';
 import { resolvePublicHost } from './migration-net.util';
-import type { CreateMigrationBundleDto } from './dto/migration.dto';
+import { uzupelnijSkrzynke, type CreateMigrationBundleDto, type MigrationImapSourceDto } from './dto/migration.dto';
 import { Client as SshClient } from 'ssh2';
 
 /**
@@ -67,9 +67,7 @@ export class MigrationPreflightService {
     for (const db of dto.mysql ?? []) {
       checks.push(this.checkMysql(db.host, db.port, db.username, db.password, db.database));
     }
-    for (const box of dto.imap ?? []) {
-      checks.push(this.checkImap(box.host, box.port, box.username, box.password));
-    }
+    checks.push(...(dto.imap ?? []).map((b) => this.sprawdzSkrzynke(b)));
 
     const results = await Promise.all(checks);
     const ok = results.every((r) => r.status === 'ok' || r.status === 'reachable');
@@ -151,6 +149,12 @@ export class MigrationPreflightService {
   }
 
   // --- IMAP ----------------------------------------------------------------------
+
+  /** E-21 — ten sam test logowania co w kroku „Test dostępów”, używany też jako bramka przed zleceniem. */
+  sprawdzSkrzynke(box: MigrationImapSourceDto): Promise<PreflightCheckResult> {
+    const b = uzupelnijSkrzynke(box);
+    return this.checkImap(b.host, b.port, b.username, b.password);
+  }
 
   private async checkImap(
     host: string,

@@ -627,17 +627,21 @@ function StepSources(props: {
         </div>
         {props.boxes.map((row, i) => (
           <div key={row.key} className="grid gap-2 md:grid-cols-6 rounded-xl border border-white/5 p-2">
-            <input className={`${input} md:col-span-2`} placeholder="adres e-mail" value={row.email ?? ''} onChange={(e) => patch(props.setBoxes, i, { email: e.target.value, username: row.username || e.target.value })} />
-            <input className={input} placeholder="host IMAP" value={row.host} onChange={(e) => patch(props.setBoxes, i, { host: e.target.value })} />
-            <input className={input} type="number" placeholder="port" value={row.port} onChange={(e) => patch(props.setBoxes, i, { port: Number(e.target.value) })} />
-            <input className={input} placeholder="login" autoComplete="off" value={row.username} onChange={(e) => patch(props.setBoxes, i, { username: e.target.value })} />
+            <input className={`${input} md:col-span-2`} placeholder="adres e-mail (np. biuro@twojadomena.pl)" value={row.email ?? ''} onChange={(e) => patch(props.setBoxes, i, { email: e.target.value, username: e.target.value })} />
+            <input className={`${input} md:col-span-2`} placeholder="serwer IMAP (np. imap.stary-hosting.pl)" value={row.host} onChange={(e) => patch(props.setBoxes, i, { host: e.target.value })} />
+            <input className={input} inputMode="numeric" aria-label="port IMAP" title="Port IMAP — zostaw 993, jeśli poprzedni dostawca nie podał innego" value={row.port} onChange={(e) => patch(props.setBoxes, i, { port: Number(e.target.value.replace(/\D/g, '')) || 993 })} />
             <div className="flex gap-1">
-              <input className={input} type="password" placeholder="hasło" autoComplete="new-password" value={row.password} onChange={(e) => patch(props.setBoxes, i, { password: e.target.value })} />
+              <input className={input} type="password" placeholder="hasło do skrzynki" autoComplete="new-password" value={row.password} onChange={(e) => patch(props.setBoxes, i, { password: e.target.value })} />
               <button type="button" onClick={() => props.setBoxes((r) => r.filter((_, j) => j !== i))} className="px-2 text-rose-300 hover:text-rose-200" aria-label="Usuń skrzynkę">×</button>
             </div>
           </div>
         ))}
-        {props.boxes.length === 0 ? <p className="text-xs text-neutral-500">Brak skrzynek. Dodaj, jeśli przenosisz pocztę.</p> : null}
+        {props.boxes.length === 0 ? <p className="text-xs text-neutral-500">Brak skrzynek. Dodaj, jeśli przenosisz pocztę.</p> : (
+          <p className="text-xs text-neutral-500">
+            Wystarczy adres, serwer i hasło — loginem jest adres skrzynki, port domyślnie 993. Przed startem logujemy się do
+            starego serwera, żeby sprawdzić dane; wiadomości trafią do skrzynki o tym samym adresie na tym koncie.
+          </p>
+        )}
       </section>
     </div>
   );
