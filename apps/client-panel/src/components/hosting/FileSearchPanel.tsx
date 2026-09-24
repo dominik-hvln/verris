@@ -13,6 +13,7 @@ const rozmiar = (b: number) => (b < 1024 ? `${b} B` : b < 1048576 ? `${(b / 1024
 /** C-14 — szukanie plików w katalogu strony po nazwie i/lub tekście w treści. */
 export function FileSearchPanel({ serviceId, domain }: { serviceId: string; domain: string }) {
   const [stan, setStan] = useState<FileSearchStatus | null>(null);
+  const [bladWczytania, setBladWczytania] = useState<string | null>(null);
   const [nazwa, setNazwa] = useState('');
   const [tekst, setTekst] = useState('');
   const [pending, start] = useTransition();
@@ -20,7 +21,10 @@ export function FileSearchPanel({ serviceId, domain }: { serviceId: string; doma
   const odswiez = useCallback(
     () =>
       fetchFileSearch(serviceId, domain).then((r) => {
-        if (r.ok) setStan(r.status);
+        if (r.ok) {
+          setStan(r.status);
+          setBladWczytania(null);
+        } else setBladWczytania(r.error);
       }),
     [serviceId, domain],
   );
@@ -46,6 +50,7 @@ export function FileSearchPanel({ serviceId, domain }: { serviceId: string; doma
   return (
     <section className="mt-8">
       <SectionHead title="Szukaj plików" desc={`W katalogu /domains/${domain}/public_html — po fragmencie nazwy, tekście w treści albo obu naraz.`} />
+      {bladWczytania && !stan ? <p role="alert" className="m-0 my-2 rounded-[8px] border border-line px-3 py-2 text-[13px] text-crit">Nie udało się wczytać: {bladWczytania}</p> : null}
       <div className="rounded-[10px] border border-line bg-card">
         <form onSubmit={szukaj} className="grid gap-3 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
           <label className="block min-w-0 text-[13px] font-medium text-foreground">

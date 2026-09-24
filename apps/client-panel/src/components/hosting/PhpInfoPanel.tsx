@@ -14,12 +14,16 @@ const puste = (v: string | null) => (v === null ? 'brak' : v === '' ? 'wyłączo
  */
 export function PhpInfoPanel({ serviceId, domain }: { serviceId: string; domain: string }) {
   const [stan, setStan] = useState<PhpInfoStatus | null>(null);
+  const [bladWczytania, setBladWczytania] = useState<string | null>(null);
   const [pending, start] = useTransition();
 
   const odswiez = useCallback(
     () =>
       fetchPhpInfo(serviceId, domain).then((r) => {
-        if (r.ok) setStan(r.status);
+        if (r.ok) {
+          setStan(r.status);
+          setBladWczytania(null);
+        } else setBladWczytania(r.error);
       }),
     [serviceId, domain],
   );
@@ -43,6 +47,7 @@ export function PhpInfoPanel({ serviceId, domain }: { serviceId: string; domain:
   return (
     <section className="mt-8">
       <SectionHead title="Aktualna konfiguracja PHP" desc="Odczyt z serwera WWW tej strony: wersja, najważniejsze ustawienia i włączone rozszerzenia." />
+      {bladWczytania && !stan ? <p role="alert" className="m-0 my-2 rounded-[8px] border border-line px-3 py-2 text-[13px] text-crit">Nie udało się wczytać: {bladWczytania}</p> : null}
       <div className="rounded-[10px] border border-line bg-card">
         <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
           <span className="text-[13px] text-muted-foreground">

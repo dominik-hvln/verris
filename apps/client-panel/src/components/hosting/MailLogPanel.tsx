@@ -21,13 +21,17 @@ const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 export function MailLogPanel({ serviceId }: { serviceId: string }) {
   const [stan, setStan] = useState<MailLogStatus | null>(null);
+  const [bladWczytania, setBladWczytania] = useState<string | null>(null);
   const [adres, setAdres] = useState('');
   const [pending, start] = useTransition();
 
   const odswiez = useCallback(
     () =>
       fetchMailLog(serviceId).then((r) => {
-        if (r.ok) setStan(r.status);
+        if (r.ok) {
+          setStan(r.status);
+          setBladWczytania(null);
+        } else setBladWczytania(r.error);
       }),
     [serviceId],
   );
@@ -64,6 +68,7 @@ export function MailLogPanel({ serviceId }: { serviceId: string }) {
             : 'Sprawdź, czy wiadomość przyszła albo wyszła, a jeśli nie — dlaczego. Pokazujemy tylko pocztę domen tej usługi.'
         }
       />
+      {bladWczytania && !stan ? <p role="alert" className="m-0 my-2 rounded-[8px] border border-line px-3 py-2 text-[13px] text-crit">Nie udało się wczytać: {bladWczytania}</p> : null}
       <div className="mb-3 flex flex-col gap-2 sm:flex-row">
         <input
           aria-label="Adres e-mail (opcjonalnie)"

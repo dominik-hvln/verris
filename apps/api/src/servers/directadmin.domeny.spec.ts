@@ -287,3 +287,13 @@ describe('L-06 — wynik ostatniego uruchomienia crona', () => {
     await expect(s.svc.getHostingCronOutput('s1', 'u1', 'abc123')).rejects.toThrow('x');
   });
 });
+
+describe('assertDomainOwnedBySubscription — awaria serwera to nie „cudza domena”', () => {
+  it('brak listy domen z powodu błędu serwera → komunikat o niedostępności', async () => {
+    const svc = new DirectAdminService({} as never, {} as never, {} as never, {} as never);
+    jest.spyOn(svc, 'listHostingDomainsForSubscription').mockResolvedValue({ domains: [], daUsername: 'k', primaryDomain: 'a.pl', fetchError: 'ECONNREFUSED' });
+    await expect(svc.assertDomainOwnedBySubscription('s1', 'u1', 'a.pl')).rejects.toThrow('chwilowo niedostępny');
+    jest.spyOn(svc, 'listHostingDomainsForSubscription').mockResolvedValue({ domains: [{ name: 'b.pl' }], daUsername: 'k', primaryDomain: 'b.pl', fetchError: null });
+    await expect(svc.assertDomainOwnedBySubscription('s1', 'u1', 'a.pl')).rejects.toThrow('nie należy do tej usługi');
+  });
+});

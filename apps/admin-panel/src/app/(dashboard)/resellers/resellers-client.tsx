@@ -80,7 +80,7 @@ function ResellerList({ rows }: { rows: ResellerRow[] }) {
 
   return (
     <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-      <h2 className="mb-4 text-lg font-bold text-white">Aktywni resellerzy</h2>
+      <h2 className="mb-4 text-lg font-bold text-white">Resellerzy i wnioski</h2>
       {error ? <p className="mb-3 flex items-center gap-2 text-sm text-rose-200"><AlertCircle className="h-4 w-4" /> {error}</p> : null}
       {list.length === 0 ? (
         <div className="rounded-xl border border-white/10 bg-black/20 p-8 text-center text-sm text-muted-foreground">Brak resellerów.</div>

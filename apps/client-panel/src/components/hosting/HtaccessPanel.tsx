@@ -26,6 +26,7 @@ const BLEDY = [
  */
 export function HtaccessPanel({ serviceId, domain }: { serviceId: string; domain: string }) {
   const [stan, setStan] = useState<HtaccessStatus | null>(null);
+  const [bladWczytania, setBladWczytania] = useState<string | null>(null);
   const [form, setForm] = useState<HtaccessUstawienia | null>(null);
   const [pending, start] = useTransition();
   const odczytZlecony = useRef(false);
@@ -37,7 +38,10 @@ export function HtaccessPanel({ serviceId, domain }: { serviceId: string; domain
   const odswiez = useCallback(
     () =>
       fetchHtaccess(serviceId, domain).then((r) => {
-        if (r.ok) przyjmij(r.status);
+        if (r.ok) {
+          przyjmij(r.status);
+          setBladWczytania(null);
+        } else setBladWczytania(r.error);
       }),
     [serviceId, domain, przyjmij],
   );
@@ -82,6 +86,7 @@ export function HtaccessPanel({ serviceId, domain }: { serviceId: string; domain
         title="Ustawienia serwera WWW"
         desc="Zapisywane w pliku .htaccess strony, w osobnym bloku — reguły WordPressa i Twoje własne zostają bez zmian."
       />
+      {bladWczytania && !stan ? <p role="alert" className="m-0 my-2 rounded-[8px] border border-line px-3 py-2 text-[13px] text-crit">Nie udało się wczytać: {bladWczytania}</p> : null}
       <div className="rounded-[10px] border border-line bg-card">
         {stan?.wToku ? <p className="m-0 border-b border-line px-4 py-2 text-[13px] text-muted-foreground">Trwa odczyt albo zapis pliku .htaccess…</p> : null}
         {stan?.blad ? <p className="m-0 border-b border-line px-4 py-2 text-[13px] text-crit">{stan.blad}</p> : null}

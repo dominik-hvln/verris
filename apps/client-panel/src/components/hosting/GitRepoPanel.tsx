@@ -19,6 +19,7 @@ export function GitRepoPanel({ serviceId, domains }: { serviceId: string; domain
   const [domena, setDomena] = useState('');
   const d = domena || domains[0] || '';
   const [stan, setStan] = useState<GitStatus | null>(null);
+  const [bladWczytania, setBladWczytania] = useState<string | null>(null);
   const [url, setUrl] = useState('');
   const [galaz, setGalaz] = useState('');
   const [katalog, setKatalog] = useState('');
@@ -29,7 +30,10 @@ export function GitRepoPanel({ serviceId, domains }: { serviceId: string; domain
     () =>
       d
         ? fetchGit(serviceId, d).then((r) => {
-            if (r.ok) setStan(r.status);
+            if (r.ok) {
+              setStan(r.status);
+              setBladWczytania(null);
+            } else setBladWczytania(r.error);
           })
         : Promise.resolve(),
     [serviceId, d],
@@ -80,6 +84,7 @@ export function GitRepoPanel({ serviceId, domains }: { serviceId: string; domain
           Sklonuj repozytorium do katalogu strony i pobieraj zmiany jednym kliknięciem. Dla prywatnych repozytoriów dodaj klucz wdrożeniowy w GitHub/GitLab (tylko odczyt).
         </p>
       </header>
+      {bladWczytania && !stan ? <p role="alert" className="m-0 my-2 rounded-[8px] border border-line px-3 py-2 text-[13px] text-crit">Nie udało się wczytać: {bladWczytania}</p> : null}
       <div className="grid gap-3 px-4 py-3 sm:grid-cols-2">
         <div className="min-w-0">
           <span className="mb-1 block text-[13px] font-medium text-foreground">Domena</span>

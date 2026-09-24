@@ -2157,6 +2157,10 @@ export class DirectAdminService {
     if (!wanted) throw new BadRequestException('Brak domeny.');
     const res = await this.listHostingDomainsForSubscription(subscriptionId, userId);
     const names = res.domains.map((d) => d.name.toLowerCase());
+    // Serwer nie odpowiedział — to nie jest „cudza domena”; klient ma wiedzieć, co się stało naprawdę.
+    if (!names.length && res.fetchError) {
+      throw new BadRequestException('Serwer hostingowy jest chwilowo niedostępny — nie możemy potwierdzić domen konta. Spróbuj ponownie za chwilę.');
+    }
     if (!names.includes(wanted)) {
       throw new BadRequestException('Domena nie należy do tej usługi.');
     }
