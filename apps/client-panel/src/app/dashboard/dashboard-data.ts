@@ -124,7 +124,8 @@ export async function getDashboardSnapshot(): Promise<DashboardSnapshot> {
     wallet: walletRes.ok ? walletRes.data : null,
     ecoLedger: ecoLedgerRes.ok ? ecoLedgerRes.data : [],
     tickets,
-    openTickets: tickets.filter((t) => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length,
+    // WAITING_CUSTOMER też jest otwarte — czeka na klienta (tak liczy Centrum pomocy).
+    openTickets: tickets.filter((t) => t.status === 'OPEN' || t.status === 'IN_PROGRESS' || t.status === 'WAITING_CUSTOMER').length,
     errors,
   };
 }

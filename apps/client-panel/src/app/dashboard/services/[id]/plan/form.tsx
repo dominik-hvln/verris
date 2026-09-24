@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useCallback, useEffect, useState, useTransition } from 'react';
+import { useActionState, useCallback, useEffect, useState, useTransition, useId } from 'react';
 import Link from 'next/link';
 import { AlertCircle, Check, Loader2, Wallet } from 'lucide-react';
 import type { PlanChangePreviewDto } from '@verris/contracts';
@@ -46,6 +46,7 @@ export function PlanChangeForm({
   targetPlans,
   initialPreview = null,
 }: Props) {
+  const planId = useId();
   const initialSelectedId = targetPlans[0]?.id ?? currentPlanId;
   const [selectedId, setSelectedId] = useState<string>(initialSelectedId);
   const [targetInterval, setTargetInterval] = useState<'MONTH' | 'YEAR'>(interval);
@@ -233,17 +234,19 @@ export function PlanChangeForm({
                 value={plan.id}
                 checked={selectedId === plan.id}
                 onChange={() => onSelect(plan.id)}
+                aria-labelledby={`${planId}-${plan.id} ${planId}-${plan.id}-price`}
+                aria-describedby={`${planId}-${plan.id}-desc`}
                 className="mt-1 accent-sky-500"
               />
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="font-semibold text-white">{plan.name}</span>
-                  <span className="text-sm text-neutral-300">
+                  <span id={`${planId}-${plan.id}`} className="font-semibold text-white">{plan.name}</span>
+                  <span id={`${planId}-${plan.id}-price`} className="text-sm text-neutral-300">
                     {priceForPlan(plan, targetInterval)} {plan.currency}
                     {targetInterval === 'MONTH' ? ' / mies.' : ' / rok'}
                   </span>
                 </div>
-                <p className="mt-2 text-xs text-neutral-500">
+                <p id={`${planId}-${plan.id}-desc`} className="mt-2 text-xs text-neutral-500">
                   CPU {plan.cpuLimit}% · RAM {(plan.ramLimitMb / 1024).toFixed(1)} GB · dysk{' '}
                   {(plan.diskLimitMb / 1024).toFixed(0)} GB
                 </p>

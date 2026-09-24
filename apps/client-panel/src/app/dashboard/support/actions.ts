@@ -1,5 +1,6 @@
 "use server";
 
+import { apiFetch } from "@/lib/api";
 import { getAuthToken } from "@/lib/auth";
 
 const API_URL = process.env.API_URL || "http://localhost:3000";
@@ -57,17 +58,8 @@ export interface TicketDetail {
 export async function fetchTickets(): Promise<TicketSummary[]> {
   const token = await getAuthToken();
   if (!token) return [];
-
-  try {
-    const res = await fetch(`${API_URL}/tickets`, {
-      headers: { Authorization: `Bearer ${token}` },
-      cache: "no-store",
-    });
-    if (!res.ok) return [];
-    return res.json();
-  } catch {
-    return [];
-  }
+  // Awaria MUSI rzucić: pulpit (X-39) i menu odróżniają „brak zgłoszeń" od „nie wiemy" tylko po wyjątku.
+  return apiFetch<TicketSummary[]>("/tickets");
 }
 
 /**

@@ -38,6 +38,8 @@ export async function fetchRailDataAction(): Promise<RailData> {
     domains: domains ? domains.length : null,
     domainsExpiring: domains ? domains.filter((d) => isExpiringSoon(d.expiresAt)).length : null,
     onboarding: services ? uslugiOnboardingu(services) : null,
-    openTickets: tickets ? tickets.filter((t) => t.status === 'OPEN' || t.status === 'IN_PROGRESS').length : null,
+    openTickets: tickets
+      ? tickets.filter((t) => t.status === 'OPEN' || t.status === 'IN_PROGRESS' || t.status === 'WAITING_CUSTOMER').length
+      : null,
   };
 }

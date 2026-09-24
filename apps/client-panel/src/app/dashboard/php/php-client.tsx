@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition, useId } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { AlertTriangle, Check, Globe, Loader2 } from 'lucide-react';
@@ -15,6 +15,7 @@ import {
 } from './php-actions';
 
 export function PhpClient({ serviceId, status }: { serviceId: string; status: PhpStatus }) {
+  const versionId = useId();
   const router = useRouter();
   const [version, setVersion] = useState(status.version ?? status.availableVersions[0] ?? '');
   const [pending, startTransition] = useTransition();
@@ -62,9 +63,10 @@ export function PhpClient({ serviceId, status }: { serviceId: string; status: Ph
       <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4 space-y-3">
         <p className="text-sm font-semibold text-white">Zmień wersję PHP</p>
         <div className="flex flex-col sm:flex-row gap-3 sm:items-end max-w-md">
-          <label className="flex-1 space-y-1">
+          <label htmlFor={versionId} className="flex-1 space-y-1">
             <span className="text-xs text-neutral-400">Wersja</span>
             <Select
+              id={versionId}
               value={version}
               onChange={setVersion}
               aria-label="Wersja PHP"
@@ -159,6 +161,7 @@ function DomainPhpOverridesNote({
 }
 
 function DomainPhpSection({ serviceId }: { serviceId: string }) {
+  const domainId = useId();
   const [domains, setDomains] = useState<string[]>([]);
   const [domain, setDomain] = useState('');
   const [status, setStatus] = useState<DomainPhpStatus | null>(null);
@@ -209,9 +212,10 @@ function DomainPhpSection({ serviceId }: { serviceId: string }) {
         powyżej). Zmiana działa od razu, bez zadania na serwerze.
       </p>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end max-w-xl">
-        <label className="flex-1 space-y-1">
+        <label htmlFor={domainId} className="flex-1 space-y-1">
           <span className="text-xs text-neutral-400">Domena</span>
           <Select
+            id={domainId}
             value={domain}
             onChange={(d: string) => {
               // Status poprzedniej domeny znika od razu, do czasu odpowiedzi dla nowej.

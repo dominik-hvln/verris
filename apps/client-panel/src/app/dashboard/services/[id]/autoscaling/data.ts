@@ -92,12 +92,13 @@ function errorMessage(err: unknown): string {
   return 'Unknown error';
 }
 
-export async function getUserEcoPoints() {
+/** `null` = nie udało się pobrać — panel pokazuje „—”, nie 0 punktów (X-39). */
+export async function getUserEcoPoints(): Promise<number | null> {
   try {
     const me = await apiFetch<{ ecoPoints?: number }>('/users/me');
     return typeof me.ecoPoints === 'number' ? me.ecoPoints : 0;
   } catch {
-    return 0;
+    return null;
   }
 }
 
@@ -116,10 +117,11 @@ export interface EcoReportDto {
   methodology: string;
 }
 
-export async function getEcoReport(serviceId: string): Promise<EcoReportDto | null> {
+/** Awaria ≠ „brak metryk”: karta mówi klientowi, że raportu nie udało się pobrać (X-39). */
+export async function getEcoReport(serviceId: string): Promise<{ ok: true; data: EcoReportDto } | { ok: false }> {
   try {
-    return await apiFetch<EcoReportDto>(`/services/${serviceId}/eco-report`);
+    return { ok: true, data: await apiFetch<EcoReportDto>(`/services/${serviceId}/eco-report`) };
   } catch {
-    return null;
+    return { ok: false };
   }
 }

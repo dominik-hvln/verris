@@ -148,6 +148,7 @@ export function Squares({ items }: { items: { tone: Tone; tip: string }[] }) {
       {items.map((it, i) => (
         <i
           key={i}
+          // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- fokus z klawiatury pokazuje dymek z danymi (WCAG 2.1.1, 1.4.13)
           tabIndex={0}
           role="img"
           aria-label={it.tip.replace(/\n/g, ', ')}
@@ -305,6 +306,7 @@ export function MiniBars({
         return (
           <i
             key={i}
+            // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- fokus z klawiatury pokazuje dymek z danymi (WCAG 2.1.1, 1.4.13)
             tabIndex={0}
             role="img"
             aria-label={`${format(v)} ${unit}, ${labels[i] ?? ''}`}
@@ -339,6 +341,7 @@ export function StackBar({
         .map((p) => (
           <i
             key={p.label}
+            // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- fokus z klawiatury pokazuje dymek z danymi (WCAG 2.1.1, 1.4.13)
             tabIndex={0}
             role="img"
             aria-label={p.detail ? `${p.label}, ${p.detail}` : p.label}

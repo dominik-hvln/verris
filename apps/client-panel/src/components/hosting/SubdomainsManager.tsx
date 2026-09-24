@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useId } from 'react';
 import { Globe, Loader2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@verris/ui';
@@ -15,6 +15,7 @@ import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-m
 import { HostingHelpHint } from '@/components/hosting/HostingTabShell';
 
 export default function SubdomainsManager({ serviceId }: { serviceId: string }) {
+  const domainId = useId();
   const [rows, setRows] = useState<SubdomainRow[]>([]);
   const [domains, setDomains] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -97,9 +98,10 @@ export default function SubdomainsManager({ serviceId }: { serviceId: string }) 
           />
         </label>
         <span className="pb-2 text-sm text-neutral-500">.</span>
-        <label className="space-y-1">
+        <label htmlFor={domainId} className="space-y-1">
           <span className="text-xs text-neutral-400">Domena</span>
           <Select
+            id={domainId}
             value={domain}
             onChange={setDomain}
             disabled={domains.length === 0}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useId } from 'react';
 import { Button } from '@verris/ui';
 import { Select } from '@/components/panel';
 import {
@@ -376,6 +376,7 @@ function StepMethod(props: {
   onManual: () => void;
   msg: { type: 'ok' | 'err'; text: string } | null;
 }) {
+  const fieldId = useId();
   const { method, setMethod, preset } = props;
   return (
     <div className="space-y-4">
@@ -405,9 +406,10 @@ function StepMethod(props: {
       {method === 'auto' ? (
         <div className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
           <div className="grid gap-3 md:grid-cols-2">
-            <label className="space-y-1.5 block">
+            <label htmlFor={`${fieldId}-panel`} className="space-y-1.5 block">
               <span className={labelText}>Panel starego hostingu</span>
               <Select
+                id={`${fieldId}-panel`}
                 value={props.presetId}
                 onChange={props.setPresetId}
                 aria-label="Panel starego hostingu"
@@ -449,9 +451,10 @@ function StepMethod(props: {
 
       {method === 'manual' ? (
         <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-          <label className="space-y-1.5 block">
+          <label htmlFor={`${fieldId}-provider`} className="space-y-1.5 block">
             <span className={labelText}>Dostawca (ustawi domyślny protokół/port)</span>
             <Select
+              id={`${fieldId}-provider`}
               value={props.presetId}
               onChange={props.setPresetId}
               aria-label="Dostawca"
@@ -501,6 +504,7 @@ function StepSources(props: {
   boxes: BoxRow[];
   setBoxes: React.Dispatch<React.SetStateAction<BoxRow[]>>;
 }) {
+  const protocolId = useId();
   const { discovery } = props;
   return (
     <div className="space-y-5">
@@ -534,9 +538,10 @@ function StepSources(props: {
         </label>
         {props.includeFiles ? (
           <div className="grid gap-3 md:grid-cols-2">
-            <label className="space-y-1.5 block">
+            <label htmlFor={protocolId} className="space-y-1.5 block">
               <span className={labelText}>Protokół</span>
               <Select
+                id={protocolId}
                 value={props.ftpProtocol}
                 onChange={(v) => props.setFtpProtocol(v as 'ftp' | 'ftps' | 'sftp')}
                 aria-label="Protokół plików"

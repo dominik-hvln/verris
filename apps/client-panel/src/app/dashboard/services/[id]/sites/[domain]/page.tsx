@@ -282,16 +282,16 @@ export default function SitePage() {
                         ['php', 'PHP', ok(php)?.currentVersion ? `wersja ${ok(php)?.currentVersion}` : 'brak danych', ''],
                       ] as [SiteTab, string, string, string][]
                     ).map(([id, t, m, r]) => (
-                      <li
-                        key={id}
-                        tabIndex={0}
-                        onClick={() => setTab(id)}
-                        onKeyDown={(e) => e.key === 'Enter' && setTab(id)}
-                        className="grid cursor-pointer grid-cols-[1fr_auto] items-center gap-x-3 gap-y-0.5 border-line px-4 py-[11px] hover:bg-raised/50 [&+&]:border-t"
-                      >
-                        <b className="text-sm font-semibold text-foreground">{t}</b>
-                        <span className="row-span-2 text-right text-[13px] text-verris-body">{r}</span>
-                        <span className="text-[12.5px] text-muted-foreground">{m}</span>
+                      <li key={id} className="border-line [&+&]:border-t">
+                        <button
+                          type="button"
+                          onClick={() => setTab(id)}
+                          className="grid w-full cursor-pointer grid-cols-[1fr_auto] items-center gap-x-3 gap-y-0.5 px-4 py-[11px] text-left hover:bg-raised/50"
+                        >
+                          <b className="text-sm font-semibold text-foreground">{t}</b>
+                          <span className="row-span-2 text-right text-[13px] text-verris-body">{r}</span>
+                          <span className="text-[12.5px] text-muted-foreground">{m}</span>
+                        </button>
                       </li>
                     ))}
                   </ul>

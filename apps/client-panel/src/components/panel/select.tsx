@@ -25,6 +25,7 @@ export function Select({
   disabled,
   placeholder = 'Wybierz…',
   'aria-label': ariaLabel,
+  id,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -33,6 +34,8 @@ export function Select({
   disabled?: boolean;
   placeholder?: string;
   'aria-label'?: string;
+  /** Id przycisku (combobox) — do powiązania z `<label htmlFor>`. */
+  id?: string;
 }) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0); // podświetlony indeks
@@ -148,6 +151,7 @@ export function Select({
   return (
     <div ref={rootRef} className={cx('relative', className)}>
       <button
+        id={id}
         type="button"
         disabled={disabled}
         role="combobox"
@@ -190,6 +194,7 @@ export function Select({
             const isSel = o.value === value;
             const isActive = idx === active;
             return (
+              // eslint-disable-next-line jsx-a11y/click-events-have-key-events -- klawiaturę obsługuje combobox (aria-activedescendant), opcje nie dostają fokusu
               <li
                 key={o.value}
                 id={`${baseId}-opt-${idx}`}

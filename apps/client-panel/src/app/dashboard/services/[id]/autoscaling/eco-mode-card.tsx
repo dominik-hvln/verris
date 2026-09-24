@@ -9,7 +9,8 @@ import { ECO_FIRST_ENABLE_POINTS } from '@/lib/eco-point-rules';
 interface Props {
   subscriptionId: string;
   ecoModeEnabled: boolean;
-  ecoPoints: number;
+  /** `null` = nie udało się pobrać salda punktów. */
+  ecoPoints: number | null;
 }
 
 export function EcoModeCard({ subscriptionId, ecoModeEnabled: initial, ecoPoints }: Props) {
@@ -40,7 +41,7 @@ export function EcoModeCard({ subscriptionId, ecoModeEnabled: initial, ecoPoints
         return;
       }
       if (res.ecoPointsAwarded) {
-        setPoints((p) => p + ECO_FIRST_ENABLE_POINTS);
+        setPoints((p) => (p === null ? p : p + ECO_FIRST_ENABLE_POINTS));
       }
       if (res.ecoDaNotice) {
         setDaInfo(res.ecoDaNotice);
@@ -60,7 +61,12 @@ export function EcoModeCard({ subscriptionId, ecoModeEnabled: initial, ecoPoints
           <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-neutral-300">
             <span className="inline-flex items-center gap-2">
               <Sparkles className="h-3.5 w-3.5 text-emerald-400/80" />
-              Twoje punkty EKO: <span className="font-semibold text-white">{points}</span>
+              Twoje punkty EKO:{' '}
+              {points === null ? (
+                <span className="font-semibold text-white" data-tip="Nie udało się pobrać salda punktów — odśwież stronę">—</span>
+              ) : (
+                <span className="font-semibold text-white">{points}</span>
+              )}
             </span>
             <Link href="/dashboard/eco" className="text-emerald-400/90 hover:text-emerald-300 underline-offset-2 hover:underline">
               Jak zdobywać punkty →

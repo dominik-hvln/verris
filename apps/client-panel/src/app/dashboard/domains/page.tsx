@@ -117,9 +117,11 @@ export default function DomainsPage() {
         <form onSubmit={handleAddDomain} className="space-y-4">
           <Input
             placeholder="np. mojadomena.pl"
+            aria-label="Nazwa domeny"
             value={newDomainName}
             onChange={(e) => setNewDomainName(e.target.value)}
             disabled={adding}
+            // eslint-disable-next-line jsx-a11y/no-autofocus -- fokus w oknie otwartym przez użytkownika
             autoFocus
           />
           <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-primary">

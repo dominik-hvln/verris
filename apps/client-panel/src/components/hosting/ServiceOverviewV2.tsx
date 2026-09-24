@@ -115,7 +115,7 @@ export default function ServiceOverviewV2({
   const [domains, setDomains] = useState<HostingDomainsResponseDto | null>(null);
   const [extras, setExtras] = useState<OverviewExtras | null>(null);
   const [backups, setBackups] = useState<HostingBackupsResponseDto | null>(null);
-  const [ecoPoints, setEcoPoints] = useState(0);
+  const [ecoPoints, setEcoPoints] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [asBusy, setAsBusy] = useState(false);
@@ -131,7 +131,7 @@ export default function ServiceOverviewV2({
       void later(fetchOverviewExtrasAction(serviceId), setExtras);
       void later(fetchHostingBackupsAction(serviceId), setBackups);
       if (clientFeatures.eco) {
-        void later(fetchSidebarUser(), (me) => setEcoPoints(typeof me?.ecoPoints === 'number' ? me.ecoPoints : 0));
+        void later(fetchSidebarUser(), (me) => setEcoPoints(me ? (typeof me.ecoPoints === 'number' ? me.ecoPoints : 0) : null));
       }
       const healthP = later(fetchServiceHealthAction(serviceId, forceHealth), setHealth);
       // Łańcuch `.then` zamiast `await` — lint React Compilera nie widzi `await` w useCallback

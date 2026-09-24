@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition, useId } from 'react';
 import { Loader2, Share2, Wallet, Banknote, Gift, Users2, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import {
   applyReferralProgramAction,
@@ -124,6 +124,7 @@ export function ReferralProgramClient() {
 const pln = (n: number) => `${n.toFixed(2)} K`;
 
 function PartnerEarnings() {
+  const ibanId = useId();
   const [ov, setOv] = useState<PartnerOverview | null>(null);
   const [commissions, setCommissions] = useState<PartnerCommission[]>([]);
   const [payouts, setPayouts] = useState<PartnerPayout[]>([]);
@@ -204,8 +205,8 @@ function PartnerEarnings() {
         </div>
         <div className="flex flex-wrap items-end gap-2 border-t border-white/10 pt-3">
           <div className="flex-1 min-w-[220px]">
-            <label className="mb-1 block text-xs text-neutral-500">Numer konta (IBAN) do wypłaty przelewem</label>
-            <input value={iban} onChange={(e) => setIban(e.target.value)} placeholder="PL00 0000 0000 0000 0000 0000 0000" className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white" />
+            <label htmlFor={ibanId} className="mb-1 block text-xs text-neutral-500">Numer konta (IBAN) do wypłaty przelewem</label>
+            <input id={ibanId} value={iban} onChange={(e) => setIban(e.target.value)} placeholder="PL00 0000 0000 0000 0000 0000 0000" className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white" />
           </div>
           <button onClick={doBank} disabled={pending || !ov.payout.canRequestBank || iban.trim().length < 15} className="inline-flex items-center gap-2 rounded-xl border border-white/15 px-4 py-2 text-sm font-semibold text-white hover:bg-white/5 disabled:opacity-40">
             <Banknote className="h-4 w-4" /> Zleć wypłatę na konto

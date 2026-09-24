@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useTransition, useId } from "react";
 import {
   BellRing,
   CreditCard,
@@ -170,6 +170,7 @@ function OptionalSection({
   onChange: (p: MarketingPreferences) => void;
   showToast: (msg: string, type: "success" | "error") => void;
 }) {
+  const toggleId = useId();
   const [pending, startTransition] = useTransition();
 
   const updateField = (key: keyof MarketingPreferences, value: boolean) => {
@@ -200,14 +201,16 @@ function OptionalSection({
               <div className="flex items-start gap-3 flex-1">
                 <Icon className={`h-5 w-5 mt-0.5 shrink-0 ${iconClass}`} />
                 <div>
-                  <p className="text-sm font-medium text-white">{label}</p>
-                  <p className="text-xs text-neutral-500 mt-0.5">{description}</p>
+                  <p id={`${toggleId}-${key}`} className="text-sm font-medium text-white">{label}</p>
+                  <p id={`${toggleId}-${key}-desc`} className="text-xs text-neutral-500 mt-0.5">{description}</p>
                 </div>
               </div>
               <label className="relative inline-flex cursor-pointer items-center shrink-0">
                 <input
                   type="checkbox"
                   checked={value}
+                  aria-labelledby={`${toggleId}-${key}`}
+                  aria-describedby={`${toggleId}-${key}-desc`}
                   disabled={pending}
                   onChange={(e) => updateField(key, e.target.checked)}
                   className="peer sr-only"

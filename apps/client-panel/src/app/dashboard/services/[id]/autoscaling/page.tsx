@@ -139,7 +139,7 @@ export default async function AutoscalingPage({
             ) : null}
           </section>
           <EcoModeCard subscriptionId={service.id} ecoModeEnabled={service.ecoModeEnabled} ecoPoints={ecoPoints} />
-          <EcoReportCard report={ecoReport} />
+          <EcoReportCard report={ecoReport.ok ? ecoReport.data : null} failed={!ecoReport.ok} />
         </div>
       </div>
     </div>

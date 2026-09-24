@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition, useId } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { AlertTriangle, CheckCircle2, Loader2, RefreshCw, XCircle } from 'lucide-react';
@@ -106,6 +106,7 @@ function CheckRow({
   serviceId: string;
   onChanged: () => void;
 }) {
+  const policyId = useId();
   const s = check.suggestion;
   const isDmarc = check.key === 'dmarc' && !!s;
   const [policy, setPolicy] = useState<DmarcPolicy>(() => dmarcPolicyOf(s?.value ?? ''));
@@ -148,9 +149,9 @@ function CheckRow({
             <div className="mt-3 space-y-3 rounded-lg border border-line bg-raised/40 p-3">
               {isDmarc ? (
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="space-y-1">
+                  <label htmlFor={policyId} className="space-y-1">
                     <Label>Co robić z fałszywą pocztą</Label>
-                    <Select value={policy} onChange={(v) => setPolicy(v as DmarcPolicy)} aria-label="Polityka DMARC" options={DMARC_POLICIES} />
+                    <Select id={policyId} value={policy} onChange={(v) => setPolicy(v as DmarcPolicy)} aria-label="Polityka DMARC" options={DMARC_POLICIES} />
                   </label>
                   <label className="space-y-1">
                     <Label>Raporty na adres (opcjonalnie)</Label>

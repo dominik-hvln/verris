@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useId } from 'react';
 import { Button } from '@verris/ui';
 import { formatCredits } from '@/lib/credits';
 import { redeemEcoPointsAction } from './eco-actions';
@@ -13,6 +13,7 @@ interface Props {
 const OPTIONS = [100, 200, 500, 1000];
 
 export function EcoRedeemForm({ maxPoints }: Props) {
+  const pointsId = useId();
   const [points, setPoints] = useState(100);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
@@ -22,9 +23,10 @@ export function EcoRedeemForm({ maxPoints }: Props) {
   return (
     <div className="space-y-3">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <label className="block flex-1 space-y-1 lg:max-w-md">
+        <label htmlFor={pointsId} className="block flex-1 space-y-1 lg:max-w-md">
           <span className="text-xs text-neutral-400">Ile punktów wymienić</span>
           <Select
+            id={pointsId}
             value={String(points)}
             onChange={(v) => setPoints(Number(v))}
             disabled={busy || allowedOptions.length === 0}

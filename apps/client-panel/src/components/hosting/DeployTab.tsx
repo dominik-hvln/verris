@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useId } from 'react';
 import { AlertCircle, ExternalLink, Loader2, Plus, RefreshCw, Rocket, Trash2 } from 'lucide-react';
 import { Button } from '@verris/ui';
 import type { DeployFrequency, DeployJobDto } from '@verris/contracts';
@@ -25,6 +25,7 @@ const FREQUENCY_LABEL: Record<DeployFrequency, string> = {
 };
 
 export default function DeployTab({ serviceId }: DeployTabProps) {
+  const fieldId = useId();
   const { links } = useHostingLinks();
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -152,9 +153,10 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
           Nowe wdrożenie
         </h3>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <label className="block text-xs text-neutral-400">
+          <label htmlFor={`${fieldId}-domain`} className="block text-xs text-neutral-400">
             Domena
             <Select
+              id={`${fieldId}-domain`}
               value={domain}
               onChange={setDomain}
               aria-label="Domena"
@@ -163,9 +165,10 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
               options={domains.map((d) => ({ value: d, label: d }))}
             />
           </label>
-          <label className="block text-xs text-neutral-400">
+          <label htmlFor={`${fieldId}-frequency`} className="block text-xs text-neutral-400">
             Częstotliwość
             <Select
+              id={`${fieldId}-frequency`}
               value={frequency}
               onChange={(v) => setFrequency(v as DeployFrequency)}
               aria-label="Częstotliwość"

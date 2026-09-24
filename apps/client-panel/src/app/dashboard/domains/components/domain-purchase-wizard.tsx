@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
+import { useCallback, useEffect, useMemo, useState, useTransition, useId } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
@@ -149,6 +149,7 @@ function TldResultCard({
 export function DomainPurchaseWizard({ initialOrders }: { initialOrders: RegistrarOrderRow[] }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>('search');
+  const nsId = useId();
   const [label, setLabel] = useState('');
   const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
   const [searchResults, setSearchResults] = useState<DomainSearchResultDto[]>([]);
@@ -402,8 +403,8 @@ export function DomainPurchaseWizard({ initialOrders }: { initialOrders: Registr
                     value={label}
                     onChange={(e) => setLabel(e.target.value)}
                     placeholder="twojanazwa"
+                    aria-label="Nazwa domeny"
                     className="h-12 rounded-xl border-white/10 bg-black pr-24 font-mono text-base focus-visible:border-verris-mint/50"
-                    autoFocus
                     onKeyDown={(e) => e.key === 'Enter' && onSearch()}
                   />
                   {label ? (
@@ -573,10 +574,10 @@ export function DomainPurchaseWizard({ initialOrders }: { initialOrders: Registr
                 Domyślnie ustawiamy serwery Verris. Możesz je zmienić przed rejestracją.
               </p>
               <div className="space-y-3">
-                <label className="block text-xs text-neutral-500">Nameserver 1</label>
-                <Input value={ns1} onChange={(e) => setNs1(e.target.value)} className="font-mono" />
-                <label className="block text-xs text-neutral-500">Nameserver 2</label>
-                <Input value={ns2} onChange={(e) => setNs2(e.target.value)} className="font-mono" />
+                <label htmlFor={`${nsId}-1`} className="block text-xs text-neutral-500">Nameserver 1</label>
+                <Input id={`${nsId}-1`} value={ns1} onChange={(e) => setNs1(e.target.value)} className="font-mono" />
+                <label htmlFor={`${nsId}-2`} className="block text-xs text-neutral-500">Nameserver 2</label>
+                <Input id={`${nsId}-2`} value={ns2} onChange={(e) => setNs2(e.target.value)} className="font-mono" />
               </div>
               <div className="space-y-3">
                 <h2 className="text-lg font-semibold text-white">Abonent domeny</h2>

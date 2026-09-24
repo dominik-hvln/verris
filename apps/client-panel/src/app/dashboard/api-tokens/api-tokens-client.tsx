@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition, useId } from 'react';
 import { Loader2, Plus, Copy, Check, AlertCircle, Trash2, KeyRound, ShieldAlert } from 'lucide-react';
 import {
   fetchScopes,
@@ -20,6 +20,7 @@ export function ApiTokensClient() {
   const [err, setErr] = useState<string | null>(null);
 
   const [name, setName] = useState('');
+  const fieldId = useId();
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [expiry, setExpiry] = useState<string>('0');
   const [pending, startTransition] = useTransition();
@@ -93,12 +94,12 @@ export function ApiTokensClient() {
       <section className="rounded-2xl border border-white/10 bg-black/30 p-5 space-y-4">
         <h2 className="text-lg font-semibold text-white flex items-center gap-2"><Plus className="h-5 w-5 text-emerald-400" /> Nowy token</h2>
         <div>
-          <label className="mb-1 block text-xs text-neutral-500">Nazwa (do czego służy)</label>
-          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="np. CI deploy, Terraform" className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white" />
+          <label htmlFor={`${fieldId}-name`} className="mb-1 block text-xs text-neutral-500">Nazwa (do czego służy)</label>
+          <input id={`${fieldId}-name`} value={name} onChange={(e) => setName(e.target.value)} placeholder="np. CI deploy, Terraform" className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white" />
         </div>
         <div>
-          <label className="mb-1 block text-xs text-neutral-500">Uprawnienia (scopes)</label>
-          <div className="grid gap-2 sm:grid-cols-2">
+          <p id={`${fieldId}-scopes`} className="mb-1 block text-xs text-neutral-500">Uprawnienia (scopes)</p>
+          <div role="group" aria-labelledby={`${fieldId}-scopes`} className="grid gap-2 sm:grid-cols-2">
             {scopes.map((s) => (
               <label key={s.value} className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-sm cursor-pointer ${picked.has(s.value) ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100' : 'border-white/10 text-neutral-300'}`}>
                 <input type="checkbox" checked={picked.has(s.value)} onChange={() => toggle(s.value)} className="mt-0.5 accent-emerald-500" />
@@ -109,8 +110,8 @@ export function ApiTokensClient() {
         </div>
         <div className="flex flex-wrap items-end gap-3">
           <div>
-            <label className="mb-1 block text-xs text-neutral-500">Wygaśnięcie</label>
-            <select value={expiry} onChange={(e) => setExpiry(e.target.value)} className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white">
+            <label htmlFor={`${fieldId}-expiry`} className="mb-1 block text-xs text-neutral-500">Wygaśnięcie</label>
+            <select id={`${fieldId}-expiry`} value={expiry} onChange={(e) => setExpiry(e.target.value)} className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white">
               <option value="0" className="bg-neutral-900">Bez wygaśnięcia</option>
               <option value="30" className="bg-neutral-900">30 dni</option>
               <option value="90" className="bg-neutral-900">90 dni</option>

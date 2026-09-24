@@ -24,15 +24,17 @@ export default function SupportPage() {
   const router = useRouter();
   const [tickets, setTickets] = useState<TicketSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [blad, setBlad] = useState(false);
 
   useEffect(() => {
-    fetchTickets().then((data) => {
-      setTickets(data);
-      setLoading(false);
-    });
+    fetchTickets()
+      .then(setTickets)
+      .catch(() => setBlad(true))
+      .finally(() => setLoading(false));
   }, []);
 
-  const count = (pred: (t: TicketSummary) => boolean) => (loading ? "…" : tickets.filter(pred).length);
+  // Awaria ≠ „nie masz zgłoszeń”: liczniki pokazują „—”, lista mówi, co się stało (X-39).
+  const count = (pred: (t: TicketSummary) => boolean) => (loading ? "…" : blad ? "—" : tickets.filter(pred).length);
   const open = (t: TicketSummary) => t.status in STATUS;
 
   return (
@@ -73,6 +75,11 @@ export default function SupportPage() {
         />
         {loading ? (
           <p className="m-0 rounded-[10px] border border-line bg-card px-4 py-[22px] text-sm text-muted-foreground">Wczytywanie zgłoszeń…</p>
+        ) : blad ? (
+          <p className="m-0 rounded-[10px] border border-line bg-card px-4 py-[22px] text-sm text-warn">
+            Nie udało się pobrać zgłoszeń. Odśwież stronę za chwilę — jeśli problem wróci, napisz na{" "}
+            <a href="mailto:kontakt@verris.pl" className="text-data-hi hover:underline">kontakt@verris.pl</a>.
+          </p>
         ) : tickets.length === 0 ? (
           <p className="m-0 rounded-[10px] border border-line bg-card px-4 py-[22px] text-sm text-muted-foreground">
             Nie masz zgłoszeń.{" "}

@@ -329,6 +329,7 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
                           {checks(s).map((c, j) => (
                             <span
                               key={c.label}
+                              // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- fokus z klawiatury pokazuje dymek z danymi (WCAG 2.1.1, 1.4.13)
                               tabIndex={0}
                               data-tip={tip(`${c.label}: ${c.ok ? 'w porządku' : 'do poprawy'}`, c.ok ? undefined : reasons.find((r) => r.toLowerCase().includes(c.label.toLowerCase().split(' ')[0]!)))}
                               className={`inline-flex cursor-default items-center gap-1.5 rounded-full border px-2 py-0.5 text-xs text-foreground ${c.ok ? 'border-line' : 'border-warn/45'}`}

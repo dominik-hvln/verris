@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useId } from 'react';
 import {
   Plus,
   Trash2,
@@ -29,6 +29,7 @@ import {
   Minimize2,
 } from 'lucide-react';
 import { fmWrite, fmRead, fmList, fmUpload, type FmEntry } from '@/app/dashboard/file-manager/data';
+import { useFocusTrap } from '@/hooks/use-focus-trap';
 
 /* ============================ MODEL ============================ */
 type SectionType =
@@ -909,6 +910,7 @@ const DRAFT_FILE = '.verris-site.json';
 const PUBLISH_DEFAULT = 'public_html';
 
 export default function SiteBuilderTab({ serviceId }: { serviceId: string }) {
+  const publishDirId = useId();
   const [model, setModel] = useState<PageModel>(() => buildTplModel('landing'));
   const [activePageId, setActivePageId] = useState<string>(() => model.pages[0].id);
   const [selected, setSelected] = useState<string | null>(null);
@@ -1208,8 +1210,8 @@ export default function SiteBuilderTab({ serviceId }: { serviceId: string }) {
           </div>
 
           <div className="space-y-1.5 border-t border-white/10 pt-3">
-            <label className="block text-xs text-neutral-500">Katalog publikacji</label>
-            <input value={publishDir} onChange={(e) => setPublishDir(e.target.value)} className="w-full rounded-lg border border-white/10 bg-black/40 px-2 py-1.5 text-sm text-white" />
+            <label htmlFor={publishDirId} className="block text-xs text-neutral-500">Katalog publikacji</label>
+            <input id={publishDirId} value={publishDir} onChange={(e) => setPublishDir(e.target.value)} className="w-full rounded-lg border border-white/10 bg-black/40 px-2 py-1.5 text-sm text-white" />
             <p className="text-[11px] text-neutral-500">„Publikuj” zapisze wszystkie strony (index.html + podstrony) w <code>{PUBLISH_DEFAULT}</code>.</p>
           </div>
         </div>
@@ -1406,6 +1408,7 @@ function MediaPicker({ serviceId, onPick, onClose }: { serviceId: string; onPick
   const [uploading, setUploading] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useFocusTrap<HTMLDivElement>(true, { onEscape: onClose });
   // Spinner i czyszczenie błędu ustawiają zdarzenia zmieniające `dir`/`reloadKey` (goTo, upload); efekt tylko pobiera.
   useEffect(() => {
     fmList(serviceId, dir).then((r) => setEntries(r.entries)).catch((e) => setErr(e instanceof Error ? e.message : 'Nie udało się wczytać plików.')).finally(() => setLoading(false));
@@ -1439,11 +1442,11 @@ function MediaPicker({ serviceId, onPick, onClose }: { serviceId: string; onPick
   const dirs = entries.filter((e) => e.type === 'dir');
   const imgs = entries.filter((e) => e.type === 'file' && IMG_RE.test(e.name));
   return (
-    <div onClick={onClose} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4">
-      <div onClick={(e) => e.stopPropagation()} className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0e0e12] p-4">
+    <div role="presentation" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }} className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 p-4">
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Wybierz obraz z plików" className="w-full max-w-lg rounded-2xl border border-white/10 bg-[#0e0e12] p-4">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="flex items-center gap-2 text-sm font-semibold text-white"><ImageIcon className="h-4 w-4 text-emerald-300" /> Wybierz obraz z plików</h3>
-          <button onClick={onClose} className="text-neutral-400 hover:text-white"><X className="h-4 w-4" /></button>
+          <button onClick={onClose} aria-label="Zamknij" className="text-neutral-400 hover:text-white"><X className="h-4 w-4" /></button>
         </div>
         <div className="mb-2 flex items-center gap-2 text-xs text-neutral-400">
           <button onClick={up} className="rounded border border-white/10 px-2 py-1 hover:text-white">↑ wyżej</button>
@@ -1494,6 +1497,7 @@ function TemplateGallery({ thumbs, onPick, onContinue, fsToggle }: { thumbs: Rec
   const [q, setQ] = useState('');
   const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [previewKey, setPreviewKey] = useState<string | null>(null);
+  const previewRef = useFocusTrap<HTMLDivElement>(previewKey !== null, { onEscape: () => setPreviewKey(null) });
 
   const descs = useMemo(() => Object.fromEntries(ALL_TPLS.map((t) => [t.key, RAW_TEMPLATES[t.key]().description])), []);
   const items = ALL_TPLS.filter((t) => (cat === 'Wszystkie' || t.cat === cat) && (q.trim() === '' || t.name.toLowerCase().includes(q.toLowerCase())));
@@ -1547,17 +1551,17 @@ function TemplateGallery({ thumbs, onPick, onContinue, fsToggle }: { thumbs: Rec
       </div>
 
       {previewKey && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-black/80 p-4 backdrop-blur-sm" onClick={() => setPreviewKey(null)}>
-          <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col overflow-hidden rounded-2xl border border-white/10 bg-neutral-950" onClick={(e) => e.stopPropagation()}>
+        <div role="presentation" className="fixed inset-0 z-50 flex flex-col bg-black/80 p-4 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) setPreviewKey(null); }}>
+          <div ref={previewRef} role="dialog" aria-modal="true" aria-label="Podgląd szablonu" className="mx-auto flex w-full max-w-6xl flex-1 flex-col overflow-hidden rounded-2xl border border-white/10 bg-neutral-950">
             <div className="flex items-center justify-between gap-2 border-b border-white/10 px-4 py-2.5">
               <p className="text-sm font-semibold text-white">{ALL_TPLS.find((t) => t.key === previewKey)?.name}</p>
               <div className="flex items-center gap-2">
                 <div className="flex rounded-lg border border-white/10 bg-black/40 p-0.5">
-                  <button onClick={() => setDevice('desktop')} className={`rounded-md px-2 py-1 ${device === 'desktop' ? 'bg-white/10' : ''}`}><Monitor className="h-4 w-4" /></button>
-                  <button onClick={() => setDevice('mobile')} className={`rounded-md px-2 py-1 ${device === 'mobile' ? 'bg-white/10' : ''}`}><Smartphone className="h-4 w-4" /></button>
+                  <button onClick={() => setDevice('desktop')} className={`rounded-md px-2 py-1 ${device === 'desktop' ? 'bg-white/10' : ''}`} aria-label="Desktop"><Monitor className="h-4 w-4" /></button>
+                  <button onClick={() => setDevice('mobile')} className={`rounded-md px-2 py-1 ${device === 'mobile' ? 'bg-white/10' : ''}`} aria-label="Mobile"><Smartphone className="h-4 w-4" /></button>
                 </div>
                 <button onClick={() => { onPick(previewKey); }} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-emerald-500">Użyj ten szablon</button>
-                <button onClick={() => setPreviewKey(null)} className="rounded-lg border border-white/10 p-1.5 text-neutral-300 hover:text-white"><X className="h-4 w-4" /></button>
+                <button onClick={() => setPreviewKey(null)} aria-label="Zamknij podgląd" className="rounded-lg border border-white/10 p-1.5 text-neutral-300 hover:text-white"><X className="h-4 w-4" /></button>
               </div>
             </div>
             <div className="flex-1 overflow-auto bg-neutral-900 p-3">
@@ -1576,17 +1580,19 @@ function TemplateGallery({ thumbs, onPick, onContinue, fsToggle }: { thumbs: Rec
 function BlockInserter({ thumbs, onPick, onClose }: { thumbs: Record<SectionType, string>; onPick: (t: SectionType) => void; onClose: () => void }) {
   const [q, setQ] = useState('');
   const ql = q.trim().toLowerCase();
+  // Pułapka fokusa ustawia fokus na polu wyszukiwania (pierwszy element) i zamyka Escape.
+  const dialogRef = useFocusTrap<HTMLDivElement>(true, { onEscape: onClose });
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/80 p-4 backdrop-blur-sm" onClick={onClose}>
-      <div className="mt-6 flex max-h-[88vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-neutral-950" onClick={(e) => e.stopPropagation()}>
+    <div role="presentation" className="fixed inset-0 z-50 flex items-start justify-center bg-black/80 p-4 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div ref={dialogRef} role="dialog" aria-modal="true" aria-label="Dodaj sekcję" className="mt-6 flex max-h-[88vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-neutral-950">
         <div className="flex items-center justify-between gap-2 border-b border-white/10 px-4 py-3">
           <p className="text-sm font-semibold text-white">Dodaj sekcję</p>
           <div className="flex items-center gap-2">
             <div className="relative">
               <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-neutral-500" />
-              <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Szukaj bloku…" className="w-56 rounded-lg border border-white/10 bg-black/40 py-1.5 pl-8 pr-2 text-sm text-white" />
+              <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Szukaj bloku…" aria-label="Szukaj bloku" className="w-56 rounded-lg border border-white/10 bg-black/40 py-1.5 pl-8 pr-2 text-sm text-white" />
             </div>
-            <button onClick={onClose} className="rounded-lg border border-white/10 p-1.5 text-neutral-300 hover:text-white"><X className="h-4 w-4" /></button>
+            <button onClick={onClose} aria-label="Zamknij" className="rounded-lg border border-white/10 p-1.5 text-neutral-300 hover:text-white"><X className="h-4 w-4" /></button>
           </div>
         </div>
         <div className="flex-1 space-y-5 overflow-auto p-4">

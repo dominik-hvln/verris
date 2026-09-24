@@ -463,6 +463,7 @@ function DashboardLayoutInner({
       ) : null}
 
       {/* Sidebar: drawer na mobile, stały panel na desktop (lg+) */}
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions -- delegacja kliknięć z linków menu (Enter na linku też wywołuje click) zamyka szufladę */}
       <aside
         className={`max-lg:fixed max-lg:inset-y-0 max-lg:left-0 z-[60] flex w-[300px] shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground transition-transform duration-300 max-lg:duration-300 lg:sticky lg:top-0 lg:z-auto lg:h-screen lg:max-h-screen lg:self-start lg:translate-x-0 ${
           sidebarOpen ? "max-lg:translate-x-0" : "max-lg:-translate-x-full"

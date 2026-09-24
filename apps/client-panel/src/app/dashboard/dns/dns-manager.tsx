@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useId } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import type { HostingDnsRecordDto } from '@verris/contracts';
@@ -279,6 +279,7 @@ function RecordForm({
   onCancel: () => void;
   onSubmit: (rec: { name: string; type: string; value: string; ttl?: number }) => void;
 }) {
+  const typeId = useId();
   const init = initial ? splitPriority(initial.type, initial.value) : { priority: '10', rest: '' };
   const [type, setType] = useState<string>(initial?.type ?? 'A');
   const [name, setName] = useState(initial?.name ?? '');
@@ -299,9 +300,10 @@ function RecordForm({
   return (
     <div className="rounded-xl border border-emerald-400/25 bg-emerald-400/[0.04] p-4 space-y-3">
       <div className="grid grid-cols-1 sm:grid-cols-[110px_1fr] gap-3">
-        <label className="space-y-1">
+        <label htmlFor={typeId} className="space-y-1">
           <span className="text-[11px] font-medium text-neutral-400">Typ</span>
           <Select
+            id={typeId}
             value={type}
             onChange={setType}
             aria-label="Typ rekordu DNS"

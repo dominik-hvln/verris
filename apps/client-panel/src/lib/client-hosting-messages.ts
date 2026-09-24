@@ -19,7 +19,8 @@ const RULES: { test: RegExp; message: string }[] = [
     message: 'Nie można usunąć — element jest w użyciu lub powiązany z inną usługą.',
   },
   {
-    test: /quota|disk.*full|exceeg|limit reached|out of space/i,
+    // „exceeded” tylko przy limicie/quocie — gołe „exceed” złapałoby „timeout exceeded”.
+    test: /quota|disk.*full|(quota|limit)\s+exceeded|exceeds?\s+(the\s+)?(quota|limit)|limit reached|out of space/i,
     message: 'Przekroczono limit (miejsce na dysku lub liczba elementów w planie).',
   },
   {

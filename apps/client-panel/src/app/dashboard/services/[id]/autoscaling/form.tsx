@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState, type ReactNode } from 'react';
+import { useActionState, useState, type ReactNode, useId } from 'react';
 import { Loader2, Save, Sparkles, ShieldCheck, Cpu, MemoryStick, HardDrive } from 'lucide-react';
 import { updateAutoscalingAction, type UpdateAutoscalingState } from './actions';
 
@@ -21,6 +21,7 @@ export function AutoscalingForm({
   scaleRam: initialScaleRam,
   scaleDisk: initialScaleDisk,
 }: Props) {
+  const enabledId = useId();
   const [state, formAction, pending] = useActionState<UpdateAutoscalingState, FormData>(
     (prev, formData) => updateAutoscalingAction(subscriptionId, prev, formData),
     {},
@@ -54,10 +55,12 @@ export function AutoscalingForm({
           name="enabled"
           checked={enabled}
           onChange={(e) => setEnabled(e.target.checked)}
+          aria-labelledby={`${enabledId}-title`}
+          aria-describedby={`${enabledId}-desc`}
           className="mt-0.5 h-5 w-5 rounded border-white/20 bg-black accent-emerald-500"
         />
         <div className="flex-1">
-          <div className="text-sm font-semibold text-white flex items-center gap-2">
+          <div id={`${enabledId}-title`} className="text-sm font-semibold text-white flex items-center gap-2">
             Autoskalowanie włączone
             {enabled && (
               <span className="inline-flex items-center gap-1 rounded-full border border-emerald-400/40 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-200">
@@ -65,7 +68,7 @@ export function AutoscalingForm({
               </span>
             )}
           </div>
-          <p className="mt-1 text-xs text-neutral-400">
+          <p id={`${enabledId}-desc`} className="mt-1 text-xs text-neutral-400">
             Bez autoskalowania strona nie skorzysta z większych limitów podczas piku —
             może odpowiadać wolniej, ale nie zostanie obciążona dodatkowo.
           </p>
@@ -167,6 +170,7 @@ function ResourceToggle({
   checked: boolean;
   onChange: (v: boolean) => void;
 }) {
+  const toggleId = useId();
   return (
     <label className="flex items-start gap-3 cursor-pointer">
       <input
@@ -174,14 +178,16 @@ function ResourceToggle({
         name={name}
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
+        aria-labelledby={`${toggleId}-title`}
+        aria-describedby={`${toggleId}-desc`}
         className="mt-0.5 h-4 w-4 rounded border-white/20 bg-black accent-emerald-500"
       />
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-semibold text-white flex items-center gap-2">
+        <div id={`${toggleId}-title`} className="text-sm font-semibold text-white flex items-center gap-2">
           {icon}
           Skaluj {label}
         </div>
-        <p className="text-[11px] text-neutral-500">{hint}</p>
+        <p id={`${toggleId}-desc`} className="text-[11px] text-neutral-500">{hint}</p>
       </div>
     </label>
   );

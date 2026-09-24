@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useId } from 'react';
 import { KeyRound, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@verris/ui';
 import { fetchHostingDomainsAction } from '@/app/dashboard/services/[id]/hosting-domains-action';
@@ -15,6 +15,7 @@ interface Props {
 }
 
 export function HostingSslForms({ serviceId }: Props) {
+  const domainId = useId();
   const [domains, setDomains] = useState<{ name: string }[]>([]);
   const [domainError, setDomainError] = useState<string | null>(null);
   const [loadingDomains, setLoadingDomains] = useState(true);
@@ -61,9 +62,10 @@ export function HostingSslForms({ serviceId }: Props) {
         </p>
       ) : null}
 
-      <label className="block space-y-1.5 max-w-md">
+      <label htmlFor={domainId} className="block space-y-1.5 max-w-md">
         <span className="text-xs font-medium text-neutral-400">Domena (konto hostingowe)</span>
         <Select
+          id={domainId}
           value={domain}
           onChange={setDomain}
           disabled={loadingDomains || domains.length === 0}

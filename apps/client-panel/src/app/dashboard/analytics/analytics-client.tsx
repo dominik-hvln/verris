@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition, useId } from 'react';
 import {
   BarChart3,
   Plus,
@@ -37,6 +37,7 @@ export function AnalyticsClient({
   services: Array<{ id: string; name: string; domain: string | null }>;
 }) {
   const [subId, setSubId] = useState(services[0]?.id ?? '');
+  const serviceSelectId = useId();
   const [sites, setSites] = useState<AnalyticsSite[]>([]);
   const [activeSite, setActiveSite] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
@@ -86,8 +87,9 @@ export function AnalyticsClient({
     <div className="space-y-6">
       {services.length > 1 && (
         <div>
-          <label className="mb-1 block text-xs font-medium text-neutral-400">Usługa</label>
+          <label htmlFor={serviceSelectId} className="mb-1 block text-xs font-medium text-neutral-400">Usługa</label>
           <select
+            id={serviceSelectId}
             value={subId}
             onChange={(e) => {
               setActiveSite(null);

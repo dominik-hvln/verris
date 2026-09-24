@@ -87,7 +87,7 @@ export default function ServiceOverviewTab({
   );
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [ecoPoints, setEcoPoints] = useState(0);
+  const [ecoPoints, setEcoPoints] = useState<number | null>(null);
 
   const load = useCallback(
     async (forceHealth = false) => {
@@ -97,13 +97,13 @@ export default function ServiceOverviewTab({
           fetchHostingUsageAction(serviceId, '24h').catch(() => null),
           fetchServiceHealthAction(serviceId, forceHealth).catch(() => null),
           clientFeatures.eco
-            ? fetchSidebarUser().then((u) => ({ ecoPoints: u?.ecoPoints ?? 0 }))
+            ? fetchSidebarUser().then((u) => ({ ecoPoints: u ? (u.ecoPoints ?? 0) : null }))
             : Promise.resolve({ ecoPoints: 0 }),
         ]);
         setService(svc);
         setUsage(usageRes);
         setHealth(healthRes ?? svc.health);
-        setEcoPoints(typeof me.ecoPoints === 'number' ? me.ecoPoints : 0);
+        setEcoPoints(me.ecoPoints === null ? null : typeof me.ecoPoints === 'number' ? me.ecoPoints : 0);
       } finally {
         setLoading(false);
         setRefreshing(false);

@@ -5,7 +5,17 @@ import type { EcoReportDto } from './data';
  * C5 — raport energetyczny z realnych metryk LVE. Wartości to szacunki —
  * metodologia (współczynniki) jest jawnie pokazana klientowi w stopce karty.
  */
-export function EcoReportCard({ report }: { report: EcoReportDto | null }) {
+export function EcoReportCard({ report, failed = false }: { report: EcoReportDto | null; failed?: boolean }) {
+  if (failed) {
+    return (
+      <section className="rounded-2xl border border-white/5 bg-[#0a0a0a] p-6">
+        <h2 className="text-sm font-bold uppercase tracking-widest text-neutral-500 flex items-center gap-2">
+          <Leaf className="h-4 w-4 text-emerald-400" /> Raport energetyczny (30 dni)
+        </h2>
+        <p className="mt-3 text-sm text-amber-200">Nie udało się pobrać raportu. Odśwież stronę za chwilę.</p>
+      </section>
+    );
+  }
   if (!report || report.samples === 0) {
     return (
       <section className="rounded-2xl border border-white/5 bg-[#0a0a0a] p-6">

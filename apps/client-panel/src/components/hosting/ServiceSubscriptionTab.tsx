@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, useTransition } from 'react';
+import { useCallback, useEffect, useState, useTransition, useId } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Loader2, Trash2, Wallet } from 'lucide-react';
@@ -50,6 +50,7 @@ function formatDate(iso: string | null) {
 }
 
 export default function ServiceSubscriptionTab({ serviceId }: { serviceId: string }) {
+  const cancelModeId = useId();
   const router = useRouter();
   const [service, setService] = useState<ServiceDetailsDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -235,11 +236,13 @@ export default function ServiceSubscriptionTab({ serviceId }: { serviceId: strin
               name="cancel-mode"
               checked={!cancelImmediate}
               onChange={() => setCancelImmediate(false)}
+              aria-labelledby={`${cancelModeId}-end`}
+              aria-describedby={`${cancelModeId}-end-desc`}
               className="mt-1"
             />
             <span className="text-sm text-neutral-200">
-              <span className="font-medium text-white">Na koniec okresu</span>
-              <span className="mt-0.5 block text-xs text-neutral-500">
+              <span id={`${cancelModeId}-end`} className="font-medium text-white">Na koniec okresu</span>
+              <span id={`${cancelModeId}-end-desc`} className="mt-0.5 block text-xs text-neutral-500">
                 Do {formatDate(service.currentPeriodEnd)}
               </span>
             </span>
@@ -250,11 +253,13 @@ export default function ServiceSubscriptionTab({ serviceId }: { serviceId: strin
               name="cancel-mode"
               checked={cancelImmediate}
               onChange={() => setCancelImmediate(true)}
+              aria-labelledby={`${cancelModeId}-now`}
+              aria-describedby={`${cancelModeId}-now-desc`}
               className="mt-1"
             />
             <span className="text-sm text-neutral-200">
-              <span className="font-medium text-white">Od razu</span>
-              <span className="mt-0.5 block text-xs text-neutral-500">
+              <span id={`${cancelModeId}-now`} className="font-medium text-white">Od razu</span>
+              <span id={`${cancelModeId}-now-desc`} className="mt-0.5 block text-xs text-neutral-500">
                 Natychmiastowe zawieszenie konta hostingowego
               </span>
             </span>

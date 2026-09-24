@@ -5,7 +5,7 @@
  * Brak trafień → szukaj w bazie wiedzy.
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { Search } from 'lucide-react';
@@ -29,6 +29,7 @@ export function CommandPalette({ items }: { items: PaletteItem[] }) {
   const [q, setQ] = useState('');
   const [sel, setSel] = useState(0);
   const input = useRef<HTMLInputElement | null>(null);
+  const listId = useId();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -82,6 +83,7 @@ export function CommandPalette({ items }: { items: PaletteItem[] }) {
           Cel = kolumna treści (dziedziczy motyw), awaryjnie body. */}
       {open ? createPortal(
         <div
+          role="presentation"
           className="fixed inset-0 z-[90] flex items-start justify-center px-4 pt-[14vh] backdrop-blur-[2px]"
           style={{ background: 'rgba(4, 10, 7, 0.55)' }}
           onMouseDown={(e) => e.target === e.currentTarget && setOpen(false)}
@@ -89,6 +91,12 @@ export function CommandPalette({ items }: { items: PaletteItem[] }) {
           <div role="dialog" aria-label="Szukaj lub zrób coś" className="w-full max-w-[560px] overflow-hidden rounded-xl border border-line-strong bg-card shadow-[0_30px_80px_-30px_rgba(0,0,0,0.6)]">
             <input
               ref={input}
+              role="combobox"
+              aria-label="Szukaj lub zrób coś"
+              aria-expanded={rows.length > 0}
+              aria-controls={listId}
+              aria-autocomplete="list"
+              aria-activedescendant={rows[sel] ? `${listId}-${sel}` : undefined}
               value={q}
               onChange={(e) => {
                 setQ(e.target.value);
@@ -107,10 +115,12 @@ export function CommandPalette({ items }: { items: PaletteItem[] }) {
               placeholder="Wpisz, co chcesz zrobić…"
               className="w-full border-0 border-b border-line bg-transparent px-4 py-[15px] text-base font-medium text-foreground outline-none"
             />
-            <ul role="listbox" className="m-0 max-h-[340px] list-none overflow-auto p-1.5">
+            <ul id={listId} role="listbox" aria-label="Wyniki" className="m-0 max-h-[340px] list-none overflow-auto p-1.5">
               {rows.map((it, i) => (
+                // eslint-disable-next-line jsx-a11y/click-events-have-key-events -- klawiaturę obsługuje pole (strzałki + Enter, aria-activedescendant), opcje nie dostają fokusu
                 <li
                   key={`${it.label}-${i}`}
+                  id={`${listId}-${i}`}
                   role="option"
                   aria-selected={i === sel}
                   onMouseEnter={() => setSel(i)}
