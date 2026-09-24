@@ -26,6 +26,7 @@ describe('DiskUsageService', () => {
   it('wynik z logu: suma, katalogi, brak liczby plików gdy du --inodes nie zadziałał', () => {
     const r = zajetoscZLogu('VERRIS_DU_RAZEM 428|36\nVERRIS_DU 312|5|imap\nVERRIS_DU 72|-1|domains/a b.pl\n[disk-usage] Gotowe.');
     expect(r.razem).toEqual({ kb: 428, pliki: 36 });
+    expect(zajetoscZLogu('VERRIS_DU_SKRZYNKA 304|x.pl|Jan\n').skrzynki).toEqual([{ email: 'jan@x.pl', kb: 304 }]);
     expect(r.wpisy).toEqual([
       { kb: 312, pliki: 5, sciezka: 'imap' },
       { kb: 72, pliki: null, sciezka: 'domains/a b.pl' },

@@ -64,16 +64,24 @@ export class DiskUsageService {
 
 const liczba = (s: string) => (/^\d+$/.test(s) ? Number(s) : null);
 
-export function zajetoscZLogu(log: string | null): { razem: { kb: number; pliki: number | null } | null; wpisy: WpisZajetosci[] } {
+export function zajetoscZLogu(log: string | null): {
+  razem: { kb: number; pliki: number | null } | null;
+  wpisy: WpisZajetosci[];
+  skrzynki: { email: string; kb: number }[];
+} {
   let razem: { kb: number; pliki: number | null } | null = null;
   const wpisy: WpisZajetosci[] = [];
+  const skrzynki: { email: string; kb: number }[] = [];
   for (const l of (log ?? '').split('\n')) {
     const r = /^VERRIS_DU_RAZEM (\d+)\|(-?\d+)\s*$/.exec(l);
     if (r) razem = { kb: Number(r[1]), pliki: liczba(r[2]) };
     const m = /^VERRIS_DU (\d+)\|(-?\d+)\|(.+)$/.exec(l);
     if (m && wpisy.length < 80) wpisy.push({ kb: Number(m[1]), pliki: liczba(m[2]), sciezka: m[3] });
+    // E-06 — zajętość skrzynek (~/imap/<domena>/<login>)
+    const s = /^VERRIS_DU_SKRZYNKA (\d+)\|([a-z0-9.-]{3,253})\|([^|@\s]{1,64})\s*$/i.exec(l);
+    if (s && skrzynki.length < 2000) skrzynki.push({ email: `${s[3]}@${s[2]}`.toLowerCase(), kb: Number(s[1]) });
   }
-  return { razem, wpisy };
+  return { razem, wpisy, skrzynki };
 }
 
 function bladZLogu(log: string | null): string {

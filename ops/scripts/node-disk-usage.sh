@@ -7,6 +7,7 @@
 # Wynik dla API:
 #   VERRIS_DU_RAZEM <kB>|<i-węzły>
 #   VERRIS_DU <kB>|<i-węzły>|<ścieżka względna>   (najwyżej 80 największych)
+#   VERRIS_DU_SKRZYNKA <kB>|<domena>|<login>      (E-06: zajętość skrzynek z ~/imap/<domena>/<login>)
 # =============================================================================
 set -Eeuo pipefail
 
@@ -26,8 +27,11 @@ TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 # Błędy odczytu pojedynczych plików (np. gniazda, pliki bez prawa odczytu) nie przerywają liczenia.
 jako_klient timeout 900 du -xk --max-depth=2 -- "$HOME_DIR" > "$TMP/kb" 2>/dev/null || [ -s "$TMP/kb" ] || fail "nie udało się policzyć zajętości"
 jako_klient timeout 900 du -x --inodes --max-depth=2 -- "$HOME_DIR" > "$TMP/in" 2>/dev/null || true
+if [ -d "$HOME_DIR/imap" ]; then
+  jako_klient timeout 600 du -xk --max-depth=2 -- "$HOME_DIR/imap" > "$TMP/imap" 2>/dev/null || true
+fi
 
-HOME_DIR="$HOME_DIR" python3 - "$TMP/kb" "$TMP/in" <<'PY'
+HOME_DIR="$HOME_DIR" python3 - "$TMP/kb" "$TMP/in" "$TMP/imap" <<'PY'
 import os, sys
 home = os.environ["HOME_DIR"].rstrip("/")
 def wczytaj(p):
@@ -48,5 +52,10 @@ for v, s in sorted(wpisy, reverse=True)[:80]:
     if any(c in wzgl for c in "\n\r|"):
         continue
     print(f"VERRIS_DU {v}|{ino.get(s, -1)}|{wzgl}")
+imap = home + "/imap/"
+for s, v in sorted(wczytaj(sys.argv[3]).items()):
+    czesci = s[len(imap):].split("/") if s.startswith(imap) else []
+    if len(czesci) == 2 and all(c and "|" not in c and "\n" not in c for c in czesci):
+        print(f"VERRIS_DU_SKRZYNKA {v}|{czesci[0]}|{czesci[1]}")
 PY
 log "Gotowe."

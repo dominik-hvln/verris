@@ -29,6 +29,7 @@ import { HostingTabShell } from '@/components/hosting/HostingTabShell';
 import { AccessList, Kpi, KpiStrip, Meter } from '@/components/panel/v2';
 import MailExtras from '@/components/hosting/MailExtras';
 import { MailLogPanel } from '@/components/hosting/MailLogPanel';
+import { countDiskUsage, fetchDiskUsage, type DiskUsageStatus } from '@/app/dashboard/services/[id]/hosting-disk-usage-actions';
 import { DeliverabilityPanel } from '@/app/dashboard/email/deliverability-panel';
 import { createHostingSsoUrlAction } from '@/app/dashboard/services/[id]/hosting-sso-actions';
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
@@ -53,6 +54,20 @@ export default function MailTab({ serviceId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [rows, setRows] = useState<{ id: string; email: string; quotaMb: number | null }[]>([]);
+  // E-06 — zajętość skrzynek z pomiaru zajętości konta (C-15), przeliczana na żądanie.
+  const [zajetosc, setZajetosc] = useState<DiskUsageStatus | null>(null);
+  useEffect(() => {
+    void fetchDiskUsage(serviceId).then((r) => r.ok && setZajetosc(r.status));
+  }, [serviceId]);
+  useEffect(() => {
+    if (!zajetosc?.wToku) return;
+    const t = setInterval(() => void fetchDiskUsage(serviceId).then((r) => r.ok && setZajetosc(r.status)), 6_000);
+    return () => clearInterval(t);
+  }, [zajetosc?.wToku, serviceId]);
+  const uzyteMb = (email: string) => {
+    const s = zajetosc?.skrzynki.find((x) => x.email === email.toLowerCase());
+    return s ? Math.round((s.kb / 1024) * 10) / 10 : null;
+  };
   const [mailHost, setMailHost] = useState<string | null>(null);
   const [emailQuota, setEmailQuota] = useState<{ used: string; limit: string } | null>(null);
   const [domains, setDomains] = useState<string[]>([]);
@@ -384,6 +399,21 @@ export default function MailTab({ serviceId }: Props) {
         </p>
       ) : (
         <div className="overflow-hidden rounded-xl border border-white/5 bg-[#050505]">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 px-4 py-2 text-xs text-neutral-400">
+            <span>
+              {zajetosc?.policzono
+                ? `Zajętość skrzynek z ${new Date(zajetosc.policzono).toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}.`
+                : 'Zajętość skrzynek policzy serwer na żądanie.'}
+            </span>
+            <button
+              type="button"
+              disabled={!zajetosc || zajetosc.wToku}
+              onClick={() => void countDiskUsage(serviceId).then((r) => (r.ok ? setZajetosc(r.status) : toast.error(r.error)))}
+              className="font-semibold text-data hover:underline disabled:opacity-50"
+            >
+              {zajetosc?.wToku ? 'Liczę…' : 'Przelicz zajętość'}
+            </button>
+          </div>
           {rows.map((box) => (
             <div key={box.id} className="border-b border-white/5 last:border-0">
               <div className="flex items-center justify-between gap-3 px-4 py-2.5">
@@ -402,6 +432,7 @@ export default function MailTab({ serviceId }: Props) {
                     }}
                     className="whitespace-nowrap text-xs text-neutral-400 underline decoration-dotted underline-offset-2 hover:text-white"
                   >
+                    {uzyteMb(box.email) !== null ? `${uzyteMb(box.email)!.toLocaleString('pl-PL')} MB z ` : ''}
                     {box.quotaMb != null ? `${box.quotaMb} MB` : 'bez limitu'}
                   </button>
                   <button

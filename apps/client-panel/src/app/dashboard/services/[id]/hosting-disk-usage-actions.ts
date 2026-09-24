@@ -8,6 +8,7 @@ export interface DiskUsageStatus {
   policzono: string | null;
   razem: { kb: number; pliki: number | null } | null;
   wpisy: { sciezka: string; kb: number; pliki: number | null }[];
+  skrzynki: { email: string; kb: number }[];
   blad: string | null;
 }
 
