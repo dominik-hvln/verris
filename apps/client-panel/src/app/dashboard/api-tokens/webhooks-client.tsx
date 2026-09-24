@@ -11,6 +11,9 @@ const BTN = 'inline-flex items-center justify-center gap-2 whitespace-nowrap rou
 const OPIS: Record<string, string> = {
   'task.completed': 'Zadanie na stronie zakończone (np. aktualizacja WordPressa, wdrożenie z Gita, eksport bazy)',
   'task.failed': 'Zadanie na stronie nie powiodło się',
+  'invoice.issued': 'Wystawiliśmy fakturę (numer, kwota)',
+  'subscription.renewed': 'Usługa odnowiona na kolejny okres',
+  'subscription.past_due': 'Odnowienie nie powiodło się — usługa czeka na płatność',
   ping: 'Test',
 };
 const STATUS = { SENT: 'dostarczone', PENDING: 'w kolejce', FAILED: 'nie dostarczone' } as const;

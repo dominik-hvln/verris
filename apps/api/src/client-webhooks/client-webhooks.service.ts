@@ -12,7 +12,7 @@ import { assertPublicWebhookUrl } from '../status/status-webhook.service';
  * wywołanie ma podpis `x-verris-signature` = HMAC-SHA256(sekret, treść). Adres sprawdzany przy
  * zapisie i przy każdej wysyłce (bez adresów prywatnych — SSRF), bez przekierowań, 5 prób.
  */
-export const ZDARZENIA = ['task.completed', 'task.failed'] as const;
+export const ZDARZENIA = ['task.completed', 'task.failed', 'invoice.issued', 'subscription.renewed', 'subscription.past_due'] as const;
 export type Zdarzenie = (typeof ZDARZENIA)[number] | 'ping';
 const MAX_ADRESOW = 5;
 const MAX_PROB = 5;

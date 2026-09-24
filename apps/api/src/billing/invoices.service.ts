@@ -1,4 +1,5 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
+import { ClientWebhooksService } from '../client-webhooks/client-webhooks.service';
 import { ConfigService } from '@nestjs/config';
 import { Invoice, InvoiceStatus, Prisma } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
@@ -101,6 +102,7 @@ export class InvoicesService {
     private readonly ksef: KsefService,
     private readonly platformSettings: PlatformSettingsService,
     private readonly vatNabywcy: VatNabywcyService,
+    @Optional() private readonly webhooks?: ClientWebhooksService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -691,6 +693,13 @@ export class InvoicesService {
       rozliczeniowy: invoice.rodzajPrawny === RODZAJ_DOKUMENT_ROZLICZENIOWY,
     });
     await this.mailer.send({ ...message, fromRole: 'NOREPLY', category: 'TRANSACTIONAL' });
+    await this.webhooks?.emit(userId, 'invoice.issued', {
+      faktura: invoice.id,
+      numer: invoice.number,
+      kwota: invoice.amount.toFixed(2),
+      waluta: invoice.currency,
+      wystawiona: (invoice.issuedAt ?? new Date()).toISOString(),
+    });
   }
 
   // ---------------------------------------------------------------------------

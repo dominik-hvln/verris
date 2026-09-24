@@ -68,3 +68,13 @@ describe('ClientWebhooksService', () => {
     expect(s.prisma.clientWebhookDelivery.update).toHaveBeenLastCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: 'PENDING', lastError: 'HTTP 500' }) }));
   });
 });
+
+describe('ClientWebhooksService — zdarzenia rozliczeń (L-10)', () => {
+  it('invoice.issued / subscription.* są na liście zdarzeń do wyboru', async () => {
+    const s = stanowisko();
+    const r = await s.svc.dodaj('u1', { url: 'https://hook.example.com/x', events: ['invoice.issued', 'subscription.renewed', 'subscription.past_due'] });
+    expect(r.sekret).toMatch(/^whsec_/);
+    await s.svc.emit('u1', 'invoice.issued', { numer: 'VFV/1' });
+    expect(s.deliveries).toEqual([expect.objectContaining({ event: 'invoice.issued' })]);
+  });
+});

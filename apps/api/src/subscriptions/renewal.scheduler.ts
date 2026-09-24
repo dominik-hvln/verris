@@ -1,4 +1,5 @@
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
+import { ClientWebhooksService } from '../client-webhooks/client-webhooks.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { SubscriptionStatus, WalletTxType } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
@@ -41,6 +42,7 @@ export class RenewalScheduler {
     private readonly audit: AuditService,
     private readonly promo: PromoService,
     private readonly ecoPoints: EcoPointsService,
+    @Optional() private readonly webhooks?: ClientWebhooksService,
   ) {}
 
   @Cron(CronExpression.EVERY_HOUR, { name: 'subscriptions:renewal-cycle' })
@@ -254,7 +256,7 @@ export class RenewalScheduler {
     interval: 'MONTH' | 'YEAR',
   ): Promise<void> {
     const newEnd = addInterval(periodEnd, interval);
-    await this.prisma.subscription.update({
+    const odnowiona = await this.prisma.subscription.update({
       where: { id: subscriptionId },
       data: {
         status: SubscriptionStatus.ACTIVE,
@@ -270,6 +272,7 @@ export class RenewalScheduler {
       },
     });
     this.logger.log(`Renewed subscription=${subscriptionId} until ${newEnd.toISOString()}`);
+    if (odnowiona?.userId) await this.webhooks?.emit(odnowiona.userId, 'subscription.renewed', { usluga: subscriptionId, do: newEnd.toISOString() });
   }
 
   private async markPastDue(
@@ -294,6 +297,7 @@ export class RenewalScheduler {
       details: { subscriptionId, reason },
     });
     this.logger.warn(`Subscription=${subscriptionId} → PAST_DUE (${reason})`);
+    await this.webhooks?.emit(userId, 'subscription.past_due', { usluga: subscriptionId, powod: reason });
   }
 
   // ---------------------------------------------------------------------------
