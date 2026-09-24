@@ -13,6 +13,8 @@ export interface RetrievedChunk {
   title: string;
   content: string;
   score: number;
+  /** Źródło dokumentu, np. `kb-cms:<slug>` dla artykułu Bazy wiedzy (pomoc.verris.pl). */
+  sourceRef: string | null;
 }
 
 @Injectable()
@@ -233,7 +235,7 @@ export class KnowledgeBaseService {
 
     const chunks = await this.prisma.aiKnowledgeChunk.findMany({
       where: { doc: { audience: { in: audiences }, status: AiKnowledgeStatus.ACTIVE } },
-      include: { doc: { select: { id: true, title: true } } },
+      include: { doc: { select: { id: true, title: true, sourceRef: true } } },
       take: 2000,
     });
     if (chunks.length === 0) return [];
@@ -254,7 +256,7 @@ export class KnowledgeBaseService {
       } else {
         score = keywordScore(query, c.content);
       }
-      return { docId: c.doc.id, title: c.doc.title, content: c.content, score };
+      return { docId: c.doc.id, title: c.doc.title, content: c.content, score, sourceRef: c.doc.sourceRef ?? null };
     });
 
     return scored

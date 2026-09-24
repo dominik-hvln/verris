@@ -48,10 +48,14 @@ export class AiChatService {
     const seen = new Set<string>();
     const out: Array<{ docId: string; title: string; snippet: string }> = [];
     for (const c of chunks) {
-      if (seen.has(c.docId)) continue;
-      seen.add(c.docId);
+      // N-05: panel otwiera artykuł po slugu (/dashboard/knowledge?article=<slug>). Dawniej szło
+      // wewnętrzne id dokumentu indeksu AI, więc kliknięta podpowiedź nie otwierała niczego.
+      // Dokumenty spoza Bazy wiedzy (bez strony do otwarcia) nie są podpowiadane klientowi.
+      const slug = c.sourceRef?.startsWith('kb-cms:') ? c.sourceRef.slice('kb-cms:'.length) : null;
+      if (!slug || seen.has(slug)) continue;
+      seen.add(slug);
       out.push({
-        docId: c.docId,
+        docId: slug,
         title: c.title,
         snippet: c.content.replace(/\s+/g, ' ').trim().slice(0, 180),
       });
