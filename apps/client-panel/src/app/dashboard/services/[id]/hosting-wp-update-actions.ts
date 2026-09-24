@@ -65,7 +65,7 @@ export async function runWpUpdates(
   return wynik(apiFetch<WpStatus>(url(serviceId, '/run'), { method: 'POST', body: JSON.stringify(input) }));
 }
 
-export async function wpCache(serviceId: string, domain: string, action: 'on' | 'off' | 'purge'): Promise<Wynik> {
+export async function wpCache(serviceId: string, domain: string, action: 'on' | 'off' | 'purge' | 'redis-on' | 'redis-off'): Promise<Wynik> {
   return wynik(apiFetch<WpStatus>(url(serviceId, '/cache'), { method: 'POST', body: JSON.stringify({ domain, action }) }));
 }
 

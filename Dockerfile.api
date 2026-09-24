@@ -125,6 +125,8 @@ COPY ops/scripts/node-file-restore.sh ./ops/scripts/node-file-restore.sh
 COPY ops/scripts/node-ssh-access.sh ./ops/scripts/node-ssh-access.sh
 COPY ops/scripts/node-wp-update.sh ./ops/scripts/node-wp-update.sh
 COPY ops/scripts/node-disk-usage.sh ./ops/scripts/node-disk-usage.sh
+COPY ops/scripts/node-malware-scan.sh ./ops/scripts/node-malware-scan.sh
+COPY ops/scripts/node-redis.sh ./ops/scripts/node-redis.sh
 COPY ops/hosting-default-page ./ops/hosting-default-page
 RUN chmod +x /usr/local/bin/api-entrypoint.sh
 

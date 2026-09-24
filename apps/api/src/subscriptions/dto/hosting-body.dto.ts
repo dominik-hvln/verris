@@ -107,7 +107,7 @@ export class AktualizacjaWordpressaDto {
 /** J-02 — wtyczka LiteSpeed Cache w WordPressie domeny. */
 export class CacheWordpressaDto {
   @Linia(253) domain!: string;
-  @IsIn(['on', 'off', 'purge']) action!: string;
+  @IsIn(['on', 'off', 'purge', 'redis-on', 'redis-off']) action!: string;
 }
 
 /** I-04 — automatyczne aktualizacje WordPressa domeny. */

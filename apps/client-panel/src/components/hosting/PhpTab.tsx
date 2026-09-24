@@ -1,5 +1,6 @@
 'use client';
 
+import { RedisPanel } from '@/components/hosting/RedisPanel';
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { fetchPhpStatus } from '@/app/dashboard/php/php-actions';
@@ -33,6 +34,7 @@ export default function PhpTab({ serviceId }: { serviceId: string }) {
     <div className="space-y-4">
       <SectionHead title="PHP i serwer" desc="Wersja PHP konta i ustawienia serwera. Wersję dla pojedynczej domeny zmienisz w widoku strony." />
       <PhpClient serviceId={serviceId} status={status} />
+      <RedisPanel serviceId={serviceId} />
     </div>
   );
 }

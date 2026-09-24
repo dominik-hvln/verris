@@ -9,7 +9,9 @@
 #   WPU_PLUGINS   (update) pusta = bez wtyczek, „*” = wszystkie z aktualizacją, albo slug,slug
 #   WPU_THEMES    (update) jak WPU_PLUGINS, dla motywów
 #   WPU_CACHE     (cache) on | off | purge — wtyczka LiteSpeed Cache (J-02): włączenie z kontrolą
-#                 strony (5xx po włączeniu → wyłączamy z powrotem), wyłączenie, wyczyszczenie cache
+#                 strony (5xx po włączeniu → wyłączamy z powrotem), wyłączenie, wyczyszczenie cache;
+#                 redis-on | redis-off — cache obiektowy Redis (J-03) przez wtyczkę Redis Object Cache
+#                 i gniazdo konta ~/.verris-redis/redis.sock (włączane osobno, node-redis.sh)
 #
 # Kolejność przy update:
 #   1. kopia: pliki strony + zrzut bazy → ~/backups/verris-wp-<domena>-<czas>.tar.gz (dwie ostatnie
@@ -33,7 +35,7 @@ log() { echo "[wp-update] $*"; }
 fail() { log "BŁĄD: $*" >&2; exit 1; }
 
 [[ "$WPU_MODE" == "check" || "$WPU_MODE" == "update" || "$WPU_MODE" == "cache" ]] || fail "nieznany tryb: $WPU_MODE"
-[ "$WPU_MODE" != "cache" ] || [[ "$WPU_CACHE" == "on" || "$WPU_CACHE" == "off" || "$WPU_CACHE" == "purge" ]] || fail "nieprawidłowa operacja cache"
+[ "$WPU_MODE" != "cache" ] || [[ "$WPU_CACHE" =~ ^(on|off|purge|redis-on|redis-off)$ ]] || fail "nieprawidłowa operacja cache"
 [[ "$WPU_DA_USER" =~ ^[a-z][a-z0-9]{0,15}$ ]] || fail "nieprawidłowy login konta"
 [[ "$WPU_DOMAIN" =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$ ]] || fail "nieprawidłowa domena"
 [[ "$WPU_CORE" == "none" || "$WPU_CORE" == "minor" || "$WPU_CORE" == "all" ]] || fail "nieprawidłowy zakres aktualizacji rdzenia"
@@ -145,6 +147,29 @@ if [ "$WPU_MODE" = "cache" ]; then
       ;;
     off) wp plugin deactivate "$LSC" || fail "nie udało się wyłączyć wtyczki LiteSpeed Cache" ;;
     purge) wp_z_wtyczkami litespeed-purge all || fail "nie udało się wyczyścić cache (czy wtyczka LiteSpeed Cache jest włączona?)" ;;
+    redis-on)
+      SOCK="$HOME_DIR/.verris-redis/redis.sock"
+      [ -S "$SOCK" ] || fail "Redis konta nie jest włączony — włącz go najpierw w zakładce PHP i serwer"
+      KOD_PRZED="$(http_kod)"
+      wp plugin is-installed redis-cache >/dev/null 2>&1 || wp plugin install redis-cache || fail "nie udało się zainstalować wtyczki Redis Object Cache"
+      wp config set WP_REDIS_SCHEME unix --quiet || fail "nie udało się zapisać wp-config.php"
+      wp config set WP_REDIS_PATH "$SOCK" --quiet
+      wp config set WP_REDIS_PREFIX "$WPU_DOMAIN:" --quiet
+      wp plugin activate redis-cache || fail "nie udało się włączyć wtyczki Redis Object Cache"
+      wp_z_wtyczkami redis enable --force || fail "wtyczka nie połączyła się z Redisem konta"
+      KOD_PO="$(http_kod)"
+      log "kontrola strony: przed=$KOD_PRZED po=$KOD_PO"
+      if [[ "$KOD_PRZED" =~ ^[1-4][0-9][0-9]$ ]] && ! [[ "$KOD_PO" =~ ^[1-4][0-9][0-9]$ ]]; then
+        wp_z_wtyczkami redis disable || true
+        wp plugin deactivate redis-cache || true
+        echo "VERRIS_WPU_WYCOFANO=1"
+        fail "po włączeniu Redisa strona zwracała błąd (HTTP $KOD_PO) — wyłączyliśmy go z powrotem"
+      fi
+      ;;
+    redis-off)
+      wp_z_wtyczkami redis disable || true
+      wp plugin deactivate redis-cache || fail "nie udało się wyłączyć wtyczki Redis Object Cache"
+      ;;
   esac
   echo "VERRIS_WP_PO=$(stan)"
   log "Gotowe."

@@ -140,15 +140,16 @@ export function WpUpdatesPanel({ serviceId, domain }: { serviceId: string; domai
   };
 
   const lsc = wp?.plugins.find((x) => x.name === 'litespeed-cache') ?? null;
+  const redisWp = wp?.plugins.find((x) => x.name === 'redis-cache')?.status === 'active';
   const cacheWl = lsc?.status === 'active';
   const ostatniCache = stan?.cache[0] ?? null;
-  const operacjaCache = async (akcja: 'on' | 'off' | 'purge') => {
+  const operacjaCache = async (akcja: 'on' | 'off' | 'purge' | 'redis-on' | 'redis-off') => {
     if (akcja === 'off' && !(await potwierdz('Wyłączyć pamięć podręczną? Strona będzie generowana przy każdym wejściu — wolniej.', { akcja: 'Wyłącz' }))) return;
     start(async () => {
       const r = await wpCache(serviceId, domain, akcja);
       if (r.ok) {
         przyjmij(r.status);
-        toast.success(akcja === 'purge' ? 'Czyszczenie cache zlecone.' : akcja === 'on' ? 'Włączanie cache zlecone — potrwa chwilę.' : 'Wyłączanie cache zlecone.');
+        toast.success(akcja === 'purge' ? 'Czyszczenie cache zlecone.' : akcja.endsWith('on') ? 'Włączanie zlecone — potrwa chwilę.' : 'Wyłączanie zlecone.');
       } else toast.error(r.error);
     });
   };
@@ -331,6 +332,30 @@ export function WpUpdatesPanel({ serviceId, domain }: { serviceId: string; domai
                 </button>
               )}
             </div>
+          </div>
+        </div>
+      ) : null}
+
+      {wp ? (
+        <div className="rounded-[10px] border border-line bg-card px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <b className="text-sm font-semibold text-foreground">Cache obiektowy (Redis)</b>
+              <p className="m-0 text-[12.5px] text-muted-foreground">
+                {redisWp
+                  ? 'Włączony — WordPress trzyma wyniki zapytań do bazy w Redisie konta.'
+                  : 'Wymaga włączonego Redisa konta (zakładka PHP i serwer usługi). Włączenie instaluje wtyczkę Redis Object Cache i łączy ją z Redisem konta.'}
+              </p>
+            </div>
+            {redisWp ? (
+              <button type="button" onClick={() => void operacjaCache('redis-off')} disabled={zajete} className={BTN}>
+                Wyłącz
+              </button>
+            ) : (
+              <button type="button" onClick={() => void operacjaCache('redis-on')} disabled={zajete} className={BTN_MAIN}>
+                Włącz Redis dla WordPressa
+              </button>
+            )}
           </div>
         </div>
       ) : null}

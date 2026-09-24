@@ -31,6 +31,8 @@ import { loadFileRestoreScript } from './file-restore.script';
 import { loadSshAccessScript } from './ssh-access.script';
 import { loadWpUpdateScript } from './wp-update.script';
 import { loadDiskUsageScript } from './disk-usage.script';
+import { loadMalwareScanScript } from './malware-scan.script';
+import { loadRedisScript } from './redis.script';
 import { loadNodeUpdateScript } from './node-update.script';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 
@@ -153,6 +155,20 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   diskUsageScript() {
     return loadDiskUsageScript();
+  }
+
+  /** G-11 — skan ImunifyAV konta (run with MS_* env). */
+  @Get('malware-scan/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  malwareScanScript() {
+    return loadMalwareScanScript();
+  }
+
+  /** D-15/J-03 — Redis konta (run with RD_* env). */
+  @Get('redis/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  redisScript() {
+    return loadRedisScript();
   }
 
   /** VER-UPG — MariaDB engine upgrade script (run with DB_TARGET_VERSION env). */

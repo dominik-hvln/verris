@@ -166,6 +166,14 @@ elif [ "$TASK_KIND" = "DISK_USAGE" ]; then
   RUN_BIN="/usr/local/bin/verris-disk-usage.sh"
   fetch_task_script "/agent/tasks/disk-usage/script" "$RUN_BIN"
   payload_env "DU" "{'daUser':'DA_USER'}"
+elif [ "$TASK_KIND" = "MALWARE_SCAN" ]; then
+  RUN_BIN="/usr/local/bin/verris-malware-scan.sh"
+  fetch_task_script "/agent/tasks/malware-scan/script" "$RUN_BIN"
+  payload_env "MS" "{'mode':'MODE','daUser':'DA_USER'}"
+elif [ "$TASK_KIND" = "REDIS_ACCESS" ]; then
+  RUN_BIN="/usr/local/bin/verris-redis.sh"
+  fetch_task_script "/agent/tasks/redis/script" "$RUN_BIN"
+  payload_env "RD" "{'mode':'MODE','daUser':'DA_USER','memoryMb':'MEMORY_MB'}"
 elif [ "$TASK_KIND" = "HOSTING_PROFILE" ]; then
   flags="-y"
   [ "$SKIP_BUILD" = "1" ] && flags="$flags --skip-build"

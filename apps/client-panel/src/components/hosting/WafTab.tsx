@@ -1,5 +1,6 @@
 'use client';
 
+import { MalwarePanel } from '@/components/hosting/MalwarePanel';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Loader2, ShieldCheck, ShieldOff, AlertCircle, Eye } from 'lucide-react';
 import { SectionHead } from '@/components/panel/v2';
@@ -166,6 +167,8 @@ export default function WafTab({ serviceId }: Props) {
           <AlertCircle className="h-4 w-4" /> {error}
         </div>
       )}
+
+      <MalwarePanel serviceId={serviceId} />
 
       <p className="text-xs text-neutral-500">
         Wskazówka: po przejściu z trybu detekcji na blokowanie obserwuj stronę przez 1-2 dni. Jeśli

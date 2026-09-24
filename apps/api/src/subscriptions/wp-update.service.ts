@@ -40,6 +40,7 @@ export type StanWp = {
 };
 
 type Wybor = '*' | string[];
+type ZadanieCache = 'on' | 'off' | 'purge' | 'redis-on' | 'redis-off';
 
 @Injectable()
 export class WpUpdateService {
@@ -83,10 +84,10 @@ export class WpUpdateService {
 
   /** J-02 — wtyczka LiteSpeed Cache: włącz (z kontrolą strony), wyłącz, wyczyść cache. */
   async cache(subscriptionId: string, userId: string, input: { domain: string; action: string }) {
-    if (!['on', 'off', 'purge'].includes(input.action)) throw new BadRequestException('Nieprawidłowa operacja.');
+    if (!['on', 'off', 'purge', 'redis-on', 'redis-off'].includes(input.action)) throw new BadRequestException('Nieprawidłowa operacja.');
     const { sub, account, domena } = await this.wymagajDomeny(subscriptionId, userId, input.domain);
     const task = await this.zlec(account, userId, {
-      mode: 'cache', domain: domena, core: 'none', plugins: '', themes: '', auto: false, cache: input.action as 'on' | 'off' | 'purge',
+      mode: 'cache', domain: domena, core: 'none', plugins: '', themes: '', auto: false, cache: input.action as ZadanieCache,
     });
     await this.audit.record({
       action: HostingResourceActions.HOSTING_WP_CACHE_QUEUED,
@@ -158,7 +159,7 @@ export class WpUpdateService {
       plugins: string;
       themes: string;
       auto: boolean;
-      cache?: 'on' | 'off' | 'purge';
+      cache?: ZadanieCache;
     },
   ) {
     if (account.status !== 'ACTIVE') throw new BadRequestException('Konto hostingowe nie jest aktywne.');

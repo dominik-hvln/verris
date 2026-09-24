@@ -1116,6 +1116,20 @@ configure_hosting_capabilities() {
   else
     log_skip "PHP Selector — brak CloudLinux lvemanager (węzeł bez CL?)"
   fi
+
+  # G-11 — ImunifyAV: darmowy skaner złośliwego oprogramowania (skan w tle + na żądanie z panelu,
+  # node-malware-scan.sh). Czyszczenie to płatne ImunifyAV+/Imunify360 — decyzja 2026-09-24:
+  # na start darmowy. Instalator producenta (CloudLinux), best-effort.
+  if command -v imunify-antivirus >/dev/null 2>&1; then
+    log_ok "ImunifyAV obecny"
+  elif [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ]; then
+    if curl -fsSL --retry 3 -o /root/imav-deploy.sh https://repo.imunify360.cloudlinux.com/defence360/imav-deploy.sh \
+      && bash /root/imav-deploy.sh >/var/log/verris-imav-deploy.log 2>&1; then
+      log_ok "ImunifyAV zainstalowany (log: /var/log/verris-imav-deploy.log)"
+    else
+      log_warn "ImunifyAV — instalacja nie powiodła się (log: /var/log/verris-imav-deploy.log); skaner w panelu pokaże „nie jest zainstalowany”"
+    fi
+  fi
 }
 
 # Status możliwości do summary (czytany przez audyt węzła).

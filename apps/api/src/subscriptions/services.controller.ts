@@ -38,6 +38,8 @@ import { FileRestoreService } from './file-restore.service';
 import { SshAccessService } from './ssh-access.service';
 import { WpUpdateService } from './wp-update.service';
 import { DiskUsageService } from './disk-usage.service';
+import { MalwareScanService } from './malware-scan.service';
+import { RedisAccessService } from './redis-access.service';
 import { HostingRestoreDto } from './dto/hosting-restore.dto';
 import { WordpressService } from './wordpress.service';
 import { InstallWordpressDto } from './dto/wordpress.dto';
@@ -114,6 +116,8 @@ export class UserServicesController {
     private readonly sshAccess: SshAccessService,
     private readonly wpUpdate: WpUpdateService,
     private readonly diskUsage: DiskUsageService,
+    private readonly malwareScan: MalwareScanService,
+    private readonly redisAccess: RedisAccessService,
     private readonly wordpress: WordpressService,
     private readonly waf: WafService,
     private readonly siteMonitor: SiteMonitorService,
@@ -1105,6 +1109,36 @@ export class UserServicesController {
   @Post(':id/hosting-disk-usage')
   async countHostingDiskUsage(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
     return this.diskUsage.policz(id, user.userId);
+  }
+
+  // G-11 — skaner złośliwego oprogramowania (ImunifyAV, zadanie węzła).
+  @Get(':id/hosting-malware')
+  async hostingMalware(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.malwareScan.status(id, user.userId);
+  }
+
+  @RateLimit({ limit: 6, windowMs: 60 * 60 * 1000, scope: 'hosting:malware-scan' })
+  @Post(':id/hosting-malware/scan')
+  async scanHostingMalware(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.malwareScan.zlec(id, user.userId, 'scan');
+  }
+
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:malware-list' })
+  @Post(':id/hosting-malware/refresh')
+  async refreshHostingMalware(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.malwareScan.zlec(id, user.userId, 'list');
+  }
+
+  // D-15/J-03 — Redis konta (zadanie węzła).
+  @Get(':id/hosting-redis')
+  async hostingRedis(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.redisAccess.status(id, user.userId);
+  }
+
+  @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: 'hosting:redis' })
+  @Post(':id/hosting-redis')
+  async setHostingRedis(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: DostepSshDto) {
+    return this.redisAccess.przelacz(id, user.userId, body.enabled);
   }
 
   @Get(':id/hosting-offsite')
