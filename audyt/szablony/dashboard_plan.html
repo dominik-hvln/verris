@@ -210,6 +210,12 @@ document.getElementById('kpis').innerHTML = [
   ['done', `${P.postep.procent}%`, 'planu zrobione',
    `${P.postep.godzinyZrobione} h z ${P.postep.godzinyRazem} h · ${P.postep.pozycjeZrobione}/${P.postep.pozycjeRazem} pozycji`
    + (P.postep.wybory ? ` · w tym wybrane przed startem: ${P.postep.wybory.zrobione}/${P.postep.wybory.pozycje}` : '')],
+  ['ok', `${P.postep.procentKodGotowy}%`, 'kod gotowy',
+   `${P.postep.godzinyKodGotowy} h z ${P.postep.godzinyRazem} h · ${P.postep.pozycjeKodGotowy}/${P.postep.pozycjeRazem} pozycji — zrobione plus gotowe w kodzie, czekające tylko na test na węźle`],
+  [P.postep.wezel && P.postep.wezel.nie_przeszlo ? 'crit' : '',
+   P.postep.wezel ? `${P.postep.wezel.sprawdzone}/${P.postep.wezel.wszystkie}` : '—', 'sprawdzone na żywym węźle',
+   P.postep.wezel ? `${P.postep.wezel.sprawdzoneGodziny} h z ${P.postep.wezel.godzinyWszystkie} h · czeka ${P.postep.wezel.czeka} (${P.postep.wezel.czekaGodziny} h)`
+     + (P.postep.wezel.nie_przeszlo ? ` · nie przeszło: ${P.postep.wezel.nieprzeszloIds.join(', ')}` : ' · testy w sprincie 21, węzeł #1') : ''],
   [P.postep.zapasTygodni >= 0 ? 'done' : 'crit',
    `${P.postep.zapasTygodni >= 0 ? '+' : ''}${P.postep.zapasTygodni.toFixed(1)} tyg.`,
    P.postep.zapasTygodni >= 0 ? 'zapasu względem planu' : 'opóźnienia względem planu',

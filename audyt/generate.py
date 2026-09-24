@@ -58,8 +58,11 @@ def wczytaj():
     cfg = json.load(open(DANE / "konfiguracja.json", encoding="utf-8"))
     # 2026-09-23 — wybory właściciela z tablicy „Verris po starcie” (przed/po starcie).
     wybory = {w[0]: w[1] for w in rows("wybory.csv")[1]} if (DANE / "wybory.csv").exists() else {}
+    # Testy na węźle (D3): kod gotowy → „czeka”, po przejściu → „sprawdzone” (+ data), porażka → „nie_przeszlo”.
+    wezel = {w[0]: (w[1], w[2]) for w in rows("wezel.csv")[1]} if (DANE / "wezel.csv").exists() else {}
     return {
         "wybory": wybory,
+        "wezel": wezel,
         "head": head,
         "macierz": macierz,
         "wg_id": {r[0]: r for r in macierz},
@@ -655,7 +658,30 @@ def postep(D, dzis=None):
         if r[11].strip() == "BLOKER STARTU" and r[10] not in ZROBIONE_WERDYKTY
     ]
 
+    # Kod gotowy vs. sprawdzone na węźle — żeby było widać całą gotową pracę, a osobno to, co
+    # przeszło test na żywym węźle. Nie zmienia „procent” (ten liczy tylko zamknięte wg skali dowodu).
+    h_zakres = {x[0]: x[2] for s in D["sprinty"] for x in pozycje_sprintu(D, s) if x[3] == "audyt"}
+    h_zakres.update({r[0]: H.get(r[12], 0) for r in wyb})
+    WZ = D.get("wezel", {})
+    kod_extra = [i for i, h in h_zakres.items()
+                 if i in WZ and WZ[i][0] in ("czeka", "sprawdzone") and D["wg_id"][i][10] not in ZROBIONE_WERDYKTY]
+    godz_kod = godz_zrob + sum(h_zakres[i] for i in kod_extra)
+    hw = lambda i: h_zakres.get(i, H.get(D["wg_id"][i][12], 0) if i in D["wg_id"] else 0)
+    stany = {k: [i for i, (st, _) in WZ.items() if st == k] for k in ("czeka", "sprawdzone", "nie_przeszlo")}
+    wezel = {
+        "wszystkie": len(WZ),
+        "godzinyWszystkie": sum(hw(i) for i in WZ),
+        **{k: len(v) for k, v in stany.items()},
+        **{k + "Godziny": sum(hw(i) for i in v) for k, v in stany.items()},
+        "czekaIds": stany["czeka"],
+        "nieprzeszloIds": stany["nie_przeszlo"],
+    }
+
     return {
+        "godzinyKodGotowy": godz_kod,
+        "procentKodGotowy": round(100.0 * godz_kod / godz_razem, 1) if godz_razem else 0.0,
+        "pozycjeKodGotowy": poz_zrob + len(kod_extra),
+        "wezel": wezel,
         "dzis": str(dzis),
         "start": str(start),
         "cap": cap,

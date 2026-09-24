@@ -87,3 +87,12 @@ Pełna procedura z listą przypadków, w których pozycja **nie** zasługuje na 
 ## Dlaczego dane leżą w CSV, a nie w XLSX
 
 Bo `git diff` na CSV pokazuje, co dokładnie zmieniło się między sprintami — kto, kiedy i na jakiej podstawie przestawił pozycję na `DZIAŁA`. Na pliku binarnym diff nie pokazuje nic, a to właśnie ten brak śladu pozwolił wcześniej nadawać statusy bez pokrycia.
+
+## Testy na węźle — `dane/wezel.csv` (od 2026-09-24)
+
+Pozycje z gotowym kodem, których dowód wymaga żywego węzła (D3). Kolumny: `id, stan, data, uwagi`,
+stan: `czeka` → `sprawdzone` (z datą testu) albo `nie_przeszlo`. Tablica planu pokazuje z tego dwa kafelki:
+**kod gotowy** (zrobione + gotowe w kodzie, czekające tylko na węzeł) i **sprawdzone na żywym węźle**.
+„Procent planu” liczy dalej wyłącznie werdykty PARYTET/PRZEWAGA wg skali dowodu: zwykła funkcja z testem
+w CI (D2) jest zrobiona; pieniądze, dane klienta i dostęp dopiero po D3 — te zostają CZĘŚCIOWY do testu.
+Po teście na węźle: `stan=sprawdzone` + data tutaj, a w macierzy stan → DZIAŁA (i werdykt, jeśli czekał na D3).
