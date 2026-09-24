@@ -46,7 +46,7 @@ export default function Page() {
             <h2>Operator</h2>
             <p>
               Usługę świadczy <strong>HVLN Dominik Kowalski</strong> z siedzibą w Zielonej Górze (NIP
-              9292069367). Masz pytanie? <a href="/kontakt">Napisz do nas</a>.
+              9292069367). Masz pytanie? <Link href="/kontakt">Napisz do nas</Link>.
             </p>
           </div>
         </div>

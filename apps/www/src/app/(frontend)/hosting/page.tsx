@@ -82,14 +82,14 @@ export default function HostingPage() {
             </ul>
             <p>
               Orientacyjny koszt nadwyżki policzysz w{' '}
-              <a href="/przenies-strone#kalkulator">kalkulatorze autoskalowania</a>, a szczegóły
+              <Link href="/przenies-strone#kalkulator">kalkulatorze autoskalowania</Link>, a szczegóły
               znajdziesz na stronie <Link href="/funkcje/autoskalowanie">funkcji autoskalowania</Link>.
             </p>
             <h3>Dla kogo</h3>
             <p>
               Dla firm i JDG przenoszących stronę z drogich odnowień, dla{' '}
-              <a href="/hosting/wordpress">stron WordPress</a> i{' '}
-              <a href="/hosting/sklep">sklepów</a>, które łapią piki sprzedażowe, oraz dla każdego,
+              <Link href="/hosting/wordpress">stron WordPress</Link> i{' '}
+              <Link href="/hosting/sklep">sklepów</Link>, które łapią piki sprzedażowe, oraz dla każdego,
               kto woli płacić za realne zużycie niż za pakiet na zapas.
             </p>
           </div>

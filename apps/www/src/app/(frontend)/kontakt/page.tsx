@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { Metadata } from 'next';
 import { Mail, LifeBuoy, Building2 } from 'lucide-react';
 import { SubHero } from '../components/ui';
@@ -37,7 +38,7 @@ export default function Page() {
                 <div className="ico"><LifeBuoy /></div>
                 <h3>Pomoc i status</h3>
                 <p>
-                  Najczęstsze pytania w <a href="/pomoc">Pomocy</a>. Dostępność usług na żywo:{' '}
+                  Najczęstsze pytania w <Link href="/pomoc">Pomocy</Link>. Dostępność usług na żywo:{' '}
                   <a href="https://status.verris.pl">status.verris.pl</a>.
                 </p>
               </div>

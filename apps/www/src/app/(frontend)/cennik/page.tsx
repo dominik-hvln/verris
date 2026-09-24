@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { Metadata } from 'next';
 import { SubHero, CTABand } from '../components/ui';
 import { Pricing } from '../components/Pricing';
@@ -29,7 +30,7 @@ export default function Page() {
                 <h2>Co z VPS i domenami?</h2>
                 <p>
                   Powyższa cena dotyczy hostingu współdzielonego z autoskalowaniem. Zasoby i wycenę{' '}
-                  <a href="/vps">VPS</a> oraz dostępność i ceny <a href="/domeny">domen</a> sprawdzisz w
+                  <Link href="/vps">VPS</Link> oraz dostępność i ceny <Link href="/domeny">domen</Link> sprawdzisz w
                   panelu — konfigurujesz je pod własne potrzeby.
                 </p>
               </>
@@ -38,7 +39,7 @@ export default function Page() {
                 <h2>Co z domenami?</h2>
                 <p>
                   Powyższa cena dotyczy hostingu współdzielonego z autoskalowaniem. Dostępność i ceny{' '}
-                  <a href="/domeny">domen</a> sprawdzisz w panelu.
+                  <Link href="/domeny">domen</Link> sprawdzisz w panelu.
                 </p>
               </>
             )}

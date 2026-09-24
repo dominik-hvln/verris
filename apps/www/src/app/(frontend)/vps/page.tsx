@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { Metadata } from 'next';
 import { Terminal, Cpu, ShieldCheck } from 'lucide-react';
 import { SubHero, CTABand, JsonLd } from '../components/ui';
@@ -63,7 +64,7 @@ export default function VpsPage() {
             <h2>VPS czy hosting współdzielony?</h2>
             <p>
               Jeśli prowadzisz stronę, bloga albo sklep i chcesz, żeby „po prostu działało” —
-              wybierz <a href="/hosting">hosting z autoskalowaniem</a>. VPS ma sens, gdy potrzebujesz
+              wybierz <Link href="/hosting">hosting z autoskalowaniem</Link>. VPS ma sens, gdy potrzebujesz
               własnego środowiska, niestandardowego stacku albo pełnej kontroli nad serwerem i nie
               przeszkadza Ci samodzielna administracja.
             </p>

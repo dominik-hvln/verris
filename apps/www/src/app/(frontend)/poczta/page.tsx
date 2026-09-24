@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { Metadata } from 'next';
 import { SubHero, CTABand } from '../components/ui';
 import { RevealInit } from '../components/RevealInit';
@@ -33,7 +34,7 @@ export default function Page() {
             </ul>
             <p>
               Chcesz wysyłać kampanie do własnej listy odbiorców? To osobna usługa —{' '}
-              <a href="/email-marketing">e-mail marketing</a>.
+              <Link href="/email-marketing">e-mail marketing</Link>.
             </p>
           </div>
         </div>

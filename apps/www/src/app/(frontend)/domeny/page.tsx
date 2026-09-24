@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { Metadata } from 'next';
 import { Globe, BellRing, ArrowLeftRight, ShieldCheck } from 'lucide-react';
 import { SubHero, CTABand, JsonLd } from '../components/ui';
@@ -62,7 +63,7 @@ export default function DomenyPage() {
               Żeby uruchomić stronę na Verris, nie musisz przenosić domeny. Wystarczy zmienić rekordy
               DNS, aby wskazywały na nasze serwery — domena może zostać tam, gdzie jest. Transfer jest
               opcjonalny i zrobisz go w dowolnym momencie. Więcej o samym przenoszeniu strony
-              przeczytasz na stronie <a href="/przenies-strone">migracji</a>.
+              przeczytasz na stronie <Link href="/przenies-strone">migracji</Link>.
             </p>
           </div>
         </div>

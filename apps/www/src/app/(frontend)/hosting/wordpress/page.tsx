@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { Metadata } from 'next';
 import { SubHero, CTABand } from '../../components/ui';
 import { RevealInit } from '../../components/RevealInit';
@@ -37,7 +38,7 @@ export default function Page() {
               Przeniesienie WordPressa to skopiowanie plików, bazy danych i konfiguracji. W Verris
               zrobi to za Ciebie zespół w ramach darmowej migracji — wystarczy przekazać dostępy.
               Możesz też użyć migratora w panelu. Szczegóły na stronie{' '}
-              <a href="/przenies-strone">przeniesienia strony</a>.
+              <Link href="/przenies-strone">przeniesienia strony</Link>.
             </p>
           </div>
         </div>

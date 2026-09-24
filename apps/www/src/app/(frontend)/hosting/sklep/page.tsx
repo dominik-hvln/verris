@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { Metadata } from 'next';
 import { SubHero, CTABand } from '../../components/ui';
 import { RevealInit } from '../../components/RevealInit';
@@ -34,8 +35,8 @@ export default function Page() {
             </ul>
             <p>
               Prowadzisz sklep na WordPressie z WooCommerce? Zobacz też{' '}
-              <a href="/hosting/wordpress">hosting WordPress</a>, a orientacyjny koszt piku policzysz
-              w <a href="/przenies-strone#kalkulator">kalkulatorze autoskalowania</a>.
+              <Link href="/hosting/wordpress">hosting WordPress</Link>, a orientacyjny koszt piku policzysz
+              w <Link href="/przenies-strone#kalkulator">kalkulatorze autoskalowania</Link>.
             </p>
           </div>
         </div>

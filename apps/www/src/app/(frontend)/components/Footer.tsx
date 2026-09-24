@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Logo } from './ui';
 import { CookiePreferencesButton } from './CookieConsent';
 import { footerCols } from '@/lib/site';
@@ -49,7 +50,7 @@ export async function Footer() {
           ))}
         </div>
         <div className="foot-bot">
-          <span>{legal} · <a href="/zglos-naduzycie">Zgłoś nadużycie</a></span>
+          <span>{legal} · <Link href="/zglos-naduzycie">Zgłoś nadużycie</Link></span>
           <span className="pay">
             {pay} · <CookiePreferencesButton />
           </span>
