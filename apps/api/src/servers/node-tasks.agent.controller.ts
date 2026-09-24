@@ -27,6 +27,7 @@ import { loadAppInstallScript } from './app-install.script';
 import { loadDbUpgradeScript } from './db-upgrade.script';
 import { loadOffsiteRestoreScript } from './offsite-restore.script';
 import { loadDbTransferScript } from './db-transfer.script';
+import { loadFileRestoreScript } from './file-restore.script';
 import { loadNodeUpdateScript } from './node-update.script';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 
@@ -121,6 +122,13 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   dbTransferScript() {
     return loadDbTransferScript();
+  }
+
+  /** H-10/H-11 — podgląd archiwum i odtworzenie pliku (run with FR_* env). */
+  @Get('file-restore/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  fileRestoreScript() {
+    return loadFileRestoreScript();
   }
 
   /** VER-UPG — MariaDB engine upgrade script (run with DB_TARGET_VERSION env). */

@@ -34,6 +34,7 @@ import { CofniecieNaprawyDto, NaprawaAsystentaDto } from './dto/assistant.dto';
 import { HostingRestoreService } from './hosting-restore.service';
 import { OffsiteRestoreService } from './offsite-restore.service';
 import { DbTransferService } from './db-transfer.service';
+import { FileRestoreService } from './file-restore.service';
 import { HostingRestoreDto } from './dto/hosting-restore.dto';
 import { WordpressService } from './wordpress.service';
 import { InstallWordpressDto } from './dto/wordpress.dto';
@@ -76,6 +77,8 @@ import {
   WersjaPhpDomenyDto,
   UstawieniaPhpDomenyDto,
   EksportBazyDto,
+  ListaArchiwumDto,
+  OdtworzenieZArchiwumDto,
   ImportBazyDto,
   WersjaPhpDto,
   ZadanieDeployDto,
@@ -98,6 +101,7 @@ export class UserServicesController {
     private readonly hostingRestore: HostingRestoreService,
     private readonly offsiteRestore: OffsiteRestoreService,
     private readonly dbTransfer: DbTransferService,
+    private readonly fileRestore: FileRestoreService,
     private readonly wordpress: WordpressService,
     private readonly waf: WafService,
     private readonly siteMonitor: SiteMonitorService,
@@ -1012,6 +1016,24 @@ export class UserServicesController {
   @Post(':id/hosting-db-import')
   async hostingDbImport(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: ImportBazyDto) {
     return this.dbTransfer.zlecImport(id, user.userId, body.db, body.file);
+  }
+
+  // H-10/H-11 — podgląd archiwum kopii i odtworzenie pliku do ~/verris-odtworzone.
+  @Get(':id/hosting-file-restore')
+  async hostingFileRestore(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.fileRestore.status(id, user.userId);
+  }
+
+  @RateLimit({ limit: 60, windowMs: 60 * 60 * 1000, scope: 'hosting:file-restore' })
+  @Post(':id/hosting-file-restore/list')
+  async hostingFileRestoreList(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: ListaArchiwumDto) {
+    return this.fileRestore.zlecListe(id, user.userId, body.archive, body.path);
+  }
+
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:file-restore' })
+  @Post(':id/hosting-file-restore/extract')
+  async hostingFileRestoreExtract(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: OdtworzenieZArchiwumDto) {
+    return this.fileRestore.zlecOdtworzenie(id, user.userId, body.archive, body.path);
   }
 
   @Get(':id/hosting-offsite')

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Database, Loader2, RotateCcw, ShieldAlert, Check, X, AlertTriangle } from 'lucide-react';
+import { Database, Loader2, RotateCcw, ShieldAlert, Check, X, AlertTriangle, FolderOpen } from 'lucide-react';
 import type { HostingBackupRowDto } from '@verris/contracts';
 import { fetchHostingBackupsAction } from '@/app/dashboard/services/[id]/hosting-extra-actions';
 import {
@@ -13,6 +13,7 @@ import { BackupNowButton } from '@/app/dashboard/backups/backup-now-button';
 import { hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { HostingHelpHint } from '@/components/hosting/HostingTabShell';
 import { SectionHead } from '@/components/panel/v2';
+import { ArchiveBrowser } from '@/components/hosting/ArchiveBrowser';
 import BackupScheduleCard from '@/components/hosting/BackupScheduleCard';
 import { HostingOffsitePanel } from '@/components/hosting/hosting-offsite-panel';
 
@@ -32,6 +33,7 @@ export default function BackupsTab({ serviceId }: { serviceId: string }) {
 
   const [job, setJob] = useState<HostingRestoreJobDto | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [plikiId, setPlikiId] = useState<string | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // `.then` zamiast `await` — lint React Compilera nie widzi `await` w useCallback i zgłasza fałszywy setState w efekcie.
@@ -129,7 +131,16 @@ export default function BackupsTab({ serviceId }: { serviceId: string }) {
                 >
                   <RotateCcw className="h-3.5 w-3.5" /> Przywróć
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setPlikiId(plikiId === row.id ? null : row.id)}
+                  aria-expanded={plikiId === row.id}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[13px] font-medium text-neutral-200 transition hover:bg-white/[0.06]"
+                >
+                  <FolderOpen className="h-3.5 w-3.5" /> Pliki
+                </button>
               </div>
+              {plikiId === row.id ? <ArchiveBrowser serviceId={serviceId} archive={row.fileName} /> : null}
               {openId === row.id && (
                 <RestoreForm
                   serviceId={serviceId}

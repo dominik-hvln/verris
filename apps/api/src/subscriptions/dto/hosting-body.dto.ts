@@ -65,6 +65,17 @@ export class ImportBazyDto extends EksportBazyDto {
   @Linia(128) file!: string;
 }
 
+/** H-10/H-11 — archiwum w ~/backups i ścieżka wewnątrz (format sprawdza FileRestoreService). */
+export class ListaArchiwumDto {
+  @Linia(210) archive!: string;
+  @IsOptional() @Linia(1024) path?: string;
+}
+
+export class OdtworzenieZArchiwumDto {
+  @Linia(210) archive!: string;
+  @Linia(1024) path!: string;
+}
+
 /** B-05 — dyrektywy PHP w `.user.ini` domeny. Listę dozwolonych i zakresy sprawdza `php-ini.ts`. */
 export class UstawieniaPhpDomenyDto {
   @Linia(253) domain!: string;

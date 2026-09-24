@@ -29,6 +29,7 @@ import { AssistantService } from './assistant.service';
 import { HostingRestoreService } from './hosting-restore.service';
 import { OffsiteRestoreService } from './offsite-restore.service';
 import { DbTransferService } from './db-transfer.service';
+import { FileRestoreService } from './file-restore.service';
 import { DiagnosticsService } from './diagnostics.service';
 import { HostingRestoreScheduler } from './hosting-restore.scheduler';
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
@@ -71,6 +72,7 @@ import { EcoModule } from '../eco/eco.module';
     HostingRestoreScheduler,
     OffsiteRestoreService,
     DbTransferService,
+    FileRestoreService,
     WordpressService,
     WafService,
     SiteMonitorService,

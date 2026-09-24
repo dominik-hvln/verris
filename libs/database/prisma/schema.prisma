@@ -639,6 +639,7 @@ enum NodeTaskKind {
   FLEET_UPDATE      // NODE-6 — aktualizacja stacku węzła do latest-stable (CustomBuild + yum)
   OFFSITE_RESTORE   // S-1 — listowanie / ściąganie archiwum konta z kopii off-site (rclone)
   DB_TRANSFER       // D-12 — eksport / import bazy klienta (~/verris-bazy)
+  FILE_RESTORE      // H-10/H-11 — podgląd archiwum kopii i odtworzenie pliku (~/verris-odtworzone)
 }
 
 enum WafMode {
