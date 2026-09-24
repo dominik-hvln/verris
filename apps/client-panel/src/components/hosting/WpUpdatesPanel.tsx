@@ -15,6 +15,7 @@ import {
   wpCache,
   wpHarden,
   type WpPozycja,
+  type WpOperacja,
   type WpStatus,
 } from '@/app/dashboard/services/[id]/hosting-wp-update-actions';
 
@@ -156,14 +157,22 @@ export function WpUpdatesPanel({ serviceId, domain }: { serviceId: string; domai
   };
 
   const zab = stan?.zabezpieczenia ?? null;
-  const popraw = (akcja: 'file-edit' | 'debug-off') =>
+  const popraw = async (akcja: WpOperacja) => {
+    if (akcja === 'maintenance-on' && !(await potwierdz('Włączyć tryb konserwacji? Odwiedzający zobaczą komunikat o przerwie technicznej zamiast strony, dopóki go nie wyłączysz.', { akcja: 'Włącz' }))) return;
     start(async () => {
       const r = await wpHarden(serviceId, domain, akcja);
       if (r.ok) {
         przyjmij(r.status);
-        toast.success('Zmiana zlecona — gotowe w ciągu minuty.');
+        toast.success(
+          akcja === 'maintenance-on'
+            ? 'Włączanie trybu konserwacji zlecone — odwiedzający zobaczą komunikat o przerwie.'
+            : akcja === 'maintenance-off'
+              ? 'Wyłączanie trybu konserwacji zlecone.'
+              : 'Zmiana zlecona — gotowe w ciągu minuty.',
+        );
       } else toast.error(r.error);
     });
+  };
   const zapisywalnyDlaWszystkich = (m: string) => /[2367]$/.test(m);
 
   const zapiszAuto = () =>
@@ -417,7 +426,7 @@ export function WpUpdatesPanel({ serviceId, domain }: { serviceId: string; domai
                   zab.uprawnieniaConfig ? `${zab.uprawnieniaConfig}${zapisywalnyDlaWszystkich(zab.uprawnieniaConfig) ? ' — plik zapisywalny dla wszystkich; ustaw 640 w menedżerze plików.' : ' — w porządku.'}` : 'Nie udało się odczytać.',
                   null,
                 ],
-              ] as [boolean, string, string, { label: string; akcja: 'file-edit' | 'debug-off' } | null][]
+              ] as [boolean, string, string, { label: string; akcja: WpOperacja } | null][]
             ).map(([ok, tytul, opis, fix]) => (
               <li key={tytul} className="flex flex-wrap items-start justify-between gap-3 border-t border-line px-4 py-3 first:border-t-0">
                 <div className="min-w-0 flex-1">
@@ -428,13 +437,32 @@ export function WpUpdatesPanel({ serviceId, domain }: { serviceId: string; domai
                   <p className="m-0 mt-1 text-verris-body">{opis}</p>
                 </div>
                 {fix ? (
-                  <button type="button" onClick={() => popraw(fix.akcja)} disabled={zajete} className={BTN}>
+                  <button type="button" onClick={() => void popraw(fix.akcja)} disabled={zajete} className={BTN}>
                     {fix.label}
                   </button>
                 ) : null}
               </li>
             ))}
           </ul>
+        </div>
+      ) : null}
+
+      {wp && zab ? (
+        <div className="flex flex-wrap items-start justify-between gap-3 rounded-[10px] border border-line bg-card px-4 py-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <StatusPill tone={zab.konserwacja ? 'warn' : 'data'}>{zab.konserwacja ? 'włączony' : 'wyłączony'}</StatusPill>
+              <h3 className="m-0 text-[15px] font-bold text-foreground">Tryb konserwacji</h3>
+            </div>
+            <p className="m-0 mt-1 text-[13px] text-verris-body">
+              {zab.konserwacja
+                ? 'Odwiedzający widzą komunikat o przerwie technicznej zamiast strony. Aktualizacje (także automatyczne) czekają, aż go wyłączysz.'
+                : 'Na czas większych zmian możesz pokazać odwiedzającym komunikat o przerwie technicznej. Kokpit WordPressa działa dalej.'}
+            </p>
+          </div>
+          <button type="button" onClick={() => void popraw(zab.konserwacja ? 'maintenance-off' : 'maintenance-on')} disabled={zajete} className={BTN}>
+            {zab.konserwacja ? 'Wyłącz tryb konserwacji' : 'Włącz tryb konserwacji'}
+          </button>
         </div>
       ) : null}
 

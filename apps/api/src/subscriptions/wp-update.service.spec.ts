@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { WpUpdateService, sprawdzWybor, stanZLogu, zmiany } from './wp-update.service';
+import { WpUpdateService, sprawdzWybor, stanZLogu, zabezpieczeniaZLogu, zmiany } from './wp-update.service';
 
 /**
  * I-04/I-05 — strona API. Skrypt węzła sprawdzony lokalnie na atrapie wp-cli: kopia (pliki + baza,
@@ -124,9 +124,17 @@ describe('WpUpdateService — zabezpieczenia (I-08)', () => {
     const z = Buffer.from(JSON.stringify({ edytorPlikow: true, debug: false, uzytkownikAdmin: true, uprawnieniaConfig: '644', sumyRdzenia: 'zmienione' })).toString('base64');
     const s = stanowisko({ zadania: [{ id: 't', status: 'COMPLETED', outputLog: `VERRIS_WP_PRZED=${b64(PRZED)}\nVERRIS_WP_ZABEZPIECZENIA=${z}\n`, createdAt: new Date(), completedAt: new Date(), payload: { mode: 'check', domain: 'a.pl' } }] });
     const r = await s.svc.status('s1', 'u1', 'a.pl');
-    expect(r.zabezpieczenia).toEqual({ edytorPlikow: true, debug: false, uzytkownikAdmin: true, uprawnieniaConfig: '644', sumyRdzenia: 'zmienione' });
+    expect(r.zabezpieczenia).toEqual({ edytorPlikow: true, debug: false, uzytkownikAdmin: true, uprawnieniaConfig: '644', sumyRdzenia: 'zmienione', konserwacja: false });
     await s.svc.zabezpiecz('s1', 'u1', { domain: 'a.pl', action: 'file-edit' });
     expect(payload(s).payload).toMatchObject({ mode: 'harden', harden: 'file-edit' });
     await expect(s.svc.zabezpiecz('s1', 'u1', { domain: 'a.pl', action: 'chmod' })).rejects.toThrow(BadRequestException);
+  });
+
+  it('I-15 — tryb konserwacji jako zadanie harden, stan z przeglądu', async () => {
+    const s = stanowisko({ zadania: [] });
+    await s.svc.zabezpiecz('s1', 'u1', { domain: 'a.pl', action: 'maintenance-on' });
+    expect(payload(s).payload).toMatchObject({ mode: 'harden', harden: 'maintenance-on' });
+    const z = Buffer.from(JSON.stringify({ konserwacja: true, sumyRdzenia: 'ok' })).toString('base64');
+    expect(zabezpieczeniaZLogu(`VERRIS_WP_ZABEZPIECZENIA=${z}`)?.konserwacja).toBe(true);
   });
 });

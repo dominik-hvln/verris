@@ -129,10 +129,10 @@ export class DziennikPocztyDto {
   @IsOptional() @IsEmail() @MaxLength(254) address?: string;
 }
 
-/** I-08 — poprawki zabezpieczeń WordPressa (wp-config.php). */
+/** I-08 — poprawki zabezpieczeń WordPressa (wp-config.php); I-15 — tryb konserwacji. */
 export class ZabezpieczeniaWordpressaDto {
   @Linia(253) domain!: string;
-  @IsIn(['file-edit', 'debug-off']) action!: string;
+  @IsIn(['file-edit', 'debug-off', 'maintenance-on', 'maintenance-off']) action!: string;
 }
 
 /** I-04 — automatyczne aktualizacje WordPressa domeny. */

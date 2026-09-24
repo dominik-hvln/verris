@@ -42,6 +42,9 @@ export type StanWp = {
 type Wybor = '*' | string[];
 type ZadanieCache = 'on' | 'off' | 'purge' | 'redis-on' | 'redis-off';
 
+const OPERACJE_ZABEZPIECZEN = ['file-edit', 'debug-off', 'maintenance-on', 'maintenance-off'] as const;
+type OperacjaZabezpieczen = (typeof OPERACJE_ZABEZPIECZEN)[number];
+
 @Injectable()
 export class WpUpdateService {
   private readonly logger = new Logger(WpUpdateService.name);
@@ -99,10 +102,10 @@ export class WpUpdateService {
 
   /** I-08 — poprawki zabezpieczeń w wp-config.php (edytor plików w kokpicie, WP_DEBUG). */
   async zabezpiecz(subscriptionId: string, userId: string, input: { domain: string; action: string }) {
-    if (!['file-edit', 'debug-off'].includes(input.action)) throw new BadRequestException('Nieprawidłowa operacja.');
+    if (!OPERACJE_ZABEZPIECZEN.includes(input.action as OperacjaZabezpieczen)) throw new BadRequestException('Nieprawidłowa operacja.');
     const { sub, account, domena } = await this.wymagajDomeny(subscriptionId, userId, input.domain);
     const task = await this.zlec(account, userId, {
-      mode: 'harden', domain: domena, core: 'none', plugins: '', themes: '', auto: false, harden: input.action as 'file-edit' | 'debug-off',
+      mode: 'harden', domain: domena, core: 'none', plugins: '', themes: '', auto: false, harden: input.action as OperacjaZabezpieczen,
     });
     await this.audit.record({
       action: HostingResourceActions.HOSTING_WP_HARDEN_QUEUED,
@@ -175,7 +178,7 @@ export class WpUpdateService {
       themes: string;
       auto: boolean;
       cache?: ZadanieCache;
-      harden?: 'file-edit' | 'debug-off';
+      harden?: OperacjaZabezpieczen;
     },
   ) {
     if (account.status !== 'ACTIVE') throw new BadRequestException('Konto hostingowe nie jest aktywne.');
@@ -340,6 +343,7 @@ export type ZabezpieczeniaWp = {
   uzytkownikAdmin: boolean;
   uprawnieniaConfig: string;
   sumyRdzenia: 'ok' | 'zmienione';
+  konserwacja: boolean;
 };
 
 export function zabezpieczeniaZLogu(log: string | null): ZabezpieczeniaWp | null {
@@ -353,6 +357,7 @@ export function zabezpieczeniaZLogu(log: string | null): ZabezpieczeniaWp | null
       uzytkownikAdmin: j.uzytkownikAdmin === true,
       uprawnieniaConfig: typeof j.uprawnieniaConfig === 'string' && /^[0-7]{3,4}$/.test(j.uprawnieniaConfig) ? j.uprawnieniaConfig : '',
       sumyRdzenia: j.sumyRdzenia === 'ok' ? 'ok' : 'zmienione',
+      konserwacja: j.konserwacja === true,
     };
   } catch {
     return null;

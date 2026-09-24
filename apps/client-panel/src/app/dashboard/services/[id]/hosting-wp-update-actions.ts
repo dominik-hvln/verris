@@ -20,6 +20,7 @@ export interface WpStatus {
     uzytkownikAdmin: boolean;
     uprawnieniaConfig: string;
     sumyRdzenia: 'ok' | 'zmienione';
+    konserwacja: boolean;
   } | null;
   wToku: boolean;
   brakWordpressa: boolean;
@@ -76,7 +77,9 @@ export async function wpCache(serviceId: string, domain: string, action: 'on' | 
   return wynik(apiFetch<WpStatus>(url(serviceId, '/cache'), { method: 'POST', body: JSON.stringify({ domain, action }) }));
 }
 
-export async function wpHarden(serviceId: string, domain: string, action: 'file-edit' | 'debug-off'): Promise<Wynik> {
+export type WpOperacja = 'file-edit' | 'debug-off' | 'maintenance-on' | 'maintenance-off';
+
+export async function wpHarden(serviceId: string, domain: string, action: WpOperacja): Promise<Wynik> {
   return wynik(apiFetch<WpStatus>(url(serviceId, '/harden'), { method: 'POST', body: JSON.stringify({ domain, action }) }));
 }
 

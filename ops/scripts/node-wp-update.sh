@@ -8,7 +8,8 @@
 #   WPU_CORE      (update) none | minor | all
 #   WPU_PLUGINS   (update) pusta = bez wtyczek, „*” = wszystkie z aktualizacją, albo slug,slug
 #   WPU_THEMES    (update) jak WPU_PLUGINS, dla motywów
-#   WPU_HARDEN    (harden) file-edit | debug-off — I-08: wyłączenie edytora plików w kokpicie,
+#   WPU_HARDEN    (harden) file-edit | debug-off | maintenance-on | maintenance-off — I-08: wyłączenie edytora plików w kokpicie,
+#                 I-15: tryb konserwacji (wp maintenance-mode),
 #                 wyłączenie WP_DEBUG (wp-config.php)
 #   WPU_CACHE     (cache) on | off | purge — wtyczka LiteSpeed Cache (J-02): włączenie z kontrolą
 #                 strony (5xx po włączeniu → wyłączamy z powrotem), wyłączenie, wyczyszczenie cache;
@@ -37,7 +38,7 @@ log() { echo "[wp-update] $*"; }
 fail() { log "BŁĄD: $*" >&2; exit 1; }
 
 [[ "$WPU_MODE" =~ ^(check|update|cache|harden)$ ]] || fail "nieznany tryb: $WPU_MODE"
-[ "$WPU_MODE" != "harden" ] || [[ "$WPU_HARDEN" =~ ^(file-edit|debug-off)$ ]] || fail "nieprawidłowa operacja zabezpieczeń"
+[ "$WPU_MODE" != "harden" ] || [[ "$WPU_HARDEN" =~ ^(file-edit|debug-off|maintenance-on|maintenance-off)$ ]] || fail "nieprawidłowa operacja zabezpieczeń"
 [ "$WPU_MODE" != "cache" ] || [[ "$WPU_CACHE" =~ ^(on|off|purge|redis-on|redis-off)$ ]] || fail "nieprawidłowa operacja cache"
 [[ "$WPU_DA_USER" =~ ^[a-z][a-z0-9]{0,15}$ ]] || fail "nieprawidłowy login konta"
 [[ "$WPU_DOMAIN" =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$ ]] || fail "nieprawidłowa domena"
@@ -55,6 +56,7 @@ DOCROOT="$HOME_DIR/$DOCROOT_WZGL"
 WP_DIR="$HOME_DIR/.verris"
 WP_PHAR="$WP_DIR/wp-cli.phar"
 HEALTH_BASE="${WPU_HEALTH_BASE:-http://127.0.0.1}"
+ZNACZNIK_KONSERWACJI="verris-konserwacja"
 
 # jako_klient <polecenie> [arg…] — powłoka logowania klienta (klatka, PHP z selektora), argumenty
 # przekazane pozycyjnie, nigdy wklejane w tekst polecenia.
@@ -130,13 +132,15 @@ PRZED="$(stan)"
 echo "VERRIS_WP_PRZED=$PRZED"
 # I-08 — przegląd zabezpieczeń (tylko przy sprawdzeniu; weryfikacja sum kontrolnych trwa chwilę).
 zabezpieczenia() {
-  local edit debug admin perm sumy
+  local edit debug admin perm sumy konserwacja
   edit="$(wp config get DISALLOW_FILE_EDIT 2>/dev/null || echo '')"
   debug="$(wp config get WP_DEBUG 2>/dev/null || echo '')"
   if wp user get admin --field=ID >/dev/null 2>&1; then admin=1; else admin=0; fi
   perm="$(stat -c '%a' "$DOCROOT/wp-config.php" 2>/dev/null || echo '')"
   if wp core verify-checksums >/dev/null 2>&1; then sumy=ok; else sumy=zmienione; fi
-  EDIT="$edit" DEBUG="$debug" ADMIN="$admin" PERM="$perm" SUMY="$sumy" python3 - <<'PY'
+  konserwacja=0
+  if [ -f "$DOCROOT/.maintenance" ] && { grep -q 'time()' "$DOCROOT/.maintenance" || [ -n "$(find "$DOCROOT/.maintenance" -mmin -10)" ]; }; then konserwacja=1; fi
+  KONSERWACJA="$konserwacja" EDIT="$edit" DEBUG="$debug" ADMIN="$admin" PERM="$perm" SUMY="$sumy" python3 - <<'PY'
 import base64, json, os
 prawda = lambda v: v.strip().lower() in ("1", "true")
 out = {
@@ -145,6 +149,7 @@ out = {
     "uzytkownikAdmin": os.environ["ADMIN"] == "1",
     "uprawnieniaConfig": os.environ["PERM"][:4],
     "sumyRdzenia": os.environ["SUMY"],
+    "konserwacja": os.environ["KONSERWACJA"] == "1",
 }
 print(base64.b64encode(json.dumps(out, separators=(",", ":")).encode()).decode())
 PY
@@ -160,6 +165,26 @@ if [ "$WPU_MODE" = "harden" ]; then
   case "$WPU_HARDEN" in
     file-edit) wp config set DISALLOW_FILE_EDIT true --raw --quiet || fail "nie udało się zapisać wp-config.php" ;;
     debug-off) wp config set WP_DEBUG false --raw --quiet || fail "nie udało się zapisać wp-config.php" ;;
+    maintenance-on)
+      # „$upgrading = time()” liczone przy każdym wejściu — WordPress nie wyłączy trybu po 10 minutach,
+      # jak przy pliku z wp maintenance-mode. Polska strona przerwy tylko, gdy klient nie ma własnej.
+      jako_klient sh -c 'umask 022; printf "%s\n" "<?php \$upgrading = time(); // $2 ?>" > "$1/.maintenance"' verris "$DOCROOT_WZGL" "$ZNACZNIK_KONSERWACJI" \
+        || fail "nie udało się włączyć trybu konserwacji"
+      if [ -d "$DOCROOT/wp-content" ] && [ ! -e "$DOCROOT/wp-content/maintenance.php" ] && [ ! -L "$DOCROOT/wp-content/maintenance.php" ]; then
+        printf '%s\n' "<?php // $ZNACZNIK_KONSERWACJI" \
+          "http_response_code(503); header('Retry-After: 3600'); header('Content-Type: text/html; charset=utf-8'); ?>" \
+          '<!doctype html><html lang="pl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Przerwa techniczna</title></head>' \
+          '<body style="margin:0;min-height:100vh;display:grid;place-items:center;font-family:system-ui,sans-serif;background:#f6f6f3;color:#1c1c1a"><main style="max-width:32rem;padding:2rem;text-align:center"><h1 style="font-size:1.5rem">Trwa przerwa techniczna</h1><p>Wprowadzamy zmiany na stronie. Zajrzyj ponownie za chwilę.</p></main></body></html>' \
+          | jako_klient sh -c 'umask 022; cat > "$1/wp-content/maintenance.php"' verris "$DOCROOT_WZGL" || true
+      fi
+      ;;
+    maintenance-off)
+      jako_klient rm -f -- "$DOCROOT_WZGL/.maintenance" || fail "nie udało się wyłączyć trybu konserwacji"
+      if [ -f "$DOCROOT/wp-content/maintenance.php" ] && [ ! -L "$DOCROOT/wp-content/maintenance.php" ] \
+        && grep -qF "$ZNACZNIK_KONSERWACJI" "$DOCROOT/wp-content/maintenance.php"; then
+        jako_klient rm -f -- "$DOCROOT_WZGL/wp-content/maintenance.php" || true
+      fi
+      ;;
   esac
   echo "VERRIS_WP_ZABEZPIECZENIA=$(zabezpieczenia)"
   log "Gotowe."
@@ -213,6 +238,10 @@ if [ "$WPU_MODE" = "cache" ]; then
 fi
 
 [ "$WPU_CORE" != "none" ] || [ -n "$WPU_PLUGINS" ] || [ -n "$WPU_THEMES" ] || fail "nic nie wybrano do aktualizacji"
+# I-15: kontrola strony po aktualizacji dostałaby 503 i wycofała zmiany; aktualizacja rdzenia i tak zdjęłaby tryb.
+if [ -f "$DOCROOT/.maintenance" ] && grep -qF "$ZNACZNIK_KONSERWACJI" "$DOCROOT/.maintenance"; then
+  fail "strona jest w trybie konserwacji — wyłącz go przed aktualizacją"
+fi
 
 # 1. kopia
 TS="$(date +%Y%m%d-%H%M%S)-$(openssl rand -hex 2)"
