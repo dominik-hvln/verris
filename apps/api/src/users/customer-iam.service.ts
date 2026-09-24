@@ -72,10 +72,12 @@ export class CustomerIamService {
   async listAudit(ownerUserId: string, actorUserId: string, limit = 50) {
     await this.assertOwner(ownerUserId, actorUserId);
     const take = Math.min(Math.max(limit, 1), 100);
+    // O-03 — nie tylko zarządzanie subkontami, ale też to, co subkonta zrobiły na koncie właściciela.
+    const czlonkowie = await this.prisma.user.findMany({ where: { customerOwnerId: ownerUserId }, select: { id: true } });
     const rows = await this.prisma.auditLog.findMany({
       where: {
         userId: ownerUserId,
-        action: { startsWith: 'CUSTOMER_IAM_' },
+        OR: [{ action: { startsWith: 'CUSTOMER_IAM_' } }, ...(czlonkowie.length ? [{ actorUserId: { in: czlonkowie.map((c) => c.id) } }] : [])],
       },
       orderBy: { createdAt: 'desc' },
       take,

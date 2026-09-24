@@ -3,28 +3,8 @@
 import { useEffect, useState } from "react";
 import { ScrollText, Loader2 } from "lucide-react";
 import { fetchAccountActivity, type AccountActivityEntry } from "./activity-actions";
+import { ETYKIETY_DZIENNIKA } from "@/lib/etykiety-dziennika";
 
-const LABELS: Record<string, string> = {
-  HOSTING_DB_CREATED: "Utworzono bazę danych",
-  HOSTING_DB_DELETED: "Usunięto bazę danych",
-  HOSTING_FTP_CREATED: "Utworzono konto FTP",
-  HOSTING_FTP_DELETED: "Usunięto konto FTP",
-  HOSTING_FTP_PASSWORD_CHANGED: "Zmieniono hasło konta FTP",
-  HOSTING_EMAIL_CREATED: "Utworzono skrzynkę e-mail",
-  HOSTING_EMAIL_DELETED: "Usunięto skrzynkę e-mail",
-  HOSTING_EMAIL_PASSWORD_CHANGED: "Zmieniono hasło skrzynki e-mail",
-  HOSTING_EMAIL_QUOTA_CHANGED: "Zmieniono rozmiar skrzynki e-mail",
-  ASSISTANT_FIX_APPLIED: "Asystent poprawił rekord DNS",
-  ASSISTANT_FIX_UNDONE: "Cofnięto poprawkę asystenta",
-  HOSTING_CRON_CREATED: "Dodano zadanie cron",
-  HOSTING_CRON_DELETED: "Usunięto zadanie cron",
-  HOSTING_FILE_DELETED: "Usunięto plik",
-  HOSTING_FILE_COMPRESSED: "Spakowano pliki do archiwum",
-  HOSTING_FILE_RENAMED: "Zmieniono nazwę pliku",
-  HOSTING_FILE_UPLOADED: "Wgrano plik",
-  HOSTING_SUBDOMAIN_CREATED: "Dodano poddomenę",
-  HOSTING_SUBDOMAIN_DELETED: "Usunięto poddomenę",
-};
 
 function fmt(iso: string): string {
   try {
@@ -58,7 +38,7 @@ export function ActivityLogSection() {
           <ScrollText className="h-5 w-5" /> Aktywność konta
         </h3>
         <p className="mt-1 text-sm text-neutral-400">
-          Ostatnie zmiany wykonane na Twoim koncie (skrzynki, bazy, pliki, FTP, poddomeny). Pełna
+          Ostatnie zmiany na Twoim koncie — także te zrobione przez subkonta i obsługę. Pełna
           przejrzystość — wiesz dokładnie, co i kiedy się działo.
         </p>
       </div>
@@ -79,9 +59,11 @@ export function ActivityLogSection() {
               className="flex items-center justify-between gap-3 border-b border-white/5 px-4 py-2.5 last:border-0"
             >
               <div className="min-w-0">
-                <p className="break-words text-sm text-white">{LABELS[r.action] ?? r.action}</p>
-                {r.context ? (
-                  <p className="break-words text-[11px] text-neutral-500">{r.context}</p>
+                <p className="break-words text-sm text-white">{ETYKIETY_DZIENNIKA[r.action] ?? r.action}</p>
+                {r.context || r.actor ? (
+                  <p className="break-words text-[11px] text-neutral-500">
+                    {[r.context, r.actor ? `wykonał(a): ${r.actor}` : null].filter(Boolean).join(' · ')}
+                  </p>
                 ) : null}
               </div>
               <span className="shrink-0 text-xs text-neutral-400">{fmt(r.at)}</span>

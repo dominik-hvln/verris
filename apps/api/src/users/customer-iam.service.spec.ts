@@ -65,9 +65,9 @@ describe('CustomerIamService', () => {
         createdAt: new Date('2026-05-22T12:00:00Z'),
       },
     ]);
-    prisma.user.findMany.mockResolvedValue([
-      { id: 'owner_1', email: 'owner@example.com', firstName: 'Jan', lastName: 'Kowalski' },
-    ]);
+    prisma.user.findMany
+      .mockResolvedValueOnce([{ id: 'sub_1' }])
+      .mockResolvedValue([{ id: 'owner_1', email: 'owner@example.com', firstName: 'Jan', lastName: 'Kowalski' }]);
 
     await expect(service().listAudit('owner_1', 'owner_1')).resolves.toMatchObject({
       entries: [
@@ -81,7 +81,8 @@ describe('CustomerIamService', () => {
       expect.objectContaining({
         where: expect.objectContaining({
           userId: 'owner_1',
-          action: { startsWith: 'CUSTOMER_IAM_' },
+          // O-03 — także działania subkont na koncie właściciela.
+          OR: [{ action: { startsWith: 'CUSTOMER_IAM_' } }, { actorUserId: { in: ['sub_1'] } }],
         }),
       }),
     );

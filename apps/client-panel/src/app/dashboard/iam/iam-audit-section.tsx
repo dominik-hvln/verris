@@ -1,6 +1,6 @@
 import { ScrollText } from 'lucide-react';
 import { getIamAudit } from './actions';
-import { IAM_AUDIT_ACTION_LABELS } from './constants';
+import { ETYKIETY_DZIENNIKA } from '@/lib/etykiety-dziennika';
 
 export async function IamAuditSection() {
   const { entries } = await getIamAudit();
@@ -10,7 +10,7 @@ export async function IamAuditSection() {
         <ScrollText className="h-5 w-5 text-white" />
         <div>
           <h2 className="text-lg font-semibold text-white">Audyt IAM</h2>
-          <p className="text-sm text-neutral-500">Ostatnie 50 zdarzeń delegowania dostępu na tym koncie.</p>
+          <p className="text-sm text-neutral-500">Ostatnie 50 zdarzeń: zmiany dostępu i działania subkont na tym koncie.</p>
         </div>
       </div>
       {entries.length === 0 ? (
@@ -24,7 +24,7 @@ export async function IamAuditSection() {
             >
               <div>
                 <span className="font-medium text-white">
-                  {IAM_AUDIT_ACTION_LABELS[entry.action] ?? entry.action}
+                  {ETYKIETY_DZIENNIKA[entry.action] ?? entry.action}
                 </span>
                 {entry.actor?.name && (
                   <span className="ml-2 text-neutral-500">— {entry.actor.name}</span>

@@ -672,41 +672,32 @@ export class UsersService {
    * konta (jako cel lub wykonawca), z bezpiecznym, krótkim kontekstem.
    */
   async listMyActivity(userId: string, limit = 30) {
-    const VISIBLE = new Set<string>([
-      'HOSTING_DB_CREATED',
-      'HOSTING_DB_DELETED',
-      'HOSTING_FTP_CREATED',
-      'HOSTING_FTP_DELETED',
-      'HOSTING_FTP_PASSWORD_CHANGED',
-      'HOSTING_EMAIL_CREATED',
-      'HOSTING_EMAIL_DELETED',
-      'HOSTING_EMAIL_PASSWORD_CHANGED',
-      'HOSTING_EMAIL_QUOTA_CHANGED',
-      'ASSISTANT_FIX_APPLIED',
-      'ASSISTANT_FIX_UNDONE',
-      'HOSTING_CRON_CREATED',
-      'HOSTING_CRON_DELETED',
-      'HOSTING_FILE_DELETED',
-      'HOSTING_FILE_COMPRESSED',
-      'HOSTING_FILE_RENAMED',
-      'HOSTING_FILE_UPLOADED',
-      'HOSTING_SUBDOMAIN_CREATED',
-      'HOSTING_SUBDOMAIN_DELETED',
-    ]);
+    // G-18 / O-03 (2026-09-24): wszystkie działania na zasobach hostingu (prefiks HOSTING_ — każdy
+    // nowy rodzaj pojawia się sam, bez dopisywania do listy) + wybrane działania konta. Kto to zrobił:
+    // subkonto (e-mail) albo obsługa Verris — właściciel widzi też cudze zmiany na swoim koncie.
+    const KONTO = ['ASSISTANT_FIX_APPLIED', 'ASSISTANT_FIX_UNDONE', 'CLIENT_WEBHOOK_CREATED', 'CLIENT_WEBHOOK_DELETED',
+      'RESELLER_APPLIED', 'RESELLER_MARKUP_CHANGED', 'RESELLER_CLIENT_CREATED'];
     const take = Math.min(Math.max(limit, 1), 100);
     const rows = await this.prisma.auditLog.findMany({
       where: {
-        action: { in: [...VISIBLE] },
-        OR: [{ userId }, { actorUserId: userId }],
+        AND: [
+          { OR: [{ action: { startsWith: 'HOSTING_' } }, { action: { in: KONTO } }] },
+          { OR: [{ userId }, { actorUserId: userId }] },
+        ],
       },
       orderBy: { createdAt: 'desc' },
       take,
-      select: { id: true, action: true, details: true, createdAt: true },
+      select: { id: true, action: true, details: true, createdAt: true, actorUserId: true },
     });
+    const obcy = [...new Set(rows.map((r) => r.actorUserId).filter((a): a is string => !!a && a !== userId))];
+    const aktorzy = obcy.length
+      ? await this.prisma.user.findMany({ where: { id: { in: obcy } }, select: { id: true, email: true, role: true } })
+      : [];
+    const kto = new Map(aktorzy.map((a) => [a.id, a.role === 'USER' ? a.email : 'obsługa Verris']));
     const ctxOf = (d: unknown): string | null => {
       if (!d || typeof d !== 'object') return null;
       const o = d as Record<string, unknown>;
-      for (const k of ['email', 'domain', 'name', 'path', 'command', 'database', 'user']) {
+      for (const k of ['email', 'domain', 'name', 'path', 'command', 'database', 'db', 'user', 'url', 'target']) {
         const v = o[k];
         if (typeof v === 'string' && v.trim()) return v.length > 80 ? `${v.slice(0, 80)}…` : v;
       }
@@ -718,6 +709,7 @@ export class UsersService {
         action: r.action,
         at: r.createdAt.toISOString(),
         context: ctxOf(r.details),
+        actor: r.actorUserId && r.actorUserId !== userId ? (kto.get(r.actorUserId) ?? 'inne konto') : null,
       })),
     };
   }

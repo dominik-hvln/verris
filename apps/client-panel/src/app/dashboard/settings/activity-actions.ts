@@ -7,6 +7,8 @@ export interface AccountActivityEntry {
   action: string;
   at: string;
   context: string | null;
+  /** Kto wykonał, gdy nie właściciel: e-mail subkonta albo „obsługa Verris”. */
+  actor?: string | null;
 }
 
 /** SEC-8 — dziennik aktywności konta zalogowanego użytkownika. */
