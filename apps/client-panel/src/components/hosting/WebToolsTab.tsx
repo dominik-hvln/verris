@@ -16,6 +16,7 @@ import {
 import { daErrorMessage } from '@/lib/client-hosting-messages';
 import { Select } from '@/components/panel/select';
 import { potwierdz } from '@/components/panel/potwierdz';
+import { Checkbox } from '@/components/panel/checkbox';
 
 const field = 'rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-neutral-500';
 const EMPTY: WebToolsState = { redirects: [], hotlink: { enabled: false, extensions: 'jpg,jpeg,png,gif,webp,svg', allow: [] }, blockedIps: [], protectedDirs: [], forceHttps: false, wwwMode: 'none' };
@@ -125,7 +126,7 @@ export default function WebToolsTab({ serviceId }: { serviceId: string }) {
         <p className="mt-1 text-xs text-neutral-400">Wymuś bezpieczne połączenie i jedną wersję adresu (z www lub bez) — lepsze SEO i brak duplikatów treści.</p>
         <div className="mt-3 flex flex-wrap items-center gap-4">
           <label className="flex items-center gap-2 text-sm text-neutral-200">
-            <input type="checkbox" checked={Boolean(state.forceHttps)} onChange={(e) => persist({ ...state, forceHttps: e.target.checked }, e.target.checked ? 'Wymuszanie HTTPS włączone' : 'Wymuszanie HTTPS wyłączone')} disabled={saving} className="h-4 w-4 accent-emerald-500" />
+            <Checkbox checked={Boolean(state.forceHttps)} onChange={(e) => persist({ ...state, forceHttps: e.target.checked }, e.target.checked ? 'Wymuszanie HTTPS włączone' : 'Wymuszanie HTTPS wyłączone')} disabled={saving} className="h-4 w-4 accent-emerald-500" />
             Wymuś HTTPS (przekierowanie http → https)
           </label>
           <div className="flex items-center gap-2 text-xs text-neutral-400">
@@ -200,7 +201,7 @@ export default function WebToolsTab({ serviceId }: { serviceId: string }) {
         <p className="mt-1 text-xs text-neutral-400">Blokuje wyświetlanie Twoich obrazów na obcych stronach (kradzież transferu).</p>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <label className="flex items-center gap-2 text-sm text-neutral-200">
-            <input type="checkbox" checked={state.hotlink.enabled} onChange={toggleHotlink} className="h-4 w-4 accent-emerald-500" /> Włączona
+            <Checkbox checked={state.hotlink.enabled} onChange={toggleHotlink} className="h-4 w-4 accent-emerald-500" /> Włączona
           </label>
           <input value={state.hotlink.extensions} onChange={(e) => saveHotlinkExt(e.target.value)} placeholder="jpg,png,gif,webp" className={`${field} flex-1 min-w-[180px]`} />
           <Button onClick={() => persist(state, 'Zapisano rozszerzenia')} disabled={saving} className="h-9 bg-white/10 text-white hover:bg-white/20 text-xs">Zapisz rozszerzenia</Button>

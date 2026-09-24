@@ -30,6 +30,7 @@ import {
   type VpsInstanceDto,
   type VpsPlanDto,
 } from './vps-actions';
+import { Checkbox } from '@/components/panel/checkbox';
 
 const STATUS_LABEL: Record<VpsInstanceDto['status'], string> = {
   PROVISIONING: 'Tworzenie…',
@@ -284,8 +285,7 @@ export function VpsClient({
           {/* Zbiorczy checkbox akceptacji (z żądaniem natychmiastowego
               rozpoczęcia świadczenia — art. 15 ust. 3 / 21 ust. 2 upk). */}
           <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-3">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={immediateConsent}
               onChange={(e) => setImmediateConsent(e.target.checked)}
               className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-white/5 accent-emerald-400"

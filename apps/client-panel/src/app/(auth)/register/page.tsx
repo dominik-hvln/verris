@@ -8,6 +8,7 @@ import { SpinBorder } from "@/components/spin-border";
 import { VerrisLockup } from "@/components/logo";
 import { Captcha } from "@/components/captcha";
 import { checkPassword, PASSWORD_MIN_LENGTH } from "@/lib/password-policy";
+import { Checkbox } from '@/components/panel/checkbox';
 
 const initialState = { error: "" };
 
@@ -133,8 +134,7 @@ function RegisterContent() {
                     first line of defense; server still re-validates. */}
                 <div className="space-y-3 pt-2">
                   <label className="flex items-start gap-3 group cursor-pointer">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       name="acceptTerms"
                       required
                       className="mt-1 h-4 w-4 rounded border-white/20 bg-neutral-900/50 text-sky-500 focus:ring-2 focus:ring-sky-500/30 focus:ring-offset-0 cursor-pointer accent-sky-500"
@@ -150,8 +150,7 @@ function RegisterContent() {
                   </label>
 
                   <label className="flex items-start gap-3 group cursor-pointer">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       name="acceptPrivacy"
                       required
                       className="mt-1 h-4 w-4 rounded border-white/20 bg-neutral-900/50 text-sky-500 focus:ring-2 focus:ring-sky-500/30 focus:ring-offset-0 cursor-pointer accent-sky-500"
@@ -167,8 +166,7 @@ function RegisterContent() {
                   </label>
 
                   <label className="flex items-start gap-3 group cursor-pointer">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       name="acceptMarketing"
                       className="mt-1 h-4 w-4 rounded border-white/20 bg-neutral-900/50 text-sky-500 focus:ring-2 focus:ring-sky-500/30 focus:ring-offset-0 cursor-pointer accent-sky-500"
                     />

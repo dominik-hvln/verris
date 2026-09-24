@@ -32,6 +32,7 @@ import {
 } from '../actions';
 import { RegistrantFields, PUSTY_ABONENT, brakiAbonenta } from './registrant-fields';
 import { trackBeginCheckout, trackPurchase, trackSearch } from '@/lib/analytics-events';
+import { Checkbox } from '@/components/panel/checkbox';
 
 const YEAR_OPTIONS = [1, 2, 3, 5, 10] as const;
 
@@ -657,8 +658,7 @@ export function DomainPurchaseWizard({ initialOrders }: { initialOrders: Registr
               </p>
               {/* Zbiorcza akceptacja dokumentów przy zamówieniu. */}
               <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={acceptDocs}
                   onChange={(e) => setAcceptDocs(e.target.checked)}
                   className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-white/5 accent-white"
@@ -697,8 +697,7 @@ export function DomainPurchaseWizard({ initialOrders }: { initialOrders: Registr
                 </p>
               ) : (
                 <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={waiverConsent}
                     onChange={(e) => setWaiverConsent(e.target.checked)}
                     className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-white/5 accent-white"
@@ -763,7 +762,7 @@ export function DomainPurchaseWizard({ initialOrders }: { initialOrders: Registr
             {/* Bez tego pola transfer zawsze kończył się błędem 400: API wymaga oświadczenia (art. 38 pkt 1 upk). */}
             {standingConsent?.granted ? null : (
               <label className="flex cursor-pointer items-start gap-3 text-xs text-neutral-300">
-                <input type="checkbox" checked={waiverConsent} onChange={(e) => setWaiverConsent(e.target.checked)} className="mt-0.5 h-4 w-4 accent-white" />
+                <Checkbox checked={waiverConsent} onChange={(e) => setWaiverConsent(e.target.checked)} className="mt-0.5 h-4 w-4 accent-white" />
                 Żądam natychmiastowego rozpoczęcia transferu i przyjmuję do wiadomości, że z chwilą jego wykonania tracę prawo odstąpienia od umowy.
               </label>
             )}

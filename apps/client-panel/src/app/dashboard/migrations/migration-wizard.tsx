@@ -11,6 +11,7 @@ import {
   type MigrationMysqlInput,
 } from './actions';
 import type { DiscoveryResult, PreflightSummary } from './types';
+import { Checkbox } from '@/components/panel/checkbox';
 
 interface Props {
   serviceId: string;
@@ -545,7 +546,7 @@ function StepSources(props: {
 
       <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 space-y-3">
         <label className="flex items-center gap-2 text-sm font-semibold text-white">
-          <input type="checkbox" checked={props.includeFiles} onChange={(e) => props.setIncludeFiles(e.target.checked)} />
+          <Checkbox checked={props.includeFiles} onChange={(e) => props.setIncludeFiles(e.target.checked)} />
           Pliki strony (FTP/SFTP)
         </label>
         {props.includeFiles ? (
@@ -734,8 +735,7 @@ function StepStart(props: {
 
       {/* Zgoda / upoważnienie (RODO) — wymagane do startu. */}
       <label className="flex items-start gap-2.5 rounded-xl border border-white/10 bg-white/[0.02] p-3 text-xs leading-relaxed text-neutral-300">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={props.consent}
           onChange={(e) => props.setConsent(e.target.checked)}
           className="mt-0.5 h-4 w-4 shrink-0 accent-cyan-500"

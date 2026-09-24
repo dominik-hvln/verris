@@ -11,6 +11,7 @@ import {
   previewPlanChangeAction,
   type PlanChangeActionState,
 } from './actions';
+import { Checkbox } from '@/components/panel/checkbox';
 
 interface TargetPlan {
   id: string;
@@ -315,8 +316,7 @@ export function PlanChangeForm({
 
         {needsReset && (
           <label className="flex items-start gap-3 rounded-xl border border-amber-400/20 bg-amber-400/5 p-4 cursor-pointer">
-            <input
-              type="checkbox"
+            <Checkbox
               name="confirmReset"
               className="mt-0.5 h-5 w-5 rounded accent-amber-500"
             />

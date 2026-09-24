@@ -31,6 +31,7 @@ import {
 import { fmWrite, fmRead, fmList, fmUpload, type FmEntry } from '@/app/dashboard/file-manager/data';
 import { useFocusTrap } from '@/hooks/use-focus-trap';
 import { Select } from '@/components/panel/select';
+import { Checkbox } from '@/components/panel/checkbox';
 
 /* ============================ MODEL ============================ */
 type SectionType =
@@ -1253,7 +1254,7 @@ function SectionEditor({ section, serviceId, onChange }: { section: Section; ser
   const F = (k: string, label: string, area?: boolean) => <Field key={k} label={label} value={String(d[k] ?? '')} onChange={(v) => onChange({ [k]: v })} area={area} />;
   const Img = (k: string, label: string) => <ImageField key={k} serviceId={serviceId} label={label} value={String(d[k] ?? '')} onChange={(v) => onChange({ [k]: v })} />;
   const Bool = (k: string, label: string) => (
-    <label className="flex items-center gap-2 text-sm text-neutral-300"><input type="checkbox" checked={Boolean(d[k])} onChange={(e) => onChange({ [k]: e.target.checked })} className="h-4 w-4 accent-emerald-500" />{label}</label>
+    <label className="flex items-center gap-2 text-sm text-neutral-300"><Checkbox checked={Boolean(d[k])} onChange={(e) => onChange({ [k]: e.target.checked })} className="h-4 w-4 accent-emerald-500" />{label}</label>
   );
   switch (section.type) {
     case 'navbar':
@@ -1382,7 +1383,7 @@ function ObjList({ label, items, fields, factory, onChange, bools, serviceId }: 
             ),
           )}
           {(bools ?? []).map(([k, l]) => (
-            <label key={k} className="flex items-center gap-2 text-xs text-neutral-300"><input type="checkbox" checked={Boolean(it[k])} onChange={(e) => set(i, k, e.target.checked)} className="h-3.5 w-3.5 accent-emerald-500" />{l}</label>
+            <label key={k} className="flex items-center gap-2 text-xs text-neutral-300"><Checkbox checked={Boolean(it[k])} onChange={(e) => set(i, k, e.target.checked)} className="h-3.5 w-3.5 accent-emerald-500" />{l}</label>
           ))}
           <button onClick={() => onChange(items.filter((_, j) => j !== i))} className="inline-flex items-center gap-1 text-xs text-rose-300"><Trash2 className="h-3 w-3" /> Usuń</button>
         </div>

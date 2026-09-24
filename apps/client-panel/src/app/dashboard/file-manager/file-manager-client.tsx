@@ -41,6 +41,7 @@ import {
 } from './data';
 import { daErrorMessage } from '@/lib/client-hosting-messages';
 import { potwierdz, zapytaj } from '@/components/panel/potwierdz';
+import { Checkbox } from '@/components/panel/checkbox';
 
 const EDITABLE = /\.(txt|md|html?|css|js|mjs|cjs|ts|jsx|tsx|json|xml|ya?ml|ini|conf|env|htaccess|php|py|sh|sql|log)$/i;
 const ARCHIVE = /\.(zip|tar\.gz|tgz|tar\.bz2|tar)$/i;
@@ -522,8 +523,7 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
             <thead>
               <tr className="border-b border-white/10 text-left text-xs text-neutral-500">
                 <th className="w-8 px-3 py-2">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     aria-label="Zaznacz wszystko"
                     checked={entries.length > 0 && selected.size === entries.length}
                     onChange={toggleSelectAll}
@@ -540,8 +540,7 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
               {entries.map((entry) => (
                 <tr key={entry.name} className="border-b border-white/5 hover:bg-white/[0.02]">
                   <td data-label="Zaznacz" className="px-3 py-2">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       aria-label={`Zaznacz ${entry.name}`}
                       checked={selected.has(entry.name)}
                       onChange={() => toggleSelect(entry.name)}

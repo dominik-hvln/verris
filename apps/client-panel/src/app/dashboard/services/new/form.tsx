@@ -17,6 +17,7 @@ import { RegistrantFields, PUSTY_ABONENT, brakiAbonenta } from '@/app/dashboard/
 import { DomainStep, type DomainSelection } from './domain-step';
 import { CREDIT_SHORT, formatCredits } from '@/lib/credits';
 import { trackBeginCheckout, trackPurchase } from '@/lib/analytics-events';
+import { Checkbox } from '@/components/panel/checkbox';
 
 interface StartOffer {
   cardEnabled: boolean;
@@ -540,8 +541,7 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
           odstąpienia (art. 38 ust. 1 pkt 1 upk). */}
       <section className="space-y-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
         <label className="flex cursor-pointer items-start gap-3">
-          <input
-            type="checkbox"
+          <Checkbox
             required
             checked={immediateConsent}
             onChange={(e) => setImmediateConsent(e.target.checked)}
@@ -581,8 +581,7 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
             </p>
           ) : (
             <label className="flex cursor-pointer items-start gap-3">
-              <input
-                type="checkbox"
+              <Checkbox
                 required
                 checked={domainWaiverConsent}
                 onChange={(e) => setDomainWaiverConsent(e.target.checked)}

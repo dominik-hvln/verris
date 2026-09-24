@@ -21,6 +21,7 @@ import {
 import { daErrorMessage } from '@/lib/client-hosting-messages';
 import { Select } from '@/components/panel/select';
 import { potwierdz } from '@/components/panel/potwierdz';
+import { Checkbox } from '@/components/panel/checkbox';
 
 const fieldCls =
   'w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-neutral-500';
@@ -226,7 +227,7 @@ export default function MailExtras({ serviceId }: { serviceId: string }) {
         <p className="mt-1 text-xs text-neutral-400">Skanuje pocztę przychodzącą i oznacza spam. Im niższy próg, tym ostrzejszy filtr.</p>
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <label className="flex items-center gap-2 text-sm text-neutral-200">
-            <input type="checkbox" checked={spamOn} onChange={(e) => saveSpam(e.target.checked)} disabled={spamBusy} className="h-4 w-4 accent-emerald-500" /> Włączony
+            <Checkbox checked={spamOn} onChange={(e) => saveSpam(e.target.checked)} disabled={spamBusy} className="h-4 w-4 accent-emerald-500" /> Włączony
           </label>
           <label className="flex items-center gap-2 text-xs text-neutral-400">Próg (czułość)
             <input value={spamScore} onChange={(e) => setSpamScore(e.target.value.replace(/[^0-9.]/g, ''))} className={fieldCls + ' w-16'} />

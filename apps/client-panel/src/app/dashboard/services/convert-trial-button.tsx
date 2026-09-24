@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Loader2, Sparkles } from 'lucide-react';
 import { convertTrialAction } from './subscription-payment-actions';
 import { trackPurchase } from '@/lib/analytics-events';
+import { Checkbox } from '@/components/panel/checkbox';
 
 /**
  * O-1 — converts a trial to a paid wallet subscription (charges one month).
@@ -39,8 +40,7 @@ export function ConvertTrialButton({ serviceId }: { serviceId: string }) {
   return (
     <div className="mt-1.5 space-y-1.5">
       <label className="flex cursor-pointer items-start gap-2">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={consent}
           onChange={(e) => setConsent(e.target.checked)}
           className="mt-0.5 h-3.5 w-3.5 shrink-0 rounded border-white/20 bg-white/5 accent-emerald-400"

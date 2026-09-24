@@ -16,6 +16,7 @@ import { SectionHead } from '@/components/panel/v2';
 import { ArchiveBrowser } from '@/components/hosting/ArchiveBrowser';
 import BackupScheduleCard from '@/components/hosting/BackupScheduleCard';
 import { HostingOffsitePanel } from '@/components/hosting/hosting-offsite-panel';
+import { Checkbox } from '@/components/panel/checkbox';
 
 const STATUS_LABEL: Record<HostingRestoreJobDto['status'], string> = {
   QUEUED: 'W kolejce',
@@ -305,8 +306,7 @@ function Toggle({
 }) {
   return (
     <label className="inline-flex cursor-pointer items-center gap-2 text-neutral-200">
-      <input
-        type="checkbox"
+      <Checkbox
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
         className="h-4 w-4 accent-emerald-500"

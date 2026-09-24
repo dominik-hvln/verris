@@ -33,6 +33,7 @@ import {
   sendCampaign,
   deleteCampaign,
 } from '../actions';
+import { Checkbox } from '@/components/panel/checkbox';
 
 type Tab = 'lists' | 'campaigns';
 
@@ -203,7 +204,7 @@ function ListsTab({
           <input value={fromName} onChange={(e) => setFromName(e.target.value)} placeholder="Nazwa nadawcy (opcjonalnie)" className="emm-inp" />
           <input value={replyTo} onChange={(e) => setReplyTo(e.target.value)} placeholder="Reply-to e-mail (opcjonalnie)" className="emm-inp" />
           <label className="flex items-center gap-2 text-sm text-neutral-300">
-            <input type="checkbox" checked={doubleOptIn} onChange={(e) => setDoubleOptIn(e.target.checked)} className="h-4 w-4 accent-fuchsia-500" />
+            <Checkbox checked={doubleOptIn} onChange={(e) => setDoubleOptIn(e.target.checked)} className="h-4 w-4 accent-fuchsia-500" />
             Double opt-in (zalecane, RODO)
           </label>
         </div>
@@ -342,7 +343,7 @@ function ListCard({
             <summary className="cursor-pointer text-xs font-medium text-neutral-300">Import masowy (CSV: email,imię,nazwisko — jeden na linię)</summary>
             <textarea value={csv} onChange={(e) => setCsv(e.target.value)} rows={4} placeholder={'jan@firma.pl,Jan,Kowalski\nanna@firma.pl,Anna'} className="emm-inp2 mt-2 font-mono text-xs" />
             <label className="mt-2 flex items-start gap-2 text-[11px] text-neutral-400">
-              <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 h-3.5 w-3.5 accent-fuchsia-500" />
+              <Checkbox checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 h-3.5 w-3.5 accent-fuchsia-500" />
               Oświadczam, że posiadam zgodę marketingową tych kontaktów (podstawa prawna RODO).
             </label>
             <button onClick={doImport} disabled={pending} className="emm-btn2 mt-2">

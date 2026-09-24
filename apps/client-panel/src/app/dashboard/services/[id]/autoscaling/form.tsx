@@ -3,6 +3,7 @@
 import { useActionState, useState, type ReactNode, useId } from 'react';
 import { Loader2, Save, Sparkles, ShieldCheck, Cpu, MemoryStick, HardDrive } from 'lucide-react';
 import { updateAutoscalingAction, type UpdateAutoscalingState } from './actions';
+import { Checkbox } from '@/components/panel/checkbox';
 
 interface Props {
   subscriptionId: string;
@@ -50,8 +51,7 @@ export function AutoscalingForm({
       </div>
 
       <label className="flex items-start gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-4 cursor-pointer">
-        <input
-          type="checkbox"
+        <Checkbox
           name="enabled"
           checked={enabled}
           onChange={(e) => setEnabled(e.target.checked)}
@@ -173,8 +173,7 @@ function ResourceToggle({
   const toggleId = useId();
   return (
     <label className="flex items-start gap-3 cursor-pointer">
-      <input
-        type="checkbox"
+      <Checkbox
         name={name}
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}

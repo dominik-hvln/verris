@@ -9,6 +9,7 @@ import { CREDIT_SHORT, formatCredits, pluralCredits } from '@/lib/credits';
 import { deletePaymentMethodAction, redeemPromoAction, startAddCardAction, upsertAutoTopupAction } from './actions';
 import { Select } from '@/components/panel';
 import { potwierdz } from '@/components/panel/potwierdz';
+import { Checkbox } from '@/components/panel/checkbox';
 
 interface Props {
   initialAuto: WalletAutoTopupSettingsDto;
@@ -217,8 +218,7 @@ function WalletAutotopupBlock({
 
       <form onSubmit={onSubmit} className="space-y-4">
         <label className="flex items-center gap-3 cursor-pointer select-none">
-          <input
-            type="checkbox"
+          <Checkbox
             name="enabled"
             defaultChecked={local.enabled}
             className="h-4 w-4 rounded border-white/20 bg-black/40 text-white focus:ring-white/30"

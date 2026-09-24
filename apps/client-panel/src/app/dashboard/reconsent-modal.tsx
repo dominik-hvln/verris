@@ -9,6 +9,7 @@ import {
   type ReConsentRequiredDoc,
 } from "./consent-actions";
 import { logoutAction } from "./actions";
+import { Checkbox } from '@/components/panel/checkbox';
 
 const KIND_LABELS = {
   TERMS: "Regulamin",
@@ -142,8 +143,7 @@ export function ReConsentModal() {
         )}
 
         <label className="mt-6 flex items-start gap-3 cursor-pointer">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={accepted}
             onChange={(e) => setAccepted(e.target.checked)}
             className="mt-1 h-4 w-4 rounded border-white/20 bg-neutral-900 text-sky-500 focus:ring-2 focus:ring-sky-500/30 cursor-pointer"

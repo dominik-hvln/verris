@@ -15,6 +15,7 @@ import {
   type PartnerCommission,
   type PartnerPayout,
 } from './actions';
+import { Checkbox } from '@/components/panel/checkbox';
 
 export function ReferralProgramClient() {
   const [data, setData] = useState<ReferralProgramStatus | null>(null);
@@ -67,7 +68,7 @@ export function ReferralProgramClient() {
             który zarejestruje się z Twojego linku, oboje otrzymacie punkty EKO.
           </p>
           <label className="flex items-start gap-3 text-sm text-neutral-300">
-            <input type="checkbox" required className="mt-1 accent-emerald-500" id="terms" />
+            <Checkbox required className="mt-1 accent-emerald-500" id="terms" />
             <span>Akceptuję regulamin programu poleceń i zasady wypłat / punktów EKO.</span>
           </label>
           <button

@@ -9,6 +9,7 @@ import {
   requestLetsEncryptSslAction,
 } from '@/app/dashboard/services/[id]/hosting-ssl-actions';
 import { Select } from '@/components/panel';
+import { Checkbox } from '@/components/panel/checkbox';
 
 interface Props {
   serviceId: string;
@@ -86,8 +87,7 @@ export function HostingSslForms({ serviceId }: Props) {
             karty w tym czasie.
           </p>
           <label className="flex items-center gap-2 text-sm text-neutral-300 cursor-pointer select-none">
-            <input
-              type="checkbox"
+            <Checkbox
               className="rounded border-white/20 bg-black/40"
               checked={includeWww}
               disabled={wildcard}
@@ -96,8 +96,7 @@ export function HostingSslForms({ serviceId }: Props) {
             Uwzględnij <span className="font-mono text-neutral-200">www</span> (jeśli domena jest na koncie)
           </label>
           <label className="flex items-start gap-2 text-sm text-neutral-300 cursor-pointer select-none">
-            <input
-              type="checkbox"
+            <Checkbox
               className="mt-0.5 rounded border-white/20 bg-black/40"
               checked={wildcard}
               onChange={(e) => setWildcard(e.target.checked)}

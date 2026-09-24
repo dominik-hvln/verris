@@ -11,6 +11,8 @@ import {
   type ScopeOption,
 } from './actions';
 import { Select } from '@/components/panel/select';
+import { Checkbox } from '@/components/panel/checkbox';
+import { potwierdz } from '@/components/panel/potwierdz';
 
 const BASE_HINT = '/api/v1';
 
@@ -61,7 +63,12 @@ export function ApiTokensClient() {
     });
   };
 
-  const revoke = (id: string) => {
+  const revoke = async (id: string, nazwa: string) => {
+    const ok = await potwierdz(`Unieważnić token „${nazwa}”? Skrypty, które go używają, przestaną działać od razu — tego nie da się cofnąć.`, {
+      akcja: 'Unieważnij',
+      niebezpieczne: true,
+    });
+    if (!ok) return;
     startTransition(async () => {
       const r = await revokeTokenAction(id);
       if (r.ok) reload(); else setErr(r.error ?? 'Błąd');
@@ -103,7 +110,7 @@ export function ApiTokensClient() {
           <div role="group" aria-labelledby={`${fieldId}-scopes`} className="grid gap-2 sm:grid-cols-2">
             {scopes.map((s) => (
               <label key={s.value} className={`flex items-start gap-2 rounded-lg border px-3 py-2 text-sm cursor-pointer ${picked.has(s.value) ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-100' : 'border-white/10 text-neutral-300'}`}>
-                <input type="checkbox" checked={picked.has(s.value)} onChange={() => toggle(s.value)} className="mt-0.5 accent-emerald-500" />
+                <Checkbox checked={picked.has(s.value)} onChange={() => toggle(s.value)} className="mt-0.5 accent-emerald-500" />
                 <span><span className="font-mono text-xs text-neutral-400">{s.value}</span><br />{s.label}</span>
               </label>
             ))}
@@ -154,7 +161,7 @@ export function ApiTokensClient() {
                     </div>
                   </div>
                   {!revoked ? (
-                    <button onClick={() => revoke(t.id)} disabled={pending} className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/30 px-3 py-1.5 text-xs font-semibold text-rose-200 hover:bg-rose-500/10 disabled:opacity-50">
+                    <button onClick={() => void revoke(t.id, t.name)} disabled={pending} className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/30 px-3 py-1.5 text-xs font-semibold text-rose-200 hover:bg-rose-500/10 disabled:opacity-50">
                       <Trash2 className="h-3.5 w-3.5" /> Unieważnij
                     </button>
                   ) : null}

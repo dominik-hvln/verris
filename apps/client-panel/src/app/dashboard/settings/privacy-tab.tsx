@@ -22,6 +22,7 @@ import {
   type DeletionStatus,
   type UserConsentRow,
 } from "./privacy-actions";
+import { Checkbox } from '@/components/panel/checkbox';
 
 const KIND_LABELS: Record<UserConsentRow["documentKind"], string> = {
   TERMS: "Regulamin",
@@ -430,8 +431,7 @@ function AccountDeletionSection({
                 className="w-full rounded-xl border border-white/10 bg-[#0a0a0a]/50 px-4 py-2.5 text-sm text-white placeholder:text-neutral-500 focus:outline-none focus:ring-2 focus:ring-rose-500/30 resize-none"
               />
               <label className="flex items-start gap-3 text-xs text-neutral-300">
-                <input
-                  type="checkbox"
+                <Checkbox
                   checked={agree}
                   onChange={(e) => setAgree(e.target.checked)}
                   className="mt-0.5 h-4 w-4 rounded border-white/20 bg-neutral-900 text-rose-500"

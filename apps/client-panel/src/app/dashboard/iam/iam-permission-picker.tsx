@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import { PERMISSION_LABELS } from './constants';
 import { IAM_ROLE_PRESETS } from './role-presets';
+import { Checkbox } from '@/components/panel/checkbox';
 
 export function IamPermissionPicker({
   permissions,
@@ -51,9 +52,8 @@ export function IamPermissionPicker({
             key={permission}
             className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-3 text-sm text-neutral-300"
           >
-            <input
+            <Checkbox
               name="permissions"
-              type="checkbox"
               value={permission}
               checked={selected.has(permission)}
               onChange={() => toggle(permission)}

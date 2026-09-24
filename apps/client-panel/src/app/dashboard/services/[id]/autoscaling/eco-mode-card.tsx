@@ -5,6 +5,7 @@ import { useMemo, useState, useTransition } from 'react';
 import { Leaf, Loader2, Sparkles } from 'lucide-react';
 import { patchSubscriptionEcoMode } from '../eco-mode-actions';
 import { ECO_FIRST_ENABLE_POINTS } from '@/lib/eco-point-rules';
+import { Checkbox } from '@/components/panel/checkbox';
 
 interface Props {
   subscriptionId: string;
@@ -76,8 +77,7 @@ export function EcoModeCard({ subscriptionId, ecoModeEnabled: initial, ecoPoints
       </div>
 
       <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/5 bg-white/[0.02] p-4">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={eco}
           disabled={pending}
           onChange={(e) => onToggle(e.target.checked)}
