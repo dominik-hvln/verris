@@ -131,6 +131,11 @@ export const REGULY_TRAS: Regula[] = [
     po_co: 'Publiczne API v1 — profil konta, ten sam wymóg co /users/me.',
   },
   {
+    pasuje: zawiera('hosting-logs'),
+    odczyt: [FILES_MANAGE], zapis: [FILES_MANAGE],
+    po_co: 'Logi WWW: adresy IP odwiedzających (dane osobowe) i ścieżki plików — poziom menedżera plików, nie samego podglądu usługi.',
+  },
+  {
     pasuje: zawiera('hosting-dns'),
     odczyt: [DNS_MANAGE], zapis: [DNS_MANAGE],
     po_co: 'Rekordy DNS. Odczyt też wymaga uprawnienia — układ strefy bywa wrażliwy.',

@@ -549,3 +549,14 @@ export interface DeployJobCreateRequestDto {
 }
 
 export type DeployJobMutationOkDto = { ok: true };
+
+/** K-04/K-05 — GET /services/:id/hosting-logs: ostatnie linie logu dostępu albo błędów domeny. */
+export interface HostingLogDto {
+  domain: string | null;
+  type: 'access' | 'error';
+  /** Najnowsze na końcu, jak w pliku logu. */
+  lines: string[];
+  /** Log ma więcej linii niż zwrócono. */
+  truncated: boolean;
+  fetchError: string | null;
+}

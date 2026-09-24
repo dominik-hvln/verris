@@ -50,6 +50,7 @@ import { EcoReportService } from '../eco/eco-report.service';
 import { DeliverabilityService } from '../deliverability/deliverability.service';
 import { PhpService } from './php.service';
 import { AppInstallService } from './app-install.service';
+import { LogiHostinguQueryDto } from './dto/hosting-logs.dto';
 
 /**
  * Customer-facing "services" view — denormalized projection over Subscription
@@ -402,6 +403,16 @@ export class UserServicesController {
     @Param('id') id: string,
   ) {
     return this.dnsPointing.verifyForSubscription(id, user.userId);
+  }
+
+  /** K-04/K-05 — ostatnie linie logu dostępu / błędów domeny konta. */
+  @Get(':id/hosting-logs')
+  async hostingLogs(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Query() q: LogiHostinguQueryDto,
+  ) {
+    return this.directAdmin.readHostingLog(id, user.userId, q);
   }
 
   @Get(':id/hosting-dns')

@@ -13,6 +13,7 @@ import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigat
 import DomainsTab from '@/components/hosting/DomainsTab';
 import DatabasesTab from '@/components/hosting/DatabasesTab';
 import MailTab from '@/components/hosting/MailTab';
+import LogsTab from '@/components/hosting/LogsTab';
 import SSLTab from '@/components/hosting/SSLTab';
 import StagingTab from '@/components/hosting/StagingTab';
 import WafTab from '@/components/hosting/WafTab';
@@ -147,6 +148,7 @@ export default function HostingManagerPage() {
           {activeTab === 'backups' && <BackupsTab serviceId={params.id} />}
           {activeTab === 'waf' && <WafTab serviceId={params.id} />}
           {activeTab === 'monitoring' && <MonitoringTab serviceId={params.id} />}
+          {activeTab === 'logs' && <LogsTab serviceId={params.id} />}
           {activeTab === 'badges' && <BadgesTab serviceId={params.id} />}
           {activeTab === 'staging' && <StagingTab serviceId={params.id} />}
           {activeTab === 'deploy' && <DeployTab serviceId={params.id} />}

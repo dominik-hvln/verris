@@ -12,6 +12,7 @@ import {
   Mail,
   Receipt,
   Rocket,
+  ScrollText,
   Shield,
   Terminal,
   Wrench,
@@ -35,6 +36,7 @@ export const TABS = [
   { id: 'backups', label: 'Kopie zapasowe', icon: Archive },
   { id: 'waf', label: 'Bezpieczeństwo (WAF)', icon: Shield },
   { id: 'monitoring', label: 'Monitoring', icon: Activity },
+  { id: 'logs', label: 'Logi WWW', icon: ScrollText },
   { id: 'badges', label: 'Badge na stronę', icon: BadgeCheck },
   { id: 'staging', label: 'Staging', icon: Box },
   { id: 'deploy', label: 'Deploy (Git)', icon: Rocket },
@@ -48,13 +50,13 @@ export const NAV_GROUPS: { label: string; ids: TabId[] }[] = [
   { label: 'Usługa', ids: ['overview'] },
   { label: 'Poczta i domeny', ids: ['mail', 'domains', 'ssl'] },
   { label: 'Pliki i dane', ids: ['files', 'databases', 'ftp', 'backups'] },
-  { label: 'Narzędzia', ids: ['php', 'webtools', 'apps', 'cron', 'staging', 'deploy', 'waf', 'monitoring', 'badges', 'usage'] },
+  { label: 'Narzędzia', ids: ['php', 'webtools', 'apps', 'cron', 'staging', 'deploy', 'waf', 'monitoring', 'logs', 'badges', 'usage'] },
   { label: 'Rozliczenie', ids: ['subscription'] },
 ];
 
 /** Poczta ma krótki zestaw; tryb prosty chowa narzędzia dla zaawansowanych (GUIDE-4). */
 export const EMAIL_TAB_IDS: TabId[] = ['overview', 'subscription', 'domains', 'mail', 'backups'];
-export const ADVANCED_TAB_IDS: TabId[] = ['php', 'ftp', 'cron', 'waf', 'staging', 'deploy', 'usage'];
+export const ADVANCED_TAB_IDS: TabId[] = ['php', 'ftp', 'cron', 'waf', 'staging', 'deploy', 'usage', 'logs'];
 
 export function isTabId(v: string | null): v is TabId {
   return !!v && TABS.some((t) => t.id === v);

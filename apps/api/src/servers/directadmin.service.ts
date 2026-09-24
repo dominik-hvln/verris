@@ -9,6 +9,7 @@ import type {
   DeployFrequency,
   DeployJobDto,
   DeployJobsResponseDto,
+  HostingLogDto,
   HostingSslRowDto,
   HostingSslStatus,
   HostingStagingCreatedDto,
@@ -1015,6 +1016,46 @@ export class DirectAdminService {
     }
     await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_SSL', form, { timeoutMs: 60_000 });
     return { ok: true as const };
+  }
+
+  /**
+   * K-04/K-05 — ostatnie linie logu dostępu (`type=log`) albo błędów (`type=error`) domeny,
+   * z DA `CMD_SHOW_LOG` na poziomie użytkownika. Domena musi należeć do konta usługi (jak F-01).
+   * Odczyt — bez blokady SEC-2: klient zawieszonego konta też musi móc zdiagnozować stronę.
+   * Awaria DA to `fetchError`, nigdy pusta lista udająca „brak ruchu”.
+   */
+  async readHostingLog(
+    subscriptionId: string,
+    userId: string,
+    input: { type: 'access' | 'error'; domain?: string; lines?: number },
+  ): Promise<HostingLogDto> {
+    const type = input.type;
+    const domains = await this.listHostingDomainsForSubscription(subscriptionId, userId);
+    const chciana = input.domain?.trim().toLowerCase();
+    if (chciana && !domains.domains.some((d) => d.name.toLowerCase() === chciana)) {
+      throw new BadRequestException('Ta domena nie jest przypisana do konta DirectAdmin tej usługi.');
+    }
+    const domain = chciana ?? domains.primaryDomain ?? domains.domains[0]?.name ?? null;
+    if (!domain) return { domain: null, type, lines: [], truncated: false, fetchError: null };
+    const ile = Math.min(Math.max(input.lines ?? 200, 20), 1000);
+
+    const sub = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, include: { account: true } });
+    if (!sub?.account?.id) throw new BadRequestException('Brak konta hostingowego.');
+    try {
+      const client = await this.getClientForHostingAccount(sub.account.id, userId);
+      const axiosClient = (client as unknown as { client?: SurowyKlientDa }).client;
+      if (!axiosClient) throw new Error('DirectAdmin client is not available');
+      const res = await axiosClient.get('/CMD_SHOW_LOG', {
+        params: { domain, type: type === 'error' ? 'error' : 'log', lines: String(ile) },
+        timeout: 15_000,
+        responseType: 'text',
+      });
+      return { domain, type, ...interpretujLogDa(res?.data, ile) };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.warn(`readHostingLog sub=${subscriptionId} ${type}: ${msg}`);
+      return { domain, type, lines: [], truncated: false, fetchError: msg };
+    }
   }
 
   async listHostingDnsRecords(
@@ -3044,6 +3085,28 @@ export class DirectAdminService {
     }
     return { synced };
   }
+}
+
+/**
+ * Treść odpowiedzi `CMD_SHOW_LOG` → linie logu. Strona HTML (np. formularz logowania, gdy
+ * DA nie obsługuje komendy dla tego klucza) albo `error=1` to błąd, nie log — inaczej
+ * klient zobaczyłby znaczniki HTML jako „wpisy logu”.
+ */
+export function interpretujLogDa(
+  dane: unknown,
+  ile: number,
+): { lines: string[]; truncated: boolean; fetchError: string | null } {
+  const tekst = typeof dane === 'string' ? dane : '';
+  const przyciety = tekst.trim();
+  if (/^error=1(&|$)/.test(przyciety)) {
+    const opis = new URLSearchParams(przyciety).get('text');
+    return { lines: [], truncated: false, fetchError: opis || 'DirectAdmin odrzucił odczyt logu.' };
+  }
+  if (/^</.test(przyciety)) {
+    return { lines: [], truncated: false, fetchError: 'Serwer nie udostępnił logu w formie tekstowej.' };
+  }
+  const wszystkie = tekst.split(/\r?\n/).filter((l) => l.length > 0);
+  return { lines: wszystkie.slice(-ile), truncated: wszystkie.length > ile, fetchError: null };
 }
 
 /** Poddomena kasowana z contents=yes (usuwa też pliki): bez „/”, „..” i znaków sterujących. */
