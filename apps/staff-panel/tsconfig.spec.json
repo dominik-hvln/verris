@@ -1,0 +1,14 @@
+{
+  // X-05: główny tsconfig wyklucza specy (Next ich nie buduje) — tu istnieją dla TypeScriptu,
+  // a ts-jest typuje je przy każdym uruchomieniu (ten sam układ co w panelu klienta, X-40).
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "jsx": "react-jsx",
+    "noEmit": false,
+    "types": ["jest", "node"]
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", ".next"]
+}

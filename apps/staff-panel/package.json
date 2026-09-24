@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start -p 3002",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "jest --config jest.config.cjs"
   },
   "dependencies": {
     "@simplewebauthn/browser": "^13.1.0",
@@ -23,11 +24,14 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.3",
+    "@types/jest": "^30.0.0",
     "@types/node": "^26.2.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "@verris/typescript-config": "workspace:*",
+    "jest": "^30.4.2",
     "tailwindcss": "^4.1.0",
+    "ts-jest": "^29.4.12",
     "typescript": "^5"
   }
 }
