@@ -22,6 +22,8 @@ type Sched = { minute: string; hour: string; dayOfMonth: string; month: string; 
 const EVERY: Sched = { minute: '*', hour: '*', dayOfMonth: '*', month: '*', dayOfWeek: '*' };
 
 const PRESETS: { label: string; value: Sched }[] = [
+  // L-04 — co minutę wprost w presetach (u części konkurencji minimum to 60 min).
+  { label: 'Co minutę', value: { ...EVERY } },
   { label: 'Co 5 min', value: { ...EVERY, minute: '*/5' } },
   { label: 'Co godzinę', value: { ...EVERY, minute: '0' } },
   { label: 'Codziennie 3:00', value: { ...EVERY, minute: '0', hour: '3' } },
