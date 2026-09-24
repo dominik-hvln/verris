@@ -26,8 +26,6 @@ export default async function MigrationsPage({
     <HostingPageWrapper
       title="Migracje"
       description="Przenieś stronę, bazy i pocztę ze starego hostingu — automatycznie i z postępem na żywo."
-      currentTab="migrations"
-      serviceId={service?.id}
     >
       {!service ? (
         <HostingNoServiceState serviceId={serviceId} />
