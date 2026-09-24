@@ -40,7 +40,9 @@ export class ApiTokenGuard implements CanActivate {
       ctx.getHandler(),
       ctx.getClass(),
     ]);
-    if (required && !verified.scopes.includes(required)) {
+    // Fail-closed: trasa bez @ApiScope nie wpuszcza żadnego tokenu (zapomniany dekorator ≠ pełny dostęp).
+    if (!required) throw new ForbiddenException('Ta trasa nie jest dostępna przez token API.');
+    if (!verified.scopes.includes(required)) {
       throw new ForbiddenException(`Token nie ma uprawnienia „${required}".`);
     }
 
