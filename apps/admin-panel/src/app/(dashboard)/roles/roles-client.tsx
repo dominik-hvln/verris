@@ -16,6 +16,7 @@ import {
   type OperatorRow,
   type ActivityRow,
 } from "./actions";
+import { potwierdz } from "@/components/potwierdz";
 
 type Editing = { id: string | null; name: string; description: string; permissions: Set<string> } | null;
 
@@ -73,8 +74,8 @@ export function RolesClient({
     });
   };
 
-  const remove = (r: RoleRow) => {
-    if (!window.confirm(`Usunąć rolę „${r.name}"?`)) return;
+  const remove = async (r: RoleRow) => {
+    if (!(await potwierdz(`Usunąć rolę „${r.name}"?`, { akcja: 'Usuń', niebezpieczne: true }))) return;
     setErr(null);
     start(async () => {
       const res = await deleteRole(r.id);

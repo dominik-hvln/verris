@@ -12,6 +12,7 @@ import {
   type ProbeSeverity,
   type ServerSummary,
 } from "../actions";
+import { potwierdz } from "@/components/potwierdz";
 
 interface Props {
   probes: ProbeDto[];
@@ -121,8 +122,8 @@ function ProbeRow({ probe, serverName }: { probe: ProbeDto; serverName: string }
     });
   };
 
-  const onDelete = () => {
-    if (!confirm(`Usunąć probe ${KIND_LABELS[probe.kind]} → ${probe.target}?`)) return;
+  const onDelete = async () => {
+    if (!(await potwierdz(`Usunąć probe ${KIND_LABELS[probe.kind]} → ${probe.target}?`, { akcja: 'Usuń', niebezpieczne: true }))) return;
     startTransition(async () => {
       const res = await deleteProbe(probe.id);
       if (!res.ok) setError(res.error ?? "Nie udało się usunąć");

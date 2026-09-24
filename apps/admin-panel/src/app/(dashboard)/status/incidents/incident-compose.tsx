@@ -5,6 +5,7 @@ import { useState, useTransition, useId } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Megaphone } from "lucide-react";
 import { composeIncident, type ProbeDto, type ProbeSeverity, type ServerSummary } from "../actions";
+import { potwierdz } from "@/components/potwierdz";
 
 /**
  * N-07 — ogłoszenie awarii na status page, gdy monitoring jej nie widzi
@@ -34,9 +35,9 @@ export function IncidentCompose({ probes, servers }: { probes: ProbeDto[]; serve
     );
   }
 
-  const submit = () => {
+  const submit = async () => {
     if (title.trim().length < 3) return setError("Tytuł musi mieć co najmniej 3 znaki.");
-    if (!window.confirm("Opublikować incydent na status.verris.pl? Klienci i webhooki statusu dostaną powiadomienie.")) return;
+    if (!(await potwierdz("Opublikować incydent na status.verris.pl? Klienci i webhooki statusu dostaną powiadomienie.", { akcja: 'Opublikuj' }))) return;
     setError(null);
     startTransition(async () => {
       const res = await composeIncident({ probeId, severity, title: title.trim(), publicMessage: message.trim() || undefined });

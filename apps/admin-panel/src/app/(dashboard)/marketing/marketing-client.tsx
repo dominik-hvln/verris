@@ -19,6 +19,7 @@ import {
   cancelCampaignAction,
 } from "./actions";
 import { estimateSegment } from "./data";
+import { PoleDaty } from "@/components/pole-daty";
 
 const SEGMENTS: { value: MarketingSegment; label: string; hint: string }[] = [
   {
@@ -309,10 +310,9 @@ function CampaignCard({ row }: { row: CampaignRow }) {
             Wyślij teraz
           </button>
           <div className="flex items-center gap-1.5">
-            <input
-              type="datetime-local"
+            <PoleDaty zGodzina
               value={when}
-              onChange={(e) => setWhen(e.target.value)}
+              onChange={setWhen}
               className="rounded-lg border border-white/10 bg-black/30 px-2 py-1.5 text-xs text-white"
             />
             <button

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { releaseCordon } from "./actions";
+import { potwierdz } from "@/components/potwierdz";
 
 export function ReleaseCordonButton({ userId, label }: { userId: string; label: string }) {
   const router = useRouter();
@@ -12,8 +13,8 @@ export function ReleaseCordonButton({ userId, label }: { userId: string; label: 
     <div className="flex flex-col items-end gap-1">
       <button
         disabled={pending}
-        onClick={() => {
-          if (!window.confirm(`Zdjąć blokadę wysyłki dla ${label}? Upewnij się, że przyczyna (np. przejęta skrzynka) jest usunięta.`)) return;
+        onClick={async () => {
+          if (!(await potwierdz(`Zdjąć blokadę wysyłki dla ${label}? Upewnij się, że przyczyna (np. przejęta skrzynka) jest usunięta.`, { akcja: 'Zdejmij', niebezpieczne: true }))) return;
           setError(null);
           start(async () => {
             const res = await releaseCordon(userId);

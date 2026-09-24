@@ -13,6 +13,7 @@ import {
 } from '@/app/dashboard/services/[id]/hosting-extra-actions';
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { HostingHelpHint } from '@/components/hosting/HostingTabShell';
+import { potwierdz } from '@/components/panel/potwierdz';
 
 function genPassword(len = 18): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*';
@@ -86,7 +87,7 @@ export default function FtpTab({ serviceId }: { serviceId: string }) {
   };
 
   const onDelete = async (u: string) => {
-    if (!window.confirm(`Usunąć konto FTP „${u}"?`)) return;
+    if (!(await potwierdz(`Usunąć konto FTP „${u}"?`, { akcja: 'Usuń', niebezpieczne: true }))) return;
     setDeleting(u);
     const res = await deleteHostingFtpAction(serviceId, u);
     setDeleting(null);

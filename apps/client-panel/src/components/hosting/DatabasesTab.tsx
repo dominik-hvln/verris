@@ -15,6 +15,7 @@ import DbUsers from '@/components/hosting/DbUsers';
 import { createHostingSsoUrlAction } from '@/app/dashboard/services/[id]/hosting-sso-actions';
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { useHostingLinks } from '@/components/hosting/hosting-links-context';
+import { potwierdz } from '@/components/panel/potwierdz';
 
 interface Props {
   serviceId: string;
@@ -121,7 +122,7 @@ export default function DatabasesTab({ serviceId }: Props) {
   };
 
   const onDelete = async (full: string) => {
-    if (!window.confirm(`Usunąć bazę „${full}"? Tej operacji nie można cofnąć.`)) return;
+    if (!(await potwierdz(`Usunąć bazę „${full}"? Tej operacji nie można cofnąć.`, { akcja: 'Usuń', niebezpieczne: true }))) return;
     setDeleting(full);
     const res = await deleteHostingDatabaseAction(serviceId, full);
     setDeleting(null);

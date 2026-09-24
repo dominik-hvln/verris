@@ -17,6 +17,7 @@ import {
   syncPlanStripeAction,
 } from "../actions";
 import type { AdminPlanRow } from "../data";
+import { potwierdz } from "@/components/potwierdz";
 
 interface FormState {
   name: string;
@@ -185,8 +186,8 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
     });
   };
 
-  const handleDeactivate = () => {
-    if (!confirm("Wyłączyć ten plan ze sprzedaży? Istniejące subskrypcje pozostaną aktywne.")) return;
+  const handleDeactivate = async () => {
+    if (!(await potwierdz("Wyłączyć ten plan ze sprzedaży? Istniejące subskrypcje pozostaną aktywne.", { akcja: 'Wyłącz', niebezpieczne: true }))) return;
     startTransition(async () => {
       const res = await deactivatePlanAction(plan.id);
       if (res.ok) setGlobalOk(res.message ?? "Plan wyłączony.");

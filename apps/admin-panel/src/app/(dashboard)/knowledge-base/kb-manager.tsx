@@ -21,6 +21,7 @@ import {
   type KbCategory,
   type KbCtaConfig,
 } from './actions';
+import { potwierdz, zapytaj } from "@/components/potwierdz";
 
 /** Lekki renderer Markdown → HTML na potrzeby podglądu (treść od autora). */
 function mdToHtml(md: string): string {
@@ -98,19 +99,19 @@ export function KbManager() {
 
   // ---- category actions
   async function addCategory(parentId: string | null) {
-    const name = window.prompt(parentId ? 'Nazwa podkategorii:' : 'Nazwa kategorii:');
+    const name = await zapytaj(parentId ? 'Nazwa podkategorii:' : 'Nazwa kategorii:', { tytul: parentId ? 'Nowa podkategoria' : 'Nowa kategoria', akcja: 'Utwórz' });
     if (!name?.trim()) return;
     const r = await createCategory({ name: name.trim(), parentId });
     if (!r.ok) setMsg({ err: r.error }); else void reloadCats();
   }
   async function renameCategory(c: KbCategory) {
-    const name = window.prompt('Nowa nazwa:', c.name);
+    const name = await zapytaj(`Nowa nazwa dla „${c.name}”:`, { tytul: 'Zmień nazwę', akcja: 'Zmień', domyslna: c.name });
     if (!name?.trim() || name === c.name) return;
     const r = await updateCategory(c.id, { name: name.trim() });
     if (!r.ok) setMsg({ err: r.error }); else void reloadCats();
   }
   async function removeCategory(c: KbCategory) {
-    if (!window.confirm(`Usunąć kategorię „${c.name}"? (musi być pusta)`)) return;
+    if (!(await potwierdz(`Usunąć kategorię „${c.name}"? (musi być pusta)`, { akcja: 'Usuń', niebezpieczne: true }))) return;
     const r = await deleteCategory(c.id);
     if (!r.ok) setMsg({ err: r.error });
     else {
@@ -150,7 +151,7 @@ export function KbManager() {
   }
   async function removeArticle() {
     if (editing === 'new' || !editing) return;
-    if (!window.confirm(`Usunąć artykuł „${editing.title}"?`)) return;
+    if (!(await potwierdz(`Usunąć artykuł „${editing.title}"?`, { akcja: 'Usuń', niebezpieczne: true }))) return;
     const r = await deleteArticle(editing.id);
     if (!r.ok) { setMsg({ err: r.error }); return; }
     setEditing(null);

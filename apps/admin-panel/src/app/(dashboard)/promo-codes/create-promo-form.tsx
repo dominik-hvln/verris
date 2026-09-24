@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { AlertCircle, CheckCircle2, Loader2, Plus, Tag, Gift, Percent } from "lucide-react";
 import { createPromoAction } from "./actions";
+import { PoleDaty } from "@/components/pole-daty";
 
 type Kind = "FIXED_CREDIT" | "SERVICE_PERCENT_OFF";
 
@@ -208,14 +209,13 @@ export function CreatePromoForm() {
           />
         </label>
 
-        <label className="block">
+        <label className="block" htmlFor="promo-wazny-do">
           <span className="text-xs font-bold uppercase tracking-widest text-neutral-500">
             Ważny do (opcjonalnie)
           </span>
-          <input
-            type="datetime-local"
+          <PoleDaty zGodzina id="promo-wazny-do"
             value={validTo}
-            onChange={(e) => setValidTo(e.target.value)}
+            onChange={setValidTo}
             className="mt-1.5 w-full rounded-lg bg-black/60 border border-white/10 px-3 py-2 text-white text-sm focus:border-emerald-400 focus:outline-none"
           />
         </label>

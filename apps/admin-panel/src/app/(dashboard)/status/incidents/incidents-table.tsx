@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2, Pencil, Save } from "lucide-react";
 import { updateIncident, type IncidentDto } from "../actions";
+import { potwierdz } from "@/components/potwierdz";
 
 interface Props {
   incidents: IncidentDto[];
@@ -181,8 +182,8 @@ function IncidentRow({ incident }: { incident: IncidentDto }) {
             <>
             {incident.status === "OPEN" ? (
               <button
-                onClick={() => {
-                  if (!window.confirm(`Zamknąć incydent „${incident.title}”? Na status page pojawi się jako rozwiązany.`)) return;
+                onClick={async () => {
+                  if (!(await potwierdz(`Zamknąć incydent „${incident.title}”? Na status page pojawi się jako rozwiązany.`, { akcja: 'Zamknij incydent' }))) return;
                   setError(null);
                   startTransition(async () => {
                     const res = await updateIncident(incident.id, { status: "RESOLVED" });

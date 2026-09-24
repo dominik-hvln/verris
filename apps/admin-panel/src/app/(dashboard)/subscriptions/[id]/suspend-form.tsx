@@ -3,6 +3,7 @@
 import { Select } from '@/components/select';
 import { useState, useId } from 'react';
 import { suspendSubscriptionAction, unsuspendSubscriptionAction } from './suspend-actions';
+import { potwierdz } from "@/components/potwierdz";
 
 const REASONS = [
   { value: 'ABUSE', label: 'Nadużycie (spam, malware, phishing)' },
@@ -32,7 +33,7 @@ export function SuspendForm({ subscriptionId, status, domain }: { subscriptionId
     const question = suspended
       ? `Odwiesić usługę ${what}?${charge ? ' Klient zostanie obciążony za odnowienie.' : ''}`
       : `Zawiesić usługę ${what}? Strona, poczta i FTP przestaną działać do odwieszenia.`;
-    if (!window.confirm(question)) return;
+    if (!(await potwierdz(question, { akcja: 'Zatwierdź' }))) return;
     setBusy(true);
     setMsg(null);
     const res = suspended

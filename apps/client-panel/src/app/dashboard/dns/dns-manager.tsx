@@ -7,6 +7,7 @@ import type { HostingDnsRecordDto } from '@verris/contracts';
 import { AlertCircle, Check, Loader2, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { Select } from '@/components/panel';
 import { createDnsRecordAction, deleteDnsRecordAction, editDnsRecordAction } from './dns-actions';
+import { potwierdz } from '@/components/panel/potwierdz';
 
 const TYPES = ['A', 'AAAA', 'CNAME', 'MX', 'TXT', 'SRV', 'NS', 'CAA'] as const;
 type RecType = (typeof TYPES)[number];
@@ -72,9 +73,9 @@ export function DnsManager({
       ] },
     ];
   };
-  const applyPreset = (preset: { label: string; records: { name: string; type: string; value: string }[] }) => {
+  const applyPreset = async (preset: { label: string; records: { name: string; type: string; value: string }[] }) => {
     if (!domain) return;
-    if (!window.confirm(`Dodać zestaw „${preset.label}" (${preset.records.length} rekord(ów)) do strefy ${domain}?`)) return;
+    if (!(await potwierdz(`Dodać zestaw „${preset.label}" (${preset.records.length} rekord(ów)) do strefy ${domain}?`, { akcja: 'Dodaj' }))) return;
     setError(null);
     startTransition(async () => {
       let ok = 0;
@@ -87,9 +88,9 @@ export function DnsManager({
     });
   };
 
-  const onDelete = (r: HostingDnsRecordDto) => {
+  const onDelete = async (r: HostingDnsRecordDto) => {
     if (!domain) return;
-    if (!window.confirm(`Usunąć rekord ${r.type} ${r.name} (${r.value})? Tej zmiany nie da się cofnąć.`)) return;
+    if (!(await potwierdz(`Usunąć rekord ${r.type} ${r.name} (${r.value})? Tej zmiany nie da się cofnąć.`, { akcja: 'Usuń', niebezpieczne: true }))) return;
     setError(null);
     startTransition(async () => {
       const res = await deleteDnsRecordAction({

@@ -8,6 +8,7 @@ import { CreditCard, Landmark, Loader2, RefreshCw, Trash2 } from 'lucide-react';
 import { CREDIT_SHORT, formatCredits, pluralCredits } from '@/lib/credits';
 import { deletePaymentMethodAction, redeemPromoAction, startAddCardAction, upsertAutoTopupAction } from './actions';
 import { Select } from '@/components/panel';
+import { potwierdz } from '@/components/panel/potwierdz';
 
 interface Props {
   initialAuto: WalletAutoTopupSettingsDto;
@@ -32,7 +33,7 @@ function SavedCardsBlock({ cards }: { cards: SavedPaymentMethodDto[] }) {
   const [removing, setRemoving] = useState<string | null>(null);
 
   const remove = async (c: SavedPaymentMethodDto) => {
-    if (!window.confirm(`Usunąć kartę ${cardLabel(c)}? Nie obciążymy jej więcej — ani przy auto-doładowaniu, ani przy odnowieniu.`)) return;
+    if (!(await potwierdz(`Usunąć kartę ${cardLabel(c)}? Nie obciążymy jej więcej — ani przy auto-doładowaniu, ani przy odnowieniu.`, { akcja: 'Usuń', niebezpieczne: true }))) return;
     setRemoving(c.id);
     const res = await deletePaymentMethodAction(c.id);
     setRemoving(null);

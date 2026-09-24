@@ -32,6 +32,7 @@ import { DeliverabilityPanel } from '@/app/dashboard/email/deliverability-panel'
 import { createHostingSsoUrlAction } from '@/app/dashboard/services/[id]/hosting-sso-actions';
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { useHostingLinks } from '@/components/hosting/hosting-links-context';
+import { potwierdz } from '@/components/panel/potwierdz';
 
 function genPassword(len = 18): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*';
@@ -197,7 +198,7 @@ export default function MailTab({ serviceId }: Props) {
   };
 
   const onDelete = async (email: string) => {
-    if (!window.confirm(`Usunąć skrzynkę „${email}"? Tej operacji nie można cofnąć.`)) return;
+    if (!(await potwierdz(`Usunąć skrzynkę „${email}"? Tej operacji nie można cofnąć.`, { akcja: 'Usuń', niebezpieczne: true }))) return;
     setDeleting(email);
     const res = await deleteHostingEmailAction(serviceId, email);
     setDeleting(null);

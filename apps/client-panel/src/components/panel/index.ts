@@ -10,3 +10,4 @@ export { HostingNoServiceState } from './hosting-no-service';
 export { MobileTabStrip, type MobileTabItem } from './mobile-tab-strip';
 export { Skeleton, SkeletonText, SkeletonList } from './skeleton';
 export { Select, type SelectOption } from './select';
+export { potwierdz, zapytaj, type OpcjePotwierdzenia, type OpcjePytania } from './potwierdz';

@@ -23,6 +23,7 @@ import {
   listKnowledgeDocs,
   updateKnowledgeDoc,
 } from "./data";
+import { potwierdz } from "@/components/potwierdz";
 
 const AUDIENCE_LABEL: Record<AiKnowledgeAudience, string> = {
   CLIENT: "Klient",
@@ -98,8 +99,8 @@ export function KnowledgeManager({
     });
   };
 
-  const remove = (doc: AiKnowledgeDocSummaryDto) => {
-    if (!confirm(`Usunąć dokument „${doc.title}"? Tej operacji nie można cofnąć.`)) return;
+  const remove = async (doc: AiKnowledgeDocSummaryDto) => {
+    if (!(await potwierdz(`Usunąć dokument „${doc.title}"? Tej operacji nie można cofnąć.`, { akcja: 'Usuń', niebezpieczne: true }))) return;
     startTransition(async () => {
       await deleteKnowledgeDoc(doc.id);
       await refresh();

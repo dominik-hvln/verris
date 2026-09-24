@@ -8,6 +8,7 @@ import {
   type AdminInvoiceStatus,
 } from "./data";
 import { VoidButton } from "./void-button";
+import { PoleDaty } from "@/components/pole-daty";
 
 export const dynamic = "force-dynamic";
 
@@ -138,9 +139,8 @@ export default async function AdminInvoicesPage({ searchParams }: PageProps) {
             </div>
             <div>
               <label htmlFor="invoices-from" className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">Od</label>
-              <input
+              <PoleDaty
                 id="invoices-from"
-                type="date"
                 name="from"
                 defaultValue={from?.slice(0, 10) ?? ""}
                 className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
@@ -148,9 +148,8 @@ export default async function AdminInvoicesPage({ searchParams }: PageProps) {
             </div>
             <div>
               <label htmlFor="invoices-to" className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">Do</label>
-              <input
+              <PoleDaty
                 id="invoices-to"
-                type="date"
                 name="to"
                 defaultValue={to?.slice(0, 10) ?? ""}
                 className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"

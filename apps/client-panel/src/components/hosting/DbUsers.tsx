@@ -10,6 +10,7 @@ import {
   changeDbUserPasswordAction,
 } from '@/app/dashboard/services/[id]/hosting-db-users-actions';
 import { daErrorMessage } from '@/lib/client-hosting-messages';
+import { potwierdz } from '@/components/panel/potwierdz';
 
 function genPassword(len = 18): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*';
@@ -71,7 +72,7 @@ export default function DbUsers({ serviceId, db }: { serviceId: string; db: stri
   };
 
   const remove = async (u: string) => {
-    if (!window.confirm(`Usunąć użytkownika „${u}"? Aplikacje łączące się tym loginem stracą dostęp.`)) return;
+    if (!(await potwierdz(`Usunąć użytkownika „${u}"? Aplikacje łączące się tym loginem stracą dostęp.`, { akcja: 'Usuń', niebezpieczne: true }))) return;
     setDel(u);
     const res = await removeDbUserAction({ subscriptionId: serviceId, db, user: u });
     setDel(null);

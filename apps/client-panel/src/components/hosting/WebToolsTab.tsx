@@ -15,6 +15,7 @@ import {
 } from '@/app/dashboard/services/[id]/hosting-webtools-actions';
 import { daErrorMessage } from '@/lib/client-hosting-messages';
 import { Select } from '@/components/panel/select';
+import { potwierdz } from '@/components/panel/potwierdz';
 
 const field = 'rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-neutral-500';
 const EMPTY: WebToolsState = { redirects: [], hotlink: { enabled: false, extensions: 'jpg,jpeg,png,gif,webp,svg', allow: [] }, blockedIps: [], protectedDirs: [], forceHttps: false, wwwMode: 'none' };
@@ -101,7 +102,7 @@ export default function WebToolsTab({ serviceId }: { serviceId: string }) {
     toast.success('Katalog zabezpieczony hasłem'); setPUser(''); setPPass(''); void load();
   };
   const unprotect = async (dir: string) => {
-    if (!window.confirm(`Zdjąć ochronę z „${dir}"?`)) return;
+    if (!(await potwierdz(`Zdjąć ochronę z „${dir}"?`, { akcja: 'Zdejmij', niebezpieczne: true }))) return;
     const res = await removeDirProtectionAction(serviceId, dir === '/' ? '' : dir);
     if (!res.ok) { toast.error('Nie udało się zdjąć ochrony', { description: daErrorMessage(res.error) }); return; }
     toast.success('Ochrona zdjęta'); void load();

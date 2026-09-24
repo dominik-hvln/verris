@@ -13,6 +13,7 @@ import {
 } from '@/app/dashboard/services/[id]/hosting-extra-actions';
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { HostingHelpHint } from '@/components/hosting/HostingTabShell';
+import { potwierdz } from '@/components/panel/potwierdz';
 
 type Sched = { minute: string; hour: string; dayOfMonth: string; month: string; dayOfWeek: string };
 const EVERY: Sched = { minute: '*', hour: '*', dayOfMonth: '*', month: '*', dayOfWeek: '*' };
@@ -87,7 +88,7 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
   };
 
   const onDelete = async (id: string) => {
-    if (!window.confirm('Usunąć to zadanie cron?')) return;
+    if (!(await potwierdz('Usunąć to zadanie cron?', { akcja: 'Usuń', niebezpieczne: true }))) return;
     setDeleting(id);
     const res = await deleteHostingCronAction(serviceId, id);
     setDeleting(null);

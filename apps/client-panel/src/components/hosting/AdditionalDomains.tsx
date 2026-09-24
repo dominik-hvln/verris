@@ -15,6 +15,7 @@ import {
   type DomainPointerRow,
 } from '@/app/dashboard/services/[id]/hosting-additional-domains-actions';
 import { daErrorMessage } from '@/lib/client-hosting-messages';
+import { potwierdz } from '@/components/panel/potwierdz';
 
 export default function AdditionalDomains({ serviceId }: { serviceId: string }) {
   const [rows, setRows] = useState<AdditionalDomainRow[]>([]);
@@ -61,7 +62,7 @@ export default function AdditionalDomains({ serviceId }: { serviceId: string }) 
     toast.success('Alias domeny dodany'); setAlias(''); void load();
   };
   const removeAlias = async (a: string) => {
-    if (!window.confirm(`Usunąć alias „${a}"?`)) return;
+    if (!(await potwierdz(`Usunąć alias „${a}"?`, { akcja: 'Usuń', niebezpieczne: true }))) return;
     setADel(a);
     const res = await deleteDomainPointerAction(serviceId, a);
     setADel(null);
@@ -79,7 +80,7 @@ export default function AdditionalDomains({ serviceId }: { serviceId: string }) 
     toast.success('Domena dodana do konta'); setDomain(''); void load();
   };
   const remove = async (d: string) => {
-    if (!window.confirm(`Usunąć domenę „${d}" z konta? Pliki tej domeny mogą zostać usunięte.`)) return;
+    if (!(await potwierdz(`Usunąć domenę „${d}" z konta? Pliki tej domeny mogą zostać usunięte.`, { akcja: 'Usuń', niebezpieczne: true }))) return;
     setDel(d);
     const res = await deleteAdditionalDomainAction(serviceId, d);
     setDel(null);

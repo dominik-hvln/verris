@@ -20,6 +20,7 @@ import { DomainDto } from '@verris/contracts';
 import { format } from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { potwierdz } from '@/components/panel/potwierdz';
 
 const TH = 'whitespace-nowrap px-3 pb-2.5 pt-3 text-left font-mono text-[11px] font-medium uppercase tracking-[0.07em] text-muted-foreground';
 const TD = 'border-t border-line px-3 py-[11px] align-middle';
@@ -75,7 +76,7 @@ export default function DomainsPage() {
   };
 
   const handleDeleteDomain = async (id: string, name: string) => {
-    if (!confirm(`Czy na pewno chcesz usunąć domenę ${name}?`)) return;
+    if (!(await potwierdz(`Czy na pewno chcesz usunąć domenę ${name}?`, { akcja: 'Usuń', niebezpieczne: true }))) return;
     try {
       await deleteDomain(id);
       toast.success(`Domena ${name} usunięta pomyślnie`);

@@ -40,6 +40,7 @@ import {
   type FmEntry,
 } from './data';
 import { daErrorMessage } from '@/lib/client-hosting-messages';
+import { potwierdz, zapytaj } from '@/components/panel/potwierdz';
 
 const EDITABLE = /\.(txt|md|html?|css|js|mjs|cjs|ts|jsx|tsx|json|xml|ya?ml|ini|conf|env|htaccess|php|py|sh|sql|log)$/i;
 const ARCHIVE = /\.(zip|tar\.gz|tgz|tar\.bz2|tar)$/i;
@@ -143,7 +144,7 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
   const breadcrumbTo = (i: number) => void load('/' + segments.slice(0, i + 1).join('/'));
 
   const onNewFolder = async () => {
-    const name = window.prompt('Nazwa nowego folderu:');
+    const name = await zapytaj('Nazwa nowego folderu:', { tytul: 'Nowy folder', akcja: 'Utwórz' });
     if (!name) return;
     setBusy(true);
     try {
@@ -160,7 +161,7 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
   };
 
   const onNewFile = async () => {
-    const name = window.prompt('Nazwa nowego pliku (np. index.html):');
+    const name = await zapytaj('Nazwa nowego pliku:', { tytul: 'Nowy plik', akcja: 'Utwórz', placeholder: 'np. index.html' });
     if (!name) return;
     setBusy(true);
     try {
@@ -177,7 +178,7 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
   };
 
   const onRename = async (name: string) => {
-    const next = window.prompt('Nowa nazwa:', name);
+    const next = await zapytaj(`Nowa nazwa dla „${name}”:`, { tytul: 'Zmień nazwę', akcja: 'Zmień', domyslna: name });
     if (!next || next === name) return;
     setBusy(true);
     try {
@@ -194,7 +195,7 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
   };
 
   const onDelete = async (entry: FmEntry) => {
-    if (!window.confirm(`Usunąć „${entry.name}"? Tej operacji nie można cofnąć.`)) return;
+    if (!(await potwierdz(`Usunąć „${entry.name}"? Tej operacji nie można cofnąć.`, { akcja: 'Usuń', niebezpieczne: true }))) return;
     setBusy(true);
     try {
       await fmDelete(serviceId, path, [entry.name]);
@@ -303,26 +304,26 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
   };
 
   const onCopySelected = async () => {
-    const dest = window.prompt('Skopiuj zaznaczone do katalogu (ścieżka od katalogu głównego):', path);
+    const dest = await zapytaj('Katalog docelowy (ścieżka od katalogu głównego):', { tytul: 'Kopiuj zaznaczone', akcja: 'Kopiuj', domyslna: path });
     if (!dest) return;
     await runOnSelection('Skopiowano', (names) => fmCopy(serviceId, path, names, dest));
   };
 
   const onMoveSelected = async () => {
-    const dest = window.prompt('Przenieś zaznaczone do katalogu (ścieżka od katalogu głównego):', path);
+    const dest = await zapytaj('Katalog docelowy (ścieżka od katalogu głównego):', { tytul: 'Przenieś zaznaczone', akcja: 'Przenieś', domyslna: path });
     if (!dest || dest === path) return;
     await runOnSelection('Przeniesiono', (names) => fmMove(serviceId, path, names, dest));
   };
 
   const onCompressSelected = async () => {
     const suggested = selected.size === 1 ? Array.from(selected)[0].replace(/\.[^.]+$/, '') : `archiwum-${new Date().toISOString().slice(0, 10)}`;
-    const name = window.prompt('Nazwa archiwum (powstanie plik .tar.gz w tym katalogu):', suggested);
+    const name = await zapytaj('Nazwa archiwum — plik .tar.gz powstanie w tym katalogu:', { tytul: 'Spakuj', akcja: 'Spakuj', domyslna: suggested });
     if (!name?.trim()) return;
     await runOnSelection('Spakowano do archiwum', (names) => fmCompress(serviceId, path, names, name.trim()));
   };
 
   const onChmodSelected = async () => {
-    const mode = window.prompt('Uprawnienia (ósemkowo, np. 644 dla plików, 755 dla katalogów):', '644');
+    const mode = await zapytaj('Uprawnienia ósemkowo — zwykle 644 dla plików, 755 dla katalogów:', { tytul: 'Zmień uprawnienia', akcja: 'Zmień', domyslna: '644' });
     if (!mode) return;
     if (!/^[0-7]{3,4}$/.test(mode.trim())) {
       toast.error('Podaj uprawnienia ósemkowo, np. 644 lub 755.');
@@ -334,12 +335,12 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
   const onDeleteSelected = async () => {
     const names = Array.from(selected);
     if (names.length === 0) return;
-    if (!window.confirm(`Usunąć ${names.length} zaznaczonych elementów? Tej operacji nie można cofnąć.`)) return;
+    if (!(await potwierdz(`Usunąć ${names.length} zaznaczonych elementów? Tej operacji nie można cofnąć.`, { akcja: 'Usuń', niebezpieczne: true }))) return;
     await runOnSelection('Usunięto zaznaczone', (ns) => fmDelete(serviceId, path, ns));
   };
 
   const onExtract = async (name: string) => {
-    if (!window.confirm(`Rozpakować „${name}" do bieżącego katalogu? Istniejące pliki o tych samych nazwach zostaną nadpisane.`)) return;
+    if (!(await potwierdz(`Rozpakować „${name}" do bieżącego katalogu? Istniejące pliki o tych samych nazwach zostaną nadpisane.`, { akcja: 'Rozpakuj' }))) return;
     setBusy(true);
     try {
       const archivePath = `${path === '/' ? '' : path}/${name}`;

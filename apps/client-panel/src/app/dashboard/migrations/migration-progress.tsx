@@ -18,6 +18,7 @@ import {
   type MigrationIntegrity,
   type MigrationJobView,
 } from './types';
+import { potwierdz } from '@/components/panel/potwierdz';
 
 interface Props {
   serviceId: string;
@@ -111,7 +112,7 @@ export function MigrationProgress({ serviceId, initial }: Props) {
   }
 
   async function cancel() {
-    if (typeof window !== 'undefined' && !window.confirm('Anulować tę migrację? Przeniesione dotąd dane zostaną na koncie, ale proces się zatrzyma.')) {
+    if (!(await potwierdz('Anulować tę migrację? Przeniesione dotąd dane zostaną na koncie, ale proces się zatrzyma.', { akcja: 'Anuluj migrację', niebezpieczne: true }))) {
       return;
     }
     setBusy('cancel');

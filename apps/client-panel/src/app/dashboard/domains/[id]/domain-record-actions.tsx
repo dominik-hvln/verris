@@ -7,6 +7,7 @@ import { Button } from '@verris/ui';
 import type { DomainDto } from '@verris/contracts';
 import { verifyDomainAction, deleteDomain, runDomainChecklistAction } from '../actions';
 import { RefreshCw, Trash2 } from 'lucide-react';
+import { potwierdz } from '@/components/panel/potwierdz';
 
 export function DomainRecordActions({ domain }: { domain: DomainDto }) {
   const router = useRouter();
@@ -39,7 +40,7 @@ export function DomainRecordActions({ domain }: { domain: DomainDto }) {
   }
 
   async function onDelete() {
-    if (!confirm(`Usunąć domenę ${domain.name} z portfolia?`)) return;
+    if (!(await potwierdz(`Usunąć domenę ${domain.name} z portfolia?`, { akcja: 'Usuń', niebezpieczne: true }))) return;
     setBusy('delete');
     try {
       await deleteDomain(domain.id);

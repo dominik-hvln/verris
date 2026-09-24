@@ -4,6 +4,7 @@ import { Select } from "@/components/select";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useTransition, useId } from "react";
 import { Filter, RotateCcw, Search } from "lucide-react";
+import { PoleDaty } from "@/components/pole-daty";
 
 interface Defaults {
   action: string;
@@ -122,18 +123,16 @@ export function AuditFiltersBar({ defaults }: { defaults: Defaults }) {
         />
       </Field>
       <Field label="Od (data)">
-        <input
-          type="date"
+        <PoleDaty
           value={from}
-          onChange={(e) => setFrom(e.target.value)}
+          onChange={setFrom}
           className={inputClass}
         />
       </Field>
       <Field label="Do (data)">
-        <input
-          type="date"
+        <PoleDaty
           value={to}
-          onChange={(e) => setTo(e.target.value)}
+          onChange={setTo}
           className={inputClass}
         />
       </Field>

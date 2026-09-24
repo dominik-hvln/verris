@@ -13,6 +13,7 @@ import {
 import { Select } from '@/components/panel';
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { HostingHelpHint } from '@/components/hosting/HostingTabShell';
+import { potwierdz } from '@/components/panel/potwierdz';
 
 export default function SubdomainsManager({ serviceId }: { serviceId: string }) {
   const domainId = useId();
@@ -61,7 +62,7 @@ export default function SubdomainsManager({ serviceId }: { serviceId: string }) 
   };
 
   const onDelete = async (row: SubdomainRow) => {
-    if (!window.confirm(`Usunąć poddomenę „${row.subdomain}.${row.domain}" wraz z zawartością?`)) return;
+    if (!(await potwierdz(`Usunąć poddomenę „${row.subdomain}.${row.domain}" wraz z zawartością?`, { akcja: 'Usuń', niebezpieczne: true }))) return;
     setDeleting(row.id);
     const res = await deleteHostingSubdomainAction(serviceId, {
       domain: row.domain,

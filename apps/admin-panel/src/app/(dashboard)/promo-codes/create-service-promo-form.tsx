@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { AlertCircle, CheckCircle2, Loader2, Percent, Plus } from "lucide-react";
 import { createPromoAction } from "./actions";
+import { PoleDaty } from "@/components/pole-daty";
 
 const PERCENT_PRESETS = ["10", "15", "20", "25", "50"];
 
@@ -143,14 +144,13 @@ export function CreateServicePromoForm() {
             className="mt-1.5 w-full rounded-lg bg-black/60 border border-white/10 px-3 py-2 text-white text-sm"
           />
         </label>
-        <label className="block">
+        <label className="block" htmlFor="promo-uslugi-wazny-do">
           <span className="text-xs font-bold uppercase tracking-widest text-neutral-500">
             Ważny do
           </span>
-          <input
-            type="datetime-local"
+          <PoleDaty zGodzina id="promo-uslugi-wazny-do"
             value={validTo}
-            onChange={(e) => setValidTo(e.target.value)}
+            onChange={setValidTo}
             className="mt-1.5 w-full rounded-lg bg-black/60 border border-white/10 px-3 py-2 text-white text-sm"
           />
         </label>

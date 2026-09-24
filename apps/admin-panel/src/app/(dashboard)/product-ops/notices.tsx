@@ -9,6 +9,7 @@ import {
   setMaintenanceStatusAction,
 } from "./actions";
 import type { MaintenanceWindowRow, ProductAnnouncementRow } from "./data";
+import { PoleDaty } from "@/components/pole-daty";
 
 const INPUT =
   "w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-neutral-600 focus:border-emerald-400 focus:outline-none";
@@ -121,11 +122,11 @@ export function Maintenance({ rows, servers }: { rows: MaintenanceWindowRow[]; s
         <input id="mw-title" aria-label="Tytuł" required maxLength={160} placeholder="Tytuł, np. Aktualizacja PHP" className={INPUT} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />
         <textarea id="mw-msg" aria-label="Komunikat dla klientów" maxLength={5000} rows={2} placeholder="Komunikat dla klientów (co się stanie, czy będzie przerwa)" className={INPUT} value={f.publicMessage} onChange={(e) => setF({ ...f, publicMessage: e.target.value })} />
         <div className="grid gap-2 sm:grid-cols-2">
-          <label className="text-xs text-neutral-400">Początek
-            <input id="mw-start" type="datetime-local" required className={INPUT} value={f.scheduledStart} onChange={(e) => setF({ ...f, scheduledStart: e.target.value })} />
+          <label className="text-xs text-neutral-400" htmlFor="mw-start">Początek
+            <PoleDaty zGodzina id="mw-start" required className={INPUT} value={f.scheduledStart} onChange={(v) => setF({ ...f, scheduledStart: v })} />
           </label>
-          <label className="text-xs text-neutral-400">Koniec
-            <input id="mw-end" type="datetime-local" required className={INPUT} value={f.scheduledEnd} onChange={(e) => setF({ ...f, scheduledEnd: e.target.value })} />
+          <label className="text-xs text-neutral-400" htmlFor="mw-end">Koniec
+            <PoleDaty zGodzina id="mw-end" required className={INPUT} value={f.scheduledEnd} onChange={(v) => setF({ ...f, scheduledEnd: v })} />
           </label>
         </div>
         <Select

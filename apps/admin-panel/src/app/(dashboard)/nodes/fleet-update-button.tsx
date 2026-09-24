@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { RefreshCw, Loader2, Check, AlertCircle } from "lucide-react";
 import { updateFleet } from "./actions";
+import { potwierdz } from "@/components/potwierdz";
 
 /**
  * NODE-6 — aktualizacja całej floty do latest-stable (rolling). Zleca zadanie
@@ -13,8 +14,8 @@ export function FleetUpdateButton() {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [pending, start] = useTransition();
 
-  const run = () => {
-    if (!confirm("Zlecić aktualizację stacku (DA/CloudLinux/LiteSpeed) na WSZYSTKICH aktywnych węzłach? Zalecane po drainie ruchu.")) {
+  const run = async () => {
+    if (!(await potwierdz("Zlecić aktualizację stacku (DA/CloudLinux/LiteSpeed) na WSZYSTKICH aktywnych węzłach? Zalecane po drainie ruchu.", { akcja: 'Zleć aktualizację', niebezpieczne: true }))) {
       return;
     }
     setMsg(null);

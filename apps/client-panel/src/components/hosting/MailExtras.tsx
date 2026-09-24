@@ -20,6 +20,7 @@ import {
 } from '@/app/dashboard/services/[id]/hosting-email-actions';
 import { daErrorMessage } from '@/lib/client-hosting-messages';
 import { Select } from '@/components/panel/select';
+import { potwierdz } from '@/components/panel/potwierdz';
 
 const fieldCls =
   'w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-neutral-500';
@@ -95,7 +96,7 @@ export default function MailExtras({ serviceId }: { serviceId: string }) {
     toast.success('Alias dodany'); setFwName(''); setFwDest(''); void load();
   };
   const delForward = async (name: string) => {
-    if (!window.confirm(`Usunąć alias „${name}"?`)) return;
+    if (!(await potwierdz(`Usunąć alias „${name}"?`, { akcja: 'Usuń', niebezpieczne: true }))) return;
     setFwDel(name);
     const res = await deleteHostingForwarderAction(serviceId, name);
     setFwDel(null);
@@ -113,7 +114,7 @@ export default function MailExtras({ serviceId }: { serviceId: string }) {
     toast.success('Autoresponder zapisany'); setArName(''); void load();
   };
   const delAr = async (name: string) => {
-    if (!window.confirm(`Wyłączyć autoresponder dla „${name}"?`)) return;
+    if (!(await potwierdz(`Wyłączyć autoresponder dla „${name}"?`, { akcja: 'Wyłącz', niebezpieczne: true }))) return;
     setArDel(name);
     const res = await deleteHostingAutoresponderAction(serviceId, name);
     setArDel(null);
