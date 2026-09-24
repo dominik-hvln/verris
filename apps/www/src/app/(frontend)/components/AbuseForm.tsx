@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { submitAbuse } from '@/lib/submit-abuse';
+import { Wybor } from './Wybor';
 
 const KATEGORIE: [string, string][] = [
   ['PHISHING', 'Phishing / podszywanie się'],
@@ -56,9 +57,7 @@ export function AbuseForm() {
     <form className="form" onSubmit={onSubmit}>
       <div className="field">
         <label htmlFor="category">Czego dotyczy zgłoszenie</label>
-        <select id="category" name="category" required defaultValue="PHISHING">
-          {KATEGORIE.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
-        </select>
+        <Wybor id="category" name="category" defaultValue="PHISHING" options={KATEGORIE.map(([value, label]) => ({ value, label }))} />
       </div>
       <div className="field">
         <label htmlFor="url">Dokładny adres (URL) treści</label>
@@ -80,7 +79,7 @@ export function AbuseForm() {
         <label htmlFor="website">Strona WWW</label>
         <input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" />
       </div>
-      <label className="form-note" style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+      <label className="form-note zgoda">
         <input type="checkbox" name="goodFaith" required />
         <span>Oświadczam, że działam w dobrej wierze, a informacje w zgłoszeniu są według mojej wiedzy prawdziwe i kompletne.</span>
       </label>
