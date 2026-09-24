@@ -34,17 +34,27 @@ export interface SidebarUser {
  * Lekki fetch profilu do wyświetlenia w sidebarze.
  */
 export async function fetchSidebarUser(): Promise<SidebarUser | null> {
+  return (await fetchSidebarUserState()).user;
+}
+
+/**
+ * Profil + powód braku profilu. Wylogować wolno WYŁĄCZNIE przy `unauthorized` (brak tokenu
+ * albo 401/403). Wcześniej menu wylogowywało przy każdym `null` — także przy 502 w trakcie
+ * wdrożenia czy chwilowym braku sieci — i unieważniało sesję klienta w API.
+ */
+export async function fetchSidebarUserState(): Promise<{ user: SidebarUser | null; unauthorized: boolean }> {
   const token = await getAuthToken();
-  if (!token) return null;
+  if (!token) return { user: null, unauthorized: true };
 
   try {
     const res = await fetch(`${API_URL}/users/me`, {
       headers: { Authorization: `Bearer ${token}` },
       cache: "no-store",
     });
-    if (!res.ok) return null;
+    if (res.status === 401 || res.status === 403) return { user: null, unauthorized: true };
+    if (!res.ok) return { user: null, unauthorized: false };
     const data = await res.json();
-    return {
+    const user: SidebarUser = {
       firstName: data.firstName,
       lastName: data.lastName,
       email: data.email,
@@ -70,8 +80,9 @@ export async function fetchSidebarUser(): Promise<SidebarUser | null> {
         ? data.customerPermissions.map(String)
         : null,
     };
+    return { user, unauthorized: false };
   } catch {
-    return null;
+    return { user: null, unauthorized: false };
   }
 }
 

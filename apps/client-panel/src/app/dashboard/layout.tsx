@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Suspense, useEffect, useState, useSyncExternalStore, type ComponentType } from "react";
 import { logoutAction } from "./actions";
-import { fetchSidebarUser, savePanelPreferences, type SidebarUser } from "./sidebar-actions";
+import { fetchSidebarUserState, savePanelPreferences, type SidebarUser } from "./sidebar-actions";
 import { pushUserData } from "@/lib/analytics-events";
 import { ImpersonationBanner } from "./impersonation-banner";
 import { getImpersonationContext } from "./impersonation-actions";
@@ -345,14 +345,17 @@ function DashboardLayoutInner({
   useEffect(() => {
     let cancelled = false;
     const loadUser = () => {
-      void Promise.all([fetchSidebarUser(), getImpersonationContext()]).then(([u, imp]) => {
+      void Promise.all([fetchSidebarUserState(), getImpersonationContext()]).then(([{ user: u, unauthorized }, imp]) => {
         if (cancelled) return;
         setImpersonating(Boolean(imp?.isImpersonating));
         setUserLoading(false);
-        if (!u) {
+        // Wylogowanie tylko przy odrzuconej sesji. Chwilowa awaria API (np. wdrożenie) zostawia
+        // poprzedni profil — kolejna nawigacja albo „wallet:refresh” spróbuje ponownie.
+        if (unauthorized) {
           void logoutAction();
           return;
         }
+        if (!u) return;
         setUser(u);
         syncPanelPreferences(u);
         // Enhanced Conversions / Advanced Matching: ustawiamy zahaszowany e-mail RAZ,

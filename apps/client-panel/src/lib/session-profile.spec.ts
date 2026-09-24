@@ -1,4 +1,4 @@
-import { apiBaseUrl, fetchSessionProfile } from './session-profile';
+import { apiBaseUrl, fetchSessionProfile, fetchSessionProfileState } from './session-profile';
 
 /**
  * X-05 — profil sesji, na którym middleware opiera uprawnienia subkonta.
@@ -95,5 +95,33 @@ describe('X-05 fetchSessionProfile', () => {
     const p = await fetchSessionProfile('t');
     expect(p?.isSubaccount).toBe(true);
     expect(p?.customerPermissions).toBeNull();
+  });
+});
+
+describe('fetchSessionProfileState — wylogowanie tylko przy odrzuconej sesji', () => {
+  // Wcześniej middleware kasował ciasteczko przy każdej awarii /users/me, więc 502 w trakcie
+  // wdrożenia wylogowywało wszystkich klientów przeglądających panel.
+  it.each([401, 403])('%i → sesja odrzucona', async (status) => {
+    mockFetch(async () => ({ ok: false, status }));
+    await expect(fetchSessionProfileState('t')).resolves.toEqual({ profile: null, unauthorized: true });
+  });
+
+  it.each([500, 502, 503])('%i → nie wiemy: bez profilu, ale bez wylogowania', async (status) => {
+    mockFetch(async () => ({ ok: false, status }));
+    await expect(fetchSessionProfileState('t')).resolves.toEqual({ profile: null, unauthorized: false });
+  });
+
+  it('błąd sieci → bez wylogowania', async () => {
+    mockFetch(async () => {
+      throw new Error('ECONNREFUSED');
+    });
+    await expect(fetchSessionProfileState('t')).resolves.toEqual({ profile: null, unauthorized: false });
+  });
+
+  it('200 → profil', async () => {
+    mockFetch(async () => ({ ok: true, status: 200, json: async () => ({ isSubaccount: false, customerPermissions: null }) }));
+    const r = await fetchSessionProfileState('t');
+    expect(r.unauthorized).toBe(false);
+    expect(r.profile?.isSubaccount).toBe(false);
   });
 });
