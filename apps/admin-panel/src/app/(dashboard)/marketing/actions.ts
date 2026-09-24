@@ -33,7 +33,7 @@ export async function createCampaignAction(input: CreateCampaignInput): Promise<
   try {
     const res = await adminApi<{ id: string }>(`/admin/marketing/campaigns`, {
       method: "POST",
-      body: JSON.stringify({
+      body: {
         name,
         subject,
         bodyMarkdown: body,
@@ -42,7 +42,7 @@ export async function createCampaignAction(input: CreateCampaignInput): Promise<
         ctaUrl: input.ctaUrl?.trim() || null,
         segment: input.segment,
         scheduledAt: null,
-      }),
+      },
     });
     revalidatePath("/marketing");
     return { ok: true, id: res.id };
@@ -56,7 +56,7 @@ export async function scheduleCampaignAction(id: string, scheduledAt: string | n
   try {
     await adminApi(`/admin/marketing/campaigns/${id}/schedule`, {
       method: "PATCH",
-      body: JSON.stringify({ scheduledAt }),
+      body: { scheduledAt },
     });
     revalidatePath("/marketing");
     return { ok: true };

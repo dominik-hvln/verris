@@ -11,7 +11,7 @@ function msg(e: unknown): string {
 
 export async function updatePartnerConfigAction(input: PartnerConfig): Promise<Result> {
   try {
-    await adminApi("/admin/partners/config", { method: "PUT", body: JSON.stringify(input) });
+    await adminApi("/admin/partners/config", { method: "PUT", body: input });
     revalidatePath("/partners");
     return { ok: true };
   } catch (e) {
@@ -27,7 +27,7 @@ export async function processPayoutAction(
   try {
     await adminApi(`/admin/partners/payouts/${id}/process`, {
       method: "POST",
-      body: JSON.stringify({ action, note }),
+      body: { action, note },
     });
     revalidatePath("/partners");
     return { ok: true };

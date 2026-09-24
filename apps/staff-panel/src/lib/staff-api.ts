@@ -15,7 +15,8 @@ export class StaffApiError extends Error {
 
 interface ApiOptions {
   method?: "GET" | "POST" | "PATCH" | "DELETE";
-  body?: unknown;
+  /** Obiekt — serializuje go staffApi. Napis (np. już po JSON.stringify) byłby zakodowany drugi raz. */
+  body?: object;
   cache?: RequestCache;
 }
 

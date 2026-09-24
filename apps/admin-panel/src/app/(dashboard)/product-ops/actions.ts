@@ -5,7 +5,7 @@ import { adminApi, AdminApiError } from "@/lib/api";
 
 type Wynik = { ok: true } | { ok: false; error: string };
 
-async function wyslij(path: string, method: "POST" | "PATCH", body: unknown): Promise<Wynik> {
+async function wyslij(path: string, method: "POST" | "PATCH", body: object): Promise<Wynik> {
   try {
     await adminApi(path, { method, body });
     revalidatePath("/product-ops");

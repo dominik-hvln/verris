@@ -16,7 +16,8 @@ export class AdminApiError extends Error {
 
 interface ApiOptions {
   method?: "GET" | "POST" | "PATCH" | "DELETE" | "PUT";
-  body?: unknown;
+  /** Obiekt — serializuje go adminApi. Napis (np. już po JSON.stringify) byłby zakodowany drugi raz. */
+  body?: object;
   cache?: RequestCache;
 }
 

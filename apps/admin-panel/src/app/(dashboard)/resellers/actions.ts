@@ -18,7 +18,7 @@ export async function enableResellerAction(input: {
   try {
     await adminApi(`/admin/reseller/${userId}/enable`, {
       method: "POST",
-      body: JSON.stringify({ markupPct: input.markupPct, brandName: input.brandName || undefined }),
+      body: { markupPct: input.markupPct, brandName: input.brandName || undefined },
     });
     revalidatePath("/resellers");
     return { ok: true };
@@ -32,7 +32,7 @@ export async function updateResellerAction(
   input: { markupPct?: number; brandName?: string; status?: "ACTIVE" | "SUSPENDED" | "PENDING" },
 ): Promise<Result> {
   try {
-    await adminApi(`/admin/reseller/${userId}`, { method: "PUT", body: JSON.stringify(input) });
+    await adminApi(`/admin/reseller/${userId}`, { method: "PUT", body: input });
     revalidatePath("/resellers");
     return { ok: true };
   } catch (e) {
