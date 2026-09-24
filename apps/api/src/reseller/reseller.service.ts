@@ -3,6 +3,7 @@ import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { MailerService } from '../mail/mailer.service';
+import { escapeMarkdown as md, renderEmailShell } from '../mail/templates/_layouts/email-shell';
 
 type ResellerStatus = 'PENDING' | 'ACTIVE' | 'SUSPENDED';
 
@@ -175,7 +176,8 @@ export class ResellerService {
     const markupPct = Math.min(Math.max(Math.round(input.markupPct) || 0, 0), 300);
     let row: ProfileRow;
     if (existing) {
-      row = await this.repo.update({ where: { userId: targetUserId }, data: { markupPct, brandName: input.brandName ?? null, status: 'ACTIVE' } });
+      row = await this.repo.update({ where: { userId: targetUserId }, data: { markupPct, brandName: input.brandName ?? existing.brandName, status: 'ACTIVE' } });
+      if (existing.status === 'PENDING') await this.powiadomOAkceptacji(row);
     } else {
       row = await this.repo.create({
         data: { userId: targetUserId, markupPct, brandName: input.brandName ?? null, status: 'ACTIVE', code: `rsl_${randomBytes(5).toString('hex')}` },
@@ -183,6 +185,34 @@ export class ResellerService {
     }
     await this.audit.record({ action: 'RESELLER_ENABLED', userId: actorUserId, details: { targetUserId, markupPct } });
     return this.view(row);
+  }
+
+  /** O-08 — klient dowiaduje się, że wniosek zatwierdzono i link zaproszenia już działa. Best-effort. */
+  private async powiadomOAkceptacji(p: ProfileRow) {
+    const u = await this.prisma.user.findUnique({ where: { id: p.userId }, select: { email: true } });
+    if (!u?.email) return;
+    const panelUrl = this.clientUrl();
+    const link = `${panelUrl}/register?reseller=${encodeURIComponent(p.code)}`;
+    const { html, text } = renderEmailShell({
+      title: 'Program resellerski włączony',
+      preheader: 'Twój link zaproszenia już przypisuje klientów.',
+      bodyMarkdown: [
+        'Cześć,',
+        '',
+        `zatwierdziliśmy Twój wniosek${p.brandName ? ` dla marki **${md(p.brandName)}**` : ''} — program resellerski jest aktywny. Twój narzut: **${p.markupPct}%** ceny hurtowej.`,
+        '',
+        `Klienci, którzy założą konto z Twojego linku, będą przypisani do Ciebie: ${link}`,
+        '',
+        'Przegląd klientów i przychodu znajdziesz w panelu w zakładce **Reseller**.',
+      ].join('\n'),
+      cta: { label: 'Otwórz panel resellera', url: `${panelUrl}/dashboard/reseller` },
+      recipientEmail: u.email,
+      panelUrl,
+      recipientHasAccount: true,
+    });
+    await this.mailer
+      .send({ to: u.email, subject: 'Program resellerski Verris jest aktywny', text, html, tag: 'reseller.approved', category: 'TRANSACTIONAL', fromRole: 'SUPPORT' })
+      .catch(() => undefined);
   }
 
   async adminUpdate(targetUserId: string, input: { markupPct?: number; brandName?: string; status?: ResellerStatus }, actorUserId: string) {
@@ -194,6 +224,7 @@ export class ResellerService {
     if (input.status) data.status = input.status;
     const row = await this.repo.update({ where: { userId: targetUserId }, data });
     await this.audit.record({ action: 'RESELLER_UPDATED', userId: actorUserId, details: { targetUserId, ...input } });
+    if (existing.status === 'PENDING' && row.status === 'ACTIVE') await this.powiadomOAkceptacji(row);
     return this.view(row);
   }
 }

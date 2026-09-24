@@ -20,6 +20,23 @@ function stanowisko(role = 'USER', profil: unknown = null) {
   return { svc: new ResellerService(prisma as never, audit as never, { send: jest.fn(async () => undefined) } as never), repo, audit };
 }
 
+describe('ResellerService — zatwierdzenie wniosku (O-08)', () => {
+  it('PENDING → ACTIVE wysyła klientowi mail z linkiem; zawieszenie nie', async () => {
+    const send = jest.fn(async () => undefined);
+    const profil = { id: 'p', userId: 'u1', status: 'PENDING', brandName: 'Studio', markupPct: 25, code: 'rsl_abc', createdAt: new Date(), updatedAt: new Date() };
+    const repo = { findUnique: jest.fn(async () => profil), update: jest.fn(async (a: { data: Record<string, unknown> }) => ({ ...profil, ...a.data })) };
+    const prisma = { resellerProfile: repo, user: { findUnique: jest.fn(async () => ({ email: 'k@x.pl' })) } };
+    const svc = new ResellerService(prisma as never, { record: jest.fn(async () => undefined) } as never, { send } as never);
+    await svc.adminUpdate('u1', { status: 'ACTIVE' }, 'admin');
+    expect(send).toHaveBeenCalledWith(expect.objectContaining({ to: 'k@x.pl', tag: 'reseller.approved' }));
+    expect((send.mock.calls[0] as unknown as [{ text: string }])[0].text).toContain('reseller=rsl_abc');
+    send.mockClear();
+    repo.findUnique.mockResolvedValueOnce({ ...profil, status: 'ACTIVE' });
+    await svc.adminUpdate('u1', { status: 'SUSPENDED' }, 'admin');
+    expect(send).not.toHaveBeenCalled();
+  });
+});
+
 describe('ResellerService.apply (O-08)', () => {
   it('tworzy profil PENDING z kodem i wpisem w dzienniku', async () => {
     const s = stanowisko();
