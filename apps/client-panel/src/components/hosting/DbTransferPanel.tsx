@@ -11,6 +11,7 @@ import {
   fetchDbTransfer,
   importDb,
   maintainDb,
+  measureDbSizes,
   type DbTransferStatus,
 } from '@/app/dashboard/services/[id]/hosting-db-transfer-actions';
 
@@ -104,6 +105,15 @@ export function DbTransferPanel({ serviceId, databases }: { serviceId: string; d
     });
   };
 
+  const przelicz = () =>
+    start(async () => {
+      const r = await measureDbSizes(serviceId);
+      if (r.ok) {
+        setStan(r.status);
+        toast.success('Liczę rozmiary baz — wynik za chwilę.');
+      } else toast.error(r.error);
+    });
+
   const pobierz = async (sciezka: string) => {
     setPobierany(sciezka);
     try {
@@ -155,6 +165,28 @@ export function DbTransferPanel({ serviceId, databases }: { serviceId: string; d
         <button type="button" onClick={() => void importuj()} disabled={pending || !baza || !plik || stan?.wToku} className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[7px] border border-line-strong bg-card px-[13px] py-2 text-sm font-medium text-foreground hover:bg-raised disabled:opacity-50">
           <Upload className="h-4 w-4" /> Importuj do bazy
         </button>
+      </div>
+      <div className="border-t border-line px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-[13px] text-muted-foreground">
+            Rozmiar baz{stan?.rozmiary ? ` · pomiar z ${new Date(stan.rozmiary.kiedy).toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : ' · jeszcze nie mierzono'}
+          </span>
+          <button type="button" onClick={przelicz} disabled={pending || stan?.wToku} className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[7px] border border-line-strong bg-card px-[13px] py-2 text-sm font-medium text-foreground hover:bg-raised disabled:opacity-50">
+            Przelicz rozmiary
+          </button>
+        </div>
+        {stan?.rozmiary?.bazy.length ? (
+          <ul className="m-0 mt-2 list-none p-0 text-[13px]">
+            {stan.rozmiary.bazy.map((b) => (
+              <li key={b.baza} className="flex justify-between gap-3 border-t border-line py-1.5 first:border-t-0">
+                <span className="font-mono text-foreground">{b.baza}</span>
+                <span className="font-mono text-muted-foreground">
+                  {rozmiar(b.bajty)} · {b.tabele} tabel
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
       </div>
       <div className="flex flex-wrap items-center gap-2 border-t border-line px-4 py-3">
         <span className="mr-auto text-[13px] text-muted-foreground">Tabele wybranej bazy:</span>

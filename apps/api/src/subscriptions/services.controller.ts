@@ -1066,6 +1066,12 @@ export class UserServicesController {
     return this.dbTransfer.zlecImport(id, user.userId, body.db, body.file);
   }
 
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:db-sizes' })
+  @Post(':id/hosting-db-sizes')
+  async hostingDbSizes(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.dbTransfer.zlecRozmiary(id, user.userId);
+  }
+
   @RateLimit({ limit: 10, windowMs: 60 * 60 * 1000, scope: 'hosting:db-transfer' })
   @Post(':id/hosting-db-maintenance')
   async hostingDbMaintenance(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: KonserwacjaBazyDto) {

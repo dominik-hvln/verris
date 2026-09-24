@@ -109,6 +109,13 @@ export class DbTransferService {
     return this.opis(subscriptionId, userId, sub.account.id);
   }
 
+  /** D-17 — przeliczenie rozmiaru baz konta (information_schema na węźle). Tylko odczyt, bez dziennika. */
+  async zlecRozmiary(subscriptionId: string, userId: string) {
+    const sub = await this.wymagajKonta(subscriptionId, userId);
+    await this.zlec(sub.account, userId, { mode: 'sizes', db: '' });
+    return this.opis(subscriptionId, userId, sub.account.id);
+  }
+
   /** Nazwa bazy z panelu jest pełna (login_nazwa); prefiks musi być loginem TEGO konta. */
   private sprawdzBaze(daUsername: string | null, db: string): string {
     const baza = (db ?? '').trim();
@@ -121,7 +128,7 @@ export class DbTransferService {
   private async zlec(
     account: { id: string; serverId: string; status: string; daUsername: string | null },
     actorUserId: string,
-    payload: { mode: 'export' | 'import' | 'repair' | 'optimize' | 'privileges'; db: string; file?: string; user?: string; privs?: string },
+    payload: { mode: 'export' | 'import' | 'repair' | 'optimize' | 'privileges' | 'sizes'; db: string; file?: string; user?: string; privs?: string },
   ) {
     if (account.status !== 'ACTIVE') throw new BadRequestException('Konto hostingowe nie jest aktywne.');
     const wToku = await this.prisma.nodeTask.findFirst({
@@ -162,11 +169,16 @@ export class DbTransferService {
       if (z.status === NodeTaskStatus.FAILED || z.status === NodeTaskStatus.CANCELLED) continue;
       uprawnienia[klucz] = { zestaw: p.privs, status: z.status };
     }
+    const pomiar = await this.prisma.nodeTask.findFirst({
+      where: { accountId, kind: NodeTaskKind.DB_TRANSFER, status: NodeTaskStatus.COMPLETED, payload: { path: ['mode'], equals: 'sizes' } },
+      orderBy: { createdAt: 'desc' },
+    });
     return {
       uprawnienia,
+      rozmiary: pomiar ? { kiedy: (pomiar.completedAt ?? pomiar.createdAt).toISOString(), bazy: rozmiaryZLogu(pomiar.outputLog) } : null,
       katalog: KATALOG_BAZ,
       wToku: zadania.some((z) => z.status === NodeTaskStatus.QUEUED || z.status === NodeTaskStatus.RUNNING),
-      zadania: zadania.map((z) => this.widok(z)),
+      zadania: zadania.filter((z) => (z.payload as { mode?: string } | null)?.mode !== 'sizes').map((z) => this.widok(z)),
       ...pliki,
     };
   }
@@ -198,6 +210,16 @@ export class DbTransferService {
     if (!sub.account) throw new BadRequestException('Usługa nie ma jeszcze konta hostingowego.');
     return { ...sub, account: sub.account };
   }
+}
+
+/** D-17 — `VERRIS_DB_ROZMIAR=<baza>\t<bajty>\t<tabele>` z logu zadania. */
+export function rozmiaryZLogu(log: string | null): { baza: string; bajty: number; tabele: number }[] {
+  return (log ?? '')
+    .split('\n')
+    .flatMap((l) => {
+      const m = /^VERRIS_DB_ROZMIAR=([A-Za-z0-9_]{1,64})\t(\d{1,15})\t(\d{1,6})\s*$/.exec(l);
+      return m ? [{ baza: m[1], bajty: Number(m[2]), tabele: Number(m[3]) }] : [];
+    });
 }
 
 /** Ostatnia ścieżka `VERRIS_WYNIK_PLIK=` z logu zadania (tylko w katalogu baz). */

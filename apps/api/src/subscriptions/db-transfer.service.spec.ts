@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { DbTransferService, bladDlaKlienta, wynikZLogu } from './db-transfer.service';
+import { DbTransferService, bladDlaKlienta, rozmiaryZLogu, wynikZLogu } from './db-transfer.service';
 
 /**
  * D-12 — zlecanie eksportu/importu bazy. Skrypt na węźle sprawdzony na prawdziwej MariaDB 10.11
@@ -67,6 +67,13 @@ describe('DbTransferService', () => {
     s.prisma.nodeTask.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([z('full', 'FAILED'), z('rw', 'COMPLETED'), z('ro', 'COMPLETED')] as never);
     const r = await s.svc.status('s1', 'u1');
     expect(r.uprawnienia).toEqual({ 'klient1_sklep|klient1_app': { zestaw: 'rw', status: 'COMPLETED' } });
+  });
+
+  it('D-17: przeliczenie rozmiarów bez bazy w zadaniu; parser odrzuca śmieci', async () => {
+    const s = stanowisko();
+    await s.svc.zlecRozmiary('s1', 'u1');
+    expect(s.prisma.nodeTask.create).toHaveBeenCalledWith({ data: expect.objectContaining({ payload: { mode: 'sizes', db: '', daUser: 'klient1' } }) });
+    expect(rozmiaryZLogu('VERRIS_DB_ROZMIAR=klient1_sklep\t33792\t4\nVERRIS_DB_ROZMIAR=a;b\t1\t1\nx')).toEqual([{ baza: 'klient1_sklep', bajty: 33792, tabele: 4 }]);
   });
 
   it('drugie zadanie w toku → 409; konto nieaktywne → 400', async () => {

@@ -21,6 +21,8 @@ export interface DbTransferZadanie {
 }
 
 export interface DbTransferStatus {
+  /** D-17 — ostatni pomiar rozmiaru baz konta. */
+  rozmiary: { kiedy: string; bazy: { baza: string; bajty: number; tabele: number }[] } | null;
   /** D-08 — ostatni zestaw uprawnień ustawiony w panelu, klucz „baza|użytkownik”. */
   uprawnienia: Record<string, { zestaw: 'full' | 'rw' | 'ro'; status: string }>;
   katalog: string;
@@ -73,6 +75,16 @@ export async function maintainDb(serviceId: string, db: string, mode: 'repair' |
 export async function setDbUserPrivileges(serviceId: string, db: string, user: string, privs: 'full' | 'rw' | 'ro'): Promise<Wynik> {
   try {
     const status = await apiFetch<DbTransferStatus>(`/services/${serviceId}/hosting-db-users/privileges`, { method: 'POST', body: JSON.stringify({ db, user, privs }) });
+    return { ok: true, status };
+  } catch (e) {
+    return { ok: false, error: blad(e) };
+  }
+}
+
+/** D-17 — przeliczenie rozmiaru baz konta. */
+export async function measureDbSizes(serviceId: string): Promise<Wynik> {
+  try {
+    const status = await apiFetch<DbTransferStatus>(`/services/${serviceId}/hosting-db-sizes`, { method: 'POST' });
     return { ok: true, status };
   } catch (e) {
     return { ok: false, error: blad(e) };

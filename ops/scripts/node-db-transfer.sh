@@ -2,7 +2,8 @@
 # =============================================================================
 # Verris — eksport i import bazy MySQL/MariaDB klienta (D-12). Uruchamiany przez agenta
 # zadań (DB_TRANSFER) z env:
-#   DBT_MODE     export | import | repair | optimize | privileges
+#   DBT_MODE     export | import | repair | optimize | privileges | sizes
+#                sizes (D-17): rozmiar i liczba tabel każdej bazy konta, bez DBT_DB → VERRIS_DB_ROZMIAR=<baza>\t<bajty>\t<tabele>
 #   DBT_USER     (privileges) użytkownik MySQL konta: <login>_<nazwa>
 #   DBT_PRIVS    (privileges) full | rw | ro — D-08: pełne / odczyt i zapis danych / tylko odczyt
 #   DBT_DA_USER  login konta DA (z rekordu konta w API, nigdy z wejścia klienta)
@@ -23,7 +24,8 @@
 # =============================================================================
 set -Eeuo pipefail
 
-: "${DBT_MODE:?}"; : "${DBT_DA_USER:?}"; : "${DBT_DB:?}"
+: "${DBT_MODE:?}"; : "${DBT_DA_USER:?}"
+[ "$DBT_MODE" = "sizes" ] && DBT_DB="${DBT_DA_USER}_x"; : "${DBT_DB:?}"
 
 log() { echo "[db-transfer] $*"; }
 fail() { log "BŁĄD: $*"; exit 1; }
@@ -31,7 +33,7 @@ fail() { log "BŁĄD: $*"; exit 1; }
 KATALOG_WZGL="verris-bazy"
 LIMIT_IMPORTU=$((2 * 1024 * 1024 * 1024)) # 2 GB
 
-[[ "$DBT_MODE" =~ ^(export|import|repair|optimize|privileges)$ ]] || fail "nieznany tryb: $DBT_MODE"
+[[ "$DBT_MODE" =~ ^(export|import|repair|optimize|privileges|sizes)$ ]] || fail "nieznany tryb: $DBT_MODE"
 [[ "$DBT_DA_USER" =~ ^[a-z][a-z0-9]{0,15}$ ]] || fail "nieprawidłowy login konta"
 [[ "$DBT_DB" =~ ^${DBT_DA_USER}_[A-Za-z0-9_]{1,48}$ ]] || fail "baza nie należy do konta $DBT_DA_USER"
 id "$DBT_DA_USER" >/dev/null 2>&1 || fail "brak użytkownika systemowego $DBT_DA_USER"
@@ -48,6 +50,16 @@ if ! mysql -Nse 'SELECT 1' >/dev/null 2>&1; then
   ADMIN_OPTS=(--defaults-extra-file="$DA_MYCNF")
 fi
 mysql_admin() { mysql "${ADMIN_OPTS[@]}" "$@"; }
+
+if [ "$DBT_MODE" = "sizes" ]; then
+  # „_” w LIKE to symbol wieloznaczny — ucieczka, żeby login_ nie złapał loginX…
+  mysql_admin -Nse "SELECT s.SCHEMA_NAME, COALESCE(SUM(t.DATA_LENGTH + t.INDEX_LENGTH), 0), COUNT(t.TABLE_NAME)
+    FROM information_schema.SCHEMATA s LEFT JOIN information_schema.TABLES t ON t.TABLE_SCHEMA = s.SCHEMA_NAME
+    WHERE s.SCHEMA_NAME LIKE '${DBT_DA_USER}\\_%' GROUP BY s.SCHEMA_NAME ORDER BY s.SCHEMA_NAME" \
+    | while IFS=$'\t' read -r b r t; do echo "VERRIS_DB_ROZMIAR=$b	$r	$t"; done
+  log "Gotowe."
+  exit 0
+fi
 
 istnieje="$(mysql_admin -Nse "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME='${DBT_DB}'")"
 [ "$istnieje" = "$DBT_DB" ] || fail "baza $DBT_DB nie istnieje"
