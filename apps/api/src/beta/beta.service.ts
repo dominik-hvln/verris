@@ -112,7 +112,7 @@ export class BetaService {
         promoCode: {
           select: {
             code: true, active: true, validTo: true,
-            redemptions: { take: 1, select: { createdAt: true, user: { select: { id: true, email: true } } } },
+            redemptions: { take: 1, select: { redeemedAt: true, user: { select: { id: true, email: true } } } },
           },
         },
       },
@@ -137,7 +137,7 @@ export class BetaService {
         wyslane: z.sentAt?.toISOString() ?? null,
         stan: r ? 'UZYTY' : !z.promoCode.active ? 'WYCOFANY' : z.promoCode.validTo && z.promoCode.validTo <= teraz ? 'WYGASL' : 'CZEKA',
         waznyDo: z.promoCode.validTo?.toISOString() ?? null,
-        konto: r ? { email: r.user.email, od: r.createdAt.toISOString() } : null,
+        konto: r ? { email: r.user.email, od: r.redeemedAt.toISOString() } : null,
         aktywneUslugi: uid ? (ileUslug.get(uid) ?? 0) : 0,
         zgloszenia: moje.length,
         zgloszeniaOtwarte: moje.filter((t) => t.status !== 'CLOSED').length,

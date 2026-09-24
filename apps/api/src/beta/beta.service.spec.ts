@@ -80,7 +80,7 @@ describe('BetaService', () => {
     const s = stanowisko();
     const kod = (over: Record<string, unknown>) => ({ code: 'BETA-AAAAAA', active: true, validTo: new Date('2026-11-01'), redemptions: [], ...over });
     s.prisma.betaInvite.findMany.mockResolvedValueOnce([
-      { id: '1', email: 'a@b.pl', name: null, sentAt: new Date(), promoCode: kod({ redemptions: [{ createdAt: new Date(), user: { id: 'u1', email: 'a@b.pl' } }] }) },
+      { id: '1', email: 'a@b.pl', name: null, sentAt: new Date(), promoCode: kod({ redemptions: [{ redeemedAt: new Date(), user: { id: 'u1', email: 'a@b.pl' } }] }) },
       { id: '2', email: 'c@d.pl', name: null, sentAt: null, promoCode: kod({ active: false }) },
       { id: '3', email: 'e@f.pl', name: null, sentAt: null, promoCode: kod({ validTo: new Date('2026-10-01') }) },
       { id: '4', email: 'g@h.pl', name: null, sentAt: null, promoCode: kod({}) },
