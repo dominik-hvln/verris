@@ -124,14 +124,14 @@ export const features: Feature[] = [
     slug: 'kopie-zapasowe',
     eyebrow: 'Funkcja',
     title: 'Kopie zapasowe z odtwarzaniem',
-    lead: 'Backup i przywracanie z poziomu DirectAdmin — samodzielnie, bez czekania na support i bez dopłat.',
+    lead: 'Backup i przywracanie z panelu Verris — samodzielnie, bez czekania na support i bez dopłat.',
     metaTitle: 'Kopie zapasowe i odtwarzanie w hostingu | Verris',
     metaDescription:
-      'Kopie zapasowe z samodzielnym odtwarzaniem w panelu DirectAdmin. Przywróć pliki i bazę, gdy aktualizacja pójdzie nie tak — bez czekania na support i bez dopłat.',
+      'Kopie zapasowe z samodzielnym odtwarzaniem w panelu Verris. Przywróć pliki i bazę, gdy aktualizacja pójdzie nie tak — bez czekania na support i bez dopłat.',
     sections: [
       {
         p: [
-          'Nieudana aktualizacja wtyczki albo błąd w konfiguracji nie muszą oznaczać paniki. W Verris przywrócisz pliki i bazę danych samodzielnie z poziomu DirectAdmin.',
+          'Nieudana aktualizacja wtyczki albo błąd w konfiguracji nie muszą oznaczać paniki. W Verris przywrócisz pliki i bazę danych samodzielnie z panelu Verris.',
         ],
       },
       {

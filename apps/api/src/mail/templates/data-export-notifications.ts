@@ -62,7 +62,7 @@ export function dataExportReadyTemplate(ctx: DataExportReadyContext): MailMessag
       `- log audytowy operacji na koncie,`,
       `- historia zgód RODO oraz preferencji marketingowych.`,
       ``,
-      `Hash hasła, sekrety 2FA oraz hasła kont DirectAdmin są oznaczone w plikach jako \`[REDACTED]\` — to wartości techniczne, których nigdy nie udostępniamy.`,
+      `Hash hasła, sekrety 2FA oraz hasła kont hostingowych są oznaczone w plikach jako \`[REDACTED]\` — to wartości techniczne, których nigdy nie udostępniamy.`,
     ].join('\n'),
     cta: {
       label: 'Pobierz paczkę',

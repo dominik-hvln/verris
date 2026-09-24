@@ -26,7 +26,7 @@
 11. **Kredyty Verris** — bony jednego przeznaczenia w rozumieniu art. 2 pkt 43 ustawy z dnia 11 marca 2004 r. o podatku od towarów i usług, uprawniające wyłącznie do zapłaty za Usługi Verris opodatkowane w Polsce.
 12. **Cennik** — aktualne ceny Planów i usług dodatkowych, dostępne w Panelu podczas zakupu oraz na stronie oferty Verris; ceny podawane są w PLN i zawierają VAT (ceny brutto), a dla Klientów niebędących Konsumentami dodatkowo prezentowane są ceny netto.
 13. **Subkonto** — konto użytkownika zaproszonego przez Klienta w ramach modułu IAM (§6).
-14. **DirectAdmin** — panel zarządzania serwerem hostingowym udostępniany w ramach Hostingu.
+14. **Panel hostingowy** — panel zarządzania kontem hostingowym (pliki, bazy danych, poczta, kopie) udostępniany w ramach Hostingu, dostępny z Panelu.
 15. **SLA** — gwarantowany poziom dostępności Usług wraz z zasadami rekompensat (rozdz. IV).
 16. **RODO** — rozporządzenie Parlamentu Europejskiego i Rady (UE) 2016/679 z dnia 27 kwietnia 2016 r.
 17. **DSA** — rozporządzenie Parlamentu Europejskiego i Rady (UE) 2022/2065 z dnia 19 października 2022 r. w sprawie jednolitego rynku usług cyfrowych (akt o usługach cyfrowych).
@@ -107,11 +107,11 @@ Korzystanie z Panelu wymaga: dostępu do internetu, aktualnej wersji przeglądar
 
 ## §10. Hosting współdzielony
 
-1. Hosting polega na udostępnieniu zasobów serwera współdzielonego do utrzymywania stron internetowych, aplikacji, baz danych i skrzynek e-mail Klienta, z zarządzaniem przez Panel oraz DirectAdmin.
+1. Hosting polega na udostępnieniu zasobów serwera współdzielonego do utrzymywania stron internetowych, aplikacji, baz danych i skrzynek e-mail Klienta, z zarządzaniem przez Panel oraz Panel hostingowy.
 2. Parametry Planu (procesor, pamięć, dysk, transfer, liczba stron, kont e-mail i baz danych) określa specyfikacja Planu prezentowana przed zakupem. Zasoby są limitowane technologią izolacji (CloudLinux LVE); po osiągnięciu limitów działanie serwisów Klienta może ulec spowolnieniu — nie stanowi to niedostępności Usługi w rozumieniu SLA.
-3. W ramach Hostingu Klient otrzymuje: konto DirectAdmin, obsługę DNS dla podłączonych domen, konta e-mail w ramach limitów Planu, certyfikaty TLS (Let's Encrypt), dostęp FTPS i menedżer plików, zadania cron oraz narzędzie kopii zapasowych konta w DirectAdmin.
+3. W ramach Hostingu Klient otrzymuje: konto hostingowe z dostępem do Panelu hostingowego, obsługę DNS dla podłączonych domen, konta e-mail w ramach limitów Planu, certyfikaty TLS (Let's Encrypt), dostęp FTPS i menedżer plików, zadania cron oraz narzędzie kopii zapasowych konta.
 4. Klient może podłączyć własną domenę zarejestrowaną u dowolnego rejestratora albo zarejestrować domenę w Verris (§12).
-5. Verris wykonuje kopie zapasowe własnej infrastruktury służące przywracaniu ciągłości działania platformy. Narzędzia DirectAdmin umożliwiają Klientowi samodzielne tworzenie i pobieranie kopii konta. Kopie wykonywane przez Verris mają charakter pomocniczy i nie zwalniają Klienta z obowiązku utrzymywania własnych kopii danych o krytycznym znaczeniu.
+5. Verris wykonuje kopie zapasowe własnej infrastruktury służące przywracaniu ciągłości działania platformy. Panel i Panel hostingowy umożliwiają Klientowi samodzielne tworzenie i pobieranie kopii konta. Kopie wykonywane przez Verris mają charakter pomocniczy i nie zwalniają Klienta z obowiązku utrzymywania własnych kopii danych o krytycznym znaczeniu.
 6. Funkcja autoskalowania (jeżeli włączona przez Klienta) automatycznie zwiększa wybrane zasoby ponad limity Planu w granicach limitu kwotowego z §9 ust. 5.
 7. Wysyłka poczty z kont hostingowych podlega limitom antyspamowym określonym w specyfikacji Planu; §13 ust. 4–6 stosuje się odpowiednio.
 8. Po wygaśnięciu Umowy w zakresie Hostingu (§7 ust. 3) dane konta hostingowego (pliki, bazy, poczta) są trwale usuwane. Przez 30 dni od wygaśnięcia Klient może zwrócić się o odzyskanie danych z ostatniej dostępnej kopii; po tym terminie dane są nieodwracalnie usuwane, a kopie zapasowe nadpisywane w cyklu rotacji nie dłuższym niż 90 dni.

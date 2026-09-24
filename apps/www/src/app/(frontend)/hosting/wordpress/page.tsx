@@ -7,7 +7,7 @@ import { PANEL } from '@/lib/site';
 export const metadata: Metadata = {
   title: 'Hosting WordPress z autoskalowaniem | Verris',
   description:
-    'Hosting WordPress na DirectAdmin, zoptymalizowany pod WP: obsługa starych wersji PHP, kopie z odtwarzaniem, SSL i migracja za 0 zł. Autoskalowanie łapie piki ruchu. 45 zł/mies lub 399 zł/rok brutto.',
+    'Hosting WordPress zoptymalizowany pod WP: obsługa starych wersji PHP, kopie z odtwarzaniem, SSL i migracja za 0 zł. Autoskalowanie łapie piki ruchu. 45 zł/mies lub 399 zł/rok brutto.',
   alternates: { canonical: '/hosting/wordpress' },
 };
 
@@ -29,7 +29,7 @@ export default function Page() {
             <ul>
               <li>Autoskalowanie CPU/RAM/dysku — pik kampanii nie kładzie strony.</li>
               <li>Obsługa starych wersji PHP, gdy motyw lub wtyczka jeszcze nie nadążyły.</li>
-              <li>Kopie zapasowe z samodzielnym odtwarzaniem w DirectAdmin.</li>
+              <li>Kopie zapasowe z samodzielnym odtwarzaniem w panelu Verris.</li>
               <li>Certyfikat SSL Let’s Encrypt i migracja w cenie — 0 zł.</li>
               <li>Przywracanie kopii wybiórczo: pliki, baza, poczta — z domyślną kopią bezpieczeństwa przed operacją.</li>
             </ul>

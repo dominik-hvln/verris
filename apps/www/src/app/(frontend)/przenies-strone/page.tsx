@@ -60,7 +60,7 @@ const jsonLd = {
       '@type': 'Product',
       name: 'Hosting Verris z autoskalowaniem — darmowa migracja',
       description:
-        'Hosting współdzielony na DirectAdmin z autoskalowaniem i darmową migracją strony oraz poczty. Baza: 50 GB NVMe, do 8 GB RAM, do 2 vCPU. SLA 99,5% z rekompensatami.',
+        'Hosting współdzielony z autoskalowaniem i darmową migracją strony oraz poczty. Baza: 50 GB NVMe, do 8 GB RAM, do 2 vCPU. SLA 99,5% z rekompensatami.',
       brand: { '@type': 'Organization', name: 'Verris' },
       offers: [
         { '@type': 'Offer', price: '45.00', priceCurrency: 'PLN', availability: 'https://schema.org/InStock', url: 'https://verris.pl/przenies-strone', description: 'Rozliczenie miesięczne, cena brutto' },

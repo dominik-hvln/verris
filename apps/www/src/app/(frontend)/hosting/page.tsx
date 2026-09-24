@@ -9,7 +9,7 @@ import { serviceSchema, HOSTING_OFFERS } from '@/lib/schema';
 export const metadata: Metadata = {
   title: 'Hosting z autoskalowaniem — 45 zł/mies | Verris',
   description:
-    'Hosting współdzielony z autoskalowaniem na DirectAdmin. Baza 50 GB NVMe, do 8 GB RAM, do 2 vCPU — skalowanie do 1000 GB, 64 GB RAM, 24 vCPU. Migracja i SSL za 0 zł, bez limitu stron i skrzynek. 45 zł/mies lub 399 zł/rok brutto.',
+    'Hosting współdzielony z autoskalowaniem. Baza 50 GB NVMe, do 8 GB RAM, do 2 vCPU — skalowanie do 1000 GB, 64 GB RAM, 24 vCPU. Migracja i SSL za 0 zł, bez limitu stron i skrzynek. 45 zł/mies lub 399 zł/rok brutto.',
   alternates: { canonical: '/hosting' },
 };
 
@@ -17,9 +17,9 @@ const FEATURES = [
   { icon: Gauge, h: 'Autoskalowanie', p: 'Moc rośnie w piku i zwalnia w trybie ECO. Płacisz godzinowo tylko za nadwyżkę ponad bazę.' },
   { icon: Move, h: 'Migracja 0 zł', p: 'Przeprowadzkę strony i poczty robi zespół albo migrator w panelu — bez przestoju i bez limitu plików.' },
   { icon: ShieldCheck, h: 'SSL i SLA w cenie', p: 'Certyfikat Let’s Encrypt bez dopłat oraz SLA 99,5% z rekompensatami zapisanymi w regulaminie.' },
-  { icon: Database, h: 'Kopie zapasowe', p: 'Backup i samodzielne odtwarzanie z poziomu DirectAdmin — bez czekania na support.' },
+  { icon: Database, h: 'Kopie zapasowe', p: 'Backup i samodzielne odtwarzanie z panelu Verris — bez czekania na support.' },
   { icon: Undo2, h: 'Siatka bezpieczeństwa', p: 'Domyślnie przed przywróceniem kopii zapisujemy stan obecny, więc nieudane odtworzenie da się cofnąć.' },
-  { icon: Wrench, h: 'DirectAdmin + WordPress', p: 'Wygodny panel, obsługa starych wersji PHP i konfiguracja zoptymalizowana pod WordPress.' },
+  { icon: Wrench, h: 'Panel pod WordPressa', p: 'Wygodny panel, obsługa starych wersji PHP i konfiguracja zoptymalizowana pod WordPress.' },
 ];
 
 export default function HostingPage() {
@@ -29,7 +29,7 @@ export default function HostingPage() {
         data={serviceSchema({
           name: 'Hosting z autoskalowaniem',
           description:
-            'Hosting współdzielony na DirectAdmin z autoskalowaniem CPU/RAM/dysku. Baza 50 GB NVMe, do 8 GB RAM, do 2 vCPU; skalowanie do 1000 GB, 64 GB RAM, 24 vCPU. Migracja i SSL za 0 zł.',
+            'Hosting współdzielony z autoskalowaniem CPU/RAM/dysku. Baza 50 GB NVMe, do 8 GB RAM, do 2 vCPU; skalowanie do 1000 GB, 64 GB RAM, 24 vCPU. Migracja i SSL za 0 zł.',
           path: '/hosting',
           offers: HOSTING_OFFERS,
         })}

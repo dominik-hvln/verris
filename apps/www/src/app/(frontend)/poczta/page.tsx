@@ -7,7 +7,7 @@ import { PANEL } from '@/lib/site';
 export const metadata: Metadata = {
   title: 'Poczta e-mail w hostingu — skrzynki na własnej domenie | Verris',
   description:
-    'Skrzynki e-mail na własnej domenie w ramach hostingu Verris. Webmail Roundcube, konfiguracja w DirectAdmin, bez limitu liczby skrzynek w ramach zasobów konta. Migracja poczty w cenie.',
+    'Skrzynki e-mail na własnej domenie w ramach hostingu Verris. Webmail Roundcube, konfiguracja w panelu Verris, bez limitu liczby skrzynek w ramach zasobów konta. Migracja poczty w cenie.',
   alternates: { canonical: '/poczta' },
 };
 
@@ -29,7 +29,7 @@ export default function Page() {
             <ul>
               <li>Skrzynki na własnej domenie — bez limitu liczby w ramach zasobów konta.</li>
               <li>Webmail Roundcube pod webmail.verris.pl oraz obsługa IMAP/SMTP w kliencie.</li>
-              <li>Konfiguracja i zarządzanie kontami z panelu DirectAdmin.</li>
+              <li>Konfiguracja i zarządzanie kontami z panelu Verris.</li>
               <li>Migracja poczty razem ze stroną — w cenie, bez przestoju.</li>
             </ul>
             <p>

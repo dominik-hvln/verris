@@ -29,6 +29,17 @@ operatora, backup, rozliczenia), potem zapora control-plane i strict, dokumenty,
 ścieżka pierwszego klienta, GO. Po starcie: asystent wykonujący akcje, tryb agencji, bezpieczne
 aktualizacje WP z testem wizualnym, MCP, checklisty RODO/dostępności.
 
+### 2026-09-24 — white label: klient nie widzi DirectAdmina
+- **Pełny white label** — decyzja właściciela. Mówimy „panel Verris” / „panel hostingowy”; nazwa
+  DirectAdmina znika z verris.pl, panelu, maili i dokumentów prawnych (regulamin §1 pkt 14 i §10,
+  informacja dla konsumenta, polityka prywatności, lista podwykonawców). Pilnuje
+  `apps/api/src/test/bez-nazwy-directadmina.spec.ts`; wyjątek: kreator migracji (panel u poprzedniego dostawcy).
+- **Granica:** nie twierdzimy, że silnik hostingu jest nasz — „własny panel” to prawda, „własny serwer
+  hostingowy” byłby wprowadzeniem w błąd. Licencja DA zabrania tylko zmian w binariach; branding przez
+  oficjalną warstwę Evolution.
+- **Na węźle (PB-25, sprint 18):** panel hostingowy, phpMyAdmin i webmail pod własną nazwą na 443,
+  branding Evolution, własne strony domyślne, przegląd maili systemowych DA.
+
 ### 2026-09-23 — dokumenty prawne i KSC (sprint 17)
 - **Publikacja bez zewnętrznego przeglądu prawnika** — decyzja właściciela; dokumenty aktualizuję do
   stanu faktycznego. Publikujemy raz, tuż przed pierwszym klientem (każda publikacja = ponowna zgoda

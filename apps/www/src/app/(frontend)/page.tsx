@@ -34,7 +34,7 @@ const SERVICES_BAZA = [
   {
     icon: Server,
     title: 'Hosting z autoskalowaniem',
-    desc: 'Strony, sklepy i poczta na DirectAdmin. Zasoby rosną automatycznie w piku i zwalniają w trybie ECO — nie kupujesz pakietu „na zapas".',
+    desc: 'Strony, sklepy i poczta w jednym panelu. Zasoby rosną automatycznie w piku i zwalniają w trybie ECO — nie kupujesz pakietu „na zapas".',
     tag: '45 zł/mies · 399 zł/rok brutto',
     tagClass: 'price',
     cta: 'Zobacz cennik →',
@@ -87,7 +87,7 @@ const USP = [
   { icon: FileText, title: 'Jedna cena, bez pułapek', desc: 'Cena z cennika od pierwszego dnia. Bez taniej przynęty na rok i bez szoku przy odnowieniu.' },
   { icon: Undo2, title: 'Przywracanie z siatką bezpieczeństwa', desc: 'Domyślnie przed odtworzeniem kopii zapisujemy stan obecny, więc nieudane przywrócenie da się cofnąć.' },
   { icon: RefreshCw, title: 'Domeny bez pułapek', desc: 'Brak cichych auto-odnowień z karty. Przypominamy przed wygaśnięciem, a decyzję zostawiamy Tobie.' },
-  { icon: Database, title: 'Kopie z samodzielnym odtwarzaniem', desc: 'Backup i przywracanie z poziomu DirectAdmin — bez czekania na support i bez dopłat.' },
+  { icon: Database, title: 'Kopie z samodzielnym odtwarzaniem', desc: 'Backup i przywracanie z panelu Verris — bez czekania na support i bez dopłat.' },
 ];
 
 const COMPARE: [string, string, string][] = [
@@ -119,7 +119,7 @@ const homeJsonLd = {
       '@type': 'Product',
       name: 'Hosting Verris z autoskalowaniem',
       description:
-        'Hosting współdzielony na DirectAdmin z autoskalowaniem CPU/RAM/dysku i trybem ECO. Baza: 50 GB NVMe, do 8 GB RAM, do 2 vCPU; skalowanie do 1000 GB, 64 GB RAM, 24 vCPU. Migracja i SSL za 0 zł, SLA 99,5% z rekompensatami.',
+        'Hosting współdzielony z autoskalowaniem CPU/RAM/dysku i trybem ECO. Baza: 50 GB NVMe, do 8 GB RAM, do 2 vCPU; skalowanie do 1000 GB, 64 GB RAM, 24 vCPU. Migracja i SSL za 0 zł, SLA 99,5% z rekompensatami.',
       brand: { '@id': ORG_ID },
       offers: HOSTING_OFFERS,
     },

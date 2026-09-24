@@ -244,7 +244,7 @@ export default function DatabasesTab({ serviceId }: Props) {
           </label>
         </div>
         <p className="mt-2 text-xs text-neutral-500">
-          DirectAdmin doda prefiks konta do nazwy bazy i użytkownika (np. <span className="font-mono">user_sklep</span>).
+          Do nazwy bazy i użytkownika dodamy prefiks konta (np. <span className="font-mono">user_sklep</span>).
         </p>
         <div className="mt-3 flex justify-end">
           <Button

@@ -21,10 +21,10 @@ export interface AccountProvisionedContext {
   planName: string;
   /** Primary domain bound to the new DA account. */
   domain: string;
-  /** Login to the DirectAdmin control panel for this account. */
+  /** Login konta hostingowego (DA) — w treści maila bez nazwy DirectAdmina (white label, 2026-09-24). */
   daUsername: string;
   // Audit F-15: the DA password is intentionally NOT part of this e-mail.
-  // The customer retrieves credentials via the client panel ("Magic Login"),
+  // The customer retrieves credentials in the client panel (service card),
   // which is authenticated — e-mail is plaintext at rest on foreign servers.
   panelUrl: string;
 }
@@ -44,24 +44,23 @@ export function accountProvisionedTemplate(ctx: AccountProvisionedContext): Mail
       ``,
       `- **Plan:** ${escapeMarkdown(ctx.planName)}`,
       `- **Domena główna:** ${escapeMarkdown(ctx.domain)}`,
-      `- **Login do DirectAdmin:** \`${escapeMarkdown(ctx.daUsername)}\``,
-      `- **Hasło:** dostępne w panelu klienta — usługa → **Magic Login** (nie wysyłamy haseł e-mailem)`,
+      `- **Login hostingowy:** \`${escapeMarkdown(ctx.daUsername)}\` (także login FTP i prefiks nazw baz danych)`,
+      `- **Hasło:** w panelu klienta przy usłudze — nie wysyłamy haseł e-mailem`,
       ``,
       `**Pierwsze kroki:**`,
       ``,
-      `1. Zaloguj się do DirectAdmin przez **Magic Login** w panelu klienta (Subskrypcje → Twoja usługa).`,
-      `2. Skonfiguruj rekordy DNS swojej domeny — albo skieruj nameservery na nasze, albo ustaw rekordy A/AAAA wskazujące na adres serwera podany w panelu Verris.`,
-      `3. Zainstaluj certyfikat SSL (Let's Encrypt — jednym kliknięciem w DA) lub wgraj własny.`,
-      `4. Wgraj swoje pliki przez **File Manager** lub FTP/SFTP.`,
+      `1. Otwórz usługę w panelu klienta — znajdziesz tam dane logowania do panelu hostingowego i FTP.`,
+      `2. Skieruj domenę na nasze serwery nazw albo ustaw rekordy A/AAAA na adres serwera podany przy usłudze.`,
+      `3. Certyfikat SSL (Let's Encrypt) próbujemy wystawić od razu; jeśli domena jeszcze nie wskazuje na nasz serwer, wystawisz go jednym kliknięciem w zakładce SSL.`,
+      `4. Wgraj pliki przez menedżer plików w panelu albo przez FTP/SFTP.`,
       ``,
-      `Jeśli przenosisz stronę z innego hostingu — w panelu klienta znajdziesz **kreator migracji** (Subskrypcje → Twoja usługa → "Przenieś stronę").`,
+      `Przenosisz stronę z innego hostingu? W panelu klienta jest **kreator migracji** — przeniesie pliki, bazy i pocztę.`,
     ].join('\n'),
     cta: {
       label: 'Otwórz panel klienta',
       url: `${ctx.panelUrl}/dashboard/services`,
     },
-    footnote:
-      'Ze względów bezpieczeństwa nie wysyłamy haseł e-mailem (audit F-15). Dane logowania znajdziesz w panelu klienta — sekcja Magic Login przy Twojej usłudze.',
+    footnote: 'Ze względów bezpieczeństwa nie wysyłamy haseł e-mailem. Dane logowania znajdziesz w panelu klienta przy usłudze.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',

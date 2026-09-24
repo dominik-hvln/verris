@@ -24,7 +24,7 @@ Dane do faktur (nazwa, adres, NIP przy fakturach na działalność), saldo Portf
 Adres IP, przeglądarka (User-Agent) i znaczniki czasu logowań, dziennik audytu operacji na koncie, alerty bezpieczeństwa, logi doręczeń e-mail, dane sesji (token w cookie httpOnly).
 
 ### 2.4 Dane usług
-Nazwa konta DirectAdmin, podłączone domeny i konfiguracja DNS, nazwy baz danych i kont e-mail, zagregowane metryki zużycia zasobów (CPU, RAM, dysk), parametry serwerów VPS, dane abonenta rejestrowanych domen. **Nie analizujemy treści** Twoich stron, plików, wiadomości ani baz danych — w tym zakresie działamy wyłącznie jako podmiot przetwarzający na Twoje polecenie (zob. pkt 3 i DPA).
+Nazwa konta hostingowego, podłączone domeny i konfiguracja DNS, nazwy baz danych i kont e-mail, zagregowane metryki zużycia zasobów (CPU, RAM, dysk), parametry serwerów VPS, dane abonenta rejestrowanych domen. **Nie analizujemy treści** Twoich stron, plików, wiadomości ani baz danych — w tym zakresie działamy wyłącznie jako podmiot przetwarzający na Twoje polecenie (zob. pkt 3 i DPA).
 
 ### 2.5 Dane wsparcia i komunikacji
 Treść zgłoszeń (ticketów) z załącznikami, korespondencja e-mail, preferencje powiadomień, zgody marketingowe wraz z historią ich wyrażenia i wycofania (wersja dokumentu, data, IP).

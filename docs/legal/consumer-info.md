@@ -11,7 +11,7 @@ Kontakt: e-mail `kontakt@verris.pl`, telefon +48 511 589 465, formularz w panelu
 
 ## 2. Główne cechy świadczenia
 
-Usługi świadczone drogą elektroniczną pod marką Verris: hosting współdzielony (konto DirectAdmin, strony WWW, bazy danych, poczta, certyfikaty TLS, kopie w DirectAdmin), serwery VPS (niezarządzane, pełny dostęp administracyjny), rejestracja i utrzymanie domen internetowych, usługa e-mail marketingu oraz program resellerski. Dokładne parametry wybranego planu (zasoby, limity, funkcje) są prezentowane w specyfikacji planu przed zakupem i w podsumowaniu zamówienia. Warunki świadczenia określa Regulamin świadczenia usług Verris (`https://panel.verris.pl/legal/terms`).
+Usługi świadczone drogą elektroniczną pod marką Verris: hosting współdzielony (konto hostingowe, strony WWW, bazy danych, poczta, certyfikaty TLS, kopie zapasowe konta), serwery VPS (niezarządzane, pełny dostęp administracyjny), rejestracja i utrzymanie domen internetowych, usługa e-mail marketingu oraz program resellerski. Dokładne parametry wybranego planu (zasoby, limity, funkcje) są prezentowane w specyfikacji planu przed zakupem i w podsumowaniu zamówienia. Warunki świadczenia określa Regulamin świadczenia usług Verris (`https://panel.verris.pl/legal/terms`).
 
 ## 3. Cena i płatności
 
