@@ -17,7 +17,7 @@ function stanowisko(role = 'USER', profil: unknown = null) {
     subscription: { findMany: jest.fn(async () => []) },
   };
   const audit = { record: jest.fn(async () => undefined) };
-  return { svc: new ResellerService(prisma as never, audit as never), repo, audit };
+  return { svc: new ResellerService(prisma as never, audit as never, { send: jest.fn(async () => undefined) } as never), repo, audit };
 }
 
 describe('ResellerService.apply (O-08)', () => {

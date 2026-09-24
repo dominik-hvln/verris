@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
+import { MailerService } from '../mail/mailer.service';
 
 type ResellerStatus = 'PENDING' | 'ACTIVE' | 'SUSPENDED';
 
@@ -48,6 +49,7 @@ export class ResellerService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly mailer: MailerService,
   ) {}
 
   private get repo(): ProfileDelegate {
@@ -125,6 +127,19 @@ export class ResellerService {
     const brandName = (input.brandName ?? '').trim().slice(0, 80) || null;
     await this.repo.create({ data: { userId, brandName, markupPct: 20, status: 'PENDING', code: `rsl_${randomBytes(5).toString('hex')}` } });
     await this.audit.record({ action: 'RESELLER_APPLIED', userId, details: { brandName } });
+    // Operator dowiaduje się o wniosku (skrzynka z RESELLER_APPLY_EMAIL, domyślnie ta od alertów bezpieczeństwa).
+    const inbox = process.env.RESELLER_APPLY_EMAIL || process.env.SECURITY_ALERT_EMAIL;
+    if (inbox) {
+      await this.mailer
+        .send({
+          to: inbox,
+          subject: '[Verris] Nowy wniosek o program resellerski',
+          text: `Konto (userId): ${userId}\nMarka: ${brandName ?? '(bez nazwy)'}\n\nZatwierdź albo odrzuć w panelu admina → Resellerzy.`,
+          category: 'TRANSACTIONAL',
+          tag: 'reseller.apply',
+        })
+        .catch(() => undefined);
+    }
     return this.getOverview(userId);
   }
 
