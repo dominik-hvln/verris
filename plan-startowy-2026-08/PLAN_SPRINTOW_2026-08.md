@@ -9,9 +9,9 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **2941 h** — przy 30 h tygodniowo około **23 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **2949 h** — przy 30 h tygodniowo około **23 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **22 sprintów do startu** (959 h) oraz roadmapę po starcie (1982 h, 108 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **22 sprintów do startu** (967 h) oraz roadmapę po starcie (1982 h, 108 pozycji) rozpisaną na epiki kwartalne.
 
 - **2027-01-22** — koniec sprintu 21, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-01-29** — koniec sprintu 22, decyzja GO.
@@ -386,7 +386,7 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 
 # Faza 3 — Wejście na rynek
 
-*Sprinty 15–19 · 259 h · 2026-12-07 – 2027-01-08*
+*Sprinty 15–19 · 267 h · 2026-12-07 – 2027-01-08*
 
 Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, baza wiedzy, przejście ścieżki pierwszego klienta na produkcji i zapisana decyzja GO.
 
@@ -455,7 +455,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 ## Sprint 18 — Cennik, SLA i zastepstwo
 
-`2026-12-28 – 2027-01-01` · **61 h** z 30 h pojemności
+`2026-12-28 – 2027-01-01` · **69 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -466,6 +466,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 | `PB-20` | Tryb agencji: przełącznik klienta w menu bocznym | 16 | ŚREDNI | Element makiety („Piekarnia Zdrój · klient · 3 usługi” nad menu): konto agencji/resellera przełącza się między swoimi klientami bez wylogowania. Wymag |
 | `PB-21` | DNS platformy i poczty na serwerze testowym | 6 | WYSOKI | Odłożone decyzją właściciela 2026-09-23 do chwili, gdy jest serwer testowy. (1) Decyzja: wspólny rekord _spf.verris.pl (include platformy, łatwa zmian |
 | `PB-24` | KSC/NIS2: wpis do wykazu podmiotów kluczowych | 3 | WYSOKI | Wg FAQ KSC (cyber.gov.pl) podmiot świadczący usługi rejestracji nazw domen i dostawca usług DNS = podmiot kluczowy niezależnie od wielkości. Decyzja w |
+| `PB-25` | White label na węźle — klient nie widzi DirectAdmina | 8 | WYSOKI | Decyzja właściciela 2026-09-24: pełny white label. Teksty dla klienta (verris.pl, panel, maile, dokumenty prawne) wyczyszczone tego dnia i pilnowane s |
 
 **Definicja ukończenia**
 
@@ -476,6 +477,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 - `PB-20` — Decyzja o modelu zapisana w docs/VERRIS.md; przełącznik widoczny tylko dla kont z klientami; przełączenie zmienia kontekst usług, domen i płatności; guard uprawnień obejmuje nowe trasy (Z-04); testy w CI.
 - `PB-21` — Na serwerze testowym: rekord dodany i usunięty z panelu bez duplikatu; zmiana rozmiaru skrzynki zostawia hasło; kreator poczty pokazuje DKIM ze strefy i zapisuje SPF/DMARC; verris.pl ma jeden DMARC; decyzja o _spf.verris.pl zapisana w docs/VERRIS.md. Po D3 F-01/F-02, E-05, E-15/16/17 przechodzą w macierzy na PARYTET.
 - `PB-24` — Wpis w wykazie przed upływem 6 miesięcy od pierwszej domeny/DNS dla klienta; termin zapisany w tym zadaniu z datą.
+- `PB-25` — Na węźle #1: logowanie do panelu hostingowego, phpMyAdmin i webmaila z panelu klienta nie pokazuje nazwy ani portu DirectAdmina; nowa domena i konto zawieszone pokazują strony Verris; zrzuty w dowodzie.
 - **Cały sprint** — `audyt/dane/macierz.csv` zaktualizowana (uzasadnienie w „Uwagach”), widoki przebudowane, decyzje dopisane do `docs/VERRIS.md`.
 
 **Ryzyko sprintu.** BLOK DOKUMENTOW — przesuniety na koniec decyzja wlasciciela 2026-09-22: najpierw kod i infrastruktura, dokumenty na sam koniec, przed pierwszym klientem. Kolejnosc wewnatrz bloku wymuszona zaleznosciami: regulamin (PB-03) przed kredytami SLA (N-16), cennik (PB-07) przed landingiem (PB-06), landing przed kampania (PB-10), wszystko przed sciezka pierwszego klienta (PB-05). N-16 (kredyty SLA) po PB-03, bo regulamin obiecuje kredyty — najpierw przeliczyc je na realnych danych z probe-ow. Cennik zgodny z PB-01 (45 zl/mies brutto, 399 zl/rok). | 2026-09-23: PB-21 (DNS platformy i D3 edytora DNS/poczty) tutaj, bo w tym sprincie pojawia się serwer testowy.
