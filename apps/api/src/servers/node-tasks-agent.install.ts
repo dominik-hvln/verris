@@ -259,6 +259,10 @@ elif [ "$TASK_KIND" = "HTACCESS" ]; then
   RUN_BIN="/usr/local/bin/verris-htaccess.sh"
   fetch_task_script "/agent/tasks/htaccess/script" "$RUN_BIN"
   payload_env "HT" "{'mode':'MODE','daUser':'DA_USER','domain':'DOMAIN','indexes':'INDEXES','hsts':'HSTS','e403':'E403','e404':'E404','e500':'E500'}"
+elif [ "$TASK_KIND" = "PHP_INFO" ]; then
+  RUN_BIN="/usr/local/bin/verris-php-info.sh"
+  fetch_task_script "/agent/tasks/php-info/script" "$RUN_BIN"
+  payload_env "PI" "{'daUser':'DA_USER','domain':'DOMAIN'}"
 elif [ "$TASK_KIND" = "HOSTING_PROFILE" ]; then
   flags="-y"
   [ "$SKIP_BUILD" = "1" ] && flags="$flags --skip-build"
@@ -439,7 +443,7 @@ dispatch_generic() {
 
 case "$KIND" in
   HOSTING_PROFILE) dispatch_hosting_profile ;;
-  WP_INSTALL|WAF_APPLY|STAGING_SYNC|PHP_APPLY|APP_INSTALL|OFFSITE_RESTORE|DB_UPGRADE|FLEET_UPDATE|DB_TRANSFER|FILE_RESTORE|SSH_ACCESS|WP_UPDATE|DISK_USAGE|MALWARE_SCAN|REDIS_ACCESS|MAIL_LOG|GIT_DEPLOY|SITE_CLONE|HTACCESS) dispatch_generic ;;
+  WP_INSTALL|WAF_APPLY|STAGING_SYNC|PHP_APPLY|APP_INSTALL|OFFSITE_RESTORE|DB_UPGRADE|FLEET_UPDATE|DB_TRANSFER|FILE_RESTORE|SSH_ACCESS|WP_UPDATE|DISK_USAGE|MALWARE_SCAN|REDIS_ACCESS|MAIL_LOG|GIT_DEPLOY|SITE_CLONE|HTACCESS|PHP_INFO) dispatch_generic ;;
   *)
     report_task_fail "Unknown task kind: $KIND"
     exit 1

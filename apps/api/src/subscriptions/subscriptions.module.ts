@@ -39,6 +39,7 @@ import { MailLogService } from './mail-log.service';
 import { GitDeployService } from './git-deploy.service';
 import { SiteCloneService } from './site-clone.service';
 import { HtaccessService } from './htaccess.service';
+import { PhpInfoService } from './php-info.service';
 import { PublicApiWriteController } from './public-api-write.controller';
 import { GitWebhookController } from './git-webhook.controller';
 import { ApiTokensModule } from '../api-tokens/api-tokens.module';
@@ -95,6 +96,7 @@ import { EcoModule } from '../eco/eco.module';
     GitDeployService,
     SiteCloneService,
     HtaccessService,
+    PhpInfoService,
     WpAutoUpdateScheduler,
     WordpressService,
     WafService,

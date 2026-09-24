@@ -37,6 +37,7 @@ import { loadMailLogScript } from './mail-log.script';
 import { loadGitDeployScript } from './git-deploy.script';
 import { loadSiteCloneScript } from './site-clone.script';
 import { loadHtaccessScript } from './htaccess.script';
+import { loadPhpInfoScript } from './php-info.script';
 import { loadNodeUpdateScript } from './node-update.script';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 
@@ -201,6 +202,13 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   htaccessScript() {
     return loadHtaccessScript();
+  }
+
+  /** B-06 — konfiguracja PHP strony przez serwer WWW (run with PI_* env). */
+  @Get('php-info/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  phpInfoScript() {
+    return loadPhpInfoScript();
   }
 
   /** VER-UPG — MariaDB engine upgrade script (run with DB_TARGET_VERSION env). */

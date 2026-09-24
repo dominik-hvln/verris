@@ -29,6 +29,7 @@ import { PhpIniForm } from '@/components/hosting/PhpIniForm';
 import { WpUpdatesPanel } from '@/components/hosting/WpUpdatesPanel';
 import { SiteClonePanel } from '@/components/hosting/SiteClonePanel';
 import { HtaccessPanel } from '@/components/hosting/HtaccessPanel';
+import { PhpInfoPanel } from '@/components/hosting/PhpInfoPanel';
 import { HostingLinksProvider } from '@/components/hosting/hosting-links-context';
 import { fetchHostingDnsAction, fetchHostingDomainsAction } from '../../hosting-domains-action';
 import { fetchHostingSslAction, requestLetsEncryptSslAction } from '../../hosting-ssl-actions';
@@ -420,6 +421,7 @@ export default function SitePage() {
         {tab === 'php' ? (
           <>
             <PhpSection serviceId={serviceId} domain={domain} php={ok(php)} loading={php === undefined} onChanged={reloadPhp} />
+            <PhpInfoPanel serviceId={serviceId} domain={domain} />
             <HtaccessPanel key={domain} serviceId={serviceId} domain={domain} />
           </>
         ) : null}

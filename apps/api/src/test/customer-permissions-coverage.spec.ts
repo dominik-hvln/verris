@@ -54,6 +54,7 @@ const ODMOWA_OCZEKIWANA: ReadonlyArray<string> = [
   'GET /agent/tasks/git-deploy/script',
   'GET /agent/tasks/site-clone/script',
   'GET /agent/tasks/htaccess/script',
+  'GET /agent/tasks/php-info/script',
   'GET /agent/tasks/deploy-ssh-pubkey',
   'GET /agent/tasks/hosting-profile/default-page/bundle',
   'GET /agent/tasks/hosting-profile/default-page/script',
