@@ -16,6 +16,13 @@ docker compose up -d
 
 Domyślnie Postgres jest na **`localhost:5433`** (wewnątrz kontenera `5432`), Redis na **`localhost:6379`**.
 
+> **Baza nie przyjmuje logowania, choć kontener jest „healthy”?** (DEV-01) Od 2026-09-24 Postgres
+> używa wolumenu `postgres_data_v2`. Stary `postgres_data` powstał z innym `POSTGRES_USER`, a obraz
+> Postgresa czyta `POSTGRES_USER`/`POSTGRES_PASSWORD` wyłącznie przy pustym katalogu danych. Po
+> aktualizacji repozytorium: `docker compose up -d postgres`, potem migracje i seed (sekcja 4).
+> Healthcheck loguje się teraz jako `verris` — zły wolumen widać od razu jako „unhealthy”.
+> Stary wolumen nie jest kasowany; gdy nie jest potrzebny: `docker volume rm ekohost_postgres_data`.
+
 ## 2. Zmienne środowiskowe (lokalnie)
 
 ### API

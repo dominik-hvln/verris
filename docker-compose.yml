@@ -12,7 +12,16 @@ services:
     ports:
       - '5433:5432'
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      # DEV-01: nowy wolumen. Stary `postgres_data` zainicjowano innym POSTGRES_USER, a obraz
+      # Postgresa czyta POSTGRES_USER/PASSWORD tylko przy pustym katalogu danych — kontener wstawał
+      # „zdrowy”, a logowanie odbijało (rola verris nie istniała). Stary wolumen zostaje nietknięty.
+      - postgres_data_v2:/var/lib/postgresql/data
+    healthcheck:
+      # Logowanie tymi samymi danymi co aplikacja — pg_isready nie sprawdza roli ani hasła.
+      test: ['CMD-SHELL', 'PGPASSWORD=verris_password psql -h 127.0.0.1 -U verris -d verris_db -c "select 1" >/dev/null']
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
   redis:
     image: redis:7-alpine
@@ -80,5 +89,6 @@ services:
 
 volumes:
   postgres_data:
+  postgres_data_v2:
   redis_data:
   minio_data:
