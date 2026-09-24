@@ -38,6 +38,23 @@ function warnDetail(
   return { status: 'warn', label, explanation, whatToDo };
 }
 
+/**
+ * Surowy błąd gniazda/TLS z Node (np. „connect ECONNREFUSED 1.2.3.4:2222”) → zwięzły opis po polsku.
+ * Klient nie dostaje komunikatów systemowych ani adresów/portów z wnętrza infrastruktury.
+ */
+export function opisBleduPolaczenia(error: string): string {
+  const e = error.toLowerCase();
+  if (e.includes('econnrefused')) return 'serwer odrzuca połączenie';
+  if (e.includes('timeout') || e.includes('etimedout')) return 'serwer nie odpowiada na czas';
+  if (e.includes('enotfound') || e.includes('eai_again')) return 'nie udało się odnaleźć adresu w DNS';
+  if (e.includes('econnreset') || e.includes('socket hang up')) return 'połączenie zostało przerwane';
+  if (e.includes('expired')) return 'certyfikat wygasł';
+  if (e.includes('self-signed') || e.includes('self signed')) return 'certyfikat nie jest wystawiony przez zaufany urząd';
+  if (e.includes('altnames') || e.includes('does not match')) return 'certyfikat wystawiono dla innej nazwy';
+  if (e.includes('ehostunreach') || e.includes('enetunreach')) return 'serwer jest nieosiągalny';
+  return 'błąd połączenia';
+}
+
 export function buildHealthCheckDetails(
   checks: Checks,
   meta: HealthProbeMeta,
@@ -69,7 +86,7 @@ export function buildHealthCheckDetails(
   if (checks.tlsOk === true) {
     out.tlsOk = okDetail('HTTPS', `Strona https://${meta.domain} ma działający certyfikat TLS.`);
   } else if (checks.tlsOk === false) {
-    const extra = meta.siteTls.error ? ` (${meta.siteTls.error})` : meta.siteTls.authorized === false
+    const extra = meta.siteTls.error ? ` (${opisBleduPolaczenia(meta.siteTls.error)})` : meta.siteTls.authorized === false
       ? ' (połączenie działa, ale certyfikat nie jest w pełni zaufany)'
       : '';
     out.tlsOk = warnDetail(
@@ -87,7 +104,7 @@ export function buildHealthCheckDetails(
   } else if (checks.panelTlsOk === false) {
     out.panelTlsOk = warnDetail(
       'Panel hostingu',
-      `Panel ${meta.panelHost}:2222 wymaga uwagi${meta.panelTls.error ? `: ${meta.panelTls.error}` : ''}.`,
+      `Panel ${meta.panelHost}:2222 wymaga uwagi${meta.panelTls.error ? `: ${opisBleduPolaczenia(meta.panelTls.error)}` : ''}.`,
       'Zwykle nie musisz nic robić — logowanie odbywa się przez nasz panel. Jeśli link „Panel hostingu” nie działa, napisz do supportu.',
     );
   }
@@ -100,7 +117,7 @@ export function buildHealthCheckDetails(
   } else if (checks.mailOk === false) {
     out.mailOk = warnDetail(
       'Poczta',
-      `Serwer poczty ${meta.mailHost}:${meta.mailPort} — problem połączenia${meta.mailTls.error ? ` (${meta.mailTls.error})` : ''}.`,
+      `Serwer poczty ${meta.mailHost}:${meta.mailPort} — problem połączenia${meta.mailTls.error ? ` (${opisBleduPolaczenia(meta.mailTls.error)})` : ''}.`,
       'Sprawdź ustawienia IMAP/SMTP w zakładce „Poczta”. Jeśli skrzynki w panelu działają, a klient pocztowy nie — zweryfikuj port i SSL. W razie wątpliwości napisz do supportu.',
     );
   }

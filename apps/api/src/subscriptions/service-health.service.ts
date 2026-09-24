@@ -311,13 +311,11 @@ export class ServiceHealthService {
       panelTlsOk: row.panelTlsOk,
       mailOk: row.mailOk,
     };
-    let checkDetails = details.checkDetails;
-    if (!checkDetails && details.probeMeta) {
-      checkDetails = buildHealthCheckDetails(checks, details.probeMeta);
-    }
-    if (!checkDetails) {
-      checkDetails = fallbackHealthCheckDetails(checks);
-    }
+    // Surowe dane pomiaru mają pierwszeństwo: opis budujemy aktualnymi regułami (np. bez błędów systemowych),
+    // a nie tekstem zapisanym w chwili pomiaru.
+    const checkDetails = details.probeMeta
+      ? buildHealthCheckDetails(checks, details.probeMeta)
+      : (details.checkDetails ?? fallbackHealthCheckDetails(checks));
     return {
       score,
       label: score >= 80 ? 'healthy' : score >= 50 ? 'attention' : 'critical',
