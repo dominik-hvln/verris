@@ -2,12 +2,14 @@
 # =============================================================================
 # Verris — aktualizacje WordPressa domeny (I-04 automatyczne, I-05 z panelu).
 # Uruchamiany przez agenta zadań (WP_UPDATE) z env:
-#   WPU_MODE      check | update | cache
+#   WPU_MODE      check | update | cache | harden
 #   WPU_DA_USER   login konta DA (z rekordu konta w API)
 #   WPU_DOMAIN    domena; WordPress w domains/<domena>/public_html
 #   WPU_CORE      (update) none | minor | all
 #   WPU_PLUGINS   (update) pusta = bez wtyczek, „*” = wszystkie z aktualizacją, albo slug,slug
 #   WPU_THEMES    (update) jak WPU_PLUGINS, dla motywów
+#   WPU_HARDEN    (harden) file-edit | debug-off — I-08: wyłączenie edytora plików w kokpicie,
+#                 wyłączenie WP_DEBUG (wp-config.php)
 #   WPU_CACHE     (cache) on | off | purge — wtyczka LiteSpeed Cache (J-02): włączenie z kontrolą
 #                 strony (5xx po włączeniu → wyłączamy z powrotem), wyłączenie, wyczyszczenie cache;
 #                 redis-on | redis-off — cache obiektowy Redis (J-03) przez wtyczkę Redis Object Cache
@@ -29,12 +31,13 @@
 set -Eeuo pipefail
 
 : "${WPU_MODE:?}"; : "${WPU_DA_USER:?}"; : "${WPU_DOMAIN:?}"
-: "${WPU_CORE:=none}"; : "${WPU_PLUGINS:=}"; : "${WPU_THEMES:=}"; : "${WPU_CACHE:=}"
+: "${WPU_CORE:=none}"; : "${WPU_PLUGINS:=}"; : "${WPU_THEMES:=}"; : "${WPU_CACHE:=}"; : "${WPU_HARDEN:=}"
 
 log() { echo "[wp-update] $*"; }
 fail() { log "BŁĄD: $*" >&2; exit 1; }
 
-[[ "$WPU_MODE" == "check" || "$WPU_MODE" == "update" || "$WPU_MODE" == "cache" ]] || fail "nieznany tryb: $WPU_MODE"
+[[ "$WPU_MODE" =~ ^(check|update|cache|harden)$ ]] || fail "nieznany tryb: $WPU_MODE"
+[ "$WPU_MODE" != "harden" ] || [[ "$WPU_HARDEN" =~ ^(file-edit|debug-off)$ ]] || fail "nieprawidłowa operacja zabezpieczeń"
 [ "$WPU_MODE" != "cache" ] || [[ "$WPU_CACHE" =~ ^(on|off|purge|redis-on|redis-off)$ ]] || fail "nieprawidłowa operacja cache"
 [[ "$WPU_DA_USER" =~ ^[a-z][a-z0-9]{0,15}$ ]] || fail "nieprawidłowy login konta"
 [[ "$WPU_DOMAIN" =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$ ]] || fail "nieprawidłowa domena"
@@ -125,7 +128,40 @@ fi
 
 PRZED="$(stan)"
 echo "VERRIS_WP_PRZED=$PRZED"
+# I-08 — przegląd zabezpieczeń (tylko przy sprawdzeniu; weryfikacja sum kontrolnych trwa chwilę).
+zabezpieczenia() {
+  local edit debug admin perm sumy
+  edit="$(wp config get DISALLOW_FILE_EDIT 2>/dev/null || echo '')"
+  debug="$(wp config get WP_DEBUG 2>/dev/null || echo '')"
+  if wp user get admin --field=ID >/dev/null 2>&1; then admin=1; else admin=0; fi
+  perm="$(stat -c '%a' "$DOCROOT/wp-config.php" 2>/dev/null || echo '')"
+  if wp core verify-checksums >/dev/null 2>&1; then sumy=ok; else sumy=zmienione; fi
+  EDIT="$edit" DEBUG="$debug" ADMIN="$admin" PERM="$perm" SUMY="$sumy" python3 - <<'PY'
+import base64, json, os
+prawda = lambda v: v.strip().lower() in ("1", "true")
+out = {
+    "edytorPlikow": not prawda(os.environ["EDIT"]),
+    "debug": prawda(os.environ["DEBUG"]),
+    "uzytkownikAdmin": os.environ["ADMIN"] == "1",
+    "uprawnieniaConfig": os.environ["PERM"][:4],
+    "sumyRdzenia": os.environ["SUMY"],
+}
+print(base64.b64encode(json.dumps(out, separators=(",", ":")).encode()).decode())
+PY
+}
+
 if [ "$WPU_MODE" = "check" ]; then
+  echo "VERRIS_WP_ZABEZPIECZENIA=$(zabezpieczenia)"
+  log "Gotowe."
+  exit 0
+fi
+
+if [ "$WPU_MODE" = "harden" ]; then
+  case "$WPU_HARDEN" in
+    file-edit) wp config set DISALLOW_FILE_EDIT true --raw --quiet || fail "nie udało się zapisać wp-config.php" ;;
+    debug-off) wp config set WP_DEBUG false --raw --quiet || fail "nie udało się zapisać wp-config.php" ;;
+  esac
+  echo "VERRIS_WP_ZABEZPIECZENIA=$(zabezpieczenia)"
   log "Gotowe."
   exit 0
 fi

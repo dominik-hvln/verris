@@ -118,3 +118,15 @@ describe('WpUpdateService — cache (J-02)', () => {
     await expect(s.svc.cache('s1', 'u1', { domain: 'a.pl', action: 'rm' })).rejects.toThrow(BadRequestException);
   });
 });
+
+describe('WpUpdateService — zabezpieczenia (I-08)', () => {
+  it('przegląd z ostatniego sprawdzenia; poprawka jako zadanie harden', async () => {
+    const z = Buffer.from(JSON.stringify({ edytorPlikow: true, debug: false, uzytkownikAdmin: true, uprawnieniaConfig: '644', sumyRdzenia: 'zmienione' })).toString('base64');
+    const s = stanowisko({ zadania: [{ id: 't', status: 'COMPLETED', outputLog: `VERRIS_WP_PRZED=${b64(PRZED)}\nVERRIS_WP_ZABEZPIECZENIA=${z}\n`, createdAt: new Date(), completedAt: new Date(), payload: { mode: 'check', domain: 'a.pl' } }] });
+    const r = await s.svc.status('s1', 'u1', 'a.pl');
+    expect(r.zabezpieczenia).toEqual({ edytorPlikow: true, debug: false, uzytkownikAdmin: true, uprawnieniaConfig: '644', sumyRdzenia: 'zmienione' });
+    await s.svc.zabezpiecz('s1', 'u1', { domain: 'a.pl', action: 'file-edit' });
+    expect(payload(s).payload).toMatchObject({ mode: 'harden', harden: 'file-edit' });
+    await expect(s.svc.zabezpiecz('s1', 'u1', { domain: 'a.pl', action: 'chmod' })).rejects.toThrow(BadRequestException);
+  });
+});

@@ -71,6 +71,17 @@ export default function LogsTab({ serviceId }: { serviceId: string }) {
   };
 
   const linie = log ? [...log.lines].reverse() : [];
+
+  // K-06 — pobranie tego, co widać (do 1000 ostatnich linii), w kolejności chronologicznej.
+  const pobierz = () => {
+    if (!log?.lines.length) return;
+    const url = URL.createObjectURL(new Blob([log.lines.join('\n') + '\n'], { type: 'text/plain;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${domena || 'konto'}-${rodzaj}-${new Date().toISOString().slice(0, 10)}.log`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
   const opis = RODZAJE.find((r) => r.id === rodzaj)?.opis;
 
   return (
@@ -79,6 +90,15 @@ export default function LogsTab({ serviceId }: { serviceId: string }) {
       description={opis}
       help={{ blurb: 'Log błędów to pierwsze miejsce, do którego warto zajrzeć, gdy strona nie działa.', kbQuery: 'logi błędów' }}
       actions={
+        <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={pobierz}
+          disabled={laduje || !log?.lines.length}
+          className="inline-flex items-center justify-center gap-2 rounded-[7px] border border-line px-3 py-2 text-sm font-semibold text-foreground hover:bg-raised disabled:opacity-50"
+        >
+          Pobierz
+        </button>
         <button
           type="button"
           onClick={odswiez}
@@ -87,6 +107,7 @@ export default function LogsTab({ serviceId }: { serviceId: string }) {
         >
           {laduje ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />} Odśwież
         </button>
+        </div>
       }
     >
       <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end">
@@ -144,7 +165,7 @@ export default function LogsTab({ serviceId }: { serviceId: string }) {
             {log?.truncated ? ' · starsze pominięte' : ''}
           </p>
           <pre
-            // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- przewijany log musi być dostępny z klawiatury (WCAG 2.1.1)
+             
             tabIndex={0}
             aria-label={`Log ${rodzaj === 'error' ? 'błędów' : 'dostępu'} ${log?.domain ?? ''}`}
             className="m-0 max-h-[60vh] overflow-y-auto whitespace-pre-wrap break-all rounded-[10px] border border-line bg-card p-3 font-mono text-[12px] leading-relaxed text-foreground"

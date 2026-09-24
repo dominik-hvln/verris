@@ -97,6 +97,21 @@ export class WpUpdateService {
     return this.opis(account.id, domena);
   }
 
+  /** I-08 — poprawki zabezpieczeń w wp-config.php (edytor plików w kokpicie, WP_DEBUG). */
+  async zabezpiecz(subscriptionId: string, userId: string, input: { domain: string; action: string }) {
+    if (!['file-edit', 'debug-off'].includes(input.action)) throw new BadRequestException('Nieprawidłowa operacja.');
+    const { sub, account, domena } = await this.wymagajDomeny(subscriptionId, userId, input.domain);
+    const task = await this.zlec(account, userId, {
+      mode: 'harden', domain: domena, core: 'none', plugins: '', themes: '', auto: false, harden: input.action as 'file-edit' | 'debug-off',
+    });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_WP_HARDEN_QUEUED,
+      userId: sub.userId, actorUserId: userId,
+      details: { subscriptionId, domain: domena, harden: input.action, taskId: task.id },
+    });
+    return this.opis(account.id, domena);
+  }
+
   async ustawAutomat(
     subscriptionId: string,
     userId: string,
@@ -153,13 +168,14 @@ export class WpUpdateService {
     account: { id: string; serverId: string; status: string; daUsername: string | null },
     actorUserId: string | null,
     payload: {
-      mode: 'check' | 'update' | 'cache';
+      mode: 'check' | 'update' | 'cache' | 'harden';
       domain: string;
       core: ZakresRdzenia;
       plugins: string;
       themes: string;
       auto: boolean;
       cache?: ZadanieCache;
+      harden?: 'file-edit' | 'debug-off';
     },
   ) {
     if (account.status !== 'ACTIVE') throw new BadRequestException('Konto hostingowe nie jest aktywne.');
@@ -208,8 +224,11 @@ export class WpUpdateService {
         break;
       }
     }
+    const zabezpieczenia =
+      zadania.map((z) => (z.status === NodeTaskStatus.COMPLETED ? zabezpieczeniaZLogu(z.outputLog) : null)).find(Boolean) ?? null;
     return {
       domena,
+      zabezpieczenia,
       wToku: zadania.some((z) => z.status === NodeTaskStatus.QUEUED || z.status === NodeTaskStatus.RUNNING),
       brakWordpressa: brak,
       stan,
@@ -313,6 +332,31 @@ export function zmiany(przed: StanWp | null, po: StanWp | null): Array<{ typ: 'c
     }
   }
   return out;
+}
+
+export type ZabezpieczeniaWp = {
+  edytorPlikow: boolean;
+  debug: boolean;
+  uzytkownikAdmin: boolean;
+  uprawnieniaConfig: string;
+  sumyRdzenia: 'ok' | 'zmienione';
+};
+
+export function zabezpieczeniaZLogu(log: string | null): ZabezpieczeniaWp | null {
+  const m = /^VERRIS_WP_ZABEZPIECZENIA=([A-Za-z0-9+/=]+)\s*$/m.exec(log ?? '');
+  if (!m) return null;
+  try {
+    const j = JSON.parse(Buffer.from(m[1], 'base64').toString('utf8')) as Record<string, unknown>;
+    return {
+      edytorPlikow: j.edytorPlikow === true,
+      debug: j.debug === true,
+      uzytkownikAdmin: j.uzytkownikAdmin === true,
+      uprawnieniaConfig: typeof j.uprawnieniaConfig === 'string' && /^[0-7]{3,4}$/.test(j.uprawnieniaConfig) ? j.uprawnieniaConfig : '',
+      sumyRdzenia: j.sumyRdzenia === 'ok' ? 'ok' : 'zmienione',
+    };
+  } catch {
+    return null;
+  }
 }
 
 function kopiaZLogu(log: string | null): string | null {

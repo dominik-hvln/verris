@@ -89,6 +89,7 @@ import {
   AktualizacjaWordpressaDto,
   AutomatWordpressaDto,
   CacheWordpressaDto,
+  ZabezpieczeniaWordpressaDto,
   OdtworzenieZArchiwumDto,
   ImportBazyDto,
   WersjaPhpDto,
@@ -1092,6 +1093,12 @@ export class UserServicesController {
   @Post(':id/hosting-wp-updates/cache')
   async hostingWpCache(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: CacheWordpressaDto) {
     return this.wpUpdate.cache(id, user.userId, body);
+  }
+
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:wp-update' })
+  @Post(':id/hosting-wp-updates/harden')
+  async hostingWpHarden(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: ZabezpieczeniaWordpressaDto) {
+    return this.wpUpdate.zabezpiecz(id, user.userId, body);
   }
 
   @Post(':id/hosting-wp-updates/auto')

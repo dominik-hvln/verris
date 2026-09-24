@@ -14,6 +14,13 @@ export interface WpPozycja {
 
 export interface WpStatus {
   domena: string;
+  zabezpieczenia: {
+    edytorPlikow: boolean;
+    debug: boolean;
+    uzytkownikAdmin: boolean;
+    uprawnieniaConfig: string;
+    sumyRdzenia: 'ok' | 'zmienione';
+  } | null;
   wToku: boolean;
   brakWordpressa: boolean;
   stan: {
@@ -67,6 +74,10 @@ export async function runWpUpdates(
 
 export async function wpCache(serviceId: string, domain: string, action: 'on' | 'off' | 'purge' | 'redis-on' | 'redis-off'): Promise<Wynik> {
   return wynik(apiFetch<WpStatus>(url(serviceId, '/cache'), { method: 'POST', body: JSON.stringify({ domain, action }) }));
+}
+
+export async function wpHarden(serviceId: string, domain: string, action: 'file-edit' | 'debug-off'): Promise<Wynik> {
+  return wynik(apiFetch<WpStatus>(url(serviceId, '/harden'), { method: 'POST', body: JSON.stringify({ domain, action }) }));
 }
 
 export async function setWpAutoUpdates(

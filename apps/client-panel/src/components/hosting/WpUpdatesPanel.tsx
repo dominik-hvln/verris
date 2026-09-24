@@ -13,6 +13,7 @@ import {
   runWpUpdates,
   setWpAutoUpdates,
   wpCache,
+  wpHarden,
   type WpPozycja,
   type WpStatus,
 } from '@/app/dashboard/services/[id]/hosting-wp-update-actions';
@@ -153,6 +154,17 @@ export function WpUpdatesPanel({ serviceId, domain }: { serviceId: string; domai
       } else toast.error(r.error);
     });
   };
+
+  const zab = stan?.zabezpieczenia ?? null;
+  const popraw = (akcja: 'file-edit' | 'debug-off') =>
+    start(async () => {
+      const r = await wpHarden(serviceId, domain, akcja);
+      if (r.ok) {
+        przyjmij(r.status);
+        toast.success('Zmiana zlecona — gotowe w ciągu minuty.');
+      } else toast.error(r.error);
+    });
+  const zapisywalnyDlaWszystkich = (m: string) => /[2367]$/.test(m);
 
   const zapiszAuto = () =>
     auto &&
@@ -357,6 +369,72 @@ export function WpUpdatesPanel({ serviceId, domain }: { serviceId: string; domai
               </button>
             )}
           </div>
+        </div>
+      ) : null}
+
+      {wp && zab ? (
+        <div className="rounded-[10px] border border-line bg-card">
+          <header className="border-b border-line px-4 py-3">
+            <h3 className="m-0 text-[15px] font-bold text-foreground">Zabezpieczenia WordPressa</h3>
+            <p className="m-0 mt-0.5 text-[12.5px] text-muted-foreground">Przegląd z ostatniego sprawdzenia. Odśwież przyciskiem „Sprawdź aktualizacje”.</p>
+          </header>
+          <ul className="m-0 list-none p-0 text-[13px]">
+            {(
+              [
+                [
+                  !zab.edytorPlikow,
+                  'Edytor plików w kokpicie',
+                  zab.edytorPlikow
+                    ? 'Włączony — kto przejmie konto administratora, może zmienić kod PHP strony z przeglądarki.'
+                    : 'Wyłączony (DISALLOW_FILE_EDIT).',
+                  zab.edytorPlikow ? { label: 'Wyłącz edytor', akcja: 'file-edit' as const } : null,
+                ],
+                [
+                  !zab.debug,
+                  'Tryb debugowania (WP_DEBUG)',
+                  zab.debug ? 'Włączony na stronie produkcyjnej — błędy mogą pokazywać ścieżki i fragmenty kodu odwiedzającym.' : 'Wyłączony.',
+                  zab.debug ? { label: 'Wyłącz debugowanie', akcja: 'debug-off' as const } : null,
+                ],
+                [
+                  !zab.uzytkownikAdmin,
+                  'Konto o loginie „admin”',
+                  zab.uzytkownikAdmin
+                    ? 'Istnieje — to pierwszy login, który zgadują boty. Utwórz administratora z innym loginem, zaloguj się na niego i usuń „admin”, przepisując treści.'
+                    : 'Brak.',
+                  null,
+                ],
+                [
+                  zab.sumyRdzenia === 'ok',
+                  'Pliki rdzenia WordPressa',
+                  zab.sumyRdzenia === 'ok'
+                    ? 'Zgodne z oryginałem z WordPress.org.'
+                    : 'Część plików rdzenia różni się od oryginału — to może być ręczna zmiana albo infekcja. Uruchom skaner w zakładce Bezpieczeństwo usługi.',
+                  null,
+                ],
+                [
+                  !zapisywalnyDlaWszystkich(zab.uprawnieniaConfig),
+                  'Uprawnienia wp-config.php',
+                  zab.uprawnieniaConfig ? `${zab.uprawnieniaConfig}${zapisywalnyDlaWszystkich(zab.uprawnieniaConfig) ? ' — plik zapisywalny dla wszystkich; ustaw 640 w menedżerze plików.' : ' — w porządku.'}` : 'Nie udało się odczytać.',
+                  null,
+                ],
+              ] as [boolean, string, string, { label: string; akcja: 'file-edit' | 'debug-off' } | null][]
+            ).map(([ok, tytul, opis, fix]) => (
+              <li key={tytul} className="flex flex-wrap items-start justify-between gap-3 border-t border-line px-4 py-3 first:border-t-0">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <StatusPill tone={ok ? 'data' : 'warn'}>{ok ? 'w porządku' : 'do poprawy'}</StatusPill>
+                    <b className="font-semibold text-foreground">{tytul}</b>
+                  </div>
+                  <p className="m-0 mt-1 text-verris-body">{opis}</p>
+                </div>
+                {fix ? (
+                  <button type="button" onClick={() => popraw(fix.akcja)} disabled={zajete} className={BTN}>
+                    {fix.label}
+                  </button>
+                ) : null}
+              </li>
+            ))}
+          </ul>
         </div>
       ) : null}
 
