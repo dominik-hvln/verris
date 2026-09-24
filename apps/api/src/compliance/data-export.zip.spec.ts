@@ -38,7 +38,7 @@ function zbuduj(opts: { brakujacyZalacznik?: boolean } = {}) {
   const prisma = {
     user: {
       findUniqueOrThrow: lista({
-        id: 'u1', email: 'jan@firma.pl', passwordHash: '$2b$10$tajne', twoFactorSecret: 'SEKRET-TOTP',
+        id: 'u1', email: 'jan@firma.pl', passwordHash: '$2b$10$tajne', twoFactorSecret: 'SEKRET-TOTP', staffBreakGlassCodesEnc: 'enc:kody-awaryjne',
         twoFactorRecoveryCodesEnc: 'kody', createdAt: new Date('2026-01-01T00:00:00Z'), walletBalance: BigInt(4500),
       }),
     },
@@ -101,7 +101,7 @@ describe('X-22 — eksport RODO buduje prawdziwe archiwum', () => {
     expect(profil).toMatchObject({ passwordHash: '[REDACTED]', twoFactorSecret: '[REDACTED]', twoFactorRecoveryCodesEnc: '[REDACTED]', walletBalance: '4500', createdAt: '2026-01-01T00:00:00.000Z' });
     expect(JSON.parse(pliki.get('accounts.json')!)[0].daPasswordEnc).toBe('[REDACTED]');
     const calosc = [...pliki.values()].join('\n');
-    for (const sekret of ['$2b$10$tajne', 'SEKRET-TOTP', 'enc:haslo-da']) expect(calosc).not.toContain(sekret);
+    for (const sekret of ['$2b$10$tajne', 'SEKRET-TOTP', 'enc:haslo-da', 'enc:kody-awaryjne']) expect(calosc).not.toContain(sekret);
   });
 
   it('nazwa załącznika nie wychodzi poza katalog attachments/ (zip slip)', async () => {

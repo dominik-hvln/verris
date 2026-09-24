@@ -499,6 +499,7 @@ export class DataExportService implements OnApplicationBootstrap {
       passwordHash: '[REDACTED]',
       twoFactorSecret: user.twoFactorSecret ? '[REDACTED]' : null,
       twoFactorRecoveryCodesEnc: user.twoFactorRecoveryCodesEnc ? '[REDACTED]' : null,
+      staffBreakGlassCodesEnc: user.staffBreakGlassCodesEnc ? '[REDACTED]' : null,
     };
     const sanitizedAccounts = accounts.map((a) => ({
       ...a,
