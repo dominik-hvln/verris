@@ -64,6 +64,14 @@ updates:
       # przegląd: 2026-11-15
       - dependency-name: '@eslint/js'
         update-types: [version-update:semver-major]
+      # graphql 17: jedynym konsumentem jest Payload (apps/www), który deklaruje peer
+      # `graphql: ^16.8.1`; nasz kod nie importuje graphql ani razu. Major pod biblioteką,
+      # która go nie wspiera, na publicznej stronie — cofnięte już raz przy X-18/X-21.
+      # Przegląd: gdy Payload ogłosi wsparcie 17.
+      # pozycja: X-21
+      # przegląd: 2026-12-15
+      - dependency-name: graphql
+        update-types: [version-update:semver-major]
 
   # Obrazy bazowe w Dockerfile'ach (api + panele).
   - package-ecosystem: docker
