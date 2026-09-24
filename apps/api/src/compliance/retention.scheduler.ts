@@ -18,9 +18,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  *  - `AuditLog` rows older than 24 months → anonymize `ipAddress`/`userAgent`.
  *    Action and target IDs are kept (needed for accounting/UODO audit).
  *  - `DataExportRequest.READY` past `expiresAt` → flip to EXPIRED, delete file.
- *  - DA accounts of `User.anonymizedAt > 6 months ago` → hard-delete on DA
- *    (only marks them for deletion in DB; actual DA call is best-effort and
- *    behind an env flag because backups need to age out first).
+ *  - `StripeWebhookEvent` (deduplikacja webhooków) starsze niż 90 dni → DELETE.
+ * Konto DA usuwa ścieżka art. 17 (account-deletion.scheduler), nie ten sweeper.
  */
 @Injectable()
 export class RetentionScheduler {
@@ -28,7 +27,6 @@ export class RetentionScheduler {
 
   private readonly loginAttemptRetentionDays = 180;
   private readonly auditLogIpRetentionDays = 24 * 30; // ~24 months
-  private readonly anonymizedHardDeleteDays = 180;
 
   constructor(
     private readonly prisma: PrismaService,

@@ -18,6 +18,7 @@ import {
   staffUpdateTicket,
   type CannedResponseRow,
 } from "@/lib/ticket-actions";
+import { odczytajSugestie } from "@/lib/ai-sugestia";
 import { staffTicketAttachmentDownloadHref } from "@/lib/ticket-attachment-links";
 import { StaffImpersonateButton } from "@/app/(dashboard)/crm/impersonate-button";
 import { CannedResponsePicker } from "@/components/canned-response-picker";
@@ -333,11 +334,47 @@ export function TicketDetailPanel({ ticket, agents, context }: Props) {
             >
               Wygeneruj sugestię AI
             </button>
-            {aiSuggestion ? (
-              <pre className="mt-3 max-h-72 overflow-auto rounded-xl border border-white/10 bg-black/40 p-3 text-xs text-neutral-200">
-                {JSON.stringify(aiSuggestion, null, 2)}
-              </pre>
-            ) : null}
+            {aiSuggestion ? (() => {
+              const s = odczytajSugestie(aiSuggestion);
+              return (
+                <div className="mt-3 space-y-3">
+                  {s.szkic ? (
+                    <div>
+                      <pre className="whitespace-pre-wrap rounded-xl border border-white/10 bg-black/40 p-3 font-sans text-xs text-neutral-200">
+                        {s.szkic}
+                      </pre>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const szkic = s.szkic ?? "";
+                          setReplyText((prev) => (prev ? `${prev}\n\n${szkic}` : szkic));
+                        }}
+                        className="mt-2 rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-xs text-violet-100"
+                      >
+                        Wstaw do odpowiedzi
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-amber-200">AI nie zwróciło szkicu odpowiedzi — poniżej to, co przyszło.</p>
+                  )}
+                  {s.checklista.length > 0 ? (
+                    <div>
+                      <p className="mb-1 text-xs font-medium text-neutral-300">Sprawdź przed wysłaniem</p>
+                      <ul className="list-disc space-y-1 pl-5 text-xs text-neutral-300">
+                        {s.checklista.map((x, i) => (
+                          <li key={i}>{x}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                  {s.reszta ? (
+                    <pre className="whitespace-pre-wrap break-words rounded-xl border border-white/10 bg-black/40 p-3 text-[11px] text-neutral-400">
+                      {s.reszta}
+                    </pre>
+                  ) : null}
+                </div>
+              );
+            })() : null}
           </OpsCard>
         ) : null}
       </div>
