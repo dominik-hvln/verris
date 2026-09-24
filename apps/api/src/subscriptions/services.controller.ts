@@ -101,6 +101,7 @@ import {
   DomenaStronyDto,
   UstawieniaHtaccessDto,
   KonserwacjaBazyDto,
+  UprawnieniaBazyDto,
   OdtworzenieZArchiwumDto,
   ImportBazyDto,
   WersjaPhpDto,
@@ -794,6 +795,12 @@ export class UserServicesController {
     @Body() body: UzytkownikBazyDto,
   ) {
     return this.directAdmin.deleteHostingDbUser(id, user.userId, body);
+  }
+
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:db-user-privileges' })
+  @Post(':id/hosting-db-users/privileges')
+  async hostingDbUserPrivileges(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: UprawnieniaBazyDto) {
+    return this.dbTransfer.zlecUprawnienia(id, user.userId, body.db, body.user, body.privs);
   }
 
   @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:db-user-password' })

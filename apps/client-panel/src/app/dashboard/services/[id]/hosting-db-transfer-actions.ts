@@ -5,7 +5,9 @@ import { apiFetch, ApiError } from '@/lib/api';
 /** D-12 — eksport i import bazy (zadanie węzła, pliki w ~/verris-bazy). */
 export interface DbTransferZadanie {
   id: string;
-  tryb: 'export' | 'import' | 'repair' | 'optimize';
+  tryb: 'export' | 'import' | 'repair' | 'optimize' | 'privileges';
+  uzytkownik: string | null;
+  zestaw: string | null;
   baza: string | null;
   plik: string | null;
   status: 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
@@ -19,6 +21,8 @@ export interface DbTransferZadanie {
 }
 
 export interface DbTransferStatus {
+  /** D-08 — ostatni zestaw uprawnień ustawiony w panelu, klucz „baza|użytkownik”. */
+  uprawnienia: Record<string, { zestaw: 'full' | 'rw' | 'ro'; status: string }>;
   katalog: string;
   wToku: boolean;
   zadania: DbTransferZadanie[];
@@ -59,6 +63,16 @@ export async function importDb(serviceId: string, db: string, file: string): Pro
 export async function maintainDb(serviceId: string, db: string, mode: 'repair' | 'optimize'): Promise<Wynik> {
   try {
     const status = await apiFetch<DbTransferStatus>(`/services/${serviceId}/hosting-db-maintenance`, { method: 'POST', body: JSON.stringify({ db, mode }) });
+    return { ok: true, status };
+  } catch (e) {
+    return { ok: false, error: blad(e) };
+  }
+}
+
+/** D-08 — zestaw uprawnień użytkownika MySQL do bazy. */
+export async function setDbUserPrivileges(serviceId: string, db: string, user: string, privs: 'full' | 'rw' | 'ro'): Promise<Wynik> {
+  try {
+    const status = await apiFetch<DbTransferStatus>(`/services/${serviceId}/hosting-db-users/privileges`, { method: 'POST', body: JSON.stringify({ db, user, privs }) });
     return { ok: true, status };
   } catch (e) {
     return { ok: false, error: blad(e) };

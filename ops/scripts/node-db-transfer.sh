@@ -2,7 +2,9 @@
 # =============================================================================
 # Verris — eksport i import bazy MySQL/MariaDB klienta (D-12). Uruchamiany przez agenta
 # zadań (DB_TRANSFER) z env:
-#   DBT_MODE     export | import | repair | optimize
+#   DBT_MODE     export | import | repair | optimize | privileges
+#   DBT_USER     (privileges) użytkownik MySQL konta: <login>_<nazwa>
+#   DBT_PRIVS    (privileges) full | rw | ro — D-08: pełne / odczyt i zapis danych / tylko odczyt
 #   DBT_DA_USER  login konta DA (z rekordu konta w API, nigdy z wejścia klienta)
 #   DBT_DB       pełna nazwa bazy: <login>_<nazwa>
 #   DBT_FILE     (import) nazwa pliku .sql lub .sql.gz w ~/verris-bazy
@@ -29,7 +31,7 @@ fail() { log "BŁĄD: $*"; exit 1; }
 KATALOG_WZGL="verris-bazy"
 LIMIT_IMPORTU=$((2 * 1024 * 1024 * 1024)) # 2 GB
 
-[[ "$DBT_MODE" =~ ^(export|import|repair|optimize)$ ]] || fail "nieznany tryb: $DBT_MODE"
+[[ "$DBT_MODE" =~ ^(export|import|repair|optimize|privileges)$ ]] || fail "nieznany tryb: $DBT_MODE"
 [[ "$DBT_DA_USER" =~ ^[a-z][a-z0-9]{0,15}$ ]] || fail "nieprawidłowy login konta"
 [[ "$DBT_DB" =~ ^${DBT_DA_USER}_[A-Za-z0-9_]{1,48}$ ]] || fail "baza nie należy do konta $DBT_DA_USER"
 id "$DBT_DA_USER" >/dev/null 2>&1 || fail "brak użytkownika systemowego $DBT_DA_USER"
@@ -51,6 +53,31 @@ istnieje="$(mysql_admin -Nse "SELECT SCHEMA_NAME FROM information_schema.SCHEMAT
 [ "$istnieje" = "$DBT_DB" ] || fail "baza $DBT_DB nie istnieje"
 
 jako_klient() { runuser -u "$DBT_DA_USER" -- "$@"; }
+
+if [ "$DBT_MODE" = "privileges" ]; then
+  : "${DBT_USER:?}"; : "${DBT_PRIVS:?}"
+  [[ "$DBT_USER" =~ ^${DBT_DA_USER}_[A-Za-z0-9_]{1,48}$ ]] || fail "użytkownik nie należy do konta $DBT_DA_USER"
+  case "$DBT_PRIVS" in
+    full) PRAWA="ALL PRIVILEGES" ;;
+    rw) PRAWA="SELECT, INSERT, UPDATE, DELETE, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, SHOW VIEW" ;;
+    ro) PRAWA="SELECT, SHOW VIEW" ;;
+    *) fail "nieznany zestaw uprawnień" ;;
+  esac
+  HOSTY="$(mysql_admin -Nse "SELECT Host FROM mysql.user WHERE User='${DBT_USER}'")"
+  [ -n "$HOSTY" ] || fail "użytkownik $DBT_USER nie istnieje"
+  DB_ESC="${DBT_DB//_/\\_}"
+  while IFS= read -r h; do
+    [[ "$h" =~ ^[A-Za-z0-9.%:_-]{1,255}$ ]] || { log "pomijam nietypowy host"; continue; }
+    # DirectAdmin nadaje prawa na nazwę bez ucieczki „_” — zdejmujemy obie formy, nadajemy z ucieczką.
+    mysql_admin -e "REVOKE ALL PRIVILEGES ON \`${DBT_DB}\`.* FROM '${DBT_USER}'@'${h}'" 2>/dev/null || true
+    mysql_admin -e "REVOKE ALL PRIVILEGES ON \`${DB_ESC}\`.* FROM '${DBT_USER}'@'${h}'" 2>/dev/null || true
+    mysql_admin -e "GRANT ${PRAWA} ON \`${DB_ESC}\`.* TO '${DBT_USER}'@'${h}'" || fail "nie udało się nadać uprawnień dla hosta ${h}"
+    log "uprawnienia $DBT_PRIVS: $DBT_USER@$h → $DBT_DB"
+  done <<< "$HOSTY"
+  echo "VERRIS_DB_UPRAWNIENIA=$DBT_PRIVS"
+  log "Gotowe."
+  exit 0
+fi
 
 if [ "$DBT_MODE" = "repair" ] || [ "$DBT_MODE" = "optimize" ]; then
   CHECK_BIN="mysqlcheck"; command -v mariadb-check >/dev/null 2>&1 && CHECK_BIN="mariadb-check"

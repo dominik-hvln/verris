@@ -19,7 +19,7 @@ import {
  * ląduje w katalogu `verris-bazy` na koncie. Stąd też bierzemy plik do importu — wgrasz go
  * menedżerem plików albo przez FTP (duże bazy).
  */
-const TRYB = { export: 'Eksport', import: 'Import', repair: 'Sprawdzenie i naprawa', optimize: 'Optymalizacja' } as const;
+const TRYB = { export: 'Eksport', import: 'Import', repair: 'Sprawdzenie i naprawa', optimize: 'Optymalizacja', privileges: 'Uprawnienia' } as const;
 
 const STATUS: Record<string, string> = {
   QUEUED: 'w kolejce',
@@ -197,6 +197,7 @@ export function DbTransferPanel({ serviceId, databases }: { serviceId: string; d
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-foreground">
                     {TRYB[z.tryb]} <span className="font-mono">{z.baza}</span>
+                    {z.uzytkownik ? <> · <span className="font-mono">{z.uzytkownik}</span></> : null}
                     {z.plik ? <> z <span className="font-mono">{z.plik}</span></> : null}
                   </span>
                   <span className="inline-flex items-center gap-1.5 text-muted-foreground">

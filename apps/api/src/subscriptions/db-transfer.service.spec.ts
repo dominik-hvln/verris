@@ -57,6 +57,18 @@ describe('DbTransferService', () => {
     expect(r.zadania[0]).toMatchObject({ tryb: 'repair', tabele: 3, uwagi: ['t2: repaired'] });
   });
 
+  it('D-08: uprawnienia użytkownika tylko dla bazy i użytkownika konta; ostatni zestaw w stanie', async () => {
+    const s = stanowisko();
+    await s.svc.zlecUprawnienia('s1', 'u1', 'klient1_sklep', 'klient1_app', 'ro');
+    expect(s.prisma.nodeTask.create).toHaveBeenCalledWith({ data: expect.objectContaining({ payload: { mode: 'privileges', db: 'klient1_sklep', user: 'klient1_app', privs: 'ro', daUser: 'klient1' } }) });
+    await expect(s.svc.zlecUprawnienia('s1', 'u1', 'klient1_sklep', 'obcy_app', 'ro')).rejects.toBeInstanceOf(BadRequestException);
+    await expect(s.svc.zlecUprawnienia('s1', 'u1', 'klient1_sklep', 'klient1_app', 'grant' as never)).rejects.toBeInstanceOf(BadRequestException);
+    const z = (privs: string, status: string) => ({ id: privs, status, payload: { mode: 'privileges', db: 'klient1_sklep', user: 'klient1_app', privs }, outputLog: '', errorMessage: null, createdAt: new Date(), completedAt: null });
+    s.prisma.nodeTask.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([z('full', 'FAILED'), z('rw', 'COMPLETED'), z('ro', 'COMPLETED')] as never);
+    const r = await s.svc.status('s1', 'u1');
+    expect(r.uprawnienia).toEqual({ 'klient1_sklep|klient1_app': { zestaw: 'rw', status: 'COMPLETED' } });
+  });
+
   it('drugie zadanie w toku → 409; konto nieaktywne → 400', async () => {
     await expect(stanowisko({ wToku: true }).svc.zlecImport('s1', 'u1', 'klient1_sklep', 'kopia.sql.gz')).rejects.toBeInstanceOf(ConflictException);
     await expect(stanowisko({ status: 'SUSPENDED' }).svc.zlecEksport('s1', 'u1', 'klient1_sklep')).rejects.toBeInstanceOf(BadRequestException);

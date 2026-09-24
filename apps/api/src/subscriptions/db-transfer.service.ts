@@ -94,6 +94,21 @@ export class DbTransferService {
     return this.opis(subscriptionId, userId, sub.account.id);
   }
 
+  /** D-08 — zestaw uprawnień użytkownika MySQL do bazy konta (GRANT na węźle, wszystkie hosty użytkownika). */
+  async zlecUprawnienia(subscriptionId: string, userId: string, db: string, dbUser: string, privs: 'full' | 'rw' | 'ro') {
+    if (!['full', 'rw', 'ro'].includes(privs)) throw new BadRequestException('Nieprawidłowy zestaw uprawnień.');
+    const sub = await this.wymagajKonta(subscriptionId, userId);
+    const baza = this.sprawdzBaze(sub.account.daUsername, db);
+    const uzytkownik = this.sprawdzBaze(sub.account.daUsername, dbUser);
+    const task = await this.zlec(sub.account, userId, { mode: 'privileges', db: baza, user: uzytkownik, privs });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_DB_PRIVILEGES_QUEUED,
+      userId: sub.userId, actorUserId: userId,
+      details: { subscriptionId, db: baza, user: uzytkownik, privs, taskId: task.id },
+    });
+    return this.opis(subscriptionId, userId, sub.account.id);
+  }
+
   /** Nazwa bazy z panelu jest pełna (login_nazwa); prefiks musi być loginem TEGO konta. */
   private sprawdzBaze(daUsername: string | null, db: string): string {
     const baza = (db ?? '').trim();
@@ -106,7 +121,7 @@ export class DbTransferService {
   private async zlec(
     account: { id: string; serverId: string; status: string; daUsername: string | null },
     actorUserId: string,
-    payload: { mode: 'export' | 'import' | 'repair' | 'optimize'; db: string; file?: string },
+    payload: { mode: 'export' | 'import' | 'repair' | 'optimize' | 'privileges'; db: string; file?: string; user?: string; privs?: string },
   ) {
     if (account.status !== 'ACTIVE') throw new BadRequestException('Konto hostingowe nie jest aktywne.');
     const wToku = await this.prisma.nodeTask.findFirst({
@@ -133,7 +148,22 @@ export class DbTransferService {
       take: 10,
     });
     const pliki = await this.directAdmin.listHostingDbTransferFiles(subscriptionId, userId, KATALOG_BAZ);
+    // D-08: ostatni zestaw ustawiony w panelu dla każdej pary baza/użytkownik (bez wpisu = domyślne pełne).
+    const nadania = await this.prisma.nodeTask.findMany({
+      where: { accountId, kind: NodeTaskKind.DB_TRANSFER, payload: { path: ['mode'], equals: 'privileges' } },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+    const uprawnienia: Record<string, { zestaw: string; status: string }> = {};
+    for (const z of nadania) {
+      const p = (z.payload ?? {}) as { db?: string; user?: string; privs?: string };
+      const klucz = `${p.db}|${p.user}`;
+      if (!p.db || !p.user || !p.privs || uprawnienia[klucz]) continue;
+      if (z.status === NodeTaskStatus.FAILED || z.status === NodeTaskStatus.CANCELLED) continue;
+      uprawnienia[klucz] = { zestaw: p.privs, status: z.status };
+    }
     return {
+      uprawnienia,
       katalog: KATALOG_BAZ,
       wToku: zadania.some((z) => z.status === NodeTaskStatus.QUEUED || z.status === NodeTaskStatus.RUNNING),
       zadania: zadania.map((z) => this.widok(z)),
@@ -142,10 +172,12 @@ export class DbTransferService {
   }
 
   private widok(z: Zadanie) {
-    const p = (z.payload ?? {}) as { mode?: string; db?: string; file?: string };
+    const p = (z.payload ?? {}) as { mode?: string; db?: string; file?: string; user?: string; privs?: string };
     return {
+      uzytkownik: p.user ?? null,
+      zestaw: p.privs ?? null,
       id: z.id,
-      tryb: p.mode === 'import' || p.mode === 'repair' || p.mode === 'optimize' ? p.mode : ('export' as const),
+      tryb: p.mode === 'import' || p.mode === 'repair' || p.mode === 'optimize' || p.mode === 'privileges' ? p.mode : ('export' as const),
       baza: p.db ?? null,
       plik: p.file ?? null,
       status: z.status,

@@ -9,8 +9,16 @@ import {
   removeDbUserAction,
   changeDbUserPasswordAction,
 } from '@/app/dashboard/services/[id]/hosting-db-users-actions';
+import { fetchDbTransfer, setDbUserPrivileges, type DbTransferStatus } from '@/app/dashboard/services/[id]/hosting-db-transfer-actions';
 import { daErrorMessage } from '@/lib/client-hosting-messages';
+import { Select } from '@/components/panel/select';
 import { potwierdz } from '@/components/panel/potwierdz';
+
+const ZESTAWY = [
+  { value: 'full', label: 'Pełne uprawnienia' },
+  { value: 'rw', label: 'Odczyt i zapis danych' },
+  { value: 'ro', label: 'Tylko odczyt' },
+];
 
 function genPassword(len = 18): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*';
@@ -33,6 +41,8 @@ export default function DbUsers({ serviceId, db }: { serviceId: string; db: stri
   const [pwFor, setPwFor] = useState<string | null>(null);
   const [pwValue, setPwValue] = useState('');
   const [pwSaving, setPwSaving] = useState(false);
+  const [prawa, setPrawa] = useState<DbTransferStatus['uprawnienia']>({});
+  const [prawaDla, setPrawaDla] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -43,6 +53,8 @@ export default function DbUsers({ serviceId, db }: { serviceId: string; db: stri
     }));
     setUsers(res.users);
     setErr(res.fetchError);
+    const t = await fetchDbTransfer(serviceId);
+    if (t.ok) setPrawa(t.status.uprawnienia ?? {});
     setLoading(false);
     setLoaded(true);
   };
@@ -82,6 +94,20 @@ export default function DbUsers({ serviceId, db }: { serviceId: string; db: stri
     }
     toast.success('Użytkownik usunięty');
     void load();
+  };
+
+  // D-08 — zestaw uprawnień wykonuje węzeł (GRANT dla wszystkich hostów użytkownika).
+  const ustawPrawa = async (u: string, zestaw: string) => {
+    if (zestaw === 'ro' && !(await potwierdz(`Ograniczyć „${u}” do odczytu? Aplikacja łącząca się tym loginem nie zapisze już danych w bazie „${db}”.`, { akcja: 'Ogranicz' }))) return;
+    setPrawaDla(u);
+    const r = await setDbUserPrivileges(serviceId, db, u, zestaw as 'full' | 'rw' | 'ro');
+    setPrawaDla(null);
+    if (!r.ok) {
+      toast.error('Nie udało się zmienić uprawnień', { description: r.error });
+      return;
+    }
+    setPrawa(r.status.uprawnienia ?? {});
+    toast.success('Zmiana uprawnień zlecona — gotowe w ciągu minuty.');
   };
 
   const savePassword = async (u: string) => {
@@ -173,6 +199,20 @@ export default function DbUsers({ serviceId, db }: { serviceId: string; db: stri
                         {del === u ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                       </button>
                     </span>
+                  </div>
+                  <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                    <Select
+                      aria-label={`Uprawnienia ${u}`}
+                      value={prawa[`${db}|${u}`]?.zestaw ?? 'full'}
+                      onChange={(v) => void ustawPrawa(u, v)}
+                      options={ZESTAWY}
+                      disabled={prawaDla === u}
+                      className="w-56"
+                    />
+                    {prawaDla === u ? <Loader2 className="h-3.5 w-3.5 animate-spin text-neutral-500" /> : null}
+                    {prawaDla !== u && prawa[`${db}|${u}`] && prawa[`${db}|${u}`].status !== 'COMPLETED' ? (
+                      <span className="text-[11px] text-neutral-500">zmiana w toku</span>
+                    ) : null}
                   </div>
                   {pwFor === u ? (
                     <div className="mt-1.5 flex gap-1.5">

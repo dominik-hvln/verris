@@ -232,6 +232,11 @@ export class UzytkownikBazyDto {
   @Linia(64) user!: string;
 }
 
+/** D-08 — zestaw uprawnień użytkownika do bazy. */
+export class UprawnieniaBazyDto extends UzytkownikBazyDto {
+  @IsIn(['full', 'rw', 'ro']) privs!: 'full' | 'rw' | 'ro';
+}
+
 export class UzytkownikBazyZHaslemDto extends UzytkownikBazyDto {
   @Haslo() password!: string;
 }
