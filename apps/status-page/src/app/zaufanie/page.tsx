@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import {
   Activity,
   Wallet,
@@ -101,12 +102,12 @@ export default function TrustPage() {
               <p className="text-sm text-neutral-400">Na czym opiera się Twoje bezpieczeństwo w Verris</p>
             </div>
           </div>
-          <a
+          <Link
             href="/"
             className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-emerald-300 transition hover:bg-white/[0.08]"
           >
             <Activity className="h-4 w-4" /> Status na żywo <ArrowRight className="h-3.5 w-3.5" />
-          </a>
+          </Link>
         </header>
 
         {/* Gwarancje — pasek */}
@@ -160,9 +161,9 @@ export default function TrustPage() {
         <footer className="mt-16 border-t border-white/5 pt-6 text-sm text-neutral-500">
           <p>
             Chcesz zobaczyć, jak działamy w praktyce?{' '}
-            <a href="/" className="font-semibold text-emerald-300 hover:underline">
+            <Link href="/" className="font-semibold text-emerald-300 hover:underline">
               Sprawdź status systemu na żywo
-            </a>
+            </Link>
             .
           </p>
         </footer>

@@ -26,9 +26,11 @@ const ODSLONIETE_PRZEZ_NEXT_16 = {
 import coreWebVitals from 'eslint-config-next/core-web-vitals';
 import nextTypescript from 'eslint-config-next/typescript';
 
-export default [
+const config = [
   { ignores: ['.next/**', 'node_modules/**', 'dist/**', 'out/**', 'next-env.d.ts'] },
   ...coreWebVitals,
   ...nextTypescript,
   { rules: ODSLONIETE_PRZEZ_NEXT_16 },
 ];
+
+export default config;

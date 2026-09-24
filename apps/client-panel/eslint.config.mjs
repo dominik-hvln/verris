@@ -29,7 +29,7 @@ import coreWebVitals from 'eslint-config-next/core-web-vitals';
 import nextTypescript from 'eslint-config-next/typescript';
 import jsxA11y from 'eslint-plugin-jsx-a11y';
 
-export default [
+const config = [
   { ignores: ['.next/**', 'node_modules/**', 'dist/**', 'out/**', 'next-env.d.ts'] },
   ...coreWebVitals,
   ...nextTypescript,
@@ -56,3 +56,5 @@ export default [
   // zakres plików co w eslint-config-next, bo tylko tam wtyczka jest zarejestrowana (X-42).
   { files: ['**/*.{js,jsx,mjs,ts,tsx,mts,cts}'], rules: jsxA11y.flatConfigs.recommended.rules },
 ];
+
+export default config;

@@ -307,7 +307,7 @@ function Legend() {
       <div>
         <p className="text-xs uppercase tracking-widest text-neutral-500">Live</p>
         <p className="mt-1 text-sm text-neutral-200">
-          Faktyczny uptime z ostatnich 30 dni — agregat 1-minutowych prób z naszego prober'a +
+          Faktyczny uptime z ostatnich 30 dni — agregat 1-minutowych prób z naszej sondy +
           lokalnych testów na samym serwerze.
         </p>
       </div>
