@@ -237,44 +237,9 @@ export class ProvisioningService {
       this.logger.error(
         `DA setAccountLimits failed for sub=${subscription.id} user=${daUsername}: ${msg}`,
       );
-      // Audit F-11: the DA account was already created above — remove it so
-      // the domain isn't orphaned on the node (a retry would otherwise fail
-      // with "domain already exists" and require manual cleanup).
-      try {
-        await daClient.deleteAccount(daUsername);
-        await this.audit.record({
-          action: 'PROVISIONING_ROLLBACK',
-          userId: subscription.userId,
-          actorUserId: actorUserId ?? null,
-          details: {
-            subscriptionId,
-            serverId: server.id,
-            daUsername,
-            domain,
-            stage: 'setAccountLimits',
-            reason: msg,
-          },
-        });
-      } catch (cleanupErr) {
-        const cleanupMsg =
-          cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr);
-        this.logger.error(
-          `PROVISIONING ROLLBACK FAILED — orphaned DA account ${daUsername} (domain=${domain}) ` +
-            `on server=${server.id}: ${cleanupMsg}. Manual cleanup required.`,
-        );
-        await this.audit.record({
-          action: 'PROVISIONING_ROLLBACK_FAILED',
-          userId: subscription.userId,
-          actorUserId: actorUserId ?? null,
-          details: {
-            subscriptionId,
-            serverId: server.id,
-            daUsername,
-            domain,
-            error: cleanupMsg,
-          },
-        });
-      }
+      // Audit F-11: konto DA już powstało — usuwamy je, żeby domena nie została osierocona na węźle
+      // (ponowienie padłoby na „domain already exists” i wymagało ręcznego sprzątania).
+      await this.wycofajKontoDa(daClient, { subscription, serverId: server.id, daUsername, domain, actorUserId }, 'setAccountLimits', msg);
       // Ten komunikat trafiał na listę błędów przejściowych DLATEGO, że ktoś
       // dopisał to zdanie do klasyfikatora. Działało, dopóki nikt nie poprawił
       // stylistyki. Teraz klasyfikacja idzie po `przyczyna`, więc zdanie może
@@ -288,57 +253,68 @@ export class ProvisioningService {
 
     const passwordEnc = this.crypto.encrypt(daResult.password);
 
-    const result = await this.prisma.$transaction(async (tx) => {
-      const account = await tx.account.create({
-        data: {
-          daUsername,
-          daPasswordEnc: passwordEnc,
-          domain,
-          status: AccountStatus.ACTIVE,
-          cpuLimit: subscription.plan.cpuLimit,
-          ramLimitMb: subscription.plan.ramLimitMb,
-          diskLimitMb: subscription.plan.diskLimitMb,
-          ioLimitKbps: subscription.plan.ioLimitKbps,
-          iopsLimit: subscription.plan.iopsLimit,
-          entryProcesses: subscription.plan.entryProcesses,
-          nprocLimit: subscription.plan.nprocLimit,
-          userId: subscription.userId,
-          serverId: server.id,
-          subscriptionId: subscription.id,
-        },
-      });
-
-      const updatedSub = await tx.subscription.update({
-        where: { id: subscription.id },
-        data: { status: SubscriptionStatus.ACTIVE },
-      });
-
-      await tx.server.update({
-        where: { id: server.id },
-        data: {
-          // Konto powstaje: księga rośnie o jego limity efektywne. Nowe konto
-          // nie ma jeszcze nadwyżki, więc efektywne = baza planu.
-          ...ksiegaUpdateData(
-            deltaKsiegi(KONTO_NIEISTNIEJACE, limityEfektywne(subscription.plan)),
-          ),
-        },
-      });
-
-      await tx.subscriptionEvent.create({
-        data: {
-          subscriptionId: subscription.id,
-          type: 'ACCOUNT_PROVISIONED',
-          details: {
-            accountId: account.id,
-            serverId: server.id,
+    let result;
+    try {
+      result = await this.prisma.$transaction(async (tx) => {
+        const account = await tx.account.create({
+          data: {
             daUsername,
-            limitsApplied,
+            daPasswordEnc: passwordEnc,
+            domain,
+            status: AccountStatus.ACTIVE,
+            cpuLimit: subscription.plan.cpuLimit,
+            ramLimitMb: subscription.plan.ramLimitMb,
+            diskLimitMb: subscription.plan.diskLimitMb,
+            ioLimitKbps: subscription.plan.ioLimitKbps,
+            iopsLimit: subscription.plan.iopsLimit,
+            entryProcesses: subscription.plan.entryProcesses,
+            nprocLimit: subscription.plan.nprocLimit,
+            userId: subscription.userId,
+            serverId: server.id,
+            subscriptionId: subscription.id,
           },
-        },
-      });
+        });
 
-      return { account, updatedSub };
-    });
+        const updatedSub = await tx.subscription.update({
+          where: { id: subscription.id },
+          data: { status: SubscriptionStatus.ACTIVE },
+        });
+
+        await tx.server.update({
+          where: { id: server.id },
+          data: {
+            // Konto powstaje: księga rośnie o jego limity efektywne. Nowe konto
+            // nie ma jeszcze nadwyżki, więc efektywne = baza planu.
+            ...ksiegaUpdateData(
+              deltaKsiegi(KONTO_NIEISTNIEJACE, limityEfektywne(subscription.plan)),
+            ),
+          },
+        });
+
+        await tx.subscriptionEvent.create({
+          data: {
+            subscriptionId: subscription.id,
+            type: 'ACCOUNT_PROVISIONED',
+            details: {
+              accountId: account.id,
+              serverId: server.id,
+              daUsername,
+              limitsApplied,
+            },
+          },
+        });
+
+        return { account, updatedSub };
+      });
+    } catch (err) {
+      // Konto jest na węźle, a w bazie go nie ma (wyścig o domenę, zerwane połączenie z bazą).
+      // Bez wycofania ponowienie trafia na „domain already exists”, a klient dostaje zwrot
+      // za hosting, który po cichu stoi na węźle — ta sama wada co F-11, krok dalej.
+      const msg = err instanceof Error ? err.message : String(err);
+      this.logger.error(`Zapis konta w bazie nie powiódł się sub=${subscription.id} user=${daUsername}: ${msg}`);
+      await this.wycofajKontoDa(daClient, { subscription, serverId: server.id, daUsername, domain, actorUserId }, 'zapisKonta', msg);
+      throw new BladEtapuProvisioningu('zapisKonta', msg, 'The hosting account could not be saved. The node account was rolled back.');
+    }
 
     await this.audit.record({
       action: 'SUBSCRIPTION_ACTIVATED',
@@ -456,6 +432,37 @@ export class ProvisioningService {
       serverId: server.id,
       domain,
     };
+  }
+
+  /** Usuwa konto DA założone w tej próbie; porażkę sprzątania zapisuje w audycie (ręczne sprzątanie). */
+  private async wycofajKontoDa(
+    daClient: { deleteAccount(username: string): Promise<unknown> },
+    c: { subscription: { id: string; userId: string }; serverId: string; daUsername: string; domain: string; actorUserId?: string },
+    stage: string,
+    reason: string,
+  ): Promise<void> {
+    const wspolne = { subscriptionId: c.subscription.id, serverId: c.serverId, daUsername: c.daUsername, domain: c.domain };
+    try {
+      await daClient.deleteAccount(c.daUsername);
+      await this.audit.record({
+        action: 'PROVISIONING_ROLLBACK',
+        userId: c.subscription.userId,
+        actorUserId: c.actorUserId ?? null,
+        details: { ...wspolne, stage, reason },
+      });
+    } catch (cleanupErr) {
+      const cleanupMsg = cleanupErr instanceof Error ? cleanupErr.message : String(cleanupErr);
+      this.logger.error(
+        `PROVISIONING ROLLBACK FAILED — orphaned DA account ${c.daUsername} (domain=${c.domain}) ` +
+          `on server=${c.serverId}: ${cleanupMsg}. Manual cleanup required.`,
+      );
+      await this.audit.record({
+        action: 'PROVISIONING_ROLLBACK_FAILED',
+        userId: c.subscription.userId,
+        actorUserId: c.actorUserId ?? null,
+        details: { ...wspolne, stage, error: cleanupMsg },
+      });
+    }
   }
 
   private async notifyAccountProvisioned(opts: {
