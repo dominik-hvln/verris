@@ -640,6 +640,7 @@ enum NodeTaskKind {
   OFFSITE_RESTORE   // S-1 — listowanie / ściąganie archiwum konta z kopii off-site (rclone)
   DB_TRANSFER       // D-12 — eksport / import bazy klienta (~/verris-bazy)
   FILE_RESTORE      // H-10/H-11 — podgląd archiwum kopii i odtworzenie pliku (~/verris-odtworzone)
+  SSH_ACCESS        // C-21/C-22 — SSH w klatce CageFS i klucze SSH konta
 }
 
 enum WafMode {

@@ -13,6 +13,7 @@ import {
 } from '@/app/dashboard/services/[id]/hosting-extra-actions';
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { HostingHelpHint } from '@/components/hosting/HostingTabShell';
+import { SshPanel } from '@/components/hosting/SshPanel';
 import { potwierdz } from '@/components/panel/potwierdz';
 
 function genPassword(len = 18): string {
@@ -244,6 +245,7 @@ export default function FtpTab({ serviceId }: { serviceId: string }) {
           ))}
         </div>
       )}
+      <SshPanel serviceId={serviceId} />
     </div>
   );
 }

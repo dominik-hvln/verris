@@ -28,6 +28,7 @@ import { loadDbUpgradeScript } from './db-upgrade.script';
 import { loadOffsiteRestoreScript } from './offsite-restore.script';
 import { loadDbTransferScript } from './db-transfer.script';
 import { loadFileRestoreScript } from './file-restore.script';
+import { loadSshAccessScript } from './ssh-access.script';
 import { loadNodeUpdateScript } from './node-update.script';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 
@@ -129,6 +130,13 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   fileRestoreScript() {
     return loadFileRestoreScript();
+  }
+
+  /** C-21/C-22 — SSH w klatce CageFS i klucze (run with SSH_* env). */
+  @Get('ssh-access/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  sshAccessScript() {
+    return loadSshAccessScript();
   }
 
   /** VER-UPG — MariaDB engine upgrade script (run with DB_TARGET_VERSION env). */

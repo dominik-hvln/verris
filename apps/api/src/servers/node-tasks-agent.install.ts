@@ -223,6 +223,10 @@ elif [ "$TASK_KIND" = "FILE_RESTORE" ]; then
   RUN_BIN="/usr/local/bin/verris-file-restore.sh"
   fetch_task_script "/agent/tasks/file-restore/script" "$RUN_BIN"
   payload_env "FR" "{'mode':'MODE','daUser':'DA_USER','archive':'ARCHIVE','path':'PATH'}"
+elif [ "$TASK_KIND" = "SSH_ACCESS" ]; then
+  RUN_BIN="/usr/local/bin/verris-ssh-access.sh"
+  fetch_task_script "/agent/tasks/ssh-access/script" "$RUN_BIN"
+  payload_env "SSH" "{'mode':'MODE','daUser':'DA_USER','keysB64':'KEYS_B64'}"
 elif [ "$TASK_KIND" = "HOSTING_PROFILE" ]; then
   flags="-y"
   [ "$SKIP_BUILD" = "1" ] && flags="$flags --skip-build"
@@ -403,7 +407,7 @@ dispatch_generic() {
 
 case "$KIND" in
   HOSTING_PROFILE) dispatch_hosting_profile ;;
-  WP_INSTALL|WAF_APPLY|STAGING_SYNC|PHP_APPLY|APP_INSTALL|OFFSITE_RESTORE|DB_UPGRADE|FLEET_UPDATE|DB_TRANSFER|FILE_RESTORE) dispatch_generic ;;
+  WP_INSTALL|WAF_APPLY|STAGING_SYNC|PHP_APPLY|APP_INSTALL|OFFSITE_RESTORE|DB_UPGRADE|FLEET_UPDATE|DB_TRANSFER|FILE_RESTORE|SSH_ACCESS) dispatch_generic ;;
   *)
     report_task_fail "Unknown task kind: $KIND"
     exit 1

@@ -76,6 +76,17 @@ export class OdtworzenieZArchiwumDto {
   @Linia(1024) path!: string;
 }
 
+/** C-21 — włączenie/wyłączenie SSH w klatce. */
+export class DostepSshDto {
+  @IsBoolean() enabled!: boolean;
+}
+
+/** C-22 — klucze publiczne (format sprawdza SshAccessService). */
+export class KluczeSshDto {
+  @IsArray() @ArrayMaxSize(20) @IsString({ each: true }) @MaxLength(4096, { each: true })
+  keys!: string[];
+}
+
 /** B-05 — dyrektywy PHP w `.user.ini` domeny. Listę dozwolonych i zakresy sprawdza `php-ini.ts`. */
 export class UstawieniaPhpDomenyDto {
   @Linia(253) domain!: string;

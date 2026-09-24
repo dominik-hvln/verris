@@ -35,6 +35,7 @@ import { HostingRestoreService } from './hosting-restore.service';
 import { OffsiteRestoreService } from './offsite-restore.service';
 import { DbTransferService } from './db-transfer.service';
 import { FileRestoreService } from './file-restore.service';
+import { SshAccessService } from './ssh-access.service';
 import { HostingRestoreDto } from './dto/hosting-restore.dto';
 import { WordpressService } from './wordpress.service';
 import { InstallWordpressDto } from './dto/wordpress.dto';
@@ -78,6 +79,8 @@ import {
   UstawieniaPhpDomenyDto,
   EksportBazyDto,
   ListaArchiwumDto,
+  DostepSshDto,
+  KluczeSshDto,
   OdtworzenieZArchiwumDto,
   ImportBazyDto,
   WersjaPhpDto,
@@ -102,6 +105,7 @@ export class UserServicesController {
     private readonly offsiteRestore: OffsiteRestoreService,
     private readonly dbTransfer: DbTransferService,
     private readonly fileRestore: FileRestoreService,
+    private readonly sshAccess: SshAccessService,
     private readonly wordpress: WordpressService,
     private readonly waf: WafService,
     private readonly siteMonitor: SiteMonitorService,
@@ -1034,6 +1038,24 @@ export class UserServicesController {
   @Post(':id/hosting-file-restore/extract')
   async hostingFileRestoreExtract(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: OdtworzenieZArchiwumDto) {
     return this.fileRestore.zlecOdtworzenie(id, user.userId, body.archive, body.path);
+  }
+
+  // C-21/C-22 — SSH w klatce CageFS i klucze SSH (zadanie węzła).
+  @Get(':id/hosting-ssh')
+  async hostingSsh(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.sshAccess.status(id, user.userId);
+  }
+
+  @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: 'hosting:ssh' })
+  @Post(':id/hosting-ssh')
+  async setHostingSsh(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: DostepSshDto) {
+    return this.sshAccess.przelacz(id, user.userId, body.enabled);
+  }
+
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:ssh' })
+  @Post(':id/hosting-ssh/keys')
+  async setHostingSshKeys(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: KluczeSshDto) {
+    return this.sshAccess.ustawKlucze(id, user.userId, body.keys);
   }
 
   @Get(':id/hosting-offsite')
