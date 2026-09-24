@@ -29,7 +29,7 @@ export async function middleware(request: NextRequest) {
   }
 
   if (token && pathname.startsWith("/dashboard")) {
-    const { profile: session, unauthorized } = await fetchSessionProfileState(token);
+    const { profile: session, unauthorized } = await fetchSessionProfileState(token, request.headers.get("x-forwarded-for"));
     if (unauthorized) {
       const login = publicPanelUrl(request, "/login");
       login.searchParams.set("reason", "session-ended");

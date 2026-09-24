@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import { redirect } from 'next/navigation';
+import { headers } from 'next/headers';
 import { FeatureNotAvailable } from '@/components/feature-not-available';
 import { czyModul } from '@/lib/feature-flags-core';
 import { pobierzFlagiAction } from '@/lib/feature-flags-action';
@@ -21,7 +22,7 @@ import { PanelPageHeader } from '@/components/panel';
 
 export default async function IamPage() {
   const token = await getAuthToken();
-  const session = token ? await fetchSessionProfile(token) : null;
+  const session = token ? await fetchSessionProfile(token, (await headers()).get('x-forwarded-for')) : null;
   if (session?.isSubaccount) {
     redirect('/dashboard');
   }

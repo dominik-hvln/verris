@@ -1,3 +1,5 @@
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { apiBaseUrl, fetchSessionProfile, fetchSessionProfileState } from './session-profile';
 
 /**
@@ -95,6 +97,21 @@ describe('X-05 fetchSessionProfile', () => {
     const p = await fetchSessionProfile('t');
     expect(p?.isSubaccount).toBe(true);
     expect(p?.customerPermissions).toBeNull();
+  });
+});
+
+describe('sprawdzenie sesji w middleware idzie z IP klienta', () => {
+  it('x-forwarded-for trafia do API (inaczej wszyscy klienci dzielą limit kontenera panelu)', async () => {
+    const fn = mockFetch(async () => ({ ok: true, json: async () => ({}) }));
+    await fetchSessionProfileState('t', '203.0.113.7');
+    const init = (fn.mock.calls[0] as unknown as [string, { headers: Record<string, string>; signal?: AbortSignal }])[1];
+    expect(init.headers['x-forwarded-for']).toBe('203.0.113.7');
+    expect(init.signal).toBeDefined();
+  });
+
+  it('middleware przekazuje nagłówek z żądania', () => {
+    const src = readFileSync(join(__dirname, '..', 'middleware.ts'), 'utf8');
+    expect(src).toMatch(/fetchSessionProfileState\(token, request\.headers\.get\("x-forwarded-for"\)\)/);
   });
 });
 
