@@ -25,6 +25,7 @@ import { DnsManager } from '@/app/dashboard/dns/dns-manager';
 import { FileManagerClient } from '@/app/dashboard/file-manager/file-manager-client';
 import DatabasesTab from '@/components/hosting/DatabasesTab';
 import WebToolsTab from '@/components/hosting/WebToolsTab';
+import { PhpIniForm } from '@/components/hosting/PhpIniForm';
 import { HostingLinksProvider } from '@/components/hosting/hosting-links-context';
 import { fetchHostingDnsAction, fetchHostingDomainsAction } from '../../hosting-domains-action';
 import { fetchHostingSslAction, requestLetsEncryptSslAction } from '../../hosting-ssl-actions';
@@ -521,7 +522,7 @@ function PhpSection({
     <section>
       <SectionHead
         title="PHP i serwer"
-        desc="Wersja PHP tylko dla tej domeny. Pozostałe ustawienia serwera są w zakładce usługi."
+        desc="Wersja i ustawienia PHP tylko dla tej domeny. Wersję dla całego konta zmienisz w zakładce usługi."
         action={
           <Link href={`/dashboard/services/${serviceId}?tab=php`} className={`${BTN} ${BTN_SM}`}>
             Ustawienia PHP konta
@@ -552,6 +553,8 @@ function PhpSection({
           })}
         </div>
       )}
+      <h3 className="mb-2 mt-6 text-[15px] font-bold text-foreground">Ustawienia PHP</h3>
+      <PhpIniForm serviceId={serviceId} domain={domain} />
     </section>
   );
 }

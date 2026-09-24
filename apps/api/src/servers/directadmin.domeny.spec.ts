@@ -232,3 +232,36 @@ describe('Deploy z Git (cron)', () => {
     ]);
   });
 });
+
+describe('B-05 — .user.ini domeny', () => {
+  it('zapis: blok panelu na górze, dyrektywy klienta zostają; cudza domena i zła wartość nie dochodzą do DA', async () => {
+    const s = stanowisko({ get: {
+      '/CMD_API_FILE_MANAGER': 'error=0&%2Fdomains%2Fsklep.pl%2Fpublic_html%2F.user.ini=type%3Dfile%26size%3D30',
+      '/CMD_FILE_MANAGER/domains/sklep.pl/public_html/.user.ini': 'session.gc_maxlifetime = 1440\n',
+    } });
+    s.get.mockImplementation((path: string) => {
+      const t: Record<string, unknown> = {
+        '/CMD_API_SHOW_DOMAINS': 'list0=firma.pl&list1=sklep.pl',
+        '/CMD_API_SHOW_USER_CONFIG': 'domain=firma.pl',
+        '/CMD_API_FILE_MANAGER': 'error=0&%2Fdomains%2Fsklep.pl%2Fpublic_html%2F.user.ini=type%3Dfile%26size%3D30',
+        '/CMD_FILE_MANAGER/domains/sklep.pl/public_html/.user.ini': Buffer.from('session.gc_maxlifetime = 1440\n'),
+      };
+      return odp(t[path] ?? '');
+    });
+    await s.svc.setHostingPhpIni('s1', 'u1', { domain: 'sklep.pl', values: { memory_limit: '512M', upload_max_filesize: '64M' } });
+    const pola = s.wyslane();
+    expect(pola).toMatchObject({ action: 'edit', path: '/domains/sklep.pl/public_html', filename: '.user.ini' });
+    expect(pola.text).toBe('; BEGIN VERRIS PHP (zarządzane przez panel — nie edytuj ręcznie)\nmemory_limit = 512M\nupload_max_filesize = 64M\n; END VERRIS PHP\n\nsession.gc_maxlifetime = 1440\n');
+    expect(s.audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'HOSTING_PHP_INI_SET' }));
+
+    await expect(s.svc.setHostingPhpIni('s1', 'u1', { domain: 'obca.pl', values: { memory_limit: '512M' } })).rejects.toThrow('nie należy');
+    await expect(s.svc.setHostingPhpIni('s1', 'u1', { domain: 'sklep.pl', values: { auto_prepend_file: '/tmp/x' } as never })).rejects.toThrow('nie jest dostępna');
+    expect(s.post).toHaveBeenCalledTimes(1);
+  });
+
+  it('konto zawieszone: brak zapisu', async () => {
+    const s = stanowisko({ status: 'SUSPENDED' });
+    await expect(s.svc.setHostingPhpIni('s1', 'u1', { domain: 'firma.pl', values: { memory_limit: '256M' } })).rejects.toThrow();
+    expect(s.post).not.toHaveBeenCalled();
+  });
+});

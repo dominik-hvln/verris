@@ -73,6 +73,7 @@ import {
   UzytkownikBazyDto,
   UzytkownikBazyZHaslemDto,
   WersjaPhpDomenyDto,
+  UstawieniaPhpDomenyDto,
   WersjaPhpDto,
   ZadanieDeployDto,
 } from './dto/hosting-body.dto';
@@ -799,6 +800,26 @@ export class UserServicesController {
     @Body() body: WersjaPhpDomenyDto,
   ) {
     return this.directAdmin.setHostingDomainPhp(id, user.userId, body);
+  }
+
+  // B-05 — ustawienia PHP per domena (.user.ini, blok zarządzany przez panel).
+  @Get(':id/hosting-php-ini')
+  async hostingPhpIni(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Query('domain') domain: string,
+  ) {
+    return this.directAdmin.getHostingPhpIni(id, user.userId, domain);
+  }
+
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:php-ini' })
+  @Post(':id/hosting-php-ini')
+  async setHostingPhpIni(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: UstawieniaPhpDomenyDto,
+  ) {
+    return this.directAdmin.setHostingPhpIni(id, user.userId, body);
   }
 
   @Get(':id/hosting-cron')

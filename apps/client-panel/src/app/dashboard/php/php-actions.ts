@@ -84,3 +84,35 @@ export async function setPhpVersion(
     };
   }
 }
+
+/** B-05 — dyrektywy PHP domeny (.user.ini, blok zarządzany przez panel). */
+export interface PhpIniStatus {
+  domain: string;
+  values: Record<string, string>;
+  /** Linie wpisane przez klienta poza blokiem panelu — zostają nietknięte. */
+  wlasneDyrektywy: number;
+}
+
+export async function fetchPhpIni(serviceId: string, domain: string): Promise<PhpIniStatus | { error: string }> {
+  try {
+    return await apiFetch<PhpIniStatus>(`/services/${serviceId}/hosting-php-ini?domain=${encodeURIComponent(domain)}`);
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Nie udało się odczytać ustawień PHP.' };
+  }
+}
+
+export async function savePhpIni(
+  serviceId: string,
+  domain: string,
+  values: Record<string, string>,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    await apiFetch(`/services/${serviceId}/hosting-php-ini`, {
+      method: 'POST',
+      body: JSON.stringify({ domain, values }),
+    });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof ApiError ? e.message : e instanceof Error ? e.message : 'Błąd' };
+  }
+}

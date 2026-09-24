@@ -182,6 +182,7 @@ export const HostingResourceActions = {
   HOSTING_SSO_URL_CREATED: 'HOSTING_SSO_URL_CREATED',
   // Wersja PHP ustawiana per domena, obok selektora per konto (FALA-2b).
   HOSTING_DOMAIN_PHP_SET: 'HOSTING_DOMAIN_PHP_SET',
+  HOSTING_PHP_INI_SET: 'HOSTING_PHP_INI_SET',
 } as const;
 
 export const MigrationActions = {

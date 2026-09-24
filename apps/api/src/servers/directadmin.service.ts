@@ -1,3 +1,4 @@
+import { odczytajUserIni, sprawdzUstawieniaPhp, type UstawieniaPhp } from './php-ini';
 import {
   BadRequestException,
   Injectable,
@@ -1538,26 +1539,32 @@ export class DirectAdminService {
   private readonly WT_BEGIN = '# BEGIN VERRIS WEBTOOLS (zarządzane przez panel — nie edytuj ręcznie)';
   private readonly WT_END = '# END VERRIS WEBTOOLS';
 
+  /**
+   * Treść pliku z konta albo '' gdy pliku NIE MA. Każdy inny błąd leci dalej: wcześniej `catch → ''`
+   * zamieniał timeout pobrania w „pusty plik”, a zapis bloku zarządzanego nadpisywał wtedy .htaccess
+   * klienta w całości (jego własne reguły znikały). Brak pliku rozpoznajemy po liście katalogu.
+   */
   private async readAccountTextFile(client: DirectAdminClient, path: string): Promise<string> {
-    try {
-      const buf = await client.downloadFile(path);
-      return buf.toString('utf8');
-    } catch {
-      return '';
-    }
+    const i = path.lastIndexOf('/');
+    const dir = '/' + (i > 0 ? path.slice(0, i) : '').replace(/^\/+/, '');
+    const name = path.slice(i + 1);
+    const wpisy = await client.listDir(dir);
+    if (!wpisy.some((w) => w.type === 'file' && w.name === name)) return '';
+    const buf = await client.downloadFile(path);
+    return buf.toString('utf8');
   }
 
-  private spliceManagedBlock(existing: string, body: string | null): string {
-    const begin = existing.indexOf(this.WT_BEGIN);
-    let base = existing;
+  private spliceManagedBlock(existing: string, body: string | null, znaczniki = { begin: this.WT_BEGIN, end: this.WT_END }): string {
+    const begin = existing.indexOf(znaczniki.begin);
+    let base = existing.trim();
     if (begin !== -1) {
-      const end = existing.indexOf(this.WT_END, begin);
+      const end = existing.indexOf(znaczniki.end, begin);
       if (end !== -1) {
-        base = (existing.slice(0, begin) + existing.slice(end + this.WT_END.length)).replace(/\n{3,}/g, '\n\n').trim();
+        base = (existing.slice(0, begin) + existing.slice(end + znaczniki.end.length)).replace(/\n{3,}/g, '\n\n').trim();
       }
     }
     if (!body || !body.trim()) return base ? base + '\n' : '';
-    const block = `${this.WT_BEGIN}\n${body.trim()}\n${this.WT_END}`;
+    const block = `${znaczniki.begin}\n${body.trim()}\n${znaczniki.end}`;
     return (block + (base ? '\n\n' + base : '') + '\n');
   }
 
@@ -1665,6 +1672,8 @@ export class DirectAdminService {
       }
     }
     const current = await this.getHostingWebTools(subscriptionId, userId);
+    // Bez odczytu bieżącego stanu zapis zgubiłby listę chronionych katalogów.
+    if (current.fetchError) throw new BadRequestException(`Nie udało się odczytać bieżących ustawień: ${current.fetchError}`);
     const state: WebToolsState = {
       redirects,
       hotlink: {
@@ -2221,6 +2230,46 @@ export class DirectAdminService {
       details: { subscriptionId, domain: dom, version, slot },
     });
     return { ok: true as const, domain: dom, version, slot };
+  }
+
+  /* ===================== B-05: ustawienia PHP per domena (.user.ini) ===================== */
+
+  private readonly INI_ZNACZNIKI = {
+    begin: '; BEGIN VERRIS PHP (zarządzane przez panel — nie edytuj ręcznie)',
+    end: '; END VERRIS PHP',
+  };
+
+  /**
+   * Odczyt dyrektyw PHP zarządzanych przez panel z `.user.ini` w katalogu domeny. PHP (FPM/LSAPI)
+   * czyta `.user.ini` z katalogu skryptu — zmiana działa po odświeżeniu pamięci podręcznej PHP (do 5 min).
+   * Dyrektywy wpisane przez klienta poza blokiem panelu zostają nietknięte i są pokazywane jako „własne”.
+   */
+  async getHostingPhpIni(subscriptionId: string, userId: string, domain: string) {
+    const dom = await this.assertDomainOwnedBySubscription(subscriptionId, userId, domain);
+    const sub = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, include: { account: true } });
+    if (!sub?.account?.id) throw new BadRequestException('Brak konta hostingowego.');
+    const client = await this.getClientForHostingAccount(sub.account.id, userId);
+    const tresc = await this.readAccountTextFile(client, `/domains/${dom}/public_html/.user.ini`);
+    return { domain: dom, ...odczytajUserIni(tresc, this.INI_ZNACZNIKI) };
+  }
+
+  async setHostingPhpIni(subscriptionId: string, userId: string, input: { domain: string; values: UstawieniaPhp }) {
+    const dom = await this.assertDomainOwnedBySubscription(subscriptionId, userId, input.domain);
+    const values = sprawdzUstawieniaPhp(input.values);
+    const sub = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, include: { account: true } });
+    if (!sub?.account?.id) throw new BadRequestException('Brak konta hostingowego.');
+    this.assertAccountMutable(sub.account);
+    const client = await this.getClientForHostingAccount(sub.account.id, userId);
+    const katalog = `/domains/${dom}/public_html`;
+    const obecna = await this.readAccountTextFile(client, `${katalog}/.user.ini`);
+    const blok = Object.entries(values).map(([k, v]) => `${k} = ${v}`).join('\n');
+    await client.writeFile(katalog, '.user.ini', this.spliceManagedBlock(obecna, blok, this.INI_ZNACZNIKI));
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_PHP_INI_SET,
+      userId, actorUserId: userId,
+      details: { subscriptionId, domain: dom, values },
+    });
+    return { ok: true as const, domain: dom, values };
   }
 
   /* ===================== FALA-2c: SSO admina do panelu DA węzła ===================== */

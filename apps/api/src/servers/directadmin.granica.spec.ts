@@ -72,13 +72,17 @@ describe('X-09 — blok .htaccess zarządzany przez panel', () => {
 });
 
 describe('X-09 — zapis narzędzi WWW z danych klienta', () => {
-  function zapis(input: Record<string, unknown>) {
+  function zapis(input: Record<string, unknown>, o: { listDir?: () => Promise<unknown> } = {}) {
     const writeFile = jest.fn(async () => undefined);
     const self = Object.assign(Object.create(DirectAdminService.prototype), {
       prisma: { subscription: { findFirst: async () => ({ id: 's1', account: { id: 'a1' } }) } },
       syncPrimaryDomainForSubscription: async () => 'firma.pl',
-      getHostingWebTools: async () => ({ state: { protectedDirs: [] } }),
-      getClientForHostingAccount: async () => ({ writeFile, downloadFile: async () => Buffer.from('Options -Indexes') }),
+      getHostingWebTools: async () => ({ state: { protectedDirs: [] }, fetchError: null }),
+      getClientForHostingAccount: async () => ({
+        writeFile,
+        listDir: o.listDir ?? (async () => [{ name: '.htaccess', type: 'file' }]),
+        downloadFile: async () => Buffer.from('Options -Indexes'),
+      }),
       audit: { record: jest.fn(async () => undefined) },
     });
     return { run: () => (self as DirectAdminService).saveHostingWebTools('s1', 'u1', input as never), writeFile };
@@ -104,6 +108,12 @@ describe('X-09 — zapis narzędzi WWW z danych klienta', () => {
     expect(tresc).toContain('Options -Indexes');
     expect(tresc).not.toMatch(/partner\.pl\/sklep/);
   });
+
+  it('nieudany odczyt obecnego .htaccess → nic nie zapisujemy (reguły klienta nie znikają)', async () => {
+    const z = zapis({ forceHttps: true }, { listDir: async () => Promise.reject(new Error('timeout of 15000ms exceeded')) });
+    await expect(z.run()).rejects.toThrow('timeout');
+    expect(z.writeFile).not.toHaveBeenCalled();
+  });
 });
 
 describe('X-09 — ochrona katalogu hasłem', () => {
@@ -113,7 +123,7 @@ describe('X-09 — ochrona katalogu hasłem', () => {
       prisma: { subscription: { findFirst: async () => ({ id: 's1', account: { id: 'a1', daUsername: 'klient1' } }) } },
       syncPrimaryDomainForSubscription: async () => 'firma.pl',
       getHostingWebTools: async () => ({ state: { protectedDirs: [] } }),
-      getClientForHostingAccount: async () => ({ writeFile, downloadFile: async () => Buffer.from('') }),
+      getClientForHostingAccount: async () => ({ writeFile, listDir: async () => [], downloadFile: async () => Buffer.from('') }),
       audit: { record: jest.fn(async () => undefined) },
     });
     const run = () => (self as DirectAdminService).setHostingDirectoryProtection('s1', 'u1', { dir, realm, user: 'admin', password: 'tajne123' });

@@ -6,6 +6,7 @@ import {
   IsEmail,
   IsIn,
   IsInt,
+  IsObject,
   IsOptional,
   IsString,
   Matches,
@@ -53,6 +54,12 @@ export class WersjaPhpDto {
 
 export class WersjaPhpDomenyDto extends WersjaPhpDto {
   @Linia(253) domain!: string;
+}
+
+/** B-05 — dyrektywy PHP w `.user.ini` domeny. Listę dozwolonych i zakresy sprawdza `php-ini.ts`. */
+export class UstawieniaPhpDomenyDto {
+  @Linia(253) domain!: string;
+  @IsObject() values!: Record<string, string>;
 }
 
 export class NowaBazaDanychDto {
