@@ -7,6 +7,7 @@ import {
   previewAdminPlanChangeAction,
   type PlanChangePreview,
 } from './plan-change-actions';
+import { Checkbox } from '@/components/checkbox';
 
 type PlanOption = { id: string; name: string; slug: string };
 
@@ -120,8 +121,7 @@ export function PlanChangeForm({
       </label>
       {isAdmin ? (
         <label className="flex items-start gap-2 text-xs text-neutral-300 cursor-pointer">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={skipBilling}
             onChange={(e) => setSkipBilling(e.target.checked)}
             className="mt-0.5"

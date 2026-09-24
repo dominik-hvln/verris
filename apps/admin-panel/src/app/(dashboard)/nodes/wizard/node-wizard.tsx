@@ -43,6 +43,7 @@ import {
   VERIFY_BOOTSTRAP_AGENTS,
   WIZARD_STEPS,
 } from "./wizard-content";
+import { Checkbox } from '@/components/checkbox';
 
 const WIZARD_STORAGE_KEY = "verris-node-wizard-v1";
 const APPROVE_DA_STEP_INDEX = WIZARD_STEPS.findIndex((s) => s.id === "approve-da");
@@ -400,8 +401,7 @@ export function NodeWizard() {
             </CheckItem>
             <CheckItem>Licencje trial: CloudLinux, LiteSpeed, DA (sharedlicense na smoke).</CheckItem>
             <label className="flex items-center gap-2 text-sm cursor-pointer mt-4">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={!!checked.requirements}
                 onChange={() => toggleCheck("requirements")}
                 className="rounded border-white/20"
@@ -436,8 +436,7 @@ export function NodeWizard() {
             />
             <CopyBlock label="Weryfikacja po reboot" text={VERIFY_CLOUDLINUX} />
             <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={!!checked.cloudlinux}
                 onChange={() => toggleCheck("cloudlinux")}
                 className="rounded border-white/20"
@@ -471,8 +470,7 @@ export function NodeWizard() {
             </a>
             <CopyBlock label="Instalacja DirectAdmin (setup.sh)" text={INSTALL_DIRECTADMIN} />
             <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={!!checked.directadmin}
                 onChange={() => toggleCheck("directadmin")}
                 className="rounded border-white/20"
@@ -511,8 +509,7 @@ export function NodeWizard() {
             />
             <CopyBlock label="4) Zmienne przed bootstrap Verris" text={PREPARE_NODE_EXPORTS} />
             <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={!!checked.litespeed}
                 onChange={() => toggleCheck("litespeed")}
                 className="rounded border-white/20"
@@ -642,8 +639,7 @@ export function NodeWizard() {
                   </div>
                 )}
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input
-                    type="checkbox"
+                  <Checkbox
                     checked={!!checked.bootstrap}
                     onChange={() => toggleCheck("bootstrap")}
                     className="rounded border-white/20"
@@ -695,8 +691,7 @@ export function NodeWizard() {
               </p>
             )}
             <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={!!checked.approve}
                 onChange={() => toggleCheck("approve")}
                 className="rounded border-white/20"
@@ -716,8 +711,7 @@ export function NodeWizard() {
             </p>
             <CopyBlock label="4b) Konfiguracja backupu offsite (root na węźle)" text={BACKUP_OFFSITE_CONF} />
             <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={!!checked.backupOffsite}
                 onChange={() => toggleCheck("backupOffsite")}
                 className="rounded border-white/20"
@@ -752,8 +746,7 @@ export function NodeWizard() {
             <CopyBlock label="5b) Uruchom onboarding (root na węźle)" text={ONBOARD_LIVE_RUN} />
             <CopyBlock label="5c) Weryfikacja" text={ONBOARD_LIVE_VERIFY} />
             <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={!!checked.onboardLive}
                 onChange={() => toggleCheck("onboardLive")}
                 className="rounded border-white/20"
@@ -789,8 +782,7 @@ export function NodeWizard() {
               text={HOSTING_PROFILE_HINT}
             />
             <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={!!checked.profile}
                 onChange={() => toggleCheck("profile")}
                 className="rounded border-white/20"

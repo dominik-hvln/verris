@@ -10,6 +10,7 @@ import {
   patchCustomerOperationalAction,
   resetCustomerPasswordAction,
 } from "../actions";
+import { Checkbox } from '@/components/checkbox';
 
 interface Props {
   detail: AdminCustomerOperationalDetail;
@@ -120,8 +121,7 @@ export function CustomerOperationalForms({ detail }: Props) {
           Zablokowane konto USER nie zaloguje się ani hasłem, ani po 2FA. Impersonacja z panelu nadal działa.
         </p>
         <label className="flex items-center gap-3 cursor-pointer">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={loginBlocked}
             disabled={pending}
             onChange={(e) => setLoginBlocked(e.target.checked)}
@@ -222,8 +222,7 @@ export function CustomerOperationalForms({ detail }: Props) {
           skopiuj je lub wyślij powiadomienie e-mail (bez hasła w treści).
         </p>
         <label className="flex items-center gap-3 cursor-pointer">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={resetNotify}
             disabled={pending}
             onChange={(e) => setResetNotify(e.target.checked)}
@@ -284,8 +283,7 @@ export function CustomerOperationalForms({ detail }: Props) {
           />
         </label>
         <label className="flex items-center gap-3 cursor-pointer">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={deleteConfirm}
             disabled={pending || deleteOk}
             onChange={(e) => setDeleteConfirm(e.target.checked)}

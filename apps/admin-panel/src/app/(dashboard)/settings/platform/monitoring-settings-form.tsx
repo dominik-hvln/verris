@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import { Loader2, Save, Activity } from 'lucide-react';
 import { updateMonitoringSettingsAction, type MonitoringSettingsForm } from './actions';
+import { Checkbox } from '@/components/checkbox';
 
 export function MonitoringSettingsForm({ initial }: { initial: MonitoringSettingsForm }) {
   const [state, action, pending] = useActionState(updateMonitoringSettingsAction, {});
@@ -19,7 +20,7 @@ export function MonitoringSettingsForm({ initial }: { initial: MonitoringSetting
 
       <label className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
         <span className="text-sm text-white">Oferuj klientom płatny (szybki) monitoring</span>
-        <input type="checkbox" name="paidOffered" defaultChecked={initial.paidOffered} className="h-4 w-4 accent-emerald-500" />
+        <Checkbox name="paidOffered" defaultChecked={initial.paidOffered} className="h-4 w-4 accent-emerald-500" />
       </label>
 
       <div className="grid gap-4 sm:grid-cols-2">

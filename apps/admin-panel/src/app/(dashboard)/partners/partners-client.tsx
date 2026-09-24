@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { AlertCircle, CheckCircle2, Loader2, Save, Banknote, Check, X } from "lucide-react";
 import type { PartnerConfig, AdminPayout } from "./data";
 import { updatePartnerConfigAction, processPayoutAction } from "./actions";
+import { Checkbox } from '@/components/checkbox';
 
 export function PartnersClient({ config, payouts }: { config: PartnerConfig; payouts: AdminPayout[] }) {
   return (
@@ -36,7 +37,7 @@ function ConfigForm({ config }: { config: PartnerConfig }) {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-white">Zasady programu</h2>
         <label className="flex items-center gap-2 text-sm text-neutral-200">
-          <input type="checkbox" checked={c.enabled} onChange={(e) => setC({ ...c, enabled: e.target.checked })} className="accent-emerald-500" />
+          <Checkbox checked={c.enabled} onChange={(e) => setC({ ...c, enabled: e.target.checked })} className="accent-emerald-500" />
           Program aktywny
         </label>
       </div>

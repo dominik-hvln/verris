@@ -17,6 +17,7 @@ import {
   type ActivityRow,
 } from "./actions";
 import { potwierdz } from "@/components/potwierdz";
+import { Checkbox } from '@/components/checkbox';
 
 type Editing = { id: string | null; name: string; description: string; permissions: Set<string> } | null;
 
@@ -173,7 +174,7 @@ export function RolesClient({
                     <div className="grid gap-1.5 sm:grid-cols-2">
                       {perms.map((p) => (
                         <label key={p.key} className="flex items-start gap-2 rounded-lg border border-white/10 bg-black/30 px-2.5 py-1.5 text-sm text-neutral-200">
-                          <input type="checkbox" checked={editing.permissions.has(p.key)} onChange={() => toggle(p.key)} className="mt-0.5 h-4 w-4 accent-indigo-500" />
+                          <Checkbox checked={editing.permissions.has(p.key)} onChange={() => toggle(p.key)} className="mt-0.5 h-4 w-4 accent-indigo-500" />
                           <span>{p.label}</span>
                         </label>
                       ))}

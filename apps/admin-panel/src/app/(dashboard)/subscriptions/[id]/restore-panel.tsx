@@ -3,6 +3,7 @@
 import { Select } from '@/components/select';
 import { useEffect, useState } from 'react';
 import { fetchRestoreDataAction, startRestoreAction, type KopiaKonta, type StanOdtwarzania } from './restore-actions';
+import { Checkbox } from '@/components/checkbox';
 
 const STATUS: Record<string, string> = {
   QUEUED: 'w kolejce',
@@ -56,7 +57,7 @@ export function RestorePanel({ subscriptionId, domain }: { subscriptionId: strin
 
   const box = (key: keyof typeof scope, label: string) => (
     <label className="flex items-center gap-2 text-sm text-neutral-200">
-      <input type="checkbox" checked={scope[key]} onChange={(e) => setScope({ ...scope, [key]: e.target.checked })} disabled={busy} />
+      <Checkbox checked={scope[key]} onChange={(e) => setScope({ ...scope, [key]: e.target.checked })} disabled={busy} />
       {label}
     </label>
   );
@@ -92,7 +93,7 @@ export function RestorePanel({ subscriptionId, domain }: { subscriptionId: strin
             {box('scopeEmail', 'Poczta')}
           </div>
           <label className="flex items-center gap-2 text-sm text-neutral-200">
-            <input type="checkbox" checked={safetyBackup} onChange={(e) => setSafetyBackup(e.target.checked)} disabled={busy} />
+            <Checkbox checked={safetyBackup} onChange={(e) => setSafetyBackup(e.target.checked)} disabled={busy} />
             Najpierw kopia bezpieczeństwa obecnego stanu (zalecane)
           </label>
           <label className="block space-y-1">

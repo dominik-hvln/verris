@@ -22,6 +22,7 @@ import {
   type KbCtaConfig,
 } from './actions';
 import { potwierdz, zapytaj } from "@/components/potwierdz";
+import { Checkbox } from '@/components/checkbox';
 
 /** Lekki renderer Markdown → HTML na potrzeby podglądu (treść od autora). */
 function mdToHtml(md: string): string {
@@ -266,10 +267,10 @@ function CtaPanel() {
       </summary>
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <label className="flex items-center gap-2 text-sm text-white sm:col-span-2">
-          <input type="checkbox" checked={cta.enabled} onChange={(e) => upd('enabled', e.target.checked)} /> Baner włączony
+          <Checkbox checked={cta.enabled} onChange={(e) => upd('enabled', e.target.checked)} /> Baner włączony
         </label>
         <label className="flex items-center gap-2 text-sm text-white sm:col-span-2">
-          <input type="checkbox" checked={cta.pattern !== false} onChange={(e) => upd('pattern', e.target.checked)} /> Wzorzec brandingowy w tle (siatka „V”)
+          <Checkbox checked={cta.pattern !== false} onChange={(e) => upd('pattern', e.target.checked)} /> Wzorzec brandingowy w tle (siatka „V”)
         </label>
         <label className="space-y-1 sm:col-span-2"><span className="text-xs text-white/70">Nagłówek</span>
           <input className={inputCls} value={cta.headline} onChange={(e) => upd('headline', e.target.value)} /></label>

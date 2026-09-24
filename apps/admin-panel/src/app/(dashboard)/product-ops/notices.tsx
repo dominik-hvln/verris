@@ -10,6 +10,7 @@ import {
 } from "./actions";
 import type { MaintenanceWindowRow, ProductAnnouncementRow } from "./data";
 import { PoleDaty } from "@/components/pole-daty";
+import { Checkbox } from '@/components/checkbox';
 
 const INPUT =
   "w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-neutral-600 focus:border-emerald-400 focus:outline-none";
@@ -71,7 +72,7 @@ export function Announcements({ rows }: { rows: ProductAnnouncementRow[] }) {
         <textarea id="ann-body" aria-label="Treść" required maxLength={12000} rows={3} placeholder="Treść widoczna dla klienta" className={INPUT} value={f.bodyMarkdown} onChange={(e) => setF({ ...f, bodyMarkdown: e.target.value })} />
         <div className="flex flex-wrap items-center justify-between gap-2">
           <label className="flex items-center gap-2 text-xs text-neutral-300">
-            <input id="ann-now" type="checkbox" checked={f.publishNow} onChange={(e) => setF({ ...f, publishNow: e.target.checked })} />
+            <Checkbox id="ann-now" checked={f.publishNow} onChange={(e) => setF({ ...f, publishNow: e.target.checked })} />
             Opublikuj od razu (inaczej szkic)
           </label>
           <button type="submit" disabled={a.pending} className={BTN_MAIN}>Dodaj ogłoszenie</button>

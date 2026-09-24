@@ -4,6 +4,7 @@ import { Select } from '@/components/select';
 import { useState, useId } from 'react';
 import { suspendSubscriptionAction, unsuspendSubscriptionAction } from './suspend-actions';
 import { potwierdz } from "@/components/potwierdz";
+import { Checkbox } from '@/components/checkbox';
 
 const REASONS = [
   { value: 'ABUSE', label: 'Nadużycie (spam, malware, phishing)' },
@@ -64,7 +65,7 @@ export function SuspendForm({ subscriptionId, status, domain }: { subscriptionId
         </div>
       ) : (
         <label className="flex items-center gap-2 text-sm text-neutral-200">
-          <input type="checkbox" checked={charge} onChange={(e) => setCharge(e.target.checked)} disabled={busy} />
+          <Checkbox checked={charge} onChange={(e) => setCharge(e.target.checked)} disabled={busy} />
           Obciąż klienta za odnowienie okresu przy odwieszeniu
         </label>
       )}

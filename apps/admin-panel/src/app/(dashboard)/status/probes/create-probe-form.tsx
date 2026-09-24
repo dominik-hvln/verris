@@ -10,6 +10,7 @@ import {
   type ProbeSeverity,
   type ServerSummary,
 } from "../actions";
+import { Checkbox } from '@/components/checkbox';
 
 interface Props {
   servers: ServerSummary[];
@@ -188,8 +189,7 @@ export function CreateProbeForm({ servers }: Props) {
       </div>
 
       <label className="flex items-center gap-2 text-sm text-white">
-        <input
-          type="checkbox"
+        <Checkbox
           checked={isPublic}
           onChange={(e) => setIsPublic(e.target.checked)}
         />

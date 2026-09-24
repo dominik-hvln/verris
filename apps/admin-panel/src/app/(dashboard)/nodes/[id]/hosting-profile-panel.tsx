@@ -16,6 +16,7 @@ import {
   fetchTasksAgentInstallScript,
   queueHostingProfile,
 } from "../actions";
+import { Checkbox } from '@/components/checkbox';
 
 const STATUS_LABEL: Record<string, string> = {
   QUEUED: "W kolejce",
@@ -157,8 +158,7 @@ export function HostingProfilePanel({
 
       <div className="flex flex-wrap gap-4 text-sm">
         <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={skipBuild}
             onChange={(e) => setSkipBuild(e.target.checked)}
             className="rounded border-white/20"
@@ -166,8 +166,7 @@ export function HostingProfilePanel({
           Pomiń CustomBuild rebuild (zalecane)
         </label>
         <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={dryRun}
             onChange={(e) => setDryRun(e.target.checked)}
             className="rounded border-white/20"

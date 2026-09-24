@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { AlertCircle, CheckCircle2, Loader2, Plus, Tag, Gift, Percent } from "lucide-react";
 import { createPromoAction } from "./actions";
 import { PoleDaty } from "@/components/pole-daty";
+import { Checkbox } from '@/components/checkbox';
 
 type Kind = "FIXED_CREDIT" | "SERVICE_PERCENT_OFF";
 
@@ -165,8 +166,7 @@ export function CreatePromoForm() {
 
       {isService ? (
         <label className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={appliesToRenewals}
             onChange={(e) => setAppliesToRenewals(e.target.checked)}
             className="h-4 w-4 accent-emerald-500"

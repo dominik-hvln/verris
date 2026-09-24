@@ -11,6 +11,7 @@ import {
   type KsefOverview,
   type KsefSettings,
 } from "./actions";
+import { Checkbox } from '@/components/checkbox';
 
 export function KsefForm() {
   const envId = useId();
@@ -83,8 +84,7 @@ export function KsefForm() {
       <form onSubmit={onSubmit} className="space-y-3">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <label className="flex items-center gap-2 text-sm md:col-span-2">
-            <input
-              type="checkbox"
+            <Checkbox
               checked={enabled}
               onChange={(e) => setEnabled(e.target.checked)}
               className="h-4 w-4 rounded border-white/20 bg-white/5"

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Save, Loader2, AlertCircle, Check, Plug } from "lucide-react";
 import { updateDirectAdminConfig, testDirectAdmin } from "../actions";
+import { Checkbox } from '@/components/checkbox';
 
 interface InitialConfig {
   daHost: string;
@@ -150,8 +151,7 @@ export function DirectAdminConfigForm({
         </Field>
 
         <label className="flex items-center gap-2 text-sm text-muted-foreground">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={daUseTls}
             onChange={(e) => setDaUseTls(e.target.checked)}
             className="h-4 w-4 rounded border-white/20 bg-white/5"
@@ -160,8 +160,7 @@ export function DirectAdminConfigForm({
         </label>
 
         <label className="flex items-start gap-2 text-sm text-muted-foreground md:col-span-2">
-          <input
-            type="checkbox"
+          <Checkbox
             checked={daAllowInvalidCert}
             onChange={(e) => setDaAllowInvalidCert(e.target.checked)}
             className="h-4 w-4 mt-0.5 rounded border-white/20 bg-white/5"

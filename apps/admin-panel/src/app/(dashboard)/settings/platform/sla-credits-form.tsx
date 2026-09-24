@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import { Loader2, Save, ShieldCheck } from 'lucide-react';
 import { updateSlaCreditPolicyAction, type SlaCreditPolicyForm } from './actions';
+import { Checkbox } from '@/components/checkbox';
 
 export function SlaCreditsForm({ initial }: { initial: SlaCreditPolicyForm }) {
   const [state, action, pending] = useActionState(updateSlaCreditPolicyAction, {});
@@ -22,7 +23,7 @@ export function SlaCreditsForm({ initial }: { initial: SlaCreditPolicyForm }) {
 
       <label className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
         <span className="text-sm text-white">Automatyczne kredyty SLA włączone</span>
-        <input type="checkbox" name="enabled" defaultChecked={initial.enabled} className="h-4 w-4 accent-emerald-500" />
+        <Checkbox name="enabled" defaultChecked={initial.enabled} className="h-4 w-4 accent-emerald-500" />
       </label>
 
       <div className="grid gap-4 sm:grid-cols-2">

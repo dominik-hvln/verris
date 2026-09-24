@@ -40,6 +40,12 @@ const config = [
   // obsługa klawiatury, role). eslint-config-next włącza tylko kilka reguł tej wtyczki; ten sam
   // zakres plików co w eslint-config-next, bo tylko tam wtyczka jest zarejestrowana (X-42).
   { files: ['**/*.{js,jsx,mjs,ts,tsx,mts,cts}'], rules: jsxA11y.flatConfigs.recommended.rules },
+  // `Checkbox` (components/checkbox.tsx) renderuje prawdziwy <input type="checkbox">, więc
+  // <label> wokół niego jest powiązany z polem — reguła musi o tym wiedzieć.
+  {
+    files: ['**/*.{js,jsx,mjs,ts,tsx,mts,cts}'],
+    rules: { 'jsx-a11y/label-has-associated-control': ['error', { controlComponents: ['Checkbox'], depth: 3 }] },
+  },
 ];
 
 export default config;

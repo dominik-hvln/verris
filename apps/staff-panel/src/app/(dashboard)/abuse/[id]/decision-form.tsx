@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { decyzjaAction } from "../actions";
+import { Checkbox } from '@/components/checkbox';
 
 export function DecisionForm({ id, maKlienta }: { id: string; maKlienta: boolean }) {
   const router = useRouter();
@@ -28,7 +29,7 @@ export function DecisionForm({ id, maKlienta }: { id: string; maKlienta: boolean
         className="w-full rounded-lg border border-white/10 bg-black/40 p-3 text-sm text-white" />
       {maKlienta ? (
         <label className="flex items-center gap-2 text-xs text-neutral-300">
-          <input type="checkbox" checked={notify} onChange={(e) => setNotify(e.target.checked)} />
+          <Checkbox checked={notify} onChange={(e) => setNotify(e.target.checked)} />
           Przy „Podjęto działania” wyślij klientowi uzasadnienie (DSA art. 17)
         </label>
       ) : null}

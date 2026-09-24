@@ -45,3 +45,19 @@ it('żaden plik panelu nie pokazuje systemowego wyboru plików', () => {
   przejdz(join(__dirname, '..'));
   expect(trafienia).toEqual([]);
 });
+
+/** Systemowe pole wyboru wygląda inaczej w każdej przeglądarce — tylko `Checkbox` z `@/components/checkbox`. */
+it('żaden plik panelu nie renderuje systemowego pola wyboru (checkbox)', () => {
+  const trafienia: string[] = [];
+  const przejdz = (dir: string) => {
+    for (const n of readdirSync(dir)) {
+      const p = join(dir, n);
+      if (statSync(p).isDirectory()) przejdz(p);
+      else if (n.endsWith('.tsx') && !p.endsWith(join('components', 'checkbox.tsx')) && /type=["']checkbox["']/.test(readFileSync(p, 'utf8'))) {
+        trafienia.push(p.split('/src/')[1]!);
+      }
+    }
+  };
+  przejdz(join(__dirname, '..'));
+  expect(trafienia).toEqual([]);
+});

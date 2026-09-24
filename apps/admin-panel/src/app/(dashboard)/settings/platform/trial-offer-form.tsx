@@ -3,6 +3,7 @@
 import { useActionState } from 'react';
 import { Loader2, Save, Gift } from 'lucide-react';
 import { updateTrialOfferAction, type TrialOfferForm } from './actions';
+import { Checkbox } from '@/components/checkbox';
 
 export function TrialOfferSettingsForm({ initial }: { initial: TrialOfferForm }) {
   const [state, action, pending] = useActionState(updateTrialOfferAction, {});
@@ -19,12 +20,12 @@ export function TrialOfferSettingsForm({ initial }: { initial: TrialOfferForm })
 
       <label className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
         <span className="text-sm text-white">Pokazuj darmowy okres próbny (bez karty)</span>
-        <input type="checkbox" name="freeEnabled" defaultChecked={initial.freeEnabled} className="h-4 w-4 accent-emerald-500" />
+        <Checkbox name="freeEnabled" defaultChecked={initial.freeEnabled} className="h-4 w-4 accent-emerald-500" />
       </label>
 
       <label className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.03] px-4 py-3">
         <span className="text-sm text-white">Pokazuj ścieżkę z kartą + rabat na 1. rok</span>
-        <input type="checkbox" name="cardEnabled" defaultChecked={initial.cardEnabled} className="h-4 w-4 accent-emerald-500" />
+        <Checkbox name="cardEnabled" defaultChecked={initial.cardEnabled} className="h-4 w-4 accent-emerald-500" />
       </label>
 
       <div className="grid gap-4 sm:grid-cols-2">

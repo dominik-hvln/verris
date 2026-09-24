@@ -11,6 +11,7 @@ import {
   type CannedInput,
   type CannedResponseRow,
 } from "./actions";
+import { Checkbox } from '@/components/checkbox';
 
 const TOPICS = ["", "HOSTING", "DOMAIN", "EMAIL", "DNS", "SSL", "BILLING", "OTHER"];
 
@@ -125,7 +126,7 @@ function Form({
       </div>
       <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={4} placeholder="Treść odpowiedzi…" className="ip w-full" />
       <label className="flex items-center gap-2 text-xs text-neutral-300">
-        <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} /> Aktywny
+        <Checkbox checked={isActive} onChange={(e) => setIsActive(e.target.checked)} /> Aktywny
       </label>
       <div className="flex items-center gap-2">
         <button

@@ -13,6 +13,7 @@ import {
   type ServerSummary,
 } from "../actions";
 import { potwierdz } from "@/components/potwierdz";
+import { Checkbox } from '@/components/checkbox';
 
 interface Props {
   probes: ProbeDto[];
@@ -203,16 +204,14 @@ function ProbeRow({ probe, serverName }: { probe: ProbeDto; serverName: string }
         {editing ? (
           <div className="space-y-1 text-[11px]">
             <label className="flex items-center gap-1.5 text-white">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={isEnabled}
                 onChange={(e) => setIsEnabled(e.target.checked)}
               />
               Aktywna
             </label>
             <label className="flex items-center gap-1.5 text-white">
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={isPublic}
                 onChange={(e) => setIsPublic(e.target.checked)}
               />
