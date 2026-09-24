@@ -10,6 +10,7 @@ import {
   exportDb,
   fetchDbTransfer,
   importDb,
+  maintainDb,
   type DbTransferStatus,
 } from '@/app/dashboard/services/[id]/hosting-db-transfer-actions';
 
@@ -18,6 +19,8 @@ import {
  * ląduje w katalogu `verris-bazy` na koncie. Stąd też bierzemy plik do importu — wgrasz go
  * menedżerem plików albo przez FTP (duże bazy).
  */
+const TRYB = { export: 'Eksport', import: 'Import', repair: 'Sprawdzenie i naprawa', optimize: 'Optymalizacja' } as const;
+
 const STATUS: Record<string, string> = {
   QUEUED: 'w kolejce',
   RUNNING: 'w toku',
@@ -84,6 +87,23 @@ export function DbTransferPanel({ serviceId, databases }: { serviceId: string; d
     });
   };
 
+  const konserwuj = async (mode: 'repair' | 'optimize') => {
+    const tak = await potwierdz(
+      mode === 'repair'
+        ? `Sprawdzić tabele bazy „${baza}” i naprawić uszkodzone? Na czas sprawdzania tabele mogą być chwilowo zablokowane.`
+        : `Zoptymalizować tabele bazy „${baza}”? Odzyskamy miejsce po usuniętych danych i przebudujemy indeksy. Przy dużych tabelach strona może na chwilę zwolnić.`,
+      { akcja: mode === 'repair' ? 'Sprawdź i napraw' : 'Optymalizuj', tytul: mode === 'repair' ? 'Naprawa tabel' : 'Optymalizacja tabel' },
+    );
+    if (!tak) return;
+    start(async () => {
+      const r = await maintainDb(serviceId, baza, mode);
+      if (r.ok) {
+        setStan(r.status);
+        toast.success(mode === 'repair' ? 'Sprawdzanie tabel zlecone.' : 'Optymalizacja zlecona.');
+      } else toast.error(r.error);
+    });
+  };
+
   const pobierz = async (sciezka: string) => {
     setPobierany(sciezka);
     try {
@@ -136,6 +156,15 @@ export function DbTransferPanel({ serviceId, databases }: { serviceId: string; d
           <Upload className="h-4 w-4" /> Importuj do bazy
         </button>
       </div>
+      <div className="flex flex-wrap items-center gap-2 border-t border-line px-4 py-3">
+        <span className="mr-auto text-[13px] text-muted-foreground">Tabele wybranej bazy:</span>
+        <button type="button" onClick={() => void konserwuj('repair')} disabled={pending || !baza || stan?.wToku} className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[7px] border border-line-strong bg-card px-[13px] py-2 text-sm font-medium text-foreground hover:bg-raised disabled:opacity-50">
+          Sprawdź i napraw
+        </button>
+        <button type="button" onClick={() => void konserwuj('optimize')} disabled={pending || !baza || stan?.wToku} className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[7px] border border-line-strong bg-card px-[13px] py-2 text-sm font-medium text-foreground hover:bg-raised disabled:opacity-50">
+          Optymalizuj
+        </button>
+      </div>
 
       {blad ? <p className="m-0 border-t border-line px-4 py-3 text-sm text-crit">{blad}</p> : null}
       {stan?.bladPlikow ? <p className="m-0 border-t border-line px-4 py-3 text-sm text-muted-foreground">{stan.bladPlikow}</p> : null}
@@ -167,7 +196,7 @@ export function DbTransferPanel({ serviceId, databases }: { serviceId: string; d
               <li key={z.id} className="px-4 py-2 text-[13px]">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span className="text-foreground">
-                    {z.tryb === 'export' ? 'Eksport' : 'Import'} <span className="font-mono">{z.baza}</span>
+                    {TRYB[z.tryb]} <span className="font-mono">{z.baza}</span>
                     {z.plik ? <> z <span className="font-mono">{z.plik}</span></> : null}
                   </span>
                   <span className="inline-flex items-center gap-1.5 text-muted-foreground">
@@ -176,6 +205,18 @@ export function DbTransferPanel({ serviceId, databases }: { serviceId: string; d
                   </span>
                 </div>
                 {z.blad ? <p className="m-0 mt-1 text-[12.5px] text-crit">{z.blad}</p> : null}
+                {z.status === 'COMPLETED' && z.tabele !== null ? (
+                  <p className="m-0 mt-1 text-[12.5px] text-muted-foreground">
+                    Tabel: {z.tabele}.{z.uwagi.length ? '' : ' Wszystkie w porządku.'}
+                  </p>
+                ) : null}
+                {z.uwagi.length ? (
+                  <ul className="m-0 mt-1 list-none p-0 font-mono text-[12px] text-muted-foreground">
+                    {z.uwagi.map((u) => (
+                      <li key={u}>{u}</li>
+                    ))}
+                  </ul>
+                ) : null}
                 {z.status === 'COMPLETED' && z.wynik ? (
                   <p className="m-0 mt-1 text-[12.5px] text-muted-foreground">
                     {z.tryb === 'import' ? 'Kopia sprzed importu: ' : 'Plik: '}

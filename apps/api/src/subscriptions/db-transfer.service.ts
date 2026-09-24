@@ -21,6 +21,8 @@ import { DirectAdminService } from '../servers/directadmin.service';
  *
  * Plik do importu klient wgrywa menedżerem plików albo FTP do katalogu `verris-bazy`;
  * wynik eksportu pobiera stąd samo.
+ *
+ * D-18 — to samo zadanie robi naprawę (`repair`: check + auto-repair) i optymalizację tabel.
  */
 export const KATALOG_BAZ = 'verris-bazy';
 const PLIK_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,120}\.sql(\.gz)?$/;
@@ -78,6 +80,20 @@ export class DbTransferService {
     return this.opis(subscriptionId, userId, sub.account.id);
   }
 
+  /** D-18 — sprawdzenie z naprawą albo optymalizacja tabel jednej bazy (mysqlcheck na węźle). */
+  async zlecKonserwacje(subscriptionId: string, userId: string, db: string, mode: 'repair' | 'optimize') {
+    if (mode !== 'repair' && mode !== 'optimize') throw new BadRequestException('Nieprawidłowa operacja.');
+    const sub = await this.wymagajKonta(subscriptionId, userId);
+    const baza = this.sprawdzBaze(sub.account.daUsername, db);
+    const task = await this.zlec(sub.account, userId, { mode, db: baza });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_DB_MAINTENANCE_QUEUED,
+      userId: sub.userId, actorUserId: userId,
+      details: { subscriptionId, db: baza, mode, taskId: task.id },
+    });
+    return this.opis(subscriptionId, userId, sub.account.id);
+  }
+
   /** Nazwa bazy z panelu jest pełna (login_nazwa); prefiks musi być loginem TEGO konta. */
   private sprawdzBaze(daUsername: string | null, db: string): string {
     const baza = (db ?? '').trim();
@@ -90,13 +106,13 @@ export class DbTransferService {
   private async zlec(
     account: { id: string; serverId: string; status: string; daUsername: string | null },
     actorUserId: string,
-    payload: { mode: 'export' | 'import'; db: string; file?: string },
+    payload: { mode: 'export' | 'import' | 'repair' | 'optimize'; db: string; file?: string },
   ) {
     if (account.status !== 'ACTIVE') throw new BadRequestException('Konto hostingowe nie jest aktywne.');
     const wToku = await this.prisma.nodeTask.findFirst({
       where: { accountId: account.id, kind: NodeTaskKind.DB_TRANSFER, status: { in: [NodeTaskStatus.QUEUED, NodeTaskStatus.RUNNING] } },
     });
-    if (wToku) throw new ConflictException('Eksport albo import bazy jest już w toku — poczekaj na wynik.');
+    if (wToku) throw new ConflictException('Inna operacja na bazie jest już w toku — poczekaj na wynik.');
     return this.prisma.nodeTask.create({
       data: {
         serverId: account.serverId,
@@ -129,7 +145,7 @@ export class DbTransferService {
     const p = (z.payload ?? {}) as { mode?: string; db?: string; file?: string };
     return {
       id: z.id,
-      tryb: p.mode === 'import' ? ('import' as const) : ('export' as const),
+      tryb: p.mode === 'import' || p.mode === 'repair' || p.mode === 'optimize' ? p.mode : ('export' as const),
       baza: p.db ?? null,
       plik: p.file ?? null,
       status: z.status,
@@ -137,6 +153,9 @@ export class DbTransferService {
       zakonczone: z.completedAt?.toISOString() ?? null,
       /** Eksport: plik z bazą. Import: kopia sprzed importu (do przywrócenia). */
       wynik: wynikZLogu(z.outputLog),
+      /** D-18: liczba sprawdzonych tabel i uwagi mysqlcheck (np. naprawiona tabela). */
+      tabele: Number(/^VERRIS_DB_TABELE=(\d{1,6})\s*$/m.exec(z.outputLog ?? '')?.[1] ?? NaN) || null,
+      uwagi: (z.outputLog ?? '').split('\n').flatMap((l) => /^VERRIS_DB_UWAGA=(.{1,300})$/.exec(l.trim())?.[1] ?? []).slice(0, 20),
       blad: z.status === NodeTaskStatus.FAILED ? bladDlaKlienta(z.outputLog, z.errorMessage) : null,
     };
   }

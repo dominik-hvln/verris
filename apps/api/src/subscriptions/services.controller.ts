@@ -100,6 +100,7 @@ import {
   KlonStronyDto,
   DomenaStronyDto,
   UstawieniaHtaccessDto,
+  KonserwacjaBazyDto,
   OdtworzenieZArchiwumDto,
   ImportBazyDto,
   WersjaPhpDto,
@@ -1053,6 +1054,12 @@ export class UserServicesController {
   @Post(':id/hosting-db-import')
   async hostingDbImport(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: ImportBazyDto) {
     return this.dbTransfer.zlecImport(id, user.userId, body.db, body.file);
+  }
+
+  @RateLimit({ limit: 10, windowMs: 60 * 60 * 1000, scope: 'hosting:db-transfer' })
+  @Post(':id/hosting-db-maintenance')
+  async hostingDbMaintenance(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: KonserwacjaBazyDto) {
+    return this.dbTransfer.zlecKonserwacje(id, user.userId, body.db, body.mode);
   }
 
   // H-10/H-11 — podgląd archiwum kopii i odtworzenie pliku do ~/verris-odtworzone.

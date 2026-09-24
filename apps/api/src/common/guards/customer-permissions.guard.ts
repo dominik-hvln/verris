@@ -153,7 +153,7 @@ export const REGULY_TRAS: Regula[] = [
   {
     pasuje: zawiera(
       'file-manager', 'hosting-files', 'hosting-file-restore', 'hosting-git', 'hosting-malware',
-      'hosting-wp-updates', 'hosting-db-transfer', 'hosting-db-export', 'hosting-db-import', 'hosting-cron-output',
+      'hosting-wp-updates', 'hosting-db-transfer', 'hosting-db-export', 'hosting-db-import', 'hosting-db-maintenance', 'hosting-cron-output',
       'hosting-ssh', 'hosting-site-clone', 'hosting-htaccess',
     ),
     odczyt: [FILES_MANAGE], zapis: [FILES_MANAGE],

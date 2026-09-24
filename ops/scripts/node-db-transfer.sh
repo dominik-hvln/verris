@@ -2,7 +2,7 @@
 # =============================================================================
 # Verris — eksport i import bazy MySQL/MariaDB klienta (D-12). Uruchamiany przez agenta
 # zadań (DB_TRANSFER) z env:
-#   DBT_MODE     export | import
+#   DBT_MODE     export | import | repair | optimize
 #   DBT_DA_USER  login konta DA (z rekordu konta w API, nigdy z wejścia klienta)
 #   DBT_DB       pełna nazwa bazy: <login>_<nazwa>
 #   DBT_FILE     (import) nazwa pliku .sql lub .sql.gz w ~/verris-bazy
@@ -14,7 +14,10 @@
 #    (`USE inna_baza`, `CREATE DATABASE`, `GRANT` w pliku kończą się odmową), usuwany po zadaniu;
 #  - przed importem automatyczna kopia bazy (…-przed-importem-….sql.gz) w tym samym katalogu;
 #  - klauzule DEFINER są usuwane (wymagałyby uprawnień SUPER).
-# Wynik dla API: linie `VERRIS_WYNIK_PLIK=<ścieżka względem katalogu domowego>`.
+# D-18: repair = sprawdzenie tabel z automatyczną naprawą, optimize = odzyskanie miejsca i przebudowa
+# indeksów (InnoDB: recreate + analyze) — mysqlcheck tylko na tej jednej bazie.
+# Wynik dla API: linie `VERRIS_WYNIK_PLIK=<ścieżka względem katalogu domowego>`;
+# repair/optimize: `VERRIS_DB_TABELE=<liczba>` i `VERRIS_DB_UWAGA=<tabela: komunikat>` (do 20).
 # =============================================================================
 set -Eeuo pipefail
 
@@ -26,7 +29,7 @@ fail() { log "BŁĄD: $*"; exit 1; }
 KATALOG_WZGL="verris-bazy"
 LIMIT_IMPORTU=$((2 * 1024 * 1024 * 1024)) # 2 GB
 
-[[ "$DBT_MODE" == "export" || "$DBT_MODE" == "import" ]] || fail "nieznany tryb: $DBT_MODE"
+[[ "$DBT_MODE" =~ ^(export|import|repair|optimize)$ ]] || fail "nieznany tryb: $DBT_MODE"
 [[ "$DBT_DA_USER" =~ ^[a-z][a-z0-9]{0,15}$ ]] || fail "nieprawidłowy login konta"
 [[ "$DBT_DB" =~ ^${DBT_DA_USER}_[A-Za-z0-9_]{1,48}$ ]] || fail "baza nie należy do konta $DBT_DA_USER"
 id "$DBT_DA_USER" >/dev/null 2>&1 || fail "brak użytkownika systemowego $DBT_DA_USER"
@@ -48,6 +51,35 @@ istnieje="$(mysql_admin -Nse "SELECT SCHEMA_NAME FROM information_schema.SCHEMAT
 [ "$istnieje" = "$DBT_DB" ] || fail "baza $DBT_DB nie istnieje"
 
 jako_klient() { runuser -u "$DBT_DA_USER" -- "$@"; }
+
+if [ "$DBT_MODE" = "repair" ] || [ "$DBT_MODE" = "optimize" ]; then
+  CHECK_BIN="mysqlcheck"; command -v mariadb-check >/dev/null 2>&1 && CHECK_BIN="mariadb-check"
+  if [ "$DBT_MODE" = "repair" ]; then OPCJE=(--check --auto-repair); else OPCJE=(--optimize); fi
+  log "$DBT_MODE $DBT_DB…"
+  WYJSCIE="$("$CHECK_BIN" "${ADMIN_OPTS[@]}" "${OPCJE[@]}" --databases "$DBT_DB" 2>&1)" || {
+    printf '%s\n' "$WYJSCIE" | tail -n 20
+    fail "$([ "$DBT_MODE" = repair ] && echo naprawa || echo optymalizacja) nie powiodła się"
+  }
+  printf '%s\n' "$WYJSCIE" | DB="$DBT_DB" python3 -c '
+import os, sys
+db = os.environ["DB"] + "."
+tabela, tabele, uwagi = None, 0, []
+for l in sys.stdin.read().splitlines():
+    if l.startswith(db):
+        tabela = l.split()[0][len(db):]
+        tabele += 1
+        reszta = l[len(db) + len(tabela):].strip()
+        if reszta and reszta not in ("OK", "Table is already up to date"):
+            uwagi.append((tabela, reszta))
+    elif tabela and l.strip().lower().startswith(("error", "warning")):
+        uwagi.append((tabela, l.strip()))
+print("VERRIS_DB_TABELE=%d" % tabele)
+for t, u in uwagi[:20]:
+    print("VERRIS_DB_UWAGA=%s: %s" % (t[:64], " ".join(u.split())[:200]))
+'
+  log "Gotowe."
+  exit 0
+fi
 jako_klient mkdir -p "$HOME_DIR/$KATALOG_WZGL"
 
 # zrzut <nazwa-pliku> — zrzut bazy prosto do pliku zapisywanego przez KLIENTA.

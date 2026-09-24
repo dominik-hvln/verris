@@ -62,6 +62,11 @@ export class EksportBazyDto {
   @Linia(64) db!: string;
 }
 
+/** D-18 — naprawa albo optymalizacja tabel bazy. */
+export class KonserwacjaBazyDto extends EksportBazyDto {
+  @IsIn(['repair', 'optimize']) mode!: 'repair' | 'optimize';
+}
+
 export class ImportBazyDto extends EksportBazyDto {
   @Linia(128) file!: string;
 }

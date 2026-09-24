@@ -5,13 +5,16 @@ import { apiFetch, ApiError } from '@/lib/api';
 /** D-12 — eksport i import bazy (zadanie węzła, pliki w ~/verris-bazy). */
 export interface DbTransferZadanie {
   id: string;
-  tryb: 'export' | 'import';
+  tryb: 'export' | 'import' | 'repair' | 'optimize';
   baza: string | null;
   plik: string | null;
   status: 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
   utworzone: string;
   zakonczone: string | null;
   wynik: string | null;
+  /** D-18 — naprawa/optymalizacja: liczba tabel i uwagi mysqlcheck. */
+  tabele: number | null;
+  uwagi: string[];
   blad: string | null;
 }
 
@@ -46,6 +49,16 @@ export async function exportDb(serviceId: string, db: string): Promise<Wynik> {
 export async function importDb(serviceId: string, db: string, file: string): Promise<Wynik> {
   try {
     const status = await apiFetch<DbTransferStatus>(`/services/${serviceId}/hosting-db-import`, { method: 'POST', body: JSON.stringify({ db, file }) });
+    return { ok: true, status };
+  } catch (e) {
+    return { ok: false, error: blad(e) };
+  }
+}
+
+/** D-18 — sprawdzenie z naprawą albo optymalizacja tabel bazy. */
+export async function maintainDb(serviceId: string, db: string, mode: 'repair' | 'optimize'): Promise<Wynik> {
+  try {
+    const status = await apiFetch<DbTransferStatus>(`/services/${serviceId}/hosting-db-maintenance`, { method: 'POST', body: JSON.stringify({ db, mode }) });
     return { ok: true, status };
   } catch (e) {
     return { ok: false, error: blad(e) };

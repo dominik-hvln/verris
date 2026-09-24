@@ -43,6 +43,20 @@ describe('DbTransferService', () => {
     expect(s.prisma.nodeTask.create).not.toHaveBeenCalled();
   });
 
+  it('D-18: naprawa/optymalizacja tabel jako DB_TRANSFER; wynik z liczbą tabel i uwagami', async () => {
+    const s = stanowisko();
+    await s.svc.zlecKonserwacje('s1', 'u1', 'klient1_sklep', 'optimize');
+    expect(s.prisma.nodeTask.create).toHaveBeenCalledWith({ data: expect.objectContaining({ payload: { mode: 'optimize', db: 'klient1_sklep', daUser: 'klient1' } }) });
+    expect(s.audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'HOSTING_DB_MAINTENANCE_QUEUED' }));
+    await expect(s.svc.zlecKonserwacje('s1', 'u1', 'klient1_sklep', 'drop' as never)).rejects.toBeInstanceOf(BadRequestException);
+    await expect(s.svc.zlecKonserwacje('s1', 'u1', 'obcy_baza', 'repair')).rejects.toBeInstanceOf(BadRequestException);
+    s.prisma.nodeTask.findMany.mockResolvedValueOnce([
+      { id: 't', status: 'COMPLETED', payload: { mode: 'repair', db: 'klient1_sklep' }, outputLog: 'VERRIS_DB_TABELE=3\nVERRIS_DB_UWAGA=t2: repaired\n', errorMessage: null, createdAt: new Date(), completedAt: new Date() },
+    ] as never);
+    const r = await s.svc.status('s1', 'u1');
+    expect(r.zadania[0]).toMatchObject({ tryb: 'repair', tabele: 3, uwagi: ['t2: repaired'] });
+  });
+
   it('drugie zadanie w toku → 409; konto nieaktywne → 400', async () => {
     await expect(stanowisko({ wToku: true }).svc.zlecImport('s1', 'u1', 'klient1_sklep', 'kopia.sql.gz')).rejects.toBeInstanceOf(ConflictException);
     await expect(stanowisko({ status: 'SUSPENDED' }).svc.zlecEksport('s1', 'u1', 'klient1_sklep')).rejects.toBeInstanceOf(BadRequestException);
