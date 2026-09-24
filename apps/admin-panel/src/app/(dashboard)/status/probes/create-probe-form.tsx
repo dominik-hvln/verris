@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { Select } from "@/components/select";
+import { useState, useTransition, useId } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Plus, AlertCircle } from "lucide-react";
 import {
@@ -39,6 +40,7 @@ const KIND_DEFAULT_SEVERITY: Record<ProbeKind, ProbeSeverity> = {
 };
 
 export function CreateProbeForm({ servers }: Props) {
+  const probeFieldId = useId();
   const router = useRouter();
   const [serverId, setServerId] = useState<string>(servers[0]?.id ?? "");
   const [kind, setKind] = useState<ProbeKind>("HTTPS");
@@ -108,37 +110,37 @@ export function CreateProbeForm({ servers }: Props) {
         </div>
       ) : null}
 
-      <Field label="Serwer">
-        <select
+      <Field label="Serwer" htmlFor={`${probeFieldId}-server`}>
+        <Select
+          id={`${probeFieldId}-server`}
           value={serverId}
-          onChange={(e) => setServerId(e.target.value)}
+          onChange={setServerId}
           className="w-full rounded-md bg-black/60 border border-white/10 px-2 py-2 text-white text-sm"
-        >
-          {servers.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name ?? s.id}
-              {s.region ? ` (${s.region})` : ""}
-            </option>
-          ))}
-        </select>
+          options={servers.map((s) => ({
+            value: s.id,
+            label: `${s.name ?? s.id}${s.region ? ` (${s.region})` : ""}`,
+          }))}
+        />
       </Field>
 
-      <Field label="Typ probe">
-        <select
+      <Field label="Typ probe" htmlFor={`${probeFieldId}-kind`}>
+        <Select
+          id={`${probeFieldId}-kind`}
           value={kind}
-          onChange={(e) => onKindChange(e.target.value as ProbeKind)}
+          onChange={(v) => onKindChange(v as ProbeKind)}
           className="w-full rounded-md bg-black/60 border border-white/10 px-2 py-2 text-white text-sm"
-        >
-          <option value="HTTPS">HTTPS</option>
-          <option value="HTTP">HTTP</option>
-          <option value="DA_API">DA-API</option>
-          <option value="MYSQL">MySQL</option>
-          <option value="SMTP">SMTP</option>
-          <option value="IMAP">IMAP</option>
-          <option value="POP3">POP3</option>
-          <option value="SSH">SSH</option>
-          <option value="DNS">DNS</option>
-        </select>
+          options={[
+            { value: "HTTPS", label: "HTTPS" },
+            { value: "HTTP", label: "HTTP" },
+            { value: "DA_API", label: "DA-API" },
+            { value: "MYSQL", label: "MySQL" },
+            { value: "SMTP", label: "SMTP" },
+            { value: "IMAP", label: "IMAP" },
+            { value: "POP3", label: "POP3" },
+            { value: "SSH", label: "SSH" },
+            { value: "DNS", label: "DNS" },
+          ]}
+        />
       </Field>
 
       <Field label="Target" hint={KIND_HINTS[kind]}>
@@ -160,15 +162,17 @@ export function CreateProbeForm({ servers }: Props) {
       </Field>
 
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Severity">
-          <select
+        <Field label="Severity" htmlFor={`${probeFieldId}-severity`}>
+          <Select
+            id={`${probeFieldId}-severity`}
             value={severity}
-            onChange={(e) => setSeverity(e.target.value as ProbeSeverity)}
+            onChange={(v) => setSeverity(v as ProbeSeverity)}
             className="w-full rounded-md bg-black/60 border border-white/10 px-2 py-2 text-white text-sm"
-          >
-            <option value="MINOR">MINOR (drobny)</option>
-            <option value="MAJOR">MAJOR (poważny)</option>
-          </select>
+            options={[
+              { value: "MINOR", label: "MINOR (drobny)" },
+              { value: "MAJOR", label: "MAJOR (poważny)" },
+            ]}
+          />
         </Field>
         <Field label="SLA %">
           <input
@@ -213,14 +217,25 @@ export function CreateProbeForm({ servers }: Props) {
 
 function Field({
   label,
+  htmlFor,
   hint,
   children,
 }: {
   label: string;
+  htmlFor?: string;
   hint?: string;
   children: React.ReactNode;
 }) {
-  return (
+  // Z htmlFor etykieta stoi obok pola (nie owija) — klik w listę Selecta nie aktywuje ponownie przycisku.
+  return htmlFor ? (
+    <div className="block text-xs">
+      <label htmlFor={htmlFor} className="block mb-1 font-bold uppercase tracking-widest text-muted-foreground">
+        {label}
+      </label>
+      {children}
+      {hint ? <span className="block mt-1 text-[10px] text-muted-foreground font-mono">{hint}</span> : null}
+    </div>
+  ) : (
     <label className="block text-xs">
       <span className="block mb-1 font-bold uppercase tracking-widest text-muted-foreground">
         {label}

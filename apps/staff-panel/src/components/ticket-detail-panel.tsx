@@ -5,6 +5,7 @@ import { useEffect, useId, useState, useTransition } from "react";
 import Link from "next/link";
 import { Paperclip } from "lucide-react";
 import type { AgentOption, StaffTicketDetail, TicketAttachmentRow, TicketContext } from "@/lib/tickets-data";
+import { Select } from "@/components/select";
 import { SlaCountdown, TicketClientAside } from "@/components/ticket-client-aside";
 import {
   staffApplyRunbook,
@@ -87,6 +88,7 @@ export function TicketDetailPanel({ ticket, agents, context }: Props) {
   const [canned, setCanned] = useState<CannedResponseRow[]>([]);
   const replyId = useId();
   const filesId = useId();
+  const fieldsId = useId();
 
   // SUP-2 — pobierz szablony posortowane pod temat zgłoszenia.
   useEffect(() => {
@@ -158,69 +160,57 @@ export function TicketDetailPanel({ ticket, agents, context }: Props) {
           </div>
         </div>
         <div className="flex flex-wrap items-end gap-3">
-          <Labelled label="Status">
-            <select
+          <Labelled label="Status" htmlFor={`${fieldsId}-status`}>
+            <Select
+              id={`${fieldsId}-status`}
               className="rounded-lg bg-white/5 border border-white/10 px-2 py-1.5 text-sm max-w-[11rem]"
               value={ticket.status}
               disabled={pending}
-              onChange={(e) =>
+              onChange={(v) =>
                 patchField({
-                  status: e.target.value,
+                  status: v,
                 })
               }
-            >
-              {STATUS_OPTS.map((s) => (
-                <option key={s} value={s}>
-                  {STATUS_LABELS[s] ?? s}
-                </option>
-              ))}
-            </select>
+              options={STATUS_OPTS.map((s) => ({ value: s, label: STATUS_LABELS[s] ?? s }))}
+            />
           </Labelled>
-          <Labelled label="Prio">
-            <select
+          <Labelled label="Prio" htmlFor={`${fieldsId}-prio`}>
+            <Select
+              id={`${fieldsId}-prio`}
               className="rounded-lg bg-white/5 border border-white/10 px-2 py-1.5 text-sm max-w-[9rem]"
               value={ticket.priority}
               disabled={pending}
-              onChange={(e) => patchField({ priority: e.target.value })}
-            >
-              {PRI_OPTS.map((p) => (
-                <option key={p} value={p}>
-                  {etykieta(TICKET_PRIORITY_PL, p)}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => patchField({ priority: v })}
+              options={PRI_OPTS.map((p) => ({ value: p, label: etykieta(TICKET_PRIORITY_PL, p) }))}
+            />
           </Labelled>
-          <Labelled label="Dział">
-            <select
+          <Labelled label="Dział" htmlFor={`${fieldsId}-dept`}>
+            <Select
+              id={`${fieldsId}-dept`}
               className="rounded-lg bg-white/5 border border-white/10 px-2 py-1.5 text-sm max-w-[10rem]"
               value={ticket.department}
               disabled={pending}
-              onChange={(e) => patchField({ department: e.target.value })}
-            >
-              {DEPT_OPTS.map((d) => (
-                <option key={d} value={d}>
-                  {etykieta(TICKET_DEPARTMENT_PL, d)}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => patchField({ department: v })}
+              options={DEPT_OPTS.map((d) => ({ value: d, label: etykieta(TICKET_DEPARTMENT_PL, d) }))}
+            />
           </Labelled>
-          <Labelled label="Przypisano">
-            <select
+          <Labelled label="Przypisano" htmlFor={`${fieldsId}-assigned`}>
+            <Select
+              id={`${fieldsId}-assigned`}
               className="rounded-lg bg-white/5 border border-white/10 px-2 py-1.5 text-sm min-w-[11rem]"
               value={assignedId ?? ""}
               disabled={pending}
-              onChange={(e) => {
-                const v = e.target.value;
+              onChange={(v) => {
                 patchField({ assignedToId: v === "" ? null : v });
               }}
-            >
-              <option value="">— nikt —</option>
-              {agents.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {[a.firstName, a.lastName].filter(Boolean).join(" ") || a.email}
-                </option>
-              ))}
-            </select>
+              options={[
+                { value: "", label: "— nikt —" },
+                ...agents.map((a) => ({
+                  value: a.id,
+                  label: [a.firstName, a.lastName].filter(Boolean).join(" ") || a.email,
+                })),
+              ]}
+            />
           </Labelled>
         </div>
       </div>
@@ -467,12 +457,13 @@ function TicketTimeline({
   );
 }
 
-function Labelled({ label, children }: { label: string; children: React.ReactNode }) {
+// Etykieta obok pola (htmlFor), nie owijająca — klik w listę Selecta nie może ponownie aktywować przycisku.
+function Labelled({ label, htmlFor, children }: { label: string; htmlFor: string; children: React.ReactNode }) {
   return (
-    <label className="flex flex-col gap-1 text-xs uppercase tracking-wide">
-      <span className="text-muted-foreground">{label}</span>
+    <div className="flex flex-col gap-1 text-xs uppercase tracking-wide">
+      <label htmlFor={htmlFor} className="text-muted-foreground">{label}</label>
       {children}
-    </label>
+    </div>
   );
 }
 

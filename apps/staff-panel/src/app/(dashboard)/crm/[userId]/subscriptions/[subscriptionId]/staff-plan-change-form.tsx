@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Select } from '@/components/select';
 import {
   staffChangePlanAction,
   staffPreviewPlanChangeAction,
@@ -48,10 +49,10 @@ export function StaffPlanChangeForm({
       <p className="text-muted-foreground">
         Plan: <span className="text-white">{currentPlanName}</span>
       </p>
-      <select
+      <Select
+        aria-label="Docelowy plan"
         value={targetPlanId}
-        onChange={async (e) => {
-          const id = e.target.value;
+        onChange={async (id) => {
           setTargetPlanId(id);
           const p = await staffPreviewPlanChangeAction(subscriptionId, id);
           if ('ok' in p && p.ok) {
@@ -63,13 +64,8 @@ export function StaffPlanChangeForm({
           }
         }}
         className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-white"
-      >
-        {candidates.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.name}
-          </option>
-        ))}
-      </select>
+        options={candidates.map((p) => ({ value: p.id, label: p.name }))}
+      />
       {previewLine ? <p className="text-xs text-cyan-200/90">{previewLine}</p> : null}
       <textarea
         value={reason}

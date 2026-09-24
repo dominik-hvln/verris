@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { Select } from "@/components/select";
+import { useState, useTransition, useId } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Megaphone } from "lucide-react";
 import { composeIncident, type ProbeDto, type ProbeSeverity, type ServerSummary } from "../actions";
@@ -11,6 +12,7 @@ import { composeIncident, type ProbeDto, type ProbeSeverity, type ServerSummary 
  * zamyka go operator przyciskiem „Rozwiąż”.
  */
 export function IncidentCompose({ probes, servers }: { probes: ProbeDto[]; servers: ServerSummary[] }) {
+  const incFieldId = useId();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [probeId, setProbeId] = useState(probes[0]?.id ?? "");
@@ -62,23 +64,33 @@ export function IncidentCompose({ probes, servers }: { probes: ProbeDto[]; serve
       ) : (
         <>
           <div className="grid gap-3 md:grid-cols-[1fr_180px]">
-            <label className="space-y-1 text-xs">
-              <span className="text-muted-foreground">Usługa (monitor)</span>
-              <select value={probeId} onChange={(e) => setProbeId(e.target.value)} className="w-full rounded-md border border-white/10 bg-black/60 px-2 py-2 text-white">
-                {probes.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {serverName(p.serverId)} · {p.label ?? `${p.kind} → ${p.target}`}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="space-y-1 text-xs">
-              <span className="text-muted-foreground">Waga</span>
-              <select value={severity} onChange={(e) => setSeverity(e.target.value as ProbeSeverity)} className="w-full rounded-md border border-white/10 bg-black/60 px-2 py-2 text-white">
-                <option value="MAJOR">Poważny</option>
-                <option value="MINOR">Drobny</option>
-              </select>
-            </label>
+            {/* Etykiety obok, nie owijające — klik w listę nie może ponownie aktywować przycisku. */}
+            <div className="space-y-1 text-xs">
+              <label htmlFor={`${incFieldId}-probe`} className="text-muted-foreground">Usługa (monitor)</label>
+              <Select
+                id={`${incFieldId}-probe`}
+                value={probeId}
+                onChange={setProbeId}
+                className="w-full rounded-md border border-white/10 bg-black/60 px-2 py-2 text-white"
+                options={probes.map((p) => ({
+                  value: p.id,
+                  label: `${serverName(p.serverId)} · ${p.label ?? `${p.kind} → ${p.target}`}`,
+                }))}
+              />
+            </div>
+            <div className="space-y-1 text-xs">
+              <label htmlFor={`${incFieldId}-severity`} className="text-muted-foreground">Waga</label>
+              <Select
+                id={`${incFieldId}-severity`}
+                value={severity}
+                onChange={(v) => setSeverity(v as ProbeSeverity)}
+                className="w-full rounded-md border border-white/10 bg-black/60 px-2 py-2 text-white"
+                options={[
+                  { value: "MAJOR", label: "Poważny" },
+                  { value: "MINOR", label: "Drobny" },
+                ]}
+              />
+            </div>
           </div>
           <input
             value={title}

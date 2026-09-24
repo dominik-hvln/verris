@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { Select } from "@/components/select";
+import { useMemo, useState, useTransition, useId } from "react";
 import Link from "next/link";
 import { wystawFaktureReczna, type PozycjaWej } from "./actions";
 
@@ -24,6 +25,7 @@ interface Wiersz {
 const PUSTY: Wiersz = { nazwa: "", ilosc: "1", cenaBrutto: "" };
 
 export function FakturaRecznaForm() {
+  const walutaId = useId();
   const [userId, setUserId] = useState("");
   const [waluta, setWaluta] = useState("PLN");
   const [powod, setPowod] = useState("");
@@ -107,20 +109,17 @@ export function FakturaRecznaForm() {
             Dane nabywcy zostaną pobrane z konta i zamrożone na fakturze.
           </span>
         </label>
-        <label className="block">
-          <span className="text-xs uppercase tracking-wide text-neutral-400">Waluta</span>
-          <select
+        {/* Etykieta obok, nie owijająca — klik w listę nie może ponownie aktywować przycisku. */}
+        <div className="block">
+          <label htmlFor={walutaId} className="text-xs uppercase tracking-wide text-neutral-400">Waluta</label>
+          <Select
+            id={walutaId}
             value={waluta}
-            onChange={(e) => setWaluta(e.target.value)}
+            onChange={setWaluta}
             className="mt-1 w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
-          >
-            {["PLN", "EUR", "USD"].map((w) => (
-              <option key={w} value={w}>
-                {w}
-              </option>
-            ))}
-          </select>
-        </label>
+            options={["PLN", "EUR", "USD"].map((w) => ({ value: w, label: w }))}
+          />
+        </div>
       </section>
 
       <section>

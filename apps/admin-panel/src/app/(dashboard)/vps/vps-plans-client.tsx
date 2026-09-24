@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { Select } from "@/components/select";
+import { useState, useTransition, useId } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Check, EyeOff, Loader2, Pencil, Plus, Server, X } from "lucide-react";
 import {
@@ -160,6 +161,7 @@ function PlanForm({
   onCancel: () => void;
   onSubmit: (input: VpsPlanInput) => void;
 }) {
+  const vpsFieldId = useId();
   const [f, setF] = useState<VpsPlanInput>(
     initial
       ? {
@@ -200,26 +202,29 @@ function PlanForm({
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <Field label="Slug"><input className="ip" value={f.slug} onChange={(e) => set("slug", e.target.value)} placeholder="vps-2" /></Field>
         <Field label="Nazwa"><input className="ip" value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="VPS 2" /></Field>
-        <Field label="Typ Hetzner">
+        <Field label="Typ Hetzner" htmlFor={serverTypes.length ? `${vpsFieldId}-type` : undefined}>
           {serverTypes.length ? (
-            <select className="ip" value={f.hetznerServerType} onChange={(e) => applyType(e.target.value)}>
-              {serverTypes.map((t) => (
-                <option key={t.name} value={t.name}>{t.name} ({t.cores}c/{Math.round(t.memory)}G/{t.disk}G)</option>
-              ))}
-            </select>
+            <Select
+              id={`${vpsFieldId}-type`}
+              className="ip"
+              value={f.hetznerServerType}
+              onChange={applyType}
+              options={serverTypes.map((t) => ({
+                value: t.name,
+                label: `${t.name} (${t.cores}c/${Math.round(t.memory)}G/${t.disk}G)`,
+              }))}
+            />
           ) : (
             <input className="ip" value={f.hetznerServerType} onChange={(e) => set("hetznerServerType", e.target.value)} placeholder="cx22" />
           )}
         </Field>
-        <Field label="Lokalizacja">
-          <select className="ip" value={f.location} onChange={(e) => set("location", e.target.value)}>
-            {LOCATIONS.map((l) => <option key={l} value={l}>{l}</option>)}
-          </select>
+        <Field label="Lokalizacja" htmlFor={`${vpsFieldId}-location`}>
+          <Select id={`${vpsFieldId}-location`} className="ip" value={f.location} onChange={(v) => set("location", v)}
+            options={LOCATIONS.map((l) => ({ value: l, label: l }))} />
         </Field>
-        <Field label="Obraz">
-          <select className="ip" value={f.hetznerImage} onChange={(e) => set("hetznerImage", e.target.value)}>
-            {IMAGES.map((i) => <option key={i} value={i}>{i}</option>)}
-          </select>
+        <Field label="Obraz" htmlFor={`${vpsFieldId}-image`}>
+          <Select id={`${vpsFieldId}-image`} className="ip" value={f.hetznerImage} onChange={(v) => set("hetznerImage", v)}
+            options={IMAGES.map((i) => ({ value: i, label: i }))} />
         </Field>
         <Field label="vCPU"><input type="number" className="ip" value={f.vcpu} onChange={(e) => set("vcpu", Number(e.target.value))} /></Field>
         <Field label="RAM (GB)"><input type="number" className="ip" value={f.ramGb} onChange={(e) => set("ramGb", Number(e.target.value))} /></Field>
@@ -227,11 +232,9 @@ function PlanForm({
         <Field label="Transfer (TB)"><input type="number" className="ip" value={f.trafficTb} onChange={(e) => set("trafficTb", Number(e.target.value))} /></Field>
         <Field label="Cena/mies."><input type="number" step="0.01" className="ip" value={f.priceMonthly} onChange={(e) => set("priceMonthly", Number(e.target.value))} /></Field>
         <Field label="Sort"><input type="number" className="ip" value={f.sortOrder} onChange={(e) => set("sortOrder", Number(e.target.value))} /></Field>
-        <Field label="Publiczny">
-          <select className="ip" value={f.isPublic ? "1" : "0"} onChange={(e) => set("isPublic", e.target.value === "1")}>
-            <option value="1">Tak</option>
-            <option value="0">Nie</option>
-          </select>
+        <Field label="Publiczny" htmlFor={`${vpsFieldId}-public`}>
+          <Select id={`${vpsFieldId}-public`} className="ip" value={f.isPublic ? "1" : "0"} onChange={(v) => set("isPublic", v === "1")}
+            options={[{ value: "1", label: "Tak" }, { value: "0", label: "Nie" }]} />
         </Field>
       </div>
       <div className="flex items-center gap-2">
@@ -247,8 +250,14 @@ function PlanForm({
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
+function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; children: React.ReactNode }) {
+  // Z htmlFor etykieta stoi obok pola (nie owija) — klik w listę Selecta nie aktywuje ponownie przycisku.
+  return htmlFor ? (
+    <div className="space-y-1 block">
+      <label htmlFor={htmlFor} className="text-[10px] uppercase tracking-wider text-neutral-500">{label}</label>
+      {children}
+    </div>
+  ) : (
     <label className="space-y-1 block">
       <span className="text-[10px] uppercase tracking-wider text-neutral-500">{label}</span>
       {children}

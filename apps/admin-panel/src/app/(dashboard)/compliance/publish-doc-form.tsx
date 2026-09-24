@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { Select } from "@/components/select";
+import { useState, useTransition, useId } from "react";
 import { Loader2, UploadCloud } from "lucide-react";
 import { publishLegalDocAction } from "./actions";
 
@@ -12,6 +13,7 @@ const KINDS = [
 ] as const;
 
 export function PublishDocForm() {
+  const kindId = useId();
   const [kind, setKind] = useState<(typeof KINDS)[number]["value"]>("TERMS");
   const [version, setVersion] = useState("");
   const [title, setTitle] = useState("");
@@ -67,20 +69,17 @@ export function PublishDocForm() {
       </header>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <label className="block text-sm">
-          <span className="text-muted-foreground text-xs uppercase tracking-wider">Rodzaj</span>
-          <select
+        {/* Etykieta obok, nie owijająca — klik w listę nie może ponownie aktywować przycisku. */}
+        <div className="block text-sm">
+          <label htmlFor={kindId} className="text-muted-foreground text-xs uppercase tracking-wider">Rodzaj</label>
+          <Select
+            id={kindId}
             value={kind}
-            onChange={(e) => setKind(e.target.value as (typeof KINDS)[number]["value"])}
+            onChange={(v) => setKind(v as (typeof KINDS)[number]["value"])}
             className="mt-1 w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-white"
-          >
-            {KINDS.map((k) => (
-              <option key={k.value} value={k.value} className="bg-black">
-                {k.label}
-              </option>
-            ))}
-          </select>
-        </label>
+            options={KINDS.map((k) => ({ value: k.value, label: k.label }))}
+          />
+        </div>
         <label className="block text-sm sm:col-span-1">
           <span className="text-muted-foreground text-xs uppercase tracking-wider">Wersja (semver)</span>
           <input

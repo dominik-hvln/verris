@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { Select } from "@/components/select";
+import { useState, useTransition, useId } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Mail } from "lucide-react";
 import { createPlanAction } from "../actions";
@@ -17,6 +18,7 @@ const HIDDEN_LVE_DEFAULTS = {
 };
 
 export function NewEmailPlanForm() {
+  const currencyId = useId();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [globalError, setGlobalError] = useState<string | null>(null);
@@ -124,16 +126,19 @@ export function NewEmailPlanForm() {
       </Card>
 
       <Card title="Ceny (rozliczenie z portfela)">
-        <Field label="Waluta">
-          <select
+        <Field label="Waluta" htmlFor={currencyId}>
+          {/* Klasy = .form-input z tego pliku: styled-jsx jest lokalny i nie sięga do przycisku Selecta. */}
+          <Select
+            id={currencyId}
             value={form.currency}
-            onChange={(e) => setField("currency", e.target.value)}
-            className="form-input"
-          >
-            <option value="PLN">PLN</option>
-            <option value="EUR">EUR</option>
-            <option value="USD">USD</option>
-          </select>
+            onChange={(v) => setField("currency", v)}
+            className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-indigo-500/50"
+            options={[
+              { value: "PLN", label: "PLN" },
+              { value: "EUR", label: "EUR" },
+              { value: "USD", label: "USD" },
+            ]}
+          />
         </Field>
         <div />
         <NumField
@@ -212,10 +217,10 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
   );
 }
 
-function Field({ label, children, wide }: { label: string; children: React.ReactNode; wide?: boolean }) {
+function Field({ label, children, wide, htmlFor }: { label: string; children: React.ReactNode; wide?: boolean; htmlFor?: string }) {
   return (
     <div className={wide ? "md:col-span-2" : ""}>
-      <label className="block text-xs text-muted-foreground mb-1">{label}</label>
+      <label htmlFor={htmlFor} className="block text-xs text-muted-foreground mb-1">{label}</label>
       {children}
     </div>
   );

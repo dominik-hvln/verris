@@ -1,5 +1,6 @@
 "use client";
 
+import { Select } from "@/components/select";
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Save, Trash2, ShieldCheck, Loader2, X } from "lucide-react";
@@ -201,10 +202,13 @@ export function RolesClient({
             <input value={opEmail} onChange={(e) => setOpEmail(e.target.value)} placeholder="e-mail operatora" className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white" />
             <input value={opFirst} onChange={(e) => setOpFirst(e.target.value)} placeholder="imię" className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white" />
             <input value={opLast} onChange={(e) => setOpLast(e.target.value)} placeholder="nazwisko" className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white" />
-            <select value={opRoleId} onChange={(e) => setOpRoleId(e.target.value)} className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white">
-              <option value="">— dział (rola) —</option>
-              {initialRoles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
-            </select>
+            <Select
+              aria-label="Dział (rola) operatora"
+              value={opRoleId}
+              onChange={setOpRoleId}
+              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
+              options={[{ value: "", label: "— dział (rola) —" }, ...initialRoles.map((r) => ({ value: r.id, label: r.name }))]}
+            />
             <button onClick={addOperator} disabled={pending} className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-500 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-400 disabled:opacity-40">
               <Plus className="h-4 w-4" /> Dodaj
             </button>
@@ -232,17 +236,17 @@ export function RolesClient({
                   ) : (
                     <span className="rounded bg-emerald-500/15 px-2 py-1 text-[11px] text-emerald-300">Aktywny</span>
                   )}
-                  <select
+                  <Select
+                    aria-label="Rola operatora"
                     value={o.staffRoleId ?? ""}
-                    onChange={(e) => assign(o.id, e.target.value)}
+                    onChange={(v) => assign(o.id, v)}
                     disabled={pending || o.loginBlocked}
                     className="rounded-lg border border-white/10 bg-black/40 px-2 py-1.5 text-sm text-white disabled:opacity-50"
-                  >
-                    <option value="">— brak roli (brak dostępu) —</option>
-                    {initialRoles.map((r) => (
-                      <option key={r.id} value={r.id}>{r.name}</option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: "", label: "— brak roli (brak dostępu) —" },
+                      ...initialRoles.map((r) => ({ value: r.id, label: r.name })),
+                    ]}
+                  />
                   <button
                     onClick={() => toggleActive(o)}
                     disabled={pending}

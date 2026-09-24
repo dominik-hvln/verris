@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { Select } from "@/components/select";
+import { useState, useTransition, useId } from "react";
 import {
   CheckCircle2,
   AlertTriangle,
@@ -77,6 +78,7 @@ interface ValidationFeedback {
 }
 
 export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
+  const kindId = useId();
   const [state, setState] = useState<FormState>(() => toFormState(plan));
   const [stripeManual, setStripeManual] = useState(false);
   const stripeIds = {
@@ -475,15 +477,18 @@ export function PlanEditForm({ plan }: { plan: AdminPlanRow }) {
             className="form-input"
           />
         </Field>
-        <Field label="Rodzaj produktu">
-          <select
+        <Field label="Rodzaj produktu" htmlFor={kindId}>
+          {/* Klasy = .form-input z tego pliku: styled-jsx jest lokalny i nie sięga do przycisku Selecta. */}
+          <Select
+            id={kindId}
             value={state.productKind}
-            onChange={(e) => setField("productKind", e.target.value as "HOSTING" | "EMAIL")}
-            className="form-input"
-          >
-            <option value="HOSTING">Hosting (web)</option>
-            <option value="EMAIL">Poczta e-mail</option>
-          </select>
+            onChange={(v) => setField("productKind", v as "HOSTING" | "EMAIL")}
+            className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-indigo-500/50"
+            options={[
+              { value: "HOSTING", label: "Hosting (web)" },
+              { value: "EMAIL", label: "Poczta e-mail" },
+            ]}
+          />
         </Field>
         <Field label="SLA wsparcia (godz., 0 = brak)">
           <input
@@ -551,14 +556,16 @@ function Field({
   label,
   children,
   wide,
+  htmlFor,
 }: {
   label: string;
   children: React.ReactNode;
   wide?: boolean;
+  htmlFor?: string;
 }) {
   return (
     <div className={wide ? "md:col-span-2" : ""}>
-      <label className="block text-xs text-muted-foreground mb-1">{label}</label>
+      <label htmlFor={htmlFor} className="block text-xs text-muted-foreground mb-1">{label}</label>
       {children}
     </div>
   );

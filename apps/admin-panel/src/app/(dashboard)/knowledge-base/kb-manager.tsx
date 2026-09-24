@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Select } from '@/components/select';
+import { useEffect, useMemo, useState, useId } from 'react';
 import { Loader2, Plus, Pencil, Trash2, Save, Eye, FileText, FolderPlus } from 'lucide-react';
 import {
   createArticle,
@@ -316,6 +317,7 @@ function Editor({ form, set, setForm, cats, busy, isNew, onSave, onDelete, onClo
   cats: KbCategory[]; busy: boolean; isNew: boolean;
   onSave: () => void; onDelete: () => void; onClose: () => void;
 }) {
+  const kbFieldId = useId();
   const preview = useMemo(() => mdToHtml(form.bodyMarkdown || ''), [form.bodyMarkdown]);
   const inputCls = 'w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-sm text-white focus:border-emerald-500/40 focus:outline-none';
   return (
@@ -336,15 +338,13 @@ function Editor({ form, set, setForm, cats, busy, isNew, onSave, onDelete, onClo
           <input className={inputCls} value={form.title} onChange={set('title')} placeholder="Jak podpiąć domenę do hostingu" /></label>
         <label className="space-y-1"><span className="text-xs font-medium text-white/70">Slug (opcjonalnie — auto z tytułu)</span>
           <input className={inputCls} value={form.slug ?? ''} onChange={set('slug')} placeholder="jak-podpiac-domene" /></label>
-        <label className="space-y-1"><span className="text-xs font-medium text-white/70">Kategoria</span>
-          <select className={inputCls} value={form.categoryId} onChange={set('categoryId')}>
-            {cats.map((c) => <option key={c.id} value={c.id}>{c.parentId ? '— ' : ''}{c.name}</option>)}
-          </select></label>
-        <label className="space-y-1"><span className="text-xs font-medium text-white/70">Status</span>
-          <select className={inputCls} value={form.status} onChange={set('status')}>
-            <option value="DRAFT">Szkic</option>
-            <option value="PUBLISHED">Opublikowany</option>
-          </select></label>
+        {/* Etykiety obok, nie owijające — klik w listę nie może ponownie aktywować przycisku. */}
+        <div className="space-y-1"><label htmlFor={`${kbFieldId}-cat`} className="text-xs font-medium text-white/70">Kategoria</label>
+          <Select id={`${kbFieldId}-cat`} className={inputCls} value={form.categoryId} onChange={(v) => setForm((f) => ({ ...f, categoryId: v }))}
+            options={cats.map((c) => ({ value: c.id, label: `${c.parentId ? '— ' : ''}${c.name}` }))} /></div>
+        <div className="space-y-1"><label htmlFor={`${kbFieldId}-status`} className="text-xs font-medium text-white/70">Status</label>
+          <Select id={`${kbFieldId}-status`} className={inputCls} value={form.status} onChange={(v) => setForm((f) => ({ ...f, status: v as ArticleInput['status'] }))}
+            options={[{ value: 'DRAFT', label: 'Szkic' }, { value: 'PUBLISHED', label: 'Opublikowany' }]} /></div>
       </div>
 
       <label className="block space-y-1"><span className="text-xs font-medium text-white/70">Wstęp / lead (excerpt)</span>

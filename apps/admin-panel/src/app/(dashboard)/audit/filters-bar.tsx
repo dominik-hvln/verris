@@ -1,7 +1,8 @@
 "use client";
 
+import { Select } from "@/components/select";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useId } from "react";
 import { Filter, RotateCcw, Search } from "lucide-react";
 
 interface Defaults {
@@ -23,6 +24,7 @@ const CATEGORIES: { value: string; label: string }[] = [
 ];
 
 export function AuditFiltersBar({ defaults }: { defaults: Defaults }) {
+  const categoryId = useId();
   const router = useRouter();
   const params = useSearchParams();
   const [pending, startTransition] = useTransition();
@@ -78,18 +80,14 @@ export function AuditFiltersBar({ defaults }: { defaults: Defaults }) {
       onSubmit={apply}
       className="rounded-2xl border border-white/5 bg-black/40 p-5 grid grid-cols-1 md:grid-cols-3 xl:grid-cols-6 gap-3"
     >
-      <Field label="Kategoria" hint="szybkie pogrupowanie akcji">
-        <select
+      <Field label="Kategoria" hint="szybkie pogrupowanie akcji" htmlFor={categoryId}>
+        <Select
+          id={categoryId}
           value={category}
-          onChange={(e) => setCategory(e.target.value)}
+          onChange={setCategory}
           className={inputClass}
-        >
-          {CATEGORIES.map((c) => (
-            <option key={c.value} value={c.value}>
-              {c.label}
-            </option>
-          ))}
-        </select>
+          options={CATEGORIES.map((c) => ({ value: c.value, label: c.label }))}
+        />
       </Field>
       <Field label="Akcja" hint="np. SUBSCRIPTION_CREATED">
         <input
@@ -174,14 +172,25 @@ const inputClass =
 
 function Field({
   label,
+  htmlFor,
   hint,
   children,
 }: {
   label: string;
+  htmlFor?: string;
   hint?: string;
   children: React.ReactNode;
 }) {
-  return (
+  // Z htmlFor etykieta stoi obok pola (nie owija) — klik w listę Selecta nie aktywuje ponownie przycisku.
+  return htmlFor ? (
+    <div className="block">
+      <label htmlFor={htmlFor} className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5">
+        {label}
+      </label>
+      {children}
+      {hint && <p className="mt-1 text-[10px] text-neutral-500">{hint}</p>}
+    </div>
+  ) : (
     <label className="block">
       <span className="block text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-1.5">
         {label}

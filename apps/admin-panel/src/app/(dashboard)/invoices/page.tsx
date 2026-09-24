@@ -1,3 +1,4 @@
+import { Select } from "@/components/select";
 import Link from "next/link";
 import { formatPlnAndCredits } from "@/lib/credits";
 import { Search, FileDown, ExternalLink, FileText, Mail } from "lucide-react";
@@ -123,19 +124,17 @@ export default async function AdminInvoicesPage({ searchParams }: PageProps) {
             </div>
             <div>
               <label htmlFor="invoices-status" className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">Status</label>
-              <select
+              {/* Komponent serwerowy: Select w trybie niekontrolowanym (defaultValue), wartość idzie w GET jako `status`. */}
+              <Select
                 id="invoices-status"
                 name="status"
                 defaultValue={statuses?.[0] ?? ""}
                 className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
-              >
-                <option value="">— wszystkie —</option>
-                {STATUS_OPTIONS.map((s) => (
-                  <option key={s.value} value={s.value}>
-                    {s.label}
-                  </option>
-                ))}
-              </select>
+                options={[
+                  { value: "", label: "— wszystkie —" },
+                  ...STATUS_OPTIONS.map((s) => ({ value: s.value, label: s.label })),
+                ]}
+              />
             </div>
             <div>
               <label htmlFor="invoices-from" className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">Od</label>

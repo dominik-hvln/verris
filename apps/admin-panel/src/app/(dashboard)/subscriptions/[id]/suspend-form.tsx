@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { Select } from '@/components/select';
+import { useState, useId } from 'react';
 import { suspendSubscriptionAction, unsuspendSubscriptionAction } from './suspend-actions';
 
 const REASONS = [
@@ -15,6 +16,7 @@ const REASONS = [
  * i FTP konta; odwieszenie przywraca je. Oba kroki są w audycie i z potwierdzeniem.
  */
 export function SuspendForm({ subscriptionId, status, domain }: { subscriptionId: string; status: string; domain: string | null }) {
+  const reasonId = useId();
   const suspended = status === 'SUSPENDED';
   const terminal = status === 'CANCELED' || status === 'EXPIRED';
   const [reason, setReason] = useState(REASONS[0].value);
@@ -47,21 +49,18 @@ export function SuspendForm({ subscriptionId, status, domain }: { subscriptionId
   return (
     <div className="space-y-3">
       {!suspended ? (
-        <label className="block space-y-1">
-          <span className="text-xs text-neutral-400">Powód</span>
-          <select
+        // Etykieta obok, nie owijająca — klik w listę nie może ponownie aktywować przycisku.
+        <div className="block space-y-1">
+          <label htmlFor={reasonId} className="text-xs text-neutral-400">Powód</label>
+          <Select
+            id={reasonId}
             value={reason}
-            onChange={(e) => setReason(e.target.value)}
+            onChange={setReason}
             disabled={busy}
             className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
-          >
-            {REASONS.map((r) => (
-              <option key={r.value} value={r.value}>
-                {r.label}
-              </option>
-            ))}
-          </select>
-        </label>
+            options={REASONS.map((r) => ({ value: r.value, label: r.label }))}
+          />
+        </div>
       ) : (
         <label className="flex items-center gap-2 text-sm text-neutral-200">
           <input type="checkbox" checked={charge} onChange={(e) => setCharge(e.target.checked)} disabled={busy} />

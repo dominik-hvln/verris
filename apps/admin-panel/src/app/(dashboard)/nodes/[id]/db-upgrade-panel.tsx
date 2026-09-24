@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { Select } from "@/components/select";
+import { useCallback, useEffect, useRef, useState, useTransition, useId } from "react";
 import { Database, Loader2, AlertTriangle, Check, RefreshCw, ShieldAlert } from "lucide-react";
 import type { NodeTaskDto } from "@verris/contracts";
 import { queueDbUpgrade, fetchDbUpgradeTasks } from "../actions";
@@ -45,6 +46,7 @@ export function DbUpgradePanel({
   targetDbVersion?: string | null;
   dbUpgradeRequestedAt?: string | null;
 }) {
+  const versionId = useId();
   const [version, setVersion] = useState("");
   const [confirmText, setConfirmText] = useState("");
   const [tasks, setTasks] = useState<NodeTaskDto[]>([]);
@@ -138,28 +140,30 @@ export function DbUpgradePanel({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <label className="block">
-          <span className="mb-1 block text-xs font-medium text-muted-foreground">Wersja docelowa</span>
-          <select
+        {/* Etykieta obok, nie owijająca — klik w listę nie może ponownie aktywować przycisku. */}
+        <div className="block">
+          <label htmlFor={versionId} className="mb-1 block text-xs font-medium text-muted-foreground">Wersja docelowa</label>
+          <Select
+            id={versionId}
             value={version}
-            onChange={(e) => setVersion(e.target.value)}
+            onChange={setVersion}
             disabled={!!active || pending}
             className="w-full rounded-lg border border-white/10 bg-black/50 px-3 py-2 text-sm text-white outline-none focus:border-indigo-500/50 disabled:opacity-50"
-          >
-            <option value="">— wybierz wersję —</option>
-            {DB_VERSIONS.map((v) => (
-              <option key={v.value} value={v.value} disabled={current === v.value}>
-                {v.label}
-                {current === v.value ? " (już zainstalowana)" : ""}
-              </option>
-            ))}
-          </select>
+            options={[
+              { value: "", label: "— wybierz wersję —" },
+              ...DB_VERSIONS.map((v) => ({
+                value: v.value,
+                label: `${v.label}${current === v.value ? " (już zainstalowana)" : ""}`,
+                disabled: current === v.value,
+              })),
+            ]}
+          />
           {version && (
             <span className="mt-1 block text-[11px] text-muted-foreground">
               {DB_VERSIONS.find((v) => v.value === version)?.eol}
             </span>
           )}
-        </label>
+        </div>
 
         <label className="block">
           <span className="mb-1 block text-xs font-medium text-muted-foreground">

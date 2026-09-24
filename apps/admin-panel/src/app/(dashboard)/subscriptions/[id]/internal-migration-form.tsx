@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { Select } from '@/components/select';
+import { useState, useId } from 'react';
 import { requestInternalMigrationAction } from './migration-actions';
 
 interface ServerOption {
@@ -18,6 +19,7 @@ export function InternalMigrationForm({
   currentServerId: string | null;
   servers: ServerOption[];
 }) {
+  const targetId = useId();
   const candidates = servers.filter((s) => s.id !== currentServerId);
   const [targetServerId, setTargetServerId] = useState(candidates[0]?.id ?? '');
   const [notes, setNotes] = useState('');
@@ -41,25 +43,25 @@ export function InternalMigrationForm({
         else setMsg({ type: 'ok', text: 'Zlecono migrację wewnętrzną. Worker przygotuje backup i ticket.' });
       }}
     >
-      <label className="block space-y-1">
-        <span className="text-xs text-neutral-400">Docelowy węzeł</span>
-        <select
+      {/* Etykieta obok, nie owijająca — klik w listę nie może ponownie aktywować przycisku. */}
+      <div className="block space-y-1">
+        <label htmlFor={targetId} className="text-xs text-neutral-400">Docelowy węzeł</label>
+        <Select
+          id={targetId}
           value={targetServerId}
-          onChange={(e) => setTargetServerId(e.target.value)}
+          onChange={setTargetServerId}
           className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
           disabled={busy || candidates.length === 0}
-        >
-          {candidates.length === 0 ? (
-            <option value="">Brak innego aktywnego węzła</option>
-          ) : (
-            candidates.map((s) => (
-              <option key={s.id} value={s.id}>
-                {(s.name ?? s.id).slice(0, 24)} {s.region ? `(${s.region})` : ''}
-              </option>
-            ))
-          )}
-        </select>
-      </label>
+          options={
+            candidates.length === 0
+              ? [{ value: '', label: 'Brak innego aktywnego węzła' }]
+              : candidates.map((s) => ({
+                  value: s.id,
+                  label: `${(s.name ?? s.id).slice(0, 24)} ${s.region ? `(${s.region})` : ''}`,
+                }))
+          }
+        />
+      </div>
       <label className="block space-y-1">
         <span className="text-xs text-neutral-400">Notatki</span>
         <textarea

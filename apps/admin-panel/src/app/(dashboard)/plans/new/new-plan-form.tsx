@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { Select } from "@/components/select";
+import { useState, useTransition, useId } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, PlusCircle, AlertTriangle, CheckCircle2 } from "lucide-react";
 import { createPlanAction, validateStripePriceAction } from "../actions";
@@ -16,6 +17,7 @@ const DEFAULTS = {
 };
 
 export function NewPlanForm() {
+  const priceFieldId = useId();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [globalError, setGlobalError] = useState<string | null>(null);
@@ -166,26 +168,31 @@ export function NewPlanForm() {
       </Card>
 
       <Card title="Ceny">
-        <Field label="Rodzaj produktu">
-          <select
+        <Field label="Rodzaj produktu" htmlFor={`${priceFieldId}-kind`}>
+          {/* Klasy = .form-input z tego pliku: styled-jsx jest lokalny i nie sięga do przycisku Selecta. */}
+          <Select
+            id={`${priceFieldId}-kind`}
             value={form.productKind}
-            onChange={(e) => setField("productKind", e.target.value as "HOSTING" | "EMAIL")}
-            className="form-input"
-          >
-            <option value="HOSTING">Hosting (web)</option>
-            <option value="EMAIL">Poczta e-mail</option>
-          </select>
+            onChange={(v) => setField("productKind", v as "HOSTING" | "EMAIL")}
+            className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-indigo-500/50"
+            options={[
+              { value: "HOSTING", label: "Hosting (web)" },
+              { value: "EMAIL", label: "Poczta e-mail" },
+            ]}
+          />
         </Field>
-        <Field label="Waluta">
-          <select
+        <Field label="Waluta" htmlFor={`${priceFieldId}-currency`}>
+          <Select
+            id={`${priceFieldId}-currency`}
             value={form.currency}
-            onChange={(e) => setField("currency", e.target.value)}
-            className="form-input"
-          >
-            <option value="PLN">PLN</option>
-            <option value="EUR">EUR</option>
-            <option value="USD">USD</option>
-          </select>
+            onChange={(v) => setField("currency", v)}
+            className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-sm text-white focus:border-indigo-500/50"
+            options={[
+              { value: "PLN", label: "PLN" },
+              { value: "EUR", label: "EUR" },
+              { value: "USD", label: "USD" },
+            ]}
+          />
         </Field>
         <NumField label={`Miesięcznie (${form.currency})`} value={form.priceMonthly} onChange={(v) => setField("priceMonthly", v)} step="0.01" min={0.01} />
         <NumField label={`Rocznie (${form.currency})`} value={form.priceYearly} onChange={(v) => setField("priceYearly", v)} step="0.01" min={0.01} hint="min. 6× ceny miesięcznej" />
@@ -274,10 +281,10 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
   );
 }
 
-function Field({ label, children, wide }: { label: string; children: React.ReactNode; wide?: boolean }) {
+function Field({ label, children, wide, htmlFor }: { label: string; children: React.ReactNode; wide?: boolean; htmlFor?: string }) {
   return (
     <div className={wide ? "md:col-span-2" : ""}>
-      <label className="block text-xs text-muted-foreground mb-1">{label}</label>
+      <label htmlFor={htmlFor} className="block text-xs text-muted-foreground mb-1">{label}</label>
       {children}
     </div>
   );

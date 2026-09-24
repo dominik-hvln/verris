@@ -1,5 +1,6 @@
 "use client";
 
+import { Select } from "@/components/select";
 import { useState, useTransition } from "react";
 import { MapPin } from "lucide-react";
 import { REGIONY_DANYCH, opisLokalizacji } from "@verris/contracts";
@@ -29,12 +30,16 @@ export function RegionForm({ serverId, region }: { serverId: string; region: str
         </p>
       ) : null}
       <div className="flex flex-wrap items-center gap-2">
-        <select value={wartosc} onChange={(e) => setWartosc(e.target.value)} className="form-input max-w-md">
-          <option value="">— nie wybrano (ogólne „EOG”) —</option>
-          {Object.entries(REGIONY_DANYCH).map(([kod, opis]) => (
-            <option key={kod} value={kod}>{kod} — {opis}</option>
-          ))}
-        </select>
+        <Select
+          aria-label="Region centrum danych"
+          value={wartosc}
+          onChange={setWartosc}
+          className="form-input max-w-md"
+          options={[
+            { value: "", label: "— nie wybrano (ogólne „EOG”) —" },
+            ...Object.entries(REGIONY_DANYCH).map(([kod, opis]) => ({ value: kod, label: `${kod} — ${opis}` })),
+          ]}
+        />
         <button
           type="button"
           disabled={pending}

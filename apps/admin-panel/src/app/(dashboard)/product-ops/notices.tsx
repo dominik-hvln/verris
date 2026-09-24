@@ -1,5 +1,6 @@
 "use client";
 
+import { Select } from "@/components/select";
 import { useState, useTransition } from "react";
 import {
   createAnnouncementAction,
@@ -57,11 +58,14 @@ export function Announcements({ rows }: { rows: ProductAnnouncementRow[] }) {
           a.run(() => createAnnouncementAction(f), () => setF({ ...f, title: "", bodyMarkdown: "" }));
         }}
       >
-        <select id="ann-kind" aria-label="Rodzaj" className={INPUT} value={f.kind} onChange={(e) => setF({ ...f, kind: e.target.value })}>
-          {KINDS.map(([v, l]) => (
-            <option key={v} value={v}>{l}</option>
-          ))}
-        </select>
+        <Select
+          id="ann-kind"
+          aria-label="Rodzaj"
+          className={INPUT}
+          value={f.kind}
+          onChange={(v) => setF({ ...f, kind: v })}
+          options={KINDS.map(([v, l]) => ({ value: v, label: l }))}
+        />
         <input id="ann-title" aria-label="Tytuł" required maxLength={160} placeholder="Tytuł" className={INPUT} value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />
         <textarea id="ann-body" aria-label="Treść" required maxLength={12000} rows={3} placeholder="Treść widoczna dla klienta" className={INPUT} value={f.bodyMarkdown} onChange={(e) => setF({ ...f, bodyMarkdown: e.target.value })} />
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -124,12 +128,17 @@ export function Maintenance({ rows, servers }: { rows: MaintenanceWindowRow[]; s
             <input id="mw-end" type="datetime-local" required className={INPUT} value={f.scheduledEnd} onChange={(e) => setF({ ...f, scheduledEnd: e.target.value })} />
           </label>
         </div>
-        <select id="mw-server" aria-label="Zakres" className={INPUT} value={f.serverId} onChange={(e) => setF({ ...f, serverId: e.target.value })}>
-          <option value="">Cała platforma (wszyscy klienci)</option>
-          {servers.map((s) => (
-            <option key={s.id} value={s.id}>Węzeł: {s.name}</option>
-          ))}
-        </select>
+        <Select
+          id="mw-server"
+          aria-label="Zakres"
+          className={INPUT}
+          value={f.serverId}
+          onChange={(v) => setF({ ...f, serverId: v })}
+          options={[
+            { value: "", label: "Cała platforma (wszyscy klienci)" },
+            ...servers.map((s) => ({ value: s.id, label: `Węzeł: ${s.name}` })),
+          ]}
+        />
         <div className="flex justify-end">
           <button type="submit" disabled={a.pending} className={BTN_MAIN}>Zaplanuj prace</button>
         </div>

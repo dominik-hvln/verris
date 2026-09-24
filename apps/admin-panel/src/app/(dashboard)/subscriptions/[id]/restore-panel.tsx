@@ -1,5 +1,6 @@
 'use client';
 
+import { Select } from '@/components/select';
 import { useEffect, useState } from 'react';
 import { fetchRestoreDataAction, startRestoreAction, type KopiaKonta, type StanOdtwarzania } from './restore-actions';
 
@@ -76,18 +77,15 @@ export function RestorePanel({ subscriptionId, domain }: { subscriptionId: strin
         <p className="text-sm text-muted-foreground">Na koncie nie ma kopii do odtworzenia.</p>
       ) : (
         <>
-          <select
+          <Select
             id="restore-backup"
             aria-label="Kopia do odtworzenia"
             value={backupId}
-            onChange={(e) => setBackupId(e.target.value)}
+            onChange={setBackupId}
             disabled={busy}
             className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 font-mono text-sm text-white"
-          >
-            {backups.map((b) => (
-              <option key={b.id} value={b.id}>{b.fileName}</option>
-            ))}
-          </select>
+            options={backups.map((b) => ({ value: b.id, label: b.fileName }))}
+          />
           <div className="flex flex-wrap gap-4">
             {box('scopeFiles', 'Pliki')}
             {box('scopeDatabases', 'Bazy danych')}

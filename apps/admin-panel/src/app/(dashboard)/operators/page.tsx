@@ -1,3 +1,4 @@
+import { Select } from "@/components/select";
 import Link from "next/link";
 import { Search, ShieldCheck, ShieldAlert } from "lucide-react";
 import { listOperators, type OperatorRole } from "./data";
@@ -71,16 +72,18 @@ export default async function OperatorsPage({ searchParams }: PageProps) {
               <label htmlFor="operators-role" className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">
                 Rola
               </label>
-              <select
+              {/* Komponent serwerowy: Select w trybie niekontrolowanym (defaultValue), wartość idzie w GET jako `role`. */}
+              <Select
                 id="operators-role"
                 name="role"
                 defaultValue={role ?? ""}
                 className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white"
-              >
-                <option value="">— wszyscy —</option>
-                <option value="STAFF">STAFF</option>
-                <option value="ADMIN">ADMIN</option>
-              </select>
+                options={[
+                  { value: "", label: "— wszyscy —" },
+                  { value: "STAFF", label: "STAFF" },
+                  { value: "ADMIN", label: "ADMIN" },
+                ]}
+              />
             </div>
             <div className="flex gap-2">
               <button

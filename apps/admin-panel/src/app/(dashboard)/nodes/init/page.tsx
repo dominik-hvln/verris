@@ -1,13 +1,15 @@
 "use client";
 
+import { Select } from "@/components/select";
 import { REGIONY_DANYCH } from "@verris/contracts";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useId } from "react";
 import Link from "next/link";
 import { ArrowLeft, Server, Loader2, Copy, Check, Terminal, AlertCircle } from "lucide-react";
 import type { InitServerResponseDto, BootstrapScriptResponseDto } from "@verris/contracts";
 import { initServer, generateBootstrapScript } from "../actions";
 
 export default function InitNodePage() {
+  const regionId = useId();
   const [name, setName] = useState("");
   const [hostname, setHostname] = useState("");
   const [region, setRegion] = useState("");
@@ -107,13 +109,17 @@ export default function InitNodePage() {
                 hostname, nie po IP. Dodaj wcześniej rekord A w OVH.
               </span>
             </Field>
-            <Field label="Lokalizacja (centrum danych)">
-              <select value={region} onChange={(e) => setRegion(e.target.value)} className="form-input">
-                <option value="">— nie wybrano (klient zobaczy ogólne „EOG”) —</option>
-                {Object.entries(REGIONY_DANYCH).map(([kod, opis]) => (
-                  <option key={kod} value={kod}>{kod} — {opis}</option>
-                ))}
-              </select>
+            <Field label="Lokalizacja (centrum danych)" htmlFor={regionId}>
+              <Select
+                id={regionId}
+                value={region}
+                onChange={setRegion}
+                className="form-input"
+                options={[
+                  { value: "", label: "— nie wybrano (klient zobaczy ogólne „EOG”) —" },
+                  ...Object.entries(REGIONY_DANYCH).map(([kod, opis]) => ({ value: kod, label: `${kod} — ${opis}` })),
+                ]}
+              />
             </Field>
           </div>
 
@@ -227,14 +233,25 @@ export default function InitNodePage() {
 
 function Field({
   label,
+  htmlFor,
   required,
   children,
 }: {
   label: string;
+  htmlFor?: string;
   required?: boolean;
   children: React.ReactNode;
 }) {
-  return (
+  // Z htmlFor etykieta stoi obok pola (nie owija) — klik w listę Selecta nie aktywuje ponownie przycisku.
+  return htmlFor ? (
+    <div className="block space-y-1">
+      <label htmlFor={htmlFor} className="text-xs font-medium text-muted-foreground">
+        {label}
+        {required ? <span className="text-rose-400 ml-0.5">*</span> : null}
+      </label>
+      {children}
+    </div>
+  ) : (
     <label className="block space-y-1">
       <span className="text-xs font-medium text-muted-foreground">
         {label}

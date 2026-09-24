@@ -1,7 +1,8 @@
 "use client";
 
+import { Select } from "@/components/select";
 import { REGIONY_DANYCH } from "@verris/contracts";
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition, useEffect, useId } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -180,6 +181,7 @@ function NodeConfigActions({ serverId }: { serverId: string }) {
 }
 
 export function NodeWizard() {
+  const regionId = useId();
   const searchParams = useSearchParams();
   const [stepIndex, setStepIndex] = useState(0);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
@@ -560,19 +562,20 @@ export function NodeWizard() {
                       className="wizard-input"
                     />
                   </label>
-                  <label className="block space-y-1 text-sm">
-                    <span className="text-muted-foreground">Lokalizacja (centrum danych)</span>
-                    <select
+                  {/* Etykieta obok, nie owijająca — klik w listę nie może ponownie aktywować przycisku. */}
+                  <div className="block space-y-1 text-sm">
+                    <label htmlFor={regionId} className="text-muted-foreground">Lokalizacja (centrum danych)</label>
+                    <Select
+                      id={regionId}
                       value={region}
-                      onChange={(e) => setRegion(e.target.value)}
+                      onChange={setRegion}
                       className="wizard-input"
-                    >
-                      <option value="">— nie wybrano (klient zobaczy ogólne „EOG”) —</option>
-                      {Object.entries(REGIONY_DANYCH).map(([kod, opis]) => (
-                        <option key={kod} value={kod}>{kod} — {opis}</option>
-                      ))}
-                    </select>
-                  </label>
+                      options={[
+                        { value: "", label: "— nie wybrano (klient zobaczy ogólne „EOG”) —" },
+                        ...Object.entries(REGIONY_DANYCH).map(([kod, opis]) => ({ value: kod, label: `${kod} — ${opis}` })),
+                      ]}
+                    />
+                  </div>
                 </div>
                 <label className="block space-y-1 text-sm">
                   <span className="text-muted-foreground">Hostname (FQDN) *</span>

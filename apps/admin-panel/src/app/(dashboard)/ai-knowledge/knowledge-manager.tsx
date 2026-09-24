@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { Select } from "@/components/select";
+import { useRef, useState, useTransition, useId } from "react";
 import {
   AlertCircle,
   Archive,
@@ -42,6 +43,7 @@ export function KnowledgeManager({
   initialDocs: AiKnowledgeDocSummaryDto[];
   embeddings: boolean;
 }) {
+  const audienceId = useId();
   const [docs, setDocs] = useState(initialDocs);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -124,20 +126,23 @@ export function KnowledgeManager({
           />
         </label>
 
-        <label className="block">
-          <span className="mb-1 block text-[11px] uppercase tracking-wide text-muted-foreground">
+        {/* Etykieta obok, nie owijająca — klik w listę nie może ponownie aktywować przycisku. */}
+        <div className="block">
+          <label htmlFor={audienceId} className="mb-1 block text-[11px] uppercase tracking-wide text-muted-foreground">
             Widoczność
-          </span>
-          <select
+          </label>
+          <Select
+            id={audienceId}
             value={audience}
-            onChange={(e) => setAudience(e.target.value as AiKnowledgeAudience)}
+            onChange={(v) => setAudience(v as AiKnowledgeAudience)}
             className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white focus:border-violet-400/50 focus:outline-none"
-          >
-            <option value="ALL">Wszyscy (klient + zespół)</option>
-            <option value="CLIENT">Tylko chatbot klienta</option>
-            <option value="STAFF">Tylko asystent zespołu</option>
-          </select>
-        </label>
+            options={[
+              { value: "ALL", label: "Wszyscy (klient + zespół)" },
+              { value: "CLIENT", label: "Tylko chatbot klienta" },
+              { value: "STAFF", label: "Tylko asystent zespołu" },
+            ]}
+          />
+        </div>
 
         <label className="block">
           <span className="mb-1 flex items-center justify-between text-[11px] uppercase tracking-wide text-muted-foreground">

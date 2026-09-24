@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useId, useMemo, useState, useTransition } from "react";
 import { AlertCircle, Loader2, Play } from "lucide-react";
+import { Select } from "@/components/select";
 import type { StaffCustomerProfile } from "@/lib/crm-profile-data";
 import { staffRunDnsTlsDiagnosticAction } from "./actions";
 
@@ -17,6 +18,7 @@ export function StaffDnsTlsPanel({ userId, subscriptions }: Props) {
   );
   const [subscriptionId, setSubscriptionId] = useState(() => withAccount[0]?.id ?? "");
   const [domainOverride, setDomainOverride] = useState("");
+  const subId = useId();
   const [error, setError] = useState<string | null>(null);
   const [raw, setRaw] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -50,26 +52,24 @@ export function StaffDnsTlsPanel({ userId, subscriptions }: Props) {
         </p>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <label className="block">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">
+          {/* Etykieta obok, nie owijająca — klik w listę nie może ponownie aktywować przycisku. */}
+          <div className="block">
+            <label htmlFor={subId} className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">
               Subskrypcja (domena DA)
-            </span>
-            <select
+            </label>
+            <Select
+              id={subId}
               value={subscriptionId}
-              onChange={(e) => setSubscriptionId(e.target.value)}
+              onChange={setSubscriptionId}
               disabled={!!domainOverride.trim() || withAccount.length === 0}
               className="mt-1.5 w-full rounded-lg border border-white/10 bg-black/60 px-3 py-2 text-sm text-white disabled:opacity-50"
-            >
-              {withAccount.length === 0 ? (
-                <option value="">Brak konta z domeną</option>
-              ) : null}
-              {withAccount.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.plan.name} — {s.account?.domain}
-                </option>
-              ))}
-            </select>
-          </label>
+              options={
+                withAccount.length === 0
+                  ? [{ value: "", label: "Brak konta z domeną" }]
+                  : withAccount.map((s) => ({ value: s.id, label: `${s.plan.name} — ${s.account?.domain}` }))
+              }
+            />
+          </div>
           <label className="block">
             <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">
               Lub domena ręcznie (FQDN konta)

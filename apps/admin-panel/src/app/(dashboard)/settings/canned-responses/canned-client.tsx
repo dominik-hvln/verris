@@ -1,5 +1,6 @@
 "use client";
 
+import { Select } from "@/components/select";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Loader2, Plus, Trash2, X } from "lucide-react";
@@ -114,11 +115,13 @@ function Form({
     <div className="rounded-xl border border-emerald-400/25 bg-emerald-400/[0.04] p-4 space-y-3">
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Tytuł" className="ip sm:col-span-2" />
-        <select value={topic} onChange={(e) => setTopic(e.target.value)} className="ip">
-          {TOPICS.map((t) => (
-            <option key={t} value={t}>{t || "— globalny —"}</option>
-          ))}
-        </select>
+        <Select
+          aria-label="Temat"
+          value={topic}
+          onChange={setTopic}
+          className="ip w-full"
+          options={TOPICS.map((t) => ({ value: t, label: t || "— globalny —" }))}
+        />
       </div>
       <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={4} placeholder="Treść odpowiedzi…" className="ip w-full" />
       <label className="flex items-center gap-2 text-xs text-neutral-300">

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { Select } from '@/components/select';
+import { useState, useId } from 'react';
 import {
   changeAdminPlanAction,
   previewAdminPlanChangeAction,
@@ -22,6 +23,7 @@ export function PlanChangeForm({
   plans: PlanOption[];
   isAdmin: boolean;
 }) {
+  const planId = useId();
   const candidates = plans.filter((p) => p.id !== currentPlanId);
   const [targetPlanId, setTargetPlanId] = useState(candidates[0]?.id ?? '');
   const [reason, setReason] = useState('');
@@ -72,28 +74,25 @@ export function PlanChangeForm({
       <p className="text-xs text-neutral-400">
         Aktualny plan: <span className="text-white font-medium">{currentPlanName}</span>
       </p>
-      <label className="block space-y-1">
-        <span className="text-xs text-neutral-400">Nowy plan</span>
-        <select
+      {/* Etykieta obok, nie owijająca — klik w listę nie może ponownie aktywować przycisku. */}
+      <div className="block space-y-1">
+        <label htmlFor={planId} className="text-xs text-neutral-400">Nowy plan</label>
+        <Select
+          id={planId}
           value={targetPlanId}
-          onChange={(e) => {
-            setTargetPlanId(e.target.value);
-            void loadPreview(e.target.value);
+          onChange={(v) => {
+            setTargetPlanId(v);
+            void loadPreview(v);
           }}
           className="w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white"
           disabled={busy || candidates.length === 0}
-        >
-          {candidates.length === 0 ? (
-            <option value="">Brak innych planów</option>
-          ) : (
-            candidates.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name} ({p.slug})
-              </option>
-            ))
-          )}
-        </select>
-      </label>
+          options={
+            candidates.length === 0
+              ? [{ value: '', label: 'Brak innych planów' }]
+              : candidates.map((p) => ({ value: p.id, label: `${p.name} (${p.slug})` }))
+          }
+        />
+      </div>
       {preview ? (
         <div className="rounded-lg border border-white/10 bg-white/[0.03] p-3 text-xs text-neutral-300">
           <p>

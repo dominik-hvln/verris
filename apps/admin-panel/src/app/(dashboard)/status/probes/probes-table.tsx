@@ -1,5 +1,6 @@
 "use client";
 
+import { Select } from "@/components/select";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, EyeOff, Loader2, Save, Trash2, XCircle } from "lucide-react";
@@ -166,14 +167,16 @@ function ProbeRow({ probe, serverName }: { probe: ProbeDto; serverName: string }
       </td>
       <td className="px-4 py-4 align-top">
         {editing ? (
-          <select
+          <Select
+            aria-label="Waga"
             value={severity}
-            onChange={(e) => setSeverity(e.target.value as ProbeSeverity)}
+            onChange={(v) => setSeverity(v as ProbeSeverity)}
             className="rounded-md bg-black/60 border border-white/10 px-2 py-1 text-white text-xs"
-          >
-            <option value="MINOR">MINOR</option>
-            <option value="MAJOR">MAJOR</option>
-          </select>
+            options={[
+              { value: "MINOR", label: "MINOR" },
+              { value: "MAJOR", label: "MAJOR" },
+            ]}
+          />
         ) : (
           <SeverityBadge severity={probe.severity} />
         )}

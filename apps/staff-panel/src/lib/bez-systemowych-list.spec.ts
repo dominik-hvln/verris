@@ -1,0 +1,20 @@
+import { readdirSync, readFileSync, statSync } from 'fs';
+import { join } from 'path';
+
+/**
+ * Panel zespołu nie pokazuje systemowych list wyboru — tylko komponent `Select`
+ * (`@/components/select`), spójny z motywem i obsługą klawiatury. Decyzja właściciela
+ * 2026-09-24: natywny `<select>` wygląda inaczej w każdej przeglądarce i odstaje od wzorca.
+ */
+it('żaden plik panelu nie renderuje natywnego <select>', () => {
+  const trafienia: string[] = [];
+  const przejdz = (dir: string) => {
+    for (const n of readdirSync(dir)) {
+      const p = join(dir, n);
+      if (statSync(p).isDirectory()) przejdz(p);
+      else if (n.endsWith('.tsx') && /<select[\s>]/.test(readFileSync(p, 'utf8'))) trafienia.push(p.split('/src/')[1]!);
+    }
+  };
+  przejdz(join(__dirname, '..'));
+  expect(trafienia).toEqual([]);
+});

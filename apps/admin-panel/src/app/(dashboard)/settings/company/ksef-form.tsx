@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { Select } from "@/components/select";
+import { useEffect, useState, useTransition, useId } from "react";
 import { AlertCircle, Check, FileText, Loader2, ShieldCheck } from "lucide-react";
 import {
   fetchKsef,
@@ -12,6 +13,7 @@ import {
 } from "./actions";
 
 export function KsefForm() {
+  const envId = useId();
   const [cfg, setCfg] = useState<KsefSettings | null>(null);
   const [overview, setOverview] = useState<KsefOverview | null>(null);
   const [enabled, setEnabled] = useState(false);
@@ -90,18 +92,21 @@ export function KsefForm() {
             Wysyłaj faktury do KSeF (włączone = scheduler co 10 min)
           </label>
 
-          <label className="block space-y-1">
-            <span className="text-xs font-medium text-muted-foreground">Środowisko</span>
-            <select
+          {/* Etykieta obok, nie owijająca — klik w listę nie może ponownie aktywować przycisku. */}
+          <div className="block space-y-1">
+            <label htmlFor={envId} className="text-xs font-medium text-muted-foreground">Środowisko</label>
+            <Select
+              id={envId}
               value={env}
-              onChange={(e) => setEnv(e.target.value as "test" | "demo" | "prod")}
+              onChange={(v) => setEnv(v as "test" | "demo" | "prod")}
               className="w-full rounded-lg bg-white/5 border border-white/10 px-3 py-2 text-sm outline-none focus:border-indigo-500/60"
-            >
-              <option value="test">Testowe (api-test.ksef.mf.gov.pl)</option>
-              <option value="demo">Przedprodukcyjne DEMO (api-demo.ksef.mf.gov.pl)</option>
-              <option value="prod">Produkcyjne (api.ksef.mf.gov.pl)</option>
-            </select>
-          </label>
+              options={[
+                { value: "test", label: "Testowe (api-test.ksef.mf.gov.pl)" },
+                { value: "demo", label: "Przedprodukcyjne DEMO (api-demo.ksef.mf.gov.pl)" },
+                { value: "prod", label: "Produkcyjne (api.ksef.mf.gov.pl)" },
+              ]}
+            />
+          </div>
 
           <label className="block space-y-1">
             <span className="text-xs font-medium text-muted-foreground">NIP podatnika</span>

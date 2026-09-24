@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { Select } from "@/components/select";
+import { useEffect, useState, useTransition, useId } from "react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -47,6 +48,7 @@ export function MarketingClient({ rows }: { rows: CampaignRow[] }) {
 }
 
 function CreateCampaignForm() {
+  const segmentId = useId();
   const [name, setName] = useState("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
@@ -154,22 +156,18 @@ function CreateCampaignForm() {
         </Field>
       </div>
 
-      <Field label="Lista odbiorców (segment)">
-        <select
+      <Field label="Lista odbiorców (segment)" htmlFor={segmentId}>
+        <Select
+          id={segmentId}
           value={segment}
-          onChange={(e) => {
-            setSegment(e.target.value as MarketingSegment);
+          onChange={(v) => {
+            setSegment(v as MarketingSegment);
             // Stary szacunek nie dotyczy nowego segmentu — gasimy go do czasu odpowiedzi.
             setEstimate(null);
           }}
           className="input"
-        >
-          {SEGMENTS.map((s) => (
-            <option key={s.value} value={s.value} className="bg-neutral-900">
-              {s.label}
-            </option>
-          ))}
-        </select>
+          options={SEGMENTS.map((s) => ({ value: s.value, label: s.label }))}
+        />
         <div className="mt-2 flex items-start gap-2 text-[11px] text-muted-foreground">
           <Users2 className="h-3.5 w-3.5 mt-0.5 shrink-0" />
           <span>
@@ -226,8 +224,14 @@ function CreateCampaignForm() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
+function Field({ label, htmlFor, children }: { label: string; htmlFor?: string; children: React.ReactNode }) {
+  // Z htmlFor etykieta stoi obok pola (nie owija) — klik w listę Selecta nie aktywuje ponownie przycisku.
+  return htmlFor ? (
+    <div className="block">
+      <label htmlFor={htmlFor} className="mb-1.5 block text-xs font-medium text-muted-foreground">{label}</label>
+      {children}
+    </div>
+  ) : (
     <label className="block">
       <span className="mb-1.5 block text-xs font-medium text-muted-foreground">{label}</span>
       {children}

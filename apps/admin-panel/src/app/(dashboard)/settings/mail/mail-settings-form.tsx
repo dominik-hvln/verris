@@ -1,5 +1,6 @@
 'use client';
 
+import { Select } from '@/components/select';
 import { useActionState, useId, useState } from 'react';
 import { Loader2, Save, Send } from 'lucide-react';
 import {
@@ -12,6 +13,9 @@ export function MailSettingsForm({ initial }: { initial: MailSettingsForm }) {
   const [state, action, pending] = useActionState(updateMailSettingsAction, {});
   const [transport, setTransport] = useState<'local' | 'external'>(initial.transport);
   const radioId = useId();
+  const secureId = useId();
+  // Stan zamiast defaultValue: Select wysyła wartość ukrytym inputem `smtpSecure` (FormData akcji bez zmian).
+  const [smtpSecure, setSmtpSecure] = useState<string>(initial.smtpSecure);
   const [testState, setTestState] = useState<{
     ok?: boolean;
     error?: string;
@@ -102,18 +106,22 @@ export function MailSettingsForm({ initial }: { initial: MailSettingsForm }) {
             <div className="space-y-4 pt-2 border-t border-white/5">
               <TextField name="smtpHost" label="Host SMTP" defaultValue={initial.smtpHost} />
               <NumberField name="smtpPort" label="Port" defaultValue={initial.smtpPort} />
-              <label className="block space-y-1.5">
-                <span className="text-sm font-medium text-white">Szyfrowanie</span>
-                <select
+              {/* Etykieta obok, nie owijająca — klik w listę nie może ponownie aktywować przycisku. */}
+              <div className="block space-y-1.5">
+                <label htmlFor={secureId} className="text-sm font-medium text-white">Szyfrowanie</label>
+                <Select
+                  id={secureId}
                   name="smtpSecure"
-                  defaultValue={initial.smtpSecure}
+                  value={smtpSecure}
+                  onChange={setSmtpSecure}
                   className="w-full rounded-xl border border-white/10 bg-black/50 px-4 py-2.5 text-white"
-                >
-                  <option value="starttls">STARTTLS (587)</option>
-                  <option value="tls">TLS (465)</option>
-                  <option value="none">Brak (tylko zaufana sieć)</option>
-                </select>
-              </label>
+                  options={[
+                    { value: "starttls", label: "STARTTLS (587)" },
+                    { value: "tls", label: "TLS (465)" },
+                    { value: "none", label: "Brak (tylko zaufana sieć)" },
+                  ]}
+                />
+              </div>
               <TextField name="smtpUser" label="Użytkownik SMTP" defaultValue={initial.smtpUser} />
               <label className="block space-y-1.5">
                 <span className="text-sm font-medium text-white">Hasło SMTP</span>

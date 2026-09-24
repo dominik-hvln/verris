@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { Select } from "@/components/select";
+import { useState, useTransition, useId } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Plus } from "lucide-react";
 import type { AutoscalingCatalogResource } from "./actions";
@@ -26,6 +27,7 @@ const UNIT_LABEL: Record<AutoscalingCatalogResource, string> = {
 };
 
 export function CreateRuleForm() {
+  const resourceId = useId();
   const router = useRouter();
   const [resource, setResource] = useState<AutoscalingCatalogResource>("CPU");
   const [pricePerUnit, setPricePerUnit] = useState<string>(DEFAULT_PRICE.CPU);
@@ -89,16 +91,18 @@ export function CreateRuleForm() {
         </p>
       </div>
 
-      <Field label="Zasób">
-        <select
+      <Field label="Zasób" htmlFor={resourceId}>
+        <Select
+          id={resourceId}
           value={resource}
-          onChange={(e) => onResourceChange(e.target.value as AutoscalingCatalogResource)}
+          onChange={(v) => onResourceChange(v as AutoscalingCatalogResource)}
           className="w-full rounded-md bg-black/60 border border-white/10 px-3 py-2 text-white text-sm focus:border-indigo-400 focus:outline-none"
-        >
-          <option value="CPU">CPU (%)</option>
-          <option value="RAM">RAM (GB)</option>
-          <option value="DISK">Dysk (GB)</option>
-        </select>
+          options={[
+            { value: "CPU", label: "CPU (%)" },
+            { value: "RAM", label: "RAM (GB)" },
+            { value: "DISK", label: "Dysk (GB)" },
+          ]}
+        />
         <p className="mt-1 text-[11px] text-muted-foreground font-mono">
           Jednostka: {UNIT_LABEL[resource]}
         </p>
@@ -170,14 +174,25 @@ export function CreateRuleForm() {
 
 function Field({
   label,
+  htmlFor,
   hint,
   children,
 }: {
   label: string;
+  htmlFor?: string;
   hint?: string;
   children: React.ReactNode;
 }) {
-  return (
+  // Z htmlFor etykieta stoi obok pola (nie owija) — klik w listę Selecta nie aktywuje ponownie przycisku.
+  return htmlFor ? (
+    <div className="block">
+      <label htmlFor={htmlFor} className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1.5">
+        {label}
+      </label>
+      {children}
+      {hint && <p className="mt-1 text-[11px] text-muted-foreground">{hint}</p>}
+    </div>
+  ) : (
     <label className="block">
       <span className="block text-xs font-bold uppercase tracking-widest text-muted-foreground mb-1.5">
         {label}
