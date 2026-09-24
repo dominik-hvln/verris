@@ -1192,6 +1192,7 @@ model Account {
   lastBackupAt    DateTime?
 
   wpAutoUpdates   WpAutoUpdate[]
+  gitWebhooks     GitWebhook[]
 
   userId          String
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1207,6 +1208,21 @@ model Account {
 
   @@index([serverId])
   @@index([userId])
+}
+
+/// C-27 — webhook wdrożenia (GitHub/GitLab/Bitbucket): tajny adres → git pull w katalogu strony.
+/// Trzymamy tylko skrót tokenu; pełny adres klient widzi raz, przy utworzeniu.
+model GitWebhook {
+  id        String    @id @default(uuid())
+  accountId String
+  account   Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  domain    String
+  dir       String    @default("")
+  tokenHash String    @unique
+  lastUsedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@unique([accountId, domain, dir])
 }
 
 /// I-04 — automatyczne aktualizacje WordPressa w katalogu głównym domeny konta.

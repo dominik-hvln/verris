@@ -5,7 +5,8 @@ import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Select } from '@/components/panel/select';
 import { CopyValue, StatusPill } from '@/components/panel/v2';
-import { fetchGit, gitOp, type GitStatus } from '@/app/dashboard/services/[id]/hosting-git-actions';
+import { potwierdz } from '@/components/panel/potwierdz';
+import { createGitWebhook, deleteGitWebhook, fetchGit, gitOp, type GitStatus } from '@/app/dashboard/services/[id]/hosting-git-actions';
 
 /**
  * C-25/C-26 — repozytorium strony z panelu: klucz wdrożeniowy (do dodania w GitHub/GitLab),
@@ -22,6 +23,7 @@ export function GitRepoPanel({ serviceId, domains }: { serviceId: string; domain
   const [galaz, setGalaz] = useState('');
   const [katalog, setKatalog] = useState('');
   const [pending, start] = useTransition();
+  const [nowyWebhook, setNowyWebhook] = useState<string | null>(null);
 
   const odswiez = useCallback(
     () =>
@@ -49,6 +51,23 @@ export function GitRepoPanel({ serviceId, domains }: { serviceId: string; domain
         toast.success(ok);
       } else toast.error(r.error);
     });
+
+  const webhook = () =>
+    start(async () => {
+      const r = await createGitWebhook(serviceId, { domain: d, dir: katalog.trim() || undefined });
+      if (r.ok) {
+        setStan(r.status);
+        setNowyWebhook(r.url);
+      } else toast.error(r.error);
+    });
+  const usunWebhook = async (dir: string) => {
+    if (!(await potwierdz('Usunąć webhook? Pushe przestaną wdrażać zmiany automatycznie.', { akcja: 'Usuń', niebezpieczne: true }))) return;
+    start(async () => {
+      const r = await deleteGitWebhook(serviceId, { domain: d, dir: dir || undefined });
+      if (r.ok) setStan(r.status);
+      else toast.error(r.error);
+    });
+  };
 
   if (!domains.length) return null;
   const zajete = pending || !stan || stan.wToku;
@@ -102,6 +121,36 @@ export function GitRepoPanel({ serviceId, domains }: { serviceId: string; domain
           </button>
         </div>
       </div>
+      <div className="border-t border-line px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-[13px] font-medium text-foreground">Webhook — wdrożenie po każdym pushu</span>
+          <button type="button" onClick={webhook} disabled={zajete} className={BTN}>
+            {stan?.webhooki.some((w) => w.katalog === katalog.trim()) ? 'Nowy adres (stary przestanie działać)' : 'Utwórz adres webhooka'}
+          </button>
+        </div>
+        {nowyWebhook ? (
+          <div className="mt-2">
+            <CopyValue value={nowyWebhook} />
+            <p className="m-0 mt-1 text-[12px] text-muted-foreground">
+              Skopiuj teraz — pokazujemy go tylko raz. GitHub: Settings → Webhooks → Add webhook → Payload URL, zdarzenie „push”. GitLab: Settings → Webhooks → Push events.
+            </p>
+          </div>
+        ) : null}
+        {stan?.webhooki.length ? (
+          <ul className="m-0 mt-2 list-none p-0 text-[12.5px]">
+            {stan.webhooki.map((w) => (
+              <li key={w.katalog} className="flex flex-wrap items-center justify-between gap-2 py-1">
+                <span className="text-verris-body">
+                  {w.katalog ? <span className="font-mono">{w.katalog}</span> : 'public_html'} · {w.ostatnio ? `ostatnio ${new Date(w.ostatnio).toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}` : 'jeszcze nie wywołany'}
+                </span>
+                <button type="button" onClick={() => void usunWebhook(w.katalog)} disabled={zajete} className="text-[12px] font-semibold text-crit hover:underline disabled:opacity-50">
+                  Usuń
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </div>
       <p className="m-0 border-t border-line px-4 py-2 text-[12px] text-muted-foreground">
         Jeśli katalog nie jest pusty, dotychczasowe pliki przeniesiemy obok (nazwa z dopiskiem „verris-przed-git”) — nic nie znika.
       </p>
@@ -112,7 +161,7 @@ export function GitRepoPanel({ serviceId, domains }: { serviceId: string; domain
             <li key={o.id} className="border-t border-line px-4 py-2 first:border-t-0">
               <div className="flex flex-wrap items-center gap-2">
                 <StatusPill tone={o.status === 'COMPLETED' ? 'data' : o.status === 'FAILED' ? 'warn' : 'muted'}>
-                  {o.tryb === 'clone' ? 'klonowanie' : 'pobranie zmian'} · {o.status === 'COMPLETED' ? 'gotowe' : o.status === 'FAILED' ? 'błąd' : 'w toku'}
+                  {o.tryb === 'clone' ? 'klonowanie' : o.webhook ? 'pobranie zmian (webhook)' : 'pobranie zmian'} · {o.status === 'COMPLETED' ? 'gotowe' : o.status === 'FAILED' ? 'błąd' : 'w toku'}
                 </StatusPill>
                 <span className="font-mono text-[12px] text-muted-foreground">
                   {new Date(o.utworzone).toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}

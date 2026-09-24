@@ -67,7 +67,7 @@ const zaczyna = (...prefiksy: string[]) => (s: string) => prefiksy.some((p) => s
 export const REGULY_TRAS: Regula[] = [
   // --- zawsze dostępne: konto własne, treści publiczne, zdrowie usługi -------
   {
-    pasuje: zaczyna('/auth', '/healthz', '/readyz', '/status', '/public', '/fonts', '/kb', '/plans', '/legal', '/brand', '/emm', '/unsubscribe', '/analytics', '/telemetry', '/metrics'),
+    pasuje: zaczyna('/auth', '/healthz', '/readyz', '/status', '/public', '/fonts', '/kb', '/plans', '/legal', '/brand', '/emm', '/unsubscribe', '/analytics', '/telemetry', '/metrics', '/hooks'),
     odczyt: BEZ_WYMOGU, zapis: BEZ_WYMOGU,
     po_co: 'Treści publiczne i endpointy techniczne — nie dotykają danych konta.',
   },

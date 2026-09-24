@@ -1,4 +1,6 @@
+import { createHash, randomBytes } from 'node:crypto';
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { NodeTaskKind, NodeTaskStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
@@ -20,7 +22,57 @@ export class GitDeployService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly directAdmin: DirectAdminService,
+    private readonly config: ConfigService,
   ) {}
+
+  /** C-27 — tajny adres webhooka dla domeny (+ podkatalogu). Poprzedni dla tej pary przestaje działać. */
+  async utworzWebhook(subscriptionId: string, userId: string, input: { domain: string; dir?: string }) {
+    const { sub, account, domena } = await this.wymagajDomeny(subscriptionId, userId, input.domain);
+    const dir = sprawdzKatalog(input.dir);
+    const token = randomBytes(24).toString('base64url');
+    await this.prisma.gitWebhook.upsert({
+      where: { accountId_domain_dir: { accountId: account.id, domain: domena, dir } },
+      create: { accountId: account.id, domain: domena, dir, tokenHash: skrot(token) },
+      update: { tokenHash: skrot(token), lastUsedAt: null },
+    });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_GIT_WEBHOOK_CREATED,
+      userId: sub.userId, actorUserId: userId,
+      details: { subscriptionId, domain: domena, dir },
+    });
+    const base = (this.config.get<string>('publicApiUrl') || 'https://api.verris.pl').replace(/\/$/, '');
+    return { url: `${base}/hooks/git/${token}`, ...(await this.opis(account.id, domena)) };
+  }
+
+  async usunWebhook(subscriptionId: string, userId: string, input: { domain: string; dir?: string }) {
+    const { account, domena } = await this.wymagajDomeny(subscriptionId, userId, input.domain);
+    await this.prisma.gitWebhook.deleteMany({ where: { accountId: account.id, domain: domena, dir: sprawdzKatalog(input.dir) } });
+    return this.opis(account.id, domena);
+  }
+
+  /** Wywołanie webhooka z GitHuba/GitLaba: kolejkuje git pull. Nieznany token → false (404 w kontrolerze). */
+  async wyzwolWebhook(token: string): Promise<boolean> {
+    if (!/^[A-Za-z0-9_-]{20,64}$/.test(token ?? '')) return false;
+    const hook = await this.prisma.gitWebhook.findUnique({ where: { tokenHash: skrot(token) }, include: { account: true } });
+    if (!hook || hook.account.status !== 'ACTIVE') return false;
+    await this.prisma.gitWebhook.update({ where: { id: hook.id }, data: { lastUsedAt: new Date() } });
+    const wToku = await this.prisma.nodeTask.findFirst({
+      where: { accountId: hook.accountId, kind: NodeTaskKind.GIT_DEPLOY, status: { in: [NodeTaskStatus.QUEUED, NodeTaskStatus.RUNNING] } },
+    });
+    // ponytail: push w trakcie trwającego pull — pomijamy; następny push pobierze wszystko.
+    if (wToku) return true;
+    await this.prisma.nodeTask.create({
+      data: {
+        serverId: hook.account.serverId,
+        accountId: hook.accountId,
+        kind: NodeTaskKind.GIT_DEPLOY,
+        status: NodeTaskStatus.QUEUED,
+        requestedById: null,
+        payload: { mode: 'pull', daUser: hook.account.daUsername, domain: hook.domain, dir: hook.dir, url: '', branch: '', webhook: true },
+      },
+    });
+    return true;
+  }
 
   async status(subscriptionId: string, userId: string, domain: string) {
     const { account, domena } = await this.wymagajDomeny(subscriptionId, userId, domain);
@@ -34,8 +86,7 @@ export class GitDeployService {
     input: { domain: string; dir?: string; url?: string; branch?: string },
   ) {
     const { sub, account, domena } = await this.wymagajDomeny(subscriptionId, userId, input.domain);
-    const dir = (input.dir ?? '').trim().replace(/^\/+|\/+$/g, '');
-    if (dir && (!KATALOG_RE.test(dir) || dir.split('/').includes('..'))) throw new BadRequestException('Nieprawidłowy katalog.');
+    const dir = sprawdzKatalog(input.dir);
     const url = (input.url ?? '').trim();
     const branch = (input.branch ?? '').trim();
     if (tryb === 'clone' && !URL_RE.test(url)) throw new BadRequestException('Adres repozytorium: https://… albo git@host:ścieżka.');
@@ -86,14 +137,17 @@ export class GitDeployService {
         adres: p(z).url || null,
         status: z.status,
         utworzone: z.createdAt.toISOString(),
+        webhook: (z.payload as { webhook?: boolean } | null)?.webhook === true,
         head: /^VERRIS_GIT_HEAD=(.{1,200})$/m.exec(z.outputLog ?? '')?.[1]?.trim() ?? null,
         kopia: /^VERRIS_GIT_KOPIA=(domains\/[^\s|]{1,300})\s*$/m.exec(z.outputLog ?? '')?.[1] ?? null,
         blad: z.status === NodeTaskStatus.FAILED ? bladZLogu(z.outputLog) : null,
       }));
+    const webhooki = await this.prisma.gitWebhook.findMany({ where: { accountId, domain: domena }, orderBy: { createdAt: 'asc' } });
     return {
       domena,
       wToku: zadania.some((z) => z.status === NodeTaskStatus.QUEUED || z.status === NodeTaskStatus.RUNNING),
       klucz,
+      webhooki: webhooki.map((w) => ({ katalog: w.dir, utworzony: w.createdAt.toISOString(), ostatnio: w.lastUsedAt?.toISOString() ?? null })),
       operacje,
     };
   }
@@ -105,6 +159,14 @@ export class GitDeployService {
     const domena = await this.directAdmin.assertDomainOwnedBySubscription(subscriptionId, userId, domain);
     return { sub, account: sub.account, domena };
   }
+}
+
+const skrot = (token: string) => createHash('sha256').update(token).digest('hex');
+
+function sprawdzKatalog(raw?: string): string {
+  const dir = (raw ?? '').trim().replace(/^\/+|\/+$/g, '');
+  if (dir && (!KATALOG_RE.test(dir) || dir.split('/').includes('..'))) throw new BadRequestException('Nieprawidłowy katalog.');
+  return dir;
 }
 
 function bladZLogu(log: string | null): string {

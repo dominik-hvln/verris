@@ -1177,6 +1177,17 @@ export class UserServicesController {
     return this.gitDeploy.status(id, user.userId, domain);
   }
 
+  @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: 'hosting:git-webhook' })
+  @Post(':id/hosting-git-webhook')
+  async hostingGitWebhook(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: RepozytoriumGitDto) {
+    return this.gitDeploy.utworzWebhook(id, user.userId, body);
+  }
+
+  @Post(':id/hosting-git-webhook/delete')
+  async hostingGitWebhookDelete(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: RepozytoriumGitDto) {
+    return this.gitDeploy.usunWebhook(id, user.userId, body);
+  }
+
   @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:git' })
   @Post(':id/hosting-git/:tryb')
   async hostingGitOp(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Param('tryb') tryb: string, @Body() body: RepozytoriumGitDto) {

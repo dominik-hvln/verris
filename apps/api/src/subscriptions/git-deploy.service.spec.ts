@@ -9,6 +9,13 @@ function stanowisko(zadania: unknown[] = []) {
   const account = { id: 'a1', serverId: 'n1', status: 'ACTIVE', daUsername: 'klient1' };
   const prisma = {
     subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1', account })) },
+    gitWebhook: {
+      findMany: jest.fn(async () => []),
+      upsert: jest.fn(async () => undefined),
+      deleteMany: jest.fn(async () => undefined),
+      findUnique: jest.fn(async () => null as unknown),
+      update: jest.fn(async () => undefined),
+    },
     nodeTask: {
       findFirst: jest.fn(async () => null),
       findMany: jest.fn(async () => zadania),
@@ -16,7 +23,8 @@ function stanowisko(zadania: unknown[] = []) {
     },
   };
   const da = { assertDomainOwnedBySubscription: jest.fn(async (_s: string, _u: string, d: string) => d) };
-  return { svc: new GitDeployService(prisma as never, { record: jest.fn(async () => undefined) } as never, da as never), prisma };
+  const config = { get: jest.fn(() => 'https://api.verris.pl/') };
+  return { svc: new GitDeployService(prisma as never, { record: jest.fn(async () => undefined) } as never, da as never, config as never), prisma };
 }
 
 describe('GitDeployService', () => {
@@ -40,5 +48,31 @@ describe('GitDeployService', () => {
     const r = await s.svc.status('s1', 'u1', 'a.pl');
     expect(r.klucz).toBe('ssh-ed25519 AAAAC3Nz verris-deploy@a.pl');
     expect(r.operacje[0]).toMatchObject({ tryb: 'clone', head: '2c52f83 trzeci', kopia: 'domains/a.pl/public_html.verris-przed-git-20260924-200000' });
+  });
+});
+
+describe('GitDeployService — webhook (C-27)', () => {
+  it('adres z tokenem pokazany raz, w bazie tylko skrót; wywołanie kolejkuje pull bez osoby zlecającej', async () => {
+    const s = stanowisko();
+    const r = await s.svc.utworzWebhook('s1', 'u1', { domain: 'a.pl', dir: 'app' });
+    const token = r.url.split('/hooks/git/')[1];
+    expect(r.url.startsWith('https://api.verris.pl/hooks/git/')).toBe(true);
+    const zapis = (s.prisma.gitWebhook.upsert.mock.calls[0] as unknown as [{ create: { tokenHash: string; dir: string } }])[0].create;
+    expect(zapis.tokenHash).not.toContain(token);
+    expect(zapis.tokenHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(zapis.dir).toBe('app');
+
+    s.prisma.gitWebhook.findUnique.mockResolvedValueOnce({ id: 'w1', accountId: 'a1', domain: 'a.pl', dir: 'app', account: { status: 'ACTIVE', serverId: 'n1', daUsername: 'klient1' } });
+    expect(await s.svc.wyzwolWebhook(token)).toBe(true);
+    expect(s.prisma.nodeTask.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({ requestedById: null, payload: expect.objectContaining({ mode: 'pull', domain: 'a.pl', dir: 'app', webhook: true }) }),
+    });
+  });
+
+  it('nieznany albo zniekształcony token → false (404), bez zadania', async () => {
+    const s = stanowisko();
+    expect(await s.svc.wyzwolWebhook('x')).toBe(false);
+    expect(await s.svc.wyzwolWebhook('a'.repeat(32))).toBe(false);
+    expect(s.prisma.nodeTask.create).not.toHaveBeenCalled();
   });
 });

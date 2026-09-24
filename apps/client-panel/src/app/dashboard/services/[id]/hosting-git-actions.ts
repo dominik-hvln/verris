@@ -7,6 +7,7 @@ export interface GitStatus {
   domena: string;
   wToku: boolean;
   klucz: string | null;
+  webhooki: { katalog: string; utworzony: string; ostatnio: string | null }[];
   operacje: {
     id: string;
     tryb: string | null;
@@ -14,6 +15,7 @@ export interface GitStatus {
     adres: string | null;
     status: string;
     utworzone: string;
+    webhook: boolean;
     head: string | null;
     kopia: string | null;
     blad: string | null;
@@ -38,6 +40,26 @@ export async function gitOp(
 ): Promise<Wynik> {
   try {
     return { ok: true, status: await apiFetch<GitStatus>(`/services/${serviceId}/hosting-git/${tryb}`, { method: 'POST', body: JSON.stringify(input) }) };
+  } catch (e) {
+    return { ok: false, error: blad(e) };
+  }
+}
+
+export async function createGitWebhook(
+  serviceId: string,
+  input: { domain: string; dir?: string },
+): Promise<{ ok: true; url: string; status: GitStatus } | { ok: false; error: string }> {
+  try {
+    const r = await apiFetch<GitStatus & { url: string }>(`/services/${serviceId}/hosting-git-webhook`, { method: 'POST', body: JSON.stringify(input) });
+    return { ok: true, url: r.url, status: r };
+  } catch (e) {
+    return { ok: false, error: blad(e) };
+  }
+}
+
+export async function deleteGitWebhook(serviceId: string, input: { domain: string; dir?: string }): Promise<Wynik> {
+  try {
+    return { ok: true, status: await apiFetch<GitStatus>(`/services/${serviceId}/hosting-git-webhook/delete`, { method: 'POST', body: JSON.stringify(input) }) };
   } catch (e) {
     return { ok: false, error: blad(e) };
   }

@@ -38,6 +38,7 @@ import { RedisAccessService } from './redis-access.service';
 import { MailLogService } from './mail-log.service';
 import { GitDeployService } from './git-deploy.service';
 import { PublicApiWriteController } from './public-api-write.controller';
+import { GitWebhookController } from './git-webhook.controller';
 import { ApiTokensModule } from '../api-tokens/api-tokens.module';
 import { WpAutoUpdateScheduler } from './wp-auto-update.scheduler';
 import { DiagnosticsService } from './diagnostics.service';
@@ -109,6 +110,7 @@ import { EcoModule } from '../eco/eco.module';
     SubscriptionsAdminController,
     UserServicesController,
     PublicApiWriteController,
+    GitWebhookController,
     ProvisioningQueueAdminController,
     MigrationsAdminController,
     MigrationsStaffController,
