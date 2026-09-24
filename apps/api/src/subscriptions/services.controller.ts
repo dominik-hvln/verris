@@ -41,6 +41,7 @@ import { DiskUsageService } from './disk-usage.service';
 import { MalwareScanService } from './malware-scan.service';
 import { RedisAccessService } from './redis-access.service';
 import { MailLogService } from './mail-log.service';
+import { GitDeployService } from './git-deploy.service';
 import { HostingRestoreDto } from './dto/hosting-restore.dto';
 import { WordpressService } from './wordpress.service';
 import { InstallWordpressDto } from './dto/wordpress.dto';
@@ -92,6 +93,7 @@ import {
   CacheWordpressaDto,
   ZabezpieczeniaWordpressaDto,
   DziennikPocztyDto,
+  RepozytoriumGitDto,
   OdtworzenieZArchiwumDto,
   ImportBazyDto,
   WersjaPhpDto,
@@ -122,6 +124,7 @@ export class UserServicesController {
     private readonly malwareScan: MalwareScanService,
     private readonly redisAccess: RedisAccessService,
     private readonly mailLog: MailLogService,
+    private readonly gitDeploy: GitDeployService,
     private readonly wordpress: WordpressService,
     private readonly waf: WafService,
     private readonly siteMonitor: SiteMonitorService,
@@ -1166,6 +1169,19 @@ export class UserServicesController {
   @Post(':id/hosting-mail-log')
   async loadHostingMailLog(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: DziennikPocztyDto) {
     return this.mailLog.zlec(id, user.userId, body.address);
+  }
+
+  // C-25/C-26 — repozytorium Git strony (zadanie węzła).
+  @Get(':id/hosting-git')
+  async hostingGit(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Query('domain') domain: string) {
+    return this.gitDeploy.status(id, user.userId, domain);
+  }
+
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:git' })
+  @Post(':id/hosting-git/:tryb')
+  async hostingGitOp(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Param('tryb') tryb: string, @Body() body: RepozytoriumGitDto) {
+    if (tryb !== 'key' && tryb !== 'clone' && tryb !== 'pull') throw new NotFoundException();
+    return this.gitDeploy.zlec(id, user.userId, tryb, body);
   }
 
   @Get(':id/hosting-offsite')

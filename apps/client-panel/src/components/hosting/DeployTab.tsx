@@ -13,6 +13,7 @@ import { HostingTabShell, DaExternalLink } from '@/components/hosting/HostingTab
 import { hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { useHostingLinks } from '@/components/hosting/hosting-links-context';
 import { Select } from '@/components/panel';
+import { GitRepoPanel } from '@/components/hosting/GitRepoPanel';
 
 interface DeployTabProps {
   serviceId: string;
@@ -110,7 +111,7 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
   return (
     <HostingTabShell
       title="Automatyczne wdrożenia (Git)"
-      description="Verris uruchamia git pull i build w katalogu Twojej domeny według harmonogramu — repozytorium podłączasz raz w menedżerze plików."
+      description="Sklonuj repozytorium do katalogu strony, pobieraj zmiany jednym kliknięciem albo według harmonogramu (git pull i opcjonalny build)."
       icon={<Rocket className="h-4 w-4" />}
       actions={
         <>
@@ -134,6 +135,7 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
         </>
       }
     >
+      <GitRepoPanel serviceId={serviceId} domains={domains} />
       {error ? (
         <div className="mb-3 flex items-start gap-2 rounded-lg border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-xs text-rose-100">
           <AlertCircle className="h-4 w-4 shrink-0" />

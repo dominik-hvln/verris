@@ -36,6 +36,7 @@ import { DiskUsageService } from './disk-usage.service';
 import { MalwareScanService } from './malware-scan.service';
 import { RedisAccessService } from './redis-access.service';
 import { MailLogService } from './mail-log.service';
+import { GitDeployService } from './git-deploy.service';
 import { WpAutoUpdateScheduler } from './wp-auto-update.scheduler';
 import { DiagnosticsService } from './diagnostics.service';
 import { HostingRestoreScheduler } from './hosting-restore.scheduler';
@@ -86,6 +87,7 @@ import { EcoModule } from '../eco/eco.module';
     MalwareScanService,
     RedisAccessService,
     MailLogService,
+    GitDeployService,
     WpAutoUpdateScheduler,
     WordpressService,
     WafService,

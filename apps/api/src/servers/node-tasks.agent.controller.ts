@@ -34,6 +34,7 @@ import { loadDiskUsageScript } from './disk-usage.script';
 import { loadMalwareScanScript } from './malware-scan.script';
 import { loadRedisScript } from './redis.script';
 import { loadMailLogScript } from './mail-log.script';
+import { loadGitDeployScript } from './git-deploy.script';
 import { loadNodeUpdateScript } from './node-update.script';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 
@@ -177,6 +178,13 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   mailLogScript() {
     return loadMailLogScript();
+  }
+
+  /** C-25/C-26 — repozytorium Git strony (run with GD_* env). */
+  @Get('git-deploy/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  gitDeployScript() {
+    return loadGitDeployScript();
   }
 
   /** VER-UPG — MariaDB engine upgrade script (run with DB_TARGET_VERSION env). */

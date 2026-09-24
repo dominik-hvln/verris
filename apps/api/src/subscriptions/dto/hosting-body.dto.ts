@@ -110,6 +110,14 @@ export class CacheWordpressaDto {
   @IsIn(['on', 'off', 'purge', 'redis-on', 'redis-off']) action!: string;
 }
 
+/** C-25/C-26 — repozytorium Git strony (format adresu, gałęzi i katalogu sprawdza GitDeployService). */
+export class RepozytoriumGitDto {
+  @Linia(253) domain!: string;
+  @IsOptional() @Linia(200) dir?: string;
+  @IsOptional() @Linia(500) url?: string;
+  @IsOptional() @Linia(100) branch?: string;
+}
+
 /** E-19 — dziennik dostarczania poczty, opcjonalnie zawężony do adresu. */
 export class DziennikPocztyDto {
   @IsOptional() @IsEmail() @MaxLength(254) address?: string;

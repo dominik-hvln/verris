@@ -178,6 +178,10 @@ elif [ "$TASK_KIND" = "MAIL_LOG" ]; then
   RUN_BIN="/usr/local/bin/verris-mail-log.sh"
   fetch_task_script "/agent/tasks/mail-log/script" "$RUN_BIN"
   payload_env "ML" "{'domains':'DOMAINS','address':'ADDRESS'}"
+elif [ "$TASK_KIND" = "GIT_DEPLOY" ]; then
+  RUN_BIN="/usr/local/bin/verris-git-deploy.sh"
+  fetch_task_script "/agent/tasks/git-deploy/script" "$RUN_BIN"
+  payload_env "GD" "{'mode':'MODE','daUser':'DA_USER','domain':'DOMAIN','dir':'DIR','url':'URL','branch':'BRANCH'}"
 elif [ "$TASK_KIND" = "HOSTING_PROFILE" ]; then
   flags="-y"
   [ "$SKIP_BUILD" = "1" ] && flags="$flags --skip-build"
