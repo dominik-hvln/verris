@@ -178,3 +178,16 @@ export async function deleteHostingSubdomainAction(
     return { ok: false, error: mutErr(e) };
   }
 }
+
+/** L-06 — wynik ostatniego uruchomienia zadania cron (plik ~/.verris-cron/<klucz>.log). */
+export async function fetchCronOutputAction(
+  serviceId: string,
+  key: string,
+): Promise<{ ok: true; output: string; obciete: boolean } | { ok: false; error: string }> {
+  try {
+    const r = await apiFetch<{ output: string; obciete: boolean }>(`/services/${serviceId}/hosting-cron-output?key=${encodeURIComponent(key)}`);
+    return { ok: true, output: r.output, obciete: r.obciete };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Błąd' };
+  }
+}

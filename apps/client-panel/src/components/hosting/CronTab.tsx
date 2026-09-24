@@ -8,9 +8,11 @@ import type { HostingCronJobDto } from '@verris/contracts';
 import {
   createHostingCronAction,
   deleteHostingCronAction,
+  fetchCronOutputAction,
   fetchHostingCronAction,
   updateHostingCronAction,
 } from '@/app/dashboard/services/[id]/hosting-extra-actions';
+import { newCronKey, unwrapCron, wrapCron } from '@/components/hosting/cron-output';
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { HostingHelpHint } from '@/components/hosting/HostingTabShell';
 import { potwierdz } from '@/components/panel/potwierdz';
@@ -36,6 +38,10 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  // L-06 — zapis wyniku ostatniego uruchomienia (polecenie opakowane, plik ~/.verris-cron/<klucz>.log).
+  const [zapisuj, setZapisuj] = useState(true);
+  const [klucz, setKlucz] = useState<string | null>(null);
+  const [wynik, setWynik] = useState<{ id: string; tekst: string | null; blad?: string } | null>(null);
 
   // Samo pobranie — efekt montażu startuje z `loading` już ustawionym na `true`.
   const fetchRows = () =>
@@ -59,7 +65,7 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
   const onCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     setCreating(true);
-    const input = { ...sched, command: command.trim() };
+    const input = { ...sched, command: zapisuj ? wrapCron(command, klucz ?? newCronKey()) : command.trim() };
     const res = editingId
       ? await updateHostingCronAction(serviceId, editingId, input)
       : await createHostingCronAction(serviceId, input);
@@ -72,19 +78,32 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
     toast.success(editingId ? 'Zadanie cron zapisane' : 'Zadanie cron dodane');
     setCommand('');
     setEditingId(null);
+    setKlucz(null);
     load();
   };
 
   const onEdit = (row: HostingCronJobDto) => {
     const [minute = '*', hour = '*', dayOfMonth = '*', month = '*', dayOfWeek = '*'] = row.schedule.split(/\s+/);
     setSched({ minute, hour, dayOfMonth, month, dayOfWeek });
-    setCommand(row.command);
+    const u = unwrapCron(row.command);
+    setCommand(u?.command ?? row.command);
+    setZapisuj(Boolean(u));
+    setKlucz(u?.key ?? null);
     setEditingId(row.id);
+  };
+
+  const pokazWynik = async (row: HostingCronJobDto, key: string) => {
+    if (wynik?.id === row.id) return setWynik(null);
+    setWynik({ id: row.id, tekst: null });
+    const r = await fetchCronOutputAction(serviceId, key);
+    setWynik(r.ok ? { id: row.id, tekst: r.output } : { id: row.id, tekst: '', blad: r.error });
   };
 
   const cancelEdit = () => {
     setEditingId(null);
     setCommand('');
+    setKlucz(null);
+    setZapisuj(true);
     setSched({ ...EVERY, minute: '0', hour: '3' });
   };
 
@@ -149,6 +168,18 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
           />
         </label>
         <CronPhpHelper serviceId={serviceId} onUse={setCommand} />
+        <label className="mt-3 flex cursor-pointer items-center gap-2 text-xs text-foreground">
+          <button
+            type="button"
+            role="checkbox"
+            aria-checked={zapisuj}
+            onClick={() => setZapisuj((v) => !v)}
+            className={`inline-flex h-4 w-4 items-center justify-center rounded-[4px] border ${zapisuj ? 'border-data bg-data text-primary-foreground' : 'border-line-strong bg-raised'}`}
+          >
+            {zapisuj ? '✓' : null}
+          </button>
+          Zapisuj wynik ostatniego uruchomienia (podgląd przy zadaniu)
+        </label>
         <div className="mt-3 flex justify-end gap-2">
           {editingId ? (
             <Button type="button" size="sm" variant="outline" onClick={cancelEdit} className="h-8 text-xs">
@@ -189,7 +220,29 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
             >
               <div className="min-w-0">
                 <p className="font-mono text-xs text-neutral-400">{row.schedule}</p>
-                <p className="mt-1 break-all font-mono text-sm text-white">{row.command}</p>
+                <p className="mt-1 break-all font-mono text-sm text-white">{unwrapCron(row.command)?.command ?? row.command}</p>
+                {(() => {
+                  const u = unwrapCron(row.command);
+                  if (!u) return null;
+                  return (
+                    <>
+                      <button type="button" onClick={() => void pokazWynik(row, u.key)} className="mt-2 text-xs font-semibold text-data hover:underline">
+                        {wynik?.id === row.id ? 'Ukryj wynik' : 'Wynik ostatniego uruchomienia'}
+                      </button>
+                      {wynik?.id === row.id ? (
+                        wynik.tekst === null ? (
+                          <p className="mt-2 flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3.5 w-3.5 animate-spin" /> Wczytywanie…</p>
+                        ) : wynik.blad ? (
+                          <p className="mt-2 text-xs text-crit">{wynik.blad}</p>
+                        ) : wynik.tekst ? (
+                          <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap break-all rounded-lg border border-line bg-raised p-3 font-mono text-xs text-foreground">{wynik.tekst}</pre>
+                        ) : (
+                          <p className="mt-2 text-xs text-muted-foreground">Zadanie jeszcze się nie uruchomiło albo nic nie wypisało.</p>
+                        )
+                      ) : null}
+                    </>
+                  );
+                })()}
               </div>
               <div className="flex shrink-0 gap-1.5">
               <button

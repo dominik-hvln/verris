@@ -2269,6 +2269,26 @@ export class DirectAdminService {
    * czyta `.user.ini` z katalogu skryptu — zmiana działa po odświeżeniu pamięci podręcznej PHP (do 5 min).
    * Dyrektywy wpisane przez klienta poza blokiem panelu zostają nietknięte i są pokazywane jako „własne”.
    */
+  /**
+   * L-06 — wynik ostatniego uruchomienia zadania cron zapisywany przez panel do
+   * ~/.verris-cron/<klucz>.log (polecenie opakowane w panelu klienta). Najwyżej 20 tys. znaków od końca.
+   */
+  async getHostingCronOutput(subscriptionId: string, userId: string, key: string) {
+    if (!/^[a-z0-9]{6,32}$/.test(key ?? '')) throw new BadRequestException('Nieprawidłowy klucz zadania.');
+    const sub = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, include: { account: true } });
+    if (!sub?.account?.id) throw new BadRequestException('Brak konta hostingowego.');
+    const client = await this.getClientForHostingAccount(sub.account.id, userId);
+    let tresc: string;
+    try {
+      tresc = await this.readAccountTextFile(client, `/.verris-cron/${key}.log`);
+    } catch (e) {
+      // Katalogu jeszcze nie ma, dopóki zadanie nie uruchomi się pierwszy raz.
+      if (e instanceof DirectAdminApiError && /not exist|no such|nie istnieje/i.test(e.daText)) return { key, output: '', obciete: false };
+      throw e;
+    }
+    return { key, output: tresc.slice(-20_000), obciete: tresc.length > 20_000 };
+  }
+
   async getHostingPhpIni(subscriptionId: string, userId: string, domain: string) {
     const dom = await this.assertDomainOwnedBySubscription(subscriptionId, userId, domain);
     const sub = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, include: { account: true } });

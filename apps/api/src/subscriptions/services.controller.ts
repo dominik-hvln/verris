@@ -855,6 +855,11 @@ export class UserServicesController {
     return this.directAdmin.listHostingCronJobs(id, user.userId);
   }
 
+  @Get(':id/hosting-cron-output')
+  async hostingCronOutput(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Query('key') key: string) {
+    return this.directAdmin.getHostingCronOutput(id, user.userId, key);
+  }
+
   @Post(':id/hosting-cron')
   async createHostingCron(
     @CurrentUser() user: { userId: string },

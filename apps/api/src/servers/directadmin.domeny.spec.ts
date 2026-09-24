@@ -265,3 +265,25 @@ describe('B-05 — .user.ini domeny', () => {
     expect(s.post).not.toHaveBeenCalled();
   });
 });
+
+describe('L-06 — wynik ostatniego uruchomienia crona', () => {
+  type Czytnik = { readAccountTextFile: (k: unknown, p: string) => Promise<string> };
+  it('czyta ~/.verris-cron/<klucz>.log, zwraca koniec długiego wyniku', async () => {
+    const s = stanowisko();
+    const spy = jest.spyOn(s.svc as unknown as Czytnik, 'readAccountTextFile').mockResolvedValue('x'.repeat(20_010));
+    const r = await s.svc.getHostingCronOutput('s1', 'u1', 'abc123');
+    expect(spy).toHaveBeenCalledWith(expect.anything(), '/.verris-cron/abc123.log');
+    expect(r).toMatchObject({ obciete: true });
+    expect(r.output).toHaveLength(20_000);
+  });
+
+  it('klucz ze ścieżką → 400; brak katalogu (pierwsze uruchomienie przed nami) → pusty wynik, inny błąd DA → dalej', async () => {
+    const s = stanowisko();
+    await expect(s.svc.getHostingCronOutput('s1', 'u1', '../x')).rejects.toThrow('Nieprawidłowy klucz');
+    const spy = jest.spyOn(s.svc as unknown as Czytnik, 'readAccountTextFile');
+    spy.mockRejectedValueOnce(new DirectAdminApiError('x', 'Directory does not exist'));
+    await expect(s.svc.getHostingCronOutput('s1', 'u1', 'abc123')).resolves.toMatchObject({ output: '' });
+    spy.mockRejectedValueOnce(new DirectAdminApiError('x', 'Permission denied'));
+    await expect(s.svc.getHostingCronOutput('s1', 'u1', 'abc123')).rejects.toThrow('x');
+  });
+});
