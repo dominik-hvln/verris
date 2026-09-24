@@ -1,7 +1,7 @@
 import { Prisma, WalletTxType } from '@verris/database';
 import { WalletLedgerService } from '../../src/billing/wallet-ledger.service';
 import { okresZbiorczy, refZbiorcza } from '../../src/billing/faktura-za-portfel';
-import { prisma, rozlacz, ustawTrybFakturowania, wyczyscBaze } from './setup';
+import { prisma, rozlacz, ustawModelFakturowania, ustawTrybFakturowania, wyczyscBaze } from './setup';
 
 /**
  * Z-01 — faktura za płatność portfelem, przeciwko prawdziwej bazie.
@@ -43,8 +43,10 @@ async function fakturyKlienta(userId: string) {
 describe('Z-01 — faktura za obciążenie portfela', () => {
   // Te testy opisują fakturę VAT z panelu (seria VFV) — tryb `panel`.
   // Tryb domyślny, zewnętrzny, ma własny blok na końcu pliku (FAK-01).
+  // M-34 (2026-09-23): domyślnie dokument powstaje przy doładowaniu; tu sprawdzamy model przy obciążeniu.
   beforeEach(async () => {
     await wyczyscBaze();
+    await ustawModelFakturowania('przy_obciazeniu');
     await ustawTrybFakturowania('panel');
   });
   afterAll(rozlacz);
@@ -251,7 +253,10 @@ describe('Z-01 — faktura za obciążenie portfela', () => {
 });
 
 describe('Z-01 — faktura zbiorcza za miesiąc', () => {
-  beforeEach(wyczyscBaze);
+  beforeEach(async () => {
+    await wyczyscBaze();
+    await ustawModelFakturowania('przy_obciazeniu');
+  });
   afterAll(rozlacz);
 
   /**
@@ -434,7 +439,10 @@ describe('Z-01 — faktura zbiorcza za miesiąc', () => {
 });
 
 describe('FAK-01 — faktury w programie księgowym (tryb domyślny)', () => {
-  beforeEach(wyczyscBaze);
+  beforeEach(async () => {
+    await wyczyscBaze();
+    await ustawModelFakturowania('przy_obciazeniu');
+  });
   afterAll(rozlacz);
 
   it('bez ustawienia obciążenie daje dokument rozliczeniowy z serii VDR, nie fakturę VAT', async () => {

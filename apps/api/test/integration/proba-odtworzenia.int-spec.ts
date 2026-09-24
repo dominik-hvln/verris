@@ -16,6 +16,7 @@ const PUSTE = {
   getHostingNameservers: async () => [],
   getKsefSettings: async () => ({}),
   getClientConfig: async () => ({ webmailUrl: null }),
+  getSlaCreditPolicy: async () => ({ enabled: false }),
 };
 
 function readiness(): LiveReadinessService {

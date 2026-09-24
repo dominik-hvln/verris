@@ -76,6 +76,15 @@ export async function ustawTrybFakturowania(tryb: 'panel' | 'zewnetrzny'): Promi
   });
 }
 
+/** M-34 — kiedy powstaje dokument za portfel. Domyślnie przy doładowaniu; testy Z-01 opisują model przy obciążeniu. */
+export async function ustawModelFakturowania(model: 'przy_doladowaniu' | 'przy_obciazeniu'): Promise<void> {
+  await prisma().platformSetting.upsert({
+    where: { key: 'faktury.model' },
+    create: { key: 'faktury.model', value: model },
+    update: { value: model },
+  });
+}
+
 export async function rozlacz(): Promise<void> {
   if (klient) {
     await klient.$disconnect();
