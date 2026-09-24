@@ -229,7 +229,7 @@ export default function SettingsPage() {
   const visibleTabs = visibleTabsForProfile(profile);
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="max-w-4xl space-y-6">
       {/* Page Header */}
       <div>
         <h1 className="mb-2 font-display text-[clamp(28px,4vw,40px)] font-extrabold leading-none tracking-[-0.03em] text-foreground">Ustawienia konta</h1>
@@ -381,8 +381,8 @@ function ProfileTab({
             setForm((f) => ({ ...f, locale: e.target.value }))
           }
           options={[
-            { value: "pl", label: "🇵🇱  Polski" },
-            { value: "en", label: "🇬🇧  English" },
+            { value: "pl", label: "Polski" },
+            { value: "en", label: "English" },
           ]}
         />
       </FormField>

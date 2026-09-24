@@ -245,7 +245,7 @@ function PromoSubform({
           type="text"
           value={promoCode}
           onChange={(event) => setPromoCode(event.target.value.toUpperCase())}
-          placeholder="Kod promocyjny (opcjonalnie)"
+          placeholder="Kod promocyjny"
           maxLength={40}
           className="w-full rounded-2xl border border-white/10 bg-black/40 pl-10 pr-3 py-2 text-sm text-white placeholder:text-neutral-500 uppercase tracking-wider focus:border-white/40 focus:outline-none"
         />
