@@ -402,11 +402,11 @@ function DashboardLayoutInner({
   }, []);
   const postep = rail?.onboarding && navCtx ? najnizszyPostep(rail.onboarding, (href) => canAccess(href)) : null;
   const pokazPostep = postep !== null && postep.procent < 100;
+  // Zawsze zapisujemy „pokaż”: profil w menu jest z chwili wejścia, a baner mógł zostać
+  // schowany później na pulpicie — warunek na `user.onboardingHidden` przepuszczał wtedy kliknięcie.
   const otworzPierwszeKroki = () => {
-    if (user?.onboardingHidden) {
-      setUser({ ...user, onboardingHidden: false });
-      void savePanelPreferences({ onboardingHidden: false }).then(() => router.refresh());
-    }
+    if (user) setUser({ ...user, onboardingHidden: false });
+    void savePanelPreferences({ onboardingHidden: false }).then(() => router.refresh());
   };
   const railCount = (href: string): string | null => {
     if (!rail) return null;
