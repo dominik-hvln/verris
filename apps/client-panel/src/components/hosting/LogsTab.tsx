@@ -166,6 +166,7 @@ export default function LogsTab({ serviceId }: { serviceId: string }) {
           </p>
           <pre
              
+            // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- przewijany log musi być dostępny z klawiatury (WCAG 2.1.1)
             tabIndex={0}
             aria-label={`Log ${rodzaj === 'error' ? 'błędów' : 'dostępu'} ${log?.domain ?? ''}`}
             className="m-0 max-h-[60vh] overflow-y-auto whitespace-pre-wrap break-all rounded-[10px] border border-line bg-card p-3 font-mono text-[12px] leading-relaxed text-foreground"
