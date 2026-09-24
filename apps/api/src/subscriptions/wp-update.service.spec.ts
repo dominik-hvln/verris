@@ -109,3 +109,12 @@ describe('WpUpdateService', () => {
     expect(zmiany(null, null)).toEqual([]);
   });
 });
+
+describe('WpUpdateService — cache (J-02)', () => {
+  it('zlecenie operacji na LiteSpeed Cache; zła operacja → 400', async () => {
+    const s = stanowisko();
+    await s.svc.cache('s1', 'u1', { domain: 'a.pl', action: 'purge' });
+    expect(payload(s).payload).toMatchObject({ mode: 'cache', cache: 'purge', domain: 'a.pl' });
+    await expect(s.svc.cache('s1', 'u1', { domain: 'a.pl', action: 'rm' })).rejects.toThrow(BadRequestException);
+  });
+});

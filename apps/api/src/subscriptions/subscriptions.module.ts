@@ -32,6 +32,7 @@ import { DbTransferService } from './db-transfer.service';
 import { FileRestoreService } from './file-restore.service';
 import { SshAccessService } from './ssh-access.service';
 import { WpUpdateService } from './wp-update.service';
+import { DiskUsageService } from './disk-usage.service';
 import { WpAutoUpdateScheduler } from './wp-auto-update.scheduler';
 import { DiagnosticsService } from './diagnostics.service';
 import { HostingRestoreScheduler } from './hosting-restore.scheduler';
@@ -78,6 +79,7 @@ import { EcoModule } from '../eco/eco.module';
     FileRestoreService,
     SshAccessService,
     WpUpdateService,
+    DiskUsageService,
     WpAutoUpdateScheduler,
     WordpressService,
     WafService,

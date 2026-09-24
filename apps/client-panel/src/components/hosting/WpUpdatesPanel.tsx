@@ -12,6 +12,7 @@ import {
   fetchWpUpdates,
   runWpUpdates,
   setWpAutoUpdates,
+  wpCache,
   type WpPozycja,
   type WpStatus,
 } from '@/app/dashboard/services/[id]/hosting-wp-update-actions';
@@ -134,6 +135,20 @@ export function WpUpdatesPanel({ serviceId, domain }: { serviceId: string; domai
         setWybraneMo(null);
         setRdzen(null);
         toast.success('Aktualizacja zlecona — potrwa kilka minut.');
+      } else toast.error(r.error);
+    });
+  };
+
+  const lsc = wp?.plugins.find((x) => x.name === 'litespeed-cache') ?? null;
+  const cacheWl = lsc?.status === 'active';
+  const ostatniCache = stan?.cache[0] ?? null;
+  const operacjaCache = async (akcja: 'on' | 'off' | 'purge') => {
+    if (akcja === 'off' && !(await potwierdz('Wyłączyć pamięć podręczną? Strona będzie generowana przy każdym wejściu — wolniej.', { akcja: 'Wyłącz' }))) return;
+    start(async () => {
+      const r = await wpCache(serviceId, domain, akcja);
+      if (r.ok) {
+        przyjmij(r.status);
+        toast.success(akcja === 'purge' ? 'Czyszczenie cache zlecone.' : akcja === 'on' ? 'Włączanie cache zlecone — potrwa chwilę.' : 'Wyłączanie cache zlecone.');
       } else toast.error(r.error);
     });
   };
@@ -286,6 +301,38 @@ export function WpUpdatesPanel({ serviceId, domain }: { serviceId: string; domai
             Wtyczki spoza katalogu WordPress.org (np. płatne) aktualizuj z kokpitu WordPressa — ich aktualizacje wymagają licencji.
           </p>
         </>
+      ) : null}
+
+      {wp ? (
+        <div className="rounded-[10px] border border-line bg-card px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <b className="text-sm font-semibold text-foreground">Pamięć podręczna stron (LiteSpeed Cache)</b>
+              <p className="m-0 text-[12.5px] text-muted-foreground">
+                {cacheWl
+                  ? 'Włączona — strony podawane są z pamięci podręcznej serwera, bez uruchamiania PHP przy każdym wejściu.'
+                  : 'Wyłączona. Włączenie instaluje i uruchamia oficjalną wtyczkę LiteSpeed Cache; gdy strona po tym przestanie odpowiadać, wyłączymy ją z powrotem.'}
+              </p>
+              {ostatniCache?.blad ? <p className="m-0 mt-1 text-[12.5px] text-crit">{ostatniCache.blad}</p> : null}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {cacheWl ? (
+                <>
+                  <button type="button" onClick={() => void operacjaCache('purge')} disabled={zajete} className={BTN}>
+                    Wyczyść cache
+                  </button>
+                  <button type="button" onClick={() => void operacjaCache('off')} disabled={zajete} className={BTN}>
+                    Wyłącz
+                  </button>
+                </>
+              ) : (
+                <button type="button" onClick={() => void operacjaCache('on')} disabled={zajete} className={BTN_MAIN}>
+                  Włącz cache
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       ) : null}
 
       {stan && !stan.brakWordpressa && auto ? (

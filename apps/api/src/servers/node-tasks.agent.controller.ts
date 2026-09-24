@@ -30,6 +30,7 @@ import { loadDbTransferScript } from './db-transfer.script';
 import { loadFileRestoreScript } from './file-restore.script';
 import { loadSshAccessScript } from './ssh-access.script';
 import { loadWpUpdateScript } from './wp-update.script';
+import { loadDiskUsageScript } from './disk-usage.script';
 import { loadNodeUpdateScript } from './node-update.script';
 import { IsOptional, IsString, MaxLength } from 'class-validator';
 
@@ -145,6 +146,13 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   wpUpdateScript() {
     return loadWpUpdateScript();
+  }
+
+  /** C-15/K-03 — zajętość katalogów konta (run with DU_* env). */
+  @Get('disk-usage/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  diskUsageScript() {
+    return loadDiskUsageScript();
   }
 
   /** VER-UPG — MariaDB engine upgrade script (run with DB_TARGET_VERSION env). */

@@ -5,6 +5,7 @@ import { Kpi, KpiStrip, MiniBars, SectionHead, fmtMb } from '@/components/panel/
 import { fetchHostingUsageAction, HostingUsageResponse } from '@/app/dashboard/services/[id]/hosting-usage-actions';
 import ServiceForecastPanel from '@/components/hosting/ServiceForecastPanel';
 import AccountStatsCard from '@/components/hosting/AccountStatsCard';
+import { DiskUsagePanel } from '@/components/hosting/DiskUsagePanel';
 
 export default function UsageTab({ serviceId }: { serviceId: string }) {
   const [window, setWindow] = useState<'24h' | '7d'>('24h');
@@ -101,6 +102,7 @@ export default function UsageTab({ serviceId }: { serviceId: string }) {
       </section>
 
       <AccountStatsCard serviceId={serviceId} />
+      <DiskUsagePanel serviceId={serviceId} />
       <ServiceForecastPanel serviceId={serviceId} />
     </div>
   );

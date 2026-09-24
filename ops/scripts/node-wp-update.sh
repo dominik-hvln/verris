@@ -2,12 +2,14 @@
 # =============================================================================
 # Verris — aktualizacje WordPressa domeny (I-04 automatyczne, I-05 z panelu).
 # Uruchamiany przez agenta zadań (WP_UPDATE) z env:
-#   WPU_MODE      check | update
+#   WPU_MODE      check | update | cache
 #   WPU_DA_USER   login konta DA (z rekordu konta w API)
 #   WPU_DOMAIN    domena; WordPress w domains/<domena>/public_html
 #   WPU_CORE      (update) none | minor | all
 #   WPU_PLUGINS   (update) pusta = bez wtyczek, „*” = wszystkie z aktualizacją, albo slug,slug
 #   WPU_THEMES    (update) jak WPU_PLUGINS, dla motywów
+#   WPU_CACHE     (cache) on | off | purge — wtyczka LiteSpeed Cache (J-02): włączenie z kontrolą
+#                 strony (5xx po włączeniu → wyłączamy z powrotem), wyłączenie, wyczyszczenie cache
 #
 # Kolejność przy update:
 #   1. kopia: pliki strony + zrzut bazy → ~/backups/verris-wp-<domena>-<czas>.tar.gz (dwie ostatnie
@@ -25,12 +27,13 @@
 set -Eeuo pipefail
 
 : "${WPU_MODE:?}"; : "${WPU_DA_USER:?}"; : "${WPU_DOMAIN:?}"
-: "${WPU_CORE:=none}"; : "${WPU_PLUGINS:=}"; : "${WPU_THEMES:=}"
+: "${WPU_CORE:=none}"; : "${WPU_PLUGINS:=}"; : "${WPU_THEMES:=}"; : "${WPU_CACHE:=}"
 
 log() { echo "[wp-update] $*"; }
 fail() { log "BŁĄD: $*" >&2; exit 1; }
 
-[[ "$WPU_MODE" == "check" || "$WPU_MODE" == "update" ]] || fail "nieznany tryb: $WPU_MODE"
+[[ "$WPU_MODE" == "check" || "$WPU_MODE" == "update" || "$WPU_MODE" == "cache" ]] || fail "nieznany tryb: $WPU_MODE"
+[ "$WPU_MODE" != "cache" ] || [[ "$WPU_CACHE" == "on" || "$WPU_CACHE" == "off" || "$WPU_CACHE" == "purge" ]] || fail "nieprawidłowa operacja cache"
 [[ "$WPU_DA_USER" =~ ^[a-z][a-z0-9]{0,15}$ ]] || fail "nieprawidłowy login konta"
 [[ "$WPU_DOMAIN" =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$ ]] || fail "nieprawidłowa domena"
 [[ "$WPU_CORE" == "none" || "$WPU_CORE" == "minor" || "$WPU_CORE" == "all" ]] || fail "nieprawidłowy zakres aktualizacji rdzenia"
@@ -78,8 +81,14 @@ wp() {
     "$WP_PHAR" --path="$DOCROOT" --skip-plugins --skip-themes "$@"
 }
 
+# Z wczytanymi wtyczkami — tylko do poleceń samej wtyczki (np. litespeed-purge).
+wp_z_wtyczkami() {
+  jako_klient "$WP_PHP" -d memory_limit=512M -d max_execution_time=900 -d display_errors=stderr \
+    "$WP_PHAR" --path="$DOCROOT" --skip-themes "$@"
+}
+
 http_kod() {
-  curl -s -o /dev/null -w '%{http_code}' --max-time 25 -H "Host: $WPU_DOMAIN" "$HEALTH_BASE/" 2>/dev/null || true
+  curl -s --noproxy '*' -o /dev/null -w '%{http_code}' --max-time 25 -H "Host: $WPU_DOMAIN" "$HEALTH_BASE/" 2>/dev/null || true
 }
 
 # stan → base64 JSON: {"version","core":[…],"plugins":[…],"themes":[…]}
@@ -115,6 +124,29 @@ fi
 PRZED="$(stan)"
 echo "VERRIS_WP_PRZED=$PRZED"
 if [ "$WPU_MODE" = "check" ]; then
+  log "Gotowe."
+  exit 0
+fi
+
+if [ "$WPU_MODE" = "cache" ]; then
+  LSC="litespeed-cache"
+  case "$WPU_CACHE" in
+    on)
+      KOD_PRZED="$(http_kod)"
+      wp plugin is-installed "$LSC" >/dev/null 2>&1 || wp plugin install "$LSC" || fail "nie udało się zainstalować wtyczki LiteSpeed Cache"
+      wp plugin activate "$LSC" || fail "nie udało się włączyć wtyczki LiteSpeed Cache"
+      KOD_PO="$(http_kod)"
+      log "kontrola strony: przed=$KOD_PRZED po=$KOD_PO"
+      if [[ "$KOD_PRZED" =~ ^[1-4][0-9][0-9]$ ]] && ! [[ "$KOD_PO" =~ ^[1-4][0-9][0-9]$ ]]; then
+        wp plugin deactivate "$LSC" || true
+        echo "VERRIS_WPU_WYCOFANO=1"
+        fail "po włączeniu cache strona zwracała błąd (HTTP $KOD_PO) — wyłączyliśmy wtyczkę z powrotem"
+      fi
+      ;;
+    off) wp plugin deactivate "$LSC" || fail "nie udało się wyłączyć wtyczki LiteSpeed Cache" ;;
+    purge) wp_z_wtyczkami litespeed-purge all || fail "nie udało się wyczyścić cache (czy wtyczka LiteSpeed Cache jest włączona?)" ;;
+  esac
+  echo "VERRIS_WP_PO=$(stan)"
   log "Gotowe."
   exit 0
 fi

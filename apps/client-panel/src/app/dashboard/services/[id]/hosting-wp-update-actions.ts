@@ -24,6 +24,7 @@ export interface WpStatus {
   } | null;
   sprawdzono: string | null;
   automat: { core: string; plugins: boolean; themes: boolean; ostatnio: string | null } | null;
+  cache: { id: string; akcja: string | null; status: string; utworzone: string; wycofano: boolean; blad: string | null }[];
   aktualizacje: {
     id: string;
     status: string;
@@ -62,6 +63,10 @@ export async function runWpUpdates(
   input: { domain: string; core: string; plugins: '*' | string[]; themes: '*' | string[] },
 ): Promise<Wynik> {
   return wynik(apiFetch<WpStatus>(url(serviceId, '/run'), { method: 'POST', body: JSON.stringify(input) }));
+}
+
+export async function wpCache(serviceId: string, domain: string, action: 'on' | 'off' | 'purge'): Promise<Wynik> {
+  return wynik(apiFetch<WpStatus>(url(serviceId, '/cache'), { method: 'POST', body: JSON.stringify({ domain, action }) }));
 }
 
 export async function setWpAutoUpdates(

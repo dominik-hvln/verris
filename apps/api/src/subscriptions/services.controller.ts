@@ -37,6 +37,7 @@ import { DbTransferService } from './db-transfer.service';
 import { FileRestoreService } from './file-restore.service';
 import { SshAccessService } from './ssh-access.service';
 import { WpUpdateService } from './wp-update.service';
+import { DiskUsageService } from './disk-usage.service';
 import { HostingRestoreDto } from './dto/hosting-restore.dto';
 import { WordpressService } from './wordpress.service';
 import { InstallWordpressDto } from './dto/wordpress.dto';
@@ -85,6 +86,7 @@ import {
   WordpressDomenyDto,
   AktualizacjaWordpressaDto,
   AutomatWordpressaDto,
+  CacheWordpressaDto,
   OdtworzenieZArchiwumDto,
   ImportBazyDto,
   WersjaPhpDto,
@@ -111,6 +113,7 @@ export class UserServicesController {
     private readonly fileRestore: FileRestoreService,
     private readonly sshAccess: SshAccessService,
     private readonly wpUpdate: WpUpdateService,
+    private readonly diskUsage: DiskUsageService,
     private readonly wordpress: WordpressService,
     private readonly waf: WafService,
     private readonly siteMonitor: SiteMonitorService,
@@ -1081,9 +1084,27 @@ export class UserServicesController {
     return this.wpUpdate.aktualizuj(id, user.userId, body);
   }
 
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:wp-update' })
+  @Post(':id/hosting-wp-updates/cache')
+  async hostingWpCache(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: CacheWordpressaDto) {
+    return this.wpUpdate.cache(id, user.userId, body);
+  }
+
   @Post(':id/hosting-wp-updates/auto')
   async setHostingWpAutoUpdates(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: AutomatWordpressaDto) {
     return this.wpUpdate.ustawAutomat(id, user.userId, body);
+  }
+
+  // C-15/K-03 — co zajmuje miejsce na koncie (zadanie węzła).
+  @Get(':id/hosting-disk-usage')
+  async hostingDiskUsage(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.diskUsage.status(id, user.userId);
+  }
+
+  @RateLimit({ limit: 12, windowMs: 60 * 60 * 1000, scope: 'hosting:disk-usage' })
+  @Post(':id/hosting-disk-usage')
+  async countHostingDiskUsage(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.diskUsage.policz(id, user.userId);
   }
 
   @Get(':id/hosting-offsite')

@@ -14,6 +14,7 @@ import {
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { HostingHelpHint } from '@/components/hosting/HostingTabShell';
 import { potwierdz } from '@/components/panel/potwierdz';
+import { CronPhpHelper } from '@/components/hosting/CronPhpHelper';
 
 type Sched = { minute: string; hour: string; dayOfMonth: string; month: string; dayOfWeek: string };
 const EVERY: Sched = { minute: '*', hour: '*', dayOfMonth: '*', month: '*', dayOfWeek: '*' };
@@ -147,6 +148,7 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
             className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-sm text-white outline-none focus:border-white/30"
           />
         </label>
+        <CronPhpHelper serviceId={serviceId} onUse={setCommand} />
         <div className="mt-3 flex justify-end gap-2">
           {editingId ? (
             <Button type="button" size="sm" variant="outline" onClick={cancelEdit} className="h-8 text-xs">

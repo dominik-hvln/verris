@@ -81,6 +81,21 @@ export class WpUpdateService {
     return this.opis(account.id, domena);
   }
 
+  /** J-02 — wtyczka LiteSpeed Cache: włącz (z kontrolą strony), wyłącz, wyczyść cache. */
+  async cache(subscriptionId: string, userId: string, input: { domain: string; action: string }) {
+    if (!['on', 'off', 'purge'].includes(input.action)) throw new BadRequestException('Nieprawidłowa operacja.');
+    const { sub, account, domena } = await this.wymagajDomeny(subscriptionId, userId, input.domain);
+    const task = await this.zlec(account, userId, {
+      mode: 'cache', domain: domena, core: 'none', plugins: '', themes: '', auto: false, cache: input.action as 'on' | 'off' | 'purge',
+    });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_WP_CACHE_QUEUED,
+      userId: sub.userId, actorUserId: userId,
+      details: { subscriptionId, domain: domena, cache: input.action, taskId: task.id },
+    });
+    return this.opis(account.id, domena);
+  }
+
   async ustawAutomat(
     subscriptionId: string,
     userId: string,
@@ -136,7 +151,15 @@ export class WpUpdateService {
   private async zlec(
     account: { id: string; serverId: string; status: string; daUsername: string | null },
     actorUserId: string | null,
-    payload: { mode: 'check' | 'update'; domain: string; core: ZakresRdzenia; plugins: string; themes: string; auto: boolean },
+    payload: {
+      mode: 'check' | 'update' | 'cache';
+      domain: string;
+      core: ZakresRdzenia;
+      plugins: string;
+      themes: string;
+      auto: boolean;
+      cache?: 'on' | 'off' | 'purge';
+    },
   ) {
     if (account.status !== 'ACTIVE') throw new BadRequestException('Konto hostingowe nie jest aktywne.');
     const wToku = await this.prisma.nodeTask.findFirst({
@@ -165,7 +188,7 @@ export class WpUpdateService {
       this.prisma.wpAutoUpdate.findUnique({ where: { accountId_domain: { accountId, domain: domena } } }),
     ]);
     const p = (z: (typeof zadania)[number]) =>
-      (z.payload ?? {}) as { mode?: string; core?: string; plugins?: string; themes?: string; auto?: boolean };
+      (z.payload ?? {}) as { mode?: string; core?: string; plugins?: string; themes?: string; auto?: boolean; cache?: string };
     // Najświeższy znany stan: z ostatniego zakończonego zadania, które go zgłosiło.
     let stan: StanWp | null = null;
     let sprawdzono: string | null = null;
@@ -193,6 +216,17 @@ export class WpUpdateService {
       automat: automat
         ? { core: automat.core, plugins: automat.plugins, themes: automat.themes, ostatnio: automat.lastRunAt?.toISOString() ?? null }
         : null,
+      cache: zadania
+        .filter((z) => p(z).mode === 'cache')
+        .slice(0, 3)
+        .map((z) => ({
+          id: z.id,
+          akcja: p(z).cache ?? null,
+          status: z.status,
+          utworzone: z.createdAt.toISOString(),
+          wycofano: /^VERRIS_WPU_WYCOFANO=1\s*$/m.test(z.outputLog ?? ''),
+          blad: z.status === NodeTaskStatus.FAILED ? bladZLogu(z.outputLog) : null,
+        })),
       aktualizacje: zadania
         .filter((z) => p(z).mode === 'update')
         .slice(0, 5)

@@ -124,6 +124,7 @@ COPY ops/scripts/node-db-transfer.sh ./ops/scripts/node-db-transfer.sh
 COPY ops/scripts/node-file-restore.sh ./ops/scripts/node-file-restore.sh
 COPY ops/scripts/node-ssh-access.sh ./ops/scripts/node-ssh-access.sh
 COPY ops/scripts/node-wp-update.sh ./ops/scripts/node-wp-update.sh
+COPY ops/scripts/node-disk-usage.sh ./ops/scripts/node-disk-usage.sh
 COPY ops/hosting-default-page ./ops/hosting-default-page
 RUN chmod +x /usr/local/bin/api-entrypoint.sh
 
