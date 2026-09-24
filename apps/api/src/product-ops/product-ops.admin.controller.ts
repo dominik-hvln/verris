@@ -226,12 +226,9 @@ export class ProductOpsAdminController {
         cpuCommitted,
         ramCommittedMb: ramCommitted,
         latestDiskUsageMb: diskCommitted,
-        risk:
-          cpuCommitted >= 800 || ramCommitted >= 64 * 1024
-            ? 'high'
-            : cpuCommitted >= 500 || ramCommitted >= 40 * 1024
-              ? 'medium'
-              : 'low',
+        totalCpuCores: server.totalCpuCores ?? null,
+        totalMemoryMb: server.totalMemoryMb ?? null,
+        risk: ryzykoPojemnosci(cpuCommitted, ramCommitted, server.totalCpuCores, server.totalMemoryMb),
       };
     });
   }
@@ -596,4 +593,23 @@ function sanitizeOperationalError(raw: string): string {
   if (lower.includes('unauthorized') || lower.includes('credentials')) return 'auth_configuration';
   if (lower.includes('already exists')) return 'resource_conflict';
   return 'internal_error';
+}
+
+/**
+ * Ryzyko przepełnienia węzła z przydzielonych limitów kont (cpuLimit 100 = 1 rdzeń LVE).
+ * Względem pojemności zgłaszanej przez agenta (NODE-03); bez niej — stare progi bezwzględne.
+ * ponytail: progi nadsubskrypcji stałe (CPU 2×/4× rdzeni, RAM 1×/1,5×) — do ustawień, gdy pojawi się drugi typ węzła.
+ */
+export function ryzykoPojemnosci(
+  cpuCommitted: number,
+  ramCommittedMb: number,
+  rdzenie: number | null | undefined,
+  pamiecMb: number | null | undefined,
+): 'low' | 'medium' | 'high' {
+  const cpuMax = rdzenie ? rdzenie * 100 : null;
+  const cpu = cpuMax ? cpuCommitted / cpuMax : cpuCommitted >= 800 ? 4 : cpuCommitted >= 500 ? 2 : 0;
+  const ram = pamiecMb ? ramCommittedMb / pamiecMb : ramCommittedMb >= 64 * 1024 ? 1.5 : ramCommittedMb >= 40 * 1024 ? 1 : 0;
+  if (cpu >= 4 || ram >= 1.5) return 'high';
+  if (cpu >= 2 || ram >= 1) return 'medium';
+  return 'low';
 }

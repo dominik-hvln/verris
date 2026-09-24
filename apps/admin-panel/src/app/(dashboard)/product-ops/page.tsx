@@ -76,7 +76,7 @@ export default async function ProductOpsPage() {
             <Row
               key={row.id}
               title={row.name}
-              meta={`${row.risk.toUpperCase()} · konta ${row.activeAccounts} · CPU ${row.cpuCommitted}% · RAM ${(row.ramCommittedMb / 1024).toFixed(1)} GB`}
+              meta={`${row.risk.toUpperCase()} · konta ${row.activeAccounts} · przydzielone limity: CPU ${(row.cpuCommitted / 100).toLocaleString('pl-PL')} rdz.${row.totalCpuCores ? ` z ${row.totalCpuCores}` : ''} · RAM ${(row.ramCommittedMb / 1024).toFixed(1)}${row.totalMemoryMb ? ` z ${(row.totalMemoryMb / 1024).toFixed(0)}` : ''} GB`}
             />
           ))}
           {data.capacity.length === 0 && <Empty />}

@@ -62,6 +62,8 @@ export interface CapacityRow {
   activeAccounts: number;
   cpuCommitted: number;
   ramCommittedMb: number;
+  totalCpuCores: number | null;
+  totalMemoryMb: number | null;
   latestDiskUsageMb: number;
   risk: "low" | "medium" | "high";
 }
