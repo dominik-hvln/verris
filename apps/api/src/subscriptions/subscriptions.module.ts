@@ -44,6 +44,7 @@ import { FileSearchService } from './file-search.service';
 import { AppSelectorService } from './app-selector.service';
 import { WpPodatnosciService } from './wp-podatnosci.service';
 import { OdtworzenieNaWezleService } from './odtworzenie-na-wezle.service';
+import { SlowSqlService } from './slow-sql.service';
 import { PublicApiWriteController } from './public-api-write.controller';
 import { GitWebhookController } from './git-webhook.controller';
 import { ApiTokensModule } from '../api-tokens/api-tokens.module';
@@ -105,6 +106,7 @@ import { EcoModule } from '../eco/eco.module';
     AppSelectorService,
     WpPodatnosciService,
     OdtworzenieNaWezleService,
+    SlowSqlService,
     WpAutoUpdateScheduler,
     WordpressService,
     WafService,

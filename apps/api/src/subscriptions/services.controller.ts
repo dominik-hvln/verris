@@ -47,6 +47,7 @@ import { HtaccessService } from './htaccess.service';
 import { PhpInfoService } from './php-info.service';
 import { FileSearchService } from './file-search.service';
 import { AppSelectorService } from './app-selector.service';
+import { SlowSqlService } from './slow-sql.service';
 import { HostingRestoreDto } from './dto/hosting-restore.dto';
 import { WordpressService } from './wordpress.service';
 import { InstallWordpressDto } from './dto/wordpress.dto';
@@ -146,6 +147,7 @@ export class UserServicesController {
     private readonly phpInfo: PhpInfoService,
     private readonly fileSearch: FileSearchService,
     private readonly appSelector: AppSelectorService,
+    private readonly slowSql: SlowSqlService,
     private readonly wordpress: WordpressService,
     private readonly waf: WafService,
     private readonly siteMonitor: SiteMonitorService,
@@ -1319,6 +1321,18 @@ export class UserServicesController {
   @Post(':id/hosting-site-clone')
   async hostingSiteCloneRun(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: KlonStronyDto) {
     return this.siteClone.klonuj(id, user.userId, body);
+  }
+
+  // K-14 — wolne zapytania SQL baz konta (zadanie węzła, tylko odczyt).
+  @Get(':id/hosting-slow-sql')
+  async hostingSlowSql(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.slowSql.status(id, user.userId);
+  }
+
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:slow-sql' })
+  @Post(':id/hosting-slow-sql')
+  async hostingSlowSqlRefresh(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.slowSql.odswiez(id, user.userId);
   }
 
   // B-08/B-09 — aplikacje Node.js / Python (CloudLinux Selector, zadanie węzła).

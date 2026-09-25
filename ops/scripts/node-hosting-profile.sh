@@ -1165,6 +1165,33 @@ configure_hosting_capabilities() {
     log_skip "PHP Selector — brak CloudLinux lvemanager (węzeł bez CL?)"
   fi
 
+  # K-14 — slow query log MariaDB (dokumentacja MariaDB: Slow Query Log Overview): włączony na stałe
+  # w [mysqld], próg 2 s, zapis do pliku; teraz od razu przez SET GLOBAL (bez restartu bazy).
+  # Panel pokazuje klientowi tylko zapytania jego baz, znormalizowane (node-slow-sql.sh).
+  if [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ] && command -v mysql >/dev/null 2>&1; then
+    local mycnf=/etc/my.cnf
+    if [ -f "$mycnf" ] && ! grep -q '^# verris-slow-log' "$mycnf"; then
+      printf '\n# verris-slow-log (K-14)\n[mysqld]\nslow_query_log=1\nlong_query_time=2\nlog_output=FILE\n' >> "$mycnf"
+    fi
+    local myopts=()
+    mysql -Nse 'SELECT 1' >/dev/null 2>&1 || myopts=(--defaults-extra-file=/usr/local/directadmin/conf/my.cnf)
+    if mysql "${myopts[@]}" -e "SET GLOBAL long_query_time=2; SET GLOBAL log_output='FILE'; SET GLOBAL slow_query_log=1" 2>/dev/null; then
+      log_ok "MariaDB: slow query log włączony (próg 2 s)"
+    else
+      log_warn "MariaDB: nie udało się włączyć slow query log (zadziała po restarcie bazy z /etc/my.cnf)"
+    fi
+    cat > /etc/logrotate.d/verris-mariadb-slow <<'ROT'
+/var/lib/mysql/*-slow.log {
+    weekly
+    rotate 4
+    compress
+    missingok
+    notifempty
+    copytruncate
+}
+ROT
+  fi
+
   # B-08/B-09 — aplikacje Node.js i Python (CloudLinux Selector, node-app-selector.sh). Pakiety wg
   # docs.cloudlinux.com → CloudLinux OS components → Node.js / Python Selector → Installation (DirectAdmin):
   # alt-nodejs / alt-python + lvemanager lve-utils alt-python-virtualenv alt-mod-passenger. Oba selektory są

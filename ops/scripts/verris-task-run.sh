@@ -198,6 +198,10 @@ elif [ "$TASK_KIND" = "APP_SELECTOR" ]; then
   RUN_BIN="/usr/local/bin/verris-app-selector.sh"
   fetch_task_script "/agent/tasks/app-selector/script" "$RUN_BIN"
   payload_env "AS" "{'mode':'MODE','interpreter':'INTERPRETER','daUser':'DA_USER','root':'ROOT','domain':'DOMAIN','uri':'URI','version':'VERSION','startup':'STARTUP','entry':'ENTRY','envB64':'ENV_B64'}"
+elif [ "$TASK_KIND" = "SLOW_SQL" ]; then
+  RUN_BIN="/usr/local/bin/verris-slow-sql.sh"
+  fetch_task_script "/agent/tasks/slow-sql/script" "$RUN_BIN"
+  payload_env "SQ" "{'daUser':'DA_USER'}"
 elif [ "$TASK_KIND" = "FILE_SEARCH" ]; then
   RUN_BIN="/usr/local/bin/verris-file-search.sh"
   fetch_task_script "/agent/tasks/file-search/script" "$RUN_BIN"
