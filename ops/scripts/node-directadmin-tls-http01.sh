@@ -81,7 +81,7 @@ chmod 600 "$DA/conf/cakey.pem"
 if command -v systemctl >/dev/null 2>&1; then
   systemctl restart directadmin 2>/dev/null || systemctl restart da 2>/dev/null || true
 fi
-"$DA/directadmin" r 2>/dev/null || service directadmin restart 2>/dev/null || true
+systemctl restart directadmin 2>/dev/null || service directadmin restart 2>/dev/null || true
 
 log "OK — cert zainstalowany w DirectAdmin dla $HOST"
 log "Test: curl -vI https://${HOST}:2222/ 2>&1 | grep -E 'subject:|issuer:'"

@@ -78,9 +78,11 @@ describe('NODE-02 — skrypty wołają bramkę po etapach-bramkach', () => {
 
   it('nieudana rejestracja IP w DirectAdminie to [FAIL], nie ostrzeżenie', () => {
     const tresc = readFileSync(join(SKRYPTY, 'node-onboard-live.sh'), 'utf8');
-    const linia = tresc.split('\n').find((l) => l.includes('Nie udało się automatycznie dodać IP'));
+    const linia = tresc.split('\n').find((l) => l.includes('nie jest zarejestrowane w DirectAdmin'));
     expect(linia).toBeDefined();
     expect(linia!.trim()).toMatch(/^log_fail /);
+    // Polecenia spoza dokumentacji DA (brak podkomendy „ip”; „directadmin c” = wypisanie konfiguracji) nie wracają.
+    expect(tresc).not.toMatch(/directadmin ip add|\| *\/usr\/local\/directadmin\/directadmin c\b/);
   });
 
   it.each(['node-onboard-live.sh', 'node-live-readiness.sh'])(

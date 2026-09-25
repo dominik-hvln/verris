@@ -12,6 +12,8 @@
 set -Eeuo pipefail
 
 : "${WAF_DA_USER:?}"; : "${WAF_DOMAIN:?}"; : "${WAF_MODE:?}"
+[[ "$WAF_DA_USER" =~ ^[a-z][a-z0-9]{0,15}$ ]] || { echo "[waf-apply] nieprawidłowy login konta"; exit 1; }
+[[ "$WAF_DOMAIN" =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$ ]] || { echo "[waf-apply] nieprawidłowa domena"; exit 1; }
 
 DOCROOT="/home/${WAF_DA_USER}/domains/${WAF_DOMAIN}/public_html"
 HTACCESS="${DOCROOT}/.htaccess"
@@ -28,26 +30,22 @@ case "$WAF_MODE" in
   *) log "Nieznany tryb WAF_MODE=$WAF_MODE"; exit 1 ;;
 esac
 
-touch "$HTACCESS"
-# Usuń poprzedni zarządzany blok (jeśli istnieje).
-if grep -qF "$MARK_BEGIN" "$HTACCESS"; then
-  sed -i "/$(printf '%s' "$MARK_BEGIN" | sed 's/[][\/.*^$]/\\&/g')/,/$(printf '%s' "$MARK_END" | sed 's/[][\/.*^$]/\\&/g')/d" "$HTACCESS"
-fi
-
-# Dopisz aktualny blok.
-{
-  echo "$MARK_BEGIN"
-  echo "<IfModule LiteSpeed>"
-  echo "  SecRuleEngine ${ENGINE}"
-  echo "</IfModule>"
-  echo "<IfModule mod_security2.c>"
-  echo "  SecRuleEngine ${ENGINE}"
-  echo "</IfModule>"
-  echo "$MARK_END"
-} >> "$HTACCESS"
-
-# Właściciel pliku = użytkownik konta (CageFS-safe).
-chown "${WAF_DA_USER}:${WAF_DA_USER}" "$HTACCESS" 2>/dev/null || true
+# Edycja jako klient: .htaccess leży w katalogu klienta i może być dowiązaniem symbolicznym — root
+# dopisujący do niego (albo robiący chown) zmieniłby dowolny plik systemu (np. /etc/passwd).
+BLOK="$(printf '%s\n' "$MARK_BEGIN" "<IfModule LiteSpeed>" "  SecRuleEngine ${ENGINE}" "</IfModule>" \
+  "<IfModule mod_security2.c>" "  SecRuleEngine ${ENGINE}" "</IfModule>" "$MARK_END")"
+runuser -u "$WAF_DA_USER" -- sh -c '
+  set -e
+  plik="$1"; poczatek="$2"; koniec="$3"; blok="$4"
+  umask 022
+  touch "$plik"
+  tmp="$plik.verris.$$"
+  # Poprzedni zarządzany blok (jeśli jest) wypada; reszta pliku zostaje bez zmian.
+  awk -v p="$poczatek" -v k="$koniec" "\$0==p{w=1;next} \$0==k{w=0;next} !w" "$plik" > "$tmp"
+  printf "%s\n" "$blok" >> "$tmp"
+  cat "$tmp" > "$plik"
+  rm -f "$tmp"
+' verris "$HTACCESS" "$MARK_BEGIN" "$MARK_END" "$BLOK" || { log "Nie udało się zapisać .htaccess"; exit 1; }
 
 echo "[VERRIS_WAF] domain=${WAF_DOMAIN} mode=${WAF_MODE} engine=${ENGINE}"
 log "ModSecurity dla ${WAF_DOMAIN}: ${ENGINE}"

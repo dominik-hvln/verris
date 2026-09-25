@@ -18,6 +18,20 @@ set -Eeuo pipefail
 : "${SC_DB_NAME:=}"; : "${SC_DB_USER:=}"; : "${SC_DB_PASS:=}"
 
 log() { echo "[site-clone] $*"; }
+# wp-cli w ~/.verris klienta — zapis wyłącznie jako klient. Katalog domowy należy do klienta, więc root
+# idący za jego dowiązaniem symbolicznym (curl -o, chmod, chown) nadpisałby albo otworzył dowolny plik
+# systemu (np. chmod 644 /etc/shadow). Root tylko pobiera do własnego pliku tymczasowego.
+wp_cli_jako_klient() {
+  local u="$1" dir="$2" phar="$3" tmp
+  runuser -u "$u" -- test -s "$phar" && return 0
+  log "Pobieram wp-cli…"
+  tmp="$(mktemp)"
+  if ! curl -fsSL --retry 3 --retry-delay 2 https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o "$tmp"; then
+    rm -f "$tmp"; return 1
+  fi
+  runuser -u "$u" -- sh -c 'umask 022; mkdir -p "$1" && cat > "$2.tmp" && mv -f "$2.tmp" "$2"' verris "$dir" "$phar" < "$tmp" || { rm -f "$tmp"; return 1; }
+  rm -f "$tmp"
+}
 fail() { log "BŁĄD: $*" >&2; exit 1; }
 
 DOM_RE='^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$'
@@ -56,11 +70,7 @@ log "pliki skopiowane"
 # 3. WordPress
 if [ -f "$CEL/wp-config.php" ]; then
   echo "VERRIS_KLON_WP=1"
-  if [ ! -s "$WP_PHAR" ]; then
-    mkdir -p "$WP_DIR"
-    curl -fsSL --retry 3 https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o "$WP_PHAR.tmp" && mv "$WP_PHAR.tmp" "$WP_PHAR"
-    chown -R "$SC_DA_USER:$(id -gn "$SC_DA_USER")" "$WP_DIR"
-  fi
+  wp_cli_jako_klient "$SC_DA_USER" "$WP_DIR" "$WP_PHAR" || fail "nie udało się pobrać wp-cli"
   PHP="$(jako_klient sh -c 'command -v php' 2>/dev/null | head -1)"
   [ -n "$PHP" ] || fail "brak PHP CLI dla konta"
   wp() { jako_klient "$PHP" -d memory_limit=512M -d display_errors=stderr "$WP_PHAR" --skip-plugins --skip-themes "$@"; }

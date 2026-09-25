@@ -6,10 +6,14 @@
 # rclone, encrypted, with retention, so a node loss never means customer-data
 # loss. Reports each run to the control plane (Server.lastOffsiteBackup*).
 #
-# Strategy: trigger DA's own per-user backups into /home/<user>/backups (DA
-# format, restorable via the panel), then rclone-sync the node's backup tree to
-# the remote with versioned retention. rclone "crypt" remote gives client-side
-# encryption (keys live only on the node, in rclone.conf).
+# Strategy (official DirectAdmin docs, Backup/Restore → command line):
+#   /usr/local/directadmin/directadmin admin-backup --destination=/home/admin/admin_backups --user=<u>
+# runs synchronously per account (file user.<creator>.<u>.tar.gz), the archive is moved into a
+# root-only tree /home/.verris-offsite/<u>/backups/ and that tree is rclone-synced to the remote
+# (layout unchanged for node-account-restore.sh) with versioned retention, then removed locally.
+# Earlier revision queued `action=backup…&user_select0=` into task.queue — not the documented
+# format (select0=, owner=<admin>) — and synced whatever old archives sat in /home/*/backups.
+# rclone "crypt" remote gives client-side encryption (keys live only on the node, in rclone.conf).
 #
 # Auth/report: /etc/verris.conf (VERRIS_SERVER_ID, VERRIS_IDENTITY_TOKEN, VERRIS_API_URL).
 # Offsite config: /etc/verris-backup.conf:
@@ -53,50 +57,71 @@ report() {
     log "warn: report to control-plane failed"
 }
 
-trigger_da_backups() {
-  # Best-effort: ask DA to create per-user backups. Build/version differences are
-  # tolerated — if this fails we still sync whatever backups already exist.
-  [ "$DA_BACKUP" = "1" ] || return 0
-  command -v /usr/local/directadmin/directadmin >/dev/null 2>&1 || return 0
-  local users_dir=/usr/local/directadmin/data/users
-  [ -d "$users_dir" ] || return 0
-  log "triggering DA per-user backups"
+DA_BIN=/usr/local/directadmin/directadmin
+TREE=/home/.verris-offsite
+
+# admin-backup każdego konta po kolei (synchronicznie), archiwum do drzewa tylko dla roota.
+# Konta, których kopia się nie udała, trafiają do FAILED — ich poprzednie archiwa zostają na zdalnym.
+FAILED=()
+make_da_backups() {
+  local users_dir=/usr/local/directadmin/data/users u user owner adir f
+  rm -rf "$TREE"; install -d -m 0700 "$TREE"
   for u in "$users_dir"/*; do
-    [ -d "$u" ] || continue
-    local user; user=$(basename "$u")
-    # DA admin backup task queue (non-blocking; DA processes via dataskq).
-    echo "action=backup&type=admin&value=multiple&local_path=/home/${user}/backups&owner=${user}&user_select0=${user}&when=now&where=local" \
-      >> /usr/local/directadmin/data/task.queue 2>/dev/null || true
+    [ -f "$u/user.conf" ] || continue
+    user=$(basename "$u")
+    [[ "$user" =~ ^[a-z][a-z0-9]{0,15}$ ]] || continue
+    grep -q '^usertype=user$' "$u/user.conf" 2>/dev/null || continue
+    owner="$(sed -n 's/^creator=//p' "$u/user.conf" | head -1)"
+    [[ "$owner" =~ ^[a-z][a-z0-9]{0,15}$ ]] || owner=admin
+    adir="/home/${owner}/admin_backups"
+    [ -d "$adir" ] || install -d -m 0700 -o "$owner" -g "$owner" "$adir"
+    rm -f "$adir"/user."$owner"."$user".tar.*
+    if ! "$DA_BIN" admin-backup --destination="$adir" --user="$user" >>/tmp/verris-offsite.log 2>&1; then
+      log "warn: admin-backup failed for $user"; FAILED+=("$user"); continue
+    fi
+    f="$(ls -1 "$adir"/user."$owner"."$user".tar.* 2>/dev/null | head -1 || true)"
+    if [ -z "$f" ] || [ ! -s "$f" ]; then
+      log "warn: no archive for $user"; FAILED+=("$user"); continue
+    fi
+    install -d -m 0700 "$TREE/$user/backups"
+    mv -f "$f" "$TREE/$user/backups/"
   done
-  /usr/local/directadmin/dataskq d2000 >/dev/null 2>&1 || true
-  sleep 5
 }
 
 run() {
   require_conf
   command -v rclone >/dev/null 2>&1 || { report 0 0 0 0 "rclone not installed"; echo "[FAIL] rclone missing" >&2; exit 1; }
   command -v jq >/dev/null 2>&1 || { echo "[FAIL] jq missing" >&2; exit 1; }
+  [ -x "$DA_BIN" ] || { report 0 0 0 0 "DirectAdmin not found"; echo "[FAIL] DirectAdmin missing" >&2; exit 1; }
 
   local start; start=$(date +%s)
-  trigger_da_backups
-
-  # Count accounts (for the report) and total local backup size.
-  local accounts=0 bytes=0
-  if [ -d /home ]; then
-    accounts=$(find /home -maxdepth 2 -type d -name backups 2>/dev/null | wc -l | awk '{print $1+0}')
-    bytes=$(du -sbc /home/*/backups 2>/dev/null | tail -1 | awk '{print $1+0}')
+  : > /tmp/verris-offsite.log
+  if [ "$DA_BACKUP" = "1" ]; then
+    log "DirectAdmin admin-backup per account"
+    make_da_backups
   fi
+  # rclone sync nie kasuje plików wykluczonych — poprzednia kopia konta, którego dziś się nie udało, zostaje.
+  local wyklucz=() u
+  for u in "${FAILED[@]}"; do wyklucz+=(--exclude "/$u/**"); done
+
+  local accounts=0 bytes=0
+  accounts=$(find "$TREE" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | awk '{print $1+0}')
+  bytes=$(du -sb "$TREE" 2>/dev/null | awk '{print $1+0}')
 
   local dst="${RCLONE_REMOTE}${BACKUP_PREFIX}"
-  log "rclone sync /home/*/backups -> ${dst} (retention ${RETENTION_DAYS}d)"
+  log "rclone sync ${TREE} -> ${dst} (retention ${RETENTION_DAYS}d)"
   set +e
-  rclone sync /home "$dst" \
-    --include '*/backups/**' \
+  rclone sync "$TREE" "$dst" "${wyklucz[@]}" \
     --transfers 4 --checkers 8 --retries 3 --low-level-retries 10 \
     --backup-dir "${RCLONE_REMOTE}${BACKUP_PREFIX}-versions/$(date -u +%Y%m%d)" \
-    --stats-one-line --log-level NOTICE 2>/tmp/verris-offsite.log
+    --stats-one-line --log-level NOTICE 2>>/tmp/verris-offsite.log
   local rc=$?
   set -e
+  rm -rf "$TREE"
+  # Kopia części kont się nie udała — nie zgłaszamy sukcesu.
+  if [ $rc -eq 0 ] && [ "${#FAILED[@]}" -gt 0 ]; then
+    rc=3; echo "admin-backup failed for: ${FAILED[*]}" >> /tmp/verris-offsite.log
+  fi
 
   # Retention: prune old version snapshots beyond RETENTION_DAYS.
   local cutoff; cutoff=$(date -u -d "-${RETENTION_DAYS} days" +%Y%m%d 2>/dev/null || echo "")

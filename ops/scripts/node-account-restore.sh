@@ -71,10 +71,13 @@ cmd_fetch() {
   local src dst
   src="$(remote_path "$user" "$snap")${archive}"
   dst="/home/${user}/backups/"
-  [ -d "$dst" ] || fail "brak katalogu ${dst} (konto istnieje na tym węźle?)"
+  # Katalog należy do klienta: dowiązanie symboliczne zamiast niego (albo zamiast pliku) skierowałoby
+  # zapis roota w dowolne miejsce systemu — odmawiamy, a chown nie idzie za dowiązaniem (-h).
+  [ -d "$dst" ] && [ ! -L "/home/${user}/backups" ] || fail "brak katalogu ${dst} (konto istnieje na tym węźle?)"
+  [ ! -L "${dst}${archive}" ] || fail "${dst}${archive} jest dowiązaniem symbolicznym — odmowa"
   log "pobieram ${src} -> ${dst}"
   rclone copyto "$src" "${dst}${archive}" --retries 3 --low-level-retries 10 || fail "rclone copy nieudany"
-  chown "${user}:${user}" "${dst}${archive}" 2>/dev/null || true
+  chown -h "${user}:${user}" "${dst}${archive}" 2>/dev/null || true
   log "pobrano: ${dst}${archive}"
   printf 'VERRIS-OFFSITE-FETCHED %s\n' "${dst}${archive}"
 }
@@ -82,14 +85,24 @@ cmd_fetch() {
 cmd_restore() {
   local user="$1" archive="$2" snap="${3:-}"
   [ -n "$user" ] && [ -n "$archive" ] || fail "użycie: restore <user> <archiwum> [YYYYMMDD]"
-  cmd_fetch "$user" "$archive" "$snap" >/dev/null
-  [ -x "$DA_BIN" ] || fail "DirectAdmin nie znaleziony (${DA_BIN}) — pobrano archiwum, restore wykonaj ręcznie"
-  log "zlecam DirectAdmin restore ${archive} dla ${user}"
-  # Kolejka zadań DA: restore lokalnego archiwum konta (dataskq przetworzy).
-  printf 'action=restore&ip_choice=file&local_path=/home/%s/backups&owner=%s&select0=%s&type=admin&when=now&where=local\n' \
-    "$user" "$user" "$archive" >> "$DA_TASKQ"
-  /usr/local/directadmin/dataskq d2000 >/dev/null 2>&1 || true
-  log "✅ Zlecono restore. DA przetwarza w tle (dataskq). Zweryfikuj w DA → Admin Backup/Transfer."
+  [ -x "$DA_BIN" ] || fail "DirectAdmin nie znaleziony (${DA_BIN})"
+  # Oficjalna dokumentacja DA (Backup/Restore → admin restore przez task.queue):
+  #   action=restore&ip_choice=file&local_path=/home/admin/admin_backups&owner=admin
+  #   &select0=user.admin.testuser.tar.gz&type=admin&value=multiple&when=now&where=local
+  # owner = administrator, który utworzył konto (creator w user.conf). Archiwum trafia do katalogu
+  # administratora, nie do katalogu klienta — tam klient mógłby je podmienić przed przetworzeniem.
+  local owner dst
+  owner="$(sed -n 's/^creator=//p' "/usr/local/directadmin/data/users/${user}/user.conf" 2>/dev/null | head -1)"
+  [[ "$owner" =~ ^[a-z][a-z0-9]{0,15}$ ]] || owner=admin
+  dst="/home/${owner}/admin_backups/"
+  [ -d "$dst" ] || fail "brak katalogu ${dst}"
+  log "pobieram $(remote_path "$user" "$snap")${archive} -> ${dst}"
+  rclone copyto "$(remote_path "$user" "$snap")${archive}" "${dst}${archive}" --retries 3 --low-level-retries 10 || fail "rclone copy nieudany"
+  chown -h "${owner}:${owner}" "${dst}${archive}" 2>/dev/null || true
+  log "zlecam DirectAdmin restore ${archive} dla ${user} (owner=${owner})"
+  printf 'action=restore&ip_choice=file&local_path=%s&owner=%s&select0=%s&type=admin&value=multiple&when=now&where=local\n' \
+    "/home/${owner}/admin_backups" "$owner" "$archive" >> "$DA_TASKQ"
+  log "✅ Zlecono restore (task.queue). Zweryfikuj w DA → Admin Backup/Transfer."
 }
 
 # Walidacja wejscia (obrona w glab — control-plane waliduje to samo).

@@ -49,7 +49,6 @@ chmod 600 "${MYSQL_CONF}" 2>/dev/null || true
 
 if mysql -u"${DA_ADMIN}" -p"${NEW_PASS}" -e 'SELECT 1' &>/dev/null; then
   echo "[ok] ${DA_ADMIN} działa. Zaktualizowano ${MYSQL_CONF}."
-  /usr/local/directadmin/directadmin my-cnf 2>/dev/null | head -3 || true
 else
   echo "[fail] Nadal nie można zalogować jako ${DA_ADMIN}." >&2
   exit 1

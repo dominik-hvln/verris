@@ -674,9 +674,10 @@ configure_directadmin_custombuild() {
   fi
 
   if [ "$run_build" = "1" ]; then
-    run "cd $CB && $BUILD build clean"
-    run "cd $CB && $BUILD build php n"
-    run "cd $CB && $BUILD build litespeed"
+    # Składnia CustomBuild 2 wg dokumentacji DA: ./build clean, ./build php, ./build litespeed.
+    run "cd $CB && $BUILD clean"
+    run "cd $CB && $BUILD php"
+    run "cd $CB && $BUILD litespeed"
     log_ok "CustomBuild build zakończony"
   else
     log_skip "CustomBuild build — pominięty przez operatora"
@@ -1037,10 +1038,10 @@ configure_hosting_capabilities() {
 
   # A1 — Let's Encrypt domyślnie dla nowych kont + wymuszone przekierowanie HTTPS.
   da_set_conf letsencrypt 1
-  da_set_conf force_hostname_cert 0
   # A5 — DKIM auto-generowany przy tworzeniu domeny + podpisywanie poczty wychodzącej.
   da_set_conf dkim 1
-  da_set_conf dns_ttl 3600
+  # dns_ttl to przełącznik edycji TTL per rekord; domyślny TTL strefy to default_ttl (oficjalna lista directadmin.conf).
+  da_set_conf default_ttl 3600
   # E-20 — dobowy limit wysyłki per konto (exim DirectAdmina czyta /etc/virtual/limit).
   # Ta sama liczba stoi w panelu klienta (libs/contracts: HOSTING_MAIL_DAILY_SEND_LIMIT);
   # zgodność pilnuje apps/api/src/test/limit-wysylki.spec.ts. Bez nadpisywania z env —
@@ -1090,10 +1091,20 @@ configure_hosting_capabilities() {
   if cb_option_supported modsecurity; then
     cb_set_option modsecurity yes
     cb_set_option modsecurity_ruleset owasp
-    # Domyślnie tryb detekcji (DetectionOnly) — bloki włącza się per konto/globalnie
-    # w panelu (plik konfiguracyjny zarządzany przez agenta).
-    da_set_conf modsecurity_enabled 1
-    log_ok "ModSecurity WAF (OWASP CRS) włączony w CustomBuild"
+    # Oficjalna dokumentacja DA (ModSecurity): da build set modsecurity yes; da build set modsecurity_ruleset owasp;
+    # da build modsecurity. Samo „set” niczego nie instaluje — wcześniej log mówił „włączony” bez budowy,
+    # a klucz modsecurity_enabled w directadmin.conf nie istnieje w dokumentacji. Znacznik: budujemy raz.
+    local znacznik="$CB/.verris-modsecurity-owasp"
+    if [ -f "$znacznik" ]; then
+      log_ok "ModSecurity WAF (OWASP CRS) — zbudowany wcześniej"
+    elif [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then
+      log_info "dry-run: da build modsecurity"
+    elif (cd "$CB" && "$BUILD" modsecurity) >/tmp/verris-modsecurity.log 2>&1; then
+      touch "$znacznik"
+      log_ok "ModSecurity WAF (OWASP CRS) zbudowany (build modsecurity)"
+    else
+      log_fail "ModSecurity: build modsecurity nie powiódł się — /tmp/verris-modsecurity.log"
+    fi
   else
     log_skip "ModSecurity — opcja niedostępna w tym CustomBuild (sprawdź webserver/litespeed)"
   fi

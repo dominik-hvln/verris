@@ -302,20 +302,12 @@ ensure_da_ip() {
   if da_ip_registered "$PUBLIC_IP"; then
     log_ok "IP $PUBLIC_IP już zarejestrowane w DirectAdmin"
   else
-    log_info "Rejestracja IP $PUBLIC_IP w DirectAdmin (shared)..."
-    if /usr/local/directadmin/directadmin ip add "$PUBLIC_IP" 2>/dev/null; then
-      log_ok "directadmin ip add $PUBLIC_IP"
-    elif echo -e "action=add\nvalue=$PUBLIC_IP\nnetmask=255.255.255.255" \
-      | /usr/local/directadmin/directadmin c 2>/dev/null; then
-      log_ok "directadmin c add IP $PUBLIC_IP"
-    else
-      # NODE-02: [FAIL], nie [WARN]. Węzeł bez zarejestrowanego IP odrzuca
-      # każde zakładanie konta („A valid IP was not provided" — od tego
-      # komunikatu zaczęło się Z-18). Ostrzeżenie przepuszczało taki węzeł
-      # dalej, aż do „[OK] Węzeł gotowy" w checkliście.
-      log_fail "Nie udało się automatycznie dodać IP — dodaj ręcznie w DA Admin → IP Management i uruchom onboard ponownie"
-      log_info "  echo -e 'action=add\\nvalue=$PUBLIC_IP\\netmask=255.255.255.255' | directadmin c"
-    fi
+    # Dokumentacja DA („Managing IPs”) opisuje dodanie IP wyłącznie przez Admin → IP Manager
+    # (CMD_IP_MANAGER). Binarka directadmin nie ma podkomendy „ip”, a „directadmin c” to wypisanie
+    # konfiguracji — wcześniejsze próby kończyły się „[OK]” bez dodania IP.
+    # NODE-02: [FAIL], nie [WARN]. Węzeł bez zarejestrowanego IP odrzuca każde zakładanie konta
+    # („A valid IP was not provided” — od tego komunikatu zaczęło się Z-18).
+    log_fail "IP $PUBLIC_IP nie jest zarejestrowane w DirectAdmin — dodaj je w Admin → IP Manager (Add IP, „Add to device” odznaczone, jeśli IP jest już na interfejsie) i uruchom onboard ponownie"
   fi
 
   if [ -n "${DA_KEY:-}" ] && [ -n "${DA_USER:-}" ]; then

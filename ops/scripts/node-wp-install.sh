@@ -35,19 +35,21 @@ chown_user() {
 
 [ -d "$DOCROOT" ] || die "Brak docroot $DOCROOT — czy domena istnieje w DA?"
 
-ensure_wp_cli() {
-  mkdir -p "$WP_DIR"
-  if [ ! -s "$WP_PHAR" ]; then
-    log "Pobieram wp-cli…"
-    curl -fsSL --retry 3 --retry-delay 2 \
-      https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
-      -o "${WP_PHAR}.tmp"
-    mv "${WP_PHAR}.tmp" "$WP_PHAR"
+# wp-cli w ~/.verris klienta — zapis wyłącznie jako klient. Katalog domowy należy do klienta, więc root
+# idący za jego dowiązaniem symbolicznym (curl -o, chmod, chown) nadpisałby albo otworzył dowolny plik
+# systemu (np. chmod 644 /etc/shadow). Root tylko pobiera do własnego pliku tymczasowego.
+wp_cli_jako_klient() {
+  local u="$1" dir="$2" phar="$3" tmp
+  runuser -u "$u" -- test -s "$phar" && return 0
+  log "Pobieram wp-cli…"
+  tmp="$(mktemp)"
+  if ! curl -fsSL --retry 3 --retry-delay 2 https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o "$tmp"; then
+    rm -f "$tmp"; return 1
   fi
-  chown_user "$WP_DIR"
-  chmod 755 "$WP_DIR"
-  chmod 644 "$WP_PHAR"
+  runuser -u "$u" -- sh -c 'umask 022; mkdir -p "$1" && cat > "$2.tmp" && mv -f "$2.tmp" "$2"' verris "$dir" "$phar" < "$tmp" || { rm -f "$tmp"; return 1; }
+  rm -f "$tmp"
 }
+ensure_wp_cli() { wp_cli_jako_klient "$WP_DA_USER" "$WP_DIR" "$WP_PHAR" || die "nie udało się pobrać wp-cli"; }
 
 resolve_user_php() {
   local p
