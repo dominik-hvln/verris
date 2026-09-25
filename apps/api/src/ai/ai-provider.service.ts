@@ -23,11 +23,23 @@ export class AiProviderService {
   }
 
   get model() {
-    return this.config.get<string>('AI_MODEL') ?? 'gpt-4o-mini';
+    return this.config.get<string>('AI_MODEL') ?? 'gpt-5.6-luna';
   }
 
   get embedModel() {
     return this.config.get<string>('AI_EMBED_MODEL') ?? 'text-embedding-3-small';
+  }
+
+  /**
+   * Modele z rozumowaniem (OpenAI gpt-5*, o*) w Chat Completions przyjmują `max_completion_tokens`
+   * i `reasoning_effort` zamiast `max_tokens`/`temperature`. `none` — bez tokenów rozumowania: tanio
+   * i szybko, a limit wyjścia nie zjada się na myślenie (gpt-5.6-luna: reasoning.effort none…max).
+   */
+  private parametryGenerowania(temperature: number, maxTokens?: number): Record<string, unknown> {
+    if (/^(gpt-5|o\d)/.test(this.model)) {
+      return { reasoning_effort: 'none', ...(maxTokens ? { max_completion_tokens: maxTokens } : {}) };
+    }
+    return { temperature, ...(maxTokens ? { max_tokens: maxTokens } : {}) };
   }
 
   isConfigured(): boolean {
@@ -62,8 +74,7 @@ export class AiProviderService {
       },
       body: JSON.stringify({
         model: this.model,
-        temperature: input.temperature ?? 0.3,
-        max_tokens: input.maxTokens ?? 700,
+        ...this.parametryGenerowania(input.temperature ?? 0.3, input.maxTokens ?? 700),
         messages: [{ role: 'system', content: input.system }, ...input.messages],
       }),
     });
@@ -124,7 +135,7 @@ export class AiProviderService {
       },
       body: JSON.stringify({
         model: this.model,
-        temperature: input.temperature ?? 0.2,
+        ...this.parametryGenerowania(input.temperature ?? 0.2),
         response_format: { type: 'json_object' },
         messages: [
           { role: 'system', content: input.system },

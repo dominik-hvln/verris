@@ -1,5 +1,6 @@
 'use client';
 
+import { KOPIE_OFFSITE_DNI } from '@verris/contracts';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AlertTriangle,
@@ -124,7 +125,7 @@ export function HostingOffsitePanel({
             <p className="text-sm font-semibold text-white">Kopia poza serwerem (off-site)</p>
             <p className="text-xs text-neutral-400">
               {state.offsite.protected
-                ? `Dodatkowa kopia Twojego konta leży poza tym serwerem — przetrwa nawet jego awarię.${
+                ? `Dodatkowa kopia Twojego konta leży poza tym serwerem — przetrwa nawet jego awarię. Trzymamy wersje z ${KOPIE_OFFSITE_DNI} dni.${
                     state.offsite.lastRunAt
                       ? ' Ostatnia: ' +
                         new Date(state.offsite.lastRunAt).toLocaleString('pl-PL') +
@@ -168,12 +169,13 @@ export function HostingOffsitePanel({
               value={snapshot}
               onChange={(e) => setSnapshot(e.target.value.replace(/\D/g, '').slice(0, 8))}
               placeholder="RRRRMMDD, np. 20260715"
+              aria-label="Dzień kopii (RRRRMMDD)"
               inputMode="numeric"
               spellCheck={false}
               className="w-48 rounded-md border border-white/10 bg-black/40 px-3 py-1.5 font-mono text-xs text-white placeholder:text-neutral-500 focus:border-cyan-400/50 focus:outline-none"
             />
             <span className="text-neutral-500">
-              Wersje trzymamy przez ograniczony czas — jeśli dnia nie ma, lista będzie pusta.
+              Masz kopię z każdego z ostatnich {KOPIE_OFFSITE_DNI} dni — starszych już nie ma.
             </span>
           </div>
         ) : null}

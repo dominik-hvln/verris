@@ -49,4 +49,18 @@ describe('AiProviderService', () => {
       }),
     );
   });
+
+  it.each([
+    ['gpt-5.6-luna', { reasoning_effort: 'none', max_completion_tokens: 700 }, ['temperature', 'max_tokens']],
+    ['mistral-small-latest', { temperature: 0.3, max_tokens: 700 }, ['reasoning_effort', 'max_completion_tokens']],
+  ])('%s: parametry generowania zgodne z modelem', async (model, maja, brak) => {
+    const wartosci: Record<string, string> = { AI_API_KEY: 'sk-test', AI_MODEL: model };
+    const config = { get: jest.fn((k: string) => wartosci[k]) };
+    (global.fetch as jest.Mock).mockResolvedValue({ ok: true, json: async () => ({ choices: [{ message: { content: 'ok' } }] }) });
+    const service = new AiProviderService(config as never);
+    await service.chat({ system: 's', messages: [{ role: 'user', content: 'u' }] });
+    const body = JSON.parse((global.fetch as jest.Mock).mock.calls.at(-1)[1].body);
+    expect(body).toMatchObject(maja);
+    for (const k of brak) expect(body).not.toHaveProperty(k);
+  });
 });

@@ -34,7 +34,7 @@ const GROUPS: { title: string; note?: string; items: (string | [string, string])
       'Bezpłatna i szybka migracja',
       "Certyfikat SSL Let's Encrypt",
       'Obsługa starych wersji PHP',
-      'Kopie zapasowe z samodzielnym odtwarzaniem (w ramach limitu Planu)',
+      'Kopie zapasowe z samodzielnym odtwarzaniem, w tym kopia poza serwerem z każdego z ostatnich 30 dni',
       'Kopia bezpieczeństwa przed przywróceniem — domyślnie włączona',
       'Menedżer plików w panelu',
     ],

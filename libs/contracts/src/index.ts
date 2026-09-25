@@ -18,3 +18,4 @@ export * from './mail-limits';
 export * from './lokalizacja';
 export * from './etykiety';
 export * from './sciezka-api';
+export * from './kopie';

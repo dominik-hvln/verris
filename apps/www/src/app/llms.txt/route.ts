@@ -62,7 +62,8 @@ const FACTS = `
 - „Bez limitu" stron, skrzynek i transferu oznacza brak sztywnego licznika; realnym ogranicznikiem
   są zasoby konta i zasady uczciwego korzystania.
 - Płatności: karta, BLIK, Apple Pay, Google Pay, przelew online (Stripe). Faktury VAT z programu księgowego zintegrowanego z KSeF.
-- Kopie zapasowe z samodzielnym przywracaniem (pliki/bazy/poczta osobno); domyślnie przed
+- Kopie zapasowe z samodzielnym przywracaniem (pliki/bazy/poczta osobno), w tym kopia poza serwerem
+  z każdego z ostatnich 30 dni (klient wybiera dzień w panelu); domyślnie przed
   przywróceniem system wykonuje kopię bezpieczeństwa stanu obecnego, więc operację da się cofnąć.
   Kopie Verris są pomocnicze i nie zwalniają klienta z utrzymywania własnych kopii danych krytycznych.
 - Domeny bez automatycznych odnowień: odnowienie wyłącznie po opłaceniu, przypomnienia 30/14/7 dni.
