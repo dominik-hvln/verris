@@ -98,6 +98,12 @@ i zasobów z zewnątrz; osadzanie przez iframe z sandboxem + mały loader.
 - **Węzeł testowy** — mały serwer testowy teraz, żeby przejść testy węzłowe przed docelowym AX102.
 - **B-08/B-09** aplikacje Node.js i Python — przez CloudLinux Selector (zakładka Aplikacje). Kod aplikacji w katalogu domowym poza `public_html`, serwer podaje go pod domeną i ścieżką; wersje interpretera tylko te włączone na węźle. Sprawdzenie na węźle testowym (D3 w `audyt/dane/wezel.csv`).
 
+### 2026-09-25 — decyzje z formularza (druga tura)
+- **X-20** Prisma 7 — migracja **przed startem** (weryfikacja przez CI).
+- **G-21** anty-DDoS — na start ochrona DDoS Hetznera; **Cloudflare po starcie**.
+- **D-14** PostgreSQL i **E-23** kalendarz/kontakty (CalDAV/CardDAV) — robimy teraz, test na węźle testowym.
+- **PB-06** landing `/przenies-strone` i **PB-07** treści/cennik verris.pl — projekt do akceptacji właściciela; publikacja dopiero po zgodzie.
+
 ### 2026-09-25 — sesje paneli i impersonacja (przegląd bezpieczeństwa)
 Ciasteczka sesji admina i obsługi są **host-only** (`admin_session`, `staff_session`); stare ciasteczka
 na `.verris.pl` panel kasuje przy logowaniu/wylogowaniu — po wdrożeniu każdy operator loguje się raz
