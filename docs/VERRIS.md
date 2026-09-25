@@ -325,3 +325,11 @@ WordPress MCP Adapter (developer.wordpress.org/news/2026/02/…), ClouDNS (cloud
 (openprovider.com/products/security/premium-dns, support.openprovider.eu …vanity-nameservers),
 Cloudflare (developers.cloudflare.com/dns/nameservers/custom-nameservers), Bunny (bunny.net/pricing/dns),
 Hetzner DNS (docs.hetzner.com/networking/dns/…), Route 53 (aws.amazon.com/route53/pricing).
+
+
+## Reseller: działania na klientach i marka (O-05, O-09) — 2026-09-25
+
+- **Granica danych:** reseller widzi u klienta tylko usługi i ich stan (domena, pakiet, status, stan zdrowia, odnowienie, cena detaliczna). Bez plików, baz, poczty, faktur, salda, danych rozliczeniowych, logowań i IP; bez wchodzenia na konto. Lista pól pilnowana w `test/integration/reseller-klienci.int-spec.ts`. Praca przy stronie = dostęp od klienta przez IAM.
+- **Działania:** `GET /reseller/me/clients/:id`, `POST …/password-link` (raz na 10 min), `POST …/service/:id/suspend|resume` (powód `RESELLER`; reseller zdejmuje tylko własną blokadę), `DELETE /reseller/me/clients/:id` (odpięcie). Klient: `GET/DELETE /me/partner` (odpiąć może tylko właściciel). Po 30 dniach wstrzymania przez resellera — powiadomienie dla obsługi (`reseller-przypomnienie.scheduler.ts`).
+- **Marka:** `POST /reseller/me/brand`, `POST/DELETE /reseller/me/logo` (PNG/JPEG/WebP ≤ 100 KB, typ po sygnaturze). Logo publicznie pod `/public/reseller-logo/:code`. Mailer wstawia blok partnera między znaczniki `<!--verris-partner-->` w nagłówku email-shell (wszystkie maile do klientów resellera). Panel: marka w sidebarze i w Ustawieniach, baner „wstrzymana przez partnera” na usłudze.
+- **Zasada w panelu:** baner „czeka na płatność” tylko przy blokadzie za płatność (`powodBlokady()` w `lib/service-events.ts`); wstrzymanie przez partnera albo obsługę ma własny komunikat.

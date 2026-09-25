@@ -83,6 +83,12 @@ export const REGULY_TRAS: Regula[] = [
     po_co: 'Zgody, preferencje marketingowe i flagi modułów (N-12) i status testera (PB-26) dotyczą osoby zalogowanej.',
   },
 
+  {
+    pasuje: zaczyna('/me/partner'),
+    odczyt: BEZ_WYMOGU, zapis: 'ODMOWA',
+    po_co: 'Kto prowadzi konto (reseller) widzi każdy; odpiąć konto od partnera może tylko właściciel (O-05).',
+  },
+
   // --- odmowa twarda: rzeczy właściciela konta ------------------------------
   {
     pasuje: zaczyna('/me/account-deletion'),

@@ -327,9 +327,9 @@ ${preheaderTrick}
                     </table>
                   </a>
                 </td>
-                <td align="right">
+                <td align="right"><!--verris-partner-->
                   <span style="display:inline-block;font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:${PALETTE.onDarkMuted};">Skaluj świadomie</span>
-                </td>
+                <!--/verris-partner--></td>
               </tr>
             </table>
           </td>

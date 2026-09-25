@@ -480,8 +480,22 @@ function DashboardLayoutInner({
       >
         {/* Logo */}
         <div className="flex h-16 shrink-0 items-center px-5">
-          <Link href="/dashboard" aria-label="Pulpit">
-            <VerrisLockup size="sm" />
+          <Link href="/dashboard" aria-label="Pulpit" className="min-w-0">
+            {rail?.partner ? (
+              // O-09 — klient resellera widzi markę partnera; Verris zostaje jako dopisek.
+              <span className="flex min-w-0 flex-col">
+                <span className="flex min-w-0 items-center gap-2">
+                  {rail.partner.logoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- logo z API (inny host)
+                    <img src={rail.partner.logoUrl} alt="" className="h-7 max-w-[7rem] object-contain" />
+                  ) : null}
+                  <span className="break-words font-display text-[15px] font-bold leading-tight text-foreground">{rail.partner.nazwa}</span>
+                </span>
+                <span className="text-[10px] uppercase tracking-[0.08em] text-muted-foreground">na infrastrukturze Verris</span>
+              </span>
+            ) : (
+              <VerrisLockup size="sm" />
+            )}
           </Link>
           <button
             type="button"

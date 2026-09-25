@@ -38,6 +38,7 @@ import { clientFeatures } from '@/lib/client-features';
 import { useModul } from '@/lib/feature-flags';
 import { fetchSidebarUser } from '@/app/dashboard/sidebar-actions';
 import { liczba } from '@/lib/liczba';
+import { powodBlokady } from '@/lib/service-events';
 
 const statusLabels: Record<string, string> = {
   ACTIVE: 'Aktywna',
@@ -181,10 +182,8 @@ export default function ServiceOverviewTab({
       })
     : null;
 
-  const needsBilling =
-    service.status === 'PENDING_PAYMENT' ||
-    service.status === 'PAST_DUE' ||
-    service.status === 'SUSPENDED';
+  const blokada = powodBlokady(service.status, service.events);
+  const needsBilling = blokada === 'platnosc';
 
   // Poczta nie ma hostingu WWW — ukrywamy hostingowe skróty/autoscaling/usage.
   const isEmail = service.productKind === 'EMAIL';
@@ -196,6 +195,16 @@ export default function ServiceOverviewTab({
 
   return (
     <div className="space-y-4 min-w-0">
+      {blokada === 'partner' || blokada === 'obsluga' ? (
+        <p className="rounded-[10px] border border-warn/30 bg-warn-soft px-4 py-3 text-sm text-foreground">
+          <b>{blokada === 'partner' ? 'Usługa wstrzymana przez partnera, który prowadzi Twoje konto.' : 'Usługa wstrzymana przez obsługę Verris.'}</b>{' '}
+          <span className="text-muted-foreground">
+            {blokada === 'partner'
+              ? 'Wznowić ją może partner albo nasza obsługa (kontakt@verris.pl). Szczegóły w Ustawieniach.'
+              : 'Aby poznać powód i ustalić wznowienie, otwórz zgłoszenie w Centrum pomocy albo napisz: kontakt@verris.pl.'}
+          </span>
+        </p>
+      ) : null}
       {needsBilling ? (
         <button
           type="button"

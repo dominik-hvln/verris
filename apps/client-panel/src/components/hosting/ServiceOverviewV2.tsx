@@ -12,7 +12,7 @@ import { opisLokalizacji } from '@verris/contracts';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { EVENT_WARN, serviceEventLabel } from '@/lib/service-events';
+import { EVENT_WARN, powodBlokady, serviceEventLabel } from '@/lib/service-events';
 import { ChevronRight, Loader2, Plus, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import type {
@@ -172,7 +172,8 @@ export default function ServiceOverviewV2({
   if (!service) return <p className="text-sm text-crit">Nie udało się wczytać usługi.</p>;
 
   const account = service.account;
-  const needsBilling = ['PENDING_PAYMENT', 'PAST_DUE', 'SUSPENDED'].includes(service.status);
+  const blokada = powodBlokady(service.status, service.events);
+  const needsBilling = blokada === 'platnosc';
   const perMonth = service.interval === 'MONTH' ? '/ mies.' : '/ rok';
   const h = HEALTH[health?.label ?? 'pending'];
   const diskUsed = usage?.rows.at(-1)?.diskUsageMb ?? conn?.diskMb.used ?? null;
@@ -212,6 +213,21 @@ export default function ServiceOverviewV2({
           <b>Usługa czeka na płatność.</b>{' '}
           <span className="text-muted-foreground">Opłać, anuluj zamówienie lub zarządzaj rozliczeniem →</span>
         </button>
+      ) : null}
+      {blokada === 'partner' ? (
+        <div className="rounded-[10px] border border-warn/30 bg-warn-soft px-4 py-3 text-sm text-foreground">
+          <b>Usługa wstrzymana przez partnera, który prowadzi Twoje konto.</b>{' '}
+          <span className="text-muted-foreground">
+            Strona i poczta nie działają do czasu wznowienia. Wznowić ją może partner albo nasza obsługa (kontakt@verris.pl).
+            Kto jest Twoim partnerem i jak się od niego odpiąć — w <Link className="underline" href="/dashboard/settings">Ustawieniach</Link>.
+          </span>
+        </div>
+      ) : null}
+      {blokada === 'obsluga' ? (
+        <div className="rounded-[10px] border border-warn/30 bg-warn-soft px-4 py-3 text-sm text-foreground">
+          <b>Usługa wstrzymana przez obsługę Verris.</b>{' '}
+          <span className="text-muted-foreground">Aby poznać powód i ustalić wznowienie, otwórz zgłoszenie w Centrum pomocy albo napisz: kontakt@verris.pl.</span>
+        </div>
       ) : null}
 
       {/* Nagłówek */}

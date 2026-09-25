@@ -33,6 +33,7 @@ import { StrongAuthSection } from "./strong-auth-section";
 import { ActivityLogSection } from "./activity-log-section";
 import { ActiveSessionsSection } from "./active-sessions-section";
 import { EmailChangeSection } from "./email-change-section";
+import { PartnerSection } from "./partner-section";
 import { PrivacyTab } from "./privacy-tab";
 import { NotificationsTab } from "./notifications-tab";
 import { SidebarTilesSection } from "./sidebar-tiles-section";
@@ -266,6 +267,7 @@ export default function SettingsPage() {
 
       {/* Tab Content */}
       <div>
+        {activeTab === "profile" ? <PartnerSection isSubaccount={Boolean(profile.isSubaccount)} showToast={showToast} /> : null}
         <div className="rounded-[10px] border border-line bg-card">
             {activeTab === "profile" && (
             <ProfileTab

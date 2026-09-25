@@ -14,6 +14,8 @@ import {
   type ResellerClient as Client,
 } from './actions';
 import { liczba } from '@/lib/liczba';
+import { KlientResellera } from './reseller-klient';
+import { MarkaResellera } from './reseller-marka';
 
 const pln = (n: number) => `${liczba(n, 2)} K`;
 
@@ -146,6 +148,8 @@ export function ResellerClient() {
         {ov.brandName ? <p className="text-xs text-neutral-500">Marka: <span className="text-neutral-300">{ov.brandName}</span></p> : null}
       </section>
 
+      {ov.status === 'ACTIVE' ? <MarkaResellera ov={ov} onZmiana={setOv} /> : null}
+
       {ov.status === 'ACTIVE' ? (
         <form onSubmit={(e) => void zapiszNarzut(e)} className="flex flex-wrap items-end gap-2 rounded-2xl border border-white/10 bg-black/30 p-5">
           <label className="text-sm font-medium text-white">
@@ -189,37 +193,23 @@ export function ResellerClient() {
         ) : (
           <div className="space-y-2">
             {clients.map((c) => (
-              <div key={c.id} className="rounded-xl border border-white/10 bg-black/20 p-3">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <span className="font-medium text-white">{c.name ?? c.email}</span>
-                    <span className="ml-2 text-[11px] text-neutral-500">{c.email}</span>
-                  </div>
-                  <span className="text-[11px] text-neutral-500">Klient od {new Date(c.createdAt).toLocaleDateString('pl-PL')}</span>
-                </div>
-                {c.services.length > 0 ? (
-                  <div className="mt-2 space-y-1">
-                    {c.services.map((s) => (
-                      <div key={s.id} className="flex items-center justify-between gap-2 text-xs text-neutral-400">
-                        <span>{s.plan ?? 'Usługa'} · {s.status}</span>
-                        <span className="font-mono">
-                          <span className="text-neutral-500">{liczba(s.wholesale, 2)} K</span>
-                          {' → '}
-                          <span className="text-emerald-300">{liczba(s.retail, 2)} K detal</span>
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : <p className="mt-1 text-[11px] text-neutral-600">Brak aktywnych usług.</p>}
-              </div>
+              <KlientResellera
+                key={c.id}
+                klient={c}
+                aktywny={ov.status === 'ACTIVE'}
+                onOdpiety={() => {
+                  setClients((l) => l.filter((x) => x.id !== c.id));
+                  fetchResellerOverview().then((r) => r.ok && setOv(r.data));
+                }}
+              />
             ))}
           </div>
         )}
       </section>
 
       <p className="text-[11px] text-neutral-500">
-        Ceny detaliczne liczymy automatycznie jako cena hurtowa × (1 + Twój narzut). Pełne rozliczenia
-        między Tobą a klientami oraz białą markę na fakturach dodamy w kolejnym etapie.
+        Ceny detaliczne liczymy automatycznie jako cena hurtowa × (1 + Twój narzut). Klienci płacą za usługi
+        bezpośrednio w swoim panelu; rozliczenia między Tobą a klientami i Twoja marka na fakturach — w kolejnym etapie.
       </p>
     </div>
   );

@@ -3415,6 +3415,10 @@ model ResellerProfile {
   brandName  String?
   markupPct  Int            @default(20)
   code       String         @unique
+  /// O-09 — logo resellera (PNG/JPEG/WebP ≤ 100 KB), serwowane pod /public/reseller-logo/:code.
+  logoData    Bytes?
+  logoMime    String?
+  logoVersion Int            @default(0)
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
 }

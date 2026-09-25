@@ -16,14 +16,23 @@ export interface RailData {
   openTickets: number | null;
   /** PROD-02 — stan konfiguracji każdej żywej usługi; pasek w sidebarze bierze najniższy. */
   onboarding: UslugaOnboardingu[] | null;
+  /** O-09 — partner (reseller), który prowadzi konto; `null` = brak albo nie wiemy. */
+  partner: PartnerKonta | null;
+}
+
+export interface PartnerKonta {
+  nazwa: string;
+  logoUrl: string | null;
+  kontakt: string;
 }
 
 export async function fetchRailDataAction(): Promise<RailData> {
-  const [services, domains, tickets, konto] = await Promise.all([
+  const [services, domains, tickets, konto, partner] = await Promise.all([
     apiFetch<ServiceSummaryDto[]>('/services').catch(() => null),
     apiFetch<DomainDto[]>('/domains').catch(() => null),
     fetchTickets().catch(() => null),
     pobierzKontoOnboardingu(),
+    apiFetch<PartnerKonta | null>('/me/partner').catch(() => null),
   ]);
   return {
     services: services
@@ -40,6 +49,7 @@ export async function fetchRailDataAction(): Promise<RailData> {
     domains: domains ? domains.length : null,
     domainsExpiring: domains ? domains.filter((d) => isExpiringSoon(d.expiresAt)).length : null,
     onboarding: services ? uslugiOnboardingu(services, konto) : null,
+    partner: partner || null,
     openTickets: tickets
       ? tickets.filter((t) => t.status === 'OPEN' || t.status === 'IN_PROGRESS' || t.status === 'WAITING_CUSTOMER').length
       : null,

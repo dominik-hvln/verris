@@ -40,6 +40,7 @@ describe('X-05 fetchRailDataAction', () => {
       domainsExpiring: null,
       onboarding: null,
       openTickets: null,
+      partner: null,
     });
   });
 

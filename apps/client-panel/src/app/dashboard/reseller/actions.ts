@@ -8,6 +8,7 @@ export type ResellerOverview = {
   markupPct: number;
   code: string;
   inviteLink: string;
+  logoUrl: string | null;
   clientsCount: number;
   monthlyRetail: number;
   monthlyWholesale: number;
@@ -67,4 +68,62 @@ export async function setResellerMarkup(markupPct: number): Promise<{ ok: true; 
   } catch (e) {
     return { ok: false, error: e instanceof ApiError || e instanceof Error ? e.message : 'Błąd' };
   }
+}
+
+// ---- O-05 — działania na klientach ----
+
+export type UslugaKlienta = {
+  id: string;
+  plan: string | null;
+  domena: string | null;
+  status: string;
+  zdrowie: 'healthy' | 'attention' | 'critical' | 'pending';
+  odnowienie: string | null;
+  cenaDetaliczna: number;
+  waluta: string;
+  wstrzymanaPrzezCiebie: boolean;
+};
+export type KlientSzczegoly = { id: string; email: string; imieNazwisko: string | null; od: string; uslugi: UslugaKlienta[] };
+type Wynik<T> = { ok: true; data: T } | { ok: false; error: string };
+
+async function wolaj<T>(path: string, init?: RequestInit): Promise<Wynik<T>> {
+  try {
+    return { ok: true, data: await apiFetch<T>(path, init) };
+  } catch (e) {
+    return { ok: false, error: e instanceof ApiError || e instanceof Error ? e.message : 'Błąd połączenia z serwerem' };
+  }
+}
+
+const uuid = (v: string) => /^[0-9a-f-]{36}$/i.test(v);
+
+export async function fetchKlient(id: string): Promise<Wynik<KlientSzczegoly>> {
+  if (!uuid(id)) return { ok: false, error: 'Nieprawidłowy klient.' };
+  return wolaj<KlientSzczegoly>(`/reseller/me/clients/${id}`);
+}
+
+export async function linkHaslaKlienta(id: string): Promise<Wynik<{ mailWyslany: boolean }>> {
+  if (!uuid(id)) return { ok: false, error: 'Nieprawidłowy klient.' };
+  return wolaj(`/reseller/me/clients/${id}/password-link`, { method: 'POST' });
+}
+
+export async function wstrzymajUsluge(klientId: string, uslugaId: string, wznow: boolean): Promise<Wynik<KlientSzczegoly>> {
+  if (!uuid(klientId) || !uuid(uslugaId)) return { ok: false, error: 'Nieprawidłowa usługa.' };
+  return wolaj<KlientSzczegoly>(`/reseller/me/clients/${klientId}/service/${uslugaId}/${wznow ? 'resume' : 'suspend'}`, { method: 'POST' });
+}
+
+export async function odepnijKlienta(id: string): Promise<Wynik<{ ok: true }>> {
+  if (!uuid(id)) return { ok: false, error: 'Nieprawidłowy klient.' };
+  return wolaj(`/reseller/me/clients/${id}`, { method: 'DELETE' });
+}
+
+// ---- O-09 — marka ----
+
+export async function zapiszMarke(brandName: string): Promise<Wynik<ResellerOverview>> {
+  return wolaj<ResellerOverview>('/reseller/me/brand', { method: 'POST', body: JSON.stringify({ brandName }) });
+}
+
+export async function zapiszLogo(base64: string | null): Promise<Wynik<ResellerOverview>> {
+  return base64 === null
+    ? wolaj<ResellerOverview>('/reseller/me/logo', { method: 'DELETE' })
+    : wolaj<ResellerOverview>('/reseller/me/logo', { method: 'POST', body: JSON.stringify({ base64 }) });
 }

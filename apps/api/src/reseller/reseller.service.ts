@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { MailerService } from '../mail/mailer.service';
 import { escapeMarkdown as md, renderEmailShell } from '../mail/templates/_layouts/email-shell';
+import { LOGO_MAX_BAJTOW, typLogo } from './reseller-marka';
 
 type ResellerStatus = 'PENDING' | 'ACTIVE' | 'SUSPENDED';
 
@@ -35,6 +36,8 @@ export interface ResellerOverview {
   markupPct: number;
   code: string;
   inviteLink: string;
+  /** O-09 — adres logo widoczny dla klientów; `null` = bez logo. */
+  logoUrl: string | null;
   clientsCount: number;
   monthlyRetail: number;
   monthlyWholesale: number;
@@ -64,6 +67,13 @@ export class ResellerService {
   }
   private clientUrl(): string {
     return (process.env.CLIENT_PANEL_URL ?? 'https://panel.verris.pl').replace(/\/$/, '');
+  }
+
+  private async logoUrl(userId: string, code: string): Promise<string | null> {
+    const l = await this.prisma.resellerProfile.findUnique({ where: { userId }, select: { logoMime: true, logoVersion: true } });
+    if (!l?.logoMime) return null;
+    const api = (process.env.PUBLIC_API_URL || process.env.API_BASE_URL || 'https://api.verris.pl').replace(/\/$/, '');
+    return `${api}/public/reseller-logo/${encodeURIComponent(code)}?v=${l.logoVersion}`;
   }
 
   async getProfile(userId: string): Promise<ProfileRow | null> {
@@ -116,6 +126,7 @@ export class ResellerService {
       markupPct: p.markupPct,
       code: p.code,
       inviteLink: `${this.clientUrl()}/register?reseller=${encodeURIComponent(p.code)}`,
+      logoUrl: await this.logoUrl(userId, p.code),
       clientsCount: clients.length,
       monthlyRetail: Math.round(retail * 100) / 100,
       monthlyWholesale: Math.round(wholesale * 100) / 100,
@@ -228,6 +239,44 @@ export class ResellerService {
     await this.repo.update({ where: { userId }, data: { markupPct: v } });
     await this.audit.record({ action: 'RESELLER_MARKUP_CHANGED', userId, details: { from: p.markupPct, to: v } });
     return this.getOverview(userId);
+  }
+
+  /** O-09 — nazwa marki widoczna dla klientów (panel, maile). */
+  async setBrand(userId: string, brandName: string) {
+    const p = await this.getProfile(userId);
+    if (!p || p.status !== 'ACTIVE') throw new ForbiddenException('Program resellerski nie jest aktywny na tym koncie.');
+    const v = brandName.trim().slice(0, 80);
+    if (!v) throw new BadRequestException('Podaj nazwę marki.');
+    await this.repo.update({ where: { userId }, data: { brandName: v } });
+    await this.audit.record({ action: 'RESELLER_BRAND_CHANGED', userId, details: { from: p.brandName, to: v } });
+    return this.getOverview(userId);
+  }
+
+  /** O-09 — logo marki; `null` usuwa. Typ po sygnaturze pliku (PNG/JPEG/WebP), nigdy SVG. */
+  async setLogo(userId: string, base64: string | null) {
+    const p = await this.getProfile(userId);
+    if (!p || p.status !== 'ACTIVE') throw new ForbiddenException('Program resellerski nie jest aktywny na tym koncie.');
+    let data: Record<string, unknown>;
+    if (base64 === null) {
+      data = { logoData: null, logoMime: null, logoVersion: { increment: 1 } };
+    } else {
+      const buf = Buffer.from(base64.replace(/^data:[^,]*,/, ''), 'base64');
+      if (!buf.length) throw new BadRequestException('Pusty plik.');
+      if (buf.length > LOGO_MAX_BAJTOW) throw new BadRequestException('Logo może mieć najwyżej 100 KB.');
+      const mime = typLogo(buf);
+      if (!mime) throw new BadRequestException('Logo musi być plikiem PNG, JPEG albo WebP.');
+      data = { logoData: buf, logoMime: mime, logoVersion: { increment: 1 } };
+    }
+    await this.repo.update({ where: { userId }, data });
+    await this.audit.record({ action: 'RESELLER_LOGO_CHANGED', userId, details: { usuniete: base64 === null } });
+    return this.getOverview(userId);
+  }
+
+  /** Publiczny odczyt logo po kodzie — tylko aktywny program. */
+  async logoPubliczne(code: string): Promise<{ data: Buffer; mime: string } | null> {
+    const p = await this.prisma.resellerProfile.findUnique({ where: { code }, select: { status: true, logoData: true, logoMime: true } });
+    if (!p || p.status !== 'ACTIVE' || !p.logoData || !p.logoMime) return null;
+    return { data: Buffer.from(p.logoData), mime: p.logoMime };
   }
 
   async listClients(userId: string): Promise<ResellerClientView[]> {

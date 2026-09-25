@@ -6,15 +6,15 @@ X-04,KOD,testy integracyjne kolejnych ścieżek zapisu na prawdziwym PostgreSQL
 X-05,KOD,testy kluczowych ekranów panelu admina i obsługi
 P-12,KOD,skan dostępności (axe) wszystkich tras trzech paneli + przejście czytnikiem ekranu
 L-07,KOD,domknąć zakres publicznego API odczytu (dziś 5 endpointów GET) i opisać go w dokumentacji
-O-05,KOD,przegląd klientów resellera z działaniami (dziś tylko odczyt)
-O-09,KOD,"własna marka resellera widoczna dla jego klientów (panel, maile)"
+O-05,PRODUKCJA,"działania resellera na kliencie testowym na produkcji (szczegóły, link hasła, wstrzymaj/wznów, odepnij)"
+O-09,PRODUKCJA,logo i nazwa resellera w panelu i w mailu klienta testowego na produkcji
 B-19,KOD PO STARCIE,usunięty wyłączony kod 2026-09-25; kreator po starcie jako nowa funkcja
 Q-06,KOD PO STARCIE,"VPS przez Hetzner Cloud API — potrzebne konto Hetzner Cloud, nie węzeł"
 Q-07,KOD PO STARCIE,konsola VPS (Hetzner Cloud API)
 Q-08,KOD PO STARCIE,snapshoty i rebuild VPS (Hetzner Cloud API)
 G-08,KOD PO STARCIE,sprzedaż certyfikatów DV/OV/EV — plus umowa z dostawcą
 J-05,KOD PO STARCIE,CDN (Cloudflare) — plus konto Cloudflare
-PB-20,KOD PO STARCIE,tryb agencji: przełącznik klienta w menu
+PB-20,KOD,udostępnianie wybranych usług + przełącznik kont dla deweloperów (decyzja 2026-09-25: przed startem)
 G-18,PRODUKCJA,dziennik aktywności — podgląd na produkcji po deployu
 O-03,PRODUKCJA,działanie subkonta widoczne u właściciela (IAM → Audyt) na produkcji
 Z-10,PRODUKCJA,odmowa subkonta widoczna w Audycie IAM na produkcji

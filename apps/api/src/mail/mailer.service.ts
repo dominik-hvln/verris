@@ -14,6 +14,7 @@ import {
 } from './mail-smtp.factory';
 import type { MailSmtpSecure } from './mail-settings.keys';
 import { PrismaService } from '../prisma/prisma.service';
+import { wstawMarke, ZNACZNIK_PARTNERA_OD } from '../reseller/reseller-marka';
 
 export const MAILER_PROVIDER = Symbol('MAILER_PROVIDER');
 
@@ -108,7 +109,7 @@ export class MailerService {
       };
     }
 
-    const withFrom = await this.applyFromOverrides(message);
+    const withFrom = await this.applyPartnerBrand(await this.applyFromOverrides(message));
 
     // ---- 2. List-Unsubscribe injection (MARKETING only) --------------------
     const enriched = await this.enrichForCategory(withFrom, category);
@@ -139,6 +140,29 @@ export class MailerService {
         };
       }
       throw err;
+    }
+  }
+
+  /**
+   * O-09 — klient resellera widzi w mailach logo i nazwę partnera (z dopiskiem „na infrastrukturze
+   * Verris”). Jedno miejsce dla wszystkich maili zbudowanych na email-shell; błąd odczytu = mail bez zmian.
+   */
+  private async applyPartnerBrand(message: MailMessage): Promise<MailMessage> {
+    if (!message.userId || !message.html?.includes(ZNACZNIK_PARTNERA_OD)) return message;
+    try {
+      const u = await this.prisma.user.findUnique({ where: { id: message.userId }, select: { resellerOwnerId: true } });
+      if (!u?.resellerOwnerId) return message;
+      const p = await this.prisma.resellerProfile.findUnique({
+        where: { userId: u.resellerOwnerId },
+        select: { status: true, brandName: true, code: true, logoMime: true, logoVersion: true },
+      });
+      if (!p || p.status !== 'ACTIVE' || !p.brandName) return message;
+      const api = (process.env.PUBLIC_API_URL || process.env.API_BASE_URL || 'https://api.verris.pl').replace(/\/$/, '');
+      const logoUrl = p.logoMime ? `${api}/public/reseller-logo/${encodeURIComponent(p.code)}?v=${p.logoVersion}` : null;
+      const w = wstawMarke(message.html, message.text, { nazwa: p.brandName, logoUrl });
+      return { ...message, html: w.html, text: w.text ?? message.text };
+    } catch {
+      return message;
     }
   }
 

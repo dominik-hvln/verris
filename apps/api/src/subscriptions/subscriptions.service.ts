@@ -48,7 +48,9 @@ export type SuspendReason =
   | 'GRACE_EXPIRED'
   | 'ABUSE'
   | 'MANUAL_ADMIN'
-  | 'CUSTOMER_REQUEST';
+  | 'CUSTOMER_REQUEST'
+  /** O-05 — wstrzymane przez resellera klienta; zdjąć może reseller albo obsługa. */
+  | 'RESELLER';
 
 export interface CreatedSubscription {
   subscription: Subscription;
