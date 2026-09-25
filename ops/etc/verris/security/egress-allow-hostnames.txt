@@ -43,8 +43,11 @@ ec.europa.eu
 # --- TLS (certbot timer) ---
 acme-v02.api.letsencrypt.org
 acme-staging-v02.api.letsencrypt.org
-# --- AI (opcjonalnie w .env.prod) ---
+# --- AI (klucze w .env.prod; poziom szybki = OpenAI, analiza = Anthropic — L-11) ---
 api.openai.com
+api.anthropic.com
+# --- I-07: baza podatności WordPressa (Wordfence Intelligence, WORDFENCE_API_KEY) ---
+www.wordfence.com
 # --- Rspamd SURBL updates (host) ---
 sa-update.surbl.org
 # --- SOGo (webmail zespołu): repozytorium pakietów, pomiar 2026-09-23 ---

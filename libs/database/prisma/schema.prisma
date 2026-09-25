@@ -3842,3 +3842,19 @@ model AbuseReport {
   @@index([status, createdAt])
   @@index([host])
 }
+
+/// I-07 — podatności WordPressa (rdzeń, wtyczki, motywy) z Wordfence Intelligence (Scanner Feed v3),
+/// odświeżane raz na dobę. Jeden wiersz = jedna podatność × jedno oprogramowanie.
+model WpPodatnosc {
+  id           String    @id // <uuid Wordfence>:<typ>:<slug>
+  typ          String // core | plugin | theme
+  slug         String
+  tytul        String
+  zakresy      Json // [{ od, odWlacznie, do, doWlacznie }] — "*" = dowolna wersja
+  poprawione   String[]
+  link         String
+  opublikowano DateTime?
+  aktualizacja DateTime  @updatedAt
+
+  @@index([typ, slug])
+}

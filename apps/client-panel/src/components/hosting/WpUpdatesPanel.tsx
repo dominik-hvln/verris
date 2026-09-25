@@ -286,6 +286,43 @@ export function WpUpdatesPanel({ serviceId, domain }: { serviceId: string; domai
         </div>
       ) : null}
 
+      {wp && stan?.podatnosci ? (
+        <div
+          role={stan.podatnosci.length ? 'alert' : undefined}
+          className={`rounded-[10px] border px-4 py-3 text-[13.5px] ${stan.podatnosci.length ? 'border-warn/30 bg-warn-soft' : 'border-line bg-card'}`}
+        >
+          {stan.podatnosci.length ? (
+            <>
+              <b className="text-foreground">Znane podatności: {stan.podatnosci.length}</b>
+              <p className="m-0 mt-0.5 text-[12.5px] text-verris-body">
+                Zaktualizuj poniższe elementy (zaznacz je w tabelach i kliknij „Aktualizuj wybrane”). Gdy poprawki nie ma — wyłącz wtyczkę lub motyw do czasu jej wydania.
+              </p>
+              <ul className="m-0 mt-2 flex list-none flex-col gap-1.5 p-0">
+                {stan.podatnosci.map((v) => (
+                  <li key={`${v.typ}:${v.slug}:${v.link}`} className="text-[13px] text-foreground">
+                    <b className="font-semibold">{v.nazwa}</b> <span className="font-mono text-[12px]">{v.wersja}</span> — {v.tytul}.{' '}
+                    <span className="text-verris-body">{v.poprawione.length ? `Poprawka: ${v.poprawione.join(', ')}.` : 'Brak poprawki.'}</span>{' '}
+                    <a href={v.link} target="_blank" rel="noopener noreferrer" className="font-semibold text-data-hi underline-offset-2 hover:underline">
+                      Szczegóły
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : (
+            <span className="text-verris-body">Brak znanych podatności w zainstalowanych wersjach.</span>
+          )}
+          {stan.zrodloPodatnosci ? (
+            <p className="m-0 mt-2 text-[11.5px] text-muted-foreground">
+              {stan.zrodloPodatnosci.nota} ·{' '}
+              <a href={stan.zrodloPodatnosci.licencja} target="_blank" rel="noopener noreferrer" className="underline-offset-2 hover:underline">
+                licencja
+              </a>
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       {wp ? (
         <>
           <div className="rounded-[10px] border border-line bg-card px-4 py-3">

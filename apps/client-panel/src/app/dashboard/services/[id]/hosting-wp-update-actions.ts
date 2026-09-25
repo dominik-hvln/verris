@@ -22,6 +22,9 @@ export interface WpStatus {
     sumyRdzenia: 'ok' | 'zmienione';
     konserwacja: boolean;
   } | null;
+  /** I-07 — znane podatności zainstalowanych wersji; null = baza podatności niepodłączona. */
+  podatnosci: { typ: 'core' | 'plugin' | 'theme'; slug: string; nazwa: string; wersja: string; tytul: string; poprawione: string[]; link: string }[] | null;
+  zrodloPodatnosci: { nota: string; licencja: string } | null;
   wToku: boolean;
   brakWordpressa: boolean;
   stan: {
@@ -101,6 +104,7 @@ export interface WpPrzeglad {
     rdzen: string | null;
     wtyczki: number | null;
     motywy: number | null;
+    podatnosci: number | null;
     automat: boolean;
     doPoprawy: number | null;
     konserwacja: boolean;

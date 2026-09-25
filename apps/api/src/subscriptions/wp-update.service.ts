@@ -1,9 +1,10 @@
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { NodeTaskKind, NodeTaskStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { HostingResourceActions } from '../common/audit/audit.actions';
 import { DirectAdminService } from '../servers/directadmin.service';
+import { LICENCJA_WORDFENCE, NOTA_WORDFENCE, WpPodatnosciService } from './wp-podatnosci.service';
 
 /**
  * I-04 / I-05 — aktualizacje WordPressa w katalogu głównym domeny.
@@ -53,6 +54,7 @@ export class WpUpdateService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly directAdmin: DirectAdminService,
+    @Optional() private readonly podatnosci?: WpPodatnosciService,
   ) {}
 
   async status(subscriptionId: string, userId: string, domain: string) {
@@ -229,9 +231,13 @@ export class WpUpdateService {
     }
     const zabezpieczenia =
       zadania.map((z) => (z.status === NodeTaskStatus.COMPLETED ? zabezpieczeniaZLogu(z.outputLog) : null)).find(Boolean) ?? null;
+    // I-07 — znane podatności zainstalowanych wersji (null = baza podatności niepodłączona).
+    const podatnosci = this.podatnosci && (await this.podatnosci.podlaczona()) ? await this.podatnosci.dlaStanu(stan) : null;
     return {
       domena,
       zabezpieczenia,
+      podatnosci,
+      zrodloPodatnosci: podatnosci ? { nota: NOTA_WORDFENCE, licencja: LICENCJA_WORDFENCE } : null,
       wToku: zadania.some((z) => z.status === NodeTaskStatus.QUEUED || z.status === NodeTaskStatus.RUNNING),
       brakWordpressa: brak,
       stan,
@@ -286,6 +292,7 @@ export class WpUpdateService {
         rdzen: o.stan?.core[0]?.version ?? null,
         wtyczki: o.stan ? o.stan.plugins.filter((x) => x.update === 'available').length : null,
         motywy: o.stan ? o.stan.themes.filter((x) => x.update === 'available').length : null,
+        podatnosci: o.podatnosci ? o.podatnosci.length : null,
         automat: !!o.automat && (o.automat.core !== 'none' || o.automat.plugins || o.automat.themes),
         doPoprawy: z ? [z.edytorPlikow, z.debug, z.uzytkownikAdmin, z.sumyRdzenia !== 'ok', /[2367]$/.test(z.uprawnieniaConfig)].filter(Boolean).length : null,
         konserwacja: z?.konserwacja ?? false,

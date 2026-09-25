@@ -80,6 +80,7 @@ export function WpOverviewPanel({ serviceId }: { serviceId: string }) {
               </div>
               {s.wersja && !s.brakWordpressa ? (
                 <div className="flex flex-wrap items-center gap-1.5">
+                  {s.podatnosci ? <StatusPill tone="warn">podatności: {s.podatnosci}</StatusPill> : null}
                   {s.rdzen ? <StatusPill tone="warn">rdzeń → {s.rdzen}</StatusPill> : null}
                   {s.wtyczki ? <StatusPill tone="warn">wtyczki: {s.wtyczki}</StatusPill> : null}
                   {s.motywy ? <StatusPill tone="warn">motywy: {s.motywy}</StatusPill> : null}

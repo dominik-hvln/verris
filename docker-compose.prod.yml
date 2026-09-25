@@ -240,6 +240,8 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       AI_EMBED_MODEL: ${AI_EMBED_MODEL:-text-embedding-3-small}
       AI_EMBED_DISABLED: ${AI_EMBED_DISABLED:-false}
+      # I-07 — baza podatności WordPressa (Wordfence Intelligence)
+      WORDFENCE_API_KEY: ${WORDFENCE_API_KEY:-}
       # Domain registrar (optional — fail-closed when unset)
       REGISTRAR_PROVIDER: ${REGISTRAR_PROVIDER:-}
       REGISTRAR_API_BASE_URL: ${REGISTRAR_API_BASE_URL:-}
