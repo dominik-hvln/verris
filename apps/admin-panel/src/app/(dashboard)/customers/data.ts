@@ -14,6 +14,7 @@ export interface AdminUserRow {
   subscriptionsCount: number;
   lastLoginAt: string | null;
   loginBlocked: boolean;
+  anonymizedAt?: string | null;
 }
 
 export interface ListUsersResponse {

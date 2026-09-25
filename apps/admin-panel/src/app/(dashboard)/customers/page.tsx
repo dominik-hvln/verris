@@ -144,6 +144,11 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
                         )}
                       </td>
                     <td className="px-6 py-4 text-right">
+                      {user.anonymizedAt ? (
+                        <span className="text-xs text-muted-foreground" title="Dane usunięte na wniosek klienta (RODO) — brak operacji na koncie.">
+                          Zanonimizowane
+                        </span>
+                      ) : (
                       <div className="inline-flex flex-wrap items-center justify-end gap-2">
                         {user.role === "USER" ? (
                           <Link
@@ -164,6 +169,7 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
                             accountRole={user.role}
                           />
                         </div>
+                      )}
                       </td>
                     </tr>
                   ))}

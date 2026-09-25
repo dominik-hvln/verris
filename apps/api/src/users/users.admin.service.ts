@@ -45,6 +45,8 @@ export interface AdminUserRow {
   lastLoginAt: string | null;
   loginBlocked: boolean;
   canAccessGrafana: boolean;
+  /** Konto zanonimizowane (RODO) — szczegóły operacyjne i impersonacja są zablokowane. */
+  anonymizedAt: string | null;
 }
 
 export interface ImpersonationContext {
@@ -133,6 +135,7 @@ export class UsersAdminService {
         lastLoginAt: lastLoginByUser.get(u.id)?.toISOString() ?? null,
         loginBlocked: u.loginBlocked,
         canAccessGrafana: u.canAccessGrafana,
+        anonymizedAt: u.anonymizedAt?.toISOString() ?? null,
       })),
     };
   }
