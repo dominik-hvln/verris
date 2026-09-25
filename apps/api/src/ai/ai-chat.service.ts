@@ -76,7 +76,7 @@ export class AiChatService {
     if (!question) {
       return { available: true, answer: 'Zadaj pytanie, a postaram się pomóc.', sources: [] };
     }
-    if (!this.provider.isConfigured()) {
+    if (!(await this.provider.dostepny('szybki'))) {
       return {
         available: false,
         answer:
@@ -84,6 +84,11 @@ export class AiChatService {
         sources: [],
         unavailableReason: 'AI provider not configured',
       };
+    }
+
+    if (input.audience === 'CLIENT') {
+      const limit = await this.provider.przekroczonyLimitKlienta(input.userId);
+      if (limit) return { available: false, answer: limit, sources: [], unavailableReason: 'AI monthly limit reached' };
     }
 
     const retrieved = await this.kb.retrieve(question, input.audience, 6);
@@ -106,13 +111,17 @@ export class AiChatService {
     const promptHash = hash(`${system}\n${JSON.stringify(messages)}`);
 
     try {
-      const answer = await this.provider.chat({ system, messages, temperature: 0.3 });
+      const r = await this.provider.chat({ system, messages });
+      const answer = r.wynik;
       const sources = dedupeSources(retrieved);
       await this.prisma.aiInteractionLog.create({
         data: {
           feature: input.audience === 'CLIENT' ? 'chatbot_client' : 'chatbot_staff',
-          provider: this.provider.provider,
-          model: this.provider.model,
+          provider: r.dostawca,
+          model: r.model,
+          inputTokens: r.wej,
+          outputTokens: r.wyj,
+          costUsd: r.kosztUsd,
           status: AiInteractionStatus.COMPLETED,
           promptHash,
           inputSummary: {
@@ -137,12 +146,13 @@ export class AiChatService {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       this.logger.warn(`Chatbot failed: ${message}`);
+      const opis = await this.provider.opis('szybki');
       await this.prisma.aiInteractionLog
         .create({
           data: {
             feature: input.audience === 'CLIENT' ? 'chatbot_client' : 'chatbot_staff',
-            provider: this.provider.provider,
-            model: this.provider.model,
+            provider: opis.dostawca,
+            model: opis.model,
             status: AiInteractionStatus.FAILED,
             promptHash,
             inputSummary: { audience: input.audience } as Prisma.InputJsonValue,

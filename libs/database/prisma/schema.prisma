@@ -2153,6 +2153,10 @@ model AiInteractionLog {
   provider      String
   model         String?
   status        AiInteractionStatus
+  /// Zużycie i szacowany koszt wywołania (USD, wg cen z ustawień AI) — limity klienta i raport kosztów.
+  inputTokens   Int?
+  outputTokens  Int?
+  costUsd       Decimal?            @db.Decimal(12, 6)
   promptHash    String
   inputSummary  Json?
   output        Json?

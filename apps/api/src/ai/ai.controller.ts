@@ -1,6 +1,5 @@
 import { Body, Controller, Get, HttpCode, Param, Post, UseGuards } from '@nestjs/common';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
-import { ConfigService } from '@nestjs/config';
 import { Role } from '@verris/database';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
@@ -23,7 +22,6 @@ export class AiController {
     private readonly chat: AiChatService,
     private readonly provider: AiProviderService,
     private readonly knowledge: KnowledgeBaseService,
-    private readonly config: ConfigService,
   ) {}
 
   /** Client-facing: lista artykułów Bazy Wiedzy widocznych dla klienta. */
@@ -91,11 +89,11 @@ export class AiController {
   }
 
   @Get('status')
-  status() {
-    const provider = this.config.get<string>('AI_PROVIDER') ?? 'openai-compatible';
+  async status() {
+    const { dostawca: provider } = await this.provider.opis('szybki');
     return {
       provider,
-      configured: this.provider.isConfigured(),
+      configured: await this.provider.dostepny('szybki'),
       embeddings: this.provider.embeddingsEnabled(),
     };
   }

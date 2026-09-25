@@ -30,7 +30,8 @@ Zasady przewodnie:
 | `OVH_APP_KEY/APP_SECRET/CONSUMER_KEY` | OVH (DNS/registrar) | env API | DNS/domeny | 180 dni | Tak (nowy consumer key) |
 | `REGISTRAR_API_TOKEN` | Registrar API | env API | Domeny | 180 dni | Zależnie od dostawcy |
 | `SMTP_USER/PASS` | Wysyłka maili (control plane) | env API | Dostarczalność poczty systemowej | 180 dni | Tak (drugie konto SMTP → swap) |
-| `AI_API_KEY` | Prognozy/asystent (jeśli włączone) | env API | Funkcje AI (nie-krytyczne) | 365 dni | Tak |
+| `AI_API_KEY` | OpenAI — asystent poziom SZYBKI + embeddings RAG | env API | Funkcje AI (nie-krytyczne) | 365 dni | Tak |
+| `ANTHROPIC_API_KEY` | Anthropic — asystent poziom ANALIZA | env API | Funkcje AI (nie-krytyczne) | 365 dni | Tak |
 | `METRICS_AUTH_TOKEN` | Ochrona `/metrics` (Prometheus) | env API + scraper | Podgląd metryk | 365 dni | Tak (token w obu) |
 | `REDIS_URL` (jeśli z hasłem) | Kolejka BullMQ | env API | Kolejka provisioningu | Przy podejrzeniu | Tak |
 | `KSEF_TOKEN`, `KSEF_PUBLIC_KEY_PEM_B64` | KSeF (e-faktury) | DB (szyfr. KMS) + env | Wysyłka faktur do KSeF | Wg polityki MF / podejrzenie | Tak (panel admina) |

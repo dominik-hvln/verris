@@ -71,9 +71,11 @@ export class AiService {
     });
     if (!subscription) throw new NotFoundException('Service not found');
 
-    if (!this.provider.isConfigured()) {
+    if (!(await this.provider.dostepny('analiza'))) {
       return unavailableForecast('Prognoza zasobów jest chwilowo niedostępna.');
     }
+    const limit = await this.provider.przekroczonyLimitKlienta(userId);
+    if (limit) return unavailableForecast(limit);
     if (subscription.usageMetrics.length < 6) {
       return unavailableForecast(
         'Za mało danych telemetrycznych — prognoza pojawi się po zebraniu kilku godzin metryk.',
@@ -142,12 +144,16 @@ export class AiService {
   }) {
     const promptHash = hash(`${input.system}\n${input.user}`);
     try {
-      const output = await this.provider.complete({ system: input.system, user: input.user });
+      const r = await this.provider.complete({ system: input.system, user: input.user });
+      const output = r.wynik;
       await this.prisma.aiInteractionLog.create({
         data: {
           feature: input.feature,
-          provider: this.provider.provider,
-          model: this.provider.model,
+          provider: r.dostawca,
+          model: r.model,
+          inputTokens: r.wej,
+          outputTokens: r.wyj,
+          costUsd: r.kosztUsd,
           status: AiInteractionStatus.COMPLETED,
           promptHash,
           inputSummary: input.inputSummary,
@@ -167,11 +173,12 @@ export class AiService {
       return output;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      const opis = await this.provider.opis('analiza');
       await this.prisma.aiInteractionLog.create({
         data: {
           feature: input.feature,
-          provider: this.provider.provider,
-          model: this.provider.model,
+          provider: opis.dostawca,
+          model: opis.model,
           status: AiInteractionStatus.FAILED,
           promptHash,
           inputSummary: input.inputSummary,

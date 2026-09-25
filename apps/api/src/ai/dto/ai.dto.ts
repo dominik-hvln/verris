@@ -3,10 +3,15 @@ import {
   IsArray,
   IsEnum,
   IsIn,
+  IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   Length,
+  Matches,
+  Max,
   MaxLength,
+  Min,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -80,4 +85,32 @@ export class UpdateKnowledgeDocDto {
   @IsOptional()
   @IsEnum(AiKnowledgeStatus)
   status?: AiKnowledgeStatus;
+}
+
+/** L-11 — poziom asystenta: dostawca + identyfikator modelu (dowolna nowsza wersja, bez zmian w kodzie). */
+export class PoziomAiDto {
+  @IsIn(['openai', 'anthropic'])
+  dostawca!: 'openai' | 'anthropic';
+
+  @Matches(/^[A-Za-z0-9._:-]{2,80}$/)
+  model!: string;
+}
+
+export class UstawieniaAiDto {
+  @ValidateNested()
+  @Type(() => PoziomAiDto)
+  szybki!: PoziomAiDto;
+
+  @ValidateNested()
+  @Type(() => PoziomAiDto)
+  analiza!: PoziomAiDto;
+
+  @IsNumber()
+  @Min(0)
+  @Max(1000)
+  limitKlientaUsd!: number;
+
+  /** Model → { wej, wyj } USD / 1 mln tokenów; każdy wpis sprawdza jeszcze odczytajKonfiguracjeAi. */
+  @IsObject()
+  ceny!: Record<string, { wej: number; wyj: number }>;
 }

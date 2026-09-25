@@ -234,10 +234,10 @@ services:
       HOSTING_NS2: ${HOSTING_NS2:-}
       HOSTING_NS3: ${HOSTING_NS3:-}
       # AI assistant (chat + RAG embeddings)
-      AI_PROVIDER: ${AI_PROVIDER:-openai-compatible}
+      # Modele poziomów: admin → Ustawienia → Asystent AI; tu tylko klucze dostawców.
       AI_API_BASE_URL: ${AI_API_BASE_URL:-https://api.openai.com/v1}
       AI_API_KEY: ${AI_API_KEY:-}
-      AI_MODEL: ${AI_MODEL:-gpt-5.6-luna}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       AI_EMBED_MODEL: ${AI_EMBED_MODEL:-text-embedding-3-small}
       AI_EMBED_DISABLED: ${AI_EMBED_DISABLED:-false}
       # Domain registrar (optional — fail-closed when unset)

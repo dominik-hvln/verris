@@ -92,7 +92,7 @@ i zasobów z zewnątrz; osadzanie przez iframe z sandboxem + mały loader.
 - **H-04** kopie — pokazujemy **30 dni**: kopia poza serwerem z każdego z ostatnich 30 dni, przywracana samodzielnie z panelu.
 - **I-07** skan podatności WordPressa — najlepsze darmowe na start, płatne narzędzie później.
 - **G-12** czyszczenie malware — na start darmowy ImunifyAV + obsługa; płatny ImunifyAV+ po starcie.
-- **L-11/L-12** AI — najlepszy stosunek jakości do kosztu: OpenAI gpt-5.6-luna + text-embedding-3-small (kod zgodny; klucz dodaje właściciel).
+- **L-11/L-12** AI — dwa poziomy wybierane w adminie (Ustawienia → Asystent AI): **szybki** (czat, dymki) = OpenAI gpt-5.6-luna, **analiza** (prognozy zasobów, szkice odpowiedzi BOK) = Claude Sonnet 5. Nowszy model = wybór z listy albo wpisanie identyfikatora, bez wdrożenia. Ceny edytowalne (USD / 1 mln tokenów, domyślnie z oficjalnych cenników), miesięczny limit USD na konto klienta (czat klienta + prognozy; obsługa bez limitu, domyślnie 2 USD), koszt każdego wywołania w `AiInteractionLog` (tokeny + `costUsd`), raport: miesiąc, prognoza, 30 dni per funkcja/model, top klienci. Embeddings RAG zawsze OpenAI text-embedding-3-small (Anthropic nie ma API embeddingów). Klucze: `AI_API_KEY` (OpenAI), `ANTHROPIC_API_KEY` — dodaje właściciel; brak klucza = poziom wyłączony (fallback do wsparcia, nie błąd).
 - **N-16** automatyczne rekompensaty SLA — włączone na start.
 - **PROD-03** konta testowe — zostają jako wewnętrzne (poza statystykami i fakturami).
 - **Węzeł testowy** — mały serwer testowy teraz, żeby przejść testy węzłowe przed docelowym AX102.
