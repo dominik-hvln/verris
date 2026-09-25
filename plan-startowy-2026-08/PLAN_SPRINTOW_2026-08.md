@@ -9,9 +9,9 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **2655 h** — przy 30 h tygodniowo około **21 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **2643 h** — przy 30 h tygodniowo około **20 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **23 sprintów do startu** (979 h) oraz roadmapę po starcie (1676 h, 85 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **23 sprintów do startu** (979 h) oraz roadmapę po starcie (1664 h, 83 pozycji) rozpisaną na epiki kwartalne.
 
 - **2027-01-22** — koniec sprintu 21, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-02-05** — koniec sprintu 23, decyzja GO.
@@ -503,15 +503,15 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 # Po starcie — roadmapa kwartalna
 
-85 pozycji, 1676 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
+83 pozycji, 1664 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
 
 | ID | Epik | Priorytet | Kwartał | Pozycji | h | Dlaczego teraz, a nie wcześniej |
 |---|---|---|---|---|---|---|
-| `E-01` | Runtime, pliki i diagnostyka | WYSOKI | Q1 2027 | 20 | 352 | Najczęstsze źródło zgłoszeń w pierwszych miesiącach każdego hostingu. Logi WWW ma pięć z pięciu badanych hostingów PL — bez nich klient nie zdiagnozuje własnej strony i pisze do nas. |
+| `E-01` | Runtime, pliki i diagnostyka | WYSOKI | Q1 2027 | 19 | 346 | Najczęstsze źródło zgłoszeń w pierwszych miesiącach każdego hostingu. Logi WWW ma pięć z pięciu badanych hostingów PL — bez nich klient nie zdiagnozuje własnej strony i pisze do nas. |
 | `E-02` | Wydajność: cache i skalowanie | WYSOKI | Q1 2027 | 6 | 110 | Trzy z pięciu hostingów PL dają Redis w cenie. Przy pozycjonowaniu na WordPressa to nie dodatek, tylko oczekiwanie. |
 | `E-12` | Backup: granularność i retencja | WYSOKI | Q1 2027 | 6 | 94 | cyber_Folks daje 28 dni, seohost do 60. Nasze 30 dni jest w normie, ale granularność odtwarzania jest poniżej rynku. |
 | `E-14` | Rozliczenia: dokończenie | WYSOKI | Q1 2027 | 1 | 16 | Z-07 z macierzy: klient płacący portfelem doładowuje saldo w karencji i i tak zostaje zawieszony. Pierwszy taki przypadek to stracony klient. |
-| `E-15` | Wsparcie i ops: kolejka abuse | WYSOKI | Q1 2027 | 4 | 92 | Sprint 13 daje możliwość zatrzymania szkody. Ten epik daje proces, który skaluje się dalej niż jedna osoba. |
+| `E-15` | Wsparcie i ops: kolejka abuse | WYSOKI | Q1 2027 | 3 | 86 | Sprint 13 daje możliwość zatrzymania szkody. Ten epik daje proces, który skaluje się dalej niż jedna osoba. |
 | `E-03` | WordPress Toolkit | WYSOKI | Q2 2027 | 5 | 94 | Cztery z pięciu hostingów PL mają automatyczne aktualizacje WordPressa. Staging już mamy i jest przewagą — reszta toolkitu ją domyka. |
 | `E-04` | Domeny jako produkt | WYSOKI | Q2 2027 | 8 | 78 | Backend jest gotowy i wyłączony brakiem konfiguracji. Domena to najczęstszy pierwszy zakup i naturalny punkt wejścia. |
 | `E-05` | Katalog aplikacji | ŚREDNI | Q2 2027 | 1 | 16 | Softaculous ma około 400 aplikacji. Nie musimy mieć 400, ale dwie to nie jest katalog. |
@@ -524,7 +524,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 | `E-16` | Rozszerzenia oferty | NISKI | Q4 2027 | 6 | 96 | Decyzja o kreatorze stron jest binarna. Kod, który leży zakomentowany przez rok, jest długiem, nie opcją. |
 | `E-09` | Pokrycie testowe warstw krytycznych | WYSOKI | ciągłe | 3 | 120 | Realizowane równolegle z każdą fazą, nie jako osobny projekt. Zasada: każda naprawiona pozycja dostaje test, który najpierw czerwieni się na starym kodzie. |
 
-- **E-01 Runtime, pliki i diagnostyka** (352 h) — php.ini i rozszerzenia PHP z panelu, logi dostępu i błędów WWW, import/eksport bazy, spakowanie archiwum, SSH i klucze SSH dla hostingu, podgląd zajętości katalogów.
+- **E-01 Runtime, pliki i diagnostyka** (346 h) — php.ini i rozszerzenia PHP z panelu, logi dostępu i błędów WWW, import/eksport bazy, spakowanie archiwum, SSH i klucze SSH dla hostingu, podgląd zajętości katalogów.
 - **E-02 Wydajność: cache i skalowanie** (110 h) — Redis jako cache obiektowy sterowany z panelu, LSCache, weryfikacja HTTP/3, CDN, optymalizacja obrazów.
 - **E-03 WordPress Toolkit** (94 h) — Automatyczne aktualizacje, aktualizacje wtyczek i motywów, klonowanie między domenami, hardening, skan podatności, tryb konserwacji, masowe zarządzanie.
 - **E-04 Domeny jako produkt** (78 h) — Konfiguracja rejestratora, zakup i transfer z panelu, odnowienia, zmiana danych abonenta, blokada transferu, ukrycie WHOIS.
@@ -538,19 +538,20 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 - **E-12 Backup: granularność i retencja** (94 h) — Odtworzenie pojedynczego pliku, podgląd zawartości archiwum przed odtworzeniem, pobranie kopii lokalnie, retencja 28+ dni w cenie.
 - **E-13 Automatyzacja: API zapisu i webhooki** (68 h) — Rozszerzenie publicznego API o operacje zapisu, webhooki dla klienta, edycja crona, cron z wyborem wersji PHP, podgląd wyniku wykonania.
 - **E-14 Rozliczenia: dokończenie** (16 h) — Ponowienie płatności portfelem w karencji, waluty obce z przeliczeniem VAT, proforma, dodanie karty niezależnie od zakupu, eksport CSV.
-- **E-15 Wsparcie i ops: kolejka abuse** (92 h) — Pełna kolejka obsługi nadużyć z encją zgłoszenia, terminami i śladem audytowym, ogłoszenia i okna serwisowe z panelu, feature flagi.
+- **E-15 Wsparcie i ops: kolejka abuse** (86 h) — Pełna kolejka obsługi nadużyć z encją zgłoszenia, terminami i śladem audytowym, ogłoszenia i okna serwisowe z panelu, feature flagi.
 - **E-16 Rozszerzenia oferty** (96 h) — VPS: konsola, snapshoty, rebuild. Panel mobilny. Kreator stron — dokończyć albo usunąć 1612 zakomentowanych linii.
 
 ---
 
 # Czego świadomie nie robimy
 
-20 pozycji ma werdykt POZA ZAKRESEM. To decyzje, nie przeoczenia — dlatego są wypisane. Jeżeli któraś wróci jako żądanie klienta, wraca też decyzja do przeglądu.
+21 pozycji ma werdykt POZA ZAKRESEM. To decyzje, nie przeoczenia — dlatego są wypisane. Jeżeli któraś wróci jako żądanie klienta, wraca też decyzja do przeglądu.
 
 | ID | Funkcja | Uzasadnienie |
 |---|---|---|
 | `B-07` | Wybór handlera PHP (LSAPI/FPM/CGI) | decyzja operatorska, nie klienta |
 | `B-10` | Aplikacje Ruby | rynek PL tego nie oczekuje |
+| `C-19` | Konto FTP — limit powierzchni (quota) |  | 2026-09-25 SPRAWDZONE W DOKUMENTACJI: DirectAdmin nie ma limitu powierzchni per konto FTP (docs.directadmin.com → FTP; konta FTP dzielą limit konta hostingowego, który panel pokazuje). Do decyzji właściciela: POZA ZAKRESEM (limit konta wystarcza) albo własne rozwiązanie poza DA. | DECYZJA WŁAŚCICIELA 2026-09-25: poza zakresem — DirectAdmin nie ma limitu per konto FTP; obowiązuje limit konta hostingowego (widoczny w panelu). |
 | `C-20` | FTP anonimowy | funkcja schyłkowa, ryzyko nadużyć |
 | `C-23` | Terminal SSH w przeglądarce | żaden hosting PL tego nie daje |
 | `C-24` | WebDAV / Web Disk | Protokół schyłkowy — żaden z pięciu badanych hostingów PL go nie wystawia, a menedżer plików i SFTP pokrywają ten sam scenariusz. |
