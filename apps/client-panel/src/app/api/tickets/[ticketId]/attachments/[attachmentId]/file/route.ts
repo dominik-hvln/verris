@@ -8,6 +8,10 @@ export async function GET(
   context: { params: Promise<{ ticketId: string; attachmentId: string }> },
 ) {
   const { ticketId, attachmentId } = await context.params;
+  // Identyfikatory trafiają do ścieżki zapytania do API — bez „../” i znaków spoza UUID.
+  if (!/^[0-9a-f-]{36}$/i.test(ticketId) || !/^[0-9a-f-]{36}$/i.test(attachmentId)) {
+    return new NextResponse("Bad request", { status: 400 });
+  }
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
   if (!token) {
