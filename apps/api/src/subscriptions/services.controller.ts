@@ -87,6 +87,7 @@ import {
   UzytkownikBazyDto,
   UzytkownikBazyZHaslemDto,
   WersjaPhpDomenyDto,
+  KatalogDomenyDto,
   UstawieniaPhpDomenyDto,
   EksportBazyDto,
   ListaArchiwumDto,
@@ -868,6 +869,26 @@ export class UserServicesController {
     @Body() body: WersjaPhpDomenyDto,
   ) {
     return this.directAdmin.setHostingDomainPhp(id, user.userId, body);
+  }
+
+  // A-06 — katalog główny domeny (DocumentRoot). Reguła FILES w strażniku subkont.
+  @Get(':id/hosting-docroot')
+  async hostingDocroot(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Query('domain') domain: string,
+  ) {
+    return this.directAdmin.getHostingDocroot(id, user.userId, domain);
+  }
+
+  @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: 'hosting:docroot' })
+  @Post(':id/hosting-docroot')
+  async setHostingDocroot(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: KatalogDomenyDto,
+  ) {
+    return this.directAdmin.setHostingDocroot(id, user.userId, body);
   }
 
   // B-05 — ustawienia PHP per domena (.user.ini, blok zarządzany przez panel).

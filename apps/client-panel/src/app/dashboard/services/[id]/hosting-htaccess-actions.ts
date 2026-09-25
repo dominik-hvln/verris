@@ -42,3 +42,27 @@ export async function readHtaccess(serviceId: string, domain: string): Promise<W
 export async function saveHtaccess(serviceId: string, domain: string, u: HtaccessUstawienia): Promise<Wynik> {
   return wynik(apiFetch<HtaccessStatus>(url(serviceId), { method: 'POST', body: JSON.stringify({ domain, ...u }) }));
 }
+
+/** A-06 — katalog główny domeny: podkatalog public_html ('' = public_html). */
+export interface Docroot {
+  domain: string;
+  katalog: string;
+}
+type WynikDocroot = { ok: true; docroot: Docroot } | { ok: false; error: string };
+
+export async function fetchDocroot(serviceId: string, domain: string): Promise<WynikDocroot> {
+  try {
+    return { ok: true, docroot: await apiFetch<Docroot>(`/services/${serviceId}/hosting-docroot?domain=${encodeURIComponent(domain)}`) };
+  } catch (e) {
+    return { ok: false, error: blad(e) };
+  }
+}
+
+export async function saveDocroot(serviceId: string, domain: string, katalog: string): Promise<WynikDocroot> {
+  try {
+    const docroot = await apiFetch<Docroot>(`/services/${serviceId}/hosting-docroot`, { method: 'POST', body: JSON.stringify({ domain, katalog }) });
+    return { ok: true, docroot };
+  } catch (e) {
+    return { ok: false, error: blad(e) };
+  }
+}

@@ -158,7 +158,7 @@ export const REGULY_TRAS: Regula[] = [
       zawiera(
         'file-manager', 'hosting-files', 'hosting-file-restore', 'hosting-git', 'hosting-malware',
         'hosting-wp-updates', 'hosting-wp-overview', 'hosting-db-transfer', 'hosting-db-export', 'hosting-db-import', 'hosting-db-maintenance', 'hosting-db-sizes', 'hosting-cron-output',
-        'hosting-ssh', 'hosting-site-clone', 'hosting-htaccess', 'hosting-file-search',
+        'hosting-ssh', 'hosting-site-clone', 'hosting-htaccess', 'hosting-docroot', 'hosting-file-search',
         // Równoważne dostępowi do plików: odtworzenie z kopii nadpisuje stronę, cron i deploy uruchamiają
         // polecenia, FTP i logowanie SSO dają pełny dostęp, bazy trzymają treść i hasła strony,
         // instalatory i staging nadpisują katalog strony, narzędzia WWW i ochrona katalogu piszą .htaccess.

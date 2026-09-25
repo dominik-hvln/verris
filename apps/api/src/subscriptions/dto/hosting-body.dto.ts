@@ -57,6 +57,12 @@ export class WersjaPhpDomenyDto extends WersjaPhpDto {
   @Linia(253) domain!: string;
 }
 
+/** A-06 — katalog główny domeny: podkatalog public_html (pusty = public_html); znaki sprawdza serwis. */
+export class KatalogDomenyDto {
+  @Linia(253) domain!: string;
+  @IsString() @MaxLength(260) @Matches(JEDNA_LINIA, { message: KOMUNIKAT_LINII }) katalog!: string;
+}
+
 /** D-12 — eksport bazy (pełna nazwa login_nazwa; przynależność sprawdza serwis). */
 export class EksportBazyDto {
   @Linia(64) db!: string;

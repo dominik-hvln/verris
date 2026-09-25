@@ -29,6 +29,7 @@ import { PhpIniForm } from '@/components/hosting/PhpIniForm';
 import { WpUpdatesPanel } from '@/components/hosting/WpUpdatesPanel';
 import { SiteClonePanel } from '@/components/hosting/SiteClonePanel';
 import { HtaccessPanel } from '@/components/hosting/HtaccessPanel';
+import { DocrootPanel } from '@/components/hosting/DocrootPanel';
 import { PhpInfoPanel } from '@/components/hosting/PhpInfoPanel';
 import { FileSearchPanel } from '@/components/hosting/FileSearchPanel';
 import { HostingLinksProvider } from '@/components/hosting/hosting-links-context';
@@ -425,6 +426,7 @@ export default function SitePage() {
             <PhpSection serviceId={serviceId} domain={domain} php={ok(php)} loading={php === undefined} onChanged={reloadPhp} />
             <PhpInfoPanel serviceId={serviceId} domain={domain} />
             <HtaccessPanel key={domain} serviceId={serviceId} domain={domain} />
+            <DocrootPanel key={`dr-${domain}`} serviceId={serviceId} domain={domain} />
           </>
         ) : null}
 

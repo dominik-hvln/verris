@@ -1,4 +1,5 @@
 import { odczytajUserIni, sprawdzUstawieniaPhp, type UstawieniaPhp } from './php-ini';
+import { normalizujKatalogDocroot, odczytajDocroot, zapiszDocroot } from './docroot';
 import {
   BadRequestException,
   Injectable,
@@ -2250,6 +2251,78 @@ export class DirectAdminService {
       details: { subscriptionId, domain: dom, version, slot },
     });
     return { ok: true as const, domain: dom, version, slot };
+  }
+
+  /* ===================== A-06: katalog główny strony (DocumentRoot) ===================== */
+
+  /**
+   * Katalog, z którego domena serwuje stronę, jako podkatalog public_html (pusty = public_html).
+   * Mechanizm z oficjalnej dokumentacji DirectAdmin („Customizing Apache”): token `|?DOCROOT=…|`
+   * w Custom HTTPD domeny, w `|*if !SUB|`, żeby subdomeny zostały przy swoich katalogach. LSWS czyta
+   * konfigurację Apache z DA (dokumentacja LiteSpeed), więc działa też na naszych węzłach.
+   * Zapis przez `CMD_API_CUSTOM_HTTPD` (DA 1.26.0, poziom admina) — DA sam przepisuje httpd.conf.
+   * Własne wpisy administratora w Custom HTTPD zostają; zmieniamy tylko blok między znacznikami.
+   */
+  async getHostingDocroot(subscriptionId: string, userId: string, domain: string) {
+    const dom = await this.assertDomainOwnedBySubscription(subscriptionId, userId, domain);
+    const { account } = await this.accountClientForSubscription(subscriptionId, userId);
+    const config = await this.czytajCustomHttpd(account.serverId, dom);
+    return { domain: dom, katalog: odczytajDocroot(config) };
+  }
+
+  async setHostingDocroot(subscriptionId: string, userId: string, input: { domain: string; katalog: string }) {
+    const dom = await this.assertDomainOwnedBySubscription(subscriptionId, userId, input.domain);
+    const katalog = normalizujKatalogDocroot(input.katalog);
+    const { account, client } = await this.accountClientForSubscription(subscriptionId, userId);
+    this.assertAccountMutable(account);
+    if (katalog) {
+      // Katalog musi istnieć i być katalogiem konta (nie plikiem) — inaczej strona od razu zwróci błąd.
+      const rodzic = katalog.includes('/') ? katalog.slice(0, katalog.lastIndexOf('/')) : '';
+      const nazwa = katalog.slice(katalog.lastIndexOf('/') + 1);
+      const wpisy = await client.listDir(`/domains/${dom}/public_html${rodzic ? `/${rodzic}` : ''}`).catch(() => []);
+      if (!wpisy.some((w) => w.name === nazwa && w.type === 'dir')) {
+        throw new BadRequestException(`Nie ma katalogu public_html/${katalog} — utwórz go w menedżerze plików.`);
+      }
+    }
+    const obecny = await this.czytajCustomHttpd(account.serverId, dom);
+    const sciezka = katalog ? `/home/${account.daUsername}/domains/${dom}/public_html/${katalog}` : null;
+    const admin = await this.getClientForServer(account.serverId);
+    const surowy = (admin as unknown as { client?: SurowyKlientDa }).client;
+    if (!surowy) throw new BadRequestException('DirectAdmin client is not available');
+    const res = await surowy.post(
+      '/CMD_API_CUSTOM_HTTPD',
+      new URLSearchParams({ domain: dom, config: zapiszDocroot(obecny, sciezka), api: 'yes' }).toString(),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, timeout: 15_000 },
+    );
+    this.interpretDaPostResponse(res?.data);
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_DOCROOT_SET,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, domain: dom, katalog: katalog || null },
+    });
+    return { domain: dom, katalog };
+  }
+
+  /**
+   * Bieżący Custom HTTPD domeny. Gdy DA nie odda pola `config`, nie zgadujemy (pusty zapis skasowałby
+   * wpisy administratora) — przerywamy.
+   */
+  private async czytajCustomHttpd(serverId: string, domain: string): Promise<string> {
+    const admin = await this.getClientForServer(serverId);
+    const surowy = (admin as unknown as { client?: SurowyKlientDa }).client;
+    if (!surowy) throw new BadRequestException('DirectAdmin client is not available');
+    const res = await surowy.get('/CMD_API_CUSTOM_HTTPD', { params: { domain, api: 'yes' }, timeout: 15_000 });
+    const data: unknown = res?.data;
+    const pola = typeof data === 'string' ? new URLSearchParams(data) : this.parseKvPayload(data);
+    if (pola.get('error') && pola.get('error') !== '0') {
+      throw new BadRequestException(pola.get('text') || 'DirectAdmin error');
+    }
+    const config = pola.get('config');
+    if (config === null) {
+      throw new BadRequestException('Nie udało się odczytać konfiguracji domeny na serwerze — spróbuj ponownie albo napisz do pomocy.');
+    }
+    return config;
   }
 
   /* ===================== D-12: pliki eksportu/importu baz ===================== */
