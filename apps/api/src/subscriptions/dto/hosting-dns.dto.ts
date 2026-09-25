@@ -38,3 +38,12 @@ export class UtworzRekordDnsDto extends RekordDnsBaza {
 }
 
 export class UsunRekordDnsDto extends RekordDnsBaza {}
+
+/** F-06 — domena, dla której włączamy/wyłączamy DNSSEC (własność sprawdza serwis). */
+export class DomenaDnssecDto {
+  @IsString()
+  @MinLength(3)
+  @MaxLength(253)
+  @Matches(/^[a-z0-9.-]+$/i, { message: 'Niepoprawna nazwa domeny.' })
+  domain!: string;
+}

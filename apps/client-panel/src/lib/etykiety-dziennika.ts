@@ -57,6 +57,8 @@ export const ETYKIETY_DZIENNIKA: Record<string, string> = {
   HOSTING_OFFSITE_LIST_QUEUED: 'Sprawdzono kopie w magazynie zewnętrznym',
   HOSTING_PHP_INI_SET: 'Zmieniono ustawienia PHP',
   HOSTING_DOCROOT_SET: 'Zmieniono katalog główny domeny',
+  HOSTING_DNSSEC_ENABLED: 'Włączono DNSSEC dla domeny',
+  HOSTING_DNSSEC_DISABLED: 'Wyłączono DNSSEC dla domeny',
   HOSTING_QUOTA_ALERT: 'Konto zbliża się do limitu',
   HOSTING_REDIRECT_CREATED: 'Dodano przekierowanie',
   HOSTING_REDIRECT_DELETED: 'Usunięto przekierowanie',

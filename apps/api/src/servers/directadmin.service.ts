@@ -2289,6 +2289,83 @@ export class DirectAdminService {
     return { domain: dom, katalog: odczytajDocroot(config) };
   }
 
+  /**
+   * F-06 — DNSSEC strefy domeny. DirectAdmin: `CMD_API_DNS_ADMIN` z `action=dnssec` — `value=get_keys`
+   * (pola DS, ksk_id, zsk_id, signed_on, expiry), `generate_keys`, `sign_zone`, `remove_dnssec`
+   * (docs.directadmin.com: changelog 1.44.2 i 1.51.0, „Maintaining DNS records” → DNSSEC). Na węźle
+   * `dnssec=1` w directadmin.conf; strefy z kluczami DA sam podpisuje ponownie co miesiąc.
+   * ponytail: format odpowiedzi get_keys wg dokumentacji — potwierdzić na żywym węźle (wezel.csv, F-06).
+   */
+  private async dnssecAdmin(subscriptionId: string, userId: string, domain: string) {
+    const dom = await this.assertDomainOwnedBySubscription(subscriptionId, userId, domain);
+    const { account } = await this.accountClientForSubscription(subscriptionId, userId);
+    const admin = await this.getClientForServer(account.serverId);
+    const surowy = (admin as unknown as { client?: SurowyKlientDa }).client;
+    if (!surowy) throw new BadRequestException('DirectAdmin client is not available');
+    return { dom, account, surowy };
+  }
+
+  private async dnssecStan(surowy: SurowyKlientDa, dom: string) {
+    const res = await surowy.get('/CMD_API_DNS_ADMIN', { params: { domain: dom, action: 'dnssec', value: 'get_keys' }, timeout: 15_000 });
+    const data: unknown = res?.data;
+    const pola = typeof data === 'string' ? new URLSearchParams(data) : this.parseKvPayload(data);
+    const blad = pola.get('error') && pola.get('error') !== '0' ? pola.get('text') || pola.get('details') || 'DirectAdmin error' : null;
+    const signedOn = pola.get('signed_on') || null;
+    return {
+      domain: dom,
+      klucze: Boolean(pola.get('ksk_id') || pola.get('zsk_id')),
+      podpisana: Boolean(signedOn) && !blad,
+      podpisanaOd: signedOn,
+      wygasa: Number(pola.get('expiry')) || null,
+      ds: (pola.get('DS') ?? '').split('\n').map((l) => l.trim()).filter(Boolean),
+      blad,
+    };
+  }
+
+  async getHostingDnssec(subscriptionId: string, userId: string, domain: string) {
+    const { dom, surowy } = await this.dnssecAdmin(subscriptionId, userId, domain);
+    return this.dnssecStan(surowy, dom);
+  }
+
+  /** Klucze generujemy tylko, gdy ich nie ma — nowe klucze zmieniają DS i zepsułyby strefę z DS już u rejestratora. */
+  async enableHostingDnssec(subscriptionId: string, userId: string, domain: string) {
+    const { dom, account, surowy } = await this.dnssecAdmin(subscriptionId, userId, domain);
+    this.assertAccountMutable(account);
+    const stan = await this.dnssecStan(surowy, dom);
+    const kroki: Record<string, string>[] = stan.klucze ? [{ sign_zone: 'yes' }] : [{ generate_keys: 'yes' }, { sign_zone: 'yes' }];
+    for (const krok of kroki) {
+      const res = await surowy.post('/CMD_API_DNS_ADMIN', new URLSearchParams({ action: 'dnssec', domain: dom, ...krok }).toString(), {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        timeout: 60_000,
+      });
+      this.interpretDaPostResponse(res?.data);
+    }
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_DNSSEC_ENABLED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, domain: dom, noweKlucze: !stan.klucze },
+    });
+    return this.dnssecStan(surowy, dom);
+  }
+
+  async disableHostingDnssec(subscriptionId: string, userId: string, domain: string) {
+    const { dom, account, surowy } = await this.dnssecAdmin(subscriptionId, userId, domain);
+    this.assertAccountMutable(account);
+    const res = await surowy.post('/CMD_API_DNS_ADMIN', new URLSearchParams({ action: 'dnssec', domain: dom, remove_dnssec: 'yes' }).toString(), {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      timeout: 60_000,
+    });
+    this.interpretDaPostResponse(res?.data);
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_DNSSEC_DISABLED,
+      userId,
+      actorUserId: userId,
+      details: { subscriptionId, domain: dom },
+    });
+    return this.dnssecStan(surowy, dom);
+  }
+
   async setHostingDocroot(subscriptionId: string, userId: string, input: { domain: string; katalog: string }) {
     const dom = await this.assertDomainOwnedBySubscription(subscriptionId, userId, input.domain);
     const katalog = normalizujKatalogDocroot(input.katalog);

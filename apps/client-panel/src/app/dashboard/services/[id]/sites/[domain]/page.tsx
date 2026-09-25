@@ -30,6 +30,7 @@ import { WpUpdatesPanel } from '@/components/hosting/WpUpdatesPanel';
 import { SiteClonePanel } from '@/components/hosting/SiteClonePanel';
 import { HtaccessPanel } from '@/components/hosting/HtaccessPanel';
 import { DocrootPanel } from '@/components/hosting/DocrootPanel';
+import { DnssecPanel } from '@/components/hosting/DnssecPanel';
 import { PhpInfoPanel } from '@/components/hosting/PhpInfoPanel';
 import { FileSearchPanel } from '@/components/hosting/FileSearchPanel';
 import { HostingLinksProvider } from '@/components/hosting/hosting-links-context';
@@ -361,6 +362,7 @@ export default function SitePage() {
             <SectionHead title={`Rekordy DNS · ${domain}`} desc="Zmiany działają zwykle w kilka minut." />
             {ok(dns)?.fetchError ? <p className="mb-3 text-[13.5px] text-warn">Nie udało się odczytać strefy — spróbuj za chwilę.</p> : null}
             {dns === undefined ? <Loading /> : <DnsManager serviceId={serviceId} domain={domain} records={records} onChanged={reloadDns} />}
+            <DnssecPanel key={`dnssec-${domain}`} serviceId={serviceId} domain={domain} />
           </section>
         ) : null}
 

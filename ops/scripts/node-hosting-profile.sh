@@ -1048,6 +1048,10 @@ configure_hosting_capabilities() {
   da_set_conf dkim 1
   # dns_ttl to przełącznik edycji TTL per rekord; domyślny TTL strefy to default_ttl (oficjalna lista directadmin.conf).
   da_set_conf default_ttl 3600
+  # F-06 — DNSSEC: panel podpisuje strefy przez CMD_API_DNS_ADMIN action=dnssec (poziom admina,
+  # user_dnssec_control zostaje 0). Oficjalnie: „Make sure you have dnssec=1 in the directadmin.conf”
+  # (docs.directadmin.com → Maintaining DNS records → DNSSEC); restart DA niżej.
+  da_set_conf dnssec 1
   # E-20 — dobowy limit wysyłki per konto (exim DirectAdmina czyta /etc/virtual/limit).
   # Ta sama liczba stoi w panelu klienta (libs/contracts: HOSTING_MAIL_DAILY_SEND_LIMIT);
   # zgodność pilnuje apps/api/src/test/limit-wysylki.spec.ts. Bez nadpisywania z env —
@@ -1168,12 +1172,13 @@ configure_hosting_capabilities() {
 
 # Status możliwości do summary (czytany przez audyt węzła).
 capability_status() {
-  local ssl="off" dkim="off" redis="off" phpsel="off"
+  local ssl="off" dkim="off" redis="off" phpsel="off" dnssec="off"
   grep -qE "^letsencrypt=1" "$DA_CONF" 2>/dev/null && ssl="on"
   grep -qE "^dkim=1" "$DA_CONF" 2>/dev/null && dkim="on"
+  grep -qE "^dnssec=1" "$DA_CONF" 2>/dev/null && dnssec="on"
   cb_options_raw 2>/dev/null | grep -qiE "^redis:[[:space:]]*yes" && redis="on"
   { command -v cloudlinux-config >/dev/null 2>&1 || [ -d /opt/alt ]; } && phpsel="on"
-  echo "ssl=${ssl} dkim=${dkim} redis=${redis} php_selector=${phpsel}"
+  echo "ssl=${ssl} dkim=${dkim} redis=${redis} php_selector=${phpsel} dnssec=${dnssec}"
 }
 
 emit_verris_profile_summary() {

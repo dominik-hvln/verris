@@ -55,7 +55,7 @@ import { SiteMonitorService } from './site-monitor.service';
 import { StagingService } from './staging.service';
 import { BackupScheduleService } from './backup-schedule.service';
 import { SetMonitoringDto } from './dto/site-monitor.dto';
-import { UsunRekordDnsDto, UtworzRekordDnsDto } from './dto/hosting-dns.dto';
+import { DomenaDnssecDto, UsunRekordDnsDto, UtworzRekordDnsDto } from './dto/hosting-dns.dto';
 import { ZadanieCronDto } from './dto/hosting-cron.dto';
 import { UtworzKontoFtpDto, ZmienHasloFtpDto } from './dto/hosting-ftp.dto';
 import { UtworzSkrzynkeDto, ZmienHasloSkrzynkiDto, ZmienRozmiarSkrzynkiDto } from './dto/hosting-email.dto';
@@ -531,6 +531,22 @@ export class UserServicesController {
     @Body() body: UsunRekordDnsDto,
   ) {
     return this.directAdmin.deleteHostingDnsRecord(id, user.userId, body);
+  }
+
+  // F-06 — DNSSEC (trasa pod hosting-dns: subkonto potrzebuje DNS_MANAGE).
+  @Get(':id/hosting-dns/dnssec')
+  hostingDnssec(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Query('domain') domain: string) {
+    return this.directAdmin.getHostingDnssec(id, user.userId, domain);
+  }
+
+  @Post(':id/hosting-dns/dnssec')
+  enableHostingDnssec(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: DomenaDnssecDto) {
+    return this.directAdmin.enableHostingDnssec(id, user.userId, body.domain);
+  }
+
+  @Delete(':id/hosting-dns/dnssec')
+  disableHostingDnssec(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: DomenaDnssecDto) {
+    return this.directAdmin.disableHostingDnssec(id, user.userId, body.domain);
   }
 
   @Get(':id/hosting-ftp')
