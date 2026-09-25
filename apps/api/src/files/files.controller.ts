@@ -71,7 +71,7 @@ export class FilesController {
 
   /** H-13 — duże pliki (archiwa kopii) strumieniem, bez limitu 100 MB i bez base64 w panelu. */
   @Get('download-stream')
-  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'files:download-stream' })
+  @RateLimit({ limit: 120, windowMs: 60 * 60 * 1000, scope: 'files:download-stream' })
   async downloadStream(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
