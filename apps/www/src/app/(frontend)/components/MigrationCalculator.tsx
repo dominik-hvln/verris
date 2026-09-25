@@ -105,8 +105,8 @@ export function MigrationCalculator() {
           <span className="v">{zlM(month)}</span>
         </div>
         <p className="calc-note">
-          Płacisz tylko za godziny, w których strona faktycznie używa dodatkowych zasobów — tryb ECO
-          zwalnia je automatycznie, gdy ruch spada, więc realny koszt jest zwykle znacznie niższy od
+          Płacisz tylko za godziny, w których strona faktycznie używa dodatkowych zasobów — gdy ruch
+          spada, autoskalowanie samo wraca do bazy, więc realny koszt jest zwykle znacznie niższy od
           maksimum. Stawki brutto: 0,001323 zł za 1% CPU/h · 0,0882 zł za 1 GB RAM/h · 0,0008 zł za 1
           GB dysku/h.
         </p>

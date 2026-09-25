@@ -10,12 +10,12 @@ import { PANEL } from '@/lib/site';
 export const metadata: Metadata = {
   title: 'Zmiana hostingu bez stresu — darmowa migracja strony | Verris',
   description:
-    'Przeniesiemy Twoją stronę i pocztę za darmo — albo zrobisz to sam migratorem w panelu. Jedna cena bez promocji-przynęty: 45 zł/mies lub 399 zł/rok brutto. Autoskalowanie zamiast pakietu na zapas, SLA 99,5% z rekompensatami.',
+    'Przeniesiemy Twoją stronę i pocztę za darmo — albo zrobisz to sam migratorem w panelu. Odnowienie po cenie z cennika: 45 zł/mies lub 399 zł/rok brutto. Autoskalowanie zamiast pakietu na zapas, SLA 99,5% z rekompensatami.',
   alternates: { canonical: '/przenies-strone' },
   openGraph: {
     title: 'Zmiana hostingu bez stresu — przeniesiemy Twoją stronę za darmo',
     description:
-      'Darmowa migracja strony i poczty. Jedna cena: 45 zł/mies lub 399 zł/rok brutto, bez szoku przy odnowieniu. Autoskalowanie zamiast pakietu na zapas.',
+      'Darmowa migracja strony i poczty. Odnowienie po cenie z cennika: 45 zł/mies lub 399 zł/rok brutto, bez szoku po pierwszym roku. Autoskalowanie zamiast pakietu na zapas.',
     url: 'https://verris.pl/przenies-strone',
     locale: 'pl_PL',
     type: 'website',
@@ -31,26 +31,26 @@ const FAQ: [string, string][] = [
   ['Czy przeniesienie strony wpłynie na pozycje w Google?', 'Sama zmiana hostingu nie zmienia adresów URL ani treści strony, więc poprawnie przeprowadzona migracja nie powoduje utraty pozycji. Krótkie wahania w trakcie propagacji DNS są możliwe, ale ustępują samoistnie. Szybszy i stabilniejszy serwer może wręcz pomóc — czas ładowania strony jest jednym z czynników rankingowych.'],
   ['Jak przenieść stronę WordPress na inny hosting?', 'Przeniesienie WordPressa to skopiowanie plików, bazy danych i konfiguracji na nowy serwer. W Verris zrobi to za Ciebie zespół w ramach darmowej migracji — wystarczy przekazać dostępy do obecnego hostingu. Możesz też użyć migratora w panelu, który przeniesie pliki i bazę samodzielnie, krok po kroku.'],
   ['Czy muszę przenosić domenę razem z hostingiem?', 'Nie. Domena może zostać u obecnego rejestratora — wystarczy zmienić rekordy DNS tak, aby wskazywały na serwery Verris. Transfer domeny do Verris jest opcjonalny i możesz go wykonać w dowolnym momencie później. U nas domeny odnawiają się wyłącznie po opłaceniu — nigdy automatycznie.'],
-  ['Jak działa autoskalowanie i ile kosztuje?', 'W cenie pakietu masz bazowe zasoby. Gdy strona potrzebuje więcej — np. w piku kampanii — zasoby rosną automatycznie, a dodatkowa moc rozliczana jest godzinowo, tylko za czas faktycznego użycia. Gdy ruch spada, tryb ECO zwalnia zasoby i naliczanie się kończy. Orientacyjny koszt policzysz w kalkulatorze powyżej.'],
+  ['Jak działa autoskalowanie i ile kosztuje?', 'W cenie pakietu masz bazowe zasoby. Gdy strona potrzebuje więcej — np. w piku kampanii — zasoby rosną automatycznie, a dodatkowa moc rozliczana jest godzinowo, tylko za czas faktycznego użycia. Gdy ruch spada, autoskalowanie wraca do bazy i naliczanie się kończy. Orientacyjny koszt policzysz w kalkulatorze powyżej.'],
   ['Co z pocztą e-mail przy zmianie hostingu?', 'Hosting Verris obejmuje pocztę (webmail Roundcube). W ramach migracji przenosimy również skrzynki — szczegóły zakresu ustalimy przy przekazaniu dostępów. Do czasu przełączenia DNS poczta działa u obecnego dostawcy, więc żadna wiadomość nie ginie w trakcie przeprowadzki.'],
   ['Czy migracja jest naprawdę bezpłatna?', 'Tak. Zarówno migrator w panelu, jak i pomoc naszego zespołu są bezpłatne w ramach zamówienia hostingu. Nie ma limitu „do X plików" ani dopłat za bazy danych.'],
-  ['Czy cena wzrośnie przy odnowieniu?', 'Nie stosujemy modelu „tani pierwszy rok, drogie odnowienie" — cena z cennika obowiązuje od pierwszego dnia. Odnowienie następuje według cennika obowiązującego w dniu odnowienia, a przed każdym odnowieniem wyślemy przypomnienie e-mail (7 dni przy rozliczeniu rocznym, 3 dni przy miesięcznym). Odnawianie możesz wyłączyć w panelu w każdej chwili, bez opłat.'],
-  ['Czy mogę zrezygnować po zakupie?', 'Jako konsument masz prawo odstąpienia od umowy. Jeśli usługa została aktywowana od razu na Twoje życzenie, opłata jest rozliczana proporcjonalnie do wykorzystanego okresu. Szczegóły znajdziesz w regulaminie przed zakupem.'],
+  ['Czy cena wzrośnie przy odnowieniu?', 'Nie stosujemy modelu „tani pierwszy rok, kilkukrotnie droższe odnowienie". Rabat na start, jeśli trwa, widzisz przed zapłatą, a odnowienie następuje według cennika obowiązującego w dniu odnowienia (dziś 45 zł/mies lub 399 zł/rok), a przed każdym odnowieniem wyślemy przypomnienie e-mail (7, 3 i 1 dzień wcześniej). Z odnowienia zrezygnujesz w panelu w dwóch kliknięciach, bez opłat.'],
+  ['Czy mogę zrezygnować po zakupie?', 'Jako konsument masz prawo odstąpienia od umowy. Zasady odstąpienia i zwrotu opisuje regulamin, który zobaczysz przed zakupem — zwrot realizuje nasze wsparcie.'],
 ];
 
 const STEPS: [string, string, string][] = [
-  ['01', 'Zamów hosting Verris', 'Załóż konto i wybierz rozliczenie — 45 zł/mies lub 399 zł/rok brutto. Płatność kartą, BLIK-iem, Apple Pay, Google Pay albo przelewem online. Twoja obecna strona dalej działa.'],
+  ['01', 'Zamów hosting Verris', 'Załóż konto i wybierz rozliczenie — 45 zł/mies lub 399 zł/rok brutto. Płatność kartą, BLIK-iem albo przelewem online. Twoja obecna strona dalej działa.'],
   ['02', 'Wybierz sposób migracji', 'Przekaż dostępy do obecnego hostingu, a my bezpłatnie przeniesiemy pliki, bazy danych i pocztę. Wolisz mieć wszystko pod kontrolą? Uruchom darmowy migrator w panelu.'],
   ['03', 'Przełącz DNS i gotowe', 'Sprawdzasz stronę na nowym serwerze, zmieniasz rekordy DNS — i to wszystko. Stara strona działa do momentu przełączenia, więc odwiedzający nie zobaczą żadnej przerwy.'],
 ];
 
 const COMPARE: [string, string, string][] = [
-  ['Cena', 'Niska w pierwszym okresie, znacznie wyższa przy odnowieniu', 'Jedna cena z cennika od pierwszego dnia — 45 zł/mies lub 399 zł/rok brutto'],
+  ['Cena', 'Niska w pierwszym okresie, znacznie wyższa przy odnowieniu', 'Odnowienie po cenie z cennika — 45 zł/mies lub 399 zł/rok brutto'],
   ['Zasoby', 'Sztywne pakiety — płacisz za moc „na zapas" 24 h/dobę', 'Autoskalowanie godzinowe — dodatkowa moc tylko wtedy, gdy jest używana'],
-  ['Odnowienia domen', 'Automatyczne obciążenie, czasem bez wyraźnej zgody', 'Wyłącznie po opłaceniu — przypomnienia 30, 14 i 7 dni przed wygaśnięciem'],
+  ['Odnowienia domen', 'Automatyczne obciążenie, czasem bez wyraźnej zgody', 'Nie odnowi się bez Twojej decyzji — przypomnienia 30, 14 i 7 dni przed wygaśnięciem'],
   ['Awarie', 'Rekompensata po reklamacji, jeśli w ogóle', 'SLA 99,5% z automatycznymi rekompensatami zapisanymi w regulaminie'],
   ['Przywrócenie kopii', 'Zgłoszenie do supportu, czasem płatne, bez możliwości cofnięcia', 'Samodzielnie w panelu — wybierasz pliki, bazę lub pocztę, a system domyślnie robi kopię bezpieczeństwa przed operacją'],
-  ['Rezygnacja', 'Ukryte kroki, konsultant „zatrzymujący"', 'Wyłączenie odnowienia jednym przełącznikiem w panelu, bez opłat'],
+  ['Rezygnacja', 'Ukryte kroki, konsultant „zatrzymujący"', 'Rezygnacja z odnowienia w panelu w dwóch kliknięciach, bez opłat'],
 ];
 
 const jsonLd = {
@@ -95,8 +95,8 @@ export default function Page() {
               Zmiana hostingu bez stresu <span className="accent">i bez przepłacania</span>.
             </h1>
             <p className="lead">
-              Przeniesiemy Twoją stronę za darmo — albo zrobisz to sam migratorem w panelu. Jedna
-              uczciwa cena od pierwszego dnia, bez promocji-przynęty i szoku przy odnowieniu.
+              Przeniesiemy Twoją stronę za darmo — albo zrobisz to sam migratorem w panelu. Uczciwe
+              odnowienie po cenie z cennika — bez szoku po pierwszym roku.
             </p>
             <p className="note">
               Migracja jest bezpłatna w ramach zamówienia hostingu — bez gwiazdek i ukrytych warunków.
@@ -169,19 +169,19 @@ export default function Page() {
               <span className="tag">Pułapka nr 1</span>
               <h3>Promocja-przynęta</h3>
               <p className="pain-desc">Pierwszy rok za grosze, a przy odnowieniu pełna stawka — często kilkukrotnie wyższa. Rachunek przychodzi po roku, kiedy przenosiny wydają się trudniejsze niż dopłata.</p>
-              <p className="fix"><strong>W Verris:</strong> cena z cennika obowiązuje od pierwszego dnia — 45 zł/mies lub 399 zł/rok brutto. Bez skokowej podwyżki „po promocji”, bo promocji-przynęty nie ma.</p>
+              <p className="fix"><strong>W Verris:</strong> odnowienie idzie po cenie z cennika — 45 zł/mies lub 399 zł/rok brutto. Rabat na start, jeśli trwa, widzisz przed zapłatą; po nim nie ma skoku do kilkuset złotych.</p>
             </div>
             <div className="pain-card rv">
               <span className="tag">Pułapka nr 2</span>
               <h3>Pakiet na zapas</h3>
               <p className="pain-desc">Kupujesz większy pakiet „na wszelki wypadek” — i przez większość roku płacisz za moc, której strona nie używa. Nadpłacony zapas nie wraca.</p>
-              <p className="fix"><strong>W Verris:</strong> jedna baza + autoskalowanie rozliczane godzinowo. Dodatkowe zasoby tylko wtedy, gdy strona ich naprawdę potrzebuje — a tryb ECO zwalnia je, gdy ruch spada.</p>
+              <p className="fix"><strong>W Verris:</strong> jedna baza + autoskalowanie rozliczane godzinowo. Dodatkowe zasoby tylko wtedy, gdy strona ich naprawdę potrzebuje — a gdy ruch spada, wracają do bazy.</p>
             </div>
             <div className="pain-card rv">
               <span className="tag">Pułapka nr 3</span>
               <h3>Cicha dopłata</h3>
               <p className="pain-desc">Automatyczne odnowienia domen i dodatków, o których dowiadujesz się z obciążenia karty. Rezygnacja? Przez konsultanta, który „ma dla Ciebie lepszą ofertę”.</p>
-              <p className="fix"><strong>W Verris:</strong> domeny odnawiamy wyłącznie po opłaceniu (przypomnienia 30/14/7 dni), a odnowienie subskrypcji wyłączysz jednym przełącznikiem w panelu.</p>
+              <p className="fix"><strong>W Verris:</strong> domena nie odnowi się bez Twojej decyzji (przypomnienia 30/14/7 dni), a z odnowienia subskrypcji zrezygnujesz w panelu w dwóch kliknięciach.</p>
             </div>
           </div>
         </div>

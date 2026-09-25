@@ -16,7 +16,7 @@ const GROUPS: { title: string; note?: string; items: (string | [string, string])
       'Inteligentne autoskalowanie zasobów',
       ['Maksymalna moc w piku — ', 'do 24 vCPU'],
       ['Zoptymalizowany pod ', 'WordPress'],
-      'Tryb ECO — zwalnia moc po piku',
+      'Po piku zasoby same wracają do bazy',
     ],
   },
   {
@@ -139,8 +139,8 @@ export function Pricing() {
                 Załóż konto i przenieś stronę
               </a>
               <p className="price-note">
-                Cena z cennika obowiązuje od pierwszego dnia. Odnowienie według cennika z dnia
-                odnowienia — przypomnimy e-mailem, wyłączysz je w panelu w każdej chwili.
+                Rabat na start widzisz przed zapłatą, a odnowienie zawsze idzie po cenie z cennika —
+                przypomnimy e-mailem, zrezygnujesz z niego w panelu w każdej chwili.
               </p>
             </div>
           </div>

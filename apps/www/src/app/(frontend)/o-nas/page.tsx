@@ -17,7 +17,7 @@ export default function Page() {
       <SubHero
         eyebrow="O nas"
         title="Hosting, który gra w otwarte karty"
-        lead="Verris to młoda polska marka hostingowa. Zaufanie budujemy konkretami — awaria oznacza automatyczną rekompensatę, cena jest jedna od pierwszego dnia, a migrację robimy za 0 zł — a nie pustymi obietnicami."
+        lead="Verris to młoda polska marka hostingowa. Zaufanie budujemy konkretami — awaria oznacza automatyczną rekompensatę, odnowienie idzie po cenie z cennika, a nie kilka razy drożej, a migrację robimy za 0 zł — a nie pustymi obietnicami."
         crumbs={[{ label: 'O nas' }]}
       />
       <section>
@@ -27,7 +27,7 @@ export default function Page() {
             <p>
               Rynek hostingu przyzwyczaił firmy do tanich pierwszych okresów i drogich odnowień, do
               pakietów dobieranych „na zapas” i do gwiazdek w cenniku. Chcieliśmy zrobić to inaczej:
-              jedna cena od pierwszego dnia, zasoby, które rosną z ruchem, i zero ukrytych dopłat za
+              odnowienie po cenie z cennika, zasoby, które rosną z ruchem, i zero ukrytych dopłat za
               SSL czy migrację.
             </p>
             <h2>W co wierzymy</h2>

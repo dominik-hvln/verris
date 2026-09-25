@@ -12,3 +12,9 @@ export const VPS_W_SPRZEDAZY = flaga === 'true' || flaga === '1';
 export const OFERTA_KROTKO = VPS_W_SPRZEDAZY
   ? 'hosting z autoskalowaniem, VPS i domeny'
   : 'hosting z autoskalowaniem i domeny';
+
+/**
+ * PB-07 — publiczna specyfikacja pakietu (/specyfikacja). Przygotowana do akceptacji właściciela;
+ * do tego czasu strona daje 404 i nie ma jej w menu ani w sitemapie. Po akceptacji: true.
+ */
+export const SPECYFIKACJA_OPUBLIKOWANA = false;

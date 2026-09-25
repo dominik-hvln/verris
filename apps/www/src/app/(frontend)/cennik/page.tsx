@@ -18,7 +18,7 @@ export default function Page() {
       <SubHero
         eyebrow="Cennik"
         title="Jedna cena. Bez gwiazdek."
-        lead={`Cena z cennika obowiązuje od pierwszego dnia — bez taniej przynęty na pierwszy okres i bez szoku przy odnowieniu. ${VPS_W_SPRZEDAZY ? 'VPS i domeny mają' : 'Domeny mają'} osobną wycenę w panelu.`}
+        lead={`Odnowienie zawsze po cenie z cennika — bez szoku po pierwszym okresie. Rabat na start, jeśli trwa, widzisz przed zapłatą. ${VPS_W_SPRZEDAZY ? 'VPS i domeny mają' : 'Domeny mają'} osobną wycenę w panelu.`}
         crumbs={[{ label: 'Cennik' }]}
       />
       <Pricing />
@@ -45,9 +45,9 @@ export default function Page() {
             )}
             <h2>Jak płacisz</h2>
             <p>
-              Kartą, BLIK-iem, Apple Pay, Google Pay, przelewem online (Stripe) lub Kredytami Verris.
+              Kartą, BLIK-iem, przelewem online (Przelewy24, Stripe) lub Kredytami Verris.
               Fakturę VAT wystawiamy w programie księgowym zintegrowanym z KSeF — jej numer zobaczysz w panelu. Odnowienie następuje według
-              cennika z dnia odnowienia — przypomnimy e-mailem, a odnawianie wyłączysz w panelu w
+              cennika z dnia odnowienia — przypomnimy e-mailem, a z odnowienia zrezygnujesz w panelu w
               każdej chwili, bez opłat.
             </p>
           </div>

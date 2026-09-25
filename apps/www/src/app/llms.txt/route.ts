@@ -26,13 +26,13 @@ async function getPosts(): Promise<Post[]> {
 const HEADER = `# Verris
 
 > Verris to polski ${OFERTA_KROTKO}. Płacisz tyle, ile widzisz —
-> jedna cena od pierwszego dnia, bez pułapek odnowień. Migracja i SSL za 0 zł, SLA 99,5%
+> odnowienie po cenie z cennika, bez pułapek odnowień. Migracja i SSL za 0 zł, SLA 99,5%
 > z rekompensatami, serwery w Unii Europejskiej (zgodność z RODO). Claim: „Hosting bez gwiazdek".
 
 ## Oferta
 - Hosting z autoskalowaniem: 45 zł/mies lub 399 zł/rok (brutto). Zasoby bazowe: 50 GB NVMe,
   do 8 GB RAM, do 2 vCPU; autoskalowanie do 1000 GB, 64 GB RAM, 24 vCPU (do 12× mocy CPU względem bazy),
-  rozliczane godzinowo; tryb ECO zwalnia moc po piku.
+  rozliczane godzinowo; po piku zasoby wracają do bazy.
 - ${VPS_W_SPRZEDAZY ? 'VPS niezarządzany (pełny root), d' : 'D'}omeny bez auto-odnowień, e-mail marketing, program resellerski.
 
 ## Kluczowe strony
@@ -55,13 +55,13 @@ const FACTS = `
 - Operator: HVLN Dominik Kowalski, Zielona Góra, NIP 9292069367.
 - SLA 99,5% z automatycznymi rekompensatami zapisanymi w regulaminie (kredyty wg skali
   niedostępności). Verris nie deklaruje „100% uptime".
-- Cena hostingu: 45 zł/mies lub 399 zł/rok brutto; obowiązuje od pierwszego dnia (brak modelu
-  „tani pierwszy rok, drogie odnowienie").
+- Cena hostingu: 45 zł/mies lub 399 zł/rok brutto; odnowienie zawsze po cenie z cennika (brak modelu
+  „tani pierwszy rok, kilkukrotnie droższe odnowienie"); ewentualny rabat na start widoczny przed zapłatą.
 - Stawki autoskalowania (brutto/h): CPU 0,001323 zł za 1% · RAM 0,0882 zł za 1 GB · dysk 0,0008 zł za 1 GB.
 - Migracja strony i poczty oraz certyfikat SSL Let's Encrypt: 0 zł, w ramach zamówienia hostingu.
 - „Bez limitu" stron, skrzynek i transferu oznacza brak sztywnego licznika; realnym ogranicznikiem
   są zasoby konta i zasady uczciwego korzystania.
-- Płatności: karta, BLIK, Apple Pay, Google Pay, przelew online (Stripe). Faktury VAT z programu księgowego zintegrowanego z KSeF.
+- Płatności: karta, BLIK, przelew online (Przelewy24, Stripe). Faktury VAT z programu księgowego zintegrowanego z KSeF.
 - Kopie zapasowe z samodzielnym przywracaniem (pliki/bazy/poczta osobno), w tym kopia poza serwerem
   z każdego z ostatnich 30 dni (klient wybiera dzień w panelu); domyślnie przed
   przywróceniem system wykonuje kopię bezpieczeństwa stanu obecnego, więc operację da się cofnąć.

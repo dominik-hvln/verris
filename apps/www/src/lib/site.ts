@@ -1,4 +1,4 @@
-import { VPS_W_SPRZEDAZY } from './oferta';
+import { SPECYFIKACJA_OPUBLIKOWANA, VPS_W_SPRZEDAZY } from './oferta';
 // Jedno źródło nawigacji i stopki (używane przez Header, Footer, sitemap).
 
 export const PANEL = 'https://panel.verris.pl';
@@ -44,6 +44,7 @@ export const footerCols: { heading: string; links: { label: string; href: string
       { label: 'Kopie zapasowe', href: '/funkcje/kopie-zapasowe' },
       { label: 'Domeny bez auto-odnowień', href: '/funkcje/domeny-bez-auto-odnowien' },
       { label: 'SLA 99,5%', href: '/funkcje/sla' },
+      ...(SPECYFIKACJA_OPUBLIKOWANA ? [{ label: 'Specyfikacja techniczna', href: '/specyfikacja' }] : []),
     ],
   },
   {

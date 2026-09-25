@@ -34,7 +34,7 @@ const SERVICES_BAZA = [
   {
     icon: Server,
     title: 'Hosting z autoskalowaniem',
-    desc: 'Strony, sklepy i poczta w jednym panelu. Zasoby rosną automatycznie w piku i zwalniają w trybie ECO — nie kupujesz pakietu „na zapas".',
+    desc: 'Strony, sklepy i poczta w jednym panelu. Zasoby rosną automatycznie w piku i wracają do bazy, gdy ruch spada — nie kupujesz pakietu „na zapas".',
     tag: '45 zł/mies · 399 zł/rok brutto',
     tagClass: 'price',
     cta: 'Zobacz cennik →',
@@ -83,15 +83,15 @@ const SERVICES: typeof SERVICES_BAZA = VPS_W_SPRZEDAZY ? [SERVICES_BAZA[0], VPS_
 
 const USP = [
   { icon: ShieldCheck, title: 'SLA 99,5% z rekompensatami', desc: 'Nie „obiecujemy" — gwarantujemy w umowie. Za niedostępność naliczamy kredyty wg regulaminu.' },
-  { icon: Gauge, title: 'Płacisz za realne użycie', desc: 'Autoskalowanie: moc rośnie w piku i zwalnia w trybie ECO. Nie płacisz za pakiet „na zapas".' },
-  { icon: FileText, title: 'Jedna cena, bez pułapek', desc: 'Cena z cennika od pierwszego dnia. Bez taniej przynęty na rok i bez szoku przy odnowieniu.' },
+  { icon: Gauge, title: 'Płacisz za realne użycie', desc: 'Autoskalowanie: moc rośnie w piku i wraca do bazy po nim. Nie płacisz za pakiet „na zapas".' },
+  { icon: FileText, title: 'Jedna cena, bez pułapek', desc: 'Odnowienie zawsze po cenie z cennika — 45 zł/mies lub 399 zł/rok. Bez szoku po pierwszym roku.' },
   { icon: Undo2, title: 'Przywracanie z siatką bezpieczeństwa', desc: 'Domyślnie przed odtworzeniem kopii zapisujemy stan obecny, więc nieudane przywrócenie da się cofnąć.' },
   { icon: RefreshCw, title: 'Domeny bez pułapek', desc: 'Brak cichych auto-odnowień z karty. Przypominamy przed wygaśnięciem, a decyzję zostawiamy Tobie.' },
   { icon: Database, title: 'Kopie z samodzielnym odtwarzaniem', desc: 'Backup i przywracanie z panelu Verris — bez czekania na support i bez dopłat.' },
 ];
 
 const COMPARE: [string, string, string][] = [
-  ['Cena po pierwszym okresie', 'Tania przynęta, drogie odnowienie', 'Jedna cena z cennika od pierwszego dnia'],
+  ['Cena po pierwszym okresie', 'Tania przynęta, odnowienie kilka razy drożej', 'Odnowienie po cenie z cennika: 45 zł/mies lub 399 zł/rok'],
   ['Model zasobów', 'Sztywny pakiet — płacisz za moc „na zapas"', 'Autoskalowanie — płacisz za realne użycie'],
   ['Migracja strony i poczty', 'Często płatna lub „zrób to sam"', 'Zespół albo migrator w panelu — 0 zł'],
   ['Certyfikat SSL', 'Bywa dopłatą przy odnowieniu', "Let's Encrypt w cenie"],
@@ -101,13 +101,13 @@ const COMPARE: [string, string, string][] = [
 ];
 
 const FAQ: [string, string][] = [
-  ['Czym hosting Verris różni się od zwykłego pakietu?', 'Zamiast sztywnego pakietu, który przez większość roku się nudzi, dostajesz bazowe zasoby (50 GB NVMe, do 8 GB RAM, do 2 vCPU) i autoskalowanie. W piku ruchu moc rośnie automatycznie — do 24 vCPU, 64 GB RAM i 1000 GB — i rozliczana jest godzinowo. Gdy ruch spada, tryb ECO zwalnia zasoby i naliczanie się kończy. Nie kupujesz mocy na zapas.'],
+  ['Czym hosting Verris różni się od zwykłego pakietu?', 'Zamiast sztywnego pakietu, który przez większość roku się nudzi, dostajesz bazowe zasoby (50 GB NVMe, do 8 GB RAM, do 2 vCPU) i autoskalowanie. W piku ruchu moc rośnie automatycznie — do 24 vCPU, 64 GB RAM i 1000 GB — i rozliczana jest godzinowo. Gdy ruch spada, autoskalowanie wraca do bazy i naliczanie się kończy. Nie kupujesz mocy na zapas.'],
   ['Czy mogę przenieść stronę z innego hostingu?', 'Tak. Przeprowadzkę strony i poczty wykonuje zespół Verris albo migrator w panelu — oba bezpłatne w ramach zamówienia hostingu. Migracja odbywa się obok działającej strony, bez przestoju, a przełączenie następuje przez zmianę DNS. Bez limitu liczby plików i bez dopłat za bazy danych.'],
   ['Ile kosztuje autoskalowanie?', 'Bazowe zasoby są objęte abonamentem (45 zł/mies lub 399 zł/rok brutto). Nadwyżkę ponad bazę rozliczamy godzinowo — płacisz tylko za czas faktycznego użycia. Orientacyjny koszt policzysz w kalkulatorze autoskalowania.'],
   ['Co znaczy „bez limitu" stron, skrzynek i transferu?', 'Nie nakładamy sztywnego licznika na liczbę stron, skrzynek e-mail ani na transfer. Realnym ogranicznikiem są zasoby konta (CPU, RAM, dysk) oraz zasady uczciwego korzystania — dzięki autoskalowaniu te zasoby możesz zwiększać na żądanie.'],
-  ['Jak płacę i czy dostanę fakturę?', 'Kartą, BLIK-iem, Apple Pay, Google Pay, przelewem online (Stripe) lub Kredytami Verris. Fakturę VAT wystawiamy w programie księgowym zintegrowanym z KSeF — jej numer zobaczysz w panelu.'],
+  ['Jak płacę i czy dostanę fakturę?', 'Kartą, BLIK-iem, przelewem online (Przelewy24, Stripe) lub Kredytami Verris. Fakturę VAT wystawiamy w programie księgowym zintegrowanym z KSeF — jej numer zobaczysz w panelu.'],
   ['Gdzie stoją serwery Verris?', 'W centrach danych w Unii Europejskiej (Hetzner, Niemcy/Finlandia). Dane pozostają w EOG, co upraszcza zgodność z RODO.'],
-  ['Czy cena wzrośnie przy odnowieniu?', 'Nie stosujemy modelu taniego pierwszego roku i drogiego odnowienia — cena z cennika obowiązuje od pierwszego dnia. Odnowienie następuje według cennika z dnia odnowienia, a przed każdym odnowieniem wyślemy przypomnienie e-mail. Odnawianie wyłączysz w panelu w każdej chwili, bez opłat.'],
+  ['Czy cena wzrośnie przy odnowieniu?', 'Nie stosujemy modelu taniego pierwszego roku i kilkukrotnie droższego odnowienia. Na start możesz dostać rabat — jego wysokość widzisz przed zapłatą — a odnowienie idzie po cenie z cennika (dziś 45 zł/mies lub 399 zł/rok). Przed każdym odnowieniem wyślemy przypomnienie e-mail, a z odnowienia zrezygnujesz w panelu w każdej chwili, bez opłat.'],
 ];
 
 const homeJsonLd = {
@@ -119,7 +119,7 @@ const homeJsonLd = {
       '@type': 'Product',
       name: 'Hosting Verris z autoskalowaniem',
       description:
-        'Hosting współdzielony z autoskalowaniem CPU/RAM/dysku i trybem ECO. Baza: 50 GB NVMe, do 8 GB RAM, do 2 vCPU; skalowanie do 1000 GB, 64 GB RAM, 24 vCPU. Migracja i SSL za 0 zł, SLA 99,5% z rekompensatami.',
+        'Hosting współdzielony z autoskalowaniem CPU/RAM/dysku. Baza: 50 GB NVMe, do 8 GB RAM, do 2 vCPU; skalowanie do 1000 GB, 64 GB RAM, 24 vCPU. Migracja i SSL za 0 zł, SLA 99,5% z rekompensatami.',
       brand: { '@id': ORG_ID },
       offers: HOSTING_OFFERS,
     },
@@ -144,7 +144,7 @@ export default function HomePage() {
             </h1>
             <p className="lead">
               Hosting współdzielony z autoskalowaniem{VPS_W_SPRZEDAZY ? ', VPS' : ''} i domeny — w jednym panelu, z realną
-              pomocą, gdy jej potrzebujesz. Bez taniej przynęty na pierwszy rok i bez szoku przy odnowieniu.
+              pomocą, gdy jej potrzebujesz. Bez szoku przy odnowieniu — płacisz cenę z cennika, nie kilka razy więcej.
             </p>
             <div className="hero-cta">
               <a className="btn btn-primary" href="https://panel.verris.pl" data-event="cta_click" data-cta="hero" data-conv="checkout_intent">
@@ -217,12 +217,12 @@ export default function HomePage() {
           <div className="sec-head rv">
             <p className="kicker">Autoskalowanie</p>
             <h2>Moc rośnie z ruchem. Rachunek — tylko za realne użycie.</h2>
-            <p>Koniec z pakietem dobieranym „na zapas”. Baza jest w abonamencie, a nadwyżkę płacisz godzinowo — po piku tryb ECO zwalnia moc, a naliczanie kończy się w ciągu kilkunastu minut.</p>
+            <p>Koniec z pakietem dobieranym „na zapas”. Baza jest w abonamencie, a nadwyżkę płacisz godzinowo — po piku autoskalowanie wraca do bazy, a naliczanie kończy się w ciągu kilkunastu minut.</p>
           </div>
           <div className="steps">
             <div className="step rv"><span className="n">01</span><h3>Baza w abonamencie</h3><p>50 GB NVMe oraz do 8 GB RAM i do 2 vCPU w ramach abonamentu 45 zł/mies. Dla większości stron to z zapasem wystarczy.</p></div>
             <div className="step rv"><span className="n">02</span><h3>Pik ruchu → scale-up</h3><p>Kampania, Black Friday, wejście na home w mediach? Zasoby rosną automatycznie — do 24 vCPU, 64 GB RAM i 1000 GB — rozliczane co godzinę.</p></div>
-            <div className="step rv"><span className="n">03</span><h3>Spadek → tryb ECO</h3><p>Gdy ruch opada, tryb ECO zwalnia nadwyżkę i naliczanie się kończy. Nie płacisz za moc, której strona nie używa.</p></div>
+            <div className="step rv"><span className="n">03</span><h3>Spadek → powrót do bazy</h3><p>Gdy ruch opada, autoskalowanie zwalnia nadwyżkę i naliczanie się kończy. Nie płacisz za moc, której strona nie używa.</p></div>
           </div>
           <div className="scale-stats rv">
             <div className="sstat"><div className="v">2 → 24 vCPU</div><div className="l">moc CPU do 12× bazy</div></div>
