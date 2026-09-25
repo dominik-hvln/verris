@@ -519,3 +519,15 @@ export async function setNodeRegion(id: string, region: string) {
     return { ok: false as const, error: extractError(err) };
   }
 }
+
+/** Status węzła poza handshake/zatwierdzeniem: węzeł, którego już nie ma, oznaczamy jako OFFLINE (i z powrotem). */
+export async function setNodeStatus(id: string, status: "OFFLINE" | "ACTIVE") {
+  try {
+    await adminApi(`/admin/servers/${id}`, { method: "PATCH", body: { status } });
+    revalidatePath("/nodes");
+    revalidatePath(`/nodes/${id}`);
+    return { ok: true as const };
+  } catch (err) {
+    return { ok: false as const, error: extractError(err) };
+  }
+}

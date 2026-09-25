@@ -11,6 +11,7 @@ import { NodeStackReadinessPanel } from "./node-stack-readiness-panel";
 import { DbUpgradePanel } from "./db-upgrade-panel";
 import { WafPanel } from "./waf-panel";
 import { MaintenanceToggle } from "./maintenance-toggle";
+import { NodeStatusPanel } from "./node-status-panel";
 import { CapacityPolicyPanel } from "./capacity-policy-panel";
 import { DrainPanel } from "./drain-panel";
 import { NodeAuditPanel } from "./node-audit-panel";
@@ -138,6 +139,8 @@ export default async function ServerDetailPage({
           <NodeInsightsPanel serverId={server.id} />
         </div>
       )}
+
+      <NodeStatusPanel serverId={server.id} status={server.status} />
 
       <MaintenanceToggle
         serverId={server.id}
