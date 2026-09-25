@@ -61,7 +61,7 @@ const FACTS = `
 - Migracja strony i poczty oraz certyfikat SSL Let's Encrypt: 0 zł, w ramach zamówienia hostingu.
 - „Bez limitu" stron, skrzynek i transferu oznacza brak sztywnego licznika; realnym ogranicznikiem
   są zasoby konta i zasady uczciwego korzystania.
-- Płatności: karta, BLIK, Apple Pay, Google Pay, przelew online (Stripe). Faktury gotowe na KSeF.
+- Płatności: karta, BLIK, Apple Pay, Google Pay, przelew online (Stripe). Faktury VAT z programu księgowego zintegrowanego z KSeF.
 - Kopie zapasowe z samodzielnym przywracaniem (pliki/bazy/poczta osobno); domyślnie przed
   przywróceniem system wykonuje kopię bezpieczeństwa stanu obecnego, więc operację da się cofnąć.
   Kopie Verris są pomocnicze i nie zwalniają klienta z utrzymywania własnych kopii danych krytycznych.

@@ -46,7 +46,7 @@ export default function Page() {
             <h2>Jak płacisz</h2>
             <p>
               Kartą, BLIK-iem, Apple Pay, Google Pay, przelewem online (Stripe) lub Kredytami Verris.
-              Faktury VAT znajdziesz w panelu i w e-mailu, gotowe na KSeF. Odnowienie następuje według
+              Fakturę VAT wystawiamy w programie księgowym zintegrowanym z KSeF — jej numer zobaczysz w panelu. Odnowienie następuje według
               cennika z dnia odnowienia — przypomnimy e-mailem, a odnawianie wyłączysz w panelu w
               każdej chwili, bez opłat.
             </p>

@@ -6,14 +6,14 @@ import { PANEL } from '@/lib/site';
 import { serviceSchema } from '@/lib/schema';
 
 export const metadata: Metadata = {
-  title: 'Program resellerski — hosting pod własną marką | Verris',
+  title: 'Program resellerski — odsprzedaż hostingu z własnym narzutem | Verris',
   description:
-    'Odsprzedawaj hosting Verris pod własną marką agencji lub freelancera. Wielu klientów z jednego panelu, przewidywalne rozliczenia i program poleceń. Mniej klikania, większa marża.',
+    'Odsprzedawaj hosting Verris z własnym narzutem — dla agencji i freelancerów. Wielu klientów z jednego panelu, przewidywalne rozliczenia i program poleceń. Mniej klikania, większa marża.',
   alternates: { canonical: '/reseller' },
 };
 
 const F = [
-  { icon: Tag, h: 'Własna marka', p: 'Sprzedawaj usługi pod szyldem swojej agencji — klient widzi Ciebie, nie nas.' },
+  { icon: Tag, h: 'Własny narzut', p: 'Sam ustalasz marżę na usługach, które odsprzedajesz swoim klientom.' },
   { icon: LayoutPanelLeft, h: 'Jeden panel', p: 'Wszyscy klienci i usługi w jednym miejscu. Mniej przełączania, mniej klikania.' },
   { icon: Wallet, h: 'Przewidywalna marża', p: 'Uczciwe zasady rozliczeń i program poleceń z prowizją (szczegóły w panelu).' },
   { icon: Users, h: 'Dla agencji i freelancerów', p: 'Obsłuż wielu klientów bez budowania własnej infrastruktury.' },
@@ -26,14 +26,14 @@ export default function Page() {
         data={serviceSchema({
           name: 'Program resellerski',
           description:
-            'Odsprzedaż hostingu Verris pod własną marką agencji lub freelancera. Wielu klientów z jednego panelu, przewidywalna marża.',
+            'Odsprzedaż hostingu Verris z własnym narzutem — dla agencji i freelancerów. Wielu klientów z jednego panelu, przewidywalna marża.',
           path: '/reseller',
         })}
       />
       <SubHero
         eyebrow="Program resellerski"
-        title="Hosting pod Twoją marką"
-        lead="Prowadzisz agencję webową albo obsługujesz wielu klientów? Odsprzedawaj hosting Verris jako swój — z jednego panelu, z przewidywalną marżą."
+        title="Hosting dla Twoich klientów"
+        lead="Prowadzisz agencję webową albo obsługujesz wielu klientów? Odsprzedawaj hosting Verris z własnym narzutem — z jednego panelu, z przewidywalną marżą."
         crumbs={[{ label: 'Reseller' }]}
         primary={{ label: 'Zostań resellerem', href: PANEL }}
         secondary={{ label: 'Zobacz hosting', href: '/hosting' }}

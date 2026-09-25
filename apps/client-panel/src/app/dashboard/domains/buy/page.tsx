@@ -1,7 +1,14 @@
 import { DomainPurchaseWizard } from '../components/domain-purchase-wizard';
 import { fetchRegistrarOrders, fetchRegistrarStatus } from '../actions';
 
-export default async function BuyDomainPage() {
+/** Nazwa z wyszukiwarki na verris.pl (`?domain=`) — tylko litery, cyfry, myślnik i kropka. */
+function nazwaZAdresu(v: string | string[] | undefined): string {
+  const s = (Array.isArray(v) ? v[0] : v ?? '').trim().toLowerCase();
+  return s.replace(/[^a-z0-9.-]/g, '').slice(0, 63);
+}
+
+export default async function BuyDomainPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const { domain } = await searchParams;
   const status = await fetchRegistrarStatus().catch(() => ({ provider: null, configured: false }));
   if (!status.configured) {
     return (
@@ -15,5 +22,5 @@ export default async function BuyDomainPage() {
   }
 
   const orders = await fetchRegistrarOrders().catch(() => []);
-  return <DomainPurchaseWizard initialOrders={orders} />;
+  return <DomainPurchaseWizard initialOrders={orders} initialLabel={nazwaZAdresu(domain)} />;
 }

@@ -15,8 +15,6 @@ Aktualizacja: 2026-07-08. Źródło: https://verris.pl/cennik
 - Bez limitu liczby stron, skrzynek e-mail i transferu (w ramach zasobów konta i zasad uczciwego korzystania)
 - Model odnowień: cena z cennika od pierwszego dnia; odnowienie wg cennika z dnia odnowienia; brak „taniego pierwszego roku"
 
-## VPS
-- Serwery niezarządzane z pełnym dostępem root. Konfiguracja i aktualna wycena zasobów: panel.verris.pl
 
 ## Domeny
 - Rejestracja, transfer i utrzymanie. Dostępność i ceny w panelu. Bez cichych auto-odnowień
@@ -24,4 +22,4 @@ Aktualizacja: 2026-07-08. Źródło: https://verris.pl/cennik
 
 ## Płatności i faktury
 - Karta, BLIK, Apple Pay, Google Pay, przelew online (Stripe), Kredyty Verris.
-- Faktury VAT w panelu i e-mailem, gotowe na KSeF.
+- Faktury VAT z programu księgowego zintegrowanego z KSeF; numer faktury widoczny w panelu.

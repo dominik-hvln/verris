@@ -12,7 +12,7 @@ export const megaServices: { label: string; href: string; desc: string }[] = [
   { label: 'Domeny', href: '/domeny', desc: 'Rejestracja i transfer' },
   { label: 'E-mail marketing', href: '/email-marketing', desc: 'Wysyłki z panelu' },
   { label: 'Poczta', href: '/poczta', desc: 'Skrzynki w hostingu' },
-  { label: 'Program resellerski', href: '/reseller', desc: 'Odsprzedaż pod swoją marką' },
+  { label: 'Program resellerski', href: '/reseller', desc: 'Odsprzedaż z własnym narzutem' },
 ];
 
 export const KB_URL = 'https://pomoc.verris.pl';

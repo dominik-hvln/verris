@@ -34,7 +34,7 @@ export default function Page() {
             <ul>
               <li>Obietnice tylko z pokryciem — SLA 99,5% z rekompensatami wpisanymi w regulamin.</li>
               <li>Ceny brutto, jasno; bez pułapek odnowieniowych i cichych auto-odnowień domen.</li>
-              <li>Realna pomoc, gdy jej potrzebujesz — odpowiadamy tego samego dnia roboczego, bez formułek.</li>
+              <li>Realna pomoc, gdy jej potrzebujesz — odpowiadamy zwykle w ciągu dnia roboczego, bez formułek.</li>
               <li>Konkret techniczny zamiast marketingowej waty.</li>
             </ul>
             <h2>Infrastruktura</h2>

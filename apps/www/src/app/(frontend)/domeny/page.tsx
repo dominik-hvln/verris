@@ -34,7 +34,7 @@ export default function DomenyPage() {
       <SubHero
         eyebrow="Domeny"
         title="Domeny bez pułapek odnowień"
-        lead="Rejestracja i transfer domen z uczciwymi zasadami. Bez cichego pobierania z karty i bez blokad transferu — tak jak powinno być."
+        lead="Rejestracja i transfer domen z uczciwymi zasadami. Bez cichego pobierania z karty, a blokadę transferu włączasz i zdejmujesz sam w panelu — tak jak powinno być."
         crumbs={[{ label: 'Domeny' }]}
         primary={{ label: 'Wyszukaj domenę', href: PANEL }}
         secondary={{ label: 'Zobacz hosting', href: '/hosting' }}

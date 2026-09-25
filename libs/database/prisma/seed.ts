@@ -128,24 +128,14 @@ async function main() {
   console.log(`  plans: ${plans.map((p) => p.slug).join(', ')}`);
 
   // ---------------------------------------------------------------------------
-  // Default autoscaling pricing (per hour, in PLN)
+  // Default autoscaling pricing (per hour, in PLN) — te same stawki co na produkcji (admin → Cennik
+  // autoskalowania, 2026-09-25) i na verris.pl (llms.txt, kalkulator migracji). Wcześniej seed miał
+  // własne, przykładowe liczby (dysk 62× droższy), więc świeże środowisko liczyło inaczej niż strona.
   // ---------------------------------------------------------------------------
   const priceRules = [
-    {
-      resource: AutoscalingResource.CPU,
-      unit: 'cpu_pct',
-      pricePerUnit: 0.0002, // ~0.02 zł / h za 100% CPU SPEED
-    },
-    {
-      resource: AutoscalingResource.RAM,
-      unit: 'ram_gb',
-      pricePerUnit: 0.119808, // ~0.12 zł / h za 1 GB (ex 0.000117 / MB)
-    },
-    {
-      resource: AutoscalingResource.DISK,
-      unit: 'disk_gb',
-      pricePerUnit: 0.05, // przykładowa stawka za 1 GB / h
-    },
+    { resource: AutoscalingResource.CPU, unit: 'cpu_pct', pricePerUnit: 0.001323 },
+    { resource: AutoscalingResource.RAM, unit: 'ram_gb', pricePerUnit: 0.0882 },
+    { resource: AutoscalingResource.DISK, unit: 'disk_gb', pricePerUnit: 0.0008 },
   ];
 
   for (const rule of priceRules) {

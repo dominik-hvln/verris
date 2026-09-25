@@ -147,11 +147,11 @@ function TldResultCard({
   );
 }
 
-export function DomainPurchaseWizard({ initialOrders }: { initialOrders: RegistrarOrderRow[] }) {
+export function DomainPurchaseWizard({ initialOrders, initialLabel = '' }: { initialOrders: RegistrarOrderRow[]; initialLabel?: string }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>('search');
   const nsId = useId();
-  const [label, setLabel] = useState('');
+  const [label, setLabel] = useState(initialLabel);
   const [selectedDomain, setSelectedDomain] = useState<string | null>(null);
   const [searchResults, setSearchResults] = useState<DomainSearchResultDto[]>([]);
   const [hasSearched, setHasSearched] = useState(false);

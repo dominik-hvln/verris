@@ -19,7 +19,7 @@ export default function Page() {
       <SubHero
         eyebrow="Kontakt"
         title="Porozmawiajmy"
-        lead={`Masz pytanie o hosting, migrację${VPS_W_SPRZEDAZY ? ' albo VPS' : ' albo domeny'}? Napisz — odpowiadamy tego samego dnia roboczego, bez formułek i botów.`}
+        lead={`Masz pytanie o hosting, migrację${VPS_W_SPRZEDAZY ? ' albo VPS' : ' albo domeny'}? Napisz — odpowiadamy zwykle w ciągu dnia roboczego, bez formułek i botów.`}
         crumbs={[{ label: 'Kontakt' }]}
       />
       <section>

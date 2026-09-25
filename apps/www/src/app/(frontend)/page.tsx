@@ -62,7 +62,7 @@ const SERVICES_BAZA = [
   {
     icon: Users,
     title: 'Program resellerski',
-    desc: 'Odsprzedawaj usługi pod własną marką agencji. Wielu klientów z jednego panelu — mniej klikania, większa marża.',
+    desc: 'Odsprzedawaj usługi z własnym narzutem. Wielu klientów z jednego panelu — mniej klikania, większa marża.',
     tag: 'Dla agencji i freelancerów',
     tagClass: 'note',
     cta: 'Zostań resellerem →',
@@ -105,7 +105,7 @@ const FAQ: [string, string][] = [
   ['Czy mogę przenieść stronę z innego hostingu?', 'Tak. Przeprowadzkę strony i poczty wykonuje zespół Verris albo migrator w panelu — oba bezpłatne w ramach zamówienia hostingu. Migracja odbywa się obok działającej strony, bez przestoju, a przełączenie następuje przez zmianę DNS. Bez limitu liczby plików i bez dopłat za bazy danych.'],
   ['Ile kosztuje autoskalowanie?', 'Bazowe zasoby są objęte abonamentem (45 zł/mies lub 399 zł/rok brutto). Nadwyżkę ponad bazę rozliczamy godzinowo — płacisz tylko za czas faktycznego użycia. Orientacyjny koszt policzysz w kalkulatorze autoskalowania.'],
   ['Co znaczy „bez limitu" stron, skrzynek i transferu?', 'Nie nakładamy sztywnego licznika na liczbę stron, skrzynek e-mail ani na transfer. Realnym ogranicznikiem są zasoby konta (CPU, RAM, dysk) oraz zasady uczciwego korzystania — dzięki autoskalowaniu te zasoby możesz zwiększać na żądanie.'],
-  ['Jak płacę i czy dostanę fakturę?', 'Kartą, BLIK-iem, Apple Pay, Google Pay, przelewem online (Stripe) lub Kredytami Verris. Faktury VAT znajdziesz w panelu i w e-mailu, gotowe na KSeF.'],
+  ['Jak płacę i czy dostanę fakturę?', 'Kartą, BLIK-iem, Apple Pay, Google Pay, przelewem online (Stripe) lub Kredytami Verris. Fakturę VAT wystawiamy w programie księgowym zintegrowanym z KSeF — jej numer zobaczysz w panelu.'],
   ['Gdzie stoją serwery Verris?', 'W centrach danych w Unii Europejskiej (Hetzner, Niemcy/Finlandia). Dane pozostają w EOG, co upraszcza zgodność z RODO.'],
   ['Czy cena wzrośnie przy odnowieniu?', 'Nie stosujemy modelu taniego pierwszego roku i drogiego odnowienia — cena z cennika obowiązuje od pierwszego dnia. Odnowienie następuje według cennika z dnia odnowienia, a przed każdym odnowieniem wyślemy przypomnienie e-mail. Odnawianie wyłączysz w panelu w każdej chwili, bez opłat.'],
 ];
@@ -159,7 +159,7 @@ export default function HomePage() {
               Tutaj NIE wysyłamy własnego zdarzenia konwersji — wcześniej wisiał tu
               `generate_lead`, więc każde kliknięcie „Sprawdź" raportowało się jako lead.
             */}
-            <form id="domain-search" className="dsearch" action="https://panel.verris.pl" method="get" role="search" aria-label="Wyszukiwarka domen">
+            <form id="domain-search" className="dsearch" action="https://panel.verris.pl/dashboard/domains/buy" method="get" role="search" aria-label="Wyszukiwarka domen">
               <input type="text" name="domain" placeholder="Znajdź domenę dla swojej strony…" aria-label="Nazwa domeny" />
               <button className="btn btn-primary" type="submit" data-event="cta_click" data-cta="domain-search">
                 Sprawdź
@@ -217,7 +217,7 @@ export default function HomePage() {
           <div className="sec-head rv">
             <p className="kicker">Autoskalowanie</p>
             <h2>Moc rośnie z ruchem. Rachunek — tylko za realne użycie.</h2>
-            <p>Koniec z pakietem dobieranym „na zapas”. Baza jest w abonamencie, a nadwyżkę płacisz godzinowo — sekundę po piku naliczanie się kończy.</p>
+            <p>Koniec z pakietem dobieranym „na zapas”. Baza jest w abonamencie, a nadwyżkę płacisz godzinowo — po piku tryb ECO zwalnia moc, a naliczanie kończy się w ciągu kilkunastu minut.</p>
           </div>
           <div className="steps">
             <div className="step rv"><span className="n">01</span><h3>Baza w abonamencie</h3><p>50 GB NVMe oraz do 8 GB RAM i do 2 vCPU w ramach abonamentu 45 zł/mies. Dla większości stron to z zapasem wystarczy.</p></div>
