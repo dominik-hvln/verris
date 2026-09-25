@@ -11,7 +11,7 @@ import { AplikacjeSelektorPanel } from '@/components/hosting/AplikacjeSelektorPa
 
 /**
  * Zjednoczona zakładka „Aplikacje": WordPress 1-click (góra) + marketplace
- * pozostałych aplikacji (Nextcloud/PrestaShop, P-3) w jednym miejscu — koniec
+ * pozostałych aplikacji (Nextcloud, PrestaShop, Joomla, MediaWiki — P-3/I-01) w jednym miejscu — koniec
  * dwóch osobnych widoków aplikacji.
  */
 export default function AppsTab({ serviceId }: { serviceId: string }) {

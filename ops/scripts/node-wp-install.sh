@@ -140,6 +140,17 @@ wp_as_user "plugin install litespeed-cache --activate --path='$DOCROOT'" 2>/dev/
   log "LiteSpeed Cache — pominięto (brak sieci lub repo WP)."
 wp_as_user "post delete 1 2 --force --path='$DOCROOT'" 2>/dev/null || true
 
+# Domyślna strona Verris (index.html jest przed index.php w DirectoryIndex) zasłaniałaby WordPressa.
+if [ -f "$DOCROOT/index.html" ] && [ ! -L "$DOCROOT/index.html" ] \
+  && grep -qiE 'hosting verris|Something amazing will be constructed' "$DOCROOT/index.html"; then
+  rm -f -- "$DOCROOT/index.html"
+  if [ -d "$DOCROOT/assets" ] && [ ! -L "$DOCROOT/assets" ] \
+    && [ -z "$(find "$DOCROOT/assets" -mindepth 1 ! -name 'verris-*.svg' -print -quit)" ]; then
+    rm -rf -- "$DOCROOT/assets"
+  fi
+  log "Usunięto domyślną stronę Verris z public_html."
+fi
+
 chown_user "$DOCROOT"
 
 echo "[VERRIS_WP] status=installed domain=$WP_DOMAIN url=https://$WP_DOMAIN admin_user=$WP_ADMIN_USER"

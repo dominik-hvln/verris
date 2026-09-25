@@ -20,7 +20,7 @@ interface AppCatalogEntry {
   adminPath: string;
 }
 
-const CATALOG: Record<string, AppCatalogEntry> = {
+export const CATALOG: Record<string, AppCatalogEntry> = {
   nextcloud: {
     slug: 'nextcloud',
     name: 'Nextcloud',
@@ -34,6 +34,20 @@ const CATALOG: Record<string, AppCatalogEntry> = {
     description: 'Sklep internetowy (e-commerce).',
     needsDb: true,
     adminPath: '/admin',
+  },
+  joomla: {
+    slug: 'joomla',
+    name: 'Joomla',
+    description: 'System zarządzania treścią — strony firmowe, portale, blogi.',
+    needsDb: true,
+    adminPath: '/administrator',
+  },
+  mediawiki: {
+    slug: 'mediawiki',
+    name: 'MediaWiki',
+    description: 'Wiki jak Wikipedia — baza wiedzy, dokumentacja, intranet.',
+    needsDb: true,
+    adminPath: '/',
   },
 };
 
@@ -106,6 +120,10 @@ export class AppInstallService {
     const adminEmail = (input.adminEmail || '').trim();
     if (!/^[a-zA-Z0-9_.@-]{3,60}$/.test(adminUser)) {
       throw new BadRequestException('Nieprawidłowy login administratora.');
+    }
+    // MediaWiki nie dopuszcza @ w nazwie użytkownika ($wgInvalidUsernameCharacters).
+    if (app.slug === 'mediawiki' && adminUser.includes('@')) {
+      throw new BadRequestException('Login administratora MediaWiki nie może zawierać znaku @.');
     }
     // Wartości trafiają do poleceń instalatora na węźle (w cudzysłowach powłoki) — bez ', ", \, $, `
     // i spacji. Sprawdzamy PRZED założeniem bazy, żeby odrzucone żądanie nie zostawiało śmieci.
