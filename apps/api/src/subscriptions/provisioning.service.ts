@@ -280,6 +280,14 @@ export class ProvisioningService {
           data: { status: SubscriptionStatus.ACTIVE },
         });
 
+        // H-02 — kopie „w ramach usługi” (verris.pl) od pierwszego dnia: codzienna kopia konta, 7 ostatnich.
+        // Klient zmienia albo wyłącza harmonogram w zakładce kopii; istniejącego ustawienia nie ruszamy.
+        await tx.backupSchedule.upsert({
+          where: { subscriptionId: subscription.id },
+          create: { subscriptionId: subscription.id, frequency: 'DAILY', enabled: true, retainCount: 7 },
+          update: {},
+        });
+
         await tx.server.update({
           where: { id: server.id },
           data: {

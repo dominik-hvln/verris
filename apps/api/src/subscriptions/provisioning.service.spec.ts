@@ -38,6 +38,7 @@ function stanowisko(o: { kontoZDomena?: boolean; limity?: Error; zapis?: Error; 
         subscription: { update: jest.fn(async () => ({ ...subscription, status: 'ACTIVE' })) },
         server: { update: jest.fn(async () => undefined) },
         subscriptionEvent: { create: jest.fn(async () => undefined) },
+        backupSchedule: { upsert: jest.fn(async () => undefined) },
       });
     }),
   };

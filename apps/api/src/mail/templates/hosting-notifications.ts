@@ -143,10 +143,10 @@ export function accountSuspendedPaymentTemplate(
 }
 
 // ---------------------------------------------------------------------------
-// 3. domain-expiry-reminder (T-30 / T-7 / T-1)
+// 3. domain-expiry-reminder (T-30 / T-14 / T-7 — tak jak obiecuje verris.pl)
 // ---------------------------------------------------------------------------
 
-export type DomainExpiryWindow = 'T_MINUS_30' | 'T_MINUS_7' | 'T_MINUS_1';
+export type DomainExpiryWindow = 'T_MINUS_30' | 'T_MINUS_14' | 'T_MINUS_7';
 
 export interface DomainExpiryReminderContext {
   to: string;
@@ -161,8 +161,8 @@ export interface DomainExpiryReminderContext {
 
 const DOMAIN_WINDOW_LABEL: Record<DomainExpiryWindow, string> = {
   T_MINUS_30: 'za 30 dni',
+  T_MINUS_14: 'za 14 dni',
   T_MINUS_7: 'za 7 dni',
-  T_MINUS_1: 'jutro',
 };
 
 export function domainExpiryReminderTemplate(
@@ -172,10 +172,10 @@ export function domainExpiryReminderTemplate(
   const when = DOMAIN_WINDOW_LABEL[ctx.window];
 
   const urgencyLine =
-    ctx.window === 'T_MINUS_1'
-      ? '⚠️ **Ostatnia chwila** — jutro domena wygaśnie i może zostać przejęta przez kogoś innego.'
-      : ctx.window === 'T_MINUS_7'
-        ? 'Zostało już niewiele czasu — zalecamy odnowienie w ciągu kilku dni.'
+    ctx.window === 'T_MINUS_7'
+      ? '⚠️ **Został tydzień** — po wygaśnięciu strona i poczta w tej domenie przestaną działać.'
+      : ctx.window === 'T_MINUS_14'
+        ? 'Zostały dwa tygodnie — zalecamy odnowienie w najbliższych dniach.'
         : 'Masz jeszcze sporo czasu, ale przypominamy z wyprzedzeniem, żebyś mógł zaplanować odnowienie spokojnie.';
 
   const { html, text } = renderEmailShell({
@@ -200,14 +200,14 @@ export function domainExpiryReminderTemplate(
       url: `${ctx.panelUrl}/dashboard/domains`,
     },
     footnote:
-      'Możesz włączyć **automatyczne odnawianie** w ustawieniach domeny — wtedy nie będziesz musiał o tym pamiętać. Pobranie nastąpi z portfela albo karty.',
+      'Domen nie odnawiamy automatycznie — o odnowieniu zawsze decydujesz Ty. Przypomnimy jeszcze na 14 i 7 dni przed terminem.',
     recipientEmail: ctx.to,
     panelUrl: ctx.panelUrl,
     category: 'TRANSACTIONAL',
   });
 
   const tagSuffix =
-    ctx.window === 'T_MINUS_30' ? 't30' : ctx.window === 'T_MINUS_7' ? 't7' : 't1';
+    ctx.window === 'T_MINUS_30' ? 't30' : ctx.window === 'T_MINUS_14' ? 't14' : 't7';
   return {
     to: ctx.to,
     tag: `hosting.domain-expiry-reminder.${tagSuffix}`,

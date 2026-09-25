@@ -4,6 +4,7 @@ import { DomainsService } from './domains.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
 import { CryptoModule } from '../common/crypto/crypto.module';
+import { DomainExpiryReminderScheduler } from './domain-expiry-reminder.scheduler';
 import { DomainRegistrarService } from './domain-registrar.service';
 import { NbpFxService } from './nbp-fx.service';
 import { RegistrarProviderFactory } from './registrar.provider';
@@ -13,6 +14,6 @@ import { EcoModule } from '../eco/eco.module';
 @Module({
   imports: [PrismaModule, ConfigModule, CryptoModule, BillingModule, EcoModule],
   controllers: [DomainsController],
-  providers: [DomainsService, DomainRegistrarService, RegistrarProviderFactory, NbpFxService],
+  providers: [DomainsService, DomainRegistrarService, RegistrarProviderFactory, NbpFxService, DomainExpiryReminderScheduler],
 })
 export class DomainsModule {}

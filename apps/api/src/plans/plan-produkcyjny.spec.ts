@@ -7,6 +7,7 @@ import {
   SUFITY_Z_OFERTY,
 } from './plan-produkcyjny';
 import { krotnoscAutoskalowania } from '../subscriptions/node-capacity';
+import { packagePolicyForSlug } from '../servers/da-package-spec';
 
 /**
  * Z-13 — uzgodnienie trzech warstw, które do 2026-08-22 mówiły trzy różne rzeczy:
@@ -244,5 +245,20 @@ describe('Z-13 — pakiet ze strony istnieje w bazie i zgadza się z ofertą', (
       expect(src).toContain('ksiegaUpdateData(');
       expect(src).toContain('deltaKsiegi(');
     });
+  });
+});
+
+describe('Z-13 — limity liczbowe pakietu DA zgodne z ofertą', () => {
+  it('sprzedawany plan ma własną politykę: bez limitu domen, skrzynek, baz i FTP (nie domyślną 1 domenę / 25 skrzynek)', () => {
+    const p = packagePolicyForSlug(PLAN_PRODUKCYJNY.slug);
+    expect(p).toMatchObject({ domains: 'unlimited', emailAccounts: 'unlimited', databases: 'unlimited', ftpAccounts: 'unlimited', subdomains: 'unlimited' });
+    expect(PLAN_PRODUKCYJNY.description).toMatch(/Bez limitu stron, skrzynek/);
+  });
+});
+
+describe('H-02 — kopie w ramach usługi od pierwszego dnia', () => {
+  it('provisioning zakłada codzienny harmonogram kopii (7 ostatnich) w tej samej transakcji co konto', () => {
+    const src = readFileSync(resolve(__dirname, '../subscriptions/provisioning.service.ts'), 'utf8');
+    expect(src).toMatch(/tx\.backupSchedule\.upsert\(\{[\s\S]*?frequency: 'DAILY', enabled: true, retainCount: 7[\s\S]*?update: \{\}/);
   });
 });

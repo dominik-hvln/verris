@@ -53,6 +53,22 @@ const EMAIL_PACKAGE_POLICY: DaPackagePolicy = {
 };
 
 const PACKAGE_POLICY_BY_SLUG: Record<string, DaPackagePolicy> = {
+  /**
+   * Plan, który Verris sprzedaje (plans/plan-produkcyjny.ts): „bez limitu stron, skrzynek i transferu
+   * w ramach zasobów konta”. Do 2026-09-25 slug nie miał wpisu i spadał na DEFAULT_PACKAGE_POLICY —
+   * DirectAdmin odrzuciłby drugą domenę i 26. skrzynkę, wbrew ofercie. Sufitem są zasoby (dysk, LVE).
+   */
+  'verris-hosting': {
+    domains: 'unlimited',
+    subdomains: 'unlimited',
+    emailAccounts: 'unlimited',
+    emailForwarders: 'unlimited',
+    mailingLists: 100,
+    autoresponders: 'unlimited',
+    databases: 'unlimited',
+    domainPointers: 'unlimited',
+    ftpAccounts: 'unlimited',
+  },
   starter: {
     domains: 1,
     subdomains: 25,
