@@ -588,10 +588,14 @@ def postep(D, dzis=None):
     start = datetime.date.fromisoformat(D["cfg"]["start"])
     cap = D["cfg"]["sprint_godzin"]
 
+    WZ0 = D.get("wezel", {})
+    # „Kod gotowy” (uzgodnione z PM): zamknięte + gotowe w kodzie i czekające już tylko na test na węźle.
+    na_wezle = lambda i: i in WZ0 and WZ0[i][0] in ("czeka", "sprawdzone")
     sprinty = []
     for n in sorted(D["sprinty"]):
         poz = pozycje_sprintu(D, n)
         zrob = [x for x in poz if _zrobione(D, x[0], x[3])]
+        kod = [x for x in poz if _zrobione(D, x[0], x[3]) or na_wezle(x[0])]
         d0, d1 = daty(D, n)
         sprinty.append({
             "n": n,
@@ -601,8 +605,10 @@ def postep(D, dzis=None):
             "zrobione": len(zrob),
             "godziny": sum(x[2] for x in poz),
             "godzinyZrobione": sum(x[2] for x in zrob),
+            "kodGotowy": len(kod),
+            "godzinyKodGotowy": sum(x[2] for x in kod),
             "otwarte": [
-                {"id": x[0], "tytul": x[1], "h": x[2],
+                {"id": x[0], "tytul": x[1], "h": x[2], "wezel": na_wezle(x[0]),
                  "bloker": x[4] == "BLOKER STARTU" or "BLOKER" in str(x[4])}
                 for x in poz if not _zrobione(D, x[0], x[3])
             ],
@@ -641,7 +647,8 @@ def postep(D, dzis=None):
     zapas_tyg = tyg_zrobione - max(tyg_uplynelo, 0.0)
 
     # Który sprint jest „bieżący": pierwszy z niedomkniętymi pozycjami.
-    biezacy = next((s["n"] for s in sprinty if s["zrobione"] < s["pozycje"]), None)
+    # Pierwszy sprint z pracą do zrobienia w kodzie — sprint, któremu brakuje już tylko testów na węźle, nie jest „bieżący”.
+    biezacy = next((s["n"] for s in sprinty if s["kodGotowy"] < s["pozycje"]), None)
 
     # Prognoza końca: tempo dotychczasowe albo — gdy plan jeszcze nie ruszył —
     # nominalna pojemność. Nie zgadujemy przyspieszenia, którego nie widać.

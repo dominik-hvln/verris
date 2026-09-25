@@ -106,6 +106,8 @@
   .psegfill{position:absolute;left:0;right:0;bottom:0;background:var(--good);opacity:.9}
   .pseg.teraz .psegbar{outline:2px solid var(--accent);outline-offset:1px}
   .pseg.pelny .psegbar{background:var(--good)}
+  .psegkod{position:absolute;left:0;right:0;bottom:0;background:var(--good);opacity:.35}
+  .pseg.kod .pseglab{color:var(--good)}
   .pseglab{font-size:10.5px;color:var(--muted);text-align:center;margin-top:5px;
            font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden}
   .pseg.pelny .pseglab{color:var(--good);font-weight:650}
@@ -236,6 +238,9 @@ document.getElementById('kpis').innerHTML = [
 const PG = P.postep;
 const ZROBIONE_ID = new Set(PG.sprinty.flatMap(s => s.domkniete.map(d => d.id)));
 const SPRINT_PELNY = new Set(PG.sprinty.filter(s => s.pozycje > 0 && s.zrobione === s.pozycje).map(s => s.n));
+// Sprint, w którym cały kod jest gotowy, a zostały tylko testy na węźle (uzgodnione z PM: częściowe = kod gotowy).
+const SPRINT_KOD = new Set(PG.sprinty.filter(s => s.pozycje > 0 && s.zrobione < s.pozycje && s.kodGotowy === s.pozycje).map(s => s.n));
+const KOD_SPR = Object.fromEntries(PG.sprinty.map(s => [s.n, s.kodGotowy]));
 
 (function(){
   const pctGodz = PG.godzinyRazem ? PG.godzinyZrobione / PG.godzinyRazem : 0;
@@ -251,12 +256,14 @@ const SPRINT_PELNY = new Set(PG.sprinty.filter(s => s.pozycje > 0 && s.zrobione 
 
   const segs = PG.sprinty.map(s => {
     const f = s.godziny ? s.godzinyZrobione / s.godziny : 0;
+    const fk = s.godziny ? s.godzinyKodGotowy / s.godziny : 0;
     const pelny = s.pozycje > 0 && s.zrobione === s.pozycje;
+    const kod = SPRINT_KOD.has(s.n);
     const teraz = s.n === PG.biezacySprint;
-    return `<div class="pseg ${pelny ? 'pelny' : ''} ${teraz ? 'teraz' : ''}"
-        title="Sprint ${s.n} — ${s.zrobione}/${s.pozycje} pozycji, ${s.godzinyZrobione}/${s.godziny} h&#10;${s.cel}">
-      <div class="psegbar"><div class="psegfill" style="height:${(f*100).toFixed(0)}%"></div></div>
-      <div class="pseglab">${pelny ? '✓' : ''}S${s.n}</div>
+    return `<div class="pseg ${pelny ? 'pelny' : ''} ${kod ? 'kod' : ''} ${teraz ? 'teraz' : ''}"
+        title="Sprint ${s.n} — zamknięte ${s.zrobione}/${s.pozycje}, kod gotowy ${s.kodGotowy}/${s.pozycje} (${s.godzinyKodGotowy}/${s.godziny} h)&#10;${s.cel}">
+      <div class="psegbar"><div class="psegkod" style="height:${(fk*100).toFixed(0)}%"></div><div class="psegfill" style="height:${(f*100).toFixed(0)}%"></div></div>
+      <div class="pseglab">${pelny ? '✓' : kod ? '◐' : ''}S${s.n}</div>
     </div>`;
   }).join('');
 
@@ -266,7 +273,7 @@ const SPRINT_PELNY = new Set(PG.sprinty.filter(s => s.pozycje > 0 && s.zrobione 
          Zostało ${biezacy.otwarte.length} z ${biezacy.pozycje} pozycji
          (${biezacy.godziny - biezacy.godzinyZrobione} h):
          <ul>${biezacy.otwarte.map(o =>
-           `<li><span class="idc">${o.id}</span> — ${o.tytul} · ${o.h} h${o.bloker ? ' · <b>bloker</b>' : ''}</li>`
+           `<li><span class="idc">${o.id}</span> — ${o.tytul} · ${o.h} h${o.wezel ? ' · kod gotowy, czeka na test na węźle' : ''}${o.bloker ? ' · <b>bloker</b>' : ''}</li>`
          ).join('')}</ul></div>`
     : '';
 
@@ -280,6 +287,7 @@ const SPRINT_PELNY = new Set(PG.sprinty.filter(s => s.pozycje > 0 && s.zrobione 
     <div class="plegend">
       <span><b>${PG.godzinyZrobione} h</b> z ${PG.godzinyRazem} h · <b>${PG.procent}%</b></span>
       <span><b>${PG.pozycjeZrobione}</b> z ${PG.pozycjeRazem} pozycji zamkniętych</span>
+      <span><b>${PG.pozycjeKodGotowy}</b> z ${PG.pozycjeRazem} z gotowym kodem (◐ — sprint czeka już tylko na węzeł)</span>
       <span><b>${PG.blokeryOtwarte.length}</b> blokerów otwartych</span>
       <span style="color:${zapas >= 0 ? 'var(--good)' : 'var(--critical)'}"><b style="color:inherit">${zapasTxt}</b></span>
       ${przedStartem
@@ -334,7 +342,7 @@ document.getElementById('load').innerHTML = S.map(s=>{
   const h = T.filter(t=>t[IDX.sprint]===s.n).reduce((a,t)=>a+t[IDX.h],0);
   const pct = Math.round(h/CAP*100);
   return `<div class="sbar"><div class="sid">S${s.n}</div>`
-   +`<div class="strack"><div class="sfill ${SPRINT_PELNY.has(s.n)?'zrobione':FCLS[fazaIdx(s.n)]}" style="width:${Math.min(pct,100)}%"></div></div>`
+   +`<div class="strack"><div class="sfill ${SPRINT_PELNY.has(s.n)||SPRINT_KOD.has(s.n)?'zrobione':FCLS[fazaIdx(s.n)]}" style="width:${Math.min(pct,100)}%"></div></div>`
    +`<div class="snum">${SPRINT_PELNY.has(s.n)?'<span class="znak">✓</span>':''}<b style="color:${SPRINT_PELNY.has(s.n)?'var(--good)':'var(--ink)'}">${h} h</b> · ${pct}%</div></div>`;
 }).join('');
 
@@ -349,12 +357,16 @@ P.fazy.forEach(f=>{
     const it = T.filter(t=>t[IDX.sprint]===s.n);
     const h = it.reduce((a,t)=>a+t[IDX.h],0);
     const pelny = SPRINT_PELNY.has(s.n);
+    const kodGot = SPRINT_KOD.has(s.n);
     const zrobPoz = it.filter(t=>ZROBIONE_ID.has(t[IDX.id])).length;
+    const kodPoz = KOD_SPR[s.n] || 0;
     html += `<div class="sprint ${pelny?'zrobiony':''}"><div class="shead">`
       +`<span class="snum2">${pelny?'<span class="znak">✓</span>':''}Sprint ${s.n}</span><span class="stitle">${s.cel}</span>`
       +(pelny
          ? `<span class="badge-ok">zrealizowany</span>`
-         : (zrobPoz ? `<span class="sh" style="color:var(--good)">${zrobPoz}/${it.length} zrobione</span>` : ''))
+         : kodGot
+           ? `<span class="badge-ok" style="opacity:.75">kod gotowy · czeka na węzeł</span>`
+           : ((zrobPoz || kodPoz) ? `<span class="sh" style="color:var(--good)">${zrobPoz}/${it.length} zrobione · ${kodPoz}/${it.length} kod gotowy</span>` : ''))
       +`<span class="sdate">${s.od} – ${s.do}</span><span class="sh">${h} h / ${CAP} h</span></div>`
       +`<div class="sbody"><table><thead><tr><th>ID</th><th>Zadanie</th><th>h</th><th>Priorytet</th><th>Definicja ukończenia</th><th>Zależy od</th></tr></thead><tbody>`
       + it.map(t=>`<tr class="${ZROBIONE_ID.has(t[IDX.id])?'zrobiona':''}"><td class="idc">${t[IDX.id]}</td><td><b>${t[IDX.tytul]}</b></td>`
