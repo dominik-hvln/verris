@@ -27,6 +27,15 @@ describe('client-nav-access', () => {
     expect(canAccessDashboardRoute('/dashboard/iam', ticketsOnly)).toBe(false);
   });
 
+  it('bazy danych i instalator aplikacji tylko z uprawnieniem do plików (jak w API)', () => {
+    const uslugi = { isSubaccount: true, customerPermissions: ['SERVICES_READ', 'SERVICES_MANAGE'] };
+    const pliki = { isSubaccount: true, customerPermissions: ['FILES_MANAGE'] };
+    for (const href of ['/dashboard/databases', '/dashboard/apps', '/dashboard/file-manager']) {
+      expect(canAccessDashboardRoute(href, uslugi)).toBe(false);
+      expect(canAccessDashboardRoute(href, pliki)).toBe(true);
+    }
+  });
+
   it('denies calculator for all subaccounts (owner-only tool)', () => {
     const devops = {
       isSubaccount: true,

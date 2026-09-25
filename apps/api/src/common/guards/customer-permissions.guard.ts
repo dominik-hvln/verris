@@ -151,11 +151,21 @@ export const REGULY_TRAS: Regula[] = [
     po_co: 'Kampanie wychodzą z domeny właściciela i obciążają jego reputację nadawcy.',
   },
   {
-    pasuje: zawiera(
-      'file-manager', 'hosting-files', 'hosting-file-restore', 'hosting-git', 'hosting-malware',
-      'hosting-wp-updates', 'hosting-wp-overview', 'hosting-db-transfer', 'hosting-db-export', 'hosting-db-import', 'hosting-db-maintenance', 'hosting-db-sizes', 'hosting-cron-output',
-      'hosting-ssh', 'hosting-site-clone', 'hosting-htaccess', 'hosting-file-search',
-    ),
+    pasuje: (s) =>
+      // Menedżer plików API: /services/:id/files[/read|download|write|upload|…] — wcześniej żaden
+      // wzorzec go nie łapał i trasa spadała do reguły ogólnej „services” (podgląd usług czytał pliki).
+      /^\/services\/[^/]+\/files(\/|$)/.test(s) ||
+      zawiera(
+        'file-manager', 'hosting-files', 'hosting-file-restore', 'hosting-git', 'hosting-malware',
+        'hosting-wp-updates', 'hosting-wp-overview', 'hosting-db-transfer', 'hosting-db-export', 'hosting-db-import', 'hosting-db-maintenance', 'hosting-db-sizes', 'hosting-cron-output',
+        'hosting-ssh', 'hosting-site-clone', 'hosting-htaccess', 'hosting-file-search',
+        // Równoważne dostępowi do plików: odtworzenie z kopii nadpisuje stronę, cron i deploy uruchamiają
+        // polecenia, FTP i logowanie SSO dają pełny dostęp, bazy trzymają treść i hasła strony,
+        // instalatory i staging nadpisują katalog strony, narzędzia WWW i ochrona katalogu piszą .htaccess.
+        'hosting-restore', 'hosting-offsite', 'hosting-cron', 'deploy-jobs', 'hosting-ftp', 'hosting-sso-url',
+        'hosting-databases', 'hosting-db-users', 'hosting-db-access-hosts',
+        '/apps/install', '/wordpress/install', 'hosting-staging', 'staging-env', 'hosting-webtools', 'hosting-dir-protection',
+      )(s),
     odczyt: [FILES_MANAGE], zapis: [FILES_MANAGE],
     po_co: 'Treść strony: menedżer plików i wszystko, co ją czyta albo nadpisuje (odtwarzanie z kopii, Git, aktualizacje WordPressa, eksport/import baz, wyniki crona, skaner, SSH i klucze SSH, .htaccess strony).',
   },
@@ -178,6 +188,21 @@ export const REGULY_TRAS: Regula[] = [
     pasuje: zaczyna('/analytics-sites'),
     odczyt: [SERVICES_READ], zapis: [SERVICES_MANAGE],
     po_co: 'Witryny podpięte do analityki usługi.',
+  },
+  {
+    // Migracja zapisuje pliki, bazy i skrzynki na koncie — podgląd jak usługa, zlecenie jak menedżer plików.
+    pasuje: (s) => /^\/services\/[^/]+\/migrations(\/|$)/.test(s),
+    odczyt: [SERVICES_READ], zapis: [FILES_MANAGE],
+    po_co: 'Podgląd migracji jak usługi; uruchomienie, delta-sync i anulowanie nadpisują treść konta.',
+  },
+  {
+    // Wydatki z portfela właściciela (jak /addons): opłacenie, ponowienie płatności, przejście z okresu
+    // próbnego na płatny, zmiana planu z proratą, płatny monitoring.
+    pasuje: (s) =>
+      /^\/subscriptions\/[^/]+\/(pay-from-wallet|payment-retry|convert|plan)(\/|$)/.test(s) ||
+      /^\/services\/[^/]+\/monitoring\/paid$/.test(s),
+    odczyt: [SERVICES_READ], zapis: [SERVICES_MANAGE, BILLING_MANAGE],
+    po_co: 'Operacje na usłudze, które obciążają portfel właściciela — potrzebne oba uprawnienia.',
   },
   {
     pasuje: zawiera('subscriptions', 'services'),

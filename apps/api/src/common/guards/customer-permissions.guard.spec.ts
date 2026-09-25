@@ -110,6 +110,51 @@ describe('CustomerPermissionsGuard — zachowanie', () => {
     });
   });
 
+  describe('subkonto — dostęp do treści strony wymaga FILES_MANAGE (nie wystarczy „usługi”)', () => {
+    const sub = (...u: CustomerPermission[]) => ({ customerOwnerId: 'wlasciciel-1', customerPermissions: u });
+    const TRESC: Array<[string, string]> = [
+      ['GET', '/services/:id/files'],
+      ['GET', '/services/:id/files/read'],
+      ['GET', '/services/:id/files/download'],
+      ['POST', '/services/:id/files/write'],
+      ['POST', '/services/:id/files/upload'],
+      ['POST', '/services/:id/hosting-restore'],
+      ['POST', '/services/:id/hosting-offsite/fetch'],
+      ['POST', '/services/:id/hosting-cron'],
+      ['PUT', '/services/:id/hosting-cron/:cronId'],
+      ['POST', '/services/:id/deploy-jobs'],
+      ['POST', '/services/:id/hosting-ftp'],
+      ['POST', '/services/:id/hosting-ftp/:username/password'],
+      ['POST', '/services/:id/hosting-sso-url'],
+      ['GET', '/services/:id/hosting-db-users'],
+      ['POST', '/services/:id/hosting-db-users/password'],
+      ['POST', '/services/:id/hosting-databases'],
+      ['POST', '/services/:id/apps/install'],
+      ['POST', '/services/:id/wordpress/install'],
+      ['POST', '/services/:id/staging-env/push'],
+      ['POST', '/services/:id/hosting-webtools'],
+      ['POST', '/services/:id/hosting-dir-protection'],
+      ['POST', '/services/:id/migrations/bundle'],
+    ];
+    it.each(TRESC)('%s %s: SERVICES_READ + SERVICES_MANAGE nie wystarczą, FILES_MANAGE tak', (metoda, sciezka) => {
+      expect(guard().canActivate(zadanie(metoda, sciezka, sub(CustomerPermission.SERVICES_READ, CustomerPermission.SERVICES_MANAGE)))).toBe(false);
+      expect(guard().canActivate(zadanie(metoda, sciezka, sub(CustomerPermission.FILES_MANAGE)))).toBe(true);
+    });
+
+    it('podgląd usługi i listy migracji zostaje przy SERVICES_READ', () => {
+      expect(guard().canActivate(zadanie('GET', '/services/:id', sub(CustomerPermission.SERVICES_READ)))).toBe(true);
+      expect(guard().canActivate(zadanie('GET', '/services/:id/migrations/bundles', sub(CustomerPermission.SERVICES_READ)))).toBe(true);
+      expect(guard().canActivate(zadanie('GET', '/services/:id/apps', sub(CustomerPermission.SERVICES_READ)))).toBe(true);
+    });
+
+    it('opłacenie z portfela, zmiana planu i płatny monitoring wymagają też BILLING_MANAGE', () => {
+      for (const [m, p] of [['POST', '/subscriptions/:id/pay-from-wallet'], ['PATCH', '/subscriptions/:id/plan'], ['POST', '/subscriptions/:id/convert'], ['POST', '/services/:id/monitoring/paid']] as const) {
+        expect(guard().canActivate(zadanie(m, p, sub(CustomerPermission.SERVICES_MANAGE)))).toBe(false);
+        expect(guard().canActivate(zadanie(m, p, sub(CustomerPermission.SERVICES_MANAGE, CustomerPermission.BILLING_MANAGE)))).toBe(true);
+      }
+    });
+  });
+
   describe('subkonto — operacje kosztowe wymagają właściwego uprawnienia', () => {
     const sub = (...u: CustomerPermission[]) => ({
       customerOwnerId: 'wlasciciel-1',

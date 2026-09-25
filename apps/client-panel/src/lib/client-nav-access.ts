@@ -64,8 +64,9 @@ export function canAccessDashboardRoute(
   ) {
     return perms.has('FILES_MANAGE');
   }
+  // Bazy trzymają treść i hasła strony — API wymaga FILES_MANAGE (jak menedżer plików).
   if (href.startsWith('/dashboard/databases')) {
-    return hasAny(perms, ['SERVICES_READ', 'SERVICES_MANAGE']);
+    return perms.has('FILES_MANAGE');
   }
   if (href.startsWith('/dashboard/ssl')) {
     return hasAny(perms, [
@@ -85,8 +86,9 @@ export function canAccessDashboardRoute(
   if (href.startsWith('/dashboard/php')) {
     return hasAny(perms, ['SERVICES_READ', 'SERVICES_MANAGE', 'FILES_MANAGE']);
   }
+  // Instalator nadpisuje katalog strony — API wymaga FILES_MANAGE.
   if (href.startsWith('/dashboard/apps')) {
-    return hasAny(perms, ['SERVICES_MANAGE', 'FILES_MANAGE']);
+    return perms.has('FILES_MANAGE');
   }
   if (href.startsWith('/dashboard/addons')) {
     return hasAny(perms, ['BILLING_MANAGE', 'SERVICES_MANAGE']);
