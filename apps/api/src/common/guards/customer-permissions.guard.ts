@@ -196,9 +196,10 @@ export const REGULY_TRAS: Regula[] = [
     po_co: 'Podgląd migracji jak usługi; uruchomienie, delta-sync i anulowanie nadpisują treść konta.',
   },
   {
-    // Wydatki z portfela właściciela (jak /addons): opłacenie, ponowienie płatności, przejście z okresu
-    // próbnego na płatny, zmiana planu z proratą, płatny monitoring.
+    // Wydatki z portfela właściciela (jak /addons): zamówienie usługi, opłacenie, ponowienie płatności,
+    // przejście z okresu próbnego na płatny, zmiana planu z proratą, płatny monitoring.
     pasuje: (s) =>
+      s === '/subscriptions' ||
       /^\/subscriptions\/[^/]+\/(pay-from-wallet|payment-retry|convert|plan)(\/|$)/.test(s) ||
       /^\/services\/[^/]+\/monitoring\/paid$/.test(s),
     odczyt: [SERVICES_READ], zapis: [SERVICES_MANAGE, BILLING_MANAGE],
