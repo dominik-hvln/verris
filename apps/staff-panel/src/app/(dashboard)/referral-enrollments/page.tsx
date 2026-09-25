@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { UserPlus } from "lucide-react";
-import { listReferralEnrollments, type ReferralEnrollmentStatus } from "./data";
+import { StaffApiError } from "@/lib/staff-api";
+import { listReferralEnrollments, type ReferralEnrollmentRow, type ReferralEnrollmentStatus } from "./data";
 import { ReferralReviewActions } from "./review-actions";
 
 export const dynamic = "force-dynamic";
@@ -55,7 +56,16 @@ export default async function ReferralEnrollmentsPage({
       ? statusParam
       : undefined;
 
-  const rows = await listReferralEnrollments(status);
+  let rows: ReferralEnrollmentRow[] = [];
+  let error: string | null = null;
+  try {
+    rows = await listReferralEnrollments(status);
+  } catch (e) {
+    error =
+      e instanceof StaffApiError && e.status === 403
+        ? "Twoje konto nie ma uprawnienia „Kody promocyjne i program partnerski” (PROMO_MANAGE). Nada je administrator: panel admina → Role i uprawnienia."
+        : "Nie udało się pobrać zgłoszeń. Odśwież stronę za chwilę.";
+  }
   const pendingCount = status === "PENDING" ? rows.length : rows.filter((r) => r.status === "PENDING").length;
 
   return (
@@ -90,6 +100,10 @@ export default async function ReferralEnrollmentsPage({
           );
         })}
       </nav>
+
+      {error ? (
+        <p className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">{error}</p>
+      ) : null}
 
       <section className="overflow-hidden rounded-lg border border-white/10 bg-black/30">
         <table className="w-full text-sm">

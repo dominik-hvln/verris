@@ -1,6 +1,6 @@
 import { Mail, ExternalLink } from "lucide-react";
 import Link from "next/link";
-import { staffApi } from "@/lib/staff-api";
+import { staffApi, StaffApiError } from "@/lib/staff-api";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +25,17 @@ type ConnectionInfo =
     };
 
 export default async function StaffMailSettingsPage() {
-  const info = await staffApi<ConnectionInfo>("/staff/mail/connection-info");
+  let info: ConnectionInfo;
+  try {
+    info = await staffApi<ConnectionInfo>("/staff/mail/connection-info");
+  } catch (e) {
+    // Błąd API to komunikat na stronie, nie „This page couldn’t load”.
+    const hint =
+      e instanceof StaffApiError && e.status === 403
+        ? "Twoje konto nie ma dostępu do ustawień poczty — poproś administratora."
+        : "Nie udało się pobrać ustawień poczty. Odśwież stronę za chwilę.";
+    info = { hasMailbox: false, mailHost: "", sogoUrl: "", hint };
+  }
 
   return (
     <div className="mx-auto max-w-2xl space-y-8 p-8">

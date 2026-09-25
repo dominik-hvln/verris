@@ -34,6 +34,13 @@ export function StaffShell({
 
   return (
     <div className="relative z-10 flex min-h-screen">
+      {/* WCAG 2.4.1 — skip link: pierwszy element fokusowalny, omija menu boczne. */}
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[200] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-black"
+      >
+        Przejdź do treści
+      </a>
       <aside className="fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-white/5 bg-black/40 backdrop-blur-3xl shadow-2xl">
         <div className="flex h-20 items-center justify-between border-b border-white/5 px-6">
           <div className="flex items-center gap-3">
@@ -110,7 +117,7 @@ export function StaffShell({
             <CommandPalette />
           </div>
         </header>
-        <main className="flex-1 p-8">{children}</main>
+        <main id="main" tabIndex={-1} className="flex-1 p-8 outline-none">{children}</main>
       </div>
     </div>
   );

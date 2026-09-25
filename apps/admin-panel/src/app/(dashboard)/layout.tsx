@@ -12,6 +12,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="flex min-h-screen">
+      {/* WCAG 2.4.1 — skip link: pierwszy element fokusowalny, omija menu boczne. */}
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[200] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-black"
+      >
+        Przejdź do treści
+      </a>
       <PlatformConfigLoader />
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-600/10 blur-[120px]" />
@@ -37,7 +44,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </div>
         </header>
 
-        <main className="flex-1 p-8 overflow-x-hidden">
+        <main id="main" tabIndex={-1} className="flex-1 p-8 overflow-x-hidden outline-none">
           <div className="max-w-7xl mx-auto">{children}</div>
         </main>
       </div>
