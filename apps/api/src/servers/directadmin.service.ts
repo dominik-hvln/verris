@@ -2574,6 +2574,7 @@ export class DirectAdminService {
   }
 
   async deleteHostingCronJob(subscriptionId: string, userId: string, id: string) {
+    if (!/^\d{1,6}$/.test(id)) throw new BadRequestException('Nieprawidłowy identyfikator zadania.');
     await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_CRON', {
       action: 'delete',
       select0: id,
