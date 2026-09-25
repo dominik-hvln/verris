@@ -10,7 +10,10 @@ import { join } from 'path';
  */
 const SKRYPT = join(__dirname, '..', '..', '..', '..', 'ops', 'scripts', 'node-app-selector.sh');
 const UZYTKOWNIK = execFileSync('id', ['-un'], { encoding: 'utf8' }).trim();
-const itKonto = /^[a-z][a-z0-9]{0,15}$/.test(UZYTKOWNIK) ? it : it.skip;
+// Skrypt działa na węzłach (AlmaLinux + CloudLinux): potrzebuje getent i loginu w formacie DirectAdmina.
+// Na macOS (brak getent) zestaw jest pomijany — w CI (Linux) wykonuje się zawsze.
+const NA_WEZLE_PODOBNYM = process.platform === 'linux' && /^[a-z][a-z0-9]{0,15}$/.test(UZYTKOWNIK);
+const opisz = NA_WEZLE_PODOBNYM ? describe : describe.skip;
 
 function uruchom(env: Record<string, string>) {
   const dir = mkdtempSync(join(tmpdir(), 'as-'));
@@ -43,15 +46,15 @@ esac
   return { ...r, wywolania, wynik };
 }
 
-describe('B-08/B-09 — node-app-selector.sh', () => {
-  itKonto('lista: tylko aplikacje tego konta i tylko włączone wersje', () => {
+opisz('B-08/B-09 — node-app-selector.sh', () => {
+  it('lista: tylko aplikacje tego konta i tylko włączone wersje', () => {
     const r = uruchom({ AS_MODE: 'list' });
     expect(r.status).toBe(0);
     expect(r.wynik?.apps.map((a) => a.root)).toEqual(['apps/api']);
     expect(r.wynik?.versions).toEqual({ nodejs: ['22'], python: ['3.12'] });
   });
 
-  itKonto('create: wartości klienta dosłownie w osobnych argumentach, bez powłoki', () => {
+  it('create: wartości klienta dosłownie w osobnych argumentach, bez powłoki', () => {
     const env = { DB: 'x; rm -rf / $(id) `id`' };
     const r = uruchom({
       AS_MODE: 'create', AS_INTERPRETER: 'nodejs', AS_ROOT: 'apps/api', AS_DOMAIN: 'a.pl', AS_URI: '',
@@ -63,7 +66,7 @@ describe('B-08/B-09 — node-app-selector.sh', () => {
     expect(JSON.parse(create[create.indexOf('--env-vars') + 1])).toEqual(env);
   });
 
-  itKonto('odmowa selektora kończy zadanie błędem z jego komunikatem', () => {
+  it('odmowa selektora kończy zadanie błędem z jego komunikatem', () => {
     const r = uruchom({ AS_MODE: 'stop', AS_INTERPRETER: 'nodejs', AS_ROOT: 'apps/api' });
     expect(r.status).not.toBe(0);
     expect(r.stderr).toContain('BŁĄD: No such application');
@@ -81,7 +84,7 @@ describe('B-08/B-09 — node-app-selector.sh', () => {
       AS_STARTUP: 'passenger_wsgi.py', AS_ENTRY: 'application', ...zle,
     });
     expect(r.status).not.toBe(0);
-    if (/^[a-z][a-z0-9]{0,15}$/.test(UZYTKOWNIK)) expect(r.stderr).toContain(komunikat);
+    expect(r.stderr).toContain(komunikat);
     expect(r.wywolania.filter((w) => w[0] !== 'get')).toEqual([]);
   });
 });
