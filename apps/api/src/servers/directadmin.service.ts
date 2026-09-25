@@ -3113,7 +3113,7 @@ export class DirectAdminService {
   /**
    * Bezwzględne adresy przydatnego UI w DA (bez SSO — tak jak link z panelu do „Zaloguj do DA”).
    */
-  async getHostingDaLinksForSubscription(subscriptionId: string, userId: string): Promise<{
+  async getHostingDaLinksForSubscription(subscriptionId: string, userId: string, opcje: { pokazHaslo?: boolean } = {}): Promise<{
     panelBaseUrl: string;
     panelDisplayHost: string;
     databasesUrl: string;
@@ -3158,7 +3158,8 @@ export class DirectAdminService {
       sub.account.domain;
     const evo = this.hostingEvolutionLinks(panelBaseUrl, primaryDomain);
     let daPassword: string | null = null;
-    if (sub.account.daPasswordEnc) {
+    const pokazHaslo = opcje.pokazHaslo !== false;
+    if (pokazHaslo && sub.account.daPasswordEnc) {
       try {
         daPassword = this.crypto.decrypt(sub.account.daPasswordEnc);
       } catch (err) {
@@ -3179,9 +3180,9 @@ export class DirectAdminService {
       dnsUrl: evo.dnsUrl,
       domainManageUrl: evo.domainManageUrl,
       stagingHint: evo.domainManageUrl,
-      daUsername: sub.account.daUsername,
+      daUsername: pokazHaslo ? sub.account.daUsername : null,
       daPassword,
-      fetchError: daPassword ? null : 'Hasło do panelu hostingu jest niedostępne — skontaktuj się z pomocą techniczną.',
+      fetchError: !pokazHaslo || daPassword ? null : 'Hasło do panelu hostingu jest niedostępne — skontaktuj się z pomocą techniczną.',
     };
   }
 

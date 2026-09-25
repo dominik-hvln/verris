@@ -166,3 +166,21 @@ describe('DKIM — włączenie (E-16)', () => {
     expect(z.post).not.toHaveBeenCalled();
   });
 });
+
+describe('dane logowania do panelu hostingu (hosting-da-links)', () => {
+  function st() {
+    const account = { id: 'a1', status: 'ACTIVE', daUsername: 'klient1', domain: 'firma.pl', daPasswordEnc: 'enc:tajne', server: { id: 'n1', hostname: 'n1.verris.pl', ipAddress: '203.0.113.5' } };
+    const prisma = { subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1', account })) } };
+    const svc = new DirectAdminService(prisma as never, { decrypt: (v: string) => v.replace('enc:', '') } as never, {} as never, {} as never);
+    jest.spyOn(svc as unknown as { syncPrimaryDomainForSubscription: () => Promise<string> }, 'syncPrimaryDomainForSubscription').mockResolvedValue('firma.pl');
+    return svc;
+  }
+  it('właściciel (domyślnie) dostaje login i hasło', async () => {
+    await expect(st().getHostingDaLinksForSubscription('s1', 'u1')).resolves.toMatchObject({ daUsername: 'klient1', daPassword: 'tajne', fetchError: null });
+  });
+  it('subkonto bez uprawnienia do plików: linki tak, hasła i loginu nie (bez komunikatu o błędzie)', async () => {
+    const r = await st().getHostingDaLinksForSubscription('s1', 'u1', { pokazHaslo: false });
+    expect(r).toMatchObject({ daUsername: null, daPassword: null, fetchError: null });
+    expect(r.panelBaseUrl).toBeTruthy();
+  });
+});

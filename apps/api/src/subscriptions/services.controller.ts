@@ -455,8 +455,14 @@ export class UserServicesController {
   }
 
   @Get(':id/hosting-da-links')
-  async hostingDaLinks(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
-    return this.directAdmin.getHostingDaLinksForSubscription(id, user.userId);
+  async hostingDaLinks(
+    @CurrentUser() user: { userId: string; customerOwnerId?: string | null; customerPermissions?: string[] },
+    @Param('id') id: string,
+  ) {
+    // Hasło konta hostingowego = pełny dostęp do plików, baz i poczty. Linki widzi każdy z podglądem
+    // usługi, hasło — tylko właściciel albo subkonto z uprawnieniem do plików.
+    const pokazHaslo = !user.customerOwnerId || (user.customerPermissions ?? []).includes('FILES_MANAGE');
+    return this.directAdmin.getHostingDaLinksForSubscription(id, user.userId, { pokazHaslo });
   }
 
   @Get(':id/connection-info')
