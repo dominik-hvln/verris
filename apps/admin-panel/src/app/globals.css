@@ -4,6 +4,14 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* WCAG 1.4.3 — panel jest ciemny (tło #0B0D17, karty white/5). Domyślne neutral-500 (4,1:1) i neutral-600 (2,5:1)
+   nie spełniały 4,5:1 dla tekstu, a są w ~150 miejscach jako tekst pomocniczy. Rozjaśnione w motywie; strażnik:
+   admin-panel/src/lib/kontrast-neutral.spec.ts. */
+@theme {
+  --color-neutral-500: #8f8f8f;
+  --color-neutral-600: #8a8a8a;
+}
+
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
