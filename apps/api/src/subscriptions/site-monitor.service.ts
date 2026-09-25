@@ -23,6 +23,7 @@ import { PlatformSettingsService } from '../platform-settings/platform-settings.
 import { NotificationsService } from '../notifications/notifications.service';
 import * as tls from 'node:tls';
 import { resolvePublicHost } from './migration-net.util';
+import { getBezpiecznie } from '../common/net/webhook-post';
 import {
   siteDownTemplate,
   siteRecoveredTemplate,
@@ -815,29 +816,20 @@ async function hostPubliczny(host: string): Promise<boolean> {
 export async function probeUrl(
   url: string,
 ): Promise<{ up: boolean; httpStatus?: number; responseMs?: number; reason: string }> {
-  // ponytail: sprawdzenie DNS przed fetch, a fetch rozwiązuje nazwę ponownie
-  // (okno na DNS-rebinding). Metadane zamyka zapora; pełne przypięcie adresu
-  // wymaga własnego dispatchera undici — dodać, gdy undici wejdzie do zależności api.
+  // Adres literalny (bez DNS) sprawdzamy tu; nazwę — w chwili połączenia (getBezpiecznie →
+  // bezpiecznyLookup), więc DNS rebinding między sprawdzeniem a połączeniem nie działa.
   if (!(await hostPubliczny(new URL(url).hostname))) {
     return { up: false, reason: 'domena wskazuje na adres prywatny lub zastrzeżony — nie sprawdzamy' };
   }
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), CHECK_TIMEOUT_MS);
   const startedAt = Date.now();
   try {
-    const res = await fetch(url, {
-      method: 'GET',
-      // Przekierowanie mogłoby zaprowadzić do sieci prywatnej za kontrolą
-      // powyżej. 3xx i tak znaczy UP (definicja wyżej: status < 500).
-      redirect: 'manual',
-      signal: controller.signal,
-      headers: { 'User-Agent': 'Verris-Monitor/1.0 (+https://verris.pl)' },
-    });
+    // Bez podążania za przekierowaniem (mogłoby prowadzić do sieci prywatnej); 3xx i tak = UP.
+    const status = await getBezpiecznie(url, { 'User-Agent': 'Verris-Monitor/1.0 (+https://verris.pl)' }, CHECK_TIMEOUT_MS);
     const responseMs = Date.now() - startedAt;
-    if (res.status >= 500) {
-      return { up: false, httpStatus: res.status, responseMs, reason: `HTTP ${res.status}` };
+    if (status >= 500) {
+      return { up: false, httpStatus: status, responseMs, reason: `HTTP ${status}` };
     }
-    return { up: true, httpStatus: res.status, responseMs, reason: 'OK' };
+    return { up: true, httpStatus: status, responseMs, reason: 'OK' };
   } catch (err) {
     const aborted = err instanceof Error && err.name === 'AbortError';
     return {
@@ -846,8 +838,6 @@ export async function probeUrl(
         ? `timeout po ${CHECK_TIMEOUT_MS / 1000} s`
         : `błąd połączenia (${err instanceof Error ? simplifyNetError(err.message) : 'nieznany'})`,
     };
-  } finally {
-    clearTimeout(timer);
   }
 }
 

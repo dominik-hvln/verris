@@ -1,5 +1,6 @@
 import { lookup as dnsLookupCb } from 'node:dns';
 import { request as httpsRequest } from 'node:https';
+import { request as httpRequest } from 'node:http';
 
 /**
  * Wysyłka webhooka z kontrolą adresu W CHWILI POŁĄCZENIA (nie tylko przed nią). Samo
@@ -27,6 +28,25 @@ export function postWebhookBezpiecznie(raw: string, headers: Record<string, stri
     req.on('timeout', () => req.destroy(new Error('Timeout')));
     req.on('error', reject);
     req.end(body);
+  });
+}
+
+/**
+ * GET z tą samą kontrolą adresu w chwili połączenia (monitoring strony klienta — klient sam
+ * kontroluje DNS swojej domeny, więc rebinding jest dla niego wykonalny). Bez przekierowań.
+ */
+export function getBezpiecznie(raw: string, headers: Record<string, string>, timeoutMs: number): Promise<number> {
+  const url = new URL(raw);
+  const req = url.protocol === 'https:' ? httpsRequest : url.protocol === 'http:' ? httpRequest : null;
+  if (!req) return Promise.reject(new Error('Nieobsługiwany protokół.'));
+  return new Promise((resolve, reject) => {
+    const r = req(url, { method: 'GET', headers, timeout: timeoutMs, lookup: bezpiecznyLookup as never }, (res) => {
+      res.resume();
+      resolve(res.statusCode ?? 0);
+    });
+    r.on('timeout', () => r.destroy(Object.assign(new Error('timeout'), { name: 'AbortError' })));
+    r.on('error', reject);
+    r.end();
   });
 }
 
