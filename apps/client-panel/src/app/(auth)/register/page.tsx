@@ -63,7 +63,7 @@ function RegisterContent() {
           
           <div className="relative rounded-[calc(32px-1px)] bg-neutral-950/80 backdrop-blur-3xl border border-white/5">
             <div className="p-8 pb-6 border-b border-white/5">
-                <h2 className="text-xl font-bold text-white">Rejestracja</h2>
+                <h1 className="text-xl font-bold text-white">Rejestracja</h1>
                 <p className="text-sm text-neutral-400 mt-1">Załóż konto i zacznij korzystać z hostingu nowej generacji</p>
             </div>
 

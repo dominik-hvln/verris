@@ -107,7 +107,8 @@ export function renderLegalMarkdown(source: string, opts: RenderOptions = {}): R
       const m = /^(#{1,6})\s+(.*)$/.exec(line)!;
       const level = m[1].length;
       const text = m[2];
-      const Tag = (`h${Math.min(level, 6)}`) as keyof React.JSX.IntrinsicElements;
+      // Strona dokumentu ma własny h1 (tytuł) — nagłówki treści o poziom niżej, jeden h1 na stronie (WCAG 1.3.1).
+      const Tag = (`h${Math.min(level + 1, 6)}`) as keyof React.JSX.IntrinsicElements;
       const cls = [
         "text-3xl font-extrabold mt-10 mb-6 text-white tracking-tight",
         "text-2xl font-bold mt-8 mb-4 text-white",

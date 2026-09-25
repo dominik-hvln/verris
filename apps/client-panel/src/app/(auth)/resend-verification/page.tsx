@@ -75,7 +75,7 @@ export default function ResendVerificationPage() {
           <SpinBorder className="opacity-30" />
           <div className="relative rounded-[calc(32px-1px)] bg-[#0a0a0a]/80 backdrop-blur-3xl border border-white/5">
             <div className="p-8 pb-6 border-b border-white/5">
-              <h2 className="text-xl font-bold text-white">Potwierdzenie e-mail</h2>
+              <h1 className="text-xl font-bold text-white">Potwierdzenie e-mail</h1>
               <p className="text-sm text-neutral-400 mt-1">Wyślemy ponownie link aktywacyjny.</p>
             </div>
             <Suspense fallback={<div className="p-8 text-neutral-500 text-sm">Ładowanie…</div>}>

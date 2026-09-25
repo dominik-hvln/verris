@@ -33,7 +33,7 @@ export default function LoginPage() {
   return (
     <Shell>
       <div className="border-b border-border p-8 pb-6">
-        <h2 className="font-display text-xl font-bold text-foreground">Witaj z powrotem</h2>
+        <h1 className="font-display text-xl font-bold text-foreground">Witaj z powrotem</h1>
         <p className="mt-1 text-sm text-muted-foreground">Zaloguj się do panelu Verris.</p>
       </div>
 
@@ -148,7 +148,7 @@ function TwoFactorScreen({
             <ShieldCheck className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="font-display text-xl font-bold text-foreground">Potwierdź logowanie</h2>
+            <h1 className="font-display text-xl font-bold text-foreground">Potwierdź logowanie</h1>
             <p className="mt-0.5 text-xs text-muted-foreground">{email}</p>
           </div>
         </div>
