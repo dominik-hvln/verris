@@ -16,19 +16,22 @@ export function NodeStatusPanel({ serverId, status }: { serverId: string; status
   const offline = status === "OFFLINE";
   if (!offline && status !== "ACTIVE" && status !== "MAINTENANCE") return null;
 
-  const zmien = () =>
+  // Okno potwierdzenia PRZED transition: w React 19 aktualizacje z async transition czekają na jej koniec,
+  // więc okno otwarte w środku nigdy się nie pokazuje, a przycisk kręci się bez końca.
+  const zmien = async () => {
+    setError(null);
+    const ok = await potwierdz(
+      offline
+        ? "Przywrócić węzeł jako aktywny? Znów będzie wybierany przy zakładaniu kont."
+        : "Oznaczyć węzeł jako offline? Nie będzie wybierany przy zakładaniu kont.",
+      { akcja: offline ? "Przywróć" : "Oznacz jako offline", niebezpieczne: !offline },
+    );
+    if (!ok) return;
     start(async () => {
-      setError(null);
-      const ok = await potwierdz(
-        offline
-          ? "Przywrócić węzeł jako aktywny? Znów będzie wybierany przy zakładaniu kont."
-          : "Oznaczyć węzeł jako offline? Nie będzie wybierany przy zakładaniu kont.",
-        { akcja: offline ? "Przywróć" : "Oznacz jako offline", niebezpieczne: !offline },
-      );
-      if (!ok) return;
       const r = await setNodeStatus(serverId, offline ? "ACTIVE" : "OFFLINE");
       if (!r.ok) setError(r.error);
     });
+  };
 
   return (
     <div className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-md p-5 space-y-3">
@@ -44,7 +47,7 @@ export function NodeStatusPanel({ serverId, status }: { serverId: string; status
       {error ? <p className="text-xs text-rose-300">{error}</p> : null}
       <button
         type="button"
-        onClick={zmien}
+        onClick={() => void zmien()}
         disabled={pending}
         className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white hover:bg-white/10 disabled:opacity-50"
       >
