@@ -812,6 +812,9 @@ export class UsersAdminService {
         email: target.email,
         role: target.role,
         purpose: 'access',
+        // Wersja sesji klienta — bez niej JwtStrategy odrzucała impersonację u każdego, kto kiedyś
+        // użył „wyloguj wszędzie” albo resetował hasło (tokenVersion > 0).
+        tv: target.tokenVersion,
         actorUserId: opts.ctx.actorUserId,
         impersonatedBy: opts.ctx.actorUserId,
         impersonationStartedAt: issuedAt,

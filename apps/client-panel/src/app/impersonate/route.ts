@@ -12,9 +12,19 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const token = url.searchParams.get("token")?.trim();
   const returnToParam = url.searchParams.get("returnTo");
+  // Tylko ścieżka w panelu: „//host” albo „/\\host” przeglądarka potraktowałaby jako inny serwer (open redirect).
   const returnTo =
-    returnToParam && returnToParam.startsWith("/") ? returnToParam : "/dashboard";
+    returnToParam && /^\/(?![/\\])/.test(returnToParam) ? returnToParam : "/dashboard";
   const operator = url.searchParams.get("operator") === "staff" ? "staff" : "admin";
+
+  // Przyjmujemy wyłącznie token impersonacji (claim impersonatedBy nadaje tylko API na prośbę
+  // operatora). Bez tego link z ZWYKŁYM tokenem napastnika logowałby ofiarę na jego konto
+  // (login CSRF). Podpis sprawdza API przy pierwszym żądaniu — podrobiony claim unieważnia token.
+  if (token && !tokenImpersonacji(token)) {
+    const errorUrl = publicPanelUrl(req, "/login");
+    errorUrl.searchParams.set("error", "impersonation_invalid");
+    return NextResponse.redirect(errorUrl);
+  }
 
   if (!token) {
     const errorUrl = publicPanelUrl(req, "/login");
@@ -53,4 +63,15 @@ function publicPanelUrl(req: NextRequest, path: string): URL {
   if (forwardedHost) return new URL(path, `${forwardedProto}://${forwardedHost}`);
 
   return new URL(path, req.url);
+}
+
+function tokenImpersonacji(token: string): boolean {
+  const czesc = token.split(".")[1];
+  if (!czesc) return false;
+  try {
+    const payload = JSON.parse(Buffer.from(czesc, "base64url").toString("utf8")) as { impersonatedBy?: unknown };
+    return typeof payload.impersonatedBy === "string" && payload.impersonatedBy.length > 0;
+  } catch {
+    return false;
+  }
 }
