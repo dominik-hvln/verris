@@ -14,7 +14,7 @@ Q-07,KOD PO STARCIE,konsola VPS (Hetzner Cloud API)
 Q-08,KOD PO STARCIE,snapshoty i rebuild VPS (Hetzner Cloud API)
 G-08,KOD PO STARCIE,sprzedaż certyfikatów DV/OV/EV — plus umowa z dostawcą
 J-05,KOD PO STARCIE,CDN (Cloudflare) — plus konto Cloudflare
-PB-20,KOD,udostępnianie wybranych usług + przełącznik kont dla deweloperów (decyzja 2026-09-25: przed startem)
+PB-20,PRODUKCJA,"zaproszenie deweloperskiego konta testowego z wybraną usługą, przełączenie, odmowa poza zakresem — na produkcji"
 G-18,PRODUKCJA,dziennik aktywności — podgląd na produkcji po deployu
 O-03,PRODUKCJA,działanie subkonta widoczne u właściciela (IAM → Audyt) na produkcji
 Z-10,PRODUKCJA,odmowa subkonta widoczna w Audycie IAM na produkcji

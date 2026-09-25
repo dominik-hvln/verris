@@ -161,7 +161,7 @@ export function KlientResellera({ klient, aktywny, onOdpiety }: { klient: Resell
             </button>
           </div>
           <p className="mt-2 text-[11.5px] text-muted-foreground">
-            Widzisz tylko usługi i ich stan — bez plików, poczty, faktur i salda klienta. Jeśli masz pracować przy stronie, poproś klienta o dostęp w jego panelu (Dostęp dla współpracowników).
+            Widzisz tylko usługi i ich stan — bez plików, poczty, faktur i salda klienta. Jeśli masz pracować przy stronie, poproś klienta o dostęp w jego panelu (IAM i subkonta).
           </p>
         </div>
       ) : null}

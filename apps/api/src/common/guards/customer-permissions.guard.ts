@@ -2,6 +2,7 @@ import { CanActivate, ExecutionContext, ForbiddenException, Injectable, Optional
 import { Reflector } from '@nestjs/core';
 import { CustomerPermission } from '@verris/database';
 import { CUSTOMER_PERMISSIONS_KEY } from '../decorators/customer-permissions.decorator';
+import { wZakresie, ZAKRES_ODMOWA } from './zakres-uslug';
 import { AuditService } from '../audit/audit.service';
 
 /**
@@ -303,7 +304,9 @@ export class CustomerPermissionsGuard implements CanActivate {
         principalUserId?: string;
         customerOwnerId?: string | null;
         customerPermissions?: CustomerPermission[];
+        serviceScope?: string[];
       };
+      params?: Record<string, string | undefined>;
     }>();
     const user = req.user;
 
@@ -323,6 +326,11 @@ export class CustomerPermissionsGuard implements CanActivate {
       throw new ForbiddenException(
         'Ta operacja jest dostępna wyłącznie dla właściciela konta.',
       );
+    }
+    // PB-20 — zakres usług: poza wskazanymi usługami nic z konta, niezależnie od uprawnień.
+    if (!wZakresie(req.method ?? 'GET', req.route?.path ?? req.path ?? '', req.params ?? {}, user.serviceScope)) {
+      this.zapiszOdmowe(req, wymagane);
+      throw new ForbiddenException(ZAKRES_ODMOWA);
     }
     if (wymagane.length === 0) return true;
 

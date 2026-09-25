@@ -367,13 +367,15 @@ export class UserServicesController {
 
   @Get()
   async list(
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: { userId: string; serviceScope?: string[] },
     @Query('includeCanceled') includeCanceled?: string,
   ) {
     const showCanceled = includeCanceled === '1' || includeCanceled === 'true';
     const subs = await this.prisma.subscription.findMany({
       where: {
         userId: user.userId,
+        // PB-20 — subkonto / członkostwo z zakresem widzi tylko swoje usługi.
+        ...(user.serviceScope?.length ? { id: { in: user.serviceScope } } : {}),
         ...(showCanceled
           ? {}
           : {

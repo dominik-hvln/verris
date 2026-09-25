@@ -1,3 +1,4 @@
+import type { CustomerPermission } from '@verris/database';
 import {
   Controller,
   Get,
@@ -31,9 +32,10 @@ export class UsersController {
    */
   @Get('me')
   async getProfile(
-    @CurrentUser() user: { userId: string; principalUserId?: string },
+    @CurrentUser()
+    user: { userId: string; principalUserId?: string; actingFor?: string; customerPermissions?: CustomerPermission[]; serviceScope?: string[] },
   ) {
-    return this.usersService.getProfile(user.userId, user.principalUserId);
+    return this.usersService.getProfile(user.userId, user.principalUserId, user);
   }
 
   /** SEC-7 — historia logowań zalogowanego użytkownika (self-service). */

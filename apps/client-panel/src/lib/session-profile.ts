@@ -58,6 +58,7 @@ async function pobierzProfil(authToken: string, forwardedFor?: string | null): P
       customerPermissions?: string[] | null;
       email?: string;
       subaccountLabel?: string | null;
+      serviceScope?: string[];
     };
     return {
       isSubaccount: Boolean(data.isSubaccount),
@@ -66,6 +67,7 @@ async function pobierzProfil(authToken: string, forwardedFor?: string | null): P
         : null,
       email: data.email,
       subaccountLabel: data.subaccountLabel ?? null,
+      serviceScope: Array.isArray(data.serviceScope) ? data.serviceScope.map(String) : [],
     };
   } catch {
     return null;

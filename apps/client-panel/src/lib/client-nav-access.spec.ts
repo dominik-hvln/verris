@@ -57,3 +57,21 @@ describe('client-nav-access', () => {
     ).toBe(true);
   });
 });
+
+describe('PB-20 — zakres usług w nawigacji', () => {
+  const ctx = { isSubaccount: true, customerPermissions: ['SERVICES_READ', 'FILES_MANAGE', 'BILLING_READ', 'DOMAINS_READ', 'TICKETS_READ'], serviceScope: ['s1'] };
+  it('zostają ekrany usługi i pomoc, znikają zasoby całego konta — mimo uprawnień', () => {
+    expect(canAccessDashboardRoute('/dashboard/services', ctx)).toBe(true);
+    expect(canAccessDashboardRoute('/dashboard/file-manager', ctx)).toBe(true);
+    expect(canAccessDashboardRoute('/dashboard/support', ctx)).toBe(true);
+    expect(canAccessDashboardRoute('/dashboard/billing', ctx)).toBe(false);
+    expect(canAccessDashboardRoute('/dashboard/domains', ctx)).toBe(false);
+    expect(canAccessDashboardRoute('/dashboard/billing', { ...ctx, serviceScope: [] })).toBe(true);
+  });
+});
+
+it('PB-20 — przy zakresie usług nie ma zamawiania nowych', () => {
+  const ctx = { isSubaccount: true, customerPermissions: ['SERVICES_MANAGE'], serviceScope: ['s1'] };
+  expect(canAccessDashboardRoute('/dashboard/services/new', ctx)).toBe(false);
+  expect(canAccessDashboardRoute('/dashboard/services/new', { ...ctx, serviceScope: [] })).toBe(true);
+});

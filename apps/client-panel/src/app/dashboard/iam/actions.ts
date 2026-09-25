@@ -14,17 +14,38 @@ export interface IamOverview {
     customerPermissions: string[];
     subaccountLabel: string | null;
     subaccountDisabledAt: string | null;
+    subaccountServiceIds: string[];
     createdAt: string;
   }>;
   invites: Array<{
     id: string;
     email: string;
     permissions: string[];
+    serviceIds: string[];
     label: string | null;
     status: string;
     expiresAt: string;
     createdAt: string;
   }>;
+  /** PB-20 — osoby z własnym kontem Verris (deweloper, agencja). */
+  memberships: Array<{
+    id: string;
+    email: string;
+    name: string | null;
+    permissions: string[];
+    serviceIds: string[];
+    label: string | null;
+    createdAt: string;
+  }>;
+  services: { id: string; name: string }[];
+}
+
+/** PB-20 — zakres z formularza: „całe konto” = [] (także gdy lista usług przyszła, bo przełącznik był na „całe”). */
+function zakresZFormularza(formData: FormData): string[] {
+  if (String(formData.get('zakres') ?? 'caly') !== 'wybrane') return [];
+  const ids = formData.getAll('serviceIds').map(String).filter(Boolean);
+  if (ids.length === 0) throw new Error('Zaznacz co najmniej jedną usługę albo wybierz „Całe konto”.');
+  return ids;
 }
 
 export async function getIamOverview(): Promise<IamOverview> {
@@ -52,27 +73,29 @@ export async function inviteSubaccountAction(formData: FormData): Promise<void> 
   if (!email || permissions.length === 0) {
     throw new Error('Podaj e-mail i wybierz co najmniej jedno uprawnienie.');
   }
+  const serviceIds = zakresZFormularza(formData);
   try {
     await apiFetch('/users/iam/invites', {
       method: 'POST',
-      body: JSON.stringify({ email, label: label || undefined, permissions }),
+      body: JSON.stringify({ email, label: label || undefined, permissions, serviceIds }),
     });
-    revalidatePath('/dashboard/iam');
-    redirect('/dashboard/iam?notice=invite-sent');
   } catch (err) {
     throw new Error(normalizeError(err, 'Nie udało się wysłać zaproszenia.'));
   }
+  // redirect() poza try: rzuca NEXT_REDIRECT, a catch zamieniał go w błąd formularza.
+  revalidatePath('/dashboard/iam');
+  redirect('/dashboard/iam?notice=invite-sent');
 }
 
 export async function revokeInviteAction(formData: FormData): Promise<void> {
   const id = String(formData.get('id') ?? '');
   try {
-    await apiFetch(`/users/iam/invites/${id}`, { method: 'DELETE' });
-    revalidatePath('/dashboard/iam');
-    redirect('/dashboard/iam?notice=invite-revoked');
+    await apiFetch(`/users/iam/invites/${encodeURIComponent(id)}`, { method: 'DELETE' });
   } catch (err) {
     throw new Error(normalizeError(err, 'Nie udało się odwołać zaproszenia.'));
   }
+  revalidatePath('/dashboard/iam');
+  redirect('/dashboard/iam?notice=invite-revoked');
 }
 
 export async function updateMemberAction(formData: FormData): Promise<void> {
@@ -82,30 +105,36 @@ export async function updateMemberAction(formData: FormData): Promise<void> {
   if (!id || permissions.length === 0) {
     throw new Error('Wybierz co najmniej jedno uprawnienie.');
   }
+  const serviceIds = zakresZFormularza(formData);
+  // PB-20 — ten sam formularz dla subkonta i dla osoby z własnym kontem (członkostwo).
+  const konto = String(formData.get('rodzaj') ?? '') === 'konto';
+  const sciezka = konto ? `/users/iam/memberships/${encodeURIComponent(id)}` : `/users/iam/members/${encodeURIComponent(id)}`;
   try {
-    await apiFetch(`/users/iam/members/${id}`, {
+    await apiFetch(sciezka, {
       method: 'PATCH',
       body: JSON.stringify({
         permissions,
         label: label || undefined,
+        serviceIds,
       }),
     });
-    revalidatePath('/dashboard/iam');
-    redirect('/dashboard/iam?notice=permissions-saved');
   } catch (err) {
     throw new Error(normalizeError(err, 'Nie udało się zaktualizować uprawnień.'));
   }
+  revalidatePath('/dashboard/iam');
+  redirect('/dashboard/iam?notice=permissions-saved');
 }
 
 export async function disableMemberAction(formData: FormData): Promise<void> {
   const id = String(formData.get('id') ?? '');
+  const konto = String(formData.get('rodzaj') ?? '') === 'konto';
   try {
-    await apiFetch(`/users/iam/members/${id}`, { method: 'DELETE' });
-    revalidatePath('/dashboard/iam');
-    redirect('/dashboard/iam?notice=member-disabled');
+    await apiFetch(konto ? `/users/iam/memberships/${encodeURIComponent(id)}` : `/users/iam/members/${encodeURIComponent(id)}`, { method: 'DELETE' });
   } catch (err) {
-    throw new Error(normalizeError(err, 'Nie udało się wyłączyć subkonta.'));
+    throw new Error(normalizeError(err, 'Nie udało się wyłączyć dostępu.'));
   }
+  revalidatePath('/dashboard/iam');
+  redirect('/dashboard/iam?notice=member-disabled');
 }
 
 export async function acceptInviteAction(formData: FormData): Promise<void> {
@@ -129,4 +158,33 @@ export async function acceptInviteAction(formData: FormData): Promise<void> {
 
 function normalizeError(err: unknown, fallback: string): string {
   return err instanceof ApiError || err instanceof Error ? err.message : fallback;
+}
+
+// ---- PB-20 — zaproszenie na adres z kontem i przełącznik kont ----
+
+export interface InfoZaproszenia {
+  email: string;
+  ownerEmail: string;
+  maKonto: boolean;
+  wybraneUslugi: boolean;
+}
+
+export async function infoZaproszenia(token: string): Promise<InfoZaproszenia | null> {
+  if (!token) return null;
+  try {
+    return await apiFetch<InfoZaproszenia>(`/users/iam/invites/info?token=${encodeURIComponent(token)}`, { unauthenticated: true });
+  } catch {
+    return null;
+  }
+}
+
+export async function przyjmijWlasnymKontemAction(formData: FormData): Promise<void> {
+  const token = String(formData.get('token') ?? '');
+  try {
+    await apiFetch('/users/iam/invites/accept-existing', { method: 'POST', body: JSON.stringify({ token }) });
+  } catch (err) {
+    throw new Error(normalizeError(err, 'Nie udało się przyjąć zaproszenia.'));
+  }
+  // Nowe konto pojawia się w przełączniku kont w menu bocznym.
+  redirect('/dashboard');
 }

@@ -7,6 +7,7 @@ import { logoutAction } from "./actions";
 import { fetchSidebarUserState, savePanelPreferences, type SidebarUser } from "./sidebar-actions";
 import { pushUserData } from "@/lib/analytics-events";
 import { ImpersonationBanner } from "./impersonation-banner";
+import { PasekCudzegoKonta, PrzelacznikKont } from "./przelacznik-kont";
 import { getImpersonationContext } from "./impersonation-actions";
 import { IncidentBanner } from "./incident-banner";
 import { NoticesBanner } from "./notices-banner";
@@ -551,6 +552,7 @@ function DashboardLayoutInner({
           {pokazPostep ? (
             <SetupProgress nazwa={postep.usluga.nazwa} procent={postep.procent} onOpen={otworzPierwszeKroki} />
           ) : null}
+          <PrzelacznikKont actingFor={user?.actingFor} />
           <UserMenu displayName={displayName} email={user?.email ?? ""} initials={initials} loading={userLoading && user === null} />
         </div>
       </aside>
@@ -589,6 +591,7 @@ function DashboardLayoutInner({
           id="main"
           className="w-full min-w-0 max-w-full flex-1 overflow-x-hidden px-3 pb-4 max-lg:pt-mobile-header sm:px-6 sm:pb-6 lg:px-10 lg:pb-12 lg:pt-10"
         >
+          <PasekCudzegoKonta actingFor={user?.actingFor} zakres={user?.serviceScope?.length ?? 0} />
           {children}
         </main>
 

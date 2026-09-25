@@ -4,6 +4,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UsersController } from './users.controller';
 import { UsersAdminController } from './users.admin.controller';
 import { CustomerIamController } from './customer-iam.controller';
+import { KontaController } from './konta.controller';
 import { EcoPublicController } from './eco-public.controller';
 import { UsersService } from './users.service';
 import { UsersAdminService } from './users.admin.service';
@@ -35,7 +36,7 @@ import { EcoModule } from '../eco/eco.module';
     PlatformSettingsModule,
     EcoModule,
   ],
-  controllers: [UsersController, UsersAdminController, CustomerIamController, EcoPublicController],
+  controllers: [UsersController, UsersAdminController, CustomerIamController, EcoPublicController, KontaController],
   providers: [UsersService, UsersAdminService, CustomerIamService, EcoBadgeService],
   exports: [UsersService, UsersAdminService, EcoBadgeService],
 })

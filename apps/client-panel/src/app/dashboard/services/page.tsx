@@ -6,6 +6,10 @@ import { UnpaidServiceBanner } from '@/components/hosting/UnpaidServiceBanner';
 import { Label, SectionHead, StatusPill } from '@/components/panel/v2';
 import { ConvertTrialButton } from './convert-trial-button';
 import { listServices } from './data';
+import { headers } from 'next/headers';
+import { getAuthToken } from '@/lib/auth';
+import { fetchSessionProfile } from '@/lib/session-profile';
+import { canAccessDashboardRoute } from '@/lib/client-nav-access';
 
 /** PB-15 — wszystkie usługi w nowym wyglądzie (wzorzec: docs/design/wzorzec-panelu.html). */
 
@@ -56,6 +60,10 @@ export default async function ServicesPage() {
     loadError =
       err instanceof ApiError ? `Nie udało się pobrać Twoich usług (${err.status}).` : err instanceof Error ? err.message : 'Nieznany błąd';
   }
+  // PB-20 / IAM — przycisk zamówienia tylko dla tych, którzy mogą zamawiać (właściciel, subkonto bez zakresu usług).
+  const token = await getAuthToken();
+  const sesja = token ? await fetchSessionProfile(token, (await headers()).get('x-forwarded-for')) : null;
+  const mozeZamawiac = !sesja || canAccessDashboardRoute('/dashboard/services/new', sesja);
   const active = services.filter((s) => s.status !== 'CANCELED' && s.status !== 'EXPIRED');
   const ended = services.filter((s) => s.status === 'CANCELED' || s.status === 'EXPIRED');
   const attention = active.filter((s) => tone(s) === 'warn').length;
@@ -76,9 +84,11 @@ export default async function ServicesPage() {
             <span>hosting, poczta i e-mail marketing w jednym miejscu</span>
           </div>
         </div>
-        <Link href="/dashboard/services/new" className="inline-flex items-center gap-2 rounded-md border border-primary bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground">
-          <Plus className="h-4 w-4" /> Zamów nową usługę
-        </Link>
+        {mozeZamawiac ? (
+          <Link href="/dashboard/services/new" className="inline-flex items-center gap-2 rounded-md border border-primary bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground">
+            <Plus className="h-4 w-4" /> Zamów nową usługę
+          </Link>
+        ) : null}
       </header>
 
       {loadError ? (

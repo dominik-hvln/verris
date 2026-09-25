@@ -23,6 +23,8 @@ function uruchom(pliki: Record<string, string>, log: string) {
     env: {
       PATH: process.env.PATH ?? '/usr/bin:/bin', SS_DA_USER: 'klient1', SS_DOMAIN: 'a.pl', SS_HOME: join(dir, 'home'),
       SS_JAKO_ROOT: '1', SS_SKIP_TTFB: '1', SS_LOG_DIR: join(dir, 'logs'),
+      // „Dzisiaj” skryptu i testu w tej samej strefie — inaczej test padał między północą lokalną a UTC.
+      TZ: 'UTC',
     },
   });
   return statystykiZLogu(out)!;
@@ -31,7 +33,7 @@ function uruchom(pliki: Record<string, string>, log: string) {
 describe('PB-19 — statystyki strony', () => {
   it('WordPress z wersją; ruch dzisiaj, 5xx bez parametrów w ścieżce, stare wpisy pominięte', () => {
     const d = new Date();
-    const dzis = `${String(d.getDate()).padStart(2, '0')}/${MIES[d.getMonth()]}/${d.getFullYear()}`;
+    const dzis = `${String(d.getUTCDate()).padStart(2, '0')}/${MIES[d.getUTCMonth()]}/${d.getUTCFullYear()}`;
     const w = uruchom(
       { 'wp-includes/version.php': "<?php\n$wp_version = '6.8.2';\n" },
       `1.2.3.4 - - [${dzis}:10:00:00 +0200] "GET /?s=tajne HTTP/1.1" 200 12 "-" "UA"\n` +

@@ -1,7 +1,19 @@
 export type ClientNavContext = {
   isSubaccount: boolean;
   customerPermissions: string[] | null | undefined;
+  /** PB-20 — dostęp tylko do wybranych usług; pusta lista / brak = całe konto. */
+  serviceScope?: string[] | null;
 };
+
+/**
+ * PB-20 — przy zakresie usług zostają tylko ekrany pracy na usłudze, pomoc i własne ustawienia.
+ * Portfel, domeny, zamówienia, migracje, VPS, dodatki itp. są całego konta (API i tak odmówi).
+ */
+const W_ZAKRESIE = [
+  '/dashboard/services', '/dashboard/dns', '/dashboard/email', '/dashboard/file-manager', '/dashboard/ftp',
+  '/dashboard/cron', '/dashboard/backups', '/dashboard/databases', '/dashboard/ssl', '/dashboard/php',
+  '/dashboard/apps', '/dashboard/support', '/dashboard/knowledge', '/dashboard/settings', '/dashboard/notifications',
+];
 
 function hasAny(permissions: Set<string>, keys: string[]): boolean {
   return keys.some((key) => permissions.has(key));
@@ -20,6 +32,11 @@ export function canAccessDashboardRoute(
   const perms = new Set(ctx.customerPermissions ?? []);
 
   if (href === '/dashboard') return true;
+  // Zamówienie nowej usługi to wydatek całego konta.
+  if (ctx.serviceScope?.length && href.startsWith('/dashboard/services/new')) return false;
+  if (ctx.serviceScope?.length && !W_ZAKRESIE.some((p) => href === p || href.startsWith(`${p}/`) || href.startsWith(`${p}?`))) {
+    return false;
+  }
   if (
     href === '/dashboard/iam' ||
     href === '/dashboard/referral' ||
@@ -107,11 +124,13 @@ export function clientNavContextFromSidebar(
   user: {
     isSubaccount?: boolean;
     customerPermissions?: string[] | null;
+    serviceScope?: string[] | null;
   } | null,
 ): ClientNavContext | null {
   if (!user) return null;
   return {
     isSubaccount: Boolean(user.isSubaccount),
     customerPermissions: user.customerPermissions ?? null,
+    serviceScope: user.serviceScope ?? null,
   };
 }

@@ -98,7 +98,12 @@ export class UsersService {
    * Pobiera profil sesji: dla subkonta to konto operatora (`principalUserId`),
    * dane rozliczeniowe/EKO właściciela (`accountUserId`) tylko gdy ma uprawnienia.
    */
-  async getProfile(accountUserId: string, principalUserId?: string) {
+  async getProfile(
+    accountUserId: string,
+    principalUserId?: string,
+    /** PB-20 — praca na cudzym koncie z własnego loginu (przełącznik kont). */
+    dzialanie?: { actingFor?: string; customerPermissions?: CustomerPermission[]; serviceScope?: string[] },
+  ) {
     const profileId = principalUserId ?? accountUserId;
     const user = await this.prisma.user.findUnique({
       where: { id: profileId },
@@ -128,6 +133,7 @@ export class UsersService {
         customerOwnerId: true,
         customerPermissions: true,
         subaccountLabel: true,
+        subaccountServiceIds: true,
         canAccessGrafana: true,
       },
     });
@@ -136,8 +142,9 @@ export class UsersService {
       throw new NotFoundException('User not found');
     }
 
-    const isSubaccount = Boolean(user.customerOwnerId);
-    const perms = new Set(user.customerPermissions ?? []);
+    const dziala = Boolean(dzialanie?.actingFor);
+    const isSubaccount = Boolean(user.customerOwnerId) || dziala;
+    const perms = new Set(dziala ? dzialanie?.customerPermissions ?? [] : user.customerPermissions ?? []);
     const canBilling =
       !isSubaccount ||
       perms.has(CustomerPermission.BILLING_READ) ||
@@ -185,10 +192,23 @@ export class UsersService {
       referralProgramApproved: isSubaccount ? false : referralApproved,
       referralCode: isSubaccount ? null : tokens.referralCode,
       ecoBadgeToken: isSubaccount ? null : tokens.ecoBadgeToken,
+      // Portfel właściciela pokazujemy przez /billing; tu saldo osoby zalogowanej nie ma sensu przy cudzym koncie.
+      ...(dziala ? { walletBalance: null } : {}),
       isSubaccount,
       customerPermissions: isSubaccount ? [...perms] : null,
+      // PB-20 — zakres usług (pusta lista = całe konto) i konto, na którym pracuje deweloper.
+      serviceScope: dziala ? dzialanie?.serviceScope ?? [] : user.subaccountServiceIds,
+      actingFor: dziala ? await this.kontoWlasciciela(accountUserId) : null,
       hasPasskey: passkeyCount > 0,
     };
+  }
+
+  private async kontoWlasciciela(ownerUserId: string) {
+    const o = await this.prisma.user.findUnique({
+      where: { id: ownerUserId },
+      select: { id: true, email: true, companyName: true, firstName: true, lastName: true },
+    });
+    return o ? { ownerUserId: o.id, nazwa: o.companyName || [o.firstName, o.lastName].filter(Boolean).join(' ') || o.email, email: o.email } : null;
   }
 
   /**

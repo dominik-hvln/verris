@@ -7,6 +7,7 @@ import {
   IsEnum,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   MinLength,
 } from 'class-validator';
@@ -26,6 +27,13 @@ export class InviteSubaccountDto {
   @IsString()
   @MaxLength(120)
   label?: string;
+
+  /** PB-20 — wybrane usługi (id subskrypcji); brak / pusta lista = całe konto. */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(100)
+  @IsUUID('all', { each: true })
+  serviceIds?: string[];
 }
 
 export class UpdateSubaccountDto {
@@ -39,6 +47,13 @@ export class UpdateSubaccountDto {
   @IsString()
   @MaxLength(120)
   label?: string;
+
+  /** PB-20 — wybrane usługi (id subskrypcji); brak / pusta lista = całe konto. */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(100)
+  @IsUUID('all', { each: true })
+  serviceIds?: string[];
 }
 
 export class AcceptSubaccountInviteDto {
@@ -60,4 +75,10 @@ export class AcceptSubaccountInviteDto {
   @MinLength(1)
   @MaxLength(80)
   lastName!: string;
+}
+
+export class AcceptExistingInviteDto {
+  @IsString()
+  @MinLength(20)
+  token!: string;
 }

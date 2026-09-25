@@ -26,6 +26,8 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     sid?: string;
     actorUserId?: string;
     impersonatedBy?: string;
+    /** PB-20 — konto, na którym działa deweloper z własnym loginem (przełącznik kont). */
+    actingFor?: string;
   }) {
     // Reject "2fa-challenge" tokens — those are issued mid-login and must NEVER
     // grant access to protected endpoints. They can only be redeemed via
@@ -46,6 +48,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         customerOwnerId: true,
         customerPermissions: true,
         subaccountDisabledAt: true,
+        subaccountServiceIds: true,
         customerOwner: { select: { anonymizedAt: true, loginBlocked: true } },
       },
     });
@@ -95,6 +98,29 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       }
     }
 
+    // PB-20 — praca na cudzym koncie z własnego loginu. Członkostwo sprawdzane przy KAŻDYM żądaniu:
+    // odebrany dostęp działa od razu. Nieaktualne członkostwo = token wraca do własnego konta
+    // (mniej uprawnień, nigdy więcej) — panel pokaże wtedy konto dewelopera.
+    if (payload.actingFor && !user.customerOwnerId && user.role === 'USER' && !payload.impersonatedBy) {
+      const m = await this.prisma.customerMembership.findUnique({
+        where: { ownerUserId_memberUserId: { ownerUserId: payload.actingFor, memberUserId: user.id } },
+        select: { permissions: true, serviceIds: true, disabledAt: true, owner: { select: { anonymizedAt: true, loginBlocked: true } } },
+      });
+      if (m && !m.disabledAt && !m.owner.anonymizedAt && !m.owner.loginBlocked) {
+        return {
+          userId: payload.actingFor,
+          principalUserId: user.id,
+          email: user.email,
+          role: user.role,
+          customerOwnerId: payload.actingFor,
+          customerPermissions: m.permissions,
+          serviceScope: m.serviceIds,
+          actingFor: payload.actingFor,
+          sid: payload.sid,
+        };
+      }
+    }
+
     return {
       userId: user.customerOwnerId ?? user.id,
       principalUserId: user.id,
@@ -102,6 +128,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       role: user.role,
       customerOwnerId: user.customerOwnerId,
       customerPermissions: user.customerPermissions,
+      serviceScope: user.customerOwnerId ? user.subaccountServiceIds : [],
       sid: payload.sid,
       // E-5 impersonation hooks (will be set by /admin/users/:id/impersonate).
       actorUserId: payload.actorUserId,

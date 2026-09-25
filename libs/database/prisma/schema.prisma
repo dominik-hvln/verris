@@ -214,6 +214,11 @@ model User {
   customerPermissions      CustomerPermission[] @default([])
   subaccountDisabledAt     DateTime?
   subaccountLabel          String?
+  /// PB-20 — subkonto ograniczone do wybranych usług (id subskrypcji); pusta lista = całe konto.
+  subaccountServiceIds     String[]  @default([])
+  /// PB-20 — dostęp do cudzych kont z własnego konta (deweloper, agencja).
+  membershipsOwned         CustomerMembership[] @relation("MembershipOwner")
+  membershipsAsMember      CustomerMembership[] @relation("MembershipMember")
 
   createdAt                DateTime  @default(now())
   updatedAt                DateTime  @updatedAt
@@ -391,6 +396,8 @@ model CustomerSubaccountInvite {
   email           String
   tokenHash       String                         @unique
   permissions     CustomerPermission[]
+  /// PB-20 — zaproszenie do wybranych usług; pusta lista = całe konto.
+  serviceIds      String[]                       @default([])
   label           String?
   status          CustomerSubaccountInviteStatus @default(PENDING)
   acceptedUserId  String?
@@ -405,6 +412,26 @@ model CustomerSubaccountInvite {
 
   @@index([ownerUserId, status])
   @@index([email])
+}
+
+/// PB-20 — konto z własnym loginem (deweloper, agencja, reseller) ma dostęp do konta klienta:
+/// te same uprawnienia co subkonto, opcjonalnie tylko wybrane usługi. Przełączanie kont w panelu
+/// wydaje token z `actingFor`; strategia JWT sprawdza członkostwo przy każdym żądaniu.
+model CustomerMembership {
+  id           String               @id @default(uuid())
+  ownerUserId  String
+  owner        User                 @relation("MembershipOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  memberUserId String
+  member       User                 @relation("MembershipMember", fields: [memberUserId], references: [id], onDelete: Cascade)
+  permissions  CustomerPermission[]
+  serviceIds   String[]             @default([])
+  label        String?
+  disabledAt   DateTime?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  @@unique([ownerUserId, memberUserId])
+  @@index([memberUserId])
 }
 
 // -----------------------------------------------------------------------------

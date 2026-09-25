@@ -86,6 +86,7 @@ describe('X-05 fetchSessionProfile', () => {
       customerPermissions: ['BILLING_READ', '7'],
       email: 'a@b.pl',
       subaccountLabel: null,
+      serviceScope: [],
     });
   });
 

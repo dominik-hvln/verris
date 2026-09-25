@@ -1,5 +1,8 @@
 import Link from 'next/link';
-import { acceptInviteAction } from '../dashboard/iam/actions';
+import { headers } from 'next/headers';
+import { acceptInviteAction, infoZaproszenia, przyjmijWlasnymKontemAction } from '../dashboard/iam/actions';
+import { getAuthToken } from '@/lib/auth';
+import { fetchSessionProfile } from '@/lib/session-profile';
 
 export default async function AcceptInvitePage({
   searchParams,
@@ -7,6 +10,41 @@ export default async function AcceptInvitePage({
   searchParams: Promise<{ token?: string }>;
 }) {
   const token = (await searchParams).token ?? '';
+  const info = await infoZaproszenia(token);
+  // PB-20 — adres ma już konto Verris: przyjęcie z własnego konta, bez nowego loginu.
+  if (info?.maKonto) {
+    const auth = await getAuthToken();
+    const sesja = auth ? await fetchSessionProfile(auth, (await headers()).get('x-forwarded-for')) : null;
+    const toSamoKonto = sesja?.email?.toLowerCase() === info.email.toLowerCase();
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-black px-6 text-neutral-300">
+        <div className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#0a0a0a] p-8">
+          <h1 className="text-2xl font-bold text-white">Dostęp do konta {info.ownerEmail}</h1>
+          <p className="mt-2 text-sm text-neutral-400">
+            {info.ownerEmail} udostępnia Ci {info.wybraneUslugi ? 'wybrane usługi swojego konta' : 'swoje konto'}. Adres{' '}
+            <b className="text-neutral-200">{info.email}</b> ma już konto Verris — przyjmiesz zaproszenie ze swojego konta i będziesz przełączać się między kontami w menu bocznym.
+          </p>
+          {toSamoKonto ? (
+            <form action={przyjmijWlasnymKontemAction} className="mt-6">
+              <input type="hidden" name="token" value={token} />
+              <button className="w-full rounded-xl bg-white px-5 py-3 text-sm font-semibold text-black transition hover:bg-neutral-200">
+                Przyjmij zaproszenie
+              </button>
+            </form>
+          ) : (
+            <div className="mt-6 space-y-3 text-sm">
+              <p className="text-neutral-400">
+                {sesja ? `Jesteś zalogowany jako ${sesja.email}. Zaloguj się na konto ${info.email}` : `Zaloguj się na konto ${info.email}`}, a potem otwórz ponownie link z maila.
+              </p>
+              <Link href="/login" className="block w-full rounded-xl bg-white px-5 py-3 text-center font-semibold text-black hover:bg-neutral-200">
+                Przejdź do logowania
+              </Link>
+            </div>
+          )}
+        </div>
+      </main>
+    );
+  }
   return (
     <main className="flex min-h-screen items-center justify-center bg-black px-6 text-neutral-300">
       <div className="w-full max-w-md rounded-[28px] border border-white/10 bg-[#0a0a0a] p-8">

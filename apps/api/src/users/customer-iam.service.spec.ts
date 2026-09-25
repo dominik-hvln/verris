@@ -14,12 +14,22 @@ describe('CustomerIamService', () => {
     auditLog: {
       findMany: jest.fn(),
     },
+    customerMembership: {
+      findMany: jest.fn().mockResolvedValue([]),
+    },
+    subscription: {
+      findMany: jest.fn().mockResolvedValue([]),
+    },
   };
   const audit = { record: jest.fn() };
   const mailer = { send: jest.fn() };
   const config = { get: jest.fn() };
 
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+    prisma.customerMembership.findMany.mockResolvedValue([]);
+    prisma.subscription.findMany.mockResolvedValue([]);
+  });
 
   function service() {
     return new CustomerIamService(prisma as never, audit as never, mailer as never, config as never);
