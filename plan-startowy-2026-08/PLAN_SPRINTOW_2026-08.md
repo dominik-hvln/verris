@@ -3,7 +3,7 @@
 **Wygenerowany:** 2026-09-25 z `audyt/dane/` · **nie edytuj ręcznie**  
 **Podstawa:** audyt parytetu funkcji z 2026-08-20  
 **Pojemność:** 1 osoba, pełny etat, **30 h netto na sprint** · sprint = 1 tydzień  
-**Sprint 1:** 2026-08-31 · **Sprint 22:** 2027-01-25–2027-01-29
+**Sprint 1:** 2026-08-31 · **Sprint 23:** 2027-02-01–2027-02-05
 
 ---
 
@@ -11,10 +11,10 @@
 
 Domknięcie **wszystkich** luk z macierzy to **2695 h** — przy 30 h tygodniowo około **21 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **22 sprintów do startu** (979 h) oraz roadmapę po starcie (1716 h, 86 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **23 sprintów do startu** (979 h) oraz roadmapę po starcie (1716 h, 86 pozycji) rozpisaną na epiki kwartalne.
 
 - **2027-01-22** — koniec sprintu 21, zamknięte wszystkie blokery **poza KSeF-em**.
-- **2027-01-29** — koniec sprintu 22, decyzja GO.
+- **2027-02-05** — koniec sprintu 23, decyzja GO.
 
 ---
 
@@ -386,7 +386,7 @@ Pozycje tanie i widoczne: backend albo UI już istnieje, trzeba je połączyć. 
 
 # Faza 3 — Wejście na rynek
 
-*Sprinty 15–19 · 267 h · 2026-12-07 – 2027-01-08*
+*Sprinty 15–19 · 251 h · 2026-12-07 – 2027-01-08*
 
 Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, baza wiedzy, przejście ścieżki pierwszego klienta na produkcji i zapisana decyzja GO.
 
@@ -455,7 +455,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 ## Sprint 18 — Cennik, SLA i zastepstwo
 
-`2026-12-28 – 2027-01-01` · **69 h** z 30 h pojemności
+`2026-12-28 – 2027-01-01` · **53 h** z 30 h pojemności
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
@@ -463,7 +463,6 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 | `A-11` | Wyszukiwarka wolnych domen | 6 | WYSOKA | domains.controller.ts:54 |
 | `PB-07` | Treści i cennik na verris.pl | 16 | WYSOKI | Strona główna, cennik, specyfikacja techniczna pakietu, strona SLA. Narracja: cena stała, bez skoku po roku. |
 | `PB-11` | Bus factor: drugi kanał alertów i procedura zastępstwa | 8 | WYSOKI | Alerty na więcej niż jeden adres, przetestowane. Dokument: co robi ktoś inny, gdy Ciebie nie ma przez tydzień. | 2026-09-23: Telegram jako drugi kanał |
-| `PB-20` | Tryb agencji: przełącznik klienta w menu bocznym | 16 | ŚREDNI | Element makiety („Piekarnia Zdrój · klient · 3 usługi” nad menu): konto agencji/resellera przełącza się między swoimi klientami bez wylogowania. Wymag |
 | `PB-21` | DNS platformy i poczty na serwerze testowym | 6 | WYSOKI | Odłożone decyzją właściciela 2026-09-23 do chwili, gdy jest serwer testowy. (1) Decyzja: wspólny rekord _spf.verris.pl (include platformy, łatwa zmian |
 | `PB-24` | KSC/NIS2: wpis do wykazu podmiotów kluczowych | 3 | WYSOKI | Wg FAQ KSC (cyber.gov.pl) podmiot świadczący usługi rejestracji nazw domen i dostawca usług DNS = podmiot kluczowy niezależnie od wielkości. Decyzja w |
 | `PB-25` | White label na węźle — klient nie widzi DirectAdmina | 8 | WYSOKI | Decyzja właściciela 2026-09-24: pełny white label. Teksty dla klienta (verris.pl, panel, maile, dokumenty prawne) wyczyszczone tego dnia i pilnowane s |
@@ -474,7 +473,6 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 - `A-11` — Wartość domyślna włączona albo check w live-readiness pilnuje konfiguracji — flaga nie może po cichu wyłączyć funkcji.
 - `PB-07` — Cennik zgodny z wynikiem PB-01. Specyfikacja techniczna publiczna, jak u cyber_Folks — to jest element zaufania, którego rynek oczekuje.
 - `PB-11` — Alert testowy dociera dwoma kanałami. Dokument zastępstwa zawiera dostęp awaryjny i listę rzeczy, które muszą się dziać codziennie.
-- `PB-20` — Decyzja o modelu zapisana w docs/VERRIS.md; przełącznik widoczny tylko dla kont z klientami; przełączenie zmienia kontekst usług, domen i płatności; guard uprawnień obejmuje nowe trasy (Z-04); testy w CI.
 - `PB-21` — Na serwerze testowym: rekord dodany i usunięty z panelu bez duplikatu; zmiana rozmiaru skrzynki zostawia hasło; kreator poczty pokazuje DKIM ze strefy i zapisuje SPF/DMARC; verris.pl ma jeden DMARC; decyzja o _spf.verris.pl zapisana w docs/VERRIS.md. Po D3 F-01/F-02, E-05, E-15/16/17 przechodzą w macierzy na PARYTET.
 - `PB-24` — Wpis w wykazie przed upływem 6 miesięcy od pierwszej domeny/DNS dla klienta; termin zapisany w tym zadaniu z datą.
 - `PB-25` — Na węźle #1: logowanie do panelu hostingowego, phpMyAdmin i webmaila z panelu klienta nie pokazuje nazwy ani portu DirectAdmina; nowa domena i konto zawieszone pokazują strony Verris; zrzuty w dowodzie.

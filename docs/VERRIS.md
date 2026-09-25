@@ -234,7 +234,7 @@ Kierunek do przygotowania jako osobny projekt (makiety przed kodem):
 - kontrast AA w obu motywach (bursztyn jasnego motywu `#955f0f`);
 - martwy węzeł DirectAdmina odpada od razu (bezpiecznik w `libs/directadmin-sdk/src/node-circuit.ts`), panel pokazuje „chwilowo niedostępny” zamiast czekać.
 
-**Otwarte (wymaga serwera/agenta na węźle):** ruch, TTFB i błędy 5xx per domena; rozpoznawanie technologii strony; zakładka „Logi”; przełącznik klienta w trybie agencji.
+**Otwarte (wymaga serwera/agenta na węźle):** ruch, TTFB i błędy 5xx per domena; rozpoznawanie technologii strony; zakładka „Logi”. Przełącznik klienta w trybie agencji (PB-20) — decyzja właściciela 2026-09-25: po starcie, przy pierwszych agencjach (sprint 23 „Po starcie”).
 
 ### 3.4 System ticketowy (panel staff) — wymagania na później
 
