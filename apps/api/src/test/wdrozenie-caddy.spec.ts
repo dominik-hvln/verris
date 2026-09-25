@@ -11,7 +11,7 @@ const SKRYPT = readFileSync(join(__dirname, '..', '..', '..', '..', 'ops', 'scri
 
 describe('wdrożenie przeładowuje Caddy', () => {
   it('caddy reload z Caddyfile z repo, porażka kończy wdrożenie błędem', () => {
-    const krok = SKRYPT.match(/if ! compose exec -T -w \/etc\/caddy caddy caddy reload --config \/etc\/caddy\/Caddyfile; then[\s\S]*?\n  fi\n/);
+    const krok = SKRYPT.match(/if ! compose exec -T -w \/etc\/caddy caddy caddy reload --config \/etc\/caddy\/Caddyfile; then[\s\S]*?\n {2}fi\n/);
     expect(krok?.[0]).toMatch(/exit 1/);
   });
 

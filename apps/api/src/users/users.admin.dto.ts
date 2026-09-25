@@ -28,6 +28,11 @@ export class AdminCustomerOperationalDto {
   @IsString()
   @MaxLength(16000)
   adminInternalNote?: string | null;
+
+  /** PROD-03 — konto wewnętrzne (testowe): poza metrykami biznesowymi i kolejką faktur VAT. */
+  @IsOptional()
+  @IsBoolean()
+  isInternal?: boolean;
 }
 
 /** Sprint 4 / R-04 — `POST /admin/users/:id/email` */

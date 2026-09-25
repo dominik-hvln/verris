@@ -150,6 +150,7 @@ export async function patchCustomerOperationalAction(
     loginBlocked?: boolean;
     loginBlockedReason?: string | null;
     adminInternalNote?: string | null;
+    isInternal?: boolean;
   },
 ): Promise<ActionResultOk | ActionResultErr> {
   try {

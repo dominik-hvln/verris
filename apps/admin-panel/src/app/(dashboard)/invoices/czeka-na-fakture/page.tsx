@@ -56,6 +56,11 @@ export default async function CzekaNaFakturePage() {
                   </td>
                   <td className="px-3 py-2 font-mono text-white">
                     {w.number}
+                    {w.kontoWewnetrzne ? (
+                      <span className="ml-2 rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 font-sans text-[10px] font-bold uppercase tracking-wide text-amber-200" title="Konto oznaczone jako wewnętrzne (testowe). Jeśli wpłata była prawdziwa, faktura VAT i tak się należy.">
+                        konto wewnętrzne
+                      </span>
+                    ) : null}
                     {w.kind === "KOREKTA" ? (
                       <span className="ml-2 text-xs text-amber-300">korekta</span>
                     ) : null}

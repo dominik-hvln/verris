@@ -12,6 +12,8 @@ export interface DokumentCzekajacy {
   currency: string;
   issuedAt: string | null;
   paidAt: string | null;
+  /** PROD-03 — dokument konta wewnętrznego (testowego). */
+  kontoWewnetrzne?: boolean;
 }
 
 export async function getCzekajace(): Promise<DokumentCzekajacy[]> {

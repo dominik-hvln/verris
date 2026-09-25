@@ -38,17 +38,18 @@ export class BusinessMetricsService {
 
     const [activeSubs, trials, newThisMonth, canceledThisMonth, users, servers] = await Promise.all([
       this.prisma.subscription.findMany({
-        where: { status: SubscriptionStatus.ACTIVE, isTrial: false },
+        where: { status: SubscriptionStatus.ACTIVE, isTrial: false, user: { isInternal: false } },
         select: { priceAmount: true, interval: true, plan: { select: { productKind: true } } },
       }),
       this.prisma.subscription.count({
-        where: { isTrial: true, status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.PROVISIONING] } },
+        where: { isTrial: true, status: { in: [SubscriptionStatus.ACTIVE, SubscriptionStatus.PROVISIONING] }, user: { isInternal: false } },
       }),
-      this.prisma.subscription.count({ where: { createdAt: { gte: monthStart } } }),
+      this.prisma.subscription.count({ where: { createdAt: { gte: monthStart }, user: { isInternal: false } } }),
       this.prisma.subscription.count({
-        where: { canceledAt: { gte: monthStart }, status: SubscriptionStatus.CANCELED },
+        where: { canceledAt: { gte: monthStart }, status: SubscriptionStatus.CANCELED, user: { isInternal: false } },
       }),
-      this.prisma.user.findMany({ select: { walletBalance: true } }),
+      // PROD-03 — konta wewnętrzne (testowe) nie zawyżają MRR, churnu ani salda portfeli.
+      this.prisma.user.findMany({ where: { isInternal: false }, select: { walletBalance: true } }),
       this.prisma.server.findMany({
         select: {
           totalCpuCores: true,

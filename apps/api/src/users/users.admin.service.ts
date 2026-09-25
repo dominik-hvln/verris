@@ -47,6 +47,8 @@ export interface AdminUserRow {
   canAccessGrafana: boolean;
   /** Konto zanonimizowane (RODO) — szczegóły operacyjne i impersonacja są zablokowane. */
   anonymizedAt: string | null;
+  /** PROD-03 — konto wewnętrzne (testowe). */
+  isInternal: boolean;
 }
 
 export interface ImpersonationContext {
@@ -136,6 +138,7 @@ export class UsersAdminService {
         loginBlocked: u.loginBlocked,
         canAccessGrafana: u.canAccessGrafana,
         anonymizedAt: u.anonymizedAt?.toISOString() ?? null,
+        isInternal: u.isInternal,
       })),
     };
   }
@@ -433,6 +436,7 @@ export class UsersAdminService {
         loginBlocked: true,
         loginBlockedReason: true,
         adminInternalNote: true,
+        isInternal: true,
         createdAt: true,
         anonymizedAt: true,
         deletionRequestedAt: true,
@@ -459,6 +463,7 @@ export class UsersAdminService {
       loginBlocked: u.loginBlocked,
       loginBlockedReason: u.loginBlockedReason,
       adminInternalNote: u.adminInternalNote,
+      isInternal: u.isInternal,
       createdAt: u.createdAt.toISOString(),
       deletionRequestedAt: u.deletionRequestedAt?.toISOString() ?? null,
       subscriptionsCount: u._count.subscriptions,
@@ -472,6 +477,7 @@ export class UsersAdminService {
       loginBlocked?: boolean;
       loginBlockedReason?: string | null;
       adminInternalNote?: string | null;
+      isInternal?: boolean;
     },
     ctx: { ipAddress?: string | null; userAgent?: string | null },
   ) {
@@ -479,7 +485,8 @@ export class UsersAdminService {
     if (
       dto.loginBlocked === undefined &&
       dto.loginBlockedReason === undefined &&
-      dto.adminInternalNote === undefined
+      dto.adminInternalNote === undefined &&
+      dto.isInternal === undefined
     ) {
       throw new BadRequestException('Podaj co najmniej jedno pole do aktualizacji.');
     }
@@ -492,8 +499,20 @@ export class UsersAdminService {
     if (dto.adminInternalNote !== undefined) {
       data.adminInternalNote = dto.adminInternalNote;
     }
+    if (dto.isInternal !== undefined) data.isInternal = dto.isInternal;
 
     await this.prisma.user.update({ where: { id: userId }, data });
+
+    if (dto.isInternal !== undefined) {
+      await this.audit.record({
+        action: AdminCustomerActions.CUSTOMER_INTERNAL_FLAG_UPDATED,
+        userId,
+        actorUserId,
+        ipAddress: ctx.ipAddress ?? undefined,
+        userAgent: ctx.userAgent ?? undefined,
+        details: { isInternal: dto.isInternal },
+      });
+    }
 
     if (dto.loginBlocked !== undefined || dto.loginBlockedReason !== undefined) {
       await this.audit.record({

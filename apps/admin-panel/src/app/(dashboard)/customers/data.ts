@@ -15,6 +15,7 @@ export interface AdminUserRow {
   lastLoginAt: string | null;
   loginBlocked: boolean;
   anonymizedAt?: string | null;
+  isInternal?: boolean;
 }
 
 export interface ListUsersResponse {
@@ -52,6 +53,8 @@ export interface AdminCustomerOperationalDetail {
   loginBlocked: boolean;
   loginBlockedReason: string | null;
   adminInternalNote: string | null;
+  /** PROD-03 — konto wewnętrzne (testowe). */
+  isInternal?: boolean;
   createdAt: string;
   deletionRequestedAt: string | null;
   subscriptionsCount: number;

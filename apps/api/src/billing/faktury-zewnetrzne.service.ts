@@ -46,10 +46,14 @@ export class FakturyZewnetrzneService {
         currency: true,
         issuedAt: true,
         paidAt: true,
+        // PROD-03 — konto wewnętrzne (testowe) oznaczone w kolejce. Nie ukrywamy: prawdziwa wpłata to
+        // sprzedaż i faktura VAT należy się także wtedy — decyduje operator/księgowa.
+        user: { select: { isInternal: true } },
       },
     });
-    return rows.map((r) => ({
+    return rows.map(({ user, ...r }) => ({
       ...r,
+      kontoWewnetrzne: user?.isInternal ?? false,
       amount: r.amount.toFixed(2),
       netAmount: r.netAmount?.toFixed(2) ?? null,
       vatAmount: r.vatAmount?.toFixed(2) ?? null,

@@ -196,6 +196,8 @@ model User {
   loginBlockedReason       String?   @db.Text
   /// Notatka wewnętrzna BOK (nie pokazywana klientowi).
   adminInternalNote        String?   @db.Text
+  /// PROD-03 — konto wewnętrzne (testowe/operatora): poza metrykami biznesowymi i kolejką faktur VAT.
+  isInternal               Boolean   @default(false)
 
   /// 4 skróty w sidebarze panelu klienta (href z katalogu `SIDEBAR_TILE_OPTIONS`).
   sidebarQuickLinks        String[]  @default([])

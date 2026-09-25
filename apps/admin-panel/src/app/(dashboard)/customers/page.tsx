@@ -144,6 +144,11 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
                         )}
                       </td>
                     <td className="px-6 py-4 text-right">
+                      {user.isInternal && !user.anonymizedAt ? (
+                        <span className="mr-2 rounded border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-200" title="Konto wewnętrzne (testowe) — poza metrykami biznesowymi.">
+                          wewnętrzne
+                        </span>
+                      ) : null}
                       {user.anonymizedAt ? (
                         <span className="text-xs text-muted-foreground" title="Dane usunięte na wniosek klienta (RODO) — brak operacji na koncie.">
                           Zanonimizowane

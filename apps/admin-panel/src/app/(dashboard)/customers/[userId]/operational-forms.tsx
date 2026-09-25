@@ -23,6 +23,7 @@ export function CustomerOperationalForms({ detail }: Props) {
   const [loginBlocked, setLoginBlocked] = useState(detail.loginBlocked);
   const [blockReason, setBlockReason] = useState(detail.loginBlockedReason ?? "");
   const [internalNote, setInternalNote] = useState(detail.adminInternalNote ?? "");
+  const [isInternal, setIsInternal] = useState(Boolean(detail.isInternal));
   const [opErr, setOpErr] = useState<string | null>(null);
   const [opOk, setOpOk] = useState(false);
 
@@ -48,9 +49,11 @@ export function CustomerOperationalForms({ detail }: Props) {
     syncedDetail.id !== detail.id ||
     syncedDetail.loginBlocked !== detail.loginBlocked ||
     syncedDetail.loginBlockedReason !== detail.loginBlockedReason ||
-    syncedDetail.adminInternalNote !== detail.adminInternalNote
+    syncedDetail.adminInternalNote !== detail.adminInternalNote ||
+    syncedDetail.isInternal !== detail.isInternal
   ) {
     setSyncedDetail(detail);
+    setIsInternal(Boolean(detail.isInternal));
     setLoginBlocked(detail.loginBlocked);
     setBlockReason(detail.loginBlockedReason ?? "");
     setInternalNote(detail.adminInternalNote ?? "");
@@ -64,6 +67,7 @@ export function CustomerOperationalForms({ detail }: Props) {
         loginBlocked,
         loginBlockedReason: blockReason.trim() || null,
         adminInternalNote: internalNote.trim() || null,
+        isInternal,
       });
       if (!res.ok) {
         setOpErr(res.error);
@@ -128,6 +132,20 @@ export function CustomerOperationalForms({ detail }: Props) {
             className="rounded border-white/20"
           />
           <span className="text-sm text-white">Login zablokowany</span>
+        </label>
+        <label className="flex items-start gap-3 cursor-pointer">
+          <Checkbox
+            checked={isInternal}
+            disabled={pending}
+            onChange={(e) => setIsInternal(e.target.checked)}
+            className="mt-0.5 rounded border-white/20"
+          />
+          <span className="text-sm text-white">
+            Konto wewnętrzne (testowe)
+            <span className="block text-xs text-muted-foreground">
+              Poza metrykami biznesowymi (MRR, churn, saldo portfeli); w kolejce „czeka na fakturę” oznaczone — prawdziwa wpłata nadal wymaga faktury VAT.
+            </span>
+          </span>
         </label>
         <label className="block">
           <span className="text-[10px] font-bold uppercase tracking-wider text-neutral-500">
