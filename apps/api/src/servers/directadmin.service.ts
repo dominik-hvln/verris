@@ -1780,6 +1780,7 @@ export class DirectAdminService {
     const domain = String(input.domain || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
     if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain)) throw new BadRequestException('Nieprawidłowa nazwa domeny.');
     this.assertAccountMutable(sub.account);
+    await this.assertDomenaNieJestCudza(domain, userId);
     const client = await this.getClientForHostingAccount(sub.account.id, userId);
     await client.createDomain(domain);
     await this.audit.record({
@@ -1787,6 +1788,24 @@ export class DirectAdminService {
       userId, actorUserId: userId, details: { subscriptionId, domain },
     });
     return { ok: true as const };
+  }
+
+  /**
+   * Z-10 — domena dodatkowa albo alias nie może być domeną (ani subdomeną domeny) innego klienta Verris.
+   * DA blokuje duplikat tylko na tym samym węźle; na innym węźle Exim uznałby cudzą domenę za lokalną
+   * i poczta wysłana z tego węzła do jej skrzynek trafiałaby do obcego konta.
+   */
+  // ponytail: sprawdzamy domeny główne kont i domeny z rejestracji; domeny dodatkowe innych kont żyją tylko w DA węzłów.
+  private async assertDomenaNieJestCudza(domena: string, userId: string): Promise<void> {
+    const czesci = domena.split('.');
+    const kandydaci = czesci.slice(0, -1).map((_, i) => czesci.slice(i).join('.'));
+    const [konto, rejestracja] = await Promise.all([
+      this.prisma.account.findFirst({ where: { domain: { in: kandydaci }, userId: { not: userId } }, select: { id: true } }),
+      this.prisma.domain.findFirst({ where: { name: { in: kandydaci }, userId: { not: userId } }, select: { id: true } }),
+    ]);
+    if (konto || rejestracja) {
+      throw new BadRequestException('Ta domena jest już używana na innym koncie w Verris. Jeśli jest Twoja, napisz do pomocy — przeniesiemy ją.');
+    }
   }
 
   async deleteHostingAdditionalDomain(subscriptionId: string, userId: string, domainRaw: string) {
@@ -2460,6 +2479,7 @@ export class DirectAdminService {
     const alias = String(input.alias || '').trim().toLowerCase().replace(/^https?:\/\//, '').replace(/\/.*$/, '');
     if (!/^[a-z0-9.-]+\.[a-z]{2,}$/.test(alias)) throw new BadRequestException('Nieprawidłowa nazwa aliasu domeny.');
     if (alias === domain) throw new BadRequestException('Alias nie może być tożsamy z domeną główną.');
+    await this.assertDomenaNieJestCudza(alias, userId);
     await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_DOMAIN_POINTER', {
       action: 'add',
       domain,

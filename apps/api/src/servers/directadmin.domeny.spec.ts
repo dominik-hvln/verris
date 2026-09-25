@@ -28,7 +28,12 @@ function stanowisko(o: { status?: string; get?: Record<string, unknown>; post?: 
   const account = { id: 'a1', status: o.status ?? 'ACTIVE', daUsername: 'klient1', domain: 'firma.pl', daPasswordEnc: 'enc' };
   const prisma = {
     subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1', account })) },
-    account: { update: jest.fn(async () => account) },
+    account: {
+      update: jest.fn(async () => account),
+      // Z-10: domena główna innego klienta.
+      findFirst: jest.fn(async (a: { where: { domain: { in: string[] } } }) => (a.where.domain.in.includes('cudza.pl') ? { id: 'a2' } : null)),
+    },
+    domain: { findFirst: jest.fn(async (a: { where: { name: { in: string[] } } }) => (a.where.name.in.includes('zarejestrowana.pl') ? { id: 'd2' } : null)) },
   };
   const audit = { record: jest.fn(async () => undefined) };
   const platformSettings = { getPhpSlotReleases: jest.fn(async () => o.sloty ?? ['8.3', '8.2', '7.4']) };
@@ -123,6 +128,14 @@ describe('Aliasy domeny (CMD_API_DOMAIN_POINTER)', () => {
     await s.svc.createHostingDomainPointer('s1', 'u1', { alias: 'http://Firma.com.pl/' });
     expect(s.wyslane()).toEqual({ action: 'add', domain: 'firma.pl', from: 'firma.com.pl', alias: 'yes', api: 'yes' });
     await expect(s.svc.createHostingDomainPointer('s1', 'u1', { alias: 'firma.pl' })).rejects.toThrow('tożsamy');
+  });
+
+  it('Z-10: domena albo subdomena innego klienta Verris (konto lub rejestracja) → 400 bez wywołania DA', async () => {
+    const s = stanowisko();
+    await expect(s.svc.createHostingDomainPointer('s1', 'u1', { alias: 'cudza.pl' })).rejects.toThrow('innym koncie');
+    await expect(s.svc.createHostingDomainPointer('s1', 'u1', { alias: 'poczta.cudza.pl' })).rejects.toThrow('innym koncie');
+    await expect(s.svc.createHostingAdditionalDomain('s1', 'u1', { domain: 'zarejestrowana.pl' })).rejects.toThrow('innym koncie');
+    expect(s.post).not.toHaveBeenCalled();
   });
 
   it('błąd DA przy dodaniu → wyjątek, bez audytu', async () => {

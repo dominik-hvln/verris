@@ -232,3 +232,31 @@ describe('CustomerPermissionsGuard — zachowanie', () => {
     });
   });
 });
+
+describe('CustomerPermissionsGuard — dziennik odmów (Z-10)', () => {
+  it('odmowa subkonta trafia do dziennika właściciela raz na 10 min dla tej samej trasy; przepuszczenie — nie', () => {
+    const record = jest.fn(async () => undefined);
+    const g = new CustomerPermissionsGuard({ getAllAndOverride: () => undefined } as never, { record } as never);
+    const ctx = (method: string, path: string, perms: CustomerPermission[]) =>
+      ({
+        switchToHttp: () => ({
+          getRequest: () => ({
+            method,
+            route: { path },
+            ip: '203.0.113.5',
+            user: { userId: 'owner', principalUserId: 'sub1', customerOwnerId: 'owner', customerPermissions: perms },
+          }),
+        }),
+        getHandler: () => undefined,
+        getClass: () => undefined,
+      }) as never;
+    expect(g.canActivate(ctx('GET', '/billing/wallet', ['TICKETS_READ']))).toBe(false);
+    expect(g.canActivate(ctx('GET', '/billing/wallet', ['TICKETS_READ']))).toBe(false);
+    expect(() => g.canActivate(ctx('POST', '/me/account-deletion', ['TICKETS_READ']))).toThrow();
+    expect(g.canActivate(ctx('GET', '/billing/wallet', ['BILLING_READ']))).toBe(true);
+    expect(record).toHaveBeenCalledTimes(2);
+    expect(record).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'CUSTOMER_IAM_ACCESS_DENIED', userId: 'owner', actorUserId: 'sub1', ipAddress: '203.0.113.5' }),
+    );
+  });
+});

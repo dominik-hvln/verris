@@ -30,7 +30,8 @@ function stanowisko(o: { status?: string; get?: Record<string, unknown>; post?: 
   const account = { id: 'a1', status: o.status ?? 'ACTIVE', daUsername: 'klient1', domain: 'firma.pl', daPasswordEnc: 'enc' };
   const prisma = {
     subscription: { findFirst: jest.fn(async () => ({ id: 's1', userId: 'u1', account })) },
-    account: { update: jest.fn(async () => account) },
+    account: { update: jest.fn(async () => account), findFirst: jest.fn(async () => null) },
+    domain: { findFirst: jest.fn(async () => null) },
   };
   const audit = { record: jest.fn(async () => undefined) };
   const svc = new DirectAdminService(prisma as never, {} as never, {} as never, audit as never);

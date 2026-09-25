@@ -86,4 +86,5 @@ export const ETYKIETY_DZIENNIKA: Record<string, string> = {
   CUSTOMER_IAM_INVITE_REVOKED: 'Zaproszenie odwołane',
   CUSTOMER_IAM_MEMBER_UPDATED: 'Zmiana uprawnień',
   CUSTOMER_IAM_MEMBER_DISABLED: 'Subkonto wyłączone',
+  CUSTOMER_IAM_ACCESS_DENIED: 'Odmowa dostępu subkonta (brak uprawnienia)',
 };

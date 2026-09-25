@@ -1,7 +1,8 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable, Optional } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { CustomerPermission } from '@verris/database';
 import { CUSTOMER_PERMISSIONS_KEY } from '../decorators/customer-permissions.decorator';
+import { AuditService } from '../audit/audit.service';
 
 /**
  * Z-04 — uprawnienia subkont klienta.
@@ -253,14 +254,47 @@ export function inferCustomerRoutePermissions(method: string, path: string): Wym
 
 @Injectable()
 export class CustomerPermissionsGuard implements CanActivate {
-  constructor(private readonly reflector: Reflector) {}
+  constructor(
+    private readonly reflector: Reflector,
+    @Optional() private readonly audit?: AuditService,
+  ) {}
+
+  /**
+   * Z-10 — odmowa dla subkonta trafia do dziennika właściciela (IAM → „Ostatnie 50 zdarzeń”): to sygnał
+   * w obie strony — próba wyjścia poza nadane uprawnienia albo za ostra klasyfikacja trasy.
+   * Ta sama para (subkonto, trasa) najwyżej raz na 10 minut, żeby ekran ładujący kilka sekcji nie zalał dziennika.
+   */
+  // ponytail: pamięć jednej repliki; przy wielu replikach wpis może się powtórzyć raz na replikę.
+  private readonly ostatnieOdmowy = new Map<string, number>();
+
+  private zapiszOdmowe(
+    req: { method?: string; route?: { path?: string }; path?: string; ip?: string; user?: { userId?: string; principalUserId?: string } },
+    wymagane: WymogTrasy,
+  ): void {
+    const trasa = req.route?.path ?? req.path ?? '';
+    const klucz = `${req.user?.principalUserId}|${req.method}|${trasa}`;
+    const teraz = Date.now();
+    if ((this.ostatnieOdmowy.get(klucz) ?? 0) > teraz - 10 * 60_000) return;
+    if (this.ostatnieOdmowy.size > 5_000) this.ostatnieOdmowy.clear();
+    this.ostatnieOdmowy.set(klucz, teraz);
+    void this.audit?.record({
+      action: 'CUSTOMER_IAM_ACCESS_DENIED',
+      userId: req.user?.userId,
+      actorUserId: req.user?.principalUserId,
+      ipAddress: req.ip,
+      details: { method: req.method, route: trasa, wymagane: wymagane === 'ODMOWA' ? 'tylko właściciel' : wymagane },
+    });
+  }
 
   canActivate(ctx: ExecutionContext): boolean {
     const req = ctx.switchToHttp().getRequest<{
       method?: string;
       route?: { path?: string };
       path?: string;
+      ip?: string;
       user?: {
+        userId?: string;
+        principalUserId?: string;
         customerOwnerId?: string | null;
         customerPermissions?: CustomerPermission[];
       };
@@ -279,6 +313,7 @@ export class CustomerPermissionsGuard implements CanActivate {
       inferCustomerRoutePermissions(req.method ?? 'GET', req.route?.path ?? req.path ?? '');
 
     if (wymagane === 'ODMOWA') {
+      this.zapiszOdmowe(req, wymagane);
       throw new ForbiddenException(
         'Ta operacja jest dostępna wyłącznie dla właściciela konta.',
       );
@@ -286,6 +321,8 @@ export class CustomerPermissionsGuard implements CanActivate {
     if (wymagane.length === 0) return true;
 
     const nadane = new Set(user.customerPermissions ?? []);
-    return wymagane.every((uprawnienie) => nadane.has(uprawnienie));
+    const ok = wymagane.every((uprawnienie) => nadane.has(uprawnienie));
+    if (!ok) this.zapiszOdmowe(req, wymagane);
+    return ok;
   }
 }

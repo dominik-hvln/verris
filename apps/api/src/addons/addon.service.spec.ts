@@ -64,6 +64,10 @@ describe('Z-06 — idempotencja zakupu dodatku', () => {
         }),
       },
       user: { update: jest.fn(async () => ({})) },
+      subscription: {
+        // Usługi „obca-*” należą do kogoś innego.
+        findFirst: jest.fn(async ({ where }: { where: { id: string } }) => (where.id.startsWith('obca-') ? null : { id: where.id })),
+      },
     };
 
     const wallet = {
@@ -211,6 +215,15 @@ describe('Z-06 — idempotencja zakupu dodatku', () => {
       const wynik = await service.purchase('user-1', 'manual_setup', undefined, 'k2');
       expect(tickets.create).toHaveBeenCalledTimes(1);
       expect(wynik).toMatchObject({ status: 'QUEUED' });
+    });
+
+    it('Z-10: cudza usługa w ciele żądania → 404 bez obciążenia i bez zgłoszenia', async () => {
+      const { service, wallet, tickets, prisma } = zbuduj();
+      await expect(service.purchase('user-1', 'manual_setup', 'obca-sub', 'k3')).rejects.toThrow('Usługa nie istnieje');
+      expect(prisma.subscription.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'obca-sub', userId: 'user-1' } }));
+      expect(wallet.debit).not.toHaveBeenCalled();
+      expect(tickets.create).not.toHaveBeenCalled();
+      await expect(service.purchase('user-1', 'manual_setup', 'sub-9', 'k4')).resolves.toMatchObject({ status: 'QUEUED' });
     });
 
     it('nieznany dodatek jest odrzucany przed jakimkolwiek obciążeniem', async () => {

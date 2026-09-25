@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma, WalletTxType } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
@@ -167,6 +167,13 @@ export class AddonService {
   ) {
     const def = CATALOG[slug];
     if (!def) throw new BadRequestException('Nieznany dodatek.');
+
+    // Z-10: usługa z ciała żądania musi należeć do kupującego — inaczej zlecenie dla zespołu i wpis
+    // w portfelu/fakturze wskazywałyby cudzą usługę.
+    if (subscriptionId) {
+      const wlasna = await this.prisma.subscription.findFirst({ where: { id: subscriptionId, userId }, select: { id: true } });
+      if (!wlasna) throw new NotFoundException('Usługa nie istnieje.');
+    }
 
     const klucz = this.kluczIdempotencji(userId, slug, subscriptionId, klientKey, Date.now());
 
