@@ -126,7 +126,7 @@ export function PhpInfoPanel({ serviceId, domain }: { serviceId: string; domain:
                       const teraz = zmiany[r.nazwa] ?? bylo;
                       return (
                         <li key={r.nazwa} className="flex items-center justify-between gap-2 py-0.5 text-[13px]">
-                          <span className="min-w-0 truncate font-mono text-[12px] text-foreground">
+                          <span className="min-w-0 break-all font-mono text-[12px] text-foreground">
                             {r.nazwa}
                             {r.stan === 'wbudowane' ? <span className="ml-1 font-sans text-muted-foreground">(wbudowane)</span> : null}
                           </span>
