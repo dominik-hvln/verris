@@ -364,6 +364,10 @@ export class AccountDeletionService {
       // 5) Wipe wallet auto top-up (no need to keep, contains last error msg).
       await tx.walletAutoTopup.deleteMany({ where: { userId } });
 
+      // 5b) Integracje konta: webhooki (adres i sekret klienta) usuwamy, tokeny API unieważniamy.
+      await tx.clientWebhookEndpoint.deleteMany({ where: { userId } });
+      await tx.apiToken.updateMany({ where: { userId, revokedAt: null }, data: { revokedAt: now } });
+
       // 6) Mark deletion request done.
       await tx.accountDeletionRequest.update({
         where: { userId },

@@ -18,6 +18,8 @@ function stanowisko(opts: { juzZanonimizowany?: boolean; subkonta?: string[] } =
     },
     paymentMethod: { deleteMany: jest.fn(async () => ({})) },
     walletAutoTopup: { deleteMany: jest.fn(async () => ({})) },
+    clientWebhookEndpoint: { deleteMany: jest.fn(async () => ({})) },
+    apiToken: { updateMany: jest.fn(async () => ({})) },
     accountDeletionRequest: { update: jest.fn(async () => ({})) },
     invoice: { deleteMany: jest.fn() },
   };
@@ -59,6 +61,8 @@ describe('AccountDeletionService.executeAnonymization (P-02)', () => {
     expect(s.tx.subscription.update).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 's1' } }));
     expect(s.tx.paymentMethod.deleteMany).toHaveBeenCalledWith({ where: { userId: 'u1' } });
     expect(s.tx.invoice.deleteMany).not.toHaveBeenCalled();
+    expect(s.tx.clientWebhookEndpoint.deleteMany).toHaveBeenCalledWith({ where: { userId: 'u1' } });
+    expect(s.tx.apiToken.updateMany).toHaveBeenCalledWith(expect.objectContaining({ where: { userId: 'u1', revokedAt: null } }));
   });
 
   it('subkonta: wyłączone, zanonimizowane i wylogowane razem z właścicielem', async () => {
