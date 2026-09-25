@@ -1423,6 +1423,9 @@ export class UserServicesController {
 
   /** Sprint 7 / R-MIG-1 — pakietowe zlecenie migracji ze starego hostingu. */
   @Post(':id/migrations/bundle')
+  // E-21: przyjęcie zlecenia loguje się do starych serwerów IMAP — bez limitu byłoby to narzędzie
+  // do zgadywania haseł cudzych skrzynek z naszych adresów IP (ten sam limit co preflight).
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'migration:preflight' })
   async createMigrationBundle(
     @CurrentUser() user: { userId: string },
     @Param('id') id: string,
