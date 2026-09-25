@@ -129,7 +129,11 @@ export default async function ServerDetailPage({
 
       {canBootstrap && (
         <section id="bootstrap" className="scroll-mt-24">
-          <h2 className="mb-3 text-lg font-bold text-white">Zaawansowany kreator podpięcia (verris-bootstrap)</h2>
+          <h2 className="mb-1 text-lg font-bold text-white">Instalacja węzła (bootstrap v2)</h2>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Ten sam krok co „Instalacja” w <Link href={`/nodes/wizard?server=${server.id}&step=bootstrap`} className="underline">kreatorze węzła</Link> —
+            kreator prowadzi dalej przez akceptację, backup offsite, Onboard LIVE i profil hostingowy.
+          </p>
           <NodeBootstrapProgress serverId={server.id} />
         </section>
       )}

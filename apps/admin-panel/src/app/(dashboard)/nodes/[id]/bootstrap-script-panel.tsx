@@ -35,7 +35,7 @@ export function BootstrapScriptPanel({ serverId }: { serverId: string }) {
     <div className="rounded-2xl border border-white/10 bg-black/40 backdrop-blur-md p-5 flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-sm font-semibold text-white">
-          <Terminal className="h-4 w-4 text-indigo-300" /> Skrypt bootstrap
+          <Terminal className="h-4 w-4 text-indigo-300" /> Tylko agent i handshake
         </div>
         <button
           onClick={onGenerate}
@@ -52,6 +52,7 @@ export function BootstrapScriptPanel({ serverId }: { serverId: string }) {
       </div>
 
       <p className="text-xs text-muted-foreground">
+        Dla węzła, na którym CloudLinux, DirectAdmin i LiteSpeed zainstalowano ręcznie. Pełna instalacja: sekcja „Instalacja węzła (bootstrap v2)” poniżej.
         Token bootstrap jest jednorazowy i traci ważność po 48 godzinach. Każde kliknięcie
         generuje nowy token — poprzedni wciąż działa do czasu wygaśnięcia, jeśli nie został użyty.
       </p>

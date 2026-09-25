@@ -28,7 +28,7 @@ export default async function AdminNodesPage() {
           className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg font-medium transition-all shadow-[0_0_15px_rgba(99,102,241,0.4)]"
         >
           <Plus className="h-4 w-4" />
-          Wizard nowego węzła
+          Dodaj węzeł (kreator)
         </Link>
         <Link
           href="/nodes/capacity"
@@ -38,12 +38,6 @@ export default async function AdminNodesPage() {
           Pojemność floty
         </Link>
         <FleetUpdateButton />
-        <Link
-          href="/nodes/init"
-          className="inline-flex items-center gap-2 px-3 py-2 text-sm text-muted-foreground hover:text-white border border-white/10 rounded-lg"
-        >
-          Szybka inicjalizacja
-        </Link>
         </div>
       </header>
 

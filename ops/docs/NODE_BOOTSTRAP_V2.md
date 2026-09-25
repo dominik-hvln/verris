@@ -1,4 +1,7 @@
-# Node Bootstrap v2 — runbook, flow i Definition of Done
+# Node Bootstrap v2 — projekt, walidatory i Definition of Done
+
+> **Procedura krok po kroku: `NODE_ONBOARD_RUNBOOK.md` (jedyny runbook, NODE-01 2026-09-26).**
+> Ten dokument opisuje projekt bootstrapu v2, walidatory i DoD.
 
 > Zakres: **100% LIVE** (nie MVP). Po instalacji OS + CloudLinux + DirectAdmin +
 > LiteSpeed reszta onboardu węzła ma być kompletna, idempotentna i zgodna z
@@ -214,21 +217,24 @@ Naprawy idempotentne; każda zapisywana w `AuditLog` (`NODE_AUDIT_REPAIR`).
 
 ---
 
-## 9. Decyzja: entrypoint (spec-unified-entrypoint)
+## 9. Decyzja: entrypoint (spec-unified-entrypoint) — stan 2026-09-26
 
-**Wybór: bootstrap panelu pozostaje jedynym skryptem na węźle**, a kroki
-post-ACTIVE są wykonywane przez panel/API i agenta zadań (`verris-tasks`),
-nie przez równoległy `node-onboard-live.sh` + ręczny `scp`. Uzasadnienie:
+**Jedna ścieżka dodania węzła: kreator w panelu admin.** Krok „Instalacja” tworzy rekord i prowadzi
+przez wznawialny bootstrap v2 (`node-bootstrap.script.ts`: PREFLIGHT → CLOUDLINUX → DA → STACK →
+AGENT → CANARY). Faza AGENT deleguje do skryptu handshake+agent (`renderBootstrapScript`) — ten sam
+skrypt jest też dostępny osobno jako „tylko agent” dla węzła zainstalowanego ręcznie.
 
-- Login key DA nie może trafić do skryptu bootstrap (sekret, scope) — sync
-  pakietów uruchamiamy po skonfigurowaniu DA, z panelu (audyt/naprawa) lub
-  skryptem `node-da-sync-plan-packages.sh` z login key operatora.
-- Profil hostingowy (Governor/LS) jest już taskiem agenta (`hosting-profile/run`).
-- TLS wystawiany centralnie na CP (DNS-01 OVH) — hook po ACTIVE
-  (`VERRIS_TLS_DEPLOY_WEBHOOK` lub raport „pending” + komenda dla operatora).
+Po ACTIVE:
 
-`node-onboard-live.sh` pozostaje narzędziem awaryjnym/ops, nie „docelowym”
-stanem LIVE.
+- login key DA nie trafia do żadnego skryptu bootstrapu (sekret, scope) — podaje go operator w kroku
+  „Akceptacja i DA API”; pakiety DA synchronizuje control-plane / audyt i naprawa;
+- profil hostingowy (Governor/LS/poczta/FTP) to task agenta (`hosting-profile/run`);
+- **`node-onboard-live.sh` jest obowiązkowy przed klientami** (hardening, egress lockdown, IP w DA,
+  migrator, readiness) — walidator `security-hardening` w audycie węzła blokuje węzeł bez niego.
+  Przeniesienie tych kroków do zadań agenta (bez `scp`) to osobna praca, nie część NODE-01.
+
+(Poprzednia wersja tej sekcji nazywała `node-onboard-live.sh` „narzędziem awaryjnym”, co przeczyło
+runbookowi i audytowi węzła — poprawione przy NODE-01.)
 
 ---
 

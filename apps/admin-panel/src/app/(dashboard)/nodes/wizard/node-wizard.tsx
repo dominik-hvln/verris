@@ -21,6 +21,7 @@ import type { BootstrapScriptResponseDto, InitServerResponseDto } from "@verris/
 import { generateBootstrapScript, initServer, fetchServer } from "../actions";
 import { ApproveServerButton } from "../[id]/approve-button";
 import { HostingProfilePanel } from "../[id]/hosting-profile-panel";
+import { NodeBootstrapProgress } from "../[id]/node-bootstrap-progress";
 import { NodeLiveStatus, type NodeLiveSignals } from "./node-live-status";
 import {
   BOOTSTRAP_DOES,
@@ -199,7 +200,7 @@ export function NodeWizard() {
   const [scriptResp, setScriptResp] = useState<BootstrapScriptResponseDto | null>(null);
   const [scriptCopied, setScriptCopied] = useState(false);
 
-  const step = WIZARD_STEPS[stepIndex]!;
+  const step = WIZARD_STEPS[Math.min(stepIndex, WIZARD_STEPS.length - 1)]!;
   const serverId = created?.server.id;
 
   useEffect(() => {
@@ -289,16 +290,8 @@ export function NodeWizard() {
         setError(result.error ?? "Błąd inicjalizacji");
         return;
       }
+      // NODE-01 — zostajemy w kroku instalacji: licencje i skrypt v2 pojawiają się pod formularzem.
       setCreated(result.data!);
-      const scriptResult = await generateBootstrapScript(result.data!.server.id);
-      if ("data" in scriptResult && scriptResult.data) {
-        setScriptResp(scriptResult.data);
-      } else if ("error" in scriptResult) {
-        setError(scriptResult.error ?? "Nie udało się wygenerować skryptu");
-      }
-      if (APPROVE_DA_STEP_INDEX >= 0) {
-        setStepIndex(APPROVE_DA_STEP_INDEX);
-      }
     });
   };
 
@@ -322,11 +315,12 @@ export function NodeWizard() {
       </div>
 
       <header>
-        <h1 className="text-3xl font-bold text-white">Wizard nowego węzła compute</h1>
+        <h1 className="text-3xl font-bold text-white">Kreator nowego węzła</h1>
         <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
-          Krok po kroku: licencje vendorów (CL, DA, LS) ręcznie na serwerze, potem bootstrap Verris
-          i profil hostingowy. Sekrety licencyjne <strong className="text-zinc-400">nie</strong>{" "}
-          trafiają do panelu — tylko na SSH węzła.
+          Jedna ścieżka dodania węzła: rekord w panelu → wznawialny bootstrap v2 (CloudLinux, DirectAdmin,
+          LiteSpeed, agent) z postępem na żywo → akceptacja i DA API → backup offsite → Onboard LIVE →
+          profil hostingowy → smoke. Klucze licencyjne zapisujemy zaszyfrowane i wstawiamy tylko do
+          jednorazowego skryptu.
         </p>
       </header>
 
@@ -369,14 +363,14 @@ export function NodeWizard() {
 
         {step.id === "bootstrap" && created && stepIndex === WIZARD_STEPS.findIndex((s) => s.id === "bootstrap") && (
           <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
-            Skrypt bootstrap uruchom na węźle. Po komunikacie „Bootstrap complete” wróć do tego
-            kroku (nawigacja u góry) albo przejdź do{" "}
+            Wklej jednolinijkowiec na węźle jako root — postęp faz widać poniżej na żywo, restarty nie
+            przerywają instalacji. Gdy faza dojdzie do „Gotowe”, przejdź do{" "}
             <button
               type="button"
               onClick={() => setStepIndex(APPROVE_DA_STEP_INDEX)}
               className="underline font-medium hover:text-white"
             >
-              kroku 6 — Akceptacja i DA API
+              kroku „Akceptacja i DA API”
             </button>
             .
           </div>
@@ -409,114 +403,6 @@ export function NodeWizard() {
               Serwer spełnia wymagania
             </label>
           </ul>
-        )}
-
-        {step.id === "cloudlinux" && (
-          <div className="space-y-4">
-            <p className="text-sm text-zinc-300">
-              CloudLinux instalujesz przez <strong>konwersję</strong> AlmaLinux (CL 10 nie ma
-              osobnego ISO). Agent Verris wymaga <code className="text-indigo-300">lveinfo</code>{" "}
-              lub <code className="text-indigo-300">cloudlinux-statistic</code>.
-            </p>
-            <a
-              href="https://docs.cloudlinux.com/cloudlinuxos/cloudlinux_installation/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm text-indigo-300 hover:underline"
-            >
-              Dokumentacja CloudLinux <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-            <CopyBlock
-              label="Instalacja CL 10 (AlmaLinux 10.2 → cldeploy + reboot)"
-              text={INSTALL_CLOUDLINUX_AL10}
-            />
-            <CopyBlock
-              label="Alternatywa: CL 9 (AlmaLinux 9.x)"
-              text={INSTALL_CLOUDLINUX_AL9}
-            />
-            <CopyBlock label="Weryfikacja po reboot" text={VERIFY_CLOUDLINUX} />
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <Checkbox
-                checked={!!checked.cloudlinux}
-                onChange={() => toggleCheck("cloudlinux")}
-                className="rounded border-white/20"
-              />
-              CloudLinux + LVE działają na serwerze
-            </label>
-          </div>
-        )}
-
-        {step.id === "directadmin" && (
-          <div className="space-y-4">
-            <p className="text-sm text-zinc-300">
-              Zainstaluj <strong>DirectAdmin</strong> na CloudLinux (sharedlicense OK na smoke
-              HOST-1…4). Przed klientami płacącymi — docelowa licencja na IP węzła.
-            </p>
-            <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100 flex gap-2">
-              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-              <span>
-                <strong>AlmaLinux 10:</strong> sharedlicense / legacy DA może nie wspierać RHEL10 —
-                wtedy full license lub test na AL9. Bootstrap Verris nie instaluje DA (tylko API w
-                kroku 6).
-              </span>
-            </div>
-            <a
-              href="https://docs.directadmin.com/directadmin/installation/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm text-indigo-300 hover:underline"
-            >
-              Dokumentacja DirectAdmin <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-            <CopyBlock label="Instalacja DirectAdmin (setup.sh)" text={INSTALL_DIRECTADMIN} />
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <Checkbox
-                checked={!!checked.directadmin}
-                onChange={() => toggleCheck("directadmin")}
-                className="rounded border-white/20"
-              />
-              DirectAdmin działa (panel :2222 / custombuild dostępny)
-            </label>
-          </div>
-        )}
-
-        {step.id === "litespeed" && (
-          <div className="space-y-4">
-            <div className="rounded-lg border border-sky-500/30 bg-sky-500/10 px-4 py-3 text-sm text-sky-100 space-y-2">
-              <p className="font-medium flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4" /> Restart SSH / długa instalacja
-              </p>
-              <p>
-                Instalator LiteSpeed może trwać kilka–kilkanaście minut. Pełny reboot OS jest
-                rzadki, ale sesja SSH może się urwać.{" "}
-                <strong>Zalecenie:</strong> zainstaluj LS + LSPHP ręcznie lub uruchom bootstrap w{" "}
-                <code className="text-sky-200">tmux</code> / <code className="text-sky-200">screen</code>.
-                Po zerwaniu połączenia —{" "}
-                <strong>uruchom ten sam skrypt ponownie</strong> (token bootstrap ważny 48 h).
-              </p>
-              <p>
-                Najbezpieczniejsza ścieżka: <strong>LiteSpeed + LSPHP już zainstalowane</strong>{" "}
-                (np. przez DA CustomBuild) — wtedy bootstrap tylko robi handshake i agenta.
-              </p>
-            </div>
-            <CopyBlock
-              label="3a) LiteSpeed + LSPHP przez DA CustomBuild (zalecane)"
-              text={INSTALL_LITESPEED_VIA_DA}
-            />
-            <CopyBlock
-              label="3b) LiteSpeed standalone (get.litespeed.sh)"
-              text={INSTALL_LITESPEED_STANDALONE}
-            />
-            <CopyBlock label="4) Zmienne przed bootstrap Verris" text={PREPARE_NODE_EXPORTS} />
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <Checkbox
-                checked={!!checked.litespeed}
-                onChange={() => toggleCheck("litespeed")}
-                className="rounded border-white/20"
-              />
-              LiteSpeed trial aktywny (lub gotowy serial do exportu na węźle)
-            </label>
-          </div>
         )}
 
         {step.id === "bootstrap" && (
@@ -601,11 +487,56 @@ export function NodeWizard() {
                   ) : (
                     <Server className="h-4 w-4" />
                   )}
-                  Utwórz węzeł i wygeneruj skrypt
+                  Utwórz węzeł
                 </button>
               </form>
             ) : (
               <div className="space-y-3">
+                {serverId ? <NodeBootstrapProgress serverId={serverId} /> : null}
+                <details className="rounded-xl border border-white/10 bg-black/30 p-4">
+                  <summary className="cursor-pointer text-sm font-medium text-zinc-300">
+                    Instalacja ręczna — tylko gdy bootstrap v2 nie może (np. licencja przypięta do IP, nietypowy OS)
+                  </summary>
+                  <div className="mt-4 space-y-4">
+                    <p className="text-xs text-muted-foreground">
+                      Te same komendy, które wykonuje bootstrap v2, do uruchomienia ręcznie. Po ręcznej instalacji
+                      i tak uruchom skrypt v2 powyżej — pominie zrobione fazy i zrobi handshake oraz agenta.
+                    </p>
+                    <CopyBlock
+                                  label="Instalacja CL 10 (AlmaLinux 10.2 → cldeploy + reboot)"
+                                  text={INSTALL_CLOUDLINUX_AL10}
+                                />
+                    <CopyBlock
+                                  label="Alternatywa: CL 9 (AlmaLinux 9.x)"
+                                  text={INSTALL_CLOUDLINUX_AL9}
+                                />
+                    <CopyBlock label="Weryfikacja po reboot" text={VERIFY_CLOUDLINUX} />
+                    <CopyBlock label="Instalacja DirectAdmin (setup.sh)" text={INSTALL_DIRECTADMIN} />
+                    <CopyBlock
+                                  label="3a) LiteSpeed + LSPHP przez DA CustomBuild (zalecane)"
+                                  text={INSTALL_LITESPEED_VIA_DA}
+                                />
+                    <CopyBlock
+                                  label="3b) LiteSpeed standalone (get.litespeed.sh)"
+                                  text={INSTALL_LITESPEED_STANDALONE}
+                                />
+                    <CopyBlock label="4) Zmienne przed bootstrap Verris" text={PREPARE_NODE_EXPORTS} />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!serverId) return;
+                        startTransition(async () => {
+                          const r = await generateBootstrapScript(serverId);
+                          if ("data" in r && r.data) setScriptResp(r.data);
+                          else if ("error" in r) setError(r.error ?? "Nie udało się wygenerować skryptu");
+                        });
+                      }}
+                      className="text-xs px-2.5 py-1.5 rounded-md border border-white/10 bg-white/5 hover:bg-white/10"
+                    >
+                      Tylko agent i handshake (panel zainstalowany ręcznie)
+                    </button>
+                  </div>
+                </details>
                 <p className="text-sm text-emerald-200">
                   Węzeł utworzony:{" "}
                   <code className="bg-black/40 px-1 rounded">{serverId}</code>
@@ -644,7 +575,7 @@ export function NodeWizard() {
                     onChange={() => toggleCheck("bootstrap")}
                     className="rounded border-white/20"
                   />
-                  Skrypt zakończył się komunikatem „Bootstrap complete”
+                  Bootstrap doszedł do fazy „Gotowe” (albo ręcznie: „Bootstrap complete”)
                 </label>
                 <CopyBlock label="Weryfikacja agentów po bootstrap" text={VERIFY_BOOTSTRAP_AGENTS} />
               </div>
@@ -665,8 +596,8 @@ export function NodeWizard() {
                 (link poniżej), żeby nie wychodzić z wizarda.
               </li>
               <li>
-                Po teście DA zaznacz checkbox i kliknij <strong>Dalej</strong> — krok 7 (profil
-                hostingowy) i 8 (smoke).
+                Po teście DA zaznacz checkbox i kliknij <strong>Dalej</strong> — dalej backup offsite, Onboard LIVE,
+                profil hostingowy i smoke.
               </li>
             </ol>
             {serverId ? (
@@ -687,7 +618,7 @@ export function NodeWizard() {
               </div>
             ) : (
               <p className="text-sm text-amber-200">
-                Najpierw ukończ krok 5 (utwórz węzeł i uruchom bootstrap).
+                Najpierw ukończ krok „Instalacja (bootstrap v2)”.
               </p>
             )}
             <label className="flex items-center gap-2 text-sm cursor-pointer">
@@ -774,7 +705,7 @@ export function NodeWizard() {
               />
             ) : (
               <p className="text-sm text-amber-200">
-                Najpierw ukończ krok 5 (utwórz węzeł i bootstrap).
+                Najpierw ukończ krok „Instalacja (bootstrap v2)”.
               </p>
             )}
             <CopyBlock

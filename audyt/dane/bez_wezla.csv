@@ -1,7 +1,7 @@
 id,rodzaj,co_zostalo
 PB-16,KOD,stare zakładki usługi przepisać na klocki v2 (dziś mają tylko paletę przez .v2-skin)
 PROD-02,PRODUKCJA,"kroki płatność i faktura w Pierwszych krokach — sprawdzić na produkcji (konto bez danych do faktury, potem z danymi)"
-NODE-01,KOD,jedna ścieżka dodania węzła (kreator + bootstrap v2) i jeden runbook — przygotowanie pod zakup węzła
+NODE-01,PRODUKCJA,kreator na produkcji: krok Instalacja z bootstrapem v2 (pełne przejście — na pierwszym węźle)
 X-04,KOD,testy integracyjne kolejnych ścieżek zapisu na prawdziwym PostgreSQL
 X-05,KOD,testy kluczowych ekranów panelu admina i obsługi
 P-12,KOD,skan dostępności (axe) wszystkich tras trzech paneli + przejście czytnikiem ekranu

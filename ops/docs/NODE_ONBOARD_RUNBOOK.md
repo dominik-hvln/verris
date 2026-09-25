@@ -3,6 +3,11 @@
 Dokumentacja kroków bootstrap i onboardingu węzła compute (Node-PL-01 i kolejne).
 Cel: **jeden powtarzalny flow** bez ręcznych poprawek między bootstrap a pierwszym provisioningiem.
 
+> **NODE-01 (2026-09-26): to jest jedyny runbook dodania węzła.** Kreator w panelu admin
+> (`/nodes/wizard`) prowadzi przez te same kroki w tej samej kolejności. `NODE_BOOTSTRAP_V2.md`
+> opisuje projekt, walidatory i DoD — procedura jest tutaj. Dawna „Szybka inicjalizacja”
+> (`/nodes/init`) przekierowuje do kreatora.
+
 ## Architektura
 
 | Warstwa | Rola |
@@ -15,9 +20,10 @@ Cel: **jeden powtarzalny flow** bez ręcznych poprawek między bootstrap a pierw
 
 ```mermaid
 flowchart TD
-  A[Admin: Init węzeł] --> B[Bootstrap script na węźle]
+  A[Kreator: Instalacja — rekord + licencje] --> B[Bootstrap v2 na węźle: CL, DA, LS, agent, canary]
   B --> C[/etc/verris.conf + agent metrics + probes + task agent/]
-  C --> D[node-onboard-live.sh]
+  C --> BK[Kreator: Akceptacja + DA API, Backup offsite]
+  BK --> D[node-onboard-live.sh]
   D --> E[DA: IP + pakiety starter/pro/business]
   D --> F[Governor MariaDB 10.6 + profil hostingowy]
   D --> G[Agent zadań verris-tasks.timer]
@@ -30,33 +36,28 @@ flowchart TD
   K --> L[Klient: Magic Login → DA]
 ```
 
-## Faza 1 — Przygotowanie serwera (ręcznie / DC)
+## Faza 1 — Serwer (DC)
 
-1. **OS:** AlmaLinux 10.x + CloudLinux (trial lub licencja).
-2. **DirectAdmin:** instalacja standardowa, port **2222**, TLS (self-signed OK).
-3. **LiteSpeed:** serial w zmiennej `LITESPEED_SERIAL_NO` (bootstrap może doinstalować).
-4. **LSPHP 8.3** pod `/usr/local/lsws/lsphp*/`.
-5. **SSH root** + opcjonalnie klucz deploy.
+1. **OS:** AlmaLinux 9.x lub 10.x, minimal, dostęp root (krok „Wymagania” kreatora ma komendy przygotowania OS).
+2. **Rekord A** w OVH: `node-pl-NN.verris.pl` → publiczne IP węzła (wymagany przed akceptacją).
+3. Licencje: klucz aktywacji **CloudLinux**, klucz **DirectAdmin**, serial **LiteSpeed** (trial na testy).
 
-## Faza 2 — Bootstrap Verris (panel admin)
+## Faza 2 — Instalacja: kreator → bootstrap v2
 
-1. Admin → **Węzły** → **Init** → skopiuj skrypt bootstrap.
-2. Na węźle jako root:
-
-```bash
-export LITESPEED_SERIAL_NO='...'   # jeśli LS jeszcze nie ma
-export PUBLIC_IP='62.238.0.223'    # opcjonalnie
-bash bootstrap-verris.sh             # skrypt z panelu
-```
-
-3. Bootstrap wykonuje:
-   - Handshake → `POST /servers/handshake` (token jednorazowy)
-   - Zapis **`/etc/verris.conf`** (`VERRIS_API_URL`, `VERRIS_SERVER_ID`, `VERRIS_IDENTITY_TOKEN`)
-   - Instalacja **verris-agent** (LVE telemetry co 1 min)
-   - Instalacja **verris-probes** (lokalne sondy)
-   - Instalacja **agenta zadań** (verris-tasks.timer, verris-task@.service)
-
-4. Admin → **Approve** węzeł (status ACTIVE).
+1. Admin → **Węzły** → **Dodaj węzeł (kreator)** → krok **„Instalacja (bootstrap v2)”**: nazwa, region, hostname (FQDN) → **Utwórz węzeł**.
+2. W tym samym kroku wpisz licencje (zapisywane zaszyfrowane w bazie) i skopiuj **jednolinijkowiec**.
+3. Na węźle jako root uruchom jednolinijkowiec. Skrypt instaluje usługę `verris-bootstrap` (systemd oneshot), która
+   wykonuje fazy **PREFLIGHT → CLOUDLINUX (+reboot) → DA → STACK (LiteSpeed) → AGENT → CANARY → DONE**
+   i wznawia się po każdym restarcie. Każda faza raportuje się na żywo w kreatorze.
+   - CLOUDLINUX: `cldeploy -k <klucz>` + reboot (pomijana, gdy kernel LVE już działa);
+   - DA: oficjalny `setup.sh` (pomijana, gdy `/usr/local/directadmin` istnieje);
+   - STACK: LiteSpeed przez DA CustomBuild (pomijana bez seriala);
+   - AGENT: handshake `POST /servers/handshake`, `/etc/verris.conf`, verris-agent, verris-probes, verris-tasks;
+   - CANARY: control-plane zakłada NS glue w OVH i pakiety DA.
+4. **Instalacja ręczna** (licencja przypięta do IP, nietypowy OS) — sekcja awaryjna w tym samym kroku kreatora
+   ma te same komendy; po niej i tak uruchom jednolinijkowiec v2 (pominie zrobione fazy).
+5. Kreator → **„Akceptacja i DA API”**: Approve (status ACTIVE) + login key DA (Faza 4) + test.
+6. Kreator → **„Backup offsite”**: rclone + `/etc/verris-backup.conf` (bez tego Onboard LIVE nie przejdzie).
 
 **Krytyczny fix (agent zadań):** unit systemd musi używać `ExecStart=/usr/bin/bash /usr/local/bin/verris-task-run.sh` — skrypt **z shebang** `#!/usr/bin/env bash`. Usunięcie shebang powodowało `203/EXEC`.
 
@@ -166,7 +167,8 @@ Weryfikacja techniczna (prod, Node-PL-01):
 | `ops/scripts/verris-task-run.sh` | Wykonanie pojedynczego zadania |
 | `ops/scripts/security-hardening-baseline.sh` | Bazowy hardening hosta |
 | `ops/scripts/security-egress-lockdown.sh` | Egress deny-by-default (nftables) |
-| `apps/api/src/servers/servers.service.ts` | Generator bootstrap |
+| `apps/api/src/servers/node-bootstrap.script.ts` | Bootstrap v2 (wznawialny, fazy CL → DA → LS → agent → canary) |
+| `apps/api/src/servers/servers.service.ts` | Skrypt fazy AGENT (handshake + agent), też „tylko agent” dla ręcznej instalacji |
 | `apps/api/src/servers/node-tasks-agent.install.ts` | Fragment bootstrap → task agent |
 | `apps/api/src/subscriptions/provisioning.service.ts` | Provisioning DA |
 | `libs/directadmin-sdk/src/client.ts` | SDK + `ensureUserPackage` |
@@ -186,10 +188,11 @@ Weryfikacja techniczna (prod, Node-PL-01):
 
 ## Kolejne węzły (skrót)
 
-1. Init w panelu admin → bootstrap na serwerze.
-2. `scp` bundle → `node-onboard-live.sh` (+ `DA_USER`/`DA_KEY`).
-3. Admin: DA config + test + ACTIVE.
-4. Smoke usługa.
+1. Kreator → „Instalacja (bootstrap v2)”: rekord + licencje → jednolinijkowiec na węźle → faza „Gotowe”.
+2. Kreator → „Akceptacja i DA API”: ACTIVE + login key + test.
+3. Kreator → „Backup offsite”.
+4. Kreator → „Onboard LIVE”: `scp` bundle → `node-onboard-live.sh` (+ `DA_USER`/`DA_KEY`) — obowiązkowy przed klientami.
+5. Kreator → „Profil hostingowy” → „Gotowe”: smoke usługa.
 
 ---
 

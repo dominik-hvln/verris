@@ -25,24 +25,11 @@ export const WIZARD_STEPS: WizardStep[] = [
     subtitle: "OS, sieć i zasoby przed licencjami",
   },
   {
-    id: "cloudlinux",
-    title: "CloudLinux",
-    subtitle: "Trial / LVE — ręcznie na serwerze",
-  },
-  {
-    id: "directadmin",
-    title: "DirectAdmin",
-    subtitle: "Instalacja panelu (sharedlicense na testy)",
-  },
-  {
-    id: "litespeed",
-    title: "LiteSpeed + LSPHP",
-    subtitle: "Serial, tmux, restart SSH",
-  },
-  {
+    // NODE-01 — jedna ścieżka: kreator tworzy rekord i prowadzi przez wznawialny bootstrap v2
+    // (CloudLinux → DirectAdmin → LiteSpeed → agent → canary). Ręczne komendy zostają jako awaryjne.
     id: "bootstrap",
-    title: "Bootstrap Verris",
-    subtitle: "Rekord w panelu + skrypt agenta",
+    title: "Instalacja (bootstrap v2)",
+    subtitle: "Rekord w panelu, licencje, jeden skrypt wznawialny po restarcie",
   },
   {
     id: "approve-da",
@@ -99,7 +86,7 @@ cldetect --help
 lveinfo --help
 cloudlinux-statistic --help 2>/dev/null || true
 
-# MySQL Governor — instaluje profil hostingowy (krok 7 wizarda / panel admin)
+# MySQL Governor — instaluje profil hostingowy (krok „Profil hostingowy” kreatora / panel admin)
 # po DirectAdmin. Ręcznie: ops/scripts/node-cloudlinux-governor.sh`;
 
 export const INSTALL_CLOUDLINUX_AL9 = `# 1) CloudLinux 9 — konwersja z AlmaLinux 9.x (alternatywa, bardziej dojrzały stack)
@@ -130,7 +117,7 @@ chmod 750 setup.sh
 # Login key (do Verris): DirectAdmin → Account Manager → Create Login Key
 #   (API access, bez expiry lub rotacja wg polityki)
 #
-# MySQL Governor (CloudLinux) — automatycznie w kroku 7 (Profil hostingowy).
+# MySQL Governor (CloudLinux) — automatycznie w kroku „Profil hostingowy”.
 # Wymaga działającego MariaDB/MySQL z DA. Ręcznie: bash node-cloudlinux-governor.sh
 
 # Weryfikacja:
@@ -174,7 +161,7 @@ export LSWS_WEBADMIN_ALLOW_IP="TWOJE.IP.BIURA"         # opcjonalnie
 # export PUBLIC_IP="PUBLICZNY.IP.WĘZŁA"              # opcjonalnie
 
 tmux new -s verris-bootstrap
-# wklej i uruchom skrypt z panelu admin (krok Bootstrap)`;
+# wklej i uruchom skrypt z panelu admin (krok „Instalacja”, sekcja ręczna)`;
 
 export const VERIFY_CLOUDLINUX = `# Po instalacji CL trial — weryfikacja:
 lveinfo --help >/dev/null 2>&1 && echo "OK: lveinfo"
@@ -202,24 +189,20 @@ tail -3 /var/log/verris-agent.log
 
 /** Co robi skrypt bootstrap z panelu (nie instaluje CL ani DA). */
 export const BOOTSTRAP_DOES = [
-  "Instaluje LiteSpeed przez get.litespeed.sh — tylko gdy brak lswsctrl (wymaga LITESPEED_SERIAL_NO)",
-  "Sprawdza obecność LSPHP",
-  "Handshake z api.verris.pl — rejestracja CPU/RAM/disk",
-  "Zapisuje /etc/verris.conf (token agenta)",
-  "Instaluje klucz SSH deploy control-plane (do wildcard TLS i ops) — gdy ustawiony na panelu",
-  "Instaluje verris-agent (telemetria LVE co 1 min)",
-  "Instaluje verris-probes (sondy lokalne co 1 min)",
-  "Instaluje verris-tasks.sh + verris-task-run.sh + verris-tasks.timer (kolejka z panelu co 1 min)",
+  "Instaluje się jako usługa systemd verris-bootstrap — wznawia pracę po restarcie (także po konwersji CloudLinux)",
+  "CloudLinux: cldeploy -k <klucz> + reboot — gdy podasz klucz i kernel LVE jeszcze nie działa",
+  "DirectAdmin: oficjalny instalator setup.sh — gdy DA jeszcze nie ma",
+  "LiteSpeed przez DA CustomBuild — gdy podasz serial",
+  "Handshake z api.verris.pl, /etc/verris.conf, verris-agent, verris-probes, verris-tasks (kolejka zadań z panelu)",
+  "Raportuje każdą fazę na żywo do panelu; po fazie Canary control-plane zakłada NS glue i pakiety DA",
 ];
 
 export const BOOTSTRAP_DOES_NOT = [
-  "Nie instaluje CloudLinux — zrób to wcześniej (krok 2)",
-  "Nie instaluje DirectAdmin — zrób to wcześniej (krok 3)",
-  "Nie instaluje LSPHP — tylko weryfikuje; doinstaluj przez DA CustomBuild lub repo LS",
-  "Nie instaluje MySQL Governor — profil hostingowy (krok 7) instaluje governor-mysql + mysqlgovernor.py --install",
-  "Nie konfiguruje cache LS — profil hostingowy (krok 7)",
-  "Nie ustawia limitów LVE per klient — robi to Verris przy provisioning z planu",
-  "Nie tworzy pakietów DA (starter/pro/business) — synchronizuj po teście login key (sekcja Konfiguracja węzła)",
+  "Nie robi hardeningu ani blokady ruchu wychodzącego — krok „Onboard LIVE” (obowiązkowy przed klientami)",
+  "Nie konfiguruje kopii poza serwerem — krok „Backup offsite”",
+  "Nie instaluje MySQL Governor ani nie stroi poczty/FTP — krok „Profil hostingowy”",
+  "Nie zna login key DirectAdmin — podajesz go w kroku „Akceptacja i DA API” (sekret nie trafia do skryptu)",
+  "Nie ustawia limitów LVE per klient — robi to Verris przy provisioningu z planu",
 ];
 
 /**
