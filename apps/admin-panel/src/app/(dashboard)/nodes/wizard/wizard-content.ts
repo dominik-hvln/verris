@@ -268,6 +268,7 @@ export const ONBOARD_LIVE_DOES = [
   "Tworzy pakiety DA starter/pro/business zgodne z planami panelu",
   "Instaluje backup offsite (timer 03:30) i ZATRZYMUJE się, gdy brak /etc/verris-backup.conf albo remote rclone",
   "LIVE readiness: agent zadań + Governor/MariaDB 10.6 + profil hostingowy + weryfikacja",
+  "Ręcznie w WebAdmin LiteSpeed: Per-Client Throttling wg ops/docs/DDOS.md (G-21) — L3/L4 filtruje Hetzner",
 ];
 
 /**
