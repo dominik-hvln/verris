@@ -59,7 +59,7 @@ docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" exec -T \
   -e LEGAL_VERSION="$VERSION" \
   -e LEGAL_CHANGELOG="$CHANGELOG" \
   api node <<'NODE'
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require('@verris/database');
 const fs = require('fs');
 const path = require('path');
 

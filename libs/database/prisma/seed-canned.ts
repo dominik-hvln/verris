@@ -9,8 +9,10 @@
  * USAGE:  ts-node libs/database/prisma/seed-canned.ts
  */
 import { PrismaClient } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 
-const prisma = new PrismaClient();
+// X-20 — Prisma 7: połączenie przez driver adapter (adres z DATABASE_URL).
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
 interface Seed {
   title: string;

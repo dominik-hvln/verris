@@ -1,9 +1,11 @@
 import { PrismaClient, BillingInterval, AutoscalingResource, LegalDocumentKind } from '@prisma/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 import * as bcrypt from 'bcrypt';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-const prisma = new PrismaClient();
+// X-20 — Prisma 7: połączenie przez driver adapter (adres z DATABASE_URL).
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
 async function main() {
   console.log('Seeding Verris database...');

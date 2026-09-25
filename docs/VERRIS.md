@@ -100,6 +100,7 @@ i zasobów z zewnątrz; osadzanie przez iframe z sandboxem + mały loader.
 
 ### 2026-09-25 — decyzje z formularza (druga tura)
 - **X-20** Prisma 7 — migracja **przed startem** (weryfikacja przez CI).
+  - Zrobione: Prisma 7.10.0 + `@prisma/adapter-pg`. Adres bazy dla CLI w `libs/database/prisma.config.ts` (czyta `libs/database/.env`, zmienne środowiska mają pierwszeństwo). `PrismaClient` z `@verris/database` sam dokłada adapter — w kodzie nic się nie zmienia. Seed: `migrations.seed` w configu; `migrate reset` już nie seeduje. Migracje na produkcji: `prisma migrate deploy --config=libs/database/prisma.config.ts`. Po pullu: `pnpm install`.
 - **G-21** anty-DDoS — na start ochrona DDoS Hetznera; **Cloudflare po starcie**.
 - **D-14** PostgreSQL i **E-23** kalendarz/kontakty (CalDAV/CardDAV) — robimy teraz, test na węźle testowym.
 - **PB-06** landing `/przenies-strone` i **PB-07** treści/cennik verris.pl — projekt do akceptacji właściciela; publikacja dopiero po zgodzie.

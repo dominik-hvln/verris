@@ -38,7 +38,7 @@ Jeśli którykolwiek punkt krytyczny nie jest spełniony, decyzja = **NO-GO**.
 - Start stacku:  
 `docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build`
 - Migracje:  
-`docker compose -f docker-compose.prod.yml --env-file .env.prod exec api npx prisma migrate deploy --schema=libs/database/prisma/schema.prisma`
+`docker compose -f docker-compose.prod.yml --env-file .env.prod exec api npx prisma migrate deploy --config=libs/database/prisma.config.ts`
 - Seed operatorów (admin/staff) wykonany raz.
 - Domyślne hasła seedowych kont zmienione.
 

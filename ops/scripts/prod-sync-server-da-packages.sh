@@ -9,7 +9,7 @@ cd "$ROOT"
 TARGET="${1:?podaj serverId lub fragment hostname (np. node-pl-01)}"
 
 SERVER_ID="$(bash ops/scripts/prod-db-exec.sh node -e "
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require('@verris/database');
 const p = new PrismaClient();
 const t = process.argv[1];
 p.server.findFirst({
@@ -29,7 +29,7 @@ p.server.findFirst({
 echo "[sync-packages] serverId=$SERVER_ID"
 
 bash ops/scripts/prod-db-exec.sh node -e "
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require('@verris/database');
 const { createHash } = require('crypto');
 
 function deriveKey(passphrase) {

@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 // Any valid uuid will do since the JwtStrategy fetches from DB. I will read a valid uuid from DB.
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require('@verris/database');
 const prisma = new PrismaClient();
 async function run() {
   const u = await prisma.user.findFirst({where: {role: 'USER'}});

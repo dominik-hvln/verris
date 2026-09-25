@@ -341,7 +341,7 @@ cd /opt/verris
 git pull
 docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 docker compose -f docker-compose.prod.yml --env-file .env.prod exec api \
-  npx prisma migrate deploy --schema=libs/database/prisma/schema.prisma
+  npx prisma migrate deploy --config=libs/database/prisma.config.ts
 ```
 
 ### Prawdziwe zero-downtime API (opcjonalnie, następny krok)
@@ -364,7 +364,7 @@ Pierwsza migracja `0_init` została wygenerowana z `migrate diff --from-empty` n
 # Tylko jeśli prod był wcześniej zarządzany przez `db push` i tabela _prisma_migrations
 # nie istnieje. Sprawdza się tym że psql -c "\dt _prisma_migrations" zwraca pusto.
 docker compose -f docker-compose.prod.yml --env-file .env.prod exec api \
-  npx prisma migrate resolve --applied 0_init --schema=libs/database/prisma/schema.prisma
+  npx prisma migrate resolve --applied 0_init --config=libs/database/prisma.config.ts
 ```
 
 Po baseline'owaniu kolejne deploye używają wyłącznie `migrate deploy` — Prisma sama policzy co aplikować.
@@ -889,7 +889,7 @@ Po wdrożeniu tego release uruchom:
 
 ```
 docker compose -f docker-compose.prod.yml --env-file .env.prod exec api \
-  npx prisma migrate deploy --schema=libs/database/prisma/schema.prisma
+  npx prisma migrate deploy --config=libs/database/prisma.config.ts
 ```
 
 Nowe migracje:

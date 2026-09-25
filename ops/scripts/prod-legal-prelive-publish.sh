@@ -43,7 +43,7 @@ docker cp "$DRAFTS_HOST" "${API_CID}:/tmp/legal-drafts"
 
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" exec -T -e DATABASE_URL="$DATABASE_URL" api \
   node - "${VERSION}" <<'NODE'
-const { PrismaClient } = require('@prisma/client');
+const { PrismaClient } = require('@verris/database');
 const fs = require('fs');
 const path = require('path');
 
