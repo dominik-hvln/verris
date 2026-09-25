@@ -7,6 +7,10 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
+  // Identyfikator faktury idzie do ścieżki zapytania z tokenem admina i do nagłówka pliku — tylko UUID.
+  if (!/^[0-9a-f-]{36}$/i.test(id)) {
+    return NextResponse.json({ error: "Nieprawidłowy identyfikator faktury." }, { status: 400 });
+  }
   const token = await getAdminAuthToken();
   if (!token) {
     return NextResponse.json({ error: "Brak sesji administratora." }, { status: 401 });
