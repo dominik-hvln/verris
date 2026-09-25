@@ -6,6 +6,7 @@ import {
   StatusWebhookEvent,
 } from '@verris/database';
 import { createHmac } from 'node:crypto';
+import { isPrivateOrReservedIp, postWebhookBezpiecznie } from '../common/net/webhook-post';
 import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import { PrismaService } from '../prisma/prisma.service';
@@ -94,21 +95,15 @@ export class StatusWebhookService {
 
       try {
         await assertPublicWebhookUrl(delivery.endpoint.url);
-        const response = await fetch(delivery.endpoint.url, {
-          method: 'POST',
-          headers,
-          body,
-          signal: AbortSignal.timeout(10_000),
-          redirect: 'manual',
-        });
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
+        const status = await postWebhookBezpiecznie(delivery.endpoint.url, headers, body);
+        if (status < 200 || status >= 300) {
+          throw new Error(`HTTP ${status}`);
         }
         await this.prisma.statusWebhookDelivery.update({
           where: { id: delivery.id },
           data: {
             status: StatusWebhookDeliveryStatus.SENT,
-            responseStatus: response.status,
+            responseStatus: status,
             deliveredAt: new Date(),
             lastError: null,
             nextAttemptAt: null,
@@ -159,33 +154,3 @@ export async function assertPublicWebhookUrl(raw: string): Promise<void> {
   }
 }
 
-function isPrivateOrReservedIp(ip: string): boolean {
-  if (ip.startsWith('::ffff:')) {
-    return isPrivateOrReservedIp(ip.slice('::ffff:'.length));
-  }
-  if (ip.includes(':')) {
-    const lower = ip.toLowerCase();
-    return (
-      lower === '::1' ||
-      lower === '::' ||
-      lower.startsWith('fc') ||
-      lower.startsWith('fd') ||
-      lower.startsWith('fe80:') ||
-      lower.startsWith('ff')
-    );
-  }
-  const parts = ip.split('.').map((p) => Number.parseInt(p, 10));
-  if (parts.length !== 4 || parts.some((p) => Number.isNaN(p))) return true;
-  const [a, b] = parts;
-  return (
-    a === 0 ||
-    a === 10 ||
-    a === 127 ||
-    (a === 100 && b >= 64 && b <= 127) ||
-    (a === 169 && b === 254) ||
-    (a === 172 && b >= 16 && b <= 31) ||
-    (a === 192 && b === 168) ||
-    (a === 198 && (b === 18 || b === 19)) ||
-    a >= 224
-  );
-}

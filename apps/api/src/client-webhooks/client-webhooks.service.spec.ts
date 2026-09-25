@@ -1,6 +1,12 @@
 import { BadRequestException } from '@nestjs/common';
 import { createHmac } from 'node:crypto';
 import { ClientWebhooksService } from './client-webhooks.service';
+import { postWebhookBezpiecznie } from '../common/net/webhook-post';
+
+jest.mock('../common/net/webhook-post', () => ({
+  ...jest.requireActual('../common/net/webhook-post'),
+  postWebhookBezpiecznie: jest.fn(),
+}));
 
 jest.mock('../status/status-webhook.service', () => ({
   assertPublicWebhookUrl: jest.fn(async (u: string) => {
@@ -58,11 +64,10 @@ describe('ClientWebhooksService', () => {
 
   it('dostawa z podpisem HMAC; błąd HTTP → ponowienie z opóźnieniem', async () => {
     const s = stanowisko();
-    const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValueOnce(new Response('', { status: 200 })).mockResolvedValueOnce(new Response('', { status: 500 }));
+    const wyslij = (postWebhookBezpiecznie as jest.Mock).mockResolvedValueOnce(200).mockResolvedValueOnce(500);
     await s.svc.dostarczaj();
-    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-    const body = init.body as string;
-    expect((init.headers as Record<string, string>)['x-verris-signature']).toBe(createHmac('sha256', 'whsec_test').update(body).digest('hex'));
+    const [, naglowki, body] = wyslij.mock.calls[0] as [string, Record<string, string>, string];
+    expect(naglowki['x-verris-signature']).toBe(createHmac('sha256', 'whsec_test').update(body).digest('hex'));
     expect(s.prisma.clientWebhookDelivery.update).toHaveBeenLastCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: 'SENT' }) }));
     await s.svc.dostarczaj();
     expect(s.prisma.clientWebhookDelivery.update).toHaveBeenLastCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: 'PENDING', lastError: 'HTTP 500' }) }));

@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CryptoService } from '../common/crypto/crypto.service';
 import { AuditService } from '../common/audit/audit.service';
 import { assertPublicWebhookUrl } from '../status/status-webhook.service';
+import { postWebhookBezpiecznie } from '../common/net/webhook-post';
 
 /**
  * L-10 — webhooki klienta. Klient podaje adres HTTPS i zdarzenia; dostaje sekret raz, każde
@@ -145,22 +146,20 @@ export class ClientWebhooksService {
       const body = JSON.stringify({ id: d.id, event: d.event, createdAt: d.createdAt.toISOString(), payload: d.payload });
       try {
         await assertPublicWebhookUrl(d.endpoint.url);
-        const res = await fetch(d.endpoint.url, {
-          method: 'POST',
-          headers: {
+        const status = await postWebhookBezpiecznie(
+          d.endpoint.url,
+          {
             'content-type': 'application/json',
             'x-verris-event': d.event,
             'x-verris-delivery': d.id,
             'x-verris-signature': createHmac('sha256', this.crypto.decrypt(d.endpoint.secretEnc)).update(body).digest('hex'),
           },
           body,
-          signal: AbortSignal.timeout(10_000),
-          redirect: 'manual',
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        );
+        if (status < 200 || status >= 300) throw new Error(`HTTP ${status}`);
         await this.prisma.clientWebhookDelivery.update({
           where: { id: d.id },
-          data: { status: StatusWebhookDeliveryStatus.SENT, responseStatus: res.status, deliveredAt: new Date(), lastError: null, nextAttemptAt: null },
+          data: { status: StatusWebhookDeliveryStatus.SENT, responseStatus: status, deliveredAt: new Date(), lastError: null, nextAttemptAt: null },
         });
       } catch (e) {
         const koniec = d.attempts >= MAX_PROB;

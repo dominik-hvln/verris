@@ -4,6 +4,13 @@ import {
 } from '@verris/database';
 import { createHmac } from 'node:crypto';
 import { assertPublicWebhookUrl, StatusWebhookService } from './status-webhook.service';
+import { postWebhookBezpiecznie } from '../common/net/webhook-post';
+
+jest.mock('../common/net/webhook-post', () => ({
+  ...jest.requireActual('../common/net/webhook-post'),
+  postWebhookBezpiecznie: jest.fn(),
+}));
+const wyslij = postWebhookBezpiecznie as jest.Mock;
 
 describe('StatusWebhookService', () => {
   const prisma = {
@@ -24,7 +31,6 @@ describe('StatusWebhookService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    global.fetch = jest.fn() as unknown as typeof fetch;
   });
 
   it('returns zero when no endpoints subscribe to the event', async () => {
@@ -81,7 +87,7 @@ describe('StatusWebhookService', () => {
     prisma.statusWebhookDelivery.updateMany.mockResolvedValue({ count: 1 });
     prisma.statusWebhookDelivery.findUnique.mockResolvedValue({ ...delivery, attempts: 1 });
     prisma.statusWebhookDelivery.update.mockResolvedValue({});
-    (global.fetch as jest.Mock).mockResolvedValue({ ok: true, status: 204 });
+    wyslij.mockResolvedValue(204);
 
     const service = new StatusWebhookService(prisma as never, crypto as never);
     await service.deliverPending();
@@ -92,16 +98,12 @@ describe('StatusWebhookService', () => {
       createdAt: delivery.createdAt.toISOString(),
       payload: delivery.payload,
     });
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect(wyslij).toHaveBeenCalledWith(
       delivery.endpoint.url,
       expect.objectContaining({
-        method: 'POST',
-        body,
-        redirect: 'manual',
-        headers: expect.objectContaining({
-          'x-verris-signature': createHmac('sha256', 'super-secret').update(body).digest('hex'),
-        }),
+        'x-verris-signature': createHmac('sha256', 'super-secret').update(body).digest('hex'),
       }),
+      body,
     );
     expect(prisma.statusWebhookDelivery.update).toHaveBeenCalledWith({
       where: { id: delivery.id },
@@ -137,7 +139,7 @@ describe('StatusWebhookService', () => {
     prisma.statusWebhookDelivery.findUnique
       .mockResolvedValueOnce(retry)
       .mockResolvedValueOnce(fail);
-    (global.fetch as jest.Mock).mockResolvedValue({ ok: false, status: 500 });
+    wyslij.mockResolvedValue(500);
 
     const service = new StatusWebhookService(prisma as never, crypto as never);
     await service.deliverPending();
@@ -174,12 +176,12 @@ describe('StatusWebhookService', () => {
     prisma.statusWebhookDelivery.updateMany.mockResolvedValue({ count: 1 });
     prisma.statusWebhookDelivery.findUnique.mockResolvedValue({ ...delivery, attempts: 1 });
     prisma.statusWebhookDelivery.update.mockResolvedValue({});
-    (global.fetch as jest.Mock).mockResolvedValue({ ok: true, status: 200 });
+    wyslij.mockResolvedValue(200);
 
     const service = new StatusWebhookService(prisma as never, crypto as never);
     await service.deliverPending();
 
-    const headers = (global.fetch as jest.Mock).mock.calls[0][1].headers as Record<string, string>;
+    const headers = wyslij.mock.calls[0][1] as Record<string, string>;
     expect(headers['x-verris-signature']).toBeUndefined();
   });
 
@@ -196,7 +198,7 @@ describe('StatusWebhookService', () => {
     prisma.statusWebhookDelivery.findMany.mockResolvedValue([{ id: delivery.id }]);
     prisma.statusWebhookDelivery.updateMany.mockResolvedValue({ count: 1 });
     prisma.statusWebhookDelivery.findUnique.mockResolvedValue(delivery);
-    (global.fetch as jest.Mock).mockRejectedValue(new Error('ECONNRESET'));
+    wyslij.mockRejectedValue(new Error('ECONNRESET'));
 
     const service = new StatusWebhookService(prisma as never, crypto as never);
     await service.deliverPending();
