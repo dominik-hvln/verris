@@ -64,3 +64,4 @@ G-09,czeka,,da build modsecurity; SecRuleEngine w .htaccess pod LSWS (DetectionO
 Q-14,czeka,,IP w IP Manager; default_ttl; ./build clean/php/litespeed; letsencrypt.sh server_cert; lvectl --maxEntryProcs (lvectl --help); mysqlgovernor.py 10.6→10.11
 Z-18,czeka,,"provisioning na węźle: zerwane połączenie z DA w trakcie → PONOWIENIE w audycie, konto założone przy drugiej próbie"
 F-06,czeka,,"D3: na węźle dnssec=1 (node-hosting-profile.sh), „Włącz DNSSEC” w panelu → dig +dnssec pokazuje RRSIG, format get_keys (DS, signed_on) zgodny z parserem; transfer podpisanej strefy do secondary (ClouDNS); wyłączenie przywraca strefę bez podpisu."
+E-12,czeka,,D3: da build dovecot_pigeonhole na węźle (log /var/log/verris-pigeonhole.log); w Roundcube DA widać Ustawienia → Filtry (managesieve); reguła „przenieś do folderu” działa dla poczty przychodzącej; jeśli Roundcube DA nie ma managesieve — dopisać plugin w konfiguracji Roundcube według dokumentacji DA/Roundcube.

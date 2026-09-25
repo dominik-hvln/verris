@@ -1052,6 +1052,16 @@ configure_hosting_capabilities() {
   # user_dnssec_control zostaje 0). Oficjalnie: „Make sure you have dnssec=1 in the directadmin.conf”
   # (docs.directadmin.com → Maintaining DNS records → DNSSEC); restart DA niżej.
   da_set_conf dnssec 1
+  # E-12 — filtry poczty po stronie serwera (Sieve): wtyczka Dovecot Pigeonhole. Od DirectAdmin 1.665
+  # polecenie to `da build dovecot_pigeonhole` (changelog DA 1.665: zmiana z `da build pigeonhole`).
+  # Reguły klient ustawia w webmailu (Roundcube → Ustawienia → Filtry, managesieve) — D3 w wezel.csv.
+  if [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ] && command -v da >/dev/null 2>&1; then
+    if da build dovecot_pigeonhole >/var/log/verris-pigeonhole.log 2>&1; then
+      log_ok "Dovecot Pigeonhole (Sieve) zbudowany (log: /var/log/verris-pigeonhole.log)"
+    else
+      log_warn "Pigeonhole — budowa nie powiodła się (log: /var/log/verris-pigeonhole.log); filtry w webmailu niedostępne"
+    fi
+  fi
   # E-20 — dobowy limit wysyłki per konto (exim DirectAdmina czyta /etc/virtual/limit).
   # Ta sama liczba stoi w panelu klienta (libs/contracts: HOSTING_MAIL_DAILY_SEND_LIMIT);
   # zgodność pilnuje apps/api/src/test/limit-wysylki.spec.ts. Bez nadpisywania z env —

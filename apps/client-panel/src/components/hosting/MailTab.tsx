@@ -333,6 +333,10 @@ export default function MailTab({ serviceId }: Props) {
         <p className="m-0 px-4 pb-3.5 pt-2 font-mono text-[11.5px] leading-relaxed text-muted-foreground">
           Szyfrowanie SSL/TLS: SMTP na porcie 465 (SSL). Jeśli Twoja sieć blokuje 465, użyj 587 ze STARTTLS. Login to pełny adres skrzynki (np. kontakt@twojadomena.pl). Hasło ustawiasz przy tworzeniu skrzynki. Webmail otwierasz przyciskiem wyżej.
         </p>
+        <p className="m-0 px-4 pb-3.5 text-[12.5px] leading-relaxed text-muted-foreground">
+          Filtry poczty (np. przenoszenie wiadomości do folderu, przekierowanie według nadawcy, autoodpowiedź) ustawisz w webmailu:
+          Ustawienia → Filtry. Reguły działają na serwerze, więc obowiązują też w telefonie i programie pocztowym.
+        </p>
       </div>
 
       {/* Create mailbox */}
