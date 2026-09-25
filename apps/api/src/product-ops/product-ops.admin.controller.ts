@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, HttpCode, NotFoundException, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, HttpCode, NotFoundException, Optional, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import {
   MaintenanceWindowStatus,
   ProductAnnouncementKind,
@@ -12,6 +12,7 @@ import {
 } from '@verris/database';
 import { ArrayMaxSize, ArrayNotEmpty, IsArray, IsBoolean, IsDateString, IsEnum, IsInt, IsOptional, IsString, IsUrl, Max, MaxLength, Min } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ConfigService } from '@nestjs/config';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -165,11 +166,15 @@ export class ProductOpsAdminController {
     private readonly crypto: CryptoService,
     private readonly webhooks: StatusWebhookService,
     private readonly status: StatusService,
+    @Optional() private readonly config?: ConfigService,
   ) {}
 
   @Get('preflight')
   async preflight() {
-    const [failedProvisioning, failedMigrations, openIncidents, activeServers, activeFlags, scheduledMaintenance] =
+    // Węzeł liczy się jako gotowy tylko z żywym sygnałem agenta (15 min). Sam status ACTIVE w bazie
+    // przepuszczał preflight przy nieistniejącym od miesięcy Node-PL-01.
+    const zywy = new Date(Date.now() - 15 * 60 * 1000);
+    const [failedProvisioning, failedMigrations, openIncidents, activeServers, activeFlags, scheduledMaintenance, slaCredits] =
       await Promise.all([
         // PROD-03: blokuje tylko NIEROZWIĄZANE — usługa anulowana/wygasła po nieudanym zakładaniu
         // (zwrot już wypłacony) to historia, nie coś, co trzeba naprawić przed startem. Wcześniej
@@ -177,17 +182,23 @@ export class ProductOpsAdminController {
         this.prisma.subscription.count({ where: PROVISIONING_DO_NAPRAWY }),
         this.prisma.migrationRequest.count({ where: { status: 'FAILED' } }),
         this.prisma.probeIncident.count({ where: { status: 'OPEN' } }),
-        this.prisma.server.count({ where: { status: 'ACTIVE' } }),
+        this.prisma.server.count({ where: { status: 'ACTIVE', lastHeartbeatAt: { gte: zywy } } }),
         this.prisma.featureFlag.count({ where: { enabledDefault: true } }),
         this.prisma.maintenanceWindow.count({
           where: { status: { in: [MaintenanceWindowStatus.SCHEDULED, MaintenanceWindowStatus.IN_PROGRESS] } },
         }),
+        this.prisma.platformSetting.findUnique({ where: { key: 'sla.creditsEnabled' }, select: { value: true } }),
       ]);
     const blockers = [
       failedProvisioning > 0 ? `${failedProvisioning} failed provisioning` : null,
       failedMigrations > 0 ? `${failedMigrations} failed migrations` : null,
       openIncidents > 0 ? `${openIncidents} open incidents` : null,
       activeServers === 0 ? 'no active compute node' : null,
+      // Obietnice verris.pl, które muszą być prawdą w dniu startu (przegląd treści 2026-09-25):
+      slaCredits?.value !== '1' ? 'SLA credits disabled — verris.pl promises automatic compensation (sla.creditsEnabled)' : null,
+      this.config && !this.config.get<string>('REGISTRAR_PROVIDER')
+        ? 'domain registrar not configured — verris.pl offers domain registration (REGISTRAR_PROVIDER)'
+        : null,
     ].filter(Boolean);
     return {
       goLiveReady: blockers.length === 0,
