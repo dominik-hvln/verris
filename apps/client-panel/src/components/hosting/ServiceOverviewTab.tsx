@@ -343,7 +343,6 @@ export default function ServiceOverviewTab({
       {!isEmail ? (
         <DomainPointingPanel
           serviceId={serviceId}
-          dnsManageUrl={links.dnsUrl}
           variant="compact"
           onGoToDomains={() => onNavigate('domains')}
         />

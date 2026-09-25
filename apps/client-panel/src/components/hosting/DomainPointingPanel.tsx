@@ -7,7 +7,6 @@ import {
   ChevronDown,
   ChevronUp,
   Copy,
-  ExternalLink,
   Globe,
   Loader2,
   RefreshCw,
@@ -78,12 +77,10 @@ function CopyBtn({ value }: { value: string }) {
 
 export default function DomainPointingPanel({
   serviceId,
-  dnsManageUrl,
   variant = 'full',
   onGoToDomains,
 }: {
   serviceId: string;
-  dnsManageUrl?: string | null;
   variant?: 'compact' | 'full';
   onGoToDomains?: () => void;
 }) {
@@ -307,17 +304,6 @@ export default function DomainPointingPanel({
       </div>
 
       <div className="flex flex-wrap gap-2 pt-1">
-        {dnsManageUrl ? (
-          <a
-            href={dnsManageUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-xs font-medium text-white hover:bg-white/10"
-          >
-            Strefa DNS
-            <ExternalLink className="h-3 w-3 opacity-60" />
-          </a>
-        ) : null}
         {variant === 'compact' && onGoToDomains ? (
           <button
             type="button"

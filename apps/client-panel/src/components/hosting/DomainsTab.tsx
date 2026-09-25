@@ -83,12 +83,6 @@ export default function DomainsTab({ serviceId }: Props) {
               <ExternalLink className="h-3 w-3 opacity-70" />
             </DaExternalLink>
           ) : null}
-          {links.dnsUrl ? (
-            <DaExternalLink href={links.dnsUrl}>
-              Strefa DNS
-              <ExternalLink className="h-3 w-3 opacity-70" />
-            </DaExternalLink>
-          ) : null}
           <Button
             type="button"
             variant="outline"
@@ -120,7 +114,7 @@ export default function DomainsTab({ serviceId }: Props) {
         </div>
       ) : null}
 
-      <DomainPointingPanel serviceId={serviceId} dnsManageUrl={links.dnsUrl} variant="full" />
+      <DomainPointingPanel serviceId={serviceId} variant="full" />
 
       <div className="mt-4">
         <SubdomainsManager serviceId={serviceId} />

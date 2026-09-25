@@ -62,3 +62,4 @@ B-04,czeka,,"selectorctl: --user-current, --list-user-extensions --all, --set-us
 H-14,czeka,,"admin-backup per konto + rclone sync drzewa; raport ok/rc=3"
 G-09,czeka,,"da build modsecurity; SecRuleEngine w .htaccess pod LSWS (DetectionOnly/On)"
 Q-14,czeka,,"IP w IP Manager; default_ttl; ./build clean/php/litespeed; letsencrypt.sh server_cert; lvectl --maxEntryProcs (lvectl --help); mysqlgovernor.py 10.6→10.11"
+Z-18,czeka,,"provisioning na węźle: zerwane połączenie z DA w trakcie → PONOWIENIE w audycie, konto założone przy drugiej próbie"

@@ -414,7 +414,7 @@ export default function ServiceOverviewV2({
             </section>
           ) : null}
 
-          <DomainPointingPanel serviceId={serviceId} dnsManageUrl={links.dnsUrl} variant="compact" onGoToDomains={() => onNavigate('domains')} />
+          <DomainPointingPanel serviceId={serviceId} variant="compact" onGoToDomains={() => onNavigate('domains')} />
         </div>
 
         {/* Wąska kolumna (wzorzec): autoskalowanie, asystent, dane dostępowe, płatności */}
