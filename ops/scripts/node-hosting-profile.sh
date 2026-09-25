@@ -1203,6 +1203,44 @@ ROT
     fi
   fi
 
+  # D-14 — PostgreSQL dla kont (bazy zakłada node-pgsql.sh). Serwer z AppStream systemu (moduł postgresql:16,
+  # bez obcych repozytoriów) wg postgresql.org → Download → Red Hat family: postgresql-setup --initdb,
+  # systemctl enable postgresql. Tylko localhost, hasła scram-sha-256; superużytkownik postgres tylko przez peer.
+  # PHP: rozszerzenia pgsql / pdo_pgsql klient włącza w PHP Selectorze (alt-php); natywne PHP z CustomBuild
+  # wg docs.directadmin.com → PHP extensions: da build set php_pgsql yes && da build php_pgsql.
+  if [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ]; then
+    if ! command -v postgresql-setup >/dev/null 2>&1; then
+      dnf module reset -y postgresql >/dev/null 2>&1 || true
+      dnf module enable -y postgresql:16 >/dev/null 2>&1 || true
+      dnf install -y postgresql-server >/var/log/verris-pgsql.log 2>&1 || log_warn "PostgreSQL — instalacja nie powiodła się (log: /var/log/verris-pgsql.log)"
+    fi
+    if command -v postgresql-setup >/dev/null 2>&1; then
+      local pgdata=/var/lib/pgsql/data
+      [ -f "$pgdata/PG_VERSION" ] || postgresql-setup --initdb >>/var/log/verris-pgsql.log 2>&1 || log_warn "PostgreSQL — initdb nie powiódł się"
+      if [ -f "$pgdata/PG_VERSION" ]; then
+        if ! grep -q '^# verris (D-14)' "$pgdata/postgresql.conf"; then
+          printf "\n# verris (D-14)\nlisten_addresses = 'localhost'\npassword_encryption = scram-sha-256\n" >> "$pgdata/postgresql.conf"
+        fi
+        cat > "$pgdata/pg_hba.conf" <<'HBA'
+# Zarządzane przez Verris (D-14) — zmiany ręczne zostaną nadpisane.
+local   all   postgres                  peer
+local   all   all                       scram-sha-256
+host    all   all       127.0.0.1/32    scram-sha-256
+host    all   all       ::1/128         scram-sha-256
+HBA
+        chown postgres:postgres "$pgdata/pg_hba.conf"; chmod 600 "$pgdata/pg_hba.conf"
+        systemctl enable postgresql >/dev/null 2>&1 || true
+        systemctl restart postgresql >>/var/log/verris-pgsql.log 2>&1 || log_warn "PostgreSQL — restart nie powiódł się"
+        runuser -u postgres -- psql -X -q -d postgres -c 'REVOKE CONNECT ON DATABASE postgres FROM PUBLIC' \
+          -c 'REVOKE CONNECT ON DATABASE template1 FROM PUBLIC' >/dev/null 2>&1 || true
+        log_ok "PostgreSQL działa (localhost, scram-sha-256)"
+      fi
+    fi
+    if command -v da >/dev/null 2>&1; then
+      { da build set php_pgsql yes && da build php_pgsql; } >>/var/log/verris-pgsql.log 2>&1 || log_warn "CustomBuild php_pgsql — nie powiodło się (alt-php w PHP Selectorze działa niezależnie)"
+    fi
+  fi
+
   # B-08/B-09 — aplikacje Node.js i Python (CloudLinux Selector, node-app-selector.sh). Pakiety wg
   # docs.cloudlinux.com → CloudLinux OS components → Node.js / Python Selector → Installation (DirectAdmin):
   # alt-nodejs / alt-python + lvemanager lve-utils alt-python-virtualenv alt-mod-passenger. Oba selektory są

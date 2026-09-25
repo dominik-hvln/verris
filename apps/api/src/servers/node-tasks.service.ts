@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { ClientWebhooksService } from '../client-webhooks/client-webhooks.service';
-import { AccountStatus, NodeTaskKind, NodeTaskStatus, ServerStatus } from '@verris/database';
+import { AccountStatus, NodeTaskKind, NodeTaskStatus, Prisma, ServerStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../common/audit/audit.service';
 import { DirectAdminService } from './directadmin.service';
@@ -450,6 +450,8 @@ export class NodeTasksService {
       where: { id: task.id },
       data: {
         status: NodeTaskStatus.COMPLETED,
+        // Hasła (baz, administratorów aplikacji) są potrzebne tylko węzłowi — po wykonaniu znikają z bazy.
+        payload: bezSekretow(task.payload) as Prisma.InputJsonValue,
         outputLog: log,
         errorMessage: null,
         completedAt: new Date(),
@@ -702,7 +704,7 @@ export class NodeTasksService {
       serverId: task.serverId,
       kind: task.kind,
       status: task.status,
-      payload: task.payload,
+      payload: bezSekretow(task.payload),
       outputLog: task.outputLog,
       errorMessage: task.errorMessage,
       requestedById: task.requestedById,
@@ -712,4 +714,14 @@ export class NodeTasksService {
       updatedAt: task.updatedAt.toISOString(),
     };
   }
+}
+
+const KLUCZ_SEKRETU = /pass|secret|token/i;
+
+/** Payload bez haseł/tokenów — do zapisu po wykonaniu zadania i do pokazania w panelu administratora. */
+export function bezSekretow(payload: unknown): unknown {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return payload;
+  return Object.fromEntries(
+    Object.entries(payload as Record<string, unknown>).map(([k, v]) => [k, KLUCZ_SEKRETU.test(k) && v ? '••••••' : v]),
+  );
 }

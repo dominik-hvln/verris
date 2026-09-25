@@ -206,6 +206,10 @@ elif [ "$TASK_KIND" = "MEMCACHED_ACCESS" ]; then
   RUN_BIN="/usr/local/bin/verris-memcached.sh"
   fetch_task_script "/agent/tasks/memcached/script" "$RUN_BIN"
   payload_env "MC" "{'mode':'MODE','daUser':'DA_USER','memoryMb':'MEMORY_MB'}"
+elif [ "$TASK_KIND" = "PGSQL" ]; then
+  RUN_BIN="/usr/local/bin/verris-pgsql.sh"
+  fetch_task_script "/agent/tasks/pgsql/script" "$RUN_BIN"
+  payload_env "PG" "{'mode':'MODE','daUser':'DA_USER','db':'DB','pass':'PASS','max':'MAX'}"
 elif [ "$TASK_KIND" = "SITE_STATS" ]; then
   RUN_BIN="/usr/local/bin/verris-site-stats.sh"
   fetch_task_script "/agent/tasks/site-stats/script" "$RUN_BIN"

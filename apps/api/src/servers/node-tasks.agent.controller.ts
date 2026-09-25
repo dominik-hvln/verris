@@ -39,6 +39,7 @@ import { loadSiteCloneScript } from './site-clone.script';
 import { loadHtaccessScript } from './htaccess.script';
 import { loadAppSelectorScript } from './app-selector.script';
 import { loadSlowSqlScript } from './slow-sql.script';
+import { loadPgsqlScript } from './pgsql.script';
 import { loadMemcachedScript } from './memcached.script';
 import { loadSiteStatsScript } from './site-stats.script';
 import { loadPhpInfoScript } from './php-info.script';
@@ -214,6 +215,13 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   appSelectorScript() {
     return loadAppSelectorScript();
+  }
+
+  /** D-14 — bazy PostgreSQL konta (run with PG_* env). */
+  @Get('pgsql/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  pgsqlScript() {
+    return loadPgsqlScript();
   }
 
   /** K-14 — wolne zapytania SQL baz konta (run with SQ_* env). */

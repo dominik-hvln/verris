@@ -14,6 +14,7 @@ import DbAccessHosts from '@/components/hosting/DbAccessHosts';
 import DbUsers from '@/components/hosting/DbUsers';
 import { DbTransferPanel } from '@/components/hosting/DbTransferPanel';
 import { SlowSqlPanel } from '@/components/hosting/SlowSqlPanel';
+import { PgsqlPanel } from '@/components/hosting/PgsqlPanel';
 import { createHostingSsoUrlAction } from '@/app/dashboard/services/[id]/hosting-sso-actions';
 import { daErrorMessage, hostingFetchErrorMessage } from '@/lib/client-hosting-messages';
 import { useHostingLinks } from '@/components/hosting/hosting-links-context';
@@ -322,6 +323,7 @@ export default function DatabasesTab({ serviceId }: Props) {
       )}
       <DbTransferPanel serviceId={serviceId} databases={databases.map((d) => d.name)} />
       <SlowSqlPanel serviceId={serviceId} />
+      <PgsqlPanel serviceId={serviceId} />
     </HostingTabShell>
   );
 }

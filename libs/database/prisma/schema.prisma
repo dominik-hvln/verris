@@ -659,6 +659,7 @@ enum NodeTaskKind {
   SLOW_SQL          // K-14 — wolne zapytania SQL baz konta (slow query log MariaDB, znormalizowane)
   MEMCACHED_ACCESS  // D-16 — Memcached konta (instancja na konto, gniazdo UNIX w katalogu konta)
   SITE_STATS        // PB-19 — widok strony: technologia, ruch 7 dni, 5xx, TTFB z serwera
+  PGSQL             // D-14 — bazy PostgreSQL konta (node-pgsql.sh)
 }
 
 enum WafMode {

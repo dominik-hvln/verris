@@ -48,6 +48,8 @@ import { PhpInfoService } from './php-info.service';
 import { FileSearchService } from './file-search.service';
 import { AppSelectorService } from './app-selector.service';
 import { SlowSqlService } from './slow-sql.service';
+import { PgsqlService } from './pgsql.service';
+import { BazaPgsqlDto } from './dto/pgsql.dto';
 import { SiteStatsService } from './site-stats.service';
 import { HostingRestoreDto } from './dto/hosting-restore.dto';
 import { WordpressService } from './wordpress.service';
@@ -149,6 +151,7 @@ export class UserServicesController {
     private readonly fileSearch: FileSearchService,
     private readonly appSelector: AppSelectorService,
     private readonly slowSql: SlowSqlService,
+    private readonly pgsql: PgsqlService,
     private readonly siteStats: SiteStatsService,
     private readonly wordpress: WordpressService,
     private readonly waf: WafService,
@@ -1335,6 +1338,36 @@ export class UserServicesController {
   @Post(':id/hosting-site-clone')
   async hostingSiteCloneRun(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: KlonStronyDto) {
     return this.siteClone.klonuj(id, user.userId, body);
+  }
+
+  // D-14 — bazy PostgreSQL konta (zadanie węzła). Hasło w odpowiedzi pokazujemy raz.
+  @Get(':id/hosting-pgsql')
+  async hostingPgsql(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.pgsql.status(id, user.userId);
+  }
+
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:pgsql' })
+  @Post(':id/hosting-pgsql/refresh')
+  async hostingPgsqlRefresh(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.pgsql.odswiez(id, user.userId);
+  }
+
+  @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: 'hosting:pgsql-write' })
+  @Post(':id/hosting-pgsql')
+  async hostingPgsqlCreate(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: BazaPgsqlDto) {
+    return this.pgsql.utworz(id, user.userId, body.nazwa);
+  }
+
+  @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: 'hosting:pgsql-write' })
+  @Post(':id/hosting-pgsql/delete')
+  async hostingPgsqlDelete(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: BazaPgsqlDto) {
+    return this.pgsql.usun(id, user.userId, body.nazwa);
+  }
+
+  @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: 'hosting:pgsql-write' })
+  @Post(':id/hosting-pgsql/password')
+  async hostingPgsqlPassword(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: BazaPgsqlDto) {
+    return this.pgsql.zmienHaslo(id, user.userId, body.nazwa);
   }
 
   // K-14 — wolne zapytania SQL baz konta (zadanie węzła, tylko odczyt).
