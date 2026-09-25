@@ -65,6 +65,8 @@ export const ETYKIETY_DZIENNIKA: Record<string, string> = {
   HOSTING_REDIRECT_DELETED: 'Usunięto przekierowanie',
   HOSTING_REDIS_ENABLE_QUEUED: 'Włączono Redis',
   HOSTING_REDIS_DISABLE_QUEUED: 'Wyłączono Redis',
+  HOSTING_MEMCACHED_ENABLE_QUEUED: 'Włączono Memcached',
+  HOSTING_MEMCACHED_DISABLE_QUEUED: 'Wyłączono Memcached',
   HOSTING_SITE_CLONE_QUEUED: 'Zlecono kopię strony na inną domenę',
   HOSTING_SPAMFILTER_SET: 'Zmieniono filtr antyspamowy',
   HOSTING_SSH_ENABLE_QUEUED: 'Włączono SSH',

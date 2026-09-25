@@ -202,6 +202,10 @@ elif [ "$TASK_KIND" = "SLOW_SQL" ]; then
   RUN_BIN="/usr/local/bin/verris-slow-sql.sh"
   fetch_task_script "/agent/tasks/slow-sql/script" "$RUN_BIN"
   payload_env "SQ" "{'daUser':'DA_USER'}"
+elif [ "$TASK_KIND" = "MEMCACHED_ACCESS" ]; then
+  RUN_BIN="/usr/local/bin/verris-memcached.sh"
+  fetch_task_script "/agent/tasks/memcached/script" "$RUN_BIN"
+  payload_env "MC" "{'mode':'MODE','daUser':'DA_USER','memoryMb':'MEMORY_MB'}"
 elif [ "$TASK_KIND" = "FILE_SEARCH" ]; then
   RUN_BIN="/usr/local/bin/verris-file-search.sh"
   fetch_task_script "/agent/tasks/file-search/script" "$RUN_BIN"

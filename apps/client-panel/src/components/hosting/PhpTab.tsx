@@ -35,6 +35,7 @@ export default function PhpTab({ serviceId }: { serviceId: string }) {
       <SectionHead title="PHP i serwer" desc="Wersja PHP konta i ustawienia serwera. Wersję dla pojedynczej domeny zmienisz w widoku strony." />
       <PhpClient serviceId={serviceId} status={status} />
       <RedisPanel serviceId={serviceId} />
+      <RedisPanel serviceId={serviceId} silnik="memcached" />
     </div>
   );
 }

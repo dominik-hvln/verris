@@ -36,4 +36,12 @@ describe('RedisAccessService', () => {
     expect(await s.svc.status('s1', 'u1')).toMatchObject({ wlaczony: true, gniazdo: '/home/klient1/.verris-redis/redis.sock' });
     expect(gniazdoZLogu('VERRIS_REDIS_SOCKET=/tmp/x.sock')).toBeNull();
   });
+
+  it('D-16 Memcached tym samym torem: własny rodzaj zadania i gniazdo w ~/.verris-memcached', async () => {
+    const s = stanowisko();
+    await s.svc.przelacz('s1', 'u1', true, 'memcached');
+    expect(s.prisma.nodeTask.create).toHaveBeenCalledWith({ data: expect.objectContaining({ kind: 'MEMCACHED_ACCESS' }) });
+    expect(gniazdoZLogu('VERRIS_MEMCACHED_SOCKET=/home/klient1/.verris-memcached/memcached.sock', 'memcached')).toBe('/home/klient1/.verris-memcached/memcached.sock');
+    expect(gniazdoZLogu('VERRIS_REDIS_SOCKET=/home/klient1/.verris-redis/redis.sock', 'memcached')).toBeNull();
+  });
 });

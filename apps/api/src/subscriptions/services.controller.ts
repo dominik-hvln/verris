@@ -1275,6 +1275,18 @@ export class UserServicesController {
     return this.redisAccess.przelacz(id, user.userId, body.enabled);
   }
 
+  // D-16 — Memcached konta (zadanie węzła, ten sam tor co Redis).
+  @Get(':id/hosting-memcached')
+  async hostingMemcached(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.redisAccess.status(id, user.userId, 'memcached');
+  }
+
+  @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: 'hosting:memcached' })
+  @Post(':id/hosting-memcached')
+  async setHostingMemcached(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: DostepSshDto) {
+    return this.redisAccess.przelacz(id, user.userId, body.enabled, 'memcached');
+  }
+
   // E-19 — dziennik dostarczania poczty (zadanie węzła).
   @Get(':id/hosting-mail-log')
   async hostingMailLog(@CurrentUser() user: { userId: string }, @Param('id') id: string) {

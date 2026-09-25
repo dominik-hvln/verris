@@ -271,6 +271,10 @@ elif [ "$TASK_KIND" = "SLOW_SQL" ]; then
   RUN_BIN="/usr/local/bin/verris-slow-sql.sh"
   fetch_task_script "/agent/tasks/slow-sql/script" "$RUN_BIN"
   payload_env "SQ" "{'daUser':'DA_USER'}"
+elif [ "$TASK_KIND" = "MEMCACHED_ACCESS" ]; then
+  RUN_BIN="/usr/local/bin/verris-memcached.sh"
+  fetch_task_script "/agent/tasks/memcached/script" "$RUN_BIN"
+  payload_env "MC" "{'mode':'MODE','daUser':'DA_USER','memoryMb':'MEMORY_MB'}"
 elif [ "$TASK_KIND" = "FILE_SEARCH" ]; then
   RUN_BIN="/usr/local/bin/verris-file-search.sh"
   fetch_task_script "/agent/tasks/file-search/script" "$RUN_BIN"
@@ -455,7 +459,7 @@ dispatch_generic() {
 
 case "$KIND" in
   HOSTING_PROFILE) dispatch_hosting_profile ;;
-  WP_INSTALL|WAF_APPLY|STAGING_SYNC|PHP_APPLY|APP_INSTALL|OFFSITE_RESTORE|DB_UPGRADE|FLEET_UPDATE|DB_TRANSFER|FILE_RESTORE|SSH_ACCESS|WP_UPDATE|DISK_USAGE|MALWARE_SCAN|REDIS_ACCESS|MAIL_LOG|GIT_DEPLOY|SITE_CLONE|HTACCESS|PHP_INFO|FILE_SEARCH|APP_SELECTOR|SLOW_SQL) dispatch_generic ;;
+  WP_INSTALL|WAF_APPLY|STAGING_SYNC|PHP_APPLY|APP_INSTALL|OFFSITE_RESTORE|DB_UPGRADE|FLEET_UPDATE|DB_TRANSFER|FILE_RESTORE|SSH_ACCESS|WP_UPDATE|DISK_USAGE|MALWARE_SCAN|REDIS_ACCESS|MAIL_LOG|GIT_DEPLOY|SITE_CLONE|HTACCESS|PHP_INFO|FILE_SEARCH|APP_SELECTOR|SLOW_SQL|MEMCACHED_ACCESS) dispatch_generic ;;
   *)
     report_task_fail "Unknown task kind: $KIND"
     exit 1

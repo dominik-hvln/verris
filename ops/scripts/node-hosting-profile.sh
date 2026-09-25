@@ -1192,6 +1192,17 @@ configure_hosting_capabilities() {
 ROT
   fi
 
+  # D-16 — memcached dla kont (instancje per konto z node-memcached.sh, tylko gniazda UNIX).
+  # Domyślna usługa pakietu słucha na 11211 — wyłączona, żeby nie było wspólnej instancji po TCP.
+  if [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ]; then
+    if command -v memcached >/dev/null 2>&1 || dnf install -y memcached >/dev/null 2>&1; then
+      systemctl disable --now memcached.service >/dev/null 2>&1 || true
+      log_ok "memcached zainstalowany (instancje per konto, bez usługi TCP)"
+    else
+      log_warn "memcached — instalacja nie powiodła się; Memcached w panelu zgłosi brak"
+    fi
+  fi
+
   # B-08/B-09 — aplikacje Node.js i Python (CloudLinux Selector, node-app-selector.sh). Pakiety wg
   # docs.cloudlinux.com → CloudLinux OS components → Node.js / Python Selector → Installation (DirectAdmin):
   # alt-nodejs / alt-python + lvemanager lve-utils alt-python-virtualenv alt-mod-passenger. Oba selektory są

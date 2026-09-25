@@ -1,0 +1,2 @@
+-- D-16 — Memcached konta.
+ALTER TYPE "NodeTaskKind" ADD VALUE IF NOT EXISTS 'MEMCACHED_ACCESS';

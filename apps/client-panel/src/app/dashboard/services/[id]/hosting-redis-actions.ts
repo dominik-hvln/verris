@@ -14,17 +14,22 @@ export interface RedisStatus {
 type Wynik = { ok: true; status: RedisStatus } | { ok: false; error: string };
 const blad = (e: unknown) => (e instanceof ApiError || e instanceof Error ? e.message : 'Błąd');
 
-export async function fetchRedis(serviceId: string): Promise<Wynik> {
+/** D-16 — ten sam kształt dla Memcached (`/hosting-memcached`). */
+export type Silnik = 'redis' | 'memcached';
+const sciezka = (serviceId: string, silnik: Silnik) =>
+  silnik === 'memcached' ? `/services/${serviceId}/hosting-memcached` : `/services/${serviceId}/hosting-redis`;
+
+export async function fetchRedis(serviceId: string, silnik: Silnik = 'redis'): Promise<Wynik> {
   try {
-    return { ok: true, status: await apiFetch<RedisStatus>(`/services/${serviceId}/hosting-redis`) };
+    return { ok: true, status: await apiFetch<RedisStatus>(sciezka(serviceId, silnik)) };
   } catch (e) {
     return { ok: false, error: blad(e) };
   }
 }
 
-export async function setRedis(serviceId: string, enabled: boolean): Promise<Wynik> {
+export async function setRedis(serviceId: string, enabled: boolean, silnik: Silnik = 'redis'): Promise<Wynik> {
   try {
-    return { ok: true, status: await apiFetch<RedisStatus>(`/services/${serviceId}/hosting-redis`, { method: 'POST', body: JSON.stringify({ enabled }) }) };
+    return { ok: true, status: await apiFetch<RedisStatus>(sciezka(serviceId, silnik), { method: 'POST', body: JSON.stringify({ enabled }) }) };
   } catch (e) {
     return { ok: false, error: blad(e) };
   }
