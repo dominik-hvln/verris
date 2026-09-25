@@ -43,6 +43,7 @@ import { PhpInfoService } from './php-info.service';
 import { FileSearchService } from './file-search.service';
 import { AppSelectorService } from './app-selector.service';
 import { WpPodatnosciService } from './wp-podatnosci.service';
+import { OdtworzenieNaWezleService } from './odtworzenie-na-wezle.service';
 import { PublicApiWriteController } from './public-api-write.controller';
 import { GitWebhookController } from './git-webhook.controller';
 import { ApiTokensModule } from '../api-tokens/api-tokens.module';
@@ -103,6 +104,7 @@ import { EcoModule } from '../eco/eco.module';
     FileSearchService,
     AppSelectorService,
     WpPodatnosciService,
+    OdtworzenieNaWezleService,
     WpAutoUpdateScheduler,
     WordpressService,
     WafService,

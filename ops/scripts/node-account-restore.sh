@@ -83,9 +83,19 @@ cmd_fetch() {
 }
 
 cmd_restore() {
-  local user="$1" archive="$2" snap="${3:-}"
+  local user="$1" archive="$2" snap="${3:-}" ip="${4:-}"
   [ -n "$user" ] && [ -n "$archive" ] || fail "użycie: restore <user> <archiwum> [YYYYMMDD]"
   [ -x "$DA_BIN" ] || fail "DirectAdmin nie znaleziony (${DA_BIN})"
+  # H-16 — odtworzenie na INNY węzeł (konta tu nie ma): DA dostaje IP tego węzła zamiast IP z archiwum.
+  # Dokumentacja DA (Backup/Restore/Migration): „If you want to specify the IP to restore him to
+  # (assuming his account doesn't exist yet), then you'd set ip_choice=select&ip=1.2.3.4”.
+  local ipchoice="ip_choice=file"
+  if [ -n "$ip" ]; then
+    [ ! -e "/usr/local/directadmin/data/users/${user}" ] || fail "konto ${user} już istnieje na tym węźle — odtworzenie na inny węzeł nie nadpisuje istniejących kont"
+    [ -e "/usr/local/directadmin/data/admin/ips/${ip}" ] || grep -qxF "$ip" /usr/local/directadmin/data/admin/ip.list 2>/dev/null \
+      || fail "IP ${ip} nie jest skonfigurowane w DirectAdmin tego węzła"
+    ipchoice="ip_choice=select&ip=${ip}"
+  fi
   # Oficjalna dokumentacja DA (Backup/Restore → admin restore przez task.queue):
   #   action=restore&ip_choice=file&local_path=/home/admin/admin_backups&owner=admin
   #   &select0=user.admin.testuser.tar.gz&type=admin&value=multiple&when=now&where=local
@@ -100,14 +110,27 @@ cmd_restore() {
   rclone copyto "$(remote_path "$user" "$snap")${archive}" "${dst}${archive}" --retries 3 --low-level-retries 10 || fail "rclone copy nieudany"
   chown -h "${owner}:${owner}" "${dst}${archive}" 2>/dev/null || true
   log "zlecam DirectAdmin restore ${archive} dla ${user} (owner=${owner})"
-  printf 'action=restore&ip_choice=file&local_path=%s&owner=%s&select0=%s&type=admin&value=multiple&when=now&where=local\n' \
-    "/home/${owner}/admin_backups" "$owner" "$archive" >> "$DA_TASKQ"
+  printf 'action=restore&%s&local_path=%s&owner=%s&select0=%s&type=admin&value=multiple&when=now&where=local\n' \
+    "$ipchoice" "/home/${owner}/admin_backups" "$owner" "$archive" >> "$DA_TASKQ"
   log "✅ Zlecono restore (task.queue). Zweryfikuj w DA → Admin Backup/Transfer."
+  [ -n "$ip" ] || return 0
+  # Na nowym węźle czekamy, aż DA (dataskq) założy konto — dopiero wtedy panel przepina je na ten węzeł.
+  local i
+  for i in $(seq 1 "${OFR_WAIT_TRIES:-120}"); do
+    if [ -f "/usr/local/directadmin/data/users/${user}/user.conf" ]; then
+      printf 'VERRIS-OFFSITE-RESTORED %s\n' "$user"
+      return 0
+    fi
+    sleep "${OFR_WAIT_SLEEP:-15}"
+  done
+  fail "DirectAdmin nie założył konta ${user} w 30 minut — sprawdź Admin → Backup/Transfer i /var/log/directadmin/errortaskq.log"
 }
 
 # Walidacja wejscia (obrona w glab — control-plane waliduje to samo).
 check_args() {
-  local user="$1" archive="${2:-}" snap="${3:-}"
+  local user="$1" archive="${2:-}" snap="${3:-}" prefix="${4:-}" ip="${5:-}"
+  [ -z "$prefix" ] || { [[ "$prefix" =~ ^nodes/[a-z0-9][a-z0-9.-]{0,62}$ ]] && [[ "$prefix" != *..* ]]; } || fail "nieprawidlowy prefiks wezla zrodlowego: $prefix"
+  [ -z "$ip" ] || [[ "$ip" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] || fail "nieprawidlowe IP: $ip"
   [[ "$user" =~ ^[a-zA-Z0-9_-]{1,32}$ ]] || fail "nieprawidlowy user: $user"
   if [ -n "$archive" ]; then
     [[ "$archive" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,200}$ ]] || fail "nieprawidlowa nazwa archiwum: $archive"
@@ -117,13 +140,18 @@ check_args() {
 }
 
 # Tryb agenta: bez argumentow, parametry z ENV (zadanie OFFSITE_RESTORE).
-#   OFR_MODE=list|fetch  OFR_USER=<da user>  OFR_ARCHIVE=<plik>  OFR_SNAPSHOT=<YYYYMMDD>
+#   OFR_MODE=list|fetch|restore  OFR_USER=<da user>  OFR_ARCHIVE=<plik>  OFR_SNAPSHOT=<YYYYMMDD>
+#   H-16 (odtworzenie na innym węźle): OFR_SOURCE_PREFIX=nodes/<węzeł źródłowy>  OFR_IP=<IP tego węzła>
+#   — kopie czytane z prefiksu węzła źródłowego (ta sama flota = ten sam remote crypt), restore tylko z OFR_IP.
 if [ $# -eq 0 ] && [ -n "${OFR_MODE:-}" ]; then
-  check_args "${OFR_USER:-}" "${OFR_ARCHIVE:-}" "${OFR_SNAPSHOT:-}"
+  check_args "${OFR_USER:-}" "${OFR_ARCHIVE:-}" "${OFR_SNAPSHOT:-}" "${OFR_SOURCE_PREFIX:-}" "${OFR_IP:-}"
+  [ -z "${OFR_SOURCE_PREFIX:-}" ] || BACKUP_PREFIX="$OFR_SOURCE_PREFIX"
   case "$OFR_MODE" in
-    list)  cmd_list  "$OFR_USER" "${OFR_SNAPSHOT:-}" ;;
-    fetch) cmd_fetch "$OFR_USER" "${OFR_ARCHIVE:?OFR_ARCHIVE wymagane}" "${OFR_SNAPSHOT:-}" ;;
-    *)     fail "nieznany OFR_MODE: $OFR_MODE (list|fetch)" ;;
+    list)    cmd_list  "$OFR_USER" "${OFR_SNAPSHOT:-}" ;;
+    fetch)   cmd_fetch "$OFR_USER" "${OFR_ARCHIVE:?OFR_ARCHIVE wymagane}" "${OFR_SNAPSHOT:-}" ;;
+    restore) [ -n "${OFR_IP:-}" ] || fail "restore z panelu tylko na inny węzeł (OFR_IP)"
+             cmd_restore "$OFR_USER" "${OFR_ARCHIVE:?OFR_ARCHIVE wymagane}" "${OFR_SNAPSHOT:-}" "$OFR_IP" ;;
+    *)       fail "nieznany OFR_MODE: $OFR_MODE (list|fetch|restore)" ;;
   esac
   exit 0
 fi

@@ -27,8 +27,8 @@ import { HostingResourceActions } from '../common/audit/audit.actions';
  */
 
 /** Nazwa archiwum: bez ścieżek, bez `..`, tylko rozszerzenia backupów DA. */
-const ARCHIVE_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,200}\.(tar\.gz|tar\.zst|tar)$/;
-const SNAPSHOT_RE = /^\d{8}$/;
+export const ARCHIVE_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,200}\.(tar\.gz|tar\.zst|tar)$/;
+export const SNAPSHOT_RE = /^\d{8}$/;
 
 export type OffsiteArchive = {
   name: string;
@@ -139,11 +139,14 @@ export class OffsiteRestoreService {
     });
     if (!account) throw new NotFoundException('Account not found');
 
-    const tasks = await this.prisma.nodeTask.findMany({
-      where: { accountId, kind: NodeTaskKind.OFFSITE_RESTORE },
-      orderBy: { createdAt: 'desc' },
-      take: 20,
-    });
+    // Zadania przeniesienia na inny węzeł (H-16, operator) nie należą do widoku klienta.
+    const tasks = (
+      await this.prisma.nodeTask.findMany({
+        where: { accountId, kind: NodeTaskKind.OFFSITE_RESTORE },
+        orderBy: { createdAt: 'desc' },
+        take: 20,
+      })
+    ).filter((t) => (t.payload as { przeniesienie?: string } | null)?.przeniesienie !== '1');
     const modeOf = (task: (typeof tasks)[number]) =>
       ((task.payload as { mode?: string } | null)?.mode ?? 'list') as 'list' | 'fetch';
     const lastList = tasks.find((task) => modeOf(task) === 'list') ?? null;
@@ -169,7 +172,7 @@ export class OffsiteRestoreService {
       listedAt,
       archives:
         lastList?.status === NodeTaskStatus.COMPLETED
-          ? this.parseArchives(lastList.outputLog ?? '')
+          ? archiwaZLogu(lastList.outputLog ?? '')
           : [],
       lastList: this.taskView(lastList),
       lastFetch: this.taskView(lastFetch),
@@ -216,31 +219,6 @@ export class OffsiteRestoreService {
     return 'Operacja nie powiodła się. Napisz do nas — sprawdzimy to.';
   }
 
-  /**
-   * Log zadania zawiera wiersze `VERRIS-OFFSITE-FILE <nazwa>|<bajty>|<data>`
-   * wypisane przez skrypt na węźle (reszta logu to zwykłe komunikaty).
-   */
-  private parseArchives(outputLog: string): OffsiteArchive[] {
-    const out: OffsiteArchive[] = [];
-    for (const rawLine of outputLog.split('\n')) {
-      const line = rawLine.trim();
-      if (!line.startsWith('VERRIS-OFFSITE-FILE ')) continue;
-      const [name, size, modified] = line.slice('VERRIS-OFFSITE-FILE '.length).split('|');
-      const fileName = (name ?? '').trim();
-      if (!fileName || !ARCHIVE_RE.test(fileName)) continue;
-      const bytes = Number.parseInt((size ?? '').trim(), 10);
-      const when = (modified ?? '').trim();
-      const parsed = when ? new Date(when.replace(' ', 'T')) : null;
-      out.push({
-        name: fileName,
-        sizeBytes: Number.isFinite(bytes) ? bytes : null,
-        modifiedAt: parsed && !Number.isNaN(parsed.getTime()) ? parsed.toISOString() : null,
-      });
-    }
-    // Najnowsze u góry — klient prawie zawsze chce ostatnią kopię.
-    return out.sort((a, b) => (b.modifiedAt ?? '').localeCompare(a.modifiedAt ?? ''));
-  }
-
   private normalizeSnapshot(snapshot?: string): string | undefined {
     const value = (snapshot ?? '').trim();
     if (!value) return undefined;
@@ -259,4 +237,29 @@ export class OffsiteRestoreService {
     if (!sub.account) throw new BadRequestException('Usługa nie ma jeszcze konta hostingowego.');
     return sub;
   }
+}
+
+/**
+ * Log zadania zawiera wiersze `VERRIS-OFFSITE-FILE <nazwa>|<bajty>|<data>`
+ * wypisane przez skrypt na węźle (reszta logu to zwykłe komunikaty).
+ */
+export function archiwaZLogu(outputLog: string): OffsiteArchive[] {
+  const out: OffsiteArchive[] = [];
+  for (const rawLine of outputLog.split('\n')) {
+    const line = rawLine.trim();
+    if (!line.startsWith('VERRIS-OFFSITE-FILE ')) continue;
+    const [name, size, modified] = line.slice('VERRIS-OFFSITE-FILE '.length).split('|');
+    const fileName = (name ?? '').trim();
+    if (!fileName || !ARCHIVE_RE.test(fileName)) continue;
+    const bytes = Number.parseInt((size ?? '').trim(), 10);
+    const when = (modified ?? '').trim();
+    const parsed = when ? new Date(when.replace(' ', 'T')) : null;
+    out.push({
+      name: fileName,
+      sizeBytes: Number.isFinite(bytes) ? bytes : null,
+      modifiedAt: parsed && !Number.isNaN(parsed.getTime()) ? parsed.toISOString() : null,
+    });
+  }
+  // Najnowsze u góry — klient prawie zawsze chce ostatnią kopię.
+  return out.sort((a, b) => (b.modifiedAt ?? '').localeCompare(a.modifiedAt ?? ''));
 }

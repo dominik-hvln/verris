@@ -7,6 +7,7 @@ import { ServiceUsagePanel } from "./usage-panel";
 import { DiagnosticsPanel } from "./diagnostics-panel";
 import { SuspendForm } from "./suspend-form";
 import { RestorePanel } from "./restore-panel";
+import { OdtworzenieNaWezlePanel } from "./odtworzenie-na-wezle-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -139,6 +140,18 @@ export default async function AdminSubscriptionDetailPage({ params }: { params: 
               servers={servers.filter((s) => s.status === "ACTIVE")}
             />
           </div>
+
+          {detail.account ? (
+            <div className="rounded-xl border border-rose-500/20 bg-rose-500/5 p-4">
+              <h2 className="text-sm font-semibold text-white mb-3">Odtworzenie na innym węźle — awaria węzła (H‑16)</h2>
+              <OdtworzenieNaWezlePanel
+                subscriptionId={detail.id}
+                domain={detail.account.domain}
+                currentServerId={detail.account.server?.id ?? null}
+                servers={servers.filter((s) => s.status === "ACTIVE")}
+              />
+            </div>
+          ) : null}
 
           <div className="rounded-xl border border-white/10 bg-black/35 p-4">
             <h2 className="text-sm font-semibold text-white mb-3">Timeline migracji</h2>

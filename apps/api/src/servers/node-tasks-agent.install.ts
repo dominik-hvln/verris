@@ -207,7 +207,7 @@ elif [ "$TASK_KIND" = "APP_INSTALL" ]; then
 elif [ "$TASK_KIND" = "OFFSITE_RESTORE" ]; then
   RUN_BIN="/usr/local/bin/verris-account-restore.sh"
   fetch_task_script "/agent/tasks/offsite-restore/script" "$RUN_BIN"
-  payload_env "OFR" "{'mode':'MODE','daUser':'USER','archive':'ARCHIVE','snapshot':'SNAPSHOT'}"
+  payload_env "OFR" "{'mode':'MODE','daUser':'USER','archive':'ARCHIVE','snapshot':'SNAPSHOT','sourcePrefix':'SOURCE_PREFIX','ip':'IP'}"
 elif [ "$TASK_KIND" = "DB_UPGRADE" ]; then
   RUN_BIN="/usr/local/bin/verris-db-upgrade.sh"
   fetch_task_script "/agent/tasks/db-upgrade/script" "$RUN_BIN"

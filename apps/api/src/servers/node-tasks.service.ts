@@ -462,6 +462,22 @@ export class NodeTasksService {
     });
     await this.webhooks?.poZadaniu(task, true);
 
+    // H-16 — konto odtworzone z kopii off-site na tym węźle: przepinamy je tutaj dopiero, gdy węzeł
+    // potwierdził, że DirectAdmin je założył (VERRIS-OFFSITE-RESTORED).
+    const p = (task.payload ?? {}) as { mode?: string; przeniesienie?: string; daUser?: string };
+    if (
+      task.kind === NodeTaskKind.OFFSITE_RESTORE && p.mode === 'restore' && p.przeniesienie === '1' && task.accountId &&
+      new RegExp(`^VERRIS-OFFSITE-RESTORED ${p.daUser}\\s*$`, 'm').test(log ?? '')
+    ) {
+      const przed = await this.prisma.account.findUnique({ where: { id: task.accountId }, select: { serverId: true, userId: true } });
+      await this.prisma.account.update({ where: { id: task.accountId }, data: { serverId: opts.serverId } });
+      await this.audit.record({
+        action: 'ACCOUNT_MOVED_TO_NODE',
+        userId: przed?.userId ?? undefined,
+        details: { accountId: task.accountId, fromServerId: przed?.serverId ?? null, toServerId: opts.serverId, taskId: task.id },
+      });
+    }
+
     if (task.kind === NodeTaskKind.HOSTING_PROFILE) {
       await this.directAdmin.syncPlanPackagesForServer(opts.serverId).catch((err) => {
         this.logger.warn(

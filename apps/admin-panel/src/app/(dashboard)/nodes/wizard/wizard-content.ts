@@ -243,7 +243,9 @@ DA_BACKUP=1
 CONF
 chmod 600 /etc/verris-backup.conf /root/.config/rclone/rclone.conf
 rclone lsd verris-crypt: && echo "OK: remote działa"
-# Hasła crypt zapisz w sejfie poza węzłem — bez nich kopii nie odczytasz po utracie serwera.`;
+# Hasła crypt zapisz w sejfie poza węzłem — bez nich kopii nie odczytasz po utracie serwera.
+# H-16: TE SAME hasła crypt (i ten sam remote) na każdym węźle floty — inaczej konta z utraconego
+# węzła nie da się odtworzyć na innym (admin → subskrypcja → „Odtworzenie na innym węźle”).`;
 
 export const ONBOARD_LIVE_RUN = `# 5b) Na węźle (root) — login key z DA → Account Manager → Login Keys:
 export DA_USER=admin

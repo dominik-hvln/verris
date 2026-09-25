@@ -174,6 +174,9 @@ export const HostingResourceActions = {
   // S-1 — samoobsługowe odtwarzanie z kopii off-site (rclone) w panelu klienta.
   HOSTING_OFFSITE_LIST_QUEUED: 'HOSTING_OFFSITE_LIST_QUEUED',
   HOSTING_OFFSITE_FETCH_QUEUED: 'HOSTING_OFFSITE_FETCH_QUEUED',
+  // H-16 — odtworzenie konta z kopii off-site na innym węźle (operator) i przepięcie konta.
+  ACCOUNT_RESTORE_TO_NODE_QUEUED: 'ACCOUNT_RESTORE_TO_NODE_QUEUED',
+  ACCOUNT_MOVED_TO_NODE: 'ACCOUNT_MOVED_TO_NODE',
   // Menedżer plików — operacje dodane w lipcu 2026 (kopiuj / przenieś / rozpakuj / chmod).
   HOSTING_FILE_COPIED: 'HOSTING_FILE_COPIED',
   HOSTING_FILE_MOVED: 'HOSTING_FILE_MOVED',

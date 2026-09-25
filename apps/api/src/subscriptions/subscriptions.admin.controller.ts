@@ -27,7 +27,8 @@ import { PlanChangeService } from './plan-change.service';
 import { DirectAdminService } from '../servers/directadmin.service';
 import { HostingRestoreService } from './hosting-restore.service';
 import { DiagnosticsService } from './diagnostics.service';
-import { HostingRestoreDto } from './dto/hosting-restore.dto';
+import { HostingRestoreDto, ListaNaWezleDto, OdtworzNaWezleDto } from './dto/hosting-restore.dto';
+import { OdtworzenieNaWezleService } from './odtworzenie-na-wezle.service';
 import {
   SuspendSubscriptionDto,
   UnsuspendSubscriptionDto,
@@ -59,7 +60,24 @@ export class SubscriptionsAdminController {
     private readonly hostingRestore: HostingRestoreService,
     private readonly diagnostics: DiagnosticsService,
     private readonly directAdmin: DirectAdminService,
+    private readonly naWezle: OdtworzenieNaWezleService,
   ) {}
+
+  // H-16 — odtworzenie konta z kopii off-site na innym węźle (utrata węzła). Tylko ADMIN: przepina konto.
+  @Get(':id/odtworzenie-na-wezle')
+  odtworzenieNaWezle(@Param('id') id: string) {
+    return this.naWezle.status(id);
+  }
+
+  @Post(':id/odtworzenie-na-wezle/lista')
+  odtworzenieNaWezleLista(@Param('id') id: string, @Body() body: ListaNaWezleDto, @CurrentUser() actor: { userId: string }) {
+    return this.naWezle.lista(id, actor.userId, body);
+  }
+
+  @Post(':id/odtworzenie-na-wezle')
+  odtworzenieNaWezleStart(@Param('id') id: string, @Body() body: OdtworzNaWezleDto, @CurrentUser() actor: { userId: string }) {
+    return this.naWezle.start(id, actor.userId, body);
+  }
 
   /** H-18 — lista kopii konta dla operatora (wybór kopii do odtworzenia). */
   @Get(':id/hosting-backups')

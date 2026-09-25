@@ -47,7 +47,10 @@ describe('skrypty węzła — polecenia z oficjalnej dokumentacji', () => {
 
   it('restore: format task.queue z dokumentacji (value=multiple, owner = administrator)', () => {
     const t = czytaj('node-account-restore.sh');
-    expect(t).toMatch(/action=restore&ip_choice=file&local_path=%s&owner=%s&select0=%s&type=admin&value=multiple&when=now&where=local/);
+    expect(t).toMatch(/action=restore&%s&local_path=%s&owner=%s&select0=%s&type=admin&value=multiple&when=now&where=local/);
+    // IP z archiwum, a na innym węźle (H-16) ip_choice=select&ip= — oba warianty z dokumentacji DA.
+    expect(t).toContain('local ipchoice="ip_choice=file"');
+    expect(t).toContain('ipchoice="ip_choice=select&ip=${ip}"');
   });
 
   it('PHP: selectorctl --set-user-current (nie --set-current-version), bez fałszywego sukcesu', () => {

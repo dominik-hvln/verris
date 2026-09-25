@@ -28,9 +28,13 @@ ops/scripts/node-account-restore.sh restore <user> <archiwum.tar.gz>
 Sam pobór bez restore (np. do ręcznej inspekcji): `... fetch <user> <archiwum>`.
 
 ## Scenariusz „utrata węzła"
-1. Postaw nowy węzeł (onboarding Verris) LUB użyj zapasowego.
-2. Odtwórz konta z off-site skryptem powyżej (pętla po userach z raportu/panelu).
-3. Przełącz DNS/rekordy na nowy węzeł.
+1. Postaw nowy węzeł (onboarding Verris) LUB użyj zapasowego — z **tym samym** remote rclone crypt (te same hasła) co cała flota.
+2. Dla każdego konta: admin → Subskrypcje → subskrypcja → **„Odtworzenie na innym węźle — awaria węzła (H-16)”**:
+   wybierz węzeł docelowy → „Pokaż kopie” (lista z prefiksu `nodes/<hostname -s>` węzła źródłowego) → „Odtwórz na węźle”.
+   Węzeł docelowy pobiera archiwum do `admin_backups` i zleca restore DA z `ip_choice=select&ip=<IP celu>`
+   (dokumentacja DA: Backup / Restore / Migration). Gdy DA założy konto (do 30 min), panel **sam przepina konto** na nowy węzeł.
+   Ręcznie (bez panelu): `OFR_MODE=restore OFR_USER=<u> OFR_ARCHIVE=<plik> OFR_SOURCE_PREFIX=nodes/<stary> OFR_IP=<IP> ops/scripts/node-account-restore.sh`.
+3. DNS: przy zewnętrznym DNS (klaster) strefy idą za kontem; przy DNS na węźle zmień serwery nazw domen klienta na serwery nowego węzła.
 4. Potwierdź działanie stron/poczty klientów.
 
 ## Test DR — procedura obowiązkowa (H-20)
