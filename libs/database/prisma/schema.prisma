@@ -124,6 +124,8 @@ model User {
   twoFactorSecret          String?
   isTwoFactorEnabled       Boolean   @default(false)
   twoFactorEnrolledAt      DateTime?
+  /// Krok TOTP (licznik 30 s) ostatnio użytego kodu — ten sam kod nie zaloguje drugi raz (replay).
+  twoFactorLastStep        Int?
   twoFactorRecoveryCodesEnc String?
 
   // SEC-6 — opcjonalny (opt-in) wymóg silnego logowania dla konta klienta.

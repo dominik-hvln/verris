@@ -44,14 +44,19 @@ export class TotpService {
 
   /** Verifies a 6-digit TOTP code against a base32 secret with ±1 step skew. */
   verify(secret: string, code: string, atUnixSeconds: number = nowSeconds()): boolean {
+    return this.matchStep(secret, code, atUnixSeconds) !== null;
+  }
+
+  /** Jak verify, ale zwraca krok (licznik 30 s), który pasował — do ochrony przed ponownym użyciem. */
+  matchStep(secret: string, code: string, atUnixSeconds: number = nowSeconds()): number | null {
     const cleaned = code.replace(/\D/g, '');
-    if (cleaned.length !== this.digits) return false;
+    if (cleaned.length !== this.digits) return null;
     const counter = Math.floor(atUnixSeconds / this.period);
     for (let drift = -this.window; drift <= this.window; drift += 1) {
       const candidate = this.hotp(secret, counter + drift);
-      if (timingSafeStringEqual(candidate, cleaned)) return true;
+      if (timingSafeStringEqual(candidate, cleaned)) return counter + drift;
     }
-    return false;
+    return null;
   }
 
   /** Returns the current code — useful for tests / CLI tools, not endpoints. */

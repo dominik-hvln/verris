@@ -270,9 +270,15 @@ export class TwoFactorService {
     });
     if (!user || !user.isTwoFactorEnabled || !user.twoFactorSecret) return false;
 
-    // Try TOTP first.
-    if (this.totp.verify(this.crypto.decrypt(user.twoFactorSecret), code)) {
-      return true;
+    // Try TOTP first. Kod jest jednorazowy: przyjmujemy go tylko, gdy jego krok jest nowszy niż
+    // ostatnio użyty (warunek w UPDATE — atomowo, także przy dwóch równoległych próbach).
+    const krok = this.totp.matchStep(this.crypto.decrypt(user.twoFactorSecret), code);
+    if (krok !== null) {
+      const zuzyty = await this.prisma.user.updateMany({
+        where: { id: userId, OR: [{ twoFactorLastStep: null }, { twoFactorLastStep: { lt: krok } }] },
+        data: { twoFactorLastStep: krok },
+      });
+      return zuzyty.count === 1;
     }
 
     // Fall back to recovery code (one-time use).
