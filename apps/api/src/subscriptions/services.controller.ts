@@ -69,6 +69,7 @@ import {
   ArchiwumOffsiteDto,
   AutoresponderDto,
   CatchAllDto,
+  WlaczDkimDto,
   DomenaDto,
   DostepZdalnyBazyDto,
   FiltrSpamuDto,
@@ -725,6 +726,16 @@ export class UserServicesController {
     @Body() body: CatchAllDto,
   ) {
     return this.directAdmin.setHostingCatchAll(id, user.userId, body);
+  }
+
+  /** E-16 — trasa pod „hosting-email”, więc subkonto potrzebuje uprawnienia do poczty. */
+  @Post(':id/hosting-email/dkim')
+  async enableHostingDkim(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: WlaczDkimDto,
+  ) {
+    return this.directAdmin.enableHostingDkim(id, user.userId, body.domain);
   }
 
   @Get(':id/hosting-spamfilter')

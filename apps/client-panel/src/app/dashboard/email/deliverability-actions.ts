@@ -16,6 +16,8 @@ export interface DeliverabilityCheck {
     /** Rekord już jest w strefie Verris — trzeba go skopiować do zewnętrznego DNS. */
     inZone?: boolean;
   };
+  /** E-16 — naprawa jednym kliknięciem w panelu. */
+  action?: 'enable-dkim';
 }
 
 export interface DeliverabilityReport {

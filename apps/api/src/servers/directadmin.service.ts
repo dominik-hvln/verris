@@ -1911,6 +1911,22 @@ export class DirectAdminService {
     return { ok: true as const };
   }
 
+  /**
+   * E-16 — włączenie podpisu DKIM dla domeny (DA ≥ 1.57.2: CMD_API_EMAIL_POP action=set_dkim).
+   * DA tworzy klucze w /etc/virtual/<domena>/dkim.*.key i dopisuje rekord TXT do strefy.
+   * Tylko „włącz”: ponowne włączenie po wyłączeniu generuje NOWE klucze, więc wyłączenia nie
+   * wystawiamy klientowi (rekord u zewnętrznego DNS przestałby pasować).
+   */
+  async enableHostingDkim(subscriptionId: string, userId: string, domainRaw: string) {
+    const domain = await this.assertDomainOwnedBySubscription(subscriptionId, userId, domainRaw);
+    await this.daFormForSubscription(subscriptionId, userId, '/CMD_API_EMAIL_POP', { action: 'set_dkim', domain, enable: 'yes' });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_DKIM_ENABLED,
+      userId, actorUserId: userId, details: { subscriptionId, domain },
+    });
+    return { ok: true as const };
+  }
+
   /* ===================== PANEL-9: filtr antyspam (SpamAssassin) ===================== */
   async getHostingSpamFilter(subscriptionId: string, userId: string) {
     const domain = await this.syncPrimaryDomainForSubscription(subscriptionId, userId);

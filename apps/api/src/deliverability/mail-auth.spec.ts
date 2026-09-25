@@ -40,6 +40,13 @@ describe('E-15/16/17 kreator SPF/DKIM/DMARC', () => {
     expect(byKey({ rootTxt: ['v=spf1 a mx ~all', 'google-site-verification=x'] }).spf.status).toBe('ok');
   });
 
+  it('DKIM: brak klucza → akcja „włącz” w panelu; klucz jest → bez akcji', () => {
+    expect(byKey({}).dkim).toMatchObject({ status: 'warn', action: 'enable-dkim' });
+    expect(byKey({ dkimSelector: 'x' }).dkim.action).toBeUndefined();
+    const zone = [{ name: 'x._domainkey.firma.pl.', type: 'TXT', value: 'v=DKIM1; p=MIIB' }];
+    expect(byKey({ zone }).dkim.action).toBeUndefined();
+  });
+
   it('DKIM: klucz tylko w strefie → do skopiowania u zewnętrznego DNS', () => {
     const zone = [{ name: 'x._domainkey.firma.pl.', type: 'TXT', value: '"v=DKIM1; k=rsa; " "p=MIIB"' }];
     const dkim = byKey({ zone }).dkim;

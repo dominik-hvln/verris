@@ -27,6 +27,8 @@ export interface MailAuthCheck {
   status: CheckStatus;
   detail: string;
   suggestion?: MailAuthSuggestion;
+  /** E-16 — panel może to naprawić jednym kliknięciem (włączenie DKIM w DA). */
+  action?: 'enable-dkim';
 }
 
 export interface MailAuthInput {
@@ -162,7 +164,8 @@ function dkimCheck(i: MailAuthInput): MailAuthCheck {
   return {
     ...base,
     status: 'warn',
-    detail: 'Nie widać klucza DKIM, więc poczta nie jest podpisywana. Napisz do nas w zgłoszeniu — włączymy podpisywanie dla domeny.',
+    detail: 'Nie widać klucza DKIM, więc poczta nie jest podpisywana. Włącz podpis — klucz utworzymy na serwerze i dopiszemy do strefy DNS.',
+    action: 'enable-dkim',
   };
 }
 

@@ -214,6 +214,13 @@ export class AliasDomenyDto {
   @Linia(253) alias!: string;
 }
 
+/** E-16 — włączenie podpisu DKIM dla domeny konta. */
+export class WlaczDkimDto {
+  @IsString() @MaxLength(253)
+  @Matches(/^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$/i, { message: 'Nieprawidłowa domena.' })
+  domain!: string;
+}
+
 export class CatchAllDto {
   @IsIn(['fail', 'blackhole', 'address']) mode!: 'fail' | 'blackhole' | 'address';
   /** Panel wysyła ostatnio wpisany adres także przy innych trybach — sprawdzamy go tylko, gdy jest używany. */

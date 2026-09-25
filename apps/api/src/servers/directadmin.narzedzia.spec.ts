@@ -148,3 +148,21 @@ describe('lista skrzynek', () => {
     await expect(s.svc.listHostingEmailAccounts('s1', 'u1')).resolves.toEqual({ rows: [], fetchError: 'DA 500' });
   });
 });
+
+describe('DKIM — włączenie (E-16)', () => {
+  it('CMD_API_EMAIL_POP set_dkim z domeną konta + wpis w dzienniku', async () => {
+    const s = stanowisko();
+    await s.svc.enableHostingDkim('s1', 'u1', 'Firma.pl');
+    expect(s.post.mock.calls[0][0]).toBe('/CMD_API_EMAIL_POP');
+    expect(s.wyslane()).toMatchObject({ action: 'set_dkim', domain: 'firma.pl', enable: 'yes' });
+    expect(s.audit.record).toHaveBeenCalledWith(expect.objectContaining({ action: 'HOSTING_DKIM_ENABLED' }));
+  });
+  it('cudza domena → 400 bez DA; konto zawieszone → bez mutacji', async () => {
+    const s = stanowisko();
+    await expect(s.svc.enableHostingDkim('s1', 'u1', 'obca.pl')).rejects.toThrow('nie należy');
+    expect(s.post).not.toHaveBeenCalled();
+    const z = stanowisko({ status: 'SUSPENDED' });
+    await expect(z.svc.enableHostingDkim('s1', 'u1', 'firma.pl')).rejects.toThrow();
+    expect(z.post).not.toHaveBeenCalled();
+  });
+});

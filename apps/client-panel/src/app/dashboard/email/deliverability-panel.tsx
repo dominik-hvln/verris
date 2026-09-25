@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useTransition, useId } from 'react';
-import Link from 'next/link';
 import { toast } from 'sonner';
 import { AlertTriangle, CheckCircle2, Loader2, RefreshCw, XCircle } from 'lucide-react';
 import { Select } from '@/components/panel';
@@ -9,6 +8,7 @@ import { CopyValue, Label, SectionHead, StatusPill } from '@/components/panel/v2
 import { createDnsRecordAction, editDnsRecordAction } from '@/app/dashboard/dns/dns-actions';
 import { DMARC_POLICIES, dmarcPolicyOf, dmarcRuaOf, isEmail, tuneDmarc, type DmarcPolicy } from '@/lib/dmarc';
 import type { DeliverabilityCheck, DeliverabilityReport } from './deliverability-actions';
+import { enableDkimAction } from './dkim-actions';
 
 /** Przez route handler — sondy DNS nie blokują kolejki akcji serwera. */
 const fetchDeliverability = (serviceId: string): Promise<DeliverabilityReport | null> =>
@@ -132,6 +132,19 @@ function CheckRow({
     onChanged();
   };
 
+  const wlaczDkim = async () => {
+    if (!report.domain) return;
+    setSaving(true);
+    const res = await enableDkimAction(serviceId, report.domain);
+    setSaving(false);
+    if (!res.ok) {
+      toast.error('Nie udało się włączyć DKIM', { description: res.error });
+      return;
+    }
+    toast.success('DKIM włączony', { description: 'Klucz jest na serwerze i w strefie DNS. Serwery na świecie zobaczą go po kilku minutach.' });
+    onChanged();
+  };
+
   return (
     <div className="rounded-[10px] border border-line bg-card p-3.5">
       <div className="flex items-start gap-2.5">
@@ -139,10 +152,23 @@ function CheckRow({
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-foreground">{check.label}</p>
           <p className="mt-0.5 text-[13px] text-muted-foreground">{check.detail}</p>
-          {check.key === 'dkim' && !s && check.status !== 'ok' ? (
-            <Link href="/dashboard/support/new" className="mt-1 inline-block text-[13px] text-primary hover:underline">
-              Napisz zgłoszenie
-            </Link>
+          {check.action === 'enable-dkim' && report.domain ? (
+            <div className="mt-2 space-y-1.5">
+              <button
+                type="button"
+                onClick={() => void wlaczDkim()}
+                disabled={saving}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground hover:opacity-90 disabled:opacity-50"
+              >
+                {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                Włącz DKIM dla {report.domain}
+              </button>
+              {report.usesPlatformDns === false ? (
+                <p className="text-xs text-muted-foreground">
+                  DNS domeny jest u innego dostawcy — po włączeniu pokażemy rekord TXT do skopiowania tam.
+                </p>
+              ) : null}
+            </div>
           ) : null}
 
           {s ? (

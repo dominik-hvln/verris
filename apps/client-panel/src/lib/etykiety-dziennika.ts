@@ -8,6 +8,7 @@ export const ETYKIETY_DZIENNIKA: Record<string, string> = {
   HOSTING_AUTORESPONDER_SET: 'Ustawiono autoodpowiedź',
   HOSTING_AUTORESPONDER_DELETED: 'Usunięto autoodpowiedź',
   HOSTING_CATCHALL_SET: 'Zmieniono pocztę na nieistniejące adresy',
+  HOSTING_DKIM_ENABLED: 'Włączono podpis DKIM dla domeny',
   HOSTING_CRON_CREATED: 'Dodano zadanie cron',
   HOSTING_CRON_DELETED: 'Usunięto zadanie cron',
   HOSTING_DB_ACCESSHOST_ADDED: 'Dodano zdalny dostęp do bazy',
