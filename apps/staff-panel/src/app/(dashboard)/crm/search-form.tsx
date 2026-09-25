@@ -30,7 +30,7 @@ export function CrmSearchForm({ initialQuery }: { initialQuery: string }) {
       </div>
       <button
         type="submit"
-        className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500"
+        className="rounded-lg bg-cyan-700 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-800"
       >
         Szukaj
       </button>

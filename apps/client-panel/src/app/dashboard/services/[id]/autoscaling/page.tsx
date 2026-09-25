@@ -134,7 +134,7 @@ export default async function AutoscalingPage({
                   : 'Autoskalowanie jest wyłączone — nic nie naliczamy.'}
             </p>
             {acc ? (
-              <Link href={calculatorPrefillHref(acc)} className="mt-3 inline-flex items-center gap-2 text-[13px] font-medium text-data-hi hover:underline">
+              <Link href={calculatorPrefillHref(acc)} className="mt-3 inline-flex items-center gap-2 text-[13px] font-medium text-data-hi underline">
                 <Calculator className="h-4 w-4" /> Policz koszt obecnego dodatku
               </Link>
             ) : null}

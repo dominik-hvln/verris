@@ -53,10 +53,10 @@ export default async function MigrationsPage({
             </div>
             <p className="mt-3 text-xs text-neutral-500">
               Szczegóły przetwarzania i powierzenia danych opisują{' '}
-              <Link href="/legal/privacy" className="text-cyan-300 hover:underline">Polityka prywatności</Link>,{' '}
-              <Link href="/legal/dpa" className="text-cyan-300 hover:underline">Umowa powierzenia (DPA)</Link> oraz{' '}
-              <Link href="/legal/terms" className="text-cyan-300 hover:underline">Regulamin</Link>. Pytania w sprawie
-              danych: <a href="mailto:rodo@verris.pl" className="text-cyan-300 hover:underline">rodo@verris.pl</a>.
+              <Link href="/legal/privacy" className="text-cyan-300 underline">Polityka prywatności</Link>,{' '}
+              <Link href="/legal/dpa" className="text-cyan-300 underline">Umowa powierzenia (DPA)</Link> oraz{' '}
+              <Link href="/legal/terms" className="text-cyan-300 underline">Regulamin</Link>. Pytania w sprawie
+              danych: <a href="mailto:rodo@verris.pl" className="text-cyan-300 underline">rodo@verris.pl</a>.
             </p>
           </PanelCard>
           <MigrationsClient serviceId={service.id} bundles={bundles} tylkoPoczta={poczta === '1'} />

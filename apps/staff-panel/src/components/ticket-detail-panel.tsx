@@ -148,7 +148,7 @@ export function TicketDetailPanel({ ticket, agents, context }: Props) {
           <div className="mt-3 flex flex-wrap gap-2">
             <Link
               href={`/crm/${ticket.user.id}`}
-              className="inline-flex items-center rounded-md border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-medium text-cyan-200 hover:bg-cyan-500/20"
+              className="inline-flex items-center rounded-md border border-cyan-500/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-medium text-cyan-200 hover:bg-cyan-800/20"
             >
               Profil klienta (360°)
             </Link>
@@ -443,7 +443,7 @@ export function TicketDetailPanel({ ticket, agents, context }: Props) {
           <button
             type="submit"
             disabled={pending}
-            className="rounded-xl bg-cyan-600 px-6 py-2.5 text-sm font-semibold hover:bg-cyan-500 disabled:opacity-50"
+            className="rounded-xl bg-cyan-700 px-6 py-2.5 text-sm font-semibold hover:bg-cyan-800 disabled:opacity-50"
           >
             Wyślij odpowiedź
           </button>

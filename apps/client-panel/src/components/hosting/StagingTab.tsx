@@ -150,7 +150,7 @@ export default function StagingTab({ serviceId }: StagingTabProps) {
                   href={status.stagingUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-sm font-medium text-white hover:underline inline-flex items-center gap-1.5"
+                  className="text-sm font-medium text-white underline inline-flex items-center gap-1.5"
                 >
                   {status.stagingDomain} <ExternalLink className="h-3.5 w-3.5" />
                 </a>

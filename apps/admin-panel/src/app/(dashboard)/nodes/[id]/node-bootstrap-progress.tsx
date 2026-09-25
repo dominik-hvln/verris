@@ -216,7 +216,7 @@ function OneLinerCard({ serverId }: { serverId: string }) {
           </button>
         </div>
       ) : (
-        <button onClick={gen} disabled={pending} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50">
+        <button onClick={gen} disabled={pending} className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">
           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Terminal className="h-4 w-4" />} Wygeneruj komendę
         </button>
       )}

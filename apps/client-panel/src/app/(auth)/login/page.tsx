@@ -53,7 +53,7 @@ export default function LoginPage() {
                     {loginState.email ? (
                       <a
                         href={`/resend-verification?email=${encodeURIComponent(loginState.email)}`}
-                        className="inline-block text-xs font-semibold text-accent underline-offset-2 hover:text-verris-tip hover:underline"
+                        className="inline-block text-xs font-semibold text-accent underline-offset-2 hover:text-verris-tip underline"
                       >
                         Wyślij link potwierdzający ponownie
                       </a>
@@ -252,7 +252,7 @@ function Shell({ children }: { children: React.ReactNode }) {
           Nie masz konta?{" "}
           <a
             href="/register"
-            className="font-semibold text-foreground underline-offset-4 transition-colors hover:text-accent hover:underline"
+            className="font-semibold text-foreground underline-offset-4 transition-colors hover:text-accent underline"
           >
             Zarejestruj się
           </a>

@@ -181,7 +181,7 @@ export function InvoiceList({ rows }: { rows: InvoiceDto[] }) {
           title="Brak faktur"
           description="Faktury pojawią się po pierwszej opłacie kartą za usługę cykliczną. Doładowania portfela potwierdza e-mail od Stripe."
           action={
-            <Link href="/dashboard/billing" className="text-sm text-indigo-400 hover:underline">
+            <Link href="/dashboard/billing" className="text-sm text-indigo-400 underline">
               Wróć do portfela
             </Link>
           }

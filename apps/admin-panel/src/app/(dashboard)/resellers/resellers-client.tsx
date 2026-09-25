@@ -40,7 +40,7 @@ function EnableForm() {
       </div>
       {error ? <p className="flex items-center gap-2 text-sm text-rose-200"><AlertCircle className="h-4 w-4" /> {error}</p> : null}
       {ok ? <p className="flex items-center gap-2 text-sm text-emerald-200"><CheckCircle2 className="h-4 w-4" /> Reseller włączony.</p> : null}
-      <button onClick={submit} disabled={pending} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50">
+      <button onClick={submit} disabled={pending} className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">
         {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Włącz / zapisz
       </button>
       <p className="text-[11px] text-muted-foreground">ID klienta znajdziesz w sekcji „Klienci”. Ponowne wywołanie z tym samym ID aktualizuje narzut/markę.</p>

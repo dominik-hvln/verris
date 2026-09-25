@@ -26,11 +26,11 @@ export default async function TeamMailPage() {
           <h1 className="text-2xl font-bold text-white">Poczta zespołu</h1>
           <p className="text-sm text-muted-foreground">
             Skrzynki @verris.pl — webmail i kalendarz w{" "}
-            <a href="https://mail.verris.pl/SOGo" className="text-sky-400 hover:underline" target="_blank" rel="noreferrer">
+            <a href="https://mail.verris.pl/SOGo" className="text-sky-400 underline" target="_blank" rel="noreferrer">
               SOGo
             </a>
             ; desktop przez IMAP. Wysyłka transakcyjna:{" "}
-            <Link href="/settings/mail" className="text-emerald-400 hover:underline">
+            <Link href="/settings/mail" className="text-emerald-400 underline">
               Poczta (SMTP)
             </Link>
             .

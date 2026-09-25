@@ -171,7 +171,7 @@ export function AdminSidebar({ userInitials, userLabel, logoutButton, isAdmin = 
       <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-8">
         {groups.map((group) => (
           <div key={group.label}>
-            <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-widest text-[#71717A]">
+            <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-widest text-[#8E8E97]">
               {group.label}
             </p>
             <div className="space-y-1">

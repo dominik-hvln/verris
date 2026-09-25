@@ -77,7 +77,7 @@ export function StaffPlanChangeForm({
       <button
         type="submit"
         disabled={busy || !targetPlanId || reason.trim().length < 3}
-        className="rounded-lg bg-cyan-600 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
+        className="rounded-lg bg-cyan-700 px-3 py-2 text-xs font-semibold text-white disabled:opacity-50"
       >
         Zmień plan (z rozliczeniem)
       </button>

@@ -192,8 +192,10 @@ function PageLink({
   if (disabled) {
     return (
       <span
+        role="link"
+        aria-disabled="true"
         aria-label={label}
-        className="inline-flex items-center gap-1 rounded-md border border-white/5 bg-white/[0.02] px-3 py-1.5 text-xs text-neutral-600 cursor-not-allowed"
+        className="inline-flex items-center gap-1 rounded-md border border-white/5 bg-white/[0.02] px-3 py-1.5 text-xs text-neutral-500 cursor-not-allowed"
       >
         {children}
       </span>

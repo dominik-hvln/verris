@@ -616,7 +616,7 @@ function ToggleRow({
 function StripeIdRow({ label, value }: { label: string; value: string | null }) {
   return (
     <div className="flex gap-2">
-      <span className="w-24 shrink-0 text-white/40">{label}</span>
+      <span className="w-24 shrink-0 text-white/55">{label}</span>
       <span className="text-white/80 break-all">{value ?? "— (brak — zapisz lub synchronizuj)"}</span>
     </div>
   );

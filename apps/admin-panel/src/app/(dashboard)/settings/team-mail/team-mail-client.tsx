@@ -485,7 +485,7 @@ export function TeamMailClient({
             type="button"
             disabled={pending || !importCsv.trim()}
             onClick={() => runImport(false)}
-            className="rounded-lg bg-violet-600/90 px-4 py-2 text-xs font-semibold text-white hover:bg-violet-600"
+            className="rounded-lg bg-violet-600/90 px-4 py-2 text-xs font-semibold text-white hover:bg-violet-700"
           >
             Importuj
           </button>
@@ -554,7 +554,7 @@ export function TeamMailClient({
               router.refresh();
             });
           }}
-          className="rounded-lg bg-emerald-600/90 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-600 disabled:opacity-50"
+          className="rounded-lg bg-emerald-700 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
         >
           Zapisz adresy systemowe
         </button>

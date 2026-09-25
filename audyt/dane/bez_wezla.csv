@@ -4,7 +4,7 @@ PROD-02,PRODUKCJA,"kroki płatność i faktura w Pierwszych krokach — sprawdzi
 NODE-01,PRODUKCJA,kreator na produkcji: krok Instalacja z bootstrapem v2 (pełne przejście — na pierwszym węźle)
 X-04,KOD,testy integracyjne kolejnych ścieżek zapisu na prawdziwym PostgreSQL
 X-05,KOD,testy kluczowych ekranów panelu admina i obsługi
-P-12,KOD,skan dostępności (axe) wszystkich tras trzech paneli + przejście czytnikiem ekranu
+P-12,WŁAŚCICIEL,"przejście VoiceOverem głównych ścieżek (logowanie, zakup, usługa) — kontrola ręczna, skan automatyczny czysty"
 L-07,KOD,domknąć zakres publicznego API odczytu (dziś 5 endpointów GET) i opisać go w dokumentacji
 O-05,PRODUKCJA,"działania resellera na kliencie testowym na produkcji (szczegóły, link hasła, wstrzymaj/wznów, odepnij)"
 O-09,PRODUKCJA,logo i nazwa resellera w panelu i w mailu klienta testowego na produkcji

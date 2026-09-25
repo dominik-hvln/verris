@@ -273,7 +273,7 @@ export function WpUpdatesPanel({ serviceId, domain }: { serviceId: string; domai
       {stan?.brakWordpressa ? (
         <div className="rounded-[10px] border border-line bg-card px-4 py-3 text-[13.5px] text-verris-body">
           W katalogu tej domeny nie ma WordPressa. Możesz go zainstalować w{' '}
-          <Link href={`/dashboard/services/${serviceId}?tab=apps`} className="font-semibold text-data-hi underline-offset-2 hover:underline">
+          <Link href={`/dashboard/services/${serviceId}?tab=apps`} className="font-semibold text-data-hi underline-offset-2 underline">
             Aplikacjach 1-click
           </Link>
           . WordPress w podkatalogu aktualizuj z jego kokpitu.
@@ -302,7 +302,7 @@ export function WpUpdatesPanel({ serviceId, domain }: { serviceId: string; domai
                   <li key={`${v.typ}:${v.slug}:${v.link}`} className="text-[13px] text-foreground">
                     <b className="font-semibold">{v.nazwa}</b> <span className="font-mono text-[12px]">{v.wersja}</span> — {v.tytul}.{' '}
                     <span className="text-verris-body">{v.poprawione.length ? `Poprawka: ${v.poprawione.join(', ')}.` : 'Brak poprawki.'}</span>{' '}
-                    <a href={v.link} target="_blank" rel="noopener noreferrer" className="font-semibold text-data-hi underline-offset-2 hover:underline">
+                    <a href={v.link} target="_blank" rel="noopener noreferrer" className="font-semibold text-data-hi underline-offset-2 underline">
                       Szczegóły
                     </a>
                   </li>
@@ -315,7 +315,7 @@ export function WpUpdatesPanel({ serviceId, domain }: { serviceId: string; domai
           {stan.zrodloPodatnosci ? (
             <p className="m-0 mt-2 text-[11.5px] text-muted-foreground">
               {stan.zrodloPodatnosci.nota} ·{' '}
-              <a href={stan.zrodloPodatnosci.licencja} target="_blank" rel="noopener noreferrer" className="underline-offset-2 hover:underline">
+              <a href={stan.zrodloPodatnosci.licencja} target="_blank" rel="noopener noreferrer" className="underline-offset-2 underline">
                 licencja
               </a>
             </p>

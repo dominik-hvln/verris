@@ -174,7 +174,7 @@ export function KbManager() {
             <Plus className="h-3.5 w-3.5" /> Kategoria
           </button>
         </div>
-        {tops.length === 0 ? <p className="text-xs text-white/40">Brak kategorii — dodaj pierwszą.</p> : null}
+        {tops.length === 0 ? <p className="text-xs text-white/55">Brak kategorii — dodaj pierwszą.</p> : null}
         <ul className="space-y-1">
           {tops.map((c) => (
             <li key={c.id}>
@@ -204,7 +204,7 @@ export function KbManager() {
               <h2 className="text-lg font-bold text-white">
                 {selCat ? cats.find((c) => c.id === selCat)?.name ?? 'Artykuły' : 'Wybierz kategorię'}
               </h2>
-              <button onClick={openNew} disabled={!selCat} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-40">
+              <button onClick={openNew} disabled={!selCat} className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800 disabled:opacity-40">
                 <Plus className="h-4 w-4" /> Nowy artykuł
               </button>
             </div>
@@ -213,7 +213,7 @@ export function KbManager() {
                 {articles.map((a) => (
                   <li key={a.id}>
                     <button onClick={() => void openEdit(a.id)} className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-white/5">
-                      <span className="flex items-center gap-2 text-white"><FileText className="h-4 w-4 text-white/40" />{a.title}</span>
+                      <span className="flex items-center gap-2 text-white"><FileText className="h-4 w-4 text-white/55" />{a.title}</span>
                       <span className="flex items-center gap-3 text-xs">
                         <span className={a.status === 'PUBLISHED' ? 'rounded-md border border-emerald-500/30 bg-emerald-500/15 px-2 py-0.5 text-emerald-300' : 'rounded-md border border-white/15 bg-white/5 px-2 py-0.5 text-white/60'}>
                           {a.status === 'PUBLISHED' ? 'opublikowany' : 'szkic'}
@@ -224,10 +224,10 @@ export function KbManager() {
                     </button>
                   </li>
                 ))}
-                {articles.length === 0 ? <li className="px-4 py-8 text-center text-white/40">Brak artykułów w tej kategorii.</li> : null}
+                {articles.length === 0 ? <li className="px-4 py-8 text-center text-white/55">Brak artykułów w tej kategorii.</li> : null}
               </ul>
             ) : (
-              <p className="rounded-2xl border border-white/10 bg-black/20 px-4 py-10 text-center text-white/40">
+              <p className="rounded-2xl border border-white/10 bg-black/20 px-4 py-10 text-center text-white/55">
                 Wybierz kategorię z lewej, aby zobaczyć i edytować artykuły.
               </p>
             )}
@@ -288,7 +288,7 @@ function CtaPanel() {
           <input className={inputCls} value={cta.statusLabel} onChange={(e) => upd('statusLabel', e.target.value)} /></label>
       </div>
       <div className="mt-3 flex items-center gap-3">
-        <button type="button" onClick={() => void submit()} disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-50">
+        <button type="button" onClick={() => void submit()} disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-800 disabled:opacity-50">
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Zapisz baner
         </button>
         {saved ? <span className="text-sm text-emerald-300">Zapisano.</span> : null}
@@ -304,9 +304,9 @@ function CatRow({ c, sel, onSelect, onAddSub, onRename, onDelete }: {
     <div className={`group flex items-center justify-between rounded-lg px-2 py-1.5 ${sel ? 'bg-emerald-500/15 text-emerald-100' : 'text-white/80 hover:bg-white/5'}`}>
       <button onClick={onSelect} className="flex-1 truncate text-left text-sm">{c.name}</button>
       <span className="ml-1 hidden items-center gap-1 group-hover:flex">
-        {onAddSub ? <button title="Podkategoria" onClick={onAddSub} className="text-white/40 hover:text-white"><FolderPlus className="h-3.5 w-3.5" /></button> : null}
-        <button title="Zmień nazwę" onClick={onRename} className="text-white/40 hover:text-white"><Pencil className="h-3.5 w-3.5" /></button>
-        <button title="Usuń" onClick={onDelete} className="text-white/40 hover:text-rose-400"><Trash2 className="h-3.5 w-3.5" /></button>
+        {onAddSub ? <button title="Podkategoria" onClick={onAddSub} className="text-white/55 hover:text-white"><FolderPlus className="h-3.5 w-3.5" /></button> : null}
+        <button title="Zmień nazwę" onClick={onRename} className="text-white/55 hover:text-white"><Pencil className="h-3.5 w-3.5" /></button>
+        <button title="Usuń" onClick={onDelete} className="text-white/55 hover:text-rose-400"><Trash2 className="h-3.5 w-3.5" /></button>
       </span>
     </div>
   );
@@ -329,7 +329,7 @@ function Editor({ form, set, setForm, cats, busy, isNew, onSave, onDelete, onClo
         <div className="flex gap-2">
           <button onClick={onClose} className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm text-white hover:bg-white/10">Wróć</button>
           {!isNew ? <button onClick={onDelete} className="inline-flex items-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-sm text-rose-300 hover:bg-rose-500/20"><Trash2 className="h-4 w-4" /> Usuń</button> : null}
-          <button onClick={onSave} disabled={busy} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2 text-sm font-bold text-white hover:bg-emerald-500 disabled:opacity-50">
+          <button onClick={onSave} disabled={busy} className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-5 py-2 text-sm font-bold text-white hover:bg-emerald-800 disabled:opacity-50">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Zapisz
           </button>
         </div>
@@ -375,7 +375,7 @@ function Editor({ form, set, setForm, cats, busy, isNew, onSave, onDelete, onClo
           </button>
         </div>
         {(form.faq ?? []).length === 0 ? (
-          <p className="text-xs text-white/40">Brak pytań. Dodaj FAQ, aby zwiększyć szansę na rich snippet w Google.</p>
+          <p className="text-xs text-white/55">Brak pytań. Dodaj FAQ, aby zwiększyć szansę na rich snippet w Google.</p>
         ) : null}
         {(form.faq ?? []).map((item, idx) => (
           <div key={idx} className="space-y-2 rounded-xl border border-white/5 bg-black/30 p-3">
@@ -386,7 +386,7 @@ function Editor({ form, set, setForm, cats, busy, isNew, onSave, onDelete, onClo
                 onChange={(e) => setForm((f) => { const faq = [...(f.faq ?? [])]; faq[idx] = { ...faq[idx], q: e.target.value }; return { ...f, faq }; })}
                 placeholder="Pytanie (np. Jak podpiąć domenę?)"
               />
-              <button type="button" onClick={() => setForm((f) => ({ ...f, faq: (f.faq ?? []).filter((_, i) => i !== idx) }))} className="text-white/40 hover:text-rose-400">
+              <button type="button" onClick={() => setForm((f) => ({ ...f, faq: (f.faq ?? []).filter((_, i) => i !== idx) }))} className="text-white/55 hover:text-rose-400">
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>

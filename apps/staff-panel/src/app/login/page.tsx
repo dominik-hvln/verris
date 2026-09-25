@@ -92,7 +92,7 @@ export default function StaffLoginPage() {
         <button
           type="submit"
           disabled={loginPending}
-          className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-60 py-2.5 text-sm font-semibold shadow-[0_0_24px_rgba(6,182,212,0.25)]"
+          className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-cyan-700 hover:bg-cyan-800 disabled:opacity-60 py-2.5 text-sm font-semibold shadow-[0_0_24px_rgba(6,182,212,0.25)]"
         >
           {loginPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
           {loginPending ? "Logowanie…" : "Zaloguj"}

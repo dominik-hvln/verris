@@ -108,7 +108,7 @@ function CopyBlock({ label, text }: { label: string; text: string }) {
 function CheckItem({ children }: { children: React.ReactNode }) {
   return (
     <li className="flex gap-2 text-sm text-zinc-300">
-      <ChevronRight className="h-4 w-4 shrink-0 text-indigo-400 mt-0.5" />
+      <ChevronRight className="h-4 w-4 shrink-0 text-indigo-400 mt-0.5" aria-hidden />
       <span>{children}</span>
     </li>
   );
@@ -377,7 +377,8 @@ export function NodeWizard() {
         )}
 
         {step.id === "requirements" && (
-          <ul className="space-y-2">
+          <div className="space-y-2">
+            <ul className="space-y-2">
             <CheckItem>
               Osobny serwer compute (nie ten sam co control-plane Docker/Caddy).
             </CheckItem>
@@ -385,7 +386,9 @@ export function NodeWizard() {
               <strong>AlmaLinux 9.x</strong> (produkcja / sharedlicense DA) lub{" "}
               <strong>10.2</strong> (test, najdłuższe wsparcie — full DA na AL10).
             </CheckItem>
+            </ul>
             <CopyBlock label="Krok 0 — przygotowanie OS (root)" text={INSTALL_OS_PREP} />
+            <ul className="space-y-2">
             <CheckItem>
               Min. <strong>4 GB RAM</strong> (8+ GB zalecane), dysk SSD z zapasem na konta.
             </CheckItem>
@@ -394,6 +397,7 @@ export function NodeWizard() {
               (443).
             </CheckItem>
             <CheckItem>Licencje trial: CloudLinux, LiteSpeed, DA (sharedlicense na smoke).</CheckItem>
+            </ul>
             <label className="flex items-center gap-2 text-sm cursor-pointer mt-4">
               <Checkbox
                 checked={!!checked.requirements}
@@ -402,7 +406,7 @@ export function NodeWizard() {
               />
               Serwer spełnia wymagania
             </label>
-          </ul>
+          </div>
         )}
 
         {step.id === "bootstrap" && (

@@ -89,7 +89,7 @@ export function KnowledgeClient({
               Aktualizacja: {new Date(article.updatedAt).toLocaleDateString('pl-PL')}
             </p>
             <div
-              className="mt-4 text-sm leading-relaxed text-neutral-200 [&_a]:text-emerald-400 [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-white [&_h3]:mt-4 [&_h3]:mb-1 [&_h3]:font-semibold [&_h3]:text-white [&_li]:my-1 [&_ol]:my-2 [&_ol]:pl-5 [&_ol]:list-decimal [&_p]:my-2 [&_ul]:my-2 [&_ul]:pl-5 [&_ul]:list-disc"
+              className="mt-4 text-sm leading-relaxed text-neutral-200 [&_a]:text-emerald-400 [&_a]:underline [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:text-lg [&_h2]:font-bold [&_h2]:text-white [&_h3]:mt-4 [&_h3]:mb-1 [&_h3]:font-semibold [&_h3]:text-white [&_li]:my-1 [&_ol]:my-2 [&_ol]:pl-5 [&_ol]:list-decimal [&_p]:my-2 [&_ul]:my-2 [&_ul]:pl-5 [&_ul]:list-disc"
               dangerouslySetInnerHTML={{ __html: html }}
             />
             {article.faq && article.faq.length > 0 ? (
@@ -179,7 +179,7 @@ export function KnowledgeClient({
 
       <p className="pt-2 text-xs text-neutral-500">
         Pełna baza wiedzy dostępna też publicznie na{' '}
-        <a href="https://pomoc.verris.pl" target="_blank" rel="noopener" className="text-emerald-400 hover:underline">
+        <a href="https://pomoc.verris.pl" target="_blank" rel="noopener" className="text-emerald-400 underline">
           pomoc.verris.pl
         </a>
         .

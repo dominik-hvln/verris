@@ -69,7 +69,7 @@ export function EcoModeCard({ subscriptionId, ecoModeEnabled: initial, ecoPoints
                 <span className="font-semibold text-white">{points}</span>
               )}
             </span>
-            <Link href="/dashboard/eco" className="text-emerald-400/90 hover:text-emerald-300 underline-offset-2 hover:underline">
+            <Link href="/dashboard/eco" className="text-emerald-400/90 hover:text-emerald-300 underline-offset-2 underline">
               Jak zdobywać punkty →
             </Link>
           </div>

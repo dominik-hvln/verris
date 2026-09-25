@@ -361,7 +361,7 @@ function ProfileTab({
       </div>
 
       <FormField label="Adres e-mail">
-        <Input value={profile.email} disabled className="opacity-50 bg-[#0a0a0a] border-white/5" />
+        <Input value={profile.email} disabled aria-label="Adres e-mail" className="opacity-50 bg-[#0a0a0a] border-white/5" />
         {!profile.isSubaccount ? (
           <div className="pt-2">
             <EmailChangeSection currentEmail={profile.email} showToast={showToast} />
@@ -378,6 +378,7 @@ function ProfileTab({
         description="Zmiana języka dotyczy wyłącznie panelu klienta."
       >
         <Select
+          aria-label="Język interfejsu"
           value={form.locale}
           onChange={(e) =>
             setForm((f) => ({ ...f, locale: e.target.value }))
@@ -674,6 +675,7 @@ function BillingTab({
         </FormField>
         <FormField label="Kraj" description="Od kraju zależy stawka VAT na dokumentach.">
           <Select
+            aria-label="Kraj"
             value={form.country}
             onChange={(e) =>
               setForm((f) => ({ ...f, country: e.target.value }))

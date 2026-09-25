@@ -148,7 +148,7 @@ export function AssistantHint({ serviceId, onNavigate }: { serviceId: string; on
                   {a.label}
                 </button>
               ) : a?.kind === 'href' ? (
-                <Link href={a.href} className="text-primary hover:underline">
+                <Link href={a.href} className="text-primary underline">
                   {a.label}
                 </Link>
               ) : null}

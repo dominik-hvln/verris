@@ -156,7 +156,7 @@ export default function SitePage() {
       <div className="mx-auto max-w-[1280px]">
         <p className="rounded-[10px] border border-line bg-card px-4 py-[22px] text-sm text-muted-foreground">
           Domeny {domain} nie ma na tej usłudze.{' '}
-          <Link href={`/dashboard/services/${serviceId}`} className="text-data-hi hover:underline">
+          <Link href={`/dashboard/services/${serviceId}`} className="text-data-hi underline">
             Wróć do usługi
           </Link>
         </p>

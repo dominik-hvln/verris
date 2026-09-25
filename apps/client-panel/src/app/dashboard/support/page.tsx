@@ -68,7 +68,7 @@ export default function SupportPage() {
         <SectionHead
           title="Twoje zgłoszenia"
           action={
-            <Link href="/dashboard/knowledge" className="text-[13px] text-data-hi hover:underline">
+            <Link href="/dashboard/knowledge" className="text-[13px] text-data-hi underline">
               Baza wiedzy
             </Link>
           }
@@ -78,12 +78,12 @@ export default function SupportPage() {
         ) : blad ? (
           <p className="m-0 rounded-[10px] border border-line bg-card px-4 py-[22px] text-sm text-warn">
             Nie udało się pobrać zgłoszeń. Odśwież stronę za chwilę — jeśli problem wróci, napisz na{" "}
-            <a href="mailto:kontakt@verris.pl" className="text-data-hi hover:underline">kontakt@verris.pl</a>.
+            <a href="mailto:kontakt@verris.pl" className="text-data-hi underline">kontakt@verris.pl</a>.
           </p>
         ) : tickets.length === 0 ? (
           <p className="m-0 rounded-[10px] border border-line bg-card px-4 py-[22px] text-sm text-muted-foreground">
             Nie masz zgłoszeń.{" "}
-            <Link href="/dashboard/support/new" className="text-data-hi hover:underline">
+            <Link href="/dashboard/support/new" className="text-data-hi underline">
               Napisz do nas
             </Link>
             , jeśli czegoś potrzebujesz.

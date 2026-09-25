@@ -51,7 +51,7 @@ export default async function DomainDetailsPage({ params }: { params: Promise<{ 
     return (
       <div className="mx-auto max-w-md space-y-4 p-10 text-center">
         <p className="text-neutral-400">Nie znaleziono domeny lub brak uprawnień.</p>
-        <Link href="/dashboard/domains" className="text-sm text-indigo-400 hover:underline">
+        <Link href="/dashboard/domains" className="text-sm text-indigo-400 underline">
           ← Lista domen
         </Link>
       </div>
@@ -183,7 +183,7 @@ export default async function DomainDetailsPage({ params }: { params: Promise<{ 
             Żadna aktywna usługa nie ma tej domeny jako głównej. Zamów hosting na ten adres lub dodaj domenę
             w panelu hostingu — wtedy pojawią się linki do DNS, plików i pozostałych modułów.
           </p>
-          <Link href="/dashboard/services/new" className="mt-4 inline-block text-sm text-indigo-400 hover:underline">
+          <Link href="/dashboard/services/new" className="mt-4 inline-block text-sm text-indigo-400 underline">
             Zamów usługę →
           </Link>
         </div>
@@ -241,7 +241,7 @@ export default async function DomainDetailsPage({ params }: { params: Promise<{ 
               </span>
               <Link
                 href={`/dashboard/services/${linked.id}`}
-                className="ml-auto inline-flex items-center gap-1 text-indigo-400 hover:underline"
+                className="ml-auto inline-flex items-center gap-1 text-indigo-400 underline"
               >
                 Hosting Manager
                 <ExternalLink className="h-3.5 w-3.5 opacity-70" />

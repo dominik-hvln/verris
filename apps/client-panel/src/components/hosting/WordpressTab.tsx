@@ -122,7 +122,7 @@ export default function WordpressTab({ serviceId }: Props) {
             href={`https://${status?.domain}/wp-admin`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-sm text-indigo-300 hover:underline"
+            className="inline-flex items-center gap-1.5 text-sm text-indigo-300 underline"
           >
             Otwórz wp-admin <ExternalLink className="h-3.5 w-3.5" />
           </a>

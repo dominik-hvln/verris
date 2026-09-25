@@ -225,7 +225,7 @@ export function AplikacjeSelektorPanel({ serviceId }: { serviceId: string }) {
                     <StatusPill tone={a.status === 'started' ? 'data' : 'muted'}>{a.status === 'started' ? 'działa' : 'zatrzymana'}</StatusPill>
                   </div>
                   <p className="m-0 mt-0.5 break-all text-[12.5px] text-muted-foreground">
-                    <a href={`https://${a.domain}/${a.uri}`} target="_blank" rel="noopener noreferrer" className="text-data-hi hover:underline">{a.domain}/{a.uri}</a>
+                    <a href={`https://${a.domain}/${a.uri}`} target="_blank" rel="noopener noreferrer" className="text-data-hi underline">{a.domain}/{a.uri}</a>
                     {' · '}katalog <span className="font-mono">{a.root}</span> · start <span className="font-mono">{a.startup}</span>
                   </p>
                 </div>

@@ -730,9 +730,9 @@ function StepStart(props: {
           Oświadczam, że mam prawo przenieść wskazane dane i <strong>upoważniam Verris</strong> do
           jednorazowego dostępu do wskazanego hostingu źródłowego w celu wykonania migracji. Rozumiem,
           że dane dostępowe są szyfrowane i usuwane po zakończeniu. Akceptuję{' '}
-          <a href="/legal/dpa" target="_blank" className="text-cyan-300 hover:underline">Umowę powierzenia (DPA)</a>,{' '}
-          <a href="/legal/privacy" target="_blank" className="text-cyan-300 hover:underline">Politykę prywatności</a>{' '}
-          i <a href="/legal/terms" target="_blank" className="text-cyan-300 hover:underline">Regulamin</a>.
+          <a href="/legal/dpa" target="_blank" className="text-cyan-300 underline">Umowę powierzenia (DPA)</a>,{' '}
+          <a href="/legal/privacy" target="_blank" className="text-cyan-300 underline">Politykę prywatności</a>{' '}
+          i <a href="/legal/terms" target="_blank" className="text-cyan-300 underline">Regulamin</a>.
         </span>
       </label>
     </div>

@@ -201,7 +201,7 @@ function RegisterContent() {
 
         <p className="text-center text-sm text-neutral-400 mt-8 font-medium">
           Masz już konto?{" "}
-          <a href="/login" className="text-white hover:text-sky-400 hover:underline underline-offset-4 transition-colors font-semibold">Zaloguj się</a>
+          <a href="/login" className="text-white hover:text-sky-400 underline underline-offset-4 transition-colors font-semibold">Zaloguj się</a>
         </p>
       </div>
     </div>

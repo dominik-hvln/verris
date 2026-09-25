@@ -164,7 +164,7 @@ export function EmailLogClient() {
                 <td className="px-4 py-2.5 text-white/80">{it.toEmail}</td>
                 <td className="px-4 py-2.5 text-white/80">
                   <div>{it.subject}</div>
-                  {it.tag ? <div className="text-xs text-white/40">{it.tag}</div> : null}
+                  {it.tag ? <div className="text-xs text-white/55">{it.tag}</div> : null}
                 </td>
                 <td className="px-4 py-2.5 text-white/60">{it.providerId ?? '—'}</td>
                 <td className="max-w-xs px-4 py-2.5 text-xs text-rose-300/80">{it.errorMessage ?? ''}</td>
@@ -172,7 +172,7 @@ export function EmailLogClient() {
             ))}
             {items.length === 0 && !loading ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-white/40">
+                <td colSpan={6} className="px-4 py-8 text-center text-white/55">
                   Brak wpisów dla wybranego filtra.
                 </td>
               </tr>

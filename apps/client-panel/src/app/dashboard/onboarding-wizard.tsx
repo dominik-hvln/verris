@@ -52,6 +52,7 @@ function znacznik(stan: StanKroku) {
   return (
     <span
       className="block h-4 w-4 rounded-full border border-dashed border-line-strong"
+      role="img"
       title="Tego kroku nie sprawdzamy automatycznie"
       aria-label="Nie sprawdzamy automatycznie"
     />

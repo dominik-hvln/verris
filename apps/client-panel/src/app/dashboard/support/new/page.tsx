@@ -140,7 +140,7 @@ export default function NewTicketPage() {
                       href={`/dashboard/knowledge?article=${encodeURIComponent(s.docId)}`}
                       target="_blank"
                       rel="noreferrer"
-                      className="font-medium text-white underline-offset-2 hover:text-emerald-200 hover:underline"
+                      className="font-medium text-white underline-offset-2 hover:text-emerald-200 underline"
                     >
                       {s.title} →
                     </a>

@@ -84,7 +84,7 @@ export function VpsPlansClient({
           <button
             type="button"
             onClick={() => setCreating(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-violet-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-violet-600"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-violet-700"
           >
             <Plus className="h-4 w-4" /> Nowy plan VPS
           </button>
@@ -238,7 +238,7 @@ function PlanForm({
         </Field>
       </div>
       <div className="flex items-center gap-2">
-        <button type="button" onClick={() => onSubmit(f)} disabled={pending || !f.slug || !f.name} className="inline-flex items-center gap-1.5 rounded-lg bg-violet-500 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-600 disabled:opacity-50">
+        <button type="button" onClick={() => onSubmit(f)} disabled={pending || !f.slug || !f.name} className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700 disabled:opacity-50">
           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} {initial ? "Zapisz" : "Utwórz plan"}
         </button>
         <button type="button" onClick={onCancel} className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-2 text-sm text-neutral-300 hover:bg-white/5">

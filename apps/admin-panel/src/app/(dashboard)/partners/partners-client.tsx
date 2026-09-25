@@ -53,7 +53,7 @@ function ConfigForm({ config }: { config: PartnerConfig }) {
       {error ? <p className="flex items-center gap-2 text-sm text-rose-200"><AlertCircle className="h-4 w-4" /> {error}</p> : null}
       {ok ? <p className="flex items-center gap-2 text-sm text-emerald-200"><CheckCircle2 className="h-4 w-4" /> Zapisano ustawienia programu.</p> : null}
 
-      <button onClick={save} disabled={pending} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-50">
+      <button onClick={save} disabled={pending} className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">
         {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Zapisz zasady
       </button>
     </section>
@@ -105,7 +105,7 @@ function PayoutQueue({ payouts }: { payouts: AdminPayout[] }) {
                   Partner: <span className="font-mono">{p.partnerUserId.slice(0, 8)}</span> · IBAN: <span className="font-mono">{p.bankAccount ?? "—"}</span> · {new Date(p.requestedAt).toLocaleString("pl-PL")}
                 </p>
               </div>
-              <button onClick={() => act(p.id, "PAID")} disabled={busy !== null} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-50">
+              <button onClick={() => act(p.id, "PAID")} disabled={busy !== null} className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-800 disabled:opacity-50">
                 {busy === p.id + "PAID" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Check className="h-3.5 w-3.5" />} Oznacz wypłacone
               </button>
               <button onClick={() => act(p.id, "REJECTED")} disabled={busy !== null} className="inline-flex items-center gap-1.5 rounded-lg border border-rose-500/30 px-3 py-1.5 text-xs font-semibold text-rose-200 hover:bg-rose-500/10 disabled:opacity-50">

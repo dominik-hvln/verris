@@ -17,7 +17,7 @@ export function HostingHelpHint({ help }: { help: HostingTabHelp }) {
       {help.blurb}{' '}
       <a
         href={`/dashboard/knowledge?q=${encodeURIComponent(help.kbQuery)}`}
-        className="inline-flex items-center gap-0.5 font-medium text-data-hi underline-offset-2 hover:underline"
+        className="inline-flex items-center gap-0.5 font-medium text-data-hi underline-offset-2 underline"
       >
         Poradnik krok po kroku <ArrowRight className="h-3 w-3" />
       </a>

@@ -288,7 +288,7 @@ function UserMenu({ displayName, email, initials, loading = false }: { displayNa
           {loading ? null : initials}
         </span>
         {loading ? (
-          <span className="min-w-0 flex-1 space-y-1.5" aria-label="Wczytywanie konta">
+          <span className="min-w-0 flex-1 space-y-1.5" role="status" aria-label="Wczytywanie konta">
             <span className="block h-3 w-28 animate-pulse rounded bg-white/10" />
             <span className="block h-2.5 w-36 animate-pulse rounded bg-white/[0.06]" />
           </span>

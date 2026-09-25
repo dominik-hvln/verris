@@ -65,7 +65,7 @@ export function WpOverviewPanel({ serviceId }: { serviceId: string }) {
           {stan.strony.map((s) => (
             <li key={s.domena} className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-4 py-2.5 first:border-t-0">
               <div className="min-w-0">
-                <Link href={`/dashboard/services/${serviceId}/sites/${encodeURIComponent(s.domena)}?tab=wordpress`} className="font-semibold text-foreground hover:underline">
+                <Link href={`/dashboard/services/${serviceId}/sites/${encodeURIComponent(s.domena)}?tab=wordpress`} className="font-semibold text-foreground underline">
                   {s.domena}
                 </Link>
                 <span className="ml-2 text-[12px] text-muted-foreground">
