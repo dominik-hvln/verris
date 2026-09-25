@@ -119,6 +119,7 @@
     <select id="fw"><option value="">Każdy werdykt</option></select>
     <select id="fst"><option value="">Każdy stan Verris</option></select>
     <select id="fkr"><option value="">Każda krytyczność</option></select>
+    <select id="fbw"><option value="">Z węzłem i bez</option><option value="bez">Tylko bez węzła</option></select>
     <input type="search" id="q" placeholder="Szukaj w funkcji, dowodzie, uwagach…">
     <button class="reset" id="reset">Wyczyść</button>
     <span class="count" id="count"></span>
@@ -172,6 +173,7 @@ document.getElementById('kpis').innerHTML = [
   ['', nOk+' / '+rows.length, 'parytet lub przewaga', Math.round(nOk/rows.length*100)+'% pozycji'+ruch(nOk, PB&&PB.ok)],
   ['', nPrz, 'realnych przewag', 'po obaleniu 11 twierdzeń w passie adwersaryjnym'],
   ['', nLuk, 'luk wobec rynku', 'rynek to ma, my nie'+ruch(nLuk, PB&&PB.luk, false)],
+  ['', rows.filter(r=>r.bw&&r.w!=="PARYTET"&&r.w!=="PRZEWAGA").length, 'otwartych bez węzła', 'do zrobienia przed zakupem serwera — filtr „Tylko bez węzła”'],
   ['', nGho, 'funkcji-widm', 'UI bez backendu albo backend bez UI'],
   ['', rows.filter(r=>r.st==="DZIAŁA").length, 'funkcji działa', 'pełny łańcuch UI → API → zasób'+ruch(rows.filter(r=>r.st==="DZIAŁA").length, PB&&PB.dziala)],
 ].map(k=>'<div class="kpi '+k[0]+'"><div class="n">'+k[1]+'</div><div class="l">'+k[2]+'</div><div class="h">'+k[3]+'</div></div>').join('');
@@ -200,12 +202,13 @@ let sortKey=null, sortDir=1;
 function render(){
   const kat=document.getElementById('fkat').value, w=document.getElementById('fw').value,
         st=document.getElementById('fst').value, kr=document.getElementById('fkr').value,
-        q=document.getElementById('q').value.trim().toLowerCase();
+        q=document.getElementById('q').value.trim().toLowerCase(), bw=document.getElementById('fbw').value;
   let out = rows.filter(r=>{
     if(kat && KATS[r.kat]!==kat) return false;
     if(w && r.w!==w) return false;
     if(st && r.st!==st) return false;
     if(kr && r.kr!==kr) return false;
+    if(bw && !r.bw) return false;
     if(q && !((r.f+' '+r.dow+' '+r.u+' '+r.id).toLowerCase().includes(q))) return false;
     return true;
   });
@@ -213,7 +216,7 @@ function render(){
   document.getElementById('count').textContent = out.length+' z '+rows.length+' pozycji';
   document.getElementById('tb').innerHTML = out.map(r=>
     '<tr><td class="idc">'+r.id+'</td>'
-    +'<td class="fname">'+r.f+'</td>'
+    +'<td class="fname">'+r.f+(r.bw?' '+tag('bez węzła','t-acc'):'')+'</td>'
     +'<td>'+mk(r.cp)+'</td><td>'+mk(r.pl)+'</td><td>'+mk(r.da)+'</td>'
     +'<td>'+mk(r.rp)+'</td><td>'+mk(r.nf)+'</td>'
     +'<td>'+tag(r.st, SCLS[r.st]||'t-mut')+'</td>'
@@ -222,10 +225,10 @@ function render(){
     +'<td>'+(r.kr==="BLOKER STARTU"?'<span class="crit-cell">BLOKER</span>':(r.kr==='—'?'':'<span style="color:var(--ink2);font-size:11.5px">'+r.kr+'</span>'))+'</td>'
     +'<td class="note">'+r.u+'</td></tr>').join('');
 }
-['fkat','fw','fst','fkr'].forEach(id=>document.getElementById(id).addEventListener('change',render));
+['fkat','fw','fst','fkr','fbw'].forEach(id=>document.getElementById(id).addEventListener('change',render));
 document.getElementById('q').addEventListener('input',render);
 document.getElementById('reset').addEventListener('click',()=>{
-  ['fkat','fw','fst','fkr'].forEach(id=>document.getElementById(id).value='');
+  ['fkat','fw','fst','fkr','fbw'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('q').value=''; sortKey=null; render();
 });
 document.querySelectorAll('thead th').forEach(th=>th.addEventListener('click',()=>{

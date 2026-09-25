@@ -60,9 +60,12 @@ def wczytaj():
     wybory = {w[0]: w[1] for w in rows("wybory.csv")[1]} if (DANE / "wybory.csv").exists() else {}
     # Testy na węźle (D3): kod gotowy → „czeka”, po przejściu → „sprawdzone” (+ data), porażka → „nie_przeszlo”.
     wezel = {w[0]: (w[1], w[2]) for w in rows("wezel.csv")[1]} if (DANE / "wezel.csv").exists() else {}
+    # 2026-09-25 — pozycje, które nie potrzebują węzła (robimy je przed zakupem serwera): id → (rodzaj, co zostało).
+    bez_wezla = {w[0]: (w[1], w[2]) for w in rows("bez_wezla.csv")[1]} if (DANE / "bez_wezla.csv").exists() else {}
     return {
         "wybory": wybory,
         "wezel": wezel,
+        "bez_wezla": bez_wezla,
         "head": head,
         "macierz": macierz,
         "wg_id": {r[0]: r for r in macierz},
@@ -321,6 +324,8 @@ def buduj_dashboard_luk(D):
     idx = {n: i for i, n in enumerate(
         ["id", "kat", "f", "cp", "pl", "da", "rp", "nf", "st", "dow", "w", "kr", "nk", "u"])}
     rows = [{k: r[i] for k, i in idx.items()} for r in D["macierz"]]
+    for x in rows:
+        x["bw"] = D.get("bez_wezla", {}).get(x["id"], ("",))[0]
     dane = json.dumps({"rows": rows, "kats": D["cfg"]["kategorie"], "zmiany": ostatnie_zmiany(D), "przed": macierz_sprzed()}, ensure_ascii=False)
     tpl = (SZAB / "dashboard_luki.html").read_text(encoding="utf-8")
     OUT_A.mkdir(exist_ok=True)
@@ -609,6 +614,7 @@ def postep(D, dzis=None):
             "godzinyKodGotowy": sum(x[2] for x in kod),
             "otwarte": [
                 {"id": x[0], "tytul": x[1], "h": x[2], "wezel": na_wezle(x[0]),
+                 "bw": D.get("bez_wezla", {}).get(x[0], ("",))[0],
                  "bloker": x[4] == "BLOKER STARTU" or "BLOKER" in str(x[4])}
                 for x in poz if not _zrobione(D, x[0], x[3])
             ],
@@ -684,7 +690,16 @@ def postep(D, dzis=None):
         "nieprzeszloIds": stany["nie_przeszlo"],
     }
 
+    def _tytul(i):
+        return D["wg_id"][i][2] if i in D["wg_id"] else D["pb"].get(i, {}).get("tytul", i)
+    def _gotowe(i):
+        return (i in D["wg_id"] and D["wg_id"][i][10] in ZROBIONE_WERDYKTY) or bool(D["pb"].get(i, {}).get("zamkniete"))
+    bw_poz = [{"id": i, "rodzaj": r, "co": c, "tytul": _tytul(i), "zrobione": _gotowe(i)}
+              for i, (r, c) in D.get("bez_wezla", {}).items()]
+    bez_wezla = {"pozycje": bw_poz, "razem": len(bw_poz), "zrobione": sum(x["zrobione"] for x in bw_poz)}
+
     return {
+        "bezWezla": bez_wezla,
         "godzinyKodGotowy": godz_kod,
         "procentKodGotowy": round(100.0 * godz_kod / godz_razem, 1) if godz_razem else 0.0,
         "pozycjeKodGotowy": poz_zrob + len(kod_extra),

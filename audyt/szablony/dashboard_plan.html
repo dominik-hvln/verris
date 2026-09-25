@@ -134,6 +134,9 @@
 
   <div class="kpis" id="kpis"></div>
 
+  <h2>Bez węzła — robimy teraz</h2>
+  <div class="card" id="bezwezla"></div>
+
   <h2>Ostatnie zmiany</h2>
   <div class="card" id="zmiany"></div>
 
@@ -218,6 +221,8 @@ document.getElementById('kpis').innerHTML = [
    P.postep.wezel ? `${P.postep.wezel.sprawdzone}/${P.postep.wezel.wszystkie}` : '—', 'sprawdzone na żywym węźle',
    P.postep.wezel ? `${P.postep.wezel.sprawdzoneGodziny} h z ${P.postep.wezel.godzinyWszystkie} h · czeka ${P.postep.wezel.czeka} (${P.postep.wezel.czekaGodziny} h)`
      + (P.postep.wezel.nie_przeszlo ? ` · nie przeszło: ${P.postep.wezel.nieprzeszloIds.join(', ')}` : ' · testy w sprincie 21, węzeł #1') : ''],
+  ['ok', P.postep.bezWezla ? `${P.postep.bezWezla.zrobione}/${P.postep.bezWezla.razem}` : '—', 'bez węzła — zrobione',
+   'pozycje, które nie potrzebują serwera — robimy przed zakupem węzła; lista w sekcji „Bez węzła”'],
   [P.postep.zapasTygodni >= 0 ? 'done' : 'crit',
    `${P.postep.zapasTygodni >= 0 ? '+' : ''}${P.postep.zapasTygodni.toFixed(1)} tyg.`,
    P.postep.zapasTygodni >= 0 ? 'zapasu względem planu' : 'opóźnienia względem planu',
@@ -230,6 +235,22 @@ document.getElementById('kpis').innerHTML = [
   ['', lastDate, 'decyzja GO',
    kamDok ? `dokumenty (${blkDok.join(', ')}) domknięte ${kamDok.data}` : 'bez otwartych blokerów dokumentowych'],
 ].map(k=>`<div class="kpi ${k[0]}"><div class="n" style="${String(k[1]).length>6?'font-size:20px':''}">${k[1]}</div><div class="l">${k[2]}</div><div class="h">${k[3]}</div></div>`).join('');
+
+// ---------- bez węzła ----------
+(function(){
+  const BW = P.postep.bezWezla; if (!BW || !BW.razem) return;
+  const OPIS = {'KOD': 'kod — robię ja', 'PRODUKCJA': 'na produkcji (panel, API, serwer control-plane)',
+    'WŁAŚCICIEL': 'decyzje i konta właściciela', 'DOKUMENT': 'dokumenty', 'OD 29.09': 'zaplanowane od 29.09'};
+  const grupy = [...new Set(BW.pozycje.map(x => x.rodzaj))];
+  document.getElementById('bezwezla').innerHTML =
+    `<p style="margin:0 0 10px"><b>${BW.razem - BW.zrobione}</b> z ${BW.razem} pozycji do zrobienia bez serwera węzła. Wszystko inne z tablic czeka na węzeł (test D3 albo praca na żywym serwerze).</p>`
+    + grupy.map(g => {
+      const xs = BW.pozycje.filter(x => x.rodzaj === g);
+      return `<h3 style="margin:14px 0 6px;font-size:14px">${OPIS[g] || g} · ${xs.filter(x => !x.zrobione).length}/${xs.length}</h3><ul>`
+        + xs.map(x => `<li style="${x.zrobione ? 'text-decoration:line-through;color:var(--ink2)' : ''}"><span class="idc">${x.id}</span> — ${x.tytul}${x.co ? ` · <span style="color:var(--ink2)">${x.co}</span>` : ''}</li>`).join('')
+        + '</ul>';
+    }).join('');
+})();
 
 // ---------- postęp ----------
 // Liczby przychodzą z generatora (postep() w generate.py), liczone z macierzy
@@ -273,7 +294,7 @@ const KOD_SPR = Object.fromEntries(PG.sprinty.map(s => [s.n, s.kodGotowy]));
          Zostało ${biezacy.otwarte.length} z ${biezacy.pozycje} pozycji
          (${biezacy.godziny - biezacy.godzinyZrobione} h):
          <ul>${biezacy.otwarte.map(o =>
-           `<li><span class="idc">${o.id}</span> — ${o.tytul} · ${o.h} h${o.wezel ? ' · kod gotowy, czeka na test na węźle' : ''}${o.bloker ? ' · <b>bloker</b>' : ''}</li>`
+           `<li><span class="idc">${o.id}</span> — ${o.tytul} · ${o.h} h${o.wezel ? ' · kod gotowy, czeka na test na węźle' : ''}${o.bw ? ' · <b>bez węzła</b>' : ''}${o.bloker ? ' · <b>bloker</b>' : ''}</li>`
          ).join('')}</ul></div>`
     : '';
 

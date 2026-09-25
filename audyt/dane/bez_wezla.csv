@@ -1,0 +1,56 @@
+id,rodzaj,co_zostalo
+PB-16,KOD,stare zakładki usługi przepisać na klocki v2 (dziś mają tylko paletę przez .v2-skin)
+PROD-02,KOD,wykrywanie kroków „płatność” i „faktura” w Pierwszych krokach
+NODE-01,KOD,jedna ścieżka dodania węzła (kreator + bootstrap v2) i jeden runbook — przygotowanie pod zakup węzła
+X-04,KOD,testy integracyjne kolejnych ścieżek zapisu na prawdziwym PostgreSQL
+X-05,KOD,testy kluczowych ekranów panelu admina i obsługi
+P-12,KOD,skan dostępności (axe) wszystkich tras trzech paneli + przejście czytnikiem ekranu
+L-07,KOD,domknąć zakres publicznego API odczytu (dziś 5 endpointów GET) i opisać go w dokumentacji
+O-05,KOD,przegląd klientów resellera z działaniami (dziś tylko odczyt)
+O-09,KOD,"własna marka resellera widoczna dla jego klientów (panel, maile)"
+B-19,KOD,kreator stron: dokończyć albo usunąć wyłączony kod
+Q-06,KOD,"VPS przez Hetzner Cloud API — potrzebne konto Hetzner Cloud, nie węzeł"
+Q-07,KOD,konsola VPS (Hetzner Cloud API)
+Q-08,KOD,snapshoty i rebuild VPS (Hetzner Cloud API)
+G-08,KOD,sprzedaż certyfikatów DV/OV/EV — plus umowa z dostawcą
+J-05,KOD,CDN (Cloudflare) — plus konto Cloudflare
+PB-20,KOD,tryb agencji: przełącznik klienta w menu
+G-18,PRODUKCJA,dziennik aktywności — podgląd na produkcji po deployu
+O-03,PRODUKCJA,działanie subkonta widoczne u właściciela (IAM → Audyt) na produkcji
+Z-10,PRODUKCJA,odmowa subkonta widoczna w Audycie IAM na produkcji
+L-10,PRODUKCJA,pierwsza dostawa webhooka na produkcji (ping i zdarzenie rozliczeń)
+N-10,PRODUKCJA,"przełączenie preferencji w panelu i wpis SUPPRESSED w EmailLog — produkcja, nie węzeł"
+O-06,PRODUKCJA,konto klienta założone przez resellera testowego na produkcji
+N-13,PRODUKCJA,"zamknięcie zgłoszenia testowego, rola ABUSE_MANAGE dla obsługi"
+Q-09,PRODUKCJA,przejście głównych ścieżek na prawdziwym telefonie (produkcja)
+PB-11,PRODUKCJA,alert testowy dociera e-mailem
+A-08,WŁAŚCICIEL,"konfiguracja OpenProvider (REGISTRAR_PROVIDER + dane API w .env.prod), potem pierwsza domena na produkcji"
+A-09,WŁAŚCICIEL,"konfiguracja OpenProvider (REGISTRAR_PROVIDER + dane API w .env.prod), potem pierwsza domena na produkcji"
+A-10,WŁAŚCICIEL,"konfiguracja OpenProvider (REGISTRAR_PROVIDER + dane API w .env.prod), potem pierwsza domena na produkcji"
+A-12,WŁAŚCICIEL,"konfiguracja OpenProvider (REGISTRAR_PROVIDER + dane API w .env.prod), potem pierwsza domena na produkcji"
+A-13,WŁAŚCICIEL,"konfiguracja OpenProvider (REGISTRAR_PROVIDER + dane API w .env.prod), potem pierwsza domena na produkcji"
+A-15,WŁAŚCICIEL,"konfiguracja OpenProvider (REGISTRAR_PROVIDER + dane API w .env.prod), potem pierwsza domena na produkcji"
+A-11,WŁAŚCICIEL,"konfiguracja OpenProvider (REGISTRAR_PROVIDER + dane API w .env.prod), potem pierwsza domena na produkcji"
+L-11,WŁAŚCICIEL,klucze AI w .env.prod po publikacji Polityki prywatności 1.0.3
+L-12,WŁAŚCICIEL,j.w. — prognoza idzie tym samym kluczem
+P-15,WŁAŚCICIEL,"dowody akceptacji DPA (numery umów, zrzuty) w trackerze"
+Q-01,WŁAŚCICIEL,decyzja: włączyć program EKO czy zostawić za flagą
+A-14,WŁAŚCICIEL,decyzja: płatne ukrycie WHOIS (wybór: po starcie)
+F-12,WŁAŚCICIEL,Anycast DNS — zakup u ClouDNS (wybór: po starcie)
+N-21,WŁAŚCICIEL,wsparcie telefoniczne — decyzja operacyjna (wybór: po starcie)
+P-14,WŁAŚCICIEL,ISO 27001 — decyzja organizacyjna (wybór: po starcie)
+PB-04,WŁAŚCICIEL,skrzynka abuse@verris.pl i test zgłoszenia
+PB-06,WŁAŚCICIEL,akceptacja treści /przenies-strone i publikacja
+PB-07,WŁAŚCICIEL,akceptacja treści i włączenie /specyfikacja
+PB-08,WŁAŚCICIEL,"GTM: wstrzymać zdublowany tag GA4, sprawdzić konwersje w Preview"
+PB-09,WŁAŚCICIEL,seed bazy wiedzy na produkcji (jedno polecenie)
+PB-10,WŁAŚCICIEL,"kampania Google Ads — technicznie bez węzła, ale uruchamiamy przy starcie"
+P-11,DOKUMENT,RCPD istnieje — zamknąć wpisem i ustalić rytm przeglądów
+PB-03,DOKUMENT,dokumenty prawne 1.0.0 — wszystko poza §10 ust. 5 (po teście węzła) i ClouDNS
+PB-24,DOKUMENT,wniosek do wykazu KSC — przygotować; termin: 6 mies. od uruchomienia DNS/domen
+SEC-01,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł"
+SEC-02,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł"
+SEC-03,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł"
+SEC-04,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł"
+SEC-06,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł"
+X-41,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł"
