@@ -18,6 +18,7 @@ import {
 } from './users.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
+import { RateLimit } from '../common/guards/rate-limit.guard';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
@@ -118,8 +119,10 @@ export class UsersController {
    * Zmienia hasło po weryfikacji starego.
    */
   @Patch('password')
+  // Bez limitu przejęta sesja pozwalała zgadywać aktualne hasło (np. do użycia gdzie indziej).
+  @RateLimit({ limit: 10, windowMs: 60 * 60 * 1000, scope: 'users:password' })
   async changePassword(
-    @CurrentUser() user: { userId: string; principalUserId?: string },
+    @CurrentUser() user: { userId: string; principalUserId?: string; sid?: string },
     @Body() dto: ChangePasswordDto,
     @Ip() ip: string,
     @Headers('user-agent') userAgent: string | undefined,
@@ -127,6 +130,7 @@ export class UsersController {
     return this.usersService.changePassword(user.principalUserId ?? user.userId, dto, {
       ip: ip ?? null,
       userAgent: userAgent ?? null,
+      sid: user.sid ?? null,
     });
   }
 }

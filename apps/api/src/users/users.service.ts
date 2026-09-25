@@ -587,7 +587,7 @@ export class UsersService {
   async changePassword(
     userId: string,
     dto: ChangePasswordDto,
-    ctx: { ip: string | null; userAgent: string | null } = { ip: null, userAgent: null },
+    ctx: { ip: string | null; userAgent: string | null; sid?: string | null } = { ip: null, userAgent: null },
   ) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -614,6 +614,12 @@ export class UsersService {
     await this.prisma.user.update({
       where: { id: userId },
       data: { passwordHash: newHash },
+    });
+    // Zmiana hasła wylogowuje pozostałe urządzenia (jeśli ktoś przejął sesję, traci ją teraz);
+    // bieżąca sesja zostaje, żeby użytkownik nie musiał logować się od nowa.
+    await this.prisma.userSession.updateMany({
+      where: { userId, revokedAt: null, ...(ctx.sid ? { NOT: { id: ctx.sid } } : {}) },
+      data: { revokedAt: new Date() },
     });
 
     void this.notifyPasswordChanged({
