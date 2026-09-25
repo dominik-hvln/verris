@@ -634,7 +634,7 @@ export class UsersService {
       );
     });
 
-    return { message: 'Hasło zostało zmienione pomyślnie' };
+    return { message: 'Hasło zostało zmienione. Pozostałe urządzenia zostały wylogowane.' };
   }
 
   /**
