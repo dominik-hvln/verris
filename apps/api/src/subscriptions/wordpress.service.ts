@@ -77,8 +77,11 @@ export class WordpressService {
     if (!/^[a-zA-Z0-9_.@-]{3,60}$/.test(adminUser)) {
       throw new BadRequestException('Nieprawidłowy login administratora WordPress.');
     }
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(adminEmail)) {
+    if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(adminEmail) || adminEmail.length > 120) {
       throw new BadRequestException('Nieprawidłowy e-mail administratora.');
+    }
+    if (siteTitle.length > 120 || /[\x00-\x1f\x7f]/.test(siteTitle)) {
+      throw new BadRequestException('Tytuł strony: do 120 znaków, bez znaków sterujących.');
     }
 
     // Create the DA-tracked database + user.

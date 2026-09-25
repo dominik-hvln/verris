@@ -107,8 +107,16 @@ export class AppInstallService {
     if (!/^[a-zA-Z0-9_.@-]{3,60}$/.test(adminUser)) {
       throw new BadRequestException('Nieprawidłowy login administratora.');
     }
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(adminEmail)) {
+    // Wartości trafiają do poleceń instalatora na węźle (w cudzysłowach powłoki) — bez ', ", \, $, `
+    // i spacji. Sprawdzamy PRZED założeniem bazy, żeby odrzucone żądanie nie zostawiało śmieci.
+    if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(adminEmail) || adminEmail.length > 120) {
       throw new BadRequestException('Nieprawidłowy e-mail administratora.');
+    }
+    const podaneHaslo = (input.adminPassword || '').trim();
+    if (podaneHaslo && !/^[A-Za-z0-9!#%+,.:;=?@^_~*()[\]{}-]{12,72}$/.test(podaneHaslo)) {
+      throw new BadRequestException(
+        'Hasło administratora: 12–72 znaki — litery, cyfry i ! # % + , . : ; = ? @ ^ _ ~ * ( ) [ ] { } - (bez spacji, cudzysłowów, \\, $ i `).',
+      );
     }
 
     // Create a DA-tracked DB + user for the app.
@@ -124,7 +132,7 @@ export class AppInstallService {
       throw new BadRequestException(`Nie udało się utworzyć bazy danych: ${msg}`);
     }
 
-    const adminPass = (input.adminPassword || '').trim() || strongPassword();
+    const adminPass = podaneHaslo || strongPassword();
     const task = await this.prisma.nodeTask.create({
       data: {
         serverId: account.serverId,

@@ -131,7 +131,8 @@ log "Tworzę wp-config.php…"
 wp_as_user "config create --path='$DOCROOT' --dbname='$WP_DB_NAME' --dbuser='$WP_DB_USER' --dbpass='$WP_DB_PASS' --dbhost='localhost' --locale='$WP_LOCALE' --force"
 
 log "Instaluję WordPress…"
-wp_as_user "core install --path='$DOCROOT' --url='https://$WP_DOMAIN' --title='$WP_SITE_TITLE' --admin_user='$WP_ADMIN_USER' --admin_password='$WP_ADMIN_PASS' --admin_email='$WP_ADMIN_EMAIL' --skip-email"
+# Tytuł strony wpisuje klient (apostrof, cudzysłów, $) — printf %q daje bezpieczny token dla powłoki klienta.
+wp_as_user "core install --path='$DOCROOT' --url='https://$WP_DOMAIN' --title=$(printf %q "$WP_SITE_TITLE") --admin_user=$(printf %q "$WP_ADMIN_USER") --admin_password=$(printf %q "$WP_ADMIN_PASS") --admin_email=$(printf %q "$WP_ADMIN_EMAIL") --skip-email"
 
 log "Konfiguruję wtyczki i ustawienia…"
 wp_as_user "rewrite structure '/%postname%/' --path='$DOCROOT'" || true

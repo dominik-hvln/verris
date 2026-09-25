@@ -34,6 +34,9 @@ fi
 # Wykryj binarkę PHP CLI konta (CloudLinux alt-php lub systemowe).
 PHP_BIN="$(command -v php || echo /usr/local/bin/php)"
 run_as() { su -s /bin/bash -l "$APP_DA_USER" -c "$1"; }
+# Dane logowania mogą zawierać znaki specjalne powłoki — do poleceń trafiają jako tokeny z printf %q.
+Q_ADMIN_USER=$(printf %q "$APP_ADMIN_USER"); Q_ADMIN_PASS=$(printf %q "$APP_ADMIN_PASS"); Q_ADMIN_EMAIL=$(printf %q "$APP_ADMIN_EMAIL")
+Q_DB_PASS=$(printf %q "$APP_DB_PASS")
 
 install_nextcloud() {
   local url="https://download.nextcloud.com/server/releases/latest.tar.bz2"
@@ -42,8 +45,8 @@ install_nextcloud() {
   log "Nextcloud: occ maintenance:install"
   run_as "cd '$DOCROOT' && '$PHP_BIN' occ maintenance:install \
     --database mysql --database-name '$APP_DB_NAME' --database-user '$APP_DB_USER' \
-    --database-pass '$APP_DB_PASS' --database-host localhost \
-    --admin-user '$APP_ADMIN_USER' --admin-pass '$APP_ADMIN_PASS' \
+    --database-pass $Q_DB_PASS --database-host localhost \
+    --admin-user $Q_ADMIN_USER --admin-pass $Q_ADMIN_PASS \
     --data-dir '$DOCROOT/data'"
   # Dodaj domenę do trusted_domains.
   run_as "cd '$DOCROOT' && '$PHP_BIN' occ config:system:set trusted_domains 1 --value='$APP_DOMAIN'" || true
@@ -59,9 +62,9 @@ install_prestashop() {
   log "PrestaShop: install/index_cli.php"
   run_as "cd '$DOCROOT/install' && '$PHP_BIN' index_cli.php \
     --domain='$APP_DOMAIN' --db_server=localhost --db_name='$APP_DB_NAME' \
-    --db_user='$APP_DB_USER' --db_password='$APP_DB_PASS' \
+    --db_user='$APP_DB_USER' --db_password=$Q_DB_PASS \
     --name='Sklep' --country=pl --language=pl \
-    --email='$APP_ADMIN_EMAIL' --password='$APP_ADMIN_PASS' \
+    --email=$Q_ADMIN_EMAIL --password=$Q_ADMIN_PASS \
     --firstname='Admin' --lastname='Sklep' --newsletter=0 --send_email=0"
   # Po instalacji PrestaShop wymaga usunięcia katalogu install i zmiany nazwy admin.
   run_as "cd '$DOCROOT' && rm -rf install" || true
