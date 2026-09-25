@@ -35,11 +35,11 @@ Stan na 2026-09-23: **nie ma zastępcy** — wszystko poniżej robi właściciel
 zastępcy (osoba z instrukcją, osobnym kontem staff bez płatności i własnym kluczem SSH) jest
 zadaniem po starcie.
 
-Na telefonie muszą być: **Telegram** (alerty), **Termius** z kluczem `verris_termius` (SSH na panel,
+Na telefonie muszą być: **poczta** z alertami Grafany (jedyny kanał — PB-11), **Termius** z kluczem `verris_termius` (SSH na panel,
 węzły przez `verris-node ssh`), dostęp do **konsoli Hetznera** (KVM/rescue, gdy SSH nie działa)
 i do panelu admina (VPN).
 
-1. **Alert przyszedł** (Telegram/e-mail). Otwórz Grafanę albo `status.verris.pl` — czy to jeden
+1. **Alert przyszedł** (e-mail; brak codziennego „znaku życia” X-31 też jest alertem). Otwórz Grafanę albo `status.verris.pl` — czy to jeden
    węzeł, cały panel, czy tylko sonda.
 2. **Komunikat dla klientów w 5 minut**, zanim zaczniesz naprawiać: admin → Status → Incydenty →
    „Zgłoś incydent” (ręczny incydent nie zamknie się sam, zamykasz go „Rozwiąż”).
@@ -51,6 +51,44 @@ i do panelu admina (VPN).
 5. **Zgłoszenie od Hetznera/CERT:** `ops/docs/ABUSE.md` — najpierw zawieś zasób, potem wyjaśniaj.
 6. **Nie dasz rady od razu** (brak zasięgu, noc): incydent na status page wystarcza — rekompensaty
    SLA naliczą się same po zamknięciu miesiąca. Wróć, gdy możesz; zapisz post-mortem.
+
+## Incydent poważny — zgłoszenie do CSIRT (ustawa o KSC / NIS2, PB-24)
+
+Dotyczy nas, gdy jesteśmy w wykazie podmiotów (dostawca usług DNS dla klientów = podmiot kluczowy
+niezależnie od wielkości — `docs/legal/nis2-ksc-assessment.md`). Do czasu wpisu stosujemy procedurę
+dobrowolnie — przećwiczona droga jest ważniejsza niż data wpisu.
+
+**Incydent poważny** (definicja w ustawie o KSC po nowelizacji): poważne obniżenie jakości albo
+przerwanie usługi, straty finansowe albo poważna szkoda materialna/niematerialna u innych (klientów).
+Praktycznie u nas: P1 z tabeli wyżej, każdy wyciek danych, przejęcie konta administratora/węzła,
+niedostępność DNS lub poczty wielu klientów.
+
+**Zegar liczy się od wykrycia** (NIS2 art. 23 ust. 4; ustawa o KSC — ten sam schemat):
+
+| Kiedy | Co | Treść |
+|------|-----|-------|
+| do **24 h** | wczesne ostrzeżenie | że incydent jest; czy podejrzewamy działanie bezprawne lub celowe; czy może mieć skutki w innym kraju UE |
+| do **72 h** | zgłoszenie incydentu | aktualizacja ostrzeżenia: wstępna ocena (waga, skutki), wskaźniki naruszenia (IP, domeny, hashe), jeśli są |
+| na żądanie CSIRT | sprawozdanie z postępu | stan obsługi |
+| do **1 miesiąca** od zgłoszenia | sprawozdanie końcowe | szczegółowy opis, waga i skutki, rodzaj zagrożenia / pierwotna przyczyna, podjęte i trwające działania, skutki transgraniczne. Gdy incydent trwa — sprawozdanie z postępu, a końcowe w miesiąc po zakończeniu obsługi |
+
+**Gdzie:** system **S46** (dostęp od 12.06.2026, obowiązkowo najpóźniej od 3.04.2027 — komunikat
+Ministerstwa Cyfryzacji) do właściwego CSIRT; dla nas CSIRT NASK, dopóki S46 po wpisie nie wskaże
+CSIRT sektorowego. Konto w S46 zakładamy zaraz po wpisie do wykazu (wykaz-ksc.gov.pl).
+
+**Równolegle, niezależnie od CSIRT:**
+1. **Klienci** — komunikat na status page w 5 minut (jak wyżej). Gdy incydent może zaszkodzić
+   usługom klientów — informacja bez zbędnej zwłoki, z tym, co mogą zrobić sami (zmiana haseł, kopia).
+2. **RODO** — jeśli dotyczy danych osobowych: PUODO w 72 h (sekcja niżej). To osobny obowiązek.
+3. **Dowody** — nie restartuj i nie czyść węzła, zanim nie zabezpieczysz logów (`/var/log/verris-tasks/`,
+   `AuditLog`, logi DA/Exim/Dovecot) — sprawozdanie końcowe wymaga przyczyny.
+
+**Rejestr:** każdy incydent poważny i każde zgłoszenie — plik `docs/ops/incydenty/RRRR-MM-DD-nazwa.md`
+(czas wykrycia, godziny wysłania ostrzeżenia/zgłoszenia/sprawozdania, decyzje, post-mortem).
+**Test:** raz na kwartał sucha próba — zegar 24/72 h od fikcyjnego wykrycia, wypełnione szablony w rejestrze.
+
+**Osoba do kontaktów z CSIRT:** właściciel (Dominik Kowalski), telefon jak w tabeli „Kontakty”,
+`security@verris.pl`. Zastępcy brak (PB-11) — zmiana wymaga aktualizacji wpisu w wykazie.
 
 ## Naruszenie ochrony danych (RODO art. 33–34)
 
