@@ -373,7 +373,7 @@ export function TeamMailClient({
                                 onChange={(e) =>
                                   setNewAlias((prev) => ({ ...prev, [row.id]: e.target.value }))
                                 }
-                                placeholder="help@verris.pl"
+                                aria-label="Nowy alias" placeholder="help@verris.pl"
                                 className="flex-1 min-w-[12rem] rounded-lg border border-white/10 bg-black/50 px-3 py-1.5 text-xs text-white"
                               />
                               <button
@@ -424,7 +424,7 @@ export function TeamMailClient({
                                   onChange={(e) =>
                                     setNewForward((prev) => ({ ...prev, [row.id]: e.target.value }))
                                   }
-                                  placeholder="osoba@gmail.com"
+                                  aria-label="Nowe przekierowanie" placeholder="osoba@gmail.com"
                                   className="flex-1 min-w-[12rem] rounded-lg border border-white/10 bg-black/50 px-3 py-1.5 text-xs text-white"
                                 />
                                 <button
@@ -468,7 +468,7 @@ export function TeamMailClient({
           value={importCsv}
           onChange={(e) => setImportCsv(e.target.value)}
           rows={5}
-          placeholder="jan.kowalski@verris.pl&#10;anna@verris.pl;anna.priv@gmail.com"
+          aria-label="Import skrzynek z OVH (CSV)" placeholder="jan.kowalski@verris.pl&#10;anna@verris.pl;anna.priv@gmail.com"
           className="w-full max-w-2xl rounded-lg border border-white/10 bg-black/50 px-3 py-2 font-mono text-xs text-white"
         />
         {importResult ? <p className="text-xs text-emerald-300">{importResult}</p> : null}
@@ -515,6 +515,7 @@ export function TeamMailClient({
                 <td className="py-2">
                   <input
                     type="email"
+                    aria-label={`Adres systemowy: ${a.role}`}
                     value={systemEdits[a.role] ?? a.email}
                     onChange={(e) =>
                       setSystemEdits((prev) => ({ ...prev, [a.role]: e.target.value }))

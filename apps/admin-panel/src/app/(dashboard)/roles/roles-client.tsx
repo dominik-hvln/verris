@@ -164,8 +164,8 @@ export function RolesClient({
                 <button onClick={() => setEditing(null)} className="text-neutral-400 hover:text-white"><X className="h-4 w-4" /></button>
               </div>
               <div className="space-y-2">
-                <input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} placeholder="Nazwa roli (np. Wsparcie L2)" className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white" />
-                <input value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} placeholder="Opis (opcjonalnie)" className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white" />
+                <input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} aria-label="Nazwa roli" placeholder="Nazwa roli (np. Wsparcie L2)" className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white" />
+                <input value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} aria-label="Opis roli" placeholder="Opis (opcjonalnie)" className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white" />
               </div>
               <div className="mt-4 space-y-4 max-h-[50vh] overflow-auto pr-1">
                 {areas.map(([area, perms]) => (
@@ -201,9 +201,9 @@ export function RolesClient({
         <h2 className="mb-3 text-sm font-bold uppercase tracking-widest text-neutral-400">Mój zespół — dodaj operatora</h2>
         <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
           <div className="grid gap-2 sm:grid-cols-[1.4fr_1fr_1fr_1fr_auto]">
-            <input value={opEmail} onChange={(e) => setOpEmail(e.target.value)} placeholder="e-mail operatora" className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white" />
-            <input value={opFirst} onChange={(e) => setOpFirst(e.target.value)} placeholder="imię" className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white" />
-            <input value={opLast} onChange={(e) => setOpLast(e.target.value)} placeholder="nazwisko" className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white" />
+            <input value={opEmail} onChange={(e) => setOpEmail(e.target.value)} aria-label="E-mail operatora" placeholder="e-mail operatora" className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white" />
+            <input value={opFirst} onChange={(e) => setOpFirst(e.target.value)} aria-label="Imię operatora" placeholder="imię" className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white" />
+            <input value={opLast} onChange={(e) => setOpLast(e.target.value)} aria-label="Nazwisko operatora" placeholder="nazwisko" className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white" />
             <Select
               aria-label="Dział (rola) operatora"
               value={opRoleId}

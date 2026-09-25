@@ -127,14 +127,14 @@ export function VpnManager({ initial }: { initial: VpnOverviewDto }) {
             minLength={3}
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder='Nazwa, np. "Anna — laptop"'
+            aria-label="Nazwa urządzenia VPN" placeholder='Nazwa, np. "Anna — laptop"'
             className="vpn-input"
           />
           <input
             type="email"
             value={ownerEmail}
             onChange={(e) => setOwnerEmail(e.target.value)}
-            placeholder="E-mail pracownika (opcjonalnie)"
+            aria-label="E-mail pracownika (opcjonalnie)" placeholder="E-mail pracownika (opcjonalnie)"
             className="vpn-input"
           />
           <button

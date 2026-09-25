@@ -188,7 +188,7 @@ function AddSiteForm({
         <Plus className="h-4 w-4 text-cyan-300" /> Nowa strona do śledzenia
       </h2>
       <div className="flex flex-wrap gap-2">
-        <input value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="example.pl" className="an-inp2 flex-1 min-w-[220px]" />
+        <input aria-label="Domena strony" value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="example.pl" className="an-inp2 flex-1 min-w-[220px]" />
         <button onClick={submit} disabled={pending} className="an-btn">
           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Dodaj
         </button>

@@ -282,6 +282,15 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 }
 
 function Field({ label, children, wide, htmlFor }: { label: string; children: React.ReactNode; wide?: boolean; htmlFor?: string }) {
+  // Bez htmlFor etykieta obejmuje pole — czytnik ekranu łączy nazwę z polem (WCAG 1.3.1 / 4.1.2).
+  if (!htmlFor) {
+    return (
+      <label className={`block ${wide ? "md:col-span-2" : ""}`}>
+        <span className="block text-xs text-muted-foreground mb-1">{label}</span>
+        {children}
+      </label>
+    );
+  }
   return (
     <div className={wide ? "md:col-span-2" : ""}>
       <label htmlFor={htmlFor} className="block text-xs text-muted-foreground mb-1">{label}</label>
@@ -352,6 +361,7 @@ function ToggleRow({
         type="button"
         role="switch"
         aria-checked={checked}
+        aria-label={description}
         onClick={() => onChange(!checked)}
         className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
           checked ? "bg-emerald-500" : "bg-neutral-700"
@@ -386,6 +396,7 @@ function PriceIdField({
       <label className="block text-xs text-muted-foreground mb-1">{label}</label>
       <div className="flex gap-2">
         <input
+          aria-label={label}
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder="price_..."

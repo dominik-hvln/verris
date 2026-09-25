@@ -122,8 +122,8 @@ export default async function StaffInboxPage({
                     </p>
                     <p className="mt-1 text-muted-foreground">{ticket._count.replies} odpowiedzi</p>
                   </div>
-                  <Link href={`/tickets/${ticket.id}`}>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-0.5" />
+                  <Link href={`/tickets/${ticket.id}`} aria-label={`Otwórz zgłoszenie: ${ticket.subject}`}>
+                    <ChevronRight aria-hidden className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-0.5" />
                   </Link>
                 </div>
               </div>

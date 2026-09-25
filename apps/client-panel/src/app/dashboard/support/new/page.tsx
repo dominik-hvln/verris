@@ -82,6 +82,7 @@ export default function NewTicketPage() {
       <div className="flex items-center gap-4">
         <Link
           href="/dashboard/support"
+          aria-label="Wróć do centrum pomocy"
           className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-input bg-transparent hover:bg-accent hover:text-accent-foreground transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />

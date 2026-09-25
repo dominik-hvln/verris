@@ -150,6 +150,7 @@ export function FakturaRecznaForm() {
                   <tr key={i} className="border-t border-white/5">
                     <td className="px-3 py-2">
                       <input
+                        aria-label={`Nazwa — pozycja ${i + 1}`}
                         value={w.nazwa}
                         onChange={(e) => ustaw(i, "nazwa", e.target.value)}
                         placeholder="np. Rekompensata za przerwę w dostępności"
@@ -158,6 +159,7 @@ export function FakturaRecznaForm() {
                     </td>
                     <td className="px-3 py-2">
                       <input
+                        aria-label={`Ilość — pozycja ${i + 1}`}
                         value={w.ilosc}
                         onChange={(e) => ustaw(i, "ilosc", e.target.value)}
                         inputMode="numeric"
@@ -166,6 +168,7 @@ export function FakturaRecznaForm() {
                     </td>
                     <td className="px-3 py-2">
                       <input
+                        aria-label={`Cena brutto — pozycja ${i + 1}`}
                         value={w.cenaBrutto}
                         onChange={(e) => ustaw(i, "cenaBrutto", e.target.value)}
                         inputMode="decimal"

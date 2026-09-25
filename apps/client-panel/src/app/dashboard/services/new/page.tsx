@@ -26,6 +26,7 @@ export default async function NewServicePage() {
       <div className="flex items-center gap-4">
         <Link
           href="/dashboard/services"
+          aria-label="Wróć do usług"
           className="p-3 border border-white/5 rounded-2xl bg-[#0a0a0a] hover:bg-[#121212] transition-colors text-neutral-400 hover:text-white"
         >
           <ArrowLeft className="w-5 h-5" />

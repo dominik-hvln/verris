@@ -278,6 +278,7 @@ function UserMenu({ displayName, email, initials, loading = false }: { displayNa
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
+        aria-label="Menu konta: ustawienia, widok, wyloguj"
         onClick={() => setOpen((v) => !v)}
         className="v2-comet v2-comet-soft flex w-full items-center gap-2.5 rounded-lg border border-white/[0.06] bg-white/[0.02] px-2.5 py-2 text-left hover:border-verris-mint/30"
         style={{ ["--v2-k" as string]: "v2-comet-a", ["--v2-d" as string]: "11s", ["--v2-dl" as string]: "-8s", ["--v2-o" as string]: 0.5 }}

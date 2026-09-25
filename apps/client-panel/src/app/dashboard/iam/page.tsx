@@ -61,8 +61,8 @@ export default async function IamPage() {
         </div>
         <form action={inviteSubaccountAction} className="space-y-5">
           <div className="grid gap-4 md:grid-cols-2">
-            <input name="email" type="email" required placeholder="operator@firma.pl" className="rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white outline-none focus:border-white/40" />
-            <input name="label" placeholder="np. księgowość, devops" className="rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white outline-none focus:border-white/40" />
+            <input name="email" type="email" required aria-label="E-mail osoby zapraszanej" placeholder="operator@firma.pl" className="rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white outline-none focus:border-white/40" />
+            <input name="label" aria-label="Etykieta (np. księgowość, devops)" placeholder="np. księgowość, devops" className="rounded-xl border border-white/10 bg-black px-4 py-3 text-sm text-white outline-none focus:border-white/40" />
           </div>
           <IamPermissionPicker permissions={data.permissions} />
           <button className="rounded-xl bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-neutral-200">

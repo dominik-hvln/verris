@@ -147,6 +147,7 @@ function PromoRedeemBlock() {
           <input
             name="code"
             type="text"
+            aria-label="Kod promocyjny"
             value={code}
             onChange={(e) => setCode(e.target.value)}
             placeholder="Np. DEMO10"

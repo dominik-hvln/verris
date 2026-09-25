@@ -94,7 +94,7 @@ function ResellerList({ rows }: { rows: ResellerRow[] }) {
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-xs text-neutral-400">Narzut</span>
-                <input type="number" defaultValue={r.markupPct} onBlur={(e) => { const v = Number.parseInt(e.target.value, 10); if (v !== r.markupPct) setMarkup(r.userId, v); }} className="w-16 rounded-lg border border-white/10 bg-black/40 px-2 py-1 text-xs text-white" />
+                <input type="number" aria-label="Narzut (%)" defaultValue={r.markupPct} onBlur={(e) => { const v = Number.parseInt(e.target.value, 10); if (v !== r.markupPct) setMarkup(r.userId, v); }} className="w-16 rounded-lg border border-white/10 bg-black/40 px-2 py-1 text-xs text-white" />
                 <span className="text-xs text-neutral-500">%</span>
               </div>
               {r.status === "ACTIVE" ? (

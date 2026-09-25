@@ -119,7 +119,7 @@ export function EmailLogClient() {
             onKeyDown={(e) => {
               if (e.key === 'Enter') void load(true);
             }}
-            placeholder="Szukaj po temacie…"
+            aria-label="Szukaj w dzienniku po temacie" placeholder="Szukaj po temacie…"
             className="rounded-lg border border-white/10 bg-black/40 px-3 py-1.5 text-sm text-white focus:border-emerald-500/40 focus:outline-none"
           />
           <button

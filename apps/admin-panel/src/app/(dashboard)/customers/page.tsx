@@ -60,7 +60,7 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
                   type="text"
                   name="search"
                   defaultValue={search ?? ""}
-                  placeholder="ID, imię lub email…"
+                  aria-label="Szukaj klienta: ID, imię lub e-mail" placeholder="ID, imię lub email…"
                   className="bg-transparent border-none outline-none text-sm text-white placeholder:text-muted-foreground w-full"
                 />
               </div>

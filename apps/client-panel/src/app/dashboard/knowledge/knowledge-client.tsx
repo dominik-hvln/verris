@@ -147,6 +147,7 @@ export function KnowledgeClient({
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          aria-label="Szukaj w bazie wiedzy"
           placeholder="Szukaj w bazie wiedzy…"
           className="w-full rounded-lg border border-white/10 bg-black/40 py-2 pl-9 pr-3 text-sm text-white outline-none focus:border-white/30"
         />

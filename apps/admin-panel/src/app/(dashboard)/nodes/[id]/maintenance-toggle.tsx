@@ -90,6 +90,7 @@ export function MaintenanceToggle({
             Istniejące konta działają dalej, tylko nowe provisioningy są wstrzymane.
           </p>
           <textarea
+            aria-label="Powód konserwacji widoczny dla klienta"
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="np. wymiana dysków NVMe — okno 02:00–04:00"

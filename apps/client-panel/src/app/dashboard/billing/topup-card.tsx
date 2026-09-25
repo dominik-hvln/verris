@@ -131,6 +131,7 @@ export function TopupCard({ balance }: Props) {
               <input
                 type="number"
                 name="amount"
+                aria-label="Kwota doładowania (zł)"
                 min={5}
                 max={10000}
                 step="0.01"
@@ -244,6 +245,7 @@ function PromoSubform({
         <input
           type="text"
           value={promoCode}
+          aria-label="Kod promocyjny"
           onChange={(event) => setPromoCode(event.target.value.toUpperCase())}
           placeholder="Kod promocyjny"
           maxLength={40}
