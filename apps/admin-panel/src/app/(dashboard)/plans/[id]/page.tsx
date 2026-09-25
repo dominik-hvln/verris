@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { getAdminPlan } from "../data";
 import { PlanEditForm } from "./plan-edit-form";
+import { BladStrony } from "@/components/blad-strony";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,7 @@ export default async function AdminPlanEditPage({ params }: PageProps) {
     plan = await getAdminPlan(id);
   } catch (e) {
     if ((e as { status?: number }).status === 404) notFound();
-    throw e;
+    return <BladStrony blad={e} tytul="Plan" powrot={{ href: "/plans", label: "Plany" }} />;
   }
 
   return (

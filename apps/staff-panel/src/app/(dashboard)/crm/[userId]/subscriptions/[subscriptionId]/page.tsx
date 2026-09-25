@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BladStrony } from "@/components/blad-strony";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { StaffApiError } from "@/lib/staff-api";
@@ -31,8 +32,8 @@ export default async function StaffSubscriptionReadonlyPage({
     }
   } catch (e) {
     if (e instanceof StaffApiError && e.status === 401) redirect("/login");
-    if (e instanceof StaffApiError && (e.status === 404 || e.status === 403)) notFound();
-    throw e;
+    if (e instanceof StaffApiError && e.status === 404) notFound();
+    return <BladStrony blad={e} tytul="Usługa klienta" powrot={{ href: `/crm/${userId}`, label: "Karta klienta" }} />;
   }
 
   if (sub.user.id !== userId) {

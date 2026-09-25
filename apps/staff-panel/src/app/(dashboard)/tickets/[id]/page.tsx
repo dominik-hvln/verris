@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BladStrony } from "@/components/blad-strony";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { StaffApiError } from "@/lib/staff-api";
@@ -9,13 +10,15 @@ import { TicketDetailPanel } from "@/components/ticket-detail-panel";
 export default async function StaffTicketDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   let ticket: StaffTicketDetail;
+  let agents: Awaited<ReturnType<typeof staffListSupportAgents>>;
+  let context: Awaited<ReturnType<typeof staffGetTicketContext>>;
   try {
     ticket = await staffGetTicket(id);
+    [agents, context] = await Promise.all([staffListSupportAgents(), staffGetTicketContext(id)]);
   } catch (err) {
     if (err instanceof StaffApiError && err.status === 404) notFound();
-    throw err;
+    return <BladStrony blad={err} tytul="Zgłoszenie" powrot={{ href: "/", label: "Powrót do skrzynki" }} />;
   }
-  const [agents, context] = await Promise.all([staffListSupportAgents(), staffGetTicketContext(id)]);
 
   return (
     <div className="space-y-6">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getFaktura, getKorekty } from "./data";
 import { KorektaForm } from "./form";
+import { BladStrony, wynik } from "@/components/blad-strony";
 
 export const dynamic = "force-dynamic";
 
@@ -12,10 +13,9 @@ export default async function KorektaPage({
   params: Promise<{ invoiceId: string }>;
 }) {
   const { invoiceId } = await params;
-  const [faktura, korekty] = await Promise.all([
-    getFaktura(invoiceId),
-    getKorekty(invoiceId).catch(() => []),
-  ]);
+  const w = await wynik(Promise.all([getFaktura(invoiceId), getKorekty(invoiceId).catch(() => [])]));
+  if (!w.ok) return <BladStrony blad={w.blad} tytul="Korekta faktury" powrot={{ href: "/invoices", label: "Faktury" }} />;
+  const [faktura, korekty] = w.dane;
 
   const juzKorekta = faktura.kind === "KOREKTA";
 

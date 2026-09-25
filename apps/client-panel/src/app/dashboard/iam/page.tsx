@@ -19,7 +19,7 @@ import { IamNoticeBanner } from './iam-notice-banner';
 import { IamPermissionPicker } from './iam-permission-picker';
 import { IamScopePicker } from './iam-scope-picker';
 import { PERMISSION_LABELS } from './constants';
-import { PanelPageHeader } from '@/components/panel';
+import { PanelFetchError, PanelPageHeader } from '@/components/panel';
 
 export default async function IamPage() {
   const token = await getAuthToken();
@@ -38,7 +38,15 @@ export default async function IamPage() {
     );
   }
 
-  const data = await getIamOverview();
+  const data = await getIamOverview().catch((e: unknown) => e as Error);
+  if (data instanceof Error) {
+    return (
+      <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
+        <PanelPageHeader title="IAM i subkonta" description="Deleguj dostęp bez udostępniania hasła właściciela." />
+        <PanelFetchError message={data.message} />
+      </div>
+    );
+  }
   return (
     <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
       <PanelPageHeader

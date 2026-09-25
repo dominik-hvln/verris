@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 
 import { EcoPointsGuide } from './eco-points-guide';
 import { ECO_LEDGER_REASON_LABEL } from '@/lib/eco-point-rules';
-import { PanelPageHeader } from '@/components/panel';
+import { PanelFetchError, PanelPageHeader } from '@/components/panel';
 import { Kpi, KpiStrip, Meter } from '@/components/panel/v2';
 
 function badgeEmbedHtml(src: string, height: number, alt: string): string {
@@ -28,7 +28,16 @@ export default async function EcoProgramPage() {
     );
   }
 
-  const { profile, ledger, platform, badgeStats, program } = await getEcoDashboardData();
+  const dane = await getEcoDashboardData().catch((e: unknown) => e as Error);
+  if (dane instanceof Error) {
+    return (
+      <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-6">
+        <PanelPageHeader title="Program EKO" description="Punkty za oszczędność zasobów i badge na Twoją stronę." />
+        <PanelFetchError message={dane.message} />
+      </div>
+    );
+  }
+  const { profile, ledger, platform, badgeStats, program } = dane;
   const apiBase = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000').replace(/\/$/, '');
   const badgeSrc = profile.ecoBadgeToken
     ? `${apiBase}/public/badges/eko/${encodeURIComponent(profile.ecoBadgeToken)}.svg`

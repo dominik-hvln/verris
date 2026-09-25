@@ -2,6 +2,7 @@ import Link from "next/link";
 import { UserPlus } from "lucide-react";
 import { listReferralEnrollments, type ReferralEnrollmentStatus } from "./data";
 import { ReferralReviewActions } from "./review-actions";
+import { BladStrony, wynik } from "@/components/blad-strony";
 
 export const dynamic = "force-dynamic";
 
@@ -55,7 +56,9 @@ export default async function ReferralEnrollmentsPage({
       ? statusParam
       : undefined;
 
-  const rows = await listReferralEnrollments(status);
+  const w = await wynik(listReferralEnrollments(status));
+  if (!w.ok) return <BladStrony blad={w.blad} tytul="Program partnerski" />;
+  const rows = w.dane;
   const pendingCount = status === "PENDING" ? rows.length : rows.filter((r) => r.status === "PENDING").length;
 
   return (

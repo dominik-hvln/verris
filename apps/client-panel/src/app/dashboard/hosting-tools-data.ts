@@ -16,7 +16,9 @@ export async function listUserServices(): Promise<ServiceSummaryDto[]> {
 }
 
 export async function getPrimaryService(): Promise<ServiceSummaryDto | null> {
-  const services = await listUserServices();
+  // Awaria API → null: strony-przekierowania trafiają na listę usług, która pokazuje błąd po polsku
+  // (zamiast „This page couldn’t load” na każdej z 11 tras narzędzi).
+  const services = await listUserServices().catch(() => [] as ServiceSummaryDto[]);
   return services[0] ?? null;
 }
 
@@ -27,7 +29,9 @@ export async function getPrimaryService(): Promise<ServiceSummaryDto | null> {
 export async function resolveServiceForHostingPages(
   serviceIdParam: string | undefined,
 ): Promise<ServiceSummaryDto | null> {
-  const services = await listUserServices();
+  // Awaria API → null: strony-przekierowania trafiają na listę usług, która pokazuje błąd po polsku
+  // (zamiast „This page couldn’t load” na każdej z 11 tras narzędzi).
+  const services = await listUserServices().catch(() => [] as ServiceSummaryDto[]);
   if (serviceIdParam) {
     return services.find((s) => s.id === serviceIdParam) ?? null;
   }

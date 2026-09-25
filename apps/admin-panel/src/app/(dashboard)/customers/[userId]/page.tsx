@@ -7,6 +7,7 @@ import { getCustomerOperationalDetail } from "../data";
 import { CustomerOperationalForms } from "./operational-forms";
 import { CreditWalletButton } from "../credit-wallet-button";
 import { ImpersonateButton } from "../impersonate-button";
+import { BladStrony } from "@/components/blad-strony";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +25,7 @@ export default async function AdminCustomerOperationalPage({
     if (e instanceof AdminApiError && (e.status === 404 || e.status === 400)) {
       notFound();
     }
-    throw e;
+    return <BladStrony blad={e} tytul="Klient" powrot={{ href: "/customers", label: "Klienci" }} />;
   }
 
   const title =

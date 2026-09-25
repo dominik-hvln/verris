@@ -1,5 +1,6 @@
 import { listWebhookEvents, type WebhookEventRow } from "./data";
 import { ReplayButton } from "./replay-button";
+import { BladStrony, wynik } from "@/components/blad-strony";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +47,9 @@ export default async function WebhookiPage({
 }) {
   const sp = await searchParams;
   const status = sp.status ?? "";
-  const dane = await listWebhookEvents(status || undefined);
+  const w = await wynik(listWebhookEvents(status || undefined));
+  if (!w.ok) return <BladStrony blad={w.blad} tytul="Zdarzenia webhooka Stripe" />;
+  const dane = w.dane;
   const { podsumowanie } = dane;
   const wymagaUwagi = podsumowanie.failed + podsumowanie.pending;
 

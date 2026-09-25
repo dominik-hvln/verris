@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { BladStrony } from "@/components/blad-strony";
 import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, ExternalLink, Mail } from "lucide-react";
 import { StaffApiError } from "@/lib/staff-api";
@@ -52,8 +53,8 @@ export default async function StaffCustomerProfilePage({
     profile = await staffGetCustomerProfile(userId);
   } catch (e) {
     if (e instanceof StaffApiError && e.status === 401) redirect("/login");
-    if (e instanceof StaffApiError && (e.status === 404 || e.status === 403)) notFound();
-    throw e;
+    if (e instanceof StaffApiError && e.status === 404) notFound();
+    return <BladStrony blad={e} tytul="Karta klienta" powrot={{ href: "/crm", label: "Klienci" }} />;
   }
 
   const {

@@ -12,17 +12,16 @@ import { PlatformSettingsForm } from './platform-settings-form';
 import { TrialOfferSettingsForm } from './trial-offer-form';
 import { MonitoringSettingsForm } from './monitoring-settings-form';
 import { SlaCreditsForm } from './sla-credits-form';
+import { BladStrony, wynik } from "@/components/blad-strony";
 
 export const dynamic = 'force-dynamic';
 
 export default async function PlatformSettingsPage() {
-  const [settings, trialOffer, monitoring, slaCredits, slaPodglad] = await Promise.all([
-    fetchPlatformSettings(),
-    fetchTrialOffer(),
-    fetchMonitoringSettings(),
-    fetchSlaCreditPolicy(),
-    fetchSlaPodglad(),
-  ]);
+  const w = await wynik(
+    Promise.all([fetchPlatformSettings(), fetchTrialOffer(), fetchMonitoringSettings(), fetchSlaCreditPolicy(), fetchSlaPodglad()]),
+  );
+  if (!w.ok) return <BladStrony blad={w.blad} tytul="Ustawienia platformy" powrot={{ href: "/settings", label: "Ustawienia" }} />;
+  const [settings, trialOffer, monitoring, slaCredits, slaPodglad] = w.dane;
 
   return (
     <div className="space-y-8">

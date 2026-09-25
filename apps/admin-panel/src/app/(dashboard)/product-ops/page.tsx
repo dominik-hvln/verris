@@ -1,11 +1,14 @@
 import { getProductOpsDashboard } from "./data";
 import { Announcements, Maintenance } from "./notices";
 import { FeatureFlags } from "./flags";
+import { BladStrony, wynik } from "@/components/blad-strony";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProductOpsPage() {
-  const data = await getProductOpsDashboard();
+  const w = await wynik(getProductOpsDashboard());
+  if (!w.ok) return <BladStrony blad={w.blad} tytul="Product Ops / NOC" />;
+  const data = w.dane;
   return (
     <div className="space-y-6 p-6">
       <header>

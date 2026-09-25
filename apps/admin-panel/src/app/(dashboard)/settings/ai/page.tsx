@@ -3,11 +3,14 @@ import { ArrowLeft } from 'lucide-react';
 import { fetchKosztyAi, fetchUstawieniaAi } from './actions';
 import { UstawieniaAiForm } from './ustawienia-ai-form';
 import { KosztyAiPanel } from './koszty-ai';
+import { BladStrony, wynik } from "@/components/blad-strony";
 
 export const dynamic = 'force-dynamic';
 
 export default async function UstawieniaAiPage() {
-  const [ustawienia, koszty] = await Promise.all([fetchUstawieniaAi(), fetchKosztyAi()]);
+  const w = await wynik(Promise.all([fetchUstawieniaAi(), fetchKosztyAi()]));
+  if (!w.ok) return <BladStrony blad={w.blad} tytul="Asystent AI" powrot={{ href: "/settings", label: "Ustawienia" }} />;
+  const [ustawienia, koszty] = w.dane;
   return (
     <div className="space-y-8">
       <Link

@@ -2,6 +2,7 @@ import { listProvisioningQueue, listNodeTasks } from "./data";
 import { RetryButton } from "./retry-button";
 import { OdrzucButton } from "./odrzuc-button";
 import { NodeTasksSection } from "./node-tasks-section";
+import { BladStrony, wynik } from "@/components/blad-strony";
 
 export const dynamic = "force-dynamic";
 
@@ -34,7 +35,9 @@ export default async function ProvisioningQueuePage({
 }) {
   const sp = await searchParams;
   const state = sp.state ?? "";
-  const data = await listProvisioningQueue(state || undefined);
+  const w = await wynik(listProvisioningQueue(state || undefined));
+  if (!w.ok) return <BladStrony blad={w.blad} tytul="Kolejka provisioningu" />;
+  const data = w.dane;
   const nodeTasks = await listNodeTasks().catch(() => []);
 
   return (

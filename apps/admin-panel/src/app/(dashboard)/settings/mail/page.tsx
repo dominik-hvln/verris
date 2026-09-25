@@ -1,11 +1,14 @@
 import { Mail } from 'lucide-react';
 import { fetchMailSettings } from './actions';
 import { MailSettingsForm } from './mail-settings-form';
+import { BladStrony, wynik } from "@/components/blad-strony";
 
 export const metadata = { title: 'Poczta — admin Verris' };
 
 export default async function MailSettingsPage() {
-  const settings = await fetchMailSettings();
+  const w = await wynik(fetchMailSettings());
+  if (!w.ok) return <BladStrony blad={w.blad} tytul="Poczta wychodząca" powrot={{ href: "/settings", label: "Ustawienia" }} />;
+  const settings = w.dane;
 
   return (
     <div className="space-y-8 p-8">
