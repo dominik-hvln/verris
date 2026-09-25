@@ -93,7 +93,7 @@
   --secondary-foreground: var(--verris-pine);
   --accent: var(--verris-mint);
   --accent-foreground: var(--verris-pine);
-  --destructive: #e11d48;
+  --destructive: #be123c; /* AA: 5,7:1 na tle (było 4,2:1) */
   --destructive-foreground: #ffe4e6;
   --border: rgba(12, 26, 20, 0.1);
   --input: rgba(12, 26, 20, 0.1);
@@ -119,14 +119,14 @@
   --raised: #eceee6;
   --line: rgba(12, 26, 20, 0.1);
   --line-strong: rgba(12, 26, 20, 0.18);
-  --data: #1fa871;
+  --data: #18935f; /* 3,2:1+ na każdym tle — wykresy i obramowanie fokusu (WCAG 1.4.11) */
   --data-2: #6cc9a0;
   --data-3: #b5e3cc;
   --data-soft: rgba(31, 168, 113, 0.16);
-  --data-hi: #0f7a52;
-  --warn: #955f0f; /* AA: 5,3:1 na bieli (było 3,6:1) */
+  --data-hi: #0e7049; /* tekst: 5:1+ także na --muted */
+  --warn: #8a570d; /* AA: 5:1+ na każdym tle jasnym (było 4,4:1 na --muted) */
   --warn-soft: rgba(149, 95, 15, 0.13);
-  --crit: #c2334f;
+  --crit: #b82e4a; /* AA: 4,9:1+ na każdym tle jasnym */
 }
 
 
@@ -159,7 +159,7 @@
   --accent: var(--verris-mint);
   --accent-foreground: var(--verris-pine);
   --destructive: #fb7185;
-  --destructive-foreground: #881337;
+  --destructive-foreground: #4c0519; /* AA: 5,8:1 na --destructive (było 3,6:1) */
   --border: var(--verris-hairline);
   --input: var(--verris-hairline);
   --ring: var(--verris-mint);

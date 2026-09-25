@@ -54,7 +54,7 @@ export function NotificationsTab({
     <div className="space-y-10 p-6 md:p-8">
       <header>
         <h2 className="mb-2 flex items-center gap-2 font-display text-xl font-bold text-foreground">
-          <BellRing className="h-5 w-5 text-data" />
+          <BellRing className="h-5 w-5 text-data-hi" />
           Centrum powiadomień
         </h2>
         <p className="text-sm text-muted-foreground">

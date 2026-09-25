@@ -228,7 +228,7 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
                   if (!u) return null;
                   return (
                     <>
-                      <button type="button" onClick={() => void pokazWynik(row, u.key)} className="mt-2 text-xs font-semibold text-data hover:underline">
+                      <button type="button" onClick={() => void pokazWynik(row, u.key)} className="mt-2 text-xs font-semibold text-data-hi hover:underline">
                         {wynik?.id === row.id ? 'Ukryj wynik' : 'Wynik ostatniego uruchomienia'}
                       </button>
                       {wynik?.id === row.id ? (

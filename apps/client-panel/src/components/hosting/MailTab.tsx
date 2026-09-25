@@ -417,7 +417,7 @@ export default function MailTab({ serviceId }: Props) {
               type="button"
               disabled={!zajetosc || zajetosc.wToku}
               onClick={() => void countDiskUsage(serviceId).then((r) => (r.ok ? setZajetosc(r.status) : toast.error(r.error)))}
-              className="font-semibold text-data hover:underline disabled:opacity-50"
+              className="font-semibold text-data-hi hover:underline disabled:opacity-50"
             >
               {zajetosc?.wToku ? 'Liczę…' : 'Przelicz zajętość'}
             </button>

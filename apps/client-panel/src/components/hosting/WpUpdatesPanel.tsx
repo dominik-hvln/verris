@@ -273,7 +273,7 @@ export function WpUpdatesPanel({ serviceId, domain }: { serviceId: string; domai
       {stan?.brakWordpressa ? (
         <div className="rounded-[10px] border border-line bg-card px-4 py-3 text-[13.5px] text-verris-body">
           W katalogu tej domeny nie ma WordPressa. Możesz go zainstalować w{' '}
-          <Link href={`/dashboard/services/${serviceId}?tab=apps`} className="font-semibold text-data underline-offset-2 hover:underline">
+          <Link href={`/dashboard/services/${serviceId}?tab=apps`} className="font-semibold text-data-hi underline-offset-2 hover:underline">
             Aplikacjach 1-click
           </Link>
           . WordPress w podkatalogu aktualizuj z jego kokpitu.
