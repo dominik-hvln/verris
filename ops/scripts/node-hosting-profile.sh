@@ -1056,14 +1056,31 @@ configure_hosting_capabilities() {
     systemctl restart directadmin 2>/dev/null || service directadmin restart 2>/dev/null || true
   fi
 
-  # A3 — LiteSpeed: LSCache root + HTTP/3 (QUIC). Konfiguracja serwerowa httpd_config.
-  local LSWS_CONF="/usr/local/lsws/conf/httpd_config.conf"
-  if [ -f "$LSWS_CONF" ] && [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ]; then
-    mkdir -p /usr/local/lsws/cachedata && chown lsadm:lsadm /usr/local/lsws/cachedata 2>/dev/null || true
-    if ! grep -q "cachedata" "$LSWS_CONF" 2>/dev/null; then
-      log_info "LSCache root /usr/local/lsws/cachedata — ustaw w WebAdmin → Cache (jeśli brak modułu cache)."
+  # A3 — LiteSpeed Enterprise na DirectAdmin czyta konfigurację w stylu Apache wygenerowaną przez DA.
+  # Katalog cache według oficjalnej dokumentacji LiteSpeed (docs.litespeedtech.com/lsws/cp/directadmin/configuration/):
+  #   serwer: /etc/httpd/conf/extra/httpd-includes.conf → <IfModule Litespeed> CacheRoot /home/lscache </IfModule>
+  #   vhost:  data/templates/custom/cust_httpd.CUSTOM.2.pre → CacheRoot lscache (względem katalogu konta)
+  # potem custombuild rewrite_confs (restartuje serwer WWW). Poprzednia wersja sprawdzała
+  # /usr/local/lsws/conf/httpd_config.conf — plik OpenLiteSpeed, którego LSWS Enterprise nie ma,
+  # więc blok nigdy się nie wykonywał.
+  if [ -x /usr/local/lsws/bin/lswsctrl ] && [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ]; then
+    local INC="/etc/httpd/conf/extra/httpd-includes.conf"
+    local VH="/usr/local/directadmin/data/templates/custom/cust_httpd.CUSTOM.2.pre"
+    local zmiana=0
+    if [ -f "$INC" ] && ! grep -q "verris-lscache" "$INC"; then
+      printf '\n# verris-lscache (A3)\n<IfModule Litespeed>\n  CacheRoot /home/lscache\n</IfModule>\n' >> "$INC" && zmiana=1
     fi
-    log_ok "LiteSpeed: katalog cache gotowy (HTTP/3/QUIC domyślnie aktywne w LS Enterprise)"
+    mkdir -p "$(dirname "$VH")"
+    if ! grep -q "verris-lscache" "$VH" 2>/dev/null; then
+      printf '# verris-lscache (A3)\n<IfModule Litespeed>\n  CacheRoot lscache\n</IfModule>\n' >> "$VH" && zmiana=1
+    fi
+    if [ "$zmiana" = "1" ] && [ -n "${BUILD:-}" ]; then
+      (cd "$CB" && "$BUILD" rewrite_confs) >/dev/null 2>&1 \
+        && log_ok "LiteSpeed: CacheRoot serwera i vhostów ustawiony (rewrite_confs)" \
+        || log_warn "LiteSpeed: rewrite_confs zwrócił błąd — sprawdź custombuild"
+    else
+      log_ok "LiteSpeed: CacheRoot już ustawiony"
+    fi
   fi
   # A3 — wtyczka LSCache w nowych instalacjach WP (flaga dla instalatora A4).
   cb_set_option redis yes  # A6 — Redis dostępny serwerowo (per-konto włącza pakiet planu)
