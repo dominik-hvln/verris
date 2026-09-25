@@ -6,7 +6,7 @@
 - Wymagany jest **`postcss.config.mjs`** z `@tailwindcss/postcss` (Tailwind 4 — bez tego style z `globals.css` się nie budują).
 - Dev: `pnpm dev` — aplikacja nasłuchuje na porcie **3003**.
 
-Logowanie zapisuje token w httpOnly cookie `admin_auth_token` po udanym logowaniu do API.
+Logowanie zapisuje token w httpOnly cookie `admin_session` (tylko host panelu) po udanym logowaniu do API.
 
 ## Logowanie (dev)
 

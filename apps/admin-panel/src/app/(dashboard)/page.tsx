@@ -28,7 +28,7 @@ export default async function AdminDashboardHomePage() {
       </p>
       <p className="text-xs text-rose-200/90">
         Endpoint `GET /admin/dashboard/overview` wymaga JWT administratora — po zalogowaniu
-        cookie `admin_auth_token` musi być ustawiane przez panel.
+        cookie `admin_session` musi być ustawiane przez panel.
       </p>
     </div>
   );

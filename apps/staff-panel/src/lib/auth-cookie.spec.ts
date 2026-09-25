@@ -1,6 +1,6 @@
-import { panelAuthCookieOptions } from './auth-cookie';
+import { panelAuthCookieOptions, staraDomenaCiasteczka } from './auth-cookie';
 
-/** Ciasteczko sesji panelu obsługi: httpOnly, 8 h, secure na produkcji, domena z konfiguracji. */
+/** Ciasteczko sesji panelu obsługi: httpOnly, 8 h, secure na produkcji, tylko host panelu. */
 describe('X-05 ciasteczko sesji obsługi', () => {
   const env = process.env as Record<string, string | undefined>;
   const ORYG = { ...env };
@@ -13,10 +13,9 @@ describe('X-05 ciasteczko sesji obsługi', () => {
     expect(panelAuthCookieOptions()).toMatchObject({ httpOnly: true, secure: true, sameSite: 'lax', path: '/', maxAge: 8 * 3600 });
   });
 
-  it('domena z AUTH_COOKIE_DOMAIN; pusta wartość nie ustawia domeny', () => {
+  it('ciasteczko tylko dla hosta panelu — AUTH_COOKIE_DOMAIN nie rozszerza go na subdomeny', () => {
     env.AUTH_COOKIE_DOMAIN = '.verris.pl';
-    expect(panelAuthCookieOptions().domain).toBe('.verris.pl');
-    env.AUTH_COOKIE_DOMAIN = '  ';
     expect(panelAuthCookieOptions()).not.toHaveProperty('domain');
+    expect(staraDomenaCiasteczka()).toBe('.verris.pl');
   });
 });

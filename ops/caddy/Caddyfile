@@ -194,11 +194,18 @@ Policy: https://panel.verris.pl/legal/security
 # -----------------------------------------------------------------------------
 {$CADDY_GRAFANA_DOMAIN:grafana.verris.local} {
     import security_headers
-    forward_auth api:3000 {
-        uri /auth/grafana-validate
-        copy_headers X-Webauth-User X-Webauth-Role
+    # SSO: jednorazowy kod z panelu → API ustawia host-only ciasteczko grafana_session (rewrite zachowuje query).
+    handle /verris-sso {
+        rewrite * /auth/grafana-sso
+        reverse_proxy api:3000
     }
-    reverse_proxy grafana:3000
+    handle {
+        forward_auth api:3000 {
+            uri /auth/grafana-validate
+            copy_headers X-Webauth-User X-Webauth-Role
+        }
+        reverse_proxy grafana:3000
+    }
 }
 
 # -----------------------------------------------------------------------------

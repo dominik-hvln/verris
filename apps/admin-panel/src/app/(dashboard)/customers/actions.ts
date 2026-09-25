@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { adminApi, AdminApiError } from "@/lib/api";
 
 interface ImpersonateResponse {
-  access_token: string;
+  /** Jednorazowy kod (60 s) — panel klienta wymienia go na token po stronie serwera. */
+  handoffCode: string;
   expiresIn: string;
   target: { id: string; email: string };
   actor: { id: string; role: string };
@@ -40,7 +41,7 @@ export async function impersonateUserAction(
   }
 
   const url = new URL("/impersonate", panelUrl("CLIENT_PANEL_URL", 3001));
-  url.searchParams.set("token", res.access_token);
+  url.searchParams.set("code", res.handoffCode);
   url.searchParams.set("returnTo", "/dashboard");
   url.searchParams.set("operator", "admin");
   redirect(url.toString());

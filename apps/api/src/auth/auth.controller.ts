@@ -7,6 +7,7 @@ import {
   Param,
   Post,
   Req,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
@@ -34,6 +35,12 @@ import { CaptchaService } from './captcha.service';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { RateLimit, SkipRateLimit } from '../common/guards/rate-limit.guard';
+import { odbierzKodPrzekazania } from '../common/auth/przekazanie-sesji';
+import { IsString, MaxLength } from 'class-validator';
+
+class KodPrzekazaniaDto {
+  @IsString() @MaxLength(64) code!: string;
+}
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Role } from '@verris/database';
@@ -58,6 +65,19 @@ export class AuthController {
   @Get('config')
   authConfig() {
     return { captcha: this.captcha.publicConfig() };
+  }
+
+  /**
+   * Wymiana jednorazowego kodu przekazania (impersonacja) na token — woła ją serwer panelu klienta,
+   * nigdy przeglądarka z tokenem w adresie. Kod działa raz i 60 s.
+   */
+  @RateLimit({ limit: 30, windowMs: 60 * 1000, scope: 'auth:handoff' })
+  @HttpCode(HttpStatus.OK)
+  @Post('handoff')
+  handoff(@Body() body: KodPrzekazaniaDto) {
+    const token = odbierzKodPrzekazania(body.code);
+    if (!token) throw new UnauthorizedException('Kod wygasł albo został już użyty.');
+    return { access_token: token };
   }
 
   // Audit F-09: strict per-route limits — registration and mail-out endpoints

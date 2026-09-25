@@ -4,9 +4,12 @@ import {
   Get,
   Header,
   HttpCode,
+  Post,
+  Query,
   Req,
   UnauthorizedException,
 } from '@nestjs/common';
+import { odbierzKodPrzekazania, wydajKodPrzekazania } from '../common/auth/przekazanie-sesji';
 import type { Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { Role } from '@verris/database';
@@ -33,29 +36,28 @@ import { PrismaService } from '../prisma/prisma.service';
  *   2. `Cookie: auth_token=<jwt>` — same cookie used by client/staff/admin
  *      panels.
  */
-@Controller('auth/grafana-validate')
+type WynikDostepu = { email: string; role: 'Admin' | 'Editor'; payload: { sub: string; tv?: number; sid?: string } };
+
+const CIASTECZKO = 'grafana_session';
+const SESJA_S = 8 * 60 * 60;
+
+@Controller('auth')
 export class GrafanaAuthController {
   constructor(
     private readonly jwt: JwtService,
     private readonly prisma: PrismaService,
   ) {}
 
-  @Get()
-  @HttpCode(200)
-  @Header('Cache-Control', 'no-store')
-  async validate(@Req() req: Request): Promise<{ ok: true; role: string; email: string }> {
-    const token = extractToken(req);
+  /** Te same bramki co JwtStrategy + rola w Grafanie. `cele` = dopuszczalne `purpose` tokenu. */
+  private async sprawdz(token: string | null, cele: string[]): Promise<WynikDostepu> {
     if (!token) throw new UnauthorizedException('No auth token provided');
-
     let payload: { sub?: string; purpose?: string; tv?: number; sid?: string };
     try {
       payload = this.jwt.verify(token);
     } catch {
       throw new UnauthorizedException('Invalid auth token');
     }
-    if (payload.purpose && payload.purpose !== 'access') {
-      throw new UnauthorizedException('Token is not an access token');
-    }
+    if (!cele.includes(payload.purpose ?? 'access')) throw new UnauthorizedException('Wrong token purpose');
     if (!payload.sub) throw new UnauthorizedException('Token missing subject');
 
     const user = await this.prisma.user.findUnique({
@@ -72,29 +74,57 @@ export class GrafanaAuthController {
       const sesja = await this.prisma.userSession.findUnique({ where: { id: payload.sid }, select: { userId: true, revokedAt: true } });
       if (!sesja || sesja.userId !== user.id || sesja.revokedAt) throw new UnauthorizedException('Session has been revoked');
     }
-
     const role = mapToGrafanaRole(user.role, user.canAccessGrafana);
-    if (!role) {
-      throw new ForbiddenException('User has no Grafana access');
-    }
-
-    // Caddy reads these via `header_up X-Webauth-User {http.reverse_proxy.header.X-Webauth-User}`
-    // (we set them on the response). For Grafana we use the standard
-    // X-WEBAUTH-USER + X-WEBAUTH-ROLE headers — Grafana's auth.proxy mode
-    // auto-creates the user on first sign-in.
-    // Note: NestJS `@Header()` is static; the response.set() approach below
-    // would be the alternative. We use a small hack: set them via res
-    // through Express adapter.
-    (req.res as { setHeader: (n: string, v: string) => void }).setHeader(
-      'X-WEBAUTH-USER',
-      user.email,
-    );
-    (req.res as { setHeader: (n: string, v: string) => void }).setHeader(
-      'X-WEBAUTH-ROLE',
-      role,
-    );
-    return { ok: true, role, email: user.email };
+    if (!role) throw new ForbiddenException('User has no Grafana access');
+    return { email: user.email, role, payload: { sub: payload.sub, tv: payload.tv, sid: payload.sid } };
   }
+
+  /** Caddy forward_auth przed każdym żądaniem do Grafany. */
+  @Get('grafana-validate')
+  @HttpCode(200)
+  @Header('Cache-Control', 'no-store')
+  async validate(@Req() req: Request): Promise<{ ok: true; role: string; email: string }> {
+    const { email, role } = await this.sprawdz(extractToken(req), ['access', 'grafana']);
+    // Caddy kopiuje te nagłówki do Grafany (auth.proxy: X-WEBAUTH-USER / X-WEBAUTH-ROLE).
+    (req.res as { setHeader: (n: string, v: string) => void }).setHeader('X-WEBAUTH-USER', email);
+    (req.res as { setHeader: (n: string, v: string) => void }).setHeader('X-WEBAUTH-ROLE', role);
+    return { ok: true, role, email };
+  }
+
+  /**
+   * Panel admina/obsługi (serwer, z tokenem operatora) prosi o bilet do Grafany: jednorazowy kod
+   * na 60 s, za którym stoi osobny token sesji Grafany (purpose=grafana, 8 h). Dzięki temu
+   * ciasteczka paneli nie muszą już być na całej domenie .verris.pl.
+   */
+  @Post('grafana-ticket')
+  @HttpCode(200)
+  @Header('Cache-Control', 'no-store')
+  async ticket(@Req() req: Request): Promise<{ code: string }> {
+    const header = req.headers.authorization;
+    const { payload } = await this.sprawdz(header?.startsWith('Bearer ') ? header.slice(7).trim() : null, ['access']);
+    const token = this.jwt.sign({ sub: payload.sub, purpose: 'grafana', tv: payload.tv, sid: payload.sid }, { expiresIn: SESJA_S });
+    return { code: wydajKodPrzekazania(token) };
+  }
+
+  /**
+   * Na hoście Grafany (Caddy: /verris-sso → tutaj): kod → ciasteczko sesji Grafany tylko dla tego
+   * hosta (bez Domain) → przekierowanie na ścieżkę w Grafanie.
+   */
+  @Get('grafana-sso')
+  async sso(@Req() req: Request, @Query('code') code: string, @Query('to') to?: string) {
+    const token = odbierzKodPrzekazania(code);
+    if (!token) throw new UnauthorizedException('Kod wygasł albo został już użyty — otwórz Grafanę ponownie z panelu.');
+    await this.sprawdz(token, ['grafana']);
+    const res = req.res as unknown as { cookie: (n: string, v: string, o: Record<string, unknown>) => void; redirect: (s: number, u: string) => void };
+    res.cookie(CIASTECZKO, token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/', maxAge: SESJA_S * 1000 });
+    res.redirect(302, bezpiecznaSciezka(to));
+  }
+}
+
+/** Tylko ścieżka na tym samym hoście — „//host”, „/\\host”, znaki sterujące i pełne adresy odpadają. */
+export function bezpiecznaSciezka(to: string | undefined): string {
+  const t = (to ?? '').trim();
+  return /^\/(?![/\\])[^\x00-\x1f\x7f]*$/.test(t) ? t : '/';
 }
 
 function extractToken(req: Request): string | null {
@@ -102,13 +132,13 @@ function extractToken(req: Request): string | null {
   if (header && header.startsWith('Bearer ')) {
     return header.slice('Bearer '.length).trim();
   }
+  // Tylko własne ciasteczko hosta Grafany. Ciasteczek sesji paneli (auth_token, admin/staff_auth_token)
+  // Grafana już nie czyta — nie są ustawiane na całą domenę .verris.pl.
   const cookieHeader = req.headers.cookie;
   if (cookieHeader) {
     for (const part of cookieHeader.split(';')) {
       const [k, ...rest] = part.trim().split('=');
-      if (k === 'auth_token' || k === 'admin_auth_token' || k === 'staff_auth_token') {
-        return rest.join('=');
-      }
+      if (k === CIASTECZKO) return rest.join('=');
     }
   }
   return null;

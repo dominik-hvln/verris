@@ -21,7 +21,7 @@ export function safeGrafanaRedirectUrl(
     if (url.origin !== new URL(base).origin) return fallback;
     return url.toString();
   } catch {
-    if (raw.startsWith('/')) return `${base}${raw}`;
+    if (/^\/(?![/\\])/.test(raw)) return `${base}${raw}`;
     return fallback;
   }
 }

@@ -5,7 +5,7 @@
 1. Skopiuj `.env.example` do `.env.local` — **`API_URL`** musi wskazywać na działające API (domyślnie `http://localhost:3000`).
 2. Dev: `pnpm dev` — aplikacja na porcie **3002**.
 
-Token sesji jest w cookie `staff_auth_token` (httpOnly), tak jak przy produkcji.
+Token sesji jest w cookie `staff_session` (httpOnly, tylko host panelu), tak jak przy produkcji.
 
 ## Logowanie (dev)
 

@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { safeGrafanaRedirectUrl } from "@verris/contracts";
-import { ADMIN_COOKIE_NAME, getAdminAuthToken } from "@/lib/auth";
-import { panelAuthCookieDomain, panelAuthCookieOptions } from "@/lib/auth-cookie";
+import { getAdminAuthToken } from "@/lib/auth";
+import { API_URL } from "@/lib/api";
 
+/**
+ * SSO do Grafany bez ciasteczka sesji panelu na całej domenie: serwer panelu prosi API o bilet
+ * (jednorazowy kod, 60 s) i przekierowuje na grafana.verris.pl/verris-sso, gdzie API ustawia
+ * ciasteczko sesji Grafany tylko dla jej hosta. Token panelu nie opuszcza panelu.
+ */
 export async function GET(request: NextRequest) {
   const token = await getAdminAuthToken();
   if (!token) {
@@ -14,15 +19,18 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Grafana URL not configured" }, { status: 503 });
   }
 
-  const target = safeGrafanaRedirectUrl(
-    request.nextUrl.searchParams.get("to"),
-    grafanaBase,
-  );
-  const response = NextResponse.redirect(target);
-  response.cookies.set(
-    ADMIN_COOKIE_NAME,
-    token,
-    panelAuthCookieOptions(panelAuthCookieDomain()),
-  );
-  return response;
+  const cel = new URL(safeGrafanaRedirectUrl(request.nextUrl.searchParams.get("to"), grafanaBase));
+  const res = await fetch(`${API_URL}/auth/grafana-ticket`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    return NextResponse.json({ error: "Brak dostępu do Grafany." }, { status: res.status === 403 ? 403 : 401 });
+  }
+  const { code } = (await res.json()) as { code: string };
+  const sso = new URL("/verris-sso", grafanaBase);
+  sso.searchParams.set("code", code);
+  sso.searchParams.set("to", cel.pathname + cel.search);
+  return NextResponse.redirect(sso);
 }

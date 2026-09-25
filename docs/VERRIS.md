@@ -87,6 +87,13 @@ i zasobów z zewnątrz; osadzanie przez iframe z sandboxem + mały loader.
 - M-07 (duplikat faktury), M-09 (stawki VAT ≠ 23%), M-10 (waluta obca) — **przed startem, w panelu**, mimo że fakturę VAT wystawia Firmino: dotyczy dokumentów, które pokazuje panel.
 - Źródło prawdy o wyborach: tablica „Verris po starcie” (kolumna „Przed startem / Po starcie”).
 
+### 2026-09-25 — sesje paneli i impersonacja (przegląd bezpieczeństwa)
+Ciasteczka sesji admina i obsługi są **host-only** (`admin_session`, `staff_session`); stare ciasteczka
+na `.verris.pl` panel kasuje przy logowaniu/wylogowaniu — po wdrożeniu każdy operator loguje się raz
+ponownie. Impersonacja: w URL idzie jednorazowy kod (60 s), nie token. Grafana: SSO przez bilet API
+i własne host-only ciasteczko `grafana_session` (trasa `/verris-sso` w Caddyfile).
+Ograniczenie: kody trzymane w pamięci jednej repliki API — przy skalowaniu API poziomo przenieść do Redis.
+
 ### 2026-09-22 — DNS
 ClouDNS **Premium L** (14,95 USD/mies., 400 stref) jako zewnętrzny secondary za DirectAdminem,
 NS pod marką Verris — kupujemy razem z węzłem. DDoS Protected nie na start. Openprovider jako

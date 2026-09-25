@@ -1,3 +1,4 @@
+import { wydajKodPrzekazania } from '../common/auth/przekazanie-sesji';
 import {
   BadRequestException,
   ConflictException,
@@ -839,7 +840,9 @@ export class UsersAdminService {
     });
 
     return {
-      access_token: token,
+      // Token nie wraca do panelu operatora ani do adresu URL — tylko jednorazowy kod (60 s), który
+      // panel klienta wymienia po stronie serwera (POST /auth/handoff).
+      handoffCode: wydajKodPrzekazania(token),
       expiresIn: this.impersonationTtl,
       reason,
       startedAt: new Date(issuedAt * 1000).toISOString(),
