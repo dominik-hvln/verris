@@ -13,6 +13,7 @@ import {
   measureDbSizes,
   type DbTransferStatus,
 } from '@/app/dashboard/services/[id]/hosting-db-transfer-actions';
+import { liczba } from '@/lib/liczba';
 
 /**
  * D-12 — eksport i import bazy. Pracę wykonuje węzeł; plik wyniku (albo kopia sprzed importu)
@@ -28,7 +29,7 @@ const STATUS: Record<string, string> = {
   FAILED: 'nie powiodło się',
   CANCELLED: 'anulowane',
 };
-const rozmiar = (b: number) => (b >= 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
+const rozmiar = (b: number) => (b >= 1048576 ? `${liczba(b / 1048576, 1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
 
 export function DbTransferPanel({ serviceId, databases }: { serviceId: string; databases: string[] }) {
   const [stan, setStan] = useState<DbTransferStatus | null>(null);

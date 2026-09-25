@@ -253,6 +253,8 @@ Kierunek do przygotowania jako osobny projekt (makiety przed kodem):
 | Ekrany bez logowania: logowanie, rejestracja, reset hasła, weryfikacje, zaproszenie, dokumenty prawne | ten sam system wizualny, bez zmian w działaniu |
 
 **Zasady wyglądu przyjęte w PB-16 (obowiązują dla nowych ekranów):**
+- własne klasy z wariantami (np. `max-lg:pt-mobile-header`) tylko jako `@utility` w `globals.css` — Tailwind 4 nie generuje wariantów dla klas z `@layer utilities` (2026-09-25: tytuły stron chowały się pod paskiem na telefonie);
+- liczby w tekstach dla klienta przez `liczba()` z `lib/liczba.ts` (przecinek dziesiętny), nie `toFixed`;
 - nic się nie chowa: bez wielokropka w treści, bez ukrywania kolumn na telefonie (tabela `v2-stack` rozkłada się na bloki z nazwą kolumny), bez przewijania w bok (długie wartości łamane, liczby i daty `whitespace-nowrap`);
 - stary kod dostaje paletę wzorca przez `.v2-skin` w `globals.css`; nowe ekrany piszemy od razu na tokenach i klockach z `components/panel/v2.tsx`;
 - dymki (`data-tip`) mieszczą się na ekranie (`placeTip`) i są czytane przez czytnik ekranu (`aria-describedby`);

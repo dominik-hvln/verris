@@ -71,7 +71,7 @@ export class DirectAdminService {
 
     if (!server.daHost || !server.daPort || !server.daUsername || !server.daPasswordEnc) {
       throw new BadRequestException(
-        'DirectAdmin is not configured for this server. Set DA host/port/username/password first.',
+        'Serwer hostingowy nie jest jeszcze skonfigurowany — napisz do nas, dokończymy konfigurację.',
       );
     }
 
@@ -283,7 +283,7 @@ export class DirectAdminService {
     if (!account) throw new NotFoundException('Hosting account not found');
     if (!account.daPasswordEnc) {
       throw new BadRequestException(
-        'Brak zapisanych danych logowania DirectAdmin dla tego konta (tylko konto z provisioningu).',
+        'Konto hostingowe nie jest jeszcze w pełni gotowe (brak danych dostępowych do serwera). Napisz do nas — dokończymy konfigurację.',
       );
     }
     const server = account.server;
@@ -832,7 +832,7 @@ export class DirectAdminService {
     this.assertAccountMutable(sub.account);
     const client = await this.getClientForHostingAccount(sub.account.id, userId);
     const axiosClient = (client as unknown as { client?: SurowyKlientDa }).client;
-    if (!axiosClient) throw new BadRequestException('DirectAdmin client is not available');
+    if (!axiosClient) throw new BadRequestException('Serwer hostingowy jest chwilowo niedostępny. Spróbuj ponownie za chwilę.');
     const body = new URLSearchParams({ ...form, api: 'yes' }).toString();
     const response = await axiosClient.post(path, body, {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -895,7 +895,7 @@ export class DirectAdminService {
     try {
       const client = await this.getClientForHostingAccount(account.id, userId);
       const axiosClient = (client as unknown as { client?: SurowyKlientDa }).client;
-      if (!axiosClient) throw new BadRequestException('DirectAdmin client is not available');
+      if (!axiosClient) throw new BadRequestException('Serwer hostingowy jest chwilowo niedostępny. Spróbuj ponownie za chwilę.');
       const [usageRes, configRes] = await Promise.all([
         axiosClient.get('/CMD_API_SHOW_USER_USAGE', { timeout: 15_000 }),
         axiosClient.get('/CMD_API_SHOW_USER_CONFIG', { timeout: 15_000 }),
@@ -942,7 +942,7 @@ export class DirectAdminService {
     }
     const ok = listing.domains.some((d) => d.name.toLowerCase() === domain.trim().toLowerCase());
     if (!ok) {
-      throw new BadRequestException('Ta domena nie jest przypisana do konta DirectAdmin tej usługi.');
+      throw new BadRequestException('Ta domena nie jest przypisana do konta hostingowego tej usługi.');
     }
   }
 
@@ -1035,7 +1035,7 @@ export class DirectAdminService {
     const domains = await this.listHostingDomainsForSubscription(subscriptionId, userId);
     const chciana = input.domain?.trim().toLowerCase();
     if (chciana && !domains.domains.some((d) => d.name.toLowerCase() === chciana)) {
-      throw new BadRequestException('Ta domena nie jest przypisana do konta DirectAdmin tej usługi.');
+      throw new BadRequestException('Ta domena nie jest przypisana do konta hostingowego tej usługi.');
     }
     const domain = chciana ?? domains.primaryDomain ?? domains.domains[0]?.name ?? null;
     if (!domain) return { domain: null, type, lines: [], truncated: false, fetchError: null };
@@ -1046,7 +1046,7 @@ export class DirectAdminService {
     try {
       const client = await this.getClientForHostingAccount(sub.account.id, userId);
       const axiosClient = (client as unknown as { client?: SurowyKlientDa }).client;
-      if (!axiosClient) throw new Error('DirectAdmin client is not available');
+      if (!axiosClient) throw new Error('Serwer hostingowy jest chwilowo niedostępny. Spróbuj ponownie za chwilę.');
       const res = await axiosClient.get('/CMD_SHOW_LOG', {
         params: { domain, type: type === 'error' ? 'error' : 'log', lines: String(ile) },
         timeout: 15_000,
@@ -1073,7 +1073,7 @@ export class DirectAdminService {
     // F-01: domena z zapytania musi należeć do konta tej usługi — inaczej
     // bezpieczeństwo odczytu strefy zależy wyłącznie od uprawnień po stronie DA.
     if (domain && !domains.domains.some((d) => d.name.toLowerCase() === domain.trim().toLowerCase())) {
-      throw new BadRequestException('Ta domena nie jest przypisana do konta DirectAdmin tej usługi.');
+      throw new BadRequestException('Ta domena nie jest przypisana do konta hostingowego tej usługi.');
     }
     const effectiveDomain = domain ?? domains.primaryDomain ?? domains.domains[0]?.name ?? null;
     if (!effectiveDomain) return { domain: null, records: [], fetchError: null };
@@ -2301,7 +2301,7 @@ export class DirectAdminService {
     const { account } = await this.accountClientForSubscription(subscriptionId, userId);
     const admin = await this.getClientForServer(account.serverId);
     const surowy = (admin as unknown as { client?: SurowyKlientDa }).client;
-    if (!surowy) throw new BadRequestException('DirectAdmin client is not available');
+    if (!surowy) throw new BadRequestException('Serwer hostingowy jest chwilowo niedostępny. Spróbuj ponownie za chwilę.');
     return { dom, account, surowy };
   }
 
@@ -2384,7 +2384,7 @@ export class DirectAdminService {
     const sciezka = katalog ? `/home/${account.daUsername}/domains/${dom}/public_html/${katalog}` : null;
     const admin = await this.getClientForServer(account.serverId);
     const surowy = (admin as unknown as { client?: SurowyKlientDa }).client;
-    if (!surowy) throw new BadRequestException('DirectAdmin client is not available');
+    if (!surowy) throw new BadRequestException('Serwer hostingowy jest chwilowo niedostępny. Spróbuj ponownie za chwilę.');
     const res = await surowy.post(
       '/CMD_API_CUSTOM_HTTPD',
       new URLSearchParams({ domain: dom, config: zapiszDocroot(obecny, sciezka), api: 'yes' }).toString(),
@@ -2407,7 +2407,7 @@ export class DirectAdminService {
   private async czytajCustomHttpd(serverId: string, domain: string): Promise<string> {
     const admin = await this.getClientForServer(serverId);
     const surowy = (admin as unknown as { client?: SurowyKlientDa }).client;
-    if (!surowy) throw new BadRequestException('DirectAdmin client is not available');
+    if (!surowy) throw new BadRequestException('Serwer hostingowy jest chwilowo niedostępny. Spróbuj ponownie za chwilę.');
     const res = await surowy.get('/CMD_API_CUSTOM_HTTPD', { params: { domain, api: 'yes' }, timeout: 15_000 });
     const data: unknown = res?.data;
     const pola = typeof data === 'string' ? new URLSearchParams(data) : this.parseKvPayload(data);
@@ -2729,7 +2729,7 @@ export class DirectAdminService {
       });
       const daUsername = sub?.account?.daUsername;
       if (!daUsername) {
-        throw new BadRequestException('Konto hostingowe nie ma jeszcze loginu DirectAdmin.');
+        throw new BadRequestException('Konto hostingowe nie ma jeszcze loginu na serwerze — konfiguracja jeszcze trwa.');
       }
       const suffix = label.replace(/-/g, '').slice(0, 12) || 'staging';
       const password = generateDbPassword();
@@ -2943,7 +2943,7 @@ export class DirectAdminService {
     if (!sub.account?.id) throw new BadRequestException('Subscription has no hosting account yet');
     const client = await this.getClientForHostingAccount(sub.account.id, userId);
     const axiosClient = (client as unknown as { client?: SurowyKlientDa }).client;
-    if (!axiosClient) throw new BadRequestException('DirectAdmin client is not available');
+    if (!axiosClient) throw new BadRequestException('Serwer hostingowy jest chwilowo niedostępny. Spróbuj ponownie za chwilę.');
     const res = await axiosClient.get(path, {
       params: { ...params, api: 'yes', json: 'yes' },
       timeout: 15_000,
@@ -2980,7 +2980,7 @@ export class DirectAdminService {
       return { rows: [], fetchError: err instanceof Error ? err.message : String(err) };
     }
     if (!axiosClient) {
-      return { rows: [], fetchError: 'DirectAdmin client is not available' };
+      return { rows: [], fetchError: 'Serwer hostingowy jest chwilowo niedostępny. Spróbuj ponownie za chwilę.' };
     }
 
     // Cap to keep the call bounded for accounts with many domains.

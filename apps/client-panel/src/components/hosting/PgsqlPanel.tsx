@@ -12,11 +12,12 @@ import {
   utworzPgsql,
   type StanPgsql,
 } from '@/app/dashboard/services/[id]/hosting-pgsql-actions';
+import { liczba } from '@/lib/liczba';
 
 const BTN = 'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[7px] border border-line-strong bg-card px-[13px] py-2 text-sm font-medium text-foreground hover:bg-raised disabled:opacity-50';
 const TH = 'whitespace-nowrap px-3 pb-2.5 pt-3 text-left font-mono text-[11px] font-medium uppercase tracking-[0.07em] text-muted-foreground';
 const TD = 'border-t border-line px-3 py-[11px] align-middle text-[13px]';
-const rozmiar = (b: number) => (b >= 1024 ** 3 ? `${(b / 1024 ** 3).toFixed(2)} GB` : `${(b / 1024 ** 2).toFixed(1)} MB`);
+const rozmiar = (b: number) => (b >= 1024 ** 3 ? `${liczba(b / 1024 ** 3, 2)} GB` : `${liczba(b / 1024 ** 2, 1)} MB`);
 
 /**
  * D-14 — bazy PostgreSQL konta. Baza i użytkownik mają tę samą nazwę; hasło pokazujemy raz, po utworzeniu

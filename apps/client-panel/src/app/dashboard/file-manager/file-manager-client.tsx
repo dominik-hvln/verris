@@ -41,6 +41,7 @@ import {
 import { daErrorMessage } from '@/lib/client-hosting-messages';
 import { potwierdz, zapytaj } from '@/components/panel/potwierdz';
 import { Checkbox } from '@/components/panel/checkbox';
+import { liczba } from '@/lib/liczba';
 
 const EDITABLE = /\.(txt|md|html?|css|js|mjs|cjs|ts|jsx|tsx|json|xml|ya?ml|ini|conf|env|htaccess|php|py|sh|sql|log)$/i;
 const ARCHIVE = /\.(zip|tar\.gz|tgz|tar\.bz2|tar)$/i;
@@ -89,7 +90,7 @@ function formatSize(bytes: number): string {
     n /= 1024;
     i++;
   }
-  return `${n.toFixed(n < 10 && i > 0 ? 1 : 0)} ${units[i]}`;
+  return `${liczba(n, n < 10 && i > 0 ? 1 : 0)} ${units[i]}`;
 }
 
 export function FileManagerClient({ serviceId, domain }: { serviceId: string; domain?: string }) {

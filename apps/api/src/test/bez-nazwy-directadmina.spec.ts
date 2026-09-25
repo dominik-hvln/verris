@@ -42,3 +42,26 @@ describe('White label — nazwa DirectAdmina nie trafia do klienta', () => {
     expect(trafienia).toEqual([]);
   });
 });
+
+/**
+ * Komunikaty błędów API, które trafiają do panelu klienta (np. „Narzędzia WWW” pokazywały „Brak zapisanych
+ * danych logowania DirectAdmin…”). Wyjątki: kreator migracji (DirectAdmin u poprzedniego dostawcy)
+ * i komunikaty wyłącznie dla administratora (ustawienia i audyt węzła).
+ */
+describe('White label — błędy API dla klienta bez nazwy DirectAdmina', () => {
+  const WYJATKI_API = new Set([
+    'apps/api/src/subscriptions/migration-discovery.service.ts',
+    'apps/api/src/servers/servers.service.ts',
+    'apps/api/src/servers/node-audit.service.ts',
+  ]);
+  const KOMUNIKAT = /new \w+Exception\(\s*([`'"])((?:(?!\1).)*?(DirectAdmin|\bDA\b)(?:(?!\1).)*)\1/gs;
+
+  it('wyjątki w serwisach klienta nie mówią „DirectAdmin” ani „DA”', () => {
+    const katalogi = ['subscriptions', 'servers', 'diagnostics', 'domains', 'users', 'files', 'autoscaling', 'reseller', 'vps'].map((k) => join(KORZEN, 'apps/api/src', k));
+    const trafienia = katalogi
+      .flatMap((k) => pliki(k, /\.ts$/))
+      .filter((p) => !WYJATKI_API.has(relative(KORZEN, p)))
+      .flatMap((p) => [...readFileSync(p, 'utf8').matchAll(KOMUNIKAT)].map((m) => `${relative(KORZEN, p)}: ${m[2].slice(0, 80)}`));
+    expect(trafienia).toEqual([]);
+  });
+});

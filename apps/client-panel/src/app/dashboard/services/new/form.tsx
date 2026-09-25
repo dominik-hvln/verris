@@ -18,6 +18,7 @@ import { DomainStep, type DomainSelection } from './domain-step';
 import { CREDIT_SHORT, formatCredits } from '@/lib/credits';
 import { trackBeginCheckout, trackPurchase } from '@/lib/analytics-events';
 import { Checkbox } from '@/components/panel/checkbox';
+import { liczba } from '@/lib/liczba';
 
 interface StartOffer {
   cardEnabled: boolean;
@@ -361,11 +362,11 @@ export function NewSubscriptionForm({ plans, initialInterval, initialPromo, star
                   <Spec icon={<Cpu className="h-4 w-4 text-neutral-400" />} label={`${plan.cpuLimit}% CPU`} />
                   <Spec
                     icon={<MemoryStick className="h-4 w-4 text-neutral-400" />}
-                    label={`${(plan.ramLimitMb / 1024).toFixed(1)} GB RAM`}
+                    label={`${liczba(plan.ramLimitMb / 1024, 1)} GB RAM`}
                   />
                   <Spec
                     icon={<HardDrive className="h-4 w-4 text-neutral-400" />}
-                    label={`${(plan.diskLimitMb / 1024).toFixed(0)} GB SSD`}
+                    label={`${liczba(plan.diskLimitMb / 1024, 0)} GB SSD`}
                   />
                 </div>
                 <div className="mt-6 flex items-baseline gap-2">

@@ -3,10 +3,11 @@
 import { useEffect, useState } from 'react';
 import { Activity, Database, Globe, HardDrive, Loader2, Mail, Network } from 'lucide-react';
 import { fetchHostingStatsAction, type HostingStats } from '@/app/dashboard/services/[id]/hosting-stats-actions';
+import { liczba } from '@/lib/liczba';
 
 function fmtMb(mb: number): string {
-  if (mb >= 1024 * 1024) return `${(mb / 1024 / 1024).toFixed(2)} TB`;
-  if (mb >= 1024) return `${(mb / 1024).toFixed(2)} GB`;
+  if (mb >= 1024 * 1024) return `${liczba(mb / 1024 / 1024, 2)} TB`;
+  if (mb >= 1024) return `${liczba(mb / 1024, 2)} GB`;
   return `${Math.round(mb)} MB`;
 }
 

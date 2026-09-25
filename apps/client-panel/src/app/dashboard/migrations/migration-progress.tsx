@@ -19,6 +19,7 @@ import {
   type MigrationJobView,
 } from './types';
 import { potwierdz } from '@/components/panel/potwierdz';
+import { liczba } from '@/lib/liczba';
 
 interface Props {
   serviceId: string;
@@ -37,7 +38,7 @@ function formatBytes(value: string): string {
     size /= 1024;
     u += 1;
   }
-  return `${size < 10 && u > 0 ? size.toFixed(1) : Math.round(size)} ${units[u]}`;
+  return `${size < 10 && u > 0 ? liczba(size, 1) : Math.round(size)} ${units[u]}`;
 }
 
 export function MigrationProgress({ serviceId, initial }: Props) {

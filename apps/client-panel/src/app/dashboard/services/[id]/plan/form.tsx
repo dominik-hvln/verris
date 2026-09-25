@@ -12,6 +12,7 @@ import {
   type PlanChangeActionState,
 } from './actions';
 import { Checkbox } from '@/components/panel/checkbox';
+import { liczba } from '@/lib/liczba';
 
 interface TargetPlan {
   id: string;
@@ -248,8 +249,8 @@ export function PlanChangeForm({
                   </span>
                 </div>
                 <p id={`${planId}-${plan.id}-desc`} className="mt-2 text-xs text-neutral-500">
-                  CPU {plan.cpuLimit}% · RAM {(plan.ramLimitMb / 1024).toFixed(1)} GB · dysk{' '}
-                  {(plan.diskLimitMb / 1024).toFixed(0)} GB
+                  CPU {plan.cpuLimit}% · RAM {liczba(plan.ramLimitMb / 1024, 1)} GB · dysk{' '}
+                  {liczba(plan.diskLimitMb / 1024, 0)} GB
                 </p>
               </div>
             </label>

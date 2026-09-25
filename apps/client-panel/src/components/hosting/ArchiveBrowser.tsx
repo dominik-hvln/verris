@@ -9,6 +9,7 @@ import {
   restoreFromArchive,
   type FileRestoreStatus,
 } from '@/app/dashboard/services/[id]/hosting-file-restore-actions';
+import { liczba } from '@/lib/liczba';
 
 /**
  * H-10/H-11 — przeglądanie zawartości archiwum kopii i odtworzenie pojedynczego pliku lub katalogu.
@@ -16,7 +17,7 @@ import {
  * Odtworzenie niczego nie nadpisuje: pliki trafiają do nowego katalogu verris-odtworzone.
  */
 const START = 'domains';
-const rozmiar = (b: number) => (b >= 1048576 ? `${(b / 1048576).toFixed(1)} MB` : b >= 1024 ? `${Math.round(b / 1024)} KB` : `${b} B`);
+const rozmiar = (b: number) => (b >= 1048576 ? `${liczba(b / 1048576, 1)} MB` : b >= 1024 ? `${Math.round(b / 1024)} KB` : `${b} B`);
 
 export function ArchiveBrowser({ serviceId, archive }: { serviceId: string; archive: string }) {
   const [stan, setStan] = useState<FileRestoreStatus | null>(null);

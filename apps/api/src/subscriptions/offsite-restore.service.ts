@@ -102,7 +102,7 @@ export class OffsiteRestoreService {
       throw new BadRequestException('Konto hostingowe nie jest aktywne.');
     }
     if (!account.daUsername) {
-      throw new BadRequestException('Konto nie ma jeszcze użytkownika DirectAdmin.');
+      throw new BadRequestException('Konto hostingowe nie ma jeszcze loginu na serwerze — konfiguracja jeszcze trwa.');
     }
     const inflight = await this.prisma.nodeTask.findFirst({
       where: {

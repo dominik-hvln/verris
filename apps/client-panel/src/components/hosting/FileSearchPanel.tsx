@@ -5,10 +5,11 @@ import { Search } from 'lucide-react';
 import { toast } from 'sonner';
 import { SectionHead } from '@/components/panel/v2';
 import { fetchFileSearch, runFileSearch, type FileSearchStatus } from '@/app/dashboard/services/[id]/hosting-file-search-actions';
+import { liczba } from '@/lib/liczba';
 
 const INPUT = 'w-full rounded-[7px] border border-line bg-card px-3 py-2 text-sm text-foreground outline-none focus:border-data';
 const BTN = 'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[7px] border border-line-strong bg-card px-[13px] py-2 text-sm font-medium text-foreground hover:bg-raised disabled:opacity-50';
-const rozmiar = (b: number) => (b < 1024 ? `${b} B` : b < 1048576 ? `${(b / 1024).toFixed(1)} KB` : `${(b / 1048576).toFixed(1)} MB`);
+const rozmiar = (b: number) => (b < 1024 ? `${b} B` : b < 1048576 ? `${liczba(b / 1024, 1)} KB` : `${liczba(b / 1048576, 1)} MB`);
 
 /** C-14 — szukanie plików w katalogu strony po nazwie i/lub tekście w treści. */
 export function FileSearchPanel({ serviceId, domain }: { serviceId: string; domain: string }) {

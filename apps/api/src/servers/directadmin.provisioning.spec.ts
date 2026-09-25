@@ -39,7 +39,7 @@ describe('Klient admina węzła (getClientForServer)', () => {
   });
 
   it('brak konfiguracji DA → 400; brak węzła → 404', async () => {
-    await expect(serwis({ ...WEZEL, daPasswordEnc: null }).svc.getClientForServer('n1')).rejects.toThrow('not configured');
+    await expect(serwis({ ...WEZEL, daPasswordEnc: null }).svc.getClientForServer('n1')).rejects.toThrow('nie jest jeszcze skonfigurowany');
     await expect(serwis(null).svc.getClientForServer('n1')).rejects.toThrow('Server not found');
   });
 });
@@ -77,7 +77,7 @@ describe('Test połączenia (zakres klucza)', () => {
 
   it('węzeł bez konfiguracji DA → ok:false z opisem, bez wyjątku', async () => {
     const { svc } = serwis({ ...WEZEL, daHost: null });
-    expect(await svc.testConnection('n1')).toMatchObject({ ok: false, error: expect.stringContaining('not configured') });
+    expect(await svc.testConnection('n1')).toMatchObject({ ok: false, error: expect.stringContaining('nie jest jeszcze skonfigurowany') });
   });
 });
 

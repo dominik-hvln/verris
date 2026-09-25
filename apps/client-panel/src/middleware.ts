@@ -38,6 +38,10 @@ export async function middleware(request: NextRequest) {
       return res;
     }
     if (!session) {
+      // Akcja serwera (nagłówek Next-Action) sama woła API z tokenem klienta, a API sprawdza
+      // uprawnienia (customer-permissions.guard) — tu zwracamy ją dalej, żeby komponent dostał
+      // swój komunikat po polsku zamiast „An unexpected response was received from the server”.
+      if (request.headers.has("next-action")) return NextResponse.next();
       // API chwilowo niedostępne (np. wdrożenie): nie wpuszczamy bez znanych uprawnień, ale też
       // nie kasujemy sesji — wcześniej każda taka chwila wylogowywała wszystkich klientów.
       return new NextResponse(PANEL_CHWILOWO_NIEDOSTEPNY, {

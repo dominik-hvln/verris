@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import type { ConnectionMetricDto, ServiceConnectionInfoDto } from '@verris/contracts';
 import { fetchConnectionInfoAction } from '@/app/dashboard/services/[id]/hosting-connection-actions';
+import { liczba } from '@/lib/liczba';
 
 function CopyButton({ value, label }: { value: string; label: string }) {
   const [copied, setCopied] = useState(false);
@@ -73,7 +74,7 @@ function InfoRow({
 
 function gb(mb: number): string {
   const v = mb / 1024;
-  return `${Number.isInteger(v) ? v : v.toFixed(1)} GB`;
+  return `${Number.isInteger(v) ? v : liczba(v, 1)} GB`;
 }
 
 function metricText(m: ConnectionMetricDto, kind: 'mb' | 'count'): { used: string; limit: string } {

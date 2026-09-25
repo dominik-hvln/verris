@@ -7,6 +7,7 @@ import type { PreviewTopupPromoResponse, TopupQuoteDto, WalutaWplaty } from '@ve
 import { previewTopupPromoAction, quoteTopupAction, startTopupAction } from './actions';
 import { TOPUP_PRESETS } from './constants';
 import { Select } from '@/components/panel/select';
+import { liczba } from '@/lib/liczba';
 
 interface Props {
   balance: string;
@@ -165,13 +166,13 @@ export function TopupCard({ balance }: Props) {
           {kredyt !== null ? (
             <p className="text-xs text-emerald-200/90">
               Otrzymasz {quote?.szacunek ? 'ok. ' : ''}
-              {formatCredits(kredyt, { signed: true })} ({kredyt.toFixed(2)}{' '}
+              {formatCredits(kredyt, { signed: true })} ({liczba(kredyt, 2)}{' '}
               {pluralCredits(kredyt)}) na portfel.
               {promoState.status === 'applied' && promoState.preview ? (
                 <>
-                  {' '}+ <strong>{bonus.toFixed(2)} {CREDIT_SHORT}</strong> bonusu z
+                  {' '}+ <strong>{liczba(bonus, 2)} {CREDIT_SHORT}</strong> bonusu z
                   kodu „{promoState.preview.code}” ({promoState.preview.percent}%) — łącznie{' '}
-                  <strong>{(kredyt + bonus).toFixed(2)} {CREDIT_SHORT}</strong>.
+                  <strong>{liczba(kredyt + bonus, 2)} {CREDIT_SHORT}</strong>.
                 </>
               ) : null}
             </p>
@@ -289,7 +290,7 @@ function VatInfo({ quote, currency }: { quote: TopupQuoteDto; currency: WalutaWp
   if (currency !== 'PLN') {
     linie.push(
       quote.kurs
-        ? `Kurs NBP dziś: ${quote.kurs.toFixed(4)} PLN za 1 ${currency}; ostateczny z dnia poprzedzającego płatność.`
+        ? `Kurs NBP dziś: ${liczba(quote.kurs, 4)} PLN za 1 ${currency}; ostateczny z dnia poprzedzającego płatność.`
         : 'Kurs NBP chwilowo niedostępny — kwotę w K zobaczysz po zaksięgowaniu.',
     );
   }

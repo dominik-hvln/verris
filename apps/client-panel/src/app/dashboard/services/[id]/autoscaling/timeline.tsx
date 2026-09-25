@@ -1,6 +1,7 @@
 import { ArrowDownToLine, ArrowUpFromLine, Coins, History } from 'lucide-react';
 import { formatCredits } from '@/lib/credits';
 import type { AutoscalingChargeDto, AutoscalingEventDto } from './data';
+import { liczba } from '@/lib/liczba';
 
 interface Props {
   events: AutoscalingEventDto[];
@@ -68,7 +69,7 @@ function ograniczenieWezla(reason: string | null): string | null {
     const [zasob, wart] = p.split(':');
     const [dostal, chcial] = (wart ?? '').split('/').map(Number);
     if (!chcial) return null;
-    const fmt = (v: number) => (zasob === 'cpu' ? `${v}%` : `${(v / 1024).toFixed(1)} GB`);
+    const fmt = (v: number) => (zasob === 'cpu' ? `${v}%` : `${liczba(v / 1024, 1)} GB`);
     return `${zasob.toUpperCase()} ${fmt(dostal)} z ${fmt(chcial)}`;
   });
   return czesci.filter(Boolean).join(' · ') || 'mniej niż potrzeba';
@@ -159,7 +160,7 @@ function formatScaledValue(resource: string | null, value: number): string {
   if (resource === 'CPU') return `+${value}%`;
   if (resource === 'RAM' || resource === 'DISK') {
     const gb = value / 1024;
-    const label = gb % 1 === 0 ? `${gb.toFixed(0)} GB` : `${gb.toFixed(1)} GB`;
+    const label = gb % 1 === 0 ? `${liczba(gb, 0)} GB` : `${liczba(gb, 1)} GB`;
     return `+${label}`;
   }
   return String(value);

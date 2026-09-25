@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Select } from '@/components/panel/select';
 import { renewDomainAction, renewQuoteAction } from '../actions';
+import { liczba } from '@/lib/liczba';
 
 /** A-10 — odnowienie domeny z panelu: wybór okresu, cena, potwierdzenie (obciąża portfel). */
 export function DomainRenewBox({ domainId, expiresAt }: { domainId: string; expiresAt: string }) {
@@ -60,7 +61,7 @@ export function DomainRenewBox({ domainId, expiresAt }: { domainId: string; expi
           </button>
         ) : (
           <button type="button" onClick={renew} disabled={busy} className="rounded-lg bg-white px-3 py-1.5 font-semibold text-black hover:bg-neutral-200 disabled:opacity-50">
-            Odnów za {quote.priceAmount} {quote.currency === 'PLN' ? 'K' : quote.currency}
+            Odnów za {liczba(Number(quote.priceAmount), 2)} {quote.currency === 'PLN' ? 'K' : quote.currency}
           </button>
         )}
       </div>

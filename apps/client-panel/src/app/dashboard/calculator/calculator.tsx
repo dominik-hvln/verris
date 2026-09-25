@@ -12,6 +12,7 @@ import {
 import type { PriceRuleDto } from './types';
 import { hourlyRateForResource } from './pricing-math';
 import { CREDIT_SHORT } from '@/lib/credits';
+import { liczba } from '@/lib/liczba';
 
 interface Props {
   rules: PriceRuleDto[];
@@ -132,7 +133,7 @@ export function AutoscalingCalculator({
 
             <div className="mb-8">
               <div className="text-4xl font-extrabold text-white">
-                {breakdown.monthly.toFixed(2)}{' '}
+                {liczba(breakdown.monthly, 2)}{' '}
                 <span className="text-2xl text-neutral-400">{unit}</span>
               </div>
               <p className="text-neutral-500 text-sm">
@@ -141,9 +142,9 @@ export function AutoscalingCalculator({
             </div>
 
             <div className="space-y-3 mb-8 text-sm">
-              <Row label="CPU" value={`${breakdown.cpuHourly.toFixed(4)} ${unit}/h`} />
-              <Row label="RAM" value={`${breakdown.ramHourly.toFixed(4)} ${unit}/h`} />
-              <Row label="Dysk" value={`${breakdown.diskHourly.toFixed(4)} ${unit}/h`} />
+              <Row label="CPU" value={`${liczba(breakdown.cpuHourly, 4)} ${unit}/h`} />
+              <Row label="RAM" value={`${liczba(breakdown.ramHourly, 4)} ${unit}/h`} />
+              <Row label="Dysk" value={`${liczba(breakdown.diskHourly, 4)} ${unit}/h`} />
             </div>
 
             <div className="space-y-3 mb-8">
@@ -156,13 +157,13 @@ export function AutoscalingCalculator({
               <div className="flex justify-between items-center text-sm">
                 <span className="text-neutral-400">Stawka godzinowa</span>
                 <span className="text-white font-medium">
-                  ~{breakdown.hourly.toFixed(4)} {unit}
+                  ~{liczba(breakdown.hourly, 4)} {unit}
                 </span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-neutral-400">Stawka dobowa</span>
                 <span className="text-white font-medium">
-                  ~{breakdown.daily.toFixed(2)} {unit}
+                  ~{liczba(breakdown.daily, 2)} {unit}
                 </span>
               </div>
             </div>

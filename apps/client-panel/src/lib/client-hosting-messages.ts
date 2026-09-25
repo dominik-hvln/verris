@@ -24,7 +24,8 @@ const RULES: { test: RegExp; message: string }[] = [
     message: 'Przekroczono limit (miejsce na dysku lub liczba elementów w planie).',
   },
   {
-    test: /password|hasł/i,
+    // Tylko odrzucone hasło — samo słowo „password” (np. „brak zapisanego hasła konta”) to inny błąd.
+    test: /password.{0,40}(too short|too weak|weak|invalid|requirement|must|at least)|(weak|invalid|short)\s+password|hasło.{0,40}(za krótkie|za słabe|musi|wymaga)/i,
     message: 'Hasło nie spełnia wymagań (długość/znaki). Użyj silniejszego hasła.',
   },
   {

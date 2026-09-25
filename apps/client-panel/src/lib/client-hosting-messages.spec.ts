@@ -62,3 +62,12 @@ describe('X-05 hostingFetchErrorMessage — baner „nie udało się pobrać"', 
     expect(hostingFetchErrorMessage('socket hang up')).toMatch(/chwilowo niedostępny/);
   });
 });
+
+describe('daErrorMessage — hasło', () => {
+  it('odrzucone hasło → komunikat o wymaganiach; inna wzmianka o haśle → nie', () => {
+    expect(daErrorMessage('Password is too short')).toMatch(/Hasło nie spełnia/);
+    expect(daErrorMessage('Hasło musi mieć co najmniej 8 znaków')).toMatch(/Hasło nie spełnia/);
+    expect(daErrorMessage('Konto hostingowe nie jest jeszcze w pełni gotowe (brak danych dostępowych do serwera).')).not.toMatch(/Hasło nie spełnia/);
+    expect(daErrorMessage('login key password not stored')).not.toMatch(/Hasło nie spełnia/);
+  });
+});

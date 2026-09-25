@@ -17,6 +17,7 @@ import {
   queueOffsiteListAction,
   type OffsiteRestoreStatusDto,
 } from '@/app/dashboard/services/[id]/hosting-offsite-actions';
+import { liczba } from '@/lib/liczba';
 
 /**
  * S-1 — kopie OFF-SITE w panelu klienta.
@@ -280,5 +281,5 @@ function formatBytes(bytes: number): string {
     value /= 1024;
     unit += 1;
   }
-  return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[unit]}`;
+  return `${liczba(value, value >= 10 ? 0 : 1)} ${units[unit]}`;
 }

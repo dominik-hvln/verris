@@ -1,5 +1,6 @@
 import { Leaf, Info } from 'lucide-react';
 import type { EcoReportDto } from './data';
+import { liczba } from '@/lib/liczba';
 
 /**
  * C5 — raport energetyczny z realnych metryk LVE. Wartości to szacunki —
@@ -49,11 +50,11 @@ export function EcoReportCard({ report, failed = false }: { report: EcoReportDto
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Stat label="Zużycie energii" value={`${report.energyKwh.toFixed(2)} kWh`} />
-        <Stat label="Ślad CO₂e" value={`${report.co2Kg.toFixed(2)} kg`} />
+        <Stat label="Zużycie energii" value={`${liczba(report.energyKwh, 2)} kWh`} />
+        <Stat label="Ślad CO₂e" value={`${liczba(report.co2Kg, 2)} kg`} />
         <Stat
           label="Oszczędność vs VPS 24/7"
-          value={`${report.savedEnergyKwh.toFixed(2)} kWh`}
+          value={`${liczba(report.savedEnergyKwh, 2)} kWh`}
           accent
           sub={savedPct > 0 ? `−${savedPct}%` : undefined}
         />
@@ -61,7 +62,7 @@ export function EcoReportCard({ report, failed = false }: { report: EcoReportDto
           label="Ekwiwalent pracy drzewa"
           value={
             report.treeMonthsEquivalent >= 1
-              ? `${report.treeMonthsEquivalent.toFixed(1)} mies.`
+              ? `${liczba(report.treeMonthsEquivalent, 1)} mies.`
               : `${Math.round(report.treeMonthsEquivalent * 30)} dni`
           }
           accent
@@ -70,12 +71,12 @@ export function EcoReportCard({ report, failed = false }: { report: EcoReportDto
 
       <div className="grid grid-cols-2 gap-4 text-xs text-neutral-500">
         <div>
-          Realne zużycie: <span className="text-neutral-300">{report.cpuCoreHours.toFixed(1)} rdzenio-godz. CPU</span>,{' '}
-          <span className="text-neutral-300">śr. {report.avgRamGb.toFixed(2)} GB RAM</span>{' '}
+          Realne zużycie: <span className="text-neutral-300">{liczba(report.cpuCoreHours, 1)} rdzenio-godz. CPU</span>,{' '}
+          <span className="text-neutral-300">śr. {liczba(report.avgRamGb, 2)} GB RAM</span>{' '}
           ({report.samples.toLocaleString('pl-PL')} próbek)
         </div>
         <div className="text-right">
-          Punkt odniesienia: {report.baselineEnergyKwh.toFixed(2)} kWh (parametry planu 24/7)
+          Punkt odniesienia: {liczba(report.baselineEnergyKwh, 2)} kWh (parametry planu 24/7)
         </div>
       </div>
 

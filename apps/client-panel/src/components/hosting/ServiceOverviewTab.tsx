@@ -37,6 +37,7 @@ import { EcoModeCard } from '@/app/dashboard/services/[id]/autoscaling/eco-mode-
 import { clientFeatures } from '@/lib/client-features';
 import { useModul } from '@/lib/feature-flags';
 import { fetchSidebarUser } from '@/app/dashboard/sidebar-actions';
+import { liczba } from '@/lib/liczba';
 
 const statusLabels: Record<string, string> = {
   ACTIVE: 'Aktywna',
@@ -58,16 +59,16 @@ function healthColor(label: ServiceHealthSummaryDto['label']) {
 /** Used value — MB below 1 GB so idle/small accounts are not shown as "0.0 GB". */
 function mbToGbUsed(mb: number) {
   if (mb < 1024) {
-    return mb < 10 ? `${mb.toFixed(1)} MB` : `${Math.round(mb)} MB`;
+    return mb < 10 ? `${liczba(mb, 1)} MB` : `${Math.round(mb)} MB`;
   }
   const gb = mb / 1024;
-  return `${Number.isInteger(gb) ? gb : gb.toFixed(1)} GB`;
+  return `${Number.isInteger(gb) ? gb : liczba(gb, 1)} GB`;
 }
 
 /** Limit in GB without trailing ".0", e.g. 51200 MB -> "50 GB", 1536 -> "1.5 GB". */
 function mbToGbMax(mb: number) {
   const gb = mb / 1024;
-  return `${Number.isInteger(gb) ? gb : gb.toFixed(1)} GB`;
+  return `${Number.isInteger(gb) ? gb : liczba(gb, 1)} GB`;
 }
 
 export default function ServiceOverviewTab({
@@ -139,7 +140,7 @@ export default function ServiceOverviewTab({
         value: cpuVal,
         max: account.cpuLimit,
         label: 'CPU',
-        valueLabel: cpuVal < 10 ? `${cpuVal.toFixed(1)}%` : `${Math.round(cpuVal)}%`,
+        valueLabel: cpuVal < 10 ? `${liczba(cpuVal, 1)}%` : `${Math.round(cpuVal)}%`,
         sub: `/ ${account.cpuLimit}%`,
       },
       ram: {
@@ -361,7 +362,7 @@ export default function ServiceOverviewTab({
             <dd className="text-white">{service.plan.name}</dd>
             <dt className="text-neutral-500">Cena</dt>
             <dd className="text-white">
-              {Number(service.priceAmount).toFixed(2)} {service.currency}
+              {liczba(Number(service.priceAmount), 2)} {service.currency}
               {service.interval === 'MONTH' ? ' / mies.' : ' / rok'}
             </dd>
             {periodEnd ? (

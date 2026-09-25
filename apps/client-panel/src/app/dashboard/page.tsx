@@ -15,7 +15,7 @@ export default async function DashboardPage() {
   return (
     <DashboardHome
       snapshot={snapshot}
-      aside={<OnboardingWizard snapshot={onboarding} hidden={user?.onboardingHidden ?? false} />}
+      aside={<OnboardingWizard key="pierwsze-kroki" snapshot={onboarding} hidden={user?.onboardingHidden ?? false} />}
     />
   );
 }

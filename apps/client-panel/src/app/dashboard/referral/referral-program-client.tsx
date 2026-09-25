@@ -16,6 +16,7 @@ import {
   type PartnerPayout,
 } from './actions';
 import { Checkbox } from '@/components/panel/checkbox';
+import { liczba } from '@/lib/liczba';
 
 export function ReferralProgramClient() {
   const [data, setData] = useState<ReferralProgramStatus | null>(null);
@@ -122,7 +123,7 @@ export function ReferralProgramClient() {
   );
 }
 
-const pln = (n: number) => `${n.toFixed(2)} K`;
+const pln = (n: number) => `${liczba(n, 2)} K`;
 
 function PartnerEarnings() {
   const ibanId = useId();

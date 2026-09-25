@@ -514,7 +514,7 @@ export class ProvisioningService {
       const exists = await this.prisma.account.findUnique({ where: { daUsername: candidate } });
       if (!exists) return candidate;
     }
-    throw new ServiceUnavailableException('Could not allocate a unique DA username');
+    throw new ServiceUnavailableException('Nie udało się przydzielić loginu konta hostingowego — spróbuj ponownie za chwilę.');
   }
 }
 

@@ -23,6 +23,7 @@ import {
   type UserConsentRow,
 } from "./privacy-actions";
 import { Checkbox } from '@/components/panel/checkbox';
+import { liczba } from '@/lib/liczba';
 
 const KIND_LABELS: Record<UserConsentRow["documentKind"], string> = {
   TERMS: "Regulamin",
@@ -63,7 +64,7 @@ function formatBytes(bytes: number | null): string {
     n /= 1024;
     i++;
   }
-  return `${n.toFixed(n >= 100 ? 0 : 1)} ${units[i]}`;
+  return `${liczba(n, n >= 100 ? 0 : 1)} ${units[i]}`;
 }
 
 function formatDate(iso: string | null | undefined): string {

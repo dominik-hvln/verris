@@ -7,6 +7,7 @@ import { AutoscalingForm } from './form';
 import { AutoscalingTimeline } from './timeline';
 import { EcoModeCard } from './eco-mode-card';
 import { EcoReportCard } from './eco-report-card';
+import { liczba } from '@/lib/liczba';
 
 export const dynamic = 'force-dynamic';
 
@@ -100,7 +101,7 @@ export default async function AutoscalingPage({
           unit={currency === 'PLN' ? 'zł' : currency}
           foot={<span>{cap > 0 ? `bezpiecznik ${cap.toLocaleString('pl-PL', { minimumFractionDigits: 2 })} zł / 30 dni` : service.autoscalingEnabled ? 'bez bezpiecznika' : 'autoskalowanie wyłączone'}</span>}
         >
-          {cap > 0 ? <Meter pct={capPct} tone={capPct >= 90 ? 'warn' : 'data'} tipText={`${Math.round(capPct)}% bezpiecznika\n${spend.toFixed(2)} z ${cap.toFixed(2)} zł`} /> : null}
+          {cap > 0 ? <Meter pct={capPct} tone={capPct >= 90 ? 'warn' : 'data'} tipText={`${Math.round(capPct)}% bezpiecznika\n${liczba(spend, 2)} z ${liczba(cap, 2)} zł`} /> : null}
         </Kpi>
       </KpiStrip>
 
@@ -127,7 +128,7 @@ export default async function AutoscalingPage({
             <h3 className="m-0 font-display text-[15px] font-bold text-foreground">Bezpiecznik kosztów</h3>
             <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
               {cap > 0
-                ? `Nie zapłacisz więcej niż ${cap.toFixed(2)} zł w 30 dni. Po osiągnięciu limitu zasoby wracają do planu, a strona działa dalej.`
+                ? `Nie zapłacisz więcej niż ${liczba(cap, 2)} zł w 30 dni. Po osiągnięciu limitu zasoby wracają do planu, a strona działa dalej.`
                 : service.autoscalingEnabled
                   ? 'Nie ustawiłeś limitu — autoskalowanie nalicza bez górnej granicy. Ustaw „Limit miesięczny” w formularzu.'
                   : 'Autoskalowanie jest wyłączone — nic nie naliczamy.'}
@@ -163,5 +164,5 @@ function calculatorPrefillHref(account: {
 
 function formatMbAsGb(mb: number): string {
   const gb = mb / 1024;
-  return gb % 1 === 0 ? `${gb.toFixed(0)} GB` : `${gb.toFixed(1)} GB`;
+  return gb % 1 === 0 ? `${liczba(gb, 0)} GB` : `${liczba(gb, 1)} GB`;
 }

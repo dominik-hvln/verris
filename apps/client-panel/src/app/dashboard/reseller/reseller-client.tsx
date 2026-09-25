@@ -13,8 +13,9 @@ import {
   type ResellerOverview,
   type ResellerClient as Client,
 } from './actions';
+import { liczba } from '@/lib/liczba';
 
-const pln = (n: number) => `${n.toFixed(2)} K`;
+const pln = (n: number) => `${liczba(n, 2)} K`;
 
 export function ResellerClient() {
   const [ov, setOv] = useState<ResellerOverview | null>(null);
@@ -202,9 +203,9 @@ export function ResellerClient() {
                       <div key={s.id} className="flex items-center justify-between gap-2 text-xs text-neutral-400">
                         <span>{s.plan ?? 'Usługa'} · {s.status}</span>
                         <span className="font-mono">
-                          <span className="text-neutral-500">{s.wholesale.toFixed(2)} K</span>
+                          <span className="text-neutral-500">{liczba(s.wholesale, 2)} K</span>
                           {' → '}
-                          <span className="text-emerald-300">{s.retail.toFixed(2)} K detal</span>
+                          <span className="text-emerald-300">{liczba(s.retail, 2)} K detal</span>
                         </span>
                       </div>
                     ))}

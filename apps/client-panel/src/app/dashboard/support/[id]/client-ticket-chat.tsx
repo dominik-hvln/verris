@@ -8,12 +8,13 @@ import { pl } from "date-fns/locale";
 import { addTicketReply, addTicketReplyWithFiles, type TicketAttachment, type TicketDetail } from "../actions";
 import { clientTicketAttachmentDownloadHref } from "../attachment-links";
 import { toast } from "sonner";
+import { liczba } from '@/lib/liczba';
 
 function formatBytes(bytes: number) {
   if (bytes < 1024) return `${bytes} B`;
   const kb = bytes / 1024;
-  if (kb < 1024) return `${kb.toFixed(kb >= 100 ? 0 : 1)} KB`;
-  return `${(kb / 1024).toFixed(1)} MB`;
+  if (kb < 1024) return `${liczba(kb, kb >= 100 ? 0 : 1)} KB`;
+  return `${liczba(kb / 1024, 1)} MB`;
 }
 
 function AttachmentChips({

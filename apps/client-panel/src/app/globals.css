@@ -305,7 +305,7 @@ html.dark.eco-tint {
 
 .verris-pattern-bg {
   background-image: url("/brand/verris-pattern.svg");
-  background-size: 112px auto; /* kafel 168×240 = 2×2 znaki → znak ok. 56 px, jak we wzorcu */
+  background-size: 48px auto; /* kafel 168×240 = 2×2 znaki → znak ok. 24 px (2026-09-25: o ~57% mniej, decyzja właściciela — tło, nie ozdoba) */
   background-repeat: repeat;
   mix-blend-mode: normal;
   -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 30%, transparent 60%);
@@ -356,34 +356,31 @@ html.dark.eco-tint {
   .pt-safe {
     padding-top: env(safe-area-inset-top, 0px);
   }
-  .h-mobile-header {
-    height: calc(3.5rem + env(safe-area-inset-top, 0px));
+}
+
+/* Q-09 — wysokość górnego paska na telefonie. Muszą być @utility, nie klasami w @layer utilities:
+   Tailwind 4 generuje warianty (max-lg:, sm:) tylko dla @utility — „max-lg:pt-mobile-header” w layoucie
+   nie istniało, więc tytuł każdej strony chował się pod paskiem (tailwindcss.com → Adding custom styles). */
+@utility h-mobile-header {
+  height: calc(3.5rem + env(safe-area-inset-top, 0px));
+  @media (width >= 40rem) {
+    height: calc(5rem + env(safe-area-inset-top, 0px));
   }
-  .top-mobile-header {
-    top: calc(3.5rem + env(safe-area-inset-top, 0px));
+}
+/* pasek + odstęp nad tytułem strony (na desktopie ten sam oddech daje lg:pt-10) */
+@utility pt-mobile-header {
+  padding-top: calc(3.5rem + 1rem + env(safe-area-inset-top, 0px));
+  @media (width >= 40rem) {
+    padding-top: calc(5rem + 1.5rem + env(safe-area-inset-top, 0px));
   }
-  .pt-mobile-header {
-    padding-top: calc(3.5rem + env(safe-area-inset-top, 0px));
+}
+@utility top-mobile-header {
+  top: calc(3.5rem + env(safe-area-inset-top, 0px));
+  @media (width >= 40rem) {
+    top: calc(5rem + env(safe-area-inset-top, 0px));
   }
-  @media (min-width: 640px) {
-    .h-mobile-header {
-      height: calc(5rem + env(safe-area-inset-top, 0px));
-    }
-    .top-mobile-header {
-      top: calc(5rem + env(safe-area-inset-top, 0px));
-    }
-    .pt-mobile-header {
-      padding-top: calc(5rem + env(safe-area-inset-top, 0px));
-    }
-  }
-  @media (min-width: 1024px) {
-    .h-dashboard-topbar {
-      height: 5.5rem;
-      min-height: 5.5rem;
-    }
-    .top-mobile-header {
-      top: 0;
-    }
+  @media (width >= 64rem) {
+    top: 0;
   }
 }
 

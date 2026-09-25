@@ -88,7 +88,7 @@ export class HostingDiagnosticsService {
         throw new NotFoundException('Subskrypcja nie należy do tego użytkownika.');
       }
       if (!sub.account) {
-        throw new BadRequestException('Subskrypcja nie ma jeszcze konta hostingowego (brak domeny DA).');
+        throw new BadRequestException('Usługa nie ma jeszcze konta hostingowego (brak domeny).');
       }
       hostname = normalizeHostname(sub.account.domain);
       expectedV4 = sub.account.server.ipAddress;
