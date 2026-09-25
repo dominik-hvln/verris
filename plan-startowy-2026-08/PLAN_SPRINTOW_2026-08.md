@@ -240,7 +240,7 @@ Faktura dla każdej płatności, korekty, potwierdzony drill odtworzeniowy, podp
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
 | `E-15` | Rekordy SPF — kreator | 6 | WYSOKA | 2026-09-23 D1: deliverability/mail-auth.ts (buildMailAuthChecks) + deliverability.service.ts (strefa DA + delegacja NS); UI app/dashboard/email/delive |
-| `E-16` | Rekordy DKIM — konfiguracja | 6 | WYSOKA | 2026-09-23 D1: mail-auth.ts dkimCheck — selektory w publicznym DNS, a gdy brak: klucz <sel>._domainkey ze strefy DA do skopiowania u zewnętrznego DNS; |
+| `E-16` | Rekordy DKIM — konfiguracja | 6 | WYSOKA | deliverability/mail-auth.ts (akcja enable-dkim); servers/directadmin.service.ts enableHostingDkim; POST /services/:id/hosting-email/dkim; email/delive |
 | `E-17` | Rekord DMARC — konfiguracja | 6 | WYSOKA | 2026-09-23 D1: mail-auth.ts dmarcCheck (brak / p=none / kilka rekordów) + lib/dmarc.ts tuneDmarc (polityka + adres raportów) w deliverability-panel.ts |
 | `E-05` | Zmiana quoty ISTNIEJĄCEJ skrzynki | 6 | WYSOKA | 2026-09-23 D1: POST /services/:id/hosting-email/quota (ZmienRozmiarSkrzynkiDto 10–102400 MB) → directadmin.service changeHostingEmailQuota (CMD_API_PO |
 | `M-26` | Usunięcie zapisanej karty przez klienta | 6 | WYSOKA | 2026-09-23 D1: DELETE /billing/payment-methods/:id (ParseUUIDPipe) → billing.service deleteMyPaymentMethod: Stripe detach, usunięcie wiersza, zerowani |
