@@ -5,6 +5,8 @@ import Link from 'next/link';
 import {
   CheckCircle2,
   Circle,
+  CreditCard,
+  FileText,
   Globe,
   Loader2,
   Mail,
@@ -36,6 +38,8 @@ const IKONY: Record<string, React.ReactNode> = {
   dns: <Globe className="h-4 w-4" />,
   ssl: <ShieldCheck className="h-4 w-4" />,
   mail: <Mail className="h-4 w-4" />,
+  platnosc: <CreditCard className="h-4 w-4" />,
+  faktura: <FileText className="h-4 w-4" />,
 };
 
 /**

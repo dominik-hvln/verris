@@ -29,7 +29,6 @@ export const TABS = [
   { id: 'php', label: 'PHP i serwer', icon: Terminal },
   { id: 'ssl', label: 'Certyfikaty SSL', icon: Shield },
   { id: 'apps', label: 'Aplikacje 1-click', icon: Globe },
-  // Kreator stron tymczasowo ukryty (komponent zostaje — wystarczy przywrócić wpis).
   { id: 'webtools', label: 'Narzędzia WWW', icon: Wrench },
   { id: 'ftp', label: 'Konta FTP', icon: FolderKanban },
   { id: 'cron', label: 'Zadania cron', icon: Clock },

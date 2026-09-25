@@ -1,5 +1,6 @@
 import { listServices } from './services/data';
 import { BEZ_USLUGI, najnizszyPostep, uslugiOnboardingu } from './onboarding-kroki';
+import { pobierzKontoOnboardingu } from './onboarding-konto';
 
 export interface OnboardingSnapshot {
   hasService: boolean;
@@ -9,6 +10,10 @@ export interface OnboardingSnapshot {
   provisioning: boolean;
   dnsOk: boolean | null;
   tlsOk: boolean | null;
+  /** PROD-02 — odnowienie zabezpieczone (karta, auto-doładowanie albo saldo na okres). Brak = nie wiemy. */
+  platnoscOk?: boolean | null;
+  /** PROD-02 — dane do faktury kompletne (konto, nie usługa). Brak = nie wiemy. */
+  fakturaOk?: boolean | null;
 }
 
 /**
@@ -16,6 +21,7 @@ export interface OnboardingSnapshot {
  * najniższym postępem (ta sama reguła co pasek w sidebarze), nie `services[0]`.
  */
 export async function getOnboardingSnapshot(): Promise<OnboardingSnapshot> {
-  const uslugi = uslugiOnboardingu(await listServices().catch(() => []));
+  const [services, konto] = await Promise.all([listServices().catch(() => []), pobierzKontoOnboardingu()]);
+  const uslugi = uslugiOnboardingu(services, konto);
   return najnizszyPostep(uslugi)?.usluga.onboarding ?? uslugi[0]?.onboarding ?? BEZ_USLUGI;
 }

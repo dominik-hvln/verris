@@ -1,6 +1,6 @@
 id,rodzaj,co_zostalo
 PB-16,KOD,stare zakładki usługi przepisać na klocki v2 (dziś mają tylko paletę przez .v2-skin)
-PROD-02,KOD,wykrywanie kroków „płatność” i „faktura” w Pierwszych krokach
+PROD-02,PRODUKCJA,"kroki płatność i faktura w Pierwszych krokach — sprawdzić na produkcji (konto bez danych do faktury, potem z danymi)"
 NODE-01,KOD,jedna ścieżka dodania węzła (kreator + bootstrap v2) i jeden runbook — przygotowanie pod zakup węzła
 X-04,KOD,testy integracyjne kolejnych ścieżek zapisu na prawdziwym PostgreSQL
 X-05,KOD,testy kluczowych ekranów panelu admina i obsługi
@@ -8,13 +8,13 @@ P-12,KOD,skan dostępności (axe) wszystkich tras trzech paneli + przejście czy
 L-07,KOD,domknąć zakres publicznego API odczytu (dziś 5 endpointów GET) i opisać go w dokumentacji
 O-05,KOD,przegląd klientów resellera z działaniami (dziś tylko odczyt)
 O-09,KOD,"własna marka resellera widoczna dla jego klientów (panel, maile)"
-B-19,KOD,kreator stron: dokończyć albo usunąć wyłączony kod
-Q-06,KOD,"VPS przez Hetzner Cloud API — potrzebne konto Hetzner Cloud, nie węzeł"
-Q-07,KOD,konsola VPS (Hetzner Cloud API)
-Q-08,KOD,snapshoty i rebuild VPS (Hetzner Cloud API)
-G-08,KOD,sprzedaż certyfikatów DV/OV/EV — plus umowa z dostawcą
-J-05,KOD,CDN (Cloudflare) — plus konto Cloudflare
-PB-20,KOD,tryb agencji: przełącznik klienta w menu
+B-19,KOD PO STARCIE,usunięty wyłączony kod 2026-09-25; kreator po starcie jako nowa funkcja
+Q-06,KOD PO STARCIE,"VPS przez Hetzner Cloud API — potrzebne konto Hetzner Cloud, nie węzeł"
+Q-07,KOD PO STARCIE,konsola VPS (Hetzner Cloud API)
+Q-08,KOD PO STARCIE,snapshoty i rebuild VPS (Hetzner Cloud API)
+G-08,KOD PO STARCIE,sprzedaż certyfikatów DV/OV/EV — plus umowa z dostawcą
+J-05,KOD PO STARCIE,CDN (Cloudflare) — plus konto Cloudflare
+PB-20,KOD PO STARCIE,tryb agencji: przełącznik klienta w menu
 G-18,PRODUKCJA,dziennik aktywności — podgląd na produkcji po deployu
 O-03,PRODUKCJA,działanie subkonta widoczne u właściciela (IAM → Audyt) na produkcji
 Z-10,PRODUKCJA,odmowa subkonta widoczna w Audycie IAM na produkcji

@@ -5,6 +5,7 @@ import { apiFetch } from '@/lib/api';
 import { fetchTickets } from './support/actions';
 import { isExpiringSoon } from '@/lib/domain-expiry';
 import { uslugiOnboardingu, type UslugaOnboardingu } from './onboarding-kroki';
+import { pobierzKontoOnboardingu } from './onboarding-konto';
 
 /** Dane do menu bocznego i wyszukiwarki „/" — liczniki i lista usług. Błąd = `null` (nie zero). */
 export interface RailData {
@@ -18,10 +19,11 @@ export interface RailData {
 }
 
 export async function fetchRailDataAction(): Promise<RailData> {
-  const [services, domains, tickets] = await Promise.all([
+  const [services, domains, tickets, konto] = await Promise.all([
     apiFetch<ServiceSummaryDto[]>('/services').catch(() => null),
     apiFetch<DomainDto[]>('/domains').catch(() => null),
     fetchTickets().catch(() => null),
+    pobierzKontoOnboardingu(),
   ]);
   return {
     services: services
@@ -37,7 +39,7 @@ export async function fetchRailDataAction(): Promise<RailData> {
       : null,
     domains: domains ? domains.length : null,
     domainsExpiring: domains ? domains.filter((d) => isExpiringSoon(d.expiresAt)).length : null,
-    onboarding: services ? uslugiOnboardingu(services) : null,
+    onboarding: services ? uslugiOnboardingu(services, konto) : null,
     openTickets: tickets
       ? tickets.filter((t) => t.status === 'OPEN' || t.status === 'IN_PROGRESS' || t.status === 'WAITING_CUSTOMER').length
       : null,

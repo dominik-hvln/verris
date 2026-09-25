@@ -240,7 +240,7 @@ document.getElementById('kpis').innerHTML = [
 (function(){
   const BW = P.postep.bezWezla; if (!BW || !BW.razem) return;
   const OPIS = {'KOD': 'kod — robię ja', 'PRODUKCJA': 'na produkcji (panel, API, serwer control-plane)',
-    'WŁAŚCICIEL': 'decyzje i konta właściciela', 'DOKUMENT': 'dokumenty', 'OD 29.09': 'zaplanowane od 29.09'};
+    'WŁAŚCICIEL': 'decyzje i konta właściciela', 'DOKUMENT': 'dokumenty', 'OD 29.09': 'zaplanowane od 29.09', 'KOD PO STARCIE': 'kod bez węzła, ale decyzją właściciela po starcie'};
   const grupy = [...new Set(BW.pozycje.map(x => x.rodzaj))];
   document.getElementById('bezwezla').innerHTML =
     `<p style="margin:0 0 10px"><b>${BW.razem - BW.zrobione}</b> z ${BW.razem} pozycji do zrobienia bez serwera węzła. Wszystko inne z tablic czeka na węzeł (test D3 albo praca na żywym serwerze).</p>`

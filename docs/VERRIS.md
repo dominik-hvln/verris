@@ -249,7 +249,7 @@ Kierunek do przygotowania jako osobny projekt (makiety przed kodem):
 | Płatności: portfel (doładowanie, odświeżanie salda), faktury, dodatki rozliczeniowe | ✅ „Płatności”: pasek liczb, portfel 12 mies., historia transakcji z opisami po ludzku (`lib/wallet-tx-label.ts`), doładowanie i auto-doładowanie w prawej kolumnie |
 | Centrum pomocy (lista, nowe, wątek), Baza wiedzy | ✅ „Centrum pomocy”: pasek liczb, tabela zgłoszeń, wątek ze ścieżką i stanem; baza wiedzy w „Więcej” i w wyszukiwarce |
 | Migracje, Dodatki, VPS/Cloud, Reseller, Kalkulator, Program EKO, Partnerski, IAM, E-mail marketing, Analityka, API, Ustawienia | „Więcej” w bocznym pasku (IAM i ustawienia też w menu klienta). ✅ nagłówki jak reszta panelu; EKO z paskiem liczb; Ustawienia z zakładkami podkreślanymi |
-| HostingAssistant (dymek), SiteBuilder (ukryty) | asystent v1 (PB-17); kreator stron zostaje ukryty |
+| HostingAssistant (dymek) | asystent v1 (PB-17); kreator stron usunięty 2026-09-25 (B-19) — wraca po starcie jako nowa funkcja, nie ze starego kodu |
 | Ekrany bez logowania: logowanie, rejestracja, reset hasła, weryfikacje, zaproszenie, dokumenty prawne | ten sam system wizualny, bez zmian w działaniu |
 
 **Zasady wyglądu przyjęte w PB-16 (obowiązują dla nowych ekranów):**

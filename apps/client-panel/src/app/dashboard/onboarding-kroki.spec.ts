@@ -1,4 +1,4 @@
-import { najnizszyPostep, podsumujKroki, podtytulKrokow, uslugiOnboardingu, zbudujKroki } from './onboarding-kroki';
+import { fakturaKompletna, najnizszyPostep, podsumujKroki, podtytulKrokow, uslugiOnboardingu, zbudujKroki } from './onboarding-kroki';
 import type { ServiceSummaryDto } from '@verris/contracts';
 
 /**
@@ -42,7 +42,7 @@ describe('PANEL-01 — licznik onboardingu', () => {
   });
 
   it('kroki bez detekcji nie wchodzą do mianownika', () => {
-    const kroki = zbudujKroki({ ...HOSTING, dnsOk: true, tlsOk: true });
+    const kroki = zbudujKroki({ ...HOSTING, dnsOk: true, tlsOk: true, platnoscOk: true, fakturaOk: true });
     const p = podsumujKroki(kroki);
     const bezDetekcji = kroki.filter((k) => k.stan === 'nieznane').map((k) => k.klucz);
     expect(bezDetekcji).toEqual(['site', 'mail']);
@@ -136,5 +136,38 @@ describe('PROD-02 — pasek postępu w sidebarze', () => {
     const u = uslugiOnboardingu([s('a', 'ACTIVE'), s('b', 'CANCELED'), s('c', 'EXPIRED')]);
     expect(u.map((x) => x.id)).toEqual(['a']);
     expect(u[0].onboarding.dnsOk).toBe(false);
+  });
+});
+
+describe('PROD-02 — kroki płatność i faktura', () => {
+  const usluga = (o: Partial<ServiceSummaryDto> = {}) =>
+    ({ id: 's1', status: 'ACTIVE', planName: 'Start', priceAmount: '29.00', paymentSource: 'WALLET', productKind: 'HOSTING', account: null, health: null, ...o }) as unknown as ServiceSummaryDto;
+  const stan = (u: ServiceSummaryDto, konto: Parameters<typeof uslugiOnboardingu>[1]) => {
+    const kroki = zbudujKroki(uslugiOnboardingu([u], konto)[0].onboarding);
+    return Object.fromEntries(kroki.map((k) => [k.klucz, k.stan]));
+  };
+
+  it('bez danych konta oba kroki są „nieznane”, nie „niezrobione”', () => {
+    const s = stan(usluga(), null);
+    expect(s.platnosc).toBe('nieznane');
+    expect(s.faktura).toBe('nieznane');
+  });
+
+  it('płatność: karta, auto-doładowanie albo saldo na okres', () => {
+    const konto = { saldo: 10, autoDoladowanie: false, fakturaOk: true };
+    expect(stan(usluga(), konto).platnosc).toBe('niezrobione');
+    expect(stan(usluga(), { ...konto, saldo: 29 }).platnosc).toBe('zrobione');
+    expect(stan(usluga(), { ...konto, autoDoladowanie: true }).platnosc).toBe('zrobione');
+    expect(stan(usluga({ paymentSource: 'STRIPE_CARD' }), konto).platnosc).toBe('zrobione');
+    expect(stan(usluga({ paymentSource: 'MANUAL' }), konto).platnosc).toBe('nieznane');
+  });
+
+  it('faktura: osoba prywatna albo firma, zawsze z adresem', () => {
+    const adres = { address: 'Polna 1', city: 'Kraków', postalCode: '30-001', country: 'PL' };
+    const pusto = { companyName: null, nip: null, firstName: null, lastName: null };
+    expect(fakturaKompletna({ ...pusto, firstName: 'Anna', lastName: 'Nowak', ...adres })).toBe(true);
+    expect(fakturaKompletna({ ...pusto, nip: '5260250274', ...adres })).toBe(true);
+    expect(fakturaKompletna({ ...pusto, firstName: 'Anna', lastName: 'Nowak', ...adres, city: ' ' })).toBe(false);
+    expect(fakturaKompletna({ ...pusto, ...adres })).toBe(false);
   });
 });

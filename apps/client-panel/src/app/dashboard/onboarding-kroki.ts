@@ -48,6 +48,31 @@ function zeSprawdzenia(wynik: boolean | null | undefined): StanKroku {
   return 'nieznane';
 }
 
+/**
+ * PROD-02 — kroki konieczne „płatność” i „faktura”, wspólne dla hostingu i poczty.
+ * Link do ustawień otwiera od razu zakładkę danych do faktury.
+ */
+function krokiRozliczen(snapshot: OnboardingSnapshot): KrokOnboardingu[] {
+  return [
+    {
+      klucz: 'platnosc',
+      tytul: 'Zabezpiecz odnowienie',
+      opis: 'Włącz auto-doładowanie portfela albo doładuj go na kolejny okres — usługa odnowi się sama.',
+      stan: zeSprawdzenia(snapshot.platnoscOk),
+      href: '/dashboard/billing',
+      cta: 'Płatności',
+    },
+    {
+      klucz: 'faktura',
+      tytul: 'Uzupełnij dane do faktury',
+      opis: 'Nazwa lub imię i nazwisko oraz adres — trafią na każdą fakturę.',
+      stan: zeSprawdzenia(snapshot.fakturaOk),
+      href: '/dashboard/settings?tab=billing',
+      cta: 'Dane do faktury',
+    },
+  ];
+}
+
 export function zbudujKroki(snapshot: OnboardingSnapshot): KrokOnboardingu[] {
   if (!snapshot.hasService) return [];
 
@@ -87,6 +112,7 @@ export function zbudujKroki(snapshot: OnboardingSnapshot): KrokOnboardingu[] {
         href: `/dashboard/dns${q}`,
         cta: 'DNS',
       },
+      ...krokiRozliczen(snapshot),
     ];
   }
 
@@ -124,6 +150,7 @@ export function zbudujKroki(snapshot: OnboardingSnapshot): KrokOnboardingu[] {
       href: `/dashboard/email${q}`,
       cta: 'Poczta',
     },
+    ...krokiRozliczen(snapshot),
   ];
 }
 
@@ -164,8 +191,38 @@ export interface UslugaOnboardingu {
   onboarding: OnboardingSnapshot;
 }
 
+/** PROD-02 — dane konta do kroków rozliczeń. `null` w polu = nie wiemy (krok nie liczy się do procentu). */
+export interface KontoOnboardingu {
+  saldo: number | null;
+  autoDoladowanie: boolean | null;
+  fakturaOk: boolean | null;
+}
+
+/** Te same pola co w formularzu „Dane do faktury”; osoba prywatna podaje imię i nazwisko zamiast firmy. */
+export function fakturaKompletna(p: {
+  companyName: string | null; nip: string | null; firstName: string | null; lastName: string | null;
+  address: string | null; city: string | null; postalCode: string | null; country: string | null;
+}): boolean {
+  const t = (v: string | null) => Boolean(v?.trim());
+  const kto = t(p.companyName) || t(p.nip) || (t(p.firstName) && t(p.lastName));
+  return kto && t(p.address) && t(p.city) && t(p.postalCode) && t(p.country);
+}
+
+/**
+ * Odnowienie zabezpieczone: karta obciąża sama, auto-doładowanie dopełni portfel,
+ * albo saldo pokrywa cenę tej usługi za okres. MANUAL rozlicza obsługa — nie oceniamy.
+ * ponytail: saldo porównane z ceną jednej usługi, nie z sumą odnowień w tym samym oknie.
+ */
+export function platnoscZabezpieczona(s: ServiceSummaryDto, konto: KontoOnboardingu | null): boolean | null {
+  if (s.paymentSource === 'STRIPE_CARD') return true;
+  if (s.paymentSource === 'MANUAL' || !konto) return null;
+  if (konto.autoDoladowanie) return true;
+  if (konto.saldo === null || konto.autoDoladowanie === null) return null;
+  return konto.saldo >= Number(s.priceAmount);
+}
+
 /** PROD-02 — każda żywa usługa, nie tylko `services[0]`. Anulowane i wygasłe nie mają czego konfigurować. */
-export function uslugiOnboardingu(services: ServiceSummaryDto[]): UslugaOnboardingu[] {
+export function uslugiOnboardingu(services: ServiceSummaryDto[], konto: KontoOnboardingu | null = null): UslugaOnboardingu[] {
   return services
     .filter((s) => s.status !== 'CANCELED' && s.status !== 'EXPIRED')
     .map((s) => ({
@@ -179,6 +236,8 @@ export function uslugiOnboardingu(services: ServiceSummaryDto[]): UslugaOnboardi
         provisioning: s.status !== 'ACTIVE',
         dnsOk: s.health?.checks?.dnsOk ?? null,
         tlsOk: s.health?.checks?.tlsOk ?? null,
+        platnoscOk: platnoscZabezpieczona(s, konto),
+        fakturaOk: konto?.fakturaOk ?? null,
       },
     }));
 }
