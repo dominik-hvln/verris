@@ -192,7 +192,6 @@ export class SubscriptionsService {
     // Zaszyfrowane hasło konta hostingowego nie wychodzi do panelu (także do subkont z podglądem) —
     // hasło w jawnej postaci daje tylko hosting-da-links, z kontrolą uprawnień.
     if (!subscription.account) return subscription;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- celowo odrzucane pole
     const { daPasswordEnc, ...account } = subscription.account;
     return { ...subscription, account };
   }
