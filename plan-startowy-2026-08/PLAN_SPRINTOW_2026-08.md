@@ -9,9 +9,9 @@
 
 ## Liczba, od której trzeba zacząć
 
-Domknięcie **wszystkich** luk z macierzy to **2643 h** — przy 30 h tygodniowo około **20 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
+Domknięcie **wszystkich** luk z macierzy to **2603 h** — przy 30 h tygodniowo około **20 miesięcy pracy solo, bez jednego przychodu po drodze**. Taki plan nie jest planem startu, tylko sposobem, żeby nigdy nie wystartować.
 
-Dlatego praca dzieli się na dwie części: **23 sprintów do startu** (979 h) oraz roadmapę po starcie (1664 h, 83 pozycji) rozpisaną na epiki kwartalne.
+Dlatego praca dzieli się na dwie części: **23 sprintów do startu** (979 h) oraz roadmapę po starcie (1624 h, 82 pozycji) rozpisaną na epiki kwartalne.
 
 - **2027-01-22** — koniec sprintu 21, zamknięte wszystkie blokery **poza KSeF-em**.
 - **2027-02-05** — koniec sprintu 23, decyzja GO.
@@ -461,7 +461,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 |---|---|---|---|---|
 | `N-16` | SLA z zapisanymi kredytami | 6 | WYSOKA | sla-credit.scheduler.ts — wylicz() (progi §15, miesiąc kalendarzowy, okna konserwacyjne, 1 wypłata/usługę/miesiąc) + run() za flagą; GET /admin/sla/po |
 | `A-11` | Wyszukiwarka wolnych domen | 6 | WYSOKA | domains.controller.ts:54 |
-| `PB-07` | Treści i cennik na verris.pl | 16 | WYSOKI | Strona główna, cennik, specyfikacja techniczna pakietu, strona SLA. Narracja: cena stała, bez skoku po roku. |
+| `PB-07` | Treści i cennik na verris.pl | 16 | WYSOKI | Strona główna, cennik, specyfikacja techniczna pakietu, strona SLA. Narracja: cena stała, bez skoku po roku. | 2026-09-25 PRZYGOTOWANE DO AKCEPTACJI:  |
 | `PB-11` | Bus factor: drugi kanał alertów i procedura zastępstwa | 8 | WYSOKI | Alerty na więcej niż jeden adres, przetestowane. Dokument: co robi ktoś inny, gdy Ciebie nie ma przez tydzień. | 2026-09-23: Telegram jako drugi kanał |
 | `PB-21` | DNS platformy i poczty na serwerze testowym | 6 | WYSOKI | Odłożone decyzją właściciela 2026-09-23 do chwili, gdy jest serwer testowy. (1) Decyzja: wspólny rekord _spf.verris.pl (include platformy, łatwa zmian |
 | `PB-24` | KSC/NIS2: wpis do wykazu podmiotów kluczowych | 3 | WYSOKI | Wg FAQ KSC (cyber.gov.pl) podmiot świadczący usługi rejestracji nazw domen i dostawca usług DNS = podmiot kluczowy niezależnie od wielkości. Decyzja w |
@@ -486,7 +486,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 | ID | Zadanie | h | Priorytet | Dowód / kontekst |
 |---|---|---|---|---|
-| `PB-06` | Landing /przenies-strone | 16 | WYSOKI | Strona docelowa kampanii Google Ads na osi migracji. Treść oparta na realnych przewagach z audytu, nie na obietnicach. |
+| `PB-06` | Landing /przenies-strone | 16 | WYSOKI | Strona docelowa kampanii Google Ads na osi migracji. Treść oparta na realnych przewagach z audytu, nie na obietnicach. | 2026-09-25 PRZYGOTOWANE DO AK |
 | `PB-09` | Baza wiedzy — 20 artykułów startowych | 16 | ŚREDNI | Artykuły pokrywające najczęstsze pytania pierwszego tygodnia: skierowanie domeny, SSL, poczta, FTP, backup, migracja, faktury. | 2026-09-23: seed ma 3 |
 | `PB-19` | Widok strony: ruch, TTFB, błędy 5xx, technologia i logi z węzła | 24 | ŚREDNI | Braki makiety widoku strony (docs/design/wzorzec-panelu.html), których API nie ma, bo wymagają węzła: (1) odwiedziny, mediana TTFB i błędy 5xx per dom |
 
@@ -503,7 +503,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 
 # Po starcie — roadmapa kwartalna
 
-83 pozycji, 1664 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
+82 pozycji, 1624 h. Epiki, nie sprinty — kolejność zweryfikujemy danymi od pierwszych klientów.
 
 | ID | Epik | Priorytet | Kwartał | Pozycji | h | Dlaczego teraz, a nie wcześniej |
 |---|---|---|---|---|---|---|
@@ -522,7 +522,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 | `E-11` | DNS: DNSSEC i zarządzanie strefą | ŚREDNI | Q3 2027 | 3 | 62 | Żaden z pięciu hostingów PL nie potwierdza publicznie DNSSEC. To okazja, nie luka. |
 | `E-13` | Automatyzacja: API zapisu i webhooki | ŚREDNI | Q3 2027 | 4 | 68 | Żaden hosting PL nie ma publicznego API — mamy przewagę, która dziś obejmuje pięć GET-ów przy opisie obiecującym CI/CD i Terraform. |
 | `E-16` | Rozszerzenia oferty | NISKI | Q4 2027 | 6 | 96 | Decyzja o kreatorze stron jest binarna. Kod, który leży zakomentowany przez rok, jest długiem, nie opcją. |
-| `E-09` | Pokrycie testowe warstw krytycznych | WYSOKI | ciągłe | 3 | 120 | Realizowane równolegle z każdą fazą, nie jako osobny projekt. Zasada: każda naprawiona pozycja dostaje test, który najpierw czerwieni się na starym kodzie. |
+| `E-09` | Pokrycie testowe warstw krytycznych | WYSOKI | ciągłe | 2 | 80 | Realizowane równolegle z każdą fazą, nie jako osobny projekt. Zasada: każda naprawiona pozycja dostaje test, który najpierw czerwieni się na starym kodzie. |
 
 - **E-01 Runtime, pliki i diagnostyka** (346 h) — php.ini i rozszerzenia PHP z panelu, logi dostępu i błędów WWW, import/eksport bazy, spakowanie archiwum, SSH i klucze SSH dla hostingu, podgląd zajętości katalogów.
 - **E-02 Wydajność: cache i skalowanie** (110 h) — Redis jako cache obiektowy sterowany z panelu, LSCache, weryfikacja HTTP/3, CDN, optymalizacja obrazów.
@@ -532,7 +532,7 @@ Dokumenty, cennik, landing, pomiar, domknięcie KSeF-a tuż przed sprzedażą, b
 - **E-06 Bezpieczeństwo jako funkcja** (96 h) — Skaner malware, czyszczenie zainfekowanych plików, rozbudowa WAF, HSTS, anty-DDoS, sprzedaż certyfikatów DV/OV/EV.
 - **E-07 Reseller jako produkt** (176 h) — Zakładanie kont przez resellera, marża ustawiana przez niego, white-label, rozliczenia.
 - **E-08 Dostępność i zgodność w produkcie** (112 h) — WCAG 2.1 AA dla ścieżki klienta, RCPD jako moduł zamiast pliku, ISO 27001 jeśli wejdziemy w B2B, deklaracja lokalizacji danych.
-- **E-09 Pokrycie testowe warstw krytycznych** (120 h) — Testy integracyjne API, moduł auth, klient KSeF, ścieżka backup/restore, DirectAdminService, panele frontowe.
+- **E-09 Pokrycie testowe warstw krytycznych** (80 h) — Testy integracyjne API, moduł auth, klient KSeF, ścieżka backup/restore, DirectAdminService, panele frontowe.
 - **E-10 Poczta: filtry, kalendarz, limity** (94 h) — Reguły filtrowania Sieve, podgląd kolejki i logów dostarczania, limity wysyłki pokazane klientowi, kalendarz i kontakty, 2FA dla webmaila.
 - **E-11 DNS: DNSSEC i zarządzanie strefą** (62 h) — DNSSEC, zmiana TTL, Anycast DNS, pełne zarządzanie strefą po podpięciu edytora w sprincie 10.
 - **E-12 Backup: granularność i retencja** (94 h) — Odtworzenie pojedynczego pliku, podgląd zawartości archiwum przed odtworzeniem, pobranie kopii lokalnie, retencja 28+ dni w cenie.
