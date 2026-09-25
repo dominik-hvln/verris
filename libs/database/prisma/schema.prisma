@@ -656,6 +656,7 @@ enum NodeTaskKind {
   FILE_SEARCH       // C-14 — wyszukiwanie plików (nazwa / treść) w katalogu strony, jako klient
   PHP_INFO          // B-06 — konfiguracja PHP strony widziana przez serwer WWW (wersja, php.ini, rozszerzenia)
   HTACCESS          // B-17/B-18/G-07 — blok ustawień Verris w .htaccess strony (strony błędów, listowanie, HSTS)
+  APP_SELECTOR      // B-08/B-09 — aplikacje Node.js / Python konta (CloudLinux Selector)
 }
 
 enum WafMode {

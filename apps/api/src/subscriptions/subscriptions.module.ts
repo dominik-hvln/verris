@@ -41,6 +41,7 @@ import { SiteCloneService } from './site-clone.service';
 import { HtaccessService } from './htaccess.service';
 import { PhpInfoService } from './php-info.service';
 import { FileSearchService } from './file-search.service';
+import { AppSelectorService } from './app-selector.service';
 import { PublicApiWriteController } from './public-api-write.controller';
 import { GitWebhookController } from './git-webhook.controller';
 import { ApiTokensModule } from '../api-tokens/api-tokens.module';
@@ -99,6 +100,7 @@ import { EcoModule } from '../eco/eco.module';
     HtaccessService,
     PhpInfoService,
     FileSearchService,
+    AppSelectorService,
     WpAutoUpdateScheduler,
     WordpressService,
     WafService,

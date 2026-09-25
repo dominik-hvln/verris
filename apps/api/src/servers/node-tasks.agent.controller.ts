@@ -37,6 +37,7 @@ import { loadMailLogScript } from './mail-log.script';
 import { loadGitDeployScript } from './git-deploy.script';
 import { loadSiteCloneScript } from './site-clone.script';
 import { loadHtaccessScript } from './htaccess.script';
+import { loadAppSelectorScript } from './app-selector.script';
 import { loadPhpInfoScript } from './php-info.script';
 import { loadFileSearchScript } from './file-search.script';
 import { loadNodeUpdateScript } from './node-update.script';
@@ -203,6 +204,13 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   htaccessScript() {
     return loadHtaccessScript();
+  }
+
+  /** B-08/B-09 — aplikacje Node.js / Python przez CloudLinux Selector (run with AS_* env). */
+  @Get('app-selector/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  appSelectorScript() {
+    return loadAppSelectorScript();
   }
 
   /** B-06 — konfiguracja PHP strony przez serwer WWW (run with PI_* env). */

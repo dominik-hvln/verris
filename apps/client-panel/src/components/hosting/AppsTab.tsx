@@ -7,6 +7,7 @@ import { WpOverviewPanel } from '@/components/hosting/WpOverviewPanel';
 import { AppsClient } from '@/app/dashboard/apps/apps-client';
 import { fetchAppsStatus, type AppsStatus } from '@/app/dashboard/apps/apps-actions';
 import { SectionHead } from '@/components/panel/v2';
+import { AplikacjeSelektorPanel } from '@/components/hosting/AplikacjeSelektorPanel';
 
 /**
  * Zjednoczona zakładka „Aplikacje": WordPress 1-click (góra) + marketplace
@@ -44,6 +45,7 @@ export default function AppsTab({ serviceId }: { serviceId: string }) {
           </p>
         )}
       </div>
+      <AplikacjeSelektorPanel serviceId={serviceId} />
     </div>
   );
 }

@@ -96,6 +96,7 @@ i zasobów z zewnątrz; osadzanie przez iframe z sandboxem + mały loader.
 - **N-16** automatyczne rekompensaty SLA — włączone na start.
 - **PROD-03** konta testowe — zostają jako wewnętrzne (poza statystykami i fakturami).
 - **Węzeł testowy** — mały serwer testowy teraz, żeby przejść testy węzłowe przed docelowym AX102.
+- **B-08/B-09** aplikacje Node.js i Python — przez CloudLinux Selector (zakładka Aplikacje). Kod aplikacji w katalogu domowym poza `public_html`, serwer podaje go pod domeną i ścieżką; wersje interpretera tylko te włączone na węźle. Sprawdzenie na węźle testowym (D3 w `audyt/dane/wezel.csv`).
 
 ### 2026-09-25 — sesje paneli i impersonacja (przegląd bezpieczeństwa)
 Ciasteczka sesji admina i obsługi są **host-only** (`admin_session`, `staff_session`); stare ciasteczka

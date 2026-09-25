@@ -1165,6 +1165,28 @@ configure_hosting_capabilities() {
     log_skip "PHP Selector — brak CloudLinux lvemanager (węzeł bez CL?)"
   fi
 
+  # B-08/B-09 — aplikacje Node.js i Python (CloudLinux Selector, node-app-selector.sh). Pakiety wg
+  # docs.cloudlinux.com → CloudLinux OS components → Node.js / Python Selector → Installation (DirectAdmin):
+  # alt-nodejs / alt-python + lvemanager lve-utils alt-python-virtualenv alt-mod-passenger. Oba selektory są
+  # domyślnie wyłączone — włącza je `cloudlinux-selector set --selector-status enabled`. Best-effort.
+  if command -v cloudlinux-selector >/dev/null 2>&1 || [ -d /opt/alt ]; then
+    if [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ]; then
+      dnf groupinstall -y alt-nodejs alt-python >/var/log/verris-app-selector.log 2>&1 || \
+        log_warn "alt-nodejs/alt-python — instalacja nie powiodła się (log: /var/log/verris-app-selector.log)"
+      dnf install -y lvemanager lve-utils alt-python-virtualenv alt-mod-passenger >>/var/log/verris-app-selector.log 2>&1 || \
+        log_warn "lvemanager/alt-python-virtualenv/alt-mod-passenger — instalacja nie powiodła się"
+      for interp in nodejs python; do
+        if cloudlinux-selector set --json --interpreter "$interp" --selector-status enabled >>/var/log/verris-app-selector.log 2>&1; then
+          log_ok "Selector $interp włączony"
+        else
+          log_warn "Selector $interp — nie udało się włączyć (log: /var/log/verris-app-selector.log)"
+        fi
+      done
+    fi
+  else
+    log_skip "Aplikacje Node.js/Python — brak CloudLinux Selectora (węzeł bez CL?)"
+  fi
+
   # G-11 — ImunifyAV: darmowy skaner złośliwego oprogramowania (skan w tle + na żądanie z panelu,
   # node-malware-scan.sh). Czyszczenie to płatne ImunifyAV+/Imunify360 — decyzja 2026-09-24:
   # na start darmowy. Instalator producenta (CloudLinux), best-effort.
@@ -1182,13 +1204,14 @@ configure_hosting_capabilities() {
 
 # Status możliwości do summary (czytany przez audyt węzła).
 capability_status() {
-  local ssl="off" dkim="off" redis="off" phpsel="off" dnssec="off"
+  local ssl="off" dkim="off" redis="off" phpsel="off" dnssec="off" appsel="off"
   grep -qE "^letsencrypt=1" "$DA_CONF" 2>/dev/null && ssl="on"
   grep -qE "^dkim=1" "$DA_CONF" 2>/dev/null && dkim="on"
   grep -qE "^dnssec=1" "$DA_CONF" 2>/dev/null && dnssec="on"
   cb_options_raw 2>/dev/null | grep -qiE "^redis:[[:space:]]*yes" && redis="on"
   { command -v cloudlinux-config >/dev/null 2>&1 || [ -d /opt/alt ]; } && phpsel="on"
-  echo "ssl=${ssl} dkim=${dkim} redis=${redis} php_selector=${phpsel} dnssec=${dnssec}"
+  cloudlinux-selector get --json --interpreter nodejs 2>/dev/null | grep -q '"selector_enabled": *true' && appsel="on"
+  echo "ssl=${ssl} dkim=${dkim} redis=${redis} php_selector=${phpsel} dnssec=${dnssec} app_selector=${appsel}"
 }
 
 emit_verris_profile_summary() {

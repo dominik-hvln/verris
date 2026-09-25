@@ -46,6 +46,7 @@ import { SiteCloneService } from './site-clone.service';
 import { HtaccessService } from './htaccess.service';
 import { PhpInfoService } from './php-info.service';
 import { FileSearchService } from './file-search.service';
+import { AppSelectorService } from './app-selector.service';
 import { HostingRestoreDto } from './dto/hosting-restore.dto';
 import { WordpressService } from './wordpress.service';
 import { InstallWordpressDto } from './dto/wordpress.dto';
@@ -107,6 +108,8 @@ import {
   KonserwacjaBazyDto,
   UprawnieniaBazyDto,
   SzukajPlikowDto,
+  AplikacjaDto,
+  AkcjaAplikacjiDto,
   OdtworzenieZArchiwumDto,
   ImportBazyDto,
   WersjaPhpDto,
@@ -142,6 +145,7 @@ export class UserServicesController {
     private readonly htaccess: HtaccessService,
     private readonly phpInfo: PhpInfoService,
     private readonly fileSearch: FileSearchService,
+    private readonly appSelector: AppSelectorService,
     private readonly wordpress: WordpressService,
     private readonly waf: WafService,
     private readonly siteMonitor: SiteMonitorService,
@@ -1315,6 +1319,36 @@ export class UserServicesController {
   @Post(':id/hosting-site-clone')
   async hostingSiteCloneRun(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: KlonStronyDto) {
     return this.siteClone.klonuj(id, user.userId, body);
+  }
+
+  // B-08/B-09 — aplikacje Node.js / Python (CloudLinux Selector, zadanie węzła).
+  @Get(':id/hosting-apps')
+  async hostingApps(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.appSelector.status(id, user.userId);
+  }
+
+  @RateLimit({ limit: 60, windowMs: 60 * 60 * 1000, scope: 'hosting:apps' })
+  @Post(':id/hosting-apps/refresh')
+  async hostingAppsRefresh(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
+    return this.appSelector.odswiez(id, user.userId);
+  }
+
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:apps' })
+  @Post(':id/hosting-apps')
+  async hostingAppsCreate(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: AplikacjaDto) {
+    return this.appSelector.utworz(id, user.userId, body);
+  }
+
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:apps' })
+  @Put(':id/hosting-apps')
+  async hostingAppsUpdate(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: AplikacjaDto) {
+    return this.appSelector.zmien(id, user.userId, body);
+  }
+
+  @RateLimit({ limit: 60, windowMs: 60 * 60 * 1000, scope: 'hosting:apps' })
+  @Post(':id/hosting-apps/action')
+  async hostingAppsAction(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: AkcjaAplikacjiDto) {
+    return this.appSelector.akcja(id, user.userId, body);
   }
 
   // C-14 — wyszukiwanie plików w katalogu strony (zadanie węzła).

@@ -149,6 +149,25 @@ export class SzukajPlikowDto {
   @IsString() @MaxLength(200) text!: string;
 }
 
+/** B-08/B-09 — aplikacja Node.js / Python; szczegółowe reguły w AppSelectorService.sprawdzDane. */
+export class AplikacjaDto {
+  @IsIn(['nodejs', 'python']) interpreter!: 'nodejs' | 'python';
+  @Linia(260) root!: string;
+  @Linia(253) domain!: string;
+  @IsString() @MaxLength(260) @Matches(JEDNA_LINIA, { message: KOMUNIKAT_LINII }) uri!: string;
+  @Linia(16) version!: string;
+  @Linia(260) startup!: string;
+  @IsOptional() @IsString() @MaxLength(64) entry?: string;
+  @IsOptional() @IsObject() env?: Record<string, string>;
+}
+
+/** B-08/B-09 — akcja na istniejącej aplikacji. */
+export class AkcjaAplikacjiDto {
+  @IsIn(['nodejs', 'python']) interpreter!: 'nodejs' | 'python';
+  @Linia(260) root!: string;
+  @IsIn(['start', 'stop', 'restart', 'destroy', 'install']) action!: 'start' | 'stop' | 'restart' | 'destroy' | 'install';
+}
+
 /** B-17/B-18/G-07 — domena strony (odczyt .htaccess). */
 export class DomenaStronyDto {
   @Linia(253) domain!: string;
