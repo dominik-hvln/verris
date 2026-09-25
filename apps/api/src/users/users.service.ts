@@ -687,7 +687,7 @@ export class UsersService {
       },
       orderBy: { createdAt: 'desc' },
       take,
-      select: { id: true, action: true, details: true, createdAt: true, actorUserId: true },
+      select: { id: true, action: true, details: true, createdAt: true, actorUserId: true, impersonatedBy: true },
     });
     const obcy = [...new Set(rows.map((r) => r.actorUserId).filter((a): a is string => !!a && a !== userId))];
     const aktorzy = obcy.length
@@ -709,7 +709,12 @@ export class UsersService {
         action: r.action,
         at: r.createdAt.toISOString(),
         context: ctxOf(r.details),
-        actor: r.actorUserId && r.actorUserId !== userId ? (kto.get(r.actorUserId) ?? 'inne konto') : null,
+        // Impersonacja: operator działał w imieniu klienta — klient ma to widzieć w swoim dzienniku.
+        actor: r.impersonatedBy
+          ? 'obsługa Verris'
+          : r.actorUserId && r.actorUserId !== userId
+            ? (kto.get(r.actorUserId) ?? 'inne konto')
+            : null,
       })),
     };
   }

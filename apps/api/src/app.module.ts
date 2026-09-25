@@ -2,7 +2,8 @@ import { Module } from '@nestjs/common';
 import { BadgesModule } from './badges/badges.module';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { KontekstZadaniaInterceptor } from './common/audit/kontekst-zadania';
 
 import { loadConfig } from './config/configuration';
 import { PrismaModule } from './prisma/prisma.module';
@@ -129,6 +130,7 @@ import { DeliverabilityModule } from './deliverability/deliverability.module';
     // so abusive traffic is rejected before any auth/db work happens.
     { provide: APP_GUARD, useClass: RateLimitGuard },
     { provide: APP_GUARD, useClass: CustomerPermissionsGuard },
+    { provide: APP_INTERCEPTOR, useClass: KontekstZadaniaInterceptor },
   ],
 })
 export class AppModule {}

@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { kontekstZadania } from './kontekst-zadania';
 import { PrismaService } from '../../prisma/prisma.service';
 import { AuditLog, Prisma } from '@verris/database';
 import {
@@ -93,7 +94,7 @@ export class AuditService {
           action: payload.action,
           userId: payload.userId ?? null,
           actorUserId: payload.actorUserId ?? null,
-          impersonatedBy: payload.impersonatedBy ?? null,
+          impersonatedBy: payload.impersonatedBy ?? kontekstZadania.getStore()?.impersonatedBy ?? null,
           details: payload.details ?? Prisma.JsonNull,
           ipAddress: payload.ipAddress ?? null,
           userAgent: payload.userAgent ?? null,
