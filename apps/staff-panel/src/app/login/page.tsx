@@ -99,7 +99,7 @@ export default function StaffLoginPage() {
         </button>
 
         <p className="text-center text-[11px] text-muted-foreground">
-          Sesja 8 godzin (httpOnly). Przy włączonym 2FA dostaniesz krok kodu jak w panelu klienta.
+          Sesja wygasa po bezczynności (domyślnie 30 minut, ustawienia platformy) i najpóźniej po 8 godzinach. Przy włączonym 2FA dostaniesz krok kodu jak w panelu klienta.
         </p>
       </form>
 

@@ -174,7 +174,7 @@ export default function AdminLoginPage() {
         </button>
 
         <p className="text-center text-[11px] text-muted-foreground">
-          Sesja administratora wygasa po 8 godzinach bezczynności.
+          Sesja wygasa po bezczynności (domyślnie 15 minut, ustawienia platformy) i najpóźniej po 8 godzinach.
         </p>
       </form>
 
