@@ -187,6 +187,16 @@ if [ "$OK" = "1" ]; then
   #      PO zapisaniu ostatniego dobrego tagu i PO bramce zdrowia: wydanie
   #      aplikacji jest w tym momencie udane i ma takie zostać. Awaria Grafany
   #      ma dać głośny błąd, a nie wycofać sprawną aplikację.
+  # Caddy czyta Caddyfile tylko przy starcie i przy reloadzie, a ops/caddy jest podmontowany z repo —
+  # bez tego kroku zmiana trasy (np. /verris-sso Grafany) leży na dysku i nie działa. Reload z błędnym
+  # plikiem zostawia działającą STARĄ konfigurację, więc nic nie zdejmuje; głośny błąd zamiast ciszy.
+  echo "[deploy] caddy reload…"
+  if ! compose exec -T -w /etc/caddy caddy caddy reload --config /etc/caddy/Caddyfile; then
+    echo "[deploy] FAIL: Caddy odrzucił ops/caddy/Caddyfile — działa na STAREJ konfiguracji."
+    echo "[deploy] Aplikacja ${IMAGE_TAG} jest wdrożona i zdrowa; popraw Caddyfile i wdroż ponownie."
+    exit 1
+  fi
+
   OBS_SERVICES="prometheus grafana"
 
   # Restart na zepsutej konfiguracji zdejmuje monitoring, a zauważyć to miał
