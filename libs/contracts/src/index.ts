@@ -17,3 +17,4 @@ export * from './blad-sieci';
 export * from './mail-limits';
 export * from './lokalizacja';
 export * from './etykiety';
+export * from './sciezka-api';

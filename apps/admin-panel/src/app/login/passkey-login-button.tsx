@@ -54,7 +54,10 @@ export function AdminPasskeyLoginButton() {
         setError("To konto nie ma uprawnień administratora Verris Core.");
         return;
       }
-      await setAdminPasskeyAuthCookie(access_token);
+      if (!(await setAdminPasskeyAuthCookie(access_token))) {
+        setError("To konto nie ma uprawnień administratora Verris Core.");
+        return;
+      }
       router.push("/");
       router.refresh();
     } catch (err) {

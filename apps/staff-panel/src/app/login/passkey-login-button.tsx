@@ -59,7 +59,10 @@ export function StaffPasskeyLoginButton() {
         setError("To konto nie ma uprawnień do panelu Support (wymagana rola STAFF lub ADMIN).");
         return;
       }
-      await setStaffPasskeyAuthCookie(access_token);
+      if (!(await setStaffPasskeyAuthCookie(access_token))) {
+        setError("To konto nie ma uprawnień do panelu Support (wymagana rola STAFF lub ADMIN).");
+        return;
+      }
       router.push("/");
       router.refresh();
     } catch (err) {

@@ -1,3 +1,4 @@
+import { sprawdzSciezkeApi } from "@verris/contracts";
 import { getAdminAuthToken } from "./auth";
 import { headers as incomingHeaders } from "next/headers";
 
@@ -38,7 +39,7 @@ export async function adminApi<T = unknown>(path: string, opts: ApiOptions = {})
     /* outside request scope — skip */
   }
 
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetch(`${API_URL}${sprawdzSciezkeApi(path)}`, {
     method: opts.method ?? "GET",
     headers,
     body: opts.body ? JSON.stringify(opts.body) : undefined,

@@ -20,6 +20,15 @@ export async function getAdminPasskeyAvailability(): Promise<boolean> {
   }
 }
 
-export async function setAdminPasskeyAuthCookie(accessToken: string): Promise<void> {
+/** Token przychodzi z przeglądarki — rolę sprawdza serwer (API /users/me), nie tylko klient. */
+export async function setAdminPasskeyAuthCookie(accessToken: string): Promise<boolean> {
+  if (typeof accessToken !== "string" || !accessToken) return false;
+  const res = await fetch(`${API_URL}/users/me`, {
+    headers: { Authorization: `Bearer ${accessToken}` },
+    cache: "no-store",
+  }).catch(() => null);
+  const me = res?.ok ? ((await res.json().catch(() => null)) as { role?: string } | null) : null;
+  if (me?.role !== "ADMIN") return false;
   await setAdminAuthCookie(accessToken);
+  return true;
 }

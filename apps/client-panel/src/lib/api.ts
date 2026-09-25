@@ -1,5 +1,5 @@
 import { cookies, headers as incomingHeaders } from 'next/headers';
-import { opiszBladSieci, wpisDoLogu } from '@verris/contracts';
+import { opiszBladSieci, wpisDoLogu, sprawdzSciezkeApi } from '@verris/contracts';
 
 // PRZEGLĄDARKA I SERWER TO DWA RÓŻNE ADRESY TEGO SAMEGO API.
 //
@@ -94,6 +94,7 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
   const przerwanie =
     wlasnePrzerwanie ?? (budzetMs > 0 ? AbortSignal.timeout(budzetMs) : undefined);
 
+  sprawdzSciezkeApi(path);
   const zaczeto = Date.now();
   let response: Response;
   try {

@@ -55,7 +55,7 @@ export default async function LegalVersionsPage({ params }: PageProps) {
             <li key={v.version} className="flex items-center justify-between p-5">
               <div>
                 <a
-                  href={`/legal/${kindParam}?version=${v.version}`}
+                  href={`/legal/${kindParam}?version=${encodeURIComponent(v.version)}`}
                   className="text-base font-semibold text-white hover:text-sky-300"
                 >
                   Wersja {v.version}

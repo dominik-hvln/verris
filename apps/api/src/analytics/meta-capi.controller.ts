@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { MetaCapiService } from './meta-capi.service';
 import { MetaCapiPurchaseDto } from './dto/meta-capi.dto';
+import { RateLimit } from '../common/guards/rate-limit.guard';
 
 /**
  * Przekaźnik zdarzeń do Meta Conversions API. Wołany z panelu (server action)
@@ -16,8 +17,11 @@ import { MetaCapiPurchaseDto } from './dto/meta-capi.dto';
 export class MetaCapiController {
   constructor(private readonly capi: MetaCapiService) {}
 
+  // ponytail: kwota i id pochodzą od klienta (jak w Pixelu) — limit ogranicza zaśmiecanie danych
+  // reklamowych; pełne powiązanie z opłaconą transakcją, gdy CAPI zacznie sterować budżetem kampanii.
   @Post('purchase')
   @HttpCode(202)
+  @RateLimit({ limit: 20, windowMs: 3_600_000, scope: 'meta:purchase' })
   async purchase(
     @CurrentUser() user: { userId: string },
     @Body() dto: MetaCapiPurchaseDto,

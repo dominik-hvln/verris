@@ -1,3 +1,4 @@
+import { sprawdzSciezkeApi } from "@verris/contracts";
 import { getStaffAuthToken } from "./staff-auth-cookie";
 import { headers as incomingHeaders } from "next/headers";
 
@@ -37,7 +38,7 @@ export async function staffApi<T = unknown>(path: string, opts: ApiOptions = {})
     /* outside request scope — skip */
   }
 
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetch(`${API_URL}${sprawdzSciezkeApi(path)}`, {
     method: opts.method ?? "GET",
     headers,
     body: opts.body ? JSON.stringify(opts.body) : undefined,
@@ -64,7 +65,7 @@ export async function staffApiMultipart(path: string, formData: FormData): Promi
   const headers: Record<string, string> = {};
   if (token) headers.Authorization = `Bearer ${token}`;
 
-  const res = await fetch(`${API_URL}${path}`, {
+  const res = await fetch(`${API_URL}${sprawdzSciezkeApi(path)}`, {
     method: "POST",
     headers,
     body: formData,

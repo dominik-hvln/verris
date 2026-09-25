@@ -37,6 +37,7 @@ const KIND_DESCRIPTIONS: Record<string, string> = {
 };
 
 const VALID_KINDS = new Set(Object.keys(KIND_LABELS));
+const LOCALES = new Set(["pl", "en"]);
 
 interface PageProps {
   params: Promise<{ kind: string }>;
@@ -51,9 +52,12 @@ export default async function LegalPage({ params, searchParams }: PageProps) {
   const kind = kindParam.toUpperCase();
   if (!VALID_KINDS.has(kind)) notFound();
 
+  // Parametry z URL idą do ścieżki API — tylko znane języki i wersje semver, reszta = 404.
   const locale = search.locale ?? "pl";
+  if (!LOCALES.has(locale)) notFound();
+  if (search.version !== undefined && !/^\d+\.\d+\.\d+(?:[-+][\w.-]+)?$/.test(String(search.version))) notFound();
   const path = search.version
-    ? `/legal/${kind}/version/${search.version}?locale=${locale}`
+    ? `/legal/${kind}/version/${encodeURIComponent(search.version)}?locale=${locale}`
     : `/legal/${kind}?locale=${locale}`;
 
   let doc: LegalDocument | null = null;
