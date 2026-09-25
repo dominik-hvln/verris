@@ -107,3 +107,22 @@ describe('ResellerService.setMarkup (O-07)', () => {
     await expect(svc.setMarkup('r1', 30)).rejects.toMatchObject({ status: 403 });
   });
 });
+
+describe('ResellerService — panel operatora', () => {
+  it('lista pokazuje e-mail klienta, nie samo ID', async () => {
+    const profil = { id: 'p', userId: 'u1', status: 'PENDING', brandName: null, markupPct: 20, code: 'rsl_a', createdAt: new Date(), updatedAt: new Date() };
+    const prisma = { resellerProfile: { findMany: jest.fn(async () => [profil]) }, user: { findMany: jest.fn(async () => [{ id: 'u1', email: 'studio@x.pl' }]) } };
+    const svc = new ResellerService(prisma as never, { record: jest.fn() } as never, { send: jest.fn() } as never);
+    await expect(svc.adminList()).resolves.toEqual([expect.objectContaining({ userId: 'u1', email: 'studio@x.pl' })]);
+  });
+
+  it.each([
+    ['subkonto', { role: 'USER', customerOwnerId: 'owner', anonymizedAt: null }],
+    ['konto operatora', { role: 'STAFF', customerOwnerId: null, anonymizedAt: null }],
+  ])('włączenie dla: %s → 400', async (_n, user) => {
+    const prisma = { resellerProfile: { findUnique: jest.fn(), create: jest.fn() }, user: { findUnique: jest.fn(async () => ({ id: 'x', ...user })) } };
+    const svc = new ResellerService(prisma as never, { record: jest.fn() } as never, { send: jest.fn() } as never);
+    await expect(svc.adminEnable('x', { markupPct: 20 }, 'admin')).rejects.toThrow(BadRequestException);
+    expect(prisma.resellerProfile.create).not.toHaveBeenCalled();
+  });
+});

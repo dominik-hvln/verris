@@ -4,6 +4,7 @@ import { adminApi } from "@/lib/api";
 
 export interface ResellerRow {
   userId: string;
+  email?: string | null;
   status: "PENDING" | "ACTIVE" | "SUSPENDED";
   brandName: string | null;
   markupPct: number;

@@ -90,7 +90,7 @@ function ResellerList({ rows }: { rows: ResellerRow[] }) {
             <div key={r.userId} className="flex flex-wrap items-center gap-3 rounded-xl border border-white/10 bg-black/30 p-3">
               <div className="min-w-0 flex-1">
                 <p className="text-sm text-white">{r.brandName || <span className="text-neutral-500">(bez marki)</span>} · <span className="font-mono text-xs text-neutral-400">{r.code}</span></p>
-                <p className="text-[11px] text-neutral-500">user: <span className="font-mono">{r.userId.slice(0, 8)}</span> · od {new Date(r.createdAt).toLocaleDateString("pl-PL")}</p>
+                <p className="text-[11px] text-neutral-500">{r.email ? <span className="text-neutral-300">{r.email}</span> : null} · user: <span className="font-mono">{r.userId.slice(0, 8)}</span> · od {new Date(r.createdAt).toLocaleDateString("pl-PL")}</p>
               </div>
               <div className="flex items-center gap-1.5">
                 <span className="text-xs text-neutral-400">Narzut</span>

@@ -251,13 +251,21 @@ export class ResellerService {
 
   async adminList() {
     const rows = await this.repo.findMany({ orderBy: { createdAt: 'desc' }, take: 500 });
-    return rows.map((r) => this.view(r));
+    // Operator musi wiedzieć, KIM jest reseller / kto złożył wniosek — samo ID nic nie mówi.
+    const users = await this.prisma.user.findMany({ where: { id: { in: rows.map((r) => r.userId) } }, select: { id: true, email: true } });
+    const email = new Map(users.map((u) => [u.id, u.email]));
+    return rows.map((r) => ({ ...this.view(r), email: email.get(r.userId) ?? null }));
   }
 
   async adminEnable(targetUserId: string, input: { markupPct: number; brandName?: string }, actorUserId: string) {
-    const target = await this.prisma.user.findUnique({ where: { id: targetUserId }, select: { id: true, role: true } });
-    if (!target) throw new NotFoundException('Użytkownik nie istnieje.');
-    if (target.role !== 'USER') throw new BadRequestException('Resellerem może być wyłącznie konto klienta.');
+    const target = await this.prisma.user.findUnique({
+      where: { id: targetUserId },
+      select: { id: true, role: true, customerOwnerId: true, anonymizedAt: true },
+    });
+    if (!target || target.anonymizedAt) throw new NotFoundException('Użytkownik nie istnieje.');
+    if (target.role !== 'USER' || target.customerOwnerId) {
+      throw new BadRequestException('Resellerem może być wyłącznie główne konto klienta (nie subkonto ani konto operatora).');
+    }
     const existing = await this.getProfile(targetUserId);
     const markupPct = Math.min(Math.max(Math.round(input.markupPct) || 0, 0), 300);
     let row: ProfileRow;
