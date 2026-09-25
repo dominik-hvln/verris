@@ -55,3 +55,26 @@ describe('HtaccessService', () => {
     expect(ustawieniaZLogu('VERRIS_HTACCESS=!!')).toBeNull();
   });
 });
+
+describe('B-03 wersja PHP podkatalogu', () => {
+  it('payload: katalog i wersja bez kropki, reszta bloku pusta; zła ścieżka i wersja odrzucone', async () => {
+    const s = stanowisko();
+    await s.svc.phpKatalogu('s1', 'u1', { domain: 'a.pl', katalog: '/sklep/stary/', php: '8.3' });
+    const d = (s.prisma.nodeTask.create.mock.calls[0] as unknown as [{ data: { payload: Record<string, string> } }])[0].data;
+    expect(d.payload).toMatchObject({ mode: 'write', dir: 'sklep/stary', php: '83', indexes: 'default', hsts: '0', e404: '' });
+    await expect(s.svc.phpKatalogu('s1', 'u1', { domain: 'a.pl', katalog: '../etc', php: '8.3' })).rejects.toThrow(BadRequestException);
+    await expect(s.svc.phpKatalogu('s1', 'u1', { domain: 'a.pl', katalog: '', php: '8.3' })).rejects.toThrow(BadRequestException);
+    await expect(s.svc.phpKatalogu('s1', 'u1', { domain: 'a.pl', katalog: 'sklep', php: '83; rm' })).rejects.toThrow(BadRequestException);
+  });
+
+  it('stan katalogu tylko z zadań tego katalogu; wersja z wyniku skryptu', async () => {
+    const d = new Date();
+    const wynik = (o: unknown) => `VERRIS_HTACCESS=${Buffer.from(JSON.stringify(o)).toString('base64')}\n`;
+    const zadania = [
+      { status: 'COMPLETED', payload: { domain: 'a.pl', mode: 'write' }, outputLog: wynik({ indexes: 'off' }), createdAt: d },
+      { status: 'COMPLETED', payload: { domain: 'a.pl', mode: 'write', dir: 'sklep' }, outputLog: wynik({ php: '83' }), createdAt: d },
+    ];
+    expect(await stanowisko(zadania).svc.status('s1', 'u1', 'a.pl', 'sklep')).toMatchObject({ katalog: 'sklep', php: '8.3' });
+    expect(await stanowisko(zadania).svc.status('s1', 'u1', 'a.pl')).toMatchObject({ katalog: '', php: '' });
+  });
+});

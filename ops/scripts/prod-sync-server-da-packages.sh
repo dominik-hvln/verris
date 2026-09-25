@@ -49,14 +49,19 @@ function decryptWithKey(payload, key) {
 
 const { DirectAdminClient } = require('@verris/directadmin-sdk');
 
+// MUSI być zgodne z apps/api/src/servers/da-package-spec.ts (pilnuje test da-package-parytet.spec.ts).
 const PACKAGE_POLICY = {
+  'verris-hosting': { domains: 'unlimited', subdomains: 'unlimited', emailAccounts: 'unlimited', emailForwarders: 'unlimited', mailingLists: 100, autoresponders: 'unlimited', databases: 'unlimited', domainPointers: 'unlimited', ftpAccounts: 'unlimited' },
   starter: { domains: 1, subdomains: 25, emailAccounts: 25, emailForwarders: 50, mailingLists: 5, autoresponders: 25, databases: 5, domainPointers: 5, ftpAccounts: 10 },
   pro: { domains: 10, subdomains: 100, emailAccounts: 200, emailForwarders: 'unlimited', mailingLists: 25, autoresponders: 100, databases: 25, domainPointers: 25, ftpAccounts: 50 },
   business: { domains: 'unlimited', subdomains: 'unlimited', emailAccounts: 'unlimited', emailForwarders: 'unlimited', mailingLists: 100, autoresponders: 'unlimited', databases: 'unlimited', domainPointers: 'unlimited', ftpAccounts: 'unlimited' },
 };
 
+// Nieznany slug → ta sama ograniczona polityka co DEFAULT_PACKAGE_POLICY w API (nigdy „wszystko bez limitu”).
+const DOMYSLNA = { domains: 1, subdomains: 25, emailAccounts: 25, emailForwarders: 25, mailingLists: 5, autoresponders: 25, databases: 5, domainPointers: 5, ftpAccounts: 10 };
+
 function policy(slug) {
-  return PACKAGE_POLICY[slug] || PACKAGE_POLICY.starter;
+  return PACKAGE_POLICY[slug] || DOMYSLNA;
 }
 
 (async () => {

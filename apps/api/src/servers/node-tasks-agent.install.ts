@@ -258,7 +258,7 @@ elif [ "$TASK_KIND" = "SITE_CLONE" ]; then
 elif [ "$TASK_KIND" = "HTACCESS" ]; then
   RUN_BIN="/usr/local/bin/verris-htaccess.sh"
   fetch_task_script "/agent/tasks/htaccess/script" "$RUN_BIN"
-  payload_env "HT" "{'mode':'MODE','daUser':'DA_USER','domain':'DOMAIN','indexes':'INDEXES','hsts':'HSTS','e403':'E403','e404':'E404','e500':'E500'}"
+  payload_env "HT" "{'mode':'MODE','daUser':'DA_USER','domain':'DOMAIN','indexes':'INDEXES','hsts':'HSTS','e403':'E403','e404':'E404','e500':'E500','dir':'DIR','php':'PHP'}"
 elif [ "$TASK_KIND" = "PHP_INFO" ]; then
   RUN_BIN="/usr/local/bin/verris-php-info.sh"
   fetch_task_script "/agent/tasks/php-info/script" "$RUN_BIN"
@@ -275,6 +275,10 @@ elif [ "$TASK_KIND" = "MEMCACHED_ACCESS" ]; then
   RUN_BIN="/usr/local/bin/verris-memcached.sh"
   fetch_task_script "/agent/tasks/memcached/script" "$RUN_BIN"
   payload_env "MC" "{'mode':'MODE','daUser':'DA_USER','memoryMb':'MEMORY_MB'}"
+elif [ "$TASK_KIND" = "IMAGE_OPTIMIZE" ]; then
+  RUN_BIN="/usr/local/bin/verris-image-optimize.sh"
+  fetch_task_script "/agent/tasks/image-optimize/script" "$RUN_BIN"
+  payload_env "IO" "{'daUser':'DA_USER','domain':'DOMAIN','dir':'DIR','metadane':'METADANE'}"
 elif [ "$TASK_KIND" = "PGSQL" ]; then
   RUN_BIN="/usr/local/bin/verris-pgsql.sh"
   fetch_task_script "/agent/tasks/pgsql/script" "$RUN_BIN"
@@ -467,7 +471,7 @@ dispatch_generic() {
 
 case "$KIND" in
   HOSTING_PROFILE) dispatch_hosting_profile ;;
-  WP_INSTALL|WAF_APPLY|STAGING_SYNC|PHP_APPLY|APP_INSTALL|OFFSITE_RESTORE|DB_UPGRADE|FLEET_UPDATE|DB_TRANSFER|FILE_RESTORE|SSH_ACCESS|WP_UPDATE|DISK_USAGE|MALWARE_SCAN|REDIS_ACCESS|MAIL_LOG|GIT_DEPLOY|SITE_CLONE|HTACCESS|PHP_INFO|FILE_SEARCH|APP_SELECTOR|SLOW_SQL|MEMCACHED_ACCESS|SITE_STATS|PGSQL) dispatch_generic ;;
+  WP_INSTALL|WAF_APPLY|STAGING_SYNC|PHP_APPLY|APP_INSTALL|OFFSITE_RESTORE|DB_UPGRADE|FLEET_UPDATE|DB_TRANSFER|FILE_RESTORE|SSH_ACCESS|WP_UPDATE|DISK_USAGE|MALWARE_SCAN|REDIS_ACCESS|MAIL_LOG|GIT_DEPLOY|SITE_CLONE|HTACCESS|PHP_INFO|FILE_SEARCH|APP_SELECTOR|SLOW_SQL|MEMCACHED_ACCESS|SITE_STATS|PGSQL|IMAGE_OPTIMIZE) dispatch_generic ;;
   *)
     report_task_fail "Unknown task kind: $KIND"
     exit 1

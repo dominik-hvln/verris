@@ -49,6 +49,7 @@ import { FileSearchService } from './file-search.service';
 import { AppSelectorService } from './app-selector.service';
 import { SlowSqlService } from './slow-sql.service';
 import { PgsqlService } from './pgsql.service';
+import { ObrazyService } from './obrazy.service';
 import { BazaPgsqlDto } from './dto/pgsql.dto';
 import { SiteStatsService } from './site-stats.service';
 import { HostingRestoreDto } from './dto/hosting-restore.dto';
@@ -109,6 +110,9 @@ import {
   KlonStronyDto,
   DomenaStronyDto,
   UstawieniaHtaccessDto,
+  KatalogStronyDto,
+  PhpKataloguDto,
+  OptymalizacjaObrazowDto,
   KonserwacjaBazyDto,
   UprawnieniaBazyDto,
   SzukajPlikowDto,
@@ -152,6 +156,7 @@ export class UserServicesController {
     private readonly appSelector: AppSelectorService,
     private readonly slowSql: SlowSqlService,
     private readonly pgsql: PgsqlService,
+    private readonly obrazy: ObrazyService,
     private readonly siteStats: SiteStatsService,
     private readonly wordpress: WordpressService,
     private readonly waf: WafService,
@@ -1340,6 +1345,18 @@ export class UserServicesController {
     return this.siteClone.klonuj(id, user.userId, body);
   }
 
+  // J-06 — bezstratna optymalizacja obrazów strony (zadanie węzła).
+  @Get(':id/hosting-images')
+  async hostingImages(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Query('domain') domain: string) {
+    return this.obrazy.status(id, user.userId, domain ?? '');
+  }
+
+  @RateLimit({ limit: 10, windowMs: 60 * 60 * 1000, scope: 'hosting:images' })
+  @Post(':id/hosting-images')
+  async hostingImagesRun(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: OptymalizacjaObrazowDto) {
+    return this.obrazy.uruchom(id, user.userId, body);
+  }
+
   // D-14 — bazy PostgreSQL konta (zadanie węzła). Hasło w odpowiedzi pokazujemy raz.
   @Get(':id/hosting-pgsql')
   async hostingPgsql(@CurrentUser() user: { userId: string }, @Param('id') id: string) {
@@ -1450,8 +1467,26 @@ export class UserServicesController {
 
   // B-17/B-18/G-07 — strony błędów, listowanie katalogów i HSTS w .htaccess strony (zadanie węzła).
   @Get(':id/hosting-htaccess')
-  async hostingHtaccess(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Query('domain') domain: string) {
-    return this.htaccess.status(id, user.userId, domain ?? '');
+  async hostingHtaccess(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Query('domain') domain: string,
+    @Query('katalog') katalog?: string,
+  ) {
+    return this.htaccess.status(id, user.userId, domain ?? '', katalog ?? '');
+  }
+
+  // B-03 — wersja PHP podkatalogu (handler LiteSpeed w .htaccess katalogu, zadanie HTACCESS).
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:htaccess' })
+  @Post(':id/hosting-htaccess/php-dir/read')
+  async hostingPhpDirRead(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: KatalogStronyDto) {
+    return this.htaccess.odczytaj(id, user.userId, body.domain, body.katalog);
+  }
+
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:htaccess' })
+  @Post(':id/hosting-htaccess/php-dir')
+  async hostingPhpDirWrite(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: PhpKataloguDto) {
+    return this.htaccess.phpKatalogu(id, user.userId, body);
   }
 
   @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'hosting:htaccess' })

@@ -183,6 +183,24 @@ export class UstawieniaHtaccessDto {
   @IsString() @MaxLength(201) e500!: string;
 }
 
+/** B-03 — podkatalog public_html (walidacja ścieżki w HtaccessService.sprawdzKatalog). */
+export class KatalogStronyDto {
+  @Linia(253) domain!: string;
+  @Linia(200) katalog!: string;
+}
+
+/** B-03 — wersja PHP podkatalogu: „8.3” albo pusta (katalog wraca do wersji domeny). */
+export class PhpKataloguDto extends KatalogStronyDto {
+  @IsString() @Matches(/^([5-8]\.\d)?$/, { message: 'Nieprawidłowa wersja PHP.' }) php!: string;
+}
+
+/** J-06 — optymalizacja obrazów: katalog w public_html (pusty = całość) i usuwanie metadanych. */
+export class OptymalizacjaObrazowDto {
+  @Linia(253) domain!: string;
+  @IsString() @MaxLength(200) katalog!: string;
+  @IsBoolean() metadane!: boolean;
+}
+
 /** E-19 — dziennik dostarczania poczty, opcjonalnie zawężony do adresu. */
 export class DziennikPocztyDto {
   @IsOptional() @IsEmail() @MaxLength(254) address?: string;

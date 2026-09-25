@@ -184,6 +184,7 @@ configure_firewall_ingress() {
       run "ufw allow 25/tcp"
       run "ufw allow 587/tcp"
       run "ufw allow 993/tcp"
+      run "ufw allow 5232/tcp comment 'verris-dav'"
       if [ -n "$control_plane_ip" ]; then
         # Remote MySQL stays private by default; allow only control-plane.
         run "ufw allow proto tcp from ${control_plane_ip} to any port 3306"
@@ -206,6 +207,7 @@ configure_firewall_ingress() {
       run "firewall-cmd --permanent --add-port=25/tcp"
       run "firewall-cmd --permanent --add-port=587/tcp"
       run "firewall-cmd --permanent --add-port=993/tcp"
+      run "firewall-cmd --permanent --add-port=5232/tcp"
       if [ -n "$control_plane_ip" ]; then
         # Remote MySQL stays private by default; allow only control-plane.
         run "firewall-cmd --permanent --add-rich-rule='rule family=\"ipv4\" source address=\"${control_plane_ip}\" port port=\"3306\" protocol=\"tcp\" accept'"

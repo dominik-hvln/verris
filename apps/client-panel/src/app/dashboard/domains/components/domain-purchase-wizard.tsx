@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   ArrowRight,
-  Check,
   Globe2,
   Loader2,
   RefreshCw,
@@ -33,6 +32,7 @@ import {
 import { RegistrantFields, PUSTY_ABONENT, brakiAbonenta } from './registrant-fields';
 import { trackBeginCheckout, trackPurchase, trackSearch } from '@/lib/analytics-events';
 import { Checkbox } from '@/components/panel/checkbox';
+import { Stepper } from '@/components/panel/stepper';
 
 const YEAR_OPTIONS = [1, 2, 3, 5, 10] as const;
 
@@ -363,23 +363,7 @@ export function DomainPurchaseWizard({ initialOrders, initialLabel = '' }: { ini
         }
       />
 
-      <div className="flex flex-wrap gap-2">
-        {steps.map((s, i) => (
-          <div
-            key={s.id}
-            className={`flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium ${
-              i <= stepIndex
-                ? 'border-verris-mint/40 bg-verris-mint/10 text-verris-paper'
-                : 'border-white/10 text-neutral-500'
-            }`}
-          >
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-black/40 text-[10px]">
-              {i < stepIndex ? <Check className="h-3 w-3" /> : i + 1}
-            </span>
-            {s.label}
-          </div>
-        ))}
-      </div>
+      <Stepper kroki={steps.map((k) => k.label)} aktualny={stepIndex} />
 
       <div className="relative overflow-hidden rounded-[32px] p-px">
         <SpinBorder variant="white" className="opacity-20" />

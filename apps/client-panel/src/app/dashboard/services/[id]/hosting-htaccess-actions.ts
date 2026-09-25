@@ -66,3 +66,39 @@ export async function saveDocroot(serviceId: string, domain: string, katalog: st
     return { ok: false, error: blad(e) };
   }
 }
+
+/** B-03 — wersja PHP podkatalogu (handler LiteSpeed w .htaccess katalogu). php: „8.3” albo "" (jak domena). */
+export interface PhpKataloguStatus {
+  domena: string;
+  katalog: string;
+  php: string | null;
+  wToku: boolean;
+  odczytano: string | null;
+  blad: string | null;
+}
+
+type WynikPhp = { ok: true; status: PhpKataloguStatus } | { ok: false; error: string };
+async function wynikPhp(p: Promise<PhpKataloguStatus>): Promise<WynikPhp> {
+  try {
+    return { ok: true, status: await p };
+  } catch (e) {
+    return { ok: false, error: blad(e) };
+  }
+}
+
+export async function fetchPhpKatalogu(serviceId: string, domain: string, katalog: string): Promise<WynikPhp> {
+  const q = `domain=${encodeURIComponent(domain)}&katalog=${encodeURIComponent(katalog)}`;
+  return wynikPhp(apiFetch<PhpKataloguStatus>(`/services/${serviceId}/hosting-htaccess?${q}`));
+}
+
+export async function readPhpKatalogu(serviceId: string, domain: string, katalog: string): Promise<WynikPhp> {
+  return wynikPhp(
+    apiFetch<PhpKataloguStatus>(`/services/${serviceId}/hosting-htaccess/php-dir/read`, { method: 'POST', body: JSON.stringify({ domain, katalog }) }),
+  );
+}
+
+export async function savePhpKatalogu(serviceId: string, domain: string, katalog: string, php: string): Promise<WynikPhp> {
+  return wynikPhp(
+    apiFetch<PhpKataloguStatus>(`/services/${serviceId}/hosting-htaccess/php-dir`, { method: 'POST', body: JSON.stringify({ domain, katalog, php }) }),
+  );
+}

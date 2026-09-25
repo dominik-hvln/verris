@@ -40,6 +40,7 @@ import { loadHtaccessScript } from './htaccess.script';
 import { loadAppSelectorScript } from './app-selector.script';
 import { loadSlowSqlScript } from './slow-sql.script';
 import { loadPgsqlScript } from './pgsql.script';
+import { loadImageOptimizeScript } from './image-optimize.script';
 import { loadMemcachedScript } from './memcached.script';
 import { loadSiteStatsScript } from './site-stats.script';
 import { loadPhpInfoScript } from './php-info.script';
@@ -215,6 +216,13 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   appSelectorScript() {
     return loadAppSelectorScript();
+  }
+
+  /** J-06 — optymalizacja obrazów strony (run with IO_* env). */
+  @Get('image-optimize/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  imageOptimizeScript() {
+    return loadImageOptimizeScript();
   }
 
   /** D-14 — bazy PostgreSQL konta (run with PG_* env). */

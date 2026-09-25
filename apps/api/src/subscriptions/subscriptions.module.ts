@@ -46,6 +46,7 @@ import { WpPodatnosciService } from './wp-podatnosci.service';
 import { OdtworzenieNaWezleService } from './odtworzenie-na-wezle.service';
 import { SlowSqlService } from './slow-sql.service';
 import { PgsqlService } from './pgsql.service';
+import { ObrazyService } from './obrazy.service';
 import { SiteStatsService } from './site-stats.service';
 import { PublicApiWriteController } from './public-api-write.controller';
 import { GitWebhookController } from './git-webhook.controller';
@@ -110,6 +111,7 @@ import { EcoModule } from '../eco/eco.module';
     OdtworzenieNaWezleService,
     SlowSqlService,
     PgsqlService,
+    ObrazyService,
     SiteStatsService,
     WpAutoUpdateScheduler,
     WordpressService,

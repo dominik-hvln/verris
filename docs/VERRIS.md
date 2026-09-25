@@ -263,6 +263,10 @@ Kierunek do przygotowania jako osobny projekt (makiety przed kodem):
 
 **D-14 (kod 2026-09-25, D3 na węźle):** PostgreSQL 16 dla kont — DirectAdmin nie zarządza serwerem PostgreSQL (CustomBuild ma tylko rozszerzenia PHP `php_pgsql`, od 1.707 `pdo_pgsql`), więc serwer instaluje profil węzła z AppStream (localhost, scram-sha-256), a bazy zakłada zadanie PGSQL (`ops/scripts/node-pgsql.sh`): rola na bazę `<login>_<nazwa>`, limit 5 baz, hasło pokazane raz. Codzienny `pg_dump` do `~/.verris-pgsql/` konta (wchodzi do kopii DA), hook DA `user_destroy_post` usuwa bazy razem z kontem. Odtworzenie bazy PostgreSQL z kopii robi na razie support (`pg_restore`). Hasła z payloadu zadań węzła są usuwane po wykonaniu zadania (`bezSekretow`).
 
+**E-23 / B-03 / J-06 (kod 2026-09-25, D3 na węźle):** kalendarz i kontakty (Radicale 3.8.1, logowanie danymi skrzynki przez Dovecot, port 5232, kopia do katalogu konta); PHP w podkatalogu (handler LiteSpeed w .htaccess katalogu, zadanie HTACCESS z HT_DIR/HT_PHP); bezstratna optymalizacja obrazów (zadanie IMAGE_OPTIMIZE, jpegoptim/optipng jako klient). M-33 (dedykowane IP) zostaje zleceniem — DA nie dokumentuje API przypisania IP użytkownikowi.
+
+**Treści verris.pl (2026-09-25):** poprawione twierdzenia bez pokrycia (tryb ECO, Apple/Google Pay, przypomnienia, rezygnacja, zwroty); rabat na start zostaje — przekaz „odnowienie po cenie z cennika”. `/specyfikacja` gotowa i ukryta do akceptacji (`SPECYFIKACJA_OPUBLIKOWANA`). Szczegóły: `docs/marketing/akceptacja-tresci-2026-09.md`.
+
 ### 3.4 System ticketowy (panel staff) — wymagania na później
 
 - **Automatyczne odpowiedzi na typowe przypadki:** klasyfikacja zgłoszenia (DNS, SSL, poczta,

@@ -70,6 +70,7 @@ export const ETYKIETY_DZIENNIKA: Record<string, string> = {
   HOSTING_PGSQL_CREATE_QUEUED: 'Utworzono bazę PostgreSQL',
   HOSTING_PGSQL_DELETE_QUEUED: 'Usunięto bazę PostgreSQL',
   HOSTING_PGSQL_PASSWORD_QUEUED: 'Zmieniono hasło bazy PostgreSQL',
+  HOSTING_IMAGES_OPTIMIZE_QUEUED: 'Uruchomiono optymalizację obrazów',
   HOSTING_SITE_CLONE_QUEUED: 'Zlecono kopię strony na inną domenę',
   HOSTING_SPAMFILTER_SET: 'Zmieniono filtr antyspamowy',
   HOSTING_SSH_ENABLE_QUEUED: 'Włączono SSH',

@@ -12,6 +12,17 @@ import { DirectAdminService } from '../servers/directadmin.service';
  */
 export type UstawieniaHtaccess = { indexes: 'on' | 'off' | 'default'; hsts: boolean; e403: string; e404: string; e500: string };
 
+/** B-03 — katalog względem public_html (pusty = public_html) i wersja PHP katalogu („8.3” → "83"). */
+const KATALOG_RE = /^[A-Za-z0-9._-]+(\/[A-Za-z0-9._-]+){0,9}$/;
+export function sprawdzKatalog(k: string): string {
+  const v = k.trim().replace(/^\/+|\/+$/g, '');
+  if (!v) return '';
+  if (!KATALOG_RE.test(v) || v.split('/').some((c) => c === '.' || c === '..')) {
+    throw new BadRequestException('Katalog to ścieżka w public_html, np. sklep albo blog/stary — litery, cyfry, . _ - /.');
+  }
+  return v;
+}
+
 const SCIEZKA_RE = /^\/[A-Za-z0-9._~-][A-Za-z0-9._~/-]{0,199}$/;
 const poprawna = (v: string) => SCIEZKA_RE.test(v) && !v.includes('..') && !v.includes('//');
 
@@ -32,14 +43,30 @@ export class HtaccessService {
     private readonly directAdmin: DirectAdminService,
   ) {}
 
-  async status(subscriptionId: string, userId: string, domain: string) {
+  async status(subscriptionId: string, userId: string, domain: string, katalog = '') {
     const { account } = await this.wymagajKonta(subscriptionId, userId);
     const domena = await this.directAdmin.assertDomainOwnedBySubscription(subscriptionId, userId, domain);
-    return this.opis(account.id, domena);
+    return this.opis(account.id, domena, sprawdzKatalog(katalog));
   }
 
-  async odczytaj(subscriptionId: string, userId: string, domain: string) {
-    return this.zlec(subscriptionId, userId, domain, { mode: 'read' });
+  async odczytaj(subscriptionId: string, userId: string, domain: string, katalog = '') {
+    const k = sprawdzKatalog(katalog);
+    return this.zlec(subscriptionId, userId, domain, k ? { mode: 'read', dir: k } : { mode: 'read' });
+  }
+
+  /**
+   * B-03 — wersja PHP podkatalogu (LiteSpeed + CloudLinux alt-php, handler w .htaccess katalogu). W bloku
+   * Verris podkatalogu jest wyłącznie wersja PHP; pusta wersja = katalog wraca do wersji domeny.
+   */
+  async phpKatalogu(subscriptionId: string, userId: string, input: { domain: string; katalog: string; php: string }) {
+    const katalog = sprawdzKatalog(input.katalog);
+    if (!katalog) throw new BadRequestException('Podaj podkatalog — wersję PHP całej domeny zmieniasz wyżej.');
+    const m = /^([5-8])\.(\d)$/.exec(input.php.trim());
+    if (input.php.trim() && !m) throw new BadRequestException('Nieprawidłowa wersja PHP.');
+    return this.zlec(subscriptionId, userId, input.domain, {
+      mode: 'write', dir: katalog, php: m ? `${m[1]}${m[2]}` : '',
+      indexes: 'default', hsts: '0', e403: '', e404: '', e500: '',
+    });
   }
 
   async zapisz(subscriptionId: string, userId: string, input: { domain: string } & UstawieniaHtaccess) {
@@ -79,19 +106,25 @@ export class HtaccessService {
         details: { subscriptionId, domain: domena, ...dane, taskId: task.id },
       });
     }
-    return this.opis(account.id, domena);
+    return this.opis(account.id, domena, dane.dir ?? '');
   }
 
-  private async opis(accountId: string, domena: string) {
-    const zadania = await this.prisma.nodeTask.findMany({
-      where: { accountId, kind: NodeTaskKind.HTACCESS, payload: { path: ['domain'], equals: domena } },
-      orderBy: { createdAt: 'desc' },
-      take: 5,
-    });
+  private async opis(accountId: string, domena: string, katalog = '') {
+    const zadania = (
+      await this.prisma.nodeTask.findMany({
+        where: { accountId, kind: NodeTaskKind.HTACCESS, payload: { path: ['domain'], equals: domena } },
+        orderBy: { createdAt: 'desc' },
+        take: 30,
+      })
+    )
+      .filter((z) => ((z.payload as { dir?: string } | null)?.dir ?? '') === katalog)
+      .slice(0, 5);
     const udane = zadania.find((z) => z.status === NodeTaskStatus.COMPLETED && ustawieniaZLogu(z.outputLog));
     const ostatnie = zadania[0] ?? null;
     return {
       domena,
+      katalog,
+      php: udane ? phpZLogu(udane.outputLog) : null,
       wToku: zadania.some((z) => z.status === NodeTaskStatus.QUEUED || z.status === NodeTaskStatus.RUNNING),
       ustawienia: udane ? ustawieniaZLogu(udane.outputLog) : null,
       odczytano: udane ? (udane.completedAt ?? udane.createdAt).toISOString() : null,
@@ -122,6 +155,18 @@ export function ustawieniaZLogu(log: string | null): UstawieniaHtaccess | null {
     };
   } catch {
     return null;
+  }
+}
+
+/** B-03 — wersja PHP katalogu z wyniku skryptu: "83" → "8.3", brak → "". */
+export function phpZLogu(log: string | null): string {
+  const m = /^VERRIS_HTACCESS=([A-Za-z0-9+/=]+)\s*$/m.exec(log ?? '');
+  if (!m) return '';
+  try {
+    const v = (JSON.parse(Buffer.from(m[1], 'base64').toString('utf8')) as { php?: unknown }).php;
+    return typeof v === 'string' && /^[5-8]\d$/.test(v) ? `${v[0]}.${v[1]}` : '';
+  } catch {
+    return '';
   }
 }
 

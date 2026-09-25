@@ -34,6 +34,8 @@ import { HtaccessPanel } from '@/components/hosting/HtaccessPanel';
 import { DocrootPanel } from '@/components/hosting/DocrootPanel';
 import { DnssecPanel } from '@/components/hosting/DnssecPanel';
 import { PhpInfoPanel } from '@/components/hosting/PhpInfoPanel';
+import { PhpKatalogPanel } from '@/components/hosting/PhpKatalogPanel';
+import { ObrazyPanel } from '@/components/hosting/ObrazyPanel';
 import { FileSearchPanel } from '@/components/hosting/FileSearchPanel';
 import { HostingLinksProvider } from '@/components/hosting/hosting-links-context';
 import { fetchHostingDnsAction, fetchHostingDomainsAction } from '../../hosting-domains-action';
@@ -377,6 +379,7 @@ export default function SitePage() {
             <SectionHead title="Pliki strony" desc={`Katalog /domains/${domain}/public_html.`} />
             <FileManagerClient serviceId={serviceId} domain={domain} />
             <FileSearchPanel serviceId={serviceId} domain={domain} />
+            <ObrazyPanel key={`img-${domain}`} serviceId={serviceId} domain={domain} />
             <SiteClonePanel serviceId={serviceId} domain={domain} domains={domainList} />
           </section>
         ) : null}
@@ -432,6 +435,7 @@ export default function SitePage() {
             <PhpSection serviceId={serviceId} domain={domain} php={ok(php)} loading={php === undefined} onChanged={reloadPhp} />
             <PhpInfoPanel serviceId={serviceId} domain={domain} />
             <HtaccessPanel key={domain} serviceId={serviceId} domain={domain} />
+            <PhpKatalogPanel key={`pk-${domain}`} serviceId={serviceId} domain={domain} />
             <DocrootPanel key={`dr-${domain}`} serviceId={serviceId} domain={domain} />
           </>
         ) : null}

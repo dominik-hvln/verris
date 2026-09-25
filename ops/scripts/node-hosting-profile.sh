@@ -1241,6 +1241,130 @@ HBA
     fi
   fi
 
+  # E-23 — kalendarz i kontakty (CalDAV/CardDAV): Radicale 3.8.1 (radicale.org, DOCUMENTATION.md) w venv,
+  # logowanie danymi skrzynki przez gniazdo auth Dovecota ([auth] type = dovecot — Dovecot dostaje IP klienta,
+  # więc blokady po nieudanych logowaniach działają jak dla IMAP), [rights] owner_only, TLS na porcie 5232
+  # z certyfikatem hosta DirectAdmina (LoadCredential — klucz nie zmienia uprawnień). Nowa skrzynka dostaje
+  # od razu „Kalendarz” i „Kontakty” (predefined_collections). Bez interfejsu WWW ([web] type = none).
+  if [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ]; then
+    local dav_ver=3.8.1 dav_venv=/opt/verris-radicale dav_sock=/var/run/dovecot/auth-client dav_grupa=""
+    id radicale >/dev/null 2>&1 || useradd --system -M -d /var/lib/radicale -s /sbin/nologin radicale
+    install -d -m 750 -o radicale -g radicale /var/lib/radicale /var/lib/radicale/collections
+    if [ ! -x "$dav_venv/bin/radicale" ] || ! "$dav_venv/bin/pip" show radicale 2>/dev/null | grep -q "^Version: $dav_ver$"; then
+      { python3 -m venv "$dav_venv" && "$dav_venv/bin/pip" install -q "radicale==$dav_ver"; } >/var/log/verris-dav.log 2>&1 \
+        || log_warn "Radicale — instalacja nie powiodła się (log: /var/log/verris-dav.log)"
+    fi
+    if [ -S "$dav_sock" ]; then
+      dav_grupa="$(stat -c %G "$dav_sock")"
+      [ $(( 0$(stat -c %a "$dav_sock") & 060 )) -eq 48 ] || { log_warn "Radicale: gniazdo $dav_sock bez dostępu dla grupy — logowanie do kalendarza nie zadziała"; dav_grupa=""; }
+    else
+      log_warn "Radicale: brak gniazda $dav_sock (Dovecot)"
+    fi
+    install -d -m 750 -o root -g radicale /etc/verris-radicale
+    cat > /etc/verris-radicale/config <<'RCONF'
+# Zarządzane przez Verris (E-23) — zmiany ręczne zostaną nadpisane.
+[server]
+hosts = 0.0.0.0:5232, [::]:5232
+ssl = True
+max_connections = 50
+max_content_length = 20000000
+timeout = 30
+[auth]
+type = dovecot
+dovecot_socket = /var/run/dovecot/auth-client
+lc_username = True
+delay = 1
+cache_logins = True
+[rights]
+type = owner_only
+[storage]
+filesystem_folder = /var/lib/radicale/collections
+predefined_collections = {"kalendarz": {"D:displayname": "Kalendarz", "tag": "VCALENDAR", "C:supported-calendar-component-set": "VEVENT,VTODO"}, "kontakty": {"D:displayname": "Kontakty", "tag": "VADDRESSBOOK"}}
+[web]
+type = none
+RCONF
+    chown root:radicale /etc/verris-radicale/config; chmod 640 /etc/verris-radicale/config
+    cat > /etc/systemd/system/verris-radicale.service <<UNITF
+[Unit]
+Description=Verris — kalendarz i kontakty (CalDAV/CardDAV)
+After=network.target dovecot.service
+
+[Service]
+User=radicale
+Group=radicale
+${dav_grupa:+SupplementaryGroups=$dav_grupa}
+LoadCredential=cert:/usr/local/directadmin/conf/cacert.pem
+LoadCredential=key:/usr/local/directadmin/conf/cakey.pem
+ExecStart=$dav_venv/bin/radicale --config /etc/verris-radicale/config --server-certificate=\${CREDENTIALS_DIRECTORY}/cert --server-key=\${CREDENTIALS_DIRECTORY}/key
+UMask=0027
+Restart=on-failure
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/radicale
+
+[Install]
+WantedBy=multi-user.target
+UNITF
+    systemctl daemon-reload
+    systemctl enable verris-radicale >/dev/null 2>&1 || true
+    if systemctl restart verris-radicale 2>>/var/log/verris-dav.log; then
+      log_ok "Kalendarz i kontakty (Radicale $dav_ver) na porcie 5232"
+    else
+      log_warn "Radicale — start nie powiódł się (journalctl -u verris-radicale)"
+    fi
+    # Certyfikat hosta odnawia control-plane w poniedziałki o 04:00 — Radicale czyta go przy starcie.
+    cat > /usr/local/sbin/verris-dav-backup <<'DAVB'
+#!/usr/bin/env bash
+# Verris (E-23): kopia kalendarzy i kontaktów do katalogu domowego właściciela konta (trafia do kopii
+# DirectAdmina) + sprzątanie po usuniętych skrzynkach (odłożone na 30 dni, żeby nowa skrzynka o tym
+# samym adresie nie dostała cudzego kalendarza).
+set -uo pipefail
+ROOT=/var/lib/radicale/collections/collection-root
+KOSZ=/var/lib/radicale/usuniete
+[ -d "$ROOT" ] || exit 0
+[ -s /etc/virtual/domainowners ] || exit 0
+install -d -m 700 -o radicale -g radicale "$KOSZ"
+for d in "$ROOT"/*/; do
+  u="$(basename "$d")"
+  [[ "$u" =~ ^[a-z0-9._%+-]+(@[a-z0-9.-]+)?$ ]] || continue
+  owner=""; jest=0
+  if [[ "$u" == *@* ]]; then
+    dom="${u#*@}"; lokal="${u%@*}"
+    owner="$(awk -F': *' -v d="$dom" '$1==d{print $2; exit}' /etc/virtual/domainowners)"
+    if [ -n "$owner" ]; then
+      grep -q "^${lokal}:" "/etc/virtual/$dom/passwd" 2>/dev/null && jest=1
+      [ "$lokal" = "$owner" ] && jest=1
+    fi
+  else
+    owner="$u"
+    [ -d "/usr/local/directadmin/data/users/$u" ] && jest=1
+  fi
+  if [ "$jest" != 1 ]; then
+    mv -- "${d%/}" "$KOSZ/$u.$(date +%Y%m%d)" 2>/dev/null || true
+    continue
+  fi
+  tar -C "$ROOT" --exclude=.Radicale.cache -czf - "$u" |
+    runuser -u "$owner" -- sh -c 'umask 077; mkdir -p "$HOME/.verris-dav" && cat > "$HOME/.verris-dav/$1.tar.gz.tmp" && mv -f "$HOME/.verris-dav/$1.tar.gz.tmp" "$HOME/.verris-dav/$1.tar.gz"' _ "$u" ||
+    echo "verris-dav-backup: kopia $u nie powiodła się" >&2
+done
+find "$KOSZ" -mindepth 1 -maxdepth 1 -mtime +30 -exec rm -rf -- {} +
+DAVB
+    chmod 700 /usr/local/sbin/verris-dav-backup
+    printf '40 3 * * * root /usr/local/sbin/verris-dav-backup\n30 4 * * 1 root systemctl try-restart verris-radicale\n' > /etc/cron.d/verris-dav
+    chmod 644 /etc/cron.d/verris-dav
+  fi
+
+  # J-06 — optymalizacja obrazów w panelu (node-image-optimize.sh): jpegoptim i optipng z EPEL.
+  if [ "$DRY_RUN" != "1" ] && [ "$PREFLIGHT_ONLY" != "1" ]; then
+    if ! command -v jpegoptim >/dev/null 2>&1 || ! command -v optipng >/dev/null 2>&1; then
+      { dnf install -y epel-release && dnf install -y jpegoptim optipng; } >/var/log/verris-obrazy.log 2>&1 \
+        || log_warn "jpegoptim/optipng — instalacja nie powiodła się; optymalizacja obrazów w panelu zgłosi brak"
+    fi
+    command -v jpegoptim >/dev/null 2>&1 && command -v optipng >/dev/null 2>&1 && log_ok "Optymalizacja obrazów (jpegoptim, optipng)"
+  fi
+
   # B-08/B-09 — aplikacje Node.js i Python (CloudLinux Selector, node-app-selector.sh). Pakiety wg
   # docs.cloudlinux.com → CloudLinux OS components → Node.js / Python Selector → Installation (DirectAdmin):
   # alt-nodejs / alt-python + lvemanager lve-utils alt-python-virtualenv alt-mod-passenger. Oba selektory są

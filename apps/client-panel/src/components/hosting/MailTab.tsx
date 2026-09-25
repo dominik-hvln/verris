@@ -328,6 +328,7 @@ export default function MailTab({ serviceId }: Props) {
           items={[
             { label: 'Serwer przychodzący (IMAP)', values: [imapHost], port: '993' },
             { label: 'Serwer wychodzący (SMTP)', values: [imapHost], port: '465' },
+            { label: 'Kalendarz i kontakty (CalDAV/CardDAV)', values: [mailHost ? `https://${mailHost}:5232/` : '—'], port: null },
           ]}
         />
         <p className="m-0 px-4 pb-3.5 pt-2 font-mono text-[11.5px] leading-relaxed text-muted-foreground">
@@ -336,6 +337,12 @@ export default function MailTab({ serviceId }: Props) {
         <p className="m-0 px-4 pb-3.5 text-[12.5px] leading-relaxed text-muted-foreground">
           Filtry poczty (np. przenoszenie wiadomości do folderu, przekierowanie według nadawcy, autoodpowiedź) ustawisz w webmailu:
           Ustawienia → Filtry. Reguły działają na serwerze, więc obowiązują też w telefonie i programie pocztowym.
+        </p>
+        <p className="m-0 px-4 pb-3.5 text-[12.5px] leading-relaxed text-muted-foreground">
+          Każda skrzynka ma własny kalendarz i książkę kontaktów, synchronizowane z telefonem i komputerem. Logujesz się tym samym adresem i hasłem co do poczty.
+          iPhone/Mac: Ustawienia → Kalendarz → Konta → Dodaj konto → Inne → Konto CalDAV (i osobno CardDAV), serwer jak wyżej.
+          Android: aplikacja DAVx⁵ → „Zaloguj się za pomocą adresu URL i nazwy użytkownika”. Thunderbird: Nowy kalendarz → W sieci.
+          Kopia kalendarzy i kontaktów trafia co noc do kopii zapasowej konta.
         </p>
       </div>
 

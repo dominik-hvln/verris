@@ -12,6 +12,7 @@ import {
 } from './actions';
 import type { DiscoveryResult, PreflightSummary } from './types';
 import { Checkbox } from '@/components/panel/checkbox';
+import { Stepper } from '@/components/panel/stepper';
 
 interface Props {
   serviceId: string;
@@ -207,7 +208,7 @@ export function MigrationWizard({ serviceId, onQueued, tylkoPoczta = false }: Pr
 
   return (
     <div className="space-y-5">
-      <StepIndicator step={step} />
+      <Stepper kroki={STEPS} aktualny={step} />
 
       {step === 0 ? (
         <StepMethod
@@ -348,30 +349,6 @@ export function MigrationWizard({ serviceId, onQueued, tylkoPoczta = false }: Pr
 }
 
 // --- kroki ------------------------------------------------------------------
-
-function StepIndicator({ step }: { step: number }) {
-  return (
-    <ol className="flex items-center gap-1 text-xs">
-      {STEPS.map((label, i) => (
-        <li key={label} className="flex flex-1 items-center gap-1">
-          <span
-            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-[11px] font-semibold ${
-              i < step
-                ? 'border-emerald-500/50 bg-emerald-500/15 text-emerald-200'
-                : i === step
-                  ? 'border-cyan-500/60 bg-cyan-500/15 text-cyan-100'
-                  : 'border-white/15 bg-white/5 text-neutral-500'
-            }`}
-          >
-            {i < step ? '✓' : i + 1}
-          </span>
-          <span className={`hidden break-words sm:inline ${i === step ? 'text-white' : 'text-neutral-500'}`}>{label}</span>
-          {i < STEPS.length - 1 ? <span className="mx-1 h-px flex-1 bg-white/10" /> : null}
-        </li>
-      ))}
-    </ol>
-  );
-}
 
 function StepMethod(props: {
   method: 'auto' | 'manual' | null;
