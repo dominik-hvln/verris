@@ -48,6 +48,7 @@ import { PhpInfoService } from './php-info.service';
 import { FileSearchService } from './file-search.service';
 import { AppSelectorService } from './app-selector.service';
 import { SlowSqlService } from './slow-sql.service';
+import { SiteStatsService } from './site-stats.service';
 import { HostingRestoreDto } from './dto/hosting-restore.dto';
 import { WordpressService } from './wordpress.service';
 import { InstallWordpressDto } from './dto/wordpress.dto';
@@ -148,6 +149,7 @@ export class UserServicesController {
     private readonly fileSearch: FileSearchService,
     private readonly appSelector: AppSelectorService,
     private readonly slowSql: SlowSqlService,
+    private readonly siteStats: SiteStatsService,
     private readonly wordpress: WordpressService,
     private readonly waf: WafService,
     private readonly siteMonitor: SiteMonitorService,
@@ -1387,6 +1389,18 @@ export class UserServicesController {
   @Post(':id/hosting-file-search')
   async hostingFileSearchRun(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: SzukajPlikowDto) {
     return this.fileSearch.szukaj(id, user.userId, body);
+  }
+
+  // PB-19 — technologia, ruch 7 dni, 5xx i TTFB strony (zadanie węzła, tylko odczyt).
+  @Get(':id/hosting-site-stats')
+  async hostingSiteStats(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Query('domain') domain: string) {
+    return this.siteStats.status(id, user.userId, domain ?? '');
+  }
+
+  @RateLimit({ limit: 60, windowMs: 60 * 60 * 1000, scope: 'hosting:site-stats' })
+  @Post(':id/hosting-site-stats')
+  async hostingSiteStatsRefresh(@CurrentUser() user: { userId: string }, @Param('id') id: string, @Body() body: DomenaStronyDto) {
+    return this.siteStats.odswiez(id, user.userId, body.domain);
   }
 
   // B-06 — konfiguracja PHP strony widziana przez serwer WWW (zadanie węzła).

@@ -134,6 +134,7 @@ COPY ops/scripts/node-htaccess.sh ./ops/scripts/node-htaccess.sh
 COPY ops/scripts/node-app-selector.sh ./ops/scripts/node-app-selector.sh
 COPY ops/scripts/node-slow-sql.sh ./ops/scripts/node-slow-sql.sh
 COPY ops/scripts/node-memcached.sh ./ops/scripts/node-memcached.sh
+COPY ops/scripts/node-site-stats.sh ./ops/scripts/node-site-stats.sh
 COPY ops/scripts/node-php-info.sh ./ops/scripts/node-php-info.sh
 COPY ops/scripts/node-file-search.sh ./ops/scripts/node-file-search.sh
 COPY ops/hosting-default-page ./ops/hosting-default-page

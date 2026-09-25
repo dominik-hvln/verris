@@ -22,7 +22,7 @@ const ILE = [100, 500, 1000] as const;
  * K-04/K-05 — logi WWW domeny: dostęp i błędy. Najnowsze wpisy na górze, bez przewijania
  * w bok (długie linie się zawijają). Awaria odczytu to komunikat, nie pusta lista.
  */
-export default function LogsTab({ serviceId }: { serviceId: string }) {
+export default function LogsTab({ serviceId, domena: stalaDomena }: { serviceId: string; domena?: string }) {
   const idDomena = useId();
   const idIle = useId();
   const [domeny, setDomeny] = useState<HostingDomainsResponseDto | null>(null);
@@ -37,10 +37,10 @@ export default function LogsTab({ serviceId }: { serviceId: string }) {
     fetchHostingDomainsAction(serviceId)
       .then((d) => {
         setDomeny(d);
-        setDomena(d.primaryDomain ?? d.domains[0]?.name ?? '');
+        setDomena(stalaDomena ?? d.primaryDomain ?? d.domains[0]?.name ?? '');
       })
       .catch((e) => setBlad(komunikat(e)));
-  }, [serviceId]);
+  }, [serviceId, stalaDomena]);
 
   // `.then` zamiast `await` — lint React Compilera nie widzi `await` i zgłasza fałszywy setState w efekcie.
   useEffect(() => {
@@ -124,7 +124,7 @@ export default function LogsTab({ serviceId }: { serviceId: string }) {
             </button>
           ))}
         </div>
-        {domeny && domeny.domains.length > 1 ? (
+        {domeny && domeny.domains.length > 1 && !stalaDomena ? (
           <div className="flex flex-col gap-1">
             <label htmlFor={idDomena} className="text-[12.5px] text-muted-foreground">Domena</label>
             <Select

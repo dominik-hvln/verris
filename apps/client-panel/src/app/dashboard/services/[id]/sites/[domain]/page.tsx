@@ -3,8 +3,8 @@
 /**
  * PB-16 — widok strony (domeny) na usłudze hostingowej, wg wzorca
  * (docs/design/wzorzec-panelu.html → viewSite). Tylko realne dane z API.
- * Czego API jeszcze nie daje (ruch, TTFB, błędy 5xx per domena, technologia,
- * data wygaśnięcia domeny, logi) — tego tu nie ma; lista w docs/VERRIS.md.
+ * Ruch 7 dni, błędy 5xx, TTFB z serwera i technologia — SiteStatsPanel (PB-19, zadanie węzła);
+ * logi domeny — zakładka Logi. Czego nie ma (data wygaśnięcia domeny) — lista w docs/VERRIS.md.
  */
 
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react';
@@ -27,6 +27,8 @@ import DatabasesTab from '@/components/hosting/DatabasesTab';
 import WebToolsTab from '@/components/hosting/WebToolsTab';
 import { PhpIniForm } from '@/components/hosting/PhpIniForm';
 import { WpUpdatesPanel } from '@/components/hosting/WpUpdatesPanel';
+import { SiteStatsPanel } from '@/components/hosting/SiteStatsPanel';
+import LogsTab from '@/components/hosting/LogsTab';
 import { SiteClonePanel } from '@/components/hosting/SiteClonePanel';
 import { HtaccessPanel } from '@/components/hosting/HtaccessPanel';
 import { DocrootPanel } from '@/components/hosting/DocrootPanel';
@@ -52,6 +54,7 @@ const SITE_TABS = [
   ['php', 'PHP i serwer'],
   ['wordpress', 'WordPress'],
   ['redirects', 'Przekierowania'],
+  ['logs', 'Logi'],
 ] as const;
 type SiteTab = (typeof SITE_TABS)[number][0];
 const isSiteTab = (t: string | null): t is SiteTab => SITE_TABS.some(([id]) => id === t);
@@ -274,6 +277,7 @@ export default function SitePage() {
                 foot={<span>{boxes.length ? boxes.slice(0, 2).map((b) => b.email.split('@')[0]).join(', ') : 'brak skrzynek'}</span>}
               />
             </KpiStrip>
+            <SiteStatsPanel serviceId={serviceId} domain={domain} />
 
             <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1.65fr)_minmax(0,1fr)]">
               <div className="flex min-w-0 flex-col gap-6">
@@ -440,6 +444,8 @@ export default function SitePage() {
             <WebToolsTab serviceId={serviceId} />
           </section>
         ) : null}
+
+        {tab === 'logs' ? <LogsTab serviceId={serviceId} domena={domain} /> : null}
       </div>
     </HostingLinksProvider>
   );

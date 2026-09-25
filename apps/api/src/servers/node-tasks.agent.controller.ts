@@ -40,6 +40,7 @@ import { loadHtaccessScript } from './htaccess.script';
 import { loadAppSelectorScript } from './app-selector.script';
 import { loadSlowSqlScript } from './slow-sql.script';
 import { loadMemcachedScript } from './memcached.script';
+import { loadSiteStatsScript } from './site-stats.script';
 import { loadPhpInfoScript } from './php-info.script';
 import { loadFileSearchScript } from './file-search.script';
 import { loadNodeUpdateScript } from './node-update.script';
@@ -227,6 +228,13 @@ export class NodeTasksAgentController {
   @Header('Content-Type', 'text/plain; charset=utf-8')
   memcachedScript() {
     return loadMemcachedScript();
+  }
+
+  /** PB-19 — technologia, ruch i TTFB strony (run with SS_* env). */
+  @Get('site-stats/script')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  siteStatsScript() {
+    return loadSiteStatsScript();
   }
 
   /** B-06 — konfiguracja PHP strony przez serwer WWW (run with PI_* env). */

@@ -132,9 +132,9 @@ export const REGULY_TRAS: Regula[] = [
     po_co: 'Publiczne API v1 — profil konta, ten sam wymóg co /users/me.',
   },
   {
-    pasuje: zawiera('hosting-logs'),
+    pasuje: zawiera('hosting-logs', 'hosting-site-stats'),
     odczyt: [FILES_MANAGE], zapis: [FILES_MANAGE],
-    po_co: 'Logi WWW: adresy IP odwiedzających (dane osobowe) i ścieżki plików — poziom menedżera plików, nie samego podglądu usługi.',
+    po_co: 'Logi WWW: adresy IP odwiedzających (dane osobowe) i ścieżki plików — poziom menedżera plików, nie samego podglądu usługi. Tu też statystyki strony z logów (PB-19).',
   },
   {
     pasuje: zawiera('hosting-dns'),
