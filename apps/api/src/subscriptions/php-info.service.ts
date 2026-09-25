@@ -8,7 +8,15 @@ import { DirectAdminService } from '../servers/directadmin.service';
  * (`ops/scripts/node-php-info.sh`, zadanie PHP_INFO): wersja, SAPI, najważniejsze dyrektywy
  * i załadowane rozszerzenia. Tylko odczyt — bez wpisu w dzienniku.
  */
-export type KonfiguracjaPhp = { wersja: string; sapi: string; ini: Record<string, string | null>; rozszerzenia: string[] };
+export type RozszerzenieSelektora = { nazwa: string; stan: 'on' | 'off' | 'wbudowane' };
+export type KonfiguracjaPhp = {
+  wersja: string;
+  sapi: string;
+  ini: Record<string, string | null>;
+  rozszerzenia: string[];
+  /** B-04 — CloudLinux PHP Selector konta (null: brak selektora na węźle albo PHP natywne). */
+  selektor: { wersja: string; rozszerzenia: RozszerzenieSelektora[] } | null;
+};
 
 @Injectable()
 export class PhpInfoService {
@@ -84,10 +92,21 @@ export function konfiguracjaZLogu(log: string | null): KonfiguracjaPhp | null {
       sapi: typeof j.sapi === 'string' ? j.sapi : '',
       ini,
       rozszerzenia: Array.isArray(j.rozszerzenia) ? j.rozszerzenia.filter((x): x is string => typeof x === 'string') : [],
+      selektor: selektorZJson(j.selektor),
     };
   } catch {
     return null;
   }
+}
+
+function selektorZJson(v: unknown): KonfiguracjaPhp['selektor'] {
+  const o = v as { wersja?: unknown; rozszerzenia?: unknown } | null;
+  if (!o || typeof o.wersja !== 'string' || !/^\d+\.\d+$/.test(o.wersja) || !Array.isArray(o.rozszerzenia)) return null;
+  const rozszerzenia = o.rozszerzenia.filter(
+    (r): r is RozszerzenieSelektora =>
+      !!r && typeof (r as RozszerzenieSelektora).nazwa === 'string' && ['on', 'off', 'wbudowane'].includes((r as RozszerzenieSelektora).stan),
+  );
+  return { wersja: o.wersja, rozszerzenia };
 }
 
 function bladZLogu(log: string | null): string {

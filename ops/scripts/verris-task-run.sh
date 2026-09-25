@@ -130,7 +130,7 @@ elif [ "$TASK_KIND" = "STAGING_SYNC" ]; then
 elif [ "$TASK_KIND" = "PHP_APPLY" ]; then
   RUN_BIN="/usr/local/bin/verris-php-apply.sh"
   fetch_task_script "/agent/tasks/php-apply/script" "$RUN_BIN"
-  payload_env "PHP" "{'daUser':'DA_USER','domain':'DOMAIN','version':'VERSION'}"
+  payload_env "PHP" "{'daUser':'DA_USER','domain':'DOMAIN','version':'VERSION','extEnable':'EXT_ENABLE','extDisable':'EXT_DISABLE'}"
 elif [ "$TASK_KIND" = "APP_INSTALL" ]; then
   RUN_BIN="/usr/local/bin/verris-app-install.sh"
   fetch_task_script "/agent/tasks/app-install/script" "$RUN_BIN"

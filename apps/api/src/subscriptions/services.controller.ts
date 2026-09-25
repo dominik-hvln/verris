@@ -88,6 +88,7 @@ import {
   UzytkownikBazyZHaslemDto,
   WersjaPhpDomenyDto,
   KatalogDomenyDto,
+  RozszerzeniaPhpDto,
   UstawieniaPhpDomenyDto,
   EksportBazyDto,
   ListaArchiwumDto,
@@ -238,6 +239,17 @@ export class UserServicesController {
     @Body() body: WersjaPhpDto,
   ) {
     return this.php.setVersionForSubscription(id, user.userId, body.version);
+  }
+
+  @RateLimit({ limit: 20, windowMs: 60 * 60 * 1000, scope: 'hosting:php-ext' })
+  @Post(':id/hosting-php/extensions')
+  @HttpCode(200)
+  setHostingPhpExtensions(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Body() body: RozszerzeniaPhpDto,
+  ) {
+    return this.php.setExtensionsForSubscription(id, user.userId, body);
   }
 
   // C5 — raport energetyczny z realnych metryk LVE (szacunki, jawna metodologia)

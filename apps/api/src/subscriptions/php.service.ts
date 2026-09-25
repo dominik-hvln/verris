@@ -37,7 +37,36 @@ export class PhpService {
     return this.queueApply(sub.account!.id, version, userId);
   }
 
-  private async queueApply(accountId: string, version: string, actorUserId: string) {
+  /**
+   * B-04 — włączenie/wyłączenie rozszerzeń w CloudLinux PHP Selector dla bieżącej wersji konta
+   * (to samo zadanie PHP_APPLY, `selectorctl --enable/--disable-user-extensions`).
+   */
+  async setExtensionsForSubscription(
+    subscriptionId: string,
+    userId: string,
+    input: { enable?: string[]; disable?: string[]; version?: string },
+  ) {
+    const sub = await this.requireOwnedSub(subscriptionId, userId);
+    const lista = (x?: string[]) => [...new Set((x ?? []).map((n) => String(n).trim().toLowerCase()))];
+    const enable = lista(input.enable);
+    const disable = lista(input.disable);
+    if (!enable.length && !disable.length) throw new BadRequestException('Nie wybrano żadnej zmiany.');
+    if ([...enable, ...disable].some((n) => !/^[a-z0-9_]{1,40}$/.test(n)) || enable.length > 30 || disable.length > 30) {
+      throw new BadRequestException('Nieprawidłowa nazwa rozszerzenia.');
+    }
+    if (enable.some((n) => disable.includes(n))) throw new BadRequestException('To samo rozszerzenie nie może być jednocześnie włączane i wyłączane.');
+    // Wersja z konta; gdy panel jej jeszcze nie zapisał — ta, którą pokazał odczyt selektora (sprawdzana z listą dostępnych).
+    const version = sub.account!.phpVersion ?? input.version;
+    if (!version) throw new BadRequestException('Najpierw wybierz wersję PHP konta.');
+    return this.queueApply(sub.account!.id, version, userId, { enable, disable });
+  }
+
+  private async queueApply(
+    accountId: string,
+    version: string,
+    actorUserId: string,
+    ext?: { enable: string[]; disable: string[] },
+  ) {
     const available = await this.settings.getAvailablePhpVersions();
     if (!available.includes(version)) {
       throw new BadRequestException(`Nieobsługiwana wersja PHP. Dostępne: ${available.join(', ')}.`);
@@ -54,7 +83,7 @@ export class PhpService {
         status: { in: [NodeTaskStatus.QUEUED, NodeTaskStatus.RUNNING] },
       },
     });
-    if (inflight) throw new ConflictException('Zmiana wersji PHP jest już w toku.');
+    if (inflight) throw new ConflictException('Zmiana PHP jest już w toku — poczekaj na jej zakończenie.');
 
     const [task] = await this.prisma.$transaction([
       this.prisma.nodeTask.create({
@@ -64,17 +93,22 @@ export class PhpService {
           kind: NodeTaskKind.PHP_APPLY,
           status: NodeTaskStatus.QUEUED,
           requestedById: actorUserId,
-          payload: { daUser: account.daUsername, domain: account.domain, version },
+          payload: {
+            daUser: account.daUsername,
+            domain: account.domain,
+            version,
+            ...(ext ? { extEnable: ext.enable.join(','), extDisable: ext.disable.join(',') } : {}),
+          },
         },
       }),
       this.prisma.account.update({ where: { id: accountId }, data: { phpVersion: version } }),
     ]);
 
     await this.audit.record({
-      action: 'PHP_VERSION_CHANGE_QUEUED',
+      action: ext ? 'PHP_EXTENSIONS_CHANGE_QUEUED' : 'PHP_VERSION_CHANGE_QUEUED',
       userId: account.userId,
       actorUserId,
-      details: { accountId, domain: account.domain, version, taskId: task.id },
+      details: { accountId, domain: account.domain, version, taskId: task.id, ...(ext ?? {}) },
     });
     this.logger.log(`PHP ${account.domain} → ${version} (task=${task.id})`);
     return this.describe(accountId);

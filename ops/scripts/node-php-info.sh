@@ -7,7 +7,7 @@
 # Uruchamiany przez agenta zadań (PHP_INFO) z env:
 #   PI_DA_USER   login konta DA
 #   PI_DOMAIN    domena konta
-# Wynik: VERRIS_PHPINFO=<base64 JSON {wersja,sapi,ini{…},rozszerzenia[…]}>.
+# Wynik: VERRIS_PHPINFO=<base64 JSON {wersja,sapi,ini{…},rozszerzenia[…],selektor{wersja,rozszerzenia[{nazwa,stan}]}|null}>.
 # PI_HEALTH_BASE / PI_HTTPS_PORT dają się podmienić wyłącznie w testach.
 # =============================================================================
 set -Eeuo pipefail
@@ -56,7 +56,20 @@ case "$ODP" in
   *) ODP="$(pobierz -k --resolve "$PI_DOMAIN:$HTTPS_PORT:127.0.0.1" "https://$PI_DOMAIN:$HTTPS_PORT/$NAZWA")" ;;
 esac
 
-WYNIK="$(ODP="$ODP" python3 - <<'PY'
+# B-04 — rozszerzenia z CloudLinux PHP Selector (oficjalna dokumentacja CloudLinux, selectorctl):
+# --user-current --user=U → "8.3 8.3.x /opt/alt/php83/…" (albo "native"), --list-user-extensions --version=V --user=U --all
+# → linie "+ nazwa" (włączone), "- nazwa" (wyłączone), "~ nazwa" (wbudowane / z konfiguracji globalnej).
+SEL_WERSJA=""; SEL_EXT=""
+if command -v selectorctl >/dev/null 2>&1; then
+  SEL_WERSJA="$(selectorctl --user-current --user="$PI_DA_USER" 2>/dev/null | awk 'NR==1{print $1}' || true)"
+  if [[ "$SEL_WERSJA" =~ ^[0-9]+\.[0-9]+$ ]]; then
+    SEL_EXT="$(selectorctl --list-user-extensions --version="$SEL_WERSJA" --user="$PI_DA_USER" --all 2>/dev/null || true)"
+  else
+    SEL_WERSJA=""
+  fi
+fi
+
+WYNIK="$(ODP="$ODP" SEL_WERSJA="$SEL_WERSJA" SEL_EXT="$SEL_EXT" python3 - <<'PY'
 import base64, json, os, re
 try:
     j = json.loads(os.environ["ODP"])
@@ -71,6 +84,13 @@ out = {
     "ini": {str(k)[:60]: (None if v is None else str(v)[:2000]) for k, v in list(ini.items())[:40]},
     "rozszerzenia": [str(x)[:60] for x in (j.get("rozszerzenia") or []) if re.fullmatch(r"[A-Za-z0-9_ .+-]{1,60}", str(x))][:300],
 }
+stany = {"+": "on", "-": "off", "\u2013": "off", "~": "wbudowane"}
+sel = []
+for linia in os.environ.get("SEL_EXT", "").splitlines():
+    m = re.fullmatch(r"\s*([+~\u2013-])\s+([A-Za-z0-9_]{1,40})\s*", linia)
+    if m:
+        sel.append({"nazwa": m.group(2), "stan": stany[m.group(1)]})
+out["selektor"] = {"wersja": os.environ["SEL_WERSJA"], "rozszerzenia": sel[:300]} if os.environ.get("SEL_WERSJA") and sel else None
 print(base64.b64encode(json.dumps(out, separators=(",", ":")).encode()).decode())
 PY
 )" || fail "strona nie zwróciła konfiguracji PHP — sprawdź, czy domena działa i nie ma blokady hasłem albo reguły w .htaccess dla plików .php"

@@ -53,6 +53,13 @@ export class WersjaPhpDto {
   @Linia(16) version!: string;
 }
 
+/** B-04 — rozszerzenia PHP do włączenia / wyłączenia (nazwy sprawdza serwis). */
+export class RozszerzeniaPhpDto {
+  @IsOptional() @IsArray() @ArrayMaxSize(30) @IsString({ each: true }) @MaxLength(40, { each: true }) enable?: string[];
+  @IsOptional() @IsArray() @ArrayMaxSize(30) @IsString({ each: true }) @MaxLength(40, { each: true }) disable?: string[];
+  @IsOptional() @IsString() @Matches(/^\d+\.\d+$/) version?: string;
+}
+
 export class WersjaPhpDomenyDto extends WersjaPhpDto {
   @Linia(253) domain!: string;
 }

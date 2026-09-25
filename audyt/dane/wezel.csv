@@ -58,3 +58,4 @@ E-21,czeka,,
 E-16,czeka,,
 H-13,czeka,,
 A-06,czeka,,"CMD_API_CUSTOM_HTTPD: format GET (config), klucz admina, przebudowa pod LSWS"
+B-04,czeka,,"selectorctl: --user-current, --list-user-extensions --all, --set-user-current, --enable/--disable-user-extensions na koncie alt-php"

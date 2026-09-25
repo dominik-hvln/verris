@@ -33,7 +33,20 @@ describe('PhpInfoService', () => {
     const b = Buffer.from(JSON.stringify({ wersja: '8.3.12', sapi: 'litespeed', ini: { memory_limit: '256M', x: 5 }, rozszerzenia: ['curl', 7, 'intl'] })).toString('base64');
     const s = stanowisko([{ status: 'COMPLETED', outputLog: `VERRIS_PHPINFO=${b}\n`, createdAt: new Date(), completedAt: new Date() }]);
     const r = await s.svc.status('s1', 'u1', 'a.pl');
-    expect(r.konfiguracja).toEqual({ wersja: '8.3.12', sapi: 'litespeed', ini: { memory_limit: '256M', x: null }, rozszerzenia: ['curl', 'intl'] });
+    expect(r.konfiguracja).toEqual({ wersja: '8.3.12', sapi: 'litespeed', ini: { memory_limit: '256M', x: null }, rozszerzenia: ['curl', 'intl'], selektor: null });
     expect(konfiguracjaZLogu('VERRIS_PHPINFO=e30=')).toBeNull();
+  });
+
+  it('B-04: rozszerzenia selektora CloudLinux z odczytu; śmieciowe wpisy odrzucone', () => {
+    const b = Buffer.from(
+      JSON.stringify({
+        wersja: '8.3.12',
+        selektor: { wersja: '8.3', rozszerzenia: [{ nazwa: 'intl', stan: 'on' }, { nazwa: 'Core', stan: 'wbudowane' }, { nazwa: 'x', stan: '?' }, 5] },
+      }),
+    ).toString('base64');
+    expect(konfiguracjaZLogu(`VERRIS_PHPINFO=${b}`)?.selektor).toEqual({
+      wersja: '8.3',
+      rozszerzenia: [{ nazwa: 'intl', stan: 'on' }, { nazwa: 'Core', stan: 'wbudowane' }],
+    });
   });
 });
