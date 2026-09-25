@@ -275,6 +275,7 @@ export function MigrationWizard({ serviceId, onQueued, tylkoPoczta = false }: Pr
           setDbs={setDbs}
           boxes={boxes}
           setBoxes={setBoxes}
+          tylkoPoczta={tylkoPoczta}
         />
       ) : null}
 
@@ -491,6 +492,8 @@ function StepMethod(props: {
 }
 
 function StepSources(props: {
+  /** Tryb „tylko poczta” (E-21): bez pól plików, baz i domeny źródłowej. */
+  tylkoPoczta?: boolean;
   discovery: DiscoveryResult | null;
   presetId: string;
   setPresetId: (id: string) => void;
@@ -538,12 +541,16 @@ function StepSources(props: {
           <span className={labelText}>Domena docelowa (u nas)</span>
           <input value={props.targetDomain} onChange={(e) => props.setTargetDomain(e.target.value)} className={input} placeholder="twojadomena.pl" />
         </label>
-        <label className="space-y-1.5 block">
-          <span className={labelText}>Domena na starym hostingu (dla podmiany URL w WordPress)</span>
-          <input value={props.sourceDomain} onChange={(e) => props.setSourceDomain(e.target.value)} className={input} placeholder="np. stara-domena.pl (jeśli inna)" />
-        </label>
+        {props.tylkoPoczta ? null : (
+          <label className="space-y-1.5 block">
+            <span className={labelText}>Domena na starym hostingu (dla podmiany URL w WordPress)</span>
+            <input value={props.sourceDomain} onChange={(e) => props.setSourceDomain(e.target.value)} className={input} placeholder="np. stara-domena.pl (jeśli inna)" />
+          </label>
+        )}
       </div>
 
+      {props.tylkoPoczta ? null : (
+      <>
       <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 space-y-3">
         <label className="flex items-center gap-2 text-sm font-semibold text-white">
           <Checkbox checked={props.includeFiles} onChange={(e) => props.setIncludeFiles(e.target.checked)} />
@@ -614,6 +621,8 @@ function StepSources(props: {
         ))}
         {props.dbs.length === 0 ? <p className="text-xs text-neutral-500">Brak baz. Dodaj, jeśli Twoja strona ich używa (np. WordPress, sklep).</p> : null}
       </section>
+      </>
+      )}
 
       <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 space-y-3">
         <div className="flex items-center justify-between">

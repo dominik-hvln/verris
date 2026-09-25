@@ -23,8 +23,8 @@ export function MigrationsClient({ serviceId, bundles, tylkoPoczta = false }: Pr
             {tylkoPoczta ? 'Przenieś pocztę z innego serwera (IMAP)' : 'Przenieś stronę do nas (od A do Z)'}
           </h2>
           <p className="text-xs text-neutral-500">
-            Pliki, bazy danych i pocztę przeniesiemy automatycznie. Hasła odczytujemy wyłącznie
-            podczas transferu i zapisujemy zaszyfrowane w audycie.
+            {tylkoPoczta ? 'Wiadomości i foldery skopiujemy automatycznie.' : 'Pliki, bazy danych i pocztę przeniesiemy automatycznie.'} Hasła
+            odczytujemy wyłącznie podczas transferu i zapisujemy zaszyfrowane w audycie.
           </p>
         </div>
         <MigrationWizard serviceId={serviceId} tylkoPoczta={tylkoPoczta} onQueued={() => router.refresh()} />
