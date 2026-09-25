@@ -5,7 +5,6 @@ import { Download, Loader2, Upload } from 'lucide-react';
 import { toast } from 'sonner';
 import { Select } from '@/components/panel/select';
 import { potwierdz } from '@/components/panel/potwierdz';
-import { fmDownload } from '@/app/dashboard/file-manager/data';
 import {
   exportDb,
   fetchDbTransfer,
@@ -117,18 +116,16 @@ export function DbTransferPanel({ serviceId, databases }: { serviceId: string; d
   const pobierz = async (sciezka: string) => {
     setPobierany(sciezka);
     try {
-      const r = await fmDownload(serviceId, sciezka);
-      if ('error' in r) {
-        toast.error(r.error);
+      // Strumień (H-13) — eksport bazy bywa większy niż 100 MB limitu zwykłego pobrania.
+      const r = await fetch(`/api/services/${serviceId}/files/download?path=${encodeURIComponent(sciezka)}`, { cache: 'no-store' });
+      if (!r.ok) {
+        toast.error((await r.text().catch(() => '')) || 'Nie udało się pobrać pliku.');
         return;
       }
-      const bin = atob(r.base64);
-      const bajty = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) bajty[i] = bin.charCodeAt(i);
-      const url = URL.createObjectURL(new Blob([bajty]));
+      const url = URL.createObjectURL(await r.blob());
       const a = document.createElement('a');
       a.href = url;
-      a.download = r.filename;
+      a.download = sciezka.split('/').pop() || 'baza.sql.gz';
       a.click();
       URL.revokeObjectURL(url);
     } finally {

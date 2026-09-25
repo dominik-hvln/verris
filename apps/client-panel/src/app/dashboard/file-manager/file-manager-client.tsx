@@ -27,7 +27,6 @@ import {
   fmChmod,
   fmCopy,
   fmDelete,
-  fmDownload,
   fmCompress,
   fmExtract,
   fmList,
@@ -215,18 +214,17 @@ export function FileManagerClient({ serviceId, domain }: { serviceId: string; do
     setBusy(true);
     try {
       const filePath = `${path === '/' ? '' : path}/${name}`;
-      const res = await fmDownload(serviceId, filePath);
-      if ('error' in res) {
-        toast.error(daErrorMessage(res.error));
+      // Strumień przez route handler (H-13) zamiast base64 w akcji serwera — bez limitu 100 MB
+      // i bez trzykrotnego kopiowania pliku w pamięci; błąd API wraca jako tekst do komunikatu.
+      const res = await fetch(`/api/services/${serviceId}/files/download?path=${encodeURIComponent(filePath)}`, { cache: 'no-store' });
+      if (!res.ok) {
+        toast.error(daErrorMessage((await res.text().catch(() => '')) || undefined));
         return;
       }
-      const bin = atob(res.base64);
-      const bytes = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      const url = URL.createObjectURL(new Blob([bytes]));
+      const url = URL.createObjectURL(await res.blob());
       const a = document.createElement('a');
       a.href = url;
-      a.download = res.filename;
+      a.download = name;
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {

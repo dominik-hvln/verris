@@ -170,17 +170,3 @@ export async function fmUpload(form: FormData): Promise<{ ok: true } | { error: 
   }
   return { ok: true };
 }
-
-/** Download — fetch bytes server-side, return base64 for the browser to save. */
-export async function fmDownload(
-  id: string,
-  path: string,
-): Promise<{ filename: string; base64: string } | { error: string }> {
-  const res = await fetch(
-    `${API_URL}/services/${id}/files/download?path=${encodeURIComponent(path)}`,
-    { headers: await authHeader(), cache: 'no-store' },
-  );
-  if (!res.ok) return { error: `Nie udało się pobrać pliku (${res.status}).` };
-  const buf = Buffer.from(await res.arrayBuffer());
-  return { filename: path.split('/').pop() || 'plik', base64: buf.toString('base64') };
-}
