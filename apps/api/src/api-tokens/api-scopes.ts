@@ -1,3 +1,4 @@
+import { CustomerPermission } from '@verris/database';
 /** API-1 — katalog uprawnień (scopes) tokenów publicznego API klienta. */
 export const API_SCOPES = {
   SERVICES_READ: 'services:read',
@@ -24,3 +25,16 @@ export const API_SCOPE_LABELS: Record<ApiScopeValue, string> = {
 export function isValidScope(s: string): s is ApiScopeValue {
   return (ALL_API_SCOPES as string[]).includes(s);
 }
+
+/**
+ * Subkonto może nadać tokenowi tylko zakres, którego samo ma odpowiednik w uprawnieniach —
+ * inaczej SETTINGS_MANAGE wystarczałoby, żeby przez API zrobić to, czego w panelu mu nie wolno.
+ */
+export const UPRAWNIENIE_ZAKRESU: Record<ApiScopeValue, CustomerPermission> = {
+  'services:read': CustomerPermission.SERVICES_READ,
+  'billing:read': CustomerPermission.BILLING_READ,
+  'invoices:read': CustomerPermission.BILLING_READ,
+  'dns:read': CustomerPermission.DNS_MANAGE,
+  'dns:write': CustomerPermission.DNS_MANAGE,
+  'deploy:write': CustomerPermission.FILES_MANAGE,
+};

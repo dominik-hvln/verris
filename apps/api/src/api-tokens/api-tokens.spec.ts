@@ -6,6 +6,8 @@ import { ApiTokensService } from './api-tokens.service';
 import { API_SCOPE_KEY } from './api-scope.decorator';
 import { PublicApiController } from './public-api.controller';
 import { PublicApiWriteController } from '../subscriptions/public-api-write.controller';
+import { ApiTokensController } from './api-tokens.controller';
+import { ClientWebhooksController } from '../client-webhooks/client-webhooks.controller';
 
 /**
  * L-09 — tokeny API z zakresami: weryfikacja sekretu, wygaśnięcie, unieważnienie, strażnik
@@ -106,5 +108,28 @@ describe('ApiTokenGuard (L-09)', () => {
         expect([C.name, k, Reflect.getMetadata(API_SCOPE_KEY, proto[k] as object)]).toEqual([C.name, k, expect.any(String)]);
       }
     }
+  });
+});
+
+describe('subkonto — zakresy tokenu i zdarzenia webhooków (L-09/L-10)', () => {
+  const sk = (...p: string[]) => ({ userId: 'owner', customerOwnerId: 'owner', customerPermissions: p });
+
+  it('token: subkonto bez DNS_MANAGE nie nada dns:write; z uprawnieniem — tak; właściciel bez ograniczeń', async () => {
+    const create = jest.fn(async () => ({ token: 't', view: {} }));
+    const c = new ApiTokensController({ create } as never);
+    expect(() => c.create(sk('SETTINGS_MANAGE', 'SERVICES_READ'), { name: 'CI', scopes: ['services:read', 'dns:write'] })).toThrow('dns:write');
+    expect(create).not.toHaveBeenCalled();
+    await c.create(sk('SETTINGS_MANAGE', 'DNS_MANAGE'), { name: 'CI', scopes: ['dns:write'] });
+    await c.create({ userId: 'owner' }, { name: 'CI', scopes: ['deploy:write', 'billing:read'] });
+    expect(create).toHaveBeenCalledTimes(2);
+  });
+
+  it('webhook: zdarzenia rozliczeń wymagają BILLING_READ u subkonta', () => {
+    const dodaj = jest.fn(async () => ({}));
+    const c = new ClientWebhooksController({ dodaj } as never);
+    expect(() => c.dodaj(sk('SETTINGS_MANAGE'), { url: 'https://x.pl/h', events: ['task.completed', 'invoice.issued'] })).toThrow('invoice.issued');
+    void c.dodaj(sk('SETTINGS_MANAGE'), { url: 'https://x.pl/h', events: ['task.completed'] });
+    void c.dodaj(sk('SETTINGS_MANAGE', 'BILLING_READ'), { url: 'https://x.pl/h', events: ['invoice.issued'] });
+    expect(dodaj).toHaveBeenCalledTimes(2);
   });
 });
