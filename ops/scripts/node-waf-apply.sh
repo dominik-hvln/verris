@@ -32,8 +32,15 @@ esac
 
 # Edycja jako klient: .htaccess leży w katalogu klienta i może być dowiązaniem symbolicznym — root
 # dopisujący do niego (albo robiący chown) zmieniłby dowolny plik systemu (np. /etc/passwd).
-BLOK="$(printf '%s\n' "$MARK_BEGIN" "<IfModule LiteSpeed>" "  SecRuleEngine ${ENGINE}" "</IfModule>" \
-  "<IfModule mod_security2.c>" "  SecRuleEngine ${ENGINE}" "</IfModule>" "$MARK_END")"
+# Blok wg dokumentacji LiteSpeed („ModSecurity/WAF in LiteSpeed Web Server”): wyłączenie dla domeny
+#   <IfModule mod_security.c> SecRuleEngine Off / SecRequestBodyAccess Off </IfModule>
+# ON = bez bloku (obowiązuje konfiguracja serwera z CustomBuild). DetectionOnly w .htaccess nie jest
+# opisane w dokumentacji LiteSpeed — dyrektywa Apache, weryfikowana na węźle (D3).
+case "$WAF_MODE" in
+  OFF)       BLOK="$(printf '%s\n' "$MARK_BEGIN" "<IfModule mod_security.c>" "  SecRuleEngine Off" "  SecRequestBodyAccess Off" "</IfModule>" "$MARK_END")" ;;
+  DETECTION) BLOK="$(printf '%s\n' "$MARK_BEGIN" "<IfModule mod_security.c>" "  SecRuleEngine DetectionOnly" "</IfModule>" "$MARK_END")" ;;
+  ON)        BLOK="" ;;
+esac
 runuser -u "$WAF_DA_USER" -- sh -c '
   set -e
   plik="$1"; poczatek="$2"; koniec="$3"; blok="$4"
@@ -42,7 +49,7 @@ runuser -u "$WAF_DA_USER" -- sh -c '
   tmp="$plik.verris.$$"
   # Poprzedni zarządzany blok (jeśli jest) wypada; reszta pliku zostaje bez zmian.
   awk -v p="$poczatek" -v k="$koniec" "\$0==p{w=1;next} \$0==k{w=0;next} !w" "$plik" > "$tmp"
-  printf "%s\n" "$blok" >> "$tmp"
+  [ -z "$blok" ] || printf "%s\n" "$blok" >> "$tmp"
   cat "$tmp" > "$plik"
   rm -f "$tmp"
 ' verris "$HTACCESS" "$MARK_BEGIN" "$MARK_END" "$BLOK" || { log "Nie udało się zapisać .htaccess"; exit 1; }
