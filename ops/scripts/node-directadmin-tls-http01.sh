@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Verris — Let's Encrypt dla pojedynczego hostname węzła (HTTP-01, bez OVH API).
+# Verris — Let's Encrypt dla hostname węzła (HTTP-01, mechanizm DirectAdmina, bez OVH API).
 # Uruchamiaj NA węźle compute jako root, gdy DNS A wskazuje na ten serwer i :80 jest otwarty.
 #
 #   bash ops/scripts/node-directadmin-tls-http01.sh node-pl-01.verris.pl
@@ -30,58 +30,23 @@ die() { log "FAIL: $*" >&2; exit 1; }
 [ -n "$HOST" ] || die "Podaj hostname, np. node-pl-01.verris.pl"
 
 DA="/usr/local/directadmin"
-WEBROOT="/var/www/html"
-CERT_NAME="verris-node-$(echo "$HOST" | tr '.' '-')"
+[ -x "$DA/scripts/letsencrypt.sh" ] || die "DirectAdmin nie znaleziony w $DA"
 
-if ! command -v certbot >/dev/null 2>&1; then
-  log "Instalacja certbot..."
-  if command -v dnf >/dev/null 2>&1; then
-    dnf install -y epel-release certbot 2>/dev/null || dnf install -y certbot
-  elif command -v yum >/dev/null 2>&1; then
-    yum install -y epel-release certbot 2>/dev/null || yum install -y certbot
-  elif command -v apt-get >/dev/null 2>&1; then
-    apt-get update -qq && apt-get install -y certbot
-  else
-    die "Nie rozpoznano menedżera pakietów — zainstaluj certbot ręcznie"
-  fi
-fi
-
-mkdir -p "$WEBROOT/.well-known/acme-challenge"
-chmod 755 "$WEBROOT" "$WEBROOT/.well-known" "$WEBROOT/.well-known/acme-challenge"
+# Oficjalna dokumentacja DA („ACME For Server Hostname”): certyfikat hostname wydaje i odnawia sam
+# DirectAdmin (Server Manager → Server TLS Certificate), ręcznie: scripts/letsencrypt.sh server_cert.
+# DA kopiuje go też do serwera WWW, Exima/Dovecota i FTP. Wcześniejsza wersja brała cert z certbota
+# i kopiowała go tylko do conf/ DirectAdmina — `certbot renew` nie kopiował odnowionego, więc po
+# 90 dniach panel :2222 wystawiał wygasły certyfikat, a poczta i FTP nie dostawały go wcale.
+SERVERNAME="$(sed -n 's/^servername=//p' "$DA/conf/directadmin.conf" 2>/dev/null | head -1)"
+[ "$HOST" = "$SERVERNAME" ] || die "Hostname $HOST ≠ servername DirectAdmina ($SERVERNAME) — ustaw nazwę serwera w DA albo podaj właściwą"
 
 resolved=$(getent ahostsv4 "$HOST" | awk '{print $1; exit}')
-local_ip=$(curl -fsS --max-time 5 ifconfig.me 2>/dev/null || curl -fsS --max-time 5 icanhazip.com 2>/dev/null || true)
-if [ -n "$resolved" ] && [ -n "$local_ip" ] && [ "$resolved" != "$local_ip" ]; then
-  log "WARN: DNS $HOST → $resolved, publiczne IP serwera → $local_ip (sprawdź rekord A)"
-fi
+[ -n "$resolved" ] || die "DNS: $HOST nie ma rekordu A"
+log "DNS $HOST → $resolved"
+[ "$RENEW" = "1" ] && log "Odnowienie (DA odnawia też sam, automatycznie)"
 
-if [ "$RENEW" = "1" ] || certbot certificates 2>/dev/null | grep -q "$CERT_NAME"; then
-  log "Odświeżanie certyfikatu..."
-  certbot renew --cert-name "$CERT_NAME" --quiet || certbot renew --quiet
-else
-  log "Wydawanie certu dla $HOST (HTTP-01)..."
-  certbot certonly \
-    --non-interactive --agree-tos \
-    --email "${CERTBOT_EMAIL:-admin@verris.pl}" \
-    --webroot -w "$WEBROOT" \
-    --cert-name "$CERT_NAME" \
-    -d "$HOST"
-fi
+log "Wydawanie certyfikatu hostname przez DirectAdmin (letsencrypt.sh server_cert)…"
+"$DA/scripts/letsencrypt.sh" server_cert || die "letsencrypt.sh server_cert nie powiódł się — sprawdź port 80 i rekord A"
 
-CERT_DIR="/etc/letsencrypt/live/${CERT_NAME}"
-[ -f "${CERT_DIR}/fullchain.pem" ] && [ -f "${CERT_DIR}/privkey.pem" ] || die "Brak plików w $CERT_DIR"
-
-[ -d "$DA/conf" ] || die "DirectAdmin nie znaleziony w $DA"
-
-cp "${CERT_DIR}/fullchain.pem" "$DA/conf/cacert.pem"
-cp "${CERT_DIR}/privkey.pem" "$DA/conf/cakey.pem"
-cp "${CERT_DIR}/fullchain.pem" "$DA/conf/carootcert.pem"
-chmod 600 "$DA/conf/cakey.pem"
-
-if command -v systemctl >/dev/null 2>&1; then
-  systemctl restart directadmin 2>/dev/null || systemctl restart da 2>/dev/null || true
-fi
-systemctl restart directadmin 2>/dev/null || service directadmin restart 2>/dev/null || true
-
-log "OK — cert zainstalowany w DirectAdmin dla $HOST"
+log "OK — certyfikat hostname wydany przez DirectAdmin dla $HOST"
 log "Test: curl -vI https://${HOST}:2222/ 2>&1 | grep -E 'subject:|issuer:'"

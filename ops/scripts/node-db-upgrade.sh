@@ -4,7 +4,8 @@
 # zadań (NodeTask DB_UPGRADE) z env:
 #   DB_TARGET_VERSION   docelowa wersja MariaDB, np. "11.4", "11.8", "12.3"
 #
-# Mechanizm: DirectAdmin CustomBuild (./build set mariadb X.Y && ./build mariadb),
+# Mechanizm: DirectAdmin CustomBuild (./build set mariadb X.Y && ./build mariadb) albo — gdy na węźle
+# jest CloudLinux MySQL Governor — mysqlgovernor.py (oficjalna procedura CloudLinux, krok po kroku),
 # poprzedzony PEŁNYM zrzutem wszystkich baz (mysqldump). Idempotentny względem
 # wersji docelowej (jeśli już zainstalowana — kończy bez zmian). NIGDY nie robi
 # downgrade'u (MariaDB nie wspiera downgrade między majorami — chroni dane).
@@ -15,7 +16,7 @@
 set -Eeuo pipefail
 
 TARGET="${DB_TARGET_VERSION:?Brak DB_TARGET_VERSION}"
-ALLOWED="11.4 11.8 12.3"
+ALLOWED="10.11 11.4 11.8 12.3"
 CB="/usr/local/directadmin/custombuild"
 BACKUP_DIR="/var/backups/verris-db"
 TS="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -67,13 +68,34 @@ fi
 [ -d "$CB" ] || { log "Brak CustomBuild ($CB) — to nie jest węzeł DirectAdmin."; marker "to=$TARGET status=failed reason=no_custombuild"; exit 1; }
 command -v mysql >/dev/null 2>&1 || { log "Brak klienta mysql."; exit 1; }
 DUMP_BIN="mysqldump"; command -v mariadb-dump >/dev/null 2>&1 && DUMP_BIN="mariadb-dump"
+# Dostęp jak w oficjalnej dokumentacji DA (MariaDB/MySQL): --defaults-extra-file=/usr/local/directadmin/conf/my.cnf.
+MYCNF=/usr/local/directadmin/conf/my.cnf
+[ -r "$MYCNF" ] || { log "Brak $MYCNF (dane da_admin)."; marker "to=$TARGET status=failed reason=no_da_mycnf"; exit 1; }
+MYA=(--defaults-extra-file="$MYCNF")
+
+# CloudLinux MySQL Governor: przy zainstalowanym Governorze wersję zmienia się jego narzędziem
+# (oficjalny artykuł CloudLinux „How to upgrade MySQL/MariaDB with Governor over multiple versions”):
+#   mysqlgovernor.py --mysql-version=<id>; mysqlgovernor.py --install — i tylko o jedną wersję naraz.
+GOV=/usr/share/lve/dbgovernor/mysqlgovernor.py
+GOV_LISTA=(mariadb104 mariadb105 mariadb106 mariadb1011 mariadb1104)
+gov_id() { case "$1" in 10.4) echo mariadb104;; 10.5) echo mariadb105;; 10.6) echo mariadb106;; 10.11) echo mariadb1011;; 11.4) echo mariadb1104;; *) echo "";; esac; }
+gov_idx() { local i; for i in "${!GOV_LISTA[@]}"; do [ "${GOV_LISTA[$i]}" = "$1" ] && { echo "$i"; return; }; done; echo -1; }
+if [ -x "$GOV" ]; then
+  GOV_CEL="$(gov_id "$TARGET")"
+  [ -n "$GOV_CEL" ] || { log "MariaDB $TARGET nie jest dostępna przez MySQL Governor — wybierz 11.4."; marker "from=${CURRENT:-unknown} to=$TARGET status=rejected reason=governor_version_unsupported"; exit 1; }
+  if [ -n "$CURRENT" ] && [ "$(gov_idx "$(gov_id "$CURRENT")")" -ge 0 ] \
+     && [ "$(( $(gov_idx "$GOV_CEL") - $(gov_idx "$(gov_id "$CURRENT")") ))" -ne 1 ]; then
+    log "MySQL Governor: aktualizacja tylko o jedną wersję naraz ($CURRENT → następna na liście, nie $TARGET)."
+    marker "from=$CURRENT to=$TARGET status=rejected reason=governor_step_by_step"; exit 1
+  fi
+fi
 
 # --- 4. PEŁNY backup przed jakąkolwiek zmianą ----------------------------
 mkdir -p "$BACKUP_DIR"; chmod 700 "$BACKUP_DIR"
 DUMP_FILE="$BACKUP_DIR/predump-${CURRENT:-unknown}-to-${TARGET}-${TS}.sql.gz"
 log "Backup wszystkich baz → $DUMP_FILE (to może chwilę potrwać)…"
 # --single-transaction: spójny zrzut bez długiej blokady InnoDB; +routines/triggers/events.
-if ! "$DUMP_BIN" --all-databases --single-transaction --routines --triggers --events 2>/dev/null | gzip -c > "$DUMP_FILE"; then
+if ! "$DUMP_BIN" "${MYA[@]}" --all-databases --single-transaction --routines --triggers --events 2>/dev/null | gzip -c > "$DUMP_FILE"; then
   log "BŁĄD: zrzut baz nie powiódł się — PRZERYWAM (nie ruszam silnika DB)."
   marker "from=${CURRENT:-unknown} to=$TARGET status=failed reason=backup_failed"
   exit 1
@@ -86,29 +108,36 @@ if [ "$DUMP_SIZE" -lt 1024 ]; then
 fi
 log "Backup OK: $DUMP_FILE ($DUMP_SIZE B). Przechowaj go do czasu potwierdzenia poprawności po upgrade."
 
-# --- 5. Upgrade przez CustomBuild ----------------------------------------
-cd "$CB"
-log "CustomBuild: aktualizacja skryptów…"
-./build update >/dev/null 2>&1 || true
-log "CustomBuild: set mariadb $TARGET"
-./build set mariadb "$TARGET"
-./build set mysql_inst mariadb >/dev/null 2>&1 || true
-log "CustomBuild: build mariadb (instalacja/upgrade silnika — NIE przerywaj)…"
-./build mariadb
+# --- 5. Upgrade: MySQL Governor albo CustomBuild -------------------------
+if [ -x "$GOV" ]; then
+  log "MySQL Governor: --mysql-version=$GOV_CEL, --install (NIE przerywaj)…"
+  "$GOV" --mysql-version="$GOV_CEL"
+  "$GOV" --install --yes
+else
+  # Oficjalna dokumentacja DA: da build set mysql_inst mariadb; da build set mariadb X.Y; da build mariadb.
+  cd "$CB"
+  log "CustomBuild: aktualizacja skryptów…"
+  ./build update >/dev/null 2>&1 || true
+  log "CustomBuild: set mysql_inst mariadb, set mariadb $TARGET"
+  ./build set mysql_inst mariadb
+  ./build set mariadb "$TARGET"
+  log "CustomBuild: build mariadb (instalacja/upgrade silnika — NIE przerywaj)…"
+  ./build mariadb
+fi
 
 # --- 6. Post-upgrade: mysql_upgrade + weryfikacja ------------------------
 log "Aktualizacja tabel systemowych (mariadb-upgrade)…"
 if command -v mariadb-upgrade >/dev/null 2>&1; then
-  mariadb-upgrade --force >/dev/null 2>&1 || true
+  mariadb-upgrade "${MYA[@]}" --force >/dev/null 2>&1 || log "UWAGA: mariadb-upgrade zwrócił błąd"
 elif command -v mysql_upgrade >/dev/null 2>&1; then
-  mysql_upgrade --force >/dev/null 2>&1 || true
+  mysql_upgrade "${MYA[@]}" --force >/dev/null 2>&1 || log "UWAGA: mysql_upgrade zwrócił błąd"
 fi
 
 NEW="$(detect_version)"
 log "Wersja po upgrade: ${NEW:-nieznana}"
 
 # Sanity: serwer DB odpowiada?
-if mysql -e "SELECT VERSION();" >/dev/null 2>&1; then
+if mysql "${MYA[@]}" -e "SELECT VERSION();" >/dev/null 2>&1; then
   DB_OK=1
 else
   DB_OK=0

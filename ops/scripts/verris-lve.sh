@@ -153,7 +153,7 @@ def reconcile(desired):
                    "--vmem=0",
                    "--io=%d" % d["ioKbps"],
                    "--iops=%d" % d["iops"],
-                   "--ep=%d" % d["ep"],
+                   "--maxEntryProcs=%d" % d["ep"],
                    "--nproc=%d" % d["nproc"])
         if r.returncode == 0:
             changed = True
@@ -174,7 +174,7 @@ def reconcile(desired):
                    "--vmem=0",
                    "--io=%d" % d["ioKbps"],
                    "--iops=%d" % d["iops"],
-                   "--ep=%d" % d["ep"],
+                   "--maxEntryProcs=%d" % d["ep"],
                    "--nproc=%d" % d["nproc"])
         if r.returncode == 0:
             changed = True

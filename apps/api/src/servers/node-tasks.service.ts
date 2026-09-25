@@ -39,8 +39,8 @@ export type HostingProfileTaskPayload = {
   dryRun?: boolean;
 };
 
-/** VER-UPG — dozwolone docelowe wersje MariaDB (aktualne LTS, czerwiec 2026). */
-export const ALLOWED_DB_VERSIONS = ['11.4', '11.8', '12.3'] as const;
+/** VER-UPG — dozwolone docelowe wersje MariaDB (aktualne LTS; 10.11 jako krok pośredni przy CloudLinux MySQL Governor). */
+export const ALLOWED_DB_VERSIONS = ['10.11', '11.4', '11.8', '12.3'] as const;
 export type AllowedDbVersion = (typeof ALLOWED_DB_VERSIONS)[number];
 
 @Injectable()

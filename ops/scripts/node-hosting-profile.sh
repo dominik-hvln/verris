@@ -554,8 +554,14 @@ configure_cloudlinux_governor() {
   fi
 }
 
+# Źródło prawdy o opcjach CustomBuild to options.conf (key=value, dokumentacja DA). Wyjście
+# `./build options` jest dla człowieka (kolory, format bez gwarancji) — tylko awaryjnie.
 cb_options_raw() {
-  (cd "$CB" && "$BUILD" options 2>/dev/null) | strip_ansi
+  if [ -r "$CB/options.conf" ]; then
+    sed -n 's/^\([A-Za-z0-9_]*\)=\(.*\)$/\1: \2/p' "$CB/options.conf"
+  else
+    (cd "$CB" && "$BUILD" options 2>/dev/null) | strip_ansi
+  fi
 }
 
 cb_option_value() {
@@ -1165,7 +1171,7 @@ capability_status() {
   local ssl="off" dkim="off" redis="off" phpsel="off"
   grep -qE "^letsencrypt=1" "$DA_CONF" 2>/dev/null && ssl="on"
   grep -qE "^dkim=1" "$DA_CONF" 2>/dev/null && dkim="on"
-  (cd "$CB" 2>/dev/null && "$BUILD" options 2>/dev/null | grep -qiE "^redis:[[:space:]]*yes") && redis="on"
+  cb_options_raw 2>/dev/null | grep -qiE "^redis:[[:space:]]*yes" && redis="on"
   { command -v cloudlinux-config >/dev/null 2>&1 || [ -d /opt/alt ]; } && phpsel="on"
   echo "ssl=${ssl} dkim=${dkim} redis=${redis} php_selector=${phpsel}"
 }

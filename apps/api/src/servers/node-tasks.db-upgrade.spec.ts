@@ -61,7 +61,7 @@ describe('NodeTasksService.queueDbUpgrade', () => {
   }
 
   it('exposes exactly the three current LTS targets', () => {
-    expect(ALLOWED_DB_VERSIONS).toEqual(['11.4', '11.8', '12.3']);
+    expect(ALLOWED_DB_VERSIONS).toEqual(['10.11', '11.4', '11.8', '12.3']);
   });
 
   it('rejects a version outside the allow-list', async () => {

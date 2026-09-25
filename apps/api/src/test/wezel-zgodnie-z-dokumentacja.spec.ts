@@ -64,4 +64,29 @@ describe('skrypty węzła — polecenia z oficjalnej dokumentacji', () => {
     expect(t).not.toMatch(/da_set_conf dns_ttl/);
     expect(t).not.toMatch(/\$BUILD build (clean|php)/);
   });
+
+  it('LVE: lvectl --maxEntryProcs (opcja z dokumentacji CloudLinux), nie --ep', () => {
+    const t = czytaj('verris-lve.sh');
+    expect(t.match(/"--maxEntryProcs=%d"/g)).toHaveLength(2);
+    expect(t).not.toContain('"--ep=');
+  });
+
+  it('certyfikat hostname: DirectAdmin letsencrypt.sh server_cert, bez kopiowania certbota do conf/', () => {
+    const t = czytaj('node-directadmin-tls-http01.sh');
+    expect(t).toContain('"$DA/scripts/letsencrypt.sh" server_cert');
+    expect(t).not.toMatch(/certbot|cacert\.pem|cakey\.pem/);
+  });
+
+  it('MariaDB: dane da_admin z my.cnf DA, przy MySQL Governor mysqlgovernor.py krok po kroku', () => {
+    const t = czytaj('node-db-upgrade.sh');
+    expect(t).toContain('--defaults-extra-file="$MYCNF"');
+    expect(t).toMatch(/"\$DUMP_BIN" "\$\{MYA\[@\]\}" --all-databases/);
+    expect(t).toMatch(/"\$GOV" --mysql-version="\$GOV_CEL"/);
+    expect(t).toContain('governor_step_by_step');
+  });
+
+  it('CustomBuild: opcje czytane z options.conf', () => {
+    expect(czytaj('node-hosting-profile.sh')).toContain('"$CB/options.conf"');
+  });
 });
+

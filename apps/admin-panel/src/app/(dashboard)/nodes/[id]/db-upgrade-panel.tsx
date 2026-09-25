@@ -8,6 +8,7 @@ import { queueDbUpgrade, fetchDbUpgradeTasks } from "../actions";
 
 /** VER-UPG — dozwolone docelowe wersje MariaDB (muszą zgadzać się z API ALLOWED_DB_VERSIONS). */
 const DB_VERSIONS: { value: string; label: string; eol: string }[] = [
+  { value: "10.11", label: "MariaDB 10.11 LTS", eol: "krok pośredni z 10.6 na węźle z CloudLinux MySQL Governor (aktualizacja tylko o jedną wersję)" },
   { value: "11.4", label: "MariaDB 11.4 LTS", eol: "wsparcie do 2029 — najszerzej ograne z DA/CloudLinux (zalecane)" },
   { value: "11.8", label: "MariaDB 11.8 LTS", eol: "wsparcie do czerwca 2028" },
   { value: "12.3", label: "MariaDB 12.3 LTS", eol: "najnowsze LTS — wsparcie do czerwca 2029" },
