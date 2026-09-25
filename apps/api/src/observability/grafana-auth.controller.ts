@@ -47,7 +47,7 @@ export class GrafanaAuthController {
     const token = extractToken(req);
     if (!token) throw new UnauthorizedException('No auth token provided');
 
-    let payload: { sub?: string; purpose?: string };
+    let payload: { sub?: string; purpose?: string; tv?: number; sid?: string };
     try {
       payload = this.jwt.verify(token);
     } catch {
@@ -60,9 +60,18 @@ export class GrafanaAuthController {
 
     const user = await this.prisma.user.findUnique({
       where: { id: payload.sub },
-      select: { id: true, email: true, role: true, canAccessGrafana: true },
+      select: { id: true, email: true, role: true, canAccessGrafana: true, loginBlocked: true, anonymizedAt: true, tokenVersion: true },
     });
     if (!user) throw new UnauthorizedException('User not found');
+    // Te same bramki co JwtStrategy: wylogowanie wszędzie (tokenVersion), zablokowanie konta,
+    // anonimizacja i unieważniona sesja urządzenia odcinają też Grafanę — nie tylko panel.
+    if ((payload.tv ?? 0) !== user.tokenVersion) throw new UnauthorizedException('Session has been invalidated');
+    if (user.anonymizedAt) throw new UnauthorizedException('Account no longer exists');
+    if (user.loginBlocked && user.role !== Role.ADMIN) throw new UnauthorizedException('Account is blocked');
+    if (payload.sid) {
+      const sesja = await this.prisma.userSession.findUnique({ where: { id: payload.sid }, select: { userId: true, revokedAt: true } });
+      if (!sesja || sesja.userId !== user.id || sesja.revokedAt) throw new UnauthorizedException('Session has been revoked');
+    }
 
     const role = mapToGrafanaRole(user.role, user.canAccessGrafana);
     if (!role) {
