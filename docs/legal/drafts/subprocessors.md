@@ -13,6 +13,8 @@ Wersja kanoniczna publikowana klientom: Załącznik 2 do DPA oraz pkt 5.1 Polity
 | **Hosting Concepts B.V. (Openprovider)** | Willemskade 18, Rotterdam, Holandia | rejestracja, odnawianie i transfer domen | dane abonenta domeny (nazwa, adres, e-mail, telefon) | zależnie od rejestru danej domeny |
 | **Google Ireland Limited** | Gordon House, Barrow Street, Dublin 4, Irlandia | Google Analytics 4 + Google Tag Manager (pomiar serwisu, tylko za zgodą z banera cookies) | identyfikatory cookies, IP, zdarzenia w serwisie | możliwy transfer do Google LLC (USA) — SCC + Data Privacy Framework |
 | **Streamsoft spółka z ograniczoną odpowiedzialnością sp. k.** | al. Wojska Polskiego 11, 65-077 Zielona Góra | program księgowy Firmino — faktury VAT klientów Verris (Verris jako administrator; nie dotyczy danych powierzonych przez klientów w DPA) | dane nabywcy faktury (nazwa, adres, NIP, e-mail), pozycje i kwoty | nie (do potwierdzenia w treści umowy powierzenia przy akceptacji) |
+| **OpenAI Ireland Ltd** | 1st Floor, The Liffey Trust Centre, 117-126 Sheriff Street Upper, Dublin 1, D01 YC43, Irlandia | asystent AI w panelu — poziom szybki (czat, podpowiedzi) i embeddingi bazy wiedzy | pytania i odpowiedzi asystenta, kontekst usługi bez haseł, e-maili i kwot; dostawca przechowuje wejście/wyjście API do 30 dni (wykrywanie nadużyć), nie trenuje na nich modeli | tak — SCC w OpenAI Data Processing Addendum |
+| **Anthropic Ireland, Limited** | Dublin, Irlandia | asystent AI — poziom analiz: prognozy zasobów, szkice odpowiedzi obsługi | metryki zużycia usług, treść zgłoszeń po usunięciu danych wrażliwych, pytania i odpowiedzi; dostawca nie trenuje modeli na treści klienta | tak — SCC w Anthropic DPA |
 
 ## Odbiorcy niebędący podmiotami przetwarzającymi (odrębni administratorzy / podstawa ustawowa)
 
@@ -38,4 +40,6 @@ Monitoring błędów (GlitchTip self-hosted), kopie zapasowe bazy (MinIO self-ho
 | Cloudflare, Inc. | Cloudflare DPA (online) | do akceptacji przed startem LIVE |
 | Hosting Concepts B.V. | DPA rejestratora (Openprovider) | do akceptacji przed startem LIVE |
 | Google Ireland Ltd (GA4/GTM) | Google Ads Data Processing Terms (akceptacja w ustawieniach konta GA4) | do akceptacji przed włączeniem GA4 |
+| OpenAI Ireland Ltd | DPA z SCC jest częścią OpenAI Services Agreement — obowiązuje z akceptacją umowy przy założeniu konta API | do zawarcia przy założeniu konta API (przed wpisaniem AI_API_KEY) |
+| Anthropic Ireland, Limited | DPA z SCC jest częścią Commercial Terms of Service — obowiązuje z ich akceptacją | do zawarcia przy założeniu konta API (przed wpisaniem ANTHROPIC_API_KEY) |
 | Meta Platforms Ireland (Pixel) | Controller Addendum + Data Processing Terms (akceptacja w Business Manager) | do akceptacji przed włączeniem Pixela |

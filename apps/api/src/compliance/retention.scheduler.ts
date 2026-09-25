@@ -19,6 +19,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  *    Action and target IDs are kept (needed for accounting/UODO audit).
  *  - `DataExportRequest.READY` past `expiresAt` → flip to EXPIRED, delete file.
  *  - `StripeWebhookEvent` (deduplikacja webhooków) starsze niż 90 dni → DELETE.
+ *  - `AiInteractionLog` (pytania/odpowiedzi asystenta AI, koszty) starsze niż 12 miesięcy → DELETE (RCPD A13).
  * Konto DA usuwa ścieżka art. 17 (account-deletion.scheduler), nie ten sweeper.
  */
 @Injectable()
@@ -27,6 +28,7 @@ export class RetentionScheduler {
 
   private readonly loginAttemptRetentionDays = 180;
   private readonly auditLogIpRetentionDays = 24 * 30; // ~24 months
+  private readonly aiLogRetentionDays = 365;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -38,15 +40,16 @@ export class RetentionScheduler {
   async run(): Promise<void> {
     const now = new Date();
 
-    const [loginPurged, auditAnonymized, exportsExpired, webhookEventsPurged] =
+    const [loginPurged, auditAnonymized, exportsExpired, webhookEventsPurged, aiLogsPurged] =
       await Promise.all([
         this.purgeLoginAttempts(now),
         this.anonymizeOldAuditLogIps(now),
         this.dataExport.expireDueExports(),
         this.purgeStripeWebhookEvents(now),
+        this.purgeAiLogs(now),
       ]);
 
-    if (loginPurged + auditAnonymized + exportsExpired + webhookEventsPurged > 0) {
+    if (loginPurged + auditAnonymized + exportsExpired + webhookEventsPurged + aiLogsPurged > 0) {
       await this.audit.record({
         action: RodoActions.RETENTION_PURGE,
         details: {
@@ -55,10 +58,11 @@ export class RetentionScheduler {
           auditLogIpsAnonymized: auditAnonymized,
           exportsExpired,
           stripeWebhookEventsPurged: webhookEventsPurged,
+          aiLogsPurged,
         },
       });
       this.logger.log(
-        `Retention sweep: login=${loginPurged} auditIp=${auditAnonymized} exports=${exportsExpired} stripeEvents=${webhookEventsPurged}`,
+        `Retention sweep: login=${loginPurged} auditIp=${auditAnonymized} exports=${exportsExpired} stripeEvents=${webhookEventsPurged} ai=${aiLogsPurged}`,
       );
     } else {
       this.logger.debug('Retention sweep: nothing to do');
@@ -74,6 +78,13 @@ export class RetentionScheduler {
     const result = await this.prisma.stripeWebhookEvent.deleteMany({
       where: { createdAt: { lt: cutoff } },
     });
+    return result.count;
+  }
+
+  /** Dziennik asystenta AI trzyma treść pytań i odpowiedzi — rok wystarcza na limity, koszty i reklamacje. */
+  private async purgeAiLogs(now: Date): Promise<number> {
+    const cutoff = new Date(now.getTime() - this.aiLogRetentionDays * DAY_MS);
+    const result = await this.prisma.aiInteractionLog.deleteMany({ where: { createdAt: { lt: cutoff } } });
     return result.count;
   }
 

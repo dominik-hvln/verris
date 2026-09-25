@@ -5,11 +5,12 @@ import { RetentionScheduler } from './retention.scheduler';
  */
 const DAY = 24 * 60 * 60 * 1000;
 
-function zbuduj(liczby: { login?: number; audit?: number; eksporty?: number; stripe?: number } = {}) {
+function zbuduj(liczby: { login?: number; audit?: number; eksporty?: number; stripe?: number; ai?: number } = {}) {
   const prisma = {
     loginAttempt: { deleteMany: jest.fn(async () => ({ count: liczby.login ?? 0 })) },
     auditLog: { updateMany: jest.fn(async () => ({ count: liczby.audit ?? 0 })) },
     stripeWebhookEvent: { deleteMany: jest.fn(async () => ({ count: liczby.stripe ?? 0 })) },
+    aiInteractionLog: { deleteMany: jest.fn(async () => ({ count: liczby.ai ?? 0 })) },
   };
   const audit = { record: jest.fn(async () => undefined) };
   const dataExport = { expireDueExports: jest.fn(async () => liczby.eksporty ?? 0) };
@@ -22,12 +23,13 @@ const odcieciePrzed = (mock: jest.Mock) => {
 };
 
 describe('RetentionScheduler (P-08)', () => {
-  it('progi: logowania 180 dni, IP w dzienniku ~24 mies., zdarzenia Stripe 90 dni', async () => {
+  it('progi: logowania 180 dni, IP w dzienniku ~24 mies., zdarzenia Stripe 90 dni, dziennik AI rok', async () => {
     const t = zbuduj();
     await t.s.run();
     expect(odcieciePrzed(t.prisma.loginAttempt.deleteMany)).toBe(180);
     expect(odcieciePrzed(t.prisma.auditLog.updateMany)).toBe(720);
     expect(odcieciePrzed(t.prisma.stripeWebhookEvent.deleteMany)).toBe(90);
+    expect(odcieciePrzed(t.prisma.aiInteractionLog.deleteMany)).toBe(365);
     expect(t.dataExport.expireDueExports).toHaveBeenCalled();
   });
 

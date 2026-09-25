@@ -2,7 +2,7 @@
 
 > **Status:** operacyjny. Cel: z KAŻDYM subprocesorem zawarta umowa powierzenia **przed**
 > produkcyjnym przetwarzaniem danych. Pozycja audytu: `P-15`, **BLOKER STARTU**.
-> **Ostatnia aktualizacja:** 2026-09-19.
+> **Ostatnia aktualizacja:** 2026-09-25.
 
 ## Korekta z 2026-09-19 — dwie rzeczy były nieprawdziwe
 
@@ -32,6 +32,8 @@ w planie startowym** — `P-15` blokował domknięcie blokerów aż do sprintu 1
 | **Openprovider** | Rejestracja i transfer domen — dane abonenta | Akceptacja w panelu; po zawarciu dokument leży w `cp.openprovider.eu` → Contracts | ☐ do akceptacji | — |
 | **Cloudflare (Turnstile)** | Anty-bot, adresy IP | DPA odwołuje się do Self-Serve Subscription Agreement, ale **nie opisuje wprost mechanizmu akceptacji dla self-serve** — do potwierdzenia w dashboardzie, a jeśli go tam nie ma, zapytać supportu i zapisać odpowiedź | ☐ do potwierdzenia | USA → SCC |
 | **Streamsoft (Firmino)** | Program księgowy — faktury VAT klientów (Verris jako administrator, nie dotyczy DPA z klientami) | Akceptacja w programie: Ustawienia → RODO → Umowa powierzenia (potwierdzenie umocowania + akceptacja). Przy akceptacji sprawdzić w treści lokalizację serwerów i ewentualne transfery poza EOG — polityka prywatności pisze dziś „nie” | ☐ do akceptacji | do potwierdzenia |
+| **OpenAI Ireland Ltd** | Asystent AI — poziom szybki, embeddingi (pytania i odpowiedzi, kontekst usługi bez sekretów) | **Nie wymaga osobnego podpisu** — DPA z SCC jest częścią OpenAI Services Agreement i obowiązuje z jej akceptacją (założenie konta API). Wejście/wyjście API do 30 dni, bez trenowania modeli | ☐ przy założeniu konta API | USA → SCC w DPA |
+| **Anthropic Ireland, Limited** | Asystent AI — poziom analiz (prognozy, szkice BOK) | **Nie wymaga osobnego podpisu** — DPA z SCC jest częścią Commercial Terms of Service i obowiązuje z ich akceptacją. Bez trenowania modeli na treści klienta | ☐ przy założeniu konta API | USA → SCC w DPA |
 | Ministerstwo Finansów — KSeF | Faktury | Podstawa ustawowa, nie DPA | n/d | — |
 | GlitchTip (self-hosted) | Monitoring błędów | Dane u nas, nie ma powierzenia | n/d | — |
 | OVH | Rejestrator domeny `verris.pl` | **Nie jest subprocesorem** — to nasza własna domena, nie dane klientów | n/d | — |
@@ -82,7 +84,7 @@ Właściciel potwierdził akceptację umów powierzenia (Hetzner, Openprovider, 
 - [ ] Cloudflare — potwierdzić mechanizm dla self-serve, zapisać odpowiedź supportu jeśli trzeba
 - [ ] Streamsoft Firmino — zaakceptować umowę powierzenia w programie (Ustawienia → RODO → Umowa powierzenia), potwierdzić lokalizację danych
 - [ ] ClouDNS — przy zakupie razem z węzłem (sprint 18): dopisać do listy i polityki (30 dni powiadomienia, jeśli już są klienci)
-- AI (OpenAI): wyłączone na start decyzją właściciela 2026-09-23 (AI_API_KEY pusty). Włączenie = najpierw DPA z OpenAI i wpis do dokumentów, potem klucz.
+- [ ] AI (OpenAI + Anthropic, decyzja właściciela 2026-09-25): konto API u obu dostawców (= DPA z SCC), publikacja Polityki prywatności 1.0.3 (pkt 2.7, 4, 5.1, 6, 8 — gotowa w `drafts/privacy.md`), dopiero potem klucze `AI_API_KEY` / `ANTHROPIC_API_KEY`. Do DPA z klientami (Zał. 2) nie wchodzą — asystent nie dotyka danych powierzonych.
 - [ ] Stripe, AWS — odnotować podstawę (umowa główna), bez akcji
 - [ ] Zaktualizować `privacy.md` — tabela podmiotów musi zgadzać się z tą listą, w tym z usunięciem OVH
 - [ ] Zaktualizować `subprocessors.md` tą samą listą

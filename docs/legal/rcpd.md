@@ -1,6 +1,6 @@
 # Rejestr czynności przetwarzania (RCPD) — art. 30 ust. 1 i 2 RODO
 
-> **Wersja 1.0 · stan na 7 lipca 2026 r.** Dokument operacyjny — aktualizować przy każdej
+> **Wersja 1.1 · stan na 25 września 2026 r.** (1.1: A13 — asystent AI.) Dokument operacyjny — aktualizować przy każdej
 > zmianie stacku, subprocesora lub retencji. Spójny z Polityką prywatności 1.0.0,
 > DPA 1.0.0 i listą subprocesorów (docs/legal/drafts/).
 >
@@ -27,6 +27,7 @@
 | A10 | Poczta zespołu @verris.pl | komunikacja operacyjna (kontakt@, rodo@, abuse@) | art. 6(1)(b), (f), (c) | korespondenci, klienci | treść korespondencji, adresy, metadane | Hetzner (Postfix/Dovecot/SOGo — self-hosted) | wg potrzeb operacyjnych; sprawy RODO/DSA: czas postępowania + przedawnienie | nie |
 | A11 | Kopie zapasowe | ciągłość działania (art. 32) | art. 6(1)(c), (f) | wszystkie kategorie A1–A10 | zaszyfrowane (age) dumpy DB, pliki | MinIO (self-hosted) + Hetzner Storage Box/Object Storage (off-site, WORM) | 14–28 dni rotacja; po usunięciu danych źródłowych nadpisanie ≤90 dni | nie (klucz odszyfrowania przechowywany odrębnie) |
 | A12 | Statystyki i marketing internetowy (GA4/GTM, Google Ads, Meta Pixel) | pomiar serwisu i reklam — **wyłącznie po zgodzie z banera cookies** | art. 6(1)(a) | odwiedzający, którzy wyrazili zgodę | identyfikatory cookies (_ga, _gcl_au, _fbp/_fbc), IP, zdarzenia | Google Ireland (GA4/GTM — procesor; Ads — odrębny adm.); Meta Platforms Ireland (Pixel — współadministrowanie zbierania, art. 26) | GA4: zdarzenia do 14 mies.; cookies wg Polityki cookies | tak — SCC + DPF (Google LLC / Meta Platforms Inc.) |
+| A13 | Asystent AI w panelu i szkice odpowiedzi obsługi | odpowiedzi na pytania klienta, prognozy zasobów; szkic odpowiedzi na zgłoszenie dla pracownika | art. 6(1)(b) — funkcja uruchamiana przez klienta; art. 6(1)(f) — szkice dla obsługi | klienci, użytkownicy subkont, pracownicy obsługi | treść pytań i odpowiedzi, kontekst usługi bez haseł/e-maili/kwot, metryki zużycia, treść zgłoszeń po redakcji, tokeny i koszt | OpenAI Ireland Ltd (poziom szybki, embeddingi); Anthropic Ireland, Limited (poziom analiz); Hetzner (dziennik) | AiInteractionLog 12 mies. (RetentionScheduler); OpenAI: wejście/wyjście API do 30 dni; brak trenowania modeli (umowy dostawców) | tak — USA, SCC w DPA dostawców |
 
 ## B. Czynności, w których Verris jest PODMIOTEM PRZETWARZAJĄCYM (art. 30 ust. 2)
 
@@ -52,6 +53,7 @@ Załącznik 1.
 - A12 aktywna dopiero po włączeniu GTM/Pixela (Variables `GTM_ID`/`META_PIXEL_ID`); przed
   włączeniem: akceptacja Google Ads Data Processing Terms i Meta Controller Addendum + publikacja
   polityki cookies opisującej te narzędzia (już przygotowana).
+- A13 aktywna dopiero po wpisaniu kluczy `AI_API_KEY` / `ANTHROPIC_API_KEY`; przed wpisaniem: konto API u dostawcy (akceptacja Services Agreement / Commercial Terms = zawarcie DPA z SCC) i publikacja Polityki prywatności 1.0.3. AI nie jest dalszym podmiotem przetwarzającym danych powierzonych przez klientów (DPA Zał. 2) — asystent nie ma dostępu do plików, baz ani poczty stron klientów.
 - IOD: niewyznaczony — brak przesłanek z art. 37 (do rewizji przy istotnym wzroście skali);
   punkt kontaktowy: rodo@verris.pl.
 - Decyzja o statusie NIS2/KSC i zgłoszenie do wykazu: termin ~3.10.2026 (patrz

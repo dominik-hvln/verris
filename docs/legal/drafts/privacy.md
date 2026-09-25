@@ -1,7 +1,9 @@
 # Polityka prywatności Verris
 
-**Wersja 1.0.2 · obowiązuje od dnia publikacji**
+**Wersja 1.0.3 · obowiązuje od dnia publikacji**
 
+> Zmiana wobec 1.0.2: asystent AI w panelu — pkt 2.7, 4, 5.1 (OpenAI Ireland Ltd, Anthropic Ireland, Limited), 6 i 8.
+>
 > Zmiana wobec 1.0.1: pkt 5.1 — dostawca programu księgowego (Streamsoft Firmino), w którym wystawiamy faktury VAT.
 
 Niniejsza Polityka realizuje obowiązki informacyjne z art. 13 i 14 RODO wobec klientów Verris, użytkowników subkont oraz osób odwiedzających panel i strony Verris.
@@ -32,6 +34,9 @@ Treść zgłoszeń (ticketów) z załącznikami, korespondencja e-mail, preferen
 ### 2.6 Subkonta (IAM)
 Adres e-mail i imię użytkownika subkonta, nadane role i uprawnienia, logi zaproszeń, akceptacji i operacji. Dane te otrzymujemy od właściciela konta, który zaprasza subkonto (art. 14 RODO — źródłem danych jest właściciel konta).
 
+### 2.7 Asystent AI
+Treść pytań zadanych asystentowi w panelu i jego odpowiedzi; kontekst usługi, której dotyczy pytanie (stan usługi, dysku, SSL, domeny i kopii — **bez haseł, kluczy, adresów e-mail i kwot**); zagregowane metryki zużycia zasobów, gdy prosisz o prognozę; treść zgłoszenia z usuniętymi danymi wrażliwymi, gdy nasz pracownik prosi asystenta o szkic odpowiedzi. Do każdego użycia zapisujemy liczbę przetworzonych tokenów i koszt (miesięczny limit asystenta). Asystent nie ma dostępu do plików, baz danych ani poczty Twoich stron.
+
 ## 3. Dwie role Verris
 
 W zakresie danych opisanych w pkt 2 Verris jest **administratorem**. W zakresie danych, które przechowujesz lub przetwarzasz w ramach swoich usług (pliki i bazy Twoich serwisów, skrzynki Twoich użytkowników, listy odbiorców kampanii e-mail, dane na Twoim VPS), administratorem jesteś **Ty**, a Verris działa jako **podmiot przetwarzający** na podstawie Umowy powierzenia przetwarzania danych (DPA) dostępnej w Panelu.
@@ -48,6 +53,7 @@ W zakresie danych opisanych w pkt 2 Verris jest **administratorem**. W zakresie 
 | Marketing własny (newsletter, informacje o nowościach) | ust. 1 lit. a — zgoda | do wycofania zgody |
 | Statystyki korzystania z serwisu (Google Analytics 4, tagi przez Google Tag Manager) | ust. 1 lit. a — zgoda wyrażona w banerze cookies | dane zdarzeń w GA4 do 14 miesięcy; cookies wg Polityki cookies |
 | Pomiar skuteczności i dopasowanie reklam (Google Ads, Meta Pixel), w tym remarketing | ust. 1 lit. a — zgoda wyrażona w banerze cookies | do wycofania zgody; cookies wg Polityki cookies |
+| Asystent AI w panelu (odpowiedzi na pytania, prognozy zasobów) i szkice odpowiedzi dla naszych pracowników | ust. 1 lit. b — funkcja usługi uruchamiana przez Ciebie; szkice dla obsługi — ust. 1 lit. f (sprawne wsparcie) | dziennik asystenta (pytania, odpowiedzi, zużycie) 12 miesięcy; u dostawcy AI zgodnie z umową z nim (OpenAI: do 30 dni na wykrywanie nadużyć); dostawcy nie trenują modeli na tych danych |
 | Obrona i dochodzenie roszczeń, obsługa reklamacji | ust. 1 lit. f | do upływu terminów przedawnienia (co do zasady 6 lat, art. 118 KC) |
 | Wykonywanie obowiązków z RODO (rejestr zgód, obsługa żądań) | ust. 1 lit. c | historia zgód i żądań przez czas konta + okres przedawnienia |
 
@@ -66,6 +72,8 @@ Podanie danych oznaczonych w formularzach jako wymagane jest warunkiem zawarcia 
 | **Hosting Concepts B.V. (Openprovider)** | Holandia (EOG) | rejestracja, odnawianie i transfer domen | zależnie od rejestru domeny (pkt 5.2) |
 | **Google Ireland Limited** | Irlandia (EOG) | pomiar korzystania z serwisu (Google Analytics 4) i zarządzanie tagami (Google Tag Manager) — wyłącznie po Twojej zgodzie | możliwy transfer do Google LLC (USA) — SCC i Data Privacy Framework |
 | **Streamsoft spółka z ograniczoną odpowiedzialnością sp. k.** | Polska (Zielona Góra) | program księgowy Firmino: wystawianie i przechowywanie faktur VAT, przekazywanie faktur do KSeF | nie |
+| **OpenAI Ireland Ltd** | Irlandia (Dublin); przetwarzanie także w USA | asystent AI — poziom szybki (czat, podpowiedzi) i wyszukiwanie w bazie wiedzy | tak — standardowe klauzule umowne (SCC) w umowie powierzenia dostawcy |
+| **Anthropic Ireland, Limited** | Irlandia (Dublin); przetwarzanie także w USA | asystent AI — poziom analiz (prognozy zasobów, szkice odpowiedzi obsługi) | tak — standardowe klauzule umowne (SCC) w umowie powierzenia dostawcy |
 
 Ze wszystkimi powyższymi podmiotami wiążą nas umowy powierzenia przetwarzania (art. 28 RODO). Narzędzia monitoringu błędów i kopie zapasowe bazy prowadzimy na własnej infrastrukturze (self-hosted) — nie angażują one dodatkowych podmiotów.
 
@@ -87,7 +95,7 @@ Biuro rachunkowe oraz doradcy prawni Verris — w zakresie niezbędnym, na podst
 
 ## 6. Przekazywanie danych poza EOG
 
-Dane przechowujemy w EOG. W przypadku dostawców należących do grup spółek z USA (Stripe, AWS, Cloudflare, Google, Meta) transfer wspierający poza EOG jest zabezpieczony **standardowymi klauzulami umownymi** (decyzja 2021/914) wraz ze środkami uzupełniającymi oraz — tam, gdzie dostawca jest certyfikowany — decyzją adekwatności dla **EU-U.S. Data Privacy Framework**. Kopię odpowiednich zabezpieczeń możesz uzyskać, pisząc na `rodo@verris.pl`.
+Dane przechowujemy w EOG. W przypadku dostawców należących do grup spółek z USA (Stripe, AWS, Cloudflare, Google, Meta, OpenAI, Anthropic) transfer wspierający poza EOG jest zabezpieczony **standardowymi klauzulami umownymi** (decyzja 2021/914) wraz ze środkami uzupełniającymi oraz — tam, gdzie dostawca jest certyfikowany — decyzją adekwatności dla **EU-U.S. Data Privacy Framework**. Kopię odpowiednich zabezpieczeń możesz uzyskać, pisząc na `rodo@verris.pl`.
 
 ## 7. Twoje prawa
 
@@ -104,6 +112,8 @@ Nie podejmujemy decyzji opartych wyłącznie na zautomatyzowanym przetwarzaniu, 
 Za Twoją zgodą na cookies marketingowe narzędzia Google Ads i Meta mogą profilować Twoje zainteresowania na potrzeby doboru reklam (remarketing). Profilowanie to nie wywołuje skutków prawnych i możesz je w każdej chwili wyłączyć, wycofując zgodę w „Preferencjach cookies".
 
 Jeżeli wyrazisz zgodę na cookies marketingowe, w ramach pomiaru skuteczności reklam Meta stosujemy również **zaawansowane dopasowywanie** (advanced matching): dane kontaktowe wpisywane w formularzach serwisu (np. adres e-mail, numer telefonu) mogą być przekazywane do Meta Platforms Ireland Ltd. wyłącznie w postaci **zahashowanej (SHA-256)** — Meta nie otrzymuje ich w postaci jawnej i wykorzystuje je do dopasowania zdarzeń do kont reklamowych oraz pomiaru konwersji. Przekazanie następuje tylko przy aktywnej zgodzie marketingowej; jej wycofanie w „Preferencjach cookies" natychmiast je wyłącza. Podstawą prawną jest Twoja zgoda (art. 6 ust. 1 lit. a RODO).
+
+Asystent AI niczego za Ciebie nie rozstrzyga: odpowiada na pytania i przygotowuje prognozy, a szkice odpowiedzi dla naszych pracowników zawsze sprawdza i wysyła człowiek.
 
 ## 9. Bezpieczeństwo danych
 
