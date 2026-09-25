@@ -322,9 +322,8 @@ function parseIntSafe(value: string | undefined, fallback: number): number {
 }
 
 function extractIp(req: Request): string | null {
+  // F-10: req.ip (trust proxy w main.ts) jest wiarygodny; lewy wpis X-Forwarded-For podaje klient.
+  if (req.ip) return req.ip;
   const fwd = req.headers['x-forwarded-for'];
-  if (typeof fwd === 'string' && fwd.length > 0) {
-    return fwd.split(',')[0]!.trim();
-  }
-  return req.ip ?? null;
+  return typeof fwd === 'string' && fwd.length > 0 ? fwd.split(',')[0]!.trim() : null;
 }

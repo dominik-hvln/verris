@@ -217,9 +217,7 @@ export class AuthController {
     @Req() req: Request,
   ) {
     const ip =
-      (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() ??
-      req.ip ??
-      null;
+      req.ip ?? null; // F-10: req.ip (trust proxy) — lewy wpis X-Forwarded-For podaje klient
     return this.twoFactor.confirmEnrollment(user.userId, dto.code, ip);
   }
 
@@ -232,9 +230,7 @@ export class AuthController {
     @Req() req: Request,
   ) {
     const ip =
-      (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() ??
-      req.ip ??
-      null;
+      req.ip ?? null; // F-10: req.ip (trust proxy) — lewy wpis X-Forwarded-For podaje klient
     await this.twoFactor.disable({
       userId: user.userId,
       password: dto.password,
@@ -375,9 +371,7 @@ export class AuthController {
 
 function requestContext(req: Request): { ip: string | null; userAgent: string | null } {
   const ip =
-    (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() ??
-    req.ip ??
-    null;
+    req.ip ?? null; // F-10: req.ip (trust proxy) — lewy wpis X-Forwarded-For podaje klient
   const userAgent = (req.headers['user-agent'] as string | undefined) ?? null;
   return { ip, userAgent };
 }

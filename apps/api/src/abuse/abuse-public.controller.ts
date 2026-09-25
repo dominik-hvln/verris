@@ -13,7 +13,7 @@ export class AbusePublicController {
   @HttpCode(202)
   @RateLimit({ limit: 10, windowMs: 60 * 60 * 1000, scope: 'public:abuse' })
   zglos(@Body() dto: ZgloszenieNaduzyciaDto, @Req() req: Request) {
-    const ip = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() || req.ip;
+    const ip = req.ip || (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim();
     return this.abuse.zglos(dto, { ip, userAgent: req.headers['user-agent'] as string | undefined });
   }
 }

@@ -16,7 +16,7 @@ export class LeadsPublicController {
   @HttpCode(202)
   async submit(@Body() dto: SubmitLeadDto, @Req() req: Request) {
     const ip =
-      (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() || req.ip;
+      req.ip || (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim();
     const userAgent = req.headers['user-agent'] as string | undefined;
     return this.leads.submit(dto, { ip, userAgent });
   }

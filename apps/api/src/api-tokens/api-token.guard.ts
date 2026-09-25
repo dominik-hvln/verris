@@ -24,7 +24,9 @@ export class ApiTokenGuard implements CanActivate {
     const m = header.match(/^Bearer\s+(.+)$/i);
     if (!m) throw new UnauthorizedException('Brak tokenu API (Authorization: Bearer …).');
 
-    const ip = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() || req.ip;
+    // req.ip już uwzględnia zaufane proxy (trust proxy w main.ts); pierwszy wpis X-Forwarded-For
+    // podaje klient i można go podrobić (fałszywe „ostatnio użyty z IP” w panelu).
+    const ip = req.ip;
     const verified = await this.tokens.verify(m[1].trim(), ip);
     if (!verified) throw new UnauthorizedException('Nieprawidłowy lub wygasły token API.');
 
