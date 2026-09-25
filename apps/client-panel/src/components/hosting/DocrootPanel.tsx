@@ -63,7 +63,7 @@ export function DocrootPanel({ serviceId, domain }: { serviceId: string; domain:
         <p className="m-0 mt-1 text-[12px] text-muted-foreground">Katalog musi już istnieć. Puste pole — strona z public_html.</p>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
           <span className="text-[12px] text-muted-foreground">
-            {obecny === null ? 'Wczytywanie…' : `Teraz: public_html${obecny ? `/${obecny}` : ''}`}
+            {obecny === null ? (blad ? 'Nie udało się odczytać ustawienia z serwera.' : 'Wczytywanie…') : `Teraz: public_html${obecny ? `/${obecny}` : ''}`}
           </span>
           <div className="flex gap-2">
             {obecny ? (
