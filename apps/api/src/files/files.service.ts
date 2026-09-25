@@ -119,6 +119,32 @@ export class FilesService {
     }
   }
 
+  /**
+   * H-13 — pobranie dużego pliku (np. archiwum kopii z ~/backups) strumieniem: bajty idą z DA
+   * prosto do odpowiedzi, bez ładowania całego pliku do pamięci API (limit 100 MB z `download`
+   * tu nie obowiązuje). Ta sama piaskownica ścieżek i ta sama własność usługi.
+   */
+  async downloadStream(
+    subscriptionId: string,
+    userId: string,
+    path: string | undefined,
+  ): Promise<{ filename: string; stream: NodeJS.ReadableStream; size: number | null }> {
+    const account = await this.requireAccount(subscriptionId, userId);
+    const safe = this.safePath(path);
+    if (safe === '/') throw new BadRequestException('Wskaż plik do pobrania.');
+    const client = await this.clientFor(account);
+    const size = await this.fileSizeBytes(client, safe);
+    if (size == null) throw new NotFoundException('Nie ma takiego pliku.');
+    const surowy = (client as unknown as { client?: { get(p: string, c: Record<string, unknown>): Promise<{ data: unknown }> } }).client;
+    if (!surowy) throw new BadRequestException('Serwer plików jest chwilowo niedostępny.');
+    const res = await surowy.get(`/CMD_FILE_MANAGER${safe}`, { responseType: 'stream', timeout: 0 });
+    await this.audit.record({
+      action: HostingResourceActions.HOSTING_FILE_DOWNLOADED,
+      userId, actorUserId: userId, details: { subscriptionId, path: safe, size },
+    });
+    return { filename: safe.split('/').pop() || 'plik', stream: res.data as NodeJS.ReadableStream, size };
+  }
+
   async read(
     subscriptionId: string,
     userId: string,

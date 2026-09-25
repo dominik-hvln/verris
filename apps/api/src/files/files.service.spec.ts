@@ -10,6 +10,7 @@ function stanowisko(o: { konto?: Record<string, unknown> | null; brakUslugi?: bo
   const klient = {
     listDir: jest.fn(async () => [{ name: 'plik.txt', type: 'file', sizeBytes: o.rozmiar ?? 10, modified: null }]),
     downloadFile: jest.fn(async () => Buffer.from('abc')),
+    client: { get: jest.fn(async () => ({ data: 'STRUMIEN' })) },
   };
   const prisma = { subscription: { findFirst: jest.fn(async () => (o.brakUslugi ? null : { id: 's1', account })) } };
   const da = { getClientForServer: jest.fn(async () => ({ asUser: jest.fn(() => klient) })) };
@@ -54,5 +55,22 @@ describe('FilesService — piaskownica', () => {
     await expect(duzy.svc.download('s1', 'u1', '/plik.txt')).rejects.toBeInstanceOf(PayloadTooLargeException);
     expect(duzy.klient.downloadFile).not.toHaveBeenCalled();
     await expect(s.svc.download('s1', 'u1', '/plik.txt')).resolves.toMatchObject({ filename: 'plik.txt' });
+  });
+});
+
+describe('FilesService.downloadStream (H-13)', () => {
+  it('strumień z DA bez limitu 100 MB, z rozmiarem i wpisem w dzienniku', async () => {
+    const s = stanowisko({ rozmiar: 3 * 1024 * 1024 * 1024 });
+    const r = await s.svc.downloadStream('s1', 'u1', '/plik.txt');
+    expect(r).toEqual({ filename: 'plik.txt', stream: 'STRUMIEN', size: 3 * 1024 * 1024 * 1024 });
+    expect(s.klient.client.get).toHaveBeenCalledWith('/CMD_FILE_MANAGER/plik.txt', expect.objectContaining({ responseType: 'stream' }));
+    expect(s.klient.downloadFile).not.toHaveBeenCalled();
+  });
+  it('brak pliku → 404; wyjście poza katalog → 403; katalog domowy → 400 (bez pobierania)', async () => {
+    const s = stanowisko();
+    await expect(s.svc.downloadStream('s1', 'u1', '/nie-ma.tar.gz')).rejects.toBeInstanceOf(NotFoundException);
+    await expect(s.svc.downloadStream('s1', 'u1', '../../etc/shadow')).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(s.svc.downloadStream('s1', 'u1', '/')).rejects.toBeInstanceOf(BadRequestException);
+    expect(s.klient.client.get).not.toHaveBeenCalled();
   });
 });

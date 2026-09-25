@@ -69,6 +69,24 @@ export class FilesController {
     res.send(data);
   }
 
+  /** H-13 — duże pliki (archiwa kopii) strumieniem, bez limitu 100 MB i bez base64 w panelu. */
+  @Get('download-stream')
+  @RateLimit({ limit: 30, windowMs: 60 * 60 * 1000, scope: 'files:download-stream' })
+  async downloadStream(
+    @CurrentUser() user: { userId: string },
+    @Param('id') id: string,
+    @Res() res: Response,
+    @Query('path') path?: string,
+  ) {
+    const { filename, stream, size } = await this.files.downloadStream(id, user.userId, path);
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(filename)}"`);
+    if (size != null) res.setHeader('Content-Length', String(size));
+    stream.on('error', () => res.destroy());
+    res.on('close', () => (stream as NodeJS.ReadableStream & { destroy?: () => void }).destroy?.());
+    stream.pipe(res);
+  }
+
   @Post('write')
   @RateLimit({ limit: 60, windowMs: 60 * 60 * 1000, scope: 'files:write' })
   write(

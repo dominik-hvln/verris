@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Database, Loader2, RotateCcw, ShieldAlert, Check, X, AlertTriangle, FolderOpen } from 'lucide-react';
+import { Database, Download, Loader2, RotateCcw, ShieldAlert, Check, X, AlertTriangle, FolderOpen } from 'lucide-react';
 import type { HostingBackupRowDto } from '@verris/contracts';
 import { fetchHostingBackupsAction } from '@/app/dashboard/services/[id]/hosting-extra-actions';
 import {
@@ -140,6 +140,16 @@ export default function BackupsTab({ serviceId }: { serviceId: string }) {
                 >
                   <FolderOpen className="h-3.5 w-3.5" /> Pliki
                 </button>
+                {/* H-13 — archiwum na komputer (strumień przez /api/services/[id]/files/download). */}
+                <a
+                  href={`/api/services/${serviceId}/files/download?path=${encodeURIComponent(
+                    row.fileName.includes('/') ? `/${row.fileName.replace(/^\/+/, '')}` : `/backups/${row.fileName}`,
+                  )}`}
+                  download
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[13px] font-medium text-neutral-200 transition hover:bg-white/[0.06]"
+                >
+                  <Download className="h-3.5 w-3.5" /> Pobierz
+                </a>
               </div>
               {plikiId === row.id ? <ArchiveBrowser serviceId={serviceId} archive={row.fileName} /> : null}
               {openId === row.id && (
