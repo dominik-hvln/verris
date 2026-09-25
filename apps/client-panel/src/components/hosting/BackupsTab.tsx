@@ -145,7 +145,8 @@ export default function BackupsTab({ serviceId }: { serviceId: string }) {
                   href={`/api/services/${serviceId}/files/download?path=${encodeURIComponent(
                     row.fileName.includes('/') ? `/${row.fileName.replace(/^\/+/, '')}` : `/backups/${row.fileName}`,
                   )}`}
-                  download
+                  // Bez atrybutu download: sukces przychodzi jako załącznik (plik się pobiera), a błąd
+                  // (np. brak uprawnienia, limit) pokazuje się jako tekst zamiast pustego pliku.
                   className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[13px] font-medium text-neutral-200 transition hover:bg-white/[0.06]"
                 >
                   <Download className="h-3.5 w-3.5" /> Pobierz
