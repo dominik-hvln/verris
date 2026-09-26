@@ -57,7 +57,7 @@ export function CookieConsentManager() {
       // sygnały Consent Mode dla GTM, ale Meta Pixel ładuje się wyłącznie
       // z applyConsent() — bez tego wywołania Pixel wstawał dopiero po
       // PONOWNYM kliknięciu zgody, a nie przy kolejnych odsłonach.
-      applyConsent(existing);
+      applyConsent(existing, false);
     }
     const openPrefs = () => {
       const current = readConsent();

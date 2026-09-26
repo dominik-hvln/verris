@@ -1,4 +1,4 @@
-import { CONSENT_COOKIE, consentCookieDomain, readConsent } from './cookie-consent';
+import { applyConsent, CONSENT_COOKIE, consentCookieDomain, readConsent } from './cookie-consent';
 
 /**
  * X-05 — odczyt zgody cookies (art. 399–402 PKE).
@@ -63,5 +63,30 @@ describe('X-05 consentCookieDomain', () => {
 
   it('poza przeglądarką → host-only', () => {
     expect(consentCookieDomain()).toBe('');
+  });
+});
+
+describe('27.09 applyConsent — zdarzenie verris_consent_update tylko przy zmianie decyzji', () => {
+  const zgoda = { v: 1, ts: 't', functional: true, analytics: true, marketing: false };
+  const w = globalThis as unknown as { window?: { dataLayer: unknown[] }; dataLayer?: unknown[] };
+  afterEach(() => {
+    delete w.window;
+    delete w.dataLayer;
+  });
+  const zdarzenia = () => (w.window!.dataLayer as Array<{ event?: string }>).map((e) => e?.event).filter(Boolean);
+
+  it('odtworzenie zgody z cookie (zmiana=false): consent update tak, zdarzenie nie — tag Google nie odpala drugi raz', () => {
+    w.window = { dataLayer: [] };
+    w.dataLayer = w.window.dataLayer;
+    applyConsent(zgoda, false);
+    expect(zdarzenia()).toEqual([]);
+    expect((w.window.dataLayer as ArrayLike<unknown>[]).some((a) => a[0] === 'consent' && a[1] === 'update')).toBe(true);
+  });
+
+  it('kliknięcie w banerze: zdarzenie jest', () => {
+    w.window = { dataLayer: [] };
+    w.dataLayer = w.window.dataLayer;
+    applyConsent(zgoda);
+    expect(zdarzenia()).toEqual(['verris_consent_update']);
   });
 });

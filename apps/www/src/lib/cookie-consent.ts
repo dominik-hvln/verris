@@ -111,7 +111,7 @@ const gtag: (...args: unknown[]) => void = function () {
 };
 
 /** Przekazuje decyzję użytkownika do Consent Mode v2 i steruje Meta Pixel. */
-export function applyConsent(consent: CookieConsent): void {
+export function applyConsent(consent: CookieConsent, zmiana = true): void {
   gtag('consent', 'update', {
     analytics_storage: consent.analytics ? 'granted' : 'denied',
     ad_storage: consent.marketing ? 'granted' : 'denied',
@@ -123,7 +123,10 @@ export function applyConsent(consent: CookieConsent): void {
   });
   // Zmienna `consent_state` — spójna z panelem. Bez niej debugowanie „czemu tag
   // nie odpalił" sprowadza się do zgadywania.
-  window.dataLayer?.push({
+  // Zdarzenie tylko przy ZMIANIE decyzji. Odtworzenie zapisanej zgody przy wejściu (zmiana=false)
+  // załatwia skrypt inline przed GTM — zdarzenie przy każdej odsłonie odpalałoby tag Google
+  // drugi raz (wyzwalacz verris_consent_update w GTM) i dublowało page_view.
+  if (zmiana) window.dataLayer?.push({
     event: 'verris_consent_update',
     consent_state: {
       analytics: consent.analytics,

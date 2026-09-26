@@ -42,7 +42,7 @@ export function CookieConsent() {
       setFunctional(existing.functional);
       setAnalytics(existing.analytics);
       setMarketing(existing.marketing);
-      applyConsent(existing);
+      applyConsent(existing, false);
     }
     const openPrefs = () => {
       const current = readConsent();
