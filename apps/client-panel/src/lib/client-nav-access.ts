@@ -65,6 +65,14 @@ export function canAccessDashboardRoute(
   if (href === '/dashboard/calculator') {
     return false;
   }
+  // Zamówienie usługi obciąża portfel właściciela — jak w API (POST /subscriptions): oba uprawnienia.
+  // Wcześniej wystarczał „Usługi: podgląd” i subkonto przechodziło cały kreator zamówienia (26.09).
+  if (href.startsWith('/dashboard/services/new')) {
+    return perms.has('SERVICES_MANAGE') && perms.has('BILLING_MANAGE');
+  }
+  if (href.startsWith('/dashboard/domains/buy')) {
+    return perms.has('DOMAINS_MANAGE') && perms.has('BILLING_MANAGE');
+  }
   if (
     href.startsWith('/dashboard/services') ||
     href.startsWith('/dashboard/migrations') ||

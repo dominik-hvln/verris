@@ -73,7 +73,18 @@ describe('PB-20 — zakres usług w nawigacji', () => {
 it('PB-20 — przy zakresie usług nie ma zamawiania nowych', () => {
   const ctx = { isSubaccount: true, customerPermissions: ['SERVICES_MANAGE'], serviceScope: ['s1'] };
   expect(canAccessDashboardRoute('/dashboard/services/new', ctx)).toBe(false);
-  expect(canAccessDashboardRoute('/dashboard/services/new', { ...ctx, serviceScope: [] })).toBe(true);
+  // Bez zakresu — nadal potrzebne oba uprawnienia jak w API (POST /subscriptions).
+  expect(canAccessDashboardRoute('/dashboard/services/new', { ...ctx, serviceScope: [] })).toBe(false);
+  expect(canAccessDashboardRoute('/dashboard/services/new', { ...ctx, serviceScope: [], customerPermissions: ['SERVICES_MANAGE', 'BILLING_MANAGE'] })).toBe(true);
+});
+
+it('26.09 — „Usługi: podgląd” nie otwiera zamówienia usługi ani zakupu domeny', () => {
+  const ctx = { isSubaccount: true, customerPermissions: ['SERVICES_READ'] };
+  expect(canAccessDashboardRoute('/dashboard/services', ctx)).toBe(true);
+  expect(canAccessDashboardRoute('/dashboard/services/new', ctx)).toBe(false);
+  expect(canAccessDashboardRoute('/dashboard/domains/buy', { isSubaccount: true, customerPermissions: ['DOMAINS_READ'] })).toBe(false);
+  expect(canAccessDashboardRoute('/dashboard/domains/buy', { isSubaccount: true, customerPermissions: ['DOMAINS_MANAGE'] })).toBe(false);
+  expect(canAccessDashboardRoute('/dashboard/domains/buy', { isSubaccount: true, customerPermissions: ['DOMAINS_MANAGE', 'BILLING_MANAGE'] })).toBe(true);
 });
 
 describe('PB-28 — rozliczenie poza Verris', () => {

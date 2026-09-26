@@ -267,6 +267,9 @@ export class CustomerIamService {
           subaccountServiceIds: invite.serviceIds,
           subaccountLabel: invite.label,
           walletBalance: new Prisma.Decimal(0),
+          // Link z zaproszenia przyszedł na ten adres — to jest potwierdzenie e-maila. Bez tego
+          // świeże subkonto nie mogło się zalogować („potwierdź adres”), a żaden link nie był wysłany.
+          emailVerifiedAt: new Date(),
         },
       });
       await tx.customerSubaccountInvite.update({

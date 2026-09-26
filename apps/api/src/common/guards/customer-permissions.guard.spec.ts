@@ -147,6 +147,15 @@ describe('CustomerPermissionsGuard — zachowanie', () => {
       expect(guard().canActivate(zadanie('GET', '/services/:id/apps', sub(CustomerPermission.SERVICES_READ)))).toBe(true);
     });
 
+    it('rejestracja, transfer i odnowienie domeny wymagają też BILLING_MANAGE (wydatek z portfela)', () => {
+      for (const p of ['/domains/registrar/register', '/domains/registrar/transfer', '/domains/:id/registrar/renew'] as const) {
+        expect(guard().canActivate(zadanie('POST', p, sub(CustomerPermission.DOMAINS_MANAGE)))).toBe(false);
+        expect(guard().canActivate(zadanie('POST', p, sub(CustomerPermission.DOMAINS_MANAGE, CustomerPermission.BILLING_MANAGE)))).toBe(true);
+      }
+      // Sprawdzenie dostępności i wycena — bez wydatku, wystarcza zarządzanie domenami.
+      expect(guard().canActivate(zadanie('POST', '/domains/registrar/quote', sub(CustomerPermission.DOMAINS_MANAGE)))).toBe(true);
+    });
+
     it('zamówienie usługi, opłacenie z portfela, zmiana planu i płatny monitoring wymagają też BILLING_MANAGE', () => {
       for (const [m, p] of [['POST', '/subscriptions'], ['POST', '/subscriptions/:id/pay-from-wallet'], ['PATCH', '/subscriptions/:id/plan'], ['POST', '/subscriptions/:id/convert'], ['POST', '/services/:id/monitoring/paid']] as const) {
         expect(guard().canActivate(zadanie(m, p, sub(CustomerPermission.SERVICES_MANAGE)))).toBe(false);

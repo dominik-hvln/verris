@@ -5,6 +5,7 @@ import Link from "next/link";
 import { requestPasswordReset } from "./actions";
 import { AlertCircle, Loader2, Mail } from "lucide-react";
 import { SpinBorder } from "@/components/spin-border";
+import { VerrisLockup } from "@/components/logo";
 import { Captcha } from "@/components/captcha";
 
 type ForgotState = { error?: string; ok?: boolean };
@@ -15,18 +16,21 @@ export default function ForgotPasswordPage() {
   const [state, action, pending] = useActionState(requestPasswordReset, initialState);
 
   return (
-    <div className="relative flex items-center justify-center min-h-screen bg-neutral-950 overflow-hidden py-12">
+    <div className="relative flex items-center justify-center min-h-screen bg-background overflow-hidden py-12">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/2 top-1/3 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full bg-sky-500/10 blur-[120px]" />
+        <div className="absolute left-1/2 top-1/3 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full bg-verris-mint/5 blur-[120px]" />
       </div>
 
       <div className="relative z-10 w-full max-w-[420px] mx-4">
+        <div className="mb-10 flex justify-center">
+          <VerrisLockup size="lg" layout="vertical" className="items-center" />
+        </div>
         <div className="relative rounded-[32px] p-px overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)]">
           <SpinBorder className="opacity-30" />
-          <div className="relative rounded-[calc(32px-1px)] bg-[#0a0a0a]/80 backdrop-blur-3xl border border-white/5">
-            <div className="p-8 pb-6 border-b border-white/5">
-              <h1 className="text-xl font-bold text-white">Reset hasła</h1>
-              <p className="text-sm text-neutral-400 mt-1">
+          <div className="relative rounded-[calc(32px-1px)] border border-border bg-card/95 backdrop-blur-3xl">
+            <div className="p-8 pb-6 border-b border-border">
+              <h1 className="font-display text-xl font-bold text-foreground">Reset hasła</h1>
+              <p className="text-sm text-muted-foreground mt-1">
                 Wyślemy link na Twój e-mail (ważny 15 minut).
               </p>
             </div>
@@ -42,7 +46,7 @@ export default function ForgotPasswordPage() {
                 </div>
                 <Link
                   href="/login"
-                  className="block text-center text-sm font-semibold text-sky-400 hover:text-sky-300"
+                  className="block text-center text-sm font-semibold text-accent hover:text-verris-tip"
                 >
                   Wróć do logowania
                 </Link>
@@ -58,7 +62,7 @@ export default function ForgotPasswordPage() {
                   )}
 
                   <div className="space-y-2">
-                    <label htmlFor="email" className="text-sm font-semibold text-neutral-300">
+                    <label htmlFor="email" className="text-sm font-semibold text-verris-body">
                       Adres e-mail
                     </label>
                     <input
@@ -67,7 +71,7 @@ export default function ForgotPasswordPage() {
                       type="email"
                       required
                       autoComplete="email"
-                      className="w-full rounded-xl border border-white/10 bg-[#121212]/50 px-4 py-3 text-sm text-white focus:outline-none focus:ring-2 focus:ring-white/30"
+                      className="w-full rounded-xl border border-border bg-verris-pine/40 px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground transition-all duration-300 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent"
                     />
                   </div>
 
@@ -76,14 +80,14 @@ export default function ForgotPasswordPage() {
                   <button
                     type="submit"
                     disabled={pending}
-                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-white text-black font-bold py-3.5 hover:bg-neutral-200 disabled:opacity-50"
+                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary text-primary-foreground font-bold py-3.5 hover:opacity-90 disabled:opacity-50"
                   >
                     {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                     Wyślij link
                   </button>
 
-                  <p className="text-center text-sm text-neutral-500">
-                    <Link href="/login" className="text-sky-400 hover:text-sky-300 font-semibold">
+                  <p className="text-center text-sm text-muted-foreground">
+                    <Link href="/login" className="text-accent hover:text-verris-tip font-semibold">
                       Logowanie
                     </Link>
                   </p>

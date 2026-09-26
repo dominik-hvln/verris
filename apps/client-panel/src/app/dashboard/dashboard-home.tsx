@@ -5,6 +5,7 @@
  * Tylko dane ze snapshotu; każdy błąd zapytania czytelnie jako „—" + baner (X-39).
  */
 
+import { canAccessDashboardRoute } from '@/lib/client-nav-access';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { AlertTriangle, ArrowRight, ChevronRight, Plus } from 'lucide-react';
@@ -82,6 +83,10 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
   // N-12: moduł EKO może wyłączyć operator flagą (brak flagi = jak dotąd).
   const ekoWidoczny = useModul('modul.eco');
   const firstName = snapshot.profile?.firstName || '';
+  // Subkonto widzi tylko akcje, na które ma uprawnienia (API i tak odmówi).
+  const moze = (href: string) =>
+    !snapshot.profile?.isSubaccount ||
+    canAccessDashboardRoute(href, { isSubaccount: true, customerPermissions: snapshot.profile.customerPermissions });
   const services = snapshot.services.filter((s) => s.status !== 'CANCELED' && s.status !== 'EXPIRED');
   const domains = snapshot.domains;
   // Spis wszystkiego, co nie wróciło — kolejność jak kafelki (X-39).
@@ -166,12 +171,16 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Link href="/dashboard/services/new" className={BTN_PRIMARY}>
-            <Plus className="h-4 w-4" /> Nowa usługa
-          </Link>
-          <Link href="/dashboard/domains/buy" className={BTN}>
-            Kup domenę
-          </Link>
+          {moze('/dashboard/services/new') ? (
+            <Link href="/dashboard/services/new" className={BTN_PRIMARY}>
+              <Plus className="h-4 w-4" /> Nowa usługa
+            </Link>
+          ) : null}
+          {moze('/dashboard/domains/buy') ? (
+            <Link href="/dashboard/domains/buy" className={BTN}>
+              Kup domenę
+            </Link>
+          ) : null}
         </div>
       </header>
 
