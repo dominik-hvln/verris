@@ -21,6 +21,18 @@ gtag('consent','default',{
   security_storage:'granted',
   wait_for_update:500
 });
+// Powracający gość: zgoda z cookie odtworzona PRZED GTM (jak w panelu). Bez tego tag GA4
+// (wyzwalacz Initialization + wymóg analytics_storage) widział „denied” i nie odpalał wcale —
+// applyConsent() z komponentu banera przychodzi dopiero po gtm.js i page_view (27.09.2026).
+try{var m=document.cookie.match(/(?:^|; )cookies_consent=([^;]*)/);if(m){var c=JSON.parse(decodeURIComponent(m[1]));if(c&&c.v===1){gtag('consent','update',{
+  analytics_storage:c.analytics?'granted':'denied',
+  ad_storage:c.marketing?'granted':'denied',
+  ad_user_data:c.marketing?'granted':'denied',
+  ad_personalization:c.marketing?'granted':'denied',
+  functionality_storage:c.functional?'granted':'denied',
+  personalization_storage:c.functional?'granted':'denied',
+  security_storage:'granted'
+});}}}catch(e){}
 gtag('set','ads_data_redaction',true);
 gtag('set','url_passthrough',true);
 `;

@@ -27,7 +27,7 @@ A-15,WŁAŚCICIEL,"""konfiguracja OpenProvider (REGISTRAR_PROVIDER + dane API w 
 A-11,WŁAŚCICIEL,"""konfiguracja OpenProvider (REGISTRAR_PROVIDER + dane API w .env.prod), potem pierwsza domena na produkcji"""
 L-11,WŁAŚCICIEL,klucze AI w .env.prod po publikacji dokumentów 1.1.0 (PB-03)
 L-12,WŁAŚCICIEL,j.w. — prognoza idzie tym samym kluczem
-P-15,WŁAŚCICIEL,"""dowody akceptacji DPA (numery umów, zrzuty) w trackerze"""
+P-15,WŁAŚCICIEL,"Hetzner: potwierdzić, że accounts.hetzner.com → Data protection pokazuje zawartą umowę powierzenia (data); reszta potwierdzona przez właściciela 27.09"
 Q-01,WŁAŚCICIEL,decyzja: włączyć program EKO czy zostawić za flagą
 A-14,WŁAŚCICIEL,decyzja: płatne ukrycie WHOIS (wybór: po starcie)
 F-12,WŁAŚCICIEL,Anycast DNS — zakup u ClouDNS (wybór: po starcie)
@@ -36,7 +36,7 @@ P-14,WŁAŚCICIEL,ISO 27001 — decyzja organizacyjna (wybór: po starcie)
 PB-04,WŁAŚCICIEL,skrzynka abuse@verris.pl i test zgłoszenia
 PB-06,WŁAŚCICIEL,akceptacja treści /przenies-strone i publikacja
 PB-07,WŁAŚCICIEL,akceptacja treści i włączenie /specyfikacja
-PB-08,WŁAŚCICIEL,"""GTM: wstrzymać zdublowany tag GA4, sprawdzić konwersje w Preview"""
+PB-08,WŁAŚCICIEL,po wdrożeniu: GA4 g/collect u powracającego gościa; w GTM dodać wyzwalacz verris_consent_update do tagu Google
 PB-09,WŁAŚCICIEL,seed bazy wiedzy na produkcji (jedno polecenie)
 PB-10,WŁAŚCICIEL,"""kampania Google Ads — technicznie bez węzła, ale uruchamiamy przy starcie"""
 P-11,WŁAŚCICIEL,zatwierdzone 27.09 — rcpd.md 1.2 (sekcje D i E) + przypomnienie w adminie
