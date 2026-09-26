@@ -3,10 +3,8 @@ packages:
   - "libs/*"
 
 # PB-38 — ustawienia pnpm (od pnpm 11 tutaj, nie w .npmrc; w .npmrc zostają tylko rejestr/uwierzytelnianie).
-# Sklep i cache w repozytorium: instalacja działa w zamkniętych środowiskach (CI, sandboxy),
-# gdzie katalog domowy nie jest zapisywalny.
-storeDir: node_modules/.pnpm-store
-cacheDir: node_modules/.pnpm-cache
+# Magazyn pakietów: domyślny, globalny (poza repo). Magazyn w node_modules/.pnpm-store rósł z każdą
+# wersją pnpm (v3, v10, v11 obok siebie) i IDE synchronizowało setki tysięcy plików po każdej instalacji.
 preferOffline: true
 autoInstallPeers: true
 strictPeerDependencies: false
