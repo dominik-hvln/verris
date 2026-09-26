@@ -21,8 +21,12 @@ x-logging: &default-logging
     tag: '{{.Name}}'
 
 services:
+  # PB-38: PostgreSQL 18. Obraz 18 trzyma dane w /var/lib/postgresql/18/docker i odmawia startu,
+  # gdy coś jest zamontowane pod starą ścieżką /var/lib/postgresql/data — stąd NOWY wolumen.
+  # Przejście 16 → 18 (zrzut + odtworzenie, z kopią i porównaniem liczby wierszy) robi
+  # ops/scripts/prod-infra-upgrade.sh. Stary wolumen `postgres_data` zostaje nietknięty (rollback).
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18.6-alpine
     restart: always
     logging: *default-logging
     environment:
@@ -30,7 +34,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       POSTGRES_DB: ${POSTGRES_DB:-verris_db}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_18:/var/lib/postgresql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER:-verris} -d $${POSTGRES_DB:-verris_db}']
       interval: 10s
@@ -38,15 +42,19 @@ services:
       retries: 5
     networks: [verris_internal]
 
+  # PB-38: Valkey (fork Redisa 7.2 pod Linux Foundation, licencja BSD-3) — decyzja właściciela 2026-09-26.
+  # Ten sam protokół: usługa nadal nazywa się `redis`, więc REDIS_URL=redis://redis:6379 bez zmian.
+  # Nowy wolumen: Redis 7.4 zapisuje RDB w formacie, którego Valkey nie gwarantuje odczytać;
+  # kolejki opróżnia przed przełączeniem ops/scripts/prod-infra-upgrade.sh.
   redis:
-    image: redis:7-alpine
+    image: valkey/valkey:9.1.2-alpine
     restart: always
     logging: *default-logging
-    command: ['redis-server', '--appendonly', 'yes']
+    command: ['valkey-server', '--appendonly', 'yes']
     volumes:
-      - redis_data:/data
+      - valkey_data:/data
     healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
+      test: ['CMD', 'valkey-cli', 'ping']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -65,7 +73,8 @@ services:
   # internal-only and accessed via `kubectl port-forward` / SSH tunnel).
   # ---------------------------------------------------------------------------
   minio:
-    image: minio/minio:RELEASE.2025-04-08T15-41-24Z
+    # PB-38: budowany ze źródeł (ops/docker/minio, workflow obraz-minio.yml) — obrazy minio/minio zniknęły z Docker Huba.
+    image: ${REGISTRY_PREFIX:-ghcr.io/dominik-hvln}/verris-minio:RELEASE.2025-10-15T17-29-55Z
     restart: always
     logging: *default-logging
     command: ['server', '/data', '--console-address', ':9001']
@@ -89,7 +98,8 @@ services:
   # 7-day lifecycle expiration for data-exports as defense-in-depth on top
   # of our app-level RetentionScheduler.
   minio-bootstrap:
-    image: minio/mc:RELEASE.2025-04-03T17-07-56Z
+    # Ten sam obraz co `minio` — zawiera też mc (RELEASE.2025-08-13, ostatnie wydanie).
+    image: ${REGISTRY_PREFIX:-ghcr.io/dominik-hvln}/verris-minio:RELEASE.2025-10-15T17-29-55Z
     logging: *default-logging
     depends_on:
       minio:
@@ -467,7 +477,7 @@ services:
   # is exposed publicly via Caddy with `forward_auth` to /auth/grafana-validate.
   # ---------------------------------------------------------------------------
   postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:v0.15.0
+    image: prometheuscommunity/postgres-exporter:v0.20.1
     restart: always
     logging: *default-logging
     depends_on:
@@ -478,7 +488,7 @@ services:
     networks: [verris_internal]
 
   redis-exporter:
-    image: oliver006/redis_exporter:v1.55.0-alpine
+    image: oliver006/redis_exporter:v1.92.0-alpine
     restart: always
     logging: *default-logging
     depends_on:
@@ -489,7 +499,7 @@ services:
     networks: [verris_internal]
 
   node-exporter:
-    image: prom/node-exporter:v1.8.0
+    image: prom/node-exporter:v1.12.1
     restart: always
     logging: *default-logging
     command:
@@ -507,7 +517,7 @@ services:
     networks: [verris_internal]
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    image: ghcr.io/google/cadvisor:v0.60.6
     restart: always
     logging: *default-logging
     privileged: true
@@ -521,7 +531,7 @@ services:
     networks: [verris_internal]
 
   loki:
-    image: grafana/loki:2.9.4
+    image: grafana/loki:3.7.7
     restart: always
     logging: *default-logging
     command: ['-config.file=/etc/loki/config.yaml']
@@ -531,20 +541,26 @@ services:
     expose: ['3100']
     networks: [verris_internal]
 
-  promtail:
-    image: grafana/promtail:2.9.4
+  # PB-38: Grafana Alloy zamiast Promtaila (EOL 2026-03-02). Konfiguracja przekonwertowana
+  # oficjalnym `alloy convert --source-format=promtail` (ops/observability/alloy/config.alloy).
+  alloy:
+    image: grafana/alloy:v1.20.0
     restart: always
     logging: *default-logging
-    command: ['-config.file=/etc/promtail/config.yml']
+    command:
+      - run
+      - --server.http.listen-addr=0.0.0.0:12345
+      - --storage.path=/var/lib/alloy/data
+      - /etc/alloy/config.alloy
     volumes:
-      - ./ops/observability/promtail/config.yml:/etc/promtail/config.yml:ro
-      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./ops/observability/alloy/config.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - alloy_data:/var/lib/alloy/data
     depends_on: [loki]
     networks: [verris_internal]
 
   prometheus:
-    image: prom/prometheus:v2.51.2
+    image: prom/prometheus:v3.15.0
     restart: always
     logging: *default-logging
     entrypoint: ['/bin/sh', '-c']
@@ -571,7 +587,7 @@ services:
     networks: [verris_internal, verris_public]
 
   grafana:
-    image: grafana/grafana:10.4.2
+    image: grafana/grafana:13.2.2
     restart: always
     logging: *default-logging
     depends_on: [prometheus, loki]
@@ -607,7 +623,7 @@ services:
   # Caddy is a tiny reverse-proxy that auto-issues TLS via Let's Encrypt.
   # Replace with nginx/Traefik if you prefer; the upstreams stay the same.
   caddy:
-    image: caddy:2-alpine
+    image: caddy:2.11.4-alpine
     restart: always
     logging: *default-logging
     depends_on: [api, client-panel, staff-panel, admin-panel, status-page, www, grafana]
@@ -649,7 +665,7 @@ services:
   # Wystawiony przez Caddy na glitchtip.verris.pl za forward-auth (admin/staff).
   # ---------------------------------------------------------------------------
   glitchtip-migrate:
-    image: glitchtip/glitchtip:v4.1.4
+    image: glitchtip/glitchtip:6.2.6
     profiles: ['glitchtip']
     restart: 'no'
     logging: *default-logging
@@ -664,7 +680,9 @@ services:
       # niżej odmówi startu z pustym kluczem.
       SECRET_KEY: ${GLITCHTIP_SECRET_KEY:-}
       REDIS_URL: redis://redis:6379/1
-      PORT: '8080'
+      # PB-38: GlitchTip 6 — port 8000 (serwer Granian zamiast uWSGI/Gunicorna). Przejście z 4.x idzie
+      # przez 5.x (oficjalna ścieżka) — robi to ops/scripts/prod-infra-upgrade.sh.
+      PORT: '8000'
       GLITCHTIP_DOMAIN: https://${CADDY_GLITCHTIP_DOMAIN:-glitchtip.verris.local}
       DEFAULT_FROM_EMAIL: ${GLITCHTIP_FROM_EMAIL:-glitchtip@verris.pl}
       EMAIL_URL: ${GLITCHTIP_EMAIL_URL:-consolemail://}
@@ -683,7 +701,7 @@ services:
     networks: [verris_internal]
 
   glitchtip-web:
-    image: glitchtip/glitchtip:v4.1.4
+    image: glitchtip/glitchtip:6.2.6
     profiles: ['glitchtip']
     restart: always
     logging: *default-logging
@@ -692,17 +710,18 @@ services:
       redis: { condition: service_healthy }
       glitchtip-migrate: { condition: service_completed_successfully }
     environment: *glitchtip_env
-    expose: ['8080']
+    command: ['./bin/start.sh']
+    expose: ['8000']
     networks: [verris_internal, verris_public]
     healthcheck:
-      test: ['CMD-SHELL', 'wget -qO- http://127.0.0.1:8080/_health/ || exit 1']
+      test: ['CMD', 'python', '-c', "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/_health/', timeout=4)"]
       interval: 30s
       timeout: 5s
       retries: 5
       start_period: 40s
 
   glitchtip-worker:
-    image: glitchtip/glitchtip:v4.1.4
+    image: glitchtip/glitchtip:6.2.6
     profiles: ['glitchtip']
     restart: always
     logging: *default-logging
@@ -710,13 +729,20 @@ services:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
       glitchtip-migrate: { condition: service_completed_successfully }
-    environment: *glitchtip_env
-    command: ['./bin/run-celery-with-beat.sh']
+    environment:
+      <<: *glitchtip_env
+      SERVER_ROLE: worker
+    command: ['./bin/start.sh']
     networks: [verris_internal]
 
 volumes:
+  # postgres_data / redis_data — dane sprzed PB-38 (Postgres 16, Redis 7.4). Zostają do czasu
+  # potwierdzenia, że nowe wolumeny działają; usuwa je ręcznie właściciel.
   postgres_data:
+  postgres_data_18:
   redis_data:
+  valkey_data:
+  alloy_data:
   minio_data:
   caddy_data:
   caddy_config:

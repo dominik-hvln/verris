@@ -10,6 +10,9 @@ Cel: **działający monorepo na Twojej maszynie** (Postgres, Redis, API, panele)
 
 ## 1. Baza i Redis
 
+> **PB-38:** Postgres 18 i Valkey startują na nowych wolumenach — po aktualizacji lokalna baza jest pusta:
+> `pnpm db:migrate && pnpm db:seed`. MinIO buduje się ze źródeł przy pierwszym `docker compose up` (2–3 min).
+
 ```bash
 docker compose up -d
 ```

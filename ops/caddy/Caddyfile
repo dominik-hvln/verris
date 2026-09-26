@@ -217,7 +217,7 @@ Policy: https://panel.verris.pl/legal/security
 {$CADDY_GLITCHTIP_DOMAIN:glitchtip.verris.local} {
     import security_headers
     import vpn_only
-    reverse_proxy glitchtip-web:8080
+    reverse_proxy glitchtip-web:8000
 }
 
 # -----------------------------------------------------------------------------

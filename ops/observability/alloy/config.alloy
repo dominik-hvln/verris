@@ -1,0 +1,46 @@
+// PB-38: Grafana Alloy zamiast Promtaila (Promtail ma EOL od 2026-03-02). Wygenerowane z promtail/config.yml
+// narzędziem `alloy convert --source-format=promtail`, potem `alloy fmt`. Logi kontenerów verris-* → Loki.
+discovery.docker "verris_docker" {
+	host             = "unix:///var/run/docker.sock"
+	refresh_interval = "5s"
+
+	filter {
+		name   = "name"
+		values = ["verris-"]
+	}
+}
+
+discovery.relabel "verris_docker" {
+	targets = []
+
+	rule {
+		source_labels = ["__meta_docker_container_name"]
+		regex         = "/?(verris-.*)"
+		target_label  = "container"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+		target_label  = "service"
+	}
+
+	rule {
+		source_labels = ["__meta_docker_container_log_stream"]
+		target_label  = "stream"
+	}
+}
+
+loki.source.docker "verris_docker" {
+	host             = "unix:///var/run/docker.sock"
+	targets          = discovery.docker.verris_docker.targets
+	forward_to       = [loki.write.default.receiver]
+	relabel_rules    = discovery.relabel.verris_docker.rules
+	refresh_interval = "5s"
+}
+
+loki.write "default" {
+	endpoint {
+		url = "http://loki:3100/loki/api/v1/push"
+	}
+	external_labels = {}
+}

@@ -29,7 +29,7 @@ ENV_FILE="${ENV_FILE:-.env.prod}"
 # Kolejność: API najpierw (panele zależą od niego), potem panele, na końcu status.
 ROLL_SERVICES="${ROLL_SERVICES:-api client-panel staff-panel admin-panel status-page}"
 # Usługi infra/obserwowalności — odświeżamy bez bramki health (nie są na ścieżce klienta).
-SIDE_SERVICES="${SIDE_SERVICES:-prometheus grafana loki promtail postgres-exporter redis-exporter node-exporter cadvisor}"
+SIDE_SERVICES="${SIDE_SERVICES:-prometheus grafana loki alloy postgres-exporter redis-exporter node-exporter cadvisor}"
 HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-120}"   # s — maks. czas oczekiwania na healthy
 
 DC=(docker compose -f "${COMPOSE_FILE}" --env-file "${ENV_FILE}")

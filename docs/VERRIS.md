@@ -12,6 +12,18 @@ nie źródło prawdy). Poza tym zostają tylko dokumenty operacyjne i prawne: `d
 
 ## Decyzje
 
+### 2026-09-26 — infrastruktura na aktualnych wersjach (PB-38 fala 3)
+**Postgres 18.6** (nowy wolumen — obraz 18 trzyma dane w `/var/lib/postgresql/18/docker`), **Valkey 9.1**
+zamiast Redisa w panelu (decyzja właściciela: licencja BSD; `redis:7` to już 7.4 na RSALv2/SSPL; nowy wolumen,
+bo Valkey nie czyta RDB z Redisa 7.4), **MinIO budowany ze źródeł** (RELEASE.2025-10-15 z poprawką CVE-2025-62506;
+obrazy minio/minio zniknęły z Docker Huba; decyzja właściciela — do czasu Hetzner Object Storage), **Loki 3.7**
+(retencja 7 dni przez compactor — wcześniej nie działała), **Alloy 1.20** zamiast Promtaila (EOL 03.2026),
+**Prometheus 3.15**, **Grafana 13.2**, eksportery i cAdvisor (ghcr.io), **Caddy 2.11.4** przypięty,
+**GlitchTip 6.2** (z 4.x przez 5.2, port 8000). Deploy aplikacji zawsze `--no-deps` — infrastrukturę zmienia
+wyłącznie `ops/scripts/prod-infra-upgrade.sh` uruchamiany przez właściciela (kopia szyfrowana, puste kolejki,
+okno serwisowe, zrzut + odtworzenie z porównaniem wierszy każdej tabeli, automatyczny powrót na Postgres 16).
+Redis dla klientów na węzłach (CustomBuild DirectAdmina) — do sprawdzenia wersja/licencja na węźle testowym.
+
 ### 2026-09-26 — API i biblioteki jako ESM (PB-39)
 Decyzja właściciela (formularz): przechodzimy teraz. API (`"type": "module"`, `module/moduleResolution: nodenext`,
 względne importy z `.js`, `import.meta.dirname`), `@verris/database` (generator **`prisma-client`** do

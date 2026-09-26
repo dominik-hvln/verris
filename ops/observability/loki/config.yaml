@@ -25,6 +25,13 @@ schema_config:
         prefix: index_
         period: 24h
 
+# PB-38 (Loki 3): retencja działa tylko przez compactor. Do Loki 2.9 `retention_period` bez
+# `retention_enabled` niczego nie kasował — logi rosły bez końca (RODO: 7 dni wystarczy do diagnostyki).
+compactor:
+  working_directory: /loki/compactor
+  retention_enabled: true
+  delete_request_store: filesystem
+
 limits_config:
   retention_period: 168h
   reject_old_samples: true

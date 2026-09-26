@@ -1,0 +1,8 @@
+# PB-38 — WYŁĄCZNIE dla ops/scripts/prod-infra-upgrade.sh: stary Postgres 16 na starym wolumenie.
+# Służy do automatycznego powrotu, gdyby odtworzenie danych w Postgresie 18 się nie zgodziło.
+# `!override` (Docker Compose ≥ 2.24.4) zastępuje listę wolumenów zamiast ją scalać.
+services:
+  postgres:
+    image: postgres:16-alpine
+    volumes: !override
+      - postgres_data:/var/lib/postgresql/data

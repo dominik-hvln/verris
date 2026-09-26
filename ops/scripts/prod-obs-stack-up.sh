@@ -9,7 +9,7 @@ cd "$ROOT"
 COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
 ENV_FILE="${ENV_FILE:-.env.prod}"
 
-SERVICES=(node-exporter cadvisor loki promtail prometheus grafana api)
+SERVICES=(node-exporter cadvisor loki alloy prometheus grafana api)
 
 echo "[obs] docker compose up: ${SERVICES[*]}"
 docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d "${SERVICES[@]}"

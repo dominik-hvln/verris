@@ -82,7 +82,10 @@ if ! REGISTRY_PREFIX="$REGISTRY_PREFIX" IMAGE_TAG="$IMAGE_TAG" compose run --rm 
 fi
 
 # 2) Rolling restart na gotowych obrazach (bez budowania) — schemat już jest gotowy.
-REGISTRY_PREFIX="$REGISTRY_PREFIX" IMAGE_TAG="$IMAGE_TAG" compose up -d --no-build ${APP_SERVICES}
+#    PB-38: `--no-deps` — deploy aplikacji NIGDY nie odtwarza postgresa ani redisa. Bez tego `up api`
+#    odtworzyłby zależność, której definicja się zmieniła (np. obraz Postgres 18 na NOWYM wolumenie),
+#    i aplikacja wstałaby na pustej bazie. Infrastrukturę zmienia wyłącznie ops/scripts/prod-infra-upgrade.sh.
+REGISTRY_PREFIX="$REGISTRY_PREFIX" IMAGE_TAG="$IMAGE_TAG" compose up -d --no-build --no-deps ${APP_SERVICES}
 
 # 3) Kontrola po podmianie — `migrate deploy` przez działający kontener api (po kroku 1.6
 #    zwykle „No pending migrations”; zostaje jako bezpiecznik i punkt odniesienia dla asercji).
@@ -91,7 +94,7 @@ if ! bash ops/scripts/prod-migrate-deploy.sh; then
   echo "[deploy] FAIL: migracje nie przeszły."
   if [ -n "$PREV_TAG" ] && [ "$PREV_TAG" != "$IMAGE_TAG" ]; then
     echo "[deploy] ROLLBACK → ${PREV_TAG} (przed health-checkiem)"
-    REGISTRY_PREFIX="$REGISTRY_PREFIX" IMAGE_TAG="$PREV_TAG" compose up -d --no-build ${APP_SERVICES} || true
+    REGISTRY_PREFIX="$REGISTRY_PREFIX" IMAGE_TAG="$PREV_TAG" compose up -d --no-build --no-deps ${APP_SERVICES} || true
   fi
   exit 1
 fi
@@ -136,7 +139,7 @@ if ! asercja ops/sql/po-migracji-niezmienniki.sql; then
   echo "[deploy] FAIL: migracja zostawiła bazę naruszającą niezmiennik — patrz komunikat wyżej."
   if [ -n "$PREV_TAG" ] && [ "$PREV_TAG" != "$IMAGE_TAG" ]; then
     echo "[deploy] ROLLBACK → ${PREV_TAG} (naruszony niezmiennik bazy)"
-    REGISTRY_PREFIX="$REGISTRY_PREFIX" IMAGE_TAG="$PREV_TAG" compose up -d --no-build ${APP_SERVICES} || true
+    REGISTRY_PREFIX="$REGISTRY_PREFIX" IMAGE_TAG="$PREV_TAG" compose up -d --no-build --no-deps ${APP_SERVICES} || true
   fi
   exit 1
 fi
@@ -224,8 +227,16 @@ if [ "$OK" = "1" ]; then
     exit 1
   fi
 
+  # PB-38: kopia danych Grafany przed odtworzeniem kontenera — nowa wersja główna (13) przenosi
+  # dashboardy do „unified storage” i cofnięcie wymaga przywrócenia bazy Grafany. Tar z tego samego
+  # obrazu usługi (bez docker run spoza rejestru). Best-effort: brak kopii nie zatrzymuje deployu.
+  KOPIE_LOKALNE="${VERRIS_LOCAL_BACKUP_DIR:-/var/lib/verris/backups}"
+  mkdir -p "$KOPIE_LOKALNE" && chmod 700 "$KOPIE_LOKALNE"
+  ( umask 077; compose run --rm --no-deps -T --entrypoint sh grafana -c 'tar czf - -C /var/lib/grafana .' \
+      > "$KOPIE_LOKALNE/grafana-$(date +%Y%m%d-%H%M%S).tgz" 2>/dev/null ) || echo "[deploy] WARN: kopia Grafany nie powstała."
+
   echo "[deploy] restart obserwowalności (${OBS_SERVICES})…"
-  compose up -d --no-build ${OBS_SERVICES}
+  compose up -d --no-build --no-deps ${OBS_SERVICES}
   compose restart ${OBS_SERVICES}
 
   # „Wydałem polecenie restartu" to nie to samo co „wróciły". Grafana ma własny
@@ -342,7 +353,7 @@ echo "[deploy] ERROR: health-check nie przeszedł."
 if [ -n "$PREV_TAG" ] && [ "$PREV_TAG" != "$IMAGE_TAG" ]; then
   echo "[deploy] ROLLBACK → ${PREV_TAG}"
   REGISTRY_PREFIX="$REGISTRY_PREFIX" IMAGE_TAG="$PREV_TAG" compose pull ${APP_SERVICES} || true
-  REGISTRY_PREFIX="$REGISTRY_PREFIX" IMAGE_TAG="$PREV_TAG" compose up -d --no-build ${APP_SERVICES}
+  REGISTRY_PREFIX="$REGISTRY_PREFIX" IMAGE_TAG="$PREV_TAG" compose up -d --no-build --no-deps ${APP_SERVICES}
   echo "[deploy] przywrócono ${PREV_TAG}. Deploy ${IMAGE_TAG} ODRZUCONY."
 else
   echo "[deploy] brak poprzedniego dobrego tagu — ręczna interwencja wymagana."

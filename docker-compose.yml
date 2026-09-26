@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:18.6-alpine
     container_name: verris_postgres
     restart: always
     environment:
@@ -15,7 +13,10 @@ services:
       # DEV-01: nowy wolumen. Stary `postgres_data` zainicjowano innym POSTGRES_USER, a obraz
       # Postgresa czyta POSTGRES_USER/PASSWORD tylko przy pustym katalogu danych — kontener wstawał
       # „zdrowy”, a logowanie odbijało (rola verris nie istniała). Stary wolumen zostaje nietknięty.
-      - postgres_data_v2:/var/lib/postgresql/data
+      # PB-38: Postgres 18 trzyma dane w /var/lib/postgresql/18/docker i nie wystartuje z wolumenem
+      # pod starą ścieżką /var/lib/postgresql/data — stąd nowy wolumen (lokalna baza startuje pusta:
+      # `pnpm db:migrate:deploy && pnpm db:seed`). Stare wolumeny zostają nietknięte.
+      - postgres_data_18:/var/lib/postgresql
     healthcheck:
       # Logowanie tymi samymi danymi co aplikacja — pg_isready nie sprawdza roli ani hasła.
       test: ['CMD-SHELL', 'PGPASSWORD=verris_password psql -h 127.0.0.1 -U verris -d verris_db -c "select 1" >/dev/null']
@@ -23,14 +24,15 @@ services:
       timeout: 3s
       retries: 20
 
+  # PB-38: Valkey (fork Redisa, BSD) — ten sam protokół i port.
   redis:
-    image: redis:7-alpine
+    image: valkey/valkey:9.1.2-alpine
     container_name: verris_redis
     restart: always
     ports:
       - '6379:6379'
     volumes:
-      - redis_data:/data
+      - valkey_data:/data
 
   # ---------------------------------------------------------------------------
   # MinIO — S3-compatible object storage for ticket attachments, data
@@ -40,7 +42,9 @@ services:
   # S3 API:     http://127.0.0.1:9000
   # ---------------------------------------------------------------------------
   minio:
-    image: minio/minio:RELEASE.2025-04-08T15-41-24Z
+    # PB-38: obraz budowany ze źródeł (obrazy minio/minio zniknęły z Docker Huba) — pierwsze `up` kompiluje ~2–3 min.
+    build: ops/docker/minio
+    image: verris-minio:RELEASE.2025-10-15T17-29-55Z
     container_name: verris_minio
     restart: always
     command: ['server', '/data', '--console-address', ':9001']
@@ -62,7 +66,7 @@ services:
   # lifecycle policy for data-exports. Idempotent: if a bucket already
   # exists, `mc mb -p` is a no-op. Container exits 0 once buckets are ready.
   minio-bootstrap:
-    image: minio/mc:RELEASE.2025-04-03T17-07-56Z
+    image: verris-minio:RELEASE.2025-10-15T17-29-55Z
     container_name: verris_minio_bootstrap
     depends_on:
       minio:
@@ -90,5 +94,7 @@ services:
 volumes:
   postgres_data:
   postgres_data_v2:
+  postgres_data_18:
   redis_data:
+  valkey_data:
   minio_data:
