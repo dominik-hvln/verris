@@ -61,7 +61,10 @@ export function WebhooksClient() {
     if (!(await potwierdz(`Usunąć webhook ${u}? Zdarzenia przestaną tam trafiać.`, { akcja: 'Usuń', niebezpieczne: true }))) return;
     start(async () => {
       const r = await deleteWebhook(id);
-      if (r.ok) await odswiez();
+      if (r.ok) {
+        setSekret(null); // sekret usuniętego adresu nie ma już sensu (został na ekranie po usunięciu)
+        await odswiez();
+      }
       else toast.error(r.error);
     });
   };

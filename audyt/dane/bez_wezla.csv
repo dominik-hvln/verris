@@ -14,10 +14,9 @@ J-05,KOD PO STARCIE,CDN (Cloudflare) — plus konto Cloudflare
 PB-20,PRODUKCJA,"zaproszenie deweloperskiego konta testowego z wybraną usługą, przełączenie, odmowa poza zakresem — na produkcji"
 O-03,PRODUKCJA,działanie subkonta widoczne u właściciela (IAM → Audyt) na produkcji
 Z-10,PRODUKCJA,odmowa subkonta widoczna w Audycie IAM na produkcji
-L-10,PRODUKCJA,pierwsza dostawa webhooka na produkcji (ping i zdarzenie rozliczeń)
+L-10,PRODUKCJA,zdarzenie rozliczeń (invoice.issued) przy pierwszej fakturze — ping i podpis sprawdzone 26.09
 N-10,PRODUKCJA,"przełączenie preferencji w panelu i wpis SUPPRESSED w EmailLog — produkcja, nie węzeł"
 O-06,PRODUKCJA,konto klienta założone przez resellera testowego na produkcji
-N-13,PRODUKCJA,"zamknięcie zgłoszenia testowego, rola ABUSE_MANAGE dla obsługi"
 Q-09,PRODUKCJA,przejście głównych ścieżek na prawdziwym telefonie (produkcja)
 PB-11,PRODUKCJA,alert testowy dociera e-mailem
 A-08,WŁAŚCICIEL,"konfiguracja OpenProvider (REGISTRAR_PROVIDER + dane API w .env.prod), potem pierwsza domena na produkcji"
