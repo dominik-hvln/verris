@@ -124,6 +124,10 @@ export default function ServiceOverviewV2({
   // Wolne źródła (DirectAdmin, sonda zdrowia) nie blokują już całego ekranu.
   const load = useCallback(
     (forceHealth = false) => {
+      // Server Actions Next.js idą z przeglądarki SZEREGOWO (kolejka), nie równolegle — więc dane usługi
+      // wołamy PIERWSZE. Wcześniej stały na końcu kolejki za pięcioma wołaniami DirectAdmina: przy
+      // niedostępnym węźle spinner „Wczytywanie usługi…” wisiał ok. 20 s (produkcja, 26.09).
+      const detailsP = fetchServiceDetailsAction(serviceId);
       const later = <T,>(p: Promise<T>, set: (v: T) => void) => p.then(set).catch(() => undefined);
       void later(fetchHostingUsageAction(serviceId, '24h'), setUsage);
       void later(fetchConnectionInfoAction(serviceId), setConn);
@@ -135,8 +139,8 @@ export default function ServiceOverviewV2({
       }
       const healthP = later(fetchServiceHealthAction(serviceId, forceHealth), setHealth);
       // Łańcuch `.then` zamiast `await` — lint React Compilera nie widzi `await` w useCallback
-      // i zgłasza fałszywy setState w efekcie. Kolejność jak wcześniej: usługa → spinner → zdrowie.
-      return fetchServiceDetailsAction(serviceId)
+      // i zgłasza fałszywy setState w efekcie. Kolejność: usługa → spinner → zdrowie.
+      return detailsP
         .then((svc) => {
           setService(svc);
           setHealth((h) => h ?? svc.health);

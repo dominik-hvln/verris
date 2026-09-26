@@ -1751,12 +1751,11 @@ export class UserServicesController {
     });
     if (!sub) throw new NotFoundException('Service not found');
 
+    // Synchronizacja domeny z DirectAdminem w tle — nie w drodze żądania. Czekanie na nią sprawiało,
+    // że przy niedostępnym węźle nagłówek usługi ładował się ok. 20 s (timeouty DA, produkcja 26.09).
+    // Zmiana domeny w DA trafi do bazy i pokaże się przy następnym wejściu. Metoda sama łapie błędy.
     if (sub.account?.daPasswordEnc) {
-      const syncedDomain = await this.directAdmin.syncPrimaryDomainForSubscription(
-        id,
-        user.userId,
-      );
-      if (syncedDomain) sub.account.domain = syncedDomain;
+      void this.directAdmin.syncPrimaryDomainForSubscription(id, user.userId).catch(() => undefined);
     }
 
     return {
