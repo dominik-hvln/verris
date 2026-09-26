@@ -1,5 +1,7 @@
 import { AuditService } from '../../src/common/audit/audit.service';
 import { NodeTasksService } from '../../src/servers/node-tasks.service';
+import { NotificationsService } from '../../src/notifications/notifications.service';
+import { FalaTygodniowaScheduler } from '../../src/servers/fala-tygodniowa.scheduler';
 import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } from './setup';
 
 /**
@@ -8,7 +10,7 @@ import { prisma, rozlacz, utworzKonto, utworzPlan, utworzWezel, wyczyscBaze } fr
  */
 function serwis() {
   const p = prisma() as never;
-  return new NodeTasksService(p, new AuditService(p), null as never);
+  return new NodeTasksService(p, new AuditService(p), null as never, undefined, new NotificationsService(p));
 }
 
 async function wezel(nazwa: string) {
@@ -57,5 +59,15 @@ describe('PB-32 — aktualizacja floty falą', () => {
     await wykonaj(kanarek.id, false);
     expect(await kolejka()).toEqual([]);
     expect(await prisma().auditLog.count({ where: { action: 'FLEET_UPDATE_STOPPED' } })).toBe(1);
+  });
+
+  it('PB-35: fala tygodniowa startuje sama, nie dubluje trwającej, zatrzymanie powiadamia adminów', async () => {
+    const admin = await prisma().user.create({ data: { email: `pb35-${Date.now()}@test.verris.pl`, passwordHash: 'x', role: 'ADMIN' } });
+    const w = await wezel('tyg');
+    const cron = new FalaTygodniowaScheduler(serwis());
+    expect(await cron.uruchom()).toBe('start');
+    expect(await cron.uruchom()).toBe('trwa');
+    await wykonaj(w.id, false);
+    expect(await prisma().notification.count({ where: { userId: admin.id, title: 'Fala aktualizacji zatrzymana' } })).toBe(1);
   });
 });

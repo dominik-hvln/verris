@@ -1,3 +1,7 @@
+import { StosWezlaService } from './stos-wezla.service';
+import { StosWezlaAdminController } from './stos-wezla.admin.controller';
+import { NotificationsModule } from '../notifications/notifications.module';
+import { FalaTygodniowaScheduler } from './fala-tygodniowa.scheduler';
 import { OnboardAdminController } from './onboard.admin.controller';
 import { BackupOffsiteService } from './backup-offsite.service';
 import { Module } from '@nestjs/common';
@@ -22,9 +26,10 @@ import { NodeBootstrapAdminController } from './node-bootstrap.admin.controller'
 import { PlatformSettingsModule } from '../platform-settings/platform-settings.module';
 
 @Module({
-  imports: [PlatformSettingsModule],
+  imports: [PlatformSettingsModule, NotificationsModule],
   controllers: [
     ServersController,
+    StosWezlaAdminController,
     OnboardAdminController,
     ServersAdminController,
     NodeTasksAgentController,
@@ -35,6 +40,8 @@ import { PlatformSettingsModule } from '../platform-settings/platform-settings.m
   ],
   providers: [
     ServersService,
+    StosWezlaService,
+    FalaTygodniowaScheduler,
     BackupOffsiteService,
     NodeTasksService,
     NodeAuditService,

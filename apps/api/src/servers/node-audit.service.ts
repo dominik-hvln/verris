@@ -1,9 +1,11 @@
-import { STOS_WEZLA, zgodnoscZManifestem } from './stos-wezla';
+import { STOS_WEZLA, zgodnoscZManifestem, type ManifestStosu } from './stos-wezla';
+import { StosWezlaService } from './stos-wezla.service';
 import {
   BadRequestException,
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import * as dns from 'dns';
 import * as tls from 'tls';
@@ -51,6 +53,7 @@ export class NodeAuditService {
     private readonly audit: AuditService,
     private readonly da: DirectAdminService,
     private readonly nodeTasks: NodeTasksService,
+    @Optional() private readonly stos?: StosWezlaService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -80,7 +83,7 @@ export class NodeAuditService {
     }
     checks.push(this.checkHardening(server));
     checks.push(this.checkOnboard(server));
-    checks.push(this.checkZgodnoscStosu(server));
+    checks.push(this.checkZgodnoscStosu(server, (await this.stos?.pobierz()) ?? STOS_WEZLA));
     checks.push(await this.checkTls(server));
 
     return {
@@ -706,13 +709,13 @@ export class NodeAuditService {
   }
 
   /** PB-30 — wersje raportowane przez agenta vs manifest floty (stos-wezla.ts). */
-  private checkZgodnoscStosu(server: Server): AuditCheckDto {
+  private checkZgodnoscStosu(server: Server, m: ManifestStosu): AuditCheckDto {
     const pozycje = zgodnoscZManifestem({
       stackVersion: server.stackVersion,
       dbVersion: server.dbVersion,
       lsVersion: server.lsVersion,
       phpVersion: server.phpDefaultVersion,
-    });
+    }, m);
     const rozjazd = pozycje.some((p) => p.zgodne === false);
     const brak = pozycje.every((p) => p.zgodne === null);
     return {
@@ -727,7 +730,7 @@ export class NodeAuditService {
           : 'Wersje zgodne z manifestem floty.',
       records: pozycje.map((p) => ({ label: p.co, expected: p.oczekiwane, actual: p.faktyczne ?? 'brak raportu', ok: p.zgodne ?? undefined })),
       docAttestation: [
-        { vendor: 'Verris', statement: `Manifest stosu ${STOS_WEZLA.wersja}: DirectAdmin ${STOS_WEZLA.daKanal}, MariaDB ${STOS_WEZLA.mariadb}, PHP ${STOS_WEZLA.php1}, LiteSpeed ${STOS_WEZLA.litespeedLinia}.x.`, reference: 'apps/api/src/servers/stos-wezla.ts' },
+        { vendor: 'Verris', statement: `Manifest stosu ${m.wersja}: DirectAdmin ${m.daKanal}, MariaDB ${m.mariadb}, PHP ${m.php1}, LiteSpeed ${m.litespeedLinia}.x.`, reference: 'Admin → Wersje stosu floty' },
       ],
       repair: null,
     };

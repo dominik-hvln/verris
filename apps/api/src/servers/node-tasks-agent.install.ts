@@ -218,6 +218,7 @@ elif [ "$TASK_KIND" = "ONBOARD_LIVE" ]; then
 elif [ "$TASK_KIND" = "FLEET_UPDATE" ]; then
   RUN_BIN="/usr/local/bin/verris-node-update.sh"
   fetch_task_script "/agent/tasks/node-update/script" "$RUN_BIN"
+  payload_env "UPD" "{'wyrownaj':'WYROWNAJ'}"
 elif [ "$TASK_KIND" = "DB_TRANSFER" ]; then
   RUN_BIN="/usr/local/bin/verris-db-transfer.sh"
   fetch_task_script "/agent/tasks/db-transfer/script" "$RUN_BIN"

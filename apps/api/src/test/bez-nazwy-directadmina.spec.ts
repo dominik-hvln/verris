@@ -53,6 +53,7 @@ describe('White label — błędy API dla klienta bez nazwy DirectAdmina', () =>
     'apps/api/src/subscriptions/migration-discovery.service.ts',
     'apps/api/src/servers/servers.service.ts',
     'apps/api/src/servers/node-audit.service.ts',
+    'apps/api/src/servers/stos-wezla.service.ts', // PB-33 — tylko admin (wersje stosu floty)
   ]);
   const KOMUNIKAT = /new \w+Exception\(\s*([`'"])((?:(?!\1).)*?(DirectAdmin|\bDA\b)(?:(?!\1).)*)\1/gs;
 

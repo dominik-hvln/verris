@@ -373,3 +373,11 @@ Hetzner DNS (docs.hetzner.com/networking/dns/…), Route 53 (aws.amazon.com/rout
 - **Aktualizacje falami (PB-32):** „Aktualizuj flotę” = kanarek (węzeł z najmniejszą liczbą kont), potem po jednym; następny dopiero po udanym poprzednim, błąd zatrzymuje falę (`FLEET_UPDATE_STOPPED` w audycie), druga fala w trakcie — odmowa. Skrypt aktualizacji kończy się błędem, gdy krok się nie uda (wcześniej zawsze „ok”). `dnf-automatic` tylko pobiera — instalacja wyłącznie falą z panelu.
 - **Zostaje ręcznie:** instalacja systemu, klucze licencji, stały klucz DA dla control-plane z ograniczeniem IP, zatwierdzenie w panelu, LiteSpeed Per-Client Throttling w WebAdmin.
 - **Do sprawdzenia na D3:** zadanie ONBOARD_LIVE od początku do końca, `da api-url` na aktualnym DA, rclone na Storage Boxie przez egress, nftables razem z firewalld po restarcie.
+
+## Wersje stosu floty w panelu i cotygodniowa fala (PB-33, PB-35) — 2026-09-26
+
+- **Admin → Wersje stosu floty** (`/nodes/stack`, tylko admin): MariaDB (10.11 / 11.4 — tylko wersje opisane dla CloudLinux MySQL Governor), PHP domyślne (8.2–8.5 wg php.net; 8.2 tylko poprawki bezpieczeństwa do 31.12.2026), kanał DirectAdmina (stable/current), build DA (`DA_COMMIT`), linia LiteSpeed (6.3). Zapis w `platform_settings.stack.manifest`, każdy zapis podbija wersję manifestu (RRRR-MM-DD.N) i idzie do audytu (`STACK_MANIFEST_UPDATED`).
+- **Nowe węzły** instalują bieżący manifest od razu (bootstrap), **istniejące** dostają `/etc/verris-stack.env` co minutę; audyt węzła i tabela na stronie pokazują różnice.
+- **„Wyrównaj flotę”**: fala (kanarek → reszta po jednym) w trybie wyrównania — skrypt aktualizacji ustawia `php1_release` z manifestu przed `./build all d`; MariaDB idzie łańcuchem zadań `DB_UPGRADE` po jednym kroku (10.6 → 10.11 → 11.4), każdy z kopią bazy przed zmianą. Zwykła (cotygodniowa) fala wersji nie zmienia — tylko poprawki.
+- **Cotygodniowa fala (PB-35):** wtorek 4:00 czasu polskiego (`FalaTygodniowaScheduler`), nie dubluje trwającej; zatrzymanie fali → powiadomienie w panelu dla adminów.
+- **Testy:** `wersje-stosu.int-spec.ts` (4), `fala-aktualizacji.int-spec.ts` (3).

@@ -27,6 +27,12 @@ if [ -d "$CB" ]; then
   cd "$CB"
   log "CustomBuild: pobieram najnowsze wersje…"
   ./build update >/dev/null 2>&1 || blad "build update"
+  # PB-33 — „Wyrównaj flotę”: domyślne PHP z manifestu floty (/etc/verris-stack.env) przed przebudową.
+  if [ "\${UPD_WYROWNAJ:-}" = "1" ] && [ -r /etc/verris-stack.env ]; then
+    . /etc/verris-stack.env
+    log "Wyrównanie z manifestem \${VERRIS_STACK_VERSION:-?}: PHP \${VERRIS_PHP1_RELEASE:-?}"
+    ./build set php1_release "$VERRIS_PHP1_RELEASE" >/dev/null 2>&1 || blad "build set php1_release"
+  fi
   log "CustomBuild: aktualizuję cały stack (DA/LiteSpeed/PHP)…"
   ./build all d || blad "build all d"
   ./build rewrite_confs >/dev/null 2>&1 || true

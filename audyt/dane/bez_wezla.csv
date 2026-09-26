@@ -60,7 +60,7 @@ PB-29,OD 29.09,"test na węźle testowym (D3): bootstrap z manifestem, Governor 
 PB-30,OD 29.09,"test na węźle testowym (D3): bootstrap z manifestem, Governor 11.4, raport gotowości, zgodność floty"
 PB-31,OD 29.09,"przejście kreatora na węźle testowym (D3): bootstrap → zatwierdzenie → Onboard LIVE z panelu → zielony raport, bez SSH"
 PB-32,OD 29.09,fala aktualizacji na dwóch węzłach (kanarek + drugi)
-PB-33,KOD,"kod: wersje w bazie, strona w panelu, zadanie wyrównania"
+PB-33,OD 29.09,wyrównanie floty na węzłach testowych (PHP + krok MariaDB)
 PB-34,KOD,"makieta do akceptacji, potem port ekranów"
-PB-35,KOD,kod schedulera
+PB-35,PRODUKCJA,pierwszy wtorek po wdrożeniu: fala ruszyła sama o 4:00
 PB-36,KOD,"kod podpisu i weryfikacji, klucz SSH"

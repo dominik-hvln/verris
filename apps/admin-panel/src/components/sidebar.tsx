@@ -40,6 +40,7 @@ const adminNavItems: NavGroup[] = [
       { name: "Metryki biznesowe", href: "/metrics", icon: Gauge, perm: "DASHBOARD_VIEW" },
       { name: "Węzły & serwery", href: "/nodes", icon: Server, perm: "NODES_VIEW" },
       { name: "Pojemność floty", href: "/nodes/capacity", icon: Gauge, perm: "NODES_VIEW" },
+      { name: "Wersje stosu floty", href: "/nodes/stack", icon: Box, perm: "PLANS_MANAGE" },
       { name: "Plany produktowe", href: "/plans", icon: Box, perm: "PLANS_MANAGE" },
       { name: "VPS / Cloud", href: "/vps", icon: Server, perm: "PLANS_MANAGE" },
       { name: "Subskrypcje i usługi", href: "/subscriptions", icon: Activity, perm: "SUBSCRIPTIONS_MANAGE" },

@@ -51,6 +51,7 @@ import { buildOnboardBundle, loadOnboardLiveScript } from './onboard-live.script
 import { BackupOffsiteService } from './backup-offsite.service';
 import { IsBoolean, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 import { stosJakoEnv } from './stos-wezla';
+import { StosWezlaService } from './stos-wezla.service';
 
 class OnboardReportDto {
   @IsBoolean()
@@ -101,6 +102,7 @@ export class NodeTasksAgentController {
   constructor(
     private readonly tasks: NodeTasksService,
     private readonly backup: BackupOffsiteService,
+    private readonly stos: StosWezlaService,
   ) {}
 
   @Get('deploy-ssh-pubkey')
@@ -112,8 +114,8 @@ export class NodeTasksAgentController {
   /** PB-30 — manifest stosu floty; agent zadań zapisuje go co minutę do /etc/verris-stack.env. */
   @Get('stack-env')
   @Header('Content-Type', 'text/plain; charset=utf-8')
-  stackEnv() {
-    return stosJakoEnv();
+  async stackEnv() {
+    return stosJakoEnv(await this.stos.pobierz());
   }
 
   /** PB-29 — wynik node-live-readiness.sh; dopiero zielony raport wpuszcza węzeł do przydziału kont. */

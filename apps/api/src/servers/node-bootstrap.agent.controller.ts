@@ -5,6 +5,7 @@ import { NodeBootstrapService } from './node-bootstrap.service';
 import { BootstrapTokenService } from './bootstrap-token.service';
 import { buildNodeBootstrapScript } from './node-bootstrap.script';
 import { stosJakoEnv } from './stos-wezla';
+import { StosWezlaService } from './stos-wezla.service';
 import { AuditService } from '../common/audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -35,6 +36,7 @@ export class NodeBootstrapAgentController {
     private readonly config: ConfigService,
     private readonly audit: AuditService,
     private readonly prisma: PrismaService,
+    private readonly stos: StosWezlaService,
   ) {}
 
   private apiBaseUrl(): string {
@@ -62,7 +64,7 @@ export class NodeBootstrapAgentController {
       apiBaseUrl: this.apiBaseUrl(),
       bootstrapToken: token,
       serverId: found.server.id,
-      stackEnv: stosJakoEnv(),
+      stackEnv: stosJakoEnv(await this.stos.pobierz()),
       hostname: srv?.hostname ?? null,
     });
   }

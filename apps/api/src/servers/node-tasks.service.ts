@@ -1,4 +1,7 @@
 import { randomUUID } from 'crypto';
+import { NotificationsService } from '../notifications/notifications.service';
+import { StosWezlaService } from './stos-wezla.service';
+import { nastepnyKrokMariadb } from './stos-wezla';
 import { BadRequestException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
 import { ClientWebhooksService } from '../client-webhooks/client-webhooks.service';
 import { AccountStatus, NodeTaskKind, NodeTaskStatus, Prisma, ServerStatus } from '@verris/database';
@@ -50,6 +53,8 @@ export interface FalaAktualizacji {
   nr: number;
   razem: number;
   kolejka: string[];
+  /** PB-33 — fala „Wyrównaj flotę”: węzeł przyjmuje wersje z manifestu (PHP/LiteSpeed, MariaDB krok po kroku). */
+  wyrownaj?: boolean;
 }
 
 @Injectable()
@@ -61,6 +66,8 @@ export class NodeTasksService {
     private readonly audit: AuditService,
     private readonly directAdmin: DirectAdminService,
     @Optional() private readonly webhooks?: ClientWebhooksService,
+    @Optional() private readonly notifications?: NotificationsService,
+    @Optional() private readonly stos?: StosWezlaService,
   ) {}
 
   /**
@@ -146,7 +153,7 @@ export class NodeTasksService {
    * `set mariadb X.Y && build mariadb`. Operacja długa i wrażliwa — wymaga węzła
    * ACTIVE z agentem, nie pozwala na równoległe zlecenia i jest audytowana.
    */
-  async queueDbUpgrade(serverId: string, actorUserId: string, version: string) {
+  async queueDbUpgrade(serverId: string, actorUserId: string | null, version: string, lancuch = false) {
     const target = (version ?? '').trim();
     if (!(ALLOWED_DB_VERSIONS as readonly string[]).includes(target)) {
       throw new BadRequestException(
@@ -202,7 +209,7 @@ export class NodeTasksService {
         serverId,
         kind: NodeTaskKind.DB_UPGRADE,
         status: NodeTaskStatus.QUEUED,
-        payload: { version: target },
+        payload: { version: target, ...(lancuch ? { lancuch: '1' } : {}) },
         requestedById: actorUserId,
       },
     });
@@ -214,7 +221,7 @@ export class NodeTasksService {
 
     await this.audit.record({
       action: 'NODE_DB_UPGRADE_QUEUED',
-      actorUserId,
+      actorUserId: actorUserId ?? undefined,
       details: { serverId, taskId: task.id, from: server.dbVersion ?? null, to: target },
     });
 
@@ -282,7 +289,7 @@ export class NodeTasksService {
         serverId,
         kind: 'FLEET_UPDATE' as NodeTaskKind,
         status: NodeTaskStatus.QUEUED,
-        payload: (fala ? { fala } : {}) as unknown as Prisma.InputJsonValue,
+        payload: (fala ? { fala, ...(fala.wyrownaj ? { wyrownaj: '1' } : {}) } : {}) as unknown as Prisma.InputJsonValue,
         requestedById: actorUserId,
       },
     });
@@ -299,7 +306,10 @@ export class NodeTasksService {
    * agentem. Rolling z natury: agent każdego węzła leasuje jedno zadanie naraz,
    * a admin może zawczasu zdrainować węzły. Zwraca liczbę zleconych.
    */
-  async queueFleetUpdate(actorUserId: string | null): Promise<{ queued: number; skipped: number; kanarek: string | null }> {
+  async queueFleetUpdate(
+    actorUserId: string | null,
+    opts: { wyrownaj?: boolean } = {},
+  ): Promise<{ queued: number; skipped: number; kanarek: string | null }> {
     // PB-32 — fala: najpierw węzeł kanarkowy (najmniej kont = najmniejsze ryzyko), potem reszta
     // po jednym; każdy następny rusza dopiero po udanej aktualizacji poprzedniego, błąd zatrzymuje falę.
     const trwa = await this.prisma.nodeTask.findFirst({
@@ -317,14 +327,39 @@ export class NodeTasksService {
     if (zAgentem.length === 0) return { queued: 0, skipped, kanarek: null };
 
     const [kanarek, ...reszta] = zAgentem.map((s) => s.id);
-    const fala: FalaAktualizacji = { id: randomUUID(), nr: 1, razem: zAgentem.length, kolejka: reszta };
+    const fala: FalaAktualizacji = { id: randomUUID(), nr: 1, razem: zAgentem.length, kolejka: reszta, ...(opts.wyrownaj ? { wyrownaj: true } : {}) };
     await this.queueNodeUpdate(kanarek, actorUserId, fala);
     await this.audit.record({
       action: 'FLEET_UPDATE_QUEUED',
       actorUserId: actorUserId ?? undefined,
-      details: { fala: fala.id, kanarek, kolejnosc: [kanarek, ...reszta], skipped },
+      details: { fala: fala.id, kanarek, kolejnosc: [kanarek, ...reszta], skipped, wyrownaj: !!opts.wyrownaj },
     });
     return { queued: 1, skipped, kanarek };
+  }
+
+  private async powiadomAdminow(title: string, body: string, link: string) {
+    if (!this.notifications) return;
+    const admini = await this.prisma.user.findMany({ where: { role: 'ADMIN' }, select: { id: true } });
+    for (const a of admini) {
+      await this.notifications.create({ userId: a.id, category: 'SYSTEM', severity: 'warning', title, body, link });
+    }
+  }
+
+  /**
+   * PB-33 — MariaDB do wersji z manifestu, po jednym kroku (wymóg CloudLinux Governor). Każdy krok to
+   * zadanie DB_UPGRADE z kopią bazy przed zmianą; po udanym kroku zlecany jest następny (łańcuch).
+   */
+  private async krokMariadb(serverId: string) {
+    if (!this.stos) return;
+    const [m, srv] = await Promise.all([
+      this.stos.pobierz(),
+      this.prisma.server.findUnique({ where: { id: serverId }, select: { dbVersion: true } }),
+    ]);
+    const krok = nastepnyKrokMariadb(srv?.dbVersion, m.mariadb);
+    if (!krok) return;
+    await this.queueDbUpgrade(serverId, null, krok, true).catch(async (e: Error) => {
+      await this.audit.record({ action: 'STACK_ALIGN_DB_SKIPPED', details: { serverId, krok, powod: e.message } });
+    });
   }
 
   /** PB-32 — po udanej aktualizacji węzła z fali zlecamy następny; po błędzie fala staje. */
@@ -336,8 +371,14 @@ export class NodeTasksService {
         action: 'FLEET_UPDATE_STOPPED',
         details: { fala: fala.id, serverId: task.serverId, nr: fala.nr, razem: fala.razem, pozostale: fala.kolejka },
       });
+      await this.powiadomAdminow(
+        'Fala aktualizacji zatrzymana',
+        `Aktualizacja węzła ${fala.nr}/${fala.razem} nie powiodła się — pozostałe ${fala.kolejka.length} węzłów czeka. Sprawdź log zadania i uruchom falę ponownie po naprawie.`,
+        `/nodes/${task.serverId}`,
+      );
       return;
     }
+    if (fala.wyrownaj) await this.krokMariadb(task.serverId);
     if (/VERRIS_UPDATE_RESULT=needs-reboot/.test(log ?? '')) {
       await this.audit.record({ action: 'FLEET_UPDATE_NEEDS_REBOOT', details: { fala: fala.id, serverId: task.serverId } });
     }
@@ -601,6 +642,10 @@ export class NodeTasksService {
             }`,
           );
         });
+    }
+    // PB-33 — łańcuch „Wyrównaj flotę”: po udanym kroku MariaDB od razu następny (wersja już zapisana wyżej).
+    if (task.kind === NodeTaskKind.DB_UPGRADE && (task.payload as { lancuch?: string } | null)?.lancuch === '1') {
+      await this.krokMariadb(opts.serverId);
     }
 
     // B5 — a completed STAGING_SYNC(TO_STAGING) confirms the staging exists
