@@ -537,6 +537,13 @@ export class UsersService {
       }
     }
 
+    // Kod pocztowy trafia na faktury (i do KSeF) — dla Polski tylko format NN-NNN.
+    // Na produkcji przyjmował „1” (sprawdzone 26.09).
+    const kraj = dto.country ?? user.country ?? 'PL';
+    if (kraj === 'PL' && dto.postalCode?.trim() && !/^\d{2}-\d{3}$/.test(dto.postalCode.trim())) {
+      throw new BadRequestException('Kod pocztowy: format 00-000.');
+    }
+
     let sidebarQuickLinks: string[] | undefined;
     if (dto.sidebarQuickLinks !== undefined) {
       const unique = [...new Set(dto.sidebarQuickLinks)];

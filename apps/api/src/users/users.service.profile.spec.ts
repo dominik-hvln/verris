@@ -122,4 +122,15 @@ describe('UsersService.getProfile (IAM)', () => {
     expect(res.panelViewMode).toBe('simple');
     expect(res.panelTheme).toBe('light');
   });
+
+  it('dane do faktury: polski kod pocztowy tylko w formacie 00-000 (produkcja przyjmowała „1”)', async () => {
+    const update = vi.fn().mockResolvedValue({ id: 'u1', sidebarQuickLinks: [] });
+    (prisma.user as unknown as { update: Mock }).update = update;
+    prisma.user.findUnique.mockResolvedValue({ id: 'u1', customerOwnerId: null, country: 'PL' });
+    await expect(service.updateProfile('u1', { postalCode: '1' })).rejects.toThrow('00-000');
+    await expect(service.updateProfile('u1', { postalCode: '62-020' })).resolves.toBeDefined();
+    // Inny kraj — inny format, nie blokujemy.
+    await expect(service.updateProfile('u1', { country: 'DE', postalCode: '10115' })).resolves.toBeDefined();
+    expect(update).toHaveBeenCalledTimes(2);
+  });
 });

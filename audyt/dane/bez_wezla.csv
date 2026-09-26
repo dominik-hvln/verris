@@ -1,5 +1,4 @@
 id,rodzaj,co_zostalo
-PROD-02,PRODUKCJA,po uzupełnieniu danych do faktury krok „Uzupełnij dane do faktury” ma się odhaczyć (stan bez danych sprawdzony)
 NODE-01,PRODUKCJA,kreator na produkcji: krok Instalacja z bootstrapem v2 (pełne przejście — na pierwszym węźle)
 X-04,KOD,testy integracyjne kolejnych ścieżek zapisu na prawdziwym PostgreSQL
 P-12,WŁAŚCICIEL,"przejście VoiceOverem głównych ścieżek (logowanie, zakup, usługa) — kontrola ręczna, skan automatyczny czysty"
@@ -15,7 +14,7 @@ PB-20,PRODUKCJA,"zaproszenie deweloperskiego konta testowego z wybraną usługą
 O-03,PRODUKCJA,działanie subkonta widoczne u właściciela (IAM → Audyt) na produkcji
 Z-10,PRODUKCJA,odmowa subkonta widoczna w Audycie IAM na produkcji
 L-10,PRODUKCJA,zdarzenie rozliczeń (invoice.issued) przy pierwszej fakturze — ping i podpis sprawdzone 26.09
-N-10,PRODUKCJA,"przełączenie preferencji w panelu i wpis SUPPRESSED w EmailLog — produkcja, nie węzeł"
+N-10,PRODUKCJA,wpis SUPPRESSED przy pierwszym alercie limitu (przełącznik zapisany 26.09; alert wymaga telemetrii węzła)
 O-06,PRODUKCJA,konto klienta założone przez resellera testowego na produkcji
 Q-09,PRODUKCJA,przejście głównych ścieżek na prawdziwym telefonie (produkcja)
 PB-11,PRODUKCJA,alert testowy dociera e-mailem
@@ -49,7 +48,7 @@ SEC-03,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) —
 SEC-04,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł"
 SEC-06,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł"
 X-41,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł"
-PB-27,PRODUKCJA,"na produkcji: usługa z własną ceną dla konta testowego, zmiana warunków, odnowienie z tą ceną"
+PB-27,PRODUKCJA,"odnowienie z ceną indywidualną 22.10.2026 (mailtest-verris.pl, 6 zł) — reszta sprawdzona 26.09"
 PB-28,PRODUKCJA,"na produkcji: konto testowe poza Verris — brak obciążeń, przedłużenie okresu, panel bez portfela"
 PB-29,OD 29.09,"test na węźle testowym (D3): bootstrap z manifestem, Governor 11.4, raport gotowości, zgodność floty"
 PB-30,OD 29.09,"test na węźle testowym (D3): bootstrap z manifestem, Governor 11.4, raport gotowości, zgodność floty"
