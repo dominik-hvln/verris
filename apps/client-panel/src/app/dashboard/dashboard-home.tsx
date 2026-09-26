@@ -5,7 +5,7 @@
  * Tylko dane ze snapshotu; każdy błąd zapytania czytelnie jako „—" + baner (X-39).
  */
 
-import { canAccessDashboardRoute } from '@/lib/client-nav-access';
+import { canAccessDashboardRoute, canShowWalletBalance } from '@/lib/client-nav-access';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { AlertTriangle, ArrowRight, ChevronRight, Plus } from 'lucide-react';
@@ -84,9 +84,13 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
   const ekoWidoczny = useModul('modul.eco');
   const firstName = snapshot.profile?.firstName || '';
   // Subkonto widzi tylko akcje, na które ma uprawnienia (API i tak odmówi).
-  const moze = (href: string) =>
-    !snapshot.profile?.isSubaccount ||
-    canAccessDashboardRoute(href, { isSubaccount: true, customerPermissions: snapshot.profile.customerPermissions });
+  // PB-28: przy rozliczeniu poza Verris bez portfela i zamówień — nowe usługi zamawia u opiekuna.
+  const navCtx = {
+    isSubaccount: Boolean(snapshot.profile?.isSubaccount),
+    customerPermissions: snapshot.profile?.customerPermissions,
+    billingOutside: Boolean(snapshot.profile?.billingOutside),
+  };
+  const moze = (href: string) => canAccessDashboardRoute(href, navCtx);
   const services = snapshot.services.filter((s) => s.status !== 'CANCELED' && s.status !== 'EXPIRED');
   const domains = snapshot.domains;
   // Spis wszystkiego, co nie wróciło — kolejność jak kafelki (X-39).
@@ -132,9 +136,9 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
     .sort((a, b) => (b.r.severity === 'critical' ? 1 : 0) - (a.r.severity === 'critical' ? 1 : 0));
   const next = hints[0];
 
-  const bez = snapshot.bezDostepu ?? {};
+  const bez = { ...snapshot.bezDostepu, ...(canShowWalletBalance(navCtx) ? {} : { wallet: true as const }) };
   const walletFoot = bez.wallet ? (
-    <span>brak uprawnień</span>
+    <span>{navCtx.billingOutside ? 'rozliczenie u opiekuna' : 'brak uprawnień'}</span>
   ) : (
     <>
       <span data-tip={CREDIT_RATE_INFO}>{snapshot.errors.wallet ? 'historia chwilowo niedostępna' : 'wydatki z 12 miesięcy'}</span>
@@ -164,7 +168,7 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
             {snapshot.errors.services ? (
               <span>Stan usług chwilowo nieznany</span>
             ) : services.length === 0 ? (
-              <span>{moze('/dashboard/services/new') ? 'Nie masz jeszcze usług — zacznij od nowej.' : 'Brak usług do wyświetlenia.'}</span>
+              <span>{moze('/dashboard/services/new') ? 'Nie masz jeszcze usług — zacznij od nowej.' : navCtx.billingOutside ? 'Nową usługę zamówisz u swojego opiekuna.' : 'Brak usług do wyświetlenia.'}</span>
             ) : (
               <>
                 {ok > 0 ? <StatusPill tone="data">{ok === 1 ? '1 usługa działa' : `${ok} usługi działają`}</StatusPill> : null}
@@ -416,7 +420,7 @@ export function DashboardHome({ snapshot, aside }: { snapshot: DashboardSnapshot
             </div>
           </section>
 
-          {snapshot.profile?.isSubaccount ? null : aside}
+          {snapshot.profile?.isSubaccount || (navCtx.billingOutside && services.length === 0) ? null : aside}
 
           <Box title="Szybkie akcje">
             <div className="p-4 pt-3">

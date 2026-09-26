@@ -454,7 +454,8 @@ function DashboardLayoutInner({
       <ImpersonationBanner />
       <IncidentBanner />
       <NoticesBanner />
-      <ReConsentModal />
+      {/* Zgody składa wyłącznie klient — podczas sesji wsparcia (impersonacji) modal się nie pokazuje. */}
+      {userLoading || impersonating ? null : <ReConsentModal />}
       <PlatformConfigLoader />
       <div className="relative flex min-h-screen w-full max-w-full flex-col lg:flex-row lg:items-start">
 

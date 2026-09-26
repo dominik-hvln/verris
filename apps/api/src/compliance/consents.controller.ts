@@ -1,4 +1,5 @@
 import {
+  ForbiddenException,
   Body,
   Controller,
   Get,
@@ -57,6 +58,17 @@ class UpdateMarketingPrefsDto {
  * Public endpoint (no auth, served from same controller for proximity):
  *  - `GET    /unsubscribe?token=...`       — RFC 8058 one-click unsubscribe
  */
+/**
+ * Zgoda musi pochodzić od klienta (RODO art. 7 ust. 1 — administrator ma ją wykazać). Operator
+ * w sesji wsparcia (impersonacja) nie akceptuje dokumentów ani nie zmienia zgód marketingowych
+ * w imieniu klienta — taki wpis byłby fałszywym dowodem zgody.
+ */
+export function tylkoKlient(user: { impersonatedBy?: string }): void {
+  if (user.impersonatedBy) {
+    throw new ForbiddenException('Zgody akceptuje wyłącznie klient — nie w sesji wsparcia.');
+  }
+}
+
 @Controller()
 export class ConsentsController {
   constructor(
@@ -83,7 +95,8 @@ export class ConsentsController {
   @UseGuards(JwtAuthGuard)
   @Post('me/consent/accept-current')
   @HttpCode(HttpStatus.OK)
-  async acceptCurrent(@CurrentUser() user: { userId: string }, @Req() req: Request) {
+  async acceptCurrent(@CurrentUser() user: { userId: string; impersonatedBy?: string }, @Req() req: Request) {
+    tylkoKlient(user);
     const ctx = extractRequestContext(req);
     await this.consents.acceptCurrent(user.userId, ctx);
     return { ok: true };
@@ -92,7 +105,8 @@ export class ConsentsController {
   @UseGuards(JwtAuthGuard)
   @Post('me/consent/accept-dpa')
   @HttpCode(HttpStatus.OK)
-  async acceptDpa(@CurrentUser() user: { userId: string }, @Req() req: Request) {
+  async acceptDpa(@CurrentUser() user: { userId: string; impersonatedBy?: string }, @Req() req: Request) {
+    tylkoKlient(user);
     const ctx = extractRequestContext(req);
     return this.consents.acceptDpa(user.userId, ctx);
   }
@@ -106,10 +120,11 @@ export class ConsentsController {
   @UseGuards(JwtAuthGuard)
   @Patch('me/marketing-preferences')
   updatePrefs(
-    @CurrentUser() user: { userId: string },
+    @CurrentUser() user: { userId: string; impersonatedBy?: string },
     @Body() dto: UpdateMarketingPrefsDto,
     @Req() req: Request,
   ) {
+    tylkoKlient(user);
     return this.marketingPrefs.update(user.userId, dto, extractRequestContext(req));
   }
 

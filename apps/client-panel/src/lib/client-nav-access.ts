@@ -18,7 +18,7 @@ const W_ZAKRESIE = [
 ];
 
 /** PB-28 — przy rozliczeniu poza Verris klient nie płaci w panelu i nie zamawia sam nowych usług. */
-const POZA_VERRIS = ['/dashboard/billing', '/dashboard/services/new', '/dashboard/calculator'];
+const POZA_VERRIS = ['/dashboard/billing', '/dashboard/services/new', '/dashboard/domains/buy', '/dashboard/calculator'];
 
 function hasAny(permissions: Set<string>, keys: string[]): boolean {
   return keys.some((key) => permissions.has(key));

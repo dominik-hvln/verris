@@ -93,6 +93,8 @@ describe('PB-28 — rozliczenie poza Verris', () => {
     expect(canAccessDashboardRoute('/dashboard/billing', ctx)).toBe(false);
     expect(canAccessDashboardRoute('/dashboard/billing/invoices', ctx)).toBe(false);
     expect(canAccessDashboardRoute('/dashboard/services/new', ctx)).toBe(false);
+    expect(canAccessDashboardRoute('/dashboard/domains/buy', ctx)).toBe(false);
+    expect(canAccessDashboardRoute('/dashboard/domains', ctx)).toBe(true);
     expect(canAccessDashboardRoute('/dashboard/services', ctx)).toBe(true);
     expect(canAccessDashboardRoute('/dashboard/autoscaling', ctx)).toBe(true);
     expect(canShowWalletBalance(ctx)).toBe(false);

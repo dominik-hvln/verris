@@ -27,6 +27,8 @@ export interface UserProfile {
   isSubaccount?: boolean;
   customerPermissions?: string[] | null;
   subaccountLabel?: string | null;
+  /** PB-28 — rozliczenie poza Verris: bez portfela i zamówień z panelu. */
+  billingOutside?: boolean;
 }
 
 /**

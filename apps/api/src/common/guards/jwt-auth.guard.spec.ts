@@ -46,3 +46,13 @@ describe('JwtAuthGuard — uprawnienia subkonta po zalogowaniu', () => {
     expect(await guard().canActivate(c)).toBe(false);
   });
 });
+
+describe('kontrolery logują tylko przez JwtAuthGuard', () => {
+  it("nikt nie używa gołego AuthGuard('jwt') — ominąłby uprawnienia subkonta", async () => {
+    const { readdirSync, readFileSync } = await import('node:fs');
+    const pliki = readdirSync(new URL('../../', import.meta.url), { recursive: true, encoding: 'utf8' })
+      .filter((p) => p.endsWith('.ts') && !p.endsWith('.spec.ts') && !p.endsWith('jwt-auth.guard.ts'));
+    const winni = pliki.filter((p) => /AuthGuard\(\s*['"]jwt['"]\s*\)/.test(readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8')));
+    expect(winni).toEqual([]);
+  });
+});
