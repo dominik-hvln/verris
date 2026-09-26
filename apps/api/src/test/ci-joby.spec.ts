@@ -78,7 +78,8 @@ function joby(): Job[] {
 /** Tylko faktyczne wywołania, nie wzmianki w tekście. */
 const URUCHAMIA_JEST =
   /jest\s+--config|npx\s+jest\b|pnpm\s+--filter\s+\S+\s+test\b|pnpm\s+test\b|turbo\s+run\s+test\b/;
-const GENERUJE_KLIENTA = /db:generate|prisma generate/;
+// `build` pakietu @verris/database to `prisma generate && tsc` — też generuje klienta.
+const GENERUJE_KLIENTA = /db:generate|prisma generate|@verris\/database build/;
 const BUDUJE_BIBLIOTEKI = /@verris\/database.*run build|turbo run build|pnpm build/;
 const POTRZEBUJE_KLIENTA = new RegExp(`db:seed|prisma db seed|${URUCHAMIA_JEST.source}`);
 
@@ -126,6 +127,15 @@ describe('X-17 — joby CI budują to, czego ich kroki potrzebują', () => {
           '    run: pnpm --filter @verris/database db:generate',
       );
     }
+    expect(winni).toEqual([]);
+  });
+
+  it('job z seedem buduje @verris/database (seed importuje dist/index.js od PB-39)', () => {
+    // CI #268: sam `db:generate` nie wystarczał — seed padał na ERR_MODULE_NOT_FOUND.
+    const winni = joby()
+      .filter((j) => /db:seed|prisma db seed/.test(j.tresc))
+      .filter((j) => !/@verris\/database build/.test(j.tresc))
+      .map((j) => j.nazwa);
     expect(winni).toEqual([]);
   });
 
