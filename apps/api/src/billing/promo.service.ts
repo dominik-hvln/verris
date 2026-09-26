@@ -71,31 +71,50 @@ export class PromoService {
       throw new BadRequestException('Niepoprawny kod promocyjny.');
     }
 
-    const credit = await this.ledger.credit({
-      userId,
-      amount,
-      type: WalletTxType.PROMO_CREDIT,
-      description: promo.description ?? `Promocja „${promo.code}”`,
-      idempotencyKey: `promo-redeem:${promo.id}:${userId}`,
-      paymentProvider: 'PROMO',
-      paymentRef: promo.id,
-      metadata: { promoCodeId: promo.id },
-    });
-
-    await this.prisma.promoRedemption.create({
-      data: {
-        promoCodeId: promo.id,
-        userId,
-        amountCredited: amount,
-        currency: promo.currency,
-        walletTxId: credit.id,
+    // X-04 — miejsce w limicie zajmujemy atomowo, zanim cokolwiek trafi do portfela. Wcześniej limit
+    // był sprawdzany odczytem, a licznik podbijany na końcu: cztery równoczesne próby kodu z limitem 1
+    // dawały cztery kredyty. UPDATE z warunkiem Postgres sprawdza ponownie po zdjęciu blokady wiersza.
+    const zajete = await this.prisma.promoCode.updateMany({
+      where: {
+        id: promo.id,
+        ...(promo.maxRedemptions != null ? { redemptionCount: { lt: promo.maxRedemptions } } : {}),
       },
-    });
-
-    await this.prisma.promoCode.update({
-      where: { id: promo.id },
       data: { redemptionCount: { increment: 1 } },
     });
+    if (zajete.count === 0) {
+      throw new BadRequestException('Ten kod został w pełni wykorzystany.');
+    }
+
+    let credit: Awaited<ReturnType<WalletLedgerService['credit']>>;
+    try {
+      // Klucz idempotencji: równoczesne żądania tego samego klienta dają jeden wpis w księdze.
+      credit = await this.ledger.credit({
+        userId,
+        amount,
+        type: WalletTxType.PROMO_CREDIT,
+        description: promo.description ?? `Promocja „${promo.code}”`,
+        idempotencyKey: `promo-redeem:${promo.id}:${userId}`,
+        paymentProvider: 'PROMO',
+        paymentRef: promo.id,
+        metadata: { promoCodeId: promo.id },
+      });
+      await this.prisma.promoRedemption.create({
+        data: {
+          promoCodeId: promo.id,
+          userId,
+          amountCredited: amount,
+          currency: promo.currency,
+          walletTxId: credit.id,
+        },
+      });
+    } catch (err) {
+      // Oddajemy miejsce w limicie — ta próba nic nie zrealizowała.
+      await this.prisma.promoCode.update({ where: { id: promo.id }, data: { redemptionCount: { decrement: 1 } } });
+      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+        throw new BadRequestException('Już zrealizowałeś ten kod.');
+      }
+      throw err;
+    }
 
     await this.audit.record({
       action: 'PROMO_CODE_REDEEMED',

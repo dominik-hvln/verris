@@ -44,6 +44,8 @@ const TABELE = [
   'Subscription',
   'Server',
   'Plan',
+  // X-04 — kody mają unikalną nazwę; bez czyszczenia drugi przebieg testów kodów by się wywracał.
+  'PromoCode',
   'User',
 ];
 
