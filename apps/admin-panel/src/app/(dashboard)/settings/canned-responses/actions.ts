@@ -7,6 +7,9 @@ export interface CannedResponseRow {
   title: string;
   content: string;
   topic: string | null;
+  shortcut?: string | null;
+  /** PB-37 — sytuacja w rozmowie (blok „Podpowiedzi” w obsłudze) */
+  category?: string | null;
   isActive: boolean;
 }
 
@@ -14,6 +17,9 @@ export interface CannedInput {
   title: string;
   content: string;
   topic?: string;
+  /** null czyści (edycja) */
+  shortcut?: string | null;
+  category?: string | null;
   isActive?: boolean;
 }
 

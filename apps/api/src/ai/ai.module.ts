@@ -13,6 +13,6 @@ import { KnowledgeBaseService } from './knowledge-base.service';
   imports: [ConfigModule, PrismaModule],
   controllers: [AiController, AiKnowledgeAdminController, AiUstawieniaAdminController],
   providers: [AiProviderService, AiService, AiChatService, KnowledgeBaseService],
-  exports: [AiChatService, KnowledgeBaseService],
+  exports: [AiChatService, KnowledgeBaseService, AiService],
 })
 export class AiModule {}

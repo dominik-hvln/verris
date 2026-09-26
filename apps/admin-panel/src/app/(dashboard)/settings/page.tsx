@@ -25,6 +25,9 @@ export default function AdminSettingsPage() {
         <a href="/settings/canned-responses" className="text-emerald-400 hover:text-emerald-300 underline">
           Szablony odpowiedzi (BOK)
         </a>
+        <a href="/settings/support" className="text-emerald-400 hover:text-emerald-300 underline">
+          Opieka nad zgłoszeniami (auto-wiadomości, oceny)
+        </a>
         <a href="/settings/platform" className="text-emerald-400 hover:text-emerald-300 underline">
           Ustawienia platformy (EKO, sesje)
         </a>

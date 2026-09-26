@@ -12,7 +12,7 @@ export interface SelectOption {
 const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ');
 
 /** Wygląd pola jak pozostałe inputy panelu (gdy wywołujący nie poda własnych klas). */
-const DOMYSLNE_POLE = 'rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white';
+const DOMYSLNE_POLE = 'rounded-lg border border-line-strong bg-card px-3 py-2 text-sm text-foreground';
 
 /**
  * Niesystemowy select — lista renderowana w DOM (nie natywne <option>), spójna z ciemnym motywem.
@@ -206,13 +206,13 @@ export function Select({
               {o.label}
             </span>
           ))}
-          <span className={cx('col-start-1 row-start-1 truncate', !selected && 'text-neutral-500')}>
+          <span className={cx('col-start-1 row-start-1 truncate', !selected && 'text-muted-foreground')}>
             {selected ? selected.label : placeholder}
           </span>
         </span>
         <ChevronDown
           aria-hidden
-          className={cx('h-4 w-4 shrink-0 text-neutral-400 transition-transform', open && 'rotate-180')}
+          className={cx('h-4 w-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-180')}
         />
       </button>
 
@@ -227,8 +227,8 @@ export function Select({
           tabIndex={-1}
           onClick={(e) => e.preventDefault()}
           className={cx(
-            'absolute left-0 top-full z-50 mt-1 max-h-64 min-w-full overflow-y-auto rounded-lg border border-white/10',
-            'bg-neutral-950 p-1 text-sm normal-case tracking-normal shadow-2xl shadow-black/50',
+            'absolute left-0 top-full z-50 mt-1 max-h-64 min-w-full overflow-y-auto rounded-lg border border-line',
+            'bg-popover p-1 text-sm font-normal normal-case tracking-normal text-popover-foreground shadow-xl',
             'animate-in fade-in-0 zoom-in-95 duration-100',
           )}
         >
@@ -249,18 +249,18 @@ export function Select({
                 className={cx(
                   'flex items-center justify-between gap-2 whitespace-nowrap rounded-md px-2.5 py-1.5',
                   o.disabled
-                    ? 'cursor-not-allowed text-neutral-600'
+                    ? 'cursor-not-allowed text-muted-foreground opacity-60'
                     : isActive
-                      ? 'cursor-pointer bg-cyan-400/15 text-white'
-                      : 'cursor-pointer text-neutral-200',
+                      ? 'cursor-pointer bg-data-soft text-foreground'
+                      : 'cursor-pointer text-foreground',
                 )}
               >
                 <span>{o.label}</span>
-                {isSel ? <Check aria-hidden className="h-3.5 w-3.5 shrink-0 text-cyan-400" /> : <span className="w-3.5 shrink-0" />}
+                {isSel ? <Check aria-hidden className="h-3.5 w-3.5 shrink-0 text-data-hi" /> : <span className="w-3.5 shrink-0" />}
               </li>
             );
           })}
-          {options.length === 0 ? <li className="px-2.5 py-1.5 text-neutral-500">Brak opcji</li> : null}
+          {options.length === 0 ? <li className="px-2.5 py-1.5 text-muted-foreground">Brak opcji</li> : null}
         </ul>
       ) : null}
     </div>

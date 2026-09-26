@@ -64,3 +64,4 @@ PB-33,OD 29.09,wyrównanie floty na węzłach testowych (PHP + krok MariaDB)
 PB-34,KOD,"makieta do akceptacji, potem port ekranów"
 PB-35,PRODUKCJA,pierwszy wtorek po wdrożeniu: fala ruszyła sama o 4:00
 PB-36,KOD,"kod podpisu i weryfikacji, klucz SSH"
+PB-37,KOD,"auto-wiadomości, podpowiedzi, oceny"

@@ -2031,6 +2031,15 @@ model Ticket {
   slaResponseBreachAlertedAt DateTime? // kiedy zaalarmowano staff o naruszeniu SLA 1. odpowiedzi
   autoClosedAt               DateTime? // kiedy ticket zamknięto automatycznie
 
+  // PB-37 — opieka nad zgłoszeniem: klient zawsze wie, co się dzieje; agent ma podpowiedzi.
+  staffReadAt      DateTime? // ostatnie otwarcie przez przypisanego opiekuna (klient widzi „przeczytane”)
+  progressNoticeAt DateTime? // ostatnie „Wciąż nad tym pracujemy” (najwyżej raz na dobę)
+  agentRating      Int?      // ocena opiekuna 1–5 (csatRating = ocena supportu ogólnie)
+  csatResolved     Boolean?  // „czy problem został rozwiązany?”
+  csatAgentId      String?   // kogo oceniono (opiekun w chwili oceny)
+  aiDraft          String?   @db.Text // szkic asystenta (JSON: szkic, checklista) — tylko obsługa
+  aiDraftAt        DateTime?
+
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -2038,6 +2047,7 @@ model Ticket {
   @@index([slaResolveDueAt])
   @@index([riskFlag])
   @@index([status, waitingSince])
+  @@index([csatAgentId, csatAt])
 }
 
 model TicketReply {
@@ -2049,6 +2059,8 @@ model TicketReply {
   ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 
   authorId  String
+  /// PB-37 — automatyczna wiadomość (POTWIERDZENIE, ZAJMUJE_SIE, WCIAZ_PRACUJEMY, PODZIEKOWANIE); null = napisana przez człowieka
+  automatic String?
 
   attachments TicketAttachment[]
 
@@ -2111,6 +2123,7 @@ model CannedResponse {
   topic       String?  // HOSTING, DOMAIN, EMAIL, DNS, BILLING, SSL, OTHER
   // SUP-V2 — krótki kod szybkiego wstawiania (np. "reset-hasla"), opcjonalny.
   shortcut    String?
+  category    String?  // PB-37 — POWITANIE, DIAGNOZA, OPOZNIENIE, ZALECENIA, ZAMKNIECIE
   isActive    Boolean  @default(true)
   createdById String?
 

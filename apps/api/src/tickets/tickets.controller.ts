@@ -32,6 +32,7 @@ import {
 } from './tickets.dto';
 import { CannedResponseService } from './canned-response.service';
 import { TicketContextService } from './ticket-context.service';
+import { OpiekaZgloszenService } from './opieka-zgloszen.service';
 import { renderTemplate } from './ticket-context';
 import { Delete, HttpCode } from '@nestjs/common';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -55,6 +56,7 @@ export class TicketsController {
     private readonly ticketsService: TicketsService,
     private readonly canned: CannedResponseService,
     private readonly context: TicketContextService,
+    private readonly opieka: OpiekaZgloszenService,
   ) {}
 
   // SUP-2 — szablony odpowiedzi (staff: lista; admin: CRUD).
@@ -149,8 +151,8 @@ export class TicketsController {
   @UseGuards(RolesGuard, StaffPermissionsGuard)
   @Roles('STAFF', 'ADMIN')
   @StaffPerm('TICKETS_VIEW')
-  async adminFindOne(@Param('id') id: string): Promise<unknown> {
-    return this.ticketsService.adminFindOne(id);
+  async adminFindOne(@Param('id') id: string, @CurrentUser() user: { userId: string }): Promise<unknown> {
+    return this.ticketsService.adminFindOne(id, user.userId);
   }
 
   @Patch('admin/:id')
@@ -226,10 +228,10 @@ export class TicketsController {
   async adminAddReplyWithFiles(
     @Param('id') id: string,
     @CurrentUser() user: { userId: string; role: string },
-    @Body() { message }: AddTicketReplyDto,
+    @Body() { message, czekaj }: AddTicketReplyDto,
     @UploadedFiles() files?: Express.Multer.File[],
   ) {
-    return this.ticketsService.staffReplyWithFiles(id, user.userId, message, files);
+    return this.ticketsService.staffReplyWithFiles(id, user.userId, message, files, czekaj);
   }
 
   @Get()
@@ -298,6 +300,16 @@ export class TicketsController {
     @CurrentUser() user: { userId: string },
     @Body() dto: SubmitCsatDto,
   ) {
-    return this.ticketsService.submitCsat(id, user.userId, dto.rating, dto.comment);
+    return this.ticketsService.submitCsat(id, user.userId, dto.rating, dto.comment, {
+      agentRating: dto.agentRating,
+      resolved: dto.resolved,
+    });
+  }
+
+  // PB-37 — „Otwórz ponownie” (do 7 dni od zamknięcia).
+  @Post(':id/reopen')
+  @HttpCode(200)
+  reopen(@Param('id') id: string, @CurrentUser() user: { userId: string }) {
+    return this.opieka.otworzPonownie(id, user.userId);
   }
 }

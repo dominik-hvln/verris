@@ -69,20 +69,20 @@ export function StaffNotificationBell() {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="relative rounded-lg p-2 text-neutral-300 hover:bg-white/10 hover:text-white"
+        className="relative flex h-[38px] w-[38px] items-center justify-center rounded-[9px] border border-line-strong bg-card text-foreground hover:border-primary"
         aria-label="Powiadomienia"
         title="Powiadomienia"
       >
-        <Bell className="h-5 w-5" />
+        <Bell className="h-[17px] w-[17px]" />
         {unread > 0 ? (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white">
+          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-crit px-1 text-[10px] font-bold text-verris-paper">
             {unread > 9 ? "9+" : unread}
           </span>
         ) : null}
       </button>
 
       {open ? (
-        <div className="absolute left-0 top-full z-[80] mt-2 w-80 overflow-hidden rounded-xl border border-white/10 bg-[#0b0f14] shadow-2xl">
+        <div className="absolute right-0 top-full z-[80] mt-2 w-[min(20rem,calc(100vw-2rem))] overflow-hidden rounded-xl border border-line bg-popover shadow-2xl">
           <div className="flex items-center justify-between border-b border-white/10 px-4 py-2.5">
             <span className="text-xs font-semibold text-white">Powiadomienia</span>
             {unread > 0 ? (

@@ -7,6 +7,7 @@ export interface CannedResponseInput {
   content: string;
   topic?: string | null;
   shortcut?: string | null;
+  category?: string | null;
   isActive?: boolean;
 }
 
@@ -44,7 +45,7 @@ export class CannedResponseService {
               .includes(q),
       )
       .sort((a, b) => rank(a) - rank(b))
-      .map((r) => ({ id: r.id, title: r.title, content: r.content, topic: r.topic, shortcut: r.shortcut }));
+      .map((r) => ({ id: r.id, title: r.title, content: r.content, topic: r.topic, shortcut: r.shortcut, category: r.category }));
   }
 
   /** Admin view: all templates. */
@@ -59,6 +60,7 @@ export class CannedResponseService {
         content: input.content,
         topic: input.topic?.toUpperCase() || null,
         shortcut: input.shortcut?.trim() || null,
+        category: input.category || null,
         isActive: input.isActive ?? true,
         createdById: actorUserId,
       },
@@ -77,6 +79,7 @@ export class CannedResponseService {
         content: input.content ?? undefined,
         topic: input.topic === undefined ? undefined : input.topic?.toUpperCase() || null,
         shortcut: input.shortcut === undefined ? undefined : input.shortcut?.trim() || null,
+        category: input.category === undefined ? undefined : input.category || null,
         isActive: input.isActive ?? undefined,
       },
     });

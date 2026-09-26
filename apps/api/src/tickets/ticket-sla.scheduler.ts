@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailerService } from '../mail/mailer.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { OpiekaZgloszenService } from './opieka-zgloszen.service';
 import {
   ticketCustomerReminderTemplate,
   ticketAutoClosedTemplate,
@@ -36,6 +37,7 @@ export class TicketSlaScheduler {
     private readonly mailer: MailerService,
     private readonly config: ConfigService,
     private readonly notifications: NotificationsService,
+    private readonly opieka: OpiekaZgloszenService,
   ) {}
 
   private clientPanelBaseUrl(): string {
@@ -61,6 +63,17 @@ export class TicketSlaScheduler {
       });
     } catch {
       /* oś czasu pomocnicza */
+    }
+  }
+
+  /** PB-37 — „Wciąż nad tym pracujemy” po połowie czasu odpowiedzi (URGENT = 30 min, więc co 5 min). */
+  @Cron('*/5 * * * *', { name: 'tickets:wciaz-pracujemy' })
+  async wciazPracujemyTick(): Promise<void> {
+    try {
+      const n = await this.opieka.wciazPracujemy();
+      if (n) this.logger.log(`„Wciąż nad tym pracujemy”: ${n} zgłoszeń`);
+    } catch (err) {
+      this.logger.error(`wciąż pracujemy failed: ${(err as Error).message}`, (err as Error).stack);
     }
   }
 

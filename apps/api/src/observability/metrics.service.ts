@@ -601,6 +601,7 @@ export class MetricsService {
         SELECT r."ticketId", r."createdAt",
           CASE WHEN r."isStaff" THEN 'staff' ELSE 'client' END
         FROM "TicketReply" r
+        WHERE r."automatic" IS NULL -- PB-37: automatyczne wiadomości nie są odpowiedzią człowieka
       ),
       responses AS (
         SELECT

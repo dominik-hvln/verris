@@ -272,3 +272,28 @@ export function ticketAutoClosedTemplate(ctx: TicketContext): MailMessage {
     html,
   };
 }
+
+/** PB-37 — automatyczna wiadomość do klienta (treść edytowalna w panelu admina). */
+export function ticketAutoMessageTemplate(
+  ctx: TicketContext & { tytul: string; tresc: string; ocena: boolean },
+): MailMessage {
+  const shortId = ctx.ticketId.slice(0, 8);
+  const ticketUrl = `${ctx.panelUrl}/dashboard/support/${ctx.ticketId}${ctx.ocena ? '#ocena' : ''}`;
+  const { html, text } = renderEmailShell({
+    title: ctx.tytul,
+    preheader: `Zgłoszenie #${shortId}: ${ctx.subject}`,
+    bodyMarkdown: escapeMarkdown(ctx.tresc),
+    cta: { label: ctx.ocena ? 'Oceń pomoc' : 'Zobacz zgłoszenie', url: ticketUrl },
+    footnote: 'Możesz odpowiedzieć bezpośrednio w panelu — cała korespondencja jest w jednym miejscu.',
+    recipientEmail: ctx.customerEmail,
+    panelUrl: ctx.panelUrl,
+    category: 'TRANSACTIONAL',
+  });
+  return {
+    to: ctx.customerEmail,
+    tag: 'ticket.auto',
+    subject: `[#${shortId}] ${ctx.tytul}: ${ctx.subject}`,
+    text,
+    html,
+  };
+}

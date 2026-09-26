@@ -60,6 +60,12 @@ export class CannedResponseDto {
   @IsString()
   shortcut?: string;
 
+  /** PB-37 — sytuacja w rozmowie (blok „Podpowiedzi” w obsłudze). */
+  @IsOptional()
+  @IsString()
+  @IsIn(['POWITANIE', 'DIAGNOZA', 'OPOZNIENIE', 'ZALECENIA', 'ZAMKNIECIE'])
+  category?: string;
+
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
@@ -101,6 +107,11 @@ export class AddTicketReplyDto {
   @MinLength(2, { message: 'Odpowiedź musi mieć minimum 2 znaki' })
   @MaxLength(50_000, { message: 'Odpowiedź jest za długa — dołącz dłuższe logi jako plik' })
   message!: string;
+
+  /** PB-37 — obsługa: „Wyślij” (sprawa zostaje u nas: W realizacji) albo „Wyślij i czekaj na klienta” (domyślnie). */
+  @IsOptional()
+  @IsIn(['tak', 'nie'])
+  czekaj?: 'tak' | 'nie';
 }
 
 /** Eskalacja zgłoszenia (panel obsługi) — powód min. 10 znaków sprawdza serwis. */
@@ -138,4 +149,15 @@ export class SubmitCsatDto {
   @IsString()
   @MinLength(0)
   comment?: string;
+
+  /** PB-37 — ocena opiekuna (rating = support ogólnie). */
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  agentRating?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  resolved?: boolean;
 }

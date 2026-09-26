@@ -14,6 +14,16 @@ import {
 import { Checkbox } from '@/components/checkbox';
 
 const TOPICS = ["", "HOSTING", "DOMAIN", "EMAIL", "DNS", "SSL", "BILLING", "OTHER"];
+/** PB-37 — kategorie w bloku „Podpowiedzi” panelu obsługi. */
+const KATEGORIE: [string, string][] = [
+  ["", "— bez kategorii —"],
+  ["POWITANIE", "Powitanie"],
+  ["DIAGNOZA", "Diagnoza"],
+  ["OPOZNIENIE", "Dłużej niż zwykle"],
+  ["ZALECENIA", "Zalecenia"],
+  ["ZAMKNIECIE", "Zamknięcie"],
+];
+const NAZWA_KAT = Object.fromEntries(KATEGORIE);
 
 export function CannedClient({ rows }: { rows: CannedResponseRow[] }) {
   const router = useRouter();
@@ -72,8 +82,10 @@ export function CannedClient({ rows }: { rows: CannedResponseRow[] }) {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="font-medium text-white">
+                    {r.category ? <span className="mr-2 rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] text-emerald-200">{NAZWA_KAT[r.category] ?? r.category}</span> : null}
                     {r.topic ? <span className="mr-2 rounded bg-white/10 px-1.5 py-0.5 text-[10px]">{r.topic}</span> : null}
                     {r.title}
+                    {r.shortcut ? <span className="ml-2 font-mono text-[11px] text-neutral-400">/{r.shortcut}</span> : null}
                     {!r.isActive ? <span className="ml-2 text-[10px] text-amber-300">nieaktywny</span> : null}
                   </p>
                   <p className="mt-1 line-clamp-2 text-xs text-neutral-400">{r.content}</p>
@@ -110,6 +122,8 @@ function Form({
   const [title, setTitle] = useState(initial?.title ?? "");
   const [content, setContent] = useState(initial?.content ?? "");
   const [topic, setTopic] = useState(initial?.topic ?? "");
+  const [category, setCategory] = useState(initial?.category ?? "");
+  const [shortcut, setShortcut] = useState(initial?.shortcut ?? "");
   const [isActive, setIsActive] = useState(initial?.isActive ?? true);
 
   return (
@@ -123,6 +137,20 @@ function Form({
           className="ip w-full"
           options={TOPICS.map((t) => ({ value: t, label: t || "— globalny —" }))}
         />
+        <Select
+          aria-label="Kategoria (Podpowiedzi w obsłudze)"
+          value={category}
+          onChange={setCategory}
+          className="ip w-full"
+          options={KATEGORIE.map(([v, l]) => ({ value: v, label: l }))}
+        />
+        <input
+          value={shortcut}
+          onChange={(e) => setShortcut(e.target.value.replace(/[^\p{L}0-9-]/gu, "").toLowerCase())}
+          aria-label="Skrót (wpisywany w odpowiedzi jako /skrót)"
+          placeholder="skrót, np. witaj"
+          className="ip sm:col-span-2 font-mono"
+        />
       </div>
       <textarea value={content} onChange={(e) => setContent(e.target.value)} rows={4} placeholder="Treść odpowiedzi…" className="ip w-full" />
       <label className="flex items-center gap-2 text-xs text-neutral-300">
@@ -131,7 +159,7 @@ function Form({
       <div className="flex items-center gap-2">
         <button
           type="button"
-          onClick={() => onSubmit({ title, content, topic: topic || undefined, isActive })}
+          onClick={() => onSubmit({ title, content, topic: topic || undefined, category: category || null, shortcut: shortcut || null, isActive })}
           disabled={pending || !title.trim() || content.trim().length < 2}
           className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-black hover:bg-emerald-600 disabled:opacity-50"
         >

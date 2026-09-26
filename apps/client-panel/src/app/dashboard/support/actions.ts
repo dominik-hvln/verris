@@ -29,9 +29,14 @@ export interface TicketReply {
   id: string;
   message: string;
   isStaff: boolean;
-  authorId: string;
+  /** null dla wiadomości obsługi (id pracowników nie trafiają do klienta) */
+  authorId: string | null;
+  /** PB-37 — kto z obsługi odpisał (imię + inicjał) */
+  autor?: string | null;
   createdAt: string;
   attachments?: TicketAttachment[];
+  /** PB-37 — automatyczna wiadomość (potwierdzenie, „zajmujemy się”, „wciąż pracujemy”, podziękowanie) */
+  automatic?: string | null;
 }
 
 export interface TicketDetail {
@@ -50,6 +55,15 @@ export interface TicketDetail {
   slaResponseDueAt?: string | null;
   supportSlaHours?: number;
   priority?: string;
+  // PB-37 — opiekun, „przeczytane”, ocena opiekuna i supportu
+  opiekun?: string | null;
+  staffReadAt?: string | null;
+  resolvedAt?: string | null;
+  autoClosedAt?: string | null;
+  waitingSince?: string | null;
+  agentRating?: number | null;
+  csatResolved?: boolean | null;
+  csatComment?: string | null;
 }
 
 /**
@@ -209,18 +223,42 @@ export async function addTicketReply(ticketId: string, message: string) {
 }
 
 /** SUP-4 — ocena wsparcia (1-5) po zamknięciu zgłoszenia. */
-export async function submitCsatAction(ticketId: string, rating: number, comment?: string) {
+export async function submitCsatAction(
+  ticketId: string,
+  rating: number,
+  comment?: string,
+  extra: { agentRating?: number; resolved?: boolean } = {},
+) {
   const token = await getAuthToken();
   if (!token) return { error: "Brak autoryzacji" };
   try {
     const res = await fetch(`${API_URL}/tickets/${ticketId}/csat`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ rating, comment }),
+      body: JSON.stringify({ rating, comment, ...extra }),
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
       return { error: body.message || "Nie udało się zapisać oceny" };
+    }
+    return { success: true };
+  } catch {
+    return { error: "Błąd połączenia z serwerem" };
+  }
+}
+
+/** PB-37 — „Otwórz ponownie” (do 7 dni od zamknięcia). */
+export async function reopenTicketAction(ticketId: string) {
+  const token = await getAuthToken();
+  if (!token) return { error: "Brak autoryzacji" };
+  try {
+    const res = await fetch(`${API_URL}/tickets/${ticketId}/reopen`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      return { error: body.message || "Nie udało się otworzyć zgłoszenia" };
     }
     return { success: true };
   } catch {

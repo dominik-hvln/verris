@@ -25,7 +25,7 @@ export class AiService {
       where: { id: ticketId },
       include: {
         user: { select: { id: true, email: true, companyName: true } },
-        replies: { orderBy: { createdAt: 'asc' }, take: 20 },
+        replies: { where: { automatic: null }, orderBy: { createdAt: 'asc' }, take: 20 },
       },
     });
     if (!ticket) throw new NotFoundException('Ticket not found');

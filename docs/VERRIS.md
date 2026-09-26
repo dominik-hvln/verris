@@ -392,3 +392,18 @@ Hetzner DNS (docs.hetzner.com/networking/dns/…), Route 53 (aws.amazon.com/rout
 - **Poza zakresem:** `lve/desired` czyta agent LVE w Pythonie bez weryfikacji (dane limitów, nie kod) — podpis jest w nagłówku, weryfikację dodać przy najbliższej zmianie agenta LVE.
 - **Testy:** `podpis-skryptow.spec.ts` (prawdziwy `verris-fetch` przeciw serwerowi podpisującemu: poprawny / zmieniona treść / inna ścieżka / inny węzeł / stary / bez podpisu / brak klucza / 404; klucz deploy: wpis, rotacja, odmowa bez `from=`, odmowa wstrzyknięcia w adresach) + smoke na lokalnym API (skrypty, pakiety 77 plików, manifest, zlecenie, obcy klucz → odrzucone).
 
+## Opieka nad zgłoszeniem (PB-37) i panel obsługi w nowym wyglądzie (PB-34) — 2026-09-26
+
+- **Automatyczne wiadomości do klienta** (e-mail + wpis w wątku; treść i włączenie: Admin → Ustawienia → Opieka nad zgłoszeniami, zmienne `{{nr}} {{temat}} {{opiekun}} {{termin}} {{imie}} {{link}}`):
+  1. *Potwierdzenie z opiekunem* — od razu: numer, imię opiekuna (najmniej obłożony), termin odpowiedzi wg SLA;
+  2. *„Opiekun się tym zajmuje”* — pierwsze otwarcie przez przypisanego opiekuna (przed odpowiedzią) albo stan „W realizacji”;
+  3. *„Wciąż nad tym pracujemy”* — zgłoszenie czeka na nas dłużej niż połowa czasu odpowiedzi (URGENT 30 min … LOW 12 h), najwyżej raz na dobę; opiekun dostaje przypomnienie (sprawdzane co 5 min);
+  4. *Podziękowanie + ocena* — po zamknięciu przez obsługę (zamiast maila o zmianie stanu), z linkiem do oceny.
+  Automatyczne wiadomości **nie są odpowiedzią**: nie ruszają SLA pierwszej odpowiedzi, stanu, „czeka na klienta” ani metryki czasu odpowiedzi.
+- **Klient**: postęp (przyjęte → opiekun → przeczytane → odpowiedź → rozwiązane), opiekun z imienia i inicjału, kto z obsługi odpisał, ocena opiekuna i obsługi ogólnie (1–5) + „czy rozwiązane” + komentarz, „Otwórz ponownie” do 7 dni. Klient nie widzi notatek wewnętrznych (ryzyko, eskalacja, runbook, szkic asystenta, id pracowników).
+- **Obsługa** (ekran zgłoszenia 1:1 z makietą): blok *Podpowiedzi* — szkic asystenta przygotowany w tle po każdej wiadomości klienta (albo szkic z danych konta), szablony dla sytuacji (Powitanie, Diagnoza, Dłużej niż zwykle, Zalecenia, Zamknięcie), baza wiedzy, `/skrót` w polu odpowiedzi; „Co widzi klient” z zapowiedzią następnej automatycznej wiadomości; „Twoje oceny · 30 dni”; „Wyślij” (sprawa zostaje u nas) vs „Wyślij i czekaj na klienta”.
+- **Szablony**: kategoria + skrót (formularz admina, seed `seed-canned.ts` uzupełnia kategorie istniejących). Podgląd dla obsługi: Wiedza → Baza odpowiedzi.
+- **Oceny opiekunów**: Admin → Opieka nad zgłoszeniami (30/90/365 dni: ocena opiekuna, obsługi, % rozwiązanych); obsługa widzi swoje.
+- **Panel obsługi (PB-34)**: menu i pasek jak w makiecie (ciemne menu, jasna treść domyślnie, przełącznik motywu, menu na telefonie, wyszukiwarka pod „/”), skrzynka od nowa (widoki: wszystkie / Moje / Czeka na klienta, terminy po kolei), pozostałe ekrany przez warstwę `.v2-skin` (jak PB-16). Panele renderują czas po polsku (`TZ=Europe/Warsaw` w obrazie paneli). Panel admina — następny krok PB-34.
+- **Testy**: `opieka-zgloszen.int-spec.ts` (5, PostgreSQL).
+

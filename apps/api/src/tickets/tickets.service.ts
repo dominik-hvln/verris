@@ -29,6 +29,7 @@ import { AuditService } from '../common/audit/audit.service';
 import { TicketOpsActions } from '../common/audit/audit.actions';
 import { NotificationsService } from '../notifications/notifications.service';
 import type { Readable } from 'stream';
+import { OpiekaZgloszenService, opiekunSlownie } from './opieka-zgloszen.service';
 
 @Injectable()
 export class TicketsService {
@@ -39,6 +40,7 @@ export class TicketsService {
     private readonly storage: ObjectStorageService,
     private readonly audit: AuditService,
     private readonly notifications: NotificationsService,
+    private readonly opieka: OpiekaZgloszenService,
   ) {}
 
   /** SUP-V2 — zapis zdarzenia na osi czasu ticketu (best-effort, append-only). */
@@ -158,20 +160,23 @@ export class TicketsService {
         .catch(() => undefined);
     }
 
-    void this.mailer
-      .send({
-        ...newTicketCreatedTemplate({
-          ticketId: row.id,
-          subject: row.subject,
-          customerEmail: row.user.email,
-          panelUrl: clientUrl,
-        }),
-        category: 'TRANSACTIONAL',
-        fromRole: 'SUPPORT',
-      })
-      .catch(() => undefined);
-
     await this.logEvent(row.id, 'TICKET_CREATED', userId);
+    // PB-37 — potwierdzenie z imieniem opiekuna i terminem; wyłączone w panelu → dotychczasowy e-mail.
+    if (!(await this.opieka.wyslij(row.id, 'POTWIERDZENIE'))) {
+      void this.mailer
+        .send({
+          ...newTicketCreatedTemplate({
+            ticketId: row.id,
+            subject: row.subject,
+            customerEmail: row.user.email,
+            panelUrl: clientUrl,
+          }),
+          category: 'TRANSACTIONAL',
+          fromRole: 'SUPPORT',
+        })
+        .catch(() => undefined);
+    }
+    void this.opieka.przygotujSzkic(row.id);
     if (row.assignedToId) {
       await this.notifyStaff(row.assignedToId, {
         title: 'Nowe zgłoszenie',
@@ -217,6 +222,7 @@ export class TicketsService {
     const ticket = await this.prisma.ticket.findUnique({
       where: { id: ticketId },
       include: {
+        assignedTo: { select: { firstName: true, lastName: true } },
         attachments: {
           orderBy: { createdAt: 'asc' },
           select: {
@@ -254,7 +260,22 @@ export class TicketsService {
 
     // SUP-5 — surface the customer's guaranteed first-response time (best plan).
     const supportSlaHours = await this.getUserSupportSla(userId);
-    return { ...ticket, supportSlaHours };
+    // PB-37 — klient widzi opiekuna (imię + inicjał) i „przeczytane”; notatki wewnętrzne obsługi zostają u nas.
+    const {
+      assignedTo, aiDraft: _a, aiDraftAt: _b, riskFlag: _c, riskReason: _d, escalationReason: _e,
+      escalatedById: _f, runbookKey: _g, csatAgentId: _h, ...widoczne
+    } = ticket;
+    // Kto z obsługi odpisał (imię + inicjał) — klient wie, z kim rozmawia; id pracowników nie wychodzą.
+    const idObslugi = [...new Set(widoczne.replies.filter((r) => r.isStaff && !r.automatic).map((r) => r.authorId))];
+    const obsluga = idObslugi.length
+      ? await this.prisma.user.findMany({ where: { id: { in: idObslugi } }, select: { id: true, firstName: true, lastName: true } })
+      : [];
+    const replies = widoczne.replies.map(({ authorId, ...r }) => ({
+      ...r,
+      authorId: r.isStaff ? null : authorId,
+      autor: r.isStaff && !r.automatic ? opiekunSlownie(obsluga.find((u) => u.id === authorId)) : null,
+    }));
+    return { ...widoczne, replies, opiekun: assignedTo ? opiekunSlownie(assignedTo) : null, supportSlaHours };
   }
 
   /** SUP-5 — highest support SLA (hours) across the user's active subscriptions. */
@@ -267,7 +288,13 @@ export class TicketsService {
   }
 
   /** SUP-4 — customer rates support after the ticket is closed (once). */
-  async submitCsat(ticketId: string, userId: string, rating: number, comment?: string) {
+  async submitCsat(
+    ticketId: string,
+    userId: string,
+    rating: number,
+    comment?: string,
+    opts: { agentRating?: number; resolved?: boolean } = {},
+  ) {
     const ticket = await this.prisma.ticket.findUnique({ where: { id: ticketId } });
     if (!ticket) throw new NotFoundException('Zgłoszenie nie zostało znalezione');
     if (ticket.userId !== userId) throw new ForbiddenException('Brak dostępu');
@@ -282,7 +309,15 @@ export class TicketsService {
     }
     await this.prisma.ticket.update({
       where: { id: ticketId },
-      data: { csatRating: rating, csatComment: comment?.slice(0, 2000) ?? null, csatAt: new Date() },
+      data: {
+        csatRating: rating,
+        csatComment: comment?.slice(0, 2000) ?? null,
+        csatAt: new Date(),
+        // PB-37 — ocena opiekuna osobno od supportu ogólnie + „czy rozwiązane”
+        agentRating: opts.agentRating ?? null,
+        csatResolved: opts.resolved ?? null,
+        csatAgentId: ticket.assignedToId,
+      },
     });
     return { ok: true as const };
   }
@@ -327,6 +362,7 @@ export class TicketsService {
     });
     if (full) {
       await this.logEvent(ticketId, 'CUSTOMER_REPLY', full.userId);
+      void this.opieka.przygotujSzkic(ticketId);
       if (full.assignedToId) {
         await this.notifyStaff(full.assignedToId, {
           title: 'Nowa wiadomość od klienta',
@@ -366,7 +402,8 @@ export class TicketsService {
     });
   }
 
-  async adminFindOne(ticketId: string) {
+  async adminFindOne(ticketId: string, actorUserId?: string) {
+    await this.opieka.otwartePrzezObsluge(ticketId, actorUserId).catch(() => undefined);
     const ticket = await this.prisma.ticket.findUnique({
       where: { id: ticketId },
       include: {
@@ -490,7 +527,14 @@ export class TicketsService {
       }
     }
 
+    // PB-37 — „W realizacji” = opiekun się tym zajmuje; zamknięcie = podziękowanie z prośbą o ocenę.
+    let wyslanoAuto = false;
+    if (dto.status && dto.status !== existing.status) {
+      if (dto.status === 'IN_PROGRESS') wyslanoAuto = await this.opieka.wyslij(ticketId, 'ZAJMUJE_SIE');
+      if (dto.status === 'CLOSED') wyslanoAuto = await this.opieka.wyslij(ticketId, 'PODZIEKOWANIE');
+    }
     if (
+      !wyslanoAuto &&
       dto.status &&
       dto.status !== existing.status &&
       existing.user.email
@@ -587,9 +631,10 @@ export class TicketsService {
     const ticket = await this.prisma.ticket.findUnique({ where: { id: ticketId } });
     if (!ticket) throw new NotFoundException('Ticket not found');
 
+    const czekaj = dto.czekaj !== 'nie';
     const dataToUpdate: Prisma.TicketUncheckedUpdateInput = {
-      status: 'WAITING_CUSTOMER',
-      waitingSince: new Date(),
+      status: czekaj ? 'WAITING_CUSTOMER' : 'IN_PROGRESS',
+      waitingSince: czekaj ? new Date() : null,
       customerReminderSentAt: null,
       autoClosedAt: null,
       lastReplyAt: new Date(),
@@ -813,6 +858,7 @@ export class TicketsService {
     });
     if (full) {
       await this.logEvent(ticketId, 'CUSTOMER_REPLY', full.userId);
+      void this.opieka.przygotujSzkic(ticketId);
       if (full.assignedToId) {
         await this.notifyStaff(full.assignedToId, {
           title: 'Nowa wiadomość od klienta',
@@ -828,8 +874,14 @@ export class TicketsService {
     return reply;
   }
 
-  async staffReplyWithFiles(ticketId: string, staffId: string, message: string, files?: Express.Multer.File[]) {
-    const dto: AddTicketReplyDto = { message };
+  async staffReplyWithFiles(
+    ticketId: string,
+    staffId: string,
+    message: string,
+    files?: Express.Multer.File[],
+    czekaj: 'tak' | 'nie' = 'tak',
+  ) {
+    const dto: AddTicketReplyDto = { message, czekaj };
     if (!files?.length) {
       return this.adminAddReply(ticketId, staffId, dto);
     }
@@ -841,8 +893,8 @@ export class TicketsService {
     if (!ticket) throw new NotFoundException('Ticket not found');
 
     const dataToUpdate: Record<string, unknown> = {
-      status: 'WAITING_CUSTOMER',
-      waitingSince: new Date(),
+      status: czekaj === 'nie' ? 'IN_PROGRESS' : 'WAITING_CUSTOMER',
+      waitingSince: czekaj === 'nie' ? null : new Date(),
       customerReminderSentAt: null,
       autoClosedAt: null,
       lastReplyAt: new Date(),

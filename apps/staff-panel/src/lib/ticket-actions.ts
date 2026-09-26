@@ -9,6 +9,8 @@ export interface CannedResponseRow {
   content: string;
   topic: string | null;
   shortcut?: string | null;
+  /** PB-37 — POWITANIE, DIAGNOZA, OPOZNIENIE, ZALECENIA, ZAMKNIECIE */
+  category?: string | null;
 }
 
 /** SUP-2/SUP-V2 — szablony odpowiedzi (posortowane pod temat; opcjonalne wyszukiwanie). */
@@ -25,13 +27,17 @@ export async function staffFetchCanned(topic?: string, query?: string, ticketId?
   }
 }
 
-export async function staffPostReply(ticketId: string, message: string): Promise<{ ok: true } | { error: string }> {
+export async function staffPostReply(
+  ticketId: string,
+  message: string,
+  czekaj: "tak" | "nie" = "tak",
+): Promise<{ ok: true } | { error: string }> {
   const m = message.trim();
   if (m.length < 2) return { error: "Wiadomość jest za krótka." };
   try {
     await staffApi(`/tickets/admin/${ticketId}/replies`, {
       method: "POST",
-      body: { message: m },
+      body: { message: m, czekaj },
     });
     revalidatePath(`/tickets/${ticketId}`);
     revalidatePath("/");
@@ -48,6 +54,7 @@ export async function staffPostReplyWithFiles(
   formData: FormData,
 ): Promise<{ ok: true } | { error: string }> {
   const message = formData.get("message")?.toString() ?? "";
+  const czekaj = formData.get("czekaj")?.toString() === "nie" ? "nie" : "tak";
   const inbound = formData.getAll("files");
   let fileCount = 0;
   for (const entry of inbound) {
@@ -56,13 +63,14 @@ export async function staffPostReplyWithFiles(
 
   const trimmed = message.trim();
   if (fileCount === 0) {
-    return staffPostReply(ticketId, trimmed);
+    return staffPostReply(ticketId, trimmed, czekaj);
   }
 
   const bodyText = trimmed.length === 0 ? "(Załączniki)" : trimmed;
 
   const outbound = new FormData();
   outbound.append("message", bodyText);
+  outbound.append("czekaj", czekaj);
   for (const entry of inbound) {
     if (entry instanceof File && entry.size > 0) {
       outbound.append("files", entry);

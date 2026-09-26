@@ -138,6 +138,18 @@ export default function ClientTicketChat({ ticket }: { ticket: TicketDetail }) {
 
         {/* Odpowiedzi i Logi */}
         {ticket.replies.map((reply) => {
+          // PB-37 — automatyczne wiadomości: krótki wpis w osi, nie „dymek” rozmowy.
+          if (reply.automatic) {
+            return (
+              <div key={reply.id} className="flex items-center gap-2.5 rounded-[10px] border border-dashed border-line-strong bg-raised/60 px-3.5 py-[9px] text-[13px] text-[color:var(--verris-body)]">
+                <span aria-hidden className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-md bg-raised text-xs">
+                  {reply.automatic === "PODZIEKOWANIE" ? "♥" : reply.automatic === "WCIAZ_PRACUJEMY" ? "↻" : "✓"}
+                </span>
+                <span className="min-w-0 flex-1 whitespace-pre-wrap">{reply.message}</span>
+                <span className="shrink-0 font-mono text-[11.5px] text-muted-foreground">{format(new Date(reply.createdAt), "HH:mm", { locale: pl })}</span>
+              </div>
+            );
+          }
           const isMe = !reply.isStaff;
           return (
             <div
@@ -159,7 +171,7 @@ export default function ClientTicketChat({ ticket }: { ticket: TicketDetail }) {
                 ) : (
                   <>
                     <ShieldCheck className="h-3.5 w-3.5 text-primary" />
-                    Wsparcie Verris - {format(new Date(reply.createdAt), "d MMM, HH:mm", { locale: pl })}
+                    {reply.autor ? `${reply.autor} · Verris` : "Wsparcie Verris"} - {format(new Date(reply.createdAt), "d MMM, HH:mm", { locale: pl })}
                   </>
                 )}
               </span>

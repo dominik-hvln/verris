@@ -16,7 +16,7 @@ export function Checkbox({ className, ...props }: Omit<InputHTMLAttributes<HTMLI
       />
       <span
         aria-hidden
-        className="pointer-events-none h-full w-full rounded-[4px] border border-white/25 bg-black/40 transition-colors peer-checked:border-emerald-400 peer-checked:bg-emerald-500 peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-400/40 peer-disabled:opacity-50"
+        className="pointer-events-none h-full w-full rounded-[4px] border border-line-strong bg-card transition-colors peer-checked:border-verris-green peer-checked:bg-verris-green peer-focus-visible:ring-2 peer-focus-visible:ring-[color:var(--data)]/40 peer-disabled:opacity-50"
       />
       <svg
         aria-hidden
@@ -26,7 +26,7 @@ export function Checkbox({ className, ...props }: Omit<InputHTMLAttributes<HTMLI
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="pointer-events-none absolute inset-0 m-auto h-[70%] w-[70%] text-neutral-950 opacity-0 peer-checked:opacity-100"
+        className="pointer-events-none absolute inset-0 m-auto h-[70%] w-[70%] text-verris-paper opacity-0 peer-checked:opacity-100"
       >
         <path d="M2.5 6.2 5 8.5l4.5-5" />
       </svg>

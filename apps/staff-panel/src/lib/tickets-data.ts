@@ -70,6 +70,10 @@ export interface StaffTicketRow {
   assignedTo: { id: string; firstName: string | null; lastName: string | null } | null;
   slaResponseDueAt?: string | null;
   slaResolveDueAt?: string | null;
+  firstResponseAt?: string | null;
+  lastReplyIsStaff?: boolean | null;
+  lastReplyAt?: string | null;
+  staffReadAt?: string | null;
   escalatedAt?: string | null;
   riskFlag?: string | null;
   runbookKey?: string | null;
@@ -110,11 +114,23 @@ export interface StaffTicketDetail extends StaffTicketRow {
   slaResponseBreachAlertedAt?: string | null;
   events?: TicketEventRow[];
   attachments?: TicketAttachmentRow[];
+  // PB-37 — opieka nad zgłoszeniem
+  progressNoticeAt?: string | null;
+  aiDraft?: string | null;
+  aiDraftAt?: string | null;
+  csatRating?: number | null;
+  agentRating?: number | null;
+  csatResolved?: boolean | null;
+  csatComment?: string | null;
+  csatAt?: string | null;
+  runbookKey?: string | null;
   replies: Array<{
     id: string;
     message: string;
     createdAt: string;
     isStaff: boolean;
+    /** PB-37 — automatyczna wiadomość (POTWIERDZENIE, ZAJMUJE_SIE, WCIAZ_PRACUJEMY, PODZIEKOWANIE) */
+    automatic?: string | null;
     authorId?: string | null;
     attachments?: TicketAttachmentRow[];
   }>;
@@ -143,4 +159,23 @@ export interface CannedResponse {
   id: string;
   title: string;
   body: string;
+}
+
+/** PB-37 — oceny opiekuna (API: obsługa widzi swoje, admin wszystkich). */
+export interface OcenaAgenta {
+  agentId: string;
+  nazwa: string;
+  ocen: number;
+  opiekun: number | null;
+  support: number | null;
+  rozwiazanePct: number | null;
+}
+
+export async function staffMojeOceny(meId: string, dni = 30): Promise<OcenaAgenta | null> {
+  try {
+    const rows = await staffApi<OcenaAgenta[]>(`/admin/support/ratings?days=${dni}`);
+    return rows.find((r) => r.agentId === meId) ?? null;
+  } catch {
+    return null;
+  }
 }

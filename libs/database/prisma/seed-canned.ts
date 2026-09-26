@@ -19,6 +19,8 @@ interface Seed {
   topic: string | null;
   shortcut: string;
   content: string;
+  /** PB-37 — sytuacja w rozmowie (blok „Podpowiedzi”). */
+  category?: 'POWITANIE' | 'DIAGNOZA' | 'OPOZNIENIE' | 'ZALECENIA' | 'ZAMKNIECIE';
 }
 
 const SIGN = '\n\nPozdrawiamy,\nZespół Verris';
@@ -26,6 +28,7 @@ const SIGN = '\n\nPozdrawiamy,\nZespół Verris';
 const TEMPLATES: Seed[] = [
   {
     title: 'Powitanie — ogólne',
+    category: 'POWITANIE',
     topic: null,
     shortcut: 'powitanie',
     content:
@@ -34,6 +37,7 @@ const TEMPLATES: Seed[] = [
   },
   {
     title: 'Prośba o dane do diagnozy',
+    category: 'DIAGNOZA',
     topic: 'HOSTING',
     shortcut: 'dane-diag',
     content:
@@ -106,6 +110,7 @@ const TEMPLATES: Seed[] = [
   },
   {
     title: 'Aktualizacja — pracujemy nad sprawą',
+    category: 'OPOZNIENIE',
     topic: null,
     shortcut: 'w-toku',
     content:
@@ -114,11 +119,38 @@ const TEMPLATES: Seed[] = [
   },
   {
     title: 'Zamknięcie zgłoszenia',
+    category: 'ZAMKNIECIE',
     topic: null,
     shortcut: 'zamkniecie',
     content:
       'Cześć {{imie}},\n\nUznajemy sprawę #{{nr}} za rozwiązaną i zamykamy zgłoszenie. Jeśli coś jeszcze się pojawi, po prostu odpowiedz w tym wątku — zgłoszenie otworzy się ponownie.' +
       SIGN,
+  },
+  {
+    title: 'Diagnoza — przyczyna znaleziona',
+    topic: null,
+    shortcut: 'diag',
+    category: 'DIAGNOZA',
+    content:
+      'Cześć {{imie}},\n\nsprawdziliśmy logi i znaleźliśmy przyczynę: [PRZYCZYNA]. [CO ZROBILIŚMY / CO ZROBIMY]. Daj znać, jeśli coś nadal nie działa tak, jak powinno.' +
+      SIGN,
+  },
+  {
+    title: 'Dłużej niż zwykle — informacja o terminie',
+    topic: null,
+    shortcut: 'dluzej',
+    category: 'OPOZNIENIE',
+    content:
+      'Cześć {{imie}},\n\nnaprawa w zgłoszeniu #{{nr}} potrwa dłużej niż zwykle, bo [POWÓD]. Pracujemy nad tym i kolejną informację wyślemy najpóźniej [TERMIN] — nawet jeśli jeszcze nie skończymy. Nie musisz nic robić.' +
+      SIGN,
+  },
+  {
+    title: 'Zalecenia po naprawie',
+    topic: null,
+    shortcut: 'zalec',
+    category: 'ZALECENIA',
+    content:
+      'Żeby sytuacja się nie powtórzyła, zalecamy:\n• [ZALECENIE 1],\n• [ZALECENIE 2].\n\nChętnie pomożemy w każdym z tych kroków — wystarczy odpisać na tę wiadomość.',
   },
 ];
 
@@ -126,6 +158,10 @@ async function main() {
   const existing = await prisma.cannedResponse.findMany({ select: { title: true } });
   const have = new Set(existing.map((r) => r.title));
   const toCreate = TEMPLATES.filter((t) => !have.has(t.title));
+  // PB-37 — kategorie dla szablonów dodanych wcześniej (bez nadpisywania zmian admina)
+  for (const t of TEMPLATES.filter((x) => x.category && have.has(x.title))) {
+    await prisma.cannedResponse.updateMany({ where: { title: t.title, category: null }, data: { category: t.category } });
+  }
   if (toCreate.length === 0) {
     console.log('Szablony już istnieją — nic do dodania.');
     return;
@@ -136,6 +172,7 @@ async function main() {
       content: t.content,
       topic: t.topic,
       shortcut: t.shortcut,
+      category: t.category ?? null,
       isActive: true,
     })),
   });

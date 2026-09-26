@@ -92,10 +92,12 @@ RUN pnpm --filter @verris/${APP_NAME} build
 FROM node:${NODE_VERSION}-bookworm-slim AS runtime
 ARG APP_NAME
 ARG APP_PORT
+# TZ — daty renderowane na serwerze (komponenty serwerowe) po polsku, jak w przeglądarce klienta.
 ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
     APP_NAME=${APP_NAME} \
-    PORT=${APP_PORT}
+    PORT=${APP_PORT} \
+    TZ=Europe/Warsaw
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
