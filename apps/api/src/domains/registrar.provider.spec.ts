@@ -1,4 +1,4 @@
-import { RegistrarProviderFactory } from './registrar.provider.js';
+import { RegistrarProviderFactory, stanOpenProvider } from './registrar.provider.js';
 
 /** 27.09 — wyszukiwarka pokazywała same „zajęte”: OpenProvider zwraca wyniki w innej kolejności niż zapytanie. */
 describe('OpenProvider — sprawdzanie dostępności', () => {
@@ -27,5 +27,15 @@ describe('OpenProvider — sprawdzanie dostępności', () => {
     expect(fetchMock.mock.calls.filter((c) => String(c[0]).endsWith('/auth/login'))).toHaveLength(1);
     expect(wynik.map((w) => [w.domain, w.available])).toEqual(ext.map((e) => [`nazwa.${e}`, e !== 'com']));
     expect(wynik[0].priceAmount).toBe('4.08');
+  });
+});
+
+describe('OpenProvider — stan domeny (domknięcie transferu)', () => {
+  it('ACT = aktywna, FAI/DEL = nieudana, reszta i nieznane = w toku (bez zwrotu za udany transfer)', () => {
+    expect(stanOpenProvider('ACT')).toBe('active');
+    expect(stanOpenProvider('fai')).toBe('failed');
+    expect(stanOpenProvider('DEL')).toBe('failed');
+    for (const k of ['REQ', 'PEN', 'SCH', 'XYZ']) expect(stanOpenProvider(k)).toBe('pending');
+    expect(stanOpenProvider(undefined)).toBeNull();
   });
 });

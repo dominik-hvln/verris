@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Cron } from '@nestjs/schedule';
 import {
   DomainRegistrarOrder,
   DomainRegistrarOrderStatus,
@@ -246,39 +247,28 @@ export class DomainRegistrarService {
       throw err;
     }
 
-    const completed = await this.prisma.$transaction(async (db) => {
-      const domainRow = await db.domain.upsert({
-        where: { name: domain },
-        create: {
-          name: domain,
-          userId,
-          status: DomainStatus.ACTIVE,
-          registrarProvider: result.provider,
-          registrarExternalId: result.externalDomainId,
-          registrarStatus: 'REGISTERED',
-          expiresAt: result.expiresAt ? new Date(result.expiresAt) : null,
-          nameservers,
-        },
-        update: {
-          registrarProvider: result.provider,
-          registrarExternalId: result.externalDomainId,
-          registrarStatus: 'REGISTERED',
-          expiresAt: result.expiresAt ? new Date(result.expiresAt) : undefined,
-          nameservers,
-          lastRegistrarSyncAt: new Date(),
-        },
+    const { completed, poprzedni } = await this.prisma.$transaction(async (db) => {
+      const przypisana = await this.przypiszDomene(db, {
+        domain,
+        userId,
+        provider: result.provider,
+        externalId: result.externalDomainId ?? null,
+        expiresAt: result.expiresAt ?? null,
+        nameservers,
+        registrarStatus: 'REGISTERED',
       });
-      return db.domainRegistrarOrder.update({
+      const zamkniete = await db.domainRegistrarOrder.update({
         where: { id: order.id },
         data: {
           status: DomainRegistrarOrderStatus.COMPLETED,
           provider: result.provider,
           providerOrderId: result.providerOrderId,
-          domainId: domainRow.id,
+          domainId: przypisana.domainRow.id,
           submittedAt: new Date(),
           completedAt: new Date(),
         },
       });
+      return { completed: zamkniete, poprzedni: przypisana.poprzedniUserId };
     });
 
     await this.audit.record({
@@ -296,6 +286,7 @@ export class DomainRegistrarService {
         // Dowód oświadczenia konsumenckiego (art. 38 ust. 1 pkt 1 upk):
         // żądanie natychmiastowej rejestracji + wiedza o utracie prawa
         // odstąpienia z chwilą zarejestrowania domeny (Regulamin §12 ust. 7–8).
+        ...(poprzedni ? { replacedClaimOfUserId: poprzedni } : {}),
         withdrawalWaiverConsent: true,
         consentStatement:
           'Żądam natychmiastowego wykonania usługi rejestracji domeny i przyjmuję do wiadomości, że z chwilą jej zarejestrowania tracę prawo odstąpienia od umowy w tym zakresie.',
@@ -722,6 +713,103 @@ export class DomainRegistrarService {
         'Brak wystarczających środków w portfelu na opłacenie domeny. Doładuj portfel i spróbuj ponownie.',
       );
     }
+  }
+
+  /**
+   * Zapisuje domenę na koncie klienta, za którego pieniądze rejestr ją przyjął (rejestracja, transfer).
+   * Wiersz o tej nazwie na innym koncie przepisujemy: A-16 pozwala każdemu dopisać dowolną nazwę bez
+   * weryfikacji, a bez przepisania domena kupiona przez klienta lądowała u rezerwującego — razem z kodem
+   * transferu i blokadą, które idą po właścicielu wiersza.
+   */
+  private async przypiszDomene(
+    db: Prisma.TransactionClient,
+    d: { domain: string; userId: string; provider: string; externalId: string | null; expiresAt: string | null; nameservers: string[]; registrarStatus: string },
+  ) {
+    const poprzedni = await db.domain.findUnique({ where: { name: d.domain }, select: { userId: true } });
+    const wspolne = {
+      userId: d.userId,
+      status: DomainStatus.ACTIVE,
+      registrarProvider: d.provider,
+      registrarExternalId: d.externalId,
+      registrarStatus: d.registrarStatus,
+      nameservers: d.nameservers,
+    };
+    const domainRow = await db.domain.upsert({
+      where: { name: d.domain },
+      create: { name: d.domain, ...wspolne, expiresAt: d.expiresAt ? new Date(d.expiresAt) : null },
+      update: { ...wspolne, expiresAt: d.expiresAt ? new Date(d.expiresAt) : undefined, lastRegistrarSyncAt: new Date() },
+    });
+    return { domainRow, poprzedniUserId: poprzedni && poprzedni.userId !== d.userId ? poprzedni.userId : null };
+  }
+
+  /**
+   * A-09 — domknięcie transferów. Do 2026-09-27 zlecony transfer zostawał na zawsze „wysłany do rejestru”:
+   * klient płacił, a domena nigdy nie pojawiała się na koncie (bez odnowień, przypomnień, blokady, kodu).
+   * Co godzinę pytamy rejestratora o stan: aktywna → domena na koncie płacącego; nieudana → zwrot.
+   */
+  @Cron('17 * * * *', { name: 'domains:transfer-sync' })
+  async domknijTransfery(): Promise<{ zakonczone: number; nieudane: number }> {
+    const zlecenia = await this.prisma.domainRegistrarOrder.findMany({
+      where: { type: DomainRegistrarOrderType.TRANSFER, status: DomainRegistrarOrderStatus.SUBMITTED, providerOrderId: { not: null } },
+      orderBy: { submittedAt: 'asc' },
+      take: 100,
+    });
+    if (!zlecenia.length) return { zakonczone: 0, nieudane: 0 };
+    let zakonczone = 0;
+    let nieudane = 0;
+    let provider: ReturnType<RegistrarProviderFactory['get']>;
+    try {
+      provider = this.providerFactory.get();
+    } catch (e) {
+      this.logger.warn(`domknięcie transferów: rejestrator nieskonfigurowany (${(e as Error).message})`);
+      return { zakonczone, nieudane };
+    }
+    for (const z of zlecenia) {
+      try {
+        const info = await provider.domainInfo(z.providerOrderId!);
+        if (info.state === 'active') {
+          const wynik = await this.prisma.$transaction(async (db) => {
+            const przypisana = await this.przypiszDomene(db, {
+              domain: z.domainName,
+              userId: z.userId,
+              provider: z.provider ?? provider.id,
+              externalId: z.providerOrderId,
+              expiresAt: info.expiresAt ?? null,
+              nameservers: z.nameservers,
+              registrarStatus: 'TRANSFERRED',
+            });
+            // Warunkowo: równoległe przebiegi nie zamkną tego samego zlecenia dwa razy.
+            const zm = await db.domainRegistrarOrder.updateMany({
+              where: { id: z.id, status: DomainRegistrarOrderStatus.SUBMITTED },
+              data: { status: DomainRegistrarOrderStatus.COMPLETED, domainId: przypisana.domainRow.id, completedAt: new Date() },
+            });
+            return { ...przypisana, zmienione: zm.count };
+          });
+          if (!wynik.zmienione) continue;
+          zakonczone += 1;
+          await this.audit.record({
+            action: 'DOMAIN_REGISTRAR_TRANSFER_COMPLETED',
+            userId: z.userId,
+            details: {
+              orderId: z.id,
+              domain: z.domainName,
+              expiresAt: info.expiresAt ?? null,
+              ...(wynik.poprzedniUserId ? { replacedClaimOfUserId: wynik.poprzedniUserId } : {}),
+            },
+          });
+        } else if (info.state === 'failed') {
+          if (!z.walletTxId || !z.priceAmount) continue;
+          nieudane += 1;
+          await this.refundAndFail(z.userId, z, z.walletTxId, new Error('Rejestr odrzucił transfer domeny.'), {
+            amount: z.priceAmount.toString(),
+            currency: z.currency,
+          });
+        }
+      } catch (e) {
+        this.logger.warn(`domknięcie transferu ${z.domainName}: ${(e as Error).message}`);
+      }
+    }
+    return { zakonczone, nieudane };
   }
 
   private async refundAndFail(

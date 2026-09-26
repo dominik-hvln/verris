@@ -38,13 +38,21 @@ export interface RegistrarProvider {
   getRegistrant(handle: string): Promise<Registrant>;
   /** Bez imienia, nazwiska i firmy — tych rejestrator nie zmienia (to cesja, nie korekta danych). */
   updateRegistrant(handle: string, r: Registrant): Promise<void>;
-  domainInfo(externalId: string): Promise<{ ownerHandle: string | null; locked: boolean | null }>;
+  /** state: stan domeny u rejestratora — po nim domykamy transfer (aktywna = przeniesiona do nas). */
+  domainInfo(externalId: string): Promise<DomainInfo>;
   /** A-15 */
   setTransferLock(externalId: string, locked: boolean): Promise<void>;
   /** A-09 — kod do transferu domeny do innego rejestratora. */
   authCode(externalId: string): Promise<string>;
   /** Uchwyt operatora (admin/tech/billing). Abonent nim NIE jest — patrz A-13. */
   readonly operatorHandle?: string;
+}
+
+export interface DomainInfo {
+  ownerHandle: string | null;
+  locked: boolean | null;
+  state?: 'active' | 'pending' | 'failed' | null;
+  expiresAt?: string | null;
 }
 
 export interface Registrant {
@@ -146,7 +154,7 @@ class HttpRegistrarProvider implements RegistrarProvider {
     await this.request(`/contacts/${encodeURIComponent(handle)}`, { method: 'PUT', body: JSON.stringify(r) });
   }
 
-  domainInfo(externalId: string): Promise<{ ownerHandle: string | null; locked: boolean | null }> {
+  domainInfo(externalId: string): Promise<DomainInfo> {
     return this.request(`/domains/${encodeURIComponent(externalId)}`, { method: 'GET' });
   }
 
@@ -375,10 +383,16 @@ class OpenProviderRegistrarProvider implements RegistrarProvider {
     await this.request(`/v1/customers/${encodeURIComponent(handle)}`, opKontakt(r), 'PUT');
   }
 
-  async domainInfo(externalId: string): Promise<{ ownerHandle: string | null; locked: boolean | null }> {
-    const res = await this.request<{ data: { owner_handle?: string; is_locked?: boolean } }>(
-      `/v1/domains/${encodeURIComponent(externalId)}`, null, 'GET');
-    return { ownerHandle: res.data?.owner_handle ?? null, locked: res.data?.is_locked ?? null };
+  async domainInfo(externalId: string): Promise<DomainInfo> {
+    const res = await this.request<{
+      data: { owner_handle?: string; is_locked?: boolean; status?: string; expiration_date?: string };
+    }>(`/v1/domains/${encodeURIComponent(externalId)}`, null, 'GET');
+    return {
+      ownerHandle: res.data?.owner_handle ?? null,
+      locked: res.data?.is_locked ?? null,
+      state: stanOpenProvider(res.data?.status),
+      expiresAt: res.data?.expiration_date ?? null,
+    };
   }
 
   async setTransferLock(externalId: string, locked: boolean): Promise<void> {
@@ -441,6 +455,19 @@ interface OpReachableResult {
   status: string;
   is_premium?: boolean;
   price?: { reseller?: OpPrice; product?: OpPrice };
+}
+
+/**
+ * Kody stanu domeny OpenProvidera: ACT — aktywna u nas; FAI — nieudana, DEL — usunięta;
+ * REQ/PEN/SCH i inne — w toku. Nieznany kod = w toku: lepiej poczekać niż zwrócić pieniądze za
+ * transfer, który się udał.
+ */
+export function stanOpenProvider(kod?: string | null): DomainInfo['state'] {
+  const k = (kod ?? '').toUpperCase();
+  if (!k) return null;
+  if (k === 'ACT') return 'active';
+  if (k === 'FAI' || k === 'DEL') return 'failed';
+  return 'pending';
 }
 
 function splitDomain(domain: string): { name: string; extension: string } {
