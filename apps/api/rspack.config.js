@@ -8,8 +8,15 @@
  * („Can't resolve '../build/Release/cpufeatures.node'”). Poza paczką ssh2 działa
  * na czystym JS z node_modules obrazu. Strażnik: src/test/natywne-poza-paczka.spec.ts.
  */
+const path = require('path');
+const nodeExternals = require('webpack-node-externals');
+
 const NATYWNE = ['bcrypt', 'ssh2'];
 module.exports = function (options) {
+  // Obraz Dockera instaluje zależności z nodeLinker: hoisted — wszystko leży w /workspace/node_modules,
+  // a apps/api/node_modules jest puste. Domyślne externals Nesta patrzą tylko tam, więc bez tego
+  // do paczki trafiało całe node_modules (z NestJS 12: „Can't resolve '@nestjs/websockets/…'”).
+  const zKorzenia = nodeExternals({ additionalModuleDirs: [path.resolve(__dirname, '../../node_modules')] });
   const prev = options.externals;
   const bcryptExternal = ({ request }, callback) => {
     if (NATYWNE.includes(request)) {
@@ -18,15 +25,7 @@ module.exports = function (options) {
     callback();
   };
 
-  if (Array.isArray(prev)) {
-    options.externals = [...prev, bcryptExternal];
-  } else if (typeof prev === 'function') {
-    options.externals = [prev, bcryptExternal];
-  } else if (prev != null) {
-    options.externals = [prev, bcryptExternal];
-  } else {
-    options.externals = [bcryptExternal];
-  }
+  options.externals = [bcryptExternal, zKorzenia].concat(prev ?? []);
 
   return options;
 };
