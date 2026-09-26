@@ -65,3 +65,4 @@ PB-34,KOD,"makieta do akceptacji, potem port ekranów"
 PB-35,PRODUKCJA,pierwszy wtorek po wdrożeniu: fala ruszyła sama o 4:00
 PB-37,KOD,"auto-wiadomości, podpowiedzi, oceny"
 PB-38,KOD,"fale 3–4: Postgres 18 (procedura z kopią), Redis 8, monitoring, Dependabot + strażnik EOL; GraphQL 17 razem z Payloadem"
+PB-39,PRODUKCJA,deploy obrazu API (ESM) i przejście głównych ścieżek po wdrożeniu
