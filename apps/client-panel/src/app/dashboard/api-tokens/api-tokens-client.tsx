@@ -183,6 +183,14 @@ export function ApiTokensClient() {
           Zapis: <code>POST /services/:id/dns</code> i <code>/services/:id/dns/delete</code> z polami domain, name, type, value (dns:write);{' '}
           <code>POST /services/:id/deploy</code> z polem domain (i opcjonalnie dir) — pobiera zmiany z repozytorium Git (deploy:write). Webhooki (zdarzenia wysyłane na Twój adres) ustawisz niżej.
         </p>
+        <a
+          href="https://pomoc.verris.pl/a/publiczne-api"
+          target="_blank"
+          rel="noopener"
+          className="mt-2 inline-block text-xs font-semibold text-emerald-400 hover:underline"
+        >
+          Pełna dokumentacja API — pola, błędy, limity, podpis webhooków ↗
+        </a>
       </section>
     </div>
   );

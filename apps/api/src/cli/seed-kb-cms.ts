@@ -43,6 +43,7 @@ const CATEGORIES: Cat[] = [
   { slug: 'rozliczenia', name: 'Rozliczenia i płatności', description: 'Portfel, faktury, odnowienia i autoskalowanie.', order: 10 },
   { slug: 'migracja', name: 'Migracja do Verris', description: 'Przeniesienie konta z cPanel, Plesk i DirectAdmin.', order: 11 },
   { slug: 'wydajnosc', name: 'Wydajność i optymalizacja', description: 'Cache, kompresja, Core Web Vitals i szybkość strony.', order: 12 },
+  { slug: 'api-integracje', name: 'API i integracje', description: 'Tokeny API, publiczne API v1 i webhooki.', order: 13 },
 ];
 
 const A = (
@@ -918,6 +919,75 @@ Zmierz stronę w PageSpeed Insights lub w narzędziu Lighthouse w przeglądarce 
         { q: 'Czy Core Web Vitals wpływają na pozycję w Google?', a: 'Tak, są jednym z sygnałów rankingowych związanych z jakością strony. Nie zastąpią dobrej treści, ale przy porównywalnych stronach mogą przechylić szalę.' },
         { q: 'Jak zmierzyć Core Web Vitals mojej strony?', a: 'Użyj PageSpeed Insights (dane z pola i laboratorium) lub zakładki Lighthouse w narzędziach deweloperskich przeglądarki. Poprawiaj najpierw najsłabszy wskaźnik.' },
       ], related: ['przyspieszanie-strony', 'optymalizacja-wordpress'] }),
+
+  // ---------------- API i integracje (L-07 — pełny opis publicznego API v1)
+  A('api-integracje', 'publiczne-api', 'Publiczne API Verris (v1)',
+    'Tokeny, uprawnienia, wszystkie endpointy, limity i webhooki — dokumentacja API v1.',
+    `## Do czego służy
+API pozwala odczytać usługi, portfel i faktury oraz zarządzać rekordami DNS i wdrożeniami z Gita — z własnych skryptów, CI/CD albo Terraform. Działa na koncie klienta i widzi tylko jego dane.
+
+## Token
+Token utworzysz w panelu: **API i integracje → Nowy token**. Wybierasz uprawnienia i opcjonalnie datę wygaśnięcia. Token pokazujemy tylko raz — zapisz go w menedżerze haseł. Unieważnisz go w tym samym miejscu.
+
+Każde żądanie wysyłasz z nagłówkiem:
+
+\`\`\`
+Authorization: Bearer vrs_live_…
+\`\`\`
+
+Adres bazowy: **https://api.verris.pl/api/v1**
+
+## Uprawnienia (zakresy)
+- **services:read** — lista i szczegóły usług, dane konta
+- **billing:read** — saldo portfela
+- **invoices:read** — faktury
+- **dns:read** — odczyt rekordów DNS
+- **dns:write** — dodawanie i usuwanie rekordów DNS
+- **deploy:write** — wdrożenie z repozytorium Git
+
+Subkonto nada tokenowi tylko te zakresy, na które pozwalają mu jego uprawnienia w panelu.
+
+## Odczyt
+- **GET /me** (services:read) — id, e-mail, imię, nazwisko, data założenia konta
+- **GET /services** (services:read) — lista usług: id, serviceTag, status, interval, product, plan, domain, currentPeriodEnd, createdAt (do 200 najnowszych)
+- **GET /services/:id** (services:read) — jak wyżej oraz price, currency, currentPeriodStart
+- **GET /billing/wallet** (billing:read) — balance, currency
+- **GET /invoices** (invoices:read) — id, number, status, amount, currency, issuedAt, createdAt (do 100 najnowszych)
+- **GET /services/:id/dns?domain=** (dns:read) — rekordy domeny: id, name, type, value, ttl; bez parametru — domena główna usługi
+- **GET /services/:id/deploy?domain=** (deploy:write) — stan wdrożenia z Gita dla domeny
+
+Daty są w formacie ISO 8601 (UTC), kwoty jako liczby.
+
+## Zapis
+- **POST /services/:id/dns** (dns:write) — pola: domain, name, type (A, AAAA, CNAME, MX, TXT, SRV, NS, CAA), value, opcjonalnie ttl (60–86400)
+- **POST /services/:id/dns/delete** (dns:write) — pola: domain, name, type, value
+- **POST /services/:id/deploy** (deploy:write) — pola: domain, opcjonalnie dir; pobiera zmiany z repozytorium Git
+
+Przykład — rekord TXT do weryfikacji DNS-01:
+
+\`\`\`
+curl -X POST https://api.verris.pl/api/v1/services/ID_USLUGI/dns \\
+  -H "Authorization: Bearer vrs_live_…" \\
+  -H "Content-Type: application/json" \\
+  -d '{"domain":"twojadomena.pl","name":"_acme-challenge","type":"TXT","value":"…"}'
+\`\`\`
+
+## Błędy i limity
+- **401** — brak tokenu, token nieprawidłowy, wygasły lub unieważniony, konto zablokowane
+- **403** — token nie ma wymaganego uprawnienia
+- **404** — usługa nie istnieje albo nie należy do Twojego konta
+- **429** — za dużo żądań (limit to 300 na minutę)
+
+## Webhooki
+W **API i integracje → Webhooki** podajesz adres HTTPS i wybierasz zdarzenia: task.completed, task.failed, invoice.issued, subscription.renewed, subscription.past_due. Każde wywołanie to POST z treścią JSON (id, event, createdAt, payload) i nagłówkami **x-verris-event** oraz **x-verris-signature** — HMAC-SHA256 treści z Twoim sekretem. Sprawdzaj podpis przed przetworzeniem. Nieudane dostarczenie ponawiamy do 5 razy z rosnącym odstępem; przycisk „Wyślij test” wysyła zdarzenie ping.
+
+## Czego API v1 nie robi
+Zamawianie i opłacanie usług, rejestracja domen i zakładanie skrzynek pocztowych są dostępne tylko w panelu.`,
+    { t: 'Publiczne API Verris — tokeny, endpointy, DNS, webhooki', d: 'Dokumentacja publicznego API Verris v1: token, zakresy uprawnień, odczyt usług, portfela i faktur, rekordy DNS, wdrożenie z Gita, limity i webhooki z podpisem HMAC.',
+      faq: [
+        { q: 'Czy mogę ustawić rekordy DNS z Terraform albo certbota?', a: 'Tak. Utwórz token z uprawnieniem dns:write i wołaj POST /services/:id/dns oraz /dns/delete. To wystarcza m.in. do weryfikacji DNS-01 przy certyfikatach wildcard.' },
+        { q: 'Jak sprawdzić, że webhook naprawdę wysłał Verris?', a: 'Policz HMAC-SHA256 z surowej treści żądania kluczem-sekretem webhooka i porównaj z nagłówkiem x-verris-signature. Jeśli się nie zgadza, odrzuć żądanie.' },
+      ], related: ['dwuskladnikowe-logowanie-passkey'] }),
 ];
 
 function toPlain(md: string): string {
