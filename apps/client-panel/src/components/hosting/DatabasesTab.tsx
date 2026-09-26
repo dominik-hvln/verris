@@ -139,7 +139,7 @@ export default function DatabasesTab({ serviceId }: Props) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center gap-2 py-16 text-sm text-neutral-400">
+      <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
         <Loader2 className="h-5 w-5 animate-spin" />
         Wczytywanie baz…
       </div>
@@ -164,7 +164,7 @@ export default function DatabasesTab({ serviceId }: Props) {
             size="sm"
             disabled={pmaOpening}
             onClick={() => void openPhpMyAdmin()}
-            className="h-8 gap-1.5 border-white/15 bg-white/[0.04] text-white hover:bg-white/10 text-xs"
+            className="h-8 gap-1.5 border-line-strong bg-raised text-foreground hover:bg-raised text-xs"
             title="Otwiera phpMyAdmin bez logowania (jednorazowy link)"
           >
             {pmaOpening ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
@@ -180,7 +180,7 @@ export default function DatabasesTab({ serviceId }: Props) {
               setRefreshing(true);
               void load();
             }}
-            className="h-8 gap-1.5 border-white/15 bg-white/[0.04] text-white hover:bg-white/10 text-xs"
+            className="h-8 gap-1.5 border-line-strong bg-raised text-foreground hover:bg-raised text-xs"
           >
             {refreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
             Odśwież
@@ -191,62 +191,62 @@ export default function DatabasesTab({ serviceId }: Props) {
       {/* Create form */}
       <form
         onSubmit={onCreate}
-        className="mb-5 rounded-xl border border-white/10 bg-white/[0.03] p-4"
+        className="mb-5 rounded-[10px] border border-line bg-raised p-4"
       >
         <div className="mb-3 flex items-center justify-between gap-2">
-          <p className="text-sm font-semibold text-white">Nowa baza danych</p>
+          <p className="text-sm font-semibold text-foreground">Nowa baza danych</p>
           {engine ? (
             <span
-              className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[11px] text-neutral-300"
+              className="inline-flex items-center gap-1.5 rounded-full border border-line bg-background px-2.5 py-1 text-[11px] text-[color:var(--verris-body)]"
               title="Silnik bazy danych na Twoim serwerze"
             >
-              <Database className="h-3 w-3 text-emerald-400" />
-              Silnik: <span className="font-mono text-white">{engine.name} {engine.version}</span>
+              <Database className="h-3 w-3 text-data-hi" />
+              Silnik: <span className="font-mono text-foreground">{engine.name} {engine.version}</span>
             </span>
           ) : null}
         </div>
         <div className="grid gap-3 sm:grid-cols-3">
           <label className="space-y-1">
-            <span className="text-xs text-neutral-400">Nazwa bazy</span>
+            <span className="text-xs text-muted-foreground">Nazwa bazy</span>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="np. sklep"
               maxLength={16}
-              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-white/30"
+              className="w-full rounded-[7px] border border-line bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-data"
             />
           </label>
           <label className="space-y-1">
-            <span className="text-xs text-neutral-400">Użytkownik</span>
+            <span className="text-xs text-muted-foreground">Użytkownik</span>
             <input
               value={user}
               onChange={(e) => setUser(e.target.value)}
               placeholder="np. sklep_usr"
               maxLength={16}
-              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-white/30"
+              className="w-full rounded-[7px] border border-line bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-data"
             />
           </label>
           <label className="space-y-1">
-            <span className="text-xs text-neutral-400">Hasło</span>
+            <span className="text-xs text-muted-foreground">Hasło</span>
             <div className="flex gap-1.5">
               <input
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="min. 8 znaków"
-                className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-sm text-white outline-none focus:border-white/30"
+                className="w-full rounded-[7px] border border-line bg-background px-3 py-2 font-mono text-sm text-foreground outline-none focus:border-data"
               />
               <button
                 type="button"
                 title="Wygeneruj hasło"
                 onClick={() => setPassword(genPassword())}
-                className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-2.5 text-neutral-300 hover:bg-white/10"
+                className="shrink-0 rounded-[7px] border border-line bg-raised px-2.5 text-[color:var(--verris-body)] hover:bg-raised"
               >
                 <KeyRound className="h-4 w-4" />
               </button>
             </div>
           </label>
         </div>
-        <p className="mt-2 text-xs text-neutral-500">
+        <p className="mt-2 text-xs text-muted-foreground">
           Do nazwy bazy i użytkownika dodamy prefiks konta (np. <span className="font-mono">user_sklep</span>).
         </p>
         <div className="mt-3 flex justify-end">
@@ -254,7 +254,7 @@ export default function DatabasesTab({ serviceId }: Props) {
             type="submit"
             size="sm"
             disabled={creating || !name.trim() || !user.trim() || password.length < 8}
-            className="h-8 gap-1.5 bg-white text-black hover:bg-neutral-200 text-xs"
+            className="h-8 gap-1.5 bg-primary text-primary-foreground font-semibold hover:bg-data-hi text-xs"
           >
             {creating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
             Utwórz bazę
@@ -263,32 +263,32 @@ export default function DatabasesTab({ serviceId }: Props) {
       </form>
 
       {error ? (
-        <div className="mb-3 flex items-start gap-2 rounded-lg border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-xs text-rose-100">
+        <div className="mb-3 flex items-start gap-2 rounded-[7px] border border-crit/30 bg-crit/12 px-3 py-2 text-xs text-crit">
           <AlertCircle className="h-4 w-4 shrink-0" />
           {error}
         </div>
       ) : null}
 
       {fetchError ? (
-        <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+        <div className="mb-3 flex items-start gap-2 rounded-[7px] border border-warn/30 bg-warn-soft px-3 py-2 text-xs text-warn">
           <AlertCircle className="h-4 w-4 shrink-0" />
           {hostingFetchErrorMessage(fetchError)}
         </div>
       ) : null}
 
       {databases.length === 0 && !fetchError ? (
-        <p className="rounded-xl border border-white/5 bg-[#050505] px-3 py-8 text-center text-xs text-neutral-500">
+        <p className="rounded-[10px] border border-line bg-card px-3 py-8 text-center text-xs text-muted-foreground">
           Brak baz — utwórz pierwszą powyżej.
         </p>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-white/5 bg-[#050505]">
+        <div className="overflow-hidden rounded-[10px] border border-line bg-card">
           {databases.map((db) => (
             <div
               key={db.name}
-              className="border-b border-white/5 px-4 py-2.5 last:border-0"
+              className="border-b border-line px-4 py-2.5 last:border-0"
             >
               <div className="flex items-center justify-between gap-3">
-              <span className="min-w-0 flex-1 break-all font-mono text-sm text-white" title={db.name}>
+              <span className="min-w-0 flex-1 break-all font-mono text-sm text-foreground" title={db.name}>
                 {db.name}
               </span>
               <div className="flex shrink-0 items-center gap-3">
@@ -296,7 +296,7 @@ export default function DatabasesTab({ serviceId }: Props) {
                   type="button"
                   onClick={() => void openPhpMyAdmin()}
                   disabled={pmaOpening}
-                  className="text-xs text-neutral-400 hover:text-white disabled:opacity-50"
+                  className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
                 >
                   phpMyAdmin →
                 </button>
@@ -305,7 +305,7 @@ export default function DatabasesTab({ serviceId }: Props) {
                   title="Usuń bazę"
                   disabled={deleting === db.name}
                   onClick={() => void onDelete(db.name)}
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-white/5 text-rose-300 hover:bg-rose-500/10 disabled:opacity-50"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-line bg-raised text-crit hover:bg-crit/12 disabled:opacity-50"
                 >
                   {deleting === db.name ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

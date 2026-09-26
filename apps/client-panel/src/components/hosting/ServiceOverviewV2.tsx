@@ -623,7 +623,7 @@ function AssistantBubble({
   return (
     <section aria-label="Asystent">
       <SectionHead title="Asystent" />
-      <div className="v2-comet relative rounded-xl border border-primary/30 bg-card p-4 shadow-[0_0_0_1px_rgba(52,229,160,0.08),0_18px_40px_-22px_rgba(0,0,0,0.8)]" style={comet('b', 10, -6, 0.8)}>
+      <div className="v2-comet relative rounded-[10px] border border-primary/30 bg-card p-4 shadow-[0_0_0_1px_rgba(52,229,160,0.08),0_18px_40px_-22px_rgba(0,0,0,0.8)]" style={comet('b', 10, -6, 0.8)}>
         <Label className="mb-2">{first ? 'zauważyłem' : 'na dziś'}</Label>
         {first ? (
           <>

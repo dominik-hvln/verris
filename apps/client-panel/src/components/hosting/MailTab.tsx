@@ -229,7 +229,7 @@ export default function MailTab({ serviceId }: Props) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center gap-2 py-16 text-sm text-neutral-400">
+      <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
         <Loader2 className="h-5 w-5 animate-spin" />
         Wczytywanie poczty…
       </div>
@@ -252,7 +252,7 @@ export default function MailTab({ serviceId }: Props) {
         <>
           <Link
             href={`/dashboard/migrations?serviceId=${encodeURIComponent(serviceId)}&poczta=1`}
-            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-white/15 bg-white/[0.04] px-3 text-xs text-white hover:bg-white/10"
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-line-strong bg-raised px-3 text-xs text-foreground hover:bg-raised"
             title="Skopiujemy wiadomości ze skrzynki u poprzedniego dostawcy (IMAP) do skrzynki na tym koncie"
           >
             Przenieś pocztę z innego serwera
@@ -263,7 +263,7 @@ export default function MailTab({ serviceId }: Props) {
             size="sm"
             disabled={ssoOpening}
             onClick={() => void openWebmailSso()}
-            className="h-8 gap-1.5 border-white/15 bg-white/[0.04] text-white hover:bg-white/10 text-xs"
+            className="h-8 gap-1.5 border-line-strong bg-raised text-foreground hover:bg-raised text-xs"
             title="Loguje Cię automatycznie do panelu poczty (jednorazowy link); przy skrzynce klikniesz webmail bez hasła"
           >
             {ssoOpening ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
@@ -279,7 +279,7 @@ export default function MailTab({ serviceId }: Props) {
               setRefreshing(true);
               void load();
             }}
-            className="h-8 gap-1.5 border-white/15 bg-white/[0.04] text-white hover:bg-white/10 text-xs"
+            className="h-8 gap-1.5 border-line-strong bg-raised text-foreground hover:bg-raised text-xs"
           >
             {refreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
             Odśwież
@@ -288,14 +288,14 @@ export default function MailTab({ serviceId }: Props) {
       }
     >
       {error ? (
-        <div className="mb-3 flex items-start gap-2 rounded-lg border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-xs text-rose-100">
+        <div className="mb-3 flex items-start gap-2 rounded-[7px] border border-crit/30 bg-crit/12 px-3 py-2 text-xs text-crit">
           <AlertCircle className="h-4 w-4 shrink-0" />
           {error}
         </div>
       ) : null}
 
       {fetchError ? (
-        <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+        <div className="mb-3 flex items-start gap-2 rounded-[7px] border border-warn/30 bg-warn-soft px-3 py-2 text-xs text-warn">
           <AlertCircle className="h-4 w-4 shrink-0" />
           {hostingFetchErrorMessage(fetchError)}
         </div>
@@ -347,19 +347,19 @@ export default function MailTab({ serviceId }: Props) {
       </div>
 
       {/* Create mailbox */}
-      <form onSubmit={onCreate} className="mb-5 rounded-xl border border-white/10 bg-white/[0.03] p-4">
-        <p className="mb-3 text-sm font-semibold text-white">Nowa skrzynka e-mail</p>
+      <form onSubmit={onCreate} className="mb-5 rounded-[10px] border border-line bg-raised p-4">
+        <p className="mb-3 text-sm font-semibold text-foreground">Nowa skrzynka e-mail</p>
         <div className="grid gap-3 sm:grid-cols-2">
           <label className="space-y-1">
-            <span className="text-xs text-neutral-400">Adres</span>
+            <span className="text-xs text-muted-foreground">Adres</span>
             <div className="flex items-stretch gap-1.5">
               <input
                 value={localPart}
                 onChange={(e) => setLocalPart(e.target.value)}
                 placeholder="kontakt"
-                className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-white/30"
+                className="w-full rounded-[7px] border border-line bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-data"
               />
-              <span className="flex items-center text-sm text-neutral-500">@</span>
+              <span className="flex items-center text-sm text-muted-foreground">@</span>
               <Select
                 value={domain}
                 onChange={setDomain}
@@ -372,19 +372,19 @@ export default function MailTab({ serviceId }: Props) {
             </div>
           </label>
           <label className="space-y-1">
-            <span className="text-xs text-neutral-400">Hasło</span>
+            <span className="text-xs text-muted-foreground">Hasło</span>
             <div className="flex gap-1.5">
               <input
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="min. 8 znaków"
-                className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-sm text-white outline-none focus:border-white/30"
+                className="w-full rounded-[7px] border border-line bg-background px-3 py-2 font-mono text-sm text-foreground outline-none focus:border-data"
               />
               <button
                 type="button"
                 title="Wygeneruj hasło"
                 onClick={() => setPassword(genPassword())}
-                className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-2.5 text-neutral-300 hover:bg-white/10"
+                className="shrink-0 rounded-[7px] border border-line bg-raised px-2.5 text-[color:var(--verris-body)] hover:bg-raised"
               >
                 <KeyRound className="h-4 w-4" />
               </button>
@@ -393,18 +393,18 @@ export default function MailTab({ serviceId }: Props) {
         </div>
         <div className="mt-3 flex items-end justify-between gap-3">
           <label className="space-y-1">
-            <span className="text-xs text-neutral-400">Limit (MB)</span>
+            <span className="text-xs text-muted-foreground">Limit (MB)</span>
             <input
               value={quota}
               onChange={(e) => setQuota(e.target.value.replace(/\D/g, ''))}
-              className="w-28 rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-white/30"
+              className="w-28 rounded-[7px] border border-line bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-data"
             />
           </label>
           <Button
             type="submit"
             size="sm"
             disabled={creating || !localPart.trim() || !domain || password.length < 8}
-            className="h-8 gap-1.5 bg-white text-black hover:bg-neutral-200 text-xs"
+            className="h-8 gap-1.5 bg-primary text-primary-foreground font-semibold hover:bg-data-hi text-xs"
           >
             {creating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
             Utwórz skrzynkę
@@ -413,12 +413,12 @@ export default function MailTab({ serviceId }: Props) {
       </form>
 
       {rows.length === 0 && !fetchError ? (
-        <p className="rounded-xl border border-white/5 bg-[#050505] px-3 py-8 text-center text-xs text-neutral-500">
+        <p className="rounded-[10px] border border-line bg-card px-3 py-8 text-center text-xs text-muted-foreground">
           Brak skrzynek — utwórz pierwszą powyżej.
         </p>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-white/5 bg-[#050505]">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/5 px-4 py-2 text-xs text-neutral-400">
+        <div className="overflow-hidden rounded-[10px] border border-line bg-card">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line px-4 py-2 text-xs text-muted-foreground">
             <span>
               {zajetosc?.policzono
                 ? `Zajętość skrzynek z ${new Date(zajetosc.policzono).toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}.`
@@ -434,10 +434,10 @@ export default function MailTab({ serviceId }: Props) {
             </button>
           </div>
           {rows.map((box) => (
-            <div key={box.id} className="border-b border-white/5 last:border-0">
+            <div key={box.id} className="border-b border-line last:border-0">
               <div className="flex items-center justify-between gap-3 px-4 py-2.5">
-                <span className="inline-flex min-w-0 flex-1 items-center gap-2 break-all text-sm text-white">
-                  <Mail className="h-3.5 w-3.5 shrink-0 text-neutral-500" />
+                <span className="inline-flex min-w-0 flex-1 items-center gap-2 break-all text-sm text-foreground">
+                  <Mail className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                   {box.email}
                 </span>
                 <div className="flex shrink-0 items-center gap-3">
@@ -449,7 +449,7 @@ export default function MailTab({ serviceId }: Props) {
                       setQuotaValue(box.quotaMb != null ? String(box.quotaMb) : '1024');
                       setPwEditing(null);
                     }}
-                    className="whitespace-nowrap text-xs text-neutral-400 underline decoration-dotted underline-offset-2 hover:text-white"
+                    className="whitespace-nowrap text-xs text-muted-foreground underline decoration-dotted underline-offset-2 hover:text-foreground"
                   >
                     {uzyteMb(box.email) !== null ? `${uzyteMb(box.email)!.toLocaleString('pl-PL')} MB z ` : ''}
                     {box.quotaMb != null ? `${box.quotaMb} MB` : 'bez limitu'}
@@ -458,7 +458,7 @@ export default function MailTab({ serviceId }: Props) {
                     type="button"
                     onClick={() => void openWebmailSso()}
                     disabled={ssoOpening}
-                    className="text-xs text-neutral-400 hover:text-white disabled:opacity-50"
+                    className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
                   >
                     Webmail →
                   </button>
@@ -470,7 +470,7 @@ export default function MailTab({ serviceId }: Props) {
                       setPwValue('');
                       setQuotaEditing(null);
                     }}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-white/5 text-neutral-300 hover:bg-white/10"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-line bg-raised text-[color:var(--verris-body)] hover:bg-raised"
                   >
                     <KeyRound className="h-4 w-4" />
                   </button>
@@ -479,7 +479,7 @@ export default function MailTab({ serviceId }: Props) {
                     title="Usuń skrzynkę"
                     disabled={deleting === box.email}
                     onClick={() => void onDelete(box.email)}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-white/5 text-rose-300 hover:bg-rose-500/10 disabled:opacity-50"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-line bg-raised text-crit hover:bg-crit/12 disabled:opacity-50"
                   >
                     {deleting === box.email ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
@@ -492,12 +492,12 @@ export default function MailTab({ serviceId }: Props) {
               {quotaEditing === box.email ? (
                 <div className="flex flex-wrap items-end gap-2 px-4 pb-3">
                   <label className="space-y-1">
-                    <span className="text-[11px] text-neutral-400">Nowy rozmiar (MB)</span>
+                    <span className="text-[11px] text-muted-foreground">Nowy rozmiar (MB)</span>
                     <input
                       value={quotaValue}
                       inputMode="numeric"
                       onChange={(e) => setQuotaValue(e.target.value.replace(/\D/g, ''))}
-                      className="w-32 rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-white/30"
+                      className="w-32 rounded-[7px] border border-line bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-data"
                     />
                   </label>
                   <Button
@@ -505,30 +505,30 @@ export default function MailTab({ serviceId }: Props) {
                     size="sm"
                     disabled={quotaSaving || !quotaValue}
                     onClick={() => void onChangeQuota(box.email)}
-                    className="h-9 gap-1.5 bg-white text-black hover:bg-neutral-200 text-xs"
+                    className="h-9 gap-1.5 bg-primary text-primary-foreground font-semibold hover:bg-data-hi text-xs"
                   >
                     {quotaSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
                     Zapisz rozmiar
                   </Button>
-                  <span className="basis-full text-[11px] text-neutral-500">Poczta w skrzynce zostaje. Zmniejszenie poniżej zajętego miejsca zablokuje odbiór nowych wiadomości.</span>
+                  <span className="basis-full text-[11px] text-muted-foreground">Poczta w skrzynce zostaje. Zmniejszenie poniżej zajętego miejsca zablokuje odbiór nowych wiadomości.</span>
                 </div>
               ) : null}
               {pwEditing === box.email ? (
                 <div className="flex items-end gap-2 px-4 pb-3">
                   <label className="flex-1 space-y-1">
-                    <span className="text-[11px] text-neutral-400">Nowe hasło (min. 8 znaków)</span>
+                    <span className="text-[11px] text-muted-foreground">Nowe hasło (min. 8 znaków)</span>
                     <div className="flex gap-1.5">
                       <input
                         value={pwValue}
                         onChange={(e) => setPwValue(e.target.value)}
                         placeholder="nowe hasło"
-                        className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-sm text-white outline-none focus:border-white/30"
+                        className="w-full rounded-[7px] border border-line bg-background px-3 py-2 font-mono text-sm text-foreground outline-none focus:border-data"
                       />
                       <button
                         type="button"
                         title="Wygeneruj hasło"
                         onClick={() => setPwValue(genPassword())}
-                        className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-2.5 text-neutral-300 hover:bg-white/10"
+                        className="shrink-0 rounded-[7px] border border-line bg-raised px-2.5 text-[color:var(--verris-body)] hover:bg-raised"
                       >
                         <KeyRound className="h-4 w-4" />
                       </button>
@@ -539,7 +539,7 @@ export default function MailTab({ serviceId }: Props) {
                     size="sm"
                     disabled={pwSaving || pwValue.length < 8}
                     onClick={() => void onChangePassword(box.email)}
-                    className="h-9 gap-1.5 bg-white text-black hover:bg-neutral-200 text-xs"
+                    className="h-9 gap-1.5 bg-primary text-primary-foreground font-semibold hover:bg-data-hi text-xs"
                   >
                     {pwSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
                     Zapisz hasło
@@ -557,7 +557,7 @@ export default function MailTab({ serviceId }: Props) {
 
       <MailLogPanel serviceId={serviceId} />
 
-      <p className="mt-3 flex items-start gap-2 text-[11px] text-neutral-500">
+      <p className="mt-3 flex items-start gap-2 text-[11px] text-muted-foreground">
         <Server className="h-3.5 w-3.5 shrink-0 mt-0.5" />
         Skrzynki tworzysz i usuwasz tutaj. Webmail (jeśli włączony na węźle) i zaawansowane opcje są dostępne w
         panelu hostingu.

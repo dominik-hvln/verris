@@ -47,30 +47,30 @@ export default function DbAccessHosts({ serviceId, db }: { serviceId: string; db
 
   return (
     <div className="mt-1">
-      <button onClick={toggle} className="inline-flex items-center gap-1 text-[11px] text-neutral-400 hover:text-emerald-300">
+      <button onClick={toggle} className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-data-hi">
         <Globe2 className="h-3 w-3" /> {open ? 'Ukryj zdalny dostęp' : 'Zdalny dostęp (MySQL)'}
       </button>
       {open && (
-        <div className="mt-2 rounded-lg border border-white/10 bg-black/30 p-3">
-          <p className="mb-2 text-[11px] text-neutral-500">Zezwól na połączenia z bazą spoza serwera (np. z aplikacji). Użyj <code>%</code> dla wszystkich adresów lub podaj konkretne IP.</p>
+        <div className="mt-2 rounded-[7px] border border-line bg-background p-3">
+          <p className="mb-2 text-[11px] text-muted-foreground">Zezwól na połączenia z bazą spoza serwera (np. z aplikacji). Użyj <code>%</code> dla wszystkich adresów lub podaj konkretne IP.</p>
           <form onSubmit={add} className="flex gap-2">
-            <input value={host} onChange={(e) => setHost(e.target.value)} placeholder="np. 203.0.113.5 lub %" className="flex-1 rounded-lg border border-white/10 bg-black/40 px-2.5 py-1.5 text-sm text-white placeholder:text-neutral-500" />
-            <button type="submit" disabled={busy} className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-40">
+            <input value={host} onChange={(e) => setHost(e.target.value)} placeholder="np. 203.0.113.5 lub %" className="flex-1 rounded-[7px] border border-line bg-background px-2.5 py-1.5 text-sm text-foreground placeholder:text-muted-foreground" />
+            <button type="submit" disabled={busy} className="inline-flex items-center gap-1 rounded-[7px] bg-primary text-primary-foreground font-semibold px-2.5 py-1.5 text-xs hover:bg-data-hi disabled:opacity-40">
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} Dodaj
             </button>
           </form>
           {loading ? (
-            <p className="mt-2 text-[11px] text-neutral-500"><Loader2 className="inline h-3 w-3 animate-spin" /> Wczytywanie…</p>
+            <p className="mt-2 text-[11px] text-muted-foreground"><Loader2 className="inline h-3 w-3 animate-spin" /> Wczytywanie…</p>
           ) : err ? (
-            <p className="mt-2 text-[11px] text-amber-300/80">{err}</p>
+            <p className="mt-2 text-[11px] text-warn">{err}</p>
           ) : hosts.length === 0 ? (
-            <p className="mt-2 text-[11px] text-neutral-500">Brak dodatkowych hostów — baza dostępna tylko lokalnie.</p>
+            <p className="mt-2 text-[11px] text-muted-foreground">Brak dodatkowych hostów — baza dostępna tylko lokalnie.</p>
           ) : (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {hosts.map((h) => (
-                <span key={h} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-black/40 px-2 py-1 text-xs text-white">
+                <span key={h} className="inline-flex items-center gap-1.5 rounded-[7px] border border-line bg-background px-2 py-1 text-xs text-foreground">
                   <span className="font-mono">{h}</span>
-                  <button onClick={() => remove(h)} disabled={del === h} className="text-neutral-500 hover:text-rose-300">
+                  <button onClick={() => remove(h)} disabled={del === h} className="text-muted-foreground hover:text-crit">
                     {del === h ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
                   </button>
                 </span>

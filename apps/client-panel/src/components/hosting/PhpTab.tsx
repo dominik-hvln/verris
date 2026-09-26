@@ -22,13 +22,13 @@ export default function PhpTab({ serviceId }: { serviceId: string }) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center gap-2 py-12 text-sm text-neutral-400">
+      <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" /> Wczytywanie…
       </div>
     );
   }
   if (!status) {
-    return <p className="py-8 text-center text-sm text-neutral-400">Nie udało się wczytać ustawień PHP.</p>;
+    return <p className="py-8 text-center text-sm text-muted-foreground">Nie udało się wczytać ustawień PHP.</p>;
   }
   return (
     <div className="space-y-4">

@@ -106,44 +106,44 @@ export default function FtpTab({ serviceId }: { serviceId: string }) {
           kbQuery: 'konto FTP',
         }}
       />
-      <form onSubmit={onCreate} className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-        <p className="mb-3 text-sm font-semibold text-white">Nowe konto FTP</p>
+      <form onSubmit={onCreate} className="rounded-[10px] border border-line bg-raised p-4">
+        <p className="mb-3 text-sm font-semibold text-foreground">Nowe konto FTP</p>
         <div className="grid gap-3 sm:grid-cols-3">
           <label className="space-y-1">
-            <span className="text-xs text-neutral-400">Użytkownik</span>
+            <span className="text-xs text-muted-foreground">Użytkownik</span>
             <input
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="np. transfer"
-              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-white/30"
+              className="w-full rounded-[7px] border border-line bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-data"
             />
           </label>
           <label className="space-y-1">
-            <span className="text-xs text-neutral-400">Hasło</span>
+            <span className="text-xs text-muted-foreground">Hasło</span>
             <div className="flex gap-1.5">
               <input
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="min. 8 znaków"
-                className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-sm text-white outline-none focus:border-white/30"
+                className="w-full rounded-[7px] border border-line bg-background px-3 py-2 font-mono text-sm text-foreground outline-none focus:border-data"
               />
               <button
                 type="button"
                 title="Wygeneruj hasło"
                 onClick={() => setPassword(genPassword())}
-                className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-2.5 text-neutral-300 hover:bg-white/10"
+                className="shrink-0 rounded-[7px] border border-line bg-raised px-2.5 text-[color:var(--verris-body)] hover:bg-raised"
               >
                 <KeyRound className="h-4 w-4" />
               </button>
             </div>
           </label>
           <label className="space-y-1">
-            <span className="text-xs text-neutral-400">Katalog (opcjonalnie)</span>
+            <span className="text-xs text-muted-foreground">Katalog (opcjonalnie)</span>
             <input
               value={directory}
               onChange={(e) => setDirectory(e.target.value)}
               placeholder="domyślnie katalog domowy"
-              className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none focus:border-white/30"
+              className="w-full rounded-[7px] border border-line bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-data"
             />
           </label>
         </div>
@@ -152,7 +152,7 @@ export default function FtpTab({ serviceId }: { serviceId: string }) {
             type="submit"
             size="sm"
             disabled={creating || !username.trim() || password.length < 8}
-            className="h-8 gap-1.5 bg-white text-black hover:bg-neutral-200 text-xs"
+            className="h-8 gap-1.5 bg-primary text-primary-foreground font-semibold hover:bg-data-hi text-xs"
           >
             {creating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
             Utwórz konto FTP
@@ -161,26 +161,26 @@ export default function FtpTab({ serviceId }: { serviceId: string }) {
       </form>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-10 text-sm text-neutral-400">
+        <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Wczytywanie…
         </div>
       ) : error ? (
-        <p className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-sm text-amber-200/90">
+        <p className="rounded-[10px] border border-warn/30 bg-warn-soft px-3 py-2 text-sm text-warn">
           {hostingFetchErrorMessage(error)}
         </p>
       ) : rows.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 py-10 text-center text-sm text-neutral-500">
+        <div className="flex flex-col items-center gap-2 py-10 text-center text-sm text-muted-foreground">
           <FolderKanban className="h-8 w-8 opacity-20" />
           Brak dodatkowych kont FTP.
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-white/5 bg-[#050505]">
+        <div className="overflow-hidden rounded-[10px] border border-line bg-card">
           {rows.map((r) => (
-            <div key={r.id} className="border-b border-white/5 last:border-0">
+            <div key={r.id} className="border-b border-line last:border-0">
             <div className="flex items-center justify-between gap-3 px-4 py-2.5">
               <div className="min-w-0">
-                <p className="break-all font-mono text-sm text-white">{r.username}</p>
-                <p className="break-all font-mono text-xs text-neutral-500">{r.path}</p>
+                <p className="break-all font-mono text-sm text-foreground">{r.username}</p>
+                <p className="break-all font-mono text-xs text-muted-foreground">{r.path}</p>
               </div>
               <div className="flex shrink-0 items-center gap-1.5">
               <button
@@ -190,7 +190,7 @@ export default function FtpTab({ serviceId }: { serviceId: string }) {
                   setPwFor((cur) => (cur === r.username ? null : r.username));
                   setPwValue('');
                 }}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-white/5 text-neutral-300 hover:bg-white/10"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-line bg-raised text-[color:var(--verris-body)] hover:bg-raised"
               >
                 <KeyRound className="h-4 w-4" />
               </button>
@@ -199,7 +199,7 @@ export default function FtpTab({ serviceId }: { serviceId: string }) {
                 title="Usuń konto FTP"
                 disabled={deleting === r.username}
                 onClick={() => void onDelete(r.username)}
-                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/5 text-rose-300 hover:bg-rose-500/10 disabled:opacity-50"
+                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-line bg-raised text-crit hover:bg-crit/12 disabled:opacity-50"
               >
                 {deleting === r.username ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -212,18 +212,18 @@ export default function FtpTab({ serviceId }: { serviceId: string }) {
             {pwFor === r.username ? (
               <div className="flex flex-wrap items-end gap-2 px-4 pb-3">
                 <label className="min-w-[14rem] flex-1 space-y-1">
-                  <span className="text-[11px] text-neutral-400">Nowe hasło (min. 8 znaków)</span>
+                  <span className="text-[11px] text-muted-foreground">Nowe hasło (min. 8 znaków)</span>
                   <div className="flex gap-1.5">
                     <input
                       value={pwValue}
                       onChange={(e) => setPwValue(e.target.value)}
-                      className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-sm text-white outline-none focus:border-white/30"
+                      className="w-full rounded-[7px] border border-line bg-background px-3 py-2 font-mono text-sm text-foreground outline-none focus:border-data"
                     />
                     <button
                       type="button"
                       title="Wygeneruj hasło"
                       onClick={() => setPwValue(genPassword())}
-                      className="shrink-0 rounded-lg border border-white/10 bg-white/5 px-2.5 text-neutral-300 hover:bg-white/10"
+                      className="shrink-0 rounded-[7px] border border-line bg-raised px-2.5 text-[color:var(--verris-body)] hover:bg-raised"
                     >
                       <KeyRound className="h-4 w-4" />
                     </button>
@@ -234,7 +234,7 @@ export default function FtpTab({ serviceId }: { serviceId: string }) {
                   size="sm"
                   disabled={pwSaving || pwValue.length < 8}
                   onClick={() => void onChangePassword(r.username)}
-                  className="h-9 gap-1.5 bg-white text-black hover:bg-neutral-200 text-xs"
+                  className="h-9 gap-1.5 bg-primary text-primary-foreground font-semibold hover:bg-data-hi text-xs"
                 >
                   {pwSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
                   Zapisz hasło

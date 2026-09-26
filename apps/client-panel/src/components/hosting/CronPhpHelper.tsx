@@ -48,7 +48,7 @@ export function CronPhpHelper({ serviceId, onUse }: { serviceId: string; onUse: 
   const ok = SCIEZKA_RE.test(sciezka) && !sciezka.split('/').includes('..');
 
   return (
-    <div className="mt-3 rounded-lg border border-line bg-raised px-3 py-3">
+    <div className="mt-3 rounded-[7px] border border-line bg-raised px-3 py-3">
       <p className="m-0 mb-2 text-xs font-medium text-foreground">Skrypt PHP w wybranej wersji</p>
       <div className="grid gap-2 sm:grid-cols-[auto_minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-center">
         <Select aria-label="Wersja PHP" value={w} onChange={setWersja} options={wersje.map((v) => ({ value: v, label: `PHP ${v}` }))} className="w-full sm:w-32" />
@@ -58,13 +58,13 @@ export function CronPhpHelper({ serviceId, onUse }: { serviceId: string; onUse: 
           value={sciezka}
           onChange={(e) => setSciezka(e.target.value)}
           placeholder="cron.php"
-          className="w-full rounded-lg border border-line bg-card px-3 py-2 font-mono text-sm text-foreground outline-none focus:border-data"
+          className="w-full rounded-[7px] border border-line bg-card px-3 py-2 font-mono text-sm text-foreground outline-none focus:border-data"
         />
         <button
           type="button"
           disabled={!ok}
           onClick={() => onUse(phpCronCommand(w, d, sciezka))}
-          className="whitespace-nowrap rounded-lg border border-line-strong bg-card px-3 py-2 text-xs font-semibold text-foreground hover:bg-raised disabled:opacity-50"
+          className="whitespace-nowrap rounded-[7px] border border-line-strong bg-card px-3 py-2 text-xs font-semibold text-foreground hover:bg-raised disabled:opacity-50"
         >
           Wstaw polecenie
         </button>

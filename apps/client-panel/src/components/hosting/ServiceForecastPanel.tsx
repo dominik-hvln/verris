@@ -33,9 +33,9 @@ const CONFIDENCE_LABEL: Record<ServiceForecastDto['confidence'], string> = {
 };
 
 const CONFIDENCE_STYLE: Record<ServiceForecastDto['confidence'], string> = {
-  low: 'border-amber-400/30 bg-amber-400/10 text-amber-200',
-  medium: 'border-cyan-400/30 bg-cyan-400/10 text-cyan-200',
-  high: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200',
+  low: 'border-warn/30 bg-warn-soft text-warn',
+  medium: 'border-data/28 bg-data-soft text-data-hi',
+  high: 'border-data/28 bg-data-soft text-data-hi',
 };
 
 export default function ServiceForecastPanel({ serviceId }: { serviceId: string }) {
@@ -56,15 +56,15 @@ export default function ServiceForecastPanel({ serviceId }: { serviceId: string 
   }, [serviceId]);
 
   return (
-    <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.02] p-4 sm:p-5">
+    <div className="mt-4 rounded-[10px] border border-line bg-raised p-4 sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
-          <div className="rounded-xl border border-violet-400/30 bg-violet-400/10 p-2 text-violet-200">
+          <div className="rounded-[10px] border border-data/28 bg-data-soft p-2 text-data-hi">
             <Sparkles className="h-4 w-4" />
           </div>
           <div>
-            <h3 className="flex items-center gap-2 text-base font-bold text-white">Prognoza zasobów</h3>
-            <p className="text-xs text-neutral-400">
+            <h3 className="flex items-center gap-2 text-base font-bold text-foreground">Prognoza zasobów</h3>
+            <p className="text-xs text-muted-foreground">
               Szacowany trend wykorzystania zasobów na podstawie ostatnich metryk.
             </p>
           </div>
@@ -75,7 +75,7 @@ export default function ServiceForecastPanel({ serviceId }: { serviceId: string 
           size="sm"
           onClick={() => void run()}
           disabled={loading}
-          className="border-violet-400/40 text-violet-100"
+          className="border-data/28 text-data-hi"
         >
           {loading ? (
             <>
@@ -89,10 +89,10 @@ export default function ServiceForecastPanel({ serviceId }: { serviceId: string 
         </Button>
       </div>
 
-      {error ? <p className="mt-3 text-sm text-rose-200">{error}</p> : null}
+      {error ? <p className="mt-3 text-sm text-crit">{error}</p> : null}
 
       {forecast && !forecast.available ? (
-        <div className="mt-4 flex items-start gap-2 rounded-xl border border-amber-400/20 bg-amber-400/5 p-3 text-sm text-amber-100">
+        <div className="mt-4 flex items-start gap-2 rounded-[10px] border border-warn/30 bg-warn-soft p-3 text-sm text-warn">
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
           <span>{forecast.unavailableReason ?? 'Prognoza jest chwilowo niedostępna.'}</span>
         </div>
@@ -106,15 +106,15 @@ export default function ServiceForecastPanel({ serviceId }: { serviceId: string 
             >
               Pewność: {CONFIDENCE_LABEL[forecast.confidence]}
             </span>
-            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-neutral-300">
+            <span className="rounded-full border border-line bg-raised px-2 py-0.5 text-[color:var(--verris-body)]">
               Horyzont: {forecast.horizonDays} dni
             </span>
-            <span className="text-neutral-500">
+            <span className="text-muted-foreground">
               {new Date(forecast.generatedAt).toLocaleString('pl-PL')}
             </span>
           </div>
 
-          {forecast.summary ? <p className="text-sm text-neutral-200">{forecast.summary}</p> : null}
+          {forecast.summary ? <p className="text-sm text-[color:var(--verris-body)]">{forecast.summary}</p> : null}
 
           {forecast.resources.length > 0 ? (
             <div className="grid gap-3 sm:grid-cols-2">
@@ -125,14 +125,14 @@ export default function ServiceForecastPanel({ serviceId }: { serviceId: string 
           ) : null}
 
           {forecast.recommendations.length > 0 ? (
-            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
-              <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-neutral-400">
+            <div className="rounded-[10px] border border-line bg-raised p-3">
+              <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
                 <Lightbulb className="h-3.5 w-3.5" /> Rekomendacje
               </p>
               <ul className="space-y-1.5">
                 {forecast.recommendations.map((rec, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-neutral-200">
-                    <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-violet-300" />
+                  <li key={i} className="flex items-start gap-2 text-sm text-[color:var(--verris-body)]">
+                    <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-data-hi" />
                     <span>{rec}</span>
                   </li>
                 ))}
@@ -140,7 +140,7 @@ export default function ServiceForecastPanel({ serviceId }: { serviceId: string 
             </div>
           ) : null}
 
-          <p className="text-[11px] text-neutral-500">
+          <p className="text-[11px] text-muted-foreground">
             Prognoza orientacyjna, generowana przez autorski mechanizm Verris na podstawie historycznych metryk — nie stanowi gwarancji.
           </p>
         </div>
@@ -150,10 +150,10 @@ export default function ServiceForecastPanel({ serviceId }: { serviceId: string 
 }
 
 function TrendIcon({ trend }: { trend: ForecastTrend }) {
-  if (trend === 'up') return <ArrowUpRight className="h-4 w-4 text-rose-300" />;
-  if (trend === 'down') return <ArrowDownRight className="h-4 w-4 text-emerald-300" />;
-  if (trend === 'flat') return <ArrowRight className="h-4 w-4 text-neutral-300" />;
-  return <ArrowRight className="h-4 w-4 text-neutral-500" />;
+  if (trend === 'up') return <ArrowUpRight className="h-4 w-4 text-crit" />;
+  if (trend === 'down') return <ArrowDownRight className="h-4 w-4 text-data-hi" />;
+  if (trend === 'flat') return <ArrowRight className="h-4 w-4 text-[color:var(--verris-body)]" />;
+  return <ArrowRight className="h-4 w-4 text-muted-foreground" />;
 }
 
 function ResourceCard({ item }: { item: ServiceForecastResourceDto }) {
@@ -161,9 +161,9 @@ function ResourceCard({ item }: { item: ServiceForecastResourceDto }) {
   const predicted = clampPct(item.predictedPct);
   const predictedHigh = (predicted ?? 0) >= 85;
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+    <div className="rounded-[10px] border border-line bg-raised p-3">
       <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold text-white">{RESOURCE_LABEL[item.resource]}</span>
+        <span className="text-sm font-semibold text-foreground">{RESOURCE_LABEL[item.resource]}</span>
         <TrendIcon trend={item.trend} />
       </div>
       <div className="mt-2 space-y-2">
@@ -171,11 +171,11 @@ function ResourceCard({ item }: { item: ServiceForecastResourceDto }) {
         <Bar label="Prognoza" pct={predicted} tone={predictedHigh ? 'danger' : 'predicted'} />
       </div>
       {item.daysToLimit != null ? (
-        <p className="mt-2 text-xs text-amber-200">
+        <p className="mt-2 text-xs text-warn">
           Szacowany czas do limitu: ~{Math.round(item.daysToLimit)} dni
         </p>
       ) : null}
-      {item.note ? <p className="mt-1 text-xs text-neutral-400">{item.note}</p> : null}
+      {item.note ? <p className="mt-1 text-xs text-muted-foreground">{item.note}</p> : null}
     </div>
   );
 }
@@ -191,14 +191,14 @@ function Bar({
 }) {
   const width = pct == null ? 0 : Math.max(2, Math.min(100, pct));
   const color =
-    tone === 'danger' ? 'bg-rose-400/80' : tone === 'predicted' ? 'bg-violet-400/70' : 'bg-cyan-400/70';
+    tone === 'danger' ? 'bg-crit/12' : tone === 'predicted' ? 'bg-data-soft' : 'bg-data-soft';
   return (
     <div>
-      <div className="flex items-center justify-between text-[11px] text-neutral-400">
+      <div className="flex items-center justify-between text-[11px] text-muted-foreground">
         <span>{label}</span>
         <span>{pct == null ? '—' : `${Math.round(pct)}%`}</span>
       </div>
-      <div className="mt-1 h-2 overflow-hidden rounded-full bg-white/5">
+      <div className="mt-1 h-2 overflow-hidden rounded-full bg-raised">
         <div className={`h-full rounded-full ${color}`} style={{ width: `${width}%` }} />
       </div>
     </div>

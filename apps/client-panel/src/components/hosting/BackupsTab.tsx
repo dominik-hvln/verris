@@ -102,15 +102,15 @@ export default function BackupsTab({ serviceId }: { serviceId: string }) {
       )}
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-8 text-sm text-neutral-400">
+        <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Wczytywanie…
         </div>
       ) : error ? (
-        <p className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-sm text-amber-200/90">
+        <p className="rounded-[10px] border border-warn/30 bg-warn-soft px-3 py-2 text-sm text-warn">
           {hostingFetchErrorMessage(error)}
         </p>
       ) : rows.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 py-8 text-center text-sm text-neutral-500">
+        <div className="flex flex-col items-center gap-2 py-8 text-center text-sm text-muted-foreground">
           <Database className="h-8 w-8 opacity-20" />
           Brak kopii zapasowych. Pierwsza kopia pojawi się po jej utworzeniu.
         </div>
@@ -119,16 +119,16 @@ export default function BackupsTab({ serviceId }: { serviceId: string }) {
           {rows.map((row) => (
             <div
               key={row.id}
-              className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 text-sm text-white"
+              className="rounded-[7px] border border-line bg-raised px-3 py-2 text-sm text-foreground"
             >
               <div className="flex items-center gap-2">
-                <Database className="h-4 w-4 shrink-0 text-neutral-400" />
+                <Database className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <span className="min-w-0 flex-1 break-words font-mono text-[13px]">{row.fileName}</span>
                 <button
                   type="button"
                   disabled={Boolean(job?.active)}
                   onClick={() => setOpenId(openId === row.id ? null : row.id)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[13px] font-medium text-emerald-300 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex items-center gap-1.5 rounded-[7px] border border-data/28 bg-data-soft px-2.5 py-1 text-[13px] font-medium text-data-hi transition hover:bg-data-soft disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   <RotateCcw className="h-3.5 w-3.5" /> Przywróć
                 </button>
@@ -136,7 +136,7 @@ export default function BackupsTab({ serviceId }: { serviceId: string }) {
                   type="button"
                   onClick={() => setPlikiId(plikiId === row.id ? null : row.id)}
                   aria-expanded={plikiId === row.id}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[13px] font-medium text-neutral-200 transition hover:bg-white/[0.06]"
+                  className="inline-flex items-center gap-1.5 rounded-[7px] border border-line bg-raised px-2.5 py-1 text-[13px] font-medium text-[color:var(--verris-body)] transition hover:bg-raised"
                 >
                   <FolderOpen className="h-3.5 w-3.5" /> Pliki
                 </button>
@@ -147,7 +147,7 @@ export default function BackupsTab({ serviceId }: { serviceId: string }) {
                   )}`}
                   // Bez atrybutu download: sukces przychodzi jako załącznik (plik się pobiera), a błąd
                   // (np. brak uprawnienia, limit) pokazuje się jako tekst zamiast pustego pliku.
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[13px] font-medium text-neutral-200 transition hover:bg-white/[0.06]"
+                  className="inline-flex items-center gap-1.5 rounded-[7px] border border-line bg-raised px-2.5 py-1 text-[13px] font-medium text-[color:var(--verris-body)] transition hover:bg-raised"
                 >
                   <Download className="h-3.5 w-3.5" /> Pobierz
                 </a>
@@ -183,12 +183,12 @@ function RestoreStatusBanner({ job }: { job: HostingRestoreJobDto }) {
   const failed = job.status === 'FAILED';
   const done = job.status === 'COMPLETED';
   const tone = failed
-    ? 'border-rose-500/30 bg-rose-500/10 text-rose-200'
+    ? 'border-crit/30 bg-crit/12 text-crit'
     : done
-      ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
-      : 'border-sky-500/30 bg-sky-500/10 text-sky-200';
+      ? 'border-data/28 bg-data-soft text-data-hi'
+      : 'border-data/28 bg-data-soft text-data-hi';
   return (
-    <div className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm ${tone}`}>
+    <div className={`flex items-center gap-2 rounded-[10px] border px-3 py-2 text-sm ${tone}`}>
       {job.active ? (
         <Loader2 className="h-4 w-4 animate-spin" />
       ) : done ? (
@@ -250,8 +250,8 @@ function RestoreForm({
   }
 
   return (
-    <div className="mt-3 space-y-3 rounded-lg border border-white/10 bg-black/30 p-3">
-      <div className="flex items-start gap-2 rounded-md border border-amber-500/25 bg-amber-500/10 px-2.5 py-2 text-[12.5px] text-amber-100/90">
+    <div className="mt-3 space-y-3 rounded-[7px] border border-line bg-background p-3">
+      <div className="flex items-start gap-2 rounded-md border border-warn/30 bg-warn-soft px-2.5 py-2 text-[12.5px] text-warn">
         <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
         <span>
           Przywrócenie <strong className="font-mono">{fileName}</strong> nadpisze bieżące dane w
@@ -267,19 +267,19 @@ function RestoreForm({
       </div>
 
       <label className="block">
-        <span className="mb-1 block text-[12px] text-neutral-400">
+        <span className="mb-1 block text-[12px] text-muted-foreground">
           Aby potwierdzić, wpisz dokładną domenę tej usługi
         </span>
         <input
           value={confirmDomain}
           onChange={(e) => setConfirmDomain(e.target.value)}
           placeholder="np. twojadomena.pl"
-          className="w-full rounded-lg border border-white/10 bg-black/50 px-3 py-2 text-sm text-white outline-none focus:border-emerald-500/50"
+          className="w-full rounded-[7px] border border-line bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-data"
         />
       </label>
 
       {err && (
-        <p className="flex items-center gap-2 rounded-md border border-rose-500/30 bg-rose-500/10 px-2.5 py-1.5 text-[13px] text-rose-200">
+        <p className="flex items-center gap-2 rounded-md border border-crit/30 bg-crit/12 px-2.5 py-1.5 text-[13px] text-crit">
           <AlertTriangle className="h-4 w-4" /> {err}
         </p>
       )}
@@ -289,7 +289,7 @@ function RestoreForm({
           type="button"
           onClick={submit}
           disabled={!canSubmit}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-[13px] font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-40"
+          className="inline-flex items-center gap-1.5 rounded-[7px] bg-primary text-primary-foreground font-semibold px-3 py-1.5 text-[13px] transition hover:bg-data-hi disabled:cursor-not-allowed disabled:opacity-40"
         >
           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
           Przywróć z tej kopii
@@ -297,7 +297,7 @@ function RestoreForm({
         <button
           type="button"
           onClick={onClose}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-1.5 text-[13px] text-neutral-300 hover:text-white"
+          className="inline-flex items-center gap-1.5 rounded-[7px] border border-line px-3 py-1.5 text-[13px] text-[color:var(--verris-body)] hover:text-foreground"
         >
           <X className="h-4 w-4" /> Anuluj
         </button>
@@ -316,7 +316,7 @@ function Toggle({
   onChange: (v: boolean) => void;
 }) {
   return (
-    <label className="inline-flex cursor-pointer items-center gap-2 text-neutral-200">
+    <label className="inline-flex cursor-pointer items-center gap-2 text-[color:var(--verris-body)]">
       <Checkbox
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}

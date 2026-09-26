@@ -34,13 +34,13 @@ export default function AppsTab({ serviceId }: { serviceId: string }) {
       <div>
         <h3 className="mb-3 font-display text-[15px] font-bold text-foreground">Pozostałe aplikacje</h3>
         {loading ? (
-          <div className="flex items-center justify-center gap-2 py-8 text-sm text-neutral-400">
+          <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" /> Wczytywanie…
           </div>
         ) : status ? (
           <AppsClient serviceId={serviceId} status={status} />
         ) : (
-          <p className="py-6 text-center text-sm text-neutral-500">
+          <p className="py-6 text-center text-sm text-muted-foreground">
             Nie udało się wczytać katalogu aplikacji.
           </p>
         )}

@@ -106,25 +106,25 @@ export function FirstStepsAssistant({
   const steps = isEmail ? emailSteps : hostingSteps;
 
   return (
-    <div className="rounded-2xl border border-violet-400/25 bg-gradient-to-br from-violet-500/[0.08] to-transparent p-4 sm:p-5">
+    <div className="rounded-[10px] border border-data/28 bg-gradient-to-br from-violet-500/[0.08] to-transparent p-4 sm:p-5">
       <div className="mb-3 flex items-center gap-2.5">
-        <div className="rounded-xl border border-violet-400/30 bg-violet-500/15 p-2 text-violet-200">
+        <div className="rounded-[10px] border border-data/28 bg-data-soft p-2 text-data-hi">
           <Sparkles className="h-4 w-4" />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-bold text-white sm:text-base">
+          <h3 className="text-sm font-bold text-foreground sm:text-base">
             {isEmail ? 'Uruchom pocztę — przeprowadzimy Cię za rękę' : 'Uruchom stronę — przeprowadzimy Cię za rękę'}
           </h3>
-          <p className="text-xs text-neutral-400">
-            Podstawy: <span className="text-white">{baseDone}/2</span> gotowe. Spokojnie — nic nie zepsujesz,
+          <p className="text-xs text-muted-foreground">
+            Podstawy: <span className="text-foreground">{baseDone}/2</span> gotowe. Spokojnie — nic nie zepsujesz,
             a my podpowiadamy na każdym kroku.
           </p>
         </div>
-        <span className="shrink-0 text-xs font-bold text-violet-200">{Math.round((baseDone / 2) * 100)}%</span>
+        <span className="shrink-0 text-xs font-bold text-data-hi">{Math.round((baseDone / 2) * 100)}%</span>
       </div>
 
       {/* Pasek postępu podstaw (domena + SSL / domena + poczta). */}
-      <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-white/10">
+      <div className="mb-4 h-1.5 overflow-hidden rounded-full bg-raised">
         <div
           className="h-full rounded-full bg-gradient-to-r from-violet-500 to-emerald-400 transition-all duration-500"
           style={{ width: `${(baseDone / 2) * 100}%` }}
@@ -137,31 +137,31 @@ export function FirstStepsAssistant({
             <button
               type="button"
               onClick={() => onNavigate(s.tab)}
-              className={`flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors ${
+              className={`flex w-full items-center gap-3 rounded-[10px] border px-3 py-2.5 text-left transition-colors ${
                 s.done
-                  ? 'border-emerald-500/25 bg-emerald-500/[0.06]'
-                  : 'border-white/10 bg-white/[0.03] hover:bg-white/[0.06]'
+                  ? 'border-data/28 bg-data-soft'
+                  : 'border-line bg-raised hover:bg-raised'
               }`}
             >
               <span
                 className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
                   s.done
-                    ? 'bg-emerald-500/20 text-emerald-300'
-                    : 'bg-white/10 text-neutral-300'
+                    ? 'bg-data-soft text-data-hi'
+                    : 'bg-raised text-[color:var(--verris-body)]'
                 }`}
               >
                 {s.done ? <Check className="h-4 w-4" /> : i + 1}
               </span>
-              <s.icon className="hidden h-4 w-4 shrink-0 text-violet-300 sm:block" />
+              <s.icon className="hidden h-4 w-4 shrink-0 text-data-hi sm:block" />
               <span className="min-w-0 flex-1">
-                <span className={`block text-sm font-medium ${s.done ? 'text-emerald-100' : 'text-white'}`}>
+                <span className={`block text-sm font-medium ${s.done ? 'text-data-hi' : 'text-foreground'}`}>
                   {s.title}
                 </span>
-                <span className="block text-[11px] text-neutral-400">{s.desc}</span>
+                <span className="block text-[11px] text-muted-foreground">{s.desc}</span>
               </span>
               <span
                 className={`inline-flex shrink-0 items-center gap-0.5 text-[11px] font-medium ${
-                  s.done ? 'text-emerald-300' : 'text-violet-200'
+                  s.done ? 'text-data-hi' : 'text-data-hi'
                 }`}
               >
                 {s.cta}

@@ -79,25 +79,25 @@ export function UnpaidServiceBanner({
 
   return (
     <>
-      <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-100">
-        <p className="font-semibold text-amber-50">
+      <div className="mb-4 rounded-[10px] border border-warn/30 bg-warn-soft px-4 py-3 text-sm text-warn">
+        <p className="font-semibold text-warn">
           {isPending ? 'Zamówienie oczekuje na płatność' : 'Zaległa opłata za usługę'}
         </p>
-        <p className="mt-1 text-xs text-amber-100/80">
+        <p className="mt-1 text-xs text-warn">
           {isPending
             ? 'Dokończ płatność lub anuluj zamówienie. Nieopłacone zamówienia bez konta hostingowego są usuwane automatycznie po 48 godzinach.'
             : isStripe
               ? 'Opłać zaległą fakturę w rozliczeniach. Po 3 dniach od nieudanej płatności usługa zostanie zawieszona.'
               : 'Doładuj portfel — pobierzemy opłatę automatycznie w ciągu godziny albo od razu przyciskiem „Opłać z portfela”. Po 3 dniach od nieudanej płatności usługa zostanie zawieszona.'}
         </p>
-        {error ? <p className="mt-2 text-xs text-rose-300">{error}</p> : null}
+        {error ? <p className="mt-2 text-xs text-crit">{error}</p> : null}
         <div className="mt-3 flex flex-wrap gap-2">
           {isPending && isStripe ? (
             <button
               type="button"
               disabled={pending}
               onClick={onRetryPayment}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-xs font-bold text-black hover:bg-neutral-200 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-[7px] bg-primary text-primary-foreground font-semibold px-3 py-2 text-xs font-bold hover:bg-data-hi disabled:opacity-50"
             >
               {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CreditCard className="h-3.5 w-3.5" />}
               Opłać w Stripe
@@ -106,7 +106,7 @@ export function UnpaidServiceBanner({
           {isPending && !isStripe ? (
             <Link
               href="/dashboard/billing"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-xs font-bold text-black hover:bg-neutral-200"
+              className="inline-flex items-center gap-1.5 rounded-[7px] bg-primary text-primary-foreground font-semibold px-3 py-2 text-xs font-bold hover:bg-data-hi"
             >
               <Wallet className="h-3.5 w-3.5" />
               Portfel / płatność
@@ -117,7 +117,7 @@ export function UnpaidServiceBanner({
               type="button"
               disabled={pending}
               onClick={onPayFromWallet}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-xs font-bold text-black hover:bg-neutral-200 disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-[7px] bg-primary text-primary-foreground font-semibold px-3 py-2 text-xs font-bold hover:bg-data-hi disabled:opacity-50"
             >
               {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wallet className="h-3.5 w-3.5" />}
               Opłać z portfela
@@ -126,7 +126,7 @@ export function UnpaidServiceBanner({
           {status === 'PAST_DUE' ? (
             <Link
               href="/dashboard/billing"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-2 text-xs font-bold text-black hover:bg-neutral-200"
+              className="inline-flex items-center gap-1.5 rounded-[7px] bg-primary text-primary-foreground font-semibold px-3 py-2 text-xs font-bold hover:bg-data-hi"
             >
               <Wallet className="h-3.5 w-3.5" />
               Rozliczenia
@@ -136,7 +136,7 @@ export function UnpaidServiceBanner({
             type="button"
             disabled={pending}
             onClick={() => setConfirmOpen(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 px-3 py-2 text-xs font-semibold text-neutral-200 hover:bg-white/10 disabled:opacity-50"
+            className="inline-flex items-center gap-1.5 rounded-[7px] border border-line-strong px-3 py-2 text-xs font-semibold text-[color:var(--verris-body)] hover:bg-raised disabled:opacity-50"
           >
             <Trash2 className="h-3.5 w-3.5" />
             {isPending ? 'Anuluj zamówienie' : 'Anuluj usługę'}
@@ -150,8 +150,8 @@ export function UnpaidServiceBanner({
         title={confirmTitle}
         description={confirmDescription}
       >
-        <div className="rounded-xl border border-amber-500/25 bg-amber-500/10 p-4 flex gap-3 text-sm text-amber-100">
-          <AlertTriangle className="h-5 w-5 shrink-0 text-amber-400" aria-hidden />
+        <div className="rounded-[10px] border border-warn/30 bg-warn-soft p-4 flex gap-3 text-sm text-warn">
+          <AlertTriangle className="h-5 w-5 shrink-0 text-warn" aria-hidden />
           <p>
             {isPending
               ? 'Po anulowaniu nie będziesz mógł dokończyć tej samej płatności — utwórz nowe zamówienie, jeśli nadal chcesz hosting.'

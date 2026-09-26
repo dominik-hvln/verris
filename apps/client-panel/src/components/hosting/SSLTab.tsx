@@ -76,8 +76,8 @@ export default function SSLTab({ serviceId }: Props) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center gap-3 py-24 text-neutral-400">
-        <Loader2 className="h-6 w-6 animate-spin text-cyan-400" />
+      <div className="flex items-center justify-center gap-3 py-24 text-muted-foreground">
+        <Loader2 className="h-6 w-6 animate-spin text-data-hi" />
         Wczytywanie certyfikatów…
       </div>
     );

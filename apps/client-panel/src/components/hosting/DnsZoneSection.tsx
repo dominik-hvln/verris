@@ -61,7 +61,7 @@ export default function DnsZoneSection({
   return (
     <section className="mt-6 min-w-0">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-semibold text-white">Strefa DNS</h3>
+        <h3 className="text-sm font-semibold text-foreground">Strefa DNS</h3>
         {domains.length > 1 ? (
           <Select
             aria-label="Domena strefy DNS"
@@ -74,17 +74,17 @@ export default function DnsZoneSection({
             className="h-8 text-xs"
           />
         ) : (
-          <span className="text-xs text-neutral-400">{domain}</span>
+          <span className="text-xs text-muted-foreground">{domain}</span>
         )}
       </div>
       {fetchError ? (
-        <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+        <div className="mb-3 flex items-start gap-2 rounded-[7px] border border-warn/30 bg-warn-soft px-3 py-2 text-xs text-warn">
           <AlertCircle className="h-4 w-4 shrink-0" />
           {hostingFetchErrorMessage(fetchError)}
         </div>
       ) : null}
       {loading && records.length === 0 ? (
-        <div className="flex items-center gap-2 py-6 text-xs text-neutral-400">
+        <div className="flex items-center gap-2 py-6 text-xs text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Wczytywanie strefy DNS…
         </div>
       ) : (

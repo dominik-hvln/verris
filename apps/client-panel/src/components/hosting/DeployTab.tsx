@@ -101,7 +101,7 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center gap-2 py-16 text-sm text-neutral-400">
+      <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
         <Loader2 className="h-5 w-5 animate-spin" />
         Wczytywanie wdrożeń…
       </div>
@@ -127,7 +127,7 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
             size="sm"
             disabled={busy}
             onClick={() => void load()}
-            className="h-8 gap-1.5 border-white/15 bg-white/[0.04] text-white hover:bg-white/10 text-xs"
+            className="h-8 gap-1.5 border-line-strong bg-raised text-foreground hover:bg-raised text-xs"
           >
             {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
             Odśwież
@@ -137,25 +137,25 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
     >
       <GitRepoPanel serviceId={serviceId} domains={domains} />
       {error ? (
-        <div className="mb-3 flex items-start gap-2 rounded-lg border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-xs text-rose-100">
+        <div className="mb-3 flex items-start gap-2 rounded-[7px] border border-crit/30 bg-crit/12 px-3 py-2 text-xs text-crit">
           <AlertCircle className="h-4 w-4 shrink-0" />
           {error}
         </div>
       ) : null}
 
       {fetchError ? (
-        <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+        <div className="mb-3 flex items-start gap-2 rounded-[7px] border border-warn/30 bg-warn-soft px-3 py-2 text-xs text-warn">
           <AlertCircle className="h-4 w-4 shrink-0" />
           {hostingFetchErrorMessage(fetchError)}
         </div>
       ) : null}
 
-      <div className="mb-5 rounded-xl border border-white/10 bg-white/[0.03] p-4">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+      <div className="mb-5 rounded-[10px] border border-line bg-raised p-4">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Nowe wdrożenie
         </h3>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
-          <label htmlFor={`${fieldId}-domain`} className="block text-xs text-neutral-400">
+          <label htmlFor={`${fieldId}-domain`} className="block text-xs text-muted-foreground">
             Domena
             <Select
               id={`${fieldId}-domain`}
@@ -167,7 +167,7 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
               options={domains.map((d) => ({ value: d, label: d }))}
             />
           </label>
-          <label htmlFor={`${fieldId}-frequency`} className="block text-xs text-neutral-400">
+          <label htmlFor={`${fieldId}-frequency`} className="block text-xs text-muted-foreground">
             Częstotliwość
             <Select
               id={`${fieldId}-frequency`}
@@ -181,30 +181,30 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
               }))}
             />
           </label>
-          <label className="block text-xs text-neutral-400">
+          <label className="block text-xs text-muted-foreground">
             Gałąź Git (opcjonalnie)
             <input
               value={branch}
               onChange={(e) => setBranch(e.target.value)}
               placeholder="main"
-              className="mt-1 w-full rounded-lg border border-white/10 bg-[#050505] px-3 py-2 text-sm text-white"
+              className="mt-1 w-full rounded-[7px] border border-line bg-card px-3 py-2 text-sm text-foreground"
             />
           </label>
-          <label className="block text-xs text-neutral-400">
+          <label className="block text-xs text-muted-foreground">
             Komenda build (opcjonalnie)
             <input
               value={buildCommand}
               onChange={(e) => setBuildCommand(e.target.value)}
               placeholder="composer install --no-dev"
-              className="mt-1 w-full rounded-lg border border-white/10 bg-[#050505] px-3 py-2 text-sm text-white font-mono"
+              className="mt-1 w-full rounded-[7px] border border-line bg-card px-3 py-2 text-sm text-foreground font-mono"
             />
           </label>
         </div>
-        <p className="mt-2 text-[11px] text-neutral-500 leading-relaxed">
+        <p className="mt-2 text-[11px] text-muted-foreground leading-relaxed">
           Po podłączeniu repozytorium w katalogu domeny harmonogram wykona{' '}
-          <span className="font-mono text-neutral-300">git pull</span>
-          {branch ? <> gałęzi <span className="font-mono text-neutral-300">{branch}</span></> : null}
-          {buildCommand ? <> oraz <span className="font-mono text-neutral-300">{buildCommand}</span></> : null}. Znaki
+          <span className="font-mono text-[color:var(--verris-body)]">git pull</span>
+          {branch ? <> gałęzi <span className="font-mono text-[color:var(--verris-body)]">{branch}</span></> : null}
+          {buildCommand ? <> oraz <span className="font-mono text-[color:var(--verris-body)]">{buildCommand}</span></> : null}. Znaki
           specjalne powłoki w komendzie build są blokowane ze względów bezpieczeństwa.
         </p>
         <Button
@@ -219,34 +219,34 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
         </Button>
       </div>
 
-      <div className="rounded-xl border border-white/5 bg-[#050505] overflow-hidden">
+      <div className="rounded-[10px] border border-line bg-card overflow-hidden">
         <table className="v2-stack w-full text-xs sm:text-sm">
-          <thead className="bg-white/5 border-b border-white/5 text-left">
+          <thead className="bg-raised border-b border-line text-left">
             <tr>
-              <th className="py-3 px-3 text-neutral-300 font-semibold">Domena</th>
-              <th className="py-3 px-3 text-neutral-300 font-semibold">Harmonogram</th>
-              <th className="py-3 px-3 text-right text-neutral-300 font-semibold">Akcje</th>
+              <th className="py-3 px-3 font-semibold">Domena</th>
+              <th className="py-3 px-3 font-semibold">Harmonogram</th>
+              <th className="py-3 px-3 text-right font-semibold">Akcje</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && !fetchError ? (
               <tr>
-                <td colSpan={3} className="px-3 py-8 text-center text-neutral-500 text-xs">
+                <td colSpan={3} className="px-3 py-8 text-center text-muted-foreground text-xs">
                   Brak skonfigurowanych wdrożeń — dodaj pierwsze powyżej.
                 </td>
               </tr>
             ) : null}
             {rows.map((job) => (
-              <tr key={job.id} className="border-b border-white/5 hover:bg-white/[0.02] align-top">
-                <td data-label="Domena" className="py-3 px-3 text-white">
+              <tr key={job.id} className="border-b border-line hover:bg-raised align-top">
+                <td data-label="Domena" className="py-3 px-3 text-foreground">
                   {job.domain}
                   {job.branch ? (
-                    <span className="ml-2 rounded bg-white/5 px-1.5 py-0.5 font-mono text-[11px] text-neutral-400">
+                    <span className="ml-2 rounded bg-raised px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
                       {job.branch}
                     </span>
                   ) : null}
                 </td>
-                <td data-label="Harmonogram" className="py-3 px-3 text-neutral-400">
+                <td data-label="Harmonogram" className="py-3 px-3 text-muted-foreground">
                   {FREQUENCY_LABEL[job.frequency]}
                 </td>
                 <td data-label="Akcje" className="py-3 px-3 text-right">
@@ -254,7 +254,7 @@ export default function DeployTab({ serviceId }: DeployTabProps) {
                     type="button"
                     disabled={busy}
                     onClick={() => void handleDelete(job.id)}
-                    className="inline-flex items-center gap-1 text-xs text-rose-300 hover:text-rose-200 disabled:opacity-50"
+                    className="inline-flex items-center gap-1 text-xs text-crit hover:text-crit disabled:opacity-50"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                     Usuń

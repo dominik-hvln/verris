@@ -80,18 +80,18 @@ export function ServiceGaugeRing({
           x={CX}
           y={sub ? CY - 8 : CY - 4}
           textAnchor="middle"
-          className="fill-white text-[13px] font-bold"
+          className="fill-foreground text-[13px] font-bold"
           style={{ fontSize: 13, fontWeight: 700, fill: '#fff' }}
         >
           {display}
         </text>
       </svg>
       {sub ? (
-        <p className="-mt-2.5 text-[9.5px] font-medium tabular-nums text-neutral-500 leading-none text-center">
+        <p className="-mt-2.5 text-[9.5px] font-medium tabular-nums text-muted-foreground leading-none text-center">
           {sub}
         </p>
       ) : null}
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-neutral-500 mt-1 text-center">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mt-1 text-center">
         {label}
       </p>
     </div>

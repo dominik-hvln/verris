@@ -58,7 +58,7 @@ export default function DomainsTab({ serviceId }: Props) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center gap-2 py-16 text-sm text-neutral-400">
+      <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
         <Loader2 className="h-5 w-5 animate-spin" />
         Wczytywanie domen…
       </div>
@@ -92,7 +92,7 @@ export default function DomainsTab({ serviceId }: Props) {
               setRefreshing(true);
               void load();
             }}
-            className="h-8 gap-1.5 border-white/15 bg-white/[0.04] text-white hover:bg-white/10 text-xs"
+            className="h-8 gap-1.5 border-line-strong bg-raised text-foreground hover:bg-raised text-xs"
           >
             {refreshing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
             Odśwież
@@ -101,14 +101,14 @@ export default function DomainsTab({ serviceId }: Props) {
       }
     >
       {error ? (
-        <div className="mb-3 flex items-start gap-2 rounded-lg border border-rose-500/25 bg-rose-500/10 px-3 py-2 text-xs text-rose-100">
+        <div className="mb-3 flex items-start gap-2 rounded-[7px] border border-crit/30 bg-crit/12 px-3 py-2 text-xs text-crit">
           <AlertCircle className="h-4 w-4 shrink-0" />
           {error}
         </div>
       ) : null}
 
       {fetchError ? (
-        <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-100">
+        <div className="mb-3 flex items-start gap-2 rounded-[7px] border border-warn/30 bg-warn-soft px-3 py-2 text-xs text-warn">
           <AlertCircle className="h-4 w-4 shrink-0" />
           {hostingFetchErrorMessage(fetchError)}
         </div>
@@ -122,14 +122,14 @@ export default function DomainsTab({ serviceId }: Props) {
 
       <div className="mt-4 min-w-0">
         {domains.length === 0 && !fetchError ? (
-          <p className="rounded-xl border border-white/5 bg-[#050505] px-3 py-8 text-center text-xs text-neutral-500">
+          <p className="rounded-[10px] border border-line bg-card px-3 py-8 text-center text-xs text-muted-foreground">
             Brak domen — dodaj je w panelu hostingu.
           </p>
         ) : (
           <ResponsiveDataView
             rows={domains}
             rowKey={(d) => d.name}
-            tableClassName="rounded-xl border border-white/5 bg-[#050505]"
+            tableClassName="rounded-[10px] border border-line bg-card"
             columns={[
               {
                 key: 'name',

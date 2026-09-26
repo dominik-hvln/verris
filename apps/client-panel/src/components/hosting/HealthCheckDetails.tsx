@@ -28,18 +28,18 @@ const CHECK_FROM_BOOL: Record<ServiceHealthCheckKey, keyof ServiceHealthSummaryD
 function pillFromDetail(d: ServiceHealthCheckDetailDto) {
   if (d.status === 'ok') {
     return {
-      className: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200',
+      className: 'border-data/28 bg-data-soft text-data-hi',
       label: 'OK',
     };
   }
   if (d.status === 'warn') {
     return {
-      className: 'border-amber-400/30 bg-amber-400/10 text-amber-200',
+      className: 'border-warn/30 bg-warn-soft text-warn',
       label: 'Uwaga',
     };
   }
   return {
-    className: 'border-white/15 bg-white/[0.04] text-neutral-400',
+    className: 'border-line-strong bg-raised text-muted-foreground',
     label: '—',
   };
 }
@@ -148,7 +148,7 @@ function FixButton({
       type="button"
       onClick={onClick}
       disabled={pending}
-      className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-100 hover:bg-emerald-400/20 disabled:opacity-50"
+      className="mt-2 inline-flex items-center gap-1.5 rounded-[7px] border border-data/28 bg-data-soft px-3 py-1.5 text-xs font-semibold text-data-hi hover:bg-data-soft disabled:opacity-50"
     >
       {pending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Wrench className="h-3.5 w-3.5" />}
       {label}
@@ -187,7 +187,7 @@ export function HealthCheckDetails({
 
   return (
     <div className="mt-4 space-y-2">
-      <p className="text-[11px] font-medium text-neutral-500 flex items-center gap-1.5">
+      <p className="text-[11px] font-medium text-muted-foreground flex items-center gap-1.5">
         <HelpCircle className="h-3.5 w-3.5" />
         Diagnostyka — kliknij wiersz, aby zobaczyć szczegóły i co zrobić
       </p>
@@ -199,21 +199,21 @@ export function HealthCheckDetails({
           return (
             <li
               key={key}
-              className={`rounded-xl border overflow-hidden transition-colors ${
-                warn ? 'border-amber-400/20 bg-amber-400/[0.04]' : 'border-white/10 bg-white/[0.02]'
+              className={`rounded-[10px] border overflow-hidden transition-colors ${
+                warn ? 'border-warn/30 bg-warn-soft' : 'border-line bg-raised'
               }`}
             >
               <button
                 type="button"
                 onClick={() => setOpenKey(expanded ? null : key)}
-                className="flex w-full items-center gap-2 px-3 py-2.5 text-left hover:bg-white/[0.03]"
+                className="flex w-full items-center gap-2 px-3 py-2.5 text-left hover:bg-raised"
               >
                 {warn ? (
-                  <AlertCircle className="h-4 w-4 shrink-0 text-amber-300" />
+                  <AlertCircle className="h-4 w-4 shrink-0 text-warn" />
                 ) : (
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-data-hi" />
                 )}
-                <span className="flex-1 min-w-0 text-sm font-medium text-white break-words">
+                <span className="flex-1 min-w-0 text-sm font-medium text-foreground break-words">
                   {detail.label}
                 </span>
                 <span
@@ -222,19 +222,19 @@ export function HealthCheckDetails({
                   {pill.label}
                 </span>
                 {expanded ? (
-                  <ChevronUp className="h-4 w-4 shrink-0 text-neutral-500" />
+                  <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" />
                 ) : (
-                  <ChevronDown className="h-4 w-4 shrink-0 text-neutral-500" />
+                  <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" />
                 )}
               </button>
               {expanded ? (
-                <div className="px-3 pb-3 pt-0 space-y-2 border-t border-white/5">
-                  <p className="text-xs text-neutral-300 leading-relaxed">{detail.explanation}</p>
-                  <div className="rounded-lg bg-white/[0.04] border border-white/10 px-3 py-2">
-                    <p className="text-[10px] uppercase tracking-wide text-neutral-500 font-semibold mb-1">
+                <div className="px-3 pb-3 pt-0 space-y-2 border-t border-line">
+                  <p className="text-xs text-[color:var(--verris-body)] leading-relaxed">{detail.explanation}</p>
+                  <div className="rounded-[7px] bg-raised border border-line px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-wide text-muted-foreground font-semibold mb-1">
                       Co możesz zrobić
                     </p>
-                    <p className="text-xs text-neutral-200 leading-relaxed">{detail.whatToDo}</p>
+                    <p className="text-xs text-[color:var(--verris-body)] leading-relaxed">{detail.whatToDo}</p>
                   </div>
                   {detail.status === 'warn' && serviceId ? (
                     <QuickFix

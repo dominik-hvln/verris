@@ -66,7 +66,7 @@ export function HostingLinksProvider({
 
 export function HostingLinksLoading({ label = 'Wczytywanie…' }: { label?: string }) {
   return (
-    <div className="flex items-center justify-center gap-2 py-16 text-sm text-neutral-400">
+    <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
       <Loader2 className="h-5 w-5 animate-spin" />
       {label}
     </div>

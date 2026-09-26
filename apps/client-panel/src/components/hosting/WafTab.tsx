@@ -27,21 +27,21 @@ const MODES: Array<{
     label: 'Włączony (blokowanie)',
     desc: 'Ataki (SQLi, XSS, RCE…) są blokowane na podstawie reguł OWASP CRS. Zalecane dla większości stron.',
     icon: ShieldCheck,
-    accent: 'border-emerald-400/40 bg-emerald-400/10',
+    accent: 'border-data/28 bg-data-soft',
   },
   {
     id: 'DETECTION',
     label: 'Tryb detekcji (tylko log)',
     desc: 'Podejrzane żądania są logowane, ale nie blokowane. Dobre na start i do diagnozowania fałszywych alarmów.',
     icon: Eye,
-    accent: 'border-amber-400/40 bg-amber-400/10',
+    accent: 'border-warn/30 bg-warn-soft',
   },
   {
     id: 'OFF',
     label: 'Wyłączony',
     desc: 'Brak ochrony WAF. Używaj tylko, jeśli reguły kolidują z aplikacją (np. nietypowe wtyczki).',
     icon: ShieldOff,
-    accent: 'border-rose-400/40 bg-rose-400/10',
+    accent: 'border-crit/30 bg-crit/12',
   },
 ];
 
@@ -91,7 +91,7 @@ export default function WafTab({ serviceId }: Props) {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-neutral-400 p-6">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground p-6">
         <Loader2 className="h-4 w-4 animate-spin" /> Wczytywanie…
       </div>
     );
@@ -99,7 +99,7 @@ export default function WafTab({ serviceId }: Props) {
 
   if (!status) {
     return (
-      <div className="rounded-xl border border-white/10 bg-black/20 p-6 text-sm text-neutral-400">
+      <div className="rounded-[10px] border border-line bg-background p-6 text-sm text-muted-foreground">
         WAF będzie dostępny po aktywacji konta hostingowego.
       </div>
     );
@@ -116,12 +116,12 @@ export default function WafTab({ serviceId }: Props) {
           desc={`Reguły OWASP Core Rule Set chronią ${status.domain} przed najczęstszymi atakami: SQL injection, XSS, przejęciem sesji i skanerami luk. Zmiana trybu działa w ciągu minuty.`}
         />
         {applying && (
-          <p className="inline-flex items-center gap-1.5 text-xs text-sky-300">
+          <p className="inline-flex items-center gap-1.5 text-xs text-data-hi">
             <Loader2 className="h-3 w-3 animate-spin" /> Stosowanie zmian na serwerze…
           </p>
         )}
         {status.lastTask?.status === 'FAILED' && (
-          <p className="inline-flex items-start gap-1.5 text-xs text-rose-300">
+          <p className="inline-flex items-start gap-1.5 text-xs text-crit">
             <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
             Ostatnia zmiana nie powiodła się: {status.lastTask.errorMessage ?? 'błąd'} — spróbuj
             ponownie lub skontaktuj się z BOK.
@@ -139,38 +139,38 @@ export default function WafTab({ serviceId }: Props) {
               type="button"
               disabled={saving !== null || applying}
               onClick={() => onSet(m.id)}
-              className={`text-left rounded-xl border p-4 transition-colors disabled:opacity-60 ${
-                active ? m.accent : 'border-white/10 bg-black/20 hover:border-white/25'
+              className={`text-left rounded-[10px] border p-4 transition-colors disabled:opacity-60 ${
+                active ? m.accent : 'border-line bg-background hover:border-line-strong'
               }`}
             >
               <div className="flex items-center justify-between gap-3">
                 <span className="flex items-center gap-2.5">
-                  <Icon className="h-5 w-5 text-neutral-200" />
-                  <span className="text-sm font-medium text-white">{m.label}</span>
+                  <Icon className="h-5 w-5 text-[color:var(--verris-body)]" />
+                  <span className="text-sm font-medium text-foreground">{m.label}</span>
                 </span>
                 {active ? (
-                  <span className="text-xs rounded-full border border-white/20 px-2 py-0.5 text-neutral-200">
+                  <span className="text-xs rounded-full border border-line-strong px-2 py-0.5 text-[color:var(--verris-body)]">
                     aktywny{status.appliedAt ? '' : ' (oczekuje)'}
                   </span>
                 ) : saving === m.id ? (
-                  <Loader2 className="h-4 w-4 animate-spin text-neutral-300" />
+                  <Loader2 className="h-4 w-4 animate-spin text-[color:var(--verris-body)]" />
                 ) : null}
               </div>
-              <p className="mt-1.5 text-xs text-neutral-400">{m.desc}</p>
+              <p className="mt-1.5 text-xs text-muted-foreground">{m.desc}</p>
             </button>
           );
         })}
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+        <div className="flex items-center gap-2 rounded-[10px] border border-crit/30 bg-crit/12 px-4 py-3 text-sm text-crit">
           <AlertCircle className="h-4 w-4" /> {error}
         </div>
       )}
 
       <MalwarePanel serviceId={serviceId} />
 
-      <p className="text-xs text-neutral-500">
+      <p className="text-xs text-muted-foreground">
         Wskazówka: po przejściu z trybu detekcji na blokowanie obserwuj stronę przez 1-2 dni. Jeśli
         prawidłowe żądania są blokowane (np. zapis w edytorze wtyczki), przełącz na tryb detekcji i
         zgłoś to do BOK — dostroimy reguły dla Twojej domeny.

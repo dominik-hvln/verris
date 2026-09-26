@@ -101,7 +101,7 @@ export function HostingOffsitePanel({
 
   if (loading) {
     return (
-      <p className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-xs text-neutral-400">
+      <p className="flex items-center gap-2 rounded-[7px] border border-line bg-background px-3 py-2 text-xs text-muted-foreground">
         <Loader2 className="h-3.5 w-3.5 animate-spin" />
         Sprawdzam kopie poza serwerem…
       </p>
@@ -114,17 +114,17 @@ export function HostingOffsitePanel({
   const fetchFailed = state.lastFetch?.status === 'FAILED';
 
   return (
-    <div className="space-y-3 rounded-xl border border-white/10 bg-black/20 p-4">
+    <div className="space-y-3 rounded-[10px] border border-line bg-background p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-2">
           {state.offsite.protected ? (
-            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-300" />
+            <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-data-hi" />
           ) : (
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-300" />
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warn" />
           )}
           <div>
-            <p className="text-sm font-semibold text-white">Kopia poza serwerem (off-site)</p>
-            <p className="text-xs text-neutral-400">
+            <p className="text-sm font-semibold text-foreground">Kopia poza serwerem (off-site)</p>
+            <p className="text-xs text-muted-foreground">
               {state.offsite.protected
                 ? `Dodatkowa kopia Twojego konta leży poza tym serwerem — przetrwa nawet jego awarię. Trzymamy wersje z ${KOPIE_OFFSITE_DNI} dni.${
                     state.offsite.lastRunAt
@@ -143,7 +143,7 @@ export function HostingOffsitePanel({
             void run('list', () => queueOffsiteListAction(serviceId, showOlder ? snapshot : undefined))
           }
           disabled={busy}
-          className="inline-flex items-center gap-2 rounded-lg border border-white/15 bg-white/[0.04] px-3 py-1.5 text-xs font-medium text-neutral-100 hover:border-white/25 disabled:opacity-40"
+          className="inline-flex items-center gap-2 rounded-[7px] border border-line-strong bg-raised px-3 py-1.5 text-xs font-medium text-foreground hover:border-line-strong disabled:opacity-40"
         >
           {busy && (busyAction === 'list' || state.busy) ? (
             <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -159,7 +159,7 @@ export function HostingOffsitePanel({
         <button
           type="button"
           onClick={() => setShowOlder((v) => !v)}
-          className="inline-flex items-center gap-1 text-neutral-400 hover:text-neutral-200"
+          className="inline-flex items-center gap-1 text-muted-foreground hover:text-[color:var(--verris-body)]"
         >
           <History className="h-3.5 w-3.5" />
           {showOlder ? 'Ukryj starsze wersje' : 'Szukam kopii z konkretnego dnia'}
@@ -173,9 +173,9 @@ export function HostingOffsitePanel({
               aria-label="Dzień kopii (RRRRMMDD)"
               inputMode="numeric"
               spellCheck={false}
-              className="w-48 rounded-md border border-white/10 bg-black/40 px-3 py-1.5 font-mono text-xs text-white placeholder:text-neutral-500 focus:border-cyan-400/50 focus:outline-none"
+              className="w-48 rounded-md border border-line bg-background px-3 py-1.5 font-mono text-xs text-foreground placeholder:text-muted-foreground focus:border-data focus:outline-none"
             />
-            <span className="text-neutral-500">
+            <span className="text-muted-foreground">
               Masz kopię z każdego z ostatnich {KOPIE_OFFSITE_DNI} dni — starszych już nie ma.
             </span>
           </div>
@@ -183,14 +183,14 @@ export function HostingOffsitePanel({
       </div>
 
       {state.busy ? (
-        <p className="flex items-center gap-2 text-xs text-cyan-200">
+        <p className="flex items-center gap-2 text-xs text-data-hi">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
           Serwer pracuje nad kopią off-site… To potrwa chwilę, możesz zostać na tej stronie.
         </p>
       ) : null}
-      {error ? <p className="text-xs text-rose-200">{error}</p> : null}
+      {error ? <p className="text-xs text-crit">{error}</p> : null}
       {listFailed && !state.busy ? (
-        <p className="text-xs text-rose-200">
+        <p className="text-xs text-crit">
           {state.lastList?.errorMessage ?? 'Nie udało się odczytać kopii off-site.'}
         </p>
       ) : null}
@@ -202,11 +202,11 @@ export function HostingOffsitePanel({
             return (
               <li
                 key={archive.name}
-                className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-white/10 bg-black/30 px-3 py-2"
+                className="flex flex-wrap items-center justify-between gap-2 rounded-[7px] border border-line bg-background px-3 py-2"
               >
                 <div className="min-w-0">
-                  <p className="break-words font-mono text-xs text-neutral-100">{archive.name}</p>
-                  <p className="text-[11px] text-neutral-500">
+                  <p className="break-words font-mono text-xs text-foreground">{archive.name}</p>
+                  <p className="text-[11px] text-muted-foreground">
                     {archive.modifiedAt
                       ? new Date(archive.modifiedAt).toLocaleString('pl-PL')
                       : 'data nieznana'}
@@ -214,7 +214,7 @@ export function HostingOffsitePanel({
                   </p>
                 </div>
                 {isFetched ? (
-                  <span className="inline-flex items-center gap-1 text-xs text-emerald-200">
+                  <span className="inline-flex items-center gap-1 text-xs text-data-hi">
                     <CheckCircle2 className="h-3.5 w-3.5" />
                     Na serwerze
                   </span>
@@ -231,7 +231,7 @@ export function HostingOffsitePanel({
                       )
                     }
                     disabled={busy}
-                    className="inline-flex items-center gap-2 rounded-lg border border-cyan-400/30 bg-cyan-500/10 px-3 py-1.5 text-xs font-medium text-cyan-100 hover:bg-cyan-500/20 disabled:opacity-40"
+                    className="inline-flex items-center gap-2 rounded-[7px] border border-data/28 bg-data-soft px-3 py-1.5 text-xs font-medium text-data-hi hover:bg-data-soft disabled:opacity-40"
                   >
                     {busyAction === `fetch:${archive.name}` ? (
                       <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -246,20 +246,20 @@ export function HostingOffsitePanel({
           })}
         </ul>
       ) : state.listedAt && !state.busy ? (
-        <p className="text-xs text-neutral-500">
+        <p className="text-xs text-muted-foreground">
           Nie znaleźliśmy archiwów off-site dla tego konta
           {state.snapshot ? ` z dnia ${state.snapshot}` : ''}. Napisz do nas, sprawdzimy to razem.
         </p>
       ) : null}
 
       {fetchFailed && !state.busy ? (
-        <p className="text-xs text-rose-200">
+        <p className="text-xs text-crit">
           {state.lastFetch?.errorMessage ?? 'Pobranie archiwum nie powiodło się.'}
         </p>
       ) : null}
 
       {state.fetchedArchive && !state.busy ? (
-        <p className="flex items-start gap-2 rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-100">
+        <p className="flex items-start gap-2 rounded-[7px] border border-data/28 bg-data-soft px-3 py-2 text-xs text-data-hi">
           <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <span>
             Archiwum <span className="font-mono">{state.fetchedArchive}</span> jest już na serwerze.

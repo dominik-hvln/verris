@@ -121,11 +121,11 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
 
   const field = (key: keyof Sched, label: string) => (
     <label className="space-y-1">
-      <span className="text-[10px] uppercase tracking-wide text-neutral-500">{label}</span>
+      <span className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</span>
       <input
         value={sched[key]}
         onChange={(e) => setSched({ ...sched, [key]: e.target.value })}
-        className="w-full rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-center font-mono text-sm text-white outline-none focus:border-white/30"
+        className="w-full rounded-[7px] border border-line bg-background px-2 py-2 text-center font-mono text-sm text-foreground outline-none focus:border-data"
       />
     </label>
   );
@@ -139,15 +139,15 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
           kbQuery: 'cron zadania',
         }}
       />
-      <form onSubmit={onCreate} className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-        <p className="mb-3 text-sm font-semibold text-white">{editingId ? 'Edycja zadania cron' : 'Nowe zadanie cron'}</p>
+      <form onSubmit={onCreate} className="rounded-[10px] border border-line bg-raised p-4">
+        <p className="mb-3 text-sm font-semibold text-foreground">{editingId ? 'Edycja zadania cron' : 'Nowe zadanie cron'}</p>
         <div className="mb-3 flex flex-wrap gap-1.5">
           {PRESETS.map((p) => (
             <button
               key={p.label}
               type="button"
               onClick={() => setSched(p.value)}
-              className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-neutral-300 hover:bg-white/10"
+              className="rounded-full border border-line bg-raised px-2.5 py-1 text-xs text-[color:var(--verris-body)] hover:bg-raised"
             >
               {p.label}
             </button>
@@ -161,12 +161,12 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
           {field('dayOfWeek', 'Dz.tyg')}
         </div>
         <label className="mt-3 block space-y-1">
-          <span className="text-xs text-neutral-400">Komenda</span>
+          <span className="text-xs text-muted-foreground">Komenda</span>
           <input
             value={command}
             onChange={(e) => setCommand(e.target.value)}
             placeholder="np. php /home/user/domains/twojadomena.pl/public_html/cron.php"
-            className="w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 font-mono text-sm text-white outline-none focus:border-white/30"
+            className="w-full rounded-[7px] border border-line bg-background px-3 py-2 font-mono text-sm text-foreground outline-none focus:border-data"
           />
         </label>
         <CronPhpHelper serviceId={serviceId} onUse={setCommand} />
@@ -192,7 +192,7 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
             type="submit"
             size="sm"
             disabled={creating || !command.trim()}
-            className="h-8 gap-1.5 bg-white text-black hover:bg-neutral-200 text-xs"
+            className="h-8 gap-1.5 bg-primary text-primary-foreground font-semibold hover:bg-data-hi text-xs"
           >
             {creating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
             {editingId ? 'Zapisz zmiany' : 'Dodaj zadanie'}
@@ -201,15 +201,15 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
       </form>
 
       {loading ? (
-        <div className="flex items-center justify-center gap-2 py-10 text-sm text-neutral-400">
+        <div className="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Wczytywanie…
         </div>
       ) : error ? (
-        <p className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-sm text-amber-200/90">
+        <p className="rounded-[10px] border border-warn/30 bg-warn-soft px-3 py-2 text-sm text-warn">
           {hostingFetchErrorMessage(error)}
         </p>
       ) : rows.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 py-10 text-center text-sm text-neutral-500">
+        <div className="flex flex-col items-center gap-2 py-10 text-center text-sm text-muted-foreground">
           <Clock className="h-8 w-8 opacity-20" />
           Nie skonfigurowano jeszcze zadań cyklicznych.
         </div>
@@ -218,11 +218,11 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
           {rows.map((row) => (
             <div
               key={row.id}
-              className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.02] p-4"
+              className="flex items-center justify-between gap-3 rounded-[10px] border border-line bg-raised p-4"
             >
               <div className="min-w-0">
-                <p className="font-mono text-xs text-neutral-400">{row.schedule}</p>
-                <p className="mt-1 break-all font-mono text-sm text-white">{unwrapCron(row.command)?.command ?? row.command}</p>
+                <p className="font-mono text-xs text-muted-foreground">{row.schedule}</p>
+                <p className="mt-1 break-all font-mono text-sm text-foreground">{unwrapCron(row.command)?.command ?? row.command}</p>
                 {(() => {
                   const u = unwrapCron(row.command);
                   if (!u) return null;
@@ -237,7 +237,7 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
                         ) : wynik.blad ? (
                           <p className="mt-2 text-xs text-crit">{wynik.blad}</p>
                         ) : wynik.tekst ? (
-                          <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap break-all rounded-lg border border-line bg-raised p-3 font-mono text-xs text-foreground">{wynik.tekst}</pre>
+                          <pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap break-all rounded-[7px] border border-line bg-raised p-3 font-mono text-xs text-foreground">{wynik.tekst}</pre>
                         ) : (
                           <p className="mt-2 text-xs text-muted-foreground">Zadanie jeszcze się nie uruchomiło albo nic nie wypisało.</p>
                         )
@@ -252,7 +252,7 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
                 title="Edytuj zadanie"
                 aria-label="Edytuj zadanie"
                 onClick={() => onEdit(row)}
-                className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-white/10 bg-white/5 text-neutral-200 hover:bg-white/10"
+                className="inline-flex h-7 w-7 items-center justify-center rounded-md border border-line bg-raised text-[color:var(--verris-body)] hover:bg-raised"
               >
                 <Pencil className="h-4 w-4" />
               </button>
@@ -261,7 +261,7 @@ export default function CronTab({ serviceId }: { serviceId: string }) {
                 title="Usuń zadanie"
                 disabled={deleting === row.id}
                 onClick={() => void onDelete(row.id)}
-                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-white/10 bg-white/5 text-rose-300 hover:bg-rose-500/10 disabled:opacity-50"
+                className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-line bg-raised text-crit hover:bg-crit/12 disabled:opacity-50"
               >
                 {deleting === row.id ? (
                   <Loader2 className="h-4 w-4 animate-spin" />

@@ -61,7 +61,7 @@ export default function MonitoringTab({ serviceId }: Props) {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-neutral-400 p-6">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground p-6">
         <Loader2 className="h-4 w-4 animate-spin" /> Wczytywanie…
       </div>
     );
@@ -69,7 +69,7 @@ export default function MonitoringTab({ serviceId }: Props) {
 
   if (!status) {
     return (
-      <div className="rounded-xl border border-white/10 bg-black/20 p-6 text-sm text-neutral-400">
+      <div className="rounded-[10px] border border-line bg-background p-6 text-sm text-muted-foreground">
         Monitoring będzie dostępny po aktywacji konta hostingowego.
       </div>
     );
@@ -144,17 +144,17 @@ export default function MonitoringTab({ serviceId }: Props) {
 
       {/* Historia awarii */}
       {status.enabled && status.events.length > 0 && (
-        <div className="rounded-2xl border border-white/10 bg-black/30 p-6">
-          <h4 className="text-sm font-semibold text-white mb-3">Ostatnie zdarzenia</h4>
+        <div className="rounded-[10px] border border-line bg-background p-6">
+          <h4 className="text-sm font-semibold text-foreground mb-3">Ostatnie zdarzenia</h4>
           <ul className="space-y-2">
             {status.events.map((e) => (
               <li key={e.id} className="flex items-start gap-2.5 text-sm">
                 {e.type === 'DOWN' ? (
-                  <ArrowDownCircle className="h-4 w-4 shrink-0 mt-0.5 text-rose-400" />
+                  <ArrowDownCircle className="h-4 w-4 shrink-0 mt-0.5 text-crit" />
                 ) : (
-                  <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5 text-emerald-400" />
+                  <CheckCircle2 className="h-4 w-4 shrink-0 mt-0.5 text-data-hi" />
                 )}
-                <span className="text-neutral-300">
+                <span className="text-[color:var(--verris-body)]">
                   {e.type === 'DOWN' ? (
                     <>
                       Awaria — {e.message ?? (e.httpStatus ? `HTTP ${e.httpStatus}` : 'brak odpowiedzi')}
@@ -167,7 +167,7 @@ export default function MonitoringTab({ serviceId }: Props) {
                         : ''}
                     </>
                   )}
-                  <span className="text-neutral-500">
+                  <span className="text-muted-foreground">
                     {' '}
                     · {new Date(e.createdAt).toLocaleString('pl-PL')}
                   </span>
@@ -179,7 +179,7 @@ export default function MonitoringTab({ serviceId }: Props) {
       )}
 
       {status.enabled && status.events.length === 0 && status.lastStatus === 'UP' && (
-        <p className="flex items-center gap-2 text-sm text-neutral-500 px-1">
+        <p className="flex items-center gap-2 text-sm text-muted-foreground px-1">
           <AlertCircle className="h-4 w-4" /> Brak awarii w historii — oby tak dalej.
         </p>
       )}
@@ -218,13 +218,13 @@ function PaidMonitoringCard({
 
   if (paid.active) {
     return (
-      <div className="rounded-2xl border border-amber-400/30 bg-amber-400/[0.06] p-6">
+      <div className="rounded-[10px] border border-warn/30 bg-warn-soft p-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="space-y-1 min-w-0">
-            <h4 className="flex items-center gap-2 text-sm font-semibold text-white">
-              <Zap className="h-4 w-4 text-amber-300" /> Szybki monitoring aktywny
+            <h4 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+              <Zap className="h-4 w-4 text-warn" /> Szybki monitoring aktywny
             </h4>
-            <p className="text-sm text-neutral-300 max-w-xl">
+            <p className="text-sm text-[color:var(--verris-body)] max-w-xl">
               Sprawdzamy stronę co {paid.paidIntervalMinutes === 1 ? 'minutę' : `${paid.paidIntervalMinutes} min`} —
               awarię wykryjemy niemal natychmiast.
               {paid.cancelAtPeriodEnd
@@ -240,41 +240,41 @@ function PaidMonitoringCard({
             type="button"
             onClick={() => act(!paid.cancelAtPeriodEnd ? false : true)}
             disabled={busy}
-            className="shrink-0 rounded-lg border border-white/15 bg-white/[0.04] px-4 py-2 text-sm font-medium text-white hover:bg-white/10 disabled:opacity-50"
+            className="shrink-0 rounded-[7px] border border-line-strong bg-raised px-4 py-2 text-sm font-medium text-foreground hover:bg-raised disabled:opacity-50"
           >
             {busy ? <Loader className="h-4 w-4 animate-spin" /> : paid.cancelAtPeriodEnd ? 'Wznów' : 'Zrezygnuj'}
           </button>
         </div>
-        {error && <p className="mt-3 text-sm text-rose-300">{error}</p>}
+        {error && <p className="mt-3 text-sm text-crit">{error}</p>}
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/30 p-6">
+    <div className="rounded-[10px] border border-line bg-background p-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div className="space-y-1 min-w-0">
-          <h4 className="flex items-center gap-2 text-sm font-semibold text-white">
-            <Zap className="h-4 w-4 text-amber-300" /> Przyspiesz monitoring
+          <h4 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <Zap className="h-4 w-4 text-warn" /> Przyspiesz monitoring
           </h4>
-          <p className="text-sm text-neutral-400 max-w-xl">
+          <p className="text-sm text-muted-foreground max-w-xl">
             Standardowo sprawdzamy stronę co {paid.freeIntervalMinutes} min (za darmo). Włącz
             szybki monitoring, by sprawdzać co{' '}
             {paid.paidIntervalMinutes === 1 ? 'minutę' : `${paid.paidIntervalMinutes} min`} i wykrywać
-            awarie niemal natychmiast — <strong className="text-neutral-200">{paid.monthlyPrice} K/mies.</strong> z portfela.
+            awarie niemal natychmiast — <strong className="text-[color:var(--verris-body)]">{paid.monthlyPrice} K/mies.</strong> z portfela.
           </p>
         </div>
         <button
           type="button"
           onClick={() => act(true)}
           disabled={busy}
-          className="shrink-0 inline-flex items-center gap-2 rounded-lg bg-amber-500 px-4 py-2 text-sm font-semibold text-black hover:bg-amber-400 disabled:opacity-50"
+          className="shrink-0 inline-flex items-center gap-2 rounded-[7px] bg-warn-soft px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-warn-soft disabled:opacity-50"
         >
           {busy ? <Loader className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
           Włącz za {paid.monthlyPrice} K/mies.
         </button>
       </div>
-      {error && <p className="mt-3 text-sm text-rose-300">{error}</p>}
+      {error && <p className="mt-3 text-sm text-crit">{error}</p>}
     </div>
   );
 }
@@ -297,10 +297,10 @@ function NotifyToggle({
     if (!('error' in res)) onChange(res);
   };
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+    <div className="flex items-center justify-between gap-3 rounded-[10px] border border-line bg-background px-4 py-3">
       <div className="min-w-0">
-        <p className="text-sm text-white">Powiadomienia e-mail o awariach i SSL</p>
-        <p className="text-xs text-neutral-500">
+        <p className="text-sm text-foreground">Powiadomienia e-mail o awariach i SSL</p>
+        <p className="text-xs text-muted-foreground">
           {notifyEmail
             ? 'Wyślemy maila przy awarii, powrocie i zbliżającym się wygaśnięciu certyfikatu.'
             : 'Maile wyłączone — monitoring działa, ale nie powiadamiamy mailem.'}

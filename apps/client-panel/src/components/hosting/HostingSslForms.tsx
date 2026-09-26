@@ -58,13 +58,13 @@ export function HostingSslForms({ serviceId }: Props) {
   return (
     <div className="space-y-6">
       {domainError ? (
-        <p className="text-sm text-amber-200/90 rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+        <p className="text-sm text-warn rounded-[10px] border border-warn/30 bg-warn-soft px-3 py-2">
           {domainError}
         </p>
       ) : null}
 
       <label htmlFor={domainId} className="block space-y-1.5 max-w-md">
-        <span className="text-xs font-medium text-neutral-400">Domena (konto hostingowe)</span>
+        <span className="text-xs font-medium text-muted-foreground">Domena (konto hostingowe)</span>
         <Select
           id={domainId}
           value={domain}
@@ -77,33 +77,33 @@ export function HostingSslForms({ serviceId }: Props) {
       </label>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
-          <div className="flex items-center gap-2 text-white font-semibold">
-            <Sparkles className="h-4 w-4 text-cyan-300" />
+        <div className="rounded-[10px] border border-line bg-raised p-5 space-y-4">
+          <div className="flex items-center gap-2 text-foreground font-semibold">
+            <Sparkles className="h-4 w-4 text-data-hi" />
             Let&apos;s Encrypt
           </div>
-          <p className="text-xs text-neutral-500 leading-relaxed">
+          <p className="text-xs text-muted-foreground leading-relaxed">
             Zlecenie wystawienia certyfikatu na serwerze. Może potrwać do ok. 2–3 minut — nie zamykaj
             karty w tym czasie.
           </p>
-          <label className="flex items-center gap-2 text-sm text-neutral-300 cursor-pointer select-none">
+          <label className="flex items-center gap-2 text-sm text-[color:var(--verris-body)] cursor-pointer select-none">
             <Checkbox
-              className="rounded border-white/20 bg-black/40"
+              className="rounded border-line-strong bg-background"
               checked={includeWww}
               disabled={wildcard}
               onChange={(e) => setIncludeWww(e.target.checked)}
             />
-            Uwzględnij <span className="font-mono text-neutral-200">www</span> (jeśli domena jest na koncie)
+            Uwzględnij <span className="font-mono text-[color:var(--verris-body)]">www</span> (jeśli domena jest na koncie)
           </label>
-          <label className="flex items-start gap-2 text-sm text-neutral-300 cursor-pointer select-none">
+          <label className="flex items-start gap-2 text-sm text-[color:var(--verris-body)] cursor-pointer select-none">
             <Checkbox
-              className="mt-0.5 rounded border-white/20 bg-black/40"
+              className="mt-0.5 rounded border-line-strong bg-background"
               checked={wildcard}
               onChange={(e) => setWildcard(e.target.checked)}
             />
             <span>
-              Wildcard <span className="font-mono text-neutral-200">*.{domain || 'domena'}</span> — pokrywa wszystkie subdomeny.
-              <span className="mt-0.5 block text-[11px] text-amber-200/80">
+              Wildcard <span className="font-mono text-[color:var(--verris-body)]">*.{domain || 'domena'}</span> — pokrywa wszystkie subdomeny.
+              <span className="mt-0.5 block text-[11px] text-warn">
                 Wymaga, aby DNS domeny był hostowany na tym serwerze (walidacja DNS-01).
               </span>
             </span>
@@ -112,8 +112,8 @@ export function HostingSslForms({ serviceId }: Props) {
             <p
               className={
                 leMsg.type === 'ok'
-                  ? 'text-sm text-emerald-300/90'
-                  : 'text-sm text-rose-300/90'
+                  ? 'text-sm text-data-hi'
+                  : 'text-sm text-crit'
               }
             >
               {leMsg.text}
@@ -121,7 +121,7 @@ export function HostingSslForms({ serviceId }: Props) {
           ) : null}
           <Button
             type="button"
-            className="w-full gap-2 bg-cyan-600 hover:bg-cyan-500 text-white"
+            className="w-full gap-2 bg-primary text-primary-foreground font-semibold hover:bg-data-hi"
             disabled={leBusy || !domain.trim() || loadingDomains}
             onClick={async () => {
               setLeMsg(null);
@@ -148,19 +148,19 @@ export function HostingSslForms({ serviceId }: Props) {
           </Button>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
-          <div className="flex items-center gap-2 text-white font-semibold">
-            <KeyRound className="h-4 w-4 text-violet-300" />
+        <div className="rounded-[10px] border border-line bg-raised p-5 space-y-4">
+          <div className="flex items-center gap-2 text-foreground font-semibold">
+            <KeyRound className="h-4 w-4 text-data-hi" />
             Własny certyfikat (PEM)
           </div>
-          <p className="text-xs text-neutral-500 leading-relaxed">
+          <p className="text-xs text-muted-foreground leading-relaxed">
             Wklej certyfikat serwera, klucz prywatny i opcjonalnie łańcuch CA (PEM). Dane trafiają wyłącznie do
             serwera dla wybranej domeny.
           </p>
           <label className="block space-y-1.5">
-            <span className="text-xs font-medium text-neutral-400">Certyfikat (PEM)</span>
+            <span className="text-xs font-medium text-muted-foreground">Certyfikat (PEM)</span>
             <textarea
-              className="w-full min-h-[100px] rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-xs font-mono text-neutral-200"
+              className="w-full min-h-[100px] rounded-[10px] border border-line bg-background px-3 py-2 text-xs font-mono text-[color:var(--verris-body)]"
               value={cert}
               onChange={(e) => setCert(e.target.value)}
               placeholder="-----BEGIN CERTIFICATE-----"
@@ -168,9 +168,9 @@ export function HostingSslForms({ serviceId }: Props) {
             />
           </label>
           <label className="block space-y-1.5">
-            <span className="text-xs font-medium text-neutral-400">Klucz prywatny (PEM)</span>
+            <span className="text-xs font-medium text-muted-foreground">Klucz prywatny (PEM)</span>
             <textarea
-              className="w-full min-h-[80px] rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-xs font-mono text-neutral-200"
+              className="w-full min-h-[80px] rounded-[10px] border border-line bg-background px-3 py-2 text-xs font-mono text-[color:var(--verris-body)]"
               value={privateKey}
               onChange={(e) => setPrivateKey(e.target.value)}
               placeholder="-----BEGIN PRIVATE KEY-----"
@@ -178,9 +178,9 @@ export function HostingSslForms({ serviceId }: Props) {
             />
           </label>
           <label className="block space-y-1.5">
-            <span className="text-xs font-medium text-neutral-400">Łańcuch CA (opcjonalnie)</span>
+            <span className="text-xs font-medium text-muted-foreground">Łańcuch CA (opcjonalnie)</span>
             <textarea
-              className="w-full min-h-[60px] rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-xs font-mono text-neutral-200"
+              className="w-full min-h-[60px] rounded-[10px] border border-line bg-background px-3 py-2 text-xs font-mono text-[color:var(--verris-body)]"
               value={caBundle}
               onChange={(e) => setCaBundle(e.target.value)}
               placeholder="-----BEGIN CERTIFICATE----- (intermediate)"
@@ -191,8 +191,8 @@ export function HostingSslForms({ serviceId }: Props) {
             <p
               className={
                 pasteMsg.type === 'ok'
-                  ? 'text-sm text-emerald-300/90'
-                  : 'text-sm text-rose-300/90'
+                  ? 'text-sm text-data-hi'
+                  : 'text-sm text-crit'
               }
             >
               {pasteMsg.text}
@@ -201,7 +201,7 @@ export function HostingSslForms({ serviceId }: Props) {
           <Button
             type="button"
             variant="outline"
-            className="w-full gap-2 border-violet-500/30 text-white hover:bg-violet-500/10"
+            className="w-full gap-2 border-data/28 text-foreground hover:bg-data-soft"
             disabled={pasteBusy || !domain.trim() || !cert.trim() || !privateKey.trim() || loadingDomains}
             onClick={async () => {
               setPasteMsg(null);

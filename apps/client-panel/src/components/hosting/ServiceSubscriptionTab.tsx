@@ -96,7 +96,7 @@ export default function ServiceSubscriptionTab({ serviceId }: { serviceId: strin
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center gap-2 py-16 text-sm text-neutral-400">
+      <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
         <Loader2 className="h-5 w-5 animate-spin" />
         Wczytywanie subskrypcji…
       </div>
@@ -104,7 +104,7 @@ export default function ServiceSubscriptionTab({ serviceId }: { serviceId: strin
   }
 
   if (!service) {
-    return <p className="text-sm text-rose-200">Nie udało się wczytać danych subskrypcji.</p>;
+    return <p className="text-sm text-crit">Nie udało się wczytać danych subskrypcji.</p>;
   }
 
   const canCancel =
@@ -217,7 +217,7 @@ export default function ServiceSubscriptionTab({ serviceId }: { serviceId: strin
         </section>
       ) : null}
 
-      {error ? <p className="text-sm text-rose-300">{error}</p> : null}
+      {error ? <p className="text-sm text-crit">{error}</p> : null}
 
       <PanelModal
         open={cancelOpen}
@@ -230,7 +230,7 @@ export default function ServiceSubscriptionTab({ serviceId }: { serviceId: strin
         }
       >
         <div className="space-y-3">
-          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 p-3">
+          <label className="flex cursor-pointer items-start gap-3 rounded-[10px] border border-line p-3">
             <input
               type="radio"
               name="cancel-mode"
@@ -240,14 +240,14 @@ export default function ServiceSubscriptionTab({ serviceId }: { serviceId: strin
               aria-describedby={`${cancelModeId}-end-desc`}
               className="mt-1"
             />
-            <span className="text-sm text-neutral-200">
-              <span id={`${cancelModeId}-end`} className="font-medium text-white">Na koniec okresu</span>
-              <span id={`${cancelModeId}-end-desc`} className="mt-0.5 block text-xs text-neutral-500">
+            <span className="text-sm text-[color:var(--verris-body)]">
+              <span id={`${cancelModeId}-end`} className="font-medium text-foreground">Na koniec okresu</span>
+              <span id={`${cancelModeId}-end-desc`} className="mt-0.5 block text-xs text-muted-foreground">
                 Do {formatDate(service.currentPeriodEnd)}
               </span>
             </span>
           </label>
-          <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 p-3">
+          <label className="flex cursor-pointer items-start gap-3 rounded-[10px] border border-line p-3">
             <input
               type="radio"
               name="cancel-mode"
@@ -257,9 +257,9 @@ export default function ServiceSubscriptionTab({ serviceId }: { serviceId: strin
               aria-describedby={`${cancelModeId}-now-desc`}
               className="mt-1"
             />
-            <span className="text-sm text-neutral-200">
-              <span id={`${cancelModeId}-now`} className="font-medium text-white">Od razu</span>
-              <span id={`${cancelModeId}-now-desc`} className="mt-0.5 block text-xs text-neutral-500">
+            <span className="text-sm text-[color:var(--verris-body)]">
+              <span id={`${cancelModeId}-now`} className="font-medium text-foreground">Od razu</span>
+              <span id={`${cancelModeId}-now-desc`} className="mt-0.5 block text-xs text-muted-foreground">
                 Natychmiastowe zawieszenie konta hostingowego
               </span>
             </span>

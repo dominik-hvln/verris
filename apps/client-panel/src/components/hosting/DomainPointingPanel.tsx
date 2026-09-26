@@ -24,28 +24,28 @@ const STATUS_STYLES: Record<
   { border: string; bg: string; text: string; dot: string }
 > = {
   ok: {
-    border: 'border-emerald-400/30',
-    bg: 'bg-emerald-400/10',
-    text: 'text-emerald-200',
-    dot: 'bg-emerald-400',
+    border: 'border-data/28',
+    bg: 'bg-data-soft',
+    text: 'text-data-hi',
+    dot: 'bg-data',
   },
   partial: {
-    border: 'border-amber-400/30',
-    bg: 'bg-amber-400/10',
-    text: 'text-amber-200',
-    dot: 'bg-amber-400',
+    border: 'border-warn/30',
+    bg: 'bg-warn-soft',
+    text: 'text-warn',
+    dot: 'bg-warn',
   },
   fail: {
-    border: 'border-rose-400/30',
-    bg: 'bg-rose-400/10',
-    text: 'text-rose-200',
-    dot: 'bg-rose-400',
+    border: 'border-crit/30',
+    bg: 'bg-crit/12',
+    text: 'text-crit',
+    dot: 'bg-crit',
   },
   pending: {
-    border: 'border-white/15',
-    bg: 'bg-white/[0.03]',
-    text: 'text-neutral-400',
-    dot: 'bg-neutral-500',
+    border: 'border-line-strong',
+    bg: 'bg-raised',
+    text: 'text-muted-foreground',
+    dot: 'bg-muted-foreground',
   },
 };
 
@@ -68,9 +68,9 @@ function CopyBtn({ value }: { value: string }) {
           window.setTimeout(() => setCopied(false), 2000);
         });
       }}
-      className="rounded-md border border-white/10 p-1 text-neutral-400 hover:text-white"
+      className="rounded-md border border-line p-1 text-muted-foreground hover:text-foreground"
     >
-      {copied ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+      {copied ? <CheckCircle2 className="h-3.5 w-3.5 text-data-hi" /> : <Copy className="h-3.5 w-3.5" />}
     </button>
   );
 }
@@ -114,7 +114,7 @@ export default function DomainPointingPanel({
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 py-4 text-xs text-neutral-500">
+      <div className="flex items-center gap-2 py-4 text-xs text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
         Sprawdzanie DNS…
       </div>
@@ -123,7 +123,7 @@ export default function DomainPointingPanel({
 
   if (!data?.domain || !data.expectedIpv4) {
     return (
-      <p className="text-xs text-neutral-500">
+      <p className="text-xs text-muted-foreground">
         Weryfikator DNS będzie dostępny po aktywacji usługi.
       </p>
     );
@@ -132,15 +132,15 @@ export default function DomainPointingPanel({
   const st = STATUS_STYLES[data.status];
 
   return (
-    <div className={`rounded-xl border ${st.border} ${st.bg} p-4 space-y-4`}>
+    <div className={`rounded-[10px] border ${st.border} ${st.bg} p-4 space-y-4`}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className={`h-2.5 w-2.5 rounded-full shrink-0 ${st.dot} ${verifying ? 'animate-pulse' : ''}`} />
             <p className={`text-sm font-semibold ${st.text}`}>{STATUS_LABELS[data.status]}</p>
           </div>
-          <p className="text-xs text-neutral-400 mt-1 leading-relaxed">{data.message}</p>
-          <p className="text-[10px] text-neutral-600 mt-1">
+          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{data.message}</p>
+          <p className="text-[10px] text-muted-foreground mt-1">
             Ostatnia weryfikacja: {new Date(data.checkedAt).toLocaleString('pl-PL')}
           </p>
         </div>
@@ -151,7 +151,7 @@ export default function DomainPointingPanel({
             variant="outline"
             disabled={verifying}
             onClick={() => void verify()}
-            className="h-8 gap-1.5 border-white/15 text-white text-xs"
+            className="h-8 gap-1.5 border-line-strong text-foreground text-xs"
           >
             {verifying ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
             Sprawdź teraz
@@ -162,7 +162,7 @@ export default function DomainPointingPanel({
               size="sm"
               variant="outline"
               onClick={() => setAutoPoll((v) => !v)}
-              className={`h-8 text-xs border-white/15 ${autoPoll ? 'text-cyan-200 border-cyan-400/40' : 'text-white'}`}
+              className={`h-8 text-xs border-line-strong ${autoPoll ? 'text-data-hi border-data/28' : 'text-foreground'}`}
             >
               {autoPoll ? 'Auto: wł.' : 'Auto: wył.'}
             </Button>
@@ -171,36 +171,36 @@ export default function DomainPointingPanel({
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2 text-xs">
-        <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-          <p className="text-[10px] uppercase tracking-wider text-neutral-500">Wykryte NS ({data.domain})</p>
-          <p className="font-mono text-white mt-1 break-all">
+        <div className="rounded-[7px] border border-line bg-background px-3 py-2">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Wykryte NS ({data.domain})</p>
+          <p className="font-mono text-foreground mt-1 break-all">
             {data.nameservers.length ? data.nameservers.join(', ') : '— brak —'}
           </p>
           {data.expectedNameservers.length ? (
-            <p className="text-[10px] text-neutral-500 mt-1">
+            <p className="text-[10px] text-muted-foreground mt-1">
               Oczekiwane NS:{' '}
               <span className="break-all font-mono">{data.expectedNameservers.join(', ')}</span>
             </p>
           ) : null}
-          <p className="text-[10px] mt-1 text-neutral-400">
+          <p className="text-[10px] mt-1 text-muted-foreground">
             Tryb NS: {data.delegatedToExpectedNs ? 'poprawny' : 'niepotwierdzony'}
           </p>
         </div>
-        <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-          <p className="text-[10px] uppercase tracking-wider text-neutral-500">Wykryte A ({data.domain})</p>
-          <p className="font-mono text-white mt-1 break-all">
+        <div className="rounded-[7px] border border-line bg-background px-3 py-2">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Wykryte A ({data.domain})</p>
+          <p className="font-mono text-foreground mt-1 break-all">
             {data.observedA.length ? data.observedA.join(', ') : '— brak —'}
           </p>
         </div>
-        <div className="rounded-lg border border-white/10 bg-black/20 px-3 py-2">
-          <p className="text-[10px] uppercase tracking-wider text-neutral-500">Oczekiwany serwer</p>
+        <div className="rounded-[7px] border border-line bg-background px-3 py-2">
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Oczekiwany serwer</p>
           <div className="flex items-center gap-2 mt-1">
-            <Server className="h-3.5 w-3.5 text-neutral-400 shrink-0" />
-            <span className="font-mono text-white">{data.expectedIpv4}</span>
+            <Server className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <span className="font-mono text-foreground">{data.expectedIpv4}</span>
             <CopyBtn value={data.expectedIpv4} />
           </div>
           {data.serverName ? (
-            <p className="text-[10px] text-neutral-500 mt-1">Serwer hostingu Verris</p>
+            <p className="text-[10px] text-muted-foreground mt-1">Serwer hostingu Verris</p>
           ) : null}
         </div>
       </div>
@@ -208,7 +208,7 @@ export default function DomainPointingPanel({
       {data.issues.length > 0 ? (
         <ul className="space-y-1">
           {data.issues.map((issue) => (
-            <li key={issue} className="flex items-start gap-2 text-xs text-amber-100/90">
+            <li key={issue} className="flex items-start gap-2 text-xs text-warn">
               <AlertCircle className="h-3.5 w-3.5 shrink-0 mt-0.5" />
               {issue}
             </li>
@@ -220,7 +220,7 @@ export default function DomainPointingPanel({
         <button
           type="button"
           onClick={() => setWizardOpen((o) => !o)}
-          className="flex w-full items-center justify-between text-left text-sm font-semibold text-white py-1"
+          className="flex w-full items-center justify-between text-left text-sm font-semibold text-foreground py-1"
         >
           <span className="flex items-center gap-2">
             <Globe className="h-4 w-4" />
@@ -230,70 +230,70 @@ export default function DomainPointingPanel({
         </button>
 
         {wizardOpen ? (
-          <ol className="mt-3 space-y-3 text-xs text-neutral-300">
+          <ol className="mt-3 space-y-3 text-xs text-[color:var(--verris-body)]">
             <li className="flex gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/10 text-[11px] font-bold">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-raised text-[11px] font-bold">
                 1
               </span>
               <div>
-                <p className="font-medium text-white">Zaloguj się u rejestratora domeny</p>
-                <p className="text-neutral-400 mt-0.5">
+                <p className="font-medium text-foreground">Zaloguj się u rejestratora domeny</p>
+                <p className="text-muted-foreground mt-0.5">
                   OVH, home.pl, Cloudflare, Aftermarket itd. → zarządzanie strefą DNS / rekordy.
                 </p>
               </div>
             </li>
             <li className="flex gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/10 text-[11px] font-bold">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-raised text-[11px] font-bold">
                 2
               </span>
               <div>
-                <p className="font-medium text-white">Wybierz 1 z 2 wariantów konfiguracji</p>
-                <p className="text-neutral-400 mt-0.5">
+                <p className="font-medium text-foreground">Wybierz 1 z 2 wariantów konfiguracji</p>
+                <p className="text-muted-foreground mt-0.5">
                   Wariant A: delegacja domeny na nameservery hostingu (zalecane, pełna obsługa DNS/mail z panelu).
                 </p>
                 {data.expectedNameservers.length ? (
-                  <div className="mt-2 rounded-lg border border-white/10 bg-black/30 p-2 font-mono text-[11px] text-neutral-200 space-y-1">
+                  <div className="mt-2 rounded-[7px] border border-line bg-background p-2 font-mono text-[11px] text-[color:var(--verris-body)] space-y-1">
                     {data.expectedNameservers.map((ns) => (
                       <p key={ns}>
-                        <span className="text-neutral-500">NS:</span> {ns}
+                        <span className="text-muted-foreground">NS:</span> {ns}
                       </p>
                     ))}
                   </div>
                 ) : null}
-                <p className="text-neutral-400 mt-2">
+                <p className="text-muted-foreground mt-2">
                   Wariant B: zostaw obecne NS i ustaw rekordy A/AAAA ręcznie (np. gdy poczta zostaje u innego dostawcy).
                 </p>
-                <div className="mt-2 rounded-lg border border-white/10 bg-black/30 p-2 font-mono text-[11px] text-neutral-200 space-y-1">
+                <div className="mt-2 rounded-[7px] border border-line bg-background p-2 font-mono text-[11px] text-[color:var(--verris-body)] space-y-1">
                   <p>
-                    <span className="text-neutral-500">Host:</span> @ &nbsp;
-                    <span className="text-neutral-500">Typ:</span> A &nbsp;
-                    <span className="text-neutral-500">Wartość:</span> {data.expectedIpv4}
+                    <span className="text-muted-foreground">Host:</span> @ &nbsp;
+                    <span className="text-muted-foreground">Typ:</span> A &nbsp;
+                    <span className="text-muted-foreground">Wartość:</span> {data.expectedIpv4}
                   </p>
                   <p>
-                    <span className="text-neutral-500">TTL:</span> 300–3600 (niższe = szybsza propagacja)
+                    <span className="text-muted-foreground">TTL:</span> 300–3600 (niższe = szybsza propagacja)
                   </p>
                 </div>
               </div>
             </li>
             <li className="flex gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/10 text-[11px] font-bold">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-raised text-[11px] font-bold">
                 3
               </span>
               <div>
-                <p className="font-medium text-white">Opcjonalnie: www</p>
-                <p className="text-neutral-400 mt-0.5">
-                  Rekord A <code className="text-neutral-300">www</code> → {data.expectedIpv4} albo CNAME{' '}
-                  <code className="text-neutral-300">www</code> → {data.domain}
+                <p className="font-medium text-foreground">Opcjonalnie: www</p>
+                <p className="text-muted-foreground mt-0.5">
+                  Rekord A <code className="text-[color:var(--verris-body)]">www</code> → {data.expectedIpv4} albo CNAME{' '}
+                  <code className="text-[color:var(--verris-body)]">www</code> → {data.domain}
                 </p>
               </div>
             </li>
             <li className="flex gap-3">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white/10 text-[11px] font-bold">
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-raised text-[11px] font-bold">
                 4
               </span>
               <div>
-                <p className="font-medium text-white">Poczekaj na propagację i kliknij „Sprawdź teraz”</p>
-                <p className="text-neutral-400 mt-0.5">
+                <p className="font-medium text-foreground">Poczekaj na propagację i kliknij „Sprawdź teraz”</p>
+                <p className="text-muted-foreground mt-0.5">
                   Zwykle 5–60 minut. Włącz „Auto”, aby odświeżać co 30 s. Status będzie PASS dla poprawnej delegacji NS
                   albo poprawnych rekordów A/AAAA.
                 </p>
@@ -308,7 +308,7 @@ export default function DomainPointingPanel({
           <button
             type="button"
             onClick={onGoToDomains}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-2 text-xs text-neutral-300 hover:bg-white/5 hover:text-white"
+            className="inline-flex items-center gap-1.5 rounded-[7px] border border-line-strong px-3 py-2 text-xs text-[color:var(--verris-body)] hover:bg-raised hover:text-foreground"
           >
             Szczegóły w zakładce Domeny →
           </button>

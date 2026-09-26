@@ -13,14 +13,14 @@ function fmtMb(mb: number): string {
 
 function Bar({ used, limit }: { used: number; limit: number | null }) {
   const pct = limit && limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : null;
-  const color = pct == null ? 'bg-emerald-500' : pct >= 90 ? 'bg-rose-500' : pct >= 75 ? 'bg-amber-500' : 'bg-emerald-500';
+  const color = pct == null ? 'bg-primary text-primary-foreground font-semibold' : pct >= 90 ? 'bg-crit/12' : pct >= 75 ? 'bg-warn-soft' : 'bg-primary text-primary-foreground font-semibold';
   return (
     <div className="mt-2">
-      <div className="h-2 w-full overflow-hidden rounded-full bg-white/10">
+      <div className="h-2 w-full overflow-hidden rounded-full bg-raised">
         <div className={`h-full ${color}`} style={{ width: `${pct ?? 6}%` }} />
       </div>
-      <p className="mt-1 text-xs text-neutral-400">
-        {fmtMb(used)} {limit && limit > 0 ? <>z {fmtMb(limit)} {pct != null && <span className="text-neutral-500">({pct}%)</span>}</> : <span className="text-neutral-500">/ bez limitu</span>}
+      <p className="mt-1 text-xs text-muted-foreground">
+        {fmtMb(used)} {limit && limit > 0 ? <>z {fmtMb(limit)} {pct != null && <span className="text-muted-foreground">({pct}%)</span>}</> : <span className="text-muted-foreground">/ bez limitu</span>}
       </p>
     </div>
   );
@@ -37,7 +37,7 @@ export default function AccountStatsCard({ serviceId }: { serviceId: string }) {
   }, [serviceId]);
 
   if (loading) {
-    return <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.02] p-4 text-sm text-neutral-400"><Loader2 className="h-4 w-4 animate-spin" /> Wczytywanie statystyk…</div>;
+    return <div className="flex items-center gap-2 rounded-[10px] border border-line bg-raised p-4 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Wczytywanie statystyk…</div>;
   }
   if (!data) return null;
 
@@ -50,28 +50,28 @@ export default function AccountStatsCard({ serviceId }: { serviceId: string }) {
   ];
 
   return (
-    <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-      <h3 className="flex items-center gap-2 text-sm font-semibold text-white"><Activity className="h-4 w-4 text-emerald-300" /> Statystyki konta</h3>
+    <section className="rounded-[10px] border border-line bg-raised p-4">
+      <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground"><Activity className="h-4 w-4 text-data-hi" /> Statystyki konta</h3>
       {data.fetchError ? (
-        <p className="mt-2 text-xs text-amber-300/80">{data.fetchError}</p>
+        <p className="mt-2 text-xs text-warn">{data.fetchError}</p>
       ) : (
         <>
           <div className="mt-3 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-              <p className="flex items-center gap-1.5 text-xs font-semibold text-neutral-300"><Network className="h-3.5 w-3.5 text-emerald-300" /> Transfer (bież. okres)</p>
+            <div className="rounded-[10px] border border-line bg-background p-3">
+              <p className="flex items-center gap-1.5 text-xs font-semibold text-[color:var(--verris-body)]"><Network className="h-3.5 w-3.5 text-data-hi" /> Transfer (bież. okres)</p>
               <Bar used={data.bandwidth.usedMb} limit={data.bandwidth.limitMb} />
             </div>
-            <div className="rounded-xl border border-white/10 bg-black/30 p-3">
-              <p className="flex items-center gap-1.5 text-xs font-semibold text-neutral-300"><HardDrive className="h-3.5 w-3.5 text-emerald-300" /> Dysk</p>
+            <div className="rounded-[10px] border border-line bg-background p-3">
+              <p className="flex items-center gap-1.5 text-xs font-semibold text-[color:var(--verris-body)]"><HardDrive className="h-3.5 w-3.5 text-data-hi" /> Dysk</p>
               <Bar used={data.disk.usedMb} limit={data.disk.limitMb} />
             </div>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
             {counts.map((c) => (
-              <div key={c.label} className="rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-center">
-                <c.icon className="mx-auto h-4 w-4 text-neutral-400" />
-                <div className="mt-1 text-lg font-bold text-white">{c.value}</div>
-                <div className="text-[11px] text-neutral-500">{c.label}</div>
+              <div key={c.label} className="rounded-[7px] border border-line bg-background px-3 py-2 text-center">
+                <c.icon className="mx-auto h-4 w-4 text-muted-foreground" />
+                <div className="mt-1 text-lg font-bold text-foreground">{c.value}</div>
+                <div className="text-[11px] text-muted-foreground">{c.label}</div>
               </div>
             ))}
           </div>

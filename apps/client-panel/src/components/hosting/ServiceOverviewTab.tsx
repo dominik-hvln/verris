@@ -163,7 +163,7 @@ export default function ServiceOverviewTab({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center gap-2 py-20 text-sm text-neutral-400">
+      <div className="flex items-center justify-center gap-2 py-20 text-sm text-muted-foreground">
         <Loader2 className="h-5 w-5 animate-spin" />
         Wczytywanie dashboardu…
       </div>
@@ -171,7 +171,7 @@ export default function ServiceOverviewTab({
   }
 
   if (!service) {
-    return <p className="text-sm text-rose-200">Nie udało się wczytać usługi.</p>;
+    return <p className="text-sm text-crit">Nie udało się wczytać usługi.</p>;
   }
 
   const periodEnd = service.currentPeriodEnd
@@ -209,10 +209,10 @@ export default function ServiceOverviewTab({
         <button
           type="button"
           onClick={() => onNavigate('subscription')}
-          className="w-full rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-left text-sm text-amber-100 hover:bg-amber-500/15 transition-colors"
+          className="w-full rounded-[10px] border border-warn/30 bg-warn-soft px-4 py-3 text-left text-sm text-warn hover:bg-warn-soft transition-colors"
         >
-          <span className="font-semibold text-amber-50">Płatność i subskrypcja</span>
-          <span className="mt-1 block text-xs text-amber-100/80">
+          <span className="font-semibold text-warn">Płatność i subskrypcja</span>
+          <span className="mt-1 block text-xs text-warn">
             Opłać, anuluj zamówienie lub zarządzaj rozliczeniem → zakładka Subskrypcja
           </span>
         </button>
@@ -248,7 +248,7 @@ export default function ServiceOverviewTab({
               setRefreshing(true);
               void load(true);
             }}
-            className="h-8 gap-1.5 border-white/15 text-white text-xs"
+            className="h-8 gap-1.5 border-line-strong text-foreground text-xs"
           >
             {refreshing ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -260,7 +260,7 @@ export default function ServiceOverviewTab({
         }
       >
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 flex flex-col items-center justify-center min-h-[120px]">
+          <div className="rounded-[10px] border border-line bg-raised p-4 flex flex-col items-center justify-center min-h-[120px]">
             {health?.score != null ? (
               <>
                 <ServiceGaugeRing
@@ -270,26 +270,26 @@ export default function ServiceOverviewTab({
                   unit=""
                   color={healthColor(health.label)}
                 />
-                <p className="text-[11px] text-neutral-400 text-center mt-1 px-2 leading-snug">
+                <p className="text-[11px] text-muted-foreground text-center mt-1 px-2 leading-snug">
                   {health.summary}
                 </p>
                 {health.checkedAt ? (
-                  <p className="text-[10px] text-neutral-600 mt-1">
+                  <p className="text-[10px] text-muted-foreground mt-1">
                     {new Date(health.checkedAt).toLocaleString('pl-PL')}
                   </p>
                 ) : null}
               </>
             ) : (
               <div className="text-center">
-                <p className="text-sm font-semibold text-neutral-300">Diagnostyka</p>
-                <p className="text-[11px] text-neutral-500 mt-2">{health?.summary ?? 'Oczekiwanie…'}</p>
+                <p className="text-sm font-semibold text-[color:var(--verris-body)]">Diagnostyka</p>
+                <p className="text-[11px] text-muted-foreground mt-2">{health?.summary ?? 'Oczekiwanie…'}</p>
               </div>
             )}
           </div>
 
           {gauges ? (
             <>
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 flex items-center justify-center">
+              <div className="rounded-[10px] border border-line bg-raised p-4 flex items-center justify-center">
                 <ServiceGaugeRing
                   label={gauges.cpu.label}
                   value={gauges.cpu.value}
@@ -300,7 +300,7 @@ export default function ServiceOverviewTab({
                   delayMs={100}
                 />
               </div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 flex items-center justify-center">
+              <div className="rounded-[10px] border border-line bg-raised p-4 flex items-center justify-center">
                 <ServiceGaugeRing
                   label={gauges.ram.label}
                   value={gauges.ram.value}
@@ -311,7 +311,7 @@ export default function ServiceOverviewTab({
                   delayMs={200}
                 />
               </div>
-              <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 flex items-center justify-center">
+              <div className="rounded-[10px] border border-line bg-raised p-4 flex items-center justify-center">
                 <ServiceGaugeRing
                   label={gauges.disk.label}
                   value={gauges.disk.value}
@@ -324,7 +324,7 @@ export default function ServiceOverviewTab({
               </div>
             </>
           ) : (
-            <div className="sm:col-span-3 rounded-xl border border-white/10 bg-white/[0.03] p-4 text-xs text-neutral-500 flex items-center">
+            <div className="sm:col-span-3 rounded-[10px] border border-line bg-raised p-4 text-xs text-muted-foreground flex items-center">
               Metryki użycia pojawią się w ciągu około godziny po aktywacji usługi.
             </div>
           )}
@@ -359,37 +359,37 @@ export default function ServiceOverviewTab({
       ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 space-y-3">
-          <h3 className="text-sm font-bold text-white flex items-center gap-2">
+        <div className="rounded-[10px] border border-line bg-card p-4 space-y-3">
+          <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
             <Calendar className="h-4 w-4" />
             Parametry usługi
           </h3>
           <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
-            <dt className="text-neutral-500">Status</dt>
-            <dd className="text-white font-medium">{statusLabels[service.status] ?? service.status}</dd>
-            <dt className="text-neutral-500">Plan</dt>
-            <dd className="text-white">{service.plan.name}</dd>
-            <dt className="text-neutral-500">Cena</dt>
-            <dd className="text-white">
+            <dt className="text-muted-foreground">Status</dt>
+            <dd className="text-foreground font-medium">{statusLabels[service.status] ?? service.status}</dd>
+            <dt className="text-muted-foreground">Plan</dt>
+            <dd className="text-foreground">{service.plan.name}</dd>
+            <dt className="text-muted-foreground">Cena</dt>
+            <dd className="text-foreground">
               {liczba(Number(service.priceAmount), 2)} {service.currency}
               {service.interval === 'MONTH' ? ' / mies.' : ' / rok'}
             </dd>
             {periodEnd ? (
               <>
-                <dt className="text-neutral-500">Ważność do</dt>
-                <dd className="text-white">{periodEnd}</dd>
+                <dt className="text-muted-foreground">Ważność do</dt>
+                <dd className="text-foreground">{periodEnd}</dd>
               </>
             ) : null}
             {account?.daUsername ? (
               <>
-                <dt className="text-neutral-500">Login hostingu</dt>
-                <dd className="text-white font-mono text-[11px]">{account.daUsername}</dd>
+                <dt className="text-muted-foreground">Login hostingu</dt>
+                <dd className="text-foreground font-mono text-[11px]">{account.daUsername}</dd>
               </>
             ) : null}
             {eco ? (
               <>
-                <dt className="text-neutral-500">Tryb EKO</dt>
-                <dd className={service.ecoModeEnabled ? 'text-emerald-400 font-medium' : 'text-neutral-400'}>
+                <dt className="text-muted-foreground">Tryb EKO</dt>
+                <dd className={service.ecoModeEnabled ? 'text-data-hi font-medium' : 'text-muted-foreground'}>
                   {service.ecoModeEnabled ? 'Włączony' : 'Wyłączony'}
                 </dd>
               </>
@@ -398,7 +398,7 @@ export default function ServiceOverviewTab({
           <div className="flex flex-wrap gap-2 pt-1">
             <Link
               href={`/dashboard/services/${serviceId}/plan`}
-              className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2.5 py-1.5 text-[11px] text-neutral-300 hover:bg-white/5"
+              className="inline-flex items-center gap-1 rounded-[7px] border border-line px-2.5 py-1.5 text-[11px] text-[color:var(--verris-body)] hover:bg-raised"
             >
               <ArrowRightLeft className="h-3 w-3" />
               Zmiana planu
@@ -406,7 +406,7 @@ export default function ServiceOverviewTab({
             {!isEmail ? (
               <Link
                 href={`/dashboard/services/${serviceId}/autoscaling`}
-                className="inline-flex items-center gap-1 rounded-lg border border-white/10 px-2.5 py-1.5 text-[11px] text-neutral-300 hover:bg-white/5"
+                className="inline-flex items-center gap-1 rounded-[7px] border border-line px-2.5 py-1.5 text-[11px] text-[color:var(--verris-body)] hover:bg-raised"
               >
                 <Gauge className="h-3 w-3" />
                 Autoscaling
@@ -415,15 +415,15 @@ export default function ServiceOverviewTab({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 space-y-3">
-          <h3 className="text-sm font-bold text-white">Skróty</h3>
+        <div className="rounded-[10px] border border-line bg-card p-4 space-y-3">
+          <h3 className="text-sm font-bold text-foreground">Skróty</h3>
           <div className="grid grid-cols-2 gap-2">
             {links.domainsUrl ? (
               <a
                 href={links.domainsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-xs font-medium text-white hover:bg-white/10"
+                className="inline-flex items-center gap-1.5 rounded-[7px] border border-line-strong bg-raised px-3 py-2 text-xs font-medium text-foreground hover:bg-raised"
               >
                 <Globe className="h-3.5 w-3.5" />
                 Domeny
@@ -438,7 +438,7 @@ export default function ServiceOverviewTab({
                   href={links.databasesUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-xs font-medium text-white hover:bg-white/10"
+                  className="inline-flex items-center gap-1.5 rounded-[7px] border border-line-strong bg-raised px-3 py-2 text-xs font-medium text-foreground hover:bg-raised"
                 >
                   <Database className="h-3.5 w-3.5" />
                   Bazy MySQL
@@ -454,7 +454,7 @@ export default function ServiceOverviewTab({
                   href={links.fileManagerUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-xs font-medium text-white hover:bg-white/10"
+                  className="inline-flex items-center gap-1.5 rounded-[7px] border border-line-strong bg-raised px-3 py-2 text-xs font-medium text-foreground hover:bg-raised"
                 >
                   <FolderOpen className="h-3.5 w-3.5" />
                   Pliki
@@ -469,7 +469,7 @@ export default function ServiceOverviewTab({
                 href={links.emailUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-xs font-medium text-white hover:bg-white/10"
+                className="inline-flex items-center gap-1.5 rounded-[7px] border border-line-strong bg-raised px-3 py-2 text-xs font-medium text-foreground hover:bg-raised"
               >
                 <Mail className="h-3.5 w-3.5" />
                 Poczta (panel)
@@ -484,7 +484,7 @@ export default function ServiceOverviewTab({
                   href={links.sslUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-xs font-medium text-white hover:bg-white/10"
+                  className="inline-flex items-center gap-1.5 rounded-[7px] border border-line-strong bg-raised px-3 py-2 text-xs font-medium text-foreground hover:bg-raised"
                 >
                   <Shield className="h-3.5 w-3.5" />
                   SSL
@@ -498,7 +498,7 @@ export default function ServiceOverviewTab({
           <button
             type="button"
             onClick={() => onNavigate(isEmail ? 'backups' : 'usage')}
-            className="w-full text-left rounded-lg border border-white/10 px-3 py-2 text-[11px] text-neutral-400 hover:bg-white/5 hover:text-white"
+            className="w-full text-left rounded-[7px] border border-line px-3 py-2 text-[11px] text-muted-foreground hover:bg-raised hover:text-foreground"
           >
             {isEmail ? 'Kopie zapasowe →' : 'Usage, backup i badge uptime →'}
           </button>
@@ -526,9 +526,9 @@ export function RecommendationsCard({
   if (items.length === 0) return null;
 
   const tone: Record<ServiceRecommendationDto['severity'], string> = {
-    critical: 'border-rose-500/30 bg-rose-500/5',
-    warning: 'border-amber-400/30 bg-amber-400/5',
-    info: 'border-sky-400/25 bg-sky-400/5',
+    critical: 'border-crit/30 bg-crit/12',
+    warning: 'border-warn/30 bg-warn-soft',
+    info: 'border-data/28 bg-data-soft',
   };
 
   const cta = (r: ServiceRecommendationDto): { label: string; href?: string; tab?: string } => {
@@ -546,9 +546,9 @@ export function RecommendationsCard({
   };
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#0a0a0a] p-4 space-y-3">
-      <h3 className="text-sm font-bold text-white flex items-center gap-2">
-        <Lightbulb className="h-4 w-4 text-amber-300" />
+    <div className="rounded-[10px] border border-line bg-card p-4 space-y-3">
+      <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+        <Lightbulb className="h-4 w-4 text-warn" />
         Rekomendacje
       </h3>
       <div className="space-y-2">
@@ -557,16 +557,16 @@ export function RecommendationsCard({
           return (
             <div
               key={`${r.type}-${i}`}
-              className={`flex items-start justify-between gap-3 rounded-xl border p-3 ${tone[r.severity]}`}
+              className={`flex items-start justify-between gap-3 rounded-[10px] border p-3 ${tone[r.severity]}`}
             >
               <div className="min-w-0">
-                <p className="text-sm font-semibold text-white">{r.title}</p>
-                <p className="text-xs text-neutral-300 mt-0.5">{r.body}</p>
+                <p className="text-sm font-semibold text-foreground">{r.title}</p>
+                <p className="text-xs text-[color:var(--verris-body)] mt-0.5">{r.body}</p>
               </div>
               {c.href ? (
                 <Link
                   href={c.href}
-                  className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-white/15 bg-white/[0.04] px-2.5 py-1.5 text-[11px] font-medium text-white hover:bg-white/10"
+                  className="shrink-0 inline-flex items-center gap-1 rounded-[7px] border border-line-strong bg-raised px-2.5 py-1.5 text-[11px] font-medium text-foreground hover:bg-raised"
                 >
                   {c.label}
                   <ArrowRight className="h-3 w-3" />
@@ -575,7 +575,7 @@ export function RecommendationsCard({
                 <button
                   type="button"
                   onClick={() => onNavigate(c.tab!)}
-                  className="shrink-0 inline-flex items-center gap-1 rounded-lg border border-white/15 bg-white/[0.04] px-2.5 py-1.5 text-[11px] font-medium text-white hover:bg-white/10"
+                  className="shrink-0 inline-flex items-center gap-1 rounded-[7px] border border-line-strong bg-raised px-2.5 py-1.5 text-[11px] font-medium text-foreground hover:bg-raised"
                 >
                   {c.label}
                   <ArrowRight className="h-3 w-3" />
@@ -602,7 +602,7 @@ function ShortcutButton({
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.04] px-3 py-2 text-xs font-medium text-white hover:bg-white/10"
+      className="inline-flex items-center gap-1.5 rounded-[7px] border border-line-strong bg-raised px-3 py-2 text-xs font-medium text-foreground hover:bg-raised"
     >
       <Icon className="h-3.5 w-3.5" />
       {label}

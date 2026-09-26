@@ -14,10 +14,10 @@ interface Props {
 }
 
 const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
-  QUEUED: { label: 'W kolejce', cls: 'border-amber-400/30 bg-amber-400/10 text-amber-200' },
-  RUNNING: { label: 'Instalacja w toku', cls: 'border-sky-400/30 bg-sky-400/10 text-sky-200' },
-  COMPLETED: { label: 'Zainstalowany', cls: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-200' },
-  FAILED: { label: 'Błąd', cls: 'border-rose-400/30 bg-rose-400/10 text-rose-200' },
+  QUEUED: { label: 'W kolejce', cls: 'border-warn/30 bg-warn-soft text-warn' },
+  RUNNING: { label: 'Instalacja w toku', cls: 'border-data/28 bg-data-soft text-data-hi' },
+  COMPLETED: { label: 'Zainstalowany', cls: 'border-data/28 bg-data-soft text-data-hi' },
+  FAILED: { label: 'Błąd', cls: 'border-crit/30 bg-crit/12 text-crit' },
 };
 
 export default function WordpressTab({ serviceId }: Props) {
@@ -77,7 +77,7 @@ export default function WordpressTab({ serviceId }: Props) {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-neutral-400 p-6">
+      <div className="flex items-center gap-2 text-sm text-muted-foreground p-6">
         <Loader2 className="h-4 w-4 animate-spin" /> Wczytywanie…
       </div>
     );
@@ -85,19 +85,19 @@ export default function WordpressTab({ serviceId }: Props) {
 
   return (
     <div className="space-y-5">
-      <div className="rounded-2xl border border-white/10 bg-black/30 p-6 space-y-2">
-        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-          <Globe className="h-5 w-5 text-indigo-300" /> WordPress — instalacja jednym kliknięciem
+      <div className="rounded-[10px] border border-line bg-background p-6 space-y-2">
+        <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
+          <Globe className="h-5 w-5 text-data-hi" /> WordPress — instalacja jednym kliknięciem
         </h3>
-        <p className="text-sm text-neutral-400">
-          Postawimy WordPressa na <strong className="text-neutral-200">{status?.domain}</strong> —
+        <p className="text-sm text-muted-foreground">
+          Postawimy WordPressa na <strong className="text-[color:var(--verris-body)]">{status?.domain}</strong> —
           z bazą danych, ładnymi linkami i wtyczką LiteSpeed Cache. Zajmie ~1 minutę.
         </p>
       </div>
 
       {status?.task && (
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/20 px-4 py-3">
-          <span className="text-sm text-neutral-300">
+        <div className="flex items-center justify-between gap-3 rounded-[10px] border border-line bg-background px-4 py-3">
+          <span className="text-sm text-[color:var(--verris-body)]">
             Ostatnia instalacja: {new Date(status.task.createdAt).toLocaleString('pl-PL')}
           </span>
           <span
@@ -110,19 +110,19 @@ export default function WordpressTab({ serviceId }: Props) {
       )}
 
       {status?.task?.status === 'FAILED' && status.task.errorMessage && (
-        <div className="flex items-start gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+        <div className="flex items-start gap-2 rounded-[10px] border border-crit/30 bg-crit/12 px-4 py-3 text-sm text-crit">
           <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" /> {status.task.errorMessage}
         </div>
       )}
 
       {installed && !result && (
-        <div className="flex items-center justify-between gap-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3">
-          <span className="text-sm text-emerald-200">WordPress jest zainstalowany.</span>
+        <div className="flex items-center justify-between gap-3 rounded-[10px] border border-data/28 bg-data-soft px-4 py-3">
+          <span className="text-sm text-data-hi">WordPress jest zainstalowany.</span>
           <a
             href={`https://${status?.domain}/wp-admin`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 text-sm text-indigo-300 underline"
+            className="inline-flex items-center gap-1.5 text-sm text-data-hi underline"
           >
             Otwórz wp-admin <ExternalLink className="h-3.5 w-3.5" />
           </a>
@@ -130,14 +130,14 @@ export default function WordpressTab({ serviceId }: Props) {
       )}
 
       {result && (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-4 space-y-2">
-          <p className="text-sm font-medium text-emerald-200">Instalacja rozpoczęta!</p>
-          <p className="text-xs text-neutral-300">{result.note}</p>
-          <div className="rounded-lg bg-black/40 p-3 text-sm font-mono space-y-1">
-            <div>URL: <a className="text-indigo-300" href={result.adminUrl} target="_blank" rel="noopener noreferrer">{result.adminUrl}</a></div>
+        <div className="rounded-[10px] border border-data/28 bg-data-soft p-4 space-y-2">
+          <p className="text-sm font-medium text-data-hi">Instalacja rozpoczęta!</p>
+          <p className="text-xs text-[color:var(--verris-body)]">{result.note}</p>
+          <div className="rounded-[7px] bg-background p-3 text-sm font-mono space-y-1">
+            <div>URL: <a className="text-data-hi" href={result.adminUrl} target="_blank" rel="noopener noreferrer">{result.adminUrl}</a></div>
             <div>Login: {result.adminUser}</div>
             <div className="flex items-center gap-2">
-              Hasło: <span className="text-amber-200">{result.adminPassword}</span>
+              Hasło: <span className="text-warn">{result.adminPassword}</span>
               <button
                 type="button"
                 onClick={() => {
@@ -146,9 +146,9 @@ export default function WordpressTab({ serviceId }: Props) {
                     setTimeout(() => setCopied(false), 1500);
                   });
                 }}
-                className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded border border-white/10 hover:bg-white/5"
+                className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded border border-line hover:bg-raised"
               >
-                {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                {copied ? <Check className="h-3 w-3 text-data-hi" /> : <Copy className="h-3 w-3" />}
               </button>
             </div>
           </div>
@@ -156,8 +156,8 @@ export default function WordpressTab({ serviceId }: Props) {
       )}
 
       {!inflight && (
-        <form onSubmit={onInstall} className="rounded-2xl border border-white/10 bg-black/30 p-6 space-y-4">
-          <p className="text-sm font-medium text-white">
+        <form onSubmit={onInstall} className="rounded-[10px] border border-line bg-background p-6 space-y-4">
+          <p className="text-sm font-medium text-foreground">
             {installed ? 'Zainstaluj ponownie / na nowo' : 'Nowa instalacja'}
           </p>
           <div className="grid sm:grid-cols-2 gap-3">
@@ -172,16 +172,16 @@ export default function WordpressTab({ serviceId }: Props) {
             </Field>
           </div>
           {installed && (
-            <p className="text-xs text-amber-300">
+            <p className="text-xs text-warn">
               Uwaga: ponowna instalacja nadpisze konfigurację, jeśli WordPress nie jest jeszcze
               skonfigurowany. Jeśli jest — operacja zostanie pominięta (bez utraty danych).
             </p>
           )}
-          {error && <p className="text-sm text-rose-300">{error}</p>}
+          {error && <p className="text-sm text-crit">{error}</p>}
           <button
             type="submit"
             disabled={submitting}
-            className="inline-flex items-center gap-2 rounded-lg bg-indigo-500 hover:bg-indigo-600 disabled:opacity-50 px-4 py-2 text-sm font-medium text-white"
+            className="inline-flex items-center gap-2 rounded-[7px] bg-data-soft hover:bg-data-hi disabled:opacity-50 px-4 py-2 text-sm font-medium text-foreground"
           >
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Globe className="h-4 w-4" />}
             Zainstaluj WordPress
@@ -200,7 +200,7 @@ export default function WordpressTab({ serviceId }: Props) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block space-y-1">
-      <span className="text-xs font-medium text-neutral-400">{label}</span>
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
       {children}
     </label>
   );

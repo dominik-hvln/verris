@@ -24,7 +24,7 @@ import { potwierdz } from '@/components/panel/potwierdz';
 import { Checkbox } from '@/components/panel/checkbox';
 
 const fieldCls =
-  'w-full rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-neutral-500';
+  'w-full rounded-[7px] border border-line bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground';
 
 export default function MailExtras({ serviceId }: { serviceId: string }) {
   // forwarders
@@ -126,36 +126,36 @@ export default function MailExtras({ serviceId }: { serviceId: string }) {
   return (
     <div className="mt-6 space-y-6">
       {/* Forwardery */}
-      <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-        <h3 className="flex items-center gap-2 text-sm font-semibold text-white">
-          <Forward className="h-4 w-4 text-emerald-300" /> Aliasy / przekierowania poczty
+      <section className="rounded-[10px] border border-line bg-raised p-4">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <Forward className="h-4 w-4 text-data-hi" /> Aliasy / przekierowania poczty
         </h3>
-        <p className="mt-1 text-xs text-neutral-400">
+        <p className="mt-1 text-xs text-muted-foreground">
           Adres typu alias (np. <span className="font-mono">biuro@</span>) przekazujący pocztę na jedną lub kilka skrzynek — bez zakładania osobnego konta.
         </p>
         <form onSubmit={addForward} className="mt-3 grid gap-2 sm:grid-cols-[1fr_1.4fr_auto]">
           <input value={fwName} onChange={(e) => setFwName(e.target.value)} placeholder="alias (lewa część przed @)" className={fieldCls} />
           <input value={fwDest} onChange={(e) => setFwDest(e.target.value)} placeholder="adres docelowy (kilka po przecinku)" className={fieldCls} />
-          <Button type="submit" disabled={fwBusy} className="h-9 gap-1.5 bg-emerald-600 text-white hover:bg-emerald-500 text-xs">
+          <Button type="submit" disabled={fwBusy} className="h-9 gap-1.5 bg-primary text-primary-foreground font-semibold hover:bg-data-hi text-xs">
             {fwBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} Dodaj alias
           </Button>
         </form>
         {loading ? (
-          <p className="mt-3 text-xs text-neutral-500"><Loader2 className="inline h-3.5 w-3.5 animate-spin" /> Wczytywanie…</p>
+          <p className="mt-3 text-xs text-muted-foreground"><Loader2 className="inline h-3.5 w-3.5 animate-spin" /> Wczytywanie…</p>
         ) : fwErr ? (
-          <p className="mt-3 text-xs text-amber-300/80">{fwErr}</p>
+          <p className="mt-3 text-xs text-warn">{fwErr}</p>
         ) : fwRows.length === 0 ? (
-          <p className="mt-3 text-xs text-neutral-500">Brak aliasów — dodaj pierwszy powyżej.</p>
+          <p className="mt-3 text-xs text-muted-foreground">Brak aliasów — dodaj pierwszy powyżej.</p>
         ) : (
           <div className="mt-3 space-y-1.5">
             {fwRows.map((r) => (
-              <div key={r.id} className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm">
+              <div key={r.id} className="flex items-center justify-between gap-2 rounded-[7px] border border-line bg-background px-3 py-2 text-sm">
                 <div className="min-w-0">
-                  <span className="font-medium text-white">{r.email}</span>
-                  <span className="text-neutral-500"> → </span>
-                  <span className="break-words text-neutral-300">{r.destinations.join(', ')}</span>
+                  <span className="font-medium text-foreground">{r.email}</span>
+                  <span className="text-muted-foreground"> → </span>
+                  <span className="break-words text-[color:var(--verris-body)]">{r.destinations.join(', ')}</span>
                 </div>
-                <button onClick={() => delForward(r.name)} disabled={fwDel === r.name} className="shrink-0 text-neutral-500 hover:text-rose-300" title="Usuń alias">
+                <button onClick={() => delForward(r.name)} disabled={fwDel === r.name} className="shrink-0 text-muted-foreground hover:text-crit" title="Usuń alias">
                   {fwDel === r.name ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                 </button>
               </div>
@@ -165,30 +165,30 @@ export default function MailExtras({ serviceId }: { serviceId: string }) {
       </section>
 
       {/* Autorespondery */}
-      <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-        <h3 className="flex items-center gap-2 text-sm font-semibold text-white">
-          <MailCheck className="h-4 w-4 text-emerald-300" /> Autorespondery (wiadomości automatyczne)
+      <section className="rounded-[10px] border border-line bg-raised p-4">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground">
+          <MailCheck className="h-4 w-4 text-data-hi" /> Autorespondery (wiadomości automatyczne)
         </h3>
-        <p className="mt-1 text-xs text-neutral-400">
+        <p className="mt-1 text-xs text-muted-foreground">
           Automatyczna odpowiedź wysyłana z wybranej skrzynki — np. komunikat urlopowy „Wrócę 15 lipca”.
         </p>
         <form onSubmit={saveAr} className="mt-3 space-y-2">
           <input value={arName} onChange={(e) => setArName(e.target.value)} placeholder="skrzynka (lewa część przed @, np. kontakt)" className={fieldCls} />
           <textarea value={arText} onChange={(e) => setArText(e.target.value)} rows={3} placeholder="Treść automatycznej odpowiedzi" className={fieldCls} />
-          <Button type="submit" disabled={arBusy} className="h-9 gap-1.5 bg-emerald-600 text-white hover:bg-emerald-500 text-xs">
+          <Button type="submit" disabled={arBusy} className="h-9 gap-1.5 bg-primary text-primary-foreground font-semibold hover:bg-data-hi text-xs">
             {arBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />} Zapisz autoresponder
           </Button>
         </form>
         {loading ? null : arErr ? (
-          <p className="mt-3 text-xs text-amber-300/80">{arErr}</p>
+          <p className="mt-3 text-xs text-warn">{arErr}</p>
         ) : arRows.length === 0 ? (
-          <p className="mt-3 text-xs text-neutral-500">Brak aktywnych autoresponderów.</p>
+          <p className="mt-3 text-xs text-muted-foreground">Brak aktywnych autoresponderów.</p>
         ) : (
           <div className="mt-3 space-y-1.5">
             {arRows.map((r) => (
-              <div key={r.id} className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm">
-                <span className="font-medium text-white">{r.email}</span>
-                <button onClick={() => delAr(r.name)} disabled={arDel === r.name} className="shrink-0 text-neutral-500 hover:text-rose-300" title="Wyłącz autoresponder">
+              <div key={r.id} className="flex items-center justify-between gap-2 rounded-[7px] border border-line bg-background px-3 py-2 text-sm">
+                <span className="font-medium text-foreground">{r.email}</span>
+                <button onClick={() => delAr(r.name)} disabled={arDel === r.name} className="shrink-0 text-muted-foreground hover:text-crit" title="Wyłącz autoresponder">
                   {arDel === r.name ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                 </button>
               </div>
@@ -198,9 +198,9 @@ export default function MailExtras({ serviceId }: { serviceId: string }) {
       </section>
 
       {/* Catch-all */}
-      <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-        <h3 className="flex items-center gap-2 text-sm font-semibold text-white"><Inbox className="h-4 w-4 text-emerald-300" /> Catch-all (poczta na nieistniejące adresy)</h3>
-        <p className="mt-1 text-xs text-neutral-400">Co zrobić z e-mailami wysłanymi na adres, który nie istnieje w Twojej domenie.</p>
+      <section className="rounded-[10px] border border-line bg-raised p-4">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground"><Inbox className="h-4 w-4 text-data-hi" /> Catch-all (poczta na nieistniejące adresy)</h3>
+        <p className="mt-1 text-xs text-muted-foreground">Co zrobić z e-mailami wysłanymi na adres, który nie istnieje w Twojej domenie.</p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <Select
             aria-label="Tryb catch-all"
@@ -216,28 +216,28 @@ export default function MailExtras({ serviceId }: { serviceId: string }) {
           {caMode === 'address' && (
             <input value={caAddr} onChange={(e) => setCaAddr(e.target.value)} placeholder="adres docelowy" className={fieldCls + ' flex-1 min-w-[200px]'} />
           )}
-          <Button onClick={saveCatchAll} disabled={caBusy} className="h-9 gap-1.5 bg-emerald-600 text-white hover:bg-emerald-500 text-xs">{caBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} Zapisz</Button>
+          <Button onClick={saveCatchAll} disabled={caBusy} className="h-9 gap-1.5 bg-primary text-primary-foreground font-semibold hover:bg-data-hi text-xs">{caBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} Zapisz</Button>
         </div>
-        <p className="mt-2 text-[11px] text-neutral-500">„Odrzucaj” ogranicza spam (nadawca dostaje błąd). „Przyjmij i wyrzuć” cicho kasuje — bez powiadomienia nadawcy.</p>
+        <p className="mt-2 text-[11px] text-muted-foreground">„Odrzucaj” ogranicza spam (nadawca dostaje błąd). „Przyjmij i wyrzuć” cicho kasuje — bez powiadomienia nadawcy.</p>
       </section>
 
       {/* Filtr antyspam */}
-      <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-        <h3 className="flex items-center gap-2 text-sm font-semibold text-white"><ShieldCheck className="h-4 w-4 text-emerald-300" /> Filtr antyspam (SpamAssassin)</h3>
-        <p className="mt-1 text-xs text-neutral-400">Skanuje pocztę przychodzącą i oznacza spam. Im niższy próg, tym ostrzejszy filtr.</p>
+      <section className="rounded-[10px] border border-line bg-raised p-4">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground"><ShieldCheck className="h-4 w-4 text-data-hi" /> Filtr antyspam (SpamAssassin)</h3>
+        <p className="mt-1 text-xs text-muted-foreground">Skanuje pocztę przychodzącą i oznacza spam. Im niższy próg, tym ostrzejszy filtr.</p>
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-neutral-200">
+          <label className="flex items-center gap-2 text-sm text-[color:var(--verris-body)]">
             <Checkbox checked={spamOn} onChange={(e) => saveSpam(e.target.checked)} disabled={spamBusy} className="h-4 w-4 accent-emerald-500" /> Włączony
           </label>
-          <label className="flex items-center gap-2 text-xs text-neutral-400">Próg (czułość)
+          <label className="flex items-center gap-2 text-xs text-muted-foreground">Próg (czułość)
             <input value={spamScore} onChange={(e) => setSpamScore(e.target.value.replace(/[^0-9.]/g, ''))} className={fieldCls + ' w-16'} />
           </label>
-          <label className="flex items-center gap-2 text-xs text-neutral-400 flex-1 min-w-[200px]">Tag tematu
+          <label className="flex items-center gap-2 text-xs text-muted-foreground flex-1 min-w-[200px]">Tag tematu
             <input value={spamTag} onChange={(e) => setSpamTag(e.target.value)} className={fieldCls + ' flex-1'} />
           </label>
-          <Button onClick={() => saveSpam(true)} disabled={spamBusy} className="h-9 gap-1.5 bg-white/10 text-white hover:bg-white/20 text-xs">{spamBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} Zapisz ustawienia</Button>
+          <Button onClick={() => saveSpam(true)} disabled={spamBusy} className="h-9 gap-1.5 bg-raised text-foreground hover:bg-raised text-xs">{spamBusy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} Zapisz ustawienia</Button>
         </div>
-        <p className="mt-2 text-[11px] text-neutral-500">Typowy próg to 5. Wiadomości powyżej progu dostają tag w temacie (np. „***SPAM***”).</p>
+        <p className="mt-2 text-[11px] text-muted-foreground">Typowy próg to 5. Wiadomości powyżej progu dostają tag w temacie (np. „***SPAM***”).</p>
       </section>
     </div>
   );

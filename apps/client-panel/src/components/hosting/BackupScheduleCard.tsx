@@ -50,15 +50,15 @@ export default function BackupScheduleCard({ serviceId }: { serviceId: string })
   };
 
   if (loading) {
-    return <div className="mb-4 flex items-center gap-2 rounded-2xl border border-white/10 bg-white/[0.02] p-4 text-sm text-neutral-400"><Loader2 className="h-4 w-4 animate-spin" /> Wczytywanie harmonogramu…</div>;
+    return <div className="mb-4 flex items-center gap-2 rounded-[10px] border border-line bg-raised p-4 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Wczytywanie harmonogramu…</div>;
   }
 
   return (
-    <section className="mb-4 rounded-2xl border border-white/10 bg-white/[0.02] p-4">
-      <h3 className="flex items-center gap-2 text-sm font-semibold text-white"><CalendarClock className="h-4 w-4 text-emerald-300" /> Automatyczne backupy (harmonogram)</h3>
-      <p className="mt-1 text-xs text-neutral-400">Verris sam wykona pełny backup konta w wybranym cyklu — nie musisz pamiętać o ręcznym tworzeniu kopii.</p>
+    <section className="mb-4 rounded-[10px] border border-line bg-raised p-4">
+      <h3 className="flex items-center gap-2 text-sm font-semibold text-foreground"><CalendarClock className="h-4 w-4 text-data-hi" /> Automatyczne backupy (harmonogram)</h3>
+      <p className="mt-1 text-xs text-muted-foreground">Verris sam wykona pełny backup konta w wybranym cyklu — nie musisz pamiętać o ręcznym tworzeniu kopii.</p>
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-2 text-xs text-neutral-400">
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <label htmlFor={`${uid}-freq`}>Cykl</label>
           <Select
             id={`${uid}-freq`}
@@ -73,7 +73,7 @@ export default function BackupScheduleCard({ serviceId }: { serviceId: string })
           />
         </div>
         {frequency === 'WEEKLY' && (
-          <div className="flex items-center gap-2 text-xs text-neutral-400">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <label htmlFor={`${uid}-dow`}>Dzień</label>
             <Select
               id={`${uid}-dow`}
@@ -85,7 +85,7 @@ export default function BackupScheduleCard({ serviceId }: { serviceId: string })
           </div>
         )}
         {frequency !== 'OFF' && (
-          <div className="flex items-center gap-2 text-xs text-neutral-400">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <label htmlFor={`${uid}-hour`}>Godzina (UTC)</label>
             <Select
               id={`${uid}-hour`}
@@ -97,7 +97,7 @@ export default function BackupScheduleCard({ serviceId }: { serviceId: string })
           </div>
         )}
         {frequency !== 'OFF' && (
-          <div className="flex items-center gap-2 text-xs text-neutral-400">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
             <label htmlFor={`${uid}-retain`}>Trzymaj kopii</label>
             <Select
               id={`${uid}-retain`}
@@ -108,17 +108,17 @@ export default function BackupScheduleCard({ serviceId }: { serviceId: string })
             />
           </div>
         )}
-        <Button onClick={save} disabled={saving} className="h-9 gap-1.5 bg-emerald-600 text-white hover:bg-emerald-500 text-xs">
+        <Button onClick={save} disabled={saving} className="h-9 gap-1.5 bg-primary text-primary-foreground font-semibold hover:bg-data-hi text-xs">
           {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} Zapisz harmonogram
         </Button>
       </div>
       {lastRunAt && (
-        <p className="mt-2 text-[11px] text-neutral-500">
+        <p className="mt-2 text-[11px] text-muted-foreground">
           Ostatni automatyczny backup: {new Date(lastRunAt).toLocaleString('pl-PL')}
-          {lastStatus && lastStatus !== 'ok' ? <span className="text-amber-300/80"> — {lastStatus}</span> : <span className="text-emerald-300/80"> — OK</span>}
+          {lastStatus && lastStatus !== 'ok' ? <span className="text-warn"> — {lastStatus}</span> : <span className="text-data-hi"> — OK</span>}
         </p>
       )}
-      <p className="mt-1 text-[11px] text-neutral-500">Kopie trafiają do listy poniżej, skąd możesz je przywrócić jednym kliknięciem.</p>
+      <p className="mt-1 text-[11px] text-muted-foreground">Kopie trafiają do listy poniżej, skąd możesz je przywrócić jednym kliknięciem.</p>
     </section>
   );
 }
