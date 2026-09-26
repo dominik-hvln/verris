@@ -16,8 +16,13 @@ ARG APP_NAME=client-panel
 ARG APP_PORT=3001
 
 FROM node:${NODE_VERSION}-trixie-slim AS base
+# Tajność projektu: bez telemetrii Next.js / Turborepo / Prismy przy buildzie i w działaniu.
 ENV PNPM_HOME=/pnpm \
-    PATH=/pnpm:$PATH
+    PATH=/pnpm:$PATH \
+    NEXT_TELEMETRY_DISABLED=1 \
+    TURBO_TELEMETRY_DISABLED=1 \
+    DO_NOT_TRACK=1 \
+    CHECKPOINT_DISABLE=1
 # pnpm w wersji z packageManager (corepack znika z Node 25+, więc bez niego).
 COPY package.json /tmp/pm.json
 RUN npm install -g "$(node -p "require('/tmp/pm.json').packageManager")" && rm /tmp/pm.json
@@ -96,6 +101,8 @@ ARG APP_NAME
 ARG APP_PORT
 # TZ — daty renderowane na serwerze (komponenty serwerowe) po polsku, jak w przeglądarce klienta.
 ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    DO_NOT_TRACK=1 \
     HOSTNAME=0.0.0.0 \
     APP_NAME=${APP_NAME} \
     PORT=${APP_PORT} \

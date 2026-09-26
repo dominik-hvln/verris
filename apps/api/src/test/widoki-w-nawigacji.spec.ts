@@ -30,7 +30,7 @@ const PANELE: Record<string, { menu: string[]; wyjatki: Record<string, string> }
       '/legal': 'strona zbiorcza; dokumenty mają wejścia w stopce (/legal/[kind])',
     },
   },
-  'admin-panel': { menu: ['src/components/sidebar.tsx'], wyjatki: { '/login': 'logowanie' } },
+  'admin-panel': { menu: ['src/components/admin-shell.tsx'], wyjatki: { '/login': 'logowanie' } },
   'staff-panel': { menu: ['src/components/staff-shell.tsx'], wyjatki: { '/login': 'logowanie' } },
 };
 

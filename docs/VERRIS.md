@@ -12,6 +12,24 @@ nie źródło prawdy). Poza tym zostają tylko dokumenty operacyjne i prawne: `d
 
 ## Decyzje
 
+### 2026-09-26 — panel admina 1:1 z makiety: powłoka i pulpit (PB-34)
+Menu dokładnie jak w makiecie (Pulpit · Flota · Klienci i usługi · Finanse · Bezpieczeństwo i platforma). Strony
+spoza makiety nie znikają: są **zakładkami nad treścią** pod pozycją, do której należą tematycznie (np. „Kody
+i cenniki” = kody, plany, VPS, autoskalowanie; „Faktury i rozliczenia” = faktury, CSV, metryki biznesowe,
+webhooki Stripe). Strażnik `widoki-w-nawigacji.spec.ts` pilnuje, że każda strona jest osiągalna. Motyw domyślnie
+ciemny (makieta), jasny z przełącznika (`verris-admin-theme`); stare ekrany przechodzą przez tę samą skórkę co
+panel obsługi. Pulpit „Stan platformy” liczy wszystko z bazy (`GET /admin/dashboard/overview`, liczniki menu
+`GET /admin/dashboard/menu`): **Wymaga uwagi** = węzeł offline / bez sygnału > 5 min / bez zielonego onboardu /
+serwis / czeka na zatwierdzenie, zgłoszenia po terminie SLA, zatrzymana fala aktualizacji, wpłaty bez faktury
+z programu księgowego, nieobsłużone webhooki, usługi zakładane > 30 min, migracje czekające na obsługę;
+**CPU realne** z próbek `UsageMetric` z 10 min (nie z przydziału); **Wpływy** = opłacone faktury brutto (PLN).
+
+### 2026-09-26 — bez telemetrii narzędzi
+Next.js, Turborepo i Prisma domyślnie wysyłają statystyki użycia do producentów. Wyłączone we wszystkich
+workflow i obu obrazach (`NEXT_TELEMETRY_DISABLED`, `TURBO_TELEMETRY_DISABLED`, `DO_NOT_TRACK`,
+`CHECKPOINT_DISABLE`); strażnik `bez-telemetrii.spec.ts`. Na komputerze deweloperskim jednorazowo:
+`pnpm exec turbo telemetry disable && pnpm --filter @verris/admin-panel exec next telemetry disable`.
+
 ### 2026-09-26 — infrastruktura na aktualnych wersjach (PB-38 fala 3)
 **Postgres 18.6** (nowy wolumen — obraz 18 trzyma dane w `/var/lib/postgresql/18/docker`), **Valkey 9.1**
 zamiast Redisa w panelu (decyzja właściciela: licencja BSD; `redis:7` to już 7.4 na RSALv2/SSPL; nowy wolumen,

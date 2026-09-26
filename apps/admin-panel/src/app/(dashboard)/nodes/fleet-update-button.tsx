@@ -27,11 +27,11 @@ export function FleetUpdateButton() {
   };
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-row-reverse items-center gap-2">
       <button
         onClick={run}
         disabled={pending}
-        className="inline-flex items-center gap-2 rounded-lg border border-white/10 px-3 py-2 text-sm text-muted-foreground hover:text-white disabled:opacity-50"
+        className="inline-flex h-[38px] items-center gap-2 rounded-[9px] border border-line-strong bg-transparent px-3.5 text-sm font-semibold text-foreground hover:border-primary disabled:opacity-50"
         title="Aktualizuj stack na całej flocie do najnowszej stabilnej wersji"
       >
         {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}

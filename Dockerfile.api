@@ -11,8 +11,13 @@
 ARG NODE_VERSION=24
 
 FROM node:${NODE_VERSION}-trixie-slim AS base
+# Tajność projektu: bez telemetrii Next.js / Turborepo / Prismy przy buildzie i w działaniu.
 ENV PNPM_HOME=/pnpm \
-    PATH=/pnpm:$PATH
+    PATH=/pnpm:$PATH \
+    NEXT_TELEMETRY_DISABLED=1 \
+    TURBO_TELEMETRY_DISABLED=1 \
+    DO_NOT_TRACK=1 \
+    CHECKPOINT_DISABLE=1
 # pnpm w wersji z packageManager (corepack znika z Node 25+, więc bez niego).
 COPY package.json /tmp/pm.json
 RUN npm install -g "$(node -p "require('/tmp/pm.json').packageManager")" && rm /tmp/pm.json
@@ -75,6 +80,8 @@ RUN pnpm --filter @verris/database run db:generate && \
 # -----------------------------------------------------------------------------
 FROM node:${NODE_VERSION}-trixie-slim AS runtime
 ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    DO_NOT_TRACK=1 \
     PORT=3000
 WORKDIR /app
 

@@ -1,60 +1,42 @@
 import { requireAdminSession } from "@/lib/session";
 import { fetchStaffAccess } from "@/lib/staff-access";
-import { AdminSidebar } from "@/components/sidebar";
-import { LogoutButton } from "@/components/logout-button";
+import { adminApi } from "@/lib/api";
+import { AdminShell, type LicznikiMenu } from "@/components/admin-shell";
 import { PlatformConfigLoader } from "@/components/platform-config-loader";
-import { FleetStatusBadge } from "@/components/fleet-status-badge";
-import { CommandPalette } from "@/components/command-palette";
+
+/** Liczniki w menu i stan floty w nagłówku; bez API menu działa, tylko bez liczb. */
+async function liczniki(): Promise<LicznikiMenu | null> {
+  try {
+    return await adminApi<LicznikiMenu>("/admin/dashboard/menu");
+  } catch {
+    return null;
+  }
+}
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await requireAdminSession();
-  const access = await fetchStaffAccess();
+  const [access, l] = await Promise.all([fetchStaffAccess(), liczniki()]);
 
   return (
-    <div className="flex min-h-screen">
-      {/* WCAG 2.4.1 — skip link: pierwszy element fokusowalny, omija menu boczne. */}
-      <a
-        href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[200] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-black"
-      >
-        Przejdź do treści
-      </a>
+    <>
       <PlatformConfigLoader />
-      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-indigo-600/10 blur-[120px]" />
-        <div className="absolute bottom-[-10%] right-[-5%] w-[30%] h-[50%] rounded-full bg-violet-600/10 blur-[120px]" />
-      </div>
-
-      <AdminSidebar
-        userInitials={getInitials(session)}
-        userLabel={[session.firstName, session.lastName].filter(Boolean).join(" ") || session.email}
-        logoutButton={<LogoutButton />}
+      <AdminShell
+        uzytkownik={[session.firstName, session.lastName].filter(Boolean).join(" ") || session.email}
+        inicjaly={inicjaly(session)}
+        rola={access.isAdmin ? "administrator" : access.roleName || "operator"}
         isAdmin={access.isAdmin}
         permissions={access.permissions}
-        roleName={access.roleName ?? null}
-      />
-
-      <div className="flex-1 pl-72 relative z-10 flex flex-col">
-        <header className="sticky top-0 z-40 flex h-20 items-center gap-4 border-b border-white/5 bg-black/20 backdrop-blur-md px-8">
-          <div className="flex flex-1 items-center">
-            <CommandPalette />
-          </div>
-          <div className="flex items-center gap-4">
-            <FleetStatusBadge />
-          </div>
-        </header>
-
-        <main id="main" tabIndex={-1} className="flex-1 p-8 overflow-x-hidden outline-none">
-          <div className="max-w-7xl mx-auto">{children}</div>
-        </main>
-      </div>
-    </div>
+        liczniki={l}
+      >
+        {children}
+      </AdminShell>
+    </>
   );
 }
 
-function getInitials(session: { firstName: string | null; lastName: string | null; email: string }) {
-  const first = session.firstName?.[0] ?? "";
-  const last = session.lastName?.[0] ?? "";
-  if (first || last) return `${first}${last}`.toUpperCase();
+function inicjaly(session: { firstName: string | null; lastName: string | null; email: string }) {
+  const a = session.firstName?.[0] ?? "";
+  const b = session.lastName?.[0] ?? "";
+  if (a || b) return `${a}${b}`.toUpperCase();
   return session.email.slice(0, 2).toUpperCase();
 }

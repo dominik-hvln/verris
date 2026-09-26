@@ -15,6 +15,11 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  # Tajność projektu: żadnej telemetrii narzędzi (Next.js, Turborepo, Prisma) z CI.
+  NEXT_TELEMETRY_DISABLED: "1"
+  TURBO_TELEMETRY_DISABLED: "1"
+  DO_NOT_TRACK: "1"
+  CHECKPOINT_DISABLE: "1"
   # Avoid puppeteer/Chromium downloads we don't use
   PUPPETEER_SKIP_DOWNLOAD: "true"
 

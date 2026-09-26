@@ -11,6 +11,13 @@ on:
 permissions:
   contents: read
 
+env:
+  # Tajność projektu: żadnej telemetrii narzędzi (Next.js, Turborepo, Prisma) z CI.
+  NEXT_TELEMETRY_DISABLED: "1"
+  TURBO_TELEMETRY_DISABLED: "1"
+  DO_NOT_TRACK: "1"
+  CHECKPOINT_DISABLE: "1"
+
 jobs:
   raport:
     runs-on: ubuntu-latest

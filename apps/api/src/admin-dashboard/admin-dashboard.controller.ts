@@ -15,4 +15,10 @@ export class AdminDashboardController {
   overview() {
     return this.dashboard.overview();
   }
+
+  /** PB-34 — liczniki w menu panelu admina (lekkie, na każdą nawigację). */
+  @Get('menu')
+  menu() {
+    return this.dashboard.menu();
+  }
 }
