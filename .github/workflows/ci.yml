@@ -219,8 +219,10 @@ jobs:
       # weryfikuje, że seed w ogóle wykonuje się na świeżej bazie.
       # Seed importuje @verris/database, więc klient musi istnieć.
       # Bez tego kroku „Seed reference data" wywalał job od commita d381a64.
-      - name: Generate Prisma client
-        run: pnpm --filter @verris/database db:generate
+      # Od PB-39 (ESM) import wskazuje na dist/index.js — sam generate nie wystarcza,
+      # trzeba zbudować pakiet (build = generate + tsc). Job był czerwony od 35c3e63.
+      - name: Build @verris/database (klient + dist)
+        run: pnpm --filter @verris/database build
 
       - name: Seed reference data
         working-directory: libs/database
