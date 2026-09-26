@@ -194,6 +194,18 @@ export async function abonentZProfiluAction(): Promise<Partial<Abonent>> {
 type Wynik<T = object> = ({ ok: true } & T) | { ok: false; error: string };
 const blad = (e: unknown, d: string) => ({ ok: false as const, error: e instanceof Error ? e.message : d });
 
+export async function quoteTransferAction(name: string, years: number): Promise<Wynik<{ amount: string; vatRate: number }>> {
+  try {
+    const q = await apiFetch<{ amount: string; vatRate: number }>('/domains/registrar/quote-transfer', {
+      method: 'POST',
+      body: JSON.stringify({ name, years }),
+    });
+    return { ok: true, amount: q.amount, vatRate: q.vatRate };
+  } catch (e) {
+    return blad(e, 'Nie udało się wycenić transferu.');
+  }
+}
+
 export async function transferDomainClientAction(input: {
   name: string; authCode: string; years: number; nameservers: string[];
   withdrawalWaiverConsent: boolean; registrant: Abonent;

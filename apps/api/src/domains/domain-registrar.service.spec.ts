@@ -61,4 +61,23 @@ describe('DomainRegistrarService', () => {
     );
     expect(provider.availability).toHaveBeenCalledWith('example.pl');
   });
+
+  it('wycena transferu pyta rejestratora o operację transfer (tę samą, którą obciąża portfel)', async () => {
+    const provider = { price: vi.fn().mockResolvedValue({ amount: '10.00', currency: 'USD' }) };
+    const service = new DomainRegistrarService(
+      prisma as never,
+      audit as never,
+      crypto as never,
+      { get: () => provider } as never,
+      wallet as never,
+      config as never,
+      nbpFx as never,
+      ecoPoints as never,
+    );
+
+    const q = await service.quoteTransfer('Example.PL', 2);
+    expect(provider.price).toHaveBeenCalledWith({ domain: 'example.pl', years: 2, operation: 'transfer' });
+    expect(q).toMatchObject({ domain: 'example.pl', years: 2, vatRate: expect.any(Number) });
+    expect(Number(q.amount)).toBeGreaterThan(0);
+  });
 });

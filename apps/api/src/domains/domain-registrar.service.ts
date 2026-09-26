@@ -79,6 +79,13 @@ export class DomainRegistrarService {
     };
   }
 
+  /** Cena transferu pokazywana PRZED zleceniem — ta sama ścieżka ceny, którą transfer() obciąża portfel. */
+  async quoteTransfer(name: string, years = 1) {
+    const domain = normalizeDomain(name);
+    const price = await this.resolvePrice(this.providerFactory.get(), domain, years, 'transfer');
+    return { domain, years, ...price };
+  }
+
   async availability(name: string) {
     const provider = this.providerFactory.get();
     const availability = await provider.availability(normalizeDomain(name));

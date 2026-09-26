@@ -25,6 +25,7 @@ import {
   registerDomainClientAction,
   searchDomainsAction,
   transferDomainClientAction,
+  quoteTransferAction,
   abonentZProfiluAction,
   type Abonent,
   type RegistrarOrderRow,
@@ -47,6 +48,16 @@ type QuoteRow = {
   vatAmount: string | null;
   vatRate: number;
   loading: boolean;
+};
+
+const RODZAJ_ZLECENIA: Record<string, string> = { REGISTER: 'Rejestracja', TRANSFER: 'Transfer', RENEW: 'Odnowienie' };
+const STAN_ZLECENIA: Record<string, string> = {
+  PENDING_PAYMENT: 'czeka na płatność',
+  QUEUED: 'w kolejce',
+  SUBMITTED: 'wysłane do rejestru',
+  COMPLETED: 'zakończone',
+  FAILED: 'nieudane',
+  CANCELED: 'anulowane',
 };
 
 function formatPln(amount: string | null | undefined) {
@@ -182,6 +193,24 @@ export function DomainPurchaseWizard({ initialOrders, initialLabel = '' }: { ini
   const [transferOpen, setTransferOpen] = useState(false);
   const [tr, setTr] = useState({ name: '', authCode: '', years: 1, nameservers: DEFAULT_NS.join(', ') });
   const [isPending, startTransition] = useTransition();
+  // Cena transferu przed zleceniem (obciąża portfel) — wcześniej klient zlecał transfer bez kwoty.
+  const [trCena, setTrCena] = useState<{ klucz: string; amount?: string; vatRate?: number; error?: string } | null>(null);
+  const trDomena = tr.name.trim().toLowerCase();
+  const trKlucz = `${trDomena}|${tr.years}`;
+  useEffect(() => {
+    if (!transferOpen || !/^[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(trDomena)) return;
+    let aktualne = true;
+    const t = setTimeout(() => {
+      void quoteTransferAction(trDomena, tr.years).then((r) => {
+        if (aktualne) setTrCena(r.ok ? { klucz: trKlucz, amount: r.amount, vatRate: r.vatRate } : { klucz: trKlucz, error: r.error });
+      });
+    }, 500);
+    return () => {
+      aktualne = false;
+      clearTimeout(t);
+    };
+  }, [transferOpen, trDomena, tr.years, trKlucz]);
+  const trCenaAktualna = trCena?.klucz === trKlucz ? trCena : null;
 
   const cleanLabel = useMemo(() => sanitizeLabel(label), [label]);
   const fqdn = selectedDomain ?? (cleanLabel ? `${cleanLabel}.pl` : '');
@@ -736,11 +765,32 @@ export function DomainPurchaseWizard({ initialOrders, initialLabel = '' }: { ini
         {transferOpen ? (
           <div className="mt-6 space-y-4">
             <div className="grid gap-4 lg:grid-cols-2">
-              <Input value={tr.name} onChange={(e) => setTr({ ...tr, name: e.target.value })} placeholder="twojadomena.pl" />
-              <Input value={tr.authCode} onChange={(e) => setTr({ ...tr, authCode: e.target.value })} placeholder="Kod AuthInfo / EPP" />
-              <Input type="number" min={1} max={10} value={tr.years} onChange={(e) => setTr({ ...tr, years: Number(e.target.value) || 1 })} />
-              <Input value={tr.nameservers} onChange={(e) => setTr({ ...tr, nameservers: e.target.value })} placeholder="ns1.verris.pl, ns2.verris.pl" />
+              <label htmlFor={`${nsId}-tr-name`} className="block space-y-1">
+                <span className="block text-xs text-neutral-500">Domena</span>
+                <Input id={`${nsId}-tr-name`} value={tr.name} onChange={(e) => setTr({ ...tr, name: e.target.value })} placeholder="twojadomena.pl" />
+              </label>
+              <label htmlFor={`${nsId}-tr-auth`} className="block space-y-1">
+                <span className="block text-xs text-neutral-500">Kod AuthInfo / EPP (od obecnego rejestratora)</span>
+                <Input id={`${nsId}-tr-auth`} value={tr.authCode} onChange={(e) => setTr({ ...tr, authCode: e.target.value })} placeholder="Kod AuthInfo / EPP" />
+              </label>
+              <label htmlFor={`${nsId}-tr-years`} className="block space-y-1">
+                <span className="block text-xs text-neutral-500">Przedłużenie przy transferze (lata)</span>
+                <Input id={`${nsId}-tr-years`} type="number" min={1} max={10} value={tr.years} onChange={(e) => setTr({ ...tr, years: Math.min(10, Math.max(1, Number(e.target.value) || 1)) })} />
+              </label>
+              <label htmlFor={`${nsId}-tr-ns`} className="block space-y-1">
+                <span className="block text-xs text-neutral-500">Nameserwery</span>
+                <Input id={`${nsId}-tr-ns`} value={tr.nameservers} onChange={(e) => setTr({ ...tr, nameservers: e.target.value })} placeholder="ns1.verris.pl, ns2.verris.pl" />
+              </label>
             </div>
+            <p className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 text-sm text-neutral-300" aria-live="polite">
+              {!trDomena
+                ? 'Wpisz domenę, a pokażemy koszt transferu.'
+                : trCenaAktualna?.amount
+                  ? <>Koszt transferu: <span className="font-semibold text-white">{formatPln(trCenaAktualna.amount)}</span> brutto (VAT {trCenaAktualna.vatRate}%) — opłata z portfela, obejmuje przedłużenie o {tr.years} {tr.years === 1 ? 'rok' : tr.years < 5 ? 'lata' : 'lat'}.</>
+                  : trCenaAktualna?.error
+                    ? <span className="text-rose-300">{trCenaAktualna.error}</span>
+                    : 'Sprawdzamy koszt transferu…'}
+            </p>
             <h3 className="text-sm font-semibold text-white">Abonent domeny po transferze</h3>
             <RegistrantFields value={abonent} onChange={setAbonent} />
             {/* Bez tego pola transfer zawsze kończył się błędem 400: API wymaga oświadczenia (art. 38 pkt 1 upk). */}
@@ -752,7 +802,7 @@ export function DomainPurchaseWizard({ initialOrders, initialLabel = '' }: { ini
             )}
             <Button
               variant="outline"
-              disabled={isPending}
+              disabled={isPending || !trCenaAktualna?.amount}
               onClick={() => {
                 const braki = [...(tr.name.trim() ? [] : ['domena']), ...(tr.authCode.trim() ? [] : ['kod AuthInfo']), ...brakiAbonenta(abonent)];
                 if (braki.length) return toast.error('Uzupełnij dane', { description: braki.join(', ') });
@@ -792,7 +842,7 @@ export function DomainPurchaseWizard({ initialOrders, initialLabel = '' }: { ini
                   <div>
                     <p className="font-medium text-white">{order.domainName}</p>
                     <p className="text-xs text-neutral-500">
-                      {order.type} · {order.status}
+                      {RODZAJ_ZLECENIA[order.type] ?? order.type} · {STAN_ZLECENIA[order.status] ?? order.status}
                       {order.priceAmount ? ` · ${formatPln(order.priceAmount)}` : ''}
                     </p>
                   </div>

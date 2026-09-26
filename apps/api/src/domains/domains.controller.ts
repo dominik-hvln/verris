@@ -54,6 +54,11 @@ export class DomainsController {
     return this.registrar.quote(dto.name, dto.years ?? 1);
   }
 
+  @Post('registrar/quote-transfer')
+  async quoteTransfer(@Body() dto: DomainQuoteDto) {
+    return this.registrar.quoteTransfer(dto.name, dto.years ?? 1);
+  }
+
   @Get('registrar/tlds')
   registrarTlds() {
     return REGISTRAR_TLD_CATALOG;
