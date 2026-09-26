@@ -593,6 +593,9 @@ def czeka_na_sprawdzenie(D, i):
     return (i in WZ and WZ[i][0] in ("czeka", "sprawdzone")) or D.get("bez_wezla", {}).get(i, ("",))[0] == "PRODUKCJA"
 
 
+CZEKA_NA_WLASCICIELA = ("WŁAŚCICIEL", "PRODUKCJA")
+
+
 def postep(D, dzis=None):
     dzis = dzis or datetime.date.today()
     start = datetime.date.fromisoformat(D["cfg"]["start"])
@@ -616,6 +619,10 @@ def postep(D, dzis=None):
             "godziny": sum(x[2] for x in poz),
             "godzinyZrobione": sum(x[2] for x in zrob),
             "kodGotowy": len(kod),
+            # Otwarte pozycje, przy których jest jeszcze praca po stronie kodu — nie czekają ani na węzeł,
+            # ani na właściciela / sprawdzenie na produkcji (tam kod jest gotowy).
+            "mojaPraca": sum(1 for x in poz if not _zrobione(D, x[0], x[3]) and not na_wezle(x[0])
+                             and D.get("bez_wezla", {}).get(x[0], ("",))[0] not in CZEKA_NA_WLASCICIELA),
             "godzinyKodGotowy": sum(x[2] for x in kod),
             "otwarte": [
                 {"id": x[0], "tytul": x[1], "h": x[2], "wezel": na_wezle(x[0]),
@@ -659,7 +666,12 @@ def postep(D, dzis=None):
 
     # Który sprint jest „bieżący": pierwszy z niedomkniętymi pozycjami.
     # Pierwszy sprint z pracą do zrobienia w kodzie — sprint, któremu brakuje już tylko testów na węźle, nie jest „bieżący”.
-    biezacy = next((s["n"] for s in sprinty if s["kodGotowy"] < s["pozycje"]), None)
+    # „Front pracy”: pierwszy sprint, w którym zostało coś do zrobienia w kodzie. Pozycje czekające na węzeł,
+    # na decyzję właściciela albo na sprawdzenie na produkcji tego nie wyznaczają (27.09: pokazywało S7,
+    # bo PB-20 czekało wyłącznie na test na produkcji).
+    biezacy = next((s["n"] for s in sprinty if s["mojaPraca"] > 0), None)
+    # Sprint wg kalendarza: ten, który trwa, albo najbliższy przyszły.
+    sprint_kalendarz = next((s["n"] for s in sprinty if datetime.date.fromisoformat(s["do"]) >= dzis), None)
 
     # Prognoza końca: tempo dotychczasowe albo — gdy plan jeszcze nie ruszył —
     # nominalna pojemność. Nie zgadujemy przyspieszenia, którego nie widać.
@@ -703,7 +715,9 @@ def postep(D, dzis=None):
         return (i in D["wg_id"] and D["wg_id"][i][10] in ZROBIONE_WERDYKTY) or bool(D["pb"].get(i, {}).get("zamkniete"))
     bw_poz = [{"id": i, "rodzaj": r, "co": c, "tytul": _tytul(i), "zrobione": _gotowe(i)}
               for i, (r, c) in D.get("bez_wezla", {}).items()]
-    bez_wezla = {"pozycje": bw_poz, "razem": len(bw_poz), "zrobione": sum(x["zrobione"] for x in bw_poz)}
+    bw_teraz = [x for x in bw_poz if x["rodzaj"] != "KOD PO STARCIE"]
+    bez_wezla = {"pozycje": bw_poz, "razem": len(bw_poz), "zrobione": sum(x["zrobione"] for x in bw_poz),
+                 "razemTeraz": len(bw_teraz), "zrobioneTeraz": sum(x["zrobione"] for x in bw_teraz)}
 
     return {
         "bezWezla": bez_wezla,
@@ -716,6 +730,7 @@ def postep(D, dzis=None):
         "cap": cap,
         "sprinty": sprinty,
         "biezacySprint": biezacy,
+        "sprintKalendarz": sprint_kalendarz,
         "godzinyRazem": godz_razem,
         "godzinyZrobione": godz_zrob,
         "pozycjeRazem": poz_razem,

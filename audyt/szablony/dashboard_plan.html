@@ -224,7 +224,7 @@ document.getElementById('kpis').innerHTML = [
    P.postep.wezel ? `${P.postep.wezel.sprawdzone}/${P.postep.wezel.wszystkie}` : '—', 'sprawdzone na żywym węźle',
    P.postep.wezel ? `${P.postep.wezel.sprawdzoneGodziny} h z ${P.postep.wezel.godzinyWszystkie} h · czeka ${P.postep.wezel.czeka} (${P.postep.wezel.czekaGodziny} h)`
      + (P.postep.wezel.nie_przeszlo ? ` · nie przeszło: ${P.postep.wezel.nieprzeszloIds.join(', ')}` : ' · testy w sprincie 21, węzeł #1') : ''],
-  ['ok', P.postep.bezWezla ? `${P.postep.bezWezla.zrobione}/${P.postep.bezWezla.razem}` : '—', 'bez węzła — zrobione',
+  ['ok', P.postep.bezWezla ? `${P.postep.bezWezla.zrobioneTeraz}/${P.postep.bezWezla.razemTeraz}` : '—', 'bez węzła — zrobione (bez „po starcie”)',
    'pozycje, które nie potrzebują serwera — robimy przed zakupem węzła; lista w sekcji „Bez węzła”'],
   [P.postep.zapasTygodni >= 0 ? 'done' : 'crit',
    `${P.postep.zapasTygodni >= 0 ? '+' : ''}${P.postep.zapasTygodni.toFixed(1)} tyg.`,
@@ -243,10 +243,12 @@ document.getElementById('kpis').innerHTML = [
 (function(){
   const BW = P.postep.bezWezla; if (!BW || !BW.razem) return;
   const OPIS = {'KOD': 'kod — robię ja', 'PRODUKCJA': 'na produkcji (panel, API, serwer control-plane)',
-    'WŁAŚCICIEL': 'decyzje i konta właściciela', 'DOKUMENT': 'dokumenty', 'OD 29.09': 'zaplanowane od 29.09', 'KOD PO STARCIE': 'kod bez węzła, ale decyzją właściciela po starcie'};
-  const grupy = [...new Set(BW.pozycje.map(x => x.rodzaj))];
+    'WŁAŚCICIEL': 'decyzje i konta właściciela', 'DOKUMENT': 'dokumenty', 'OD 29.09': 'od 29.09 — decyzje egress po tygodniu pomiaru i testy na węźle testowym', 'KOD PO STARCIE': 'kod bez węzła, ale decyzją właściciela po starcie'};
+  // „Po starcie” na końcu i poza licznikiem „teraz” — to świadomie odłożona praca, nie zaległość.
+  const grupy = [...new Set(BW.pozycje.map(x => x.rodzaj))].sort((a, b) => (a === 'KOD PO STARCIE') - (b === 'KOD PO STARCIE'));
+  const teraz = BW.pozycje.filter(x => x.rodzaj !== 'KOD PO STARCIE');
   document.getElementById('bezwezla').innerHTML =
-    `<p style="margin:0 0 10px"><b>${BW.razem - BW.zrobione}</b> z ${BW.razem} pozycji do zrobienia bez serwera węzła. Wszystko inne z tablic czeka na węzeł (test D3 albo praca na żywym serwerze).</p>`
+    `<p style="margin:0 0 10px"><b>${teraz.filter(x => !x.zrobione).length}</b> z ${teraz.length} pozycji do zrobienia bez serwera węzła (zamknięte są przekreślone). Wszystko inne z tablic czeka na węzeł (test D3 albo praca na żywym serwerze).</p>`
     + grupy.map(g => {
       const xs = BW.pozycje.filter(x => x.rodzaj === g);
       return `<h3 style="margin:14px 0 6px;font-size:14px">${OPIS[g] || g} · ${xs.filter(x => !x.zrobione).length}/${xs.length}</h3><ul>`
@@ -262,8 +264,11 @@ document.getElementById('kpis').innerHTML = [
 const PG = P.postep;
 const ZROBIONE_ID = new Set(PG.sprinty.flatMap(s => s.domkniete.map(d => d.id)));
 const SPRINT_PELNY = new Set(PG.sprinty.filter(s => s.pozycje > 0 && s.zrobione === s.pozycje).map(s => s.n));
-// Sprint, w którym cały kod jest gotowy, a zostały tylko testy na węźle (uzgodnione z PM: częściowe = kod gotowy).
-const SPRINT_KOD = new Set(PG.sprinty.filter(s => s.pozycje > 0 && s.zrobione < s.pozycje && s.kodGotowy === s.pozycje).map(s => s.n));
+// Sprint bez pracy w kodzie: zostały tylko testy na węźle, decyzje właściciela albo sprawdzenia na produkcji.
+const SPRINT_KOD = new Set(PG.sprinty.filter(s => s.pozycje > 0 && s.zrobione < s.pozycje && s.mojaPraca === 0).map(s => s.n));
+const RODZAJ = {'WŁAŚCICIEL': 'czeka na Twoją decyzję lub konfigurację', 'PRODUKCJA': 'kod gotowy, zostało sprawdzenie na produkcji',
+  'OD 29.09': 'od 29.09', 'KOD': 'kod — robię ja', 'KOD PO STARCIE': 'po starcie'};
+const etykieta = o => o.wezel ? 'kod gotowy, czeka na test na węźle' : (RODZAJ[o.bw] || 'do zrobienia');
 const KOD_SPR = Object.fromEntries(PG.sprinty.map(s => [s.n, s.kodGotowy]));
 
 (function(){
@@ -292,12 +297,20 @@ const KOD_SPR = Object.fromEntries(PG.sprinty.map(s => [s.n, s.kodGotowy]));
   }).join('');
 
   const biezacy = PG.sprinty.find(s => s.n === PG.biezacySprint);
+  const kal = PG.sprinty.find(s => s.n === PG.sprintKalendarz);
+  const pelne = PG.sprinty.filter(s => SPRINT_PELNY.has(s.n)).map(s => 'S' + s.n);
+  const czekaja = PG.sprinty.filter(s => SPRINT_KOD.has(s.n)).map(s => 'S' + s.n);
+  const stan = `<div class="potwarte">
+      <b>Kalendarz:</b> ${kal ? `sprint ${kal.n} (${kal.od} – ${kal.do})` : 'po ostatnim sprincie'}.
+      <b>Zamknięte w całości:</b> ${pelne.join(', ') || '—'}.
+      <b>Po mojej stronie gotowe</b> (czekają na węzeł, Ciebie albo sprawdzenie na produkcji): ${czekaja.join(', ') || '—'}.
+    </div>`;
   const otwarte = biezacy
-    ? `<div class="potwarte"><b>Sprint ${biezacy.n} — ${biezacy.cel}.</b>
+    ? `<div class="potwarte"><b>Front pracy w kodzie: sprint ${biezacy.n} — ${biezacy.cel}.</b>
          Zostało ${biezacy.otwarte.length} z ${biezacy.pozycje} pozycji
          (${biezacy.godziny - biezacy.godzinyZrobione} h):
          <ul>${biezacy.otwarte.map(o =>
-           `<li><span class="idc">${o.id}</span> — ${o.tytul} · ${o.h} h${o.wezel ? ' · kod gotowy, czeka na test na węźle' : ''}${o.bw ? ' · <b>bez węzła</b>' : ''}${o.bloker ? ' · <b>bloker</b>' : ''}</li>`
+           `<li><span class="idc">${o.id}</span> — ${o.tytul} · ${o.h} h · ${etykieta(o)}${o.bloker ? ' · <b>bloker</b>' : ''}</li>`
          ).join('')}</ul></div>`
     : '';
 
@@ -311,7 +324,7 @@ const KOD_SPR = Object.fromEntries(PG.sprinty.map(s => [s.n, s.kodGotowy]));
     <div class="plegend">
       <span><b>${PG.godzinyZrobione} h</b> z ${PG.godzinyRazem} h · <b>${PG.procent}%</b></span>
       <span><b>${PG.pozycjeZrobione}</b> z ${PG.pozycjeRazem} pozycji zamkniętych</span>
-      <span><b>${PG.pozycjeKodGotowy}</b> z ${PG.pozycjeRazem} z gotowym kodem (◐ — sprint czeka już tylko na węzeł)</span>
+      <span><b>${PG.pozycjeKodGotowy}</b> z ${PG.pozycjeRazem} z gotowym kodem (◐ — w sprincie nie ma już pracy w kodzie)</span>
       <span><b>${PG.blokeryOtwarte.length}</b> blokerów otwartych</span>
       <span style="color:${zapas >= 0 ? 'var(--good)' : 'var(--critical)'}"><b style="color:inherit">${zapasTxt}</b></span>
       ${przedStartem
@@ -319,6 +332,7 @@ const KOD_SPR = Object.fromEntries(PG.sprinty.map(s => [s.n, s.kodGotowy]));
         : '<span>tydzień ' + Math.ceil(PG.tygodnieUplynelo) + ' z ' + PG.sprinty.length + '</span>'}
     </div>
     <div class="psegs">${segs}</div>
+    ${stan}
     ${otwarte}`;
 })();
 
