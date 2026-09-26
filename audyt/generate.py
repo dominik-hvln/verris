@@ -756,9 +756,16 @@ def ostatnie_zmiany(D, dni=7):
     tz, out = zoneinfo.ZoneInfo("Europe/Warsaw"), []
     for linia in log.splitlines():
         h, kiedy, temat = linia.split("|", 2)
+        # Dwa formaty tematów: „PB-12 — opis” i konwencjonalny „feat(zakres): PB-12 opis”.
+        # Do 2026-09-26 czytany był tylko pierwszy — commity w drugim formacie (PB-27…PB-37)
+        # nie pojawiały się w „Ostatnich zmianach” i tablica wyglądała na stojącą (uwaga PM).
+        if temat.startswith("plan:") or re.match(r"chore\(audyt\)", temat):  # samo odświeżenie tablic
+            continue
         glowa, _, opis = temat.partition(" — ")
-        ids = [i for i in re.findall(r"\b([A-Z]{1,4}-\d{1,3})\b", glowa)]
-        if not ids or not opis or temat.startswith("plan:"):  # „plan:” = samo odświeżenie tablic, dubluje commity z kodem
+        if not opis:
+            glowa = opis = re.sub(r"^[a-z]+(\([^)]*\))?!?:\s*", "", temat)
+        ids = list(dict.fromkeys(re.findall(r"\b([A-Z]{1,4}-\d{1,3})\b", glowa)))
+        if not ids:
             continue
         t = datetime.datetime.fromisoformat(kiedy).astimezone(tz)
         stan = [[i, D["wg_id"][i][2], D["wg_id"][i][10]] if i in D["wg_id"] else [i, "", ""] for i in ids]
