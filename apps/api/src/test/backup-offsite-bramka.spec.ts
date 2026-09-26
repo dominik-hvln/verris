@@ -29,7 +29,7 @@ describe('H-19 — bramka backupu offsite w onboardzie węzła', () => {
   });
 
   it('kreator kopiuje cały katalog skryptów i ma krok konfiguracji backupu', () => {
-    expect(kreator).toContain('scp -r ops/hosting-default-page ops/scripts/');
+    expect(kreator).toContain('tar czf - ops/scripts ops/hosting-default-page ops/etc/verris/security');
     expect(kreator).toContain('id: "backup-offsite"');
     expect(kreator).toContain('/etc/verris-backup.conf');
   });

@@ -46,8 +46,10 @@ done
 exec > >(tee -a "$LOG") 2>&1
 
 log_ok()   { echo "[OK] $*"; }
-log_fail() { echo "[FAIL] $*" >&2; FAIL=1; }
-log_warn() { echo "[WARN] $*" >&2; }
+WARN_N=0
+PROBLEMY=()
+log_fail() { echo "[FAIL] $*" >&2; FAIL=1; PROBLEMY+=("[FAIL] $*"); }
+log_warn() { echo "[WARN] $*" >&2; WARN_N=$((WARN_N + 1)); PROBLEMY+=("[WARN] $*"); }
 log_info() { echo "[INFO] $*"; }
 log_step() { echo ""; echo "========== $* =========="; }
 
@@ -165,8 +167,9 @@ install_default_hosting_page() {
     log_fail "Brak $SCRIPT_DIR/install-verris-default-page.sh — dołącz do bundle onboard"
     return 1
   fi
-  if [ ! -f "$SCRIPT_DIR/hosting-default-page/index.html" ]; then
-    log_fail "Brak $SCRIPT_DIR/hosting-default-page/ — scp -r ops/hosting-default-page na węzeł"
+  # Pakiet onboardu w układzie repo (ops/scripts + ops/hosting-default-page) albo płaski.
+  if [ ! -f "$SCRIPT_DIR/hosting-default-page/index.html" ] && [ ! -f "$SCRIPT_DIR/../hosting-default-page/index.html" ]; then
+    log_fail "Brak hosting-default-page/ (ops/hosting-default-page obok ops/scripts) — skopiuj pakiet onboardu z kreatora"
     return 1
   fi
   local args=()
@@ -317,6 +320,43 @@ print_final_summary() {
   return 1
 }
 
+# PB-30 — manifest stosu floty z control-plane, zanim ruszy profil (agent zadań odświeża go potem co minutę).
+pobierz_manifest_stosu() {
+  # shellcheck disable=SC1091
+  . /etc/verris.conf
+  if curl -fsS --max-time 15 -H "X-Server-Id: $VERRIS_SERVER_ID" -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN" \
+      "$VERRIS_API_URL/agent/tasks/stack-env" -o /etc/verris-stack.env.tmp \
+      && grep -q '^VERRIS_STACK_VERSION=' /etc/verris-stack.env.tmp; then
+    chmod 0644 /etc/verris-stack.env.tmp && mv -f /etc/verris-stack.env.tmp /etc/verris-stack.env
+    log_ok "Manifest stosu floty: $(sed -n "s/^VERRIS_STACK_VERSION='\(.*\)'/\1/p" /etc/verris-stack.env)"
+  else
+    rm -f /etc/verris-stack.env.tmp
+    log_fail "Nie udało się pobrać manifestu stosu z control-plane (/agent/tasks/stack-env)"
+  fi
+}
+
+# PB-29 — wynik trafia do control-plane: dopiero zielony raport (0 × FAIL) wpuszcza węzeł
+# do przydziału nowych kont; czerwony zdejmuje go z puli.
+wyslij_raport_onboardu() {
+  [ "$DRY_RUN" = "1" ] && return 0
+  # shellcheck disable=SC1091
+  . /etc/verris.conf
+  local body
+  body="$(FAIL="$FAIL" WARN_N="$WARN_N" python3 -c '
+import json, os, sys
+problemy = sys.stdin.read().splitlines()
+print(json.dumps({"ok": os.environ["FAIL"] == "0", "fail": int(os.environ["FAIL"]),
+                  "warn": int(os.environ["WARN_N"]), "podsumowanie": "\n".join(problemy)[-20000:]}))
+' < <(printf '%s\n' "${PROBLEMY[@]+"${PROBLEMY[@]}"}"))" || return 0
+  if curl -fsS --max-time 20 -X POST -H 'Content-Type: application/json' \
+      -H "X-Server-Id: $VERRIS_SERVER_ID" -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN" \
+      --data "$body" "$VERRIS_API_URL/agent/tasks/onboard-report" >/dev/null; then
+    echo "[OK] Raport gotowości wysłany do control-plane"
+  else
+    echo "[WARN] Raportu gotowości nie udało się wysłać — węzeł nie dostanie kont, dopóki raport nie dojdzie" >&2
+  fi
+}
+
 main() {
   echo "=== Verris node LIVE readiness ==="
   echo "Start: $TS"
@@ -325,6 +365,8 @@ main() {
 
   require_root
   require_verris_conf
+  # Raport idzie także przy przerwaniu na bramce etapu — czerwony zdejmuje węzeł z puli.
+  trap wyslij_raport_onboardu EXIT
   require_scripts
   # shellcheck source=lib/przerwij-po-etapie.sh
   . "$SCRIPT_DIR/lib/przerwij-po-etapie.sh"
@@ -333,6 +375,7 @@ main() {
   # NODE-02 — brak python3/curl zgłaszał [FAIL] i instalacja agenta ruszała
   # mimo to. Preflight jest bramką; weryfikacja na końcu zbiera wszystko naraz.
   przerwij_po_etapie "preflight"
+  pobierz_manifest_stosu
   install_task_agent
   run_hosting_profile
   install_default_hosting_page

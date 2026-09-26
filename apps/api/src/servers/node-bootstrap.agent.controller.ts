@@ -4,6 +4,9 @@ import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 import { NodeBootstrapService } from './node-bootstrap.service';
 import { BootstrapTokenService } from './bootstrap-token.service';
 import { buildNodeBootstrapScript } from './node-bootstrap.script';
+import { stosJakoEnv } from './stos-wezla';
+import { AuditService } from '../common/audit/audit.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 class BootstrapReportDto {
   @IsString() @MaxLength(64)
@@ -30,6 +33,8 @@ export class NodeBootstrapAgentController {
     private readonly bootstrap: NodeBootstrapService,
     private readonly tokens: BootstrapTokenService,
     private readonly config: ConfigService,
+    private readonly audit: AuditService,
+    private readonly prisma: PrismaService,
   ) {}
 
   private apiBaseUrl(): string {
@@ -42,25 +47,59 @@ export class NodeBootstrapAgentController {
 
   @Get('script')
   @Header('Content-Type', 'text/x-shellscript; charset=utf-8')
-  async script(@Query('token') token?: string): Promise<string> {
+  async script(
+    @Headers('x-bootstrap-token') headerToken?: string,
+    @Query('token') queryToken?: string,
+  ): Promise<string> {
+    // PB-29 — token w nagłówku (query zostaje dla one-linerów wygenerowanych wcześniej).
+    const token = headerToken || queryToken;
     if (!token) throw new BadRequestException('Brak tokenu.');
     // Waliduje token (bez konsumpcji — handshake konsumuje go w fazie AGENT).
     const found = await this.tokens.peek(token);
-    const keys = await this.bootstrap.licenseKeysFor(found.server.id);
+    const srv = await this.prisma.server.findUnique({ where: { id: found.server.id }, select: { hostname: true } });
+    // Bez kluczy licencyjnych w treści — skrypt pobiera je osobno (POST /secrets).
     return buildNodeBootstrapScript({
       apiBaseUrl: this.apiBaseUrl(),
       bootstrapToken: token,
       serverId: found.server.id,
-      daLicenseKey: keys.daLicenseKey,
-      clActivationKey: keys.clActivationKey,
-      lsSerial: keys.lsSerial,
+      stackEnv: stosJakoEnv(),
+      hostname: srv?.hostname ?? null,
     });
+  }
+
+  /**
+   * PB-29 — klucze licencyjne dla trwającego bootstrapu: tylko POST z nagłówkiem tokenu
+   * (nie w adresie, nie w treści skryptu), tylko przed handshake (token nieużyty), każdy odczyt w audycie.
+   */
+  @Post('secrets')
+  @HttpCode(200)
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  @Header('Cache-Control', 'no-store')
+  async secrets(@Headers('x-bootstrap-token') headerToken?: string): Promise<string> {
+    if (!headerToken) throw new UnauthorizedException('Brak tokenu bootstrapu.');
+    const found = await this.tokens.peek(headerToken);
+    const keys = await this.bootstrap.licenseKeysFor(found.server.id);
+    await this.audit.record({
+      action: 'NODE_BOOTSTRAP_SECRETS_READ',
+      details: { serverId: found.server.id, da: !!keys.daLicenseKey, cl: !!keys.clActivationKey, ls: !!keys.lsSerial },
+    });
+    const linia = (k: string, v: string | null) => `${k}=${(v ?? '').replace(/[\r\n'"\\]/g, '').trim()}`;
+    return [
+      linia('DA_LICENSE', keys.daLicenseKey),
+      linia('CL_ACTIVATION_KEY', keys.clActivationKey),
+      linia('LS_SERIAL', keys.lsSerial),
+      '',
+    ].join('\n');
   }
 
   /** Faza AGENT — istniejący skrypt handshake+agent LVE (reużycie, bez mocków). */
   @Get('agent-script')
   @Header('Content-Type', 'text/x-shellscript; charset=utf-8')
-  async agentScript(@Query('token') token?: string): Promise<string> {
+  async agentScript(
+    @Headers('x-bootstrap-token') headerToken?: string,
+    @Query('token') queryToken?: string,
+  ): Promise<string> {
+    const token = headerToken || queryToken;
     if (!token) throw new BadRequestException('Brak tokenu.');
     const found = await this.tokens.peek(token);
     return this.bootstrap.agentScript(found.server.id, token);

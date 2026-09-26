@@ -23,7 +23,7 @@ export interface NodeBootstrapStatus {
 }
 
 const KNOWN_PHASES = new Set([
-  'PENDING', 'PREFLIGHT', 'AGENT', 'HARDENING', 'CLOUDLINUX', 'STACK', 'REGISTER', 'CANARY', 'DONE', 'FAILED',
+  'PENDING', 'PREFLIGHT', 'DA', 'AGENT', 'HARDENING', 'CLOUDLINUX', 'STACK', 'REGISTER', 'CANARY', 'DONE', 'FAILED',
 ]);
 const KNOWN_STATUSES = new Set(['STARTED', 'OK', 'FAILED', 'REBOOT']);
 

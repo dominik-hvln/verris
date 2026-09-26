@@ -46,7 +46,22 @@ import { loadSiteStatsScript } from './site-stats.script';
 import { loadPhpInfoScript } from './php-info.script';
 import { loadFileSearchScript } from './file-search.script';
 import { loadNodeUpdateScript } from './node-update.script';
-import { IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { stosJakoEnv } from './stos-wezla';
+
+class OnboardReportDto {
+  @IsBoolean()
+  ok!: boolean;
+
+  @IsInt() @Min(0) @Max(10000)
+  fail!: number;
+
+  @IsInt() @Min(0) @Max(10000)
+  warn!: number;
+
+  @IsOptional() @IsString() @MaxLength(20000)
+  podsumowanie?: string;
+}
 
 class CompleteNodeTaskDto {
   @IsOptional()
@@ -86,6 +101,20 @@ export class NodeTasksAgentController {
   deploySshPubkey() {
     const publicKey = (process.env.VERRIS_NODE_DEPLOY_SSH_PUBKEY ?? '').trim() || null;
     return { publicKey };
+  }
+
+  /** PB-30 — manifest stosu floty; agent zadań zapisuje go co minutę do /etc/verris-stack.env. */
+  @Get('stack-env')
+  @Header('Content-Type', 'text/plain; charset=utf-8')
+  stackEnv() {
+    return stosJakoEnv();
+  }
+
+  /** PB-29 — wynik node-live-readiness.sh; dopiero zielony raport wpuszcza węzeł do przydziału kont. */
+  @Post('onboard-report')
+  @HttpCode(204)
+  async onboardReport(@Req() req: Request & { serverId?: string }, @Body() dto: OnboardReportDto) {
+    await this.tasks.recordOnboardReport(req.serverId!, dto);
   }
 
   @Get('lease')

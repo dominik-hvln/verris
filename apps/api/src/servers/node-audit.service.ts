@@ -1,3 +1,4 @@
+import { STOS_WEZLA, zgodnoscZManifestem } from './stos-wezla';
 import {
   BadRequestException,
   Injectable,
@@ -78,6 +79,8 @@ export class NodeAuditService {
       checks.push(await this.checkDaIpRegistered(server, daClient.client));
     }
     checks.push(this.checkHardening(server));
+    checks.push(this.checkOnboard(server));
+    checks.push(this.checkZgodnoscStosu(server));
     checks.push(await this.checkTls(server));
 
     return {
@@ -670,6 +673,61 @@ export class NodeAuditService {
             'Onboard LIVE (Faza 3): security-hardening-baseline.sh + security-egress-lockdown.sh są obowiązkowe przed klientami.',
           reference: 'ops/docs/NODE_ONBOARD_RUNBOOK.md',
         },
+      ],
+      repair: null,
+    };
+  }
+
+  /** PB-29 — zielony raport node-live-readiness.sh to warunek przydziału nowych kont. */
+  private checkOnboard(server: Server): AuditCheckDto {
+    const raport = (server.onboardReport ?? null) as { fail?: number; warn?: number; podsumowanie?: string; at?: string } | null;
+    const ok = server.onboardVerifiedAt != null;
+    return {
+      id: 'onboard-verified',
+      title: 'Weryfikacja onboardu (warunek przydziału kont)',
+      category: 'SECURITY',
+      status: ok ? 'OK' : raport ? 'FAIL' : 'UNKNOWN',
+      summary: ok
+        ? 'Węzeł przeszedł weryfikację gotowości — może dostawać nowe konta.'
+        : raport
+          ? 'Ostatnia weryfikacja zgłosiła błędy — węzeł NIE dostaje nowych kont, dopóki node-onboard-live.sh nie przejdzie na zielono.'
+          : 'Brak raportu gotowości — uruchom Onboard LIVE. Do tego czasu węzeł nie dostaje nowych kont.',
+      records: [
+        { label: 'Zweryfikowano', actual: server.onboardVerifiedAt?.toISOString() ?? 'nie', ok },
+        { label: 'Ostatni raport', actual: raport?.at ?? 'brak' },
+        { label: 'FAIL / WARN', actual: raport ? `${raport.fail ?? 0} / ${raport.warn ?? 0}` : '—' },
+        ...(raport?.podsumowanie ? [{ label: 'Problemy', actual: raport.podsumowanie.slice(0, 2000) }] : []),
+      ],
+      docAttestation: [
+        { vendor: 'Verris', statement: 'PB-29: selektor węzłów pomija węzły bez zielonej weryfikacji onboardu.', reference: 'ops/docs/NODE_ONBOARD_RUNBOOK.md' },
+      ],
+      repair: null,
+    };
+  }
+
+  /** PB-30 — wersje raportowane przez agenta vs manifest floty (stos-wezla.ts). */
+  private checkZgodnoscStosu(server: Server): AuditCheckDto {
+    const pozycje = zgodnoscZManifestem({
+      stackVersion: server.stackVersion,
+      dbVersion: server.dbVersion,
+      lsVersion: server.lsVersion,
+      phpVersion: server.phpDefaultVersion,
+    });
+    const rozjazd = pozycje.some((p) => p.zgodne === false);
+    const brak = pozycje.every((p) => p.zgodne === null);
+    return {
+      id: 'stack-manifest',
+      title: 'Zgodność z manifestem floty',
+      category: 'STACK',
+      status: brak ? 'UNKNOWN' : rozjazd ? 'WARN' : 'OK',
+      summary: brak
+        ? 'Agent nie raportuje jeszcze wersji stosu — zaktualizuj verris-lve (profil hostingu).'
+        : rozjazd
+          ? 'Węzeł różni się od manifestu floty — wyrównaj (aktualizacja falami / node-db-upgrade), zanim różnice urosną.'
+          : 'Wersje zgodne z manifestem floty.',
+      records: pozycje.map((p) => ({ label: p.co, expected: p.oczekiwane, actual: p.faktyczne ?? 'brak raportu', ok: p.zgodne ?? undefined })),
+      docAttestation: [
+        { vendor: 'Verris', statement: `Manifest stosu ${STOS_WEZLA.wersja}: DirectAdmin ${STOS_WEZLA.daKanal}, MariaDB ${STOS_WEZLA.mariadb}, PHP ${STOS_WEZLA.php1}, LiteSpeed ${STOS_WEZLA.litespeedLinia}.x.`, reference: 'apps/api/src/servers/stos-wezla.ts' },
       ],
       repair: null,
     };

@@ -63,6 +63,17 @@ export class TelemetryService {
               ...(data.node.totalCpuCores ? { totalCpuCores: data.node.totalCpuCores } : {}),
               ...(data.node.totalMemoryMb ? { totalMemoryMb: data.node.totalMemoryMb } : {}),
               ...(data.node.totalDiskMb ? { totalDiskMb: data.node.totalDiskMb } : {}),
+              // PB-30 — wersje stosu (raport zgodności floty z manifestem).
+              ...(data.node.stackVersion || data.node.daVersion || data.node.lsVersion || data.node.phpVersion || data.node.clVersion
+                ? {
+                    stackVersion: data.node.stackVersion ?? null,
+                    daVersion: data.node.daVersion ?? null,
+                    lsVersion: data.node.lsVersion ?? null,
+                    clVersion: data.node.clVersion ?? null,
+                    phpDefaultVersion: data.node.phpVersion ?? null,
+                    versionsCheckedAt: new Date(),
+                  }
+                : {}),
               // DB-1 — silnik+wersja bazy z agenta (3306 zamknięty z control-plane).
               ...(data.node.dbEngine || data.node.dbVersion
                 ? {

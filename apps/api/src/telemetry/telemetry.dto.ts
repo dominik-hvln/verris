@@ -84,6 +84,22 @@ export class NodeStatusDto {
   @IsOptional() @IsString() @MaxLength(40)
   dbVersion?: string;
 
+  /** PB-30 — wersje stosu do raportu zgodności z manifestem floty. */
+  @IsOptional() @IsString() @MaxLength(40)
+  stackVersion?: string;
+
+  @IsOptional() @IsString() @MaxLength(40)
+  daVersion?: string;
+
+  @IsOptional() @IsString() @MaxLength(40)
+  lsVersion?: string;
+
+  @IsOptional() @IsString() @MaxLength(40)
+  clVersion?: string;
+
+  @IsOptional() @IsString() @MaxLength(40)
+  phpVersion?: string;
+
   /** NODE-03 — pojemność węzła z każdego raportu (nproc, MemTotal, df /). */
   @IsOptional() @IsInt() @Min(1) @Max(4096)
   totalCpuCores?: number;

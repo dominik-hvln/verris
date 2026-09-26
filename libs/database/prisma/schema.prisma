@@ -565,6 +565,13 @@ model Server {
   clVersion          String?
   lsVersion          String?
   versionsCheckedAt  DateTime?
+  // PB-30 — wersja manifestu stosu na węźle i domyślne PHP (raport zgodności floty).
+  stackVersion       String?
+  phpDefaultVersion  String?
+  // PB-29 — węzeł przyjmuje klientów dopiero po zielonej weryfikacji onboardu
+  // (node-live-readiness.sh → POST /agent/tasks/onboard-report).
+  onboardVerifiedAt  DateTime?
+  onboardReport      Json?
 
   // VER-UPG — docelowa wersja silnika DB wybrana przez admina w edycji węzła
   // (np. "11.4"). Ustawiana przy zleceniu DB_UPGRADE; faktyczna wersja po

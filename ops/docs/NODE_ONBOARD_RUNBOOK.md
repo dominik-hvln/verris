@@ -63,15 +63,13 @@ flowchart TD
 
 ## Faza 3 — Onboard LIVE (jeden skrypt)
 
-Skopiuj bundle na węzeł:
+Skopiuj pakiet onboardu na węzeł — w układzie repo (`ops/scripts` z `lib/`, `ops/hosting-default-page`,
+`ops/etc/verris/security`). Skrypty szukają plików względem repo; płaska kopia gubiła m.in. security-watch
+(`security-install-verris-security.sh` potrzebuje `ops/etc/verris/security/*.txt`):
 
 ```bash
-scp -r ops/hosting-default-page \
-  ops/scripts/{node-onboard-live,node-live-readiness,node-hosting-profile,\
-  install-verris-default-page,node-verris-tasks-install,node-da-sync-plan-packages,\
-  verris-tasks,verris-task-run,node-migration-worker,\
-  security-hardening-baseline,security-egress-lockdown}.sh \
-  root@WĘZEŁ:/root/verris/
+tar czf - ops/scripts ops/hosting-default-page ops/etc/verris/security \
+  | ssh root@WĘZEŁ 'mkdir -p /root/verris && tar xzf - -C /root/verris'
 ```
 
 Uruchom:
@@ -79,8 +77,13 @@ Uruchom:
 ```bash
 export DA_USER=admin
 export DA_KEY='login-key-z-DA-Account-Manager'
-bash /root/verris/node-onboard-live.sh
+bash /root/verris/ops/scripts/node-onboard-live.sh
 ```
+
+**PB-29:** na końcu `node-live-readiness.sh` wysyła raport do control-plane (`POST /agent/tasks/onboard-report`,
+także przy przerwaniu na bramce). Węzeł dostaje nowe konta dopiero po zielonym raporcie (0 × FAIL) i dopóki
+agent nie zgłosi braku utwardzenia (`hardenedEnabled=false`). Wersje stosu bierze z manifestu floty
+(`/etc/verris-stack.env`, źródło: `apps/api/src/servers/stos-wezla.ts`).
 
 Skrypt `node-onboard-live.sh`:
 
@@ -191,7 +194,7 @@ Weryfikacja techniczna (prod, Node-PL-01):
 1. Kreator → „Instalacja (bootstrap v2)”: rekord + licencje → jednolinijkowiec na węźle → faza „Gotowe”.
 2. Kreator → „Akceptacja i DA API”: ACTIVE + login key + test.
 3. Kreator → „Backup offsite”.
-4. Kreator → „Onboard LIVE”: `scp` bundle → `node-onboard-live.sh` (+ `DA_USER`/`DA_KEY`) — obowiązkowy przed klientami.
+4. Kreator → „Onboard LIVE”: pakiet onboardu (tar przez ssh) → `ops/scripts/node-onboard-live.sh` (+ `DA_USER`/`DA_KEY`) — obowiązkowy przed klientami; zielony raport wpuszcza węzeł do przydziału kont.
 5. Kreator → „Profil hostingowy” → „Gotowe”: smoke usługa.
 
 ---

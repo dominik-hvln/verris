@@ -115,6 +115,7 @@ export async function utworzWezel(over: Record<string, unknown> = {}) {
       // Fixture bez `lastHeartbeatAt` to nie jest „węzeł domyślny" — to węzeł
       // milczący, a taki nie ma prawa dostać nowego konta.
       lastHeartbeatAt: new Date(),
+      onboardVerifiedAt: new Date(),
       totalCpuCores: 32,
       totalMemoryMb: 128 * 1024,
       totalDiskMb: 1920 * 1024,

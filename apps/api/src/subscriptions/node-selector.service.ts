@@ -52,7 +52,14 @@ export class NodeSelectorService {
     // Cordon pozwala wstrzymać przyjmowanie nowych kont na pojedynczym węźle bez
     // przełączania go w MAINTENANCE (co wstrzymałoby sprzedaż globalnie).
     const zStatusem = await this.prisma.server.findMany({
-      where: { status: ServerStatus.ACTIVE, acceptsNewAccounts: true },
+      // PB-29 — tylko po zielonej weryfikacji onboardu i bez zgłoszonego braku utwardzenia.
+      where: {
+        status: ServerStatus.ACTIVE,
+        acceptsNewAccounts: true,
+        onboardVerifiedAt: { not: null },
+        // NULL = agent jeszcze nie zgłosił (węzły sprzed F-07); `false` = zgłoszony brak utwardzenia.
+        OR: [{ hardenedEnabled: null }, { hardenedEnabled: true }],
+      },
     });
 
     // OPS-01 — status ACTIVE nie dowodzi, że węzeł żyje.

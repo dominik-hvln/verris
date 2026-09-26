@@ -54,6 +54,28 @@ export class NodeTasksService {
     @Optional() private readonly webhooks?: ClientWebhooksService,
   ) {}
 
+  /**
+   * PB-29 — zielony raport gotowości (0 × FAIL) ustawia onboardVerifiedAt; czerwony go zdejmuje,
+   * więc ponowny onboard z błędami od razu wyłącza węzeł z przydziału nowych kont.
+   */
+  async recordOnboardReport(
+    serverId: string,
+    r: { ok: boolean; fail: number; warn: number; podsumowanie?: string },
+  ): Promise<void> {
+    const zielony = r.ok && r.fail === 0;
+    await this.prisma.server.update({
+      where: { id: serverId },
+      data: {
+        onboardVerifiedAt: zielony ? new Date() : null,
+        onboardReport: { ok: zielony, fail: r.fail, warn: r.warn, podsumowanie: (r.podsumowanie ?? '').slice(-20000), at: new Date().toISOString() },
+      },
+    });
+    await this.audit.record({
+      action: zielony ? 'NODE_ONBOARD_VERIFIED' : 'NODE_ONBOARD_FAILED',
+      details: { serverId, fail: r.fail, warn: r.warn },
+    });
+  }
+
   async queueHostingProfile(
     serverId: string,
     actorUserId: string,

@@ -210,9 +210,9 @@ export const BOOTSTRAP_DOES_NOT = [
  * hardening + egress lockdown + rejestracja publicznego IP w DA + pakiety
  * planów + LIVE readiness. Audit F-07: ten krok był poza wizardem.
  */
-export const ONBOARD_LIVE_SCP = `# 5a) Z repo (control-plane / stacja robocza) — skopiuj CAŁY katalog skryptów (razem z lib/):
-scp -r ops/hosting-default-page ops/scripts/ root@WĘZEŁ:/root/verris/
-# Pojedyncze pliki to za mało: onboard wymaga m.in. lib/, workera migracji i backupu offsite.`;
+export const ONBOARD_LIVE_SCP = `# 5a) Z repo (stacja robocza) — pakiet onboardu w układzie repo: skrypty z lib/, strona domyślna,
+#     listy bezpieczeństwa (security-watch). Układ ops/… jest wymagany — skrypty szukają plików względem repo.
+tar czf - ops/scripts ops/hosting-default-page ops/etc/verris/security | ssh root@WĘZEŁ 'mkdir -p /root/verris && tar xzf - -C /root/verris'`;
 
 /** H-19 — konfiguracja kopii poza węzłem; bez niej onboard kończy się [FAIL]. */
 export const BACKUP_OFFSITE_CONF = `# 4b) Na węźle (root) — PRZED onboardem LIVE. Bez tego node-onboard-live.sh zatrzyma się na [FAIL].
@@ -233,8 +233,9 @@ rclone lsd verris-crypt: && echo "OK: remote działa"
 export const ONBOARD_LIVE_RUN = `# 5b) Na węźle (root) — login key z DA → Account Manager → Login Keys:
 export DA_USER=admin
 export DA_KEY='login-key-z-DA'
-bash /root/verris/node-onboard-live.sh
+bash /root/verris/ops/scripts/node-onboard-live.sh
 # Log: /var/log/verris-node-onboard.log
+# Wynik trafia do panelu: węzeł dostaje klientów dopiero po zielonym raporcie gotowości (0 × FAIL).
 # Hardening jest domyślnie WŁĄCZONY (--skip-security tylko awaryjnie, NIEZALECANE)`;
 
 export const ONBOARD_LIVE_VERIFY = `# 5c) Weryfikacja po onboardingu:

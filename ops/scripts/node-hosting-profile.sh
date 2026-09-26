@@ -14,6 +14,13 @@
 #   --cagefs-only     tylko instalacja/inicjalizacja CloudLinux CageFS (izolacja kont + integracja LVE w DA)
 set -Eeuo pipefail
 
+# PB-30 — wersje stosu z manifestu floty (API → /etc/verris-stack.env, odświeżany przez
+# agenta zadań co minutę). Jeden plik dla wszystkich węzłów = węzły identyczne.
+if [ -r /etc/verris-stack.env ]; then
+  # shellcheck disable=SC1091
+  . /etc/verris-stack.env
+fi
+
 GOVERNOR_PY="/usr/share/lve/dbgovernor/mysqlgovernor.py"
 
 DRY_RUN=0
@@ -219,7 +226,9 @@ mysql_client_version_line() {
   fi
 }
 
-# Mapuje mysql -V → słowo kluczowe CloudLinux Governor (np. mariadb106, mysql80).
+# Mapuje mysql -V → słowo kluczowe CloudLinux Governor. Format wg dokumentacji CloudLinux
+# (mysqlgovernor.py --mysql-version): mariadb106, mariadb1011, mariadb1104, mysql80.
+# Silnika już działającego NIE zmieniamy (upgrade tylko po kolei, osobnym zadaniem node-db-upgrade).
 governor_mysql_version_keyword() {
   local line="$1"
   local ver major minor
@@ -230,7 +239,11 @@ governor_mysql_version_keyword() {
       major="${ver%%.*}"
       minor="${ver#*.}"
       minor="${minor%%.*}"
-      echo "mariadb${major}${minor}"
+      if [ "$major" -ge 11 ]; then
+        printf 'mariadb%d%02d\n' "$major" "$minor"
+      else
+        echo "mariadb${major}${minor}"
+      fi
       return 0
     fi
   fi
@@ -246,8 +259,8 @@ governor_mysql_version_keyword() {
     fi
   fi
 
-  # DirectAdmin + CL — typowo MariaDB 10.6+; bezpieczny fallback gdy mysql -V niedostępne przed pierwszym startem.
-  echo "mariadb106"
+  # Świeży węzeł bez silnika: wersja docelowa z manifestu floty.
+  echo "${VERRIS_GOVERNOR_MYSQL:?brak /etc/verris-stack.env (manifest wersji) — uruchom agenta zadań albo onboard}"
 }
 
 governor_is_active() {
@@ -333,7 +346,10 @@ prepare_governor_install() {
   log_info "Przygotowanie Governor (reset modułu mariadb, czyszczenie cache instalatora)"
   remove_cl_mariadb_meta_packages
   dnf module reset mariadb -y 2>/dev/null || true
-  dnf module enable mariadb:cl-MariaDB106 -y 2>/dev/null || true
+  # Strumień modułu znamy tylko dla 10.6 (węzły sprzed manifestu); nowsze wersje instaluje Governor.
+  if [ "${1:-}" = "mariadb106" ]; then
+    dnf module enable mariadb:cl-MariaDB106 -y 2>/dev/null || true
+  fi
   rm -rf /usr/share/lve/dbgovernor/tmp/governor-tmp/* 2>/dev/null || true
   find /usr/share/lve/dbgovernor/tmp -type f \( -name '*meta*11.8*' -o -name '*MariaDB1108*' -o -name '*meta-devel*' \) -delete 2>/dev/null || true
   if [ -f /var/lve/dbgovernor-shm/governor_bad_users_list ]; then
@@ -368,9 +384,16 @@ wait_for_mariadb_ready() {
   return 1
 }
 
-ensure_mariadb106_server_running() {
-  local svc pkgs
+ensure_mariadb_server_running() {
+  local svc pkgs gov_ver="${1:?}"
   if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then
+    return 0
+  fi
+  if mysql -e "SELECT 1" >/dev/null 2>&1; then
+    return 0
+  fi
+  if [ "$gov_ver" != "mariadb106" ]; then
+    log_warn "MariaDB nie odpowiada — silnik $gov_ver zainstaluje Governor (mysqlgovernor.py --install)"
     return 0
   fi
 
@@ -388,7 +411,7 @@ ensure_mariadb106_server_running() {
   systemctl start "$svc" 2>/dev/null || true
 
   if wait_for_mariadb_ready "$svc"; then
-    log_ok "MariaDB 10.6 działa (mysql -e SELECT 1)"
+    log_ok "MariaDB działa (mysql -e SELECT 1)"
     return 0
   fi
 
@@ -397,7 +420,7 @@ ensure_mariadb106_server_running() {
 }
 
 recover_governor_after_install() {
-  local svc gov_ver="${1:-mariadb106}"
+  local svc gov_ver="${1:?}"
   if [ "$DRY_RUN" = "1" ] || [ "$PREFLIGHT_ONLY" = "1" ]; then
     return 0
   fi
@@ -407,7 +430,7 @@ recover_governor_after_install() {
   fi
 
   log_info "Governor nieaktywny po instalacji — odzyskiwanie (MariaDB + db_governor)"
-  ensure_mariadb106_server_running || true
+  ensure_mariadb_server_running "$gov_ver" || true
   svc="$(mariadb_service_name)"
   systemctl restart "$svc" 2>/dev/null || true
   sleep 3
@@ -520,10 +543,14 @@ configure_cloudlinux_governor() {
   fi
   log_info "Governor --mysql-version=$gov_ver"
 
+  if [ -n "${VERRIS_GOVERNOR_MYSQL:-}" ] && [ "$gov_ver" != "$VERRIS_GOVERNOR_MYSQL" ]; then
+    log_warn "Silnik $gov_ver ≠ manifest floty $VERRIS_GOVERNOR_MYSQL — zostawiam działający; upgrade po kolei zadaniem node-db-upgrade"
+  fi
+
   remove_cl_mariadb_meta_packages
-  ensure_mariadb106_server_running || true
+  ensure_mariadb_server_running "$gov_ver" || true
   ensure_mariadb_before_governor "$gov_ver"
-  prepare_governor_install
+  prepare_governor_install "$gov_ver"
 
   run_governor_py "Ustawienie wersji MySQL/MariaDB dla Governor" --mysql-version="$gov_ver" || true
 

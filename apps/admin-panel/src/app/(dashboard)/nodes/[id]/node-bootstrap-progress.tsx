@@ -206,7 +206,7 @@ function OneLinerCard({ serverId }: { serverId: string }) {
         <Terminal className="h-4 w-4 text-emerald-300" /> Komenda instalacyjna (jako root na świeżym serwerze)
       </h3>
       <p className="mb-3 text-[11px] text-muted-foreground">
-        Jeden podpisany one-liner uruchamia wznawialny bootstrap. Przeżywa restarty (systemd oneshot). Zainstaluj najpierw czysty AlmaLinux; resztę zrobi automat.
+        Jedna linijka (token w nagłówku, klucze licencji pobierane osobno i niezapisywane na dysku) uruchamia wznawialny bootstrap. Przeżywa restarty (systemd oneshot). Zainstaluj najpierw czysty AlmaLinux; resztę zrobi automat.
       </p>
       {oneLiner ? (
         <div className="flex items-center gap-2">

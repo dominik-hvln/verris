@@ -344,6 +344,42 @@ def node_capacity():
         pass
     return {k: v for k, v in cap.items() if isinstance(v, int) and v > 0}
 
+def stack_versions():
+    # PB-30 — wersje stosu do raportu zgodności floty z manifestem (best-effort, każde osobno).
+    import subprocess, re
+    out = {}
+    try:
+        with open("/etc/verris-stack.env") as fh:
+            for line in fh:
+                if line.startswith("VERRIS_STACK_VERSION="):
+                    out["stackVersion"] = line.split("=", 1)[1].strip().strip("'\"")[:40]
+    except Exception:
+        pass
+    try:
+        with open("/usr/local/lsws/VERSION") as fh:
+            v = fh.read().strip()
+            if re.match(r"^[0-9][0-9A-Za-z.\-]{0,38}$", v):
+                out["lsVersion"] = v
+    except Exception:
+        pass
+    def first(cmd, pattern):
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=8)
+            m = re.search(pattern, (r.stdout or "") + (r.stderr or ""))
+            return m.group(1)[:40] if m else None
+        except Exception:
+            return None
+    da = first(["/usr/local/directadmin/directadmin", "version"], r"([0-9]+\.[0-9]+(?:\.[0-9]+)?)")
+    if da:
+        out["daVersion"] = da
+    php = first(["/usr/local/bin/php", "-r", "echo PHP_VERSION;"], r"^([0-9]+\.[0-9]+\.[0-9]+)")
+    if php:
+        out["phpVersion"] = php
+    cl = first(["rpm", "-q", "--qf", "%{VERSION}-%{RELEASE}", "kmod-lve"], r"^([0-9][^\s]*)")
+    if cl:
+        out["clVersion"] = cl
+    return out
+
 def node_block():
     engine, version = db_engine_version()
     block = {
@@ -356,6 +392,7 @@ def node_block():
         block["dbEngine"] = engine
     if version:
         block["dbVersion"] = version
+    block.update(stack_versions())
     return block
 
 def report_node_status():

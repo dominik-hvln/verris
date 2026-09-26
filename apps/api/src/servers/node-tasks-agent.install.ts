@@ -376,6 +376,14 @@ flock -n 9 || exit 0
 
 auth_headers=(-H "X-Server-Id: $VERRIS_SERVER_ID" -H "X-Server-Token: $VERRIS_IDENTITY_TOKEN")
 
+# PB-30 — manifest stosu floty: ten sam plik na każdym węźle, odświeżany co minutę.
+if curl -fsS -m 15 "\${auth_headers[@]}" "$VERRIS_API_URL/agent/tasks/stack-env" -o /etc/verris-stack.env.tmp 2>/dev/null \\
+  && grep -q '^VERRIS_STACK_VERSION=' /etc/verris-stack.env.tmp; then
+  chmod 0644 /etc/verris-stack.env.tmp && mv -f /etc/verris-stack.env.tmp /etc/verris-stack.env
+else
+  rm -f /etc/verris-stack.env.tmp
+fi
+
 task_instance() { printf '%s' "$1" | tr -d '-'; }
 
 task_is_running() {

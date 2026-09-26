@@ -65,7 +65,8 @@ export type AuditCheckCategory =
   | 'AGENT'
   | 'DNS'
   | 'CAGEFS'
-  | 'SECURITY';
+  | 'SECURITY'
+  | 'STACK';
 
 export interface AuditCheckDto {
   id: string;

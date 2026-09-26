@@ -217,6 +217,16 @@ describe('X-04 — NodeSelectorService przeciwko prawdziwej bazie', () => {
       expect(wybrany.id).toBe(dobry.id);
     });
 
+    it('PB-29: pomija węzeł bez zielonego onboardu i węzeł ze zgłoszonym brakiem utwardzenia', async () => {
+      const plan = await utworzPlan();
+      await utworzWezel({ name: 'swiezy', onboardVerifiedAt: null });
+      await utworzWezel({ name: 'nieutwardzony', hardenedEnabled: false });
+      const dobry = await utworzWezel({ name: 'gotowy', hardenedEnabled: true });
+
+      const wybrany = await selektor.pickServerForPlan(plan);
+      expect(wybrany.id).toBe(dobry.id);
+    });
+
     it('gdy wszystkie węzły są w MAINTENANCE, komunikat mówi o serwisie', async () => {
       const plan = await utworzPlan();
       await utworzWezel({

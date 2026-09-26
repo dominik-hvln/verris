@@ -14,23 +14,30 @@
  * control-plane po raporcie fazy CANARY.
  *
  * Fazy: PREFLIGHT → CLOUDLINUX(+reboot) → DA → STACK(LiteSpeed) → AGENT → CANARY → DONE
+ *
+ * PB-29/PB-30:
+ *  - klucze licencyjne NIE są w treści skryptu — skrypt pobiera je POST-em z nagłówkiem tokenu
+ *    (/agent/nodes/bootstrap/secrets, wpis w audycie), trzyma tylko w pamięci i nie zapisuje na dysk;
+ *  - manifest stosu (/etc/verris-stack.env) ląduje na węźle przed instalacją DirectAdmin i ustala
+ *    kanał/build DA, PHP i MariaDB — każdy węzeł instaluje to samo;
+ *  - CloudLinux wykrywany przez /proc/lve i `cldetect` (od CL9 jądro nie ma „lve” w nazwie);
+ *  - po DONE skrypt z tokenem jest usuwany z dysku.
  */
 export function buildNodeBootstrapScript(input: {
   apiBaseUrl: string;
   bootstrapToken: string;
   serverId: string;
-  /** Klucze licencyjne (odszyfrowane) — puste = faza pominięta z instrukcją. */
-  daLicenseKey?: string | null;
-  clActivationKey?: string | null;
-  lsSerial?: string | null;
+  /** Treść /etc/verris-stack.env (stosJakoEnv) — bez sekretów. */
+  stackEnv: string;
+  /** Nazwa hosta z kreatora (FQDN) — ustawiana w PREFLIGHT i przekazywana instalatorowi DA. */
+  hostname?: string | null;
 }): string {
   const api = input.apiBaseUrl.replace(/\/$/, '');
   const clean = (s: string | null | undefined) => (s ?? '').replace(/['"\\\n\r]/g, '').trim();
   const tok = clean(input.bootstrapToken);
   const sid = clean(input.serverId);
-  const daKey = clean(input.daLicenseKey);
-  const clKey = clean(input.clActivationKey);
-  const lsSerial = clean(input.lsSerial);
+  const host = /^[a-z0-9]([a-z0-9.-]{0,251}[a-z0-9])?$/i.test(clean(input.hostname)) ? clean(input.hostname) : '';
+  const stackEnv = input.stackEnv.replace(/^EOSTACK$/gm, '');
 
   return `#!/usr/bin/env bash
 # Verris — wznawialny bootstrap węzła (reboot-safe). Wygenerowany automatycznie.
@@ -40,10 +47,11 @@ set -uo pipefail
 API_BASE='${api}'
 BOOTSTRAP_TOKEN='${tok}'
 SERVER_ID='${sid}'
-DA_LICENSE='${daKey}'
-CL_ACTIVATION_KEY='${clKey}'
-LS_SERIAL='${lsSerial}'
-AGENT_SCRIPT_URL="$API_BASE/agent/nodes/bootstrap/agent-script?token=$BOOTSTRAP_TOKEN"
+NODE_HOSTNAME='${host}'
+# Klucze licencyjne: tylko w pamięci, pobierane przez load_secrets().
+DA_LICENSE=''
+CL_ACTIVATION_KEY=''
+LS_SERIAL=''
 
 STATE_DIR=/var/lib/verris
 STATE_FILE="$STATE_DIR/bootstrap.state"
@@ -58,11 +66,35 @@ report() { # phase status [message]
     >/dev/null 2>&1 || true
 }
 set_phase() { echo "$1" > "$STATE_FILE"; }
+
+# PB-30 — manifest stosu floty (ten sam na każdym węźle; agent zadań odświeża go później).
+write_stack_env() {
+  umask 022
+  cat > /etc/verris-stack.env <<'EOSTACK'
+${stackEnv}
+EOSTACK
+}
+
+# PB-29 — klucze licencyjne POST-em z nagłówkiem (nie w URL, nie w treści skryptu, nie na dysku).
+load_secrets() {
+  [ -n "\${SECRETS_LOADED:-}" ] && return 0
+  local out
+  out="$(curl -fsS -m 20 -X POST -H "X-Bootstrap-Token: $BOOTSTRAP_TOKEN" "$API_BASE/agent/nodes/bootstrap/secrets")" || return 1
+  DA_LICENSE="$(printf '%s\\n' "$out" | sed -n 's/^DA_LICENSE=//p' | head -1)"
+  CL_ACTIVATION_KEY="$(printf '%s\\n' "$out" | sed -n 's/^CL_ACTIVATION_KEY=//p' | head -1)"
+  LS_SERIAL="$(printf '%s\\n' "$out" | sed -n 's/^LS_SERIAL=//p' | head -1)"
+  SECRETS_LOADED=1
+}
+
+# CloudLinux OS 9+ ma jądro AlmaLinux (bez „lve” w nazwie) — oficjalnie: cldetect; /proc/lve = LVE działa.
+cloudlinux_converted() { command -v cldetect >/dev/null 2>&1 && cldetect --detect-edition >/dev/null 2>&1; }
+lve_active() { [ -e /proc/lve/list ]; }
+da_installed() { [ -x /usr/local/directadmin/directadmin ] && [ -f /usr/local/directadmin/conf/directadmin.conf ]; }
 get_phase() { cat "$STATE_FILE" 2>/dev/null || echo PENDING; }
 fail() { report "$1" FAILED "\${2:-}"; exit 1; }
 
 install_self() {
-  cp -f "$0" "$RUNNER" 2>/dev/null || curl -fsS "$API_BASE/agent/nodes/bootstrap/script?token=$BOOTSTRAP_TOKEN" -o "$RUNNER"
+  cp -f "$0" "$RUNNER" 2>/dev/null || curl -fsS -H "X-Bootstrap-Token: $BOOTSTRAP_TOKEN" "$API_BASE/agent/nodes/bootstrap/script" -o "$RUNNER"
   chmod 0700 "$RUNNER"
   cat > "$UNIT" <<'EOUNIT'
 [Unit]
@@ -79,6 +111,7 @@ EOUNIT
   systemctl daemon-reload
   systemctl enable verris-bootstrap.service >/dev/null 2>&1 || true
   [ -f "$STATE_FILE" ] || set_phase PREFLIGHT
+  write_stack_env
   exec "$RUNNER" run
 }
 
@@ -86,6 +119,9 @@ finish() {
   set_phase DONE
   report DONE OK "bootstrap zakończony"
   systemctl disable verris-bootstrap.service >/dev/null 2>&1 || true
+  # Skrypt zawiera token bootstrapu — po zakończeniu nie zostaje na dysku.
+  rm -f "$RUNNER" "$UNIT" "$STATE_DIR/agent-install.sh" "$STATE_DIR/cldeploy"
+  systemctl daemon-reload >/dev/null 2>&1 || true
 }
 
 # --- FAZY (idempotentne, check-before-do) -----------------------------------
@@ -99,16 +135,26 @@ phase_preflight() {
     fail PREFLIGHT "wykryto inny panel (cPanel/Plesk) — DA wymaga czystego OS"
   fi
   timedatectl set-ntp true >/dev/null 2>&1 || true
+  if [ -n "$NODE_HOSTNAME" ] && [ "$(hostname -f 2>/dev/null)" != "$NODE_HOSTNAME" ]; then
+    hostnamectl set-hostname "$NODE_HOSTNAME" || fail PREFLIGHT "hostnamectl set-hostname $NODE_HOSTNAME"
+  fi
   report PREFLIGHT OK
   set_phase CLOUDLINUX
 }
 
 phase_cloudlinux() {
   report CLOUDLINUX STARTED
-  if uname -r | grep -qi lve; then
+  if lve_active; then
     touch "$STATE_DIR/.cloudlinux-done"
-    report CLOUDLINUX OK "kernel LVE już aktywny"; set_phase DA; return
+    report CLOUDLINUX OK "CloudLinux aktywny (LVE działa)"; set_phase DA; return
   fi
+  if cloudlinux_converted; then
+    # Konwersja zrobiona, moduł LVE jeszcze nie załadowany — brakuje restartu.
+    set_phase DA
+    report CLOUDLINUX REBOOT "CloudLinux zainstalowany, restart ładuje moduł LVE (wznowię automatycznie)"
+    sync; systemctl reboot; exit 0
+  fi
+  load_secrets || fail CLOUDLINUX "nie udało się pobrać kluczy licencyjnych z control-plane"
   if [ -z "$CL_ACTIVATION_KEY" ]; then
     # Brak klucza — pomijamy (wizard poda instrukcję ręcznej konwersji).
     report CLOUDLINUX OK "pominięto — brak klucza aktywacyjnego CloudLinux"; set_phase DA; return
@@ -124,13 +170,22 @@ phase_cloudlinux() {
 
 phase_da() {
   report DA STARTED
-  if [ -d /usr/local/directadmin ]; then
+  if da_installed; then
     report DA OK "DirectAdmin już zainstalowany"; set_phase STACK; return
   fi
+  load_secrets || fail DA "nie udało się pobrać kluczy licencyjnych z control-plane"
   [ -n "$DA_LICENSE" ] || fail DA "brak klucza licencyjnego DirectAdmin"
-  # Oficjalny instalator CLI DirectAdmin (domyślna konfiguracja).
+  # PB-30 — wersje z manifestu floty (DirectAdmin „Predefined installation options”):
+  # kanał/build DA oraz opcje CustomBuild przez zmienne środowiska przed setup.sh.
+  [ -r /etc/verris-stack.env ] || write_stack_env
+  # shellcheck disable=SC1091
+  . /etc/verris-stack.env
+  export DA_CHANNEL="$VERRIS_DA_CHANNEL"
+  [ -n "$VERRIS_DA_COMMIT" ] && export DA_COMMIT="$VERRIS_DA_COMMIT"
+  [ -n "$NODE_HOSTNAME" ] && export DA_HOSTNAME="$NODE_HOSTNAME"
+  export php1_release="$VERRIS_PHP1_RELEASE" mysql_inst=mariadb mariadb="$VERRIS_MARIADB"
   sh <(curl -fsSL https://download.directadmin.com/setup.sh) "$DA_LICENSE" || fail DA "instalator DA zwrócił błąd"
-  [ -d /usr/local/directadmin ] || fail DA "DA nie zainstalował się poprawnie"
+  da_installed || fail DA "DA nie zainstalował się poprawnie"
   report DA OK
   set_phase STACK
 }
@@ -139,6 +194,7 @@ phase_stack() {
   report STACK STARTED
   CB=/usr/local/directadmin/custombuild
   if [ ! -d "$CB" ]; then report STACK OK "brak CustomBuild — pomijam"; set_phase AGENT; return; fi
+  load_secrets || fail STACK "nie udało się pobrać kluczy licencyjnych z control-plane"
   cd "$CB"
   if [ -z "$LS_SERIAL" ]; then
     report STACK OK "pominięto LiteSpeed — brak seriala; działa domyślny serwer WWW"
@@ -159,7 +215,8 @@ phase_agent() {
   # Delegacja do ISTNIEJĄCEGO, sprawdzonego skryptu Verris: handshake z
   # control-plane (/servers/handshake), zapis identity do /etc/verris.conf,
   # instalacja agenta LVE + timer telemetrii. Bez duplikacji logiki.
-  if ! curl -fsS -m 60 "$AGENT_SCRIPT_URL" -o "$STATE_DIR/agent-install.sh"; then
+  load_secrets || fail AGENT "nie udało się pobrać kluczy licencyjnych z control-plane"
+  if ! curl -fsS -m 60 -H "X-Bootstrap-Token: $BOOTSTRAP_TOKEN" "$API_BASE/agent/nodes/bootstrap/agent-script" -o "$STATE_DIR/agent-install.sh"; then
     fail AGENT "pobranie skryptu agenta nie powiodło się"
   fi
   export LITESPEED_SERIAL_NO="$LS_SERIAL"
@@ -206,5 +263,6 @@ export function buildNodeBootstrapOneLiner(input: {
 }): string {
   const api = input.apiBaseUrl.replace(/\/$/, '');
   const tok = (input.bootstrapToken ?? '').replace(/['"\\\n\r]/g, '');
-  return `curl -fsS '${api}/agent/nodes/bootstrap/script?token=${tok}' | bash`;
+  // Token w nagłówku, nie w adresie — nie trafia do logów dostępowych proxy/API.
+  return `curl -fsS -H 'X-Bootstrap-Token: ${tok}' '${api}/agent/nodes/bootstrap/script' | bash`;
 }
