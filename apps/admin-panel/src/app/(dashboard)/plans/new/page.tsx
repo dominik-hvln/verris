@@ -20,7 +20,7 @@ export default function NewPlanPage() {
       </div>
 
       <header>
-        <h1 className="text-2xl font-bold tracking-tight text-white">Nowy plan</h1>
+        <h1 className="text-[28px] lg:text-[34px]">Nowy plan</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Stripe Price IDs są opcjonalne przy tworzeniu — dodasz je po zsynchronizowaniu produktu w Stripe.
         </p>

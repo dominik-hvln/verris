@@ -64,7 +64,7 @@ export default async function BusinessMetricsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-white">Metryki biznesowe</h1>
+        <h1 className="text-[28px] lg:text-[34px]">Metryki biznesowe</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Przychód, klienci i wykorzystanie floty — liczone na żywo z danych platformy.
         </p>

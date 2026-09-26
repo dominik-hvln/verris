@@ -43,7 +43,7 @@ export default async function ProvisioningQueuePage({
   return (
     <div className="space-y-6 p-6">
       <header>
-        <h1 className="text-2xl font-bold tracking-tight">Kolejka provisioningu</h1>
+        <h1 className="text-[28px] lg:text-[34px]">Kolejka provisioningu</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Sprint 5 / R-11+B-7 — BullMQ joby DA, retry, idempotency, dead-letter.
         </p>

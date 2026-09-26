@@ -17,7 +17,7 @@ export default async function PromoCodesPage() {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-1000">
       <header>
-        <h1 className="text-3xl font-bold tracking-tight text-white">
+        <h1 className="text-[28px] lg:text-[34px]">
           Kody promocyjne
         </h1>
         <p className="mt-2 text-sm text-muted-foreground max-w-3xl">

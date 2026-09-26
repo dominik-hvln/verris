@@ -25,7 +25,7 @@ export default async function MigrationDetailPage({
           <Link href="/migrations" className="text-xs text-indigo-400 hover:underline">
             ← Kolejka migracji
           </Link>
-          <h1 className="mt-1 text-2xl font-bold text-white">Migracja #{id.slice(0, 8)}</h1>
+          <h1 className="mt-1 text-[28px] lg:text-[34px]">Migracja #{id.slice(0, 8)}</h1>
         </div>
       </div>
 

@@ -10,7 +10,7 @@ export default function FakturaRecznaPage() {
         <Link href="/invoices" className="text-xs text-neutral-500 hover:text-white">
           ← Faktury
         </Link>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight">Faktura wystawiana ręcznie</h1>
+        <h1 className="mt-1 text-[28px] lg:text-[34px]">Faktura wystawiana ręcznie</h1>
         <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
           Z-01 — dokument spoza automatu: ugoda, rekompensata, usługa spoza cennika. Ta sama
           numeracja VFV, ten sam PDF, ta sama ścieżka do KSeF-a co przy fakturach automatycznych.

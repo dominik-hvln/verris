@@ -25,7 +25,7 @@ export default async function CzekaNaFakturePage() {
         <Link href="/invoices" className="text-xs text-neutral-500 hover:text-white">
           ← Faktury
         </Link>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight">Czeka na fakturę VAT</h1>
+        <h1 className="mt-1 text-[28px] lg:text-[34px]">Czeka na fakturę VAT</h1>
         <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
           Faktury VAT wystawiamy w programie księgowym. Panel wystawia dokument rozliczeniowy
           (seria VDR/VDK) — po wystawieniu faktury w programie wpisz tu jej numer. Klient zobaczy

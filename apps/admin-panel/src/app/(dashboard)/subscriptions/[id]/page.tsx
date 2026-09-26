@@ -58,7 +58,7 @@ export default async function AdminSubscriptionDetailPage({ params }: { params: 
       <Link href="/subscriptions" className="text-xs text-muted-foreground hover:text-white">
         ← Lista subskrypcji
       </Link>
-      <h1 className="text-2xl font-bold text-white">Subskrypcja</h1>
+      <h1 className="text-[28px] lg:text-[34px]">Subskrypcja</h1>
       {error ? (
         <p className="text-rose-300 text-sm">{error}</p>
       ) : !detail ? (

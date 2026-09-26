@@ -17,7 +17,7 @@ export default async function StatusProbesPage() {
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       <header className="flex items-start justify-between gap-6 flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white drop-shadow-md flex items-center gap-3">
+          <h1 className="flex items-center gap-3 text-[28px] lg:text-[34px]">
             <Activity className="h-7 w-7 text-indigo-400" />
             Status & Probes
           </h1>

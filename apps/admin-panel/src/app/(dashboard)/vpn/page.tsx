@@ -9,7 +9,7 @@ export default async function VpnPage() {
   return (
     <div className="space-y-6 max-w-5xl">
       <header>
-        <h1 className="text-3xl font-bold text-white">VPN — dostęp do paneli wewnętrznych</h1>
+        <h1 className="text-[28px] lg:text-[34px]">VPN — dostęp do paneli wewnętrznych</h1>
         <p className="mt-2 text-sm text-muted-foreground max-w-3xl">
           WireGuard dla pracowników: panele <strong>admin</strong> i <strong>staff</strong> są
           osiągalne wyłącznie z subnetu VPN (restrykcja w Caddy). Tu generujesz konfigurację dla

@@ -20,7 +20,7 @@ export default function NewEmailPlanPage() {
       </div>
 
       <header>
-        <h1 className="text-2xl font-bold tracking-tight text-white">Nowy plan poczty</h1>
+        <h1 className="text-[28px] lg:text-[34px]">Nowy plan poczty</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Uproszczony formularz dla produktu e-mail — bez limitów hostingowych (CPU/RAM/IO/EP).
           Rozliczenie z portfela; Stripe (jeśli skonfigurowany) zsynchronizuje się automatycznie.

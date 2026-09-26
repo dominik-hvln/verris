@@ -21,7 +21,7 @@ export default async function LiveReadinessPage() {
   return (
     <div className="space-y-6 p-6 max-w-4xl">
       <header>
-        <h1 className="text-2xl font-bold tracking-tight">Gotowość do startu LIVE</h1>
+        <h1 className="text-[28px] lg:text-[34px]">Gotowość do startu LIVE</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Automatyczny przegląd krytycznych elementów przed uruchomieniem 100% produkcyjnym.
         </p>

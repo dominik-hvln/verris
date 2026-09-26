@@ -21,7 +21,7 @@ export default async function UstawieniaAiPage() {
         Ustawienia konta
       </Link>
       <header>
-        <h1 className="text-2xl font-bold text-white">Asystent AI</h1>
+        <h1 className="text-[28px] lg:text-[34px]">Asystent AI</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Dwa poziomy: szybki (czat i podpowiedzi) oraz analiza (prognozy zasobów, szkice odpowiedzi obsługi).
           Nowszy model to zmiana tutaj — bez wdrożenia.

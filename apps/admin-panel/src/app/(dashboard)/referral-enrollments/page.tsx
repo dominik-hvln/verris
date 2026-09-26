@@ -64,7 +64,7 @@ export default async function ReferralEnrollmentsPage({
   return (
     <div className="space-y-6 p-6">
       <header>
-        <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
+        <h1 className="flex items-center gap-2 text-[28px] lg:text-[34px]">
           <UserPlus className="h-7 w-7 text-emerald-400" aria-hidden />
           Program partnerski — zgłoszenia
         </h1>

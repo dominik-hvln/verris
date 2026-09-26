@@ -23,7 +23,7 @@ export default async function TeamMailPage() {
       <div className="flex items-center gap-3">
         <Mail className="h-8 w-8 text-sky-400" />
         <div>
-          <h1 className="text-2xl font-bold text-white">Poczta zespołu</h1>
+          <h1 className="text-[28px] lg:text-[34px]">Poczta zespołu</h1>
           <p className="text-sm text-muted-foreground">
             Skrzynki @verris.pl — webmail i kalendarz w{" "}
             <a href="https://mail.verris.pl/SOGo" className="text-sky-400 underline" target="_blank" rel="noreferrer">

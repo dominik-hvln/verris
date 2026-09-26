@@ -23,7 +23,7 @@ export default async function RuntimeErrorsPage() {
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Błędy runtime</h1>
+          <h1 className="text-[28px] lg:text-[34px]">Błędy runtime</h1>
           <p className="text-sm text-muted-foreground">
             Ostatnie błędy serwera (5xx). Pełna historia i triage w GlitchTip.
           </p>

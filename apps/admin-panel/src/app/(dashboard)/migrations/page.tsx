@@ -70,7 +70,7 @@ export default async function MigrationsCockpitPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-white">Cockpit migracji</h1>
+        <h1 className="text-[28px] lg:text-[34px]">Cockpit migracji</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Flota zleceń migracji. Migracje są automatyczne — te oznaczone „Pilne” zatrzymał
           automat i czekają na dokończenie przez zespół (wznów, ponów krok lub oznacz jako ukończone).

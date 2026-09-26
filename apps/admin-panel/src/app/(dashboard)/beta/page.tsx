@@ -30,7 +30,7 @@ export default async function BetaPage() {
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-3xl font-bold tracking-tight text-white">Testy (beta)</h1>
+        <h1 className="text-[28px] lg:text-[34px]">Testy (beta)</h1>
         <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
           Zaproszenia do testów przed startem. Tester to osoba, która zrealizowała swój kod; jej zgłoszenia z tematem „Testy (beta)” mają w panelu obsługi znacznik Beta.
           Cel: co najmniej 80% testerów z działającą stroną bez pomocy wsparcia.

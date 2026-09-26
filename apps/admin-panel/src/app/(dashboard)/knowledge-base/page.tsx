@@ -9,7 +9,7 @@ export default function KnowledgeBasePage() {
       <div className="flex items-center gap-3">
         <BookOpen className="h-8 w-8 text-amber-400" />
         <div>
-          <h1 className="text-2xl font-bold text-white">Baza wiedzy (CMS)</h1>
+          <h1 className="text-[28px] lg:text-[34px]">Baza wiedzy (CMS)</h1>
           <p className="text-sm text-muted-foreground">
             Kategorie, podkategorie i artykuły (Markdown + SEO). Opublikowane trafiają na{' '}
             <a href="https://pomoc.verris.pl" target="_blank" rel="noopener" className="text-emerald-400 underline">

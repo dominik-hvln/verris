@@ -56,7 +56,7 @@ export default async function WebhookiPage({
   return (
     <div className="space-y-6 p-6">
       <header>
-        <h1 className="text-2xl font-bold tracking-tight">Zdarzenia webhooka Stripe</h1>
+        <h1 className="text-[28px] lg:text-[34px]">Zdarzenia webhooka Stripe</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Z-05 — zdarzenie, którego handler nie obsłużył, zostaje tutaj zamiast zniknąć.
           Ponowienie jest bezpieczne: księgowanie portfela jest idempotentne po kluczu sesji,

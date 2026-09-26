@@ -53,7 +53,7 @@ export default async function OperatorDetailPage({ params }: PageProps) {
         >
           <ArrowLeft className="h-4 w-4" /> Powrót do operatorów
         </Link>
-        <h1 className="text-2xl font-bold tracking-tight mt-3">{data.user.email}</h1>
+        <h1 className="mt-3 text-[28px] lg:text-[34px]">{data.user.email}</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Rola: <span className="font-mono">{data.user.role}</span>
         </p>

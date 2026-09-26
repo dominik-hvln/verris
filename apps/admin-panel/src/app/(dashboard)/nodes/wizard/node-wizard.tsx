@@ -316,7 +316,7 @@ export function NodeWizard() {
       </div>
 
       <header>
-        <h1 className="text-3xl font-bold text-white">Kreator nowego węzła</h1>
+        <h1 className="text-[28px] lg:text-[34px]">Kreator nowego węzła</h1>
         <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
           Jedna ścieżka dodania węzła: rekord w panelu → wznawialny bootstrap v2 (CloudLinux, DirectAdmin,
           LiteSpeed, agent) z postępem na żywo → akceptacja i DA API → backup offsite → Onboard LIVE →

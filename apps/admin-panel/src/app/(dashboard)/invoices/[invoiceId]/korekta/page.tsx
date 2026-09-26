@@ -25,7 +25,7 @@ export default async function KorektaPage({
         <Link href="/invoices" className="text-xs text-neutral-500 hover:text-white">
           ← Faktury
         </Link>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight">
+        <h1 className="mt-1 text-[28px] lg:text-[34px]">
           Korekta faktury {faktura.number}
         </h1>
         <p className="mt-1 max-w-3xl text-sm text-muted-foreground">

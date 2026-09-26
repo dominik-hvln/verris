@@ -18,7 +18,7 @@ export default async function BillingPage() {
   return (
     <div className="space-y-8">
       <header>
-        <h1 className="text-3xl font-bold text-white">Rozliczenia (portfel)</h1>
+        <h1 className="text-[28px] lg:text-[34px]">Rozliczenia (portfel)</h1>
         <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
           Agregaty z rzeczywistego ledgera (`WalletTransaction`). Pełny wyciąg anonimowych / wszystkich
           ruchów w CSV — zgodnie z uprawnieniami API administratora (401 przy braku ważnego JWT lub roli ADMIN).

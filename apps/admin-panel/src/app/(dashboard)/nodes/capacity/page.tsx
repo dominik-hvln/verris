@@ -60,7 +60,7 @@ export default async function FleetCapacityPage() {
       </div>
 
       <header>
-        <h1 className="flex items-center gap-3 text-3xl font-bold tracking-tight text-white">
+        <h1 className="flex items-center gap-3 text-[28px] lg:text-[34px]">
           <Gauge className="h-7 w-7 text-sky-300" /> Pojemność floty
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">

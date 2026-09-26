@@ -28,7 +28,7 @@ export default async function AutoscalingRevenuePage() {
           <Link href="/autoscaling" className="text-xs text-muted-foreground hover:text-white">
             ← Cennik autoskalowania
           </Link>
-          <h1 className="mt-2 text-3xl font-bold text-white flex items-center gap-3">
+          <h1 className="mt-2 flex items-center gap-3 text-[28px] lg:text-[34px]">
             <BarChart3 className="h-7 w-7 text-emerald-400" />
             Przychód autoskalowania (30 dni)
           </h1>

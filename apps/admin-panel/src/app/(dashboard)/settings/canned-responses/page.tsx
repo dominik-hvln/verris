@@ -9,7 +9,7 @@ export default async function CannedResponsesPage() {
   return (
     <div className="space-y-6 p-6 max-w-4xl">
       <header>
-        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+        <h1 className="flex items-center gap-2 text-[28px] lg:text-[34px]">
           <MessageSquare className="h-6 w-6 text-emerald-300" /> Szablony odpowiedzi (BOK)
         </h1>
         <p className="text-sm text-muted-foreground mt-1">

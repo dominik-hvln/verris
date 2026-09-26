@@ -21,7 +21,7 @@ export default async function WersjeStosuPage() {
         <ArrowLeft className="h-3.5 w-3.5" /> Węzły
       </Link>
       <header>
-        <h1 className="text-2xl font-bold text-white">Wersje stosu floty</h1>
+        <h1 className="text-[28px] lg:text-[34px]">Wersje stosu floty</h1>
         <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
           Jeden manifest dla wszystkich węzłów. Nowe węzły instalują go od razu. Istniejące dostają go w ciągu minuty, a
           oprogramowanie zmieniasz przyciskiem „Wyrównaj flotę”: najpierw węzeł kanarkowy, potem pozostałe po jednym.

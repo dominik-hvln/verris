@@ -33,7 +33,7 @@ export default async function PlatformSettingsPage() {
         Ustawienia konta
       </Link>
       <header>
-        <h1 className="text-2xl font-bold text-white">Ustawienia platformy</h1>
+        <h1 className="text-[28px] lg:text-[34px]">Ustawienia platformy</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Progi EKO, sesje bez ruchu i przeliczniki widoczne w panelu klienta.
         </p>

@@ -22,7 +22,7 @@ export default async function OpiekaZgloszenPage({ searchParams }: { searchParam
   return (
     <div className="space-y-6 p-6">
       <header>
-        <h1 className="text-2xl font-bold tracking-tight">Opieka nad zgłoszeniami</h1>
+        <h1 className="text-[28px] lg:text-[34px]">Opieka nad zgłoszeniami</h1>
         <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
           Klient nigdy nie zgaduje, czy wiadomość do nas trafiła: każda z tych wiadomości idzie e-mailem i jest widoczna w zgłoszeniu (u klienta i w obsłudze).
           Nie liczą się jako odpowiedź — terminy odpowiedzi biegną dalej, dopóki nie odpisze człowiek.

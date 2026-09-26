@@ -9,7 +9,7 @@ export default function EmailLogPage() {
       <div className="flex items-center gap-3">
         <ScrollText className="h-8 w-8 text-amber-400" />
         <div>
-          <h1 className="text-2xl font-bold text-white">Dziennik poczty (EmailLog)</h1>
+          <h1 className="text-[28px] lg:text-[34px]">Dziennik poczty (EmailLog)</h1>
           <p className="text-sm text-muted-foreground">
             Historia wysyłek: status, provider i błędy. Filtruj po statusie lub temacie.
           </p>

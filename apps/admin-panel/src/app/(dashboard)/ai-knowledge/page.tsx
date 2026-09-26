@@ -23,7 +23,7 @@ export default async function AiKnowledgePage() {
           <Brain className="h-6 w-6" />
         </div>
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">Baza wiedzy AI</h1>
+          <h1 className="text-[28px] lg:text-[34px]">Baza wiedzy AI</h1>
           <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
             Dodawaj dokumenty, FAQ, polityki i instrukcje do „pamięci” asystenta. Chatbot w panelu
             klienta oraz asystent zespołu odpowiadają na podstawie tej wiedzy (RAG). Treści są dzielone

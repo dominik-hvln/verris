@@ -12,7 +12,7 @@ export default async function ProductOpsPage() {
   return (
     <div className="space-y-6 p-6">
       <header>
-        <h1 className="text-2xl font-bold tracking-tight">Product Ops / NOC</h1>
+        <h1 className="text-[28px] lg:text-[34px]">Product Ops / NOC</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           GO-LIVE preflight, feature flags, changelog i maintenance calendar.
         </p>
