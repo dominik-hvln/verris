@@ -10,6 +10,8 @@ import { AccountDeletionService } from './account-deletion.service.js';
 import { AccountDeletionController } from './account-deletion.controller.js';
 import { AccountDeletionScheduler } from './account-deletion.scheduler.js';
 import { RetentionScheduler } from './retention.scheduler.js';
+import { PrzegladRcpdScheduler } from './przeglad-rcpd.scheduler.js';
+import { NotificationsModule } from '../notifications/notifications.module.js';
 import { ComplianceAdminController } from './compliance.admin.controller.js';
 import { DpaPdfService } from './dpa-pdf.service.js';
 import { DpaController } from './dpa.controller.js';
@@ -18,7 +20,7 @@ import { MailModule } from '../mail/mail.module.js';
 import { ServersModule } from '../servers/servers.module.js';
 
 @Module({
-  imports: [AuditModule, MailModule, ServersModule],
+  imports: [AuditModule, MailModule, ServersModule, NotificationsModule],
   providers: [
     LegalDocumentsService,
     ConsentsService,
@@ -27,6 +29,7 @@ import { ServersModule } from '../servers/servers.module.js';
     AccountDeletionService,
     AccountDeletionScheduler,
     RetentionScheduler,
+    PrzegladRcpdScheduler,
     DpaPdfService,
   ],
   controllers: [

@@ -1,6 +1,6 @@
 # Lista podmiotów przetwarzających (subprocesorów) Verris
 
-**Wersja 1.0.0 · stan na 7 lipca 2026 r.**
+**Wersja 1.1.0 · stan na [DATA PUBLIKACJI]**
 
 Wersja kanoniczna publikowana klientom: Załącznik 2 do DPA oraz pkt 5.1 Polityki prywatności. Zmiany listy — powiadomienie e-mail do klientów co najmniej 30 dni wcześniej (DPA §7).
 

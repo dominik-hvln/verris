@@ -25,7 +25,7 @@ A-12,WŁAŚCICIEL,"konfiguracja OpenProvider (REGISTRAR_PROVIDER + dane API w .e
 A-13,WŁAŚCICIEL,"konfiguracja OpenProvider (REGISTRAR_PROVIDER + dane API w .env.prod), potem pierwsza domena na produkcji"
 A-15,WŁAŚCICIEL,"konfiguracja OpenProvider (REGISTRAR_PROVIDER + dane API w .env.prod), potem pierwsza domena na produkcji"
 A-11,WŁAŚCICIEL,"konfiguracja OpenProvider (REGISTRAR_PROVIDER + dane API w .env.prod), potem pierwsza domena na produkcji"
-L-11,WŁAŚCICIEL,klucze AI w .env.prod po publikacji Polityki prywatności 1.0.3
+L-11,WŁAŚCICIEL,klucze AI w .env.prod po publikacji dokumentów 1.1.0 (PB-03)
 L-12,WŁAŚCICIEL,j.w. — prognoza idzie tym samym kluczem
 P-15,WŁAŚCICIEL,"dowody akceptacji DPA (numery umów, zrzuty) w trackerze"
 Q-01,WŁAŚCICIEL,decyzja: włączyć program EKO czy zostawić za flagą
@@ -39,9 +39,9 @@ PB-07,WŁAŚCICIEL,akceptacja treści i włączenie /specyfikacja
 PB-08,WŁAŚCICIEL,"GTM: wstrzymać zdublowany tag GA4, sprawdzić konwersje w Preview"
 PB-09,WŁAŚCICIEL,seed bazy wiedzy na produkcji (jedno polecenie)
 PB-10,WŁAŚCICIEL,"kampania Google Ads — technicznie bez węzła, ale uruchamiamy przy starcie"
-P-11,WŁAŚCICIEL,akceptacja projektu DO_ZATWIERDZENIA_P-11_rcpd-przeglady.md; potem przeniesienie do rcpd.md
-PB-03,WŁAŚCICIEL,akceptacja projektu DO_ZATWIERDZENIA_PB-03_publikacja-1.0.0.md; potem publikacja 1.0.0 przed pierwszym klientem
-PB-24,WŁAŚCICIEL,akceptacja projektu DO_ZATWIERDZENIA_PB-24_wniosek-ksc.md; potem złożenie wniosku na wykaz-ksc.gov.pl
+P-11,WŁAŚCICIEL,zatwierdzone 27.09 — rcpd.md 1.2 (sekcje D i E) + przypomnienie w adminie
+PB-03,WŁAŚCICIEL,decyzje podjęte 27.09 (1.1.0, ClouDNS po starcie) — publikacja skryptem w dniu startu
+PB-24,WŁAŚCICIEL,zakres zdecydowany 27.09 (DNS + domeny + chmura); zostaje e-Doręczenia, telefon 24/7 i złożenie wniosku po przesłance
 SEC-01,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł"
 SEC-02,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł"
 SEC-03,OD 29.09,"egress control-plane: decyzje po 7-dniowym pomiarze (29.09) — to serwer panelu, nie węzeł"

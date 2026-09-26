@@ -1,10 +1,8 @@
 # Polityka prywatności Verris
 
-**Wersja 1.0.3 · obowiązuje od dnia publikacji**
+**Wersja 1.1.0 · obowiązuje od [DATA PUBLIKACJI]**
 
-> Zmiana wobec 1.0.2: asystent AI w panelu — pkt 2.7, 4, 5.1 (OpenAI Ireland Ltd, Anthropic Ireland, Limited), 6 i 8.
->
-> Zmiana wobec 1.0.1: pkt 5.1 — dostawca programu księgowego (Streamsoft Firmino), w którym wystawiamy faktury VAT.
+> Wersja 1.1.0 zastępuje wersję 1.0.1 z 8 lipca 2026 r., opublikowaną przed rozpoczęciem świadczenia usług klientom.
 
 Niniejsza Polityka realizuje obowiązki informacyjne z art. 13 i 14 RODO wobec klientów Verris, użytkowników subkont oraz osób odwiedzających panel i strony Verris.
 
@@ -133,4 +131,4 @@ O każdej zmianie Polityki informujemy w Panelu i e-mailem; istotne zmiany wymag
 
 ---
 
-**Wersja 1.0.0 — data publikacji: 7 lipca 2026 r.**
+**Wersja 1.1.0 — data publikacji i wejścia w życie: [DATA PUBLIKACJI]**

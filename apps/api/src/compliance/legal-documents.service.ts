@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { LegalDocument, LegalDocumentKind } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
@@ -121,6 +121,18 @@ export class LegalDocumentsService {
     if (input.contentMarkdown.trim().length < 200) {
       throw new BadRequestException(
         'Treść dokumentu jest podejrzanie krótka (<200 znaków). Sprawdź czy to nie pomyłka.',
+      );
+    }
+
+    // Opublikowana wersja jest dowodem, co klient zaakceptował — jej treści nie wolno podmienić.
+    // Ponowna publikacja tego samego numeru przywraca go jako obowiązujący tylko przy identycznej treści.
+    const istniejaca = await this.prisma.legalDocument.findUnique({
+      where: { kind_version_locale: { kind: input.kind, version: input.version, locale } },
+      select: { contentMarkdown: true },
+    });
+    if (istniejaca && istniejaca.contentMarkdown !== input.contentMarkdown) {
+      throw new ConflictException(
+        `Wersja ${input.version} dokumentu ${input.kind} jest już opublikowana z inną treścią — nadaj nowy numer wersji.`,
       );
     }
 

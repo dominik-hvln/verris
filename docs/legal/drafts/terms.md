@@ -1,11 +1,8 @@
 # Regulamin świadczenia usług Verris
 
-**Wersja 1.2.0 · obowiązuje od dnia publikacji**
+**Wersja 1.1.0 · obowiązuje od [DATA PUBLIKACJI]**
 
-> Zmiany wobec 1.1.0: §9 ust. 4 — faktury VAT wystawiane w programie księgowym (w KSeF, gdy wymagają tego przepisy); do czasu wystawienia faktury Panel udostępnia dokument rozliczeniowy.
-> Zmiana wobec 1.0.0: §15 — rekompensata SLA przyznawana automatycznie, bez wniosku (nowe ust. 3–5).
-> Wersja publikowana przed rozpoczęciem świadczenia usług aktywnym Klientom, dlatego obowiązuje
-> od dnia publikacji. Zmiana jest na korzyść Klienta (rekompensata z urzędu zamiast na wniosek).
+> Wersja 1.1.0 zastępuje wersję 1.0.1 z 8 lipca 2026 r., opublikowaną przed rozpoczęciem świadczenia usług klientom.
 
 ---
 
@@ -297,5 +294,5 @@ Data: ……………………
 
 ---
 
-**Wersja 1.1.0 — data publikacji i wejścia w życie: 10 lipca 2026 r.**
+**Wersja 1.1.0 — data publikacji i wejścia w życie: [DATA PUBLIKACJI]**
 Archiwum wersji: Panel → Dokumenty prawne → Historia wersji.

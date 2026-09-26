@@ -1,5 +1,16 @@
 # PB-03 — pakiet publikacji dokumentów prawnych 1.0.0 (projekt do zatwierdzenia)
 
+> **DECYZJE WŁAŚCICIELA 27.09.2026:**
+> 1. **Jedna wersja dla wszystkich dokumentów: 1.1.0** (nie 1.0.0). KOREKTA założenia z tego projektu: na produkcji
+>    WSZYSTKIE cztery dokumenty mają już wersje 1.0.0 (7.07) i 1.0.1 (8.07, obowiązująca) — zaakceptowane przez konta
+>    testowe. Publikacja jako 1.0.0 nadpisałaby treść zaakceptowanej wersji. Pliki w drafts/ mają już nagłówki
+>    i stopki „1.1.0 · [DATA PUBLIKACJI]”, skrypt podstawia datę dnia publikacji i odmawia nadpisania istniejącej
+>    wersji inną treścią (to samo w API — `LegalDocumentsService.publish`).
+> 2. **ClouDNS po starcie** — do dokumentów wejdzie później z powiadomieniem klientów 30 dni (DPA §7).
+>
+> Publikacja w dniu startu: `./ops/scripts/prod-legal-publish-live.sh` (domyślnie 1.1.0).
+
+
 > **Status: PROJEKT · 2026-09-26 · nic nie zostało opublikowane ani zmienione w dokumentach.** Poniżej: rozjazdy
 > znalezione przy przeglądzie, propozycja jednolitej wersji, brakujący tekst §10 ust. 5 i lista kroków do dnia
 > publikacji. Decyzje z 23.09.2026 bez zmian: publikacja bez zewnętrznego przeglądu, raz, tuż przed pierwszym klientem.

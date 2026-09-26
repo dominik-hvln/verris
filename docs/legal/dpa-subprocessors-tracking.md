@@ -84,7 +84,7 @@ Właściciel potwierdził akceptację umów powierzenia (Hetzner, Openprovider, 
 - [ ] Cloudflare — potwierdzić mechanizm dla self-serve, zapisać odpowiedź supportu jeśli trzeba
 - [ ] Streamsoft Firmino — zaakceptować umowę powierzenia w programie (Ustawienia → RODO → Umowa powierzenia), potwierdzić lokalizację danych
 - [ ] ClouDNS — przy zakupie razem z węzłem (sprint 18): dopisać do listy i polityki (30 dni powiadomienia, jeśli już są klienci)
-- [ ] AI (OpenAI + Anthropic, decyzja właściciela 2026-09-25): konto API u obu dostawców (= DPA z SCC), publikacja Polityki prywatności 1.0.3 (pkt 2.7, 4, 5.1, 6, 8 — gotowa w `drafts/privacy.md`), dopiero potem klucze `AI_API_KEY` / `ANTHROPIC_API_KEY`. Do DPA z klientami (Zał. 2) nie wchodzą — asystent nie dotyka danych powierzonych.
+- [ ] AI (OpenAI + Anthropic, decyzja właściciela 2026-09-25): konto API u obu dostawców (= DPA z SCC), publikacja Polityki prywatności 1.1.0 (pkt 2.7, 4, 5.1, 6, 8 — gotowa w `drafts/privacy.md`), dopiero potem klucze `AI_API_KEY` / `ANTHROPIC_API_KEY`. Do DPA z klientami (Zał. 2) nie wchodzą — asystent nie dotyka danych powierzonych.
 - [ ] Stripe, AWS — odnotować podstawę (umowa główna), bez akcji
 - [ ] Zaktualizować `privacy.md` — tabela podmiotów musi zgadzać się z tą listą, w tym z usunięciem OVH
 - [ ] Zaktualizować `subprocessors.md` tą samą listą

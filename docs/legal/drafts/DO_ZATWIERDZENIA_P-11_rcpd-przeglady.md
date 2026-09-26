@@ -1,5 +1,9 @@
 # P-11 — rytm przeglądów RCPD (projekt do zatwierdzenia)
 
+> **ZATWIERDZONE 27.09.2026** — terminy 26.03 i 26.09, przypomnienie w kalendarzu + zadanie w panelu admina
+> (`PrzegladRcpdScheduler`). Treść przeniesiona do `rcpd.md` (wersja 1.2, sekcje D i E).
+
+
 > **Status: PROJEKT · 2026-09-26 · nic nie jest opublikowane.** Po akceptacji właściciela treść z sekcji 2–4
 > przechodzi do `docs/legal/rcpd.md` (sekcja D), a wiersz P-11 w macierzy dostaje status DZIAŁA.
 > RCPD jest dokumentem wewnętrznym (art. 30 ust. 4 RODO — udostępniany organowi na żądanie), nie trafia do panelu.

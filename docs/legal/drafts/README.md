@@ -1,6 +1,6 @@
-# Dokumenty prawne Verris — wersja 1.0.0 (finalna)
+# Dokumenty prawne Verris — wersja 1.1.0 (do publikacji)
 
-> **Status: FINAL 1.0.0 (2026-07-07).** Komplet dokumentów przygotowany pod stan faktyczny potwierdzony przez operatora: hosting współdzielony (DirectAdmin/CloudLinux), VPS (Hetzner Cloud), domeny (Openprovider), e-mail marketing, program resellerski; płatności Stripe + Portfel; infrastruktura Hetzner (EOG); poczta Amazon SES (region UE); anty-bot Cloudflare Turnstile; faktury KSeF 2.0 (integracja własna). Podstawy prawne zaktualizowane do stanu na lipiec 2026: PKE (cookies — art. 399–402), DSA (moderacja, notice-and-action), likwidacja platformy ODR, Omnibus (telefon, najniższa cena z 30 dni).
+> **Status: DO PUBLIKACJI jako 1.1.0 (decyzja 27.09.2026) — zastąpi 1.0.1 z 8.07.2026, obecnie obowiązującą na produkcji.** Historia robocza (1.0.0 z 7.07.2026): Komplet dokumentów przygotowany pod stan faktyczny potwierdzony przez operatora: hosting współdzielony (DirectAdmin/CloudLinux), VPS (Hetzner Cloud), domeny (Openprovider), e-mail marketing, program resellerski; płatności Stripe + Portfel; infrastruktura Hetzner (EOG); poczta Amazon SES (region UE); anty-bot Cloudflare Turnstile; faktury KSeF 2.0 (integracja własna). Podstawy prawne zaktualizowane do stanu na lipiec 2026: PKE (cookies — art. 399–402), DSA (moderacja, notice-and-action), likwidacja platformy ODR, Omnibus (telefon, najniższa cena z 30 dni).
 
 ## Pliki
 

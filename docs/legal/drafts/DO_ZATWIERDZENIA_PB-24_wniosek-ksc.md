@@ -1,5 +1,10 @@
 # PB-24 — wniosek o wpis do Wykazu KSC (projekt do zatwierdzenia)
 
+> **DECYZJE WŁAŚCICIELA 27.09.2026:** rodzaje działalności — **dostawca usług DNS, rejestracja nazw domen oraz usługi
+> przetwarzania w chmurze** (hosting, później VPS). Zostają: adres do e-Doręczeń, telefon 24/7, adresy IP
+> węzłów (po zakupie) i data przesłanki (pierwsza strefa DNS klienta albo pierwsza sprzedana domena).
+
+
 > **Status: PROJEKT · 2026-09-26 · NIC NIE ZOSTAŁO ZŁOŻONE.** Wniosek składa i podpisuje kierownik podmiotu
 > (właściciel) albo osoba z pełnomocnictwem — wyłącznie elektronicznie na **wykaz-ksc.gov.pl**, po zalogowaniu
 > Profilem Zaufanym, mObywatelem, e-Dowodem, bankowością elektroniczną albo certyfikatem. Asystent niczego nie

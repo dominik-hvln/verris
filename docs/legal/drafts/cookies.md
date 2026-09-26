@@ -1,6 +1,6 @@
 # Polityka plików cookies Verris
 
-**Wersja 1.0.0 · obowiązuje od 7 lipca 2026 r.**
+**Wersja 1.1.0 · obowiązuje od [DATA PUBLIKACJI]**
 
 Niniejsza Polityka realizuje obowiązki wynikające z art. 399–402 ustawy z dnia 12 lipca 2024 r. — Prawo komunikacji elektronicznej (PKE) oraz dyrektywy 2002/58/WE (ePrivacy).
 
@@ -77,4 +77,4 @@ Aktualizacje publikujemy w panelu i komunikujemy e-mailem. Wprowadzenie nowej ka
 
 ---
 
-**Wersja 1.0.0 — data publikacji: 7 lipca 2026 r.**
+**Wersja 1.1.0 — data publikacji i wejścia w życie: [DATA PUBLIKACJI]**

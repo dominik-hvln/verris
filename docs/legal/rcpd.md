@@ -1,8 +1,8 @@
 # Rejestr czynności przetwarzania (RCPD) — art. 30 ust. 1 i 2 RODO
 
-> **Wersja 1.1 · stan na 25 września 2026 r.** (1.1: A13 — asystent AI.) Dokument operacyjny — aktualizować przy każdej
-> zmianie stacku, subprocesora lub retencji. Spójny z Polityką prywatności 1.0.0,
-> DPA 1.0.0 i listą subprocesorów (docs/legal/drafts/).
+> **Wersja 1.2 · stan na 27 września 2026 r.** (1.2: rytm przeglądów i dziennik — sekcje D, E; 1.1: A13 — asystent AI.) Dokument operacyjny — aktualizować przy każdej
+> zmianie stacku, subprocesora lub retencji. Spójny z Polityką prywatności 1.1.0,
+> DPA 1.1.0 i listą subprocesorów (docs/legal/drafts/).
 >
 > **Administrator:** HVLN Dominik Kowalski, Zacisze 2A, 65-775 Zielona Góra,
 > NIP 9292069367, REGON 521024260 · **Kontakt RODO:** rodo@verris.pl · tel. +48 511 589 465
@@ -49,12 +49,30 @@ Załącznik 1.
 
 ## D. Przeglądy i decyzje
 
-- Przegląd rejestru: przy każdej zmianie subprocesora/retencji, nie rzadziej niż co 6 miesięcy.
+- Przegląd okresowy co 6 miesięcy: **26 marca i 26 września** (pierwszy: 26.03.2027) — przypomnienie
+  w kalendarzu właściciela i zadanie w panelu admina (powiadomienie „Przegląd okresowy RCPD”).
+  Dodatkowo przegląd przed wdrożeniem każdej zmiany z listy: nowy/zmieniony subprocesor (także region),
+  nowa kategoria danych lub cel, zmiana retencji (kod `RetentionScheduler` albo polityka), włączenie A12/A13,
+  nowy transfer poza EOG lub zmiana jego podstawy, zmiana środków z sekcji C, personel z dostępem do danych.
+  Po naruszeniu z danymi osobowymi — przegląd w ciągu 30 dni od zamknięcia incydentu.
+- Lista kontrolna przeglądu okresowego: czynności A/B zgodne z polityką prywatności i DPA Zał. 2;
+  lista subprocesorów = `subprocessors.md` = polityka pkt 5.1 = DPA Zał. 2; retencje = `RetentionScheduler`
+  (test `retention.scheduler.spec.ts` zielony); warunki A12/A13 nadal spełnione albo nadal wyłączone;
+  sekcja C zgodna ze stanem faktycznym (2FA personelu, VPN, szyfrowanie kopii, testy odtwarzania);
+  przesłanki IOD nadal nie występują; status KSC/NIS2 zgodny z PB-24. Wynik — wpis w sekcji E.
 - A12 aktywna dopiero po włączeniu GTM/Pixela (Variables `GTM_ID`/`META_PIXEL_ID`); przed
   włączeniem: akceptacja Google Ads Data Processing Terms i Meta Controller Addendum + publikacja
   polityki cookies opisującej te narzędzia (już przygotowana).
-- A13 aktywna dopiero po wpisaniu kluczy `AI_API_KEY` / `ANTHROPIC_API_KEY`; przed wpisaniem: konto API u dostawcy (akceptacja Services Agreement / Commercial Terms = zawarcie DPA z SCC) i publikacja Polityki prywatności 1.0.3. AI nie jest dalszym podmiotem przetwarzającym danych powierzonych przez klientów (DPA Zał. 2) — asystent nie ma dostępu do plików, baz ani poczty stron klientów.
-- IOD: niewyznaczony — brak przesłanek z art. 37 (do rewizji przy istotnym wzroście skali);
+- A13 aktywna dopiero po wpisaniu kluczy `AI_API_KEY` / `ANTHROPIC_API_KEY`; przed wpisaniem: konto API u dostawcy (akceptacja Services Agreement / Commercial Terms = zawarcie DPA z SCC) i publikacja Polityki prywatności 1.1.0. AI nie jest dalszym podmiotem przetwarzającym danych powierzonych przez klientów (DPA Zał. 2) — asystent nie ma dostępu do plików, baz ani poczty stron klientów.
+- IOD: niewyznaczony — brak przesłanek z art. 37 (sprawdzane przy każdym przeglądzie);
   punkt kontaktowy: rodo@verris.pl.
-- Decyzja o statusie NIS2/KSC i zgłoszenie do wykazu: termin ~3.10.2026 (patrz
-  `nis2-ksc-assessment.md`).
+- NIS2/KSC: podmiot kluczowy od uruchomienia DNS lub sprzedaży domen dla klientów (art. 5 ust. 1 pkt 4
+  ustawy o KSC); wniosek o wpis do wykazu w ciągu 6 miesięcy od tej daty (art. 7c ust. 1; rekomendacja: do 30 dni),
+  rodzaje: dostawca usług DNS, rejestracja nazw domen, usługi przetwarzania w chmurze — PB-24,
+  `nis2-ksc-assessment.md`.
+
+## E. Dziennik przeglądów
+
+| Data | Rodzaj | Wersja RCPD | Zakres | Wynik | Zatwierdził |
+|---|---|---|---|---|---|
+| 2026-09-27 | wdrożenie rytmu | 1.1 → 1.2 | sekcja D (rytm, lista kontrolna, KSC), nowa sekcja E | treść A–C bez zmian | Dominik Kowalski (decyzja w rozmowie 27.09.2026) |

@@ -97,8 +97,20 @@ async function publishOne(spec) {
   if (!fs.existsSync(filePath)) {
     throw new Error(`Missing draft: ${filePath}`);
   }
-  const contentMarkdown = fs.readFileSync(filePath, 'utf8');
+  // [DATA PUBLIKACJI] w nagłówku i stopce → dzisiejsza data (PB-03: data publikacji = data wejścia w życie).
+  const dzis = new Date().toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Warsaw' });
+  const contentMarkdown = fs.readFileSync(filePath, 'utf8').replaceAll('[DATA PUBLIKACJI]', `${dzis} r.`);
   const locale = 'pl';
+
+  // Opublikowana wersja to dowód, co klient zaakceptował — nie podmieniamy jej treści (27.09.2026:
+  // na produkcji były już 1.0.0 i 1.0.1; publikacja „1.0.0” nadpisałaby zaakceptowany tekst).
+  const istniejaca = await prisma.legalDocument.findUnique({
+    where: { kind_version_locale: { kind: spec.kind, version, locale } },
+    select: { contentMarkdown: true },
+  });
+  if (istniejaca && istniejaca.contentMarkdown !== contentMarkdown) {
+    throw new Error(`${spec.kind} v${version} jest już opublikowany z inną treścią — nadaj nowy numer (LEGAL_LIVE_VERSION).`);
+  }
 
   await prisma.$transaction(async (tx) => {
     await tx.legalDocument.updateMany({
