@@ -6,6 +6,7 @@ import { listAdminUsers } from "./data";
 import { ImpersonateButton } from "./impersonate-button";
 import { CreditWalletButton } from "./credit-wallet-button";
 import { CreateCustomerButton } from "./create-customer-button";
+import { getAdminSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,7 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
     error = err instanceof Error ? err.message : "Nieznany błąd";
   }
 
+  const ja = (await getAdminSession().catch(() => null))?.id;
   const MALY = `${PRZYCISK} !h-8 !px-3 !text-[13px]`;
   return (
     <div className="flex flex-col gap-[22px]">
@@ -75,7 +77,13 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
           <div className={`${WIERSZ} text-sm text-muted-foreground`}>Brak kont dla tych kryteriów.</div>
         ) : (
           data.rows.map((user) => {
-            const nazwa = user.firstName || user.lastName ? `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() : user.email;
+            // Zanonimizowane (RODO): zamiast „deleted-<uuid>@verris.local” dwa razy — krótka etykieta i skrót id.
+            const nazwa = user.anonymizedAt
+              ? "Konto usunięte"
+              : user.firstName || user.lastName
+                ? `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim()
+                : user.email;
+            const podpis = user.anonymizedAt ? `#${user.id.slice(0, 8)}` : user.email;
             const tresc = (
               <>
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-verris-green text-[13px] font-bold uppercase text-verris-paper">
@@ -83,7 +91,7 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
                 </span>
                 <span className="flex min-w-0 flex-col">
                   <span className="font-semibold">{nazwa}</span>
-                  <span className="break-all font-mono text-[12px] text-muted-foreground">{user.email}</span>
+                  <span className="break-all font-mono text-[12px] text-muted-foreground">{podpis}</span>
                 </span>
               </>
             );
@@ -130,7 +138,9 @@ export default async function AdminCustomersPage({ searchParams }: PageProps) {
                   ) : (
                     <>
                       <CreditWalletButton userId={user.id} email={user.email} currentBalance={user.walletBalance} className={MALY} etykieta="+ K" />
-                      <ImpersonateButton userId={user.id} email={user.email} accountRole={user.role} className={MALY} etykieta="Zaloguj" />
+                      {user.id !== ja ? (
+                        <ImpersonateButton userId={user.id} email={user.email} accountRole={user.role} className={MALY} etykieta="Zaloguj" />
+                      ) : null}
                     </>
                   )}
                 </span>

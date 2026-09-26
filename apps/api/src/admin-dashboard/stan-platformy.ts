@@ -92,7 +92,7 @@ export function uwagaWezlow(wezly: WezelWejscie[], teraz: number): SprawaUwagi[]
       continue;
     }
     if (s.status === 'ACTIVE' && (!s.lastHeartbeatAt || minutOd(s.lastHeartbeatAt, teraz) > SYGNAL_MAX_MIN)) {
-      const kiedy = s.lastHeartbeatAt ? `${minutOd(s.lastHeartbeatAt, teraz)} min bez sygnału` : 'agent jeszcze się nie odezwał';
+      const kiedy = s.lastHeartbeatAt ? `${czasTrwania(minutOd(s.lastHeartbeatAt, teraz))} bez sygnału` : 'agent jeszcze się nie odezwał';
       out.push({ waga: 'crit', tytul: `${n} nie wysyła sygnału`, opis: `${kiedy} · sprawdź agenta na węźle`, akcja: 'Węzeł', href });
     }
     if (s.status === 'ACTIVE' && !s.onboardVerifiedAt && raport) {
@@ -121,13 +121,19 @@ export function uwagaWezlow(wezly: WezelWejscie[], teraz: number): SprawaUwagi[]
   return out;
 }
 
+/** Czas w minutach po ludzku: „45 min”, „5 h”, „74 dni” (zamiast „107106 min”). */
+export function czasTrwania(m: number): string {
+  if (m < 120) return `${m} min`;
+  const h = Math.floor(m / 60);
+  if (h < 48) return `${h} h`;
+  const d = Math.floor(h / 24);
+  return `${d} dni`;
+}
+
 export function sygnal(d: Date | null, teraz: number): string {
   if (!d) return 'brak';
   const m = minutOd(d, teraz);
-  if (m < 2) return 'na żywo';
-  if (m < 120) return `${m} min temu`;
-  const h = Math.floor(m / 60);
-  return h < 48 ? `${h} h temu` : `${Math.floor(h / 24)} dni temu`;
+  return m < 2 ? 'na żywo' : `${czasTrwania(m)} temu`;
 }
 
 /** Zdarzenia do karty „Ostatnie zdarzenia” — tylko te, które mówią coś o stanie platformy. */

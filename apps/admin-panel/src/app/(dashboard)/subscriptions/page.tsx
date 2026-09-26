@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { services } from "@/lib/pl";
 import { formatCredits } from "@/lib/credits";
 import { Eyebrow, KARTA, Pigulka, WIERSZ } from "@/components/v2";
 import { listAdminSubscriptions } from "./data";
@@ -44,7 +45,7 @@ export default async function AdminSubscriptionsPage({ searchParams }: { searchP
       <div className="flex flex-col gap-2">
         <Eyebrow>Klienci i usługi</Eyebrow>
         <h1 className="text-[32px] lg:text-[40px]">Usługi</h1>
-        <span className="text-[15px] text-muted-foreground">{rows.length} najnowszych usług (API zwraca do 200)</span>
+        <span className="text-[15px] text-muted-foreground">{rows.length >= 200 ? "200 najnowszych usług — starsze znajdziesz przez kartę klienta" : services(rows.length)}</span>
       </div>
 
       <div className="flex flex-wrap gap-2" aria-label="Filtr stanu">

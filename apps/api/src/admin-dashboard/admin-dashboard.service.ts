@@ -5,6 +5,7 @@ import { RODZAJ_DOKUMENT_ROZLICZENIOWY } from '../billing/tryb-fakturowania.js';
 import { STOS_WEZLA } from '../servers/stos-wezla.js';
 import {
   ZDARZENIA,
+  czasTrwania,
   flotaZBazy,
   nazwaWezla,
   stanWezla,
@@ -299,7 +300,7 @@ export class AdminDashboardService {
       uwaga.push({
         waga: 'crit',
         tytul: `Zgłoszenie #${t.id.slice(0, 8)} po terminie pierwszej odpowiedzi`,
-        opis: `„${t.subject}” · ${klient} · ${po < 120 ? `${po} min` : `${Math.floor(po / 60)} h`} po terminie`,
+        opis: `„${t.subject}” · ${klient} · ${czasTrwania(po)} po terminie`,
         akcja: 'Otwórz',
         href: `/tickets/${t.id}`,
       });

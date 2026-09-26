@@ -11,7 +11,7 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { randomBytes } from 'crypto';
-import { Prisma, Role } from '@verris/database';
+import { Prisma, Role, SubscriptionStatus } from '@verris/database';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { AuditService } from '../common/audit/audit.service.js';
 import { AdminCustomerActions } from '../common/audit/audit.actions.js';
@@ -100,7 +100,8 @@ export class UsersAdminService {
       this.prisma.user.count({ where }),
       this.prisma.user.findMany({
         where,
-        include: { _count: { select: { subscriptions: true } } },
+        // Lista klientów pokazuje usługi żywe — anulowane i wygasłe zawyżały licznik (7 przy 2 aktywnych).
+        include: { _count: { select: { subscriptions: { where: { status: { notIn: [SubscriptionStatus.CANCELED, SubscriptionStatus.EXPIRED] } } } } } },
         orderBy: { createdAt: 'desc' },
         take: limit,
         skip: offset,

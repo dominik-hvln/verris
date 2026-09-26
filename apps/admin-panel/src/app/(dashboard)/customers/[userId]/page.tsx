@@ -252,7 +252,7 @@ export default async function AdminCustomerCardPage({
           { nazwa: `Usługi (${zywe.length})`, href: `${baza}?sekcja=uslugi`, on: sekcja === "uslugi" },
           { nazwa: "Rozliczenia", href: `${baza}?sekcja=rozliczenia`, on: sekcja === "rozliczenia" },
           ...(warunki ? [{ nazwa: "Warunki indywidualne", href: `${baza}?sekcja=warunki`, on: sekcja === "warunki" }] : []),
-          { nazwa: "Zgłoszenia", href: `${baza}?sekcja=zgloszenia`, on: sekcja === "zgloszenia", licznik: poTerminie.length || undefined },
+          { nazwa: `Zgłoszenia (${otwarteZgl.length})`, href: `${baza}?sekcja=zgloszenia`, on: sekcja === "zgloszenia" },
           { nazwa: "Dostępy i bezpieczeństwo", href: `${baza}?sekcja=dostepy`, on: sekcja === "dostepy" },
           { nazwa: "Dziennik", href: `${baza}?sekcja=dziennik`, on: sekcja === "dziennik" },
         ]}
