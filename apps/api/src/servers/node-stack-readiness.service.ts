@@ -303,7 +303,7 @@ export class NodeStackReadinessService {
 
     const tlsProbe = await this.probeTls(host, port);
     let apiOk = false;
-    let apiDetail = 'nie testowano';
+    let apiDetail: string;
     if (server.daUsername && server.daPasswordEnc) {
       try {
         const result = await this.da.testConnection(server.id);

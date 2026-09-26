@@ -689,7 +689,6 @@ export function zawin(
       continue;
     }
     if (biezaca) linie.push(biezaca);
-    biezaca = '';
     let kawalek = '';
     for (const znak of slowo) {
       if (kawalek && measureText(kawalek + znak, font, size) > maxW) {

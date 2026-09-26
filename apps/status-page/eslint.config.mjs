@@ -23,13 +23,16 @@ const ODSLONIETE_PRZEZ_NEXT_16 = {
   '@typescript-eslint/ban-ts-comment': 'warn',
 };
 
+// PB-38: ESLint 10 usunął m.in. context.getFilename(); wtyczki z eslint-config-next (react, import,
+// jsx-a11y) jeszcze tego nie obsługują (vercel/next.js#89764). fixupConfigRules z @eslint/compat
+// (narzędzie zespołu ESLint) podkłada brakujące metody — do czasu wydania poprawek upstream.
+import { fixupConfigRules } from '@eslint/compat';
 import coreWebVitals from 'eslint-config-next/core-web-vitals';
 import nextTypescript from 'eslint-config-next/typescript';
 
 const config = [
   { ignores: ['.next/**', 'node_modules/**', 'dist/**', 'out/**', 'next-env.d.ts'] },
-  ...coreWebVitals,
-  ...nextTypescript,
+  ...fixupConfigRules([...coreWebVitals, ...nextTypescript]),
   // X-42: reguły react-hooks tylko w zasięgu, w którym eslint-config-next rejestruje wtyczkę
   // (bez .cjs — inaczej jest.config.cjs wywraca lintera: „could not find plugin react-hooks”).
   { files: ['**/*.{js,jsx,mjs,ts,tsx,mts,cts}'], rules: ODSLONIETE_PRZEZ_NEXT_16 },

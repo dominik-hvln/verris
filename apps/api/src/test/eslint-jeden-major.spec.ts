@@ -12,7 +12,7 @@ const KORZEN = resolve(__dirname, '../../../..');
  * pilnowało, że wersja jest jedna — to ten sam brak kontroli co przy wersji Node
  * (ENV-01). Ten strażnik czyta deklaracje wszystkich paczek i lockfile.
  */
-const MAJOR = 9;
+const MAJOR = 10;
 const PAKIETY = ['eslint', '@eslint/js'];
 
 function manifesty(): Array<{ plik: string; json: Record<string, Record<string, string>> }> {

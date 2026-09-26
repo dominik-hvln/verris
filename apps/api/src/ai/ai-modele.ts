@@ -44,7 +44,7 @@ const MODEL_RE = /^[A-Za-z0-9._:-]{2,80}$/;
 
 /** Ustawienie z bazy (JSON) → pełna, bezpieczna konfiguracja; śmieci wracają do wartości domyślnych. */
 export function odczytajKonfiguracjeAi(surowe: string | null | undefined): KonfiguracjaAi {
-  let v: Partial<KonfiguracjaAi> = {};
+  let v: Partial<KonfiguracjaAi>;
   try {
     v = surowe ? (JSON.parse(surowe) as Partial<KonfiguracjaAi>) : {};
   } catch {

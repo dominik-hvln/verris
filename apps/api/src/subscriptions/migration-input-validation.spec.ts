@@ -268,7 +268,7 @@ describe('Z-03 — worker migracji', () => {
     const kopia = join(katalog, 'node-migration-worker.sh');
     copyFileSync(WORKER, kopia);
 
-    let kod: number | null = null;
+    let kod: number | null;
     try {
       execFileSync('bash', [kopia, 'once'], { stdio: 'pipe', timeout: 20_000 });
       kod = 0;

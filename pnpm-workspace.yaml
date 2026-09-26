@@ -11,7 +11,8 @@ strictPeerDependencies: false
 # ENV-01 — silnik deklarowany = silnik faktyczny (package.json engines, .nvmrc). Odmowa zamiast ostrzeżenia.
 engineStrict: true
 # Łańcuch dostaw: pnpm 12 domyślnie nie instaluje wersji świeższych niż minimalny wiek wydania.
-# Nie dopisujemy wyjątków (minimumReleaseAgeExclude) — czekamy, aż wersja „odleży”.
+# Nie dopisujemy wyjątków (minimumReleaseAgeExclude) — czekamy, aż wersja „odleży”; strict = pnpm nie dopisze ich sam.
+minimumReleaseAgeStrict: true
 
 # Od pnpm 10 skrypty instalacyjne zależności są domyślnie zablokowane — dozwolone tylko te, które ich potrzebują.
 # Tylko pakiety, które bez skryptu nie działają (silniki Prismy, weryfikacja binarki esbuild, bcrypt

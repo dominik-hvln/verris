@@ -1,3 +1,5 @@
+// PB-38: NestJS 12 to czysty ESM; skrypty `test`/`test:int` uruchamiają Jesta z --experimental-vm-modules,
+// dzięki czemu Jest ładuje go przez require(esm) (Node 24.9+, dokumentacja Jesta: ECMAScript Modules).
 /**
  * X-04 — konfiguracja testów integracyjnych.
  *

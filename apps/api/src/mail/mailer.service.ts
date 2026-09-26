@@ -6,7 +6,7 @@ import {
   EmailStatus,
   Prisma,
 } from '@verris/database';
-import { MailMessage, MailerProvider } from './mailer.interface';
+import type { MailMessage, MailerProvider } from './mailer.interface';
 import {
   buildSmtpMailerProvider,
   isLocalSmtpHost,
@@ -242,7 +242,7 @@ export class MailerService {
         autoscalingEmail: boolean;
         quotaAlertsEmail: boolean;
       } | null;
-    } | null = null;
+    } | null;
 
     if (message.userId) {
       user = await this.prisma.user.findUnique({

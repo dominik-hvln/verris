@@ -133,7 +133,7 @@ export class DirectAdminService {
 
     const norm = (d: string) => d.trim().toLowerCase();
     let adminSettings: 'updated' | 'unchanged' | 'error' = 'updated';
-    let adminSettingsDetail: string | null = null;
+    let adminSettingsDetail: string;
     try {
       const axiosClient = (client as unknown as { client?: SurowyKlientDa }).client;
       let currentNs1 = '';

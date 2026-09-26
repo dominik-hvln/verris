@@ -35,7 +35,7 @@ esac
     encoding: 'utf8',
     env: { PATH: process.env.PATH ?? '/usr/bin:/bin', AS_SELECTOR_BIN: atrapa, AS_DA_USER: UZYTKOWNIK, ...env },
   });
-  let wywolania: string[][] = [];
+  let wywolania: string[][];
   try {
     wywolania = readFileSync(argsPlik, 'utf8').split('\n').filter(Boolean).map((l) => l.split('\0').filter(Boolean));
   } catch {

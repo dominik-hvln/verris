@@ -641,7 +641,7 @@ export class EmailMarketingService {
       });
       if (existing) continue;
 
-      let status: 'SENT' | 'SUPPRESSED' | 'FAILED' = 'SENT';
+      let status: 'SENT' | 'SUPPRESSED' | 'FAILED';
       let reason: string | null = null;
       try {
         const result = await this.deliver(campaign, campaign.list, contact);

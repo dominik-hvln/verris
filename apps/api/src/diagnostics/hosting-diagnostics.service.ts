@@ -76,8 +76,8 @@ export class HostingDiagnosticsService {
     }
 
     let hostname: string;
-    let expectedV4: string | null = null;
-    let serverLabel: string | null = null;
+    let expectedV4: string | null;
+    let serverLabel: string | null;
 
     if (opts.subscriptionId?.trim()) {
       const sub = await this.prisma.subscription.findFirst({

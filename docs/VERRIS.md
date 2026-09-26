@@ -18,8 +18,11 @@ Fala 1 (zrobiona): **Node 24** (Active LTS; Node 26 — gdy zostanie LTS, koniec
 (7.x, gdy typescript-eslint go obsłuży — dziś peer `<6.1`), **pnpm 12.6** (ustawienia w `pnpm-workspace.yaml`,
 skrypty instalacyjne tylko z `allowBuilds`, minimalny wiek wydania bez wyjątków), obrazy na Debian 13 „trixie”,
 Next 16.3.6, Payload 3.90. Migracja TS 6 bez `ignoreDeprecations`: `moduleResolution: node` → `bundler`, bez
-`baseUrl`/`downlevelIteration`, jawne `rootDir`. Dalej: fala 2 NestJS 12 / ESLint 10 / SimpleWebAuthn 14 /
-GraphQL 17; fala 3 Postgres 18 (procedura z kopią), Redis 8, monitoring; fala 4 Dependabot + strażnik EOL +
+`baseUrl`/`downlevelIteration`, jawne `rootDir`. Fala 2 (zrobiona): **NestJS 12** (pakiety ESM; API zostaje CJS,
+Jest z `--experimental-vm-modules` ładuje je przez require(esm); build **Rspack** zamiast wycofanego webpacka),
+**ESLint 10** (ESLint 9 ma EOL od 06.08.2026; wtyczki z eslint-config-next jeszcze bez v10 — vercel/next.js#89764 —
+więc panele owijają je `fixupConfigRules` z `@eslint/compat`; usunąć, gdy Next wyda poprawkę), **SimpleWebAuthn 14**.
+**GraphQL zostaje na 16.x** — Payload 3.90 wymaga `graphql ^16.8.1`; 17 razem z Payloadem, który go obsłuży. Fala 3 Postgres 18 (procedura z kopią), Redis 8, monitoring; fala 4 Dependabot + strażnik EOL +
 kafelek „wersje”. **MinIO zostaje**, na Hetzner Object Storage przechodzimy razem z węzłem testowym.
 Prisma 8 — po GA (dziś RC; brakuje `increment`, zagnieżdżonych zapisów i kodów P2002, których używamy).
 

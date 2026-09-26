@@ -15,7 +15,7 @@ import {
 } from '@simplewebauthn/server';
 import type {
   AuthenticationResponseJSON,
-  AuthenticatorTransportFuture,
+  AuthenticatorTransport,
   RegistrationResponseJSON,
 } from '@simplewebauthn/server';
 import { isoBase64URL } from '@simplewebauthn/server/helpers';
@@ -28,6 +28,8 @@ import {
 } from '../../mail/templates/security-notifications';
 
 const CHALLENGE_TTL_MS = 5 * 60 * 1000;
+
+const TRANSPORTY = new Set<AuthenticatorTransport>(['ble', 'hybrid', 'internal', 'nfc', 'usb']);
 
 @Injectable()
 export class WebAuthnService {
@@ -302,10 +304,15 @@ export class WebAuthnService {
 
   private parseTransports(
     raw: string | null | undefined,
-  ): AuthenticatorTransportFuture[] | undefined {
+  ): AuthenticatorTransport[] | undefined {
     if (!raw) return undefined;
-    const values = raw.split(',').map((item) => item.trim()).filter(Boolean);
-    return values.length ? (values as AuthenticatorTransportFuture[]) : undefined;
+    // SimpleWebAuthn 14 zna tylko transporty z WebAuthn L3; starsze zapisy („cable”, „smart-card”)
+    // pomijamy — przeglądarka i tak ignoruje nieznane wartości.
+    const values = raw
+      .split(',')
+      .map((item) => item.trim())
+      .filter((t): t is AuthenticatorTransport => TRANSPORTY.has(t as AuthenticatorTransport));
+    return values.length ? values : undefined;
   }
 
   private async storeRegistrationChallenge(userId: string, challenge: string): Promise<void> {

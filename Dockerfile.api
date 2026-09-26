@@ -96,7 +96,7 @@ COPY --from=build /workspace/libs/directadmin-sdk/dist ./libs/directadmin-sdk/di
 COPY --from=build /workspace/libs/directadmin-sdk/package.json ./libs/directadmin-sdk/package.json
 COPY --from=build /workspace/node_modules ./node_modules
 # pnpm workspace packages often resolve to ../../libs/*; those symlinks break on COPY.
-# Recreate @verris/* so Node can resolve webpack externals (see dist/main.js).
+# Recreate @verris/* so Node can resolve bundler externals (Rspack, see dist/main.js).
 RUN mkdir -p /app/node_modules/@verris && \
     ln -sfn /app/libs/database /app/node_modules/@verris/database && \
     ln -sfn /app/libs/contracts /app/node_modules/@verris/contracts && \

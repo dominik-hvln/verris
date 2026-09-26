@@ -657,7 +657,7 @@ export class PlatformSettingsService {
     const map = await this.loadMap();
     const K = PLATFORM_SETTING_KEYS;
     const tokenEnc = map.get(K.KSEF_TOKEN_ENC) ?? '';
-    let token = '';
+    let token: string;
     try {
       token = tokenEnc ? this.crypto.decrypt(tokenEnc) : process.env.KSEF_TOKEN ?? '';
     } catch {

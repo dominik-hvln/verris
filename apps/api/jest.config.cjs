@@ -1,15 +1,11 @@
+// PB-38: NestJS 12 to czysty ESM; skrypty `test`/`test:int` uruchamiają Jesta z --experimental-vm-modules,
+// dzięki czemu Jest ładuje go przez require(esm) (Node 24.9+, dokumentacja Jesta: ECMAScript Modules).
 /** @type {import('jest').Config} */
 module.exports = {
   moduleFileExtensions: ['js', 'json', 'ts'],
   rootDir: '.',
   testRegex: '.*\\.spec\\.ts$',
   transform: {
-    // X-22 — archiver 8 i jego zależności to czysty ESM; bez tłumaczenia na CJS żaden
-    // test nie mógł dotknąć eksportu RODO (i nie dotykał — patrz X-21).
-    '/node_modules/.+\\.js$': [
-      'ts-jest',
-      { tsconfig: { allowJs: true, module: 'commonjs', target: 'es2022', esModuleInterop: true, isolatedModules: true } },
-    ],
     '^.+\\.(t|j)s$': [
       'ts-jest',
       {
@@ -19,8 +15,8 @@ module.exports = {
   },
   collectCoverageFrom: ['src/**/*.(t|j)s', '!src/**/*.spec.ts', '!src/test/**'],
   coverageDirectory: './coverage',
-  // Tłumaczymy wyłącznie paczki ESM z łańcucha archivera; reszta node_modules bez zmian.
-  transformIgnorePatterns: ['/node_modules/(?!.*/?(archiver|crc32-stream|zip-stream|compress-commons|is-stream)/)'],
+  // X-22 tłumaczyło archivera (czysty ESM) na CJS. Od PB-38 Jest ładuje paczki ESM przez require(esm)
+  // (--experimental-vm-modules w skrypcie `test`), więc node_modules zostają nietknięte.
   testEnvironment: 'node',
   setupFiles: ['<rootDir>/src/test/jest-setup.ts'],
 };

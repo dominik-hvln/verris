@@ -844,13 +844,12 @@ export class SubscriptionsService {
     }
 
     let daUnsuspended = false;
-    let daError: string | null = null;
     if (subscription.account) {
       try {
         await this.unsuspendOnDa(subscription.account.serverId, subscription.account.daUsername);
         daUnsuspended = true;
       } catch (err) {
-        daError = err instanceof Error ? err.message : String(err);
+        const daError = err instanceof Error ? err.message : String(err);
         this.logger.error(
           `DA unsuspend failed for sub=${opts.subscriptionId}: ${daError}`,
         );
@@ -1296,7 +1295,7 @@ export class SubscriptionsService {
       subscriptionId,
     });
 
-    let subscription = await this.prisma.subscription.update({
+    const subscription = await this.prisma.subscription.update({
       where: { id: subscriptionId },
       data: {
         status: SubscriptionStatus.PROVISIONING,
@@ -1338,7 +1337,7 @@ export class SubscriptionsService {
         idempotencyKey: `sub-${subscriptionId}-initial-refund`,
         subscriptionId,
       });
-      subscription = await this.prisma.subscription.update({
+      await this.prisma.subscription.update({
         where: { id: subscriptionId },
         data: { status: SubscriptionStatus.PENDING_PAYMENT },
       });

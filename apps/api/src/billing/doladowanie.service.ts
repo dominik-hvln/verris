@@ -45,7 +45,7 @@ export class DoladowanieService {
     const stawka = m.vatStawka === 'np' || !m.vatStawka ? null : Number(m.vatStawka);
     const traktowanie = traktowanieZKodu(m.vatKod, stawka, m.vatKraj);
     if (!traktowanie) return null;
-    let vies: WynikVies | null = null;
+    let vies: WynikVies | null;
     try { vies = m.vies ? (JSON.parse(m.vies) as WynikVies) : null; } catch { vies = null; }
     return { traktowanie, vies };
   }
